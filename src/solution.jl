@@ -1,0 +1,3 @@
+type Solution    
+
+end
