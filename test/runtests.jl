@@ -1,42 +1,62 @@
-using Coluna
-@static if VERSION < v"0.7.0-DEV.2005"
-    using Base.Test
-else
-    using Test
+import Coluna
+using Base.Test
+
+import Cbc
+import MathOptInterface, MathOptInterface.Utilities
+
+const MOIU = MathOptInterface.Utilities
+const MOI = MathOptInterface
+const CL = Coluna
+
+include("colgenroot.jl")
+
+function testdefaultbuilders()
+
+    useroptimizer = Cbc.CbcOptimizer()
+    ## Problem builder
+    problem = CL.SimpleProblem(useroptimizer)
+    x1 = CL.VarConstr(problem, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0)
+    x2 = CL.VarConstr(x1)
+    x3 = CL.Variable(problem, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0, 0.0, 10.0)
+    x4 = CL.Variable(x3)
+    x5 = CL.SubProbVar(problem, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0, 0.0, 10.0, 
+                       problem, -Inf, Inf, -Inf, Inf)
+    x6 = CL.MasterVar(problem, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0, 0.0, 10.0)
+    x7 = CL.MasterVar(x3)
+    x7 = CL.MasterVar(x6)
+
+    constr1 = CL.Constraint(problem, "knapConstr", 5.0, 'L', 'M', 's')
+    constr2 = CL.MasterConstr(problem, "knapConstr", 5.0, 'L', 'M', 's')
+
 end
 
-# write your own tests here
-@test 1 == 2
+function testpuremaster()
+    useroptimizer = Cbc.CbcOptimizer()
 
-workspace()
-IntOrString = Union{Int,AbstractString}
-type Yolo
-    a::IntOrString
-end
+    problem = CL.SimpleProblem(useroptimizer)
 
-x = Yolo(1)
+    x1 = CL.MasterVar(problem, "x1", -10.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+    x2 = CL.MasterVar(problem, "x2", -15.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+    x3 = CL.MasterVar(problem, "x3", -20.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+
+    CL.addvariable(problem, x1)
+    CL.addvariable(problem, x2)
+    CL.addvariable(problem, x3)
+
+    constr = CL.MasterConstr(problem, "knapConstr", 5.0, 'L', 'M', 's')
+
+    CL.addconstraint(problem, constr)
+
+    CL.addmembership(x1, constr, 2.0)
+    CL.addmembership(x2, constr, 3.0)
+    CL.addmembership(x3, constr, 4.0)
+
+    CL.optimize(problem)
     
-typeof(x.a)
-
-workspace()
-abstract type MyInteger end
-type MyInt <: MyInteger
-    inner::Int
+    @test MOI.get(problem.optimizer, MOI.ObjectiveValue()) == -25
 end
 
-import Base: +
-+(a::MyInt, b::MyInt) = MyInt(a.inner + b.inner)
 
-function test2()   
-   a = Vector{MyInteger}()
-   # a = Vector{Union{BigFloat, Float16, Float32, Float64}}()
-   
-   for i in 1:3000000
-       push!(a, MyInt(i))
-   end 
-   
-   return sum(a)
-end
-
-@time test2()
-
+testdefaultbuilders()
+testpuremaster()
+testcolgenatroot()

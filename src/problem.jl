@@ -140,7 +140,7 @@ type Problem{VM <: AbstractVarIndexManager, CM <: AbstractConstrIndexManager}
     isRetrievedRedCosts::Bool
 end
 
-function Problem{VM,CM}(useroptimizer::MOI.AbstractOptimizer) where { VM <: AbstractVarIndexManager, CM <: AbstractConstrIndexManager}
+function Problem{VM,CM}(useroptimizer::MOI.AbstractOptimizer) where {VM <: AbstractVarIndexManager, CM <: AbstractConstrIndexManager}
 
     optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), useroptimizer)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
@@ -160,8 +160,10 @@ function addvariable(problem::Problem, var::Variable)
     addinvarmanager(problem.varmanager, var)
     var.moiindex = MOI.addvariable!(problem.optimizer)
     push!(problem.varconstrvec, var)
-    MOI.modifyobjective!(problem.optimizer, MOI.ScalarCoefficientChange{Float}(var.moiindex, var.costrhs))
-    MOI.addconstraint!(problem.optimizer, MOI.SingleVariable(var.moiindex), MOI.Interval(var.lowerbound, var.upperbound))
+    MOI.modify!(problem.optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), 
+                MOI.ScalarCoefficientChange{Float}(var.moiindex, var.costrhs))
+    MOI.addconstraint!(problem.optimizer, MOI.SingleVariable(var.moiindex), 
+                       MOI.Interval(var.lowerbound, var.upperbound))
 end
 
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
@@ -173,14 +175,24 @@ function addconstraint(problem::Problem, constr::Constraint)
     push!(problem.varconstrvec, constr)
 end
 
-
-function addmembership(var::MasterVar, constr::MasterConstr, coef::Float)
-
+function addmembership(var::Variable, constr::Constraint, coef::Float)
     var.membercoefmap[var.vc_ref] = coef
     constr.membercoefmap[constr.vc_ref] = coef
-    MOI.modifyconstraint!(var.problem.optimizer, constr.moiindex, MOI.ScalarCoefficientChange{Float}(var.moiindex, coef))
-
+    MOI.modify!(var.problem.optimizer,  constr.moiindex, 
+                MOI.ScalarCoefficientChange{Float}(var.moiindex, coef))
 end
+
+function addmembership(var::SubProbVar, constr::MasterConstr, coef::Float)
+    var.masterconstrcoefmap[var.vc_ref] = coef
+    constr.subprobvarcoefmap[constr.vc_ref] = coef
+end
+
+# function addmembership(var::MasterVar, constr::MasterConstr, coef::Float)
+#     var.membercoefmap[var.vc_ref] = coef
+#     constr.membercoefmap[constr.vc_ref] = coef
+#     MOI.modify!(var.problem.optimizer,  constr.moiindex, 
+#                 MOI.ScalarCoefficientChange{Float}(var.moiindex, coef))
+# end
 
 function optimize(problem::Problem)
     MOI.optimize!(problem.optimizer)

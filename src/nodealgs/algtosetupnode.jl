@@ -96,9 +96,11 @@ type ProblemSetupInfo
     modifiedstaticconstrsinf::Vector{ConstraintInfo}
 end
 
-ProblemSetupInfo(treatorder) = ProblemSetupInfo(treatoder,0,false, Vector{VariableSmallInfo}(),
-        Vector{ConstraintInfo}(), Vector{ConstraintInfo}(), Vector{SubProblemInfo}(), Vector{VariableSolInfo}(),
-        Vector{VariableInfo}(), Vector{ConstraintInfo}())
+ProblemSetupInfo(treatorder) = ProblemSetupInfo(treatorder, 0, false, 
+        Vector{VariableSmallInfo}(), Vector{ConstraintInfo}(), 
+        Vector{ConstraintInfo}(), Vector{SubProblemInfo}(), 
+        Vector{VariableSolInfo}(), Vector{VariableInfo}(), 
+        Vector{ConstraintInfo}())
 
 @hl type AlgToSetdownNode
     masterprob::Problem

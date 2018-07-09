@@ -1,7 +1,8 @@
 module Coluna
 
-using HighLevelTypes.@hl
-using HighLevelTypes.tuplejoin
+import Parameters.@with_kw
+import HighLevelTypes.@hl
+import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
@@ -22,7 +23,11 @@ include("variables.jl")
 include("solution.jl")
 include("mastercolumn.jl")
 include("problem.jl")
-include("nodealgs/problemsetup.jl")
+include("nodealgs/algtosetupnode.jl")
+include("nodealgs/algtopreprocessnode.jl")
+include("nodealgs/algtoevalnode.jl")
+include("nodealgs/algtoprimalheurinnode.jl")
+include("nodealgs/algtogeneratechildrennodes.jl")
 include("node.jl")
 include("model.jl")
 
