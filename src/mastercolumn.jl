@@ -1,4 +1,4 @@
-@hl type MasterColumn <: MasterVar
+@hl type MasterColumn <: Variable
     solution::Solution
 
     # ```
@@ -16,8 +16,8 @@ end
 
 function MasterColumnBuilder(problem::P, sp_sol::Solution,
                              name::String) where P
-    return tuplejoin(MasterVarBuilder(problem,
+    return tuplejoin(VariableBuilder(problem,
             string(name, problem.counter.value), 0.0, 'P',
-            spSol.type, 'd', -1, 0.0, Inf, 'U', spSol.priority), spSol,
-            0, 0 #= enumeration not supported =#, spSol.countAsSolution, true)
+            sp_sol.type, 'd', -1, 0.0, Inf), sp_sol,
+            0, 0 #= enumeration not supported =#, true)
 end

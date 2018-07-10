@@ -12,7 +12,7 @@
 
 
     # ```
-    # To represent global upper bound on variable primal / constraint dual 
+    # To represent global upper bound on variable primal / constraint dual
     # ```
     upper_bound::Float
 
@@ -20,14 +20,14 @@
     cur_ub::Float
 end
 
-VariableBuilder(var::Variable) = tuplejoin(VarConstrBuilder(var), 
+VariableBuilder(var::Variable) = tuplejoin(VarConstrBuilder(var),
         (MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
 
-function VariableBuilder( problem::P, name::String, costrhs::Float, sense::Char, 
-                          vc_type::Char, flag::Char, directive::Char, 
-                          priority::Float, lowerBound::Float, upperBound::Float) 
-                          where P
-    return tuplejoin(VarConstrBuilder( problem, name, costrhs, sense, vc_type, 
+function VariableBuilder( problem::P, name::String, costrhs::Float, sense::Char,
+                          vc_type::Char, flag::Char, directive::Char,
+                          priority::Float, lowerBound::Float,
+                          upperBound::Float) where P
+    return tuplejoin(VarConstrBuilder( problem, name, costrhs, sense, vc_type,
                                        flag, directive, priority),
                       MOI.VariableIndex(-1), lowerBound, upperBound, -Inf, Inf)
 end
@@ -66,14 +66,14 @@ end
     mastercolcoefmap::Dict{Int, Float}
 end
 
-function SubProbVarBuilder(problem::P, name::String, costrhs::Float, sense::Char, 
-                           vc_type::Char, flag::Char, directive::Char, 
-                           priority::Float, lowerBound::Float, upperBound::Float, 
-                           masterproblem::M, globallb::Float, globalub::Float, 
+function SubProbVarBuilder(problem::P, name::String, costrhs::Float, sense::Char,
+                           vc_type::Char, flag::Char, directive::Char,
+                           priority::Float, lowerBound::Float, upperBound::Float,
+                           masterproblem::M, globallb::Float, globalub::Float,
                            curgloballb::Float, curglobalub::Float) where {P,M}
-    return tuplejoin(VariableBuilder(problem, name, costrhs, sense, vc_type, flag, 
+    return tuplejoin(VariableBuilder(problem, name, costrhs, sense, vc_type, flag,
                                      directive, priority, lowerBound, upperBound ),
-                      masterproblem, globallb, globalub, curgloballb, curglobalub, 
+                      masterproblem, globallb, globalub, curgloballb, curglobalub,
                       Dict{Int,Float}(), Dict{Int,Float}())
 end
 
@@ -85,9 +85,9 @@ end
 # end
 
 # MasterVarBuilder(v::Variable) = tuplejoin(VariableBuilder(v), (0.0,))
-# function MasterVarBuilder( problem::P, name::String, costrhs::Float, sense::Char, 
-#           vc_type::Char, flag::Char, 
+# function MasterVarBuilder( problem::P, name::String, costrhs::Float, sense::Char,
+#           vc_type::Char, flag::Char,
 #                            directive::Char, priority::Float, lowerBound::Float, upperBound::Float ) where P
-#     return tuplejoin(VariableBuilder( problem, name, costrhs, sense, vc_type, flag, directive, priority, 
+#     return tuplejoin(VariableBuilder( problem, name, costrhs, sense, vc_type, flag, directive, priority,
 #                                       lowerBound, upperBound), 0.0)
 # end
