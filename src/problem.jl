@@ -1,34 +1,38 @@
 
 type VarMpFormIndexStatus{V<:Variable}
     variable::V
-    statusinbasicsol::Int
+    status_in_basic_sol::Int
 end
 
 type ConstrMpFormIndexStatus{C<:Constraint}
     constraint::C
-    statusinbasicsol::Int
+    status_in_basic_sol::Int
 end
 
 type LpBasisRecord
     name::String
-    varsinbasis::Vector{VarMpFormIndexStatus}
-    const:rsinbasis::Vector{ConstrMpFormIndexStatus}
+    vars_in_basis::Vector{VarMpFormIndexStatus}
+    constr_in_basis::Vector{ConstrMpFormIndexStatus}
 end
 
-LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormIndexStatus}(), Vector{ConstrMpFormIndexStatus}())
+LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormIndexStatus}(), 
+                              Vector{ConstrMpFormIndexStatus}())
+
 LpBasisRecord() = LpBasisRecord("basis")
 
-function clear(basis::LpBasisRecord; removemarksinvars=true, removemarksinconstrs=true)::Void
-    if removemarksinvars
-        for var in varsinbasis
-            var.isinfoupdated = false
+function clear(basis::LpBasisRecord; remove_marks_in_vars=true, 
+               remove_marks_in_constrs=true)::Void
+               
+    if remove_marks_in_vars
+        for var in basis.vars_in_basis
+            var.is_info_updated = false
         end
-        empty!(basis.varsinbasis)
+        empty!(basis.vars_in_basis)
     end
 
-    if removemarksinconstrs
-        for constr in constrinbasis
-            constr.isinfoupdated = false
+    if remove_marks_in_constrs
+        for constr in constr_in_basis
+            constr.is_info_updated = false
         end
         empty!(basis.constrsinbasis)
     end
@@ -41,9 +45,9 @@ type VariableSolInfo{V<:Variable}
     value::Float
 end
 
-function applyvarinfo(varsolinfo::VariableSolInfo)::Void
-    variable = varsolinfo.variable
-    value = varsolinfo.value
+function applyvarinfo(var_sol_info::VariableSolInfo)::Void
+    variable = var_sol_info.variable
+    value = var_sol_info.value
     problem = variable.problem
     updatepartialsolution(problem,variable,value)
 end
@@ -53,23 +57,24 @@ abstract type AbstractVarIndexManager end
 abstract type AbstractConstrIndexManager end
 
 type SimpleVarIndexManager <: AbstractVarIndexManager
-    activestaticlist::Vector{Variable}
-    activedynamiclist::Vector{Variable}
-    unsuitablestaticlist::Vector{Variable}
-    unsuitabledynamiclist::Vector{Variable}
+    active_static_list::Vector{Variable}
+    active_dynamic_list::Vector{Variable}
+    unsuitable_static_list::Vector{Variable}
+    unsuitable_dynamic_list::Vector{Variable}
 end
 
-SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(), Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
+SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(),
+        Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
 
 function addinvarmanager(varmanager::SimpleVarIndexManager, var::Variable)
     if var.status == Active && var.flag == 's'
-        list = varmanager.activestaticlist
+        list = var_manager.active_static_list
     elseif var.status == Active && var.flag == 'd'
-        list = activedynamiclist
+        list = active_dynamic_list
     elseif var.status == Unsuitable && var.flag == 's'
-        list = unsuitablestaticlist
+        list = unsuitable_static_list
     elseif var.status == Unsuitable && var.flag == 'd'
-        list = inactivedynamiclist
+        list = inactive_dynamic_list
     else
         error("Status $(var.status) and flag $(var.flag) are not supported")
     end
@@ -78,23 +83,26 @@ function addinvarmanager(varmanager::SimpleVarIndexManager, var::Variable)
 end
 
 type SimpleConstrIndexManager <: AbstractConstrIndexManager
-    activestaticlist::Vector{Constraint}
-    activedynamiclist::Vector{Constraint}
-    unsuitablestaticlist::Vector{Constraint}
-    unsuitabledynamiclist::Vector{Constraint}
+    active_static_list::Vector{Constraint}
+    active_dynamic_list::Vector{Constraint}
+    unsuitable_static_list::Vector{Constraint}
+    unsuitable_dynamic_list::Vector{Constraint}
 end
 
-SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}())
+SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(), 
+        Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}())
 
-function addinconstrmanager(constrmanager::SimpleConstrIndexManager, constr::Constraint)
+function addinconstrmanager(constrmanager::SimpleConstrIndexManager, 
+                            constr::Constraint)
+                            
     if constr.status == Active && constr.flag == 's'
-        list = constrmanager.activestaticlist
+        list = constr_manager.active_static_list
     elseif constr.status == Active && constr.flag == 'd'
-        list = activedynamiclist
+        list = active_dynamic_list
     elseif constr.status == Unsuitable && constr.flag == 's'
-        list = unsuitablestaticlist
+        list = unsuitable_static_list
     elseif constr.status == Unsuitable && constr.flag == 'd'
-        list = inactivedynamiclist
+        list = inactive_dynamic_list
     else
         error("Status $(constr.status) and flag $(constr.flag) are not supported")
     end
@@ -110,50 +118,53 @@ type CompactProblem{VM <: AbstractVarIndexManager,
     # probInfeasiblesFlag::Bool
 
     # objvalueordermagnitude::Float
-    probisbuilt::Bool
+    prob_is_built::Bool
 
     optimizer::MOI.AbstractOptimizer
     # primalFormulation::LPform
 
-    varmanager::VM
-    constrmanager::CM
+    var_manager::VM
+    constr_manager::CM
 
-    inprimallpsol::Set{Variable}
+    in_primal_lp_sol::Set{Variable}
     # inprimalipsol::Set{Variable}
-    nonzeroredcostvars::Set{Variable}
-    indualsol::Set{Constraint}
+    non_zero_red_cost_vars::Set{Variable}
+    in_dual_sol::Set{Constraint}
 
-    partialsolutionvalue::Float
-    partialsolution::Dict{Variable,Float}
+    partial_solution_value::Float
+    partial_solution::Dict{Variable,Float}
 
     # nbofrecordedsol::Int
-    recordedsol::Vector{Solution}
+    recorded_sol::Vector{Solution}
 
     # needed for new preprocessing
-    preprocessedconstrslist::Vector{Constraint}
-    preprocessedvarslist::Vector{Variable}
+    preprocessed_constrs_list::Vector{Constraint}
+    preprocessed_vars_list::Vector{Variable}
 
     counter::VarConstrCounter
-    varconstrvec::Vector{VarConstr}
+    var_constr_vec::Vector{VarConstr}
 
     # added for more efficiency and to fix bug
     # after columns are cleaned we can t ask for red costs
     # before the MIPSolver solves the master again.
     # It is put to true in retrieveRedCosts()
     # It is put to false in resetSolution()
-    isRetrievedRedCosts::Bool
+    is_retrieved_red_costs::Bool
 end
 
-function Problem{VM,CM}(useroptimizer::MOI.AbstractOptimizer) where {VM <: AbstractVarIndexManager, CM <: AbstractConstrIndexManager}
+function Problem{VM,CM}(useroptimizer::MOI.AbstractOptimizer) 
+        where {VM <: AbstractVarIndexManager, CM <: AbstractConstrIndexManager}
 
-    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), useroptimizer)
+    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), 
+                                      useroptimizer)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
-    MOI.set!(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), f)
+    MOI.set!(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
     MOI.set!(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
 
-    Problem(false, optimizer, VM(), CM(), Set{Variable}(), Set{Variable}(), Set{Constraint}(), 0.0,
-            Dict{Variable,Float}(), Vector{Solution}(), Vector{Constraint}(), Vector{Variable}(),
-            VarConstrCounter(0), Vector{VarConstr}(), false)
+    Problem(false, optimizer, VM(), CM(), Set{Variable}(), Set{Variable}(), 
+            Set{Constraint}(), 0.0, Dict{Variable,Float}(), Vector{Solution}(), 
+            Vector{Constraint}(), Vector{Variable}(), VarConstrCounter(0), 
+            Vector{VarConstr}(), false)
 end
 
 const SimpleProblem = Problem{SimpleVarIndexManager,SimpleConstrIndexManager}
@@ -164,7 +175,8 @@ function addvariable(problem::Problem, var::Variable)
     addinvarmanager(problem.varmanager, var)
     var.moiindex = MOI.addvariable!(problem.optimizer)
     push!(problem.varconstrvec, var)
-    MOI.modify!(problem.optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), 
+    MOI.modify!(problem.optimizer, 
+                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), 
                 MOI.ScalarCoefficientChange{Float}(var.moiindex, var.costrhs))
     MOI.addconstraint!(problem.optimizer, MOI.SingleVariable(var.moiindex), 
                        MOI.Interval(var.lowerbound, var.upperbound))
@@ -175,7 +187,8 @@ end
 function addconstraint(problem::Problem, constr::Constraint)
     addinconstrmanager(problem.constrmanager, constr)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
-    constr.moiindex = MOI.addconstraint!(problem.optimizer, f, constr.settype(constr.costrhs))
+    constr.moiindex = MOI.addconstraint!(problem.optimizer, f, 
+            constr.settype(constr.costrhs))
     push!(problem.varconstrvec, constr)
 end
 

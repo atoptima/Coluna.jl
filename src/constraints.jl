@@ -3,7 +3,8 @@
     settype::Type{<:MOI.AbstractSet}
 end
 
-function ConstraintBuilder(problem::P, name::String, costrhs::Float, sense::Char, vc_type::Char, flag::Char) where P
+function ConstraintBuilder(problem::P, name::String, costrhs::Float, sense::Char, 
+                           vc_type::Char, flag::Char) where P
     if sense == 'G'
         settype = MOI.GreaterThan
     elseif sense == 'L'
@@ -14,8 +15,9 @@ function ConstraintBuilder(problem::P, name::String, costrhs::Float, sense::Char
         error("Sense $sense is not supported")
     end
 
-    return tuplejoin(VarConstrBuilder(problem, name, costrhs, sense, vc_type, flag, 'U', 1.0),
-                     MOI.ConstraintIndex{MOI.ScalarAffineFunction,settype}(-1), settype)
+    return tuplejoin(VarConstrBuilder(problem, name, costrhs, sense, vc_type, 
+            flag, 'U', 1.0), 
+            MOI.ConstraintIndex{MOI.ScalarAffineFunction,settype}(-1), settype)
 end
 
 @hl type MasterConstr <: Constraint
