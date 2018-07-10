@@ -12,7 +12,7 @@ end
 type LpBasisRecord
     name::String
     varsinbasis::Vector{VarMpFormIndexStatus}
-    constrsinbasis::Vector{ConstrMpFormIndexStatus}
+    const:rsinbasis::Vector{ConstrMpFormIndexStatus}
 end
 
 LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormIndexStatus}(), Vector{ConstrMpFormIndexStatus}())
@@ -55,8 +55,8 @@ abstract type AbstractConstrIndexManager end
 type SimpleVarIndexManager <: AbstractVarIndexManager
     activestaticlist::Vector{Variable}
     activedynamiclist::Vector{Variable}
-    inactivestaticlist::Vector{Variable}
-    inactivedynamiclist::Vector{Variable}
+    unsuitablestaticlist::Vector{Variable}
+    unsuitabledynamiclist::Vector{Variable}
 end
 
 SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(), Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
@@ -66,9 +66,9 @@ function addinvarmanager(varmanager::SimpleVarIndexManager, var::Variable)
         list = varmanager.activestaticlist
     elseif var.status == Active && var.flag == 'd'
         list = activedynamiclist
-    elseif var.status == Inactive && var.flag == 's'
-        list = inactivestaticlist
-    elseif var.status == Inactive && var.flag == 'd'
+    elseif var.status == Unsuitable && var.flag == 's'
+        list = unsuitablestaticlist
+    elseif var.status == Unsuitable && var.flag == 'd'
         list = inactivedynamiclist
     else
         error("Status $(var.status) and flag $(var.flag) are not supported")
@@ -80,8 +80,8 @@ end
 type SimpleConstrIndexManager <: AbstractConstrIndexManager
     activestaticlist::Vector{Constraint}
     activedynamiclist::Vector{Constraint}
-    inactivestaticlist::Vector{Constraint}
-    inactivedynamiclist::Vector{Constraint}
+    unsuitablestaticlist::Vector{Constraint}
+    unsuitabledynamiclist::Vector{Constraint}
 end
 
 SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}())
@@ -91,9 +91,9 @@ function addinconstrmanager(constrmanager::SimpleConstrIndexManager, constr::Con
         list = constrmanager.activestaticlist
     elseif constr.status == Active && constr.flag == 'd'
         list = activedynamiclist
-    elseif constr.status == Inactive && constr.flag == 's'
-        list = inactivestaticlist
-    elseif constr.status == Inactive && constr.flag == 'd'
+    elseif constr.status == Unsuitable && constr.flag == 's'
+        list = unsuitablestaticlist
+    elseif constr.status == Unsuitable && constr.flag == 'd'
         list = inactivedynamiclist
     else
         error("Status $(constr.status) and flag $(constr.flag) are not supported")
@@ -102,7 +102,11 @@ function addinconstrmanager(constrmanager::SimpleConstrIndexManager, constr::Con
     constr.index = length(list)
 end
 
-type Problem{VM <: AbstractVarIndexManager, CM <: AbstractConstrIndexManager}
+abstract type Problem end
+
+type CompactProblem{VM <: AbstractVarIndexManager, 
+                    CM <: AbstractConstrIndexManager} <: Problem
+
     # probInfeasiblesFlag::Bool
 
     # objvalueordermagnitude::Float

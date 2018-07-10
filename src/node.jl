@@ -37,12 +37,12 @@ type Node
     strongbranchphasenumber::Int
     strongbranchnodenumber::Int
 
-    algtosetupnode::AlgToSetupNode
-    algtopreprocessnode::AlgToPreprocessNode
-    algtoevalnode::AlgToEvalNode
-    algtosetdownnode::AlgToSetdownNode
-    algtoprimalheurinnodevect::Vector{AlgToPrimalHeurInNode}
-    algtogeneratechildrennodes::AlgToGenerateChildrenNodes
+    alg_setup_node::AlgToSetupNode
+    alg_preprocess_node::AlgToPreprocessNode
+    alg_eval_node::AlgToEvalNode
+    alg_setdown_node::AlgToSetdownNode
+    alg_vect_primal_heur_node::Vector{AlgToPrimalHeurInNode}
+    alg_generate_childrens_node::AlgToGenerateChildrenNodes
 end
 
 function Node(model, dualbound, problemsetupinfo, evalinfo;

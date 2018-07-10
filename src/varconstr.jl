@@ -13,8 +13,7 @@ type VarConstrStabInfo
 end
 
 @hl type VarConstr{P}
-    vc_ref::Int
-    index::Int
+    vc_ref::Int    
     name::String
 
     problem::P # needed?

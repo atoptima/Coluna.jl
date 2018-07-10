@@ -1,16 +1,23 @@
 @enum(SEARCHSTRATEGY,BestDualBoundThanDF,DepthFirstWithWorseBound, 
 BestLpBound, DepthFirstWithBetterBound)
 
-type Model
+type ExtendedProblem <: Problem
+    master_problem::CompactProblem # restricted master in DW case.
+    pricing_vect::Vector{Problem}
+    separation_vect::Vector{Problem}
+    optimizer::ExtendedOptimizer
     params::Params
     counter::VarConstrCounter
-    masterprob::Problem
-    pricingprobs::Vector{Problem}
-    pricingbounds::Vector{Tuple{Int,Int}} # (lb,ub) on the numcolumns 
     solution::Solution
-    primalincbound::Float
-    dualincbound::Float
-    subtreesizebydepth::Int
+    primal_inc_bound::Float
+    dual_inc_bound::Float
+    subtree_size_by_depth::Int
+end
+
+type Model # user model
+    extended_problem::ExtendedProblem
+    callback::Callback
+    params::Params
 end
 
 function createrootnode(model::Model)::Node
