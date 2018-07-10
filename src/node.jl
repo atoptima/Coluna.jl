@@ -3,39 +3,39 @@ type Node
     parent::Node
     children::Vector{Node}
     depth::Int
-    prunedattreatnodestart::Bool
-    estimatedsubtreesize::Float
-    subtreesize::Int
+    prune_dat_treat_node_start::Bool
+    estimated_sub_tree_size::Float
+    sub_tree_size::Int
 
-    nodeinclpdualbound::Float
-    nodeincipdualbound::Float
-    nodeinclpprimalbound::Float
-    nodeincipprimalbound::Float
+    node_inc_lp_dual_bound::Float
+    node_inc_ip_dual_bound::Float
+    node_inc_lp_primal_bound::Float
+    node_inc_ip_primal_bound::Float
 
-    subtreedualbound::Float
+    sub_tree_dual_bound::Float
 
-    dualboundisupdated::Bool
-    ipprimalboundisupdated::Bool
+    dual_bound_is_updated::Bool
+    ip_primal_bound_is_updated::Bool
 
-    nodeincipprimalsol::Solution
-    localfixedsolution::Solution
+    node_inc_ip_primal_sol::Solution
+    local_fixed_solution::Solution
 
-    evalendtime::Int
-    treatorder::Int
+    eval_end_time::Int
+    treat_order::Int
 
     infeasible::Bool
     evaluated::Bool
     treated::Bool
-    
-    problemsetupinfo::ProblemSetupInfo
-    evalinfo::EvalInfo
-    childrengenerationinfo::ChildrenGenerationInfo
-    branchingevalinfo::BranchingEvaluationInfo #for branching history
-    
-    problemandevalalginfosaved::Bool
-    solutionvarinfolist::Solution # More information than only ::Solution
-    strongbranchphasenumber::Int
-    strongbranchnodenumber::Int
+
+    problem_setup_info::ProblemSetupInfo
+    eval_info::EvalInfo
+    children_generation_info::ChildrenGenerationInfo
+    branching_eval_info::BranchingEvaluationInfo #for branching history
+
+    problem_and_eval_alg_info_saved::Bool
+    solution_var_info_list::Solution # More information than only ::Solution
+    strong_branch_phase_number::Int
+    strong_branch_node_number::Int
 
     alg_setup_node::AlgToSetupNode
     alg_preprocess_node::AlgToPreprocessNode
@@ -45,13 +45,13 @@ type Node
     alg_generate_childrens_node::AlgToGenerateChildrenNodes
 end
 
-function Node(model, dualbound, problemsetupinfo, evalinfo;
-    algtosetupnode = AlgToSetupNode(),
-    algtopreprocessnode = AlgToPreprocessNode(),
-    algtoevalnode = AlgToEvalNode(),
-    algtosetdownnode = AlgToSetdownNode(),
-    algtoprimalheurinnodevect = AlgToPrimalHeurInNode[],
-    algtogeneratechildrennodes = AlgToGenerateChildrenNodes())
+function Node(model, dual_bound, problem_setup_info, eval_info;
+    alg_setup_node = AlgToSetupNode(),
+    alg_preprocess_node = AlgToPreprocessNode(),
+    alg_eval_node = AlgToEvalNode(),
+    alg_setdown_node = AlgToSetdownNode(),
+    alg_vect_primal_heur_node = AlgToPrimalHeurInNode[],
+    alg_generate_children_nodes = AlgToGenerateChildrenNodes())
 
 return Node(
     model.params,
@@ -61,11 +61,11 @@ return Node(
     false
     typemax(Int),
     -1,
-    dualbound,
-    dualbound,
-    model.primalincbound,
-    model.primalincbound,
-    dualbound,
+    dual_bound,
+    dual_bound,
+    model.primal_inc_bound,
+    model.primal_inc_bound,
+    dual_bound,
     false,
     false,
     Solution(),
@@ -75,65 +75,24 @@ return Node(
     false,
     false,
     false,
-    problemsetupinfo,
-    evalinfo,
-    childrengenerationinfo(),
-    branchingevalinfo(),
+    problem_setup_info,
+    eval_info,
+    children_generation_info(),
+    branching_eval_info(),
     false,
     Solution(),
     0,
     -1,
-    algtosetupnode,
-    algtopreprocessnode,
-    algtoevalnode,
-    algtosetdownnode,
-    algtoprimalheurinnodevect,
-    algtogeneratechildrennodes)
+    alg_setup_node,
+    alg_preprocess_node,
+    alg_eval_node,
+    alg_setdown_node,
+    alg_vect_primal_heur_node,
+    alg_generate_children_nodes)
 end
 
-prunedattreatnodestart::Bool
-estimatedsubtreesize::Float
-subtreesize::Int
-
-nodeinclpdualbound::Float
-nodeincipdualbound::Float
-nodeinclpprimalbound::Float
-nodeincipprimalbound::Float
-
-subtreedualbound::Float
-
-dualboundisupdated::Bool
-ipprimalboundisupdated::Bool
-
-nodeincipprimalsol::Solution
-localfixedsolution::Solution
-
-evalendtime::Int
-treatorder::Int
-
-infeasible::Bool
-evaluated::Bool
-treated::Bool
-
-problemsetupinfo::ProblemSetupInfo
-evalinfo::EvalInfo
-childrengenerationinfo::ChildrenGenerationInfo
-branchingevalinfo::BranchingEvaluationInfo #for branching history
-
-problemandevalalginfosaved::Bool
-solutionvarinfolist::Solution # More information than only ::Solution
-strongbranchphasenumber::Int
-strongbranchnodenumber::Int
-
-algtosetupnode::AlgToSetupNode
-algtopreprocessnode::AlgToPreprocessNode
-algtoevalnode::AlgToEvalNode
-algtosetdownnode::AlgToSetdownNode
-algtoprimalheurinnodevect::Vector{AlgToPrimalHeurInNode}
-algtogeneratechildrennodes::AlgToGenerateChildrenNodes    
-
-function exittreatment(node::Node)::Void    
-    # No need for deleting. I prefer deleting the node and storing the info 
+function exit_treatment(node::Node)::Void
+    # No need for deleting. I prefer deleting the node and storing the info
     # needed for printing the tree in a different light structure (for now)
     # later we can use Nullable for big data such as XXXInfo of node
 
@@ -141,100 +100,98 @@ function exittreatment(node::Node)::Void
     node.treated = true
 end
 
-function evaluation(node::Node, globaltreatorder::Int, incprimalbound::Float)::Bool
-    node.treatorder = globaltreatorder
-    node.nodeincipprimalbound = incprimalbound
-    node.ipprimalboundisupdated = false
-    node.dualboundisupdated = false
-    
-    if run(algtosetupnode, node)
-        run(algtosetdownnode)
-        markinfeasibleandexittreatment(node); return true
+function evaluation(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bool
+    node.treat_order = global_treat_order
+    node.node_inc_ip_primal_bound = inc_primal_bound
+    node.ip_primal_bound_is_updated = false
+    node.dual_bound_is_updated = false
+
+    if run(alg_setup_node, node)
+        run(alg_setdown_node)
+        mark_infeasible_and_exit_treatment(node); return true
     end
-    
-    if run(algtopreprocessnode, node)
-        run(algtosetdownnode)
-        markinfeasibleandexittreatment(node); return true
+
+    if run(alg_preprocess_node, node)
+        run(alg_setdown_node)
+        mark_infeasible_and_exit_treatment(node); return true
     end
-    
-    if setup(algtoevalnode, node)
-        setdown(algtoevalnode)
-        run(algtosetdownnode)
-        markinfeasibleandexittreatment(node); return true
-    end    
+
+    if setup(alg_eval_node, node)
+        setdown(alg_eval_node)
+        run(alg_setdown_node)
+        mark_infeasible_and_exit_treatment(node); return true
+    end
     node.evaluated = true
-    
+
     #the following should be also called after the heuristics.
-    if algtoevalnode.isalgincipprimalboundupdated
-        recordipprimalsolandupdateipprimalbound(algtoevalnode)
+    if alg_eval_node.is_alg_inc_ip_primal_bound_updated
+        record_ip_primal_sol_and_update_ip_primal_bound(alg_eval_node)
     end
-    
-    nodeinclpprimalbound = algtoevalnode.alginclpprimalbound
-    updatenodedualbounds(node, algtoevalnode.alginclpdualbound, 
-                         algtoevalnode.algincipdualbound)
 
-    if isconquered(node)
-        setdown(algtoevalnode)
-        run(algtosetdownnode)
-        storebranchingevaluationinfo()
-        exittreatment(node); return true
+    node_inc_lp_primal_bound = alg_eval_node.alg_inc_lp_primal_bound
+    update_node_dual_bounds(node, alg_eval_node.alg_inc_lp_dual_bound,
+                         alg_eval_node.alg_inc_ip_dual_bound)
+
+    if is_conquered(node)
+        setdown(alg_eval_node)
+        run(alg_setdown_node)
+        store_branching_evaluation_info()
+        exit_treatment(node); return true
     elseif false # _evalAlgPtr->subProbSolutionsEnumeratedToMIP() && runEnumeratedMIP()
-        setdown(algtoevalnode)
-        run(algtosetdownnode)
-        storebranchingevaluationinfo()
-        markinfeasibleandexittreatment(); return true
+        setdown(alg_eval_node)
+        run(alg_setdown_node)
+        store_branching_evaluation_info()
+        mark_infeasible_and_exit_treatment(); return true
     end
 
-    if !node.problemandevalalginfosaved
-        saveproblemandevalalginfo(node)
+    if !node.problem_and_eval_alg_info_saved
+        save_problem_and_eval_alg_info(node)
     end
-    
-    setdown(algtoevalnode)
-    run(algtosetdownnode)    
-    storebranchingevaluationinfo()    
+
+    setdown(alg_eval_node)
+    run(alg_setdown_node)
+    store_branching_evaluation_info()
     return true;
 end
 
-function treat(node::Node, globaltreatorder::Int, incprimalbound::Float)::Bool
-    # In strong branching, part I of treat (setup, preprocessing and solve) is 
+function treat(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bool
+    # In strong branching, part I of treat (setup, preprocessing and solve) is
     # separated from part II (heuristics and children generation).
-    # Therefore, treat() can be called two times, one inside strong branching, 
-    # second inside the branch-and-price tree. Thus, variables _solved 
+    # Therefore, treat() can be called two times, one inside strong branching,
+    # second inside the branch-and-price tree. Thus, variables _solved
     # is used to know whether part I has already been done or not.
-    
+
     if !node.evaluated
-        if !evaluation(node, globaltreatorder, incprimalbound)
+        if !evaluation(node, global_treat_order, inc_primal_bound)
             return false
         end
     else
-        if incprimalbound <= nodeincipprimalbound 
-            nodeincipprimalbound = incprimalbound
-            ipprimalboundisupdated = false
+        if inc_primal_bound <= node_inc_ip_primal_bound
+            node_inc_ip_primal_bound = inc_primal_bound
+            ip_primal_bound_is_updated = false
         end
     end
-    
-    if treated 
+
+    if treated
         return true
     end
-    
-    for alg in node.algtoprimalheurinnodevect
-        run(alg, node, globaltreatorder)        
+
+    for alg in node.alg_vect_primal_heur_node
+        run(alg, node, global_treat_order)
         # TODO put node bound updates from inside heuristics and put it here.
-        if isconquered(node)
-            exittreatment(node); return true
-        end        
-    end
-    
-    # the generation child nodes algorithm fills the sons
-    if setup(node.algtogeneratechildrennodes, node)
-        setdown(node.algtogeneratechildrennodes)
-        exittreatment(node); return true
+        if is_conquered(node)
+            exit_treatment(node); return true
+        end
     end
 
-    run(node.algtogeneratechildrennodes, globaltreatorder)
-    setdown(node.algtogeneratechildrennodes)
+    # the generation child nodes algorithm fills the sons
+    if setup(node.alg_generate_children_nodes, node)
+        setdown(node.alg_generate_children_nodes)
+        exit_treatment(node); return true
+    end
+
+    run(node.alg_generate_children_nodes, global_treat_order)
+    setdown(node.alg_generate_children_nodes)
 
     exitTreatment(node); return true
 end
-
-

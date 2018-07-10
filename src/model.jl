@@ -1,4 +1,4 @@
-@enum(SEARCHSTRATEGY,BestDualBoundThanDF,DepthFirstWithWorseBound, 
+@enum(SEARCHSTRATEGY,BestDualBoundThanDF,DepthFirstWithWorseBound,
 BestLpBound, DepthFirstWithBetterBound)
 
 type ExtendedProblem <: Problem
@@ -22,73 +22,73 @@ end
 
 function createrootnode(model::Model)::Node
     params = model.params
-    problemsetupinfo = ProblemSetupInfo(0)    
-    stabinfo  = StabilizationInfo(model.masterprob, params)
-    masterlpbasis = LpBasisRecord("Basis0")
-    nodeevalinfo = ColGenEvalInfo(stabinfo, masterlpbasis, Inf)
+    problem_setup_info = ProblemSetupInfo(0)
+    stab_info  = StabilizationInfo(model.masterprob, params)
+    master_lp_basis = LpBasisRecord("Basis0")
+    node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
 
-    return Node(model, model.dualincbound, problemsetupinfo, nodeevalinfo)
+    return Node(model, model.dual_inc_bound, problem_setup_info, node_eval_info)
 end
 
-function solve(model::Model)::Solution   
+function solve(model::Model)::Solution
     params = model.params
-    globalnodestreatorder = 0
-    thissearchtreetreatednodesnumber = 0
-    curnode = createrootnode(model)
-    baptreatorder = 1 # usefull only for printing only
+    global_nodes_treat_order = 0
+    this_search_tree_treated_nodes_number = 0
+    cur_node = createrootnode(model)
+    bap_treat_order = 1 # usefull only for printing only
 
-    thissearchtreetreatednodesnumber += 1
-    while !isempty(searchtree) && 
-            thissearchtreetreatednodesnumber < params.maxnbofbbtreenodetreated
-            
-        isprimarytreenode = isempty(secondarysearchtree)
-        curnodesolvedbefore = issolved(curnode)
+    this_search_tree_treated_nodes_number += 1
+    while !isempty(search_tree) &&
+            this_search_tree_treated_nodes_number < params.max_nb_of_bb_tree_node_treated
 
-        if preparenodefortreatment(curnode, globalnodestreatorder,
-             thissearchtreetreatednodesnumber-1)
+        is_primary_tree_node = isempty(secondary_search_tree)
+        cur_node_solved_before = issolved(cur_node)
 
-            printinfobeforesolvingnode(searchtree.size() +
-                ((thisisprimarytreenode) ? 1 : 0), secondarysearchtree.size() +
-                ((thisisprimarytreenode) ? 0 : 1))
+        if prepare_node_for_treatment(cur_node, global_nodes_treat_order,
+             this_search_tree_treated_nodes_number-1)
 
-            if !curnodesolvedbefore
-                branchandpriceorder(curnode, baptreatorder)
-                baptreatorder += 1
-                niceprint(curnode, true)
+            print_info_before_solving_node(search_tree.size() +
+                ((is_primary_tree_node) ? 1 : 0), secondary_search_tree.size() +
+                ((is_primary_tree_node) ? 0 : 1))
+
+            if !cur_node_solved_before
+                branch_and_price_order(cur_node, bap_treat_order)
+                bap_treat_order += 1
+                niceprint(cur_node, true)
             end
 
-            if !treat(curnode, globalnodestreatorder, primalincbound)
+            if !treat(cur_node, global_nodes_treat_order, primal_inc_bound)
                 println("error: branch-and-price is interrupted")
                 break
             end
 
-            # the output of the treated node are the generated child nodes and 
+            # the output of the treated node are the generated child nodes and
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one
             # as the dual bound will be limited by the primal one
-            if curnode.primalboundisupdated
-                updateprimalincsolution(model, curnode.nodeincipprimalsol)
+            if cur_node.primal_bound_is_updated
+                updateprimalincsolution(model, cur_node.node_inc_ip_primal_sol)
             end
 
-            if curnode.dualboundisupdated
-                updatecurvaliddualbound(model, curnode)
+            if cur_node.dual_bound_is_updated
+                update_cur_valid_dual_bound(model, cur_node)
             end
 
-            for childnode in curnode.children
-                push!(baptreenodes, childnode)
-                if childnode.dualboundisupdated
-                   updatecurvaliddualbound(model, childnode)
+            for child_node in cur_node.children
+                push!(bap_tree_nodes, child_node)
+                if child_node.dual_bound_is_updated
+                   update_cur_valid_dual_bound(model, child_node)
                 end
-                if length(searchtree) < params.opennodeslimit
-                   enqueue(searchtree, childnode)
+                if length(search_tree) < params.opennodeslimit
+                   enqueue(search_tree, child_node)
                 else
-                   enqueue(secondarysearchtree, childnode)
+                   enqueue(secondary_search_tree, child_node)
                 end
             end
         end
 
-        if isempty(curnode.children)
-            calculatesubtreesize(curnode, model.subtreesizebydepth);
+        if isempty(cur_node.children)
+            calculatesubtreesize(cur_node, model.sub_tree_size_by_depth);
         end
     end
 end
