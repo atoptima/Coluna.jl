@@ -38,8 +38,9 @@ function solve(model::Model)::Solution
     bap_treat_order = 1 # usefull only for printing only
 
     this_search_tree_treated_nodes_number += 1
-    while !isempty(search_tree) &&
-            this_search_tree_treated_nodes_number < params.max_nb_of_bb_tree_node_treated
+    while (!isempty(search_tree) &&
+            this_search_tree_treated_nodes_number <
+            params.max_nb_of_bb_tree_node_treated)
 
         is_primary_tree_node = isempty(secondary_search_tree)
         cur_node_solved_before = issolved(cur_node)

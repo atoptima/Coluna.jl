@@ -18,7 +18,8 @@ end
 end
 
 VariableInfoBuilder(var::Variable, status::VCSTATUS) =
-        tuplejoin(VariableSmallInfoBuilder(var, status), var.global_cur_lb, var.global_cur_ub)
+        tuplejoin(VariableSmallInfoBuilder(var, status),
+                  var.global_cur_lb, var.global_cur_ub)
 
 VariableInfoBuilder(var::Variable) = VariableInfoBuilder(var::Variable, Active)
 
@@ -57,7 +58,8 @@ type ConstraintInfo
     status::VCSTATUS
 end
 
-ConstraintInfo(constr, status) = ConstraintInfo(constr, constr.min_slack, constr.max_slack, constr.rhs, status)
+ConstraintInfo(constr, status) = ConstraintInfo(constr, constr.min_slack,
+        constr.max_slack, constr.rhs, status)
 CosntraintInfo(constr) = ConstraintInfo(constr, Active)
 
 function applyconstrinfo(info::ConstraintInfo)::Void
@@ -72,7 +74,8 @@ type SubProblemInfo
     ub::Float
 end
 
-SubProblemInfo(subprob::Problem) = SubProblemInfo(subprob, subprob.lb_convexity_master_constr.currhs,
+SubProblemInfo(subprob::Problem) = SubProblemInfo(subprob,
+        subprob.lb_convexity_master_constr.currhs,
         subprob.ub_convexity_master_constr.currhs)
 
 type ProblemSetupInfo
@@ -114,7 +117,8 @@ function run(alg::AlgToSetdownNode)
     end
 end
 
-function record_problem_info(alg::AlgToSetdownNode, global_treat_order::Int)::ProblemSetupInfo
+function record_problem_info(alg::AlgToSetdownNode,
+                             global_treat_order::Int)::ProblemSetupInfo
     return ProblemSetupInfo(alg.master_prob.cur_node.treat_order)
 end
 record_problem_info(alg) = record_problem_info(alg, -1)
@@ -132,7 +136,9 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
 
     #static variables of master
     for var in master_prob.var_manager.active_static_list
-        if var.global_cur_lb != var.global_lb || var.global_cur_ub != var.global_ub || var.cur_cost != var.costrhs
+        if (var.global_cur_lb != var.global_lb
+            || var.global_cur_ub != var.global_ub
+            || var.cur_cost != var.costrhs)
             push!(prob_info.modified_static_vars_info, VariableInfo(var, Active))
         end
     end
@@ -143,28 +149,31 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
     # dynamic master variables
     for var in master_prob.var_manager.active_dynamic_list
         if isa(var, MasterColumn)
-            push!(prob_info.suitable_master_columns_info, VariableSmallInfo(var, Active))
+            push!(prob_info.suitable_master_columns_info,
+                  VariableSmallInfo(var, Active))
         end
     end
 
     for var in master_prob.var_manager.inactive_dynamic_list
-        push!(prob_info.suitable_master_columns_info, VariableSmallInfo(var, Inactive))
+        push!(prob_info.suitable_master_columns_info,
+              VariableSmallInfo(var, Inactive))
     end
 
-    printl(1) && print("Stored ", legnth(master_prob.var_manager.active_dynamic_list), " active and ",
-                 legnth(master_prob.var_manager.inactive_dynamic_list), " inactive")
+    printl(1) && print("Stored ", legnth(master_prob.var_manager.active_dynamic_list),
+    " active and ", legnth(master_prob.var_manager.inactive_dynamic_list), " inactive")
 
     # static constraints of the master
     for constr in master_prob.constr_manager.active_static_list
-        if !isa(constr, ConvexityMasterConstr) && constr.cur_min_slack != constr.min_slack &&
-                constr.cur_max_slack != constr.maxSlack && constr.curUse != 0 # is curUse needed?
+        if (!isa(constr, ConvexityMasterConstr) && constr.cur_min_slack != constr.min_slack &&
+            constr.cur_max_slack != constr.maxSlack && constr.curUse != 0) # is curUse needed?
             push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
         end
     end
 
     for constr in master_prob.constr_manager.inactive_static_list
         if !isa(constr, ConvexityMasterConstr)
-            push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr, Inactive))
+            push!(prob_info.modified_static_constrs_info,
+                  ConstraintInfo(constr, Inactive))
         end
     end
 
@@ -174,12 +183,14 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
         #     push!(prob_info.active_branching_constraints_info, ConstraintInfo(constr)
         # else
         if isa(constr, MasterConstr)
-            push!(prob_info.suitable_master_cuts_info, ConstraintInfo(constr, Active))
+            push!(prob_info.suitable_master_cuts_info,
+                  ConstraintInfo(constr, Active))
         end
     end
 
     for constr in master_prob.constr_manager.inactive_dynamic_list
-        push!(master_prob.suitable_master_cuts_info, ConstraintInfo(constr, Inactive))
+        push!(master_prob.suitable_master_cuts_info,
+              ConstraintInfo(constr, Inactive))
     end
 
     #subprob multiplicity
@@ -190,8 +201,10 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
     #subprob variables
     for subprob in alg.pricing_probs
         for var in subprob.var_manager.active_static_list
-            if (var.cur_global_lb != var.global_lb || var.cur_global_ub != var.global_ub || var.cur_local_lb != local_lb
-                    || var.cur_loca_lub != var.local_ub || var.cur_cost != var.costrhs)
+            if (var.cur_global_lb != var.global_lb
+                || var.cur_global_ub != var.global_ub
+                || var.cur_local_lb != local_lb
+                || var.cur_loca_lub != var.local_ub || var.cur_cost != var.costrhs)
                 push!(modified_static_vars_info, SpVariableInfo(var))
             end
         end

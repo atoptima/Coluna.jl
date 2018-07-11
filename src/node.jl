@@ -100,7 +100,8 @@ function exit_treatment(node::Node)::Void
     node.treated = true
 end
 
-function evaluation(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bool
+function evaluation(node::Node, global_treat_order::Int,
+                    inc_primal_bound::Float)::Bool
     node.treat_order = global_treat_order
     node.node_inc_ip_primal_bound = inc_primal_bound
     node.ip_primal_bound_is_updated = false
