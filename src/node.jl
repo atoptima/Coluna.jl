@@ -45,6 +45,54 @@ type Node
     alg_generate_childrens_node::AlgToGenerateChildrenNodes
 end
 
+
+function Node(node::Node, problem_setup_info;
+    eval_info = EvalInfo(),
+    alg_setup_node = AlgToSetupNode(),
+    alg_preprocess_node = AlgToPreprocessNode(),
+    alg_eval_node = AlgToEvalNode(),
+    alg_setdown_node = AlgToSetdownNode(),
+    alg_vect_primal_heur_node = AlgToPrimalHeurInNode[],
+    alg_generate_children_nodes = AlgToGenerateChildrenNodes())
+
+return Node( ##### Change this to use node values
+    node.params,
+    this,
+    Node[],
+    0,
+    false,
+    typemax(Int),
+    -1,
+    dual_bound,
+    dual_bound,
+    model.primal_inc_bound,
+    model.primal_inc_bound,
+    dual_bound,
+    false,
+    false,
+    Solution(),
+    Solution(),
+    -1,
+    -1,
+    false,
+    false,
+    false,
+    problem_setup_info,
+    eval_info,
+    children_generation_info(),
+    branching_eval_info(),
+    false,
+    Solution(),
+    0,
+    -1,
+    alg_setup_node,
+    alg_preprocess_node,
+    alg_eval_node,
+    alg_setdown_node,
+    alg_vect_primal_heur_node,
+    alg_generate_children_nodes)
+end
+
 function Node(model, dual_bound, problem_setup_info, eval_info;
     alg_setup_node = AlgToSetupNode(),
     alg_preprocess_node = AlgToPreprocessNode(),

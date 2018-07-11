@@ -22,7 +22,7 @@ function run(alg::AlgToGenerateChildrenNodes, node::Node, problem::Problem)
     frac_master_cols = MasterColumn[]
 
     for var in node.solution_var_info_list
-        if abs(var.value - round(var.value)) > Params.mip_tolerance_integrality
+        if abs(var.value - round(var.value)) > node.arams.mip_tolerance_integrality
             if typeof(var) == MasterColumn
                 push!(frac_master_cols, var)
             end
@@ -41,9 +41,10 @@ end
 function generate_child(parent_node::Node, var_to_branch::Variable, rhs::Float)
 
     newConstraint = BranchConstr(problem, "dummyName", 1.0, 'E')
-    push!(node.problem_setup_info.active_branching_constraints_info,
+    problem_setup_info = ProblemSetupInfo()
+    push!(problem_setup_info.active_branching_constraints_info,
         ConstraintInfo(newConstraint))
-    new_node = Node()
+    new_node = Node(parent_node, problem_setup_info)
     push!(node.children, new_node)
 
 end
@@ -52,12 +53,10 @@ end
 function perform_usual_branching(node::Node, alg::AlgToGenerateChildrenNodes,
         frac_master_cols::Vector{MasterColumn}, problem::Problem)
 
-    branch_constraints = BranchConstr[]
     sort_vars_according_to_rule(alg.rule, frac_master_cols)
     for i in 1:alg.nb_vars_to_branch
         generate_child(node, frac_master_cols[i], 1.0)
         generate_child(node, frac_master_cols[i], 0.0)
     end
-
 
 end
