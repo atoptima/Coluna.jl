@@ -45,11 +45,11 @@ type VariableSolInfo{V<:Variable}
     value::Float
 end
 
-function applyvarinfo(var_sol_info::VariableSolInfo)::Void
+function apply_var_info(var_sol_info::VariableSolInfo)::Void
     variable = var_sol_info.variable
     value = var_sol_info.value
     problem = variable.problem
-    updatepartialsolution(problem,variable,value)
+    update_partial_solution(problem,variable,value)
 end
 
 # TODO: impl properly the var/constr manager
@@ -66,20 +66,19 @@ end
 SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(),
         Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
 
-function addinvarmanager(varmanager::SimpleVarIndexManager, var::Variable)
+function add_in_var_manager(var_manager::SimpleVarIndexManager, var::Variable)
     if var.status == Active && var.flag == 's'
         list = var_manager.active_static_list
     elseif var.status == Active && var.flag == 'd'
-        list = active_dynamic_list
+        list = var_manager.active_dynamic_list
     elseif var.status == Unsuitable && var.flag == 's'
-        list = unsuitable_static_list
+        list = var_manager.unsuitable_static_list
     elseif var.status == Unsuitable && var.flag == 'd'
-        list = inactive_dynamic_list
+        list = var_manager.unsuitable_dynamic_list
     else
         error("Status $(var.status) and flag $(var.flag) are not supported")
     end
     push!(list, var)
-    var.index = length(list)
 end
 
 type SimpleConstrIndexManager <: AbstractConstrIndexManager
@@ -92,22 +91,21 @@ end
 SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(),
         Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}())
 
-function addinconstrmanager(constrmanager::SimpleConstrIndexManager,
+function add_in_constr_manager(constr_manager::SimpleConstrIndexManager,
                             constr::Constraint)
 
     if constr.status == Active && constr.flag == 's'
         list = constr_manager.active_static_list
     elseif constr.status == Active && constr.flag == 'd'
-        list = active_dynamic_list
+        list = constr_manager.active_dynamic_list
     elseif constr.status == Unsuitable && constr.flag == 's'
-        list = unsuitable_static_list
+        list = constr_manager.unsuitable_static_list
     elseif constr.status == Unsuitable && constr.flag == 'd'
-        list = inactive_dynamic_list
+        list = constr_manager.unsuitable_dynamic_list
     else
         error("Status $(constr.status) and flag $(constr.flag) are not supported")
     end
     push!(list, constr)
-    constr.index = length(list)
 end
 
 abstract type Problem end
@@ -152,7 +150,7 @@ type CompactProblem{VM <: AbstractVarIndexManager,
     is_retrieved_red_costs::Bool
 end
 
-function Problem{VM,CM}(useroptimizer::MOI.AbstractOptimizer
+function CompactProblem{VM,CM}(useroptimizer::MOI.AbstractOptimizer
         ) where {VM <: AbstractVarIndexManager, CM <: AbstractConstrIndexManager}
 
     optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
@@ -161,55 +159,53 @@ function Problem{VM,CM}(useroptimizer::MOI.AbstractOptimizer
     MOI.set!(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
     MOI.set!(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
 
-    Problem(false, optimizer, VM(), CM(), Set{Variable}(), Set{Variable}(),
+    CompactProblem(false, optimizer, VM(), CM(), Set{Variable}(), Set{Variable}(),
             Set{Constraint}(), 0.0, Dict{Variable,Float}(), Vector{Solution}(),
             Vector{Constraint}(), Vector{Variable}(), VarConstrCounter(0),
             Vector{VarConstr}(), false)
 end
 
-const SimpleProblem = Problem{SimpleVarIndexManager,SimpleConstrIndexManager}
+const SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
 
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
-function addvariable(problem::Problem, var::Variable)
-    addinvarmanager(problem.varmanager, var)
-    var.moiindex = MOI.addvariable!(problem.optimizer)
-    push!(problem.varconstrvec, var)
+function add_variable(problem::Problem, var::Variable)
+    add_in_var_manager(problem.var_manager, var)
+    var.moi_index = MOI.addvariable!(problem.optimizer)
     MOI.modify!(problem.optimizer,
                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-                MOI.ScalarCoefficientChange{Float}(var.moiindex, var.costrhs))
-    MOI.addconstraint!(problem.optimizer, MOI.SingleVariable(var.moiindex),
-                       MOI.Interval(var.lowerbound, var.upperbound))
+                MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
+    MOI.addconstraint!(problem.optimizer, MOI.SingleVariable(var.moi_index),
+                       MOI.Interval(var.lower_bound, var.upper_bound))
 end
 
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the constraint
-function addconstraint(problem::Problem, constr::Constraint)
-    addinconstrmanager(problem.constrmanager, constr)
+function add_constraint(problem::Problem, constr::Constraint)
+    add_in_constr_manager(problem.constr_manager, constr)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
-    constr.moiindex = MOI.addconstraint!(problem.optimizer, f,
-            constr.settype(constr.costrhs))
-    push!(problem.varconstrvec, constr)
+    constr.moi_index = MOI.addconstraint!(problem.optimizer, f,
+            constr.set_type(constr.cost_rhs))
 end
 
-function addmembership(var::Variable, constr::Constraint, coef::Float)
-    var.membercoefmap[var.vc_ref] = coef
-    constr.membercoefmap[constr.vc_ref] = coef
-    MOI.modify!(var.problem.optimizer,  constr.moiindex,
-                MOI.ScalarCoefficientChange{Float}(var.moiindex, coef))
+function add_membership(var::Variable, constr::Constraint, coef::Float)
+    var.member_coef_map[var] = coef
+    constr.member_coef_map[constr] = coef
+    MOI.modify!(var.problem.optimizer,  constr.moi_index,
+                MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
 end
 
-function addmembership(var::SubProbVar, constr::MasterConstr, coef::Float)
-    var.masterconstrcoefmap[var.vc_ref] = coef
-    constr.subprobvarcoefmap[constr.vc_ref] = coef
+function add_membership(var::SubProbVar, constr::MasterConstr, coef::Float)
+    var.master_constr_coef_map[var] = coef
+    constr.subprob_var_coef_map[constr] = coef
 end
 
-# function addmembership(var::MasterVar, constr::MasterConstr, coef::Float)
-#     var.membercoefmap[var.vc_ref] = coef
-#     constr.membercoefmap[constr.vc_ref] = coef
-#     MOI.modify!(var.problem.optimizer,  constr.moiindex,
-#                 MOI.ScalarCoefficientChange{Float}(var.moiindex, coef))
-# end
+function add_membership(var::MasterVar, constr::MasterConstr, coef::Float)
+    var.member_coef_map[var] = coef
+    constr.member_coef_map[constr] = coef
+    MOI.modify!(var.problem.optimizer,  constr.moi_index,
+                MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+end
 
 function optimize(problem::Problem)
     MOI.optimize!(problem.optimizer)

@@ -4,7 +4,7 @@ type VarConstrCounter
     value::Int
 end
 
-function incrementcounter(problem)
+function increment_counter(problem)
     problem.counter.value += 1
     return problem.counter.value
 end
@@ -113,7 +113,7 @@ end
     # - The key is the index of a constr/var including this as member,
     # - The value is the corresponding coefficient.
     # ```
-    member_coef_map::Dict{Int64, Float}
+    member_coef_map::Dict{VarConstr, Float}
 
     is_info_updated::Bool # added by Ruslan, needed for VarConstrResetInfo
     in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
@@ -137,7 +137,7 @@ end
 # Think about this constructor (almost a copy)
 function VarConstrBuilder(vc::VarConstr) 
     # This is not a copy since some fields are reset to default
-    return (incrementcounter(vc.problem), -1, "", vc.problem, false, false, 
+    return (increment_counter(vc.problem), "", vc.problem, false, false, 
             vc.directive, vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag, 
             vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map), false, 
             vc.in_preprocessed_list, vc.reduced_cost, VarConstrStabInfo(), 0)
@@ -146,7 +146,7 @@ end
 function VarConstrBuilder(problem::P, name::String, costrhs::Float, sense::Char, 
                           vc_type::Char, flag::Char, directive::Char, 
                           priority::Float) where P
-    return (incrementcounter(problem), -1, name, problem, false, false, directive, 
+    return (increment_counter(problem), name, problem, false, false, directive, 
             priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0, 
-            Dict{Int64, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
+            Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
 end

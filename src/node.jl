@@ -57,8 +57,8 @@ return Node(
     model.params,
     this,
     Node[],
-    0
-    false
+    0,
+    false,
     typemax(Int),
     -1,
     dual_bound,
@@ -194,5 +194,5 @@ function treat(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bo
     run(node.alg_generate_children_nodes, global_treat_order)
     setdown(node.alg_generate_children_nodes)
 
-    exitTreatment(node); return true
+    exit_treatment(node); return true
 end

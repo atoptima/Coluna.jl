@@ -77,17 +77,19 @@ function SubProbVarBuilder(problem::P, name::String, costrhs::Float, sense::Char
                       Dict{Int,Float}(), Dict{Int,Float}())
 end
 
-# @hl type MasterVar <: Variable
-#     # ```
-#     # Holds the contribution of the master variable in the lagrangian dual bound
-#     # ```
-#     dualBoundContrib::Float
-# end
+@hl type MasterVar <: Variable
+    # ```
+    # Holds the contribution of the master variable in the lagrangian dual bound
+    # ```
+    dualBoundContrib::Float
+end
 
-# MasterVarBuilder(v::Variable) = tuplejoin(VariableBuilder(v), (0.0,))
-# function MasterVarBuilder( problem::P, name::String, costrhs::Float, sense::Char,
-#           vc_type::Char, flag::Char,
-#                            directive::Char, priority::Float, lowerBound::Float, upperBound::Float ) where P
-#     return tuplejoin(VariableBuilder( problem, name, costrhs, sense, vc_type, flag, directive, priority,
-#                                       lowerBound, upperBound), 0.0)
-# end
+MasterVarBuilder(v::Variable) = tuplejoin(VariableBuilder(v), (0.0,))
+
+function MasterVarBuilder( problem::P, name::String, costrhs::Float, sense::Char,
+        vc_type::Char, flag::Char, directive::Char, priority::Float, 
+        lowerBound::Float, upperBound::Float ) where P
+        
+    return tuplejoin(VariableBuilder( problem, name, costrhs, sense, vc_type, 
+            flag, directive, priority, lowerBound, upperBound), 0.0)
+end

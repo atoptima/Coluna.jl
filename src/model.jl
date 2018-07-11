@@ -5,7 +5,6 @@ type ExtendedProblem <: Problem
     master_problem::CompactProblem # restricted master in DW case.
     pricing_vect::Vector{Problem}
     separation_vect::Vector{Problem}
-    optimizer::ExtendedOptimizer
     params::Params
     counter::VarConstrCounter
     solution::Solution
@@ -14,16 +13,18 @@ type ExtendedProblem <: Problem
     subtree_size_by_depth::Int
 end
 
+abstract type Callback end
+
 type Model # user model
     extended_problem::ExtendedProblem
     callback::Callback
     params::Params
 end
 
-function createrootnode(model::Model)::Node
+function create_root_node(model::Model)::Node
     params = model.params
     problem_setup_info = ProblemSetupInfo(0)
-    stab_info  = StabilizationInfo(model.masterprob, params)
+    stab_info  = StabilizationInfo(model.master_prob, params)
     master_lp_basis = LpBasisRecord("Basis0")
     node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
 
@@ -34,7 +35,7 @@ function solve(model::Model)::Solution
     params = model.params
     global_nodes_treat_order = 0
     this_search_tree_treated_nodes_number = 0
-    cur_node = createrootnode(model)
+    cur_node = create_root_node(model)
     bap_treat_order = 1 # usefull only for printing only
 
     this_search_tree_treated_nodes_number += 1
@@ -43,7 +44,7 @@ function solve(model::Model)::Solution
             params.max_nb_of_bb_tree_node_treated)
 
         is_primary_tree_node = isempty(secondary_search_tree)
-        cur_node_solved_before = issolved(cur_node)
+        cur_node_solved_before = is_solved(cur_node)
 
         if prepare_node_for_treatment(cur_node, global_nodes_treat_order,
              this_search_tree_treated_nodes_number-1)
@@ -55,7 +56,7 @@ function solve(model::Model)::Solution
             if !cur_node_solved_before
                 branch_and_price_order(cur_node, bap_treat_order)
                 bap_treat_order += 1
-                niceprint(cur_node, true)
+                nice_print(cur_node, true)
             end
 
             if !treat(cur_node, global_nodes_treat_order, primal_inc_bound)
@@ -68,7 +69,7 @@ function solve(model::Model)::Solution
             # updated solution, we should update primal bound before dual one
             # as the dual bound will be limited by the primal one
             if cur_node.primal_bound_is_updated
-                updateprimalincsolution(model, cur_node.node_inc_ip_primal_sol)
+                update_primal_inc_solution(model, cur_node.node_inc_ip_primal_sol)
             end
 
             if cur_node.dual_bound_is_updated
@@ -89,7 +90,7 @@ function solve(model::Model)::Solution
         end
 
         if isempty(cur_node.children)
-            calculatesubtreesize(cur_node, model.sub_tree_size_by_depth);
+            calculate_subtree_size(cur_node, model.sub_tree_size_by_depth);
         end
     end
 end
