@@ -3,7 +3,7 @@
     set_type::Type{<:MOI.AbstractSet}
 end
 
-function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Char, 
+function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Char,
                            vc_type::Char, flag::Char) where P
     if sense == 'G'
         set_type = MOI.GreaterThan
@@ -15,9 +15,9 @@ function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Cha
         error("Sense $sense is not supported")
     end
 
-    return tuplejoin(VarConstrBuilder(problem, name, cost_rhs, sense, vc_type, 
-            flag, 'U', 1.0), 
-            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1), set_type)
+    return tuplejoin(VarConstrBuilder(problem, name, cost_rhs, sense, vc_type,
+            flag, 'U', 1.0),
+            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(cost_rhs), set_type)
 end
 
 @hl type MasterConstr <: Constraint
@@ -48,4 +48,14 @@ function MasterConstrBuilder(problem::P, name::String, cost_rhs::Float, sense::C
                              vc_type::Char, flag::Char) where P
     return tuplejoin(ConstraintBuilder(problem, name, cost_rhs, sense, vc_type, flag),
                      Dict{Int,Float}(), Dict{Int,Float}())
+end
+
+@hl type BranchConstr
+    depth_when_generated::Int
+end
+
+function BranchConstrBuilder(problem::P, name::String, cost_rhs::Float,
+                             sense::Char) where P
+    return tuplejoin(ConstraintBuilder(problem, name, cost_rhs, sense, ' ', 's'),
+                     0)
 end
