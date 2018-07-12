@@ -13,7 +13,7 @@ type VarConstrStabInfo
 end
 
 @hl type VarConstr{P}
-    vc_ref::Int    
+    vc_ref::Int
     name::String
 
     problem::P # needed?
@@ -54,17 +54,17 @@ end
     # For Constraints:
     # type = 'C' for core -required for the IP formulation-,
     # type = 'F' for facultative -only helpfull for the LP formulation-,
-    # type = 'S' for constraints defining a subsystem in column generation for 
+    # type = 'S' for constraints defining a subsystem in column generation for
     #            extended formulation approach
     # type = 'M' for constraints defining a pure master constraint
-    # type = 'X' for constraints defining a subproblem convexity constraint 
+    # type = 'X' for constraints defining a subproblem convexity constraint
     #            in the master
     # ```
     vc_type::Char
 
 
     # ```
-    # 's' -by default- for static VarConstr belonging to the problem -and erased 
+    # 's' -by default- for static VarConstr belonging to the problem -and erased
     #     when the problem is erased-
     # 'd' for generated dynamic VarConstr not belonging to the problem
     # 'a' for artificial VarConstr.
@@ -127,7 +127,7 @@ end
     stab_info::VarConstrStabInfo
 
     # ```
-    # Treat order of the node where the column has been generated -needed for 
+    # Treat order of the node where the column has been generated -needed for
     # problem setup-
     # ```
     treat_order_id::Int
@@ -135,19 +135,19 @@ end
 
 
 # Think about this constructor (almost a copy)
-function VarConstrBuilder(vc::VarConstr) 
+function VarConstrBuilder(vc::VarConstr)
     # This is not a copy since some fields are reset to default
-    return (increment_counter(vc.problem), "", vc.problem, false, false, 
-            vc.directive, vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag, 
-            vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map), false, 
+    return (increment_counter(vc.problem), "", vc.problem, false, false,
+            vc.directive, vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
+            vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map), false,
             vc.in_preprocessed_list, vc.reduced_cost, VarConstrStabInfo(), 0)
 end
 
-function VarConstrBuilder(problem::P, name::String, costrhs::Float, sense::Char, 
-                          vc_type::Char, flag::Char, directive::Char, 
+function VarConstrBuilder(problem::P, name::String, costrhs::Float, sense::Char,
+                          vc_type::Char, flag::Char, directive::Char,
                           priority::Float) where P
-    return (increment_counter(problem), name, problem, false, false, directive, 
-            priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0, 
+    return (increment_counter(problem), name, problem, false, false, directive,
+            priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0,
             Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
 end
 
@@ -190,7 +190,7 @@ end
     set_type::Type{<:MOI.AbstractSet}
 end
 
-function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Char, 
+function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Char,
                            vc_type::Char, flag::Char) where P
     if sense == 'G'
         set_type = MOI.GreaterThan
@@ -202,7 +202,7 @@ function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Cha
         error("Sense $sense is not supported")
     end
 
-    return tuplejoin(VarConstrBuilder(problem, name, cost_rhs, sense, vc_type, 
-            flag, 'U', 1.0), 
-            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1), set_type)
+    return tuplejoin(VarConstrBuilder(problem, name, cost_rhs, sense, vc_type,
+            flag, 'U', 1.0),
+            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(cost_rhs), set_type)
 end
