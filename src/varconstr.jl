@@ -4,19 +4,17 @@ type VarConstrCounter
     value::Int
 end
 
-function increment_counter(problem)
-    problem.counter.value += 1
-    return problem.counter.value
+function increment_counter(counter::VarConstrCounter)
+    counter.value += 1
+    return counter.value
 end
 
 type VarConstrStabInfo
 end
 
-@hl type VarConstr{P}
+@hl type VarConstr
     vc_ref::Int
     name::String
-
-    problem::P # needed?
 
     in_cur_prob::Bool
     in_cur_form::Bool
@@ -135,18 +133,18 @@ end
 
 
 # Think about this constructor (almost a copy)
-function VarConstrBuilder(vc::VarConstr)
+function VarConstrBuilder(vc::VarConstr, counter::VarConstrCounter)
     # This is not a copy since some fields are reset to default
-    return (increment_counter(vc.problem), "", vc.problem, false, false,
-            vc.directive, vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
+    return (increment_counter(counter), "", false, false, vc.directive,
+            vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
             vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map), false,
             vc.in_preprocessed_list, vc.reduced_cost, VarConstrStabInfo(), 0)
 end
 
-function VarConstrBuilder(problem::P, name::String, costrhs::Float, sense::Char,
-                          vc_type::Char, flag::Char, directive::Char,
-                          priority::Float) where P
-    return (increment_counter(problem), name, problem, false, false, directive,
+function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
+                          sense::Char, vc_type::Char, flag::Char, directive::Char,
+                          priority::Float)
+    return (increment_counter(counter), name, false, false, directive,
             priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0,
             Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
 end
@@ -173,14 +171,14 @@ end
     cur_ub::Float
 end
 
-VariableBuilder(var::Variable) = tuplejoin(VarConstrBuilder(var),
+VariableBuilder(var::Variable, counter::VarConstrCounter) = tuplejoin(
+        VarConstrBuilder(var, counter),
         (MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
 
-function VariableBuilder( problem::P, name::String, costrhs::Float, sense::Char,
-                          vc_type::Char, flag::Char, directive::Char,
-                          priority::Float, lowerBound::Float,
-                          upperBound::Float) where P
-    return tuplejoin(VarConstrBuilder( problem, name, costrhs, sense, vc_type,
+function VariableBuilder( counter::VarConstrCounter, name::String, costrhs::Float,
+    sense::Char, vc_type::Char, flag::Char, directive::Char, priority::Float,
+    lowerBound::Float, upperBound::Float)
+    return tuplejoin(VarConstrBuilder( counter, name, costrhs, sense, vc_type,
                                        flag, directive, priority),
                       MOI.VariableIndex(-1), lowerBound, upperBound, -Inf, Inf)
 end
@@ -190,8 +188,8 @@ end
     set_type::Type{<:MOI.AbstractSet}
 end
 
-function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Char,
-                           vc_type::Char, flag::Char) where P
+function ConstraintBuilder(counter::VarConstrCounter, name::String,
+        cost_rhs::Float, sense::Char, vc_type::Char, flag::Char)
     if sense == 'G'
         set_type = MOI.GreaterThan
     elseif sense == 'L'
@@ -202,7 +200,7 @@ function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Cha
         error("Sense $sense is not supported")
     end
 
-    return tuplejoin(VarConstrBuilder(problem, name, cost_rhs, sense, vc_type,
+    return tuplejoin(VarConstrBuilder(counter, name, cost_rhs, sense, vc_type,
             flag, 'U', 1.0),
             MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(cost_rhs), set_type)
 end

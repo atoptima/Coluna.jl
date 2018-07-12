@@ -188,22 +188,25 @@ function add_constraint(problem::Problem, constr::Constraint)
             constr.set_type(constr.cost_rhs))
 end
 
-function add_membership(var::Variable, constr::Constraint, coef::Float)
+function add_membership(var::Variable, constr::Constraint,
+        problem::Problem, coef::Float)
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    MOI.modify!(var.problem.optimizer,  constr.moi_index,
+    MOI.modify!(problem.optimizer, constr.moi_index,
                 MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
 end
 
-function add_membership(var::SubprobVar, constr::MasterConstr, coef::Float)
+function add_membership(var::SubprobVar, constr::MasterConstr,
+        problem::Problem, coef::Float)
     var.master_constr_coef_map[constr] = coef
     constr.subprob_var_coef_map[var] = coef
 end
 
-function add_membership(var::MasterVar, constr::MasterConstr, coef::Float)
+function add_membership(var::MasterVar, constr::MasterConstr,
+        problem::Problem, coef::Float)
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    MOI.modify!(var.problem.optimizer,  constr.moi_index,
+    MOI.modify!(problem.optimizer, constr.moi_index,
                 MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
 end
 

@@ -1,6 +1,4 @@
-@hl type SubprobVar{M} <: Variable
-    masterprob::M
-
+@hl type SubprobVar <: Variable
     # ```
     # To represent global upper bound on sp variable primal value
     # ```
@@ -32,14 +30,14 @@
     master_col_coef_map::Dict{Variable, Float} # Variable -> MasterColumn
 end
 
-function SubprobVarBuilder(problem::P, name::String, costrhs::Float, sense::Char,
-        vc_type::Char, flag::Char, directive::Char, priority::Float, 
-        lowerBound::Float, upperBound::Float, masterproblem::M, globallb::Float, 
-        globalub::Float, curgloballb::Float, curglobalub::Float) where {P,M}
-        
-    return tuplejoin(VariableBuilder(problem, name, costrhs, sense, vc_type, flag,
-            directive, priority, lowerBound, upperBound), masterproblem, globallb, 
-            globalub, curgloballb, curglobalub, Dict{Constraint,Float}(), 
+function SubprobVarBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
+        sense::Char, vc_type::Char, flag::Char, directive::Char, priority::Float,
+        lowerBound::Float, upperBound::Float, globallb::Float, globalub::Float,
+         curgloballb::Float, curglobalub::Float)
+
+    return tuplejoin(VariableBuilder(counter, name, costrhs, sense, vc_type, flag,
+            directive, priority, lowerBound, upperBound), globallb, globalub,
+            curgloballb, curglobalub, Dict{Constraint,Float}(),
             Dict{Variable,Float}())
 end
 
@@ -50,12 +48,13 @@ end
     dualBoundContrib::Float
 end
 
-MasterVarBuilder(v::Variable) = tuplejoin(VariableBuilder(v), (0.0,))
+MasterVarBuilder(v::Variable, counter::VarConstrCounter) = tuplejoin(
+        VariableBuilder(v, counter), (0.0,))
 
-function MasterVarBuilder( problem::P, name::String, costrhs::Float, sense::Char,
-        vc_type::Char, flag::Char, directive::Char, priority::Float, 
-        lowerBound::Float, upperBound::Float ) where P
-        
-    return tuplejoin(VariableBuilder( problem, name, costrhs, sense, vc_type, 
+function MasterVarBuilder( counter::VarConstrCounter, name::String, costrhs::Float,
+        sense::Char, vc_type::Char, flag::Char, directive::Char, priority::Float,
+        lowerBound::Float, upperBound::Float )
+
+    return tuplejoin(VariableBuilder( counter, name, costrhs, sense, vc_type,
             flag, directive, priority, lowerBound, upperBound), 0.0)
 end

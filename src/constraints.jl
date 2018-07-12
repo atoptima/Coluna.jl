@@ -22,9 +22,9 @@
 
 end
 
-function MasterConstrBuilder(problem::P, name::String, cost_rhs::Float, sense::Char,
-                             vc_type::Char, flag::Char) where P
-    return tuplejoin(ConstraintBuilder(problem, name, cost_rhs, sense, vc_type, flag),
+function MasterConstrBuilder(counter::VarConstrCounter, name::String,
+        cost_rhs::Float, sense::Char, vc_type::Char, flag::Char)
+    return tuplejoin(ConstraintBuilder(counter, name, cost_rhs, sense, vc_type, flag),
                      Dict{SubprobVar,Float}(), Dict{Variable,Float}())
 end
 
@@ -32,8 +32,8 @@ end
     depth_when_generated::Int
 end
 
-function BranchConstrBuilder(problem::P, name::String, cost_rhs::Float,
-                             sense::Char) where P
-    return tuplejoin(ConstraintBuilder(problem, name, cost_rhs, sense, ' ', 's'),
+function BranchConstrBuilder(counter::VarConstrCounter, name::String,
+    cost_rhs::Float, sense::Char)
+    return tuplejoin(ConstraintBuilder(counter, name, cost_rhs, sense, ' ', 's'),
                      0)
 end
