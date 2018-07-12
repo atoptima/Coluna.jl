@@ -1,80 +1,46 @@
-@hl type Variable <: VarConstr
-    # ```
-    # Flag telling whether or not the variable is fractional.
-    # ```
-    moi_index::MOI.VariableIndex
-
-
-    # ```
-    # To represent global lower bound on variable primal / constraint dual
-    # ```
-    lower_bound::Float
-
-
-    # ```
-    # To represent global upper bound on variable primal / constraint dual
-    # ```
-    upper_bound::Float
-
-    cur_lb::Float
-    cur_ub::Float
-end
-
-VariableBuilder(var::Variable) = tuplejoin(VarConstrBuilder(var),
-        (MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
-
-function VariableBuilder( problem::P, name::String, costrhs::Float, sense::Char,
-                          vc_type::Char, flag::Char, directive::Char,
-                          priority::Float, lowerBound::Float,
-                          upperBound::Float) where P
-    return tuplejoin(VarConstrBuilder( problem, name, costrhs, sense, vc_type,
-                                       flag, directive, priority),
-                      MOI.VariableIndex(-1), lowerBound, upperBound, -Inf, Inf)
-end
-
-@hl type SubProbVar{M} <: Variable
+@hl type SubprobVar{M} <: Variable
     masterprob::M
 
     # ```
     # To represent global upper bound on sp variable primal value
     # ```
-    globalub::Float
+    global_ub::Float
 
     # ```
     # To represent global lower bound on sp variable primal value
     # ```
-    globallb::Float
+    global_lb::Float
 
     # ```
     # Current global bound values
     # ```
-    curglobalub::Float
-    curgloballb::Float
+    cur_global_ub::Float
+    cur_global_lb::Float
 
     # ```
     # Represents the master membership in the master constraints as a map where:
     # - The key is the index of the master constraint including this as member,
     # - The value is the corresponding coefficient.
     # ```
-    masterconstrcoefmap::Dict{Int, Float}
+    master_constr_coef_map::Dict{Constraint, Float} # Constraint -> MasterConstr
 
     # ```
     # Represents the master membership in column solutions as map where:
     # - The key is the index of a column whose solutions includes this as member,
-    # - The value is the variable value of this in the corresponding pricing solution.
+    # - The value is the variable value in the corresponding pricing solution.
     # ```
-    mastercolcoefmap::Dict{Int, Float}
+    master_col_coef_map::Dict{Variable, Float} # Variable -> MasterColumn
 end
 
-function SubProbVarBuilder(problem::P, name::String, costrhs::Float, sense::Char,
-                           vc_type::Char, flag::Char, directive::Char,
-                           priority::Float, lowerBound::Float, upperBound::Float,
-                           masterproblem::M, globallb::Float, globalub::Float,
-                           curgloballb::Float, curglobalub::Float) where {P,M}
+function SubprobVarBuilder(problem::P, name::String, costrhs::Float, sense::Char,
+        vc_type::Char, flag::Char, directive::Char, priority::Float, 
+        lowerBound::Float, upperBound::Float, masterproblem::M, globallb::Float, 
+        globalub::Float, curgloballb::Float, curglobalub::Float) where {P,M}
+        
     return tuplejoin(VariableBuilder(problem, name, costrhs, sense, vc_type, flag,
-                                     directive, priority, lowerBound, upperBound ),
-                      masterproblem, globallb, globalub, curgloballb, curglobalub,
-                      Dict{Int,Float}(), Dict{Int,Float}())
+            directive, priority, lowerBound, upperBound), masterproblem, globallb, 
+            globalub, curgloballb, curglobalub, Dict{Constraint,Float}(), 
+            Dict{Variable,Float}())
 end
 
 @hl type MasterVar <: Variable

@@ -41,10 +41,10 @@ end
     local_ub::Float
 end
 
-SpVariableInfoBuilder(var::SubProbVar, status::VCSTATUS) =
+SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
         tuplejoin(VariableInfoBuilder(var,status), var.local_cur_lb, var.local_cur_ub)
 
-function apply_var_info(info::SubProbVar)::Void
+function apply_var_info(info::SubprobVar)::Void
     @callsuper apply_var_info(var::VariableInfo)
     var.local_cur_lb = info.local_lb
     var.local_cur_ub = info.local_ub
@@ -68,16 +68,6 @@ function applyconstrinfo(info::ConstraintInfo)::Void
     info.constraint.rhs = info.rhs
 end
 
-type SubProblemInfo
-    subproblem::Problem
-    lb::Float
-    ub::Float
-end
-
-SubProblemInfo(subprob::Problem) = SubProblemInfo(subprob,
-        subprob.lb_convexity_master_constr.currhs,
-        subprob.ub_convexity_master_constr.currhs)
-
 type ProblemSetupInfo
     treat_order::Int
     number_of_nodes::Int
@@ -86,14 +76,16 @@ type ProblemSetupInfo
     suitable_master_columns_info::Vector{VariableSmallInfo}
     suitable_master_cuts_info::Vector{ConstraintInfo}
     active_branching_constraints_info::Vector{ConstraintInfo}
-    subproblems_info::Vector{SubProblemInfo}
     master_partial_solution_info::Vector{VariableSolInfo}
 
     # - In these two lists we keep only static variables and constraints for
-    # which at least one of the attributes in VariableInfo and ConstraintInfo is different from the default.
-    # Default values are set by the user and can be changed by the preprocessing at the root
-    # - Unsuitable static variables or constraints are ignored: they are eliminated by the preprocessed at the root
-    # - We keep variables and constraints in the strict order: master -> subprob 1 -> subprob 2 -> ...
+    # which at least one of the attributes in VariableInfo and ConstraintInfo is 
+    # different from the default. Default values are set by the user and can be 
+    # changed by the preprocessing at the root
+    # - Unsuitable static variables or constraints are ignored: they are 
+    #   eliminated by the preprocessed at the root
+    # - We keep variables and constraints in the strict order: 
+    #   master -> subprob 1 -> subprob 2 -> ...
 
     modified_static_vars_info::Vector{VariableInfo}
     modified_static_constrs_info::Vector{ConstraintInfo}
@@ -105,6 +97,9 @@ ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
         Vector{VariableSolInfo}(), Vector{VariableInfo}(),
         Vector{ConstraintInfo}())
 
+"""
+AlgToSetdownNode
+"""
 @hl type AlgToSetdownNode
     master_prob::Problem
     pricing_probs::Vector{Problem}
@@ -142,9 +137,6 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
             push!(prob_info.modified_static_vars_info, VariableInfo(var, Active))
         end
     end
-    for var in master_prob.var_manager.inactive_static_list
-        push!(prob_info.modified_static_vars_info, VariableInfo(var, Inactive))
-    end
 
     # dynamic master variables
     for var in master_prob.var_manager.active_dynamic_list
@@ -154,43 +146,27 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
         end
     end
 
-    for var in master_prob.var_manager.inactive_dynamic_list
-        push!(prob_info.suitable_master_columns_info,
-              VariableSmallInfo(var, Inactive))
-    end
-
     printl(1) && print("Stored ", legnth(master_prob.var_manager.active_dynamic_list),
-    " active and ", legnth(master_prob.var_manager.inactive_dynamic_list), " inactive")
+    " active")
 
     # static constraints of the master
     for constr in master_prob.constr_manager.active_static_list
-        if (!isa(constr, ConvexityMasterConstr) && constr.cur_min_slack != constr.min_slack &&
-            constr.cur_max_slack != constr.maxSlack && constr.curUse != 0) # is curUse needed?
+        if (# !isa(constr, ConvexityMasterConstr) && 
+            constr.cur_min_slack != constr.min_slack &&
+            constr.cur_max_slack != constr.max_slack)
             push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
-        end
-    end
-
-    for constr in master_prob.constr_manager.inactive_static_list
-        if !isa(constr, ConvexityMasterConstr)
-            push!(prob_info.modified_static_constrs_info,
-                  ConstraintInfo(constr, Inactive))
         end
     end
 
     # dynamic constraints of the master (cuts and branching constraints)
     for constr in master_prob.constr_manager.active_dynamic_list
-        # if isa(constr, BranchingMasterConstr) TODO: requires branching
+        # if isa(constr, BranchingMasterConstr) TODO: required for branching
         #     push!(prob_info.active_branching_constraints_info, ConstraintInfo(constr)
         # else
         if isa(constr, MasterConstr)
             push!(prob_info.suitable_master_cuts_info,
                   ConstraintInfo(constr, Active))
         end
-    end
-
-    for constr in master_prob.constr_manager.inactive_dynamic_list
-        push!(master_prob.suitable_master_cuts_info,
-              ConstraintInfo(constr, Inactive))
     end
 
     #subprob multiplicity
@@ -208,22 +184,27 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
                 push!(modified_static_vars_info, SpVariableInfo(var))
             end
         end
-
-        for var in subprob.var_manager.inactive_static_list
-            push!(modified_static_vars_info, SpVariableInfo(var, Inactive))
-        end
     end
 
     return prob_info
 end
 
+"""
+AlgToSetupNode
+"""
 @hl type AlgToSetupNode
     # node::Node
     master_prob::Problem
     pricing_probs::Vector{Problem}
     problem_setup_info::ProblemSetupInfo
     is_all_columns_active::Bool
-    vars_to_change_cost::Vector{Variable}
+    vars_to_add::Vector{Variable}
+    vars_to_del::Vector{Variable}
+    vars_to_update_bounds::Vector{Variable}
+    vars_to_update_cost::Vector{Variable}
+    constrs_to_add::Vector{Constraint}
+    constrs_to_del::Vector{Constraint}
+    constrs_to_change_rhs::Vector{Constraint}
 end
 
 function reset_partial_solution(alg::AlgToSetupNode)
@@ -253,40 +234,42 @@ function reset_master_columns(alg::AlgToSetupNode)
             if var.status == Active && var_info.cost != var.cur_cost
                 push!(alg.vars_to_change_cost, var)
             end
-            if var.status == Inactive
-                activate_variable(var)
-            end
-            apply_var_info(var_info)
-        elseif var_info_status == Inactive && var.status == Active
-            deactivate_variable(var, Inactive)
+            apply_var_info(var_info)            
+        elseif 
+                
         end
         var.info_is_updated = true
-    end
-        #TODO add what's missing from the last part handeling unsuitable columns
+    end    
+    #TODO columns that are not in suitable become all unsuitable (no Inactive)
 end
 
+function update_formulation(alg::AlgToSetupNode)
+    #update variables
+    add_in_form(alg.master_prob, alg.vars_to_add)
+    del_in_form(alg.master_prob, alg.vars_to_del)
+    update_bounds_in_form(alg.master_prob, alg.vars_to_update_bounds)
+    update_costs_in_form(alg.master_prob, alg.vars_to_update_cost)
+    
+    #update constraints
+    add_in_form(alg.master_prob, alg.constrs_to_add)
+    del_in_form(alg.master_prob, alg.constrs_to_del)
+    update_rhs_in_form(alg.master_prob, alg.constrs_to_change_rhs)
+end
+
+"""
+AlgToSetupRootNode
+"""
 @hl type AlgToSetupRootNode <: AlgToSetupNode end
-
-function reset_convexity_constraints_at_root(alg::AlgToSetupRootNode)
-    for subprob in alg.pricing_probs
-        if subprob.lb_convexity_master_constr == -Inf
-            deactivateconstraint(subprob.lb_convexity_master_constr, Inactive)
-        end
-        if subprob.ub_convexity_master_constr == Inf
-            deactivateconstraint(subprob.ub_convexity_master_constr, Inactive)
-        end
-    end
-end
 
 # function run(alg::AlgToSetupRootNode, node::Node)
 function run(alg::AlgToSetupRootNode)
     # @callsuper probleminfeasible = AlgToSetupNode::run(node)
 
-    reset_convexity_constraints_at_root(alg)
+    # reset_root_convexity_master_constr(alg)
     reset_master_columns(alg)
-    #resetNonStabArtificialVariables(alg)
+    # reset_non_stab_artificial_variables(alg)
 
     update_formulation(alg.master_prob)
-    # alg.node = Nullable{Node}()
+    
     return problem_infeasible
 end

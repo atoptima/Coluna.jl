@@ -19,7 +19,7 @@ function testdefaultbuilders()
     x2 = CL.VarConstr(x1)
     x3 = CL.Variable(problem, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0, 0.0, 10.0)
     x4 = CL.Variable(x3)
-    x5 = CL.SubProbVar(problem, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0, 0.0, 10.0, 
+    x5 = CL.SubprobVar(problem, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0, 0.0, 10.0, 
                        problem, -Inf, Inf, -Inf, Inf)
     x6 = CL.MasterVar(problem, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0, 0.0, 10.0)
     x7 = CL.MasterVar(x3)
@@ -59,4 +59,4 @@ end
 
 testdefaultbuilders()
 testpuremaster()
-# testcolgenatroot()
+testcolgenatroot()

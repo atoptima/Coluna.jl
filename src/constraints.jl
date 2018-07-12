@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 @hl type Constraint <: VarConstr
     moi_index::MOI.ConstraintIndex{F,S} where {F,S}
     set_type::Type{<:MOI.AbstractSet}
@@ -20,13 +21,15 @@ function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Cha
             MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(cost_rhs), set_type)
 end
 
+=======
+>>>>>>> 7dd6dbae89f9c701a41f1c817eb12dccd8abb9e1
 @hl type MasterConstr <: Constraint
     # ```
     # Represents the membership of subproblem variables as a map where:
     # - The key is the index of the subproblem variable involved in this as member,
     # - The value is the corresponding coefficient.
     # ```
-    subprob_var_coef_map::Dict{Int, Float}
+    subprob_var_coef_map::Dict{SubprobVar, Float}
 
     # ```
     # Represents the membership of pure master variables as a map where:
@@ -40,14 +43,14 @@ end
     # - The key is the index of the master columns involved in this as member,
     # - The value is the corresponding coefficient.
     # ```
-    mast_col_coef_map::Dict{Int,Float}
+    mast_col_coef_map::Dict{Variable,Float} # Variable -> MasterColumn
 
 end
 
 function MasterConstrBuilder(problem::P, name::String, cost_rhs::Float, sense::Char,
                              vc_type::Char, flag::Char) where P
     return tuplejoin(ConstraintBuilder(problem, name, cost_rhs, sense, vc_type, flag),
-                     Dict{Int,Float}(), Dict{Int,Float}())
+                     Dict{SubprobVar,Float}(), Dict{Variable,Float}())
 end
 
 @hl type BranchConstr
