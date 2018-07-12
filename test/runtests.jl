@@ -30,17 +30,38 @@ function testdefaultbuilders()
     constr2 = CL.MasterConstr(problem.counter, "knapConstr", 5.0, 'L', 'M', 's')
 
 
-    # params = CL.Params()
-    # callback = CL.Callback()
-    #
-    # counter = VarConstrCounter(0)
-    # masteroptimizer = Cbc.CbcOptimizer()
-    # pricingprob = CL.SimpleCompactProblem(masteroptimizer, counter)
-    #
-    # pricingoptimizer = Cbc.CbcOptimizer()
-    # masterprob = CL.SimpleCompactProblem(pricingoptimizer, counter)
-    #
-    # ext_problem = ExtendedProblem(masterprob, [pricingprob], )
+    ### Model constructors
+    params = CL.Params()
+    counter = CL.VarConstrCounter(0)
+    masteroptimizer = Cbc.CbcOptimizer()
+    master_prob = CL.SimpleCompactProblem(masteroptimizer, counter)
+    pricingoptimizer = Cbc.CbcOptimizer()
+    pricing_probs = Vector{CL.Problem}()
+    push!(pricing_probs, CL.SimpleCompactProblem(pricingoptimizer, counter))
+    callback = CL.Callback()
+    model = CL.ModelConstructor(master_prob, pricing_probs, CL.Problem[], counter,
+        callback, params)
+
+
+    ### Algorithms constructors
+    alg_setup_node = CL.AlgToSetupNode(master_prob, pricing_probs,
+        CL.ProblemSetupInfo(0), false)
+    alg_preprocess_node = CL.AlgToPreprocessNode()
+    alg_eval_node = CL.AlgToEvalNode()
+    alg_setdown_node = CL.AlgToSetdownNode(master_prob, pricing_probs)
+    alg_vect_primal_heur_node = CL.AlgToPrimalHeurInNode[]
+    alg_generate_children_nodes = CL.AlgToGenerateChildrenNodes(CL.MostFractionalRule(), 2)
+
+
+
+    ### Node constructors
+    rootNode = CL.Node(model, params.cut_lo, CL.ProblemSetupInfo(0), CL.EvalInfo(),
+        alg_setup_node, alg_preprocess_node, alg_eval_node, alg_setdown_node,
+        alg_vect_primal_heur_node, alg_generate_children_nodes)
+
+    chhild1 = CL.NodeWithParent(model, params.cut_lo, CL.ProblemSetupInfo(0),
+        CL.EvalInfo(), rootNode)
+
 
 end
 

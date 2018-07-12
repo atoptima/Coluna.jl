@@ -13,9 +13,14 @@ type ExtendedProblem <: Problem
     subtree_size_by_depth::Int
 end
 
-# function ExtendedProblemConstructor(master_problem::CompactProblem, )
-#
-# end
+function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
+        pricing_vect::Vector{Problem}, separation::Vector{Problem},
+        counter::VarConstrCounter, params::Params, primal_inc_bound::Float,
+        dual_inc_bound::Float) where {VM <: AbstractVarIndexManager,
+        CM <: AbstractConstrIndexManager}
+    return ExtendedProblem(master_problem, pricing_vect, separation, params,
+        counter, Solution(), primal_inc_bound, dual_inc_bound, 0)
+end
 
 @hl type Callback end
 
@@ -25,8 +30,16 @@ type Model # user model
     params::Params
 end
 
-function ModelConstructor()
+function ModelConstructor(master_problem::CompactProblem{VM, CM},
+        pricing_vect::Vector{Problem}, separation::Vector{Problem},
+        counter::VarConstrCounter, callback::Callback, params::Params
+        ) where {VM <: AbstractVarIndexManager,
+        CM <: AbstractConstrIndexManager}
 
+    extended_problem = ExtendedProblemConstructor(master_problem,
+        pricing_vect, separation, counter, params, params.cut_up, params.cut_lo)
+
+    return Model(extended_problem, callback, params)
 end
 
 function create_root_node(model::Model)::Node

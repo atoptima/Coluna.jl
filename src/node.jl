@@ -1,10 +1,9 @@
-type Node
+@hl type Node
     params::Params
-    parent::Node
     children::Vector{Node}
     depth::Int
     prune_dat_treat_node_start::Bool
-    estimated_sub_tree_size::Float
+    estimated_sub_tree_size::Int
     sub_tree_size::Int
 
     node_inc_lp_dual_bound::Float
@@ -42,102 +41,74 @@ type Node
     alg_eval_node::AlgToEvalNode
     alg_setdown_node::AlgToSetdownNode
     alg_vect_primal_heur_node::Vector{AlgToPrimalHeurInNode}
-    alg_generate_childrens_node::AlgToGenerateChildrenNodes
+    alg_generate_children_nodes::AlgToGenerateChildrenNodes
 end
 
+function NodeBuilder(model, dual_bound::Float,
+    problem_setup_info::ProblemSetupInfo, eval_info::EvalInfo,
+    alg_setup_node::AlgToSetupNode,
+    alg_preprocess_node::AlgToPreprocessNode,
+    alg_eval_node::AlgToEvalNode,
+    alg_setdown_node::AlgToSetdownNode,
+    alg_vect_primal_heur_node::Vector{AlgToPrimalHeurInNode},
+    alg_generate_children_nodes::AlgToGenerateChildrenNodes)
 
-function Node(node::Node, problem_setup_info;
-    eval_info = EvalInfo(),
-    alg_setup_node = AlgToSetupNode(),
-    alg_preprocess_node = AlgToPreprocessNode(),
-    alg_eval_node = AlgToEvalNode(),
-    alg_setdown_node = AlgToSetdownNode(),
-    alg_vect_primal_heur_node = AlgToPrimalHeurInNode[],
-    alg_generate_children_nodes = AlgToGenerateChildrenNodes())
-
-return Node( ##### Change this to use node values
-    node.params,
-    this,
-    Node[],
-    0,
-    false,
-    typemax(Int),
-    -1,
-    dual_bound,
-    dual_bound,
-    model.primal_inc_bound,
-    model.primal_inc_bound,
-    dual_bound,
-    false,
-    false,
-    Solution(),
-    Solution(),
-    -1,
-    -1,
-    false,
-    false,
-    false,
-    problem_setup_info,
-    eval_info,
-    children_generation_info(),
-    branching_eval_info(),
-    false,
-    Solution(),
-    0,
-    -1,
-    alg_setup_node,
-    alg_preprocess_node,
-    alg_eval_node,
-    alg_setdown_node,
-    alg_vect_primal_heur_node,
-    alg_generate_children_nodes)
+    return (
+        model.params,
+        Node[],
+        0,
+        false,
+        typemax(Int),
+        -1,
+        dual_bound,
+        dual_bound,
+        model.extended_problem.primal_inc_bound,
+        model.extended_problem.primal_inc_bound,
+        dual_bound,
+        false,
+        false,
+        Solution(),
+        Solution(),
+        -1,
+        -1,
+        false,
+        false,
+        false,
+        problem_setup_info,
+        eval_info,
+        ChildrenGenerationInfo(),
+        BranchingEvaluationInfo(),
+        false,
+        Solution(),
+        0,
+        -1,
+        alg_setup_node,
+        alg_preprocess_node,
+        alg_eval_node,
+        alg_setdown_node,
+        alg_vect_primal_heur_node,
+        alg_generate_children_nodes
+    )
 end
 
-function Node(model, dual_bound, problem_setup_info, eval_info;
-    alg_setup_node = AlgToSetupNode(),
-    alg_preprocess_node = AlgToPreprocessNode(),
-    alg_eval_node = AlgToEvalNode(),
-    alg_setdown_node = AlgToSetdownNode(),
-    alg_vect_primal_heur_node = AlgToPrimalHeurInNode[],
-    alg_generate_children_nodes = AlgToGenerateChildrenNodes())
-
-return Node(
-    model.params,
-    this,
-    Node[],
-    0,
-    false,
-    typemax(Int),
-    -1,
-    dual_bound,
-    dual_bound,
-    model.primal_inc_bound,
-    model.primal_inc_bound,
-    dual_bound,
-    false,
-    false,
-    Solution(),
-    Solution(),
-    -1,
-    -1,
-    false,
-    false,
-    false,
-    problem_setup_info,
-    eval_info,
-    children_generation_info(),
-    branching_eval_info(),
-    false,
-    Solution(),
-    0,
-    -1,
-    alg_setup_node,
-    alg_preprocess_node,
-    alg_eval_node,
-    alg_setdown_node,
-    alg_vect_primal_heur_node,
-    alg_generate_children_nodes)
+@hl type NodeWithParent <: Node
+    parent::Node
 end
+
+function NodeWithParentBuilder(model, dual_bound::Float,
+    problem_setup_info::ProblemSetupInfo, eval_info::EvalInfo, parent::Node)
+
+    return tuplejoin(NodeBuilder( model, dual_bound,
+        problem_setup_info, eval_info, parent.alg_setup_node,
+        parent.alg_preprocess_node, parent.alg_eval_node,
+        parent.alg_setdown_node, parent.alg_vect_primal_heur_node,
+        parent.alg_generate_children_nodes
+        ),
+        parent
+    )
+
+end
+
 
 function exit_treatment(node::Node)::Void
     # No need for deleting. I prefer deleting the node and storing the info

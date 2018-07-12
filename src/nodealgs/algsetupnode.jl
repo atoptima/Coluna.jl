@@ -79,12 +79,12 @@ type ProblemSetupInfo
     master_partial_solution_info::Vector{VariableSolInfo}
 
     # - In these two lists we keep only static variables and constraints for
-    # which at least one of the attributes in VariableInfo and ConstraintInfo is 
-    # different from the default. Default values are set by the user and can be 
+    # which at least one of the attributes in VariableInfo and ConstraintInfo is
+    # different from the default. Default values are set by the user and can be
     # changed by the preprocessing at the root
-    # - Unsuitable static variables or constraints are ignored: they are 
+    # - Unsuitable static variables or constraints are ignored: they are
     #   eliminated by the preprocessed at the root
-    # - We keep variables and constraints in the strict order: 
+    # - We keep variables and constraints in the strict order:
     #   master -> subprob 1 -> subprob 2 -> ...
 
     modified_static_vars_info::Vector{VariableInfo}
@@ -93,9 +93,8 @@ end
 
 ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
         Vector{VariableSmallInfo}(), Vector{ConstraintInfo}(),
-        Vector{ConstraintInfo}(), Vector{SubProblemInfo}(),
-        Vector{VariableSolInfo}(), Vector{VariableInfo}(),
-        Vector{ConstraintInfo}())
+        Vector{ConstraintInfo}(), Vector{VariableSolInfo}(),
+        Vector{VariableInfo}(), Vector{ConstraintInfo}())
 
 #############################
 #### AlgToSetdownNode #######
@@ -152,7 +151,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
 
     # static constraints of the master
     for constr in master_prob.constr_manager.active_static_list
-        if (# !isa(constr, ConvexityMasterConstr) && 
+        if (# !isa(constr, ConvexityMasterConstr) &&
             constr.cur_min_slack != constr.min_slack &&
             constr.cur_max_slack != constr.max_slack)
             push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
@@ -170,10 +169,6 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
         end
     end
 
-    #subprob multiplicity
-    for subprob in alg.pricing_probs
-        push!(prob_info.subproblems_info, SubProblemInfo(subprob))
-    end
 
     #subprob variables
     for subprob in alg.pricing_probs
@@ -234,8 +229,8 @@ function reset_master_columns(alg::AlgToSetupNode)
             deactivate_variable(alg, prob, var)
         end
         var.info_is_updated = true
-    end        
-    
+    end
+
     for var in alg.master_prob.var_manager.active_dynamic_list
         if isa(var, MasterColumn) && var.info_is_updated == false
             deactivate_variable(alg, alg.master_prob, var)
@@ -264,6 +259,6 @@ function run(alg::AlgToSetupRootNode)
     # reset_non_stab_artificial_variables(alg)
 
     update_formulation(alg.master_prob)
-    
+
     return problem_infeasible
 end
