@@ -29,6 +29,17 @@ end
 function prepare_node_for_treatment(node::Node, global_nodes_treat_order::Int,
         nb_treated_nodes::Int)
 
+    # node.alg_setup_node = AlgToSetupNode()
+    #
+    # ## Change depending on solving method
+    # node.alg_eval_node = AlgToEvalNode()
+    #
+    # node.alg_generate_children_nodes = AlgToGenerateChildrenNodes()
+    #
+    # node.alg_vect_primal_heur_node = AlgToPrimalHeurInNode[]
+    #
+    # node.alg_setdown_node = AlgToSetdownNode()
+
 end
 
 function solve(model::Model)
