@@ -97,9 +97,10 @@ ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
         Vector{VariableSolInfo}(), Vector{VariableInfo}(),
         Vector{ConstraintInfo}())
 
-"""
-AlgToSetdownNode
-"""
+#############################
+#### AlgToSetdownNode #######
+#############################
+
 @hl type AlgToSetdownNode
     master_prob::Problem
     pricing_probs::Vector{Problem}
@@ -189,9 +190,10 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
     return prob_info
 end
 
-"""
-AlgToSetupNode
-"""
+#############################
+##### AlgToSetupNode ########
+#############################
+
 @hl type AlgToSetupNode
     # node::Node
     master_prob::Problem
@@ -234,9 +236,7 @@ function reset_master_columns(alg::AlgToSetupNode)
             if var.status == Active && var_info.cost != var.cur_cost
                 push!(alg.vars_to_change_cost, var)
             end
-            apply_var_info(var_info)            
-        elseif 
-                
+            apply_var_info(var_info)  
         end
         var.info_is_updated = true
     end    
@@ -256,9 +256,10 @@ function update_formulation(alg::AlgToSetupNode)
     update_rhs_in_form(alg.master_prob, alg.constrs_to_change_rhs)
 end
 
-"""
-AlgToSetupRootNode
-"""
+#############################
+#### AlgToSetupRootNode #####
+#############################
+
 @hl type AlgToSetupRootNode <: AlgToSetupNode end
 
 # function run(alg::AlgToSetupRootNode, node::Node)
