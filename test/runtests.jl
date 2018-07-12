@@ -14,7 +14,8 @@ function testdefaultbuilders()
 
     user_optimizer = Cbc.CbcOptimizer()
     ## Problem builder
-    problem = CL.SimpleCompactProblem(user_optimizer)
+    counter = CL.VarConstrCounter(0)
+    problem = CL.SimpleCompactProblem(user_optimizer, counter)
     x1 = CL.VarConstr(problem.counter, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0)
     x2 = CL.VarConstr(x1, problem.counter)
     x3 = CL.Variable(problem.counter, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0, 0.0, 10.0)
@@ -28,12 +29,26 @@ function testdefaultbuilders()
     constr1 = CL.Constraint(problem.counter, "knapConstr", 5.0, 'L', 'M', 's')
     constr2 = CL.MasterConstr(problem.counter, "knapConstr", 5.0, 'L', 'M', 's')
 
+
+    # params = CL.Params()
+    # callback = CL.Callback()
+    #
+    # counter = VarConstrCounter(0)
+    # masteroptimizer = Cbc.CbcOptimizer()
+    # pricingprob = CL.SimpleCompactProblem(masteroptimizer, counter)
+    #
+    # pricingoptimizer = Cbc.CbcOptimizer()
+    # masterprob = CL.SimpleCompactProblem(pricingoptimizer, counter)
+    #
+    # ext_problem = ExtendedProblem(masterprob, [pricingprob], )
+
 end
 
 function testpuremaster()
+    counter = CL.VarConstrCounter(0)
     user_optimizer = Cbc.CbcOptimizer()
 
-    problem = CL.SimpleCompactProblem(user_optimizer)
+    problem = CL.SimpleCompactProblem(user_optimizer, counter)
 
     x1 = CL.MasterVar(problem.counter, "x1", -10.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
     x2 = CL.MasterVar(problem.counter, "x2", -15.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)

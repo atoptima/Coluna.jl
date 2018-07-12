@@ -1,10 +1,11 @@
 
 function testcolgenatroot()
+    counter = CL.VarConstrCounter(0)
     masteroptimizer = Cbc.CbcOptimizer()
-    pricingprob = CL.SimpleCompactProblem(masteroptimizer)
+    pricingprob = CL.SimpleCompactProblem(masteroptimizer, counter)
 
     pricingoptimizer = Cbc.CbcOptimizer()
-    masterprob = CL.SimpleCompactProblem(pricingoptimizer)
+    masterprob = CL.SimpleCompactProblem(pricingoptimizer, counter)
 
     #subproblem vars
     x1 = CL.SubprobVar(pricingprob.counter, "x1", 0.0, 'P', 'C', 's', 'U', 1.0, 0.0,
