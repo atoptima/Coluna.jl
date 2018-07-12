@@ -17,7 +17,6 @@ end
 function MasterColumnBuilder(problem::P, sp_sol::Solution,
                              name::String) where P
     return tuplejoin(VariableBuilder(problem,
-            string(name, problem.counter.value), 0.0, 'P',
-            sp_sol.type, 'd', -1, 0.0, Inf), sp_sol,
-            0, 0 #= enumeration not supported =#, true)
+            string(name, problem.counter.value), 0.0, 'P', sp_sol.type, 'd', -1, 
+            0.0, Inf), sp_sol, 0, 0 #= enumeration not supported =#, true)
 end

@@ -150,3 +150,59 @@ function VarConstrBuilder(problem::P, name::String, costrhs::Float, sense::Char,
             priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0, 
             Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
 end
+
+@hl type Variable <: VarConstr
+    # ```
+    # Flag telling whether or not the variable is fractional.
+    # ```
+    moi_index::MOI.VariableIndex
+
+
+    # ```
+    # To represent global lower bound on variable primal / constraint dual
+    # ```
+    lower_bound::Float
+
+
+    # ```
+    # To represent global upper bound on variable primal / constraint dual
+    # ```
+    upper_bound::Float
+
+    cur_lb::Float
+    cur_ub::Float
+end
+
+VariableBuilder(var::Variable) = tuplejoin(VarConstrBuilder(var),
+        (MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
+
+function VariableBuilder( problem::P, name::String, costrhs::Float, sense::Char,
+                          vc_type::Char, flag::Char, directive::Char,
+                          priority::Float, lowerBound::Float,
+                          upperBound::Float) where P
+    return tuplejoin(VarConstrBuilder( problem, name, costrhs, sense, vc_type,
+                                       flag, directive, priority),
+                      MOI.VariableIndex(-1), lowerBound, upperBound, -Inf, Inf)
+end
+
+@hl type Constraint <: VarConstr
+    moi_index::MOI.ConstraintIndex{F,S} where {F,S}
+    set_type::Type{<:MOI.AbstractSet}
+end
+
+function ConstraintBuilder(problem::P, name::String, cost_rhs::Float, sense::Char, 
+                           vc_type::Char, flag::Char) where P
+    if sense == 'G'
+        set_type = MOI.GreaterThan
+    elseif sense == 'L'
+        set_type = MOI.LessThan
+    elseif sense == 'E'
+        set_type = MOI.EqualTo
+    else
+        error("Sense $sense is not supported")
+    end
+
+    return tuplejoin(VarConstrBuilder(problem, name, cost_rhs, sense, vc_type, 
+            flag, 'U', 1.0), 
+            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1), set_type)
+end

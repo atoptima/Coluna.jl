@@ -189,24 +189,46 @@ function add_constraint(problem::Problem, constr::Constraint)
 end
 
 function add_membership(var::Variable, constr::Constraint, coef::Float)
-    var.member_coef_map[var] = coef
-    constr.member_coef_map[constr] = coef
+    var.member_coef_map[constr] = coef
+    constr.member_coef_map[var] = coef
     MOI.modify!(var.problem.optimizer,  constr.moi_index,
                 MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
 end
 
-function add_membership(var::SubProbVar, constr::MasterConstr, coef::Float)
-    var.master_constr_coef_map[var] = coef
-    constr.subprob_var_coef_map[constr] = coef
+function add_membership(var::SubprobVar, constr::MasterConstr, coef::Float)
+    var.master_constr_coef_map[constr] = coef
+    constr.subprob_var_coef_map[var] = coef
 end
 
 function add_membership(var::MasterVar, constr::MasterConstr, coef::Float)
-    var.member_coef_map[var] = coef
-    constr.member_coef_map[constr] = coef
+    var.member_coef_map[constr] = coef
+    constr.member_coef_map[var] = coef
     MOI.modify!(var.problem.optimizer,  constr.moi_index,
                 MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
 end
 
 function optimize(problem::Problem)
     MOI.optimize!(problem.optimizer)
+end
+
+# TODO: implement updates in formulation
+function add_in_form(problem, vars_to_add)
+end
+
+function del_in_form(problem, vars_to_del)
+end
+
+function update_bounds_in_form(problem, vars_to_update_bounds)
+end
+
+function update_costs_in_form(problem, vars_to_update_cost)
+end
+
+function add_in_form(problem, constrs_to_add)
+end
+
+function del_in_form(problem, constrs_to_del)
+end
+
+function update_rhs_in_form(problem, constrs_to_change_rhs)
 end
