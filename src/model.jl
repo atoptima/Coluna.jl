@@ -13,12 +13,20 @@ type ExtendedProblem <: Problem
     subtree_size_by_depth::Int
 end
 
-abstract type Callback end
+# function ExtendedProblemConstructor(master_problem::CompactProblem, )
+#
+# end
+
+@hl type Callback end
 
 type Model # user model
     extended_problem::ExtendedProblem
     callback::Callback
     params::Params
+end
+
+function ModelConstructor()
+
 end
 
 function create_root_node(model::Model)::Node

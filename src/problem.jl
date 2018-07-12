@@ -150,8 +150,9 @@ type CompactProblem{VM <: AbstractVarIndexManager,
     is_retrieved_red_costs::Bool
 end
 
-function CompactProblem{VM,CM}(useroptimizer::MOI.AbstractOptimizer
-        ) where {VM <: AbstractVarIndexManager, CM <: AbstractConstrIndexManager}
+function CompactProblem{VM,CM}(useroptimizer::MOI.AbstractOptimizer,
+        counter::VarConstrCounter ) where {VM <: AbstractVarIndexManager,
+        CM <: AbstractConstrIndexManager}
 
     optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                       useroptimizer)
@@ -161,7 +162,7 @@ function CompactProblem{VM,CM}(useroptimizer::MOI.AbstractOptimizer
 
     CompactProblem(false, optimizer, VM(), CM(), Set{Variable}(), Set{Variable}(),
             Set{Constraint}(), 0.0, Dict{Variable,Float}(), Vector{Solution}(),
-            Vector{Constraint}(), Vector{Variable}(), VarConstrCounter(0),
+            Vector{Constraint}(), Vector{Variable}(), counter,
             Vector{VarConstr}(), false)
 end
 
