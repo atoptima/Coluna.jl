@@ -1,26 +1,6 @@
 @enum(SEARCHSTRATEGY,BestDualBoundThanDF,DepthFirstWithWorseBound,
 BestLpBound, DepthFirstWithBetterBound)
 
-type ExtendedProblem <: Problem
-    master_problem::CompactProblem # restricted master in DW case.
-    pricing_vect::Vector{Problem}
-    separation_vect::Vector{Problem}
-    params::Params
-    counter::VarConstrCounter
-    solution::Solution
-    primal_inc_bound::Float
-    dual_inc_bound::Float
-    subtree_size_by_depth::Int
-end
-
-function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
-        pricing_vect::Vector{Problem}, separation::Vector{Problem},
-        counter::VarConstrCounter, params::Params, primal_inc_bound::Float,
-        dual_inc_bound::Float) where {VM <: AbstractVarIndexManager,
-        CM <: AbstractConstrIndexManager}
-    return ExtendedProblem(master_problem, pricing_vect, separation, params,
-        counter, Solution(), primal_inc_bound, dual_inc_bound, 0)
-end
 
 @hl type Callback end
 
@@ -30,39 +10,40 @@ type Model # user model
     params::Params
 end
 
-function ModelConstructor(master_problem::CompactProblem{VM, CM},
-        pricing_vect::Vector{Problem}, separation::Vector{Problem},
-        counter::VarConstrCounter, callback::Callback, params::Params
-        ) where {VM <: AbstractVarIndexManager,
-        CM <: AbstractConstrIndexManager}
-
-    extended_problem = ExtendedProblemConstructor(master_problem,
-        pricing_vect, separation, counter, params, params.cut_up, params.cut_lo)
-
+function ModelConstructor(extended_problem::ExtendedProblem,
+        callback::Callback, params::Params)
     return Model(extended_problem, callback, params)
 end
 
 function create_root_node(model::Model)::Node
     params = model.params
     problem_setup_info = ProblemSetupInfo(0)
-    stab_info  = StabilizationInfo(model.master_prob, params)
+    stab_info  = StabilizationInfo(model.extended_problem.master_problem, params)
     master_lp_basis = LpBasisRecord("Basis0")
     node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
 
-    return Node(model, model.dual_inc_bound, problem_setup_info, node_eval_info)
+    return Node(model, model.extended_problem.dual_inc_bound,
+        problem_setup_info, node_eval_info)
 end
 
-function solve(model::Model)::Solution
+function prepare_node_for_treatment(node::Node, global_nodes_treat_order::Int,
+        nb_treated_nodes::Int)
+
+end
+
+function solve(model::Model)
+    search_tree = DS.Queue(Node)
     params = model.params
     global_nodes_treat_order = 0
     this_search_tree_treated_nodes_number = 0
     cur_node = create_root_node(model)
+    DS.enqueue!(search_tree, cur_node)
     bap_treat_order = 1 # usefull only for printing only
 
     this_search_tree_treated_nodes_number += 1
     while (!isempty(search_tree) &&
             this_search_tree_treated_nodes_number <
-            params.max_nb_of_bb_tree_node_treated)
+            params.max_num_nodes)
 
         is_primary_tree_node = isempty(secondary_search_tree)
         cur_node_solved_before = is_solved(cur_node)
@@ -111,7 +92,7 @@ function solve(model::Model)::Solution
         end
 
         if isempty(cur_node.children)
-            calculate_subtree_size(cur_node, model.sub_tree_size_by_depth);
+            calculate_subtree_size(cur_node, model.sub_tree_size_by_depth)
         end
     end
 end

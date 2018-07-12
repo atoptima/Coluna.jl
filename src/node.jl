@@ -91,6 +91,48 @@ function NodeBuilder(model, dual_bound::Float,
     )
 end
 
+
+function NodeBuilder(model, dual_bound::Float,
+    problem_setup_info::ProblemSetupInfo, eval_info::EvalInfo)
+
+    return (
+        model.params,
+        Node[],
+        0,
+        false,
+        typemax(Int),
+        -1,
+        dual_bound,
+        dual_bound,
+        model.extended_problem.primal_inc_bound,
+        model.extended_problem.primal_inc_bound,
+        dual_bound,
+        false,
+        false,
+        Solution(),
+        Solution(),
+        -1,
+        -1,
+        false,
+        false,
+        false,
+        problem_setup_info,
+        eval_info,
+        ChildrenGenerationInfo(),
+        BranchingEvaluationInfo(),
+        false,
+        Solution(),
+        0,
+        -1,
+        AlgToSetupNode(model.extended_problem),
+        AlgToPreprocessNode(),
+        AlgToEvalNode(),
+        AlgToSetdownNode(model.extended_problem),
+        Vector{AlgToPrimalHeurInNode}(),
+        AlgToGenerateChildrenNodes()
+    )
+end
+
 @hl type NodeWithParent <: Node
     parent::Node
 end

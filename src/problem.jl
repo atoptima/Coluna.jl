@@ -168,6 +168,27 @@ end
 
 const SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
 
+type ExtendedProblem <: Problem
+    master_problem::CompactProblem # restricted master in DW case.
+    pricing_vect::Vector{Problem}
+    separation_vect::Vector{Problem}
+    params::Params
+    counter::VarConstrCounter
+    solution::Solution
+    primal_inc_bound::Float
+    dual_inc_bound::Float
+    subtree_size_by_depth::Int
+end
+
+function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
+        pricing_vect::Vector{Problem}, separation::Vector{Problem},
+        counter::VarConstrCounter, params::Params, primal_inc_bound::Float,
+        dual_inc_bound::Float) where {VM <: AbstractVarIndexManager,
+        CM <: AbstractConstrIndexManager}
+    return ExtendedProblem(master_problem, pricing_vect, separation, params,
+        counter, Solution(), primal_inc_bound, dual_inc_bound, 0)
+end
+
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
 function add_variable(problem::Problem, var::Variable)

@@ -10,6 +10,11 @@ struct LeastFractionalRule <: RuleForUsualBranching end
     rule::RuleForUsualBranching
     nb_vars_to_branch::Int
 end
+
+function AlgToGenerateChildrenNodesBuilder()
+    return (MostFractionalRule(), 1)
+end
+
 #
 #
 # function sort_vars_according_to_rule(rule::MostFractionalRule, vars::Vector{Variable})

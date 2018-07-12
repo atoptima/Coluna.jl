@@ -101,20 +101,19 @@ ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
 #############################
 
 @hl type AlgToSetdownNode
-    master_prob::Problem
-    pricing_probs::Vector{Problem}
+    extended_problem::ExtendedProblem
 end
 
 function run(alg::AlgToSetdownNode)
-    alg.master_prob.cur_node = Nullable{Node}()
-    for prob in alg.pricing_probs
+    alg.extended_problem.master_prob.cur_node = Nullable{Node}()
+    for prob in alg.extended_problem.pricing_probs
         prob.cur_node = Nullable{Node}()
     end
 end
 
 function record_problem_info(alg::AlgToSetdownNode,
                              global_treat_order::Int)::ProblemSetupInfo
-    return ProblemSetupInfo(alg.master_prob.cur_node.treat_order)
+    return ProblemSetupInfo(alg.extended_problem.master_prob.cur_node.treat_order)
 end
 record_problem_info(alg) = record_problem_info(alg, -1)
 
@@ -191,10 +190,13 @@ end
 
 @hl type AlgToSetupNode
     # node::Node
-    master_prob::Problem
-    pricing_probs::Vector{Problem}
+    extended_problem::ExtendedProblem
     problem_setup_info::ProblemSetupInfo
     is_all_columns_active::Bool
+end
+
+function AlgToSetupNodeBuilder(extended_problem::ExtendedProblem)
+    return (extended_problem, ProblemSetupInfo(0), false)
 end
 
 function reset_partial_solution(alg::AlgToSetupNode)

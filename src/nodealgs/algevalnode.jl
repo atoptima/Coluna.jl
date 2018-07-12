@@ -3,7 +3,9 @@ type StabilizationInfo
     params::Params
 end
 
-type ColGenEvalInfo
+abstract type EvalInfo end
+
+type ColGenEvalInfo <: EvalInfo
     stabilization_info::StabilizationInfo
     master_lp_basis::LpBasisRecord
     latest_reduced_cost_fixing_gap::Float
