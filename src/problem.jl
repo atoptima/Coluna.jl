@@ -213,25 +213,3 @@ end
 function optimize(problem::Problem)
     MOI.optimize!(problem.optimizer)
 end
-
-# TODO: implement updates in formulation
-function add_in_form(problem, vars_to_add::Variable)
-end
-
-function del_in_form(problem, vars_to_del::Variable)
-end
-
-function update_bounds_in_form(problem, vars_to_update_bounds)
-end
-
-function update_costs_in_form(problem, vars_to_update_cost)
-end
-
-function add_in_form(problem, constrs_to_add::Constraint)
-end
-
-function del_in_form(problem, constrs_to_del::Constraint)
-end
-
-function update_rhs_in_form(problem, constrs_to_change_rhs)
-end

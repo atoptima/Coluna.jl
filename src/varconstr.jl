@@ -112,8 +112,10 @@ end
     # - The value is the corresponding coefficient.
     # ```
     member_coef_map::Dict{VarConstr, Float}
-
-    is_info_updated::Bool # added by Ruslan, needed for VarConstrResetInfo
+    
+    # Needed for VarConstrResetInfo.
+    is_info_updated::Bool 
+    
     in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
 
     reduced_cost::Float

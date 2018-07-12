@@ -200,13 +200,6 @@ end
     pricing_probs::Vector{Problem}
     problem_setup_info::ProblemSetupInfo
     is_all_columns_active::Bool
-    vars_to_add::Vector{Variable}
-    vars_to_del::Vector{Variable}
-    vars_to_update_bounds::Vector{Variable}
-    vars_to_update_cost::Vector{Variable}
-    constrs_to_add::Vector{Constraint}
-    constrs_to_del::Vector{Constraint}
-    constrs_to_change_rhs::Vector{Constraint}
 end
 
 function reset_partial_solution(alg::AlgToSetupNode)
@@ -236,24 +229,24 @@ function reset_master_columns(alg::AlgToSetupNode)
             if var.status == Active && var_info.cost != var.cur_cost
                 push!(alg.vars_to_change_cost, var)
             end
-            apply_var_info(var_info)  
+            apply_var_info(var_info)
+        elseif var_info.status == Unsuitable
+            deactivate_variable(alg, prob, var)
         end
         var.info_is_updated = true
-    end    
-    #TODO columns that are not in suitable become all unsuitable (no Inactive)
+    end        
+    
+    for var in alg.master_prob.var_manager.active_dynamic_list
+        if isa(var, MasterColumn) && var.info_is_updated == false
+            deactivate_variable(alg, alg.master_prob, var)
+        else
+            var.info_is_updated = false
+        end
+    end
 end
 
 function update_formulation(alg::AlgToSetupNode)
-    #update variables
-    add_in_form(alg.master_prob, alg.vars_to_add)
-    del_in_form(alg.master_prob, alg.vars_to_del)
-    update_bounds_in_form(alg.master_prob, alg.vars_to_update_bounds)
-    update_costs_in_form(alg.master_prob, alg.vars_to_update_cost)
-    
-    #update constraints
-    add_in_form(alg.master_prob, alg.constrs_to_add)
-    del_in_form(alg.master_prob, alg.constrs_to_del)
-    update_rhs_in_form(alg.master_prob, alg.constrs_to_change_rhs)
+    # TODO implement caching through MOI.
 end
 
 #############################
