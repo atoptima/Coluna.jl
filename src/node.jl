@@ -91,7 +91,6 @@ function NodeBuilder(model, dual_bound::Float,
     )
 end
 
-
 function NodeBuilder(model, dual_bound::Float,
     problem_setup_info::ProblemSetupInfo, eval_info::EvalInfo)
 

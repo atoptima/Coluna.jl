@@ -45,24 +45,33 @@ function testdefaultbuilders()
     model = CL.ModelConstructor(extended_problem, callback, params)
 
 
+    ### Info constructors
+    stab_info = CL.StabilizationInfo(master_problem, params)
+    lp_basis = CL.LpBasisRecord()
+    cg_eval_info = CL.ColGenEvalInfo(stab_info, lp_basis, 0.5)
+    lp_eval_info = CL.LpEvalInfo(stab_info)
+
+
     ### Algorithms constructors
     alg_setup_node = CL.AlgToSetupNode(extended_problem,
         CL.ProblemSetupInfo(0), false)
     alg_preprocess_node = CL.AlgToPreprocessNode()
     alg_eval_node = CL.AlgToEvalNode()
+    alg_to_eval_by_lp = CL.AlgToEvalNodeByLp(lp_eval_info)
+    alg_to_eval_by_cg = CL.AlgToEvalNodeByColGen()
     alg_setdown_node = CL.AlgToSetdownNode(extended_problem)
     alg_vect_primal_heur_node = CL.AlgToPrimalHeurInNode[]
     alg_generate_children_nodes = CL.AlgToGenerateChildrenNodes(CL.MostFractionalRule(), 2)
 
 
     ### Node constructors
-    rootNode = CL.Node(model, params.cut_lo, CL.ProblemSetupInfo(0), CL.EvalInfo())
-    rootNode = CL.Node(model, params.cut_lo, CL.ProblemSetupInfo(0), CL.EvalInfo(),
+    rootNode = CL.Node(model, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info)
+    rootNode = CL.Node(model, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info,
         alg_setup_node, alg_preprocess_node, alg_eval_node, alg_setdown_node,
         alg_vect_primal_heur_node, alg_generate_children_nodes)
 
-    chhild1 = CL.NodeWithParent(model, params.cut_lo, CL.ProblemSetupInfo(0),
-        CL.EvalInfo(), rootNode)
+    child1 = CL.NodeWithParent(model, params.cut_lo, CL.ProblemSetupInfo(0),
+        cg_eval_info, rootNode)
 
 
 end

@@ -11,6 +11,26 @@ type ColGenEvalInfo <: EvalInfo
     latest_reduced_cost_fixing_gap::Float
 end
 
-@hl type EvalInfo end
+type LpEvalInfo <: EvalInfo
+    stabilization_info::StabilizationInfo
+end
+
 
 @hl type AlgToEvalNode end
+
+@hl type AlgToEvalNodeByColGen <: AlgToEvalNode end
+
+@hl type AlgToEvalNodeByLp <: AlgToEvalNode
+    eval_info::LpEvalInfo
+end
+
+
+function AlgToEvalNodeByLpBuilder(eval_info::LpEvalInfo)
+    return (eval_info,)
+end
+
+
+function run(alg::AlgToEvalNodeByLp, node, problem::Problem)
+
+
+end
