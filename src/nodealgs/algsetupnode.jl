@@ -105,31 +105,31 @@ ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
 end
 
 function run(alg::AlgToSetdownNode)
-    alg.extended_problem.master_prob.cur_node = Nullable{Node}()
-    for prob in alg.extended_problem.pricing_probs
-        prob.cur_node = Nullable{Node}()
+    # alg.extended_problem.master_problem.cur_node = Nullable{Node}()
+    for prob in alg.extended_problem.pricing_vect
+        # prob.cur_node = Nullable{Node}()
     end
 end
 
 function record_problem_info(alg::AlgToSetdownNode,
                              global_treat_order::Int)::ProblemSetupInfo
-    return ProblemSetupInfo(alg.extended_problem.master_prob.cur_node.treat_order)
+    return ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
 end
 record_problem_info(alg) = record_problem_info(alg, -1)
 
 @hl type AlgToSetdownNodeFully <: AlgToSetdownNode end
 
 function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int)
-    const master_prob = alg.master_prob
-    const prob_info = ProblemSetupInfo(alg.master_prob.cur_node.treat_order)
+    const master_problem = alg.extended_problem.master_problem
+    const prob_info = ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
 
     #patial solution of master
-    for (var, val) in master_prob.partial_solution
+    for (var, val) in master_problem.partial_solution
         push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
     end
 
     #static variables of master
-    for var in master_prob.var_manager.active_static_list
+    for var in master_problem.var_manager.active_static_list
         if (var.global_cur_lb != var.global_lb
             || var.global_cur_ub != var.global_ub
             || var.cur_cost != var.costrhs)
@@ -138,18 +138,18 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
     end
 
     # dynamic master variables
-    for var in master_prob.var_manager.active_dynamic_list
+    for var in master_problem.var_manager.active_dynamic_list
         if isa(var, MasterColumn)
             push!(prob_info.suitable_master_columns_info,
                   VariableSmallInfo(var, Active))
         end
     end
 
-    printl(1) && print("Stored ", legnth(master_prob.var_manager.active_dynamic_list),
+    printl(1) && print("Stored ", legnth(master_problem.var_manager.active_dynamic_list),
     " active")
 
     # static constraints of the master
-    for constr in master_prob.constr_manager.active_static_list
+    for constr in master_problem.constr_manager.active_static_list
         if (# !isa(constr, ConvexityMasterConstr) &&
             constr.cur_min_slack != constr.min_slack &&
             constr.cur_max_slack != constr.max_slack)
@@ -158,7 +158,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
     end
 
     # dynamic constraints of the master (cuts and branching constraints)
-    for constr in master_prob.constr_manager.active_dynamic_list
+    for constr in master_problem.constr_manager.active_dynamic_list
         # if isa(constr, BranchingMasterConstr) TODO: required for branching
         #     push!(prob_info.active_branching_constraints_info, ConstraintInfo(constr)
         # else
@@ -170,7 +170,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully, global_treat_order::Int
 
 
     #subprob variables
-    for subprob in alg.pricing_probs
+    for subprob in alg.extended_problem.pricing_vect
         for var in subprob.var_manager.active_static_list
             if (var.cur_global_lb != var.global_lb
                 || var.cur_global_ub != var.global_ub
@@ -203,15 +203,15 @@ function reset_partial_solution(alg::AlgToSetupNode)
     # const node = alg.node
     # if !isempty(node.localfixedsolution)
     #     for (var, val) in node.localfixedsolution.solvarvalmap
-    #         updatepartialsolution(alg.master_prob, var, val)
+    #         updatepartialsolution(alg.extended_problem.master_problem, var, val)
     #     end
     # end
 end
 
 # function run(alg::AlgToSetupNode, node::Node)
 function run(alg::AlgToSetupNode)
-    # alg.master_prob.cur_node = Nullable{Node}(node)
-    # for prob in alg.pricing_probs
+    # alg.extended_problem.master_problem.cur_node = Nullable{Node}(node)
+    # for prob in alg.extended_problem.pricing_vect
     #     prob.cur_node = Nullable{Node}(node)
     # end
     reset_partial_solution(alg)
@@ -233,9 +233,9 @@ function reset_master_columns(alg::AlgToSetupNode)
         var.info_is_updated = true
     end
 
-    for var in alg.master_prob.var_manager.active_dynamic_list
+    for var in alg.extended_problem.master_problem.var_manager.active_dynamic_list
         if isa(var, MasterColumn) && var.info_is_updated == false
-            deactivate_variable(alg, alg.master_prob, var)
+            deactivate_variable(alg, alg.extended_problem.master_problem, var)
         else
             var.info_is_updated = false
         end
@@ -260,7 +260,7 @@ function run(alg::AlgToSetupRootNode)
     reset_master_columns(alg)
     # reset_non_stab_artificial_variables(alg)
 
-    update_formulation(alg.master_prob)
+    update_formulation(alg.extended_problem.master_problem)
 
     return problem_infeasible
 end

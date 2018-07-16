@@ -15,6 +15,15 @@ function AlgToGenerateChildrenNodesBuilder()
     return (MostFractionalRule(), 1)
 end
 
+function setup(alg::AlgToGenerateChildrenNodes)
+    return false
+end
+
+function setdown(alg::AlgToGenerateChildrenNodes)
+
+end
+
+
 #
 #
 # function sort_vars_according_to_rule(rule::MostFractionalRule, vars::Vector{Variable})
@@ -22,8 +31,9 @@ end
 # end
 #
 #
-# function run(alg::AlgToGenerateChildrenNodes, node::Node, problem::Problem)
-#
+
+function run(alg::AlgToGenerateChildrenNodes, global_treat_order::Int)
+
 #     frac_master_cols = MasterColumn[]
 #
 #     for var in node.solution_var_info_list
@@ -63,5 +73,5 @@ end
 #         generate_child(node, frac_master_cols[i], 1.0)
 #         generate_child(node, frac_master_cols[i], 0.0)
 #     end
-#
-# end
+
+end

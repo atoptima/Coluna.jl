@@ -150,6 +150,14 @@ function NodeWithParentBuilder(model, dual_bound::Float,
 
 end
 
+function is_conquered(node::Node, dual_bound::Float)
+    return (abs(node.node_inc_ip_primal_bound - dual_bound)
+        < node.params.mip_tolerance_integrality)
+end
+
+function set_branch_and_price_order(node::Node, new_value::Int)
+    node.treat_order = new_value
+end
 
 function exit_treatment(node::Node)::Void
     # No need for deleting. I prefer deleting the node and storing the info
@@ -158,6 +166,44 @@ function exit_treatment(node::Node)::Void
 
     node.evaluated = true
     node.treated = true
+    return
+end
+
+function mark_infeasible_and_exit_treatment(node::Node)::Void
+    node.infeasible = true
+    node.node_inc_lp_dual_bound = node.node_inc_ip_dual_bound = Inf
+    exit_treatment(node)
+    return
+end
+
+function record_ip_primal_sol_and_update_ip_primal_bound(node::Node,
+        bounds_and_sols::SolsAndBounds)
+
+    #### cpp: Solution * intermSolPtr = new Solution(_probConfigPtr, primalSolMap);
+    # record_ip_primal_sol()
+
+    if node.node_inc_ip_primal_bound > bounds_and_sols.alg_inc_ip_primal_bound
+        node.node_inc_ip_primal_bound = bounds_and_sols.alg_inc_ip_primal_bound
+    end
+end
+
+function update_node_dual_bounds(node::Node, ip_dual_bound::Float,
+        lp_dual_bound::Float)
+    if node.node_inc_lp_dual_bound < lp_dual_bound
+        node.node_inc_lp_dual_bound = lp_dual_bound
+        node.dual_bound_is_updated = true
+    end
+    if node.node_inc_ip_dual_bound < ip_dual_bound
+        node.node_inc_ip_dual_bound = ip_dual_bound
+        node.dual_bound_is_updated = true
+    end
+
+end
+
+function save_problem_and_eval_alg_info(node::Node)
+end
+
+function store_branching_evaluation_info()
 end
 
 function evaluation(node::Node, global_treat_order::Int,
@@ -167,40 +213,46 @@ function evaluation(node::Node, global_treat_order::Int,
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
 
-    if run(alg_setup_node, node)
-        run(alg_setdown_node)
+    if run(node.alg_setup_node)
+        run(node.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
     end
 
-    if run(alg_preprocess_node, node)
-        run(alg_setdown_node)
+    if run(node.alg_preprocess_node)
+        run(node.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
     end
 
-    if setup(alg_eval_node, node)
-        setdown(alg_eval_node)
-        run(alg_setdown_node)
+    if setup(node.alg_eval_node)
+        setdown(node.alg_eval_node)
+        run(node.alg_setdown_node)
+        mark_infeasible_and_exit_treatment(node); return true
+    end
+
+    if run(node.alg_eval_node)
+        run(node.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
     end
     node.evaluated = true
 
     #the following should be also called after the heuristics.
-    if alg_eval_node.is_alg_inc_ip_primal_bound_updated
-        record_ip_primal_sol_and_update_ip_primal_bound(alg_eval_node)
+    if node.alg_eval_node.sols_and_bounds.is_alg_inc_ip_primal_bound_updated
+        record_ip_primal_sol_and_update_ip_primal_bound(node,
+            node.alg_eval_node.sols_and_bounds)
     end
 
-    node_inc_lp_primal_bound = alg_eval_node.alg_inc_lp_primal_bound
-    update_node_dual_bounds(node, alg_eval_node.alg_inc_lp_dual_bound,
-                         alg_eval_node.alg_inc_ip_dual_bound)
+    node_inc_lp_primal_bound = node.alg_eval_node.sols_and_bounds.alg_inc_lp_primal_bound
+    update_node_dual_bounds(node, node.alg_eval_node.sols_and_bounds.alg_inc_lp_dual_bound,
+                         node.alg_eval_node.sols_and_bounds.alg_inc_ip_dual_bound)
 
-    if is_conquered(node)
-        setdown(alg_eval_node)
-        run(alg_setdown_node)
+    if is_conquered(node, node.alg_eval_node.sols_and_bounds.alg_inc_ip_dual_bound)
+        setdown(node.alg_eval_node)
+        run(node.alg_setdown_node)
         store_branching_evaluation_info()
         exit_treatment(node); return true
     elseif false # _evalAlgPtr->subProbSolutionsEnumeratedToMIP() && runEnumeratedMIP()
-        setdown(alg_eval_node)
-        run(alg_setdown_node)
+        setdown(node.alg_eval_node)
+        run(node.alg_setdown_node)
         store_branching_evaluation_info()
         mark_infeasible_and_exit_treatment(); return true
     end
@@ -209,44 +261,44 @@ function evaluation(node::Node, global_treat_order::Int,
         save_problem_and_eval_alg_info(node)
     end
 
-    setdown(alg_eval_node)
-    run(alg_setdown_node)
+    setdown(node.alg_eval_node)
+    run(node.alg_setdown_node)
     store_branching_evaluation_info()
     return true;
 end
 
 function treat(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bool
-    # In strong branching, part I of treat (setup, preprocessing and solve) is
-    # separated from part II (heuristics and children generation).
-    # Therefore, treat() can be called two times, one inside strong branching,
-    # second inside the branch-and-price tree. Thus, variables _solved
-    # is used to know whether part I has already been done or not.
+    # In strong branching, part 1 of treat (setup, preprocessing and solve) is
+    # separated from part 2 (heuristics and children generation).
+    # Therefore, treat() can be called two times. One inside strong branching,
+    # and the second inside the branch-and-price tree. Thus, variables _solved
+    # is used to know whether part 1 has already been done or not.
 
     if !node.evaluated
         if !evaluation(node, global_treat_order, inc_primal_bound)
             return false
         end
     else
-        if inc_primal_bound <= node_inc_ip_primal_bound
-            node_inc_ip_primal_bound = inc_primal_bound
-            ip_primal_bound_is_updated = false
+        if inc_primal_bound <= node.node_inc_ip_primal_bound
+            node.node_inc_ip_primal_bound = inc_primal_bound
+            node.ip_primal_bound_is_updated = false
         end
     end
 
-    if treated
+    if node.treated
         return true
     end
 
     for alg in node.alg_vect_primal_heur_node
         run(alg, node, global_treat_order)
-        # TODO put node bound updates from inside heuristics and put it here.
-        if is_conquered(node)
+        # TODO remove node bound updates from inside heuristics and put it here.
+        if node.is_conquered
             exit_treatment(node); return true
         end
     end
 
     # the generation child nodes algorithm fills the sons
-    if setup(node.alg_generate_children_nodes, node)
+    if setup(node.alg_generate_children_nodes)
         setdown(node.alg_generate_children_nodes)
         exit_treatment(node); return true
     end

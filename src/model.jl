@@ -43,7 +43,7 @@ function prepare_node_for_treatment(model::Model, node::Node,
     if !node.evaluated
         ## Dispatched according to eval_info
         node.alg_eval_node = AlgToEvalNodeByLp(node.eval_info)
-        println("here")
+        @show typeof(node.alg_eval_node)
     end
 
     return true
@@ -65,6 +65,29 @@ function prepare_node_for_treatment(model::Model, node::NodeWithParent,
 
 end
 
+function print_info_before_solving_node(primal_tree_nb_open_nodes::Int,
+    sec_tree_nb_open_nodes::Int)
+
+    println("************************************************************")
+    print(primal_tree_nb_open_nodes)
+    if sec_tree_nb_open_nodes > 0
+        print(" (+" << sec_tree_nb_open_nodes << ")")
+    end
+    print(" open nodes, ")
+    # probPtr()->printDynamicVarConstrStats(os); //, true);
+    println()
+
+    # printTime(diffcpu(bapcodInit().startTime(), "bcTimeMain"), os);
+
+    println("Current best bounds : [ ", "BEST_DUAL_BOUND_HERE",  " , ",
+        "BEST_PRIMAL_BOUND_HERE", " ]")
+    println("************************************************************")
+
+end
+
+function calculate_subtree_size(node::Node, sub_tree_size_by_depth::Int)
+end
+
 function solve(model::Model)
     search_tree = DS.Queue(Node)
     params = model.params
@@ -73,25 +96,33 @@ function solve(model::Model)
     cur_node = create_root_node(model)
     DS.enqueue!(search_tree, cur_node)
     bap_treat_order = 1 # Only usefull for printing
+    is_primary_tree_node = true
 
     while (!isempty(search_tree) && nb_treated_nodes < params.max_num_nodes)
 
+
+        # if empty(secondary_search_tree)
+        #     cur_node = pop!(search_tree)
+        # else
+            cur_node = DS.dequeue!(search_tree)
+        # end
         cur_node_evaluated_before = cur_node.evaluated
 
         if prepare_node_for_treatment(model, cur_node, global_nodes_treat_order,
             nb_treated_nodes)
 
-            print_info_before_solving_node(search_tree.size() +
+            print_info_before_solving_node(length(search_tree) +
                 ((is_primary_tree_node) ? 1 : 0),
-                ((is_primary_tree_node) ? 0 : 1))
+                0 + ((is_primary_tree_node) ? 0 : 1))
 
             if !cur_node_evaluated_before
-                branch_and_price_order(cur_node, bap_treat_order)
+                set_branch_and_price_order(cur_node, bap_treat_order)
                 bap_treat_order += 1
-                nice_print(cur_node, true)
+                # nice_print(cur_node, true)
             end
 
-            if !treat(cur_node, global_nodes_treat_order, primal_inc_bound)
+            if !treat(cur_node, global_nodes_treat_order,
+                model.extended_problem.primal_inc_bound)
                 println("error: branch-and-price is interrupted")
                 break
             end
@@ -100,7 +131,7 @@ function solve(model::Model)
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one
             # as the dual bound will be limited by the primal one
-            if cur_node.primal_bound_is_updated
+            if cur_node.ip_primal_bound_is_updated
                 update_primal_inc_solution(model, cur_node.node_inc_ip_primal_sol)
             end
 
@@ -125,7 +156,8 @@ function solve(model::Model)
         end
 
         if isempty(cur_node.children)
-            calculate_subtree_size(cur_node, model.sub_tree_size_by_depth)
+            calculate_subtree_size(cur_node, 1)
+            # calculate_subtree_size(cur_node, model.sub_tree_size_by_depth)
         end
     end
 end
