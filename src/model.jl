@@ -42,8 +42,7 @@ function prepare_node_for_treatment(model::Model, node::Node,
     @show node.evaluated
     if !node.evaluated
         ## Dispatched according to eval_info
-        node.alg_eval_node = AlgToEvalNodeByLp(node.eval_info)
-        @show typeof(node.alg_eval_node)
+        node.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem, node.eval_info)
     end
 
     return true
@@ -93,8 +92,7 @@ function solve(model::Model)
     params = model.params
     global_nodes_treat_order = 0
     nb_treated_nodes = 0
-    cur_node = create_root_node(model)
-    DS.enqueue!(search_tree, cur_node)
+    DS.enqueue!(search_tree, create_root_node(model))
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
 

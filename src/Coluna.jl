@@ -6,6 +6,7 @@ import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
+import Cbc
 
 const Float = Float64
 const MOI = MathOptInterface

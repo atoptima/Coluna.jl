@@ -56,9 +56,9 @@ function testdefaultbuilders()
     alg_setup_node = CL.AlgToSetupNode(extended_problem,
         CL.ProblemSetupInfo(0), false)
     alg_preprocess_node = CL.AlgToPreprocessNode()
-    alg_eval_node = CL.AlgToEvalNode()
-    alg_to_eval_by_lp = CL.AlgToEvalNodeByLp(lp_eval_info)
-    alg_to_eval_by_cg = CL.AlgToEvalNodeByColGen()
+    alg_eval_node = CL.AlgToEvalNode(extended_problem)
+    alg_to_eval_by_lp = CL.AlgToEvalNodeByLp(extended_problem, lp_eval_info)
+    alg_to_eval_by_cg = CL.AlgToEvalNodeByColGen(extended_problem)
     alg_setdown_node = CL.AlgToSetdownNode(extended_problem)
     alg_vect_primal_heur_node = CL.AlgToPrimalHeurInNode[]
     alg_generate_children_nodes = CL.AlgToGenerateChildrenNodes(CL.MostFractionalRule(), 2)

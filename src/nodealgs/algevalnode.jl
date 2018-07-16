@@ -35,19 +35,40 @@ end
 
 @hl type AlgToEvalNode
     sols_and_bounds::SolsAndBounds
+    extended_problem::ExtendedProblem
 end
 
-AlgToEvalNodeBuilder() = (SolsAndBounds(Inf, Inf, 0.0, 0.0,
-        Dict{VarConstr, Float}(), Dict{VarConstr, Float}(),
-        Dict{VarConstr, Float}(), false), )
+function AlgToEvalNodeBuilder(params::Params, counter::VarConstrCounter)
+
+    master_problem = SimpleCompactProblem(Cbc.CbcOptimizer(), counter)
+    extended_problem = ExtendedProblemConstructor(master_problem,
+        Problem[], Problem[], counter, params, Inf, 0.0)
+
+    return (SolsAndBounds(Inf, Inf, 0.0,
+    0.0, Dict{VarConstr, Float}(), Dict{VarConstr, Float}(),
+    Dict{VarConstr, Float}(), false), extended_problem)
+
+end
+
+
+AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(Inf, Inf, 0.0,
+        0.0, Dict{VarConstr, Float}(), Dict{VarConstr, Float}(),
+        Dict{VarConstr, Float}(), false), problem)
 
 @hl type AlgToEvalNodeByColGen <: AlgToEvalNode end
 
-AlgToEvalNodeByColGenBuilder() = AlgToEvalNodeBuilder()
+AlgToEvalNodeByColGenBuilder(problem::ExtendedProblem) = (
+    AlgToEvalNodeBuilder(problem)
+)
 
 @hl type AlgToEvalNodeByLp <: AlgToEvalNode
     eval_info::LpEvalInfo
 end
+
+function AlgToEvalNodeByLpBuilder(problem::ExtendedProblem, eval_info::LpEvalInfo)
+    return tuplejoin(AlgToEvalNodeBuilder(problem), eval_info)
+end
+
 
 function setup(alg::AlgToEvalNode)
     return false
@@ -58,12 +79,19 @@ function setdown(alg::AlgToEvalNode)
 end
 
 
-function AlgToEvalNodeByLpBuilder(eval_info::LpEvalInfo)
-    return tuplejoin(AlgToEvalNodeBuilder(), eval_info)
-end
-
-
 function run(alg::AlgToEvalNodeByLp)
+
+    status = optimize(alg.extended_problem.master_problem)
+
+    # if status <= 0
+    #     return true
+    # end
+    #
+    # alg.sol_is_master_lp_feasible = true
+    #
+    # if check_if_sol_is_integer()
+    #     update_primal_lp_sol_and_bnds()
+    # end
 
     return false
 end

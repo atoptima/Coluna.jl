@@ -125,7 +125,7 @@ function NodeBuilder(model, dual_bound::Float,
         -1,
         AlgToSetupNode(model.extended_problem),
         AlgToPreprocessNode(),
-        AlgToEvalNode(),
+        AlgToEvalNode(model.params, model.extended_problem.counter),
         AlgToSetdownNode(model.extended_problem),
         Vector{AlgToPrimalHeurInNode}(),
         AlgToGenerateChildrenNodes()
