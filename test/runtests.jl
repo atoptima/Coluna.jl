@@ -57,7 +57,7 @@ function testdefaultbuilders()
         CL.ProblemSetupInfo(0), false)
     alg_preprocess_node = CL.AlgToPreprocessNode()
     alg_eval_node = CL.AlgToEvalNode(extended_problem)
-    alg_to_eval_by_lp = CL.AlgToEvalNodeByLp(extended_problem, lp_eval_info)
+    alg_to_eval_by_lp = CL.AlgToEvalNodeByLp(extended_problem)
     alg_to_eval_by_cg = CL.AlgToEvalNodeByColGen(extended_problem)
     alg_setdown_node = CL.AlgToSetdownNode(extended_problem)
     alg_vect_primal_heur_node = CL.AlgToPrimalHeurInNode[]
@@ -105,32 +105,30 @@ end
 
 function test_master_plus_branching()
     counter = CL.VarConstrCounter(0)
-    user_optimizer = Cbc.CbcOptimizer()
+    mastero_ptimizer = Cbc.CbcOptimizer()
 
-    problem = CL.SimpleCompactProblem(user_optimizer, counter)
+    master_problem = CL.SimpleCompactProblem(mastero_ptimizer, counter)
 
-    x1 = CL.MasterVar(problem.counter, "x1", -10.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
-    x2 = CL.MasterVar(problem.counter, "x2", -15.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
-    x3 = CL.MasterVar(problem.counter, "x3", -20.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+    x1 = CL.MasterVar(master_problem.counter, "x1", -10.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+    x2 = CL.MasterVar(master_problem.counter, "x2", -15.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+    x3 = CL.MasterVar(master_problem.counter, "x3", -20.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
 
-    CL.add_variable(problem, x1)
-    CL.add_variable(problem, x2)
-    CL.add_variable(problem, x3)
+    CL.add_variable(master_problem, x1)
+    CL.add_variable(master_problem, x2)
+    CL.add_variable(master_problem, x3)
 
-    constr = CL.MasterConstr(problem.counter, "knapConstr", 5.0, 'L', 'M', 's')
+    constr = CL.MasterConstr(master_problem.counter, "knapConstr", 6.0, 'L', 'M', 's')
 
-    CL.add_constraint(problem, constr)
+    CL.add_constraint(master_problem, constr)
 
-    CL.add_membership(x1, constr, problem, 2.0)
-    CL.add_membership(x2, constr, problem, 3.0)
-    CL.add_membership(x3, constr, problem, 4.0)
+    CL.add_membership(x1, constr, master_problem, 2.0)
+    CL.add_membership(x2, constr, master_problem, 3.0)
+    CL.add_membership(x3, constr, master_problem, 4.0)
 
 
     ### Model constructors
     params = CL.Params()
     counter = CL.VarConstrCounter(0)
-    masteroptimizer = Cbc.CbcOptimizer()
-    master_problem = CL.SimpleCompactProblem(masteroptimizer, counter)
     pricingoptimizer = Cbc.CbcOptimizer()
     callback = CL.Callback()
     extended_problem = CL.ExtendedProblemConstructor(master_problem,

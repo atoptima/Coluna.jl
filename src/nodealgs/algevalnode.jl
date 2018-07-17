@@ -1,18 +1,54 @@
-type SolsAndBounds
+mutable struct SolsAndBounds
     alg_inc_ip_primal_bound::Float
     alg_inc_lp_primal_bound::Float
     alg_inc_ip_dual_bound::Float
     alg_inc_lp_dual_bound::Float
     alg_inc_lp_primal_sol_map::Dict{Variable, Float}
-    alg_inc_lp_dual_sol_map::Dict{Variable, Float}
     alg_inc_ip_primal_sol_map::Dict{Variable, Float}
+    alg_inc_lp_dual_sol_map::Dict{Constraint, Float}
     is_alg_inc_ip_primal_bound_updated::Bool
 end
 
 
 ### Methods of SolsAndBounds
+function update_dual_ip_bound(incumbents::SolsAndBounds, newBound::Float)
+    if newBound > incumbents.alg_inc_ip_dual_bound
+        incumbents.alg_inc_ip_dual_bound = newBound
+    end
+end
 
+function update_primal_lp_incumbents(incumbents::SolsAndBounds,
+        vars::Set{Variable}, newBound::Float)
+    if newBound < incumbents.alg_inc_lp_primal_bound
+        incumbents.alg_inc_lp_primal_bound = newBound
+        incumbents.alg_inc_lp_primal_sol_map = Dict{Variable, Float}()
+        for var in vars
+            incumbents.alg_inc_lp_primal_sol_map[var] = var.val
+        end
+    end
+end
 
+function update_primal_ip_incumbents(incumbents::SolsAndBounds,
+        vars::Set{Variable}, newBound::Float)
+    if newBound < incumbents.alg_inc_ip_primal_bound
+        incumbents.alg_inc_ip_primal_bound = newBound
+        incumbents.alg_inc_ip_primal_sol_map = Dict{Variable, Float}()
+        for var in vars
+            incumbents.alg_inc_ip_primal_sol_map[var] = var.val
+        end
+    end
+end
+
+function update_dual_lp_incumbents(incumbents::SolsAndBounds,
+        constrs::Set{Constraint}, newBound::Float)
+    if newBound > incumbents.alg_inc_lp_dual_bound
+        incumbents.alg_inc_lp_dual_bound = newBound
+        incumbents.alg_inc_lp_dual_sol_map = Dict{Constraint, Float}()
+        for constr in constrs
+            incumbents.alg_inc_lp_dual_sol_map[var] = constr.val
+        end
+    end
+end
 
 
 type StabilizationInfo
@@ -36,24 +72,13 @@ end
 @hl type AlgToEvalNode
     sols_and_bounds::SolsAndBounds
     extended_problem::ExtendedProblem
-end
-
-function AlgToEvalNodeBuilder(params::Params, counter::VarConstrCounter)
-
-    master_problem = SimpleCompactProblem(Cbc.CbcOptimizer(), counter)
-    extended_problem = ExtendedProblemConstructor(master_problem,
-        Problem[], Problem[], counter, params, Inf, 0.0)
-
-    return (SolsAndBounds(Inf, Inf, 0.0,
-    0.0, Dict{VarConstr, Float}(), Dict{VarConstr, Float}(),
-    Dict{VarConstr, Float}(), false), extended_problem)
-
+    sol_is_master_lp_feasible::Bool
 end
 
 
 AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(Inf, Inf, 0.0,
-        0.0, Dict{VarConstr, Float}(), Dict{VarConstr, Float}(),
-        Dict{VarConstr, Float}(), false), problem)
+        0.0, Dict{Variable, Float}(), Dict{Variable, Float}(),
+        Dict{Constraint, Float}(), false), problem, false)
 
 @hl type AlgToEvalNodeByColGen <: AlgToEvalNode end
 
@@ -61,12 +86,10 @@ AlgToEvalNodeByColGenBuilder(problem::ExtendedProblem) = (
     AlgToEvalNodeBuilder(problem)
 )
 
-@hl type AlgToEvalNodeByLp <: AlgToEvalNode
-    eval_info::LpEvalInfo
-end
+@hl type AlgToEvalNodeByLp <: AlgToEvalNode end
 
-function AlgToEvalNodeByLpBuilder(problem::ExtendedProblem, eval_info::LpEvalInfo)
-    return tuplejoin(AlgToEvalNodeBuilder(problem), eval_info)
+function AlgToEvalNodeByLpBuilder(problem::ExtendedProblem)
+    return AlgToEvalNodeBuilder(problem)
 end
 
 
@@ -79,19 +102,38 @@ function setdown(alg::AlgToEvalNode)
 end
 
 
+function update_alg_incumbents(alg::AlgToEvalNodeByLp)
+    const primal_sol = alg.extended_problem.master_problem.in_primal_lp_sol
+    const dual_sol = alg.extended_problem.master_problem.in_dual_sol
+    const obj_value = alg.extended_problem.master_problem.obj_val
+    const obj_bound = alg.extended_problem.master_problem.obj_bound
+
+    update_dual_ip_bound(alg.sols_and_bounds, obj_bound)
+    update_primal_lp_incumbents(alg.sols_and_bounds, primal_sol, obj_value)
+
+    ## not retreiving dual solution yet
+    update_dual_lp_incumbents(alg.sols_and_bounds, dual_sol, 0.0)
+
+    if cur_sol_is_integer(alg.extended_problem.master_problem,
+            alg.extended_problem.params.mip_tolerance_integrality)
+        update_primal_ip_incumbents(alg.sols_and_bounds, primal_sol, obj_bound)
+    end
+
+    @show alg.sols_and_bounds
+end
+
+
+
 function run(alg::AlgToEvalNodeByLp)
 
     status = optimize(alg.extended_problem.master_problem)
 
-    # if status <= 0
-    #     return true
-    # end
-    #
-    # alg.sol_is_master_lp_feasible = true
-    #
-    # if check_if_sol_is_integer()
-    #     update_primal_lp_sol_and_bnds()
-    # end
+    if status != MOI.Success
+        return true
+    end
+
+    alg.sol_is_master_lp_feasible = true
+    update_alg_incumbents(alg)
 
     return false
 end

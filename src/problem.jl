@@ -124,6 +124,9 @@ type CompactProblem{VM <: AbstractVarIndexManager,
     var_manager::VM
     constr_manager::CM
 
+    ### Current solutions
+    obj_val::Float
+    obj_bound::Float
     in_primal_lp_sol::Set{Variable}
     # inprimalipsol::Set{Variable}
     non_zero_red_cost_vars::Set{Variable}
@@ -160,10 +163,10 @@ function CompactProblem{VM,CM}(useroptimizer::MOI.AbstractOptimizer,
     MOI.set!(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
     MOI.set!(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
 
-    CompactProblem(false, optimizer, VM(), CM(), Set{Variable}(), Set{Variable}(),
-            Set{Constraint}(), 0.0, Dict{Variable,Float}(), Vector{Solution}(),
-            Vector{Constraint}(), Vector{Variable}(), counter,
-            Vector{VarConstr}(), false)
+    CompactProblem(false, optimizer, VM(), CM(), Inf, 0.0, Set{Variable}(),
+        Set{Variable}(), Set{Constraint}(), 0.0, Dict{Variable,Float}(),
+        Vector{Solution}(), Vector{Constraint}(), Vector{Variable}(), counter,
+        Vector{VarConstr}(), false)
 end
 
 const SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
@@ -188,6 +191,42 @@ function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
     return ExtendedProblem(master_problem, pricing_vect, separation, params,
         counter, Solution(), primal_inc_bound, dual_inc_bound, 0)
 end
+
+function retreive_primal_sol(problem::Problem)
+    if MOI.canget(problem.optimizer, MOI.ObjectiveValue())
+        problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
+    end
+    println("Objective value: ", problem.obj_val)
+    const var_list = problem.var_manager.active_static_list
+    for var_idx in 1:length(var_list)
+        var_list[var_idx].val = MOI.get(problem.optimizer,
+            MOI.VariablePrimal(), var_list[var_idx].moi_index)
+        println("Var ", var_list[var_idx].name, " = ", var_list[var_idx].val)
+        if var_list[var_idx].val > 0.0
+            push!(problem.in_primal_lp_sol, var_list[var_idx])
+        end
+    end
+end
+
+function retreive_dual_sol(problem::Problem)
+
+end
+
+function retreive_solution(problem::Problem)
+    retreive_primal_sol(problem)
+    retreive_dual_sol(problem)
+end
+
+function cur_sol_is_integer(problem::Problem, tolerance::Float)
+    for var in problem.in_primal_lp_sol
+        if !primal_value_is_integer(var.val, tolerance)
+            return false
+        end
+    end
+    println("Sol is integer")
+    return true
+end
+
 
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
@@ -233,5 +272,13 @@ function add_membership(var::MasterVar, constr::MasterConstr,
 end
 
 function optimize(problem::Problem)
+
     MOI.optimize!(problem.optimizer)
+    status = MOI.get(problem.optimizer, MOI.TerminationStatus())
+
+    if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
+        retreive_solution(problem)
+    end
+
+    return status
 end

@@ -58,3 +58,7 @@ function MasterVarBuilder( counter::VarConstrCounter, name::String, costrhs::Flo
     return tuplejoin(VariableBuilder( counter, name, costrhs, sense, vc_type,
             flag, directive, priority, lowerBound, upperBound), 0.0)
 end
+
+function primal_value_is_integer(val::Float, tolerance::Float)
+    return (abs(val - round(val)) <= tolerance)
+end

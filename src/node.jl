@@ -125,7 +125,7 @@ function NodeBuilder(model, dual_bound::Float,
         -1,
         AlgToSetupNode(model.extended_problem),
         AlgToPreprocessNode(),
-        AlgToEvalNode(model.params, model.extended_problem.counter),
+        AlgToEvalNode(model.extended_problem),
         AlgToSetdownNode(model.extended_problem),
         Vector{AlgToPrimalHeurInNode}(),
         AlgToGenerateChildrenNodes()
@@ -264,7 +264,7 @@ function evaluation(node::Node, global_treat_order::Int,
     setdown(node.alg_eval_node)
     run(node.alg_setdown_node)
     store_branching_evaluation_info()
-    return true;
+    return true
 end
 
 function treat(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bool

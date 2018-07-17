@@ -8,6 +8,7 @@ type Model # user model
     extended_problem::ExtendedProblem
     callback::Callback
     params::Params
+    # original_problem::CompactProblem
 end
 
 function ModelConstructor(extended_problem::ExtendedProblem,
@@ -39,10 +40,9 @@ function prepare_node_for_treatment(model::Model, node::Node,
     #
     # node.alg_setdown_node = AlgToSetdownNode()
 
-    @show node.evaluated
     if !node.evaluated
         ## Dispatched according to eval_info
-        node.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem, node.eval_info)
+        node.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
     end
 
     return true
