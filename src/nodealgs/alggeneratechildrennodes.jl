@@ -1,18 +1,19 @@
 @hl type ChildrenGenerationInfo end
+
 @hl type BranchingEvaluationInfo end
 
 abstract type RuleForUsualBranching end
-
 struct MostFractionalRule <: RuleForUsualBranching end
 struct LeastFractionalRule <: RuleForUsualBranching end
 
 @hl type AlgToGenerateChildrenNodes
+    extended_problem::ExtendedProblem
     rule::RuleForUsualBranching
     nb_vars_to_branch::Int
 end
 
-function AlgToGenerateChildrenNodesBuilder()
-    return (MostFractionalRule(), 1)
+function AlgToGenerateChildrenNodesBuilder(problem::ExtendedProblem)
+    return (problem, MostFractionalRule(), 1)
 end
 
 function setup(alg::AlgToGenerateChildrenNodes)
@@ -24,26 +25,32 @@ function setdown(alg::AlgToGenerateChildrenNodes)
 end
 
 
-#
-#
 # function sort_vars_according_to_rule(rule::MostFractionalRule, vars::Vector{Variable})
 #     sort!(vars, by = x -> abs(x.value - round(x.value)), rev=false)
 # end
-#
-#
 
-function run(alg::AlgToGenerateChildrenNodes, global_treat_order::Int)
+function retreive_candidate_vars(alg::AlgToGenerateChildrenNodes,
+        var_val_map::Dict{Variable, Float})
+    frac_master_vars = MasterVar[]
+    for var_val in var_val_map
+        if typeof(var_val[1]) <: MasterVar
+            if !primal_value_is_integer(var_val[2],
+                    alg.extended_problem.params.mip_tolerance_integrality)
+                push!(frac_master_vars, var_val[1])
+            end
+        end
+    end
 
-#     frac_master_cols = MasterColumn[]
-#
-#     for var in node.solution_var_info_list
-#         if abs(var.value - round(var.value)) > node.arams.mip_tolerance_integrality
-#             if typeof(var) == MasterColumn
-#                 push!(frac_master_cols, var)
-#             end
-#         end
-#     end
-#
+    @show frac_master_vars
+    return frac_master_vars
+end
+
+function run(alg::AlgToGenerateChildrenNodes, global_treat_order::Int, node)
+
+    println("generating children\n\n")
+
+    frac_master_vars = retreive_candidate_vars(alg, node.primal_sol.var_val_map)
+
 #     if isempty(frac_master_cols)
 #         return
 #     end

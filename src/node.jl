@@ -32,7 +32,7 @@
     branching_eval_info::BranchingEvaluationInfo #for branching history
 
     problem_and_eval_alg_info_saved::Bool
-    solution_var_info_list::Solution # More information than only ::Solution
+    primal_sol::Solution # More information than only ::Solution
     strong_branch_phase_number::Int
     strong_branch_node_number::Int
 
@@ -128,7 +128,7 @@ function NodeBuilder(model, dual_bound::Float,
         AlgToEvalNode(model.extended_problem),
         AlgToSetdownNode(model.extended_problem),
         Vector{AlgToPrimalHeurInNode}(),
-        AlgToGenerateChildrenNodes()
+        AlgToGenerateChildrenNodes(model.extended_problem)
     )
 end
 
@@ -159,31 +159,29 @@ function set_branch_and_price_order(node::Node, new_value::Int)
     node.treat_order = new_value
 end
 
-function exit_treatment(node::Node)::Void
-    # No need for deleting. I prefer deleting the node and storing the info
+function exit_treatment(node::Node)
+    # No need for deleting. Issam prefers deleting the node and storing the info
     # needed for printing the tree in a different light structure (for now)
     # later we can use Nullable for big data such as XXXInfo of node
 
     node.evaluated = true
     node.treated = true
-    return
 end
 
-function mark_infeasible_and_exit_treatment(node::Node)::Void
+function mark_infeasible_and_exit_treatment(node::Node)
     node.infeasible = true
     node.node_inc_lp_dual_bound = node.node_inc_ip_dual_bound = Inf
     exit_treatment(node)
-    return
 end
 
 function record_ip_primal_sol_and_update_ip_primal_bound(node::Node,
-        bounds_and_sols::SolsAndBounds)
+        sols_and_bounds::SolsAndBounds)
 
-    #### cpp: Solution * intermSolPtr = new Solution(_probConfigPtr, primalSolMap);
-    # record_ip_primal_sol()
-
-    if node.node_inc_ip_primal_bound > bounds_and_sols.alg_inc_ip_primal_bound
-        node.node_inc_ip_primal_bound = bounds_and_sols.alg_inc_ip_primal_bound
+    if node.node_inc_ip_primal_bound > sols_and_bounds.alg_inc_ip_primal_bound
+        node.node_inc_ip_primal_sol = Solution(sols_and_bounds.alg_inc_ip_primal_bound,
+            deepcopy(sols_and_bounds.alg_inc_ip_primal_sol_map))
+        node.node_inc_ip_primal_bound = sols_and_bounds.alg_inc_ip_primal_bound
+        node.ip_primal_bound_is_updated = true
     end
 end
 
@@ -204,6 +202,17 @@ function save_problem_and_eval_alg_info(node::Node)
 end
 
 function store_branching_evaluation_info()
+end
+
+function update_node_primals(node::Node)
+    const sols_and_bounds = node.alg_eval_node.sols_and_bounds
+    if sols_and_bounds.is_alg_inc_ip_primal_bound_updated
+        record_ip_primal_sol_and_update_ip_primal_bound(node,
+            sols_and_bounds)
+    end
+    node.node_inc_lp_primal_bound = sols_and_bounds.alg_inc_lp_primal_bound
+    node.primal_sol = Solution(node.node_inc_lp_primal_bound,
+        sols_and_bounds.alg_inc_lp_primal_sol_map)
 end
 
 function evaluation(node::Node, global_treat_order::Int,
@@ -236,14 +245,12 @@ function evaluation(node::Node, global_treat_order::Int,
     node.evaluated = true
 
     #the following should be also called after the heuristics.
-    if node.alg_eval_node.sols_and_bounds.is_alg_inc_ip_primal_bound_updated
-        record_ip_primal_sol_and_update_ip_primal_bound(node,
-            node.alg_eval_node.sols_and_bounds)
-    end
+    update_node_primals(node)
+    @show node.primal_sol
 
     node_inc_lp_primal_bound = node.alg_eval_node.sols_and_bounds.alg_inc_lp_primal_bound
     update_node_dual_bounds(node, node.alg_eval_node.sols_and_bounds.alg_inc_lp_dual_bound,
-                         node.alg_eval_node.sols_and_bounds.alg_inc_ip_dual_bound)
+        node.alg_eval_node.sols_and_bounds.alg_inc_ip_dual_bound)
 
     if is_conquered(node, node.alg_eval_node.sols_and_bounds.alg_inc_ip_dual_bound)
         setdown(node.alg_eval_node)
@@ -303,7 +310,7 @@ function treat(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bo
         exit_treatment(node); return true
     end
 
-    run(node.alg_generate_children_nodes, global_treat_order)
+    run(node.alg_generate_children_nodes, global_treat_order, node)
     setdown(node.alg_generate_children_nodes)
 
     exit_treatment(node); return true

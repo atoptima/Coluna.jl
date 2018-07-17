@@ -61,7 +61,7 @@ function testdefaultbuilders()
     alg_to_eval_by_cg = CL.AlgToEvalNodeByColGen(extended_problem)
     alg_setdown_node = CL.AlgToSetdownNode(extended_problem)
     alg_vect_primal_heur_node = CL.AlgToPrimalHeurInNode[]
-    alg_generate_children_nodes = CL.AlgToGenerateChildrenNodes(CL.MostFractionalRule(), 2)
+    alg_generate_children_nodes = CL.AlgToGenerateChildrenNodes(extended_problem)
 
 
     ### Node constructors
