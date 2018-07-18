@@ -24,7 +24,6 @@ function create_root_node(model::Model)::Node
 
 
     ## use parameters to define how the tree will be solved
-
     # node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
     node_eval_info = LpEvalInfo(stab_info)
 
@@ -38,9 +37,7 @@ function prepare_node_for_treatment(model::Model, node::Node,
 
     # node.alg_setup_node = AlgToSetupNode()
     # node.alg_generate_children_nodes = AlgToGenerateChildrenNodes()
-    #
-    # node.alg_vect_primal_heur_node = AlgToPrimalHeurInNode[]
-    #
+
     # node.alg_setdown_node = AlgToSetdownNode()
 
     if !node.evaluated
@@ -52,19 +49,18 @@ function prepare_node_for_treatment(model::Model, node::Node,
 end
 
 function prepare_node_for_treatment(model::Model, node::NodeWithParent,
-        global_nodes_treat_order::Int, nb_treated_nodes::Int)::Bool
+        global_nodes_treat_order::Int, nb_treated_nodes::Int)
 
-    # node.alg_setup_node = AlgToSetupNode()
-    #
-    # ## Change depending on solving method
-    # node.alg_eval_node = AlgToEvalNode()
-    #
-    # node.alg_generate_children_nodes = AlgToGenerateChildrenNodes()
-    #
-    # node.alg_vect_primal_heur_node = AlgToPrimalHeurInNode[]
-    #
-    # node.alg_setdown_node = AlgToSetdownNode()
+    node.alg_setup_node = AlgToSetupNode(model.extended_problem,
+        node.problem_setup_info)
+    node.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
 
+    if !node.evaluated
+        ## Dispatched according to eval_info
+        node.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
+    end
+
+    return true
 end
 
 function print_info_before_solving_node(primal_tree_nb_open_nodes::Int,
@@ -85,6 +81,23 @@ function print_info_before_solving_node(primal_tree_nb_open_nodes::Int,
         "BEST_PRIMAL_BOUND_HERE", " ]")
     println("************************************************************")
 
+end
+
+function update_search_trees(cur_node::Node, search_tree::DS.Queue, model::Model)
+    const params = model.params
+    for child_node in cur_node.children
+        # push!(bap_tree_nodes, child_node)
+        if child_node.dual_bound_is_updated
+            update_cur_valid_dual_bound(model, child_node)
+        end
+        if length(search_tree) < params.open_nodes_limit
+            DS.enqueue!(search_tree, child_node)
+        else
+            print("Limit on the number of open nodes is reached.")
+            println("No secondary tree is implemented.")
+            # enqueue(secondary_search_tree, child_node)
+        end
+    end
 end
 
 function calculate_subtree_size(node::Node, sub_tree_size_by_depth::Int)
@@ -127,7 +140,6 @@ function solve(model::Model)
                 println("error: branch-and-price is interrupted")
                 break
             end
-            error()
             # the output of the treated node are the generated child nodes and
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one
@@ -140,20 +152,10 @@ function solve(model::Model)
                 update_cur_valid_dual_bound(model, cur_node)
             end
 
-            ## Put this in a function 'update_tree_with_children'
-            for child_node in cur_node.children
-                push!(bap_tree_nodes, child_node)
-                if child_node.dual_bound_is_updated
-                    update_cur_valid_dual_bound(model, child_node)
-                end
-                if length(search_tree) < params.open_nodes_limit
-                    enqueue(search_tree, child_node)
-                else
-                    print("Limit on the number of open nodes is reached.")
-                    println("No secondary tree is implemented.")
-                    # enqueue(secondary_search_tree, child_node)
-                end
-            end
+            update_search_trees(cur_node, search_tree, model)
+            println("number of nodes: ", length(search_tree))
+            readline()
+
         end
 
         if isempty(cur_node.children)

@@ -188,7 +188,6 @@ end
 #############################
 
 @hl type AlgToSetupNode
-    # node::Node
     extended_problem::ExtendedProblem
     problem_setup_info::ProblemSetupInfo
     is_all_columns_active::Bool
@@ -196,6 +195,11 @@ end
 
 function AlgToSetupNodeBuilder(extended_problem::ExtendedProblem)
     return (extended_problem, ProblemSetupInfo(0), false)
+end
+
+function AlgToSetupNodeBuilder(extended_problem::ExtendedProblem,
+        problem_setup_info::ProblemSetupInfo)
+    return (extended_problem, problem_setup_info, false)
 end
 
 function reset_partial_solution(alg::AlgToSetupNode)
@@ -207,13 +211,11 @@ function reset_partial_solution(alg::AlgToSetupNode)
     # end
 end
 
-# function run(alg::AlgToSetupNode, node::Node)
 function run(alg::AlgToSetupNode)
-    # alg.extended_problem.master_problem.cur_node = Nullable{Node}(node)
-    # for prob in alg.extended_problem.pricing_vect
-    #     prob.cur_node = Nullable{Node}(node)
-    # end
+
     reset_partial_solution(alg)
+    update_formulation(alg)
+
     return false
 end
 
@@ -243,6 +245,17 @@ end
 
 function update_formulation(alg::AlgToSetupNode)
     # TODO implement caching through MOI.
+    ## remove invalid branching constraints (?)
+    for constr_info in alg.problem_setup_info.active_branching_constraints_info
+        add_constraint(alg.extended_problem.master_problem,
+            constr_info.constraint)
+        for var in keys(constr.member_coef_map)
+            MOI.modify!(alg.extended_problem.master_problem.optimizer,
+                constr_info.constraint.moi_index,
+                MOI.ScalarCoefficientChange{Float}(var.moi_index, 1.0))
+        end
+    end
+
 end
 
 #############################

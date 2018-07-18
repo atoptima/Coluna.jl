@@ -77,6 +77,8 @@ function generate_child(alg::AlgToGenerateChildrenNodes, parent_node,
     push!(new_node.problem_setup_info.active_branching_constraints_info,
         ConstraintInfo(branch_constr, 0.0, 0.0, 1.0, Active))
 
+    ### add to consraint manager?
+
     push!(parent_node.children, new_node)
 
 end
