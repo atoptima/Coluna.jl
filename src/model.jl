@@ -22,10 +22,13 @@ function create_root_node(model::Model)::Node
     stab_info  = StabilizationInfo(model.extended_problem.master_problem, params)
     master_lp_basis = LpBasisRecord("Basis0")
 
+
+    ## use parameters to define how the tree will be solved
+
     # node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
     node_eval_info = LpEvalInfo(stab_info)
 
-    return Node(model, model.extended_problem.dual_inc_bound,
+    return Node(model.extended_problem, model.extended_problem.dual_inc_bound,
         problem_setup_info, node_eval_info)
 end
 
@@ -124,7 +127,7 @@ function solve(model::Model)
                 println("error: branch-and-price is interrupted")
                 break
             end
-
+            error()
             # the output of the treated node are the generated child nodes and
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one

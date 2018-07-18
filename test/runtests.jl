@@ -62,16 +62,16 @@ function testdefaultbuilders()
     alg_setdown_node = CL.AlgToSetdownNode(extended_problem)
     alg_vect_primal_heur_node = CL.AlgToPrimalHeurInNode[]
     alg_generate_children_nodes = CL.AlgToGenerateChildrenNodes(extended_problem)
+    usual_branching_algo = CL.UsualBranchingAlg(extended_problem)
 
 
     ### Node constructors
-    rootNode = CL.Node(model, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info)
-    rootNode = CL.Node(model, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info,
+    rootNode = CL.Node(model.extended_problem, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info)
+    rootNode = CL.Node(model.extended_problem, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info,
         alg_setup_node, alg_preprocess_node, alg_eval_node, alg_setdown_node,
         alg_vect_primal_heur_node, alg_generate_children_nodes)
 
-    child1 = CL.NodeWithParent(model, params.cut_lo, CL.ProblemSetupInfo(0),
-        cg_eval_info, rootNode)
+    child1 = CL.NodeWithParent(model.extended_problem, rootNode)
 
 
 end

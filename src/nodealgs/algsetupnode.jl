@@ -58,9 +58,8 @@ type ConstraintInfo
     status::VCSTATUS
 end
 
-ConstraintInfo(constr, status) = ConstraintInfo(constr, constr.min_slack,
-        constr.max_slack, constr.rhs, status)
-CosntraintInfo(constr) = ConstraintInfo(constr, Active)
+# ConstraintInfo(constr::Constraint, status::VCSTATUS) = ConstraintInfo(constr, 0.0, 0.0, constr.rhs, status)
+# CosntraintInfo(constr::Constraint) = ConstraintInfo(constr, Active)
 
 function applyconstrinfo(info::ConstraintInfo)::Void
     info.constraint.min_slack = info.min_slack

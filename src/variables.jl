@@ -59,6 +59,8 @@ function MasterVarBuilder( counter::VarConstrCounter, name::String, costrhs::Flo
             flag, directive, priority, lowerBound, upperBound), 0.0)
 end
 
+fract_part(val::Float) = (abs(val - round(val)))
+
 function primal_value_is_integer(val::Float, tolerance::Float)
-    return (abs(val - round(val)) <= tolerance)
+    return (fract_part(val) <= tolerance)
 end

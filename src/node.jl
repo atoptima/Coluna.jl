@@ -44,7 +44,7 @@
     alg_generate_children_nodes::AlgToGenerateChildrenNodes
 end
 
-function NodeBuilder(model, dual_bound::Float,
+function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
     problem_setup_info::ProblemSetupInfo, eval_info::EvalInfo,
     alg_setup_node::AlgToSetupNode,
     alg_preprocess_node::AlgToPreprocessNode,
@@ -54,7 +54,7 @@ function NodeBuilder(model, dual_bound::Float,
     alg_generate_children_nodes::AlgToGenerateChildrenNodes)
 
     return (
-        model.params,
+        problem.params,
         Node[],
         0,
         false,
@@ -62,8 +62,8 @@ function NodeBuilder(model, dual_bound::Float,
         -1,
         dual_bound,
         dual_bound,
-        model.extended_problem.primal_inc_bound,
-        model.extended_problem.primal_inc_bound,
+        problem.primal_inc_bound,
+        problem.primal_inc_bound,
         dual_bound,
         false,
         false,
@@ -91,11 +91,11 @@ function NodeBuilder(model, dual_bound::Float,
     )
 end
 
-function NodeBuilder(model, dual_bound::Float,
+function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
     problem_setup_info::ProblemSetupInfo, eval_info::EvalInfo)
 
     return (
-        model.params,
+        problem.params,
         Node[],
         0,
         false,
@@ -103,8 +103,8 @@ function NodeBuilder(model, dual_bound::Float,
         -1,
         dual_bound,
         dual_bound,
-        model.extended_problem.primal_inc_bound,
-        model.extended_problem.primal_inc_bound,
+        problem.primal_inc_bound,
+        problem.primal_inc_bound,
         dual_bound,
         false,
         false,
@@ -123,12 +123,12 @@ function NodeBuilder(model, dual_bound::Float,
         Solution(),
         0,
         -1,
-        AlgToSetupNode(model.extended_problem),
+        AlgToSetupNode(problem),
         AlgToPreprocessNode(),
-        AlgToEvalNode(model.extended_problem),
-        AlgToSetdownNode(model.extended_problem),
+        AlgToEvalNode(problem),
+        AlgToSetdownNode(problem),
         Vector{AlgToPrimalHeurInNode}(),
-        AlgToGenerateChildrenNodes(model.extended_problem)
+        UsualBranchingAlg(problem)
     )
 end
 
@@ -136,11 +136,10 @@ end
     parent::Node
 end
 
-function NodeWithParentBuilder(model, dual_bound::Float,
-    problem_setup_info::ProblemSetupInfo, eval_info::EvalInfo, parent::Node)
+function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
 
-    return tuplejoin(NodeBuilder( model, dual_bound,
-        problem_setup_info, eval_info, parent.alg_setup_node,
+    return tuplejoin(NodeBuilder(problem, parent.node_inc_ip_dual_bound,
+        parent.problem_setup_info, parent.eval_info, parent.alg_setup_node,
         parent.alg_preprocess_node, parent.alg_eval_node,
         parent.alg_setdown_node, parent.alg_vect_primal_heur_node,
         parent.alg_generate_children_nodes

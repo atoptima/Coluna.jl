@@ -33,7 +33,19 @@ end
 end
 
 function BranchConstrBuilder(counter::VarConstrCounter, name::String,
-    cost_rhs::Float, sense::Char)
-    return tuplejoin(ConstraintBuilder(counter, name, cost_rhs, sense, ' ', 's'),
-                     0)
+    rhs::Float, sense::Char, depth::Int)
+    return tuplejoin(ConstraintBuilder(counter, name, rhs,
+        sense, ' ', 's'), depth)
+end
+
+function BranchConstrConstructor(counter::VarConstrCounter, name::String,
+    rhs::Float, sense::Char, depth::Int, var::Variable)
+
+    constr = BranchConstr(counter, name, rhs, sense, depth)
+
+    constr.member_coef_map[var] = 1.0
+    var.member_coef_map[constr] = 1.0
+
+    return constr
+
 end
