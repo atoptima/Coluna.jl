@@ -53,33 +53,38 @@ function retreive_candidate_vars(alg::AlgToGenerateChildrenNodes,
     return frac_master_vars
 end
 
+function generate_branch_constraint(alg::AlgToGenerateChildrenNodes,
+        depth::Int, var_to_branch::Variable, sense::Char, rhs::Float)
+    return BranchConstrConstructor(alg.extended_problem.counter,
+        "dummyName", rhs, sense, depth, var_to_branch)
+end
 
 function perform_usual_branching(node, alg::AlgToGenerateChildrenNodes,
         frac_master_vars::Vector{<:Variable})
 
     sort_vars_according_to_rule(alg.rule, frac_master_vars)
+    local_branch_constraints = BranchConstr[]
     for i in 1:alg.nb_vars_to_branch
-        generate_child(alg, node, frac_master_vars[i], 1.0)
-        generate_child(alg, node, frac_master_vars[i], 0.0)
+        branch_constr = generate_branch_constraint(alg, node.depth,
+            frac_master_vars[i], 'G', ceil(frac_master_vars[i].val))
+        push!(local_branch_constraints, branch_constr)
+        branch_constr = generate_branch_constraint(alg, node.depth,
+            frac_master_vars[i], 'L', floor(frac_master_vars[i].val))
+        push!(local_branch_constraints, branch_constr)
     end
-
+    for constr in local_branch_constraints
+        generate_child(alg, node, [constr])
+    end
 end
 
-function generate_child(alg::AlgToGenerateChildrenNodes, parent_node,
-        var_to_branch::Variable, rhs::Float)
+function generate_child(alg::AlgToGenerateChildrenNodes, node,
+        branch_constrs::Vector{T}) where T <: BranchConstr
 
-    new_node = NodeWithParent(alg.extended_problem,
-        parent_node)
-
-    branch_constr = BranchConstrConstructor(alg.extended_problem.counter,
-    "dummyName", rhs, 'E', parent_node.depth, var_to_branch)
-
-    push!(new_node.problem_setup_info.active_branching_constraints_info,
-        ConstraintInfo(branch_constr, 0.0, 0.0, 1.0, Active))
-
-    ### add to consraint manager?
-
-    push!(parent_node.children, new_node)
+    new_node = NodeWithParent(alg.extended_problem, node)
+    for constr in branch_constrs
+        push!(new_node.local_branching_constraints, constr)
+    end
+    push!(node.children, new_node)
 
 end
 
@@ -95,6 +100,5 @@ function run(alg::UsualBranchingAlg, global_treat_order::Int, node)
     end
 
     perform_usual_branching(node, alg, frac_master_vars)
-    ## Add strong branching here
 
 end

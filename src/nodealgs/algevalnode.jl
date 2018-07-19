@@ -76,8 +76,8 @@ end
 end
 
 
-AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(Inf, Inf, 0.0,
-        0.0, Dict{Variable, Float}(), Dict{Variable, Float}(),
+AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(Inf, Inf, -Inf,
+        -Inf, Dict{Variable, Float}(), Dict{Variable, Float}(),
         Dict{Constraint, Float}(), false), problem, false)
 
 @hl type AlgToEvalNodeByColGen <: AlgToEvalNode end
@@ -112,19 +112,45 @@ function update_alg_incumbents(alg::AlgToEvalNodeByLp)
     update_primal_lp_incumbents(alg.sols_and_bounds, primal_sol, obj_value)
 
     ## not retreiving dual solution yet
-    update_dual_lp_incumbents(alg.sols_and_bounds, dual_sol, 0.0)
+    update_dual_lp_incumbents(alg.sols_and_bounds, dual_sol, -Inf)
 
     if cur_sol_is_integer(alg.extended_problem.master_problem,
             alg.extended_problem.params.mip_tolerance_integrality)
         update_primal_ip_incumbents(alg.sols_and_bounds, primal_sol, obj_bound)
     end
 
-    @show alg.sols_and_bounds
+    println("Final incumbent bounds of lp evaluation:")
+    println("alg_inc_ip_primal_bound: ", alg.sols_and_bounds.alg_inc_ip_primal_bound)
+    println("alg_inc_lp_primal_bound: ", alg.sols_and_bounds.alg_inc_lp_primal_bound)
+    println("alg_inc_ip_dual_bound: ", alg.sols_and_bounds.alg_inc_ip_dual_bound)
+    println("alg_inc_lp_dual_bound: ", alg.sols_and_bounds.alg_inc_lp_dual_bound)
+
+    println("incmbent lp primal sol")
+    for kv in alg.sols_and_bounds.alg_inc_lp_primal_sol_map
+        println("var: ", kv[1].name, ": ", kv[2])
+    end
+    println()
+
+    println("incmbent ip primal sol")
+    for kv in alg.sols_and_bounds.alg_inc_ip_primal_sol_map
+        println("var: ", kv[1].name, ": ", kv[2])
+    end
+    println()
+
+    println("incmbent lp dual sol")
+    for kv in alg.sols_and_bounds.alg_inc_lp_dual_sol_map
+        println("var: ", kv[1].name, ": ", kv[2])
+    end
+    println()
+
+    readline()
 end
 
 
 
 function run(alg::AlgToEvalNodeByLp)
+
+    println("Starting eval by lp")
 
     status = optimize(alg.extended_problem.master_problem)
 

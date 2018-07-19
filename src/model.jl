@@ -33,12 +33,12 @@ end
 
 ### For root node
 function prepare_node_for_treatment(model::Model, node::Node,
-        global_nodes_treat_order::Int, nb_treated_nodes::Int)::Bool
+        global_nodes_treat_order::Int)::Bool
 
-    # node.alg_setup_node = AlgToSetupNode()
-    # node.alg_generate_children_nodes = AlgToGenerateChildrenNodes()
-
-    # node.alg_setdown_node = AlgToSetdownNode()
+    node.alg_setup_node = AlgToSetupRootNode(model.extended_problem,
+        node.problem_setup_info)
+    node.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
+    node.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
 
     if !node.evaluated
         ## Dispatched according to eval_info
@@ -49,14 +49,24 @@ function prepare_node_for_treatment(model::Model, node::Node,
 end
 
 function prepare_node_for_treatment(model::Model, node::NodeWithParent,
-        global_nodes_treat_order::Int, nb_treated_nodes::Int)
+        global_nodes_treat_order::Int)
 
-    node.alg_setup_node = AlgToSetupNode(model.extended_problem,
-        node.problem_setup_info)
+    # If last treated node is node.parent:
+    @show node.parent.treat_order
+    @show global_nodes_treat_order
+    if global_nodes_treat_order == node.parent.treat_order+1
+        node.alg_setup_node = AlgToSetupBranchingOnly(model.extended_problem,
+            node.problem_setup_info)
+    else
+        node.alg_setup_node = AlgToSetupFull(model.extended_problem,
+            node.problem_setup_info)
+    end
+
+    node.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
     node.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
 
     if !node.evaluated
-        ## Dispatched according to eval_info
+        ## Dispatched according to eval_info (?)
         node.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
     end
 
@@ -106,7 +116,7 @@ end
 function solve(model::Model)
     search_tree = DS.Queue(Node)
     params = model.params
-    global_nodes_treat_order = 0
+    global_nodes_treat_order = 1
     nb_treated_nodes = 0
     DS.enqueue!(search_tree, create_root_node(model))
     bap_treat_order = 1 # Only usefull for printing
@@ -122,8 +132,7 @@ function solve(model::Model)
         # end
         cur_node_evaluated_before = cur_node.evaluated
 
-        if prepare_node_for_treatment(model, cur_node, global_nodes_treat_order,
-            nb_treated_nodes)
+        if prepare_node_for_treatment(model, cur_node, global_nodes_treat_order)
 
             print_info_before_solving_node(length(search_tree) +
                 ((is_primary_tree_node) ? 1 : 0),
@@ -140,6 +149,8 @@ function solve(model::Model)
                 println("error: branch-and-price is interrupted")
                 break
             end
+            global_nodes_treat_order += 1
+            nb_treated_nodes += 1
             # the output of the treated node are the generated child nodes and
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one

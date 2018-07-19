@@ -108,6 +108,23 @@ function add_in_constr_manager(constr_manager::SimpleConstrIndexManager,
     push!(list, constr)
 end
 
+function remove_from_constr_manager(constr_manager::SimpleConstrIndexManager,
+        constr::Constraint)
+    if constr.status == Active && constr.flag == 's'
+        list = constr_manager.active_static_list
+    elseif constr.status == Active && constr.flag == 'd'
+        list = constr_manager.active_dynamic_list
+    elseif constr.status == Unsuitable && constr.flag == 's'
+        list = constr_manager.unsuitable_static_list
+    elseif constr.status == Unsuitable && constr.flag == 'd'
+        list = constr_manager.unsuitable_dynamic_list
+    else
+        error("Status $(constr.status) and flag $(constr.flag) are not supported")
+    end
+    idx = findfirst(list, constr)
+    deleteat!(list, idx)
+end
+
 abstract type Problem end
 
 type CompactProblem{VM <: AbstractVarIndexManager,
@@ -249,6 +266,27 @@ function add_constraint(problem::Problem, constr::Constraint)
             constr.set_type(constr.cost_rhs))
 end
 
+function add_full_constraint(problem::Problem, constr::BranchConstr)
+    add_in_constr_manager(problem.constr_manager, constr)
+    terms = MOI.ScalarAffineTerm{Float}[]
+    for var_val in constr.member_coef_map
+        push!(terms, MOI.ScalarAffineTerm{Float}(var_val[2], var_val[1].moi_index))
+    end
+    f = MOI.ScalarAffineFunction(terms, 0.0)
+    constr.moi_index = MOI.addconstraint!(problem.optimizer, f,
+            constr.set_type(constr.cost_rhs))
+end
+
+function deactivate_constraint(problem::Problem, constr::BranchConstr)
+    remove_from_constr_manager(problem.constr_manager, constr)
+    for var in keys(constr.member_coef_map)
+        MOI.modify!(problem.optimizer, constr.moi_index,
+            MOI.ScalarCoefficientChange{Float}(var.moi_index, 0.0))
+        MOI.modify!(problem.optimizer, constr.moi_index,
+            MOI.ScalarConstantChange(0.0))
+    end
+end
+
 function add_membership(var::Variable, constr::Constraint,
         problem::Problem, coef::Float)
     var.member_coef_map[constr] = coef
@@ -275,9 +313,12 @@ function optimize(problem::Problem)
 
     MOI.optimize!(problem.optimizer)
     status = MOI.get(problem.optimizer, MOI.TerminationStatus())
+    println("Optimization finished with status: ", status)
 
     if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
         retreive_solution(problem)
+    else
+        error("Solver has no result to show.")
     end
 
     return status

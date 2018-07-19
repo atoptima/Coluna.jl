@@ -26,6 +26,10 @@
     evaluated::Bool
     treated::Bool
 
+    ### New information recorded when the node was generated
+    local_branching_constraints::Vector{BranchConstr}
+
+    ### Information recorded by father
     problem_setup_info::ProblemSetupInfo
     eval_info::EvalInfo
     children_generation_info::ChildrenGenerationInfo
@@ -74,6 +78,7 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         false,
         false,
         false,
+        BranchConstr[],
         problem_setup_info,
         eval_info,
         ChildrenGenerationInfo(),
@@ -115,6 +120,7 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         false,
         false,
         false,
+        BranchConstr[],
         problem_setup_info,
         eval_info,
         ChildrenGenerationInfo(),
@@ -127,7 +133,7 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         AlgToPreprocessNode(),
         AlgToEvalNode(problem),
         AlgToSetdownNode(problem),
-        Vector{AlgToPrimalHeurInNode}(),
+        AlgToPrimalHeurInNode[],
         UsualBranchingAlg(problem)
     )
 end
@@ -212,6 +218,10 @@ function update_node_primals(node::Node)
     node.node_inc_lp_primal_bound = sols_and_bounds.alg_inc_lp_primal_bound
     node.primal_sol = Solution(node.node_inc_lp_primal_bound,
         sols_and_bounds.alg_inc_lp_primal_sol_map)
+
+    @show sols_and_bounds.alg_inc_lp_primal_sol_map
+    println("\n\n")
+    @show node.primal_sol
 end
 
 function evaluation(node::Node, global_treat_order::Int,
@@ -221,7 +231,7 @@ function evaluation(node::Node, global_treat_order::Int,
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
 
-    if run(node.alg_setup_node)
+    if run(node.alg_setup_node, node)
         run(node.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
     end
@@ -229,6 +239,16 @@ function evaluation(node::Node, global_treat_order::Int,
     if run(node.alg_preprocess_node)
         run(node.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
+    end
+
+
+    println("active branching constraints: ")
+    for constr in node.alg_setup_node.extended_problem.master_problem.constr_manager.active_dynamic_list
+        print("constraint: ")
+        for var in keys(constr.member_coef_map)
+            print(" + ", var.name)
+        end
+        println(" = ", constr.cost_rhs)
     end
 
     if setup(node.alg_eval_node)
@@ -245,7 +265,6 @@ function evaluation(node::Node, global_treat_order::Int,
 
     #the following should be also called after the heuristics.
     update_node_primals(node)
-    @show node.primal_sol
 
     node_inc_lp_primal_bound = node.alg_eval_node.sols_and_bounds.alg_inc_lp_primal_bound
     update_node_dual_bounds(node, node.alg_eval_node.sols_and_bounds.alg_inc_lp_dual_bound,
@@ -268,7 +287,7 @@ function evaluation(node::Node, global_treat_order::Int,
     end
 
     setdown(node.alg_eval_node)
-    run(node.alg_setdown_node)
+    node.problem_setup_info = run(node.alg_setdown_node)
     store_branching_evaluation_info()
     return true
 end
@@ -308,7 +327,6 @@ function treat(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bo
         setdown(node.alg_generate_children_nodes)
         exit_treatment(node); return true
     end
-
     run(node.alg_generate_children_nodes, global_treat_order, node)
     setdown(node.alg_generate_children_nodes)
 
