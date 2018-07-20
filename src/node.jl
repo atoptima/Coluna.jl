@@ -146,7 +146,7 @@ function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
 
     return tuplejoin(NodeBuilder(problem, parent.node_inc_ip_dual_bound,
         parent.problem_setup_info, parent.eval_info, parent.alg_setup_node,
-        parent.alg_preprocess_node, parent.alg_eval_node,
+        parent.alg_preprocess_node, AlgToEvalNode(problem),
         parent.alg_setdown_node, parent.alg_vect_primal_heur_node,
         parent.alg_generate_children_nodes
         ),
@@ -155,8 +155,13 @@ function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
 
 end
 
-function is_conquered(node::Node, dual_bound::Float)
-    return (abs(node.node_inc_ip_primal_bound - dual_bound)
+function is_conquered(node::Node)
+    return (abs(node.node_inc_ip_primal_bound - node.node_inc_ip_dual_bound)
+        < node.params.mip_tolerance_integrality)
+end
+
+function is_to_be_pruned(node::Node, global_primal_bound::Float)
+    return (abs(global_primal_bound - node.node_inc_ip_dual_bound)
         < node.params.mip_tolerance_integrality)
 end
 
@@ -165,7 +170,7 @@ function set_branch_and_price_order(node::Node, new_value::Int)
 end
 
 function exit_treatment(node::Node)
-    # No need for deleting. Issam prefers deleting the node and storing the info
+    # Issam: No need for deleting. I prefer deleting the node and storing the info
     # needed for printing the tree in a different light structure (for now)
     # later we can use Nullable for big data such as XXXInfo of node
 
@@ -190,8 +195,15 @@ function record_ip_primal_sol_and_update_ip_primal_bound(node::Node,
     end
 end
 
-function update_node_dual_bounds(node::Node, ip_dual_bound::Float,
-        lp_dual_bound::Float)
+function save_problem_and_eval_alg_info(node::Node)
+end
+
+function store_branching_evaluation_info()
+end
+
+function update_node_duals(node::Node)
+    const lp_dual_bound = node.alg_eval_node.sols_and_bounds.alg_inc_lp_dual_bound
+    const ip_dual_bound = node.alg_eval_node.sols_and_bounds.alg_inc_ip_dual_bound
     if node.node_inc_lp_dual_bound < lp_dual_bound
         node.node_inc_lp_dual_bound = lp_dual_bound
         node.dual_bound_is_updated = true
@@ -200,13 +212,6 @@ function update_node_dual_bounds(node::Node, ip_dual_bound::Float,
         node.node_inc_ip_dual_bound = ip_dual_bound
         node.dual_bound_is_updated = true
     end
-
-end
-
-function save_problem_and_eval_alg_info(node::Node)
-end
-
-function store_branching_evaluation_info()
 end
 
 function update_node_primals(node::Node)
@@ -219,10 +224,13 @@ function update_node_primals(node::Node)
     node.primal_sol = Solution(node.node_inc_lp_primal_bound,
         sols_and_bounds.alg_inc_lp_primal_sol_map)
 
-    @show sols_and_bounds.alg_inc_lp_primal_sol_map
-    println("\n\n")
-    @show node.primal_sol
 end
+
+function update_node_incumbents(node::Node)
+    update_node_primals(node)
+    update_node_duals(node)
+end
+
 
 function evaluation(node::Node, global_treat_order::Int,
                     inc_primal_bound::Float)::Bool
@@ -264,13 +272,11 @@ function evaluation(node::Node, global_treat_order::Int,
     node.evaluated = true
 
     #the following should be also called after the heuristics.
-    update_node_primals(node)
+    update_node_incumbents(node)
 
-    node_inc_lp_primal_bound = node.alg_eval_node.sols_and_bounds.alg_inc_lp_primal_bound
-    update_node_dual_bounds(node, node.alg_eval_node.sols_and_bounds.alg_inc_lp_dual_bound,
-        node.alg_eval_node.sols_and_bounds.alg_inc_ip_dual_bound)
-
-    if is_conquered(node, node.alg_eval_node.sols_and_bounds.alg_inc_ip_dual_bound)
+    if is_conquered(node)
+        println("Node is conquered, no need for branching.")
+        readline()
         setdown(node.alg_eval_node)
         run(node.alg_setdown_node)
         store_branching_evaluation_info()
@@ -304,7 +310,8 @@ function treat(node::Node, global_treat_order::Int, inc_primal_bound::Float)::Bo
             return false
         end
     else
-        if inc_primal_bound <= node.node_inc_ip_primal_bound
+        if inc_primal_bound <= node.node_inc_ip_primal_bound ## is it necessary?
+            println("should not enter here.")
             node.node_inc_ip_primal_bound = inc_primal_bound
             node.ip_primal_bound_is_updated = false
         end

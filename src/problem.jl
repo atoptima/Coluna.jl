@@ -180,7 +180,7 @@ function CompactProblem{VM,CM}(useroptimizer::MOI.AbstractOptimizer,
     MOI.set!(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
     MOI.set!(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
 
-    CompactProblem(false, optimizer, VM(), CM(), Inf, 0.0, Set{Variable}(),
+    CompactProblem(false, optimizer, VM(), CM(), Inf, -Inf, Set{Variable}(),
         Set{Variable}(), Set{Constraint}(), 0.0, Dict{Variable,Float}(),
         Vector{Solution}(), Vector{Constraint}(), Vector{Variable}(), counter,
         Vector{VarConstr}(), false)
@@ -226,7 +226,11 @@ function retreive_primal_sol(problem::Problem)
 end
 
 function retreive_dual_sol(problem::Problem)
-
+    if MOI.canget(problem.optimizer, MOI.ObjectiveBound())
+        problem.obj_bound = MOI.get(problem.optimizer, MOI.ObjectiveBound())
+    end
+    # if MOI.canget(problem.optimizer, MOI.ConstraintDual())
+    # end
 end
 
 function retreive_solution(problem::Problem)
@@ -237,10 +241,11 @@ end
 function cur_sol_is_integer(problem::Problem, tolerance::Float)
     for var in problem.in_primal_lp_sol
         if !primal_value_is_integer(var.val, tolerance)
+            println("Sol is fractional.")
             return false
         end
     end
-    println("Sol is integer")
+    println("Solution is integer!")
     return true
 end
 
@@ -282,9 +287,12 @@ function deactivate_constraint(problem::Problem, constr::BranchConstr)
     for var in keys(constr.member_coef_map)
         MOI.modify!(problem.optimizer, constr.moi_index,
             MOI.ScalarCoefficientChange{Float}(var.moi_index, 0.0))
-        MOI.modify!(problem.optimizer, constr.moi_index,
-            MOI.ScalarConstantChange(0.0))
+        MOI.set!(problem.optimizer, MOI.ConstraintSet(), constr.moi_index,
+            constr.set_type(0.0))
     end
+    println("Constraint after deactivation:")
+    println("Function: ", MOI.get(problem.optimizer, MOI.ConstraintFunction(), constr.moi_index))
+    println("Set: ", MOI.get(problem.optimizer, MOI.ConstraintSet(), constr.moi_index))
 end
 
 function add_membership(var::Variable, constr::Constraint,

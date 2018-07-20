@@ -51,7 +51,15 @@ end
 function prepare_node_for_treatment(model::Model, node::NodeWithParent,
         global_nodes_treat_order::Int)
 
-    # If last treated node is node.parent:
+    println("Node is to be pruned: ",
+        is_to_be_pruned(node, model.extended_problem.primal_inc_bound))
+    readline()
+    if is_to_be_pruned(node, model.extended_problem.primal_inc_bound)
+        println("Node is conquered, no need for treating it.")
+        readline()
+        return false
+    end
+
     @show node.parent.treat_order
     @show global_nodes_treat_order
     if global_nodes_treat_order == node.parent.treat_order+1
@@ -73,22 +81,17 @@ function prepare_node_for_treatment(model::Model, node::NodeWithParent,
     return true
 end
 
-function print_info_before_solving_node(primal_tree_nb_open_nodes::Int,
-    sec_tree_nb_open_nodes::Int)
+function print_info_before_solving_node(problem::ExtendedProblem,
+        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int)
 
     println("************************************************************")
     print(primal_tree_nb_open_nodes)
-    if sec_tree_nb_open_nodes > 0
-        print(" (+" << sec_tree_nb_open_nodes << ")")
-    end
     print(" open nodes, ")
     # probPtr()->printDynamicVarConstrStats(os); //, true);
     println()
-
     # printTime(diffcpu(bapcodInit().startTime(), "bcTimeMain"), os);
-
-    println("Current best bounds : [ ", "BEST_DUAL_BOUND_HERE",  " , ",
-        "BEST_PRIMAL_BOUND_HERE", " ]")
+    println("Current best bounds : [ ", problem.dual_inc_bound,  " , ",
+        problem.primal_inc_bound, " ]")
     println("************************************************************")
 
 end
@@ -113,6 +116,34 @@ end
 function calculate_subtree_size(node::Node, sub_tree_size_by_depth::Int)
 end
 
+function update_cur_valid_dual_bound(problem::ExtendedProblem, node::NodeWithParent)
+    ## update subtree dual bound. Utility of this is questionable
+    # node.sub_tree_dual_bound = node.node_inc_ip_dual_bound
+end
+
+function update_cur_valid_dual_bound(problem::ExtendedProblem, node::Node)
+    if node.node_inc_ip_dual_bound > problem.dual_inc_bound
+        problem.dual_inc_bound = node.node_inc_ip_dual_bound
+    end
+end
+
+function update_primal_inc_solution(problem::ExtendedProblem, sol::Solution)
+    if sol.cost < problem.primal_inc_bound
+        problem.solution = Solution(sol.cost, sol.var_val_map)
+        problem.primal_inc_bound = sol.cost
+        println("New incumbent IP solution with cost: ", problem.solution.cost)
+    end
+end
+
+function update_model_incumbents(problem::ExtendedProblem, node::Node)
+    if node.ip_primal_bound_is_updated
+        update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
+    end
+    if node.dual_bound_is_updated
+        update_cur_valid_dual_bound(problem, node)
+    end
+end
+
 function solve(model::Model)
     search_tree = DS.Queue(Node)
     params = model.params
@@ -134,15 +165,15 @@ function solve(model::Model)
 
         if prepare_node_for_treatment(model, cur_node, global_nodes_treat_order)
 
-            print_info_before_solving_node(length(search_tree) +
-                ((is_primary_tree_node) ? 1 : 0),
+            print_info_before_solving_node(model.extended_problem,
+                length(search_tree) + ((is_primary_tree_node) ? 1 : 0),
                 0 + ((is_primary_tree_node) ? 0 : 1))
 
-            if !cur_node_evaluated_before
-                set_branch_and_price_order(cur_node, bap_treat_order)
-                bap_treat_order += 1
-                # nice_print(cur_node, true)
-            end
+            # if !cur_node_evaluated_before
+            #     set_branch_and_price_order(cur_node, bap_treat_order)
+            #     bap_treat_order += 1
+            #     # nice_print(cur_node, true)
+            # end
 
             if !treat(cur_node, global_nodes_treat_order,
                 model.extended_problem.primal_inc_bound)
@@ -151,21 +182,21 @@ function solve(model::Model)
             end
             global_nodes_treat_order += 1
             nb_treated_nodes += 1
+
+            println("Node bounds after evaluation:")
+            println("Primal ip bound: ", cur_node.node_inc_ip_primal_bound)
+            println("Dual ip bound: ", cur_node.node_inc_ip_dual_bound)
+            println("Primal lp bound: ", cur_node.node_inc_lp_primal_bound)
+            println("Dual lp bound: ", cur_node.node_inc_lp_dual_bound)
+
             # the output of the treated node are the generated child nodes and
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one
             # as the dual bound will be limited by the primal one
-            if cur_node.ip_primal_bound_is_updated
-                update_primal_inc_solution(model, cur_node.node_inc_ip_primal_sol)
-            end
-
-            if cur_node.dual_bound_is_updated
-                update_cur_valid_dual_bound(model, cur_node)
-            end
+            update_model_incumbents(model.extended_problem, cur_node)
 
             update_search_trees(cur_node, search_tree, model)
             println("number of nodes: ", length(search_tree))
-            readline()
 
         end
 
@@ -174,4 +205,14 @@ function solve(model::Model)
             # calculate_subtree_size(cur_node, model.sub_tree_size_by_depth)
         end
     end
+
+    println("Search is finished.")
+    println("Primal bound: ", model.extended_problem.primal_inc_bound)
+    println("Dual bound: ", model.extended_problem.dual_inc_bound)
+    println("Best solution found:")
+    for kv in model.extended_problem.solution.var_val_map
+        println("var: ", kv[1].name, ": ", kv[2])
+    end
+
+
 end

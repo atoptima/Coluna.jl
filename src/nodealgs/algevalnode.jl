@@ -36,6 +36,7 @@ function update_primal_ip_incumbents(incumbents::SolsAndBounds,
         for var in vars
             incumbents.alg_inc_ip_primal_sol_map[var] = var.val
         end
+        incumbents.is_alg_inc_ip_primal_bound_updated = true
     end
 end
 
@@ -111,8 +112,8 @@ function update_alg_incumbents(alg::AlgToEvalNodeByLp)
     update_dual_ip_bound(alg.sols_and_bounds, obj_bound)
     update_primal_lp_incumbents(alg.sols_and_bounds, primal_sol, obj_value)
 
-    ## not retreiving dual solution yet
-    update_dual_lp_incumbents(alg.sols_and_bounds, dual_sol, -Inf)
+    ## not retreiving dual solution yet, but lp dual = lp primal
+    update_dual_lp_incumbents(alg.sols_and_bounds, dual_sol, obj_value)
 
     if cur_sol_is_integer(alg.extended_problem.master_problem,
             alg.extended_problem.params.mip_tolerance_integrality)
@@ -121,28 +122,15 @@ function update_alg_incumbents(alg::AlgToEvalNodeByLp)
 
     println("Final incumbent bounds of lp evaluation:")
     println("alg_inc_ip_primal_bound: ", alg.sols_and_bounds.alg_inc_ip_primal_bound)
-    println("alg_inc_lp_primal_bound: ", alg.sols_and_bounds.alg_inc_lp_primal_bound)
     println("alg_inc_ip_dual_bound: ", alg.sols_and_bounds.alg_inc_ip_dual_bound)
+    println("alg_inc_lp_primal_bound: ", alg.sols_and_bounds.alg_inc_lp_primal_bound)
     println("alg_inc_lp_dual_bound: ", alg.sols_and_bounds.alg_inc_lp_dual_bound)
-
-    println("incmbent lp primal sol")
-    for kv in alg.sols_and_bounds.alg_inc_lp_primal_sol_map
-        println("var: ", kv[1].name, ": ", kv[2])
-    end
-    println()
 
     println("incmbent ip primal sol")
     for kv in alg.sols_and_bounds.alg_inc_ip_primal_sol_map
         println("var: ", kv[1].name, ": ", kv[2])
     end
     println()
-
-    println("incmbent lp dual sol")
-    for kv in alg.sols_and_bounds.alg_inc_lp_dual_sol_map
-        println("var: ", kv[1].name, ": ", kv[2])
-    end
-    println()
-
     readline()
 end
 

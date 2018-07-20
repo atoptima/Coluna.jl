@@ -91,14 +91,17 @@ end
 
 function run(alg::UsualBranchingAlg, global_treat_order::Int, node)
 
-    println("generating children\n\n")
+    println("Generating children...")
 
     frac_master_vars = retreive_candidate_vars(alg, node.primal_sol.var_val_map)
 
     if isempty(frac_master_vars)
+        println("Generated ", length(node.children), " child nodes.")
         return
     end
 
     perform_usual_branching(node, alg, frac_master_vars)
+
+    println("Generated ", length(node.children), " child nodes.")
 
 end

@@ -279,14 +279,10 @@ end
 function prepare_branching_constraints(alg::AlgToSetupFull, node)
     const in_problem = alg.extended_problem.master_problem.constr_manager.active_dynamic_list
     const in_setup_info = node.problem_setup_info.active_branching_constraints_info
-    @show alg.extended_problem.master_problem.constr_manager.active_dynamic_list
-    println("length: ", length(in_problem))
     for i in length(in_problem):-1:1
         constr = in_problem[i]
-        println("is a branch: ", typeof(constr) <: BranchConstr)
         if typeof(constr) <: BranchConstr
             idx = findfirst(in_setup_info, constr)
-            println("idx: ", idx)
             if idx == 0
                 deactivate_constraint(alg.extended_problem.master_problem, constr)
                 println("cosntraint deactivated")
@@ -298,7 +294,6 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node)
     for constr in in_setup_info
         if typeof(constr) <: BranchConstr
             idx = findfirst(in_problem, constr)
-            println("idx: ", idx)
             if idx == 0
                 add_constraint(alg.extended_problem.master_problem, constr)
                 println("added constraint")
@@ -308,7 +303,6 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node)
         end
     end
     prepare_branching_constraints_added_by_father(alg, node)
-    @show in_problem
 end
 
 function run(alg::AlgToSetupFull, node)
