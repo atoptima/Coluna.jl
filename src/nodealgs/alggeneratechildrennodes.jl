@@ -1,8 +1,4 @@
-@hl type ChildrenGenerationInfo end
-
-@hl type BranchingEvaluationInfo end
-
-@hl type AlgToGenerateChildrenNodes
+@hl type AlgToGenerateChildrenNodes <: AlgLike
     extended_problem::ExtendedProblem
 end
 

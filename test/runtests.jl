@@ -67,10 +67,6 @@ function testdefaultbuilders()
 
     ### Node constructors
     rootNode = CL.Node(model.extended_problem, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info)
-    rootNode = CL.Node(model.extended_problem, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info,
-        alg_setup_node, alg_preprocess_node, alg_eval_node, alg_setdown_node,
-        alg_vect_primal_heur_node, alg_generate_children_nodes)
-
     child1 = CL.NodeWithParent(model.extended_problem, rootNode)
 
 

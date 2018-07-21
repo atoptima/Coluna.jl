@@ -290,9 +290,6 @@ function deactivate_constraint(problem::Problem, constr::BranchConstr)
         MOI.set!(problem.optimizer, MOI.ConstraintSet(), constr.moi_index,
             constr.set_type(0.0))
     end
-    println("Constraint after deactivation:")
-    println("Function: ", MOI.get(problem.optimizer, MOI.ConstraintFunction(), constr.moi_index))
-    println("Set: ", MOI.get(problem.optimizer, MOI.ConstraintSet(), constr.moi_index))
 end
 
 function add_membership(var::Variable, constr::Constraint,

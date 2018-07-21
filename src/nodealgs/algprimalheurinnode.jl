@@ -1,1 +1,1 @@
-@hl type AlgToPrimalHeurInNode end
+@hl type AlgToPrimalHeurInNode <: AlgLike end

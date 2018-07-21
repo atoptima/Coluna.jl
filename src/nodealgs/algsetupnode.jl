@@ -72,7 +72,7 @@ function applyconstrinfo(info::ConstraintInfo)::Void
     info.constraint.rhs = info.rhs
 end
 
-type ProblemSetupInfo
+@hl type ProblemSetupInfo <: SetupInfo
     treat_order::Int
     number_of_nodes::Int
     full_setup_is_obligatory::Bool
@@ -104,7 +104,7 @@ ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
 #### AlgToSetdownNode #######
 #############################
 
-@hl type AlgToSetdownNode
+@hl type AlgToSetdownNode <: AlgLike
     extended_problem::ExtendedProblem
 end
 
@@ -206,7 +206,7 @@ end
 ##### AlgToSetupNode ########
 #############################
 
-@hl type AlgToSetupNode
+@hl type AlgToSetupNode <: AlgLike
     extended_problem::ExtendedProblem
     problem_setup_info::ProblemSetupInfo
     is_all_columns_active::Bool

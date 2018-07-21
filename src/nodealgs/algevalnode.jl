@@ -57,8 +57,6 @@ type StabilizationInfo
     params::Params
 end
 
-abstract type EvalInfo end
-
 type ColGenEvalInfo <: EvalInfo
     stabilization_info::StabilizationInfo
     master_lp_basis::LpBasisRecord
@@ -70,7 +68,7 @@ type LpEvalInfo <: EvalInfo
 end
 
 
-@hl type AlgToEvalNode
+@hl type AlgToEvalNode <: AlgLike
     sols_and_bounds::SolsAndBounds
     extended_problem::ExtendedProblem
     sol_is_master_lp_feasible::Bool

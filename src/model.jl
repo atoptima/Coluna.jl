@@ -22,7 +22,6 @@ function create_root_node(model::Model)::Node
     stab_info  = StabilizationInfo(model.extended_problem.master_problem, params)
     master_lp_basis = LpBasisRecord("Basis0")
 
-
     ## use parameters to define how the tree will be solved
     # node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
     node_eval_info = LpEvalInfo(stab_info)
@@ -33,62 +32,56 @@ end
 
 ### For root node
 function prepare_node_for_treatment(model::Model, node::Node,
-        global_nodes_treat_order::Int)::Bool
+        treat_algs::TreatAlgs, global_nodes_treat_order::Int)
 
-    node.alg_setup_node = AlgToSetupRootNode(model.extended_problem,
+    treat_algs.alg_setup_node = AlgToSetupRootNode(model.extended_problem,
         node.problem_setup_info)
-    node.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
-    node.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
+    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
+    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
 
     if !node.evaluated
         ## Dispatched according to eval_info
-        node.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
+        treat_algs.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
     end
 
     return true
 end
 
 function prepare_node_for_treatment(model::Model, node::NodeWithParent,
-        global_nodes_treat_order::Int)
+        treat_algs::TreatAlgs, global_nodes_treat_order::Int)
 
-    println("Node is to be pruned: ",
-        is_to_be_pruned(node, model.extended_problem.primal_inc_bound))
-    readline()
     if is_to_be_pruned(node, model.extended_problem.primal_inc_bound)
         println("Node is conquered, no need for treating it.")
-        readline()
         return false
     end
 
-    @show node.parent.treat_order
-    @show global_nodes_treat_order
     if global_nodes_treat_order == node.parent.treat_order+1
-        node.alg_setup_node = AlgToSetupBranchingOnly(model.extended_problem,
+        treat_algs.alg_setup_node = AlgToSetupBranchingOnly(model.extended_problem,
             node.problem_setup_info)
     else
-        node.alg_setup_node = AlgToSetupFull(model.extended_problem,
+        treat_algs.alg_setup_node = AlgToSetupFull(model.extended_problem,
             node.problem_setup_info)
     end
 
-    node.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
-    node.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
+    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
+    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
 
     if !node.evaluated
         ## Dispatched according to eval_info (?)
-        node.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
+        treat_algs.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
     end
 
     return true
 end
 
 function print_info_before_solving_node(problem::ExtendedProblem,
-        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int)
+        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int, treat_order::Int)
 
     println("************************************************************")
     print(primal_tree_nb_open_nodes)
-    print(" open nodes, ")
+    println(" open nodes. Treating node ", treat_order, ".")
+    #" Parent is ", node.parent.treat_order, ".")
     # probPtr()->printDynamicVarConstrStats(os); //, true);
-    println()
     # printTime(diffcpu(bapcodInit().startTime(), "bcTimeMain"), os);
     println("Current best bounds : [ ", problem.dual_inc_bound,  " , ",
         problem.primal_inc_bound, " ]")
@@ -152,6 +145,7 @@ function solve(model::Model)
     DS.enqueue!(search_tree, create_root_node(model))
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
+    treat_algs = TreatAlgs()
 
     while (!isempty(search_tree) && nb_treated_nodes < params.max_num_nodes)
 
@@ -163,11 +157,11 @@ function solve(model::Model)
         # end
         cur_node_evaluated_before = cur_node.evaluated
 
-        if prepare_node_for_treatment(model, cur_node, global_nodes_treat_order)
+        if prepare_node_for_treatment(model, cur_node, treat_algs, global_nodes_treat_order)
 
             print_info_before_solving_node(model.extended_problem,
                 length(search_tree) + ((is_primary_tree_node) ? 1 : 0),
-                0 + ((is_primary_tree_node) ? 0 : 1))
+                0 + ((is_primary_tree_node) ? 0 : 1), global_nodes_treat_order)
 
             # if !cur_node_evaluated_before
             #     set_branch_and_price_order(cur_node, bap_treat_order)
@@ -175,7 +169,7 @@ function solve(model::Model)
             #     # nice_print(cur_node, true)
             # end
 
-            if !treat(cur_node, global_nodes_treat_order,
+            if !treat(cur_node, treat_algs, global_nodes_treat_order,
                 model.extended_problem.primal_inc_bound)
                 println("error: branch-and-price is interrupted")
                 break

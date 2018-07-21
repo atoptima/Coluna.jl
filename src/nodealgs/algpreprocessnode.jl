@@ -1,4 +1,4 @@
-@hl type AlgToPreprocessNode end
+@hl type AlgToPreprocessNode <: AlgLike end
 
 
 

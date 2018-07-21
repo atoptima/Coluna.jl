@@ -24,12 +24,12 @@ include("constraints.jl")
 include("solution.jl")
 include("mastercolumn.jl")
 include("problem.jl")
+include("node.jl")
 include("nodealgs/algsetupnode.jl")
 include("nodealgs/algpreprocessnode.jl")
 include("nodealgs/algevalnode.jl")
 include("nodealgs/algprimalheurinnode.jl")
 include("nodealgs/alggeneratechildrennodes.jl")
-include("node.jl")
 include("model.jl")
 
 
