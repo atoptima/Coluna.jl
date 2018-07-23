@@ -91,8 +91,8 @@ function print_info_before_solving_node(problem::ExtendedProblem,
     #" Parent is ", node.parent.treat_order, ".")
     # probPtr()->printDynamicVarConstrStats(os); //, true);
     # printTime(diffcpu(bapcodInit().startTime(), "bcTimeMain"), os);
-    # println("Current bounds : [ ", problem.dual_inc_bound,  " , ",
-    #     problem.primal_inc_bound, " ]")
+    println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
+        problem.primal_inc_bound, " ]")
     println("************************************************************")
 
 end
@@ -117,31 +117,47 @@ end
 function calculate_subtree_size(node::Node, sub_tree_size_by_depth::Int)
 end
 
-function update_cur_valid_dual_bound(problem::ExtendedProblem, node::NodeWithParent)
+function update_cur_valid_dual_bound(problem::ExtendedProblem,
+        node::NodeWithParent, search_tree::DS.Queue{Node})
     ## update subtree dual bound. Utility of this is questionable
     # node.sub_tree_dual_bound = node.node_inc_ip_dual_bound
+    if isempty(search_tree)
+        problem.dual_inc_bound = problem.primal_inc_bound
+    end
+    worst_dual_bound = Inf
+    for node in search_tree
+        if node.node_inc_ip_dual_bound < worst_dual_bound
+            worst_dual_bound = node.node_inc_ip_dual_bound
+        end
+    end
+    if worst_dual_bound != Inf
+        problem.dual_inc_bound = min(worst_dual_bound, problem.primal_inc_bound)
+    end
 end
 
-function update_cur_valid_dual_bound(problem::ExtendedProblem, node::Node)
+function update_cur_valid_dual_bound(problem::ExtendedProblem,
+        node::Node, search_tree::DS.Queue{Node})
     if node.node_inc_ip_dual_bound > problem.dual_inc_bound
         problem.dual_inc_bound = node.node_inc_ip_dual_bound
     end
 end
 
-function update_primal_inc_solution(problem::ExtendedProblem, sol::Solution)
+function update_primal_inc_solution(problem::ExtendedProblem, sol::PrimalSolution)
     if sol.cost < problem.primal_inc_bound
-        problem.solution = Solution(sol.cost, sol.var_val_map)
+        problem.solution = PrimalSolution(sol.cost, sol.var_val_map)
         problem.primal_inc_bound = sol.cost
         println("New incumbent IP solution with cost: ", problem.solution.cost)
     end
 end
 
-function update_model_incumbents(problem::ExtendedProblem, node::Node)
+function update_model_incumbents(problem::ExtendedProblem, node::Node,
+        search_tree::DS.Queue{Node})
     if node.ip_primal_bound_is_updated
         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
     end
-    if node.dual_bound_is_updated
-        update_cur_valid_dual_bound(problem, node)
+    if (node.dual_bound_is_updated &&
+            length(search_tree) <= problem.params.limit_on_tree_size_to_update_best_dual_bound)
+        update_cur_valid_dual_bound(problem, node, search_tree)
     end
 end
 
@@ -201,9 +217,9 @@ function solve(model::Model)
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one
             # as the dual bound will be limited by the primal one
-            update_model_incumbents(model.extended_problem, cur_node)
-
             update_search_trees(cur_node, search_tree, model)
+            update_model_incumbents(model.extended_problem, cur_node, search_tree)
+
             println("number of nodes: ", length(search_tree))
 
         end

@@ -23,8 +23,8 @@
     dual_bound_is_updated::Bool
     ip_primal_bound_is_updated::Bool
 
-    node_inc_ip_primal_sol::Solution
-    local_fixed_solution::Solution
+    node_inc_ip_primal_sol::PrimalSolution
+    local_fixed_solution::PrimalSolution
 
     eval_end_time::Int
     treat_order::Int
@@ -43,7 +43,7 @@
     branching_eval_info::BranchingEvaluationInfo #for branching history
 
     problem_and_eval_alg_info_saved::Bool
-    primal_sol::Solution # More information than only ::Solution
+    primal_sol::PrimalSolution # More information than only ::PrimalSolution
     strong_branch_phase_number::Int
     strong_branch_node_number::Int
 
@@ -66,8 +66,8 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         dual_bound,
         false,
         false,
-        Solution(),
-        Solution(),
+        PrimalSolution(),
+        PrimalSolution(),
         -1,
         -1,
         false,
@@ -79,7 +79,7 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         ChildrenGenerationInfo(),
         BranchingEvaluationInfo(),
         false,
-        Solution(),
+        PrimalSolution(),
         0,
         -1
     )
@@ -131,7 +131,7 @@ function record_ip_primal_sol_and_update_ip_primal_bound(node::Node,
         sols_and_bounds)
 
     if node.node_inc_ip_primal_bound > sols_and_bounds.alg_inc_ip_primal_bound
-        node.node_inc_ip_primal_sol = Solution(sols_and_bounds.alg_inc_ip_primal_bound,
+        node.node_inc_ip_primal_sol = PrimalSolution(sols_and_bounds.alg_inc_ip_primal_bound,
             deepcopy(sols_and_bounds.alg_inc_ip_primal_sol_map))
         node.node_inc_ip_primal_bound = sols_and_bounds.alg_inc_ip_primal_bound
         node.ip_primal_bound_is_updated = true
@@ -164,7 +164,7 @@ function update_node_primals(node::Node, sols_and_bounds)
             sols_and_bounds)
     end
     node.node_inc_lp_primal_bound = sols_and_bounds.alg_inc_lp_primal_bound
-    node.primal_sol = Solution(node.node_inc_lp_primal_bound,
+    node.primal_sol = PrimalSolution(node.node_inc_lp_primal_bound,
         sols_and_bounds.alg_inc_lp_primal_sol_map)
 
 end

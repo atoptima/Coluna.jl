@@ -11,14 +11,14 @@ end
 
 
 ### Methods of SolsAndBounds
-#### Put flags to update sol
+#### Put flags to update sol?
 function update_primal_ip_incumbents(incumbents::SolsAndBounds,
-        vars::Set{Variable}, newBound::Float)
+        var_val_map::Dict{Variable,Float}, newBound::Float)
     if newBound < incumbents.alg_inc_ip_primal_bound
         incumbents.alg_inc_ip_primal_bound = newBound
         incumbents.alg_inc_ip_primal_sol_map = Dict{Variable, Float}()
-        for var in vars
-            incumbents.alg_inc_ip_primal_sol_map[var] = var.val
+        for var_val in var_val_map
+            push!(incumbents.alg_inc_ip_primal_sol_map, var_val)
         end
         incumbents.is_alg_inc_ip_primal_bound_updated = true
     end
@@ -31,23 +31,23 @@ function update_dual_ip_bound(incumbents::SolsAndBounds, newBound::Float)
 end
 
 function update_primal_lp_incumbents(incumbents::SolsAndBounds,
-        vars::Set{Variable}, newBound::Float)
+        var_val_map::Dict{Variable,Float}, newBound::Float)
     if newBound < incumbents.alg_inc_lp_primal_bound
         incumbents.alg_inc_lp_primal_bound = newBound
         incumbents.alg_inc_lp_primal_sol_map = Dict{Variable, Float}()
-        for var in vars
-            incumbents.alg_inc_lp_primal_sol_map[var] = var.val
+        for var_val in var_val_map
+            push!(incumbents.alg_inc_lp_primal_sol_map, var_val)
         end
     end
 end
 
 function update_dual_lp_incumbents(incumbents::SolsAndBounds,
-        constrs::Set{Constraint}, newBound::Float)
+        constr_val_map::Dict{Constraint, Float}, newBound::Float)
     if newBound > incumbents.alg_inc_lp_dual_bound
         incumbents.alg_inc_lp_dual_bound = newBound
         incumbents.alg_inc_lp_dual_sol_map = Dict{Constraint, Float}()
-        for constr in constrs
-            incumbents.alg_inc_lp_dual_sol_map[var] = constr.val
+        for constr_val in constr_val_map
+            push!(incumbents.alg_inc_lp_dual_sol_map, constr_val)
         end
     end
 end
@@ -103,10 +103,10 @@ end
 
 
 function update_alg_incumbents(alg::AlgToEvalNodeByLp)
-    const primal_sol = alg.extended_problem.master_problem.in_primal_lp_sol
-    const dual_sol = alg.extended_problem.master_problem.in_dual_sol
-    const obj_value = alg.extended_problem.master_problem.obj_val
-    const obj_bound = alg.extended_problem.master_problem.obj_bound
+    const primal_sol = alg.extended_problem.master_problem.primal_sols[end].var_val_map
+    const dual_sol = alg.extended_problem.master_problem.dual_sols[end].var_val_map
+    const obj_value = alg.extended_problem.master_problem.primal_sols[end].cost
+    const obj_bound = alg.extended_problem.master_problem.dual_sols[end].cost
 
     update_dual_ip_bound(alg.sols_and_bounds, obj_bound)
     update_primal_lp_incumbents(alg.sols_and_bounds, primal_sol, obj_value)
@@ -114,7 +114,7 @@ function update_alg_incumbents(alg::AlgToEvalNodeByLp)
     ## not retreiving dual solution yet, but lp dual = lp primal
     update_dual_lp_incumbents(alg.sols_and_bounds, dual_sol, obj_value)
 
-    if cur_sol_is_integer(alg.extended_problem.master_problem,
+    if sol_is_integer(primal_sol,
             alg.extended_problem.params.mip_tolerance_integrality)
         update_primal_ip_incumbents(alg.sols_and_bounds, primal_sol, obj_bound)
     end

@@ -45,7 +45,7 @@ function testcolgenatroot()
     CL.add_membership(x3, cov_3_constr, master_prob, 1.0)
 
     # model = CL.Model(CL.Params(), CL.VarConstrCounter(0), master_prob,
-    #                  [pricingprob], [(0,100)], CL.Solution(), Inf, -Inf, 0)
+    #                  [pricingprob], [(0,100)], CL.PrimalSolution(), Inf, -Inf, 0)
     #
     # CL.solve(model)
 end

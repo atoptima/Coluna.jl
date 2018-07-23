@@ -145,17 +145,15 @@ type CompactProblem{VM <: AbstractVarIndexManager,
     obj_val::Float
     obj_bound::Float
     in_primal_lp_sol::Set{Variable}
-    # inprimalipsol::Set{Variable}
     non_zero_red_cost_vars::Set{Variable}
     in_dual_sol::Set{Constraint}
 
     partial_solution_value::Float
     partial_solution::Dict{Variable,Float}
 
-    # nbofrecordedsol::Int
-    recorded_sol::Vector{Solution}
-    #### primal_sols::Vector{Solution}
-    #### dual_sols::Vector{Solution}
+    # Recorded solutions, may be integer or not
+    primal_sols::Vector{PrimalSolution}
+    dual_sols::Vector{DualSolution}
 
     # needed for new preprocessing
     preprocessed_constrs_list::Vector{Constraint}
@@ -182,10 +180,13 @@ function CompactProblem{VM,CM}(useroptimizer::MOI.AbstractOptimizer,
     MOI.set!(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
     MOI.set!(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
 
+    primal_vec = Vector{PrimalSolution}([PrimalSolution()])
+    dual_vec = Vector{DualSolution}([DualSolution()])
+
     CompactProblem(false, optimizer, VM(), CM(), Inf, -Inf, Set{Variable}(),
         Set{Variable}(), Set{Constraint}(), 0.0, Dict{Variable,Float}(),
-        Vector{Solution}(), Vector{Constraint}(), Vector{Variable}(), counter,
-        Vector{VarConstr}(), false)
+        primal_vec, dual_vec, Vector{Constraint}(),
+        Vector{Variable}(), counter, Vector{VarConstr}(), false)
 end
 
 const SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
@@ -196,7 +197,7 @@ type ExtendedProblem <: Problem
     separation_vect::Vector{Problem}
     params::Params
     counter::VarConstrCounter
-    solution::Solution
+    solution::PrimalSolution
     primal_inc_bound::Float
     dual_inc_bound::Float
     subtree_size_by_depth::Int
@@ -208,31 +209,33 @@ function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
         dual_inc_bound::Float) where {VM <: AbstractVarIndexManager,
         CM <: AbstractConstrIndexManager}
     return ExtendedProblem(master_problem, pricing_vect, separation, params,
-        counter, Solution(), primal_inc_bound, dual_inc_bound, 0)
+        counter, PrimalSolution(), primal_inc_bound, dual_inc_bound, 0)
 end
 
 function retreive_primal_sol(problem::Problem) ## Store it in problem.primal_sols
-    if MOI.canget(problem.optimizer, MOI.ObjectiveValue())
-        problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
-    end
+    problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
     println("Objective value: ", problem.obj_val)
     const var_list = problem.var_manager.active_static_list
+    new_sol = Dict{Variable, Float}()
+    new_obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
     for var_idx in 1:length(var_list)
         var_list[var_idx].val = MOI.get(problem.optimizer,
             MOI.VariablePrimal(), var_list[var_idx].moi_index)
         println("Var ", var_list[var_idx].name, " = ", var_list[var_idx].val)
         if var_list[var_idx].val > 0.0
             push!(problem.in_primal_lp_sol, var_list[var_idx])
+            new_sol[var_list[var_idx]] = var_list[var_idx].val
         end
     end
+    push!(problem.primal_sols, PrimalSolution(new_obj_val, new_sol))
 end
 
 function retreive_dual_sol(problem::Problem)
-    if MOI.canget(problem.optimizer, MOI.ObjectiveBound())
-        problem.obj_bound = MOI.get(problem.optimizer, MOI.ObjectiveBound())
-    end
+    problem.obj_bound = MOI.get(problem.optimizer, MOI.ObjectiveBound())
     # if MOI.canget(problem.optimizer, MOI.ConstraintDual())
     # end
+    push!(problem.dual_sols, DualSolution(problem.obj_bound,
+        Dict{Constraint, Float}()))
 end
 
 function retreive_solution(problem::Problem)
@@ -240,9 +243,10 @@ function retreive_solution(problem::Problem)
     retreive_dual_sol(problem)
 end
 
-function cur_sol_is_integer(problem::Problem, tolerance::Float) ## Receive a solution as argument
-    for var in problem.in_primal_lp_sol
-        if !primal_value_is_integer(var.val, tolerance) ## Check if variable type is 'I'
+function sol_is_integer(sol::Dict{Variable, Float}, tolerance::Float)
+    for var_val in sol
+        if (!primal_value_is_integer(var_val.second, tolerance)
+                && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))
             println("Sol is fractional.")
             return false
         end
