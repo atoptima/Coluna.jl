@@ -112,10 +112,10 @@ end
     # - The value is the corresponding coefficient.
     # ```
     member_coef_map::Dict{VarConstr, Float}
-    
+
     # Needed for VarConstrResetInfo.
-    is_info_updated::Bool 
-    
+    is_info_updated::Bool
+
     in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
 
     reduced_cost::Float
@@ -205,4 +205,13 @@ function ConstraintBuilder(counter::VarConstrCounter, name::String,
     return tuplejoin(VarConstrBuilder(counter, name, cost_rhs, sense, vc_type,
             flag, 'U', 1.0),
             MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(cost_rhs), set_type)
+end
+
+function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
+    for i in 1:length(var_constr_vec)
+        if vc_ref == var_constr_vec[i].vc_ref
+            return i
+        end
+    end
+    return 0
 end

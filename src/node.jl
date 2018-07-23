@@ -104,7 +104,7 @@ function is_conquered(node::Node)
 end
 
 function is_to_be_pruned(node::Node, global_primal_bound::Float)
-    return (abs(global_primal_bound - node.node_inc_ip_dual_bound)
+    return (global_primal_bound - node.node_inc_ip_dual_bound
         < node.params.mip_tolerance_integrality)
 end
 
@@ -207,7 +207,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
 
     println("active branching constraints: ")
     for constr in treat_algs.alg_setup_node.extended_problem.master_problem.constr_manager.active_dynamic_list
-        print("constraint: ")
+        print("constraint ", constr.vc_ref, ": ")
         for var in keys(constr.member_coef_map)
             print(" + ", var.name)
         end
@@ -247,7 +247,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     end
 
     setdown(treat_algs.alg_eval_node)
-    node.problem_setup_info = run(treat_algs.alg_setdown_node)
+    run(treat_algs.alg_setdown_node, node)
     store_branching_evaluation_info()
     return true
 end

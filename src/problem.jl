@@ -154,6 +154,8 @@ type CompactProblem{VM <: AbstractVarIndexManager,
 
     # nbofrecordedsol::Int
     recorded_sol::Vector{Solution}
+    #### primal_sols::Vector{Solution}
+    #### dual_sols::Vector{Solution}
 
     # needed for new preprocessing
     preprocessed_constrs_list::Vector{Constraint}
@@ -171,7 +173,7 @@ type CompactProblem{VM <: AbstractVarIndexManager,
 end
 
 function CompactProblem{VM,CM}(useroptimizer::MOI.AbstractOptimizer,
-        counter::VarConstrCounter ) where {VM <: AbstractVarIndexManager,
+        counter::VarConstrCounter) where {VM <: AbstractVarIndexManager,
         CM <: AbstractConstrIndexManager}
 
     optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
@@ -209,7 +211,7 @@ function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
         counter, Solution(), primal_inc_bound, dual_inc_bound, 0)
 end
 
-function retreive_primal_sol(problem::Problem)
+function retreive_primal_sol(problem::Problem) ## Store it in problem.primal_sols
     if MOI.canget(problem.optimizer, MOI.ObjectiveValue())
         problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
     end
@@ -238,9 +240,9 @@ function retreive_solution(problem::Problem)
     retreive_dual_sol(problem)
 end
 
-function cur_sol_is_integer(problem::Problem, tolerance::Float)
+function cur_sol_is_integer(problem::Problem, tolerance::Float) ## Receive a solution as argument
     for var in problem.in_primal_lp_sol
-        if !primal_value_is_integer(var.val, tolerance)
+        if !primal_value_is_integer(var.val, tolerance) ## Check if variable type is 'I'
             println("Sol is fractional.")
             return false
         end
@@ -282,14 +284,11 @@ function add_full_constraint(problem::Problem, constr::BranchConstr)
             constr.set_type(constr.cost_rhs))
 end
 
-function deactivate_constraint(problem::Problem, constr::BranchConstr)
+function delete_constraint(problem::Problem, constr::BranchConstr)
+    ### When deleting a constraint, its MOI index becomes invalid
     remove_from_constr_manager(problem.constr_manager, constr)
-    for var in keys(constr.member_coef_map)
-        MOI.modify!(problem.optimizer, constr.moi_index,
-            MOI.ScalarCoefficientChange{Float}(var.moi_index, 0.0))
-        MOI.set!(problem.optimizer, MOI.ConstraintSet(), constr.moi_index,
-            constr.set_type(0.0))
-    end
+    MOI.delete!(problem.optimizer, constr.moi_index)
+    constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction, constr.set_type}(-1)
 end
 
 function add_membership(var::Variable, constr::Constraint,
@@ -323,7 +322,7 @@ function optimize(problem::Problem)
     if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
         retreive_solution(problem)
     else
-        error("Solver has no result to show.")
+        println("Solver has no result to show.")
     end
 
     return status

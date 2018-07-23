@@ -34,6 +34,9 @@ end
 function prepare_node_for_treatment(model::Model, node::Node,
         treat_algs::TreatAlgs, global_nodes_treat_order::Int)
 
+    println("************************************************************")
+    println("\nPreparing root node for treatment.")
+
     treat_algs.alg_setup_node = AlgToSetupRootNode(model.extended_problem,
         node.problem_setup_info)
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
@@ -48,7 +51,13 @@ function prepare_node_for_treatment(model::Model, node::Node,
 end
 
 function prepare_node_for_treatment(model::Model, node::NodeWithParent,
-        treat_algs::TreatAlgs, global_nodes_treat_order::Int)
+    treat_algs::TreatAlgs, global_nodes_treat_order::Int)
+
+    println("************************************************************")
+    println("\nPreparing node ", global_nodes_treat_order,
+        " for treatment. Parent is ", node.parent.treat_order, ".")
+    println("Current primal bound is ", model.extended_problem.primal_inc_bound)
+    println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
 
     if is_to_be_pruned(node, model.extended_problem.primal_inc_bound)
         println("Node is conquered, no need for treating it.")
@@ -77,14 +86,13 @@ end
 function print_info_before_solving_node(problem::ExtendedProblem,
         primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int, treat_order::Int)
 
-    println("************************************************************")
     print(primal_tree_nb_open_nodes)
     println(" open nodes. Treating node ", treat_order, ".")
     #" Parent is ", node.parent.treat_order, ".")
     # probPtr()->printDynamicVarConstrStats(os); //, true);
     # printTime(diffcpu(bapcodInit().startTime(), "bcTimeMain"), os);
-    println("Current best bounds : [ ", problem.dual_inc_bound,  " , ",
-        problem.primal_inc_bound, " ]")
+    # println("Current bounds : [ ", problem.dual_inc_bound,  " , ",
+    #     problem.primal_inc_bound, " ]")
     println("************************************************************")
 
 end
@@ -137,6 +145,10 @@ function update_model_incumbents(problem::ExtendedProblem, node::Node)
     end
 end
 
+function generate_and_write_bap_tree(nodes::Vector{Node})
+    println("Generation of bap_tree is not yet implemented.")
+end
+
 function solve(model::Model)
     search_tree = DS.Queue(Node)
     params = model.params
@@ -146,6 +158,7 @@ function solve(model::Model)
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
     treat_algs = TreatAlgs()
+    treated_nodes = Node[]
 
     while (!isempty(search_tree) && nb_treated_nodes < params.max_num_nodes)
 
@@ -174,6 +187,7 @@ function solve(model::Model)
                 println("error: branch-and-price is interrupted")
                 break
             end
+            push!(treated_nodes, cur_node)
             global_nodes_treat_order += 1
             nb_treated_nodes += 1
 
@@ -200,7 +214,7 @@ function solve(model::Model)
         end
     end
 
-    println("Search is finished.")
+    println("\n\nSearch is finished.")
     println("Primal bound: ", model.extended_problem.primal_inc_bound)
     println("Dual bound: ", model.extended_problem.dual_inc_bound)
     println("Best solution found:")
@@ -208,5 +222,6 @@ function solve(model::Model)
         println("var: ", kv[1].name, ": ", kv[2])
     end
 
+    generate_and_write_bap_tree(treated_nodes)
 
 end

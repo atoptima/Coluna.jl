@@ -30,18 +30,19 @@ function setdown(alg::AlgToGenerateChildrenNodes)
 end
 
 
-function sort_vars_according_to_rule(rule::MostFractionalRule, vars::Vector{<:Variable})
-    sort!(vars, by = x -> fract_part(x.value), rev=false)
+function sort_vars_according_to_rule(rule::MostFractionalRule, vars::Vector{Pair{T, Float}}
+        )  where T <: Variable
+    sort!(vars, by = x -> fract_part(x.second), rev=true)
 end
 
 function retreive_candidate_vars(alg::AlgToGenerateChildrenNodes,
         var_val_map::Dict{Variable, Float})
-    frac_master_vars = MasterVar[]
+    frac_master_vars = Pair{MasterVar, Float}[]
     for var_val in var_val_map
         if typeof(var_val[1]) <: MasterVar
             if !primal_value_is_integer(var_val[2],
                     alg.extended_problem.params.mip_tolerance_integrality)
-                push!(frac_master_vars, var_val[1])
+                push!(frac_master_vars, Pair(var_val[1], var_val[2]))
             end
         end
     end
@@ -55,25 +56,7 @@ function generate_branch_constraint(alg::AlgToGenerateChildrenNodes,
         "dummyName", rhs, sense, depth, var_to_branch)
 end
 
-function perform_usual_branching(node, alg::AlgToGenerateChildrenNodes,
-        frac_master_vars::Vector{<:Variable})
-
-    sort_vars_according_to_rule(alg.rule, frac_master_vars)
-    local_branch_constraints = BranchConstr[]
-    for i in 1:alg.nb_vars_to_branch
-        branch_constr = generate_branch_constraint(alg, node.depth,
-            frac_master_vars[i], 'G', ceil(frac_master_vars[i].val))
-        push!(local_branch_constraints, branch_constr)
-        branch_constr = generate_branch_constraint(alg, node.depth,
-            frac_master_vars[i], 'L', floor(frac_master_vars[i].val))
-        push!(local_branch_constraints, branch_constr)
-    end
-    for constr in local_branch_constraints
-        generate_child(alg, node, [constr])
-    end
-end
-
-function generate_child(alg::AlgToGenerateChildrenNodes, node,
+function generate_child(alg::AlgToGenerateChildrenNodes, node::Node,
         branch_constrs::Vector{T}) where T <: BranchConstr
 
     new_node = NodeWithParent(alg.extended_problem, node)
@@ -84,8 +67,31 @@ function generate_child(alg::AlgToGenerateChildrenNodes, node,
 
 end
 
+function perform_usual_branching(node::Node, alg::AlgToGenerateChildrenNodes,
+        frac_master_vars::Vector{Pair{T, Float}}) where T <: Variable
 
-function run(alg::UsualBranchingAlg, global_treat_order::Int, node)
+    sort_vars_according_to_rule(alg.rule, frac_master_vars)
+    local_branch_constraints = BranchConstr[]
+    for i in 1:alg.nb_vars_to_branch
+        println("Chosen variable to branch: ", frac_master_vars[i].first.name,
+            ". With value: ", frac_master_vars[i].second, ". fract_part = ",
+            fract_part(frac_master_vars[i].second))
+        branch_constr = generate_branch_constraint(alg, node.depth,
+            frac_master_vars[i].first, 'G', ceil(frac_master_vars[i].second))
+
+        push!(local_branch_constraints, branch_constr)
+        println("Generated branching constraint with reference ", branch_constr.vc_ref)
+        branch_constr = generate_branch_constraint(alg, node.depth,
+            frac_master_vars[i].first, 'L', floor(frac_master_vars[i].second))
+        push!(local_branch_constraints, branch_constr)
+        println("Generated branching constraint with reference ", branch_constr.vc_ref)
+    end
+    for constr in local_branch_constraints
+        generate_child(alg, node, [constr])
+    end
+end
+
+function run(alg::UsualBranchingAlg, global_treat_order::Int, node::Node)
 
     println("Generating children...")
 

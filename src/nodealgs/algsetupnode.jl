@@ -128,12 +128,11 @@ function AlgToSetdownNodeFullyBuilder(problem::ExtendedProblem)
     return (problem, )
 end
 
-function run(alg::AlgToSetdownNodeFully)
-    prob_info = record_problem_info(alg)
-    return prob_info
+function run(alg::AlgToSetdownNodeFully, node::Node)
+    record_problem_info(alg, node::Node)
 end
 
-function record_problem_info(alg::AlgToSetdownNodeFully)
+function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     const master_problem = alg.extended_problem.master_problem
     # const prob_info = ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
     const prob_info = ProblemSetupInfo(1)
@@ -199,7 +198,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully)
     println("Stored ", length(master_problem.constr_manager.active_dynamic_list),
         " active cosntraints")
 
-    return prob_info
+    node.problem_setup_info = prob_info
 end
 
 #############################
@@ -244,6 +243,7 @@ end
 function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node)
     for constr in node.local_branching_constraints
         add_full_constraint(alg.extended_problem.master_problem, constr)
+        println("Adding cosntraint ", constr.vc_ref, " generated when branching.")
     end
 end
 
@@ -276,29 +276,40 @@ function AlgToSetupFullBuilder(extended_problem::ExtendedProblem,
     return AlgToSetupNodeBuilder(extended_problem, problem_setup_info)
 end
 
+function find_first_in_problem_setup(constr_info_vec::Vector{ConstraintInfo},
+        vc_ref::Int)
+    for i in 1:length(constr_info_vec)
+        if vc_ref == constr_info_vec[i].constraint.vc_ref
+            return i
+        end
+    end
+    return 0
+end
+
 function prepare_branching_constraints(alg::AlgToSetupFull, node)
     const in_problem = alg.extended_problem.master_problem.constr_manager.active_dynamic_list
     const in_setup_info = node.problem_setup_info.active_branching_constraints_info
     for i in length(in_problem):-1:1
         constr = in_problem[i]
         if typeof(constr) <: BranchConstr
-            idx = findfirst(in_setup_info, constr)
+            idx = find_first_in_problem_setup(in_setup_info, constr.vc_ref)
             if idx == 0
-                deactivate_constraint(alg.extended_problem.master_problem, constr)
-                println("cosntraint deactivated")
+                delete_constraint(alg.extended_problem.master_problem, constr)
+                println("cosntraint ", constr.vc_ref, " deactivated")
             else
-                println("constraint is in branching tree of node")
+                println("constraint ", constr.vc_ref, " is in branching tree of node")
             end
         end
     end
-    for constr in in_setup_info
+    for constr_info in in_setup_info
+        constr = constr_info.constraint
         if typeof(constr) <: BranchConstr
-            idx = findfirst(in_problem, constr)
+            idx = find_first(in_problem, constr.vc_ref)
             if idx == 0
-                add_constraint(alg.extended_problem.master_problem, constr)
-                println("added constraint")
+                add_full_constraint(alg.extended_problem.master_problem, constr)
+                println("added constraint ", constr.vc_ref)
             else
-                println("constraint is already in problem")
+                println("constraint ", constr.vc_ref, " is already in problem")
             end
         end
     end

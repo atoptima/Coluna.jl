@@ -11,6 +11,19 @@ end
 
 
 ### Methods of SolsAndBounds
+#### Put flags to update sol
+function update_primal_ip_incumbents(incumbents::SolsAndBounds,
+        vars::Set{Variable}, newBound::Float)
+    if newBound < incumbents.alg_inc_ip_primal_bound
+        incumbents.alg_inc_ip_primal_bound = newBound
+        incumbents.alg_inc_ip_primal_sol_map = Dict{Variable, Float}()
+        for var in vars
+            incumbents.alg_inc_ip_primal_sol_map[var] = var.val
+        end
+        incumbents.is_alg_inc_ip_primal_bound_updated = true
+    end
+end
+
 function update_dual_ip_bound(incumbents::SolsAndBounds, newBound::Float)
     if newBound > incumbents.alg_inc_ip_dual_bound
         incumbents.alg_inc_ip_dual_bound = newBound
@@ -25,18 +38,6 @@ function update_primal_lp_incumbents(incumbents::SolsAndBounds,
         for var in vars
             incumbents.alg_inc_lp_primal_sol_map[var] = var.val
         end
-    end
-end
-
-function update_primal_ip_incumbents(incumbents::SolsAndBounds,
-        vars::Set{Variable}, newBound::Float)
-    if newBound < incumbents.alg_inc_ip_primal_bound
-        incumbents.alg_inc_ip_primal_bound = newBound
-        incumbents.alg_inc_ip_primal_sol_map = Dict{Variable, Float}()
-        for var in vars
-            incumbents.alg_inc_ip_primal_sol_map[var] = var.val
-        end
-        incumbents.is_alg_inc_ip_primal_bound_updated = true
     end
 end
 
@@ -124,7 +125,7 @@ function update_alg_incumbents(alg::AlgToEvalNodeByLp)
     println("alg_inc_lp_primal_bound: ", alg.sols_and_bounds.alg_inc_lp_primal_bound)
     println("alg_inc_lp_dual_bound: ", alg.sols_and_bounds.alg_inc_lp_dual_bound)
 
-    println("incmbent ip primal sol")
+    println("Incumbent ip primal sol")
     for kv in alg.sols_and_bounds.alg_inc_ip_primal_sol_map
         println("var: ", kv[1].name, ": ", kv[2])
     end
@@ -141,6 +142,7 @@ function run(alg::AlgToEvalNodeByLp)
     status = optimize(alg.extended_problem.master_problem)
 
     if status != MOI.Success
+        println("Lp is infeasible, exiting treatment of node.")
         return true
     end
 

@@ -99,15 +99,15 @@ function testpuremaster()
     @test MOI.get(problem.optimizer, MOI.ObjectiveValue()) == -25
 end
 
-function test_master_plus_branching()
+function branch_and_bound_test_instance()
     counter = CL.VarConstrCounter(0)
     mastero_ptimizer = Cbc.CbcOptimizer()
 
     master_problem = CL.SimpleCompactProblem(mastero_ptimizer, counter)
 
-    x1 = CL.MasterVar(master_problem.counter, "x1", -10.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
-    x2 = CL.MasterVar(master_problem.counter, "x2", -15.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
-    x3 = CL.MasterVar(master_problem.counter, "x3", -20.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+    x1 = CL.MasterVar(master_problem.counter, "x1", -10.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
+    x2 = CL.MasterVar(master_problem.counter, "x2", -15.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
+    x3 = CL.MasterVar(master_problem.counter, "x3", -20.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
 
     CL.add_variable(master_problem, x1)
     CL.add_variable(master_problem, x2)
@@ -135,8 +135,65 @@ function test_master_plus_branching()
 
 end
 
+function branch_and_bound_bigger_instance()
+    counter = CL.VarConstrCounter(0)
+    mastero_ptimizer = Cbc.CbcOptimizer()
+
+    master_problem = CL.SimpleCompactProblem(mastero_ptimizer, counter)
+
+
+    nb_bins = 3
+    n_items = 4
+    profits = [-10.0, -15.0, -20.0, -50.0]
+    weights = [  4.0,   5.0,   6.0,  10.0]
+    binscap = [ 10.0,  2.0,  10.0]
+
+
+    knap_constrs = CL.MasterConstr[]
+    for i in 1:nb_bins
+        constr = CL.MasterConstr(master_problem.counter,
+            string("knapConstr", i), binscap[i], 'L', 'M', 's')
+        push!(knap_constrs, constr)
+        CL.add_constraint(master_problem, constr)
+    end
+
+    cover_constrs = CL.MasterConstr[]
+    for j in 1:n_items
+        constr = CL.MasterConstr(master_problem.counter,
+            string("CoverCons", j), 1.0, 'L', 'M', 's')
+        push!(cover_constrs, constr)
+        CL.add_constraint(master_problem, constr)
+    end
+
+    x_vars = Vector{Vector{CL.MasterVar}}()
+    for j in 1:n_items
+        x_vec = CL.MasterVar[]
+        for i in 1:nb_bins
+            x_var = CL.MasterVar(master_problem.counter, string("x(", j, ",", i, ")"),
+                profits[j], 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
+            push!(x_vec, x_var)
+            CL.add_variable(master_problem, x_var)
+            CL.add_membership(x_var, cover_constrs[j], master_problem, 1.0)
+            CL.add_membership(x_var, knap_constrs[i], master_problem, weights[j])
+        end
+        push!(x_vars, x_vec)
+    end
+
+    ### Model constructors
+    params = CL.Params()
+    pricingoptimizer = Cbc.CbcOptimizer()
+    callback = CL.Callback()
+    extended_problem = CL.ExtendedProblemConstructor(master_problem,
+        CL.Problem[], CL.Problem[], counter, params, params.cut_up, params.cut_lo)
+    model = CL.ModelConstructor(extended_problem, callback, params)
+
+
+
+    CL.solve(model)
+end
 
 testdefaultbuilders()
 testpuremaster()
 testcolgenatroot()
-test_master_plus_branching()
+branch_and_bound_test_instance()
+branch_and_bound_bigger_instance()
