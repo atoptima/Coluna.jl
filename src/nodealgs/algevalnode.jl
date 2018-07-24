@@ -130,7 +130,7 @@ function update_alg_incumbents(alg::AlgToEvalNodeByLp)
         println("var: ", kv[1].name, ": ", kv[2])
     end
     println()
-    readline()
+    # readline()
 end
 
 

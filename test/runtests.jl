@@ -113,7 +113,7 @@ function branch_and_bound_test_instance()
     CL.add_variable(master_problem, x2)
     CL.add_variable(master_problem, x3)
 
-    constr = CL.MasterConstr(master_problem.counter, "knapConstr", 6.0, 'L', 'M', 's')
+    constr = CL.MasterConstr(master_problem.counter, "knapConstr_", 6.0, 'L', 'M', 's')
 
     CL.add_constraint(master_problem, constr)
 
@@ -133,26 +133,25 @@ function branch_and_bound_test_instance()
 
     CL.solve(model)
 
+    @testset "knapsack test" begin
+    @test model.extended_problem.primal_inc_bound == -30.0
+    end
+
 end
 
-function branch_and_bound_bigger_instance()
+function solve_bb_with_instance(n_items::Int, nb_bins::Int,
+        profits::Vector{Float64}, weights::Vector{Float64}, binscap::Vector{Float64})
+
     counter = CL.VarConstrCounter(0)
     mastero_ptimizer = Cbc.CbcOptimizer()
 
     master_problem = CL.SimpleCompactProblem(mastero_ptimizer, counter)
 
-
-    nb_bins = 3
-    n_items = 4
-    profits = [-10.0, -15.0, -20.0, -50.0]
-    weights = [  4.0,   5.0,   6.0,  10.0]
-    binscap = [ 10.0,  2.0,  10.0]
-
-
     knap_constrs = CL.MasterConstr[]
     for i in 1:nb_bins
+        @show typeof(binscap[i])
         constr = CL.MasterConstr(master_problem.counter,
-            string("knapConstr", i), binscap[i], 'L', 'M', 's')
+            string("knapConstr_", i), binscap[i], 'L', 'M', 's')
         push!(knap_constrs, constr)
         CL.add_constraint(master_problem, constr)
     end
@@ -160,7 +159,7 @@ function branch_and_bound_bigger_instance()
     cover_constrs = CL.MasterConstr[]
     for j in 1:n_items
         constr = CL.MasterConstr(master_problem.counter,
-            string("CoverCons", j), 1.0, 'L', 'M', 's')
+            string("CoverCons_", j), 1.0, 'L', 'M', 's')
         push!(cover_constrs, constr)
         CL.add_constraint(master_problem, constr)
     end
@@ -190,10 +189,46 @@ function branch_and_bound_bigger_instance()
 
 
     CL.solve(model)
+    return model
+end
+
+function branch_and_bound_bigger_instances()
+    @testset "result test" begin
+    n_items = 4
+    nb_bins = 3
+    profits = [-10.0, -15.0, -20.0, -50.0]
+    weights = [  4.0,   5.0,   6.0,  10.0]
+    binscap = [ 10.0,  2.0,  10.0]
+    model = solve_bb_with_instance(n_items, nb_bins, profits, weights, binscap)
+    @test model.extended_problem.primal_inc_bound == -80.0
+    of_value = 0.0
+    for var_val in model.extended_problem.solution.var_val_map
+        of_value += var_val.first.cost_rhs * var_val.second
+    end
+    @test of_value == model.extended_problem.solution.cost == model.extended_problem.primal_inc_bound
+    readline()
+
+    n_items = 10
+    nb_bins = 5
+    profits = [-10.0, -15.0, -20.0, -50.0,  15.0, -10.0,  -5.0, -12.0, -10.0,  -8.0]
+    weights = [  4.0,   5.0,   6.0,  10.0,   1.0,   3.0,   5.0,   6.0,   4.0,   4.0]
+    binscap = [ 10.0,   2.0,  10.0,   5.0,   9.5]
+    model = solve_bb_with_instance(n_items, nb_bins, profits, weights, binscap)
+    used_bad_var = false
+    of_value = 0.0
+    for var_val in model.extended_problem.solution.var_val_map
+        if ismatch(r"x\(5,\d\)", var_val.first.name)
+            used_bad_var = true
+        end
+        of_value += var_val.first.cost_rhs * var_val.second
+    end
+    @test -117 == of_value == model.extended_problem.solution.cost == model.extended_problem.primal_inc_bound
+    @test used_bad_var == false
+    end
 end
 
 testdefaultbuilders()
 testpuremaster()
 testcolgenatroot()
 branch_and_bound_test_instance()
-branch_and_bound_bigger_instance()
+branch_and_bound_bigger_instances()

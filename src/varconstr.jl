@@ -193,18 +193,18 @@ end
 function ConstraintBuilder(counter::VarConstrCounter, name::String,
         cost_rhs::Float, sense::Char, vc_type::Char, flag::Char)
     if sense == 'G'
-        set_type = MOI.GreaterThan
+        set_type = MOI.GreaterThan{Float}
     elseif sense == 'L'
-        set_type = MOI.LessThan
+        set_type = MOI.LessThan{Float}
     elseif sense == 'E'
-        set_type = MOI.EqualTo
+        set_type = MOI.EqualTo{Float}
     else
         error("Sense $sense is not supported")
     end
 
     return tuplejoin(VarConstrBuilder(counter, name, cost_rhs, sense, vc_type,
             flag, 'U', 1.0),
-            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(cost_rhs), set_type)
+            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1), set_type)
 end
 
 function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
