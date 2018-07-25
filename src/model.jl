@@ -9,6 +9,10 @@ type Model # user model
     callback::Callback
     params::Params
     # original_problem::CompactProblem
+    # function Model()
+    #     m = new()
+    #     return m
+    # end
 end
 
 function ModelConstructor(extended_problem::ExtendedProblem,
@@ -16,68 +20,68 @@ function ModelConstructor(extended_problem::ExtendedProblem,
     return Model(extended_problem, callback, params)
 end
 
-function create_root_node(model::Model)::Node
-    params = model.params
+function create_root_node(extended_problem::ExtendedProblem)::Node
+    params = extended_problem.params
     problem_setup_info = ProblemSetupInfo(0)
-    stab_info  = StabilizationInfo(model.extended_problem.master_problem, params)
+    stab_info  = StabilizationInfo(extended_problem.master_problem, params)
     master_lp_basis = LpBasisRecord("Basis0")
 
     ## use parameters to define how the tree will be solved
     # node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
     node_eval_info = LpEvalInfo(stab_info)
 
-    return Node(model.extended_problem, model.extended_problem.dual_inc_bound,
+    return Node(extended_problem, extended_problem.dual_inc_bound,
         problem_setup_info, node_eval_info)
 end
 
 ### For root node
-function prepare_node_for_treatment(model::Model, node::Node,
+function prepare_node_for_treatment(extended_problem::ExtendedProblem, node::Node,
         treat_algs::TreatAlgs, global_nodes_treat_order::Int)
 
     println("************************************************************")
     println("\nPreparing root node for treatment.")
 
-    treat_algs.alg_setup_node = AlgToSetupRootNode(model.extended_problem,
+    treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
         node.problem_setup_info)
-    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
-    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
+    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
+    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(extended_problem)
 
     if !node.evaluated
         ## Dispatched according to eval_info
-        treat_algs.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
+        treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
     end
 
     return true
 end
 
-function prepare_node_for_treatment(model::Model, node::NodeWithParent,
-    treat_algs::TreatAlgs, global_nodes_treat_order::Int)
+function prepare_node_for_treatment(extended_problem::ExtendedProblem,
+        node::NodeWithParent, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
 
     println("************************************************************")
     println("\nPreparing node ", global_nodes_treat_order,
         " for treatment. Parent is ", node.parent.treat_order, ".")
-    println("Current primal bound is ", model.extended_problem.primal_inc_bound)
+    println("Current primal bound is ", extended_problem.primal_inc_bound)
     println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
 
-    if is_to_be_pruned(node, model.extended_problem.primal_inc_bound)
+    if is_to_be_pruned(node, extended_problem.primal_inc_bound)
         println("Node is conquered, no need for treating it.")
         return false
     end
 
     if global_nodes_treat_order == node.parent.treat_order+1
-        treat_algs.alg_setup_node = AlgToSetupBranchingOnly(model.extended_problem,
+        treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
             node.problem_setup_info)
     else
-        treat_algs.alg_setup_node = AlgToSetupFull(model.extended_problem,
+        treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
             node.problem_setup_info)
     end
 
-    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(model.extended_problem)
-    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(model.extended_problem)
+    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
+    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(extended_problem)
 
     if !node.evaluated
         ## Dispatched according to eval_info (?)
-        treat_algs.alg_eval_node = AlgToEvalNodeByLp(model.extended_problem)
+        treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
     end
 
     return true
@@ -97,13 +101,14 @@ function print_info_before_solving_node(problem::ExtendedProblem,
 
 end
 
-function update_search_trees(cur_node::Node, search_tree::DS.Queue, model::Model)
-    const params = model.params
+function update_search_trees(cur_node::Node, search_tree::DS.Queue,
+        extended_problem::ExtendedProblem)
+    const params = extended_problem.params
     for child_node in cur_node.children
         # push!(bap_tree_nodes, child_node)
-        if child_node.dual_bound_is_updated
-            update_cur_valid_dual_bound(model, child_node)
-        end
+        # if child_node.dual_bound_is_updated
+        #     update_cur_valid_dual_bound(model, child_node)
+        # end
         if length(search_tree) < params.open_nodes_limit
             DS.enqueue!(search_tree, child_node)
         else
@@ -165,12 +170,24 @@ function generate_and_write_bap_tree(nodes::Vector{Node})
     println("Generation of bap_tree is not yet implemented.")
 end
 
+
+# Add Manager. Maybe inside optimize(extended_problem::ExtendedProblem)
+
+
 function solve(model::Model)
+    solution = optimize(model.extended_problem)
+    return solution
+end
+
+
+# Behaves like optimize(problem::Problem), but sets parameters before
+# function optimize(problem::ExtendedProblem)
+function optimize(extended_problem::ExtendedProblem)
     search_tree = DS.Queue(Node)
-    params = model.params
+    params = extended_problem.params
     global_nodes_treat_order = 1
     nb_treated_nodes = 0
-    DS.enqueue!(search_tree, create_root_node(model))
+    DS.enqueue!(search_tree, create_root_node(extended_problem))
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
     treat_algs = TreatAlgs()
@@ -186,9 +203,10 @@ function solve(model::Model)
         # end
         cur_node_evaluated_before = cur_node.evaluated
 
-        if prepare_node_for_treatment(model, cur_node, treat_algs, global_nodes_treat_order)
+        if prepare_node_for_treatment(extended_problem, cur_node,
+                treat_algs, global_nodes_treat_order)
 
-            print_info_before_solving_node(model.extended_problem,
+            print_info_before_solving_node(extended_problem,
                 length(search_tree) + ((is_primary_tree_node) ? 1 : 0),
                 0 + ((is_primary_tree_node) ? 0 : 1), global_nodes_treat_order)
 
@@ -199,7 +217,7 @@ function solve(model::Model)
             # end
 
             if !treat(cur_node, treat_algs, global_nodes_treat_order,
-                model.extended_problem.primal_inc_bound)
+                extended_problem.primal_inc_bound)
                 println("error: branch-and-price is interrupted")
                 break
             end
@@ -217,8 +235,8 @@ function solve(model::Model)
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one
             # as the dual bound will be limited by the primal one
-            update_search_trees(cur_node, search_tree, model)
-            update_model_incumbents(model.extended_problem, cur_node, search_tree)
+            update_search_trees(cur_node, search_tree, extended_problem)
+            update_model_incumbents(extended_problem, cur_node, search_tree)
 
             println("number of nodes: ", length(search_tree))
 
@@ -226,18 +244,18 @@ function solve(model::Model)
 
         if isempty(cur_node.children)
             calculate_subtree_size(cur_node, 1)
-            # calculate_subtree_size(cur_node, model.sub_tree_size_by_depth)
+            # calculate_subtree_size(cur_node, sub_tree_size_by_depth)
         end
     end
 
     println("\n\nSearch is finished.")
-    println("Primal bound: ", model.extended_problem.primal_inc_bound)
-    println("Dual bound: ", model.extended_problem.dual_inc_bound)
+    println("Primal bound: ", extended_problem.primal_inc_bound)
+    println("Dual bound: ", extended_problem.dual_inc_bound)
     println("Best solution found:")
-    for kv in model.extended_problem.solution.var_val_map
+    for kv in extended_problem.solution.var_val_map
         println("var: ", kv[1].name, ": ", kv[2])
     end
 
     generate_and_write_bap_tree(treated_nodes)
-
+    return extended_problem.solution
 end
