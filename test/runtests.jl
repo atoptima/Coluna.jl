@@ -11,7 +11,7 @@ const CL = Coluna
 include("test_utils.jl")
 include("colunabasictests.jl")
 include("colgenroot.jl")
-include("test_MOIWrapper.jl")
+# include("test_MOIWrapper.jl")
 
 
 
@@ -21,5 +21,5 @@ testpuremaster()
 # testcolgenatroot()
 branch_and_bound_test_instance()
 # branch_and_bound_bigger_instances()
-simple_calls_to_optimize()
+# simple_MOI_calls_to_ColunaModelOptimizer()
 # tests_with_CachingOptimizer()
