@@ -5,14 +5,16 @@ function testcolgenatroot()
     callback = model.callback
     extended_problem = model.extended_problem
     counter = model.extended_problem.counter
+    prob_counter = model.prob_counter
     master_problem = extended_problem.master_problem
     masteroptimizer = Cbc.CbcOptimizer()
-    CL.initialize_problem_optimizer(master_problem, masteroptimizer)
+    model.problemidx_optimizer_map[master_problem.prob_ref] = masteroptimizer
 
     pricingoptimizer = Cbc.CbcOptimizer()
-    pricingprob = CL.SimpleCompactProblem(counter)
-    CL.initialize_problem_optimizer(pricingprob, pricingoptimizer)
-
+    pricingprob = CL.SimpleCompactProblem(prob_counter, counter)
+    push!(extended_problem.pricing_vect, pricingprob)
+    model.problemidx_optimizer_map[pricingprob.prob_ref] = pricingoptimizer
+    CL.set_model_optimizers(model)
 
     #subproblem vars
     x1 = CL.SubprobVar(pricingprob.counter, "x1", 0.0, 'P', 'C', 's', 'U', 1.0, 0.0,

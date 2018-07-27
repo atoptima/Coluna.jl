@@ -72,7 +72,8 @@ function build_bb_coluna_model(n_items::Int, nb_bins::Int,
     extended_problem = model.extended_problem
     counter = model.extended_problem.counter
     master_problem = extended_problem.master_problem
-    CL.initialize_problem_optimizer(master_problem, Cbc.CbcOptimizer())
+    model.problemidx_optimizer_map[master_problem.prob_ref] = Cbc.CbcOptimizer()
+    CL.set_model_optimizers(model)
 
 
     knap_constrs = CL.MasterConstr[]

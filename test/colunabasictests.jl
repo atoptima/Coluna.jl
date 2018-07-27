@@ -19,14 +19,15 @@ function testdefaultbuilders()
     ### Model constructors
     params = CL.Params()
     counter = CL.VarConstrCounter(0)
+    prob_counter = CL.ProblemCounter(0)
     masteroptimizer = Cbc.CbcOptimizer()
-    master_problem = CL.SimpleCompactProblem(counter)
+    master_problem = CL.SimpleCompactProblem(prob_counter, counter)
     pricingoptimizer = Cbc.CbcOptimizer()
     pricing_probs = Vector{CL.Problem}()
-    push!(pricing_probs, CL.SimpleCompactProblem(counter))
+    push!(pricing_probs, CL.SimpleCompactProblem(prob_counter, counter))
     callback = CL.Callback()
-    extended_problem = CL.ExtendedProblemConstructor(master_problem,
-        pricing_probs, CL.Problem[], counter, params, params.cut_up, params.cut_lo)
+    extended_problem = CL.ExtendedProblemConstructor(prob_counter, counter,
+                       params, params.cut_up, params.cut_lo)
     model = CL.ModelConstructor()
 
 
@@ -60,7 +61,8 @@ end
 function testpuremaster()
 
     counter = CL.VarConstrCounter(0)
-    problem = CL.SimpleCompactProblem(counter)
+    prob_counter = CL.ProblemCounter(0)
+    problem = CL.SimpleCompactProblem(prob_counter, counter)
     CL.initialize_problem_optimizer(problem, Cbc.CbcOptimizer())
 
 
@@ -94,7 +96,8 @@ function branch_and_bound_test_instance()
     extended_problem = model.extended_problem
     counter = model.extended_problem.counter
     master_problem = extended_problem.master_problem
-    CL.initialize_problem_optimizer(master_problem, Cbc.CbcOptimizer())
+    model.problemidx_optimizer_map[master_problem.prob_ref] = Cbc.CbcOptimizer()
+    CL.set_model_optimizers(model)
 
 
     x1 = CL.MasterVar(master_problem.counter, "x1", -10.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
@@ -124,6 +127,7 @@ end
 
 
 function branch_and_bound_bigger_instances()
+    atol = rtol = 0.000001
     @testset "result test" begin
     n_items = 4
     nb_bins = 3
@@ -155,7 +159,9 @@ function branch_and_bound_bigger_instances()
         end
         of_value += var_val.first.cost_rhs * var_val.second
     end
-    @test -117 == of_value == model.extended_problem.solution.cost == model.extended_problem.primal_inc_bound
+    @test -117 ≈ of_value atol=atol rtol=rtol
+    @test of_value ≈ model.extended_problem.solution.cost atol=atol rtol=rtol
+    @test of_value ≈ model.extended_problem.primal_inc_bound atol=atol rtol=rtol
     @test used_bad_var == false
     end
 end
