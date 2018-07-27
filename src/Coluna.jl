@@ -6,14 +6,14 @@ import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
-import Cbc
+import Cbc # we should not need to import this here
 
 const Float = Float64
 const MOI = MathOptInterface
 const MOIU = MathOptInterface.Utilities
 const DS = DataStructures
 
-@MOIU.model ModelForCachingOptimizer (ZeroOne, Integer) (EqualTo, GreaterThan, LessThan, Interval) () () (SingleVariable,) (ScalarAffineFunction,) () ()
+@MOIU.model ModelForCachingOptimizer (ZeroOne, Integer) (EqualTo, GreaterThan, LessThan, Interval) () () (SingleVariable,) (ScalarAffineFunction,) () () # We should not need to import this here
 
 
 include("parameters.jl")
@@ -32,5 +32,8 @@ include("nodealgs/algprimalheurinnode.jl")
 include("nodealgs/alggeneratechildrennodes.jl")
 include("model.jl")
 
+
+##### Wrapper functions
+include("wrapperfunctions/MOIWrapper.jl")
 
 end # module

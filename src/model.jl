@@ -8,16 +8,13 @@ type Model # user model
     extended_problem::ExtendedProblem
     callback::Callback
     params::Params
-    # original_problem::CompactProblem
-    # function Model()
-    #     m = new()
-    #     return m
-    # end
+    problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer}
 end
 
 function ModelConstructor(extended_problem::ExtendedProblem,
         callback::Callback, params::Params)
-    return Model(extended_problem, callback, params)
+    return Model(extended_problem, callback, params,
+                 Dict{Int,MOI.AbstractOptimizer}())
 end
 
 function create_root_node(extended_problem::ExtendedProblem)::Node
@@ -33,6 +30,11 @@ function create_root_node(extended_problem::ExtendedProblem)::Node
     return Node(extended_problem, extended_problem.dual_inc_bound,
         problem_setup_info, node_eval_info)
 end
+
+function set_model_optimizers(model::Model)
+    ## calls set_problem_optimizers(model, problemidx_optimizer_map)
+end
+
 
 ### For root node
 function prepare_node_for_treatment(extended_problem::ExtendedProblem, node::Node,
@@ -171,12 +173,13 @@ function generate_and_write_bap_tree(nodes::Vector{Node})
 end
 
 
-# Add Manager. Maybe inside optimize(extended_problem::ExtendedProblem)
+# Add Manager to take care of parallelism.
+# Maybe inside optimize(extended_problem::ExtendedProblem) (?)
 
 
 function solve(model::Model)
-    solution = optimize(model.extended_problem)
-    return solution
+
+    status = optimize(model.extended_problem)
 end
 
 
@@ -257,5 +260,5 @@ function optimize(extended_problem::ExtendedProblem)
     end
 
     generate_and_write_bap_tree(treated_nodes)
-    return extended_problem.solution
+    return "dummy_status"
 end
