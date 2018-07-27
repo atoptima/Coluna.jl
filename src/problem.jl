@@ -125,8 +125,13 @@ function remove_from_constr_manager(constr_manager::SimpleConstrIndexManager,
     deleteat!(list, idx)
 end
 
-struct ProblemCounter
+mutable struct ProblemCounter
     value::Int
+end
+
+function increment_counter(counter::ProblemCounter)
+    counter.value += 1
+    return counter.value
 end
 
 abstract type Problem end
@@ -134,6 +139,7 @@ abstract type Problem end
 type CompactProblem{VM <: AbstractVarIndexManager,
                     CM <: AbstractConstrIndexManager} <: Problem
 
+    prob_ref::Int
     # probInfeasiblesFlag::Bool
 
     # objvalueordermagnitude::Float
@@ -174,7 +180,8 @@ type CompactProblem{VM <: AbstractVarIndexManager,
     is_retrieved_red_costs::Bool
 end
 
-function CompactProblem{VM,CM}(counter::VarConstrCounter) where {
+function CompactProblem{VM,CM}(#prob_counter::ProblemCounter,
+                               vc_counter::VarConstrCounter) where {
     VM <: AbstractVarIndexManager,
     CM <: AbstractConstrIndexManager}
 
@@ -183,10 +190,12 @@ function CompactProblem{VM,CM}(counter::VarConstrCounter) where {
     primal_vec = Vector{PrimalSolution}([PrimalSolution()])
     dual_vec = Vector{DualSolution}([DualSolution()])
 
-    CompactProblem(false, optimizer, VM(), CM(), Inf, -Inf, Set{Variable}(),
-                   Set{Variable}(), Set{Constraint}(), 0.0, Dict{Variable,Float}(),
-                   primal_vec, dual_vec, Vector{Constraint}(), Vector{Variable}(),
-                   counter, Vector{VarConstr}(), false)
+    prob_counter = ProblemCounter(0)
+    CompactProblem(increment_counter(prob_counter), false, optimizer, VM(), CM(),
+                   Inf, -Inf, Set{Variable}(), Set{Variable}(), Set{Constraint}(),
+                   0.0, Dict{Variable,Float}(), primal_vec, dual_vec,
+                   Vector{Constraint}(), Vector{Variable}(),
+                   vc_counter, Vector{VarConstr}(), false)
 end
 
 const SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
@@ -220,13 +229,25 @@ type ExtendedProblem <: Problem
     subtree_size_by_depth::Int
 end
 
-function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
-        pricing_vect::Vector{Problem}, separation::Vector{Problem},
-        counter::VarConstrCounter, params::Params, primal_inc_bound::Float,
+function ExtendedProblemConstructor(prob_counter::ProblemCounter,
+                                    vc_counter::VarConstrCounter,
+        params::Params, primal_inc_bound::Float,
         dual_inc_bound::Float) where {VM <: AbstractVarIndexManager,
         CM <: AbstractConstrIndexManager}
     return ExtendedProblem(master_problem, pricing_vect, separation, params,
-        counter, PrimalSolution(), primal_inc_bound, dual_inc_bound, 0)
+        vc_counter, PrimalSolution(), primal_inc_bound, dual_inc_bound, 0)
+end
+
+
+
+function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
+        pricing_vect::Vector{Problem},
+        separation::Vector{Problem}, vc_counter::VarConstrCounter,
+        params::Params, primal_inc_bound::Float,
+        dual_inc_bound::Float) where {VM <: AbstractVarIndexManager,
+        CM <: AbstractConstrIndexManager}
+    return ExtendedProblem(master_problem, pricing_vect, separation, params,
+        vc_counter, PrimalSolution(), primal_inc_bound, dual_inc_bound, 0)
 end
 
 function retreive_primal_sol(problem::Problem) ## Store it in problem.primal_sols

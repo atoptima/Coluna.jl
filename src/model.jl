@@ -11,8 +11,17 @@ type Model # user model
     problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer}
 end
 
-function ModelConstructor(extended_problem::ExtendedProblem,
-        callback::Callback, params::Params)
+function ModelConstructor()
+    params = Params()
+    callback = Callback()
+    prob_counter = ProblemCounter(-1)
+    vc_counter = VarConstrCounter(0)
+    master_problem = SimpleCompactProblem(vc_counter)
+    extended_problem = ExtendedProblemConstructor(#prob_counter,
+                                                  master_problem,
+                                                  Problem[], Problem[],
+                                                  vc_counter, params,
+                                                  params.cut_up, params.cut_lo)
     return Model(extended_problem, callback, params,
                  Dict{Int,MOI.AbstractOptimizer}())
 end

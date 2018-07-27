@@ -1,11 +1,18 @@
 
 function testcolgenatroot()
-    counter = CL.VarConstrCounter(0)
+    model = CL.ModelConstructor()
+    params = model.params
+    callback = model.callback
+    extended_problem = model.extended_problem
+    counter = model.extended_problem.counter
+    master_problem = extended_problem.master_problem
     masteroptimizer = Cbc.CbcOptimizer()
-    master_prob = CL.SimpleCompactProblem(masteroptimizer, counter)
+    CL.initialize_problem_optimizer(master_problem, masteroptimizer)
 
     pricingoptimizer = Cbc.CbcOptimizer()
-    pricingprob = CL.SimpleCompactProblem(pricingoptimizer, counter)
+    pricingprob = CL.SimpleCompactProblem(counter)
+    CL.initialize_problem_optimizer(pricingprob, pricingoptimizer)
+
 
     #subproblem vars
     x1 = CL.SubprobVar(pricingprob.counter, "x1", 0.0, 'P', 'C', 's', 'U', 1.0, 0.0,
@@ -33,18 +40,18 @@ function testcolgenatroot()
     CL.add_membership(y, knp_constr, pricingprob, -6.0)
 
     # master constraints
-    cov_1_constr = CL.MasterConstr(master_prob.counter, "cov_1_constr", 0.0,
+    cov_1_constr = CL.MasterConstr(master_problem.counter, "cov_1_constr", 0.0,
                                    'L', 'M', 's')
-    cov_2_constr = CL.MasterConstr(master_prob.counter, "cov_2_constr", 0.0,
+    cov_2_constr = CL.MasterConstr(master_problem.counter, "cov_2_constr", 0.0,
                                    'L', 'M', 's')
-    cov_3_constr = CL.MasterConstr(master_prob.counter, "cov_3_constr", 0.0,
+    cov_3_constr = CL.MasterConstr(master_problem.counter, "cov_3_constr", 0.0,
                                    'L', 'M', 's')
 
-    CL.add_membership(x1, cov_1_constr, master_prob, 1.0)
-    CL.add_membership(x2, cov_2_constr, master_prob, 1.0)
-    CL.add_membership(x3, cov_3_constr, master_prob, 1.0)
+    CL.add_membership(x1, cov_1_constr, master_problem, 1.0)
+    CL.add_membership(x2, cov_2_constr, master_problem, 1.0)
+    CL.add_membership(x3, cov_3_constr, master_problem, 1.0)
 
-    # model = CL.Model(CL.Params(), CL.VarConstrCounter(0), master_prob,
+    # model = CL.Model(CL.Params(), CL.VarConstrCounter(0), master_problem,
     #                  [pricingprob], [(0,100)], CL.PrimalSolution(), Inf, -Inf, 0)
     #
     # CL.solve(model)

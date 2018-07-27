@@ -9,9 +9,9 @@ function build_cachingOptimizer_model(n_items::Int, nb_bins::Int,
 
 
 
-    master_optimizer = Cbc.CbcOptimizer()
-    coluna_optimizer = CL.ColunaModelOptimizerConstructor(master_optimizer)
-    MOI.empty!(coluna_optimizer)
+    coluna_optimizer = CL.ColunaModelOptimizer()
+
+    # MOI.empty!(coluna_optimizer)
     moi_model = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                       coluna_optimizer)
 
@@ -52,7 +52,6 @@ function build_cachingOptimizer_model(n_items::Int, nb_bins::Int,
 
     # ### Model constructors
     # params = CL.Params()
-    # pricingoptimizer = Cbc.CbcOptimizer()
     # callback = CL.Callback()
     # extended_problem = CL.ExtendedProblemConstructor(master_problem,
     #     CL.Problem[], CL.Problem[], counter, params, params.cut_up, params.cut_lo)
@@ -66,9 +65,15 @@ function build_bb_coluna_model(n_items::Int, nb_bins::Int,
                                profits::Vector{Float64}, weights::Vector{Float64},
                                binscap::Vector{Float64})
 
-    counter = CL.VarConstrCounter(0)
-    master_problem = CL.SimpleCompactProblem(counter)
+    ### Model constructors
+    model = CL.ModelConstructor()
+    params = model.params
+    callback = model.callback
+    extended_problem = model.extended_problem
+    counter = model.extended_problem.counter
+    master_problem = extended_problem.master_problem
     CL.initialize_problem_optimizer(master_problem, Cbc.CbcOptimizer())
+
 
     knap_constrs = CL.MasterConstr[]
     for i in 1:nb_bins
@@ -101,13 +106,6 @@ function build_bb_coluna_model(n_items::Int, nb_bins::Int,
         push!(x_vars, x_vec)
     end
 
-    ### Model constructors
-    params = CL.Params()
-    pricingoptimizer = Cbc.CbcOptimizer()
-    callback = CL.Callback()
-    extended_problem = CL.ExtendedProblemConstructor(master_problem,
-        CL.Problem[], CL.Problem[], counter, params, params.cut_up, params.cut_lo)
-    model = CL.ModelConstructor(extended_problem, callback, params)
     return model
 
 end

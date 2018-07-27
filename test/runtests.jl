@@ -18,7 +18,7 @@ include("colgenroot.jl")
 
 testdefaultbuilders()
 testpuremaster()
-# testcolgenatroot()
+testcolgenatroot()
 branch_and_bound_test_instance()
 # branch_and_bound_bigger_instances()
 # simple_MOI_calls_to_ColunaModelOptimizer()
