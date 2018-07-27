@@ -27,7 +27,7 @@ function testdefaultbuilders()
     callback = CL.Callback()
     extended_problem = CL.ExtendedProblemConstructor(master_problem,
         pricing_probs, CL.Problem[], counter, params, params.cut_up, params.cut_lo)
-    model = CL.ModelConstructor(extended_problem, callback, params)
+    model = CL.ModelConstructor()
 
 
     ### Info constructors
@@ -86,9 +86,16 @@ function testpuremaster()
 end
 
 function branch_and_bound_test_instance()
-    counter = CL.VarConstrCounter(0)
-    master_problem = CL.SimpleCompactProblem(counter)
+
+    ### Model constructors
+    model = CL.ModelConstructor()
+    params = model.params
+    callback = model.callback
+    extended_problem = model.extended_problem
+    counter = model.extended_problem.counter
+    master_problem = extended_problem.master_problem
     CL.initialize_problem_optimizer(master_problem, Cbc.CbcOptimizer())
+
 
     x1 = CL.MasterVar(master_problem.counter, "x1", -10.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
     x2 = CL.MasterVar(master_problem.counter, "x2", -15.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
@@ -106,15 +113,6 @@ function branch_and_bound_test_instance()
     CL.add_membership(x2, constr, master_problem, 3.0)
     CL.add_membership(x3, constr, master_problem, 4.0)
 
-
-    ### Model constructors
-    params = CL.Params()
-    counter = CL.VarConstrCounter(0)
-    pricingoptimizer = Cbc.CbcOptimizer()
-    callback = CL.Callback()
-    extended_problem = CL.ExtendedProblemConstructor(master_problem,
-        CL.Problem[], CL.Problem[], counter, params, params.cut_up, params.cut_lo)
-    model = CL.ModelConstructor(extended_problem, callback, params)
 
     CL.solve(model)
 
