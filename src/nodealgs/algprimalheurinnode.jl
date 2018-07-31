@@ -1,1 +1,1 @@
-@hl type AlgToPrimalHeurInNode <: AlgLike end
+@hl mutable struct AlgToPrimalHeurInNode <: AlgLike end

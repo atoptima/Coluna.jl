@@ -1,15 +1,15 @@
 
-type VarMpFormIndexStatus{V<:Variable}
+mutable struct VarMpFormIndexStatus{V<:Variable}
     variable::V
     status_in_basic_sol::Int
 end
 
-type ConstrMpFormIndexStatus{C<:Constraint}
+mutable struct ConstrMpFormIndexStatus{C<:Constraint}
     constraint::C
     status_in_basic_sol::Int
 end
 
-type LpBasisRecord
+mutable struct LpBasisRecord
     name::String
     vars_in_basis::Vector{VarMpFormIndexStatus}
     constr_in_basis::Vector{ConstrMpFormIndexStatus}
@@ -40,7 +40,7 @@ function clear(basis::LpBasisRecord; remove_marks_in_vars=true,
 end
 
 # needed for partial solution
-type VariableSolInfo{V<:Variable}
+mutable struct VariableSolInfo{V<:Variable}
     variable::V
     value::Float
 end
@@ -56,7 +56,7 @@ end
 abstract type AbstractVarIndexManager end
 abstract type AbstractConstrIndexManager end
 
-type SimpleVarIndexManager <: AbstractVarIndexManager
+mutable struct SimpleVarIndexManager <: AbstractVarIndexManager
     active_static_list::Vector{Variable}
     active_dynamic_list::Vector{Variable}
     unsuitable_static_list::Vector{Variable}
@@ -81,7 +81,7 @@ function add_in_var_manager(var_manager::SimpleVarIndexManager, var::Variable)
     push!(list, var)
 end
 
-type SimpleConstrIndexManager <: AbstractConstrIndexManager
+mutable struct SimpleConstrIndexManager <: AbstractConstrIndexManager
     active_static_list::Vector{Constraint}
     active_dynamic_list::Vector{Constraint}
     unsuitable_static_list::Vector{Constraint}
@@ -136,7 +136,7 @@ end
 
 abstract type Problem end
 
-type CompactProblem{VM <: AbstractVarIndexManager,
+mutable struct CompactProblem{VM <: AbstractVarIndexManager,
                     CM <: AbstractConstrIndexManager} <: Problem
 
     prob_ref::Int
@@ -180,7 +180,7 @@ type CompactProblem{VM <: AbstractVarIndexManager,
     is_retrieved_red_costs::Bool
 end
 
-function CompactProblem{VM,CM}(#prob_counter::ProblemCounter,
+function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
                                vc_counter::VarConstrCounter) where {
     VM <: AbstractVarIndexManager,
     CM <: AbstractConstrIndexManager}
@@ -190,7 +190,6 @@ function CompactProblem{VM,CM}(#prob_counter::ProblemCounter,
     primal_vec = Vector{PrimalSolution}([PrimalSolution()])
     dual_vec = Vector{DualSolution}([DualSolution()])
 
-    prob_counter = ProblemCounter(0)
     CompactProblem(increment_counter(prob_counter), false, optimizer, VM(), CM(),
                    Inf, -Inf, Set{Variable}(), Set{Variable}(), Set{Constraint}(),
                    0.0, Dict{Variable,Float}(), primal_vec, dual_vec,
@@ -200,11 +199,6 @@ end
 
 const SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
 
-
-# function initialize_problem_optimizer(extended_problem::ExtendedProblem, problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
-    ## Goes through each problem in extended_problem, check its index and call function
-    ## initialize_problem_optimizer(index, optimizer), using the dictionary
-# end
 
 function initialize_problem_optimizer(problem::CompactProblem,
                                       optimizer::MOI.AbstractOptimizer)
@@ -217,7 +211,7 @@ function initialize_problem_optimizer(problem::CompactProblem,
 end
 
 
-type ExtendedProblem <: Problem
+mutable struct ExtendedProblem <: Problem
     master_problem::CompactProblem # restricted master in DW case.
     pricing_vect::Vector{Problem}
     separation_vect::Vector{Problem}
@@ -230,25 +224,36 @@ type ExtendedProblem <: Problem
 end
 
 function ExtendedProblemConstructor(prob_counter::ProblemCounter,
-                                    vc_counter::VarConstrCounter,
+        vc_counter::VarConstrCounter,
         params::Params, primal_inc_bound::Float,
-        dual_inc_bound::Float) where {VM <: AbstractVarIndexManager,
-        CM <: AbstractConstrIndexManager}
-    return ExtendedProblem(master_problem, pricing_vect, separation, params,
-        vc_counter, PrimalSolution(), primal_inc_bound, dual_inc_bound, 0)
+        dual_inc_bound::Float)
+
+    master_problem = SimpleCompactProblem(prob_counter, vc_counter)
+    return ExtendedProblem(master_problem, Problem[], Problem[],
+                           params, vc_counter, PrimalSolution(),
+                           params.cut_up, params.cut_lo, 0)
 end
 
+# Iterates through each problem in extended_problem,
+# check its index and call function
+# initialize_problem_optimizer(index, optimizer), using the dictionary
+function initialize_problem_optimizer(extended_problem::ExtendedProblem,
+         problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
 
+    initialize_problem_optimizer(extended_problem.master_problem,
+         problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
 
-function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
-        pricing_vect::Vector{Problem},
-        separation::Vector{Problem}, vc_counter::VarConstrCounter,
-        params::Params, primal_inc_bound::Float,
-        dual_inc_bound::Float) where {VM <: AbstractVarIndexManager,
-        CM <: AbstractConstrIndexManager}
-    return ExtendedProblem(master_problem, pricing_vect, separation, params,
-        vc_counter, PrimalSolution(), primal_inc_bound, dual_inc_bound, 0)
+    for problem in extended_problem.pricing_vect
+        initialize_problem_optimizer(problem,
+              problemidx_optimizer_map[problem.prob_ref])
+    end
+
+    for problem in extended_problem.separation_vect
+        initialize_problem_optimizer(problem,
+              problemidx_optimizer_map[problem.prob_ref])
+    end
 end
+
 
 function retreive_primal_sol(problem::Problem) ## Store it in problem.primal_sols
     if problem.optimizer == nothing

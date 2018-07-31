@@ -1,4 +1,4 @@
-@hl type AlgToGenerateChildrenNodes <: AlgLike
+@hl mutable struct AlgToGenerateChildrenNodes <: AlgLike
     extended_problem::ExtendedProblem
 end
 
@@ -10,7 +10,7 @@ abstract type RuleForUsualBranching end
 struct MostFractionalRule <: RuleForUsualBranching end
 struct LeastFractionalRule <: RuleForUsualBranching end
 
-@hl type UsualBranchingAlg <: AlgToGenerateChildrenNodes
+@hl mutable struct UsualBranchingAlg <: AlgToGenerateChildrenNodes
     rule::RuleForUsualBranching
     nb_vars_to_branch::Int
 end

@@ -2,12 +2,13 @@
 BestLpBound, DepthFirstWithBetterBound)
 
 
-@hl type Callback end
+@hl mutable struct Callback end
 
-type Model # user model
+mutable struct Model # user model
     extended_problem::ExtendedProblem
     callback::Callback
     params::Params
+    prob_counter::ProblemCounter
     problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer}
 end
 
@@ -16,13 +17,10 @@ function ModelConstructor()
     callback = Callback()
     prob_counter = ProblemCounter(-1)
     vc_counter = VarConstrCounter(0)
-    master_problem = SimpleCompactProblem(vc_counter)
-    extended_problem = ExtendedProblemConstructor(#prob_counter,
-                                                  master_problem,
-                                                  Problem[], Problem[],
+    extended_problem = ExtendedProblemConstructor(prob_counter,
                                                   vc_counter, params,
                                                   params.cut_up, params.cut_lo)
-    return Model(extended_problem, callback, params,
+    return Model(extended_problem, callback, params, prob_counter,
                  Dict{Int,MOI.AbstractOptimizer}())
 end
 
@@ -41,7 +39,8 @@ function create_root_node(extended_problem::ExtendedProblem)::Node
 end
 
 function set_model_optimizers(model::Model)
-    ## calls set_problem_optimizers(model, problemidx_optimizer_map)
+    initialize_problem_optimizer(model.extended_problem,
+                                 model.problemidx_optimizer_map)
 end
 
 

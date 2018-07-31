@@ -1,6 +1,6 @@
 @enum VCSTATUS Inactive Active
 
-type VarConstrCounter
+mutable struct VarConstrCounter
     value::Int
 end
 
@@ -9,10 +9,10 @@ function increment_counter(counter::VarConstrCounter)
     return counter.value
 end
 
-type VarConstrStabInfo
+mutable struct VarConstrStabInfo
 end
 
-@hl type VarConstr
+@hl mutable struct VarConstr
     vc_ref::Int
     name::String
 
@@ -50,12 +50,12 @@ end
     # 'B' = binary,
     # or 'I' = integer
     # For Constraints:
-    # type = 'C' for core -required for the IP formulation-,
-    # type = 'F' for facultative -only helpfull for the LP formulation-,
-    # type = 'S' for constraints defining a subsystem in column generation for
+    # mutable struct = 'C' for core -required for the IP formulation-,
+    # mutable struct = 'F' for facultative -only helpfull for the LP formulation-,
+    # mutable struct = 'S' for constraints defining a subsystem in column generation for
     #            extended formulation approach
-    # type = 'M' for constraints defining a pure master constraint
-    # type = 'X' for constraints defining a subproblem convexity constraint
+    # mutable struct = 'M' for constraints defining a pure master constraint
+    # mutable struct = 'X' for constraints defining a subproblem convexity constraint
     #            in the master
     # ```
     vc_type::Char
@@ -151,7 +151,7 @@ function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Floa
             Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
 end
 
-@hl type Variable <: VarConstr
+@hl mutable struct Variable <: VarConstr
     # ```
     # Flag telling whether or not the variable is fractional.
     # ```
@@ -185,7 +185,7 @@ function VariableBuilder( counter::VarConstrCounter, name::String, costrhs::Floa
                       MOI.VariableIndex(-1), lowerBound, upperBound, -Inf, Inf)
 end
 
-@hl type Constraint <: VarConstr
+@hl mutable struct Constraint <: VarConstr
     moi_index::MOI.ConstraintIndex{F,S} where {F,S}
     set_type::Type{<:MOI.AbstractSet}
 end

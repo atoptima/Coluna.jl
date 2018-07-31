@@ -1,12 +1,12 @@
 ### Create Solution and DualSolution
 ### Remove @hl
 
-@hl type PrimalSolution
+@hl mutable struct PrimalSolution
     cost::Float
     var_val_map::Dict{Variable, Float}
 end
 
-@hl type DualSolution
+@hl mutable struct DualSolution
     cost::Float
     var_val_map::Dict{Constraint, Float}
 end

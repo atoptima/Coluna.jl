@@ -1,4 +1,4 @@
-@hl type SubprobVar <: Variable
+@hl mutable struct SubprobVar <: Variable
     # ```
     # To represent global upper bound on sp variable primal value
     # ```
@@ -41,7 +41,7 @@ function SubprobVarBuilder(counter::VarConstrCounter, name::String, costrhs::Flo
             Dict{Variable,Float}())
 end
 
-@hl type MasterVar <: Variable
+@hl mutable struct MasterVar <: Variable
     # ```
     # Holds the contribution of the master variable in the lagrangian dual bound
     # ```

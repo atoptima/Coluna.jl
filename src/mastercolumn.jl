@@ -1,4 +1,4 @@
-@hl type MasterColumn <: Variable
+@hl mutable struct MasterColumn <: Variable
     solution::PrimalSolution
 
     # ```

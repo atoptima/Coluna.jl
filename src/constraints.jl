@@ -1,4 +1,4 @@
-@hl type MasterConstr <: Constraint
+@hl mutable struct MasterConstr <: Constraint
     # ```
     # Represents the membership of subproblem variables as a map where:
     # - The key is the index of the subproblem variable involved in this as member,
@@ -28,7 +28,7 @@ function MasterConstrBuilder(counter::VarConstrCounter, name::String,
                      Dict{SubprobVar,Float}(), Dict{Variable,Float}())
 end
 
-@hl type BranchConstr <: Constraint
+@hl mutable struct BranchConstr <: Constraint
     depth_when_generated::Int
 end
 

@@ -53,23 +53,23 @@ function update_dual_lp_incumbents(incumbents::SolsAndBounds,
 end
 
 
-type StabilizationInfo
+mutable struct StabilizationInfo
     problem::Problem
     params::Params
 end
 
-type ColGenEvalInfo <: EvalInfo
+mutable struct ColGenEvalInfo <: EvalInfo
     stabilization_info::StabilizationInfo
     master_lp_basis::LpBasisRecord
     latest_reduced_cost_fixing_gap::Float
 end
 
-type LpEvalInfo <: EvalInfo
+mutable struct LpEvalInfo <: EvalInfo
     stabilization_info::StabilizationInfo
 end
 
 
-@hl type AlgToEvalNode <: AlgLike
+@hl mutable struct AlgToEvalNode <: AlgLike
     sols_and_bounds::SolsAndBounds
     extended_problem::ExtendedProblem
     sol_is_master_lp_feasible::Bool
@@ -80,13 +80,13 @@ AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(Inf, Inf, -Inf,
         -Inf, Dict{Variable, Float}(), Dict{Variable, Float}(),
         Dict{Constraint, Float}(), false), problem, false)
 
-@hl type AlgToEvalNodeByColGen <: AlgToEvalNode end
+@hl mutable struct AlgToEvalNodeByColGen <: AlgToEvalNode end
 
 AlgToEvalNodeByColGenBuilder(problem::ExtendedProblem) = (
     AlgToEvalNodeBuilder(problem)
 )
 
-@hl type AlgToEvalNodeByLp <: AlgToEvalNode end
+@hl mutable struct AlgToEvalNodeByLp <: AlgToEvalNode end
 
 function AlgToEvalNodeByLpBuilder(problem::ExtendedProblem)
     return AlgToEvalNodeBuilder(problem)

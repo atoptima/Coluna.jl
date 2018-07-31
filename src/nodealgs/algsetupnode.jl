@@ -1,5 +1,5 @@
 
-@hl type VariableSmallInfo
+@hl mutable struct VariableSmallInfo
     variable::Variable
     cost::Float
     status::VCSTATUS
@@ -12,7 +12,7 @@ function apply_var_info(info::VariableSmallInfo)::Void
     reset_cur_cost_by_value(var, info.cost)
 end
 
-@hl type VariableInfo <: VariableSmallInfo
+@hl mutable struct VariableInfo <: VariableSmallInfo
     lb::Float
     ub::Float
 end
@@ -36,7 +36,7 @@ function is_need_to_change_bounds(info::VariableInfo)::Bool
     return var.in_cur_form && (lb != var.cur_lb || ub != var.cur_ub)
 end
 
-@hl type SpVariableInfo <: VariableInfo
+@hl mutable struct SpVariableInfo <: VariableInfo
     local_lb::Float
     local_ub::Float
 end
@@ -50,7 +50,7 @@ function apply_var_info(info::SubprobVar)::Void
     var.local_cur_ub = info.local_ub
 end
 
-@hl type ConstraintInfo
+@hl mutable struct ConstraintInfo
     constraint::Constraint
     min_slack::Float
     max_slack::Float
@@ -72,7 +72,7 @@ function applyconstrinfo(info::ConstraintInfo)::Void
     info.constraint.rhs = info.rhs
 end
 
-@hl type ProblemSetupInfo <: SetupInfo
+@hl mutable struct ProblemSetupInfo <: SetupInfo
     treat_order::Int
     number_of_nodes::Int
     full_setup_is_obligatory::Bool
@@ -104,7 +104,7 @@ ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
 #### AlgToSetdownNode #######
 #############################
 
-@hl type AlgToSetdownNode <: AlgLike
+@hl mutable struct AlgToSetdownNode <: AlgLike
     extended_problem::ExtendedProblem
 end
 
@@ -122,7 +122,7 @@ function record_problem_info(alg::AlgToSetdownNode,
 end
 record_problem_info(alg) = record_problem_info(alg, -1)
 
-@hl type AlgToSetdownNodeFully <: AlgToSetdownNode end
+@hl mutable struct AlgToSetdownNodeFully <: AlgToSetdownNode end
 
 function AlgToSetdownNodeFullyBuilder(problem::ExtendedProblem)
     return (problem, )
@@ -205,7 +205,7 @@ end
 ##### AlgToSetupNode ########
 #############################
 
-@hl type AlgToSetupNode <: AlgLike
+@hl mutable struct AlgToSetupNode <: AlgLike
     extended_problem::ExtendedProblem
     problem_setup_info::ProblemSetupInfo
     is_all_columns_active::Bool
@@ -220,7 +220,7 @@ function AlgToSetupNodeBuilder(extended_problem::ExtendedProblem,
     return (extended_problem, problem_setup_info, false)
 end
 
-@hl type AlgToSetupBranchingOnly <: AlgToSetupNode end
+@hl mutable struct AlgToSetupBranchingOnly <: AlgToSetupNode end
 
 function AlgToSetupBranchingOnlyBuilder(extended_problem::ExtendedProblem)
     return AlgToSetupNodeBuilder(extended_problem)
@@ -269,7 +269,7 @@ function run(alg::AlgToSetupBranchingOnly, node)
     return false
 end
 
-@hl type AlgToSetupFull <: AlgToSetupNode end
+@hl mutable struct AlgToSetupFull <: AlgToSetupNode end
 
 function AlgToSetupFullBuilder(extended_problem::ExtendedProblem,
         problem_setup_info::ProblemSetupInfo)
@@ -359,7 +359,7 @@ end
 #### AlgToSetupRootNode #####
 #############################
 
-@hl type AlgToSetupRootNode <: AlgToSetupNode end
+@hl mutable struct AlgToSetupRootNode <: AlgToSetupNode end
 
 function AlgToSetupRootNodeBuilder(problem::ExtendedProblem,
         problem_setup_info::ProblemSetupInfo)

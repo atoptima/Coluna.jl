@@ -1,4 +1,4 @@
-@with_kw type Params
+@with_kw mutable struct Params
     max_num_nodes::Int = 100000
     open_nodes_limit::Int = 100000
     mip_tolerance_integrality::Float = 1e-5

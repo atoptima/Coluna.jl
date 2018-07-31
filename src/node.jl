@@ -1,11 +1,11 @@
 ## Defining infos here
-@hl type ChildrenGenerationInfo end
-@hl type BranchingEvaluationInfo end
-@hl type EvalInfo end
-@hl type SetupInfo end
+@hl mutable struct ChildrenGenerationInfo end
+@hl mutable struct BranchingEvaluationInfo end
+@hl mutable struct EvalInfo end
+@hl mutable struct SetupInfo end
 
 
-@hl type Node
+@hl mutable struct Node
     params::Params
     children::Vector{Node}
     depth::Int
@@ -85,7 +85,7 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
     )
 end
 
-@hl type NodeWithParent <: Node
+@hl mutable struct NodeWithParent <: Node
     parent::Node
 end
 
@@ -175,7 +175,7 @@ function update_node_incumbents(node::Node, sols_and_bounds)
 end
 
 
-@hl type AlgLike end
+@hl mutable struct AlgLike end
 run(alg::AlgLike; args...) = false
 mutable struct TreatAlgs
     alg_setup_node::AlgLike

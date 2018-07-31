@@ -1,4 +1,4 @@
-@hl type AlgToPreprocessNode <: AlgLike end
+@hl mutable struct AlgToPreprocessNode <: AlgLike end
 
 
 
