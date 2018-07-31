@@ -6,9 +6,9 @@ using Base.Test
 import Cbc
 import MathOptInterface, MathOptInterface.Utilities
 
-const MOIU = MathOptInterface.Utilities
-const MOI = MathOptInterface
-const CL = Coluna
+global const MOIU = MathOptInterface.Utilities
+global const MOI = MathOptInterface
+global const CL = Coluna
 
 include("test_utils.jl")
 include("colunabasictests.jl")

@@ -133,9 +133,9 @@ function run(alg::AlgToSetdownNodeFully, node::Node)
 end
 
 function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
-    const master_problem = alg.extended_problem.master_problem
-    # const prob_info = ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
-    const prob_info = ProblemSetupInfo(1)
+    master_problem = alg.extended_problem.master_problem
+    # prob_info = ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
+    prob_info = ProblemSetupInfo(1)
 
     #patial solution of master
     for (var, val) in master_problem.partial_solution
@@ -232,7 +232,7 @@ function AlgToSetupBranchingOnlyBuilder(extended_problem::ExtendedProblem,
 end
 
 function reset_partial_solution(alg::AlgToSetupNode)
-    # const node = alg.node
+    # node = alg.node
     # if !isempty(node.localfixedsolution)
     #     for (var, val) in node.localfixedsolution.solvarvalmap
     #         updatepartialsolution(alg.extended_problem.master_problem, var, val)
@@ -287,8 +287,8 @@ function find_first_in_problem_setup(constr_info_vec::Vector{ConstraintInfo},
 end
 
 function prepare_branching_constraints(alg::AlgToSetupFull, node)
-    const in_problem = alg.extended_problem.master_problem.constr_manager.active_dynamic_list
-    const in_setup_info = node.problem_setup_info.active_branching_constraints_info
+    in_problem = alg.extended_problem.master_problem.constr_manager.active_dynamic_list
+    in_setup_info = node.problem_setup_info.active_branching_constraints_info
     for i in length(in_problem):-1:1
         constr = in_problem[i]
         if typeof(constr) <: BranchConstr
@@ -328,7 +328,7 @@ end
 
 
 function reset_master_columns(alg::AlgToSetupNode)
-    const prob_info = alg.problem_setup_info
+    prob_info = alg.problem_setup_info
     for var_info in alg.prob_setup_info.suitable_master_columns_info
         var = var_info.variable
         if var_info.status == Active || alg.is_all_columns_active

@@ -197,7 +197,7 @@ function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
                    vc_counter, Vector{VarConstr}(), false)
 end
 
-const SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
+SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
 
 
 function initialize_problem_optimizer(problem::CompactProblem,
@@ -261,7 +261,7 @@ function retreive_primal_sol(problem::Problem) ## Store it in problem.primal_sol
     end
     problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
     println("Objective value: ", problem.obj_val)
-    const var_list = problem.var_manager.active_static_list
+    var_list = problem.var_manager.active_static_list
     new_sol = Dict{Variable, Float}()
     new_obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
     for var_idx in 1:length(var_list)

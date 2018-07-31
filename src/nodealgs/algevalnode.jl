@@ -103,10 +103,10 @@ end
 
 
 function update_alg_incumbents(alg::AlgToEvalNodeByLp)
-    const primal_sol = alg.extended_problem.master_problem.primal_sols[end].var_val_map
-    const dual_sol = alg.extended_problem.master_problem.dual_sols[end].var_val_map
-    const obj_value = alg.extended_problem.master_problem.primal_sols[end].cost
-    const obj_bound = alg.extended_problem.master_problem.dual_sols[end].cost
+    primal_sol = alg.extended_problem.master_problem.primal_sols[end].var_val_map
+    dual_sol = alg.extended_problem.master_problem.dual_sols[end].var_val_map
+    obj_value = alg.extended_problem.master_problem.primal_sols[end].cost
+    obj_bound = alg.extended_problem.master_problem.dual_sols[end].cost
 
     update_dual_ip_bound(alg.sols_and_bounds, obj_bound)
     update_primal_lp_incumbents(alg.sols_and_bounds, primal_sol, obj_value)

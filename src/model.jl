@@ -113,7 +113,7 @@ end
 
 function update_search_trees(cur_node::Node, search_tree::DS.Queue,
         extended_problem::ExtendedProblem)
-    const params = extended_problem.params
+    params = extended_problem.params
     for child_node in cur_node.children
         # push!(bap_tree_nodes, child_node)
         # if child_node.dual_bound_is_updated

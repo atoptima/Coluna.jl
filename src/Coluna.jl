@@ -8,10 +8,10 @@ import MathOptInterface.Utilities
 import DataStructures
 import Cbc # we should not need to import this here
 
-const Float = Float64
-const MOI = MathOptInterface
-const MOIU = MathOptInterface.Utilities
-const DS = DataStructures
+global const Float = Float64
+global const MOI = MathOptInterface
+global const MOIU = MathOptInterface.Utilities
+global const DS = DataStructures
 
 @MOIU.model ModelForCachingOptimizer (ZeroOne, Integer) (EqualTo, GreaterThan, LessThan, Interval) () () (SingleVariable,) (ScalarAffineFunction,) () () # We should not need to import this here
 

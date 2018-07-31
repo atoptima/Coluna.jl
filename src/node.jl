@@ -145,8 +145,8 @@ function store_branching_evaluation_info()
 end
 
 function update_node_duals(node::Node, sols_and_bounds)
-    const lp_dual_bound = sols_and_bounds.alg_inc_lp_dual_bound
-    const ip_dual_bound = sols_and_bounds.alg_inc_ip_dual_bound
+    lp_dual_bound = sols_and_bounds.alg_inc_lp_dual_bound
+    ip_dual_bound = sols_and_bounds.alg_inc_ip_dual_bound
     if node.node_inc_lp_dual_bound < lp_dual_bound
         node.node_inc_lp_dual_bound = lp_dual_bound
         node.dual_bound_is_updated = true
@@ -158,7 +158,7 @@ function update_node_duals(node::Node, sols_and_bounds)
 end
 
 function update_node_primals(node::Node, sols_and_bounds)
-    # const sols_and_bounds = node.alg_eval_node.sols_and_bounds
+    # sols_and_bounds = node.alg_eval_node.sols_and_bounds
     if sols_and_bounds.is_alg_inc_ip_primal_bound_updated
         record_ip_primal_sol_and_update_ip_primal_bound(node,
             sols_and_bounds)
