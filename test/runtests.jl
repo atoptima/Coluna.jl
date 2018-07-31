@@ -1,4 +1,6 @@
-import Coluna
+# import Coluna
+include("../src/Coluna.jl")
+
 using Base.Test
 
 import Cbc
@@ -19,7 +21,7 @@ include("colgenroot.jl")
 testdefaultbuilders()
 testpuremaster()
 testcolgenatroot()
-branch_and_bound_test_instance()
+# branch_and_bound_test_instance()
 # branch_and_bound_bigger_instances()
 # simple_MOI_calls_to_ColunaModelOptimizer()
 # tests_with_CachingOptimizer()

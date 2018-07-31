@@ -145,7 +145,7 @@ type CompactProblem{VM <: AbstractVarIndexManager,
     # objvalueordermagnitude::Float
     prob_is_built::Bool
 
-    optimizer::Nullable{MOI.AbstractOptimizer}
+    optimizer::Union{MOI.AbstractOptimizer, Nothing}
     # primalFormulation::LPform
 
     var_manager::VM
@@ -185,7 +185,7 @@ function CompactProblem{VM,CM}(#prob_counter::ProblemCounter,
     VM <: AbstractVarIndexManager,
     CM <: AbstractConstrIndexManager}
 
-    optimizer = Nullable{MOI.AbstractOptimizer}()
+    optimizer = nothing
 
     primal_vec = Vector{PrimalSolution}([PrimalSolution()])
     dual_vec = Vector{DualSolution}([DualSolution()])
@@ -213,7 +213,7 @@ function initialize_problem_optimizer(problem::CompactProblem,
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
     MOI.set!(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
     MOI.set!(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
-    problem.optimizer = Nullable{MOI.AbstractOptimizer}(optimizer)
+    problem.optimizer = optimizer
 end
 
 
@@ -251,13 +251,16 @@ function ExtendedProblemConstructor(master_problem::CompactProblem{VM, CM},
 end
 
 function retreive_primal_sol(problem::Problem) ## Store it in problem.primal_sols
-    problem.obj_val = MOI.get(get(problem.optimizer), MOI.ObjectiveValue())
+    if problem.optimizer == nothing
+        error("The problem has no optimizer attached")
+    end
+    problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
     println("Objective value: ", problem.obj_val)
     const var_list = problem.var_manager.active_static_list
     new_sol = Dict{Variable, Float}()
-    new_obj_val = MOI.get(get(problem.optimizer), MOI.ObjectiveValue())
+    new_obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
     for var_idx in 1:length(var_list)
-        var_list[var_idx].val = MOI.get(get(problem.optimizer),
+        var_list[var_idx].val = MOI.get(problem.optimizer,
             MOI.VariablePrimal(), var_list[var_idx].moi_index)
         println("Var ", var_list[var_idx].name, " = ", var_list[var_idx].val)
         if var_list[var_idx].val > 0.0
@@ -269,8 +272,11 @@ function retreive_primal_sol(problem::Problem) ## Store it in problem.primal_sol
 end
 
 function retreive_dual_sol(problem::Problem)
-    problem.obj_bound = MOI.get(get(problem.optimizer), MOI.ObjectiveBound())
-    # if MOI.canget(get(problem.optimizer), MOI.ConstraintDual())
+    if problem.optimizer == nothing
+        error("The problem has no optimizer attached")
+    end
+    problem.obj_bound = MOI.get(problem.optimizer, MOI.ObjectiveBound())
+    # if MOI.canget(problem.optimizer, MOI.ConstraintDual())
     # end
     push!(problem.dual_sols, DualSolution(problem.obj_bound,
         Dict{Constraint, Float}()))
@@ -298,21 +304,25 @@ end
 ### and sets the index of the variable
 function add_variable(problem::Problem, var::Variable)
     add_in_var_manager(problem.var_manager, var)
-    var.moi_index = MOI.addvariable!(get(problem.optimizer))
-    MOI.modify!(get(problem.optimizer),
+    if problem.optimizer != nothing
+        var.moi_index = MOI.addvariable!(problem.optimizer)    
+        MOI.modify!(problem.optimizer,
                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
                 MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
-    MOI.addconstraint!(get(problem.optimizer), MOI.SingleVariable(var.moi_index),
-                       MOI.Interval(var.lower_bound, var.upper_bound))
+        MOI.addconstraint!(problem.optimizer, MOI.SingleVariable(var.moi_index),
+                           MOI.Interval(var.lower_bound, var.upper_bound))
+    end
 end
 
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the constraint
 function add_constraint(problem::Problem, constr::Constraint)
     add_in_constr_manager(problem.constr_manager, constr)
-    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
-    constr.moi_index = MOI.addconstraint!(get(problem.optimizer), f,
-            constr.set_type(constr.cost_rhs))
+    if problem.optimizer != nothing        
+        f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
+        constr.moi_index = MOI.addconstraint!(problem.optimizer, f,
+                constr.set_type(constr.cost_rhs))
+    end
 end
 
 function add_full_constraint(problem::Problem, constr::BranchConstr)
@@ -321,23 +331,28 @@ function add_full_constraint(problem::Problem, constr::BranchConstr)
     for var_val in constr.member_coef_map
         push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index))
     end
-    f = MOI.ScalarAffineFunction(terms, 0.0)
-    constr.moi_index = MOI.addconstraint!(get(problem.optimizer), f,
-            constr.set_type(constr.cost_rhs))
+    if problem.optimizer != nothing
+        f = MOI.ScalarAffineFunction(terms, 0.0)
+        constr.moi_index = MOI.addconstraint!(problem.optimizer, f,
+                constr.set_type(constr.cost_rhs))
+    end
 end
 
 function delete_constraint(problem::Problem, constr::BranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
     remove_from_constr_manager(problem.constr_manager, constr)
-    MOI.delete!(get(problem.optimizer), constr.moi_index)
-    constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction, constr.set_type}(-1)
+    if problem.optimizer != nothing
+        MOI.delete!(problem.optimizer, constr.moi_index)
+        constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction, 
+                                               constr.set_type}(-1)
+    end
 end
 
 function add_membership(var::Variable, constr::Constraint,
         problem::Problem, coef::Float)
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    MOI.modify!(get(problem.optimizer), constr.moi_index,
+    MOI.modify!(problem.optimizer, constr.moi_index,
                 MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
 end
 
@@ -351,17 +366,22 @@ function add_membership(var::MasterVar, constr::MasterConstr,
         problem::Problem, coef::Float)
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    MOI.modify!(get(problem.optimizer), constr.moi_index,
-                MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+    if problem.optimizer != nothing
+        MOI.modify!(problem.optimizer, constr.moi_index,
+                    MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+    end                    
 end
 
 function optimize(problem::Problem)
-
-    MOI.optimize!(get(problem.optimizer))
-    status = MOI.get(get(problem.optimizer), MOI.TerminationStatus())
+    if problem.optimizer == nothing
+        error("The problem has no optimizer attached")
+    end
+    
+    MOI.optimize!(problem.optimizer)
+    status = MOI.get(problem.optimizer, MOI.TerminationStatus())
     println("Optimization finished with status: ", status)
 
-    if MOI.get(get(problem.optimizer), MOI.ResultCount()) >= 1
+    if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
         retreive_solution(problem)
     else
         println("Solver has no result to show.")

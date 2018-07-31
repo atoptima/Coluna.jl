@@ -82,7 +82,7 @@ function testpuremaster()
 
     CL.optimize(problem)
 
-    @test MOI.get(get(problem.optimizer), MOI.ObjectiveValue()) == -25
+    @test MOI.get(problem.optimizer, MOI.ObjectiveValue()) == -25
 end
 
 function branch_and_bound_test_instance()
