@@ -8,6 +8,8 @@ import MathOptInterface.Utilities
 import DataStructures
 import Cbc # we should not need to import this here
 
+using Base.CoreLogging
+
 global const Float = Float64
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities

@@ -18,7 +18,7 @@ include("colgenroot.jl")
 
 
 
-testdefaultbuilders()
+# testdefaultbuilders()
 testpuremaster()
 testcolgenatroot()
 # branch_and_bound_test_instance()

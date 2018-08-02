@@ -1,39 +1,29 @@
 @MOIU.model ModelForCachingOptimizer (ZeroOne, Integer) (EqualTo, GreaterThan, LessThan, Interval) () () (SingleVariable,) (ScalarAffineFunction,) () ()
 
-
-
 function build_cachingOptimizer_model(n_items::Int, nb_bins::Int,
                                       profits::Vector{Float64},
                                       weights::Vector{Float64},
                                       binscap::Vector{Float64})
-
-
 
     coluna_optimizer = CL.ColunaModelOptimizer()
 
     # MOI.empty!(coluna_optimizer)
     moi_model = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                       coluna_optimizer)
-
-
+                                      
     # x_vars = Vector{Vector{MOI.VariableIndex}}()
     # for j in 1:n_items
     #     x_vec = MOI.addvariables!(moi_model, nb_bins)
     #     push!(x_vars, x_vec)
     # end
 
-
-
     # knap_constrs = MOI.ConstraintIndex[]
-
-
 
     # for i in 1:nb_bins
     #     cf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([w_j for j in weights], x), 0.0)
     #     constr = MOI.addconstraint!(model, cf, MOI.LessThan(binscap[i]))
     #     push!(knap_constrs, constr)
     # end
-
 
     #     constr = CL.MasterConstr(master_problem.counter,
     #         string("knapConstr_", i), binscap[i], 'L', 'M', 's')
@@ -48,7 +38,6 @@ function build_cachingOptimizer_model(n_items::Int, nb_bins::Int,
     #     push!(cover_constrs, constr)
     #     CL.add_constraint(master_problem, constr)
     # end
-
 
     # ### Model constructors
     # params = CL.Params()
@@ -74,7 +63,6 @@ function build_bb_coluna_model(n_items::Int, nb_bins::Int,
     master_problem = extended_problem.master_problem
     model.problemidx_optimizer_map[master_problem.prob_ref] = Cbc.CbcOptimizer()
     CL.set_model_optimizers(model)
-
 
     knap_constrs = CL.MasterConstr[]
     for i in 1:nb_bins
@@ -108,5 +96,4 @@ function build_bb_coluna_model(n_items::Int, nb_bins::Int,
     end
 
     return model
-
 end

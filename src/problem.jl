@@ -199,7 +199,6 @@ end
 
 SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
 
-
 function initialize_problem_optimizer(problem::CompactProblem,
                                       optimizer::MOI.AbstractOptimizer)
     optimizer = MOIU.MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
@@ -209,7 +208,6 @@ function initialize_problem_optimizer(problem::CompactProblem,
     MOI.set!(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
     problem.optimizer = optimizer
 end
-
 
 mutable struct ExtendedProblem <: Problem
     master_problem::CompactProblem # restricted master in DW case.
@@ -254,7 +252,6 @@ function initialize_problem_optimizer(extended_problem::ExtendedProblem,
     end
 end
 
-
 function retreive_primal_sol(problem::Problem) ## Store it in problem.primal_sols
     if problem.optimizer == nothing
         error("The problem has no optimizer attached")
@@ -281,8 +278,6 @@ function retreive_dual_sol(problem::Problem)
         error("The problem has no optimizer attached")
     end
     problem.obj_bound = MOI.get(problem.optimizer, MOI.ObjectiveBound())
-    # if MOI.canget(problem.optimizer, MOI.ConstraintDual())
-    # end
     push!(problem.dual_sols, DualSolution(problem.obj_bound,
         Dict{Constraint, Float}()))
 end
@@ -303,7 +298,6 @@ function sol_is_integer(sol::Dict{Variable, Float}, tolerance::Float)
     println("Solution is integer!")
     return true
 end
-
 
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
@@ -357,8 +351,10 @@ function add_membership(var::Variable, constr::Constraint,
         problem::Problem, coef::Float)
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    MOI.modify!(problem.optimizer, constr.moi_index,
-                MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+    if problem.optimizer != nothing
+        MOI.modify!(problem.optimizer, constr.moi_index,
+                    MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+    end
 end
 
 function add_membership(var::SubprobVar, constr::MasterConstr,
@@ -374,7 +370,7 @@ function add_membership(var::MasterVar, constr::MasterConstr,
     if problem.optimizer != nothing
         MOI.modify!(problem.optimizer, constr.moi_index,
                     MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
-    end                    
+    end
 end
 
 function optimize(problem::Problem)

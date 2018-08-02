@@ -92,6 +92,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     if !node.evaluated
         ## Dispatched according to eval_info (?)
         treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
+        # treat_algs.alg_eval_node = AlgToEvalNodeByColGen(extended_problem)
     end
 
     return true

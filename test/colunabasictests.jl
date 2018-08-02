@@ -1,5 +1,4 @@
 function testdefaultbuilders()
-
     ## Problem builder
     counter = CL.VarConstrCounter(0)
     x1 = CL.VarConstr(counter, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0)
@@ -54,12 +53,9 @@ function testdefaultbuilders()
     ### Node constructors
     rootNode = CL.Node(model.extended_problem, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info)
     child1 = CL.NodeWithParent(model.extended_problem, rootNode)
-
-
 end
 
 function testpuremaster()
-
     counter = CL.VarConstrCounter(0)
     prob_counter = CL.ProblemCounter(0)
     problem = CL.SimpleCompactProblem(prob_counter, counter)
@@ -88,7 +84,6 @@ function testpuremaster()
 end
 
 function branch_and_bound_test_instance()
-
     ### Model constructors
     model = CL.ModelConstructor()
     params = model.params
@@ -122,7 +117,6 @@ function branch_and_bound_test_instance()
     @testset "knapsack test" begin
     @test model.extended_problem.primal_inc_bound == -30.0
     end
-
 end
 
 
