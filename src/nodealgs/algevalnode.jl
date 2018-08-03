@@ -202,8 +202,66 @@ function cleanup_restricted_mast_columns(alg::AlgToEvalNodeByLagrangianDuality,
     @logmsg 2 "cleanup_restricted_mast_columns is empty for now"
 end
 
-function gen_new_columns(alg::AlgToEvalNodeByLagrangianDuality)
+function update_pricing_target(alg::AlgToEvalNodeByLagrangianDuality,
+                               pricing_prob::Problem)
+    error("Not yet implemented")
+end
+
+function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality, 
+                             pricing_prob::Problem)
+    error("Not yet implemented")
+end
+
+function compute_pricing_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality, 
+                                            pricing_prob::Problem)
+    error("Not yet implemented")
+end
+
+function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality, 
+                               pricing_prob::Problem)
+    error("Not yet implemented")
+end
+
+function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Problem)                
+    flag_need_not_generate_more_col = 0
+    flag_is_sp_infeasible = -1
+    flag_cannot_generate_more_col = -2    
+    dual_bound_contrib = 0;
+    pseudo_dual_bound_contrib = 0
     
+    # TODO renable this. Needed at least for the diving
+    # if can_not_generate_more_col(princing_prob)
+    #     return flag_cannot_generate_more_col
+    # end
+        
+    # compute target        
+    update_pricing_target(alg, pricing_prob)
+    # Reset var bounds, var cost, sp minCost
+    if update_pricing_prob(alg, pricing_prob)
+        @logmsg 3 "pricing prob is infeasible"
+        # In case one of the subproblem is infeasible, the master is infeasible
+        compute_pricing_dual_bound_contrib(alg, pricing_prob)
+        return flag_is_sp_infeasible
+    end    
+    if alg.colgen_stabilization != nothing && true #= TODO add conds =#
+        # switch off the reduced cost estimation when stabilization is applied
+    end    
+
+    # Solve sub-problem and insert generated columns in master
+    status = optimize(pricing_prob)
+    compute_pricing_dual_bound_contrib(alg, pricing_prob)
+    if status == InfeasibleNoResult
+        @logmsg 3 "pricing prob is infeasible"
+        return flag_is_sp_infeasible
+    end
+    insertion_status = insert_cols_in_master(alg, pricing_prob)
+    return insertion_status
+end
+
+function gen_new_columns(alg::AlgToEvalNodeByLagrangianDuality)  
+    for pricing_prob in alg.pricing_vect
+        gen_new_col(alg, pricing_prob)  
+    end
 end
 
 function compute_mast_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality)
