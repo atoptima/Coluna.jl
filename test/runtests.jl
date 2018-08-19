@@ -1,9 +1,9 @@
 # import Coluna
 include("../src/Coluna.jl")
 
-using Base.Test
+using Test
 
-import Cbc
+using GLPK
 import MathOptInterface, MathOptInterface.Utilities
 
 global const MOIU = MathOptInterface.Utilities
@@ -19,7 +19,7 @@ include("colgenroot.jl")
 
 
 # testdefaultbuilders()
-testpuremaster()
+# testpuremaster()
 testcolgenatroot()
 # branch_and_bound_test_instance()
 # branch_and_bound_bigger_instances()

@@ -133,6 +133,7 @@ end
     treat_order_id::Int
 end
 
+Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
 
 # Think about this constructor (almost a copy)
 function VarConstrBuilder(vc::VarConstr, counter::VarConstrCounter)
@@ -173,17 +174,18 @@ end
     cur_ub::Float
 end
 
+function VariableBuilder(counter::VarConstrCounter, name::String, 
+        costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char, 
+        priority::Float, lowerBound::Float, upperBound::Float)
+
+    return tuplejoin(VarConstrBuilder( counter, name, costrhs, sense, vc_type,
+            flag, directive, priority), MOI.VariableIndex(-1), lowerBound, 
+            upperBound, -Inf, Inf)
+end
+
 VariableBuilder(var::Variable, counter::VarConstrCounter) = tuplejoin(
         VarConstrBuilder(var, counter),
         (MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
-
-function VariableBuilder( counter::VarConstrCounter, name::String, costrhs::Float,
-    sense::Char, vc_type::Char, flag::Char, directive::Char, priority::Float,
-    lowerBound::Float, upperBound::Float)
-    return tuplejoin(VarConstrBuilder( counter, name, costrhs, sense, vc_type,
-                                       flag, directive, priority),
-                      MOI.VariableIndex(-1), lowerBound, upperBound, -Inf, Inf)
-end
 
 @hl mutable struct Constraint <: VarConstr
     moi_index::MOI.ConstraintIndex{F,S} where {F,S}
