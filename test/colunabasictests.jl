@@ -19,9 +19,9 @@ function testdefaultbuilders()
     params = CL.Params()
     counter = CL.VarConstrCounter(0)
     prob_counter = CL.ProblemCounter(0)
-    masteroptimizer = GLPKOptimizerMIP()
+    masteroptimizer = GLPK.Optimizer()
     master_problem = CL.SimpleCompactProblem(prob_counter, counter)
-    pricingoptimizer = GLPKOptimizerMIP()
+    pricingoptimizer = GLPK.Optimizer()
     pricing_probs = Vector{CL.Problem}()
     push!(pricing_probs, CL.SimpleCompactProblem(prob_counter, counter))
     callback = CL.Callback()
@@ -59,7 +59,7 @@ function testpuremaster()
     counter = CL.VarConstrCounter(0)
     prob_counter = CL.ProblemCounter(0)
     problem = CL.SimpleCompactProblem(prob_counter, counter)
-    CL.initialize_problem_optimizer(problem, GLPKOptimizerMIP())
+    CL.initialize_problem_optimizer(problem, GLPK.Optimizer())
 
 
     x1 = CL.MasterVar(counter, "x1", -10.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
@@ -91,7 +91,7 @@ function branch_and_bound_test_instance()
     extended_problem = model.extended_problem
     counter = model.extended_problem.counter
     master_problem = extended_problem.master_problem
-    model.problemidx_optimizer_map[master_problem.prob_ref] = GLPKOptimizerMIP()
+    model.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
     CL.set_model_optimizers(model)
 
 

@@ -219,7 +219,7 @@ function set_optimizer_obj(problem::CompactProblem,
     vec = [MOI.ScalarAffineTerm(cost, var.moi_index) for (var, cost) in new_obj]
     objf = MOI.ScalarAffineFunction(vec, 0.0)    
     MOI.set!(problem.optimizer, 
-             MOI.ObjectiveFunction{MOI.ScalarAffineFunction}(), objf)
+             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
 end
 
 function retreive_primal_sol(problem::CompactProblem)
@@ -341,27 +341,31 @@ function add_variable(problem::Problem, var::Variable)
     if problem.optimizer != nothing
         var.moi_index = MOI.addvariable!(problem.optimizer)    
         # TODO set variable type
+        add_bounds = true
         if var.vc_type == 'B'
-            MOI.addconstraint!(problem.optimizer, 
+            if var.lower_bound > 0.0 
+                var.lower_bound == 1.0
+            elseif var.upper_bound < 1.0 
+                var.upper_bound == 0.0
+            else
+                MOI.addconstraint!(problem.optimizer, 
                                MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
+                add_bounds = false
+            end
         elseif var.vc_type == 'I'
             MOI.addconstraint!(problem.optimizer, 
                                MOI.SingleVariable(var.moi_index), MOI.Integer())
         end
-        # TODO delete the following redundant with bounds
-        # if var.sense == 'P'
-        #     MOI.addconstraint!(problem.optimizer, 
-        #             MOI.SingleVariable(var.moi_index), MOI.GreaterThan(0.0))
-        # elseif var.sense == 'N'
-        #     MOI.addconstraint!(problem.optimizer, 
-        #             MOI.SingleVariable(var.moi_index), MOI.LessThan(0.0))
-        # end
         
         MOI.modify!(problem.optimizer,
                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
                 MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
-        MOI.addconstraint!(problem.optimizer, MOI.SingleVariable(var.moi_index),
-                           MOI.Interval(var.lower_bound, var.upper_bound))
+        
+        if add_bounds
+            MOI.addconstraint!(problem.optimizer, 
+                    MOI.SingleVariable(var.moi_index),
+                    MOI.Interval(var.lower_bound, var.upper_bound))
+        end
     end    
 end
 

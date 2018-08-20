@@ -7,10 +7,10 @@ function testcolgenatroot()
     counter = model.extended_problem.counter
     prob_counter = model.prob_counter
     master_problem = extended_problem.master_problem
-    masteroptimizer = GLPKOptimizerLP()
+    masteroptimizer = GLPK.Optimizer()
     model.problemidx_optimizer_map[master_problem.prob_ref] = masteroptimizer
 
-    pricingoptimizer = GLPKOptimizerMIP()
+    pricingoptimizer = GLPK.Optimizer()
     pricingprob = CL.SimpleCompactProblem(prob_counter, counter)
     push!(extended_problem.pricing_vect, pricingprob)
     model.problemidx_optimizer_map[pricingprob.prob_ref] = pricingoptimizer
