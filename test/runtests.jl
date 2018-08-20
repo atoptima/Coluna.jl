@@ -18,10 +18,14 @@ include("colgenroot.jl")
 
 
 
-# testdefaultbuilders()
-# testpuremaster()
-testcolgenatroot()
-# branch_and_bound_test_instance()
+testdefaultbuilders()
+testpuremaster()
+@testset "cutting stock - colgen root " begin
+    testcolgenatroot()
+end
+@testset "knapsack - branch and bound" begin
+    branch_and_bound_test_instance()
+end
 # branch_and_bound_bigger_instances()
 # simple_MOI_calls_to_ColunaModelOptimizer()
 # tests_with_CachingOptimizer()
