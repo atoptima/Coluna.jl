@@ -1,7 +1,6 @@
 @enum(SEARCHSTRATEGY,BestDualBoundThanDF,DepthFirstWithWorseBound,
 BestLpBound, DepthFirstWithBetterBound)
 
-
 @hl mutable struct Callback end
 
 mutable struct Model # user model
@@ -45,8 +44,8 @@ end
 
 
 ### For root node
-function prepare_node_for_treatment(extended_problem::ExtendedProblem, node::Node,
-        treat_algs::TreatAlgs, global_nodes_treat_order::Int)
+function prepare_node_for_treatment(extended_problem::ExtendedProblem, 
+        node::Node, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
 
     println("************************************************************")
     println("\nPreparing root node for treatment.")
@@ -58,14 +57,16 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem, node::Nod
 
     if !node.evaluated
         ## Dispatched according to eval_info
-        treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
+        # treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
+        treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
     end
 
     return true
 end
 
 function prepare_node_for_treatment(extended_problem::ExtendedProblem,
-        node::NodeWithParent, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
+        node::NodeWithParent, treat_algs::TreatAlgs, 
+        global_nodes_treat_order::Int)
 
     println("************************************************************")
     println("\nPreparing node ", global_nodes_treat_order,
@@ -91,15 +92,16 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 
     if !node.evaluated
         ## Dispatched according to eval_info (?)
-        treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
-        # treat_algs.alg_eval_node = AlgToEvalNodeByColGen(extended_problem)
+        # treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
+        treat_algs.alg_eval_node = AlgToEvalNodeByColGen(extended_problem)
     end
 
     return true
 end
 
 function print_info_before_solving_node(problem::ExtendedProblem,
-        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int, treat_order::Int)
+        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int, 
+        treat_order::Int)
 
     print(primal_tree_nb_open_nodes)
     println(" open nodes. Treating node ", treat_order, ".")
@@ -172,7 +174,8 @@ function update_model_incumbents(problem::ExtendedProblem, node::Node,
         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
     end
     if (node.dual_bound_is_updated &&
-            length(search_tree) <= problem.params.limit_on_tree_size_to_update_best_dual_bound)
+                length(search_tree) 
+                <= problem.params.limit_on_tree_size_to_update_best_dual_bound)
         update_cur_valid_dual_bound(problem, node, search_tree)
     end
 end

@@ -19,9 +19,9 @@ function testdefaultbuilders()
     params = CL.Params()
     counter = CL.VarConstrCounter(0)
     prob_counter = CL.ProblemCounter(0)
-    masteroptimizer = Cbc.CbcOptimizer()
+    masteroptimizer = GLPK.Optimizer()
     master_problem = CL.SimpleCompactProblem(prob_counter, counter)
-    pricingoptimizer = Cbc.CbcOptimizer()
+    pricingoptimizer = GLPK.Optimizer()
     pricing_probs = Vector{CL.Problem}()
     push!(pricing_probs, CL.SimpleCompactProblem(prob_counter, counter))
     callback = CL.Callback()
@@ -43,7 +43,7 @@ function testdefaultbuilders()
     alg_preprocess_node = CL.AlgToPreprocessNode()
     alg_eval_node = CL.AlgToEvalNode(extended_problem)
     alg_to_eval_by_lp = CL.AlgToEvalNodeByLp(extended_problem)
-    alg_to_eval_by_cg = CL.AlgToEvalNodeByColGen(extended_problem)
+    alg_to_eval_by_cg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
     alg_setdown_node = CL.AlgToSetdownNode(extended_problem)
     alg_vect_primal_heur_node = CL.AlgToPrimalHeurInNode[]
     alg_generate_children_nodes = CL.AlgToGenerateChildrenNodes(extended_problem)
@@ -59,7 +59,7 @@ function testpuremaster()
     counter = CL.VarConstrCounter(0)
     prob_counter = CL.ProblemCounter(0)
     problem = CL.SimpleCompactProblem(prob_counter, counter)
-    CL.initialize_problem_optimizer(problem, Cbc.CbcOptimizer())
+    CL.initialize_problem_optimizer(problem, GLPK.Optimizer())
 
 
     x1 = CL.MasterVar(counter, "x1", -10.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
@@ -91,7 +91,7 @@ function branch_and_bound_test_instance()
     extended_problem = model.extended_problem
     counter = model.extended_problem.counter
     master_problem = extended_problem.master_problem
-    model.problemidx_optimizer_map[master_problem.prob_ref] = Cbc.CbcOptimizer()
+    model.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
     CL.set_model_optimizers(model)
 
 
@@ -114,9 +114,7 @@ function branch_and_bound_test_instance()
 
     CL.solve(model)
 
-    @testset "knapsack test" begin
     @test model.extended_problem.primal_inc_bound == -30.0
-    end
 end
 
 

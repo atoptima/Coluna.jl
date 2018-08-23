@@ -183,17 +183,18 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     end
 
 
+    # TODO enable if we decide to implement suproblem branching
     #subprob variables
-    for subprob in alg.extended_problem.pricing_vect
-        for var in subprob.var_manager.active_static_list
-            if (var.cur_lower_bound != var.lower_bound
-                || var.cur_upper_bound != var.upper_bound
-                || var.cur_local_lb != local_lb
-                || var.cur_loca_lub != var.local_ub || var.cur_cost_rhs != var.costrhs)
-                push!(modified_static_vars_info, SpVariableInfo(var))
-            end
-        end
-    end
+    # for subprob in alg.extended_problem.pricing_vect
+    #     for var in subprob.var_manager.active_static_list
+    #         if (var.cur_lower_bound != var.lower_bound
+    #             || var.cur_upper_bound != var.upper_bound
+    #             || var.cur_local_lb != local_lb
+    #             || var.cur_loca_lub != var.local_ub || var.cur_cost_rhs != var.costrhs)
+    #             push!(modified_static_vars_info, SpVariableInfo(var))
+    #         end
+    #     end
+    # end
 
     println("Stored ", length(master_problem.constr_manager.active_dynamic_list),
         " active cosntraints")

@@ -193,7 +193,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     node.node_inc_ip_primal_bound = inc_primal_bound
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
-
+    
     if run(treat_algs.alg_setup_node, node)
         run(treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
@@ -204,7 +204,6 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
         mark_infeasible_and_exit_treatment(node); return true
     end
 
-
     println("active branching constraints: ")
     for constr in treat_algs.alg_setup_node.extended_problem.master_problem.constr_manager.active_dynamic_list
         print("constraint ", constr.vc_ref, ": ")
@@ -213,8 +212,8 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
         end
         println(" = ", constr.cost_rhs)
     end
-
-    if setup(treat_algs.alg_eval_node)
+    
+    if setup(treat_algs.alg_eval_node)  
         setdown(treat_algs.alg_eval_node)
         run(treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true

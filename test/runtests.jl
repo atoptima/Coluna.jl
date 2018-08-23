@@ -1,9 +1,9 @@
 # import Coluna
 include("../src/Coluna.jl")
 
-using Base.Test
+using Test
 
-import Cbc
+using GLPK
 import MathOptInterface, MathOptInterface.Utilities
 
 global const MOIU = MathOptInterface.Utilities
@@ -18,10 +18,14 @@ include("colgenroot.jl")
 
 
 
-# testdefaultbuilders()
+testdefaultbuilders()
 testpuremaster()
-testcolgenatroot()
-# branch_and_bound_test_instance()
+@testset "cutting stock - colgen root " begin
+    testcolgenatroot()
+end
+@testset "knapsack - branch and bound" begin
+    branch_and_bound_test_instance()
+end
 # branch_and_bound_bigger_instances()
 # simple_MOI_calls_to_ColunaModelOptimizer()
 # tests_with_CachingOptimizer()

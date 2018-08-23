@@ -14,9 +14,16 @@
     belongs_to_convexity_constraint::Bool
 end
 
-function MasterColumnBuilder(problem::P, sp_sol::PrimalSolution,
-                             name::String) where P
-    return tuplejoin(VariableBuilder(problem,
-            string(name, problem.counter.value), 0.0, 'P', sp_sol.type, 'd', -1,
-            0.0, Inf), sp_sol, 0, 0 #= enumeration not supported =#, true)
+# function VariableBuilder(counter::VarConstrCounter, name::String, 
+#         costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char, 
+#         priority::Float, lowerBound::Float, upperBound::Float)
+
+function MasterColumnBuilder(counter::VarConstrCounter, 
+                             sp_sol::PrimalSolution) where P
+    cost = compute_original_cost(sp_sol)
+    return tuplejoin(VariableBuilder(counter, string("MC", counter.value), 
+            cost, 'P', 'C', 'd', 'D', -1.0, 0.0, Inf), 
+            sp_sol, false #= enumeration not supported =#, true)
+         
+    #TODO add membership using sp_sol        
 end
