@@ -61,6 +61,6 @@ end
 
 fract_part(val::Float) = (abs(val - round(val)))
 
-function primal_value_is_integer(val::Float, tolerance::Float)
+function is_value_integer(val::Float, tolerance::Float)
     return (fract_part(val) <= tolerance)
 end

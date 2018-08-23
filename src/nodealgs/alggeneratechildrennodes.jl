@@ -40,7 +40,7 @@ function retreive_candidate_vars(alg::AlgToGenerateChildrenNodes,
     frac_master_vars = Pair{MasterVar, Float}[]
     for var_val in var_val_map
         if typeof(var_val[1]) <: MasterVar
-            if !primal_value_is_integer(var_val[2],
+            if !is_value_integer(var_val[2],
                     alg.extended_problem.params.mip_tolerance_integrality)
                 push!(frac_master_vars, Pair(var_val[1], var_val[2]))
             end
