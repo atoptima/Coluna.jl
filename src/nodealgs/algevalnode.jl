@@ -1,4 +1,4 @@
-mutable struct SolsAndBounds ###FVC### why not simply struct
+mutable struct SolsAndBounds
     alg_inc_ip_primal_bound::Float
     alg_inc_lp_primal_bound::Float
     alg_inc_ip_dual_bound::Float
@@ -19,7 +19,6 @@ end
 function update_primal_ip_incumbents(incumbents::SolsAndBounds,
         var_val_map::Dict{Variable,Float}, newBound::Float)
     if newBound < incumbents.alg_inc_ip_primal_bound
-         ###FVC### should we use an epsilon to enforce a strict improvement
         incumbents.alg_inc_ip_primal_bound = newBound
         incumbents.alg_inc_ip_primal_sol_map = Dict{Variable, Float}()
         for var_val in var_val_map
@@ -45,7 +44,6 @@ function update_dual_lp_bound(incumbents::SolsAndBounds, newBound::Float)
         incumbents.alg_inc_lp_dual_bound = newBound
     end
 end
- ###FVC### do we assume a minimization problem, or do we want to make it generic for both min and max
 
 function update_dual_ip_bound(incumbents::SolsAndBounds, newBound::Float)
     new_ip_bound = ceil(newBound)
@@ -99,6 +97,13 @@ function update_alg_primal_lp_bound(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
     primal_bnd = master.primal_sols[end].cost
     update_primal_lp_bound(alg.sols_and_bounds, primal_bnd)
+end
+
+function update_alg_primal_lp_incumbents(alg::AlgToEvalNode)
+    master = alg.extended_problem.master_problem
+    primal_sol = master.primal_sols[end].var_val_map
+    primal_bnd = master.primal_sols[end].cost
+    update_primal_lp_incumbents(alg.sols_and_bounds, primal_sol, primal_bnd)
 end
 
 function update_alg_primal_ip_incumbents(alg::AlgToEvalNode)        

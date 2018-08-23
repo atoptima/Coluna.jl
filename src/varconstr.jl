@@ -63,7 +63,6 @@ end
     # mutable struct = 'X' for constraints defining a subproblem convexity constraint
     #            in the master
     # ```
-     ###FVC### why vc-type and not just type
     vc_type::Char
 
 
@@ -137,7 +136,7 @@ end
     # problem setup-
     # ```
     treat_order_id::Int
-    ###FVC### better be called gen_sequence_number
+    # TODO better be called gen_sequence_number
 end
 
 Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
