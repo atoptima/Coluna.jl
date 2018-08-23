@@ -1,9 +1,9 @@
-
+###FVC### could simplify name VarMpFormIndexStatus into VarMpFormStatus
 mutable struct VarMpFormIndexStatus{V<:Variable}
     variable::V
     status_in_basic_sol::Int
 end
-
+###FVC### idem
 mutable struct ConstrMpFormIndexStatus{C<:Constraint}
     constraint::C
     status_in_basic_sol::Int

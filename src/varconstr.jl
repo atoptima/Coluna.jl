@@ -40,31 +40,37 @@ end
     # sense : 'N' = negative
     # sense : 'F' = free
     #
-    # Constraints: 'G', 'L', or 'E'
+    # Constraints: 
+    # sense : 'G' = greater or equal to
+    # sense : 'L' = less or equal to
+    # sense : 'E' = equal to
     # ```
+    
     sense::Char
 
     # ```
     # For Variables:
     # 'C' = continuous,
-    # 'B' = binary,
-    # or 'I' = integer
+    # 'B' = binary, or
+    # 'I' = integer
+    #
     # For Constraints:
     # mutable struct = 'C' for core -required for the IP formulation-,
-    # mutable struct = 'F' for facultative -only helpfull for the LP formulation-,
+    # mutable struct = 'F' for facultative -only helpfull to tighten the LP approximation of the IP formulation-,
     # mutable struct = 'S' for constraints defining a subsystem in column generation for
     #            extended formulation approach
     # mutable struct = 'M' for constraints defining a pure master constraint
     # mutable struct = 'X' for constraints defining a subproblem convexity constraint
     #            in the master
     # ```
+     ###FVC### why vc-type and not just type
     vc_type::Char
 
 
     # ```
     # 's' -by default- for static VarConstr belonging to the problem -and erased
     #     when the problem is erased-
-    # 'd' for generated dynamic VarConstr not belonging to the problem
+    # 'd' for dynamically generated VarConstr not belonging to the problem at the outset
     # 'a' for artificial VarConstr.
     # ```
     flag::Char
@@ -73,12 +79,12 @@ end
     # ```
     # Active = In the formulation
     # Inactive = Can enter the formulation, but is not in it
-    # Unsuitable = Cannot enter the formulation in current node.
+    # Unsuitable = is not valid for the formulation at the current node.
     # ```
     status::VCSTATUS
 
     # ```
-    # Primal Value for a variable, dual value a constraint
+    # Primal Value for a variable, dual value for a constraint
     # ```
     val::Float
 
@@ -131,6 +137,7 @@ end
     # problem setup-
     # ```
     treat_order_id::Int
+    ###FVC### better be called gen_sequence_number
 end
 
 Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
