@@ -1,6 +1,6 @@
 @hl mutable struct MasterConstr <: Constraint
     # ```
-    # Represents the membership of a subproblem variable as a map where:
+    # Represents the membership of subproblem variable,s as a map where:
     # - The key is the index of the subproblem variable involved in this as member,
     # - The value is the corresponding coefficient.
     # ```
