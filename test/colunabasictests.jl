@@ -134,7 +134,6 @@ function branch_and_bound_bigger_instances()
         of_value += var_val.first.cost_rhs * var_val.second
     end
     @test of_value == model.extended_problem.solution.cost == model.extended_problem.primal_inc_bound
-    readline()
 
     n_items = 10
     nb_bins = 5
@@ -146,7 +145,7 @@ function branch_and_bound_bigger_instances()
     used_bad_var = false
     of_value = 0.0
     for var_val in model.extended_problem.solution.var_val_map
-        if ismatch(r"x\(5,\d\)", var_val.first.name)
+        if occursin(r"x\(5,\d\)", var_val.first.name)
             used_bad_var = true
         end
         of_value += var_val.first.cost_rhs * var_val.second
