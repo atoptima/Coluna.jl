@@ -1,24 +1,23 @@
-###FVC### could simplify name VarMpFormIndexStatus into VarMpFormStatus
-mutable struct VarMpFormIndexStatus{V<:Variable}
+
+mutable struct VarMpFormStatus{V<:Variable}
     variable::V
     status_in_basic_sol::Int
 end
-###FVC### idem
-mutable struct ConstrMpFormIndexStatus{C<:Constraint}
+
+mutable struct ConstrMpFormStatus{C<:Constraint}
     constraint::C
     status_in_basic_sol::Int
 end
 
 mutable struct LpBasisRecord
     name::String
-    vars_in_basis::Vector{VarMpFormIndexStatus}
-     ###FVC### why not a list rather than a vector
-    constr_in_basis::Vector{ConstrMpFormIndexStatus}
+    vars_in_basis::Vector{VarMpFormStatus}
+    constr_in_basis::Vector{ConstrMpFormStatus}
 end
 
 
-LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormIndexStatus}(),
-                              Vector{ConstrMpFormIndexStatus}())
+LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormStatus}(),
+                              Vector{ConstrMpFormStatus}())
 
 LpBasisRecord() = LpBasisRecord("basis")
 
@@ -68,9 +67,7 @@ end
 SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(),
         Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
 
-function add_in_var_manager(var_manager::SimpleVarIndexManager, var::Variable)
-         ###FVC### suggest to name it "add_var_in_manager"
-
+function add_var_in_manager(var_manager::SimpleVarIndexManager, var::Variable)
     if var.status == Active && var.flag == 's'
         list = var_manager.active_static_list
     elseif var.status == Active && var.flag == 'd'
@@ -95,7 +92,7 @@ end
 SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(),
         Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}())
 
-function add_in_constr_manager(constr_manager::SimpleConstrIndexManager,
+function add_constr_in_manager(constr_manager::SimpleConstrIndexManager,
                             constr::Constraint)
 
     if constr.status == Active && constr.flag == 's'
@@ -157,12 +154,10 @@ mutable struct CompactProblem{VM <: AbstractVarIndexManager,
 
     ### Current solutions
     obj_val::Float
-    obj_bound::Float
-    ###FVC### is it the obj_cutoff_val, the dual bound the primal incumbent ?
+    obj_bound::Float # Dual bound in LP, and "pruning" bound for MIP
     in_primal_lp_sol::Set{Variable}
     non_zero_red_cost_vars::Set{Variable}
-    ###FVC### unclear : do we mean strictly non-basic var ?
-    in_dual_sol::Set{Constraint}
+    in_dual_lp_sol::Set{Constraint}
     partial_solution_value::Float
     partial_solution::Dict{Variable,Float}
 
@@ -329,8 +324,7 @@ end
 
 function sol_is_integer(sol::Dict{Variable, Float}, tolerance::Float)
     for var_val in sol
-        if (!primal_value_is_integer(var_val.second, tolerance)
-            ###FVC### this should be a geneic function testing if a float is integer; so the name primal_value is not appropriate
+        if (!is_value_integer(var_val.second, tolerance)            
                 && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))
             println("Sol is fractional.")
             return false
@@ -343,7 +337,7 @@ end
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
 function add_variable(problem::Problem, var::Variable)
-    add_in_var_manager(problem.var_manager, var)
+    add_var_in_manager(problem.var_manager, var)
     if problem.optimizer != nothing
         var.moi_index = MOI.addvariable!(problem.optimizer)    
         # TODO set variable type
@@ -387,7 +381,7 @@ end
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the constraint
 function add_constraint(problem::Problem, constr::Constraint)
-    add_in_constr_manager(problem.constr_manager, constr)
+    add_constr_in_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing        
         f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
         constr.moi_index = MOI.addconstraint!(problem.optimizer, f,
@@ -396,7 +390,7 @@ function add_constraint(problem::Problem, constr::Constraint)
 end
 
 function add_full_constraint(problem::Problem, constr::BranchConstr)
-    add_in_constr_manager(problem.constr_manager, constr)
+    add_constr_in_manager(problem.constr_manager, constr)
     terms = MOI.ScalarAffineTerm{Float}[]
     for var_val in constr.member_coef_map
         push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index))
