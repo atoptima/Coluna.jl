@@ -12,8 +12,10 @@ end
 mutable struct LpBasisRecord
     name::String
     vars_in_basis::Vector{VarMpFormIndexStatus}
+     ###FVC### why not a list rather than a vector
     constr_in_basis::Vector{ConstrMpFormIndexStatus}
 end
+
 
 LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormIndexStatus}(),
                               Vector{ConstrMpFormIndexStatus}())
@@ -67,6 +69,8 @@ SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(),
         Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
 
 function add_in_var_manager(var_manager::SimpleVarIndexManager, var::Variable)
+         ###FVC### suggest to name it "add_var_in_manager"
+
     if var.status == Active && var.flag == 's'
         list = var_manager.active_static_list
     elseif var.status == Active && var.flag == 'd'
@@ -154,8 +158,10 @@ mutable struct CompactProblem{VM <: AbstractVarIndexManager,
     ### Current solutions
     obj_val::Float
     obj_bound::Float
+    ###FVC### is it the obj_cutoff_val, the dual bound the primal incumbent ?
     in_primal_lp_sol::Set{Variable}
     non_zero_red_cost_vars::Set{Variable}
+    ###FVC### unclear : do we mean strictly non-basic var ?
     in_dual_sol::Set{Constraint}
 
     partial_solution_value::Float
@@ -290,6 +296,7 @@ end
 function sol_is_integer(sol::Dict{Variable, Float}, tolerance::Float)
     for var_val in sol
         if (!primal_value_is_integer(var_val.second, tolerance)
+            ###FVC### this should be a geneic function testing if a float is integer; so the name primal_value is not appropriate
                 && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))
             println("Sol is fractional.")
             return false
