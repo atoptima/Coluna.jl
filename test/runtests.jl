@@ -27,5 +27,5 @@ end
     branch_and_bound_test_instance()
 end
 branch_and_bound_bigger_instances()
-simple_MOI_calls_to_ColunaModelOptimizer()
-tests_with_CachingOptimizer()
+test_moi_optimize_and_getters()
+test_moi_copy_optimize_and_getters()
