@@ -8,13 +8,11 @@ function build_tricky_model()
     moi_model = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                       coluna_optimizer)
 
-
     x1 = MOI.addvariable!(moi_model)
     x2 = MOI.addvariable!(moi_model)
     x3 = MOI.addvariable!(moi_model)
     x4 = MOI.addvariable!(moi_model)
     x5 = MOI.addvariable!(moi_model)
-
 
     objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([10.0, 1.0, 1.0], [x1, x2, x3]), 0.0)
     MOI.set!(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
@@ -37,14 +35,12 @@ function build_tricky_model()
     cf7 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x4, x5]), 0.0)
     constr7 = MOI.addconstraint!(moi_model, cf7, MOI.EqualTo(0.0))
 
-
     ## set coluna optimizers
     master_problem = coluna_optimizer.inner.extended_problem.master_problem
     coluna_optimizer.inner.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
     CL.set_model_optimizers(coluna_optimizer.inner)
 
-
-    return moi_model
+    return moi_model, [x1, x2, x3, x4, x5]
 
 end
 
@@ -60,13 +56,11 @@ function build_cachingOptimizer_model(n_items::Int, nb_bins::Int,
     moi_model = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                       coluna_optimizer)
                                       
-
     x_vars = Vector{Vector{MOI.VariableIndex}}()
     for j in 1:n_items
         x_vec = MOI.addvariables!(moi_model, nb_bins)
         push!(x_vars, x_vec)
     end
-
 
     knap_constrs = MOI.ConstraintIndex[]
     for i in 1:nb_bins
@@ -111,7 +105,6 @@ function build_cachingOptimizer_model(n_items::Int, nb_bins::Int,
     master_problem = coluna_optimizer.inner.extended_problem.master_problem
     coluna_optimizer.inner.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
     CL.set_model_optimizers(coluna_optimizer.inner)
-
 
     return moi_model
 

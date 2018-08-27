@@ -24,8 +24,6 @@ function simple_MOI_calls_to_ColunaModelOptimizer()
         @test MOI.get(coluna_optimizer, MOI.ObjectiveValue()) == -80.0
         println("Dual bound: ", MOI.get(coluna_optimizer, MOI.ObjectiveBound()))
 
-        
-
     end
 end
 
@@ -46,15 +44,20 @@ function tests_with_CachingOptimizer()
         caching_optimizer = build_cachingOptimizer_model(n_items, nb_bins, profits,
                                                          weights, binscap)
 
-
         MOI.optimize!(caching_optimizer)
-        @test MOI.get(caching_optimizer.optimizer, MOI.ObjectiveValue()) == -80.0
-
+        @test MOI.get(caching_optimizer, MOI.ObjectiveValue()) == -80.0
 
         # Builds a caching optimizer model using Coluna as solver
-        caching_optimizer = build_tricky_model()
+        caching_optimizer, vars = build_tricky_model()
         MOI.optimize!(caching_optimizer)
-        @test MOI.get(caching_optimizer.optimizer, MOI.ObjectiveValue()) == 23.0
+        @test MOI.get(caching_optimizer, MOI.ObjectiveValue()) == 23.0
+        @test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[1]) == 2.0
+        @test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[2]) == 1.0
+        @test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[3]) == 2.0
+        @test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[4]) == 0.0
+        @test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[5]) == 0.0
+        sol = MOI.get(caching_optimizer, MOI.VariablePrimal(), vars)
+        @test sol == [2.0, 1.0, 2.0, 0.0, 0.0]
 
     end
 end

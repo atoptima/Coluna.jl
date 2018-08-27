@@ -3,9 +3,11 @@ export ColunaModelOptimizer
 
 mutable struct ColunaModelOptimizer <: MOI.AbstractOptimizer
     inner::Model
+    map::Dict{MOI.VariableIndex,Int} ## The values are the vc_ref form VarConstr
     function ColunaModelOptimizer()
         coluna_model = ModelConstructor()
-        new(coluna_model)
+        _map = Dict{MOI.VariableIndex,Int}()
+        new(coluna_model, _map)
     end
 end
 
@@ -45,50 +47,41 @@ end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
-                         f::MOI.ScalarAffineFunction, s::MOI.LessThan)
+                         f::MOI.ScalarAffineFunction, rhs::Float64, sense::Char)
 
     ## Get the right problem id using MOI get function
     problem = get_problem_from_constraint(dest, ci)
-
     name = string("constraint_", mapping.conmap[ci].value)
-    constr = MasterConstr(problem.counter, name,
-                          s.upper - f.constant, 'L', 'M', 's')
-
+    constr = MasterConstr(problem.counter, name, rhs, sense, 'M', 's')
     add_constraint(problem, constr)
     add_memberships(constr, coluna_vars, problem, f, mapping)
 
+end
+
+
+function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
+                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         f::MOI.ScalarAffineFunction, s::MOI.LessThan)
+    load_constraint(ci, dest, mapping, coluna_vars, f, s.upper - f.constant, 'L')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
                          f::MOI.ScalarAffineFunction, s::MOI.GreaterThan)
-
-    ## Get the right problem id using MOI get function
-    problem = get_problem_from_constraint(dest, ci)
-
-    name = string("constraint_", mapping.conmap[ci].value)
-    constr = MasterConstr(problem.counter, name,
-                          s.lower - f.constant, 'G', 'M', 's')
-
-    add_constraint(problem, constr)
-    add_memberships(constr, coluna_vars, problem, f, mapping)
-
+    load_constraint(ci, dest, mapping, coluna_vars, f, s.lower - f.constant, 'G')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
                          f::MOI.ScalarAffineFunction, s::MOI.EqualTo)
+    load_constraint(ci, dest, mapping, coluna_vars, f, s.value - f.constant, 'E')
+end
 
-    ## Get the right problem id using MOI get function
-    problem = get_problem_from_constraint(dest, ci)
-
-    name = string("constraint_", mapping.conmap[ci].value)
-    constr = MasterConstr(problem.counter, name,
-                          s.value - f.constant, 'E', 'M', 's')
-
-    add_constraint(problem, constr)
-    add_memberships(constr, coluna_vars, problem, f, mapping)
-
+function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
+                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         f::MOI.ScalarAffineFunction, s::MOI.Interval)
+    load_constraint(ci, dest, mapping, coluna_vars, f, s.upper - f.constant, 'L')
+    load_constraint(ci, dest, mapping, coluna_vars, f, s.lower - f.constant, 'G')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
@@ -139,7 +132,7 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
     end
 end
 
-function copy_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
+function copy_scalaraffinefunction_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
     mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar})
     for (F,S) in MOI.get(src, MOI.ListOfConstraints())
         if F != MOI.SingleVariable
@@ -152,7 +145,7 @@ function copy_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
     end
 end
 
-function copy_singleVariable_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
+function copy_singlevariable_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
     mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar})
     for (F,S) in MOI.get(src, MOI.ListOfConstraints())
         if F == MOI.SingleVariable
@@ -177,16 +170,22 @@ function create_coluna_variables(dest::ColunaModelOptimizer, num_cols::Int,
         counter = dest.inner.extended_problem.counter
         var = MasterVar(counter, name, 0.0, 'P', 'I', 's', 'U', 1.0, -Inf, Inf)
         push!(coluna_vars, var)
-        mapping.varmap[var_index[i]] = MOI.VariableIndex(i)
+        new_idx = MOI.VariableIndex(i)
+        # Update map
+        mapping.varmap[var_index[i]] = new_idx
     end
     return coluna_vars
 end
 
-function add_variables_to_problem(dest::ColunaModelOptimizer, coluna_vars::Vector{<:Variable})
+function add_variables_to_problem(dest::ColunaModelOptimizer, coluna_vars::Vector{<:Variable}, mapping::MOIU.IndexMap)
     for idx in 1:length(coluna_vars)
         ### Get the right problem of the variable through attributes
         problem = dest.inner.extended_problem.master_problem
         add_variable(problem, coluna_vars[idx])
+    end
+    for i in mapping.varmap
+        # Update map
+        dest.map[i.second] = coluna_vars[i.first.value].vc_ref
     end
 end
 
@@ -194,10 +193,6 @@ function build_constraint_mapping(mapping::MOIU.IndexMap, src::MOI.ModelLike)
     list_of_constraints = MOI.get(src, MOI.ListOfConstraints())
     num_rows = 0
     for (F,S) in list_of_constraints
-        # if !(MOI.supportsconstraint(dest, F, S))
-        #     return MOI.CopyResult(MOI.CopyUnsupportedConstraint,
-        #     "Cbc MOI Interface does not support constraints of type " * (F,S) * ".", nothing)
-        # end
 
         ci = MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
 
@@ -214,22 +209,16 @@ function build_constraint_mapping(mapping::MOIU.IndexMap, src::MOI.ModelLike)
 end
 
 
-
-"""
-    function copy!(coluna_optimizer, user_optimizer; copynames=false)
+function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=false)
+    if copynames
+        error("Copynames not supported yet")
+    end
 
     ## Create variables without adding to problem
     ## Update the variable cost_rhs
     ## Go through SingleVariable constraints and modify the variables
     ## Add variables to problem
     ## Go throught ScalarAffineFunction constraints
-
-"""
-function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=false)
-    if copynames
-        error("Copynames not supported yet")
-    end
-
 
     mapping = MOIU.IndexMap()
     var_index = MOI.get(src, MOI.ListOfVariableIndices())
@@ -242,10 +231,9 @@ function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=fal
     MOI.set!(dest, MOI.ObjectiveSense(), sense)
     ##########################
     build_constraint_mapping(mapping, src)
-    copy_singleVariable_constraints(dest, src, mapping, coluna_vars)
-    add_variables_to_problem(dest, coluna_vars)
-    copy_constraints(dest, src, mapping, coluna_vars)
-
+    copy_singlevariable_constraints(dest, src, mapping, coluna_vars)
+    add_variables_to_problem(dest, coluna_vars, mapping)
+    copy_scalaraffinefunction_constraints(dest, src, mapping, coluna_vars)
 
     # println("Coluna variables:")
     # for var in coluna_vars
@@ -264,32 +252,6 @@ end
 
 
 
-
-# ## canadd, canset, canget functions
-
-# function MOI.canaddvariable(coluna_model_optimizer::ColunaModelOptimizer)
-#     return false
-# end
-
-# ## supports constraints
-
-
-# MOI.supportsconstraint(::ColunaModelOptimizer, ::Type{<:Union{MOI.ScalarAffineFunction{Float64}, MOI.SingleVariable}},
-# ::Type{<:Union{MOI.EqualTo{Float64}, MOI.Interval{Float64}, MOI.LessThan{Float64},
-# MOI.GreaterThan{Float64}, MOI.ZeroOne, MOI.Integer}}) = true
-
-# MOI.supports(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}) = true
-
-# ## Set functions
-
-# function MOI.write(coluna_optimizer::ColunaModelOptimizer, filename::String)
-#     if !endswith("filename", "mps")
-#         error("ColunaModelOptimizer only supports writing .mps files")
-#     else
-#         writeMps(coluna_optimizer.inner, filename)
-#     end
-# end
-
 function MOI.set!(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense,
                   sense::MOI.OptimizationSense)
     if sense != MOI.MinSense
@@ -298,7 +260,6 @@ function MOI.set!(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveS
 end
 
 
-# empty!
 function MOI.empty!(coluna_optimizer::ColunaModelOptimizer)
     coluna_optimizer.inner = ModelConstructor()
 end
@@ -307,19 +268,10 @@ end
 
 # ## Get functions
 
+MOI.canget(coluna_optimizer::ColunaModelOptimizer,
+           object::Union{MOI.ObjectiveSense, MOI.ObjectiveValue, MOI.ObjectiveBound}) = true
 
-# function MOI.canget(coluna_optimizer::ColunaModelOptimizer, object::MOI.PrimalStatus)
-#     if object.N != 1
-#         return false
-#     end
-#     return MOI.get(coluna_optimizer, MOI.ResultCount()) == 1
-# end
-
-
-# MOI.canget(coluna_optimizer::ColunaModelOptimizer, object::Union{MOI.NodeCount, MOI.ResultCount,
-# MOI.TerminationStatus, MOI.ObjectiveSense, MOI.ObjectiveValue, MOI.ObjectiveBound, MOI.NumberOfVariables}) = true
-
-# MOI.canget(coluna_optimizer::ColunaModelOptimizer, object::MOI.VariablePrimal, indexTypeOrObject::Type{MOI.VariableIndex}) = true
+MOI.canget(coluna_optimizer::ColunaModelOptimizer, object::MOI.VariablePrimal, indexTypeOrObject::Type{MOI.VariableIndex}) = true
 
 
 function MOI.isempty(coluna_optimizer::ColunaModelOptimizer)
@@ -332,67 +284,33 @@ function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveBo
     return coluna_optimizer.inner.extended_problem.dual_inc_bound
 end
 
-# function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.NodeCount)
-# end
-
 function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveValue)
     return coluna_optimizer.inner.extended_problem.primal_inc_bound
 end
 
-# function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.VariablePrimal, ref::MOI.VariableIndex)
-#     variablePrimals = CbcCI.getColSolution(coluna_optimizer.inner)
-#     return variablePrimals[ref.value]
-# end
+function MOI.get(coluna_optimizer::ColunaModelOptimizer,
+                 object::MOI.VariablePrimal, ref::MOI.VariableIndex)
+    solution = coluna_optimizer.inner.extended_problem.solution.var_val_map
+    map = coluna_optimizer.map
+    vc_ref = map[ref]
 
-# function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.VariablePrimal, ref::Vector{MOI.VariableIndex})
-#     variablePrimals = CbcCI.getColSolution(coluna_optimizer.inner)
-#     return [variablePrimals[vi.value] for vi in ref]
-# end
+    for var_val in solution
+        if var_val.first.vc_ref == vc_ref
+            return var_val.second
+        end
+    end
+    ## If it is now present in the solution it means that the value is 0.0
+    return 0.0
+end
 
-
-# function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.ResultCount)
-#     if (isProvenInfeasible(coluna_optimizer.inner) || isContinuousUnbounded(coluna_optimizer.inner)
-#         || isAbandoned(coluna_optimizer.inner) || CbcCI.getObjValue(coluna_optimizer.inner) >= 1e300)
-#         return 0
-#     end
-#     return 1
-# end
-
-
-# function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense)
-#     CbcCI.getObjSense(coluna_optimizer.inner) == 1 && return MOI.MinSense
-#     CbcCI.getObjSense(coluna_optimizer.inner) == -1 && return MOI.MaxSense
-# end
+function MOI.get(coluna_optimizer::ColunaModelOptimizer,
+                 object::MOI.VariablePrimal, ref::Vector{MOI.VariableIndex})
+    return [MOI.get(coluna_optimizer, object, ref[i]) for i in 1:length(ref)]
+end
 
 
+function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense)
+    # MaxSense is currently not supported
+    return MOI.MinSense
+end
 
-# function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.TerminationStatus)
-
-#     if isProvenInfeasible(coluna_optimizer.inner)
-#         return MOI.InfeasibleNoResult
-#     elseif isContinuousUnbounded(coluna_optimizer.inner)
-#         return MOI.InfeasibleOrUnbounded
-#     elseif isNodeLimitReached(coluna_optimizer.inner)
-#         return MOI.NodeLimit
-#     elseif isSecondsLimitReached(coluna_optimizer.inner)
-#         return MOI.TimeLimit
-#     elseif isSolutionLimitReached(coluna_optimizer.inner)
-#         return MOI.SolutionLimit
-#     elseif (isProvenOptimal(coluna_optimizer.inner) || isInitialSolveProvenOptimal(coluna_optimizer.inner)
-#         || MOI.get(coluna_optimizer, MOI.ResultCount()) == 1)
-#         return MOI.Success
-#     elseif isAbandoned(coluna_optimizer.inner)
-#         return MOI.Interrupted
-#     else
-#         error("Internal error: Unrecognized solution status")
-#     end
-
-# end
-
-# function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.PrimalStatus)
-#     if isProvenOptimal(coluna_optimizer.inner) || isInitialSolveProvenOptimal(coluna_optimizer.inner)
-#         return MOI.FeasiblePoint
-#     elseif isProvenInfeasible(coluna_optimizer.inner)
-#         return MOI.InfeasiblePoint
-#     end
-# end
