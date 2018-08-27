@@ -30,8 +30,8 @@ function add_memberships(constr::Constraint, coluna_vars::Vector{MasterVar},
                          problem::Problem, f::MOI.ScalarAffineFunction,
                          mapping::MOIU.IndexMap)
     for term in f.terms
-        add_membership(coluna_vars[mapping.varmap[term.variable_index].value],
-                       constr, problem, term.coefficient)
+        add_membership(problem, coluna_vars[mapping.varmap[term.variable_index].value],
+                       constr, term.coefficient)
     end
 end
 

@@ -150,8 +150,8 @@ function build_bb_coluna_model(n_items::Int, nb_bins::Int,
                 profits[j], 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
             push!(x_vec, x_var)
             CL.add_variable(master_problem, x_var)
-            CL.add_membership(x_var, cover_constrs[j], master_problem, 1.0)
-            CL.add_membership(x_var, knap_constrs[i], master_problem, weights[j])
+            CL.add_membership(master_problem, x_var, cover_constrs[j], 1.0)
+            CL.add_membership(master_problem, x_var, knap_constrs[i], weights[j])
         end
         push!(x_vars, x_vec)
     end

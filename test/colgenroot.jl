@@ -36,10 +36,10 @@ function testcolgenatroot()
 
     CL.add_constraint(pricingprob, knp_constr)
 
-    CL.add_membership(x1, knp_constr, pricingprob, 3.0)
-    CL.add_membership(x2, knp_constr, pricingprob, 4.0)
-    CL.add_membership(x3, knp_constr, pricingprob, 5.0)
-    CL.add_membership(y, knp_constr, pricingprob, -8.0)
+    CL.add_membership(pricingprob, x1, knp_constr, 3.0)
+    CL.add_membership(pricingprob, x2, knp_constr, 4.0)
+    CL.add_membership(pricingprob, x3, knp_constr, 5.0)
+    CL.add_membership(pricingprob, y, knp_constr, -8.0)
 
     # master var
     art_glob_var = CL.MasterVar(counter, "glob_art", 1000000.0, 'P', 'C', 
@@ -63,14 +63,14 @@ function testcolgenatroot()
     CL.add_constraint(master_problem, cov_3_constr)
     CL.add_constraint(master_problem, convexity_constr)
 
-    CL.add_membership(x1, cov_1_constr, master_problem, 1.0)
-    CL.add_membership(x2, cov_2_constr, master_problem, 1.0)
-    CL.add_membership(x3, cov_3_constr, master_problem, 1.0)
-    CL.add_membership(y, convexity_constr, master_problem, 1.0)
+    CL.add_membership(master_problem, x1, cov_1_constr, 1.0)
+    CL.add_membership(master_problem, x2, cov_2_constr, 1.0)
+    CL.add_membership(master_problem, x3, cov_3_constr, 1.0)
+    CL.add_membership(master_problem, y, convexity_constr, 1.0)
     
-    CL.add_membership(art_glob_var, cov_1_constr, master_problem, 1.0)
-    CL.add_membership(art_glob_var, cov_2_constr, master_problem, 1.0)
-    CL.add_membership(art_glob_var, cov_3_constr, master_problem, 1.0)
+    CL.add_membership(master_problem, art_glob_var, cov_1_constr, 1.0)
+    CL.add_membership(master_problem, art_glob_var, cov_2_constr, 1.0)
+    CL.add_membership(master_problem, art_glob_var, cov_3_constr, 1.0)
 
     # model = CL.Model(CL.Params(), CL.VarConstrCounter(0), master_problem,
     #               [pricingprob], [(0,100)], CL.PrimalSolution(), Inf, -Inf, 0)

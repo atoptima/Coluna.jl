@@ -74,9 +74,9 @@ function testpuremaster()
 
     CL.add_constraint(problem, constr)
 
-    CL.add_membership(x1, constr, problem, 2.0)
-    CL.add_membership(x2, constr, problem, 3.0)
-    CL.add_membership(x3, constr, problem, 4.0)
+    CL.add_membership(problem, x1, constr, 2.0)
+    CL.add_membership(problem, x2, constr, 3.0)
+    CL.add_membership(problem, x3, constr, 4.0)
 
     CL.optimize(problem)
 
@@ -107,9 +107,9 @@ function branch_and_bound_test_instance()
 
     CL.add_constraint(master_problem, constr)
 
-    CL.add_membership(x1, constr, master_problem, 2.0)
-    CL.add_membership(x2, constr, master_problem, 3.0)
-    CL.add_membership(x3, constr, master_problem, 4.0)
+    CL.add_membership(master_problem, x1, constr, 2.0)
+    CL.add_membership(master_problem, x2, constr, 3.0)
+    CL.add_membership(master_problem, x3, constr, 4.0)
 
 
     CL.solve(model)
