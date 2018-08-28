@@ -2,10 +2,10 @@ export ColunaModelOptimizer
 
 mutable struct ColunaModelOptimizer <: MOI.AbstractOptimizer
     inner::Model
-    map::Dict{MOI.VariableIndex,Int} ## The values are the vc_ref form VarConstr
+    map::Dict{MOI.VariableIndex,Variable}
     function ColunaModelOptimizer()
         coluna_model = ModelConstructor()
-        _map = Dict{MOI.VariableIndex,Int}()
+        _map = Dict{MOI.VariableIndex,Variable}()
         new(coluna_model, _map)
     end
 end
@@ -155,19 +155,18 @@ function create_coluna_variables(dest::ColunaModelOptimizer, num_cols::Int,
         new_idx = MOI.VariableIndex(i)
         # Update map
         mapping.varmap[var_index[i]] = new_idx
+        dest.map[new_idx] = var
     end
     return coluna_vars
 end
 
-function add_variables_to_problem(dest::ColunaModelOptimizer, coluna_vars::Vector{<:Variable}, mapping::MOIU.IndexMap)
+function add_variables_to_problem(dest::ColunaModelOptimizer,
+                                  coluna_vars::Vector{<:Variable},
+                                  mapping::MOIU.IndexMap)
     for idx in 1:length(coluna_vars)
         ### Get the right problem of the variable through attributes
         problem = dest.inner.extended_problem.master_problem
         add_variable(problem, coluna_vars[idx])
-    end
-    for i in mapping.varmap
-        # Update map
-        dest.map[i.second] = coluna_vars[i.first.value].vc_ref
     end
 end
 
@@ -250,16 +249,12 @@ end
 function MOI.get(coluna_optimizer::ColunaModelOptimizer,
                  object::MOI.VariablePrimal, ref::MOI.VariableIndex)
     solution = coluna_optimizer.inner.extended_problem.solution.var_val_map
-    map = coluna_optimizer.map
-    vc_ref = map[ref]
-
-    for var_val in solution
-        if var_val.first.vc_ref == vc_ref
-            return var_val.second
-        end
+    var = coluna_optimizer.map[ref] ## This gets a coluna variable
+    if haskey(solution, var)
+        return solution[var]
+    else
+        return 0.0
     end
-    ## If it is now present in the solution it means that the value is 0.0
-    return 0.0
 end
 
 function MOI.get(coluna_optimizer::ColunaModelOptimizer,
