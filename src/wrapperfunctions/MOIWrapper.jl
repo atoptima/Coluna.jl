@@ -2,11 +2,11 @@ export ColunaModelOptimizer
 
 mutable struct ColunaModelOptimizer <: MOI.AbstractOptimizer
     inner::Model
-    map::Dict{MOI.VariableIndex,Variable}
+    varmap::Dict{MOI.VariableIndex,Variable}
     function ColunaModelOptimizer()
         coluna_model = ModelConstructor()
-        _map = Dict{MOI.VariableIndex,Variable}()
-        new(coluna_model, _map)
+        _varmap = Dict{MOI.VariableIndex,Variable}()
+        new(coluna_model, _varmap)
     end
 end
 
@@ -44,38 +44,40 @@ end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
-                         f::MOI.ScalarAffineFunction, rhs::Float64, sense::Char)
+                         f::MOI.ScalarAffineFunction, s::MOI.AbstractSet,
+                         rhs::Float64, sense::Char)
     ## Get the right problem id using MOI get function
     problem = get_problem_from_constraint(dest, ci)
     name = string("constraint_", mapping.conmap[ci].value)
     constr = MasterConstr(problem.counter, name, rhs, sense, 'M', 's')
     add_constraint(problem, constr)
     add_memberships(constr, coluna_vars, problem, f, mapping)
+    update_constraint_map(mapping, ci, f, s)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
                          f::MOI.ScalarAffineFunction, s::MOI.LessThan)
-    load_constraint(ci, dest, mapping, coluna_vars, f, s.upper - f.constant, 'L')
+    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.upper - f.constant, 'L')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
                          f::MOI.ScalarAffineFunction, s::MOI.GreaterThan)
-    load_constraint(ci, dest, mapping, coluna_vars, f, s.lower - f.constant, 'G')
+    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.lower - f.constant, 'G')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
                          f::MOI.ScalarAffineFunction, s::MOI.EqualTo)
-    load_constraint(ci, dest, mapping, coluna_vars, f, s.value - f.constant, 'E')
+    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.value - f.constant, 'E')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
                          f::MOI.ScalarAffineFunction, s::MOI.Interval)
-    load_constraint(ci, dest, mapping, coluna_vars, f, s.upper - f.constant, 'L')
-    load_constraint(ci, dest, mapping, coluna_vars, f, s.lower - f.constant, 'G')
+    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.upper - f.constant, 'L')
+    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.lower - f.constant, 'G')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
@@ -84,12 +86,14 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
     coluna_vars[mapping.varmap[f.variable].value].vc_type = 'I'
     coluna_vars[mapping.varmap[f.variable].value].lower_bound = 0.0
     coluna_vars[mapping.varmap[f.variable].value].upper_bound = 1.0
+    update_constraint_map(mapping, ci, f, s)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
                          f::MOI.SingleVariable, s::MOI.Integer)
     coluna_vars[mapping.varmap[f.variable].value].vc_type = 'I'
+    update_constraint_map(mapping, ci, f, s)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
@@ -97,6 +101,7 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          f::MOI.SingleVariable, s::MOI.LessThan)
     if s.upper < coluna_vars[mapping.varmap[f.variable].value].upper_bound
         coluna_vars[mapping.varmap[f.variable].value].upper_bound = s.upper
+        update_constraint_map(mapping, ci, f, s)
     end
 end
 
@@ -105,6 +110,7 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          f::MOI.SingleVariable, s::MOI.GreaterThan)
     if s.lower > coluna_vars[mapping.varmap[f.variable].value].lower_bound
         coluna_vars[mapping.varmap[f.variable].value].lower_bound = s.lower
+        update_constraint_map(mapping, ci, f, s)
     end
 end
 
@@ -113,6 +119,7 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          f::MOI.SingleVariable, s::MOI.EqualTo)
     coluna_vars[mapping.varmap[f.variable].value].lower_bound = s.value
     coluna_vars[mapping.varmap[f.variable].value].upper_bound = s.value
+    update_constraint_map(mapping, ci, f, s)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
@@ -124,6 +131,14 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
     if s.upper < coluna_vars[mapping.varmap[f.variable].value].upper_bound
         coluna_vars[mapping.varmap[f.variable].value].upper_bound = s.upper
     end
+    update_constraint_map(mapping, ci, f, s)
+end
+
+function update_constraint_map(mapping::MOIU.IndexMap, ci::MOI.ConstraintIndex,
+                               f::MOI.AbstractFunction, s::MOI.AbstractSet)
+    idx = length(mapping.conmap) + 1
+    new_ci = MOI.ConstraintIndex{typeof(f),typeof(s)}(idx)
+    mapping.conmap[ci] = new_ci
 end
 
 function copy_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
@@ -155,7 +170,7 @@ function create_coluna_variables(dest::ColunaModelOptimizer, num_cols::Int,
         new_idx = MOI.VariableIndex(i)
         # Update map
         mapping.varmap[var_index[i]] = new_idx
-        dest.map[new_idx] = var
+        dest.varmap[new_idx] = var
     end
     return coluna_vars
 end
@@ -249,7 +264,7 @@ end
 function MOI.get(coluna_optimizer::ColunaModelOptimizer,
                  object::MOI.VariablePrimal, ref::MOI.VariableIndex)
     solution = coluna_optimizer.inner.extended_problem.solution.var_val_map
-    var = coluna_optimizer.map[ref] ## This gets a coluna variable
+    var = coluna_optimizer.varmap[ref] ## This gets a coluna variable
     if haskey(solution, var)
         return solution[var]
     else
