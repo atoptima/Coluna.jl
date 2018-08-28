@@ -3,12 +3,42 @@ export ColunaModelOptimizer
 mutable struct ColunaModelOptimizer <: MOI.AbstractOptimizer
     inner::Model
     varmap::Dict{MOI.VariableIndex,Variable}
+    ci_probidx_map::Dict{MOI.ConstraintIndex,Int}
+    vi_probidx_map::Dict{MOI.VariableIndex,Int}
     function ColunaModelOptimizer()
         coluna_model = ModelConstructor()
         _varmap = Dict{MOI.VariableIndex,Variable}()
-        new(coluna_model, _varmap)
+        _ci_probidx_map = Dict{MOI.ConstraintIndex,Int}()
+        _vi_probidx_map = Dict{MOI.VariableIndex,Int}()
+        new(coluna_model, _varmap, _ci_probidx_map, _vi_probidx_map)
     end
 end
+
+## Annotations needed for column generation
+struct ConstraintProblemIndex <: MOI.AbstractConstraintAttribute end
+
+function MOI.set!(dest::ColunaModelOptimizer, attribute::ConstraintProblemIndex,
+                  ci::MOI.ConstraintIndex, value::Int)
+    dest.ci_probidx_map[ci] = value
+end
+
+function MOI.get(dest::ColunaModelOptimizer, attribute::ConstraintProblemIndex,
+                 ci::MOI.ConstraintIndex)
+    return dest.ci_probidx_map[ci]
+end
+
+struct VariableProblemIndex <: MOI.AbstractVariableAttribute end
+
+function MOI.set!(dest::ColunaModelOptimizer, attribute::VariableProblemIndex,
+                  vi::MOI.VariableIndex, value::Int)
+    dest.vi_probidx_map[vi] = value
+end
+
+function MOI.get(dest::ColunaModelOptimizer, attribute::VariableProblemIndex,
+                 vi::MOI.VariableIndex)
+    return dest.vi_probidx_map[vi]
+end
+###
 
 function MOI.optimize!(coluna_optimizer::ColunaModelOptimizer)
     solve(coluna_optimizer.inner)
