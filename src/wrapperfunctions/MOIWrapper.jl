@@ -48,7 +48,7 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          rhs::Float64, sense::Char)
     ## Get the right problem id using MOI get function
     problem = get_problem_from_constraint(dest, ci)
-    name = string("constraint_", mapping.conmap[ci].value)
+    name = string("constraint_", ci.value)
     constr = MasterConstr(problem.counter, name, rhs, sense, 'M', 's')
     add_constraint(problem, constr)
     add_memberships(constr, coluna_vars, problem, f, mapping)
@@ -185,23 +185,6 @@ function add_variables_to_problem(dest::ColunaModelOptimizer,
     end
 end
 
-function build_constraint_mapping(mapping::MOIU.IndexMap, src::MOI.ModelLike)
-    list_of_constraints = MOI.get(src, MOI.ListOfConstraints())
-    num_rows = 0
-    for (F,S) in list_of_constraints
-        ci = MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-        if F != MOI.SingleVariable
-            ## Update conmap for (F,S) for F != MOI.SingleVariable
-            ## Single variables are treated by bounds inside the varconstr,
-            ## so no need to add a row
-            for i in 1:length(ci)
-                mapping.conmap[ci[i]] = MOI.ConstraintIndex{F,S}(num_rows + i)
-            end
-            num_rows += MOI.get(src, MOI.NumberOfConstraints{F,S}())
-        end
-    end
-end
-
 function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=false)
     if copynames
         error("Copynames not supported yet")
@@ -223,7 +206,6 @@ function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=fal
     sense = MOI.get(src, MOI.ObjectiveSense())
     MOI.set!(dest, MOI.ObjectiveSense(), sense)
     ##########################
-    build_constraint_mapping(mapping, src)
     copy_constraints(dest, src, mapping, coluna_vars, true)
     add_variables_to_problem(dest, coluna_vars, mapping)
     copy_constraints(dest, src, mapping, coluna_vars, false)
