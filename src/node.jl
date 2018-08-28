@@ -131,8 +131,9 @@ function record_ip_primal_sol_and_update_ip_primal_bound(node::Node,
         sols_and_bounds)
 
     if node.node_inc_ip_primal_bound > sols_and_bounds.alg_inc_ip_primal_bound
-        node.node_inc_ip_primal_sol = PrimalSolution(sols_and_bounds.alg_inc_ip_primal_bound,
-            deepcopy(sols_and_bounds.alg_inc_ip_primal_sol_map))
+        sol = PrimalSolution(sols_and_bounds.alg_inc_ip_primal_bound,
+                             sols_and_bounds.alg_inc_ip_primal_sol_map)
+        node.node_inc_ip_primal_sol = sol
         node.node_inc_ip_primal_bound = sols_and_bounds.alg_inc_ip_primal_bound
         node.ip_primal_bound_is_updated = true
     end
@@ -166,7 +167,6 @@ function update_node_primals(node::Node, sols_and_bounds)
     node.node_inc_lp_primal_bound = sols_and_bounds.alg_inc_lp_primal_bound
     node.primal_sol = PrimalSolution(node.node_inc_lp_primal_bound,
         sols_and_bounds.alg_inc_lp_primal_sol_map)
-
 end
 
 function update_node_incumbents(node::Node, sols_and_bounds)
