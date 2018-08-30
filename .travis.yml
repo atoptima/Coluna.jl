@@ -4,8 +4,8 @@ os:
   - linux
   - osx
 julia:
-  - 0.6
-  - nightly
+  - 0.7
+  - 1.0
 notifications:
   email: false
 git:
@@ -27,7 +27,7 @@ git:
 
 ## uncomment the following lines to override the default test script
 script:
-  - julia -e 'Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.test("Coluna"; coverage=true)'
+  - julia -e 'Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.add("GLPK"); Pkg.test("Coluna"; coverage=true)'
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("Coluna")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
