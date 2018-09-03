@@ -2,41 +2,65 @@ export ColunaModelOptimizer
 
 mutable struct ColunaModelOptimizer <: MOI.AbstractOptimizer
     inner::Model
-    varmap::Dict{MOI.VariableIndex,Variable}
-    ci_probidx_map::Dict{MOI.ConstraintIndex,Int}
-    vi_probidx_map::Dict{MOI.VariableIndex,Int}
+    varmap::Dict{MOI.VariableIndex,Variable} ## Keys and values are created in this file
+    ## add conmap here
+    constr_probidx_map::Dict{Constraint,Int}
+    var_probidx_map::Dict{Variable,Int}
+    nb_subproblems::Int
     function ColunaModelOptimizer()
         coluna_model = ModelConstructor()
         _varmap = Dict{MOI.VariableIndex,Variable}()
-        _ci_probidx_map = Dict{MOI.ConstraintIndex,Int}()
-        _vi_probidx_map = Dict{MOI.VariableIndex,Int}()
-        new(coluna_model, _varmap, _ci_probidx_map, _vi_probidx_map)
+        _constr_probidx_map = Dict{Constraint,Int}()
+        _var_probidx_map = Dict{Variable,Int}()
+        new(coluna_model, _varmap, _constr_probidx_map, _var_probidx_map, 0)
     end
 end
 
 ## Annotations needed for column generation
-struct ConstraintProblemIndex <: MOI.AbstractConstraintAttribute end
+## Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
+struct ConstraintDantzigWolfeAnnotation <: MOI.AbstractConstraintAttribute end
 
-function MOI.set!(dest::ColunaModelOptimizer, attribute::ConstraintProblemIndex,
+function MOI.set!(dest::MOIU.UniversalFallback, attribute::ConstraintDantzigWolfeAnnotation,
                   ci::MOI.ConstraintIndex, value::Int)
-    dest.ci_probidx_map[ci] = value
+    if haskey(dest.conattr, attribute)
+        dest.conattr[attribute][ci] = value
+    else
+        dest.conattr[attribute] = Dict{MOI.ConstraintIndex,Int}()
+        dest.conattr[attribute][ci] = value
+    end
 end
 
-function MOI.get(dest::ColunaModelOptimizer, attribute::ConstraintProblemIndex,
+function MOI.get(dest::MOIU.UniversalFallback, attribute::ConstraintDantzigWolfeAnnotation,
                  ci::MOI.ConstraintIndex)
-    return dest.ci_probidx_map[ci]
+    if haskey(dest.conattr, attribute)
+        if haskey(dest.conattr[attribute], ci)
+            return dest.conattr[attribute][ci]
+        end
+    end
+    return -1 ## Returns value -1 as default if not found
 end
 
-struct VariableProblemIndex <: MOI.AbstractVariableAttribute end
+## Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
+struct VariableDantzigWolfeAnnotation <: MOI.AbstractVariableAttribute end
 
-function MOI.set!(dest::ColunaModelOptimizer, attribute::VariableProblemIndex,
+function MOI.set!(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAnnotation,
                   vi::MOI.VariableIndex, value::Int)
-    dest.vi_probidx_map[vi] = value
+    if haskey(dest.varattr, attribute)
+        dest.varattr[attribute][vi] = value
+    else
+        dest.varattr[attribute] = Dict{MOI.VariableIndex,Int}()
+        dest.varattr[attribute][vi] = value
+    end
 end
 
-function MOI.get(dest::ColunaModelOptimizer, attribute::VariableProblemIndex,
+function MOI.get(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAnnotation,
                  vi::MOI.VariableIndex)
-    return dest.vi_probidx_map[vi]
+    if haskey(dest.varattr, attribute)
+        if haskey(dest.varattr[attribute], vi)
+            return dest.varattr[attribute][vi]
+        end
+    end
+    return -1 ## Returns value -1 as default if not found
 end
 ###
 
@@ -53,7 +77,7 @@ function load_obj(dest::ColunaModelOptimizer, coluna_vars::Vector{<:Variable},
     end
 end
 
-function add_memberships(constr::Constraint, coluna_vars::Vector{MasterVar},
+function add_memberships(constr::Constraint, coluna_vars::Vector{<:Variable},
                          problem::Problem, f::MOI.ScalarAffineFunction,
                          mapping::MOIU.IndexMap)
     for term in f.terms
@@ -62,72 +86,69 @@ function add_memberships(constr::Constraint, coluna_vars::Vector{MasterVar},
     end
 end
 
-function get_problem_from_constraint(dest::ColunaModelOptimizer, ci::MOI.ConstraintIndex)
-    problem_id = 0 ## TODO:: Implement this with MOI get function
-    if problem_id == 0
-        problem = dest.inner.extended_problem.master_problem
-    else
-        problem = dest.inner.extended_problem.pricing_vect[problem_id]
-    end
-    return problem
-end
-
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.ScalarAffineFunction, s::MOI.AbstractSet,
                          rhs::Float64, sense::Char)
     ## Get the right problem id using MOI get function
-    problem = get_problem_from_constraint(dest, ci)
     name = string("constraint_", ci.value)
-    constr = MasterConstr(problem.counter, name, rhs, sense, 'M', 's')
+    prob_idx = MOI.get(src, ConstraintDantzigWolfeAnnotation(), ci)
+    if prob_idx <= 0
+        problem = dest.inner.extended_problem.master_problem
+        constr = MasterConstr(problem.counter, name, rhs, sense, 'M', 's')
+    else
+        problem = dest.inner.extended_problem.pricing_vect[prob_idx]
+        constr = Constraint(problem.counter, name, rhs, sense, 'M', 's')
+    end
+    dest.constr_probidx_map[constr] = prob_idx
     add_constraint(problem, constr)
     add_memberships(constr, coluna_vars, problem, f, mapping)
     update_constraint_map(mapping, ci, f, s)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.ScalarAffineFunction, s::MOI.LessThan)
-    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.upper - f.constant, 'L')
+    load_constraint(ci, dest, src, mapping, coluna_vars, f, s, s.upper - f.constant, 'L')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.ScalarAffineFunction, s::MOI.GreaterThan)
-    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.lower - f.constant, 'G')
+    load_constraint(ci, dest, src, mapping, coluna_vars, f, s, s.lower - f.constant, 'G')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.ScalarAffineFunction, s::MOI.EqualTo)
-    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.value - f.constant, 'E')
+    load_constraint(ci, dest, src, mapping, coluna_vars, f, s, s.value - f.constant, 'E')
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
-                         f::MOI.ScalarAffineFunction, s::MOI.Interval)
-    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.upper - f.constant, 'L')
-    load_constraint(ci, dest, mapping, coluna_vars, f, s, s.lower - f.constant, 'G')
-end
-
-function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.SingleVariable, s::MOI.ZeroOne)
-    coluna_vars[mapping.varmap[f.variable].value].vc_type = 'I'
+    coluna_vars[mapping.varmap[f.variable].value].vc_type = 'B'
     coluna_vars[mapping.varmap[f.variable].value].lower_bound = 0.0
     coluna_vars[mapping.varmap[f.variable].value].upper_bound = 1.0
     update_constraint_map(mapping, ci, f, s)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.SingleVariable, s::MOI.Integer)
     coluna_vars[mapping.varmap[f.variable].value].vc_type = 'I'
     update_constraint_map(mapping, ci, f, s)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.SingleVariable, s::MOI.LessThan)
     if s.upper < coluna_vars[mapping.varmap[f.variable].value].upper_bound
         coluna_vars[mapping.varmap[f.variable].value].upper_bound = s.upper
@@ -136,7 +157,8 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.SingleVariable, s::MOI.GreaterThan)
     if s.lower > coluna_vars[mapping.varmap[f.variable].value].lower_bound
         coluna_vars[mapping.varmap[f.variable].value].lower_bound = s.lower
@@ -145,22 +167,11 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
+                         src::MOI.ModelLike, mapping::MOIU.IndexMap,
+                         coluna_vars::Vector{<:Variable},
                          f::MOI.SingleVariable, s::MOI.EqualTo)
     coluna_vars[mapping.varmap[f.variable].value].lower_bound = s.value
     coluna_vars[mapping.varmap[f.variable].value].upper_bound = s.value
-    update_constraint_map(mapping, ci, f, s)
-end
-
-function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
-                         mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar},
-                         f::MOI.SingleVariable, s::MOI.Interval)
-    if s.lower > coluna_vars[mapping.varmap[f.variable].value].lower_bound
-        coluna_vars[mapping.varmap[f.variable].value].lower_bound = s.lower
-    end
-    if s.upper < coluna_vars[mapping.varmap[f.variable].value].upper_bound
-        coluna_vars[mapping.varmap[f.variable].value].upper_bound = s.upper
-    end
     update_constraint_map(mapping, ci, f, s)
 end
 
@@ -172,46 +183,88 @@ function update_constraint_map(mapping::MOIU.IndexMap, ci::MOI.ConstraintIndex,
 end
 
 function copy_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
-    mapping::MOIU.IndexMap, coluna_vars::Vector{MasterVar}, only_singlevariable::Bool)
+    mapping::MOIU.IndexMap, coluna_vars::Vector{<:Variable}; only_singlevariable = false)
     for (F,S) in MOI.get(src, MOI.ListOfConstraints())
         if (F == MOI.SingleVariable && only_singlevariable
             || F != MOI.SingleVariable && !only_singlevariable)
             for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
                 f = MOI.get(src, MOI.ConstraintFunction(), ci)
                 s = MOI.get(src,  MOI.ConstraintSet(), ci)
-                load_constraint(ci, dest, mapping, coluna_vars, f, s)
+                load_constraint(ci, dest, src, mapping, coluna_vars, f, s)
             end
         end
     end
 end
 
-function create_coluna_variables(dest::ColunaModelOptimizer, num_cols::Int,
-                                 var_index::Vector{MOI.VariableIndex},
+function create_coluna_variables(dest::ColunaModelOptimizer, src::MOI.ModelLike,
                                  mapping::MOIU.IndexMap, copynames::Bool)
-    coluna_vars = MasterVar[]
+    var_index = MOI.get(src, MOI.ListOfVariableIndices())
+    num_cols = MOI.get(src, MOI.NumberOfVariables())
+    coluna_vars = Variable[]
     for i in 1:num_cols
         name = string("var(", i, ")") ## Update to support copynames
-        ## get whatever attribute is needed to create the variable
-        ## i.e. MOI.get(src, var_index[i], Coluna.ColGenDecompositionAttribute)
-        ## Create the right type of Coluna variable with the correct arguments
         counter = dest.inner.extended_problem.counter
-        var = MasterVar(counter, name, 0.0, 'P', 'I', 's', 'U', 1.0, -Inf, Inf)
+        ## Get variable annotation
+        prob_idx = MOI.get(src, VariableDantzigWolfeAnnotation(), var_index[i])
+        if prob_idx <= 0
+            var = MasterVar(counter, name, 0.0, 'P', 'C', 's', 'U', 1.0, -Inf, Inf)
+        else
+            var = SubprobVar(counter, name, 0.0, 'P', 'C', 's', 'U', 1.0, -Inf, Inf,
+                             -Inf, Inf, -Inf, Inf)
+        end
         push!(coluna_vars, var)
         new_idx = MOI.VariableIndex(i)
-        # Update map
+        # Update maps
         mapping.varmap[var_index[i]] = new_idx
         dest.varmap[new_idx] = var
+        dest.var_probidx_map[var] = prob_idx
     end
     return coluna_vars
 end
 
-function add_variables_to_problem(dest::ColunaModelOptimizer,
+function add_variables_to_problem(dest::ColunaModelOptimizer, src::MOI.ModelLike,
                                   coluna_vars::Vector{<:Variable},
                                   mapping::MOIU.IndexMap)
     for idx in 1:length(coluna_vars)
-        ### Get the right problem of the variable through attributes
-        problem = dest.inner.extended_problem.master_problem
+        ### Get the right problem of the variable through annotations
+        prob_idx = dest.var_probidx_map[coluna_vars[idx]]
+        if prob_idx <= 0
+            problem = dest.inner.extended_problem.master_problem
+        else
+            problem = dest.inner.extended_problem.pricing_vect[prob_idx]
+        end
         add_variable(problem, coluna_vars[idx])
+    end
+end
+
+function find_number_of_subproblems(src::MOI.ModelLike)
+    nb_subproblems = 0
+    var_index = MOI.get(src, MOI.ListOfVariableIndices())
+    for i in 1:length(var_index)
+        prob_idx = MOI.get(src, VariableDantzigWolfeAnnotation(), var_index[i])
+        if prob_idx > nb_subproblems
+            nb_subproblems = prob_idx
+        end
+    end
+    for (F,S) in MOI.get(src, MOI.ListOfConstraints())
+        for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
+            prob_idx = MOI.get(src, ConstraintDantzigWolfeAnnotation(), ci)
+            if prob_idx > nb_subproblems
+                nb_subproblems = prob_idx
+            end
+        end
+    end
+    return nb_subproblems
+end
+
+function create_subproblems(dest::ColunaModelOptimizer, src::MOI.ModelLike)
+    extended_problem = dest.inner.extended_problem
+    prob_counter = dest.inner.prob_counter
+    counter = dest.inner.extended_problem.counter
+    dest.nb_subproblems = find_number_of_subproblems(src)
+    for i in 1:dest.nb_subproblems
+        subprob = SimpleCompactProblem(prob_counter, counter)
+        push!(extended_problem.pricing_vect, subprob)
     end
 end
 
@@ -227,20 +280,32 @@ function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=fal
     ## Go throught ScalarAffineFunction constraints
 
     mapping = MOIU.IndexMap()
-    var_index = MOI.get(src, MOI.ListOfVariableIndices())
-    num_cols = MOI.get(src, MOI.NumberOfVariables())
-    coluna_vars = create_coluna_variables(dest, num_cols, var_index, mapping, copynames)
+    coluna_vars = create_coluna_variables(dest, src, mapping, copynames)
+    create_subproblems(dest, src)
+    set_default_optimizers(dest)
     ## Copy objective function
-    objF = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
-    load_obj(dest, coluna_vars, mapping, objF)
+    obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    load_obj(dest, coluna_vars, mapping, obj)
     sense = MOI.get(src, MOI.ObjectiveSense())
     MOI.set!(dest, MOI.ObjectiveSense(), sense)
     ##########################
-    copy_constraints(dest, src, mapping, coluna_vars, true)
-    add_variables_to_problem(dest, coluna_vars, mapping)
-    copy_constraints(dest, src, mapping, coluna_vars, false)
+    copy_constraints(dest, src, mapping, coluna_vars; only_singlevariable = true)
+    add_variables_to_problem(dest, src, coluna_vars, mapping)
+    copy_constraints(dest, src, mapping, coluna_vars; only_singlevariable = false)
 
     return mapping
+end
+
+function set_default_optimizers(dest::ColunaModelOptimizer)
+    ## set coluna optimizers
+    model = dest.inner
+    master_problem = model.extended_problem.master_problem
+    model.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
+    for subprobidx in 1:dest.nb_subproblems
+        pricingprob = model.extended_problem.pricing_vect[subprobidx]
+        model.problemidx_optimizer_map[pricingprob.prob_ref] = GLPK.Optimizer()
+    end
+    set_model_optimizers(model)
 end
 
 function MOI.set!(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense,

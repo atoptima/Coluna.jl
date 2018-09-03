@@ -1,0 +1,240 @@
+
+constraints.jl,117
+function MasterConstrBuilder(25,895
+function BranchConstrBuilder(35,1274
+function BranchConstrConstructor(41,1482
+
+mastercolumn.jl,37
+function MasterColumnBuilder(21,670
+
+model.jl,611
+function ModelConstructor(14,355
+function create_root_node(26,844
+function set_model_optimizers(40,1407
+function prepare_node_for_treatment(47,1597
+function prepare_node_for_treatment(67,2384
+function print_info_before_solving_node(102,3758
+function update_search_trees(117,4399
+function calculate_subtree_size(135,5077
+function update_cur_valid_dual_bound(138,5155
+function update_cur_valid_dual_bound(156,5815
+function update_primal_inc_solution(163,6061
+function update_model_incumbents(171,6393
+function generate_and_write_bap_tree(183,6853
+function solve(192,7087
+function optimize(200,7285
+
+node.jl,612
+function NodeBuilder(52,1330
+function NodeWithParentBuilder(92,2123
+function is_conquered(101,2349
+function is_to_be_pruned(106,2514
+function set_branch_and_price_order(111,2695
+function exit_treatment(115,2797
+function mark_infeasible_and_exit_treatment(124,3117
+function record_ip_primal_sol_and_update_ip_primal_bound(130,3298
+function save_problem_and_eval_alg_info(142,3796
+function store_branching_evaluation_info(145,3853
+function update_node_duals(148,3901
+function update_node_primals(161,4384
+function update_node_incumbents(172,4858
+function evaluation(190,5407
+function treat(254,7669
+
+parameters.jl,29
+    max_num_nodes::Int 2,31
+
+problem.jl,907
+function clear(24,519
+function apply_var_info(49,1096
+function add_var_in_manager(70,1826
+function add_constr_in_manager(95,2835
+function remove_from_constr_manager(112,3524
+function increment_counter(133,4282
+function CompactProblem{CompactProblem183,5700
+function initialize_problem_optimizer(202,6491
+function set_optimizer_obj(212,7012
+function retreive_primal_sol(225,7550
+function retreive_dual_sol(248,8492
+function retreive_solution(277,9795
+function ExtendedProblemConstructor(294,10264
+function initialize_problem_optimizer(308,10872
+function sol_is_integer(325,11489
+function add_variable(339,11986
+function add_variable(372,13258
+function add_constraint(383,13671
+function add_full_constraint(392,14039
+function delete_constraint(405,14565
+function add_membership(415,15009
+function add_membership(425,15368
+function add_membership(431,15565
+function optimize(441,15927
+
+solution.jl,114
+function compute_original_cost(9,173
+function PrimalSolutionBuilder(24,497
+function DualSolutionBuilder(28,577
+
+utils.jl,101
+macro callsuper(2,59
+    push!(blk.args, :(invoke($(esc(ex.args[1])), Tuple{$(types...)}, $(21,715
+
+varconstr.jl,207
+function increment_counter(7,84
+function VarConstrBuilder(145,3568
+function VarConstrBuilder(153,4005
+function VariableBuilder(183,4880
+function ConstraintBuilder(201,5593
+function find_first(218,6173
+
+variables.jl,106
+function SubprobVarBuilder(33,1011
+function MasterVarBuilder(54,1864
+function is_value_integer(64,2280
+
+nodealgs/algevalnode.jl,1393
+function update_primal_lp_bound(13,403
+function update_primal_ip_incumbents(19,599
+function update_primal_lp_incumbents(31,1087
+function update_dual_lp_bound(42,1514
+function update_dual_ip_bound(48,1704
+function update_dual_lp_incumbents(55,1936
+function update_alg_primal_lp_bound(96,3188
+function update_alg_primal_lp_incumbents(102,3404
+function update_alg_primal_ip_incumbents(109,3695
+function update_alg_dual_lp_bound(116,3998
+function update_alg_dual_lp_incumbents(122,4204
+function update_alg_dual_ip_bound(130,4548
+function mark_infeasible(136,4754
+function setup(143,5004
+function setdown(147,5061
+function update_alg_incumbents(151,5120
+function AlgToEvalNodeByLpBuilder(183,6286
+function run(187,6392
+function AlgToEvalNodeByLagrangianDualityBuilder(215,7126
+function cleanup_restricted_mast_columns(220,7340
+function update_pricing_target(226,7566
+function update_pricing_prob(233,7827
+function compute_pricing_dual_bound_contrib(253,8531
+function insert_cols_in_master(264,9028
+function gen_new_col(280,9505
+function gen_new_columns(318,11020
+function compute_mast_dual_bound_contrib(329,11323
+function update_lagrangian_dual_bound(339,11715
+function print_intermediate_statistics(370,13043
+function setup(384,13484
+function setdown(388,13541
+function solve_restricted_mast(392,13600
+function solve_mast_lp_ph2(398,13775
+function run(462,16386
+
+nodealgs/alggeneratechildrennodes.jl,368
+function AlgToGenerateChildrenNodesBuilder(5,100
+function UsualBranchingAlgBuilder(18,479
+function setup(24,643
+function setdown(28,713
+function sort_vars_according_to_rule(33,770
+function retreive_candidate_vars(38,956
+function generate_branch_constraint(53,1448
+function generate_child(59,1712
+function perform_usual_branching(70,2041
+function run(94,3229
+
+nodealgs/algpreprocessnode.jl,19
+function run(7,59
+
+nodealgs/algsetupnode.jl,1097
+function apply_var_info(11,276
+function apply_var_info(26,702
+function is_need_to_change_bounds(32,861
+function apply_var_info(47,1295
+function ConstraintInfoBuilder(61,1615
+function ConstraintInfoBuilder(65,1775
+function applyconstrinfo(69,1893
+function run(111,3517
+function record_problem_info(119,3781
+function AlgToSetdownNodeFullyBuilder(127,4118
+function run(131,4210
+function record_problem_info(135,4309
+function AlgToSetupNodeBuilder(215,7257
+function AlgToSetupNodeBuilder(219,7386
+function AlgToSetupBranchingOnlyBuilder(226,7626
+function AlgToSetupBranchingOnlyBuilder(230,7757
+function reset_partial_solution(235,7954
+function prepare_branching_constraints_added_by_father(244,8249
+function prepare_branching_constraints(251,8551
+function run(255,8692
+function AlgToSetupFullBuilder(275,9287
+function find_first_in_problem_setup(280,9475
+function prepare_branching_constraints(290,9730
+function run(320,11000
+function reset_master_columns(331,11171
+function update_formulation(355,12061
+function AlgToSetupRootNodeBuilder(365,12309
+function run(371,12535
+
+wrapperfunctions/MOIWrapper.jl,1044
+    function ColunaModelOptimizer(10,328
+function MOI.MOI23,843
+function MOI.MOI33,1206
+function MOI.MOI46,1657
+function MOI.MOI56,2014
+function MOI.MOI67,2320
+function load_obj(71,2422
+function add_memberships(80,2871
+function load_constraint(89,3244
+function load_constraint(110,4252
+function load_constraint(117,4623
+function load_constraint(124,4997
+function load_constraint(131,5367
+function load_constraint(141,5886
+function load_constraint(149,6269
+function load_constraint(159,6752
+function load_constraint(169,7238
+function update_constraint_map(178,7701
+function copy_constraints(186,8030
+function create_coluna_variables(200,8679
+function add_variables_to_problem(226,9762
+function create_subproblems(241,10383
+function MOI.MOI261,11073
+function set_default_optimizers(289,12128
+function MOI.MOI301,12617
+function MOI.MOI308,12860
+function MOI.MOI318,13268
+function MOI.MOI323,13468
+function MOI.MOI327,13624
+function MOI.MOI331,13782
+function MOI.MOI342,14153
+function MOI.MOI347,14370
+
+../test/branching.jl,29
+function test_branching(3,2
+
+../test/colgenroot.jl,31
+function testcolgenatroot(2,1
+
+../test/colunabasictests.jl,169
+function testdefaultbuilders(1,0
+function testpuremaster(58,2390
+function branch_and_bound_test_instance(86,3312
+function branch_and_bound_bigger_instances(121,4524
+
+../test/runtests.jl,14
+include(2,16
+
+../test/test_MOIWrapper.jl,332
+function moi_wrapper_tests(1,0
+function test_moi_optimize_and_getters(8,174
+function test_moi_copy_optimize_and_getters(33,1073
+function test_moi_annotations(64,2529
+function test_root_colgen_with_moi(95,4015
+function build_colgen_root_model_with_moi(105,4292
+function build_model_2(153,6344
+function build_model_1(197,8441
+
+../test/test_utils.jl,35
+function build_coluna_model(3,154
+
+nodealgs/algprimalheurinnode.jl,0
+
+Coluna.jl,0

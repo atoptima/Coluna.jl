@@ -16,7 +16,6 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
 
     knap_constrs = CL.MasterConstr[]
     for i in 1:nb_bins
-        @show typeof(binscap[i])
         constr = CL.MasterConstr(master_problem.counter,
             string("knapConstr_", i), binscap[i], 'L', 'M', 's')
         push!(knap_constrs, constr)

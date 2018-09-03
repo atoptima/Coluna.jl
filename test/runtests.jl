@@ -27,6 +27,4 @@ end
     branch_and_bound_test_instance()
 end
 branch_and_bound_bigger_instances()
-test_moi_optimize_and_getters()
-test_moi_copy_optimize_and_getters()
-test_moi_annotations()
+moi_wrapper_tests()

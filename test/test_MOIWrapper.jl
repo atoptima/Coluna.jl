@@ -1,3 +1,10 @@
+function moi_wrapper_tests()
+    test_moi_optimize_and_getters()
+    test_moi_copy_optimize_and_getters()
+    test_moi_annotations()
+    test_root_colgen_with_moi()
+end
+
 function test_moi_optimize_and_getters() ## change
     @testset "Test MOI wrapper: optimize! and getters" begin
         n_items = 4
@@ -58,38 +65,48 @@ function test_moi_annotations()
     @testset "Test MOI wrapper: annotations" begin
 
         coluna_optimizer = CL.ColunaModelOptimizer()
-        moi_model = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
-                                          coluna_optimizer)
+        universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
+        moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
         ## Subproblem variables
         x1 = MOI.addvariable!(moi_model)
-        MOI.set!(coluna_optimizer, CL.VariableProblemIndex(), x1, 1)
+        MOI.set!(moi_model, CL.VariableDantzigWolfeAnnotation(), x1, 1)
 
         ## Subproblem constrs
         knp_constr = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0], [x1]), 0.0), MOI.LessThan(0.0))
-        MOI.set!(coluna_optimizer, CL.ConstraintProblemIndex(), knp_constr, 1)
+        MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
 
         ## Master variable
         art_glob_var = MOI.addvariable!(moi_model)
-        MOI.set!(coluna_optimizer, CL.VariableProblemIndex(), art_glob_var, 0)
+        MOI.set!(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var, 0)
 
         ## Masrer constraint
         cov = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x1, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
-        MOI.set!(coluna_optimizer, CL.ConstraintProblemIndex(), cov, 0)
+        MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov, 0)
 
 
-        @test MOI.get(coluna_optimizer, CL.ConstraintProblemIndex(), cov) == 0
-        @test MOI.get(coluna_optimizer, CL.ConstraintProblemIndex(), knp_constr) == 1
-        @test MOI.get(coluna_optimizer, CL.VariableProblemIndex(), art_glob_var) == 0
-        @test MOI.get(coluna_optimizer, CL.VariableProblemIndex(), x1) == 1
+        @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov) == 0
+        @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr) == 1
+        @test MOI.get(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var) == 0
+        @test MOI.get(moi_model, CL.VariableDantzigWolfeAnnotation(), x1) == 1
+    end
+end
+
+function test_root_colgen_with_moi()
+    @testset "Test MOI wrapper: root colgen" begin
+
+        caching_optimizer = build_colgen_root_model_with_moi()
+        MOI.optimize!(caching_optimizer)
+        @test MOI.get(caching_optimizer, MOI.ObjectiveValue()) == 2.0
+
     end
 end
 
 function build_colgen_root_model_with_moi()
 
     coluna_optimizer = CL.ColunaModelOptimizer()
-    moi_model = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
-                                      coluna_optimizer)
+    universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
+    moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
     ## Subproblem variables
     x1 = MOI.addvariable!(moi_model)
@@ -102,23 +119,41 @@ function build_colgen_root_model_with_moi()
     bounds = MOI.ConstraintIndex[]
     for var in vars
         ci = MOI.addconstraint!(moi_model, MOI.SingleVariable(var), MOI.ZeroOne())
+        MOI.set!(moi_model, CL.VariableDantzigWolfeAnnotation(), var, 1)
         push!(bounds, ci)
     end
+    ci = MOI.addconstraint!(moi_model, MOI.SingleVariable(y), MOI.GreaterThan(1.0))
+    push!(bounds, ci)
+
+
+
 
     ## Subproblem constrs
     knp_constr = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0, 4.0, 5.0, -8.0], vars), 0.0), MOI.LessThan(0.0))
+    MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
 
     ## Master variable
     art_glob_var = MOI.addvariable!(moi_model)
-    ci = MOI.addconstraint!(moi_model, MOI.SingleVariable(art_glob_var), MOI.ZeroOne())
+    ci = MOI.addconstraint!(moi_model,MOI.SingleVariable(art_glob_var),
+                            MOI.LessThan(1.0))
+    push!(bounds, ci)
+    ci = MOI.addconstraint!(moi_model, MOI.SingleVariable(art_glob_var),
+                            MOI.GreaterThan(0.0))
     push!(bounds, ci)
 
     cover_constr = MOI.ConstraintIndex[]
     for var in [x1, x2, x3]
         ci = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [var, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
+        MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), ci, 0)
         push!(cover_constr, ci)
     end
     convexity = MOI.addconstraint!(moi_model, MOI.SingleVariable(y), MOI.LessThan(3.0))
+    MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), convexity, 0)
+
+    ### set objective function
+    objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1000000.0], [y, art_glob_var]), 0.0)
+    MOI.set!(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
+    MOI.set!(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
 
     return moi_model
 end
@@ -126,8 +161,8 @@ end
 function build_model_2()
 
     coluna_optimizer = CL.ColunaModelOptimizer()
-    moi_model = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
-                                      coluna_optimizer)
+    universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
+    moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
     x1 = MOI.addvariable!(moi_model)
     x2 = MOI.addvariable!(moi_model)
@@ -148,7 +183,8 @@ function build_model_2()
     constr2 = MOI.addconstraint!(moi_model, cf2, MOI.LessThan(3.0))
 
     constr31 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x1), MOI.Integer())
-    constr32 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x1), MOI.Interval(1.0, 2.0))
+    constr32 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x1), MOI.LessThan(2.0))
+    constr33 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x1), MOI.GreaterThan(1.0))
 
     constr4 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x2), MOI.ZeroOne())
     constr5 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x3), MOI.GreaterThan(0.0))
@@ -157,11 +193,6 @@ function build_model_2()
 
     cf7 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x4, x5]), 0.0)
     constr7 = MOI.addconstraint!(moi_model, cf7, MOI.EqualTo(0.0))
-
-    ## set coluna optimizers
-    master_problem = coluna_optimizer.inner.extended_problem.master_problem
-    coluna_optimizer.inner.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
-    CL.set_model_optimizers(coluna_optimizer.inner)
 
     return moi_model, [x1, x2, x3, x4, x5]
 end
@@ -172,8 +203,8 @@ function build_model_1(n_items::Int, nb_bins::Int,
                        binscap::Vector{Float64})
 
     coluna_optimizer = CL.ColunaModelOptimizer()
-    moi_model = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
-                                      coluna_optimizer)
+    universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
+    moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
     x_vars = Vector{Vector{MOI.VariableIndex}}()
     for j in 1:n_items
@@ -186,8 +217,6 @@ function build_model_1(n_items::Int, nb_bins::Int,
         cf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([w for w in weights], [x_vars[j][i] for j in 1:n_items]), 0.0)
         constr = MOI.addconstraint!(moi_model, cf, MOI.LessThan(binscap[i]))
         push!(knap_constrs, constr)
-        # @show cf
-        # @show MOI.LessThan(binscap[i])
     end
 
     cover_constrs = MOI.ConstraintIndex[]
@@ -195,13 +224,11 @@ function build_model_1(n_items::Int, nb_bins::Int,
         cf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0 for i in 1:nb_bins], [x_vars[j][i] for i in 1:nb_bins]), 0.0)
         constr = MOI.addconstraint!(moi_model, cf, MOI.LessThan(1.0))
         push!(cover_constrs, constr)
-        # @show cf
     end
     for j in 1:n_items
         for i in 1:nb_bins
             cf = MOI.SingleVariable(x_vars[j][i])
             constr = MOI.addconstraint!(moi_model, cf, MOI.ZeroOne())
-            # @show cf
         end
     end
     ### set objective function
@@ -215,13 +242,6 @@ function build_model_1(n_items::Int, nb_bins::Int,
     objF = MOI.ScalarAffineFunction(terms, 0.0)
     MOI.set!(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
     MOI.set!(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
-    # @show objF
-    # readline()
-
-    ## set coluna optimizers
-    master_problem = coluna_optimizer.inner.extended_problem.master_problem
-    coluna_optimizer.inner.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
-    CL.set_model_optimizers(coluna_optimizer.inner)
 
     return moi_model
 end

@@ -37,6 +37,6 @@ include("model.jl")
 
 
 ##### Wrapper functions
-include("wrapperfunctions/MOIWrapper.jl")
+include("MOIWrapper.jl")
 
 end # module
