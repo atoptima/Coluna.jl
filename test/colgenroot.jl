@@ -1,4 +1,4 @@
-function colgenatroot()
+function testcolgenatroot()
     model = CL.ModelConstructor()
     params = model.params
     callback = model.callback

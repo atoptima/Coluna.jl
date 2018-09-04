@@ -16,7 +16,13 @@ mutable struct ColunaModelOptimizer <: MOI.AbstractOptimizer
     end
 end
 
-# Annotations needed for column generation
+function MOI.optimize!(coluna_optimizer::ColunaModelOptimizer)
+    solve(coluna_optimizer.inner)
+end
+
+############################################
+# Annotations needed for column generation #
+############################################
 # Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
 struct ConstraintDantzigWolfeAnnotation <: MOI.AbstractConstraintAttribute end
 
@@ -63,10 +69,9 @@ function MOI.get(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAn
     return -1 # Returns value -1 as default if not found
 end
 
-function MOI.optimize!(coluna_optimizer::ColunaModelOptimizer)
-    solve(coluna_optimizer.inner)
-end
-
+##########################################
+# Functions needed during copy procedure #
+##########################################
 function load_obj(dest::ColunaModelOptimizer, mapping::MOIU.IndexMap,
                   f::MOI.ScalarAffineFunction)
     # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
@@ -102,8 +107,8 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
         constr = Constraint(problem.counter, name, rhs, sense, 'M', 's')
     end
     dest.constr_probidx_map[constr] = prob_idx
-    add_constraint(problem, constr)
-    add_memberships(dest, problem, constr, f, mapping)
+    add_constraint(problem, constr) # Adds the constr to the lower-level solver
+    add_memberships(dest, problem, constr, f, mapping) # Do only if prob_idx is 0
     update_constraint_map(mapping, ci, f, s)
 end
 
@@ -180,13 +185,13 @@ function copy_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
         if F == MOI.SingleVariable && only_singlevariable
             for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
                 f = MOI.get(src, MOI.ConstraintFunction(), ci)
-                s = MOI.get(src,  MOI.ConstraintSet(), ci)
+                s = MOI.get(src, MOI.ConstraintSet(), ci)
                 load_constraint(ci, dest, src, mapping, f, s)
             end
         elseif F != MOI.SingleVariable && !only_singlevariable
             for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
                 f = MOI.get(src, MOI.ConstraintFunction(), ci)
-                s = MOI.get(src,  MOI.ConstraintSet(), ci)
+                s = MOI.get(src, MOI.ConstraintSet(), ci)
                 load_constraint(ci, dest, src, mapping, f, s, copynames)
             end
         end
@@ -241,8 +246,12 @@ end
 function find_number_of_subproblems(src::MOI.ModelLike)
     nb_subproblems = 0
     var_index = MOI.get(src, MOI.ListOfVariableIndices())
+    problem_indices = BitSet()
     for i in 1:length(var_index)
         prob_idx = MOI.get(src, VariableDantzigWolfeAnnotation(), var_index[i])
+        if prob_idx > 0
+            push!(problem_indices, prob_idx)
+        end
         if prob_idx > nb_subproblems
             nb_subproblems = prob_idx
         end
@@ -250,10 +259,16 @@ function find_number_of_subproblems(src::MOI.ModelLike)
     for (F,S) in MOI.get(src, MOI.ListOfConstraints())
         for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
             prob_idx = MOI.get(src, ConstraintDantzigWolfeAnnotation(), ci)
+            if prob_idx > 0
+                push!(problem_indices, prob_idx)
+            end
             if prob_idx > nb_subproblems
                 nb_subproblems = prob_idx
             end
         end
+    end
+    if nb_subproblems != length(problem_indices)
+        error("Subproblem indices are not contiguous.")
     end
     return nb_subproblems
 end
@@ -281,12 +296,13 @@ function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=fal
     coluna_vars = create_coluna_variables(dest, src, mapping, copynames)
     create_subproblems(dest, src)
     set_default_optimizers(dest)
+
     # Copy objective function
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     load_obj(dest, mapping, obj)
     sense = MOI.get(src, MOI.ObjectiveSense())
     return_value = MOI.set!(dest, MOI.ObjectiveSense(), sense)
-    ##########################
+
     copy_constraints(dest, src, mapping, copynames; only_singlevariable = true)
     add_variables_to_problem(dest, src, coluna_vars, mapping)
     copy_constraints(dest, src, mapping, copynames; only_singlevariable = false)
@@ -318,7 +334,9 @@ function MOI.empty!(coluna_optimizer::ColunaModelOptimizer)
     coluna_optimizer.inner = ModelConstructor()
 end
 
-# Get functions
+######################
+### Get functions ####
+######################
 MOI.canget(coluna_optimizer::ColunaModelOptimizer,
            object::Union{MOI.ObjectiveSense, MOI.ObjectiveValue, MOI.ObjectiveBound}) = true
 

@@ -18,10 +18,10 @@ include("moi_wrapper.jl")
 
 
 
-defaultbuilders()
-puremaster()
+testdefaultbuilders()
+testpuremaster()
 @testset "cutting stock - colgen root " begin
-    colgenatroot()
+    testcolgenatroot()
 end
 @testset "knapsack - branch and bound" begin
     branch_and_bound_test_instance()

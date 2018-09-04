@@ -399,9 +399,9 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and 
     # termination by bound does not apply
-    glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
+    # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
     while(true)
-        GLPK.write_lp(glpk_prob, string("mip_", nb_cg_iterations,".lp"))
+        # GLPK.write_lp(glpk_prob, string("mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds        
         status_rm = solve_restricted_mast(alg)        
         if alg.colgen_stabilization != nothing

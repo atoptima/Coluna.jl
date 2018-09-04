@@ -1,12 +1,12 @@
 function moi_wrapper()
-    moi_optimize_and_getters()
-    moi_copy_optimize_and_getters()
-    moi_annotations()
-    root_colgen_with_moi()
+    test_moi_optimize_and_getters()
+    test_moi_copy_optimize_and_getters()
+    test_moi_annotations()
+    test_root_colgen_with_moi()
 end
 
-function moi_optimize_and_getters() ## change
-    @testset "Test MOI wrapper: optimize! and getters" begin
+function test_moi_optimize_and_getters() ## change
+    @testset "MOI wrapper: optimize! and getters" begin
         n_items = 4
         nb_bins = 3
         profits = [-10.0, -15.0, -20.0, -50.0]
@@ -30,8 +30,8 @@ function moi_optimize_and_getters() ## change
     end
 end
 
-function moi_copy_optimize_and_getters()
-    @testset "Test MOI wrapper: copy!, optimize!, and get solution" begin
+function test_moi_copy_optimize_and_getters()
+    @testset "MOI wrapper: copy!, optimize!, and get solution" begin
         ## Create user_model, an MOI.CachingOptimizer object, using coluna as
         ## optimizer.
         n_items = 4
@@ -61,8 +61,8 @@ function moi_copy_optimize_and_getters()
     end
 end
 
-function moi_annotations()
-    @testset "Test MOI wrapper: annotations" begin
+function test_moi_annotations()
+    @testset "MOI wrapper: annotations" begin
 
         coluna_optimizer = CL.ColunaModelOptimizer()
         universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
@@ -92,8 +92,8 @@ function moi_annotations()
     end
 end
 
-function root_colgen_with_moi()
-    @testset "Test MOI wrapper: root colgen" begin
+function test_root_colgen_with_moi()
+    @testset "MOI wrapper: root colgen" begin
 
         caching_optimizer = build_colgen_root_model_with_moi()
         MOI.optimize!(caching_optimizer)
