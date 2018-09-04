@@ -10,7 +10,7 @@ global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
 global const CL = Coluna
 
-include("test_utils.jl")
+include("utils.jl")
 include("colunabasictests.jl")
 include("colgenroot.jl")
 include("moi_wrapper.jl")
