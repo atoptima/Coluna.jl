@@ -1,4 +1,4 @@
-function testdefaultbuilders()
+function defaultbuilders()
     ## Problem builder
     counter = CL.VarConstrCounter(0)
     x1 = CL.VarConstr(counter, "vc_1", 1.0, 'P', 'C', 's', 'U', 2.0)
@@ -55,7 +55,7 @@ function testdefaultbuilders()
     child1 = CL.NodeWithParent(model.extended_problem, rootNode)
 end
 
-function testpuremaster()
+function puremaster()
     counter = CL.VarConstrCounter(0)
     prob_counter = CL.ProblemCounter(0)
     problem = CL.SimpleCompactProblem(prob_counter, counter)
