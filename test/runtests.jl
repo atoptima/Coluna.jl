@@ -13,7 +13,7 @@ global const CL = Coluna
 include("test_utils.jl")
 include("colunabasictests.jl")
 include("colgenroot.jl")
-include("test_MOIWrapper.jl")
+include("moi_wrapper.jl")
 
 
 
@@ -27,4 +27,4 @@ end
     branch_and_bound_test_instance()
 end
 branch_and_bound_bigger_instances()
-moi_wrapper_tests()
+moi_wrapper()

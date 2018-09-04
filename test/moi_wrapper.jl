@@ -1,11 +1,11 @@
-function moi_wrapper_tests()
-    test_moi_optimize_and_getters()
-    test_moi_copy_optimize_and_getters()
-    test_moi_annotations()
-    test_root_colgen_with_moi()
+function moi_wrapper()
+    moi_optimize_and_getters()
+    moi_copy_optimize_and_getters()
+    moi_annotations()
+    root_colgen_with_moi()
 end
 
-function test_moi_optimize_and_getters() ## change
+function moi_optimize_and_getters() ## change
     @testset "Test MOI wrapper: optimize! and getters" begin
         n_items = 4
         nb_bins = 3
@@ -30,7 +30,7 @@ function test_moi_optimize_and_getters() ## change
     end
 end
 
-function test_moi_copy_optimize_and_getters()
+function moi_copy_optimize_and_getters()
     @testset "Test MOI wrapper: copy!, optimize!, and get solution" begin
         ## Create user_model, an MOI.CachingOptimizer object, using coluna as
         ## optimizer.
@@ -61,7 +61,7 @@ function test_moi_copy_optimize_and_getters()
     end
 end
 
-function test_moi_annotations()
+function moi_annotations()
     @testset "Test MOI wrapper: annotations" begin
 
         coluna_optimizer = CL.ColunaModelOptimizer()
@@ -92,7 +92,7 @@ function test_moi_annotations()
     end
 end
 
-function test_root_colgen_with_moi()
+function root_colgen_with_moi()
     @testset "Test MOI wrapper: root colgen" begin
 
         caching_optimizer = build_colgen_root_model_with_moi()
@@ -124,9 +124,6 @@ function build_colgen_root_model_with_moi()
     end
     ci = MOI.addconstraint!(moi_model, MOI.SingleVariable(y), MOI.GreaterThan(1.0))
     push!(bounds, ci)
-
-
-
 
     ## Subproblem constrs
     knp_constr = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0, 4.0, 5.0, -8.0], vars), 0.0), MOI.LessThan(0.0))
