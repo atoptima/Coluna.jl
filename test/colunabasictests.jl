@@ -74,9 +74,9 @@ function testpuremaster()
 
     CL.add_constraint(problem, constr)
 
-    CL.add_membership(x1, constr, problem, 2.0)
-    CL.add_membership(x2, constr, problem, 3.0)
-    CL.add_membership(x3, constr, problem, 4.0)
+    CL.add_membership(problem, x1, constr, 2.0)
+    CL.add_membership(problem, x2, constr, 3.0)
+    CL.add_membership(problem, x3, constr, 4.0)
 
     CL.optimize(problem)
 
@@ -107,9 +107,9 @@ function branch_and_bound_test_instance()
 
     CL.add_constraint(master_problem, constr)
 
-    CL.add_membership(x1, constr, master_problem, 2.0)
-    CL.add_membership(x2, constr, master_problem, 3.0)
-    CL.add_membership(x3, constr, master_problem, 4.0)
+    CL.add_membership(master_problem, x1, constr, 2.0)
+    CL.add_membership(master_problem, x2, constr, 3.0)
+    CL.add_membership(master_problem, x3, constr, 4.0)
 
 
     CL.solve(model)
@@ -126,7 +126,7 @@ function branch_and_bound_bigger_instances()
     profits = [-10.0, -15.0, -20.0, -50.0]
     weights = [  4.0,   5.0,   6.0,  10.0]
     binscap = [ 10.0,  2.0,  10.0]
-    model = build_bb_coluna_model(n_items, nb_bins, profits, weights, binscap)
+    model = build_coluna_model(n_items, nb_bins, profits, weights, binscap)
     CL.solve(model)
     @test model.extended_problem.primal_inc_bound == -80.0
     of_value = 0.0
@@ -140,7 +140,7 @@ function branch_and_bound_bigger_instances()
     profits = [-10.0, -15.0, -20.0, -50.0,  15.0, -10.0,  -5.0, -12.0, -10.0,  -8.0]
     weights = [  4.0,   5.0,   6.0,  10.0,   1.0,   3.0,   5.0,   6.0,   4.0,   4.0]
     binscap = [ 10.0,   2.0,  10.0,   5.0,   9.5]
-    model = build_bb_coluna_model(n_items, nb_bins, profits, weights, binscap)
+    model = build_coluna_model(n_items, nb_bins, profits, weights, binscap)
     CL.solve(model)
     used_bad_var = false
     of_value = 0.0

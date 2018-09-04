@@ -146,7 +146,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     for var in master_problem.var_manager.active_static_list
         if (var.cur_lb != var.lower_bound
             || var.cur_ub != var.upper_bound
-            || var.cur_cost_rhs != var.costrhs)
+            || var.cur_cost_rhs != var.cost_rhs)
             push!(prob_info.modified_static_vars_info, VariableInfo(var, Active))
         end
     end
