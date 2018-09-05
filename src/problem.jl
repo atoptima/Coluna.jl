@@ -373,7 +373,7 @@ function add_variable(problem::Problem, col::MasterColumn)
     @callsuper add_variable(problem, col::Variable)
     for (var, val) in col.solution.var_val_map
         for (constr, coef) in var.master_constr_coef_map
-            add_membership(col, constr, problem, val * coef)
+            add_membership(problem, col, constr, val * coef)
         end
     end
 end
@@ -412,9 +412,8 @@ function delete_constraint(problem::Problem, constr::BranchConstr)
     end
 end
 
-#TODO problem should be first arg
-function add_membership(var::Variable, constr::Constraint,
-        problem::Problem, coef::Float)
+function add_membership(problem::Problem, var::Variable, constr::Constraint,
+        coef::Float)
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing
@@ -423,16 +422,14 @@ function add_membership(var::Variable, constr::Constraint,
     end
 end
 
-#TODO problem should be first arg 
-function add_membership(var::SubprobVar, constr::MasterConstr,
-        problem::Problem, coef::Float)
+function add_membership(problem::Problem, var::SubprobVar, constr::MasterConstr,
+        coef::Float)
     var.master_constr_coef_map[constr] = coef
     constr.subprob_var_coef_map[var] = coef
 end
 
-#TODO problem should be first arg 
-function add_membership(var::MasterVar, constr::MasterConstr,
-        problem::Problem, coef::Float)
+function add_membership(problem::Problem, var::MasterVar, constr::MasterConstr,
+        coef::Float)
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing

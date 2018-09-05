@@ -10,10 +10,10 @@ global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
 global const CL = Coluna
 
-include("test_utils.jl")
+include("utils.jl")
 include("colunabasictests.jl")
 include("colgenroot.jl")
-# include("test_MOIWrapper.jl")
+include("moi_wrapper.jl")
 
 
 
@@ -26,6 +26,5 @@ end
 @testset "knapsack - branch and bound" begin
     branch_and_bound_test_instance()
 end
-# branch_and_bound_bigger_instances()
-# simple_MOI_calls_to_ColunaModelOptimizer()
-# tests_with_CachingOptimizer()
+branch_and_bound_bigger_instances()
+moi_wrapper()
