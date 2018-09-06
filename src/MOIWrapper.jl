@@ -26,7 +26,7 @@ end
 # Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
 struct ConstraintDantzigWolfeAnnotation <: MOI.AbstractConstraintAttribute end
 
-function MOI.set!(dest::MOIU.UniversalFallback, attribute::ConstraintDantzigWolfeAnnotation,
+function MOI.set(dest::MOIU.UniversalFallback, attribute::ConstraintDantzigWolfeAnnotation,
                   ci::MOI.ConstraintIndex, value::Int)
     if haskey(dest.conattr, attribute)
         dest.conattr[attribute][ci] = value
@@ -49,7 +49,7 @@ end
 # Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
 struct VariableDantzigWolfeAnnotation <: MOI.AbstractVariableAttribute end
 
-function MOI.set!(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAnnotation,
+function MOI.set(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAnnotation,
                   vi::MOI.VariableIndex, value::Int)
     if haskey(dest.varattr, attribute)
         dest.varattr[attribute][vi] = value
@@ -92,8 +92,8 @@ end
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
                          f::MOI.ScalarAffineFunction, s::MOI.AbstractSet,
-                         rhs::Float64, sense::Char, copynames::Bool)
-    if copynames
+                         rhs::Float64, sense::Char, copy_names::Bool)
+    if copy_names
         name = MOI.get(src, MOI.ConstraintName(), ci)
     else
         name = string("constraint_", ci.value)
@@ -114,20 +114,20 @@ end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-                         f::MOI.ScalarAffineFunction, s::MOI.LessThan, copynames::Bool)
-    load_constraint(ci, dest, src, mapping, f, s, s.upper - f.constant, 'L', copynames)
+                         f::MOI.ScalarAffineFunction, s::MOI.LessThan, copy_names::Bool)
+    load_constraint(ci, dest, src, mapping, f, s, s.upper - f.constant, 'L', copy_names)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-                         f::MOI.ScalarAffineFunction, s::MOI.GreaterThan, copynames::Bool)
-    load_constraint(ci, dest, src, mapping, f, s, s.lower - f.constant, 'G', copynames)
+                         f::MOI.ScalarAffineFunction, s::MOI.GreaterThan, copy_names::Bool)
+    load_constraint(ci, dest, src, mapping, f, s, s.lower - f.constant, 'G', copy_names)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-                         f::MOI.ScalarAffineFunction, s::MOI.EqualTo, copynames::Bool)
-    load_constraint(ci, dest, src, mapping, f, s, s.value - f.constant, 'E', copynames)
+                         f::MOI.ScalarAffineFunction, s::MOI.EqualTo, copy_names::Bool)
+    load_constraint(ci, dest, src, mapping, f, s, s.value - f.constant, 'E', copy_names)
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
@@ -180,7 +180,7 @@ function update_constraint_map(mapping::MOIU.IndexMap, ci::MOI.ConstraintIndex,
 end
 
 function copy_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
-    mapping::MOIU.IndexMap, copynames::Bool; only_singlevariable = false)
+    mapping::MOIU.IndexMap, copy_names::Bool; only_singlevariable = false)
     for (F,S) in MOI.get(src, MOI.ListOfConstraints())
         if F == MOI.SingleVariable && only_singlevariable
             for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
@@ -192,19 +192,19 @@ function copy_constraints(dest::ColunaModelOptimizer, src::MOI.ModelLike,
             for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
                 f = MOI.get(src, MOI.ConstraintFunction(), ci)
                 s = MOI.get(src, MOI.ConstraintSet(), ci)
-                load_constraint(ci, dest, src, mapping, f, s, copynames)
+                load_constraint(ci, dest, src, mapping, f, s, copy_names)
             end
         end
     end
 end
 
 function create_coluna_variables(dest::ColunaModelOptimizer, src::MOI.ModelLike,
-                                 mapping::MOIU.IndexMap, copynames::Bool)
+                                 mapping::MOIU.IndexMap, copy_names::Bool)
     var_index = MOI.get(src, MOI.ListOfVariableIndices())
     num_cols = MOI.get(src, MOI.NumberOfVariables())
     coluna_vars = Variable[]
     for i in 1:num_cols
-        if copynames
+        if copy_names
             name = MOI.get(src, MOI.VariableName(), var_index[i])
         else
             name = string("var_", i)
@@ -284,7 +284,8 @@ function create_subproblems(dest::ColunaModelOptimizer, src::MOI.ModelLike)
     end
 end
 
-function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=false)
+function MOI.copy_to(dest::ColunaModelOptimizer, 
+                     src::MOI.ModelLike; copy_names=false)
 
     # Create variables without adding to problem
     # Update the variable cost_rhs
@@ -293,7 +294,7 @@ function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=fal
     # Go throught ScalarAffineFunction constraints
 
     mapping = MOIU.IndexMap()
-    coluna_vars = create_coluna_variables(dest, src, mapping, copynames)
+    coluna_vars = create_coluna_variables(dest, src, mapping, copy_names)
     create_subproblems(dest, src)
     set_default_optimizers(dest)
 
@@ -301,11 +302,11 @@ function MOI.copy!(dest::ColunaModelOptimizer, src::MOI.ModelLike; copynames=fal
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     load_obj(dest, mapping, obj)
     sense = MOI.get(src, MOI.ObjectiveSense())
-    return_value = MOI.set!(dest, MOI.ObjectiveSense(), sense)
+    return_value = MOI.set(dest, MOI.ObjectiveSense(), sense)
 
-    copy_constraints(dest, src, mapping, copynames; only_singlevariable = true)
+    copy_constraints(dest, src, mapping, copy_names; only_singlevariable = true)
     add_variables_to_problem(dest, src, coluna_vars, mapping)
-    copy_constraints(dest, src, mapping, copynames; only_singlevariable = false)
+    copy_constraints(dest, src, mapping, copy_names; only_singlevariable = false)
 
     return mapping
 end
@@ -323,7 +324,7 @@ function set_default_optimizers(dest::ColunaModelOptimizer)
     set_model_optimizers(model)
 end
 
-function MOI.set!(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense,
+function MOI.set(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense,
                   sense::MOI.OptimizationSense)
     if sense != MOI.MinSense
         throw(MOI.CannotSetAttribute{MOI.ObjectiveSense}(MOI.ObjectiveSense, "Coluna only supports minimization sense for now."))
@@ -337,12 +338,8 @@ end
 ######################
 ### Get functions ####
 ######################
-MOI.canget(coluna_optimizer::ColunaModelOptimizer,
-           object::Union{MOI.ObjectiveSense, MOI.ObjectiveValue, MOI.ObjectiveBound}) = true
 
-MOI.canget(coluna_optimizer::ColunaModelOptimizer, object::MOI.VariablePrimal, indexTypeOrObject::Type{MOI.VariableIndex}) = true
-
-function MOI.isempty(coluna_optimizer::ColunaModelOptimizer)
+function MOI.is_empty(coluna_optimizer::ColunaModelOptimizer)
     return (coluna_optimizer.inner.prob_counter.value == 0 &&
             coluna_optimizer.inner.extended_problem.counter.value == 0)
 end

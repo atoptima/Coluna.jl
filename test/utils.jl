@@ -1,5 +1,14 @@
-@MOIU.model ModelForCachingOptimizer (ZeroOne, Integer) (EqualTo, GreaterThan, LessThan, Interval) () () (SingleVariable,) (ScalarAffineFunction,) () ()
 
+@MOIU.model(ModelForCachingOptimizer,
+        (MOI.ZeroOne, MOI.Integer),
+        (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
+        (),
+        (),
+        (MOI.SingleVariable,),
+        (MOI.ScalarAffineFunction,),
+        (),
+        ()) 
+        
 function build_coluna_model(n_items::Int, nb_bins::Int,
                             profits::Vector{Float64}, weights::Vector{Float64},
                             binscap::Vector{Float64})
