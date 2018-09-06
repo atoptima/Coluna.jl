@@ -325,7 +325,7 @@ function initialize_problem_optimizer(extended_problem::ExtendedProblem,
     end
 end
 
-function sol_is_integer(sol::Dict{Variable, Float}, tolerance::Float)
+function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
     for var_val in sol
         if (!is_value_integer(var_val.second, tolerance)            
                 && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))

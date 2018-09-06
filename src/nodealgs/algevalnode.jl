@@ -109,8 +109,11 @@ end
 function update_alg_primal_ip_incumbents(alg::AlgToEvalNode)        
     master = alg.extended_problem.master_problem
     primal_sol = master.primal_sols[end].var_val_map
-    primal_bnd = master.primal_sols[end].cost    
-    update_primal_ip_incumbents(alg.sols_and_bounds, primal_sol, primal_bnd)
+    primal_bnd = master.primal_sols[end].cost
+    if is_sol_integer(primal_sol,
+                      alg.extended_problem.params.mip_tolerance_integrality)
+        update_primal_ip_incumbents(alg.sols_and_bounds, primal_sol, primal_bnd)
+    end
 end
 
 function update_alg_dual_lp_bound(alg::AlgToEvalNode)
@@ -130,7 +133,7 @@ end
 function update_alg_dual_ip_bound(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
     dual_bnd = master.dual_sols[end].cost
-    update_dual_ip_bound(alg.sols_and_bounds, dual_bnd)
+    update_dual_ip_bound(alg.sols_and_bounds, ceil(dual_bnd))
 end
 
 function mark_infeasible(alg::AlgToEvalNode)
@@ -148,17 +151,11 @@ function setdown(alg::AlgToEvalNode)
     return false
 end
 
-function update_alg_incumbents(alg::AlgToEvalNode)
-    update_alg_dual_ip_bound(alg)
+function update_alg_incumbents(alg::AlgToEvalNode)        
     update_alg_primal_lp_incumbents(alg)
-    update_alg_dual_lp_incumbents(alg)    
-
-    master = alg.extended_problem.master_problem
-    primal_sol = master.primal_sols[end].var_val_map
-    if sol_is_integer(primal_sol,
-            alg.extended_problem.params.mip_tolerance_integrality)
-        update_alg_primal_ip_incumbents(alg)
-    end
+    update_alg_primal_ip_incumbents(alg)
+    update_alg_dual_lp_incumbents(alg)
+    update_alg_dual_ip_bound(alg)
 
     println("Final incumbent bounds of lp evaluation:")
     println("alg_inc_ip_primal_bound: ", alg.sols_and_bounds.alg_inc_ip_primal_bound)
@@ -360,10 +357,12 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
     #TODO: clarify this comment
     # by Guillaume : subgradient algorithm needs to know when the incumbent
     if update_dual_bound
-        mast_lagrangian_bnd = update_alg_dual_lp_bound(alg)
-    end    
+        update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
+        update_dual_ip_bound(alg.sols_and_bounds, ceil(mast_lagrangian_bnd))
+    end
     if alg.colgen_stabilization != nothing
-        mast_lagrangian_bnd = update_alg_dual_lp_bound(alg)
+        update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
+        update_dual_ip_bound(alg.sols_and_bounds, ceil(mast_lagrangian_bnd))
     end
 end
 
@@ -400,7 +399,7 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # Phase II loop: Iterate while can generate new columns and 
     # termination by bound does not apply
     # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
-    while(true)
+    while(true)        
         # GLPK.write_lp(glpk_prob, string("mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds        
         status_rm = solve_restricted_mast(alg)        
@@ -414,8 +413,9 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
             mark_infeasible(alg)
             return true
         end
-        update_alg_primal_lp_bound(alg)
-        cleanup_restricted_mast_columns(alg, nb_cg_iterations) 
+        update_alg_primal_lp_incumbents(alg)
+        update_alg_primal_ip_incumbents(alg)
+        cleanup_restricted_mast_columns(alg, nb_cg_iterations)
         nb_cg_iterations += 1
         
         # generate new columns by solving the subproblems
@@ -443,6 +443,8 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
         end        
         @logmsg LogLevel(2) string("colgen iter ", nb_cg_iterations,
                                    " : inserted ", nb_new_col, " columns")
+        
+        @warn alg.sols_and_bounds
         if nb_new_col == 0
             alg.is_master_converged = true
             return false
@@ -451,7 +453,7 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
             @logmsg LogLevel(2) "max_nb_cg_iterations limit reached"
             mark_infeasible(alg)
             return true
-        end
+        end        
         @logmsg LogLevel(2) "next colgen ph2 iteration"
     end
     
@@ -465,7 +467,6 @@ function run(alg::AlgToEvalNodeBySimplexColGen)
     
     if status == false
         alg.sol_is_master_lp_feasible = true
-        update_alg_incumbents(alg)
     end
     
     return false
