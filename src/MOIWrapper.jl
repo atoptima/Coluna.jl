@@ -112,6 +112,27 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
     update_constraint_map(mapping, ci, f, s)
 end
 
+function MOI.supports_constraint(model::ColunaModelOptimizer, 
+        ::Type{MOI.SingleVariable}, 
+        ::Type{<:Union{MOI.ZeroOne, MOI.Integer}}) where T
+        
+    return true
+end
+
+function MOI.supports_constraint(model::ColunaModelOptimizer, 
+        ::Type{MOI.SingleVariable},
+        ::Type{<:Union{MOI.EqualTo{T}, MOI.GreaterThan{T}, MOI.LessThan{T}}}) where T
+        
+    return true
+end
+
+function MOI.supports_constraint(model::ColunaModelOptimizer, 
+        ::Type{MOI.ScalarAffineFunction{T}}, 
+        ::Type{<:Union{MOI.EqualTo{T}, MOI.GreaterThan{T}, MOI.LessThan{T}}}) where T
+    
+    return true
+end
+
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
                          f::MOI.ScalarAffineFunction, s::MOI.LessThan, copy_names::Bool)
@@ -285,7 +306,7 @@ function create_subproblems(dest::ColunaModelOptimizer, src::MOI.ModelLike)
 end
 
 function MOI.copy_to(dest::ColunaModelOptimizer, 
-                     src::MOI.ModelLike; copy_names=false)
+                     src::MOI.ModelLike; copy_names=true)
 
     # Create variables without adding to problem
     # Update the variable cost_rhs

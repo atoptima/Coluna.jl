@@ -198,7 +198,7 @@ end
 # Behaves like optimize(problem::Problem), but sets parameters before
 # function optimize(problem::ExtendedProblem)
 function optimize(extended_problem::ExtendedProblem)
-    search_tree = DS.Queue(Node)
+    search_tree = DS.Queue{Node}()
     params = extended_problem.params
     global_nodes_treat_order = 1
     nb_treated_nodes = 0

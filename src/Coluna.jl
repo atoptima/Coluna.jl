@@ -10,6 +10,8 @@ import DataStructures
 import GLPK # for debugging only TODO: remove
 
 using Base.CoreLogging
+# using Printf
+# Base.show(io::IO, f::Float64) = @printf io "%.6f" f
 
 global const Float = Float64
 global const MOI = MathOptInterface

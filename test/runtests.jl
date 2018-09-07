@@ -15,8 +15,8 @@ include("colunabasictests.jl")
 include("colgenroot.jl")
 include("moi_wrapper.jl")
 
-using Base.CoreLogging
-disable_logging(LogLevel(-1))
+using Base.CoreLogging, Logging
+global_logger(ConsoleLogger(stderr, LogLevel(-5)))
 
 testdefaultbuilders()
 testpuremaster()
@@ -28,3 +28,6 @@ end
 end
 branch_and_bound_bigger_instances()
 moi_wrapper()
+@testset "gap" begin
+    include("../demos/GeneralizedAssignment_ColGen/run_sgap.jl")
+end

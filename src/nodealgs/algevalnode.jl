@@ -46,7 +46,8 @@ function update_dual_lp_bound(incumbents::SolsAndBounds, newBound::Float)
 end
 
 function update_dual_ip_bound(incumbents::SolsAndBounds, newBound::Float)
-    new_ip_bound = ceil(newBound)
+    new_ip_bound = newBound
+    # new_ip_bound = ceil(newBound) # TODO ceil if objective is integer
     if new_ip_bound > incumbents.alg_inc_ip_dual_bound
         incumbents.alg_inc_ip_dual_bound = new_ip_bound
     end
@@ -211,7 +212,7 @@ end
 
 function AlgToEvalNodeByLagrangianDualityBuilder(problem::ExtendedProblem)
     return tuplejoin(AlgToEvalNodeBuilder(problem), Dict{Problem, Float}(),
-                     nothing, 100) #TODO put as parameter
+                     nothing, 10000) #TODO put as parameter
 end
 
 function cleanup_restricted_mast_columns(alg::AlgToEvalNodeByLagrangianDuality, 
@@ -232,6 +233,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
     
     new_obj = Dict{SubprobVar, Float}()
     for var in pricing_prob.var_manager.active_static_list
+        @logmsg LogLevel(-4) string("$var original cost = ", var.cost_rhs)
         new_obj[var] = var.cost_rhs
     end
     master = alg.extended_problem.master_problem
@@ -239,7 +241,9 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
     for (constr, dual) in duals_dict
         @assert constr isa MasterConstr
         for (var, coef) in constr.subprob_var_coef_map
-            new_obj[var] -= dual * coef
+            if haskey(new_obj, var)
+                new_obj[var] -= dual * coef
+            end
         end
     end    
     @logmsg LogLevel(-3) string("new objective func = ", new_obj)
@@ -370,8 +374,8 @@ function print_intermediate_statistics(alg, nb_new_col, nb_cg_iterations)
     mlp = alg.sols_and_bounds.alg_inc_lp_primal_bound
     db = alg.sols_and_bounds.alg_inc_lp_dual_bound
     pb = alg.sols_and_bounds.alg_inc_ip_primal_bound
-    println(string("<it=$nb_cg_iterations>\t<cols=$nb_new_col>\t<mlp=$mlp>\t"), 
-            string("<DB=$db>\t<PB=$pb>"))
+    println(string("<it=$nb_cg_iterations> <cols=$nb_new_col> <mlp=$mlp> "), 
+            string("<DB=$db> <PB=$pb>"))
 end
 
 #########################################
@@ -449,7 +453,10 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
         @logmsg LogLevel(-2) string("colgen iter ", nb_cg_iterations,
                                    " : inserted ", nb_new_col, " columns")
         
-        if nb_new_col == 0
+        lower_bound = alg.sols_and_bounds.alg_inc_ip_dual_bound
+        upper_bound = alg.sols_and_bounds.alg_inc_lp_primal_bound
+        
+        if nb_new_col == 0 || lower_bound + 0.00001 > upper_bound
             alg.is_master_converged = true
             return false
         end        
