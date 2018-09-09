@@ -22,7 +22,7 @@ function MasterColumnBuilder(counter::VarConstrCounter,
                              sp_sol::PrimalSolution) where P
     cost = compute_original_cost(sp_sol)
     return tuplejoin(VariableBuilder(counter, string("MC", counter.value), 
-            cost, 'P', 'C', 'd', 'D', -1.0, 0.0, Inf), 
+            cost, 'P', 'I', 'd', 'D', -1.0, 0.0, Inf), 
             sp_sol, false #= enumeration not supported =#, true)
          
     #TODO add membership using sp_sol        

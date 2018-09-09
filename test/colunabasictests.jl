@@ -25,7 +25,7 @@ function testdefaultbuilders()
     pricing_probs = Vector{CL.Problem}()
     push!(pricing_probs, CL.SimpleCompactProblem(prob_counter, counter))
     callback = CL.Callback()
-    extended_problem = CL.ExtendedProblemConstructor(prob_counter, counter,
+    extended_problem = CL.ExtendedProblem(prob_counter, counter,
                        params, params.cut_up, params.cut_lo)
     model = CL.ModelConstructor()
 
@@ -110,7 +110,6 @@ function branch_and_bound_test_instance()
     CL.add_membership(master_problem, x1, constr, 2.0)
     CL.add_membership(master_problem, x2, constr, 3.0)
     CL.add_membership(master_problem, x3, constr, 4.0)
-
 
     CL.solve(model)
 

@@ -59,7 +59,7 @@ end
 end
 
 function ConstraintInfoBuilder(constr::T, status::VCSTATUS) where T <: Constraint
-    return (ConstraintInfo(constr, 0.0, 0.0, constr.cost_rhs, status), )
+    return (constr, 0.0, 0.0, constr.cost_rhs, status)
 end
 
 function ConstraintInfoBuilder(constr::T) where T <: Constraint

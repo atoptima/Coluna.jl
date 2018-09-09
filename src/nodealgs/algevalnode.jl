@@ -90,6 +90,10 @@ end
     is_master_converged::Bool
 end
 
+function to(alg::AlgToEvalNode)
+    return alg.extended_problem.timer_output
+end
+
 AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(Inf, Inf, -Inf,
         -Inf, Dict{Variable, Float}(), Dict{Variable, Float}(),
         Dict{Constraint, Float}(), false), problem, false, false)        
@@ -230,7 +234,9 @@ end
 
 function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality, 
                              pricing_prob::Problem)
-    
+
+    @timeit to(alg) "update_pricing_prob" begin
+        
     new_obj = Dict{SubprobVar, Float}()
     for var in pricing_prob.var_manager.active_static_list
         @logmsg LogLevel(-4) string("$var original cost = ", var.cost_rhs)
@@ -248,6 +254,8 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
     end    
     @logmsg LogLevel(-3) string("new objective func = ", new_obj)
     set_optimizer_obj(pricing_prob, new_obj)    
+    
+    end # @timeit to(alg) "update_pricing_prob"
     return false
 end
 
@@ -278,7 +286,9 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
     end    
 end
 
-function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Problem)                
+function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Problem)
+    @timeit to(alg) "gen_new_col" begin
+    
     flag_need_not_generate_more_col = 0
     flag_is_sp_infeasible = -1
     flag_cannot_generate_more_col = -2    
@@ -306,14 +316,20 @@ function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Proble
 
     # Solve sub-problem and insert generated columns in master
     @logmsg LogLevel(-3) "optimizing pricing prob"
+    @timeit to(alg) "optimize(pricing_prob)" begin
     status = optimize(pricing_prob)
+    end
     compute_pricing_dual_bound_contrib(alg, pricing_prob)
     if status == MOI.InfeasibleNoResult
         @logmsg LogLevel(-3) "pricing prob is infeasible"
         return flag_is_sp_infeasible
     end
+    @timeit to(alg) "insert_cols_in_master" begin
     insertion_status = insert_cols_in_master(alg, pricing_prob)
+    end
     return insertion_status
+    
+    end # @timeit to(alg) "gen_new_col" begin
 end
 
 function gen_new_columns(alg::AlgToEvalNodeByLagrangianDuality)
@@ -399,11 +415,15 @@ end
 
 function solve_restricted_mast(alg)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
+    @timeit to(alg) "solve_restricted_mast" begin
     status = optimize(alg.extended_problem.master_problem)
+    end # @timeit to(alg) "solve_restricted_mast"
     return status
 end
 
-function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
+function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)    
+    @timeit to(alg) "solve_mast_lp_ph2" begin
+       
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and 
     # termination by bound does not apply
@@ -466,10 +486,11 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
             return true
         end        
         @logmsg LogLevel(-2) "next colgen ph2 iteration"
-    end
-    
-    @logmsg LogLevel(-2) "solve_mast_lp_ph2 has finished"
+    end    
+    @logmsg LogLevel(-2) "solve_mast_lp_ph2 has finished"    
     return false
+    
+    end # @timeit to "solve_mast_lp_ph2"
 end
 
 function run(alg::AlgToEvalNodeBySimplexColGen)
@@ -479,6 +500,6 @@ function run(alg::AlgToEvalNodeBySimplexColGen)
     if status == false
         alg.sol_is_master_lp_feasible = true
     end
-    
+        
     return false
 end

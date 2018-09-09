@@ -16,9 +16,9 @@ function ModelConstructor()
     callback = Callback()
     prob_counter = ProblemCounter(-1)
     vc_counter = VarConstrCounter(0)
-    extended_problem = ExtendedProblemConstructor(prob_counter,
-                                                  vc_counter, params,
-                                                  params.cut_up, params.cut_lo)
+    extended_problem = ExtendedProblem(prob_counter,
+                                       vc_counter, params,
+                                       params.cut_up, params.cut_lo)
     return Model(extended_problem, callback, params, prob_counter,
                  Dict{Int,MOI.AbstractOptimizer}())
 end
@@ -48,7 +48,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         node::Node, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
 
     println("************************************************************")
-    println("\nPreparing root node for treatment.")
+    println("Preparing root node for treatment.")
 
     treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
         node.problem_setup_info)
@@ -69,7 +69,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         global_nodes_treat_order::Int)
 
     println("************************************************************")
-    println("\nPreparing node ", global_nodes_treat_order,
+    println("Preparing node ", global_nodes_treat_order,
         " for treatment. Parent is ", node.parent.treat_order, ".")
     println("Current primal bound is ", extended_problem.primal_inc_bound)
     println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
@@ -93,7 +93,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     if !node.evaluated
         ## Dispatched according to eval_info (?)
         # treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
-        treat_algs.alg_eval_node = AlgToEvalNodeByColGen(extended_problem)
+        treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
     end
 
     return true
@@ -181,19 +181,16 @@ function update_model_incumbents(problem::ExtendedProblem, node::Node,
 end
 
 function generate_and_write_bap_tree(nodes::Vector{Node})
-    println("Generation of bap_tree is not yet implemented.")
+    @logmsg LogLevel(-4) "Generation of bap_tree is not yet implemented."
 end
-
 
 # Add Manager to take care of parallelism.
 # Maybe inside optimize(extended_problem::ExtendedProblem) (?)
 
-
 function solve(model::Model)
-
     status = optimize(model.extended_problem)
+    println(model.extended_problem.timer_output)
 end
-
 
 # Behaves like optimize(problem::Problem), but sets parameters before
 # function optimize(problem::ExtendedProblem)
