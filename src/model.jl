@@ -240,11 +240,15 @@ function optimize(extended_problem::ExtendedProblem)
             global_nodes_treat_order += 1
             nb_treated_nodes += 1
 
-            println("Node bounds after evaluation:")
-            println("Primal ip bound: ", cur_node.node_inc_ip_primal_bound)
-            println("Dual ip bound: ", cur_node.node_inc_ip_dual_bound)
-            println("Primal lp bound: ", cur_node.node_inc_lp_primal_bound)
-            println("Dual lp bound: ", cur_node.node_inc_lp_dual_bound)
+            @logmsg LogLevel(-4) "Node bounds after evaluation:"
+            @logmsg LogLevel(-4) string("Primal ip bound: ", 
+                                        cur_node.node_inc_ip_primal_bound)
+            @logmsg LogLevel(-4) string("Dual ip bound: ", 
+                                        cur_node.node_inc_ip_dual_bound)
+            @logmsg LogLevel(-4) string("Primal lp bound: ", 
+                                        cur_node.node_inc_lp_primal_bound)
+            @logmsg LogLevel(-4) string("Dual lp bound: ", 
+                                        cur_node.node_inc_lp_dual_bound)
 
             # the output of the treated node are the generated child nodes and
             # possibly the updated bounds and the
@@ -253,7 +257,7 @@ function optimize(extended_problem::ExtendedProblem)
             update_search_trees(cur_node, search_tree, extended_problem)
             update_model_incumbents(extended_problem, cur_node, search_tree)
 
-            println("number of nodes: ", length(search_tree))
+            @logmsg LogLevel(-4) string("number of nodes: ", length(search_tree))
 
         end
 
@@ -263,14 +267,13 @@ function optimize(extended_problem::ExtendedProblem)
         end
     end
 
-    println("\n\nSearch is finished.")
-    println("Primal bound: ", extended_problem.primal_inc_bound)
-    println("Dual bound: ", extended_problem.dual_inc_bound)
-    println("Best solution found:")
-    for kv in extended_problem.solution.var_val_map
-        println("var: ", kv[1].name, ": ", kv[2])
-    end
-
+    @logmsg LogLevel(-4) "Search is finished."
+    @logmsg LogLevel(-4) "Primal bound: $(extended_problem.primal_inc_bound)"
+    @logmsg LogLevel(-4) "Dual bound: $(extended_problem.dual_inc_bound)"
+    # println("Best solution found:")
+    # for kv in extended_problem.solution.var_val_map
+    #     println("var: ", kv[1].name, ": ", kv[2])
+    # end
     generate_and_write_bap_tree(treated_nodes)
     return "dummy_status"
 end

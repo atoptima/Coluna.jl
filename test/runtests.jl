@@ -15,8 +15,8 @@ include("colunabasictests.jl")
 include("colgenroot.jl")
 include("moi_wrapper.jl")
 
-
-
+using Base.CoreLogging
+disable_logging(LogLevel(-1))
 
 testdefaultbuilders()
 testpuremaster()

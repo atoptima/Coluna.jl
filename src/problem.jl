@@ -228,7 +228,7 @@ function retreive_primal_sol(problem::CompactProblem)
         error("The problem has no optimizer attached")
     end
     problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
-    @logmsg LogLevel(4) string("Objective value: ", problem.obj_val)
+    @logmsg LogLevel(-4) string("Objective value: ", problem.obj_val)
     var_list = problem.var_manager.active_static_list
     new_sol = Dict{Variable, Float}()
     new_obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
@@ -236,7 +236,7 @@ function retreive_primal_sol(problem::CompactProblem)
         var = var_list[var_idx]
         var.val = MOI.get(problem.optimizer, MOI.VariablePrimal(), 
                           var.moi_index)
-        @logmsg LogLevel(4) string("Var ", var.name, " = ", var.val)
+        @logmsg LogLevel(-4) string("Var ", var.name, " = ", var.val)
         if var.val > 0.0
             push!(problem.in_primal_lp_sol, var)
             new_sol[var] = var.val
@@ -262,9 +262,9 @@ function retreive_dual_sol(problem::CompactProblem)
             constr = constr_list[constr_idx]
             constr.val = MOI.get(optimizer, MOI.ConstraintDual(),
                                  constr.moi_index)  
-            @logmsg LogLevel(4) string("Constr dual ", constr.name, " = ",
+            @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
                                        constr.val)
-            @logmsg LogLevel(4) string("Constr primal ", constr.name, " = ", 
+            @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ", 
                     MOI.get(optimizer, MOI.ConstraintPrimal(), constr.moi_index))
             if constr.val != 0 # TODO use a tolerance
                 push!(problem.in_dual_lp_sol, constr)
@@ -325,7 +325,7 @@ function initialize_problem_optimizer(extended_problem::ExtendedProblem,
     end
 end
 
-function sol_is_integer(sol::Dict{Variable, Float}, tolerance::Float)
+function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
     for var_val in sol
         if (!is_value_integer(var_val.second, tolerance)            
                 && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))
@@ -333,7 +333,7 @@ function sol_is_integer(sol::Dict{Variable, Float}, tolerance::Float)
             return false
         end
     end
-    println("Solution is integer!")
+    @logmsg LogLevel(-4) "Solution is integer!"
     return true
 end
 
@@ -448,7 +448,7 @@ function optimize(problem::Problem)
     
     MOI.optimize!(problem.optimizer)
     status = MOI.get(problem.optimizer, MOI.TerminationStatus())
-    @logmsg LogLevel(4) string("Optimization finished with status: ", status)
+    @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
 
     if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
         retreive_solution(problem)
