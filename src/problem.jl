@@ -122,7 +122,7 @@ function remove_from_constr_manager(constr_manager::SimpleConstrIndexManager,
     else
         error("Status $(constr.status) and flag $(constr.flag) are not supported")
     end
-    idx = findfirst(list, constr)
+    idx = findfirst(x->x==constr, list)
     deleteat!(list, idx)
 end
 
@@ -137,6 +137,10 @@ end
 
 abstract type Problem end
 
+###########################
+##### CompactProblem ######
+###########################
+
 mutable struct CompactProblem{VM <: AbstractVarIndexManager,
                     CM <: AbstractConstrIndexManager} <: Problem
 
@@ -145,7 +149,8 @@ mutable struct CompactProblem{VM <: AbstractVarIndexManager,
 
     # objvalueordermagnitude::Float
     prob_is_built::Bool
-
+    
+    is_relaxed::Bool
     optimizer::Union{MOI.AbstractOptimizer, Nothing}
     # primalFormulation::LPform
 
@@ -190,8 +195,9 @@ function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
     primal_vec = Vector{PrimalSolution}([PrimalSolution()])
     dual_vec = Vector{DualSolution}([DualSolution()])
 
-    CompactProblem(increment_counter(prob_counter), false, optimizer, VM(), CM(),
-                   Inf, -Inf, Set{Variable}(), Set{Variable}(), Set{Constraint}(),
+    CompactProblem(increment_counter(prob_counter), false, false, optimizer, 
+                   VM(), CM(), Inf, -Inf, 
+                   Set{Variable}(), Set{Variable}(), Set{Constraint}(),
                    0.0, Dict{Variable,Float}(), primal_vec, dual_vec,
                    Vector{Constraint}(), Vector{Variable}(),
                    vc_counter, Vector{VarConstr}(), false)
@@ -222,16 +228,9 @@ function set_optimizer_obj(problem::CompactProblem,
              MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
 end
 
-function retreive_primal_sol(problem::CompactProblem)
-    ## Store it in problem.primal_sols
-    if problem.optimizer == nothing
-        error("The problem has no optimizer attached")
-    end
-    problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
-    @logmsg LogLevel(-4) string("Objective value: ", problem.obj_val)
-    var_list = problem.var_manager.active_static_list
-    new_sol = Dict{Variable, Float}()
-    new_obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
+function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
+                         var_list::Vector{Variable})
+
     for var_idx in 1:length(var_list)
         var = var_list[var_idx]
         var.val = MOI.get(problem.optimizer, MOI.VariablePrimal(), 
@@ -239,9 +238,22 @@ function retreive_primal_sol(problem::CompactProblem)
         @logmsg LogLevel(-4) string("Var ", var.name, " = ", var.val)
         if var.val > 0.0
             push!(problem.in_primal_lp_sol, var)
-            new_sol[var] = var.val
+            sol[var] = var.val
         end
     end
+end
+
+function retreive_primal_sol(problem::CompactProblem)
+    ## Store it in problem.primal_sols
+    if problem.optimizer == nothing
+        error("The problem has no optimizer attached")
+    end
+    problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
+    @logmsg LogLevel(-4) string("Objective value: ", problem.obj_val)
+    new_sol = Dict{Variable, Float}()
+    new_obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
+    fill_primal_sol(problem, new_sol, problem.var_manager.active_static_list)
+    fill_primal_sol(problem, new_sol, problem.var_manager.active_dynamic_list)
     push!(problem.primal_sols, PrimalSolution(new_obj_val, new_sol))
 end
 
@@ -257,6 +269,7 @@ function retreive_dual_sol(problem::CompactProblem)
             return
         end
         constr_list = problem.constr_manager.active_static_list
+        #TODO consider dynamic list too, like primal_sol.
         new_sol = Dict{Constraint, Float}()
         for constr_idx in 1:length(constr_list)
             constr = constr_list[constr_idx]
@@ -282,49 +295,6 @@ function retreive_solution(problem::CompactProblem)
     retreive_dual_sol(problem)
 end
 
-mutable struct ExtendedProblem <: Problem
-    master_problem::CompactProblem # restricted master in DW case.
-    pricing_vect::Vector{Problem}
-    separation_vect::Vector{Problem}
-    params::Params
-    counter::VarConstrCounter
-    solution::PrimalSolution
-    primal_inc_bound::Float
-    dual_inc_bound::Float
-    subtree_size_by_depth::Int
-end
-
-function ExtendedProblemConstructor(prob_counter::ProblemCounter,
-        vc_counter::VarConstrCounter,
-        params::Params, primal_inc_bound::Float,
-        dual_inc_bound::Float)
-
-    master_problem = SimpleCompactProblem(prob_counter, vc_counter)
-    return ExtendedProblem(master_problem, Problem[], Problem[],
-                           params, vc_counter, PrimalSolution(),
-                           params.cut_up, params.cut_lo, 0)
-end
-
-# Iterates through each problem in extended_problem,
-# check its index and call function
-# initialize_problem_optimizer(index, optimizer), using the dictionary
-function initialize_problem_optimizer(extended_problem::ExtendedProblem,
-         problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
-
-    initialize_problem_optimizer(extended_problem.master_problem,
-         problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
-
-    for problem in extended_problem.pricing_vect
-        initialize_problem_optimizer(problem,
-              problemidx_optimizer_map[problem.prob_ref])
-    end
-
-    for problem in extended_problem.separation_vect
-        initialize_problem_optimizer(problem,
-              problemidx_optimizer_map[problem.prob_ref])
-    end
-end
-
 function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
     for var_val in sol
         if (!is_value_integer(var_val.second, tolerance)            
@@ -345,19 +315,21 @@ function add_variable(problem::Problem, var::Variable)
         var.moi_index = MOI.add_variable(problem.optimizer)    
         # TODO set variable type
         add_bounds = true
-        if var.vc_type == 'B'
-            if var.lower_bound > 0.0 
-                var.lower_bound == 1.0
-            elseif var.upper_bound < 1.0 
-                var.upper_bound == 0.0
-            else
+        if !problem.is_relaxed
+            if var.vc_type == 'B'
+                if var.lower_bound > 0.0 
+                    var.lower_bound == 1.0
+                elseif var.upper_bound < 1.0 
+                    var.upper_bound == 0.0
+                else
+                    MOI.add_constraint(problem.optimizer, 
+                            MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
+                    add_bounds = false
+                end
+            elseif var.vc_type == 'I'
                 MOI.add_constraint(problem.optimizer, 
-                               MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
-                add_bounds = false
+                        MOI.SingleVariable(var.moi_index), MOI.Integer())
             end
-        elseif var.vc_type == 'I'
-            MOI.add_constraint(problem.optimizer, 
-                               MOI.SingleVariable(var.moi_index), MOI.Integer())
         end
         
         MOI.modify(problem.optimizer,
@@ -409,7 +381,7 @@ function delete_constraint(problem::Problem, constr::BranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
     remove_from_constr_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing
-        MOI.delete!(problem.optimizer, constr.moi_index)
+        MOI.delete(problem.optimizer, constr.moi_index)
         constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction, 
                                                constr.set_type}(-1)
     end
@@ -417,6 +389,7 @@ end
 
 function add_membership(problem::Problem, var::Variable, constr::Constraint,
         coef::Float)
+    @logmsg LogLevel(-4) "add_membership : var = $var, constr = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing
@@ -457,4 +430,75 @@ function optimize(problem::Problem)
     end
 
     return status
+end
+
+###########################
+##### ExtendedProblem #####
+###########################
+
+mutable struct ExtendedProblem <: Problem
+    master_problem::CompactProblem # restricted master in DW case.
+    pricing_vect::Vector{Problem}
+    pricing_convexity_lbs::Dict{Problem, MasterConstr}
+    pricing_convexity_ubs::Dict{Problem, MasterConstr}
+    separation_vect::Vector{Problem}
+    params::Params
+    counter::VarConstrCounter
+    solution::PrimalSolution
+    primal_inc_bound::Float
+    dual_inc_bound::Float
+    subtree_size_by_depth::Int
+    timer_output::TimerOutputs.TimerOutput
+end
+
+function ExtendedProblem(prob_counter::ProblemCounter,
+        vc_counter::VarConstrCounter,
+        params::Params, primal_inc_bound::Float,
+        dual_inc_bound::Float)
+
+    master_problem = SimpleCompactProblem(prob_counter, vc_counter)
+    master_problem.is_relaxed = true
+    return ExtendedProblem(master_problem, Problem[], 
+            Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(), 
+            Problem[], params, vc_counter, 
+            PrimalSolution(), params.cut_up, params.cut_lo, 0, 
+            TimerOutputs.TimerOutput())
+end
+
+# Iterates through each problem in extended_problem,
+# check its index and call function
+# initialize_problem_optimizer(index, optimizer), using the dictionary
+function initialize_problem_optimizer(extended_problem::ExtendedProblem,
+         problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
+
+    initialize_problem_optimizer(extended_problem.master_problem,
+         problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
+
+    for problem in extended_problem.pricing_vect
+        initialize_problem_optimizer(problem,
+              problemidx_optimizer_map[problem.prob_ref])
+    end
+
+    for problem in extended_problem.separation_vect
+        initialize_problem_optimizer(problem,
+              problemidx_optimizer_map[problem.prob_ref])
+    end
+end
+
+function add_convexity_constraints(extended_problem::ExtendedProblem, 
+        pricing_prob::Problem, card_lb::Int, card_ub::Int)
+    
+    master_prob = extended_problem.master_problem
+    convexity_lb_constr = ConvexityConstr(master_prob.counter, 
+            string("convexity_constr_lb_", pricing_prob.prob_ref), 
+            convert(Float, card_lb), 'G', 'M', 's')
+    add_constraint(master_prob, convexity_lb_constr)
+    
+    convexity_ub_constr = ConvexityConstr(master_prob.counter,
+            string("convexity_constr_ub_", pricing_prob.prob_ref),
+            convert(Float, card_ub), 'L', 'M', 's')
+    add_constraint(master_prob, convexity_ub_constr)
+    
+    extended_problem.pricing_convexity_lbs[pricing_prob] = convexity_lb_constr
+    extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
 end

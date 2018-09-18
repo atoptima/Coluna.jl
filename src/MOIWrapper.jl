@@ -69,6 +69,24 @@ function MOI.get(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAn
     return -1 # Returns value -1 as default if not found
 end
 
+struct DantzigWolfePricingCardinalityBounds <: MOI.AbstractModelAttribute end
+
+function MOI.get(dest::MOIU.UniversalFallback, 
+                 attribute::DantzigWolfePricingCardinalityBounds)
+    if haskey(dest.modattr, attribute)
+        return dest.modattr[attribute]
+    else
+        return Dict{Int, Tuple{Int, Int}}() # Returns empty dict if not found
+    end
+end
+
+function MOI.set(dest::MOIU.UniversalFallback, 
+                 attribute::DantzigWolfePricingCardinalityBounds,
+                 value::Dict{Int, Tuple{Int, Int}})
+    
+    dest.modattr[attribute] = value
+end
+
 ##########################################
 # Functions needed during copy procedure #
 ##########################################
@@ -110,6 +128,27 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
     add_constraint(problem, constr) # Adds the constr to the lower-level solver
     add_memberships(dest, problem, constr, f, mapping) # Do only if prob_idx is 0
     update_constraint_map(mapping, ci, f, s)
+end
+
+function MOI.supports_constraint(model::ColunaModelOptimizer, 
+        ::Type{MOI.SingleVariable}, 
+        ::Type{<:Union{MOI.ZeroOne, MOI.Integer}}) where T
+        
+    return true
+end
+
+function MOI.supports_constraint(model::ColunaModelOptimizer, 
+        ::Type{MOI.SingleVariable},
+        ::Type{<:Union{MOI.EqualTo{T}, MOI.GreaterThan{T}, MOI.LessThan{T}}}) where T
+        
+    return true
+end
+
+function MOI.supports_constraint(model::ColunaModelOptimizer, 
+        ::Type{MOI.ScalarAffineFunction{T}}, 
+        ::Type{<:Union{MOI.EqualTo{T}, MOI.GreaterThan{T}, MOI.LessThan{T}}}) where T
+    
+    return true
 end
 
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
@@ -285,7 +324,7 @@ function create_subproblems(dest::ColunaModelOptimizer, src::MOI.ModelLike)
 end
 
 function MOI.copy_to(dest::ColunaModelOptimizer, 
-                     src::MOI.ModelLike; copy_names=false)
+                     src::MOI.ModelLike; copy_names=true)
 
     # Create variables without adding to problem
     # Update the variable cost_rhs
@@ -297,6 +336,14 @@ function MOI.copy_to(dest::ColunaModelOptimizer,
     coluna_vars = create_coluna_variables(dest, src, mapping, copy_names)
     create_subproblems(dest, src)
     set_default_optimizers(dest)
+    
+    extended_prob = dest.inner.extended_problem
+    card_bounds_dict = MOI.get(src, DantzigWolfePricingCardinalityBounds())
+    for (idx, pricing_prob) in enumerate(extended_prob.pricing_vect)
+        card_bounds = get(card_bounds_dict, idx, (1,1))
+        add_convexity_constraints(extended_prob, pricing_prob, 
+                                  card_bounds[1], card_bounds[2])
+    end
 
     # Copy objective function
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())

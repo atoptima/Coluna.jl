@@ -11,7 +11,7 @@ function test_moi_optimize_and_getters() ## change
         nb_bins = 3
         profits = [-10.0, -15.0, -20.0, -50.0]
         weights = [  4.0,   5.0,   6.0,  10.0]
-        binscap = [ 10.0,  2.0,  10.0]
+        binscap = [ 10.0,   2.0,  10.0]
 
         model = build_coluna_model(n_items, nb_bins, profits, weights, binscap)
         coluna_optimizer = CL.ColunaModelOptimizer()
