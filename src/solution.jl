@@ -11,7 +11,7 @@ function compute_original_cost(sol::PrimalSolution)
     for (var, val) in sol.var_val_map
         cost += var.cost_rhs * val
     end
-    @logmsg LogLevel(4) string("intrinsic_cost = ",cost)
+    @logmsg LogLevel(-4) string("intrinsic_cost = ",cost)
     return cost
 end
 
