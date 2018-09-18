@@ -1,16 +1,7 @@
 function model_sgap(data::DataGap, solvertype)
     gap = Model(with_optimizer(solvertype), bridge_constraints=false)
-    # gap = Model(solver = solver)
 
-    # START of block to be automated
-    @variable(gap, 0 <= artificial <= 1)
-    
-    @variable(gap, 1 <= convexity_count[m in data.machines] <= 1)
-    
-    @constraint(gap, convexity_lb[m in data.machines], convexity_count[m] >= 0)
-    
-    @constraint(gap, convexity_ub[m in data.machines], convexity_count[m] <= 1)
-    # END of block to be automated 
+    @variable(gap, 0 <= artificial <= 1)   
                         
     @variable(gap, x[m in data.machines, j in data.jobs], Bin)
 
@@ -29,19 +20,13 @@ function model_sgap(data::DataGap, solvertype)
         MOI.set(gap.moi_backend, Coluna.ConstraintDantzigWolfeAnnotation(), 
                 cov[j].index, 0)
     end
-    for m in data.machines        
-        MOI.set(gap.moi_backend, Coluna.ConstraintDantzigWolfeAnnotation(), 
-                convexity_lb[m].index, 0)
-        MOI.set(gap.moi_backend, Coluna.ConstraintDantzigWolfeAnnotation(), 
-                convexity_ub[m].index, 0)
+    for m in data.machines
         MOI.set(gap.moi_backend, Coluna.ConstraintDantzigWolfeAnnotation(), 
                 knp[m].index, m)        
     end
     
     # Annotating variables for the decomposition
     for m in data.machines
-        MOI.set(gap.moi_backend, Coluna.VariableDantzigWolfeAnnotation(), 
-                convexity_count[m].index, m)
         for j in data.jobs
             MOI.set(gap.moi_backend, Coluna.VariableDantzigWolfeAnnotation(), 
                     x[m,j].index, m)
@@ -50,14 +35,13 @@ function model_sgap(data::DataGap, solvertype)
     MOI.set(gap.moi_backend, Coluna.VariableDantzigWolfeAnnotation(), 
             artificial.index, 0)
 
-    # Function describing the Dantzig-Wolfe decomposition
-    # function f(cstrname, cstrmid)::Tuple{Symbol, Tuple}
-    #   if cstrname == :cov
-    #     return (:DW_MASTER, (0,))
-    #   else
-    #     return (:DW_SP, cstrmid)
-    #   end
-    # end
-    # add_Dantzig_Wolfe_decomposition(gap, f)
+    # declaring pricing cardinality bounds
+    card_bounds_dict = Dict{Int, Tuple{Int, Int}}()
+    for m in data.machines
+        card_bounds_dict[m] = (0, 1)
+    end
+    MOI.set(gap.moi_backend, Coluna.DantzigWolfePricingCardinalityBounds(),
+            card_bounds_dict)
+
     return (gap, x)
 end

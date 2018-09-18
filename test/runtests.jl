@@ -15,7 +15,7 @@ include("colunabasictests.jl")
 include("colgenroot.jl")
 include("moi_wrapper.jl")
 
-using Base.CoreLogging, Logging
+# using Base.CoreLogging, Logging
 # global_logger(ConsoleLogger(stderr, LogLevel(-5)))
 
 testdefaultbuilders()
@@ -23,11 +23,11 @@ testpuremaster()
 @testset "cutting stock - colgen root " begin
     testcolgenatroot()
 end
-@testset "knapsack - branch and bound" begin
-    branch_and_bound_test_instance()
-end
+# @testset "knapsack - branch and bound" begin
+#     branch_and_bound_test_instance()
+# end
 # branch_and_bound_bigger_instances()
 # moi_wrapper()
-@testset "gap" begin
+@testset "gap - JuMP/MOI modeling" begin
     include("../demos/GeneralizedAssignment_ColGen/run_sgap.jl")
 end

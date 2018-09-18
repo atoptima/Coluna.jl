@@ -19,13 +19,22 @@
     # - The value is the corresponding coefficient.
     # ```
     mast_col_coef_map::Dict{Variable,Float} # Variable -> MasterColumn
-
 end
 
 function MasterConstrBuilder(counter::VarConstrCounter, name::String,
         cost_rhs::Float, sense::Char, vc_type::Char, flag::Char)
-    return tuplejoin(ConstraintBuilder(counter, name, cost_rhs, sense, vc_type, flag),
-                     Dict{SubprobVar,Float}(), Dict{Variable,Float}())
+        
+    return tuplejoin(ConstraintBuilder(counter, name, cost_rhs, sense, vc_type, 
+            flag), Dict{SubprobVar,Float}(), Dict{Variable,Float}())
+end
+
+@hl mutable struct ConvexityConstr <: MasterConstr
+end
+    
+function ConvexityConstrBuilder(counter::VarConstrCounter, name::String,
+        cost_rhs::Float, sense::Char, vc_type::Char, flag::Char)
+        
+    return MasterConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag)
 end
 
 @hl mutable struct BranchConstr <: Constraint
@@ -33,9 +42,10 @@ end
 end
 
 function BranchConstrBuilder(counter::VarConstrCounter, name::String,
-    rhs::Float, sense::Char, depth::Int)
-    return tuplejoin(ConstraintBuilder(counter, name, rhs,
-        sense, ' ', 'd'), depth)
+        rhs::Float, sense::Char, depth::Int)
+    
+    return tuplejoin(ConstraintBuilder(counter, name, rhs, sense, ' ', 'd'), 
+                     depth)
 end
 
 function BranchConstrConstructor(counter::VarConstrCounter, name::String,
@@ -46,5 +56,4 @@ function BranchConstrConstructor(counter::VarConstrCounter, name::String,
     var.member_coef_map[constr] = 1.0
 
     return constr
-
 end

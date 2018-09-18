@@ -389,6 +389,7 @@ end
 
 function add_membership(problem::Problem, var::Variable, constr::Constraint,
         coef::Float)
+    @logmsg LogLevel(-4) "add_membership : var = $var, constr = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing
@@ -438,6 +439,8 @@ end
 mutable struct ExtendedProblem <: Problem
     master_problem::CompactProblem # restricted master in DW case.
     pricing_vect::Vector{Problem}
+    pricing_convexity_lbs::Dict{Problem, MasterConstr}
+    pricing_convexity_ubs::Dict{Problem, MasterConstr}
     separation_vect::Vector{Problem}
     params::Params
     counter::VarConstrCounter
@@ -455,10 +458,11 @@ function ExtendedProblem(prob_counter::ProblemCounter,
 
     master_problem = SimpleCompactProblem(prob_counter, vc_counter)
     master_problem.is_relaxed = true
-    return ExtendedProblem(master_problem, Problem[], Problem[],
-                           params, vc_counter, PrimalSolution(),
-                           params.cut_up, params.cut_lo, 0, 
-                           TimerOutputs.TimerOutput())
+    return ExtendedProblem(master_problem, Problem[], 
+            Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(), 
+            Problem[], params, vc_counter, 
+            PrimalSolution(), params.cut_up, params.cut_lo, 0, 
+            TimerOutputs.TimerOutput())
 end
 
 # Iterates through each problem in extended_problem,
@@ -479,4 +483,22 @@ function initialize_problem_optimizer(extended_problem::ExtendedProblem,
         initialize_problem_optimizer(problem,
               problemidx_optimizer_map[problem.prob_ref])
     end
+end
+
+function add_convexity_constraints(extended_problem::ExtendedProblem, 
+        pricing_prob::Problem, card_lb::Int, card_ub::Int)
+    
+    master_prob = extended_problem.master_problem
+    convexity_lb_constr = ConvexityConstr(master_prob.counter, 
+            string("convexity_constr_lb_", pricing_prob.prob_ref), 
+            convert(Float, card_lb), 'G', 'M', 's')
+    add_constraint(master_prob, convexity_lb_constr)
+    
+    convexity_ub_constr = ConvexityConstr(master_prob.counter,
+            string("convexity_constr_ub_", pricing_prob.prob_ref),
+            convert(Float, card_ub), 'L', 'M', 's')
+    add_constraint(master_prob, convexity_ub_constr)
+    
+    extended_problem.pricing_convexity_lbs[pricing_prob] = convexity_lb_constr
+    extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
 end

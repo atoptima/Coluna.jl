@@ -209,14 +209,15 @@ end
 struct ColGenStabilization end
 
 @hl mutable struct AlgToEvalNodeByLagrangianDuality <: AlgToEvalNode
-    pricing_contribs::Dict{Problem, Float}    
+    pricing_contribs::Dict{Problem, Float}
+    pricing_const_obj::Dict{Problem, Float} 
     colgen_stabilization::Union{ColGenStabilization, Nothing}
     max_nb_cg_iterations::Int
 end
 
 function AlgToEvalNodeByLagrangianDualityBuilder(problem::ExtendedProblem)
     return tuplejoin(AlgToEvalNodeBuilder(problem), Dict{Problem, Float}(),
-                     nothing, 10000) #TODO put as parameter
+                     Dict{Problem, Float}(), nothing, 10000) # TODO put as parameter
 end
 
 function cleanup_restricted_mast_columns(alg::AlgToEvalNodeByLagrangianDuality, 
@@ -238,22 +239,30 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
     @timeit to(alg) "update_pricing_prob" begin
         
     new_obj = Dict{SubprobVar, Float}()
+    alg.pricing_const_obj[pricing_prob] = 0
     for var in pricing_prob.var_manager.active_static_list
         @logmsg LogLevel(-4) string("$var original cost = ", var.cost_rhs)
         new_obj[var] = var.cost_rhs
     end
-    master = alg.extended_problem.master_problem
-    duals_dict = master.dual_sols[end].constr_val_map
+    extended_prob = alg.extended_problem
+    master = extended_prob.master_problem
+    duals_dict = master.dual_sols[end].constr_val_map    
     for (constr, dual) in duals_dict
         @assert constr isa MasterConstr
+        if constr isa ConvexityConstr &&
+                (extended_prob.pricing_convexity_lbs[pricing_prob] == constr ||
+                 extended_prob.pricing_convexity_ubs[pricing_prob] == constr)
+            alg.pricing_const_obj[pricing_prob] -= dual
+            continue
+        end        
         for (var, coef) in constr.subprob_var_coef_map
             if haskey(new_obj, var)
                 new_obj[var] -= dual * coef
             end
         end
-    end    
+    end
     @logmsg LogLevel(-3) string("new objective func = ", new_obj)
-    set_optimizer_obj(pricing_prob, new_obj)    
+    set_optimizer_obj(pricing_prob, new_obj)
     
     end # @timeit to(alg) "update_pricing_prob"
     return false
@@ -265,7 +274,9 @@ function compute_pricing_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDualit
     
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost
-    contrib = pricing_prob.obj_val
+    const_obj = alg.pricing_const_obj[pricing_prob]
+    @logmsg LogLevel(-4) string("princing prob has const obj = ", const_obj)
+    contrib = pricing_prob.obj_val + alg.pricing_const_obj[pricing_prob]
     alg.pricing_contribs[pricing_prob] = contrib
     @logmsg LogLevel(-2) string("princing prob has contribution = ", contrib)
 end
@@ -279,6 +290,10 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
         master = alg.extended_problem.master_problem
         col = MasterColumn(master.counter, sp_sol)
         add_variable(master, col)
+        convexity_lb = alg.extended_problem.pricing_convexity_lbs[pricing_prob]
+        convexity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob]
+        add_membership(master, col, convexity_lb, 1.0)
+        add_membership(master, col, convexity_ub, 1.0)
         @logmsg LogLevel(-2) string("added column ", col)
         return 1
     else
@@ -428,7 +443,7 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # Phase II loop: Iterate while can generate new columns and 
     # termination by bound does not apply
     # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
-    while(true)        
+    while(true)
         # GLPK.write_lp(glpk_prob, string("mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds        
         status_rm = solve_restricted_mast(alg)        

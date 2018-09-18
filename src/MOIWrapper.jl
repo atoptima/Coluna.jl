@@ -69,6 +69,24 @@ function MOI.get(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAn
     return -1 # Returns value -1 as default if not found
 end
 
+struct DantzigWolfePricingCardinalityBounds <: MOI.AbstractModelAttribute end
+
+function MOI.get(dest::MOIU.UniversalFallback, 
+                 attribute::DantzigWolfePricingCardinalityBounds)
+    if haskey(dest.modattr, attribute)
+        return dest.modattr[attribute]
+    else
+        return Dict{Int, Tuple{Int, Int}}() # Returns empty dict if not found
+    end
+end
+
+function MOI.set(dest::MOIU.UniversalFallback, 
+                 attribute::DantzigWolfePricingCardinalityBounds,
+                 value::Dict{Int, Tuple{Int, Int}})
+    
+    dest.modattr[attribute] = value
+end
+
 ##########################################
 # Functions needed during copy procedure #
 ##########################################
@@ -318,6 +336,14 @@ function MOI.copy_to(dest::ColunaModelOptimizer,
     coluna_vars = create_coluna_variables(dest, src, mapping, copy_names)
     create_subproblems(dest, src)
     set_default_optimizers(dest)
+    
+    extended_prob = dest.inner.extended_problem
+    card_bounds_dict = MOI.get(src, DantzigWolfePricingCardinalityBounds())
+    for (idx, pricing_prob) in enumerate(extended_prob.pricing_vect)
+        card_bounds = get(card_bounds_dict, idx, (1,1))
+        add_convexity_constraints(extended_prob, pricing_prob, 
+                                  card_bounds[1], card_bounds[2])
+    end
 
     # Copy objective function
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())

@@ -9,7 +9,6 @@ data = read_dataGap("$appfolder/data/play.txt")
 solvertype = Coluna.ColunaModelOptimizer
 
 (gap, x) = model_sgap(data, solvertype)
-#(gap, x, y) = model_sgap_w_penalties(data, bcsolver)
 
 optimize!(gap)
 @test JuMP.objective_value(gap) == 13.0

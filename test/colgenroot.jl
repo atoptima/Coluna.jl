@@ -10,10 +10,12 @@ function testcolgenatroot()
     model.problemidx_optimizer_map[master_problem.prob_ref] = masteroptimizer
 
     pricingoptimizer = GLPK.Optimizer()
-    pricingprob = CL.SimpleCompactProblem(prob_counter, counter)
+    pricingprob = CL.SimpleCompactProblem(prob_counter, counter)    
     push!(extended_problem.pricing_vect, pricingprob)
     model.problemidx_optimizer_map[pricingprob.prob_ref] = pricingoptimizer
     CL.set_model_optimizers(model)
+    
+    CL.add_convexity_constraints(extended_problem, pricingprob, 0, 3)
 
     #subproblem vars
     x1 = CL.SubprobVar(counter, "x1", 0.0, 'P', 'B', 's', 'U', 1.0, 
@@ -53,26 +55,18 @@ function testcolgenatroot()
                                    'G', 'M', 's')
     cov_3_constr = CL.MasterConstr(master_problem.counter, "cov_3_constr", 1.0,
                                    'G', 'M', 's')
-    convexity_constr = CL.MasterConstr(master_problem.counter, 
-                                       "convexity_constr", 3.0, 'L', 'M', 's')
-                                   
-                                   
+
     CL.add_constraint(master_problem, cov_1_constr)                                                                                                       
     CL.add_constraint(master_problem, cov_2_constr)
     CL.add_constraint(master_problem, cov_3_constr)
-    CL.add_constraint(master_problem, convexity_constr)
 
     CL.add_membership(master_problem, x1, cov_1_constr, 1.0)
     CL.add_membership(master_problem, x2, cov_2_constr, 1.0)
     CL.add_membership(master_problem, x3, cov_3_constr, 1.0)
-    CL.add_membership(master_problem, y, convexity_constr, 1.0)
     
     CL.add_membership(master_problem, art_glob_var, cov_1_constr, 1.0)
     CL.add_membership(master_problem, art_glob_var, cov_2_constr, 1.0)
     CL.add_membership(master_problem, art_glob_var, cov_3_constr, 1.0)
-
-    # model = CL.Model(CL.Params(), CL.VarConstrCounter(0), master_problem,
-    #               [pricingprob], [(0,100)], CL.PrimalSolution(), Inf, -Inf, 0)
 
     CL.solve(model)
     
