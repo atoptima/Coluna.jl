@@ -290,10 +290,13 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
         master = alg.extended_problem.master_problem
         col = MasterColumn(master.counter, sp_sol)
         add_variable(master, col)
+<<<<<<< HEAD
         convexity_lb = alg.extended_problem.pricing_convexity_lbs[pricing_prob]
         convexity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob]
         add_membership(master, col, convexity_lb, 1.0)
         add_membership(master, col, convexity_ub, 1.0)
+=======
+>>>>>>> master
         @logmsg LogLevel(-2) string("added column ", col)
         return 1
     else
@@ -443,7 +446,7 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # Phase II loop: Iterate while can generate new columns and 
     # termination by bound does not apply
     # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
-    while(true)
+    while(true)        
         # GLPK.write_lp(glpk_prob, string("mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds        
         status_rm = solve_restricted_mast(alg)        
