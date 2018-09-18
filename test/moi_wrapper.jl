@@ -16,11 +16,11 @@ function test_moi_optimize_and_getters() ## change
         model = build_coluna_model(n_items, nb_bins, profits, weights, binscap)
         coluna_optimizer = CL.ColunaModelOptimizer()
 
-        @test MOI.isempty(coluna_optimizer) == true
+        @test MOI.is_empty(coluna_optimizer) == true
         coluna_optimizer.inner = model
-        @test MOI.isempty(coluna_optimizer) == false
+        @test MOI.is_empty(coluna_optimizer) == false
         MOI.empty!(coluna_optimizer)
-        @test MOI.isempty(coluna_optimizer) == true
+        @test MOI.is_empty(coluna_optimizer) == true
         coluna_optimizer.inner = model
 
         MOI.optimize!(coluna_optimizer)
@@ -69,20 +69,20 @@ function test_moi_annotations()
         moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
         ## Subproblem variables
-        x1 = MOI.addvariable!(moi_model)
-        MOI.set!(moi_model, CL.VariableDantzigWolfeAnnotation(), x1, 1)
+        x1 = MOI.add_variable(moi_model)
+        MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), x1, 1)
 
         ## Subproblem constrs
-        knp_constr = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0], [x1]), 0.0), MOI.LessThan(0.0))
-        MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
+        knp_constr = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0], [x1]), 0.0), MOI.LessThan(0.0))
+        MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
 
         ## Master variable
-        art_glob_var = MOI.addvariable!(moi_model)
-        MOI.set!(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var, 0)
+        art_glob_var = MOI.add_variable(moi_model)
+        MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var, 0)
 
         ## Masrer constraint
-        cov = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x1, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
-        MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov, 0)
+        cov = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x1, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
+        MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov, 0)
 
 
         @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov) == 0
@@ -109,48 +109,48 @@ function build_colgen_root_model_with_moi()
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
     ## Subproblem variables
-    x1 = MOI.addvariable!(moi_model)
-    x2 = MOI.addvariable!(moi_model)
-    x3 = MOI.addvariable!(moi_model)
-    y = MOI.addvariable!(moi_model)
+    x1 = MOI.add_variable(moi_model)
+    x2 = MOI.add_variable(moi_model)
+    x3 = MOI.add_variable(moi_model)
+    y = MOI.add_variable(moi_model)
     vars = [x1, x2, x3, y]
 
     ## Bounds
     bounds = MOI.ConstraintIndex[]
     for var in vars
-        ci = MOI.addconstraint!(moi_model, MOI.SingleVariable(var), MOI.ZeroOne())
-        MOI.set!(moi_model, CL.VariableDantzigWolfeAnnotation(), var, 1)
+        ci = MOI.add_constraint(moi_model, MOI.SingleVariable(var), MOI.ZeroOne())
+        MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), var, 1)
         push!(bounds, ci)
     end
-    ci = MOI.addconstraint!(moi_model, MOI.SingleVariable(y), MOI.GreaterThan(1.0))
+    ci = MOI.add_constraint(moi_model, MOI.SingleVariable(y), MOI.GreaterThan(1.0))
     push!(bounds, ci)
 
     ## Subproblem constrs
-    knp_constr = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0, 4.0, 5.0, -8.0], vars), 0.0), MOI.LessThan(0.0))
-    MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
+    knp_constr = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0, 4.0, 5.0, -8.0], vars), 0.0), MOI.LessThan(0.0))
+    MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
 
     ## Master variable
-    art_glob_var = MOI.addvariable!(moi_model)
-    ci = MOI.addconstraint!(moi_model,MOI.SingleVariable(art_glob_var),
+    art_glob_var = MOI.add_variable(moi_model)
+    ci = MOI.add_constraint(moi_model,MOI.SingleVariable(art_glob_var),
                             MOI.LessThan(1.0))
     push!(bounds, ci)
-    ci = MOI.addconstraint!(moi_model, MOI.SingleVariable(art_glob_var),
+    ci = MOI.add_constraint(moi_model, MOI.SingleVariable(art_glob_var),
                             MOI.GreaterThan(0.0))
     push!(bounds, ci)
 
     cover_constr = MOI.ConstraintIndex[]
     for var in [x1, x2, x3]
-        ci = MOI.addconstraint!(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [var, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
-        MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), ci, 0)
+        ci = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [var, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
+        MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), ci, 0)
         push!(cover_constr, ci)
     end
-    convexity = MOI.addconstraint!(moi_model, MOI.SingleVariable(y), MOI.LessThan(3.0))
-    MOI.set!(moi_model, CL.ConstraintDantzigWolfeAnnotation(), convexity, 0)
+    convexity = MOI.add_constraint(moi_model, MOI.SingleVariable(y), MOI.LessThan(3.0))
+    MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), convexity, 0)
 
     ### set objective function
     objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1000000.0], [y, art_glob_var]), 0.0)
-    MOI.set!(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set!(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
 
     return moi_model
 end
@@ -161,35 +161,35 @@ function build_model_2()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
-    x1 = MOI.addvariable!(moi_model)
-    x2 = MOI.addvariable!(moi_model)
-    x3 = MOI.addvariable!(moi_model)
-    x4 = MOI.addvariable!(moi_model)
-    x5 = MOI.addvariable!(moi_model)
+    x1 = MOI.add_variable(moi_model)
+    x2 = MOI.add_variable(moi_model)
+    x3 = MOI.add_variable(moi_model)
+    x4 = MOI.add_variable(moi_model)
+    x5 = MOI.add_variable(moi_model)
 
     objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([10.0, 1.0, 1.0],
                                                           [x1, x2, x3]), 0.0)
-    MOI.set!(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set!(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
 
     cf1 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0, 1.0],
                                                          [x1, x2, x3]), 0.0)
-    constr1 = MOI.addconstraint!(moi_model, cf1, MOI.GreaterThan(5.0))
+    constr1 = MOI.add_constraint(moi_model, cf1, MOI.GreaterThan(5.0))
 
     cf2 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x2, x3]), 0.0)
-    constr2 = MOI.addconstraint!(moi_model, cf2, MOI.LessThan(3.0))
+    constr2 = MOI.add_constraint(moi_model, cf2, MOI.LessThan(3.0))
 
-    constr31 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x1), MOI.Integer())
-    constr32 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x1), MOI.LessThan(2.0))
-    constr33 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x1), MOI.GreaterThan(1.0))
+    constr31 = MOI.add_constraint(moi_model, MOI.SingleVariable(x1), MOI.Integer())
+    constr32 = MOI.add_constraint(moi_model, MOI.SingleVariable(x1), MOI.LessThan(2.0))
+    constr33 = MOI.add_constraint(moi_model, MOI.SingleVariable(x1), MOI.GreaterThan(1.0))
 
-    constr4 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x2), MOI.ZeroOne())
-    constr5 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x3), MOI.GreaterThan(0.0))
+    constr4 = MOI.add_constraint(moi_model, MOI.SingleVariable(x2), MOI.ZeroOne())
+    constr5 = MOI.add_constraint(moi_model, MOI.SingleVariable(x3), MOI.GreaterThan(0.0))
 
-    constr6 = MOI.addconstraint!(moi_model, MOI.SingleVariable(x4), MOI.EqualTo(0.0))
+    constr6 = MOI.add_constraint(moi_model, MOI.SingleVariable(x4), MOI.EqualTo(0.0))
 
     cf7 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x4, x5]), 0.0)
-    constr7 = MOI.addconstraint!(moi_model, cf7, MOI.EqualTo(0.0))
+    constr7 = MOI.add_constraint(moi_model, cf7, MOI.EqualTo(0.0))
 
     return moi_model, [x1, x2, x3, x4, x5]
 end
@@ -205,27 +205,27 @@ function build_model_1(n_items::Int, nb_bins::Int,
 
     x_vars = Vector{Vector{MOI.VariableIndex}}()
     for j in 1:n_items
-        x_vec = MOI.addvariables!(moi_model, nb_bins)
+        x_vec = MOI.add_variables(moi_model, nb_bins)
         push!(x_vars, x_vec)
     end
 
     knap_constrs = MOI.ConstraintIndex[]
     for i in 1:nb_bins
         cf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([w for w in weights], [x_vars[j][i] for j in 1:n_items]), 0.0)
-        constr = MOI.addconstraint!(moi_model, cf, MOI.LessThan(binscap[i]))
+        constr = MOI.add_constraint(moi_model, cf, MOI.LessThan(binscap[i]))
         push!(knap_constrs, constr)
     end
 
     cover_constrs = MOI.ConstraintIndex[]
     for j in 1:n_items
         cf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0 for i in 1:nb_bins], [x_vars[j][i] for i in 1:nb_bins]), 0.0)
-        constr = MOI.addconstraint!(moi_model, cf, MOI.LessThan(1.0))
+        constr = MOI.add_constraint(moi_model, cf, MOI.LessThan(1.0))
         push!(cover_constrs, constr)
     end
     for j in 1:n_items
         for i in 1:nb_bins
             cf = MOI.SingleVariable(x_vars[j][i])
-            constr = MOI.addconstraint!(moi_model, cf, MOI.ZeroOne())
+            constr = MOI.add_constraint(moi_model, cf, MOI.ZeroOne())
         end
     end
     ### set objective function
@@ -237,8 +237,8 @@ function build_model_1(n_items::Int, nb_bins::Int,
         end
     end
     objF = MOI.ScalarAffineFunction(terms, 0.0)
-    MOI.set!(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set!(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
 
     return moi_model
 end

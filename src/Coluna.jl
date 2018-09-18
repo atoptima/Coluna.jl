@@ -16,8 +16,16 @@ global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
 
-@MOIU.model ModelForCachingOptimizer (ZeroOne, Integer) (EqualTo, GreaterThan, LessThan, Interval) () () (SingleVariable,) (ScalarAffineFunction,) () () # We should not need to import this here
-
+# We should not need to import this here
+@MOIU.model(ModelForCachingOptimizer,
+        (MOI.ZeroOne, MOI.Integer),
+        (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
+        (),
+        (),
+        (MOI.SingleVariable,),
+        (MOI.ScalarAffineFunction,),
+        (),
+        ()) 
 
 include("parameters.jl")
 include("utils.jl")
