@@ -24,22 +24,24 @@ include("shared_functions.jl")
     println("Process ", myid(), " is solving the pricing for dual vector number ",
             dual.id, ".")
 
-    sleep(4.0) # Do first part of processing
+    t1 = time_ns()
+    sleep(2.0 + rand() * 2.0) # Do first processing
 
     if isready(messages) # Check if needs to stop
         message = take!(messages)
         if message == "stop"
             println("Process ", myid(), " was told to exit. No columns were generated.")
-            return nothing
+            return
         end
     end
-    sleep(2.0) # Do second part of processing
+    sleep(1.0 + rand())
 
     println("Solving MOI model...")
     MOI.optimize!(pricing_solver)
     println("Done!")
     vars = MOI.get(pricing_solver, MOI.ListOfVariableIndices())
     values = MOI.get(pricing_solver, MOI.VariablePrimal(), vars)
+    cost = MOI.get(pricing_solver, MOI.ObjectiveValue())
     println("Solution from subproblem: ", values)
 
     if isready(messages)
@@ -49,10 +51,10 @@ include("shared_functions.jl")
         end
     end
 
-    col = Column(dual.id, myid(), rand(Bool, length(dual.duals_vec)), rand()-0.5, true)
-    println("Process ", myid(), " generated column ", col.col_id, ".")
+    col = Column(dual.id, myid(), values, cost, true)
+    println("Process ", myid(), " generated column ", col.col_id, " in ", (time_ns()-t1)/1e9, " seconds.")
     put!(results, col)
-    return nothing
+    return
 end
 
 @everywhere function waiter_function(data::SolverData,
@@ -100,7 +102,7 @@ function solve_pricing_probs_in_parallel(duals::Vector{DualStruct},
             cur_proc = 2
         end
     end
-
+    return
 end
 
 function cg_iteration(prob_size::Int, nb_dual_vecs::Int, messages_struct::Messages)
@@ -108,11 +110,10 @@ function cg_iteration(prob_size::Int, nb_dual_vecs::Int, messages_struct::Messag
     duals = generate_duals(prob_size, nb_dual_vecs)
     solve_pricing_probs_in_parallel(duals, messages_struct)
     cols = get_results_from_channel(messages_struct.results_channel, messages_struct.messages_to_solver, nb_dual_vecs)
-    sleep(10)
     print_results(cols)
     println("\nFinished iteration of column generation.\n\n")
 
-    return nothing
+    return
 end
 
 function setup_workers(data::SolverData, nb_dual_vecs::Int)
@@ -163,7 +164,7 @@ function main()
     # Imagine you are in a for loop of the column generation
     cg_iteration(nb_vars, nb_dual_vecs, messages_struct)
     # Continue the loop
-
+    return
 end
 
 main()

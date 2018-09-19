@@ -39,8 +39,8 @@ end
     return moi_model
 end
 
-@everywhere function create_moi_model_with_glpk(channel::RemoteChannel)
-    return create_moi_model_with_glpk(take!(channel))
+@everywhere function create_moi_model_with_glpk(container::Vector{SolverData})
+    return create_moi_model_with_glpk(pop!(container))
 end
 
 @everywhere function create_moi_model_with_glpk()
@@ -53,9 +53,13 @@ end
     data.n_vars = data_from_master.n_vars
 end
 
-@everywhere function put_data_to_channel(data::SolverData, channel_name::Symbol)
-    put!(eval(channel_name), data)
+
+@everywhere function put_data_to_container(data::SolverData, container_name::Symbol)
+    push!(eval(container_name), data)
 end
 
+@everywhere function create_and_put_solver_to_container(data::SolverData, container_name::Symbol)
+    push!(eval(container_name), create_moi_model_with_glpk(data))
+end
 
 

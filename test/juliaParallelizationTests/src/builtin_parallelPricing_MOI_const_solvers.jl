@@ -25,30 +25,33 @@ include("shared_functions.jl")
     println("Process ", myid(), " is solving the pricing for dual vector number ",
             dual.id, ".")
 
-    sleep(4.0) # Do first processing
+    t1 = time_ns()
+    sleep(2.0 + rand() * 2.0) # Do first processing
     # Arrive to a checkpoint
     # Check if needs to stop
     if isready(messages)
         message = take!(messages)
         if message == "stop"
             println("Process ", myid(), " was told to exit. No columns were generated.")
-            return nothing
+            return
         end
     end
-    sleep(2.0)
+    sleep(1.0 + rand())
 
     println("Solving MOI model...")
+    pricing_solver = solver_container[1]
     MOI.optimize!(pricing_solver)
     println("Done!")
     vars = MOI.get(pricing_solver, MOI.ListOfVariableIndices())
     values = MOI.get(pricing_solver, MOI.VariablePrimal(), vars)
+    cost = MOI.get(pricing_solver, MOI.ObjectiveValue())
     println("Solution from subproblem: ", values)
 
-    col = Column(dual.id, myid(), rand(Bool, length(dual.duals_vec)), rand()-0.5, true)
-    println("Process ", myid(), " generated column ", col.col_id, ".")
+    col = Column(dual.id, myid(), values, cost, true)
+    println("Process ", myid(), " generated column ", col.col_id, " in ", (time_ns()-t1)/1e9, " seconds.")
     put!(results, col)
     put!(messages, "done")
-    return nothing
+    return
 end
 
 function solve_pricing_probs_in_parallel(duals::Vector{DualStruct},
@@ -60,6 +63,7 @@ function solve_pricing_probs_in_parallel(duals::Vector{DualStruct},
     @distributed for i in 1:length(duals)
         solve_pricing(duals[i], results_channel, messages_channel_vec[i])
     end
+    return
 end
 
 function cg_iteration(prob_size::Int, nb_pricing_solvers::Int)
@@ -79,27 +83,15 @@ function cg_iteration(prob_size::Int, nb_pricing_solvers::Int)
     sleep(10)
     print_results(cols)
     println("\nFinished iteration of column generation.\n\n")
-
-    return nothing
+    return
 end
 
 function define_const_pricing_in_workers(data::SolverData)
     @sync for worker_id in workers()
-        # Eiter this
-        @everywhere [worker_id] const data = EmptyData()
-        remotecall(fill_data, worker_id, data)
-        # ----
-        # Or this
-        # @everywhere [worker_id] channel = RemoteChannel(()->Channel{SolverData}(1))
-        # remotecall(put_data_to_channel, worker_id, data, :channel)
-        # ----
-    end
-    for worker_id in workers()
-        # Either this:
-        # @everywhere [worker_id] const pricing_solver = create_moi_model_with_glpk(channel)
-        # Or this:
-        @everywhere [worker_id] const pricing_solver = create_moi_model_with_glpk()
-    end
+        @everywhere [worker_id] const solver_container = Vector{MOI.ModelLike}()
+        remotecall(create_and_put_solver_to_container, worker_id, data, :solver_container)
+    end    
+    return
 end
 
 function main()
@@ -114,7 +106,7 @@ function main()
     # Imagine you are in a for loop of the column generation
     cg_iteration(nb_vars, nb_dual_vecs)
     # Continue the loop
-
+    return
 end
 
 main()

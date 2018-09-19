@@ -31,15 +31,15 @@ function solve_pricing(pricing_solver::MOI.ModelLike, dual::DualStruct,
     MOI.optimize!(pricing_solver)
     vars = MOI.get(pricing_solver, MOI.ListOfVariableIndices())
     values = MOI.get(pricing_solver, MOI.VariablePrimal(), vars)
+    cost = MOI.get(pricing_solver, MOI.ObjectiveValue())
 
     col = cols[dual.id]
     col.col_id = dual.id
     col.proc_id = Threads.threadid()
-    col.col = rand(Bool, length(dual.duals_vec))
-    col.reduced_cost = rand() - 0.5
+    col.col = values
+    col.reduced_cost = cost
     col.solved = true
-    return nothing
-
+    return
 end
 
 function solve_pricing_probs_in_parallel(solvers::Vector{<:MOI.ModelLike},
@@ -51,6 +51,7 @@ function solve_pricing_probs_in_parallel(solvers::Vector{<:MOI.ModelLike},
     Threads.@threads for i in 1:length(duals)
         solve_pricing(solvers[i], duals[i], cols)
     end
+    return
 end
 
 function cg_iteration(data::SolverData, prob_size::Int, nb_pricing_solvers::Int)
@@ -67,7 +68,7 @@ function cg_iteration(data::SolverData, prob_size::Int, nb_pricing_solvers::Int)
     for solver in solvers
         Base.finalize(solver)
     end
-    return nothing
+    return
 end
 
 function main()
@@ -78,6 +79,7 @@ function main()
     cg_iteration(data, nb_vars, nb_dual_vecs)
     # Continue the loop
 
+    return
 end
 
 main()

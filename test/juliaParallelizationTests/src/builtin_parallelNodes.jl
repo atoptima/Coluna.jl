@@ -73,14 +73,23 @@ function nodes_manager()
     @distributed for worker_id in workers()
         solve_bb(remote_bb_tree, open_close_nodes_flag)
     end
+
     nb_open_nodes = 0
     while true
 
-        nb_open_nodes += take!(open_close_nodes_flag)
-        println("New nb of open nodes: ", nb_open_nodes)
-        if nb_open_nodes == 0
-            break
+        if !isready(open_close_nodes_flag)
+            println("Doing work")
+            sleep(1.0)
+        else
+            nb_open_nodes += take!(open_close_nodes_flag)
+            println("Doing more work with new information")
+            sleep(1.0)
+            println("New nb of open nodes: ", nb_open_nodes)
+            if nb_open_nodes == 0
+                break
+            end
         end
+
 
     end
 
