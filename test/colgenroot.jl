@@ -10,23 +10,27 @@ function testcolgenatroot()
     model.problemidx_optimizer_map[master_problem.prob_ref] = masteroptimizer
 
     pricingoptimizer = GLPK.Optimizer()
-    pricingprob = CL.SimpleCompactProblem(prob_counter, counter)    
+    pricingprob = CL.SimpleCompactProblem(prob_counter, counter)
     push!(extended_problem.pricing_vect, pricingprob)
     model.problemidx_optimizer_map[pricingprob.prob_ref] = pricingoptimizer
+
+    art_glob_pos_var = extended_problem.artificial_global_pos_var 
+    art_glob_neg_var = extended_problem.artificial_global_neg_var
+
     CL.set_model_optimizers(model)
-    
+    CL.add_artificial_variables(extended_problem)
     CL.add_convexity_constraints(extended_problem, pricingprob, 0, 3)
 
     #subproblem vars
-    x1 = CL.SubprobVar(counter, "x1", 0.0, 'P', 'B', 's', 'U', 1.0, 
+    x1 = CL.SubprobVar(counter, "x1", 0.0, 'P', 'B', 's', 'U', 1.0,
                        0.0, 1.0, -Inf, Inf, -Inf, Inf)
-    x2 = CL.SubprobVar(counter, "x2", 0.0, 'P', 'B', 's', 'U', 1.0, 
+    x2 = CL.SubprobVar(counter, "x2", 0.0, 'P', 'B', 's', 'U', 1.0,
                        0.0, 1.0, -Inf, Inf, -Inf, Inf)
-    x3 = CL.SubprobVar(counter, "x3", 0.0, 'P', 'B', 's', 'U', 1.0, 
+    x3 = CL.SubprobVar(counter, "x3", 0.0, 'P', 'B', 's', 'U', 1.0,
                        0.0, 1.0, -Inf, Inf, -Inf, Inf)
-    y = CL.SubprobVar(counter, "y", 1.0, 'P', 'B', 's', 'U', 1.0, 
+    y = CL.SubprobVar(counter, "y", 1.0, 'P', 'B', 's', 'U', 1.0,
                        1.0, 1.0, -Inf, Inf, -Inf, Inf)
-                       
+
     CL.add_variable(pricingprob, x1)
     CL.add_variable(pricingprob, x2)
     CL.add_variable(pricingprob, x3)
@@ -43,11 +47,9 @@ function testcolgenatroot()
     CL.add_membership(pricingprob, y, knp_constr, -8.0)
 
     # master var
-    art_glob_var = CL.MasterVar(counter, "glob_art", 1000000.0, 'P', 'C', 
-                                's', 'U', 1.0, 0.0, 1.0)
-                                
-    CL.add_variable(master_problem, art_glob_var)
-    
+    art_glob_pos_var = extended_problem.artificial_global_pos_var
+    art_glob_neg_var = extended_problem.artificial_global_neg_var
+
     # master constraints
     cov_1_constr = CL.MasterConstr(master_problem.counter, "cov_1_constr", 1.0,
                                    'G', 'M', 's')
@@ -56,19 +58,19 @@ function testcolgenatroot()
     cov_3_constr = CL.MasterConstr(master_problem.counter, "cov_3_constr", 1.0,
                                    'G', 'M', 's')
 
-    CL.add_constraint(master_problem, cov_1_constr)                                                                                                       
+    CL.add_constraint(master_problem, cov_1_constr)
     CL.add_constraint(master_problem, cov_2_constr)
     CL.add_constraint(master_problem, cov_3_constr)
 
     CL.add_membership(master_problem, x1, cov_1_constr, 1.0)
     CL.add_membership(master_problem, x2, cov_2_constr, 1.0)
     CL.add_membership(master_problem, x3, cov_3_constr, 1.0)
-    
-    CL.add_membership(master_problem, art_glob_var, cov_1_constr, 1.0)
-    CL.add_membership(master_problem, art_glob_var, cov_2_constr, 1.0)
-    CL.add_membership(master_problem, art_glob_var, cov_3_constr, 1.0)
+
+    CL.add_membership(master_problem, art_glob_pos_var, cov_1_constr, 1.0)
+    CL.add_membership(master_problem, art_glob_pos_var, cov_2_constr, 1.0)
+    CL.add_membership(master_problem, art_glob_pos_var, cov_3_constr, 1.0)
 
     CL.solve(model)
-    
+
     @test model.extended_problem.primal_inc_bound == 2.0
 end

@@ -18,11 +18,11 @@ include("moi_wrapper.jl")
 # using Base.CoreLogging, Logging
 # global_logger(ConsoleLogger(stderr, LogLevel(-5)))
 
-testdefaultbuilders()
-testpuremaster()
-@testset "cutting stock - colgen root " begin
-    testcolgenatroot()
-end
+# testdefaultbuilders()
+# testpuremaster()
+# @testset "cutting stock - colgen root " begin
+#     testcolgenatroot()
+# end
 # @testset "knapsack - branch and bound" begin
 #     branch_and_bound_test_instance()
 # end

@@ -4,21 +4,24 @@ BestLpBound, DepthFirstWithBetterBound)
 @hl mutable struct Callback end
 
 mutable struct Model # user model
-    extended_problem::ExtendedProblem
+    extended_problem::Union{Nothing, ExtendedProblem}
     callback::Callback
     params::Params
     prob_counter::ProblemCounter
     problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer}
 end
 
-function ModelConstructor()
+function ModelConstructor(with_extended_prob = true)
     params = Params()
     callback = Callback()
-    prob_counter = ProblemCounter(-1)
+    prob_counter = ProblemCounter(-1) # like cplex convention of prob_ref
     vc_counter = VarConstrCounter(0)
-    extended_problem = ExtendedProblem(prob_counter,
-                                       vc_counter, params,
-                                       params.cut_up, params.cut_lo)
+    if with_extended_prob
+        extended_problem = ExtendedProblem(prob_counter, vc_counter, params,
+                                           params.cut_up, params.cut_lo)
+    else
+        extended_problem = nothing
+    end
     return Model(extended_problem, callback, params, prob_counter,
                  Dict{Int,MOI.AbstractOptimizer}())
 end
@@ -44,7 +47,7 @@ end
 
 
 ### For root node
-function prepare_node_for_treatment(extended_problem::ExtendedProblem, 
+function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         node::Node, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
 
     println("************************************************************")
@@ -65,7 +68,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 end
 
 function prepare_node_for_treatment(extended_problem::ExtendedProblem,
-        node::NodeWithParent, treat_algs::TreatAlgs, 
+        node::NodeWithParent, treat_algs::TreatAlgs,
         global_nodes_treat_order::Int)
 
     println("************************************************************")
@@ -100,7 +103,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 end
 
 function print_info_before_solving_node(problem::ExtendedProblem,
-        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int, 
+        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int,
         treat_order::Int)
 
     print(primal_tree_nb_open_nodes)
@@ -174,7 +177,7 @@ function update_model_incumbents(problem::ExtendedProblem, node::Node,
         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
     end
     if (node.dual_bound_is_updated &&
-                length(search_tree) 
+                length(search_tree)
                 <= problem.params.limit_on_tree_size_to_update_best_dual_bound)
         update_cur_valid_dual_bound(problem, node, search_tree)
     end
@@ -238,13 +241,13 @@ function optimize(extended_problem::ExtendedProblem)
             nb_treated_nodes += 1
 
             @logmsg LogLevel(-4) "Node bounds after evaluation:"
-            @logmsg LogLevel(-4) string("Primal ip bound: ", 
+            @logmsg LogLevel(-4) string("Primal ip bound: ",
                                         cur_node.node_inc_ip_primal_bound)
-            @logmsg LogLevel(-4) string("Dual ip bound: ", 
+            @logmsg LogLevel(-4) string("Dual ip bound: ",
                                         cur_node.node_inc_ip_dual_bound)
-            @logmsg LogLevel(-4) string("Primal lp bound: ", 
+            @logmsg LogLevel(-4) string("Primal lp bound: ",
                                         cur_node.node_inc_lp_primal_bound)
-            @logmsg LogLevel(-4) string("Dual lp bound: ", 
+            @logmsg LogLevel(-4) string("Dual lp bound: ",
                                         cur_node.node_inc_lp_dual_bound)
 
             # the output of the treated node are the generated child nodes and
