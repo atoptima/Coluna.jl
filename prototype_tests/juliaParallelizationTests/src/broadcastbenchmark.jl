@@ -61,3 +61,13 @@ print("vectorized for complex bits types: ")
 @btime vec_complex(cols, 2.0)
 
 
+#### Output:
+# devectorized for primitive types:   5.392 μs (0 allocations: 0 bytes)
+# vectorized for primitive types:   1.122 μs (0 allocations: 0 bytes)
+# devectorized for complex types:   8.921 μs (0 allocations: 0 bytes)
+# vectorized for complex types:   14.447 μs (2 allocations: 78.20 KiB)
+# devectorized for complex types:   8.750 μs (0 allocations: 0 bytes)
+# vectorized for complex types:   14.458 μs (2 allocations: 78.20 KiB)
+# devectorized for complex types:   8.759 μs (0 allocations: 0 bytes)
+# vectorized for complex types:   14.387 μs (2 allocations: 78.20 KiB)
+
