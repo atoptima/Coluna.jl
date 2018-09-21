@@ -23,10 +23,10 @@ testpuremaster()
 @testset "cutting stock - colgen root " begin
     testcolgenatroot()
 end
-# @testset "knapsack - branch and bound" begin
-#     branch_and_bound_test_instance()
-# end
-# branch_and_bound_bigger_instances()
+@testset "knapsack - branch and bound" begin
+    branch_and_bound_test_instance()
+end
+branch_and_bound_bigger_instances()
 # moi_wrapper()
 @testset "gap - JuMP/MOI modeling" begin
     include("../demos/GeneralizedAssignment_ColGen/run_sgap.jl")

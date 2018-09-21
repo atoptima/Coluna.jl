@@ -204,13 +204,13 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
         mark_infeasible_and_exit_treatment(node); return true
     end
 
-    println("active branching constraints: ")
+    @logmsg LogLevel(-3) string("active branching constraints: ")
     for constr in treat_algs.alg_setup_node.extended_problem.master_problem.constr_manager.active_dynamic_list
-        print("constraint ", constr.vc_ref, ": ")
+        @logmsg LogLevel(-3) string("constraint ", constr.vc_ref, ": ")
         for var in keys(constr.member_coef_map)
-            print(" + ", var.name)
+            @logmsg LogLevel(-3) string(" + ", var.name)
         end
-        println(" = ", constr.cost_rhs)
+        @logmsg LogLevel(-3) string(" = ", constr.cost_rhs)
     end
     
     if setup(treat_algs.alg_eval_node)  

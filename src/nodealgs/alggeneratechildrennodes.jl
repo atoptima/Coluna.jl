@@ -73,18 +73,21 @@ function perform_usual_branching(node::Node, alg::AlgToGenerateChildrenNodes,
     sort_vars_according_to_rule(alg.rule, frac_master_vars)
     local_branch_constraints = BranchConstr[]
     for i in 1:alg.nb_vars_to_branch
-        println("Chosen variable to branch: ", frac_master_vars[i].first.name,
-            ". With value: ", frac_master_vars[i].second, ". fract_part = ",
+        @logmsg LogLevel(-4) string("Chosen variable to branch: ",
+            frac_master_vars[i].first.name, ". With value: ",
+            frac_master_vars[i].second, ". fract_part = ",
             fract_part(frac_master_vars[i].second))
         branch_constr = generate_branch_constraint(alg, node.depth,
             frac_master_vars[i].first, 'G', ceil(frac_master_vars[i].second))
 
         push!(local_branch_constraints, branch_constr)
-        println("Generated branching constraint with reference ", branch_constr.vc_ref)
+        @logmsg LogLevel(-4) string("Generated branching constraint with reference ",
+                                    branch_constr.vc_ref)
         branch_constr = generate_branch_constraint(alg, node.depth,
             frac_master_vars[i].first, 'L', floor(frac_master_vars[i].second))
         push!(local_branch_constraints, branch_constr)
-        println("Generated branching constraint with reference ", branch_constr.vc_ref)
+        @logmsg LogLevel(-4) string("Generated branching constraint with reference ",
+                                    branch_constr.vc_ref)
     end
     for constr in local_branch_constraints
         generate_child(alg, node, [constr])
@@ -93,17 +96,13 @@ end
 
 function run(alg::UsualBranchingAlg, global_treat_order::Int, node::Node)
 
-    println("Generating children...")
-
+    @logmsg LogLevel(-4) "Generating children..."
     frac_master_vars = retreive_candidate_vars(alg, node.primal_sol.var_val_map)
-
     if isempty(frac_master_vars)
-        println("Generated ", length(node.children), " child nodes.")
+        @logmsg LogLevel(-4) string("Generated ", length(node.children), " child nodes.")
         return
     end
-
     perform_usual_branching(node, alg, frac_master_vars)
-
-    println("Generated ", length(node.children), " child nodes.")
+    @logmsg LogLevel(-4) string("Generated ", length(node.children), " child nodes.")
 
 end
