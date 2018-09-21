@@ -421,14 +421,6 @@ AlgToEvalNodeBySimplexColGenBuilder(problem::ExtendedProblem) = (
     AlgToEvalNodeByLagrangianDualityBuilder(problem)
 )
 
-function setup(alg::AlgToEvalNode)
-    return false
-end
-
-function setdown(alg::AlgToEvalNode)
-    return false
-end
-
 function solve_restricted_mast(alg)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
     @timeit to(alg) "solve_restricted_mast" begin
