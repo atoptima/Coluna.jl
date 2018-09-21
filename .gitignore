@@ -2,6 +2,6 @@
 *.jl.*.cov
 *.jl.mem
 *~
-src/TAGS
+*TAGS
 updateEtags.sh
 *.lp
