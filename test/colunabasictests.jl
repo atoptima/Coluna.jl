@@ -98,22 +98,25 @@ function branch_and_bound_test_instance()
     x1 = CL.MasterVar(master_problem.counter, "x1", -10.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
     x2 = CL.MasterVar(master_problem.counter, "x2", -15.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
     x3 = CL.MasterVar(master_problem.counter, "x3", -20.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
+    x4 = CL.MasterVar(master_problem.counter, "x4", -25.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
 
     CL.add_variable(master_problem, x1)
     CL.add_variable(master_problem, x2)
     CL.add_variable(master_problem, x3)
+    CL.add_variable(master_problem, x4)
 
-    constr = CL.MasterConstr(master_problem.counter, "knapConstr_", 6.0, 'L', 'M', 's')
+    constr = CL.MasterConstr(master_problem.counter, "knapConstr_", 8.0, 'L', 'M', 's')
 
     CL.add_constraint(master_problem, constr)
 
     CL.add_membership(master_problem, x1, constr, 2.0)
     CL.add_membership(master_problem, x2, constr, 3.0)
     CL.add_membership(master_problem, x3, constr, 4.0)
+    CL.add_membership(master_problem, x4, constr, 5.0)
 
     CL.solve(model)
 
-    @test model.extended_problem.primal_inc_bound == -30.0
+    @test model.extended_problem.primal_inc_bound == -40.0
 end
 
 

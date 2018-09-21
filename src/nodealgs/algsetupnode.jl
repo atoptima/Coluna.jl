@@ -159,7 +159,8 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
         end
     end
 
-    println("Stored ", length(master_problem.var_manager.active_dynamic_list),
+    @logmsg LogLevel(-4) string("Stored ",
+        length(master_problem.var_manager.active_dynamic_list),
         " active variables")
 
     # static constraints of the master
@@ -196,7 +197,8 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     #     end
     # end
 
-    println("Stored ", length(master_problem.constr_manager.active_dynamic_list),
+    @logmsg LogLevel(-4) string("Stored ",
+        length(master_problem.constr_manager.active_dynamic_list),
         " active cosntraints")
 
     node.problem_setup_info = prob_info
@@ -244,7 +246,8 @@ end
 function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node)
     for constr in node.local_branching_constraints
         add_full_constraint(alg.extended_problem.master_problem, constr)
-        println("Adding cosntraint ", constr.vc_ref, " generated when branching.")
+        @logmsg LogLevel(-4) string("Adding cosntraint ",
+            constr.vc_ref, " generated when branching.")
     end
 end
 
@@ -296,9 +299,11 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node)
             idx = find_first_in_problem_setup(in_setup_info, constr.vc_ref)
             if idx == 0
                 delete_constraint(alg.extended_problem.master_problem, constr)
-                println("cosntraint ", constr.vc_ref, " deactivated")
+                @logmsg LogLevel(-4) string("cosntraint ", constr.vc_ref,
+                                            " deactivated")
             else
-                println("constraint ", constr.vc_ref, " is in branching tree of node")
+                @logmsg LogLevel(-4) string("constraint ", constr.vc_ref,
+                                            " is in branching tree of node")
             end
         end
     end
@@ -308,9 +313,10 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node)
             idx = find_first(in_problem, constr.vc_ref)
             if idx == 0
                 add_full_constraint(alg.extended_problem.master_problem, constr)
-                println("added constraint ", constr.vc_ref)
+                @logmsg LogLevel(-4) string("added constraint ", constr.vc_ref)
             else
-                println("constraint ", constr.vc_ref, " is already in problem")
+                @logmsg LogLevel(-4) string("constraint ", constr.vc_ref,
+                                            " is already in problem")
             end
         end
     end

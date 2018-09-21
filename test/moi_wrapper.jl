@@ -94,11 +94,9 @@ end
 
 function test_root_colgen_with_moi()
     @testset "MOI wrapper: root colgen" begin
-
         caching_optimizer = build_colgen_root_model_with_moi()
         MOI.optimize!(caching_optimizer)
         @test MOI.get(caching_optimizer, MOI.ObjectiveValue()) == 2.0
-
     end
 end
 

@@ -453,7 +453,7 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
                     computeOptimGap(alg), nbCgIterations,
                     curMaxLevelOfSubProbRestriction)
         end
-        if status_rm == MOI.InfeasibleNoResult
+        if status_rm == MOI.InfeasibleNoResult || status_rm == MOI.InfeasibleOrUnbounded
             @logmsg LogLevel(-2) "master restrcited lp solver returned infeasible"
             mark_infeasible(alg)
             return true
