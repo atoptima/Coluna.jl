@@ -1,4 +1,5 @@
 using JuMP
+using MathOptInterface: set
 
 include("data_sgap.jl")
 include("model_sgap.jl")
@@ -15,7 +16,7 @@ optimize!(gap)
 
 # NOT SUPPORTED YET
 # status = JuMP.primal_status(gap)
-# 
+#
 # # Output
 # println("Status is $status")
 # if status == FeasiblePoint
