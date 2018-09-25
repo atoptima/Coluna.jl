@@ -3,6 +3,7 @@ include("varconstr.jl")
 include("variables.jl")
 include("constraints.jl")
 include("solution.jl")
+include("mastercolumn.jl")
 
 function unit_tests()
     @testset "varconstr.jl" begin
@@ -16,6 +17,9 @@ function unit_tests()
     end
     @testset "solution.jl" begin
         solution_unit_tests()
+    end
+    @testset "mastercolumn.jl" begin
+        mastercolumn_unit_tests()
     end
 
 end
