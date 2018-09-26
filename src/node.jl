@@ -99,13 +99,13 @@ function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
 end
 
 function is_conquered(node::Node)
-    return (abs(node.node_inc_ip_primal_bound - node.node_inc_ip_dual_bound)
-        < node.params.mip_tolerance_integrality)
+    return (node.node_inc_ip_primal_bound - node.node_inc_ip_dual_bound
+            <= node.params.mip_tolerance_integrality)
 end
 
 function is_to_be_pruned(node::Node, global_primal_bound::Float)
     return (global_primal_bound - node.node_inc_ip_dual_bound
-        < node.params.mip_tolerance_integrality)
+        <= node.params.mip_tolerance_integrality)
 end
 
 function set_branch_and_price_order(node::Node, new_value::Int)

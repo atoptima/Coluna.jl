@@ -6,6 +6,7 @@ include("constraints.jl")
 include("solution.jl")
 include("mastercolumn.jl")
 include("problem.jl")
+include("node.jl")
 
 function unit_tests()
     @testset "varconstr.jl" begin
@@ -27,5 +28,8 @@ function unit_tests()
         problem_unit_tests()
     end
 
+    @testset "node.jl" begin
+        node_unit_tests()
+    end
 end
 

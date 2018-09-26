@@ -70,3 +70,14 @@ function create_problem_knapsack(feasible::Bool = true)
 
     return problem, x_vars, knp
 end
+
+function create_extended_problem()
+    params = CL.Params()
+    callback = CL.Callback()
+    prob_counter = CL.ProblemCounter(-1)
+    vc_counter = CL.VarConstrCounter(0)
+    return CL.ExtendedProblem(prob_counter, vc_counter, params,
+                              params.cut_up, params.cut_lo)
+end
+
+
