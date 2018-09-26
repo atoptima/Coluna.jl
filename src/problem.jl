@@ -318,9 +318,9 @@ function add_variable(problem::Problem, var::Variable)
         if !problem.is_relaxed
             if var.vc_type == 'B'
                 if var.lower_bound > 0.0
-                    var.lower_bound == 1.0
+                    var.lower_bound = 1.0
                 elseif var.upper_bound < 1.0
-                    var.upper_bound == 0.0
+                    var.upper_bound = 0.0
                 else
                     MOI.add_constraint(problem.optimizer,
                             MOI.SingleVariable(var.moi_index), MOI.ZeroOne())

@@ -1,4 +1,4 @@
-@enum VCSTATUS Inactive Active
+@enum VCSTATUS Inactive Active Unsuitable
 
 mutable struct VarConstrCounter
     value::Int

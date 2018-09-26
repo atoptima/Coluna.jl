@@ -6,7 +6,7 @@ end
 
 function compute_original_cost_tests()
     cost = 0.0
-    vars = create_array_of_vars(5)
+    vars = create_array_of_vars(5, CL.Variable)
     vals = [0.5*i for i in 1:length(vars)]
     kv = Dict{CL.Variable,Float64}()
     for i in 1:length(vars)
