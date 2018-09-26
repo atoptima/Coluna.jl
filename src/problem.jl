@@ -22,20 +22,20 @@ LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormStatus}(),
 LpBasisRecord() = LpBasisRecord("basis")
 
 function clear(basis::LpBasisRecord; remove_marks_in_vars=true,
-               remove_marks_in_constrs=true)::Void
+               remove_marks_in_constrs=true)::Nothing
 
     if remove_marks_in_vars
         for var in basis.vars_in_basis
-            var.is_info_updated = false
+            var.variable.is_info_updated = false
         end
         empty!(basis.vars_in_basis)
     end
 
     if remove_marks_in_constrs
-        for constr in constr_in_basis
-            constr.is_info_updated = false
+        for constr in basis.constr_in_basis
+            constr.constraint.is_info_updated = false
         end
-        empty!(basis.constrsinbasis)
+        empty!(basis.constr_in_basis)
     end
     return
 end
@@ -46,7 +46,7 @@ mutable struct VariableSolInfo{V<:Variable}
     value::Float
 end
 
-function apply_var_info(var_sol_info::VariableSolInfo)::Void
+function apply_var_info(var_sol_info::VariableSolInfo)::Nothing
     variable = var_sol_info.variable
     value = var_sol_info.value
     problem = variable.problem
