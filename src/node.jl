@@ -194,11 +194,14 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
     
+    # Right now the setup only return true
     if run(treat_algs.alg_setup_node, node)
+        error("Setups cannot fail")
         run(treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
     end
 
+    # Preprocessing is not yet implemented
     if run(treat_algs.alg_preprocess_node)
         run(treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
@@ -225,7 +228,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     end
     node.evaluated = true
 
-    #the following should be also called after the heuristics.
+    # The following should be also called after the heuristics.
     update_node_incumbents(node, treat_algs.alg_eval_node.sols_and_bounds)
 
     if is_conquered(node)
@@ -235,10 +238,10 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
         store_branching_evaluation_info()
         exit_treatment(node); return true
     elseif false # _evalAlgPtr->subProbSolutionsEnumeratedToMIP() && runEnumeratedMIP()
-        setdown(treat_algs.alg_eval_node)
-        run(treat_algs.alg_setdown_node)
-        store_branching_evaluation_info()
-        mark_infeasible_and_exit_treatment(); return true
+        # setdown(treat_algs.alg_eval_node)
+        # run(treat_algs.alg_setdown_node)
+        # store_branching_evaluation_info()
+        # mark_infeasible_and_exit_treatment(); return true
     end
 
     if !node.problem_and_eval_alg_info_saved

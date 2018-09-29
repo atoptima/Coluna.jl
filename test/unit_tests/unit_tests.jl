@@ -27,7 +27,6 @@ function unit_tests()
     @testset "problem.jl" begin
         problem_unit_tests()
     end
-
     @testset "node.jl" begin
         node_unit_tests()
     end
