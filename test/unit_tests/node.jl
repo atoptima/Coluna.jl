@@ -11,6 +11,7 @@ function node_unit_tests()
     update_node_primals_tets()
     update_node_incumbents_tests()
     evaluation_tests()
+    treat_tests()
 
 end
 
@@ -207,6 +208,48 @@ function evaluation_tests()
     @test node.node_inc_lp_primal_bound ≈ -11.666666666 atol=atol rtol=rtol
     @test node.node_inc_ip_primal_bound ≈ -11.666666666 atol=atol rtol=rtol
     @test length(node.problem_setup_info.active_branching_constraints_info) == 0
+    @test length(node.children) == 0
 
 end
 
+function treat_tests()
+
+    # Tests if exists correctly if problem is infeasible
+    extended_problem = create_extended_problem()
+    extended_problem.master_problem, vars, constrs = create_problem_knapsack(false)
+    node = create_node(extended_problem, false)
+    treat_algs = CL.TreatAlgs()
+    treat_algs.alg_setup_node = CL.AlgToSetupRootNode(extended_problem,
+        node.problem_setup_info)
+    treat_algs.alg_setdown_node = CL.AlgToSetdownNodeFully(extended_problem)
+    treat_algs.alg_generate_children_nodes = CL.UsualBranchingAlg(extended_problem)
+    treat_algs.alg_eval_node = CL.AlgToEvalNodeByLp(extended_problem)
+    @test CL.treat(node, treat_algs, 1, 0.0) == true
+    @test node.evaluated == true
+    @test node.treated == true
+    @test node.infeasible == true
+    @test node.node_inc_lp_dual_bound == Inf
+    @test node.node_inc_ip_dual_bound == Inf
+    @test length(node.children) == 0
+
+    # Tests when node is not conquered
+    atol = rtol = 0.000001
+    extended_problem = create_extended_problem()
+    extended_problem.master_problem, vars, constrs = create_problem_knapsack(true, false, true)
+    node = create_node(extended_problem, false)
+    treat_algs = CL.TreatAlgs()
+    treat_algs.alg_setup_node = CL.AlgToSetupRootNode(extended_problem,
+        node.problem_setup_info)
+    treat_algs.alg_setdown_node = CL.AlgToSetdownNodeFully(extended_problem)
+    treat_algs.alg_generate_children_nodes = CL.UsualBranchingAlg(extended_problem)
+    treat_algs.alg_eval_node = CL.AlgToEvalNodeByLp(extended_problem)
+    @test CL.treat(node, treat_algs, 1, 0.0) == true
+    @test CL.is_conquered(node) == false
+    @test node.evaluated == true
+    @test node.treated == true
+    @test node.infeasible == false
+    @test node.node_inc_lp_primal_bound ≈ -11.666666666 atol=atol rtol=rtol
+    @test node.node_inc_ip_primal_bound ≈ -11.666666666 atol=atol rtol=rtol
+    @test length(node.children) == 2
+
+end

@@ -7,6 +7,7 @@ include("solution.jl")
 include("mastercolumn.jl")
 include("problem.jl")
 include("node.jl")
+include("algsetupnode.jl")
 
 function unit_tests()
     @testset "varconstr.jl" begin
@@ -29,6 +30,9 @@ function unit_tests()
     end
     @testset "node.jl" begin
         node_unit_tests()
+    end
+    @testset "algsetupnode.jl" begin
+        algsetupnode_unit_tests()
     end
 end
 
