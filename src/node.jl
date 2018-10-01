@@ -262,11 +262,13 @@ function treat(node::Node, treat_algs::TreatAlgs,
     # and the second inside the branch-and-price tree. Thus, variables _solved
     # is used to know whether part 1 has already been done or not.
 
+    # evaluation() never returns false
     if !node.evaluated
         if !evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
             return false
         end
     else
+        # This else is never run
         if inc_primal_bound <= node.node_inc_ip_primal_bound ## is it necessary?
             println("should not enter here.")
             node.node_inc_ip_primal_bound = inc_primal_bound
@@ -278,6 +280,7 @@ function treat(node::Node, treat_algs::TreatAlgs,
         return true
     end
 
+    # We dont have primal heuristics
     for alg in treat_algs.alg_vect_primal_heur_node
         run(alg, node, global_treat_order)
         # TODO remove node bound updates from inside heuristics and put it here.
@@ -286,8 +289,10 @@ function treat(node::Node, treat_algs::TreatAlgs,
         end
     end
 
-    # the generation child nodes algorithm fills the sons
+    # The generation child nodes algorithm fills the sons
+    # setup(::AlgToGenerateChildrenNodes) does nothing
     if setup(treat_algs.alg_generate_children_nodes)
+        # This code is never run
         setdown(treat_algs.alg_generate_children_nodes)
         exit_treatment(node); return true
     end
