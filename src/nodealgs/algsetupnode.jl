@@ -119,11 +119,11 @@ function run(alg::AlgToSetdownNode)
     # problem_info = record_problem_info(alg, )
 end
 
-function record_problem_info(alg::AlgToSetdownNode,
-                             global_treat_order::Int)::ProblemSetupInfo
-    return ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
-end
-record_problem_info(alg) = record_problem_info(alg, -1)
+# function record_problem_info(alg::AlgToSetdownNode,
+#                              global_treat_order::Int)::ProblemSetupInfo
+#     return ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
+# end
+# record_problem_info(alg) = record_problem_info(alg, -1)
 
 @hl mutable struct AlgToSetdownNodeFully <: AlgToSetdownNode end
 
@@ -140,12 +140,12 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     # prob_info = ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
     prob_info = ProblemSetupInfo(1)
 
-    #patial solution of master
+    # Partial solution of master
     for (var, val) in master_problem.partial_solution
         push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
     end
 
-    #static variables of master
+    # Static variables of master
     for var in master_problem.var_manager.active_static_list
         if (var.cur_lb != var.lower_bound
             || var.cur_ub != var.upper_bound
@@ -154,7 +154,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
         end
     end
 
-    # dynamic master variables
+    # Dynamic master variables
     for var in master_problem.var_manager.active_dynamic_list
         if isa(var, MasterColumn)
             push!(prob_info.suitable_master_columns_info,
