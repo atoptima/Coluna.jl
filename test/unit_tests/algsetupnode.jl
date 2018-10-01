@@ -3,6 +3,11 @@ function algsetupnode_unit_tests()
     variable_small_info_tests()
     variable_info_tests()
     # sb_var_info_tests()
+    constraint_info_tests()
+    problem_setup_info_tests()
+    alg_to_setdown_node_tests()
+    record_problem_info_tests()
+    run_alg_to_setdown_node_tests
 
 end
 
@@ -11,12 +16,12 @@ function variable_small_info_tests()
     var = vars[1]
 
     vsi = CL.VariableSmallInfo(var)
-    @test vsi.variable == var
+    @test vsi.variable === var
     @test vsi.cost == var.cur_cost_rhs
     @test vsi.status == CL.Active
 
     vsi = CL.VariableSmallInfo(var, CL.Unsuitable)
-    @test vsi.variable == var
+    @test vsi.variable === var
     @test vsi.cost == var.cur_cost_rhs
     @test vsi.status == CL.Unsuitable
 end
@@ -26,13 +31,13 @@ function variable_info_tests()
     var = vars[1]
 
     vinfo = CL.VariableInfo(var)
-    @test vinfo.variable == var
+    @test vinfo.variable === var
     @test vinfo.lb == var.cur_lb
     @test vinfo.ub == var.cur_ub
     @test vinfo.status == CL.Active
 
     vinfo = CL.VariableInfo(var, CL.Inactive)
-    @test vinfo.variable == var
+    @test vinfo.variable === var
     @test vinfo.lb == var.cur_lb
     @test vinfo.ub == var.cur_ub
     @test vinfo.status == CL.Inactive
@@ -49,3 +54,81 @@ end
 #     @test vinfo.local_ub == var.local_ub
 #     @test vinfo.status == CL.Unsuitable
 # end
+
+function constraint_info_tests()
+    vc_counter = CL.VarConstrCounter(0)
+    constr = CL.Constraint(vc_counter, "C_1", 5.0, 'L', 'M', 's')
+
+    cinfo = CL.ConstraintInfo(constr)
+    @test cinfo.constraint === constr
+    @test cinfo.min_slack == cinfo.max_slack == 0.0
+    @test cinfo.status == CL.Active
+
+    cinfo = CL.ConstraintInfo(constr, CL.Unsuitable)
+    @test cinfo.constraint === constr
+    @test cinfo.min_slack == cinfo.max_slack == 0.0
+    @test cinfo.status == CL.Unsuitable
+end
+
+function problem_setup_info_tests()
+    treat_order = 1
+    psi = CL.ProblemSetupInfo(treat_order)
+    @test psi.treat_order == treat_order
+    @test psi.number_of_nodes == 0
+    @test psi.full_setup_is_obligatory == false
+    @test psi.suitable_master_columns_info == Vector{CL.VariableSmallInfo}()
+    @test psi.suitable_master_cuts_info == Vector{CL.ConstraintInfo}()
+    @test psi.active_branching_constraints_info == Vector{CL.ConstraintInfo}()
+    @test psi.master_partial_solution_info == Vector{CL.VariableSolInfo}()
+    @test psi.modified_static_vars_info == Vector{CL.VariableInfo}()
+    @test psi.modified_static_constrs_info == Vector{CL.ConstraintInfo}()
+end
+
+function alg_to_setdown_node_tests()
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToSetdownNodeFully(extended_problem)
+    @test alg.extended_problem == extended_problem
+end
+
+function run_alg_to_setdown_node_tests()
+    extended_problem = create_extended_problem()
+    
+end
+
+function record_problem_info_tests()
+    extended_problem = create_extended_problem()
+    counter = extended_problem.counter
+    node = create_node(extended_problem, false)
+    prob, vars, contrs = create_problem_knapsack(true, false, false)
+    extended_problem.master_problem = prob
+    master_problem = extended_problem.master_problem
+    partial_solution = Dict{CL.Variable,Float64}(vars[1] => 1.0)
+    master_problem.partial_solution = partial_solution
+
+    # To test if adds correctly the static variables
+    vars[1].cur_lb = vars[1].lower_bound
+    vars[1].cur_ub = vars[1].upper_bound
+    vars[1].cur_cost_rhs = vars[1].cost_rhs
+    vars[2].cur_lb = vars[2].lower_bound - 0.1
+
+    # To test if adds correctly the dynamic master variables
+    sol = CL.PrimalSolution(0.0, Dict{CL.Variable,Float64}())
+    mc = CL.MasterColumn(counter, sol)
+    push!(master_problem.var_manager.active_dynamic_list, mc)
+
+    # To test if adds correctly the dynamic constraints
+    constr_1 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
+    constr_2 = CL.BranchConstr(counter, "BC", 5.0, 'L', 3)
+    push!(master_problem.constr_manager.active_dynamic_list, constr_1)
+    push!(master_problem.constr_manager.active_dynamic_list, constr_2)
+
+    alg = CL.AlgToSetdownNodeFully(extended_problem)
+    CL.record_problem_info(alg, node)
+
+    @test node.problem_setup_info.master_partial_solution_info[1].variable === vars[1]
+    @test findfirst(x -> x.variable == vars[1], node.problem_setup_info.modified_static_vars_info) == nothing
+    @test findfirst(x -> x.variable == vars[2], node.problem_setup_info.modified_static_vars_info) != nothing
+    @test findfirst(x -> x.variable == mc, node.problem_setup_info.suitable_master_columns_info) != nothing
+    @test findfirst(x -> x.constraint == constr_1, node.problem_setup_info.suitable_master_cuts_info) != nothing
+    @test findfirst(x -> x.constraint == constr_2, node.problem_setup_info.active_branching_constraints_info) != nothing
+end
