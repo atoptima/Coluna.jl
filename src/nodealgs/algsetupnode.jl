@@ -8,9 +8,10 @@ end
 VariableSmallInfoBuilder(var::Variable, status::VCSTATUS) = (var, var.cur_cost_rhs, status)
 VariableSmallInfoBuilder(var::Variable) = VariableSmallInfoBuilder(var, Active)
 
-function apply_var_info(info::VariableSmallInfo)::Void
-    reset_cur_cost_by_value(var, info.cost)
-end
+# This function is not called
+# function apply_var_info(info::VariableSmallInfo)::Void
+#     reset_cur_cost_by_value(var, info.cost) # This function does not exist
+# end
 
 @hl mutable struct VariableInfo <: VariableSmallInfo
     lb::Float
@@ -23,32 +24,34 @@ VariableInfoBuilder(var::Variable, status::VCSTATUS) =
 
 VariableInfoBuilder(var::Variable) = VariableInfoBuilder(var::Variable, Active)
 
-function apply_var_info(info::VariableInfo)::Void
-    @callsuper apply_var_info(var::VariableInfoSmall)
-    var.cur_lb = info.lb
-    var.cur_ub = info.ub
-end
+# This function is never called
+# function apply_var_info(info::VariableInfo)::Void
+#     @callsuper apply_var_info(var::VariableInfoSmall)
+#     var.cur_lb = info.lb
+#     var.cur_ub = info.ub
+# end
 
-function is_need_to_change_bounds(info::VariableInfo)::Bool
-    var = info.variable
-    ub = info.ub
-    lb = info.lb
-    return var.in_cur_form && (lb != var.cur_lb || ub != var.cur_ub)
-end
+# function is_need_to_change_bounds(info::VariableInfo)::Bool
+#     var = info.variable
+#     ub = info.ub
+#     lb = info.lb
+#     return var.in_cur_form && (lb != var.cur_lb || ub != var.cur_ub)
+# end
 
-@hl mutable struct SpVariableInfo <: VariableInfo
-    local_lb::Float
-    local_ub::Float
-end
+# @hl mutable struct SpVariableInfo <: VariableInfo
+#     local_lb::Float
+#     local_ub::Float
+# end
 
-SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
-        tuplejoin(VariableInfoBuilder(var,status), var.local_cur_lb, var.local_cur_ub)
+# SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
+#         tuplejoin(VariableInfoBuilder(var,status), var.local_lb, var.local_ub)
 
-function apply_var_info(info::SubprobVar)::Void
-    @callsuper apply_var_info(var::VariableInfo)
-    var.local_cur_lb = info.local_lb
-    var.local_cur_ub = info.local_ub
-end
+# This function is never called
+# function apply_var_info(info::SubprobVar)::Void
+#     @callsuper apply_var_info(var::VariableInfo)
+#     var.local_cur_lb = info.local_lb
+#     var.local_cur_ub = info.local_ub
+# end
 
 @hl mutable struct ConstraintInfo
     constraint::Constraint
@@ -66,11 +69,11 @@ function ConstraintInfoBuilder(constr::T) where T <: Constraint
     return ConstraintInfoBuilder(constr, Active)
 end
 
-function applyconstrinfo(info::ConstraintInfo)::Void
-    info.constraint.min_slack = info.min_slack
-    info.constraint.max_slack = info.max_slack
-    info.constraint.rhs = info.rhs
-end
+# function applyconstrinfo(info::ConstraintInfo)::Void
+#     info.constraint.min_slack = info.min_slack
+#     info.constraint.max_slack = info.max_slack
+#     info.constraint.rhs = info.rhs
+# end
 
 @hl mutable struct ProblemSetupInfo <: SetupInfo
     treat_order::Int
@@ -334,29 +337,30 @@ function run(alg::AlgToSetupFull, node)
 end
 
 
-function reset_master_columns(alg::AlgToSetupNode)
-    prob_info = alg.problem_setup_info
-    for var_info in alg.prob_setup_info.suitable_master_columns_info
-        var = var_info.variable
-        if var_info.status == Active || alg.is_all_columns_active
-            if var.status == Active && var_info.cost != var.cur_cost_rhs
-                push!(alg.vars_to_change_cost, var)
-            end
-            apply_var_info(var_info)
-        elseif var_info.status == Unsuitable
-            deactivate_variable(alg, prob, var)
-        end
-        var.info_is_updated = true
-    end
+# This function is never called
+# function reset_master_columns(alg::AlgToSetupNode)
+#     prob_info = alg.problem_setup_info
+#     for var_info in alg.prob_setup_info.suitable_master_columns_info
+#         var = var_info.variable
+#         if var_info.status == Active || alg.is_all_columns_active
+#             if var.status == Active && var_info.cost != var.cur_cost_rhs
+#                 push!(alg.vars_to_change_cost, var)
+#             end
+#             apply_var_info(var_info)
+#         elseif var_info.status == Unsuitable
+#             deactivate_variable(alg, prob, var)
+#         end
+#         var.info_is_updated = true
+#     end
 
-    for var in alg.extended_problem.master_problem.var_manager.active_dynamic_list
-        if isa(var, MasterColumn) && var.info_is_updated == false
-            deactivate_variable(alg, alg.extended_problem.master_problem, var)
-        else
-            var.info_is_updated = false
-        end
-    end
-end
+#     for var in alg.extended_problem.master_problem.var_manager.active_dynamic_list
+#         if isa(var, MasterColumn) && var.info_is_updated == false
+#             deactivate_variable(alg, alg.extended_problem.master_problem, var)
+#         else
+#             var.info_is_updated = false
+#         end
+#     end
+# end
 
 function update_formulation(alg::AlgToSetupNode)
     # TODO implement caching through MOI.
