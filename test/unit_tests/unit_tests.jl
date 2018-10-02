@@ -8,6 +8,8 @@ include("mastercolumn.jl")
 include("problem.jl")
 include("node.jl")
 include("algsetupnode.jl")
+include("algpreprocessnode.jl")
+include("algevalnode.jl")
 
 function unit_tests()
     @testset "varconstr.jl" begin
@@ -33,6 +35,12 @@ function unit_tests()
     end
     @testset "algsetupnode.jl" begin
         algsetupnode_unit_tests()
+    end
+    @testset "algpreprocessnode.jl" begin
+        alg_preprocess_node_unit_tests()
+    end
+    @testset "algevalnode.jl" begin
+        alg_eval_node_unit_tests()
     end
 end
 
