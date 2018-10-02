@@ -138,7 +138,7 @@ end
 function update_alg_dual_ip_bound(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
     dual_bnd = master.dual_sols[end].cost
-    update_dual_ip_bound(alg.sols_and_bounds, ceil(dual_bnd))
+    update_dual_ip_bound(alg.sols_and_bounds, dual_bnd)
 end
 
 function mark_infeasible(alg::AlgToEvalNode)
@@ -154,26 +154,6 @@ end
 
 function setdown(alg::AlgToEvalNode)
     return false
-end
-
-function update_alg_incumbents(alg::AlgToEvalNode)
-    update_alg_primal_lp_incumbents(alg)
-    update_alg_primal_ip_incumbents(alg)
-    update_alg_dual_lp_incumbents(alg)
-    update_alg_dual_ip_bound(alg)
-
-    println("Final incumbent bounds of lp evaluation:")
-    println("alg_inc_ip_primal_bound: ", alg.sols_and_bounds.alg_inc_ip_primal_bound)
-    println("alg_inc_ip_dual_bound: ", alg.sols_and_bounds.alg_inc_ip_dual_bound)
-    println("alg_inc_lp_primal_bound: ", alg.sols_and_bounds.alg_inc_lp_primal_bound)
-    println("alg_inc_lp_dual_bound: ", alg.sols_and_bounds.alg_inc_lp_dual_bound)
-
-    println("Incumbent ip primal sol")
-    for kv in alg.sols_and_bounds.alg_inc_ip_primal_sol_map
-        println("var: ", kv[1].name, ": ", kv[2])
-    end
-    println()
-    # readline()
 end
 
 ##############################
@@ -197,7 +177,10 @@ function run(alg::AlgToEvalNodeByLp)
     end
 
     alg.sol_is_master_lp_feasible = true
-    update_alg_incumbents(alg)
+    update_alg_primal_lp_incumbents(alg)
+    update_alg_primal_ip_incumbents(alg)
+    update_alg_dual_lp_incumbents(alg)
+    update_alg_dual_ip_bound(alg)
 
     return false
 end
