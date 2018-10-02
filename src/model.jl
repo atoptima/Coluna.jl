@@ -64,6 +64,11 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
     end
 
+    if extended_problem.params.use_restricted_master_heur
+        push!(treat_algs.alg_vect_primal_heur_node,
+                AlgToPrimalHeurByRestrictedMip(extended_problem))
+    end
+
     return true
 end
 

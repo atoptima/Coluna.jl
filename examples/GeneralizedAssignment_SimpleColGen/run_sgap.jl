@@ -1,4 +1,4 @@
-using JuMP
+using JuMP, Coluna, Test
 using MathOptInterface: set
 
 include("data_sgap.jl")

@@ -299,7 +299,7 @@ function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
     for var_val in sol
         if (!is_value_integer(var_val.second, tolerance)
                 && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))
-            println("Sol is fractional.")
+            @logmsg LogLevel(-2) "Sol is fractional."
             return false
         end
     end
@@ -309,42 +309,48 @@ end
 
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
-function add_variable(problem::Problem, var::Variable)
+function add_variable(problem::CompactProblem, var::Variable)
     add_var_in_manager(problem.var_manager, var)
     if problem.optimizer != nothing
-        var.moi_index = MOI.add_variable(problem.optimizer)
-        # TODO set variable type
-        add_bounds = true
-        if !problem.is_relaxed
-            if var.vc_type == 'B'
-                if var.lower_bound > 0.0
-                    var.lower_bound == 1.0
-                elseif var.upper_bound < 1.0
-                    var.upper_bound == 0.0
-                else
-                    MOI.add_constraint(problem.optimizer,
-                            MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
-                    add_bounds = false
-                end
-            elseif var.vc_type == 'I'
-                MOI.add_constraint(problem.optimizer,
-                        MOI.SingleVariable(var.moi_index), MOI.Integer())
-            end
-        end
-
-        MOI.modify(problem.optimizer,
-                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-                MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
-
-        if add_bounds
-            MOI.add_constraint(problem.optimizer,
-                    MOI.SingleVariable(var.moi_index),
-                    MOI.Interval(var.lower_bound, var.upper_bound))
-        end
+        add_variable_in_optimizer(problem.optimizer, var, problem.is_relaxed)
     end
 end
 
-function add_variable(problem::Problem, col::MasterColumn)
+function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                   var::Variable, is_relaxed::Bool)
+
+    var.moi_index = MOI.add_variable(optimizer)
+    # TODO set variable type
+    add_bounds = true
+    if !is_relaxed
+        if var.vc_type == 'B'
+            if var.lower_bound > 0.0
+                var.lower_bound == 1.0
+            elseif var.upper_bound < 1.0
+                var.upper_bound == 0.0
+            else
+                MOI.add_constraint(optimizer,
+                        MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
+                add_bounds = false
+            end
+        elseif var.vc_type == 'I'
+            MOI.add_constraint(optimizer,
+                    MOI.SingleVariable(var.moi_index), MOI.Integer())
+        end
+    end
+
+    MOI.modify(optimizer,
+            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+            MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
+
+    if add_bounds
+        MOI.add_constraint(optimizer,
+                MOI.SingleVariable(var.moi_index),
+                MOI.Interval(var.lower_bound, var.upper_bound))
+    end
+end
+
+function add_variable(problem::CompactProblem, col::MasterColumn)
     @callsuper add_variable(problem, col::Variable)
     for (var, val) in col.solution.var_val_map
         for (constr, coef) in var.master_constr_coef_map
@@ -355,7 +361,7 @@ end
 
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the constraint
-function add_constraint(problem::Problem, constr::Constraint)
+function add_constraint(problem::CompactProblem, constr::Constraint)
     add_constr_in_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing
         f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
@@ -364,20 +370,44 @@ function add_constraint(problem::Problem, constr::Constraint)
     end
 end
 
-function add_full_constraint(problem::Problem, constr::BranchConstr)
+function add_full_constraint(problem::CompactProblem, constr::Constraint)
     add_constr_in_manager(problem.constr_manager, constr)
+    add_full_constraint_in_optimizer(problem.optimizer, constr)
+end
+
+function add_full_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                          constr::Constraint)
+
     terms = MOI.ScalarAffineTerm{Float}[]
     for var_val in constr.member_coef_map
-        push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index))
+        push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second,
+                                                 var_val.first.moi_index))
     end
-    if problem.optimizer != nothing
+    if optimizer != nothing
         f = MOI.ScalarAffineFunction(terms, 0.0)
-        constr.moi_index = MOI.add_constraint(problem.optimizer, f,
+        constr.moi_index = MOI.add_constraint(optimizer, f,
                 constr.set_type(constr.cost_rhs))
     end
 end
 
-function delete_constraint(problem::Problem, constr::BranchConstr)
+function load_problem_in_optimizer(problem::CompactProblem,
+        optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
+
+    for var in problem.var_manager.active_static_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for var in problem.var_manager.active_dynamic_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for constr in problem.constr_manager.active_static_list
+        add_full_constraint_in_optimizer(optimizer, constr)
+    end
+    for constr in problem.constr_manager.active_dynamic_list
+        add_full_constraint_in_optimizer(optimizer, constr)
+    end
+end
+
+function delete_constraint(problem::CompactProblem, constr::BranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
     remove_from_constr_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing
@@ -387,8 +417,9 @@ function delete_constraint(problem::Problem, constr::BranchConstr)
     end
 end
 
-function add_membership(problem::Problem, var::Variable, constr::Constraint,
-        coef::Float)
+function add_membership(problem::CompactProblem, var::Variable,
+                        constr::Constraint,coef::Float)
+
     @logmsg LogLevel(-4) "add_membership : var = $var, constr = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
@@ -398,14 +429,16 @@ function add_membership(problem::Problem, var::Variable, constr::Constraint,
     end
 end
 
-function add_membership(problem::Problem, var::SubprobVar, constr::MasterConstr,
-        coef::Float)
+function add_membership(problem::CompactProblem, var::SubprobVar,
+                        constr::MasterConstr, coef::Float)
+
     var.master_constr_coef_map[constr] = coef
     constr.subprob_var_coef_map[var] = coef
 end
 
-function add_membership(problem::Problem, var::MasterVar, constr::MasterConstr,
-        coef::Float)
+function add_membership(problem::CompactProblem, var::MasterVar,
+                        constr::MasterConstr, coef::Float)
+
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing
@@ -414,7 +447,8 @@ function add_membership(problem::Problem, var::MasterVar, constr::MasterConstr,
     end
 end
 
-function optimize(problem::Problem)
+function optimize(problem::CompactProblem,
+                  optimizer = problem.optimizer, )
     if problem.optimizer == nothing
         error("The problem has no optimizer attached")
     end
@@ -463,9 +497,9 @@ function ExtendedProblem(prob_counter::ProblemCounter,
 
     #TODO change type of art_vars 's' -> 'a', needed for pure phase 1
     artificial_global_pos_var = MasterVar(vc_counter, "art_glob_pos",
-            1000000.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+            1000000.0, 'P', 'C', 's', 'U', 1.0, 0.0, Inf)
     artificial_global_neg_var = MasterVar(vc_counter, "art_glob_neg",
-            -1000000.0, 'N', 'C', 's', 'U', 1.0, -1.0, 0.0)
+            -1000000.0, 'N', 'C', 's', 'U', 1.0, -Inf, 0.0)
 
     return ExtendedProblem(master_problem, artificial_global_pos_var,
             artificial_global_neg_var, Problem[],

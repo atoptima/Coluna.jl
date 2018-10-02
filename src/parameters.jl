@@ -1,4 +1,5 @@
 @with_kw mutable struct Params
+    use_restricted_master_heur::Bool = false
     max_num_nodes::Int = 100000
     open_nodes_limit::Int = 100000
     mip_tolerance_integrality::Float = 1e-5
