@@ -8,6 +8,16 @@ function algsetupnode_unit_tests()
     alg_to_setdown_node_tests()
     record_problem_info_tests()
     run_alg_to_setdown_node_tests
+    alg_to_setup_node_tests()
+    reset_partial_solution_tests()
+    prepare_branching_constraints_added_by_father_tests()
+    prepare_branching_constraints_tests()
+    run_alg_setup_branching_only()
+    find_first_in_problem_setup_tests()
+    run_alg_setup_full_tests()
+    update_formulation_tests()
+    alg_to_setup_root_node_tests()
+    run_alg_setup_root_node_tests()
 
 end
 
@@ -87,7 +97,7 @@ end
 function alg_to_setdown_node_tests()
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetdownNodeFully(extended_problem)
-    @test alg.extended_problem == extended_problem
+    @test alg.extended_problem === extended_problem
 end
 
 function run_alg_to_setdown_node_tests()
@@ -131,4 +141,161 @@ function record_problem_info_tests()
     @test findfirst(x -> x.variable == mc, node.problem_setup_info.suitable_master_columns_info) != nothing
     @test findfirst(x -> x.constraint == constr_1, node.problem_setup_info.suitable_master_cuts_info) != nothing
     @test findfirst(x -> x.constraint == constr_2, node.problem_setup_info.active_branching_constraints_info) != nothing
+end
+
+function alg_to_setup_node_tests()
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToSetupNode(extended_problem)
+    @test alg.extended_problem === extended_problem   
+    @test alg.problem_setup_info.treat_order == 0
+    @test alg.is_all_columns_active == false
+    psi = CL.ProblemSetupInfo(0)
+    alg = CL.AlgToSetupNode(extended_problem, psi)
+    @test alg.extended_problem === extended_problem   
+    @test alg.problem_setup_info === psi
+    @test alg.is_all_columns_active == false
+    alg = CL.AlgToSetupBranchingOnly(extended_problem)
+    @test alg.extended_problem === extended_problem
+    @test alg.problem_setup_info.treat_order == 0
+    @test alg.is_all_columns_active == false
+    alg = CL.AlgToSetupBranchingOnly(extended_problem, psi)
+    @test alg.extended_problem === extended_problem   
+    @test alg.problem_setup_info === psi
+    @test alg.is_all_columns_active == false
+    alg = CL.AlgToSetupFull(extended_problem, psi)
+    @test alg.extended_problem === extended_problem   
+    @test alg.problem_setup_info === psi
+    @test alg.is_all_columns_active == false
+end
+
+function reset_partial_solution_tests()
+    # This function does nothing, but is called
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToSetupBranchingOnly(extended_problem)
+    CL.reset_partial_solution(alg)
+end
+
+function prepare_branching_constraints_added_by_father_tests()
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToSetupNode(extended_problem)
+    node = create_node(extended_problem, false)
+    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    node.local_branching_constraints = constrs
+    CL.prepare_branching_constraints_added_by_father(alg, node)
+    @test findfirst(x->x==constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x==constrs[2], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+end
+
+function prepare_branching_constraints_tests()
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToSetupBranchingOnly(extended_problem)
+    node = create_node(extended_problem, false)
+    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    node.local_branching_constraints = constrs
+    CL.prepare_branching_constraints(alg, node)
+    @test findfirst(x->x==constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x==constrs[2], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+
+    prob, vars, constrs = create_problem_knapsack(true, false, true)
+    prob.optimizer = nothing
+    extended_problem.master_problem = prob
+    counter = prob.counter
+    node = create_node(extended_problem, false)
+    bc1 = CL.BranchConstr(counter, "bc_1", 1.0, 'G', 3)
+    bc2 = CL.BranchConstr(counter, "bc_2", 0.0, 'L', 3)
+    bc3 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    bc4 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    push!(prob.constr_manager.active_dynamic_list, bc1)
+    push!(prob.constr_manager.active_dynamic_list, bc2)
+    push!(node.problem_setup_info.active_branching_constraints_info, CL.ConstraintInfo(bc1))
+    push!(node.problem_setup_info.active_branching_constraints_info, CL.ConstraintInfo(bc3))
+    push!(node.local_branching_constraints, bc4)
+
+    psi = CL.ProblemSetupInfo(0)
+    alg = CL.AlgToSetupFull(extended_problem, psi)
+    CL.run(alg, node)
+
+    @test length(prob.constr_manager.active_static_list) == 1
+    @test findfirst(x->x==bc1, prob.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x==bc2, prob.constr_manager.active_dynamic_list) == nothing
+    @test findfirst(x->x==bc3, prob.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x==bc4, extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+end
+
+function run_alg_setup_branching_only()
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToSetupBranchingOnly(extended_problem)
+    node = create_node(extended_problem, false)
+    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    node.local_branching_constraints = constrs
+    @test CL.run(alg, node) == false
+    @test findfirst(x->x==constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x==constrs[2], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+end
+
+function find_first_in_problem_setup_tests()
+    constrs = create_array_of_constrs(3, CL.BranchConstr)
+    constr_info_vec = CL.ConstraintInfo[]
+    vc_counter = CL.VarConstrCounter(0)
+    for i in 1:length(constrs)
+        CL.increment_counter(vc_counter)
+        constrs[i].vc_ref = vc_counter.value
+        push!(constr_info_vec, CL.ConstraintInfo(constrs[i]))
+    end
+    @test CL.find_first_in_problem_setup(constr_info_vec, 1) == 1
+    @test CL.find_first_in_problem_setup(constr_info_vec, 5) == 0
+end
+
+function run_alg_setup_full_tests()
+    extended_problem = create_extended_problem()
+    prob, vars, constrs = create_problem_knapsack(true, false, true)
+    prob.optimizer = nothing
+    extended_problem.master_problem = prob
+    counter = prob.counter
+    node = create_node(extended_problem, false)
+    bc1 = CL.BranchConstr(counter, "bc_1", 1.0, 'G', 3)
+    bc2 = CL.BranchConstr(counter, "bc_2", 0.0, 'L', 3)
+    bc3 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    bc4 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    push!(prob.constr_manager.active_dynamic_list, bc1)
+    push!(prob.constr_manager.active_dynamic_list, bc2)
+    push!(node.problem_setup_info.active_branching_constraints_info, CL.ConstraintInfo(bc1))
+    push!(node.problem_setup_info.active_branching_constraints_info, CL.ConstraintInfo(bc3))
+    push!(node.local_branching_constraints, bc4)
+
+    psi = CL.ProblemSetupInfo(0)
+    alg = CL.AlgToSetupFull(extended_problem, psi)
+    CL.run(alg, node)
+
+    @test length(prob.constr_manager.active_static_list) == 1
+    @test findfirst(x->x==bc1, prob.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x==bc2, prob.constr_manager.active_dynamic_list) == nothing
+    @test findfirst(x->x==bc3, prob.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x==bc4, extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+end
+
+function update_formulation_tests()
+    # This function is empty
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToSetupBranchingOnly(extended_problem)
+    CL.update_formulation(alg)
+    @test alg.extended_problem === extended_problem
+end
+
+function alg_to_setup_root_node_tests()
+    extended_problem = create_extended_problem()
+    psi = CL.ProblemSetupInfo(0)
+    alg = CL.AlgToSetupRootNode(extended_problem, psi)
+    @test alg.extended_problem === extended_problem   
+    @test alg.problem_setup_info === psi
+    @test alg.is_all_columns_active == false
+end
+
+function run_alg_setup_root_node_tests()
+    # This function only calls another function that is empty
+    extended_problem = create_extended_problem()
+    psi = CL.ProblemSetupInfo(0)
+    alg = CL.AlgToSetupRootNode(extended_problem, psi)
+    node = create_node(extended_problem, false)
+    @test CL.run(alg, node) == false
 end
