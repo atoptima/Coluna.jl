@@ -26,8 +26,10 @@ end
 # Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
 struct ConstraintDantzigWolfeAnnotation <: MOI.AbstractConstraintAttribute end
 
-function MOI.set(dest::MOIU.UniversalFallback, attribute::ConstraintDantzigWolfeAnnotation,
-                  ci::MOI.ConstraintIndex, value::Int)
+function MOI.set(dest::MOIU.UniversalFallback,
+                 attribute::ConstraintDantzigWolfeAnnotation,
+                 ci::MOI.ConstraintIndex, value::Int)
+
     if haskey(dest.conattr, attribute)
         dest.conattr[attribute][ci] = value
     else
@@ -36,8 +38,10 @@ function MOI.set(dest::MOIU.UniversalFallback, attribute::ConstraintDantzigWolfe
     end
 end
 
-function MOI.get(dest::MOIU.UniversalFallback, attribute::ConstraintDantzigWolfeAnnotation,
+function MOI.get(dest::MOIU.UniversalFallback,
+                 attribute::ConstraintDantzigWolfeAnnotation,
                  ci::MOI.ConstraintIndex)
+
     if haskey(dest.conattr, attribute)
         if haskey(dest.conattr[attribute], ci)
             return dest.conattr[attribute][ci]
@@ -49,8 +53,10 @@ end
 # Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
 struct VariableDantzigWolfeAnnotation <: MOI.AbstractVariableAttribute end
 
-function MOI.set(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAnnotation,
-                  vi::MOI.VariableIndex, value::Int)
+function MOI.set(dest::MOIU.UniversalFallback,
+                 attribute::VariableDantzigWolfeAnnotation,
+                 vi::MOI.VariableIndex, value::Int)
+
     if haskey(dest.varattr, attribute)
         dest.varattr[attribute][vi] = value
     else
@@ -59,8 +65,10 @@ function MOI.set(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAn
     end
 end
 
-function MOI.get(dest::MOIU.UniversalFallback, attribute::VariableDantzigWolfeAnnotation,
+function MOI.get(dest::MOIU.UniversalFallback,
+                 attribute::VariableDantzigWolfeAnnotation,
                  vi::MOI.VariableIndex)
+
     if haskey(dest.varattr, attribute)
         if haskey(dest.varattr[attribute], vi)
             return dest.varattr[attribute][vi]
@@ -73,6 +81,7 @@ struct DantzigWolfePricingCardinalityBounds <: MOI.AbstractModelAttribute end
 
 function MOI.get(dest::MOIU.UniversalFallback,
                  attribute::DantzigWolfePricingCardinalityBounds)
+
     if haskey(dest.modattr, attribute)
         return dest.modattr[attribute]
     else

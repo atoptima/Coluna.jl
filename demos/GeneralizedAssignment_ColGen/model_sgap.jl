@@ -1,3 +1,4 @@
+
 function model_sgap(data::DataGap, solvertype)
     gap = Model(with_optimizer(solvertype), bridge_constraints=false)
 
@@ -12,31 +13,22 @@ function model_sgap(data::DataGap, solvertype)
     @objective(gap, Min,
             sum(data.cost[j,m]*x[m,j] for m in data.machines, j in data.jobs))
 
-    # Annotating constraints for the decomposition
+    # setting constraint annotations for the decomposition
     for j in data.jobs
-        MOI.set(gap.moi_backend, Coluna.ConstraintDantzigWolfeAnnotation(),
-                cov[j].index, 0)
+        set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), cov[j], 0)
     end
     for m in data.machines
-        MOI.set(gap.moi_backend, Coluna.ConstraintDantzigWolfeAnnotation(),
-                knp[m].index, m)
+        set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), knp[m], m)
     end
 
-    # Annotating variables for the decomposition
-    for m in data.machines
-        for j in data.jobs
-            MOI.set(gap.moi_backend, Coluna.VariableDantzigWolfeAnnotation(),
-                    x[m,j].index, m)
-        end
+    # setting variable annotations for the decomposition
+    for m in data.machines, j in data.jobs
+        set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[m,j], m)
     end
 
-    # declaring pricing cardinality bounds
-    card_bounds_dict = Dict{Int, Tuple{Int, Int}}()
-    for m in data.machines
-        card_bounds_dict[m] = (0, 1)
-    end
-    MOI.set(gap.moi_backend, Coluna.DantzigWolfePricingCardinalityBounds(),
-            card_bounds_dict)
+    # setting pricing cardinality bounds
+    card_bounds_dict = Dict(m => (0,1) for m in data.machines)
+    set(gap, Coluna.DantzigWolfePricingCardinalityBounds(), card_bounds_dict)
 
     return (gap, x)
 end
