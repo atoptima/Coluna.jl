@@ -246,7 +246,7 @@ function reset_partial_solution(alg::AlgToSetupNode)
     # end
 end
 
-function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node)
+function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node::Node)
     for constr in node.local_branching_constraints
         add_full_constraint(alg.extended_problem.master_problem, constr)
         @logmsg LogLevel(-4) string("Adding cosntraint ",
@@ -254,11 +254,11 @@ function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node
     end
 end
 
-function prepare_branching_constraints(alg::AlgToSetupBranchingOnly, node)
+function prepare_branching_constraints(alg::AlgToSetupBranchingOnly, node::Node)
     prepare_branching_constraints_added_by_father(alg, node)
 end
 
-function run(alg::AlgToSetupBranchingOnly, node)
+function run(alg::AlgToSetupBranchingOnly, node::Node)
 
     # apply_subproblem_info()
     # fill_local_branching_constraints()
@@ -293,7 +293,7 @@ function find_first_in_problem_setup(constr_info_vec::Vector{ConstraintInfo},
     return 0
 end
 
-function prepare_branching_constraints(alg::AlgToSetupFull, node)
+function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
     in_problem = alg.extended_problem.master_problem.constr_manager.active_dynamic_list
     in_setup_info = node.problem_setup_info.active_branching_constraints_info
     for i in length(in_problem):-1:1
@@ -310,7 +310,8 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node)
             end
         end
     end
-    for constr_info in in_setup_info
+    for i in 1:length(in_setup_info)
+        constr_info = in_setup_info[i]
         constr = constr_info.constraint
         if typeof(constr) <: BranchConstr
             idx = find_first(in_problem, constr.vc_ref)
@@ -326,7 +327,7 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node)
     prepare_branching_constraints_added_by_father(alg, node)
 end
 
-function run(alg::AlgToSetupFull, node)
+function run(alg::AlgToSetupFull, node::Node)
 
     prepare_branching_constraints(alg, node)
 
@@ -378,7 +379,7 @@ function AlgToSetupRootNodeBuilder(problem::ExtendedProblem,
 end
 
 # function run(alg::AlgToSetupRootNode, node::Node)
-function run(alg::AlgToSetupRootNode, node)
+function run(alg::AlgToSetupRootNode, node::Node)
     # @callsuper probleminfeasible = AlgToSetupNode::run(node)
 
     # reset_root_convexity_master_constr(alg)
