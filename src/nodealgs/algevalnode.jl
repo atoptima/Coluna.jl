@@ -287,18 +287,18 @@ end
 function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Problem)
     @timeit to(alg) "gen_new_col" begin
 
-    flag_need_not_generate_more_col = 0
+    flag_need_not_generate_more_col = 0 # Not used
     flag_is_sp_infeasible = -1
-    flag_cannot_generate_more_col = -2
-    dual_bound_contrib = 0;
-    pseudo_dual_bound_contrib = 0
+    flag_cannot_generate_more_col = -2 # Not used
+    dual_bound_contrib = 0 # Not used
+    pseudo_dual_bound_contrib = 0 # Not used
 
     # TODO renable this. Needed at least for the diving
     # if can_not_generate_more_col(princing_prob)
     #     return flag_cannot_generate_more_col
     # end
 
-    # compute target
+    # Compute target
     update_pricing_target(alg, pricing_prob)
     # Reset var bounds, var cost, sp minCost
     @logmsg LogLevel(-3) "updating pricing prob"
