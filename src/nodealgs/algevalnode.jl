@@ -304,11 +304,12 @@ function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Proble
     update_pricing_target(alg, pricing_prob)
     # Reset var bounds, var cost, sp minCost
     @logmsg LogLevel(-3) "updating pricing prob"
-    if update_pricing_prob(alg, pricing_prob)
-        @logmsg LogLevel(-3) "pricing prob is infeasible"
-        # In case one of the subproblem is infeasible, the master is infeasible
-        compute_pricing_dual_bound_contrib(alg, pricing_prob)
-        return flag_is_sp_infeasible
+    if update_pricing_prob(alg, pricing_prob) # Never returns true
+    #     This code is never executed because update_pricing_prob always returns false
+    #     @logmsg LogLevel(-3) "pricing prob is infeasible"
+    #     # In case one of the subproblem is infeasible, the master is infeasible
+    #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
+    #     return flag_is_sp_infeasible
     end
     if alg.colgen_stabilization != nothing && true #= TODO add conds =#
         # switch off the reduced cost estimation when stabilization is applied
@@ -320,7 +321,7 @@ function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Proble
     status = optimize(pricing_prob)
     end
     compute_pricing_dual_bound_contrib(alg, pricing_prob)
-    if status == MOI.InfeasibleNoResult
+    if status != MOI.Success
         @logmsg LogLevel(-3) "pricing prob is infeasible"
         return flag_is_sp_infeasible
     end
@@ -338,6 +339,8 @@ function gen_new_columns(alg::AlgToEvalNodeByLagrangianDuality)
         gen_status = gen_new_col(alg, pricing_prob)
         if gen_status > 0
             nb_new_col += gen_status
+        elseif gen_status == -1 # Sp is infeasible
+            return gen_status
         end
     end
     return nb_new_col
@@ -345,7 +348,7 @@ end
 
 function compute_mast_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality)
     stabilization = alg.colgen_stabilization
-    if stabilization == nothing || !is_active(stabilization)
+    if stabilization == nothing
         return alg.extended_problem.master_problem.primal_sols[end].cost
     else
         error("compute_mast_dual_bound_contrib" *
@@ -362,7 +365,6 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
 
     # Subproblem contributions
     for pricing_prob in alg.extended_problem.pricing_vect
-        alg.pricing_contribs[pricing_prob]
         mast_lagrangian_bnd += alg.pricing_contribs[pricing_prob]
         @logmsg LogLevel(-2) string("dual bound contrib of SP[",
                    pricing_prob.prob_ref, "] = ",
@@ -421,15 +423,16 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
     # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
-    while(true)
+    while true
         # GLPK.write_lp(glpk_prob, string("mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         status_rm = solve_restricted_mast(alg)
-        if alg.colgen_stabilization != nothing
-            init_after_solving_restricted_mast(colgen_stabilization,
-                    computeOptimGap(alg), nbCgIterations,
-                    curMaxLevelOfSubProbRestriction)
-        end
+        # if alg.colgen_stabilization != nothing # Never evals to true
+        #     # This function does not exist
+        #     init_after_solving_restricted_mast(colgen_stabilization,
+        #             computeOptimGap(alg), nbCgIterations,
+        #             curMaxLevelOfSubProbRestriction)
+        # end
         if status_rm == MOI.InfeasibleNoResult || status_rm == MOI.InfeasibleOrUnbounded
             @logmsg LogLevel(-2) "master restrcited lp solver returned infeasible"
             mark_infeasible(alg)
@@ -445,24 +448,23 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
         while true
             @logmsg LogLevel(-2) "need to generate new master columns"
             nb_new_col = gen_new_columns(alg)
-
             # In case subproblem infeasibility results in master infeasibility
             if nb_new_col < 0
                 mark_infeasible(alg)
                 return true
             end
             update_lagrangian_dual_bound(alg, true)
-            if alg.colgen_stabilization == nothing ||
-                !update_after_pricing_problem_solution(alg.colgen_stabilization,
-                                                       nb_new_col)
+            if alg.colgen_stabilization == nothing
+                #|| !update_after_pricing_problem_solution(alg.colgen_stabilization, nb_new_col)
                 break
             end
         end
 
         print_intermediate_statistics(alg, nb_new_col, nb_cg_iterations)
-        if alg.colgen_stabilization != nothing
-            update_after_colgen_iteration(alg.colgen_stabilization)
-        end
+        # if alg.colgen_stabilization != nothing
+        #     # This function does not exist
+        #     update_after_colgen_iteration(alg.colgen_stabilization)
+        # end
         @logmsg LogLevel(-2) string("colgen iter ", nb_cg_iterations,
                                    " : inserted ", nb_new_col, " columns")
 
@@ -481,9 +483,9 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
         end
         @logmsg LogLevel(-2) "next colgen ph2 iteration"
     end
-    @logmsg LogLevel(-2) "solve_mast_lp_ph2 has finished"
-    return false
-
+    # These lines are never executed becasue there is no break from the outtermost 'while true' above
+    # @logmsg LogLevel(-2) "solve_mast_lp_ph2 has finished"
+    # return false
     end # @timeit to "solve_mast_lp_ph2"
 end
 
