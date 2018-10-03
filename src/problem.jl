@@ -229,36 +229,48 @@ function set_optimizer_obj(problem::CompactProblem,
 end
 
 function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
-                         var_list::Vector{Variable})
+                         var_list::Vector{Variable}, optimizer, update_problem)
 
     for var_idx in 1:length(var_list)
         var = var_list[var_idx]
-        var.val = MOI.get(problem.optimizer, MOI.VariablePrimal(),
+        var.val = MOI.get(optimizer, MOI.VariablePrimal(),
                           var.moi_index)
         @logmsg LogLevel(-4) string("Var ", var.name, " = ", var.val)
         if var.val > 0.0
-            push!(problem.in_primal_lp_sol, var)
+            if update_problem
+                push!(problem.in_primal_lp_sol, var)
+            end
             sol[var] = var.val
         end
     end
 end
 
-function retreive_primal_sol(problem::CompactProblem)
+function retreive_primal_sol(problem::CompactProblem;
+        optimizer = problem.optimizer, update_problem = true)
     ## Store it in problem.primal_sols
-    if problem.optimizer == nothing
+    if optimizer == nothing
         error("The problem has no optimizer attached")
     end
-    problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
+    if update_problem
+        problem.obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
+    end
     @logmsg LogLevel(-4) string("Objective value: ", problem.obj_val)
     new_sol = Dict{Variable, Float}()
-    new_obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
-    fill_primal_sol(problem, new_sol, problem.var_manager.active_static_list)
-    fill_primal_sol(problem, new_sol, problem.var_manager.active_dynamic_list)
-    push!(problem.primal_sols, PrimalSolution(new_obj_val, new_sol))
+    new_obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
+    fill_primal_sol(problem, new_sol, problem.var_manager.active_static_list,
+                    optimizer, update_problem)
+    fill_primal_sol(problem, new_sol, problem.var_manager.active_dynamic_list,
+                    optimizer, update_problem)
+    primal_sol = PrimalSolution(new_obj_val, new_sol)
+    if update_problem
+        push!(problem.primal_sols, primal_sol)
+    end
+    return primal_sol
 end
 
-function retreive_dual_sol(problem::CompactProblem)
-    optimizer = problem.optimizer
+function retreive_dual_sol(problem::CompactProblem;
+        optimizer = problem.optimizer, update_problem = true)
+
     if optimizer == nothing
         error("The problem has no optimizer attached")
     end
@@ -266,7 +278,7 @@ function retreive_dual_sol(problem::CompactProblem)
     # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
     try
         if MOI.get(optimizer, MOI.DualStatus()) != MOI.FeasiblePoint
-            return
+            return nothing
         end
         constr_list = problem.constr_manager.active_static_list
         #TODO consider dynamic list too, like primal_sol.
@@ -280,13 +292,20 @@ function retreive_dual_sol(problem::CompactProblem)
             @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
                     MOI.get(optimizer, MOI.ConstraintPrimal(), constr.moi_index))
             if constr.val != 0 # TODO use a tolerance
-                push!(problem.in_dual_lp_sol, constr)
+                if update_problem
+                    push!(problem.in_dual_lp_sol, constr)
+                end
                 new_sol[constr] = constr.val
             end
         end
-        push!(problem.dual_sols, DualSolution(-Inf, new_sol)) #TODO get objbound
+        dual_sol = DualSolution(-Inf, new_sol)
+        if update_problem
+            push!(problem.dual_sols, dual_sol) #TODO get objbound
+        end
+        return dual_sol
     catch
         @warn "Optimizer $(typeof(optimizer)) doesn't have a dual status"
+        return nothing
     end
 end
 
@@ -391,22 +410,22 @@ function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractO
 end
 
 # This function is not called
-# function load_problem_in_optimizer(problem::CompactProblem,
-#         optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
+function load_problem_in_optimizer(problem::CompactProblem,
+        optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
 
-#     for var in problem.var_manager.active_static_list
-#         add_variable_in_optimizer(optimizer, var, is_relaxed)
-#     end
-#     for var in problem.var_manager.active_dynamic_list
-#         add_variable_in_optimizer(optimizer, var, is_relaxed)
-#     end
-#     for constr in problem.constr_manager.active_static_list
-#         add_full_constraint_in_optimizer(optimizer, constr)
-#     end
-#     for constr in problem.constr_manager.active_dynamic_list
-#         add_full_constraint_in_optimizer(optimizer, constr)
-#     end
-# end
+    for var in problem.var_manager.active_static_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for var in problem.var_manager.active_dynamic_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for constr in problem.constr_manager.active_static_list
+        add_full_constraint_in_optimizer(optimizer, constr)
+    end
+    for constr in problem.constr_manager.active_dynamic_list
+        add_full_constraint_in_optimizer(optimizer, constr)
+    end
+end
 
 function delete_constraint(problem::CompactProblem, constr::BranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
@@ -448,8 +467,7 @@ function add_membership(problem::CompactProblem, var::MasterVar,
     end
 end
 
-function optimize(problem::CompactProblem,
-                  optimizer = problem.optimizer, )
+function optimize(problem::CompactProblem)
     if problem.optimizer == nothing
         error("The problem has no optimizer attached")
     end
@@ -465,6 +483,23 @@ function optimize(problem::CompactProblem,
     end
 
     return status
+end
+
+function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
+    MOI.optimize!(optimizer)
+    status = MOI.get(optimizer, MOI.TerminationStatus())
+    @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
+
+    if MOI.get(optimizer, MOI.ResultCount()) >= 1
+        primal_sol = retreive_primal_sol(problem,
+                optimizer = optimizer, update_problem = false)
+        dual_sol = retreive_dual_sol(problem,
+                optimizer = optimizer, update_problem = false)
+    else
+        println("Solver has no result to show.")
+    end
+
+    return (status, primal_sol, dual_sol)
 end
 
 ###########################

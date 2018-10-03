@@ -65,7 +65,7 @@ function add_var_in_manager_tests()
     catch err
         @test err == ErrorException("Status Active and flag z are not supported")
     end
-    
+
 end
 
 function add_and_remove_constr_in_manager_tests()
@@ -92,7 +92,7 @@ function add_and_remove_constr_in_manager_tests()
     catch err
         @test err == ErrorException("Status Active and flag z are not supported")
     end
-    
+
     # Test removing
     CL.remove_from_constr_manager(constr_manager, constr_1)
     @test length(constr_manager.active_static_list) == 0
@@ -140,7 +140,8 @@ function fill_primal_sol_tests()
     problem, vars, constr = create_problem_knapsack()
     MOI.optimize!(problem.optimizer)
     sol = Dict{CL.Variable,Float64}()
-    CL.fill_primal_sol(problem, sol, problem.var_manager.active_static_list)
+    CL.fill_primal_sol(problem, sol, problem.var_manager.active_static_list,
+                       problem.optimizer, true)
     @test sol[vars[4]] == 1.0
     @test sol[vars[2]] == 1.0
     @test length(sol) == 2

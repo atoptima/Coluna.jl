@@ -7,8 +7,8 @@ mutable struct ColunaModelOptimizer <: MOI.AbstractOptimizer
     constr_probidx_map::Dict{Constraint,Int}
     var_probidx_map::Dict{Variable,Int}
     nb_subproblems::Int
-    function ColunaModelOptimizer()
-        coluna_model = ModelConstructor(false)
+    function ColunaModelOptimizer(params = Params())
+        coluna_model = ModelConstructor(params, false)
         _varmap = Dict{MOI.VariableIndex,Variable}()
         _constr_probidx_map = Dict{Constraint,Int}()
         _var_probidx_map = Dict{Variable,Int}()
