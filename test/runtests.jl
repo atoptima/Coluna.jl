@@ -14,10 +14,12 @@ include("utils.jl")
 include("colunabasictests.jl")
 include("colgenroot.jl")
 include("moi_wrapper.jl")
+include("unit_tests/unit_tests.jl")
 
 # using Base.CoreLogging, Logging
 # global_logger(ConsoleLogger(stderr, LogLevel(-5)))
 
+unit_tests()
 testdefaultbuilders()
 testpuremaster()
 @testset "cutting stock - colgen root " begin
@@ -32,3 +34,4 @@ branch_and_bound_bigger_instances()
     include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
     include("../examples/CuttingStock_SubprobMultiplicity/run_csp.jl")
 end
+

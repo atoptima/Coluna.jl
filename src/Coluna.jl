@@ -29,7 +29,7 @@ global const DS = DataStructures
         (MOI.SingleVariable,),
         (MOI.ScalarAffineFunction,),
         (),
-        ()) 
+        ())
 
 include("parameters.jl")
 include("utils.jl")

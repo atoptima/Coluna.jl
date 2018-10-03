@@ -22,20 +22,20 @@ LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormStatus}(),
 LpBasisRecord() = LpBasisRecord("basis")
 
 function clear(basis::LpBasisRecord; remove_marks_in_vars=true,
-               remove_marks_in_constrs=true)::Void
+               remove_marks_in_constrs=true)::Nothing
 
     if remove_marks_in_vars
         for var in basis.vars_in_basis
-            var.is_info_updated = false
+            var.variable.is_info_updated = false
         end
         empty!(basis.vars_in_basis)
     end
 
     if remove_marks_in_constrs
-        for constr in constr_in_basis
-            constr.is_info_updated = false
+        for constr in basis.constr_in_basis
+            constr.constraint.is_info_updated = false
         end
-        empty!(basis.constrsinbasis)
+        empty!(basis.constr_in_basis)
     end
     return
 end
@@ -46,7 +46,7 @@ mutable struct VariableSolInfo{V<:Variable}
     value::Float
 end
 
-function apply_var_info(var_sol_info::VariableSolInfo)::Void
+function apply_var_info(var_sol_info::VariableSolInfo)::Nothing
     variable = var_sol_info.variable
     value = var_sol_info.value
     problem = variable.problem
@@ -325,9 +325,9 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
     if !is_relaxed
         if var.vc_type == 'B'
             if var.lower_bound > 0.0
-                var.lower_bound == 1.0
+                var.lower_bound = 1.0
             elseif var.upper_bound < 1.0
-                var.upper_bound == 0.0
+                var.upper_bound = 0.0
             else
                 MOI.add_constraint(optimizer,
                         MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
@@ -375,7 +375,7 @@ function add_full_constraint(problem::CompactProblem, constr::Constraint)
     add_full_constraint_in_optimizer(problem.optimizer, constr)
 end
 
-function add_full_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
+function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractOptimizer},
                                           constr::Constraint)
 
     terms = MOI.ScalarAffineTerm{Float}[]
@@ -390,22 +390,23 @@ function add_full_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
     end
 end
 
-function load_problem_in_optimizer(problem::CompactProblem,
-        optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
+# This function is not called
+# function load_problem_in_optimizer(problem::CompactProblem,
+#         optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
 
-    for var in problem.var_manager.active_static_list
-        add_variable_in_optimizer(optimizer, var, is_relaxed)
-    end
-    for var in problem.var_manager.active_dynamic_list
-        add_variable_in_optimizer(optimizer, var, is_relaxed)
-    end
-    for constr in problem.constr_manager.active_static_list
-        add_full_constraint_in_optimizer(optimizer, constr)
-    end
-    for constr in problem.constr_manager.active_dynamic_list
-        add_full_constraint_in_optimizer(optimizer, constr)
-    end
-end
+#     for var in problem.var_manager.active_static_list
+#         add_variable_in_optimizer(optimizer, var, is_relaxed)
+#     end
+#     for var in problem.var_manager.active_dynamic_list
+#         add_variable_in_optimizer(optimizer, var, is_relaxed)
+#     end
+#     for constr in problem.constr_manager.active_static_list
+#         add_full_constraint_in_optimizer(optimizer, constr)
+#     end
+#     for constr in problem.constr_manager.active_dynamic_list
+#         add_full_constraint_in_optimizer(optimizer, constr)
+#     end
+# end
 
 function delete_constraint(problem::CompactProblem, constr::BranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
