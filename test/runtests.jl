@@ -1,5 +1,5 @@
-# import Coluna
-include("../src/Coluna.jl")
+import Coluna
+# include("../src/Coluna.jl")
 
 using Test
 
@@ -31,6 +31,7 @@ end
 branch_and_bound_bigger_instances()
 # moi_wrapper()
 @testset "gap - JuMP/MOI modeling" begin
-    include("../demos/GeneralizedAssignment_ColGen/run_sgap.jl")
+    include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
+    include("../examples/CuttingStock_SubprobMultiplicity/run_csp.jl")
 end
 

@@ -24,6 +24,7 @@ function alg_eval_node_unit_tests()
     update_pricing_prob_tests()
     compute_pricing_dual_bound_contrib_tests()
     insert_cols_in_master_tests()
+    gen_new_col_tests()
 
 end
 
@@ -416,4 +417,11 @@ function insert_cols_in_master_tests()
     @test col.member_coef_map[convexity_lb] == 1.0
     @test convexity_lb.member_coef_map[col] == 1.0
     @test convexity_ub.member_coef_map[col] == 1.0
+end
+
+function gen_new_col_tests()
+    extended_problem = create_cg_extended_problem()
+    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
+    pricing = extended_problem.pricing_vect[1]
+    CL.gen_new_col(alg, pricing)
 end

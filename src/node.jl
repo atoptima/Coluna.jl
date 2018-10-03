@@ -215,8 +215,8 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
         end
         @logmsg LogLevel(-3) string(" = ", constr.cost_rhs)
     end
-    
-    if setup(treat_algs.alg_eval_node)  
+
+    if setup(treat_algs.alg_eval_node)
         setdown(treat_algs.alg_eval_node)
         run(treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
@@ -284,7 +284,7 @@ function treat(node::Node, treat_algs::TreatAlgs,
     for alg in treat_algs.alg_vect_primal_heur_node
         run(alg, node, global_treat_order)
         # TODO remove node bound updates from inside heuristics and put it here.
-        if node.is_conquered
+        if is_conquered(node)
             exit_treatment(node); return true
         end
     end
@@ -296,6 +296,7 @@ function treat(node::Node, treat_algs::TreatAlgs,
         setdown(treat_algs.alg_generate_children_nodes)
         exit_treatment(node); return true
     end
+
     run(treat_algs.alg_generate_children_nodes, global_treat_order, node)
     setdown(treat_algs.alg_generate_children_nodes)
 

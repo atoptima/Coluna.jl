@@ -2,7 +2,6 @@ function algsetupnode_unit_tests()
 
     variable_small_info_tests()
     variable_info_tests()
-    # sb_var_info_tests()
     constraint_info_tests()
     problem_setup_info_tests()
     alg_to_setdown_node_tests()
@@ -52,18 +51,6 @@ function variable_info_tests()
     @test vinfo.ub == var.cur_ub
     @test vinfo.status == CL.Inactive
 end
-
-# function sb_var_info_tests()
-#     vars = create_array_of_vars(1, CL.SubprobVar)
-#     var = vars[1]
-#     vinfo = CL.SpVariableInfo(var, CL.Unsuitable)
-#     @test vinfo.variable == var
-#     @test vinfo.lb == var.cur_lb
-#     @test vinfo.ub == var.cur_ub
-#     @test vinfo.local_lb == var.local_lb
-#     @test vinfo.local_ub == var.local_ub
-#     @test vinfo.status == CL.Unsuitable
-# end
 
 function constraint_info_tests()
     vc_counter = CL.VarConstrCounter(0)
@@ -182,8 +169,11 @@ function prepare_branching_constraints_added_by_father_tests()
     constrs = create_array_of_constrs(2, CL.BranchConstr)
     node.local_branching_constraints = constrs
     CL.prepare_branching_constraints_added_by_father(alg, node)
-    @test findfirst(x->x==constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
-    @test findfirst(x->x==constrs[2], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x===constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x===constrs[2], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test length(extended_problem.master_problem.constr_manager.active_static_list) == 0
+    @test length(extended_problem.master_problem.constr_manager.unsuitable_static_list) == 0
+    @test length(extended_problem.master_problem.constr_manager.unsuitable_dynamic_list) == 0
 end
 
 function prepare_branching_constraints_tests()
@@ -193,8 +183,11 @@ function prepare_branching_constraints_tests()
     constrs = create_array_of_constrs(2, CL.BranchConstr)
     node.local_branching_constraints = constrs
     CL.prepare_branching_constraints(alg, node)
-    @test findfirst(x->x==constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
-    @test findfirst(x->x==constrs[2], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x===constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x===constrs[2], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test length(extended_problem.master_problem.constr_manager.active_static_list) == 0
+    @test length(extended_problem.master_problem.constr_manager.unsuitable_static_list) == 0
+    @test length(extended_problem.master_problem.constr_manager.unsuitable_dynamic_list) == 0
 
     prob, vars, constrs = create_problem_knapsack(true, false, true)
     prob.optimizer = nothing
@@ -216,10 +209,10 @@ function prepare_branching_constraints_tests()
     CL.run(alg, node)
 
     @test length(prob.constr_manager.active_static_list) == 1
-    @test findfirst(x->x==bc1, prob.constr_manager.active_dynamic_list) != nothing
-    @test findfirst(x->x==bc2, prob.constr_manager.active_dynamic_list) == nothing
-    @test findfirst(x->x==bc3, prob.constr_manager.active_dynamic_list) != nothing
-    @test findfirst(x->x==bc4, extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x===bc1, prob.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x===bc2, prob.constr_manager.active_dynamic_list) == nothing
+    @test findfirst(x->x===bc3, prob.constr_manager.active_dynamic_list) != nothing
+    @test findfirst(x->x===bc4, extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
 end
 
 function run_alg_setup_branching_only()

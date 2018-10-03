@@ -9,6 +9,9 @@ mutable struct SolsAndBounds
     is_alg_inc_ip_primal_bound_updated::Bool
 end
 
+SolsAndBounds() = SolsAndBounds(Inf, Inf, -Inf, -Inf, Dict{Variable, Float}(),
+        Dict{Variable, Float}(), Dict{Constraint, Float}(), false)
+
 ### Methods of SolsAndBounds
 function update_primal_lp_bound(incumbents::SolsAndBounds, newBound::Float)
     if newBound < incumbents.alg_inc_lp_primal_bound
@@ -94,9 +97,8 @@ function to(alg::AlgToEvalNode)
     return alg.extended_problem.timer_output
 end
 
-AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(Inf, Inf, -Inf,
-        -Inf, Dict{Variable, Float}(), Dict{Variable, Float}(),
-        Dict{Constraint, Float}(), false), problem, false, false)
+AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(), problem,
+        false, false)
 
 function update_alg_primal_lp_bound(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem

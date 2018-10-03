@@ -11,8 +11,10 @@ function problem_unit_tests()
     retreive_dual_sol_tests()
     is_sol_integer_tests()
     add_variable_tests()
+    add_variable_in_optimizer_tests()
     add_constraint_tests()
     add_full_constraint_tests()
+    add_full_constraint_in_optimizer_tests()
     delete_constraint_tests()
     add_membership_tests()
     optimize_tests()
@@ -217,39 +219,11 @@ function add_variable_tests()
     @test length(list_of_ci) == 1
     @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[1]) == MOI.SingleVariable(vars[1].moi_index)
     @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.ZeroOne()
-
-    vars[2].vc_type = 'B'
-    vars[2].upper_bound = 1.0
-    vars[2].lower_bound = 0.1
-    CL.add_variable(problem, vars[2])
-    objf = MOI.get(problem.optimizer,
-        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
-    @test length(objf.terms) == 2
-    @test objf.terms[2].coefficient == vars[2].cost_rhs
-    @test objf.terms[2].variable_index == vars[2].moi_index
-    list_of_ci = MOI.get(problem.optimizer,
-    MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Interval{Float64}}())
-    @test length(list_of_ci) == 1
-    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[1]) == MOI.SingleVariable(vars[2].moi_index)
-    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.Interval{Float64}(1.0,1.0)
-
-    vars[3].vc_type = 'I'
-    CL.add_variable(problem, vars[3])
-    list_of_ci = MOI.get(problem.optimizer,
-    MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Integer}())
-    @test length(list_of_ci) == 1
-    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[1]) == MOI.SingleVariable(vars[3].moi_index)
-    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.Integer()
-
-    vars[4].vc_type = 'C'
-    vars[4].lower_bound = 5.0
-    vars[4].upper_bound = 10.0
-    CL.add_variable(problem, vars[4])
-    list_of_ci = MOI.get(problem.optimizer,
-    MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Interval{Float64}}())
-    @test length(list_of_ci) == 3
-    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[3]) == MOI.SingleVariable(vars[4].moi_index)
-    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[3]) == MOI.Interval{Float64}(vars[4].lower_bound,vars[4].upper_bound)
+    @test findfirst(x->x===vars[1], problem.var_manager.active_static_list) != nothing
+    @test length(problem.var_manager.active_static_list) == 1
+    @test length(problem.var_manager.active_dynamic_list) == 0
+    @test length(problem.var_manager.unsuitable_static_list) == 0
+    @test length(problem.var_manager.unsuitable_dynamic_list) == 0
 
     problem = create_problem_empty()
     vars = create_array_of_vars(1, CL.SubprobVar)
@@ -265,6 +239,65 @@ function add_variable_tests()
     CL.add_variable(problem, mc)
     @test mc.member_coef_map[constr[1]] == 0.5
     @test constr[1].member_coef_map[mc] == 0.5
+    @test findfirst(x->x===mc, problem.var_manager.active_dynamic_list) != nothing
+    @test length(problem.var_manager.active_static_list) == 0
+    @test length(problem.var_manager.active_dynamic_list) == 1
+    @test length(problem.var_manager.unsuitable_static_list) == 0
+    @test length(problem.var_manager.unsuitable_dynamic_list) == 0
+end
+
+function add_variable_in_optimizer_tests()
+    problem = create_problem_empty()
+    optimizer = GLPK.Optimizer()
+    CL.initialize_problem_optimizer(problem, optimizer)
+    vars = create_array_of_vars(4, CL.Variable)
+
+    vars[1].vc_type = 'B'
+    vars[1].upper_bound = 1.0
+    vars[1].lower_bound = 0.0
+    CL.add_variable_in_optimizer(problem.optimizer, vars[1], false)
+    objf = MOI.get(problem.optimizer,
+        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    @test length(objf.terms) == 1
+    @test objf.terms[1].coefficient == vars[1].cost_rhs
+    @test objf.terms[1].variable_index == vars[1].moi_index
+    list_of_ci = MOI.get(problem.optimizer, MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.ZeroOne}())
+    @test length(list_of_ci) == 1
+    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[1]) == MOI.SingleVariable(vars[1].moi_index)
+    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.ZeroOne()
+
+    vars[2].vc_type = 'B'
+    vars[2].upper_bound = 1.0
+    vars[2].lower_bound = 0.1
+    CL.add_variable_in_optimizer(problem.optimizer, vars[2], false)
+    objf = MOI.get(problem.optimizer,
+        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    @test length(objf.terms) == 2
+    @test objf.terms[2].coefficient == vars[2].cost_rhs
+    @test objf.terms[2].variable_index == vars[2].moi_index
+    list_of_ci = MOI.get(problem.optimizer,
+    MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Interval{Float64}}())
+    @test length(list_of_ci) == 1
+    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[1]) == MOI.SingleVariable(vars[2].moi_index)
+    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.Interval{Float64}(1.0,1.0)
+
+    vars[3].vc_type = 'I'
+    CL.add_variable_in_optimizer(problem.optimizer, vars[3], false)
+    list_of_ci = MOI.get(problem.optimizer,
+    MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Integer}())
+    @test length(list_of_ci) == 1
+    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[1]) == MOI.SingleVariable(vars[3].moi_index)
+    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.Integer()
+
+    vars[4].vc_type = 'C'
+    vars[4].lower_bound = 5.0
+    vars[4].upper_bound = 10.0
+    CL.add_variable_in_optimizer(problem.optimizer, vars[4], false)
+    list_of_ci = MOI.get(problem.optimizer,
+    MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Interval{Float64}}())
+    @test length(list_of_ci) == 3
+    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[3]) == MOI.SingleVariable(vars[4].moi_index)
+    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[3]) == MOI.Interval{Float64}(vars[4].lower_bound,vars[4].upper_bound)
 end
 
 function add_constraint_tests()
@@ -275,6 +308,11 @@ function add_constraint_tests()
     constr = constrs[1]
     CL.add_constraint(problem, constr)
     @test constr.moi_index == MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}(1)
+    @test findfirst(x->x===constr, problem.constr_manager.active_static_list) != nothing
+    @test length(problem.constr_manager.active_static_list) == 1
+    @test length(problem.constr_manager.active_dynamic_list) == 0
+    @test length(problem.constr_manager.unsuitable_static_list) == 0
+    @test length(problem.constr_manager.unsuitable_dynamic_list) == 0
 end
 
 function add_full_constraint_tests()
@@ -283,14 +321,27 @@ function add_full_constraint_tests()
     CL.initialize_problem_optimizer(problem, optimizer)
     constrs = create_array_of_constrs(1, CL.BranchConstr)
     constr = constrs[1]
-    vars = create_array_of_vars(4, CL.Variable)
-    for i in 1:length(vars)
-        CL.add_variable(problem, vars[i])
-        constr.member_coef_map[vars[i]] = 1.0
-    end
     CL.add_full_constraint(problem, constr)
     list_of_ci = MOI.get(problem.optimizer, MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}())
     @test length(list_of_ci) == 1
+    @test list_of_ci[1] === constr.moi_index
+    @test findfirst(x->x===constr, problem.constr_manager.active_dynamic_list) != nothing
+    @test length(problem.constr_manager.active_static_list) == 0
+    @test length(problem.constr_manager.active_dynamic_list) == 1
+    @test length(problem.constr_manager.unsuitable_static_list) == 0
+    @test length(problem.constr_manager.unsuitable_dynamic_list) == 0
+end
+
+function add_full_constraint_in_optimizer_tests()
+    problem = create_problem_empty()
+    optimizer = GLPK.Optimizer()
+    CL.initialize_problem_optimizer(problem, optimizer)
+    constrs = create_array_of_constrs(1, CL.BranchConstr)
+    constr = constrs[1]
+    CL.add_full_constraint_in_optimizer(problem.optimizer, constr)
+    list_of_ci = MOI.get(problem.optimizer, MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}())
+    @test length(list_of_ci) == 1
+    @test list_of_ci[1] === constr.moi_index
 end
 
 function delete_constraint_tests()
