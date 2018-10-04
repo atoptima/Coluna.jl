@@ -10,6 +10,9 @@ include("node.jl")
 include("algsetupnode.jl")
 include("algpreprocessnode.jl")
 include("algevalnode.jl")
+include("alggeneratechildrennodes.jl")
+include("algprimalheurinnode.jl")
+include("model.jl")
 
 function unit_tests()
     @testset "varconstr.jl" begin
@@ -41,6 +44,15 @@ function unit_tests()
     end
     @testset "algevalnode.jl" begin
         alg_eval_node_unit_tests()
+    end
+    @testset "algprimalheurinnode.jl" begin
+        alg_primal_heuristic_node_unit_tests()
+    end
+    @testset "alggeneratechildrennodes.jl" begin
+        alg_generate_children_nodes_unit_tests()
+    end
+    @testset "model.jl" begin
+        model_unit_tests()
     end
 end
 
