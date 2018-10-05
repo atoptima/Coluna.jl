@@ -136,13 +136,7 @@ function print_info_before_solving_node_tests()
     extended_problem = create_extended_problem()
     extended_problem.dual_inc_bound = -12.3
     extended_problem.primal_inc_bound = 103.2
-    backup_stdout = stdout
-    (rd, wr) = redirect_stdout()
-    CL.print_info_before_solving_node(extended_problem, 10, 11, -32)
-    close(wr)
-    s = String(readavailable(rd))
-    close(rd)
-    redirect_stdout(backup_stdout)
+    s = get_output_from_function(CL.print_info_before_solving_node, extended_problem, 10, 11, -32)
     @test s == "10 open nodes. Treating node -32.\nCurrent best known bounds : [ -12.3 , 103.2 ]\n************************************************************\n"
 end
 

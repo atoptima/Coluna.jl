@@ -502,23 +502,14 @@ function update_lagrangian_dual_bound_tests()
 end
 
 function print_intermediate_statistics_tests()
-    # It gives me the following error:
-    # ERROR: LoadError: IOError: write: broken pipe (EPIPE)
-
-    # extended_problem = create_extended_problem()
-    # alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
-    # alg.sols_and_bounds.alg_inc_lp_primal_bound = 2
-    # alg.sols_and_bounds.alg_inc_lp_dual_bound = 4
-    # alg.sols_and_bounds.alg_inc_ip_dual_bound = 8
-    # alg.sols_and_bounds.alg_inc_ip_primal_bound = 64
-    # backup_stdout = stdout
-    # (rd, wr) = redirect_stdout()
-    # CL.print_intermediate_statistics_tests(alg, -32, -64)
-    # close(wr)
-    # s = String(readavailable(rd))
-    # close(rd)
-    # redirect_stdout(backup_stdout)
-    # @test s == "<it=-64> <cols=-32> <mlp=2> <DB=4> <PB=64>"
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    alg.sols_and_bounds.alg_inc_lp_primal_bound = 2
+    alg.sols_and_bounds.alg_inc_lp_dual_bound = 4
+    alg.sols_and_bounds.alg_inc_ip_dual_bound = 8
+    alg.sols_and_bounds.alg_inc_ip_primal_bound = 64
+    s = get_output_from_function(CL.print_intermediate_statistics, alg, -32, -64)
+    @test s == "<it=-64> <cols=-32> <mlp=2.0> <DB=4.0> <PB=64.0>\n"
 end
 
 function alg_to_eval_node_by_simplex_col_gen_tests()
