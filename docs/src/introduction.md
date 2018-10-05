@@ -60,9 +60,7 @@ We partition the constraints.
 - Constraints ``\text{sc}_{2,1}`` to ``\text{sc}_{2,q}`` are in the second subproblem.
 - Constraints ``\text{sc}_{3,1}`` to ``\text{sc}_{3,q}`` are in the third subproblem.
 
-As for Benders decomposition, the user must
-to create function to describe this decomposition. Such function could be: ::
-
+This decomposition is described through the following annotations:
 
 ```julia
 # setting constraint annotations for the decomposition

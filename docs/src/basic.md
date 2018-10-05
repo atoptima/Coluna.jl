@@ -15,14 +15,15 @@ A JuMP model using Coluna model can be instantiated as
 ## Write the model
 
 The model is written as a JuMP model. If you are not familiar with JuMP syntax,
-you may want to check its [documentation](https://jump.readthedocs.io/en/latest/quickstart.html#defining-variables).
+you may want to check its [documentation]
+(https://jump.readthedocs.io/en/latest/quickstart.html#defining-variables).
 
 Consider a set of machines `Machines = 1:M` and a set of jobs `Jobs = 1:J`.
 A machine `m` has a resource capacity `Capacity[m]`. When we assign a job
 `j` to a machine `m`, the job has a cost `Cost[m,j]` and consumes
 `Weight[m,j]` resources of the machine `m`. The goal is to minimize the jobs
 cost sum by assigning each job to a machine while not exceeding the capacity of
-each machine. The model is
+each machine. The model is:
 
 ```julia
 @variable(gap, x[m in data.machines, j in data.jobs], Bin)
@@ -39,7 +40,7 @@ each machine. The model is
 
 ## Decomposition
 
-The decomposition is described through the following annotations
+The decomposition is described through the following annotations:
 
 ```julia
 # setting constraint annotations for the decomposition
