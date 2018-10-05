@@ -32,10 +32,10 @@ each machine. The model is:
         sum(x[m,j] for m in data.machines) >= 1)
 
 @constraint(gap, knp[m in data.machines],
-        sum(data.weight[j,m]*x[m,j] for j in data.jobs) <= data.capacity[m])
+        sum(data.weight[j, m] * x[m, j] for j in data.jobs) <= data.capacity[m])
 
 @objective(gap, Min,
-        sum(data.cost[j,m]*x[m,j] for m in data.machines, j in data.jobs))
+        sum(data.cost[j, m] * x[m, j] for m in data.machines, j in data.jobs))
 ```
 
 ## Decomposition
@@ -53,7 +53,7 @@ end
 
 # setting variable annotations for the decomposition
 for m in data.machines, j in data.jobs
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[m,j], m)
+    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[m, j], m)
 end
 ```
 

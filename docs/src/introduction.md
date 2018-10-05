@@ -67,7 +67,7 @@ This decomposition is described through the following annotations:
 for o in 1:3, p in 1:q
     # constraint in subproblem i
     # (subproblem annotations need to be contiguous starting at 1)
-    set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), sc[o,p], i)
+    set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), sc[o, p], i)
 end
 for o in 1:m
     # constraint in master (annotated with 0)
@@ -75,12 +75,12 @@ for o in 1:m
 end
 # setting variable annotations for the decomposition in the same way
 for o in 1:i
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 1)
+    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o, p], 1)
 end
 for o in (i+1):j
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
+    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o, p], 2)
 end
 for o in (i+j+1):k
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
+    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o, p], 2)
 end
 ```
