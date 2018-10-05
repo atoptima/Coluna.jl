@@ -348,7 +348,8 @@ end
 
 function compute_mast_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality)
     stabilization = alg.colgen_stabilization
-    if stabilization == nothing
+    # This is commented because function is_active does not exist
+    if stabilization == nothing# || !is_active(stabilization)
         return alg.extended_problem.master_problem.primal_sols[end].cost
     else
         error("compute_mast_dual_bound_contrib" *
@@ -388,13 +389,12 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
     end
 end
 
-function print_intermediate_statistics(alg, nb_new_col, nb_cg_iterations)
+function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb_new_col::Int, nb_cg_iterations::Int)
     mlp = alg.sols_and_bounds.alg_inc_lp_primal_bound
     db = alg.sols_and_bounds.alg_inc_lp_dual_bound
     db_ip = alg.sols_and_bounds.alg_inc_ip_dual_bound
     pb = alg.sols_and_bounds.alg_inc_ip_primal_bound
-    println(string("<it=$nb_cg_iterations> <cols=$nb_new_col> <mlp=$mlp> "),
-            string("<DB=$db> <PB=$pb>"))
+    println("<it=", nb_cg_iterations, "> <cols=", nb_new_col, "> <mlp=", mlp, "> <DB=", db, "> <PB=", pb, ">")
 end
 
 #########################################

@@ -473,7 +473,7 @@ function compute_mast_dual_bound_contrib_tests()
     # Test with stabilization != nothing
     alg.colgen_stabilization = CL.ColGenStabilization()
     try CL.compute_mast_dual_bound_contrib(alg)
-        error("Stabilization is not empty and an error was not produced inside Coluna.")
+        error("Test error: Stabilization is not empty and an error was not produced inside Coluna.")
     catch err
         @test err == ErrorException("compute_mast_dual_bound_contrib" *
                                     "is not yet implemented with stabilization")
@@ -494,7 +494,7 @@ function update_lagrangian_dual_bound_tests()
     # Test with stabilization != nothing
     alg.colgen_stabilization = CL.ColGenStabilization()
     try CL.update_lagrangian_dual_bound(alg, true)
-        error("Stabilization is not empty and an error was not produced inside Coluna.")
+        error("Test error: Stabilization is not empty and an error was not produced inside Coluna.")
     catch err
         @test err == ErrorException("compute_mast_dual_bound_contrib" *
                                     "is not yet implemented with stabilization")
@@ -502,7 +502,23 @@ function update_lagrangian_dual_bound_tests()
 end
 
 function print_intermediate_statistics_tests()
-    # No meaningfull tests for a print finction
+    # It gives me the following error:
+    # ERROR: LoadError: IOError: write: broken pipe (EPIPE)
+
+    # extended_problem = create_extended_problem()
+    # alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    # alg.sols_and_bounds.alg_inc_lp_primal_bound = 2
+    # alg.sols_and_bounds.alg_inc_lp_dual_bound = 4
+    # alg.sols_and_bounds.alg_inc_ip_dual_bound = 8
+    # alg.sols_and_bounds.alg_inc_ip_primal_bound = 64
+    # backup_stdout = stdout
+    # (rd, wr) = redirect_stdout()
+    # CL.print_intermediate_statistics_tests(alg, -32, -64)
+    # close(wr)
+    # s = String(readavailable(rd))
+    # close(rd)
+    # redirect_stdout(backup_stdout)
+    # @test s == "<it=-64> <cols=-32> <mlp=2> <DB=4> <PB=64>"
 end
 
 function alg_to_eval_node_by_simplex_col_gen_tests()
