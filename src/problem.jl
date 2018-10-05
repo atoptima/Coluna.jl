@@ -390,23 +390,22 @@ function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractO
     end
 end
 
-# This function is not called
-# function load_problem_in_optimizer(problem::CompactProblem,
-#         optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
+function load_problem_in_optimizer(problem::CompactProblem,
+        optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
 
-#     for var in problem.var_manager.active_static_list
-#         add_variable_in_optimizer(optimizer, var, is_relaxed)
-#     end
-#     for var in problem.var_manager.active_dynamic_list
-#         add_variable_in_optimizer(optimizer, var, is_relaxed)
-#     end
-#     for constr in problem.constr_manager.active_static_list
-#         add_full_constraint_in_optimizer(optimizer, constr)
-#     end
-#     for constr in problem.constr_manager.active_dynamic_list
-#         add_full_constraint_in_optimizer(optimizer, constr)
-#     end
-# end
+    for var in problem.var_manager.active_static_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for var in problem.var_manager.active_dynamic_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for constr in problem.constr_manager.active_static_list
+        add_full_constraint_in_optimizer(optimizer, constr)
+    end
+    for constr in problem.constr_manager.active_dynamic_list
+        add_full_constraint_in_optimizer(optimizer, constr)
+    end
+end
 
 function delete_constraint(problem::CompactProblem, constr::BranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
@@ -516,6 +515,9 @@ end
 function initialize_problem_optimizer(extended_problem::ExtendedProblem,
          problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
 
+    if !haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
+        error("Optimizer was not set to master problem.")
+    end
     initialize_problem_optimizer(extended_problem.master_problem,
             problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
 

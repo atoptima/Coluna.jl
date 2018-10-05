@@ -25,6 +25,14 @@ function alg_eval_node_unit_tests()
     compute_pricing_dual_bound_contrib_tests()
     insert_cols_in_master_tests()
     gen_new_col_tests()
+    gen_new_columns_tests()
+    compute_mast_dual_bound_contrib_tests()
+    update_lagrangian_dual_bound_tests()
+    print_intermediate_statistics_tests()
+    alg_to_eval_node_by_simplex_col_gen_tests()
+    solve_restricted_mast_tests()
+    solve_mast_lp_ph2_tests()
+    run_alg_eval_node_by_simplex_col_gen_tests()
 
 end
 
@@ -399,8 +407,8 @@ end
 
 function insert_cols_in_master_tests()
     extended_problem = create_cg_extended_problem()
-    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
     pricing = extended_problem.pricing_vect[1]
+    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
     primal_sol = CL.PrimalSolution(1.0, Dict{CL.Variable,Float64}())
     push!(pricing.primal_sols, primal_sol)
     @test CL.insert_cols_in_master(alg, pricing) == 0
@@ -421,7 +429,193 @@ end
 
 function gen_new_col_tests()
     extended_problem = create_cg_extended_problem()
-    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
     pricing = extended_problem.pricing_vect[1]
-    CL.gen_new_col(alg, pricing)
+    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
+
+    # Test when there is no column to insert
+    @test CL.gen_new_col(alg, pricing) == 0
+    @test length(extended_problem.master_problem.var_manager.active_dynamic_list) == 0
+
+    # TODO: Test when there is column to add
+
+    # Test when pricing is infeasible
+    infeas_constr = CL.Constraint(pricing.counter, "infeas", -1.0, 'L', 'C', 's')
+    CL.add_constraint(pricing, infeas_constr)
+    var = pricing.var_manager.active_static_list[1]
+    CL.add_membership(pricing, var, infeas_constr, 1.0)
+    @test CL.gen_new_col(alg, pricing) == -1
+end
+
+function gen_new_columns_tests()
+    extended_problem = create_cg_extended_problem()
+    pricing = extended_problem.pricing_vect[1]
+    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
+
+    # Test when there is no column to insert
+    @test CL.gen_new_columns(alg) == 0
+    @test length(extended_problem.master_problem.var_manager.active_dynamic_list) == 0
+
+    # Test when pricing is infeasible
+    infeas_constr = CL.Constraint(pricing.counter, "infeas", -1.0, 'L', 'C', 's')
+    CL.add_constraint(pricing, infeas_constr)
+    var = pricing.var_manager.active_static_list[1]
+    CL.add_membership(pricing, var, infeas_constr, 1.0)
+    @test CL.gen_new_columns(alg) == -1
+end
+
+function compute_mast_dual_bound_contrib_tests()
+    extended_problem = create_cg_extended_problem()
+    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
+    primal_sol = CL.PrimalSolution(-13.4, Dict{CL.Variable,Float64}())
+    push!(extended_problem.master_problem.primal_sols, primal_sol)
+    @test CL.compute_mast_dual_bound_contrib(alg) == -13.4
+
+    # Test with stabilization != nothing
+    alg.colgen_stabilization = CL.ColGenStabilization()
+    try CL.compute_mast_dual_bound_contrib(alg)
+        error("Test error: Stabilization is not empty and an error was not produced inside Coluna.")
+    catch err
+        @test err == ErrorException("compute_mast_dual_bound_contrib" *
+                                    "is not yet implemented with stabilization")
+    end
+end
+
+function update_lagrangian_dual_bound_tests()
+    extended_problem = create_cg_extended_problem()
+    pricing = extended_problem.pricing_vect[1]
+    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
+    primal_sol = CL.PrimalSolution(-13.4, Dict{CL.Variable,Float64}())
+    push!(extended_problem.master_problem.primal_sols, primal_sol)
+    alg.pricing_contribs[pricing] = -10.2
+    CL.update_lagrangian_dual_bound(alg, true)
+    @test alg.sols_and_bounds.alg_inc_lp_dual_bound == -23.6
+    @test alg.sols_and_bounds.alg_inc_ip_dual_bound == -23.6
+
+    # Test with stabilization != nothing
+    alg.colgen_stabilization = CL.ColGenStabilization()
+    try CL.update_lagrangian_dual_bound(alg, true)
+        error("Test error: Stabilization is not empty and an error was not produced inside Coluna.")
+    catch err
+        @test err == ErrorException("compute_mast_dual_bound_contrib" *
+                                    "is not yet implemented with stabilization")
+    end
+end
+
+function print_intermediate_statistics_tests()
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    alg.sols_and_bounds.alg_inc_lp_primal_bound = 2
+    alg.sols_and_bounds.alg_inc_lp_dual_bound = 4
+    alg.sols_and_bounds.alg_inc_ip_dual_bound = 8
+    alg.sols_and_bounds.alg_inc_ip_primal_bound = 64
+    s = get_output_from_function(CL.print_intermediate_statistics, alg, -32, -64)
+    @test s == "<it=-64> <cols=-32> <mlp=2.0> <DB=4.0> <PB=64.0>\n"
+end
+
+function alg_to_eval_node_by_simplex_col_gen_tests()
+    extended_problem = create_extended_problem()
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    @test alg.pricing_contribs == Dict{CL.Problem, Float64}()
+    @test alg.pricing_const_obj == Dict{CL.Problem, Float64}()
+    @test alg.colgen_stabilization == nothing
+    @test alg.max_nb_cg_iterations == 10000
+end
+
+function solve_restricted_mast_tests()
+    extended_problem = create_cg_extended_problem()
+    alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
+    @test CL.solve_restricted_mast(alg) == MOI.Success
+end
+
+function solve_mast_lp_ph2_tests()
+    # Standard case where everything goes well
+    extended_problem = create_cg_extended_problem()
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    alg.sol_is_master_lp_feasible = true
+    @test CL.solve_mast_lp_ph2(alg) == false
+    sols_and_bounds = alg.sols_and_bounds
+    @test sols_and_bounds.alg_inc_ip_primal_bound == 2.0
+    @test sols_and_bounds.alg_inc_lp_primal_bound == 2.0
+    @test sols_and_bounds.alg_inc_ip_dual_bound == 2.0
+    @test sols_and_bounds.alg_inc_lp_dual_bound == 2.0
+    @test alg.is_master_converged == true
+
+    # Limit of cg_iterations
+    extended_problem = create_cg_extended_problem()
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    alg.sol_is_master_lp_feasible = true
+    alg.max_nb_cg_iterations = 1
+    @test CL.solve_mast_lp_ph2(alg) == true
+    sols_and_bounds = alg.sols_and_bounds
+    @test sols_and_bounds.alg_inc_lp_primal_bound == Inf
+    @test sols_and_bounds.alg_inc_ip_dual_bound == Inf
+    @test sols_and_bounds.alg_inc_lp_dual_bound == Inf
+    @test alg.sol_is_master_lp_feasible == false
+    @test alg.is_master_converged == false
+    
+    # Test when pricing is infeasible
+    extended_problem = create_cg_extended_problem()
+    pricing = extended_problem.pricing_vect[1]
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    alg.sol_is_master_lp_feasible = true
+    infeas_constr = CL.Constraint(pricing.counter, "infeas", -1.0, 'L', 'C', 's')
+    CL.add_constraint(pricing, infeas_constr)
+    var = pricing.var_manager.active_static_list[1]
+    CL.add_membership(pricing, var, infeas_constr, 1.0)
+    @test CL.solve_mast_lp_ph2(alg) == true
+    sols_and_bounds = alg.sols_and_bounds
+    @test sols_and_bounds.alg_inc_lp_primal_bound == Inf
+    @test sols_and_bounds.alg_inc_ip_dual_bound == Inf
+    @test sols_and_bounds.alg_inc_lp_dual_bound == Inf
+    @test alg.sol_is_master_lp_feasible == false
+    @test alg.is_master_converged == false
+
+    # Test when master is infeasible
+    extended_problem = create_cg_extended_problem()
+    master = extended_problem.master_problem
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    alg.sol_is_master_lp_feasible = true
+    infeas_constr = CL.Constraint(master.counter, "infeas", -1.0, 'L', 'C', 's')
+    CL.add_constraint(master, infeas_constr)
+    var = extended_problem.artificial_global_pos_var
+    CL.add_membership(master, var, infeas_constr, 1.0)
+    @test CL.solve_mast_lp_ph2(alg) == true
+    sols_and_bounds = alg.sols_and_bounds
+    @test sols_and_bounds.alg_inc_lp_primal_bound == Inf
+    @test sols_and_bounds.alg_inc_ip_dual_bound == Inf
+    @test sols_and_bounds.alg_inc_lp_dual_bound == Inf
+    @test alg.sol_is_master_lp_feasible == false
+    @test alg.is_master_converged == false
+end
+
+function run_alg_eval_node_by_simplex_col_gen_tests()
+    # Standard case where everything goes well
+    extended_problem = create_cg_extended_problem()
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    alg.sol_is_master_lp_feasible = false
+    @test CL.run(alg) == false
+    sols_and_bounds = alg.sols_and_bounds
+    @test sols_and_bounds.alg_inc_ip_primal_bound == 2.0
+    @test sols_and_bounds.alg_inc_lp_primal_bound == 2.0
+    @test sols_and_bounds.alg_inc_ip_dual_bound == 2.0
+    @test sols_and_bounds.alg_inc_lp_dual_bound == 2.0
+    @test alg.is_master_converged == true
+    @test alg.sol_is_master_lp_feasible == true
+
+    # Test when pricing is infeasible
+    extended_problem = create_cg_extended_problem()
+    pricing = extended_problem.pricing_vect[1]
+    alg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)
+    alg.sol_is_master_lp_feasible = true
+    infeas_constr = CL.Constraint(pricing.counter, "infeas", -1.0, 'L', 'C', 's')
+    CL.add_constraint(pricing, infeas_constr)
+    var = pricing.var_manager.active_static_list[1]
+    CL.add_membership(pricing, var, infeas_constr, 1.0)
+    @test CL.run(alg) == false
+    sols_and_bounds = alg.sols_and_bounds
+    @test sols_and_bounds.alg_inc_lp_primal_bound == Inf
+    @test sols_and_bounds.alg_inc_ip_dual_bound == Inf
+    @test sols_and_bounds.alg_inc_lp_dual_bound == Inf
+    @test alg.sol_is_master_lp_feasible == false
+    @test alg.is_master_converged == false
 end
