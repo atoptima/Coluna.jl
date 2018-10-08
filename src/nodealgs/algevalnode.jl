@@ -171,7 +171,7 @@ end
 function run(alg::AlgToEvalNodeByLp)
     println("Starting eval by lp")
 
-    status = optimize(alg.extended_problem.master_problem)
+    status = optimize!(alg.extended_problem.master_problem)
 
     if status != MOI.Success
         println("Lp is infeasible, exiting treatment of node.")
@@ -316,8 +316,8 @@ function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Proble
 
     # Solve sub-problem and insert generated columns in master
     @logmsg LogLevel(-3) "optimizing pricing prob"
-    @timeit to(alg) "optimize(pricing_prob)" begin
-    status = optimize(pricing_prob)
+    @timeit to(alg) "optimize!(pricing_prob)" begin
+    status = optimize!(pricing_prob)
     end
     compute_pricing_dual_bound_contrib(alg, pricing_prob)
     if status == MOI.InfeasibleNoResult
@@ -409,7 +409,7 @@ AlgToEvalNodeBySimplexColGenBuilder(problem::ExtendedProblem) = (
 function solve_restricted_mast(alg)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
     @timeit to(alg) "solve_restricted_mast" begin
-    status = optimize(alg.extended_problem.master_problem)
+    status = optimize!(alg.extended_problem.master_problem)
     end # @timeit to(alg) "solve_restricted_mast"
     return status
 end

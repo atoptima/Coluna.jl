@@ -78,7 +78,7 @@ function testpuremaster()
     CL.add_membership(problem, x2, constr, 3.0)
     CL.add_membership(problem, x3, constr, 4.0)
 
-    CL.optimize(problem)
+    CL.optimize!(problem)
 
     @test MOI.get(problem.optimizer, MOI.ObjectiveValue()) == -25
 end

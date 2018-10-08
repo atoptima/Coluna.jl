@@ -467,7 +467,8 @@ function add_membership(problem::CompactProblem, var::MasterVar,
     end
 end
 
-function optimize(problem::CompactProblem)
+# Updates the problem with the primal/dual sols
+function optimize!(problem::CompactProblem)
     if problem.optimizer == nothing
         error("The problem has no optimizer attached")
     end
@@ -485,6 +486,7 @@ function optimize(problem::CompactProblem)
     return status
 end
 
+# does not modify problem but returns the primal/dual sols instead
 function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
     MOI.optimize!(optimizer)
     status = MOI.get(optimizer, MOI.TerminationStatus())

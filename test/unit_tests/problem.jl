@@ -17,6 +17,7 @@ function problem_unit_tests()
     add_full_constraint_in_optimizer_tests()
     delete_constraint_tests()
     add_membership_tests()
+    optimize!_tests()
     optimize_tests()
     extended_problem_tests()
     initialize_extended_problem_optimizer_tests()
@@ -399,19 +400,35 @@ function add_membership_tests()
     @test constr_function.terms[1].variable_index == var.moi_index
 end
 
-function optimize_tests()
+function optimize!_tests()
     problem, vars, constr = create_problem_knapsack()
-    status = CL.optimize(problem)
+    status = CL.optimize!(problem)
     @test status == MOI.Success
     problem, vars, constr = create_problem_knapsack(false)
-    status = CL.optimize(problem)
+    status = CL.optimize!(problem)
     @test MOI.get(problem.optimizer, MOI.ResultCount()) == 0
     problem.optimizer = nothing
-    try CL.optimize(problem)
+    try CL.optimize!(problem)
         error("Optimzier was set to empty, but no error was returned")
     catch err
         @test err == ErrorException("The problem has no optimizer attached")
     end
+end
+
+function optimize_tests()
+    problem, vars, constr = create_problem_knapsack()
+    optimizer = problem.optimizer
+    problem.optimizer = nothing
+    try CL.optimize!(problem)
+        error("Optimzier was set to empty, but no error was returned")
+    catch err
+        @test err == ErrorException("The problem has no optimizer attached")
+    end
+    (status, primal_sol, dual_sol) = CL.optimize(problem, optimizer)
+    @test status == MOI.Success
+    @test MOI.get(optimizer, MOI.ResultCount()) == 1
+    @test length(primal_sol.var_val_map) == 2
+    @test dual_sol == nothing
 end
 
 function extended_problem_tests()
