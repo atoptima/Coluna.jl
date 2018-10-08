@@ -197,3 +197,14 @@ function create_cg_extended_problem()
     CL.add_membership(master_problem, art_glob_pos_var, cov_3_constr, 1.0)
     return extended_problem
 end
+
+function get_output_from_function(f::Function, args...)
+    backup_stdout = stdout
+    (rd, wr) = redirect_stdout()
+    f(args...)
+    close(wr)
+    s = String(readavailable(rd))
+    close(rd)
+    redirect_stdout(backup_stdout)
+    return s
+end

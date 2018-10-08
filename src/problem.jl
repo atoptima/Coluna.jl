@@ -409,7 +409,6 @@ function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractO
     end
 end
 
-# This function is not called
 function load_problem_in_optimizer(problem::CompactProblem,
         optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
 
@@ -553,6 +552,9 @@ end
 function initialize_problem_optimizer(extended_problem::ExtendedProblem,
          problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
 
+    if !haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
+        error("Optimizer was not set to master problem.")
+    end
     initialize_problem_optimizer(extended_problem.master_problem,
             problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
 

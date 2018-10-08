@@ -62,7 +62,7 @@ function add_var_in_manager_tests()
     @test var_manager.unsuitable_static_list[1] == v2
     @test var_manager.unsuitable_dynamic_list[1] == v4
     try CL.add_var_in_manager(var_manager, v5)
-        error("Status Active and flag z are not supported")
+        error("Test error: Status Active and flag z are not supported, but Coluna did not throw error.")
     catch err
         @test err == ErrorException("Status Active and flag z are not supported")
     end
@@ -89,7 +89,7 @@ function add_and_remove_constr_in_manager_tests()
     @test constr_manager.unsuitable_static_list[1] == constr_2
     @test constr_manager.unsuitable_dynamic_list[1] == constr_4
     try CL.add_constr_in_manager(constr_manager, constr_5)
-        error("Status Active and flag z are not supported")
+        error("Test error: Status Active and flag z are not supported, but Coluna did not throw error.")
     catch err
         @test err == ErrorException("Status Active and flag z are not supported")
     end
@@ -104,7 +104,7 @@ function add_and_remove_constr_in_manager_tests()
     CL.remove_from_constr_manager(constr_manager, constr_4)
     @test length(constr_manager.unsuitable_dynamic_list) == 0
     try CL.remove_from_constr_manager(constr_manager, constr_5)
-        error("Status Active and flag z are not supported")
+        error("Test error: Status Active and flag z are not supported, but Coluna did not throw error.")
     catch err
         @test err == ErrorException("Status Active and flag z are not supported")
     end
@@ -151,7 +151,7 @@ end
 function retreive_primal_sol_tests()
     problem = create_problem_empty()
     try CL.retreive_primal_sol(problem)
-        error("Problem has no optimizer")
+        error("Test error: Problem has no optimizer, bu Coluna did not throw error.")
     catch err
         @test err == ErrorException("The problem has no optimizer attached")
     end
@@ -168,7 +168,7 @@ function retreive_dual_sol_tests()
     ## Not working properly
     problem = create_problem_empty()
     try CL.retreive_dual_sol(problem)
-        error("Problem has no optimizer")
+        error("Test error: Problem has no optimizer, bu Coluna did not throw error.")
     catch err
         @test err == ErrorException("The problem has no optimizer attached")
     end
@@ -409,7 +409,7 @@ function optimize!_tests()
     @test MOI.get(problem.optimizer, MOI.ResultCount()) == 0
     problem.optimizer = nothing
     try CL.optimize!(problem)
-        error("Optimzier was set to empty, but no error was returned")
+        error("Test error : Optimzier was set to empty, but no error was returned.")
     catch err
         @test err == ErrorException("The problem has no optimizer attached")
     end
