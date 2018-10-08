@@ -11,7 +11,9 @@ mutable struct Model # user model
     problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer}
 end
 
-function ModelConstructor(params = Params(), with_extended_prob = true)
+function ModelConstructor(params = Params();
+                          with_extended_prob = true)
+
     callback = Callback()
     prob_counter = ProblemCounter(-1) # like cplex convention of prob_ref
     vc_counter = VarConstrCounter(0)

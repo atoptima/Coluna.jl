@@ -19,11 +19,11 @@ function model_unit_tests()
 end
 
 function model_tests()
-    model = CL.ModelConstructor(false)
+    model = CL.ModelConstructor(with_extended_prob = false)
     @test model.extended_problem == nothing
     @test model.prob_counter.value == -1
     @test model.problemidx_optimizer_map == Dict{Int,MOI.AbstractOptimizer}()
-    model = CL.ModelConstructor(true)
+    model = CL.ModelConstructor(with_extended_prob = true)
     @test model.extended_problem != nothing
     @test model.prob_counter.value == 0
     @test model.problemidx_optimizer_map == Dict{Int,MOI.AbstractOptimizer}()
@@ -40,7 +40,7 @@ function create_root_node_tests()
 end
 
 function set_model_optimizers_tests()
-    model = CL.ModelConstructor(true)
+    model = CL.ModelConstructor(with_extended_prob = true)
     try CL.set_model_optimizers(model)
         error("Coluna did not throw error when asked to initialize unexisting optimizer.")
     catch err
@@ -296,7 +296,7 @@ end
 
 function optimize_model_tests()
     extended_problem = create_cg_extended_problem()
-    CL.optimize(extended_problem)
+    CL.optimize!(extended_problem)
     @test extended_problem.primal_inc_bound == 2.0
     @test extended_problem.dual_inc_bound == 2.0
 end
