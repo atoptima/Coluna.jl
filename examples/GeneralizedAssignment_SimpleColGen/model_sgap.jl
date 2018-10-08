@@ -1,6 +1,7 @@
 
-function model_sgap(data::DataGap, solvertype)
-    gap = Model(with_optimizer(solvertype), bridge_constraints=false)
+function model_sgap(data::DataGap)
+    gap = Model(with_optimizer(Coluna.ColunaModelOptimizer),
+                bridge_constraints=false)
 
     @variable(gap, x[m in data.machines, j in data.jobs], Bin)
 

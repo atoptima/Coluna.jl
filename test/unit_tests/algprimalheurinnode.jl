@@ -4,7 +4,7 @@ function alg_primal_heuristic_node_unit_tests()
     setup_primal_heur_tests()
     setdown_primal_heur_tests()
     alg_primal_heur_restricted_master_tests()
-    run_restricted_master_heur_tests()    
+    run_restricted_master_heur_tests()
 
 end
 
@@ -50,7 +50,7 @@ end
 
 function run_restricted_master_heur_tests()
     extended_problem = create_cg_extended_problem()
-    CL.optimize(extended_problem)
+    CL.optimize!(extended_problem)
     @test extended_problem.primal_inc_bound == 2.0
     @test extended_problem.dual_inc_bound == 2.0
     alg = CL.AlgToPrimalHeurByRestrictedMip(extended_problem)

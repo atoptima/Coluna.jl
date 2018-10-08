@@ -11,8 +11,9 @@ mutable struct Model # user model
     problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer}
 end
 
-function ModelConstructor(with_extended_prob = true)
-    params = Params()
+function ModelConstructor(params = Params();
+                          with_extended_prob = true)
+
     callback = Callback()
     prob_counter = ProblemCounter(-1) # like cplex convention of prob_ref
     vc_counter = VarConstrCounter(0)
@@ -193,16 +194,16 @@ function generate_and_write_bap_tree(nodes::Vector{Node})
 end
 
 # Add Manager to take care of parallelism.
-# Maybe inside optimize(extended_problem::ExtendedProblem) (?)
+# Maybe inside optimize!(extended_problem::ExtendedProblem) (?)
 
 function solve(model::Model)
-    status = optimize(model.extended_problem)
+    status = optimize!(model.extended_problem)
     println(model.extended_problem.timer_output)
 end
 
-# Behaves like optimize(problem::Problem), but sets parameters before
-# function optimize(problem::ExtendedProblem)
-function optimize(extended_problem::ExtendedProblem)
+# Behaves like optimize!(problem::Problem), but sets parameters before
+# function optimize!(problem::ExtendedProblem)
+function optimize!(extended_problem::ExtendedProblem)
     search_tree = DS.Queue{Node}()
     params = extended_problem.params
     global_nodes_treat_order = 1

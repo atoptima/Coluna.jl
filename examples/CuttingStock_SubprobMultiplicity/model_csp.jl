@@ -1,5 +1,8 @@
-function model_scsp(d::DataCsp, solvertype)
-  csp = Model(with_optimizer(solvertype), bridge_constraints=false)
+function model_scsp(d::DataCsp)
+  params = Coluna.Params(use_restricted_master_heur = true)
+
+  csp = Model(with_optimizer(Coluna.ColunaModelOptimizer, params),
+              bridge_constraints = false)
 
   xub = [ min(d.orders[o].demand, floor(d.stocksheetswidth/d.orders[o].width))
           for o in 1:d.nborders ]

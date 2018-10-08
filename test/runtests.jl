@@ -34,4 +34,3 @@ branch_and_bound_bigger_instances()
     include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
     include("../examples/CuttingStock_SubprobMultiplicity/run_csp.jl")
 end
-

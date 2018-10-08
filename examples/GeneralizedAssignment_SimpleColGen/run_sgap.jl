@@ -7,9 +7,8 @@ include("model_sgap.jl")
 appfolder = dirname(@__FILE__)
 data = read_dataGap("$appfolder/data/play.txt")
 # data = read_dataGap("$appfolder/data/gapC-5-100.txt")
-solvertype = Coluna.ColunaModelOptimizer
 
-(gap, x) = model_sgap(data, solvertype)
+(gap, x) = model_sgap(data)
 
 optimize!(gap)
 @test JuMP.objective_value(gap) == 13.0
