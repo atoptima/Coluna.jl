@@ -329,6 +329,7 @@ end
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
 function add_variable(problem::CompactProblem, var::Variable)
+    @logmsg LogLevel(-4) "adding Variable $var"
     add_var_in_manager(problem.var_manager, var)
     if problem.optimizer != nothing
         add_variable_in_optimizer(problem.optimizer, var, problem.is_relaxed)
@@ -381,6 +382,7 @@ end
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the constraint
 function add_constraint(problem::CompactProblem, constr::Constraint)
+    @logmsg LogLevel(-4) "adding Constraint $constr"
     add_constr_in_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing
         f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
@@ -390,6 +392,7 @@ function add_constraint(problem::CompactProblem, constr::Constraint)
 end
 
 function add_full_constraint(problem::CompactProblem, constr::Constraint)
+    @logmsg LogLevel(-4) "adding full Constraint $constr"
     add_constr_in_manager(problem.constr_manager, constr)
     add_full_constraint_in_optimizer(problem.optimizer, constr)
 end
@@ -439,7 +442,7 @@ end
 function add_membership(problem::CompactProblem, var::Variable,
                         constr::Constraint,coef::Float)
 
-    @logmsg LogLevel(-4) "add_membership : var = $var, constr = $constr"
+    @logmsg LogLevel(-4) "add_membership : Variable = $var, Constraint = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing
@@ -451,6 +454,7 @@ end
 function add_membership(problem::CompactProblem, var::SubprobVar,
                         constr::MasterConstr, coef::Float)
 
+    @logmsg LogLevel(-4) "add_membership : SubprobVar = $var, MasterConstraint = $constr"
     var.master_constr_coef_map[constr] = coef
     constr.subprob_var_coef_map[var] = coef
 end
@@ -458,6 +462,7 @@ end
 function add_membership(problem::CompactProblem, var::MasterVar,
                         constr::MasterConstr, coef::Float)
 
+    @logmsg LogLevel(-4) "add_membership : MasterVar = $var, MasterConstr = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing
