@@ -61,4 +61,4 @@ Now you can solve the problem and get the solution values as you do with
 JuMP when using any other Optimizer.
 
 Other examples are available [here]
-(https://github.com/ResourceMind/Coluna.jl/tree/master/examples)
+(https://github.com/atoptima/Coluna.jl/tree/master/examples)
