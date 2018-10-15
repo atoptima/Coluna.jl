@@ -14,5 +14,7 @@ makedocs(
 
 deploydocs(
     repo = "github.com/atoptima/Coluna.jl.git",
-    julia = "0.7"
+    julia = "0.7",
+    deps   = nothing,
+    make   = nothing,
 )
