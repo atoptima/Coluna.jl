@@ -89,9 +89,9 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "basic.html#BlockModel-instantiation-1",
+    "location": "basic.html#Model-instantiation-1",
     "page": "Basic Example",
-    "title": "BlockModel instantiation",
+    "title": "Model instantiation",
     "category": "section",
     "text": "A JuMP model using Coluna model can be instantiated as  using JuMP\n  import Coluna\n  gap = Model(with_optimizer(Coluna.Optimizer))"
 },
