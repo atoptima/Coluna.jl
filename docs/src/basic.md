@@ -2,7 +2,7 @@
 
 This quick start guide introduces features of Coluna.jl package.
 
-## BlockModel instantiation
+## Model instantiation
 
 A JuMP model using Coluna model can be instantiated as
 
