@@ -75,12 +75,12 @@ for o in 1:m
 end
 # setting variable annotations for the decomposition in the same way
 for o in 1:i
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o, p], 1)
+    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 1)
 end
 for o in (i+1):j
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o, p], 2)
+    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
 end
 for o in (i+j+1):k
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o, p], 2)
+    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
 end
 ```
