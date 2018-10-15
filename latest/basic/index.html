@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="atoptima">
+  <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>Basic Example - Coluna documentation</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../css/highlight.css">
+  <link href="../assets/Documenter.css" rel="stylesheet">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Basic Example";
+    var mkdocs_page_input_path = "basic.html";
+    var mkdocs_page_url = "/basic/";
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js"></script>
+  <script src="../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../js/highlight.pack.js"></script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> Coluna documentation</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../installation/">Installation</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../introduction/">Introduction</a>
+	    </li>
+          
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Basic Example</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l2"><a href="#setting-variable-annotations-for-the-decomposition">setting variable annotations for the decomposition</a></li>
+    
+
+    </ul>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">Coluna documentation</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Basic Example</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/atoptima/Coluna.jl/edit/master/docs/basic.html"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Basic Example · Coluna</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link href="assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>Coluna</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="search.html"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="index.html">Home</a></li><li><a class="toctext" href="installation.html">Installation</a></li><li><a class="toctext" href="introduction.html">Introduction</a></li><li class="current"><a class="toctext" href="basic.html">Basic Example</a><ul class="internal"><li><a class="toctext" href="#BlockModel-instantiation-1">BlockModel instantiation</a></li><li><a class="toctext" href="#Write-the-model-1">Write the model</a></li><li><a class="toctext" href="#Decomposition-1">Decomposition</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li><a href="basic.html">Basic Example</a></li></ul><a class="edit-page" href="https://github.com/atoptima/Coluna.jl/blob/master/docs/src/basic.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Basic Example</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="Basic-example-1" href="#Basic-example-1">Basic example</a></h1><p>This quick start guide introduces features of Coluna.jl package.</p><h2><a class="nav-anchor" id="BlockModel-instantiation-1" href="#BlockModel-instantiation-1">BlockModel instantiation</a></h2><p>A JuMP model using Coluna model can be instantiated as</p><pre><code class="language-julia">  using JuMP
+  import Coluna
+  gap = Model(with_optimizer(Coluna.Optimizer))</code></pre><h2><a class="nav-anchor" id="Write-the-model-1" href="#Write-the-model-1">Write the model</a></h2><p>The model is written as a JuMP model. If you are not familiar with JuMP syntax, you may want to check its <a href="https://jump.readthedocs.io/en/latest/quickstart.html#defining-variables">documentation</a>.</p><p>Consider a set of machines <code>Machines = 1:M</code> and a set of jobs <code>Jobs = 1:J</code>. A machine <code>m</code> has a resource capacity <code>Capacity[m]</code>. When we assign a job <code>j</code> to a machine <code>m</code>, the job has a cost <code>Cost[m,j]</code> and consumes <code>Weight[m,j]</code> resources of the machine <code>m</code>. The goal is to minimize the jobs cost sum by assigning each job to a machine while not exceeding the capacity of each machine. The model is:</p><pre><code class="language-julia">@variable(gap, x[m in data.machines, j in data.jobs], Bin)
+
+<p>@constraint(gap, cov[j in data.jobs],
+        sum(x[m,j] for m in data.machines) &gt;= 1)</p>
+<p>@constraint(gap, knp[m in data.machines],
+        sum(data.weight[j, m] * x[m, j] for j in data.jobs) &lt;= data.capacity[m])</p>
+<p>@objective(gap, Min,
+        sum(data.cost[j, m] * x[m, j] for m in data.machines, j in data.jobs))</code></pre><h2><a class="nav-anchor" id="Decomposition-1" href="#Decomposition-1">Decomposition</a></h2><p>The decomposition is described through the following annotations:</p><pre><code class="language-julia"># setting constraint annotations for the decomposition
+for j in data.jobs
+    set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), cov[j], 0)
+end
+for m in data.machines
+    set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), knp[m], m)
+end</p>
+<h1 id="setting-variable-annotations-for-the-decomposition">setting variable annotations for the decomposition</h1>
+<p>for m in data.machines, j in data.jobs
+    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[m, j], m)
+end</code></pre><p>Now you can solve the problem and get the solution values as you do with JuMP when using any other Optimizer.</p><p>Other examples are available <a href="https://github.com/atoptima/Coluna.jl/tree/master/examples">here</a></p><footer><hr/><a class="previous" href="introduction.html"><span class="direction">Previous</span><span class="title">Introduction</span></a></footer></article></body></html></p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="../introduction/" class="btn btn-neutral" title="Introduction"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/atoptima/Coluna.jl/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../introduction/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+    </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme.js"></script>
+      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script src="../assets/mathjaxhelper.js"></script>
+      <script src="../search/require.js"></script>
+      <script src="../search/search.js"></script>
+
+</body>
+</html>
