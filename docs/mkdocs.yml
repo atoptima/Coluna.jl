@@ -20,7 +20,7 @@ markdown_extensions:
 docs_dir: 'build'
 
 pages:
-  - Home: index.md
-  - Installation: installation.md
-  - Introduction: introduction.md
-  - Basic Example: basic.md
+  - Home: index.html
+  - Installation: installation.html
+  - Introduction: introduction.html
+  - Basic Example: basic.html
