@@ -1,7 +1,7 @@
 site_name: Coluna documentation
 repo_url: https://github.com/atoptima/Coluna.jl
 site_description: Branch-and-cut-and-price Optimizer for JuMP/MOI
-site_author: ReAlOpt
+site_author: atoptima
 
 theme: readthedocs
 
@@ -21,4 +21,6 @@ docs_dir: 'build'
 
 pages:
   - Home: index.md
-  - Installation: Installation.md
+  - Installation: installation.md
+  - Introduction: introduction.md
+  - Basic Example: basic.md
