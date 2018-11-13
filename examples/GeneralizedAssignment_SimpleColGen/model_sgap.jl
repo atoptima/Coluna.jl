@@ -1,4 +1,3 @@
-
 function model_sgap(data::DataGap)
     gap = Model(with_optimizer(Coluna.ColunaModelOptimizer),
                 bridge_constraints=false)
@@ -14,22 +13,19 @@ function model_sgap(data::DataGap)
     @objective(gap, Min,
             sum(data.cost[j,m]*x[m,j] for m in data.machines, j in data.jobs))
 
-    # setting constraint annotations for the decomposition
-    for j in data.jobs
-        set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), cov[j], 0)
+    # setting Dantzig Wolfe composition: one subproblem per machine
+    function gap_decomp_func(name, key)
+        if name in [:knp, :x]
+            return key[1]
+        else
+            return 0
+        end
     end
-    for m in data.machines
-        set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), knp[m], m)
-    end
-
-    # setting variable annotations for the decomposition
-    for m in data.machines, j in data.jobs
-        set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[m,j], m)
-    end
+    Coluna.set_dantzig_wolfe_decompostion(gap, gap_decomp_func)
 
     # setting pricing cardinality bounds
     card_bounds_dict = Dict(m => (0,1) for m in data.machines)
-    set(gap, Coluna.DantzigWolfePricingCardinalityBounds(), card_bounds_dict)
+    Coluna.set_dantzig_wolfe_cardinality_bounds(gap, card_bounds_dict)
 
     return (gap, x)
 end

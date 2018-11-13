@@ -167,6 +167,16 @@ function MOI.supports_constraint(model::ColunaModelOptimizer,
     return true
 end
 
+function MOI.supports(model::ColunaModelOptimizer,
+        ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}}) where T
+    return true
+end
+
+function MOI.supports(model::ColunaModelOptimizer,
+        ::MOI.ObjectiveFunction{MOI.SingleVariable}) where T
+    return true
+end
+
 function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
                          f::MOI.ScalarAffineFunction, s::MOI.LessThan, copy_names::Bool)
