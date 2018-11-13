@@ -19,23 +19,19 @@ function model_scsp(d::DataCsp)
 
   @objective(csp, Min, y)
 
-  # setting constraint annotations for the decomposition
-  for o in 1:d.nborders
-      set(csp, Coluna.ConstraintDantzigWolfeAnnotation(), cov[o], 0)
+  # setting Dantzig Wolfe composition: one subproblem per machine
+  function csp_decomp_func(name, key)
+      if name == :cov
+          return 0
+      else
+          return 1
+      end
   end
-
-  set(csp, Coluna.ConstraintDantzigWolfeAnnotation(), knp, 1)
-
-  # setting variable annotations for the decomposition
-  for o in 1:d.nborders
-      set(csp, Coluna.VariableDantzigWolfeAnnotation(), x[o], 1)
-  end
-
-  set(csp, Coluna.VariableDantzigWolfeAnnotation(), y, 1)
+  Coluna.set_dantzig_wolfe_decompostion(csp, csp_decomp_func)
 
   # setting pricing cardinality bounds
   card_bounds_dict = Dict(1 => (0,10))
-  set(csp, Coluna.DantzigWolfePricingCardinalityBounds(), card_bounds_dict)
+  Coluna.set_dantzig_wolfe_cardinality_bounds(csp, card_bounds_dict)
 
   return (csp, x,  y)
 end
