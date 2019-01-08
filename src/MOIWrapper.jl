@@ -404,7 +404,7 @@ end
 
 function MOI.set(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense,
                   sense::MOI.OptimizationSense)
-    if sense != MOI.MinSense
+    if sense != MOI.MIN_SENSE
         throw(MOI.CannotSetAttribute{MOI.ObjectiveSense}(MOI.ObjectiveSense, "Coluna only supports minimization sense for now."))
     end
 end
@@ -447,5 +447,5 @@ end
 
 function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense)
     # MaxSense is currently not supported
-    return MOI.MinSense
+    return MOI.MIN_SENSE
 end

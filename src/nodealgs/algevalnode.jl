@@ -173,7 +173,7 @@ function run(alg::AlgToEvalNodeByLp)
 
     status = optimize!(alg.extended_problem.master_problem)
 
-    if status != MOI.Success
+    if status != MOI.OPTIMAL
         println("Lp is infeasible, exiting treatment of node.")
         return true
     end
@@ -321,7 +321,7 @@ function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Proble
     status = optimize!(pricing_prob)
     end
     compute_pricing_dual_bound_contrib(alg, pricing_prob)
-    if status != MOI.Success
+    if status != MOI.OPTIMAL
         @logmsg LogLevel(-3) "pricing prob is infeasible"
         return flag_is_sp_infeasible
     end
@@ -422,8 +422,8 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
-    # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
     while true
+        # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
         # GLPK.write_lp(glpk_prob, string("mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         status_rm = solve_restricted_mast(alg)
@@ -433,7 +433,7 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
         #             computeOptimGap(alg), nbCgIterations,
         #             curMaxLevelOfSubProbRestriction)
         # end
-        if status_rm == MOI.InfeasibleNoResult || status_rm == MOI.InfeasibleOrUnbounded
+        if status_rm == MOI.INFEASIBLE || status_rm == MOI.INFEASIBLE_OR_UNBOUNDED
             @logmsg LogLevel(-2) "master restrcited lp solver returned infeasible"
             mark_infeasible(alg)
             return true

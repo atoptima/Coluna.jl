@@ -137,7 +137,7 @@ function build_colgen_root_model_with_moi()
     ### set objective function
     objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0,], [y,]), 0.0)
     MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 
     card_bounds_dict = Dict(1 => (0,1000))
     MOI.set(moi_model, CL.DantzigWolfePricingCardinalityBounds(), card_bounds_dict)
@@ -160,7 +160,7 @@ function build_model_2()
     objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([10.0, 1.0, 1.0],
                                                           [x1, x2, x3]), 0.0)
     MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 
     cf1 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0, 1.0],
                                                          [x1, x2, x3]), 0.0)
@@ -228,7 +228,7 @@ function build_model_1(n_items::Int, nb_bins::Int,
     end
     objF = MOI.ScalarAffineFunction(terms, 0.0)
     MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 
     return moi_model
 end
