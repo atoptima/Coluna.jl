@@ -57,6 +57,19 @@ for m in data.machines, j in data.jobs
 end
 ```
 
+The decomposition can also be described in a more compact functional way:
+
+```julia
+function gap_decomp_func(name, key)
+    if name in [:knp, :x]
+        return key[1]
+    else
+        return 0
+    end
+end
+Coluna.set_dantzig_wolfe_decompostion(gap, gap_decomp_func)
+```
+
 Now you can solve the problem and get the solution values as you do with
 JuMP when using any other Optimizer.
 

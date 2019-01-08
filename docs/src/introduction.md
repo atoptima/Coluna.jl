@@ -67,20 +67,33 @@ This decomposition is described through the following annotations:
 for o in 1:3, p in 1:q
     # constraint in subproblem i
     # (subproblem annotations need to be contiguous starting at 1)
-    set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), sc[o, p], i)
+    set(model, Coluna.ConstraintDantzigWolfeAnnotation(), sc[o, p], i)
 end
 for o in 1:m
     # constraint in master (annotated with 0)
-    set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), mc[o], 0)
+    set(model, Coluna.ConstraintDantzigWolfeAnnotation(), mc[o], 0)
 end
 # setting variable annotations for the decomposition in the same way
 for o in 1:i
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 1)
+    set(model, Coluna.VariableDantzigWolfeAnnotation(), x[o], 1)
 end
 for o in (i+1):j
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
+    set(model, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
 end
 for o in (i+j+1):k
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
+    set(model, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
 end
+```
+
+The decomposition can also be described in a more compact functional way:
+
+```julia
+function decomp_func(constr_name, constr_id)
+    if constr_name == :mc
+        return 0
+    else
+        return constr_id[1]
+    end
+end
+Coluna.set_dantzig_wolfe_decompostion(model, decomp_func)
 ```
