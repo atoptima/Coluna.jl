@@ -16,8 +16,8 @@ include("colgenroot.jl")
 include("moi_wrapper.jl")
 include("unit_tests/unit_tests.jl")
 
-# using Base.CoreLogging, Logging
-# global_logger(ConsoleLogger(stderr, LogLevel(-5)))
+using Base.CoreLogging, Logging
+global_logger(ConsoleLogger(stderr, LogLevel(-5)))
 
 unit_tests()
 testdefaultbuilders()

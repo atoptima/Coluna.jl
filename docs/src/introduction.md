@@ -88,11 +88,20 @@ end
 The decomposition can also be described in a more compact functional way:
 
 ```julia
-function decomp_func(constr_name, constr_id)
-    if constr_name == :mc
+function decomp_func(name, key)
+    #constraints
+    if name == :mc
         return 0
+    elseif name == :sc
+        return key[1]
+
+    #variables
+    elseif key[1] < i
+        return 1
+    elseif key[1] < j
+        return 2
     else
-        return constr_id[1]
+        return 3
     end
 end
 Coluna.set_dantzig_wolfe_decompostion(model, decomp_func)

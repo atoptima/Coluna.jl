@@ -7,13 +7,21 @@ mutable struct ColunaModelOptimizer <: MOI.AbstractOptimizer
     constr_probidx_map::Dict{Constraint,Int}
     var_probidx_map::Dict{Variable,Int}
     nb_subproblems::Int
-    function ColunaModelOptimizer(params = Params())
-        coluna_model = ModelConstructor(params, with_extended_prob = false)
-        _varmap = Dict{MOI.VariableIndex,Variable}()
-        _constr_probidx_map = Dict{Constraint,Int}()
-        _var_probidx_map = Dict{Variable,Int}()
-        new(coluna_model, _varmap, _constr_probidx_map, _var_probidx_map, 0)
-    end
+    master_factory::JuMP.OptimizerFactory
+    pricing_factory::JuMP.OptimizerFactory
+
+end
+
+function ColunaModelOptimizer(;master_factory =
+        JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
+        JuMP.with_optimizer(GLPK.Optimizer), params = Params())
+
+    coluna_model = ModelConstructor(params, with_extended_prob = false)
+    _varmap = Dict{MOI.VariableIndex,Variable}()
+    _constr_probidx_map = Dict{Constraint,Int}()
+    _var_probidx_map = Dict{Variable,Int}()
+    ColunaModelOptimizer(coluna_model, _varmap, _constr_probidx_map,
+        _var_probidx_map, 0, master_factory, pricing_factory)
 end
 
 function MOI.optimize!(coluna_optimizer::ColunaModelOptimizer)
@@ -394,10 +402,13 @@ function set_default_optimizers(dest::ColunaModelOptimizer)
     # set coluna optimizers
     model = dest.inner
     master_problem = model.extended_problem.master_problem
-    model.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
+    @show dest.master_factory
+    model.problemidx_optimizer_map[master_problem.prob_ref] =
+            dest.master_factory()
     for subprobidx in 1:dest.nb_subproblems
         pricingprob = model.extended_problem.pricing_vect[subprobidx]
-        model.problemidx_optimizer_map[pricingprob.prob_ref] = GLPK.Optimizer()
+        model.problemidx_optimizer_map[pricingprob.prob_ref] =
+                dest.pricing_factory()
     end
     set_model_optimizers(model)
 end

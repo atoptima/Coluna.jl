@@ -6,8 +6,7 @@ import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
-# import Cbc # we should not need to import this here
-import GLPK # for debugging only TODO: remove
+import GLPK
 import JuMP
 
 using Base.CoreLogging

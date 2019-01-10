@@ -394,7 +394,9 @@ function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb
     db = alg.sols_and_bounds.alg_inc_lp_dual_bound
     db_ip = alg.sols_and_bounds.alg_inc_ip_dual_bound
     pb = alg.sols_and_bounds.alg_inc_ip_primal_bound
-    println("<it=", nb_cg_iterations, "> <cols=", nb_new_col, "> <mlp=", mlp, "> <DB=", db, "> <PB=", pb, ">")
+    println("<it=", nb_cg_iterations, "> <cols=", nb_new_col, "> <mlp=",
+            round(mlp, digits=4), "> <DB=", round(db, digits=4), "> <PB=",
+            round(pb, digits=4), ">")
 end
 
 #########################################
@@ -417,8 +419,6 @@ function solve_restricted_mast(alg)
 end
 
 function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
-    @timeit to(alg) "solve_mast_lp_ph2" begin
-
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
@@ -486,16 +486,16 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # These lines are never executed becasue there is no break from the outtermost 'while true' above
     # @logmsg LogLevel(-2) "solve_mast_lp_ph2 has finished"
     # return false
-    end # @timeit to "solve_mast_lp_ph2"
 end
 
 function run(alg::AlgToEvalNodeBySimplexColGen)
+    @timeit to(alg) "run_eval_by_col_gen" begin
     @logmsg LogLevel(-2) "Starting eval by simplex colgen"
     status = solve_mast_lp_ph2(alg)
 
     if status == false
         alg.sol_is_master_lp_feasible = true
     end
-
     return false
+    end # "run_eval_by_col_gen"
 end
