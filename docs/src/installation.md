@@ -1,6 +1,6 @@
 # Installation Guide
 
-Coluna requires Julia, MOI and GLPK as the default underlying MOI Optimizer
+Coluna requires Julia, JuMP and GLPK as the default underlying MOI Optimizer
 for the master and the subproblems.
 
 ## Getting Coluna.jl

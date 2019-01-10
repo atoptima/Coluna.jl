@@ -122,7 +122,7 @@ function initialize_problem_optimizer_tests()
     @test problem.optimizer == nothing
     CL.initialize_problem_optimizer(problem, optimizer)
     @test isa(problem.optimizer,  MOIU.CachingOptimizer)
-    @test MOI.get(problem.optimizer, MOI.ObjectiveSense()) == MOI.MinSense
+    @test MOI.get(problem.optimizer, MOI.ObjectiveSense()) == MOI.MIN_SENSE
 end
 
 function set_optimizer_obj_tests()
@@ -403,7 +403,7 @@ end
 function optimize!_tests()
     problem, vars, constr = create_problem_knapsack()
     status = CL.optimize!(problem)
-    @test status == MOI.Success
+    @test status == MOI.OPTIMAL
     problem, vars, constr = create_problem_knapsack(false)
     status = CL.optimize!(problem)
     @test MOI.get(problem.optimizer, MOI.ResultCount()) == 0
@@ -425,7 +425,7 @@ function optimize_tests()
         @test err == ErrorException("The problem has no optimizer attached")
     end
     (status, primal_sol, dual_sol) = CL.optimize(problem, optimizer)
-    @test status == MOI.Success
+    @test status == MOI.OPTIMAL
     @test MOI.get(optimizer, MOI.ResultCount()) == 1
     @test length(primal_sol.var_val_map) == 2
     @test dual_sol == nothing

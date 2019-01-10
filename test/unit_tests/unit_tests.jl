@@ -1,4 +1,3 @@
-include("../utils.jl")
 include("utils.jl")
 include("varconstr.jl")
 include("variables.jl")
@@ -55,4 +54,3 @@ function unit_tests()
         model_unit_tests()
     end
 end
-

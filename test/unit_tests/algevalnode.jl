@@ -1,5 +1,4 @@
 function alg_eval_node_unit_tests()
-
     update_primal_lp_bound_tests()
     update_primal_ip_incumbents_tests()
     update_primal_lp_incumbents_tests()
@@ -14,7 +13,7 @@ function alg_eval_node_unit_tests()
     update_alg_dual_lp_bound_tests()
     update_alg_dual_lp_incumbents_tests()
     mark_infeasible_tests()
-    setup_alg_eval_tests()    
+    setup_alg_eval_tests()
     setdown_alg_eval_tests()
     alg_eval_node_by_lp_tests()
     run_alg_eval_node_by_lp_tests()
@@ -33,7 +32,6 @@ function alg_eval_node_unit_tests()
     solve_restricted_mast_tests()
     solve_mast_lp_ph2_tests()
     run_alg_eval_node_by_simplex_col_gen_tests()
-
 end
 
 function update_primal_lp_bound_tests()
@@ -392,7 +390,7 @@ function update_pricing_prob_tests()
         @test idx_in_vars != nothing
         var_name = vars[idx_in_vars].name
         @test expected_obj_with_strings[var_name] ≈ term.coefficient atol = rtol = 0.000001
-    end    
+    end
 end
 
 function compute_pricing_dual_bound_contrib_tests()
@@ -524,7 +522,7 @@ end
 function solve_restricted_mast_tests()
     extended_problem = create_cg_extended_problem()
     alg = CL.AlgToEvalNodeByLagrangianDuality(extended_problem)
-    @test CL.solve_restricted_mast(alg) == MOI.Success
+    @test CL.solve_restricted_mast(alg) == MOI.OPTIMAL
 end
 
 function solve_mast_lp_ph2_tests()
@@ -552,7 +550,7 @@ function solve_mast_lp_ph2_tests()
     @test sols_and_bounds.alg_inc_lp_dual_bound == Inf
     @test alg.sol_is_master_lp_feasible == false
     @test alg.is_master_converged == false
-    
+
     # Test when pricing is infeasible
     extended_problem = create_cg_extended_problem()
     pricing = extended_problem.pricing_vect[1]

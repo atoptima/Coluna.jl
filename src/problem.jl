@@ -211,7 +211,7 @@ function initialize_problem_optimizer(problem::CompactProblem,
                                            optimizer)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
     MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
-    MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
     problem.optimizer = optimizer
 end
 
@@ -277,7 +277,7 @@ function retreive_dual_sol(problem::CompactProblem;
     # TODO check if supported by solver
     # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
     try
-        if MOI.get(optimizer, MOI.DualStatus()) != MOI.FeasiblePoint
+        if MOI.get(optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
             return nothing
         end
         constr_list = problem.constr_manager.active_static_list
