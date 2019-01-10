@@ -1,7 +1,7 @@
 Coluna release notes
 ====================================
 
-v0.0.1 (January 10, 2019)
+v0.1.0 (January 10, 2019)
 -------------------------
 
 - Text book column generation implementation.
