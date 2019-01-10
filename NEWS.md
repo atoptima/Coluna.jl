@@ -15,4 +15,4 @@ v0.0.1 (January 10, 2019)
   branching.
 - Pricing subproblems with cardinality other than 1.
 - Automated global artificial variables.
-- Automated convexity constraint.
+- Automated convexity constraints.
