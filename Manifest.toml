@@ -101,9 +101,9 @@ deps = ["LinearAlgebra", "Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[JuMP]]
-deps = ["Calculus", "DataStructures", "ForwardDiff", "LinearAlgebra", "MathOptInterface", "NaNMath", "Printf", "Random", "SparseArrays", "Statistics", "Test"]
-git-tree-sha1 = "0b481c9a7c3465d0a8356f331f32eb81bbf1de5e"
-repo-rev = "7d5e0e64aa7b7e5dc0f07c775064f388f6cc63bc"
+deps = ["Calculus", "DataStructures", "ForwardDiff", "LinearAlgebra", "MathOptInterface", "NaNMath", "Random", "SparseArrays", "Statistics", "Test"]
+git-tree-sha1 = "67a054b8aa451198dcaeff279614125833d4a3e4"
+repo-rev = "7c115a2dcc8d92bdb6422dc4ed0919b7842e30fb"
 repo-url = "https://github.com/JuliaOpt/JuMP.jl.git"
 uuid = "4076af6c-e467-56ae-b986-b466b2749572"
 version = "0.18.5+"

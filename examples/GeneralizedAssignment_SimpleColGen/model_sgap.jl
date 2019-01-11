@@ -1,8 +1,7 @@
-using Clp
-
 function model_sgap(data::DataGap)
     gap = Model(with_optimizer(Coluna.ColunaModelOptimizer,
-                master_factory = with_optimizer(GLPK.Optimizer)),
+                               master_factory = with_optimizer(GLPK.Optimizer),
+                               pricing_factory = with_optimizer(GLPK.Optimizer)),
                 bridge_constraints=false)
 
     @variable(gap, x[m in data.machines, j in data.jobs], Bin)
