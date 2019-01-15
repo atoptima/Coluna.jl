@@ -29,7 +29,9 @@ global const DS = DataStructures
         (MOI.SingleVariable,),
         (MOI.ScalarAffineFunction,),
         (),
-        ()) 
+        ())
+
+include("/home/artur/.julia/dev/SimpleDebugger/src/SimpleDebugger.jl")
 
 include("parameters.jl")
 include("utils.jl")

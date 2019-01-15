@@ -208,6 +208,8 @@ function optimize(extended_problem::ExtendedProblem)
     treat_algs = TreatAlgs()
     treated_nodes = Node[]
 
+    #global ep_ = extended_problem
+
     while (!isempty(search_tree) && nb_treated_nodes < params.max_num_nodes)
 
 
