@@ -1,7 +1,5 @@
-using JuMP
+using JuMP, Coluna, Test
 using MathOptInterface: set
-using Coluna
-using Test
 #using Base.CoreLogging, Logging
 #global_logger(ConsoleLogger(stderr, LogLevel(-4)))
 
@@ -10,10 +8,10 @@ include("model_sgap.jl")
 
 appfolder = dirname(@__FILE__)
 data = read_dataGap("$appfolder/data/play2.txt")
-#data = read_dataGap("$appfolder/data/gapC-5-100.txt")
+# data = read_dataGap("$appfolder/data/gapC-5-100.txt")
 solvertype = Coluna.ColunaModelOptimizer
 
-(gap, x) = model_sgap(data, solvertype)
+(gap, x) = model_sgap(data)
 
 optimize!(gap)
 @test JuMP.objective_value(gap) == 13.0

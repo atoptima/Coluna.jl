@@ -7,8 +7,8 @@
         (MOI.SingleVariable,),
         (MOI.ScalarAffineFunction,),
         (),
-        ()) 
-        
+        ())
+
 function build_coluna_model(n_items::Int, nb_bins::Int,
                             profits::Vector{Float64}, weights::Vector{Float64},
                             binscap::Vector{Float64})

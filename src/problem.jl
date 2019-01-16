@@ -22,20 +22,20 @@ LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormStatus}(),
 LpBasisRecord() = LpBasisRecord("basis")
 
 function clear(basis::LpBasisRecord; remove_marks_in_vars=true,
-               remove_marks_in_constrs=true)::Void
+               remove_marks_in_constrs=true)::Nothing
 
     if remove_marks_in_vars
         for var in basis.vars_in_basis
-            var.is_info_updated = false
+            var.variable.is_info_updated = false
         end
         empty!(basis.vars_in_basis)
     end
 
     if remove_marks_in_constrs
-        for constr in constr_in_basis
-            constr.is_info_updated = false
+        for constr in basis.constr_in_basis
+            constr.constraint.is_info_updated = false
         end
-        empty!(basis.constrsinbasis)
+        empty!(basis.constr_in_basis)
     end
     return
 end
@@ -46,7 +46,7 @@ mutable struct VariableSolInfo{V<:Variable}
     value::Float
 end
 
-function apply_var_info(var_sol_info::VariableSolInfo)::Void
+function apply_var_info(var_sol_info::VariableSolInfo)::Nothing
     variable = var_sol_info.variable
     value = var_sol_info.value
     problem = variable.problem
@@ -211,7 +211,7 @@ function initialize_problem_optimizer(problem::CompactProblem,
                                            optimizer)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
     MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
-    MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
     problem.optimizer = optimizer
 end
 
@@ -229,44 +229,56 @@ function set_optimizer_obj(problem::CompactProblem,
 end
 
 function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
-                         var_list::Vector{Variable})
+                         var_list::Vector{Variable}, optimizer, update_problem)
 
     for var_idx in 1:length(var_list)
         var = var_list[var_idx]
-        var.val = MOI.get(problem.optimizer, MOI.VariablePrimal(),
+        var.val = MOI.get(optimizer, MOI.VariablePrimal(),
                           var.moi_index)
         @logmsg LogLevel(-4) string("Var ", var.name, " = ", var.val)
         if var.val > 0.0
-            push!(problem.in_primal_lp_sol, var)
+            if update_problem
+                push!(problem.in_primal_lp_sol, var)
+            end
             sol[var] = var.val
         end
     end
 end
 
-function retrieve_primal_sol(problem::CompactProblem)
+function retrieve_primal_sol(problem::CompactProblem;
+        optimizer = problem.optimizer, update_problem = true)
     ## Store it in problem.primal_sols
-    if problem.optimizer == nothing
+    if optimizer == nothing
         error("The problem has no optimizer attached")
     end
-    problem.obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
+    if update_problem
+        problem.obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
+    end
     @logmsg LogLevel(-4) string("Objective value: ", problem.obj_val)
     new_sol = Dict{Variable, Float}()
-    new_obj_val = MOI.get(problem.optimizer, MOI.ObjectiveValue())
-    fill_primal_sol(problem, new_sol, problem.var_manager.active_static_list)
-    fill_primal_sol(problem, new_sol, problem.var_manager.active_dynamic_list)
-    push!(problem.primal_sols, PrimalSolution(new_obj_val, new_sol))
+    new_obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
+    fill_primal_sol(problem, new_sol, problem.var_manager.active_static_list,
+                    optimizer, update_problem)
+    fill_primal_sol(problem, new_sol, problem.var_manager.active_dynamic_list,
+                    optimizer, update_problem)
+    primal_sol = PrimalSolution(new_obj_val, new_sol)
+    if update_problem
+        push!(problem.primal_sols, primal_sol)
+    end
+    return primal_sol
 end
 
-function retrieve_dual_sol(problem::CompactProblem)
-    optimizer = problem.optimizer
+function retrieve_dual_sol(problem::CompactProblem;
+        optimizer = problem.optimizer, update_problem = true)
+
     if optimizer == nothing
         error("The problem has no optimizer attached")
     end
     # TODO check if supported by solver
     # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
     try
-        if MOI.get(optimizer, MOI.DualStatus()) != MOI.FeasiblePoint
-            return
+        if MOI.get(optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
+            return nothing
         end
         constr_list = problem.constr_manager.active_static_list
         constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
@@ -280,13 +292,20 @@ function retrieve_dual_sol(problem::CompactProblem)
             @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
                     MOI.get(optimizer, MOI.ConstraintPrimal(), constr.moi_index))
             if constr.val != 0 # TODO use a tolerance
-                push!(problem.in_dual_lp_sol, constr)
+                if update_problem
+                    push!(problem.in_dual_lp_sol, constr)
+                end
                 new_sol[constr] = constr.val
             end
         end
-        push!(problem.dual_sols, DualSolution(-Inf, new_sol)) #TODO get objbound
+        dual_sol = DualSolution(-Inf, new_sol)
+        if update_problem
+            push!(problem.dual_sols, dual_sol) #TODO get objbound
+        end
+        return dual_sol
     catch
         @warn "Optimizer $(typeof(optimizer)) doesn't have a dual status"
+        return nothing
     end
 end
 
@@ -299,7 +318,7 @@ function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
     for var_val in sol
         if (!is_value_integer(var_val.second, tolerance)
                 && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))
-            println("Sol is fractional.")
+            @logmsg LogLevel(-2) "Sol is fractional."
             return false
         end
     end
@@ -309,42 +328,49 @@ end
 
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
-function add_variable(problem::Problem, var::Variable)
+function add_variable(problem::CompactProblem, var::Variable)
+    @logmsg LogLevel(-4) "adding Variable $var"
     add_var_in_manager(problem.var_manager, var)
     if problem.optimizer != nothing
-        var.moi_index = MOI.add_variable(problem.optimizer)
-        # TODO set variable type
-        add_bounds = true
-        if !problem.is_relaxed
-            if var.vc_type == 'B'
-                if var.lower_bound > 0.0
-                    var.lower_bound == 1.0
-                elseif var.upper_bound < 1.0
-                    var.upper_bound == 0.0
-                else
-                    MOI.add_constraint(problem.optimizer,
-                            MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
-                    add_bounds = false
-                end
-            elseif var.vc_type == 'I'
-                MOI.add_constraint(problem.optimizer,
-                        MOI.SingleVariable(var.moi_index), MOI.Integer())
-            end
-        end
-
-        MOI.modify(problem.optimizer,
-                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-                MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
-
-        if add_bounds
-            MOI.add_constraint(problem.optimizer,
-                    MOI.SingleVariable(var.moi_index),
-                    MOI.Interval(var.lower_bound, var.upper_bound))
-        end
+        add_variable_in_optimizer(problem.optimizer, var, problem.is_relaxed)
     end
 end
 
-function add_variable(problem::Problem, col::MasterColumn)
+function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                   var::Variable, is_relaxed::Bool)
+
+    var.moi_index = MOI.add_variable(optimizer)
+    # TODO set variable type
+    add_bounds = true
+    if !is_relaxed
+        if var.vc_type == 'B'
+            if var.lower_bound > 0.0
+                var.lower_bound = 1.0
+            elseif var.upper_bound < 1.0
+                var.upper_bound = 0.0
+            else
+                MOI.add_constraint(optimizer,
+                        MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
+                add_bounds = false
+            end
+        elseif var.vc_type == 'I'
+            MOI.add_constraint(optimizer,
+                    MOI.SingleVariable(var.moi_index), MOI.Integer())
+        end
+    end
+
+    MOI.modify(optimizer,
+            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+            MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
+
+    if add_bounds
+        MOI.add_constraint(optimizer,
+                MOI.SingleVariable(var.moi_index),
+                MOI.Interval(var.lower_bound, var.upper_bound))
+    end
+end
+
+function add_variable(problem::CompactProblem, col::MasterColumn)
     @callsuper add_variable(problem, col::Variable)
     #global p_ = problem
     #global c_ = col
@@ -378,7 +404,8 @@ end
 
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the constraint
-function add_constraint(problem::Problem, constr::Constraint)
+function add_constraint(problem::CompactProblem, constr::Constraint)
+    @logmsg LogLevel(-4) "adding Constraint $constr"
     add_constr_in_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing
         f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
@@ -387,20 +414,45 @@ function add_constraint(problem::Problem, constr::Constraint)
     end
 end
 
-function add_full_constraint(problem::Problem, constr::BranchConstr)
+function add_full_constraint(problem::CompactProblem, constr::Constraint)
+    @logmsg LogLevel(-4) "adding full Constraint $constr"
     add_constr_in_manager(problem.constr_manager, constr)
+    add_full_constraint_in_optimizer(problem.optimizer, constr)
+end
+
+function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractOptimizer},
+                                          constr::Constraint)
+
     terms = MOI.ScalarAffineTerm{Float}[]
     for var_val in constr.member_coef_map
-        push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index))
+        push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second,
+                                                 var_val.first.moi_index))
     end
-    if problem.optimizer != nothing
+    if optimizer != nothing
         f = MOI.ScalarAffineFunction(terms, 0.0)
-        constr.moi_index = MOI.add_constraint(problem.optimizer, f,
+        constr.moi_index = MOI.add_constraint(optimizer, f,
                 constr.set_type(constr.cost_rhs))
     end
 end
 
-function delete_constraint(problem::Problem, constr::BranchConstr)
+function load_problem_in_optimizer(problem::CompactProblem,
+        optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
+
+    for var in problem.var_manager.active_static_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for var in problem.var_manager.active_dynamic_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for constr in problem.constr_manager.active_static_list
+        add_full_constraint_in_optimizer(optimizer, constr)
+    end
+    for constr in problem.constr_manager.active_dynamic_list
+        add_full_constraint_in_optimizer(optimizer, constr)
+    end
+end
+
+function delete_constraint(problem::CompactProblem, constr::BranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
     remove_from_constr_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing
@@ -410,9 +462,10 @@ function delete_constraint(problem::Problem, constr::BranchConstr)
     end
 end
 
-function add_membership(problem::Problem, var::Variable, constr::Constraint,
-        coef::Float)
-    @logmsg LogLevel(-4) "add_membership : var = $var, constr = $constr"
+function add_membership(problem::CompactProblem, var::Variable,
+                        constr::Constraint,coef::Float)
+
+    @logmsg LogLevel(-4) "add_membership : Variable = $var, Constraint = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing
@@ -421,14 +474,18 @@ function add_membership(problem::Problem, var::Variable, constr::Constraint,
     end
 end
 
-function add_membership(problem::Problem, var::SubprobVar, constr::MasterConstr,
-        coef::Float)
+function add_membership(problem::CompactProblem, var::SubprobVar,
+                        constr::MasterConstr, coef::Float)
+
+    @logmsg LogLevel(-4) "add_membership : SubprobVar = $var, MasterConstraint = $constr"
     var.master_constr_coef_map[constr] = coef
     constr.subprob_var_coef_map[var] = coef
 end
 
-function add_membership(problem::Problem, var::MasterVar, constr::MasterConstr,
-        coef::Float)
+function add_membership(problem::CompactProblem, var::MasterVar,
+                        constr::MasterConstr, coef::Float)
+
+    @logmsg LogLevel(-4) "add_membership : MasterVar = $var, MasterConstr = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
     if problem.optimizer != nothing
@@ -437,7 +494,8 @@ function add_membership(problem::Problem, var::MasterVar, constr::MasterConstr,
     end
 end
 
-function optimize(problem::Problem)
+# Updates the problem with the primal/dual sols
+function optimize!(problem::CompactProblem)
     if problem.optimizer == nothing
         error("The problem has no optimizer attached")
     end
@@ -453,6 +511,24 @@ function optimize(problem::Problem)
     end
 
     return status
+end
+
+# does not modify problem but returns the primal/dual sols instead
+function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
+    MOI.optimize!(optimizer)
+    status = MOI.get(optimizer, MOI.TerminationStatus())
+    @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
+
+    if MOI.get(optimizer, MOI.ResultCount()) >= 1
+        primal_sol = retrieve_primal_sol(problem,
+                optimizer = optimizer, update_problem = false)
+        dual_sol = retrieve_dual_sol(problem,
+                optimizer = optimizer, update_problem = false)
+    else
+        println("Solver has no result to show.")
+    end
+
+    return (status, primal_sol, dual_sol)
 end
 
 ###########################
@@ -486,9 +562,9 @@ function ExtendedProblem(prob_counter::ProblemCounter,
 
     #TODO change type of art_vars 's' -> 'a', needed for pure phase 1
     artificial_global_pos_var = MasterVar(vc_counter, "art_glob_pos",
-            1000000.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
+            1000000.0, 'P', 'C', 's', 'U', 1.0, 0.0, Inf)
     artificial_global_neg_var = MasterVar(vc_counter, "art_glob_neg",
-            -1000000.0, 'N', 'C', 's', 'U', 1.0, -1.0, 0.0)
+            -1000000.0, 'N', 'C', 's', 'U', 1.0, -Inf, 0.0)
 
     return ExtendedProblem(master_problem, artificial_global_pos_var,
             artificial_global_neg_var, Problem[],
@@ -504,6 +580,9 @@ end
 function initialize_problem_optimizer(extended_problem::ExtendedProblem,
          problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
 
+    if !haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
+        error("Optimizer was not set to master problem.")
+    end
     initialize_problem_optimizer(extended_problem.master_problem,
             problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
 

@@ -1,19 +1,19 @@
 @hl mutable struct SubprobVar <: Variable
     # ```
-    # To represent global upper bound on sp variable primal value
-    # ```
-    global_ub::Float
-
-    # ```
     # To represent global lower bound on sp variable primal value
     # ```
     global_lb::Float
 
     # ```
+    # To represent global upper bound on sp variable primal value
+    # ```
+    global_ub::Float
+
+    # ```
     # Current global bound values
     # ```
-    cur_global_ub::Float
     cur_global_lb::Float
+    cur_global_ub::Float
 
     # ```
     # Represents the master membership in the master constraints as a map where:
@@ -51,11 +51,11 @@ end
 MasterVarBuilder(v::Variable, counter::VarConstrCounter) = tuplejoin(
         VariableBuilder(v, counter), (0.0,))
 
-function MasterVarBuilder( counter::VarConstrCounter, name::String, costrhs::Float,
+function MasterVarBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
         sense::Char, vc_type::Char, flag::Char, directive::Char, priority::Float,
-        lowerBound::Float, upperBound::Float )
+        lowerBound::Float, upperBound::Float)
 
-    return tuplejoin(VariableBuilder( counter, name, costrhs, sense, vc_type,
+    return tuplejoin(VariableBuilder(counter, name, costrhs, sense, vc_type,
             flag, directive, priority, lowerBound, upperBound), 0.0)
 end
 

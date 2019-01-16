@@ -84,7 +84,6 @@ function test_moi_annotations()
         cov = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x1, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
         MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov, 0)
 
-
         @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov) == 0
         @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr) == 1
         @test MOI.get(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var) == 0
@@ -121,34 +120,27 @@ function build_colgen_root_model_with_moi()
         push!(bounds, ci)
     end
     ci = MOI.add_constraint(moi_model, MOI.SingleVariable(y), MOI.GreaterThan(1.0))
+    MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), ci, 1)
     push!(bounds, ci)
 
     ## Subproblem constrs
     knp_constr = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0, 4.0, 5.0, -8.0], vars), 0.0), MOI.LessThan(0.0))
     MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
 
-    ## Master variable
-    art_glob_var = MOI.add_variable(moi_model)
-    ci = MOI.add_constraint(moi_model,MOI.SingleVariable(art_glob_var),
-                            MOI.LessThan(1.0))
-    push!(bounds, ci)
-    ci = MOI.add_constraint(moi_model, MOI.SingleVariable(art_glob_var),
-                            MOI.GreaterThan(0.0))
-    push!(bounds, ci)
-
     cover_constr = MOI.ConstraintIndex[]
     for var in [x1, x2, x3]
-        ci = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [var, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
+        ci = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0,], [var,]), 0.0), MOI.GreaterThan(1.0))
         MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), ci, 0)
         push!(cover_constr, ci)
     end
-    convexity = MOI.add_constraint(moi_model, MOI.SingleVariable(y), MOI.LessThan(3.0))
-    MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), convexity, 0)
 
     ### set objective function
-    objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1000000.0], [y, art_glob_var]), 0.0)
+    objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0,], [y,]), 0.0)
     MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+
+    card_bounds_dict = Dict(1 => (0,1000))
+    MOI.set(moi_model, CL.DantzigWolfePricingCardinalityBounds(), card_bounds_dict)
 
     return moi_model
 end
@@ -168,7 +160,7 @@ function build_model_2()
     objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([10.0, 1.0, 1.0],
                                                           [x1, x2, x3]), 0.0)
     MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 
     cf1 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0, 1.0],
                                                          [x1, x2, x3]), 0.0)
@@ -236,7 +228,7 @@ function build_model_1(n_items::Int, nb_bins::Int,
     end
     objF = MOI.ScalarAffineFunction(terms, 0.0)
     MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
-    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MinSense)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 
     return moi_model
 end
