@@ -14,7 +14,7 @@ solvertype = Coluna.ColunaModelOptimizer
 (gap, x) = model_sgap(data)
 
 optimize!(gap)
-@test JuMP.objective_value(gap) == 13.0
+@test abs(JuMP.objective_value(gap) - 75.0) < 1e-7
 
 # NOT SUPPORTED YET
 # status = JuMP.primal_status(gap)
