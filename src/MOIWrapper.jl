@@ -440,15 +440,33 @@ function MOI.get(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveVa
     return coluna_optimizer.inner.extended_problem.primal_inc_bound
 end
 
+function get_coluna_var_val(coluna_optimizer::ColunaModelOptimizer, sp_var::SubprobVar)
+    solution = coluna_optimizer.inner.extended_problem.solution.var_val_map
+    sp_var_val = 0.0
+    for (var,val) in solution
+	if isa(var, MasterVar)
+	    continue
+	end
+	if haskey(var.solution.var_val_map, sp_var)
+	    sp_var_val += val*var.solution.var_val_map[sp_var]
+	end
+    end
+    return sp_var_val
+end
+
+function get_coluna_var_val(coluna_optimizer::ColunaModelOptimizer, var::MasterVar)
+    solution = coluna_optimizer.inner.extended_problem.solution
+    if haskey(solution.var_val_map, var)
+	return solution.var_val_map[var]
+    else
+	return 0.0
+    end
+end
+
 function MOI.get(coluna_optimizer::ColunaModelOptimizer,
                  object::MOI.VariablePrimal, ref::MOI.VariableIndex)
-    solution = coluna_optimizer.inner.extended_problem.solution.var_val_map
     var = coluna_optimizer.varmap[ref] # This gets a coluna variable
-    if haskey(solution, var)
-        return solution[var]
-    else
-        return 0.0
-    end
+    return get_coluna_var_val(coluna_optimizer, var)
 end
 
 function MOI.get(coluna_optimizer::ColunaModelOptimizer,

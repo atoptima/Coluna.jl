@@ -93,9 +93,14 @@ end
 
 function test_root_colgen_with_moi()
     @testset "MOI wrapper: root colgen" begin
-        caching_optimizer = build_colgen_root_model_with_moi()
+        caching_optimizer, vars = build_colgen_root_model_with_moi()
         MOI.optimize!(caching_optimizer)
-        @test MOI.get(caching_optimizer, MOI.ObjectiveValue()) == 2.0
+        @test MOI.get(caching_optimizer, MOI.ObjectiveValue()) == 4.0
+	@test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[1]) == 1.0
+	@test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[2]) == 1.0
+	@test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[3]) == 1.0
+	@test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[4]) == 2.0
+	@test MOI.get(caching_optimizer, MOI.VariablePrimal(), vars[5]) == 1.0
     end
 end
 
@@ -110,13 +115,15 @@ function build_colgen_root_model_with_moi()
     x2 = MOI.add_variable(moi_model)
     x3 = MOI.add_variable(moi_model)
     y = MOI.add_variable(moi_model)
-    vars = [x1, x2, x3, y]
+    z = MOI.add_variable(moi_model)
+    sp_vars = [x1, x2, x3, y]
+    vars = [x1, x2, x3, y, z]
 
     ## Bounds
     bounds = MOI.ConstraintIndex[]
     for var in vars
         ci = MOI.add_constraint(moi_model, MOI.SingleVariable(var), MOI.ZeroOne())
-        MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), var, 1)
+	MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), var, var in sp_vars ? 1 : 0)
         push!(bounds, ci)
     end
     ci = MOI.add_constraint(moi_model, MOI.SingleVariable(y), MOI.GreaterThan(1.0))
@@ -124,7 +131,7 @@ function build_colgen_root_model_with_moi()
     push!(bounds, ci)
 
     ## Subproblem constrs
-    knp_constr = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0, 4.0, 5.0, -8.0], vars), 0.0), MOI.LessThan(0.0))
+    knp_constr = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0, 4.0, 5.0, -8.0], sp_vars), 0.0), MOI.LessThan(0.0))
     MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
 
     cover_constr = MOI.ConstraintIndex[]
@@ -135,14 +142,14 @@ function build_colgen_root_model_with_moi()
     end
 
     ### set objective function
-    objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0,], [y,]), 0.0)
+    objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, -1.0, 1.0, 1.0, 1.0], [y, z, x1, x2, x3]), 0.0)
     MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
     MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 
     card_bounds_dict = Dict(1 => (0,1000))
     MOI.set(moi_model, CL.DantzigWolfePricingCardinalityBounds(), card_bounds_dict)
 
-    return moi_model
+    return moi_model, vars
 end
 
 function build_model_2()
