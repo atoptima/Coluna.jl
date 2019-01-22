@@ -81,9 +81,9 @@ version = "0.21.0"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "InteractiveUtils", "LinearAlgebra", "NaNMath", "Random", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test"]
-git-tree-sha1 = "b91250044374764e7c29af59a774c4b8d6100b6e"
+git-tree-sha1 = "e393bd3b9102659fb24fe88caedec41f2bc2e7de"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.1"
+version = "0.10.2"
 
 [[GLPK]]
 deps = ["BinaryProvider", "Compat", "Libdl", "LinQuadOptInterface"]

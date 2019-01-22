@@ -31,6 +31,8 @@ global const DS = DataStructures
         (),
         ())
 
+# include("/home/artur/.julia/dev/SimpleDebugger/src/SimpleDebugger.jl")
+
 include("parameters.jl")
 include("utils.jl")
 include("varconstr.jl")

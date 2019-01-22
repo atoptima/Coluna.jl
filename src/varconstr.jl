@@ -40,12 +40,12 @@ end
     # sense : 'N' = negative
     # sense : 'F' = free
     #
-    # Constraints: 
+    # Constraints:
     # sense : 'G' = greater or equal to
     # sense : 'L' = less or equal to
     # sense : 'E' = equal to
     # ```
-    
+
     sense::Char
 
     # ```
@@ -180,12 +180,12 @@ end
     cur_ub::Float
 end
 
-function VariableBuilder(counter::VarConstrCounter, name::String, 
-        costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char, 
+function VariableBuilder(counter::VarConstrCounter, name::String,
+        costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char,
         priority::Float, lowerBound::Float, upperBound::Float)
 
     return tuplejoin(VarConstrBuilder( counter, name, costrhs, sense, vc_type,
-            flag, directive, priority), MOI.VariableIndex(-1), lowerBound, 
+            flag, directive, priority), MOI.VariableIndex(-1), lowerBound,
             upperBound, -Inf, Inf)
 end
 

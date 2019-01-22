@@ -245,7 +245,7 @@ function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
     end
 end
 
-function retreive_primal_sol(problem::CompactProblem;
+function retrieve_primal_sol(problem::CompactProblem;
         optimizer = problem.optimizer, update_problem = true)
     ## Store it in problem.primal_sols
     if optimizer == nothing
@@ -268,7 +268,7 @@ function retreive_primal_sol(problem::CompactProblem;
     return primal_sol
 end
 
-function retreive_dual_sol(problem::CompactProblem;
+function retrieve_dual_sol(problem::CompactProblem;
         optimizer = problem.optimizer, update_problem = true)
 
     if optimizer == nothing
@@ -281,7 +281,7 @@ function retreive_dual_sol(problem::CompactProblem;
             return nothing
         end
         constr_list = problem.constr_manager.active_static_list
-        #TODO consider dynamic list too, like primal_sol.
+        constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
         new_sol = Dict{Constraint, Float}()
         for constr_idx in 1:length(constr_list)
             constr = constr_list[constr_idx]
@@ -309,9 +309,9 @@ function retreive_dual_sol(problem::CompactProblem;
     end
 end
 
-function retreive_solution(problem::CompactProblem)
-    retreive_primal_sol(problem)
-    retreive_dual_sol(problem)
+function retrieve_solution(problem::CompactProblem)
+    retrieve_primal_sol(problem)
+    retrieve_dual_sol(problem)
 end
 
 function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
@@ -372,10 +372,33 @@ end
 
 function add_variable(problem::CompactProblem, col::MasterColumn)
     @callsuper add_variable(problem, col::Variable)
+    #global p_ = problem
+    #global c_ = col
+    #SimpleDebugger.@bkp
     for (var, val) in col.solution.var_val_map
         for (constr, coef) in var.master_constr_coef_map
-            add_membership(problem, col, constr, val * coef)
+            # Currently it has to search each branching constraint in the list
+            # of active ones as the corresponding flags are not being kept
+            # up-to-date. TODO: fix this
+            constr_in_master = true
+            if constr isa BranchConstr
+                constr_in_master = false
+                for ctr in problem.constr_manager.active_dynamic_list
+                    if ctr == constr
+                        #global ctr_ = constr
+                        #global prb_ = problem
+                        #global col_ = col
+                        #SimpleDebugger.@bkp
+                        constr_in_master = true
+                        break
+                    end
+                end
+            end
+            if constr_in_master
+                add_membership(problem, col, constr, val * coef)
+            end
         end
+        var.master_col_coef_map[col] = val
     end
 end
 
@@ -482,9 +505,9 @@ function optimize!(problem::CompactProblem)
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
 
     if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
-        retreive_solution(problem)
+        retrieve_solution(problem)
     else
-        println("Solver has no result to show.")
+        @logmsg LogLevel(-4) string("Solver has no result to show.")
     end
 
     return status
@@ -497,12 +520,12 @@ function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
 
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
-        primal_sol = retreive_primal_sol(problem,
+        primal_sol = retrieve_primal_sol(problem,
                 optimizer = optimizer, update_problem = false)
-        dual_sol = retreive_dual_sol(problem,
+        dual_sol = retrieve_dual_sol(problem,
                 optimizer = optimizer, update_problem = false)
     else
-        println("Solver has no result to show.")
+        @logmsg LogLevel(-4) string("Solver has no result to show.")
     end
 
     return (status, primal_sol, dual_sol)
