@@ -260,7 +260,7 @@ end
 
 function run(alg::AlgToSetupBranchingOnly, node::Node)
 
-    println("AlgToSetupBranchingOnly")
+    @logmsg LogLevel(-4) "AlgToSetupBranchingOnly"
 
     # apply_subproblem_info()
     # fill_local_branching_constraints()
@@ -275,7 +275,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
 
     reset_partial_solution(alg)
     update_formulation(alg)
-    println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
+    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end
 
@@ -332,13 +332,13 @@ end
 
 function run(alg::AlgToSetupFull, node::Node)
 
-    println("AlgToSetupFull")
+    @logmsg LogLevel(-4) "AlgToSetupFull"
 
     prepare_branching_constraints(alg, node)
 
     reset_partial_solution(alg)
     update_formulation(alg)
-    println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
+    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 
 end
@@ -391,11 +391,11 @@ function run(alg::AlgToSetupRootNode, node::Node)
     # reset_root_convexity_master_constr(alg)
     # reset_master_columns(alg)
     # reset_non_stab_artificial_variables(alg)
-    println("AlgToSetupRootNode")
+    @logmsg LogLevel(-4) "AlgToSetupRootNode"
 
     update_formulation(alg)
 
     # return problem_infeasible
-    println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
+    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end

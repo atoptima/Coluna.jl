@@ -507,7 +507,7 @@ function optimize!(problem::CompactProblem)
     if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
         retrieve_solution(problem)
     else
-        println("Solver has no result to show.")
+        @logmsg LogLevel(-4) string("Solver has no result to show.")
     end
 
     return status
@@ -525,7 +525,7 @@ function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
         dual_sol = retrieve_dual_sol(problem,
                 optimizer = optimizer, update_problem = false)
     else
-        println("Solver has no result to show.")
+        @logmsg LogLevel(-4) string("Solver has no result to show.")
     end
 
     return (status, primal_sol, dual_sol)

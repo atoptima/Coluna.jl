@@ -232,7 +232,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     update_node_incumbents(node, treat_algs.alg_eval_node.sols_and_bounds)
 
     if is_conquered(node)
-        println("Node is conquered, no need for branching.")
+        @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
         setdown(treat_algs.alg_eval_node)
         run(treat_algs.alg_setdown_node)
         store_branching_evaluation_info()
