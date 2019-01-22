@@ -1,4 +1,4 @@
-using JuMP, Coluna, Test
+using JuMP, Coluna, GLPK, Test
 using MathOptInterface: set
 
 include("data_sgap.jl")
