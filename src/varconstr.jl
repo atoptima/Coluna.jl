@@ -205,6 +205,8 @@ VariableBuilder(var::Variable, counter::VarConstrCounter) = tuplejoin(
 @hl mutable struct Constraint <: VarConstr
     moi_index::MOI.ConstraintIndex{F,S} where {F,S}
     set_type::Type{<:MOI.AbstractSet}
+    cur_min_slack::Float #for preprocessing
+    cur_max_slack::Float #for preprocessing
 end
 
 function ConstraintBuilder(counter::VarConstrCounter, name::String,
@@ -221,7 +223,7 @@ function ConstraintBuilder(counter::VarConstrCounter, name::String,
 
     return tuplejoin(VarConstrBuilder(counter, name, cost_rhs, sense, vc_type,
             flag, 'U', 1.0),
-            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1), set_type)
+            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1), set_type, -Inf, Inf)
 end
 
 function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
