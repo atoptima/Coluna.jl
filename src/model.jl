@@ -50,7 +50,6 @@ end
 ### For root node
 function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         node::Node, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
-
     println("************************************************************")
     println("Preparing root node for treatment.")
 
@@ -173,13 +172,15 @@ function update_primal_inc_solution(problem::ExtendedProblem, sol::PrimalSolutio
     if sol.cost < problem.primal_inc_bound
         problem.solution = PrimalSolution(sol.cost, sol.var_val_map)
         problem.primal_inc_bound = sol.cost
-        println("New incumbent IP solution with cost: ", problem.solution.cost)
+        @logmsg LogLevel(-1) string("New incumbent IP solution with cost: ",
+                                    problem.solution.cost)
     end
 end
 
 function update_model_incumbents(problem::ExtendedProblem, node::Node,
         search_tree::DS.Queue{Node})
     if node.ip_primal_bound_is_updated
+
         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
     end
     if (node.dual_bound_is_updated &&
@@ -213,6 +214,8 @@ function optimize!(extended_problem::ExtendedProblem)
     is_primary_tree_node = true
     treat_algs = TreatAlgs()
     treated_nodes = Node[]
+
+    #global ep_ = extended_problem
 
     while (!isempty(search_tree) && nb_treated_nodes < params.max_num_nodes)
 

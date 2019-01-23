@@ -260,6 +260,8 @@ end
 
 function run(alg::AlgToSetupBranchingOnly, node::Node)
 
+    @logmsg LogLevel(-4) "AlgToSetupBranchingOnly"
+
     # apply_subproblem_info()
     # fill_local_branching_constraints()
     prepare_branching_constraints(alg, node)
@@ -273,6 +275,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
 
     reset_partial_solution(alg)
     update_formulation(alg)
+    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end
 
@@ -302,7 +305,7 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
             idx = find_first_in_problem_setup(in_setup_info, constr.vc_ref)
             if idx == 0
                 delete_constraint(alg.extended_problem.master_problem, constr)
-                @logmsg LogLevel(-4) string("cosntraint ", constr.vc_ref,
+                @logmsg LogLevel(-4) string("constraint ", constr.vc_ref,
                                             " deactivated")
             else
                 @logmsg LogLevel(-4) string("constraint ", constr.vc_ref,
@@ -329,10 +332,13 @@ end
 
 function run(alg::AlgToSetupFull, node::Node)
 
+    @logmsg LogLevel(-4) "AlgToSetupFull"
+
     prepare_branching_constraints(alg, node)
 
     reset_partial_solution(alg)
     update_formulation(alg)
+    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 
 end
@@ -385,9 +391,11 @@ function run(alg::AlgToSetupRootNode, node::Node)
     # reset_root_convexity_master_constr(alg)
     # reset_master_columns(alg)
     # reset_non_stab_artificial_variables(alg)
+    @logmsg LogLevel(-4) "AlgToSetupRootNode"
 
     update_formulation(alg)
 
     # return problem_infeasible
+    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end

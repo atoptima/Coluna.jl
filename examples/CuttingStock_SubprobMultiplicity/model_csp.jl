@@ -1,5 +1,6 @@
 function model_scsp(d::DataCsp)
   params = Coluna.Params(use_restricted_master_heur = true)
+  params.max_num_nodes = 1
 
   csp = Model(with_optimizer(Coluna.ColunaModelOptimizer, params = params),
               bridge_constraints = false)

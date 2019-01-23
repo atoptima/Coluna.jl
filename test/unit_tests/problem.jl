@@ -7,8 +7,8 @@ function problem_unit_tests()
     initialize_problem_optimizer_tests()
     set_optimizer_obj_tests()
     fill_primal_sol_tests()
-    retreive_primal_sol_tests()
-    retreive_dual_sol_tests()
+    retrieve_primal_sol_tests()
+    retrieve_dual_sol_tests()
     is_sol_integer_tests()
     add_variable_tests()
     add_variable_in_optimizer_tests()
@@ -148,33 +148,33 @@ function fill_primal_sol_tests()
     @test length(sol) == 2
 end
 
-function retreive_primal_sol_tests()
+function retrieve_primal_sol_tests()
     problem = create_problem_empty()
-    try CL.retreive_primal_sol(problem)
+    try CL.retrieve_primal_sol(problem)
         error("Test error: Problem has no optimizer, bu Coluna did not throw error.")
     catch err
         @test err == ErrorException("The problem has no optimizer attached")
     end
     problem, vars, constr = create_problem_knapsack()
     MOI.optimize!(problem.optimizer)
-    CL.retreive_primal_sol(problem)
+    CL.retrieve_primal_sol(problem)
     sol = problem.primal_sols[end].var_val_map
     @test sol[vars[4]] == 1.0
     @test sol[vars[2]] == 1.0
     @test length(sol) == 2
 end
 
-function retreive_dual_sol_tests()
+function retrieve_dual_sol_tests()
     ## Not working properly
     problem = create_problem_empty()
-    try CL.retreive_dual_sol(problem)
+    try CL.retrieve_dual_sol(problem)
         error("Test error: Problem has no optimizer, bu Coluna did not throw error.")
     catch err
         @test err == ErrorException("The problem has no optimizer attached")
     end
     problem, vars, constr = create_problem_knapsack()
     MOI.optimize!(problem.optimizer)
-    CL.retreive_dual_sol(problem)
+    CL.retrieve_dual_sol(problem)
     sol = problem.dual_sols[end].constr_val_map
     # @test sol[constr] == 7.0
 end

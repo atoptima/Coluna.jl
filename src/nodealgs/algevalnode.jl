@@ -233,16 +233,24 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
     master = extended_prob.master_problem
     duals_dict = master.dual_sols[end].constr_val_map
     for (constr, dual) in duals_dict
-        @assert constr isa MasterConstr
+        @assert (constr isa MasterConstr) || (constr isa BranchConstr)
         if constr isa ConvexityConstr &&
                 (extended_prob.pricing_convexity_lbs[pricing_prob] == constr ||
                  extended_prob.pricing_convexity_ubs[pricing_prob] == constr)
             alg.pricing_const_obj[pricing_prob] -= dual
             continue
         end
-        for (var, coef) in constr.subprob_var_coef_map
-            if haskey(new_obj, var)
-                new_obj[var] -= dual * coef
+        if constr isa BranchConstr
+            if constr isa SubprobBranchConstr
+                if haskey(new_obj, constr.branch_var)
+                    new_obj[constr.branch_var] -= dual
+                end
+            end
+        else
+            for (var, coef) in constr.subprob_var_coef_map
+                if haskey(new_obj, var)
+                    new_obj[var] -= dual * coef
+                end
             end
         end
     end
@@ -415,6 +423,10 @@ function solve_restricted_mast(alg)
     @timeit to(alg) "solve_restricted_mast" begin
     status = optimize!(alg.extended_problem.master_problem)
     end # @timeit to(alg) "solve_restricted_mast"
+
+    #global mp_ = alg.extended_problem.master_problem
+    #SimpleDebugger.@bkp
+
     return status
 end
 
@@ -489,6 +501,9 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
 end
 
 function run(alg::AlgToEvalNodeBySimplexColGen)
+    #global al_ = alg
+    #SimpleDebugger.@bkp
+
     @timeit to(alg) "run_eval_by_col_gen" begin
     @logmsg LogLevel(-2) "Starting eval by simplex colgen"
     status = solve_mast_lp_ph2(alg)

@@ -4,7 +4,7 @@ function alg_generate_children_nodes_unit_tests()
     usual_branching_alg_tests()
     alg_generate_children_setdown_tests()
     sort_vars_according_to_rule_tests()
-    retreive_candidate_vars_tests()
+    retrieve_candidate_vars_tests()
     generate_branch_constraint_tests()
     generate_child_tests()
     perform_usual_branching_tests()
@@ -47,15 +47,15 @@ function sort_vars_according_to_rule_tests()
     @test pairs[3].first == vars[1]
 end
 
-function retreive_candidate_vars_tests()
+function retrieve_candidate_vars_tests()
     extended_problem = create_extended_problem()
     alg = CL.UsualBranchingAlg(extended_problem)
     vars = create_array_of_vars(3, CL.MasterVar)
     var_val_map = Dict{CL.Variable,Float64}(vars[1] => 1.0, vars[2] => 2.01, vars[3] => 3.00001)
-    candidate_vars = CL.retreive_candidate_vars(alg, var_val_map)
-    @test findfirst(x->x.first==vars[1], candidate_vars) == nothing
-    @test findfirst(x->x.first==vars[2], candidate_vars) != nothing
-    @test findfirst(x->x.first==vars[3], candidate_vars) != nothing
+    master_vars, subprob_vars = CL.retrieve_candidate_vars(alg, var_val_map)
+    @test findfirst(x->x.first==vars[1], master_vars) == nothing
+    @test findfirst(x->x.first==vars[2], master_vars) != nothing
+    @test findfirst(x->x.first==vars[3], master_vars) != nothing
 end
 
 function generate_branch_constraint_tests()
