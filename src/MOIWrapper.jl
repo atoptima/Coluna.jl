@@ -444,12 +444,12 @@ function get_coluna_var_val(coluna_optimizer::ColunaModelOptimizer, sp_var::Subp
     solution = coluna_optimizer.inner.extended_problem.solution.var_val_map
     sp_var_val = 0.0
     for (var,val) in solution
-	if isa(var, MasterVar)
-	    continue
-	end
-	if haskey(var.solution.var_val_map, sp_var)
-	    sp_var_val += val*var.solution.var_val_map[sp_var]
-	end
+        if isa(var, MasterVar)
+            continue
+        end
+        if haskey(var.solution.var_val_map, sp_var)
+            sp_var_val += val*var.solution.var_val_map[sp_var]
+        end
     end
     return sp_var_val
 end
@@ -457,9 +457,9 @@ end
 function get_coluna_var_val(coluna_optimizer::ColunaModelOptimizer, var::MasterVar)
     solution = coluna_optimizer.inner.extended_problem.solution
     if haskey(solution.var_val_map, var)
-	return solution.var_val_map[var]
+        return solution.var_val_map[var]
     else
-	return 0.0
+        return 0.0
     end
 end
 
