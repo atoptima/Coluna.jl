@@ -73,8 +73,8 @@ function BranchConstrConstructor(counter::VarConstrCounter, name::String,
     rhs::Float, sense::Char, depth::Int, var::SubprobVar)
 
     constr = SubprobBranchConstr(counter, name, rhs, sense, depth, var)
-    for coef_val in var.master_col_coef_map
-        constr.member_coef_map[coef_val[1]] = coef_val[2]
+    for var_val in var.master_col_coef_map
+        constr.member_coef_map[var_val[1]] = var_val[2]
     end
     var.master_constr_coef_map[constr] = 1.0 # TODO: review this because the constraint may be inactive in other nodes
 
