@@ -169,16 +169,22 @@ end
 
 
     # ```
-    # To represent global lower bound on variable primal / constraint dual
+    # To represent local lower bound on variable primal / constraint dual
+    # In the problem which it belongs to
     # ```
     lower_bound::Float
 
 
     # ```
-    # To represent global upper bound on variable primal / constraint dual
+    # To represent local upper bound on variable primal / constraint dual
+    # In the problem which it belongs to
     # ```
     upper_bound::Float
 
+    # ```
+    # Current (local) bound values
+    # Used in preprocessing
+    # ```
     cur_lb::Float
     cur_ub::Float
 end

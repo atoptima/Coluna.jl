@@ -1,16 +1,19 @@
 @hl mutable struct SubprobVar <: Variable
     # ```
     # To represent global lower bound on sp variable primal value
+    # Aggregated bound in master
     # ```
     global_lb::Float
 
     # ```
     # To represent global upper bound on sp variable primal value
+    # Aggregated bound in master
     # ```
     global_ub::Float
 
     # ```
-    # Current global bound values
+    # Current global bound values (aggregated in master)
+    # Used in preprocessing
     # ```
     cur_global_lb::Float
     cur_global_ub::Float
