@@ -58,12 +58,14 @@ function constraint_info_tests()
 
     cinfo = CL.ConstraintInfo(constr)
     @test cinfo.constraint === constr
-    @test cinfo.min_slack == cinfo.max_slack == 0.0
+    @test cinfo.min_slack == -Inf
+    @test cinfo.max_slack == Inf
     @test cinfo.status == CL.Active
 
     cinfo = CL.ConstraintInfo(constr, CL.Unsuitable)
     @test cinfo.constraint === constr
-    @test cinfo.min_slack == cinfo.max_slack == 0.0
+    @test cinfo.min_slack == -Inf
+    @test cinfo.max_slack == Inf
     @test cinfo.status == CL.Unsuitable
 end
 
@@ -116,9 +118,13 @@ function record_problem_info_tests()
     # To test if adds correctly the dynamic constraints
     constr_1 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
     constr_2 = CL.BranchConstr(counter, "BC", 5.0, 'L', 3)
-    # constr_2.min_slack = 
+    constr_3 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
+    constr_3.cur_min_slack = 2.0
+    constr_4 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
     push!(master_problem.constr_manager.active_dynamic_list, constr_1)
     push!(master_problem.constr_manager.active_dynamic_list, constr_2)
+    push!(master_problem.constr_manager.active_static_list, constr_3)
+    push!(master_problem.constr_manager.active_static_list, constr_4)
 
     # To test if adds correctly the static (subproblem) variables
     subprob = create_problem_empty()
@@ -142,6 +148,8 @@ function record_problem_info_tests()
     @test findfirst(x -> x.variable == mc, node.problem_setup_info.suitable_master_columns_info) != nothing
     @test findfirst(x -> x.constraint == constr_1, node.problem_setup_info.suitable_master_cuts_info) != nothing
     @test findfirst(x -> x.constraint == constr_2, node.problem_setup_info.active_branching_constraints_info) != nothing
+    @test findfirst(x -> x.constraint == constr_3, node.problem_setup_info.modified_static_constrs_info) != nothing
+    @test findfirst(x -> x.constraint == constr_4, node.problem_setup_info.modified_static_constrs_info) == nothing
     @test findfirst(x -> x.variable == sp_vars[1], node.problem_setup_info.modified_static_vars_info) == nothing
     @test findfirst(x -> x.variable == sp_vars[2], node.problem_setup_info.modified_static_vars_info) != nothing
 

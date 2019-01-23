@@ -70,7 +70,8 @@ SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
 end
 
 function ConstraintInfoBuilder(constr::T, status::VCSTATUS) where T <: Constraint
-    return (constr, 0.0, 0.0, constr.cost_rhs, status)
+    return (constr, constr.cur_min_slack, constr.cur_max_slack,
+            constr.cost_rhs, status)
 end
 
 function ConstraintInfoBuilder(constr::T) where T <: Constraint
@@ -185,14 +186,16 @@ end
 function record_constraints_info(prob_info::ProblemSetupInfo,
                                  master_problem::CompactProblem)
 
-    # # Static constraints of the master
-    # for constr in master_problem.constr_manager.active_static_list
-    #     if (!isa(constr, ConvexityMasterConstr) &&
-    #         ( constr.cur_min_slack != constr.min_slack
-    #           || constr.cur_max_slack != constr.max_slack))
-    #         push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
-    #     end
-    # end
+    # Static constraints of the master
+    for constr in master_problem.constr_manager.active_static_list
+        if (!isa(constr, ConvexityConstr) &&
+            (constr.cur_min_slack != -Inf
+             || constr.cur_max_slack != Inf))
+            # (constr.cur_min_slack != constr.min_slack
+            #  || constr.cur_max_slack != constr.max_slack))
+            push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
+        end
+    end
 
     # Dynamic constraints of the master (cuts and branching constraints)
     for constr in master_problem.constr_manager.active_dynamic_list
