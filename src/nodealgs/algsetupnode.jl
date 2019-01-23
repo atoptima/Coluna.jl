@@ -14,6 +14,10 @@ VariableSmallInfoBuilder(var::Variable) = VariableSmallInfoBuilder(var, Active)
 # end
 
 @hl mutable struct VariableInfo <: VariableSmallInfo
+    # Current lb and ub as of the end of node treatment.
+    # This is valid for all preprocessing done in the subtree of the node.
+    # This information should be carried throught the tree by means of
+    # setup and setdown algs.
     lb::Float
     ub::Float
 end
@@ -38,13 +42,17 @@ VariableInfoBuilder(var::Variable) = VariableInfoBuilder(var::Variable, Active)
 #     return var.in_cur_form && (lb != var.cur_lb || ub != var.cur_ub)
 # end
 
-# @hl mutable struct SpVariableInfo <: VariableInfo
-#     local_lb::Float
-#     local_ub::Float
-# end
+@hl mutable struct SpVariableInfo <: VariableInfo
+    # Current global lb and global ub as of the end of node treatment.
+    # This is valid for all preprocessing done in the subtree of the node.
+    # This information should be carried throught the tree by means of
+    # setup and setdown algs.
+    global_lb::Float
+    global_ub::Float
+end
 
-# SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
-#         tuplejoin(VariableInfoBuilder(var,status), var.local_lb, var.local_ub)
+SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
+        tuplejoin(VariableInfoBuilder(var,status), var.cur_global_lb, var.cur_global_ub)
 
 # This function is never called
 # function apply_var_info(info::SubprobVar)::Void
@@ -135,16 +143,9 @@ function run(alg::AlgToSetdownNodeFully, node::Node)
     record_problem_info(alg, node::Node)
 end
 
-function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
-    master_problem = alg.extended_problem.master_problem
-    # prob_info = ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
-    prob_info = ProblemSetupInfo(1)
-
-    # Partial solution of master
-    for (var, val) in master_problem.partial_solution
-        push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
-    end
-
+function record_variables_info(prob_info::ProblemSetupInfo,
+                               master_problem::CompactProblem,
+                               subproblems::Vector{Problem})
     # Static variables of master
     for var in master_problem.var_manager.active_static_list
         if (var.cur_lb != var.lower_bound
@@ -162,20 +163,38 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
         end
     end
 
+    # Subprob variables
+    for subprob in subproblems
+        for var in subprob.var_manager.active_static_list
+            if (var.cur_lb != var.lower_bound
+                || var.cur_ub != var.upper_bound
+                || var.cur_global_lb != var.global_lb
+                || var.cur_global_ub != var.global_ub
+                || var.cur_cost_rhs != var.cost_rhs)
+                push!(prob_info.modified_static_vars_info,
+                      SpVariableInfo(var, Active))
+            end
+        end
+    end
+
     @logmsg LogLevel(-4) string("Stored ",
         length(master_problem.var_manager.active_dynamic_list),
         " active variables")
+end
 
-    # static constraints of the master
+function record_constraints_info(prob_info::ProblemSetupInfo,
+                                 master_problem::CompactProblem)
+
+    # # Static constraints of the master
     # for constr in master_problem.constr_manager.active_static_list
-    #     if (# !isa(constr, ConvexityMasterConstr) &&
-    #         constr.cur_min_slack != constr.min_slack &&
-    #         constr.cur_max_slack != constr.max_slack)
+    #     if (!isa(constr, ConvexityMasterConstr) &&
+    #         ( constr.cur_min_slack != constr.min_slack
+    #           || constr.cur_max_slack != constr.max_slack))
     #         push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
     #     end
     # end
 
-    # dynamic constraints of the master (cuts and branching constraints)
+    # Dynamic constraints of the master (cuts and branching constraints)
     for constr in master_problem.constr_manager.active_dynamic_list
         if isa(constr, BranchConstr)
             push!(prob_info.active_branching_constraints_info,
@@ -186,23 +205,22 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
         end
     end
 
-
-    # TODO enable if we decide to implement suproblem branching
-    #subprob variables
-    # for subprob in alg.extended_problem.pricing_vect
-    #     for var in subprob.var_manager.active_static_list
-    #         if (var.cur_lower_bound != var.lower_bound
-    #             || var.cur_upper_bound != var.upper_bound
-    #             || var.cur_local_lb != local_lb
-    #             || var.cur_loca_lub != var.local_ub || var.cur_cost_rhs != var.costrhs)
-    #             push!(modified_static_vars_info, SpVariableInfo(var))
-    #         end
-    #     end
-    # end
-
     @logmsg LogLevel(-4) string("Stored ",
         length(master_problem.constr_manager.active_dynamic_list),
         " active cosntraints")
+end    
+
+function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
+    prob_info = ProblemSetupInfo(node.treat_order)
+    master_problem = alg.extended_problem.master_problem
+    # Partial solution of master
+    for (var, val) in master_problem.partial_solution
+        push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
+    end
+
+    record_variables_info(prob_info, master_problem,
+                          alg.extended_problem.pricing_vect)
+    record_constraints_info(prob_info, master_problem)
 
     node.problem_setup_info = prob_info
 end
@@ -335,6 +353,8 @@ function run(alg::AlgToSetupFull, node::Node)
     @logmsg LogLevel(-4) "AlgToSetupFull"
 
     prepare_branching_constraints(alg, node)
+    # set_slacks() # This sets the min and max slacks recorded by father
+    # set_cur_bounds() # This sets the cur_bounds recorded by father node
 
     reset_partial_solution(alg)
     update_formulation(alg)
