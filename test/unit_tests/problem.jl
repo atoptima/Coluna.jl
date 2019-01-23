@@ -23,6 +23,7 @@ function problem_unit_tests()
     initialize_extended_problem_optimizer_tests()
     add_convexity_constraints_tests()
     add_artificial_variables_tests()
+    get_problem_tests()
 
 end
 
@@ -226,6 +227,7 @@ function add_variable_tests()
     @test length(problem.var_manager.active_dynamic_list) == 0
     @test length(problem.var_manager.unsuitable_static_list) == 0
     @test length(problem.var_manager.unsuitable_dynamic_list) == 0
+    @test vars[1].prob_ref == problem.prob_ref
 
     problem = create_problem_empty()
     vars = create_array_of_vars(1, CL.SubprobVar)
@@ -246,6 +248,7 @@ function add_variable_tests()
     @test length(problem.var_manager.active_dynamic_list) == 1
     @test length(problem.var_manager.unsuitable_static_list) == 0
     @test length(problem.var_manager.unsuitable_dynamic_list) == 0
+    @test mc.prob_ref == problem.prob_ref
 end
 
 function add_variable_in_optimizer_tests()
@@ -315,6 +318,7 @@ function add_constraint_tests()
     @test length(problem.constr_manager.active_dynamic_list) == 0
     @test length(problem.constr_manager.unsuitable_static_list) == 0
     @test length(problem.constr_manager.unsuitable_dynamic_list) == 0
+    @test constr.prob_ref == problem.prob_ref
 end
 
 function add_full_constraint_tests()
@@ -357,6 +361,7 @@ function delete_constraint_tests()
     CL.delete_constraint(problem, constr)
     list_of_ci = MOI.get(problem.optimizer, MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}())
     @test length(list_of_ci) == 0
+    @test constr.prob_ref == -1
 end
 
 function add_membership_tests()
@@ -484,4 +489,21 @@ function add_artificial_variables_tests()
                                           params.cut_up, params.cut_lo)
     CL.add_artificial_variables(extended_problem)
     @test length(extended_problem.master_problem.var_manager.active_static_list) == 2
+end
+
+function get_problem_tests()
+    params = CL.Params()
+    callback = CL.Callback()
+    prob_counter = CL.ProblemCounter(-1)
+    vc_counter = CL.VarConstrCounter(0)
+    extended_problem = CL.ExtendedProblem(prob_counter, vc_counter, params,
+                                          params.cut_up, params.cut_lo)
+    @test extended_problem.problem_ref_to_problem == Dict{Int,CL.Problem}(
+        0 => extended_problem.master_problem
+    )
+    subprob = CL.SimpleCompactProblem(prob_counter, vc_counter)
+    push!(extended_problem.pricing_vect, subprob)
+    extended_problem.problem_ref_to_problem[subprob.prob_ref] = subprob
+    @test CL.get_problem(extended_problem, 1) == subprob
+
 end

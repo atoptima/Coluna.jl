@@ -16,6 +16,9 @@ end
     vc_ref::Int
     name::String
 
+    # Ref of Problem which this VarConstr is part of
+    prob_ref::Int
+
     in_cur_prob::Bool
     in_cur_form::Bool
 
@@ -144,7 +147,7 @@ Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
 # Think about this constructor (almost a copy)
 function VarConstrBuilder(vc::VarConstr, counter::VarConstrCounter)
     # This is not a copy since some fields are reset to default
-    return (increment_counter(counter), "", false, false, vc.directive,
+    return (increment_counter(counter), "", -1, false, false, vc.directive,
             vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
             vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map), false,
             vc.in_preprocessed_list, vc.reduced_cost, VarConstrStabInfo(), 0)
@@ -153,7 +156,7 @@ end
 function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
                           sense::Char, vc_type::Char, flag::Char, directive::Char,
                           priority::Float)
-    return (increment_counter(counter), name, false, false, directive,
+    return (increment_counter(counter), name, -1, false, false, directive,
             priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0,
             Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
 end

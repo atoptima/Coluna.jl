@@ -331,6 +331,8 @@ end
 function add_variable(problem::CompactProblem, var::Variable)
     @logmsg LogLevel(-4) "adding Variable $var"
     add_var_in_manager(problem.var_manager, var)
+    @assert var.prob_ref == -1
+    var.prob_ref = problem.prob_ref
     if problem.optimizer != nothing
         add_variable_in_optimizer(problem.optimizer, var, problem.is_relaxed)
     end
@@ -406,6 +408,8 @@ end
 ### and sets the index of the constraint
 function add_constraint(problem::CompactProblem, constr::Constraint)
     @logmsg LogLevel(-4) "adding Constraint $constr"
+    @assert constr.prob_ref == -1
+    constr.prob_ref = problem.prob_ref
     add_constr_in_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing
         f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
@@ -416,6 +420,8 @@ end
 
 function add_full_constraint(problem::CompactProblem, constr::Constraint)
     @logmsg LogLevel(-4) "adding full Constraint $constr"
+    @assert constr.prob_ref == -1
+    constr.prob_ref = problem.prob_ref
     add_constr_in_manager(problem.constr_manager, constr)
     add_full_constraint_in_optimizer(problem.optimizer, constr)
 end
@@ -455,6 +461,7 @@ end
 function delete_constraint(problem::CompactProblem, constr::BranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
     remove_from_constr_manager(problem.constr_manager, constr)
+    constr.prob_ref = -1
     if problem.optimizer != nothing
         MOI.delete(problem.optimizer, constr.moi_index)
         constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction,
@@ -550,6 +557,7 @@ mutable struct ExtendedProblem <: Problem
     dual_inc_bound::Float
     subtree_size_by_depth::Int
     timer_output::TimerOutputs.TimerOutput
+    problem_ref_to_problem::Dict{Int,Problem}
 end
 
 function ExtendedProblem(prob_counter::ProblemCounter,
@@ -566,13 +574,20 @@ function ExtendedProblem(prob_counter::ProblemCounter,
     artificial_global_neg_var = MasterVar(vc_counter, "art_glob_neg",
             -1000000.0, 'N', 'C', 's', 'U', 1.0, -Inf, 0.0)
 
+    problem_ref_to_problem = Dict{Int,Problem}(
+        master_problem.prob_ref => master_problem
+    )
+
     return ExtendedProblem(master_problem, artificial_global_pos_var,
             artificial_global_neg_var, Problem[],
             Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(),
             Problem[], params, vc_counter,
             PrimalSolution(), params.cut_up, params.cut_lo, 0,
-            TimerOutputs.TimerOutput())
+            TimerOutputs.TimerOutput(), problem_ref_to_problem)
 end
+
+get_problem(prob::ExtendedProblem,
+            prob_ref::Int) = prob.problem_ref_to_problem[prob_ref]
 
 # Iterates through each problem in extended_problem,
 # check its index and call function
