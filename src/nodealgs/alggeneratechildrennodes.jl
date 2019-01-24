@@ -79,7 +79,9 @@ end
 function generate_child(alg::AlgToGenerateChildrenNodes, node::Node,
         branch_constrs::Vector{T}) where T <: BranchConstr
 
-    new_node = NodeWithParent(alg.extended_problem, node)
+    new_node = NodeWithParentConstructor(
+        alg.extended_problem, node, node.depth + 1
+    )
 
     #global nn_ = new_node
     #global bc_ = branch_constrs
