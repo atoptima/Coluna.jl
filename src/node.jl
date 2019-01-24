@@ -98,6 +98,12 @@ function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
 
 end
 
+function NodeWithParentConstructor(problem::ExtendedProblem, parent::Node, depth::Int)
+    node = NodeWithParent(problem, parent)
+    node.depth += depth
+    return node
+end
+
 function is_conquered(node::Node)
     return (node.node_inc_ip_primal_bound - node.node_inc_ip_dual_bound
             <= node.params.mip_tolerance_integrality)

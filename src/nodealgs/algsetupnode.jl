@@ -285,7 +285,7 @@ end
 function apply_preprocess_info(alg::AlgToSetupNode, node::Node)
     prob_info = node.problem_setup_info
     for constr_info in prob_info.modified_static_constrs_info
-        applyconstrinfo(constr_info)
+        apply_constr_info(constr_info)
     end
     for var_info in prob_info.modified_static_vars_info
         apply_var_info(var_info)
