@@ -438,6 +438,12 @@ function set_initial_cur_cost(constr::Constraint)
     constr.cur_cost_rhs = constr.cost_rhs
 end
 
+function set_global_bounds(var::SubprobVar, multiplicity_lb::MasterConstr,
+                           multiplicity_ub::MasterConstr)
+    var.global_lb = var.lower_bound * multiplicity_lb.cost_rhs
+    var.global_ub = var.upper_bound * multiplicity_ub.cost_rhs
+end
+
 function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     master = alg.extended_problem.master_problem
     @assert isempty(master.var_manager.unsuitable_static_list)
@@ -454,6 +460,9 @@ function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     end
     for subprob in alg.extended_problem.pricing_vect
         for var in subprob.var_manager.active_static_list
+            set_global_bounds(var,
+                alg.extended_problem.pricing_convexity_lbs[subprob],
+                alg.extended_problem.pricing_convexity_ubs[subprob])
             set_initial_cur_bounds(var)
         end
         for constr in subprob.constr_manager.active_static_list
