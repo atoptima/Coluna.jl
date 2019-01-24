@@ -3,6 +3,6 @@ function alg_preprocess_node_unit_tests()
 end
 
 function run_alg_preprocess_node()
-    alg = CL.AlgToPreprocessNode()
-    @test CL.run(alg) == false
+    #alg = CL.AlgToPreprocessNode()
+    #@test CL.run(alg) == false
 end
