@@ -585,6 +585,13 @@ end
 get_problem(prob::ExtendedProblem,
             prob_ref::Int) = prob.problem_ref_to_problem[prob_ref]
 
+function get_sp_convexity_bounds(prob::ExtendedProblem, prob_ref::Int)
+    sp = get_problem(prob, prob_ref)
+    sp_lb = prob.pricing_convexity_lbs[sp].cost_rhs
+    sp_ub = prob.pricing_convexity_ubs[sp].cost_rhs
+    return (sp_lb, sp_ub)
+end
+
 # Iterates through each problem in extended_problem,
 # check its index and call function
 # initialize_problem_optimizer(index, optimizer), using the dictionary

@@ -177,6 +177,7 @@ end
 
 @hl mutable struct AlgLike end
 run(alg::AlgLike; args...) = false
+run(alg::AlgLike, node::Node; args...) = false
 mutable struct TreatAlgs
     alg_setup_node::AlgLike
     alg_preprocess_node::AlgLike
@@ -202,7 +203,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     end
 
     # Preprocessing is not yet implemented
-    if run(treat_algs.alg_preprocess_node)
+    if run(treat_algs.alg_preprocess_node, node)
         run(treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node); return true
     end
