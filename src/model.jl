@@ -200,7 +200,6 @@ end
 # Maybe inside optimize!(extended_problem::ExtendedProblem) (?)
 
 function solve(model::Model)
-    set_prob_ref_to_problem_dict(model.extended_problem)
     status = optimize!(model.extended_problem)
     println(model.extended_problem.timer_output)
 end
@@ -208,6 +207,7 @@ end
 # Behaves like optimize!(problem::Problem), but sets parameters before
 # function optimize!(problem::ExtendedProblem)
 function optimize!(extended_problem::ExtendedProblem)
+    set_prob_ref_to_problem_dict(extended_problem)
     search_tree = DS.Queue{Node}()
     params = extended_problem.params
     global_nodes_treat_order = 1

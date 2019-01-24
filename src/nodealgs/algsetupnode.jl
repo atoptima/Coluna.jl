@@ -82,8 +82,8 @@ function ConstraintInfoBuilder(constr::T) where T <: Constraint
 end
 
 function apply_constr_info(info::ConstraintInfo)
-    info.constraint.min_slack = info.min_slack
-    info.constraint.max_slack = info.max_slack
+    info.constraint.cur_min_slack = info.min_slack
+    info.constraint.cur_max_slack = info.max_slack
     info.constraint.cur_cost_rhs = info.rhs
 end
 
@@ -413,9 +413,7 @@ end
 #### AlgToSetupRootNode #####
 #############################
 
-@hl mutable struct AlgToSetupRootNode <: AlgToSetupNode
-
-end
+@hl mutable struct AlgToSetupRootNode <: AlgToSetupNode end
 
 function AlgToSetupRootNodeBuilder(problem::ExtendedProblem,
         problem_setup_info::ProblemSetupInfo)
