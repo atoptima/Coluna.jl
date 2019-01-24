@@ -8,6 +8,10 @@ end
 VariableSmallInfoBuilder(var::Variable, status::VCSTATUS) = (var, var.cur_cost_rhs, status)
 VariableSmallInfoBuilder(var::Variable) = VariableSmallInfoBuilder(var, Active)
 
+function apply_var_info(info::VariableSmallInfo)
+    # info.variable.cost_rhs = info.cost
+end
+
 # This function is not called
 # function apply_var_info(info::VariableSmallInfo)::Void
 #     reset_cur_cost_by_value(var, info.cost) # This function does not exist
@@ -28,12 +32,11 @@ VariableInfoBuilder(var::Variable, status::VCSTATUS) =
 
 VariableInfoBuilder(var::Variable) = VariableInfoBuilder(var::Variable, Active)
 
-# This function is never called
-# function apply_var_info(info::VariableInfo)::Void
-#     @callsuper apply_var_info(var::VariableInfoSmall)
-#     var.cur_lb = info.lb
-#     var.cur_ub = info.ub
-# end
+function apply_var_info(info::VariableInfo)
+    @callsuper apply_var_info(info::VariableSmallInfo)
+    info.variable.cur_lb = info.lb
+    info.variable.cur_ub = info.ub
+end
 
 # function is_need_to_change_bounds(info::VariableInfo)::Bool
 #     var = info.variable
@@ -54,12 +57,11 @@ end
 SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
         tuplejoin(VariableInfoBuilder(var,status), var.cur_global_lb, var.cur_global_ub)
 
-# This function is never called
-# function apply_var_info(info::SubprobVar)::Void
-#     @callsuper apply_var_info(var::VariableInfo)
-#     var.local_cur_lb = info.local_lb
-#     var.local_cur_ub = info.local_ub
-# end
+function apply_var_info(info::SpVariableInfo)
+    @callsuper apply_var_info(info::VariableInfo)
+    info.variable.cur_global_lb = info.global_lb
+    info.variable.cur_global_ub = info.global_ub
+end
 
 @hl mutable struct ConstraintInfo
     constraint::Constraint
@@ -78,11 +80,11 @@ function ConstraintInfoBuilder(constr::T) where T <: Constraint
     return ConstraintInfoBuilder(constr, Active)
 end
 
-# function applyconstrinfo(info::ConstraintInfo)::Void
-#     info.constraint.min_slack = info.min_slack
-#     info.constraint.max_slack = info.max_slack
-#     info.constraint.rhs = info.rhs
-# end
+function apply_constr_info(info::ConstraintInfo)
+    info.constraint.min_slack = info.min_slack
+    info.constraint.max_slack = info.max_slack
+    # info.constraint.cost_rhs = info.rhs
+end
 
 @hl mutable struct ProblemSetupInfo <: SetupInfo
     treat_order::Int
@@ -279,6 +281,16 @@ function prepare_branching_constraints(alg::AlgToSetupBranchingOnly, node::Node)
     prepare_branching_constraints_added_by_father(alg, node)
 end
 
+function apply_preprocess_info(alg::AlgToSetupNode, node::Node)
+    prob_info = node.problem_setup_info
+    for constr_info in prob_info.modified_static_constrs_info
+        applyconstrinfo(constr_info)
+    end
+    for var_info in prob_info.modified_static_vars_info
+        apply_var_info(var_info)
+    end
+end
+
 function run(alg::AlgToSetupBranchingOnly, node::Node)
 
     @logmsg LogLevel(-4) "AlgToSetupBranchingOnly"
@@ -286,6 +298,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # apply_subproblem_info()
     # fill_local_branching_constraints()
     prepare_branching_constraints(alg, node)
+    apply_preprocess_info(alg, node)
 
     # reset_branching_constraints(_masterProbPtr, branchingConstrPtrIt)
 
@@ -356,8 +369,7 @@ function run(alg::AlgToSetupFull, node::Node)
     @logmsg LogLevel(-4) "AlgToSetupFull"
 
     prepare_branching_constraints(alg, node)
-    # set_slacks() # This sets the min and max slacks recorded by father
-    # set_cur_bounds() # This sets the cur_bounds recorded by father node
+    apply_preprocess_info(alg, node)
 
     reset_partial_solution(alg)
     update_formulation(alg)
@@ -400,14 +412,40 @@ end
 #### AlgToSetupRootNode #####
 #############################
 
-@hl mutable struct AlgToSetupRootNode <: AlgToSetupNode end
+@hl mutable struct AlgToSetupRootNode <: AlgToSetupNode
+
+end
 
 function AlgToSetupRootNodeBuilder(problem::ExtendedProblem,
         problem_setup_info::ProblemSetupInfo)
     return AlgToSetupNodeBuilder(problem, problem_setup_info)
 end
 
-# function run(alg::AlgToSetupRootNode, node::Node)
+function set_initial_cur_bounds(var::Variable)
+    var.cur_lb = var.lower_bound
+    var.cur_ub = var.upper_bound
+    var.cur_cost_rhs = var.cost_rhs
+end
+
+function set_initial_cur_bounds(var::SubprobVar)
+    @callsuper set_initial_cur_bounds(var::Variable)
+    var.cur_global_lb = var.global_lb
+    var.cur_global_ub = var.global_ub
+end
+
+function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
+    master = alg.extended_problem.master_problem
+    @assert isempty(master.var_manager.unsuitable_static_list)
+    @assert isempty(master.var_manager.unsuitable_dynamic_list)
+    @assert isempty(master.var_manager.active_dynamic_list)
+    @assert isempty(master.constr_manager.unsuitable_static_list)
+    @assert isempty(master.constr_manager.unsuitable_dynamic_list)
+    @assert isempty(master.constr_manager.active_dynamic_list)
+    for var in master.var_manager.active_static_list
+        set_initial_cur_bounds(var)
+    end
+end
+
 function run(alg::AlgToSetupRootNode, node::Node)
     # @callsuper probleminfeasible = AlgToSetupNode::run(node)
 
@@ -415,6 +453,7 @@ function run(alg::AlgToSetupRootNode, node::Node)
     # reset_master_columns(alg)
     # reset_non_stab_artificial_variables(alg)
     @logmsg LogLevel(-4) "AlgToSetupRootNode"
+    set_cur_bounds(alg, node)
 
     update_formulation(alg)
 
