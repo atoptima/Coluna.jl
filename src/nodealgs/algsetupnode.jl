@@ -452,6 +452,14 @@ function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     for constr in master.constr_manager.active_static_list
         set_initial_cur_cost(constr)
     end
+    for subprob in alg.extended_problem.pricing_vect
+        for var in subprob.var_manager.active_static_list
+            set_initial_cur_bounds(var)
+        end
+        for constr in subprob.constr_manager.active_static_list
+            set_initial_cur_cost(constr)
+        end
+    end
 end
 
 function run(alg::AlgToSetupRootNode, node::Node)
