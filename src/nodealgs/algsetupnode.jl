@@ -1,4 +1,3 @@
-
 @hl mutable struct VariableSmallInfo
     variable::Variable
     cost::Float
@@ -9,7 +8,7 @@ VariableSmallInfoBuilder(var::Variable, status::VCSTATUS) = (var, var.cur_cost_r
 VariableSmallInfoBuilder(var::Variable) = VariableSmallInfoBuilder(var, Active)
 
 function apply_var_info(info::VariableSmallInfo)
-    # info.variable.cost_rhs = info.cost
+    info.variable.cur_cost_rhs = info.cost
 end
 
 # This function is not called
@@ -55,7 +54,9 @@ end
 end
 
 SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
-        tuplejoin(VariableInfoBuilder(var,status), var.cur_global_lb, var.cur_global_ub)
+        tuplejoin(VariableInfoBuilder(var, status), var.cur_global_lb, var.cur_global_ub)
+
+SpVariableInfoBuilder(var::SubprobVar) = SpVariableInfoBuilder(var, Active)
 
 function apply_var_info(info::SpVariableInfo)
     @callsuper apply_var_info(info::VariableInfo)
@@ -83,7 +84,7 @@ end
 function apply_constr_info(info::ConstraintInfo)
     info.constraint.min_slack = info.min_slack
     info.constraint.max_slack = info.max_slack
-    # info.constraint.cost_rhs = info.rhs
+    info.constraint.cur_cost_rhs = info.rhs
 end
 
 @hl mutable struct ProblemSetupInfo <: SetupInfo
@@ -433,6 +434,10 @@ function set_initial_cur_bounds(var::SubprobVar)
     var.cur_global_ub = var.global_ub
 end
 
+function set_initial_cur_cost(constr::Constraint)
+    constr.cur_cost_rhs = constr.cost_rhs
+end
+
 function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     master = alg.extended_problem.master_problem
     @assert isempty(master.var_manager.unsuitable_static_list)
@@ -443,6 +448,9 @@ function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     @assert isempty(master.constr_manager.active_dynamic_list)
     for var in master.var_manager.active_static_list
         set_initial_cur_bounds(var)
+    end
+    for constr in master.constr_manager.active_static_list
+        set_initial_cur_cost(constr)
     end
 end
 

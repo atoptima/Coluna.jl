@@ -2,6 +2,7 @@ function algsetupnode_unit_tests()
 
     variable_small_info_tests()
     variable_info_tests()
+    apply_var_info_tests()
     constraint_info_tests()
     problem_setup_info_tests()
     alg_to_setdown_node_tests()
@@ -50,6 +51,35 @@ function variable_info_tests()
     @test vinfo.lb == var.cur_lb
     @test vinfo.ub == var.cur_ub
     @test vinfo.status == CL.Inactive
+end
+
+function apply_var_info_tests()
+    var = create_array_of_vars(1, CL.Variable)[1]
+    vinfo = CL.VariableInfo(var)
+    vinfo.lb = 0.0
+    vinfo.ub = 10.0
+    var.cur_lb = -13.0
+    var.cur_ub = -13.0
+    CL.apply_var_info(vinfo)
+    @test var.cur_lb == 0.0
+    @test var.cur_ub == 10.0
+
+    var = create_array_of_vars(1, CL.SubprobVar)[1]
+    vinfo = CL.SpVariableInfo(var)
+    vinfo.lb = 0.0
+    vinfo.ub = 10.0
+    vinfo.global_lb = 0.0
+    vinfo.global_ub = 10.0
+    var.cur_lb = -13.0
+    var.cur_ub = -13.0
+    var.cur_global_lb = -13.0
+    var.cur_global_ub = -13.0
+    CL.apply_var_info(vinfo)
+    @test var.cur_lb == 0.0
+    @test var.cur_ub == 10.0
+    @test var.cur_global_lb == 0.0
+    @test var.cur_global_ub == 10.0
+
 end
 
 function constraint_info_tests()
