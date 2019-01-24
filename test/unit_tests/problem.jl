@@ -498,12 +498,14 @@ function get_problem_tests()
     vc_counter = CL.VarConstrCounter(0)
     extended_problem = CL.ExtendedProblem(prob_counter, vc_counter, params,
                                           params.cut_up, params.cut_lo)
-    @test extended_problem.problem_ref_to_problem == Dict{Int,CL.Problem}(
-        0 => extended_problem.master_problem
-    )
     subprob = CL.SimpleCompactProblem(prob_counter, vc_counter)
     push!(extended_problem.pricing_vect, subprob)
-    extended_problem.problem_ref_to_problem[subprob.prob_ref] = subprob
+    CL.set_prob_ref_to_problem_dict(extended_problem)
+    @test extended_problem.problem_ref_to_problem == Dict{Int,CL.Problem}(
+        0 => extended_problem.master_problem,
+        1 => subprob
+    )
+    @test CL.get_problem(extended_problem, 0) == extended_problem.master_problem
     @test CL.get_problem(extended_problem, 1) == subprob
 
 end

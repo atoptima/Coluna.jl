@@ -198,6 +198,7 @@ end
 # Maybe inside optimize!(extended_problem::ExtendedProblem) (?)
 
 function solve(model::Model)
+    set_prob_ref_to_problem_dict(model.extended_problem)
     status = optimize!(model.extended_problem)
     println(model.extended_problem.timer_output)
 end

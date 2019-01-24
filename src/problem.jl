@@ -574,16 +574,12 @@ function ExtendedProblem(prob_counter::ProblemCounter,
     artificial_global_neg_var = MasterVar(vc_counter, "art_glob_neg",
             -1000000.0, 'N', 'C', 's', 'U', 1.0, -Inf, 0.0)
 
-    problem_ref_to_problem = Dict{Int,Problem}(
-        master_problem.prob_ref => master_problem
-    )
-
     return ExtendedProblem(master_problem, artificial_global_pos_var,
             artificial_global_neg_var, Problem[],
             Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(),
             Problem[], params, vc_counter,
             PrimalSolution(), params.cut_up, params.cut_lo, 0,
-            TimerOutputs.TimerOutput(), problem_ref_to_problem)
+            TimerOutputs.TimerOutput(), Dict{Int,Problem}())
 end
 
 get_problem(prob::ExtendedProblem,
@@ -609,6 +605,16 @@ function initialize_problem_optimizer(extended_problem::ExtendedProblem,
     for problem in extended_problem.separation_vect
         initialize_problem_optimizer(problem,
                 problemidx_optimizer_map[problem.prob_ref])
+    end
+end
+
+function set_prob_ref_to_problem_dict(extended_prob::ExtendedProblem)
+    prob_ref_to_prob = extended_prob.problem_ref_to_problem
+    master = extended_prob.master_problem
+    subproblems = extended_prob.pricing_vect
+    prob_ref_to_prob[master.prob_ref] = master
+    for subprob in subproblems
+        prob_ref_to_prob[subprob.prob_ref] = subprob
     end
 end
 

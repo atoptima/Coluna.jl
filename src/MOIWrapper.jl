@@ -354,7 +354,6 @@ function create_subproblems(dest::ColunaModelOptimizer, src::MOI.ModelLike)
     for i in 1:dest.nb_subproblems
         subprob = SimpleCompactProblem(prob_counter, counter)
         push!(extended_problem.pricing_vect, subprob)
-        extended_problem.problem_ref_to_problem[subprob.prob_ref] = subprob
     end
 end
 
