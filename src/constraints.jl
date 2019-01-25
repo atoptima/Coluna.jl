@@ -37,22 +37,21 @@ function ConvexityConstrBuilder(counter::VarConstrCounter, name::String,
     return MasterConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag)
 end
 
-@hl mutable struct MasterBranchConstr{T <: Union{MasterVar, SubprobVar}} <: MasterConstr
+@hl mutable struct MasterBranchConstr <: MasterConstr
     depth_when_generated::Int
-    branch_var::T
 end
 
 function MasterBranchConstrBuilder(counter::VarConstrCounter, name::String,
-        rhs::Float, sense::Char, depth::Int, branch_var::Variable)
+        rhs::Float, sense::Char, depth::Int)
 
     return tuplejoin(MasterConstrBuilder(counter, name, rhs, sense, 'C', 'd'),
-                     depth, branch_var)
+                     depth)
 end
 
 function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
     rhs::Float, sense::Char, depth::Int, branch_var::MasterVar)
 
-    constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    constr = MasterBranchConstr(counter, name, rhs, sense, depth)
     constr.member_coef_map[branch_var] = 1.0
     branch_var.member_coef_map[constr] = 1.0
 
@@ -62,11 +61,9 @@ end
 function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
     rhs::Float, sense::Char, depth::Int, branch_var::SubprobVar)
 
-    constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
-    for var_val in branch_var.master_col_coef_map
-        constr.member_coef_map[var_val[1]] = var_val[2]
-    end
-    branch_var.master_constr_coef_map[constr] = 1.0 # TODO: review this because the constraint may be inactive in other nodes
+    constr = MasterBranchConstr(counter, name, rhs, sense, depth)
+    constr.subprob_var_coef_map[branch_var] = 1.0
+    branch_var.master_constr_coef_map[constr] = 1.0
 
     #global c_ = constr
     #global v_ = branch_var

@@ -441,6 +441,27 @@ function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractO
     end
 end
 
+function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractOptimizer},
+                                          constr::MasterConstr)
+
+    terms = MOI.ScalarAffineTerm{Float}[]
+    for var_val in constr.member_coef_map
+        push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second,
+                                                 var_val.first.moi_index))
+    end
+    for sp_var in keys(constr.subprob_var_coef_map)
+        for var_val in sp_var.master_col_coef_map
+            push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second,
+                                                     var_val.first.moi_index))
+        end
+    end
+    if optimizer != nothing
+        f = MOI.ScalarAffineFunction(terms, 0.0)
+        constr.moi_index = MOI.add_constraint(optimizer, f,
+                constr.set_type(constr.cost_rhs))
+    end
+end
+
 function load_problem_in_optimizer(problem::CompactProblem,
         optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
 

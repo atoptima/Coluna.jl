@@ -26,8 +26,7 @@ function create_array_of_constrs(n::Int, constr_type::DataType)
         elseif constr_type == CL.MasterConstr
             constr = CL.MasterConstr(vc_counter, string("C_", i), 5.0, 'L', 'M', 's')
         elseif constr_type == CL.MasterBranchConstr
-            var = create_array_of_vars(1, CL.MasterVar)[1]
-            constr = CL.MasterBranchConstr(vc_counter, string("C_", i), 5.0, 'L', 0, var)
+            constr = CL.MasterBranchConstr(vc_counter, string("C_", i), 5.0, 'L', 0)
         end
         push!(constrs, constr)
     end
