@@ -68,11 +68,11 @@ SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(),
         Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
 
 function add_var_in_manager(var_manager::SimpleVarIndexManager, var::Variable)
-    if var.status == Active && var.flag == 's'
+    if var.status == Active && var.flag in['s', 'a']
         list = var_manager.active_static_list
     elseif var.status == Active && var.flag == 'd'
         list = var_manager.active_dynamic_list
-    elseif var.status == Unsuitable && var.flag == 's'
+    elseif var.status == Unsuitable && var.flag in['s', 'a']
         list = var_manager.unsuitable_static_list
     elseif var.status == Unsuitable && var.flag == 'd'
         list = var_manager.unsuitable_dynamic_list
@@ -570,9 +570,9 @@ function ExtendedProblem(prob_counter::ProblemCounter,
 
     #TODO change type of art_vars 's' -> 'a', needed for pure phase 1
     artificial_global_pos_var = MasterVar(vc_counter, "art_glob_pos",
-            1000000.0, 'P', 'C', 's', 'U', 1.0, 0.0, Inf)
+            1000000.0, 'P', 'C', 'a', 'U', 1.0, 0.0, Inf)
     artificial_global_neg_var = MasterVar(vc_counter, "art_glob_neg",
-            -1000000.0, 'N', 'C', 's', 'U', 1.0, -Inf, 0.0)
+            -1000000.0, 'N', 'C', 'a', 'U', 1.0, -Inf, 0.0)
 
     return ExtendedProblem(master_problem, artificial_global_pos_var,
             artificial_global_neg_var, Problem[],
