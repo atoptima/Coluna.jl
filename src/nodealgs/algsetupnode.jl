@@ -177,7 +177,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
 
     # dynamic constraints of the master (cuts and branching constraints)
     for constr in master_problem.constr_manager.active_dynamic_list
-        if isa(constr, BranchConstr)
+        if isa(constr, MasterBranchConstr)
             push!(prob_info.active_branching_constraints_info,
                 ConstraintInfo(constr))
         elseif isa(constr, MasterConstr)
@@ -301,7 +301,7 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
     in_setup_info = node.problem_setup_info.active_branching_constraints_info
     for i in length(in_problem):-1:1
         constr = in_problem[i]
-        if typeof(constr) <: BranchConstr
+        if typeof(constr) <: MasterBranchConstr
             idx = find_first_in_problem_setup(in_setup_info, constr.vc_ref)
             if idx == 0
                 delete_constraint(alg.extended_problem.master_problem, constr)
@@ -316,7 +316,7 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
     for i in 1:length(in_setup_info)
         constr_info = in_setup_info[i]
         constr = constr_info.constraint
-        if typeof(constr) <: BranchConstr
+        if typeof(constr) <: MasterBranchConstr
             idx = find_first(in_problem, constr.vc_ref)
             if idx == 0
                 add_full_constraint(alg.extended_problem.master_problem, constr)

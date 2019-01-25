@@ -381,7 +381,7 @@ function add_variable(problem::CompactProblem, col::MasterColumn)
             # of active ones as the corresponding flags are not being kept
             # up-to-date. TODO: fix this
             constr_in_master = true
-            if constr isa BranchConstr
+            if constr isa MasterBranchConstr
                 constr_in_master = false
                 for ctr in problem.constr_manager.active_dynamic_list
                     if ctr == constr
@@ -452,7 +452,7 @@ function load_problem_in_optimizer(problem::CompactProblem,
     end
 end
 
-function delete_constraint(problem::CompactProblem, constr::BranchConstr)
+function delete_constraint(problem::CompactProblem, constr::MasterBranchConstr)
     ### When deleting a constraint, its MOI index becomes invalid
     remove_from_constr_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing

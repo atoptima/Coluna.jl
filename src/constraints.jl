@@ -37,49 +37,39 @@ function ConvexityConstrBuilder(counter::VarConstrCounter, name::String,
     return MasterConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag)
 end
 
-@hl mutable struct BranchConstr <: Constraint
+@hl mutable struct MasterBranchConstr{T <: Union{MasterVar, SubprobVar}} <: MasterConstr
     depth_when_generated::Int
+    branch_var::T
 end
 
-function BranchConstrBuilder(counter::VarConstrCounter, name::String,
-        rhs::Float, sense::Char, depth::Int)
+function MasterBranchConstrBuilder(counter::VarConstrCounter, name::String,
+        rhs::Float, sense::Char, depth::Int, branch_var::Variable)
 
-    return tuplejoin(ConstraintBuilder(counter, name, rhs, sense, ' ', 'd'),
-                     depth)
+    return tuplejoin(MasterConstrBuilder(counter, name, rhs, sense, 'C', 'd'),
+                     depth, branch_var)
 end
 
-function BranchConstrConstructor(counter::VarConstrCounter, name::String,
-    rhs::Float, sense::Char, depth::Int, var::Variable)
+function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
+    rhs::Float, sense::Char, depth::Int, branch_var::MasterVar)
 
-    constr = BranchConstr(counter, name, rhs, sense, depth)
-    constr.member_coef_map[var] = 1.0
-    var.member_coef_map[constr] = 1.0
+    constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    constr.member_coef_map[branch_var] = 1.0
+    branch_var.member_coef_map[constr] = 1.0
 
     return constr
 end
 
-@hl mutable struct SubprobBranchConstr <: BranchConstr
-    branch_var::SubprobVar
-end
+function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
+    rhs::Float, sense::Char, depth::Int, branch_var::SubprobVar)
 
-function SubprobBranchConstrBuilder(counter::VarConstrCounter, name::String,
-        rhs::Float, sense::Char, depth::Int, branch_var::SubprobVar)
-
-    return tuplejoin(BranchConstrBuilder(counter, name, rhs, sense, depth),
-                     branch_var)
-end
-
-function BranchConstrConstructor(counter::VarConstrCounter, name::String,
-    rhs::Float, sense::Char, depth::Int, var::SubprobVar)
-
-    constr = SubprobBranchConstr(counter, name, rhs, sense, depth, var)
-    for coef_val in var.master_col_coef_map
-        constr.member_coef_map[coef_val[1]] = coef_val[2]
+    constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    for var_val in branch_var.master_col_coef_map
+        constr.member_coef_map[var_val[1]] = var_val[2]
     end
-    var.master_constr_coef_map[constr] = 1.0 # TODO: review this because the constraint may be inactive in other nodes
+    branch_var.master_constr_coef_map[constr] = 1.0 # TODO: review this because the constraint may be inactive in other nodes
 
     #global c_ = constr
-    #global v_ = var
+    #global v_ = branch_var
     #SimpleDebugger.@bkp
 
     return constr

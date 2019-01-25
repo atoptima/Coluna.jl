@@ -34,7 +34,7 @@
     treated::Bool
 
     ### New information recorded when the node was generated
-    local_branching_constraints::Vector{BranchConstr}
+    local_branching_constraints::Vector{MasterBranchConstr}
 
     ### Information recorded by father
     problem_setup_info::SetupInfo
@@ -73,7 +73,7 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         false,
         false,
         false,
-        BranchConstr[],
+        MasterBranchConstr[],
         problem_setup_info,
         eval_info,
         ChildrenGenerationInfo(),

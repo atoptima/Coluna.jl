@@ -25,9 +25,10 @@ function create_array_of_constrs(n::Int, constr_type::DataType)
             constr = CL.Constraint(vc_counter, string("C_", i), 5.0, 'L', 'M', 's')
         elseif constr_type == CL.MasterConstr
             constr = CL.MasterConstr(vc_counter, string("C_", i), 5.0, 'L', 'M', 's')
-        elseif constr_type == CL.BranchConstr
-            constr = CL.BranchConstr(vc_counter, string("C_", i), 5.0, 'L', 3)
-        end            
+        elseif constr_type == CL.MasterBranchConstr
+            var = create_array_of_vars(1, CL.MasterVar)[1]
+            constr = CL.MasterBranchConstr(vc_counter, string("C_", i), 5.0, 'L', 0, var)
+        end
         push!(constrs, constr)
     end
     return constrs
