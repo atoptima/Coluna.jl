@@ -3,7 +3,7 @@ function alg_generate_children_nodes_unit_tests()
     alg_generate_children_nodes_tests()
     usual_branching_alg_tests()
     alg_generate_children_setdown_tests()
-    sort_vars_according_to_rule_tests()
+    get_var_according_to_rule_tests()
     retrieve_candidate_vars_tests()
     generate_branch_constraint_tests()
     generate_child_tests()
@@ -36,15 +36,14 @@ function alg_generate_children_setdown_tests()
     @test CL.setdown(alg) == nothing
 end
 
-function sort_vars_according_to_rule_tests()
+function get_var_according_to_rule_tests()
     rule = CL.MostFractionalRule()
     vars = create_array_of_vars(3, CL.Variable)
     vals = [4.0, 3.6, 2.5]
     pairs = [Pair{CL.Variable,Float64}(vars[i],vals[i]) for i in 1:length(vars)]
-    CL.sort_vars_according_to_rule(rule, pairs)
-    @test pairs[1].first == vars[3]
-    @test pairs[2].first == vars[2]
-    @test pairs[3].first == vars[1]
+    var, val = CL.get_var_according_to_rule(rule, pairs)
+    @test var == vars[3]
+    @test val == vals[3]
 end
 
 function retrieve_candidate_vars_tests()
@@ -52,10 +51,10 @@ function retrieve_candidate_vars_tests()
     alg = CL.UsualBranchingAlg(extended_problem)
     vars = create_array_of_vars(3, CL.MasterVar)
     var_val_map = Dict{CL.Variable,Float64}(vars[1] => 1.0, vars[2] => 2.01, vars[3] => 3.00001)
-    master_vars, subprob_vars = CL.retrieve_candidate_vars(alg, var_val_map)
-    @test findfirst(x->x.first==vars[1], master_vars) == nothing
-    @test findfirst(x->x.first==vars[2], master_vars) != nothing
-    @test findfirst(x->x.first==vars[3], master_vars) != nothing
+    candidate_vars = CL.retrieve_candidate_vars(alg, var_val_map)
+    @test findfirst(x->x.first==vars[1], candidate_vars) == nothing
+    @test findfirst(x->x.first==vars[2], candidate_vars) != nothing
+    @test findfirst(x->x.first==vars[3], candidate_vars) != nothing
 end
 
 function generate_branch_constraint_tests()
@@ -82,13 +81,11 @@ function generate_child_tests()
     extended_problem = create_extended_problem()
     alg = CL.UsualBranchingAlg(extended_problem)
     node = CL.Node(extended_problem, 0.0, CL.SetupInfo(), CL.EvalInfo())
-    constrs = create_array_of_constrs(2, CL.BranchConstr)
-    constrs = Vector{CL.BranchConstr}(constrs)
-    CL.generate_child(alg, node, constrs)
+    constr = create_array_of_constrs(1, CL.MasterBranchConstr)[1]
+    CL.generate_child(alg, node, constr)
     @test length(node.children) == 1
-    @test length(node.children[1].local_branching_constraints) == 2
-    @test node.children[1].local_branching_constraints[1] === constrs[1]
-    @test node.children[1].local_branching_constraints[2] === constrs[2]
+    @test length(node.children[1].local_branching_constraints) == 1
+    @test node.children[1].local_branching_constraints[1] === constr
 end
 
 function perform_usual_branching_tests()

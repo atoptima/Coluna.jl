@@ -147,7 +147,7 @@ function record_problem_info_tests()
 
     # To test if adds correctly the dynamic constraints
     constr_1 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
-    constr_2 = CL.BranchConstr(counter, "BC", 5.0, 'L', 3)
+    constr_2 = CL.MasterBranchConstr(counter, "BC", 5.0, 'L', 3, vars[1])
     constr_3 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
     constr_3.cur_min_slack = 2.0
     constr_4 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
@@ -221,7 +221,7 @@ function prepare_branching_constraints_added_by_father_tests()
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetupNode(extended_problem)
     node = create_node(extended_problem, false)
-    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    constrs = create_array_of_constrs(2, CL.MasterBranchConstr)
     node.local_branching_constraints = constrs
     CL.prepare_branching_constraints_added_by_father(alg, node)
     @test findfirst(x->x===constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
@@ -235,7 +235,7 @@ function prepare_branching_constraints_tests()
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetupBranchingOnly(extended_problem)
     node = create_node(extended_problem, false)
-    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    constrs = create_array_of_constrs(2, CL.MasterBranchConstr)
     node.local_branching_constraints = constrs
     CL.prepare_branching_constraints(alg, node)
     @test findfirst(x->x===constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
@@ -249,10 +249,10 @@ function prepare_branching_constraints_tests()
     extended_problem.master_problem = prob
     counter = prob.counter
     node = create_node(extended_problem, false)
-    bc1 = CL.BranchConstr(counter, "bc_1", 1.0, 'G', 3)
-    bc2 = CL.BranchConstr(counter, "bc_2", 0.0, 'L', 3)
-    bc3 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
-    bc4 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    bc1 = CL.MasterBranchConstr(counter, "bc_1", 1.0, 'G', 3, vars[1])
+    bc2 = CL.MasterBranchConstr(counter, "bc_2", 0.0, 'L', 3, vars[1])
+    bc3 = CL.MasterBranchConstr(counter, "bc_3", 0.0, 'L', 3, vars[1])
+    bc4 = CL.MasterBranchConstr(counter, "bc_3", 0.0, 'L', 3, vars[1])
     push!(prob.constr_manager.active_dynamic_list, bc1)
     push!(prob.constr_manager.active_dynamic_list, bc2)
     push!(node.problem_setup_info.active_branching_constraints_info, CL.ConstraintInfo(bc1))
@@ -274,7 +274,7 @@ function run_alg_setup_branching_only()
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetupBranchingOnly(extended_problem)
     node = create_node(extended_problem, false)
-    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    constrs = create_array_of_constrs(2, CL.MasterBranchConstr)
     node.local_branching_constraints = constrs
     @test CL.run(alg, node) == false
     @test findfirst(x->x==constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
@@ -282,7 +282,7 @@ function run_alg_setup_branching_only()
 end
 
 function find_first_in_problem_setup_tests()
-    constrs = create_array_of_constrs(3, CL.BranchConstr)
+    constrs = create_array_of_constrs(3, CL.MasterBranchConstr)
     constr_info_vec = CL.ConstraintInfo[]
     vc_counter = CL.VarConstrCounter(0)
     for i in 1:length(constrs)
@@ -301,10 +301,10 @@ function run_alg_setup_full_tests()
     extended_problem.master_problem = prob
     counter = prob.counter
     node = create_node(extended_problem, false)
-    bc1 = CL.BranchConstr(counter, "bc_1", 1.0, 'G', 3)
-    bc2 = CL.BranchConstr(counter, "bc_2", 0.0, 'L', 3)
-    bc3 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
-    bc4 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    bc1 = CL.MasterBranchConstr(counter, "bc_1", 1.0, 'G', 3, vars[1])
+    bc2 = CL.MasterBranchConstr(counter, "bc_2", 0.0, 'L', 3, vars[1])
+    bc3 = CL.MasterBranchConstr(counter, "bc_3", 0.0, 'L', 3, vars[1])
+    bc4 = CL.MasterBranchConstr(counter, "bc_3", 0.0, 'L', 3, vars[1])
     push!(prob.constr_manager.active_dynamic_list, bc1)
     push!(prob.constr_manager.active_dynamic_list, bc2)
     push!(node.problem_setup_info.active_branching_constraints_info, CL.ConstraintInfo(bc1))

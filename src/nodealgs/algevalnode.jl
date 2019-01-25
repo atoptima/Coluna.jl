@@ -233,18 +233,16 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
     master = extended_prob.master_problem
     duals_dict = master.dual_sols[end].constr_val_map
     for (constr, dual) in duals_dict
-        @assert (constr isa MasterConstr) || (constr isa BranchConstr)
+        @assert (constr isa MasterConstr) || (constr isa MasterBranchConstr)
         if constr isa ConvexityConstr &&
                 (extended_prob.pricing_convexity_lbs[pricing_prob] == constr ||
                  extended_prob.pricing_convexity_ubs[pricing_prob] == constr)
             alg.pricing_const_obj[pricing_prob] -= dual
             continue
         end
-        if constr isa BranchConstr
-            if constr isa SubprobBranchConstr
-                if haskey(new_obj, constr.branch_var)
-                    new_obj[constr.branch_var] -= dual
-                end
+        if constr isa MasterBranchConstr
+            if haskey(new_obj, constr.branch_var)
+                new_obj[constr.branch_var] -= dual
             end
         else
             for (var, coef) in constr.subprob_var_coef_map
