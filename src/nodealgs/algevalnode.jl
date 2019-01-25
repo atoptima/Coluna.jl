@@ -240,17 +240,11 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
             alg.pricing_const_obj[pricing_prob] -= dual
             continue
         end
-        # if constr isa MasterBranchConstr
-        #     if haskey(new_obj, constr.branch_var)
-        #         new_obj[constr.branch_var] -= dual
-        #     end
-        # else
-            for (var, coef) in constr.subprob_var_coef_map
-                if haskey(new_obj, var)
-                    new_obj[var] -= dual * coef
-                end
+        for (var, coef) in constr.subprob_var_coef_map
+            if haskey(new_obj, var)
+                new_obj[var] -= dual * coef
             end
-        # end
+        end
     end
     @logmsg LogLevel(-3) string("new objective func = ", new_obj)
     set_optimizer_obj(pricing_prob, new_obj)

@@ -491,7 +491,7 @@ function delete_constraint(problem::CompactProblem, constr::MasterBranchConstr)
 end
 
 function add_membership(problem::CompactProblem, var::Variable,
-                        constr::Constraint,coef::Float)
+                        constr::Constraint, coef::Float)
 
     @logmsg LogLevel(-4) "add_membership : Variable = $var, Constraint = $constr"
     var.member_coef_map[constr] = coef
