@@ -413,9 +413,7 @@ end
 #### AlgToSetupRootNode #####
 #############################
 
-@hl mutable struct AlgToSetupRootNode <: AlgToSetupNode
-
-end
+@hl mutable struct AlgToSetupRootNode <: AlgToSetupNode end
 
 function AlgToSetupRootNodeBuilder(problem::ExtendedProblem,
         problem_setup_info::ProblemSetupInfo)
