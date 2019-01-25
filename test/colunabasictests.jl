@@ -40,7 +40,7 @@ function testdefaultbuilders()
     ### Algorithms constructors
     alg_setup_node = CL.AlgToSetupNode(extended_problem,
         CL.ProblemSetupInfo(0), false)
-    alg_preprocess_node = CL.AlgToPreprocessNode()
+    alg_preprocess_node = CL.AlgToPreprocessNode(extended_problem)
     alg_eval_node = CL.AlgToEvalNode(extended_problem)
     alg_to_eval_by_lp = CL.AlgToEvalNodeByLp(extended_problem)
     alg_to_eval_by_cg = CL.AlgToEvalNodeBySimplexColGen(extended_problem)

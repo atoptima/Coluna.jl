@@ -55,3 +55,59 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
 
     return model
 end
+
+function build_colgen_gap_model_with_moi(nb_jobs::Int, nb_machs::Int, caps::Vector{Float64},
+                                         costs::Vector{Vector{Float64}}, weights::Vector{Vector{Float64}})
+
+    coluna_optimizer = CL.ColunaModelOptimizer()
+    universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
+    moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
+
+    ## Subproblem variables
+    vars = []
+    for m in 1:nb_machs
+        push!(vars, [MOI.add_variable(moi_model) for j in 1:nb_jobs])
+    end
+
+    ## Bounds
+    bounds = MOI.ConstraintIndex[]
+    for m in 1:nb_machs, j in 1:nb_jobs
+        ci = MOI.add_constraint(moi_model, MOI.SingleVariable(vars[m][j]), MOI.ZeroOne())
+        MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), vars[m][j], m)
+    end
+
+    ## Subproblem constrs
+    knp_constrs = MOI.ConstraintIndex[]
+    for m in 1:nb_machs
+        knp_constr = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.(weights[m], vars[m]), 0.0), MOI.LessThan(caps[m]))
+        MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, m)
+        push!(knp_constrs, knp_constr)
+    end
+
+    cover_constrs = MOI.ConstraintIndex[]
+    for j in 1:nb_jobs
+        ci = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0 for m in 1:nb_machs], 
+                                                                                          [vars[m][j] for m in 1:nb_machs]), 0.0), MOI.GreaterThan(1.0))
+        MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), ci, 0)
+        push!(cover_constrs, ci)
+    end
+
+    ### set objective function
+    all_vars = []
+    all_costs = []
+    for m in 1:nb_machs
+        append!(all_vars, vars[m])
+        append!(all_costs, costs[m])
+    end
+    objF = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.(all_costs, all_vars), 0.0)
+    MOI.set(moi_model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objF)
+    MOI.set(moi_model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+
+    card_bounds_dict = Dict{Int, Tuple{Int,Int}}()
+    for m in 1:nb_machs
+        card_bounds_dict[m] = (0,1)
+    end
+    MOI.set(moi_model, CL.DantzigWolfePricingCardinalityBounds(), card_bounds_dict)
+
+    return moi_model, vars, cover_constrs, knp_constrs
+end
