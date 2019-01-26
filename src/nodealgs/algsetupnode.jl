@@ -272,7 +272,7 @@ end
 
 function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node::Node)
     for constr in node.local_branching_constraints
-        add_full_constraint(alg.extended_problem.master_problem, constr)
+        add_constraint(alg.extended_problem.master_problem, constr)
         @logmsg LogLevel(-4) string("Adding cosntraint ",
             constr.vc_ref, " generated when branching.")
     end
@@ -354,7 +354,7 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
         if typeof(constr) <: MasterBranchConstr
             idx = find_first(in_problem, constr.vc_ref)
             if idx == 0
-                add_full_constraint(alg.extended_problem.master_problem, constr)
+                add_constraint(alg.extended_problem.master_problem, constr)
                 @logmsg LogLevel(-4) string("added constraint ", constr.vc_ref)
             else
                 @logmsg LogLevel(-4) string("constraint ", constr.vc_ref,

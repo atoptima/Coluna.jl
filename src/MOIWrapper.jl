@@ -100,7 +100,6 @@ end
 function MOI.set(dest::MOIU.UniversalFallback,
                  attribute::DantzigWolfePricingCardinalityBounds,
                  value::Dict{Int, Tuple{Int, Int}})
-
     dest.modattr[attribute] = value
 end
 
@@ -120,7 +119,7 @@ function add_memberships(dest::ColunaModelOptimizer, problem::Problem, constr::C
                          f::MOI.ScalarAffineFunction, mapping::MOIU.IndexMap)
     for term in f.terms
         add_membership(problem, dest.varmap[mapping.varmap[term.variable_index]],
-                       constr, term.coefficient)
+                       constr, term.coefficient; update_moi = true)
     end
 end
 
@@ -148,8 +147,8 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
     if prob_idx == 0
         art_glob_pos_var = extended_prob.artificial_global_pos_var
         art_glob_neg_var = extended_prob.artificial_global_neg_var
-        add_membership(problem, art_glob_pos_var, constr, 1.0)
-        add_membership(problem, art_glob_neg_var, constr, 1.0)
+        add_membership(problem, art_glob_pos_var, constr, 1.0; update_moi = true)
+        add_membership(problem, art_glob_neg_var, constr, 1.0; update_moi = true)
     end
     update_constraint_map(mapping, ci, f, s)
 end

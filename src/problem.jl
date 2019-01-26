@@ -358,6 +358,7 @@ function add_variable(problem::CompactProblem, col::MasterColumn)
             # Currently it has to search each branching constraint in the list
             # of active ones as the corresponding flags are not being kept
             # up-to-date. TODO: fix this
+
             constr_in_master = true
             if constr isa MasterBranchConstr
                 constr_in_master = false
@@ -373,8 +374,9 @@ function add_variable(problem::CompactProblem, col::MasterColumn)
                 end
             end
             if constr_in_master
-                add_membership(problem, col, constr, val * coef)
+                add_membership(problem, col, constr, val * coef; update_moi = true)
             end
+
         end
         var.master_col_coef_map[col] = val
     end
@@ -412,11 +414,16 @@ function enforce_type_in_optimizer(
     end
 end
 
-function relax_var_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
-end
-
 ####################################################################
 
+function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                 constr::Constraint)
+    terms = compute_constr_moi_terms(constr)
+    f = MOI.ScalarAffineFunction(terms, 0.0)
+    constr.moi_index = MOI.add_constraint(
+        optimizer, f, constr.set_type(constr.cost_rhs)
+    )
+end
 
 
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
@@ -427,54 +434,25 @@ function add_constraint(problem::CompactProblem, constr::Constraint)
     constr.prob_ref = problem.prob_ref
     add_constr_in_manager(problem.constr_manager, constr)
     if problem.optimizer != nothing
-        f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
-        constr.moi_index = MOI.add_constraint(problem.optimizer, f,
-                constr.set_type(constr.cost_rhs))
+        add_constr_in_optimizer(problem.optimizer, constr)
     end
 end
 
-function add_full_constraint(problem::CompactProblem, constr::Constraint)
-    @logmsg LogLevel(-4) "adding full Constraint $constr"
-    @assert constr.prob_ref == -1
-    constr.prob_ref = problem.prob_ref
-    add_constr_in_manager(problem.constr_manager, constr)
-    add_full_constraint_in_optimizer(problem.optimizer, constr)
+function compute_constr_moi_terms(constr::Constraint)
+    return [MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index)
+            for var_val in constr.member_coef_map]
 end
 
-function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractOptimizer},
-                                          constr::Constraint)
-
-    terms = MOI.ScalarAffineTerm{Float}[]
-    for var_val in constr.member_coef_map
-        push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second,
-                                                 var_val.first.moi_index))
-    end
-    if optimizer != nothing
-        f = MOI.ScalarAffineFunction(terms, 0.0)
-        constr.moi_index = MOI.add_constraint(optimizer, f,
-                constr.set_type(constr.cost_rhs))
-    end
-end
-
-function add_full_constraint_in_optimizer(optimizer::Union{Nothing,MOI.AbstractOptimizer},
-                                          constr::MasterConstr)
-
-    terms = MOI.ScalarAffineTerm{Float}[]
-    for var_val in constr.member_coef_map
-        push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second,
-                                                 var_val.first.moi_index))
-    end
+function compute_constr_moi_terms(constr::MasterConstr)
+    terms = [MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index)
+             for var_val in constr.member_coef_map]
     for sp_var in keys(constr.subprob_var_coef_map)
         for var_val in sp_var.master_col_coef_map
             push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second,
                                                      var_val.first.moi_index))
         end
     end
-    if optimizer != nothing
-        f = MOI.ScalarAffineFunction(terms, 0.0)
-        constr.moi_index = MOI.add_constraint(optimizer, f,
-                constr.set_type(constr.cost_rhs))
-    end
+    return terms
 end
 
 function load_problem_in_optimizer(problem::CompactProblem,
@@ -487,10 +465,10 @@ function load_problem_in_optimizer(problem::CompactProblem,
         add_variable_in_optimizer(optimizer, var, is_relaxed)
     end
     for constr in problem.constr_manager.active_static_list
-        add_full_constraint_in_optimizer(optimizer, constr)
+        add_constr_in_optimizer(optimizer, constr)
     end
     for constr in problem.constr_manager.active_dynamic_list
-        add_full_constraint_in_optimizer(optimizer, constr)
+        add_constr_in_optimizer(optimizer, constr)
     end
 end
 
@@ -505,35 +483,43 @@ function delete_constraint(problem::CompactProblem, constr::MasterBranchConstr)
     end
 end
 
+function update_moi_membership(optimizer::MOI.AbstractOptimizer, var::Variable,
+                               constr::Constraint, coef::Float)
+    MOI.modify(optimizer, constr.moi_index,
+               MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+end
+
 function add_membership(problem::CompactProblem, var::Variable,
-                        constr::Constraint, coef::Float)
+                        constr::Constraint, coef::Float;
+                        update_moi = false)
 
     @logmsg LogLevel(-4) "add_membership : Variable = $var, Constraint = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    if problem.optimizer != nothing
-        MOI.modify(problem.optimizer, constr.moi_index,
-                    MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+    if update_moi
+        update_moi_membership(problem.optimizer, var, constr, coef)
     end
 end
 
 function add_membership(problem::CompactProblem, var::SubprobVar,
-                        constr::MasterConstr, coef::Float)
+                        constr::MasterConstr, coef::Float;
+                        update_moi = false)
 
     @logmsg LogLevel(-4) "add_membership : SubprobVar = $var, MasterConstraint = $constr"
     var.master_constr_coef_map[constr] = coef
     constr.subprob_var_coef_map[var] = coef
 end
 
+# The only interest of having this function is the specific printing
 function add_membership(problem::CompactProblem, var::MasterVar,
-                        constr::MasterConstr, coef::Float)
+                        constr::MasterConstr, coef::Float;
+                        update_moi = false)
 
     @logmsg LogLevel(-4) "add_membership : MasterVar = $var, MasterConstr = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    if problem.optimizer != nothing
-        MOI.modify(problem.optimizer, constr.moi_index,
-                    MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+    if update_moi
+        update_moi_membership(problem.optimizer, var, constr, coef)
     end
 end
 

@@ -19,15 +19,15 @@ include("unit_tests/unit_tests.jl")
 using Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(0)))
 
-unit_tests()
-testdefaultbuilders()
-testpuremaster()
-@testset "cutting stock - colgen root " begin
-    testcolgenatroot()
-end
-@testset "knapsack - branch and bound" begin
-    branch_and_bound_test_instance()
-end
+# unit_tests()
+# testdefaultbuilders()
+# testpuremaster()
+# @testset "cutting stock - colgen root " begin
+#     testcolgenatroot()
+# end
+# @testset "knapsack - branch and bound" begin
+#     branch_and_bound_test_instance()
+# end
 branch_and_bound_bigger_instances()
 moi_wrapper()
 @testset "gap - JuMP/MOI modeling" begin

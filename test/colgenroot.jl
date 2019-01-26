@@ -41,10 +41,10 @@ function testcolgenatroot()
 
     CL.add_constraint(pricingprob, knp_constr)
 
-    CL.add_membership(pricingprob, x1, knp_constr, 3.0)
-    CL.add_membership(pricingprob, x2, knp_constr, 4.0)
-    CL.add_membership(pricingprob, x3, knp_constr, 5.0)
-    CL.add_membership(pricingprob, y, knp_constr, -8.0)
+    CL.add_membership(pricingprob, x1, knp_constr, 3.0; update_moi = true)
+    CL.add_membership(pricingprob, x2, knp_constr, 4.0; update_moi = true)
+    CL.add_membership(pricingprob, x3, knp_constr, 5.0; update_moi = true)
+    CL.add_membership(pricingprob, y, knp_constr, -8.0; update_moi = true)
 
     # master var
     art_glob_pos_var = extended_problem.artificial_global_pos_var
@@ -62,13 +62,13 @@ function testcolgenatroot()
     CL.add_constraint(master_problem, cov_2_constr)
     CL.add_constraint(master_problem, cov_3_constr)
 
-    CL.add_membership(master_problem, x1, cov_1_constr, 1.0)
-    CL.add_membership(master_problem, x2, cov_2_constr, 1.0)
-    CL.add_membership(master_problem, x3, cov_3_constr, 1.0)
+    CL.add_membership(master_problem, x1, cov_1_constr, 1.0; update_moi = true)
+    CL.add_membership(master_problem, x2, cov_2_constr, 1.0; update_moi = true)
+    CL.add_membership(master_problem, x3, cov_3_constr, 1.0; update_moi = true)
 
-    CL.add_membership(master_problem, art_glob_pos_var, cov_1_constr, 1.0)
-    CL.add_membership(master_problem, art_glob_pos_var, cov_2_constr, 1.0)
-    CL.add_membership(master_problem, art_glob_pos_var, cov_3_constr, 1.0)
+    CL.add_membership(master_problem, art_glob_pos_var, cov_1_constr, 1.0; update_moi = true)
+    CL.add_membership(master_problem, art_glob_pos_var, cov_2_constr, 1.0; update_moi = true)
+    CL.add_membership(master_problem, art_glob_pos_var, cov_3_constr, 1.0; update_moi = true)
 
     CL.solve(model)
 
