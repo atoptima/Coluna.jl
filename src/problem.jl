@@ -341,35 +341,11 @@ end
 function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                    var::Variable, is_relaxed::Bool)
 
-    var.moi_index = MOI.add_variable(optimizer)
-    # TODO set variable type
-    add_bounds = true
-    if !is_relaxed
-        if var.vc_type == 'B'
-            if var.lower_bound > 0.0
-                var.lower_bound = 1.0
-            elseif var.upper_bound < 1.0
-                var.upper_bound = 0.0
-            else
-                MOI.add_constraint(optimizer,
-                        MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
-                add_bounds = false
-            end
-        elseif var.vc_type == 'I'
-            MOI.add_constraint(optimizer,
-                    MOI.SingleVariable(var.moi_index), MOI.Integer())
-        end
-    end
+    add_in_optimizer(optimizer, var)
+    update_cost_in_optimizer(optimizer, var)
+    !is_relaxed && enforce_type_in_optimizer(optimizer, var)
+    (var.vc_type != 'B' || is_relaxed) && enforce_original_bounds_in_optimizer(optimizer, var)
 
-    MOI.modify(optimizer,
-            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-            MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
-
-    if add_bounds
-        MOI.add_constraint(optimizer,
-                MOI.SingleVariable(var.moi_index),
-                MOI.Interval(var.lower_bound, var.upper_bound))
-    end
 end
 
 function add_variable(problem::CompactProblem, col::MasterColumn)
@@ -403,6 +379,45 @@ function add_variable(problem::CompactProblem, col::MasterColumn)
         var.master_col_coef_map[col] = val
     end
 end
+
+####################################################################
+########################### New functions ##########################
+####################################################################
+
+function add_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
+    var.moi_index = MOI.add_variable(optimizer)
+end
+
+function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
+    MOI.modify(optimizer,
+               MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+               MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
+end
+
+function enforce_original_bounds_in_optimizer(
+    optimizer::MOI.AbstractOptimizer, var::Variable)
+    MOI.add_constraint(optimizer,
+                       MOI.SingleVariable(var.moi_index),
+                       MOI.Interval(var.lower_bound, var.upper_bound))
+end
+
+function enforce_type_in_optimizer(
+    optimizer::MOI.AbstractOptimizer, var::Variable)
+    if var.vc_type == 'B'
+        MOI.add_constraint(optimizer,
+                           MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
+    elseif var.vc_type == 'I'
+        MOI.add_constraint(optimizer,
+                           MOI.SingleVariable(var.moi_index), MOI.Integer())
+    end
+end
+
+function relax_var_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
+end
+
+####################################################################
+
+
 
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the constraint

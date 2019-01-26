@@ -282,9 +282,7 @@ function add_variable_in_optimizer_tests()
     @test objf.terms[2].variable_index == vars[2].moi_index
     list_of_ci = MOI.get(problem.optimizer,
     MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Interval{Float64}}())
-    @test length(list_of_ci) == 1
-    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[1]) == MOI.SingleVariable(vars[2].moi_index)
-    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.Interval{Float64}(1.0,1.0)
+    @test length(list_of_ci) == 0
 
     vars[3].vc_type = 'I'
     CL.add_variable_in_optimizer(problem.optimizer, vars[3], false)
@@ -300,9 +298,9 @@ function add_variable_in_optimizer_tests()
     CL.add_variable_in_optimizer(problem.optimizer, vars[4], false)
     list_of_ci = MOI.get(problem.optimizer,
     MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Interval{Float64}}())
-    @test length(list_of_ci) == 3
-    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[3]) == MOI.SingleVariable(vars[4].moi_index)
-    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[3]) == MOI.Interval{Float64}(vars[4].lower_bound,vars[4].upper_bound)
+    @test length(list_of_ci) == 2
+    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[2]) == MOI.SingleVariable(vars[4].moi_index)
+    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[2]) == MOI.Interval{Float64}(vars[4].lower_bound,vars[4].upper_bound)
 end
 
 function add_constraint_tests()
