@@ -1,4 +1,4 @@
-using JuMP, Coluna, GLPK, Test
+using JuMP, GLPK, Coluna, Test
 using MathOptInterface: set
 #using Base.CoreLogging, Logging
 #global_logger(ConsoleLogger(stderr, LogLevel(-4)))
@@ -16,6 +16,11 @@ solvertype = Coluna.ColunaModelOptimizer
 optimize!(gap)
 @test abs(JuMP.objective_value(gap) - 75.0) < 1e-7
 
+for m in data.machines, j in data.jobs
+    if JuMP.value(x[m,j]) > 0
+	println("job $(j) attached to machine $(m)")
+    end
+end
 # NOT SUPPORTED YET
 # status = JuMP.primal_status(gap)
 #
