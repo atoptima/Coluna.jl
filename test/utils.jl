@@ -57,7 +57,8 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
 end
 
 function build_colgen_gap_model_with_moi(nb_jobs::Int, nb_machs::Int, caps::Vector{Float64},
-                                         costs::Vector{Vector{Float64}}, weights::Vector{Vector{Float64}})
+                                         costs::Vector{Vector{Float64}}, weights::Vector{Vector{Float64}},
+                                         bound_vars::Bool)
 
     coluna_optimizer = CL.ColunaModelOptimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
@@ -72,7 +73,12 @@ function build_colgen_gap_model_with_moi(nb_jobs::Int, nb_machs::Int, caps::Vect
     ## Bounds
     bounds = MOI.ConstraintIndex[]
     for m in 1:nb_machs, j in 1:nb_jobs
-        ci = MOI.add_constraint(moi_model, MOI.SingleVariable(vars[m][j]), MOI.ZeroOne())
+        if bound_vars
+            ci = MOI.add_constraint(moi_model, MOI.SingleVariable(vars[m][j]), MOI.ZeroOne())
+        else
+            ci = MOI.add_constraint(moi_model, MOI.SingleVariable(vars[m][j]), MOI.GreaterThan(0))
+            ci = MOI.add_constraint(moi_model, MOI.SingleVariable(vars[m][j]), MOI.Integer())
+        end
         MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), vars[m][j], m)
     end
 
