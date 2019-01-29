@@ -4,8 +4,8 @@
     stack::DS.Stack{Constraint}
     var_local_master_membership::Dict{Variable,Vector{Tuple{Constraint,Float}}}
     var_local_sp_membership::Dict{Variable,Vector{Tuple{Constraint,Float}}}
-    inf_sources_for_min_slack::Dict{Constraint,Vector{Variable}}
-    inf_sources_for_max_slack::Dict{Constraint,Vector{Variable}}
+    nb_inf_sources_for_min_slack::Dict{Constraint,Int}
+    nb_inf_sources_for_max_slack::Dict{Constraint,Int}
     preprocessed_constrs::Vector{Constraint}
     preprocessed_vars::Vector{Variable}
 end
@@ -13,7 +13,7 @@ end
 function AlgToPreprocessNodeBuilder(extended_problem::ExtendedProblem)
     return (extended_problem, Dict{Constraint,Bool}(), DS.Stack{Constraint}(), 
             Dict{Variable,Vector{Tuple{Constraint,Float}}}(), Dict{Variable,Vector{Tuple{Constraint,Float}}}(),
-            Dict{Constraint,Vector{Variable}}(), Dict{Constraint,Vector{Variable}}(), Constraint[], Variable[])
+            Dict{Constraint,Int}(), Dict{Constraint,Int}(), Constraint[], Variable[])
 end
 
 function run(alg::AlgToPreprocessNode, node::Node)
@@ -22,7 +22,7 @@ function run(alg::AlgToPreprocessNode, node::Node)
         return true
     end
     infeas = propagation(alg) 
-#    print_preprocessing_list(alg)
+    # print_preprocessing_list(alg)
     return infeas
 end
 
@@ -58,8 +58,8 @@ function reset(alg::AlgToPreprocessNode)
     empty!(alg.preprocessed_constrs)
     empty!(alg.var_local_master_membership)
     empty!(alg.var_local_sp_membership)
-    empty!(alg.inf_sources_for_min_slack)
-    empty!(alg.inf_sources_for_max_slack)
+    empty!(alg.nb_inf_sources_for_min_slack)
+    empty!(alg.nb_inf_sources_for_max_slack)
 end
 
 #in root node, we start propagation from all constraints
@@ -103,7 +103,7 @@ function initialize(alg::AlgToPreprocessNode, node::Node)
 
     #adding constraints to stack
     for constr in constrs_to_stack
-        if update_min_slack(alg, constr, nothing, 0.0) || update_max_slack(alg, constr, nothing, 0.0)
+        if update_min_slack(alg, constr, false, 0.0) || update_max_slack(alg, constr, false, 0.0)
             return true
         end
     end
@@ -114,8 +114,8 @@ end
 function initialize_constraint(alg::AlgToPreprocessNode, constr::Constraint)
     alg.constr_in_stack[constr] = false
     update_local_membership(alg, constr)
-    alg.inf_sources_for_min_slack[constr] = []
-    alg.inf_sources_for_max_slack[constr] = []
+    alg.nb_inf_sources_for_min_slack[constr] = 0
+    alg.nb_inf_sources_for_max_slack[constr] = 0
     compute_min_slack(alg, constr)
     compute_max_slack(alg, constr)
  #   print_constr(constr)
@@ -165,13 +165,13 @@ function compute_min_slack(alg::AlgToPreprocessNode, constr::Constraint)
         end
         if coef > 0
             if var.cur_ub == Inf
-                push!(alg.inf_sources_for_min_slack[constr], var)
+                alg.nb_inf_sources_for_min_slack[constr] += 1
             else
                 slack -= coef*var.cur_ub
             end
         else
             if var.cur_lb == -Inf
-                push!(alg.inf_sources_for_min_slack[constr], var)
+                alg.nb_inf_sources_for_min_slack[constr] += 1
             else
                 slack -= coef*var.cur_lb
             end
@@ -188,13 +188,13 @@ function compute_max_slack(alg::AlgToPreprocessNode, constr::Constraint)
         end
         if coef > 0
             if var.cur_lb == -Inf
-                push!(alg.inf_sources_for_max_slack[constr], var)
+                alg.nb_inf_sources_for_max_slack[constr] += 1
             else
                 slack -= coef*var.cur_lb
             end
         else
             if var.cur_ub == Inf
-                push!(alg.inf_sources_for_max_slack[constr], var)
+                alg.nb_inf_sources_for_max_slack[constr] += 1
             else
                 slack -= coef*var.cur_ub
             end
@@ -210,13 +210,13 @@ function compute_min_slack(alg::AlgToPreprocessNode, constr::MasterConstr)
     for (sp_var, coef) in constr.subprob_var_coef_map
         if coef < 0
             if sp_var.cur_global_lb == -Inf
-                push!(alg.inf_sources_for_min_slack[constr], sp_var)
+                alg.nb_inf_sources_for_min_slack[constr] += 1
             else
                 constr.cur_min_slack -= coef*sp_var.cur_global_lb
             end
         else
            if sp_var.cur_global_ub == Inf
-                push!(alg.inf_sources_for_min_slack[constr], sp_var)
+                alg.nb_inf_sources_for_min_slack[constr] += 1
             else
                 constr.cur_min_slack -= coef*sp_var.cur_global_ub
             end
@@ -231,13 +231,13 @@ function compute_max_slack(alg::AlgToPreprocessNode, constr::MasterConstr)
     for (sp_var, coef) in constr.subprob_var_coef_map
         if coef > 0
             if sp_var.cur_global_lb == -Inf
-                push!(alg.inf_sources_for_max_slack[constr], var)
+                alg.nb_inf_sources_for_max_slack[constr] += 1
             else
                 constr.cur_max_slack -= coef*sp_var.cur_global_lb
             end
         else
            if sp_var.cur_global_ub == Inf
-                push!(alg.inf_sources_for_max_slack[constr], var)
+                alg.nb_inf_sources_for_max_slack[constr] += 1
             else
                 constr.cur_max_slack -= coef*sp_var.cur_global_ub
             end
@@ -245,13 +245,13 @@ function compute_max_slack(alg::AlgToPreprocessNode, constr::MasterConstr)
     end
 end
 
-function update_max_slack(alg::AlgToPreprocessNode, constr::Constraint, var::Union{Variable,Nothing}, delta::Float)
+function update_max_slack(alg::AlgToPreprocessNode, constr::Constraint, var_was_inf_source::Bool, delta::Float)
     constr.cur_max_slack += delta
-    if var in alg.inf_sources_for_max_slack[constr]
-        filter!(x -> x != var, alg.inf_sources_for_max_slack[constr])
+    if var_was_inf_source
+        alg.nb_inf_sources_for_max_slack[constr] -= 1
     end
 
-    nb_inf_sources = length(alg.inf_sources_for_max_slack[constr])
+    nb_inf_sources = alg.nb_inf_sources_for_max_slack[constr]
     if nb_inf_sources == 0
         if constr.sense != 'G' && constr.cur_max_slack < 0
             return true
@@ -268,13 +268,13 @@ function update_max_slack(alg::AlgToPreprocessNode, constr::Constraint, var::Uni
     return false
 end
 
-function update_min_slack(alg::AlgToPreprocessNode, constr::Constraint, var::Union{Variable,Nothing}, delta::Float)
+function update_min_slack(alg::AlgToPreprocessNode, constr::Constraint, var_was_inf_source::Bool, delta::Float)
     constr.cur_min_slack += delta
-    if var in alg.inf_sources_for_min_slack[constr]
-        filter!(x -> x != var, alg.inf_sources_for_min_slack[constr])
+    if var_was_inf_source
+        alg.nb_inf_sources_for_min_slack[constr] -= 1
     end
 
-    nb_inf_sources = length(alg.inf_sources_for_min_slack[constr])
+    nb_inf_sources = alg.nb_inf_sources_for_min_slack[constr]
     if nb_inf_sources == 0
         if constr.sense != 'L' && constr.cur_min_slack > 0
             return true
@@ -300,7 +300,7 @@ function update_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar, new_lb::F
         diff = var.cur_global_lb == -Inf ? -new_lb : var.cur_global_lb - new_lb
         for (constr, coef) in alg.var_local_master_membership[var]
             func = coef < 0 ? update_min_slack : update_max_slack
-            if func(alg, constr, var, diff*coef)
+            if func(alg, constr, var.cur_global_lb == -Inf , diff*coef)
                 return true
             end
         end
@@ -319,7 +319,7 @@ function update_lower_bound(alg::AlgToPreprocessNode, var::MasterVar, new_lb::Fl
         diff = var.cur_lb == -Inf ? - new_lb : var.cur_lb - new_lb
         for (constr, coef) in alg.var_local_master_membership[var]
             func = coef < 0 ? update_min_slack : update_max_slack
-            if func(alg, constr, var, diff*coef)
+            if func(alg, constr, var.cur_lb == -Inf, diff*coef)
                 return true
             end
         end
@@ -339,7 +339,7 @@ function update_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar, new_ub::F
         diff = var.cur_global_ub == Inf ? -new_ub : var.cur_global_ub - new_ub
         for (constr, coef) in alg.var_local_master_membership[var]
             func = coef > 0 ? update_min_slack : update_max_slack
-            if func(alg, constr, var, diff*coef)
+            if func(alg, constr, var.cur_global_ub == Inf, diff*coef)
                 return true
             end
         end
@@ -358,7 +358,7 @@ function update_upper_bound(alg::AlgToPreprocessNode, var::MasterVar, new_ub::Fl
         diff = var.cur_ub == Inf ? -new_ub : var.cur_ub - new_ub
         for (constr, coef) in alg.var_local_master_membership[var]
             func = coef > 0 ? update_min_slack : update_max_slack
-            if func(alg, constr, diff*coef)
+            if func(alg, constr, var.cur_ub == Inf, diff*coef)
                 return true
             end
         end
@@ -402,7 +402,7 @@ function update_local_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar, new
         diff = var.cur_lb == -Inf ? -new_lb : var.cur_lb - new_lb
         for (constr, coef) in alg.var_local_sp_membership[var]
             func = coef < 0 ? update_min_slack : update_max_slack
-            if func(alg, constr, var, diff*coef)
+            if func(alg, constr, var.cur_lb == -Inf, diff*coef)
                 return true
             end
         end
@@ -431,7 +431,7 @@ function update_local_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar, new
         diff = var.cur_ub == Inf ? -new_ub : var.cur_ub - new_ub
         for (constr, coef) in alg.var_local_sp_membership[var]
             func = coef > 0 ? update_min_slack : update_max_slack
-            if func(alg, constr, var, diff*coef)
+            if func(alg, constr, var.cur_ub == Inf, diff*coef)
                 return true
             end
         end
@@ -461,13 +461,12 @@ end
 function compute_new_var_bound(alg::AlgToPreprocessNode, var::Variable, cur_lb::Float, 
                                cur_ub::Float, coef::Float, constr::Constraint)
 
-    function compute_new_bound(inf_sources::Vector{Variable}, slack::Float, var_contrib_to_slack::Float, 
+    function compute_new_bound(nb_inf_sources::Int, slack::Float, var_contrib_to_slack::Float, 
                            inf_bound::Float)
-        nb_inf_sources = length(inf_sources)
         if nb_inf_sources == 0
             bound = (slack - var_contrib_to_slack)/coef
-        elseif nb_inf_sources == 1
-            bound = var in inf_sources ? slack/coef : inf_bound
+        elseif nb_inf_sources == 1 && isinf(var_contrib_to_slack)
+            bound = slack/coef 
         else
             bound = inf_bound
         end
@@ -476,20 +475,20 @@ function compute_new_var_bound(alg::AlgToPreprocessNode, var::Variable, cur_lb::
 
     if coef > 0 && constr.sense != 'G'
         is_ub = true
-        return (is_ub, compute_new_bound(alg.inf_sources_for_max_slack[constr], constr.cur_max_slack, 
+        return (is_ub, compute_new_bound(alg.nb_inf_sources_for_max_slack[constr], constr.cur_max_slack, 
                                     -coef*cur_lb, Inf))
     elseif coef > 0 && constr.sense != 'L'
 
         is_ub = false
-        return (is_ub, compute_new_bound(alg.inf_sources_for_min_slack[constr], constr.cur_min_slack, 
+        return (is_ub, compute_new_bound(alg.nb_inf_sources_for_min_slack[constr], constr.cur_min_slack, 
                                     -coef*cur_ub, -Inf))
     elseif coef < 0 && constr.sense != 'G'
         is_ub = false
-        return (is_ub, compute_new_bound(alg.inf_sources_for_max_slack[constr], constr.cur_max_slack, 
+        return (is_ub, compute_new_bound(alg.nb_inf_sources_for_max_slack[constr], constr.cur_max_slack, 
                                     -coef*cur_ub, -Inf))
     else
         is_ub = true
-        return (is_ub, compute_new_bound(alg.inf_sources_for_min_slack[constr], constr.cur_min_slack, 
+        return (is_ub, compute_new_bound(alg.nb_inf_sources_for_min_slack[constr], constr.cur_min_slack, 
                                      -coef*cur_lb, Inf))
     end
 end
