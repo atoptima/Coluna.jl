@@ -281,7 +281,6 @@ function treat(node::Node, treat_algs::TreatAlgs,
         return true
     end
 
-    # We dont have primal heuristics
     for alg in treat_algs.alg_vect_primal_heur_node
         run(alg, node, global_treat_order)
         # TODO remove node bound updates from inside heuristics and put it here.

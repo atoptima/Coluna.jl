@@ -167,6 +167,7 @@ end
     # ```
     moi_index::MOI.VariableIndex
 
+    secondary_moi_index::MOI.VariableIndex
 
     # ```
     # To represent local lower bound on variable primal / constraint dual
@@ -193,17 +194,19 @@ function VariableBuilder(counter::VarConstrCounter, name::String,
         costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char,
         priority::Float, lowerBound::Float, upperBound::Float)
 
-    return tuplejoin(VarConstrBuilder( counter, name, costrhs, sense, vc_type,
-            flag, directive, priority), MOI.VariableIndex(-1), lowerBound,
-            upperBound, -Inf, Inf)
+    return tuplejoin(
+        VarConstrBuilder(counter, name, costrhs, sense, vc_type, flag,
+                         directive, priority), MOI.VariableIndex(-1),
+        MOI.VariableIndex(-1), lowerBound, upperBound, -Inf, Inf)
 end
 
 VariableBuilder(var::Variable, counter::VarConstrCounter) = tuplejoin(
         VarConstrBuilder(var, counter),
-        (MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
+        (MOI.VariableIndex(-1), MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
 
 @hl mutable struct Constraint <: VarConstr
     moi_index::MOI.ConstraintIndex{F,S} where {F,S}
+    secondary_moi_index::MOI.ConstraintIndex{F,S} where {F,S}
     set_type::Type{<:MOI.AbstractSet}
     cur_min_slack::Float #for preprocessing
     cur_max_slack::Float #for preprocessing
@@ -221,9 +224,12 @@ function ConstraintBuilder(counter::VarConstrCounter, name::String,
         error("Sense $sense is not supported")
     end
 
-    return tuplejoin(VarConstrBuilder(counter, name, cost_rhs, sense, vc_type,
-            flag, 'U', 1.0),
-            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1), set_type, -Inf, Inf)
+    return tuplejoin(
+        VarConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag, 'U', 1.0),
+        MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
+        MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
+        set_type, -Inf, Inf
+    )
 end
 
 function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
@@ -233,4 +239,10 @@ function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
         end
     end
     return 0
+end
+
+function switch_primary_secondary_moi_indices(vc::VarConstr)
+    temp_idx = vc.moi_index
+    vc.moi_index = vc.secondary_moi_index
+    vc.secondary_moi_index = temp_idx
 end

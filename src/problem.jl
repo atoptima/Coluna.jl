@@ -310,7 +310,8 @@ function retrieve_dual_sol(problem::CompactProblem;
             push!(problem.dual_sols, dual_sol) #TODO get objbound
         end
         return dual_sol
-    catch
+    catch err
+        println(string(err))
         @warn "Optimizer $(typeof(optimizer)) doesn't have a dual status"
         return nothing
     end
@@ -364,10 +365,6 @@ function update_moi_membership(optimizer::MOI.AbstractOptimizer,
         update_moi_membership(optimizer, col, constr_coef[1], constr_coef[2])
     end
 end
-
-####################################################################
-########################### New functions ##########################
-####################################################################
 
 function create_moi_index(optimizer::MOI.AbstractOptimizer, var::Variable)
     var.moi_index = MOI.add_variable(optimizer)
@@ -440,8 +437,6 @@ function update_constr_status(problem::CompactProblem,
     add_constr_in_manager(problem.constr_manager, constr)
 end
 
-### addconstraint changes problem and MOI cachingOptimizer.model_cache
-### and sets the index of the constraint
 function add_constraint(problem::CompactProblem, constr::Constraint;
                         update_moi = false)
     @logmsg LogLevel(-4) "adding Constraint $constr"
@@ -479,7 +474,7 @@ function load_problem_in_optimizer(problem::CompactProblem,
 end
 
 function delete_constraint(problem::CompactProblem, constr::MasterBranchConstr)
-    ### When deleting a constraint, its MOI index becomes invalid
+    # When deleting a constraint, its MOI index becomes invalid
     remove_from_constr_manager(problem.constr_manager, constr)
     constr.prob_ref = -1
     if problem.optimizer != nothing
@@ -523,6 +518,21 @@ function add_membership(var::MasterVar, constr::MasterConstr, coef::Float;
     end
 end
 
+function switch_primary_secondary_moi_indices(problem::CompactProblem)
+    for var in problem.var_manager.active_static_list
+        switch_primary_secondary_moi_indices(var)
+    end
+    for var in problem.var_manager.active_dynamic_list
+        switch_primary_secondary_moi_indices(var)
+    end
+    for constr in problem.constr_manager.active_static_list
+        switch_primary_secondary_moi_indices(constr)
+    end
+    for constr in problem.constr_manager.active_dynamic_list
+        switch_primary_secondary_moi_indices(constr)
+    end
+end
+
 # Updates the problem with the primal/dual sols
 function optimize!(problem::CompactProblem)
     if problem.optimizer == nothing
@@ -538,7 +548,6 @@ function optimize!(problem::CompactProblem)
     else
         @logmsg LogLevel(-4) string("Solver has no result to show.")
     end
-
     return status
 end
 

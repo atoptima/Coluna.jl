@@ -219,6 +219,7 @@ end
 function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     prob_info = ProblemSetupInfo(node.treat_order)
     master_problem = alg.extended_problem.master_problem
+
     # Partial solution of master
     for (var, val) in master_problem.partial_solution
         push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
@@ -229,6 +230,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     record_constraints_info(prob_info, master_problem)
 
     node.problem_setup_info = prob_info
+
 end
 
 #############################
@@ -387,6 +389,7 @@ function prepare_master_columns(alg::AlgToSetupFull, node::Node)
     master = alg.extended_problem.master_problem
     in_problem = master.var_manager.active_dynamic_list
     in_setup_info = node.problem_setup_info.suitable_master_columns_info
+
     removed_from_problem = Variable[]
     added_to_problem = Variable[]
     for i in length(in_problem):-1:1
@@ -482,27 +485,15 @@ function update_formulation(alg::AlgToSetupNode,
                             added_cols_to_problem::Vector{Variable}
                             )
     # TODO implement caching through MOI.
-    global rc_ = removed_cuts_from_problem
-    global ac_ = added_cuts_to_problem
-    global rv_ = removed_cols_from_problem
-    global av_ = added_cols_to_problem
 
     optimizer = alg.extended_problem.master_problem.optimizer
     is_relaxed = alg.extended_problem.master_problem.is_relaxed
     # Remove cuts
     for cut in removed_cuts_from_problem
-        # if cut.moi_index.value == -1
-        #     println("removed cuts")
-        #     SimpleDebugger.@bkp
-        # end
         remove_constr_from_optimizer(optimizer, cut)
     end
     # Remove variables
     for col in removed_cols_from_problem
-        # if col.moi_index.value == -1
-        #     println("removed cols")
-        #     SimpleDebugger.@bkp
-        # end
         remove_var_from_optimizer(optimizer, col)
     end
 
