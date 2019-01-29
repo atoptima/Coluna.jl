@@ -67,19 +67,31 @@ end
 SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(),
         Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
 
-function add_var_in_manager(var_manager::SimpleVarIndexManager, var::Variable)
-    if var.status == Active && var.flag in['s', 'a']
+function get_list(var_manager::SimpleVarIndexManager, status::VCSTATUS, flag::Char)
+    if status == Active && flag in['s', 'a']
         list = var_manager.active_static_list
-    elseif var.status == Active && var.flag == 'd'
+    elseif status == Active && flag == 'd'
         list = var_manager.active_dynamic_list
-    elseif var.status == Unsuitable && var.flag in['s', 'a']
+    elseif status == Unsuitable && flag in['s', 'a']
         list = var_manager.unsuitable_static_list
-    elseif var.status == Unsuitable && var.flag == 'd'
+    elseif status == Unsuitable && flag == 'd'
         list = var_manager.unsuitable_dynamic_list
     else
-        error("Status $(var.status) and flag $(var.flag) are not supported")
+        error("Status $(status) and flag $(flag) are not supported")
     end
+    return list
+end
+
+function add_var_in_manager(var_manager::SimpleVarIndexManager, var::Variable)
+    list = get_list(var_manager, var.status, var.flag)
     push!(list, var)
+end
+
+function remove_from_var_manager(var_manager::SimpleVarIndexManager,
+                                 var::Variable)
+    list = get_list(var_manager, var.status, var.flag)
+    idx = findfirst(x->x==var, list)
+    deleteat!(list, idx)
 end
 
 mutable struct SimpleConstrIndexManager <: AbstractConstrIndexManager
@@ -92,36 +104,31 @@ end
 SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(),
         Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}())
 
-function add_constr_in_manager(constr_manager::SimpleConstrIndexManager,
-                            constr::Constraint)
-
-    if constr.status == Active && constr.flag == 's'
+function get_list(constr_manager::SimpleConstrIndexManager,
+                  status::VCSTATUS, flag::Char)
+    if status == Active && flag == 's'
         list = constr_manager.active_static_list
-    elseif constr.status == Active && constr.flag == 'd'
+    elseif status == Active && flag == 'd'
         list = constr_manager.active_dynamic_list
-    elseif constr.status == Unsuitable && constr.flag == 's'
+    elseif status == Unsuitable && flag == 's'
         list = constr_manager.unsuitable_static_list
-    elseif constr.status == Unsuitable && constr.flag == 'd'
+    elseif status == Unsuitable && flag == 'd'
         list = constr_manager.unsuitable_dynamic_list
     else
-        error("Status $(constr.status) and flag $(constr.flag) are not supported")
+        error("Status $(status) and flag $(flag) are not supported")
     end
+    return list
+end
+
+function add_constr_in_manager(constr_manager::SimpleConstrIndexManager,
+                               constr::Constraint)
+    list = get_list(constr_manager, constr.status, constr.flag)
     push!(list, constr)
 end
 
 function remove_from_constr_manager(constr_manager::SimpleConstrIndexManager,
         constr::Constraint)
-    if constr.status == Active && constr.flag == 's'
-        list = constr_manager.active_static_list
-    elseif constr.status == Active && constr.flag == 'd'
-        list = constr_manager.active_dynamic_list
-    elseif constr.status == Unsuitable && constr.flag == 's'
-        list = constr_manager.unsuitable_static_list
-    elseif constr.status == Unsuitable && constr.flag == 'd'
-        list = constr_manager.unsuitable_dynamic_list
-    else
-        error("Status $(constr.status) and flag $(constr.flag) are not supported")
-    end
+    list = get_list(constr_manager, constr.status, constr.flag)
     idx = findfirst(x->x==constr, list)
     deleteat!(list, idx)
 end
@@ -328,12 +335,14 @@ end
 
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
-function add_variable(problem::CompactProblem, var::Variable)
+function add_variable(problem::CompactProblem, var::Variable,
+                      update_moi::Bool)
     @logmsg LogLevel(-4) "adding Variable $var"
     add_var_in_manager(problem.var_manager, var)
     @assert var.prob_ref == -1
     var.prob_ref = problem.prob_ref
-    if problem.optimizer != nothing
+    if update_moi
+        @assert problem.optimizer != nothing
         add_variable_in_optimizer(problem.optimizer, var, problem.is_relaxed)
     end
 end
@@ -341,44 +350,18 @@ end
 function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                    var::Variable, is_relaxed::Bool)
 
-    add_in_optimizer(optimizer, var)
+    create_moi_index(optimizer, var)
     update_cost_in_optimizer(optimizer, var)
     !is_relaxed && enforce_type_in_optimizer(optimizer, var)
-    (var.vc_type != 'B' || is_relaxed) && enforce_original_bounds_in_optimizer(optimizer, var)
-
+    if (var.vc_type != 'B' || is_relaxed)
+        enforce_initial_bounds_in_optimizer(optimizer, var)
+    end
 end
 
-function add_variable(problem::CompactProblem, col::MasterColumn)
-    @callsuper add_variable(problem, col::Variable)
-    #global p_ = problem
-    #global c_ = col
-    #SimpleDebugger.@bkp
-    for (var, val) in col.solution.var_val_map
-        for (constr, coef) in var.master_constr_coef_map
-            # Currently it has to search each branching constraint in the list
-            # of active ones as the corresponding flags are not being kept
-            # up-to-date. TODO: fix this
-
-            constr_in_master = true
-            if constr isa MasterBranchConstr
-                constr_in_master = false
-                for ctr in problem.constr_manager.active_dynamic_list
-                    if ctr == constr
-                        #global ctr_ = constr
-                        #global prb_ = problem
-                        #global col_ = col
-                        #SimpleDebugger.@bkp
-                        constr_in_master = true
-                        break
-                    end
-                end
-            end
-            if constr_in_master
-                add_membership(problem, col, constr, val * coef; update_moi = true)
-            end
-
-        end
-        var.master_col_coef_map[col] = val
+function update_moi_membership(optimizer::MOI.AbstractOptimizer,
+                               col::MasterColumn)
+    for constr_coef in col.member_coef_map
+        update_moi_membership(optimizer, col, constr_coef[1], constr_coef[2])
     end
 end
 
@@ -386,8 +369,14 @@ end
 ########################### New functions ##########################
 ####################################################################
 
-function add_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
+function create_moi_index(optimizer::MOI.AbstractOptimizer, var::Variable)
     var.moi_index = MOI.add_variable(optimizer)
+end
+
+function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
+                                   var::Variable)
+    MOI.delete(optimizer, var.moi_index)
+    var.moi_index = MOI.VariableIndex(-1)
 end
 
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
@@ -396,7 +385,7 @@ function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variabl
                MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
 end
 
-function enforce_original_bounds_in_optimizer(
+function enforce_initial_bounds_in_optimizer(
     optimizer::MOI.AbstractOptimizer, var::Variable)
     MOI.add_constraint(optimizer,
                        MOI.SingleVariable(var.moi_index),
@@ -414,8 +403,6 @@ function enforce_type_in_optimizer(
     end
 end
 
-####################################################################
-
 function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                  constr::Constraint)
     terms = compute_constr_moi_terms(constr)
@@ -425,34 +412,53 @@ function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
     )
 end
 
+function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
+                                      constr::Constraint)
+
+    MOI.delete(optimizer, constr.moi_index)
+    constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction,
+                                           constr.set_type}(-1)
+end
+
+function update_var_status(problem::CompactProblem,
+                           var::Variable, new_status::VCSTATUS)
+    if var.status == new_status
+        return
+    end
+    remove_from_var_manager(problem.var_manager, var)
+    var.status = new_status
+    add_var_in_manager(problem.var_manager, var)
+end
+
+function update_constr_status(problem::CompactProblem,
+                              constr::Constraint, new_status::VCSTATUS)
+    if constr.status == new_status
+        return
+    end
+    remove_from_constr_manager(problem.constr_manager, constr)
+    constr.status = new_status
+    add_constr_in_manager(problem.constr_manager, constr)
+end
 
 ### addconstraint changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the constraint
-function add_constraint(problem::CompactProblem, constr::Constraint)
+function add_constraint(problem::CompactProblem, constr::Constraint;
+                        update_moi = false)
     @logmsg LogLevel(-4) "adding Constraint $constr"
-    @assert constr.prob_ref == -1
+    @assert constr.prob_ref == -1# || constr.prob_ref == problem.prob_ref
     constr.prob_ref = problem.prob_ref
     add_constr_in_manager(problem.constr_manager, constr)
-    if problem.optimizer != nothing
+    if update_moi
+        @assert problem.optimizer != nothing
         add_constr_in_optimizer(problem.optimizer, constr)
     end
 end
 
 function compute_constr_moi_terms(constr::Constraint)
-    return [MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index)
-            for var_val in constr.member_coef_map]
-end
-
-function compute_constr_moi_terms(constr::MasterConstr)
-    terms = [MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index)
-             for var_val in constr.member_coef_map]
-    for sp_var in keys(constr.subprob_var_coef_map)
-        for var_val in sp_var.master_col_coef_map
-            push!(terms, MOI.ScalarAffineTerm{Float}(var_val.second,
-                                                     var_val.first.moi_index))
-        end
-    end
-    return terms
+    return [
+        MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index)
+        for var_val in constr.member_coef_map if var_val.first.status == Active
+    ]
 end
 
 function load_problem_in_optimizer(problem::CompactProblem,
@@ -477,9 +483,7 @@ function delete_constraint(problem::CompactProblem, constr::MasterBranchConstr)
     remove_from_constr_manager(problem.constr_manager, constr)
     constr.prob_ref = -1
     if problem.optimizer != nothing
-        MOI.delete(problem.optimizer, constr.moi_index)
-        constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction,
-                                               constr.set_type}(-1)
+        remove_constr_from_optimizer(problem.optimizer, constr)
     end
 end
 
@@ -489,37 +493,33 @@ function update_moi_membership(optimizer::MOI.AbstractOptimizer, var::Variable,
                MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
 end
 
-function add_membership(problem::CompactProblem, var::Variable,
-                        constr::Constraint, coef::Float;
-                        update_moi = false)
+function add_membership(var::Variable, constr::Constraint, coef::Float;
+                        optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
 
     @logmsg LogLevel(-4) "add_membership : Variable = $var, Constraint = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    if update_moi
-        update_moi_membership(problem.optimizer, var, constr, coef)
+    if optimizer != nothing
+        update_moi_membership(optimizer, var, constr, coef)
     end
 end
 
-function add_membership(problem::CompactProblem, var::SubprobVar,
-                        constr::MasterConstr, coef::Float;
-                        update_moi = false)
-
+function add_membership(var::SubprobVar, constr::MasterConstr, coef::Float;
+                        optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
     @logmsg LogLevel(-4) "add_membership : SubprobVar = $var, MasterConstraint = $constr"
     var.master_constr_coef_map[constr] = coef
     constr.subprob_var_coef_map[var] = coef
 end
 
 # The only interest of having this function is the specific printing
-function add_membership(problem::CompactProblem, var::MasterVar,
-                        constr::MasterConstr, coef::Float;
-                        update_moi = false)
+function add_membership(var::MasterVar, constr::MasterConstr, coef::Float;
+                        optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
 
     @logmsg LogLevel(-4) "add_membership : MasterVar = $var, MasterConstr = $constr"
     var.member_coef_map[constr] = coef
     constr.member_coef_map[var] = coef
-    if update_moi
-        update_moi_membership(problem.optimizer, var, constr, coef)
+    if optimizer != nothing
+        update_moi_membership(optimizer, var, constr, coef)
     end
 end
 
@@ -654,12 +654,12 @@ function add_convexity_constraints(extended_problem::ExtendedProblem,
     convexity_lb_constr = ConvexityConstr(master_prob.counter,
             string("convexity_constr_lb_", pricing_prob.prob_ref),
             convert(Float, card_lb), 'G', 'M', 's')
-    add_constraint(master_prob, convexity_lb_constr)
+    add_constraint(master_prob, convexity_lb_constr; update_moi = true)
 
     convexity_ub_constr = ConvexityConstr(master_prob.counter,
             string("convexity_constr_ub_", pricing_prob.prob_ref),
             convert(Float, card_ub), 'L', 'M', 's')
-    add_constraint(master_prob, convexity_ub_constr)
+    add_constraint(master_prob, convexity_ub_constr; update_moi = true)
 
     extended_problem.pricing_convexity_lbs[pricing_prob] = convexity_lb_constr
     extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
@@ -667,7 +667,7 @@ end
 
 function add_artificial_variables(extended_prob::ExtendedProblem)
     add_variable(extended_prob.master_problem,
-                 extended_prob.artificial_global_neg_var)
+                 extended_prob.artificial_global_neg_var, true)
     add_variable(extended_prob.master_problem,
-                 extended_prob.artificial_global_pos_var)
+                 extended_prob.artificial_global_pos_var, true)
 end

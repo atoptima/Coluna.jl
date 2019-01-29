@@ -273,12 +273,13 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
     sp_sol = pricing_prob.primal_sols[end]
     if sp_sol.cost < 0
         master = alg.extended_problem.master_problem
-        col = MasterColumn(master.counter, sp_sol)
-        add_variable(master, col)
+        col = MasterColumnConstructor(master.counter, sp_sol) # generates memberships
+        add_variable(master, col, true) # updates moi, doesnt touch membership
+        update_moi_membership(master.optimizer, col)
         convexity_lb = alg.extended_problem.pricing_convexity_lbs[pricing_prob]
         convexity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob]
-        add_membership(master, col, convexity_lb, 1.0; update_moi = true)
-        add_membership(master, col, convexity_ub, 1.0; update_moi = true)
+        add_membership(col, convexity_lb, 1.0; optimizer = master.optimizer)
+        add_membership(col, convexity_ub, 1.0; optimizer = master.optimizer)
         @logmsg LogLevel(-2) string("added column ", col)
         return 1
     else

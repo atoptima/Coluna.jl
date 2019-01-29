@@ -118,8 +118,8 @@ end
 function add_memberships(dest::ColunaModelOptimizer, problem::Problem, constr::Constraint,
                          f::MOI.ScalarAffineFunction, mapping::MOIU.IndexMap)
     for term in f.terms
-        add_membership(problem, dest.varmap[mapping.varmap[term.variable_index]],
-                       constr, term.coefficient; update_moi = true)
+        add_membership(dest.varmap[mapping.varmap[term.variable_index]],
+                       constr, term.coefficient; optimizer = problem.optimizer)
     end
 end
 
@@ -142,13 +142,13 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
         constr = Constraint(problem.counter, name, rhs, sense, 'M', 's')
     end
     dest.constr_probidx_map[constr] = prob_idx
-    add_constraint(problem, constr) # Adds the constr to the lower-level solver
+    add_constraint(problem, constr; update_moi = true) # Adds the constr to the lower-level solver
     add_memberships(dest, problem, constr, f, mapping) # Do only if prob_idx is 0
     if prob_idx == 0
         art_glob_pos_var = extended_prob.artificial_global_pos_var
         art_glob_neg_var = extended_prob.artificial_global_neg_var
-        add_membership(problem, art_glob_pos_var, constr, 1.0; update_moi = true)
-        add_membership(problem, art_glob_neg_var, constr, 1.0; update_moi = true)
+        add_membership(art_glob_pos_var, constr, 1.0; optimizer = problem.optimizer)
+        add_membership(art_glob_neg_var, constr, 1.0; optimizer = problem.optimizer)
     end
     update_constraint_map(mapping, ci, f, s)
 end
@@ -311,7 +311,7 @@ function add_variables_to_problem(dest::ColunaModelOptimizer, src::MOI.ModelLike
         else
             problem = dest.inner.extended_problem.pricing_vect[prob_idx]
         end
-        add_variable(problem, coluna_vars[idx])
+        add_variable(problem, coluna_vars[idx], true)
     end
 end
 

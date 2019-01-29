@@ -37,23 +37,27 @@ function ConvexityConstrBuilder(counter::VarConstrCounter, name::String,
     return MasterConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag)
 end
 
-@hl mutable struct MasterBranchConstr <: MasterConstr
+@hl mutable struct MasterBranchConstr{
+    T} <: MasterConstr
     depth_when_generated::Int
+    branch_var::T
 end
 
 function MasterBranchConstrBuilder(counter::VarConstrCounter, name::String,
-        rhs::Float, sense::Char, depth::Int)
+        rhs::Float, sense::Char, depth::Int, branch_var::Variable)
 
     return tuplejoin(MasterConstrBuilder(counter, name, rhs, sense, 'C', 'd'),
-                     depth)
+                     depth, branch_var)
 end
 
 function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
     rhs::Float, sense::Char, depth::Int, branch_var::MasterVar)
 
-    constr = MasterBranchConstr(counter, name, rhs, sense, depth)
-    constr.member_coef_map[branch_var] = 1.0
-    branch_var.member_coef_map[constr] = 1.0
+    constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    constr.status = Unsuitable
+
+    constr.member_coef_map[constr.branch_var] = 1.0
+    constr.branch_var.member_coef_map[constr] = 1.0
 
     return constr
 end
@@ -61,13 +65,15 @@ end
 function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
     rhs::Float, sense::Char, depth::Int, branch_var::SubprobVar)
 
-    constr = MasterBranchConstr(counter, name, rhs, sense, depth)
-    constr.subprob_var_coef_map[branch_var] = 1.0
-    branch_var.master_constr_coef_map[constr] = 1.0
+    constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    constr.status = Unsuitable
 
-    #global c_ = constr
-    #global v_ = branch_var
-    #SimpleDebugger.@bkp
+    constr.subprob_var_coef_map[constr.branch_var] = 1.0
+    constr.branch_var.master_constr_coef_map[constr] = 1.0
+
+    for col_coef in branch_var.master_col_coef_map
+        constr.member_coef_map[col_coef[1]] = col_coef[2]
+    end
 
     return constr
 end
