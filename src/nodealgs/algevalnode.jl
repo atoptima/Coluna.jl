@@ -67,20 +67,20 @@ function update_dual_lp_incumbents(incumbents::SolsAndBounds,
     end
 end
 
-mutable struct StabilizationInfo
-    problem::Problem
-    params::Params
-end
+# mutable struct StabilizationInfo
+#     problem::Problem
+#     params::Params
+# end
 
-mutable struct ColGenEvalInfo <: EvalInfo
-    stabilization_info::StabilizationInfo
-    master_lp_basis::LpBasisRecord
-    latest_reduced_cost_fixing_gap::Float
-end
+# mutable struct ColGenEvalInfo <: EvalInfo
+#     stabilization_info::StabilizationInfo
+#     master_lp_basis::LpBasisRecord
+#     latest_reduced_cost_fixing_gap::Float
+# end
 
-mutable struct LpEvalInfo <: EvalInfo
-    stabilization_info::StabilizationInfo
-end
+# mutable struct LpEvalInfo <: EvalInfo
+#     stabilization_info::StabilizationInfo
+# end
 
 ##########################
 #### AlgToEvalNode #######
@@ -191,18 +191,18 @@ end
 #### AlgToEvalNodeByLagrangianDuality #######
 #############################################
 
-struct ColGenStabilization end
+# struct ColGenStabilization end
 
 @hl mutable struct AlgToEvalNodeByLagrangianDuality <: AlgToEvalNode
     pricing_contribs::Dict{Problem, Float}
     pricing_const_obj::Dict{Problem, Float}
-    colgen_stabilization::Union{ColGenStabilization, Nothing}
+    # colgen_stabilization::Union{ColGenStabilization, Nothing}
     max_nb_cg_iterations::Int
 end
 
 function AlgToEvalNodeByLagrangianDualityBuilder(problem::ExtendedProblem)
     return tuplejoin(AlgToEvalNodeBuilder(problem), Dict{Problem, Float}(),
-                     Dict{Problem, Float}(), nothing, 10000) # TODO put as parameter
+                     Dict{Problem, Float}(), 10000) # TODO put as parameter
 end
 
 function cleanup_restricted_mast_columns(alg::AlgToEvalNodeByLagrangianDuality,
@@ -312,9 +312,9 @@ function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Proble
     #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
     #     return flag_is_sp_infeasible
     end
-    if alg.colgen_stabilization != nothing && true #= TODO add conds =#
-        # switch off the reduced cost estimation when stabilization is applied
-    end
+    # if alg.colgen_stabilization != nothing && true #= TODO add conds =#
+    #     # switch off the reduced cost estimation when stabilization is applied
+    # end
 
     # Solve sub-problem and insert generated columns in master
     @logmsg LogLevel(-3) "optimizing pricing prob"
@@ -348,14 +348,14 @@ function gen_new_columns(alg::AlgToEvalNodeByLagrangianDuality)
 end
 
 function compute_mast_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality)
-    stabilization = alg.colgen_stabilization
+    # stabilization = alg.colgen_stabilization
     # This is commented because function is_active does not exist
-    if stabilization == nothing# || !is_active(stabilization)
+    # if stabilization == nothing# || !is_active(stabilization)
         return alg.extended_problem.master_problem.primal_sols[end].cost
-    else
-        error("compute_mast_dual_bound_contrib" *
-              "is not yet implemented with stabilization")
-    end
+    # else
+    #     error("compute_mast_dual_bound_contrib" *
+    #           "is not yet implemented with stabilization")
+    # end
 end
 
 function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
@@ -384,10 +384,10 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
         update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
         update_dual_ip_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
     end
-    if alg.colgen_stabilization != nothing
-        update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
-        update_dual_ip_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
-    end
+    # if alg.colgen_stabilization != nothing
+    #     update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
+    #     update_dual_ip_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
+    # end
 end
 
 function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb_new_col::Int, nb_cg_iterations::Int)
@@ -459,10 +459,10 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
                 return true
             end
             update_lagrangian_dual_bound(alg, true)
-            if alg.colgen_stabilization == nothing
+            # if alg.colgen_stabilization == nothing
                 #|| !update_after_pricing_problem_solution(alg.colgen_stabilization, nb_new_col)
                 break
-            end
+            # end
         end
 
         print_intermediate_statistics(alg, nb_new_col, nb_cg_iterations)

@@ -9,8 +9,8 @@ function increment_counter(counter::VarConstrCounter)
     return counter.value
 end
 
-mutable struct VarConstrStabInfo
-end
+# mutable struct VarConstrStabInfo
+# end
 
 @hl mutable struct VarConstr
     vc_ref::Int
@@ -19,8 +19,8 @@ end
     # Ref of Problem which this VarConstr is part of
     prob_ref::Int
 
-    in_cur_prob::Bool
-    in_cur_form::Bool
+    # in_cur_prob::Bool
+    # in_cur_form::Bool
 
     # ```
     # 'U' or 'D'
@@ -121,24 +121,24 @@ end
     # ```
     member_coef_map::Dict{VarConstr, Float}
 
-    # Needed for VarConstrResetInfo.
-    is_info_updated::Bool
+    # # Needed for VarConstrResetInfo.
+    # is_info_updated::Bool
 
-    in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
+    # in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
 
     reduced_cost::Float
 
-    # ```
-    # To hold Info Need for stabilisation of constraint in Col Gen approach and
-    # on First stage Variables in Benders approach
-    # ```
-    stab_info::VarConstrStabInfo
+    # # ```
+    # # To hold Info Need for stabilisation of constraint in Col Gen approach and
+    # # on First stage Variables in Benders approach
+    # # ```
+    # stab_info::VarConstrStabInfo
 
-    # ```
-    # Treat order of the node where the column has been generated -needed for
-    # problem setup-
-    # ```
-    treat_order_id::Int
+    # # ```
+    # # Treat order of the node where the column has been generated -needed for
+    # # problem setup-
+    # # ```
+    # treat_order_id::Int
     # TODO better be called gen_sequence_number
 end
 
@@ -147,24 +147,24 @@ Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
 # Think about this constructor (almost a copy)
 function VarConstrBuilder(vc::VarConstr, counter::VarConstrCounter)
     # This is not a copy since some fields are reset to default
-    return (increment_counter(counter), "", -1, false, false, vc.directive,
+    return (increment_counter(counter), "", -1, vc.directive,
             vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
-            vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map), false,
-            vc.in_preprocessed_list, vc.reduced_cost, VarConstrStabInfo(), 0)
+            vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map),
+            vc.reduced_cost)
 end
 
 function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
                           sense::Char, vc_type::Char, flag::Char, directive::Char,
                           priority::Float)
-    return (increment_counter(counter), name, -1, false, false, directive,
+    return (increment_counter(counter), name, -1, directive,
             priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0,
-            Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
+            Dict{VarConstr, Float}(), 0.0)
 end
 
 const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float}}
 @hl mutable struct Variable <: VarConstr
     # ```
-    # Flag telling whether or not the variable is fractional.
+    # Index in MOI optimizer
     # ```
     moi_index::MOI.VariableIndex
 
@@ -228,11 +228,21 @@ function set_default_currents(var::Variable)
 end
 
 @hl mutable struct Constraint <: VarConstr
+    # ```
+    # Index in MOI optimizer
+    # ```
     moi_index::MOI.ConstraintIndex{F,S} where {F,S}
+
+    # ```
+    # Used when solving the problem with another optimizer
+    # i.e.: When doing primal heuristics
+    # ``
     secondary_moi_index::MOI.ConstraintIndex{F,S} where {F,S}
+
+    # ```
+    # Type of constraint in MOI optimizer
+    # ``
     set_type::Type{<:MOI.AbstractSet}
-    cur_min_slack::Float #for preprocessing
-    cur_max_slack::Float #for preprocessing
 end
 
 function ConstraintBuilder(counter::VarConstrCounter, name::String,
@@ -251,7 +261,7 @@ function ConstraintBuilder(counter::VarConstrCounter, name::String,
         VarConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag, 'U', 1.0),
         MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
         MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
-        set_type, -Inf, Inf
+        set_type
     )
 end
 

@@ -39,7 +39,13 @@ end
 
 @hl mutable struct MasterBranchConstr{
     T} <: MasterConstr
+    # ```
+    # Depth of node where it was generated
+    # ``
     depth_when_generated::Int
+    # ```
+    # Variable used to branch
+    # ``
     branch_var::T
 end
 
@@ -54,10 +60,8 @@ function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
     rhs::Float, sense::Char, depth::Int, branch_var::MasterVar)
 
     constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    add_membership(constr.branch_var, constr, 1.0)
     constr.status = Unsuitable
-
-    constr.member_coef_map[constr.branch_var] = 1.0
-    constr.branch_var.member_coef_map[constr] = 1.0
 
     return constr
 end
@@ -66,10 +70,8 @@ function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
     rhs::Float, sense::Char, depth::Int, branch_var::SubprobVar)
 
     constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    add_membership(constr.branch_var, constr, 1.0)
     constr.status = Unsuitable
-
-    constr.subprob_var_coef_map[constr.branch_var] = 1.0
-    constr.branch_var.master_constr_coef_map[constr] = 1.0
 
     for col_coef in branch_var.master_col_coef_map
         constr.member_coef_map[col_coef[1]] = col_coef[2]

@@ -1,57 +1,57 @@
 
-mutable struct VarMpFormStatus{V<:Variable}
-    variable::V
-    status_in_basic_sol::Int
-end
+# mutable struct VarMpFormStatus{V<:Variable}
+#     variable::V
+#     status_in_basic_sol::Int
+# end
 
-mutable struct ConstrMpFormStatus{C<:Constraint}
-    constraint::C
-    status_in_basic_sol::Int
-end
+# mutable struct ConstrMpFormStatus{C<:Constraint}
+#     constraint::C
+#     status_in_basic_sol::Int
+# end
 
-mutable struct LpBasisRecord
-    name::String
-    vars_in_basis::Vector{VarMpFormStatus}
-    constr_in_basis::Vector{ConstrMpFormStatus}
-end
+# mutable struct LpBasisRecord
+#     name::String
+#     vars_in_basis::Vector{VarMpFormStatus}
+#     constr_in_basis::Vector{ConstrMpFormStatus}
+# end
 
 
-LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormStatus}(),
-                              Vector{ConstrMpFormStatus}())
+# LpBasisRecord(name::String) = LpBasisRecord(name, Vector{VarMpFormStatus}(),
+#                               Vector{ConstrMpFormStatus}())
 
-LpBasisRecord() = LpBasisRecord("basis")
+# LpBasisRecord() = LpBasisRecord("basis")
 
-function clear(basis::LpBasisRecord; remove_marks_in_vars=true,
-               remove_marks_in_constrs=true)::Nothing
+# function clear(basis::LpBasisRecord; remove_marks_in_vars=true,
+#                remove_marks_in_constrs=true)::Nothing
 
-    if remove_marks_in_vars
-        for var in basis.vars_in_basis
-            var.variable.is_info_updated = false
-        end
-        empty!(basis.vars_in_basis)
-    end
+#     if remove_marks_in_vars
+#         for var in basis.vars_in_basis
+#             var.variable.is_info_updated = false
+#         end
+#         empty!(basis.vars_in_basis)
+#     end
 
-    if remove_marks_in_constrs
-        for constr in basis.constr_in_basis
-            constr.constraint.is_info_updated = false
-        end
-        empty!(basis.constr_in_basis)
-    end
-    return
-end
+#     if remove_marks_in_constrs
+#         for constr in basis.constr_in_basis
+#             constr.constraint.is_info_updated = false
+#         end
+#         empty!(basis.constr_in_basis)
+#     end
+#     return
+# end
 
-# needed for partial solution
-mutable struct VariableSolInfo{V<:Variable}
-    variable::V
-    value::Float
-end
+# # needed for partial solution
+# mutable struct VariableSolInfo{V<:Variable}
+#     variable::V
+#     value::Float
+# end
 
-function apply_var_info(var_sol_info::VariableSolInfo)::Nothing
-    variable = var_sol_info.variable
-    value = var_sol_info.value
-    problem = variable.problem
-    update_partial_solution(problem,variable,value)
-end
+# function apply_var_info(var_sol_info::VariableSolInfo)::Nothing
+#     variable = var_sol_info.variable
+#     value = var_sol_info.value
+#     problem = variable.problem
+#     update_partial_solution(problem,variable,value)
+# end
 
 # TODO: impl properly the var/constr manager
 abstract type AbstractVarIndexManager end
@@ -170,26 +170,26 @@ mutable struct CompactProblem{VM <: AbstractVarIndexManager,
     in_primal_lp_sol::Set{Variable}
     non_zero_red_cost_vars::Set{Variable}
     in_dual_lp_sol::Set{Constraint}
-    partial_solution_value::Float
-    partial_solution::Dict{Variable,Float}
+    # partial_solution_value::Float
+    # partial_solution::Dict{Variable,Float}
 
     # Recorded solutions, may be integer or not
     primal_sols::Vector{PrimalSolution}
     dual_sols::Vector{DualSolution}
 
-    # needed for new preprocessing
-    preprocessed_constrs_list::Vector{Constraint}
-    preprocessed_vars_list::Vector{Variable}
+    # # needed for new preprocessing
+    # preprocessed_constrs_list::Vector{Constraint}
+    # preprocessed_vars_list::Vector{Variable}
 
     counter::VarConstrCounter
-    var_constr_vec::Vector{VarConstr}
+    # var_constr_vec::Vector{VarConstr}
 
     # added for more efficiency and to fix bug
     # after columns are cleaned we can t ask for red costs
     # before the MIPSolver solves the master again.
     # It is put to true in retrieveRedCosts()
     # It is put to false in resetSolution()
-    is_retrieved_red_costs::Bool
+    # is_retrieved_red_costs::Bool
 end
 
 function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
@@ -198,16 +198,11 @@ function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
     CM <: AbstractConstrIndexManager}
 
     optimizer = nothing
-
     primal_vec = Vector{PrimalSolution}([PrimalSolution()])
     dual_vec = Vector{DualSolution}([DualSolution()])
-
     CompactProblem(increment_counter(prob_counter), false, false, optimizer,
-                   VM(), CM(), Inf, -Inf,
-                   Set{Variable}(), Set{Variable}(), Set{Constraint}(),
-                   0.0, Dict{Variable,Float}(), primal_vec, dual_vec,
-                   Vector{Constraint}(), Vector{Variable}(),
-                   vc_counter, Vector{VarConstr}(), false)
+                   VM(), CM(), Inf, -Inf, Set{Variable}(), Set{Variable}(),
+                   Set{Constraint}(), primal_vec, dual_vec, vc_counter)
 end
 
 SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}

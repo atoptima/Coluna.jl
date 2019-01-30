@@ -30,15 +30,15 @@ end
 function create_root_node(extended_problem::ExtendedProblem)::Node
     params = extended_problem.params
     problem_setup_info = ProblemSetupInfo()
-    stab_info  = StabilizationInfo(extended_problem.master_problem, params)
-    master_lp_basis = LpBasisRecord("Basis0")
+    # stab_info  = StabilizationInfo(extended_problem.master_problem, params)
+    # master_lp_basis = LpBasisRecord("Basis0")
 
     ## use parameters to define how the tree will be solved
     # node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
-    node_eval_info = LpEvalInfo(stab_info)
+    # node_eval_info = LpEvalInfo(stab_info)
 
     return Node(extended_problem, extended_problem.dual_inc_bound,
-        problem_setup_info, node_eval_info)
+        problem_setup_info)
 end
 
 function set_model_optimizers(model::Model)
@@ -143,8 +143,8 @@ function update_search_trees(cur_node::Node, search_tree::DS.Queue,
     end
 end
 
-function calculate_subtree_size(node::Node, sub_tree_size_by_depth::Int)
-end
+# function calculate_subtree_size(node::Node, sub_tree_size_by_depth::Int)
+# end
 
 function update_cur_valid_dual_bound(problem::ExtendedProblem,
         node::NodeWithParent, search_tree::DS.Queue{Node})
@@ -275,7 +275,7 @@ function optimize!(extended_problem::ExtendedProblem)
         end
 
         if isempty(cur_node.children)
-            calculate_subtree_size(cur_node, 1)
+            # calculate_subtree_size(cur_node, 1)
             # calculate_subtree_size(cur_node, sub_tree_size_by_depth)
         end
     end

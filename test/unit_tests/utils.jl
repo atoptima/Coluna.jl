@@ -107,15 +107,15 @@ end
 function create_node(extended_problem::CL.ExtendedProblem, with_parent = false)
     params = extended_problem.params
     problem_setup_info = CL.ProblemSetupInfo(0)
-    stab_info  = CL.StabilizationInfo(extended_problem.master_problem, params)
-    master_lp_basis = CL.LpBasisRecord("Basis0")
+    # stab_info  = CL.StabilizationInfo(extended_problem.master_problem, params)
+    # master_lp_basis = CL.LpBasisRecord("Basis0")
 
     ## use parameters to define how the tree will be solved
     # node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
-    node_eval_info = CL.LpEvalInfo(stab_info)
+    # node_eval_info = CL.LpEvalInfo(stab_info)
 
     return CL.Node(extended_problem, extended_problem.dual_inc_bound,
-        problem_setup_info, node_eval_info)
+        problem_setup_info)
 end
 
 function create_sols_and_bounds()

@@ -31,10 +31,10 @@ function testdefaultbuilders()
 
 
     ### Info constructors
-    stab_info = CL.StabilizationInfo(master_problem, params)
-    lp_basis = CL.LpBasisRecord()
-    cg_eval_info = CL.ColGenEvalInfo(stab_info, lp_basis, 0.5)
-    lp_eval_info = CL.LpEvalInfo(stab_info)
+    # stab_info = CL.StabilizationInfo(master_problem, params)
+    # lp_basis = CL.LpBasisRecord()
+    # cg_eval_info = CL.ColGenEvalInfo(stab_info, lp_basis, 0.5)
+    # lp_eval_info = CL.LpEvalInfo(stab_info)
 
 
     ### Algorithms constructors
@@ -51,7 +51,7 @@ function testdefaultbuilders()
 
 
     ### Node constructors
-    rootNode = CL.Node(model.extended_problem, params.cut_lo, CL.ProblemSetupInfo(0), cg_eval_info)
+    rootNode = CL.Node(model.extended_problem, params.cut_lo, CL.ProblemSetupInfo(0))
     child1 = CL.NodeWithParent(model.extended_problem, rootNode)
 end
 
