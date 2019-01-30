@@ -427,13 +427,17 @@ function run(alg::AlgToSetupFull, node::Node)
     removed_cols_from_problem, added_cols_to_problem =
         prepare_master_columns(alg, node)
 
-    # This function updates the MOI models with the
-    # current active rows and columns
-    update_formulation(alg.extended_problem, removed_cuts_from_problem,
-                       added_cuts_to_problem, removed_cols_from_problem,
-                       added_cols_to_problem, Variable[])
-
     apply_var_constr_info(alg, node)
+
+    # This function updates the MOI models with the
+    # current active rows and columns and their bounds
+    update_formulation(
+        alg.extended_problem, removed_cuts_from_problem,
+        added_cuts_to_problem, removed_cols_from_problem,
+        added_cols_to_problem, vcat(
+            alg.extended_problem.master_problem.var_manager.active_static_list,
+            alg.extended_problem.master_problem.var_manager.active_dynamic_list
+        ))
 
     # reset_partial_solution(alg)
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
