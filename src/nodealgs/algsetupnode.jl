@@ -311,7 +311,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # reset_non_stab_artificial_variables()
 
     #reset_partial_solution(alg)
-    # update_formulation(alg)
+    # update_formulation(alg.extended_problem)
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end
@@ -436,7 +436,7 @@ function run(alg::AlgToSetupFull, node::Node)
 
     # This function updates the MOI models with the
     # current active rows and columns
-    update_formulation(alg, removed_cuts_from_problem, added_cuts_to_problem,
+    update_formulation(alg.extended_problem, removed_cuts_from_problem, added_cuts_to_problem,
                        removed_cols_from_problem, added_cols_to_problem)
 
     # This function updates MOI
@@ -476,34 +476,6 @@ end
 #     end
 # end
 
-function update_formulation(alg::AlgToSetupNode,
-                            removed_cuts_from_problem::Vector{Constraint},
-                            added_cuts_to_problem::Vector{Constraint},
-                            removed_cols_from_problem::Vector{Variable},
-                            added_cols_to_problem::Vector{Variable}
-                            )
-    # TODO implement caching through MOI.
-
-    optimizer = alg.extended_problem.master_problem.optimizer
-    is_relaxed = alg.extended_problem.master_problem.is_relaxed
-    # Remove cuts
-    for cut in removed_cuts_from_problem
-        remove_constr_from_optimizer(optimizer, cut)
-    end
-    # Remove variables
-    for col in removed_cols_from_problem
-        remove_var_from_optimizer(optimizer, col)
-    end
-
-    # Add variables
-    for col in added_cols_to_problem
-        add_variable_in_optimizer(optimizer, col, is_relaxed)
-    end
-    # Add cuts
-    for cut in added_cuts_to_problem
-        add_constr_in_optimizer(optimizer, cut)
-    end
-end
 
 #############################
 #### AlgToSetupRootNode #####
@@ -574,7 +546,7 @@ function run(alg::AlgToSetupRootNode, node::Node)
     @logmsg LogLevel(-4) "AlgToSetupRootNode"
     set_cur_bounds(alg, node)
 
-    # update_formulation(alg)
+    # update_formulation(alg.extended_problen)
 
     # return problem_infeasible
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)

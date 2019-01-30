@@ -539,9 +539,7 @@ function analyze_constraint(alg::AlgToPreprocessNode, constr::MasterConstr)
 end
 
 function propagation(alg)
-
     while !isempty(alg.stack)
-
         constr = pop!(alg.stack)
         alg.constr_in_stack[constr] = false
         #println("constr $(constr.vc_ref) $(typeof(constr)) poped")
@@ -550,4 +548,24 @@ function propagation(alg)
         end
     end
     return false
+end
+
+function apply_preprocessing(alg::AlgToPreprocessNode)
+    master = alg.extended_problem.master_problem
+    removed_from_problem = MasterColumn[]
+    for var in alg.preprocessed_vars
+        for master_col in master.var_manager.active_dynamic_list
+            if haskey(master_col.solution.var_val_map, var)
+                var_val_in_col = master_col.solution.var_val_map[var]
+            else
+                var_val_in_col = 0
+            end
+            if !(var.cur_lb <= var_val_in_col <= var.cur_ub)
+                update_var_status(master, col, Unsuitable)
+                push!(removed_from_problem, col)
+            end
+        end
+    end
+    #TODO: change variables bound in moi
+    update_formulation(alg.extended_problem, [], [], removed_cols_from_problem, [])
 end

@@ -680,3 +680,32 @@ function add_artificial_variables(extended_prob::ExtendedProblem)
     add_variable(extended_prob.master_problem,
                  extended_prob.artificial_global_pos_var; update_moi = true)
 end
+
+function update_formulation(extended_problem::ExtendedProblem,
+                            removed_cuts_from_problem::Vector{Constraint},
+                            added_cuts_to_problem::Vector{Constraint},
+                            removed_cols_from_problem::Vector{Variable},
+                            added_cols_to_problem::Vector{Variable}
+                            )
+    # TODO implement caching through MOI.
+
+    optimizer = extended_problem.master_problem.optimizer
+    is_relaxed = extended_problem.master_problem.is_relaxed
+    # Remove cuts
+    for cut in removed_cuts_from_problem
+        remove_constr_from_optimizer(optimizer, cut)
+    end
+    # Remove variables
+    for col in removed_cols_from_problem
+        remove_var_from_optimizer(optimizer, col)
+    end
+
+    # Add variables
+    for col in added_cols_to_problem
+        add_variable_in_optimizer(optimizer, col, is_relaxed)
+    end
+    # Add cuts
+    for cut in added_cuts_to_problem
+        add_constr_in_optimizer(optimizer, cut)
+    end
+end

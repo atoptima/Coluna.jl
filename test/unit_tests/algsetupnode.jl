@@ -326,7 +326,7 @@ function update_formulation_tests()
     # This function is empty
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetupBranchingOnly(extended_problem)
-    CL.update_formulation(alg)
+    CL.update_formulation(extended_problem)
     @test alg.extended_problem === extended_problem
 end
 
