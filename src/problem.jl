@@ -334,8 +334,8 @@ function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
     return true
 end
 
-### addvariable changes problem and MOI cachingOptimizer.model_cache
-### and sets the index of the variable
+# functions that modify Problem only interact with underlying
+# MOI optimizer if explicitly asked by user
 function add_variable(problem::CompactProblem, var::Variable;
                       update_moi = false)
     @logmsg LogLevel(-4) "adding Variable $var"

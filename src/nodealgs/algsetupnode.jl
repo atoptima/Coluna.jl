@@ -109,6 +109,12 @@ ProblemSetupInfo() = ProblemSetupInfo(Vector{VariableSmallInfo}(),
                                       Vector{ConstraintInfo}(),
                                       Vector{VariableInfo}())
 
+function apply_var_constr_info(prob_info::ProblemSetupInfo)
+    for var_info in prob_info.modified_static_vars_info
+        apply_var_info(var_info)
+    end
+end
+
 #############################
 #### AlgToSetdownNode #######
 #############################
@@ -276,13 +282,6 @@ function prepare_branching_constraints(alg::AlgToSetupBranchingOnly, node::Node)
     return prepare_branching_constraints_added_by_father(alg, node)
 end
 
-function apply_var_constr_info(alg::AlgToSetupNode, node::Node)
-    prob_info = node.problem_setup_info
-    for var_info in prob_info.modified_static_vars_info
-        apply_var_info(var_info)
-    end
-end
-
 function run(alg::AlgToSetupBranchingOnly, node::Node)
 
     @logmsg LogLevel(-4) "AlgToSetupBranchingOnly"
@@ -290,7 +289,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # apply_subproblem_info()
     # fill_local_branching_constraints()
     added_father_branch_constrs = prepare_branching_constraints(alg, node)
-    apply_var_constr_info(alg, node)
+    apply_var_constr_info(node.problem_setup_info)
 
     # reset_branching_constraints(_masterProbPtr, branchingConstrPtrIt)
 
@@ -427,7 +426,8 @@ function run(alg::AlgToSetupFull, node::Node)
     removed_cols_from_problem, added_cols_to_problem =
         prepare_master_columns(alg, node)
 
-    apply_var_constr_info(alg, node)
+    # This function updated the infos with the ones stored by father
+    apply_var_constr_info(node.problem_setup_info)
 
     # This function updates the MOI models with the
     # current active rows and columns and their bounds
