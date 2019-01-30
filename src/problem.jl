@@ -348,75 +348,6 @@ function add_variable(problem::CompactProblem, var::Variable;
     end
 end
 
-function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                   var::Variable, is_relaxed::Bool)
-
-    create_moi_index(optimizer, var)
-    update_cost_in_optimizer(optimizer, var)
-    !is_relaxed && enforce_type_in_optimizer(optimizer, var)
-    if (var.vc_type != 'B' || is_relaxed)
-        enforce_initial_bounds_in_optimizer(optimizer, var)
-    end
-end
-
-function update_moi_membership(optimizer::MOI.AbstractOptimizer,
-                               col::MasterColumn)
-    for constr_coef in col.member_coef_map
-        update_moi_membership(optimizer, col, constr_coef[1], constr_coef[2])
-    end
-end
-
-function create_moi_index(optimizer::MOI.AbstractOptimizer, var::Variable)
-    var.moi_index = MOI.add_variable(optimizer)
-end
-
-function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
-                                   var::Variable)
-    MOI.delete(optimizer, var.moi_index)
-    var.moi_index = MOI.VariableIndex(-1)
-end
-
-function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
-    MOI.modify(optimizer,
-               MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-               MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
-end
-
-function enforce_initial_bounds_in_optimizer(
-    optimizer::MOI.AbstractOptimizer, var::Variable)
-    MOI.add_constraint(optimizer,
-                       MOI.SingleVariable(var.moi_index),
-                       MOI.Interval(var.lower_bound, var.upper_bound))
-end
-
-function enforce_type_in_optimizer(
-    optimizer::MOI.AbstractOptimizer, var::Variable)
-    if var.vc_type == 'B'
-        MOI.add_constraint(optimizer,
-                           MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
-    elseif var.vc_type == 'I'
-        MOI.add_constraint(optimizer,
-                           MOI.SingleVariable(var.moi_index), MOI.Integer())
-    end
-end
-
-function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                 constr::Constraint)
-    terms = compute_constr_moi_terms(constr)
-    f = MOI.ScalarAffineFunction(terms, 0.0)
-    constr.moi_index = MOI.add_constraint(
-        optimizer, f, constr.set_type(constr.cost_rhs)
-    )
-end
-
-function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
-                                      constr::Constraint)
-
-    MOI.delete(optimizer, constr.moi_index)
-    constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction,
-                                           constr.set_type}(-1)
-end
-
 function update_var_status(problem::CompactProblem,
                            var::Variable, new_status::VCSTATUS)
     if var.status == new_status
@@ -449,45 +380,6 @@ function add_constraint(problem::CompactProblem, constr::Constraint;
     end
 end
 
-function compute_constr_moi_terms(constr::Constraint)
-    return [
-        MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index)
-        for var_val in constr.member_coef_map if var_val.first.status == Active
-    ]
-end
-
-function load_problem_in_optimizer(problem::CompactProblem,
-        optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
-
-    for var in problem.var_manager.active_static_list
-        add_variable_in_optimizer(optimizer, var, is_relaxed)
-    end
-    for var in problem.var_manager.active_dynamic_list
-        add_variable_in_optimizer(optimizer, var, is_relaxed)
-    end
-    for constr in problem.constr_manager.active_static_list
-        add_constr_in_optimizer(optimizer, constr)
-    end
-    for constr in problem.constr_manager.active_dynamic_list
-        add_constr_in_optimizer(optimizer, constr)
-    end
-end
-
-function delete_constraint(problem::CompactProblem, constr::MasterBranchConstr)
-    # When deleting a constraint, its MOI index becomes invalid
-    remove_from_constr_manager(problem.constr_manager, constr)
-    constr.prob_ref = -1
-    if problem.optimizer != nothing
-        remove_constr_from_optimizer(problem.optimizer, constr)
-    end
-end
-
-function update_moi_membership(optimizer::MOI.AbstractOptimizer, var::Variable,
-                               constr::Constraint, coef::Float)
-    MOI.modify(optimizer, constr.moi_index,
-               MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
-end
-
 function add_membership(var::Variable, constr::Constraint, coef::Float;
                         optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
 
@@ -515,6 +407,115 @@ function add_membership(var::MasterVar, constr::MasterConstr, coef::Float;
     constr.member_coef_map[var] = coef
     if optimizer != nothing
         update_moi_membership(optimizer, var, constr, coef)
+    end
+end
+
+###############################################################
+########## Functions that interact directly with MOI ##########
+###############################################################
+function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                   var::Variable, is_relaxed::Bool)
+    var.moi_index = MOI.add_variable(optimizer)
+    update_cost_in_optimizer(optimizer, var)
+    !is_relaxed && enforce_type_in_optimizer(optimizer, var)
+    if (var.vc_type != 'B' || is_relaxed)
+        enforce_initial_bounds_in_optimizer(optimizer, var)
+    end
+end
+
+function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
+                                   var::Variable)
+    MOI.delete(optimizer, var.moi_index)
+    var.moi_index = MOI.VariableIndex(-1)
+    MOI.delete(optimizer, var.moi_bounds_index)
+    var.moi_bounds_index = MOI.MoiBounds(-1)
+end
+
+function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
+    MOI.modify(optimizer,
+               MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+               MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
+end
+
+function enforce_initial_bounds_in_optimizer(
+    optimizer::MOI.AbstractOptimizer, var::Variable)
+    @assert var.moi_bounds_index.value == -1
+    var.moi_bounds_index = MOI.add_constraint(
+        optimizer, MOI.SingleVariable(var.moi_index),
+        MOI.Interval(var.lower_bound, var.upper_bound))
+end
+
+function enforce_current_bounds_in_optimizer(
+    optimizer::MOI.AbstractOptimizer, var::Variable)
+    @assert var.moi_bounds_index.value != -1
+    MOI.set(optimizer, var.moi_bounds_index,
+            MOI.Interval(var.cur_lb, var.cur_ub))
+end
+
+function enforce_type_in_optimizer(
+    optimizer::MOI.AbstractOptimizer, var::Variable)
+    if var.vc_type == 'B'
+        MOI.add_constraint(optimizer,
+                           MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
+    elseif var.vc_type == 'I'
+        MOI.add_constraint(optimizer,
+                           MOI.SingleVariable(var.moi_index), MOI.Integer())
+    end
+end
+
+function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                 constr::Constraint)
+    terms = compute_constr_moi_terms(constr)
+    f = MOI.ScalarAffineFunction(terms, 0.0)
+    constr.moi_index = MOI.add_constraint(
+        optimizer, f, constr.set_type(constr.cost_rhs)
+    )
+end
+
+function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
+                                      constr::Constraint)
+
+    MOI.delete(optimizer, constr.moi_index)
+    constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction,
+                                           constr.set_type}(-1)
+end
+
+function compute_constr_moi_terms(constr::Constraint)
+    return [
+        MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index)
+        for var_val in constr.member_coef_map if var_val.first.status == Active
+    ]
+end
+
+function update_moi_membership(optimizer::MOI.AbstractOptimizer, var::Variable,
+                               constr::Constraint, coef::Float)
+    MOI.modify(optimizer, constr.moi_index,
+               MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+end
+
+function update_moi_membership(optimizer::MOI.AbstractOptimizer,
+                               col::MasterColumn)
+    for constr_coef in col.member_coef_map
+        update_moi_membership(optimizer, col, constr_coef[1], constr_coef[2])
+    end
+end
+
+###############################################################
+
+function load_problem_in_optimizer(problem::CompactProblem,
+        optimizer::MOI.AbstractOptimizer, is_relaxed::Bool)
+
+    for var in problem.var_manager.active_static_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for var in problem.var_manager.active_dynamic_list
+        add_variable_in_optimizer(optimizer, var, is_relaxed)
+    end
+    for constr in problem.constr_manager.active_static_list
+        add_constr_in_optimizer(optimizer, constr)
+    end
+    for constr in problem.constr_manager.active_dynamic_list
+        add_constr_in_optimizer(optimizer, constr)
     end
 end
 
@@ -623,6 +624,41 @@ function get_sp_convexity_bounds(prob::ExtendedProblem, prob_ref::Int)
     return (sp_lb, sp_ub)
 end
 
+function update_formulation(extended_problem::ExtendedProblem,
+                            removed_cuts_from_problem::Vector{Constraint},
+                            added_cuts_to_problem::Vector{Constraint},
+                            removed_cols_from_problem::Vector{Variable},
+                            added_cols_to_problem::Vector{Variable},
+                            changed_bounds::Vector{Variable})
+    # TODO implement caching through MOI.
+
+    optimizer = extended_problem.master_problem.optimizer
+    is_relaxed = extended_problem.master_problem.is_relaxed
+    # Remove cuts
+    for cut in removed_cuts_from_problem
+        remove_constr_from_optimizer(optimizer, cut)
+    end
+    # Remove variables
+    for col in removed_cols_from_problem
+        remove_var_from_optimizer(optimizer, col)
+    end
+
+    # Add variables
+    for col in added_cols_to_problem
+        add_variable_in_optimizer(optimizer, col, is_relaxed)
+    end
+    # Add cuts
+    for cut in added_cuts_to_problem
+        add_constr_in_optimizer(optimizer, cut)
+    end
+
+    # Change bounds
+    for var in changed_bounds
+        enforce_current_bounds_in_optimizer(optimizer, var)
+    end
+
+end
+
 # Iterates through each problem in extended_problem,
 # check its index and call function
 # initialize_problem_optimizer(index, optimizer), using the dictionary
@@ -681,31 +717,3 @@ function add_artificial_variables(extended_prob::ExtendedProblem)
                  extended_prob.artificial_global_pos_var; update_moi = true)
 end
 
-function update_formulation(extended_problem::ExtendedProblem,
-                            removed_cuts_from_problem::Vector{Constraint},
-                            added_cuts_to_problem::Vector{Constraint},
-                            removed_cols_from_problem::Vector{Variable},
-                            added_cols_to_problem::Vector{Variable}
-                            )
-    # TODO implement caching through MOI.
-
-    optimizer = extended_problem.master_problem.optimizer
-    is_relaxed = extended_problem.master_problem.is_relaxed
-    # Remove cuts
-    for cut in removed_cuts_from_problem
-        remove_constr_from_optimizer(optimizer, cut)
-    end
-    # Remove variables
-    for col in removed_cols_from_problem
-        remove_var_from_optimizer(optimizer, col)
-    end
-
-    # Add variables
-    for col in added_cols_to_problem
-        add_variable_in_optimizer(optimizer, col, is_relaxed)
-    end
-    # Add cuts
-    for cut in added_cuts_to_problem
-        add_constr_in_optimizer(optimizer, cut)
-    end
-end

@@ -105,7 +105,8 @@ end
     # modified_static_constrs_info::Vector{ConstraintInfo}
 end
 
-ProblemSetupInfo() = ProblemSetupInfo(Vector{VariableSmallInfo}(), Vector{ConstraintInfo}(), 
+ProblemSetupInfo() = ProblemSetupInfo(Vector{VariableSmallInfo}(),
+                                      Vector{ConstraintInfo}(),
                                       Vector{VariableInfo}())
 
 #############################
@@ -138,18 +139,6 @@ end
 
 function run(alg::AlgToSetdownNodeFully, node::Node)
     record_problem_info(alg, node::Node)
-end
-
-function bounds_changed(var::Variable)
-    return (var.cur_lb != var.lower_bound
-        || var.cur_ub != var.upper_bound
-        || var.cur_cost_rhs != var.cost_rhs)
-end
-
-function bounds_changed(var::SubprobVar)
-    changed = @callsuper bounds_changed(var::Variable)
-    return (changed || (var.cur_global_lb != var.global_lb)
-            || (var.cur_global_ub != var.global_ub))
 end
 
 function record_variables_info(prob_info::ProblemSetupInfo,
@@ -211,7 +200,7 @@ function record_constraints_info(prob_info::ProblemSetupInfo,
 
     @logmsg LogLevel(-4) string("Stored ",
         length(master_problem.constr_manager.active_dynamic_list),
-        " active cosntraints")
+        " active constraints")
 end    
 
 function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
@@ -272,23 +261,23 @@ end
 
 function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node::Node)
     master = alg.extended_problem.master_problem
+    added_to_problem = Constraint[]
     for constr in node.local_branching_constraints
         constr.status = Active
-        add_constraint(master, constr; update_moi = true)
-        @logmsg LogLevel(-4) string("Adding cosntraint ",
+        add_constraint(master, constr)
+        push!(added_to_problem, constr)
+        @logmsg LogLevel(-4) string("Adding constraint ",
             constr.vc_ref, " generated when branching.")
     end
+    return added_to_problem
 end
 
 function prepare_branching_constraints(alg::AlgToSetupBranchingOnly, node::Node)
-    prepare_branching_constraints_added_by_father(alg, node)
+    return prepare_branching_constraints_added_by_father(alg, node)
 end
 
 function apply_var_constr_info(alg::AlgToSetupNode, node::Node)
     prob_info = node.problem_setup_info
-    # for constr_info in prob_info.modified_static_constrs_info
-        # apply_constr_info(constr_info)
-    # end
     for var_info in prob_info.modified_static_vars_info
         apply_var_info(var_info)
     end
@@ -300,7 +289,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
 
     # apply_subproblem_info()
     # fill_local_branching_constraints()
-    prepare_branching_constraints(alg, node)
+    added_father_branch_constrs = prepare_branching_constraints(alg, node)
     apply_var_constr_info(alg, node)
 
     # reset_branching_constraints(_masterProbPtr, branchingConstrPtrIt)
@@ -311,7 +300,9 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # reset_non_stab_artificial_variables()
 
     #reset_partial_solution(alg)
-    # update_formulation(alg.extended_problem)
+    update_formulation(alg.extended_problem,
+                       Constraint[], added_father_branch_constrs,
+                       Variable[], Variable[], Variable[])
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end
@@ -380,7 +371,9 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
             end
         end
     end
-    return removed_from_problem, added_to_problem
+    branch_from_father = prepare_branching_constraints_added_by_father(
+        alg, node)
+    return removed_from_problem, vcat(added_to_problem, branch_from_father)
 end
 
 function prepare_master_columns(alg::AlgToSetupFull, node::Node)
@@ -436,11 +429,9 @@ function run(alg::AlgToSetupFull, node::Node)
 
     # This function updates the MOI models with the
     # current active rows and columns
-    update_formulation(alg.extended_problem, removed_cuts_from_problem, added_cuts_to_problem,
-                       removed_cols_from_problem, added_cols_to_problem)
-
-    # This function updates MOI
-    prepare_branching_constraints_added_by_father(alg, node)
+    update_formulation(alg.extended_problem, removed_cuts_from_problem,
+                       added_cuts_to_problem, removed_cols_from_problem,
+                       added_cols_to_problem, Variable[])
 
     apply_var_constr_info(alg, node)
 
@@ -449,7 +440,6 @@ function run(alg::AlgToSetupFull, node::Node)
     return false
 
 end
-
 
 # This function is never called
 # function reset_master_columns(alg::AlgToSetupNode)
@@ -476,7 +466,6 @@ end
 #     end
 # end
 
-
 #############################
 #### AlgToSetupRootNode #####
 #############################
@@ -488,28 +477,6 @@ function AlgToSetupRootNodeBuilder(problem::ExtendedProblem,
     return AlgToSetupNodeBuilder(problem, problem_setup_info)
 end
 
-function set_initial_cur_bounds(var::Variable)
-    var.cur_lb = var.lower_bound
-    var.cur_ub = var.upper_bound
-    var.cur_cost_rhs = var.cost_rhs
-end
-
-function set_initial_cur_bounds(var::SubprobVar)
-    @callsuper set_initial_cur_bounds(var::Variable)
-    var.cur_global_lb = var.global_lb
-    var.cur_global_ub = var.global_ub
-end
-
-function set_initial_cur_cost(constr::Constraint)
-    constr.cur_cost_rhs = constr.cost_rhs
-end
-
-function set_global_bounds(var::SubprobVar, multiplicity_lb::MasterConstr,
-                           multiplicity_ub::MasterConstr)
-    var.global_lb = var.lower_bound * multiplicity_lb.cost_rhs
-    var.global_ub = var.upper_bound * multiplicity_ub.cost_rhs
-end
-
 function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     master = alg.extended_problem.master_problem
     @assert isempty(master.var_manager.unsuitable_static_list)
@@ -519,7 +486,7 @@ function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     @assert isempty(master.constr_manager.unsuitable_dynamic_list)
     @assert isempty(master.constr_manager.active_dynamic_list)
     for var in master.var_manager.active_static_list
-        set_initial_cur_bounds(var)
+        set_default_currents(var)
     end
     for constr in master.constr_manager.active_static_list
         set_initial_cur_cost(constr)
@@ -527,9 +494,9 @@ function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     for subprob in alg.extended_problem.pricing_vect
         for var in subprob.var_manager.active_static_list
             set_global_bounds(var,
-                alg.extended_problem.pricing_convexity_lbs[subprob],
-                alg.extended_problem.pricing_convexity_ubs[subprob])
-            set_initial_cur_bounds(var)
+                alg.extended_problem.pricing_convexity_lbs[subprob].cost_rhs,
+                alg.extended_problem.pricing_convexity_ubs[subprob].cost_rhs)
+            set_default_currents(var)
         end
         for constr in subprob.constr_manager.active_static_list
             set_initial_cur_cost(constr)

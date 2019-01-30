@@ -44,6 +44,24 @@ function SubprobVarBuilder(counter::VarConstrCounter, name::String, costrhs::Flo
             Dict{Variable,Float}())
 end
 
+function bounds_changed(var::SubprobVar)
+    changed = @callsuper bounds_changed(var::Variable)
+    return (changed || (var.cur_global_lb != var.global_lb)
+            || (var.cur_global_ub != var.global_ub))
+end
+
+function set_default_currents(var::SubprobVar)
+    @callsuper set_default_currents(var::Variable)
+    var.cur_global_lb = var.global_lb
+    var.cur_global_ub = var.global_ub
+end
+
+function set_global_bounds(var::SubprobVar, multiplicity_lb::Float,
+                           multiplicity_ub::Float)
+    var.global_lb = var.lower_bound * multiplicity_lb
+    var.global_ub = var.upper_bound * multiplicity_ub
+end
+
 @hl mutable struct MasterVar <: Variable
     # ```
     # Holds the contribution of the master variable in the lagrangian dual bound

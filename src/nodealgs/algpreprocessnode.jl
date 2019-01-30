@@ -567,5 +567,6 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
         end
     end
     #TODO: change variables bound in moi
-    update_formulation(alg.extended_problem, [], [], removed_cols_from_problem, [])
+    update_formulation(alg.extended_problem, [], [],
+                       removed_cols_from_problem, [], [])
 end

@@ -161,20 +161,29 @@ function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Floa
             Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
 end
 
+const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float}}
 @hl mutable struct Variable <: VarConstr
     # ```
     # Flag telling whether or not the variable is fractional.
     # ```
     moi_index::MOI.VariableIndex
 
+    # ```
+    # Used when solving the problem with another optimizer
+    # i.e.: When doing primal heuristics
+    # ``
     secondary_moi_index::MOI.VariableIndex
+
+    # ```
+    # Store the MOI.ConstraintIndex used as lower and upper bounds
+    # ``
+    moi_bounds_index::MoiBounds
 
     # ```
     # To represent local lower bound on variable primal / constraint dual
     # In the problem which it belongs to
     # ```
     lower_bound::Float
-
 
     # ```
     # To represent local upper bound on variable primal / constraint dual
@@ -197,12 +206,26 @@ function VariableBuilder(counter::VarConstrCounter, name::String,
     return tuplejoin(
         VarConstrBuilder(counter, name, costrhs, sense, vc_type, flag,
                          directive, priority), MOI.VariableIndex(-1),
-        MOI.VariableIndex(-1), lowerBound, upperBound, -Inf, Inf)
+        MOI.VariableIndex(-1), MoiBounds(-1), lowerBound, upperBound,
+        -Inf, Inf)
 end
 
 VariableBuilder(var::Variable, counter::VarConstrCounter) = tuplejoin(
-        VarConstrBuilder(var, counter),
-        (MOI.VariableIndex(-1), MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
+    VarConstrBuilder(var, counter), (
+        MOI.VariableIndex(-1), MOI.VariableIndex(-1), MoiBounds(-1),
+        -Inf, Inf, -Inf, Inf))
+
+function bounds_changed(var::Variable)
+    return (var.cur_lb != var.lower_bound
+        || var.cur_ub != var.upper_bound
+        || var.cur_cost_rhs != var.cost_rhs)
+end
+
+function set_default_currents(var::Variable)
+    var.cur_lb = var.lower_bound
+    var.cur_ub = var.upper_bound
+    var.cur_cost_rhs = var.cost_rhs
+end
 
 @hl mutable struct Constraint <: VarConstr
     moi_index::MOI.ConstraintIndex{F,S} where {F,S}
@@ -230,6 +253,10 @@ function ConstraintBuilder(counter::VarConstrCounter, name::String,
         MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
         set_type, -Inf, Inf
     )
+end
+
+function set_initial_cur_cost(constr::Constraint)
+    constr.cur_cost_rhs = constr.cost_rhs
 end
 
 function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
