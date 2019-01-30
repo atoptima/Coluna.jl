@@ -46,7 +46,7 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
             x_var = CL.MasterVar(master_problem.counter, string("x(", j, ",", i, ")"),
                 profits[j], 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
             push!(x_vec, x_var)
-            CL.add_variable(master_problem, x_var, true)
+            CL.add_variable(master_problem, x_var; update_moi = true)
             CL.add_membership(x_var, cover_constrs[j], 1.0; optimizer = master_problem.optimizer)
             CL.add_membership(x_var, knap_constrs[i], weights[j]; optimizer = master_problem.optimizer)
         end

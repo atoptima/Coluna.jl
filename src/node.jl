@@ -287,6 +287,8 @@ function treat(node::Node, treat_algs::TreatAlgs,
             node.node_inc_ip_primal_bound)
             record_ip_primal_sol_and_update_ip_primal_bound(
                 node, alg.sols_and_bounds)
+            # global n_ = node
+            # SimpleDebugger.@bkp
         end
         if is_conquered(node)
             exit_treatment(node); return true

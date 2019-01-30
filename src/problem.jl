@@ -336,8 +336,8 @@ end
 
 ### addvariable changes problem and MOI cachingOptimizer.model_cache
 ### and sets the index of the variable
-function add_variable(problem::CompactProblem, var::Variable,
-                      update_moi::Bool)
+function add_variable(problem::CompactProblem, var::Variable;
+                      update_moi = false)
     @logmsg LogLevel(-4) "adding Variable $var"
     add_var_in_manager(problem.var_manager, var)
     @assert var.prob_ref == -1
@@ -676,7 +676,7 @@ end
 
 function add_artificial_variables(extended_prob::ExtendedProblem)
     add_variable(extended_prob.master_problem,
-                 extended_prob.artificial_global_neg_var, true)
+                 extended_prob.artificial_global_neg_var; update_moi = true)
     add_variable(extended_prob.master_problem,
-                 extended_prob.artificial_global_pos_var, true)
+                 extended_prob.artificial_global_pos_var; update_moi = true)
 end

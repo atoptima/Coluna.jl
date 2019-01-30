@@ -311,7 +311,7 @@ function add_variables_to_problem(dest::ColunaModelOptimizer, src::MOI.ModelLike
         else
             problem = dest.inner.extended_problem.pricing_vect[prob_idx]
         end
-        add_variable(problem, coluna_vars[idx], true)
+        add_variable(problem, coluna_vars[idx]; update_moi = true)
     end
 end
 

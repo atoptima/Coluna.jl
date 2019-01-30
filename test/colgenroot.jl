@@ -31,10 +31,10 @@ function testcolgenatroot()
     y = CL.SubprobVar(counter, "y", 1.0, 'P', 'B', 's', 'U', 1.0,
                        1.0, 1.0, -Inf, Inf, -Inf, Inf)
 
-    CL.add_variable(pricingprob, x1, true)
-    CL.add_variable(pricingprob, x2, true)
-    CL.add_variable(pricingprob, x3, true)
-    CL.add_variable(pricingprob, y, true)
+    CL.add_variable(pricingprob, x1; update_moi = true)
+    CL.add_variable(pricingprob, x2; update_moi = true)
+    CL.add_variable(pricingprob, x3; update_moi = true)
+    CL.add_variable(pricingprob, y; update_moi = true)
 
     #subproblem constrs
     knp_constr = CL.Constraint(counter, "knp_constr", 0.0, 'L', 'M', 's')

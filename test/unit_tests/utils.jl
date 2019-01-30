@@ -66,7 +66,7 @@ function create_problem_knapsack(feasible::Bool = true, MIP::Bool = true, unboun
         x_var = CL.MasterVar(problem.counter, string("x(", i, ")"),
                              p[i], 'P', var_type, 's', 'U', 1.0, 0.0, UB)
         push!(x_vars, x_var)
-        CL.add_variable(problem, x_var, true)
+        CL.add_variable(problem, x_var; update_moi = true)
         CL.add_membership(x_var, knp, w[i]; optimizer = optimizer)
     end
 
@@ -157,10 +157,10 @@ function create_cg_extended_problem()
     y = CL.SubprobVar(counter, "y", 1.0, 'P', 'B', 's', 'U', 1.0,
                        1.0, 1.0, -Inf, Inf, -Inf, Inf)
 
-    CL.add_variable(pricingprob, x1, true)
-    CL.add_variable(pricingprob, x2, true)
-    CL.add_variable(pricingprob, x3, true)
-    CL.add_variable(pricingprob, y, true)
+    CL.add_variable(pricingprob, x1; update_moi = true)
+    CL.add_variable(pricingprob, x2; update_moi = true)
+    CL.add_variable(pricingprob, x3; update_moi = true)
+    CL.add_variable(pricingprob, y; update_moi = true)
 
     #subproblem constrs
     knp_constr = CL.Constraint(counter, "knp_constr", 0.0, 'L', 'M', 's')

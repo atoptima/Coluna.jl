@@ -66,9 +66,9 @@ function testpuremaster()
     x2 = CL.MasterVar(counter, "x2", -15.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
     x3 = CL.MasterVar(counter, "x3", -20.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
 
-    CL.add_variable(problem, x1, true)
-    CL.add_variable(problem, x2, true)
-    CL.add_variable(problem, x3, true)
+    CL.add_variable(problem, x1; update_moi = true)
+    CL.add_variable(problem, x2; update_moi = true)
+    CL.add_variable(problem, x3; update_moi = true)
 
     constr = CL.MasterConstr(counter, "knapConstr", 5.0, 'L', 'M', 's')
 
@@ -100,10 +100,10 @@ function branch_and_bound_test_instance()
     x3 = CL.MasterVar(master_problem.counter, "x3", -20.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
     x4 = CL.MasterVar(master_problem.counter, "x4", -25.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
 
-    CL.add_variable(master_problem, x1, true)
-    CL.add_variable(master_problem, x2, true)
-    CL.add_variable(master_problem, x3, true)
-    CL.add_variable(master_problem, x4, true)
+    CL.add_variable(master_problem, x1; update_moi = true)
+    CL.add_variable(master_problem, x2; update_moi = true)
+    CL.add_variable(master_problem, x3; update_moi = true)
+    CL.add_variable(master_problem, x4; update_moi = true)
 
     constr = CL.MasterConstr(master_problem.counter, "knapConstr_", 8.0, 'L', 'M', 's')
 
