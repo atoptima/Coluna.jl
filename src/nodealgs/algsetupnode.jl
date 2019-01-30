@@ -204,7 +204,7 @@ function record_constraints_info(prob_info::ProblemSetupInfo,
     for constr in master_problem.constr_manager.active_dynamic_list
         if isa(constr, MasterBranchConstr)
             push!(prob_info.active_branching_constraints_info,
-                ConstraintInfo(constr))
+                ConstraintInfo(constr, Active))
         elseif isa(constr, MasterConstr)
             push!(prob_info.suitable_master_cuts_info,
                   ConstraintInfo(constr, Active))
@@ -219,6 +219,7 @@ end
 function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     prob_info = ProblemSetupInfo(node.treat_order)
     master_problem = alg.extended_problem.master_problem
+
     # Partial solution of master
     for (var, val) in master_problem.partial_solution
         push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
@@ -229,6 +230,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     record_constraints_info(prob_info, master_problem)
 
     node.problem_setup_info = prob_info
+
 end
 
 #############################
@@ -271,8 +273,10 @@ function reset_partial_solution(alg::AlgToSetupNode)
 end
 
 function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node::Node)
+    master = alg.extended_problem.master_problem
     for constr in node.local_branching_constraints
-        add_full_constraint(alg.extended_problem.master_problem, constr)
+        constr.status = Active
+        add_constraint(master, constr; update_moi = true)
         @logmsg LogLevel(-4) string("Adding cosntraint ",
             constr.vc_ref, " generated when branching.")
     end
@@ -309,7 +313,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # reset_non_stab_artificial_variables()
 
     reset_partial_solution(alg)
-    update_formulation(alg)
+    # update_formulation(alg)
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end
@@ -331,15 +335,30 @@ function find_first_in_problem_setup(constr_info_vec::Vector{ConstraintInfo},
     return 0
 end
 
+function find_first_in_problem_setup(var_info_vec::Vector{VariableSmallInfo},
+        vc_ref::Int)
+    for i in 1:length(var_info_vec)
+        if vc_ref == var_info_vec[i].variable.vc_ref
+            return i
+        end
+    end
+    return 0
+end
+
 function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
-    in_problem = alg.extended_problem.master_problem.constr_manager.active_dynamic_list
+    master = alg.extended_problem.master_problem
+    in_problem = master.constr_manager.active_dynamic_list
     in_setup_info = node.problem_setup_info.active_branching_constraints_info
+
+    removed_from_problem = Constraint[]
+    added_to_problem = Constraint[]
     for i in length(in_problem):-1:1
         constr = in_problem[i]
         if typeof(constr) <: MasterBranchConstr
             idx = find_first_in_problem_setup(in_setup_info, constr.vc_ref)
             if idx == 0
-                delete_constraint(alg.extended_problem.master_problem, constr)
+                update_constr_status(master, constr, Unsuitable)
+                push!(removed_from_problem, constr)
                 @logmsg LogLevel(-4) string("constraint ", constr.vc_ref,
                                             " deactivated")
             else
@@ -354,7 +373,8 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
         if typeof(constr) <: MasterBranchConstr
             idx = find_first(in_problem, constr.vc_ref)
             if idx == 0
-                add_full_constraint(alg.extended_problem.master_problem, constr)
+                update_constr_status(master, constr, Active)
+                push!(added_to_problem, constr)
                 @logmsg LogLevel(-4) string("added constraint ", constr.vc_ref)
             else
                 @logmsg LogLevel(-4) string("constraint ", constr.vc_ref,
@@ -362,18 +382,71 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
             end
         end
     end
-    prepare_branching_constraints_added_by_father(alg, node)
+    return removed_from_problem, added_to_problem
+end
+
+function prepare_master_columns(alg::AlgToSetupFull, node::Node)
+    master = alg.extended_problem.master_problem
+    in_problem = master.var_manager.active_dynamic_list
+    in_setup_info = node.problem_setup_info.suitable_master_columns_info
+
+    removed_from_problem = Variable[]
+    added_to_problem = Variable[]
+    for i in length(in_problem):-1:1
+        col = in_problem[i]
+        if typeof(col) <: MasterColumn
+            idx = find_first_in_problem_setup(in_setup_info, col.vc_ref)
+            if idx == 0
+                update_var_status(master, col, Unsuitable)
+                push!(removed_from_problem, col)
+                @logmsg LogLevel(-4) string("column ", col.vc_ref,
+                                            " deactivated")
+            else
+                @logmsg LogLevel(-4) string("column ", col.vc_ref,
+                                            " is in branching tree of node")
+            end
+        end
+    end
+    for i in 1:length(in_setup_info)
+        col_info = in_setup_info[i]
+        col = col_info.variable
+        if typeof(col) <: MasterColumn
+            idx = find_first(in_problem, col.vc_ref)
+            if idx == 0
+                update_var_status(master, col, Active)
+                push!(added_to_problem, col)
+                @logmsg LogLevel(-4) string("added column ", col.vc_ref)
+            else
+                @logmsg LogLevel(-4) string("column ", col.vc_ref,
+                                            " is already in problem")
+            end
+        end
+    end
+    return removed_from_problem, added_to_problem
 end
 
 function run(alg::AlgToSetupFull, node::Node)
 
     @logmsg LogLevel(-4) "AlgToSetupFull"
 
-    prepare_branching_constraints(alg, node)
+    # The two next function only update the managers
+    # and the statuses, all memberships are already up-to-date
+    removed_cuts_from_problem, added_cuts_to_problem =
+        prepare_branching_constraints(alg, node)
+    removed_cols_from_problem, added_cols_to_problem =
+        prepare_master_columns(alg, node)
+
+    # This function updates the MOI models with the
+    # current active rows and columns
+    update_formulation(alg, removed_cuts_from_problem, added_cuts_to_problem,
+                       removed_cols_from_problem, added_cols_to_problem)
+
+    # This function updates MOI
+    prepare_branching_constraints_added_by_father(alg, node)
+
     apply_preprocess_info(alg, node)
 
     reset_partial_solution(alg)
-    update_formulation(alg)
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 
@@ -405,8 +478,33 @@ end
 #     end
 # end
 
-function update_formulation(alg::AlgToSetupNode)
+function update_formulation(alg::AlgToSetupNode,
+                            removed_cuts_from_problem::Vector{Constraint},
+                            added_cuts_to_problem::Vector{Constraint},
+                            removed_cols_from_problem::Vector{Variable},
+                            added_cols_to_problem::Vector{Variable}
+                            )
     # TODO implement caching through MOI.
+
+    optimizer = alg.extended_problem.master_problem.optimizer
+    is_relaxed = alg.extended_problem.master_problem.is_relaxed
+    # Remove cuts
+    for cut in removed_cuts_from_problem
+        remove_constr_from_optimizer(optimizer, cut)
+    end
+    # Remove variables
+    for col in removed_cols_from_problem
+        remove_var_from_optimizer(optimizer, col)
+    end
+
+    # Add variables
+    for col in added_cols_to_problem
+        add_variable_in_optimizer(optimizer, col, is_relaxed)
+    end
+    # Add cuts
+    for cut in added_cuts_to_problem
+        add_constr_in_optimizer(optimizer, cut)
+    end
 end
 
 #############################
@@ -478,7 +576,7 @@ function run(alg::AlgToSetupRootNode, node::Node)
     @logmsg LogLevel(-4) "AlgToSetupRootNode"
     set_cur_bounds(alg, node)
 
-    update_formulation(alg)
+    # update_formulation(alg)
 
     # return problem_infeasible
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)

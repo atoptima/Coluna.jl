@@ -19,8 +19,8 @@ include("unit_tests/unit_tests.jl")
 using Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(0)))
 
-unit_tests()
-testdefaultbuilders()
+# unit_tests()
+# testdefaultbuilders()
 testpuremaster()
 @testset "cutting stock - colgen root " begin
     testcolgenatroot()

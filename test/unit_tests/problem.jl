@@ -13,8 +13,7 @@ function problem_unit_tests()
     add_variable_tests()
     add_variable_in_optimizer_tests()
     add_constraint_tests()
-    add_full_constraint_tests()
-    add_full_constraint_in_optimizer_tests()
+    add_constr_in_optimizer_tests()
     delete_constraint_tests()
     add_membership_tests()
     optimize!_tests()
@@ -282,9 +281,7 @@ function add_variable_in_optimizer_tests()
     @test objf.terms[2].variable_index == vars[2].moi_index
     list_of_ci = MOI.get(problem.optimizer,
     MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Interval{Float64}}())
-    @test length(list_of_ci) == 1
-    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[1]) == MOI.SingleVariable(vars[2].moi_index)
-    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.Interval{Float64}(1.0,1.0)
+    @test length(list_of_ci) == 0
 
     vars[3].vc_type = 'I'
     CL.add_variable_in_optimizer(problem.optimizer, vars[3], false)
@@ -300,9 +297,9 @@ function add_variable_in_optimizer_tests()
     CL.add_variable_in_optimizer(problem.optimizer, vars[4], false)
     list_of_ci = MOI.get(problem.optimizer,
     MOI.ListOfConstraintIndices{MOI.SingleVariable,MOI.Interval{Float64}}())
-    @test length(list_of_ci) == 3
-    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[3]) == MOI.SingleVariable(vars[4].moi_index)
-    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[3]) == MOI.Interval{Float64}(vars[4].lower_bound,vars[4].upper_bound)
+    @test length(list_of_ci) == 2
+    @test MOI.get(problem.optimizer, MOI.ConstraintFunction(), list_of_ci[2]) == MOI.SingleVariable(vars[4].moi_index)
+    @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[2]) == MOI.Interval{Float64}(vars[4].lower_bound,vars[4].upper_bound)
 end
 
 function add_constraint_tests()
@@ -321,30 +318,13 @@ function add_constraint_tests()
     @test constr.prob_ref == problem.prob_ref
 end
 
-function add_full_constraint_tests()
+function add_constr_in_optimizer_tests()
     problem = create_problem_empty()
     optimizer = GLPK.Optimizer()
     CL.initialize_problem_optimizer(problem, optimizer)
     constrs = create_array_of_constrs(1, CL.MasterBranchConstr)
     constr = constrs[1]
-    CL.add_full_constraint(problem, constr)
-    list_of_ci = MOI.get(problem.optimizer, MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}())
-    @test length(list_of_ci) == 1
-    @test list_of_ci[1] === constr.moi_index
-    @test findfirst(x->x===constr, problem.constr_manager.active_dynamic_list) != nothing
-    @test length(problem.constr_manager.active_static_list) == 0
-    @test length(problem.constr_manager.active_dynamic_list) == 1
-    @test length(problem.constr_manager.unsuitable_static_list) == 0
-    @test length(problem.constr_manager.unsuitable_dynamic_list) == 0
-end
-
-function add_full_constraint_in_optimizer_tests()
-    problem = create_problem_empty()
-    optimizer = GLPK.Optimizer()
-    CL.initialize_problem_optimizer(problem, optimizer)
-    constrs = create_array_of_constrs(1, CL.MasterBranchConstr)
-    constr = constrs[1]
-    CL.add_full_constraint_in_optimizer(problem.optimizer, constr)
+    CL.add_constr_in_optimizer(problem.optimizer, constr)
     list_of_ci = MOI.get(problem.optimizer, MOI.ListOfConstraintIndices{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}())
     @test length(list_of_ci) == 1
     @test list_of_ci[1] === constr.moi_index

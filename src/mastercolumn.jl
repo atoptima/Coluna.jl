@@ -18,6 +18,17 @@ end
 #         costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char, 
 #         priority::Float, lowerBound::Float, upperBound::Float)
 
+function build_memberships(col::MasterColumn)
+    for (var, val) in col.solution.var_val_map
+        for (constr, coef) in var.master_constr_coef_map
+            if constr.status == Active
+                add_membership(col, constr, val * coef)
+            end
+        end
+        var.master_col_coef_map[col] = val
+    end
+end
+
 function MasterColumnBuilder(counter::VarConstrCounter, 
                              sp_sol::PrimalSolution) where P
     cost = compute_original_cost(sp_sol)
@@ -26,4 +37,11 @@ function MasterColumnBuilder(counter::VarConstrCounter,
             sp_sol, false #= enumeration not supported =#, true)
          
     #TODO add membership using sp_sol        
+end
+
+function MasterColumnConstructor(counter::VarConstrCounter, 
+                                 sp_sol::PrimalSolution) where P
+    col = MasterColumn(counter, sp_sol)
+    build_memberships(col)
+    return col
 end

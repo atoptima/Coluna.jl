@@ -66,17 +66,17 @@ function testpuremaster()
     x2 = CL.MasterVar(counter, "x2", -15.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
     x3 = CL.MasterVar(counter, "x3", -20.0, 'P', 'C', 's', 'U', 1.0, 0.0, 1.0)
 
-    CL.add_variable(problem, x1)
-    CL.add_variable(problem, x2)
-    CL.add_variable(problem, x3)
+    CL.add_variable(problem, x1; update_moi = true)
+    CL.add_variable(problem, x2; update_moi = true)
+    CL.add_variable(problem, x3; update_moi = true)
 
     constr = CL.MasterConstr(counter, "knapConstr", 5.0, 'L', 'M', 's')
 
-    CL.add_constraint(problem, constr)
+    CL.add_constraint(problem, constr; update_moi = true)
 
-    CL.add_membership(problem, x1, constr, 2.0)
-    CL.add_membership(problem, x2, constr, 3.0)
-    CL.add_membership(problem, x3, constr, 4.0)
+    CL.add_membership(x1, constr, 2.0; optimizer = problem.optimizer)
+    CL.add_membership(x2, constr, 3.0; optimizer = problem.optimizer)
+    CL.add_membership(x3, constr, 4.0; optimizer = problem.optimizer)
 
     CL.optimize!(problem)
 
@@ -100,19 +100,19 @@ function branch_and_bound_test_instance()
     x3 = CL.MasterVar(master_problem.counter, "x3", -20.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
     x4 = CL.MasterVar(master_problem.counter, "x4", -25.0, 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
 
-    CL.add_variable(master_problem, x1)
-    CL.add_variable(master_problem, x2)
-    CL.add_variable(master_problem, x3)
-    CL.add_variable(master_problem, x4)
+    CL.add_variable(master_problem, x1; update_moi = true)
+    CL.add_variable(master_problem, x2; update_moi = true)
+    CL.add_variable(master_problem, x3; update_moi = true)
+    CL.add_variable(master_problem, x4; update_moi = true)
 
     constr = CL.MasterConstr(master_problem.counter, "knapConstr_", 8.0, 'L', 'M', 's')
 
-    CL.add_constraint(master_problem, constr)
+    CL.add_constraint(master_problem, constr; update_moi = true)
 
-    CL.add_membership(master_problem, x1, constr, 2.0)
-    CL.add_membership(master_problem, x2, constr, 3.0)
-    CL.add_membership(master_problem, x3, constr, 4.0)
-    CL.add_membership(master_problem, x4, constr, 5.0)
+    CL.add_membership(x1, constr, 2.0; optimizer = master_problem.optimizer)
+    CL.add_membership(x2, constr, 3.0; optimizer = master_problem.optimizer)
+    CL.add_membership(x3, constr, 4.0; optimizer = master_problem.optimizer)
+    CL.add_membership(x4, constr, 5.0; optimizer = master_problem.optimizer)
 
     CL.solve(model)
 

@@ -281,10 +281,15 @@ function treat(node::Node, treat_algs::TreatAlgs,
         return true
     end
 
-    # We dont have primal heuristics
     for alg in treat_algs.alg_vect_primal_heur_node
         run(alg, node, global_treat_order)
-        # TODO remove node bound updates from inside heuristics and put it here.
+        if (alg.sols_and_bounds.alg_inc_ip_primal_bound <
+            node.node_inc_ip_primal_bound)
+            record_ip_primal_sol_and_update_ip_primal_bound(
+                node, alg.sols_and_bounds)
+            # global n_ = node
+            # SimpleDebugger.@bkp
+        end
         if is_conquered(node)
             exit_treatment(node); return true
         end

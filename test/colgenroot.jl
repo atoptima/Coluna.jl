@@ -31,20 +31,20 @@ function testcolgenatroot()
     y = CL.SubprobVar(counter, "y", 1.0, 'P', 'B', 's', 'U', 1.0,
                        1.0, 1.0, -Inf, Inf, -Inf, Inf)
 
-    CL.add_variable(pricingprob, x1)
-    CL.add_variable(pricingprob, x2)
-    CL.add_variable(pricingprob, x3)
-    CL.add_variable(pricingprob, y)
+    CL.add_variable(pricingprob, x1; update_moi = true)
+    CL.add_variable(pricingprob, x2; update_moi = true)
+    CL.add_variable(pricingprob, x3; update_moi = true)
+    CL.add_variable(pricingprob, y; update_moi = true)
 
     #subproblem constrs
     knp_constr = CL.Constraint(counter, "knp_constr", 0.0, 'L', 'M', 's')
 
-    CL.add_constraint(pricingprob, knp_constr)
+    CL.add_constraint(pricingprob, knp_constr; update_moi = true)
 
-    CL.add_membership(pricingprob, x1, knp_constr, 3.0)
-    CL.add_membership(pricingprob, x2, knp_constr, 4.0)
-    CL.add_membership(pricingprob, x3, knp_constr, 5.0)
-    CL.add_membership(pricingprob, y, knp_constr, -8.0)
+    CL.add_membership(x1, knp_constr, 3.0; optimizer = pricingprob.optimizer)
+    CL.add_membership(x2, knp_constr, 4.0; optimizer = pricingprob.optimizer)
+    CL.add_membership(x3, knp_constr, 5.0; optimizer = pricingprob.optimizer)
+    CL.add_membership(y, knp_constr, -8.0; optimizer = pricingprob.optimizer)
 
     # master var
     art_glob_pos_var = extended_problem.artificial_global_pos_var
@@ -58,17 +58,17 @@ function testcolgenatroot()
     cov_3_constr = CL.MasterConstr(master_problem.counter, "cov_3_constr", 1.0,
                                    'G', 'M', 's')
 
-    CL.add_constraint(master_problem, cov_1_constr)
-    CL.add_constraint(master_problem, cov_2_constr)
-    CL.add_constraint(master_problem, cov_3_constr)
+    CL.add_constraint(master_problem, cov_1_constr; update_moi = true)
+    CL.add_constraint(master_problem, cov_2_constr; update_moi = true)
+    CL.add_constraint(master_problem, cov_3_constr; update_moi = true)
 
-    CL.add_membership(master_problem, x1, cov_1_constr, 1.0)
-    CL.add_membership(master_problem, x2, cov_2_constr, 1.0)
-    CL.add_membership(master_problem, x3, cov_3_constr, 1.0)
+    CL.add_membership(x1, cov_1_constr, 1.0; optimizer = master_problem.optimizer)
+    CL.add_membership(x2, cov_2_constr, 1.0; optimizer = master_problem.optimizer)
+    CL.add_membership(x3, cov_3_constr, 1.0; optimizer = master_problem.optimizer)
 
-    CL.add_membership(master_problem, art_glob_pos_var, cov_1_constr, 1.0)
-    CL.add_membership(master_problem, art_glob_pos_var, cov_2_constr, 1.0)
-    CL.add_membership(master_problem, art_glob_pos_var, cov_3_constr, 1.0)
+    CL.add_membership(art_glob_pos_var, cov_1_constr, 1.0; optimizer = master_problem.optimizer)
+    CL.add_membership(art_glob_pos_var, cov_2_constr, 1.0; optimizer = master_problem.optimizer)
+    CL.add_membership(art_glob_pos_var, cov_3_constr, 1.0; optimizer = master_problem.optimizer)
 
     CL.solve(model)
 

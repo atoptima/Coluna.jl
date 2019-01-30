@@ -28,7 +28,7 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
         constr = CL.MasterConstr(master_problem.counter,
             string("knapConstr_", i), binscap[i], 'L', 'M', 's')
         push!(knap_constrs, constr)
-        CL.add_constraint(master_problem, constr)
+        CL.add_constraint(master_problem, constr; update_moi = true)
     end
 
     cover_constrs = CL.MasterConstr[]
@@ -36,7 +36,7 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
         constr = CL.MasterConstr(master_problem.counter,
             string("CoverCons_", j), 1.0, 'L', 'M', 's')
         push!(cover_constrs, constr)
-        CL.add_constraint(master_problem, constr)
+        CL.add_constraint(master_problem, constr; update_moi = true)
     end
 
     x_vars = Vector{Vector{CL.MasterVar}}()
@@ -46,9 +46,9 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
             x_var = CL.MasterVar(master_problem.counter, string("x(", j, ",", i, ")"),
                 profits[j], 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
             push!(x_vec, x_var)
-            CL.add_variable(master_problem, x_var)
-            CL.add_membership(master_problem, x_var, cover_constrs[j], 1.0)
-            CL.add_membership(master_problem, x_var, knap_constrs[i], weights[j])
+            CL.add_variable(master_problem, x_var; update_moi = true)
+            CL.add_membership(x_var, cover_constrs[j], 1.0; optimizer = master_problem.optimizer)
+            CL.add_membership(x_var, knap_constrs[i], weights[j]; optimizer = master_problem.optimizer)
         end
         push!(x_vars, x_vec)
     end

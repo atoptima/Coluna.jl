@@ -79,9 +79,11 @@ end
 
 function generate_branch_constraint(alg::AlgToGenerateChildrenNodes,
         depth::Int, var_to_branch::Variable, sense::Char, rhs::Float)
-    return MasterBranchConstrConstructor(alg.extended_problem.counter,
-        string("branch_",var_to_branch.name,"_",sense, "_", depth), rhs, sense, depth,
-        var_to_branch)
+    return MasterBranchConstrConstructor(
+        alg.extended_problem.counter,
+        string("branch_",var_to_branch.name,"_",sense, "_", depth),
+        rhs, sense, depth, var_to_branch
+    )
 end
 
 function generate_child(alg::AlgToGenerateChildrenNodes, node::Node,
