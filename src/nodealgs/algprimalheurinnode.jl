@@ -30,10 +30,6 @@ function run(alg::AlgToPrimalHeurByRestrictedMip, node::Node,
     @logmsg LogLevel(-2) "Restricted Master Heur found sol: $primal_sol"
     alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_sol.cost
     alg.sols_and_bounds.alg_inc_ip_primal_sol_map = primal_sol.var_val_map
-    if primal_sol.cost < node.node_inc_ip_primal_bound
-        record_ip_primal_sol_and_update_ip_primal_bound(node,
-                                                        alg.sols_and_bounds)
-    end
     println("<restricted master ip heur> ", "<mip=$(primal_sol.cost)> ",
             "<PB=$(node.node_inc_ip_primal_bound)>")
     switch_primary_secondary_moi_indices(master_problem)
