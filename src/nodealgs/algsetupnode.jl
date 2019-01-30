@@ -66,15 +66,12 @@ end
 
 @hl mutable struct ConstraintInfo
     constraint::Constraint
-    min_slack::Float
-    max_slack::Float
     rhs::Float
     status::VCSTATUS
 end
 
 function ConstraintInfoBuilder(constr::T, status::VCSTATUS) where T <: Constraint
-    return (constr, constr.cur_min_slack, constr.cur_max_slack,
-            constr.cost_rhs, status)
+    return (constr, constr.cost_rhs, status)
 end
 
 function ConstraintInfoBuilder(constr::T) where T <: Constraint
@@ -82,20 +79,18 @@ function ConstraintInfoBuilder(constr::T) where T <: Constraint
 end
 
 function apply_constr_info(info::ConstraintInfo)
-    info.constraint.cur_min_slack = info.min_slack
-    info.constraint.cur_max_slack = info.max_slack
     info.constraint.cur_cost_rhs = info.rhs
 end
 
 @hl mutable struct ProblemSetupInfo <: SetupInfo
-    treat_order::Int
-    number_of_nodes::Int
-    full_setup_is_obligatory::Bool
+    #treat_order::Int
+    # number_of_nodes::Int
+    # full_setup_is_obligatory::Bool
 
     suitable_master_columns_info::Vector{VariableSmallInfo}
-    suitable_master_cuts_info::Vector{ConstraintInfo}
+    # suitable_master_cuts_info::Vector{ConstraintInfo}
     active_branching_constraints_info::Vector{ConstraintInfo}
-    master_partial_solution_info::Vector{VariableSolInfo}
+    # master_partial_solution_info::Vector{VariableSolInfo}
 
     # - In these two lists we keep only static variables and constraints for
     # which at least one of the attributes in VariableInfo and ConstraintInfo is
@@ -107,13 +102,11 @@ end
     #   master -> subprob 1 -> subprob 2 -> ...
 
     modified_static_vars_info::Vector{VariableInfo}
-    modified_static_constrs_info::Vector{ConstraintInfo}
+    # modified_static_constrs_info::Vector{ConstraintInfo}
 end
 
-ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
-        Vector{VariableSmallInfo}(), Vector{ConstraintInfo}(),
-        Vector{ConstraintInfo}(), Vector{VariableSolInfo}(),
-        Vector{VariableInfo}(), Vector{ConstraintInfo}())
+ProblemSetupInfo() = ProblemSetupInfo(Vector{VariableSmallInfo}(), Vector{ConstraintInfo}(), 
+                                      Vector{VariableInfo}())
 
 #############################
 #### AlgToSetdownNode #######
@@ -123,13 +116,13 @@ ProblemSetupInfo(treat_order) = ProblemSetupInfo(treat_order, 0, false,
     extended_problem::ExtendedProblem
 end
 
-function run(alg::AlgToSetdownNode)
+# function run(alg::AlgToSetdownNode)
     # alg.extended_problem.master_problem.cur_node = Nullable{Node}()
     # for prob in alg.extended_problem.pricing_vect
     #     prob.cur_node = Nullable{Node}()
     # end
     # problem_info = record_problem_info(alg, )
-end
+# end
 
 # function record_problem_info(alg::AlgToSetdownNode,
 #                              global_treat_order::Int)::ProblemSetupInfo
@@ -147,36 +140,43 @@ function run(alg::AlgToSetdownNodeFully, node::Node)
     record_problem_info(alg, node::Node)
 end
 
+function bounds_changed(var::Variable)
+    return (var.cur_lb != var.lower_bound
+        || var.cur_ub != var.upper_bound
+        || var.cur_cost_rhs != var.cost_rhs)
+end
+
+function bounds_changed(var::SubprobVar)
+    changed = @callsuper bounds_changed(var::Variable)
+    return (changed || (var.cur_global_lb != var.global_lb)
+            || (var.cur_global_ub != var.global_ub))
+end
+
 function record_variables_info(prob_info::ProblemSetupInfo,
                                master_problem::CompactProblem,
                                subproblems::Vector{Problem})
     # Static variables of master
     for var in master_problem.var_manager.active_static_list
-        if (var.cur_lb != var.lower_bound
-            || var.cur_ub != var.upper_bound
-            || var.cur_cost_rhs != var.cost_rhs)
+        if bounds_changed(var)
             push!(prob_info.modified_static_vars_info, VariableInfo(var, Active))
+            set_initial_cur_bounds(var)
         end
     end
 
     # Dynamic master variables
     for var in master_problem.var_manager.active_dynamic_list
-        if isa(var, MasterColumn)
-            push!(prob_info.suitable_master_columns_info,
-                  VariableSmallInfo(var, Active))
-        end
+        @assert isa(var, MasterColumn)
+        push!(prob_info.suitable_master_columns_info,
+              VariableSmallInfo(var, Active))
     end
 
     # Subprob variables
     for subprob in subproblems
         for var in subprob.var_manager.active_static_list
-            if (var.cur_lb != var.lower_bound
-                || var.cur_ub != var.upper_bound
-                || var.cur_global_lb != var.global_lb
-                || var.cur_global_ub != var.global_ub
-                || var.cur_cost_rhs != var.cost_rhs)
+            if bounds_changed(var)
                 push!(prob_info.modified_static_vars_info,
                       SpVariableInfo(var, Active))
+                set_initial_cur_bounds(var)
             end
         end
     end
@@ -189,25 +189,23 @@ end
 function record_constraints_info(prob_info::ProblemSetupInfo,
                                  master_problem::CompactProblem)
 
-    # Static constraints of the master
-    for constr in master_problem.constr_manager.active_static_list
-        if (!isa(constr, ConvexityConstr) &&
-            (constr.cur_min_slack != -Inf
-             || constr.cur_max_slack != Inf))
-            # (constr.cur_min_slack != constr.min_slack
-            #  || constr.cur_max_slack != constr.max_slack))
-            push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
-        end
-    end
+    ## Static constraints of the master
+    # for constr in master_problem.constr_manager.active_static_list
+        # if (!isa(constr, ConvexityConstr) &&
+            # (constr.cur_min_slack != -Inf
+             # || constr.cur_max_slack != Inf))
+            # push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
+        # end
+    # end
 
-    # Dynamic constraints of the master (cuts and branching constraints)
+    #Dynamic constraints of the master (cuts and branching constraints)
     for constr in master_problem.constr_manager.active_dynamic_list
         if isa(constr, MasterBranchConstr)
             push!(prob_info.active_branching_constraints_info,
                 ConstraintInfo(constr, Active))
-        elseif isa(constr, MasterConstr)
-            push!(prob_info.suitable_master_cuts_info,
-                  ConstraintInfo(constr, Active))
+        # elseif isa(constr, MasterConstr)
+            # push!(prob_info.suitable_master_cuts_info,
+                  # ConstraintInfo(constr, Active))
         end
     end
 
@@ -217,13 +215,13 @@ function record_constraints_info(prob_info::ProblemSetupInfo,
 end    
 
 function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
-    prob_info = ProblemSetupInfo(node.treat_order)
+    prob_info = ProblemSetupInfo()
     master_problem = alg.extended_problem.master_problem
 
-    # Partial solution of master
-    for (var, val) in master_problem.partial_solution
-        push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
-    end
+    ## Partial solution of master
+    # for (var, val) in master_problem.partial_solution
+        # push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
+    # end
 
     record_variables_info(prob_info, master_problem,
                           alg.extended_problem.pricing_vect)
@@ -240,16 +238,16 @@ end
 @hl mutable struct AlgToSetupNode <: AlgLike
     extended_problem::ExtendedProblem
     problem_setup_info::ProblemSetupInfo
-    is_all_columns_active::Bool
+    # is_all_columns_active::Bool
 end
 
 function AlgToSetupNodeBuilder(extended_problem::ExtendedProblem)
-    return (extended_problem, ProblemSetupInfo(0), false)
+    return (extended_problem, ProblemSetupInfo(0))
 end
 
 function AlgToSetupNodeBuilder(extended_problem::ExtendedProblem,
         problem_setup_info::ProblemSetupInfo)
-    return (extended_problem, problem_setup_info, false)
+    return (extended_problem, problem_setup_info)
 end
 
 @hl mutable struct AlgToSetupBranchingOnly <: AlgToSetupNode end
@@ -263,14 +261,14 @@ function AlgToSetupBranchingOnlyBuilder(extended_problem::ExtendedProblem,
     return AlgToSetupNodeBuilder(extended_problem, problem_setup_info)
 end
 
-function reset_partial_solution(alg::AlgToSetupNode)
+#function reset_partial_solution(alg::AlgToSetupNode)
     # node = alg.node
     # if !isempty(node.localfixedsolution)
     #     for (var, val) in node.localfixedsolution.solvarvalmap
     #         updatepartialsolution(alg.extended_problem.master_problem, var, val)
     #     end
     # end
-end
+#end
 
 function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node::Node)
     master = alg.extended_problem.master_problem
@@ -286,11 +284,11 @@ function prepare_branching_constraints(alg::AlgToSetupBranchingOnly, node::Node)
     prepare_branching_constraints_added_by_father(alg, node)
 end
 
-function apply_preprocess_info(alg::AlgToSetupNode, node::Node)
+function apply_var_constr_info(alg::AlgToSetupNode, node::Node)
     prob_info = node.problem_setup_info
-    for constr_info in prob_info.modified_static_constrs_info
-        apply_constr_info(constr_info)
-    end
+    # for constr_info in prob_info.modified_static_constrs_info
+        # apply_constr_info(constr_info)
+    # end
     for var_info in prob_info.modified_static_vars_info
         apply_var_info(var_info)
     end
@@ -303,7 +301,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # apply_subproblem_info()
     # fill_local_branching_constraints()
     prepare_branching_constraints(alg, node)
-    apply_preprocess_info(alg, node)
+    apply_var_constr_info(alg, node)
 
     # reset_branching_constraints(_masterProbPtr, branchingConstrPtrIt)
 
@@ -312,7 +310,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # reset_convexity_constraints()
     # reset_non_stab_artificial_variables()
 
-    reset_partial_solution(alg)
+    #reset_partial_solution(alg)
     # update_formulation(alg)
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
@@ -444,9 +442,9 @@ function run(alg::AlgToSetupFull, node::Node)
     # This function updates MOI
     prepare_branching_constraints_added_by_father(alg, node)
 
-    apply_preprocess_info(alg, node)
+    apply_var_constr_info(alg, node)
 
-    reset_partial_solution(alg)
+    # reset_partial_solution(alg)
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 

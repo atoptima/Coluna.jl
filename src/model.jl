@@ -29,7 +29,7 @@ end
 
 function create_root_node(extended_problem::ExtendedProblem)::Node
     params = extended_problem.params
-    problem_setup_info = ProblemSetupInfo(0)
+    problem_setup_info = ProblemSetupInfo()
     stab_info  = StabilizationInfo(extended_problem.master_problem, params)
     master_lp_basis = LpBasisRecord("Basis0")
 
@@ -97,6 +97,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
             node.problem_setup_info)
     end
 
+    # treat_algs.alg_preprocess_node = AlgToPreprocessNode(extended_problem)
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
     treat_algs.alg_generate_children_nodes = UsualBranchingAlg(extended_problem)
 
