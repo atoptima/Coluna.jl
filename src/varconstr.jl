@@ -144,20 +144,20 @@ end
 
 Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
 
-# Think about this constructor (almost a copy)
-function VarConstrBuilder(vc::VarConstr, counter::VarConstrCounter)
-    # This is not a copy since some fields are reset to default
-    return (increment_counter(counter), "", -1, vc.directive,
-            vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
-            vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map),
-            vc.reduced_cost)
-end
+# # Think about this constructor (almost a copy)
+# function VarConstrBuilder(vc::VarConstr, counter::VarConstrCounter)
+#     # This is not a copy since some fields are reset to default
+#     return (increment_counter(counter), "", -1, vc.directive,
+#             vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
+#             vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map),
+#             vc.reduced_cost)
+# end
 
 function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
                           sense::Char, vc_type::Char, flag::Char, directive::Char,
                           priority::Float)
     return (increment_counter(counter), name, -1, directive,
-            priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0,
+            priority, costrhs, sense, vc_type, flag, Active, 0.0, costrhs,
             Dict{VarConstr, Float}(), 0.0)
 end
 
@@ -171,13 +171,20 @@ const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float}}
     # ```
     # Used when solving the problem with another optimizer
     # i.e.: When doing primal heuristics
-    # ``
+    # ```
     secondary_moi_index::MOI.VariableIndex
 
     # ```
-    # Store the MOI.ConstraintIndex used as lower and upper bounds
-    # ``
+    # Stores the MOI.ConstraintIndex used as lower and upper bounds
+    # ```
     moi_bounds_index::MoiBounds
+
+    # ```
+    # Stores the secondary MOI.ConstraintIndex used as lower and upper bounds
+    # Used when solving the problem with another optimizer
+    # i.e.: When doing primal heuristics
+    # ```
+    secondary_moi_bounds_index::MoiBounds
 
     # ```
     # To represent local lower bound on variable primal / constraint dual
@@ -201,19 +208,13 @@ end
 
 function VariableBuilder(counter::VarConstrCounter, name::String,
         costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char,
-        priority::Float, lowerBound::Float, upperBound::Float)
+        priority::Float, lb::Float, ub::Float)
 
     return tuplejoin(
         VarConstrBuilder(counter, name, costrhs, sense, vc_type, flag,
                          directive, priority), MOI.VariableIndex(-1),
-        MOI.VariableIndex(-1), MoiBounds(-1), lowerBound, upperBound,
-        -Inf, Inf)
+        MOI.VariableIndex(-1), MoiBounds(-1), MoiBounds(-1), lb, ub, lb, ub)
 end
-
-VariableBuilder(var::Variable, counter::VarConstrCounter) = tuplejoin(
-    VarConstrBuilder(var, counter), (
-        MOI.VariableIndex(-1), MOI.VariableIndex(-1), MoiBounds(-1),
-        -Inf, Inf, -Inf, Inf))
 
 function bounds_changed(var::Variable)
     return (var.cur_lb != var.lower_bound
@@ -282,4 +283,12 @@ function switch_primary_secondary_moi_indices(vc::VarConstr)
     temp_idx = vc.moi_index
     vc.moi_index = vc.secondary_moi_index
     vc.secondary_moi_index = temp_idx
+end
+
+function switch_primary_secondary_moi_indices(var::Variable)
+    @callsuper switch_primary_secondary_moi_indices(var::VarConstr)
+    # This also changes the bounds index
+    temp_idx = var.moi_bounds_index
+    var.moi_bounds_index = var.secondary_moi_bounds_index
+    var.secondary_moi_bounds_index = temp_idx
 end

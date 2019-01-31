@@ -36,7 +36,7 @@ end
 function SubprobVarBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
         sense::Char, vc_type::Char, flag::Char, directive::Char, priority::Float,
         lowerBound::Float, upperBound::Float, globallb::Float, globalub::Float,
-         curgloballb::Float, curglobalub::Float)
+        curgloballb::Float, curglobalub::Float)
 
     return tuplejoin(VariableBuilder(counter, name, costrhs, sense, vc_type, flag,
             directive, priority, lowerBound, upperBound), globallb, globalub,

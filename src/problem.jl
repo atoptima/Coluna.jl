@@ -420,10 +420,10 @@ end
 
 function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
                                    var::Variable)
+    MOI.delete(optimizer, var.moi_bounds_index)
+    var.moi_bounds_index = MoiBounds(-1)
     MOI.delete(optimizer, var.moi_index)
     var.moi_index = MOI.VariableIndex(-1)
-    MOI.delete(optimizer, var.moi_bounds_index)
-    var.moi_bounds_index = MOI.MoiBounds(-1)
 end
 
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
@@ -434,7 +434,7 @@ end
 
 function enforce_initial_bounds_in_optimizer(
     optimizer::MOI.AbstractOptimizer, var::Variable)
-    @assert var.moi_bounds_index.value == -1
+    # @assert var.moi_bounds_index.value == -1 # commented because of primal heur
     var.moi_bounds_index = MOI.add_constraint(
         optimizer, MOI.SingleVariable(var.moi_index),
         MOI.Interval(var.lower_bound, var.upper_bound))
@@ -636,6 +636,9 @@ function update_formulation(extended_problem::ExtendedProblem,
     end
     # Remove variables
     for col in removed_cols_from_problem
+        # println("removing variable ", col)
+        # global v_ = col
+        # SimpleDebugger.@bkp
         remove_var_from_optimizer(optimizer, col)
     end
 
@@ -650,6 +653,9 @@ function update_formulation(extended_problem::ExtendedProblem,
 
     # Change bounds
     for var in changed_bounds
+        # println("changing bounds of ", var)
+        # global v_ = var
+        # SimpleDebugger.@bkp
         enforce_current_bounds_in_optimizer(optimizer, var)
     end
 
