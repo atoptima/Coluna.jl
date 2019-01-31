@@ -144,15 +144,6 @@ end
 
 Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
 
-# # Think about this constructor (almost a copy)
-# function VarConstrBuilder(vc::VarConstr, counter::VarConstrCounter)
-#     # This is not a copy since some fields are reset to default
-#     return (increment_counter(counter), "", -1, vc.directive,
-#             vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
-#             vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map),
-#             vc.reduced_cost)
-# end
-
 function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
                           sense::Char, vc_type::Char, flag::Char, directive::Char,
                           priority::Float)
