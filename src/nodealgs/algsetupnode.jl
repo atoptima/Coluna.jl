@@ -299,8 +299,10 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # reset_non_stab_artificial_variables()
 
     #reset_partial_solution(alg)
-    update_formulation(
-        alg.extended_problem, Constraint[], removed_cuts_from_problem,
+    optimizer = alg.extended_problem.master_problem.optimizer
+    is_relaxed = alg.extended_problem.master_problem.is_relaxed
+    update_moi_optimizer(
+        optimizer, is_relaxed, Constraint[], removed_cuts_from_problem,
         Variable[], Variable[], [
             info.variable::Variable
             for info in node.problem_setup_info.modified_static_vars_info] )
@@ -434,8 +436,10 @@ function run(alg::AlgToSetupFull, node::Node)
 
     # This function updates the MOI models with the
     # current active rows and columns and their bounds
-    update_formulation(
-        alg.extended_problem, removed_cuts_from_problem,
+    optimizer = alg.extended_problem.master_problem.optimizer
+    is_relaxed = alg.extended_problem.master_problem.is_relaxed
+    update_moi_optimizer(
+        optimizer, is_relaxed, removed_cuts_from_problem,
         added_cuts_to_problem, removed_cols_from_problem,
         added_cols_to_problem, [
             info.variable::Variable
@@ -520,7 +524,7 @@ function run(alg::AlgToSetupRootNode, node::Node)
     @logmsg LogLevel(-4) "AlgToSetupRootNode"
     set_cur_bounds(alg, node)
 
-    # update_formulation(alg.extended_problen)
+    # update_moi_optimizer(alg.extended_problen)
 
     # return problem_infeasible
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)

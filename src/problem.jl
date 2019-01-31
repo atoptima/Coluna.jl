@@ -496,6 +496,45 @@ function update_moi_membership(optimizer::MOI.AbstractOptimizer,
     end
 end
 
+function update_moi_optimizer(optimizer::MOI.AbstractOptimizer, is_relaxed::Bool,
+                            removed_cuts_from_problem::Vector{Constraint},
+                            added_cuts_to_problem::Vector{Constraint},
+                            removed_cols_from_problem::Vector{Variable},
+                            added_cols_to_problem::Vector{Variable},
+                            changed_bounds::Vector{Variable})
+    # TODO implement caching through MOI.
+
+    # Remove cuts
+    for cut in removed_cuts_from_problem
+        remove_constr_from_optimizer(optimizer, cut)
+    end
+    # Remove variables
+    for col in removed_cols_from_problem
+        # println("removing variable ", col)
+        # global v_ = col
+        # SimpleDebugger.@bkp
+        remove_var_from_optimizer(optimizer, col)
+    end
+
+    # Add variables
+    for col in added_cols_to_problem
+        add_variable_in_optimizer(optimizer, col, is_relaxed)
+    end
+    # Add cuts
+    for cut in added_cuts_to_problem
+        add_constr_in_optimizer(optimizer, cut)
+    end
+
+    # Change bounds
+    for var in changed_bounds
+        # println("changing bounds of ", var)
+        # global v_ = var
+        # SimpleDebugger.@bkp
+        enforce_current_bounds_in_optimizer(optimizer, var)
+    end
+
+end
+
 ###############################################################
 
 function load_problem_in_optimizer(problem::CompactProblem,
@@ -618,47 +657,6 @@ function get_sp_convexity_bounds(prob::ExtendedProblem, prob_ref::Int)
     sp_lb = prob.pricing_convexity_lbs[sp].cost_rhs
     sp_ub = prob.pricing_convexity_ubs[sp].cost_rhs
     return (sp_lb, sp_ub)
-end
-
-function update_formulation(extended_problem::ExtendedProblem,
-                            removed_cuts_from_problem::Vector{Constraint},
-                            added_cuts_to_problem::Vector{Constraint},
-                            removed_cols_from_problem::Vector{Variable},
-                            added_cols_to_problem::Vector{Variable},
-                            changed_bounds::Vector{Variable})
-    # TODO implement caching through MOI.
-
-    optimizer = extended_problem.master_problem.optimizer
-    is_relaxed = extended_problem.master_problem.is_relaxed
-    # Remove cuts
-    for cut in removed_cuts_from_problem
-        remove_constr_from_optimizer(optimizer, cut)
-    end
-    # Remove variables
-    for col in removed_cols_from_problem
-        # println("removing variable ", col)
-        # global v_ = col
-        # SimpleDebugger.@bkp
-        remove_var_from_optimizer(optimizer, col)
-    end
-
-    # Add variables
-    for col in added_cols_to_problem
-        add_variable_in_optimizer(optimizer, col, is_relaxed)
-    end
-    # Add cuts
-    for cut in added_cuts_to_problem
-        add_constr_in_optimizer(optimizer, cut)
-    end
-
-    # Change bounds
-    for var in changed_bounds
-        # println("changing bounds of ", var)
-        # global v_ = var
-        # SimpleDebugger.@bkp
-        enforce_current_bounds_in_optimizer(optimizer, var)
-    end
-
 end
 
 # Iterates through each problem in extended_problem,
