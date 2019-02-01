@@ -301,11 +301,15 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     #reset_partial_solution(alg)
     optimizer = alg.extended_problem.master_problem.optimizer
     is_relaxed = alg.extended_problem.master_problem.is_relaxed
+
     update_moi_optimizer(
-        optimizer, is_relaxed, Constraint[], removed_cuts_from_problem,
+    optimizer, is_relaxed,
+    ProblemUpdate(
+        Constraint[], removed_cuts_from_problem,
         Variable[], Variable[], [
             info.variable::Variable
-            for info in node.problem_setup_info.modified_static_vars_info] )
+            for info in node.problem_setup_info.modified_static_vars_info])
+    )
 
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
@@ -439,12 +443,13 @@ function run(alg::AlgToSetupFull, node::Node)
     optimizer = alg.extended_problem.master_problem.optimizer
     is_relaxed = alg.extended_problem.master_problem.is_relaxed
     update_moi_optimizer(
-        optimizer, is_relaxed, removed_cuts_from_problem,
+    optimizer, is_relaxed, ProblemUpdate(
+        removed_cuts_from_problem,
         added_cuts_to_problem, removed_cols_from_problem,
         added_cols_to_problem, [
             info.variable::Variable
             for info in node.problem_setup_info.modified_static_vars_info]
-    )
+    ))
 
     # reset_partial_solution(alg)
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)

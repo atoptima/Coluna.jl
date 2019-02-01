@@ -496,20 +496,24 @@ function update_moi_membership(optimizer::MOI.AbstractOptimizer,
     end
 end
 
+struct ProblemUpdate
+    removed_cuts_from_problem::Vector{Constraint}
+    added_cuts_to_problem::Vector{Constraint}
+    removed_cols_from_problem::Vector{Variable}
+    added_cols_to_problem::Vector{Variable}
+    changed_bounds::Vector{Variable}
+end
+
 function update_moi_optimizer(optimizer::MOI.AbstractOptimizer, is_relaxed::Bool,
-                            removed_cuts_from_problem::Vector{Constraint},
-                            added_cuts_to_problem::Vector{Constraint},
-                            removed_cols_from_problem::Vector{Variable},
-                            added_cols_to_problem::Vector{Variable},
-                            changed_bounds::Vector{Variable})
+                              prob_update::ProblemUpdate)
     # TODO implement caching through MOI.
 
     # Remove cuts
-    for cut in removed_cuts_from_problem
+    for cut in prob_update.removed_cuts_from_problem
         remove_constr_from_optimizer(optimizer, cut)
     end
     # Remove variables
-    for col in removed_cols_from_problem
+    for col in prob_update.removed_cols_from_problem
         # println("removing variable ", col)
         # global v_ = col
         # SimpleDebugger.@bkp
@@ -517,16 +521,16 @@ function update_moi_optimizer(optimizer::MOI.AbstractOptimizer, is_relaxed::Bool
     end
 
     # Add variables
-    for col in added_cols_to_problem
+    for col in prob_update.added_cols_to_problem
         add_variable_in_optimizer(optimizer, col, is_relaxed)
     end
     # Add cuts
-    for cut in added_cuts_to_problem
+    for cut in prob_update.added_cuts_to_problem
         add_constr_in_optimizer(optimizer, cut)
     end
 
     # Change bounds
-    for var in changed_bounds
+    for var in prob_update.changed_bounds
         # println("changing bounds of ", var)
         # global v_ = var
         # SimpleDebugger.@bkp
@@ -689,6 +693,14 @@ function set_prob_ref_to_problem_dict(extended_prob::ExtendedProblem)
     prob_ref_to_prob[master.prob_ref] = master
     for subprob in subproblems
         prob_ref_to_prob[subprob.prob_ref] = subprob
+    end
+end
+
+function update_extended_problem(prob_updates::Dict{CompactProblem, ProblemUpdate})
+    for prob_update in prob_updates
+        prob = prob_update[1]
+        update = prob_update[2]
+        update_moi_optimizer(prob.optimizer, prob.is_relaxed, update)
     end
 end
 
