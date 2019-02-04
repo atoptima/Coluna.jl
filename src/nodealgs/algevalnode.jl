@@ -150,14 +150,6 @@ function mark_infeasible(alg::AlgToEvalNode)
     alg.sol_is_master_lp_feasible = false
 end
 
-function setup(alg::AlgToEvalNode)
-    return false
-end
-
-function setdown(alg::AlgToEvalNode)
-    return false
-end
-
 ##############################
 #### AlgToEvalNodeByLp #######
 ##############################

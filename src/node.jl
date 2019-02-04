@@ -195,50 +195,40 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     node.dual_bound_is_updated = false
     
     # Right now the setup only return true
-    if run(treat_algs.alg_setup_node, node)
-        error("Setups cannot fail")
+    if run(treat_algs.alg_setup_node)
         run(treat_algs.alg_setdown_node, node)
-        mark_infeasible_and_exit_treatment(node); return true
+        mark_infeasible_and_exit_treatment(node)
+        return true
     end
 
-    # Preprocessing is not yet implemented
     if run(treat_algs.alg_preprocess_node, node)
         run(treat_algs.alg_setdown_node, node)
-        mark_infeasible_and_exit_treatment(node); return true
+        mark_infeasible_and_exit_treatment(node)
+        return true
     end
 
-    @logmsg LogLevel(-3) string("active branching constraints: ")
-    for constr in treat_algs.alg_setup_node.extended_problem.master_problem.constr_manager.active_dynamic_list
-        @logmsg LogLevel(-3) string("constraint ", constr.vc_ref, ": ")
-        for var in keys(constr.member_coef_map)
-            @logmsg LogLevel(-3) string(" + ", var.name)
-        end
-        @logmsg LogLevel(-3) string(" = ", constr.cost_rhs)
-    end
-
-    if setup(treat_algs.alg_eval_node)
-        setdown(treat_algs.alg_eval_node)
-        run(treat_algs.alg_setdown_node, node)
-        mark_infeasible_and_exit_treatment(node); return true
-    end
+    # if setup(treat_algs.alg_eval_node)
+    #     setdown(treat_algs.alg_eval_node)
+    #     run(treat_algs.alg_setdown_node, node)
+    #     mark_infeasible_and_exit_treatment(node)
+    #     return true
+    # end
 
     if run(treat_algs.alg_eval_node)
         run(treat_algs.alg_setdown_node, node)
-        mark_infeasible_and_exit_treatment(node); return true
+        mark_infeasible_and_exit_treatment(node)
+        return true
     end
     node.evaluated = true
 
-    # The following should be also called after the heuristics.
     update_node_incumbents(node, treat_algs.alg_eval_node.sols_and_bounds)
 
     if is_conquered(node)
         @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
-        setdown(treat_algs.alg_eval_node)
         run(treat_algs.alg_setdown_node, node)
         # store_branching_evaluation_info()
         exit_treatment(node); return true
     elseif false # _evalAlgPtr->subProbSolutionsEnumeratedToMIP() && runEnumeratedMIP()
-        # setdown(treat_algs.alg_eval_node)
         # run(treat_algs.alg_setdown_node, node)
         # store_branching_evaluation_info()
         # mark_infeasible_and_exit_treatment(); return true
@@ -248,7 +238,6 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     #     save_problem_and_eval_alg_info(node)
     # end
 
-    setdown(treat_algs.alg_eval_node)
     run(treat_algs.alg_setdown_node, node)
     # store_branching_evaluation_info()
     return true
@@ -286,11 +275,7 @@ function treat(node::Node, treat_algs::TreatAlgs,
         println("<", typeof(alg), ">",  "<mip=",
                 alg.sols_and_bounds.alg_inc_lp_primal_bound, "> ",
                 "<PB=", node.node_inc_ip_primal_bound, ">")
-        if (alg.sols_and_bounds.alg_inc_ip_primal_bound <
-            node.node_inc_ip_primal_bound)
-            record_ip_primal_sol_and_update_ip_primal_bound(
-                node, alg.sols_and_bounds)
-        end
+        update_node_primals(node, alg.sols_and_bounds)
         if is_conquered(node)
             @logmsg LogLevel(0) string("Node is considered conquered ",
                                        "after primal heuristic ", typeof(alg))
@@ -299,18 +284,9 @@ function treat(node::Node, treat_algs::TreatAlgs,
         end
     end
 
-    # The generation child nodes algorithm fills the sons
-    # setup(::AlgToGenerateChildrenNodes) does nothing
-    if setup(treat_algs.alg_generate_children_nodes)
-        # This code is never run
-        setdown(treat_algs.alg_generate_children_nodes)
-        exit_treatment(node)
-        return true
-    end
-
     run(treat_algs.alg_generate_children_nodes, global_treat_order, node)
-    setdown(treat_algs.alg_generate_children_nodes)
 
     exit_treatment(node)
+
     return true
 end

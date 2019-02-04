@@ -19,14 +19,6 @@ function UsualBranchingAlgBuilder(problem::ExtendedProblem)
         MostFractionalRule())
 end
 
-function setup(alg::AlgToGenerateChildrenNodes)
-    return false
-end
-
-function setdown(alg::AlgToGenerateChildrenNodes)
-
-end
-
 function get_var_according_to_rule(rule::MostFractionalRule,
         vars::Vector{Pair{T, Float}}) where T <: Variable
     best_var_val = vars[1]

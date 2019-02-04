@@ -54,7 +54,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     println("Preparing root node for treatment.")
 
     treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
-        node.problem_setup_info)
+        node.problem_setup_info, node.local_branching_constraints)
 
     treat_algs.alg_preprocess_node = AlgToPreprocessNode(extended_problem)
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
@@ -91,10 +91,10 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 
     if global_nodes_treat_order == node.parent.treat_order+1
         treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
-            node.problem_setup_info)
+            node.problem_setup_info, node.local_branching_constraints)
     else
         treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
-            node.problem_setup_info)
+            node.problem_setup_info, node.local_branching_constraints)
     end
 
     treat_algs.alg_preprocess_node = AlgToPreprocessNode(extended_problem)

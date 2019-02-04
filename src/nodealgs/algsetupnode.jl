@@ -237,6 +237,7 @@ end
 @hl mutable struct AlgToSetupNode <: AlgLike
     extended_problem::ExtendedProblem
     problem_setup_info::ProblemSetupInfo
+    branch_from_father::Vector{MasterBranchConstr}
     # is_all_columns_active::Bool
 end
 
@@ -245,19 +246,18 @@ function AlgToSetupNodeBuilder(extended_problem::ExtendedProblem)
 end
 
 function AlgToSetupNodeBuilder(extended_problem::ExtendedProblem,
-        problem_setup_info::ProblemSetupInfo)
-    return (extended_problem, problem_setup_info)
+             problem_setup_info::ProblemSetupInfo,
+             branch_from_father::Vector{MasterBranchConstr})
+    return (extended_problem, problem_setup_info, branch_from_father)
 end
 
 @hl mutable struct AlgToSetupBranchingOnly <: AlgToSetupNode end
 
-function AlgToSetupBranchingOnlyBuilder(extended_problem::ExtendedProblem)
-    return AlgToSetupNodeBuilder(extended_problem)
-end
-
 function AlgToSetupBranchingOnlyBuilder(extended_problem::ExtendedProblem,
-        problem_setup_info::ProblemSetupInfo)
-    return AlgToSetupNodeBuilder(extended_problem, problem_setup_info)
+             problem_setup_info::ProblemSetupInfo,
+             branch_from_father::Vector{MasterBranchConstr})
+    return AlgToSetupNodeBuilder(extended_problem, problem_setup_info,
+                                 branch_from_father)
 end
 
 #function reset_partial_solution(alg::AlgToSetupNode)
@@ -269,10 +269,10 @@ end
     # end
 #end
 
-function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node::Node)
+function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode)
     master = alg.extended_problem.master_problem
     added_to_problem = Constraint[]
-    for constr in node.local_branching_constraints
+    for constr in alg.branch_from_father
         constr.status = Active
         add_constraint(master, constr)
         push!(added_to_problem, constr)
@@ -282,18 +282,18 @@ function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode, node
     return added_to_problem
 end
 
-function prepare_branching_constraints(alg::AlgToSetupBranchingOnly, node::Node)
-    return prepare_branching_constraints_added_by_father(alg, node)
+function prepare_branching_constraints(alg::AlgToSetupBranchingOnly)
+    return prepare_branching_constraints_added_by_father(alg)
 end
 
-function run(alg::AlgToSetupBranchingOnly, node::Node)
+function run(alg::AlgToSetupBranchingOnly)
 
     @logmsg LogLevel(-4) "AlgToSetupBranchingOnly"
 
     # apply_subproblem_info()
     # fill_local_branching_constraints()
-    added_cuts_to_problem = prepare_branching_constraints(alg, node)
-    apply_var_constr_info(node.problem_setup_info)
+    added_cuts_to_problem = prepare_branching_constraints(alg)
+    apply_var_constr_info(alg.problem_setup_info)
 
     # reset_branching_constraints(_masterProbPtr, branchingConstrPtrIt)
 
@@ -341,10 +341,10 @@ function find_first_in_problem_setup(var_info_vec::Vector{VariableSmallInfo},
     return 0
 end
 
-function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
+function prepare_branching_constraints(alg::AlgToSetupFull)
     master = alg.extended_problem.master_problem
     in_problem = master.constr_manager.active_dynamic_list
-    in_setup_info = node.problem_setup_info.active_branching_constraints_info
+    in_setup_info = alg.problem_setup_info.active_branching_constraints_info
 
     removed_from_problem = Constraint[]
     added_to_problem = Constraint[]
@@ -378,15 +378,14 @@ function prepare_branching_constraints(alg::AlgToSetupFull, node::Node)
             end
         end
     end
-    branch_from_father = prepare_branching_constraints_added_by_father(
-        alg, node)
+    branch_from_father = prepare_branching_constraints_added_by_father(alg)
     return removed_from_problem, vcat(added_to_problem, branch_from_father)
 end
 
-function prepare_master_columns(alg::AlgToSetupFull, node::Node)
+function prepare_master_columns(alg::AlgToSetupFull)
     master = alg.extended_problem.master_problem
     in_problem = master.var_manager.active_dynamic_list
-    in_setup_info = node.problem_setup_info.suitable_master_columns_info
+    in_setup_info = alg.problem_setup_info.suitable_master_columns_info
 
     removed_from_problem = Variable[]
     added_to_problem = Variable[]
@@ -446,19 +445,19 @@ function update_formulation(extended_problem::ExtendedProblem,
     # end
 end
 
-function run(alg::AlgToSetupFull, node::Node)
+function run(alg::AlgToSetupFull)
 
     @logmsg LogLevel(-4) "AlgToSetupFull"
 
     # The two next function only update the managers
     # and the statuses, all memberships are already up-to-date
     removed_cuts_from_problem, added_cuts_to_problem =
-        prepare_branching_constraints(alg, node)
+        prepare_branching_constraints(alg)
     removed_cols_from_problem, added_cols_to_problem =
-        prepare_master_columns(alg, node)
+        prepare_master_columns(alg)
 
     # This function updated the infos with the ones stored by father
-    apply_var_constr_info(node.problem_setup_info)
+    apply_var_constr_info(alg.problem_setup_info)
 
     # This function updates the MOI models with the
     # current active rows and columns and their bounds
@@ -510,8 +509,8 @@ function AlgToSetupRootNodeBuilder(problem::ExtendedProblem,
     return AlgToSetupNodeBuilder(problem, problem_setup_info)
 end
 
-function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
-    master = alg.extended_problem.master_problem
+function set_cur_bounds(extended_problem::ExtendedProblem)
+    master = extended_problem.master_problem
     @assert isempty(master.var_manager.unsuitable_static_list)
     @assert isempty(master.var_manager.unsuitable_dynamic_list)
     @assert isempty(master.var_manager.active_dynamic_list)
@@ -521,24 +520,24 @@ function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     for var in master.var_manager.active_static_list
         set_default_currents(var)
     end
-    for subprob in alg.extended_problem.pricing_vect
+    for subprob in extended_problem.pricing_vect
         for var in subprob.var_manager.active_static_list
             set_global_bounds(var,
-                alg.extended_problem.pricing_convexity_lbs[subprob].cost_rhs,
-                alg.extended_problem.pricing_convexity_ubs[subprob].cost_rhs)
+                extended_problem.pricing_convexity_lbs[subprob].cost_rhs,
+                extended_problem.pricing_convexity_ubs[subprob].cost_rhs)
             set_default_currents(var)
         end
     end
 end
 
-function run(alg::AlgToSetupRootNode, node::Node)
+function run(alg::AlgToSetupRootNode)
     # @callsuper probleminfeasible = AlgToSetupNode::run(node)
 
     # reset_root_convexity_master_constr(alg)
     # reset_master_columns(alg)
     # reset_non_stab_artificial_variables(alg)
     @logmsg LogLevel(-4) "AlgToSetupRootNode"
-    set_cur_bounds(alg, node)
+    set_cur_bounds(alg.extended_problem)
 
     # update_moi_optimizer(alg.extended_problen)
 
