@@ -278,38 +278,40 @@ function retrieve_dual_sol(problem::CompactProblem;
     end
     # TODO check if supported by solver
     # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
-    try
-        if MOI.get(optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
-            return nothing
-        end
-        constr_list = problem.constr_manager.active_static_list
-        constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
-        new_sol = Dict{Constraint, Float}()
-        for constr_idx in 1:length(constr_list)
-            constr = constr_list[constr_idx]
-            constr.val = MOI.get(optimizer, MOI.ConstraintDual(),
-                                 constr.moi_index)
-            @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
-                                       constr.val)
-            @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
-                    MOI.get(optimizer, MOI.ConstraintPrimal(), constr.moi_index))
-            if constr.val != 0 # TODO use a tolerance
-                if update_problem
-                    push!(problem.in_dual_lp_sol, constr)
-                end
-                new_sol[constr] = constr.val
-            end
-        end
-        dual_sol = DualSolution(-Inf, new_sol)
-        if update_problem
-            push!(problem.dual_sols, dual_sol) #TODO get objbound
-        end
-        return dual_sol
-    catch err
-        println(string(err))
-        @warn "Optimizer $(typeof(optimizer)) doesn't have a dual status"
+    if MOI.get(optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         return nothing
     end
+    constr_list = problem.constr_manager.active_static_list
+    constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
+    new_sol = Dict{Constraint, Float}()
+    for constr_idx in 1:length(constr_list)
+        constr = constr_list[constr_idx]
+        constr.val = 0.0
+        try
+            constr.val = MOI.get(optimizer, MOI.ConstraintDual(),
+                                 constr.moi_index)
+        catch err
+            if (typeof(err) == AssertionError &&
+                !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
+                throw(err)
+            end
+        end
+        @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
+                                    constr.val)
+        @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
+                                    MOI.get(optimizer, MOI.ConstraintPrimal(), constr.moi_index))
+        if constr.val != 0 # TODO use a tolerance
+            if update_problem
+                push!(problem.in_dual_lp_sol, constr)
+            end
+            new_sol[constr] = constr.val
+        end
+    end
+    dual_sol = DualSolution(-Inf, new_sol)
+    if update_problem
+        push!(problem.dual_sols, dual_sol) #TODO get objbound
+    end
+    return dual_sol
 end
 
 function retrieve_solution(problem::CompactProblem)
@@ -514,10 +516,7 @@ function update_moi_optimizer(optimizer::MOI.AbstractOptimizer, is_relaxed::Bool
     end
     # Remove variables
     for col in prob_update.removed_cols_from_problem
-        # println("removing variable ", col)
-        # global v_ = col
-        # SimpleDebugger.@bkp
-        remove_var_from_optimizer(optimizer, col)
+         remove_var_from_optimizer(optimizer, col)
     end
 
     # Add variables
@@ -531,9 +530,6 @@ function update_moi_optimizer(optimizer::MOI.AbstractOptimizer, is_relaxed::Bool
 
     # Change bounds
     for var in prob_update.changed_bounds
-        # println("changing bounds of ", var)
-        # global v_ = var
-        # SimpleDebugger.@bkp
         enforce_current_bounds_in_optimizer(optimizer, var)
     end
 
@@ -604,6 +600,7 @@ function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
                 optimizer = optimizer, update_problem = false)
     else
         @logmsg LogLevel(-4) string("Solver has no result to show.")
+        return (status, nothing, nothing)
     end
 
     return (status, primal_sol, dual_sol)

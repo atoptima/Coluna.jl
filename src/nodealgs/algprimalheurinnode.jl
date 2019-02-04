@@ -26,11 +26,11 @@ function run(alg::AlgToPrimalHeurByRestrictedMip, node::Node,
     mip_optimizer = GLPK.Optimizer()
     load_problem_in_optimizer(master_problem, mip_optimizer, false)
     sols = optimize(master_problem, mip_optimizer)
-    primal_sol = sols[2]
-    @logmsg LogLevel(-2) "Restricted Master Heur found sol: $primal_sol"
-    alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_sol.cost
-    alg.sols_and_bounds.alg_inc_ip_primal_sol_map = primal_sol.var_val_map
-    println("<restricted master ip heur> ", "<mip=$(primal_sol.cost)> ",
-            "<PB=$(node.node_inc_ip_primal_bound)>")
+    if sols[2] != nothing
+        primal_sol = sols[2]
+        @logmsg LogLevel(-2) "Restricted Master Heur found sol: $primal_sol"
+        alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_sol.cost
+        alg.sols_and_bounds.alg_inc_ip_primal_sol_map = primal_sol.var_val_map
+    end
     switch_primary_secondary_moi_indices(master_problem)
 end

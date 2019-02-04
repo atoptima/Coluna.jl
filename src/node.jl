@@ -277,20 +277,25 @@ function treat(node::Node, treat_algs::TreatAlgs,
     end
 
     if node.treated
+        @logmsg LogLevel(0) "Node is considered as treated after evaluation"
         return true
     end
 
     for alg in treat_algs.alg_vect_primal_heur_node
         run(alg, node, global_treat_order)
+        println("<", typeof(alg), ">",  "<mip=",
+                alg.sols_and_bounds.alg_inc_lp_primal_bound, "> ",
+                "<PB=", node.node_inc_ip_primal_bound, ">")
         if (alg.sols_and_bounds.alg_inc_ip_primal_bound <
             node.node_inc_ip_primal_bound)
             record_ip_primal_sol_and_update_ip_primal_bound(
                 node, alg.sols_and_bounds)
-            # global n_ = node
-            # SimpleDebugger.@bkp
         end
         if is_conquered(node)
-            exit_treatment(node); return true
+            @logmsg LogLevel(0) string("Node is considered conquered ",
+                                       "after primal heuristic ", typeof(alg))
+            exit_treatment(node)
+            return true
         end
     end
 
@@ -299,11 +304,13 @@ function treat(node::Node, treat_algs::TreatAlgs,
     if setup(treat_algs.alg_generate_children_nodes)
         # This code is never run
         setdown(treat_algs.alg_generate_children_nodes)
-        exit_treatment(node); return true
+        exit_treatment(node)
+        return true
     end
 
     run(treat_algs.alg_generate_children_nodes, global_treat_order, node)
     setdown(treat_algs.alg_generate_children_nodes)
 
-    exit_treatment(node); return true
+    exit_treatment(node)
+    return true
 end

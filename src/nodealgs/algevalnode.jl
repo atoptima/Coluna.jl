@@ -414,11 +414,12 @@ AlgToEvalNodeBySimplexColGenBuilder(problem::ExtendedProblem) = (
 function solve_restricted_mast(alg)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
     @timeit to(alg) "solve_restricted_mast" begin
-    status = optimize!(alg.extended_problem.master_problem)
+    master = alg.extended_problem.master_problem
+    status = optimize!(master)
+    # result_count = MOI.get(master.optimizer, MOI.ResultCount())
+    # primal_status = MOI.get(master.optimizer, MOI.PrimalStatus())
+    # dual_status = MOI.get(master.optimizer, MOI.DualStatus())
     end # @timeit to(alg) "solve_restricted_mast"
-
-    #global mp_ = alg.extended_problem.master_problem
-    #SimpleDebugger.@bkp
 
     return status
 end
@@ -494,8 +495,6 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
 end
 
 function run(alg::AlgToEvalNodeBySimplexColGen)
-    #global al_ = alg
-    #SimpleDebugger.@bkp
 
     @timeit to(alg) "run_eval_by_col_gen" begin
     @logmsg LogLevel(-2) "Starting eval by simplex colgen"

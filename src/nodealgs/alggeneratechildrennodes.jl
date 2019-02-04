@@ -127,6 +127,6 @@ function run(alg::UsualBranchingAlg, global_treat_order::Int, node::Node)
         return
     end
     perform_usual_branching(node, alg, frac_vars)
-    @logmsg LogLevel(-4) string("Generated ", length(node.children), " child nodes.")
+    @logmsg LogLevel(0) string("Generated ", length(node.children), " child nodes.")
 
 end
