@@ -153,8 +153,9 @@ function record_variables_info(prob_info::ProblemSetupInfo,
     # Static variables of master
     for var in master_problem.var_manager.active_static_list
         if var.flag != 'a' && bounds_changed(var)
-           push!(prob_info.modified_static_vars_info, VariableInfo(var, Active))
+            push!(prob_info.modified_static_vars_info, VariableInfo(var, Active))
             set_default_currents(var)
+            enforce_current_bounds_in_optimizer(master_problem.optimizer, var)
         end
     end
 
@@ -172,6 +173,9 @@ function record_variables_info(prob_info::ProblemSetupInfo,
                 push!(prob_info.modified_static_vars_info,
                       SpVariableInfo(var, Active))
                 set_default_currents(var)
+                # if @callsuper bounds_changed(var::Variable)
+                #     enforce_current_bounds_in_optimizer(subprob.optimizer, var)
+                # end
             end
         end
     end
@@ -288,7 +292,7 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
 
     # apply_subproblem_info()
     # fill_local_branching_constraints()
-    removed_cuts_from_problem = prepare_branching_constraints(alg, node)
+    added_cuts_to_problem = prepare_branching_constraints(alg, node)
     apply_var_constr_info(node.problem_setup_info)
 
     # reset_branching_constraints(_masterProbPtr, branchingConstrPtrIt)
@@ -299,17 +303,12 @@ function run(alg::AlgToSetupBranchingOnly, node::Node)
     # reset_non_stab_artificial_variables()
 
     #reset_partial_solution(alg)
-    optimizer = alg.extended_problem.master_problem.optimizer
-    is_relaxed = alg.extended_problem.master_problem.is_relaxed
 
-    update_moi_optimizer(
-    optimizer, is_relaxed,
-    ProblemUpdate(
-        Constraint[], removed_cuts_from_problem,
-        Variable[], Variable[], [
-            info.variable::Variable
-            for info in node.problem_setup_info.modified_static_vars_info])
-    )
+    # This function updates the MOI models with the
+    # current active rows and columns and their bounds
+    update_formulation(alg.extended_problem, Constraint[], added_cuts_to_problem,
+                       Variable[], Variable[], Variable[],
+                       alg.problem_setup_info.modified_static_vars_info)
 
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
@@ -424,6 +423,29 @@ function prepare_master_columns(alg::AlgToSetupFull, node::Node)
     return removed_from_problem, added_to_problem
 end
 
+function update_formulation(extended_problem::ExtendedProblem,
+                            removed_cuts_from_problem::Vector{Constraint},
+                            added_cuts_to_problem::Vector{Constraint},
+                            removed_cols_from_problem::Vector{Variable},
+                            added_cols_to_problem::Vector{Variable},
+                            changed_bounds::Vector{Variable},
+                            modified_static_vars_info::Vector{VariableInfo})
+
+    master_update = ProblemUpdate(
+        removed_cuts_from_problem,
+        added_cuts_to_problem, removed_cols_from_problem,
+        added_cols_to_problem, changed_bounds
+    )
+    optimizer = extended_problem.master_problem.optimizer
+    is_relaxed = extended_problem.master_problem.is_relaxed
+    update_moi_optimizer(optimizer, is_relaxed, master_update)
+    # Update bounds that changed in all extended problem
+    # for info in modified_static_vars_info
+    #     v = info.variable
+    #     enforce_current_bounds_in_optimizer(get_problem(extended_problem, v.prob_ref).optimizer, v)
+    # end
+end
+
 function run(alg::AlgToSetupFull, node::Node)
 
     @logmsg LogLevel(-4) "AlgToSetupFull"
@@ -440,16 +462,11 @@ function run(alg::AlgToSetupFull, node::Node)
 
     # This function updates the MOI models with the
     # current active rows and columns and their bounds
-    optimizer = alg.extended_problem.master_problem.optimizer
-    is_relaxed = alg.extended_problem.master_problem.is_relaxed
-    update_moi_optimizer(
-    optimizer, is_relaxed, ProblemUpdate(
-        removed_cuts_from_problem,
-        added_cuts_to_problem, removed_cols_from_problem,
-        added_cols_to_problem, [
-            info.variable::Variable
-            for info in node.problem_setup_info.modified_static_vars_info]
-    ))
+    update_formulation(alg.extended_problem,
+                       removed_cuts_from_problem,
+                       added_cuts_to_problem, removed_cols_from_problem,
+                       added_cols_to_problem, Variable[],
+                       alg.problem_setup_info.modified_static_vars_info)
 
     # reset_partial_solution(alg)
     # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
@@ -504,9 +521,6 @@ function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
     for var in master.var_manager.active_static_list
         set_default_currents(var)
     end
-    # for constr in master.constr_manager.active_static_list
-    #     set_initial_cur_cost(constr)
-    # end
     for subprob in alg.extended_problem.pricing_vect
         for var in subprob.var_manager.active_static_list
             set_global_bounds(var,
@@ -514,9 +528,6 @@ function set_cur_bounds(alg::AlgToSetupRootNode, node::Node)
                 alg.extended_problem.pricing_convexity_ubs[subprob].cost_rhs)
             set_default_currents(var)
         end
-        # for constr in subprob.constr_manager.active_static_list
-        #     set_initial_cur_cost(constr)
-        # end
     end
 end
 

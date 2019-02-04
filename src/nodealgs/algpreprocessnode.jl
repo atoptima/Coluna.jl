@@ -31,12 +31,13 @@ function AlgToPreprocessNodeBuilder(extended_problem::ExtendedProblem)
             Dict{Constraint,Int}(), 
             Constraint[], 
             Variable[],
-           cur_sp_bounds,
-           false)
+            cur_sp_bounds,
+            false)
 end
 
 function run(alg::AlgToPreprocessNode, node::Node, 
              partial_sol::Union{Nothing,PrimalSolution} = nothing)
+
     reset(alg)
     if partial_sol != nothing
         #change sp bounds, global bounds of var and rhs of master constraints
@@ -220,7 +221,6 @@ function initialize_constraints(alg::AlgToPreprocessNode, node::Node,
     #branching constraints added by father
     if node.depth > 0
         for constr in node.local_branching_constraints
-            initialize_constraint(alg, constr)
             push!(constrs_to_stack, constr)
         end
         constrs_to_stack = node.local_branching_constraints
@@ -282,22 +282,22 @@ function update_local_membership(alg::AlgToPreprocessNode, constr::Constraint)
         end
     end
 end
- 
+
 function print_constr(alg::AlgToPreprocessNode, constr::Constraint)
-    println("constr $(constr.vc_ref) $(typeof(constr)): master")
-   for (var, coeff) in constr.member_coef_map
-       println(var.vc_ref, " ", coeff, " ", var.flag)
-   end
-   if isa(constr, MasterConstr)
-       println("constr $(constr.vc_ref): subprob")
-       for (sp_var, coeff) in constr.subprob_var_coef_map
-           println(sp_var.vc_ref, " ", coeff, " ", sp_var.flag, " ",
-                   sp_var.cur_lb, " ", sp_var.cur_ub, " ", 
-                   sp_var.cur_global_lb, " ", sp_var.cur_global_ub)
-       end
-   end
-   println("cur_min $(alg.cur_min_slack[constr])" *
-           " cur_max $(alg.cur_max_slack[constr])")
+    println("constr $(constr.vc_ref) $(typeof(constr)) $(constr.sense) $(constr.cost_rhs): vars:")
+    for (var, coeff) in constr.member_coef_map
+        println(var.vc_ref, " ", coeff, " ", var.flag)
+    end
+    if isa(constr, MasterConstr)
+        println("constr $(constr.vc_ref): subprob vars:")
+        for (sp_var, coeff) in constr.subprob_var_coef_map
+            println(sp_var.vc_ref, " ", coeff, " ", sp_var.flag, " ",
+                    sp_var.cur_lb, " ", sp_var.cur_ub, " ", 
+                    sp_var.cur_global_lb, " ", sp_var.cur_global_ub)
+        end
+    end
+    println("cur_min $(alg.cur_min_slack[constr])" *
+            " cur_max $(alg.cur_max_slack[constr])")
 end
 
 function compute_min_slack(alg::AlgToPreprocessNode, constr::Constraint)
@@ -451,7 +451,7 @@ function update_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
             end
         end
         if alg.printing
-            println("updating global_lb of sp_var $(var.vc_ref) from "*
+            println("updating global_lb of sp_var $(var.name) $(var.vc_ref) from "*
                     "$(var.cur_global_lb) to $(new_lb)")
         end
         var.cur_global_lb = new_lb
@@ -474,7 +474,7 @@ function update_lower_bound(alg::AlgToPreprocessNode, var::MasterVar,
             end
         end
         if alg.printing
-            println("updating lb of m_var $(var.vc_ref) from $(var.cur_lb)"*
+            println("updating lb of m_var $(var.name) $(var.vc_ref) from $(var.cur_lb)"*
                     " to $(new_lb)")
         end
         var.cur_lb = new_lb
@@ -498,7 +498,7 @@ function update_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
             end
         end
         if alg.printing
-            println("updating global_ub of sp_var $(var.vc_ref) from" *
+            println("updating global_ub of sp_var m_var $(var.name) ($(var.vc_ref)) from" *
                     " $(var.cur_global_ub) to $(new_ub)")
         end
         var.cur_global_ub = new_ub
@@ -521,7 +521,7 @@ function update_upper_bound(alg::AlgToPreprocessNode, var::MasterVar,
             end
         end
         if alg.printing
-            println("updating ub of m_var $(var.vc_ref) from" *
+            println("updating ub of m_var $(var.name) ($(var.vc_ref)) from" *
                     " $(var.cur_ub) to $(new_ub)")
         end
         var.cur_ub = new_ub
@@ -719,7 +719,7 @@ function propagation(alg)
         alg.constr_in_stack[constr] = false
 
         if alg.printing
-            println("constr $(constr.vc_ref) $(typeof(constr)) poped")
+            println("constr $(constr.vc_ref) $(typeof(constr)) popped")
         end
         if analyze_constraint(alg, constr)
             return true
@@ -729,30 +729,31 @@ function propagation(alg)
 end
 
 function apply_preprocessing(alg::AlgToPreprocessNode)
-    # return
-    # if isempty(alg.preprocessed_vars)
-        # return
-    # end
+    if isempty(alg.preprocessed_vars)
+        return
+    end
 
-    # master = alg.extended_problem.master_problem
-    # removed_from_problem = Variable[]
-    # for var in alg.preprocessed_vars
-        # for master_col in master.var_manager.active_dynamic_list
-            # if haskey(master_col.solution.var_val_map, var)
-                # var_val_in_col = master_col.solution.var_val_map[var]
-            # else
-                # var_val_in_col = 0
-            # end
-            # if !(var.cur_lb <= var_val_in_col <= var.cur_ub)
-                # update_var_status(master, master_col, Unsuitable)
-                # push!(removed_from_problem, master_col)
-            # end
-        # end
-    # end
+    master = alg.extended_problem.master_problem
+    removed_from_problem = Variable[]
+    for var in alg.preprocessed_vars
+        for master_col in master.var_manager.active_dynamic_list
+            if haskey(master_col.solution.var_val_map, var)
+                var_val_in_col = master_col.solution.var_val_map[var]
+            else
+                var_val_in_col = 0
+            end
+            if !(var.cur_lb <= var_val_in_col <= var.cur_ub)
+                update_var_status(master, master_col, Unsuitable)
+                push!(removed_from_problem, master_col)
+            end
+        end
+    end
 
-      
-#     update_formulation(alg.extended_problem, Constraint[], Constraint[],
- #                       removed_from_problem, Variable[], Variable[])
-     # update_formulation(alg.extended_problem, Constraint[], Constraint[],
-                       # removed_from_problem, Variable[], alg.preprocessed_vars)
+    update_moi_optimizer(master.optimizer, master.is_relaxed,
+                         ProblemUpdate(Constraint[], Constraint[], removed_from_problem,
+                         Variable[], Variable[]))
+    # for v in alg.preprocessed_vars
+    #     optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
+    #     enforce_current_bounds_in_optimizer(optimizer, v)
+    # end
  end

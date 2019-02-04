@@ -444,10 +444,15 @@ end
 
 function enforce_current_bounds_in_optimizer(
     optimizer::MOI.AbstractOptimizer, var::Variable)
-    @assert var.moi_bounds_index.value != -1
-    moi_set = MOI.get(optimizer, MOI.ConstraintSet(), var.moi_bounds_index)
-    MOI.set(optimizer, MOI.ConstraintSet(), var.moi_bounds_index,
+    if var.moi_bounds_index.value != -1
+        moi_set = MOI.get(optimizer, MOI.ConstraintSet(), var.moi_bounds_index)
+        MOI.set(optimizer, MOI.ConstraintSet(), var.moi_bounds_index,
+                MOI.Interval(var.cur_lb, var.cur_ub))
+    else
+        var.moi_bounds_index = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(var.moi_index),
             MOI.Interval(var.cur_lb, var.cur_ub))
+    end
 end
 
 function enforce_type_in_optimizer(

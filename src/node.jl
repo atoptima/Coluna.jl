@@ -197,13 +197,13 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     # Right now the setup only return true
     if run(treat_algs.alg_setup_node, node)
         error("Setups cannot fail")
-        run(treat_algs.alg_setdown_node)
+        run(treat_algs.alg_setdown_node, node)
         mark_infeasible_and_exit_treatment(node); return true
     end
 
     # Preprocessing is not yet implemented
     if run(treat_algs.alg_preprocess_node, node)
-        run(treat_algs.alg_setdown_node)
+        run(treat_algs.alg_setdown_node, node)
         mark_infeasible_and_exit_treatment(node); return true
     end
 
@@ -218,12 +218,12 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
 
     if setup(treat_algs.alg_eval_node)
         setdown(treat_algs.alg_eval_node)
-        run(treat_algs.alg_setdown_node)
+        run(treat_algs.alg_setdown_node, node)
         mark_infeasible_and_exit_treatment(node); return true
     end
 
     if run(treat_algs.alg_eval_node)
-        run(treat_algs.alg_setdown_node)
+        run(treat_algs.alg_setdown_node, node)
         mark_infeasible_and_exit_treatment(node); return true
     end
     node.evaluated = true
@@ -234,12 +234,12 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     if is_conquered(node)
         @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
         setdown(treat_algs.alg_eval_node)
-        run(treat_algs.alg_setdown_node)
+        run(treat_algs.alg_setdown_node, node)
         # store_branching_evaluation_info()
         exit_treatment(node); return true
     elseif false # _evalAlgPtr->subProbSolutionsEnumeratedToMIP() && runEnumeratedMIP()
         # setdown(treat_algs.alg_eval_node)
-        # run(treat_algs.alg_setdown_node)
+        # run(treat_algs.alg_setdown_node, node)
         # store_branching_evaluation_info()
         # mark_infeasible_and_exit_treatment(); return true
     end
