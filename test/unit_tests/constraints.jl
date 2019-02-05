@@ -22,7 +22,7 @@ end
 
 function branch_constr_tests()
     vc_counter = CL.VarConstrCounter(0)
-    brnch_1 = CL.BranchConstr(vc_counter, "brnch_1", 5.0, 'L', 3)
+    brnch_1 = CL.MasterBranchConstr(vc_counter, "brnch_1", 5.0, 'L', 3)
     @test brnch_1.depth_when_generated == 3
 end
 

@@ -2,6 +2,7 @@ function algsetupnode_unit_tests()
 
     variable_small_info_tests()
     variable_info_tests()
+    apply_var_info_tests()
     constraint_info_tests()
     problem_setup_info_tests()
     alg_to_setdown_node_tests()
@@ -52,18 +53,49 @@ function variable_info_tests()
     @test vinfo.status == CL.Inactive
 end
 
+function apply_var_info_tests()
+    var = create_array_of_vars(1, CL.Variable)[1]
+    vinfo = CL.VariableInfo(var)
+    vinfo.lb = 0.0
+    vinfo.ub = 10.0
+    var.cur_lb = -13.0
+    var.cur_ub = -13.0
+    CL.apply_var_info(vinfo)
+    @test var.cur_lb == 0.0
+    @test var.cur_ub == 10.0
+
+    var = create_array_of_vars(1, CL.SubprobVar)[1]
+    vinfo = CL.SpVariableInfo(var)
+    vinfo.lb = 0.0
+    vinfo.ub = 10.0
+    vinfo.global_lb = 0.0
+    vinfo.global_ub = 10.0
+    var.cur_lb = -13.0
+    var.cur_ub = -13.0
+    var.cur_global_lb = -13.0
+    var.cur_global_ub = -13.0
+    CL.apply_var_info(vinfo)
+    @test var.cur_lb == 0.0
+    @test var.cur_ub == 10.0
+    @test var.cur_global_lb == 0.0
+    @test var.cur_global_ub == 10.0
+
+end
+
 function constraint_info_tests()
     vc_counter = CL.VarConstrCounter(0)
     constr = CL.Constraint(vc_counter, "C_1", 5.0, 'L', 'M', 's')
 
     cinfo = CL.ConstraintInfo(constr)
     @test cinfo.constraint === constr
-    @test cinfo.min_slack == cinfo.max_slack == 0.0
+    @test cinfo.min_slack == -Inf
+    @test cinfo.max_slack == Inf
     @test cinfo.status == CL.Active
 
     cinfo = CL.ConstraintInfo(constr, CL.Unsuitable)
     @test cinfo.constraint === constr
-    @test cinfo.min_slack == cinfo.max_slack == 0.0
+    @test cinfo.min_slack == -Inf
+    @test cinfo.max_slack == Inf
     @test cinfo.status == CL.Unsuitable
 end
 
@@ -115,9 +147,27 @@ function record_problem_info_tests()
 
     # To test if adds correctly the dynamic constraints
     constr_1 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
-    constr_2 = CL.BranchConstr(counter, "BC", 5.0, 'L', 3)
+    constr_2 = CL.MasterBranchConstr(counter, "BC", 5.0, 'L', 3)
+    constr_3 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
+    constr_3.cur_min_slack = 2.0
+    constr_4 = CL.MasterConstr(counter, "C", 5.0, 'L', 'M', 's')
     push!(master_problem.constr_manager.active_dynamic_list, constr_1)
     push!(master_problem.constr_manager.active_dynamic_list, constr_2)
+    push!(master_problem.constr_manager.active_static_list, constr_3)
+    push!(master_problem.constr_manager.active_static_list, constr_4)
+
+    # To test if adds correctly the static (subproblem) variables
+    subprob = create_problem_empty()
+    sp_vars = create_array_of_vars(2, CL.SubprobVar)
+    sp_vars[1].cur_lb = sp_vars[1].lower_bound
+    sp_vars[1].cur_ub = sp_vars[1].upper_bound
+    sp_vars[1].cur_global_lb = sp_vars[1].global_lb
+    sp_vars[1].cur_global_ub = sp_vars[1].global_ub
+    sp_vars[1].cur_cost_rhs = sp_vars[1].cost_rhs
+    sp_vars[2].cur_global_lb = sp_vars[2].global_lb - 0.1
+    push!(subprob.var_manager.active_static_list, sp_vars[1])
+    push!(subprob.var_manager.active_static_list, sp_vars[2])
+    push!(extended_problem.pricing_vect, subprob)
 
     alg = CL.AlgToSetdownNodeFully(extended_problem)
     CL.record_problem_info(alg, node)
@@ -128,6 +178,11 @@ function record_problem_info_tests()
     @test findfirst(x -> x.variable == mc, node.problem_setup_info.suitable_master_columns_info) != nothing
     @test findfirst(x -> x.constraint == constr_1, node.problem_setup_info.suitable_master_cuts_info) != nothing
     @test findfirst(x -> x.constraint == constr_2, node.problem_setup_info.active_branching_constraints_info) != nothing
+    @test findfirst(x -> x.constraint == constr_3, node.problem_setup_info.modified_static_constrs_info) != nothing
+    @test findfirst(x -> x.constraint == constr_4, node.problem_setup_info.modified_static_constrs_info) == nothing
+    @test findfirst(x -> x.variable == sp_vars[1], node.problem_setup_info.modified_static_vars_info) == nothing
+    @test findfirst(x -> x.variable == sp_vars[2], node.problem_setup_info.modified_static_vars_info) != nothing
+
 end
 
 function alg_to_setup_node_tests()
@@ -166,7 +221,7 @@ function prepare_branching_constraints_added_by_father_tests()
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetupNode(extended_problem)
     node = create_node(extended_problem, false)
-    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    constrs = create_array_of_constrs(2, CL.MasterBranchConstr)
     node.local_branching_constraints = constrs
     CL.prepare_branching_constraints_added_by_father(alg, node)
     @test findfirst(x->x===constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
@@ -180,7 +235,7 @@ function prepare_branching_constraints_tests()
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetupBranchingOnly(extended_problem)
     node = create_node(extended_problem, false)
-    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    constrs = create_array_of_constrs(2, CL.MasterBranchConstr)
     node.local_branching_constraints = constrs
     CL.prepare_branching_constraints(alg, node)
     @test findfirst(x->x===constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
@@ -194,10 +249,10 @@ function prepare_branching_constraints_tests()
     extended_problem.master_problem = prob
     counter = prob.counter
     node = create_node(extended_problem, false)
-    bc1 = CL.BranchConstr(counter, "bc_1", 1.0, 'G', 3)
-    bc2 = CL.BranchConstr(counter, "bc_2", 0.0, 'L', 3)
-    bc3 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
-    bc4 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    bc1 = CL.MasterBranchConstr(counter, "bc_1", 1.0, 'G', 3)
+    bc2 = CL.MasterBranchConstr(counter, "bc_2", 0.0, 'L', 3)
+    bc3 = CL.MasterBranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    bc4 = CL.MasterBranchConstr(counter, "bc_3", 0.0, 'L', 3)
     push!(prob.constr_manager.active_dynamic_list, bc1)
     push!(prob.constr_manager.active_dynamic_list, bc2)
     push!(node.problem_setup_info.active_branching_constraints_info, CL.ConstraintInfo(bc1))
@@ -219,7 +274,7 @@ function run_alg_setup_branching_only()
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetupBranchingOnly(extended_problem)
     node = create_node(extended_problem, false)
-    constrs = create_array_of_constrs(2, CL.BranchConstr)
+    constrs = create_array_of_constrs(2, CL.MasterBranchConstr)
     node.local_branching_constraints = constrs
     @test CL.run(alg, node) == false
     @test findfirst(x->x==constrs[1], extended_problem.master_problem.constr_manager.active_dynamic_list) != nothing
@@ -227,7 +282,7 @@ function run_alg_setup_branching_only()
 end
 
 function find_first_in_problem_setup_tests()
-    constrs = create_array_of_constrs(3, CL.BranchConstr)
+    constrs = create_array_of_constrs(3, CL.MasterBranchConstr)
     constr_info_vec = CL.ConstraintInfo[]
     vc_counter = CL.VarConstrCounter(0)
     for i in 1:length(constrs)
@@ -246,10 +301,10 @@ function run_alg_setup_full_tests()
     extended_problem.master_problem = prob
     counter = prob.counter
     node = create_node(extended_problem, false)
-    bc1 = CL.BranchConstr(counter, "bc_1", 1.0, 'G', 3)
-    bc2 = CL.BranchConstr(counter, "bc_2", 0.0, 'L', 3)
-    bc3 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
-    bc4 = CL.BranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    bc1 = CL.MasterBranchConstr(counter, "bc_1", 1.0, 'G', 3)
+    bc2 = CL.MasterBranchConstr(counter, "bc_2", 0.0, 'L', 3)
+    bc3 = CL.MasterBranchConstr(counter, "bc_3", 0.0, 'L', 3)
+    bc4 = CL.MasterBranchConstr(counter, "bc_3", 0.0, 'L', 3)
     push!(prob.constr_manager.active_dynamic_list, bc1)
     push!(prob.constr_manager.active_dynamic_list, bc2)
     push!(node.problem_setup_info.active_branching_constraints_info, CL.ConstraintInfo(bc1))
@@ -271,7 +326,7 @@ function update_formulation_tests()
     # This function is empty
     extended_problem = create_extended_problem()
     alg = CL.AlgToSetupBranchingOnly(extended_problem)
-    CL.update_formulation(alg)
+    CL.update_formulation(extended_problem)
     @test alg.extended_problem === extended_problem
 end
 

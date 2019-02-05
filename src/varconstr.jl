@@ -9,15 +9,18 @@ function increment_counter(counter::VarConstrCounter)
     return counter.value
 end
 
-mutable struct VarConstrStabInfo
-end
+# mutable struct VarConstrStabInfo
+# end
 
 @hl mutable struct VarConstr
     vc_ref::Int
     name::String
 
-    in_cur_prob::Bool
-    in_cur_form::Bool
+    # Ref of Problem which this VarConstr is part of
+    prob_ref::Int
+
+    # in_cur_prob::Bool
+    # in_cur_form::Bool
 
     # ```
     # 'U' or 'D'
@@ -118,83 +121,119 @@ end
     # ```
     member_coef_map::Dict{VarConstr, Float}
 
-    # Needed for VarConstrResetInfo.
-    is_info_updated::Bool
+    # # Needed for VarConstrResetInfo.
+    # is_info_updated::Bool
 
-    in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
+    # in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
 
     reduced_cost::Float
 
-    # ```
-    # To hold Info Need for stabilisation of constraint in Col Gen approach and
-    # on First stage Variables in Benders approach
-    # ```
-    stab_info::VarConstrStabInfo
+    # # ```
+    # # To hold Info Need for stabilisation of constraint in Col Gen approach and
+    # # on First stage Variables in Benders approach
+    # # ```
+    # stab_info::VarConstrStabInfo
 
-    # ```
-    # Treat order of the node where the column has been generated -needed for
-    # problem setup-
-    # ```
-    treat_order_id::Int
+    # # ```
+    # # Treat order of the node where the column has been generated -needed for
+    # # problem setup-
+    # # ```
+    # treat_order_id::Int
     # TODO better be called gen_sequence_number
 end
 
 Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
 
-# Think about this constructor (almost a copy)
-function VarConstrBuilder(vc::VarConstr, counter::VarConstrCounter)
-    # This is not a copy since some fields are reset to default
-    return (increment_counter(counter), "", false, false, vc.directive,
-            vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag,
-            vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map), false,
-            vc.in_preprocessed_list, vc.reduced_cost, VarConstrStabInfo(), 0)
-end
-
 function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
                           sense::Char, vc_type::Char, flag::Char, directive::Char,
                           priority::Float)
-    return (increment_counter(counter), name, false, false, directive,
-            priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0,
-            Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
+    return (increment_counter(counter), name, -1, directive,
+            priority, costrhs, sense, vc_type, flag, Active, 0.0, costrhs,
+            Dict{VarConstr, Float}(), 0.0)
 end
 
+const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float}}
 @hl mutable struct Variable <: VarConstr
     # ```
-    # Flag telling whether or not the variable is fractional.
+    # Index in MOI optimizer
     # ```
     moi_index::MOI.VariableIndex
 
+    # ```
+    # Used when solving the problem with another optimizer
+    # i.e.: When doing primal heuristics
+    # ```
+    secondary_moi_index::MOI.VariableIndex
 
     # ```
-    # To represent global lower bound on variable primal / constraint dual
+    # Stores the MOI.ConstraintIndex used as lower and upper bounds
+    # ```
+    moi_bounds_index::MoiBounds
+
+    # ```
+    # Stores the secondary MOI.ConstraintIndex used as lower and upper bounds
+    # Used when solving the problem with another optimizer
+    # i.e.: When doing primal heuristics
+    # ```
+    secondary_moi_bounds_index::MoiBounds
+
+    # ```
+    # To represent local lower bound on variable primal / constraint dual
+    # In the problem which it belongs to
     # ```
     lower_bound::Float
 
-
     # ```
-    # To represent global upper bound on variable primal / constraint dual
+    # To represent local upper bound on variable primal / constraint dual
+    # In the problem which it belongs to
     # ```
     upper_bound::Float
 
+    # ```
+    # Current (local) bound values
+    # Used in preprocessing
+    # ```
     cur_lb::Float
     cur_ub::Float
 end
 
 function VariableBuilder(counter::VarConstrCounter, name::String,
         costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char,
-        priority::Float, lowerBound::Float, upperBound::Float)
+        priority::Float, lb::Float, ub::Float)
 
-    return tuplejoin(VarConstrBuilder( counter, name, costrhs, sense, vc_type,
-            flag, directive, priority), MOI.VariableIndex(-1), lowerBound,
-            upperBound, -Inf, Inf)
+    return tuplejoin(
+        VarConstrBuilder(counter, name, costrhs, sense, vc_type, flag,
+                         directive, priority), MOI.VariableIndex(-1),
+        MOI.VariableIndex(-1), MoiBounds(-1), MoiBounds(-1), lb, ub, lb, ub)
 end
 
-VariableBuilder(var::Variable, counter::VarConstrCounter) = tuplejoin(
-        VarConstrBuilder(var, counter),
-        (MOI.VariableIndex(-1), -Inf, Inf, -Inf, Inf))
+function bounds_changed(var::Variable)
+    return (var.cur_lb != var.lower_bound
+        || var.cur_ub != var.upper_bound
+        || var.cur_cost_rhs != var.cost_rhs)
+end
+
+function set_default_currents(var::Variable)
+    var.cur_lb = var.lower_bound
+    var.cur_ub = var.upper_bound
+    var.cur_cost_rhs = var.cost_rhs
+end
 
 @hl mutable struct Constraint <: VarConstr
+    # ```
+    # Index in MOI optimizer
+    # ```
     moi_index::MOI.ConstraintIndex{F,S} where {F,S}
+
+    # ```
+    # Used when solving the problem with another optimizer
+    # i.e.: When doing primal heuristics
+    # ``
+    secondary_moi_index::MOI.ConstraintIndex{F,S} where {F,S}
+
+    # ```
+    # Type of constraint in MOI optimizer
+    # ``
     set_type::Type{<:MOI.AbstractSet}
 end
 
@@ -210,9 +249,16 @@ function ConstraintBuilder(counter::VarConstrCounter, name::String,
         error("Sense $sense is not supported")
     end
 
-    return tuplejoin(VarConstrBuilder(counter, name, cost_rhs, sense, vc_type,
-            flag, 'U', 1.0),
-            MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1), set_type)
+    return tuplejoin(
+        VarConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag, 'U', 1.0),
+        MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
+        MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
+        set_type
+    )
+end
+
+function set_initial_cur_cost(constr::Constraint)
+    constr.cur_cost_rhs = constr.cost_rhs
 end
 
 function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
@@ -222,4 +268,18 @@ function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
         end
     end
     return 0
+end
+
+function switch_primary_secondary_moi_indices(vc::VarConstr)
+    temp_idx = vc.moi_index
+    vc.moi_index = vc.secondary_moi_index
+    vc.secondary_moi_index = temp_idx
+end
+
+function switch_primary_secondary_moi_indices(var::Variable)
+    @callsuper switch_primary_secondary_moi_indices(var::VarConstr)
+    # This also changes the bounds index
+    temp_idx = var.moi_bounds_index
+    var.moi_bounds_index = var.secondary_moi_bounds_index
+    var.secondary_moi_bounds_index = temp_idx
 end

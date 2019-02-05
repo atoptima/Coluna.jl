@@ -67,20 +67,20 @@ function update_dual_lp_incumbents(incumbents::SolsAndBounds,
     end
 end
 
-mutable struct StabilizationInfo
-    problem::Problem
-    params::Params
-end
+# mutable struct StabilizationInfo
+#     problem::Problem
+#     params::Params
+# end
 
-mutable struct ColGenEvalInfo <: EvalInfo
-    stabilization_info::StabilizationInfo
-    master_lp_basis::LpBasisRecord
-    latest_reduced_cost_fixing_gap::Float
-end
+# mutable struct ColGenEvalInfo <: EvalInfo
+#     stabilization_info::StabilizationInfo
+#     master_lp_basis::LpBasisRecord
+#     latest_reduced_cost_fixing_gap::Float
+# end
 
-mutable struct LpEvalInfo <: EvalInfo
-    stabilization_info::StabilizationInfo
-end
+# mutable struct LpEvalInfo <: EvalInfo
+#     stabilization_info::StabilizationInfo
+# end
 
 ##########################
 #### AlgToEvalNode #######
@@ -150,14 +150,6 @@ function mark_infeasible(alg::AlgToEvalNode)
     alg.sol_is_master_lp_feasible = false
 end
 
-function setup(alg::AlgToEvalNode)
-    return false
-end
-
-function setdown(alg::AlgToEvalNode)
-    return false
-end
-
 ##############################
 #### AlgToEvalNodeByLp #######
 ##############################
@@ -191,18 +183,18 @@ end
 #### AlgToEvalNodeByLagrangianDuality #######
 #############################################
 
-struct ColGenStabilization end
+# struct ColGenStabilization end
 
 @hl mutable struct AlgToEvalNodeByLagrangianDuality <: AlgToEvalNode
     pricing_contribs::Dict{Problem, Float}
     pricing_const_obj::Dict{Problem, Float}
-    colgen_stabilization::Union{ColGenStabilization, Nothing}
+    # colgen_stabilization::Union{ColGenStabilization, Nothing}
     max_nb_cg_iterations::Int
 end
 
 function AlgToEvalNodeByLagrangianDualityBuilder(problem::ExtendedProblem)
     return tuplejoin(AlgToEvalNodeBuilder(problem), Dict{Problem, Float}(),
-                     Dict{Problem, Float}(), nothing, 10000) # TODO put as parameter
+                     Dict{Problem, Float}(), 10000) # TODO put as parameter
 end
 
 function cleanup_restricted_mast_columns(alg::AlgToEvalNodeByLagrangianDuality,
@@ -233,24 +225,16 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
     master = extended_prob.master_problem
     duals_dict = master.dual_sols[end].constr_val_map
     for (constr, dual) in duals_dict
-        @assert (constr isa MasterConstr) || (constr isa BranchConstr)
+        @assert (constr isa MasterConstr) || (constr isa MasterBranchConstr)
         if constr isa ConvexityConstr &&
                 (extended_prob.pricing_convexity_lbs[pricing_prob] == constr ||
                  extended_prob.pricing_convexity_ubs[pricing_prob] == constr)
             alg.pricing_const_obj[pricing_prob] -= dual
             continue
         end
-        if constr isa BranchConstr
-            if constr isa SubprobBranchConstr
-                if haskey(new_obj, constr.branch_var)
-                    new_obj[constr.branch_var] -= dual
-                end
-            end
-        else
-            for (var, coef) in constr.subprob_var_coef_map
-                if haskey(new_obj, var)
-                    new_obj[var] -= dual * coef
-                end
+        for (var, coef) in constr.subprob_var_coef_map
+            if haskey(new_obj, var)
+                new_obj[var] -= dual * coef
             end
         end
     end
@@ -281,12 +265,13 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
     sp_sol = pricing_prob.primal_sols[end]
     if sp_sol.cost < 0
         master = alg.extended_problem.master_problem
-        col = MasterColumn(master.counter, sp_sol)
-        add_variable(master, col)
+        col = MasterColumnConstructor(master.counter, sp_sol) # generates memberships
+        add_variable(master, col; update_moi = true) # updates moi, doesnt touch membership
+        update_moi_membership(master.optimizer, col)
         convexity_lb = alg.extended_problem.pricing_convexity_lbs[pricing_prob]
         convexity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob]
-        add_membership(master, col, convexity_lb, 1.0)
-        add_membership(master, col, convexity_ub, 1.0)
+        add_membership(col, convexity_lb, 1.0; optimizer = master.optimizer)
+        add_membership(col, convexity_ub, 1.0; optimizer = master.optimizer)
         @logmsg LogLevel(-2) string("added column ", col)
         return 1
     else
@@ -319,9 +304,9 @@ function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Proble
     #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
     #     return flag_is_sp_infeasible
     end
-    if alg.colgen_stabilization != nothing && true #= TODO add conds =#
-        # switch off the reduced cost estimation when stabilization is applied
-    end
+    # if alg.colgen_stabilization != nothing && true #= TODO add conds =#
+    #     # switch off the reduced cost estimation when stabilization is applied
+    # end
 
     # Solve sub-problem and insert generated columns in master
     @logmsg LogLevel(-3) "optimizing pricing prob"
@@ -355,14 +340,14 @@ function gen_new_columns(alg::AlgToEvalNodeByLagrangianDuality)
 end
 
 function compute_mast_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality)
-    stabilization = alg.colgen_stabilization
+    # stabilization = alg.colgen_stabilization
     # This is commented because function is_active does not exist
-    if stabilization == nothing# || !is_active(stabilization)
+    # if stabilization == nothing# || !is_active(stabilization)
         return alg.extended_problem.master_problem.primal_sols[end].cost
-    else
-        error("compute_mast_dual_bound_contrib" *
-              "is not yet implemented with stabilization")
-    end
+    # else
+    #     error("compute_mast_dual_bound_contrib" *
+    #           "is not yet implemented with stabilization")
+    # end
 end
 
 function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
@@ -391,10 +376,10 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
         update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
         update_dual_ip_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
     end
-    if alg.colgen_stabilization != nothing
-        update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
-        update_dual_ip_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
-    end
+    # if alg.colgen_stabilization != nothing
+    #     update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
+    #     update_dual_ip_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
+    # end
 end
 
 function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb_new_col::Int, nb_cg_iterations::Int)
@@ -421,11 +406,12 @@ AlgToEvalNodeBySimplexColGenBuilder(problem::ExtendedProblem) = (
 function solve_restricted_mast(alg)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
     @timeit to(alg) "solve_restricted_mast" begin
-    status = optimize!(alg.extended_problem.master_problem)
+    master = alg.extended_problem.master_problem
+    status = optimize!(master)
+    # result_count = MOI.get(master.optimizer, MOI.ResultCount())
+    # primal_status = MOI.get(master.optimizer, MOI.PrimalStatus())
+    # dual_status = MOI.get(master.optimizer, MOI.DualStatus())
     end # @timeit to(alg) "solve_restricted_mast"
-
-    #global mp_ = alg.extended_problem.master_problem
-    #SimpleDebugger.@bkp
 
     return status
 end
@@ -466,10 +452,10 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
                 return true
             end
             update_lagrangian_dual_bound(alg, true)
-            if alg.colgen_stabilization == nothing
+            # if alg.colgen_stabilization == nothing
                 #|| !update_after_pricing_problem_solution(alg.colgen_stabilization, nb_new_col)
                 break
-            end
+            # end
         end
 
         print_intermediate_statistics(alg, nb_new_col, nb_cg_iterations)
@@ -501,8 +487,6 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
 end
 
 function run(alg::AlgToEvalNodeBySimplexColGen)
-    #global al_ = alg
-    #SimpleDebugger.@bkp
 
     @timeit to(alg) "run_eval_by_col_gen" begin
     @logmsg LogLevel(-2) "Starting eval by simplex colgen"

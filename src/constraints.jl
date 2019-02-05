@@ -37,50 +37,45 @@ function ConvexityConstrBuilder(counter::VarConstrCounter, name::String,
     return MasterConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag)
 end
 
-@hl mutable struct BranchConstr <: Constraint
+@hl mutable struct MasterBranchConstr{
+    T} <: MasterConstr
+    # ```
+    # Depth of node where it was generated
+    # ``
     depth_when_generated::Int
+    # ```
+    # Variable used to branch
+    # ``
+    branch_var::T
 end
 
-function BranchConstrBuilder(counter::VarConstrCounter, name::String,
-        rhs::Float, sense::Char, depth::Int)
+function MasterBranchConstrBuilder(counter::VarConstrCounter, name::String,
+        rhs::Float, sense::Char, depth::Int, branch_var::Variable)
 
-    return tuplejoin(ConstraintBuilder(counter, name, rhs, sense, ' ', 'd'),
-                     depth)
+    return tuplejoin(MasterConstrBuilder(counter, name, rhs, sense, 'C', 'd'),
+                     depth, branch_var)
 end
 
-function BranchConstrConstructor(counter::VarConstrCounter, name::String,
-    rhs::Float, sense::Char, depth::Int, var::Variable)
+function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
+    rhs::Float, sense::Char, depth::Int, branch_var::MasterVar)
 
-    constr = BranchConstr(counter, name, rhs, sense, depth)
-    constr.member_coef_map[var] = 1.0
-    var.member_coef_map[constr] = 1.0
+    constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    add_membership(constr.branch_var, constr, 1.0)
+    constr.status = Unsuitable
 
     return constr
 end
 
-@hl mutable struct SubprobBranchConstr <: BranchConstr
-    branch_var::SubprobVar
-end
+function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
+    rhs::Float, sense::Char, depth::Int, branch_var::SubprobVar)
 
-function SubprobBranchConstrBuilder(counter::VarConstrCounter, name::String,
-        rhs::Float, sense::Char, depth::Int, branch_var::SubprobVar)
+    constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
+    add_membership(constr.branch_var, constr, 1.0)
+    constr.status = Unsuitable
 
-    return tuplejoin(BranchConstrBuilder(counter, name, rhs, sense, depth),
-                     branch_var)
-end
-
-function BranchConstrConstructor(counter::VarConstrCounter, name::String,
-    rhs::Float, sense::Char, depth::Int, var::SubprobVar)
-
-    constr = SubprobBranchConstr(counter, name, rhs, sense, depth, var)
-    for coef_val in var.master_col_coef_map
-        constr.member_coef_map[coef_val[1]] = coef_val[2]
+    for col_coef in branch_var.master_col_coef_map
+        constr.member_coef_map[col_coef[1]] = col_coef[2]
     end
-    var.master_constr_coef_map[constr] = 1.0 # TODO: review this because the constraint may be inactive in other nodes
-
-    #global c_ = constr
-    #global v_ = var
-    #SimpleDebugger.@bkp
 
     return constr
 end

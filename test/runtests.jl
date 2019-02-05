@@ -19,8 +19,8 @@ include("unit_tests/unit_tests.jl")
 using Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(0)))
 
-unit_tests()
-testdefaultbuilders()
+# unit_tests()
+# testdefaultbuilders()
 testpuremaster()
 @testset "cutting stock - colgen root " begin
     testcolgenatroot()
@@ -30,7 +30,7 @@ end
 end
 branch_and_bound_bigger_instances()
 moi_wrapper()
-@testset "gap - JuMP/MOI modeling" begin
+@testset "gap + csp - JuMP/MOI modeling" begin
     include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
     include("../examples/CuttingStock_SubprobMultiplicity/run_csp.jl")
 end
