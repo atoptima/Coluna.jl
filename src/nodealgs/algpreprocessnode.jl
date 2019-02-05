@@ -1,4 +1,5 @@
 @hl mutable struct AlgToPreprocessNode <: AlgLike
+    depth::Int
     extended_problem::ExtendedProblem
     constr_in_stack::Dict{Constraint,Bool}
     stack::DS.Stack{Constraint}
@@ -14,13 +15,13 @@
     printing::Bool
 end
 
-function AlgToPreprocessNodeBuilder(extended_problem::ExtendedProblem)
+function AlgToPreprocessNodeBuilder(depth::Int, extended_problem::ExtendedProblem)
 
     cur_sp_bounds = Vector{Tuple{Int,Int}}()
     for sp_ref in 1:length(extended_problem.pricing_vect)
         push!(cur_sp_bounds, get_sp_convexity_bounds(extended_problem, sp_ref))
     end
-    return (extended_problem, 
+    return (depth, extended_problem, 
             Dict{Constraint,Bool}(), 
             DS.Stack{Constraint}(), 
             Dict{Variable,Vector{Tuple{Constraint,Float}}}(),
@@ -35,22 +36,22 @@ function AlgToPreprocessNodeBuilder(extended_problem::ExtendedProblem)
             false)
 end
 
-function run(alg::AlgToPreprocessNode, node::Node, 
+function run(alg::AlgToPreprocessNode,
              partial_sol::Union{Nothing,PrimalSolution} = nothing)
 
     reset(alg)
     if partial_sol != nothing
-        #change sp bounds, global bounds of var and rhs of master constraints
-        vars_with_modified_bounds = fix_partial_solution(alg, node, partial_sol)
+        # Change sp bounds, global bounds of var and rhs of master constraints
+        vars_with_modified_bounds = fix_partial_solution(alg, partial_sol)
     else
         vars_with_modified_bounds = Variable[]
     end
-    #compute slacks and add constraints to stack
-    if initialize_constraints(alg, node, vars_with_modified_bounds)
+    # Compute slacks and add constraints to stack
+    if initialize_constraints(alg, vars_with_modified_bounds)
         return true
     end
 
-    #now we try to update local bounds of sp vars
+    # Now we try to update local bounds of sp vars
     if partial_sol != nothing
         for var in vars_with_modified_bounds
             if isa(SubprobVar, var)
@@ -67,8 +68,7 @@ function run(alg::AlgToPreprocessNode, node::Node,
     return infeas
 end
 
-function change_sp_bounds(alg::AlgToPreprocessNode, node::Node,
-                          partial_sol::PrimalSolution)
+function change_sp_bounds(alg::AlgToPreprocessNode, partial_sol::PrimalSolution)
     sps_with_modified_bounds = []
     for (var, val) in partial_sol.var_vals
         if isa(MasterColumn, var)
@@ -106,13 +106,13 @@ function project_partial_solution(partial_sol::PrimalSolution)
     return user_var_vals
 end
 
-function fix_partial_solution(alg::AlgToPreprocessNode, node::Node,
+function fix_partial_solution(alg::AlgToPreprocessNode,
                               partial_sol::PrimalSolution)
 
-    sps_with_modified_bounds = change_sp_bounds(alg, node, partial_sol)
+    sps_with_modified_bounds = change_sp_bounds(alg, partial_sol)
     user_vars_vals = project_partial_solution(partial_sol)
    
-    #updating rhs of master constraints
+    # Updating rhs of master constraints
     for (var, val) in user_vars_vals
         if isa(SubprobVar, var)
             for (constr, coef) in alg.var_local_master_membership[var]
@@ -121,7 +121,7 @@ function fix_partial_solution(alg::AlgToPreprocessNode, node::Node,
         end
     end
 
-    #changing global bounds of variables
+    # Changing global bounds of variables
     vars_with_modified_bounds = Variable[]
     for (var, val) in user_vars_vals
         if isa(MasterVar, var)
@@ -184,49 +184,44 @@ function reset(alg::AlgToPreprocessNode)
     empty!(alg.nb_inf_sources_for_max_slack)
 end
 
-function initialize_constraints(alg::AlgToPreprocessNode, node::Node, 
+function initialize_constraints(alg::AlgToPreprocessNode,
                                 vars_with_modified_bounds::Vector{Variable})
-    #contains the constraints to start propagation
+    # Contains the constraints to start propagation
     constrs_to_stack = Constraint[]
 
-    #static master constraints
+    # Static master constraints
     master = alg.extended_problem.master_problem
     for constr in master.constr_manager.active_static_list
         if !isa(constr, ConvexityConstr)
             initialize_constraint(alg, constr)
-            if node.depth == 0
+            if alg.depth == 0
                 push!(constrs_to_stack, constr)
             end
         end
     end
 
-    #dynamic master constraints
+    # Dynamic master constraints
     for constr in master.constr_manager.active_dynamic_list
         initialize_constraint(alg, constr)
-        if node.depth == 0
+        if alg.depth == 0
+            push!(constrs_to_stack, constr)
+        elseif (alg.depth > 0 && isa(constr, MasterBranchConstr)
+                && constr.depth_when_generated == alg.depth - 1)
             push!(constrs_to_stack, constr)
         end
     end
 
-    #subproblem constraints
+    # Subproblem constraints
     for subprob in alg.extended_problem.pricing_vect
         for constr in subprob.constr_manager.active_static_list
             initialize_constraint(alg, constr)
-            if node.depth == 0
+            if alg.depth == 0
                 push!(constrs_to_stack, constr)
             end
         end
     end
 
-    #branching constraints added by father
-    if node.depth > 0
-        for constr in node.local_branching_constraints
-            push!(constrs_to_stack, constr)
-        end
-        constrs_to_stack = node.local_branching_constraints
-    end
-
-    #we add to the stack all constraints that contain a variable modified by fixing
+    # We add to the stack all constraints that contain a variable modified by fixing
     for var in vars_with_modified_bounds
         for (constr, coef) in alg.var_local_master_membership[var]
             push!(constrs_to_stack, constr)
@@ -238,7 +233,7 @@ function initialize_constraints(alg::AlgToPreprocessNode, node::Node,
         end
     end
 
-    #adding constraints to stack
+    # Adding constraints to stack
     for constr in constrs_to_stack
         if (update_min_slack(alg, constr, false, 0.0) 
             || update_max_slack(alg, constr, false, 0.0))
@@ -349,7 +344,7 @@ end
 function compute_min_slack(alg::AlgToPreprocessNode, constr::MasterConstr)
     @callsuper compute_min_slack(alg, constr::Constraint)
 
-    #subprob variables
+    # Subprob variables
     for (sp_var, coef) in constr.subprob_var_coef_map
         if coef < 0
             if sp_var.cur_global_lb == -Inf
@@ -370,7 +365,7 @@ end
 function compute_max_slack(alg::AlgToPreprocessNode, constr::MasterConstr)
     @callsuper compute_max_slack(alg, constr::Constraint)
 
-    #subprob variables
+    # Subprob variables
     for (sp_var, coef) in constr.subprob_var_coef_map
         if coef > 0
             if sp_var.cur_global_lb == -Inf
@@ -681,9 +676,9 @@ function analyze_constraint(alg::AlgToPreprocessNode, constr::Constraint)
 end
 
 function analyze_constraint(alg::AlgToPreprocessNode, constr::MasterConstr)
-    # master variables
+    # Master variables
     for (var, coef) in constr.member_coef_map
-        #only static variables are considered
+        # Only static variables are considered
         if var.flag != 's'
             continue
         end
@@ -698,7 +693,7 @@ function analyze_constraint(alg::AlgToPreprocessNode, constr::MasterConstr)
             end
         end
     end
-    # subprob variables
+    # Subprob variables
     for (sp_var, coef) in constr.subprob_var_coef_map
         (is_ub, bound) = compute_new_var_bound(alg, sp_var, sp_var.cur_global_lb,
                                                sp_var.cur_global_ub, coef, constr) 

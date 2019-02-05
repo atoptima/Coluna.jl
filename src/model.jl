@@ -56,7 +56,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
         node.problem_setup_info, node.local_branching_constraints)
 
-    treat_algs.alg_preprocess_node = AlgToPreprocessNode(extended_problem)
+    treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
     treat_algs.alg_generate_children_nodes = UsualBranchingAlg(extended_problem)
 
@@ -97,7 +97,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
             node.problem_setup_info, node.local_branching_constraints)
     end
 
-    treat_algs.alg_preprocess_node = AlgToPreprocessNode(extended_problem)
+    treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
     treat_algs.alg_generate_children_nodes = UsualBranchingAlg(extended_problem)
 

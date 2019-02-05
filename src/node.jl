@@ -175,14 +175,9 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
     
-    # Right now the setup only return true
-    if run(treat_algs.alg_setup_node)
-        run(treat_algs.alg_setdown_node, node)
-        mark_infeasible_and_exit_treatment(node)
-        return true
-    end
+    run(treat_algs.alg_setup_node)
 
-    if run(treat_algs.alg_preprocess_node, node)
+    if run(treat_algs.alg_preprocess_node)
         run(treat_algs.alg_setdown_node, node)
         mark_infeasible_and_exit_treatment(node)
         return true
@@ -215,17 +210,12 @@ function treat(node::Node, treat_algs::TreatAlgs,
     # and the second inside the branch-and-price tree. Thus, variables _solved
     # is used to know whether part 1 has already been done or not.
 
-    # evaluation() never returns false
     if !node.evaluated
-        if !evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
-            return false
-        end
+        evaluation(node, treat_algs, global_treat_order, inc_primal_bound)        
     else
-        # This else is never run
-        if inc_primal_bound <= node.node_inc_ip_primal_bound ## is it necessary?
-            println("should not enter here.")
+        if inc_primal_bound <= node.node_inc_ip_primal_bound
             node.node_inc_ip_primal_bound = inc_primal_bound
-            node.ip_primal_bound_is_updated = false
+            node.ip_primal_bound_is_updated = false # shouldnt it be true?
         end
     end
 
