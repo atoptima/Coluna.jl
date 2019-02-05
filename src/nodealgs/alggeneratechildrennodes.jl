@@ -1,9 +1,10 @@
 @hl mutable struct AlgToGenerateChildrenNodes <: AlgLike
+    depth::Int
     extended_problem::ExtendedProblem
 end
 
-function AlgToGenerateChildrenNodesBuilder(problem::ExtendedProblem)
-    return (problem,)
+function AlgToGenerateChildrenNodesBuilder(depth::Int, problem::ExtendedProblem)
+    return (depth, problem)
 end
 
 abstract type RuleForUsualBranching end
@@ -12,11 +13,12 @@ struct LeastFractionalRule <: RuleForUsualBranching end
 
 @hl mutable struct UsualBranchingAlg <: AlgToGenerateChildrenNodes
     rule::RuleForUsualBranching
+    generated_branch_constraints::Vector{MasterBranchConstr}
 end
 
-function UsualBranchingAlgBuilder(problem::ExtendedProblem)
-    return tuplejoin(AlgToGenerateChildrenNodesBuilder(problem),
-        MostFractionalRule())
+function UsualBranchingAlgBuilder(depth::Int, problem::ExtendedProblem)
+    return tuplejoin(AlgToGenerateChildrenNodesBuilder(depth, problem),
+        MostFractionalRule(), MasterBranchConstr[])
 end
 
 function get_var_according_to_rule(rule::MostFractionalRule,
@@ -71,54 +73,47 @@ end
 
 function generate_branch_constraint(alg::AlgToGenerateChildrenNodes,
         depth::Int, var_to_branch::Variable, sense::Char, rhs::Float)
-    return MasterBranchConstrConstructor(
+    constr = MasterBranchConstrConstructor(
         alg.extended_problem.counter,
         string("branch_",var_to_branch.name,"_",sense, "_", depth),
         rhs, sense, depth, var_to_branch
     )
+    push!(alg.generated_branch_constraints, constr)
+    @logmsg LogLevel(-4) string("Generated branching 
+                constraint with reference ", branch_constr.vc_ref)
 end
 
-function generate_child(alg::AlgToGenerateChildrenNodes, node::Node,
-        branch_constr::MasterBranchConstr)
-
-    new_node = NodeWithParent(alg.extended_problem, node)
-    new_node.depth = node.depth + 1
-    push!(new_node.local_branching_constraints, branch_constr)
-    push!(node.children, new_node)
-
+function generate_children(node::Node, alg::AlgToGenerateChildrenNodes)
+    for constr in alg.generated_branch_constraints
+        new_node = NodeWithParent(alg.extended_problem, node)
+        new_node.depth = node.depth + 1
+        push!(new_node.local_branching_constraints, constr)
+        push!(node.children, new_node)
+    end
 end
 
-function perform_usual_branching(node::Node, alg::AlgToGenerateChildrenNodes,
+function perform_usual_branching(alg::AlgToGenerateChildrenNodes,
         frac_vars::Vector{Pair{T, Float}}) where T <: Variable
 
     var_to_branch, val = get_var_according_to_rule(alg.rule, frac_vars)
     @logmsg LogLevel(-4) string("Chosen variable to branch: ",
         var_to_branch.name, ". With value: ", val, ". fract_part = ",
         fract_part(val))
+    generate_branch_constraint(alg, alg.depth, var_to_branch, 'G', ceil(val))
+    generate_branch_constraint(alg, alg.depth, var_to_branch, 'L', floor(val))
 
-    branch_constr = generate_branch_constraint(alg, node.depth,
-        var_to_branch, 'G', ceil(val))
-    generate_child(alg, node, branch_constr)
-    @logmsg LogLevel(-4) string("Generated branching 
-        constraint with reference ", branch_constr.vc_ref)
-
-    branch_constr = generate_branch_constraint(alg, node.depth,
-        var_to_branch, 'L', floor(val))
-    generate_child(alg, node, branch_constr)
-    @logmsg LogLevel(-4) string("Generated branching 
-        constraint with reference ", branch_constr.vc_ref)
 end
 
-function run(alg::UsualBranchingAlg, global_treat_order::Int, node::Node)
+function run(alg::UsualBranchingAlg, sol_to_branch::PrimalSolution)
 
     @logmsg LogLevel(-4) "Generating children..."
-    frac_vars = retrieve_candidate_vars(alg, node.primal_sol.var_val_map)
+    frac_vars = retrieve_candidate_vars(alg, sol_to_branch.var_val_map)
 
     if isempty(frac_vars)
-        @logmsg LogLevel(-4) string("Generated ", length(node.children), " child nodes.")
-        return
+        @logmsg LogLevel(-4) string("No child nodes were generated.")
+        return true
     end
-    perform_usual_branching(node, alg, frac_vars)
-    @logmsg LogLevel(0) string("Generated ", length(node.children), " child nodes.")
-
+    perform_usual_branching(alg, frac_vars)
+    @logmsg LogLevel(0) string("Generated 2 child nodes.")
+    return false
 end

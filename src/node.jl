@@ -1,7 +1,6 @@
 ## Defining infos here
 @hl mutable struct SetupInfo end
 
-
 @hl mutable struct Node
     params::Params
     children::Vector{Node}
@@ -156,8 +155,6 @@ end
 
 
 @hl mutable struct AlgLike end
-run(alg::AlgLike; args...) = false
-run(alg::AlgLike, node::Node; args...) = false
 mutable struct TreatAlgs
     alg_setup_node::AlgLike
     alg_preprocess_node::AlgLike
@@ -178,13 +175,15 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     run(treat_algs.alg_setup_node)
 
     if run(treat_algs.alg_preprocess_node)
-        run(treat_algs.alg_setdown_node, node)
+        run(treat_algs.alg_setdown_node)
+        record_node_info(node, treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node)
         return true
     end
 
     if run(treat_algs.alg_eval_node)
-        run(treat_algs.alg_setdown_node, node)
+        run(treat_algs.alg_setdown_node)
+        record_node_info(node, treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node)
         return true
     end
@@ -194,11 +193,13 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
 
     if is_conquered(node)
         @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
-        run(treat_algs.alg_setdown_node, node)
+        run(treat_algs.alg_setdown_node)
+        record_node_info(node, treat_algs.alg_setdown_node)
         exit_treatment(node); return true
     end
 
-    run(treat_algs.alg_setdown_node, node)
+    run(treat_algs.alg_setdown_node)
+    record_node_info(node, treat_algs.alg_setdown_node)
     return true
 end
 
@@ -225,7 +226,7 @@ function treat(node::Node, treat_algs::TreatAlgs,
     end
 
     for alg in treat_algs.alg_vect_primal_heur_node
-        run(alg, node, global_treat_order)
+        run(alg, global_treat_order)
         println("<", typeof(alg), ">",  "<mip=",
                 alg.sols_and_bounds.alg_inc_lp_primal_bound, "> ",
                 "<PB=", node.node_inc_ip_primal_bound, ">")
@@ -238,7 +239,9 @@ function treat(node::Node, treat_algs::TreatAlgs,
         end
     end
 
-    run(treat_algs.alg_generate_children_nodes, global_treat_order, node)
+    if !run(treat_algs.alg_generate_children_nodes, node.primal_sol)
+        generate_children(node, treat_algs.alg_generate_children_nodes)
+    end
 
     exit_treatment(node)
 

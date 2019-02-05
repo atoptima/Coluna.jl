@@ -58,7 +58,8 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 
     treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
-    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(extended_problem)
+    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
+                                                               extended_problem)
 
     if !node.evaluated
         ## Dispatched according to eval_info
@@ -99,7 +100,8 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 
     treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
-    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(extended_problem)
+    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
+                                                               extended_problem)
 
     if !node.evaluated
         ## Dispatched according to eval_info (?)

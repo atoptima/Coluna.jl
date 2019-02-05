@@ -18,8 +18,7 @@ end
 AlgToPrimalHeurByRestrictedMipBuilder(prob::ExtendedProblem) =
         AlgToPrimalHeurInNodeBuilder(prob)
 
-function run(alg::AlgToPrimalHeurByRestrictedMip, node::Node,
-             global_treat_order::Int)
+function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::Int)
 
     master_problem = alg.extended_problem.master_problem
     switch_primary_secondary_moi_indices(master_problem)

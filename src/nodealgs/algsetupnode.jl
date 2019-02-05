@@ -109,16 +109,17 @@ end
 
 @hl mutable struct AlgToSetdownNode <: AlgLike
     extended_problem::ExtendedProblem
+    recorded_problem_setup_info::ProblemSetupInfo
+end
+
+function record_node_info(node::Node, alg::AlgToSetdownNode)
+    node.problem_setup_info = alg.recorded_problem_setup_info
 end
 
 @hl mutable struct AlgToSetdownNodeFully <: AlgToSetdownNode end
 
 function AlgToSetdownNodeFullyBuilder(problem::ExtendedProblem)
-    return (problem, )
-end
-
-function run(alg::AlgToSetdownNodeFully, node::Node)
-    record_problem_info(alg, node::Node)
+    return (problem, ProblemSetupInfo())
 end
 
 function record_variables_info(prob_info::ProblemSetupInfo,
@@ -178,7 +179,7 @@ function record_constraints_info(prob_info::ProblemSetupInfo,
         " active constraints")
 end    
 
-function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
+function record_problem_info(alg::AlgToSetdownNodeFully)
     prob_info = ProblemSetupInfo()
     master_problem = alg.extended_problem.master_problem
 
@@ -186,8 +187,12 @@ function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
                           alg.extended_problem.pricing_vect)
     record_constraints_info(prob_info, master_problem)
 
-    node.problem_setup_info = prob_info
+    alg.recorded_problem_setup_info = prob_info
 
+end
+
+function run(alg::AlgToSetdownNodeFully)
+    record_problem_info(alg)
 end
 
 #############################
