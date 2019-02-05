@@ -425,10 +425,8 @@ end
 
 function set_cur_bounds(extended_problem::ExtendedProblem)
     master = extended_problem.master_problem
-    @assert isempty(master.var_manager.unsuitable_static_list)
     @assert isempty(master.var_manager.unsuitable_dynamic_list)
     @assert isempty(master.var_manager.active_dynamic_list)
-    @assert isempty(master.constr_manager.unsuitable_static_list)
     @assert isempty(master.constr_manager.unsuitable_dynamic_list)
     @assert isempty(master.constr_manager.active_dynamic_list)
     for var in master.var_manager.active_static_list

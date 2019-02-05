@@ -5,20 +5,17 @@ abstract type AbstractConstrIndexManager end
 mutable struct SimpleVarIndexManager <: AbstractVarIndexManager
     active_static_list::Vector{Variable}
     active_dynamic_list::Vector{Variable}
-    unsuitable_static_list::Vector{Variable}
     unsuitable_dynamic_list::Vector{Variable}
 end
 
 SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(),
-        Vector{Variable}(), Vector{Variable}(), Vector{Variable}())
+        Vector{Variable}(), Vector{Variable}())
 
 function get_list(var_manager::SimpleVarIndexManager, status::VCSTATUS, flag::Char)
     if status == Active && flag in['s', 'a']
         list = var_manager.active_static_list
     elseif status == Active && flag == 'd'
         list = var_manager.active_dynamic_list
-    elseif status == Unsuitable && flag in['s', 'a']
-        list = var_manager.unsuitable_static_list
     elseif status == Unsuitable && flag == 'd'
         list = var_manager.unsuitable_dynamic_list
     else
@@ -42,12 +39,11 @@ end
 mutable struct SimpleConstrIndexManager <: AbstractConstrIndexManager
     active_static_list::Vector{Constraint}
     active_dynamic_list::Vector{Constraint}
-    unsuitable_static_list::Vector{Constraint}
     unsuitable_dynamic_list::Vector{Constraint}
 end
 
 SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(),
-        Vector{Constraint}(), Vector{Constraint}(), Vector{Constraint}())
+        Vector{Constraint}(), Vector{Constraint}())
 
 function get_list(constr_manager::SimpleConstrIndexManager,
                   status::VCSTATUS, flag::Char)
@@ -55,8 +51,6 @@ function get_list(constr_manager::SimpleConstrIndexManager,
         list = constr_manager.active_static_list
     elseif status == Active && flag == 'd'
         list = constr_manager.active_dynamic_list
-    elseif status == Unsuitable && flag == 's'
-        list = constr_manager.unsuitable_static_list
     elseif status == Unsuitable && flag == 'd'
         list = constr_manager.unsuitable_dynamic_list
     else
@@ -643,14 +637,6 @@ function set_prob_ref_to_problem_dict(extended_prob::ExtendedProblem)
     end
 end
 
-function update_extended_problem(prob_updates::Dict{CompactProblem, ProblemUpdate})
-    for prob_update in prob_updates
-        prob = prob_update[1]
-        update = prob_update[2]
-        update_moi_optimizer(prob.optimizer, prob.is_relaxed, update)
-    end
-end
-
 function add_convexity_constraints(extended_problem::ExtendedProblem,
         pricing_prob::Problem, card_lb::Int, card_ub::Int)
 
@@ -675,4 +661,3 @@ function add_artificial_variables(extended_prob::ExtendedProblem)
     add_variable(extended_prob.master_problem,
                  extended_prob.artificial_global_pos_var; update_moi = true)
 end
-
