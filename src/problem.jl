@@ -89,46 +89,23 @@ abstract type Problem end
 
 mutable struct CompactProblem{VM <: AbstractVarIndexManager,
                     CM <: AbstractConstrIndexManager} <: Problem
+    # TODO: add a flag modified_after_last_solve
+    # if needed
 
     prob_ref::Int
-    # probInfeasiblesFlag::Bool
-
-    # objvalueordermagnitude::Float
-    prob_is_built::Bool
-
     is_relaxed::Bool
     optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    # primalFormulation::LPform
 
     var_manager::VM
     constr_manager::CM
 
-    ### Current solutions
-    obj_val::Float
-    obj_bound::Float # Dual bound in LP, and "pruning" bound for MIP
-    in_primal_lp_sol::Set{Variable}
-    non_zero_red_cost_vars::Set{Variable}
-    in_dual_lp_sol::Set{Constraint}
-    # partial_solution_value::Float
-    # partial_solution::Dict{Variable,Float}
-
-    # Recorded solutions, may be integer or not
-    primal_sols::Vector{PrimalSolution}
-    dual_sols::Vector{DualSolution}
-
-    # # needed for new preprocessing
-    # preprocessed_constrs_list::Vector{Constraint}
-    # preprocessed_vars_list::Vector{Variable}
+    # Current solutions
+    primal_sol::PrimalSolution
+    dual_sol::DualSolution
+    partial_solution::PrimalSolution
 
     counter::VarConstrCounter
-    # var_constr_vec::Vector{VarConstr}
 
-    # added for more efficiency and to fix bug
-    # after columns are cleaned we can t ask for red costs
-    # before the MIPSolver solves the master again.
-    # It is put to true in retrieveRedCosts()
-    # It is put to false in resetSolution()
-    # is_retrieved_red_costs::Bool
 end
 
 function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
@@ -137,11 +114,9 @@ function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
     CM <: AbstractConstrIndexManager}
 
     optimizer = nothing
-    primal_vec = Vector{PrimalSolution}([PrimalSolution()])
-    dual_vec = Vector{DualSolution}([DualSolution()])
-    CompactProblem(increment_counter(prob_counter), false, false, optimizer,
-                   VM(), CM(), Inf, -Inf, Set{Variable}(), Set{Variable}(),
-                   Set{Constraint}(), primal_vec, dual_vec, vc_counter)
+    CompactProblem(increment_counter(prob_counter), false, optimizer,
+                   VM(), CM(), PrimalSolution(), DualSolution(),
+                   PrimalSolution(), vc_counter)
 end
 
 SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
@@ -178,9 +153,6 @@ function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
                           var.moi_index)
         @logmsg LogLevel(-4) string("Var ", var.name, " = ", var.val)
         if var.val > 0.0
-            if update_problem
-                push!(problem.in_primal_lp_sol, var)
-            end
             sol[var] = var.val
         end
     end
@@ -192,10 +164,6 @@ function retrieve_primal_sol(problem::CompactProblem;
     if optimizer == nothing
         error("The problem has no optimizer attached")
     end
-    if update_problem
-        problem.obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
-    end
-    @logmsg LogLevel(-4) string("Objective value: ", problem.obj_val)
     new_sol = Dict{Variable, Float}()
     new_obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
     fill_primal_sol(problem, new_sol, problem.var_manager.active_static_list,
@@ -203,8 +171,9 @@ function retrieve_primal_sol(problem::CompactProblem;
     fill_primal_sol(problem, new_sol, problem.var_manager.active_dynamic_list,
                     optimizer, update_problem)
     primal_sol = PrimalSolution(new_obj_val, new_sol)
+    @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
     if update_problem
-        push!(problem.primal_sols, primal_sol)
+        problem.primal_sol = primal_sol
     end
     return primal_sol
 end
@@ -216,10 +185,10 @@ function retrieve_dual_sol(problem::CompactProblem;
         error("The problem has no optimizer attached")
     end
     # TODO check if supported by solver
-    # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
     if MOI.get(optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         return nothing
     end
+    # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
     constr_list = problem.constr_manager.active_static_list
     constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
     new_sol = Dict{Constraint, Float}()
@@ -238,17 +207,15 @@ function retrieve_dual_sol(problem::CompactProblem;
         @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
                                     constr.val)
         @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
-                                    MOI.get(optimizer, MOI.ConstraintPrimal(), constr.moi_index))
+                                    MOI.get(optimizer, MOI.ConstraintPrimal(),
+                                            constr.moi_index))
         if constr.val != 0 # TODO use a tolerance
-            if update_problem
-                push!(problem.in_dual_lp_sol, constr)
-            end
             new_sol[constr] = constr.val
         end
     end
     dual_sol = DualSolution(-Inf, new_sol)
     if update_problem
-        push!(problem.dual_sols, dual_sol) #TODO get objbound
+        problem.dual_sol = dual_sol #TODO get objbound
     end
     return dual_sol
 end
@@ -531,7 +498,7 @@ function optimize!(problem::CompactProblem)
     return status
 end
 
-# does not modify problem but returns the primal/dual sols instead
+# Does not modify problem but returns the primal/dual sols instead
 function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
     MOI.optimize!(optimizer)
     status = MOI.get(optimizer, MOI.TerminationStatus())

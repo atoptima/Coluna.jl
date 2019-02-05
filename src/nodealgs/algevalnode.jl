@@ -87,21 +87,21 @@ AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(), problem,
 
 function update_alg_primal_lp_bound(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
-    primal_bnd = master.primal_sols[end].cost
+    primal_bnd = master.primal_sol.cost
     update_primal_lp_bound(alg.sols_and_bounds, primal_bnd)
 end
 
 function update_alg_primal_lp_incumbents(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
-    primal_sol = master.primal_sols[end].var_val_map
-    primal_bnd = master.primal_sols[end].cost
+    primal_sol = master.primal_sol.var_val_map
+    primal_bnd = master.primal_sol.cost
     update_primal_lp_incumbents(alg.sols_and_bounds, primal_sol, primal_bnd)
 end
 
 function update_alg_primal_ip_incumbents(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
-    primal_sol = master.primal_sols[end].var_val_map
-    primal_bnd = master.primal_sols[end].cost
+    primal_sol = master.primal_sol.var_val_map
+    primal_bnd = master.primal_sol.cost
     if is_sol_integer(primal_sol,
                       alg.extended_problem.params.mip_tolerance_integrality)
         update_primal_ip_incumbents(alg.sols_and_bounds, primal_sol, primal_bnd)
@@ -110,21 +110,21 @@ end
 
 function update_alg_dual_lp_bound(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
-    dual_bnd = master.dual_sols[end].cost
+    dual_bnd = master.dual_sol.cost
     update_dual_lp_bound(alg.sols_and_bounds, dual_bnd)
 end
 
 function update_alg_dual_lp_incumbents(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
-    dual_sol = master.dual_sols[end].constr_val_map
-    dual_bnd = master.dual_sols[end].cost
+    dual_sol = master.dual_sol.constr_val_map
+    dual_bnd = master.dual_sol.cost
     ## not retreiving dual solution yet, but lp dual = lp primal
     update_dual_lp_incumbents(alg.sols_and_bounds, dual_sol, dual_bnd)
 end
 
 function update_alg_dual_ip_bound(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
-    dual_bnd = master.dual_sols[end].cost
+    dual_bnd = master.dual_sol.cost
     update_dual_ip_bound(alg.sols_and_bounds, dual_bnd)
 end
 
@@ -208,7 +208,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
     end
     extended_prob = alg.extended_problem
     master = extended_prob.master_problem
-    duals_dict = master.dual_sols[end].constr_val_map
+    duals_dict = master.dual_sol.constr_val_map
     for (constr, dual) in duals_dict
         @assert (constr isa MasterConstr) || (constr isa MasterBranchConstr)
         if constr isa ConvexityConstr &&
@@ -238,7 +238,7 @@ function compute_pricing_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDualit
     # the pricing_dual_bound_contrib is just the reduced cost
     const_obj = alg.pricing_const_obj[pricing_prob]
     @logmsg LogLevel(-4) string("princing prob has const obj = ", const_obj)
-    contrib = pricing_prob.obj_val + alg.pricing_const_obj[pricing_prob]
+    contrib = pricing_prob.primal_sol.cost + alg.pricing_const_obj[pricing_prob]
     alg.pricing_contribs[pricing_prob] = contrib
     @logmsg LogLevel(-2) string("princing prob has contribution = ", contrib)
 end
@@ -247,7 +247,7 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
                                pricing_prob::Problem)
 
     # TODO add tolerances
-    sp_sol = pricing_prob.primal_sols[end]
+    sp_sol = pricing_prob.primal_sol
     if sp_sol.cost < 0
         master = alg.extended_problem.master_problem
         col = MasterColumnConstructor(master.counter, sp_sol) # generates memberships
@@ -328,7 +328,7 @@ function compute_mast_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality)
     # stabilization = alg.colgen_stabilization
     # This is commented because function is_active does not exist
     # if stabilization == nothing# || !is_active(stabilization)
-        return alg.extended_problem.master_problem.primal_sols[end].cost
+        return alg.extended_problem.master_problem.primal_sol.cost
     # else
     #     error("compute_mast_dual_bound_contrib" *
     #           "is not yet implemented with stabilization")
