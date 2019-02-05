@@ -1,7 +1,4 @@
 ## Defining infos here
-# @hl mutable struct ChildrenGenerationInfo end
-# @hl mutable struct BranchingEvaluationInfo end
-# @hl mutable struct EvalInfo end
 @hl mutable struct SetupInfo end
 
 
@@ -56,9 +53,6 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         problem.params,
         Node[],
         0,
-        # false,
-        # typemax(Int),
-        # -1,
         dual_bound,
         dual_bound,
         problem.primal_inc_bound,
@@ -67,20 +61,13 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         false,
         false,
         PrimalSolution(),
-        # PrimalSolution(),
-        # -1,
         -1,
         false,
         false,
         false,
         MasterBranchConstr[],
         problem_setup_info,
-        # ChildrenGenerationInfo(),
-        # BranchingEvaluationInfo(),
-        # false,
         PrimalSolution(),
-        # 0,
-        # -1
     )
 end
 
@@ -137,12 +124,6 @@ function record_ip_primal_sol_and_update_ip_primal_bound(node::Node,
         node.ip_primal_bound_is_updated = true
     end
 end
-
-# function save_problem_and_eval_alg_info(node::Node)
-# end
-
-# function store_branching_evaluation_info()
-# end
 
 function update_node_duals(node::Node, sols_and_bounds)
     lp_dual_bound = sols_and_bounds.alg_inc_lp_dual_bound
@@ -207,13 +188,6 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
         return true
     end
 
-    # if setup(treat_algs.alg_eval_node)
-    #     setdown(treat_algs.alg_eval_node)
-    #     run(treat_algs.alg_setdown_node, node)
-    #     mark_infeasible_and_exit_treatment(node)
-    #     return true
-    # end
-
     if run(treat_algs.alg_eval_node)
         run(treat_algs.alg_setdown_node, node)
         mark_infeasible_and_exit_treatment(node)
@@ -226,20 +200,10 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     if is_conquered(node)
         @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
         run(treat_algs.alg_setdown_node, node)
-        # store_branching_evaluation_info()
         exit_treatment(node); return true
-    elseif false # _evalAlgPtr->subProbSolutionsEnumeratedToMIP() && runEnumeratedMIP()
-        # run(treat_algs.alg_setdown_node, node)
-        # store_branching_evaluation_info()
-        # mark_infeasible_and_exit_treatment(); return true
     end
 
-    # if !node.problem_and_eval_alg_info_saved
-    #     save_problem_and_eval_alg_info(node)
-    # end
-
     run(treat_algs.alg_setdown_node, node)
-    # store_branching_evaluation_info()
     return true
 end
 

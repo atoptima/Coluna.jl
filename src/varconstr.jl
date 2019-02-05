@@ -9,18 +9,12 @@ function increment_counter(counter::VarConstrCounter)
     return counter.value
 end
 
-# mutable struct VarConstrStabInfo
-# end
-
 @hl mutable struct VarConstr
     vc_ref::Int
     name::String
 
     # Ref of Problem which this VarConstr is part of
     prob_ref::Int
-
-    # in_cur_prob::Bool
-    # in_cur_form::Bool
 
     # ```
     # 'U' or 'D'
@@ -68,7 +62,6 @@ end
     # ```
     vc_type::Char
 
-
     # ```
     # 's' -by default- for static VarConstr belonging to the problem -and erased
     #     when the problem is erased-
@@ -76,7 +69,6 @@ end
     # 'a' for artificial VarConstr.
     # ```
     flag::Char
-
 
     # ```
     # Active = In the formulation
@@ -89,22 +81,6 @@ end
     # Primal Value for a variable, dual value for a constraint
     # ```
     val::Float
-
-    # ```
-    # Rounding Primal Value for a variable, dual value a constraint
-    # ```
-    # floorval::Float
-    # ceilval::Float
-
-    # ```
-    # Closest integer to val
-    # ```
-    # roundedval::Float
-
-    # ```
-    # 'U' or 'D'
-    # ```
-    # roundedsense::Char
 
     # ```
     # Temprarity recorded primal Value for a variable in rounding or fixing
@@ -121,25 +97,7 @@ end
     # ```
     member_coef_map::Dict{VarConstr, Float}
 
-    # # Needed for VarConstrResetInfo.
-    # is_info_updated::Bool
-
-    # in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
-
     reduced_cost::Float
-
-    # # ```
-    # # To hold Info Need for stabilisation of constraint in Col Gen approach and
-    # # on First stage Variables in Benders approach
-    # # ```
-    # stab_info::VarConstrStabInfo
-
-    # # ```
-    # # Treat order of the node where the column has been generated -needed for
-    # # problem setup-
-    # # ```
-    # treat_order_id::Int
-    # TODO better be called gen_sequence_number
 end
 
 Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)

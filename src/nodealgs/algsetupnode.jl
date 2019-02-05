@@ -11,11 +11,6 @@ function apply_var_info(info::VariableSmallInfo)
     info.variable.cur_cost_rhs = info.cost
 end
 
-# This function is not called
-# function apply_var_info(info::VariableSmallInfo)::Void
-#     reset_cur_cost_by_value(var, info.cost) # This function does not exist
-# end
-
 @hl mutable struct VariableInfo <: VariableSmallInfo
     # Current lb and ub as of the end of node treatment.
     # This is valid for all preprocessing done in the subtree of the node.
@@ -36,13 +31,6 @@ function apply_var_info(info::VariableInfo)
     info.variable.cur_lb = info.lb
     info.variable.cur_ub = info.ub
 end
-
-# function is_need_to_change_bounds(info::VariableInfo)::Bool
-#     var = info.variable
-#     ub = info.ub
-#     lb = info.lb
-#     return var.in_cur_form && (lb != var.cur_lb || ub != var.cur_ub)
-# end
 
 @hl mutable struct SpVariableInfo <: VariableInfo
     # Current global lb and global ub as of the end of node treatment.
@@ -123,20 +111,6 @@ end
     extended_problem::ExtendedProblem
 end
 
-# function run(alg::AlgToSetdownNode)
-    # alg.extended_problem.master_problem.cur_node = Nullable{Node}()
-    # for prob in alg.extended_problem.pricing_vect
-    #     prob.cur_node = Nullable{Node}()
-    # end
-    # problem_info = record_problem_info(alg, )
-# end
-
-# function record_problem_info(alg::AlgToSetdownNode,
-#                              global_treat_order::Int)::ProblemSetupInfo
-#     return ProblemSetupInfo(alg.extended_problem.master_problem.cur_node.treat_order)
-# end
-# record_problem_info(alg) = record_problem_info(alg, -1)
-
 @hl mutable struct AlgToSetdownNodeFully <: AlgToSetdownNode end
 
 function AlgToSetdownNodeFullyBuilder(problem::ExtendedProblem)
@@ -188,15 +162,6 @@ end
 function record_constraints_info(prob_info::ProblemSetupInfo,
                                  master_problem::CompactProblem)
 
-    ## Static constraints of the master
-    # for constr in master_problem.constr_manager.active_static_list
-        # if (!isa(constr, ConvexityConstr) &&
-            # (constr.cur_min_slack != -Inf
-             # || constr.cur_max_slack != Inf))
-            # push!(prob_info.modified_static_constrs_info, ConstraintInfo(constr))
-        # end
-    # end
-
     #Dynamic constraints of the master (cuts and branching constraints)
     for constr in master_problem.constr_manager.active_dynamic_list
         if isa(constr, MasterBranchConstr)
@@ -216,11 +181,6 @@ end
 function record_problem_info(alg::AlgToSetdownNodeFully, node::Node)
     prob_info = ProblemSetupInfo()
     master_problem = alg.extended_problem.master_problem
-
-    ## Partial solution of master
-    # for (var, val) in master_problem.partial_solution
-        # push!(prob_info.master_partial_solution_info, VariableSolInfo(var, val))
-    # end
 
     record_variables_info(prob_info, master_problem,
                           alg.extended_problem.pricing_vect)
@@ -260,15 +220,6 @@ function AlgToSetupBranchingOnlyBuilder(extended_problem::ExtendedProblem,
                                  branch_from_father)
 end
 
-#function reset_partial_solution(alg::AlgToSetupNode)
-    # node = alg.node
-    # if !isempty(node.localfixedsolution)
-    #     for (var, val) in node.localfixedsolution.solvarvalmap
-    #         updatepartialsolution(alg.extended_problem.master_problem, var, val)
-    #     end
-    # end
-#end
-
 function prepare_branching_constraints_added_by_father(alg::AlgToSetupNode)
     master = alg.extended_problem.master_problem
     added_to_problem = Constraint[]
@@ -295,22 +246,12 @@ function run(alg::AlgToSetupBranchingOnly)
     added_cuts_to_problem = prepare_branching_constraints(alg)
     apply_var_constr_info(alg.problem_setup_info)
 
-    # reset_branching_constraints(_masterProbPtr, branchingConstrPtrIt)
-
-    ### should be done after resetBranchingConstraints as component set branching constraints
-    ### can modify convexity constraints
-    # reset_convexity_constraints()
-    # reset_non_stab_artificial_variables()
-
-    #reset_partial_solution(alg)
-
     # This function updates the MOI models with the
     # current active rows and columns and their bounds
     update_formulation(alg.extended_problem, Constraint[], added_cuts_to_problem,
                        Variable[], Variable[], Variable[],
                        alg.problem_setup_info.modified_static_vars_info)
 
-    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end
 
@@ -467,36 +408,9 @@ function run(alg::AlgToSetupFull)
                        added_cols_to_problem, Variable[],
                        alg.problem_setup_info.modified_static_vars_info)
 
-    # reset_partial_solution(alg)
-    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 
 end
-
-# This function is never called
-# function reset_master_columns(alg::AlgToSetupNode)
-#     prob_info = alg.problem_setup_info
-#     for var_info in alg.prob_setup_info.suitable_master_columns_info
-#         var = var_info.variable
-#         if var_info.status == Active || alg.is_all_columns_active
-#             if var.status == Active && var_info.cost != var.cur_cost_rhs
-#                 push!(alg.vars_to_change_cost, var)
-#             end
-#             apply_var_info(var_info)
-#         elseif var_info.status == Unsuitable
-#             deactivate_variable(alg, prob, var)
-#         end
-#         var.info_is_updated = true
-#     end
-
-#     for var in alg.extended_problem.master_problem.var_manager.active_dynamic_list
-#         if isa(var, MasterColumn) && var.info_is_updated == false
-#             deactivate_variable(alg, alg.extended_problem.master_problem, var)
-#         else
-#             var.info_is_updated = false
-#         end
-#     end
-# end
 
 #############################
 #### AlgToSetupRootNode #####
@@ -539,9 +453,5 @@ function run(alg::AlgToSetupRootNode)
     @logmsg LogLevel(-4) "AlgToSetupRootNode"
     set_cur_bounds(alg.extended_problem)
 
-    # update_moi_optimizer(alg.extended_problen)
-
-    # return problem_infeasible
-    # println(alg.extended_problem.master_problem.constr_manager.active_dynamic_list)
     return false
 end

@@ -67,21 +67,6 @@ function update_dual_lp_incumbents(incumbents::SolsAndBounds,
     end
 end
 
-# mutable struct StabilizationInfo
-#     problem::Problem
-#     params::Params
-# end
-
-# mutable struct ColGenEvalInfo <: EvalInfo
-#     stabilization_info::StabilizationInfo
-#     master_lp_basis::LpBasisRecord
-#     latest_reduced_cost_fixing_gap::Float
-# end
-
-# mutable struct LpEvalInfo <: EvalInfo
-#     stabilization_info::StabilizationInfo
-# end
-
 ##########################
 #### AlgToEvalNode #######
 ##########################
