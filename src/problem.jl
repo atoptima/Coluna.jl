@@ -567,9 +567,7 @@ end
 function initialize_problem_optimizer(extended_problem::ExtendedProblem,
          problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
 
-    if !haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
-        error("Optimizer was not set to master problem.")
-    end
+    @assert haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
     initialize_problem_optimizer(extended_problem.master_problem,
             problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
 

@@ -28,17 +28,8 @@ function ModelConstructor(params = Params();
 end
 
 function create_root_node(extended_problem::ExtendedProblem)::Node
-    params = extended_problem.params
-    problem_setup_info = ProblemSetupInfo()
-    # stab_info  = StabilizationInfo(extended_problem.master_problem, params)
-    # master_lp_basis = LpBasisRecord("Basis0")
-
-    ## use parameters to define how the tree will be solved
-    # node_eval_info = ColGenEvalInfo(stab_info, master_lp_basis, Inf)
-    # node_eval_info = LpEvalInfo(stab_info)
-
     return Node(extended_problem, extended_problem.dual_inc_bound,
-        problem_setup_info)
+        ProblemSetupInfo())
 end
 
 function set_model_optimizers(model::Model)
@@ -138,8 +129,8 @@ function update_search_trees(cur_node::Node, search_tree::DS.Queue,
         if length(search_tree) < params.open_nodes_limit
             DS.enqueue!(search_tree, child_node)
         else
-            print("Limit on the number of open nodes is reached.")
-            println("No secondary tree is implemented.")
+            println("Limit on the number of open nodes is reached and",
+                    "no secondary tree is implemented.")
             # enqueue(secondary_search_tree, child_node)
         end
     end

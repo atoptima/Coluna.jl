@@ -62,8 +62,8 @@ function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
     constr = MasterBranchConstr(counter, name, rhs, sense, depth, branch_var)
     add_membership(constr.branch_var, constr, 1.0)
     constr.status = Unsuitable
-
     return constr
+
 end
 
 function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
@@ -76,6 +76,6 @@ function MasterBranchConstrConstructor(counter::VarConstrCounter, name::String,
     for col_coef in branch_var.master_col_coef_map
         constr.member_coef_map[col_coef[1]] = col_coef[2]
     end
-
     return constr
+
 end

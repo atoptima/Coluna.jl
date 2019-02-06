@@ -215,10 +215,6 @@ function ConstraintBuilder(counter::VarConstrCounter, name::String,
     )
 end
 
-function set_initial_cur_cost(constr::Constraint)
-    constr.cur_cost_rhs = constr.cost_rhs
-end
-
 function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
     for i in 1:length(var_constr_vec)
         if vc_ref == var_constr_vec[i].vc_ref

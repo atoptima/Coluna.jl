@@ -5,14 +5,6 @@ end
 
 AlgToPrimalHeurInNodeBuilder(prob::ExtendedProblem) = (SolsAndBounds(), prob)
 
-function setup(alg::AlgToPrimalHeurInNode)
-    return false
-end
-
-function setdown(alg::AlgToPrimalHeurInNode)
-    return false
-end
-
 @hl mutable struct AlgToPrimalHeurByRestrictedMip <: AlgToPrimalHeurInNode end
 
 AlgToPrimalHeurByRestrictedMipBuilder(prob::ExtendedProblem) =
