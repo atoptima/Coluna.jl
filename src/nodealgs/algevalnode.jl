@@ -224,7 +224,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
         end
     end
     @logmsg LogLevel(-3) string("new objective func = ", new_obj)
-    set_optimizer_obj(pricing_prob, new_obj)
+    set_optimizer_obj(pricing_prob.optimizer, new_obj)
 
     end # @timeit to(alg) "update_pricing_prob"
     return false

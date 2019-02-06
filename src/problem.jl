@@ -131,19 +131,6 @@ function initialize_problem_optimizer(problem::CompactProblem,
     problem.optimizer = optimizer
 end
 
-function set_optimizer_obj(problem::CompactProblem,
-                           new_obj::Dict{V,Float}) where V <: Variable
-
-    # TODO add a small checker function for this redundant if bloc
-    if problem.optimizer == nothing
-        error("The problem has no optimizer attached")
-    end
-    vec = [MOI.ScalarAffineTerm(cost, var.moi_index) for (var, cost) in new_obj]
-    objf = MOI.ScalarAffineFunction(vec, 0.0)
-    MOI.set(problem.optimizer,
-             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
-end
-
 function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
                          var_list::Vector{Variable}, optimizer, update_problem)
 
@@ -161,9 +148,7 @@ end
 function retrieve_primal_sol(problem::CompactProblem;
         optimizer = problem.optimizer, update_problem = true)
     ## Store it in problem.primal_sols
-    if optimizer == nothing
-        error("The problem has no optimizer attached")
-    end
+    @assert problem.optimizer != nothing
     new_sol = Dict{Variable, Float}()
     new_obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
     fill_primal_sol(problem, new_sol, problem.var_manager.active_static_list,
@@ -181,9 +166,7 @@ end
 function retrieve_dual_sol(problem::CompactProblem;
         optimizer = problem.optimizer, update_problem = true)
 
-    if optimizer == nothing
-        error("The problem has no optimizer attached")
-    end
+    @assert problem.optimizer != nothing
     # TODO check if supported by solver
     if MOI.get(optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         return nothing
@@ -334,6 +317,15 @@ function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
     var.moi_index = MOI.VariableIndex(-1)
 end
 
+function set_optimizer_obj(optimizer::MOI.AbstractOptimizer,
+                           new_obj::Dict{V,Float}) where V <: Variable
+
+    vec = [MOI.ScalarAffineTerm(cost, var.moi_index) for (var, cost) in new_obj]
+    objf = MOI.ScalarAffineFunction(vec, 0.0)
+    MOI.set(optimizer,
+            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
+end
+
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
     MOI.modify(optimizer,
                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
@@ -482,9 +474,7 @@ end
 
 # Updates the problem with the primal/dual sols
 function optimize!(problem::CompactProblem)
-    if problem.optimizer == nothing
-        error("The problem has no optimizer attached")
-    end
+    @assert problem.optimizer != nothing
 
     MOI.optimize!(problem.optimizer)
     status = MOI.get(problem.optimizer, MOI.TerminationStatus())
