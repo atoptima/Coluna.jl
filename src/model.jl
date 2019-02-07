@@ -136,13 +136,8 @@ function update_search_trees(cur_node::Node, search_tree::DS.Queue,
     end
 end
 
-# function calculate_subtree_size(node::Node, sub_tree_size_by_depth::Int)
-# end
-
 function update_cur_valid_dual_bound(problem::ExtendedProblem,
         node::NodeWithParent, search_tree::DS.Queue{Node})
-    ## update subtree dual bound. Utility of this is questionable
-    # node.sub_tree_dual_bound = node.node_inc_ip_dual_bound
     if isempty(search_tree)
         problem.dual_inc_bound = problem.primal_inc_bound
     end

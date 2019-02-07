@@ -747,8 +747,8 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
     update_moi_optimizer(master.optimizer, master.is_relaxed,
                          ProblemUpdate(Constraint[], Constraint[], removed_from_problem,
                          Variable[], Variable[]))
-    # for v in alg.preprocessed_vars
-    #     optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
-    #     enforce_current_bounds_in_optimizer(optimizer, v)
-    # end
+    for v in alg.preprocessed_vars
+        optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
+        enforce_current_bounds_in_optimizer(optimizer, v)
+    end
  end

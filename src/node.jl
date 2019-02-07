@@ -14,13 +14,11 @@
     node_inc_lp_primal_bound::Float
     node_inc_ip_primal_bound::Float
 
-    sub_tree_dual_bound::Float
-
     dual_bound_is_updated::Bool
     ip_primal_bound_is_updated::Bool
 
     node_inc_ip_primal_sol::PrimalSolution
-    # local_fixed_solution::PrimalSolution
+    # partial_solution::PrimalSolution
 
     # eval_end_time::Int
     treat_order::Int
@@ -56,7 +54,6 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         dual_bound,
         problem.primal_inc_bound,
         problem.primal_inc_bound,
-        dual_bound,
         false,
         false,
         PrimalSolution(),

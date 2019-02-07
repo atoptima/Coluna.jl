@@ -137,7 +137,7 @@ function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
     for var_idx in 1:length(var_list)
         var = var_list[var_idx]
         var.val = MOI.get(optimizer, MOI.VariablePrimal(),
-                          var.moi_index)
+                          var.moi_def.var_index)
         @logmsg LogLevel(-4) string("Var ", var.name, " = ", var.val)
         if var.val > 0.0
             sol[var] = var.val
@@ -301,7 +301,7 @@ end
 ###############################################################
 function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                    var::Variable, is_relaxed::Bool)
-    var.moi_index = MOI.add_variable(optimizer)
+    var.moi_def.var_index = MOI.add_variable(optimizer)
     update_cost_in_optimizer(optimizer, var)
     !is_relaxed && enforce_type_in_optimizer(optimizer, var)
     if (var.vc_type != 'B' || is_relaxed)
@@ -311,16 +311,16 @@ end
 
 function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
                                    var::Variable)
-    MOI.delete(optimizer, var.moi_bounds_index)
-    var.moi_bounds_index = MoiBounds(-1)
-    MOI.delete(optimizer, var.moi_index)
-    var.moi_index = MOI.VariableIndex(-1)
+    MOI.delete(optimizer, var.moi_def.bounds_index)
+    var.moi_def.bounds_index = MoiBounds(-1)
+    MOI.delete(optimizer, var.moi_def.var_index)
+    var.moi_def.var_index = MOI.VariableIndex(-1)
 end
 
 function set_optimizer_obj(optimizer::MOI.AbstractOptimizer,
                            new_obj::Dict{V,Float}) where V <: Variable
 
-    vec = [MOI.ScalarAffineTerm(cost, var.moi_index) for (var, cost) in new_obj]
+    vec = [MOI.ScalarAffineTerm(cost, var.moi_def.var_index) for (var, cost) in new_obj]
     objf = MOI.ScalarAffineFunction(vec, 0.0)
     MOI.set(optimizer,
             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
@@ -329,26 +329,32 @@ end
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
     MOI.modify(optimizer,
                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-               MOI.ScalarCoefficientChange{Float}(var.moi_index, var.cost_rhs))
+               MOI.ScalarCoefficientChange{Float}(var.moi_def.var_index, var.cost_rhs))
 end
 
 function enforce_initial_bounds_in_optimizer(
     optimizer::MOI.AbstractOptimizer, var::Variable)
-    # @assert var.moi_bounds_index.value == -1 # commented because of primal heur
-    var.moi_bounds_index = MOI.add_constraint(
-        optimizer, MOI.SingleVariable(var.moi_index),
+    # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
+    var.moi_def.bounds_index = MOI.add_constraint(
+        optimizer, MOI.SingleVariable(var.moi_def.var_index),
         MOI.Interval(var.lower_bound, var.upper_bound))
 end
 
 function enforce_current_bounds_in_optimizer(
     optimizer::MOI.AbstractOptimizer, var::Variable)
-    if var.moi_bounds_index.value != -1
-        moi_set = MOI.get(optimizer, MOI.ConstraintSet(), var.moi_bounds_index)
-        MOI.set(optimizer, MOI.ConstraintSet(), var.moi_bounds_index,
+    if (typeof(var.moi_def.type_index) == MoiVcType{MOI.ZeroOne}
+        && var.moi_def.type_index.value != -1)
+        MOI.delete(optimizer, var.moi_def.type_index)
+        var.moi_def.type_index = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(var.moi_def.var_index), MOI.Integer())
+    end
+    if var.moi_def.bounds_index.value != -1
+        moi_set = MOI.get(optimizer, MOI.ConstraintSet(), var.moi_def.bounds_index)
+        MOI.set(optimizer, MOI.ConstraintSet(), var.moi_def.bounds_index,
                 MOI.Interval(var.cur_lb, var.cur_ub))
     else
-        var.moi_bounds_index = MOI.add_constraint(
-            optimizer, MOI.SingleVariable(var.moi_index),
+        var.moi_def.bounds_index = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(var.moi_def.var_index),
             MOI.Interval(var.cur_lb, var.cur_ub))
     end
 end
@@ -356,11 +362,11 @@ end
 function enforce_type_in_optimizer(
     optimizer::MOI.AbstractOptimizer, var::Variable)
     if var.vc_type == 'B'
-        MOI.add_constraint(optimizer,
-                           MOI.SingleVariable(var.moi_index), MOI.ZeroOne())
+        var.moi_def.type_index = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(var.moi_def.var_index), MOI.ZeroOne())
     elseif var.vc_type == 'I'
-        MOI.add_constraint(optimizer,
-                           MOI.SingleVariable(var.moi_index), MOI.Integer())
+        var.moi_def.type_index = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(var.moi_def.var_index), MOI.Integer())
     end
 end
 
@@ -383,7 +389,7 @@ end
 
 function compute_constr_moi_terms(constr::Constraint)
     return [
-        MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_index)
+        MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_def.var_index)
         for var_val in constr.member_coef_map if var_val.first.status == Active
     ]
 end
@@ -391,7 +397,7 @@ end
 function update_moi_membership(optimizer::MOI.AbstractOptimizer, var::Variable,
                                constr::Constraint, coef::Float)
     MOI.modify(optimizer, constr.moi_index,
-               MOI.ScalarCoefficientChange{Float}(var.moi_index, coef))
+               MOI.ScalarCoefficientChange{Float}(var.moi_def.var_index, coef))
 end
 
 function update_moi_membership(optimizer::MOI.AbstractOptimizer,
@@ -457,12 +463,12 @@ function load_problem_in_optimizer(problem::CompactProblem,
     end
 end
 
-function switch_primary_secondary_moi_indices(problem::CompactProblem)
+function switch_primary_secondary_moi_def(problem::CompactProblem)
     for var in problem.var_manager.active_static_list
-        switch_primary_secondary_moi_indices(var)
+        switch_primary_secondary_moi_def(var)
     end
     for var in problem.var_manager.active_dynamic_list
-        switch_primary_secondary_moi_indices(var)
+        switch_primary_secondary_moi_def(var)
     end
     for constr in problem.constr_manager.active_static_list
         switch_primary_secondary_moi_indices(constr)

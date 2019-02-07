@@ -78,7 +78,7 @@ end
     suitable_master_columns_info::Vector{VariableSmallInfo}
     # suitable_master_cuts_info::Vector{ConstraintInfo}
     active_branching_constraints_info::Vector{ConstraintInfo}
-    # master_partial_solution_info::Vector{VariableSolInfo}
+    master_partial_solution::PrimalSolution
 
     # - In these two lists we keep only static variables and constraints for
     # which at least one of the attributes in VariableInfo and ConstraintInfo is
@@ -95,6 +95,7 @@ end
 
 ProblemSetupInfo() = ProblemSetupInfo(Vector{VariableSmallInfo}(),
                                       Vector{ConstraintInfo}(),
+                                      PrimalSolution(),
                                       Vector{VariableInfo}())
 
 function apply_var_constr_info(prob_info::ProblemSetupInfo)
@@ -179,6 +180,11 @@ function record_constraints_info(prob_info::ProblemSetupInfo,
         " active constraints")
 end    
 
+function record_partial_solution(prob_info::ProblemSetupInfo,
+                                 master_problem::CompactProblem)
+    prob_info.master_partial_solution = master_problem.partial_solution
+end
+
 function record_problem_info(alg::AlgToSetdownNodeFully)
     prob_info = ProblemSetupInfo()
     master_problem = alg.extended_problem.master_problem
@@ -186,6 +192,7 @@ function record_problem_info(alg::AlgToSetdownNodeFully)
     record_variables_info(prob_info, master_problem,
                           alg.extended_problem.pricing_vect)
     record_constraints_info(prob_info, master_problem)
+    record_partial_solution(prob_info, master_problem)
 
     alg.recorded_problem_setup_info = prob_info
 
@@ -384,16 +391,26 @@ function update_formulation(extended_problem::ExtendedProblem,
     optimizer = extended_problem.master_problem.optimizer
     is_relaxed = extended_problem.master_problem.is_relaxed
     update_moi_optimizer(optimizer, is_relaxed, master_update)
-    # Update bounds that changed in all extended problem
-    # for info in modified_static_vars_info
-    #     v = info.variable
-    #     enforce_current_bounds_in_optimizer(get_problem(extended_problem, v.prob_ref).optimizer, v)
-    # end
+    # Update bounds of subproblem variables
+    for info in modified_static_vars_info
+        v = info.variable
+        enforce_current_bounds_in_optimizer(
+            get_problem(extended_problem, v.prob_ref).optimizer, v)
+    end
+end
+
+function setup_partial_solution(prob_info::ProblemSetupInfo,
+                                extended_problem::ExtendedProblem)
+    extended_problem.master_problem.partial_solution = (
+        prob_info.master_partial_solution
+    )
 end
 
 function run(alg::AlgToSetupFull)
 
     @logmsg LogLevel(-4) "AlgToSetupFull"
+
+    setup_partial_solution(alg.problem_setup_info, alg.extended_problem)
 
     # The two next function only update the managers
     # and the statuses, all memberships are already up-to-date

@@ -111,29 +111,42 @@ function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Floa
 end
 
 const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float}}
-@hl mutable struct Variable <: VarConstr
+const MoiVcType = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{
+    MOI.Integer,MOI.ZeroOne}
+mutable struct MoiDef
     # ```
     # Index in MOI optimizer
     # ```
-    moi_index::MOI.VariableIndex
-
-    # ```
-    # Used when solving the problem with another optimizer
-    # i.e.: When doing primal heuristics
-    # ```
-    secondary_moi_index::MOI.VariableIndex
+    var_index::MOI.VariableIndex
 
     # ```
     # Stores the MOI.ConstraintIndex used as lower and upper bounds
     # ```
-    moi_bounds_index::MoiBounds
+    bounds_index::MoiBounds
 
     # ```
-    # Stores the secondary MOI.ConstraintIndex used as lower and upper bounds
+    # Stores the MOI.ConstraintIndex that represents vc_type in coluna
+    # ```
+    type_index::MoiVcType
+end
+
+function MoiDef()
+    return MoiDef(MOI.VariableIndex(-1), MoiBounds(-1), MoiVcType{MOI.ZeroOne}(-1))
+end
+
+@hl mutable struct Variable <: VarConstr
+    
+    # ```
+    # Stores the representation of this variable in MOI.
+    # ```
+    moi_def::MoiDef
+
+    # ```
+    # Stores a secondary representation of this variable in MOI.
     # Used when solving the problem with another optimizer
     # i.e.: When doing primal heuristics
     # ```
-    secondary_moi_bounds_index::MoiBounds
+    secondary_moi_def::MoiDef
 
     # ```
     # To represent local lower bound on variable primal / constraint dual
@@ -161,8 +174,8 @@ function VariableBuilder(counter::VarConstrCounter, name::String,
 
     return tuplejoin(
         VarConstrBuilder(counter, name, costrhs, sense, vc_type, flag,
-                         directive, priority), MOI.VariableIndex(-1),
-        MOI.VariableIndex(-1), MoiBounds(-1), MoiBounds(-1), lb, ub, lb, ub)
+                         directive, priority),
+        MoiDef(), MoiDef(), lb, ub, lb, ub)
 end
 
 function bounds_changed(var::Variable)
@@ -224,16 +237,14 @@ function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
     return 0
 end
 
-function switch_primary_secondary_moi_indices(vc::VarConstr)
-    temp_idx = vc.moi_index
-    vc.moi_index = vc.secondary_moi_index
-    vc.secondary_moi_index = temp_idx
+function switch_primary_secondary_moi_indices(constr::Constraint)
+    temp_idx = constr.moi_index
+    constr.moi_index = constr.secondary_moi_index
+    constr.secondary_moi_index = temp_idx
 end
 
-function switch_primary_secondary_moi_indices(var::Variable)
-    @callsuper switch_primary_secondary_moi_indices(var::VarConstr)
-    # This also changes the bounds index
-    temp_idx = var.moi_bounds_index
-    var.moi_bounds_index = var.secondary_moi_bounds_index
-    var.secondary_moi_bounds_index = temp_idx
+function switch_primary_secondary_moi_def(var::Variable)
+    temp_moi_def = var.moi_def
+    var.moi_def = var.secondary_moi_def
+    var.secondary_moi_def = temp_moi_def
 end
