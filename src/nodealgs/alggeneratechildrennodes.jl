@@ -110,7 +110,7 @@ function run(alg::UsualBranchingAlg, sol_to_branch::PrimalSolution)
     frac_vars = retrieve_candidate_vars(alg, sol_to_branch.var_val_map)
 
     if isempty(frac_vars)
-        @logmsg LogLevel(-4) string("No child nodes were generated.")
+        @logmsg LogLevel(0) string("No child nodes were generated.")
         return true
     end
     perform_usual_branching(alg, frac_vars)
