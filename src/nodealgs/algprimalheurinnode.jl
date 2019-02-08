@@ -20,8 +20,11 @@ function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::Int)
     if sols[2] != nothing
         primal_sol = sols[2]
         @logmsg LogLevel(-2) "Restricted Master Heur found sol: $primal_sol"
-        alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_sol.cost
-        alg.sols_and_bounds.alg_inc_ip_primal_sol_map = primal_sol.var_val_map
+    else
+        primal_sol = PrimalSolution()
+        @logmsg LogLevel(-2) "Restricted Master Heur did not find a feasible solution"
     end
+    alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_sol.cost
+    alg.sols_and_bounds.alg_inc_ip_primal_sol_map = primal_sol.var_val_map
     switch_primary_secondary_moi_def(master_problem)
 end

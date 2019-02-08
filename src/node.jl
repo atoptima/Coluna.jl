@@ -145,11 +145,24 @@ function update_node_primals(node::Node, sols_and_bounds)
         sols_and_bounds.alg_inc_lp_primal_sol_map)
 end
 
-function update_node_incumbents(node::Node, sols_and_bounds)
+function update_node_primal_inc(node::Node, ip_bound::Float,
+                                sol_map::Dict{Variable, Float})
+    if ip_bound < node.node_inc_ip_primal_sol.cost
+        new_sol = PrimalSolution(ip_bound, sol_map)
+        node.node_inc_ip_primal_sol = new_sol
+        node.node_inc_ip_primal_bound = ip_bound
+        node.ip_primal_bound_is_updated = true
+        if ip_bound < node.node_inc_lp_primal_bound
+            node.node_inc_lp_primal_bound = ip_bound
+            node.primal_sol = new_sol
+        end
+    end
+end
+
+function update_node_sols(node::Node, sols_and_bounds)
     update_node_primals(node, sols_and_bounds)
     update_node_duals(node, sols_and_bounds)
 end
-
 
 @hl mutable struct AlgLike end
 mutable struct TreatAlgs
@@ -186,7 +199,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     end
     node.evaluated = true
 
-    update_node_incumbents(node, treat_algs.alg_eval_node.sols_and_bounds)
+    update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
 
     if is_conquered(node)
         @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
@@ -210,11 +223,6 @@ function treat(node::Node, treat_algs::TreatAlgs,
 
     if !node.evaluated
         evaluation(node, treat_algs, global_treat_order, inc_primal_bound)        
-    else
-        if inc_primal_bound <= node.node_inc_ip_primal_bound
-            node.node_inc_ip_primal_bound = inc_primal_bound
-            node.ip_primal_bound_is_updated = false # shouldnt it be true?
-        end
     end
 
     if node.treated
@@ -224,10 +232,11 @@ function treat(node::Node, treat_algs::TreatAlgs,
 
     for alg in treat_algs.alg_vect_primal_heur_node
         run(alg, global_treat_order)
-        println("<", typeof(alg), ">",  "<mip=",
-                alg.sols_and_bounds.alg_inc_lp_primal_bound, "> ",
+        update_node_primal_inc(node, alg.sols_and_bounds.alg_inc_ip_primal_bound,
+                               alg.sols_and_bounds.alg_inc_ip_primal_sol_map)
+        println("<", typeof(alg), ">", " <mlp=",
+                node.node_inc_lp_primal_bound, "> ",
                 "<PB=", node.node_inc_ip_primal_bound, ">")
-        update_node_primals(node, alg.sols_and_bounds)
         if is_conquered(node)
             @logmsg LogLevel(0) string("Node is considered conquered ",
                                        "after primal heuristic ", typeof(alg))

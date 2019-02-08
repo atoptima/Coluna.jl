@@ -171,7 +171,6 @@ end
 function update_model_incumbents(problem::ExtendedProblem, node::Node,
         search_tree::DS.Queue{Node})
     if node.ip_primal_bound_is_updated
-
         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
     end
     if (node.dual_bound_is_updated &&

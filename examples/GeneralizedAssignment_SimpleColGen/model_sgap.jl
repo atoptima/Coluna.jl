@@ -1,5 +1,7 @@
 function model_sgap(data::DataGap)
-    gap = Model(with_optimizer(Coluna.ColunaModelOptimizer,
+    params = Coluna.Params(use_restricted_master_heur = true)
+
+    gap = Model(with_optimizer(Coluna.ColunaModelOptimizer, params = params,
                                master_factory = with_optimizer(GLPK.Optimizer),
                                pricing_factory = with_optimizer(GLPK.Optimizer)),
                 bridge_constraints=false)
