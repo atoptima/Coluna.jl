@@ -38,7 +38,6 @@ end
 
 function run(alg::AlgToPreprocessNode,
              partial_sol::Union{Nothing,PrimalSolution} = nothing)
-
     reset(alg)
     if partial_sol != nothing
         # Change sp bounds, global bounds of var and rhs of master constraints
@@ -50,7 +49,6 @@ function run(alg::AlgToPreprocessNode,
     if initialize_constraints(alg, vars_with_modified_bounds)
         return true
     end
-
     # Now we try to update local bounds of sp vars
     if partial_sol != nothing
         for var in vars_with_modified_bounds
@@ -71,7 +69,7 @@ end
 function change_sp_bounds(alg::AlgToPreprocessNode, partial_sol::PrimalSolution)
     sps_with_modified_bounds = []
     for (var, val) in partial_sol.var_vals
-        if isa(MasterColumn, var)
+        if isa(var, MasterColumn)
             sp_ref = var.prob_ref
             if alg.cur_sp_bounds[sp_ref][1] > 0
                 alg.cur_sp_bounds[sp_ref][1] -= 1
@@ -89,7 +87,7 @@ end
 function project_partial_solution(partial_sol::PrimalSolution)
     user_vars_vals = Dict{Variable,Float}()
     for (var, val) in partial_sol.var_vals
-        if isa(MasterColumn, var)
+        if isa(var, MasterColumn)
             for (user_var, user_var_val) in var.solution.var_val_map
                 if !haskey(user_var_vals, user_var)
                     user_var_vals[user_var] = user_var_val
@@ -97,7 +95,7 @@ function project_partial_solution(partial_sol::PrimalSolution)
                     user_var_vals[user_var] += user_var_val
                 end
             end
-        elseif isa(MasterVar, var)
+        elseif isa(var, MasterVar)
             user_vars_vals[var] = val
         else
             error("subprob vars are not expected in a partial solution")
@@ -114,7 +112,7 @@ function fix_partial_solution(alg::AlgToPreprocessNode,
    
     # Updating rhs of master constraints
     for (var, val) in user_vars_vals
-        if isa(SubprobVar, var)
+        if isa(var, SubprobVar)
             for (constr, coef) in alg.var_local_master_membership[var]
                 constr.cur_cost_rhs -= val*coef
             end
@@ -124,7 +122,7 @@ function fix_partial_solution(alg::AlgToPreprocessNode,
     # Changing global bounds of variables
     vars_with_modified_bounds = Variable[]
     for (var, val) in user_vars_vals
-        if isa(MasterVar, var)
+        if isa(var, MasterVar)
             var.cur_lb = var.cur_ub = val
             push!(vars_with_modified_bounds, var)
         else
@@ -226,7 +224,7 @@ function initialize_constraints(alg::AlgToPreprocessNode,
         for (constr, coef) in alg.var_local_master_membership[var]
             push!(constrs_to_stack, constr)
         end
-        if isa(SubprobVar, var)
+        if isa(var, SubprobVar)
             for (constr, coef) in alg.var_local_sp_membership[var]
                 push!(constrs_to_stack, constr)
             end

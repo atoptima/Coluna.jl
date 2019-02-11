@@ -44,7 +44,7 @@
 end
 
 function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
-    problem_setup_info::SetupInfo)
+                     problem_setup_info::SetupInfo, primal_sol::PrimalSolution = PrimalSolution())
 
     return (
         problem.params,
@@ -63,7 +63,7 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         false,
         MasterBranchConstr[],
         problem_setup_info,
-        PrimalSolution(),
+        primal_sol,
     )
 end
 
@@ -75,9 +75,33 @@ function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
 
     return tuplejoin(NodeBuilder(problem, parent.node_inc_ip_dual_bound,
         parent.problem_setup_info),
-        parent
-    )
+        parent)
 
+end
+
+@hl mutable struct DivingNode <: Node end
+
+function DivingNodeBuilder(problem::ExtendedProblem, dual_bound::Float,
+                           problem_setup_info::SetupInfo, primal_sol::PrimalSolution)
+    return NodeBuilder(problem, dual_bound, problem_setup_info, primal_sol)
+end
+
+@hl mutable struct DivingNodeWithParent <: DivingNode
+    local_fixed_solution::PrimalSolution
+    parent::DivingNode
+end
+
+function DivingNodeWithParentBuilder(problem::ExtendedProblem, parent::DivingNode, 
+                           local_fixed_solution::PrimalSolution)
+    return tuplejoin(NodeBuilder(problem), local_fixed_solution, parent)
+end
+
+function DivingNodeWithParentBuilder(problem::ExtendedProblem, parent::DivingNode, 
+                           local_fixed_sol::Tuple{MasterVar,Float})
+    local_fixed_solution = PrimalSolution()
+    local_fixed_solution.cost = local_fixed_sol[1].cur_cost_rhs
+    local_fixed_solution.var_val_map[master_col] = local_fixed_sol[2]
+    return tuplejoin(NodeBuilder(problem),local_fixed_solution, parent)
 end
 
 function is_conquered(node::Node)
@@ -231,7 +255,7 @@ function treat(node::Node, treat_algs::TreatAlgs,
     end
 
     for alg in treat_algs.alg_vect_primal_heur_node
-        run(alg, global_treat_order)
+        run(alg, global_treat_order, node.primal_sol)
         update_node_primal_inc(node, alg.sols_and_bounds.alg_inc_ip_primal_bound,
                                alg.sols_and_bounds.alg_inc_ip_primal_sol_map)
         println("<", typeof(alg), ">", " <mlp=",

@@ -117,3 +117,46 @@ function run(alg::UsualBranchingAlg, sol_to_branch::PrimalSolution)
     @logmsg LogLevel(0) string("Generated 2 child nodes.")
     return false
 end
+
+@hl mutable struct DivingGenerateChildAlg <: AlgToGenerateChildrenNodes
+    columns::MasterColumn[]
+    values::Float[]
+end
+
+function DivingGenerateChildAlgBuilder(depth::Int, problem::ExtendedProblem)
+    return tuplejoin(AlgToGenerateChildrenNodesBuilder(depth, problem),
+                     MasterColumn(), Float[])
+end
+
+
+function run(alg::DivingGenerateChildAlg, primal_sol::PrimalSolution)
+    col = nothing; dist = Inf; rounded_val = 0
+    for (var, val) in primal_sol.var_val_map
+        if isa(var, MasterColumn)
+            if floor(val) > 0 && (val - floor(val) < dist)
+                col = var
+                rounded_val = floor(val)
+                dist = val - floor(val) 
+            end
+            if ceil(val) - val < dist
+                col = var
+                rounded_val = ceil(val)
+                dist = ceil(val) - val
+            end
+        end
+    end
+
+    if col == nothing
+        return true
+    else
+        push!(alg.columns, column)
+        push!(alg.values, rounded_val)
+        return false
+    end
+end
+
+function generate_children(node::DivingNode, alg::DivingGenerateChildAlg)
+    child = DivingNodeWithParent(alg.extended_problem, node, (alg.columns[1], alg.values[1]))
+    child.depth = node.depth + 1
+    push!(node.children, child)
+end

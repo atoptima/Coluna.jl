@@ -103,6 +103,53 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     return true
 end
 
+function prepare_node_for_treatment(extended_problem::ExtendedProblem,
+        node::DivingNode, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
+    println("************************************************************")
+    println("Preparing diving root node for treatment.")
+
+    treat_algs.alg_generate_children_nodes = DivingGenerateChildAlg(node.depth,
+                                                               extended_problem)
+    return true
+end
+
+function prepare_node_for_treatment(extended_problem::ExtendedProblem,
+        node::DivingNodeWithParent, treat_algs::TreatAlgs,
+        global_nodes_treat_order::Int)
+
+    println("************************************************************")
+    println("Preparing diving node ", global_nodes_treat_order,
+        " for treatment. Parent is ", node.parent.treat_order, ".")
+    println("Current primal bound is ", extended_problem.primal_inc_bound)
+    println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
+
+    if is_to_be_pruned(node, extended_problem.primal_inc_bound)
+        println("Node is conquered, no need for treating it.")
+        return false
+    end
+
+    if global_nodes_treat_order == node.parent.treat_order+1
+        treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
+            node.problem_setup_info, node.local_branching_constraints)
+    else
+        treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
+            node.problem_setup_info, node.local_branching_constraints)
+    end
+
+    treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
+    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
+    treat_algs.alg_generate_children_nodes = DivingGenerateChildAlg(node.depth,
+                                                               extended_problem)
+ 
+    if !node.evaluated
+        ## Dispatched according to eval_info (?)
+        # treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
+        treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
+    end
+
+    return true
+end
+
 function print_info_before_solving_node(problem::ExtendedProblem,
         primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int,
         treat_order::Int)
