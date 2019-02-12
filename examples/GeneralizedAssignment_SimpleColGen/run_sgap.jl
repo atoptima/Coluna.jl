@@ -1,12 +1,10 @@
-using JuMP, GLPK, Coluna, Test, CPLEX
+using JuMP, GLPK, Coluna, Test, CPLEX, Gurobi
 using MathOptInterface: set
 #using Base.CoreLogging, Logging
 #global_logger(ConsoleLogger(stderr, LogLevel(-4)))
 
 include("data_sgap.jl")
 include("model_sgap.jl")
-
-appfolder = dirname(@__FILE__)
 
 function print_and_check_sol(data, gap, x)
     sol_is_ok = true
@@ -43,20 +41,29 @@ function print_and_check_sol(data, gap, x)
     return sol_is_ok
 end
 
-data = read_dataGap("$appfolder/data/play2.txt")
-(gap, x) = model_sgap(data)
-optimize!(gap)
-@test abs(JuMP.objective_value(gap) - 75.0) < 1e-7
-@test print_and_check_sol(data, gap, x)
+function run_sgap_play()
+    appfolder = dirname(@__FILE__)
+    data = read_dataGap("$appfolder/data/play2.txt")
+    (gap, x) = model_sgap(data)
+    optimize!(gap)
+    @test abs(JuMP.objective_value(gap) - 75.0) < 1e-7
+    @test print_and_check_sol(data, gap, x)
+end
 
-# data = read_dataGap("$appfolder/data/gapC-5-100.txt")
-# (gap, x) = model_sgap(data)
-# optimize!(gap)
-# @test abs(JuMP.objective_value(gap) - 1931.0) < 1e-7
-# @test print_and_check_sol(data, gap, x)
+function run_sgap_5_100()
+    appfolder = dirname(@__FILE__)
+    data = read_dataGap("$appfolder/data/gapC-5-100.txt")
+    (gap, x) = model_sgap(data)
+    optimize!(gap)
+    @test abs(JuMP.objective_value(gap) - 1931.0) < 1e-7
+    @test print_and_check_sol(data, gap, x)
+end
 
-# data = read_dataGap("$appfolder/data/gapC-10-100.txt")
-# (gap, x) = model_sgap(data)
-# optimize!(gap)
-# @test abs(JuMP.objective_value(gap) - 1402.0) < 1e-7
-# @test print_and_check_sol(data, gap, x)
+function run_sgap_10_100()
+    appfolder = dirname(@__FILE__)
+    data = read_dataGap("$appfolder/data/gapC-10-100.txt")
+    (gap, x) = model_sgap(data)
+    optimize!(gap)
+    @test abs(JuMP.objective_value(gap) - 1402.0) < 1e-7
+    @test print_and_check_sol(data, gap, x)
+end

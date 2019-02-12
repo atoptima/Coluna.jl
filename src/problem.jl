@@ -493,14 +493,21 @@ function switch_primary_secondary_moi_def(problem::CompactProblem)
     end
 end
 
+function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
+    backup_stdout = stdout
+    (rd_out, wr_out) = redirect_stdout()
+    MOI.optimize!(optimizer)
+    close(wr_out)
+    close(rd_out)
+    redirect_stdout(backup_stdout)
+end
+
 # Updates the problem with the primal/dual sols
 function optimize!(problem::CompactProblem)
     @assert problem.optimizer != nothing
-
-    MOI.optimize!(problem.optimizer)
+    call_moi_optimize_with_silence(problem.optimizer)
     status = MOI.get(problem.optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
-
     if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
         retrieve_solution(problem)
     else
@@ -511,7 +518,7 @@ end
 
 # Does not modify problem but returns the primal/dual sols instead
 function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
-    MOI.optimize!(optimizer)
+    call_moi_optimize_with_silence(optimizer)
     status = MOI.get(optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
 

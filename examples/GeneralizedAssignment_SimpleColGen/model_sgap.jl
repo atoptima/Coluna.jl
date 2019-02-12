@@ -1,7 +1,10 @@
 function model_sgap(data::DataGap)
-    params = Coluna.Params(use_restricted_master_heur = true, restricted_master_heur_solver_type = CPLEX.Optimizer)
+    params = Coluna.Params(use_restricted_master_heur = true,
+                           restricted_master_heur_solver_type = CPLEX.Optimizer)
 
     gap = Model(with_optimizer(Coluna.ColunaModelOptimizer, params = params,
+                               # master_factory = with_optimizer(Gurobi.Optimizer),
+                               # pricing_factory = with_optimizer(Gurobi.Optimizer)),
                                # master_factory = with_optimizer(CPLEX.Optimizer),
                                # pricing_factory = with_optimizer(CPLEX.Optimizer)),
                                master_factory = with_optimizer(GLPK.Optimizer),

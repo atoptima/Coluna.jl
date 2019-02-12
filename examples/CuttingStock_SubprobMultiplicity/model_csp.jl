@@ -1,11 +1,15 @@
 function model_scsp(d::DataCsp)
-    params = Coluna.Params(use_restricted_master_heur = true, max_num_nodes = 1)
+    params = Coluna.Params(use_restricted_master_heur = true,
+                           max_num_nodes = 1,
+                           restricted_master_heur_solver_type = CPLEX.Optimizer)
 
     csp = Model(with_optimizer(Coluna.ColunaModelOptimizer, params = params,
-                               master_factory = with_optimizer(CPLEX.Optimizer),
-                               pricing_factory = with_optimizer(CPLEX.Optimizer)),
-                               # master_factory = with_optimizer(GLPK.Optimizer),
-                               # pricing_factory = with_optimizer(GLPK.Optimizer)),
+                               # master_factory = with_optimizer(Gurobi.Optimizer),
+                               # pricing_factory = with_optimizer(Gurobi.Optimizer)),
+                               # master_factory = with_optimizer(CPELX.Optimizer),
+                               # pricing_factory = with_optimizer(CPELX.Optimizer)),
+                               master_factory = with_optimizer(GLPK.Optimizer),
+                               pricing_factory = with_optimizer(GLPK.Optimizer)),
                 bridge_constraints=false)
 
     xub = [ min(d.orders[o].demand, floor(d.stocksheetswidth/d.orders[o].width))
