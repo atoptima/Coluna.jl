@@ -55,3 +55,8 @@ optimize!(gap)
 # @test abs(JuMP.objective_value(gap) - 1931.0) < 1e-7
 # @test print_and_check_sol(data, gap, x)
 
+# data = read_dataGap("$appfolder/data/gapC-10-100.txt")
+# (gap, x) = model_sgap(data)
+# optimize!(gap)
+# @test abs(JuMP.objective_value(gap) - 1402.0) < 1e-7
+# @test print_and_check_sol(data, gap, x)
