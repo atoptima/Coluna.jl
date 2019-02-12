@@ -52,7 +52,5 @@ optimize!(gap)
 # data = read_dataGap("$appfolder/data/gapC-5-100.txt")
 # (gap, x) = model_sgap(data)
 # optimize!(gap)
-
-
-@test print_and_check_sol(data, gap, x)
+# @test print_and_check_sol(data, gap, x)
 
