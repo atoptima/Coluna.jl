@@ -724,6 +724,8 @@ function propagation(alg)
 end
 
 function apply_preprocessing(alg::AlgToPreprocessNode)
+    @timeit to(alg) "Preprocess" begin
+
     if isempty(alg.preprocessed_vars)
         return
     end
@@ -750,5 +752,6 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
     for v in alg.preprocessed_vars
         optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
         enforce_current_bounds_in_optimizer(optimizer, v)
+    end
     end
  end

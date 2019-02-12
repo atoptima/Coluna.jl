@@ -188,7 +188,9 @@ end
 # Maybe inside optimize!(extended_problem::ExtendedProblem) (?)
 
 function solve(model::Model)
+    @timeit model.extended_problem.timer_output "Solve model" begin
     status = optimize!(model.extended_problem)
+    end
     println(model.extended_problem.timer_output)
 end
 

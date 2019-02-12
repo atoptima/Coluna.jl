@@ -164,7 +164,7 @@ end
 function record_constraints_info(prob_info::ProblemSetupInfo,
                                  master_problem::CompactProblem)
 
-    #Dynamic constraints of the master (cuts and branching constraints)
+    # Dynamic constraints of the master (cuts and branching constraints)
     for constr in master_problem.constr_manager.active_dynamic_list
         if isa(constr, MasterBranchConstr)
             push!(prob_info.active_branching_constraints_info,
@@ -199,7 +199,9 @@ function record_problem_info(alg::AlgToSetdownNodeFully)
 end
 
 function run(alg::AlgToSetdownNodeFully)
+    @timeit to(alg) "Setdown full" begin
     record_problem_info(alg)
+    end
 end
 
 #############################
@@ -250,6 +252,7 @@ function prepare_branching_constraints(alg::AlgToSetupBranchingOnly)
 end
 
 function run(alg::AlgToSetupBranchingOnly)
+    @timeit to(alg) "Setup branching only" begin
 
     @logmsg LogLevel(-4) "AlgToSetupBranchingOnly"
 
@@ -264,6 +267,7 @@ function run(alg::AlgToSetupBranchingOnly)
                        Variable[], Variable[], Variable[],
                        alg.problem_setup_info.modified_static_vars_info)
 
+    end
     return false
 end
 
@@ -407,6 +411,7 @@ function setup_partial_solution(prob_info::ProblemSetupInfo,
 end
 
 function run(alg::AlgToSetupFull)
+    @timeit to(alg) "Setup full" begin
 
     @logmsg LogLevel(-4) "AlgToSetupFull"
 
@@ -430,6 +435,8 @@ function run(alg::AlgToSetupFull)
                        added_cols_to_problem, Variable[],
                        alg.problem_setup_info.modified_static_vars_info)
 
+
+    end
     return false
 
 end
@@ -465,6 +472,7 @@ function set_cur_bounds(extended_problem::ExtendedProblem)
 end
 
 function run(alg::AlgToSetupRootNode)
+    @timeit to(alg) "Setup root node" begin
     # @callsuper probleminfeasible = AlgToSetupNode::run(node)
 
     # reset_root_convexity_master_constr(alg)
@@ -472,6 +480,6 @@ function run(alg::AlgToSetupRootNode)
     # reset_non_stab_artificial_variables(alg)
     @logmsg LogLevel(-4) "AlgToSetupRootNode"
     set_cur_bounds(alg.extended_problem)
-
+    end
     return false
 end

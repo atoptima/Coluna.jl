@@ -165,6 +165,11 @@ function update_node_sols(node::Node, sols_and_bounds)
 end
 
 @hl mutable struct AlgLike end
+
+function to(alg::AlgLike)
+    return alg.extended_problem.timer_output
+end
+
 mutable struct TreatAlgs
     alg_setup_node::AlgLike
     alg_preprocess_node::AlgLike
@@ -222,7 +227,7 @@ function treat(node::Node, treat_algs::TreatAlgs,
     # is used to know whether part 1 has already been done or not.
 
     if !node.evaluated
-        evaluation(node, treat_algs, global_treat_order, inc_primal_bound)        
+        evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
     end
 
     if node.treated
