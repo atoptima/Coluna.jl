@@ -5,10 +5,13 @@ end
 
 AlgToPrimalHeurInNodeBuilder(prob::ExtendedProblem) = (SolsAndBounds(), prob)
 
-@hl mutable struct AlgToPrimalHeurByRestrictedMip <: AlgToPrimalHeurInNode end
+@hl mutable struct AlgToPrimalHeurByRestrictedMip <: AlgToPrimalHeurInNode
+    optimizer_type::DataType
+end
 
-AlgToPrimalHeurByRestrictedMipBuilder(prob::ExtendedProblem) =
-        AlgToPrimalHeurInNodeBuilder(prob)
+AlgToPrimalHeurByRestrictedMipBuilder(prob::ExtendedProblem,
+                                      solver_type::DataType) =
+        tuplejoin(AlgToPrimalHeurInNodeBuilder(prob), solver_type)
 
 function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::Int)
     @timeit to(alg) "Restricted master IP" begin
@@ -16,7 +19,7 @@ function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::Int)
     @timeit to(alg) "Setup of optimizer" begin
     master_problem = alg.extended_problem.master_problem
     switch_primary_secondary_moi_def(master_problem)
-    mip_optimizer = GLPK.Optimizer()
+    mip_optimizer = alg.optimizer_type()
     load_problem_in_optimizer(master_problem, mip_optimizer, false)
     end
     @timeit to(alg) "Solving" begin
