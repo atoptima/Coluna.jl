@@ -105,6 +105,7 @@ function perform_usual_branching(alg::AlgToGenerateChildrenNodes,
 end
 
 function run(alg::UsualBranchingAlg, sol_to_branch::PrimalSolution)
+    @timeit to(alg) "Branching" begin
 
     @logmsg LogLevel(-4) "Generating children..."
     frac_vars = retrieve_candidate_vars(alg, sol_to_branch.var_val_map)
@@ -115,6 +116,8 @@ function run(alg::UsualBranchingAlg, sol_to_branch::PrimalSolution)
     end
     perform_usual_branching(alg, frac_vars)
     @logmsg LogLevel(0) string("Generated 2 child nodes.")
+
+    end
     return false
 end
 

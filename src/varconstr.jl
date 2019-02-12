@@ -237,6 +237,14 @@ function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
     return 0
 end
 
+function cost_rhs_changed(constr::Constraint)
+    return constr.cur_cost_rhs != constr.cost_rhs
+end
+
+function set_default_currents(constr::Constraint)
+    constr.cur_cost_rhs = constr.cost_rhs
+end
+
 function switch_primary_secondary_moi_indices(constr::Constraint)
     temp_idx = constr.moi_index
     constr.moi_index = constr.secondary_moi_index

@@ -189,6 +189,11 @@ function update_node_sols(node::Node, sols_and_bounds)
 end
 
 @hl mutable struct AlgLike end
+
+function to(alg::AlgLike)
+    return alg.extended_problem.timer_output
+end
+
 mutable struct TreatAlgs
     alg_setup_node::AlgLike
     alg_preprocess_node::AlgLike
@@ -205,7 +210,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     node.node_inc_ip_primal_bound = inc_primal_bound
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
-    
+
     run(treat_algs.alg_setup_node)
 
     if run(treat_algs.alg_preprocess_node)
@@ -215,7 +220,8 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
         return true
     end
 
-    if run(treat_algs.alg_eval_node)
+    if run(treat_algs.alg_eval_node, inc_primal_bound)
+        update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
         run(treat_algs.alg_setdown_node)
         record_node_info(node, treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node)
@@ -246,7 +252,7 @@ function treat(node::Node, treat_algs::TreatAlgs,
     # is used to know whether part 1 has already been done or not.
 
     if !node.evaluated
-        evaluation(node, treat_algs, global_treat_order, inc_primal_bound)        
+        evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
     end
 
     if node.treated

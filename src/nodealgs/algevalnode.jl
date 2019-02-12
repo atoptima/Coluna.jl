@@ -78,12 +78,8 @@ end
     is_master_converged::Bool
 end
 
-function to(alg::AlgToEvalNode)
-    return alg.extended_problem.timer_output
-end
-
-AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(), problem,
-        false, false)
+AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(),
+                                                  problem, false, false)
 
 function update_alg_primal_lp_bound(alg::AlgToEvalNode)
     master = alg.extended_problem.master_problem
@@ -145,7 +141,8 @@ function AlgToEvalNodeByLpBuilder(problem::ExtendedProblem)
     return AlgToEvalNodeBuilder(problem)
 end
 
-function run(alg::AlgToEvalNodeByLp)
+function run(alg::AlgToEvalNodeByLp, primal_ip_bound::Float)
+    alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_ip_bound
     println("Starting eval by lp")
 
     status = optimize!(alg.extended_problem.master_problem)
@@ -232,13 +229,12 @@ end
 
 function compute_pricing_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality,
                                             pricing_prob::Problem)
-    # TODO support multiple subproblems
-
     # Since convexity constraints are not automated and there is no stab
-    # the pricing_dual_bound_contrib is just the reduced cost
+    # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
+    multiplicity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob].cost_rhs
     const_obj = alg.pricing_const_obj[pricing_prob]
     @logmsg LogLevel(-4) string("princing prob has const obj = ", const_obj)
-    contrib = pricing_prob.primal_sol.cost + alg.pricing_const_obj[pricing_prob]
+    contrib = (pricing_prob.primal_sol.cost + alg.pricing_const_obj[pricing_prob]) * multiplicity_ub
     alg.pricing_contribs[pricing_prob] = contrib
     @logmsg LogLevel(-2) string("princing prob has contribution = ", contrib)
 end
@@ -248,7 +244,7 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
 
     # TODO add tolerances
     sp_sol = pricing_prob.primal_sol
-    if sp_sol.cost < 0
+    if sp_sol.cost < -0.0001
         master = alg.extended_problem.master_problem
         col = MasterColumnConstructor(master.counter, sp_sol) # generates memberships
         add_variable(master, col; update_moi = true) # updates moi, doesnt touch membership
@@ -407,7 +403,7 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # termination by bound does not apply
     while true
         # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
-        # GLPK.write_lp(glpk_prob, string("mip_", nb_cg_iterations,".lp"))
+        # GLPK.write_lp(glpk_prob, string("/Users/vitornesello/Desktop/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         status_rm = solve_restricted_mast(alg)
         # if alg.colgen_stabilization != nothing # Never evals to true
@@ -438,8 +434,8 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
             end
             update_lagrangian_dual_bound(alg, true)
             # if alg.colgen_stabilization == nothing
-                #|| !update_after_pricing_problem_solution(alg.colgen_stabilization, nb_new_col)
-                break
+            #|| !update_after_pricing_problem_solution(alg.colgen_stabilization, nb_new_col)
+            break
             # end
         end
 
@@ -453,7 +449,8 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
 
         lower_bound = alg.sols_and_bounds.alg_inc_ip_dual_bound
         upper_bound = alg.sols_and_bounds.alg_inc_lp_primal_bound
-
+        # upper_bound = min(alg.sols_and_bounds.alg_inc_lp_primal_bound,
+        #                   alg.sols_and_bounds.alg_inc_ip_primal_bound)
 
         if nb_new_col == 0 || lower_bound + 0.00001 > upper_bound
             alg.is_master_converged = true
@@ -471,7 +468,8 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # return false
 end
 
-function run(alg::AlgToEvalNodeBySimplexColGen)
+function run(alg::AlgToEvalNodeBySimplexColGen, primal_ip_bound::Float)
+    alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_ip_bound
 
     @timeit to(alg) "run_eval_by_col_gen" begin
     @logmsg LogLevel(-2) "Starting eval by simplex colgen"

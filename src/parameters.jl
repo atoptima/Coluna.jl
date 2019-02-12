@@ -1,5 +1,6 @@
 @with_kw mutable struct Params
     use_restricted_master_heur::Bool = false
+    restricted_master_heur_solver_type::DataType = GLPK.Optimizer
     max_num_nodes::Int = 100000
     open_nodes_limit::Int = 100000
     mip_tolerance_integrality::Float = 1e-5

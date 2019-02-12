@@ -60,7 +60,10 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 
     if extended_problem.params.use_restricted_master_heur
         push!(treat_algs.alg_vect_primal_heur_node,
-                AlgToPrimalHeurByRestrictedMip(extended_problem))
+              AlgToPrimalHeurByRestrictedMip(
+                  extended_problem,
+                  node.params.restricted_master_heur_solver_type)
+              )
     end
 
     return true
@@ -98,6 +101,14 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         ## Dispatched according to eval_info (?)
         # treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
         treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
+    end
+
+    if extended_problem.params.use_restricted_master_heur
+        push!(treat_algs.alg_vect_primal_heur_node,
+              AlgToPrimalHeurByRestrictedMip(
+                  extended_problem,
+                  node.params.restricted_master_heur_solver_type)
+              )
     end
 
     return true
@@ -235,7 +246,9 @@ end
 # Maybe inside optimize!(extended_problem::ExtendedProblem) (?)
 
 function solve(model::Model)
+    @timeit model.extended_problem.timer_output "Solve model" begin
     status = optimize!(model.extended_problem)
+    end
     println(model.extended_problem.timer_output)
 end
 
@@ -250,7 +263,6 @@ function optimize!(extended_problem::ExtendedProblem)
     DS.enqueue!(search_tree, create_root_node(extended_problem))
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
-    treat_algs = TreatAlgs()
     treated_nodes = Node[]
 
     #global ep_ = extended_problem
@@ -264,6 +276,7 @@ function optimize!(extended_problem::ExtendedProblem)
             cur_node = DS.dequeue!(search_tree)
         # end
         cur_node_evaluated_before = cur_node.evaluated
+        treat_algs = TreatAlgs()
 
         if prepare_node_for_treatment(extended_problem, cur_node,
                 treat_algs, global_nodes_treat_order)
@@ -280,7 +293,7 @@ function optimize!(extended_problem::ExtendedProblem)
 
             if !treat(cur_node, treat_algs, global_nodes_treat_order,
                 extended_problem.primal_inc_bound)
-                println("error: branch-and-price is interrupted")
+                error("ERROR: branch-and-price is interrupted")
                 break
             end
             push!(treated_nodes, cur_node)
