@@ -197,6 +197,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     end
 
     if run(treat_algs.alg_eval_node, inc_primal_bound)
+        update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
         run(treat_algs.alg_setdown_node)
         record_node_info(node, treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node)
