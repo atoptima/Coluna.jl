@@ -175,6 +175,14 @@ function record_constraints_info(prob_info::ProblemSetupInfo,
         end
     end
 
+    for constr in master_problem.constr_manager.active_static_list
+        if cost_rhs_changed(constr)
+            push!(prob_info.modified_static_vars_info, ConstraintInfo(constr))
+            set_default_currents(constr)
+            update_constr_rhs_in_optimizer(master_problem.optimizer, constr)
+        end
+    end
+
     @logmsg LogLevel(-4) string("Stored ",
         length(master_problem.constr_manager.active_dynamic_list),
         " active constraints")
@@ -390,7 +398,7 @@ function update_formulation(extended_problem::ExtendedProblem,
     master_update = ProblemUpdate(
         removed_cuts_from_problem,
         added_cuts_to_problem, removed_cols_from_problem,
-        added_cols_to_problem, changed_bounds
+        added_cols_to_problem, changed_bounds, Constraint[]
     )
     optimizer = extended_problem.master_problem.optimizer
     is_relaxed = extended_problem.master_problem.is_relaxed
