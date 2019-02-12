@@ -103,6 +103,14 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
     end
 
+    if extended_problem.params.use_restricted_master_heur
+        push!(treat_algs.alg_vect_primal_heur_node,
+              AlgToPrimalHeurByRestrictedMip(
+                  extended_problem,
+                  node.params.restricted_master_heur_solver_type)
+              )
+    end
+
     return true
 end
 
@@ -238,7 +246,7 @@ function optimize!(extended_problem::ExtendedProblem)
 
             if !treat(cur_node, treat_algs, global_nodes_treat_order,
                 extended_problem.primal_inc_bound)
-                println("error: branch-and-price is interrupted")
+                error("ERROR: branch-and-price is interrupted")
                 break
             end
             push!(treated_nodes, cur_node)

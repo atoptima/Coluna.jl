@@ -12,10 +12,6 @@ end
 SolsAndBounds() = SolsAndBounds(Inf, Inf, -Inf, -Inf, Dict{Variable, Float}(),
         Dict{Variable, Float}(), Dict{Constraint, Float}(), false)
 
-SolsAndBounds(primal_sol::PrimalSolution) = SolsAndBounds(
-    primal_sol.cost, Inf, -Inf, -Inf, Dict{Variable, Float}(),
-    primal_sol.var_val_map, Dict{Constraint, Float}(), false)
-
 ### Methods of SolsAndBounds
 function update_primal_lp_bound(incumbents::SolsAndBounds, newBound::Float)
     if newBound < incumbents.alg_inc_lp_primal_bound
@@ -82,7 +78,7 @@ end
     is_master_converged::Bool
 end
 
-AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(problem.solution),
+AlgToEvalNodeBuilder(problem::ExtendedProblem) = (SolsAndBounds(),
                                                   problem, false, false)
 
 function update_alg_primal_lp_bound(alg::AlgToEvalNode)
@@ -145,7 +141,8 @@ function AlgToEvalNodeByLpBuilder(problem::ExtendedProblem)
     return AlgToEvalNodeBuilder(problem)
 end
 
-function run(alg::AlgToEvalNodeByLp)
+function run(alg::AlgToEvalNodeByLp, primal_ip_bound::Float)
+    alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_ip_bound
     println("Starting eval by lp")
 
     status = optimize!(alg.extended_problem.master_problem)
@@ -471,7 +468,8 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # return false
 end
 
-function run(alg::AlgToEvalNodeBySimplexColGen)
+function run(alg::AlgToEvalNodeBySimplexColGen, primal_ip_bound::Float)
+    alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_ip_bound
 
     @timeit to(alg) "run_eval_by_col_gen" begin
     @logmsg LogLevel(-2) "Starting eval by simplex colgen"

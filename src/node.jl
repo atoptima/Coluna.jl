@@ -186,7 +186,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
     node.node_inc_ip_primal_bound = inc_primal_bound
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
-    
+
     run(treat_algs.alg_setup_node)
 
     if run(treat_algs.alg_preprocess_node)
@@ -196,7 +196,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
         return true
     end
 
-    if run(treat_algs.alg_eval_node)
+    if run(treat_algs.alg_eval_node, inc_primal_bound)
         run(treat_algs.alg_setdown_node)
         record_node_info(node, treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node)
