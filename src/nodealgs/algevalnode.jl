@@ -12,6 +12,10 @@ end
 SolsAndBounds() = SolsAndBounds(Inf, Inf, -Inf, -Inf, Dict{Variable, Float}(),
         Dict{Variable, Float}(), Dict{Constraint, Float}(), false)
 
+SolsAndBounds(primal_sol::PrimalSolution) = SolsAndBounds(
+    primal_sol.cost, Inf, -Inf, -Inf, Dict{Variable, Float}(),
+    primal_sol.var_val_map, Dict{Constraint, Float}(), false)
+
 ### Methods of SolsAndBounds
 function update_primal_lp_bound(incumbents::SolsAndBounds, newBound::Float)
     if newBound < incumbents.alg_inc_lp_primal_bound
@@ -228,13 +232,12 @@ end
 
 function compute_pricing_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality,
                                             pricing_prob::Problem)
-    # TODO support multiple subproblems
-
     # Since convexity constraints are not automated and there is no stab
-    # the pricing_dual_bound_contrib is just the reduced cost
+    # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
+    multiplicity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob].cost_rhs
     const_obj = alg.pricing_const_obj[pricing_prob]
     @logmsg LogLevel(-4) string("princing prob has const obj = ", const_obj)
-    contrib = pricing_prob.primal_sol.cost + alg.pricing_const_obj[pricing_prob]
+    contrib = (pricing_prob.primal_sol.cost + alg.pricing_const_obj[pricing_prob]) * multiplicity_ub
     alg.pricing_contribs[pricing_prob] = contrib
     @logmsg LogLevel(-2) string("princing prob has contribution = ", contrib)
 end
@@ -244,7 +247,7 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
 
     # TODO add tolerances
     sp_sol = pricing_prob.primal_sol
-    if sp_sol.cost < 0
+    if sp_sol.cost < -0.0001
         master = alg.extended_problem.master_problem
         col = MasterColumnConstructor(master.counter, sp_sol) # generates memberships
         add_variable(master, col; update_moi = true) # updates moi, doesnt touch membership

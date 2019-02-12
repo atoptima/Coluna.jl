@@ -205,7 +205,6 @@ function optimize!(extended_problem::ExtendedProblem)
     DS.enqueue!(search_tree, create_root_node(extended_problem))
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
-    treat_algs = TreatAlgs()
     treated_nodes = Node[]
 
     #global ep_ = extended_problem
@@ -219,6 +218,7 @@ function optimize!(extended_problem::ExtendedProblem)
             cur_node = DS.dequeue!(search_tree)
         # end
         cur_node_evaluated_before = cur_node.evaluated
+        treat_algs = TreatAlgs()
 
         if prepare_node_for_treatment(extended_problem, cur_node,
                 treat_algs, global_nodes_treat_order)
