@@ -2,8 +2,10 @@ function model_sgap(data::DataGap)
     params = Coluna.Params(use_restricted_master_heur = true)
 
     gap = Model(with_optimizer(Coluna.ColunaModelOptimizer, params = params,
-                               master_factory = with_optimizer(GLPK.Optimizer),
-                               pricing_factory = with_optimizer(GLPK.Optimizer)),
+                               master_factory = with_optimizer(CPLEX.Optimizer),
+                               pricing_factory = with_optimizer(CPLEX.Optimizer)),
+                               # master_factory = with_optimizer(GLPK.Optimizer),
+                               # pricing_factory = with_optimizer(GLPK.Optimizer)),
                 bridge_constraints=false)
 
     @variable(gap, x[m in data.machines, j in data.jobs], Bin)
