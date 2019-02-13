@@ -19,6 +19,7 @@ global const Float = Float64
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
+global __initial_solve_time = 0.0
 
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,

@@ -368,7 +368,9 @@ function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb
     db = alg.sols_and_bounds.alg_inc_lp_dual_bound
     db_ip = alg.sols_and_bounds.alg_inc_ip_dual_bound
     pb = alg.sols_and_bounds.alg_inc_ip_primal_bound
-    println("<it=", nb_cg_iterations, "> <cols=", nb_new_col, "> <mlp=",
+    println("<it=", nb_cg_iterations, "> <et=",
+            round(elapsed_solve_time()), "> ",
+            "<cols=", nb_new_col, "> <mlp=",
             round(mlp, digits=4), "> <DB=", round(db, digits=4), "> <PB=",
             round(pb, digits=4), ">")
 end

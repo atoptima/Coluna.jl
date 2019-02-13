@@ -46,7 +46,7 @@ function run_sgap_play()
     data = read_dataGap("$appfolder/data/play2.txt")
     (gap, x) = model_sgap(data)
     optimize!(gap)
-    @test abs(JuMP.objective_value(gap) - 75.0) < 1e-7
+    @test abs(JuMP.objective_value(gap) - 75.0) < 1e-5
     @test print_and_check_sol(data, gap, x)
 end
 
@@ -55,7 +55,7 @@ function run_sgap_5_100()
     data = read_dataGap("$appfolder/data/gapC-5-100.txt")
     (gap, x) = model_sgap(data)
     optimize!(gap)
-    @test abs(JuMP.objective_value(gap) - 1931.0) < 1e-7
+    @test abs(JuMP.objective_value(gap) - 1931.0) < 1e-5
     @test print_and_check_sol(data, gap, x)
 end
 
@@ -64,6 +64,6 @@ function run_sgap_10_100()
     data = read_dataGap("$appfolder/data/gapC-10-100.txt")
     (gap, x) = model_sgap(data)
     optimize!(gap)
-    @test abs(JuMP.objective_value(gap) - 1402.0) < 1e-7
+    @test abs(JuMP.objective_value(gap) - 1402.0) < 1e-5
     @test print_and_check_sol(data, gap, x)
 end

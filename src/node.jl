@@ -80,6 +80,14 @@ function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
 
 end
 
+function get_priority(node::Node)
+    if node.params.search_strategy == DepthFirst
+        return node.depth
+    elseif node.params.search_strategy == BestDualBound
+        return node.node_inc_lp_dual_bound
+    end
+end
+
 function is_conquered(node::Node)
     return (node.node_inc_ip_primal_bound - node.node_inc_ip_dual_bound
             <= node.params.mip_tolerance_integrality)
@@ -166,7 +174,12 @@ end
 
 @hl mutable struct AlgLike end
 
-function to(alg::AlgLike)
+function run(::AlgLike)
+    @logmsg LogLevel(0) "Empty algorithm"
+    return false
+end
+
+function to(alg::AlgLike; args...)
     return alg.extended_problem.timer_output
 end
 

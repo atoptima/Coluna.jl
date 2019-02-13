@@ -33,3 +33,4 @@ function print_moi_constraints(optimizer::MOI.AbstractOptimizer)
     println("------------------------------------------")
 end
 
+elapsed_solve_time() = (time() - __initial_solve_time)
