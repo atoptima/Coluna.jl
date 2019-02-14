@@ -363,13 +363,15 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
     # end
 end
 
-function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb_new_col::Int, nb_cg_iterations::Int)
+function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb_new_col::Int, nb_cg_iterations::Int, mst_time::Float, sp_time::Float)
     mlp = alg.sols_and_bounds.alg_inc_lp_primal_bound
     db = alg.sols_and_bounds.alg_inc_lp_dual_bound
     db_ip = alg.sols_and_bounds.alg_inc_ip_dual_bound
     pb = alg.sols_and_bounds.alg_inc_ip_primal_bound
     println("<it=", nb_cg_iterations, "> <et=",
             round(elapsed_solve_time()), "> ",
+            "<mst= ", round(mst_time, digits=3), "> ",
+            "<sp= ", round(sp_time, digits=3), "> ",
             "<cols=", nb_new_col, "> <mlp=",
             round(mlp, digits=4), "> <DB=", round(db, digits=4), "> <PB=",
             round(pb, digits=4), ">")
@@ -395,7 +397,6 @@ function solve_restricted_mast(alg)
     # primal_status = MOI.get(master.optimizer, MOI.PrimalStatus())
     # dual_status = MOI.get(master.optimizer, MOI.DualStatus())
     end # @timeit to(alg) "solve_restricted_mast"
-
     return status
 end
 
@@ -407,7 +408,8 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
         # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
         # GLPK.write_lp(glpk_prob, string("/Users/vitornesello/Desktop/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
-        status_rm = solve_restricted_mast(alg)
+        status_rm, mst_time, b, gc, allocs = @timed solve_restricted_mast(alg)
+        # status_rm, mas_time = solve_restricted_mast(alg)
         # if alg.colgen_stabilization != nothing # Never evals to true
         #     # This function does not exist
         #     init_after_solving_restricted_mast(colgen_stabilization,
@@ -426,9 +428,10 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
 
         # generate new columns by solving the subproblems
         nb_new_col = 0
+        sp_time = 0.0
         while true
             @logmsg LogLevel(-2) "need to generate new master columns"
-            nb_new_col = gen_new_columns(alg)
+            nb_new_col, sp_time, b, gc, allocs = @timed gen_new_columns(alg)
             # In case subproblem infeasibility results in master infeasibility
             if nb_new_col < 0
                 mark_infeasible(alg)
@@ -441,7 +444,8 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
             # end
         end
 
-        print_intermediate_statistics(alg, nb_new_col, nb_cg_iterations)
+        print_intermediate_statistics(alg, nb_new_col, nb_cg_iterations,
+                                      mst_time, sp_time)
         # if alg.colgen_stabilization != nothing
         #     # This function does not exist
         #     update_after_colgen_iteration(alg.colgen_stabilization)
