@@ -201,22 +201,31 @@ end
 
 function solve(model::Model)
     global __initial_solve_time = time()
+    @show model.params
     @timeit model.extended_problem.timer_output "Solve model" begin
     status = optimize!(model.extended_problem)
     end
     println(model.extended_problem.timer_output)
 end
 
+function initialize_search_tree(params::Params)
+    if params.search_strategy == DepthFirst
+        search_tree = DS.PriorityQueue{Node, Float}(Base.Order.Reverse)
+    elseif params.search_strategy == BestDualBound
+        search_tree = DS.PriorityQueue{Node, Float}(Base.Order.Forward)
+    end
+    return search_tree
+end
+
 # Behaves like optimize!(problem::Problem), but sets parameters before
 # function optimize!(problem::ExtendedProblem)
 function optimize!(extended_problem::ExtendedProblem)
     set_prob_ref_to_problem_dict(extended_problem)
-    # search_tree = DS.PriorityQueue{Node}()
-    search_tree = DS.PriorityQueue{Node, Float}()
     params = extended_problem.params
+    search_tree = initialize_search_tree(params)
+    DS.enqueue!(search_tree, create_root_node(extended_problem), 0.0)
     global_nodes_treat_order = 1
     nb_treated_nodes = 0
-    DS.enqueue!(search_tree, create_root_node(extended_problem), 0.0)
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
     treated_nodes = Node[]
