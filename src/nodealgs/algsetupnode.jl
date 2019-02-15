@@ -149,9 +149,7 @@ function record_variables_info(prob_info::ProblemSetupInfo,
                 push!(prob_info.modified_static_vars_info,
                       SpVariableInfo(var, Active))
                 set_default_currents(var)
-                # if @callsuper bounds_changed(var::Variable)
-                #     enforce_current_bounds_in_optimizer(subprob.optimizer, var)
-                # end
+                enforce_current_bounds_in_optimizer(subprob.optimizer, var)
             end
         end
     end

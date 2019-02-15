@@ -64,7 +64,9 @@ function run(alg::AlgToPreprocessNode,
     if alg.printing
         print_preprocessing_list(alg)
     end
-    apply_preprocessing(alg)
+    if !infeas
+        apply_preprocessing(alg)
+    end
     return infeas
 end
 
@@ -740,16 +742,12 @@ function find_infeasible_columns(master::CompactProblem,
         for master_col in master.var_manager.active_dynamic_list
             if haskey(master_col.solution.var_val_map, var)
                 coef_in_col = master_col.solution.var_val_map[var]
-                if coef_in_col > 0
-                    if coef_in_col >= ub + 0.0001
-                        update_var_status(master, master_col, Unsuitable)
-                        push!(infeas_cols, master_col)
-                    end
-                elseif coef_in_col < 0
-                    if coef_in_col <= lb - 0.0001
-                        update_var_status(master, master_col, Unsuitable)
-                        push!(infeas_cols, master_col)
-                    end
+                if coef_in_col > 0 && coef_in_col >= ub + 0.0001
+                    update_var_status(master, master_col, Unsuitable)
+                    push!(infeas_cols, master_col)
+                elseif coef_in_col < 0 && coef_in_col <= lb - 0.0001
+                    update_var_status(master, master_col, Unsuitable)
+                    push!(infeas_cols, master_col)
                 end
             end
         end
