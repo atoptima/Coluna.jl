@@ -49,6 +49,18 @@ end
     branch_var::T
 end
 
+function coluna_print(constr::MasterBranchConstr)
+    print(constr.branch_var.name, " ")
+    if constr.sense == 'G'
+        print(">= ")
+    elseif constr.sense == 'L'
+        print("<= ")
+    elseif constr.sense == 'E'
+        print("= ")
+    end
+    println(constr.cost_rhs)
+end
+
 function MasterBranchConstrBuilder(counter::VarConstrCounter, name::String,
         rhs::Float, sense::Char, depth::Int, branch_var::Variable)
 

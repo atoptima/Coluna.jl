@@ -12,13 +12,12 @@ import JuMP
 using Base.CoreLogging
 import TimerOutputs
 import TimerOutputs.@timeit
-# using Printf
-# Base.show(io::IO, f::Float64) = @printf io "%.6f" f
 
 global const Float = Float64
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
+global __initial_solve_time = 0.0
 
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,

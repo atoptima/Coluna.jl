@@ -62,7 +62,9 @@ function run(alg::AlgToPreprocessNode,
     if alg.printing
         print_preprocessing_list(alg)
     end
-    apply_preprocessing(alg)
+    if !infeas
+        apply_preprocessing(alg)
+    end
     return infeas
 end
 
@@ -721,32 +723,54 @@ function propagation(alg)
     return false
 end
 
+function find_infeasible_columns(master::CompactProblem,
+                                 preproc_vars::Vector{Variable})
+    infeas_cols = Variable[]
+    # This assumes that the coef of a sp var has the same sign in all columns
+    for var in preproc_vars
+        # If a variable is free, we cannot impose bounds in columns
+        if var.lower_bound < 0.0 && var.upper_bound > 0.0
+            continue
+        end
+        if isa(var, SubprobVar)
+            lb, ub = var.cur_global_lb, var.cur_global_ub
+        else
+            lb, ub = var.cur_lb, var.cur_ub
+        end
+        for master_col in master.var_manager.active_dynamic_list
+            if haskey(master_col.solution.var_val_map, var)
+                coef_in_col = master_col.solution.var_val_map[var]
+                if coef_in_col > 0 && coef_in_col >= ub + 0.0001
+                    update_var_status(master, master_col, Unsuitable)
+                    push!(infeas_cols, master_col)
+                elseif coef_in_col < 0 && coef_in_col <= lb - 0.0001
+                    update_var_status(master, master_col, Unsuitable)
+                    push!(infeas_cols, master_col)
+                end
+            end
+        end
+    end
+    return infeas_cols
+end
+
 function apply_preprocessing(alg::AlgToPreprocessNode)
+    @timeit to(alg) "Preprocess" begin
+
     if isempty(alg.preprocessed_vars)
         return
     end
 
     master = alg.extended_problem.master_problem
-    removed_from_problem = Variable[]
-    for var in alg.preprocessed_vars
-        for master_col in master.var_manager.active_dynamic_list
-            if haskey(master_col.solution.var_val_map, var)
-                var_val_in_col = master_col.solution.var_val_map[var]
-            else
-                var_val_in_col = 0
-            end
-            if !(var.cur_lb <= var_val_in_col <= var.cur_ub)
-                update_var_status(master, master_col, Unsuitable)
-                push!(removed_from_problem, master_col)
-            end
-        end
-    end
+    infeas_cols = find_infeasible_columns(master, alg.preprocessed_vars)
 
-    update_moi_optimizer(master.optimizer, master.is_relaxed,
-                         ProblemUpdate(Constraint[], Constraint[], removed_from_problem,
-                         Variable[], Variable[]))
+    update_moi_optimizer(
+        master.optimizer, master.is_relaxed,
+        ProblemUpdate(Constraint[], Constraint[], infeas_cols, Variable[],
+                      Variable[], Constraint[])
+    )
     for v in alg.preprocessed_vars
         optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
         enforce_current_bounds_in_optimizer(optimizer, v)
+    end
     end
  end

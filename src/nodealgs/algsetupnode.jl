@@ -149,9 +149,7 @@ function record_variables_info(prob_info::ProblemSetupInfo,
                 push!(prob_info.modified_static_vars_info,
                       SpVariableInfo(var, Active))
                 set_default_currents(var)
-                # if @callsuper bounds_changed(var::Variable)
-                #     enforce_current_bounds_in_optimizer(subprob.optimizer, var)
-                # end
+                enforce_current_bounds_in_optimizer(subprob.optimizer, var)
             end
         end
     end
@@ -164,7 +162,7 @@ end
 function record_constraints_info(prob_info::ProblemSetupInfo,
                                  master_problem::CompactProblem)
 
-    #Dynamic constraints of the master (cuts and branching constraints)
+    # Dynamic constraints of the master (cuts and branching constraints)
     for constr in master_problem.constr_manager.active_dynamic_list
         if isa(constr, MasterBranchConstr)
             push!(prob_info.active_branching_constraints_info,
@@ -172,6 +170,14 @@ function record_constraints_info(prob_info::ProblemSetupInfo,
         # elseif isa(constr, MasterConstr)
             # push!(prob_info.suitable_master_cuts_info,
                   # ConstraintInfo(constr, Active))
+        end
+    end
+
+    for constr in master_problem.constr_manager.active_static_list
+        if cost_rhs_changed(constr)
+            push!(prob_info.modified_static_vars_info, ConstraintInfo(constr))
+            set_default_currents(constr)
+            update_constr_rhs_in_optimizer(master_problem.optimizer, constr)
         end
     end
 
@@ -199,7 +205,9 @@ function record_problem_info(alg::AlgToSetdownNodeFully)
 end
 
 function run(alg::AlgToSetdownNodeFully)
+    @timeit to(alg) "Setdown full" begin
     record_problem_info(alg)
+    end
 end
 
 #############################
@@ -250,6 +258,7 @@ function prepare_branching_constraints(alg::AlgToSetupBranchingOnly)
 end
 
 function run(alg::AlgToSetupBranchingOnly)
+    @timeit to(alg) "Setup branching only" begin
 
     @logmsg LogLevel(-4) "AlgToSetupBranchingOnly"
 
@@ -264,6 +273,7 @@ function run(alg::AlgToSetupBranchingOnly)
                        Variable[], Variable[], Variable[],
                        alg.problem_setup_info.modified_static_vars_info)
 
+    end
     return false
 end
 
@@ -386,7 +396,7 @@ function update_formulation(extended_problem::ExtendedProblem,
     master_update = ProblemUpdate(
         removed_cuts_from_problem,
         added_cuts_to_problem, removed_cols_from_problem,
-        added_cols_to_problem, changed_bounds
+        added_cols_to_problem, changed_bounds, Constraint[]
     )
     optimizer = extended_problem.master_problem.optimizer
     is_relaxed = extended_problem.master_problem.is_relaxed
@@ -407,6 +417,7 @@ function setup_partial_solution(prob_info::ProblemSetupInfo,
 end
 
 function run(alg::AlgToSetupFull)
+    @timeit to(alg) "Setup full" begin
 
     @logmsg LogLevel(-4) "AlgToSetupFull"
 
@@ -430,6 +441,8 @@ function run(alg::AlgToSetupFull)
                        added_cols_to_problem, Variable[],
                        alg.problem_setup_info.modified_static_vars_info)
 
+
+    end
     return false
 
 end
@@ -465,6 +478,7 @@ function set_cur_bounds(extended_problem::ExtendedProblem)
 end
 
 function run(alg::AlgToSetupRootNode)
+    @timeit to(alg) "Setup root node" begin
     # @callsuper probleminfeasible = AlgToSetupNode::run(node)
 
     # reset_root_convexity_master_constr(alg)
@@ -472,6 +486,6 @@ function run(alg::AlgToSetupRootNode)
     # reset_non_stab_artificial_variables(alg)
     @logmsg LogLevel(-4) "AlgToSetupRootNode"
     set_cur_bounds(alg.extended_problem)
-
+    end
     return false
 end

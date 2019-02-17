@@ -32,5 +32,8 @@ branch_and_bound_bigger_instances()
 moi_wrapper()
 @testset "gap + csp - JuMP/MOI modeling" begin
     include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
+    run_sgap_play()
     include("../examples/CuttingStock_SubprobMultiplicity/run_csp.jl")
+    run_csp_10_10()
+    run_csp_10_20()
 end

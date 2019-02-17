@@ -379,6 +379,14 @@ function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
     )
 end
 
+function update_constr_rhs_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                        constr::Constraint)
+    moi_set = MOI.get(optimizer, MOI.ConstraintSet(), constr.moi_index)
+    moi_set_type = typeof(moi_set)
+    MOI.set(optimizer, MOI.ConstraintSet(), moi_set,
+            moi_set_type(constr.cost_rhs))
+end
+
 function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
                                       constr::Constraint)
 
@@ -412,7 +420,8 @@ struct ProblemUpdate
     added_cuts_to_problem::Vector{Constraint}
     removed_cols_from_problem::Vector{Variable}
     added_cols_to_problem::Vector{Variable}
-    changed_bounds::Vector{Variable}
+    changed_bounds_or_cost::Vector{Variable}
+    changed_rhs::Vector{Constraint}
 end
 
 function update_moi_optimizer(optimizer::MOI.AbstractOptimizer, is_relaxed::Bool,
@@ -437,9 +446,15 @@ function update_moi_optimizer(optimizer::MOI.AbstractOptimizer, is_relaxed::Bool
         add_constr_in_optimizer(optimizer, cut)
     end
 
-    # Change bounds
-    for var in prob_update.changed_bounds
+    # Change bounds and/or cost
+    for var in prob_update.changed_bounds_or_cost
         enforce_current_bounds_in_optimizer(optimizer, var)
+        update_cost_in_optimizer(optimizer, var)
+    end
+
+    # Change rhs
+    for constr in prob_update.changed_rhs
+        update_constr_rhs_in_optimizer(optimizer, constr)
     end
 
 end
@@ -478,14 +493,21 @@ function switch_primary_secondary_moi_def(problem::CompactProblem)
     end
 end
 
+function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
+    backup_stdout = stdout
+    (rd_out, wr_out) = redirect_stdout()
+    MOI.optimize!(optimizer)
+    close(wr_out)
+    close(rd_out)
+    redirect_stdout(backup_stdout)
+end
+
 # Updates the problem with the primal/dual sols
 function optimize!(problem::CompactProblem)
     @assert problem.optimizer != nothing
-
-    MOI.optimize!(problem.optimizer)
+    call_moi_optimize_with_silence(problem.optimizer)
     status = MOI.get(problem.optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
-
     if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
         retrieve_solution(problem)
     else
@@ -496,7 +518,7 @@ end
 
 # Does not modify problem but returns the primal/dual sols instead
 function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
-    MOI.optimize!(optimizer)
+    call_moi_optimize_with_silence(optimizer)
     status = MOI.get(optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
 

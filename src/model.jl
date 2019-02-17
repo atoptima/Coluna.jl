@@ -1,6 +1,3 @@
-@enum(SEARCHSTRATEGY,BestDualBoundThanDF,DepthFirstWithWorseBound,
-BestLpBound, DepthFirstWithBetterBound)
-
 @hl mutable struct Callback end
 
 mutable struct Model # user model
@@ -47,7 +44,9 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
         node.problem_setup_info, node.local_branching_constraints)
 
-    treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
+    if extended_problem.params.apply_preprocessing
+        treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
+    end
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
     treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
                                                                extended_problem)
@@ -60,7 +59,10 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 
     if extended_problem.params.use_restricted_master_heur
         push!(treat_algs.alg_vect_primal_heur_node,
-                AlgToPrimalHeurByRestrictedMip(extended_problem))
+              AlgToPrimalHeurByRestrictedMip(
+                  extended_problem,
+                  node.params.restricted_master_heur_solver_type)
+              )
     end
 
     return true
@@ -73,8 +75,11 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     println("************************************************************")
     println("Preparing node ", global_nodes_treat_order,
         " for treatment. Parent is ", node.parent.treat_order, ".")
+    println("Elapsed time: ", elapsed_solve_time(), " seconds.")
     println("Current primal bound is ", extended_problem.primal_inc_bound)
     println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
+    print("Branching constraint:  ")
+    coluna_print(node.local_branching_constraints[1])
 
     if is_to_be_pruned(node, extended_problem.primal_inc_bound)
         println("Node is conquered, no need for treating it.")
@@ -89,7 +94,9 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
             node.problem_setup_info, node.local_branching_constraints)
     end
 
-    treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
+    if extended_problem.params.apply_preprocessing
+        treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
+    end
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
     treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
                                                                extended_problem)
@@ -98,6 +105,14 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         ## Dispatched according to eval_info (?)
         # treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
         treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
+    end
+
+    if extended_problem.params.use_restricted_master_heur
+        push!(treat_algs.alg_vect_primal_heur_node,
+              AlgToPrimalHeurByRestrictedMip(
+                  extended_problem,
+                  node.params.restricted_master_heur_solver_type)
+              )
     end
 
     return true
@@ -156,16 +171,13 @@ function print_info_before_solving_node(problem::ExtendedProblem,
 
     print(primal_tree_nb_open_nodes)
     println(" open nodes. Treating node ", treat_order, ".")
-    #" Parent is ", node.parent.treat_order, ".")
-    # probPtr()->printDynamicVarConstrStats(os); //, true);
-    # printTime(diffcpu(bapcodInit().startTime(), "bcTimeMain"), os);
     println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
         problem.primal_inc_bound, " ]")
     println("************************************************************")
 
 end
 
-function update_search_trees(cur_node::Node, search_tree::DS.Queue,
+function update_search_trees(cur_node::Node, search_tree::DS.PriorityQueue{Node, Float},
         extended_problem::ExtendedProblem)
     params = extended_problem.params
     for child_node in cur_node.children
@@ -174,7 +186,7 @@ function update_search_trees(cur_node::Node, search_tree::DS.Queue,
         #     update_cur_valid_dual_bound(model, child_node)
         # end
         if length(search_tree) < params.open_nodes_limit
-            DS.enqueue!(search_tree, child_node)
+            DS.enqueue!(search_tree, child_node, get_priority(child_node))
         else
             println("Limit on the number of open nodes is reached and",
                     "no secondary tree is implemented.")
@@ -184,12 +196,12 @@ function update_search_trees(cur_node::Node, search_tree::DS.Queue,
 end
 
 function update_cur_valid_dual_bound(problem::ExtendedProblem,
-        node::NodeWithParent, search_tree::DS.Queue{Node})
+        node::NodeWithParent, search_tree::DS.PriorityQueue{Node, Float})
     if isempty(search_tree)
         problem.dual_inc_bound = problem.primal_inc_bound
     end
     worst_dual_bound = Inf
-    for node in search_tree
+    for (node,priority) in search_tree
         if node.node_inc_ip_dual_bound < worst_dual_bound
             worst_dual_bound = node.node_inc_ip_dual_bound
         end
@@ -200,7 +212,7 @@ function update_cur_valid_dual_bound(problem::ExtendedProblem,
 end
 
 function update_cur_valid_dual_bound(problem::ExtendedProblem,
-        node::Node, search_tree::DS.Queue{Node})
+        node::Node, search_tree::DS.PriorityQueue{Node, Float})
     if node.node_inc_ip_dual_bound > problem.dual_inc_bound
         problem.dual_inc_bound = node.node_inc_ip_dual_bound
     end
@@ -216,7 +228,7 @@ function update_primal_inc_solution(problem::ExtendedProblem, sol::PrimalSolutio
 end
 
 function update_model_incumbents(problem::ExtendedProblem, node::Node,
-        search_tree::DS.Queue{Node})
+        search_tree::DS.PriorityQueue{Node, Float})
     if node.ip_primal_bound_is_updated
         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
     end
@@ -235,22 +247,34 @@ end
 # Maybe inside optimize!(extended_problem::ExtendedProblem) (?)
 
 function solve(model::Model)
+    global __initial_solve_time = time()
+    @show model.params
+    @timeit model.extended_problem.timer_output "Solve model" begin
     status = optimize!(model.extended_problem)
+    end
     println(model.extended_problem.timer_output)
+end
+
+function initialize_search_tree(params::Params)
+    if params.search_strategy == DepthFirst
+        search_tree = DS.PriorityQueue{Node, Float}(Base.Order.Reverse)
+    elseif params.search_strategy == BestDualBound
+        search_tree = DS.PriorityQueue{Node, Float}(Base.Order.Forward)
+    end
+    return search_tree
 end
 
 # Behaves like optimize!(problem::Problem), but sets parameters before
 # function optimize!(problem::ExtendedProblem)
 function optimize!(extended_problem::ExtendedProblem)
     set_prob_ref_to_problem_dict(extended_problem)
-    search_tree = DS.Queue{Node}()
     params = extended_problem.params
+    search_tree = initialize_search_tree(params)
+    DS.enqueue!(search_tree, create_root_node(extended_problem), 0.0)
     global_nodes_treat_order = 1
     nb_treated_nodes = 0
-    DS.enqueue!(search_tree, create_root_node(extended_problem))
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
-    treat_algs = TreatAlgs()
     treated_nodes = Node[]
 
     #global ep_ = extended_problem
@@ -264,6 +288,7 @@ function optimize!(extended_problem::ExtendedProblem)
             cur_node = DS.dequeue!(search_tree)
         # end
         cur_node_evaluated_before = cur_node.evaluated
+        treat_algs = TreatAlgs()
 
         if prepare_node_for_treatment(extended_problem, cur_node,
                 treat_algs, global_nodes_treat_order)
@@ -280,7 +305,7 @@ function optimize!(extended_problem::ExtendedProblem)
 
             if !treat(cur_node, treat_algs, global_nodes_treat_order,
                 extended_problem.primal_inc_bound)
-                println("error: branch-and-price is interrupted")
+                error("ERROR: branch-and-price is interrupted")
                 break
             end
             push!(treated_nodes, cur_node)
