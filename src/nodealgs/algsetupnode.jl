@@ -264,6 +264,7 @@ function run(alg::AlgToSetupBranchingOnly)
 
     # apply_subproblem_info()
     # fill_local_branching_constraints()
+    setup_partial_solution(alg.problem_setup_info, alg.extended_problem)
     added_cuts_to_problem = prepare_branching_constraints(alg)
     apply_var_constr_info(alg.problem_setup_info)
 
