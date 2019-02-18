@@ -1,6 +1,10 @@
 ## Defining infos here
 @hl mutable struct SetupInfo end
 
+mutable struct TreatOrder
+    value::Int
+end
+
 @hl mutable struct Node
     params::Params
     children::Vector{Node}
@@ -21,7 +25,7 @@
     # partial_solution::PrimalSolution
 
     # eval_end_time::Int
-    treat_order::Int
+    treat_order::TreatOrder
 
     infeasible::Bool
     evaluated::Bool
@@ -57,7 +61,7 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
         false,
         false,
         PrimalSolution(),
-        -1,
+        TreatOrder(-1),
         false,
         false,
         false,
@@ -193,9 +197,10 @@ mutable struct TreatAlgs
     TreatAlgs() = new(AlgLike(), AlgLike(), AlgLike(), AlgLike(), AlgLike[], AlgLike())
 end
 
-function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
+function evaluation(node::Node, treat_algs::TreatAlgs,
+                    global_treat_order::TreatOrder,
                     inc_primal_bound::Float)::Bool
-    node.treat_order = global_treat_order
+    node.treat_order = TreatOrder(global_treat_order.value)
     node.node_inc_ip_primal_bound = inc_primal_bound
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
@@ -233,7 +238,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs, global_treat_order::Int,
 end
 
 function treat(node::Node, treat_algs::TreatAlgs,
-        global_treat_order::Int, inc_primal_bound::Float)::Bool
+        global_treat_order::TreatOrder, inc_primal_bound::Float)::Bool
     # In strong branching, part 1 of treat (setup, preprocessing and solve) is
     # separated from part 2 (heuristics and children generation).
     # Therefore, treat() can be called two times. One inside strong branching,

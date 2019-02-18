@@ -13,7 +13,7 @@ AlgToPrimalHeurByRestrictedMipBuilder(prob::ExtendedProblem,
                                       solver_type::DataType) =
         tuplejoin(AlgToPrimalHeurInNodeBuilder(prob), solver_type)
 
-function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::Int)
+function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::TreatOrder)
     @timeit to(alg) "Restricted master IP" begin
 
     @timeit to(alg) "Setup of optimizer" begin

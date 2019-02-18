@@ -37,7 +37,7 @@ end
 
 ### For root node
 function prepare_node_for_treatment(extended_problem::ExtendedProblem,
-        node::Node, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
+        node::Node, treat_algs::TreatAlgs, global_treat_order::TreatOrder)
     println("************************************************************")
     println("Preparing root node for treatment.")
 
@@ -70,10 +70,10 @@ end
 
 function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         node::NodeWithParent, treat_algs::TreatAlgs,
-        global_nodes_treat_order::Int)
+        global_treat_order::TreatOrder)
 
     println("************************************************************")
-    println("Preparing node ", global_nodes_treat_order,
+    println("Preparing node ", global_treat_order.value,
         " for treatment. Parent is ", node.parent.treat_order, ".")
     println("Elapsed time: ", elapsed_solve_time(), " seconds.")
     println("Current primal bound is ", extended_problem.primal_inc_bound)
@@ -86,7 +86,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         return false
     end
 
-    if global_nodes_treat_order == node.parent.treat_order+1
+    if global_treat_order.value == node.parent.treat_order.value+1
         treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
             node.problem_setup_info, node.local_branching_constraints)
     else
@@ -120,10 +120,10 @@ end
 
 function print_info_before_solving_node(problem::ExtendedProblem,
         primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int,
-        treat_order::Int)
+        treat_order::TreatOrder)
 
     print(primal_tree_nb_open_nodes)
-    println(" open nodes. Treating node ", treat_order, ".")
+    println(" open nodes. Treating node ", treat_order.value, ".")
     println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
         problem.primal_inc_bound, " ]")
     println("************************************************************")
@@ -224,7 +224,7 @@ function optimize!(extended_problem::ExtendedProblem)
     params = extended_problem.params
     search_tree = initialize_search_tree(params)
     DS.enqueue!(search_tree, create_root_node(extended_problem), 0.0)
-    global_nodes_treat_order = 1
+    global_treat_order = TreatOrder(1)
     nb_treated_nodes = 0
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
@@ -244,11 +244,11 @@ function optimize!(extended_problem::ExtendedProblem)
         treat_algs = TreatAlgs()
 
         if prepare_node_for_treatment(extended_problem, cur_node,
-                treat_algs, global_nodes_treat_order)
+                treat_algs, global_treat_order)
 
             print_info_before_solving_node(extended_problem,
                 length(search_tree) + ((is_primary_tree_node) ? 1 : 0),
-                0 + ((is_primary_tree_node) ? 0 : 1), global_nodes_treat_order)
+                0 + ((is_primary_tree_node) ? 0 : 1), global_treat_order)
 
             # if !cur_node_evaluated_before
             #     set_branch_and_price_order(cur_node, bap_treat_order)
@@ -256,13 +256,13 @@ function optimize!(extended_problem::ExtendedProblem)
             #     # nice_print(cur_node, true)
             # end
 
-            if !treat(cur_node, treat_algs, global_nodes_treat_order,
+            if !treat(cur_node, treat_algs, global_treat_order,
                 extended_problem.primal_inc_bound)
                 error("ERROR: branch-and-price is interrupted")
                 break
             end
             push!(treated_nodes, cur_node)
-            global_nodes_treat_order += 1
+            global_treat_order.value += 1
             nb_treated_nodes += 1
 
             @logmsg LogLevel(-4) "Node bounds after evaluation:"
