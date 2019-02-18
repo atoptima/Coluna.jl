@@ -728,27 +728,33 @@ end
 function find_infeasible_columns(master::CompactProblem,
                                  preproc_vars::Vector{Variable})
     infeas_cols = Variable[]
-    # This assumes that the coef of a sp var has the same sign in all columns
+    
     for var in preproc_vars
-        # If a variable is free, we cannot impose bounds in columns
-        if var.lower_bound < 0.0 && var.upper_bound > 0.0
+        if !isa(var, SubprobVar)
             continue
         end
-        if isa(var, SubprobVar)
-            lb, ub = var.cur_global_lb, var.cur_global_ub
-        else
-            lb, ub = var.cur_lb, var.cur_ub
-        end
+        lb, ub = var.cur_lb, var.cur_ub
         for master_col in master.var_manager.active_dynamic_list
+            #skipping column if it is a solution to another subproblem
+            sp_prob_ref = -1
+            for (sp_var, val) in master_col.solution.var_val_map
+                sp_prob_ref = var.prob_ref
+                break
+            end
+            @assert sp_prob_ref != -1
+            if sp_prob_ref != var.prob_ref
+                continue
+            end
+
+            #detecting infeasibility
             if haskey(master_col.solution.var_val_map, var)
-                coef_in_col = master_col.solution.var_val_map[var]
-                if coef_in_col > 0 && coef_in_col >= ub + 0.0001
-                    update_var_status(master, master_col, Unsuitable)
-                    push!(infeas_cols, master_col)
-                elseif coef_in_col < 0 && coef_in_col <= lb - 0.0001
-                    update_var_status(master, master_col, Unsuitable)
-                    push!(infeas_cols, master_col)
-                end
+                value_in_col = master_col.solution.var_val_map[var]
+            else
+                value_in_col = 0.0
+            end
+            if !(lb - 0.0001 <= value_in_col <= ub + 0.0001)
+                update_var_status(master, master_col, Unsuitable)
+                push!(infeas_cols, master_col)
             end
         end
     end
