@@ -414,6 +414,8 @@ function setup_partial_solution(prob_info::ProblemSetupInfo,
     extended_problem.master_problem.partial_solution = (
         prob_info.master_partial_solution
     )
+    update_optimizer_obj_constant(extended_problem.master_problem.optimizer,
+                                  prob_info.master_partial_solution.cost)
 end
 
 function run(alg::AlgToSetupFull)

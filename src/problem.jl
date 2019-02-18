@@ -116,7 +116,7 @@ function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
     optimizer = nothing
     CompactProblem(increment_counter(prob_counter), false, optimizer,
                    VM(), CM(), PrimalSolution(), DualSolution(),
-                   PrimalSolution(), vc_counter)
+                   PrimalSolution(0.0, Dict{Variable, Float}()), vc_counter)
 end
 
 SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
@@ -324,6 +324,15 @@ function set_optimizer_obj(optimizer::MOI.AbstractOptimizer,
     objf = MOI.ScalarAffineFunction(vec, 0.0)
     MOI.set(optimizer,
             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
+end
+
+function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
+                                       constant::Float)
+    of = MOI.get(optimizer,
+                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}())
+    MOI.modify(
+        optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+        MOI.ScalarConstantChange(constant))
 end
 
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
