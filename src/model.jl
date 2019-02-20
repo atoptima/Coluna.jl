@@ -74,7 +74,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 
     println("************************************************************")
     println("Preparing node ", global_treat_order.value,
-        " for treatment. Parent is ", node.parent.treat_order, ".")
+        " for treatment. Parent is ", node.parent.treat_order.value, ".")
     println("Elapsed time: ", elapsed_solve_time(), " seconds.")
     println("Current primal bound is ", extended_problem.primal_inc_bound)
     println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
