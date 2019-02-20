@@ -112,6 +112,7 @@ function load_obj(dest::ColunaModelOptimizer, mapping::MOIU.IndexMap,
     # This is safe becasue the variables are initialized with a 0.0 cost_rhs
     for term in f.terms
         dest.varmap[mapping.varmap[term.variable_index]].cost_rhs += term.coefficient
+        dest.varmap[mapping.varmap[term.variable_index]].cur_cost_rhs += term.coefficient
     end
 end
 
@@ -208,6 +209,8 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
     dest.varmap[mapping.varmap[f.variable]].vc_type = 'B'
     dest.varmap[mapping.varmap[f.variable]].lower_bound = 0.0
     dest.varmap[mapping.varmap[f.variable]].upper_bound = 1.0
+    dest.varmap[mapping.varmap[f.variable]].cur_lb = 0.0
+    dest.varmap[mapping.varmap[f.variable]].cur_ub = 1.0
     update_constraint_map(mapping, ci, f, s)
 end
 
@@ -223,6 +226,7 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          f::MOI.SingleVariable, s::MOI.LessThan)
     if s.upper < dest.varmap[mapping.varmap[f.variable]].upper_bound
         dest.varmap[mapping.varmap[f.variable]].upper_bound = s.upper
+        dest.varmap[mapping.varmap[f.variable]].cur_ub = s.upper
         update_constraint_map(mapping, ci, f, s)
     end
 end
@@ -232,6 +236,7 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          f::MOI.SingleVariable, s::MOI.GreaterThan)
     if s.lower > dest.varmap[mapping.varmap[f.variable]].lower_bound
         dest.varmap[mapping.varmap[f.variable]].lower_bound = s.lower
+        dest.varmap[mapping.varmap[f.variable]].cur_lb = s.lower
         update_constraint_map(mapping, ci, f, s)
     end
 end
@@ -241,6 +246,8 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
                          f::MOI.SingleVariable, s::MOI.EqualTo)
     dest.varmap[mapping.varmap[f.variable]].lower_bound = s.value
     dest.varmap[mapping.varmap[f.variable]].upper_bound = s.value
+    dest.varmap[mapping.varmap[f.variable]].cur_lb = s.value
+    dest.varmap[mapping.varmap[f.variable]].cur_ub = s.value
     update_constraint_map(mapping, ci, f, s)
 end
 
@@ -360,7 +367,7 @@ function MOI.copy_to(dest::ColunaModelOptimizer,
                      src::MOI.ModelLike; copy_names=true)
 
     # Create variables without adding to problem
-    # Update the variable cost_rhs
+    # Update the variable's cost_rhs and cur_cost_rhs
     # Go through SingleVariable constraints and modify the variables
     # Add variables to problem
     # Go throught ScalarAffineFunction constraints

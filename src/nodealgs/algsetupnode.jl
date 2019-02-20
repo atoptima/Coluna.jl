@@ -353,6 +353,7 @@ function prepare_master_columns(alg::AlgToSetupFull)
 
     removed_from_problem = Variable[]
     added_to_problem = Variable[]
+    # Spot those that are in problem but should not be
     for i in length(in_problem):-1:1
         col = in_problem[i]
         if typeof(col) <: MasterColumn
@@ -368,6 +369,7 @@ function prepare_master_columns(alg::AlgToSetupFull)
             end
         end
     end
+    # Spot those that shuld be in problem but are not
     for i in 1:length(in_setup_info)
         col_info = in_setup_info[i]
         col = col_info.variable

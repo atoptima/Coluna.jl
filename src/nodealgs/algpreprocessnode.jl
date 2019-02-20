@@ -788,8 +788,9 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
         enforce_current_bounds_in_optimizer(optimizer, v)
     end
     # for constr in alg.preprocessed_constrs
-        # update_constr_rhs_in_optimizer(master.optimizer, constr)
+    #     # This assumes that preprocessed constraints are only from master
+    #     update_constr_rhs_in_optimizer(master.optimizer, constr)
     # end
-
+    # readline()
     end
  end

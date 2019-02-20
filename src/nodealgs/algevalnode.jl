@@ -394,9 +394,9 @@ function solve_restricted_mast(alg)
     @timeit to(alg) "solve_restricted_mast" begin
     master = alg.extended_problem.master_problem
     status = optimize!(master)
-    # result_count = MOI.get(master.optimizer, MOI.ResultCount())
-    # primal_status = MOI.get(master.optimizer, MOI.PrimalStatus())
-    # dual_status = MOI.get(master.optimizer, MOI.DualStatus())
+    # @show result_count = MOI.get(master.optimizer, MOI.ResultCount())
+    # @show primal_status = MOI.get(master.optimizer, MOI.PrimalStatus())
+    # @show dual_status = MOI.get(master.optimizer, MOI.DualStatus())
     end # @timeit to(alg) "solve_restricted_mast"
     return status
 end

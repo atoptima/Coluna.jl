@@ -208,6 +208,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs,
     run(treat_algs.alg_setup_node)
 
     if run(treat_algs.alg_preprocess_node)
+        @logmsg LogLevel(0) string("Preprocess determines infeasibility.")
         run(treat_algs.alg_setdown_node)
         record_node_info(node, treat_algs.alg_setdown_node)
         mark_infeasible_and_exit_treatment(node)
@@ -229,11 +230,13 @@ function evaluation(node::Node, treat_algs::TreatAlgs,
         @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
         run(treat_algs.alg_setdown_node)
         record_node_info(node, treat_algs.alg_setdown_node)
-        exit_treatment(node); return true
+        exit_treatment(node);
+        return true
     end
 
     run(treat_algs.alg_setdown_node)
     record_node_info(node, treat_algs.alg_setdown_node)
+
     return true
 end
 
