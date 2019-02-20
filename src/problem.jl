@@ -338,7 +338,8 @@ end
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
     MOI.modify(optimizer,
                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-               MOI.ScalarCoefficientChange{Float}(var.moi_def.var_index, var.cost_rhs))
+               MOI.ScalarCoefficientChange{Float}(var.moi_def.var_index,
+                                                  var.cur_cost_rhs))
 end
 
 function enforce_initial_bounds_in_optimizer(
@@ -346,7 +347,7 @@ function enforce_initial_bounds_in_optimizer(
     # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
     var.moi_def.bounds_index = MOI.add_constraint(
         optimizer, MOI.SingleVariable(var.moi_def.var_index),
-        MOI.Interval(var.lower_bound, var.upper_bound))
+        MOI.Interval(var.cur_lb, var.cur_ub))
 end
 
 function enforce_current_bounds_in_optimizer(
@@ -384,7 +385,7 @@ function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
     terms = compute_constr_moi_terms(constr)
     f = MOI.ScalarAffineFunction(terms, 0.0)
     constr.moi_index = MOI.add_constraint(
-        optimizer, f, constr.set_type(constr.cost_rhs)
+        optimizer, f, constr.set_type(constr.cur_cost_rhs)
     )
 end
 
@@ -393,7 +394,7 @@ function update_constr_rhs_in_optimizer(optimizer::MOI.AbstractOptimizer,
     moi_set = MOI.get(optimizer, MOI.ConstraintSet(), constr.moi_index)
     moi_set_type = typeof(moi_set)
     MOI.set(optimizer, MOI.ConstraintSet(), moi_set,
-            moi_set_type(constr.cost_rhs))
+            moi_set_type(constr.cur_cost_rhs))
 end
 
 function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
