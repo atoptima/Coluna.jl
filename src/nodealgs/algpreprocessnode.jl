@@ -119,6 +119,7 @@ function fix_partial_solution(alg::AlgToPreprocessNode,
         if isa(SubprobVar, var)
             for (constr, coef) in alg.var_local_master_membership[var]
                 constr.cur_cost_rhs -= val*coef
+                add_to_preprocessing_list(alg, constr)
             end
         end
     end
@@ -148,9 +149,13 @@ function fix_partial_solution(alg::AlgToPreprocessNode,
 end
 
 function print_preprocessing_list(alg::AlgToPreprocessNode)
-    println("vars preprocessed:")
+    println("vars preprocessed (changed bounds):")
     for var in alg.preprocessed_vars
         println("var $(var.vc_ref)")
+    end
+    println("constrs preprocessed (changed rhs):")
+    for constr in alg.preprocessed_constrs
+        println("var $(constr.vc_ref)")
     end
 end
 
@@ -205,10 +210,7 @@ function initialize_constraints(alg::AlgToPreprocessNode,
     # Dynamic master constraints
     for constr in master.constr_manager.active_dynamic_list
         initialize_constraint(alg, constr)
-        if alg.depth == 0
-            push!(constrs_to_stack, constr)
-        elseif (alg.depth > 0 && isa(constr, MasterBranchConstr)
-                && constr.depth_when_generated == alg.depth - 1)
+        if constr.depth_when_generated == alg.depth - 1
             push!(constrs_to_stack, constr)
         end
     end
@@ -753,10 +755,16 @@ function find_infeasible_columns(master::CompactProblem,
                 value_in_col = 0.0
             end
             if !(lb - 0.0001 <= value_in_col <= ub + 0.0001)
-                update_var_status(master, master_col, Unsuitable)
-                push!(infeas_cols, master_col)
+                if !(master_col in infeas_cols)
+                    #println("inf col ", value_in_col, " ", lb, " ", ub)
+                    push!(infeas_cols, master_col)
+                end
             end
         end
+    end
+    #println("preprocess info:", length(preproc_vars), " ", length(infeas_cols), " ", length(master.var_manager.active_dynamic_list))
+    for master_col in infeas_cols
+        update_var_status(master, master_col, Unsuitable)
     end
     return infeas_cols
 end
@@ -780,5 +788,9 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
         optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
         enforce_current_bounds_in_optimizer(optimizer, v)
     end
+    for v in alg.preprocessed_constrs
+        update_constr_rhs_in_optimizer(master.optimizer, constr)
+    end
+
     end
  end
