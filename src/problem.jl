@@ -393,7 +393,8 @@ function update_constr_rhs_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                         constr::Constraint)
     moi_set = MOI.get(optimizer, MOI.ConstraintSet(), constr.moi_index)
     moi_set_type = typeof(moi_set)
-    MOI.set(optimizer, MOI.ConstraintSet(), moi_set,
+    # This assumes the set_type is either GreaterThan or SmallerThan
+    MOI.set(optimizer, MOI.ConstraintSet(), constr.moi_index,
             moi_set_type(constr.cur_cost_rhs))
 end
 

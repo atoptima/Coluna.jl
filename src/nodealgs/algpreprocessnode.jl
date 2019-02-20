@@ -776,6 +776,7 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
         return
     end
 
+
     master = alg.extended_problem.master_problem
     infeas_cols = find_infeasible_columns(master, alg.preprocessed_vars)
 
@@ -788,7 +789,8 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
         optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
         enforce_current_bounds_in_optimizer(optimizer, v)
     end
-    for v in alg.preprocessed_constrs
+    for constr in alg.preprocessed_constrs
+        # This assumes that preprocessed constraints are only from master
         update_constr_rhs_in_optimizer(master.optimizer, constr)
     end
 
