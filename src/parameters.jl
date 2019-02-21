@@ -11,4 +11,5 @@
     limit_on_tree_size_to_update_best_dual_bound::Int = 1000000
     apply_preprocessing::Bool = false
     search_strategy::SEARCHSTRATEGY = DepthFirst
+    force_copy_names::Bool = false
 end

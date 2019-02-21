@@ -6,7 +6,7 @@ formulated with JuMP (or MOI). It relies on MOI optimizers in order
 to solve the decomposed blocks (master, pricing, separation...).
 
 The user must be familiar with the syntax of JuMP, which is described in its
-[documentation](https://jump.readthedocs.io/en/latest/).
+[documentation](http://www.juliaopt.org/JuMP.jl/v0.19.0/).
 
 ## Manual Outline
 

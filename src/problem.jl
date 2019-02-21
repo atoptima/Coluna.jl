@@ -576,7 +576,6 @@ function ExtendedProblem(prob_counter::ProblemCounter,
     master_problem = SimpleCompactProblem(prob_counter, vc_counter)
     master_problem.is_relaxed = true
 
-    #TODO change type of art_vars 's' -> 'a', needed for pure phase 1
     artificial_global_pos_var = MasterVar(vc_counter, "art_glob_pos",
             1000000.0, 'P', 'C', 'a', 'U', 1.0, 0.0, Inf)
     artificial_global_neg_var = MasterVar(vc_counter, "art_glob_neg",
