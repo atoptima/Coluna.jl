@@ -1,4 +1,6 @@
 @enum(SEARCHSTRATEGY, DepthFirst, BestDualBound)
+@enum(NODEEVALMODE, SimplexCg, Lp)
+@enum(ARTVARSMOE, Global, Local)
 
 @with_kw mutable struct Params
     use_restricted_master_heur::Bool = false
@@ -12,4 +14,6 @@
     apply_preprocessing::Bool = false
     search_strategy::SEARCHSTRATEGY = DepthFirst
     force_copy_names::Bool = false
+    node_eval_mode::NODEEVALMODE = SimplexCg
+    art_vars_mode::ARTVARSMOE = Global
 end

@@ -68,25 +68,20 @@ function test_moi_annotations()
         universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
         moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
-        ## Subproblem variables
+        # Subproblem variables
         x1 = MOI.add_variable(moi_model)
         MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), x1, 1)
 
-        ## Subproblem constrs
+        # Subproblem constrs
         knp_constr = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0], [x1]), 0.0), MOI.LessThan(0.0))
         MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
 
-        ## Master variable
-        art_glob_var = MOI.add_variable(moi_model)
-        MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var, 0)
-
-        ## Masrer constraint
-        cov = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x1, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
+        # Master constraint
+        cov = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x1]), 0.0), MOI.GreaterThan(1.0))
         MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov, 0)
 
         @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov) == 0
         @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr) == 1
-        @test MOI.get(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var) == 0
         @test MOI.get(moi_model, CL.VariableDantzigWolfeAnnotation(), x1) == 1
     end
 end

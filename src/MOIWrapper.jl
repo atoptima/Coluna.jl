@@ -120,7 +120,7 @@ function add_memberships(dest::ColunaModelOptimizer, problem::Problem, constr::C
                          f::MOI.ScalarAffineFunction, mapping::MOIU.IndexMap)
     for term in f.terms
         add_membership(dest.varmap[mapping.varmap[term.variable_index]],
-                       constr, term.coefficient; optimizer = problem.optimizer)
+                       constr, term.coefficient; optimizer = nothing)
     end
 end
 
@@ -134,23 +134,17 @@ function load_constraint(ci::MOI.ConstraintIndex, dest::ColunaModelOptimizer,
         name = string("constraint_", ci.value)
     end
     prob_idx = MOI.get(src, ConstraintDantzigWolfeAnnotation(), ci)
-    extended_prob = dest.inner.extended_problem
+    extended_problem = dest.inner.extended_problem
     if prob_idx <= 0
-        problem = extended_prob.master_problem
+        problem = extended_problem.master_problem
         constr = MasterConstr(problem.counter, name, rhs, sense, 'M', 's')
     else
-        problem = extended_prob.pricing_vect[prob_idx]
+        problem = extended_problem.pricing_vect[prob_idx]
         constr = Constraint(problem.counter, name, rhs, sense, 'M', 's')
     end
     dest.constr_probidx_map[constr] = prob_idx
-    add_constraint(problem, constr; update_moi = true) # Adds the constr to the lower-level solver
-    add_memberships(dest, problem, constr, f, mapping) # Do only if prob_idx is 0
-    if prob_idx == 0
-        art_glob_pos_var = extended_prob.artificial_global_pos_var
-        art_glob_neg_var = extended_prob.artificial_global_neg_var
-        add_membership(art_glob_pos_var, constr, 1.0; optimizer = problem.optimizer)
-        add_membership(art_glob_neg_var, constr, 1.0; optimizer = problem.optimizer)
-    end
+    add_memberships(dest, problem, constr, f, mapping) # Do only if prob_idx is 0 (?)
+    add_constraint(problem, constr; update_moi = false)
     update_constraint_map(mapping, ci, f, s)
 end
 
@@ -318,7 +312,7 @@ function add_variables_to_problem(dest::ColunaModelOptimizer, src::MOI.ModelLike
         else
             problem = dest.inner.extended_problem.pricing_vect[prob_idx]
         end
-        add_variable(problem, coluna_vars[idx]; update_moi = true)
+        add_variable(problem, coluna_vars[idx]; update_moi = false)
     end
 end
 
@@ -377,22 +371,15 @@ function MOI.copy_to(dest::ColunaModelOptimizer,
     if inner.params.force_copy_names
         copy_names = true
     end
-    extended_prob = ExtendedProblem(inner.prob_counter, vc_counter,
+    extended_problem = ExtendedProblem(inner.prob_counter, vc_counter,
             inner.params, inner.params.cut_up, inner.params.cut_lo)
-    dest.inner.extended_problem = extended_prob
+    dest.inner.extended_problem = extended_problem
 
     mapping = MOIU.IndexMap()
     coluna_vars = create_coluna_variables(dest, src, mapping, copy_names)
     create_subproblems(dest, src)
-    set_default_optimizers(dest)
-
-    card_bounds_dict = MOI.get(src, DantzigWolfePricingCardinalityBounds())
-    add_artificial_variables(extended_prob)
-    for (idx, pricing_prob) in enumerate(extended_prob.pricing_vect)
-        card_bounds = get(card_bounds_dict, idx, (1,1))
-        add_convexity_constraints(extended_prob, pricing_prob,
-                                  card_bounds[1], card_bounds[2])
-    end
+    set_optimizers_dict(dest)
+    set_card_bounds_dict(src, extended_problem)
 
     # Copy objective function
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
@@ -408,11 +395,20 @@ function MOI.copy_to(dest::ColunaModelOptimizer,
 end
 
 # Set functions
-function set_default_optimizers(dest::ColunaModelOptimizer)
+function set_card_bounds_dict(src::MOI.ModelLike,
+                              extended_problem::ExtendedProblem)
+    card_bounds_dict = MOI.get(src, DantzigWolfePricingCardinalityBounds())
+    for (idx, pricing_prob) in enumerate(extended_problem.pricing_vect)
+        extended_problem.problem_ref_to_card_bounds[
+            pricing_prob.prob_ref
+        ] = get(card_bounds_dict, idx, (1,1))
+    end
+end
+
+function set_optimizers_dict(dest::ColunaModelOptimizer)
     # set coluna optimizers
     model = dest.inner
     master_problem = model.extended_problem.master_problem
-    @show dest.master_factory
     model.problemidx_optimizer_map[master_problem.prob_ref] =
             dest.master_factory()
     for subprobidx in 1:dest.nb_subproblems
@@ -420,7 +416,6 @@ function set_default_optimizers(dest::ColunaModelOptimizer)
         model.problemidx_optimizer_map[pricingprob.prob_ref] =
                 dest.pricing_factory()
     end
-    set_model_optimizers(model)
 end
 
 function MOI.set(coluna_optimizer::ColunaModelOptimizer, object::MOI.ObjectiveSense,

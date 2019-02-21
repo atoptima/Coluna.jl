@@ -34,6 +34,15 @@ function set_model_optimizers(model::Model)
                                  model.problemidx_optimizer_map)
 end
 
+function select_eval_alg(extended_problem::ExtendedProblem, node_eval_mode::NODEEVALMODE)
+    if node_eval_mode == SimplexCg
+        return AlgToEvalNodeBySimplexColGen(extended_problem)
+    elseif node_eval_mode == Lp
+        return AlgToEvalNodeByLp(extended_problem)
+    else
+        error("Invalid eval mode: ", node_eval_mode)
+    end
+end
 
 ### For root node
 function prepare_node_for_treatment(extended_problem::ExtendedProblem,
@@ -41,10 +50,11 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     println("************************************************************")
     println("Preparing root node for treatment.")
 
+    params = extended_problem.params
     treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
         node.problem_setup_info, node.local_branching_constraints)
 
-    if extended_problem.params.apply_preprocessing
+    if params.apply_preprocessing
         treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
     end
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
@@ -52,16 +62,15 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
                                                                extended_problem)
 
     if !node.evaluated
-        ## Dispatched according to eval_info
-        # treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
-        treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
+        treat_algs.alg_eval_node = select_eval_alg(extended_problem,
+                                                   params.node_eval_mode)
     end
 
-    if extended_problem.params.use_restricted_master_heur
+    if params.use_restricted_master_heur
         push!(treat_algs.alg_vect_primal_heur_node,
               AlgToPrimalHeurByRestrictedMip(
                   extended_problem,
-                  node.params.restricted_master_heur_solver_type)
+                  params.restricted_master_heur_solver_type)
               )
     end
 
@@ -81,6 +90,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     print("Branching constraint:  ")
     coluna_print(node.local_branching_constraints[1])
 
+    params = extended_problem.params
     if is_to_be_pruned(node, extended_problem.primal_inc_bound)
         println("Node is conquered, no need for treating it.")
         return false
@@ -94,7 +104,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
             node.problem_setup_info, node.local_branching_constraints)
     end
 
-    if extended_problem.params.apply_preprocessing
+    if params.apply_preprocessing
         treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
     end
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
@@ -102,16 +112,15 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
                                                                extended_problem)
 
     if !node.evaluated
-        ## Dispatched according to eval_info (?)
-        # treat_algs.alg_eval_node = AlgToEvalNodeByLp(extended_problem)
-        treat_algs.alg_eval_node = AlgToEvalNodeBySimplexColGen(extended_problem)
+        treat_algs.alg_eval_node = select_eval_alg(extended_problem,
+                                                   params.node_eval_mode)
     end
 
-    if extended_problem.params.use_restricted_master_heur
+    if params.use_restricted_master_heur
         push!(treat_algs.alg_vect_primal_heur_node,
               AlgToPrimalHeurByRestrictedMip(
                   extended_problem,
-                  node.params.restricted_master_heur_solver_type)
+                  params.restricted_master_heur_solver_type)
               )
     end
 
@@ -199,7 +208,37 @@ end
 # Add Manager to take care of parallelism.
 # Maybe inside optimize!(extended_problem::ExtendedProblem) (?)
 
+function initialize_convexity_constraints(extended_problem::ExtendedProblem)
+    for pricing_prob in extended_problem.pricing_vect
+        add_convexity_constraints(extended_problem, pricing_prob)
+    end
+end
+
+function initialize_artificial_variables(extended_problem::ExtendedProblem,
+                                         params::Params)
+    if params.node_eval_mode == SimplexCg
+        if params.art_vars_mode == Global
+            add_global_artificial_variables(extended_problem)
+        else
+            error("Invalid artificial variables mode: ", params.art_vars_mode)
+        end
+    end
+end
+
+function coluna_initialization(model::Model)
+    params = model.params
+    extended_problem = model.extended_problem
+
+    set_prob_ref_to_problem_dict(extended_problem)
+    set_model_optimizers(model)
+    initialize_convexity_constraints(extended_problem)
+    initialize_artificial_variables(extended_problem, params)
+    load_problem_in_optimizer(extended_problem)
+
+end
+
 function solve(model::Model)
+    coluna_initialization(model)
     global __initial_solve_time = time()
     @show model.params
     @timeit model.extended_problem.timer_output "Solve model" begin
@@ -220,7 +259,6 @@ end
 # Behaves like optimize!(problem::Problem), but sets parameters before
 # function optimize!(problem::ExtendedProblem)
 function optimize!(extended_problem::ExtendedProblem)
-    set_prob_ref_to_problem_dict(extended_problem)
     params = extended_problem.params
     search_tree = initialize_search_tree(params)
     DS.enqueue!(search_tree, create_root_node(extended_problem), 0.0)

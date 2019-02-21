@@ -473,10 +473,10 @@ function set_cur_bounds(extended_problem::ExtendedProblem)
         set_default_currents(var)
     end
     for subprob in extended_problem.pricing_vect
+        prob_ref = subprob.prob_ref
         for var in subprob.var_manager.active_static_list
-            set_global_bounds(var,
-                extended_problem.pricing_convexity_lbs[subprob].cost_rhs,
-                extended_problem.pricing_convexity_ubs[subprob].cost_rhs)
+            ub::Float, lb::Float = get_sp_convexity_bounds(extended_problem, prob_ref)
+            set_global_bounds(var, ub, lb)
             set_default_currents(var)
         end
     end

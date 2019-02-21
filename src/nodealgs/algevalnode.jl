@@ -141,13 +141,29 @@ function AlgToEvalNodeByLpBuilder(problem::ExtendedProblem)
     return AlgToEvalNodeBuilder(problem)
 end
 
+function print_intermediate_statistics(alg::AlgToEvalNodeByLp, solve_time::Float)
+    mlp = alg.sols_and_bounds.alg_inc_lp_primal_bound
+    db = alg.sols_and_bounds.alg_inc_lp_dual_bound
+    db_ip = alg.sols_and_bounds.alg_inc_ip_dual_bound
+    pb = alg.sols_and_bounds.alg_inc_ip_primal_bound
+    println("<et=", round(elapsed_solve_time()), "> ",
+            "<lpt= ", round(solve_time, digits=3), "> ",
+            "<mlp=", round(mlp, digits=4), "> ",
+            "<DB=", round(db, digits=4), "> ",
+            "<PB=", round(pb, digits=4), ">")
+end
+
 function run(alg::AlgToEvalNodeByLp, primal_ip_bound::Float)
     alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_ip_bound
     println("Starting eval by lp")
 
-    status = optimize!(alg.extended_problem.master_problem)
+    res = @timed optimize(
+        alg.extended_problem.master_problem
+    )
+    status = res[1][1]
+    solve_time = res[2][1]
 
-    if status != MOI.OPTIMAL
+    if status == MOI.INFEASIBLE || status == MOI.INFEASIBLE_OR_UNBOUNDED
         println("Lp is infeasible, exiting treatment of node.")
         return true
     end
@@ -155,9 +171,11 @@ function run(alg::AlgToEvalNodeByLp, primal_ip_bound::Float)
     alg.sol_is_master_lp_feasible = true
     update_alg_primal_lp_incumbents(alg)
     update_alg_primal_ip_incumbents(alg)
-    update_alg_dual_lp_incumbents(alg)
-    update_alg_dual_ip_bound(alg)
+    lp_bound = alg.sols_and_bounds.alg_inc_lp_primal_bound
+    update_dual_lp_bound(alg.sols_and_bounds, lp_bound)
+    update_dual_ip_bound(alg.sols_and_bounds, lp_bound)
 
+    print_intermediate_statistics(alg, solve_time)
     return false
 end
 
@@ -247,12 +265,12 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
     if sp_sol.cost < -0.0001
         master = alg.extended_problem.master_problem
         col = MasterColumnConstructor(master.counter, sp_sol) # generates memberships
-        add_variable(master, col; update_moi = true) # updates moi, doesnt touch membership
-        update_moi_membership(master.optimizer, col)
         convexity_lb = alg.extended_problem.pricing_convexity_lbs[pricing_prob]
         convexity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob]
-        add_membership(col, convexity_lb, 1.0; optimizer = master.optimizer)
-        add_membership(col, convexity_ub, 1.0; optimizer = master.optimizer)
+        add_membership(col, convexity_lb, 1.0; optimizer = nothing)
+        add_membership(col, convexity_ub, 1.0; optimizer = nothing)
+        add_variable(master, col; update_moi = true) # updates moi, doesnt touch membership
+        update_moi_membership(master.optimizer, col)
         @logmsg LogLevel(-2) string("added column ", col)
         return 1
     else
@@ -292,7 +310,7 @@ function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Proble
     # Solve sub-problem and insert generated columns in master
     @logmsg LogLevel(-3) "optimizing pricing prob"
     @timeit to(alg) "optimize!(pricing_prob)" begin
-    status = optimize!(pricing_prob)
+    status, p_sol, d_sol = optimize(pricing_prob)
     end
     compute_pricing_dual_bound_contrib(alg, pricing_prob)
     if status != MOI.OPTIMAL
@@ -393,7 +411,8 @@ function solve_restricted_mast(alg)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
     @timeit to(alg) "solve_restricted_mast" begin
     master = alg.extended_problem.master_problem
-    status = optimize!(master)
+    status, p_sol, d_sol = optimize(master)
+    # @shows status
     # @show result_count = MOI.get(master.optimizer, MOI.ResultCount())
     # @show primal_status = MOI.get(master.optimizer, MOI.PrimalStatus())
     # @show dual_status = MOI.get(master.optimizer, MOI.DualStatus())
