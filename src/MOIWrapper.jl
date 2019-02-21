@@ -373,6 +373,10 @@ function MOI.copy_to(dest::ColunaModelOptimizer,
     # Go throught ScalarAffineFunction constraints
     vc_counter = VarConstrCounter(0)
     inner = dest.inner
+    # Copynames is always set to false by CachingOptimizer
+    if inner.params.force_copy_names
+        copy_names = true
+    end
     extended_prob = ExtendedProblem(inner.prob_counter, vc_counter,
             inner.params, inner.params.cut_up, inner.params.cut_lo)
     dest.inner.extended_problem = extended_prob
