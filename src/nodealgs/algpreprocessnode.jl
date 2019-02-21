@@ -151,11 +151,11 @@ end
 function print_preprocessing_list(alg::AlgToPreprocessNode)
     println("vars preprocessed (changed bounds):")
     for var in alg.preprocessed_vars
-        println("var $(var.vc_ref)")
+        println("var $(var.vc_ref) $(var.cur_lb) $(var.cur_ub)")
     end
     println("constrs preprocessed (changed rhs):")
     for constr in alg.preprocessed_constrs
-        println("var $(constr.vc_ref)")
+        println("constr $(constr.vc_ref)")
     end
 end
 
@@ -398,8 +398,8 @@ function update_max_slack(alg::AlgToPreprocessNode, constr::Constraint,
     if nb_inf_sources == 0
         if constr.sense != 'G' && alg.cur_max_slack[constr] < 0
             return true
-        elseif constr.sense != 'L' && alg.cur_max_slack[constr] <= 0
-            add_to_preprocessing_list(alg, constr)
+        elseif constr.sense == 'G' && alg.cur_max_slack[constr] <= 0
+            #add_to_preprocessing_list(alg, constr)
             return false
         end
     end
@@ -422,8 +422,8 @@ function update_min_slack(alg::AlgToPreprocessNode, constr::Constraint,
     if nb_inf_sources == 0
         if constr.sense != 'L' && alg.cur_min_slack[constr] > 0
             return true
-        elseif constr.sense != 'G' && alg.cur_min_slack[constr] >= 0
-            add_to_preprocessing_list(alg, constr)
+        elseif constr.sense == 'L' && alg.cur_min_slack[constr] >= 0
+            #add_to_preprocessing_list(alg, constr)
             return false
         end
     end
@@ -644,12 +644,11 @@ function compute_new_var_bound(alg::AlgToPreprocessNode, var::Variable, cur_lb::
         return bound
     end
 
-    if coef > 0 && constr.sense != 'G'
+    if coef > 0 && constr.sense == 'L'
         is_ub = true
         return (is_ub, compute_new_bound(alg.nb_inf_sources_for_max_slack[constr],
                                          alg.cur_max_slack[constr], -coef*cur_lb, Inf))
     elseif coef > 0 && constr.sense != 'L'
-
         is_ub = false
         return (is_ub, compute_new_bound(alg.nb_inf_sources_for_min_slack[constr], 
                                          alg.cur_min_slack[constr], -coef*cur_ub, -Inf))
