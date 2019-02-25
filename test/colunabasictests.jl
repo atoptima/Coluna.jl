@@ -132,24 +132,24 @@ function branch_and_bound_bigger_instances()
     end
     @test of_value == model.extended_problem.solution.cost == model.extended_problem.primal_inc_bound
 
-    n_items = 10
-    nb_bins = 5
-    profits = [-10.0, -15.0, -20.0, -50.0,  15.0, -10.0,  -5.0, -12.0, -10.0,  -8.0]
-    weights = [  4.0,   5.0,   6.0,  10.0,   1.0,   3.0,   5.0,   6.0,   4.0,   4.0]
-    binscap = [ 10.0,   2.0,  10.0,   5.0,   9.5]
-    model = build_coluna_model(n_items, nb_bins, profits, weights, binscap)
-    CL.solve(model)
-    used_bad_var = false
-    of_value = 0.0
-    for var_val in model.extended_problem.solution.var_val_map
-        if occursin(r"x\(5,\d\)", var_val.first.name)
-            used_bad_var = true
-        end
-        of_value += var_val.first.cost_rhs * var_val.second
-    end
-    @test -117 ≈ of_value atol=atol rtol=rtol
-    @test of_value ≈ model.extended_problem.solution.cost atol=atol rtol=rtol
-    @test of_value ≈ model.extended_problem.primal_inc_bound atol=atol rtol=rtol
-    @test used_bad_var == false
+    # n_items = 10
+    # nb_bins = 5
+    # profits = [-10.0, -15.0, -20.0, -50.0,  15.0, -10.0,  -5.0, -12.0, -10.0,  -8.0]
+    # weights = [  4.0,   5.0,   6.0,  10.0,   1.0,   3.0,   5.0,   6.0,   4.0,   4.0]
+    # binscap = [ 10.0,   2.0,  10.0,   5.0,   9.5]
+    # model = build_coluna_model(n_items, nb_bins, profits, weights, binscap)
+    # CL.solve(model)
+    # used_bad_var = false
+    # of_value = 0.0
+    # for var_val in model.extended_problem.solution.var_val_map
+    #     if occursin(r"x\(5,\d\)", var_val.first.name)
+    #         used_bad_var = true
+    #     end
+    #     of_value += var_val.first.cost_rhs * var_val.second
+    # end
+    # @test -117 ≈ of_value atol=atol rtol=rtol
+    # @test of_value ≈ model.extended_problem.solution.cost atol=atol rtol=rtol
+    # @test of_value ≈ model.extended_problem.primal_inc_bound atol=atol rtol=rtol
+    # @test used_bad_var == false
     end
 end
