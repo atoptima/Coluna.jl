@@ -214,14 +214,11 @@ function initialize_convexity_constraints(extended_problem::ExtendedProblem)
     end
 end
 
-function initialize_artificial_variables(extended_problem::ExtendedProblem,
-                                         params::Params)
-    if params.node_eval_mode == SimplexCg
-        if params.art_vars_mode == Global
-            add_global_artificial_variables(extended_problem)
-        else
-            error("Invalid artificial variables mode: ", params.art_vars_mode)
-        end
+function initialize_artificial_variables(extended_problem::ExtendedProblem)
+    master = extended_problem.master_problem
+    init_manager(extended_problem.art_var_manager, master)
+    for constr in master.constr_manager.active_static_list
+        attach_art_var(extended_problem.art_var_manager, master, constr)
     end
 end
 
@@ -232,7 +229,7 @@ function coluna_initialization(model::Model)
     set_prob_ref_to_problem_dict(extended_problem)
     set_model_optimizers(model)
     initialize_convexity_constraints(extended_problem)
-    initialize_artificial_variables(extended_problem, params)
+    initialize_artificial_variables(extended_problem)
     load_problem_in_optimizer(extended_problem)
 
 end

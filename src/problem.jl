@@ -525,15 +525,80 @@ function optimize(problem::CompactProblem;
     return (status, nothing, nothing)
 end
 
+#########################################
+##### Artificial variables managers #####
+#########################################
+
+pos_art_var(vc_counter) = MasterVar(vc_counter, "art_glob_pos", 1000000.0,
+                                    'P', 'C', 'a', 'U', 1.0, 0.0, Inf)
+neg_art_var(vc_counter) = MasterVar(vc_counter, "art_glob_neg", -1000000.0,
+                                    'N', 'C', 'a', 'U', 1.0, -Inf, 0.0)
+mutable struct GlobalArtVarManager
+    positive::MasterVar
+    negative::MasterVar
+    GlobalArtVarManager() = new()
+end
+
+function init_manager(manager::GlobalArtVarManager, master::CompactProblem)
+    vc_counter = master.counter
+    manager.positive = pos_art_var(vc_counter)
+    manager.negative = neg_art_var(vc_counter)
+    add_variable(master, manager.positive; update_moi = false)
+    add_variable(master, manager.negative; update_moi = false)
+end
+
+function attach_art_var(manager::GlobalArtVarManager, master::CompactProblem,
+                        constr::Constraint)
+    if constr.sense == 'L'
+        add_membership(manager.negative, constr, 1.0; optimizer = nothing)
+    elseif constr.sense == 'G'
+        add_membership(manager.positive, constr, 1.0; optimizer = nothing)
+    elseif constr.sense == 'E'
+        add_membership(manager.negative, constr, 1.0; optimizer = nothing)
+        add_membership(manager.positive, constr, 1.0; optimizer = nothing)
+    end
+end
+
+mutable struct LocalArtVarManager
+    constr_art_var_map::Dict{Constraint, MasterVar}
+    LocalArtVarManager() = new(Dict{Constraint, MasterVar})
+end
+
+function init_manager(manager::LocalArtVarManager, master::CompactProblem)
+end
+
+function attach_art_var(manager::LocalArtVarManager, art_var::MasterVar,
+                        master::CompactProblem, constr::Constraint)
+    manager.constr_art_var_map[constr] = art_var
+    add_variable(master, art_var; update_moi = false)
+    add_membership(art_var, constr, 1.0; optimizer = nothing)
+end
+
+function attach_art_var(manager::LocalArtVarManager, master::CompactProblem,
+                        constr::Constraint)
+    vc_counter = master.counter
+    if constr.sense == 'L'
+        art_var = pos_art_var(vc_counter)
+        attach_art_var(manager, art_var, master, constr)
+    elseif constr.sense == 'G'
+        art_var = neg_art_var(vc_counter)
+        attach_art_var(manager, art_var, master, constr)
+    elseif constr.sense == 'E'
+        art_var = pos_art_var(vc_counter)
+        attach_art_var(manager, art_var, master, constr)
+        art_var = neg_art_var(vc_counter)
+        attach_art_var(manager, art_var, master, constr)
+    end
+end
+
 ###########################
 ##### ExtendedProblem #####
 ###########################
 
 mutable struct ExtendedProblem <: Problem
     master_problem::CompactProblem # restricted master in DW case.
-    artificial_global_pos_var::MasterVar
-    artificial_global_neg_var::MasterVar
     pricing_vect::Vector{Problem}
+    art_var_manager::GlobalArtVarManager
     pricing_convexity_lbs::Dict{Problem, MasterConstr}
     pricing_convexity_ubs::Dict{Problem, MasterConstr}
     separation_vect::Vector{Problem}
@@ -549,21 +614,16 @@ mutable struct ExtendedProblem <: Problem
 end
 
 function ExtendedProblem(prob_counter::ProblemCounter,
-        vc_counter::VarConstrCounter,
-        params::Params, primal_inc_bound::Float,
-        dual_inc_bound::Float)
+                         vc_counter::VarConstrCounter,
+                         params::Params, primal_inc_bound::Float,
+                         dual_inc_bound::Float)
 
     master_problem = SimpleCompactProblem(prob_counter, vc_counter)
     master_problem.is_relaxed = true
 
-    artificial_global_pos_var = MasterVar(vc_counter, "art_glob_pos",
-            1000000.0, 'P', 'C', 'a', 'U', 1.0, 0.0, Inf)
-    artificial_global_neg_var = MasterVar(vc_counter, "art_glob_neg",
-            -1000000.0, 'N', 'C', 'a', 'U', 1.0, -Inf, 0.0)
-
     return ExtendedProblem(
-        master_problem, artificial_global_pos_var, artificial_global_neg_var,
-        Problem[], Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(),
+        master_problem, Problem[], GlobalArtVarManager(),
+        Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(),
         Problem[], params, vc_counter, PrimalSolution(), params.cut_up,
         params.cut_lo, 0, TimerOutputs.TimerOutput(), Dict{Int,Problem}(),
         Dict{Int, Tuple{Int,Int}}()
@@ -629,22 +689,4 @@ function add_convexity_constraints(extended_problem::ExtendedProblem,
     extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
     add_constraint(master, convexity_lb_constr; update_moi = false)
     add_constraint(master, convexity_ub_constr; update_moi = false)
-end
-
-function add_global_artificial_variables(extended_problem::ExtendedProblem)
-    master = extended_problem.master_problem
-    vc_counter = master.counter
-    art_glob_pos_var = MasterVar(
-        vc_counter, "art_glob_pos", 1000000.0, 'P', 'C', 'a', 'U', 1.0, 0.0, Inf)
-    art_glob_neg_var = MasterVar(
-        vc_counter, "art_glob_neg", -1000000.0, 'N', 'C', 'a', 'U', 1.0, -Inf, 0.0)
-    extended_problem.artificial_global_pos_var = art_glob_pos_var
-    extended_problem.artificial_global_neg_var = art_glob_neg_var
-    add_variable(master, art_glob_neg_var; update_moi = false)
-    add_variable(master, art_glob_pos_var; update_moi = false)
-    # Add art vars in master constraints
-    for constr in master.constr_manager.active_static_list
-        add_membership(art_glob_pos_var, constr, 1.0; optimizer = nothing)
-        add_membership(art_glob_neg_var, constr, 1.0; optimizer = nothing)
-    end
 end
