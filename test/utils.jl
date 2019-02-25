@@ -107,7 +107,7 @@ function build_colgen_gap_model_with_moi(nb_jobs::Int, nb_machs::Int, caps::Vect
                                          costs::Vector{Vector{Float64}}, weights::Vector{Vector{Float64}},
                                          bound_vars::Bool)
 
-    coluna_optimizer = CL.ColunaModelOptimizer()
+    coluna_optimizer = CL.Optimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 

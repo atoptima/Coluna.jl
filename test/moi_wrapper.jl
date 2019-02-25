@@ -14,7 +14,7 @@ function test_moi_optimize_and_getters() ## change
         binscap = [ 10.0,   2.0,  10.0]
 
         model = build_coluna_model(n_items, nb_bins, profits, weights, binscap)
-        coluna_optimizer = CL.ColunaModelOptimizer()
+        coluna_optimizer = CL.Optimizer()
 
         @test MOI.is_empty(coluna_optimizer) == true
         coluna_optimizer.inner = model
@@ -66,7 +66,7 @@ end
 function test_moi_annotations()
     @testset "MOI wrapper: annotations" begin
 
-        coluna_optimizer = CL.ColunaModelOptimizer()
+        coluna_optimizer = CL.Optimizer()
         universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
         moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
@@ -103,7 +103,7 @@ end
 
 function build_colgen_root_model_with_moi()
 
-    coluna_optimizer = CL.ColunaModelOptimizer()
+    coluna_optimizer = CL.Optimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
@@ -151,7 +151,7 @@ end
 
 function build_model_2()
 
-    coluna_optimizer = CL.ColunaModelOptimizer()
+    coluna_optimizer = CL.Optimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
@@ -193,7 +193,7 @@ function build_model_1(n_items::Int, nb_bins::Int,
                        weights::Vector{Float64},
                        binscap::Vector{Float64})
 
-    coluna_optimizer = CL.ColunaModelOptimizer()
+    coluna_optimizer = CL.Optimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
