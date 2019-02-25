@@ -1,5 +1,4 @@
 using JuMP, Coluna, GLPK, Test, CPLEX
-using MathOptInterface: set
 
 # using Base.CoreLogging, Logging
 # global_logger(ConsoleLogger(stderr, LogLevel(-5)))

@@ -99,12 +99,6 @@ git-tree-sha1 = "82f64bfd090a95b7670ed0d7c734220f32983386"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
 version = "0.9.1"
 
-[[Gurobi]]
-deps = ["Compat", "Libdl", "LinQuadOptInterface", "MathProgBase"]
-git-tree-sha1 = "6a63bfdda26c58edbc04d5334901109e0ce739e7"
-uuid = "2e9cd046-0924-5485-92f1-d5272153d98b"
-version = "0.5.9"
-
 [[HighLevelTypes]]
 git-tree-sha1 = "b6d30b8a0661f6e65bb70c9c81fd094ffc0d4ce8"
 uuid = "66835562-f1c4-5586-a145-e564a3963a4b"
