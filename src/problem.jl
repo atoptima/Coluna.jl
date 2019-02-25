@@ -560,8 +560,8 @@ function attach_art_var(manager::GlobalArtVarManager, master::CompactProblem,
 end
 
 mutable struct LocalArtVarManager
-    constr_art_var_map::Dict{Constraint, MasterVar}
-    LocalArtVarManager() = new(Dict{Constraint, MasterVar})
+    constr_art_var_map::Vector{MasterVar}
+    LocalArtVarManager() = new(MasterVar[])
 end
 
 function init_manager(manager::LocalArtVarManager, master::CompactProblem)
@@ -569,7 +569,7 @@ end
 
 function attach_art_var(manager::LocalArtVarManager, art_var::MasterVar,
                         master::CompactProblem, constr::Constraint)
-    manager.constr_art_var_map[constr] = art_var
+    push!(manager.constr_art_var_map, art_var)
     add_variable(master, art_var; update_moi = false)
     add_membership(art_var, constr, 1.0; optimizer = nothing)
 end

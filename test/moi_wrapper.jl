@@ -43,6 +43,8 @@ function test_moi_copy_optimize_and_getters()
         # Builds a caching optimizer model using Coluna as solver
         caching_optimizer = build_model_1(n_items, nb_bins, profits,
                                           weights, binscap)
+        caching_optimizer.optimizer.inner.params.node_eval_mode = CL.Lp
+
 
         MOI.optimize!(caching_optimizer)
         @test MOI.get(caching_optimizer, MOI.ObjectiveValue()) == -80.0
