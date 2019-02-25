@@ -15,12 +15,6 @@ git-tree-sha1 = "055eb2690182ebc31087859c3dd8598371d3ef9e"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
 version = "0.5.3"
 
-[[CPLEX]]
-deps = ["Compat", "Libdl", "LinQuadOptInterface", "MathProgBase", "Test"]
-git-tree-sha1 = "c86c1946286999219474f3ddabe06b8ff802a87e"
-uuid = "a076750e-1247-5638-91d2-ce28b192dca0"
-version = "0.4.3"
-
 [[Calculus]]
 deps = ["Compat"]
 git-tree-sha1 = "f60954495a7afcee4136f78d1d60350abd37a409"
@@ -144,12 +138,6 @@ deps = ["Compat", "Unicode"]
 git-tree-sha1 = "e3c7fb842078f5cd9a21ecb911dc59a4282e3d01"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 version = "0.8.2"
-
-[[MathProgBase]]
-deps = ["Compat"]
-git-tree-sha1 = "3bf2e534e635df810e5f4b4f1a8b6de9004a0d53"
-uuid = "fdba3010-5040-5b88-9595-932c9decdf73"
-version = "0.7.7"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"

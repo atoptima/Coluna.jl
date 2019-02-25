@@ -17,7 +17,7 @@ include("moi_wrapper.jl")
 include("unit_tests/unit_tests.jl")
 
 using Base.CoreLogging, Logging
-global_logger(ConsoleLogger(stderr, LogLevel(0)))
+global_logger(ConsoleLogger(stderr, LogLevel(1)))
 
 # unit_tests()
 # testdefaultbuilders()

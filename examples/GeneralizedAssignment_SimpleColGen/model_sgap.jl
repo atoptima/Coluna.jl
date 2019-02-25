@@ -1,8 +1,7 @@
 function model_sgap(data::DataGap)
-    params = Coluna.Params(use_restricted_master_heur = true,
+    params = Coluna.Params(use_restricted_master_heur = false,
                            apply_preprocessing = false,
                            search_strategy = Coluna.DepthFirst,
-                           restricted_master_heur_solver_type = CPLEX.Optimizer,
                            force_copy_names = true)
 
     gap = Model(with_optimizer(Coluna.ColunaModelOptimizer, params = params,
