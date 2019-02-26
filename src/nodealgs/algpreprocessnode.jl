@@ -787,10 +787,10 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
         optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
         enforce_current_bounds_in_optimizer(optimizer, v)
     end
-    # for constr in alg.preprocessed_constrs
-    #     # This assumes that preprocessed constraints are only from master
-    #     update_constr_rhs_in_optimizer(master.optimizer, constr)
-    # end
-    # readline()
+    for constr in alg.preprocessed_constrs
+        # This assumes that preprocessed constraints are only from master
+        @assert constr isa MasterConstr
+        update_constr_rhs_in_optimizer(master.optimizer, constr)
+    end
     end
  end
