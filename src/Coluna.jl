@@ -48,6 +48,8 @@ include("nodealgs/algprimalheurinnode.jl")
 include("nodealgs/alggeneratechildrennodes.jl")
 include("model.jl")
 
+##### Modeling
+include("modeling/axis.jl")
 
 ##### Wrapper functions
 include("MOIWrapper.jl")

@@ -13,6 +13,10 @@ function model_sgap(data::DataGap)
                                pricing_factory = with_optimizer(GLPK.Optimizer)),
                 bridge_constraints=false)
 
+    Coluna.@axis(L, 1:length(data.machines))
+    @show L
+    exit()
+
     @variable(gap, x[m in data.machines, j in data.jobs], Bin)
 
     @constraint(gap, cov[j in data.jobs],
