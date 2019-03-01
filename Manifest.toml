@@ -15,12 +15,6 @@ git-tree-sha1 = "055eb2690182ebc31087859c3dd8598371d3ef9e"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
 version = "0.5.3"
 
-[[CPLEX]]
-deps = ["Compat", "Libdl", "LinQuadOptInterface", "MathProgBase", "Test"]
-git-tree-sha1 = "c86c1946286999219474f3ddabe06b8ff802a87e"
-uuid = "a076750e-1247-5638-91d2-ce28b192dca0"
-version = "0.4.3"
-
 [[Calculus]]
 deps = ["Compat"]
 git-tree-sha1 = "f60954495a7afcee4136f78d1d60350abd37a409"
@@ -61,15 +55,15 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffResults]]
 deps = ["Compat", "StaticArrays"]
-git-tree-sha1 = "db8acf46717b13d6c48deb7a12007c7f85a70cf7"
+git-tree-sha1 = "34a4a1e8be7bc99bc9c611b895b5baf37a80584c"
 uuid = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
-version = "0.0.3"
+version = "0.0.4"
 
 [[DiffRules]]
 deps = ["Random", "Test"]
-git-tree-sha1 = "09d69da75967ec48a8b1ad0897ec9144ee052bf9"
+git-tree-sha1 = "dc0869fb2f5b23466b32ea799bd82c76480167f7"
 uuid = "b552c78f-8df3-52c6-915a-8e097449b14b"
-version = "0.0.8"
+version = "0.0.10"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -83,9 +77,9 @@ version = "0.6.0"
 
 [[Documenter]]
 deps = ["Base64", "DocStringExtensions", "InteractiveUtils", "LibGit2", "Logging", "Markdown", "Pkg", "REPL", "Random", "Test", "Unicode"]
-git-tree-sha1 = "de745be4b00336588ab3269d5f43517e5c012973"
+git-tree-sha1 = "f5dd8036d6e6673d8f0f9b60cd844ebb89aec591"
 uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.21.1"
+version = "0.21.4"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "InteractiveUtils", "LinearAlgebra", "NaNMath", "Random", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test"]
@@ -98,12 +92,6 @@ deps = ["BinaryProvider", "Compat", "Libdl", "LinQuadOptInterface"]
 git-tree-sha1 = "82f64bfd090a95b7670ed0d7c734220f32983386"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
 version = "0.9.1"
-
-[[Gurobi]]
-deps = ["Compat", "Libdl", "LinQuadOptInterface", "MathProgBase"]
-git-tree-sha1 = "6a63bfdda26c58edbc04d5334901109e0ce739e7"
-uuid = "2e9cd046-0924-5485-92f1-d5272153d98b"
-version = "0.5.9"
 
 [[HighLevelTypes]]
 git-tree-sha1 = "b6d30b8a0661f6e65bb70c9c81fd094ffc0d4ce8"
@@ -120,7 +108,7 @@ git-tree-sha1 = "67a054b8aa451198dcaeff279614125833d4a3e4"
 repo-rev = "7c115a2dcc8d92bdb6422dc4ed0919b7842e30fb"
 repo-url = "https://github.com/JuliaOpt/JuMP.jl.git"
 uuid = "4076af6c-e467-56ae-b986-b466b2749572"
-version = "0.18.5+"
+version = "0.19.0+"
 
 [[LibGit2]]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
@@ -147,15 +135,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
 deps = ["Compat", "Unicode"]
-git-tree-sha1 = "6f3df4b5346485b299ae5d2b313ecb428bb46bb9"
+git-tree-sha1 = "e3c7fb842078f5cd9a21ecb911dc59a4282e3d01"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.8.1"
-
-[[MathProgBase]]
-deps = ["Compat"]
-git-tree-sha1 = "3bf2e534e635df810e5f4b4f1a8b6de9004a0d53"
-uuid = "fdba3010-5040-5b88-9595-932c9decdf73"
-version = "0.7.7"
+version = "0.8.2"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"

@@ -116,7 +116,7 @@ function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
     optimizer = nothing
     CompactProblem(increment_counter(prob_counter), false, optimizer,
                    VM(), CM(), PrimalSolution(), DualSolution(),
-                   PrimalSolution(), vc_counter)
+                   PrimalSolution(0.0, Dict{Variable, Float}()), vc_counter)
 end
 
 SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
@@ -132,7 +132,7 @@ function initialize_problem_optimizer(problem::CompactProblem,
 end
 
 function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
-                         var_list::Vector{Variable}, optimizer, update_problem)
+                         var_list::Vector{Variable}, optimizer)
 
     for var_idx in 1:length(var_list)
         var = var_list[var_idx]
@@ -145,28 +145,22 @@ function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
     end
 end
 
-function retrieve_primal_sol(problem::CompactProblem;
-        optimizer = problem.optimizer, update_problem = true)
-    ## Store it in problem.primal_sols
-    @assert problem.optimizer != nothing
+function retrieve_primal_sol(problem::CompactProblem,
+                             optimizer::MOI.AbstractOptimizer)
     new_sol = Dict{Variable, Float}()
     new_obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
-    fill_primal_sol(problem, new_sol, problem.var_manager.active_static_list,
-                    optimizer, update_problem)
-    fill_primal_sol(problem, new_sol, problem.var_manager.active_dynamic_list,
-                    optimizer, update_problem)
+    fill_primal_sol(
+        problem, new_sol, problem.var_manager.active_static_list, optimizer
+    )
+    fill_primal_sol(
+        problem, new_sol, problem.var_manager.active_dynamic_list, optimizer
+    )
     primal_sol = PrimalSolution(new_obj_val, new_sol)
     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
-    if update_problem
-        problem.primal_sol = primal_sol
-    end
     return primal_sol
 end
 
-function retrieve_dual_sol(problem::CompactProblem;
-        optimizer = problem.optimizer, update_problem = true)
-
-    @assert problem.optimizer != nothing
+function retrieve_dual_sol(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
     # TODO check if supported by solver
     if MOI.get(optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         return nothing
@@ -178,7 +172,7 @@ function retrieve_dual_sol(problem::CompactProblem;
     for constr_idx in 1:length(constr_list)
         constr = constr_list[constr_idx]
         constr.val = 0.0
-        try
+        try # This try is needed because of the erroneous assertion in LQOI
             constr.val = MOI.get(optimizer, MOI.ConstraintDual(),
                                  constr.moi_index)
         catch err
@@ -197,15 +191,7 @@ function retrieve_dual_sol(problem::CompactProblem;
         end
     end
     dual_sol = DualSolution(-Inf, new_sol)
-    if update_problem
-        problem.dual_sol = dual_sol #TODO get objbound
-    end
     return dual_sol
-end
-
-function retrieve_solution(problem::CompactProblem)
-    retrieve_primal_sol(problem)
-    retrieve_dual_sol(problem)
 end
 
 function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
@@ -326,10 +312,20 @@ function set_optimizer_obj(optimizer::MOI.AbstractOptimizer,
             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
 end
 
+function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
+                                       constant::Float)
+    of = MOI.get(optimizer,
+                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}())
+    MOI.modify(
+        optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+        MOI.ScalarConstantChange(constant))
+end
+
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
     MOI.modify(optimizer,
                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-               MOI.ScalarCoefficientChange{Float}(var.moi_def.var_index, var.cost_rhs))
+               MOI.ScalarCoefficientChange{Float}(var.moi_def.var_index,
+                                                  var.cur_cost_rhs))
 end
 
 function enforce_initial_bounds_in_optimizer(
@@ -337,7 +333,7 @@ function enforce_initial_bounds_in_optimizer(
     # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
     var.moi_def.bounds_index = MOI.add_constraint(
         optimizer, MOI.SingleVariable(var.moi_def.var_index),
-        MOI.Interval(var.lower_bound, var.upper_bound))
+        MOI.Interval(var.cur_lb, var.cur_ub))
 end
 
 function enforce_current_bounds_in_optimizer(
@@ -375,16 +371,18 @@ function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
     terms = compute_constr_moi_terms(constr)
     f = MOI.ScalarAffineFunction(terms, 0.0)
     constr.moi_index = MOI.add_constraint(
-        optimizer, f, constr.set_type(constr.cost_rhs)
+        optimizer, f, constr.set_type(constr.cur_cost_rhs)
     )
 end
 
 function update_constr_rhs_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                         constr::Constraint)
+    # This assumes the set_type is either GreaterThan or SmallerThan
     moi_set = MOI.get(optimizer, MOI.ConstraintSet(), constr.moi_index)
     moi_set_type = typeof(moi_set)
-    MOI.set(optimizer, MOI.ConstraintSet(), moi_set,
-            moi_set_type(constr.cost_rhs))
+    @assert (moi_set_type isa MOI.GreaterThan || moi_set_type isa MOI.SmallerThan)
+    MOI.set(optimizer, MOI.ConstraintSet(), constr.moi_index,
+            moi_set_type(constr.cur_cost_rhs))
 end
 
 function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
@@ -478,6 +476,10 @@ function load_problem_in_optimizer(problem::CompactProblem,
     end
 end
 
+load_problem_in_optimizer(problem::CompactProblem) = load_problem_in_optimizer(
+    problem, problem.optimizer, problem.is_relaxed
+)
+
 function switch_primary_secondary_moi_def(problem::CompactProblem)
     for var in problem.var_manager.active_static_list
         switch_primary_secondary_moi_def(var)
@@ -502,37 +504,92 @@ function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
     redirect_stdout(backup_stdout)
 end
 
-# Updates the problem with the primal/dual sols
-function optimize!(problem::CompactProblem)
-    @assert problem.optimizer != nothing
-    call_moi_optimize_with_silence(problem.optimizer)
-    status = MOI.get(problem.optimizer, MOI.TerminationStatus())
-    @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
-    if MOI.get(problem.optimizer, MOI.ResultCount()) >= 1
-        retrieve_solution(problem)
-    else
-        @logmsg LogLevel(-4) string("Solver has no result to show.")
-    end
-    return status
-end
-
-# Does not modify problem but returns the primal/dual sols instead
-function optimize(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
+# Returns status, primal sol, and dual sol.
+# Updates problem solutions by default
+function optimize(problem::CompactProblem;
+                  optimizer = problem.optimizer, update_problem = true)
     call_moi_optimize_with_silence(optimizer)
     status = MOI.get(optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
-
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
-        primal_sol = retrieve_primal_sol(problem,
-                optimizer = optimizer, update_problem = false)
-        dual_sol = retrieve_dual_sol(problem,
-                optimizer = optimizer, update_problem = false)
-    else
-        @logmsg LogLevel(-4) string("Solver has no result to show.")
-        return (status, nothing, nothing)
+        primal_sol = retrieve_primal_sol(problem, optimizer)
+        dual_sol = retrieve_dual_sol(problem, optimizer)
+        if update_problem
+            problem.primal_sol = primal_sol
+            if dual_sol != nothing
+                problem.dual_sol = dual_sol
+            end
+        end
+        return (status, primal_sol, dual_sol)
     end
+    @logmsg LogLevel(-4) string("Solver has no result to show.")
+    return (status, nothing, nothing)
+end
 
-    return (status, primal_sol, dual_sol)
+#########################################
+##### Artificial variables managers #####
+#########################################
+
+pos_art_var(vc_counter) = MasterVar(vc_counter, "art_glob_pos", 1000000.0,
+                                    'P', 'C', 'a', 'U', 1.0, 0.0, Inf)
+neg_art_var(vc_counter) = MasterVar(vc_counter, "art_glob_neg", -1000000.0,
+                                    'N', 'C', 'a', 'U', 1.0, -Inf, 0.0)
+mutable struct GlobalArtVarManager
+    positive::MasterVar
+    negative::MasterVar
+    GlobalArtVarManager() = new()
+end
+
+function init_manager(manager::GlobalArtVarManager, master::CompactProblem)
+    vc_counter = master.counter
+    manager.positive = pos_art_var(vc_counter)
+    manager.negative = neg_art_var(vc_counter)
+    add_variable(master, manager.positive; update_moi = false)
+    add_variable(master, manager.negative; update_moi = false)
+end
+
+function attach_art_var(manager::GlobalArtVarManager, master::CompactProblem,
+                        constr::Constraint)
+    if constr.sense == 'L'
+        add_membership(manager.negative, constr, 1.0; optimizer = nothing)
+    elseif constr.sense == 'G'
+        add_membership(manager.positive, constr, 1.0; optimizer = nothing)
+    elseif constr.sense == 'E'
+        add_membership(manager.negative, constr, 1.0; optimizer = nothing)
+        add_membership(manager.positive, constr, 1.0; optimizer = nothing)
+    end
+end
+
+mutable struct LocalArtVarManager
+    constr_art_var_map::Vector{MasterVar}
+    LocalArtVarManager() = new(MasterVar[])
+end
+
+function init_manager(manager::LocalArtVarManager, master::CompactProblem)
+end
+
+function attach_art_var(manager::LocalArtVarManager, art_var::MasterVar,
+                        master::CompactProblem, constr::Constraint)
+    push!(manager.constr_art_var_map, art_var)
+    add_variable(master, art_var; update_moi = false)
+    add_membership(art_var, constr, 1.0; optimizer = nothing)
+end
+
+function attach_art_var(manager::LocalArtVarManager, master::CompactProblem,
+                        constr::Constraint)
+    vc_counter = master.counter
+    if constr.sense == 'L'
+        art_var = pos_art_var(vc_counter)
+        attach_art_var(manager, art_var, master, constr)
+    elseif constr.sense == 'G'
+        art_var = neg_art_var(vc_counter)
+        attach_art_var(manager, art_var, master, constr)
+    elseif constr.sense == 'E'
+        art_var = pos_art_var(vc_counter)
+        attach_art_var(manager, art_var, master, constr)
+        art_var = neg_art_var(vc_counter)
+        attach_art_var(manager, art_var, master, constr)
+    end
 end
 
 ###########################
@@ -541,9 +598,8 @@ end
 
 mutable struct ExtendedProblem <: Problem
     master_problem::CompactProblem # restricted master in DW case.
-    artificial_global_pos_var::MasterVar
-    artificial_global_neg_var::MasterVar
     pricing_vect::Vector{Problem}
+    art_var_manager::GlobalArtVarManager
     pricing_convexity_lbs::Dict{Problem, MasterConstr}
     pricing_convexity_ubs::Dict{Problem, MasterConstr}
     separation_vect::Vector{Problem}
@@ -555,38 +611,38 @@ mutable struct ExtendedProblem <: Problem
     subtree_size_by_depth::Int
     timer_output::TimerOutputs.TimerOutput
     problem_ref_to_problem::Dict{Int,Problem}
+    problem_ref_to_card_bounds::Dict{Int, Tuple{Int,Int}}
 end
 
 function ExtendedProblem(prob_counter::ProblemCounter,
-        vc_counter::VarConstrCounter,
-        params::Params, primal_inc_bound::Float,
-        dual_inc_bound::Float)
+                         vc_counter::VarConstrCounter,
+                         params::Params, primal_inc_bound::Float,
+                         dual_inc_bound::Float)
 
     master_problem = SimpleCompactProblem(prob_counter, vc_counter)
     master_problem.is_relaxed = true
 
-    #TODO change type of art_vars 's' -> 'a', needed for pure phase 1
-    artificial_global_pos_var = MasterVar(vc_counter, "art_glob_pos",
-            1000000.0, 'P', 'C', 'a', 'U', 1.0, 0.0, Inf)
-    artificial_global_neg_var = MasterVar(vc_counter, "art_glob_neg",
-            -1000000.0, 'N', 'C', 'a', 'U', 1.0, -Inf, 0.0)
-
-    return ExtendedProblem(master_problem, artificial_global_pos_var,
-            artificial_global_neg_var, Problem[],
-            Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(),
-            Problem[], params, vc_counter,
-            PrimalSolution(), params.cut_up, params.cut_lo, 0,
-            TimerOutputs.TimerOutput(), Dict{Int,Problem}())
+    return ExtendedProblem(
+        master_problem, Problem[], GlobalArtVarManager(),
+        Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(),
+        Problem[], params, vc_counter, PrimalSolution(), params.cut_up,
+        params.cut_lo, 0, TimerOutputs.TimerOutput(), Dict{Int,Problem}(),
+        Dict{Int, Tuple{Int,Int}}()
+    )
 end
 
 get_problem(prob::ExtendedProblem,
             prob_ref::Int) = prob.problem_ref_to_problem[prob_ref]
 
 function get_sp_convexity_bounds(prob::ExtendedProblem, prob_ref::Int)
-    sp = get_problem(prob, prob_ref)
-    sp_lb = prob.pricing_convexity_lbs[sp].cost_rhs
-    sp_ub = prob.pricing_convexity_ubs[sp].cost_rhs
-    return (sp_lb, sp_ub)
+    return prob.problem_ref_to_card_bounds[prob_ref]
+end
+
+function load_problem_in_optimizer(extended_problem::ExtendedProblem)
+    load_problem_in_optimizer(extended_problem.master_problem)
+    for prob in extended_problem.pricing_vect
+        load_problem_in_optimizer(prob)
+    end
 end
 
 # Iterates through each problem in extended_problem,
@@ -610,10 +666,10 @@ function initialize_problem_optimizer(extended_problem::ExtendedProblem,
     end
 end
 
-function set_prob_ref_to_problem_dict(extended_prob::ExtendedProblem)
-    prob_ref_to_prob = extended_prob.problem_ref_to_problem
-    master = extended_prob.master_problem
-    subproblems = extended_prob.pricing_vect
+function set_prob_ref_to_problem_dict(extended_problem::ExtendedProblem)
+    prob_ref_to_prob = extended_problem.problem_ref_to_problem
+    master = extended_problem.master_problem
+    subproblems = extended_problem.pricing_vect
     prob_ref_to_prob[master.prob_ref] = master
     for subprob in subproblems
         prob_ref_to_prob[subprob.prob_ref] = subprob
@@ -621,26 +677,17 @@ function set_prob_ref_to_problem_dict(extended_prob::ExtendedProblem)
 end
 
 function add_convexity_constraints(extended_problem::ExtendedProblem,
-        pricing_prob::Problem, card_lb::Int, card_ub::Int)
-
-    master_prob = extended_problem.master_problem
-    convexity_lb_constr = ConvexityConstr(master_prob.counter,
+        pricing_prob::Problem)
+    card_lb, card_ub = get_sp_convexity_bounds(extended_problem, pricing_prob.prob_ref)
+    master = extended_problem.master_problem
+    convexity_lb_constr = ConvexityConstr(master.counter,
             string("convexity_constr_lb_", pricing_prob.prob_ref),
             convert(Float, card_lb), 'G', 'M', 's')
-    add_constraint(master_prob, convexity_lb_constr; update_moi = true)
-
-    convexity_ub_constr = ConvexityConstr(master_prob.counter,
+    convexity_ub_constr = ConvexityConstr(master.counter,
             string("convexity_constr_ub_", pricing_prob.prob_ref),
             convert(Float, card_ub), 'L', 'M', 's')
-    add_constraint(master_prob, convexity_ub_constr; update_moi = true)
-
     extended_problem.pricing_convexity_lbs[pricing_prob] = convexity_lb_constr
     extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
-end
-
-function add_artificial_variables(extended_prob::ExtendedProblem)
-    add_variable(extended_prob.master_problem,
-                 extended_prob.artificial_global_neg_var; update_moi = true)
-    add_variable(extended_prob.master_problem,
-                 extended_prob.artificial_global_pos_var; update_moi = true)
+    add_constraint(master, convexity_lb_constr; update_moi = false)
+    add_constraint(master, convexity_ub_constr; update_moi = false)
 end

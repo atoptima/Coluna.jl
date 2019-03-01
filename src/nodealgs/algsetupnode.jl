@@ -264,6 +264,7 @@ function run(alg::AlgToSetupBranchingOnly)
 
     # apply_subproblem_info()
     # fill_local_branching_constraints()
+    setup_partial_solution(alg.problem_setup_info, alg.extended_problem)
     added_cuts_to_problem = prepare_branching_constraints(alg)
     apply_var_constr_info(alg.problem_setup_info)
 
@@ -352,6 +353,7 @@ function prepare_master_columns(alg::AlgToSetupFull)
 
     removed_from_problem = Variable[]
     added_to_problem = Variable[]
+    # Spot those that are in problem but should not be
     for i in length(in_problem):-1:1
         col = in_problem[i]
         if typeof(col) <: MasterColumn
@@ -367,6 +369,7 @@ function prepare_master_columns(alg::AlgToSetupFull)
             end
         end
     end
+    # Spot those that shuld be in problem but are not
     for i in 1:length(in_setup_info)
         col_info = in_setup_info[i]
         col = col_info.variable
@@ -414,6 +417,8 @@ function setup_partial_solution(prob_info::ProblemSetupInfo,
     extended_problem.master_problem.partial_solution = (
         prob_info.master_partial_solution
     )
+    update_optimizer_obj_constant(extended_problem.master_problem.optimizer,
+                                  prob_info.master_partial_solution.cost)
 end
 
 function run(alg::AlgToSetupFull)
@@ -468,10 +473,10 @@ function set_cur_bounds(extended_problem::ExtendedProblem)
         set_default_currents(var)
     end
     for subprob in extended_problem.pricing_vect
+        prob_ref = subprob.prob_ref
         for var in subprob.var_manager.active_static_list
-            set_global_bounds(var,
-                extended_problem.pricing_convexity_lbs[subprob].cost_rhs,
-                extended_problem.pricing_convexity_ubs[subprob].cost_rhs)
+            ub::Float, lb::Float = get_sp_convexity_bounds(extended_problem, prob_ref)
+            set_global_bounds(var, ub, lb)
             set_default_currents(var)
         end
     end

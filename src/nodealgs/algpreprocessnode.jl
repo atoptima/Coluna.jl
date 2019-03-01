@@ -37,20 +37,22 @@ function AlgToPreprocessNodeBuilder(depth::Int, extended_problem::ExtendedProble
 end
 
 function run(alg::AlgToPreprocessNode,
-             partial_sol::Union{Nothing,PrimalSolution} = nothing)
+             local_partial_sol::Union{Nothing,PrimalSolution} = nothing)
     reset(alg)
-    if partial_sol != nothing
+    if local_partial_sol != nothing
         # Change sp bounds, global bounds of var and rhs of master constraints
-        vars_with_modified_bounds = fix_partial_solution(alg, partial_sol)
+        (vars_with_modified_bounds,
+         constrs_with_modified_rhs) = fix_local_partial_solution(alg, local_partial_sol)
     else
-        vars_with_modified_bounds = Variable[]
+        (vars_with_modified_bounds,
+         constrs_with_modified_rhs) = Variable[], Constraint[]
     end
     # Compute slacks and add constraints to stack
-    if initialize_constraints(alg, vars_with_modified_bounds)
+    if initialize_constraints(alg, vars_with_modified_bounds, constrs_with_modified_rhs)
         return true
     end
     # Now we try to update local bounds of sp vars
-    if partial_sol != nothing
+    if local_partial_sol != nothing
         for var in vars_with_modified_bounds
             if isa(SubprobVar, var)
                 update_global_lower_bound(alg, var, var.cur_global_lb, false)
@@ -68,27 +70,34 @@ function run(alg::AlgToPreprocessNode,
     return infeas
 end
 
-function change_sp_bounds(alg::AlgToPreprocessNode, partial_sol::PrimalSolution)
+function change_sp_bounds(alg::AlgToPreprocessNode, local_partial_sol::PrimalSolution)
     sps_with_modified_bounds = []
-    for (var, val) in partial_sol.var_vals
+    for (var, val) in local_partial_sol.var_vals
         if isa(var, MasterColumn)
             sp_ref = var.prob_ref
+            sp_prob = get_problem(alg.extended_problem, sp_ref)
             if alg.cur_sp_bounds[sp_ref][1] > 0
                 alg.cur_sp_bounds[sp_ref][1] -= 1
+                conv_lb_constr = alg.extended_problem.pricing_convexity_lbs[sp_prob]
+                conv_lb_constr.cur_cost_rhs -= 1
+                add_to_preprocessing_list(alg, conv_lb_constr)
             end
             alg.cur_sp_bounds[sp_ref][2] -= 1
+            conv_ub_constr = alg.extended_problem.pricing_convexity_ubs[sp_prob]
+            conv_ub_constr.cur_cost_rhs -= 1
+            add_to_preprocessing_list(alg, conv_ub_constr)
             @assert alg.cur_sp_bounds[sp_ref[2]] >= 0
             if !(sp_ref in sps_with_modified_bounds)
-                push!(sps_with_modified_bounds, sp_ref)
+                push!(sps_with_modified_bounds, sp_prob)
             end
         end
     end
     return sps_with_modified_bounds
 end
 
-function project_partial_solution(partial_sol::PrimalSolution)
+function project_local_partial_solution(local_partial_sol::PrimalSolution)
     user_vars_vals = Dict{Variable,Float}()
-    for (var, val) in partial_sol.var_vals
+    for (var, val) in local_partial_sol.var_vals
         if isa(var, MasterColumn)
             for (user_var, user_var_val) in var.solution.var_val_map
                 if !haskey(user_var_vals, user_var)
@@ -106,49 +115,74 @@ function project_partial_solution(partial_sol::PrimalSolution)
     return user_var_vals
 end
 
-function fix_partial_solution(alg::AlgToPreprocessNode,
-                              partial_sol::PrimalSolution)
+function fix_local_partial_solution(alg::AlgToPreprocessNode,
+                              local_partial_sol::PrimalSolution)
 
-    sps_with_modified_bounds = change_sp_bounds(alg, partial_sol)
-    user_vars_vals = project_partial_solution(partial_sol)
+    sps_with_modified_bounds = change_sp_bounds(alg, local_partial_sol)
+    user_vars_vals = project_local_partial_solution(local_partial_sol)
    
     # Updating rhs of master constraints
+    # master vars of partial_sol are ignored here 
+    # because we only change their bounds
+    constrs_with_modified_rhs = Constraint[]
     for (var, val) in user_vars_vals
         if isa(var, SubprobVar)
             for (constr, coef) in alg.var_local_master_membership[var]
                 constr.cur_cost_rhs -= val*coef
+                add_to_preprocessing_list(alg, constr)
             end
         end
     end
 
-    # Changing global bounds of variables
+    # Changing global bounds of master variables
+    # with non-zero values in the partial_sol
     vars_with_modified_bounds = Variable[]
     for (var, val) in user_vars_vals
         if isa(var, MasterVar)
             var.cur_lb = var.cur_ub = val
             push!(vars_with_modified_bounds, var)
-        else
-            (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[var.prob_ref]
-            var.cur_global_lb = max(var.cur_global_lb - val, 
+            add_to_preprocessing_list(alg, var)
+        end
+    end
+    
+    # Changing global bounds of subprob variables
+    for sp_prob in sp_with_modified_bounds
+        (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[sp_prob.prob_ref]
+        for var in sp_prob.var_manager.active_static_list
+            var_val_in_local_sol = var in user_var_vals ? user_vars_vals[var] : 0.0
+            bounds_changed = false
+
+            new_global_lb = max(var.cur_global_lb - var_val_in_local_sol, 
                                     var.lower_bound*cur_sp_lb)
-            if !isinf(var.cur_global_lb)
-                push!(vars_with_modified_bounds, var)
+            if new_global_lb != var.cur_global_lb 
+                bounds_changed = true
             end
-            var.cur_global_bound = min(var.cur_global_ub - val,
+            var.cur_global_lb = new_global_lb
+
+            new_global_ub = min(var.cur_global_ub - var_val_in_local_sol,
                                        var.upper_bound*cur_sp_ub)
-            if !isinf(var.cur_global_bound)
+            if new_global_ub != var.cur_global_ub
+                bounds_changed = true
+            end
+            var.cur_global_ub = new_global_ub
+            
+            if bounds_changed
                 push!(vars_with_modified_bounds, var)
             end
         end
     end
- 
-    return vars_with_modified_bounds
+
+    return (vars_with_modified_bounds, constrs_with_modified_rhs)
 end
 
 function print_preprocessing_list(alg::AlgToPreprocessNode)
-    println("vars preprocessed:")
+    println("vars preprocessed (changed bounds):")
     for var in alg.preprocessed_vars
-        println("var $(var.vc_ref)")
+        println("var $(var.vc_ref) $(var.cur_lb) $(var.cur_ub)")
+    end
+    println("constrs preprocessed (changed rhs):")
+    for constr in alg.preprocessed_constrs
+        println("constr $(constr.vc_ref)")
     end
 end
 
@@ -185,7 +219,8 @@ function reset(alg::AlgToPreprocessNode)
 end
 
 function initialize_constraints(alg::AlgToPreprocessNode,
-                                vars_with_modified_bounds::Vector{Variable})
+                                vars_with_modified_bounds::Vector{Variable},
+                                constrs_with_modified_rhs::Vector{MasterConstr})
     # Contains the constraints to start propagation
     constrs_to_stack = Constraint[]
 
@@ -194,7 +229,7 @@ function initialize_constraints(alg::AlgToPreprocessNode,
     for constr in master.constr_manager.active_static_list
         if !isa(constr, ConvexityConstr)
             initialize_constraint(alg, constr)
-            if alg.depth == 0
+            if alg.depth == 0 
                 push!(constrs_to_stack, constr)
             end
         end
@@ -203,10 +238,7 @@ function initialize_constraints(alg::AlgToPreprocessNode,
     # Dynamic master constraints
     for constr in master.constr_manager.active_dynamic_list
         initialize_constraint(alg, constr)
-        if alg.depth == 0
-            push!(constrs_to_stack, constr)
-        elseif (alg.depth > 0 && isa(constr, MasterBranchConstr)
-                && constr.depth_when_generated == alg.depth - 1)
+        if constr.depth_when_generated == alg.depth - 1
             push!(constrs_to_stack, constr)
         end
     end
@@ -221,14 +253,24 @@ function initialize_constraints(alg::AlgToPreprocessNode,
         end
     end
 
-    # We add to the stack all constraints that contain a variable modified by fixing
+    # We add to the stack all constraints affected
+    # by the fixing of the local partial sol
+    for constr in constrs_with_modified_rhs
+        if  !(constr in constrs_to_stack)
+            push!(constrs_to_stack, constr)
+        end
+    end
     for var in vars_with_modified_bounds
         for (constr, coef) in alg.var_local_master_membership[var]
-            push!(constrs_to_stack, constr)
+            if  !(constr in constrs_to_stack)
+                push!(constrs_to_stack, constr)
+            end
         end
         if isa(var, SubprobVar)
             for (constr, coef) in alg.var_local_sp_membership[var]
-                push!(constrs_to_stack, constr)
+                if  !(constr in constrs_to_stack)
+                    push!(constrs_to_stack, constr)
+                end
             end
         end
     end
@@ -394,8 +436,8 @@ function update_max_slack(alg::AlgToPreprocessNode, constr::Constraint,
     if nb_inf_sources == 0
         if constr.sense != 'G' && alg.cur_max_slack[constr] < 0
             return true
-        elseif constr.sense != 'L' && alg.cur_max_slack[constr] <= 0
-            add_to_preprocessing_list(alg, constr)
+        elseif constr.sense == 'G' && alg.cur_max_slack[constr] <= 0
+            #add_to_preprocessing_list(alg, constr)
             return false
         end
     end
@@ -418,8 +460,8 @@ function update_min_slack(alg::AlgToPreprocessNode, constr::Constraint,
     if nb_inf_sources == 0
         if constr.sense != 'L' && alg.cur_min_slack[constr] > 0
             return true
-        elseif constr.sense != 'G' && alg.cur_min_slack[constr] >= 0
-            add_to_preprocessing_list(alg, constr)
+        elseif constr.sense == 'L' && alg.cur_min_slack[constr] >= 0
+            #add_to_preprocessing_list(alg, constr)
             return false
         end
     end
@@ -640,12 +682,11 @@ function compute_new_var_bound(alg::AlgToPreprocessNode, var::Variable, cur_lb::
         return bound
     end
 
-    if coef > 0 && constr.sense != 'G'
+    if coef > 0 && constr.sense == 'L'
         is_ub = true
         return (is_ub, compute_new_bound(alg.nb_inf_sources_for_max_slack[constr],
                                          alg.cur_max_slack[constr], -coef*cur_lb, Inf))
     elseif coef > 0 && constr.sense != 'L'
-
         is_ub = false
         return (is_ub, compute_new_bound(alg.nb_inf_sources_for_min_slack[constr], 
                                          alg.cur_min_slack[constr], -coef*cur_ub, -Inf))
@@ -726,34 +767,48 @@ end
 function find_infeasible_columns(master::CompactProblem,
                                  preproc_vars::Vector{Variable})
     infeas_cols = Variable[]
-    # This assumes that the coef of a sp var has the same sign in all columns
+    
     for var in preproc_vars
-        # If a variable is free, we cannot impose bounds in columns
-        if var.lower_bound < 0.0 && var.upper_bound > 0.0
+        if !isa(var, SubprobVar)
             continue
         end
-        if isa(var, SubprobVar)
-            lb, ub = var.cur_global_lb, var.cur_global_ub
-        else
-            lb, ub = var.cur_lb, var.cur_ub
-        end
+        lb, ub = var.cur_lb, var.cur_ub
         for master_col in master.var_manager.active_dynamic_list
+            #skipping column if it is a solution to another subproblem
+            sp_prob_ref = -1
+            for (sp_var, val) in master_col.solution.var_val_map
+                sp_prob_ref = var.prob_ref
+                break
+            end
+            @assert sp_prob_ref != -1
+            if sp_prob_ref != var.prob_ref
+                continue
+            end
+
+            #detecting infeasibility
             if haskey(master_col.solution.var_val_map, var)
-                coef_in_col = master_col.solution.var_val_map[var]
-                if coef_in_col > 0 && coef_in_col >= ub + 0.0001
-                    update_var_status(master, master_col, Unsuitable)
-                    push!(infeas_cols, master_col)
-                elseif coef_in_col < 0 && coef_in_col <= lb - 0.0001
-                    update_var_status(master, master_col, Unsuitable)
+                value_in_col = master_col.solution.var_val_map[var]
+            else
+                value_in_col = 0.0
+            end
+            if !(lb - 0.0001 <= value_in_col <= ub + 0.0001)
+                if !(master_col in infeas_cols)
+                    #println("inf col ", value_in_col, " ", lb, " ", ub)
                     push!(infeas_cols, master_col)
                 end
             end
         end
     end
+    #println("preprocess info:", length(preproc_vars), " ", length(infeas_cols), " ", length(master.var_manager.active_dynamic_list))
+    for master_col in infeas_cols
+        update_var_status(master, master_col, Unsuitable)
+    end
     return infeas_cols
 end
 
-function apply_preprocessing(alg::AlgToPreprocessNode)
+function apply_preprocessing(alg::AlgToPreprocessNode,
+                   local_fixed_partial_sol::Union{Nothing,PrimalSolution} = nothing)
+
     @timeit to(alg) "Preprocess" begin
 
     if isempty(alg.preprocessed_vars)
@@ -772,5 +827,15 @@ function apply_preprocessing(alg::AlgToPreprocessNode)
         optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
         enforce_current_bounds_in_optimizer(optimizer, v)
     end
+    for constr in alg.preprocessed_constrs
+        # This assumes that preprocessed constraints are only from master
+        @assert constr isa MasterConstr
+        update_constr_rhs_in_optimizer(master.optimizer, constr)
     end
- end
+
+    # #changing cost of fixed partial solution
+    # if local_fixed_partial_sol != nothing
+        # #TODO
+    # end
+end
+end

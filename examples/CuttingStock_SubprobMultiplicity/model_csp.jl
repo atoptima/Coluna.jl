@@ -1,9 +1,9 @@
 function model_scsp(d::DataCsp)
     params = Coluna.Params(use_restricted_master_heur = true,
                            max_num_nodes = 1,
-                           restricted_master_heur_solver_type = CPLEX.Optimizer)
+                           restricted_master_heur_solver_type = GLPK.Optimizer)
 
-    csp = Model(with_optimizer(Coluna.ColunaModelOptimizer, params = params,
+    csp = Model(with_optimizer(Coluna.Optimizer, params = params,
                                # master_factory = with_optimizer(Gurobi.Optimizer),
                                # pricing_factory = with_optimizer(Gurobi.Optimizer)),
                                # master_factory = with_optimizer(CPELX.Optimizer),

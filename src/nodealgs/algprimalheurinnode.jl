@@ -24,10 +24,11 @@ function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::Int,
     load_problem_in_optimizer(master_problem, mip_optimizer, false)
     end
     @timeit to(alg) "Solving" begin
-    sols = optimize(master_problem, mip_optimizer)
+    status, primal_sol, dual_sol = optimize(
+        master_problem; optimizer = mip_optimizer, update_problem = false
+    )
     end
-    if sols[2] != nothing
-        primal_sol = sols[2]
+    if primal_sol != nothing
         @logmsg LogLevel(-2) "Restricted Master Heur found sol: $primal_sol"
     else
         primal_sol = PrimalSolution()
@@ -46,11 +47,12 @@ end
 
 function AlgToPrimalHeurBySimpleDivingBuilder(prob::ExtendedProblem, dual_bound::Float,
                            problem_setup_info::SetupInfo)
-    return tuplejoin(AlgToPrimalHeurInNodeBuilder(prob), 
-                     DivingNodeBuilder(problem, dual_bound, problem_setup_info))
+
+     return tuplejoin(AlgToPrimalHeurInNodeBuilder(prob), 
+                      DivingNode(prob, dual_bound, problem_setup_info, PrimalSolution()))
 end
 
-function run(alg::AlgToPrimalHeurBySimpleDiving, global_treat_order::Int, 
+function run(alg::AlgToPrimalHeurBySimpleDiving, global_treat_order::TreatOrder, 
              primal_sol::PrimalSolution)
 
     nb_treated_nodes = 0

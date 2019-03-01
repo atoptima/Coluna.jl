@@ -15,6 +15,7 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
 
     ### Model constructors
     model = CL.ModelConstructor()
+    model.params.node_eval_mode = CL.Lp
     params = model.params
     callback = model.callback
     extended_problem = model.extended_problem
@@ -28,7 +29,7 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
         constr = CL.MasterConstr(master_problem.counter,
             string("knapConstr_", i), binscap[i], 'L', 'M', 's')
         push!(knap_constrs, constr)
-        CL.add_constraint(master_problem, constr; update_moi = true)
+        CL.add_constraint(master_problem, constr; update_moi = false)
     end
 
     cover_constrs = CL.MasterConstr[]
@@ -36,7 +37,7 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
         constr = CL.MasterConstr(master_problem.counter,
             string("CoverCons_", j), 1.0, 'L', 'M', 's')
         push!(cover_constrs, constr)
-        CL.add_constraint(master_problem, constr; update_moi = true)
+        CL.add_constraint(master_problem, constr; update_moi = false)
     end
 
     x_vars = Vector{Vector{CL.MasterVar}}()
@@ -46,9 +47,9 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
             x_var = CL.MasterVar(master_problem.counter, string("x(", j, ",", i, ")"),
                 profits[j], 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
             push!(x_vec, x_var)
-            CL.add_variable(master_problem, x_var; update_moi = true)
-            CL.add_membership(x_var, cover_constrs[j], 1.0; optimizer = master_problem.optimizer)
-            CL.add_membership(x_var, knap_constrs[i], weights[j]; optimizer = master_problem.optimizer)
+            CL.add_variable(master_problem, x_var; update_moi = false)
+            CL.add_membership(x_var, cover_constrs[j], 1.0; optimizer = nothing)
+            CL.add_membership(x_var, knap_constrs[i], weights[j]; optimizer = nothing)
         end
         push!(x_vars, x_vec)
     end
@@ -56,11 +57,57 @@ function build_coluna_model(n_items::Int, nb_bins::Int,
     return model
 end
 
+function build_gap_coluna_model(nb_jobs::Int, nb_machs::Int, caps::Vector{Float64},
+         costs::Vector{Vector{Float64}}, weights::Vector{Vector{Float64}})
+
+    ### Model constructors
+    model = CL.ModelConstructor()
+    params = model.params
+    callback = model.callback
+    extended_problem = model.extended_problem
+    counter = model.extended_problem.counter
+    master_problem = extended_problem.master_problem
+    model.problemidx_optimizer_map[master_problem.prob_ref] = GLPK.Optimizer()
+    CL.set_model_optimizers(model)
+
+    knap_constrs = CL.MasterConstr[]
+    for i in 1:nb_machs
+        constr = CL.MasterConstr(master_problem.counter,
+            string("knapConstr_", i), caps[i], 'L', 'M', 's')
+        push!(knap_constrs, constr)
+        CL.add_constraint(master_problem, constr; update_moi = true)
+    end
+
+    cover_constrs = CL.MasterConstr[]
+    for j in 1:nb_jobs
+        constr = CL.MasterConstr(master_problem.counter,
+            string("CoverCons_", j), 1.0, 'G', 'M', 's')
+        push!(cover_constrs, constr)
+        CL.add_constraint(master_problem, constr; update_moi = true)
+    end
+
+    x_vars = Vector{Vector{CL.MasterVar}}()
+    for i in 1:nb_machs
+        x_vec = CL.MasterVar[]
+        for j in 1:nb_jobs
+            x_var = CL.MasterVar(master_problem.counter, string("x(", i, ",", j, ")"),
+                                 costs[i][j], 'P', 'I', 's', 'U', 1.0, 0.0, 1.0)
+            push!(x_vec, x_var)
+            CL.add_variable(master_problem, x_var; update_moi = true)
+            CL.add_membership(x_var, cover_constrs[j], 1.0; optimizer = master_problem.optimizer)
+            CL.add_membership(x_var, knap_constrs[i], weights[i][j]; optimizer = master_problem.optimizer)
+        end
+        push!(x_vars, x_vec)
+    end
+
+    return model, x_vars
+end
+
 function build_colgen_gap_model_with_moi(nb_jobs::Int, nb_machs::Int, caps::Vector{Float64},
                                          costs::Vector{Vector{Float64}}, weights::Vector{Vector{Float64}},
                                          bound_vars::Bool)
 
-    coluna_optimizer = CL.ColunaModelOptimizer()
+    coluna_optimizer = CL.Optimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 

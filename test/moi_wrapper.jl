@@ -14,7 +14,7 @@ function test_moi_optimize_and_getters() ## change
         binscap = [ 10.0,   2.0,  10.0]
 
         model = build_coluna_model(n_items, nb_bins, profits, weights, binscap)
-        coluna_optimizer = CL.ColunaModelOptimizer()
+        coluna_optimizer = CL.Optimizer()
 
         @test MOI.is_empty(coluna_optimizer) == true
         coluna_optimizer.inner = model
@@ -43,6 +43,8 @@ function test_moi_copy_optimize_and_getters()
         # Builds a caching optimizer model using Coluna as solver
         caching_optimizer = build_model_1(n_items, nb_bins, profits,
                                           weights, binscap)
+        caching_optimizer.optimizer.inner.params.node_eval_mode = CL.Lp
+
 
         MOI.optimize!(caching_optimizer)
         @test MOI.get(caching_optimizer, MOI.ObjectiveValue()) == -80.0
@@ -64,29 +66,24 @@ end
 function test_moi_annotations()
     @testset "MOI wrapper: annotations" begin
 
-        coluna_optimizer = CL.ColunaModelOptimizer()
+        coluna_optimizer = CL.Optimizer()
         universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
         moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
-        ## Subproblem variables
+        # Subproblem variables
         x1 = MOI.add_variable(moi_model)
         MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), x1, 1)
 
-        ## Subproblem constrs
+        # Subproblem constrs
         knp_constr = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([3.0], [x1]), 0.0), MOI.LessThan(0.0))
         MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr, 1)
 
-        ## Master variable
-        art_glob_var = MOI.add_variable(moi_model)
-        MOI.set(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var, 0)
-
-        ## Masrer constraint
-        cov = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x1, art_glob_var]), 0.0), MOI.GreaterThan(1.0))
+        # Master constraint
+        cov = MOI.add_constraint(moi_model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x1]), 0.0), MOI.GreaterThan(1.0))
         MOI.set(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov, 0)
 
         @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), cov) == 0
         @test MOI.get(moi_model, CL.ConstraintDantzigWolfeAnnotation(), knp_constr) == 1
-        @test MOI.get(moi_model, CL.VariableDantzigWolfeAnnotation(), art_glob_var) == 0
         @test MOI.get(moi_model, CL.VariableDantzigWolfeAnnotation(), x1) == 1
     end
 end
@@ -106,7 +103,7 @@ end
 
 function build_colgen_root_model_with_moi()
 
-    coluna_optimizer = CL.ColunaModelOptimizer()
+    coluna_optimizer = CL.Optimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
@@ -154,7 +151,7 @@ end
 
 function build_model_2()
 
-    coluna_optimizer = CL.ColunaModelOptimizer()
+    coluna_optimizer = CL.Optimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 
@@ -196,7 +193,7 @@ function build_model_1(n_items::Int, nb_bins::Int,
                        weights::Vector{Float64},
                        binscap::Vector{Float64})
 
-    coluna_optimizer = CL.ColunaModelOptimizer()
+    coluna_optimizer = CL.Optimizer()
     universal_fallback_model = MOIU.UniversalFallback(ModelForCachingOptimizer{Float64}())
     moi_model = MOIU.CachingOptimizer(universal_fallback_model, coluna_optimizer)
 

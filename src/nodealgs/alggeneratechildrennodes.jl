@@ -73,14 +73,20 @@ end
 
 function generate_branch_constraint(alg::AlgToGenerateChildrenNodes,
         depth::Int, var_to_branch::Variable, sense::Char, rhs::Float)
+    extended_problem = alg.extended_problem
     constr = MasterBranchConstrConstructor(
-        alg.extended_problem.counter,
+        extended_problem.counter,
         string("branch_",var_to_branch.name,"_",sense, "_", depth),
         rhs, sense, depth, var_to_branch
     )
+    # if extended_problem.params.node_eval_mode == SimplexCg
+    #     attach_art_var(extended_problem.art_var_manager,
+    #                    extended_problem.master_problem, constr)
+    # end
     push!(alg.generated_branch_constraints, constr)
-    @logmsg LogLevel(-4) string("Generated branching 
-                constraint with reference ", branch_constr.vc_ref)
+    @logmsg LogLevel(-4) string(
+        "Generated branching constraint with reference ",
+        branch_constr.vc_ref)
 end
 
 function generate_children(node::Node, alg::AlgToGenerateChildrenNodes)
