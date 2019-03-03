@@ -20,58 +20,55 @@ you may want to check its [documentation]
 
 Consider a set of machines `Machines = 1:M` and a set of jobs `Jobs = 1:J`.
 A machine `m` has a resource capacity `Capacity[m]`. When we assign a job
-`j` to a machine `m`, the job has a cost `Cost[m,j]` and consumes
-`Weight[m,j]` resources of the machine `m`. The goal is to minimize the jobs
+`j` to a machine `m`, the job has a cost `Cost[m, j]` and consumes
+`Weight[m, j]` resources of the machine `m`. The goal is to minimize the jobs
 cost sum by assigning each job to a machine while not exceeding the capacity of
-each machine. The model is:
+each machine. Let `x[m,j]` equals one if job `j` is assigned to machine `m`. 
+The model is:
 
 ```julia
-@variable(gap, x[m in data.machines, j in data.jobs], Bin)
+@variable(gap, x[m in Machines, j in Jobs], Bin)
 
-@constraint(gap, cov[j in data.jobs],
-        sum(x[m,j] for m in data.machines) >= 1)
+@constraint(gap, cov[j in Jobs],
+        sum(x[m,j] for m in Machines) >= 1)
 
 @constraint(gap, knp[m in data.machines],
-        sum(data.weight[j, m] * x[m, j] for j in data.jobs) <= data.capacity[m])
+        sum(Weight[m, j] * x[m, j] for j in Jobs) <= Capacity[m])
 
 @objective(gap, Min,
-        sum(data.cost[j, m] * x[m, j] for m in data.machines, j in data.jobs))
+        sum(Cost[m, j] * x[m, j] for m in Machines, j in Jobs))
 ```
 
 ## Decomposition
 
-The decomposition is described through the following annotations:
+You describe the decomposition through an `axis` that is the set
+of indices on which Coluna will do the decomposition.
+
+In our example problem, you should do the decomposition
+over the machines. Therefore, you must declare an `axis` along the set
+of machines.
 
 ```julia
-# setting constraint annotations for the decomposition
-for j in data.jobs
-    set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), cov[j], 0)
-end
-for m in data.machines
-    set(gap, Coluna.ConstraintDantzigWolfeAnnotation(), knp[m], m)
-end
-
-# setting variable annotations for the decomposition
-for m in data.machines, j in data.jobs
-    set(gap, Coluna.VariableDantzigWolfeAnnotation(), x[m, j], m)
-end
+@axis(gap, M, Machines)
 ```
 
-The decomposition can also be described in a more compact functional way:
+Then, you state that the Dantzig-Wolfe decomposition will be done along
+the set of machines.
 
 ```julia
-function gap_decomp_func(name, key)
-    if name in [:knp, :x]
-        return key[1]
-    else
-        return 0
-    end
-end
-Coluna.set_dantzig_wolfe_decompostion(gap, gap_decomp_func)
+@dantzig_wolfe_decomposition(gap, sp[M])
 ```
 
-Now you can solve the problem and get the solution values as you do with
-JuMP when using any other Optimizer.
+It means that each variables and constraints of the model that have an 
+index defined over the axis `M` will be put in the Dantzig-Wolfe subproblem
+with id equals to the value of the index. 
+
+For instance, variable `x[3, j]`, equals one if job `j` is assigned to the machine
+`3`, will be put in the third Dantzig-Wolfe subproblem.
+
+Note that `@dantzig_wolfe_decomposition` returns a container of subproblem
+annotation. For instance, you can handle the third subproblem with `sp[3]`
+or the master problem with `master(sp)`.
 
 ## Logs
 
@@ -125,3 +122,4 @@ the time consumed and the allocations made in most critical sections.
 
 Other examples are available [here]
 (https://github.com/atoptima/Coluna.jl/tree/master/examples)
+
