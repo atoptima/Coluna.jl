@@ -61,10 +61,14 @@ the set of machines.
 
 It means that each variables and constraints of the model that have an 
 index defined over the axis `M` will be put in the Dantzig-Wolfe subproblem
-with id equals to the value of the index. 
+with id equals to the value of the index. Others will be put in the master
+problem.
+
+**draw example here**
 
 For instance, variable `x[3, j]`, equals one if job `j` is assigned to the machine
-`3`, will be put in the third Dantzig-Wolfe subproblem.
+`3`, will be put in the third Dantzig-Wolfe subproblem. Although, constraints `cov`
+will be put in the master.
 
 Note that `@dantzig_wolfe_decomposition` returns a container of subproblem
 annotation. For instance, you can handle the third subproblem with `sp[3]`
