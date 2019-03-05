@@ -1,26 +1,44 @@
-struct Axis{T <: Integer}
-  set::UnitRange{T}
-  symmetry::Bool
+import Base.length
+import Base.iterate
+
+struct DecompositionAxis{T}
+  vector::Vector{T}
+  identical::Bool
+end
+
+name(axis::DecompositionAxis) =  axis.name
+iterate(axis::DecompositionAxis) = iterate(axis.vector)
+iterate(axis::DecompositionAxis) = iterate(axis.vector, state)
+length(axis::DecompositionAxis) = length(axis.vector)
+identical(axis::DecompositionAxis) = axis.identical
+
+struct DecompositionAxisArray{K, T}
+  data::Dict{K, DecompositionAxis{T}}
 end
 
 macro axis(args...)
-  nbargs = length(args)
-  if nbargs < 2 || nbargs > 3
-    error("Incorrect number of arguments.")
+  definition = args[1]
+  values = args[2]
+  identical = false
+  if length(args) == 3 && args[3] == :Identical
+    identical = true
   end
-  axisname = args[1]
-  range = args[2]
-  symmetry = false
-  if nbargs == 3
-    kwarg = string(args[3])
-    m = match(r"^symmetry ?= ?(true|false)$", kwarg)
-    if m != nothing
-      if m[1] == "true"
-        symmetry = true
+  exp = :()
+  name = definition
+  if typeof(definition) != Symbol
+    exp = :(commandline())
+    name = definition.args[1]
+    for loop in reverse(definition.args[2:end])
+      (loop.args[1] != :in) && error("Should be a loop.")
+      exp = quote 
+        for $(loop.args[2]) = $(loop.args[3])
+          $exp
+        end 
       end
-    else
-      error("Third argument has incorrect syntax $kwarg")
     end
   end
-  return esc(:($axisname = Coluna.Axis($range, $symmetry)))
+  @show name
+  @show values
+  @show identical
+  @show exp
 end
