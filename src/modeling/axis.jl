@@ -3,35 +3,52 @@ import Base.iterate
 import Base.getindex
 
 struct DecompositionAxis{T}
-  vector::Vector{T}
+  name::Symbol
+  id::Tuple
+  container::T
   identical::Bool
+  function DecompositionAxis(n::Symbol, id::Tuple, c::T, i::Bool) where {T}
+    if applicable(iterate, c) && applicable(iterate, c, iterate(c))
+      return new{T}(n, id, c, i)
+    end
+    error("Object must be iterable.")
+  end
 end
 
-DecompositionAxis(r::UnitRange, i::Bool) = DecompositionAxis(collect(r), i)
-
 name(axis::DecompositionAxis) =  axis.name
-iterate(axis::DecompositionAxis) = iterate(axis.vector)
-iterate(axis::DecompositionAxis, state) = iterate(axis.vector, state)
-length(axis::DecompositionAxis) = length(axis.vector)
+id(axis::DecompositionAxis) = axis.id
+iterate(axis::DecompositionAxis) = iterate(axis.container)
+iterate(axis::DecompositionAxis, state) = iterate(axis.container, state)
+length(axis::DecompositionAxis) = length(axis.container)
 identical(axis::DecompositionAxis) = axis.identical
 
 macro axis(args...)
   definition = args[1]
-  values = args[2]
+  container = args[2]
   identical = _axis_identical_(args)
   exp = :()
-  name = definition
   if typeof(definition) != Symbol
-    exp = _build_axis_array_(definition, values, identical)
+    exp = _build_axis_array_(definition, container, identical)
   else
-    exp = :($name = Coluna.DecompositionAxis($values, $identical))
+    name = definition
+    exp = :($name = $(_axis_(name, container, identical)))
   end
   return esc(exp)
 end
 
+function _axis_(name, id, container, i::Bool)
+  sym_name = Meta.parse("Symbol(\"" * string(name) * "\")")
+  return :(Coluna.DecompositionAxis($sym_name, $id, $container, $i))
+end
+_axis_(name, container, i::Bool) = _axis_(name, :(tuple()), container, i)
+
 function _axis_identical_(args)
-  if length(args) == 3 && args[3] == :Identical
-    return true
+  if length(args) == 3
+    if args[3] == :Identical
+      return true
+    else
+      error("Third argument must be Identical but it is optional.")
+    end
   end
   return false
 end
@@ -44,13 +61,12 @@ function _axis_array_indices_(loops)
   return Meta.parse(indices * ")")
 end
 
-function _build_axis_array_(definition, values, identical)
+function _build_axis_array_(definition, container, identical)
   nb_loops = length(definition.args) - 1
-  start =:(local axes_dict = Dict{NTuple{$nb_loops, Any}, Coluna.DecompositionAxis{eltype($values)}}())
-  @show start
-  indices = _axis_array_indices_(definition.args[2:end])
-  exp_loop = :(get!(axes_dict, $indices, Coluna.DecompositionAxis($values, $identical)))
+  start =:(local axes_dict = Dict{NTuple{$nb_loops, Any}, Coluna.DecompositionAxis{eltype($container)}}())
   name = definition.args[1]
+  indices = _axis_array_indices_(definition.args[2:end])
+  exp_loop = :(get!(axes_dict, $indices, $(_axis_(name, indices, container, identical))))
   for loop in reverse(definition.args[2:end])
     (loop.args[1] != :in) && error("Should be a loop.")
     exp_loop = quote 
