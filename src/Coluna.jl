@@ -30,7 +30,7 @@ global __initial_solve_time = 0.0
         (),
         ())
 
-include("/Users/tbulhoes/.julia/dev/SimpleDebugger.jl/src/SimpleDebugger.jl")
+# include("/Users/tbulhoes/.julia/dev/SimpleDebugger.jl/src/SimpleDebugger.jl")
 
 include("parameters.jl")
 include("utils.jl")
