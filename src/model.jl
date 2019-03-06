@@ -66,6 +66,16 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
                                                    params.node_eval_mode)
     end
 
+    if false
+         push!(treat_algs.alg_vect_primal_heur_node,
+              AlgToPrimalHeurBySimpleDiving(
+                  extended_problem,
+                  node.node_inc_ip_dual_bound,
+                  node.problem_setup_info)
+              )
+    end
+
+
     if params.use_restricted_master_heur
         push!(treat_algs.alg_vect_primal_heur_node,
               AlgToPrimalHeurByRestrictedMip(
@@ -128,9 +138,13 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
 end
 
 function prepare_node_for_treatment(extended_problem::ExtendedProblem,
-        node::DivingNode, treat_algs::TreatAlgs, global_nodes_treat_order::Int)
+        node::DivingNode, treat_algs::TreatAlgs, global_treat_order::TreatOrder)
     println("************************************************************")
     println("Preparing diving root node for treatment.")
+    println("Preparing diving node ", global_treat_order.value)
+    println("Current primal bound is ", extended_problem.primal_inc_bound)
+    println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
+
 
     treat_algs.alg_generate_children_nodes = DivingGenerateChildAlg(node.depth,
                                                                extended_problem)
@@ -139,11 +153,11 @@ end
 
 function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         node::DivingNodeWithParent, treat_algs::TreatAlgs,
-        global_nodes_treat_order::Int)
+        global_treat_order::TreatOrder)
 
     println("************************************************************")
-    println("Preparing diving node ", global_nodes_treat_order,
-        " for treatment. Parent is ", node.parent.treat_order, ".")
+    println("Preparing diving node ", global_treat_order.value,
+        " for treatment. Parent is ", node.parent.treat_order.value, ".")
     println("Current primal bound is ", extended_problem.primal_inc_bound)
     println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
 
@@ -152,9 +166,9 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         return false
     end
 
-    if global_nodes_treat_order == node.parent.treat_order+1
+    if global_treat_order.value == node.parent.treat_order.value+1
         treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
-            node.problem_setup_info, node.local_branching_constraints)
+                                                            node.problem_setup_info, node.local_branching_constraints)
     else
         treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
             node.problem_setup_info, node.local_branching_constraints)

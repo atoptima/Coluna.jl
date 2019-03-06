@@ -38,14 +38,27 @@ end
 
 function run(alg::AlgToPreprocessNode,
              local_partial_sol::Union{Nothing,PrimalSolution} = nothing)
+
+    # if local_partial_sol != nothing
+        # println("running preprocess with partial sol:")
+        # for (var, val) in local_partial_sol.var_val_map
+            # println("var ", var.vc_ref, " with val=", val)
+            # for (sp_var, sp_var_val) in var.solution.var_val_map
+                # println("sp_var", sp_var.vc_ref, " val:", val)
+            # end
+        # end
+    # end
+
     reset(alg)
+    compute_local_memberships(alg)
+
     if local_partial_sol != nothing
         # Change sp bounds, global bounds of var and rhs of master constraints
         (vars_with_modified_bounds,
          constrs_with_modified_rhs) = fix_local_partial_solution(alg, local_partial_sol)
     else
         (vars_with_modified_bounds,
-         constrs_with_modified_rhs) = Variable[], Constraint[]
+         constrs_with_modified_rhs) = Variable[], MasterConstr[]
     end
     # Compute slacks and add constraints to stack
     if initialize_constraints(alg, vars_with_modified_bounds, constrs_with_modified_rhs)
@@ -54,9 +67,9 @@ function run(alg::AlgToPreprocessNode,
     # Now we try to update local bounds of sp vars
     if local_partial_sol != nothing
         for var in vars_with_modified_bounds
-            if isa(SubprobVar, var)
+            if isa(var, SubprobVar)
                 update_global_lower_bound(alg, var, var.cur_global_lb, false)
-                update_global_lower_bound(alg, var, var.cur_global_lb, false)
+                update_global_upper_bound(alg, var, var.cur_global_ub, false)
             end
         end
     end
@@ -66,28 +79,42 @@ function run(alg::AlgToPreprocessNode,
     end
     if !infeas
         apply_preprocessing(alg)
+
+        # if local_partial_sol != nothing
+            # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
+            # GLPK.write_lp(glpk_prob, string("mip_d", 3,".lp")) 
+            # exit()
+        # end
     end
     return infeas
 end
 
 function change_sp_bounds(alg::AlgToPreprocessNode, local_partial_sol::PrimalSolution)
     sps_with_modified_bounds = []
-    for (var, val) in local_partial_sol.var_vals
+    for (var, val) in local_partial_sol.var_val_map
         if isa(var, MasterColumn)
-            sp_ref = var.prob_ref
+            sp_ref = -1
+            for (sp_var, sp_var_val) in var.solution.var_val_map
+                sp_ref = sp_var.prob_ref
+                break
+            end
+            @assert sp_ref != -1
             sp_prob = get_problem(alg.extended_problem, sp_ref)
+ 
             if alg.cur_sp_bounds[sp_ref][1] > 0
-                alg.cur_sp_bounds[sp_ref][1] -= 1
+                alg.cur_sp_bounds[sp_ref] = (alg.cur_sp_bounds[sp_ref][1] - 1, alg.cur_sp_bounds[sp_ref][2])
                 conv_lb_constr = alg.extended_problem.pricing_convexity_lbs[sp_prob]
                 conv_lb_constr.cur_cost_rhs -= 1
                 add_to_preprocessing_list(alg, conv_lb_constr)
             end
-            alg.cur_sp_bounds[sp_ref][2] -= 1
+
+            alg.cur_sp_bounds[sp_ref] = (alg.cur_sp_bounds[sp_ref][1], alg.cur_sp_bounds[sp_ref][2] - 1)
             conv_ub_constr = alg.extended_problem.pricing_convexity_ubs[sp_prob]
             conv_ub_constr.cur_cost_rhs -= 1
             add_to_preprocessing_list(alg, conv_ub_constr)
-            @assert alg.cur_sp_bounds[sp_ref[2]] >= 0
-            if !(sp_ref in sps_with_modified_bounds)
+            @assert alg.cur_sp_bounds[sp_ref][2] >= 0
+
+            if !(sp_prob in sps_with_modified_bounds)
                 push!(sps_with_modified_bounds, sp_prob)
             end
         end
@@ -97,13 +124,13 @@ end
 
 function project_local_partial_solution(local_partial_sol::PrimalSolution)
     user_vars_vals = Dict{Variable,Float}()
-    for (var, val) in local_partial_sol.var_vals
+    for (var, val) in local_partial_sol.var_val_map
         if isa(var, MasterColumn)
             for (user_var, user_var_val) in var.solution.var_val_map
-                if !haskey(user_var_vals, user_var)
-                    user_var_vals[user_var] = user_var_val
+                if !haskey(user_vars_vals, user_var)
+                    user_vars_vals[user_var] = user_var_val
                 else
-                    user_var_vals[user_var] += user_var_val
+                    user_vars_vals[user_var] += user_var_val
                 end
             end
         elseif isa(var, MasterVar)
@@ -112,7 +139,7 @@ function project_local_partial_solution(local_partial_sol::PrimalSolution)
             error("subprob vars are not expected in a partial solution")
         end
     end
-    return user_var_vals
+    return user_vars_vals
 end
 
 function fix_local_partial_solution(alg::AlgToPreprocessNode,
@@ -124,7 +151,7 @@ function fix_local_partial_solution(alg::AlgToPreprocessNode,
     # Updating rhs of master constraints
     # master vars of partial_sol are ignored here 
     # because we only change their bounds
-    constrs_with_modified_rhs = Constraint[]
+    constrs_with_modified_rhs = MasterConstr[]
     for (var, val) in user_vars_vals
         if isa(var, SubprobVar)
             for (constr, coef) in alg.var_local_master_membership[var]
@@ -146,10 +173,11 @@ function fix_local_partial_solution(alg::AlgToPreprocessNode,
     end
     
     # Changing global bounds of subprob variables
-    for sp_prob in sp_with_modified_bounds
+    for sp_prob in sps_with_modified_bounds
         (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[sp_prob.prob_ref]
+        
         for var in sp_prob.var_manager.active_static_list
-            var_val_in_local_sol = var in user_var_vals ? user_vars_vals[var] : 0.0
+            var_val_in_local_sol = haskey(user_vars_vals, var) ? user_vars_vals[var] : 0.0
             bounds_changed = false
 
             new_global_lb = max(var.cur_global_lb - var_val_in_local_sol, 
@@ -172,6 +200,9 @@ function fix_local_partial_solution(alg::AlgToPreprocessNode,
         end
     end
 
+    # for var in vars_with_modified_bounds
+        # println("var $(var.vc_ref) modified bounds $(var.cur_global_lb) $(var.cur_global_lb)")
+    # end
     return (vars_with_modified_bounds, constrs_with_modified_rhs)
 end
 
@@ -182,7 +213,7 @@ function print_preprocessing_list(alg::AlgToPreprocessNode)
     end
     println("constrs preprocessed (changed rhs):")
     for constr in alg.preprocessed_constrs
-        println("constr $(constr.vc_ref)")
+        println("constr $(constr.vc_ref) $(constr.cur_cost_rhs)")
     end
 end
 
@@ -215,7 +246,6 @@ function reset(alg::AlgToPreprocessNode)
     empty!(alg.cur_max_slack)
     empty!(alg.nb_inf_sources_for_max_slack)
     empty!(alg.nb_inf_sources_for_min_slack)
-    empty!(alg.nb_inf_sources_for_max_slack)
 end
 
 function initialize_constraints(alg::AlgToPreprocessNode,
@@ -288,7 +318,6 @@ end
 
 function initialize_constraint(alg::AlgToPreprocessNode, constr::Constraint)
     alg.constr_in_stack[constr] = false
-    update_local_membership(alg, constr)
     alg.nb_inf_sources_for_min_slack[constr] = 0
     alg.nb_inf_sources_for_max_slack[constr] = 0
     compute_min_slack(alg, constr)
@@ -298,7 +327,29 @@ function initialize_constraint(alg::AlgToPreprocessNode, constr::Constraint)
     end
 end
 
-function update_local_membership(alg::AlgToPreprocessNode, constr::MasterConstr)
+function compute_local_memberships(alg::AlgToPreprocessNode)
+    # Static master constraints
+    master = alg.extended_problem.master_problem
+    for constr in master.constr_manager.active_static_list
+        if !isa(constr, ConvexityConstr)
+            compute_local_membership(alg, constr)
+        end
+    end
+
+    # Dynamic master constraints
+    for constr in master.constr_manager.active_dynamic_list
+        update_local_membership(alg, constr)
+    end
+
+    # Subproblem constraints
+    for subprob in alg.extended_problem.pricing_vect
+        for constr in subprob.constr_manager.active_static_list
+            compute_local_membership(alg, constr)
+        end
+    end
+end
+
+function compute_local_membership(alg::AlgToPreprocessNode, constr::MasterConstr)
     for map in [constr.member_coef_map, constr.subprob_var_coef_map]
         for (var, coef) in map
             if !haskey(alg.var_local_master_membership, var)
@@ -310,7 +361,7 @@ function update_local_membership(alg::AlgToPreprocessNode, constr::MasterConstr)
     end
 end
 
-function update_local_membership(alg::AlgToPreprocessNode, constr::Constraint)
+function compute_local_membership(alg::AlgToPreprocessNode, constr::Constraint)
     for (var, coef) in constr.member_coef_map
         if !haskey(alg.var_local_sp_membership, var)
             alg.var_local_sp_membership[var] = [(constr, coef)]
@@ -328,7 +379,7 @@ function print_constr(alg::AlgToPreprocessNode, constr::Constraint)
     if isa(constr, MasterConstr)
         println("constr $(constr.vc_ref): subprob vars:")
         for (sp_var, coeff) in constr.subprob_var_coef_map
-            println(sp_var.vc_ref, " ", coeff, " ", sp_var.flag, " ",
+            println(sp_var.vc_ref, " ", coeff, " ", sp_var.cur_cost_rhs, " ", sp_var.flag, " ",
                     sp_var.cur_lb, " ", sp_var.cur_ub, " ", 
                     sp_var.cur_global_lb, " ", sp_var.cur_global_ub)
         end
@@ -434,9 +485,9 @@ function update_max_slack(alg::AlgToPreprocessNode, constr::Constraint,
 
     nb_inf_sources = alg.nb_inf_sources_for_max_slack[constr]
     if nb_inf_sources == 0
-        if constr.sense != 'G' && alg.cur_max_slack[constr] < 0
+        if constr.sense != 'G' && alg.cur_max_slack[constr] < -0.0001
             return true
-        elseif constr.sense == 'G' && alg.cur_max_slack[constr] <= 0
+        elseif constr.sense == 'G' && alg.cur_max_slack[constr] <= -0.0001
             #add_to_preprocessing_list(alg, constr)
             return false
         end
@@ -458,9 +509,9 @@ function update_min_slack(alg::AlgToPreprocessNode, constr::Constraint,
 
     nb_inf_sources = alg.nb_inf_sources_for_min_slack[constr]
     if nb_inf_sources == 0
-        if constr.sense != 'L' && alg.cur_min_slack[constr] > 0
+        if constr.sense != 'L' && alg.cur_min_slack[constr] > 0.0001
             return true
-        elseif constr.sense == 'L' && alg.cur_min_slack[constr] >= 0
+        elseif constr.sense == 'L' && alg.cur_min_slack[constr] >= 0.0001
             #add_to_preprocessing_list(alg, constr)
             return false
         end
@@ -574,7 +625,7 @@ function update_global_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
     end
 
     (sp_lb, sp_ub) = alg.cur_sp_bounds[var.prob_ref]
-    if update_local_lower_bound(alg, var, var.cur_global_lb - (sp_ub - 1)*var.cur_ub)
+    if update_local_lower_bound(alg, var, var.cur_global_lb - (max(sp_ub, 1) - 1)*var.cur_ub)
         return true
     end
     return false
@@ -587,7 +638,7 @@ function update_global_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
     end
 
     (sp_lb, sp_ub) = alg.cur_sp_bounds[var.prob_ref]
-    if update_local_upper_bound(alg, var, var.cur_global_ub - (sp_lb -1)*var.cur_lb)
+    if update_local_upper_bound(alg, var, var.cur_global_ub - (max(sp_lb, 1) -1)*var.cur_lb)
         return true
     end
     return false
@@ -619,7 +670,7 @@ function update_local_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
         if update_global_lower_bound(alg, var, var.cur_lb * sp_lb)
             return true
         end
-        new_local_ub = var.cur_global_ub - (sp_lb - 1) * var.cur_lb
+        new_local_ub = var.cur_global_ub - (max(sp_lb, 1) - 1) * var.cur_lb
         if update_local_upper_bound(alg, var, new_local_ub)
             return true
         end
@@ -652,7 +703,7 @@ function update_local_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
         if update_global_upper_bound(alg, var, var.cur_ub * sp_ub)
             return true
         end
-        new_local_lb = var.cur_global_lb - (sp_ub - 1) * var.cur_ub
+        new_local_lb = var.cur_global_lb - (max(sp_ub, 1) - 1) * var.cur_ub
         if update_local_lower_bound(alg, var, new_local_lb)
             return true
         end
@@ -823,9 +874,9 @@ function apply_preprocessing(alg::AlgToPreprocessNode,
         ProblemUpdate(Constraint[], Constraint[], infeas_cols, Variable[],
                       Variable[], Constraint[])
     )
-    for v in alg.preprocessed_vars
-        optimizer = get_problem(alg.extended_problem, v.prob_ref).optimizer
-        enforce_current_bounds_in_optimizer(optimizer, v)
+    for var in alg.preprocessed_vars
+        optimizer = get_problem(alg.extended_problem, var.prob_ref).optimizer
+        enforce_current_bounds_in_optimizer(optimizer, var)
     end
     for constr in alg.preprocessed_constrs
         # This assumes that preprocessed constraints are only from master
@@ -833,9 +884,18 @@ function apply_preprocessing(alg::AlgToPreprocessNode,
         update_constr_rhs_in_optimizer(master.optimizer, constr)
     end
 
-    # #changing cost of fixed partial solution
-    # if local_fixed_partial_sol != nothing
-        # #TODO
-    # end
+    #adding the new column to the partial solution of the master
+    if local_fixed_partial_sol != nothing
+        for (col, val) in local_fixed_partial_sol.var_val_map
+            if col in master.partial_solution.var_val_map
+                master.partial_solution.var_val_map[col] += val
+            else
+                master.partial_solution.var_val_map[col] += val
+            end
+            master.partial_solution.cost += val*col.cur_cost_rhs
+        end
+        update_optimizer_obj_constant(master.optimizer,
+                                      master.partial_solution.cost)
+    end
 end
 end

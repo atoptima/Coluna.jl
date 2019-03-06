@@ -52,16 +52,27 @@ function AlgToPrimalHeurBySimpleDivingBuilder(prob::ExtendedProblem, dual_bound:
                       DivingNode(prob, dual_bound, problem_setup_info, PrimalSolution()))
 end
 
+function update_diving_root_node(alg::AlgToPrimalHeurBySimpleDiving, 
+                                 global_treat_order::TreatOrder, primal_sol::PrimalSolution)
+    root = alg.diving_root_node
+    root.node_inc_lp_dual_bound = primal_sol.cost
+    root.node_inc_ip_dual_bound = primal_sol.cost
+    root.node_inc_lp_primal_bound = alg.extended_problem.primal_inc_bound
+    root.node_inc_ip_primal_bound = alg.extended_problem.primal_inc_bound
+    root.primal_sol = primal_sol
+    root.evaluated = true
+end
+
 function run(alg::AlgToPrimalHeurBySimpleDiving, global_treat_order::TreatOrder, 
              primal_sol::PrimalSolution)
 
     nb_treated_nodes = 0
     treat_algs = TreatAlgs()
 
-    (col, col_val) = select_master_col_to_fix(alg, primal_sol)
-    cur_node = DivingNodeWithParent(alg.extended_problem, alg.diving_root_node, (col, col_val))
+    update_diving_root_node(alg, global_treat_order, primal_sol)
+    cur_node = alg.diving_root_node
     while true
-        if prepare_node_for_treatment(alg.extended_problem, cur_diving_node,
+        if prepare_node_for_treatment(alg.extended_problem, cur_node,
                                       treat_algs, global_treat_order)
 
             if !treat(cur_node, treat_algs, global_treat_order,
@@ -69,7 +80,7 @@ function run(alg::AlgToPrimalHeurBySimpleDiving, global_treat_order::TreatOrder,
                 println("error: diving is interrupted")
                 break
             end
-            global_nodes_treat_order += 1
+            global_treat_order.value += 1
             nb_treated_nodes += 1
         end
 
