@@ -2,16 +2,13 @@ import Base.length
 import Base.iterate
 import Base.getindex
 
-struct DecompositionAxis{T}
-  name::Symbol
-  id::Tuple
-  container::T
+struct DecompositionAxis{T, V <: AbstractArray{T}}
+  name::Symbol # Name of the axis (as declared in the macro)
+  id::Tuple    # id of the axis if it has been stored in an SparseAxisArray
+  container::V
   identical::Bool
-  function DecompositionAxis(n::Symbol, id::Tuple, c::T, i::Bool) where {T}
-    if applicable(iterate, c) && applicable(iterate, c, iterate(c))
-      return new{T}(n, id, c, i)
-    end
-    error("Object must be iterable.")
+  function DecompositionAxis(n::Symbol, id::Tuple, c::V, i::Bool) where {T, V <: AbstractArray{T}}
+    return new{T, V}(n, id, c, i)
   end
 end
 
@@ -80,4 +77,5 @@ function _build_axis_array_(definition, container, identical)
     $exp_loop
     $name = JuMP.Containers.SparseAxisArray(axes_dict)
   end
+  return exp
 end

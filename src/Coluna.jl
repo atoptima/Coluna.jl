@@ -50,6 +50,7 @@ include("model.jl")
 
 ##### Modeling
 include("modeling/axis.jl")
+include("modeling/decompositiontree.jl")
 
 ##### Wrapper functions
 include("MOIWrapper.jl")
