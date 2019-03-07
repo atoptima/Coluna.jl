@@ -90,17 +90,21 @@ end
     #   master -> subprob 1 -> subprob 2 -> ...
 
     modified_static_vars_info::Vector{VariableInfo}
-    # modified_static_constrs_info::Vector{ConstraintInfo}
+    modified_static_constrs_info::Vector{ConstraintInfo}
 end
 
 ProblemSetupInfo() = ProblemSetupInfo(Vector{VariableSmallInfo}(),
                                       Vector{ConstraintInfo}(),
                                       PrimalSolution(),
-                                      Vector{VariableInfo}())
+                                      Vector{VariableInfo}(),
+                                      Vector{ConstraintInfo}())
 
 function apply_var_constr_info(prob_info::ProblemSetupInfo)
     for var_info in prob_info.modified_static_vars_info
         apply_var_info(var_info)
+    end
+    for constr_info in prob_info.modified_static_constrs_info
+        apply_constr_info(constr_info)
     end
 end
 
@@ -175,7 +179,8 @@ function record_constraints_info(prob_info::ProblemSetupInfo,
 
     for constr in master_problem.constr_manager.active_static_list
         if cost_rhs_changed(constr)
-            push!(prob_info.modified_static_vars_info, ConstraintInfo(constr))
+            push!(prob_info.modified_static_constrs_info,
+                  ConstraintInfo(constr))
             set_default_currents(constr)
             update_constr_rhs_in_optimizer(master_problem.optimizer, constr)
         end
