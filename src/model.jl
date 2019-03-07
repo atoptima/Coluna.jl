@@ -66,7 +66,7 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
                                                    params.node_eval_mode)
     end
 
-    if false
+    if params.use_simple_diving_heur
          push!(treat_algs.alg_vect_primal_heur_node,
               AlgToPrimalHeurBySimpleDiving(
                   extended_problem,
@@ -145,9 +145,11 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     println("Current primal bound is ", extended_problem.primal_inc_bound)
     println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
 
-
+    treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
+                                               node.problem_setup_info, node.local_branching_constraints)
+    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
     treat_algs.alg_generate_children_nodes = DivingGenerateChildAlg(node.depth,
-                                                               extended_problem)
+                                                                    extended_problem)
     return true
 end
 
@@ -166,15 +168,10 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
         return false
     end
 
-    if global_treat_order.value == node.parent.treat_order.value+1
-        treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
-                                                            node.problem_setup_info, node.local_branching_constraints)
-    else
-        treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
-            node.problem_setup_info, node.local_branching_constraints)
-    end
-
-    treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
+    treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
+                                               node.problem_setup_info, node.local_branching_constraints)
+    treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, 
+                                                         extended_problem, node.local_partial_sol)
     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
     treat_algs.alg_generate_children_nodes = DivingGenerateChildAlg(node.depth,
                                                                extended_problem)

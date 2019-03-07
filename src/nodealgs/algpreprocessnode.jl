@@ -13,9 +13,12 @@
     preprocessed_vars::Vector{Variable}
     cur_sp_bounds::Vector{Tuple{Int,Int}}
     printing::Bool
+    local_partial_sol::Union{Nothing,PrimalSolution} 
 end
 
-function AlgToPreprocessNodeBuilder(depth::Int, extended_problem::ExtendedProblem)
+function AlgToPreprocessNodeBuilder(depth::Int, 
+                                    extended_problem::ExtendedProblem,
+                                    local_partial_sol::Union{Nothing,PrimalSolution} = nothing)
 
     cur_sp_bounds = Vector{Tuple{Int,Int}}()
     for sp_ref in 1:length(extended_problem.pricing_vect)
@@ -33,29 +36,29 @@ function AlgToPreprocessNodeBuilder(depth::Int, extended_problem::ExtendedProble
             Constraint[], 
             Variable[],
             cur_sp_bounds,
-            false)
+            false,
+            local_partial_sol)
 end
 
-function run(alg::AlgToPreprocessNode,
-             local_partial_sol::Union{Nothing,PrimalSolution} = nothing)
+function run(alg::AlgToPreprocessNode)
 
-    # if local_partial_sol != nothing
-        # println("running preprocess with partial sol:")
-        # for (var, val) in local_partial_sol.var_val_map
-            # println("var ", var.vc_ref, " with val=", val)
-            # for (sp_var, sp_var_val) in var.solution.var_val_map
-                # println("sp_var", sp_var.vc_ref, " val:", val)
-            # end
-        # end
-    # end
+    if alg.printing && alg.local_partial_sol != nothing
+        println("running preprocess with partial sol:")
+        for (var, val) in alg.local_partial_sol.var_val_map
+            println("var ", var.vc_ref, " with val=", val)
+            for (sp_var, sp_var_val) in var.solution.var_val_map
+                println("sp_var", sp_var.vc_ref, " val:", val)
+            end
+        end
+    end
 
     reset(alg)
     compute_local_memberships(alg)
 
-    if local_partial_sol != nothing
+    if alg.local_partial_sol != nothing
         # Change sp bounds, global bounds of var and rhs of master constraints
         (vars_with_modified_bounds,
-         constrs_with_modified_rhs) = fix_local_partial_solution(alg, local_partial_sol)
+         constrs_with_modified_rhs) = fix_local_partial_solution(alg)
     else
         (vars_with_modified_bounds,
          constrs_with_modified_rhs) = Variable[], MasterConstr[]
@@ -65,7 +68,7 @@ function run(alg::AlgToPreprocessNode,
         return true
     end
     # Now we try to update local bounds of sp vars
-    if local_partial_sol != nothing
+    if alg.local_partial_sol != nothing
         for var in vars_with_modified_bounds
             if isa(var, SubprobVar)
                 update_global_lower_bound(alg, var, var.cur_global_lb, false)
@@ -79,8 +82,7 @@ function run(alg::AlgToPreprocessNode,
     end
     if !infeas
         apply_preprocessing(alg)
-
-        # if local_partial_sol != nothing
+        # if alg.local_partial_sol != nothing
             # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
             # GLPK.write_lp(glpk_prob, string("mip_d", 3,".lp")) 
             # exit()
@@ -89,9 +91,9 @@ function run(alg::AlgToPreprocessNode,
     return infeas
 end
 
-function change_sp_bounds(alg::AlgToPreprocessNode, local_partial_sol::PrimalSolution)
+function change_sp_bounds(alg::AlgToPreprocessNode)
     sps_with_modified_bounds = []
-    for (var, val) in local_partial_sol.var_val_map
+    for (var, val) in alg.local_partial_sol.var_val_map
         if isa(var, MasterColumn)
             sp_ref = -1
             for (sp_var, sp_var_val) in var.solution.var_val_map
@@ -142,11 +144,10 @@ function project_local_partial_solution(local_partial_sol::PrimalSolution)
     return user_vars_vals
 end
 
-function fix_local_partial_solution(alg::AlgToPreprocessNode,
-                              local_partial_sol::PrimalSolution)
+function fix_local_partial_solution(alg::AlgToPreprocessNode)
 
-    sps_with_modified_bounds = change_sp_bounds(alg, local_partial_sol)
-    user_vars_vals = project_local_partial_solution(local_partial_sol)
+    sps_with_modified_bounds = change_sp_bounds(alg)
+    user_vars_vals = project_local_partial_solution(alg.local_partial_sol)
    
     # Updating rhs of master constraints
     # master vars of partial_sol are ignored here 
@@ -338,7 +339,7 @@ function compute_local_memberships(alg::AlgToPreprocessNode)
 
     # Dynamic master constraints
     for constr in master.constr_manager.active_dynamic_list
-        update_local_membership(alg, constr)
+        compute_local_membership(alg, constr)
     end
 
     # Subproblem constraints
@@ -857,14 +858,13 @@ function find_infeasible_columns(master::CompactProblem,
     return infeas_cols
 end
 
-function apply_preprocessing(alg::AlgToPreprocessNode,
-                   local_fixed_partial_sol::Union{Nothing,PrimalSolution} = nothing)
+function apply_preprocessing(alg::AlgToPreprocessNode)
 
     @timeit to(alg) "Preprocess" begin
 
-    if isempty(alg.preprocessed_vars)
-        return
-    end
+        # if isempty(alg.preprocessed_vars) && isempty(alg.preprocessed_constrs)
+        # return
+    # end
 
     master = alg.extended_problem.master_problem
     infeas_cols = find_infeasible_columns(master, alg.preprocessed_vars)
@@ -885,17 +885,22 @@ function apply_preprocessing(alg::AlgToPreprocessNode,
     end
 
     #adding the new column to the partial solution of the master
-    if local_fixed_partial_sol != nothing
-        for (col, val) in local_fixed_partial_sol.var_val_map
-            if col in master.partial_solution.var_val_map
+    if alg.local_partial_sol != nothing
+        for (col, val) in alg.local_partial_sol.var_val_map
+            if haskey(master.partial_solution.var_val_map, col)
                 master.partial_solution.var_val_map[col] += val
             else
-                master.partial_solution.var_val_map[col] += val
+                master.partial_solution.var_val_map[col] = val
             end
             master.partial_solution.cost += val*col.cur_cost_rhs
         end
         update_optimizer_obj_constant(master.optimizer,
                                       master.partial_solution.cost)
+            # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
+            # println("fixed_sol_cost $(master.partial_solution.cost)")
+             # GLPK.write_lp(glpk_prob, string("mip_di", 5,".lp")) 
+ #             exit()
+  
     end
 end
 end

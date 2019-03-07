@@ -91,23 +91,23 @@ function DivingNodeBuilder(problem::ExtendedProblem, dual_bound::Float,
 end
 
 @hl mutable struct DivingNodeWithParent <: DivingNode
-    local_fixed_solution::PrimalSolution
+    local_partial_sol::PrimalSolution
     parent::DivingNode
 end
 
-function DivingNodeWithParentBuilder(problem::ExtendedProblem, local_fixed_solution::PrimalSolution,
+function DivingNodeWithParentBuilder(problem::ExtendedProblem, local_partial_sol::PrimalSolution,
                                      parent::DivingNode)
     return tuplejoin(NodeBuilder(problem, parent.node_inc_ip_dual_bound, 
-                                 parent.problem_setup_info), local_fixed_solution, parent)
+                                 parent.problem_setup_info), local_partial_sol, parent)
 end
 
-function DivingNodeWithParentBuilder(problem::ExtendedProblem, local_fixed_sol::Tuple{MasterColumn,Float},
+function DivingNodeWithParentBuilder(problem::ExtendedProblem, local_partial_sol_pair::Tuple{MasterColumn,Float},
                                      parent::DivingNode) 
-    local_fixed_solution = PrimalSolution()
-    master_col = local_fixed_sol[1]
-    local_fixed_solution.cost = master_col.cur_cost_rhs
-    local_fixed_solution.var_val_map[master_col] = local_fixed_sol[2]
-    return DivingNodeWithParentBuilder(problem, local_fixed_solution, parent)
+    local_partial_sol = PrimalSolution()
+    master_col = local_partial_sol_pair[1]
+    local_partial_sol.cost = master_col.cur_cost_rhs
+    local_partial_sol.var_val_map[master_col] = local_partial_sol_pair[2]
+    return DivingNodeWithParentBuilder(problem, local_partial_sol, parent)
 end
 
 function get_priority(node::Node)
@@ -233,8 +233,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs,
 
     run(treat_algs.alg_setup_node)
 
-    p = isa(node, DivingNode) ? node.local_fixed_solution : nothing
-    if run(treat_algs.alg_preprocess_node, p)
+    if run(treat_algs.alg_preprocess_node)
         @logmsg LogLevel(0) string("Preprocess determines infeasibility.")
         run(treat_algs.alg_setdown_node)
         record_node_info(node, treat_algs.alg_setdown_node)
@@ -261,8 +260,8 @@ function evaluation(node::Node, treat_algs::TreatAlgs,
         return true
     end
 
-    run(treat_algs.alg_setdown_node)
-    record_node_info(node, treat_algs.alg_setdown_node)
+    # run(treat_algs.alg_setdown_node)
+   # record_node_info(node, treat_algs.alg_setdown_node)
 
     return true
 end
@@ -272,11 +271,16 @@ function treat(node::Node, treat_algs::TreatAlgs,
     # In strong branching, part 1 of treat (setup, preprocessing and solve) is
     # separated from part 2 (heuristics and children generation).
     # Therefore, treat() can be called two times. One inside strong branching,
-    # and the second inside the branch-and-price tree. Thus, variables _solved
+    # and the second inside the branch-and-price tree. Thus, variable _evaluated
     # is used to know whether part 1 has already been done or not.
 
-      if !node.evaluated
+    if !node.evaluated
         evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
+    end
+
+    if !node.treated
+        run(treat_algs.alg_setdown_node)
+        record_node_info(node, treat_algs.alg_setdown_node)
     end
 
     if node.treated
