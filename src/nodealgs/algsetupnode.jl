@@ -193,7 +193,7 @@ end
 
 function record_partial_solution(prob_info::ProblemSetupInfo,
                                  master_problem::CompactProblem)
-    prob_info.master_partial_solution = master_problem.partial_solution
+    prob_info.master_partial_solution = deepcopy(master_problem.partial_solution)
 end
 
 function record_problem_info(alg::AlgToSetdownNodeFully)

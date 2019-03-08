@@ -13,7 +13,7 @@ AlgToPrimalHeurByRestrictedMipBuilder(prob::ExtendedProblem,
                                       solver_type::DataType) =
         tuplejoin(AlgToPrimalHeurInNodeBuilder(prob), solver_type)
 
-function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::Int,
+function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::TreatOrder,
              primal_sol::PrimalSolution)
     @timeit to(alg) "Restricted master IP" begin
 
@@ -42,19 +42,21 @@ function run(alg::AlgToPrimalHeurByRestrictedMip, global_treat_order::Int,
 end
 
 @hl mutable struct AlgToPrimalHeurBySimpleDiving <: AlgToPrimalHeurInNode 
+    bcp_node::Node
     diving_root_node::DivingNode
 end
 
 function AlgToPrimalHeurBySimpleDivingBuilder(prob::ExtendedProblem, dual_bound::Float,
-                           problem_setup_info::SetupInfo)
+                           problem_setup_info::SetupInfo, bcp_node::Node)
 
-     return tuplejoin(AlgToPrimalHeurInNodeBuilder(prob), 
+     return tuplejoin(AlgToPrimalHeurInNodeBuilder(prob), bcp_node, 
                       DivingNode(prob, dual_bound, problem_setup_info, PrimalSolution()))
 end
 
 function update_diving_root_node(alg::AlgToPrimalHeurBySimpleDiving, 
                                  global_treat_order::TreatOrder, primal_sol::PrimalSolution)
     root = alg.diving_root_node
+    root.problem_setup_info = alg.bcp_node.problem_setup_info
     root.node_inc_lp_dual_bound = primal_sol.cost
     root.node_inc_ip_dual_bound = primal_sol.cost
     root.node_inc_lp_primal_bound = alg.extended_problem.primal_inc_bound
@@ -80,8 +82,8 @@ function run(alg::AlgToPrimalHeurBySimpleDiving, global_treat_order::TreatOrder,
                 println("error: diving is interrupted")
                 break
             end
-            global_treat_order.value += 1
             nb_treated_nodes += 1
+ 
         end
 
         if (cur_node.infeasible
@@ -93,8 +95,21 @@ function run(alg::AlgToPrimalHeurBySimpleDiving, global_treat_order::TreatOrder,
     end
 
     if cur_node.ip_primal_bound_is_updated
+        var_val_map = Dict{Variable, Float}()
+        #columns of master sol
+        for (var, val) in cur_node.node_inc_ip_primal_sol.var_val_map
+            var_val_map[var] = val
+        end
+        #columns of master partial sol
+        for (var, val) in alg.extended_problem.master_problem.partial_solution.var_val_map
+            if haskey(var_val_map, var)
+                var_val_map[var] += val
+            else
+                var_val_map[var] = val
+            end
+        end
         alg.sols_and_bounds.alg_inc_ip_primal_bound =  cur_node.node_inc_ip_primal_bound 
-        alg.sols_and_bounds.alg_inc_ip_primal_sol_map = cur_node.node_inc_ip_primal_sol.var_val_map
+        alg.sols_and_bounds.alg_inc_ip_primal_sol_map = var_val_map
     end
 
     return nb_treated_nodes

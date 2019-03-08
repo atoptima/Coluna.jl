@@ -226,20 +226,10 @@ end
 function evaluation(node::Node, treat_algs::TreatAlgs,
                     global_treat_order::TreatOrder,
                     inc_primal_bound::Float)::Bool
-    node.treat_order = TreatOrder(global_treat_order.value)
+    # node.treat_order = TreatOrder(global_treat_order.value)
     node.node_inc_ip_primal_bound = inc_primal_bound
     node.ip_primal_bound_is_updated = false
     node.dual_bound_is_updated = false
-
-    run(treat_algs.alg_setup_node)
-
-    if run(treat_algs.alg_preprocess_node)
-        @logmsg LogLevel(0) string("Preprocess determines infeasibility.")
-        run(treat_algs.alg_setdown_node)
-        record_node_info(node, treat_algs.alg_setdown_node)
-        mark_infeasible_and_exit_treatment(node)
-        return true
-    end
 
     if run(treat_algs.alg_eval_node, inc_primal_bound)
         update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
@@ -260,32 +250,42 @@ function evaluation(node::Node, treat_algs::TreatAlgs,
         return true
     end
 
-    # run(treat_algs.alg_setdown_node)
-   # record_node_info(node, treat_algs.alg_setdown_node)
-
     return true
 end
 
 function treat(node::Node, treat_algs::TreatAlgs,
         global_treat_order::TreatOrder, inc_primal_bound::Float)::Bool
-    # In strong branching, part 1 of treat (setup, preprocessing and solve) is
-    # separated from part 2 (heuristics and children generation).
-    # Therefore, treat() can be called two times. One inside strong branching,
-    # and the second inside the branch-and-price tree. Thus, variable _evaluated
-    # is used to know whether part 1 has already been done or not.
+    
+    node.treat_order = TreatOrder(global_treat_order.value)
+    global_treat_order.value += 1
+
+    run(treat_algs.alg_setup_node)
+
+    # glpk_prob = treat_algs.alg_setup_node.extended_problem.master_problem.optimizer.optimizer.inner
+    # GLPK.write_lp(glpk_prob, string("mip_ds", node.treat_order.value,".lp")) 
+    if run(treat_algs.alg_preprocess_node)
+        @logmsg LogLevel(0) string("Preprocess determines infeasibility.")
+        run(treat_algs.alg_setdown_node)
+        record_node_info(node, treat_algs.alg_setdown_node)
+        mark_infeasible_and_exit_treatment(node)
+        return true
+    end
+
+     # GLPK.write_lp(glpk_prob, string("mip_dp", node.treat_order.value,".lp")) 
 
     if !node.evaluated
         evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
     end
 
-    if !node.treated
-        run(treat_algs.alg_setdown_node)
-        record_node_info(node, treat_algs.alg_setdown_node)
-    end
+     # GLPK.write_lp(glpk_prob, string("mip_de", node.treat_order.value,".lp")) 
 
     if node.treated
         @logmsg LogLevel(0) "Node is considered as treated after evaluation"
         return true
+    else
+        run(treat_algs.alg_setdown_node)
+        record_node_info(node, treat_algs.alg_setdown_node)
+       
     end
 
     for alg in treat_algs.alg_vect_primal_heur_node

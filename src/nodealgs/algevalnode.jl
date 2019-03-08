@@ -249,7 +249,7 @@ function compute_pricing_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDualit
                                             pricing_prob::Problem)
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
-    multiplicity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob].cost_rhs
+    multiplicity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob].cur_cost_rhs
     const_obj = alg.pricing_const_obj[pricing_prob]
     @logmsg LogLevel(-4) string("princing prob has const obj = ", const_obj)
     contrib = (pricing_prob.primal_sol.cost + alg.pricing_const_obj[pricing_prob]) * multiplicity_ub
