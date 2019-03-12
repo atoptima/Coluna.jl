@@ -26,11 +26,15 @@ using Coluna
 
 ## Developer installation
 
-
+Install Coluna
 ```
 pkg> dev https://github.com/atoptima/Coluna.jl.git
+```
+Each time you work on Coluna, do :
+```
 shell> cd ~/.julia/dev/
 pkg> activate Coluna
+pkg> update
 pkg> test
 julia> # work with Coluna
 ```
