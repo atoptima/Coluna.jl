@@ -432,12 +432,13 @@ function update_moi_optimizer(optimizer::MOI.AbstractOptimizer, is_relaxed::Bool
     end
     # Remove variables
     for col in prob_update.removed_cols_from_problem
-         remove_var_from_optimizer(optimizer, col)
+        remove_var_from_optimizer(optimizer, col)
     end
 
     # Add variables
     for col in prob_update.added_cols_to_problem
         add_variable_in_optimizer(optimizer, col, is_relaxed)
+        update_moi_membership(optimizer, col)
     end
     # Add cuts
     for cut in prob_update.added_cuts_to_problem
