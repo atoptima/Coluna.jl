@@ -113,6 +113,7 @@ end
 const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float}}
 const MoiVcType = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{
     MOI.Integer,MOI.ZeroOne}
+
 mutable struct MoiDef
     # ```
     # Index in MOI optimizer
@@ -125,7 +126,7 @@ mutable struct MoiDef
     bounds_index::MoiBounds
 
     # ```
-    # Stores the MOI.ConstraintIndex that represents vc_type in coluna
+    # Stores the MOI.ConstraintIndex that represents the coluna variable integer or binary type
     # ```
     type_index::MoiVcType
 end
