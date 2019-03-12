@@ -13,7 +13,7 @@ it:
 
 2. Then run the following command
    ```
-   (1.0) pkg> add Coluna
+   (1.0) pkg> add https://github.com/atoptima/Coluna.jl.git
    ```
 
 This command will, recursively, install Coluna.jl and its dependencies.
