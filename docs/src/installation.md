@@ -13,10 +13,10 @@ it:
 
 2. Then run the following command
    ```
-   (1.0) pkg> add https://github.com/atoptima/Coluna.jl.git
+   pkg> add https://github.com/atoptima/Coluna.jl.git
    ```
 
-This command will, recursively, install Coluna.jl and its dependencies.
+This command will install Coluna.jl and its dependencies.
 
 To start using Coluna.jl, it should be imported into the local scope.
 
@@ -26,21 +26,12 @@ using Coluna
 
 ## Developer installation
 
-1. Create a `dev` directory in the julia folder
+
 ```
-cd .julia
-mkdir dev
+pkg> dev https://github.com/atoptima/Coluna.jl.git
+shell> cd ~/.julia/dev/
+pkg> activate Coluna
+pkg> test
+julia> # work with Coluna
 ```
 
-2. Clone Coluna in `dev`
-```
-git clone https://github.com/atoptima/Coluna.jl.git
-```
-
-3. Go the Pkg-REPL-mode. The Pkg REPL-mode is entered
-   from the Julia REPL using the key ].
-
-4. Run the following command
-```julia
-activate Coluna
-```
