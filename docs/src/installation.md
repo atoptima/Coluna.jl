@@ -42,5 +42,5 @@ git clone https://github.com/atoptima/Coluna.jl.git
 
 4. Run the following command
 ```julia
-activate Coluna.jl
+activate Coluna
 ```
