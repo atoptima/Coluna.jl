@@ -3,10 +3,12 @@ abstract type AbstractConstrDuty end
 
 mutable struct ConstraintCounter
     value::Int
+    ConstraintCounter() = new(1)
 end
 
 mutable struct VariableCounter
     value::Int
+    VariableCounter() = new(1)
 end
 
 function increment_counter(counter::ConstraintCounter)

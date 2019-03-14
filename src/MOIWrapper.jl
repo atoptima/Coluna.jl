@@ -1,5 +1,25 @@
+const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float},
+                               MOI.SingleVariable}
+
+const SupportedVarSets = Union{MOI.Nonnegatives, 
+                                MOI.Zeros,
+                                MOI.Nonpositives,
+                                MOI.ZeroOne,
+                                MOI.Integer,
+                                MOI.LessThan{Float},
+                                MOI.EqualTo{Float},
+                                MOI.GreaterThan{Float},
+                                MOI.Interval{Float}}
+
+const SupportedConstrFunc = Union{MOI.ScalarAffineFunction{Float}}
+
+const SupportedConstrSets = Union{MOI.EqualTo{Float},
+                                  MOI.GreaterThan{Float},
+                                  MOI.LessThan{Float},
+                                  MOI.Zeros}
+
 mutable struct Optimizer <: MOI.AbstractOptimizer
-    # inner::Model
+    inner::Union{Nothing, Model}
     # varmap::Dict{MOI.VariableIndex,Variable} ## Keys and values are created in this file
     # # add conmap here
     # constr_probidx_map::Dict{Constraint,Int}
@@ -9,19 +29,17 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # pricing_factory::JuMP.OptimizerFactory
 end
 
-function Optimizer(;master_factory =
-        JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
-        JuMP.with_optimizer(GLPK.Optimizer)) #params = Params())
-
-    println("\e[1;32m next work starts here \e[0m")
-
-    # coluna_model = ModelConstructor(params, with_extended_prob = false)
-    # _varmap = Dict{MOI.VariableIndex,Variable}()
-    # _constr_probidx_map = Dict{Constraint,Int}()
-    # _var_probidx_map = Dict{Variable,Int}()
-    # Optimizer(coluna_model, _varmap, _constr_probidx_map,
-    #     _var_probidx_map, 0, master_factory, pricing_factory)
+function Optimizer(;kwargs...)
+    return Optimizer(nothing)
 end
+
+#     # coluna_model = ModelConstructor(params, with_extended_prob = false)
+#     # _varmap = Dict{MOI.VariableIndex,Variable}()
+#     # _constr_probidx_map = Dict{Constraint,Int}()
+#     # _var_probidx_map = Dict{Variable,Int}()
+#     # Optimizer(coluna_model, _varmap, _constr_probidx_map,
+#     #     _var_probidx_map, 0, master_factory, pricing_factory)
+# end
 
 # function MOI.optimize!(coluna_optimizer::Optimizer)
 #     solve(coluna_optimizer.inner)
@@ -147,36 +165,20 @@ end
 #     update_constraint_map(mapping, ci, f, s)
 # end
 
-# function MOI.supports_constraint(model::Optimizer,
-#         ::Type{MOI.SingleVariable},
-#         ::Type{<:Union{MOI.ZeroOne, MOI.Integer}}) where T
+function MOI.supports_constraint(optimizer::Optimizer, 
+        ::Type{<: SupportedConstrFunc}, ::Type{<: SupportedConstrSets})
+    return true
+end
 
-#     return true
-# end
+function MOI.supports_constraint(optimizer::Optimizer,
+        ::Type{MOI.SingleVariable}, ::Type{<: SupportedVarSets})
+    return true
+end
 
-# function MOI.supports_constraint(model::Optimizer,
-#         ::Type{MOI.SingleVariable},
-#         ::Type{<:Union{MOI.EqualTo{T}, MOI.GreaterThan{T}, MOI.LessThan{T}}}) where T
-
-#     return true
-# end
-
-# function MOI.supports_constraint(model::Optimizer,
-#         ::Type{MOI.ScalarAffineFunction{T}},
-#         ::Type{<:Union{MOI.EqualTo{T}, MOI.GreaterThan{T}, MOI.LessThan{T}}}) where T
-
-#     return true
-# end
-
-# function MOI.supports(model::Optimizer,
-#         ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{T}}) where T
-#     return true
-# end
-
-# function MOI.supports(model::Optimizer,
-#         ::MOI.ObjectiveFunction{MOI.SingleVariable}) where T
-#     return true
-# end
+function MOI.supports(optimize::Optimizer, 
+        ::MOI.ObjectiveFunction{<: SupportedObjFunc})
+    return true
+end
 
 # function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
 #                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
@@ -356,42 +358,48 @@ end
 #     end
 # end
 
-# function MOI.copy_to(dest::Optimizer,
-#                      src::MOI.ModelLike; copy_names=true)
+function MOI.copy_to(dest::Optimizer,
+                     src::MOI.ModelLike; copy_names=true)
+    var_counter = VariableCounter()
+    constr_counter = ConstraintCounter()
 
-#     # Create variables without adding to problem
-#     # Update the variable's cost_rhs and cur_cost_rhs
-#     # Go through SingleVariable constraints and modify the variables
-#     # Add variables to problem
-#     # Go throught ScalarAffineFunction constraints
-#     vc_counter = VarConstrCounter(0)
-#     inner = dest.inner
-#     # Copynames is always set to false by CachingOptimizer
-#     if inner.params.force_copy_names
-#         copy_names = true
-#     end
-#     extended_problem = ExtendedProblem(inner.prob_counter, vc_counter,
-#             inner.params, inner.params.cut_up, inner.params.cut_lo)
-#     dest.inner.extended_problem = extended_problem
+    println("\e[32m create the model here \e[00m")
 
-#     mapping = MOIU.IndexMap()
-#     coluna_vars = create_coluna_variables(dest, src, mapping, copy_names)
-#     create_subproblems(dest, src)
-#     set_optimizers_dict(dest)
-#     set_card_bounds_dict(src, extended_problem)
 
-#     # Copy objective function
-#     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
-#     load_obj(dest, mapping, obj)
-#     sense = MOI.get(src, MOI.ObjectiveSense())
-#     return_value = MOI.set(dest, MOI.ObjectiveSense(), sense)
+    # Old code :
 
-#     copy_constraints(dest, src, mapping, copy_names; only_singlevariable = true)
-#     add_variables_to_problem(dest, src, coluna_vars, mapping)
-#     copy_constraints(dest, src, mapping, copy_names; only_singlevariable = false)
+    # Create variables without adding to problem
+    # Update the variable's cost_rhs and cur_cost_rhs
+    # Go through SingleVariable constraints and modify the variables
+    # Add variables to problem
+    # Go throught ScalarAffineFunction constraints
+    # inner = dest.inner
+    # # Copynames is always set to false by CachingOptimizer
+    # if inner.params.force_copy_names
+    #     copy_names = true
+    # end
+    # extended_problem = ExtendedProblem(inner.prob_counter, vc_counter,
+    #         inner.params, inner.params.cut_up, inner.params.cut_lo)
+    # dest.inner.extended_problem = extended_problem
 
-#     return mapping
-# end
+    # mapping = MOIU.IndexMap()
+    # coluna_vars = create_coluna_variables(dest, src, mapping, copy_names)
+    # create_subproblems(dest, src)
+    # set_optimizers_dict(dest)
+    # set_card_bounds_dict(src, extended_problem)
+
+    # # Copy objective function
+    # obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    # load_obj(dest, mapping, obj)
+    # sense = MOI.get(src, MOI.ObjectiveSense())
+    # return_value = MOI.set(dest, MOI.ObjectiveSense(), sense)
+
+    # copy_constraints(dest, src, mapping, copy_names; only_singlevariable = true)
+    # add_variables_to_problem(dest, src, coluna_vars, mapping)
+    # copy_constraints(dest, src, mapping, copy_names; only_singlevariable = false)
+
+    # return mapping
+end
 
 # # Set functions
 # function set_card_bounds_dict(src::MOI.ModelLike,
@@ -424,17 +432,15 @@ end
 #     end
 # end
 
-# function MOI.empty!(coluna_optimizer::Optimizer)
-#     coluna_optimizer.inner = ModelConstructor(with_extended_prob = false)
-# end
+function MOI.empty!(optimizer::Optimizer)
+    optimizer.inner = nothing
+end
 
 # ######################
 # ### Get functions ####
 # ######################
 
-# function MOI.is_empty(coluna_optimizer::Optimizer)
-#     return coluna_optimizer.inner.extended_problem == nothing
-# end
+MOI.is_empty(optimizer::Optimizer) = (optimizer.inner == nothing)
 
 # function MOI.get(coluna_optimizer::Optimizer, object::MOI.ObjectiveBound)
 #     return coluna_optimizer.inner.extended_problem.dual_inc_bound

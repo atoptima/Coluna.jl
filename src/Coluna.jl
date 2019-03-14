@@ -49,7 +49,7 @@ include("variableduties.jl")
 #include("nodealgs/algevalnode.jl")
 #include("nodealgs/algprimalheurinnode.jl")
 #include("nodealgs/alggeneratechildrennodes.jl")
-#include("model.jl")
+include("model.jl")
 
 
 ##### Wrapper functions
