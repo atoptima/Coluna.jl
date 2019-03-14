@@ -1,3 +1,82 @@
+mutable struct VariableCounter
+    value::Int
+end
+
+function increment_counter(counter::VariableCounter)
+    counter.value += 1
+    return counter.value
+end
+
+struct Variable{DutyType <: AbstactDuty, DataType <: AbstractVarData}
+    uid::Int # unique id
+    name::String
+    duty::DutyType
+    formulation::Formulation
+    # ```
+    # 'U' or 'D'
+    # ```
+    directive::Char
+
+    # ```
+    # A higher priority means that var is selected first for branching or diving
+    # ```
+    priority::Float64
+
+    # ```
+    # Cost for a variable, rhs for a constraint
+    # ```
+    cost::Float64
+
+    # ```
+    # Variables:
+    # sense : 'P' = positive
+    # sense : 'N' = negative
+    # sense : 'F' = free
+
+    sense::Char
+
+    # ```
+    # For Variables:
+    # 'C' = continuous,
+    # 'B' = binary, or
+    # 'I' = integer
+    #
+    # For Constraints:
+    # mutable struct = 'C' for core -required for the IP formulation-,
+    # mutable struct = 'F' for facultative -only helpfull to tighten the LP approximation of the IP formulation-,
+    # mutable struct = 'S' for constraints defining a subsystem in column generation for
+    #            extended formulation approach
+    # mutable struct = 'M' for constraints defining a pure master constraint
+    # mutable struct = 'X' for constraints defining a subproblem convexity constraint
+    #            in the master
+    # ```
+    v_type::Char
+
+    # ```
+    # 's' -by default- for static VarConstr belonging to the problem -and erased
+    #     when the problem is erased-
+    # 'd' for dynamically generated VarConstr not belonging to the problem at the outset
+    # 'a' for artificial VarConstr.
+    # ```
+    flag::Char
+
+    # ```
+    # Active = In the formulation
+    # Inactive = Can enter the formulation, but is not in it
+    # Unsuitable = is not valid for the formulation at the current node.
+    # ```
+    status::VCSTATUS
+
+        # Represents the membership of a VarConstr as map where:
+    # - The key is the index of a constr/var including this as member,
+    # - The value is the corresponding coefficient.
+    # ```
+    membership::Dict{Constraint, Float64}
+
+    data::DataType
+end
+
+
 @hl mutable struct SubprobVar <: Variable
     # ```
     # To represent global lower bound on sp variable primal value
