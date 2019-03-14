@@ -32,25 +32,28 @@ global __initial_solve_time = 0.0
 
 # include("/Users/vitornesello/.julia/dev/SimpleDebugger/src/SimpleDebugger.jl")
 
-include("parameters.jl")
-include("utils.jl")
+#include("parameters.jl")
+#include("utils.jl")
+include("formulation.jl")
 include("varconstr.jl")
-include("variables.jl")
 include("constraints.jl")
-include("solution.jl")
-include("mastercolumn.jl")
-include("problem.jl")
-include("node.jl")
-include("nodealgs/algsetupnode.jl")
-include("nodealgs/algpreprocessnode.jl")
-include("nodealgs/algevalnode.jl")
-include("nodealgs/algprimalheurinnode.jl")
-include("nodealgs/alggeneratechildrennodes.jl")
-include("model.jl")
+include("variables.jl")
+include("constraintduties.jl")
+include("variableduties.jl")
+#include("solution.jl")
+#include("mastercolumn.jl")
+#include("problem.jl")
+#include("node.jl")
+#include("nodealgs/algsetupnode.jl")
+#include("nodealgs/algpreprocessnode.jl")
+#include("nodealgs/algevalnode.jl")
+#include("nodealgs/algprimalheurinnode.jl")
+#include("nodealgs/alggeneratechildrennodes.jl")
+#include("model.jl")
 
 
 ##### Wrapper functions
 include("MOIWrapper.jl")
-include("decomposition.jl")
+#include("decomposition.jl")
 
 end # module

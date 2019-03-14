@@ -1,13 +1,11 @@
-include("varconstr.jl")
 
-
-struct Constraint{DutyType <: AbstractConstrDuty}
+struct Constraint{T <: AbstractConstrDuty}
     uid::Int  # unique id
-    name::String
-    duty::DutyType
+    name::Symbol
+    duty::T
     formulation::Formulation
     vc_ref::Int
-    rhs::Float64
+    rhs::Float
     # ```
     # sense : 'G' = greater or equal to
     # sense : 'L' = less or equal to
@@ -34,61 +32,11 @@ struct Constraint{DutyType <: AbstractConstrDuty}
     # Inactive = Can enter the formulation, but is not in it
     # Unsuitable = is not valid for the formulation at the current node.
     # ```
-    status::VCSTATUS
+    status
     # ```
     # Represents the membership of a VarConstr as map where:
     # - The key is the index of a constr/var including this as member,
     # - The value is the corresponding coefficient.
     # ```
-    member_coef_map::Dict{Variable, Float64}
+    member_coef_map::Dict{Int, Float64}
 end
-
-
-mutable struct Original <: AbstractConstrDuty
-    moi_def::MoiConstrDef # explicit Constr
-    rep_in_reform::Consrtraint # if any
-end
-
-
-mutable struct PureMasterConstr <: AbstractConstrDuty
-    moi_def::MoiVarDef # explicit var
-    original_rep::Consrtraint
-    data::ANY
-end
-
-mutable struct MasterConstr <: AbstractConstrDuty
-    moi_def::MoiVarDef # explicit var
-    original_rep::Consrtraint
-    subprob_var_coef_map::Dict{Variable, Float64}
-    mast_col_coef_map::Dict{Variable,Float64} # Variable -> MasterColumn
-end
-
-
-mutable struct Convexity <: AbstractConstrDuty
-    moi_def::MoiVarDef # explicit var
-end
-
-
-mutable struct MasterBranchConstr{T} <: AbstractConstrDuty
-    moi_def::MoiVarDef # explicit var
-    original_rep::Consrtraint
-    branch_var::T
-    depth_when_generated::Int
-    subprob_var_coef_map::Dict{Variable, Float64}
-    mast_col_coef_map::Dict{Variable,Float64} # Variable -> MasterColumn
-end
-
-
-
-function coluna_print(constr::Constraint{MasterBranchConstr})
-    print(constr.branch_var.name, " ")
-    if constr.sense == 'G'
-        print(">= ")
-    elseif constr.sense == 'L'
-        print("<= ")
-    elseif constr.sense == 'E'
-        print("= ")
-    end
-    println(constr.rhs)
-end
-
