@@ -23,8 +23,8 @@ end
 mutable struct PricingSpVar <: AbstractVarDuty
     moi_def::MoiVarDef # explicit var
     original_rep::Variable
-    master_constr_coef_map::Dict{Constraint, Float} # Constraint -> MasterConstr
-    master_col_coef_map::Dict{Variable, Float} # Variable -> MasterColumn
+    master_constr_membership::ConstrMembership # Constraint -> MasterConstr
+    master_col_membership::VarMembership # Variable -> MasterColumn
 end
 
 mutable struct BendersSpVar <: AbstractVarDuty

@@ -12,8 +12,8 @@ end
 mutable struct MasterConstr <: AbstractConstrDuty
     moi_def::MoiVarDef # explicit var
     original_rep::Constraint
-    subprob_var_coef_map::Dict{Variable, Float64}
-    mast_col_coef_map::Dict{Variable,Float64} # Variable -> MasterColumn
+    subprob_var_membership::VarMembership
+    mast_col_membership::VarMembership # Variable -> MasterColumn
 end
 
 mutable struct Convexity <: AbstractConstrDuty
@@ -25,6 +25,6 @@ mutable struct MasterBranchConstr{T} <: AbstractConstrDuty
     original_rep::Constraint
     branch_var::T
     depth_when_generated::Int
-    subprob_var_coef_map::Dict{Variable, Float64}
-    mast_col_coef_map::Dict{Variable,Float64} # Variable -> MasterColumn
+    subprob_var_membership::VarMembership
+    mast_col_membership::VarMembership # Variable -> MasterColumn
 end

@@ -1,6 +1,6 @@
 
 struct Constraint{T <: AbstractConstrDuty}
-    uid::Int  # unique id
+    uid::ConstrId  # unique id
     name::Symbol
     duty::T
     formulation::Formulation
@@ -38,5 +38,6 @@ struct Constraint{T <: AbstractConstrDuty}
     # - The key is the index of a constr/var including this as member,
     # - The value is the corresponding coefficient.
     # ```
-    member_coef_map::Dict{Int, Float64}
+    var_memvership::VarMembership
 end
+

@@ -1,5 +1,5 @@
 struct Variable{T <: AbstractVarDuty}
-    uid::Int # unique id
+    uid::VarId # unique id
     name::Symbol
     duty::T
     formulation::Formulation
