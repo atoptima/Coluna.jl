@@ -1,8 +1,8 @@
 
-struct Constraint{T <: AbstractConstrDuty}
+struct Constraint{DutyType <: AbstractConstrDuty}
     uid::ConstrId  # unique id
     name::Symbol
-    duty::T
+    duty::DutyType
     formulation::Formulation
     vc_ref::Int
     rhs::Float64

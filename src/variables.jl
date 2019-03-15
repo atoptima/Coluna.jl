@@ -1,7 +1,7 @@
-struct Variable{T <: AbstractVarDuty}
+struct Variable{DutyType <: AbstractVarDuty}
     uid::VarId # unique id
     name::Symbol
-    duty::T
+    duty::DutyType
     formulation::Formulation
     cost::Float64
     # ```
@@ -43,5 +43,5 @@ struct Variable{T <: AbstractVarDuty}
     # - The key is the index of a constr/var including this as member,
     # - The value is the corresponding coefficient.
     # ```
-    member_coef_map::Dict{Int, Float64}
+    constr_membership::ConstrMembership
 end

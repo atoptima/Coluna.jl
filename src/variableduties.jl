@@ -1,41 +1,66 @@
-mutable struct OriginalVar <: AbstractVarDuty
-    moi_def::MoiVarDef # explicit var
+mutable struct ExplicitOriginVar <: AbstractVarDuty
     rep_in_reform::Variable  # if any
+    moi_def::MoiVarDef
 end
 
-mutable struct PureMasterVar <: AbstractVarDuty
-    moi_def::MoiVarDef # explicit var
-    original_rep::Variable
+mutable struct ExplicitPureMastVar <: AbstractVarDuty
+    original_rep::Variable{ExplicitOriginVar}
+    moi_def::MoiVarDef 
     #data::ANY
 end
 
-mutable struct MasterCol <: AbstractVarDuty
-    moi_def::MoiVarDef # explicit var
+mutable struct ExplicitMastCol <: AbstractVarDuty
+    moi_def::MoiVarDef 
+    pricing_sp_var_membership::VarMembership # Variable -> PricingSpVar
     #data::ANY
 end
 
-mutable struct MastArtVar <: AbstractVarDuty
-    moi_def::MoiVarDef # explicit var
+mutable struct ExplicitMastArtVar <: AbstractVarDuty
     is_local::Bool
     associated_constr::Constraint # defined if local artifical val
+    moi_def::MoiVarDef 
 end
 
-mutable struct PricingSpVar <: AbstractVarDuty
-    moi_def::MoiVarDef # explicit var
-    original_rep::Variable
+mutable struct MastRepPricingSpVar <: AbstractVarDuty
+    original_rep::Variable{ExplicitOriginVar}
     master_constr_membership::ConstrMembership # Constraint -> MasterConstr
+    rep_in_pricing_sp::Variable{AbstractVarDuty} # must be of type ExplicitPricingSpVar 
+end
+
+mutable struct ExplicitPricingSpVar <: AbstractVarDuty
+    original_rep::Variable{ExplicitOriginVar}
+    rep_in_master::Variable{MastRepPricingSpVar}  
+    moi_def::MoiVarDef 
     master_col_membership::VarMembership # Variable -> MasterColumn
 end
 
-mutable struct BendersSpVar <: AbstractVarDuty
-    moi_def::MoiVarDef # explicit var
-    original_rep::Variable
+mutable struct MastRepBendSpVar <: AbstractVarDuty
+    original_rep::Variable{ExplicitOriginVar}
+    rep_in_benders_sp::Variable{AbstractVarDuty} # must be of type ExplicitBendersSpVar
     #data::ANY
 end
 
-mutable struct BlockGenSpVar <: AbstractVarDuty
-    moi_def::MoiVarDef # explicit var
-    original_rep::Variable
+mutable struct ExplicitBendersSpVar <: AbstractVarDuty
+    original_rep::Variable{ExplicitOriginVar}
+    rep_in_master::Variable{MastRepBendSpVar}  
+    moi_def::MoiVarDef 
     #data::ANY
 end
+
+
+mutable struct ExplicitBlockGenSpVar <: AbstractVarDuty
+    original_rep::Variable{ExplicitOriginVar}
+    rep_in_master::Variable{AbstractVarDuty}  # must be of type ExplicitMastRepBlockSpVar
+    moi_def::MoiVarDef
+    #data::ANY
+end
+
+mutable struct ExplicitMastRepBlockSpVar <: AbstractVarDuty
+    original_rep::Variable{ExplicitOriginVar}
+    rep_in_blockgen_sp::Variable{ExplicitBlockGenSpVar} 
+    moi_def::MoiVarDef 
+    #data::ANY
+end
+
+
 
