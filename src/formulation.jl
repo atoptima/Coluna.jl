@@ -1,10 +1,10 @@
 abstract type AbstractSubproblems end
 abstract type AbstractFormulationNature end
 
-struct Formulation{T <: AbstractFormulationNature, U <: AbstractSubproblems}
+struct Formulation{FormNature <: AbstractFormulationNature, SubProbsType <: AbstractSubproblems}
     parent::Formulation
-    master::T
-    subproblems::U
+    master::FormNature
+    subproblems::SubProbsType
     variables_manager
     constraints_manager
 end
