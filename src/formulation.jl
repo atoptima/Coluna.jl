@@ -1,6 +1,8 @@
 abstract type AbstractSubproblems end
 abstract type AbstractFormulationNature end
 
+
+ 
 struct Formulation{FormNature <: AbstractFormulationNature, SubProbsType <: AbstractSubproblems}
     parent::Union{Nothing, Formulation}
     master::FormNature
@@ -20,8 +22,14 @@ struct ExplicitFormulation <: AbstractFormulationNature
     constr_manager::Manager{Constraint}
 end
 
-function ExplicitFormulation(moi::MOI.ModelLike)
+# function ExplicitFormulation(moi::MOI.ModelLike)
     
+# end
+
+struct ExplicitFormulation <: AbstractFormulationNature
+    moi_definition
+    var_manager::VarManager
+    constr_manager::ConstrManager
 end
 
 struct ImplicitFormulation <: AbstractFormulationNature

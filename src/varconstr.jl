@@ -2,16 +2,13 @@ abstract type AbstractVarConstr end
 abstract type AbstractVarDuty end
 abstract type AbstractConstrDuty end
 
-global const VarId = Int # maybe we should do a wrapper
-global const ConstrId = Int
-
-struct ConstrMembership
-    member_coef_map::SparseVector{Float64,ConstrId}
+struct VarId <: Integer
+    id::Int
+end
+struct ConstrId <: Integer
+    id::Int
 end
 
-struct VarMembership
-    member_coef_map::SparseVector{Float64,VarId}
-end
 
 abstract type AbstractCounter end
 
