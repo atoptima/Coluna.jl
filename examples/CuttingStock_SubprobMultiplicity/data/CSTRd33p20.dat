@@ -1,0 +1,115 @@
+CSTRd33p20
+
+! number of products;
+
+33
+
+! number of roll types;
+
+1
+
+!costiswaste;
+
+0
+
+
+! mastScalingFactor;
+
+1.0
+
+! for each roll type, maximum number of rolls available;
+
+200
+
+
+! for each roll type, minimum number of rolls available;
+
+0  
+
+! for each roll type, length in cm;
+
+1  
+
+! for each roll type, width in cm;
+
+79645
+
+
+! for each products, demand length in cm;
+
+3
+3
+3
+3
+5
+12
+13
+4
+1
+8
+1
+8
+5
+3
+2
+5
+3
+1
+7
+1
+1
+2
+1
+5
+1
+2
+2
+14
+2
+3
+3
+3
+3
+
+
+! for each roll type, width in cm;
+
+25300
+24500
+25300
+24500
+24000
+23500
+21700
+21500
+20500
+20000
+20500
+20000
+19500
+19000
+18500
+18500
+14000
+13500
+13000
+12600
+12500
+12500
+12500
+11000
+10500
+10000
+9500
+9000
+8500
+8500
+8050
+8500
+8050
+
+!number of pattern used;  29
+
+!nb of diff pattern used;  17
+
+!waste;  0.501036

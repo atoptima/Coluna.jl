@@ -1,25 +1,20 @@
-@enum VCSTATUS Inactive Active
+@enum VCSTATUS Inactive Active Unsuitable
 
-type VarConstrCounter
+mutable struct VarConstrCounter
     value::Int
 end
 
-function increment_counter(problem)
-    problem.counter.value += 1
-    return problem.counter.value
+function increment_counter(counter::VarConstrCounter)
+    counter.value += 1
+    return counter.value
 end
 
-type VarConstrStabInfo
-end
-
-@hl type VarConstr{P}
-    vc_ref::Int    
+@hl mutable struct VarConstr
+    vc_ref::Int
     name::String
 
-    problem::P # needed?
-
-    in_cur_prob::Bool
-    in_cur_form::Bool
+    # Ref of Problem which this VarConstr is part of
+    prob_ref::Int
 
     # ```
     # 'U' or 'D'
@@ -42,63 +37,50 @@ end
     # sense : 'N' = negative
     # sense : 'F' = free
     #
-    # Constraints: 'G', 'L', or 'E'
+    # Constraints:
+    # sense : 'G' = greater or equal to
+    # sense : 'L' = less or equal to
+    # sense : 'E' = equal to
     # ```
+
     sense::Char
 
     # ```
     # For Variables:
     # 'C' = continuous,
-    # 'B' = binary,
-    # or 'I' = integer
+    # 'B' = binary, or
+    # 'I' = integer
+    #
     # For Constraints:
-    # type = 'C' for core -required for the IP formulation-,
-    # type = 'F' for facultative -only helpfull for the LP formulation-,
-    # type = 'S' for constraints defining a subsystem in column generation for 
+    # mutable struct = 'C' for core -required for the IP formulation-,
+    # mutable struct = 'F' for facultative -only helpfull to tighten the LP approximation of the IP formulation-,
+    # mutable struct = 'S' for constraints defining a subsystem in column generation for
     #            extended formulation approach
-    # type = 'M' for constraints defining a pure master constraint
-    # type = 'X' for constraints defining a subproblem convexity constraint 
+    # mutable struct = 'M' for constraints defining a pure master constraint
+    # mutable struct = 'X' for constraints defining a subproblem convexity constraint
     #            in the master
     # ```
     vc_type::Char
 
-
     # ```
-    # 's' -by default- for static VarConstr belonging to the problem -and erased 
+    # 's' -by default- for static VarConstr belonging to the problem -and erased
     #     when the problem is erased-
-    # 'd' for generated dynamic VarConstr not belonging to the problem
+    # 'd' for dynamically generated VarConstr not belonging to the problem at the outset
     # 'a' for artificial VarConstr.
     # ```
     flag::Char
 
-
     # ```
     # Active = In the formulation
     # Inactive = Can enter the formulation, but is not in it
-    # Unsuitable = Cannot enter the formulation in current node.
+    # Unsuitable = is not valid for the formulation at the current node.
     # ```
     status::VCSTATUS
 
     # ```
-    # Primal Value for a variable, dual value a constraint
+    # Primal Value for a variable, dual value for a constraint
     # ```
     val::Float
-
-    # ```
-    # Rounding Primal Value for a variable, dual value a constraint
-    # ```
-    # floorval::Float
-    # ceilval::Float
-
-    # ```
-    # Closest integer to val
-    # ```
-    # roundedval::Float
-
-    # ```
-    # 'U' or 'D'
-    # ```
-    # roundedsense::Char
 
     # ```
     # Temprarity recorded primal Value for a variable in rounding or fixing
@@ -115,38 +97,162 @@ end
     # ```
     member_coef_map::Dict{VarConstr, Float}
 
-    is_info_updated::Bool # added by Ruslan, needed for VarConstrResetInfo
-    in_preprocessed_list::Bool # added by Ruslan, needed for preprocessing
-
     reduced_cost::Float
-
-    # ```
-    # To hold Info Need for stabilisation of constraint in Col Gen approach and
-    # on First stage Variables in Benders approach
-    # ```
-    stab_info::VarConstrStabInfo
-
-    # ```
-    # Treat order of the node where the column has been generated -needed for 
-    # problem setup-
-    # ```
-    treat_order_id::Int
 end
 
+Base.show(io::IO, varconstr::VarConstr) = Base.show(io::IO, varconstr.name)
 
-# Think about this constructor (almost a copy)
-function VarConstrBuilder(vc::VarConstr) 
-    # This is not a copy since some fields are reset to default
-    return (increment_counter(vc.problem), "", vc.problem, false, false, 
-            vc.directive, vc.priority, vc.cost_rhs, vc.sense, vc.vc_type, vc.flag, 
-            vc.status, vc.val, vc.cur_cost_rhs, copy(vc.member_coef_map), false, 
-            vc.in_preprocessed_list, vc.reduced_cost, VarConstrStabInfo(), 0)
+function VarConstrBuilder(counter::VarConstrCounter, name::String, costrhs::Float,
+                          sense::Char, vc_type::Char, flag::Char, directive::Char,
+                          priority::Float)
+    return (increment_counter(counter), name, -1, directive,
+            priority, costrhs, sense, vc_type, flag, Active, 0.0, costrhs,
+            Dict{VarConstr, Float}(), 0.0)
 end
 
-function VarConstrBuilder(problem::P, name::String, costrhs::Float, sense::Char, 
-                          vc_type::Char, flag::Char, directive::Char, 
-                          priority::Float) where P
-    return (increment_counter(problem), name, problem, false, false, directive, 
-            priority, costrhs, sense, vc_type, flag, Active, 0.0, 0.0, 
-            Dict{VarConstr, Float}(), false, false, 0.0, VarConstrStabInfo(), 0)
+const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float}}
+const MoiVcType = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{
+    MOI.Integer,MOI.ZeroOne}
+mutable struct MoiDef
+    # ```
+    # Index in MOI optimizer
+    # ```
+    var_index::MOI.VariableIndex
+
+    # ```
+    # Stores the MOI.ConstraintIndex used as lower and upper bounds
+    # ```
+    bounds_index::MoiBounds
+
+    # ```
+    # Stores the MOI.ConstraintIndex that represents vc_type in coluna
+    # ```
+    type_index::MoiVcType
+end
+
+function MoiDef()
+    return MoiDef(MOI.VariableIndex(-1), MoiBounds(-1), MoiVcType{MOI.ZeroOne}(-1))
+end
+
+@hl mutable struct Variable <: VarConstr
+    
+    # ```
+    # Stores the representation of this variable in MOI.
+    # ```
+    moi_def::MoiDef
+
+    # ```
+    # Stores a secondary representation of this variable in MOI.
+    # Used when solving the problem with another optimizer
+    # i.e.: When doing primal heuristics
+    # ```
+    secondary_moi_def::MoiDef
+
+    # ```
+    # To represent local lower bound on variable primal / constraint dual
+    # In the problem which it belongs to
+    # ```
+    lower_bound::Float
+
+    # ```
+    # To represent local upper bound on variable primal / constraint dual
+    # In the problem which it belongs to
+    # ```
+    upper_bound::Float
+
+    # ```
+    # Current (local) bound values
+    # Used in preprocessing
+    # ```
+    cur_lb::Float
+    cur_ub::Float
+end
+
+function VariableBuilder(counter::VarConstrCounter, name::String,
+        costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char,
+        priority::Float, lb::Float, ub::Float)
+
+    return tuplejoin(
+        VarConstrBuilder(counter, name, costrhs, sense, vc_type, flag,
+                         directive, priority),
+        MoiDef(), MoiDef(), lb, ub, lb, ub)
+end
+
+function bounds_changed(var::Variable)
+    return (var.cur_lb != var.lower_bound
+        || var.cur_ub != var.upper_bound
+        || var.cur_cost_rhs != var.cost_rhs)
+end
+
+function set_default_currents(var::Variable)
+    var.cur_lb = var.lower_bound
+    var.cur_ub = var.upper_bound
+    var.cur_cost_rhs = var.cost_rhs
+end
+
+@hl mutable struct Constraint <: VarConstr
+    # ```
+    # Index in MOI optimizer
+    # ```
+    moi_index::MOI.ConstraintIndex{F,S} where {F,S}
+
+    # ```
+    # Used when solving the problem with another optimizer
+    # i.e.: When doing primal heuristics
+    # ``
+    secondary_moi_index::MOI.ConstraintIndex{F,S} where {F,S}
+
+    # ```
+    # Type of constraint in MOI optimizer
+    # ``
+    set_type::Type{<:MOI.AbstractSet}
+end
+
+function ConstraintBuilder(counter::VarConstrCounter, name::String,
+        cost_rhs::Float, sense::Char, vc_type::Char, flag::Char)
+    if sense == 'G'
+        set_type = MOI.GreaterThan{Float}
+    elseif sense == 'L'
+        set_type = MOI.LessThan{Float}
+    elseif sense == 'E'
+        set_type = MOI.EqualTo{Float}
+    else
+        error("Sense $sense is not supported")
+    end
+
+    return tuplejoin(
+        VarConstrBuilder(counter, name, cost_rhs, sense, vc_type, flag, 'U', 1.0),
+        MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
+        MOI.ConstraintIndex{MOI.ScalarAffineFunction,set_type}(-1),
+        set_type
+    )
+end
+
+function find_first(var_constr_vec::Vector{<:VarConstr}, vc_ref::Int)
+    for i in 1:length(var_constr_vec)
+        if vc_ref == var_constr_vec[i].vc_ref
+            return i
+        end
+    end
+    return 0
+end
+
+function cost_rhs_changed(constr::Constraint)
+    return constr.cur_cost_rhs != constr.cost_rhs
+end
+
+function set_default_currents(constr::Constraint)
+    constr.cur_cost_rhs = constr.cost_rhs
+end
+
+function switch_primary_secondary_moi_indices(constr::Constraint)
+    temp_idx = constr.moi_index
+    constr.moi_index = constr.secondary_moi_index
+    constr.secondary_moi_index = temp_idx
+end
+
+function switch_primary_secondary_moi_def(var::Variable)
+    temp_moi_def = var.moi_def
+    var.moi_def = var.secondary_moi_def
+    var.secondary_moi_def = temp_moi_def
 end
