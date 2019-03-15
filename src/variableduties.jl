@@ -11,7 +11,7 @@ end
 
 mutable struct ExplicitMastCol <: AbstractVarDuty
     moi_def::MoiVarDef 
-    pricing_sp_var_membership::VarMembership # Variable -> PricingSpVar
+    pricing_sp_var_membership::Membership{Variable} # Variable -> PricingSpVar
     #data::ANY
 end
 
@@ -23,7 +23,7 @@ end
 
 mutable struct MastRepPricingSpVar <: AbstractVarDuty
     original_rep::Variable{ExplicitOriginVar}
-    master_constr_membership::ConstrMembership # Constraint -> MasterConstr
+    master_constr_membership::Membership{Constraint} # Constraint -> MasterConstr
     rep_in_pricing_sp::Variable{AbstractVarDuty} # must be of type ExplicitPricingSpVar 
 end
 
@@ -31,7 +31,7 @@ mutable struct ExplicitPricingSpVar <: AbstractVarDuty
     original_rep::Variable{ExplicitOriginVar}
     rep_in_master::Variable{MastRepPricingSpVar}  
     moi_def::MoiVarDef 
-    master_col_membership::VarMembership # Variable -> MasterColumn
+    master_col_membership::Membership{Variable} # Variable -> MasterColumn
 end
 
 mutable struct MastRepBendSpVar <: AbstractVarDuty

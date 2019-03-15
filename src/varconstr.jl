@@ -1,29 +1,21 @@
-abstract type AbstractVarConstr end
-abstract type AbstractVarDuty end
-abstract type AbstractConstrDuty end
+@enum VarSense Positive Negative Free
+@enum VarSet Continuous Binary Integ
+@enum ConstrSense Greater Less Equal
+@enum ConstrType Core Facultative SubSytem PureMaster SubprobConvexity
+@enum Flag Static Dynamic Artifical
+@enum Status Active Unsuitable
 
-struct VarId <: Integer
+struct Id{T <: AbstractVarConstr} <: Integer
     id::Int
 end
-struct ConstrId <: Integer
-    id::Int
+
+mutable struct Counter{T <: AbstractVarConstr}
+    value::Id{T}
+    Counter{T}() where {T <: AbstractVarConstr} = new(0)
 end
 
-
-abstract type AbstractCounter end
-
-mutable struct ConstraintCounter <: AbstractCounter
-    value::ConstrId
-    ConstraintCounter() = new(0)
-end
-
-mutable struct VariableCounter <: AbstractCounter
-    value::VarId
-    VariableCounter() = new(0)
-end
-
-function increment_counter(counter::AbstractCounter)
-    counter.value += 1
+function getvalue(counter::Counter{T}) where {T <: AbstractVarConstr}
+    counter.value = Id{T}(counter.value.id + 1)
     return counter.value
 end
 
@@ -34,21 +26,6 @@ end
 struct MoiConstrDef
     # TODO
 end
-
-
-
-
-
-# fract_part(val::Float64) = (abs(val - round(val)))
-
-# function is_value_integer(val::Float64, tolerance::Float64)
-#     return (fract_part(val) <= tolerance)
-# end
-
-
-
-# @enum VCSTATUS Inactive Active Unsuitable
-
 
 # function VarConstrBuilder(counter::VariableCounter,
 #                           name::String,

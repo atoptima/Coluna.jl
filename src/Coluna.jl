@@ -1,8 +1,8 @@
 module Coluna
 
 import Parameters.@with_kw
-import HighLevelTypes.@hl
-import HighLevelTypes.tuplejoin
+# import HighLevelTypes.@hl
+# import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
@@ -32,6 +32,7 @@ global __initial_solve_time = 0.0
 
 # include("/Users/vitornesello/.julia/dev/SimpleDebugger/src/SimpleDebugger.jl")
 
+include("types.jl")
 #include("parameters.jl")
 #include("utils.jl")
 include("varconstr.jl")
@@ -39,9 +40,9 @@ include("membership.jl")
 include("formulation.jl")
 include("constraint.jl")
 include("variable.jl")
+include("formulationnatures.jl")
 include("constraintduties.jl")
 include("variableduties.jl")
-include("manager.jl")
 #include("solution.jl")
 #include("mastercolumn.jl")
 #include("problem.jl")

@@ -289,19 +289,20 @@ end
 #         end
 #         counter = dest.inner.extended_problem.counter
 #         # Get variable annotation
-#         prob_idx = MOI.get(src, VariableDantzigWolfeAnnotation(), var_index[i])
-#         if prob_idx <= 0
-#             var = MasterVar(counter, name, 0.0, 'P', 'C', 's', 'U', 1.0, -Inf, Inf)
-#         else
-#             var = SubprobVar(counter, name, 0.0, 'P', 'C', 's', 'U', 1.0, -Inf, Inf,
-#                              -Inf, Inf, -Inf, Inf)
-#         end
+#         #prob_idx = MOI.get(src, VariableDantzigWolfeAnnotation(), var_index[i])
+#         #if prob_idx <= 0
+#             #var = MasterVar(counter, name, 0.0, 'P', 'C', 's', 'U', 1.0, -Inf, Inf)
+#         #else
+#             #var = SubprobVar(counter, name, 0.0, 'P', 'C', 's', 'U', 1.0, -Inf, Inf,
+#                             # -Inf, Inf, -Inf, Inf)
+#         #end
+
 #         push!(coluna_vars, var)
 #         new_idx = MOI.VariableIndex(i)
 #         # Update maps
 #         mapping.varmap[var_index[i]] = new_idx
-#         dest.varmap[new_idx] = var
-#         dest.var_probidx_map[var] = prob_idx
+#         #dest.varmap[new_idx] = var
+#         #dest.var_probidx_map[var] = prob_idx
 #     end
 #     return coluna_vars
 # end
@@ -321,91 +322,59 @@ end
 #     end
 # end
 
-# function find_number_of_subproblems(src::MOI.ModelLike)
-#     nb_subproblems = 0
-#     var_index = MOI.get(src, MOI.ListOfVariableIndices())
-#     problem_indices = BitSet()
-#     for i in 1:length(var_index)
-#         prob_idx = MOI.get(src, VariableDantzigWolfeAnnotation(), var_index[i])
-#         if prob_idx > 0
-#             push!(problem_indices, prob_idx)
-#         end
-#         if prob_idx > nb_subproblems
-#             nb_subproblems = prob_idx
-#         end
-#     end
-#     for (F,S) in MOI.get(src, MOI.ListOfConstraints())
-#         for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-#             prob_idx = MOI.get(src, ConstraintDantzigWolfeAnnotation(), ci)
-#             if prob_idx > 0
-#                 push!(problem_indices, prob_idx)
-#             end
-#             if prob_idx > nb_subproblems
-#                 nb_subproblems = prob_idx
-#             end
-#         end
-#     end
-#     if nb_subproblems != length(problem_indices)
-#         error("Subproblem indices are not contiguous.")
-#     end
-#     return nb_subproblems
-# end
 
-# function create_subproblems(dest::Optimizer, src::MOI.ModelLike)
-#     extended_problem = dest.inner.extended_problem
-#     prob_counter = dest.inner.prob_counter
-#     counter = dest.inner.extended_problem.counter
-#     dest.nb_subproblems = find_number_of_subproblems(src)
-#     for i in 1:dest.nb_subproblems
-#         subprob = SimpleCompactProblem(prob_counter, counter)
-#         push!(extended_problem.pricing_vect, subprob)
-#     end
-# end
-
-function register_original_variables!(model::Model, src::MOI.ModelLike, 
-        copy_names::Bool)
-
+function register_orig_vars!(m::Model, orig_form::Formulation, 
+        moi_map::MOIU.IndexMap, src::MOI.ModelLike, obj, copy_names::Bool)
+    for moi_var_id in MOI.get(src, MOI.ListOfVariableIndices())
+        if copy_names
+            name = MOI.get(src, MOI.VariableName(), moi_var_id)
+        else
+            name = string("var_", moi_var_id.value)
+        end
+        # println("> variable " , name , " [" , moi_var_id , "].")
+        # create variable here
+        coluna_var_id = MOI.VariableIndex(0)
+        setindex!(moi_map, moi_var_id, coluna_var_id)
+    end
+    return
 end
 
-function register_original_constraints!()
-
+function register_orig_constrs!(m::Model, orig_form::Formulation,
+        moi_map::MOIU.IndexMap, src::MOI.ModelLike, copy_names::Bool)
+    for (F, S) in MOI.get(src, MOI.ListOfConstraints())
+        for moi_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+            if copy_names
+                name = MOI.get(src, MOI.ConstraintName(), moi_constr_id)
+            else
+                name = string("constr_", moi_constr_id.value)
+            end
+            func = MOI.get(src, MOI.ConstraintFunction(), moi_constr_id)
+            set = MOI.get(src, MOI.ConstraintSet(), moi_constr_id)
+            #println("> constraint ", name, " = ", func, " & ", set)
+            # create constraint here
+            coluna_constr_id = MOI.ConstraintIndex{F,S}(0)
+            setindex!(moi_map, moi_constr_id, coluna_constr_id)
+        end
+    end
+    return
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
-    var_counter = VariableCounter()
-    constr_counter = ConstraintCounter()
+    var_counter = Counter{Variable}()
+    constr_counter = Counter{Constraint}()
 
-    ## !! Note : src is the MOI.ModelLike of the original formulation.
-
-    # Copynames is always set to false by CachingOptimizer
-    #if inner.params.force_copy_names
-    #    copy_names = true
-    #end
-
-    mapping = MOIU.IndexMap()
-    println("\e[32m create the model here \e[00m")
-
+    mapping = MOIU.IndexMap() # map from moi idx to coluna idx
     model = Model()
-
-
     orig_form = OriginalFormulation(src)
 
-    #exit()
+    sense = MOI.get(src, MOI.ObjectiveSense())
+    obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    
+    # @show sense
+    # @show obj
 
-    for var_id in MOI.get(src, MOI.ListOfVariableIndices())
-        name = MOI.get(src, MOI.VariableName(), var_id)
-        println("> variable " , name , " [" , var_id , "].")
-    end
-
-    for (F, S) in MOI.get(src, MOI.ListOfConstraints())
-        for constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
-            name = MOI.get(src, MOI.ConstraintName(), constr_id)
-            func = MOI.get(src, MOI.ConstraintFunction(), constr_id)
-            set = MOI.get(src, MOI.ConstraintSet(), constr_id)
-            println("> constraint ", name, " = ", func, " & ", set)
-        end
-    end
-
+    register_orig_vars!(model, orig_form, mapping, src, obj, copy_names)
+    register_orig_constrs!(model, orig_form, mapping, src, copy_names)
 
 
     # Old code :
@@ -425,7 +394,6 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     # dest.inner.extended_problem = extended_problem
 
     # mapping = MOIU.IndexMap()
-    # coluna_vars = create_coluna_variables(dest, src, mapping, copy_names)
     # create_subproblems(dest, src)
     # set_optimizers_dict(dest)
     # set_card_bounds_dict(src, extended_problem)

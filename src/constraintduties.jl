@@ -17,8 +17,8 @@ end
 mutable struct ExplicitMasterConstr <: AbstractConstrDuty
     original_rep::Constraint{ExplicitOriginalConstr}
     moi_def::MoiVarDef 
-#    subprob_var_membership::VarMembership
-#    mast_col_membership::VarMembership # Variable -> MasterColumn
+#    subprob_var_membership::Membership{Variable}
+#    mast_col_membership::Membership{Variable} # Variable -> MasterColumn
 end
 
 mutable struct ExplicitConvexityConstr <: AbstractConstrDuty
@@ -30,12 +30,12 @@ mutable struct ExplicitMasterBranchConstr{T} <: AbstractConstrDuty
     moi_def::MoiVarDef # explicit var
     branch_var::T
     depth_when_generated::Int
-#    mast_col_membership::VarMembership # Variable -> MasterColumn
+#    mast_col_membership::Membership{Variable} # Variable -> MasterColumn
 end
 
 mutable struct PricingSpRepMastBranchConstr{T} <: AbstractConstrDuty
     original_rep::Constraint{ExplicitOriginalBranchingConstr}
     master_rep::Constraint{ExplicitMasterBranchConstr}
     moi_def::MoiVarDef # explicit var
- #   subprob_var_membership::VarMembership
+ #   subprob_var_membership::Membership{Variable}
 end
