@@ -1,4 +1,4 @@
-const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float},
+const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float64},
                                MOI.SingleVariable}
 
 const SupportedVarSets = Union{MOI.Nonnegatives, 
@@ -6,16 +6,16 @@ const SupportedVarSets = Union{MOI.Nonnegatives,
                                 MOI.Nonpositives,
                                 MOI.ZeroOne,
                                 MOI.Integer,
-                                MOI.LessThan{Float},
-                                MOI.EqualTo{Float},
-                                MOI.GreaterThan{Float},
-                                MOI.Interval{Float}}
+                                MOI.LessThan{Float64},
+                                MOI.EqualTo{Float64},
+                                MOI.GreaterThan{Float64},
+                                MOI.Interval{Float64}}
 
-const SupportedConstrFunc = Union{MOI.ScalarAffineFunction{Float}}
+const SupportedConstrFunc = Union{MOI.ScalarAffineFunction{Float64}}
 
-const SupportedConstrSets = Union{MOI.EqualTo{Float},
-                                  MOI.GreaterThan{Float},
-                                  MOI.LessThan{Float},
+const SupportedConstrSets = Union{MOI.EqualTo{Float64},
+                                  MOI.GreaterThan{Float64},
+                                  MOI.LessThan{Float64},
                                   MOI.Zeros}
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
@@ -144,7 +144,7 @@ end
 # function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
 #                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
 #                          f::MOI.ScalarAffineFunction, s::MOI.AbstractSet,
-#                          rhs::Float64, sense::Char, copy_names::Bool)
+#                          rhs::Float6464, sense::Char, copy_names::Bool)
 #     if copy_names
 #         name = MOI.get(src, MOI.ConstraintName(), ci)
 #     else
@@ -363,7 +363,14 @@ function MOI.copy_to(dest::Optimizer,
     var_counter = VariableCounter()
     constr_counter = ConstraintCounter()
 
+    # Copynames is always set to false by CachingOptimizer
+    if inner.params.force_copy_names
+        copy_names = true
+    end
+
+    mapping = MOIU.IndexMap()
     println("\e[32m create the model here \e[00m")
+
 
 
     # Old code :
@@ -389,7 +396,7 @@ function MOI.copy_to(dest::Optimizer,
     # set_card_bounds_dict(src, extended_problem)
 
     # # Copy objective function
-    # obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    # obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float6464}}())
     # load_obj(dest, mapping, obj)
     # sense = MOI.get(src, MOI.ObjectiveSense())
     # return_value = MOI.set(dest, MOI.ObjectiveSense(), sense)

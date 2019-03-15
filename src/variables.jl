@@ -3,7 +3,7 @@ struct Variable{T <: AbstractVarDuty}
     name::Symbol
     duty::T
     formulation::Formulation
-    cost::Float
+    cost::Float64
     # ```
     # sense : 'P' = positive
     # sense : 'N' = negative
@@ -22,8 +22,8 @@ struct Variable{T <: AbstractVarDuty}
     # 'a' for artificial VarConstr.
     # ```
     flag::Char
-    lower_bound::Float
-    upper_bound::Float
+    lower_bound::Float64
+    upper_bound::Float64
     # ```
     # Active = In the formulation
     # Inactive = Can enter the formulation, but is not in it
@@ -36,7 +36,7 @@ struct Variable{T <: AbstractVarDuty}
     # ```
     # A higher priority means that var is selected first for branching or diving
     # ```
-    priority::Float
+    priority::Float64
     status
 
     # Represents the membership of a VarConstr as map where:
@@ -45,4 +45,3 @@ struct Variable{T <: AbstractVarDuty}
     # ```
     member_coef_map::Dict{Int, Float64}
 end
-

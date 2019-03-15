@@ -5,7 +5,7 @@ struct Constraint{T <: AbstractConstrDuty}
     duty::T
     formulation::Formulation
     vc_ref::Int
-    rhs::Float
+    rhs::Float64
     # ```
     # sense : 'G' = greater or equal to
     # sense : 'L' = less or equal to

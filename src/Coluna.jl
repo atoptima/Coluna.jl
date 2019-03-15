@@ -10,10 +10,10 @@ import GLPK
 import JuMP
 
 using Base.CoreLogging
+using SparseArrays
 import TimerOutputs
 import TimerOutputs.@timeit
 
-global const Float = Float64
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
@@ -40,6 +40,7 @@ include("constraints.jl")
 include("variables.jl")
 include("constraintduties.jl")
 include("variableduties.jl")
+include("manager.jl")
 #include("solution.jl")
 #include("mastercolumn.jl")
 #include("problem.jl")

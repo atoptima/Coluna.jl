@@ -1,34 +1,31 @@
+abstract type AbstractVarConstr end
 abstract type AbstractVarDuty end
 abstract type AbstractConstrDuty end
 
-global const VarId = Int
+global const VarId = Int # maybe we should do a wrapper
 global const ConstrId = Int
 
 struct ConstrMembership
-    member_coef_map::SparseVector{Float,ConstrId}
+    member_coef_map::SparseVector{Float64,ConstrId}
 end
 
 struct VarMembership
-    member_coef_map::SparseVector{Float,VarId}
+    member_coef_map::SparseVector{Float64,VarId}
 end
 
+abstract type AbstractCounter end
 
-mutable struct ConstraintCounter
+mutable struct ConstraintCounter <: AbstractCounter
     value::ConstrId
     ConstraintCounter() = new(0)
 end
 
-mutable struct VariableCounter
+mutable struct VariableCounter <: AbstractCounter
     value::VarId
     VariableCounter() = new(0)
 end
 
-function increment_counter(counter::ConstraintCounter)
-    counter.value += 1
-    return counter.value
-end
-
-function increment_counter(counter::VariableCounter)
+function increment_counter(counter::AbstractCounter)
     counter.value += 1
     return counter.value
 end
