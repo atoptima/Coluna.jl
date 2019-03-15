@@ -1,7 +1,10 @@
 mutable struct Model
-    formulation::Formulation
+    formulation::Union{Nothing, Formulation}
+    var_counter::VariableCounter
+    constr_counter::ConstraintCounter
 end
 
+Model() = Model(nothing, VariableCounter(), ConstraintCounter())
 
 # @hl mutable struct Callback end
 

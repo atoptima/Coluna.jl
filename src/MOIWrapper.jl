@@ -33,6 +33,10 @@ function Optimizer(;kwargs...)
     return Optimizer(nothing)
 end
 
+function MOI.optimize!(optimizer::Optimizer)
+    println("\e[34m OPTIMIZE \e[00m")
+end
+
 #     # coluna_model = ModelConstructor(params, with_extended_prob = false)
 #     # _varmap = Dict{MOI.VariableIndex,Variable}()
 #     # _constr_probidx_map = Dict{Constraint,Int}()
@@ -175,7 +179,7 @@ function MOI.supports_constraint(optimizer::Optimizer,
     return true
 end
 
-function MOI.supports(optimize::Optimizer, 
+function MOI.supports(optimizer::Optimizer, 
         ::MOI.ObjectiveFunction{<: SupportedObjFunc})
     return true
 end
@@ -358,18 +362,49 @@ end
 #     end
 # end
 
-function MOI.copy_to(dest::Optimizer,
-                     src::MOI.ModelLike; copy_names=true)
+function register_original_variables!(model::Model, src::MOI.ModelLike, 
+        copy_names::Bool)
+
+end
+
+function register_original_constraints!()
+
+end
+
+function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     var_counter = VariableCounter()
     constr_counter = ConstraintCounter()
 
+    ## !! Note : src is the MOI.ModelLike of the original formulation.
+
     # Copynames is always set to false by CachingOptimizer
-    if inner.params.force_copy_names
-        copy_names = true
-    end
+    #if inner.params.force_copy_names
+    #    copy_names = true
+    #end
 
     mapping = MOIU.IndexMap()
     println("\e[32m create the model here \e[00m")
+
+    model = Model()
+
+
+    orig_form = OriginalFormulation(src)
+
+    #exit()
+
+    for var_id in MOI.get(src, MOI.ListOfVariableIndices())
+        name = MOI.get(src, MOI.VariableName(), var_id)
+        println("> variable " , name , " [" , var_id , "].")
+    end
+
+    for (F, S) in MOI.get(src, MOI.ListOfConstraints())
+        for constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+            name = MOI.get(src, MOI.ConstraintName(), constr_id)
+            func = MOI.get(src, MOI.ConstraintFunction(), constr_id)
+            set = MOI.get(src, MOI.ConstraintSet(), constr_id)
+            println("> constraint ", name, " = ", func, " & ", set)
+        end
+    end
 
 
 
