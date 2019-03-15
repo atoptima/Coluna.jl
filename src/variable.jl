@@ -1,5 +1,6 @@
 struct Variable{DutyType <: AbstractVarDuty}
     uid::VarId # unique id
+    moi_id::Int  # -1 if not explixitly in a formulation
     name::Symbol
     duty::DutyType
     formulation::Formulation
@@ -44,4 +45,36 @@ struct Variable{DutyType <: AbstractVarDuty}
     # - The value is the corresponding coefficient.
     # ```
     constr_membership::ConstrMembership
+end
+
+function add_var_in_manager(var_manager::VarManager, var::Variable)
+    if var.status == Active && var.flag == 's'
+        list = var_manager.active_static_list
+    elseif var.status == Active && var.flag == 'd'
+        list = var_manager.active_dynamic_list
+    elseif var.status == Unsuitable && var.flag == 's'
+        list = var_manager.unsuitable_static_list
+    elseif var.status == Unsuitable && var.flag == 'd'
+        list = var_manager.unsuitable_dynamic_list
+    else
+        error("Status $(var.status) and flag $(var.flag) are not supported")
+    end
+    list[var.uid] = var.moi_id
+end
+
+
+function remove_from_var_manager(var_manager::VarManager,
+        var::Variable)
+    if var.status == Active && var.flag == 's'
+        list = var_manager.active_static_list
+    elseif var.status == Active && var.flag == 'd'
+        list = var_manager.active_dynamic_list
+    elseif var.status == Unsuitable && var.flag == 's'
+        list = var_manager.unsuitable_static_list
+    elseif var.status == Unsuitable && var.flag == 'd'
+        list = var_manager.unsuitable_dynamic_list
+    else
+        error("Status $(var.status) and flag $(var.flag) are not supported")
+    end
+     deleteat!(list, var.uid)
 end

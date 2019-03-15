@@ -9,13 +9,6 @@ struct ConstrId <: Integer
     id::Int
 end
 
-struct ConstrMembership
-    member_coef_map::SparseVector{Float64,ConstrId}
-end
-
-struct VarMembership
-    member_coef_map::SparseVector{Float64,VarId}
-end
 
 abstract type AbstractCounter end
 

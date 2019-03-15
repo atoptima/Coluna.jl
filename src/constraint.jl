@@ -1,6 +1,7 @@
 
 struct Constraint{DutyType <: AbstractConstrDuty}
     uid::ConstrId  # unique id
+    moi_id::Int # -1 if not explixitly in a formulation
     name::Symbol
     duty::DutyType
     formulation::Formulation
@@ -41,3 +42,36 @@ struct Constraint{DutyType <: AbstractConstrDuty}
     var_memvership::VarMembership
 end
 
+function add_constr_in_manager(constr_manager::ConstrManager,
+                            constr::Constraint)
+
+    if constr.status == Active && constr.flag == 's'
+        list = constr_manager.active_static_list
+    elseif constr.status == Active && constr.flag == 'd'
+        list = constr_manager.active_dynamic_list
+    elseif constr.status == Unsuitable && constr.flag == 's'
+        list = constr_manager.unsuitable_static_list
+    elseif constr.status == Unsuitable && constr.flag == 'd'
+        list = constr_manager.unsuitable_dynamic_list
+    else
+        error("Status $(constr.status) and flag $(constr.flag) are not supported")
+    end
+    list[constr.uid] = constr.moi_id
+
+end
+
+function remove_from_constr_manager(constr_manager::ConstrManager,
+        constr::Constraint)
+    if constr.status == Active && constr.flag == 's'
+        list = constr_manager.active_static_list
+    elseif constr.status == Active && constr.flag == 'd'
+        list = constr_manager.active_dynamic_list
+    elseif constr.status == Unsuitable && constr.flag == 's'
+        list = constr_manager.unsuitable_static_list
+    elseif constr.status == Unsuitable && constr.flag == 'd'
+        list = constr_manager.unsuitable_dynamic_list
+    else
+        error("Status $(constr.status) and flag $(constr.flag) are not supported")
+    end
+     deleteat!(list, constr.uid)
+end

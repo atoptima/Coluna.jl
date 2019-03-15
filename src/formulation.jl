@@ -1,16 +1,18 @@
 abstract type AbstractSubproblems end
 abstract type AbstractFormulationNature end
 
+
+ 
 struct Formulation{FormNature <: AbstractFormulationNature, SubProbsType <: AbstractSubproblems}
     parent::Formulation
     master::FormNature
     subproblems::SubProbsType
-    variables_manager
-    constraints_manager
 end
 
 struct ExplicitFormulation <: AbstractFormulationNature
     moi_definition
+    var_manager::VarManager
+    constr_manager::ConstrManager
 end
 
 struct ImplicitFormulation <: AbstractFormulationNature
