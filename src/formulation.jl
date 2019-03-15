@@ -1,14 +1,10 @@
 abstract type AbstractSubproblems end
 abstract type AbstractFormulationNature end
 
-
- 
 struct Formulation{FormNature <: AbstractFormulationNature, SubProbsType <: AbstractSubproblems}
     parent::Union{Nothing, Formulation}
     master::FormNature
     subproblems::SubProbsType
-    var_manager::Manager # store variables of this formulation only
-    constr_manager::Manager # store constraints of this formulation only
 end
 
 function OriginalFormulation(moi_model::MOI.ModelLike)
