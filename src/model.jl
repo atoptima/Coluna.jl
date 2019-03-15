@@ -144,9 +144,9 @@ function prepare_node_for_treatment(extended_problem::ExtendedProblem,
     println("Current primal bound is ", extended_problem.primal_inc_bound)
     println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
 
-    treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
-                   node.problem_setup_info, node.local_branching_constraints)
-    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
+     # treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
+                    # node.problem_setup_info, node.local_branching_constraints)
+     # treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
     treat_algs.alg_generate_children_nodes = DivingGenerateChildAlg(node.depth,
                                                                     extended_problem)
     return true

@@ -56,7 +56,7 @@ end
 function update_diving_root_node(alg::AlgToPrimalHeurBySimpleDiving, 
                                  global_treat_order::TreatOrder, primal_sol::PrimalSolution)
     root = alg.diving_root_node
-    root.problem_setup_info = alg.bcp_node.problem_setup_info
+    root.problem_setup_info = deepcopy(alg.bcp_node.problem_setup_info)
     root.node_inc_lp_dual_bound = primal_sol.cost
     root.node_inc_ip_dual_bound = primal_sol.cost
     root.node_inc_lp_primal_bound = alg.extended_problem.primal_inc_bound
