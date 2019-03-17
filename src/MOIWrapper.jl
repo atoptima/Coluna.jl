@@ -127,16 +127,6 @@ end
 # ##########################################
 # # Functions needed during copy procedure #
 # ##########################################
-# function load_obj(dest::Optimizer, mapping::MOIU.IndexMap,
-#                   f::MOI.ScalarAffineFunction)
-#     # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
-#     # This is safe becasue the variables are initialized with a 0.0 cost_rhs
-#     for term in f.terms
-#         dest.varmap[mapping.varmap[term.variable_index]].cost_rhs += term.coefficient
-#         dest.varmap[mapping.varmap[term.variable_index]].cur_cost_rhs += term.coefficient
-#     end
-# end
-
 # function add_memberships(dest::Optimizer, problem::Problem, constr::Constraint,
 #                          f::MOI.ScalarAffineFunction, mapping::MOIU.IndexMap)
 #     for term in f.terms
@@ -322,41 +312,72 @@ end
 #     end
 # end
 
-
-function register_orig_vars!(m::Model, orig_form::Formulation, 
-        moi_map::MOIU.IndexMap, src::MOI.ModelLike, obj, copy_names::Bool)
-    for moi_var_id in MOI.get(src, MOI.ListOfVariableIndices())
-        if copy_names
-            name = MOI.get(src, MOI.VariableName(), moi_var_id)
-        else
-            name = string("var_", moi_var_id.value)
-        end
-        # println("> variable " , name , " [" , moi_var_id , "].")
-        # create variable here
-        coluna_var_id = MOI.VariableIndex(0)
-        setindex!(moi_map, moi_var_id, coluna_var_id)
+function load_obj!(vars::Vector{Variable}, moi_map::MOIU.IndexMap,
+                  f::MOI.ScalarAffineFunction)
+    # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
+    # This is safe becasue the variables are initialized with a 0.0 cost_rhs
+    for term in f.terms
+        coluna_var_id = moi_map[term.variable_index].value
+        setcost!(vars[coluna_var_id], term.coefficient)
     end
     return
 end
 
-function register_orig_constrs!(m::Model, orig_form::Formulation,
+function create_origvars!(m::Model, orig_form::Formulation, 
         moi_map::MOIU.IndexMap, src::MOI.ModelLike, copy_names::Bool)
+    vars = Variable[]
+    for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
+        if copy_names
+            name = MOI.get(src, MOI.VariableName(), m_var_id)
+        else
+            name = string("var_", m_var_id.value)
+        end
+        var = OriginalVariable(m, name)
+        push!(vars, var)
+        c_var_id = MOI.VariableIndex(getuidval(var))
+        setindex!(moi_map, m_var_id, c_var_id)
+    end
+    return vars
+end
+
+function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable}, 
+        moi_map::MOIU.IndexMap, m::Model, name::String, 
+        func::MOI.SingleVariable, set, m_constr_id)
+    c_var_id = moi_map[func.variable].value
+    set!(vars[c_var_id], set)
+    return
+end
+
+function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable}, 
+        moi_map::MOIU.IndexMap, m::Model, name::String, 
+        f::MOI.ScalarAffineFunction, s, m_constr_id)
+    constr = OriginalConstraint(m, name)
+    set!(constr, s)
+    push!(constrs, constr)
+    for term in f.terms
+        # term.variable_index, term.coefficient
+    end
+    c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuidval(constr))
+    setindex!(moi_map, m_constr_id, c_constr_id)
+    return
+end
+
+function create_origconstrs!(m::Model, orig_form::Formulation,
+        moi_map::MOIU.IndexMap, src::MOI.ModelLike, vars, copy_names::Bool)
+    constrs = Constraint[]
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
-        for moi_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+        for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
             if copy_names
-                name = MOI.get(src, MOI.ConstraintName(), moi_constr_id)
+                name = MOI.get(src, MOI.ConstraintName(), m_constr_id)
             else
-                name = string("constr_", moi_constr_id.value)
+                name = string("constr_", m_constr_id.value)
             end
-            func = MOI.get(src, MOI.ConstraintFunction(), moi_constr_id)
-            set = MOI.get(src, MOI.ConstraintSet(), moi_constr_id)
-            #println("> constraint ", name, " = ", func, " & ", set)
-            # create constraint here
-            coluna_constr_id = MOI.ConstraintIndex{F,S}(0)
-            setindex!(moi_map, moi_constr_id, coluna_constr_id)
+            f = MOI.get(src, MOI.ConstraintFunction(), m_constr_id)
+            s = MOI.get(src, MOI.ConstraintSet(), m_constr_id)
+            create_origconstr!(constrs, vars, moi_map, m, name, f, s, m_constr_id)
         end
     end
-    return
+    return constrs
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
@@ -367,48 +388,14 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     model = Model()
     orig_form = OriginalFormulation(src)
 
-    sense = MOI.get(src, MOI.ObjectiveSense())
+    vars = create_origvars!(model, orig_form, mapping, src, copy_names)
+    constrs = create_origconstrs!(model, orig_form, mapping, src, vars, copy_names)
+
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    sense = MOI.get(src, MOI.ObjectiveSense())
+    load_obj!(vars, mapping, obj)
     
-    # @show sense
-    # @show obj
-
-    register_orig_vars!(model, orig_form, mapping, src, obj, copy_names)
-    register_orig_constrs!(model, orig_form, mapping, src, copy_names)
-
-
-    # Old code :
-
-    # Create variables without adding to problem
-    # Update the variable's cost_rhs and cur_cost_rhs
-    # Go through SingleVariable constraints and modify the variables
-    # Add variables to problem
-    # Go throught ScalarAffineFunction constraints
-    # inner = dest.inner
-    # # Copynames is always set to false by CachingOptimizer
-    # if inner.params.force_copy_names
-    #     copy_names = true
-    # end
-    # extended_problem = ExtendedProblem(inner.prob_counter, vc_counter,
-    #         inner.params, inner.params.cut_up, inner.params.cut_lo)
-    # dest.inner.extended_problem = extended_problem
-
-    # mapping = MOIU.IndexMap()
-    # create_subproblems(dest, src)
-    # set_optimizers_dict(dest)
-    # set_card_bounds_dict(src, extended_problem)
-
-    # # Copy objective function
-    # obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float6464}}())
-    # load_obj(dest, mapping, obj)
-    # sense = MOI.get(src, MOI.ObjectiveSense())
-    # return_value = MOI.set(dest, MOI.ObjectiveSense(), sense)
-
-    # copy_constraints(dest, src, mapping, copy_names; only_singlevariable = true)
-    # add_variables_to_problem(dest, src, coluna_vars, mapping)
-    # copy_constraints(dest, src, mapping, copy_names; only_singlevariable = false)
-
-    # return mapping
+    return mapping
 end
 
 # # Set functions

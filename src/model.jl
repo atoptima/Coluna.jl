@@ -1,4 +1,4 @@
-mutable struct Model
+mutable struct Model <: AbstractModel
     formulation::Union{Nothing, Formulation}
     var_counter::Counter{Variable}
     constr_counter::Counter{Constraint}

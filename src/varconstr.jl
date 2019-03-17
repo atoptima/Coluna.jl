@@ -14,7 +14,7 @@ mutable struct Counter{T <: AbstractVarConstr}
     Counter{T}() where {T <: AbstractVarConstr} = new(0)
 end
 
-function getvalue(counter::Counter{T}) where {T <: AbstractVarConstr}
+function getuid(counter::Counter{T}) where {T <: AbstractVarConstr}
     counter.value = Id{T}(counter.value.id + 1)
     return counter.value
 end
