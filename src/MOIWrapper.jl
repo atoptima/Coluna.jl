@@ -37,92 +37,35 @@ function MOI.optimize!(optimizer::Optimizer)
     println("\e[34m OPTIMIZE \e[00m")
 end
 
-#     # coluna_model = ModelConstructor(params, with_extended_prob = false)
-#     # _varmap = Dict{MOI.VariableIndex,Variable}()
-#     # _constr_probidx_map = Dict{Constraint,Int}()
-#     # _var_probidx_map = Dict{Variable,Int}()
-#     # Optimizer(coluna_model, _varmap, _constr_probidx_map,
-#     #     _var_probidx_map, 0, master_factory, pricing_factory)
-# end
-
 # function MOI.optimize!(coluna_optimizer::Optimizer)
 #     solve(coluna_optimizer.inner)
 # end
+MOI.supports(m::MOI.ModelLike, attr::BD.ConstraintDecomposition) = true
+MOI.supports(m::MOI.ModelLike, attr::BD.VariableDecomposition) = true
+MOI.supports(m::MOI.ModelLike, attr::BD.ConstraintDecomposition, ::Type{MOI.ConstraintIndex{F,S}}) where {F,S} = true 
+MOI.supports(m::MOI.ModelLike, attr::BD.VariableDecomposition, ::Type{MOI.VariableIndex}) = true
 
-# ############################################
-# # Annotations needed for column generation #
-# ############################################
-# # Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
-# struct ConstraintDantzigWolfeAnnotation <: MOI.AbstractConstraintAttribute end
+function MOI.get(dest::MOIU.UniversalFallback, 
+        attribute::BD.ConstraintDecomposition, ci::MOI.ConstraintIndex)
+    if haskey(dest.conattr, attribute)
+        if haskey(dest.conattr[attribute], ci)
+            return dest.conattr[attribute][ci]
+        end
+        #error("No annotation found for constraint $ci.")
+    end
+    return ()
+end
 
-# function MOI.set(dest::MOIU.UniversalFallback,
-#                  attribute::ConstraintDantzigWolfeAnnotation,
-#                  ci::MOI.ConstraintIndex, value::Int)
-
-#     if haskey(dest.conattr, attribute)
-#         dest.conattr[attribute][ci] = value
-#     else
-#         dest.conattr[attribute] = Dict{MOI.ConstraintIndex,Int}()
-#         dest.conattr[attribute][ci] = value
-#     end
-# end
-
-# function MOI.get(dest::MOIU.UniversalFallback,
-#                  attribute::ConstraintDantzigWolfeAnnotation,
-#                  ci::MOI.ConstraintIndex)
-
-#     if haskey(dest.conattr, attribute)
-#         if haskey(dest.conattr[attribute], ci)
-#             return dest.conattr[attribute][ci]
-#         end
-#     end
-#     return -1 # Returns value -1 as default if not found
-# end
-
-# # Problem Index: if 0 -> Master problem, if > 0 -> subproblem index
-# struct VariableDantzigWolfeAnnotation <: MOI.AbstractVariableAttribute end
-
-# function MOI.set(dest::MOIU.UniversalFallback,
-#                  attribute::VariableDantzigWolfeAnnotation,
-#                  vi::MOI.VariableIndex, value::Int)
-
-#     if haskey(dest.varattr, attribute)
-#         dest.varattr[attribute][vi] = value
-#     else
-#         dest.varattr[attribute] = Dict{MOI.VariableIndex,Int}()
-#         dest.varattr[attribute][vi] = value
-#     end
-# end
-
-# function MOI.get(dest::MOIU.UniversalFallback,
-#                  attribute::VariableDantzigWolfeAnnotation,
-#                  vi::MOI.VariableIndex)
-
-#     if haskey(dest.varattr, attribute)
-#         if haskey(dest.varattr[attribute], vi)
-#             return dest.varattr[attribute][vi]
-#         end
-#     end
-#     return -1 # Returns value -1 as default if not found
-# end
-
-# struct DantzigWolfePricingCardinalityBounds <: MOI.AbstractModelAttribute end
-
-# function MOI.get(dest::MOIU.UniversalFallback,
-#                  attribute::DantzigWolfePricingCardinalityBounds)
-
-#     if haskey(dest.modattr, attribute)
-#         return dest.modattr[attribute]
-#     else
-#         return Dict{Int, Tuple{Int, Int}}() # Returns empty dict if not found
-#     end
-# end
-
-# function MOI.set(dest::MOIU.UniversalFallback,
-#                  attribute::DantzigWolfePricingCardinalityBounds,
-#                  value::Dict{Int, Tuple{Int, Int}})
-#     dest.modattr[attribute] = value
-# end
+function MOI.get(dest::MOIU.UniversalFallback,
+        attribute::BD.VariableDecomposition, vi::MOI.VariableIndex)
+    if haskey(dest.varattr, attribute)
+        if haskey(dest.varattr[attribute], vi)
+            return dest.varattr[attribute][vi]
+        end
+        #error("No annotation found for variable $vi.")
+    end
+    return ()
+end
 
 # ##########################################
 # # Functions needed during copy procedure #
@@ -133,31 +76,7 @@ end
 #         add_membership(dest.varmap[mapping.varmap[term.variable_index]],
 #                        constr, term.coefficient; optimizer = nothing)
 #     end
-# end
 
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.ScalarAffineFunction, s::MOI.AbstractSet,
-#                          rhs::Float6464, sense::Char, copy_names::Bool)
-#     if copy_names
-#         name = MOI.get(src, MOI.ConstraintName(), ci)
-#     else
-#         name = string("constraint_", ci.value)
-#     end
-#     prob_idx = MOI.get(src, ConstraintDantzigWolfeAnnotation(), ci)
-#     extended_problem = dest.inner.extended_problem
-#     if prob_idx <= 0
-#         problem = extended_problem.master_problem
-#         constr = MasterConstr(problem.counter, name, rhs, sense, 'M', 's')
-#     else
-#         problem = extended_problem.pricing_vect[prob_idx]
-#         constr = Constraint(problem.counter, name, rhs, sense, 'M', 's')
-#     end
-#     dest.constr_probidx_map[constr] = prob_idx
-#     add_memberships(dest, problem, constr, f, mapping) # Do only if prob_idx is 0 (?)
-#     add_constraint(problem, constr; update_moi = false)
-#     update_constraint_map(mapping, ci, f, s)
-# end
 
 function MOI.supports_constraint(optimizer::Optimizer, 
         ::Type{<: SupportedConstrFunc}, ::Type{<: SupportedConstrSets})
@@ -173,144 +92,6 @@ function MOI.supports(optimizer::Optimizer,
         ::MOI.ObjectiveFunction{<: SupportedObjFunc})
     return true
 end
-
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.ScalarAffineFunction, s::MOI.LessThan, copy_names::Bool)
-#     load_constraint(ci, dest, src, mapping, f, s, s.upper - f.constant, 'L', copy_names)
-# end
-
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.ScalarAffineFunction, s::MOI.GreaterThan, copy_names::Bool)
-#     load_constraint(ci, dest, src, mapping, f, s, s.lower - f.constant, 'G', copy_names)
-# end
-
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.ScalarAffineFunction, s::MOI.EqualTo, copy_names::Bool)
-#     load_constraint(ci, dest, src, mapping, f, s, s.value - f.constant, 'E', copy_names)
-# end
-
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.SingleVariable, s::MOI.ZeroOne)
-#     dest.varmap[mapping.varmap[f.variable]].vc_type = 'B'
-#     dest.varmap[mapping.varmap[f.variable]].lower_bound = 0.0
-#     dest.varmap[mapping.varmap[f.variable]].upper_bound = 1.0
-#     dest.varmap[mapping.varmap[f.variable]].cur_lb = 0.0
-#     dest.varmap[mapping.varmap[f.variable]].cur_ub = 1.0
-#     update_constraint_map(mapping, ci, f, s)
-# end
-
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.SingleVariable, s::MOI.Integer)
-#     dest.varmap[mapping.varmap[f.variable]].vc_type = 'I'
-#     update_constraint_map(mapping, ci, f, s)
-# end
-
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.SingleVariable, s::MOI.LessThan)
-#     if s.upper < dest.varmap[mapping.varmap[f.variable]].upper_bound
-#         dest.varmap[mapping.varmap[f.variable]].upper_bound = s.upper
-#         dest.varmap[mapping.varmap[f.variable]].cur_ub = s.upper
-#         update_constraint_map(mapping, ci, f, s)
-#     end
-# end
-
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.SingleVariable, s::MOI.GreaterThan)
-#     if s.lower > dest.varmap[mapping.varmap[f.variable]].lower_bound
-#         dest.varmap[mapping.varmap[f.variable]].lower_bound = s.lower
-#         dest.varmap[mapping.varmap[f.variable]].cur_lb = s.lower
-#         update_constraint_map(mapping, ci, f, s)
-#     end
-# end
-
-# function load_constraint(ci::MOI.ConstraintIndex, dest::Optimizer,
-#                          src::MOI.ModelLike, mapping::MOIU.IndexMap,
-#                          f::MOI.SingleVariable, s::MOI.EqualTo)
-#     dest.varmap[mapping.varmap[f.variable]].lower_bound = s.value
-#     dest.varmap[mapping.varmap[f.variable]].upper_bound = s.value
-#     dest.varmap[mapping.varmap[f.variable]].cur_lb = s.value
-#     dest.varmap[mapping.varmap[f.variable]].cur_ub = s.value
-#     update_constraint_map(mapping, ci, f, s)
-# end
-
-# function update_constraint_map(mapping::MOIU.IndexMap, ci::MOI.ConstraintIndex,
-#                                f::MOI.AbstractFunction, s::MOI.AbstractSet)
-#     idx = length(mapping.conmap) + 1
-#     new_ci = MOI.ConstraintIndex{typeof(f),typeof(s)}(idx)
-#     mapping.conmap[ci] = new_ci
-# end
-
-# function copy_constraints(dest::Optimizer, src::MOI.ModelLike,
-#     mapping::MOIU.IndexMap, copy_names::Bool; only_singlevariable = false)
-#     for (F,S) in MOI.get(src, MOI.ListOfConstraints())
-#         if F == MOI.SingleVariable && only_singlevariable
-#             for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-#                 f = MOI.get(src, MOI.ConstraintFunction(), ci)
-#                 s = MOI.get(src, MOI.ConstraintSet(), ci)
-#                 load_constraint(ci, dest, src, mapping, f, s)
-#             end
-#         elseif F != MOI.SingleVariable && !only_singlevariable
-#             for ci in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
-#                 f = MOI.get(src, MOI.ConstraintFunction(), ci)
-#                 s = MOI.get(src, MOI.ConstraintSet(), ci)
-#                 load_constraint(ci, dest, src, mapping, f, s, copy_names)
-#             end
-#         end
-#     end
-# end
-
-# function create_coluna_variables(dest::Optimizer, src::MOI.ModelLike,
-#                                  mapping::MOIU.IndexMap, copy_names::Bool)
-#     var_index = MOI.get(src, MOI.ListOfVariableIndices())
-#     num_cols = MOI.get(src, MOI.NumberOfVariables())
-#     coluna_vars = Variable[]
-#     for i in 1:num_cols
-#         if copy_names
-#             name = MOI.get(src, MOI.VariableName(), var_index[i])
-#         else
-#             name = string("var_", i)
-#         end
-#         counter = dest.inner.extended_problem.counter
-#         # Get variable annotation
-#         #prob_idx = MOI.get(src, VariableDantzigWolfeAnnotation(), var_index[i])
-#         #if prob_idx <= 0
-#             #var = MasterVar(counter, name, 0.0, 'P', 'C', 's', 'U', 1.0, -Inf, Inf)
-#         #else
-#             #var = SubprobVar(counter, name, 0.0, 'P', 'C', 's', 'U', 1.0, -Inf, Inf,
-#                             # -Inf, Inf, -Inf, Inf)
-#         #end
-
-#         push!(coluna_vars, var)
-#         new_idx = MOI.VariableIndex(i)
-#         # Update maps
-#         mapping.varmap[var_index[i]] = new_idx
-#         #dest.varmap[new_idx] = var
-#         #dest.var_probidx_map[var] = prob_idx
-#     end
-#     return coluna_vars
-# end
-
-# function add_variables_to_problem(dest::Optimizer, src::MOI.ModelLike,
-#                                   coluna_vars::Vector{<:Variable},
-#                                   mapping::MOIU.IndexMap)
-#     for idx in 1:length(coluna_vars)
-#         # Get the right problem of the variable through annotations
-#         prob_idx = dest.var_probidx_map[coluna_vars[idx]]
-#         if prob_idx <= 0
-#             problem = dest.inner.extended_problem.master_problem
-#         else
-#             problem = dest.inner.extended_problem.pricing_vect[prob_idx]
-#         end
-#         add_variable(problem, coluna_vars[idx]; update_moi = false)
-#     end
-# end
 
 function load_obj!(vars::Vector{Variable}, moi_map::MOIU.IndexMap,
                   f::MOI.ScalarAffineFunction)
@@ -380,7 +161,30 @@ function create_origconstrs!(m::Model, orig_form::Formulation,
     return constrs
 end
 
+function load_decomposition!(dest::Optimizer, src::MOI.ModelLike, 
+        moi_map::MOIU.IndexMap)
+    println("\e[1m load decomposition. \e[0m")
+    for (m_id, c_id) in moi_map.conmap
+        if typeof(m_id) <: MOI.ConstraintIndex
+            @show m_id
+            @show c_id
+            @show MOI.get(src, BD.ConstraintDecomposition(), m_id)
+            println("\e[31m --------------- \e[00m")
+        end
+    end
+    for (m_id, c_id) in moi_map.varmap
+        if typeof(m_id) <: MOI.VariableIndex
+            @show m_id
+            @show c_id
+            @show MOI.get(src, BD.VariableDecomposition(), m_id)
+        end
+        println("\e[31m --------------- \e[00m")
+    end
+    exit()
+end
+
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
+    println("\e[1m;45m COPY TO \e[00m")
     var_counter = Counter{Variable}()
     constr_counter = Counter{Constraint}()
 
@@ -394,7 +198,7 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     sense = MOI.get(src, MOI.ObjectiveSense())
     load_obj!(vars, mapping, obj)
-    
+    load_decomposition!(dest, src, mapping)
     return mapping
 end
 

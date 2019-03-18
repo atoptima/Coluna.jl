@@ -4,7 +4,7 @@ function model_sgap(data::DataGap)
     #                        #search_strategy = Coluna.DepthFirst,
     #                        force_copy_names = true)
 
-    gap = Model(with_optimizer(Coluna.Optimizer#, #params = params,
+    gap = BlockModel(with_optimizer(Coluna.Optimizer#, #params = params,
                                # master_factory = with_optimizer(Gurobi.Optimizer),
                                # pricing_factory = with_optimizer(Gurobi.Optimizer)),
                                # master_factory = with_optimizer(CPLEX.Optimizer),

@@ -8,6 +8,7 @@ import MathOptInterface.Utilities
 import DataStructures
 import GLPK
 import JuMP
+import BlockDecomposition
 
 using Base.CoreLogging
 using SparseArrays
@@ -17,6 +18,7 @@ import TimerOutputs.@timeit
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
+global const BD = BlockDecomposition
 global __initial_solve_time = 0.0
 
 # We should not need to import this here
