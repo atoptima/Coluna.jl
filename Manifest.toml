@@ -15,6 +15,14 @@ git-tree-sha1 = "055eb2690182ebc31087859c3dd8598371d3ef9e"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
 version = "0.5.3"
 
+[[BlockDecomposition]]
+deps = ["DataStructures", "JuMP", "MathOptInterface", "Test"]
+git-tree-sha1 = "3cdccbeb2fdcd1d19dfd62e1e0b5048eba6f0242"
+repo-rev = "master"
+repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
+uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
+version = "0.1.0"
+
 [[Calculus]]
 deps = ["Compat"]
 git-tree-sha1 = "f60954495a7afcee4136f78d1d60350abd37a409"
@@ -35,9 +43,9 @@ version = "2.0.0"
 
 [[Crayons]]
 deps = ["Test"]
-git-tree-sha1 = "dbc137e2da40ccb8a3ac6193a8597fac66c9069e"
+git-tree-sha1 = "416737eea5c50ee5a08c588ea73d77d5eebc94e7"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
-version = "2.0.0"
+version = "3.0.0"
 
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections", "Random", "Serialization", "Test"]

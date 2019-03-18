@@ -1,5 +1,6 @@
 using JuMP, GLPK, Coluna, Test#, CPLEX, Gurobi
 using MathOptInterface: set
+using BlockDecomposition
 #using Base.CoreLogging, Logging
 #global_logger(ConsoleLogger(stderr, LogLevel(-4)))
 
