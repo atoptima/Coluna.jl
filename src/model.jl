@@ -1,9 +1,9 @@
 mutable struct Model <: AbstractModel
     original_formulation::Union{Nothing, AbstractMathProgFormulation}
-    re_formulation::Union{Nothing, ReFormulation}
+    re_formulation::Union{Nothing, Reformulation}
     var_counter::Counter{Variable}
     constr_counter::Counter{Constraint}
-    formulation_counter::Counter{Formulation}
+    formulation_counter::Counter{AbstractMathProgFormulation}
 end
 
 Model() = Model(nothing, Counter{Variable}(), Counter{Constraint}(), Counter{AbstractMathProgFormulation}())

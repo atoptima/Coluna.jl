@@ -7,10 +7,13 @@ function get_coeff(m::Membership{T}, id::Id{T}) where {T <: AbstractVarConstr}
 end
 
 mutable struct Manager{VCT <: AbstractVarConstr}
-    vc_list::SparseVector{MoiDef{VCT},Id{VCT}}
+    vc_list::SparseVector{AbstractMoiDef, Id{VCT}}
     active_mask::SparseVector{Bool,Id{VCT}}
     static_mask::SparseVector{Bool,Id{VCT}}
 end
+
+# getlist(m::Manager{Constraint}) = m.vc_list::SparseVector{MoiConstrDef, Id{Constraint}}
+# getlist(m::Manager{Variable}) = m.vc_list::SparseVector{MoiVarDef, Id{Variable}}
 
 Manager{T}() where {T <: AbstractVarConstr} = Manager{T}(spzeros(0), spzeros(0), spzeros(0))
 
