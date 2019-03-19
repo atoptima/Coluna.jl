@@ -5,9 +5,11 @@
 @enum Flag Static Dynamic Artifical
 @enum Status Active Unsuitable
 
-#struct Id{T} <: Integer
-#    id::Int
-#end
+# struct Id{T <: AbstractVarConstr}
+#     id::Int
+# end
+# Id(::Type{T}, id::Int) where {T <: AbstractVarConstr} = Id{T}(id)
+
 const VarId = Int
 const ConstrId = Int
 const FormId = Int
@@ -25,7 +27,7 @@ mutable struct FormCounter <: AbstractCounter
     FormCounter() = new(0)
 end
 
-function getnewuid(counter::T) where {T <: AbstractCounter}
+function getnewuid(counter::AbstractCounter)
     counter.value = (counter.value + 1)
     return counter.value
 end

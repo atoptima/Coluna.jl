@@ -3,7 +3,7 @@ mutable struct Model <: AbstractModel
     re_formulation::Union{Nothing, Reformulation}
     var_counter::VarCounter
     constr_counter::ConstrCounter
-    formulation_counter::FormCounter
+    form_counter::FormCounter
 end
 
 Model() = Model(nothing, nothing, VarCounter(), ConstrCounter(), FormCounter())

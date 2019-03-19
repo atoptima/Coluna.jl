@@ -18,19 +18,19 @@ struct ExplicitFormulation  <: AbstractMathProgFormulation
     uid::FormId
     moi_model::MOI.ModelLike
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    var_manager::Manager
-    constr_manager::Manager
+    var_manager::Manager{Variable}
+    constr_manager::Manager{Constraint}
 end
 
-function ExplicitFormulation(moi::MOI.ModelLike, counter::FormCounter)
-    # TODO id
-    return ExplicitFormulation(getnewuid(counter), moi, nothing, Manager(), Manager())
+function ExplicitFormulation(m::AbstractModel, moi::MOI.ModelLike)
+    uid = getnewuid(m.form_counter)
+    return ExplicitFormulation(uid, moi, nothing, Manager(Variable), Manager(Constraint))
 end
 
 struct ImplicitFormulation <: AbstractMathProgFormulation
     uid::FormId
-    var_manager::Manager
-    constr_manager::Manager
+    var_manager::Manager{Variable}
+    constr_manager::Manager{Constraint}
     callback
 end
 

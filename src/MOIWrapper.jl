@@ -89,9 +89,8 @@ function load_obj!(vars::Vector{Variable}, moi_map::MOIU.IndexMap,
     return
 end
 
-function create_origvars!(m::Model, orig_form::ExplicitFormulation, 
+function create_origvars!(vars::Vector{Variable}, m::Model, 
         moi_map::MOIU.IndexMap, src::MOI.ModelLike, copy_names::Bool)
-    vars = Variable[]
     for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
             name = MOI.get(src, MOI.VariableName(), m_var_id)
@@ -100,10 +99,10 @@ function create_origvars!(m::Model, orig_form::ExplicitFormulation,
         end
         var = OriginalVariable(m, name)
         push!(vars, var)
-        c_var_id = MOI.VariableIndex(getuidval(var))
+        c_var_id = MOI.VariableIndex(getuid(var))
         setindex!(moi_map, c_var_id, m_var_id)
     end
-    return vars
+    return
 end
 
 function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable}, 
@@ -123,14 +122,13 @@ function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable},
     for term in f.terms
         # term.variable_index, term.coefficient
     end
-    c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuidval(constr))
+    c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))
     setindex!(moi_map, c_constr_id, m_constr_id)
     return
 end
 
-function create_origconstrs!(m::Model, orig_form::ExplicitFormulation,
+function create_origconstrs!(constrs::Vector{Constraint}, m::Model, 
         moi_map::MOIU.IndexMap, src::MOI.ModelLike, vars, copy_names::Bool)
-    constrs = Constraint[]
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
         for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
             if copy_names
@@ -143,60 +141,45 @@ function create_origconstrs!(m::Model, orig_form::ExplicitFormulation,
             create_origconstr!(constrs, vars, moi_map, m, name, f, s, m_constr_id)
         end
     end
-    return constrs
+    return
 end
 
-function load_decomposition!(dest::Optimizer, src::MOI.ModelLike, 
+function load_decomposition_annotations!(var_ann::Dict{Int, BD.Annotation},
+        constr_ann::Dict{Int, BD.Annotation}, src::MOI.ModelLike, 
         moi_map::MOIU.IndexMap)
-    println("\e[1m load decomposition. \e[0m")
     for (m_id, c_id) in moi_map.conmap
-        if typeof(m_id) <: MOI.ConstraintIndex
-            @show m_id
-            @show c_id
-            @show MOI.get(src, BD.ConstraintDecomposition(), m_id)
-            println("\e[31m --------------- \e[00m")
-        end
+        constr_ann[c_id.value] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
     end
     for (m_id, c_id) in moi_map.varmap
-        if typeof(m_id) <: MOI.VariableIndex
-            @show m_id
-            @show c_id
-            @show MOI.get(src, BD.VariableDecomposition(), m_id)
-        end
-        println("\e[31m --------------- \e[00m")
+        var_ann[c_id.value] = MOI.get(src, BD.VariableDecomposition(), m_id)
     end
-    exit()
+    return
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     println("\e[1m;45m COPY TO \e[00m")
-    var_counter = Counter{Variable}()
-    constr_counter = Counter{Constraint}()
 
     mapping = MOIU.IndexMap() # map from moi idx to coluna idx
     model = Model()
-    orig_form = OriginalFormulation(src)
+    orig_form = ExplicitFormulation(model, src)
 
-    vars = create_origvars!(model, orig_form, mapping, src, copy_names)
-    constrs = create_origconstrs!(model, orig_form, mapping, src, vars, copy_names)
+    vars = Variable[]
+    create_origvars!(vars, model, mapping, src, copy_names)
+    constrs = Constraint[]
+    create_origconstrs!(constrs, model, mapping, src, vars, copy_names)
 
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     sense = MOI.get(src, MOI.ObjectiveSense())
     load_obj!(vars, mapping, obj)
-    load_decomposition!(dest, src, mapping)
+
+    var_ann = Dict{Int, BD.Annotation}()
+    constr_ann = Dict{Int, BD.Annotation}()
+    load_decomposition_annotations!(var_ann, constr_ann, src, mapping)
+    @show var_ann
+    @show constr_ann
     return mapping
 end
 
-# # Set functions
-# function set_card_bounds_dict(src::MOI.ModelLike,
-#                               extended_problem::ExtendedProblem)
-#     card_bounds_dict = MOI.get(src, DantzigWolfePricingCardinalityBounds())
-#     for (idx, pricing_prob) in enumerate(extended_problem.pricing_vect)
-#         extended_problem.problem_ref_to_card_bounds[
-#             pricing_prob.prob_ref
-#         ] = get(card_bounds_dict, idx, (1,1))
-#     end
-# end
 
 # function set_optimizers_dict(dest::Optimizer)
 #     # set coluna optimizers

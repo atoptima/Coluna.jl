@@ -2,7 +2,7 @@ mutable struct Variable <: AbstractVarConstr
     uid        ::VarId 
     name       ::String
     sense      ::VarSense # Positive, Negative, Free
-    vc_type    ::VarType   # Continuous, Binary, Integ
+    vc_type    ::VarType  # Continuous, Binary, Integ
     flag       ::Flag     # Static, Dynamic, Artifical
     cost       ::Float64
     lower_bound::Float64
@@ -20,7 +20,6 @@ function OriginalVariable(m::AbstractModel, n::String)
 end
 
 getuid(v::Variable) = v.uid
-getuidval(v::Variable) = v.uid.id
 setsense!(v::Variable, s::VarSense) = v.sense = s
 setset!(v::Variable, s::VarType) = v.vc_type = s
 setlowerbound!(v::Variable, lb::Float64) = v.lower_bound = lb

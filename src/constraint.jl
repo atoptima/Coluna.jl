@@ -18,7 +18,6 @@ function OriginalConstraint(m::AbstractModel, n::String)
 end
 
 getuid(c::Constraint) = c.uid
-getuidval(c::Constraint) = c.uid.id
 setsense!(c::Constraint, s::ConstrSense) = c.sense = s
 settype!(c::Constraint, t::ConstrType) = c.vc_type = t
 setflag!(c::Constraint, f::Flag) = c.flag = f
