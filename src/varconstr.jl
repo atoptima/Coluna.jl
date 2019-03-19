@@ -5,25 +5,25 @@
 @enum Flag Static Dynamic Artifical
 @enum Status Active Unsuitable
 
-struct Id{T <: AbstractVarConstr} <: Integer
+struct Id{T} <: Integer
     id::Int
 end
 
-mutable struct Counter{T <: AbstractVarConstr}
+mutable struct Counter{T}
     value::Id{T}
-    Counter{T}() where {T <: AbstractVarConstr} = new(0)
+    Counter{T}() where T = new(0)
 end
 
-function getuid(counter::Counter{T}) where {T <: AbstractVarConstr}
+function getuid(counter::Counter{T}) where T
     counter.value = Id{T}(counter.value.id + 1)
     return counter.value
 end
 
-struct MoiVarDef
+struct MoiVarDef <: AbstractMoiDef
     # TODO
 end
 
-struct MoiConstrDef
+struct MoiConstrDef <: AbstractMoiDef
     # TODO
 end
 
