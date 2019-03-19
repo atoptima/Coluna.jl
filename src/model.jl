@@ -6,7 +6,7 @@ mutable struct Model <: AbstractModel
     formulation_counter::Counter{AbstractMathProgFormulation}
 end
 
-Model() = Model(nothing, Counter{Variable}(), Counter{Constraint}(), Counter{AbstractMathProgFormulation}())
+Model() = Model(nothing, nothing, Counter{Variable}(), Counter{Constraint}(), Counter{AbstractMathProgFormulation}())
 
 # @hl mutable struct Callback end
 

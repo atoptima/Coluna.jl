@@ -89,7 +89,7 @@ function load_obj!(vars::Vector{Variable}, moi_map::MOIU.IndexMap,
     return
 end
 
-function create_origvars!(m::Model, orig_form::Formulation, 
+function create_origvars!(m::Model, orig_form::ExplicitFormulation, 
         moi_map::MOIU.IndexMap, src::MOI.ModelLike, copy_names::Bool)
     vars = Variable[]
     for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
@@ -128,7 +128,7 @@ function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable},
     return
 end
 
-function create_origconstrs!(m::Model, orig_form::Formulation,
+function create_origconstrs!(m::Model, orig_form::ExplicitFormulation,
         moi_map::MOIU.IndexMap, src::MOI.ModelLike, vars, copy_names::Bool)
     constrs = Constraint[]
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())

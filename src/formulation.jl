@@ -25,5 +25,5 @@ struct Reformulation <: AbstractFormulation
 end
 
 function OriginalFormulation(moi_model::MOI.ModelLike)
-     return Formulation(nothing, ExplicitFormulation(moi_model), AbstractMathProgFormulation[])
+     return ExplicitFormulation(moi_model)
 end
