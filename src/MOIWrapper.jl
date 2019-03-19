@@ -40,18 +40,14 @@ end
 # function MOI.optimize!(coluna_optimizer::Optimizer)
 #     solve(coluna_optimizer.inner)
 # end
-MOI.supports(m::MOI.ModelLike, attr::BD.ConstraintDecomposition) = true
-MOI.supports(m::MOI.ModelLike, attr::BD.VariableDecomposition) = true
-MOI.supports(m::MOI.ModelLike, attr::BD.ConstraintDecomposition, ::Type{MOI.ConstraintIndex{F,S}}) where {F,S} = true 
-MOI.supports(m::MOI.ModelLike, attr::BD.VariableDecomposition, ::Type{MOI.VariableIndex}) = true
 
-function MOI.get(dest::MOIU.UniversalFallback, 
+function MOI.get(dest::MOIU.UniversalFallback,
         attribute::BD.ConstraintDecomposition, ci::MOI.ConstraintIndex)
     if haskey(dest.conattr, attribute)
         if haskey(dest.conattr[attribute], ci)
             return dest.conattr[attribute][ci]
         end
-        #error("No annotation found for constraint $ci.")
+        #error("No annotation found for variable $vi.")
     end
     return ()
 end
@@ -66,17 +62,6 @@ function MOI.get(dest::MOIU.UniversalFallback,
     end
     return ()
 end
-
-# ##########################################
-# # Functions needed during copy procedure #
-# ##########################################
-# function add_memberships(dest::Optimizer, problem::Problem, constr::Constraint,
-#                          f::MOI.ScalarAffineFunction, mapping::MOIU.IndexMap)
-#     for term in f.terms
-#         add_membership(dest.varmap[mapping.varmap[term.variable_index]],
-#                        constr, term.coefficient; optimizer = nothing)
-#     end
-
 
 function MOI.supports_constraint(optimizer::Optimizer, 
         ::Type{<: SupportedConstrFunc}, ::Type{<: SupportedConstrSets})
@@ -116,7 +101,7 @@ function create_origvars!(m::Model, orig_form::Formulation,
         var = OriginalVariable(m, name)
         push!(vars, var)
         c_var_id = MOI.VariableIndex(getuidval(var))
-        setindex!(moi_map, m_var_id, c_var_id)
+        setindex!(moi_map, c_var_id, m_var_id)
     end
     return vars
 end
@@ -139,7 +124,7 @@ function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable},
         # term.variable_index, term.coefficient
     end
     c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuidval(constr))
-    setindex!(moi_map, m_constr_id, c_constr_id)
+    setindex!(moi_map, c_constr_id, m_constr_id)
     return
 end
 
