@@ -8,3 +8,8 @@ abstract type AbstractMathProgFormulation <: AbstractFormulation end
 abstract type AbstractModel end
 
 abstract type AbstractMoiDef end
+
+abstract type AbstractSolutionMethod end
+
+abstract type AbstractCounter end
+

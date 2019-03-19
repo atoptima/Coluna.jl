@@ -1,29 +1,45 @@
-struct ExplicitFormulation  <: AbstractMathProgFormulation
-    uid::Id{AbstractMathProgFormulation}
-    moi_model::MOI.ModelLike
-    var_manager::Manager{Variable}
-    constr_manager::Manager{Constraint}
+
+struct LazySeparationSubproblem <: AbstractFormulation
 end
 
-function ExplicitFormulation(moi::MOI.ModelLike)
+struct UserSeparationSubproblem <: AbstractFormulation
+end
+
+struct BlockGenSubproblem <: AbstractFormulation
+end
+
+struct BendersSubproblem <: AbstractFormulation
+end
+
+struct DantzigWolfeSubproblem <: AbstractFormulation
+end
+
+struct ExplicitFormulation  <: AbstractMathProgFormulation
+    uid::FormId
+    moi_model::MOI.ModelLike
+    moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
+    var_manager::Manager
+    constr_manager::Manager
+end
+
+function ExplicitFormulation(moi::MOI.ModelLike, counter::FormCounter)
     # TODO id
-    return ExplicitFormulation(0, moi, Manager{Variable}(), Manager{Constraint}())
+    return ExplicitFormulation(getnewuid(counter), moi, nothing, Manager(), Manager())
 end
 
 struct ImplicitFormulation <: AbstractMathProgFormulation
-    uid::Id{AbstractMathProgFormulation}
-    var_manager::Manager{Variable}
-    constr_manager::Manager{Constraint}
+    uid::FormId
+    var_manager::Manager
+    constr_manager::Manager
     callback
 end
 
 struct Reformulation <: AbstractFormulation
-    #solution_method
+    solution_method::AbstractSolutionMethod
     parent::Union{Nothing, Reformulation} # reference to (pointer to) ancestor
     master::Union{Nothing, ExplicitFormulation} # Nothing ?
-    dw_pricing_subprs::Vector{AbstractMathProgFormulation}
+    dw_pricing_subprs::Union{Nothing, Vector{DantzigWolfeSubproblem}}
 end
 
-function OriginalFormulation(moi_model::MOI.ModelLike)
-     return ExplicitFormulation(moi_model)
-end
+
+

@@ -1,21 +1,32 @@
 @enum VarSense Positive Negative Free
-@enum VarSet Continuous Binary Integ
+@enum VarType Continuous Binary Integ
 @enum ConstrSense Greater Less Equal
 @enum ConstrType Core Facultative SubSytem PureMaster SubprobConvexity
 @enum Flag Static Dynamic Artifical
 @enum Status Active Unsuitable
 
-struct Id{T} <: Integer
-    id::Int
+#struct Id{T} <: Integer
+#    id::Int
+#end
+const VarId = Int
+const ConstrId = Int
+const FormId = Int
+
+mutable struct VarCounter <: AbstractCounter
+    value::VarId
+    VarCounter() = new(0)
+end
+mutable struct ConstrCounter <: AbstractCounter
+    value::ConstrId
+    ConstrCounter() = new(0)
+end
+mutable struct FormCounter <: AbstractCounter
+    value::FormId
+    FormCounter() = new(0)
 end
 
-mutable struct Counter{T}
-    value::Id{T}
-    Counter{T}() where T = new(0)
-end
-
-function getuid(counter::Counter{T}) where T
-    counter.value = Id{T}(counter.value.id + 1)
+function getnewuid(counter::T) where {T <: AbstractCounter}
+    counter.value = (counter.value + 1)
     return counter.value
 end
 

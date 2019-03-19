@@ -1,5 +1,5 @@
 mutable struct Constraint <: AbstractVarConstr
-    uid    ::Id{Constraint} 
+    uid    ::ConstrId 
     name   ::String
     sense  ::ConstrSense # Greater Less Equal
     vc_type::ConstrType  # Core Facultative SubSytem PureMaster SubprobConvexity
@@ -9,7 +9,7 @@ end
 
 function Constraint(m::AbstractModel, n::String, s::ConstrSense, 
         t::ConstrType, f::Flag, r::Float64)
-    uid = getuid(m.constr_counter)
+    uid = getnewuid(m.constr_counter)
     return Constraint(uid, n, s, t, f, r)
 end
 
