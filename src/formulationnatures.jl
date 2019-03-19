@@ -1,4 +1,7 @@
-struct ExplicitFormulation <: AbstractFormulationNature
+AbstractMathProgFormulation <: AbstractFormulation
+    
+struct ExplicitFormulation  <: AbstractMathProgFormulation
+    uid::Id{T <: AbstractMathProgFormulation}
     moi_model::MOI.ModelLike
     var_manager::Manager{Variable}
     constr_manager::Manager{Constraint}
@@ -8,7 +11,9 @@ function ExplicitFormulation(moi::MOI.ModelLike)
     return ExplicitFormulation(moi, Manager{Variable}(), Manager{Constraint}())
 end
 
-struct ImplicitFormulation <: AbstractFormulationNature
+struct ImplicitFormulation <: AbstractMatProgFormulation
+    var_manager::Manager{Variable}
+    constr_manager::Manager{Constraint}
     callback
 end
 

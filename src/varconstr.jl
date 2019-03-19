@@ -9,15 +9,17 @@ struct Id{T <: AbstractVarConstr} <: Integer
     id::Int
 end
 
-mutable struct Counter{T <: AbstractVarConstr}
+mutable struct Counter{T}
     value::Id{T}
-    Counter{T}() where {T <: AbstractVarConstr} = new(0)
+    Counter{T}() where {T} = new(0)
 end
 
 function getuid(counter::Counter{T}) where {T <: AbstractVarConstr}
     counter.value = Id{T}(counter.value.id + 1)
     return counter.value
 end
+
+
 
 struct MoiVarDef
     # TODO

@@ -1,10 +1,12 @@
 mutable struct Model <: AbstractModel
-    formulation::Union{Nothing, Formulation}
+    original_formulation::Union{Nothing, AbstractMathProgFormulation}
+    re_formulation::Union{Nothing, ReFormulation}
     var_counter::Counter{Variable}
     constr_counter::Counter{Constraint}
+    formulation_counter::Counter{Formulation}
 end
 
-Model() = Model(nothing, Counter{Variable}(), Counter{Constraint}())
+Model() = Model(nothing, Counter{Variable}(), Counter{Constraint}(), Counter{AbstractMathProgFormulation}())
 
 # @hl mutable struct Callback end
 
