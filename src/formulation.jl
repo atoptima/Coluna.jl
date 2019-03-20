@@ -37,7 +37,7 @@ function Formulation(m::AbstractModel, moi::MOI.ModelLike)
 end
 
 function register_variable!(f::Formulation, var::Variable, 
-        membership::Membership{Variable})
+        membership::Membership)
     var_uid = getnewuid(var)
     # store in manager
 
@@ -50,7 +50,7 @@ function register_variable!(f::Formulation, var::Variable)
 end
 
 function register_constraint!(f::Formulation, constr::Constraint,
-        membership::Membership{Constraint})
+        membership::Membership)
     constr_uid = getnewuid(constr)
 
     println("\e[32m register constraint \e[00m")
