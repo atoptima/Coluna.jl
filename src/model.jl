@@ -8,6 +8,19 @@ end
 
 Model() = Model(nothing, nothing, VarCounter(), ConstrCounter(), FormCounter())
 
+function set_original_formulation!(m::Model, of::AbstractMathProgFormulation)
+    m.original_formulation = of
+    return
+end
+
+function set_re_formulation!(m::Model, r::Reformulation)
+    m.re_formulation = r
+    return
+end
+
+get_original_formulation(m::Model) = m.original_formulation
+get_re_formulation(m::Model) = m.re_formulation
+
 # @hl mutable struct Callback end
 
 # mutable struct Model # user model

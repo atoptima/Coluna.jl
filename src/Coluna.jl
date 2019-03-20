@@ -20,6 +20,7 @@ global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
 global const BD = BlockDecomposition
 global __initial_solve_time = 0.0
+global const MAX_SV_ENTRIES = 1_000_000
 
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,

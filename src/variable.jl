@@ -20,6 +20,7 @@ function OriginalVariable(m::AbstractModel, n::String)
 end
 
 getuid(v::Variable) = v.uid
+isstatic(v::Variable) = (v.flag == Static)
 setsense!(v::Variable, s::VarSense) = v.sense = s
 setset!(v::Variable, s::VarType) = v.vc_type = s
 setlowerbound!(v::Variable, lb::Float64) = v.lower_bound = lb

@@ -2,12 +2,16 @@ struct Membership{T <: AbstractVarConstr}
     member_coef_map::SparseVector{Float64, Int}
 end
 
-function get_coeff(m::Membership, id::VcId) where {VcId}
+function Membership(::Type{T}) where {T <: AbstractVarConstr}
+    return Membership{T}(spzeros(Float64, MAX_SV_ENTRIES))
+end
+
+function get_coeff(m::Membership, id::Int)
     return m.member_coef_map[id]
 end
 
 mutable struct Manager{T <: AbstractVarConstr}
-    vc_list::SparseVector{AbstractMoiDef, Int}
+    vc_list::SparseVector{Any, Int} #SparseVector{AbstractMoiDef, Int}
     active_mask::SparseVector{Bool,Int}
     static_mask::SparseVector{Bool,Int}
 end
@@ -40,17 +44,19 @@ function get_static_list(m::Manager, static::Bool)
     return m.vc_list[!m.static_mask]
 end
 
-function add_in_manager(m::Manager{T}, elem::T, active::Bool, static::Bool) where {T <: AbstractVarConstr}
-    m.vc_list[elem.uid] = elem
-    active_mask[elem.uid] = active
-    static_mask[elem.uid] = active   
+function add_in_manager(m::Manager{T}, elem::T, active::Bool) where {T <: AbstractVarConstr}
+    uid = getuid(elem)
+    m.vc_list[uid] = elem
+    active_mask[uid] = active
+    static_mask[uid] = isstatic(elem) 
     return
 end
 
 function remove_from_manager(m::Manager{T}, elem::T) where {T <: AbstractVarConstr}
-    deleteat!(m.vc_list, elem.uid)
-    deleteat!(m.active_mask, elem.uid)
-    deleteat!(m.static_mask, elem.uid)
+    uid = getuid(elem)
+    deleteat!(m.vc_list, uid)
+    deleteat!(m.active_mask, uid)
+    deleteat!(m.static_mask, uid)
     return
 end
 

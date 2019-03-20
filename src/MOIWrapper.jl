@@ -91,6 +91,7 @@ end
 
 function create_origvars!(vars::Vector{Variable}, m::Model, 
         moi_map::MOIU.IndexMap, src::MOI.ModelLike, copy_names::Bool)
+    orig_form = get_original_formulation(m)
     for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
             name = MOI.get(src, MOI.VariableName(), m_var_id)
@@ -101,6 +102,7 @@ function create_origvars!(vars::Vector{Variable}, m::Model,
         push!(vars, var)
         c_var_id = MOI.VariableIndex(getuid(var))
         setindex!(moi_map, c_var_id, m_var_id)
+        register_variable!(orig_form, var)
     end
     return
 end
@@ -119,11 +121,16 @@ function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable},
     constr = OriginalConstraint(m, name)
     set!(constr, s)
     push!(constrs, constr)
+    membership = Membership(Constraint)
     for term in f.terms
+        c_var_id = moi_map[term.variable_index].value
+
         # term.variable_index, term.coefficient
     end
     c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))
     setindex!(moi_map, c_constr_id, m_constr_id)
+    orig_form = get_original_formulation(m)
+    register_constraint!(orig_form, constr, membership)
     return
 end
 
@@ -162,6 +169,7 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     mapping = MOIU.IndexMap() # map from moi idx to coluna idx
     model = Model()
     orig_form = ExplicitFormulation(model, src)
+    set_original_formulation!(model, orig_form)
 
     vars = Variable[]
     create_origvars!(vars, model, mapping, src, copy_names)
