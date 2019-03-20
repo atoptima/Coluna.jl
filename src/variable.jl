@@ -2,66 +2,19 @@ mutable struct Variable <: AbstractVarConstr
     uid        ::VarId
     index      ::MOI.VariableIndex
     name       ::String
-    sense      ::VarSense # Positive, Negative, Free
-    vc_type    ::VarType  # Continuous, Binary, Integ
     flag       ::Flag     # Static, Dynamic, Artifical
-#    cost       ::Float64
-#    lower_bound::Float64
-#    upper_bound::Float64
 end
 
-function Variable(m::AbstractModel, mid::MOI.VariableIndex, n::String, 
-        sense::VarSense, set::VarType, f::Flag)
+function Variable(m::AbstractModel, mid::MOI.VariableIndex, n::String, f::Flag)
     uid = getnewuid(m.var_counter)
-    return Variable(uid, mid, n, sense, set, f)
+    return Variable(uid, mid, n, f)
 end
 
 function OriginalVariable(m::AbstractModel, mid::MOI.VariableIndex, n::String)
-    return Variable(m, mid, n, Free, Continuous, Static)
+    return Variable(m, mid, n, Static)
 end
 
 getuid(v::Variable) = v.uid
-isstatic(v::Variable) = (v.flag == Static)
-setsense!(v::Variable, s::VarSense) = v.sense = s
-settype!(v::Variable, s::VarType) = v.vc_type = s
-#setlowerbound!(v::Variable, lb::Float64) = v.lower_bound = lb
-#setupperbound!(v::Variable, ub::Float64) = v.upper_bound = ub
-#setcost!(v::Variable, c::Float64) = v.cost += c
-
-function set!(v::Variable, ::MOI.ZeroOne)
-    settype!(v, Binary)
-    setsense!(v, Positive)
- #   (v.lower_bound < 0) && setlowerbound!(v, 0.0)
- #   (v.upper_bound > 1) && setupperbound!(v, 1.0)
-    return
-end
-
-function set!(v::Variable, ::MOI.Integer)
-    settype!(v, Integ)
-    return
-end
-
-function set!(v::Variable, s::MOI.GreaterThan)
-     lb = float(s.lower)
- #   (v.lower_bound < lb) && setlowerbound!(v, lb)
-     (lb >= 0) && setsense!(v, Positive)
-    return
-end
-
-function set!(v::Variable, s::MOI.EqualTo)
- #   val = float(s.value)
- #   setlowerbound!(v, val)
-#    setupperbound!(v, val)
-    return
-end
-
-function set!(v::Variable, s::MOI.LessThan)
-    ub = float(s.upper)
- #   (v.upper_bound > ub) && setupperbound!(v, ub)
-    (ub <= 0) && setsense!(v, Negative)
-    return
-end
-
 
 
 # struct Variable{DutyType <: AbstractVarDuty} <: AbstractVarConstr

@@ -25,8 +25,8 @@ function Memberships()
 end
 
 function add_variable!(m::Memberships, var::Variable)
-    uid = getuid(var)
-    m.var_memberships[uid] = spzeros(Float64, MAX_SV_ENTRIES)
+    var_uid = getuid(var)
+    m.var_memberships[var_uid] = spzeros(Float64, MAX_SV_ENTRIES)
     return
 end
 
@@ -37,8 +37,15 @@ end
 
 function add_constraints!(m::Memberships, constrs::Vector{Constraint}, 
         memberships::Vector{SparseVector})
-    #@assert length(ad)
-    println("\e[32m register constraints membership \e[00m")
+    for i in 1:length(constrs)
+        constr_uid = getuid(constrs[i])
+        m.constr_memberships[constr_uid] = memberships[i]
+        var_uids, vals = findnz(memberships[i])
+        for j in 1:length(var_uids)
+            m.var_memberships[var_uids[j]][constr_uid] = vals[j]
+        end
+    end
+    return
 end
 
 struct Formulation  <: AbstractFormulation
@@ -48,6 +55,10 @@ struct Formulation  <: AbstractFormulation
     #var_manager::Manager{Variable}
     #constr_manager::Manager{Constraint}
     memberships::Memberships
+    #costs::SparseVector{Float64, Int}
+    #lower_bounds::SparseVector{Float64, Int}
+    #upper_bounds::SparseVector{Float64, Int}
+    #rhs::SparseVector{Float64, Int}
     callbacks
 end
 
@@ -58,22 +69,27 @@ function Formulation(m::AbstractModel, moi::MOI.ModelLike)
     return Formulation(uid, moi, nothing, Memberships(), nothing)#v_man, c_man, Memberships())
 end
 
-function register_variables!(f::Formulation, vars::Vector{Variable})
+function register_variables!(f::Formulation, vars::Vector{Variable}, 
+        costs::Vector{Float64}, lb::Vector{Float64}, ub::Vector{Float64}, 
+        vtypes::Vector{VarType})
+    @assert length(vars) == length(costs) == length(ub)
+    @assert length(vars) == length(lb) == length(vtypes)
     for var in vars
         uid = getuid(var)
         add_variable!(f.memberships, var)
         # register in manager
+        # store costs, lb, ub, vtypes
     end
     return
 end
 
 function register_constraints!(f::Formulation, constrs::Vector{Constraint},
-        memberships::Vector{SparseVector})
-    @assert length(constrs) == length(memberships)
-    for i in 1:length(constrs)
-        uid = getuid(constrs[i])
-        # register in manager
-    end
+        memberships::Vector{SparseVector}, csenses::Vector{ConstrSense},
+        rhs::Vector{Float64})
+    @assert length(constrs) == length(memberships) == length(csenses) == length(rhs)
+    # register in manager
+    # store constraints senses
+    # store rhs
     add_constraints!(f.memberships, constrs, memberships)
     return
 end
