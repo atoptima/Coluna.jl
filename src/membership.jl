@@ -1,14 +1,11 @@
-struct Membership{T <: AbstractVarConstr}
-    member_coef_map::SparseVector{Float64, Int}
-end
+# struct Membership{T <: AbstractVarConstr}
+#     member_coef_map::SparseVector{Float64, Int}
+# end
 
-function Membership(::Type{T}) where {T <: AbstractVarConstr}
-    return Membership{T}(spzeros(Float64, MAX_SV_ENTRIES))
-end
+# function Membership(::Type{T}) where {T <: AbstractVarConstr}
+#     return Membership{T}(spzeros(Float64, MAX_SV_ENTRIES))
+# end
 
-function get_coeff(m::Membership, id::Int)
-    return m.member_coef_map[id]
-end
 
 mutable struct Manager{T <: AbstractVarConstr}
     vc_list::SparseVector{Any, Int} #SparseVector{AbstractMoiDef, Int}

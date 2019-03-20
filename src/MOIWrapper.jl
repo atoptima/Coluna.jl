@@ -91,7 +91,6 @@ end
 
 function create_origvars!(vars::Vector{Variable}, m::Model, 
         moi_map::MOIU.IndexMap, src::MOI.ModelLike, copy_names::Bool)
-    orig_form = get_original_formulation(m)
     for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
             name = MOI.get(src, MOI.VariableName(), m_var_id)
@@ -102,12 +101,12 @@ function create_origvars!(vars::Vector{Variable}, m::Model,
         push!(vars, var)
         c_var_id = MOI.VariableIndex(getuid(var))
         setindex!(moi_map, c_var_id, m_var_id)
-        register_variable!(orig_form, var)
     end
     return
 end
 
-function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable}, 
+function create_origconstr!(constrs::Vector{Constraint}, 
+        memberships::Vector{SparseVector}, vars::Vector{Variable}, 
         moi_map::MOIU.IndexMap, m::Model, name::String, 
         func::MOI.SingleVariable, set, m_constr_id)
     c_var_id = moi_map[func.variable].value
@@ -115,27 +114,27 @@ function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable},
     return
 end
 
-function create_origconstr!(constrs::Vector{Constraint}, vars::Vector{Variable}, 
+function create_origconstr!(constrs::Vector{Constraint}, 
+        memberships::Vector{SparseVector}, vars::Vector{Variable}, 
         moi_map::MOIU.IndexMap, m::Model, name::String, 
         f::MOI.ScalarAffineFunction, s, m_constr_id)
     constr = OriginalConstraint(m, name)
     set!(constr, s)
     push!(constrs, constr)
-    membership = Membership(Constraint)
+    membership = spzeros(Float64, MAX_SV_ENTRIES)
     for term in f.terms
         c_var_id = moi_map[term.variable_index].value
-
-        # term.variable_index, term.coefficient
+        membership[c_var_id] = term.coefficient
     end
+    push!(memberships, membership)
     c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))
     setindex!(moi_map, c_constr_id, m_constr_id)
-    orig_form = get_original_formulation(m)
-    register_constraint!(orig_form, constr, membership)
     return
 end
 
-function create_origconstrs!(constrs::Vector{Constraint}, m::Model, 
-        moi_map::MOIU.IndexMap, src::MOI.ModelLike, vars, copy_names::Bool)
+function create_origconstrs!(constrs::Vector{Constraint}, 
+        memberships::Vector{SparseVector}, m::Model, moi_map::MOIU.IndexMap, 
+        src::MOI.ModelLike, vars, copy_names::Bool)
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
         for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
             if copy_names
@@ -145,7 +144,7 @@ function create_origconstrs!(constrs::Vector{Constraint}, m::Model,
             end
             f = MOI.get(src, MOI.ConstraintFunction(), m_constr_id)
             s = MOI.get(src, MOI.ConstraintSet(), m_constr_id)
-            create_origconstr!(constrs, vars, moi_map, m, name, f, s, m_constr_id)
+            create_origconstr!(constrs, memberships, vars, moi_map, m, name, f, s, m_constr_id)
         end
     end
     return
@@ -173,8 +172,12 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
 
     vars = Variable[]
     create_origvars!(vars, model, mapping, src, copy_names)
+    register_variables!(orig_form, vars)
+
     constrs = Constraint[]
-    create_origconstrs!(constrs, model, mapping, src, vars, copy_names)
+    memberships = SparseVector[]
+    create_origconstrs!(constrs, memberships, model, mapping, src, vars, copy_names)
+    register_constraints!(orig_form, constrs, memberships)
 
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     sense = MOI.get(src, MOI.ObjectiveSense())
