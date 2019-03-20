@@ -1,5 +1,5 @@
 mutable struct Model <: AbstractModel
-    original_formulation::Union{Nothing, AbstractMathProgFormulation}
+    original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     var_counter::VarCounter
     constr_counter::ConstrCounter
