@@ -1,4 +1,3 @@
-
 struct LazySeparationSubproblem <: AbstractFormulation
 end
 
@@ -38,29 +37,28 @@ end
 
 function add_constraints!(m::Memberships, constrs::Vector{Constraint}, 
         memberships::Vector{SparseVector})
-    @assert length(ad)
+    #@assert length(ad)
     println("\e[32m register constraints membership \e[00m")
 end
 
-struct ExplicitFormulation  <: AbstractMathProgFormulation
+struct Formulation  <: AbstractFormulation
     uid::FormId
     moi_model::MOI.ModelLike
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
     #var_manager::Manager{Variable}
     #constr_manager::Manager{Constraint}
     memberships::Memberships
-    #var_memberships::Dict{VarId, Membership{Variable}}
-    #constr_memberships::Dict{ConstrId, Membership{Constraint}}
+    callbacks
 end
 
-function ExplicitFormulation(m::AbstractModel, moi::MOI.ModelLike)
+function Formulation(m::AbstractModel, moi::MOI.ModelLike)
     uid = getnewuid(m.form_counter)
     #v_man = Manager(Variable)
     #c_man = Manager(Constraint)
-    return ExplicitFormulation(uid, moi, nothing, Memberships())#v_man, c_man, Memberships())
+    return Formulation(uid, moi, nothing, Memberships(), nothing)#v_man, c_man, Memberships())
 end
 
-function register_variables!(f::ExplicitFormulation, vars::Vector{Variable})
+function register_variables!(f::Formulation, vars::Vector{Variable})
     for var in vars
         uid = getuid(var)
         add_variable!(f.memberships, var)
@@ -69,7 +67,7 @@ function register_variables!(f::ExplicitFormulation, vars::Vector{Variable})
     return
 end
 
-function register_constraints!(f::ExplicitFormulation, constrs::Vector{Constraint},
+function register_constraints!(f::Formulation, constrs::Vector{Constraint},
         memberships::Vector{SparseVector})
     @assert length(constrs) == length(memberships)
     for i in 1:length(constrs)
@@ -80,18 +78,11 @@ function register_constraints!(f::ExplicitFormulation, constrs::Vector{Constrain
     return
 end
 
-struct ImplicitFormulation <: AbstractMathProgFormulation
-    uid::FormId
-    var_manager::Manager{Variable}
-    constr_manager::Manager{Constraint}
-    callback
-end
-
 struct Reformulation <: AbstractFormulation
     solution_method::AbstractSolutionMethod
-    parent::Union{Nothing, Reformulation} # reference to (pointer to) ancestor
-    master::Union{Nothing, ExplicitFormulation} # Nothing ?
-    dw_pricing_subprs::Union{Nothing, Vector{DantzigWolfeSubproblem}}
+    parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  MathProgFormulation or Reformulation
+    master::Union{Nothing, Formulation}
+    dw_pricing_subprs::Vector{AbstractFormulation} # vector of  MathProgFormulation or Reformulation
 end
 
 

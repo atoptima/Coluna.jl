@@ -10,7 +10,9 @@
 mutable struct Manager{T <: AbstractVarConstr}
     vc_list::SparseVector{Any, Int} #SparseVector{AbstractMoiDef, Int}
     active_mask::SparseVector{Bool,Int}
+    inactive_mask::SparseVector{Bool,Int}
     static_mask::SparseVector{Bool,Int}
+    nonstatic_mask::SparseVector{Bool,Int}
 end
 
 # getlist(m::Manager{Constraint}) = m.vc_list::SparseVector{MoiConstrDef, Id{Constraint}}
@@ -21,31 +23,33 @@ Manager(::Type{T}) where {T <: AbstractVarConstr} = Manager{T}(spzeros(0), spzer
 function get_list(m::Manager, active::Bool, static::Bool)
     if active
         static && return m.vc_list[m.active_mask .& m.static_mask]
-        !static && return m.vc_list[m.active_mask .& !m.static_mask]
+        !static && return m.vc_list[m.active_mask .& m.nonstatic_mask]
     end
-    static && return  m.vc_list[!m.active_mask .& m.static_mask]
-    return m.vc_list[!m.active_mask .& m.dynamic_mask]
+    static && return  m.vc_list[m.inactive_mask .& m.static_mask]
+    return m.vc_list[m.inactive_mask .& m.dynamic_mask]
 end
 
 function get_active_list(m::Manager, active::Bool)
     if active
         return m.vc_list[m.active_mask]
     end
-    return m.vc_list[!m.active_mask]
+    return m.vc_list[m.inactive_mask]
 end
 
 function get_static_list(m::Manager, static::Bool)
     if static
         return m.vc_list[m.static_mask]
     end
-    return m.vc_list[!m.static_mask]
+    return m.vc_list[m.nonstatic_mask]
 end
 
 function add_in_manager(m::Manager{T}, elem::T, active::Bool) where {T <: AbstractVarConstr}
     uid = getuid(elem)
     m.vc_list[uid] = elem
     active_mask[uid] = active
+    inactive_mask[uid] = !active
     static_mask[uid] = isstatic(elem) 
+    nonstatic_mask[uid] = !isstatic(elem) 
     return
 end
 
@@ -53,7 +57,9 @@ function remove_from_manager(m::Manager{T}, elem::T) where {T <: AbstractVarCons
     uid = getuid(elem)
     deleteat!(m.vc_list, uid)
     deleteat!(m.active_mask, uid)
+    deleteat!(m.inactive_mask, uid)
     deleteat!(m.static_mask, uid)
+    deleteat!(m.nonstatic_mask, uid)
     return
 end
 

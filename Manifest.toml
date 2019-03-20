@@ -19,7 +19,7 @@ version = "0.5.3"
 deps = ["DataStructures", "JuMP", "MathOptInterface", "Test"]
 git-tree-sha1 = "b24382cd80cc39e9c15b3a7fe371980c20c6ee2c"
 repo-rev = "master"
-repo-url = "git@github.com:atoptima/BlockDecomposition.jl.git"
+repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 version = "0.1.0"
 
@@ -145,7 +145,7 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 deps = ["Compat", "Unicode"]
 git-tree-sha1 = "ce7ee54bb474d30ca3648b8ff5e11a3d7e750dca"
 repo-rev = "master"
-repo-url = "git@github.com:guimarqu/MathOptInterface.jl.git"
+repo-url = "https://github.com/guimarqu/MathOptInterface.jl.git"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 version = "0.8.4+"
 

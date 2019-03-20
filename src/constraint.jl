@@ -1,46 +1,48 @@
 mutable struct Constraint <: AbstractVarConstr
-    uid    ::ConstrId 
+    uid    ::ConstrId
+    index  ::MOI.ConstraintIndex
     name   ::String
     sense  ::ConstrSense # Greater Less Equal
     vc_type::ConstrType  # Core Facultative SubSytem PureMaster SubprobConvexity
     flag   ::Flag        # Static Dynamic Artifical
-    rhs    ::Float64
+    #    rhs    ::Float64
 end
 
-function Constraint(m::AbstractModel, n::String, s::ConstrSense, 
-        t::ConstrType, f::Flag, r::Float64)
+function Constraint(m::AbstractModel, mid::MOI.ConstraintIndex, n::String, 
+        s::ConstrSense, t::ConstrType, f::Flag)
     uid = getnewuid(m.constr_counter)
-    return Constraint(uid, n, s, t, f, r)
+    return Constraint(uid, mid, n, s, t, f)
 end
 
-function OriginalConstraint(m::AbstractModel, n::String)
-    return Constraint(m, n, Greater, Core, Static, 0.0)
+function OriginalConstraint(m::AbstractModel, mid::MOI.ConstraintIndex, 
+        n::String)
+    return Constraint(m, mid, n, Greater, Core, Static)
 end
 
 getuid(c::Constraint) = c.uid
 setsense!(c::Constraint, s::ConstrSense) = c.sense = s
 settype!(c::Constraint, t::ConstrType) = c.vc_type = t
 setflag!(c::Constraint, f::Flag) = c.flag = f
-setrhs!(c::Constraint, r::Float64) = c.rhs = r
+#setrhs!(c::Constraint, r::Float64) = c.rhs = r
 
 function set!(c::Constraint, s::MOI.GreaterThan)
-    rhs = float(s.lower)
+ #   rhs = float(s.lower)
     setsense!(c, Greater)
-    setrhs!(c, rhs)
+ #   setrhs!(c, rhs)
     return
 end
 
 function set!(c::Constraint, s::MOI.EqualTo)
-    rhs = float(s.value)
+ #   rhs = float(s.value)
     setsense!(c, Equal)
-    setrhs!(c, rhs)
+ #   setrhs!(c, rhs)
     return
 end
 
 function set!(c::Constraint, s::MOI.LessThan)
-    rhs = float(s.upper)
+ #   rhs = float(s.upper)
     setsense!(c, Less)
-    setrhs!(c, rhs)
+ #   setrhs!(c, rhs)
     return
 end
 

@@ -1,5 +1,5 @@
 mutable struct Model <: AbstractModel
-    original_formulation::Union{Nothing, AbstractMathProgFormulation}
+    original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     var_counter::VarCounter
     constr_counter::ConstrCounter
@@ -8,7 +8,7 @@ end
 
 Model() = Model(nothing, nothing, VarCounter(), ConstrCounter(), FormCounter())
 
-function set_original_formulation!(m::Model, of::AbstractMathProgFormulation)
+function set_original_formulation!(m::Model, of::Formulation)
     m.original_formulation = of
     return
 end

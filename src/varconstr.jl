@@ -32,13 +32,19 @@ function getnewuid(counter::AbstractCounter)
     return counter.value
 end
 
-struct MoiVarDef <: AbstractMoiDef
+#struct MoiVarDef <: AbstractMoiDef
+#    var::Variable # pointer back to the Coluna Variable
+ #   uid::VarId # and its ID
+    
     # TODO
-end
+#end
 
-struct MoiConstrDef <: AbstractMoiDef
+#struct MoiConstrDef <: AbstractMoiDef
+ #   constr::Constraint # pointer back to the Coluna Constraint
+#    uid::ConstrId # and its ID
+#    index::
     # TODO
-end
+#end
 
 # function VarConstrBuilder(counter::VariableCounter,
 #                           name::String,

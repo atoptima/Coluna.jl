@@ -97,7 +97,7 @@ function create_origvars!(vars::Vector{Variable}, m::Model,
         else
             name = string("var_", m_var_id.value)
         end
-        var = OriginalVariable(m, name)
+        var = OriginalVariable(m, m_var_id, name)
         push!(vars, var)
         c_var_id = MOI.VariableIndex(getuid(var))
         setindex!(moi_map, c_var_id, m_var_id)
@@ -118,7 +118,7 @@ function create_origconstr!(constrs::Vector{Constraint},
         memberships::Vector{SparseVector}, vars::Vector{Variable}, 
         moi_map::MOIU.IndexMap, m::Model, name::String, 
         f::MOI.ScalarAffineFunction, s, m_constr_id)
-    constr = OriginalConstraint(m, name)
+    constr = OriginalConstraint(m, m_constr_id, name)
     set!(constr, s)
     push!(constrs, constr)
     membership = spzeros(Float64, MAX_SV_ENTRIES)
@@ -167,7 +167,7 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
 
     mapping = MOIU.IndexMap() # map from moi idx to coluna idx
     model = Model()
-    orig_form = ExplicitFormulation(model, src)
+    orig_form = Formulation(model, src)
     set_original_formulation!(model, orig_form)
 
     vars = Variable[]
@@ -181,7 +181,7 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
 
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     sense = MOI.get(src, MOI.ObjectiveSense())
-    load_obj!(vars, mapping, obj)
+    #load_obj!(vars, mapping, obj)
 
     var_ann = Dict{Int, BD.Annotation}()
     constr_ann = Dict{Int, BD.Annotation}()
