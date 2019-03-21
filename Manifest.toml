@@ -17,7 +17,7 @@ version = "0.5.3"
 
 [[BlockDecomposition]]
 deps = ["DataStructures", "JuMP", "MathOptInterface", "Test"]
-git-tree-sha1 = "b24382cd80cc39e9c15b3a7fe371980c20c6ee2c"
+git-tree-sha1 = "262f96c09167f2cf4136af061bcfff442d3d6164"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"

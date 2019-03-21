@@ -4,6 +4,7 @@
 @enum ConstrType Core Facultative SubSytem PureMaster SubprobConvexity
 @enum Flag Static Dynamic Artifical
 @enum Status Active Unsuitable
+@enum ObjSense Min Max
 
 # struct Id{T <: AbstractVarConstr}
 #     id::Int
@@ -24,7 +25,7 @@ mutable struct ConstrCounter <: AbstractCounter
 end
 mutable struct FormCounter <: AbstractCounter
     value::FormId
-    FormCounter() = new(0)
+    FormCounter() = new(-1) # 0 is for the original formulation
 end
 
 function getnewuid(counter::AbstractCounter)

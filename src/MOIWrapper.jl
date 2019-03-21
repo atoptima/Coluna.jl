@@ -37,17 +37,12 @@ function MOI.optimize!(optimizer::Optimizer)
     println("\e[34m OPTIMIZE \e[00m")
 end
 
-# function MOI.optimize!(coluna_optimizer::Optimizer)
-#     solve(coluna_optimizer.inner)
-# end
-
 function MOI.get(dest::MOIU.UniversalFallback,
         attribute::BD.ConstraintDecomposition, ci::MOI.ConstraintIndex)
     if haskey(dest.conattr, attribute)
         if haskey(dest.conattr[attribute], ci)
             return dest.conattr[attribute][ci]
         end
-        #error("No annotation found for variable $vi.")
     end
     return ()
 end
@@ -58,7 +53,6 @@ function MOI.get(dest::MOIU.UniversalFallback,
         if haskey(dest.varattr[attribute], vi)
             return dest.varattr[attribute][vi]
         end
-        #error("No annotation found for variable $vi.")
     end
     return ()
 end
@@ -210,8 +204,6 @@ function load_decomposition_annotations!(var_ann::Dict{Int, BD.Annotation},
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
-    println("\e[1m;45m COPY TO \e[00m")
-
     mapping = MOIU.IndexMap() # map from moi idx to coluna idx
     model = Model()
     orig_form = Formulation(model, src)
@@ -240,15 +232,16 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     register_constraints!(orig_form, constrs, memberships, csenses, rhs)
 
     sense = MOI.get(src, MOI.ObjectiveSense())
-    @show sense
-    #register_objective_sense!(orig_form,)
+    min_sense = (sense == MOI.MIN_SENSE)
+    register_objective_sense!(orig_form, min_sense)
 
     # Retrieve annotations
-    var_ann = Dict{Int, BD.Annotation}()
-    constr_ann = Dict{Int, BD.Annotation}()
+    var_ann = Dict{VarId, BD.Annotation}()
+    constr_ann = Dict{ConstrId, BD.Annotation}()
     load_decomposition_annotations!(var_ann, constr_ann, src, mapping)
-    @show var_ann
-    @show constr_ann
+
+    reformulation!(model, var_ann, constr_ann)
+
     return mapping
 end
 
@@ -263,13 +256,6 @@ end
 #         pricingprob = model.extended_problem.pricing_vect[subprobidx]
 #         model.problemidx_optimizer_map[pricingprob.prob_ref] =
 #                 dest.pricing_factory()
-#     end
-# end
-
-# function MOI.set(coluna_optimizer::Optimizer, object::MOI.ObjectiveSense,
-#                   sense::MOI.OptimizationSense)
-#     if sense != MOI.MIN_SENSE
-#         throw(MOI.CannotSetAttribute{MOI.ObjectiveSense}(MOI.ObjectiveSense, "Coluna only supports minimization sense for now."))
 #     end
 # end
 
@@ -323,9 +309,4 @@ MOI.is_empty(optimizer::Optimizer) = (optimizer.inner == nothing)
 # function MOI.get(coluna_optimizer::Optimizer,
 #                  object::MOI.VariablePrimal, ref::Vector{MOI.VariableIndex})
 #     return [MOI.get(coluna_optimizer, object, ref[i]) for i in 1:length(ref)]
-# end
-
-# function MOI.get(coluna_optimizer::Optimizer, object::MOI.ObjectiveSense)
-#     # MaxSense is currently not supported
-#     return MOI.MIN_SENSE
 # end

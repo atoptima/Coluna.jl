@@ -48,25 +48,41 @@ function add_constraints!(m::Memberships, constrs::Vector{Constraint},
     return
 end
 
-struct Formulation  <: AbstractFormulation
+mutable struct Formulation  <: AbstractFormulation
     uid::FormId
-    moi_model::MOI.ModelLike
+    moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
     #var_manager::Manager{Variable}
     #constr_manager::Manager{Constraint}
+    # Min \{ cx | Ax <= b, Ex = f, l <= x <= u \}
     memberships::Memberships
-    #costs::SparseVector{Float64, Int}
-    #lower_bounds::SparseVector{Float64, Int}
-    #upper_bounds::SparseVector{Float64, Int}
-    #rhs::SparseVector{Float64, Int}
+    costs::SparseVector{Float64, Int}
+    lower_bounds::SparseVector{Float64, Int}
+    upper_bounds::SparseVector{Float64, Int}
+    rhs::SparseVector{Float64, Int}
     callbacks
+    # Data used for displaying (not computing) :
+    var_types::Dict{VarId, VarType}
+    constr_senses::Dict{ConstrId, ConstrSense}
+    obj_sense::ObjSense
 end
 
-function Formulation(m::AbstractModel, moi::MOI.ModelLike)
+function Formulation(m::AbstractModel)
+    return Formulation(m::AbstractModel, nothing)
+end
+
+function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     uid = getnewuid(m.form_counter)
     #v_man = Manager(Variable)
     #c_man = Manager(Constraint)
-    return Formulation(uid, moi, nothing, Memberships(), nothing)#v_man, c_man, Memberships())
+    costs = spzeros(Float64, MAX_SV_ENTRIES)
+    lb = spzeros(Float64, MAX_SV_ENTRIES)
+    ub = spzeros(Float64, MAX_SV_ENTRIES)
+    rhs = spzeros(Float64, MAX_SV_ENTRIES)
+    vtypes = Dict{VarId, VarType}()
+    csenses = Dict{ConstrId, ConstrSense}()
+    return Formulation(uid, moi, nothing, Memberships(), costs, lb, ub, rhs, 
+        nothing, vtypes, csenses, Min)
 end
 
 function register_variables!(f::Formulation, vars::Vector{Variable}, 
@@ -74,11 +90,18 @@ function register_variables!(f::Formulation, vars::Vector{Variable},
         vtypes::Vector{VarType})
     @assert length(vars) == length(costs) == length(ub)
     @assert length(vars) == length(lb) == length(vtypes)
-    for var in vars
-        uid = getuid(var)
-        add_variable!(f.memberships, var)
+    for i in 1:length(vars)
+        uid = getuid(vars[i])
+        add_variable!(f.memberships, vars[i])
         # register in manager
-        # store costs, lb, ub, vtypes
+        if f.obj_sense == Max
+            f.costs[uid] = -1.0 * costs[i]
+        else
+            f.costs[uid] = costs[i]
+        end
+        f.lower_bounds[uid] = lb[i]
+        f.upper_bounds[uid] = ub[i]
+        # vtypes
     end
     return
 end
@@ -88,18 +111,44 @@ function register_constraints!(f::Formulation, constrs::Vector{Constraint},
         rhs::Vector{Float64})
     @assert length(constrs) == length(memberships) == length(csenses) == length(rhs)
     # register in manager
-    # store constraints senses
-    # store rhs
+    for i in 1:length(constrs)
+        uid = getuid(constrs[i])
+        f.rhs[uid] = rhs[i]
+        f.constr_senses[uid] = csenses[i]
+        if csenses[i] == Less
+            memberships[i] *= -1.0
+            rhs[i] *= -1.0
+        end
+    end
     add_constraints!(f.memberships, constrs, memberships)
     return
 end
 
-struct Reformulation <: AbstractFormulation
-    solution_method::AbstractSolutionMethod
-    parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  MathProgFormulation or Reformulation
+function register_objective_sense!(f::Formulation, min::Bool)
+    if !min
+        m.obj_sense = Max
+        m.costs *= -1.0
+    end
+    return
+end
+
+mutable struct Reformulation <: AbstractFormulation
+    #solution_method::AbstractSolutionMethod
+    parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of  MathProgFormulation or Reformulation
 end
 
+function Reformulation()
+    return Reformulation(nothing, nothing, Vector{AbstractFormulation}())
+end
 
+function setmaster!(r::Reformulation, f)
+    r.master = f
+    return
+end
 
+function add_dw_pricing_sp!(r::Reformulation, f)
+    push!(r.dw_pricing_subprs, f)
+    return
+end

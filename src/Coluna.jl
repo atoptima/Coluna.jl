@@ -43,7 +43,6 @@ include("membership.jl")
 include("constraint.jl")
 include("variable.jl")
 include("formulation.jl")
-#include("formulationnatures.jl")
 #include("constraintduties.jl")
 #include("variableduties.jl")
 
@@ -57,7 +56,7 @@ include("formulation.jl")
 #include("nodealgs/algprimalheurinnode.jl")
 #include("nodealgs/alggeneratechildrennodes.jl")
 include("model.jl")
-
+include("reformulation.jl")
 
 ##### Wrapper functions
 include("MOIWrapper.jl")
