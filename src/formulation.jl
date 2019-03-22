@@ -48,6 +48,7 @@ function add_constraint!(m::Memberships,
     m.constr_memberships[constr_uid] = membership
     var_uids, vals = findnz(membership)
     for j in 1:length(var_uids)
+        !hasvar(m, var_uids[j]) && error("Variable $(var_uids[j]) not registered in Memberships.")
         m.var_memberships[var_uids[j]][constr_uid] = vals[j]
     end
     return
@@ -77,7 +78,7 @@ getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
 getvarub(f::Formulation, uid) = f.upper_bounds[uid]
 getvartype(f::Formulation, uid) = f.var_types[uid]
 
-getconstrrhs(f::Formulation, uid) = f.var_types[uid]
+getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
 getvarmembership(f::Formulation, uid) = getvarmembership(f.memberships, uid)
@@ -118,6 +119,7 @@ function register_variable!(f::Formulation,
     f.costs[var_uid] = cost
     f.lower_bounds[var_uid] = lb
     f.upper_bounds[var_uid] = ub
+    f.var_types[var_uid] = vtype
     # TODO : Register in manager
     return
 end
@@ -204,7 +206,7 @@ function copy_variables!(dest::Formulation, src::Formulation, uids;
     return
 end
 
-function copy_constraints(dest::Formulation, src::Formulation, uids;
+function copy_constraints!(dest::Formulation, src::Formulation, uids;
         copy_membership = true)
     for uid in uids
         if copy_membership
