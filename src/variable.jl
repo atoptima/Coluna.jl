@@ -11,7 +11,7 @@ function Variable(m::AbstractModel, mid::MOI.VariableIndex, n::String, f::Flag, 
     return Variable(uid, mid, n, f, d)
 end
 
-function OriginalVariable(m::AbstractModel, mid::MOI.VariableIndex, n::String)
+function Variable(m::AbstractModel, mid::MOI.VariableIndex, n::String)
     return Variable(m, mid, n, Static, OriginalVar)
 end
 

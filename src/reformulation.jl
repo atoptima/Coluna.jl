@@ -36,6 +36,20 @@ function inverse(varconstr_annotations)
     return varconstr_in_form
 end
 
+function build_dw_master!(annotation_id::Int,
+                          formulation::Formulation,
+                          vars_in_forms::Dict{BD.Annotation,VarId},
+                          constrs_in_forms::Dict{BD.Annotation,ConstrId})
+    return
+end
+
+function build_pricing_sp!(annotation_id::Int,
+                           formulation::Formulation,
+                           vars_in_forms::Dict{BD.Annotation,VarId},
+                           constrs_in_forms::Dict{BD.Annotation,ConstrId})
+    return
+end
+
 function reformulate!(m::Model, method::SolutionMethod)
     println("Do reformulation.")
 
@@ -49,6 +63,12 @@ function reformulate!(m::Model, method::SolutionMethod)
     # TODO : improve all drafts as soon as BlockDecomposition returns a
     # decomposition-tree.
 
+    vars_in_forms = inverse(m.var_annotations)
+    constrs_in_forms = inverse(m.constr_annotations)
+    @show vars_in_forms
+    @show constrs_in_forms
+
+
     # DRAFT : to be improved
     reformulation = Reformulation(method)
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
@@ -58,20 +78,18 @@ function reformulate!(m::Model, method::SolutionMethod)
         formulations[annotation.unique_id] = f
         if annotation.problem == BD.Master
             setmaster!(reformulation, f)
+            build_dw_master!(annotation.unique_id, f, vars_in_forms, constrs_in_forms)
         elseif annotation.problem == BD.Pricing
             add_dw_pricing_sp!(reformulation, f)
+            build_dw_pricing_sp!(annotation.unique_id, f, vars_in_forms, constrs_in_forms)
         else
             error("Not supported yet.")
         end
     end
     # END_DRAFT
 
-    vars_in_form = inverse(m.var_annotations)
-    constrs_in_form = inverse(m.constr_annotations)
-
-    @show vars_in_form
-    @show constrs_in_form
 
     # TODO : Register constraints and variables
 
 end
+

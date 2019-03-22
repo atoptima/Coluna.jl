@@ -14,8 +14,7 @@ function Constraint(m::AbstractModel, mid::MOI.ConstraintIndex, n::String,
     return Constraint(uid, mid, n, s, t, f, d)
 end
 
-function OriginalConstraint(m::AbstractModel, mid::MOI.ConstraintIndex, 
-        n::String)
+function Constraint(m::AbstractModel, mid::MOI.ConstraintIndex, n::String)
     return Constraint(m, mid, n, Greater, Core, Static, OriginalConstr)
 end
 

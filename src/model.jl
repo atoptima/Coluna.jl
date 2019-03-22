@@ -1,4 +1,6 @@
 mutable struct Model <: AbstractModel
+    name::String
+    moi2uid_map::MOIU.IndexMap
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     var_counter::VarCounter
@@ -8,7 +10,7 @@ mutable struct Model <: AbstractModel
     constr_annotations:: Dict{ConstrId, BD.Annotation}
 end
 
-Model() = Model(nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(), Dict{VarId, BD.Annotation}(), Dict{ConstrId, BD.Annotation}())
+Model() = Model("model", MOIU.IndexMap(), nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(), Dict{VarId, BD.Annotation}(), Dict{ConstrId, BD.Annotation}())
 
 function set_original_formulation!(m::Model, of::Formulation)
     m.original_formulation = of
