@@ -1,22 +1,23 @@
 mutable struct Constraint <: AbstractVarConstr
     uid    ::ConstrId
-    index  ::MOI.ConstraintIndex
     name   ::String
     sense  ::ConstrSense # Greater Less Equal
     vc_type::ConstrType  # Core Facultative SubSytem PureMaster SubprobConvexity
     flag   ::Flag        # Static Dynamic Artifical
     duty   ::ConstrDuty
+    index  ::Union{MOI.ConstraintIndex, Nothing}
 end
 
-function Constraint(m::AbstractModel, mid::MOI.ConstraintIndex, n::String, 
+function Constraint(m::AbstractModel, n::String, 
         s::ConstrSense, t::ConstrType, f::Flag, d::ConstrDuty)
     uid = getnewuid(m.constr_counter)
-    return Constraint(uid, mid, n, s, t, f, d)
+    return Constraint(uid, n, s, t, f, d, nothing)
 end
 
-function Constraint(m::AbstractModel, mid::MOI.ConstraintIndex, n::String)
-    return Constraint(m, mid, n, Greater, Core, Static, OriginalConstr)
+function Constraint(m::AbstractModel, n::String)
+    return Constraint(m, n, Greater, Core, Static, OriginalConstr)
 end
+
 
 getuid(c::Constraint) = c.uid
 setsense!(c::Constraint, s::ConstrSense) = c.sense = s

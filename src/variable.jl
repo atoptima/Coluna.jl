@@ -1,18 +1,20 @@
 mutable struct Variable <: AbstractVarConstr
-    uid        ::VarId
-    index      ::MOI.VariableIndex
-    name       ::String
-    flag       ::Flag     # Static, Dynamic, Artifical
-    duty       ::VarDuty
+    uid::VarId
+    name::String
+    flag::Flag     # Static, Dynamic, Artifical
+    duty::VarDuty
+    index::MOI.VariableIndex
+    bounds_index::Union{MoiBounds, Nothing}
+    type_index::Union{MoiVcType, Nothing}
 end
 
-function Variable(m::AbstractModel, mid::MOI.VariableIndex, n::String, f::Flag, d::VarDuty)
+function Variable(m::AbstractModel,  n::String, f::Flag, d::VarDuty)
     uid = getnewuid(m.var_counter)
-    return Variable(uid, mid, n, f, d)
+    return Variable(uid, n, f, d, MOI.VariableIndex(-1), nothing, nothing)
 end
 
-function Variable(m::AbstractModel, mid::MOI.VariableIndex, n::String)
-    return Variable(m, mid, n, Static, OriginalVar)
+function Variable(m::AbstractModel,  n::String)
+    return Variable(m, n, Static, OriginalVar)
 end
 
 getuid(v::Variable) = v.uid
