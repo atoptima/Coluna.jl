@@ -14,46 +14,23 @@ struct DantzigWolfeSubproblem <: AbstractFormulation
 end
 
 
-function add_variable!(m::Memberships, var::Variable)
-    var_uid = getuid(var)
-    m.var_memberships[var_uid] = spzeros(Float64, MAX_SV_ENTRIES)
-    return
-end
 
 function add_variable!(m::Memberships,  var_uid::VarId)
     m.var_memberships[var_uid] = spzeros(Float64, MAX_SV_ENTRIES)
     return
 end
 
-#function add_variables!(m::Memberships, vars::Vector{Variable}, 
-#        memberships::Vector{SparseVector})
-#    println("\e[31m register vars membership \e[00m")
-#end
-
-# FVR better todefine add_constrait :one at a time
 function add_constraint!(m::Memberships,
-                          constr_uid::ConstrId, 
-                          membership::SparseVector) 
+                         constr_uid::ConstrId, 
+                         membership::SparseVector) 
     m.constr_memberships[constr_uid] = membership
-    var_uids, vals = findnz(membership) # FVR membership should hold only non zeros
+    var_uids, vals = findnz(membership)
     for j in 1:length(var_uids)
+        !hasvar(m, var_uids[j]) && error("Variable $(var_uids[j]) not registered in Memberships.")
         m.var_memberships[var_uids[j]][constr_uid] = vals[j]
     end
     return
 end
-
-#function add_constraints!(m::Memberships, constrs::Vector{Constraint}, 
- #                         memberships::Vector{SparseVector}) 
-#    for i in 1:length(constrs)
- #       constr_uid = getuid(constrs[i])
- #       m.constr_memberships[constr_uid] = memberships[i]
-#        var_uids, vals = findnz(memberships[i]) # FVR memberships[i] should hold only non zeros
- #       for j in 1:length(var_uids)
- #           m.var_memberships[var_uids[j]][constr_uid] = vals[j]
- #       end
-#    end
-#    return
-#end
 
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
@@ -75,6 +52,17 @@ mutable struct Formulation  <: AbstractFormulation
     constr_senses::Dict{ConstrId, ConstrSense}
     obj_sense::ObjSense
 end
+
+getvarcost(f::Formulation, uid) = f.costs[uid]
+getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
+getvarub(f::Formulation, uid) = f.upper_bounds[uid]
+getvartype(f::Formulation, uid) = f.var_types[uid]
+
+getconstrrhs(f::Formulation, uid) = f.rhs[uid]
+getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
+
+getvarmembership(f::Formulation, uid) = getvarmembership(f.memberships, uid)
+getconstrmembership(f::Formulation, uid) = getconstrmembership(f.memberships, uid)
 
 mutable struct Reformulation <: AbstractFormulation
     solution_method::SolutionMethod
@@ -101,6 +89,32 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
         nothing, vtypes, csenses, Min)
 end
 
+function register_variable!(f::Formulation, 
+                            var_uid::VarId, 
+                            cost::Float64,
+                            lb::Float64, 
+                            ub::Float64, 
+                            vtype::VarType)
+    add_variable!(f.memberships, var_uid)
+    f.costs[var_uid] = cost
+    f.lower_bounds[var_uid] = lb
+    f.upper_bounds[var_uid] = ub
+    f.var_types[var_uid] = vtype
+    # TODO : Register in manager
+    return
+end
+
+function register_variable!(f::Formulation, 
+                            var::Variable, 
+                            cost::Float64,
+                            lb::Float64, 
+                            ub::Float64, 
+                            vtype::VarType)
+    uid = getuid(var)
+    register_variable!(f, uid, cost, lb, ub, vtype)
+    return
+end
+
 function register_variables!(f::Formulation,
                              vars::Vector{Variable}, 
                              costs::Vector{Float64},
@@ -110,50 +124,76 @@ function register_variables!(f::Formulation,
     @assert length(vars) == length(costs) == length(ub)
     @assert length(vars) == length(lb) == length(vtypes)
     for i in 1:length(vars)
-        uid = getuid(vars[i])
-        add_variable!(f.memberships, uid) # FVR
-        #add_variable!(f.memberships, vars[i])
-        # register in manager #FVR already done in  register_objective_sense!(
-        # if f.obj_sense == Max
-        #     f.costs[uid] = -1.0 * costs[i]
-        # else
-        #     f.costs[uid] = costs[i]
-        # end
-        f.costs[uid] = costs[i]
-        f.lower_bounds[uid] = lb[i]
-        f.upper_bounds[uid] = ub[i]
-        # vtypes
+        register_variable!(f, vars[i], costs[i], lb[i], ub[i], vtypes[i])
     end
+    return
+end
+
+function register_constraint!(f::Formulation,
+                              constr_uid::ConstrId,
+                              csense::ConstrSense,
+                              rhs::Float64,
+                              membership::SparseVector)
+    f.rhs[constr_uid] = rhs
+    f.constr_senses[constr_uid] = csense
+    # TODO : register in manager
+    add_constraint!(f.memberships, constr_uid, membership)
+    return
+end
+
+function register_constraint!(f::Formulation, 
+                              constr::Constraint, 
+                              csense::ConstrSense, 
+                              rhs::Float64,
+                              membership::SparseVector)
+    uid = getuid(constr)
+    register_constraint!(f, uid, csense, rhs, membership)
     return
 end
 
 function register_constraints!(f::Formulation,
                                constrs::Vector{Constraint},
-                               memberships::Vector{SparseVector},
                                csenses::Vector{ConstrSense},
-                               rhs::Vector{Float64})
+                               rhs::Vector{Float64},
+                               memberships::Vector{SparseVector})
     @assert length(constrs) == length(memberships) == length(csenses) == length(rhs)
     # register in manager
     for i in 1:length(constrs)
-        uid = getuid(constrs[i])
-        f.rhs[uid] = rhs[i]
-        f.constr_senses[uid] = csenses[i]
- #       if csenses[i] == Less
- #           memberships[i] *= -1.0
- #           rhs[i] *= -1.0
- #       end
-        add_constraint!(f.memberships, uid, memberships[i])
-
+        register_constraint!(f, constrs[i], csenses[i], rhs[i], memberships[i])
     end
-    #   add_constraints!(f.memberships, constrs, memberships) #FVR
     return
 end
 
 function register_objective_sense!(f::Formulation, min::Bool)
-    if !min
-        m.obj_sense = Max
-        m.costs *= -1.0
+    # if !min
+    #     m.obj_sense = Max
+    #     m.costs *= -1.0
+    # end
+    !min && error("Coluna does not support maximization yet.")
+    return
+end
+
+function copy_variables!(dest::Formulation, src::Formulation, uids;
+        copy_membership = false)
+    for uid in uids
+        if copy_membership
+            error("TODO")
+        else
+            register_variable!(dest, uid, getvarcost(src, uid), 
+                getvarlb(src, uid), getvarub(src, uid), getvartype(src, uid))
+        end
     end
     return
 end
 
+function copy_constraints!(dest::Formulation, src::Formulation, uids;
+        copy_membership = true)
+    for uid in uids
+        if copy_membership
+            register_constraint!(dest, uid, getconstrsense(src, uid), 
+                getconstrrhs(src, uid), copy(getconstrmembership(src, uid)))
+        else
+            error("TODO")
+        end
+    end
+end

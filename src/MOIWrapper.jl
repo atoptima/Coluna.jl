@@ -79,8 +79,8 @@ function load_obj!(costs::Vector{Float64},
     # We need to increment values of cost with += to handle cases like $x_1 + x_2 + x_1$
     # This is safe because the variables are initialized with a 0.0 cost
     for term in f.terms
-        coluna_var_id = moi_map[term.variable_index].value
-        costs[coluna_var_id] += term.coefficient
+        c_var_id = moi_map[term.variable_index].value
+        costs[c_var_id] += term.coefficient
     end
     return
 end
@@ -172,7 +172,7 @@ function create_origconstr!(constrs, memberships, rhs, csenses, moi_map, m,
     end
     push!(memberships, membership)
     c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))
-    setindex!(moi_map, c_constr_id, m_constr_id)
+    moi_map[m_constr_id] = c_constr_id
     return
 end
 
@@ -236,7 +236,7 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     rhs = Float64[]
     csenses = ConstrSense[]
     create_origconstrs!(constrs, memberships, rhs, csenses, model, mapping, src, copy_names)
-    register_constraints!(orig_form, constrs, memberships, csenses, rhs)
+    register_constraints!(orig_form, constrs, csenses, rhs, memberships)
 
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)

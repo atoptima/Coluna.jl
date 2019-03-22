@@ -31,6 +31,19 @@ function Memberships()
 end
 
 
+hasvar(m::Memberships, uid) = haskey(m.var_memberships, uid)
+hasconstr(m::Memberships, uid) = haskey(m.constr_memberships, uid)
+
+function getvarmembership(m::Memberships, uid) 
+    hasvar(m, uid) && return m.var_memberships[uid]
+    error("Variable $uid not stored in formulation.")
+end
+
+function getconstrmembership(m::Memberships, uid) 
+    hasconstr(m, uid) && return m.constr_memberships[uid]
+    error("Constraint $uid not stored in formulation.")
+end
+
 #==
 mutable struct Manager{T <: AbstractVarConstr}
     vc_list::SparseVector{Any, Int} #SparseVector{AbstractMoiDef, Int}
