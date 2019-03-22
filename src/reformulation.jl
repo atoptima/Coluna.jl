@@ -36,14 +36,15 @@ function inverse(varconstr_annotations)
     return varconstr_in_form
 end
 
-function build_dw_master!(annotation_id::Int,
+function build_dw_master!(m::Model, annotation_id::Int,
                           formulation::Formulation,
                           vars_in_form::Vector{VarId},
                           constrs_in_form::Vector{ConstrId})
+    
     return
 end
 
-function build_dw_pricing_sp!(annotation_id::Int,
+function build_dw_pricing_sp!(m::Model, annotation_id::Int,
                            formulation::Formulation,
                            vars_in_form::Vector{VarId},
                            constrs_in_form::Vector{ConstrId})
@@ -69,26 +70,18 @@ function reformulate!(m::Model, method::SolutionMethod)
     @show constrs_in_forms
 
 
-    # DRAFT : to be improved
     reformulation = Reformulation(method)
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
+
+    
+    # Build pricing  subproblems
+    master_annotation_id = -1
     for annotation in ann_sorted_by_uid
         f = Formulation(m)
         formulations[annotation.unique_id] = f
         if annotation.problem == BD.Master
-            if haskey(vars_in_forms, annotation.unique_id)
-                vars =  vars_in_forms[annotation.unique_id]
-            else
-                vars = Vector{VarId}()
-            end
-            if haskey(constrs_in_forms, annotation.unique_id)
-                constrs = constrs_in_forms[annotation.unique_id]
-            else
-                constrs = Vector{ConstrId}()
-            end
-            setmaster!(reformulation, f)
-            build_dw_master!(annotation.unique_id, f, vars, constrs)
+             master_annotation_id = annotation.unique_id
         elseif annotation.problem == BD.Pricing
             if haskey(vars_in_forms, annotation.unique_id)
                 vars =  vars_in_forms[annotation.unique_id]
@@ -101,12 +94,27 @@ function reformulate!(m::Model, method::SolutionMethod)
                 constrs = Vector{ConstrId}()
             end
             add_dw_pricing_sp!(reformulation, f)
-            build_dw_pricing_sp!(annotation.unique_id, f, vars, constrs)
+            build_dw_pricing_sp!(m, annotation.unique_id, f, vars, constrs)
         else
             error("Not supported yet.")
         end
     end
-    # END_DRAFT
+
+    # Build Master
+    @assert master_annotation_id != -1
+    if haskey(vars_in_forms, master_annotation_id)
+        vars =  vars_in_forms[master_annotation_id]
+    else
+        vars = Vector{VarId}()
+    end
+    if haskey(constrs_in_forms, master_annotation_id)
+        constrs = constrs_in_forms[master_annotation_id]
+    else
+        constrs = Vector{ConstrId}()
+    end
+    f = formulations[master_annotation_id]
+    setmaster!(reformulation, f)
+    build_dw_master!(m, master_annotation_id, f, vars, constrs)
 
 
     # TODO : Register constraints and variables

@@ -98,8 +98,8 @@ function create_origvars!(vars::Vector{Variable},
         end
         var = Variable(m, var_moi_id, name)
         push!(vars, var)
-        c_var_id = MOI.VariableIndex(getuid(var))
-        setindex!(moi_map, c_var_id, var_moi_id)
+        var_coluna_id = MOI.VariableIndex(getuid(var))
+        setindex!(moi_map, var_coluna_id, var_moi_id)
     end
     return
 end
