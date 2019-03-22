@@ -48,6 +48,9 @@ function build_dw_pricing_sp!(m::Model, annotation_id::Int,
                            formulation::Formulation,
                            vars_in_form::Vector{VarId},
                            constrs_in_form::Vector{ConstrId})
+    orig_form = get_original_formulation(m)
+    copy_variables!(formulation, orig_form, vars_in_form)
+    copy_constraints!(formulation, orig_form, constrs_in_form)
     return
 end
 

@@ -234,7 +234,7 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     rhs = Float64[]
     csenses = ConstrSense[]
     create_origconstrs!(constrs, memberships, rhs, csenses, model, mapping, src, copy_names)
-    register_constraints!(orig_form, constrs, memberships, csenses, rhs)
+    register_constraints!(orig_form, constrs, csenses, rhs, memberships)
 
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
