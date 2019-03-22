@@ -35,13 +35,13 @@ function add_variable!(m::Memberships,  var_uid::VarId)
     return
 end
 
-function add_variables!(m::Memberships, vars::Vector{Variable}, 
-        memberships::Vector{SparseVector})
-    println("\e[31m register vars membership \e[00m")
-end
+#function add_variables!(m::Memberships, vars::Vector{Variable}, 
+#        memberships::Vector{SparseVector})
+#    println("\e[31m register vars membership \e[00m")
+#end
 
 # FVR better todefine add_constrait :one at a time
-function add_constraints!(m::Memberships,
+function add_constraint!(m::Memberships,
                           constr_uid::ConstrId, 
                           membership::SparseVector) 
     m.constr_memberships[constr_uid] = membership
@@ -52,18 +52,18 @@ function add_constraints!(m::Memberships,
     return
 end
 
-function add_constraints!(m::Memberships, constrs::Vector{Constraint}, 
-                          memberships::Vector{SparseVector}) 
-    for i in 1:length(constrs)
-        constr_uid = getuid(constrs[i])
-        m.constr_memberships[constr_uid] = memberships[i]
-        var_uids, vals = findnz(memberships[i]) # FVR memberships[i] should hold only non zeros
-        for j in 1:length(var_uids)
-            m.var_memberships[var_uids[j]][constr_uid] = vals[j]
-        end
-    end
-    return
-end
+#function add_constraints!(m::Memberships, constrs::Vector{Constraint}, 
+ #                         memberships::Vector{SparseVector}) 
+#    for i in 1:length(constrs)
+ #       constr_uid = getuid(constrs[i])
+ #       m.constr_memberships[constr_uid] = memberships[i]
+#        var_uids, vals = findnz(memberships[i]) # FVR memberships[i] should hold only non zeros
+ #       for j in 1:length(var_uids)
+ #           m.var_memberships[var_uids[j]][constr_uid] = vals[j]
+ #       end
+#    end
+#    return
+#end
 
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
@@ -146,11 +146,11 @@ function register_constraints!(f::Formulation,
         uid = getuid(constrs[i])
         f.rhs[uid] = rhs[i]
         f.constr_senses[uid] = csenses[i]
-        if csenses[i] == Less
-            memberships[i] *= -1.0
-            rhs[i] *= -1.0
-        end
-        add_constraints!(f.memberships, uid, memberships[i])
+ #       if csenses[i] == Less
+ #           memberships[i] *= -1.0
+ #           rhs[i] *= -1.0
+ #       end
+        add_constraint!(f.memberships, uid, memberships[i])
 
     end
     #   add_constraints!(f.memberships, constrs, memberships) #FVR

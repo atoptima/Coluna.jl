@@ -72,10 +72,12 @@ function MOI.supports(optimizer::Optimizer,
     return true
 end
 
-function load_obj!(costs::Vector{Float64}, vars::Vector{Variable}, 
-        moi_map::MOIU.IndexMap, f::MOI.ScalarAffineFunction)
-    # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
-    # This is safe becasue the variables are initialized with a 0.0 cost_rhs
+function load_obj!(costs::Vector{Float64},
+                   vars::Vector{Variable}, 
+                   moi_map::MOIU.IndexMap,
+                   f::MOI.ScalarAffineFunction)
+    # We need to increment values of cost with += to handle cases like $x_1 + x_2 + x_1$
+    # This is safe because the variables are initialized with a 0.0 cost
     for term in f.terms
         coluna_var_id = moi_map[term.variable_index].value
         costs[coluna_var_id] += term.coefficient
@@ -83,18 +85,21 @@ function load_obj!(costs::Vector{Float64}, vars::Vector{Variable},
     return
 end
 
-function create_origvars!(vars::Vector{Variable}, m::Model, 
-        moi_map::MOIU.IndexMap, src::MOI.ModelLike, copy_names::Bool)
-    for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
+function create_origvars!(vars::Vector{Variable},
+                          m::Model, 
+                          moi_map::MOIU.IndexMap,
+                          src::MOI.ModelLike,
+                          copy_names::Bool)
+    for var_moi_id in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
-            name = MOI.get(src, MOI.VariableName(), m_var_id)
+            name = MOI.get(src, MOI.VariableName(), var_moi_id)
         else
-            name = string("var_", m_var_id.value)
+            name = string("var_", var_moi_id.value)
         end
-        var = OriginalVariable(m, m_var_id, name)
+        var = Variable(m, var_moi_id, name)
         push!(vars, var)
         c_var_id = MOI.VariableIndex(getuid(var))
-        setindex!(moi_map, c_var_id, m_var_id)
+        setindex!(moi_map, c_var_id, var_moi_id)
     end
     return
 end
@@ -154,7 +159,7 @@ getrhs(s::MOI.LessThan) = float(s.upper)
 
 function create_origconstr!(constrs, memberships, rhs, csenses, moi_map, m, 
         name, f::MOI.ScalarAffineFunction, s, m_constr_id)
-    constr = OriginalConstraint(m, m_constr_id, name)
+    constr = Constraint(m, m_constr_id, name)
     push!(constrs, constr)
     push!(rhs, getrhs(s))
     push!(csenses, getconstrsense(s))
@@ -204,8 +209,8 @@ function load_decomposition_annotations!(m::Model,
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
-    mapping = MOIU.IndexMap() # map from moi idx to coluna idx
     model = Model()
+    mapping = model.moi2uid_map = MOIU.IndexMap() # map from moi idx to coluna idx
     orig_form = Formulation(model, src)
     set_original_formulation!(model, orig_form)
 
