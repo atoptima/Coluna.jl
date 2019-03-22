@@ -1,6 +1,6 @@
 abstract type AbstractVarConstr end
-abstract type AbstractVarDuty end
-abstract type AbstractConstrDuty end
+#abstract type AbstractVarDuty end
+#abstract type AbstractConstrDuty end
 
 abstract type AbstractFormulation end
 
@@ -19,6 +19,10 @@ abstract type AbstractCounter end
 @enum Status Active Unsuitable
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
+
+@enum VarDuty OriginalVar PureMastVar MastCol MastArtVar MastRepPricingSpVar PricingSpSetupV  PricingSpVar MastRepBendSpVar BendersSpVar BlockGenSpVar MastRepBlockSpVar
+
+@enum ConstrDuty OriginalConstr BranchingConstr MastPureConstr MasterConstr MastConvexityConstr MasterBranch PricingSpRepMastBranchC
 
 const VarId = Int
 const ConstrId = Int

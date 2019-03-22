@@ -5,18 +5,18 @@ mutable struct Constraint <: AbstractVarConstr
     sense  ::ConstrSense # Greater Less Equal
     vc_type::ConstrType  # Core Facultative SubSytem PureMaster SubprobConvexity
     flag   ::Flag        # Static Dynamic Artifical
-    #    rhs    ::Float64
+    duty   ::ConstrDuty
 end
 
 function Constraint(m::AbstractModel, mid::MOI.ConstraintIndex, n::String, 
-        s::ConstrSense, t::ConstrType, f::Flag)
+        s::ConstrSense, t::ConstrType, f::Flag, d::ConstrDuty)
     uid = getnewuid(m.constr_counter)
-    return Constraint(uid, mid, n, s, t, f)
+    return Constraint(uid, mid, n, s, t, f, d)
 end
 
 function OriginalConstraint(m::AbstractModel, mid::MOI.ConstraintIndex, 
         n::String)
-    return Constraint(m, mid, n, Greater, Core, Static)
+    return Constraint(m, mid, n, Greater, Core, Static, OriginalConstr)
 end
 
 getuid(c::Constraint) = c.uid

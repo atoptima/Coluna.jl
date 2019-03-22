@@ -1,3 +1,4 @@
+#==
 mutable struct ExplicitOriginVar <: AbstractVarDuty
     rep_in_reform::Variable  # if any
     moi_def::MoiVarDef
@@ -61,6 +62,6 @@ mutable struct ExplicitMastRepBlockSpVar <: AbstractVarDuty
     moi_def::MoiVarDef 
     #data::ANY
 end
-
+==#
 
 

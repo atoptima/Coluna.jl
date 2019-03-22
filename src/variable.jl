@@ -3,15 +3,16 @@ mutable struct Variable <: AbstractVarConstr
     index      ::MOI.VariableIndex
     name       ::String
     flag       ::Flag     # Static, Dynamic, Artifical
+    duty       ::VarDuty
 end
 
-function Variable(m::AbstractModel, mid::MOI.VariableIndex, n::String, f::Flag)
+function Variable(m::AbstractModel, mid::MOI.VariableIndex, n::String, f::Flag, d::VarDuty)
     uid = getnewuid(m.var_counter)
-    return Variable(uid, mid, n, f)
+    return Variable(uid, mid, n, f, d)
 end
 
 function OriginalVariable(m::AbstractModel, mid::MOI.VariableIndex, n::String)
-    return Variable(m, mid, n, Static)
+    return Variable(m, mid, n, Static, OriginalVar)
 end
 
 getuid(v::Variable) = v.uid
