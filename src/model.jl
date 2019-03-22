@@ -4,9 +4,11 @@ mutable struct Model <: AbstractModel
     var_counter::VarCounter
     constr_counter::ConstrCounter
     form_counter::FormCounter
+    var_annotations:: Dict{VarId, BD.Annotation}
+    constr_annotations:: Dict{ConstrId, BD.Annotation}
 end
 
-Model() = Model(nothing, nothing, VarCounter(), ConstrCounter(), FormCounter())
+Model() = Model(nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(), Dict{VarId, BD.Annotation}(), Dict{ConstrId, BD.Annotation}())
 
 function set_original_formulation!(m::Model, of::Formulation)
     m.original_formulation = of
@@ -258,7 +260,7 @@ get_re_formulation(m::Model) = m.re_formulation
 # end
 
 # function solve(model::Model)
-#     coluna_initialization(model)
+#     coluna_initialization(model)x
 #     global __initial_solve_time = time()
 #     @show model.params
 #     @timeit model.extended_problem.timer_output "Solve model" begin

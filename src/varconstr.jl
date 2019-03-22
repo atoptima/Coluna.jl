@@ -1,19 +1,3 @@
-@enum VarSense Positive Negative Free
-@enum VarType Continuous Binary Integ
-@enum ConstrSense Greater Less Equal
-@enum ConstrType Core Facultative SubSytem PureMaster SubprobConvexity
-@enum Flag Static Dynamic Artifical
-@enum Status Active Unsuitable
-@enum ObjSense Min Max
-
-# struct Id{T <: AbstractVarConstr}
-#     id::Int
-# end
-# Id(::Type{T}, id::Int) where {T <: AbstractVarConstr} = Id{T}(id)
-
-const VarId = Int
-const ConstrId = Int
-const FormId = Int
 
 mutable struct VarCounter <: AbstractCounter
     value::VarId

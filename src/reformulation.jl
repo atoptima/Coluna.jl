@@ -1,3 +1,23 @@
+
+function Reformulation(method::SolutionMethod)
+    return Reformulation(method, nothing, nothing, Vector{AbstractFormulation}())
+end
+
+function Reformulation()
+    return Reformulation(DirectMip)
+end
+
+function setmaster!(r::Reformulation, f)
+    r.master = f
+    return
+end
+
+function add_dw_pricing_sp!(r::Reformulation, f)
+    push!(r.dw_pricing_subprs, f)
+    return
+end
+
+
 function fill_annotations_set!(ann_set, varconstr_annotations)
     for (varconstr_id, varconstr_annotation) in varconstr_annotations
         push!(ann_set, varconstr_annotation)
@@ -16,13 +36,13 @@ function inverse(varconstr_annotations)
     return varconstr_in_form
 end
 
-function reformulation!(m::Model, vars_annotations, constrs_annotations)
+function reformulate!(m::Model, method::SolutionMethod)
     println("Do reformulation.")
 
     # Create formulations & reformulations
     ann_set = Set{BD.Annotation}()
-    fill_annotations_set!(ann_set, vars_annotations)
-    fill_annotations_set!(ann_set, constrs_annotations)
+    fill_annotations_set!(ann_set, m.var_annotations)
+    fill_annotations_set!(ann_set, m.constr_annotations)
 
     # At the moment, BlockDecomposition supports only classic 
     # Dantzig-Wolfe decomposition.
@@ -30,7 +50,7 @@ function reformulation!(m::Model, vars_annotations, constrs_annotations)
     # decomposition-tree.
 
     # DRAFT : to be improved
-    reformulation = Reformulation()
+    reformulation = Reformulation(method)
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
     for annotation in ann_sorted_by_uid
@@ -46,8 +66,8 @@ function reformulation!(m::Model, vars_annotations, constrs_annotations)
     end
     # END_DRAFT
 
-    vars_in_form = inverse(vars_annotations)
-    constrs_in_form = inverse(constrs_annotations)
+    vars_in_form = inverse(m.var_annotations)
+    constrs_in_form = inverse(m.constr_annotations)
 
     @show vars_in_form
     @show constrs_in_form

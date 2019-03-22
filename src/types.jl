@@ -3,13 +3,23 @@ abstract type AbstractVarDuty end
 abstract type AbstractConstrDuty end
 
 abstract type AbstractFormulation end
-abstract type AbstractMathProgFormulation <: AbstractFormulation end
 
 abstract type AbstractModel end
 
 abstract type AbstractMoiDef end
 
-abstract type AbstractSolutionMethod end
-
 abstract type AbstractCounter end
 
+
+@enum VarSense Positive Negative Free
+@enum VarType Continuous Binary Integ
+@enum ConstrSense Greater Less Equal
+@enum ConstrType Core Facultative SubSytem PureMaster SubprobConvexity
+@enum Flag Static Dynamic Artifical
+@enum Status Active Unsuitable
+@enum ObjSense Min Max
+@enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
+
+const VarId = Int
+const ConstrId = Int
+const FormId = Int

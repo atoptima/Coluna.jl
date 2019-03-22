@@ -191,14 +191,14 @@ function create_origconstrs!(constrs::Vector{Constraint},
     return
 end
 
-function load_decomposition_annotations!(var_ann::Dict{Int, BD.Annotation},
-        constr_ann::Dict{Int, BD.Annotation}, src::MOI.ModelLike, 
-        moi_map::MOIU.IndexMap)
+function load_decomposition_annotations!(m::Model,
+                                         src::MOI.ModelLike, 
+                                         moi_map::MOIU.IndexMap)
     for (m_id, c_id) in moi_map.conmap
-        constr_ann[c_id.value] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
+        m.constr_annotations[c_id.value] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
     end
     for (m_id, c_id) in moi_map.varmap
-        var_ann[c_id.value] = MOI.get(src, BD.VariableDecomposition(), m_id)
+        m.var_annotations[c_id.value] = MOI.get(src, BD.VariableDecomposition(), m_id)
     end
     return
 end
@@ -236,11 +236,9 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     register_objective_sense!(orig_form, min_sense)
 
     # Retrieve annotations
-    var_ann = Dict{VarId, BD.Annotation}()
-    constr_ann = Dict{ConstrId, BD.Annotation}()
-    load_decomposition_annotations!(var_ann, constr_ann, src, mapping)
+    load_decomposition_annotations!(model, src, mapping)
 
-    reformulation!(model, var_ann, constr_ann)
+    reformulate!(model, DantzigWolfeDecomposition)
 
     return mapping
 end

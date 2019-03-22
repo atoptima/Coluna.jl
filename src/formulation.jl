@@ -84,6 +84,13 @@ mutable struct Formulation  <: AbstractFormulation
     obj_sense::ObjSense
 end
 
+mutable struct Reformulation <: AbstractFormulation
+    solution_method::SolutionMethod
+    parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
+    master::Union{Nothing, Formulation}
+    dw_pricing_subprs::Vector{AbstractFormulation} # vector of  MathProgFormulation or Reformulation
+end
+
 function Formulation(m::AbstractModel)
     return Formulation(m::AbstractModel, nothing)
 end
@@ -158,23 +165,3 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-mutable struct Reformulation <: AbstractFormulation
-    #solution_method::AbstractSolutionMethod
-    parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
-    master::Union{Nothing, Formulation}
-    dw_pricing_subprs::Vector{AbstractFormulation} # vector of  MathProgFormulation or Reformulation
-end
-
-function Reformulation()
-    return Reformulation(nothing, nothing, Vector{AbstractFormulation}())
-end
-
-function setmaster!(r::Reformulation, f)
-    r.master = f
-    return
-end
-
-function add_dw_pricing_sp!(r::Reformulation, f)
-    push!(r.dw_pricing_subprs, f)
-    return
-end
