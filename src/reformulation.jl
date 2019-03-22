@@ -36,10 +36,36 @@ function inverse(varconstr_annotations)
     return varconstr_in_form
 end
 
-function build_dw_master!(m::Model, annotation_id::Int,
+function build_dw_master!(model::Model,
+                          annotation_id::Int,
+                          reformulation::Reformulation,
                           formulation::Formulation,
                           vars_in_form::Vector{VarId},
                           constrs_in_form::Vector{ConstrId})
+
+
+    vars = Variable[]
+    lb = fill(-Inf, length(vars))
+    ub = fill(Inf, length(vars))
+    vtypes = fill(Continuous, length(vars))
+
+    constrs = Constraint[]
+    memberships = SparseVector[]
+    rhs = Float64[]
+    csenses = ConstrSense[]
+
+    
+    @assert !isempty(reformulation.dw_pricing_subprs)
+
+    # create convexity constraints
+    #for spform in reformulation.dw_pricing_subprs
+        #conv_constr = Constraint(model,
+    # clone master constraints and create associated artificial variables
+
+    # clone pure master constraints 
+
+    # clone pure master variables 
+
     
     return
 end
@@ -114,7 +140,7 @@ function reformulate!(m::Model, method::SolutionMethod)
     end
     f = formulations[master_annotation_id]
     setmaster!(reformulation, f)
-    build_dw_master!(m, master_annotation_id, f, vars, constrs)
+    build_dw_master!(m, master_annotation_id, reformulation, f, vars, constrs)
 
 
     # TODO : Register constraints and variables

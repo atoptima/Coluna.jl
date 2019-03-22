@@ -58,6 +58,7 @@ include("formulation.jl")
 #include("nodealgs/alggeneratechildrennodes.jl")
 include("model.jl")
 include("reformulation.jl")
+include("interfaceMoi.jl")
 
 ##### Wrapper functions
 include("MOIWrapper.jl")

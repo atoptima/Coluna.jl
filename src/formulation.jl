@@ -88,7 +88,7 @@ mutable struct Reformulation <: AbstractFormulation
     solution_method::SolutionMethod
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
-    dw_pricing_subprs::Vector{AbstractFormulation} # vector of  MathProgFormulation or Reformulation
+    dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
 end
 
 function Formulation(m::AbstractModel)

@@ -285,15 +285,6 @@ end
 ###############################################################
 ########## Functions that interact directly with MOI ##########
 ###############################################################
-function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                   var::Variable, is_relaxed::Bool)
-    var.moi_def.var_index = MOI.add_variable(optimizer)
-    update_cost_in_optimizer(optimizer, var)
-    !is_relaxed && enforce_type_in_optimizer(optimizer, var)
-    if (var.vc_type != 'B' || is_relaxed)
-        enforce_initial_bounds_in_optimizer(optimizer, var)
-    end
-end
 
 function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
                                    var::Variable)
@@ -321,20 +312,7 @@ function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
         MOI.ScalarConstantChange(constant))
 end
 
-function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, var::Variable)
-    MOI.modify(optimizer,
-               MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-               MOI.ScalarCoefficientChange{Float}(var.moi_def.var_index,
-                                                  var.cur_cost_rhs))
-end
 
-function enforce_initial_bounds_in_optimizer(
-    optimizer::MOI.AbstractOptimizer, var::Variable)
-    # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
-    var.moi_def.bounds_index = MOI.add_constraint(
-        optimizer, MOI.SingleVariable(var.moi_def.var_index),
-        MOI.Interval(var.cur_lb, var.cur_ub))
-end
 
 function enforce_current_bounds_in_optimizer(
     optimizer::MOI.AbstractOptimizer, var::Variable)
@@ -355,16 +333,6 @@ function enforce_current_bounds_in_optimizer(
     end
 end
 
-function enforce_type_in_optimizer(
-    optimizer::MOI.AbstractOptimizer, var::Variable)
-    if var.vc_type == 'B'
-        var.moi_def.type_index = MOI.add_constraint(
-            optimizer, MOI.SingleVariable(var.moi_def.var_index), MOI.ZeroOne())
-    elseif var.vc_type == 'I'
-        var.moi_def.type_index = MOI.add_constraint(
-            optimizer, MOI.SingleVariable(var.moi_def.var_index), MOI.Integer())
-    end
-end
 
 function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                  constr::Constraint)

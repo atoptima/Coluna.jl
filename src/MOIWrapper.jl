@@ -96,7 +96,8 @@ function create_origvars!(vars::Vector{Variable},
         else
             name = string("var_", var_moi_id.value)
         end
-        var = Variable(m, var_moi_id, name)
+        var = Variable(m, name)
+        var.index = var_moi_id
         push!(vars, var)
         var_coluna_id = MOI.VariableIndex(getuid(var))
         setindex!(moi_map, var_coluna_id, var_moi_id)
@@ -159,7 +160,8 @@ getrhs(s::MOI.LessThan) = float(s.upper)
 
 function create_origconstr!(constrs, memberships, rhs, csenses, moi_map, m, 
         name, f::MOI.ScalarAffineFunction, s, m_constr_id)
-    constr = Constraint(m, m_constr_id, name)
+    constr = Constraint(m, name)
+    constr.index = m_constr_id
     push!(constrs, constr)
     push!(rhs, getrhs(s))
     push!(csenses, getconstrsense(s))
