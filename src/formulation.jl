@@ -61,6 +61,12 @@ getvartype(f::Formulation, uid) = f.var_types[uid]
 getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
+activevar(f::Formulation) = activemask(f.var_status)
+staticvar(f::Formulation) = staticmask(f.var_status)
+artificalvar(f::Formulation) = artificialmask(f.var_status)
+activeconstr(f::Formulation) = activemask(f.constr_status)
+staticconstr(f::Formulation) = staticmask(f.constr_status)
+
 getvarmembership(f::Formulation, uid) = getvarmembership(f.memberships, uid)
 getconstrmembership(f::Formulation, uid) = getconstrmembership(f.memberships, uid)
 

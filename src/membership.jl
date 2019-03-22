@@ -6,15 +6,11 @@ mutable struct Filter
     artificial_mask::SparseVector{Bool,Int}
 end
 
-Filter() = Filter(spzeros(0), spzeros(0), spzeros(0), spzeros(0))
+Filter() = Filter(spzeros(MAX_SV_ENTRIES), spzeros(MAX_SV_ENTRIES), spzeros(MAX_SV_ENTRIES), spzeros(MAX_SV_ENTRIES))
 
-
-#function extact_terms
-    
-#    return
-#end
-
-    
+activemask(f::Filter) = f.used_mask .& f.active_mask
+staticmask(f::Filter) = f.used_mask .& f.static_mask
+artificalmask(f::Filter) = f.used_mask .& f.artificial_mask
 
 struct Memberships
     var_memberships::Dict{VarId, ConstrMembership}
@@ -22,14 +18,12 @@ struct Memberships
     constr_memberships::Dict{ConstrId, VarMembership}
 end
 
-
 function Memberships()
     var_m = Dict{VarId, ConstrMembership}()
     expression_m = Dict{VarId, VarMembership}()
     constr_m = Dict{ConstrId, ConstrMembership}()
     return Memberships(var_m, expression_m, constr_m)
 end
-
 
 hasvar(m::Memberships, uid) = haskey(m.var_memberships, uid)
 hasconstr(m::Memberships, uid) = haskey(m.constr_memberships, uid)
