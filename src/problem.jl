@@ -41,7 +41,6 @@ mutable struct SimpleConstrIndexManager <: AbstractConstrIndexManager
     active_dynamic_list::Vector{Constraint}
     unsuitable_dynamic_list::Vector{Constraint}
 end
-
 SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(),
         Vector{Constraint}(), Vector{Constraint}())
 
@@ -332,7 +331,6 @@ function enforce_current_bounds_in_optimizer(
             MOI.Interval(var.cur_lb, var.cur_ub))
     end
 end
-
 
 function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                  constr::Constraint)

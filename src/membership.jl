@@ -1,12 +1,37 @@
-# struct Membership{T <: AbstractVarConstr}
-#     member_coef_map::SparseVector{Float64, Int}
-# end
 
-# function Membership(::Type{T}) where {T <: AbstractVarConstr}
-#     return Membership{T}(spzeros(Float64, MAX_SV_ENTRIES))
-# end
+mutable struct Filter
+    used_mask::SparseVector{Bool,Int}
+    active_mask::SparseVector{Bool,Int}
+    static_mask::SparseVector{Bool,Int}
+    artificial_mask::SparseVector{Bool,Int}
+end
+
+Filter() = Filter(spzeros(0), spzeros(0), spzeros(0), spzeros(0))
 
 
+#function extact_terms
+    
+#    return
+#end
+
+    
+
+struct Memberships
+    var_memberships::Dict{VarId, ConstrMembership}
+    expression_memberships::Dict{VarId, VarMembership}
+    constr_memberships::Dict{ConstrId, VarMembership}
+end
+
+
+function Memberships()
+    var_m = Dict{VarId, ConstrMembership}()
+    expression_m = Dict{VarId, VarMembership}()
+    constr_m = Dict{ConstrId, ConstrMembership}()
+    return Memberships(var_m, expression_m, constr_m)
+end
+
+
+#==
 mutable struct Manager{T <: AbstractVarConstr}
     vc_list::SparseVector{Any, Int} #SparseVector{AbstractMoiDef, Int}
     active_mask::SparseVector{Bool,Int}
@@ -63,3 +88,4 @@ function remove_from_manager(m::Manager{T}, elem::T) where {T <: AbstractVarCons
     return
 end
 
+==#

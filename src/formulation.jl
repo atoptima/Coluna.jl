@@ -13,16 +13,6 @@ end
 struct DantzigWolfeSubproblem <: AbstractFormulation
 end
 
-struct Memberships
-    var_memberships::Dict{VarId, SparseVector{Float64, ConstrId}}
-    constr_memberships::Dict{ConstrId, SparseVector{Float64, VarId}}
-end
-
-function Memberships()
-    var_m = Dict{VarId, SparseVector{Float64, ConstrId}}()
-    constr_m = Dict{ConstrId, SparseVector{Float64, VarId}}()
-    return Memberships(var_m, constr_m)
-end
 
 function add_variable!(m::Memberships, var::Variable)
     var_uid = getuid(var)
@@ -73,6 +63,8 @@ mutable struct Formulation  <: AbstractFormulation
     #constr_manager::Manager{Constraint}
     # Min \{ cx | Ax <= b, Ex = f, l <= x <= u \}
     memberships::Memberships
+    var_status::Filter
+    constr_status::Filter
     costs::SparseVector{Float64, Int}
     lower_bounds::SparseVector{Float64, Int}
     upper_bounds::SparseVector{Float64, Int}
@@ -105,7 +97,7 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     rhs = spzeros(Float64, MAX_SV_ENTRIES)
     vtypes = Dict{VarId, VarType}()
     csenses = Dict{ConstrId, ConstrSense}()
-    return Formulation(uid, moi, nothing, Memberships(), costs, lb, ub, rhs, 
+    return Formulation(uid, moi, nothing, Memberships(), Filter(), Filter(), costs, lb, ub, rhs, 
         nothing, vtypes, csenses, Min)
 end
 

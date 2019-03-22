@@ -57,3 +57,25 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
         enforce_initial_bounds_in_optimizer(optimizer, var, lb, ub)
     end
 end
+
+#==
+function compute_constr_terms(membership::VarMembership)
+    active = true
+    return [
+        MOI.ScalarAffineTerm{Float64}(var_val, var_index)
+        for (var_val, var_index) in extract_terms(membership,active)
+    ]
+end
+
+
+function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                 constr::Constraint,
+                                 var_membership::VarMembership,
+                                 rhs::Float64)
+    terms = compute_constr_terms(var_membership)
+    f = MOI.ScalarAffineFunction(terms, 0.0)
+    constr.index = MOI.add_constraint(
+        optimizer, f, constr.set_type(rhs)
+    )
+end
+==#
