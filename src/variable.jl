@@ -31,6 +31,7 @@ getub(v::Variable) = v.upper_bound
 gettype(v::Variable) = v.vc_type
 getduty(v::Variable) = v.duty
 getsense(v::Variable) = v.sense
+getflag(v::Variable) = v.flag
 
 setcost!(v::Variable, c::Float64) = v.cost += c
 setlowerbound!(v::Variable, lb::Float64) = v.lower_bound = lb

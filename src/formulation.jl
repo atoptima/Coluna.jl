@@ -24,30 +24,16 @@ mutable struct Formulation  <: AbstractFormulation
     constr_status::Filter
     var_duty_sets::Dict{VarDuty, Vector{VarId}}
     constr_duty_sets::Dict{ConstrDuty, Vector{ConstrId}}
-    #costs::SparseVector{Float64, Int}
-    #lower_bounds::SparseVector{Float64, Int}
-    #upper_bounds::SparseVector{Float64, Int}
-    #rhs::SparseVector{Float64, Int}
     callbacks
-    # Data used for displaying (not computing) :
-    #var_types::Dict{VarId, VarType}
-    #constr_senses::Dict{ConstrId, ConstrSense}
     obj_sense::ObjSense
 end
 
-#getvarcost(f::Formulation, uid) = f.costs[uid]
-#getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
-#getvarub(f::Formulation, uid) = f.upper_bounds[uid]
-#getvartype(f::Formulation, uid) = f.var_types[uid]
-
-#getconstrrhs(f::Formulation, uid) = f.rhs[uid]
-#getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
 activevar(f::Formulation) = activemask(f.var_status)
 staticvar(f::Formulation) = staticmask(f.var_status)
 artificalvar(f::Formulation) = artificialmask(f.var_status)
 activeconstr(f::Formulation) = activemask(f.constr_status)
-staticconstr(f::Formulation) = staticmask(f.constr_status)
+staticconstr(f::Formulation) = staticmask(f.constr_status)x
 
 function getvar_uids(f::Formulation,d::VarDuty)
     if haskey(f.var_duty_sets, d)
@@ -92,7 +78,8 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
                        nothing, Min)
 end
 
-function add_variable!(f::Formulation, var::Variable)
+function add_variable!(f::Formulation, var::Variable, membership::SparseVector)
+            
     var_uid = getuid(var)
     var_duty = getduty(var)
     if haskey(f.var_duty_sets, var_duty)   
@@ -106,10 +93,17 @@ function add_variable!(f::Formulation, var::Variable)
     #f.lower_bounds[var_uid] = getlb(var)
     #f.upper_bounds[var_uid] = getub(var)
     #f.var_types[var_uid] = gettype(var)
-    add_variable!(f.memberships, var_uid)
+    add_variable!(f.memberships, var_uid, membership)
     # TODO : Register in filter
     return
 end
+
+
+function add_variable!(f::Formulation, var::Variable)
+    membership = spzeros(Float64, MAX_SV_ENTRIES)
+    return add_variable!(f, var, membership)
+end
+
 
 function add_variables!(f::Formulation, vars::Vector{Variable})
     for var in vars
@@ -121,12 +115,13 @@ end
 function copy_variable(form::Formulation, var::Variable, duty::VarDuty)
     var_clone = Variable(getuid(var), getname(var), getcost(var), getlb(var), getub(var),
                          gettype(var), getflag(var), duty, getsense(var), MOI.VariableIndex(-1), nothing, nothing)
-    add_variable(form, var_clone)
+    add_variable!(form, var_clone)
     return
 end
 
-function add_constraint!(f::Formulation, constr::Constraint, 
-        membership::SparseVector)
+function add_constraint!(f::Formulation, constr::Constraint, membership::SparseVector)
+    #; 
+    #membership::SparseVector = spzeros(Float64, MAX_SV_ENTRIES))
     constr_uid = getuid(constr)
     constr_duty = getduty(constr)
     if haskey(f.constr_duty_sets, constr_duty)   
@@ -152,8 +147,8 @@ function copy_constraint(form::Formulation, constr::Constraint, duty::ConstrDuty
 end
 
 function add_constraints!(f::Formulation,
-                               constrs::Vector{Constraint},
-                               memberships::Vector{SparseVector})
+                          constrs::Vector{Constraint},
+                          memberships::Vector{SparseVector})
     @assert length(constrs) == length(memberships)
     # register in manager
     for i in 1:length(constrs)

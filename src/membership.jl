@@ -86,6 +86,7 @@ function add_constraint!(m::Memberships, constr_uid::ConstrId)
     return
 end
 
+
 function add_constraint!(m::Memberships, constr_uid::ConstrId, membership::SparseVector) 
     hasconstr(m, constr_uid) && error("Constraint with uid $constr_uid already registered.")
     m.constr_memberships[constr_uid] = membership

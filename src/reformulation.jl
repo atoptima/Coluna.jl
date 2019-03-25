@@ -46,7 +46,6 @@ function build_dw_master!(model::Model,
 
     orig_form = get_original_formulation(model)
 
-    membership = spzeros(Float64, MAX_SV_ENTRIES)
     
     # create convexity constraints
     
@@ -60,26 +59,32 @@ function build_dw_master!(model::Model,
         flag = Static
         duty = MastConvexityConstr
         conv_constr = Constraint(model,name,rhs, sense,vc_type,flag,duty)
+        membership = spzeros(Float64, MAX_SV_ENTRIES)
         add_constraint!(master_form, conv_constr, membership)
 
         # create representative of sp setup var
         var_uids = getvar_uids(sp_form, PricingSpSetupVar)
         #@assert length(var_uids) == 1
-        for var in sp_form.vars
+        for (var_uid, var)  in sp_form.vars
             if getduty(var) != PricingSpPureVar
-                copy_variable(master_form, var)
+                copy_variable(master_form, var, MastRepPricingSpVar)
                 if getduty(var) == PricingSpSetupVar
                     membership = spzeros(Float64, MAX_SV_ENTRIES)
                     membership[getuid(conv_constr)] = 1
-                    addvarmembership!(master_form.memberships, getuid(var), membership)
+                    addvarmembership!(master_form.memberships, var_uid, membership)
                 end
-            end
-            
+            end           
         end
         
         
     end
-    
+
+
+       #copy_variables
+    for var_id in vars_in_form
+        var = copy_variable(master_form, orig_form.vars[var_id], PureMastVar)
+     end
+ 
     # for  master constraints, create associated artificial variables
     # new_vars = Variable[]
     # lb = fill(-Inf, length(vars))
@@ -101,13 +106,31 @@ function build_dw_master!(model::Model,
     return
 end
 
-function build_dw_pricing_sp!(m::Model, annotation_id::Int,
-                              formulation::Formulation,
+function build_dw_pricing_sp!(m::Model,
+                              annotation_id::Int,
+                              sp_form::Formulation,
                               vars_in_form::Vector{VarId},
                               constrs_in_form::Vector{ConstrId})
+    
     orig_form = get_original_formulation(m)
-    #copy_variables!(formulation, orig_form, vars_in_form)
-    #copy_constraints!(formulation, orig_form, constrs_in_form)
+
+    name = "PricingSetupVar_sp_$(sp_form.uid)"
+    cost = 1.0
+    lb = 1.0
+    ub = 1.0
+    vc_type = Binary
+    flag = Static
+    duty = PricingSpSetupVar
+    sense = Positive
+    setup_var = Variable(m, name, cost, lb, ub, vc_type, flag, duty, sense)
+    add_variable!(sp_form, setup_var)
+
+    #copy_variables
+    for var_id in vars_in_form
+        var = copy_variable(sp_form, orig_form.vars[var_id], PricingSpVar)
+    end
+ 
+    #copy_constraints
     return
 end
 
