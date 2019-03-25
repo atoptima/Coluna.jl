@@ -65,9 +65,16 @@ function build_dw_master!(model::Model,
         # create representative of sp setup var
         var_uids = getvar_uids(sp_form, PricingSpSetupVar)
         #@assert length(var_uids) == 1
-        for id in var_uids
-            sp_setup_var = sp_form.vars[id]
-            copy_variable(master_form, sp_setup_var)
+        for var in sp_form.vars
+            if getduty(var) != PricingSpPureVar
+                copy_variable(master_form, var)
+                if getduty(var) == PricingSpSetupVar
+                    membership = spzeros(Float64, MAX_SV_ENTRIES)
+                    membership[getuid(conv_constr)] = 1
+                    addvarmembership!(master_form.memberships, getuid(var), membership)
+                end
+            end
+            
         end
         
         

@@ -50,12 +50,28 @@ function add_variable!(m::Memberships, var_uid::VarId)
     return
 end
 
+function addvarmembership!(m::Memberships, var_uid, new_membership::ConstrMembership)
+    existing_membership = getvarmembership(m, var_uid)
+    constr_uids, vals = findnz(new_membership)
+    for j in 1:length(constr_uids)
+        m.var_memberships[var_uid][constr_uids[j]] = vals[j]
+        if hasconstr(m, constr_uids[j]) 
+            m.constr_memberships[constr_uids[j]][var_uid] = vals[j]
+        else
+            @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
+        end
+    end
+    return
+end
+
+
+
 function add_variable!(m::Memberships, var_uid::VarId, membership::SparseVector)
     hasvar(m, var_uid) && error("Variable with uid $var_uid already registered.")
     m.var_memberships[var_uid] = membership
     constr_uids, vals = findnz(membership)
     for j in 1:length(constr_uids)
-        if hasvar(m, constr_uids[j]) 
+        if hasconstr(m, constr_uids[j]) 
             m.constr_memberships[constr_uids[j]][var_uid] = vals[j]
         else
             @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
