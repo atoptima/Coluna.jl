@@ -44,12 +44,12 @@ function build_dw_master!(model::Model,
                           constrs_in_form::Vector{ConstrId})
 
 
-       orig_form = get_original_formulation(model)
+ #==   orig_form = get_original_formulation(model)
 
- 
+    
 
     membership = SparseVector()
- 
+    
     # create convexity constraints
     
     @assert !isempty(reformulation.dw_pricing_subprs)
@@ -64,7 +64,7 @@ function build_dw_master!(model::Model,
         conv_constr = Constraint(model,name,sense,vc_type,flag,duty)
         register_constraint!(formulation, conv_constr, rhs, membership)
         # create representative of sp setup var
-        setup_var_uid = 1
+        #setup_var_uid = 
         
         #var = getvar(spform 
         
@@ -85,17 +85,17 @@ function build_dw_master!(model::Model,
 
     # clone pure & mixed  master constraints 
     copy_constraints!(formulation, orig_form, constrs_in_form)
-
+==#
     
-  
+    
     
     return
 end
 
 function build_dw_pricing_sp!(m::Model, annotation_id::Int,
-                           formulation::Formulation,
-                           vars_in_form::Vector{VarId},
-                           constrs_in_form::Vector{ConstrId})
+                              formulation::Formulation,
+                              vars_in_form::Vector{VarId},
+                              constrs_in_form::Vector{ConstrId})
     orig_form = get_original_formulation(m)
     copy_variables!(formulation, orig_form, vars_in_form)
     copy_constraints!(formulation, orig_form, constrs_in_form)
