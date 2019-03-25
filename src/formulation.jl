@@ -1,64 +1,23 @@
-struct LazySeparationSubproblem <: AbstractFormulation
-end
+# struct LazySeparationSubproblem <: AbstractFormulation
+# end
 
-struct UserSeparationSubproblem <: AbstractFormulation
-end
+# struct UserSeparationSubproblem <: AbstractFormulation
+# end
 
-struct BlockGenSubproblem <: AbstractFormulation
-end
+# struct BlockGenSubproblem <: AbstractFormulation
+# end
 
-struct BendersSubproblem <: AbstractFormulation
-end
+# struct BendersSubproblem <: AbstractFormulation
+# end
 
-struct DantzigWolfeSubproblem <: AbstractFormulation
-end
-
-
-
-function add_variable!(m::Memberships,  var_uid::VarId)
-    m.var_memberships[var_uid] = spzeros(Float64, MAX_SV_ENTRIES)
-
-    return
-end
-
-function add_variable!(m::Memberships,
-                         var_uid::VarId, 
-                         membership::SparseVector) 
-    m.var_memberships[var_uid] = membership
-    constr_uids, vals = findnz(membership)
-    for j in 1:length(constr_uids)
-        if hasvar(m, constr_uids[j]) #&& error("Constr $(constr_uids[j]) not registered in Memberships.")
-            m.constr_memberships[constr_uids[j]][var_uid] = vals[j]
-        end
-    end
-    return
-end
-
-
-function add_constraint!(m::Memberships,  constr_uid::ConstrId)
-    m.constr_memberships[constr_uid] = spzeros(Float64, MAX_SV_ENTRIES)
-    return
-end
-
-function add_constraint!(m::Memberships,
-                         constr_uid::ConstrId, 
-                         membership::SparseVector) 
-    m.constr_memberships[constr_uid] = membership
-    var_uids, vals = findnz(membership)
-    for j in 1:length(var_uids)
-        if hasvar(m, var_uids[j]) #&& error("Variable $(var_uids[j]) not registered in Memberships.")
-            m.var_memberships[var_uids[j]][constr_uid] = vals[j]
-        end
-        
-    end
-    return
-end
+# struct DantzigWolfeSubproblem <: AbstractFormulation
+# end
 
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
-    vars::Dict{VarId, Variable}
+    vars::Dict{VarId, Variable} # varRep
     constrs::Dict{ConstrId, Constraint}
     memberships::Memberships
     var_status::Filter
@@ -93,18 +52,13 @@ staticconstr(f::Formulation) = staticmask(f.constr_status)
 getvar_uids(f::Formulation,d::VarDuty) = f.var_duty_sets[d]
 getconstr_uids(f::Formulation,d::VarDuty) = f.constr_duty_sets[d]
 
-getvar(f::Formulation,uid::VarId) = f.var_duty_sets[d]
+#getvar(f::Formulation, uid::VarId) = f.var_duty_sets[d]
 
+getvar(f::Formulation, uid) = f.vars[uid]
+getconstr(f::Formulation, uid) = f.constrs[uid]
         
 getvarmembership(f::Formulation, uid) = getvarmembership(f.memberships, uid)
 getconstrmembership(f::Formulation, uid) = getconstrmembership(f.memberships, uid)
-
-mutable struct Reformulation <: AbstractFormulation
-    solution_method::SolutionMethod
-    parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
-    master::Union{Nothing, Formulation}
-    dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
-end
 
 function Formulation(m::AbstractModel)
     return Formulation(m::AbstractModel, nothing)
@@ -112,8 +66,6 @@ end
 
 function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     uid = getnewuid(m.form_counter)
-    #v_man = Manager(Variable)
-    #c_man = Manager(Constraint)
     costs = spzeros(Float64, MAX_SV_ENTRIES)
     lb = spzeros(Float64, MAX_SV_ENTRIES)
     ub = spzeros(Float64, MAX_SV_ENTRIES)
@@ -127,92 +79,57 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
                        nothing, vtypes, csenses, Min)
 end
 
-function register_variable!(f::Formulation,  # register var in for Math Prog MOI formulation
-                            var_uid::VarId, 
-                            cost::Float64,
-                            lb::Float64, 
-                            ub::Float64, 
-                            vtype::VarType)
+function add_variable!(f::Formulation, var::Variable)
+    var_uid = getuid(var)
+    var_duty = getduty(var)
+    if haskey(f.var_duty_sets, var_duty)   
+        var_duty_set = f.var_duty_sets[var_duty]
+    else
+        var_duty_set = f.var_duty_sets[var_duty] = Vector{VarId}()
+    end
+    push!(var_duty_set, var_uid)
+    f.vars[var_uid] = var
+    f.costs[var_uid] = getcost(var)
+    f.lower_bounds[var_uid] = getlb(var)
+    f.upper_bounds[var_uid] = getub(var)
+    f.var_types[var_uid] = gettype(var)
     add_variable!(f.memberships, var_uid)
-    f.costs[var_uid] = cost
-    f.lower_bounds[var_uid] = lb
-    f.upper_bounds[var_uid] = ub
-    f.var_types[var_uid] = vtype
-    # TODO : Register in manager
+    # TODO : Register in filter
     return
 end
 
-function register_variable!(f::Formulation, # add var in formulation
-                            var::Variable, 
-                            cost::Float64,
-                            lb::Float64, 
-                            ub::Float64)
-    
-    if haskey(f.var_duty_sets, var.duty)   
-        var_duty_set = f.var_duty_sets[var.duty]
+function add_variables!(f::Formulation, vars::Vector{Variable})
+    for var in vars
+        add_variable!(f, var)
+    end
+    return
+end
+
+function add_constraint!(f::Formulation, constr::Constraint, 
+        membership::SparseVector)
+    constr_uid = getuid(constr)
+    constr_duty = getduty(constr)
+    if haskey(f.constr_duty_sets, constr_duty)   
+        constr_duty_set = f.constr_duty_sets[constr_duty]
     else
-        var_duty_set = f.var_duty_sets[var.duty] = Vector{VarId}()
+        constr_duty_set = f.constr_duty_sets[constr_duty] = Vector{ConstrId}()
     end
-    push!(var_duty_set, var.uid)
-
-    f.vars[var.uid] = var
-    
-    register_variable!(f, var.uid, cost, lb, ub, var.vc_type)
-    return
-end
-
-function register_variables!(f::Formulation,
-                             vars::Vector{Variable}, 
-                             costs::Vector{Float64},
-                             lb::Vector{Float64},
-                             ub::Vector{Float64})
-    @assert length(vars) == length(costs) == length(ub) == length(lb) 
-    for i in 1:length(vars)
-        register_variable!(f, vars[i], costs[i], lb[i], ub[i])
-    end
-    return
-end
-
-function register_constraint!(f::Formulation,
-                              constr_uid::ConstrId,
-                              csense::ConstrSense,
-                              rhs::Float64,
-                              membership::SparseVector)
-    f.rhs[constr_uid] = rhs
-    f.constr_senses[constr_uid] = csense
-    # TODO : register in manager
+    push!(constr_duty_set , constr_uid)
+    f.constrs[constr_uid] = constr
+    f.rhs[constr_uid] = getrhs(constr)
+    f.constr_senses[constr_uid] = getsense(constr)
     add_constraint!(f.memberships, constr_uid, membership)
-    return
-end 
-
-function register_constraint!(f::Formulation, # add constrtain in  formulation
-                              constr::Constraint,
-                              csense::ConstrSense,
-                              rhs::Float64,
-                              membership::SparseVector)
-    
-    if haskey(f.constr_duty_sets, constr.duty)   
-        constr_duty_set = f.constr_duty_sets[constr.duty]
-    else
-        constr_duty_set = f.constr_duty_sets[constr.duty] = Vector{ConstrId}()
-    end
-    push!(constr_duty_set , constr.uid)
-
-    f.constrs[constr.uid] = constr
-
-    register_constraint!(f, constr.uid, constr.sense, rhs, membership)
+    # TODO : Register in filter
     return
 end
 
-function register_constraints!(f::Formulation,
+function add_constraints!(f::Formulation,
                                constrs::Vector{Constraint},
-                               csenses::Vector{ConstrSense},
-                               rhs::Vector{Float64},
                                memberships::Vector{SparseVector})
-    @assert length(constrs) == length(memberships) == length(rhs)
+    @assert length(constrs) == length(memberships)
     # register in manager
     for i in 1:length(constrs)
-        register_constraint!(f, constrs[i], csenses[i], rhs[i], memberships[i])
+        add_constraint!(f, constrs[i], memberships[i])
     end
     return
 end
@@ -232,8 +149,7 @@ function copy_variable!(dest::Formulation, src::Formulation, uid;
         if copy_membership
             error("TODO")
         else
-            register_variable!(dest, uid, getvarcost(src, uid), 
-                getvarlb(src, uid), getvarub(src, uid), getvartype(src, uid))
+            add_variable!(dest, getvar(f, uid))
         end
      return
 end
@@ -249,7 +165,7 @@ end
 function copy_constraint!(dest::Formulation, src::Formulation, uid;
                           copy_membership = true)
     if copy_membership
-        register_constraint!(dest, uid, getconstrsense(src, uid), 
+        add_contraint!(dest, uid, getconstrsense(src, uid), 
                              getconstrrhs(src, uid), copy(getconstrmembership(src, uid)))
     else
         error("TODO")
@@ -261,4 +177,11 @@ function copy_constraints!(dest::Formulation, src::Formulation, uids;
     for uid in uids
         copy_constraint(dest, src, uid, copy_membership)
     end
+end
+
+mutable struct Reformulation <: AbstractFormulation
+    solution_method::SolutionMethod
+    parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
+    master::Union{Nothing, Formulation}
+    dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
 end

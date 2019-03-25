@@ -1,48 +1,53 @@
 mutable struct Constraint <: AbstractVarConstr
     uid    ::ConstrId
     name   ::String
-    sense  ::ConstrSense # Greater Less Equal
-    vc_type::ConstrType  # Core Facultative SubSytem PureMaster SubprobConvexity
-    flag   ::Flag        # Static Dynamic Artifical
-    duty   ::ConstrDuty
-    index  ::Union{MOI.ConstraintIndex, Nothing}
+    rhs    ::Float64  # rep
+    sense  ::ConstrSense # rep # Greater Less Equal
+    vc_type::ConstrType   # rep# Core Facultative SubSytem PureMaster SubprobConvexity
+    flag::Flag    # rep  # Static, Dynamic, Artifical, Implicit
+    duty   ::ConstrDuty # rep
+    index  ::Union{MOI.ConstraintIndex, Nothing} # rep
 end
 
-function Constraint(m::AbstractModel, n::String, 
-        s::ConstrSense, t::ConstrType, f::Flag, d::ConstrDuty)
+function Constraint(m::AbstractModel, n::String, rhs::Float64, s::ConstrSense, 
+        t::ConstrType, flag::Flag, d::ConstrDuty)
     uid = getnewuid(m.constr_counter)
-    return Constraint(uid, n, s, t, f, d, nothing)
+    return Constraint(uid, n, rhs, s, t, flag, d, nothing)
 end
 
 function Constraint(m::AbstractModel, n::String)
-    return Constraint(m, n, Greater, Core, Static, OriginalConstr)
+    return Constraint(m, n, 0.0, Greater, Core, OriginalConstr)
 end
 
-
 getuid(c::Constraint) = c.uid
+getrhs(c::Constraint) = c.rhs
+getsense(c::Constraint) = c.sense
+gettype(c::Constraint) = c.vc_type
+getduty(c::Constraint) = c.duty
+
 setsense!(c::Constraint, s::ConstrSense) = c.sense = s
 settype!(c::Constraint, t::ConstrType) = c.vc_type = t
 setflag!(c::Constraint, f::Flag) = c.flag = f
-#setrhs!(c::Constraint, r::Float64) = c.rhs = r
+setrhs!(c::Constraint, r::Float64) = c.rhs = r
 
 function set!(c::Constraint, s::MOI.GreaterThan)
- #   rhs = float(s.lower)
+    rhs = float(s.lower)
     setsense!(c, Greater)
- #   setrhs!(c, rhs)
+    setrhs!(c, rhs)
     return
 end
 
 function set!(c::Constraint, s::MOI.EqualTo)
- #   rhs = float(s.value)
+    rhs = float(s.value)
     setsense!(c, Equal)
- #   setrhs!(c, rhs)
+    setrhs!(c, rhs)
     return
 end
 
 function set!(c::Constraint, s::MOI.LessThan)
- #   rhs = float(s.upper)
+    rhs = float(s.upper)
     setsense!(c, Less)
- #   setrhs!(c, rhs)
+    setrhs!(c, rhs)
     return
 end
 

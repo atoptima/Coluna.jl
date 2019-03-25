@@ -72,141 +72,108 @@ function MOI.supports(optimizer::Optimizer,
     return true
 end
 
-function load_obj!(costs::Vector{Float64},
-                   vars::Vector{Variable}, 
-                   moi_map::MOIU.IndexMap,
-                   f::MOI.ScalarAffineFunction)
-    # We need to increment values of cost with += to handle cases like $x_1 + x_2 + x_1$
-    # This is safe because the variables are initialized with a 0.0 cost
+function load_obj!(vars::Vector{Variable}, m::Model,
+        f::MOI.ScalarAffineFunction)
+    # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
+    # This is safe becasue the variables are initialized with a 0.0 cost_rhs
     for term in f.terms
-        c_var_id = moi_map[term.variable_index].value
-        costs[c_var_id] += term.coefficient
+        coluna_var_id = m.mid2cid_map[term.variable_index].value
+        setcost!(vars[coluna_var_id], term.coefficient)
     end
     return
 end
 
-function create_origvars!(vars::Vector{Variable},
-                          m::Model, 
-                          moi_map::MOIU.IndexMap,
-                          src::MOI.ModelLike,
-                          copy_names::Bool)
-    for var_moi_id in MOI.get(src, MOI.ListOfVariableIndices())
+function create_origvars!(vars::Vector{Variable}, m::Model, src::MOI.ModelLike, 
+        copy_names::Bool)
+    for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
-            name = MOI.get(src, MOI.VariableName(), var_moi_id)
+            name = MOI.get(src, MOI.VariableName(), m_var_id)
         else
-            name = string("var_", var_moi_id.value)
+            name = string("var_", m_var_id.value)
         end
         var = Variable(m, name)
-        var.index = var_moi_id
-        # TODO get MOI Type
-        var.vc_type = Continuous
         push!(vars, var)
-        var_coluna_id = MOI.VariableIndex(getuid(var))
-        setindex!(moi_map, var_coluna_id, var_moi_id)
+        c_var_id = MOI.VariableIndex(getuid(var))
+        m.mid2cid_map[m_var_id] = c_var_id
     end
     return
 end
 
-function update_var_bounds_types!(lb, ub, vtypes, c_var_id, ::MOI.ZeroOne)
-    vtypes[c_var_id] = Binary
-    (lb[c_var_id] < 0) && (lb[c_var_id] = 0)
-    (ub[c_var_id] > 1) && (ub[c_var_id] = 1)
+function create_origconstr!(constrs, memberships, vars, 
+        model, name, f::MOI.SingleVariable, s, m_constr_id)
+    c_var_id = model.mid2cid_map[f.variable].value
+    set!(vars[c_var_id], s)
     return
 end
 
-function update_var_bounds_types!(lb, ub, vtypes, c_var_id, ::MOI.Integer)
-    vtypes[c_var_id] = Integ
-    return
-end
-
-function update_var_bounds_types!(lb, ub, vtypes, c_var_id, s::MOI.GreaterThan)
-    l = float(s.lower)
-    (lb[c_var_id] < l) && (lb[c_var_id] = l)
-    return
-end
-
-function update_var_bounds_types!(lb, ub, vtypes, c_var_id, s::MOI.EqualTo)
-    val = float(s.value)
-    ub[c_var_id] = val
-    lb[c_var_id] = val
-    return
-end
-
-function update_var_bounds_types!(lb, ub, vtypes, c_var_id, s::MOI.LessThan)
-    u = float(s.upper)
-    (ub[c_var_id] > u) && (ub[c_var_id] = u)
-    return
-end
-
-function retrieve_vars_bounds_types!(lb::Vector{Float64}, ub::Vector{Float64}, 
-        vtype::Vector{VarType}, vars, moi_map, src)
-    for (F, S) in MOI.get(src, MOI.ListOfConstraints())
-        if F isa MOI.SingleVariable
-            for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
-                f = MOI.get(src, MOI.ConstraintFunction(), m_constr_id)
-                s = MOI.get(src, MOI.ConstraintSet(), m_constr_id)
-                c_var_id = moi_map[f.variable].value
-                update_var_bounds_types!(lb, ub, vtype, c_var_id, s)
-            end
-        end
-    end
-    return
-end
-
-getconstrsense(::MOI.GreaterThan) = Greater
-getconstrsense(::MOI.EqualTo) = Equal
-getconstrsense(::MOI.LessThan) = Less
-getrhs(s::MOI.EqualTo) = float(s.value)
-getrhs(s::MOI.GreaterThan) = float(s.lower)
-getrhs(s::MOI.LessThan) = float(s.upper)
-
-function create_origconstr!(constrs, memberships, rhs, csenses, moi_map, m, 
-        name, f::MOI.ScalarAffineFunction, s, m_constr_id)
-    constr = Constraint(m, name)
-    constr.index = m_constr_id
+function create_origconstr!(constrs, memberships, vars, 
+        model, name, f::MOI.ScalarAffineFunction, s, m_constr_id)
+    constr = Constraint(model, name)
+    set!(constr, s)
     push!(constrs, constr)
-    push!(rhs, getrhs(s))
-    push!(csenses, getconstrsense(s))
     membership = spzeros(Float64, MAX_SV_ENTRIES)
     for term in f.terms
-        c_var_id = moi_map[term.variable_index].value
-        membership[c_var_id] = term.coefficient
+        c_var_id = model.mid2cid_map[term.variable_index].value
+        membership[c_var_id] += term.coefficient
     end
     push!(memberships, membership)
     c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))
-    moi_map[m_constr_id] = c_constr_id
+    model.mid2cid_map[m_constr_id] = c_constr_id
     return
 end
 
 function create_origconstrs!(constrs::Vector{Constraint}, 
-        memberships::Vector{SparseVector}, rhs::Vector{Float64}, 
-        csenses::Vector{ConstrSense}, m::Model, moi_map::MOIU.IndexMap, 
-        src::MOI.ModelLike, copy_names::Bool)
+        memberships::Vector{SparseVector}, m::Model, src::MOI.ModelLike, 
+        vars::Vector{Variable}, copy_names::Bool)
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
-        if !isa(F, Type{MOI.SingleVariable})
-            for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
-                if copy_names
-                    name = MOI.get(src, MOI.ConstraintName(), m_constr_id)
-                else
-                    name = string("constr_", m_constr_id.value)
-                end
-                f = MOI.get(src, MOI.ConstraintFunction(), m_constr_id)
-                s = MOI.get(src, MOI.ConstraintSet(), m_constr_id)
-                create_origconstr!(constrs, memberships, rhs, csenses, moi_map, 
-                    m, name, f, s, m_constr_id)
+        for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+            if copy_names
+                name = MOI.get(src, MOI.ConstraintName(), m_constr_id)
+            else
+                name = string("constr_", m_constr_id.value)
             end
+            f = MOI.get(src, MOI.ConstraintFunction(), m_constr_id)
+            s = MOI.get(src, MOI.ConstraintSet(), m_constr_id)
+            create_origconstr!(constrs, memberships, vars, m, name, f, s, m_constr_id)
         end
     end
     return
 end
 
-function load_decomposition_annotations!(m::Model,
-                                         src::MOI.ModelLike, 
-                                         moi_map::MOIU.IndexMap)
-    for (m_id, c_id) in moi_map.conmap
+function create_original_formulation!(model, vars, constrs, memberships, 
+        min_sense::Bool)
+    orig_form = get_original_formulation(model)
+    add_variables!(orig_form, vars)
+    add_contraints!(orig_form, constrs, memberships)
+    register_objective_sense!(orig_form, min_sense)
+    return
+end
+
+function register_original_formulation!(model::Model, dest::Optimizer, src::MOI.ModelLike, copy_names)
+    orig_form = Formulation(model, src)
+    set_original_formulation!(model, orig_form)
+
+    vars = Variable[]
+    create_origvars!(vars, model, src, copy_names)
+
+    constrs = Constraint[]
+    memberships = SparseVector[]
+    create_origconstrs!(constrs, memberships, model, src, vars, copy_names)
+
+    obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    load_obj!(vars, model, obj)
+
+    sense = MOI.get(src, MOI.ObjectiveSense())
+    min_sense = (sense == MOI.MIN_SENSE)
+    create_original_formulation!(model, vars, constrs, memberships, min_sense)
+    return
+end
+
+function load_decomposition_annotations!(m::Model, src::MOI.ModelLike)
+    for (m_id, c_id) in m.mid2cid_map.conmap
         m.constr_annotations[c_id.value] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
     end
-    for (m_id, c_id) in moi_map.varmap
+    for (m_id, c_id) in m.mid2cid_map.varmap
         m.var_annotations[c_id.value] = MOI.get(src, BD.VariableDecomposition(), m_id)
     end
     return
@@ -214,42 +181,14 @@ end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     model = Model()
-    mapping = model.moi2uid_map = MOIU.IndexMap() # map from moi idx to coluna idx
-    orig_form = Formulation(model, src)
-    set_original_formulation!(model, orig_form)
-
-    # Retrieve variables
-    vars = Variable[]
-    create_origvars!(vars, model, mapping, src, copy_names)
-    lb = fill(-Inf, length(vars))
-    ub = fill(Inf, length(vars))
-    vtypes = fill(Continuous, length(vars))
-    retrieve_vars_bounds_types!(lb, ub, vtypes, vars, mapping, src)
-
-    costs = zeros(Float64, length(vars))
-    obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
-    load_obj!(costs, vars, mapping, obj)
-
-    register_variables!(orig_form, vars, costs, lb, ub)
-
-    # Retrieve constraints
-    constrs = Constraint[]
-    memberships = SparseVector[]
-    rhs = Float64[]
-    csenses = ConstrSense[]
-    create_origconstrs!(constrs, memberships, rhs, csenses, model, mapping, src, copy_names)
-    register_constraints!(orig_form, constrs, csenses, rhs, memberships)
-
-    sense = MOI.get(src, MOI.ObjectiveSense())
-    min_sense = (sense == MOI.MIN_SENSE)
-    register_objective_sense!(orig_form, min_sense)
+    register_original_formulation!(model, dest, src, copy_names)
 
     # Retrieve annotations
-    load_decomposition_annotations!(model, src, mapping)
+    load_decomposition_annotations!(model, src)
 
     reformulate!(model, DantzigWolfeDecomposition)
 
-    return mapping
+    return model.mid2cid_map
 end
 
 

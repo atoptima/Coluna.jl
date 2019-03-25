@@ -1,4 +1,3 @@
-
 mutable struct Filter
     used_mask::SparseVector{Bool,Int}
     active_mask::SparseVector{Bool,Int}
@@ -43,6 +42,46 @@ end
 function getexpressionmembership(m::Memberships, uid) 
     hasexpression(m, uid) && return m.expression_memberships[uid]
     error("Expression $uid not stored in formulation.")
+end
+
+function add_variable!(m::Memberships, var_uid::VarId)
+    hasvar(m, var_uid) && error("Variable with uid $var_uid already registered.")
+    m.var_memberships[var_uid] = spzeros(Float64, MAX_SV_ENTRIES)
+    return
+end
+
+function add_variable!(m::Memberships, var_uid::VarId, membership::SparseVector)
+    hasvar(m, var_uid) && error("Variable with uid $var_uid already registered.")
+    m.var_memberships[var_uid] = membership
+    constr_uids, vals = findnz(membership)
+    for j in 1:length(constr_uids)
+        if hasvar(m, constr_uids[j]) 
+            m.constr_memberships[constr_uids[j]][var_uid] = vals[j]
+        else
+            @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
+        end
+    end
+    return
+end
+
+function add_constraint!(m::Memberships, constr_uid::ConstrId)
+    hasconstr(m, constr_uid) && error("Constraint with uid $constr_uid already registered.")
+    m.constr_memberships[constr_uid] = spzeros(Float64, MAX_SV_ENTRIES)
+    return
+end
+
+function add_constraint!(m::Memberships, constr_uid::ConstrId, membership::SparseVector) 
+    hasconstr(m, constr_uid) && error("Constraint with uid $constr_uid already registered.")
+    m.constr_memberships[constr_uid] = membership
+    var_uids, vals = findnz(membership)
+    for j in 1:length(var_uids)
+        if hasvar(m, var_uids[j])
+            m.var_memberships[var_uids[j]][constr_uid] = vals[j]
+        else
+            @warn "Variable with uid $(var_uids[j]) not registered in Memberships."
+        end
+    end
+    return
 end
 
 #==

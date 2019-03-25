@@ -59,8 +59,8 @@ function build_dw_master!(model::Model,
         vc_type = SubprobConvexity
         flag = Static
         duty = MastConvexityConstr
-        conv_constr = Constraint(model,name,sense,vc_type,flag,duty)
-        register_constraint!(master_form, conv_constr, sense, rhs, membership)
+        conv_constr = Constraint(model,name,rhs, sense,vc_type,flag,duty)
+        add_contraint!(master_form, conv_constr, sense, rhs, membership)
 
         # create representative of sp setup var
         var_uids = getvar_uids(sp_form, PricingSpSetupVar)
@@ -79,7 +79,7 @@ function build_dw_master!(model::Model,
     #  ub = fill(Inf, length(vars))
     #  vtypes = fill(Continuous, length(vars))
     
-    # register_variable!(
+    # add_variable!(
     
     
     
