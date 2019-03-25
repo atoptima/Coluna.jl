@@ -144,13 +144,12 @@ function add_constraint!(f::Formulation, constr::Constraint,
 end
 
 
-#==function copy_variable(form::Formulation, var::Variable, duty::VarDuty)
-    var_clone = Variable(var.uid, var.name, var.cost, var.lower_bound, var.upper_bound,
-                         var.vc_type, var.flag, duty, var.sense, MOI.VariableIndex(-1), nothing, nothing)
-    add_variable(form, var_clone)
+function copy_constraint(form::Formulation, constr::Constraint, duty::ConstrDuty)
+    constr_clone = Constraint(constr.uid, constr.name, constr.rhs, constr.sense,
+                         constr.vc_type, var.flag, duty, nothing)
+    add_constraint(form, constr_clone)
     return
 end
-==#
 
 function add_constraints!(f::Formulation,
                                constrs::Vector{Constraint},
