@@ -119,8 +119,8 @@ function add_variables!(f::Formulation, vars::Vector{Variable})
 end
 
 function copy_variable(form::Formulation, var::Variable, duty::VarDuty)
-    var_clone = Variable(var.uid, var.name, var.cost, var.lower_bound, var.upper_bound,
-                         var.vc_type, var.flag, duty, var.sense, MOI.VariableIndex(-1), nothing, nothing)
+    var_clone = Variable(getuid(var), getname(var), getcost(var), getlb(var), getub(var),
+                         gettype(var), getflag(var), duty, getsense(var), MOI.VariableIndex(-1), nothing, nothing)
     add_variable(form, var_clone)
     return
 end
@@ -145,8 +145,8 @@ end
 
 
 function copy_constraint(form::Formulation, constr::Constraint, duty::ConstrDuty)
-    constr_clone = Constraint(constr.uid, constr.name, constr.rhs, constr.sense,
-                         constr.vc_type, var.flag, duty, nothing)
+    constr_clone = Constraint(getuid(constr), getname(constr), getrhs(constr), getsense(constr),
+                         gettype(constr), getflag(constr), duty, nothing)
     add_constraint(form, constr_clone)
     return
 end

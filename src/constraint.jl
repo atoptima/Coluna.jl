@@ -21,8 +21,10 @@ end
 
 getuid(c::Constraint) = c.uid
 getrhs(c::Constraint) = c.rhs
+getname(c::Constraint) = c.name
 getsense(c::Constraint) = c.sense
 gettype(c::Constraint) = c.vc_type
+getflag(c::Constraint) = c.flag
 getduty(c::Constraint) = c.duty
 
 setsense!(c::Constraint, s::ConstrSense) = c.sense = s
