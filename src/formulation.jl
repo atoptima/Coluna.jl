@@ -17,6 +17,7 @@ end
 
 function add_variable!(m::Memberships,  var_uid::VarId)
     m.var_memberships[var_uid] = spzeros(Float64, MAX_SV_ENTRIES)
+
     return
 end
 
@@ -54,11 +55,11 @@ mutable struct Formulation  <: AbstractFormulation
     uid::FormId
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
-    #var_manager::Manager{Variable}
-    #constr_manager::Manager{Constraint}
     memberships::Memberships
     var_status::Filter
     constr_status::Filter
+    var_duty_sets::Dict{VarDuty, Vector{VarId}}
+    constr_duty_sets::Dict{ConstrDuty, Vector{ConstrId}}
     costs::SparseVector{Float64, Int}
     lower_bounds::SparseVector{Float64, Int}
     upper_bounds::SparseVector{Float64, Int}
@@ -84,6 +85,10 @@ artificalvar(f::Formulation) = artificialmask(f.var_status)
 activeconstr(f::Formulation) = activemask(f.constr_status)
 staticconstr(f::Formulation) = staticmask(f.constr_status)
 
+getvar_uids(f::Formulation,d::VarDuty) = f.var_duty_sets[d]
+getconstr_uids(f::Formulation,d::VarDuty) = f.constr_duty_sets[d]
+
+        
 getvarmembership(f::Formulation, uid) = getvarmembership(f.memberships, uid)
 getconstrmembership(f::Formulation, uid) = getconstrmembership(f.memberships, uid)
 
@@ -108,8 +113,10 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     rhs = spzeros(Float64, MAX_SV_ENTRIES)
     vtypes = Dict{VarId, VarType}()
     csenses = Dict{ConstrId, ConstrSense}()
-    return Formulation(uid, moi, nothing, Memberships(), Filter(), Filter(), costs, lb, ub, rhs, 
-        nothing, vtypes, csenses, Min)
+    return Formulation(uid, moi, nothing, Memberships(), Filter(), Filter(),
+                       Dict{VarDuty, Vector{VarId}}(), Dict{ConstrDuty, Vector{ConstrId}}(),
+                       costs, lb, ub, rhs, 
+                       nothing, vtypes, csenses, Min)
 end
 
 function register_variable!(f::Formulation, 
@@ -132,6 +139,14 @@ function register_variable!(f::Formulation,
                             cost::Float64,
                             lb::Float64, 
                             ub::Float64)
+    
+    if haskey(f.var_duty_sets, var.duty)   
+        var_duty_set = f.var_duty_sets[var.duty]
+    else
+        var_duty_set = f.var_duty_sets[var.duty] = Vector{VarId}()
+    end
+    push!(var_duty_set, var.uid)
+    
     register_variable!(f, var.uid, cost, lb, ub, var.vc_type)
     return
 end
@@ -165,6 +180,14 @@ function register_constraint!(f::Formulation,
                               csense::ConstrSense,
                               rhs::Float64,
                               membership::SparseVector)
+    
+    if haskey(f.constr_duty_sets, constr.duty)   
+        constr_duty_set = f.constr_duty_sets[constr.duty]
+    else
+        constr_duty_set = f.constr_duty_sets[constr.duty] = Vector{ConstrId}()
+    end
+    push!(constr_duty_set , constr.uid)
+
     register_constraint!(f, constr.uid, constr.sense, rhs, membership)
     return
 end
