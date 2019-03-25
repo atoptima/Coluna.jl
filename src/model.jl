@@ -1,6 +1,6 @@
 mutable struct Model <: AbstractModel
     name::String
-    moi2uid_map::MOIU.IndexMap
+    mid2cid_map::MOIU.IndexMap
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     var_counter::VarCounter
