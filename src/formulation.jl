@@ -17,6 +17,8 @@ mutable struct Formulation  <: AbstractFormulation
     uid::FormId
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
+    vars::Dict{VarId, Variable}
+    constrs::Dict{ConstrId, Constraint}
     memberships::Memberships
     var_status::Filter
     constr_status::Filter
@@ -50,6 +52,11 @@ staticconstr(f::Formulation) = staticmask(f.constr_status)
 getvar_uids(f::Formulation,d::VarDuty) = f.var_duty_sets[d]
 getconstr_uids(f::Formulation,d::VarDuty) = f.constr_duty_sets[d]
 
+#getvar(f::Formulation, uid::VarId) = f.var_duty_sets[d]
+
+getvar(f::Formulation, uid) = f.vars[uid]
+getconstr(f::Formulation, uid) = f.constrs[uid]
+        
 getvarmembership(f::Formulation, uid) = getvarmembership(f.memberships, uid)
 getconstrmembership(f::Formulation, uid) = getconstrmembership(f.memberships, uid)
 
@@ -65,7 +72,8 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     rhs = spzeros(Float64, MAX_SV_ENTRIES)
     vtypes = Dict{VarId, VarType}()
     csenses = Dict{ConstrId, ConstrSense}()
-    return Formulation(uid, moi, nothing, Memberships(), Filter(), Filter(),
+    return Formulation(uid, moi, nothing, Dict{VarId, Variable}(),Dict{ConstrId, Constraint}(),
+                       Memberships(), Filter(), Filter(),
                        Dict{VarDuty, Vector{VarId}}(), Dict{ConstrDuty, Vector{ConstrId}}(),
                        costs, lb, ub, rhs, 
                        nothing, vtypes, csenses, Min)
@@ -80,7 +88,7 @@ function register_variable!(f::Formulation, var::Variable)
         var_duty_set = f.var_duty_sets[var_duty] = Vector{VarId}()
     end
     push!(var_duty_set, var_uid)
-    
+    f.vars[var_uid] = var
     f.costs[var_uid] = getcost(var)
     f.lower_bounds[var_uid] = getlb(var)
     f.upper_bounds[var_uid] = getub(var)
@@ -107,7 +115,7 @@ function register_constraint!(f::Formulation, constr::Constraint,
         constr_duty_set = f.constr_duty_sets[constr_duty] = Vector{ConstrId}()
     end
     push!(constr_duty_set , constr_uid)
-
+    f.constrs[constr_uid] = constr
     f.rhs[constr_uid] = getrhs(constr)
     f.constr_senses[constr_uid] = getsense(constr)
     add_constraint!(f.memberships, constr_uid, membership)
@@ -135,25 +143,24 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-function copy_variables!(dest::Formulation, src::Formulation, uids;
+function copy_variables!(dest::Formulation, src::Formulation, uids::Vector{Int};
         copy_membership = false)
     for uid in uids
         if copy_membership
             error("TODO")
         else
-            register_variable!(dest, uid, getvarcost(src, uid), 
-                getvarlb(src, uid), getvarub(src, uid), getvartype(src, uid))
+            register_variable!(dest, getvar(f, uid))
         end
     end
     return
 end
 
-function copy_constraints!(dest::Formulation, src::Formulation, uids;
+function copy_constraints!(dest::Formulation, src::Formulation, uids::Vector{Int};
         copy_membership = true)
     for uid in uids
         if copy_membership
-            register_constraint!(dest, uid, getconstrsense(src, uid), 
-                getconstrrhs(src, uid), copy(getconstrmembership(src, uid)))
+            register_constraint!(dest, getconstr(src, uid), 
+                copy(getconstrmembership(src, uid)))
         else
             error("TODO")
         end
