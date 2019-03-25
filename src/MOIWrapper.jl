@@ -144,7 +144,7 @@ function create_original_formulation!(model, vars, constrs, memberships,
         min_sense::Bool)
     orig_form = get_original_formulation(model)
     add_variables!(orig_form, vars)
-    add_contraints!(orig_form, constrs, memberships)
+    add_constraints!(orig_form, constrs, memberships)
     register_objective_sense!(orig_form, min_sense)
     return
 end

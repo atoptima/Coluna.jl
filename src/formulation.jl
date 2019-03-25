@@ -24,24 +24,24 @@ mutable struct Formulation  <: AbstractFormulation
     constr_status::Filter
     var_duty_sets::Dict{VarDuty, Vector{VarId}}
     constr_duty_sets::Dict{ConstrDuty, Vector{ConstrId}}
-    costs::SparseVector{Float64, Int}
-    lower_bounds::SparseVector{Float64, Int}
-    upper_bounds::SparseVector{Float64, Int}
-    rhs::SparseVector{Float64, Int}
+    #costs::SparseVector{Float64, Int}
+    #lower_bounds::SparseVector{Float64, Int}
+    #upper_bounds::SparseVector{Float64, Int}
+    #rhs::SparseVector{Float64, Int}
     callbacks
     # Data used for displaying (not computing) :
-    var_types::Dict{VarId, VarType}
-    constr_senses::Dict{ConstrId, ConstrSense}
+    #var_types::Dict{VarId, VarType}
+    #constr_senses::Dict{ConstrId, ConstrSense}
     obj_sense::ObjSense
 end
 
-getvarcost(f::Formulation, uid) = f.costs[uid]
-getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
-getvarub(f::Formulation, uid) = f.upper_bounds[uid]
-getvartype(f::Formulation, uid) = f.var_types[uid]
+#getvarcost(f::Formulation, uid) = f.costs[uid]
+#getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
+#getvarub(f::Formulation, uid) = f.upper_bounds[uid]
+#getvartype(f::Formulation, uid) = f.var_types[uid]
 
-getconstrrhs(f::Formulation, uid) = f.rhs[uid]
-getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
+#getconstrrhs(f::Formulation, uid) = f.rhs[uid]
+#getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
 activevar(f::Formulation) = activemask(f.var_status)
 staticvar(f::Formulation) = staticmask(f.var_status)
@@ -66,17 +66,18 @@ end
 
 function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     uid = getnewuid(m.form_counter)
-    costs = spzeros(Float64, MAX_SV_ENTRIES)
-    lb = spzeros(Float64, MAX_SV_ENTRIES)
-    ub = spzeros(Float64, MAX_SV_ENTRIES)
-    rhs = spzeros(Float64, MAX_SV_ENTRIES)
-    vtypes = Dict{VarId, VarType}()
-    csenses = Dict{ConstrId, ConstrSense}()
-    return Formulation(uid, moi, nothing, Dict{VarId, Variable}(),Dict{ConstrId, Constraint}(),
+    # costs = spzeros(Float64, MAX_SV_ENTRIES)
+    # lb = spzeros(Float64, MAX_SV_ENTRIES)
+    # ub = spzeros(Float64, MAX_SV_ENTRIES)
+    # rhs = spzeros(Float64, MAX_SV_ENTRIES)
+    # vtypes = Dict{VarId, VarType}()
+    # csenses = Dict{ConstrId, ConstrSense}()
+    return Formulation(uid, moi, nothing, 
+                       Dict{VarId, Variable}(), Dict{ConstrId, Constraint}(),
                        Memberships(), Filter(), Filter(),
-                       Dict{VarDuty, Vector{VarId}}(), Dict{ConstrDuty, Vector{ConstrId}}(),
-                       costs, lb, ub, rhs, 
-                       nothing, vtypes, csenses, Min)
+                       Dict{VarDuty, Vector{VarId}}(), 
+                       Dict{ConstrDuty, Vector{ConstrId}}(),
+                       nothing, Min)
 end
 
 function add_variable!(f::Formulation, var::Variable)
@@ -89,10 +90,10 @@ function add_variable!(f::Formulation, var::Variable)
     end
     push!(var_duty_set, var_uid)
     f.vars[var_uid] = var
-    f.costs[var_uid] = getcost(var)
-    f.lower_bounds[var_uid] = getlb(var)
-    f.upper_bounds[var_uid] = getub(var)
-    f.var_types[var_uid] = gettype(var)
+    #f.costs[var_uid] = getcost(var)
+    #f.lower_bounds[var_uid] = getlb(var)
+    #f.upper_bounds[var_uid] = getub(var)
+    #f.var_types[var_uid] = gettype(var)
     add_variable!(f.memberships, var_uid)
     # TODO : Register in filter
     return
@@ -116,8 +117,8 @@ function add_constraint!(f::Formulation, constr::Constraint,
     end
     push!(constr_duty_set , constr_uid)
     f.constrs[constr_uid] = constr
-    f.rhs[constr_uid] = getrhs(constr)
-    f.constr_senses[constr_uid] = getsense(constr)
+    #f.rhs[constr_uid] = getrhs(constr)
+    #f.constr_senses[constr_uid] = getsense(constr)
     add_constraint!(f.memberships, constr_uid, membership)
     # TODO : Register in filter
     return
@@ -141,42 +142,6 @@ function register_objective_sense!(f::Formulation, min::Bool)
     # end
     !min && error("Coluna does not support maximization yet.")
     return
-end
-
-
-function copy_variable!(dest::Formulation, src::Formulation, uid;
-        copy_membership = false)
-        if copy_membership
-            error("TODO")
-        else
-            add_variable!(dest, getvar(f, uid))
-        end
-     return
-end
-
-function copy_variables!(dest::Formulation, src::Formulation, uids;
-        copy_membership = false)
-    for uid in uids
-        copy_variable(dest, src, uid, copy_membership)
-     end
-    return
-end
-
-function copy_constraint!(dest::Formulation, src::Formulation, uid;
-                          copy_membership = true)
-    if copy_membership
-        add_contraint!(dest, uid, getconstrsense(src, uid), 
-                             getconstrrhs(src, uid), copy(getconstrmembership(src, uid)))
-    else
-        error("TODO")
-    end
-end
-
-function copy_constraints!(dest::Formulation, src::Formulation, uids;
-        copy_membership = true)
-    for uid in uids
-        copy_constraint(dest, src, uid, copy_membership)
-    end
 end
 
 mutable struct Reformulation <: AbstractFormulation
