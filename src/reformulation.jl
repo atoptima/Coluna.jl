@@ -39,34 +39,37 @@ end
 function build_dw_master!(model::Model,
                           annotation_id::Int,
                           reformulation::Reformulation,
-                          formulation::Formulation,
+                          master_form::Formulation,
                           vars_in_form::Vector{VarId},
                           constrs_in_form::Vector{ConstrId})
 
 
- #==   orig_form = get_original_formulation(model)
+    orig_form = get_original_formulation(model)
 
-    
-
-    membership = SparseVector()
+    membership = spzeros(Float64, MAX_SV_ENTRIES)
     
     # create convexity constraints
     
     @assert !isempty(reformulation.dw_pricing_subprs)
-    for spform in reformulation.dw_pricing_subprs
+    for sp_form in reformulation.dw_pricing_subprs
         # create convexity constraint
-        name = "convexity_sp_$(spform.uid)"
-        sense = ConstrSense(Equal)
+        name = "convexity_sp_$(sp_form.uid)"
+        sense = Equal
         rhs = 1.0
-        vc_type = ConstrType(SubprobConvexity)
-        flag = Flag(Static)
-        duty = ConstrDuty(MastConvexityConstr)
+        vc_type = SubprobConvexity
+        flag = Static
+        duty = MastConvexityConstr
         conv_constr = Constraint(model,name,sense,vc_type,flag,duty)
-        register_constraint!(formulation, conv_constr, rhs, membership)
+        #register_constraint!(master_form, conv_constr, sense, rhs, membership)
+
         # create representative of sp setup var
-        #setup_var_uid = 
+       # var_uids = getvar_uids(sp_form, PricingSpSetupVar)
+       # @assert length(var_uids) == 1
+      #  for id in var_uids
+      #      sp_setup_var = sp_form.vars[id]
+            #copy_variable(master_form, sp_form, sp_setup_var)
+      #  end
         
-        #var = getvar(spform 
         
     end
     
@@ -81,11 +84,10 @@ function build_dw_master!(model::Model,
     
     
     # clone pure master variables 
-    copy_variables!(formulation, orig_form, vars_in_form)
+    copy_variables!(master_form, orig_form, vars_in_form)
 
     # clone pure & mixed  master constraints 
-    copy_constraints!(formulation, orig_form, constrs_in_form)
-==#
+    copy_constraints!(master_form, orig_form, constrs_in_form)
     
     
     

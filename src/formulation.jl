@@ -27,8 +27,9 @@ function add_variable!(m::Memberships,
     m.var_memberships[var_uid] = membership
     constr_uids, vals = findnz(membership)
     for j in 1:length(constr_uids)
-        !hasvar(m, constr_uids[j]) && error("Constr $(constr_uids[j]) not registered in Memberships.")
-        m.constr_memberships[constr_uids[j]][var_uid] = vals[j]
+        if hasvar(m, constr_uids[j]) #&& error("Constr $(constr_uids[j]) not registered in Memberships.")
+            m.constr_memberships[constr_uids[j]][var_uid] = vals[j]
+        end
     end
     return
 end
@@ -45,8 +46,10 @@ function add_constraint!(m::Memberships,
     m.constr_memberships[constr_uid] = membership
     var_uids, vals = findnz(membership)
     for j in 1:length(var_uids)
-        !hasvar(m, var_uids[j]) && error("Variable $(var_uids[j]) not registered in Memberships.")
-        m.var_memberships[var_uids[j]][constr_uid] = vals[j]
+        if hasvar(m, var_uids[j]) #&& error("Variable $(var_uids[j]) not registered in Memberships.")
+            m.var_memberships[var_uids[j]][constr_uid] = vals[j]
+        end
+        
     end
     return
 end
@@ -55,6 +58,8 @@ mutable struct Formulation  <: AbstractFormulation
     uid::FormId
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
+    vars::Dict{VarId, Variable}
+    constrs::Dict{ConstrId, Constraint}
     memberships::Memberships
     var_status::Filter
     constr_status::Filter
@@ -88,6 +93,8 @@ staticconstr(f::Formulation) = staticmask(f.constr_status)
 getvar_uids(f::Formulation,d::VarDuty) = f.var_duty_sets[d]
 getconstr_uids(f::Formulation,d::VarDuty) = f.constr_duty_sets[d]
 
+getvar(f::Formulation,uid::VarId) = f.var_duty_sets[d]
+
         
 getvarmembership(f::Formulation, uid) = getvarmembership(f.memberships, uid)
 getconstrmembership(f::Formulation, uid) = getconstrmembership(f.memberships, uid)
@@ -113,13 +120,14 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     rhs = spzeros(Float64, MAX_SV_ENTRIES)
     vtypes = Dict{VarId, VarType}()
     csenses = Dict{ConstrId, ConstrSense}()
-    return Formulation(uid, moi, nothing, Memberships(), Filter(), Filter(),
+    return Formulation(uid, moi, nothing, Dict{VarId, Variable}(),Dict{ConstrId, Constraint}(),
+                       Memberships(), Filter(), Filter(),
                        Dict{VarDuty, Vector{VarId}}(), Dict{ConstrDuty, Vector{ConstrId}}(),
                        costs, lb, ub, rhs, 
                        nothing, vtypes, csenses, Min)
 end
 
-function register_variable!(f::Formulation, 
+function register_variable!(f::Formulation,  # register var in for Math Prog MOI formulation
                             var_uid::VarId, 
                             cost::Float64,
                             lb::Float64, 
@@ -134,7 +142,7 @@ function register_variable!(f::Formulation,
     return
 end
 
-function register_variable!(f::Formulation, 
+function register_variable!(f::Formulation, # add var in formulation
                             var::Variable, 
                             cost::Float64,
                             lb::Float64, 
@@ -146,6 +154,8 @@ function register_variable!(f::Formulation,
         var_duty_set = f.var_duty_sets[var.duty] = Vector{VarId}()
     end
     push!(var_duty_set, var.uid)
+
+    f.vars[var.uid] = var
     
     register_variable!(f, var.uid, cost, lb, ub, var.vc_type)
     return
@@ -175,7 +185,7 @@ function register_constraint!(f::Formulation,
     return
 end 
 
-function register_constraint!(f::Formulation, 
+function register_constraint!(f::Formulation, # add constrtain in  formulation
                               constr::Constraint,
                               csense::ConstrSense,
                               rhs::Float64,
@@ -187,6 +197,8 @@ function register_constraint!(f::Formulation,
         constr_duty_set = f.constr_duty_sets[constr.duty] = Vector{ConstrId}()
     end
     push!(constr_duty_set , constr.uid)
+
+    f.constrs[constr.uid] = constr
 
     register_constraint!(f, constr.uid, constr.sense, rhs, membership)
     return

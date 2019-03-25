@@ -1,7 +1,7 @@
 mutable struct Variable <: AbstractVarConstr
     uid::VarId
     name::String
-    flag::Flag     # Static, Dynamic, Artifical
+    flag::Flag     # Static, Dynamic, Artifical, Implicit
     duty::VarDuty
     vc_type::VarType
     index::MOI.VariableIndex
