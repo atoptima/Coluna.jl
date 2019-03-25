@@ -20,6 +20,24 @@ function add_variable!(m::Memberships,  var_uid::VarId)
     return
 end
 
+function add_variable!(m::Memberships,
+                         var_uid::VarId, 
+                         membership::SparseVector) 
+    m.var_memberships[var_uid] = membership
+    constr_uids, vals = findnz(membership)
+    for j in 1:length(constr_uids)
+        !hasvar(m, constr_uids[j]) && error("Constr $(constr_uids[j]) not registered in Memberships.")
+        m.constr_memberships[constr_uids[j]][var_uid] = vals[j]
+    end
+    return
+end
+
+
+function add_constraint!(m::Memberships,  constr_uid::ConstrId)
+    m.constr_memberships[constr_uid] = spzeros(Float64, MAX_SV_ENTRIES)
+    return
+end
+
 function add_constraint!(m::Memberships,
                          constr_uid::ConstrId, 
                          membership::SparseVector) 
@@ -38,7 +56,6 @@ mutable struct Formulation  <: AbstractFormulation
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
     #var_manager::Manager{Variable}
     #constr_manager::Manager{Constraint}
-    # Min \{ cx | Ax <= b, Ex = f, l <= x <= u \}
     memberships::Memberships
     var_status::Filter
     constr_status::Filter
@@ -114,10 +131,8 @@ function register_variable!(f::Formulation,
                             var::Variable, 
                             cost::Float64,
                             lb::Float64, 
-                            ub::Float64, 
-                            vtype::VarType)
-    uid = getuid(var)
-    register_variable!(f, uid, cost, lb, ub, vtype)
+                            ub::Float64)
+    register_variable!(f, var.uid, cost, lb, ub, var.vc_type)
     return
 end
 
@@ -125,12 +140,10 @@ function register_variables!(f::Formulation,
                              vars::Vector{Variable}, 
                              costs::Vector{Float64},
                              lb::Vector{Float64},
-                             ub::Vector{Float64}, 
-                             vtypes::Vector{VarType})
-    @assert length(vars) == length(costs) == length(ub)
-    @assert length(vars) == length(lb) == length(vtypes)
+                             ub::Vector{Float64})
+    @assert length(vars) == length(costs) == length(ub) == length(lb) 
     for i in 1:length(vars)
-        register_variable!(f, vars[i], costs[i], lb[i], ub[i], vtypes[i])
+        register_variable!(f, vars[i], costs[i], lb[i], ub[i])
     end
     return
 end
@@ -145,15 +158,14 @@ function register_constraint!(f::Formulation,
     # TODO : register in manager
     add_constraint!(f.memberships, constr_uid, membership)
     return
-end
+end 
 
 function register_constraint!(f::Formulation, 
-                              constr::Constraint, 
-                              csense::ConstrSense, 
+                              constr::Constraint,
+                              csense::ConstrSense,
                               rhs::Float64,
                               membership::SparseVector)
-    uid = getuid(constr)
-    register_constraint!(f, uid, csense, rhs, membership)
+    register_constraint!(f, constr.uid, constr.sense, rhs, membership)
     return
 end
 
@@ -162,7 +174,7 @@ function register_constraints!(f::Formulation,
                                csenses::Vector{ConstrSense},
                                rhs::Vector{Float64},
                                memberships::Vector{SparseVector})
-    @assert length(constrs) == length(memberships) == length(csenses) == length(rhs)
+    @assert length(constrs) == length(memberships) == length(rhs)
     # register in manager
     for i in 1:length(constrs)
         register_constraint!(f, constrs[i], csenses[i], rhs[i], memberships[i])

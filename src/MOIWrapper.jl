@@ -98,6 +98,8 @@ function create_origvars!(vars::Vector{Variable},
         end
         var = Variable(m, name)
         var.index = var_moi_id
+        # TODO get MOI Type
+        var.vc_type = Continuous
         push!(vars, var)
         var_coluna_id = MOI.VariableIndex(getuid(var))
         setindex!(moi_map, var_coluna_id, var_moi_id)
@@ -228,7 +230,7 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     load_obj!(costs, vars, mapping, obj)
 
-    register_variables!(orig_form, vars, costs, lb, ub, vtypes)
+    register_variables!(orig_form, vars, costs, lb, ub)
 
     # Retrieve constraints
     constrs = Constraint[]

@@ -11,6 +11,7 @@ Filter() = Filter(spzeros(MAX_SV_ENTRIES), spzeros(MAX_SV_ENTRIES), spzeros(MAX_
 activemask(f::Filter) = f.used_mask .& f.active_mask
 staticmask(f::Filter) = f.used_mask .& f.static_mask
 artificalmask(f::Filter) = f.used_mask .& f.artificial_mask
+#selectivemask(f::Filter, active::Bool, static::Bool, artificial::Bool) = f.used_mask active ? .& f.active_mask : nothing  static ? .& f.static_mask : nothing  artificial ? .& f.artificial_mask : nothing
 
 struct Memberships
     var_memberships::Dict{VarId, ConstrMembership}
@@ -27,6 +28,7 @@ end
 
 hasvar(m::Memberships, uid) = haskey(m.var_memberships, uid)
 hasconstr(m::Memberships, uid) = haskey(m.constr_memberships, uid)
+hasexpression(m::Memberships, uid) = haskey(m.expression_memberships, uid)
 
 function getvarmembership(m::Memberships, uid) 
     hasvar(m, uid) && return m.var_memberships[uid]
@@ -36,6 +38,11 @@ end
 function getconstrmembership(m::Memberships, uid) 
     hasconstr(m, uid) && return m.constr_memberships[uid]
     error("Constraint $uid not stored in formulation.")
+end
+
+function getexpressionmembership(m::Memberships, uid) 
+    hasexpression(m, uid) && return m.expression_memberships[uid]
+    error("Expression $uid not stored in formulation.")
 end
 
 #==
