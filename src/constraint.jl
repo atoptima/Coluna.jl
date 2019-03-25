@@ -31,6 +31,7 @@ setsense!(c::Constraint, s::ConstrSense) = c.sense = s
 settype!(c::Constraint, t::ConstrType) = c.vc_type = t
 setflag!(c::Constraint, f::Flag) = c.flag = f
 setrhs!(c::Constraint, r::Float64) = c.rhs = r
+setduty!(c::Constraint, d::ConstrDuty) = c.duty = d
 
 function set!(c::Constraint, s::MOI.GreaterThan)
     rhs = float(s.lower)

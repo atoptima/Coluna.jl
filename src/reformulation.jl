@@ -60,7 +60,7 @@ function build_dw_master!(model::Model,
         flag = Static
         duty = MastConvexityConstr
         conv_constr = Constraint(model,name,rhs, sense,vc_type,flag,duty)
-        add_constraint!(master_form, conv_constr, membership)
+        add!(master_form, conv_constr, membership)
 
         # create representative of sp setup var
         var_uids = getvar_uids(sp_form, PricingSpSetupVar)

@@ -16,7 +16,7 @@
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
     moi_model::Union{MOI.ModelLike, Nothing}
-    moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
+    moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     vars::Dict{VarId, Variable} 
     constrs::Dict{ConstrId, Constraint}
     memberships::Memberships
@@ -33,6 +33,30 @@ mutable struct Formulation  <: AbstractFormulation
     #var_types::Dict{VarId, VarType}
     #constr_senses::Dict{ConstrId, ConstrSense}
     obj_sense::ObjSense
+end
+
+function setvarduty!(f::Formulation, var::Variable)
+    var_uid = getuid(var)
+    var_duty = getduty(var)
+    if haskey(f.var_duty_sets, var_duty)   
+        var_duty_set = f.var_duty_sets[var_duty]
+    else
+        var_duty_set = f.var_duty_sets[var_duty] = Vector{VarId}()
+    end
+    push!(var_duty_set, var_uid)
+    return
+end
+
+function setconstrduty!(f::Formulation, constr::Constraint)
+    constr_uid = getuid(constr)
+    constr_duty = getduty(constr)
+    if haskey(f.constr_duty_sets, constr_duty)   
+        constr_duty_set = f.constr_duty_sets[constr_duty]
+    else
+        constr_duty_set = f.constr_duty_sets[constr_duty] = Vector{ConstrId}()
+    end
+    push!(constr_duty_set, constr_uid)
+    return
 end
 
 #getvarcost(f::Formulation, uid) = f.costs[uid]
@@ -56,7 +80,6 @@ function getvar_uids(f::Formulation,d::VarDuty)
     return Vector{VarId}()
 end
 
-        
 function getconstr_uids(f::Formulation,d::VarDuty)
     if haskey(f.constr_duty_sets,d)
         return f.constr_duty_sets[d]
@@ -92,73 +115,51 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
                        nothing, Min)
 end
 
-function add_variable!(f::Formulation, var::Variable)
-    var_uid = getuid(var)
-    var_duty = getduty(var)
-    if haskey(f.var_duty_sets, var_duty)   
-        var_duty_set = f.var_duty_sets[var_duty]
-    else
-        var_duty_set = f.var_duty_sets[var_duty] = Vector{VarId}()
+
+function copy_in_formulation!(varconstr::AbstractVarConstr, form::Formulation, duty)
+    varconstr_copy = deepcopy(varconstr)
+    setduty!(varconstr_copy, duty)
+    add!(form, varconstr_copy)
+    return
+end
+
+function add!(f::Formulation, elems::Vector{T}) where {T <: AbstractVarConstr}
+    for elem in elems
+        add!(f, elem)
     end
-    push!(var_duty_set, var_uid)
+    return
+end
+
+function add!(f::Formulation, elems::Vector{T}, 
+        memberships::Vector{SparseVector}) where {T <: AbstractVarConstr}
+    @assert length(elems) == length(memberships)
+    for i in 1:length(elems)
+        add!(f, elems[i], memberships[i])
+    end
+    return
+end
+
+function add!(f::Formulation, var::Variable)
+    var_uid = getuid(var)
+    setvarduty!(f, var)
     f.vars[var_uid] = var
+    add_variable!(f.memberships, var_uid)
     #f.costs[var_uid] = getcost(var)
     #f.lower_bounds[var_uid] = getlb(var)
     #f.upper_bounds[var_uid] = getub(var)
     #f.var_types[var_uid] = gettype(var)
-    add_variable!(f.memberships, var_uid)
     # TODO : Register in filter
     return
 end
 
-function add_variables!(f::Formulation, vars::Vector{Variable})
-    for var in vars
-        add_variable!(f, var)
-    end
-    return
-end
-
-function copy_variable(form::Formulation, var::Variable, duty::VarDuty)
-    var_clone = Variable(getuid(var), getname(var), getcost(var), getlb(var), getub(var),
-                         gettype(var), getflag(var), duty, getsense(var), MOI.VariableIndex(-1), nothing, nothing)
-    add_variable(form, var_clone)
-    return
-end
-
-function add_constraint!(f::Formulation, constr::Constraint, 
-        membership::SparseVector)
+function add!(f::Formulation, constr::Constraint, membership::SparseVector)
     constr_uid = getuid(constr)
-    constr_duty = getduty(constr)
-    if haskey(f.constr_duty_sets, constr_duty)   
-        constr_duty_set = f.constr_duty_sets[constr_duty]
-    else
-        constr_duty_set = f.constr_duty_sets[constr_duty] = Vector{ConstrId}()
-    end
-    push!(constr_duty_set , constr_uid)
+    setconstrduty!(f, constr)
     f.constrs[constr_uid] = constr
+    add_constraint!(f.memberships, constr_uid, membership)
     #f.rhs[constr_uid] = getrhs(constr)
     #f.constr_senses[constr_uid] = getsense(constr)
-    add_constraint!(f.memberships, constr_uid, membership)
     # TODO : Register in filter
-    return
-end
-
-
-function copy_constraint(form::Formulation, constr::Constraint, duty::ConstrDuty)
-    constr_clone = Constraint(getuid(constr), getname(constr), getrhs(constr), getsense(constr),
-                         gettype(constr), getflag(constr), duty, nothing)
-    add_constraint(form, constr_clone)
-    return
-end
-
-function add_constraints!(f::Formulation,
-                               constrs::Vector{Constraint},
-                               memberships::Vector{SparseVector})
-    @assert length(constrs) == length(memberships)
-    # register in manager
-    for i in 1:length(constrs)
-        add_constraint!(f, constrs[i], memberships[i])
-    end
     return
 end
 
