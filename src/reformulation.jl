@@ -44,7 +44,7 @@ function build_dw_master!(model::Model,
                           constrs_in_form::Vector{ConstrId})
 
 
-    orig_form = get_original_formulation(m)
+    orig_form = get_original_formulation(model)
 
  
 
@@ -52,7 +52,7 @@ function build_dw_master!(model::Model,
  
     # create convexity constraints
  
-    @assert !isempty(reformulation.dw_pricing_subprs)
+#==    @assert !isempty(reformulation.dw_pricing_subprs)
     for spform in reformulation.dw_pricing_subprs
         # create convexity constraint
         name = "convexity_sp_$(spform.uid)"
@@ -66,7 +66,6 @@ function build_dw_master!(model::Model,
         # create representative of sp setup var
         
      end
-    
     
     # for  master constraints, create associated artificial variables
    # new_vars = Variable[]
@@ -84,7 +83,8 @@ function build_dw_master!(model::Model,
     # clone pure & mixed  master constraints 
     copy_constraints!(formulation, orig_form, constrs_in_form)
 
-    
+   ==#   
+  
     
     return
 end
