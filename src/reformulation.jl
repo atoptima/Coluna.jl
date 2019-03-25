@@ -60,15 +60,15 @@ function build_dw_master!(model::Model,
         flag = Static
         duty = MastConvexityConstr
         conv_constr = Constraint(model,name,sense,vc_type,flag,duty)
-        #register_constraint!(master_form, conv_constr, sense, rhs, membership)
+        register_constraint!(master_form, conv_constr, sense, rhs, membership)
 
         # create representative of sp setup var
-       # var_uids = getvar_uids(sp_form, PricingSpSetupVar)
-       # @assert length(var_uids) == 1
-      #  for id in var_uids
-      #      sp_setup_var = sp_form.vars[id]
-            #copy_variable(master_form, sp_form, sp_setup_var)
-      #  end
+        var_uids = getvar_uids(sp_form, PricingSpSetupVar)
+        @assert length(var_uids) == 1
+        for id in var_uids
+            sp_setup_var = sp_form.vars[id]
+            #copy_variable(master_form, sp_form, id)
+        end
         
         
     end
@@ -99,8 +99,8 @@ function build_dw_pricing_sp!(m::Model, annotation_id::Int,
                               vars_in_form::Vector{VarId},
                               constrs_in_form::Vector{ConstrId})
     orig_form = get_original_formulation(m)
-    copy_variables!(formulation, orig_form, vars_in_form)
-    copy_constraints!(formulation, orig_form, constrs_in_form)
+    #copy_variables!(formulation, orig_form, vars_in_form)
+    #copy_constraints!(formulation, orig_form, constrs_in_form)
     return
 end
 

@@ -226,27 +226,39 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-function copy_variables!(dest::Formulation, src::Formulation, uids;
+
+function copy_variable!(dest::Formulation, src::Formulation, uid;
         copy_membership = false)
-    for uid in uids
         if copy_membership
             error("TODO")
         else
             register_variable!(dest, uid, getvarcost(src, uid), 
                 getvarlb(src, uid), getvarub(src, uid), getvartype(src, uid))
         end
-    end
+     return
+end
+
+function copy_variables!(dest::Formulation, src::Formulation, uids;
+        copy_membership = false)
+    for uid in uids
+        copy_variable(dest, src, uid, copy_membership)
+     end
     return
+end
+
+function copy_constraint!(dest::Formulation, src::Formulation, uid;
+                          copy_membership = true)
+    if copy_membership
+        register_constraint!(dest, uid, getconstrsense(src, uid), 
+                             getconstrrhs(src, uid), copy(getconstrmembership(src, uid)))
+    else
+        error("TODO")
+    end
 end
 
 function copy_constraints!(dest::Formulation, src::Formulation, uids;
         copy_membership = true)
     for uid in uids
-        if copy_membership
-            register_constraint!(dest, uid, getconstrsense(src, uid), 
-                getconstrrhs(src, uid), copy(getconstrmembership(src, uid)))
-        else
-            error("TODO")
-        end
+        copy_constraint(dest, src, uid, copy_membership)
     end
 end
