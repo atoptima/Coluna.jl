@@ -152,6 +152,14 @@ function add!(f::Formulation, var::Variable)
     return
 end
 
+function add!(f::Formulation, constr::Constraint)
+    constr_uid = getuid(constr)
+    setconstrduty!(f, constr)
+    f.constrs[constr_uid] = constr
+    add_constraint!(f.memberships, constr_uid)
+    return
+end
+
 function add!(f::Formulation, constr::Constraint, membership::SparseVector)
     constr_uid = getuid(constr)
     setconstrduty!(f, constr)

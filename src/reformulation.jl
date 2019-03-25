@@ -65,7 +65,7 @@ function build_dw_master!(model::Model,
         # create representative of sp setup var
         var_uids = getvar_uids(sp_form, PricingSpSetupVar)
         #@assert length(var_uids) == 1
-        for var in sp_form.vars
+        for (uid, var) in sp_form.vars
             if getduty(var) != PricingSpPureVar
                 copy_variable(master_form, var)
                 if getduty(var) == PricingSpSetupVar
@@ -106,8 +106,14 @@ function build_dw_pricing_sp!(m::Model, annotation_id::Int,
                               vars_in_form::Vector{VarId},
                               constrs_in_form::Vector{ConstrId})
     orig_form = get_original_formulation(m)
-    #copy_variables!(formulation, orig_form, vars_in_form)
-    #copy_constraints!(formulation, orig_form, constrs_in_form)
+    for var_id in vars_in_form
+        var = getvar(orig_form, var_id)
+        copy_in_formulation!(var, formulation, PricingSpPureVar)
+    end
+    for constr_id in constrs_in_form
+        constr = getconstr(orig_form, constr_id)
+        copy_in_formulation!(constr, formulation, PricingSpPureConstr)
+    end
     return
 end
 
