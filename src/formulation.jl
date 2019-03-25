@@ -17,7 +17,7 @@ mutable struct Formulation  <: AbstractFormulation
     uid::FormId
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing} # why nothing ?
-    vars::Dict{VarId, Variable} # varRep
+    vars::Dict{VarId, Variable} 
     constrs::Dict{ConstrId, Constraint}
     memberships::Memberships
     var_status::Filter
@@ -49,8 +49,20 @@ artificalvar(f::Formulation) = artificialmask(f.var_status)
 activeconstr(f::Formulation) = activemask(f.constr_status)
 staticconstr(f::Formulation) = staticmask(f.constr_status)
 
-getvar_uids(f::Formulation,d::VarDuty) = f.var_duty_sets[d]
-getconstr_uids(f::Formulation,d::VarDuty) = f.constr_duty_sets[d]
+function getvar_uids(f::Formulation,d::VarDuty)
+    if haskey(f.var_duty_sets, d)
+        return f.var_duty_sets[d]
+    end
+    return Vector{VarId}()
+end
+
+        
+function getconstr_uids(f::Formulation,d::VarDuty)
+    if haskey(f.constr_duty_sets,d)
+        return f.constr_duty_sets[d]
+    end
+    return Vector{ConstrId}()
+end
 
 #getvar(f::Formulation, uid::VarId) = f.var_duty_sets[d]
 
@@ -106,6 +118,13 @@ function add_variables!(f::Formulation, vars::Vector{Variable})
     return
 end
 
+function copy_variable(form::Formulation, var::Variable, duty::VarDuty)
+    var_clone = Variable(var.uid, var.name, var.cost, var.lower_bound, var.upper_bound,
+                         var.vc_type, var.flag, duty, var.sense, MOI.VariableIndex(-1), nothing, nothing)
+    add_variable(form, var_clone)
+    return
+end
+
 function add_constraint!(f::Formulation, constr::Constraint, 
         membership::SparseVector)
     constr_uid = getuid(constr)
@@ -123,6 +142,15 @@ function add_constraint!(f::Formulation, constr::Constraint,
     # TODO : Register in filter
     return
 end
+
+
+#==function copy_variable(form::Formulation, var::Variable, duty::VarDuty)
+    var_clone = Variable(var.uid, var.name, var.cost, var.lower_bound, var.upper_bound,
+                         var.vc_type, var.flag, duty, var.sense, MOI.VariableIndex(-1), nothing, nothing)
+    add_variable(form, var_clone)
+    return
+end
+==#
 
 function add_constraints!(f::Formulation,
                                constrs::Vector{Constraint},

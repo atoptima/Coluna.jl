@@ -20,9 +20,9 @@ abstract type AbstractCounter end
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
-@enum VarDuty OriginalVar PureMastVar MastCol MastArtVar MastRepPricingSpVar PricingSpSetupVar  PricingSpVar MastRepBendSpVar BendersSpVar BlockGenSpVar MastRepBlockSpVar
+@enum VarDuty OriginalVar PureMastVar MastCol MastArtVar MastRepPricingSpVar PricingSpSetupVar  PricingSpVar  PricingSpPureVar MastRepBendSpVar BendersSpVar BlockGenSpVar MastRepBlockSpVar
 
-@enum ConstrDuty OriginalConstr BranchingConstr MastPureConstr MasterConstr MastConvexityConstr MasterBranch PricingSpRepMastBranchC
+@enum ConstrDuty OriginalConstr BranchingConstr MastPureConstr MasterConstr MastConvexityConstr PricingSpPureConstr  MasterBranch PricingSpRepMastBranchC
 
 const VarId = Int
 const ConstrId = Int

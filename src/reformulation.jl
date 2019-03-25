@@ -63,12 +63,12 @@ function build_dw_master!(model::Model,
         add_constraint!(master_form, conv_constr, membership)
 
         # create representative of sp setup var
-        #var_uids = getvar_uids(sp_form, PricingSpSetupVar)
+        var_uids = getvar_uids(sp_form, PricingSpSetupVar)
         #@assert length(var_uids) == 1
-        #for id in var_uids
-        #    sp_setup_var = sp_form.vars[id]
-        #    #copy_variable(master_form, sp_form, id)
-        #end
+        for id in var_uids
+            sp_setup_var = sp_form.vars[id]
+            copy_variable(master_form, sp_setup_var)
+        end
         
         
     end
