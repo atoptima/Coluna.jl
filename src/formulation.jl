@@ -24,14 +24,7 @@ mutable struct Formulation  <: AbstractFormulation
     constr_status::Filter
     var_duty_sets::Dict{VarDuty, Vector{VarId}}
     constr_duty_sets::Dict{ConstrDuty, Vector{ConstrId}}
-    #costs::SparseVector{Float64, Int}
-    #lower_bounds::SparseVector{Float64, Int}
-    #upper_bounds::SparseVector{Float64, Int}
-    #rhs::SparseVector{Float64, Int}
     callbacks
-    # Data used for displaying (not computing) :
-    #var_types::Dict{VarId, VarType}
-    #constr_senses::Dict{ConstrId, ConstrSense}
     obj_sense::ObjSense
 end
 
@@ -71,7 +64,7 @@ activevar(f::Formulation) = activemask(f.var_status)
 staticvar(f::Formulation) = staticmask(f.var_status)
 artificalvar(f::Formulation) = artificialmask(f.var_status)
 activeconstr(f::Formulation) = activemask(f.constr_status)
-staticconstr(f::Formulation) = staticmask(f.constr_status)
+staticconstr(f::Formulation) = staticmask(f.constr_status)x
 
 function getvar_uids(f::Formulation,d::VarDuty)
     if haskey(f.var_duty_sets, d)
