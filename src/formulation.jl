@@ -15,6 +15,7 @@
 
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
+    parent_formulation::Union{Formulation, Nothing}
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     vars::Dict{VarId, Variable} 
@@ -92,28 +93,29 @@ get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.mem
 get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getuid(var))
 get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getuid(constr))
 
-function Formulation(m::AbstractModel)
-    return Formulation(m::AbstractModel, nothing)
-end
 
-function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
+
+function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing}, moi::Union{MOI.ModelLike, Nothing})
     uid = getnewuid(m.form_counter)
-    # costs = spzeros(Float64, MAX_SV_ENTRIES)
-    # lb = spzeros(Float64, MAX_SV_ENTRIES)
-    # ub = spzeros(Float64, MAX_SV_ENTRIES)
-    # rhs = spzeros(Float64, MAX_SV_ENTRIES)
-    # vtypes = Dict{VarId, VarKind}()
-    # csenses = Dict{ConstrId, ConstrSense}()
-    return Formulation(uid, moi, nothing, 
+    return Formulation(uid, parent_formulation, moi, nothing, 
                        Dict{VarId, Variable}(), Dict{ConstrId, Constraint}(),
                        Memberships(), Filter(), Filter(),
                        Dict{VarDuty, Vector{VarId}}(), 
                        Dict{ConstrDuty, Vector{ConstrId}}(),
                        nothing, Min)
 end
+function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
+    return Formulation(m::AbstractModel,  nothing, moi)
+end
+function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing})
+    return Formulation(m::AbstractModel, parent_formulation, nothing)
+end
+function Formulation(m::AbstractModel)
+    return Formulation(m::AbstractModel, nothing, nothing)
+end
 
 
-function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
+function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
     varconstr_copy = deepcopy(varconstr)
     setform!(varconstr_copy, getuid(dest))
     setduty!(varconstr_copy, duty)
@@ -127,7 +129,7 @@ function clone_in_formulation!(var_uids::Vector{VarId},
                                duty::VarDuty)
     for var_uid in var_uids
         var = getvar(src_form, var_uid)
-        var_clone = copy_in_formulation!(var, src_form, dest_form, duty)
+        var_clone = clone_in_formulation!(var, src_form, dest_form, duty)
         reset_constr_members_of_var!(dest_form.memberships, var_uid,
                                      get_constr_members_of_var(src_form, var_uid))
     end
@@ -141,15 +143,15 @@ function clone_in_formulation!(constr_uids::Vector{ConstrId},
                                duty::ConstrDuty)
     for constr_uid in constr_uids
         constr = getconstr(src_form, constr_uid)
-        constr_clone = copy_in_formulation!(constr, src_form, dest_form, duty)
-        reset_var_members_of_constr!(dest_form.memberships, constr_uid,
+        constr_clone = clone_in_formulation!(constr, src_form, dest_form, duty)
+        set_var_members_of_constr!(dest_form.memberships, constr_uid,
                                      get_var_members_of_constr(src_form, constr_uid))
     end
     
     return 
 end
 
-#==function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty; membership = false)
+#==function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty; membership = false)
     varconstr_copy = deepcopy(varconstr)
     setform!(varconstr_copy, getuid(dest))
     setduty!(varconstr_copy, duty)
