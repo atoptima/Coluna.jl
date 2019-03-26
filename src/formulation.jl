@@ -89,8 +89,8 @@ getconstr(f::Formulation, uid) = f.constrs[uid]
 get_constr_members_of_var(f::Formulation, uid) = get_constr_members_of_var(f.memberships, uid)
 get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.memberships, uid)
 
-get_constr_members(f::Formulation, var::Variable) = getvarmembership(f, getuid(var))
-getmembership(f::Formulation, constr::Constraint) = getconstrmembership(f, getuid(constr))
+get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getuid(var))
+get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getuid(constr))
 
 function Formulation(m::AbstractModel)
     return Formulation(m::AbstractModel, nothing)
