@@ -30,8 +30,8 @@ mutable struct Formulation  <: AbstractFormulation
     map_constr_uid_to_index::Dict{ConstrId, MoiConstrIndex}
     map_index_to_var_uid::Dict{MoiVarIndex, VarId}
     map_index_to_constr_uid::Dict{MoiConstrIndex, ConstrId}
-    var_bounds::Dict{VarId, MoiBounds}
-    var_kinds::Dict{VarId, MoiKind}
+    var_bounds::Dict{VarId, MoiVarBound}
+    var_kinds::Dict{VarId, MoiVarKind}
     callbacks
 end
 
@@ -121,8 +121,8 @@ function Formulation(m::AbstractModel,
                        Dict{ConstrId, MoiConstrIndex}(),
                        Dict{MoiVarIndex, VarId}(),
                        Dict{MoiConstrIndex, ConstrId}(),
-                       Dict{VarId, MoiBounds}(),
-                       Dict{VarId, MoiKind}(),
+                       Dict{VarId, MoiVarBound}(),
+                       Dict{VarId, MoiVarKind}(),
                        nothing)
 end
 function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})

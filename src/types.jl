@@ -13,7 +13,7 @@ abstract type AbstractCounter end
 
 @enum VarSense Positive Negative Free
 @enum VarKind Continuous Binary Integ
-@enum ConstrKind Core Facultative 
+@enum ConstrKind Core Facultative SubSystem 
 @enum ConstrSense Greater Less Equal
 @enum Flag Static Dynamic Delayed Artifical Implicit
 @enum Status Active Unsuitable
@@ -28,8 +28,8 @@ const VarId = Int
 const ConstrId = Int
 const FormId = Int
 
-const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
-const MoiKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
+const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
+const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
 const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}
 const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
 
