@@ -42,29 +42,29 @@ function print_and_check_sol(data, gap, x)
     return sol_is_ok
 end
 
-function run_sgap_play()
+function sgap_play()
     appfolder = dirname(@__FILE__)
     data = read_dataGap("$appfolder/data/play2.txt")
-    (gap, x) = model_sgap(data)
-    optimize!(gap)
+    return model_sgap(data)
+    #optimize!(gap)
     #@test abs(JuMP.objective_value(gap) - 75.0) < 1e-5
     #@test print_and_check_sol(data, gap, x)
 end
 
-function run_sgap_5_100()
+function sgap_5_100()
     appfolder = dirname(@__FILE__)
     data = read_dataGap("$appfolder/data/gapC-5-100.txt")
-    (gap, x) = model_sgap(data)
-    optimize!(gap)
-    @test abs(JuMP.objective_value(gap) - 1931.0) < 1e-5
-    @test print_and_check_sol(data, gap, x)
+    return model_sgap(data)
+    #optimize!(gap)
+    #@test abs(JuMP.objective_value(gap) - 1931.0) < 1e-5
+    #@test print_and_check_sol(data, gap, x)
 end
 
-function run_sgap_10_100()
+function sgap_10_100()
     appfolder = dirname(@__FILE__)
     data = read_dataGap("$appfolder/data/gapC-10-100.txt")
-    (gap, x) = model_sgap(data)
-    optimize!(gap)
-    @test abs(JuMP.objective_value(gap) - 1402.0) < 1e-5
-    @test print_and_check_sol(data, gap, x)
+    return model_sgap(data)
+    #optimize!(gap)
+    #@test abs(JuMP.objective_value(gap) - 1402.0) < 1e-5
+    #@test print_and_check_sol(data, gap, x)
 end
