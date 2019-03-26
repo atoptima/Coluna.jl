@@ -15,6 +15,7 @@
 
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
+    parent_reformulation::Union{AbstractFormulation, Nothing}
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     vars::Dict{VarId, Variable} 
@@ -92,24 +93,25 @@ get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.mem
 get_constr_members(f::Formulation, var::Variable) = getvarmembership(f, getuid(var))
 getmembership(f::Formulation, constr::Constraint) = getconstrmembership(f, getuid(constr))
 
-function Formulation(m::AbstractModel)
-    return Formulation(m::AbstractModel, nothing)
-end
 
-function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
+
+function Formulation(m::AbstractModel, parent_reformulation::Union{AbstractFormulation, Nothing}, moi::Union{MOI.ModelLike, Nothing})
     uid = getnewuid(m.form_counter)
-    # costs = spzeros(Float64, MAX_SV_ENTRIES)
-    # lb = spzeros(Float64, MAX_SV_ENTRIES)
-    # ub = spzeros(Float64, MAX_SV_ENTRIES)
-    # rhs = spzeros(Float64, MAX_SV_ENTRIES)
-    # vtypes = Dict{VarId, VarKind}()
-    # csenses = Dict{ConstrId, ConstrSense}()
-    return Formulation(uid, moi, nothing, 
+    return Formulation(uid, parent_reformulation, moi, nothing, 
                        Dict{VarId, Variable}(), Dict{ConstrId, Constraint}(),
                        Memberships(), Filter(), Filter(),
                        Dict{VarDuty, Vector{VarId}}(), 
                        Dict{ConstrDuty, Vector{ConstrId}}(),
                        nothing, Min)
+end
+function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
+    return Formulation(m::AbstractModel,  nothing, moi)
+end
+function Formulation(m::AbstractModel, parent_reformulation::Union{AbstractFormulation, Nothing})
+    return Formulation(m::AbstractModel, parent_reformulation, nothing)
+end
+function Formulation(m::AbstractModel)
+    return Formulation(m::AbstractModel, nothing)
 end
 
 

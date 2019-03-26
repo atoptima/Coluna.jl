@@ -115,7 +115,9 @@ function build_dw_pricing_sp!(m::Model,
     add!(sp_form, setup_var)
 
 
-    clone_in_formulation!(vars_in_form, orig_form, sp_form, PricingSpPureVar)
+    clone_in_formulation!(vars_in_form, orig_form, sp_form, PricingSpVar)
+
+    # distinguish PricingSpPureVar
 
     clone_in_formulation!(constrs_in_form, orig_form, sp_form, PricingSpPureConstr)
 
@@ -149,7 +151,7 @@ function reformulate!(m::Model, method::SolutionMethod)
     # Build pricing  subproblems
     master_annotation_id = -1
     for annotation in ann_sorted_by_uid
-        f = Formulation(m)
+        f = Formulation(m, reformulation)
         formulations[annotation.unique_id] = f
         if annotation.problem == BD.Master
              master_annotation_id = annotation.unique_id
