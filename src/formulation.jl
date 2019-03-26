@@ -18,8 +18,9 @@ mutable struct Formulation  <: AbstractFormulation
     parent_formulation::Union{Formulation, Nothing}
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::Dict{VarId, Variable} 
-    constrs::Dict{ConstrId, Constraint}
+    vars::SparseVector{Variable,VarId} 
+    constrs::SparseVector{Constraint,ConstrId} 
+    #constrs::Dict{ConstrId, Constraint}
     memberships::Memberships
     var_status::Filter
     constr_status::Filter
@@ -67,11 +68,13 @@ end
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
-activevar(f::Formulation) = activemask(f.var_status)
-staticvar(f::Formulation) = staticmask(f.var_status)
-artificalvar(f::Formulation) = artificialmask(f.var_status)
-activeconstr(f::Formulation) = activemask(f.constr_status)
-staticconstr(f::Formulation) = staticmask(f.constr_status)x
+activevar(f::Formulation) = f.vars[activemask(f.var_status)]
+staticvar(f::Formulation) = f.vars[staticmask(f.var_status)]
+dynamicvar(f::Formulation) = f.vars[dynamicmask(f.var_status)]
+artificalvar(f::Formulation) = f.vars[artificialmask(f.var_status)]
+activeconstr(f::Formulation) = f.constrs[activemask(f.constr_status)]
+staticconstr(f::Formulation) = f.constrs[staticmask(f.constr_status)]
+dynamicconstr(f::Formulation) = f.constrs[dynamicmask(f.constr_status)]
 
 function getvar_uids(f::Formulation,d::VarDuty)
     if haskey(f.var_duty_sets, d)
@@ -105,12 +108,13 @@ function Formulation(m::AbstractModel,
                      parent_formulation::Union{Formulation, Nothing},
                      moi_model::Union{MOI.ModelLike, Nothing})
     uid = getnewuid(m.form_counter)
+    
     return Formulation(uid,
                        parent_formulation,
                        moi_model,
                        nothing, 
-                       Dict{VarId, Variable}(),
-                       Dict{ConstrId, Constraint}(),
+                       spzeros(MAX_SV_ENTRIES), #SparseVector{Variable,VarId}(),
+                       spzeros(MAX_SV_ENTRIES), #SparseVector{Constraint,ConstrId}(),
                        Memberships(),
                        Filter(),
                        Filter(),
@@ -203,30 +207,52 @@ function add!(f::Formulation, elems::Vector{T},
     return
 end
 
-function add!(f::Formulation, var::Variable)
+
+function record!(f::Formulation, var::Variable)
     var_uid = getuid(var)
     setvarduty!(f, var)
     f.vars[var_uid] = var
-    add_variable!(f.memberships, var_uid)
-    # TODO : Register in filter
+    f.var_status.used_mask[var_uid] = true
+    f.var_status.active_mask[var_uid] = true
+    if (var.flag == Static)
+        f.var_status.static_mask[var_uid] = true
+    elseif (var.flag == Artificial)
+        f.var_status.artificial_mask[var_uid] = true
+    elseif (var.flag == Implicit)
+        f.var_status.implicit_mask[var_uid] = true
+    end
     return
 end
 
-function add!(f::Formulation, constr::Constraint)
+function add!(f::Formulation, var::Variable)
+    record!(f,var)
+    add_variable!(f.memberships, getuid(var))
+    return
+end
+
+function record!(f::Formulation, constr::Constraint)
     constr_uid = getuid(constr)
     setconstrduty!(f, constr)
     f.constrs[constr_uid] = constr
-    add_constraint!(f.memberships, constr_uid)
-    # TODO : Register in filter
+    f.constr_status.used_mask[constr_uid] = true
+    f.constr_status.active_mask[constr_uid] = true
+    if (constr.flag == Static)
+        f.constr_status.static_mask[constr_uid] = true
+    elseif (constr.flag == Implicit)
+        f.constr_status.implicit_mask[constr_uid] = true
+    end
+   return
+end
+
+function add!(f::Formulation, constr::Constraint)
+    record!(f,constr)
+    add_constraint!(f.memberships, getuid(constr))
     return
 end
 
 function add!(f::Formulation, constr::Constraint, membership::SparseVector)
-    constr_uid = getuid(constr)
-    setconstrduty!(f, constr)
-    f.constrs[constr_uid] = constr
-    add_constraint!(f.memberships, constr_uid, membership)
-    # TODO : Register in filter
+    record!(f,constr)
+    add_constraint!(f.memberships, getuid(constr), membership)
     return
 end
 
@@ -245,3 +271,5 @@ mutable struct Reformulation <: AbstractFormulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
 end
+
+

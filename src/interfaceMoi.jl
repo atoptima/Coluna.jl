@@ -69,6 +69,92 @@ function add_variable_in_optimizer(form::Formulation,
     end
 end
 
+function fill_primal_sol(form::Formulation,
+                         sol::Dict{VarId, Float64},
+                         var_list::Vector{VarId})
+
+    for var_uid in var_list
+        val = MOI.get(form.moi_optimizer, MOI.VariablePrimal(),
+                          form.map_var_uid_to_index[var_uid])
+        @logmsg LogLevel(-4) string("Var ", getname(form.vars[var_uid]), " = ", val)
+        if val > 0.0
+            sol[var_uid] = val
+        end
+    end
+end
+
+function retrieve_primal_sol(form::Formulation)
+    new_sol = Dict{VarId, Float64}()
+    new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue()) 
+    fill_primal_sol(form, new_sol, activevar(form))
+    #fill_primal_sol(form, new_sol, problem.var_manager.active_static_list)
+    #fill_primal_sol(form, new_sol, problem.var_manager.active_dynamic_list)
+    primal_sol = PrimalSolution(new_obj_val, new_sol)
+    @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
+    return primal_sol
+end
+
+
+function retrieve_dual_sol(form::Formulation)
+    # TODO check if supported by solver
+    if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
+        return nothing
+    end
+
+    new_sol = Dict{ConstrId, Float64}()
+
+    #==
+# problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
+    constr_list = activevar(form)problem.constr_manager.active_static_list
+    constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
+    for constr_idx in 1:length(constr_list)
+        constr = constr_list[constr_idx]
+        constr.val = 0.0
+        try # This try is needed because of the erroneous assertion in LQOI
+            constr.val = MOI.get(form.moi_optimizer, MOI.ConstraintDual(),
+                                 constr.moi_index)
+        catch err
+            if (typeof(err) == AssertionError &&
+                !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
+                throw(err)
+            end
+        end
+        @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
+                                    constr.val)
+        @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
+                                    MOI.get(optimizer, MOI.ConstraintPrimal(),
+                                            constr.moi_index))
+        if constr.val != 0 # TODO use a tolerance
+            new_sol[constr] = constr.val
+        end
+    end
+==#
+    dual_sol = DualSolution(-Inf, new_sol)
+    return dual_sol
+end
+
+function optimize(form::Formulation, update_problem = true)
+    
+    call_moi_optimize_with_silence(form.moi_optimizer)
+    status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
+    @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
+    if MOI.get(optimizer, MOI.ResultCount()) >= 1
+        primal_sol = retrieve_primal_sol(form)
+        dual_sol = retrieve_dual_sol(form)
+       #== if update_problem
+            form.primal_sol = primal_sol
+            if dual_sol != nothing
+                form.dual_sol = dual_sol
+            end
+        end
+==#
+        return (status, primal_sol, dual_sol)
+    end
+    @logmsg LogLevel(-4) string("Solver has no result to show.")
+    return (status, nothing, nothing)
+end
+
+
 #==
 function compute_constr_terms(membership::VarMembership)
     active = true

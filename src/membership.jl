@@ -3,13 +3,22 @@ mutable struct Filter
     active_mask::SparseVector{Bool,Int}
     static_mask::SparseVector{Bool,Int}
     artificial_mask::SparseVector{Bool,Int}
+    implicit_mask::SparseVector{Bool,Int}
 end
 
-Filter() = Filter(spzeros(MAX_SV_ENTRIES), spzeros(MAX_SV_ENTRIES), spzeros(MAX_SV_ENTRIES), spzeros(MAX_SV_ENTRIES))
+Filter() = Filter(spzeros(MAX_SV_ENTRIES),
+                  spzeros(MAX_SV_ENTRIES),
+                  spzeros(MAX_SV_ENTRIES),
+                  spzeros(MAX_SV_ENTRIES),
+                  spzeros(MAX_SV_ENTRIES))
 
 activemask(f::Filter) = f.used_mask .& f.active_mask
 staticmask(f::Filter) = f.used_mask .& f.static_mask
+dynamicmask(f::Filter) = f.used_mask .& !f.static_mask
+realmask(f::Filter) = f.used_mask .& !f.artificial_mask
 artificalmask(f::Filter) = f.used_mask .& f.artificial_mask
+implicitmask(f::Filter) = f.used_mask .& f.implicit_mask
+explicitmask(f::Filter) = f.used_mask .& !f.implicit_mask
 #selectivemask(f::Filter, active::Bool, static::Bool, artificial::Bool) = f.used_mask active ? .& f.active_mask : nothing  static ? .& f.static_mask : nothing  artificial ? .& f.artificial_mask : nothing
 
 struct Memberships
@@ -26,6 +35,25 @@ function Memberships()
     constr_m = Dict{ConstrId, ConstrMembership}()
     return Memberships(var_m, partialsol_m, expression_m, constr_m)
 end
+
+struct PrimalSolution
+    value::Float64
+    var_members::Dict{VarId, Float64}
+end
+
+function PrimalSolution()
+    return PrimalSolution(0.0, Dict{VarId, Float64}())
+end
+
+struct DualSolution
+    value::Float64
+    constr_members::Dict{ConstrId, Float64}
+end
+
+function DualSolution()
+    return DualSolution(0.0, Dict{ConstrId, Float64}())
+end
+
 
 hasvar(m::Memberships, uid) = haskey(m.var_to_constr_members, uid)
 hasconstr(m::Memberships, uid) = haskey(m.constr_to_var_members, uid)

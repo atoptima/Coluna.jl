@@ -16,3 +16,4 @@ function getnewuid(counter::AbstractCounter)
     counter.value = (counter.value + 1)
     return counter.value
 end
+

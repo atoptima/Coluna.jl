@@ -15,7 +15,7 @@ abstract type AbstractCounter end
 @enum VarKind Continuous Binary Integ
 @enum ConstrKind Core Facultative SubSystem 
 @enum ConstrSense Greater Less Equal
-@enum Flag Static Dynamic Delayed Artifical Implicit
+@enum Flag Static Dynamic Delayed Artificial Implicit
 @enum Status Active Unsuitable
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
