@@ -9,15 +9,15 @@ mutable struct Variable <: AbstractVarConstr
     flag::Flag     # Static, Dynamic, Artifical, Implicit
     duty::VarDuty
     sense::VarSense 
-    index::MOI.VariableIndex 
-    bounds_index::Union{MoiBounds, Nothing}
-    type_index::Union{MoiVcType, Nothing}
+    #index::MoiVarIndex 
+    #bounds_index::Union{MoiBounds, Nothing}
+    #type_index::Union{MoiKind, Nothing}
 end
 
 function Variable(m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 
-        ub::Float64, t::VarKind, flag::Flag, d::VarDuty, s::VarSense)
+                  ub::Float64, t::VarKind, flag::Flag, d::VarDuty, s::VarSense)
     uid = getnewuid(m.var_counter)
-    return Variable(uid, form_uid, n, c, lb, ub, t, flag, d, s, MOI.VariableIndex(-1), nothing, nothing)
+    return Variable(uid, form_uid, n, c, lb, ub, t, flag, d, s)
 end
 
 function Variable(m::AbstractModel,  n::String)

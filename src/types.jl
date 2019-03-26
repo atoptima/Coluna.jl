@@ -29,7 +29,9 @@ const ConstrId = Int
 const FormId = Int
 
 const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
-const MoiVcType = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
+const MoiKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
+const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}
+const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
 
 const VarMembership = SparseVector{Float64, VarId}
 const ConstrMembership = SparseVector{Float64, ConstrId}

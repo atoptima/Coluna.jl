@@ -85,7 +85,7 @@ end
 
 # const MoiBounds = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float}}
 
-# const MoiVcType = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{
+# const MoiKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{
 #     MOI.Integer,MOI.ZeroOne}
 
 # mutable struct MoiVarDef
@@ -102,11 +102,11 @@ end
 #     # ```
 #     # Stores the MOI.ConstraintIndex that represents kind in coluna
 #     # ```
-#     type_index::MoiVcType
+#     type_index::MoiKind
 # end
 
 # function MoiVarDef()
-#     return MoiVarDef(MOI.VariableIndex(-1), MoiBounds(-1), MoiVcType{MOI.ZeroOne}(-1))
+#     return MoiVarDef(MOI.VariableIndex(-1), MoiBounds(-1), MoiKind{MOI.ZeroOne}(-1))
 # end
 
 

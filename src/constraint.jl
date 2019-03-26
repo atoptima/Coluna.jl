@@ -7,17 +7,23 @@ mutable struct Constraint <: AbstractVarConstr
     kind::ConstrKind  # Core Facultative SubSytem PureMaster SubprobConvexity
     flag::Flag    # Static, Dynamic/Delayed, Implicit
     duty::ConstrDuty 
-    index::Union{MOI.ConstraintIndex, Nothing} 
+   # index::MoiConstrIndex
 end
 
-function Constraint(m::AbstractModel, form_uid::FormId,  n::String, rhs::Float64, s::ConstrSense, 
-        t::ConstrKind, f::Flag, d::ConstrDuty)
+function Constraint(m::AbstractModel,
+                    form_uid::FormId,
+                    name::String,
+                    rhs::Float64,
+                    sense::ConstrSense, 
+                    kind::ConstrKind,
+                    flag::Flag,
+                    duty::ConstrDuty)
     uid = getnewuid(m.constr_counter)
-    return Constraint(uid, form_uid,  n, rhs, s, t, f, d, nothing)
+    return Constraint(uid, form_uid,  name, rhs, sense, kind, flag, duty)
 end
 
-function Constraint(m::AbstractModel, n::String)
-    return Constraint(m, 0, n, 0.0, Greater, Core, Static, OriginalConstr)
+function Constraint(m::AbstractModel, name::String)
+    return Constraint(m, 0, name, 0.0, Greater, Core, Static, OriginalConstr)
 end
 
 getuid(c::Constraint) = c.constr_uid

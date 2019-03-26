@@ -25,8 +25,14 @@ mutable struct Formulation  <: AbstractFormulation
     constr_status::Filter
     var_duty_sets::Dict{VarDuty, Vector{VarId}}
     constr_duty_sets::Dict{ConstrDuty, Vector{ConstrId}}
-    callbacks
     obj_sense::ObjSense
+    map_var_uid_to_index::Dict{VarId, MoiVarIndex}
+    map_constr_uid_to_index::Dict{ConstrId, MoiConstrIndex}
+    map_index_to_var_uid::Dict{MoiVarIndex, VarId}
+    map_index_to_constr_uid::Dict{MoiConstrIndex, ConstrId}
+    var_bounds::Dict{VarId, MoiBounds}
+    var_kinds::Dict{VarId, MoiKind}
+    callbacks
 end
 
 function setvarduty!(f::Formulation, var::Variable)
@@ -95,14 +101,29 @@ getmembership(f::Formulation, constr::Constraint) = getconstrmembership(f, getui
 
 
 
-function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing}, moi::Union{MOI.ModelLike, Nothing})
+function Formulation(m::AbstractModel,
+                     parent_formulation::Union{Formulation, Nothing},
+                     moi_model::Union{MOI.ModelLike, Nothing})
     uid = getnewuid(m.form_counter)
-    return Formulation(uid, parent_formulation, moi, nothing, 
-                       Dict{VarId, Variable}(), Dict{ConstrId, Constraint}(),
-                       Memberships(), Filter(), Filter(),
+    return Formulation(uid,
+                       parent_formulation,
+                       moi_model,
+                       nothing, 
+                       Dict{VarId, Variable}(),
+                       Dict{ConstrId, Constraint}(),
+                       Memberships(),
+                       Filter(),
+                       Filter(),
                        Dict{VarDuty, Vector{VarId}}(), 
                        Dict{ConstrDuty, Vector{ConstrId}}(),
-                       nothing, Min)
+                       Min,
+                       Dict{VarId, MoiVarIndex}(),
+                       Dict{ConstrId, MoiConstrIndex}(),
+                       Dict{MoiVarIndex, VarId}(),
+                       Dict{MoiConstrIndex, ConstrId}(),
+                       Dict{VarId, MoiBounds}(),
+                       Dict{VarId, MoiKind}(),
+                       nothing)
 end
 function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     return Formulation(m::AbstractModel,  nothing, moi)
