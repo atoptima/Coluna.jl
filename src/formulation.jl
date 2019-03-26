@@ -113,7 +113,7 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
 end
 
 
-function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
+function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
     varconstr_copy = deepcopy(varconstr)
     setform!(varconstr_copy, getuid(dest))
     setduty!(varconstr_copy, duty)
@@ -127,8 +127,8 @@ function clone_in_formulation!(var_uids::Vector{VarId},
                                duty::VarDuty)
     for var_uid in var_uids
         var = getvar(src_form, var_uid)
-        var_clone = copy_in_formulation!(var, src_form, dest_form, duty)
-        reset_constr_members_of_var!(dest_form.memberships, var_uid,
+        var_clone = clone_in_formulation!(var, src_form, dest_form, duty)
+        set_constr_members_of_var!(dest_form.memberships, var_uid,
                                      get_constr_members_of_var(src_form, var_uid))
     end
     
@@ -141,7 +141,7 @@ function clone_in_formulation!(constr_uids::Vector{ConstrId},
                                duty::ConstrDuty)
     for constr_uid in constr_uids
         constr = getconstr(src_form, constr_uid)
-        constr_clone = copy_in_formulation!(constr, src_form, dest_form, duty)
+        constr_clone = clone_in_formulation!(constr, src_form, dest_form, duty)
         reset_var_members_of_constr!(dest_form.memberships, constr_uid,
                                      get_var_members_of_constr(src_form, constr_uid))
     end
@@ -149,7 +149,7 @@ function clone_in_formulation!(constr_uids::Vector{ConstrId},
     return 
 end
 
-#==function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty; membership = false)
+#==function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty; membership = false)
     varconstr_copy = deepcopy(varconstr)
     setform!(varconstr_copy, getuid(dest))
     setduty!(varconstr_copy, duty)

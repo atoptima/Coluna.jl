@@ -68,7 +68,7 @@ function build_dw_master!(model::Model,
         for var_uid in var_uids
             var = getvar(sp_form, var_uid)
             @assert getduty(var) == PricingSpSetupVar
-            var_clone = copy_in_formulation!(var, sp_form, master_form, MastRepPricingSpVar)
+            var_clone = clone_in_formulation!(var, sp_form, master_form, MastRepPricingSpVar)
             membership = spzeros(Float64, MAX_SV_ENTRIES)
             membership[getuid(conv_constr)] = 1
             add_constr_members_of_var!(master_form.memberships, var_uid, membership)
@@ -87,7 +87,7 @@ function build_dw_master!(model::Model,
     # copy of master constraints
     clone_in_formulation!(constrs_in_form, orig_form, master_form, MasterConstr)
 
-    # TODO Detect and copy copy of pure master constraints
+    # TODO Detect and copy of pure master constraints
 
     
     
