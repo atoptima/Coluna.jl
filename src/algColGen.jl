@@ -18,7 +18,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
             new_obj[var.index] = getcost(var)
         end
 
-        master_form = sp_form.parent.master
+        master_form = sp_form.parent_formulation
         dual_solution = get_dual_sol(alg)
         for (constr_uid, dual_val) in dual_solution
             #@assert (constr isa MasterConstr) || (constr isa MasterBranchConstr)
@@ -28,7 +28,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
             #    alg.pricing_const_obj[pricing_prob] -= dual
             #    continue
             # end
-            constr_membership = get_var_member(pricing_prob, constr_uid)
+            var_membership = get_var_members_of_constr(master_form, constr_uid)
             for (var_uid, coef) in constr_membership
                 if haskey(new_obj, var) 
                 if haskey(new_obj, var)

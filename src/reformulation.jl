@@ -147,15 +147,19 @@ function reformulate!(m::Model, method::SolutionMethod)
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
 
+    master_form = Formulation(m)
     
     # Build pricing  subproblems
     master_annotation_id = -1
     for annotation in ann_sorted_by_uid
-        f = Formulation(m, reformulation)
-        formulations[annotation.unique_id] = f
+
         if annotation.problem == BD.Master
-             master_annotation_id = annotation.unique_id
+            master_annotation_id = annotation.unique_id
+            formulations[annotation.unique_id] = master_form
+
         elseif annotation.problem == BD.Pricing
+            f = Formulation(m, master_form)
+            formulations[annotation.unique_id] = f
             if haskey(vars_in_forms, annotation.unique_id)
                 vars =  vars_in_forms[annotation.unique_id]
             else
@@ -168,7 +172,7 @@ function reformulate!(m::Model, method::SolutionMethod)
             end
             add_dw_pricing_sp!(reformulation, f)
             build_dw_pricing_sp!(m, annotation.unique_id, f, vars, constrs)
-        else
+        else 
             error("Not supported yet.")
         end
     end
@@ -185,9 +189,8 @@ function reformulate!(m::Model, method::SolutionMethod)
     else
         constrs = Vector{ConstrId}()
     end
-    f = formulations[master_annotation_id]
-    setmaster!(reformulation, f)
-    build_dw_master!(m, master_annotation_id, reformulation, f, vars, constrs)
+    setmaster!(reformulation, master_form)
+    build_dw_master!(m, master_annotation_id, reformulation, master_form, vars, constrs)
 
 
     # TODO : Register constraints and variables

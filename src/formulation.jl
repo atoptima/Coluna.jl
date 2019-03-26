@@ -15,7 +15,7 @@
 
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
-    parent_reformulation::Union{AbstractFormulation, Nothing}
+    parent_formulation::Union{Formulation, Nothing}
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     vars::Dict{VarId, Variable} 
@@ -95,9 +95,9 @@ getmembership(f::Formulation, constr::Constraint) = getconstrmembership(f, getui
 
 
 
-function Formulation(m::AbstractModel, parent_reformulation::Union{AbstractFormulation, Nothing}, moi::Union{MOI.ModelLike, Nothing})
+function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing}, moi::Union{MOI.ModelLike, Nothing})
     uid = getnewuid(m.form_counter)
-    return Formulation(uid, parent_reformulation, moi, nothing, 
+    return Formulation(uid, parent_formulation, moi, nothing, 
                        Dict{VarId, Variable}(), Dict{ConstrId, Constraint}(),
                        Memberships(), Filter(), Filter(),
                        Dict{VarDuty, Vector{VarId}}(), 
@@ -107,11 +107,11 @@ end
 function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     return Formulation(m::AbstractModel,  nothing, moi)
 end
-function Formulation(m::AbstractModel, parent_reformulation::Union{AbstractFormulation, Nothing})
-    return Formulation(m::AbstractModel, parent_reformulation, nothing)
+function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing})
+    return Formulation(m::AbstractModel, parent_formulation, nothing)
 end
 function Formulation(m::AbstractModel)
-    return Formulation(m::AbstractModel, nothing)
+    return Formulation(m::AbstractModel, nothing, nothing)
 end
 
 
