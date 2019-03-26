@@ -75,36 +75,23 @@ function build_dw_master!(model::Model,
         end
 
         # create representative of sp var
-        for var_uid in getvar_uids(sp_form, PricingSpVar)
-            var = getvar(orig_form, var_uid)
-            var_clone = copy_in_formulation!(var, orig_form, master_form, MastRepPricingSpVar)
-            reset_constr_members_of_var!(master_form.memberships, var_uid,
-                                       get_constr_members_of_var(orig_form, var_uid) )
-        end
-
+        clone_in_formulation!(getvar_uids(sp_form, PricingSpVar), orig_form, master_form, MastRepPricingSpVar)
         
         
     end
 
 
     # copy of pure master variables
-    for var_id in vars_in_form
-        var = copy_variable(master_form, orig_form.vars[var_id], PureMastVar)
-    end
-    
-    # for  master constraints, create associated artificial variables
-    # new_vars = Variable[]
-    # lb = fill(-Inf, length(vars))
-    #  ub = fill(Inf, length(vars))
-    #  vtypes = fill(Continuous, length(vars))
-    
-    # add_variable!(
-    
-    
-    
-    # clone pure master variables 
-    #copy_variables!(master_form, orig_form, vars_in_form)
+    clone_in_formulation!(vars_in_form, orig_form, master_form, PureMastVar)
 
+    #for var_uid in vars_in_form
+    #    var = getvar(orig_form, var_uid)
+    #    var_clone = copy_in_formulation!(var, orig_form, master_form, PureMastVar)
+    #    reset_constr_members_of_var!(master_form.memberships, var_uid,
+    #                                 get_constr_members_of_var(orig_form, var_uid))
+    #end
+    
+ 
     # clone pure & mixed  master constraints 
     #copy_constraints!(master_form, orig_form, constrs_in_form)
     
@@ -126,21 +113,17 @@ function build_dw_pricing_sp!(m::Model,
     lb = 1.0
     ub = 1.0
     kind = Binary
-    flag = Static
+    flag = Implicit
     duty = PricingSpSetupVar
     sense = Positive
     setup_var = Variable(m, getuid(sp_form), name, cost, lb, ub, kind, flag, duty, sense)
     add!(sp_form, setup_var)
 
-    for var_id in vars_in_form
-        var = getvar(orig_form, var_id)
-        copy_in_formulation!(var, orig_form, sp_form, PricingSpPureVar)
-    end
-    for constr_id in constrs_in_form
-        constr = getconstr(orig_form, constr_id)
-        copy_in_formulation!(constr, orig_form, sp_form, PricingSpPureConstr)
-        # clone membership
-    end
+
+    clone_in_formulation!(vars_in_form, orig_form, sp_form, PricingSpPureVar)
+
+    clone_in_formulation!(constrs_in_form, orig_form, sp_form, PricingSpPureConstr)
+
     return
 end
 

@@ -56,6 +56,10 @@ function reset_constr_members_of_var!(m::Memberships, var_uid::VarId, new_member
     m.var_to_constr_members[var_uid] = new_membership
 end
 
+function reset_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_membership::VarMembership) 
+    m.constr_to_var_members[constr_uid] = new_membership
+end
+
 function set_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
     reset_constr_members_of_var!(m, var_uid, new_membership)
     constr_uids, vals = findnz(new_membership)
