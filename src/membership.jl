@@ -36,6 +36,33 @@ function get_constr_members_of_var(m::Memberships, uid::VarId)
     error("Variable $uid not stored in formulation.")
 end
 
+function add_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
+    if !hasvar(m, var_uid)
+        error("Variable $uid not stored in formulation.")
+    end
+    constr_uids, vals = findnz(new_membership)
+    for j in 1:length(constr_uids)
+        m.var_to_constr_members[var_uid][constr_uids[j]] = vals[j]
+        if hasconstr(m, constr_uids[j]) 
+            m.constr_to_var_members[constr_uids[j]][var_uid] = vals[j]
+        else
+            @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
+        end
+    end
+end
+
+function set_constr_members_of_var!(m::Memberships, uid::VarId, new_membership::ConstrMembership) 
+    m.var_to_constr_members[var_uid] = new_membership
+    constr_uids, vals = findnz(new_membership)
+    for j in 1:length(constr_uids)
+        if hasconstr(m, constr_uids[j]) 
+            m.constr_to_var_members[constr_uids[j]][var_uid] = vals[j]
+        else
+            @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
+        end
+    end
+end
+
 function get_var_members_of_constr(m::Memberships, uid::ConstrId) 
     hasconstr(m, uid) && return m.constr_to_var_members[uid]
     error("Constraint $uid not stored in formulation.")
@@ -52,17 +79,9 @@ function add_variable!(m::Memberships, var_uid::VarId)
     return
 end
 
-function add_variable!(m::Memberships, var_uid::VarId, new_membership::SparseVector)
+function add_variable!(m::Memberships, var_uid::VarId, constr_membership::SparseVector)
     hasvar(m, var_uid) && error("Variable with uid $var_uid already registered.")
-    m.var_to_constr_members[var_uid] = new_membership
-    constr_uids, vals = findnz(new_membership)
-    for j in 1:length(constr_uids)
-        if hasconstr(m, constr_uids[j]) 
-            m.constr_to_var_members[constr_uids[j]][var_uid] = vals[j]
-        else
-            @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
-        end
-    end
+    set_constr_members_of_var!(m, var_uid, constr_membership)
     return
 end
 

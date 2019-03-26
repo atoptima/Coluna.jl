@@ -89,8 +89,9 @@ getconstr(f::Formulation, uid) = f.constrs[uid]
 get_constr_members_of_var(f::Formulation, uid) = get_constr_members_of_var(f.memberships, uid)
 get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.memberships, uid)
 
-getmembership(f::Formulation, var::Variable) = getvarmembership(f, getuid(var))
+get_constr_members(f::Formulation, var::Variable) = getvarmembership(f, getuid(var))
 getmembership(f::Formulation, constr::Constraint) = getconstrmembership(f, getuid(constr))
+
 function Formulation(m::AbstractModel)
     return Formulation(m::AbstractModel, nothing)
 end
@@ -112,19 +113,27 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
 end
 
 
-function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty; membership = false)
+function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
     varconstr_copy = deepcopy(varconstr)
-    setform!(varconstr_copy, getuid(form))
+    setform!(varconstr_copy, getuid(dest))
+    setduty!(varconstr_copy, duty)
+    add!(dest, varconstr_copy)
+    return
+end
+
+#==function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty; membership = false)
+    varconstr_copy = deepcopy(varconstr)
+    setform!(varconstr_copy, getuid(dest))
     setduty!(varconstr_copy, duty)
     if membership
-        m = getmembership(src, varconstr)
+        m = get_constr_members(src, varconstr)
         m_copy = deepcopy(m)
         add!(dest, varconstr_copy, m_copy)
     else
         add!(dest, varconstr_copy)
     end
     return
-end
+end ==#
 
 
 function add!(f::Formulation, elems::Vector{T}) where {T <: AbstractVarConstr}

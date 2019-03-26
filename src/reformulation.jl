@@ -71,7 +71,7 @@ function build_dw_master!(model::Model,
                 if getduty(var) == PricingSpSetupVar
                     membership = spzeros(Float64, MAX_SV_ENTRIES)
                     membership[getuid(conv_constr)] = 1
-                    addvarmembership!(master_form.memberships, var_uid, membership)
+                    add_constr_members_of_var!(master_form.memberships, var_uid, membership)
                 end
             end           
         end
@@ -131,7 +131,8 @@ function build_dw_pricing_sp!(m::Model,
     end
     for constr_id in constrs_in_form
         constr = getconstr(orig_form, constr_id)
-        copy_in_formulation!(constr, orig_form, sp_form, PricingSpPureConstr, membership = true)
+        copy_in_formulation!(constr, orig_form, sp_form, PricingSpPureConstr)
+        # clone membership
     end
     return
 end
