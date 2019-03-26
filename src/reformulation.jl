@@ -67,7 +67,7 @@ function build_dw_master!(model::Model,
         #@assert length(var_uids) == 1
         for (var_uid, var)  in sp_form.vars
             if getduty(var) != PricingSpPureVar
-                copy_in_formulation!(var, master_form, MastRepPricingSpVar)
+                copy_in_formulation!(var, orig_form, master_form, MastRepPricingSpVar)
                 if getduty(var) == PricingSpSetupVar
                     membership = spzeros(Float64, MAX_SV_ENTRIES)
                     membership[getuid(conv_constr)] = 1
@@ -127,11 +127,11 @@ function build_dw_pricing_sp!(m::Model,
 
     for var_id in vars_in_form
         var = getvar(orig_form, var_id)
-        copy_in_formulation!(var, sp_form, PricingSpPureVar)
+        copy_in_formulation!(var, orig_form, sp_form, PricingSpPureVar)
     end
     for constr_id in constrs_in_form
         constr = getconstr(orig_form, constr_id)
-        copy_in_formulation!(constr, sp_form, PricingSpPureConstr)
+        copy_in_formulation!(constr, orig_form, sp_form, PricingSpPureConstr, membership = true)
     end
     return
 end
