@@ -18,9 +18,8 @@ mutable struct Formulation  <: AbstractFormulation
     parent_formulation::Union{Formulation, Nothing}
     moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::SparseVector{Variable,VarId} 
-    constrs::SparseVector{Constraint,ConstrId} 
-    #constrs::Dict{ConstrId, Constraint}
+    vars::VarManager # SparseVector{Variable,VarId} 
+    constrs::ConstrManager #SparseVector{Constraint,ConstrId} 
     memberships::Memberships
     var_status::Filter
     constr_status::Filter
@@ -191,15 +190,16 @@ end
 end ==#
 
 
-function add!(f::Formulation, elems::Vector{T}) where {T <: AbstractVarConstr}
+function add!(f::Formulation, elems::Vector{VC_Type}) where {VC_Type <: AbstractVarConstr}
     for elem in elems
         add!(f, elem)
     end
     return
 end
 
-function add!(f::Formulation, elems::Vector{T}, 
-        memberships::Vector{SparseVector}) where {T <: AbstractVarConstr}
+function add!(f::Formulation, elems::Vector{VC_Type}, 
+              memberships::Vector{M_Type}) where {VC_Type <: AbstractVarConstr,
+                                                  M_Type <: Union{VarMembership, ConstrMembership}}
     @assert length(elems) == length(memberships)
     for i in 1:length(elems)
         add!(f, elems[i], memberships[i])
@@ -250,7 +250,7 @@ function add!(f::Formulation, constr::Constraint)
     return
 end
 
-function add!(f::Formulation, constr::Constraint, membership::SparseVector)
+function add!(f::Formulation, constr::Constraint, membership::VarMembership)
     record!(f,constr)
     add_constraint!(f.memberships, getuid(constr), membership)
     return

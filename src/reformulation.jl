@@ -59,7 +59,7 @@ function build_dw_master!(model::Model,
         flag = Static
         duty = MastConvexityConstr
         conv_constr = Constraint(model, getuid(master_form), name, rhs, sense,kind,flag,duty)
-        membership = spzeros(Float64, MAX_SV_ENTRIES)
+        membership = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
         add!(master_form, conv_constr, membership)
 
         # create representative of sp setup var
@@ -69,7 +69,7 @@ function build_dw_master!(model::Model,
             var = getvar(sp_form, var_uid)
             @assert getduty(var) == PricingSpSetupVar
             var_clone = clone_in_formulation!(var, sp_form, master_form, MastRepPricingSpVar)
-            membership = spzeros(Float64, MAX_SV_ENTRIES)
+            membership = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
             membership[getuid(conv_constr)] = 1
             add_constr_members_of_var!(master_form.memberships, var_uid, membership)
         end

@@ -108,15 +108,19 @@ function create_origconstr!(constrs, memberships, vars,
     return
 end
 
-function create_origconstr!(constrs, memberships, vars, 
+function create_origconstr!(constrs, memberships::Vector{VarMembership}, vars, 
         model, name, f::MOI.ScalarAffineFunction, s, m_constr_id)
     constr = Constraint(model, name)
     set!(constr, s)
     push!(constrs, constr)
-    membership = spzeros(Float64, MAX_SV_ENTRIES)
+    membership = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
     for term in f.terms
         c_var_id = model.mid2cid_map[term.variable_index].value
-        membership[c_var_id] += term.coefficient
+        if haskey(membership,c_var_id)
+            membership[c_var_id] += term.coefficient
+        else
+            membership[c_var_id] = term.coefficient
+        end        
     end
     push!(memberships, membership)
     c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))
@@ -125,7 +129,7 @@ function create_origconstr!(constrs, memberships, vars,
 end
 
 function create_origconstrs!(constrs::Vector{Constraint}, 
-        memberships::Vector{SparseVector}, m::Model, src::MOI.ModelLike, 
+        memberships::Vector{VarMembership}, m::Model, src::MOI.ModelLike, 
         vars::Vector{Variable}, copy_names::Bool)
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
         for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
@@ -142,7 +146,7 @@ function create_origconstrs!(constrs::Vector{Constraint},
     return
 end
 
-function create_original_formulation!(model, vars, constrs, memberships, 
+function create_original_formulation!(model, vars, constrs, memberships::Vector{VarMembership}, 
         min_sense::Bool)
     orig_form = get_original_formulation(model)
     add!(orig_form, vars)
@@ -159,7 +163,7 @@ function register_original_formulation!(model::Model, dest::Optimizer, src::MOI.
     create_origvars!(vars, model, src, copy_names)
 
     constrs = Constraint[]
-    memberships = SparseVector[]
+    memberships = Vector{VarMembership}()
     create_origconstrs!(constrs, memberships, model, src, vars, copy_names)
 
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())

@@ -31,6 +31,57 @@ function update_pricing_target(alg::AlgToEvalNodeByLagrangianDuality,
                           "automating convexity constraints")
 end
 
+function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
+                               sp_form::Formulation,
+                               sp_sol::PrimalSolution)
+
+    # TODO add tolerances
+    
+    sp_uid = getuid(sp_form)
+    master_form = sp_form.parent
+
+    if sp_sol.value < -0.0001
+        name = "MC_$(sp_uid)"
+        cost = compute_original_cost(sp_sol,sp_form)
+        lb = 0.0
+        ub = Inf
+        kind = Continuous
+        flag = Dynamic
+        duty = MasterCol
+        sense = Positive
+        mc_var = Variable(m, getuid(master_form), name, cost, lb, ub, kind, flag, duty, sense)
+        mc_uid = getuid(mc_var)
+        name = "MC_$(sp_uid)_$(mc_uid)"
+        setname!(mc_var, name)
+        
+        membership = sp_sol.var_members
+        add_partialsol_members_of_var!(master_form.memberships, mc_var, membership)
+
+        var_uids = getvar_uids(sp_form, PricingSpSetupVar)
+        @assert length(var_uids) == 1
+        add_var!(membership, var_uids[1], 1.0)
+        
+        add!(master_form, mc_var, membership)
+       
+        
+        #col = MasterColumnConstructor(master.counter, sp_sol) # generates memberships
+        #convexity_lb = alg.extended_problem.pricing_convexity_lbs[pricing_prob]
+        #convexity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob]
+        #add_membership(col, convexity_lb, 1.0; optimizer = nothing)
+        #add_membership(col, convexity_ub, 1.0; optimizer = nothing)
+        #add_variable(master, col; update_moi = true) # updates moi, doesnt touch membership
+
+        update_moi_membership(master_form, mc_var)
+        
+        @logmsg LogLevel(-2) string("added column ", mc_var)
+        # TODO  do while sp_sol.next exists
+        return 1
+    else
+        return 0
+    end
+end
+
+
 function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality,
                      sp_form::Formulation)
     

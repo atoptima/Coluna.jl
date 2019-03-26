@@ -20,7 +20,7 @@ abstract type AbstractCounter end
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
-@enum VarDuty OriginalVar OriginalExpression PureMastVar MastCol MastArtVar MastRepPricingSpVar PricingSpSetupVar  PricingSpVar  PricingSpPureVar MastRepBendSpVar BendersSpVar BlockGenSpVar MastRepBlockSpVar
+@enum VarDuty OriginalVar OriginalExpression PureMastVar MasterCol MastArtVar MastRepPricingSpVar PricingSpSetupVar  PricingSpVar  PricingSpPureVar MastRepBendSpVar BendersSpVar BlockGenSpVar MastRepBlockSpVar
 
 @enum ConstrDuty OriginalConstr BranchingConstr MastPureConstr MasterConstr MastConvexityConstr PricingSpPureConstr  MasterBranch PricingSpRepMastBranchC
 
@@ -32,6 +32,3 @@ const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}
 const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
 const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}
 const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
-
-const VarMembership = SparseVector{Float64, VarId}
-const ConstrMembership = SparseVector{Float64, ConstrId}

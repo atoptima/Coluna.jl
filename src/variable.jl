@@ -10,6 +10,7 @@ mutable struct Variable <: AbstractVarConstr
     duty::VarDuty
     sense::VarSense 
 end
+const VarManager = SparseVector{Variable,VarId}
 
 function Variable(m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 
                   ub::Float64, t::VarKind, flag::Flag, d::VarDuty, s::VarSense)
@@ -33,6 +34,7 @@ getsense(v::Variable) = v.sense
 getflag(v::Variable) = v.flag
 
 setcost!(v::Variable, c::Float64) = v.cost += c
+setname!(v::Variable, name::String) = v.name = name
 setform!(v::Variable, uid::FormId) = v.form_uid = uid
 setlowerbound!(v::Variable, lb::Float64) = v.lower_bound = lb
 setupperbound!(v::Variable, ub::Float64) = v.upper_bound = ub
