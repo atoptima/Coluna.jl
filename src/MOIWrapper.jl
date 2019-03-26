@@ -29,6 +29,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # pricing_factory::JuMP.OptimizerFactory
 end
 
+setinnermodel!(o::Optimizer, m::Model) = o.inner = m 
+
 function Optimizer(;kwargs...)
     return Optimizer(nothing)
 end
@@ -181,6 +183,7 @@ end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     model = Model()
+    setinnermodel!(dest, model)
     register_original_formulation!(model, dest, src, copy_names)
 
     # Retrieve annotations
