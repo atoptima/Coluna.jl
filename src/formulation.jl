@@ -118,7 +118,7 @@ function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, de
     setform!(varconstr_copy, getuid(dest))
     setduty!(varconstr_copy, duty)
     add!(dest, varconstr_copy)
-    return
+    return varconstr_copy
 end
 
 #==function copy_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty; membership = false)
@@ -166,6 +166,7 @@ function add!(f::Formulation, constr::Constraint)
     setconstrduty!(f, constr)
     f.constrs[constr_uid] = constr
     add_constraint!(f.memberships, constr_uid)
+    # TODO : Register in filter
     return
 end
 
@@ -174,8 +175,6 @@ function add!(f::Formulation, constr::Constraint, membership::SparseVector)
     setconstrduty!(f, constr)
     f.constrs[constr_uid] = constr
     add_constraint!(f.memberships, constr_uid, membership)
-    #f.rhs[constr_uid] = getrhs(constr)
-    #f.constr_senses[constr_uid] = getsense(constr)
     # TODO : Register in filter
     return
 end

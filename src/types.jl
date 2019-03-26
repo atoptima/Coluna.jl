@@ -13,7 +13,7 @@ abstract type AbstractCounter end
 
 @enum VarSense Positive Negative Free
 @enum VarKind Continuous Binary Integ
-@enum ConstrKind Core Facultative SubSytem PureMaster SubprobConvexity
+@enum ConstrKind Core Facultative 
 @enum ConstrSense Greater Less Equal
 @enum Flag Static Dynamic Delayed Artifical Implicit
 @enum Status Active Unsuitable

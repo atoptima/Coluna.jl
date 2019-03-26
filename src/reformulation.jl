@@ -55,36 +55,43 @@ function build_dw_master!(model::Model,
         name = "convexity_sp_$(sp_form.uid)"
         sense = Equal
         rhs = 1.0
-        kind = SubprobConvexity
+        kind = Core
         flag = Static
         duty = MastConvexityConstr
-        conv_constr = Constraint(model, getuid(master_form), name,rhs, sense,kind,flag,duty)
+        conv_constr = Constraint(model, getuid(master_form), name, rhs, sense,kind,flag,duty)
         membership = spzeros(Float64, MAX_SV_ENTRIES)
         add!(master_form, conv_constr, membership)
 
         # create representative of sp setup var
         var_uids = getvar_uids(sp_form, PricingSpSetupVar)
-        #@assert length(var_uids) == 1
-        for (var_uid, var)  in sp_form.vars
-            if getduty(var) != PricingSpPureVar
-                copy_in_formulation!(var, orig_form, master_form, MastRepPricingSpVar)
-                if getduty(var) == PricingSpSetupVar
-                    membership = spzeros(Float64, MAX_SV_ENTRIES)
-                    membership[getuid(conv_constr)] = 1
-                    add_constr_members_of_var!(master_form.memberships, var_uid, membership)
-                end
-            end           
+        @assert length(var_uids) == 1
+        for var_uid in var_uids
+            var = getvar(sp_form, var_uid)
+            @assert getduty(var) == PricingSpSetupVar
+            var_clone = copy_in_formulation!(var, sp_form, master_form, MastRepPricingSpVar)
+            membership = spzeros(Float64, MAX_SV_ENTRIES)
+            membership[getuid(conv_constr)] = 1
+            add_constr_members_of_var!(master_form.memberships, var_uid, membership)
         end
+
+        # create representative of sp var
+        for var_uid in getvar_uids(sp_form, PricingSpVar)
+            var = getvar(orig_form, var_uid)
+            var_clone = copy_in_formulation!(var, orig_form, master_form, MastRepPricingSpVar)
+            reset_constr_members_of_var!(master_form.memberships, var_uid,
+                                       get_constr_members_of_var(orig_form, var_uid) )
+        end
+
         
         
     end
 
 
-       #copy_variables
+    # copy of pure master variables
     for var_id in vars_in_form
         var = copy_variable(master_form, orig_form.vars[var_id], PureMastVar)
-     end
- 
+    end
+    
     # for  master constraints, create associated artificial variables
     # new_vars = Variable[]
     # lb = fill(-Inf, length(vars))
