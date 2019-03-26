@@ -25,6 +25,7 @@ end
 get_original_formulation(m::Model) = m.original_formulation
 get_re_formulation(m::Model) = m.re_formulation
 
+moi2cid(m::Model, mid) = m.mid2cid_map[mid] 
 # @hl mutable struct Callback end
 
 # mutable struct Model # user model
