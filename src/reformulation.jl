@@ -84,16 +84,11 @@ function build_dw_master!(model::Model,
     # copy of pure master variables
     clone_in_formulation!(vars_in_form, orig_form, master_form, PureMastVar)
 
-    #for var_uid in vars_in_form
-    #    var = getvar(orig_form, var_uid)
-    #    var_clone = copy_in_formulation!(var, orig_form, master_form, PureMastVar)
-    #    reset_constr_members_of_var!(master_form.memberships, var_uid,
-    #                                 get_constr_members_of_var(orig_form, var_uid))
-    #end
-    
- 
-    # clone pure & mixed  master constraints 
-    #copy_constraints!(master_form, orig_form, constrs_in_form)
+    # copy of master constraints
+    clone_in_formulation!(constrs_in_form, orig_form, master_form, MasterConstr)
+
+    # TODO Detect and copy copy of pure master constraints
+
     
     
     
