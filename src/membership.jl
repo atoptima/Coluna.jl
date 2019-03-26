@@ -30,6 +30,7 @@ end
 hasvar(m::Memberships, uid) = haskey(m.var_to_constr_members, uid)
 hasconstr(m::Memberships, uid) = haskey(m.constr_to_var_members, uid)
 hasexpression(m::Memberships, uid) = haskey(m.var_to_expression_members, uid)
+haspartialsol(m::Memberships, uid) = haskey(m.var_to_partialsol_members, uid)
 
 function get_constr_members_of_var(m::Memberships, uid::VarId) 
     hasvar(m, uid) && return m.var_to_constr_members[uid]
@@ -51,8 +52,12 @@ function add_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membersh
     end
 end
 
-function set_constr_members_of_var!(m::Memberships, uid::VarId, new_membership::ConstrMembership) 
+function reset_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
     m.var_to_constr_members[var_uid] = new_membership
+end
+
+function set_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
+    reset_constr_members_of_var!(m, var_uid, new_membership)
     constr_uids, vals = findnz(new_membership)
     for j in 1:length(constr_uids)
         if hasconstr(m, constr_uids[j]) 
