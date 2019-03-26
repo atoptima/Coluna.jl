@@ -36,7 +36,7 @@ end
 #                           duty::AbstractVarDuty,
 #                           cost::Float64,
 #                           sense::Char,
-#                           vc_type::Char,
+#                           kind::Char,
 #                           flag::Char,
 #                           lb::Float64,
 #                           ub::Float64,
@@ -48,7 +48,7 @@ end
 #                     Formulation(),
 #                     cost,
 #                     sense,
-#                     vc_type,
+#                     kind,
 #                     flag,
 #                     lb,
 #                     ub,
@@ -64,7 +64,7 @@ end
 #                           duty::AbstractConstrDuty,
 #                           rhs::Float64,
 #                           sense::Char,
-#                           vc_type::Char,
+#                           kind::Char,
 #                           flag::Char)
 #     return Constraint(increment_counter(counter),
 #                       name,
@@ -72,7 +72,7 @@ end
 #                       Formulation(),
 #                       rhs,
 #                       sense,
-#                       vc_type,
+#                       kind,
 #                       flag,
 #                       Active,
 #                       rhs,
@@ -100,7 +100,7 @@ end
 #     bounds_index::MoiBounds
 
 #     # ```
-#     # Stores the MOI.ConstraintIndex that represents vc_type in coluna
+#     # Stores the MOI.ConstraintIndex that represents kind in coluna
 #     # ```
 #     type_index::MoiVcType
 # end

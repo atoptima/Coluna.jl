@@ -623,7 +623,7 @@ function update_local_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
 end
 
 function adjust_bound(var::Variable, bound::Float, is_upper::Bool)
-    if var.vc_type != 'C'
+    if var.kind != 'C'
         bound = is_upper ? floor(bound) : ceil(bound)
     end
     return bound

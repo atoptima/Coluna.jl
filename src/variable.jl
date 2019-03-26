@@ -1,43 +1,46 @@
 mutable struct Variable <: AbstractVarConstr
-    uid::VarId
+    var_uid::VarId
+    form_uid::FormId
     name::String
-    cost::Float64 # rep
-    lower_bound::Float64# rep
-    upper_bound::Float64 # rep
-    vc_type::VarType# rep
-    flag::Flag   # rep  # Static, Dynamic, Artifical, Implicit
-    duty::VarDuty# rep
-    sense::VarSense # rep
-    index::MOI.VariableIndex # rep
-    bounds_index::Union{MoiBounds, Nothing}# rep
-    type_index::Union{MoiVcType, Nothing}# rep
+    cost::Float64 
+    lower_bound::Float64
+    upper_bound::Float64 
+    kind::VarKind
+    flag::Flag     # Static, Dynamic, Artifical, Implicit
+    duty::VarDuty
+    sense::VarSense 
+    index::MOI.VariableIndex 
+    bounds_index::Union{MoiBounds, Nothing}
+    type_index::Union{MoiVcType, Nothing}
 end
 
-function Variable(m::AbstractModel, n::String, c::Float64, lb::Float64, 
-        ub::Float64, t::VarType, flag::Flag, d::VarDuty, s::VarSense)
+function Variable(m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 
+        ub::Float64, t::VarKind, flag::Flag, d::VarDuty, s::VarSense)
     uid = getnewuid(m.var_counter)
-    return Variable(uid, n, c, lb, ub, t, flag, d, s, MOI.VariableIndex(-1), nothing, nothing)
+    return Variable(uid, form_uid, n, c, lb, ub, t, flag, d, s, MOI.VariableIndex(-1), nothing, nothing)
 end
 
 function Variable(m::AbstractModel,  n::String)
-    return Variable(m, n, 0.0, -Inf, Inf, Continuous, Static, OriginalVar, Free)
+    return Variable(m, 0, n, 0.0, -Inf, Inf, Continuous, Static, OriginalVar, Free)
 end
 
-getuid(v::Variable) = v.uid
+getuid(v::Variable) = v.var_uid
+getform(v::Variable) = v.form_uid
 getname(v::Variable) = v.name
 getcost(v::Variable) = v.cost
 getlb(v::Variable) = v.lower_bound
 getub(v::Variable) = v.upper_bound
-gettype(v::Variable) = v.vc_type
+gettype(v::Variable) = v.kind
 getduty(v::Variable) = v.duty
 getsense(v::Variable) = v.sense
 getflag(v::Variable) = v.flag
 
 setcost!(v::Variable, c::Float64) = v.cost += c
+setform!(v::Variable, uid::FormId) = v.form_uid = uid
 setlowerbound!(v::Variable, lb::Float64) = v.lower_bound = lb
 setupperbound!(v::Variable, ub::Float64) = v.upper_bound = ub
 setduty!(v::Variable, d::VarDuty) = v.duty = d
-settype!(v::Variable, t::VarType) = v.vc_type = t
+settype!(v::Variable, t::VarKind) = v.kind = t
 setsense!(v::Variable, s::VarSense) = v.sense = s
 
 function set!(v::Variable, ::MOI.ZeroOne)
@@ -92,7 +95,7 @@ end
 #     # 'C' = continuous,
 #     # 'B' = binary, or
 #     # 'I' = integer
-#     vc_type::VarSet
+#     kind::VarSet
 #     # ```
 #     # 's' -by default- for static VarConstr belonging to the problem -and erased
 #     #     when the problem is erased-

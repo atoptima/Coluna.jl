@@ -1,34 +1,37 @@
 mutable struct Constraint <: AbstractVarConstr
-    uid    ::ConstrId
-    name   ::String
-    rhs    ::Float64  # rep
-    sense  ::ConstrSense # rep # Greater Less Equal
-    vc_type::ConstrType   # rep# Core Facultative SubSytem PureMaster SubprobConvexity
-    flag   ::Flag    # rep  # Static, Dynamic, Artifical, Implicit
-    duty   ::ConstrDuty # rep
-    index  ::Union{MOI.ConstraintIndex, Nothing} # rep
+    constr_uid::ConstrId
+    form_uid::FormId
+    name::String
+    rhs::Float64 
+    sense::ConstrSense # Greater Less Equal
+    kind::ConstrKind  # Core Facultative SubSytem PureMaster SubprobConvexity
+    flag::Flag    # Static, Dynamic/Delayed, Implicit
+    duty::ConstrDuty 
+    index::Union{MOI.ConstraintIndex, Nothing} 
 end
 
-function Constraint(m::AbstractModel, n::String, rhs::Float64, s::ConstrSense, 
-        t::ConstrType, f::Flag, d::ConstrDuty)
+function Constraint(m::AbstractModel, form_uid::FormId,  n::String, rhs::Float64, s::ConstrSense, 
+        t::ConstrKind, f::Flag, d::ConstrDuty)
     uid = getnewuid(m.constr_counter)
-    return Constraint(uid, n, rhs, s, t, f, d, nothing)
+    return Constraint(uid, form_uid,  n, rhs, s, t, f, d, nothing)
 end
 
 function Constraint(m::AbstractModel, n::String)
-    return Constraint(m, n, 0.0, Greater, Core, Static, OriginalConstr)
+    return Constraint(m, 0, n, 0.0, Greater, Core, Static, OriginalConstr)
 end
 
-getuid(c::Constraint) = c.uid
+getuid(c::Constraint) = c.constr_uid
+getform(c::Constraint) = c.form_uid
 getrhs(c::Constraint) = c.rhs
 getname(c::Constraint) = c.name
 getsense(c::Constraint) = c.sense
-gettype(c::Constraint) = c.vc_type
+gettype(c::Constraint) = c.kind
 getflag(c::Constraint) = c.flag
 getduty(c::Constraint) = c.duty
 
+setform!(c::Constraint, uid::FormId) = c.form_uid = uid
 setsense!(c::Constraint, s::ConstrSense) = c.sense = s
-settype!(c::Constraint, t::ConstrType) = c.vc_type = t
+settype!(c::Constraint, t::ConstrKind) = c.kind = t
 setflag!(c::Constraint, f::Flag) = c.flag = f
 setrhs!(c::Constraint, r::Float64) = c.rhs = r
 setduty!(c::Constraint, d::ConstrDuty) = c.duty = d
@@ -69,14 +72,14 @@ end
 #     # ```
 #     sense::ConstrSense
 #     # ```
-#     # vc_type = 'C' for core -required for the IP formulation-,
-#     # vc_type = 'F' for facultative -only helpfull to tighten the LP approximation of the IP formulation-,
-#     # vc_type = 'S' for constraints defining a subsystem in column generation for
+#     # kind = 'C' for core -required for the IP formulation-,
+#     # kind = 'F' for facultative -only helpfull to tighten the LP approximation of the IP formulation-,
+#     # kind = 'S' for constraints defining a subsystem in column generation for
 #     #            extended formulation approach
-#     # vc_type = 'M' for constraints defining a pure master constraint
-#     # vc_type = 'X' for constraints defining a subproblem convexity constraint in the master
+#     # kind = 'M' for constraints defining a pure master constraint
+#     # kind = 'X' for constraints defining a subproblem convexity constraint in the master
 #     # ```
-#     vc_type::ConstrType
+#     kind::ConstrKind
 #     # ```
 #     # 's' -by default- for static VarConstr belonging to the problem -and erased
 #     #     when the problem is erased-

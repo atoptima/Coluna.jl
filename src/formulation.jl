@@ -82,11 +82,12 @@ end
 
 #getvar(f::Formulation, uid::VarId) = f.var_duty_sets[d]
 
+getuid(f::Formulation) = f.uid
 getvar(f::Formulation, uid) = f.vars[uid]
 getconstr(f::Formulation, uid) = f.constrs[uid]
         
-getvarmembership(f::Formulation, uid) = getvarmembership(f.memberships, uid)
-getconstrmembership(f::Formulation, uid) = getconstrmembership(f.memberships, uid)
+get_constr_members_of_var(f::Formulation, uid) = get_constr_members_of_var(f.memberships, uid)
+get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.memberships, uid)
 
 function Formulation(m::AbstractModel)
     return Formulation(m::AbstractModel, nothing)
@@ -98,7 +99,7 @@ function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     # lb = spzeros(Float64, MAX_SV_ENTRIES)
     # ub = spzeros(Float64, MAX_SV_ENTRIES)
     # rhs = spzeros(Float64, MAX_SV_ENTRIES)
-    # vtypes = Dict{VarId, VarType}()
+    # vtypes = Dict{VarId, VarKind}()
     # csenses = Dict{ConstrId, ConstrSense}()
     return Formulation(uid, moi, nothing, 
                        Dict{VarId, Variable}(), Dict{ConstrId, Constraint}(),
@@ -111,6 +112,7 @@ end
 
 function copy_in_formulation!(varconstr::AbstractVarConstr, form::Formulation, duty)
     varconstr_copy = deepcopy(varconstr)
+    setform!(varconstr_copy, getuid(form))
     setduty!(varconstr_copy, duty)
     add!(form, varconstr_copy)
     return
@@ -137,10 +139,6 @@ function add!(f::Formulation, var::Variable)
     setvarduty!(f, var)
     f.vars[var_uid] = var
     add_variable!(f.memberships, var_uid)
-    #f.costs[var_uid] = getcost(var)
-    #f.lower_bounds[var_uid] = getlb(var)
-    #f.upper_bounds[var_uid] = getub(var)
-    #f.var_types[var_uid] = gettype(var)
     # TODO : Register in filter
     return
 end

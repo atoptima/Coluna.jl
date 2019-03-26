@@ -55,10 +55,10 @@ function build_dw_master!(model::Model,
         name = "convexity_sp_$(sp_form.uid)"
         sense = Equal
         rhs = 1.0
-        vc_type = SubprobConvexity
+        kind = SubprobConvexity
         flag = Static
         duty = MastConvexityConstr
-        conv_constr = Constraint(model,name,rhs, sense,vc_type,flag,duty)
+        conv_constr = Constraint(model, getuid(master_form), name,rhs, sense,kind,flag,duty)
         membership = spzeros(Float64, MAX_SV_ENTRIES)
         add!(master_form, conv_constr, membership)
 
@@ -118,11 +118,11 @@ function build_dw_pricing_sp!(m::Model,
     cost = 1.0
     lb = 1.0
     ub = 1.0
-    vc_type = Binary
+    kind = Binary
     flag = Static
     duty = PricingSpSetupVar
     sense = Positive
-    setup_var = Variable(m, name, cost, lb, ub, vc_type, flag, duty, sense)
+    setup_var = Variable(m, getuid(sp_form), name, cost, lb, ub, kind, flag, duty, sense)
     add!(sp_form, setup_var)
 
     for var_id in vars_in_form

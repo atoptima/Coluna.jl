@@ -12,10 +12,10 @@ abstract type AbstractCounter end
 
 
 @enum VarSense Positive Negative Free
-@enum VarType Continuous Binary Integ
+@enum VarKind Continuous Binary Integ
+@enum ConstrKind Core Facultative SubSytem PureMaster SubprobConvexity
 @enum ConstrSense Greater Less Equal
-@enum ConstrType Core Facultative SubSytem PureMaster SubprobConvexity
-@enum Flag Static Dynamic Artifical Implicit
+@enum Flag Static Dynamic Delayed Artifical Implicit
 @enum Status Active Unsuitable
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
