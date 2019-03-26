@@ -52,23 +52,43 @@ function add_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membersh
     end
 end
 
-function reset_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
-    m.var_to_constr_members[var_uid] = new_membership
+function reset_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::VarMembership) 
+    m.var_to_constr_members[var_uid] = spzeros(MAX_SV_ENTRIES)
+    constr_uids, vals = findnz(new_membership)
+    for j in 1:length(constr_uids)
+        m.var_to_constr_members[var_uid][constr_uids[j]] = vals[j]
+    end   
 end
 
 function reset_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_membership::VarMembership) 
-    m.constr_to_var_members[constr_uid] = new_membership
+    m.constr_to_var_members[constr_uid] = spzeros(MAX_SV_ENTRIES)
+    constr_uids, vals = findnz(new_membership)
+    for j in 1:length(constr_uids)
+        m.constr_to_var_members[constr_uid][var_uids[j]] = vals[j]
+    end
 end
 
 function set_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
-    reset_constr_members_of_var!(m, var_uid, new_membership)
+    m.var_to_constr_members[var_uid] = spzeros(MAX_SV_ENTRIES)
     constr_uids, vals = findnz(new_membership)
     for j in 1:length(constr_uids)
-        if hasconstr(m, constr_uids[j]) 
-            m.constr_to_var_members[constr_uids[j]][var_uid] = vals[j]
-        else
-            @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
+        m.var_to_constr_members[var_uid][constr_uids[j]] = vals[j]
+        if !hasconstr(m, constr_uids[j])
+            m.constr_to_var_members[constr_uids[j]] = spzeros(MAX_SV_ENTRIES)
         end
+        m.constr_to_var_members[constr_uids[j]][var_uid] = vals[j]
+    end
+end
+
+function set_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_membership::VarMembership) 
+    m.constr_to_var_members[constr_uid] = spzeros(MAX_SV_ENTRIES)
+    var_uids, vals = findnz(new_membership)
+    for j in 1:length(var_uids)
+        m.constr_to_var_members[constr_uid][var_uids[j]] = vals[j]
+        if !hasvar(m, var_uids[j])
+            m.var_to_constr_members[var_uids[j]] = spzeros(MAX_SV_ENTRIES)
+        end
+        m.var_to_constr_members[var_uids[j]][constr_uid] = vals[j]
     end
 end
 
