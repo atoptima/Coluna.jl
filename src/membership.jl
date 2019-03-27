@@ -87,32 +87,50 @@ function get_constr_members_of_var(m::Memberships, uid::VarId)
 end
 
 function add_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
-    if !hasvar(m, var_uid)
-        error("Variable $uid not stored in formulation.")
+
+    if !haskey(m.var_to_constr_members, var_uid)
+        m.var_to_constr_members[var_uid] = ConstrMembership()
     end
+
     constr_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(constr_uids)
         add!(m.var_to_constr_members[var_uid], constr_uids[j], vals[j])
-        if hasconstr(m, constr_uids[j]) 
-            add!(m.constr_to_var_members[constr_uids[j]], var_uid, vals[j])
-        else
-            @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
+        if !haskey(m.constr_to_var_members, constr_uids[j])
+            m.constr_to_var_members[constr_uids[j]] = VarMembership()
         end
+        add!(m.constr_to_var_members[constr_uids[j]], var_uid, vals[j])
+    end
+end
+
+function add_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_membership::VarMembership) 
+
+    if !haskey(m.constr_to_var_members, constr_uid)
+        m.constr_to_var_members[constr_uid] = VarMembership()
+    end
+
+    var_uids, vals = get_ids_vals(new_membership)
+    for j in 1:length(var_uids)
+        add!(m.constr_to_var_members[constr_uid], var_uids[j], vals[j])
+        if !haskey(m.var_to_constr_members, var_uids[j])
+            m.var_to_constr_members[var_uids[j]] = ConstrMembership()
+        end
+        add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])
     end
 end
 
 function add_partialsol_members_of_var!(m::Memberships, var_uid::VarId, new_membership::VarMembership) 
-    if !hasvar(m, var_uid)
-        error("Variable $uid not stored in formulation.")
+
+    if !haskey(m.var_to_partialsol_members, var_uid)
+        m.var_to_partialsol_members[var_uid] = VarMembership()
     end
+    
     var_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(var_uids)
-        add!(m.partialsol_to_var_members[var_uid],var_uids[j], vals[j])
-        if hasvar(m, var_uids[j]) 
-            add!(m.var_to_partialsol_members[var_uids[j]], var_uid, vals[j])
-        else
-            @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
+        add!(m.var_to_partialsol_members[var_uid], var_uids[j], vals[j])
+        if !haskey(m.partialsol_to_var_members, var_uids[j])
+            m.partialsol_to_var_members[var_uids[j]] = VarMembership()
         end
+        add!(m.partialsol_to_var_members[var_uids[j]], var_uid, vals[j])
     end
 end
 
@@ -186,14 +204,6 @@ end
 
 function add_constraint!(m::Memberships, constr_uid::ConstrId, membership::VarMembership) 
     hasconstr(m, constr_uid) && error("Constraint with uid $constr_uid already registered.")
-    m.constr_to_var_members[constr_uid] = membership
-    var_uids, vals = get_ids_vals(membership)
-    for j in 1:length(var_uids)
-        if hasvar(m, var_uids[j])
-            add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])
-        else
-            @warn "Variable with uid $(var_uids[j]) not registered in Memberships."
-        end
-    end
+    add_var_members_of_constr!(m, constr_uid, membership)
     return
 end
