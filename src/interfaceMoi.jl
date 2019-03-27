@@ -5,15 +5,15 @@ function set_optimizer_obj(form::Formulation,
     vec = [MOI.ScalarAffineTerm(cost, form.map_var_uid_to_index[var_uid]) for (var_uid, cost) in new_obj]
     objf = MOI.ScalarAffineFunction(vec, 0.0)
     MOI.set(form.moi_optimizer,
-            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
+            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
 end
 
 
 function initialize_formulation_optimizer(form::Formulation)
     optimizer = MOIU.MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                            optimizer)
-    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
-    MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
+    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
+    MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),f)
     MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
     form.moi_optimizer = optimizer
 end
@@ -24,7 +24,7 @@ function update_cost_in_optimizer(form::Formulation,
                                   cost::Float64)
     MOI.modify(form.moi_optimizer,
                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-               MOI.ScalarCoefficientChange{Float}(form.map_var_uid_to_index[var_uid], cost))
+               MOI.ScalarCoefficientChange{Float64}(form.map_var_uid_to_index[var_uid], cost))
 end
 
 

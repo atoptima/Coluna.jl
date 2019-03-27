@@ -15,8 +15,8 @@
 end
 
 # function VariableBuilder(counter::VarConstrCounter, name::String, 
-#         costrhs::Float, sense::Char, vc_type::Char, flag::Char, directive::Char, 
-#         priority::Float, lowerBound::Float, upperBound::Float)
+#         costrhs::Float64, sense::Char, vc_type::Char, flag::Char, directive::Char, 
+#         priority::Float64, lowerBound::Float64, upperBound::Float64)
 
 function build_memberships(col::MasterColumn)
     for (var, val) in col.solution.var_val_map

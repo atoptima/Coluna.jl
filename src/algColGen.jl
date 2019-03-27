@@ -1,8 +1,8 @@
 function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
                              sp_form::Formulation)
 
-    @timeit to(alg) "update_pricing_prob"
-    begin
+    #@timeit to(alg) "update_pricing_prob"
+    #begin
         new_obj = Dict{VarId, Float64}()
         
         alg.pricing_const_obj[pricing_prob] = 0
@@ -20,7 +20,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
 
         set_optimizer_obj(sp_form, new_obj)
 
-    end # @timeit to(alg) "update_pricing_prob"
+    #end # @timeit to(alg) "update_pricing_prob"
     return false
 end
 

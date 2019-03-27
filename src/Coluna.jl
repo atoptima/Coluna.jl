@@ -1,8 +1,8 @@
 module Coluna
 
 import Parameters.@with_kw
-# import HighLevelTypes.@hl
-# import HighLevelTypes.tuplejoin
+import HighLevelTypes.@hl
+import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
@@ -36,7 +36,7 @@ global const MAX_SV_ENTRIES = 10_000_000
 # include("/Users/vitornesello/.julia/dev/SimpleDebugger/src/SimpleDebugger.jl")
 
 include("types.jl")
-#include("parameters.jl")
+include("parameters.jl")
 #include("utils.jl")
 include("varconstr.jl")
 include("constraint.jl")
@@ -52,17 +52,20 @@ include("formulation.jl")
 #include("solution.jl")
 #include("mastersm.column.jl")
 #include("problem.jl")
-#include("node.jl")
-#include("nodealgs/algsetupnode.jl")
-#include("nodealgs/algpreprocessnode.jl")
-#include("nodealgs/algevalnode.jl")
-#include("nodealgs/algprimalheurinnode.jl")
-#include("nodealgs/alggeneratechildrennodes.jl")
+
 include("model.jl")
 include("reformulation.jl")
 include("interfaceMoi.jl")
 
-##### Algorithms
+##### Node and algorithms
+include("node.jl")
+include("nodealgs/algsetupnode.jl")
+include("nodealgs/algpreprocessnode.jl")
+include("nodealgs/algevalnode.jl")
+include("nodealgs/algprimalheurinnode.jl")
+include("nodealgs/alggeneratechildrennodes.jl")
+
+##### Algorithms draft
 include("algorithms/colgen.jl")
 
 ##### Wrapper functions

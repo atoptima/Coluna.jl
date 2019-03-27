@@ -1,4 +1,3 @@
-## Defining infos here
 @hl mutable struct SetupInfo end
 
 mutable struct TreatOrder
@@ -13,10 +12,10 @@ end
     # estimated_sub_tree_size::Int
     # sub_tree_size::Int
 
-    node_inc_lp_dual_bound::Float
-    node_inc_ip_dual_bound::Float
-    node_inc_lp_primal_bound::Float
-    node_inc_ip_primal_bound::Float
+    node_inc_lp_dual_bound::Float64
+    node_inc_ip_dual_bound::Float64
+    node_inc_lp_primal_bound::Float64
+    node_inc_ip_primal_bound::Float64
 
     dual_bound_is_updated::Bool
     ip_primal_bound_is_updated::Bool
@@ -47,7 +46,7 @@ end
 
 end
 
-function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
+function NodeBuilder(problem::ExtendedProblem, dual_bound::Float64,
     problem_setup_info::SetupInfo)
 
     return (
@@ -97,7 +96,7 @@ function is_conquered(node::Node)
             <= node.params.mip_tolerance_integrality)
 end
 
-function is_to_be_pruned(node::Node, global_primal_bound::Float)
+function is_to_be_pruned(node::Node, global_primal_bound::Float64)
     return (global_primal_bound - node.node_inc_ip_dual_bound
         <= node.params.mip_tolerance_integrality)
 end
@@ -157,8 +156,8 @@ function update_node_primals(node::Node, sols_and_bounds)
         sols_and_bounds.alg_inc_lp_primal_sol_map)
 end
 
-function update_node_primal_inc(node::Node, ip_bound::Float,
-                                sol_map::Dict{Variable, Float})
+function update_node_primal_inc(node::Node, ip_bound::Float64,
+                                sol_map::Dict{Variable, Float64})
     if ip_bound < node.node_inc_ip_primal_sol.cost
         new_sol = PrimalSolution(ip_bound, sol_map)
         node.node_inc_ip_primal_sol = new_sol
@@ -199,7 +198,7 @@ end
 
 function evaluation(node::Node, treat_algs::TreatAlgs,
                     global_treat_order::TreatOrder,
-                    inc_primal_bound::Float)::Bool
+                    inc_primal_bound::Float64)::Bool
     node.treat_order = TreatOrder(global_treat_order.value)
     node.node_inc_ip_primal_bound = inc_primal_bound
     node.ip_primal_bound_is_updated = false
@@ -241,7 +240,7 @@ function evaluation(node::Node, treat_algs::TreatAlgs,
 end
 
 function treat(node::Node, treat_algs::TreatAlgs,
-        global_treat_order::TreatOrder, inc_primal_bound::Float)::Bool
+        global_treat_order::TreatOrder, inc_primal_bound::Float64)::Bool
     # In strong branching, part 1 of treat (setup, preprocessing and solve) is
     # separated from part 2 (heuristics and children generation).
     # Therefore, treat() can be called two times. One inside strong branching,

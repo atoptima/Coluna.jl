@@ -22,7 +22,7 @@ function UsualBranchingAlgBuilder(depth::Int, problem::ExtendedProblem)
 end
 
 function get_var_according_to_rule(rule::MostFractionalRule,
-        vars::Vector{Pair{T, Float}}) where T <: Variable
+        vars::Vector{Pair{T, Float64}}) where T <: Variable
     best_var_val = vars[1]
     best_frac = fract_part(best_var_val.second)
     for var_val in vars
@@ -35,12 +35,12 @@ function get_var_according_to_rule(rule::MostFractionalRule,
 end
 
 function retrieve_candidate_vars(alg::AlgToGenerateChildrenNodes,
-        var_val_map::Dict{Variable, Float})
+        var_val_map::Dict{Variable, Float64})
 
     # find the fractional pure variables and aggregate the column variable
     # values into subproblem variables
-    frac_master_vars = Pair{Variable, Float}[]
-    subprob_vars = Dict{Variable, Float}()
+    frac_master_vars = Pair{Variable, Float64}[]
+    subprob_vars = Dict{Variable, Float64}()
     for var_val in var_val_map
         if typeof(var_val.first) <: MasterVar
             if !is_value_integer(var_val.second,
@@ -60,7 +60,7 @@ function retrieve_candidate_vars(alg::AlgToGenerateChildrenNodes,
     end
 
     # extract only the subproblem variables with fractional values in master
-    frac_subprob_vars = Pair{SubprobVar, Float}[]
+    frac_subprob_vars = Pair{SubprobVar, Float64}[]
     for sp_var_val in subprob_vars
         if !is_value_integer(sp_var_val[2],
                 alg.extended_problem.params.mip_tolerance_integrality)
@@ -72,7 +72,7 @@ function retrieve_candidate_vars(alg::AlgToGenerateChildrenNodes,
 end
 
 function generate_branch_constraint(alg::AlgToGenerateChildrenNodes,
-        depth::Int, var_to_branch::Variable, sense::Char, rhs::Float)
+        depth::Int, var_to_branch::Variable, sense::Char, rhs::Float64)
     extended_problem = alg.extended_problem
     constr = MasterBranchConstrConstructor(
         extended_problem.counter,
@@ -99,7 +99,7 @@ function generate_children(node::Node, alg::AlgToGenerateChildrenNodes)
 end
 
 function perform_usual_branching(alg::AlgToGenerateChildrenNodes,
-        frac_vars::Vector{Pair{T, Float}}) where T <: Variable
+        frac_vars::Vector{Pair{T, Float64}}) where T <: Variable
 
     var_to_branch, val = get_var_according_to_rule(alg.rule, frac_vars)
     @logmsg LogLevel(-4) string("Chosen variable to branch: ",

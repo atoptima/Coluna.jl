@@ -1,6 +1,6 @@
 @hl mutable struct VariableSmallInfo
     variable::Variable
-    cost::Float
+    cost::Float64
     status::VCSTATUS
 end
 
@@ -16,8 +16,8 @@ end
     # This is valid for all preprocessing done in the subtree of the node.
     # This information should be carried throught the tree by means of
     # setup and setdown algs.
-    lb::Float
-    ub::Float
+    lb::Float64
+    ub::Float64
 end
 
 VariableInfoBuilder(var::Variable, status::VCSTATUS) =
@@ -37,8 +37,8 @@ end
     # This is valid for all preprocessing done in the subtree of the node.
     # This information should be carried throught the tree by means of
     # setup and setdown algs.
-    global_lb::Float
-    global_ub::Float
+    global_lb::Float64
+    global_ub::Float64
 end
 
 SpVariableInfoBuilder(var::SubprobVar, status::VCSTATUS) =
@@ -54,7 +54,7 @@ end
 
 @hl mutable struct ConstraintInfo
     constraint::Constraint
-    rhs::Float
+    rhs::Float64
     status::VCSTATUS
 end
 
@@ -475,7 +475,7 @@ function set_cur_bounds(extended_problem::ExtendedProblem)
     for subprob in extended_problem.pricing_vect
         prob_ref = subprob.prob_ref
         for var in subprob.var_manager.active_static_list
-            ub::Float, lb::Float = get_sp_convexity_bounds(extended_problem, prob_ref)
+            ub::Float64, lb::Float64 = get_sp_convexity_bounds(extended_problem, prob_ref)
             set_global_bounds(var, ub, lb)
             set_default_currents(var)
         end

@@ -7,9 +7,9 @@
     restricted_master_heur_solver_type::DataType = GLPK.Optimizer
     max_num_nodes::Int = 100000
     open_nodes_limit::Int = 100000
-    mip_tolerance_integrality::Float = 1e-5
-    cut_up::Float = Inf
-    cut_lo::Float = -Inf
+    mip_tolerance_integrality::Float64 = 1e-5
+    cut_up::Float64 = Inf
+    cut_lo::Float64 = -Inf
     limit_on_tree_size_to_update_best_dual_bound::Int = 1000000
     apply_preprocessing::Bool = false
     search_strategy::SEARCHSTRATEGY = DepthFirst

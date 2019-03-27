@@ -167,7 +167,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 
 # end
 
-# function update_search_trees(cur_node::Node, search_tree::DS.PriorityQueue{Node, Float},
+# function update_search_trees(cur_node::Node, search_tree::DS.PriorityQueue{Node, Float64},
 #         extended_problem::ExtendedProblem)
 #     params = extended_problem.params
 #     for child_node in cur_node.children
@@ -186,7 +186,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 # end
 
 # function update_cur_valid_dual_bound(problem::ExtendedProblem,
-#         node::NodeWithParent, search_tree::DS.PriorityQueue{Node, Float})
+#         node::NodeWithParent, search_tree::DS.PriorityQueue{Node, Float64})
 #     if isempty(search_tree)
 #         problem.dual_inc_bound = problem.primal_inc_bound
 #     end
@@ -202,7 +202,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 # end
 
 # function update_cur_valid_dual_bound(problem::ExtendedProblem,
-#         node::Node, search_tree::DS.PriorityQueue{Node, Float})
+#         node::Node, search_tree::DS.PriorityQueue{Node, Float64})
 #     if node.node_inc_ip_dual_bound > problem.dual_inc_bound
 #         problem.dual_inc_bound = node.node_inc_ip_dual_bound
 #     end
@@ -218,7 +218,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 # end
 
 # function update_model_incumbents(problem::ExtendedProblem, node::Node,
-#         search_tree::DS.PriorityQueue{Node, Float})
+#         search_tree::DS.PriorityQueue{Node, Float64})
 #     if node.ip_primal_bound_is_updated
 #         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
 #     end
@@ -274,9 +274,9 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 
 # function initialize_search_tree(params::Params)
 #     if params.search_strategy == DepthFirst
-#         search_tree = DS.PriorityQueue{Node, Float}(Base.Order.Reverse)
+#         search_tree = DS.PriorityQueue{Node, Float64}(Base.Order.Reverse)
 #     elseif params.search_strategy == BestDualBound
-#         search_tree = DS.PriorityQueue{Node, Float}(Base.Order.Forward)
+#         search_tree = DS.PriorityQueue{Node, Float64}(Base.Order.Forward)
 #     end
 #     return search_tree
 # end

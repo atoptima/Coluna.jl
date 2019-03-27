@@ -2,8 +2,8 @@
 ### Remove @hl
 
 @hl mutable struct PrimalSolution
-    cost::Float #TODO clarify if curcost?
-    var_val_map::Dict{Variable, Float}
+    cost::Float64 #TODO clarify if curcost?
+    var_val_map::Dict{Variable, Float64}
 end
 
 function compute_original_cost(sol::PrimalSolution)
@@ -16,15 +16,15 @@ function compute_original_cost(sol::PrimalSolution)
 end
 
 @hl mutable struct DualSolution
-    cost::Float
-    constr_val_map::Dict{Constraint, Float}
+    cost::Float64
+    constr_val_map::Dict{Constraint, Float64}
 end
 
 
 function PrimalSolutionBuilder()
-    return (Inf, Dict{Variable, Float}())
+    return (Inf, Dict{Variable, Float64}())
 end
 
 function DualSolutionBuilder()
-    return (-Inf, Dict{Constraint, Float}())
+    return (-Inf, Dict{Constraint, Float64}())
 end

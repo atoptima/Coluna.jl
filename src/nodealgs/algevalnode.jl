@@ -1,29 +1,29 @@
 mutable struct SolsAndBounds
-    alg_inc_ip_primal_bound::Float
-    alg_inc_lp_primal_bound::Float
-    alg_inc_ip_dual_bound::Float
-    alg_inc_lp_dual_bound::Float
-    alg_inc_lp_primal_sol_map::Dict{Variable, Float}
-    alg_inc_ip_primal_sol_map::Dict{Variable, Float}
-    alg_inc_lp_dual_sol_map::Dict{Constraint, Float}
+    alg_inc_ip_primal_bound::Float64
+    alg_inc_lp_primal_bound::Float64
+    alg_inc_ip_dual_bound::Float64
+    alg_inc_lp_dual_bound::Float64
+    alg_inc_lp_primal_sol_map::Dict{Variable, Float64}
+    alg_inc_ip_primal_sol_map::Dict{Variable, Float64}
+    alg_inc_lp_dual_sol_map::Dict{Constraint, Float64}
     is_alg_inc_ip_primal_bound_updated::Bool
 end
 
-SolsAndBounds() = SolsAndBounds(Inf, Inf, -Inf, -Inf, Dict{Variable, Float}(),
-        Dict{Variable, Float}(), Dict{Constraint, Float}(), false)
+SolsAndBounds() = SolsAndBounds(Inf, Inf, -Inf, -Inf, Dict{Variable, Float64}(),
+        Dict{Variable, Float64}(), Dict{Constraint, Float64}(), false)
 
 ### Methods of SolsAndBounds
-function update_primal_lp_bound(incumbents::SolsAndBounds, newBound::Float)
+function update_primal_lp_bound(incumbents::SolsAndBounds, newBound::Float64)
     if newBound < incumbents.alg_inc_lp_primal_bound
         incumbents.alg_inc_lp_primal_bound = newBound
     end
 end
 
 function update_primal_ip_incumbents(incumbents::SolsAndBounds,
-        var_val_map::Dict{Variable,Float}, newBound::Float)
+        var_val_map::Dict{Variable,Float64}, newBound::Float64)
     if newBound < incumbents.alg_inc_ip_primal_bound
         incumbents.alg_inc_ip_primal_bound = newBound
-        incumbents.alg_inc_ip_primal_sol_map = Dict{Variable, Float}()
+        incumbents.alg_inc_ip_primal_sol_map = Dict{Variable, Float64}()
         for var_val in var_val_map
             push!(incumbents.alg_inc_ip_primal_sol_map, var_val)
         end
@@ -32,23 +32,23 @@ function update_primal_ip_incumbents(incumbents::SolsAndBounds,
 end
 
 function update_primal_lp_incumbents(incumbents::SolsAndBounds,
-        var_val_map::Dict{Variable,Float}, newBound::Float)
+        var_val_map::Dict{Variable,Float64}, newBound::Float64)
     if newBound < incumbents.alg_inc_lp_primal_bound
         incumbents.alg_inc_lp_primal_bound = newBound
-        incumbents.alg_inc_lp_primal_sol_map = Dict{Variable, Float}()
+        incumbents.alg_inc_lp_primal_sol_map = Dict{Variable, Float64}()
         for var_val in var_val_map
             push!(incumbents.alg_inc_lp_primal_sol_map, var_val)
         end
     end
 end
 
-function update_dual_lp_bound(incumbents::SolsAndBounds, newBound::Float)
+function update_dual_lp_bound(incumbents::SolsAndBounds, newBound::Float64)
     if newBound > incumbents.alg_inc_lp_dual_bound
         incumbents.alg_inc_lp_dual_bound = newBound
     end
 end
 
-function update_dual_ip_bound(incumbents::SolsAndBounds, newBound::Float)
+function update_dual_ip_bound(incumbents::SolsAndBounds, newBound::Float64)
     new_ip_bound = newBound
     # new_ip_bound = ceil(newBound) # TODO ceil if objective is integer
     if new_ip_bound > incumbents.alg_inc_ip_dual_bound
@@ -57,10 +57,10 @@ function update_dual_ip_bound(incumbents::SolsAndBounds, newBound::Float)
 end
 
 function update_dual_lp_incumbents(incumbents::SolsAndBounds,
-        constr_val_map::Dict{Constraint, Float}, newBound::Float)
+        constr_val_map::Dict{Constraint, Float64}, newBound::Float64)
     if newBound > incumbents.alg_inc_lp_dual_bound
         incumbents.alg_inc_lp_dual_bound = newBound
-        incumbents.alg_inc_lp_dual_sol_map = Dict{Constraint, Float}()
+        incumbents.alg_inc_lp_dual_sol_map = Dict{Constraint, Float64}()
         for constr_val in constr_val_map
             push!(incumbents.alg_inc_lp_dual_sol_map, constr_val)
         end
@@ -141,7 +141,7 @@ function AlgToEvalNodeByLpBuilder(problem::ExtendedProblem)
     return AlgToEvalNodeBuilder(problem)
 end
 
-function print_intermediate_statistics(alg::AlgToEvalNodeByLp, solve_time::Float)
+function print_intermediate_statistics(alg::AlgToEvalNodeByLp, solve_time::Float64)
     mlp = alg.sols_and_bounds.alg_inc_lp_primal_bound
     db = alg.sols_and_bounds.alg_inc_lp_dual_bound
     db_ip = alg.sols_and_bounds.alg_inc_ip_dual_bound
@@ -153,7 +153,7 @@ function print_intermediate_statistics(alg::AlgToEvalNodeByLp, solve_time::Float
             "<PB=", round(pb, digits=4), ">")
 end
 
-function run(alg::AlgToEvalNodeByLp, primal_ip_bound::Float)
+function run(alg::AlgToEvalNodeByLp, primal_ip_bound::Float64)
     alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_ip_bound
     println("Starting eval by lp")
 
@@ -186,15 +186,15 @@ end
 # struct ColGenStabilization end
 
 @hl mutable struct AlgToEvalNodeByLagrangianDuality <: AlgToEvalNode
-    pricing_contribs::Dict{Problem, Float}
-    pricing_const_obj::Dict{Problem, Float}
+    pricing_contribs::Dict{Problem, Float64}
+    pricing_const_obj::Dict{Problem, Float64}
     # colgen_stabilization::Union{ColGenStabilization, Nothing}
     max_nb_cg_iterations::Int
 end
 
 function AlgToEvalNodeByLagrangianDualityBuilder(problem::ExtendedProblem)
-    return tuplejoin(AlgToEvalNodeBuilder(problem), Dict{Problem, Float}(),
-                     Dict{Problem, Float}(), 10000) # TODO put as parameter
+    return tuplejoin(AlgToEvalNodeBuilder(problem), Dict{Problem, Float64}(),
+                     Dict{Problem, Float64}(), 10000) # TODO put as parameter
 end
 
 function cleanup_restricted_mast_columns(alg::AlgToEvalNodeByLagrangianDuality,
@@ -215,7 +215,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
 
     @timeit to(alg) "update_pricing_prob" begin
 
-    new_obj = Dict{SubprobVar, Float}()
+    new_obj = Dict{SubprobVar, Float64}()
     alg.pricing_const_obj[pricing_prob] = 0
     for var in pricing_prob.var_manager.active_static_list
         @logmsg LogLevel(-4) string("$var original cost = ", var.cost_rhs)
@@ -381,7 +381,7 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
     # end
 end
 
-function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb_new_col::Int, nb_cg_iterations::Int, mst_time::Float, sp_time::Float)
+function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb_new_col::Int, nb_cg_iterations::Int, mst_time::Float64, sp_time::Float64)
     mlp = alg.sols_and_bounds.alg_inc_lp_primal_bound
     db = alg.sols_and_bounds.alg_inc_lp_dual_bound
     db_ip = alg.sols_and_bounds.alg_inc_ip_dual_bound
@@ -494,7 +494,7 @@ function solve_mast_lp_ph2(alg::AlgToEvalNodeBySimplexColGen)
     # return false
 end
 
-function run(alg::AlgToEvalNodeBySimplexColGen, primal_ip_bound::Float)
+function run(alg::AlgToEvalNodeBySimplexColGen, primal_ip_bound::Float64)
     alg.sols_and_bounds.alg_inc_ip_primal_bound = primal_ip_bound
 
     @timeit to(alg) "run_eval_by_col_gen" begin

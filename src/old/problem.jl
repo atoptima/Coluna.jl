@@ -115,7 +115,7 @@ function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
     optimizer = nothing
     CompactProblem(increment_counter(prob_counter), false, optimizer,
                    VM(), CM(), PrimalSolution(), DualSolution(),
-                   PrimalSolution(0.0, Dict{Variable, Float}()), vc_counter)
+                   PrimalSolution(0.0, Dict{Variable, Float64}()), vc_counter)
 end
 
 SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
@@ -124,13 +124,13 @@ function initialize_problem_optimizer(problem::CompactProblem,
                                       optimizer::MOI.AbstractOptimizer)
     optimizer = MOIU.MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                            optimizer)
-    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float}[], 0.0)
-    MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(),f)
+    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
+    MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),f)
     MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
     problem.optimizer = optimizer
 end
 
-function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float},
+function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float64},
                          var_list::Vector{Variable}, optimizer)
 
     for var_idx in 1:length(var_list)
@@ -146,7 +146,7 @@ end
 
 function retrieve_primal_sol(problem::CompactProblem,
                              optimizer::MOI.AbstractOptimizer)
-    new_sol = Dict{Variable, Float}()
+    new_sol = Dict{Variable, Float64}()
     new_obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
     fill_primal_sol(
         problem, new_sol, problem.var_manager.active_static_list, optimizer
@@ -167,7 +167,7 @@ function retrieve_dual_sol(problem::CompactProblem, optimizer::MOI.AbstractOptim
     # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
     constr_list = problem.constr_manager.active_static_list
     constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
-    new_sol = Dict{Constraint, Float}()
+    new_sol = Dict{Constraint, Float64}()
     for constr_idx in 1:length(constr_list)
         constr = constr_list[constr_idx]
         constr.val = 0.0
@@ -193,7 +193,7 @@ function retrieve_dual_sol(problem::CompactProblem, optimizer::MOI.AbstractOptim
     return dual_sol
 end
 
-function is_sol_integer(sol::Dict{Variable, Float}, tolerance::Float)
+function is_sol_integer(sol::Dict{Variable, Float64}, tolerance::Float64)
     for var_val in sol
         if (!is_value_integer(var_val.second, tolerance)
                 && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))
@@ -251,7 +251,7 @@ function add_constraint(problem::CompactProblem, constr::Constraint;
     end
 end
 
-function add_membership(var::Variable, constr::Constraint, coef::Float;
+function add_membership(var::Variable, constr::Constraint, coef::Float64;
                         optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
 
     @logmsg LogLevel(-4) "add_membership : Variable = $var, Constraint = $constr"
@@ -262,7 +262,7 @@ function add_membership(var::Variable, constr::Constraint, coef::Float;
     end
 end
 
-function add_membership(var::SubprobVar, constr::MasterConstr, coef::Float;
+function add_membership(var::SubprobVar, constr::MasterConstr, coef::Float64;
                         optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
     @logmsg LogLevel(-4) "add_membership : SubprobVar = $var, MasterConstraint = $constr"
     var.master_constr_coef_map[constr] = coef
@@ -270,7 +270,7 @@ function add_membership(var::SubprobVar, constr::MasterConstr, coef::Float;
 end
 
 # The only interest of having this function is the specific printing
-function add_membership(var::MasterVar, constr::MasterConstr, coef::Float;
+function add_membership(var::MasterVar, constr::MasterConstr, coef::Float64;
                         optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
 
     @logmsg LogLevel(-4) "add_membership : MasterVar = $var, MasterConstr = $constr"
@@ -294,18 +294,18 @@ function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
 end
 
 function set_optimizer_obj(optimizer::MOI.AbstractOptimizer,
-                           new_obj::Dict{V,Float}) where V <: Variable
+                           new_obj::Dict{V,Float64}) where V <: Variable
 
     vec = [MOI.ScalarAffineTerm(cost, var.moi_def.var_index) for (var, cost) in new_obj]
     objf = MOI.ScalarAffineFunction(vec, 0.0)
     MOI.set(optimizer,
-            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}(), objf)
+            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
 end
 
 function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
-                                       constant::Float)
+                                       constant::Float64)
     of = MOI.get(optimizer,
-                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float}}())
+                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     MOI.modify(
         optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
         MOI.ScalarConstantChange(constant))
@@ -361,15 +361,15 @@ end
 
 function compute_constr_moi_terms(constr::Constraint)
     return [
-        MOI.ScalarAffineTerm{Float}(var_val.second, var_val.first.moi_def.var_index)
+        MOI.ScalarAffineTerm{Float64}(var_val.second, var_val.first.moi_def.var_index)
         for var_val in constr.member_coef_map if var_val.first.status == Active
     ]
 end
 
 function update_moi_membership(optimizer::MOI.AbstractOptimizer, var::Variable,
-                               constr::Constraint, coef::Float)
+                               constr::Constraint, coef::Float64)
     MOI.modify(optimizer, constr.moi_index,
-               MOI.ScalarCoefficientChange{Float}(var.moi_def.var_index, coef))
+               MOI.ScalarCoefficientChange{Float64}(var.moi_def.var_index, coef))
 end
 
 function update_moi_membership(optimizer::MOI.AbstractOptimizer,
@@ -572,8 +572,8 @@ mutable struct ExtendedProblem <: Problem
     params::Params
     counter::VarConstrCounter
     solution::PrimalSolution
-    primal_inc_bound::Float
-    dual_inc_bound::Float
+    primal_inc_bound::Float64
+    dual_inc_bound::Float64
     subtree_size_by_depth::Int
     timer_output::TimerOutputs.TimerOutput
     problem_ref_to_problem::Dict{Int,Problem}
@@ -582,8 +582,8 @@ end
 
 function ExtendedProblem(prob_counter::ProblemCounter,
                          vc_counter::VarConstrCounter,
-                         params::Params, primal_inc_bound::Float,
-                         dual_inc_bound::Float)
+                         params::Params, primal_inc_bound::Float64,
+                         dual_inc_bound::Float64)
 
     master_problem = SimpleCompactProblem(prob_counter, vc_counter)
     master_problem.is_relaxed = true
@@ -648,10 +648,10 @@ function add_convexity_constraints(extended_problem::ExtendedProblem,
     master = extended_problem.master_problem
     convexity_lb_constr = ConvexityConstr(master.counter,
             string("convexity_constr_lb_", pricing_prob.prob_ref),
-            convert(Float, card_lb), 'G', 'M', 's')
+            convert(Float64, card_lb), 'G', 'M', 's')
     convexity_ub_constr = ConvexityConstr(master.counter,
             string("convexity_constr_ub_", pricing_prob.prob_ref),
-            convert(Float, card_ub), 'L', 'M', 's')
+            convert(Float64, card_ub), 'L', 'M', 's')
     extended_problem.pricing_convexity_lbs[pricing_prob] = convexity_lb_constr
     extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
     add_constraint(master, convexity_lb_constr; update_moi = false)

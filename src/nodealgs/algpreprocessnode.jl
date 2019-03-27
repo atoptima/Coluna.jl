@@ -3,10 +3,10 @@
     extended_problem::ExtendedProblem
     constr_in_stack::Dict{Constraint,Bool}
     stack::DS.Stack{Constraint}
-    var_local_master_membership::Dict{Variable,Vector{Tuple{Constraint,Float}}}
-    var_local_sp_membership::Dict{Variable,Vector{Tuple{Constraint,Float}}}
-    cur_min_slack::Dict{Constraint,Float}
-    cur_max_slack::Dict{Constraint,Float}
+    var_local_master_membership::Dict{Variable,Vector{Tuple{Constraint,Float64}}}
+    var_local_sp_membership::Dict{Variable,Vector{Tuple{Constraint,Float64}}}
+    cur_min_slack::Dict{Constraint,Float64}
+    cur_max_slack::Dict{Constraint,Float64}
     nb_inf_sources_for_min_slack::Dict{Constraint,Int}
     nb_inf_sources_for_max_slack::Dict{Constraint,Int}
     preprocessed_constrs::Vector{Constraint}
@@ -24,10 +24,10 @@ function AlgToPreprocessNodeBuilder(depth::Int, extended_problem::ExtendedProble
     return (depth, extended_problem, 
             Dict{Constraint,Bool}(), 
             DS.Stack{Constraint}(), 
-            Dict{Variable,Vector{Tuple{Constraint,Float}}}(),
-            Dict{Variable,Vector{Tuple{Constraint,Float}}}(),
-            Dict{Constraint,Float}(),
-            Dict{Constraint,Float}(), 
+            Dict{Variable,Vector{Tuple{Constraint,Float64}}}(),
+            Dict{Variable,Vector{Tuple{Constraint,Float64}}}(),
+            Dict{Constraint,Float64}(),
+            Dict{Constraint,Float64}(), 
             Dict{Constraint,Int}(),
             Dict{Constraint,Int}(), 
             Constraint[], 
@@ -89,7 +89,7 @@ function change_sp_bounds(alg::AlgToPreprocessNode, partial_sol::PrimalSolution)
 end
 
 function project_partial_solution(partial_sol::PrimalSolution)
-    user_vars_vals = Dict{Variable,Float}()
+    user_vars_vals = Dict{Variable,Float64}()
     for (var, val) in partial_sol.var_vals
         if isa(MasterColumn, var)
             for (user_var, user_var_val) in var.solution.var_val_map
@@ -388,7 +388,7 @@ function compute_max_slack(alg::AlgToPreprocessNode, constr::MasterConstr)
 end
 
 function update_max_slack(alg::AlgToPreprocessNode, constr::Constraint, 
-                          var_was_inf_source::Bool, delta::Float)
+                          var_was_inf_source::Bool, delta::Float64)
     alg.cur_max_slack[constr] += delta
     if var_was_inf_source
         alg.nb_inf_sources_for_max_slack[constr] -= 1
@@ -412,7 +412,7 @@ function update_max_slack(alg::AlgToPreprocessNode, constr::Constraint,
 end
 
 function update_min_slack(alg::AlgToPreprocessNode, constr::Constraint, 
-                          var_was_inf_source::Bool, delta::Float)
+                          var_was_inf_source::Bool, delta::Float64)
     alg.cur_min_slack[constr] += delta
     if var_was_inf_source
         alg.nb_inf_sources_for_min_slack[constr] -= 1
@@ -436,7 +436,7 @@ function update_min_slack(alg::AlgToPreprocessNode, constr::Constraint,
 end
 
 function update_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
-                            new_lb::Float, check_monotonicity::Bool = true)
+                            new_lb::Float64, check_monotonicity::Bool = true)
     if new_lb > var.cur_global_lb || !check_monotonicity
         if new_lb > var.cur_global_ub
             return true
@@ -459,7 +459,7 @@ function update_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
 end
 
 function update_lower_bound(alg::AlgToPreprocessNode, var::MasterVar,
-                            new_lb::Float)
+                            new_lb::Float64)
     if new_lb > var.cur_lb
         if new_lb > var.cur_ub
             return true
@@ -483,7 +483,7 @@ function update_lower_bound(alg::AlgToPreprocessNode, var::MasterVar,
 end
 
 function update_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar, 
-                            new_ub::Float, check_monotonicity::Bool = true)
+                            new_ub::Float64, check_monotonicity::Bool = true)
     if new_ub < var.cur_global_ub || !check_monotonicity
         if new_ub < var.cur_global_lb
             return true
@@ -506,7 +506,7 @@ function update_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
 end
 
 function update_upper_bound(alg::AlgToPreprocessNode, var::MasterVar, 
-                            new_ub::Float)
+                            new_ub::Float64)
     if new_ub < var.cur_ub
         if new_ub < var.cur_lb
             return true
@@ -530,7 +530,7 @@ function update_upper_bound(alg::AlgToPreprocessNode, var::MasterVar,
 end
 
 function update_global_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
-                                   new_lb::Float, check_monotonicity::Bool = true)
+                                   new_lb::Float64, check_monotonicity::Bool = true)
     if update_lower_bound(alg, var, new_lb, check_monotonicity)
         return true
     end
@@ -543,7 +543,7 @@ function update_global_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
 end
 
 function update_global_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
-                                   new_ub::Float, check_monotonicity::Bool = true)
+                                   new_ub::Float64, check_monotonicity::Bool = true)
     if update_upper_bound(alg, var, new_ub, check_monotonicity)
         return true
     end
@@ -556,7 +556,7 @@ function update_global_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
 end
 
 function update_local_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
-                                  new_lb::Float)
+                                  new_lb::Float64)
     if new_lb > var.cur_lb
         if new_lb > var.cur_ub
             return true
@@ -590,7 +590,7 @@ function update_local_lower_bound(alg::AlgToPreprocessNode, var::SubprobVar,
 end
 
 function update_local_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
-                                  new_ub::Float)
+                                  new_ub::Float64)
     if new_ub < var.cur_ub
         if new_ub < var.cur_lb
             return true
@@ -622,18 +622,18 @@ function update_local_upper_bound(alg::AlgToPreprocessNode, var::SubprobVar,
     return false
 end
 
-function adjust_bound(var::Variable, bound::Float, is_upper::Bool)
+function adjust_bound(var::Variable, bound::Float64, is_upper::Bool)
     if var.kind != 'C'
         bound = is_upper ? floor(bound) : ceil(bound)
     end
     return bound
 end
 
-function compute_new_var_bound(alg::AlgToPreprocessNode, var::Variable, cur_lb::Float, 
-                               cur_ub::Float, coef::Float, constr::Constraint)
+function compute_new_var_bound(alg::AlgToPreprocessNode, var::Variable, cur_lb::Float64, 
+                               cur_ub::Float64, coef::Float64, constr::Constraint)
 
-    function compute_new_bound(nb_inf_sources::Int, slack::Float, 
-                               var_contrib_to_slack::Float, inf_bound::Float)
+    function compute_new_bound(nb_inf_sources::Int, slack::Float64, 
+                               var_contrib_to_slack::Float64, inf_bound::Float64)
         if nb_inf_sources == 0
             bound = (slack - var_contrib_to_slack)/coef
         elseif nb_inf_sources == 1 && isinf(var_contrib_to_slack)
