@@ -43,6 +43,8 @@ function blackbox_original_formulation_sgap()
     JuMP.optimize!(model)
     inner_model = JuMP.backend(model).optimizer.model.optimizer.inner
     orig_form = CL.get_original_formulation(inner_model)
+
+    @show orig_form
     
     # Number of variables & constraints in the formulation
     #@test length(orig_form.map_var_uid_to_index) == 14

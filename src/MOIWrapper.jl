@@ -36,7 +36,7 @@ function Optimizer(;kwargs...)
 end
 
 function MOI.optimize!(optimizer::Optimizer)
-    println("\e[34m OPTIMIZE \e[00m")
+    optimize!(optimizer.inner.re_formulation)
 end
 
 function MOI.get(dest::MOIU.UniversalFallback,

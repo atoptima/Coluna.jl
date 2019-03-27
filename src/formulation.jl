@@ -12,7 +12,6 @@
 
 # struct DantzigWolfeSubproblem <: AbstractFormulation
 # end
-
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
     parent_formulation::Union{Formulation, Nothing}
@@ -30,7 +29,6 @@ mutable struct Formulation  <: AbstractFormulation
     var_kinds::Dict{VarId, MoiVarKind}
     callbacks
 end
-
 
 #getvarcost(f::Formulation, uid) = f.costs[uid]
 #getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
@@ -67,14 +65,15 @@ end
 getuid(f::Formulation) = f.uid
 getvar(f::Formulation, uid::VarId) = getvc(f.vars, uid)
 getconstr(f::Formulation, uid::ConstrId) = getvc(f.constrs, uid)
+getvariableuids(f::Formulation) = get_nz_ids(f.vars)
+getconstraintuids(f::Formulation) = get_nz_ids(f.constrs)
+getobjsense(f::Formulation) = f.obj_sense
         
 get_constr_members_of_var(f::Formulation, uid) = get_constr_members_of_var(f.memberships, uid)
 get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.memberships, uid)
 
 get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getuid(var))
 get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getuid(constr))
-
-
 
 function Formulation(m::AbstractModel,
                      parent_formulation::Union{Formulation, Nothing},
@@ -97,16 +96,18 @@ function Formulation(m::AbstractModel,
                        Dict{VarId, MoiVarKind}(),
                        nothing)
 end
+
 function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
     return Formulation(m::AbstractModel,  nothing, moi)
 end
+
 function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing})
     return Formulation(m::AbstractModel, parent_formulation, nothing)
 end
+
 function Formulation(m::AbstractModel)
     return Formulation(m::AbstractModel, nothing, nothing)
 end
-
 
 function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
     varconstr_copy = deepcopy(varconstr)
@@ -126,7 +127,6 @@ function clone_in_formulation!(var_uids::Vector{VarId},
         reset_constr_members_of_var!(dest_form.memberships, var_uid,
                                      get_constr_members_of_var(src_form, var_uid))
     end
-    
     return 
 end
 
@@ -158,7 +158,6 @@ end
     return
 end ==#
 
-
 function add!(f::Formulation, elems::Vector{VC_Type}) where {VC_Type <: AbstractVarConstr}
     for elem in elems
         add!(f, elem)
@@ -176,14 +175,11 @@ function add!(f::Formulation, elems::Vector{VC_Type},
     return
 end
 
-
-
 function add!(f::Formulation, var::Variable)
     add!(f.vars, var)
     add_variable!(f.memberships, getuid(var))
     return
 end
-
 
 function add!(f::Formulation, constr::Constraint)
     add!(f.constrs, constr)
@@ -206,11 +202,80 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
+function _show_obj_fun(io::IO, f::Formulation)
+    print(io, getobjsense(f), " ")
+    for uid in getvariableuids(f)
+        var = getvar(f, uid)
+        name = getname(var)
+        cost = getcost(var)
+        op = (cost < 0.0) ? "-" : "+" 
+        if cost != 0.0
+            print(io, op, " ", abs(cost), " ", name, " ")
+        end
+    end
+    println(io, " ")
+    return
+end
+
+function _show_constraint(io::IO, f::Formulation, uid)
+    constr = getconstr(f, uid)
+    print(io, " ", getname(constr), " : ")
+
+    m = get_var_members_of_constr(f, constr)
+    var_uids, var_coeffs = get_ids_vals(m)
+    for i in 1:length(var_uids)
+        var = getvar(f, var_uids[i])
+        name = getname(var)
+        coeff = var_coeffs[i]
+        op = (coeff < 0.0) ? "-" : "+"
+        print(io, op, " ", abs(coeff), " ", name, " ")
+    end
+
+    if getsense(constr) == Equal
+        op = "=="
+    elseif getsense(constr) == Greater
+        op = ">="
+    else
+        op = "<="
+    end
+    print(io, " ", op, " ", getrhs(constr))
+    println(io, " ")
+    return
+end
+
+function _show_constraints(io::IO , f::Formulation)
+    for uid in getconstraintuids(f)
+        _show_constraint(io, f, uid)
+    end
+    return
+end
+
+function _show_variable(io::IO, f::Formulation, uid)
+    var = getvar(f, uid)
+    name = getname(var)
+    lb = getlb(var)
+    ub = getub(var)
+    t = gettype(var)
+    println(io, lb, " <= ", name, " <= ", ub, " (", t, ")")
+end
+
+function _show_variables(io::IO, f::Formulation)
+    for uid in getvariableuids(f)
+        _show_variable(io, f, uid)
+    end
+end
+
+function Base.show(io::IO, f::Formulation)
+    println(io, "Formulation id = ", getuid(f))
+    _show_obj_fun(io, f)
+    _show_constraints(io, f)
+    _show_variables(io, f)
+    return
+end
+
 mutable struct Reformulation <: AbstractFormulation
     solution_method::SolutionMethod
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
 end
-
-

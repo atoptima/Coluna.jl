@@ -41,6 +41,8 @@ include("types.jl")
 include("varconstr.jl")
 include("constraint.jl")
 include("variable.jl")
+include("filter.jl")
+include("manager.jl")
 include("membership.jl")
 include("formulation.jl")
 #include("reformulation.jl")
@@ -60,8 +62,12 @@ include("model.jl")
 include("reformulation.jl")
 include("interfaceMoi.jl")
 
+##### Algorithms
+include("algorithms/colgen.jl")
+
 ##### Wrapper functions
 include("MOIWrapper.jl")
 #include("decomposition.jl")
+
 
 end # module
