@@ -6,9 +6,9 @@ function test_membership(inner_model, orig_form, constraint)
         m_var_id = term[1].index
         coeff = term[2]
         c_var_id = CL.moi2cid(inner_model, m_var_id).value
-        @test members_of_constr[c_var_id] == coeff
+        @test members_of_constr.members[c_var_id] == coeff
         members_of_var = CL.get_constr_members_of_var(orig_form, c_var_id)
-        @test members_of_var[c_constr_id] == coeff
+        @test members_of_var.members[c_constr_id] == coeff
     end
     return
 end
