@@ -188,6 +188,6 @@ function reformulate!(m::Model, method::SolutionMethod)
     setmaster!(reformulation, master_form)
     build_dw_master!(m, master_annotation_id, reformulation, master_form, vars_in, constrs_in)
 
-
+    @show master_form
 end
 
