@@ -14,7 +14,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
  
         var_uids = getvar_uids(sp_form, PricingSpVar)
 
-        new_obj = get_red_costs(master_form, var_uids)
+        new_obj = get_red_costs(master_form, alg.dualSol, var_uids)
 
         @logmsg LogLevel(-3) string("new objective func = ", new_obj)
 
@@ -61,6 +61,8 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
         var_uids = getvar_uids(sp_form, PricingSpSetupVar)
         @assert length(var_uids) == 1
         add_var!(membership, var_uids[1], 1.0)
+
+        # check if col exists
         
         add!(master_form, mc_var, membership)
        
