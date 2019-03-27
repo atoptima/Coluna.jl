@@ -19,24 +19,27 @@ const SupportedConstrSets = Union{MOI.EqualTo{Float64},
                                   MOI.Zeros}
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
-    inner::Union{Nothing, Model}
+    inner::Model
     # varmap::Dict{MOI.VariableIndex,Variable} ## Keys and values are created in this file
     # # add conmap here
     # constr_probidx_map::Dict{Constraint,Int}
     # var_probidx_map::Dict{Variable,Int}
     # nb_subproblems::Int
-    # master_factory::JuMP.OptimizerFactory
-    # pricing_factory::JuMP.OptimizerFactory
+    master_factory::JuMP.OptimizerFactory
+    pricing_factory::JuMP.OptimizerFactory
 end
 
 setinnermodel!(o::Optimizer, m::Model) = o.inner = m 
 
-function Optimizer(;kwargs...)
-    return Optimizer(nothing)
+function Optimizer(;master_factory =
+        JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
+        JuMP.with_optimizer(GLPK.Optimizer), params = Params())
+    model = Model(params)
+    return Optimizer(model, master_factory, pricing_factory)
 end
 
 function MOI.optimize!(optimizer::Optimizer)
-    optimize!(optimizer.inner.re_formulation)
+    optimize!(optimizer.inner)
 end
 
 function MOI.get(dest::MOIU.UniversalFallback,
@@ -182,41 +185,38 @@ function load_decomposition_annotations!(m::Model, src::MOI.ModelLike)
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
-    model = Model()
-    setinnermodel!(dest, model)
+    model = dest.inner
+    set_optimizers_dict(dest)
     register_original_formulation!(model, dest, src, copy_names)
 
-    # Retrieve annotations
+    # Retrieve annotation
     load_decomposition_annotations!(model, src)
-
-    reformulate!(model, DantzigWolfeDecomposition)
-
     return model.mid2cid_map
 end
 
-
-# function set_optimizers_dict(dest::Optimizer)
-#     # set coluna optimizers
-#     model = dest.inner
-#     master_problem = model.extended_problem.master_problem
-#     model.problemidx_optimizer_map[master_problem.prob_ref] =
-#             dest.master_factory()
-#     for subprobidx in 1:dest.nb_subproblems
-#         pricingprob = model.extended_problem.pricing_vect[subprobidx]
-#         model.problemidx_optimizer_map[pricingprob.prob_ref] =
-#                 dest.pricing_factory()
-#     end
-# end
+function set_optimizers_dict(dest::Optimizer)
+    @warn "To be updated"
+    # set coluna optimizers
+    # model = dest.inner
+    # master_problem = model.extended_problem.master_problem
+    # model.problemidx_optimizer_map[master_problem.prob_ref] =
+    #         dest.master_factory()
+    # for subprobidx in 1:dest.nb_subproblems
+    #     pricingprob = model.extended_problem.pricing_vect[subprobidx]
+    #     model.problemidx_optimizer_map[pricingprob.prob_ref] =
+    #             dest.pricing_factory()
+    # end
+end
 
 function MOI.empty!(optimizer::Optimizer)
-    optimizer.inner = nothing
+    optimizer.inner.re_formulation = nothing
 end
 
 # ######################
 # ### Get functions ####
 # ######################
 
-MOI.is_empty(optimizer::Optimizer) = (optimizer.inner == nothing)
+MOI.is_empty(optimizer::Optimizer) = (optimizer.inner.re_formulation == nothing)
 
 # function MOI.get(coluna_optimizer::Optimizer, object::MOI.ObjectiveBound)
 #     return coluna_optimizer.inner.extended_problem.dual_inc_bound

@@ -86,7 +86,7 @@ function create_extended_problem()
     callback = CL.Callback()
     prob_counter = CL.ProblemCounter(-1)
     vc_counter = CL.VarConstrCounter(0)
-    return CL.ExtendedProblem(prob_counter, vc_counter, params,
+    return CL.Reformulation(prob_counter, vc_counter, params,
                               params.cut_up, params.cut_lo)
 end
 
@@ -104,7 +104,7 @@ function create_sols_and_bounds(n_vars::Int)
     return sols_and_bounds
 end
 
-function create_node(extended_problem::CL.ExtendedProblem, with_parent = false)
+function create_node(extended_problem::CL.Reformulation, with_parent = false)
     params = extended_problem.params
     problem_setup_info = CL.ProblemSetupInfo(0)
     # stab_info  = CL.StabilizationInfo(extended_problem.master_problem, params)

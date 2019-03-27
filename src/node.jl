@@ -1,10 +1,11 @@
-@hl mutable struct SetupInfo end
+mutable struct SetupInfo end
 
 mutable struct TreatOrder
     value::Int
 end
 
-@hl mutable struct Node
+mutable struct Node
+    parent::Union{Nothing, Node}
     params::Params
     children::Vector{Node}
     depth::Int
@@ -31,7 +32,7 @@ end
     treated::Bool
 
     ### New information recorded when the node was generated
-    local_branching_constraints::Vector{MasterBranchConstr}
+    local_branching_constraints::Vector{Constraint}
 
     ### Information recorded by father
     problem_setup_info::SetupInfo
@@ -46,7 +47,7 @@ end
 
 end
 
-function NodeBuilder(problem::ExtendedProblem, dual_bound::Float64,
+function NodeBuilder(problem::Reformulation, dual_bound::Float64,
     problem_setup_info::SetupInfo)
 
     return (
@@ -70,11 +71,8 @@ function NodeBuilder(problem::ExtendedProblem, dual_bound::Float64,
     )
 end
 
-@hl mutable struct NodeWithParent <: Node
-    parent::Node
-end
 
-function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
+function NodeWithParentBuilder(problem::Reformulation, parent::Node)
 
     return tuplejoin(NodeBuilder(problem, parent.node_inc_ip_dual_bound,
         parent.problem_setup_info),

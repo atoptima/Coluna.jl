@@ -559,10 +559,10 @@ function attach_art_var(manager::LocalArtVarManager, master::CompactProblem,
 end
 
 ###########################
-##### ExtendedProblem #####
+##### Reformulation #####
 ###########################
 
-mutable struct ExtendedProblem <: Problem
+mutable struct Reformulation <: Problem
     master_problem::CompactProblem # restricted master in DW case.
     pricing_vect::Vector{Problem}
     art_var_manager::GlobalArtVarManager
@@ -580,7 +580,7 @@ mutable struct ExtendedProblem <: Problem
     problem_ref_to_card_bounds::Dict{Int, Tuple{Int,Int}}
 end
 
-function ExtendedProblem(prob_counter::ProblemCounter,
+function Reformulation(prob_counter::ProblemCounter,
                          vc_counter::VarConstrCounter,
                          params::Params, primal_inc_bound::Float64,
                          dual_inc_bound::Float64)
@@ -588,7 +588,7 @@ function ExtendedProblem(prob_counter::ProblemCounter,
     master_problem = SimpleCompactProblem(prob_counter, vc_counter)
     master_problem.is_relaxed = true
 
-    return ExtendedProblem(
+    return Reformulation(
         master_problem, Problem[], GlobalArtVarManager(),
         Dict{Problem, MasterConstr}(), Dict{Problem, MasterConstr}(),
         Problem[], params, vc_counter, PrimalSolution(), params.cut_up,
@@ -597,14 +597,14 @@ function ExtendedProblem(prob_counter::ProblemCounter,
     )
 end
 
-get_problem(prob::ExtendedProblem,
+get_problem(prob::Reformulation,
             prob_ref::Int) = prob.problem_ref_to_problem[prob_ref]
 
-function get_sp_convexity_bounds(prob::ExtendedProblem, prob_ref::Int)
+function get_sp_convexity_bounds(prob::Reformulation, prob_ref::Int)
     return prob.problem_ref_to_card_bounds[prob_ref]
 end
 
-function load_problem_in_optimizer(extended_problem::ExtendedProblem)
+function load_problem_in_optimizer(extended_problem::Reformulation)
     load_problem_in_optimizer(extended_problem.master_problem)
     for prob in extended_problem.pricing_vect
         load_problem_in_optimizer(prob)
@@ -614,7 +614,7 @@ end
 # Iterates through each problem in extended_problem,
 # check its index and call function
 # initialize_problem_optimizer(index, optimizer), using the dictionary
-function initialize_problem_optimizer(extended_problem::ExtendedProblem,
+function initialize_problem_optimizer(extended_problem::Reformulation,
          problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
 
     @assert haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
@@ -632,17 +632,7 @@ function initialize_problem_optimizer(extended_problem::ExtendedProblem,
     end
 end
 
-function set_prob_ref_to_problem_dict(extended_problem::ExtendedProblem)
-    prob_ref_to_prob = extended_problem.problem_ref_to_problem
-    master = extended_problem.master_problem
-    subproblems = extended_problem.pricing_vect
-    prob_ref_to_prob[master.prob_ref] = master
-    for subprob in subproblems
-        prob_ref_to_prob[subprob.prob_ref] = subprob
-    end
-end
-
-function add_convexity_constraints(extended_problem::ExtendedProblem,
+function add_convexity_constraints(extended_problem::Reformulation,
         pricing_prob::Problem)
     card_lb, card_ub = get_sp_convexity_bounds(extended_problem, pricing_prob.prob_ref)
     master = extended_problem.master_problem

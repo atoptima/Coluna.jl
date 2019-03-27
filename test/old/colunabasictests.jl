@@ -24,7 +24,7 @@ function testdefaultbuilders()
     pricing_probs = Vector{CL.Problem}()
     push!(pricing_probs, CL.SimpleCompactProblem(prob_counter, counter))
     callback = CL.Callback()
-    extended_problem = CL.ExtendedProblem(prob_counter, counter,
+    extended_problem = CL.Reformulation(prob_counter, counter,
                        params, params.cut_up, params.cut_lo)
     model = CL.ModelConstructor()
 

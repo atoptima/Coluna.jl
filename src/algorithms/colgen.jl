@@ -1,7 +1,7 @@
-function optimize!(r::Reformulation)
-    println("\e[1;31m draft of the col gen algorithm here \e[00m")
-    return
-end
+# function optimize!(r::Reformulation)
+#     println("\e[1;31m draft of the col gen algorithm here \e[00m")
+#     return
+# end
 
 # function update_pricing_problem(sp_form::Formulation)
 #     new_obj = Dict{VarId, Float64}()

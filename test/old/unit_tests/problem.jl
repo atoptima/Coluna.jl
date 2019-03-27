@@ -421,7 +421,7 @@ function extended_problem_tests()
     callback = CL.Callback()
     prob_counter = CL.ProblemCounter(-1) # like cplex convention of prob_ref
     vc_counter = CL.VarConstrCounter(0)
-    extended_problem = CL.ExtendedProblem(prob_counter, vc_counter, params,
+    extended_problem = CL.Reformulation(prob_counter, vc_counter, params,
                                           params.cut_up, params.cut_lo)
     @test prob_counter.value == 0
 end
@@ -431,7 +431,7 @@ function initialize_extended_problem_optimizer_tests()
     callback = CL.Callback()
     prob_counter = CL.ProblemCounter(-1)
     vc_counter = CL.VarConstrCounter(0)
-    extended_problem = CL.ExtendedProblem(prob_counter, vc_counter, params,
+    extended_problem = CL.Reformulation(prob_counter, vc_counter, params,
                                           params.cut_up, params.cut_lo)
     subprob = CL.SimpleCompactProblem(prob_counter, vc_counter)
     push!(extended_problem.pricing_vect, subprob)
@@ -450,7 +450,7 @@ function add_convexity_constraints_tests()
     callback = CL.Callback()
     prob_counter = CL.ProblemCounter(-1)
     vc_counter = CL.VarConstrCounter(0)
-    extended_problem = CL.ExtendedProblem(prob_counter, vc_counter, params,
+    extended_problem = CL.Reformulation(prob_counter, vc_counter, params,
                                           params.cut_up, params.cut_lo)
     subprob = CL.SimpleCompactProblem(prob_counter, vc_counter)
     push!(extended_problem.pricing_vect, subprob)
@@ -465,7 +465,7 @@ function add_artificial_variables_tests()
     callback = CL.Callback()
     prob_counter = CL.ProblemCounter(-1)
     vc_counter = CL.VarConstrCounter(0)
-    extended_problem = CL.ExtendedProblem(prob_counter, vc_counter, params,
+    extended_problem = CL.Reformulation(prob_counter, vc_counter, params,
                                           params.cut_up, params.cut_lo)
     CL.add_artificial_variables(extended_problem)
     @test length(extended_problem.master_problem.var_manager.active_static_list) == 2
@@ -476,7 +476,7 @@ function get_problem_tests()
     callback = CL.Callback()
     prob_counter = CL.ProblemCounter(-1)
     vc_counter = CL.VarConstrCounter(0)
-    extended_problem = CL.ExtendedProblem(prob_counter, vc_counter, params,
+    extended_problem = CL.Reformulation(prob_counter, vc_counter, params,
                                           params.cut_up, params.cut_lo)
     subprob = CL.SimpleCompactProblem(prob_counter, vc_counter)
     push!(extended_problem.pricing_vect, subprob)

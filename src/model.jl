@@ -8,9 +8,12 @@ mutable struct Model <: AbstractModel
     form_counter::FormCounter
     var_annotations:: Dict{VarId, BD.Annotation}
     constr_annotations:: Dict{ConstrId, BD.Annotation}
+    timer_output::TimerOutputs.TimerOutput
+    params::Params
+    #problemidx_optimizer_map::Dict{Int, MOI.AbstractOptimizer}
 end
 
-Model() = Model("model", MOIU.IndexMap(), nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(), Dict{VarId, BD.Annotation}(), Dict{ConstrId, BD.Annotation}())
+Model(params::Params) = Model("model", MOIU.IndexMap(), nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(), Dict{VarId, BD.Annotation}(), Dict{ConstrId, BD.Annotation}(), TimerOutputs.TimerOutput(), params)
 
 function set_original_formulation!(m::Model, of::Formulation)
     m.original_formulation = of
@@ -26,10 +29,11 @@ get_original_formulation(m::Model) = m.original_formulation
 get_re_formulation(m::Model) = m.re_formulation
 
 moi2cid(m::Model, mid) = m.mid2cid_map[mid] 
+
 # @hl mutable struct Callback end
 
 # mutable struct Model # user model
-#     extended_problem::Union{Nothing, ExtendedProblem}
+#     extended_problem::Union{Nothing, Reformulation}
 #     callback::Callback
 #     params::Params
 #     prob_counter::ProblemCounter
@@ -43,7 +47,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     prob_counter = ProblemCounter(-1) # like cplex convention of prob_ref
 #     vc_counter = VarConstrCounter(0)
 #     if with_extended_prob
-#         extended_problem = ExtendedProblem(prob_counter, vc_counter, params,
+#         extended_problem = Reformulation(prob_counter, vc_counter, params,
 #                                            params.cut_up, params.cut_lo)
 #     else
 #         extended_problem = nothing
@@ -52,17 +56,17 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #                  Dict{Int,MOI.AbstractOptimizer}())
 # end
 
-# function create_root_node(extended_problem::ExtendedProblem)::Node
+# function create_root_node(extended_problem::Reformulation)::Node
 #     return Node(extended_problem, extended_problem.dual_inc_bound,
 #         ProblemSetupInfo())
 # end
 
-# function set_model_optimizers(model::Model)
-#     initialize_problem_optimizer(model.extended_problem,
-#                                  model.problemidx_optimizer_map)
-# end
+function set_model_optimizers(model::Model)
+    initialize_problem_optimizer(model.re_formulation,
+                                 model.problemidx_optimizer_map)
+end
 
-# function select_eval_alg(extended_problem::ExtendedProblem, node_eval_mode::NODEEVALMODE)
+# function select_eval_alg(extended_problem::Reformulation, node_eval_mode::NODEEVALMODE)
 #     if node_eval_mode == SimplexCg
 #         return AlgToEvalNodeBySimplexColGen(extended_problem)
 #     elseif node_eval_mode == Lp
@@ -73,7 +77,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 # end
 
 # ### For root node
-# function prepare_node_for_treatment(extended_problem::ExtendedProblem,
+# function prepare_node_for_treatment(extended_problem::Reformulation,
 #         node::Node, treat_algs::TreatAlgs, global_treat_order::TreatOrder)
 #     println("************************************************************")
 #     println("Preparing root node for treatment.")
@@ -105,7 +109,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     return true
 # end
 
-# function prepare_node_for_treatment(extended_problem::ExtendedProblem,
+# function prepare_node_for_treatment(extended_problem::Reformulation,
 #         node::NodeWithParent, treat_algs::TreatAlgs,
 #         global_treat_order::TreatOrder)
 
@@ -155,7 +159,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     return true
 # end
 
-# function print_info_before_solving_node(problem::ExtendedProblem,
+# function print_info_before_solving_node(problem::Reformulation,
 #         primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int,
 #         treat_order::TreatOrder)
 
@@ -168,7 +172,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 # end
 
 # function update_search_trees(cur_node::Node, search_tree::DS.PriorityQueue{Node, Float64},
-#         extended_problem::ExtendedProblem)
+#         extended_problem::Reformulation)
 #     params = extended_problem.params
 #     for child_node in cur_node.children
 #         # push!(bap_tree_nodes, child_node)
@@ -185,7 +189,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     end
 # end
 
-# function update_cur_valid_dual_bound(problem::ExtendedProblem,
+# function update_cur_valid_dual_bound(problem::Reformulation,
 #         node::NodeWithParent, search_tree::DS.PriorityQueue{Node, Float64})
 #     if isempty(search_tree)
 #         problem.dual_inc_bound = problem.primal_inc_bound
@@ -201,14 +205,14 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     end
 # end
 
-# function update_cur_valid_dual_bound(problem::ExtendedProblem,
+# function update_cur_valid_dual_bound(problem::Reformulation,
 #         node::Node, search_tree::DS.PriorityQueue{Node, Float64})
 #     if node.node_inc_ip_dual_bound > problem.dual_inc_bound
 #         problem.dual_inc_bound = node.node_inc_ip_dual_bound
 #     end
 # end
 
-# function update_primal_inc_solution(problem::ExtendedProblem, sol::PrimalSolution)
+# function update_primal_inc_solution(problem::Reformulation, sol::PrimalSolution)
 #     if sol.cost < problem.primal_inc_bound
 #         problem.solution = PrimalSolution(sol.cost, sol.var_val_map)
 #         problem.primal_inc_bound = sol.cost
@@ -217,7 +221,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     end
 # end
 
-# function update_model_incumbents(problem::ExtendedProblem, node::Node,
+# function update_model_incumbents(problem::Reformulation, node::Node,
 #         search_tree::DS.PriorityQueue{Node, Float64})
 #     if node.ip_primal_bound_is_updated
 #         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
@@ -234,15 +238,15 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 # end
 
 # # Add Manager to take care of parallelism.
-# # Maybe inside optimize!(extended_problem::ExtendedProblem) (?)
+# # Maybe inside optimize!(extended_problem::Reformulation) (?)
 
-# function initialize_convexity_constraints(extended_problem::ExtendedProblem)
+# function initialize_convexity_constraints(extended_problem::Reformulation)
 #     for pricing_prob in extended_problem.pricing_vect
 #         add_convexity_constraints(extended_problem, pricing_prob)
 #     end
 # end
 
-# function initialize_artificial_variables(extended_problem::ExtendedProblem)
+# function initialize_artificial_variables(extended_problem::Reformulation)
 #     master = extended_problem.master_problem
 #     init_manager(extended_problem.art_var_manager, master)
 #     for constr in master.constr_manager.active_static_list
@@ -250,118 +254,121 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     end
 # end
 
-# function coluna_initialization(model::Model)
-#     params = model.params
-#     extended_problem = model.extended_problem
+function coluna_initialization(model::Model)
+    params = model.params
+    extended_problem = model.extended_problem
 
-#     set_prob_ref_to_problem_dict(extended_problem)
-#     set_model_optimizers(model)
-#     initialize_convexity_constraints(extended_problem)
-#     initialize_artificial_variables(extended_problem)
-#     load_problem_in_optimizer(extended_problem)
+    reformulate!(model, DantzigWolfeDecomposition)
 
-# end
+    #set_prob_ref_to_problem_dict(extended_problem)
+    #set_model_optimizers(model)
+    #initialize_convexity_constraints(extended_problem)
+    #initialize_artificial_variables(extended_problem)
+    #load_problem_in_optimizer(extended_problem)
+end
 
-# function solve(model::Model)
-#     coluna_initialization(model)x
-#     global __initial_solve_time = time()
-#     @show model.params
-#     @timeit model.extended_problem.timer_output "Solve model" begin
-#     status = optimize!(model.extended_problem)
-#     end
-#     println(model.extended_problem.timer_output)
-# end
 
-# function initialize_search_tree(params::Params)
-#     if params.search_strategy == DepthFirst
-#         search_tree = DS.PriorityQueue{Node, Float64}(Base.Order.Reverse)
-#     elseif params.search_strategy == BestDualBound
-#         search_tree = DS.PriorityQueue{Node, Float64}(Base.Order.Forward)
-#     end
-#     return search_tree
-# end
+function initialize_search_tree(params::Params)
+    if params.search_strategy == DepthFirst
+        search_tree = DS.PriorityQueue{Node, Float64}(Base.Order.Reverse)
+    elseif params.search_strategy == BestDualBound
+        search_tree = DS.PriorityQueue{Node, Float64}(Base.Order.Forward)
+    end
+    return search_tree
+end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before
-# # function optimize!(problem::ExtendedProblem)
-# function optimize!(extended_problem::ExtendedProblem)
-#     params = extended_problem.params
-#     search_tree = initialize_search_tree(params)
-#     DS.enqueue!(search_tree, create_root_node(extended_problem), 0.0)
-#     global_treat_order = TreatOrder(1)
-#     nb_treated_nodes = 0
-#     bap_treat_order = 1 # Only usefull for printing
-#     is_primary_tree_node = true
-#     treated_nodes = Node[]
+# # function optimize!(problem::Reformulation)
 
-#     #global ep_ = extended_problem
+function optimize!(m::Model)
+    coluna_initialization(m)
+    global __initial_solve_time = time()
+    @show m.params
+    @timeit m.timer_output "Solve model" begin
+        status = optimize!(m.re_formulation, m.params)
+    end
+    println(m.timer_output)
+end
 
-#     while (!isempty(search_tree) && nb_treated_nodes < params.max_num_nodes)
+function optimize!(extended_problem::Reformulation, params::Params)
+    println("\e[1;32m Here starts optimization \e[00m")
+    search_tree = initialize_search_tree(params)
+    DS.enqueue!(search_tree, create_root_node(extended_problem), 0.0)
+    global_treat_order = TreatOrder(1)
+    nb_treated_nodes = 0
+    bap_treat_order = 1 # Only usefull for printing
+    is_primary_tree_node = true
+    treated_nodes = Node[]
+
+    #global ep_ = extended_problem
+
+    while (!isempty(search_tree) && nb_treated_nodes < params.max_num_nodes)
 
 
-#         # if empty(secondary_search_tree)
-#         #     cur_node = pop!(search_tree)
-#         # else
-#             cur_node = DS.dequeue!(search_tree)
-#         # end
-#         cur_node_evaluated_before = cur_node.evaluated
-#         treat_algs = TreatAlgs()
+        # if empty(secondary_search_tree)
+        #     cur_node = pop!(search_tree)
+        # else
+            cur_node = DS.dequeue!(search_tree)
+        # end
+        cur_node_evaluated_before = cur_node.evaluated
+        treat_algs = TreatAlgs()
 
-#         if prepare_node_for_treatment(extended_problem, cur_node,
-#                 treat_algs, global_treat_order)
+        if prepare_node_for_treatment(extended_problem, cur_node,
+                treat_algs, global_treat_order)
 
-#             print_info_before_solving_node(extended_problem,
-#                 length(search_tree) + ((is_primary_tree_node) ? 1 : 0),
-#                 0 + ((is_primary_tree_node) ? 0 : 1), global_treat_order)
+            print_info_before_solving_node(extended_problem,
+                length(search_tree) + ((is_primary_tree_node) ? 1 : 0),
+                0 + ((is_primary_tree_node) ? 0 : 1), global_treat_order)
 
-#             # if !cur_node_evaluated_before
-#             #     set_branch_and_price_order(cur_node, bap_treat_order)
-#             #     bap_treat_order += 1
-#             #     # nice_print(cur_node, true)
-#             # end
+            # if !cur_node_evaluated_before
+            #     set_branch_and_price_order(cur_node, bap_treat_order)
+            #     bap_treat_order += 1
+            #     # nice_print(cur_node, true)
+            # end
 
-#             if !treat(cur_node, treat_algs, global_treat_order,
-#                 extended_problem.primal_inc_bound)
-#                 error("ERROR: branch-and-price is interrupted")
-#                 break
-#             end
-#             push!(treated_nodes, cur_node)
-#             global_treat_order.value += 1
-#             nb_treated_nodes += 1
+            if !treat(cur_node, treat_algs, global_treat_order,
+                extended_problem.primal_inc_bound)
+                error("ERROR: branch-and-price is interrupted")
+                break
+            end
+            push!(treated_nodes, cur_node)
+            global_treat_order.value += 1
+            nb_treated_nodes += 1
 
-#             @logmsg LogLevel(-4) "Node bounds after evaluation:"
-#             @logmsg LogLevel(-4) string("Primal ip bound: ",
-#                                         cur_node.node_inc_ip_primal_bound)
-#             @logmsg LogLevel(-4) string("Dual ip bound: ",
-#                                         cur_node.node_inc_ip_dual_bound)
-#             @logmsg LogLevel(-4) string("Primal lp bound: ",
-#                                         cur_node.node_inc_lp_primal_bound)
-#             @logmsg LogLevel(-4) string("Dual lp bound: ",
-#                                         cur_node.node_inc_lp_dual_bound)
+            @logmsg LogLevel(-4) "Node bounds after evaluation:"
+            @logmsg LogLevel(-4) string("Primal ip bound: ",
+                                        cur_node.node_inc_ip_primal_bound)
+            @logmsg LogLevel(-4) string("Dual ip bound: ",
+                                        cur_node.node_inc_ip_dual_bound)
+            @logmsg LogLevel(-4) string("Primal lp bound: ",
+                                        cur_node.node_inc_lp_primal_bound)
+            @logmsg LogLevel(-4) string("Dual lp bound: ",
+                                        cur_node.node_inc_lp_dual_bound)
 
-#             # the output of the treated node are the generated child nodes and
-#             # possibly the updated bounds and the
-#             # updated solution, we should update primal bound before dual one
-#             # as the dual bound will be limited by the primal one
-#             update_search_trees(cur_node, search_tree, extended_problem)
-#             update_model_incumbents(extended_problem, cur_node, search_tree)
+            # the output of the treated node are the generated child nodes and
+            # possibly the updated bounds and the
+            # updated solution, we should update primal bound before dual one
+            # as the dual bound will be limited by the primal one
+            update_search_trees(cur_node, search_tree, extended_problem)
+            update_model_incumbents(extended_problem, cur_node, search_tree)
 
-#             @logmsg LogLevel(-4) string("number of nodes: ", length(search_tree))
+            @logmsg LogLevel(-4) string("number of nodes: ", length(search_tree))
 
-#         end
+        end
 
-#         if isempty(cur_node.children)
-#             # calculate_subtree_size(cur_node, 1)
-#             # calculate_subtree_size(cur_node, sub_tree_size_by_depth)
-#         end
-#     end
+        if isempty(cur_node.children)
+            # calculate_subtree_size(cur_node, 1)
+            # calculate_subtree_size(cur_node, sub_tree_size_by_depth)
+        end
+    end
 
-#     @logmsg LogLevel(-4) "Search is finished."
-#     @logmsg LogLevel(-4) "Primal bound: $(extended_problem.primal_inc_bound)"
-#     @logmsg LogLevel(-4) "Dual bound: $(extended_problem.dual_inc_bound)"
-#     # println("Best solution found:")
-#     # for kv in extended_problem.solution.var_val_map
-#     #     println("var: ", kv[1].name, ": ", kv[2])
-#     # end
-#     generate_and_write_bap_tree(treated_nodes)
-#     return "dummy_status"
-# end
+    @logmsg LogLevel(-4) "Search is finished."
+    @logmsg LogLevel(-4) "Primal bound: $(extended_problem.primal_inc_bound)"
+    @logmsg LogLevel(-4) "Dual bound: $(extended_problem.dual_inc_bound)"
+    # println("Best solution found:")
+    # for kv in extended_problem.solution.var_val_map
+    #     println("var: ", kv[1].name, ": ", kv[2])
+    # end
+    generate_and_write_bap_tree(treated_nodes)
+    return "dummy_status"
+end
