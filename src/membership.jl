@@ -111,7 +111,7 @@ function add_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_me
     var_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(var_uids)
         add!(m.constr_to_var_members[constr_uid], var_uids[j], vals[j])
-        if !haskey(m.var_to_constr_members, vaR1_uids[j])
+        if !haskey(m.var_to_constr_members, var_uids[j])
             m.var_to_constr_members[var_uids[j]] = ConstrMembership()
         end
         add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])
