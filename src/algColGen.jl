@@ -35,7 +35,7 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
                                sp_form::Formulation,
                                sp_sol::PrimalSolution)
 
-    # TODO add tolerances
+    # TODO add tolerances 
     
     sp_uid = getuid(sp_form)
     master_form = sp_form.parent
@@ -55,6 +55,7 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
         setname!(mc_var, name)
         
         membership = sp_sol.var_members
+        
         add_partialsol_members_of_var!(master_form.memberships, mc_var, membership)
 
         var_uids = getvar_uids(sp_form, PricingSpSetupVar)
