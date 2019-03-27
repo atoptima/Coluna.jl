@@ -21,10 +21,6 @@ mutable struct Formulation  <: AbstractFormulation
     vars::VarManager # SparseVector{Variable,VarId} 
     constrs::ConstrManager #SparseVector{Constraint,ConstrId} 
     memberships::Memberships
-    var_status::Filter
-    constr_status::Filter
-    var_duty_sets::Dict{VarDuty, Vector{VarId}}
-    constr_duty_sets::Dict{ConstrDuty, Vector{ConstrId}}
     obj_sense::ObjSense
     map_var_uid_to_index::Dict{VarId, MoiVarIndex}
     map_constr_uid_to_index::Dict{ConstrId, MoiConstrIndex}
@@ -35,29 +31,6 @@ mutable struct Formulation  <: AbstractFormulation
     callbacks
 end
 
-function setvarduty!(f::Formulation, var::Variable)
-    var_uid = getuid(var)
-    var_duty = getduty(var)
-    if haskey(f.var_duty_sets, var_duty)   
-        var_duty_set = f.var_duty_sets[var_duty]
-    else
-        var_duty_set = f.var_duty_sets[var_duty] = Vector{VarId}()
-    end
-    push!(var_duty_set, var_uid)
-    return
-end
-
-function setconstrduty!(f::Formulation, constr::Constraint)
-    constr_uid = getuid(constr)
-    constr_duty = getduty(constr)
-    if haskey(f.constr_duty_sets, constr_duty)   
-        constr_duty_set = f.constr_duty_sets[constr_duty]
-    else
-        constr_duty_set = f.constr_duty_sets[constr_duty] = Vector{ConstrId}()
-    end
-    push!(constr_duty_set, constr_uid)
-    return
-end
 
 #getvarcost(f::Formulation, uid) = f.costs[uid]
 #getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
@@ -67,24 +40,24 @@ end
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
-activevar(f::Formulation) = f.vars[activemask(f.var_status)]
-staticvar(f::Formulation) = f.vars[staticmask(f.var_status)]
-dynamicvar(f::Formulation) = f.vars[dynamicmask(f.var_status)]
-artificalvar(f::Formulation) = f.vars[artificialmask(f.var_status)]
-activeconstr(f::Formulation) = f.constrs[activemask(f.constr_status)]
-staticconstr(f::Formulation) = f.constrs[staticmask(f.constr_status)]
-dynamicconstr(f::Formulation) = f.constrs[dynamicmask(f.constr_status)]
+activevar(f::Formulation) = f.vars.members[activemask(f.vars.status)]
+staticvar(f::Formulation) = f.vars.members[staticmask(f.vars.status)]
+dynamicvar(f::Formulation) = f.vars.members[dynamicmask(f.vars.status)]
+artificalvar(f::Formulation) = f.vars.members[artificialmask(f.vars.status)]
+activeconstr(f::Formulation) = f.constrs.members[activemask(f.constrs.status)]
+staticconstr(f::Formulation) = f.constrs.members[staticmask(f.constrs.status)]
+dynamicconstr(f::Formulation) = f.constrs.members[dynamicmask(f.constrs.status)]
 
 function getvar_uids(f::Formulation,d::VarDuty)
-    if haskey(f.var_duty_sets, d)
-        return f.var_duty_sets[d]
+    if haskey(f.vars.duty_sets, d)
+        return f.vars.duty_sets[d]
     end
     return Vector{VarId}()
 end
 
 function getconstr_uids(f::Formulation,d::VarDuty)
-    if haskey(f.constr_duty_sets,d)
-        return f.constr_duty_sets[d]
+    if haskey(f.constrs.duty_sets,d)
+        return f.constrs.duty_sets[d]
     end
     return Vector{ConstrId}()
 end
@@ -92,8 +65,8 @@ end
 #getvar(f::Formulation, uid::VarId) = f.var_duty_sets[d]
 
 getuid(f::Formulation) = f.uid
-getvar(f::Formulation, uid) = f.vars[uid]
-getconstr(f::Formulation, uid) = f.constrs[uid]
+getvar(f::Formulation, uid::VarId) = getvc(f.vars, uid)
+getconstr(f::Formulation, uid::ConstrId) = getvc(f.constrs, uid)
         
 get_constr_members_of_var(f::Formulation, uid) = get_constr_members_of_var(f.memberships, uid)
 get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.memberships, uid)
@@ -112,13 +85,9 @@ function Formulation(m::AbstractModel,
                        parent_formulation,
                        moi_model,
                        nothing, 
-                       spzeros(MAX_SV_ENTRIES), #SparseVector{Variable,VarId}(),
-                       spzeros(MAX_SV_ENTRIES), #SparseVector{Constraint,ConstrId}(),
+                       VarManager(),
+                       ConstrManager(),
                        Memberships(),
-                       Filter(),
-                       Filter(),
-                       Dict{VarDuty, Vector{VarId}}(), 
-                       Dict{ConstrDuty, Vector{ConstrId}}(),
                        Min,
                        Dict{VarId, MoiVarIndex}(),
                        Dict{ConstrId, MoiConstrIndex}(),
@@ -199,7 +168,7 @@ end
 
 function add!(f::Formulation, elems::Vector{VC_Type}, 
               memberships::Vector{M_Type}) where {VC_Type <: AbstractVarConstr,
-                                                  M_Type <: Union{VarMembership, ConstrMembership}}
+                                                  M_Type <: AbstractMembership}
     @assert length(elems) == length(memberships)
     for i in 1:length(elems)
         add!(f, elems[i], memberships[i])
@@ -208,50 +177,22 @@ function add!(f::Formulation, elems::Vector{VC_Type},
 end
 
 
-function record!(f::Formulation, var::Variable)
-    var_uid = getuid(var)
-    setvarduty!(f, var)
-    f.vars[var_uid] = var
-    f.var_status.used_mask[var_uid] = true
-    f.var_status.active_mask[var_uid] = true
-    if (var.flag == Static)
-        f.var_status.static_mask[var_uid] = true
-    elseif (var.flag == Artificial)
-        f.var_status.artificial_mask[var_uid] = true
-    elseif (var.flag == Implicit)
-        f.var_status.implicit_mask[var_uid] = true
-    end
-    return
-end
 
 function add!(f::Formulation, var::Variable)
-    record!(f,var)
+    add!(f.vars, var)
     add_variable!(f.memberships, getuid(var))
     return
 end
 
-function record!(f::Formulation, constr::Constraint)
-    constr_uid = getuid(constr)
-    setconstrduty!(f, constr)
-    f.constrs[constr_uid] = constr
-    f.constr_status.used_mask[constr_uid] = true
-    f.constr_status.active_mask[constr_uid] = true
-    if (constr.flag == Static)
-        f.constr_status.static_mask[constr_uid] = true
-    elseif (constr.flag == Implicit)
-        f.constr_status.implicit_mask[constr_uid] = true
-    end
-   return
-end
 
 function add!(f::Formulation, constr::Constraint)
-    record!(f,constr)
+    add!(f.constrs, constr)
     add_constraint!(f.memberships, getuid(constr))
     return
 end
 
 function add!(f::Formulation, constr::Constraint, membership::VarMembership)
-    record!(f,constr)
+    add!(f.constrs, constr)
     add_constraint!(f.memberships, getuid(constr), membership)
     return
 end

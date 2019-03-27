@@ -10,6 +10,10 @@ abstract type AbstractMoiDef end
 
 abstract type AbstractCounter end
 
+abstract type AbstractMembership end
+
+
+abstract type AbstractManager end
 
 @enum VarSense Positive Negative Free
 @enum VarKind Continuous Binary Integ

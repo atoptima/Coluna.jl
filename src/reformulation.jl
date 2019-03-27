@@ -59,7 +59,7 @@ function build_dw_master!(model::Model,
         flag = Static
         duty = MastConvexityConstr
         conv_constr = Constraint(model, getuid(master_form), name, rhs, sense,kind,flag,duty)
-        membership = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
+        membership = VarMembership() 
         add!(master_form, conv_constr, membership)
 
         # create representative of sp setup var
@@ -69,8 +69,8 @@ function build_dw_master!(model::Model,
             var = getvar(sp_form, var_uid)
             @assert getduty(var) == PricingSpSetupVar
             var_clone = clone_in_formulation!(var, sp_form, master_form, MastRepPricingSpVar)
-            membership = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
-            membership[getuid(conv_constr)] = 1
+            membership = ConstrMembership()
+            set!(membership,getuid(conv_constr), 1.0)
             add_constr_members_of_var!(master_form.memberships, var_uid, membership)
         end
 
@@ -160,18 +160,16 @@ function reformulate!(m::Model, method::SolutionMethod)
         elseif annotation.problem == BD.Pricing
             f = Formulation(m, master_form)
             formulations[annotation.unique_id] = f
+            vars_in = Vector{VarId}()
+            constrs_in = Vector{ConstrId}()
             if haskey(vars_in_forms, annotation.unique_id)
-                vars =  vars_in_forms[annotation.unique_id]
-            else
-                vars = Vector{VarId}()
+                vars_in =  vars_in_forms[annotation.unique_id]
             end
             if haskey(constrs_in_forms, annotation.unique_id)
-                constrs = constrs_in_forms[annotation.unique_id]
-            else
-                constrs = Vector{ConstrId}()
+                constrs_in = constrs_in_forms[annotation.unique_id]
             end
             add_dw_pricing_sp!(reformulation, f)
-            build_dw_pricing_sp!(m, annotation.unique_id, f, vars, constrs)
+            build_dw_pricing_sp!(m, annotation.unique_id, f, vars_in, constrs_in)
         else 
             error("Not supported yet.")
         end
@@ -179,21 +177,17 @@ function reformulate!(m::Model, method::SolutionMethod)
 
     # Build Master
     @assert master_annotation_id != -1
+    vars_in = Vector{VarId}()
+    constrs_in = Vector{ConstrId}()
     if haskey(vars_in_forms, master_annotation_id)
         vars =  vars_in_forms[master_annotation_id]
-    else
-        vars = Vector{VarId}()
     end
     if haskey(constrs_in_forms, master_annotation_id)
         constrs = constrs_in_forms[master_annotation_id]
-    else
-        constrs = Vector{ConstrId}()
     end
     setmaster!(reformulation, master_form)
-    build_dw_master!(m, master_annotation_id, reformulation, master_form, vars, constrs)
+    build_dw_master!(m, master_annotation_id, reformulation, master_form, vars_in, constrs_in)
 
-
-    # TODO : Register constraints and variables
 
 end
 

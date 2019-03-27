@@ -8,7 +8,6 @@ mutable struct Constraint <: AbstractVarConstr
     flag::Flag    # Static, Dynamic/Delayed, Implicit
     duty::ConstrDuty 
 end
-const ConstrManager = SparseVector{Constraint,ConstrId} # Dict{ConstrId, Constraint}
 
 function Constraint(m::AbstractModel,
                     form_uid::FormId,

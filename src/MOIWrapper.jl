@@ -116,11 +116,7 @@ function create_origconstr!(constrs, memberships::Vector{VarMembership}, vars,
     membership = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
     for term in f.terms
         c_var_id = model.mid2cid_map[term.variable_index].value
-        if haskey(membership,c_var_id)
-            membership[c_var_id] += term.coefficient
-        else
-            membership[c_var_id] = term.coefficient
-        end        
+        add!(membership,c_var_id, term.coefficient)
     end
     push!(memberships, membership)
     c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))

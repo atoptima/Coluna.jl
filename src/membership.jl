@@ -22,14 +22,126 @@ explicitmask(f::Filter) = f.used_mask .& !f.implicit_mask
 #selectivemask(f::Filter, active::Bool, static::Bool, artificial::Bool) = f.used_mask active ? .& f.active_mask : nothing  static ? .& f.static_mask : nothing  artificial ? .& f.artificial_mask : nothing
 
 
-const VarMembership = Dict{VarId, Float64} #SparseVector{Float64, VarId}
-const ConstrMembership = Dict{ConstrId, Float64} #SparseVector{Float64, ConstrId}
+struct VarMembership <: AbstractMembership
+    members::Dict{VarId, Float64}    #SparseVector{Float64, VarId}
+end
+function VarMembership()
+    return VarMembership(Dict{VarId, Float64}())
+end
+
+
+struct ConstrMembership <: AbstractMembership
+    members::Dict{ConstrId, Float64} #SparseVector{Float64, ConstrId}
+end
+
+function ConstrMembership()
+    return ConstrMembership(Dict{ConstrId, Float64}())
+end
+
+function add!(m::AbstractMembership, varconst_id, val::Float64)
+    if haskey(m.members, varconst_id)
+        # if (reset)
+        #    m.members[varconst_id] = val
+        # else            
+        m.members[varconst_id] += val
+    else
+        m.members[varconst_id] = val
+    end
+    return
+end
+
+function set!(m::AbstractMembership, varconst_id, val::Float64)
+       m.members[varconst_id] = val
+    return
+end
+
+
+struct VarManager <: AbstractManager
+    members::SparseVector{Variable,VarId}
+    status::Filter
+    duty_sets::Dict{VarDuty, Vector{VarId}}
+end
+
+function VarManager()
+    return VarManager(spzeros(MAX_SV_ENTRIES), #SparseVector{Constraint,ConstrId}(),
+                      Filter(),
+                      Dict{VarDuty, Vector{VarId}}())
+end
+
+struct ConstrManager <: AbstractManager
+    members::SparseVector{Constraint,ConstrId} # Dict{ConstrId, Constraint}
+    status::Filter
+    duty_sets::Dict{ConstrDuty, Vector{ConstrId}}
+end
+
+function ConstrManager()
+    return ConstrManager(spzeros(MAX_SV_ENTRIES), #SparseVector{Variable,VarId}()
+                         Filter(),
+                         Dict{ConstrDuty, Vector{ConstrId}}())
+end
+
+function add!(vm::VarManager, var::Variable)
+    var_uid = getuid(var)
+    vm.members[var_uid] = var
+    vm.status.used_mask[var_uid] = true
+    vm.status.active_mask[var_uid] = true
+    if (var.flag == Static)
+        vm.status.static_mask[var_uid] = true
+    elseif (var.flag == Artificial)
+        vm.status.artificial_mask[var_uid] = true
+    elseif (var.flag == Implicit)
+        vm.status.implicit_mask[var_uid] = true
+    end
+    duty = getduty(var)
+    if haskey(vm.duty_sets, duty)   
+       set = vm.duty_sets[duty]
+    else
+        set = vm.duty_sets[duty] = Vector{VarId}()
+    end
+    push!(set, var_uid)
+
+    return
+end
+
+
+function getvc(m::VarManager,  varconstrId::VarId)
+    #!haskey(m.members, varconstrId) && error("manaer does not contain varconstr $varconstrId")
+    return m.members[varconstrId]
+end
+
+function getvc(m::ConstrManager, varconstrId::ConstrId)
+   # !haskey(m.members, varconstrId) && error("manaer does not contain varconstr $varconstrId")
+    return m.members[varconstrId]
+end
+
+
+function add!(cm::ConstrManager, constr::Constraint)
+    constr_uid = getuid(constr)
+    cm.members[constr_uid] = constr
+    cm.status.used_mask[constr_uid] = true
+    cm.status.active_mask[constr_uid] = true
+    if (constr.flag == Static)
+        cm.status.static_mask[constr_uid] = true
+    elseif (constr.flag == Implicit)
+        cm.status.implicit_mask[constr_uid] = true
+    end
+
+    duty = getduty(constr)
+    if haskey(cm.duty_sets, duty)   
+        set = cm.duty_sets[duty]
+    else
+        set = cm.duty_sets[duty] = Vector{ConstrId}()
+    end
+    push!(set, constr_uid)
+    return
+end
+   
 
 function get_ids_vals(m::VarMembership)
     #return findnz(m)
     uids = Vector{VarId}()
     vals = Vector{Float64}()
-    for (uid,val) in m
+    for (uid,val) in m.members
         push!(uids, uid)
         push!(vals, val)
     end
@@ -40,7 +152,7 @@ function get_ids_vals(m::ConstrMembership)
     #return findnz(m)
     uids = Vector{ConstrId}()
     vals = Vector{Float64}()
-    for (uid,val) in m
+    for (uid,val) in m.members
         push!(uids, uid)
         push!(vals, val)
     end
@@ -62,13 +174,13 @@ function Memberships()
     return Memberships(var_m, constr_m, nothing, nothing, nothing, nothing)
 end
 
-function add_var!(m::VarMembership, var_uid::VarId, val::Float64)
-    m[var_uid] = val
-end
+#function add_var!(m::VarMembership, var_uid::VarId, val::Float64)
+#    m[var_uid] = val
+#end
 
-function add_constr!(m::ConstrMembership, constr_uid::VarId, val::Float64)
-    m[constr_uid] = val
-end
+#function add_constr!(m::ConstrMembership, constr_uid::VarId, val::Float64)
+#    m[constr_uid] = val
+#end
 
 
 hasvar(m::Memberships, uid) = haskey(m.var_to_constr_members, uid)
@@ -87,9 +199,9 @@ function add_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membersh
     end
     constr_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(constr_uids)
-        add_constr!(m.var_to_constr_members[var_uid], constr_uids[j], vals[j])
+        add!(m.var_to_constr_members[var_uid], constr_uids[j], vals[j])
         if hasconstr(m, constr_uids[j]) 
-            add_var!(m.constr_to_var_members[constr_uids[j]], var_uid, vals[j])
+            add!(m.constr_to_var_members[constr_uids[j]], var_uid, vals[j])
         else
             @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
         end
@@ -101,20 +213,20 @@ function add_partialsol_members_of_var!(m::Memberships, var_uid::VarId, new_memb
     end
     var_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(var_uids)
-        m.partialsol_to_var_members[var_uid][var_uids[j]] = vals[j]
+        add!(m.partialsol_to_var_members[var_uid],var_uids[j], vals[j])
         if hasvar(m, var_uids[j]) 
-            m.var_to_partialsol_members[var_uids[j]][var_uid] = vals[j]
+            add!(m.var_to_partialsol_members[var_uids[j]], var_uid, vals[j])
         else
             @warn "Constr with uid $(constr_uids[j]) not registered in Memberships."
         end
     end
 end
 
-function reset_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::VarMembership) 
+function reset_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
     m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(MAX_SV_ENTRIES)
     constr_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(constr_uids)
-        m.var_to_constr_members[var_uid][constr_uids[j]] = vals[j]
+        set!(m.var_to_constr_members[var_uid],constr_uids[j], vals[j])
     end   
 end
 
@@ -122,7 +234,7 @@ function reset_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_
     m.constr_to_var_members[constr_uid] = VarMembership() #spzeros(MAX_SV_ENTRIES)
     constr_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(constr_uids)
-        m.constr_to_var_members[constr_uid][var_uids[j]] = vals[j]
+        set!(m.constr_to_var_members[constr_uid], var_uids[j], vals[j])
     end
 end
 
@@ -130,11 +242,11 @@ function set_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membersh
     m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(MAX_SV_ENTRIES)
     constr_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(constr_uids)
-        m.var_to_constr_members[var_uid][constr_uids[j]] = vals[j]
+        add!(m.var_to_constr_members[var_uid],constr_uids[j], vals[j])
         if !hasconstr(m, constr_uids[j])
             m.constr_to_var_members[constr_uids[j]] = VarMembership() #spzeros(MAX_SV_ENTRIES)
         end
-        m.constr_to_var_members[constr_uids[j]][var_uid] = vals[j]
+        add!(m.constr_to_var_members[constr_uids[j]], var_uid, vals[j])
     end
 end
 
@@ -142,11 +254,11 @@ function set_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_me
     m.constr_to_var_members[constr_uid] = VarMembership() #spzeros(MAX_SV_ENTRIES)
     var_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(var_uids)
-        m.constr_to_var_members[constr_uid][var_uids[j]] = vals[j]
+        add!(m.constr_to_var_members[constr_uid],var_uids[j], vals[j])
         if !hasvar(m, var_uids[j])
             m.var_to_constr_members[var_uids[j]] = ConstrMembership() #spzeros(MAX_SV_ENTRIES)
         end
-        m.var_to_constr_members[var_uids[j]][constr_uid] = vals[j]
+        add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])
     end
 end
 
@@ -184,7 +296,7 @@ function add_constraint!(m::Memberships, constr_uid::ConstrId, membership::VarMe
     var_uids, vals = get_ids_vals(membership)
     for j in 1:length(var_uids)
         if hasvar(m, var_uids[j])
-            m.var_to_constr_members[var_uids[j]][constr_uid] = vals[j]
+            add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])
         else
             @warn "Variable with uid $(var_uids[j]) not registered in Memberships."
         end
