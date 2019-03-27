@@ -25,8 +25,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # constr_probidx_map::Dict{Constraint,Int}
     # var_probidx_map::Dict{Variable,Int}
     # nb_subproblems::Int
-    master_factory::JuMP.OptimizerFactory
-    pricing_factory::JuMP.OptimizerFactory
+    # master_factory::JuMP.OptimizerFactory
+    # pricing_factory::JuMP.OptimizerFactory
 end
 
 setinnermodel!(o::Optimizer, m::Model) = o.inner = m 
@@ -34,8 +34,8 @@ setinnermodel!(o::Optimizer, m::Model) = o.inner = m
 function Optimizer(;master_factory =
         JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
         JuMP.with_optimizer(GLPK.Optimizer), params = Params())
-    model = Model(params)
-    return Optimizer(model, master_factory, pricing_factory)
+    model = Model(params, master_factory, pricing_factory)
+    return Optimizer(model)
 end
 
 function MOI.optimize!(optimizer::Optimizer)
@@ -155,7 +155,7 @@ function create_original_formulation!(model, vars, constrs, memberships::Vector{
 end
 
 function register_original_formulation!(model::Model, dest::Optimizer, src::MOI.ModelLike, copy_names)
-    orig_form = Formulation(model, src)
+    orig_form = Formulation(model)#, src)
     set_original_formulation!(model, orig_form)
 
     vars = Variable[]
@@ -186,7 +186,7 @@ end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     model = dest.inner
-    set_optimizers_dict(dest)
+
     register_original_formulation!(model, dest, src, copy_names)
 
     # Retrieve annotation
@@ -194,19 +194,19 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     return model.mid2cid_map
 end
 
-function set_optimizers_dict(dest::Optimizer)
-    @warn "To be updated"
-    # set coluna optimizers
-    # model = dest.inner
-    # master_problem = model.extended_problem.master_problem
-    # model.problemidx_optimizer_map[master_problem.prob_ref] =
-    #         dest.master_factory()
-    # for subprobidx in 1:dest.nb_subproblems
-    #     pricingprob = model.extended_problem.pricing_vect[subprobidx]
-    #     model.problemidx_optimizer_map[pricingprob.prob_ref] =
-    #             dest.pricing_factory()
-    # end
-end
+# function set_optimizers_dict(dest::Optimizer)
+#     @warn "To be updated"
+#     # set coluna optimizers
+#     # model = dest.inner
+#     # master_problem = model.extended_problem.master_problem
+#     # model.problemidx_optimizer_map[master_problem.prob_ref] =
+#     #         dest.master_factory()
+#     # for subprobidx in 1:dest.nb_subproblems
+#     #     pricingprob = model.extended_problem.pricing_vect[subprobidx]
+#     #     model.problemidx_optimizer_map[pricingprob.prob_ref] =
+#     #             dest.pricing_factory()
+#     # end
+# end
 
 function MOI.empty!(optimizer::Optimizer)
     optimizer.inner.re_formulation = nothing

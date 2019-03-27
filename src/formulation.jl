@@ -15,7 +15,7 @@
 mutable struct Formulation  <: AbstractFormulation
     uid::FormId
     parent_formulation::Union{Formulation, Nothing}
-    moi_model::Union{MOI.ModelLike, Nothing}
+    #moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     vars::VarManager # SparseVector{Variable,VarId} 
     constrs::ConstrManager #SparseVector{Constraint,ConstrId} 
@@ -28,6 +28,38 @@ mutable struct Formulation  <: AbstractFormulation
     var_bounds::Dict{VarId, MoiVarBound}
     var_kinds::Dict{VarId, MoiVarKind}
     callbacks
+end
+
+function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing},
+        moi_optimizer::Union{MOI.AbstractOptimizer, Nothing})
+    uid = getnewuid(m.form_counter)
+    return Formulation(uid,
+        parent_formulation,
+        #moi_model,
+        moi_optimizer, 
+        VarManager(),
+        ConstrManager(),
+        Memberships(),
+        Min,
+        Dict{VarId, MoiVarIndex}(),
+        Dict{ConstrId, MoiConstrIndex}(),
+        Dict{MoiVarIndex, VarId}(),
+        Dict{MoiConstrIndex, ConstrId}(),
+        Dict{VarId, MoiVarBound}(),
+        Dict{VarId, MoiVarKind}(),
+        nothing)
+end
+
+function Formulation(m::AbstractModel, optimizer::Union{MOI.AbstractOptimizer, Nothing})
+    return Formulation(m::AbstractModel,  nothing, optimizer)
+end
+
+function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing})
+    return Formulation(m::AbstractModel, parent_formulation, nothing)
+end
+
+function Formulation(m::AbstractModel)
+    return Formulation(m::AbstractModel, nothing, nothing)
 end
 
 #getvarcost(f::Formulation, uid) = f.costs[uid]
@@ -74,40 +106,6 @@ get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.mem
 
 get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getuid(var))
 get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getuid(constr))
-
-function Formulation(m::AbstractModel,
-                     parent_formulation::Union{Formulation, Nothing},
-                     moi_model::Union{MOI.ModelLike, Nothing})
-    uid = getnewuid(m.form_counter)
-    
-    return Formulation(uid,
-                       parent_formulation,
-                       moi_model,
-                       nothing, 
-                       VarManager(),
-                       ConstrManager(),
-                       Memberships(),
-                       Min,
-                       Dict{VarId, MoiVarIndex}(),
-                       Dict{ConstrId, MoiConstrIndex}(),
-                       Dict{MoiVarIndex, VarId}(),
-                       Dict{MoiConstrIndex, ConstrId}(),
-                       Dict{VarId, MoiVarBound}(),
-                       Dict{VarId, MoiVarKind}(),
-                       nothing)
-end
-
-function Formulation(m::AbstractModel, moi::Union{MOI.ModelLike, Nothing})
-    return Formulation(m::AbstractModel,  nothing, moi)
-end
-
-function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing})
-    return Formulation(m::AbstractModel, parent_formulation, nothing)
-end
-
-function Formulation(m::AbstractModel)
-    return Formulation(m::AbstractModel, nothing, nothing)
-end
 
 function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
     varconstr_copy = deepcopy(varconstr)

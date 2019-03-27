@@ -1,23 +1,3 @@
-
-function Reformulation(method::SolutionMethod)
-    return Reformulation(method, nothing, nothing, Vector{AbstractFormulation}())
-end
-
-function Reformulation()
-    return Reformulation(DirectMip)
-end
-
-function setmaster!(r::Reformulation, f)
-    r.master = f
-    return
-end
-
-function add_dw_pricing_sp!(r::Reformulation, f)
-    push!(r.dw_pricing_subprs, f)
-    return
-end
-
-
 function fill_annotations_set!(ann_set, varconstr_annotations)
     for (varconstr_id, varconstr_annotation) in varconstr_annotations
         push!(ann_set, varconstr_annotation)
@@ -143,11 +123,11 @@ function reformulate!(m::Model, method::SolutionMethod)
     @show constrs_in_forms
 
 
-    reformulation = Reformulation(method)
+    reformulation = Reformulation(m, method)
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
 
-    master_form = Formulation(m)
+    master_form = Formulation(m, m.master_factory())
     
     # Build pricing  subproblems
     master_annotation_id = -1

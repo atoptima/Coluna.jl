@@ -66,6 +66,7 @@ include("nodealgs/algpreprocessnode.jl")
 include("nodealgs/algevalnode.jl")
 include("nodealgs/algprimalheurinnode.jl")
 include("nodealgs/alggeneratechildrennodes.jl")
+include("nodealgs/algtoevalnodebylp.jl")
 
 ##### Algorithms draft
 include("algorithms/colgen.jl")

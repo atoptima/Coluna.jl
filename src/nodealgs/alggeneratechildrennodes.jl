@@ -1,4 +1,4 @@
-# @hl mutable struct AlgToGenerateChildrenNodes <: AlgLike
+abstract type AlgToGenerateChildrenNodes <: AlgLike end
 #     depth::Int
 #     extended_problem::Reformulation
 # end
@@ -7,19 +7,21 @@
 #     return (depth, problem)
 # end
 
-# abstract type RuleForUsualBranching end
-# struct MostFractionalRule <: RuleForUsualBranching end
-# struct LeastFractionalRule <: RuleForUsualBranching end
+abstract type RuleForUsualBranching end
+struct MostFractionalRule <: RuleForUsualBranching end
+struct LeastFractionalRule <: RuleForUsualBranching end
 
-# @hl mutable struct UsualBranchingAlg <: AlgToGenerateChildrenNodes
-#     rule::RuleForUsualBranching
-#     generated_branch_constraints::Vector{MasterBranchConstr}
-# end
+mutable struct UsualBranchingAlg <: AlgToGenerateChildrenNodes
+    depth::Int
+    extended_problem::Reformulation
+    rule::RuleForUsualBranching
+    generated_branch_constraints::Vector{Constraint}#Vector{MasterBranchConstr}
+end
 
-# function UsualBranchingAlgBuilder(depth::Int, problem::Reformulation)
-#     return tuplejoin(AlgToGenerateChildrenNodesBuilder(depth, problem),
-#         MostFractionalRule(), MasterBranchConstr[])
-# end
+function UsualBranchingAlg(depth::Int, problem::Reformulation)
+    return UsualBranchingAlg(depth, problem,
+        MostFractionalRule(), Constraint[])#MasterBranchConstr[])
+end
 
 # function get_var_according_to_rule(rule::MostFractionalRule,
 #         vars::Vector{Pair{T, Float64}}) where T <: Variable

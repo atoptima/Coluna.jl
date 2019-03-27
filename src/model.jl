@@ -10,10 +10,14 @@ mutable struct Model <: AbstractModel
     constr_annotations:: Dict{ConstrId, BD.Annotation}
     timer_output::TimerOutputs.TimerOutput
     params::Params
+    master_factory::Union{Nothing, JuMP.OptimizerFactory}
+    pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
     #problemidx_optimizer_map::Dict{Int, MOI.AbstractOptimizer}
 end
 
-Model(params::Params) = Model("model", MOIU.IndexMap(), nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(), Dict{VarId, BD.Annotation}(), Dict{ConstrId, BD.Annotation}(), TimerOutputs.TimerOutput(), params)
+Model(params::Params, master_factory, pricing_factory) = Model("model", MOIU.IndexMap(), nothing, nothing, 
+    VarCounter(), ConstrCounter(), FormCounter(), Dict{VarId, BD.Annotation}(), 
+    Dict{ConstrId, BD.Annotation}(), TimerOutputs.TimerOutput(), params, master_factory, pricing_factory)
 
 function set_original_formulation!(m::Model, of::Formulation)
     m.original_formulation = of
@@ -56,120 +60,25 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #                  Dict{Int,MOI.AbstractOptimizer}())
 # end
 
-# function create_root_node(extended_problem::Reformulation)::Node
-#     return Node(extended_problem, extended_problem.dual_inc_bound,
-#         ProblemSetupInfo())
-# end
+function create_root_node(extended_problem::Reformulation, params::Params)::Node
+    return Node(extended_problem, -Inf, ProblemSetupInfo(), params)
+end
 
 function set_model_optimizers(model::Model)
     initialize_problem_optimizer(model.re_formulation,
                                  model.problemidx_optimizer_map)
 end
 
-# function select_eval_alg(extended_problem::Reformulation, node_eval_mode::NODEEVALMODE)
-#     if node_eval_mode == SimplexCg
-#         return AlgToEvalNodeBySimplexColGen(extended_problem)
-#     elseif node_eval_mode == Lp
-#         return AlgToEvalNodeByLp(extended_problem)
-#     else
-#         error("Invalid eval mode: ", node_eval_mode)
-#     end
-# end
+function select_eval_alg(extended_problem::Reformulation, node_eval_mode::NODEEVALMODE)
+    if node_eval_mode == SimplexCg
+        return AlgToEvalNodeBySimplexColGen(extended_problem)
+    elseif node_eval_mode == Lp
+        return AlgToEvalNodeByLp(extended_problem)
+    else
+        error("Invalid eval mode: ", node_eval_mode)
+    end
+end
 
-# ### For root node
-# function prepare_node_for_treatment(extended_problem::Reformulation,
-#         node::Node, treat_algs::TreatAlgs, global_treat_order::TreatOrder)
-#     println("************************************************************")
-#     println("Preparing root node for treatment.")
-
-#     params = extended_problem.params
-#     treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
-#         node.problem_setup_info, node.local_branching_constraints)
-
-#     if params.apply_preprocessing
-#         treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
-#     end
-#     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
-#     treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
-#                                                                extended_problem)
-
-#     if !node.evaluated
-#         treat_algs.alg_eval_node = select_eval_alg(extended_problem,
-#                                                    params.node_eval_mode)
-#     end
-
-#     if params.use_restricted_master_heur
-#         push!(treat_algs.alg_vect_primal_heur_node,
-#               AlgToPrimalHeurByRestrictedMip(
-#                   extended_problem,
-#                   params.restricted_master_heur_solver_type)
-#               )
-#     end
-
-#     return true
-# end
-
-# function prepare_node_for_treatment(extended_problem::Reformulation,
-#         node::NodeWithParent, treat_algs::TreatAlgs,
-#         global_treat_order::TreatOrder)
-
-#     println("************************************************************")
-#     println("Preparing node ", global_treat_order.value,
-#         " for treatment. Parent is ", node.parent.treat_order.value, ".")
-#     println("Elapsed time: ", elapsed_solve_time(), " seconds.")
-#     println("Current primal bound is ", extended_problem.primal_inc_bound)
-#     println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
-#     print("Branching constraint:  ")
-#     coluna_print(node.local_branching_constraints[1])
-
-#     params = extended_problem.params
-#     if is_to_be_pruned(node, extended_problem.primal_inc_bound)
-#         println("Node is conquered, no need for treating it.")
-#         return false
-#     end
-
-#     if global_treat_order.value == node.parent.treat_order.value+1
-#         treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
-#             node.problem_setup_info, node.local_branching_constraints)
-#     else
-#         treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
-#             node.problem_setup_info, node.local_branching_constraints)
-#     end
-
-#     if params.apply_preprocessing
-#         treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
-#     end
-#     treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
-#     treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
-#                                                                extended_problem)
-
-#     if !node.evaluated
-#         treat_algs.alg_eval_node = select_eval_alg(extended_problem,
-#                                                    params.node_eval_mode)
-#     end
-
-#     if params.use_restricted_master_heur
-#         push!(treat_algs.alg_vect_primal_heur_node,
-#               AlgToPrimalHeurByRestrictedMip(
-#                   extended_problem,
-#                   params.restricted_master_heur_solver_type)
-#               )
-#     end
-
-#     return true
-# end
-
-# function print_info_before_solving_node(problem::Reformulation,
-#         primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int,
-#         treat_order::TreatOrder)
-
-#     print(primal_tree_nb_open_nodes)
-#     println(" open nodes. Treating node ", treat_order.value, ".")
-#     println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
-#         problem.primal_inc_bound, " ]")
-#     println("************************************************************")
-
-# end
 
 # function update_search_trees(cur_node::Node, search_tree::DS.PriorityQueue{Node, Float64},
 #         extended_problem::Reformulation)
@@ -255,8 +164,8 @@ end
 # end
 
 function coluna_initialization(model::Model)
-    params = model.params
-    extended_problem = model.extended_problem
+    #params = model.params
+    #extended_problem = model.extended_problem
 
     reformulate!(model, DantzigWolfeDecomposition)
 
@@ -293,7 +202,7 @@ end
 function optimize!(extended_problem::Reformulation, params::Params)
     println("\e[1;32m Here starts optimization \e[00m")
     search_tree = initialize_search_tree(params)
-    DS.enqueue!(search_tree, create_root_node(extended_problem), 0.0)
+    DS.enqueue!(search_tree, create_root_node(extended_problem, params), 0.0)
     global_treat_order = TreatOrder(1)
     nb_treated_nodes = 0
     bap_treat_order = 1 # Only usefull for printing

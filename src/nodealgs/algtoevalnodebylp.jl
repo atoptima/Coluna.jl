@@ -56,17 +56,23 @@ end
 #############################################
 
 # struct ColGenStabilization end
+abstract type AlgToEvalNodeByLagrangianDuality <: AlgToEvalNode end
 
-@hl mutable struct AlgToEvalNodeByLagrangianDuality <: AlgToEvalNode
-    pricing_contribs::Dict{Problem, Float64}
-    pricing_const_obj::Dict{Problem, Float64}
+mutable struct AlgToEvalNodeBySimplexColGen <: AlgToEvalNodeByLagrangianDuality
+    sols_and_bounds::SolsAndBounds
+    extended_problem::Reformulation
+    sol_is_master_lp_feasible::Bool
+    is_master_converged::Bool
+    pricing_contribs::Dict{AbstractFormulation, Float64}
+    pricing_const_obj::Dict{AbstractFormulation, Float64}
     # colgen_stabilization::Union{ColGenStabilization, Nothing}
     max_nb_cg_iterations::Int
 end
 
-function AlgToEvalNodeByLagrangianDualityBuilder(problem::Reformulation)
-    return tuplejoin(AlgToEvalNodeBuilder(problem), Dict{Problem, Float64}(),
-                     Dict{Problem, Float64}(), 10000) # TODO put as parameter
+function AlgToEvalNodeBySimplexColGen(problem::Reformulation)
+    return AlgToEvalNodeBySimplexColGen(SolsAndBounds(), problem, false,
+            false, Dict{AbstractFormulation, Float64}(), 
+            Dict{AbstractFormulation, Float64}(), 10000) # TODO put as parameter
 end
 
 function cleanup_restricted_mast_columns(alg::AlgToEvalNodeByLagrangianDuality,
@@ -76,14 +82,14 @@ function cleanup_restricted_mast_columns(alg::AlgToEvalNodeByLagrangianDuality,
 end
 
 function update_pricing_target(alg::AlgToEvalNodeByLagrangianDuality,
-                               pricing_prob::Problem)
+                               pricing_prob::AbstractFormulation)
 
     @logmsg LogLevel(-3) ("pricing target will only be needed after" *
                          "automating convexity constraints")
 end
 
 function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
-                             pricing_prob::Problem)
+                             pricing_prob::AbstractFormulation)
 
     @timeit to(alg) "update_pricing_prob" begin
 
@@ -118,7 +124,7 @@ function update_pricing_prob(alg::AlgToEvalNodeByLagrangianDuality,
 end
 
 function compute_pricing_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDuality,
-                                            pricing_prob::Problem)
+                                            pricing_prob::AbstractFormulation)
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
     multiplicity_ub = alg.extended_problem.pricing_convexity_ubs[pricing_prob].cost_rhs
@@ -130,7 +136,7 @@ function compute_pricing_dual_bound_contrib(alg::AlgToEvalNodeByLagrangianDualit
 end
 
 function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
-                               pricing_prob::Problem)
+                               pricing_prob::AbstractFormulation)
 
     # TODO add tolerances
     sp_sol = pricing_prob.primal_sol
@@ -150,7 +156,7 @@ function insert_cols_in_master(alg::AlgToEvalNodeByLagrangianDuality,
     end
 end
 
-function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::Problem)
+function gen_new_col(alg::AlgToEvalNodeByLagrangianDuality, pricing_prob::AbstractFormulation)
     @timeit to(alg) "gen_new_col" begin
 
     flag_need_not_generate_more_col = 0 # Not used
@@ -272,17 +278,10 @@ end
 #### AlgToEvalNodeBySimplexColGen #######
 #########################################
 
-@hl mutable struct AlgToEvalNodeBySimplexColGen <:
-                   AlgToEvalNodeByLagrangianDuality end
-
-AlgToEvalNodeBySimplexColGenBuilder(problem::Reformulation) = (
-    AlgToEvalNodeByLagrangianDualityBuilder(problem)
-)
-
 function solve_restricted_mast(alg)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
     @timeit to(alg) "solve_restricted_mast" begin
-    master = alg.extended_problem.master_problem
+    master = alg.extended_problem.master
     status, p_sol, d_sol = optimize(master)
     # @shows status
     # @show result_count = MOI.get(master.optimizer, MOI.ResultCount())

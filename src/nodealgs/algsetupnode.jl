@@ -72,7 +72,7 @@
 #     info.constraint.cur_cost_rhs = info.rhs
 # end
 
-# @hl mutable struct ProblemSetupInfo <: SetupInfo
+mutable struct ProblemSetupInfo <: SetupInfo
 #     #treat_order::Int
 #     # number_of_nodes::Int
 #     # full_setup_is_obligatory::Bool
@@ -93,7 +93,7 @@
 
 #     modified_static_vars_info::Vector{VariableInfo}
 #     # modified_static_constrs_info::Vector{ConstraintInfo}
-# end
+end
 
 # ProblemSetupInfo() = ProblemSetupInfo(Vector{VariableSmallInfo}(),
 #                                       Vector{ConstraintInfo}(),
@@ -110,7 +110,7 @@
 # #### AlgToSetdownNode #######
 # #############################
 
-# @hl mutable struct AlgToSetdownNode <: AlgLike
+abstract type AlgToSetdownNode <: AlgLike end
 #     extended_problem::Reformulation
 #     recorded_problem_setup_info::ProblemSetupInfo
 # end
@@ -119,11 +119,14 @@
 #     node.problem_setup_info = alg.recorded_problem_setup_info
 # end
 
-# @hl mutable struct AlgToSetdownNodeFully <: AlgToSetdownNode end
+mutable struct AlgToSetdownNodeFully <: AlgToSetdownNode 
+    extended_problem::Reformulation
+    recorded_problem_setup_info::ProblemSetupInfo
+end
 
-# function AlgToSetdownNodeFullyBuilder(problem::Reformulation)
-#     return (problem, ProblemSetupInfo())
-# end
+function AlgToSetdownNodeFully(problem::Reformulation)
+    return AlgToSetdownNodeFully(problem, ProblemSetupInfo())
+end
 
 # function record_variables_info(prob_info::ProblemSetupInfo,
 #                                master_problem::CompactProblem,
@@ -216,7 +219,7 @@
 # ##### AlgToSetupNode ########
 # #############################
 
-# @hl mutable struct AlgToSetupNode <: AlgLike
+abstract type AlgToSetupNode <: AlgLike end
 #     extended_problem::Reformulation
 #     problem_setup_info::ProblemSetupInfo
 #     branch_from_father::Vector{MasterBranchConstr}
@@ -458,12 +461,16 @@
 # #### AlgToSetupRootNode #####
 # #############################
 
-# @hl mutable struct AlgToSetupRootNode <: AlgToSetupNode end
+mutable struct AlgToSetupRootNode <: AlgToSetupNode 
+    extended_problem::Reformulation
+    problem_setup_info::ProblemSetupInfo
+    branch_from_father::Vector{Constraint} #Vector{MasterBranchConstr}
+end
 
-# function AlgToSetupRootNodeBuilder(problem::Reformulation,
-#         problem_setup_info::ProblemSetupInfo)
-#     return AlgToSetupNodeBuilder(problem, problem_setup_info)
-# end
+function AlgToSetupRootNode(problem::Reformulation,
+        problem_setup_info::ProblemSetupInfo)
+    return AlgToSetupRootNode(problem, problem_setup_info, Vector{Constraint}())
+end
 
 # function set_cur_bounds(extended_problem::Reformulation)
 #     master = extended_problem.master_problem

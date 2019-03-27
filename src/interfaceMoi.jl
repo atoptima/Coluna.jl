@@ -72,7 +72,6 @@ end
 function fill_primal_sol(form::Formulation,
                          sol::Dict{VarId, Float64},
                          var_list::Vector{VarId})
-
     for var_uid in var_list
         val = MOI.get(form.moi_optimizer, MOI.VariablePrimal(),
                           form.map_var_uid_to_index[var_uid])
@@ -86,6 +85,7 @@ end
 function retrieve_primal_sol(form::Formulation)
     new_sol = Dict{VarId, Float64}()
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue()) 
+    error("Following line does not work.")
     fill_primal_sol(form, new_sol, activevar(form))
     #fill_primal_sol(form, new_sol, problem.var_manager.active_static_list)
     #fill_primal_sol(form, new_sol, problem.var_manager.active_dynamic_list)
@@ -133,7 +133,7 @@ function retrieve_dual_sol(form::Formulation)
     return dual_sol
 end
 
-function optimize(form::Formulation, update_problem = true)
+function optimize(form::Formulation, optimizer = form.moi_optimizer, update_problem = true)
     
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
@@ -154,6 +154,14 @@ function optimize(form::Formulation, update_problem = true)
     return (status, nothing, nothing)
 end
 
+function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
+    backup_stdout = stdout
+    (rd_out, wr_out) = redirect_stdout()
+    MOI.optimize!(optimizer)
+    close(wr_out)
+    close(rd_out)
+    redirect_stdout(backup_stdout)
+end
 
 #==
 function compute_constr_terms(membership::VarMembership)

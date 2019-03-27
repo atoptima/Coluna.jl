@@ -1,4 +1,4 @@
-mutable struct SetupInfo end
+abstract type SetupInfo end
 
 mutable struct TreatOrder
     value::Int
@@ -47,17 +47,17 @@ mutable struct Node
 
 end
 
-function NodeBuilder(problem::Reformulation, dual_bound::Float64,
-    problem_setup_info::SetupInfo)
-
-    return (
-        problem.params,
+function Node(problem::Reformulation, dual_bound::Float64,
+    problem_setup_info::SetupInfo, params::Params)
+    return Node(
+        nothing,
+        params,
         Node[],
         0,
         dual_bound,
         dual_bound,
-        problem.primal_inc_bound,
-        problem.primal_inc_bound,
+        Inf, #problem.primal_inc_bound,
+        Inf, #problem.primal_inc_bound,
         false,
         false,
         PrimalSolution(),
@@ -65,7 +65,7 @@ function NodeBuilder(problem::Reformulation, dual_bound::Float64,
         false,
         false,
         false,
-        MasterBranchConstr[],
+        Constraint[], #MasterBranchConstr[],
         problem_setup_info,
         PrimalSolution(),
     )
@@ -276,4 +276,74 @@ function treat(node::Node, treat_algs::TreatAlgs,
     exit_treatment(node)
 
     return true
+end
+
+function prepare_node_for_treatment(extended_problem::Reformulation,
+        node::Node, treat_algs::TreatAlgs,
+        global_treat_order::TreatOrder)
+
+    if node.parent == nothing
+        println("************************************************************")
+        println("Preparing root node for treatment.")
+
+        params = node.params
+        treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
+            node.problem_setup_info, node.local_branching_constraints)
+    else
+        println("************************************************************")
+        println("Preparing node ", global_treat_order.value,
+            " for treatment. Parent is ", node.parent.treat_order.value, ".")
+        println("Elapsed time: ", elapsed_solve_time(), " seconds.")
+        println("Current primal bound is ", extended_problem.primal_inc_bound)
+        println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
+        print("Branching constraint:  ")
+        coluna_print(node.local_branching_constraints[1])
+
+        params = node.params
+        if is_to_be_pruned(node, extended_problem.primal_inc_bound)
+            println("Node is conquered, no need for treating it.")
+            return false 
+        end
+
+        if global_treat_order.value == node.parent.treat_order.value+1
+            treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
+                node.problem_setup_info, node.local_branching_constraints)
+        else
+            treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
+                node.problem_setup_info, node.local_branching_constraints)
+        end
+    end
+    if params.apply_preprocessing
+        treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
+    end
+    treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
+    treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
+                                                            extended_problem)
+
+    if !node.evaluated
+        treat_algs.alg_eval_node = select_eval_alg(extended_problem,
+                                                params.node_eval_mode)
+    end
+
+    if params.use_restricted_master_heur
+        push!(treat_algs.alg_vect_primal_heur_node,
+            AlgToPrimalHeurByRestrictedMip(
+                extended_problem,
+                params.restricted_master_heur_solver_type)
+            )
+    end
+
+    return true
+end
+
+function print_info_before_solving_node(problem::Reformulation,
+        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int,
+        treat_order::TreatOrder)
+
+    print(primal_tree_nb_open_nodes)
+    println(" open nodes. Treating node ", treat_order.value, ".")
+    println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
+        problem.primal_inc_bound, " ]")
+    println("************************************************************")
+    return
 end
