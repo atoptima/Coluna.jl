@@ -1,22 +1,43 @@
-mutable struct Filter
-    used_mask::SparseVector{Bool,Int}
-    active_mask::SparseVector{Bool,Int}
-    static_mask::SparseVector{Bool,Int}
-    artificial_mask::SparseVector{Bool,Int}
-    implicit_mask::SparseVector{Bool,Int}
+struct Filter{T}
+    mask::SparseVector{Bool,Int}
+    container::T
+    f::Function
+    # Add info to know when to call dropzeros
 end
 
-Filter() = Filter(spzeros(MAX_SV_ENTRIES),
-                  spzeros(MAX_SV_ENTRIES),
-                  spzeros(MAX_SV_ENTRIES),
-                  spzeros(MAX_SV_ENTRIES),
-                  spzeros(MAX_SV_ENTRIES))
+getmask(f::Filter) = f.mask
+getf(f::Filter) = f.f
+getvm(f::Filter) = f.var_manager
 
-activemask(f::Filter) = f.used_mask .& f.active_mask
-staticmask(f::Filter) = f.used_mask .& f.static_mask
-dynamicmask(f::Filter) = f.used_mask .& !f.static_mask
-realmask(f::Filter) = f.used_mask .& !f.artificial_mask
-artificalmask(f::Filter) = f.used_mask .& f.artificial_mask
-implicitmask(f::Filter) = f.used_mask .& f.implicit_mask
-explicitmask(f::Filter) = f.used_mask .& !f.implicit_mask
-#selectivemask(f::Filter, active::Bool, static::Bool, artificial::Bool) = f.used_mask active ? .& f.active_mask : nothing  static ? .& f.static_mask : nothing  artificial ? .& f.artificial_mask : nothing
+function get_nz_ids(f::Filter)
+    return findnz(f.mask)[1]
+end
+
+function Filter(container::C, f::Function, varconstrs::SparseVector{T,Int}
+                ) where {C,T}
+    mask = SparseVector{Bool,Int}(spzeros(Bool, MAX_SV_ENTRIES))
+    for uid in findnz(varconstrs)[1]
+        vc = getvc(container, uid)
+        if f(vc)
+            mask[uid] = true
+        end
+    end
+    return Filter(mask, container, f)
+end
+
+function update_filter(filter::Filter, uid::Int)
+    vc = getvc(filter.container, uid)
+    if filter.f(vc)
+        filter.mask[uid] = true
+    end
+end
+
+function remove_element(filter::Filter, uid::Int)
+    filter.mask[uid] = false
+end
+
+function update_mask(filter::Filter)
+    # This will be useful to update the filter in the begining of an algorithm
+    # that does not know what has changed in the container
+    # filter.mask = filter.maks .& get_all(filter.container)
+end

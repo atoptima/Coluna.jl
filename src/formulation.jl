@@ -3,8 +3,8 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     parent_formulation::Union{Formulation, Nothing}
     #moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::VarManager # SparseVector{Variable,VarId} 
-    constrs::ConstrManager #SparseVector{Constraint,ConstrId} 
+    vars::Manager{Variable} # SparseVector{Variable,VarId} 
+    constrs::Manager{Constraint} #SparseVector{Constraint,ConstrId} 
     memberships::Memberships
     obj_sense::ObjSense
     map_var_uid_to_index::Dict{VarId, MoiVarIndex}
@@ -24,8 +24,8 @@ function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel,
         parent_formulation,
         #moi_model,
         moi_optimizer, 
-        VarManager(),
-        ConstrManager(),
+        Manager(Variable),
+        Manager(Constraint),
         Memberships(),
         Min,
         Dict{VarId, MoiVarIndex}(),
