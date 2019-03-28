@@ -23,13 +23,13 @@ function build_dw_master!(model::Model,
                           vars_in_form::Vector{VarId},
                           constrs_in_form::Vector{ConstrId})
 
-
     orig_form = get_original_formulation(model)
 
     # create convexity constraints
     
     @assert !isempty(reformulation.dw_pricing_subprs)
     for sp_form in reformulation.dw_pricing_subprs
+
         # create convexity constraint
         name = "convexity_sp_$(sp_form.uid)"
         sense = Equal
@@ -42,7 +42,9 @@ function build_dw_master!(model::Model,
         add!(master_form, conv_constr, membership)
 
         # create representative of sp setup var
-        var_uids = getvar_uids(sp_form, PricingSpSetupVar)
+        setup_vars_filter = Filter(sp_form.vars, x->(getduty(x) == PricingSpSetupVar),
+                                   sp_form.vars.members)
+        var_uids = get_nz_ids(setup_vars_filter)
         @assert length(var_uids) == 1
         for var_uid in var_uids
             var = getvar(sp_form, var_uid)
@@ -54,7 +56,9 @@ function build_dw_master!(model::Model,
         end
 
         # create representative of sp var
-        clone_in_formulation!(getvar_uids(sp_form, PricingSpVar), orig_form, master_form, Implicit, MastRepPricingSpVar)
+        sp_vars_filter = Filter(sp_form.vars, x->(getduty(x) == PricingSpVar),
+                                   sp_form.vars.members)
+        clone_in_formulation!(get_nz_ids(sp_vars_filter), orig_form, master_form, Implicit, MastRepPricingSpVar)
         
     end
 

@@ -67,19 +67,19 @@ activeconstr(f::Formulation) = f.constrs.members[activemask(f.constrs.status)]
 staticconstr(f::Formulation) = f.constrs.members[staticmask(f.constrs.status)]
 dynamicconstr(f::Formulation) = f.constrs.members[dynamicmask(f.constrs.status)]
 
-function getvar_uids(f::Formulation, d::Type{<: AbstractVarDuty})
-    if haskey(f.vars.duty_sets, d)
-        return f.vars.duty_sets[d]
-    end
-    return Vector{VarId}()
-end
+# function getvar_uids(f::Formulation, d::Type{<: AbstractVarDuty})
+#     if haskey(f.vars.duty_sets, d)
+#         return f.vars.duty_sets[d]
+#     end
+#     return Vector{VarId}()
+# end
 
-function getconstr_uids(f::Formulation, d::Type{<: AbstractConstrDuty})
-    if haskey(f.constrs.duty_sets,d)
-        return f.constrs.duty_sets[d]
-    end
-    return Vector{ConstrId}()
-end
+# function getconstr_uids(f::Formulation, d::Type{<: AbstractConstrDuty})
+#     if haskey(f.constrs.duty_sets,d)
+#         return f.constrs.duty_sets[d]
+#     end
+#     return Vector{ConstrId}()
+# end
 
 #getvar(f::Formulation, uid::VarId) = f.var_duty_sets[d]
 
