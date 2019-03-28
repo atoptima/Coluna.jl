@@ -37,8 +37,8 @@ function build_dw_master!(model::Model,
         rhs = 1.0
         kind = Core
         flag = Static
-        duty = MastConvexityConstr
-        conv_constr = Constraint(model, getuid(master_form), name, rhs, sense,kind,flag,duty)
+        duty = MasterConvexityConstr
+        conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
         membership = VarMembership() 
         add!(master_form, conv_constr, membership)
 
@@ -91,7 +91,7 @@ function build_dw_pricing_sp!(m::Model,
     flag = Implicit
     duty = PricingSpSetupVar
     sense = Positive
-    setup_var = Variable(m, getuid(sp_form), name, cost, lb, ub, kind, flag, duty, sense)
+    setup_var = Variable(duty, m, getuid(sp_form), name, cost, lb, ub, kind, flag, sense)
     add!(sp_form, setup_var)
 
 
@@ -127,7 +127,7 @@ function reformulate!(m::Model, method::SolutionMethod)
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
 
-    master_form = Formulation(m, m.master_factory())
+    master_form = Formulation(DwMaster, m, m.master_factory())
     
     # Build pricing  subproblems
     master_annotation_id = -1
@@ -138,7 +138,7 @@ function reformulate!(m::Model, method::SolutionMethod)
             formulations[annotation.unique_id] = master_form
 
         elseif annotation.problem == BD.Pricing
-            f = Formulation(m, master_form)
+            f = Formulation(DwSp, m, master_form, m.pricing_factory())
             formulations[annotation.unique_id] = f
             vars_in = Vector{VarId}()
             constrs_in = Vector{ConstrId}()

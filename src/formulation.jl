@@ -1,18 +1,4 @@
-# struct LazySeparationSubproblem <: AbstractFormulation
-# end
-
-# struct UserSeparationSubproblem <: AbstractFormulation
-# end
-
-# struct BlockGenSubproblem <: AbstractFormulation
-# end
-
-# struct BendersSubproblem <: AbstractFormulation
-# end
-
-# struct DantzigWolfeSubproblem <: AbstractFormulation
-# end
-mutable struct Formulation  <: AbstractFormulation
+mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::FormId
     parent_formulation::Union{Formulation, Nothing}
     #moi_model::Union{MOI.ModelLike, Nothing}
@@ -27,13 +13,14 @@ mutable struct Formulation  <: AbstractFormulation
     map_index_to_constr_uid::Dict{MoiConstrIndex, ConstrId}
     var_bounds::Dict{VarId, MoiVarBound}
     var_kinds::Dict{VarId, MoiVarKind}
-    callbacks
+    callback
 end
 
-function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing},
-        moi_optimizer::Union{MOI.AbstractOptimizer, Nothing})
+function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel, 
+                    parent_formulation::Union{Formulation, Nothing},
+                    moi_optimizer::Union{MOI.AbstractOptimizer, Nothing})
     uid = getnewuid(m.form_counter)
-    return Formulation(uid,
+    return Formulation{Duty}(uid,
         parent_formulation,
         #moi_model,
         moi_optimizer, 
@@ -50,16 +37,18 @@ function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, No
         nothing)
 end
 
-function Formulation(m::AbstractModel, optimizer::Union{MOI.AbstractOptimizer, Nothing})
-    return Formulation(m::AbstractModel,  nothing, optimizer)
+function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel, 
+        optimizer::Union{MOI.AbstractOptimizer, Nothing})
+    return Formulation(Duty, m, nothing, optimizer)
 end
 
-function Formulation(m::AbstractModel, parent_formulation::Union{Formulation, Nothing})
-    return Formulation(m::AbstractModel, parent_formulation, nothing)
+function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel, 
+        parent_formulation::Union{Formulation, Nothing})
+    return Formulation(Duty, m, parent_formulation, nothing)
 end
 
-function Formulation(m::AbstractModel)
-    return Formulation(m::AbstractModel, nothing, nothing)
+function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel)
+    return Formulation(Duty, m, nothing, nothing)
 end
 
 #getvarcost(f::Formulation, uid) = f.costs[uid]
@@ -78,14 +67,14 @@ activeconstr(f::Formulation) = f.constrs.members[activemask(f.constrs.status)]
 staticconstr(f::Formulation) = f.constrs.members[staticmask(f.constrs.status)]
 dynamicconstr(f::Formulation) = f.constrs.members[dynamicmask(f.constrs.status)]
 
-function getvar_uids(f::Formulation,d::VarDuty)
+function getvar_uids(f::Formulation, d::Type{<: AbstractVarDuty})
     if haskey(f.vars.duty_sets, d)
         return f.vars.duty_sets[d]
     end
     return Vector{VarId}()
 end
 
-function getconstr_uids(f::Formulation,d::VarDuty)
+function getconstr_uids(f::Formulation, d::Type{<: AbstractConstrDuty})
     if haskey(f.constrs.duty_sets,d)
         return f.constrs.duty_sets[d]
     end
@@ -108,9 +97,9 @@ get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of
 get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getuid(constr))
 
 function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
-    varconstr_copy = deepcopy(varconstr)
+    varconstr_copy = copy(varconstr, duty)
     setform!(varconstr_copy, getuid(dest))
-    setduty!(varconstr_copy, duty)
+    #setduty!(varconstr_copy, duty)
     add!(dest, varconstr_copy)
     return varconstr_copy
 end
@@ -118,7 +107,7 @@ end
 function clone_in_formulation!(var_uids::Vector{VarId},
                                src_form::Formulation,
                                dest_form::Formulation,
-                               duty::VarDuty)
+                               duty::Type{<: AbstractVarDuty})
     for var_uid in var_uids
         var = getvar(src_form, var_uid)
         var_clone = clone_in_formulation!(var, src_form, dest_form, duty)
@@ -131,7 +120,7 @@ end
 function clone_in_formulation!(constr_uids::Vector{ConstrId},
                                src_form::Formulation,
                                dest_form::Formulation,
-                               duty::ConstrDuty)
+                               duty::Type{<: AbstractConstrDuty})
     for constr_uid in constr_uids
         constr = getconstr(src_form, constr_uid)
         constr_clone = clone_in_formulation!(constr, src_form, dest_form, duty)
