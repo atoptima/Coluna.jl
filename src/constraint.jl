@@ -24,9 +24,9 @@ function Constraint(m::AbstractModel, name::String)
     return Constraint(OriginalConstr, m, 0, name, 0.0, Greater, Core, Static)
 end
 
-function copy(constr::Constraint, Duty::Type{<: AbstractConstrDuty})
+function copy(constr::Constraint, flag::Flag, Duty::Type{<: AbstractConstrDuty})
     return Constraint{Duty}(getuid(constr), getform(constr), getname(constr),
-        getrhs(constr), getsense(constr), getkind(constr), getflag(constr))
+        getrhs(constr), getsense(constr), getkind(constr), flag)
 end
 
 getuid(c::Constraint) = c.constr_uid

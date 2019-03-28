@@ -20,9 +20,9 @@ function Variable(m::AbstractModel, n::String)
     return Variable(OriginalVar, m, 0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
 end
 
-function copy(var::Variable, Duty::Type{<: AbstractVarDuty})
+function copy(var::Variable, flag::Flag, Duty::Type{<: AbstractVarDuty})
     return Variable{Duty}(getuid(var), getform(var), getname(var), getcost(var), 
-        getlb(var), getub(var), getkind(var), getflag(var), getsense(var))
+        getlb(var), getub(var), getkind(var), flag, getsense(var))
 end
 
 getuid(v::Variable) = v.var_uid

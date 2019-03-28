@@ -47,65 +47,71 @@ function build_dw_master!(model::Model,
         for var_uid in var_uids
             var = getvar(sp_form, var_uid)
             @assert getduty(var) == PricingSpSetupVar
-            var_clone = clone_in_formulation!(var, sp_form, master_form, MastRepPricingSpVar)
+            var_clone = clone_in_formulation!(var, sp_form, master_form, Implicit, MastRepPricingSpVar)
             membership = ConstrMembership()
             set!(membership,getuid(conv_constr), 1.0)
             add_constr_members_of_var!(master_form.memberships, var_uid, membership)
         end
 
         # create representative of sp var
-        clone_in_formulation!(getvar_uids(sp_form, PricingSpVar), orig_form, master_form, MastRepPricingSpVar)
+        clone_in_formulation!(getvar_uids(sp_form, PricingSpVar), orig_form, master_form, Implicit, MastRepPricingSpVar)
         
     end
 
     # copy of pure master variables
-    clone_in_formulation!(vars_in_form, orig_form, master_form, PureMastVar)
+    clone_in_formulation!(vars_in_form, orig_form, master_form, Static, PureMastVar)
     # copy of master constraints
-    clone_in_formulation!(constrs_in_form, orig_form, master_form, MasterConstr)
-    # artificial variables
-    for constr_uid in getconstraintuids(master_form)
-        name = "loc_art_$(constr_uid)"
+    clone_in_formulation!(constrs_in_form, orig_form, master_form, Static, MasterConstr)
+
+    local_art_var = true
+    
+    if (local_art_var)
+        # artificial variables
+        for constr_uid in constrs_in_form #  getconstraintuids(master_form)
+            name = "loc_art_$(constr_uid)"
+            cost = 1.0
+            lb = 0.0
+            ub = 1.0
+            kind = Binary
+            flag = Artificial
+            sense = Positive
+            art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+            membership = ConstrMembership()
+            membership.members[constr_uid] = 1.0
+            add!(master_form, art_var, membership)
+        end
+
+    else
+        # global artifical variables
+        
+        name = "glo⁺_art"
         cost = 1.0
         lb = 0.0
         ub = 1.0
         kind = Binary
         flag = Artificial
         sense = Positive
-        art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+        pos_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = ConstrMembership()
-        membership.members[constr_uid] = 1.0
-        add!(master_form, art_var, membership)
-    end
+        for constr_uid in getconstraintuids(master_form)
+            membership.members[constr_uid] = 1.0
+        end
+        add!(master_form, pos_global_art_var, membership)
 
-    # global artifical variables
-    name = "glo⁺_art"
-    cost = 1.0
-    lb = 0.0
-    ub = 1.0
-    kind = Binary
-    flag = Artificial
-    sense = Positive
-    pos_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
-    membership = ConstrMembership()
-    for constr_uid in getconstraintuids(master_form)
-        membership.members[constr_uid] = 1.0
+        name = "glo⁻_art"
+        cost = 1.0
+        lb = 0.0
+        ub = 1.0
+        kind = Binary
+        flag = Artificial
+        sense = Positive
+        neg_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+        membership = ConstrMembership()
+        for constr_uid in getconstraintuids(master_form)
+            membership.members[constr_uid] = -1.0
+        end
+        add!(master_form, neg_global_art_var, membership)
     end
-    add!(master_form, pos_global_art_var, membership)
-
-    name = "glo⁻_art"
-    cost = 1.0
-    lb = 0.0
-    ub = 1.0
-    kind = Binary
-    flag = Artificial
-    sense = Positive
-    neg_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
-    membership = ConstrMembership()
-    for constr_uid in getconstraintuids(master_form)
-        membership.members[constr_uid] = -1.0
-    end
-    add!(master_form, neg_global_art_var, membership)
-
 
     return
 end
@@ -119,7 +125,7 @@ function build_dw_pricing_sp!(m::Model,
     orig_form = get_original_formulation(m)
 
     name = "PricingSetupVar_sp_$(sp_form.uid)"
-    cost = 1.0
+    cost = 0.0
     lb = 1.0
     ub = 1.0
     kind = Binary
@@ -130,11 +136,11 @@ function build_dw_pricing_sp!(m::Model,
     add!(sp_form, setup_var)
 
 
-    clone_in_formulation!(vars_in_form, orig_form, sp_form, PricingSpVar)
+    clone_in_formulation!(vars_in_form, orig_form, sp_form, Static, PricingSpVar)
 
     # distinguish PricingSpPureVar
 
-    clone_in_formulation!(constrs_in_form, orig_form, sp_form, PricingSpPureConstr)
+    clone_in_formulation!(constrs_in_form, orig_form, sp_form, Static, PricingSpPureConstr)
 
     return
 end

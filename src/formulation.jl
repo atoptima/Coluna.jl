@@ -10,7 +10,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     map_var_uid_to_index::Dict{VarId, MoiVarIndex}
     map_constr_uid_to_index::Dict{ConstrId, MoiConstrIndex}
     map_index_to_var_uid::Dict{MoiVarIndex, VarId}
-    map_index_to_constr_uid::Dict{MoiConstrIndex, ConstrId}
+    map_index_to_constr_uivd::Dict{MoiConstrIndex, ConstrId}
     var_bounds::Dict{VarId, MoiVarBound}
     var_kinds::Dict{VarId, MoiVarKind}
     callback
@@ -96,8 +96,12 @@ get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.mem
 get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getuid(var))
 get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getuid(constr))
 
-function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty)
-    varconstr_copy = copy(varconstr, duty)
+function clone_in_formulation!(varconstr::AbstractVarConstr,
+                               src::Formulation,
+                               dest::Formulation,
+                               flag::Flag,
+                               duty)
+    varconstr_copy = copy(varconstr, flag, duty)
     setform!(varconstr_copy, getuid(dest))
     #setduty!(varconstr_copy, duty)
     add!(dest, varconstr_copy)
@@ -107,10 +111,11 @@ end
 function clone_in_formulation!(var_uids::Vector{VarId},
                                src_form::Formulation,
                                dest_form::Formulation,
+                               flag::Flag,
                                duty::Type{<: AbstractVarDuty})
     for var_uid in var_uids
         var = getvar(src_form, var_uid)
-        var_clone = clone_in_formulation!(var, src_form, dest_form, duty)
+        var_clone = clone_in_formulation!(var, src_form, dest_form, flag, duty)
         reset_constr_members_of_var!(dest_form.memberships, var_uid,
                                      get_constr_members_of_var(src_form, var_uid))
     end
@@ -120,10 +125,11 @@ end
 function clone_in_formulation!(constr_uids::Vector{ConstrId},
                                src_form::Formulation,
                                dest_form::Formulation,
+                               flag::Flag,
                                duty::Type{<: AbstractConstrDuty})
     for constr_uid in constr_uids
         constr = getconstr(src_form, constr_uid)
-        constr_clone = clone_in_formulation!(constr, src_form, dest_form, duty)
+        constr_clone = clone_in_formulation!(constr, src_form, dest_form, flag, duty)
         set_var_members_of_constr!(dest_form.memberships, constr_uid,
                                      get_var_members_of_constr(src_form, constr_uid))
     end
@@ -250,7 +256,8 @@ function _show_variable(io::IO, f::Formulation, uid)
     ub = getub(var)
     t = gettype(var)
     d = getduty(var)
-    println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , ")")
+    f = getflag(var)
+    println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d ," | ", f , ")")
 end
 
 function _show_variables(io::IO, f::Formulation)
