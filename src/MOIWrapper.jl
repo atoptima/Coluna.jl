@@ -155,6 +155,7 @@ function create_original_formulation!(model, vars, constrs, memberships::Vector{
 end
 
 function register_original_formulation!(model::Model, dest::Optimizer, src::MOI.ModelLike, copy_names)
+    copy_names = true
     orig_form = Formulation(Original, model)#, src)
     set_original_formulation!(model, orig_form)
 

@@ -4,15 +4,15 @@ function model_sgap(data::DataGap)
     #                        #search_strategy = Coluna.DepthFirst,
     #                        force_copy_names = true)
 
-    gap = BlockModel(with_optimizer(Coluna.Optimizer#, #params = params,
-                               # master_factory = with_optimizer(Gurobi.Optimizer),
-                               # pricing_factory = with_optimizer(Gurobi.Optimizer)),
-                               # master_factory = with_optimizer(CPLEX.Optimizer),
-                               # pricing_factory = with_optimizer(CPLEX.Optimizer)),
-                               #master_factory = with_optimizer(GLPK.Optimizer),
-                               #pricing_factory = with_optimizer(GLPK.Optimizer)),
-                #bridge_constraints=false
-                ))
+    gap = BlockModel(with_optimizer(Coluna.Optimizer,# #params = params,
+                               #master_factory = with_optimizer(Gurobi.Optimizer),
+                               #pricing_factory = with_optimizer(Gurobi.Optimizer)
+                               #master_factory = with_optimizer(CPLEX.Optimizer),
+                               #pricing_factory = with_optimizer(CPLEX.Optimizer))
+                               master_factory = with_optimizer(GLPK.Optimizer),
+                               pricing_factory = with_optimizer(GLPK.Optimizer)),
+                bridge_constraints=false
+                )
 
     @axis(M, data.machines)
 
