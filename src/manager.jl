@@ -1,25 +1,25 @@
 struct VarManager <: AbstractManager
     members::SparseVector{Variable,VarId}
     status::Filter
-    duty_sets::Dict{VarDuty, Vector{VarId}}
+    duty_sets::Dict{Type{<: AbstractVarDuty}, Vector{VarId}}
 end
 
 function VarManager()
     return VarManager(spzeros(MAX_SV_ENTRIES), #SparseVector{Constraint,ConstrId}(),
                       Filter(),
-                      Dict{VarDuty, Vector{VarId}}())
+                      Dict{Type{<: AbstractVarDuty}, Vector{VarId}}())
 end
 
 struct ConstrManager <: AbstractManager
     members::SparseVector{Constraint,ConstrId} # Dict{ConstrId, Constraint}
     status::Filter
-    duty_sets::Dict{ConstrDuty, Vector{ConstrId}}
+    duty_sets::Dict{Type{<: AbstractConstrDuty}, Vector{ConstrId}}
 end
 
 function ConstrManager()
     return ConstrManager(spzeros(MAX_SV_ENTRIES), #SparseVector{Variable,VarId}()
                          Filter(),
-                         Dict{ConstrDuty, Vector{ConstrId}}())
+                         Dict{Type{<: AbstractConstrDuty}, Vector{ConstrId}}())
 end
 
 function get_nz_ids(m::AbstractManager)

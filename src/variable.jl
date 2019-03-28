@@ -1,4 +1,4 @@
-mutable struct Variable <: AbstractVarConstr
+mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
     var_uid::VarId
     form_uid::FormId
     name::String
@@ -7,18 +7,22 @@ mutable struct Variable <: AbstractVarConstr
     upper_bound::Float64 
     kind::VarKind
     flag::Flag     # Static, Dynamic, Artifical, Implicit
-    duty::VarDuty
     sense::VarSense 
 end
 
-function Variable(m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 
-                  ub::Float64, t::VarKind, flag::Flag, d::VarDuty, s::VarSense)
+function Variable(Duty::Type{<: AbstractVarDuty}, m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 
+                  ub::Float64, t::VarKind, flag::Flag, s::VarSense)
     uid = getnewuid(m.var_counter)
-    return Variable(uid, form_uid, n, c, lb, ub, t, flag, d, s)
+    return Variable{Duty}(uid, form_uid, n, c, lb, ub, t, flag, s)
 end
 
-function Variable(m::AbstractModel,  n::String)
-    return Variable(m, 0, n, 0.0, -Inf, Inf, Continuous, Static, OriginalVar, Free)
+function Variable(m::AbstractModel, n::String)
+    return Variable(OriginalVar, m, 0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
+end
+
+function copy(var::Variable, Duty::Type{<: AbstractVarDuty})
+    return Variable{Duty}(getuid(var), getform(var), getname(var), getcost(var), 
+        getlb(var), getub(var), getkind(var), getflag(var), getsense(var))
 end
 
 getuid(v::Variable) = v.var_uid
@@ -28,7 +32,8 @@ getcost(v::Variable) = v.cost
 getlb(v::Variable) = v.lower_bound
 getub(v::Variable) = v.upper_bound
 gettype(v::Variable) = v.kind
-getduty(v::Variable) = v.duty
+getkind(v::Variable) = v.kind
+getduty(v::Variable{T}) where {T <: AbstractVarDuty} = T
 getsense(v::Variable) = v.sense
 getflag(v::Variable) = v.flag
 
@@ -37,7 +42,7 @@ setname!(v::Variable, name::String) = v.name = name
 setform!(v::Variable, uid::FormId) = v.form_uid = uid
 setlowerbound!(v::Variable, lb::Float64) = v.lower_bound = lb
 setupperbound!(v::Variable, ub::Float64) = v.upper_bound = ub
-setduty!(v::Variable, d::VarDuty) = v.duty = d
+#setduty!(v::Variable, d::VarDuty) = v.duty = d
 settype!(v::Variable, t::VarKind) = v.kind = t
 setsense!(v::Variable, s::VarSense) = v.sense = s
 

@@ -50,6 +50,7 @@ struct PricingSpPureConstr <: AbstractDwSpConstr end
 struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
 
 # Concrete types for FormDuty
+struct Original <: AbstractFormDuty end
 struct DwMaster <: AbstractFormDuty end
 struct BendersMaster <: AbstractFormDuty end
 struct DwSp <: AbstractFormDuty end

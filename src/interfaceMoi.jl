@@ -8,7 +8,6 @@ function set_optimizer_obj(form::Formulation,
             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
 end
 
-
 function initialize_formulation_optimizer(form::Formulation)
     optimizer = MOIU.MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                            optimizer)
@@ -18,7 +17,6 @@ function initialize_formulation_optimizer(form::Formulation)
     form.moi_optimizer = optimizer
 end
 
-
 function update_cost_in_optimizer(form::Formulation,
                                   var_uid::VarId,
                                   cost::Float64)
@@ -26,8 +24,6 @@ function update_cost_in_optimizer(form::Formulation,
                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
                MOI.ScalarCoefficientChange{Float64}(form.map_var_uid_to_index[var_uid], cost))
 end
-
-
 
 function enforce_initial_bounds_in_optimizer(form::Formulation,
                                              var_uid::VarId,
