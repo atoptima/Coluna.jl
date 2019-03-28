@@ -1,19 +1,52 @@
 abstract type AbstractVarConstr end
-#abstract type AbstractVarDuty end
-#abstract type AbstractConstrDuty end
-
+abstract type AbstractVarDuty end
+abstract type AbstractConstrDuty end
 abstract type AbstractFormulation end
-
+abstract type AbstractFormDuty end
 abstract type AbstractModel end
-
 abstract type AbstractMoiDef end
-
 abstract type AbstractCounter end
-
 abstract type AbstractMembership end
-
-
 abstract type AbstractManager end
+
+# First level of specification on VarDuty
+abstract type AbstractOriginalVar <: AbstractVarDuty end
+abstract type AbstractMasterVar <: AbstractVarDut end
+abstract type AbstractDwSpVar <: AbstractVarDuty end
+
+# Concrete types for VarDuty
+struct OriginalVar <: AbstractOriginalVar end
+struct OriginalExpression <: AbstractOriginalVar end
+struct PureMastVar <: AbstractMasterVar end
+struct MasterCol <: AbstractMasterVar end
+struct MastArtVar <: AbstractMasterVar end
+struct MastRepPricingSpVar <: AbstractMasterVar end
+struct MastRepBendSpVar <: AbstractMasterVar end
+struct PricingSpSetupVar <: AbstractDwSpVar end
+struct PricingSpVar <: AbstractDwSpVar end
+struct PricingSpPureVar <: AbstractDwSpVar end
+struct BendersSpVar <: AbstractVarDuty end
+struct BlockGenSpVar <: AbstractVarDuty end
+struct MastRepBlockSpVar <: AbstractVarDuty end
+
+# First level of specification on ConstrDuty
+abstract type AbstractOriginalConstr <: AbstractConstrDuty end
+abstract type AbstractMasterConstr <: AbstractConstrDut end
+abstract type AbstractDwSpConstr <: AbstractVarDuty end
+
+# Concrete types for VarDuty
+struct OriginalConstr <: AbstractOriginalConstr end
+struct MasterPureConstr <: AbstractMasterConstr end
+struct MasterConstr <: AbstractMasterConstr end
+struct MasterConvexityConstr <: AbstractMasterConstr end
+struct MasterBranchConstr <: AbstractMasterConstr end
+struct PricingSpPureConstr <: AbstractDwSpConstr end
+struct PricingSpRepMastBranchC <: AbstractDwSpConstr end
+
+struct DwMaster <: AbstractFormDuty end
+struct BendersMaster <: AbstractFormDuty end
+struct DwSp <: AbstractFormDuty end
+struct BendersSp <: AbstractFormDuty end
 
 @enum VarSense Positive Negative Free
 @enum VarKind Continuous Binary Integ
@@ -23,10 +56,6 @@ abstract type AbstractManager end
 @enum Status Active Unsuitable
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
-
-@enum VarDuty OriginalVar OriginalExpression PureMastVar MasterCol MastArtVar MastRepPricingSpVar PricingSpSetupVar  PricingSpVar  PricingSpPureVar MastRepBendSpVar BendersSpVar BlockGenSpVar MastRepBlockSpVar
-
-@enum ConstrDuty OriginalConstr BranchingConstr MastPureConstr MasterConstr MastConvexityConstr PricingSpPureConstr  MasterBranch PricingSpRepMastBranchC
 
 const VarId = Int
 const ConstrId = Int
