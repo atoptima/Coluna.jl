@@ -632,18 +632,18 @@ function initialize_problem_optimizer(extended_problem::Reformulation,
     end
 end
 
-function add_convexity_constraints(extended_problem::Reformulation,
-        pricing_prob::Problem)
-    card_lb, card_ub = get_sp_convexity_bounds(extended_problem, pricing_prob.prob_ref)
-    master = extended_problem.master_problem
-    convexity_lb_constr = ConvexityConstr(master.counter,
-            string("convexity_constr_lb_", pricing_prob.prob_ref),
-            convert(Float64, card_lb), 'G', 'M', 's')
-    convexity_ub_constr = ConvexityConstr(master.counter,
-            string("convexity_constr_ub_", pricing_prob.prob_ref),
-            convert(Float64, card_ub), 'L', 'M', 's')
-    extended_problem.pricing_convexity_lbs[pricing_prob] = convexity_lb_constr
-    extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
-    add_constraint(master, convexity_lb_constr; update_moi = false)
-    add_constraint(master, convexity_ub_constr; update_moi = false)
-end
+# function add_convexity_constraints(extended_problem::Reformulation,
+#         pricing_prob::Problem)
+#     card_lb, card_ub = get_sp_convexity_bounds(extended_problem, pricing_prob.prob_ref)
+#     master = extended_problem.master_problem
+#     convexity_lb_constr = ConvexityConstr(master.counter,
+#             string("convexity_constr_lb_", pricing_prob.prob_ref),
+#             convert(Float64, card_lb), 'G', 'M', 's')
+#     convexity_ub_constr = ConvexityConstr(master.counter,
+#             string("convexity_constr_ub_", pricing_prob.prob_ref),
+#             convert(Float64, card_ub), 'L', 'M', 's')
+#     extended_problem.pricing_convexity_lbs[pricing_prob] = convexity_lb_constr
+#     extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
+#     add_constraint(master, convexity_lb_constr; update_moi = false)
+#     add_constraint(master, convexity_ub_constr; update_moi = false)
+# end

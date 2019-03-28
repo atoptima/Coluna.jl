@@ -190,9 +190,9 @@ function add_variable!(m::Memberships, var_uid::VarId)
     return
 end
 
-function add_variable!(m::Memberships, var_uid::VarId, constr_membership::SparseVector)
+function add_variable!(m::Memberships, var_uid::VarId, membership::ConstrMembership)
     hasvar(m, var_uid) && error("Variable with uid $var_uid already registered.")
-    set_constr_members_of_var!(m, var_uid, constr_membership)
+    set_constr_members_of_var!(m, var_uid, membership)
     return
 end
 

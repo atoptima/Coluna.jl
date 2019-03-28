@@ -26,7 +26,6 @@ function build_dw_master!(model::Model,
 
     orig_form = get_original_formulation(model)
 
-    
     # create convexity constraints
     
     @assert !isempty(reformulation.dw_pricing_subprs)
@@ -57,21 +56,57 @@ function build_dw_master!(model::Model,
         # create representative of sp var
         clone_in_formulation!(getvar_uids(sp_form, PricingSpVar), orig_form, master_form, MastRepPricingSpVar)
         
-        
     end
-
 
     # copy of pure master variables
     clone_in_formulation!(vars_in_form, orig_form, master_form, PureMastVar)
-
     # copy of master constraints
     clone_in_formulation!(constrs_in_form, orig_form, master_form, MasterConstr)
+    # artificial variables
+    for constr_uid in getconstraintuids(master_form)
+        name = "loc_art_$(constr_uid)"
+        cost = 1.0
+        lb = 0.0
+        ub = 1.0
+        kind = Binary
+        flag = Artificial
+        sense = Positive
+        art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+        membership = ConstrMembership()
+        membership.members[constr_uid] = 1.0
+        add!(master_form, art_var, membership)
+    end
 
-    # TODO Detect and copy of pure master constraints
+    # global artifical variables
+    name = "glo⁺_art"
+    cost = 1.0
+    lb = 0.0
+    ub = 1.0
+    kind = Binary
+    flag = Artificial
+    sense = Positive
+    pos_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+    membership = ConstrMembership()
+    for constr_uid in getconstraintuids(master_form)
+        membership.members[constr_uid] = 1.0
+    end
+    add!(master_form, pos_global_art_var, membership)
 
-    
-    
-    
+    name = "glo⁻_art"
+    cost = 1.0
+    lb = 0.0
+    ub = 1.0
+    kind = Binary
+    flag = Artificial
+    sense = Positive
+    neg_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+    membership = ConstrMembership()
+    for constr_uid in getconstraintuids(master_form)
+        membership.members[constr_uid] = -1.0
+    end
+    add!(master_form, neg_global_art_var, membership)
+
+
     return
 end
 
@@ -157,8 +192,8 @@ function reformulate!(m::Model, method::SolutionMethod)
 
     # Build Master
     @assert master_annotation_id != -1
-    vars_in = Vector{VarId}()
-    constrs_in = Vector{ConstrId}()
+    vars = Vector{VarId}()
+    constrs = Vector{ConstrId}()
     if haskey(vars_in_forms, master_annotation_id)
         vars =  vars_in_forms[master_annotation_id]
     end
@@ -166,9 +201,17 @@ function reformulate!(m::Model, method::SolutionMethod)
         constrs = constrs_in_forms[master_annotation_id]
     end
     setmaster!(reformulation, master_form)
-    build_dw_master!(m, master_annotation_id, reformulation, master_form, vars_in, constrs_in)
+    build_dw_master!(m, master_annotation_id, reformulation, master_form, vars, constrs)
 
     set_re_formulation!(m, reformulation)
+
+    println("\e[1;34m MASTER FORMULATION \e[00m")
     @show master_form
+    println("\e[1;34m PRICING SP FORMULATIONS \e[00m")
+    for p in reformulation.dw_pricing_subprs
+        @show p
+        println("\e[32m ---------------- \e[00m")
+    end
+    return
 end
 

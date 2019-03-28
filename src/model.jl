@@ -155,13 +155,13 @@ end
 #     end
 # end
 
-# function initialize_artificial_variables(extended_problem::Reformulation)
-#     master = extended_problem.master_problem
-#     init_manager(extended_problem.art_var_manager, master)
-#     for constr in master.constr_manager.active_static_list
-#         attach_art_var(extended_problem.art_var_manager, master, constr)
-#     end
-# end
+function initialize_artificial_variables(extended_problem::Reformulation)
+    master = extended_problem.master_problem
+    init_manager(extended_problem.art_var_manager, master)
+    for constr in master.constr_manager.active_static_list
+        attach_art_var(extended_problem.art_var_manager, master, constr)
+    end
+end
 
 function coluna_initialization(model::Model)
     #params = model.params

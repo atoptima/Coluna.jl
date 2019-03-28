@@ -145,16 +145,16 @@ end
     return
 end ==#
 
-function add!(f::Formulation, elems::Vector{VC_Type}) where {VC_Type <: AbstractVarConstr}
+function add!(f::Formulation, elems::Vector{VarConstr}) where {VarConstr <: AbstractVarConstr}
     for elem in elems
         add!(f, elem)
     end
     return
 end
 
-function add!(f::Formulation, elems::Vector{VC_Type}, 
-              memberships::Vector{M_Type}) where {VC_Type <: AbstractVarConstr,
-                                                  M_Type <: AbstractMembership}
+function add!(f::Formulation, elems::Vector{VarConstr}, 
+              memberships::Vector{M}) where {VarConstr <: AbstractVarConstr,
+                                                  M <: AbstractMembership}
     @assert length(elems) == length(memberships)
     for i in 1:length(elems)
         add!(f, elems[i], memberships[i])
@@ -166,6 +166,11 @@ function add!(f::Formulation, var::Variable)
     add!(f.vars, var)
     add_variable!(f.memberships, getuid(var))
     return
+end
+
+function add!(f::Formulation, var::Variable, membership::ConstrMembership)
+    add!(f.vars, var)
+    add_variable!(f.memberships, getuid(var), membership)
 end
 
 function add!(f::Formulation, constr::Constraint)
@@ -196,9 +201,9 @@ function _show_obj_fun(io::IO, f::Formulation)
         name = getname(var)
         cost = getcost(var)
         op = (cost < 0.0) ? "-" : "+" 
-        if cost != 0.0
+        #if cost != 0.0
             print(io, op, " ", abs(cost), " ", name, " ")
-        end
+        #end
     end
     println(io, " ")
     return
@@ -226,7 +231,8 @@ function _show_constraint(io::IO, f::Formulation, uid)
         op = "<="
     end
     print(io, " ", op, " ", getrhs(constr))
-    println(io, " ")
+    d = getduty(constr)
+    println(io, " (", d ,")")
     return
 end
 
@@ -243,7 +249,8 @@ function _show_variable(io::IO, f::Formulation, uid)
     lb = getlb(var)
     ub = getub(var)
     t = gettype(var)
-    println(io, lb, " <= ", name, " <= ", ub, " (", t, ")")
+    d = getduty(var)
+    println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , ")")
 end
 
 function _show_variables(io::IO, f::Formulation)
