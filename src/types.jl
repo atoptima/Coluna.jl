@@ -1,17 +1,22 @@
 abstract type AbstractVarConstr end
-abstract type AbstractVarDuty end
-abstract type AbstractConstrDuty end
 abstract type AbstractFormulation end
-abstract type AbstractFormDuty end
 abstract type AbstractModel end
 abstract type AbstractMoiDef end
 abstract type AbstractCounter end
 abstract type AbstractMembership end
 abstract type AbstractManager end
 
+
+## Duties : 
+abstract type AbstractDuty end 
+
+abstract type AbstractVarDuty <: AbstractDuty end
+abstract type AbstractConstrDuty <: AbstractDuty end
+abstract type AbstractFormDuty <: AbstractDuty end
+
 # First level of specification on VarDuty
 abstract type AbstractOriginalVar <: AbstractVarDuty end
-abstract type AbstractMasterVar <: AbstractVarDut end
+abstract type AbstractMasterVar <: AbstractVarDuty end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
 
 # Concrete types for VarDuty
@@ -25,14 +30,15 @@ struct MastRepBendSpVar <: AbstractMasterVar end
 struct PricingSpSetupVar <: AbstractDwSpVar end
 struct PricingSpVar <: AbstractDwSpVar end
 struct PricingSpPureVar <: AbstractDwSpVar end
-struct BendersSpVar <: AbstractVarDuty end
-struct BlockGenSpVar <: AbstractVarDuty end
-struct MastRepBlockSpVar <: AbstractVarDuty end
+
+#struct BendersSpVar <: AbstractVarDuty end
+#struct BlockGenSpVar <: AbstractVarDuty end
+#struct MastRepBlockSpVar <: AbstractVarDuty end
 
 # First level of specification on ConstrDuty
 abstract type AbstractOriginalConstr <: AbstractConstrDuty end
-abstract type AbstractMasterConstr <: AbstractConstrDut end
-abstract type AbstractDwSpConstr <: AbstractVarDuty end
+abstract type AbstractMasterConstr <: AbstractConstrDuty end
+abstract type AbstractDwSpConstr <: AbstractConstrDuty end
 
 # Concrete types for VarDuty
 struct OriginalConstr <: AbstractOriginalConstr end
@@ -41,8 +47,9 @@ struct MasterConstr <: AbstractMasterConstr end
 struct MasterConvexityConstr <: AbstractMasterConstr end
 struct MasterBranchConstr <: AbstractMasterConstr end
 struct PricingSpPureConstr <: AbstractDwSpConstr end
-struct PricingSpRepMastBranchC <: AbstractDwSpConstr end
+struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
 
+# Concrete types for FormDuty
 struct DwMaster <: AbstractFormDuty end
 struct BendersMaster <: AbstractFormDuty end
 struct DwSp <: AbstractFormDuty end
