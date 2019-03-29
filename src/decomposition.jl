@@ -37,28 +37,31 @@ function build_dw_master!(model::Model,
         kind = Core
         flag = Static
         duty = MasterConvexityConstr
-        conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
+        conv_constr = Constraint(
+            duty, model, getuid(master_form), name, rhs, sense,kind,flag
+        )
         membership = VarMembership() 
         add!(master_form, conv_constr, membership)
 
         # create representative of sp setup var
-        setup_vars_filter = Filter(sp_form.vars, x->(getduty(x) == PricingSpSetupVar),
-                                   sp_form.vars.members)
-        var_uids = get_nz_ids(setup_vars_filter)
+        var_uids = getuids(sp_form.vars, PricingSpSetupVar)
         @assert length(var_uids) == 1
         for var_uid in var_uids
             var = getvar(sp_form, var_uid)
             @assert getduty(var) == PricingSpSetupVar
-            var_clone = clone_in_formulation!(var, sp_form, master_form, Implicit, MastRepPricingSpVar)
+            var_clone = clone_in_formulation!(
+                var, sp_form, master_form, Implicit, MastRepPricingSpVar
+            )
             membership = ConstrMembership()
             set!(membership,getuid(conv_constr), 1.0)
             add_constr_members_of_var!(master_form.memberships, var_uid, membership)
         end
 
         # create representative of sp var
-        sp_vars_filter = Filter(sp_form.vars, x->(getduty(x) == PricingSpVar),
-                                   sp_form.vars.members)
-        clone_in_formulation!(get_nz_ids(sp_vars_filter), orig_form, master_form, Implicit, MastRepPricingSpVar)
+        clone_in_formulation!(
+            getuids(sp_form.vars, PricingSpVar), orig_form, master_form,
+            Implicit, MastRepPricingSpVar
+        )
         
     end
 

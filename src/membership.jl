@@ -81,20 +81,6 @@ hasconstr(m::Memberships, uid) = haskey(m.constr_to_var_members, uid)
 hasexpression(m::Memberships, uid) = haskey(m.var_to_expression_members, uid)
 haspartialsol(m::Memberships, uid) = haskey(m.var_to_partialsol_members, uid)
 
-function get_constr_members_of_var(m::Memberships, var_uid::VarId) 
-    if haskey(m.var_to_constr_members, var_uid)
-        return m.var_to_constr_members[var_uid]
-    end
-    error("Variable $var_uid not stored in formulation.")
-end
-
-function get_var_members_of_constr(m::Memberships, constr_uid::ConstrId) 
-    if haskey(m.constr_to_var_members, constr_uid)
-        return m.constr_to_var_members[constr_uid]
-    end
-    error("Constraint $constr_uid not stored in formulation.")
-end
-
 function add_constr_members_of_var!(m::Memberships, var_uid::VarId, constr_uid::ConstrId, coef::Float64)
 
     if !haskey(m.var_to_constr_members, var_uid)
@@ -233,6 +219,11 @@ function set_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_me
         end
         add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])
     end
+end
+
+function get_constr_members_of_var(m::Memberships, uid::VarId)
+    hasvar(m, uid) && return m.var_to_constr_members[uid]
+    error("Constraint $uid not stored in formulation.")
 end
 
 function get_var_members_of_constr(m::Memberships, uid::ConstrId) 
