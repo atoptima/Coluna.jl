@@ -79,7 +79,7 @@ function fill_primal_sol(form::Formulation,
 end
 
 function retrieve_primal_sol(form::Formulation)
-    new_sol = Dict{VarId, Float64}()
+    new_sol = VarMembership()
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue()) 
     #error("Following line does not work.")
     #fill_primal_sol(form, new_sol, activevar(form))
@@ -97,7 +97,7 @@ function retrieve_dual_sol(form::Formulation)
         return nothing
     end
 
-    new_sol = Dict{ConstrId, Float64}()
+    new_sol = ConstrMembership()
 
     #==
 # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())

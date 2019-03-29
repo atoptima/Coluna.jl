@@ -1,16 +1,19 @@
 struct PrimalSolution
     value::Float64
-    var_members::VarMembership
-    next::Union{Nothing,PrimalSolution}
+    members::VarMembership
 end
 
 function PrimalSolution()
-    return PrimalSolution(Inf, VarMembership(), nothing)
+    return PrimalSolution(Inf, VarMembership())
 end
+
+#function PrimalSolution(value::Float64, sol::VarMembership)
+#    return PrimalSolution(value, sol)
+#end
 
 struct DualSolution
     value::Float64
-    constr_members::ConstrMembership
+    members::ConstrMembership
 end
 
 function DualSolution()
@@ -19,7 +22,7 @@ end
 
 function compute_original_cost(sol::PrimalSolution, form::Formulation)
     cost = 0.0
-    for (var_uid, val) in sol.var_members
+    for (var_uid, val) in sol.members
         var = getvar(form,var_uid)
         cost += var.cost * val
     end
