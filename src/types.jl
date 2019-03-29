@@ -6,6 +6,7 @@ abstract type AbstractCounter end
 abstract type AbstractMembership end
 abstract type AbstractManager end
 abstract type AbstractAlg end
+abstract type AbstractNode end
 
 ## Duties : 
 abstract type AbstractDuty end 
