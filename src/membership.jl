@@ -95,6 +95,14 @@ function get_var_members_of_constr(m::Memberships, constr_uid::ConstrId)
     error("Constraint $constr_uid not stored in formulation.")
 end
 
+
+function get_var_members_of_expression(m::Memberships, eprex_uid::VarId) 
+    if haskey(m.expression_to_var_members, eprex_uid)
+        return m.expression_to_var_members[eprex_uid]
+    end
+    error("Expression $uid not stored in formulation.")
+end
+
 function add_constr_members_of_var!(m::Memberships, var_uid::VarId, constr_uid::ConstrId, coef::Float64)
 
     if !haskey(m.var_to_constr_members, var_uid)
@@ -235,15 +243,6 @@ function set_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_me
     end
 end
 
-function get_var_members_of_constr(m::Memberships, uid::ConstrId) 
-    hasconstr(m, uid) && return m.constr_to_var_members[uid]
-    error("Constraint $uid not stored in formulation.")
-end
-
-function get_var_members_of_expression(m::Memberships, uid::VarId) 
-    hasexpression(m, uid) && return m.var_to_expression_members[uid]
-    error("Expression $uid not stored in formulation.")
-end
 
 function add_variable!(m::Memberships, var_uid::VarId)
     hasvar(m, var_uid) && error("Variable with uid $var_uid already registered.")
