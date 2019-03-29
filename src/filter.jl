@@ -1,35 +1,34 @@
+# Define default filter functions
+
 struct Filter{T}
     mask::SparseVector{Bool,Int}
-    container::T
     f::Function
     # Add info to know when to call dropzeros
 end
 
-function Filter(container::C, f::Function, varconstrs::SparseVector{T,Int}
-                ) where {C,T}
+function Filter(f::Function, varconstrs::SparseVector{T,Int}
+                ) where {T <: AbstractVarConstr}
     mask = SparseVector{Bool,Int}(spzeros(Bool, MAX_SV_ENTRIES))
     for uid in findnz(varconstrs)[1]
-        vc = getvc(container, uid)
-        if f(vc)
+        if f(varconstrs[uid])
             mask[uid] = true
         end
     end
-    return Filter(mask, container, f)
+    return Filter(mask, f)
 end
 
 getmask(f::Filter) = f.mask
-getf(f::Filter) = f.f
-getvm(f::Filter) = f.var_manager
+getfunc(f::Filter) = f.f
+get_nz_ids(f::Filter) = findnz(f.mask)[1]
 
-function get_nz_ids(f::Filter)
-    return findnz(f.mask)[1]
-end
+# This function applies the mask defined in f over the VarConstrs in vcs
+# Will be necessary to define some base methods that should be applied to T:
+# At least Base.zero and Base.& should be implemented
+apply_mask(f::Filter, vcs::SparseVector{T,Int}) where {T} = v.mask .& vcs
 
-function update_mask(filter::Filter, uid::Int)
-    vc = getvc(filter.container, uid)
-    if filter.f(vc)
-        filter.mask[uid] = true
-    end
+function update_mask(filter::Filter, vc::AbstractVarConstr)
+    !filter.f(vc) && return
+    filter.mask[getuid(vc)] = true
 end
 
 function remove_element(filter::Filter, uid::Int)
@@ -37,7 +36,7 @@ function remove_element(filter::Filter, uid::Int)
 end
 
 function update_mask(filter::Filter, varconstrs::SparseVector{T,Int}
-                     ) where {C,T}
+                     ) where {T <: AbstractVarConstr}
     # This will be useful to update the filter in the begining of an algorithm
     # that does not know what has changed in the container
     # filter.mask = filter.maks .& get_all(filter.container)

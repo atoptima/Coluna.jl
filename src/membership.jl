@@ -94,10 +94,6 @@ end
 #    m[constr_uid] = val
 #end
 
-hasvar(m::Memberships, uid) = haskey(m.var_to_constr_members, uid)
-hasconstr(m::Memberships, uid) = haskey(m.constr_to_var_members, uid)
-hasexpression(m::Memberships, uid) = haskey(m.var_to_expression_members, uid)
-haspartialsol(m::Memberships, uid) = haskey(m.var_to_partialsol_members, uid)
 
 function get_constr_members_of_var(m::Memberships, var_uid::VarId) 
     if haskey(m.var_to_constr_members, var_uid)
@@ -242,7 +238,7 @@ function set_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membersh
     constr_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(constr_uids)
         add!(m.var_to_constr_members[var_uid],constr_uids[j], vals[j])
-        if !hasconstr(m, constr_uids[j])
+        if !haskey(m.constr_to_var_members, constr_uids[j])
             m.constr_to_var_members[constr_uids[j]] = VarMembership() #spzeros(MAX_SV_ENTRIES)
         end
         add!(m.constr_to_var_members[constr_uids[j]], var_uid, vals[j])
@@ -254,7 +250,7 @@ function set_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_me
     var_uids, vals = get_ids_vals(new_membership)
     for j in 1:length(var_uids)
         add!(m.constr_to_var_members[constr_uid],var_uids[j], vals[j])
-        if !hasvar(m, var_uids[j])
+        if !haskey(m.var_to_constr_members, var_uids[j])
             m.var_to_constr_members[var_uids[j]] = ConstrMembership() #spzeros(MAX_SV_ENTRIES)
         end
         add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])

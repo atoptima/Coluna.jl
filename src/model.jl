@@ -60,8 +60,8 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #                  Dict{Int,MOI.AbstractOptimizer}())
 # end
 
-function create_root_node(extended_problem::Reformulation, params::Params)::Node
-    #return Node(extended_problem, -Inf, ProblemSetupInfo(), params)
+function create_root_node(extended_problem::Reformulation, params::Params)
+    return Node(extended_problem, -Inf, ProblemSetupInfo(), params)
 end
 
 function set_model_optimizers(model::Model)
