@@ -26,17 +26,17 @@ get_nz_ids(f::Filter) = findnz(f.mask)[1]
 # At least Base.zero and Base.& should be implemented
 apply_mask(f::Filter, vcs::SparseVector{T,Int}) where {T} = v.mask .& vcs
 
-function update_mask(filter::Filter, vc::AbstractVarConstr)
+function update_mask!(filter::Filter, vc::AbstractVarConstr)
     !filter.f(vc) && return
     filter.mask[getuid(vc)] = true
 end
 
-function remove_element(filter::Filter, uid::Int)
+function remove_element!(filter::Filter, uid::Int)
     filter.mask[uid] = false
 end
 
-function update_mask(filter::Filter, varconstrs::SparseVector{T,Int}
-                     ) where {T <: AbstractVarConstr}
+function update_mask!(filter::Filter, varconstrs::SparseVector{T,Int}
+                      ) where {T <: AbstractVarConstr}
     # This will be useful to update the filter in the begining of an algorithm
     # that does not know what has changed in the container
     # filter.mask = filter.maks .& get_all(filter.container)
