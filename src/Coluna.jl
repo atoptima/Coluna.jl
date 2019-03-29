@@ -61,7 +61,7 @@ include("model.jl")
 include("decomposition.jl")
 include("interfaceMoi.jl")
 
-##### Node and algorithms
+##### Search tree
 include("node.jl")
 include("bbtree.jl")
 #include("nodealgs/solandbounds.jl")
@@ -73,6 +73,7 @@ include("bbtree.jl")
 #include("nodealgs/algtoevalnodebylp.jl")
 
 ##### Algorithms draft
+include("algorithms/solandbounds.jl")
 include("algorithms/colgen.jl")
 
 ##### Wrapper functions

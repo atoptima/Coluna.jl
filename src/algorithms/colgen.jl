@@ -1,6 +1,15 @@
-function optimize!(r::Reformulation)
-    
+mutable struct SimplexLpColGenAlg <: AbstractAlg
+    sols_and_bounds::SolsAndBounds
+end
+
+function SimplexLpColGenAlg()
+    return SimplexLpColGenAlg(SolsAndBounds())
+end
+
+function optimize!(alg::SimplexLpColGenAlg, r::Reformulation)
     println("\e[1;31m draft of the col gen algorithm here \e[00m")
+    println("main function of the alg")
+    #solve_mast_lp_ph2(r)
     return
 end
 

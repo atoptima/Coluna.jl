@@ -30,8 +30,9 @@ get_treat_order(t::SearchTree) = t.treat_order
 function print_info_before_solving_node(search_tree::SearchTree, problem::Reformulation)
     print(nb_open_nodes(search_tree))
     println(" open nodes. Treating node ", get_treat_order(search_tree), ".")
-    println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
-            problem.primal_inc_bound, " ]")
+    println("\e[1;31m TODO : display bounds here \e[00m")
+    #println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
+    #        problem.primal_inc_bound, " ]")
     println("************************************************************")
     return
 end

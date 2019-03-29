@@ -41,7 +41,7 @@ end
 function blackbox_original_formulation_sgap()
     model, x = sgap_play()
     JuMP.optimize!(model)
-    inner_model = JuMP.backend(model).optimizer.model.optimizer.inner
+    inner_model = JuMP.backend(model).optimizer.inner
     orig_form = CL.get_original_formulation(inner_model)
 
     @show orig_form
