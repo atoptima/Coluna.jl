@@ -173,6 +173,7 @@ function update_node_sols(node::Node, sols_and_bounds)
     update_node_duals(node, sols_and_bounds)
 end
 
+
 @hl mutable struct AlgLike end
 
 function run(::AlgLike)
@@ -192,6 +193,37 @@ mutable struct TreatAlgs
     alg_vect_primal_heur_node::Vector{AlgLike}
     alg_generate_children_nodes::AlgLike
     TreatAlgs() = new(AlgLike(), AlgLike(), AlgLike(), AlgLike(), AlgLike[], AlgLike())
+end
+
+struct TreatAlgsTwo
+    # Obligatory algorithms
+    setup::St <: AbstractSetupNodeAlg
+    gen_children::Gc <: AbstractGenChildrenNodeAlg
+    record_info::Ri <: AbstractRecordInfoNodeAlg
+    # Facultative algorithms
+    algs::Vector{<:AbstractNodeAlg}
+    nb_completed_facultative_algs::Int
+    did_setup::Bool
+    did_gen_children::Bool
+    info_is_recorded::Bool
+end
+function should_interrupt_treat(treat_algs::TreatAlgsTwo, node::Node)
+    return false
+end
+function interrupt_treat(treat_algs::TreatAlgsTwo, node::Node)
+    return false
+end
+
+function treat_two(node, treat_algs)
+    # do setup
+
+    for alg in treat_algs.algs
+        setup(alg, node, treat_algs) # checks if needs to record info and do setup
+        run(alg)
+        setdown(alg, node, treat_algs) # record node info if needed
+    end
+
+    # gen children
 end
 
 function evaluation(node::Node, treat_algs::TreatAlgs,
