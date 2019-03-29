@@ -73,7 +73,7 @@ include("bbtree.jl")
 #include("nodealgs/algtoevalnodebylp.jl")
 
 ##### Algorithms draft
-include("algorithms/solandbounds.jl")
+include("solandbounds.jl")
 include("algorithms/colgen.jl")
 
 ##### Wrapper functions
