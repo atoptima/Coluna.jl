@@ -38,7 +38,7 @@ function build_dw_master!(model::Model,
         rhs = 1.0
         kind = Core
         flag = Static
-        duty = MasterConvexityConstr
+        duty = MasterConstr #MasterConvexityConstr
         lb_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
         reformulation.dw_pricing_sp_lb[sp_uid] = getuid(lb_conv_constr)
         membership = VarMembership() 
@@ -47,31 +47,11 @@ function build_dw_master!(model::Model,
         name = "sp_ub_$(sp_uid)"
         sense = Less
         ub_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
-        reformulation.dw_pricing_sp_lb[sp_uid] = getuid(ub_conv_constr)
+        reformulation.dw_pricing_sp_ub[sp_uid] = getuid(ub_conv_constr)
         membership = VarMembership() 
         add!(master_form, ub_conv_constr, membership)
 
-        # create representative of sp setup var
-        var_uids = getuids(sp_form.vars, PricingSpSetupVar)
-        @assert length(var_uids) == 1
-        for var_uid in var_uids
-            var = getvar(sp_form, var_uid)
-            @assert getduty(var) == PricingSpSetupVar
-            var_clone = clone_in_formulation!(
-                var, sp_form, master_form, Implicit, MastRepPricingSpVar
-            )
-            membership = ConstrMembership()
-            set!(membership,getuid(lb_conv_constr), 1.0)
-            set!(membership,getuid(ub_conv_constr), 1.0)
-            add_constr_members_of_var!(master_form.memberships, var_uid, membership)
-        end
-
-        # create representative of sp var
-        clone_in_formulation!(
-            getuids(sp_form.vars, PricingSpVar), orig_form, master_form,
-            Implicit, MastRepPricingSpVar
-        )
-        
+         
     end
 
     # copy of pure master variables
@@ -140,23 +120,43 @@ function build_dw_pricing_sp!(m::Model,
     
     orig_form = get_original_formulation(m)
 
+    master_form = sp_form.parent_formulation
+
+    reformulation = master_form.parent_formulation
+
+    sp_uid = getuid(sp_form)
+
+   ## Create Pure Pricing Sp Var & constr
+    clone_in_formulation!(vars_in_form, orig_form, sp_form, Static, PricingSpVar)
+    clone_in_formulation!(constrs_in_form, orig_form, sp_form, Static, PricingSpPureConstr)
+
+
+    ## Create PricingSetupVar
     name = "PricingSetupVar_sp_$(sp_form.uid)"
     cost = 0.0
     lb = 1.0
     ub = 1.0
     kind = Binary
-    flag = Implicit
-    duty = PricingSpSetupVar
+    flag = Static
+    duty = PricingSpVar
     sense = Positive
-    setup_var = Variable(duty, m, getuid(sp_form), name, cost, lb, ub, kind, flag, sense)
-    add!(sp_form, setup_var)
+    setup_var = Variable(duty, m, sp_uid, name, cost, lb, ub, kind, flag, sense)
+    membership = ConstrMembership()
+    set!(membership, reformulation.dw_pricing_sp_lb[sp_uid], 1.0)
+    set!(membership, reformulation.dw_pricing_sp_ub[sp_uid], 1.0)
+    add!(sp_form, setup_var, membership)
+    @show setup_var
 
+    #clone_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
-    clone_in_formulation!(vars_in_form, orig_form, sp_form, Static, PricingSpVar)
+    ## Create representative of sp var in master
+    var_uids = getuids(sp_form.vars, PricingSpVar)
+    @show var_uids
+    clone_in_formulation!(
+        var_uids, sp_form, master_form,
+        Implicit, MastRepPricingSpVar
+    )
 
-    # distinguish PricingSpPureVar
-
-    clone_in_formulation!(constrs_in_form, orig_form, sp_form, Static, PricingSpPureConstr)
 
     return
 end
@@ -180,16 +180,19 @@ function reformulate!(m::Model, method::SolutionMethod)
     @show constrs_in_forms
 
 
+    # Create reformulation
     reformulation = Reformulation(m, method)
+    set_re_formulation!(m, reformulation)
+
+    # Create master formulation
+    master_form = Formulation(DwMaster, m, reformulation, m.master_factory())
+    setmaster!(reformulation, master_form)
+    
+    # Create pricing subproblem formulations
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
-
-    master_form = Formulation(DwMaster, m, reformulation, m.master_factory())
-    
-    # Build pricing  subproblems
     master_annotation_id = -1
     for annotation in ann_sorted_by_uid
-
         if annotation.problem == BD.Master
             master_annotation_id = annotation.unique_id
             formulations[annotation.unique_id] = master_form
@@ -197,16 +200,7 @@ function reformulate!(m::Model, method::SolutionMethod)
         elseif annotation.problem == BD.Pricing
             f = Formulation(DwSp, m, master_form, m.pricing_factory())
             formulations[annotation.unique_id] = f
-            vars_in = Vector{VarId}()
-            constrs_in = Vector{ConstrId}()
-            if haskey(vars_in_forms, annotation.unique_id)
-                vars_in =  vars_in_forms[annotation.unique_id]
-            end
-            if haskey(constrs_in_forms, annotation.unique_id)
-                constrs_in = constrs_in_forms[annotation.unique_id]
-            end
             add_dw_pricing_sp!(reformulation, f)
-            build_dw_pricing_sp!(m, annotation.unique_id, f, vars_in, constrs_in)
         else 
             error("Not supported yet.")
         end
@@ -222,10 +216,27 @@ function reformulate!(m::Model, method::SolutionMethod)
     if haskey(constrs_in_forms, master_annotation_id)
         constrs = constrs_in_forms[master_annotation_id]
     end
-    setmaster!(reformulation, master_form)
     build_dw_master!(m, master_annotation_id, reformulation, master_form, vars, constrs)
 
-    set_re_formulation!(m, reformulation)
+    # Build Pricing Sp
+    for annotation in ann_sorted_by_uid
+        if  annotation.problem == BD.Pricing
+            vars_in = Vector{VarId}()
+            constrs_in = Vector{ConstrId}()
+            if haskey(vars_in_forms, annotation.unique_id)
+                vars_in =  vars_in_forms[annotation.unique_id]
+            end
+            if haskey(constrs_in_forms, annotation.unique_id)
+                constrs_in = constrs_in_forms[annotation.unique_id]
+            end
+            build_dw_pricing_sp!(m, annotation.unique_id,
+                                 formulations[annotation.unique_id],
+                                 vars_in, constrs_in)
+        end
+    end
+    
+
+    
 
     println("\e[1;34m MASTER FORMULATION \e[00m")
     @show master_form
