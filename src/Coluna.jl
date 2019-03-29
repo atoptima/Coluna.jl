@@ -1,6 +1,5 @@
 module Coluna
 
-import Parameters.@with_kw
 import HighLevelTypes.@hl
 import HighLevelTypes.tuplejoin
 import MathOptInterface
@@ -80,5 +79,9 @@ include("algorithms/colgen.jl")
 include("MOIWrapper.jl")
 #include("decomposition.jl")
 
+include("globals.jl") # Structure that holds values useful in all the procedure
+
+global const _global_params_ = Params()
+global const _globals_ = GlobalValues()
 
 end # module
