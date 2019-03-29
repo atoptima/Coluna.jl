@@ -56,7 +56,6 @@ struct BendersMaster <: AbstractFormDuty end
 struct DwSp <: AbstractFormDuty end
 struct BendersSp <: AbstractFormDuty end
 
-
 # Types of algorithm that act in Node
 abstract type AbstractNodeAlg <: AbstractAlg end
 abstract type AbstractSetupNodeAlg <: AbstractNodeAlg end

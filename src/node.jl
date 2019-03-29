@@ -214,6 +214,18 @@ function interrupt_treat(treat_algs::TreatAlgsTwo, node::Node)
     return false
 end
 
+function treat_two(node, treat_algs)
+    # do setup
+
+    for alg in treat_algs.algs
+        setup(alg, node, treat_algs) # checks if needs to record info and do setup
+        run(alg)
+        setdown(alg, node, treat_algs) # record node info if needed
+    end
+
+    # gen children
+end
+
 function evaluation(node::Node, treat_algs::TreatAlgs,
                     global_treat_order::TreatOrder,
                     inc_primal_bound::Float64)::Bool
