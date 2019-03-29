@@ -4,90 +4,76 @@ mutable struct TreatOrder
     value::Int
 end
 
-mutable struct Node
+mutable struct Node <: AbstractNode
     parent::Union{Nothing, Node}
-    params::Params
+    # params::Params
     children::Vector{Node}
     depth::Int
-    # prune_dat_treat_node_start::Bool
-    # estimated_sub_tree_size::Int
-    # sub_tree_size::Int
 
-    node_inc_lp_dual_bound::Float64
-    node_inc_ip_dual_bound::Float64
-    node_inc_lp_primal_bound::Float64
-    node_inc_ip_primal_bound::Float64
+    ## Commented for now
+    # # prune_dat_treat_node_start::Bool
+    # # estimated_sub_tree_size::Int
+    # # sub_tree_size::Int
 
-    dual_bound_is_updated::Bool
-    ip_primal_bound_is_updated::Bool
+    # node_inc_lp_dual_bound::Float64
+    # node_inc_ip_dual_bound::Float64
+    # node_inc_lp_primal_bound::Float64
+    # node_inc_ip_primal_bound::Float64
 
-    node_inc_ip_primal_sol::PrimalSolution
-    # partial_solution::PrimalSolution
+    # dual_bound_is_updated::Bool
+    # ip_primal_bound_is_updated::Bool
 
-    # eval_end_time::Int
-    treat_order::TreatOrder
+    # node_inc_ip_primal_sol::PrimalSolution
+    # # partial_solution::PrimalSolution
 
-    infeasible::Bool
-    evaluated::Bool
-    treated::Bool
+    # # eval_end_time::Int
+    # treat_order::TreatOrder
 
-    ### New information recorded when the node was generated
-    local_branching_constraints::Vector{Constraint}
+    # infeasible::Bool
+    # evaluated::Bool
+    # treated::Bool
 
-    ### Information recorded by father
-    problem_setup_info::SetupInfo
-    # eval_info::EvalInfo
-    # children_generation_info::ChildrenGenerationInfo
-    # branching_eval_info::BranchingEvaluationInfo #for branching history
+    # ### New information recorded when the node was generated
+    # local_branching_constraints::Vector{Constraint}
 
-    # problem_and_eval_alg_info_saved::Bool
-    primal_sol::PrimalSolution # More information than only ::PrimalSolution
-    # strong_branch_phase_number::Int
-    # strong_branch_node_number::Int
+    # ### Information recorded by father
+    # problem_setup_info::SetupInfo
+    # # eval_info::EvalInfo
+    # # children_generation_info::ChildrenGenerationInfo
+    # # branching_eval_info::BranchingEvaluationInfo #for branching history
 
-end
-
-function Node(problem::Reformulation, dual_bound::Float64,
-    problem_setup_info::SetupInfo, params::Params)
-    return Node(
-        nothing,
-        params,
-        Node[],
-        0,
-        dual_bound,
-        dual_bound,
-        Inf, #problem.primal_inc_bound,
-        Inf, #problem.primal_inc_bound,
-        false,
-        false,
-        PrimalSolution(),
-        TreatOrder(-1),
-        false,
-        false,
-        false,
-        Constraint[], #MasterBranchConstr[],
-        problem_setup_info,
-        PrimalSolution(),
-    )
-end
-
-
-function NodeWithParentBuilder(problem::Reformulation, parent::Node)
-
-    return tuplejoin(NodeBuilder(problem, parent.node_inc_ip_dual_bound,
-        parent.problem_setup_info),
-        parent
-    )
+    # # problem_and_eval_alg_info_saved::Bool
+    # primal_sol::PrimalSolution # More information than only ::PrimalSolution
+    # # strong_branch_phase_number::Int
+    # # strong_branch_node_number::Int
 
 end
 
-function get_priority(node::Node)
-    if node.params.search_strategy == DepthFirst
-        return node.depth
-    elseif node.params.search_strategy == BestDualBound
-        return node.node_inc_lp_dual_bound
-    end
-end
+RootNode() = Node(nothing, Node[], 0)
+
+# function Node(problem::Reformulation, dual_bound::Float64,
+#     problem_setup_info::SetupInfo, params::Params)
+#     return Node(
+#         nothing,
+#         params,
+#         Node[],
+#         0,
+#         dual_bound,
+#         dual_bound,
+#         Inf, #problem.primal_inc_bound,
+#         Inf, #problem.primal_inc_bound,
+#         false,
+#         false,
+#         PrimalSolution(),
+#         TreatOrder(-1),
+#         false,
+#         false,
+#         false,
+#         Constraint[], #MasterBranchConstr[],
+#         problem_setup_info,
+#         PrimalSolution(),
+#     )
+# end
 
 function is_conquered(node::Node)
     return (node.node_inc_ip_primal_bound - node.node_inc_ip_dual_bound
@@ -315,7 +301,7 @@ end
 
 function prepare_node_for_treatment(extended_problem::Reformulation,
         node::Node, treat_algs::TreatAlgs,
-        global_treat_order::TreatOrder)
+        global_treat_order::Int)
 
     if node.parent == nothing
         println("************************************************************")
@@ -326,8 +312,8 @@ function prepare_node_for_treatment(extended_problem::Reformulation,
             node.problem_setup_info, node.local_branching_constraints)
     else
         println("************************************************************")
-        println("Preparing node ", global_treat_order.value,
-            " for treatment. Parent is ", node.parent.treat_order.value, ".")
+        println("Preparing node ", global_treat_order,
+            " for treatment. Parent is ", node.parent.treat_order, ".")
         println("Elapsed time: ", elapsed_solve_time(), " seconds.")
         println("Current primal bound is ", extended_problem.primal_inc_bound)
         println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
@@ -340,7 +326,7 @@ function prepare_node_for_treatment(extended_problem::Reformulation,
             return false 
         end
 
-        if global_treat_order.value == node.parent.treat_order.value+1
+        if global_treat_order == node.parent.treat_order+1
             treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
                 node.problem_setup_info, node.local_branching_constraints)
         else
@@ -369,16 +355,4 @@ function prepare_node_for_treatment(extended_problem::Reformulation,
     end
 
     return true
-end
-
-function print_info_before_solving_node(problem::Reformulation,
-        primal_tree_nb_open_nodes::Int, sec_tree_nb_open_nodes::Int,
-        treat_order::TreatOrder)
-
-    print(primal_tree_nb_open_nodes)
-    println(" open nodes. Treating node ", treat_order.value, ".")
-    println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
-        problem.primal_inc_bound, " ]")
-    println("************************************************************")
-    return
 end

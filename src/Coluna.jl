@@ -22,6 +22,9 @@ global const BD = BlockDecomposition
 global __initial_solve_time = 0.0
 global const MAX_SV_ENTRIES = 10_000_000
 
+# Base functions for which we define more methods in Coluna
+import Base.isempty
+
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,
         (MOI.ZeroOne, MOI.Integer),
@@ -59,7 +62,8 @@ include("decomposition.jl")
 include("interfaceMoi.jl")
 
 ##### Node and algorithms
-#include("node.jl")
+include("node.jl")
+include("bbtree.jl")
 #include("nodealgs/solandbounds.jl")
 #include("nodealgs/algsetupnode.jl")
 #include("nodealgs/algpreprocessnode.jl")
