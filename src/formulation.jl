@@ -1,6 +1,6 @@
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::FormId
-    parent_formulation::Union{Formulation, Nothing}
+    parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     vars::Manager{Variable} # SparseVector{Variable,VarId} 
@@ -14,36 +14,46 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     var_bounds::Dict{VarId, MoiVarBound}
     var_kinds::Dict{VarId, MoiVarKind}
     callback
+    primal_inc_bound::Float64
+    dual_inc_bound::Float64
+    primal_solution_record::Union{PrimalSolution, Nothing}
+    dual_solution_record::Union{DualSolution, Nothing}
 end
 
-function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel, 
-                    parent_formulation::Union{Formulation, Nothing},
-                    moi_optimizer::Union{MOI.AbstractOptimizer, Nothing})
+function Formulation(Duty::Type{<: AbstractFormDuty},
+                     m::AbstractModel, 
+                     parent_formulation::Union{AbstractFormulation, Nothing},
+                     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing})
     uid = getnewuid(m.form_counter)
     return Formulation{Duty}(uid,
-        parent_formulation,
-        #moi_model,
-        moi_optimizer, 
-        Manager(Variable),
-        Manager(Constraint),
-        Memberships(),
-        Min,
-        Dict{VarId, MoiVarIndex}(),
-        Dict{ConstrId, MoiConstrIndex}(),
-        Dict{MoiVarIndex, VarId}(),
-        Dict{MoiConstrIndex, ConstrId}(),
-        Dict{VarId, MoiVarBound}(),
-        Dict{VarId, MoiVarKind}(),
-        nothing)
+                             parent_formulation,
+                             #moi_model,
+                             moi_optimizer, 
+                             Manager(Variable),
+                             Manager(Constraint),
+                             Memberships(),
+                             Min,
+                             Dict{VarId, MoiVarIndex}(),
+                             Dict{ConstrId, MoiConstrIndex}(),
+                             Dict{MoiVarIndex, VarId}(),
+                             Dict{MoiConstrIndex, ConstrId}(),
+                             Dict{VarId, MoiVarBound}(),
+                             Dict{VarId, MoiVarKind}(),
+                             nothing,
+                             Inf,
+                             -Inf,
+                             nothing,
+                             nothing)
 end
 
-function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel, 
-        optimizer::Union{MOI.AbstractOptimizer, Nothing})
+function Formulation(Duty::Type{<: AbstractFormDuty},
+                     m::AbstractModel, 
+                     optimizer::Union{MOI.AbstractOptimizer, Nothing})
     return Formulation(Duty, m, nothing, optimizer)
 end
 
 function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel, 
-        parent_formulation::Union{Formulation, Nothing})
+                     parent_formulation::Union{AbstractFormulation, Nothing})
     return Formulation(Duty, m, parent_formulation, nothing)
 end
 
@@ -272,4 +282,14 @@ function Base.show(io::IO, f::Formulation)
     _show_constraints(io, f)
     _show_variables(io, f)
     return
+end
+
+function compute_original_cost(sol::PrimalSolution, form::Formulation)
+    cost = 0.0
+    for (var_uid, val) in sol.members
+        var = getvar(form,var_uid)
+        cost += var.cost * val
+    end
+    @logmsg LogLevel(-4) string("intrinsic_cost = ",cost)
+    return cost
 end

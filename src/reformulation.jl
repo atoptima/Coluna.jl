@@ -3,8 +3,8 @@ mutable struct Reformulation <: AbstractFormulation
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
-    primal_inc_bound::Float64
-    dual_inc_bound::Float64
+    dw_pricing_sp_lb::Union{Nothing, Dict{FormId, ConstrId}}
+    dw_pricing_sp_ub::Union{Nothing, Dict{FormId, ConstrId}}
     timer_output::TimerOutputs.TimerOutput
 end
 
@@ -16,6 +16,16 @@ Reformulation(model::AbstractModel) = Reformulation(model, DirectMip)
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
+
+function Reformulation(model::AbstractModel, method::SolutionMethod)
+    return Reformulation(method,
+                         nothing,
+                         nothing,
+                         Vector{AbstractFormulation}(),
+                         nothing,
+                         nothing,
+                         model.timer_output)
+end
 
 function optimize!(reformulation::Reformulation, params::Params)
     println("\e[1;32m Here starts optimization \e[00m")
@@ -87,4 +97,3 @@ function optimize!(reformulation::Reformulation, params::Params)
     generate_and_write_bap_tree(treated_nodes)
     return "dummy_status"
 end
-

@@ -24,24 +24,32 @@ function build_dw_master!(model::Model,
                           constrs_in_form::Vector{ConstrId})
 
     orig_form = get_original_formulation(model)
-
+    reformulation.dw_pricing_sp_lb = Dict{FormId, ConstrId}()
+    reformulation.dw_pricing_sp_ub = Dict{FormId, ConstrId}()
+    
     # create convexity constraints
     
     @assert !isempty(reformulation.dw_pricing_subprs)
     for sp_form in reformulation.dw_pricing_subprs
-
+        sp_uid = getuid(sp_form)
         # create convexity constraint
-        name = "convexity_sp_$(sp_form.uid)"
-        sense = Equal
+        name = "sp_lb_$(sp_uid)"
+        sense = Greater
         rhs = 1.0
         kind = Core
         flag = Static
         duty = MasterConvexityConstr
-        conv_constr = Constraint(
-            duty, model, getuid(master_form), name, rhs, sense,kind,flag
-        )
+        lb_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
+        reformulation.dw_pricing_sp_lb[sp_uid] = getuid(lb_conv_constr)
         membership = VarMembership() 
-        add!(master_form, conv_constr, membership)
+        add!(master_form, lb_conv_constr, membership)
+
+        name = "sp_ub_$(sp_uid)"
+        sense = Less
+        ub_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
+        reformulation.dw_pricing_sp_lb[sp_uid] = getuid(ub_conv_constr)
+        membership = VarMembership() 
+        add!(master_form, ub_conv_constr, membership)
 
         # create representative of sp setup var
         var_uids = getuids(sp_form.vars, PricingSpSetupVar)
@@ -53,7 +61,8 @@ function build_dw_master!(model::Model,
                 var, sp_form, master_form, Implicit, MastRepPricingSpVar
             )
             membership = ConstrMembership()
-            set!(membership,getuid(conv_constr), 1.0)
+            set!(membership,getuid(lb_conv_constr), 1.0)
+            set!(membership,getuid(ub_conv_constr), 1.0)
             add_constr_members_of_var!(master_form.memberships, var_uid, membership)
         end
 
@@ -175,7 +184,7 @@ function reformulate!(m::Model, method::SolutionMethod)
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
 
-    master_form = Formulation(DwMaster, m, m.master_factory())
+    master_form = Formulation(DwMaster, m, reformulation, m.master_factory())
     
     # Build pricing  subproblems
     master_annotation_id = -1
