@@ -59,14 +59,14 @@ include("decomposition.jl")
 include("interfaceMoi.jl")
 
 ##### Node and algorithms
-include("node.jl")
-include("nodealgs/solandbounds.jl")
-include("nodealgs/algsetupnode.jl")
-include("nodealgs/algpreprocessnode.jl")
-include("nodealgs/algevalnode.jl")
-include("nodealgs/algprimalheurinnode.jl")
-include("nodealgs/alggeneratechildrennodes.jl")
-include("nodealgs/algtoevalnodebylp.jl")
+#include("node.jl")
+#include("nodealgs/solandbounds.jl")
+#include("nodealgs/algsetupnode.jl")
+#include("nodealgs/algpreprocessnode.jl")
+#include("nodealgs/algevalnode.jl")
+#include("nodealgs/algprimalheurinnode.jl")
+#include("nodealgs/alggeneratechildrennodes.jl")
+#include("nodealgs/algtoevalnodebylp.jl")
 
 ##### Algorithms draft
 include("algorithms/colgen.jl")

@@ -61,7 +61,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 # end
 
 function create_root_node(extended_problem::Reformulation, params::Params)::Node
-    return Node(extended_problem, -Inf, ProblemSetupInfo(), params)
+    #return Node(extended_problem, -Inf, ProblemSetupInfo(), params)
 end
 
 function set_model_optimizers(model::Model)
@@ -69,15 +69,15 @@ function set_model_optimizers(model::Model)
                                  model.problemidx_optimizer_map)
 end
 
-function select_eval_alg(extended_problem::Reformulation, node_eval_mode::NODEEVALMODE)
-    if node_eval_mode == SimplexCg
-        return AlgToEvalNodeBySimplexColGen(extended_problem)
-    elseif node_eval_mode == Lp
-        return AlgToEvalNodeByLp(extended_problem)
-    else
-        error("Invalid eval mode: ", node_eval_mode)
-    end
-end
+#function select_eval_alg(extended_problem::Reformulation, node_eval_mode::NODEEVALMODE)
+#    if node_eval_mode == SimplexCg
+#        return AlgToEvalNodeBySimplexColGen(extended_problem)
+#    elseif node_eval_mode == Lp
+#        return AlgToEvalNodeByLp(extended_problem)
+#    else
+ #       error("Invalid eval mode: ", node_eval_mode)
+#    end
+#end
 
 
 # function update_search_trees(cur_node::Node, search_tree::DS.PriorityQueue{Node, Float64},
