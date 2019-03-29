@@ -1,6 +1,5 @@
 module Coluna
 
-import Parameters.@with_kw
 import HighLevelTypes.@hl
 import HighLevelTypes.tuplejoin
 import MathOptInterface
