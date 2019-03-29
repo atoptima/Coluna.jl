@@ -195,11 +195,14 @@ mutable struct TreatAlgs
     TreatAlgs() = new(AlgLike(), AlgLike(), AlgLike(), AlgLike(), AlgLike[], AlgLike())
 end
 
-struct TreatAlgsTwo
+struct TreatAlgsTwo{St <: AbstractSetupNodeAlg,
+                    Gc <: AbstractGenChildrenNodeAlg,
+                    Ri <: AbstractRecordInfoNodeAlg
+                    }
     # Obligatory algorithms
-    setup::St <: AbstractSetupNodeAlg
-    gen_children::Gc <: AbstractGenChildrenNodeAlg
-    record_info::Ri <: AbstractRecordInfoNodeAlg
+    setup::St
+    gen_children::Gc
+    record_info::Ri
     # Facultative algorithms
     algs::Vector{<:AbstractNodeAlg}
     nb_completed_facultative_algs::Int
