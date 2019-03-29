@@ -129,25 +129,27 @@ function retrieve_dual_sol(form::Formulation)
     return dual_sol
 end
 
-function optimize(form::Formulation, optimizer = form.moi_optimizer, update_problem = true)
+function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form = true)
     
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
+    primal_sols = PrimalSolution[]
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
         primal_sol = retrieve_primal_sol(form)
+        push!(primal_sols, primal_sol)
         dual_sol = retrieve_dual_sol(form)
-       #== if update_problem
-            form.primal_sol = primal_sol
+        if update_form
+            form.primal_solution_record = primal_sol
             if dual_sol != nothing
-                form.dual_sol = dual_sol
+                dual_solution_record = dual_sol
             end
         end
-==#
-        return (status, primal_sol, dual_sol)
+
+        return (status, primal_sol.value, primal_sols, dual_sol)
     end
     @logmsg LogLevel(-4) string("Solver has no result to show.")
-    return (status, nothing, nothing)
+    return (status, +inf, nothing, nothing)
 end
 
 function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)

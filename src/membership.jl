@@ -6,6 +6,14 @@ function VarMembership()
     return VarMembership(Dict{VarId, Float64}())
 end
 
+function clone_membership(orig_memb::VarMembership)
+    membership = VarMembership()
+    for (id, val) in orig_memb
+        membership[id] = val
+    end
+    return membership
+end
+
 struct ConstrMembership <: AbstractMembership
     members::Dict{ConstrId, Float64} #SparseVector{Float64, ConstrId}
 end
@@ -14,20 +22,20 @@ function ConstrMembership()
     return ConstrMembership(Dict{ConstrId, Float64}())
 end
 
-function add!(m::AbstractMembership, varconst_id, val::Float64)
-    if haskey(m.members, varconst_id)
+function add!(m::AbstractMembership, varconstr_id, val::Float64)
+    if haskey(m.members, varconstr_id)
         # if (reset)
-        #    m.members[varconst_id] = val
+        #    m.members[varconstr_id] = val
         # else            
-        m.members[varconst_id] += val
+        m.members[varconstr_id] += val
     else
-        m.members[varconst_id] = val
+        m.members[varconstr_id] = val
     end
     return
 end
 
-function set!(m::AbstractMembership, varconst_id, val::Float64)
-       m.members[varconst_id] = val
+function set!(m::AbstractMembership, varconstr_id, val::Float64)
+    m.members[varconstr_id] = val
     return
 end
 
@@ -61,6 +69,16 @@ struct Memberships
     var_to_expression_members::Union{Nothing,Dict{VarId, VarMembership}}
     expression_to_var_members::Union{Nothing,Dict{VarId, VarMembership}}
 end
+
+function check_if_exists(dict::Dict{Int, AbstractMembership}, membership::AbstractMembership)
+    for (id, m) in dict
+        if (m == membership)
+            return id
+        end
+    end
+    return 0
+end
+
 
 function Memberships()
     var_m = Dict{VarId, ConstrMembership}()
@@ -245,25 +263,25 @@ end
 
 
 function add_variable!(m::Memberships, var_uid::VarId)
-    hasvar(m, var_uid) && error("Variable with uid $var_uid already registered.")
+    haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
     m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(Float64, MAX_SV_ENTRIES)
     return
 end
 
 function add_variable!(m::Memberships, var_uid::VarId, membership::ConstrMembership)
-    hasvar(m, var_uid) && error("Variable with uid $var_uid already registered.")
+    haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
     set_constr_members_of_var!(m, var_uid, membership)
     return
 end
 
 function add_constraint!(m::Memberships, constr_uid::ConstrId)
-    hasconstr(m, constr_uid) && error("Constraint with uid $constr_uid already registered.")
+    haskey(m.constr_to_var_members, constr_uid) && error("Constraint with uid $constr_uid already registered.")
     m.constr_to_var_members[constr_uid] = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
     return
 end
 
 function add_constraint!(m::Memberships, constr_uid::ConstrId, membership::VarMembership) 
-    hasconstr(m, constr_uid) && error("Constraint with uid $constr_uid already registered.")
+    haskey(m.constr_to_var_members, constr_uid) && error("Constraint with uid $constr_uid already registered.")
     add_var_members_of_constr!(m, constr_uid, membership)
     return
 end

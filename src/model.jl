@@ -199,17 +199,17 @@ function optimize!(m::Model)
     println(m.timer_output)
 end
 
-function optimize!(extended_problem::Reformulation, params::Params)
+function optimize!(reformulation::Reformulation, params::Params)
     println("\e[1;32m Here starts optimization \e[00m")
     search_tree = initialize_search_tree(params)
-    DS.enqueue!(search_tree, create_root_node(extended_problem, params), 0.0)
+    DS.enqueue!(search_tree, create_root_node(reformulation, params), 0.0)
     global_treat_order = TreatOrder(1)
     nb_treated_nodes = 0
     bap_treat_order = 1 # Only usefull for printing
     is_primary_tree_node = true
     treated_nodes = Node[]
 
-    #global ep_ = extended_problem
+    #global ep_ = reformulation
 
     while (!isempty(search_tree) && nb_treated_nodes < params.max_num_nodes)
 
@@ -222,10 +222,10 @@ function optimize!(extended_problem::Reformulation, params::Params)
         cur_node_evaluated_before = cur_node.evaluated
         treat_algs = TreatAlgs()
 
-        if prepare_node_for_treatment(extended_problem, cur_node,
+        if prepare_node_for_treatment(reformulation, cur_node,
                 treat_algs, global_treat_order)
 
-            print_info_before_solving_node(extended_problem,
+            print_info_before_solving_node(reformulation,
                 length(search_tree) + ((is_primary_tree_node) ? 1 : 0),
                 0 + ((is_primary_tree_node) ? 0 : 1), global_treat_order)
 
@@ -236,7 +236,7 @@ function optimize!(extended_problem::Reformulation, params::Params)
             # end
 
             if !treat(cur_node, treat_algs, global_treat_order,
-                extended_problem.primal_inc_bound)
+                reformulation.master.primal_inc_bound)
                 error("ERROR: branch-and-price is interrupted")
                 break
             end
@@ -258,8 +258,8 @@ function optimize!(extended_problem::Reformulation, params::Params)
             # possibly the updated bounds and the
             # updated solution, we should update primal bound before dual one
             # as the dual bound will be limited by the primal one
-            update_search_trees(cur_node, search_tree, extended_problem)
-            update_model_incumbents(extended_problem, cur_node, search_tree)
+            update_search_trees(cur_node, search_tree, reformulation)
+            update_model_incumbents(reformulation, cur_node, search_tree)
 
             @logmsg LogLevel(-4) string("number of nodes: ", length(search_tree))
 
@@ -272,10 +272,10 @@ function optimize!(extended_problem::Reformulation, params::Params)
     end
 
     @logmsg LogLevel(-4) "Search is finished."
-    @logmsg LogLevel(-4) "Primal bound: $(extended_problem.primal_inc_bound)"
-    @logmsg LogLevel(-4) "Dual bound: $(extended_problem.dual_inc_bound)"
+    @logmsg LogLevel(-4) "Primal bound: $(reformulation.master.primal_inc_bound)"
+    @logmsg LogLevel(-4) "Dual bound: $(reformulation.master.dual_inc_bound)"
     # println("Best solution found:")
-    # for kv in extended_problem.solution.var_val_map
+    # for kv in reformulation.solution.var_val_map
     #     println("var: ", kv[1].name, ": ", kv[2])
     # end
     generate_and_write_bap_tree(treated_nodes)
