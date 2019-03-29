@@ -113,7 +113,6 @@ function clone_in_formulation!(varconstr::AbstractVarConstr,
                                duty)
     varconstr_copy = copy(varconstr, flag, duty)
     setform!(varconstr_copy, getuid(dest))
-    #setduty!(varconstr_copy, duty)
     add!(dest, varconstr_copy)
     return varconstr_copy
 end
@@ -125,6 +124,7 @@ function clone_in_formulation!(var_uids::Vector{VarId},
                                duty::Type{<: AbstractVarDuty})
     for var_uid in var_uids
         var = getvar(src_form, var_uid)
+        @show var
         var_clone = clone_in_formulation!(var, src_form, dest_form, flag, duty)
         reset_constr_members_of_var!(dest_form.memberships, var_uid,
                                      get_constr_members_of_var(src_form, var_uid))
@@ -180,13 +180,14 @@ end
 
 function add!(f::Formulation, var::Variable)
     add!(f.vars, var)
-    add_variable!(f.memberships, getuid(var))
+    add_variable!(f.memberships, getuid(var)) 
     return
 end
 
 function add!(f::Formulation, var::Variable, membership::ConstrMembership)
     add!(f.vars, var)
     add_variable!(f.memberships, getuid(var), membership)
+    return
 end
 
 function add!(f::Formulation, constr::Constraint)

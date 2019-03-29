@@ -48,15 +48,15 @@ function insert_cols_in_master(sp_form::Formulation,
     m = master_form.memberships
     nb_of_gen_col = 0
     
-    var_uids = getvar_uids(sp_form, PricingSpSetupVar)
-    @assert length(var_uids) == 1
-    setup_var_uid = var_uids[1]
+    #var_uids = getvar_uids(sp_form, PricingSpSetupVar)
+    #@assert length(var_uids) == 1
+    #setup_var_uid = var_uids[1]
 
     for sp_sol in sp_sols
         if sp_sol.value < -0.0001 # TODO use tolerance
             
-            ### add setup_var in sp sol
-            add!(sp_sol.var_members, setup_var_uid, 1.0)
+            ### add setup_var in sp sol: already in solution
+            #add!(sp_sol.var_members, setup_var_uid, 1.0)
 
             ### check if sp sol exists as a registered column
             id_of_existing_mc = check_if_exists(master_form.memberships.partialsol_to_var_members,

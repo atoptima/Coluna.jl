@@ -259,6 +259,7 @@ end
 
 
 function add_variable!(m::Memberships, var_uid::VarId)
+    @show m.var_to_constr_members
     haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
     m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(Float64, MAX_SV_ENTRIES)
     return
