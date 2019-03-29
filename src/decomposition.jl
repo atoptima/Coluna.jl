@@ -28,7 +28,6 @@ function build_dw_master!(model::Model,
     reformulation.dw_pricing_sp_ub = Dict{FormId, ConstrId}()
     
     # create convexity constraints
-    
     @assert !isempty(reformulation.dw_pricing_subprs)
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
@@ -50,8 +49,6 @@ function build_dw_master!(model::Model,
         reformulation.dw_pricing_sp_ub[sp_uid] = getuid(ub_conv_constr)
         membership = VarMembership() 
         add!(master_form, ub_conv_constr, membership)
-
-         
     end
 
     # copy of pure master variables
@@ -147,14 +144,13 @@ function build_dw_pricing_sp!(m::Model,
     add!(sp_form, setup_var, membership)
     @show setup_var
 
+    # should be move in build dw master ?
     #clone_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
     ## Create representative of sp var in master
     var_uids = getuids(sp_form.vars, PricingSpVar)
-    @show var_uids
     clone_in_formulation!(
-        var_uids, sp_form, master_form,
-        Implicit, MastRepPricingSpVar
+        var_uids, sp_form, master_form, Implicit, MastRepPricingSpVar
     )
 
 
@@ -229,13 +225,12 @@ function reformulate!(m::Model, method::SolutionMethod)
             if haskey(constrs_in_forms, annotation.unique_id)
                 constrs_in = constrs_in_forms[annotation.unique_id]
             end
+            println("> build sp $(annotation.unique_id)")
             build_dw_pricing_sp!(m, annotation.unique_id,
                                  formulations[annotation.unique_id],
                                  vars_in, constrs_in)
         end
     end
-    
-
     
 
     println("\e[1;34m MASTER FORMULATION \e[00m")
