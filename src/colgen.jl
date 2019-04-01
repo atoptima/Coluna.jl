@@ -288,8 +288,8 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
     master_form = reformulation.master
-    sp_lbs::Dict{FormId, Float64},
-    sp_ubs::Dict{FormId, Float64}
+    sp_lbs = Dict{FormId, Float64}()
+    sp_ubs = Dict{FormId, Float64}()
 
     for sp_form in reformulation.dw_pricing_subprs
         lb_convexity_constr_uid = reformulation.dw_pricing_sp_lb[sp_form]
