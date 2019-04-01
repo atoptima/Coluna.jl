@@ -1,4 +1,4 @@
-struct ConstrId
+struct ConstrId <: AbstractVarConstrInfo
     uid::Int # coluna ref
     index::MoiConstrIndex # moi ref
 end
@@ -15,7 +15,7 @@ mutable struct Constraint{Duty <: AbstractConstrDuty} <: AbstractVarConstr
     flag::Flag    # Static, Dynamic/Delayed, Implicit
 end
 
-mutable struct ConstrInfo <: AbstractVCInfo
+mutable struct ConstrInfo <: AbstractVarConstrInfo
     cur_rhs::Float64 
     cur_sense::ConstrSense # Greater Less Equal
     cur_flag::Flag     # Static, Dynamic/Delayed,  Implicit

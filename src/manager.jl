@@ -1,50 +1,25 @@
-struct Manager{T <: AbstractVarConstr} <: AbstractManager
-    members::SparseVector{T,Int} # key is uid, field is VarConstr
-    per_duty::Dict{Type{<: AbstractDuty}, Vector{Int}}
-    filters::Dict{Function,Filter}
+struct Manager{VC <: AbstractVarConstr,
+               VCId <: AbstractVarConstrId,
+               VCInfo <: AbstractVarConstrInfo} <: AbstractManager
+    members::Dict{VCid,Pair{VC,VCInfo}}
 end
 
-Manager(T::Type{<:AbstractVarConstr}) = Manager{T}(
-    spzeros(MAX_SV_ENTRIES),
-    spzeros(MAX_SV_ENTRIES),
-    spzeros(MAX_SV_ENTRIES),
-    Dict{Type{<: AbstractDuty}, Vector{Int}}(),
-    Dict{Function,Filter}())
+Manager(::Type{Variable}) = Manager(
+    Dict{VarId,Pair{Variable,VarInfo}}()
+)
 
-getvc(m::Manager, uid::Int) = m.members[uid]
+Manager(::Type{Constraint}) = Manager(
+    Dict{ConstrId,Pair{Constraint,ConstrInfo}}()
+)
 
-getuids(m::Manager, d::Type{<:AbstractDuty}) = m.per_duty[d]
+idexists(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)
+getvc(m::Manager, id::AbstractVarConstrId) = m.members[id].first
+getinfo(m::Manager, id::AbstractVarConstrId) = m.members[id].second
+Base.filter(m::Manager, f::Function) = filter(f, m.members)
 
-function getuids(m::Manager, f::Function)
-    haskey(m.filters, f) && return get_nz_ids(m.filters[f])
-    fi = m.filters[f] = Filter(f, m.members)
-    return get_nz_ids(fi)
-end
-
-getuids(m::Manager, d::Type{<:AbstractDuty}, f::Function) = findnz(apply_mask(
-    m.filters[f], m.per_duty[d]))
-
-get_nz_ids(m::Manager) = findnz(m.members)[1]
-
-function add_filter!(m::Manager, f::Function)
-    haskey(m.filters, f) && return
-    m.filters[f] = Filter(f, m.members)
-end
-
-function add!(vcm::Manager, vc::T) where T <: Union{Variable, Constraint}
+function add!(vcm::Manager, vc::AbstractVarConstr)
     uid = getuid(vc)
-
-    vcm.members[uid] = vc
-    vcm.flags[uid] = vc.flag
-    vcm.status[uid] = Active
-
-    duty = getduty(vc)
-    if haskey(vcm.per_duty, duty)
-        set = vcm.per_duty[duty]
-    else
-        set = vcm.per_duty[duty] = Vector{Int}()
-    end
-    push!(set, uid)
+    vcm.members[uid] = Pair(vc, default_info(vc))
     return
 end
 

@@ -23,6 +23,9 @@ global const MAX_SV_ENTRIES = 10_000_000
 
 # Base functions for which we define more methods in Coluna
 import Base.isempty
+import Base.hash
+import Base.isequal
+import Base.filter
 
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,
@@ -43,7 +46,7 @@ include("parameters.jl")
 include("varconstr.jl")
 include("constraint.jl")
 include("variable.jl")
-include("filter.jl")
+include("vcids.jl")
 include("manager.jl")
 include("membership.jl")
 include("solution.jl")

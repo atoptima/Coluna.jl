@@ -1,11 +1,15 @@
-struct VarId
+struct VarId <: AbstractVarConstrInfo
     uid::Int # coluna ref
     index::MoiVarIndex # moi ref
 end
 
-VarId() = VarId(-1, MoiVarIndex(-1))
+Base.hash(a::VarId, h::UInt) = hash(a.uid, h)
+Base.isequal(a::VarId, b::VarId) = Base.isequal(hash(a), hash(b))
 
-    
+getuid(id::AbstractVarConstrId) = id.uid
+getindex(id::AbstractVarConstrId) = id.index
+
+VarId() = VarId(-1, MoiVarIndex(-1))    
 
 mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
     var_id::VarId
@@ -19,7 +23,7 @@ mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
     sense::VarSense 
 end
 
-mutable struct VarInfo <: AbstractVCInfo
+mutable struct VarInfo <: AbstractVarConstrInfo
     cur_cost::Float64
     cur_lb::Float64
     cur_ub::Float64 
