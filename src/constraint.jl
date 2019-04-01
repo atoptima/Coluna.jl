@@ -1,12 +1,5 @@
-struct ConstrId <: AbstractVarConstrInfo
-    uid::Int # coluna ref
-    index::MoiConstrIndex # moi ref
-end
-
-ConstrId() = ConstrId(-1, MoiConstrIndex(-1))
-
 mutable struct Constraint{Duty <: AbstractConstrDuty} <: AbstractVarConstr
-    constr_uid::ConstrId
+    constr_uid::Int
     form_uid::FormId
     name::String
     rhs::Float64 

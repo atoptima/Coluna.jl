@@ -43,7 +43,7 @@ import Base.filter
 include("types.jl")
 include("parameters.jl")
 #include("utils.jl")
-include("varconstr.jl")
+include("counters.jl")
 include("constraint.jl")
 include("variable.jl")
 include("vcids.jl")

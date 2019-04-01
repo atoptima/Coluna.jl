@@ -1,7 +1,7 @@
 struct Manager{VC <: AbstractVarConstr,
-               VCId <: AbstractVarConstrId,
-               VCInfo <: AbstractVarConstrInfo} <: AbstractManager
-    members::Dict{VCid,Pair{VC,VCInfo}}
+               VCid <: AbstractVarConstrId,
+               VCinfo <: AbstractVarConstrInfo} <: AbstractManager
+    members::Dict{VCid,Pair{VC,VCinfo}}
 end
 
 Manager(::Type{Variable}) = Manager(
