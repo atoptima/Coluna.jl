@@ -124,7 +124,7 @@ function clone_in_formulation!(var_uids::Vector{VarId},
                                duty::Type{<: AbstractVarDuty})
     for var_uid in var_uids
         var = getvar(src_form, var_uid)
-        @show var
+        #@show var
         var_clone = clone_in_formulation!(var, src_form, dest_form, flag, duty)
         reset_constr_members_of_var!(dest_form.memberships, var_uid,
                                      get_constr_members_of_var(src_form, var_uid))
