@@ -1,9 +1,10 @@
-struct Membership <: AbstractMembership
+struct Membership{VC <: AbstractVarConstr} <: AbstractMembership
     members::Dict{Id, Float64}
 end
-Membership() = Membership(Dict{Id, Float64}())
-# TO DO : rename it copy ?
-clone_membership(orig_memb::AbstractMembership) = Membership(copy(orig_memb.members))
+Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{idtype(T), Float64}())
+getmembers(m::Membership) = m.members
+# TODO change the name ? (copy?)
+clone_membership(orig_memb::Membership{T}) where {T <: AbstractVarConstr} = Membership{T}(copy(orig_memb.members))
 
 import Base.length
 import Base.iterate
