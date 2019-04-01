@@ -1,10 +1,9 @@
-
 mutable struct VarCounter <: AbstractCounter
-    value::VarId
+    value::Int
     VarCounter() = new(0)
 end
 mutable struct ConstrCounter <: AbstractCounter
-    value::ConstrId
+    value::Int
     ConstrCounter() = new(0)
 end
 mutable struct FormCounter <: AbstractCounter
