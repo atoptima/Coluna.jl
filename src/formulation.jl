@@ -161,7 +161,7 @@ function add!(f::Formulation, var::Variable)
     return
 end
 
-function add!(f::Formulation, var::Variable, membership::ConstrMembership)
+function add!(f::Formulation, var::Variable, membership::Membership{Constraint})
     add!(f.vars, var)
     add_variable!(f.memberships, getuid(var), membership)
     return
@@ -174,7 +174,7 @@ function add!(f::Formulation, constr::Constraint)
     return
 end
 
-function add!(f::Formulation, constr::Constraint, membership::VarMembership)
+function add!(f::Formulation, constr::Constraint, membership::Membership{Variable})
     add!(f.constrs, constr)
     f.constr_rhs[getuid(constr)] = constr.rhs
     add_constraint!(f.memberships, getuid(constr), membership)

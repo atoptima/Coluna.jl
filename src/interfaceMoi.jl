@@ -65,7 +65,7 @@ function add_variable_in_optimizer(form::Formulation,
 end
 
 function fill_primal_sol(form::Formulation,
-                         membership::VarMembership,
+                         membership::Membership{Variable},
                          var_list::Vector{VarId})
     for var_uid in var_list
         val = MOI.get(form.moi_optimizer, MOI.VariablePrimal(),
@@ -78,7 +78,7 @@ function fill_primal_sol(form::Formulation,
 end
 
 function fill_dual_sol(form::Formulation,
-                         membership::ConstrMembership,
+                         membership::Membership{Constraint},
                          constr_list::Vector{ConstrId})
     for constr_uid in constr_list
         val = 0.0
@@ -103,7 +103,7 @@ function fill_dual_sol(form::Formulation,
 end
 
 function retrieve_primal_sol(form::Formulation)
-    new_sol = VarMembership()
+    new_sol = Membership(Variable)
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     #error("Following line does not work.")
     fill_primal_sol(form, new_sol, get_var_ids(form, _active_))
@@ -117,7 +117,7 @@ function retrieve_dual_sol(form::Formulation)
     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         return nothing
     end
-    new_sol = ConstrMembership()
+    new_sol = Membership(Constraint)
     problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
     fill_dual_sol(form, new_sol, get_constr_ids(form, _active_))
     dual_sol = DualSolution(-Inf, new_sol)
@@ -134,7 +134,7 @@ function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
 end
 
 #==
-function compute_constr_terms(membership::VarMembership)
+function compute_constr_terms(membership::Membership{Variable})
     active = true
     return [
         MOI.ScalarAffineTerm{Float64}(var_val, var_index)
@@ -145,7 +145,7 @@ end
 
 function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                  constr::Constraint,
-                                 var_membership::VarMembership,
+                                 var_membership::Membership{Variable},
                                  rhs::Float64)
     terms = compute_constr_terms(var_membership)
     f = MOI.ScalarAffineFunction(terms, 0.0)

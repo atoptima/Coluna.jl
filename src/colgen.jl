@@ -13,7 +13,7 @@ function optimize!(alg::SimplexLpColGenAlg, r::Reformulation)
     return
 end
 
-function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMembership)
+function update_pricing_problem(sp_form::Formulation, dual_sol::Membership{Constraint})
     
     new_obj = Dict{VarId, Float64}()
 
@@ -141,7 +141,7 @@ function compute_pricing_dual_bound_contrib(sp_form::Formulation,
 end
 
 function gen_new_col(sp_form::Formulation,
-                     dual_sol::ConstrMembership,
+                     dual_sol::Membership{Constraint},
                      sp_lb::Float64,
                      sp_ub::Float64)
     
@@ -196,7 +196,7 @@ function gen_new_col(sp_form::Formulation,
 end
 
 function gen_new_columns(reformulation::Reformulation,
-                         dual_sol::ConstrMembership,
+                         dual_sol::Membership{Constraint},
                          sp_lbs::Dict{FormId, Float64},
                          sp_ubs::Dict{FormId, Float64})
     

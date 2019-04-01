@@ -3,16 +3,16 @@ mutable struct SolsAndBounds
     alg_inc_lp_primal_bound::Float64
     alg_inc_ip_dual_bound::Float64
     alg_inc_lp_dual_bound::Float64
-    alg_inc_lp_primal_sol::VarMembership
-    alg_inc_ip_primal_sol::VarMembership
-    alg_inc_lp_dual_sol::ConstrMembership
+    alg_inc_lp_primal_sol::Membership{Variable}
+    alg_inc_ip_primal_sol::Membership{Variable}
+    alg_inc_lp_dual_sol::Membership{Constraint}
     is_alg_inc_ip_primal_bound_updated::Bool
 end
 
 SolsAndBounds() = SolsAndBounds(Inf, Inf, -Inf, -Inf,
-                                VarMembership(),
-                                VarMembership(),
-                                ConstrMembership(),
+                                Membership(Variable),
+                                Membership(Variable),
+                                Membership(Constraint),
                                 false)
 
 ### Methods of SolsAndBounds
@@ -25,7 +25,7 @@ end
 
 function update_primal_ip_incumbents(incumbents::SolsAndBounds,
                                      newbound::Float64,
-                                     var_membership::VarMembership)
+                                     var_membership::Membership{Variable})
     if newbound < incumbents.alg_inc_ip_primal_bound
         incumbents.alg_inc_ip_primal_bound = newbound
         incumbents.alg_inc_ip_primal_sol = deepcopy(var_membership)
@@ -35,7 +35,7 @@ end
 
 function update_primal_lp_incumbents(incumbents::SolsAndBounds,
                                      newbound::Float64,
-                                     var_membership::VarMembership)
+                                     var_membership::Membership{Variable})
     if newbound < incumbents.alg_inc_lp_primal_bound
         incumbents.alg_inc_lp_primal_bound = newbound
         incumbents.alg_inc_lp_primal_sol = deepcopy(var_membership)
@@ -60,7 +60,7 @@ end
 
 function update_dual_lp_incumbents(incumbents::SolsAndBounds,
                                    newbound::Float64,
-                                   constr_membership::ConstrMembership)
+                                   constr_membership::Membership{Constraint})
     if newbound > incumbents.alg_inc_lp_dual_bound
         incumbents.alg_inc_lp_dual_bound = newbound
         incumbents.alg_inc_lp_dual_sol = deepcopy(constr_membership)

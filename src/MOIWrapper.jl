@@ -111,12 +111,12 @@ function create_origconstr!(constrs, memberships, vars,
     return
 end
 
-function create_origconstr!(constrs, memberships::Vector{VarMembership}, vars, 
+function create_origconstr!(constrs, memberships::Vector{Membership{Variable}}, vars, 
         model, name, f::MOI.ScalarAffineFunction, s, m_constr_id)
     constr = Constraint(model, name)
     set!(constr, s)
     push!(constrs, constr)
-    membership = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
+    membership = Membership(Variable) #spzeros(Float64, MAX_SV_ENTRIES)
     for term in f.terms
         c_var_id = model.mid2cid_map[term.variable_index].value
         add!(membership,c_var_id, term.coefficient)
@@ -128,7 +128,7 @@ function create_origconstr!(constrs, memberships::Vector{VarMembership}, vars,
 end
 
 function create_origconstrs!(constrs::Vector{Constraint}, 
-        memberships::Vector{VarMembership}, m::Model, src::MOI.ModelLike, 
+        memberships::Vector{Membership{Variable}}, m::Model, src::MOI.ModelLike, 
         vars::Vector{Variable}, copy_names::Bool)
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
         for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
@@ -145,7 +145,7 @@ function create_origconstrs!(constrs::Vector{Constraint},
     return
 end
 
-function create_original_formulation!(model, vars, constrs, memberships::Vector{VarMembership}, 
+function create_original_formulation!(model, vars, constrs, memberships::Vector{Membership{Variable}}, 
         min_sense::Bool)
     orig_form = get_original_formulation(model)
     add!(orig_form, vars)
@@ -163,7 +163,7 @@ function register_original_formulation!(model::Model, dest::Optimizer, src::MOI.
     create_origvars!(vars, model, src, copy_names)
 
     constrs = Constraint[]
-    memberships = Vector{VarMembership}()
+    memberships = Vector{Membership{Variable}}()
     create_origconstrs!(constrs, memberships, model, src, vars, copy_names)
 
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())

@@ -40,14 +40,14 @@ function build_dw_master!(model::Model,
         duty = MasterConstr #MasterConvexityConstr
         lb_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
         reformulation.dw_pricing_sp_lb[sp_uid] = getuid(lb_conv_constr)
-        membership = VarMembership() 
+        membership = Membership(Variable) 
         add!(master_form, lb_conv_constr, membership)
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
         ub_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
         reformulation.dw_pricing_sp_ub[sp_uid] = getuid(ub_conv_constr)
-        membership = VarMembership() 
+        membership = Membership(Variable) 
         add!(master_form, ub_conv_constr, membership)
     end
 
@@ -69,7 +69,7 @@ function build_dw_master!(model::Model,
             flag = Artificial
             sense = Positive
             art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
-            membership = ConstrMembership()
+            membership = Membership(Constraint)
             membership.members[constr_uid] = 1.0
             add!(master_form, art_var, membership)
         end
@@ -85,7 +85,7 @@ function build_dw_master!(model::Model,
         flag = Artificial
         sense = Positive
         pos_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
-        membership = ConstrMembership()
+        membership = Membership(Constraint)
         for constr_uid in get_constr_ids(master_form)
             membership.members[constr_uid] = 1.0
         end
@@ -99,7 +99,7 @@ function build_dw_master!(model::Model,
         flag = Artificial
         sense = Positive
         neg_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
-        membership = ConstrMembership()
+        membership = Membership(Constraint)
         for constr_uid in get_constr_ids(master_form)
             membership.members[constr_uid] = -1.0
         end
@@ -138,7 +138,7 @@ function build_dw_pricing_sp!(m::Model,
     duty = PricingSpVar
     sense = Positive
     setup_var = Variable(duty, m, sp_uid, name, cost, lb, ub, kind, flag, sense)
-    membership = ConstrMembership()
+    membership = Membership(Constraint)
     set!(membership, reformulation.dw_pricing_sp_lb[sp_uid], 1.0)
     set!(membership, reformulation.dw_pricing_sp_ub[sp_uid], 1.0)
     add!(sp_form, setup_var, membership)

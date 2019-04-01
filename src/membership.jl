@@ -2,7 +2,19 @@ struct Membership <: AbstractMembership
     members::Dict{Id, Float64}
 end
 Membership() = Membership(Dict{Id, Float64}())
+# TO DO : rename it copy ?
 clone_membership(orig_memb::AbstractMembership) = Membership(copy(orig_memb.members))
+
+import Base.length
+import Base.iterate
+import Base.getindex
+import Base.lastindex
+
+iterate(m::Membership) = iterate(m.members)
+iterate(m::Membership, state) = iterate(m.members, state)
+length(m::Membership) = length(m.container)
+getindex(m::Membership, elements) = getindex(m.members, elements)
+lastindex(m::Membership) = lastindex(m.members)
 
 function add!(m::Membership, id::Id, val::Float64)
     haskey(m.members, id) ? (m.members[id] += val) : (m.members[id] = val)
@@ -16,228 +28,208 @@ end
 
 get_ids_vals(m::Membership) = (collect(keys(m.members)), collect(values(m.members)))
 
-struct ConstrMembership <: AbstractMembership
-    members::Dict{ConstrId, Float64} #SparseVector{Float64, ConstrId}
-end
-
 struct Memberships
-    var_to_constr_members::Dict{VarId, ConstrMembership}
-    constr_to_var_members::Dict{ConstrId, VarMembership}
-    var_to_partialsol_members::Union{Nothing,Dict{VarId, VarMembership}}
-    partialsol_to_var_members::Union{Nothing,Dict{VarId, VarMembership}}
-    var_to_expression_members::Union{Nothing,Dict{VarId, VarMembership}}
-    expression_to_var_members::Union{Nothing,Dict{VarId, VarMembership}}
+    var_to_constr_members    ::Dict{Id, Membership{Constraint}}
+    constr_to_var_members    ::Dict{Id, Membership{Variable}}
+    var_to_partialsol_members::Dict{Id, Membership{Variable}}
+    partialsol_to_var_members::Dict{Id, Membership{Variable}}
+    var_to_expression_members::Dict{Id, Membership{Variable}}
+    expression_to_var_members::Dict{Id, Membership{Variable}}
 end
 
-function check_if_exists(dict::Dict{Int, AbstractMembership}, membership::AbstractMembership)
-    for (id, m) in dict
-        if (m == membership)
-            return id
-        end
-    end
-    return 0
-end
+# function check_if_exists(dict::Dict{Id, Membership}, membership::Membership)
+#     for (id, m) in dict
+#         if (m == membership)
+#             return id
+#         end
+#     end
+#     return 0
+# end
 
 function Memberships()
-    var_m = Dict{VarId, ConstrMembership}()
-    constr_m = Dict{ConstrId, ConstrMembership}()
-    return Memberships(var_m, constr_m, nothing, nothing, nothing, nothing)
+    return Memberships(Dict{Id, Membership{Constraint}}(),
+                       Dict{Id, Membership{Variable}}(), 
+                       Dict{Id, Membership{Variable}}(), 
+                       Dict{Id, Membership{Variable}}(), 
+                       Dict{Id, Membership{Variable}}(), 
+                       Dict{Id, Membership{Variable}}())
 end
 
-#function add_var!(m::VarMembership, var_uid::VarId, val::Float64)
-#    m[var_uid] = val
+#function add_var!(m::Membership(Variable), var_id::VarId, val::Float64)
+#    m[var_id] = val
 #end
 
-#function add_constr!(m::ConstrMembership, constr_uid::VarId, val::Float64)
-#    m[constr_uid] = val
+#function add_constr!(m::Membership{Constraint}, constr_id::VarId, val::Float64)
+#    m[constr_id] = val
 #end
 
 
-function get_constr_members_of_var(m::Memberships, var_uid::VarId) 
-    if haskey(m.var_to_constr_members, var_uid)
-        return m.var_to_constr_members[var_uid]
+function get_constr_members_of_var(m::Memberships, var_id::Id) 
+    if haskey(m.var_to_constr_members, var_id)
+        return m.var_to_constr_members[var_id]
     end
-    error("Variable $var_uid not stored in formulation.")
+    error("Variable $var_id not stored in formulation.")
 end
 
-function get_var_members_of_constr(m::Memberships, constr_uid::ConstrId) 
-    if haskey(m.constr_to_var_members, constr_uid)
-        return m.constr_to_var_members[constr_uid]
+function get_var_members_of_constr(m::Memberships, constr_id::Id) 
+    if haskey(m.constr_to_var_members, constr_id)
+        return m.constr_to_var_members[constr_id]
     end
-    error("Constraint $constr_uid not stored in formulation.")
+    error("Constraint $constr_id not stored in formulation.")
 end
 
-
-function get_var_members_of_expression(m::Memberships, eprex_uid::VarId) 
+function get_var_members_of_expression(m::Memberships, eprex_uid::Id) 
     if haskey(m.expression_to_var_members, eprex_uid)
         return m.expression_to_var_members[eprex_uid]
     end
     error("Expression $uid not stored in formulation.")
 end
 
-function add_constr_members_of_var!(m::Memberships, var_uid::VarId, constr_uid::ConstrId, coef::Float64)
-
-    if !haskey(m.var_to_constr_members, var_uid)
-        m.var_to_constr_members[var_uid] = ConstrMembership()
+function add_constr_members_of_var!(m::Memberships, var_id::Id, 
+        constr_id::Id, coef::Float64)
+    if !haskey(m.var_to_constr_members, var_id)
+        m.var_to_constr_members[var_id] = Membership(Constraint)
     end
+    add!(m.var_to_constr_members[var_id], constr_id, coef)
 
-    add!(m.var_to_constr_members[var_uid], constr_uid, coef)
-    if !haskey(m.constr_to_var_members, constr_uid)
-        m.constr_to_var_members[constr_uid] = VarMembership()
+    if !haskey(m.constr_to_var_members, constr_id)
+        m.constr_to_var_members[constr_id] = Membership(Variable)
     end
-    add!(m.constr_to_var_members[constr_uid], var_uid, coef)
+    add!(m.constr_to_var_members[constr_id], var_id, coef)
 end
 
-function add_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
+function add_constr_members_of_var!(m::Memberships, var_id::Id, 
+        new_membership::Membership{Constraint}) 
+    m.var_to_constr_members[var_id] = new_membership
 
-    if !haskey(m.var_to_constr_members, var_uid)
-        m.var_to_constr_members[var_uid] = ConstrMembership()
-    end
-
-    constr_uids, vals = get_ids_vals(new_membership)
-    for j in 1:length(constr_uids)
-        add!(m.var_to_constr_members[var_uid], constr_uids[j], vals[j])
-        if !haskey(m.constr_to_var_members, constr_uids[j])
-            m.constr_to_var_members[constr_uids[j]] = VarMembership()
+    for (constr_id, val) in new_membership
+        if !haskey(m.constr_to_var_members, constr_id)
+            m.constr_to_var_members[constr_id] = Membership(Variable)
         end
-        add!(m.constr_to_var_members[constr_uids[j]], var_uid, vals[j])
+        add!(m.constr_to_var_members[constr_id], var_id, val)
     end
 end
 
-function add_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_membership::VarMembership) 
+function add_var_members_of_constr!(m::Memberships, constr_id::Id, 
+        new_membership::Membership{Variable}) 
+    m.constr_to_var_members[constr_id] = new_membership
 
-    if !haskey(m.constr_to_var_members, constr_uid)
-        m.constr_to_var_members[constr_uid] = VarMembership()
-    end
-
-    var_uids, vals = get_ids_vals(new_membership)
-    for j in 1:length(var_uids)
-        add!(m.constr_to_var_members[constr_uid], var_uids[j], vals[j])
-        if !haskey(m.var_to_constr_members, var_uids[j])
-            m.var_to_constr_members[var_uids[j]] = ConstrMembership()
+    for (var_id, val) in new_membership
+        if !haskey(m.var_to_constr_members, var_id)
+            m.var_to_constr_members[var_id] = Membership(Constraint)
         end
-        add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])
+        add!(m.var_to_constr_members[var_id], constr_id, val)
     end
 end
 
-function add_partialsol_members_of_var!(m::Memberships, spvar_uid::VarId, mc_uid, coef::Float64)
-    if !haskey(m.var_to_partialsol_members, spvar_uid)
-        m.var_to_partialsol_members[spvar_uid] = VarMembership()
+function add_partialsol_members_of_var!(m::Memberships, ps_var_id::Id, var_id::Int, 
+        coef::Float64)
+    if !haskey(m.var_to_partialsol_members, ps_var_id)
+        m.var_to_partialsol_members[ps_var_id] = Membership(Variable)
     end
-    add!(m.var_to_partialsol_members[spvar_uid], mc_uid, coef)
+    add!(m.var_to_partialsol_members[ps_var_id], var_id, coef)
 
     if !haskey(m.partialsol_to_var_members, mc_uid)
-        m.partialsol_to_var_members[mc_uid] = VarMembership()
+        m.partialsol_to_var_members[var_id] = Membership(Variable)
     end
-    add!(m.partialsol_to_var_members[mc_uid], spvar_uid, coef)
+    add!(m.partialsol_to_var_members[var_id], ps_var_id, coef)
 end
 
-function add_partialsol_members_of_var!(m::Memberships, spvar_uid::VarId, new_membership::VarMembership) 
-    if !haskey(m.var_to_partialsol_members, spvar_uid)
-        m.var_to_partialsol_members[spvar_uid] = VarMembership()
+function add_partialsol_members_of_var!(m::Memberships, ps_var_id::Id, 
+        new_membership::Membership{Variable}) 
+    m.var_to_partialsol_members[ps_var_id] = new_membership
+
+    for (var_id, val) in new_membership
+        if !haskey(m.partialsol_to_var_members, var_id)
+            m.partialsol_to_var_members[var_id] = Membership(Variable)
+        end
+        add!(m.partialsol_to_var_members[var_id], ps_var_id, val)
+    end
+end
+
+function add_var_members_of_partialsol!(m::Memberships, mc_uid::Id, spvar_id, 
+        coef::Float64)
+    if !haskey(m.partialsol_to_var_members, mc_uid)
+        m.partialsol_to_var_members[mc_uid] = Membership(Variable)
+    end
+    add!(m.partialsol_to_var_members[mc_uid], spvar_id, coef)
+
+    if !haskey(m.var_to_partialsol_members, spvar_id)
+        m.var_to_partialsol_members[spvar_id] = Membership(Variable)
+    end
+    add!(m.var_to_partialsol_members[spvar_id], mc_uid, coef)
+end
+
+function add_var_members_of_partialsol!(m::Memberships, mc_uid::Id, 
+        new_membership::Membership{Variable}) 
+    if !haskey(m.partialsol_to_var_members, mc_uid)
+        m.partialsol_to_var_members[mc_uid] = Membership(Variable)()
     end
     
-    mc_uids, vals = get_ids_vals(new_membership)
+    spvar_ids, vals = get_ids_vals(new_membership)
     for j in 1:length(mc_uids)
-        add!(m.var_to_partialsol_members[spvar_uid], mc_uids[j], vals[j])
-        if !haskey(m.partialsol_to_var_members, mc_uids[j])
-            m.partialsol_to_var_members[mc_uids[j]] = VarMembership()
+        add!(m.partialsol_to_var_members[mc_uid], spvar_ids[j], vals[j])
+        if !haskey(m.var_to_partialsol_members, spvar_ids[j])
+            m.var_to_partialsol_members[spvar_ids[j]] = Membership(Variable)
         end
-        add!(m.partialsol_to_var_members[mc_uids[j]], spvar_uid, vals[j])
+        add!(m.var_to_partialsol_members[spvar_ids[j]], mc_uid, vals[j])
     end
 end
 
-function add_var_members_of_partialsol!(m::Memberships, mc_uid::VarId, spvar_uid, coef::Float64)
-    if !haskey(m.partialsol_to_var_members, mc_uid)
-        m.partialsol_to_var_members[mc_uid] = VarMembership()
-    end
-    add!(m.partialsol_to_var_members[mc_uid], spvar_uid, coef)
-
-    if !haskey(m.var_to_partialsol_members, spvar_uid)
-        m.var_to_partialsol_members[spvar_uid] = VarMembership()
-    end
-    add!(m.var_to_partialsol_members[spvar_uid], mc_uid, coef)
+function reset_constr_members_of_var!(m::Memberships, var_id::Id, 
+        new_membership::Membership{Constraint}) 
+    m.var_to_constr_members[var_id] = new_membership
 end
 
-function add_var_members_of_partialsol!(m::Memberships, mc_uid::VarId, new_membership::VarMembership) 
-    if !haskey(m.partialsol_to_var_members, mc_uid)
-        m.partialsol_to_var_members[mc_uid] = VarMembership()
-    end
-    
-    spvar_uids, vals = get_ids_vals(new_membership)
-    for j in 1:length(mc_uids)
-        add!(m.partialsol_to_var_members[mc_uid], spvar_uids[j], vals[j])
-        if !haskey(m.var_to_partialsol_members, spvar_uids[j])
-            m.var_to_partialsol_members[spvar_uids[j]] = VarMembership()
+function reset_var_members_of_constr!(m::Memberships, constr_id::Id,
+         new_membership::Membership{Variable}) 
+    m.constr_to_var_members[constr_id] = new_membership
+end
+
+function set_constr_members_of_var!(m::Memberships, var_id::Id, new_membership::Membership{Constraint}) 
+    m.var_to_constr_members[var_id] = Membership(Constraint)
+    constr_ids, vals = get_ids_vals(new_membership)
+    for j in 1:length(constr_ids)
+        add!(m.var_to_constr_members[var_id],constr_ids[j], vals[j])
+        if !haskey(m.constr_to_var_members, constr_ids[j])
+            m.constr_to_var_members[constr_ids[j]] = Membership(Variable) 
         end
-        add!(m.var_to_partialsol_members[spvar_uids[j]], mc_uid, vals[j])
+        add!(m.constr_to_var_members[constr_ids[j]], var_id, vals[j])
     end
 end
 
-function reset_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
-    m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(MAX_SV_ENTRIES)
-    constr_uids, vals = get_ids_vals(new_membership)
-    for j in 1:length(constr_uids)
-        set!(m.var_to_constr_members[var_uid],constr_uids[j], vals[j])
-    end   
-end
-
-function reset_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_membership::VarMembership) 
-    m.constr_to_var_members[constr_uid] = VarMembership() #spzeros(MAX_SV_ENTRIES)
-    constr_uids, vals = get_ids_vals(new_membership)
-    for j in 1:length(constr_uids)
-        set!(m.constr_to_var_members[constr_uid], var_uids[j], vals[j])
-    end
-end
-
-function set_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
-    m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(MAX_SV_ENTRIES)
-    constr_uids, vals = get_ids_vals(new_membership)
-    for j in 1:length(constr_uids)
-        add!(m.var_to_constr_members[var_uid],constr_uids[j], vals[j])
-        if !haskey(m.constr_to_var_members, constr_uids[j])
-            m.constr_to_var_members[constr_uids[j]] = VarMembership() #spzeros(MAX_SV_ENTRIES)
+function set_var_members_of_constr!(m::Memberships, constr_id::Id, new_membership::Membership{Variable}) 
+    m.constr_to_var_members[constr_id] = new_membership
+    var_ids, vals = get_ids_vals(new_membership)
+    for j in 1:length(var_ids)
+        if !haskey(m.var_to_constr_members, var_ids[j])
+            m.var_to_constr_members[var_ids[j]] = Membership(Constraint)
         end
-        add!(m.constr_to_var_members[constr_uids[j]], var_uid, vals[j])
+        add!(m.var_to_constr_members[var_ids[j]], constr_id, vals[j])
     end
 end
 
-function set_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_membership::VarMembership) 
-    m.constr_to_var_members[constr_uid] = VarMembership() #spzeros(MAX_SV_ENTRIES)
-    var_uids, vals = get_ids_vals(new_membership)
-    for j in 1:length(var_uids)
-        add!(m.constr_to_var_members[constr_uid],var_uids[j], vals[j])
-        if !haskey(m.var_to_constr_members, var_uids[j])
-            m.var_to_constr_members[var_uids[j]] = ConstrMembership() #spzeros(MAX_SV_ENTRIES)
-        end
-        add!(m.var_to_constr_members[var_uids[j]], constr_uid, vals[j])
-    end
-end
-
-function add_variable!(m::Memberships, var_uid::VarId)
-    #haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
-    if !haskey(m.var_to_constr_members, var_uid)
-        m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(Float64, MAX_SV_ENTRIES)
+function add_variable!(m::Memberships, var_id::Id)
+    if !haskey(m.var_to_constr_members, var_id)
+        m.var_to_constr_members[var_id] = Membership(Constraint)
     end
     return
 end
 
-function add_variable!(m::Memberships, var_uid::VarId, membership::ConstrMembership)
-    #haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
-    set_constr_members_of_var!(m, var_uid, membership)
+function add_variable!(m::Memberships, var_id::Id, membership::Membership{Constraint})
+    set_constr_members_of_var!(m, var_id, membership)
     return
 end
 
-function add_constraint!(m::Memberships, constr_uid::ConstrId)
-    #haskey(m.constr_to_var_members, constr_uid) && error("Constraint with uid $constr_uid already registered.")
-    if !haskey(m.constr_to_var_members, constr_uid)
-        m.constr_to_var_members[constr_uid] = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
+function add_constraint!(m::Memberships, constr_id::Id)
+    if !haskey(m.constr_to_var_members, constr_id)
+        m.constr_to_var_members[constr_id] = Membership(Variable)() #spzeros(Float64, MAX_SV_ENTRIES)
     end
     return
 end
 
-function add_constraint!(m::Memberships, constr_uid::ConstrId, membership::VarMembership) 
-    #haskey(m.constr_to_var_members, constr_uid) && error("Constraint with uid $constr_uid already registered.")
-    add_var_members_of_constr!(m, constr_uid, membership)
+function add_constraint!(m::Memberships, constr_id::Id, 
+        membership::Membership{Variable}) 
+    add_var_members_of_constr!(m, constr_id, membership)
     return
 end
