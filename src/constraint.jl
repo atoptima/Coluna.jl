@@ -15,6 +15,13 @@ mutable struct Constraint{Duty <: AbstractConstrDuty} <: AbstractVarConstr
     flag::Flag    # Static, Dynamic/Delayed, Implicit
 end
 
+mutable struct ConstrInfo <: AbstractVCInfo
+    cur_rhs::Float64 
+    cur_sense::ConstrSense # Greater Less Equal
+    cur_flag::Flag     # Static, Dynamic/Delayed,  Implicit
+    cur_status::Status   # Active or not
+end
+
 function Constraint(Duty::Type{<: AbstractConstrDuty},
                     m::AbstractModel,
                     form_uid::FormId,

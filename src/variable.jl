@@ -19,11 +19,14 @@ mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
     sense::VarSense 
 end
 
-mutable struct VarInfo
-    bd_constr::MoiVarBound
+mutable struct VarInfo <: AbstractVCInfo
+    cur_cost::Float64
+    cur_lb::Float64
+    cur_ub::Float64 
+    bd_constr_ref::MoiVarBound
     moi_kind::MoiVarKind
-    flag::Flag     # Static, Dynamic, Artifical, Implicit
-    status::Status   # Active or not
+    cur_flag::Flag     # Static, Dynamic, Artifical, Implicit
+    cur_status::Status   # Active or not
 end
 
 function Variable(Duty::Type{<: AbstractVarDuty}, m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 

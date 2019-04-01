@@ -3,17 +3,10 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::Manager{Variable} # SparseVector{Variable,VarId} 
-    constrs::Manager{Constraint} #SparseVector{Constraint,ConstrId} 
+    vars::Manager{Variable, VarInfo} 
+    constrs::Manager{Constraint, ConstrInfo} 
     memberships::Memberships
     obj_sense::ObjSense
-    # map_var_uid_to_index::Dict{VarId, MoiVarIndex}
-    # map_constr_uid_to_index::Dict{ConstrId, MoiConstrIndex}
-    # map_index_to_var_uid::Dict{MoiVarIndex, VarId}
-    # map_index_to_constr_uivd::Dict{MoiConstrIndex, ConstrId}
-    var_bounds::Dict{VarId, MoiVarBound}
-    var_kinds::Dict{VarId, MoiVarKind}
-    constr_rhs::Dict{ConstrId, Float64}
     callback
     primal_inc_bound::Float64
     dual_inc_bound::Float64
@@ -30,17 +23,10 @@ function Formulation(Duty::Type{<: AbstractFormDuty},
                              parent_formulation,
                              #moi_model,
                              moi_optimizer, 
-                             Manager(Variable),
-                             Manager(Constraint),
+                             Manager{Variable, VarInfo}(),
+                             Manager{Constraint, ConstrInfo}(),
                              Memberships(),
                              Min,
-                             Dict{VarId, MoiVarIndex}(),
-                             Dict{ConstrId, MoiConstrIndex}(),
-                             Dict{MoiVarIndex, VarId}(),
-                             Dict{MoiConstrIndex, ConstrId}(),
-                             Dict{VarId, MoiVarBound}(),
-                             Dict{VarId, MoiVarKind}(),
-                             Dict{ConstrId, Float64}(),
                              nothing,
                              Inf,
                              -Inf,
@@ -71,39 +57,24 @@ end
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
-get_var_uids(f::Formulation, d::Type{<:AbstractVarDuty}) = getuids(f.vars, d)
-get_constr_uids(f::Formulation, d::Type{<:AbstractConstrDuty}) = getuids(f.constrs, d)
-get_var_uids(fo::Formulation, fu::Function) = getuids(fo.vars, fu)
-get_var_uids(fo::Formulation, fi::Filter) = getuids(fo.vars, fi)
 
-activevar(f::Formulation) = f.vars.members[activemask(f.vars.status)]
-staticvar(f::Formulation) = f.vars.members[staticmask(f.vars.status)]
-dynamicvar(f::Formulation) = f.vars.members[dynamicmask(f.vars.status)]
-artificalvar(f::Formulation) = f.vars.members[artificialmask(f.vars.status)]
-activeconstr(f::Formulation) = f.constrs.members[activemask(f.constrs.status)]
-staticconstr(f::Formulation) = f.constrs.members[staticmask(f.constrs.status)]
-dynamicconstr(f::Formulation) = f.constrs.members[dynamicmask(f.constrs.status)]
+#activevar(f::Formulation) = f.vars.members[activemask(f.vars.status)]
+#staticvar(f::Formulation) = f.vars.members[staticmask(f.vars.status)]
+#dynamicvar(f::Formulation) = f.vars.members[dynamicmask(f.vars.status)]
+#artificalvar(f::Formulation) = f.vars.members[artificialmask(f.vars.status)]
+#activeconstr(f::Formulation) = f.constrs.members[activemask(f.constrs.status)]
+#staticconstr(f::Formulation) = f.constrs.members[staticmask(f.constrs.status)]
+#dynamicconstr(f::Formulation) = f.constrs.members[dynamicmask(f.constrs.status)]
 
-# function getvar_uids(f::Formulation, d::Type{<: AbstractVarDuty})
-#     if haskey(f.vars.duty_sets, d)
-#         return f.vars.duty_sets[d]
-#     end
-#     return Vector{VarId}()
-# end
-
-# function getconstr_uids(f::Formulation, d::Type{<: AbstractConstrDuty})
-#     if haskey(f.constrs.duty_sets,d)
-#         return f.constrs.duty_sets[d]
-#     end
-#     return Vector{ConstrId}()
-# end
-
-#getvar(f::Formulation, uid::VarId) = f.var_duty_sets[d]
 
 getuid(f::Formulation) = f.uid
 getvar(f::Formulation, uid::VarId) = getvc(f.vars, uid)
 getconstr(f::Formulation, uid::ConstrId) = getvc(f.constrs, uid)
 get_var_uids(f::Formulation) = get_nz_ids(f.vars)
+get_var_uids(f::Formulation, d::Type{<:AbstractVarDuty}) = getuids(f.vars, d)
+get_var_uids(fo::Formulation, fu::Function) = getuids(fo.vars, fu)
+get_var_uids(fo::Formulation, fi::Filter) = getuids(fo.vars, fi)
+get_constr_uids(f::Formulation, d::Type{<:AbstractConstrDuty}) = getuids(f.constrs, d)
 get_constr_uids(f::Formulation) = get_nz_ids(f.constrs)
 getobjsense(f::Formulation) = f.obj_sense
         
@@ -219,8 +190,7 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form = true)
-    
+function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form = true)    
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
     primal_sols = PrimalSolution[]
