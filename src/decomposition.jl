@@ -58,11 +58,11 @@ function build_dw_master!(model::Model,
 
     local_art_var = true
     
-    if (local_art_var)
-        # artificial variables
-        for constr_uid in constrs_in_form #  getconstraintuids(master_form)
+    #if (local_art_var)
+        # local artificial variables
+        for constr_uid in constrs_in_form #  get_constr_uids(master_form)
             name = "loc_art_$(constr_uid)"
-            cost = 1.0
+            cost = 10.0
             lb = 0.0
             ub = 1.0
             kind = Binary
@@ -74,11 +74,11 @@ function build_dw_master!(model::Model,
             add!(master_form, art_var, membership)
         end
 
-    else
+    #else
         # global artifical variables
         
         name = "glo⁺_art"
-        cost = 1.0
+        cost = 100.0
         lb = 0.0
         ub = 1.0
         kind = Binary
@@ -86,13 +86,13 @@ function build_dw_master!(model::Model,
         sense = Positive
         pos_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = ConstrMembership()
-        for constr_uid in getconstraintuids(master_form)
+        for constr_uid in get_constr_uids(master_form)
             membership.members[constr_uid] = 1.0
         end
         add!(master_form, pos_global_art_var, membership)
 
         name = "glo⁻_art"
-        cost = 1.0
+        cost = 100.0
         lb = 0.0
         ub = 1.0
         kind = Binary
@@ -100,11 +100,11 @@ function build_dw_master!(model::Model,
         sense = Positive
         neg_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = ConstrMembership()
-        for constr_uid in getconstraintuids(master_form)
+        for constr_uid in get_constr_uids(master_form)
             membership.members[constr_uid] = -1.0
         end
         add!(master_form, neg_global_art_var, membership)
-    end
+    #end
 
     return
 end

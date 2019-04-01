@@ -1,19 +1,22 @@
 mutable struct SimplexLpColGenAlg <: AbstractAlg
-    sols_and_bounds::SolsAndBounds
+    incumbents::SolsAndBounds
+    is_converged::Bool
+    is_infeasible::Bool
 end
 
 function SimplexLpColGenAlg()
-    return SimplexLpColGenAlg(SolsAndBounds())
+    return SimplexLpColGenAlg(SolsAndBounds(), false, false)
 end
 
 function optimize!(alg::SimplexLpColGenAlg, r::Reformulation)
     println("\e[1;31m draft of the col gen algorithm here \e[00m")
     println("main function of the alg")
-    #solve_mast_lp_ph2(r)
+    solve_mast_lp_ph2(alg, r)
     return
 end
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMembership)
+    
     new_obj = Dict{VarId, Float64}()
 
     active = true
@@ -21,17 +24,22 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMembership
 
     master_form = sp_form.parent_formulation
 
-    var_uids = getvar_uids(sp_form, PricingSpVar)
+    var_uids = get_var_uids(sp_form, PricingSpVar)
 
     ### compute red costs
-   for (constr_uid, dual_val) in dual_sol
-        membership = get_var_members_of_constr(master_form.memeberships, constr_uid)
+    for (constr_uid, dual_val) in dual_sol
+        var_membership = get_var_members_of_constr(master_form.memeberships, constr_uid)
 
-        var_membership = intersect(membership, var_uids)
-           
+        
+        # TODO var_membership = intersect(var_membership, var_uids)
+        
         for (var_uid, coef) in var_membership
-            if haskey(new_obj, var_uid)
-                new_obj[var_uid] -= dual_val * coef
+            if haskey(var_membership, var_uid)
+                if haskey(new_obj, var_uid)
+                    new_obj[var_uid] -= dual_val * coef
+                else
+                    new_obj[var_uid] = dual_val * coef
+                end
             end
         end
     end
@@ -72,14 +80,12 @@ function insert_cols_in_master(sp_form::Formulation,
                                                 sp_sol.var_members)
 
             if id_of_existing_mc > 0 # already exists
-                @show string("column already exists as", id_of_existing_mc)
+                @warn string("column already exists as", id_of_existing_mc)
             else
-                
-                
                 ### create new column
                 nb_of_gen_col += 1
                 name = "MC_$(sp_uid)"
-                cost = compute_original_cost(sp_sol,sp_form)
+                cost = compute_original_cost(sp_sol, sp_form)
                 lb = 0.0
                 ub = Inf
                 kind = Continuous
@@ -97,13 +103,14 @@ function insert_cols_in_master(sp_form::Formulation,
                     for (constr_uid, var_coef) in get_constr_members_of_var(m, var_uid)
                         add_constr_members_of_var!(m, mc_uid, constr_uid, var_val * var_coef)
                     end
-                end 
-                for (constr_uid, var_coef) in get_constr_members_of_var(m, setup_var_uid)
-                    add_constr_members_of_var!(m, mc_uid, constr_uid, var_coef)
                 end
+                # setup var is in the sp_sol
+                #for (constr_uid, var_coef) in get_constr_members_of_var(m, setup_var_uid)
+               #     add_constr_members_of_var!(m, mc_uid, constr_uid, var_coef)
+               # end
                 
                 ### record Sp solution
-                add_var_members_of_partialsol!(master_form.memberships, mc_uid, sp_sol.var_members)
+                add_var_members_of_partialsol!(m, mc_uid, sp_sol.var_members)
 
                 
                 
@@ -124,8 +131,13 @@ function compute_pricing_dual_bound_contrib(sp_form::Formulation,
                                             sp_ub::Float64)
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
-
-    contrib =  sp_sol_value * sp_ub
+    if ( sp_sol_value <= 0) 
+        contrib =  sp_sol_value * sp_ub
+    else
+        contrib =  sp_sol_value * sp_lb
+    end
+    
+        
     @logmsg LogLevel(-2) string("princing prob has contribution = ", contrib)
     return contrib
 end
@@ -176,6 +188,7 @@ function gen_new_col(sp_form::Formulation,
         @logmsg LogLevel(-3) "pricing prob is infeasible"
         return flag_is_sp_infeasible
     end
+    
     insertion_status = insert_cols_in_master(sp_form, p_sols)
     
     return (insertion_status, dual_bound_contrib)
@@ -185,9 +198,9 @@ function gen_new_col(sp_form::Formulation,
 end
 
 function gen_new_columns(reformulation::Reformulation,
-    dual_sol::ConstrMembership,
-    sp_lbs::Dict{FormId, Float64},
-    sp_ubs::Dict{FormId, Float64})
+                         dual_sol::ConstrMembership,
+                         sp_lbs::Dict{FormId, Float64},
+                         sp_ubs::Dict{FormId, Float64})
     
     nb_new_col = 0
     dual_bound_contrib = 0.0
@@ -221,22 +234,37 @@ function solve_restricted_mast(master::Formulation)
 end
 
 
-#==
-function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
+function compute_mast_dual_bound_contrib(alg::SimplexLpColGenAlg,
+                                      restricted_master_sol_value::Float64)
+    # stabilization = alg.colgen_stabilization
+    # This is commented because function is_active does not exist
+    # if stabilization == nothing# || !is_active(stabilization)
+        return restricted_master_sol_value
+    # else
+    #     error("compute_mast_dual_bound_contrib" *
+    #           "is not yet implemented with stabilization")
+    # end
+end
+
+function update_lagrangian_dual_bound(alg::SimplexLpColGenAlg,
+                                      restricted_master_sol_value::Float64,
+                                      pricing_sp_dual_bound_contrib::Float64,
                                       update_dual_bound::Bool)
     mast_lagrangian_bnd = 0
-    mast_lagrangian_bnd = compute_mast_dual_bound_contrib(alg)
+    mast_lagrangian_bnd = compute_mast_dual_bound_contrib(alg, restricted_master_sol_value)
     @logmsg LogLevel(-2) string("dual bound contrib of master = ",
                                mast_lagrangian_bnd)
 
     # Subproblem contributions
-    for pricing_prob in alg.extended_problem.pricing_vect
-        mast_lagrangian_bnd += alg.pricing_contribs[pricing_prob]
-        @logmsg LogLevel(-2) string("dual bound contrib of SP[",
-                   pricing_prob.prob_ref, "] = ",
-                   alg.pricing_contribs[pricing_prob],
-                   ". mast_lagrangian_bnd = ", mast_lagrangian_bnd)
-    end
+   # for pricing_prob in alg.extended_problem.pricing_vect
+   #     mast_lagrangian_bnd += alg.pricing_contribs[pricing_prob]
+    #    @logmsg LogLevel(-2) string("dual bound contrib of SP[",
+   #                pricing_prob.prob_ref, "] = ",
+   #                alg.pricing_contribs[pricing_prob],
+   #                ". mast_lagrangian_bnd = ", mast_lagrangian_bnd)
+   # end
+
+    mast_lagrangian_bnd += pricing_sp_dual_bound_contrib
 
     @logmsg LogLevel(-2) string("UPDATED CURRENT DUAL BOUND. lp_primal_bound = ",
               alg.sols_and_bounds.alg_inc_lp_primal_bound,
@@ -245,25 +273,38 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
     #TODO: clarify this comment
     # by Guillaume : subgradient algorithm needs to know when the incumbent
     if update_dual_bound
-        update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
-        update_dual_ip_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
+        update_dual_lp_bound(alg.incumbents, mast_lagrangian_bnd)
+        update_dual_ip_bound(alg.incumbents, mast_lagrangian_bnd)
     end
     # if alg.colgen_stabilization != nothing
-    #     update_dual_lp_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
-    #     update_dual_ip_bound(alg.sols_and_bounds, mast_lagrangian_bnd)
+    #     update_dual_lp_bound(alg.incumbents, mast_lagrangian_bnd)
+    #     update_dual_ip_bound(alg.incumbents, mast_lagrangian_bnd)
     # end
 end
-==#
 
-function solve_mast_lp_ph2(reformulation::Reformulation)
+function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
+                           reformulation::Reformulation)
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
+    master_form = reformulation.master
+    sp_lbs::Dict{FormId, Float64},
+    sp_ubs::Dict{FormId, Float64}
+
+    for sp_form in reformulation.dw_pricing_subprs
+        lb_convexity_constr_uid = reformulation.dw_pricing_sp_lb[sp_form]
+        ub_convexity_constr_uid = reformulation.dw_pricing_sp_ub[sp_form]
+        sp_lbs[getuid(sp_form)] = master_form.constr_rhs[lb_convexity_constr_uid]
+        sp_ubs[getuid(sp_form)] = master_form.constr_rhs[ub_convexity_constr_uid]
+    end
+    
+
+    
     while true
         # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
         # GLPK.write_lp(glpk_prob, string("/Users/vitornesello/Desktop/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
-        status_rm, master_val, primal_sol, dual_sol = solve_restricted_mast(reformulation.master)
+        status_rm, master_val, primal_sol, dual_sol = solve_restricted_mast(master_form)
         #status_rm, mst_time, b, gc, allocs = @timed solve_restricted_mast(reformulation.master)
         # status_rm, mas_time = solve_restricted_mast(alg)
         # if alg.colgen_stabilization != nothing # Never evals to true
@@ -278,8 +319,8 @@ function solve_mast_lp_ph2(reformulation::Reformulation)
             #mark_infeasible(alg)
             return true
         end
-        ##update_alg_primal_lp_incumbents(alg, master_val)
-        ##update_alg_primal_ip_incumbents(alg, master_val, primal_sol)
+        update_primal_lp_incumbents(alg.incumbents, master_val, primal_sol.members)
+        # if integer update_primal_ip_incumbents(alg.incumbents, master_val, primal_sol.members)
         ##cleanup_restricted_mast_columns(alg, nb_cg_iterations)
         nb_cg_iterations += 1
 
@@ -288,14 +329,17 @@ function solve_mast_lp_ph2(reformulation::Reformulation)
         sp_time = 0.0
         while true
             @logmsg LogLevel(-2) "need to generate new master columns"
-            nb_new_col, dual_bound_contrib =  gen_new_columns(alg)
+            nb_new_col, sp_dual_bound_contrib =  gen_new_columns(reformulation,
+                                                                 dual_sol.members,
+                                                                 sp_lbs,
+                                                                 sp_ubs)
            # nb_new_col, sp_time, b, gc, allocs = @timed gen_new_columns(alg)
             # In case subproblem infeasibility results in master infeasibility
             if nb_new_col < 0
                 #mark_infeasible(alg)
                 return true
             end
-            ###TD update_lagrangian_dual_bound(dual_bound_contrib, true)
+            update_lagrangian_dual_bound(alg, master_val, sp_dual_bound_contrib, true)
             # if alg.colgen_stabilization == nothing
             #|| !update_after_pricing_problem_solution(alg.colgen_stabilization, nb_new_col)
             break
@@ -310,18 +354,18 @@ function solve_mast_lp_ph2(reformulation::Reformulation)
         @logmsg LogLevel(-2) string("colgen iter ", nb_cg_iterations,
                                    " : inserted ", nb_new_col, " columns")
 
-       ##TD lower_bound = alg.sols_and_bounds.alg_inc_ip_dual_bound
-        ##TDupper_bound = alg.sols_and_bounds.alg_inc_lp_primal_bound
-        # upper_bound = min(alg.sols_and_bounds.alg_inc_lp_primal_bound,
-        #                   alg.sols_and_bounds.alg_inc_ip_primal_bound)
+        lower_bound = alg.sols_and_bounds.alg_inc_ip_dual_bound
+        upper_bound = alg.sols_and_bounds.alg_inc_lp_primal_bound
+        upper_bound = min(alg.sols_and_bounds.alg_inc_lp_primal_bound,
+                          alg.sols_and_bounds.alg_inc_ip_primal_bound)
 
-        ##TDif nb_new_col == 0 || lower_bound + 0.00001 > upper_bound
-       ##TD     alg.is_master_converged = true
-       ##TD     return false
-       ##TD end
+       if nb_new_col == 0 || lower_bound + 0.00001 > upper_bound
+            alg.is_converged = true
+            return false
+        end
         if nb_cg_iterations > 100 ##TDalg.max_nb_cg_iterations
             @logmsg LogLevel(-2) "max_nb_cg_iterations limit reached"
-            ##TDmark_infeasible(alg)
+            alg.is_infeasible = true
             return true
         end
         @logmsg LogLevel(-2) "next colgen ph2 iteration"
