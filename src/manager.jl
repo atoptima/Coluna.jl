@@ -5,11 +5,11 @@ struct Manager{VC <: AbstractVarConstr,
 end
 
 Manager(::Type{Variable}) = Manager(
-    Dict{VarId,Pair{Variable,VarInfo}}()
+    Dict{Id{MoiVarIndex},Pair{Variable,VarInfo}}()
 )
 
 Manager(::Type{Constraint}) = Manager(
-    Dict{ConstrId,Pair{Constraint,ConstrInfo}}()
+    Dict{Id{MoiConstrIndex},Pair{Constraint,ConstrInfo}}()
 )
 
 idexists(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)

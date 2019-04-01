@@ -1,64 +1,23 @@
-struct VarMembership <: AbstractMembership
-    members::Dict{VarId, Float64}    #SparseVector{Float64, VarId}
+struct Membership <: AbstractMembership
+    members::Dict{Id, Float64}
+end
+Membership() = Membership(Dict{Id, Float64}())
+clone_membership(orig_memb::AbstractMembership) = Membership(copy(orig_memb.members))
+
+function add!(m::Membership, id::Id, val::Float64)
+    haskey(m.members, id) ? (m.members[id] += val) : (m.members[id] = val)
+    return
 end
 
-function VarMembership()
-    return VarMembership(Dict{VarId, Float64}())
+function set!(m::Membership, id::Id, val::Float64)
+    m.members[id] = val
+    return
 end
 
-function clone_membership(orig_memb::VarMembership)
-    membership = VarMembership()
-    for (id, val) in orig_memb
-        membership[id] = val
-    end
-    return membership
-end
+get_ids_vals(m::Membership) = (collect(keys(m.members)), collect(values(m.members)))
 
 struct ConstrMembership <: AbstractMembership
     members::Dict{ConstrId, Float64} #SparseVector{Float64, ConstrId}
-end
-
-function ConstrMembership()
-    return ConstrMembership(Dict{ConstrId, Float64}())
-end
-
-function add!(m::AbstractMembership, varconstr_id, val::Float64)
-    if haskey(m.members, varconstr_id)
-        # if (reset)
-        #    m.members[varconstr_id] = val
-        # else            
-        m.members[varconstr_id] += val
-    else
-        m.members[varconstr_id] = val
-    end
-    return
-end
-
-function set!(m::AbstractMembership, varconstr_id, val::Float64)
-    m.members[varconstr_id] = val
-    return
-end
-
-function get_ids_vals(m::VarMembership)
-    #return findnz(m)
-    uids = Vector{VarId}()
-    vals = Vector{Float64}()
-    for (uid,val) in m.members
-        push!(uids, uid)
-        push!(vals, val)
-    end
-    return uids, vals
-end
-
-function get_ids_vals(m::ConstrMembership)
-    #return findnz(m)
-    uids = Vector{ConstrId}()
-    vals = Vector{Float64}()
-    for (uid,val) in m.members
-        push!(uids, uid)
-        push!(vals, val)
-    end
-    return uids, vals
 end
 
 struct Memberships
