@@ -1,8 +1,9 @@
-struct Membership <: AbstractMembership
+struct Membership{VC <: AbstractVarConstr} <: AbstractMembership
     members::Dict{Id, Float64}
 end
-Membership() = Membership(Dict{Id, Float64}())
-clone_membership(orig_memb::AbstractMembership) = Membership(copy(orig_memb.members))
+Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{idtype(T), Float64}())
+getmembers(m::Membership) = m.members
+clone_membership(orig_memb::Membership{T}) where {T <: AbstractVarConstr} = Membership{T}(copy(orig_memb.members))
 
 function add!(m::Membership, id::Id, val::Float64)
     haskey(m.members, id) ? (m.members[id] += val) : (m.members[id] = val)
@@ -15,10 +16,6 @@ function set!(m::Membership, id::Id, val::Float64)
 end
 
 get_ids_vals(m::Membership) = (collect(keys(m.members)), collect(values(m.members)))
-
-struct ConstrMembership <: AbstractMembership
-    members::Dict{ConstrId, Float64} #SparseVector{Float64, ConstrId}
-end
 
 struct Memberships
     var_to_constr_members::Dict{VarId, ConstrMembership}
