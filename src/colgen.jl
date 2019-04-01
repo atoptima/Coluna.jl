@@ -4,9 +4,7 @@ mutable struct SimplexLpColGenAlg <: AbstractAlg
     is_infeasible::Bool
 end
 
-function SimplexLpColGenAlg()
-    return SimplexLpColGenAlg(SolsAndBounds(), false, false)
-end
+SimplexLpColGenAlg() = SimplexLpColGenAlg(SolsAndBounds(), false, false)
 
 function optimize!(alg::SimplexLpColGenAlg, r::Reformulation)
     println("\e[1;31m draft of the col gen algorithm here \e[00m")
@@ -24,7 +22,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMembership
 
     master_form = sp_form.parent_formulation
 
-    var_uids = get_var_uids(sp_form, PricingSpVar)
+    vars = get_subset(sp_form.vars, PricingSpVar)
 
     ### compute red costs
     for (constr_uid, dual_val) in dual_sol
