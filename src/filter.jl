@@ -1,6 +1,5 @@
 # Define default filter functions
-_active_vars(vc) = vc.status == Active
-_active_constrs(vc) = vc.status == Active
+_active_(vc_uid) = flags[vc_uid] == Active
 
 struct Filter{T}
     mask::SparseVector{Bool,Int}

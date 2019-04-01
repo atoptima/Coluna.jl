@@ -71,9 +71,10 @@ end
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
-getuids(f::Formulation, d::Type{<:AbstractDuty}) = getuids(f.vars, d)
-getuids(fo::Formulation, fu::Function) = getuids(fo.vars, fu)
-getuids(fo::Formulation, fi::Filter) = getuids(fo.vars, fi)
+get_var_uids(f::Formulation, d::Type{<:AbstractVarDuty}) = getuids(f.vars, d)
+get_constr_uids(f::Formulation, d::Type{<:AbstractConstrDuty}) = getuids(f.constrs, d)
+get_var_uids(fo::Formulation, fu::Function) = getuids(fo.vars, fu)
+get_var_uids(fo::Formulation, fi::Filter) = getuids(fo.vars, fi)
 
 activevar(f::Formulation) = f.vars.members[activemask(f.vars.status)]
 staticvar(f::Formulation) = f.vars.members[staticmask(f.vars.status)]

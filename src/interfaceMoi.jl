@@ -8,7 +8,7 @@ function set_optimizer_obj(form::Formulation,
 end
 
 function initialize_formulation_optimizer(form::Formulation)
-    optimizer = MOIU.MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
+    optimizer = MOI.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
                                            optimizer)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
     MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),f)
@@ -35,7 +35,7 @@ function enforce_initial_bounds_in_optimizer(form::Formulation,
         MOI.Interval(lb, ub))
 end
 
-function enforce_type_in_optimizer(form::Formulation,
+function enforce_var_kind_in_optimizer(form::Formulation,
                                    var_uid::VarId,
                                    kind::Char)
     if kind == 'B'
@@ -58,7 +58,7 @@ function add_variable_in_optimizer(form::Formulation,
     map_index_to_var_uid[index] = var_uid
     map_var_uid_to_index[var_uid] = index
     update_cost_in_optimizer(form.moi_optimizer, var_uid, cost)
-    !is_relaxed && enforce_type_in_optimizer(form.moi_optimizer, var_uid)
+    !is_relaxed && enforce_var_kind_in_optimizer(form.moi_optimizer, var_uid)
     if (kind != 'B' || is_relaxed)
         enforce_initial_bounds_in_optimizer(form.moi_optimizer, var_uid, lb, ub)
     end
@@ -71,13 +71,13 @@ function fill_primal_sol(form::Formulation,
         val = MOI.get(form.moi_optimizer, MOI.VariablePrimal(),
                       form.map_var_uid_to_index[var_uid])
         @logmsg LogLevel(-4) string("Var ", getname(form.vars[var_uid]), " = ", val)
-        if val > 0.0
+        if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             add!(membership, var_uid, val)
         end
     end
 end
 
-function fill_primal_sol(form::Formulation,
+function fill_dual_sol(form::Formulation,
                          membership::ConstrMembership,
                          constr_list::Vector{ConstrId})
     for constr_uid in constr_list
@@ -96,7 +96,7 @@ function fill_primal_sol(form::Formulation,
         # @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
         #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
         #                                     constr.moi_index))
-        if val > 0.00001  || val < - 0.00001 # todo use a tolerance
+        if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             add!(membership, constr_uid, val)
         end
     end
@@ -106,7 +106,7 @@ function retrieve_primal_sol(form::Formulation)
     new_sol = VarMembership()
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     #error("Following line does not work.")
-    fill_primal_sol(form, new_sol, getuids(form, _active_vars))
+    fill_primal_sol(form, new_sol, get_var_uids(form, _active_))
     primal_sol = PrimalSolution(new_obj_val, new_sol)
     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
     return primal_sol
@@ -119,7 +119,7 @@ function retrieve_dual_sol(form::Formulation)
     end
     new_sol = ConstrMembership()
     problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
-    fill_dual_sol(dorm, new_sol, getuids(form, _active_constrs))
+    fill_dual_sol(form, new_sol, get_constr_uids(form, _active_))
     dual_sol = DualSolution(-Inf, new_sol)
     return dual_sol
 end
