@@ -1,3 +1,10 @@
+struct ConstrId
+    uid::Int # coluna ref
+    index::MoiConstrIndex # moi ref
+end
+
+ConstrId() = ConstrId(-1, MoiConstrIndex(-1))
+
 mutable struct Constraint{Duty <: AbstractConstrDuty} <: AbstractVarConstr
     constr_uid::ConstrId
     form_uid::FormId

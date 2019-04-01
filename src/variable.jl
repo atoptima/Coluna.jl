@@ -1,5 +1,14 @@
+struct VarId
+    uid::Int # coluna ref
+    index::MoiVarIndex # moi ref
+end
+
+VarId() = VarId(-1, MoiVarIndex(-1))
+
+    
+
 mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
-    var_uid::VarId
+    var_id::VarId
     form_uid::FormId
     name::String
     cost::Float64 
@@ -8,6 +17,13 @@ mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
     kind::VarKind
     flag::Flag     # Static, Dynamic, Artifical, Implicit
     sense::VarSense 
+end
+
+mutable struct VarInfo
+    bd_constr::MoiVarBound
+    moi_kind::MoiVarKind
+    flag::Flag     # Static, Dynamic, Artifical, Implicit
+    status::Status   # Active or not
 end
 
 function Variable(Duty::Type{<: AbstractVarDuty}, m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 

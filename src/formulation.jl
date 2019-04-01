@@ -7,10 +7,10 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     constrs::Manager{Constraint} #SparseVector{Constraint,ConstrId} 
     memberships::Memberships
     obj_sense::ObjSense
-    map_var_uid_to_index::Dict{VarId, MoiVarIndex}
-    map_constr_uid_to_index::Dict{ConstrId, MoiConstrIndex}
-    map_index_to_var_uid::Dict{MoiVarIndex, VarId}
-    map_index_to_constr_uivd::Dict{MoiConstrIndex, ConstrId}
+    # map_var_uid_to_index::Dict{VarId, MoiVarIndex}
+    # map_constr_uid_to_index::Dict{ConstrId, MoiConstrIndex}
+    # map_index_to_var_uid::Dict{MoiVarIndex, VarId}
+    # map_index_to_constr_uivd::Dict{MoiConstrIndex, ConstrId}
     var_bounds::Dict{VarId, MoiVarBound}
     var_kinds::Dict{VarId, MoiVarKind}
     constr_rhs::Dict{ConstrId, Float64}

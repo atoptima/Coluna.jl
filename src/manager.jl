@@ -1,14 +1,10 @@
 struct Manager{T <: AbstractVarConstr} <: AbstractManager
     members::SparseVector{T,Int} # key is uid, field is VarConstr
-    status::SparseVector{T,Int} # key is uid, field is VarConstr
-    flags::SparseVector{T,Int} # key is uid, field is VarConstr
     per_duty::Dict{Type{<: AbstractDuty}, Vector{Int}}
     filters::Dict{Function,Filter}
 end
 
 Manager(T::Type{<:AbstractVarConstr}) = Manager{T}(
-    spzeros(MAX_SV_ENTRIES),
-    spzeros(MAX_SV_ENTRIES),
     spzeros(MAX_SV_ENTRIES),
     spzeros(MAX_SV_ENTRIES),
     spzeros(MAX_SV_ENTRIES),
