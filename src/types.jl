@@ -85,6 +85,6 @@ const FormId = Int
 
 const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
 const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
-const MoiConstrIndex = MOI.ConstraintIndex # Union{MOI.ConstraintIndex, Nothing}
-const MoiVarIndex = MOI.VariableIndex # Union{MOI.VariableIndex, Nothing}
+const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}
+const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
 const MoiVarConstrIndex = Union{MoiVarIndex, MoiConstrIndex}

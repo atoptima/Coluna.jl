@@ -68,8 +68,8 @@ end
 
 
 getuid(f::Formulation) = f.uid
-getvar(f::Formulation, uid::VarId) = getvc(f.vars, uid)
-getconstr(f::Formulation, uid::ConstrId) = getvc(f.constrs, uid)
+getvar(f::Formulation, uid::Id) = getvc(f.vars, uid)
+getconstr(f::Formulation, uid::Id) = getvc(f.constrs, uid)
 #get_var_ids(f::Formulation) = get_nz_ids(f.vars)
 #get_var_ids(f::Formulation, d::Type{<:AbstractVarDuty}) = get_ids(f.vars, d)
 #get_var_ids(fo::Formulation, fu::Function) = get_ids(fo.vars, fu)
@@ -95,7 +95,7 @@ function clone_in_formulation!(varconstr::AbstractVarConstr,
     return varconstr_copy
 end
 
-function clone_in_formulation!(var_uids::Vector{VarId},
+function clone_in_formulation!(var_uids::Vector{Id},
                                src_form::Formulation,
                                dest_form::Formulation,
                                flag::Flag,
@@ -109,7 +109,7 @@ function clone_in_formulation!(var_uids::Vector{VarId},
     return 
 end
 
-function clone_in_formulation!(constr_uids::Vector{ConstrId},
+function clone_in_formulation!(constr_uids::Vector{Id},
                                src_form::Formulation,
                                dest_form::Formulation,
                                flag::Flag,

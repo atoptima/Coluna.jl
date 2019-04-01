@@ -1,5 +1,5 @@
 function set_optimizer_obj(form::Formulation,
-                           new_obj::Dict{VarId, Float64}) 
+                           new_obj::Dict{Id, Float64}) 
 
     vec = [MOI.ScalarAffineTerm(cost, form.map_var_uid_to_index[var_uid]) for (var_uid, cost) in new_obj]
     objf = MOI.ScalarAffineFunction(vec, 0.0)
@@ -17,7 +17,7 @@ function initialize_formulation_optimizer(form::Formulation)
 end
 
 function update_cost_in_optimizer(form::Formulation,
-                                  var_uid::VarId,
+                                  var_uid::Id,
                                   cost::Float64)
     MOI.modify(form.moi_optimizer,
                MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
@@ -25,7 +25,7 @@ function update_cost_in_optimizer(form::Formulation,
 end
 
 function enforce_initial_bounds_in_optimizer(form::Formulation,
-                                             var_uid::VarId,
+                                             var_uid::Id,
                                              lb::Float64,
                                              ub::Float64)
     # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
@@ -36,7 +36,7 @@ function enforce_initial_bounds_in_optimizer(form::Formulation,
 end
 
 function enforce_var_kind_in_optimizer(form::Formulation,
-                                   var_uid::VarId,
+                                   var_uid::Id,
                                    kind::Char)
     if kind == 'B'
          var_kinds[var_uid]  = MOI.add_constraint(
@@ -48,7 +48,7 @@ function enforce_var_kind_in_optimizer(form::Formulation,
 end
 
 function add_variable_in_optimizer(form::Formulation,
-                                   var_uid::VarId,
+                                   var_uid::Id,
                                    cost::Float64,
                                    lb::Float64,
                                    ub::Float64,
@@ -66,7 +66,7 @@ end
 
 function fill_primal_sol(form::Formulation,
                          membership::Membership{Variable},
-                         var_list::Vector{VarId})
+                         var_list::Vector{Id})
     for var_uid in var_list
         val = MOI.get(form.moi_optimizer, MOI.VariablePrimal(),
                       form.map_var_uid_to_index[var_uid])
@@ -79,7 +79,7 @@ end
 
 function fill_dual_sol(form::Formulation,
                          membership::Membership{Constraint},
-                         constr_list::Vector{ConstrId})
+                         constr_list::Vector{Id})
     for constr_uid in constr_list
         val = 0.0
         try # This try is needed because of the erroneous assertion in LQOI

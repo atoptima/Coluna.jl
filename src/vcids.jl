@@ -1,12 +1,9 @@
-struct Id{MoiIndex <: MoiVarConstrIndex} <: AbstractVarConstrId
+struct Id{MoiIndex} <: AbstractVarConstrId # <: MoiVarConstrIndex} <: AbstractVarConstrId
     uid::Int # coluna ref
     index::MoiIndex # moi ref
 end
 
-idtype(::Type{Variable}) = Id{MoiVarIndex}
-idtype(::Type{Constraint}) = Id{MoiConstrIndex}
-
-Id(T::Type{Variable}) = Id(-1, idtype(T)(-1))
+Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{indextype{T}}(i, nothing)
 
 Base.hash(a::Id, h::UInt) = hash(a.uid, h)
 Base.isequal(a::Id, b::Id) = Base.isequal(hash(a), hash(b))

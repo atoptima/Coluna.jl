@@ -56,11 +56,11 @@ function Memberships()
                        Dict{Id, Membership{Variable}}())
 end
 
-#function add_var!(m::Membership(Variable), var_id::VarId, val::Float64)
+#function add_var!(m::Membership(Variable), var_id::Id, val::Float64)
 #    m[var_id] = val
 #end
 
-#function add_constr!(m::Membership{Constraint}, constr_id::VarId, val::Float64)
+#function add_constr!(m::Membership{Constraint}, constr_id::Id, val::Float64)
 #    m[constr_id] = val
 #end
 

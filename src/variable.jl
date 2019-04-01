@@ -1,5 +1,5 @@
 mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
-    var_id::Int
+    var_id::Id
     form_uid::FormId
     name::String
     cost::Float64 
@@ -23,7 +23,8 @@ end
 function Variable(Duty::Type{<: AbstractVarDuty}, m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 
                   ub::Float64, t::VarKind, flag::Flag, s::VarSense)
     uid = getnewuid(m.var_counter)
-    return Variable{Duty}(uid, form_uid, n, c, lb, ub, t, flag, s)
+    vuid = Id(Variable, uid)
+    return Variable{Duty}(vuid, form_uid, n, c, lb, ub, t, flag, s)
 end
 
 function Variable(m::AbstractModel, n::String)
@@ -35,7 +36,10 @@ function copy(var::Variable, flag::Flag, Duty::Type{<: AbstractVarDuty})
         getlb(var), getub(var), getkind(var), flag, getsense(var))
 end
 
-getuid(v::Variable) = v.var_uid
+indextype(::Type{Variable}) = MoiVarIndex
+
+getuid(v::Variable) = getuid(v.var_id)
+getid(v::Variable) = v.var_id
 getform(v::Variable) = v.form_uid
 getname(v::Variable) = v.name
 getcost(v::Variable) = v.cost

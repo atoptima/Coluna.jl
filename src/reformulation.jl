@@ -3,8 +3,8 @@ mutable struct Reformulation <: AbstractFormulation
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
-    dw_pricing_sp_lb::Union{Nothing, Dict{FormId, ConstrId}}
-    dw_pricing_sp_ub::Union{Nothing, Dict{FormId, ConstrId}}
+    dw_pricing_sp_lb::Union{Nothing, Dict{FormId, Id}}
+    dw_pricing_sp_ub::Union{Nothing, Dict{FormId, Id}}
     timer_output::TimerOutputs.TimerOutput
 end
 

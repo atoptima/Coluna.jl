@@ -20,12 +20,12 @@ function build_dw_master!(model::Model,
                           annotation_id::Int,
                           reformulation::Reformulation,
                           master_form::Formulation,
-                          vars_in_form::Vector{VarId},
-                          constrs_in_form::Vector{ConstrId})
+                          vars_in_form::Vector{Id},
+                          constrs_in_form::Vector{Id})
 
     orig_form = get_original_formulation(model)
-    reformulation.dw_pricing_sp_lb = Dict{FormId, ConstrId}()
-    reformulation.dw_pricing_sp_ub = Dict{FormId, ConstrId}()
+    reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
+    reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
     
     # create convexity constraints
     @assert !isempty(reformulation.dw_pricing_subprs)
@@ -112,8 +112,8 @@ end
 function build_dw_pricing_sp!(m::Model,
                               annotation_id::Int,
                               sp_form::Formulation,
-                              vars_in_form::Vector{VarId},
-                              constrs_in_form::Vector{ConstrId})
+                              vars_in_form::Vector{Id},
+                              constrs_in_form::Vector{Id})
     
     orig_form = get_original_formulation(m)
 
@@ -204,8 +204,8 @@ function reformulate!(m::Model, method::SolutionMethod)
 
     # Build Master
     @assert master_annotation_id != -1
-    vars = Vector{VarId}()
-    constrs = Vector{ConstrId}()
+    vars = Vector{Id}()
+    constrs = Vector{Id}()
     if haskey(vars_in_forms, master_annotation_id)
         vars =  vars_in_forms[master_annotation_id]
     end
@@ -217,8 +217,8 @@ function reformulate!(m::Model, method::SolutionMethod)
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
         if  annotation.problem == BD.Pricing
-            vars_in = Vector{VarId}()
-            constrs_in = Vector{ConstrId}()
+            vars_in = Vector{Id}()
+            constrs_in = Vector{Id}()
             if haskey(vars_in_forms, annotation.unique_id)
                 vars_in =  vars_in_forms[annotation.unique_id]
             end

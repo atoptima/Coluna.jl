@@ -6,8 +6,8 @@ mutable struct Model <: AbstractModel
     var_counter::VarCounter
     constr_counter::ConstrCounter
     form_counter::FormCounter
-    var_annotations:: Dict{VarId, BD.Annotation}
-    constr_annotations:: Dict{ConstrId, BD.Annotation}
+    var_annotations:: Dict{Id, BD.Annotation}
+    constr_annotations:: Dict{Id, BD.Annotation}
     timer_output::TimerOutputs.TimerOutput
     params::Params
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
@@ -16,8 +16,8 @@ mutable struct Model <: AbstractModel
 end
 
 Model(params::Params, master_factory, pricing_factory) = Model("model", MOIU.IndexMap(), nothing, nothing, 
-    VarCounter(), ConstrCounter(), FormCounter(), Dict{VarId, BD.Annotation}(), 
-    Dict{ConstrId, BD.Annotation}(), TimerOutputs.TimerOutput(), params, master_factory, pricing_factory)
+    VarCounter(), ConstrCounter(), FormCounter(), Dict{Id, BD.Annotation}(), 
+    Dict{Id, BD.Annotation}(), TimerOutputs.TimerOutput(), params, master_factory, pricing_factory)
 
 function set_original_formulation!(m::Model, of::Formulation)
     m.original_formulation = of

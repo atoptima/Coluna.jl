@@ -1,5 +1,5 @@
 mutable struct Constraint{Duty <: AbstractConstrDuty} <: AbstractVarConstr
-    constr_uid::Int
+    constr_id::Id
     form_uid::FormId
     name::String
     rhs::Float64 
@@ -24,7 +24,8 @@ function Constraint(Duty::Type{<: AbstractConstrDuty},
                     kind::ConstrKind,
                     flag::Flag)
     uid = getnewuid(m.constr_counter)
-    return Constraint{Duty}(uid, form_uid,  name, rhs, sense, kind, flag)
+    cuid = Id(Constraint, uid)
+    return Constraint{Duty}(cuid, form_uid,  name, rhs, sense, kind, flag)
 end
 
 function Constraint(m::AbstractModel, name::String)
@@ -36,7 +37,10 @@ function copy(constr::Constraint, flag::Flag, Duty::Type{<: AbstractConstrDuty})
         getrhs(constr), getsense(constr), getkind(constr), flag)
 end
 
-getuid(c::Constraint) = c.constr_uid
+indextype(::Type{Constraint}) = MoiConstrIndex
+
+getuid(c::Constraint) = getuid(c.constr_id)
+getid(c::Constraint) = c.constr_id
 getform(c::Constraint) = c.form_uid
 getrhs(c::Constraint) = c.rhs
 getname(c::Constraint) = c.name

@@ -15,7 +15,7 @@ end
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::Membership{Constraint})
     
-    new_obj = Dict{VarId, Float64}()
+    new_obj = Dict{Id, Float64}()
 
     active = true
     static = true
