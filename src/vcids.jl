@@ -10,4 +10,4 @@ getuid(id::AbstractVarConstrId) = id.uid
 getindex(id::AbstractVarConstrId) = id.index
 
 VcId(::Type{Variable}) = VcId(-1, MoiVarIndex(-1))
-VcId(::Type{Constraint}) = VcId(-1, MoiVarIndex(-1))
+VcId(::Type{Constraint}) = VcId(-1, MoiConstrIndex(-1))
