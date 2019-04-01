@@ -27,7 +27,7 @@ function Reformulation(model::AbstractModel, method::SolutionMethod)
                          model.timer_output)
 end
 
-function optimize!(reformulation::Reformulation, params::Params)
+function optimize!(reformulation::Reformulation)
     println("\e[1;32m Here starts optimization \e[00m")
     println("\e[1;35m it runs only FV draft algorithm \e[00m")
     

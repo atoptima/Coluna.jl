@@ -115,9 +115,9 @@ end
 function optimize!(m::Model)
     coluna_initialization(m)
     global __initial_solve_time = time()
-    @show m.params
+    @show _params_
     @timeit m.timer_output "Solve model" begin
-        status = optimize!(m.re_formulation, m.params)
+        status = optimize!(m.re_formulation)
     end
     println(m.timer_output)
 end

@@ -11,7 +11,11 @@ Manager(T::Type{<:AbstractVarConstr}) = Manager{T}(
 
 getvc(m::Manager, uid::Int) = m.members[uid]
 getuids(m::Manager, d::Type{<:AbstractDuty}) = m.per_duty[d]
-getuids(m::Manager, f::Function) = get_nz_ids(m.filters[f])
+function getuids(m::Manager, f::Function)
+    haskey(m.filters, f) && return get_nz_ids(m.filters[f])
+    fi = m.filters[f] = Filter(f, m.members)
+    return get_nz_ids(fi)
+end
 getuids(m::Manager, d::Type{<:AbstractDuty}, f::Function) = findnz(apply_mask(
     m.filters[f], m.per_duty[d]
 ))

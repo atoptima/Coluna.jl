@@ -71,6 +71,10 @@ end
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
+getuids(f::Formulation, d::Type{<:AbstractDuty}) = getuids(f.vars, d)
+getuids(fo::Formulation, fu::Function) = getuids(fo.vars, fu)
+getuids(fo::Formulation, fi::Filter) = getuids(fo.vars, fi)
+
 activevar(f::Formulation) = f.vars.members[activemask(f.vars.status)]
 staticvar(f::Formulation) = f.vars.members[staticmask(f.vars.status)]
 dynamicvar(f::Formulation) = f.vars.members[dynamicmask(f.vars.status)]
@@ -214,6 +218,39 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
+function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form = true)
+    
+    call_moi_optimize_with_silence(form.moi_optimizer)
+    status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
+    primal_sols = PrimalSolution[]
+    @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
+    if MOI.get(optimizer, MOI.ResultCount()) >= 1
+        primal_sol = retrieve_primal_sol(form)
+        push!(primal_sols, primal_sol)
+        dual_sol = retrieve_dual_sol(form)
+        if update_form
+            form.primal_solution_record = primal_sol
+            if dual_sol != nothing
+                dual_solution_record = dual_sol
+            end
+        end
+
+        return (status, primal_sol.value, primal_sols, dual_sol)
+    end
+    @logmsg LogLevel(-4) string("Solver has no result to show.")
+    return (status, +inf, nothing, nothing)
+end
+
+function compute_original_cost(sol::PrimalSolution, form::Formulation)
+    cost = 0.0
+    for (var_uid, val) in sol.members
+        var = getvar(form,var_uid)
+        cost += var.cost * val
+    end
+    @logmsg LogLevel(-4) string("intrinsic_cost = ",cost)
+    return cost
+end
+
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
     for uid in get_var_uids(f)
@@ -286,14 +323,4 @@ function Base.show(io::IO, f::Formulation)
     _show_constraints(io, f)
     _show_variables(io, f)
     return
-end
-
-function compute_original_cost(sol::PrimalSolution, form::Formulation)
-    cost = 0.0
-    for (var_uid, val) in sol.members
-        var = getvar(form,var_uid)
-        cost += var.cost * val
-    end
-    @logmsg LogLevel(-4) string("intrinsic_cost = ",cost)
-    return cost
 end
