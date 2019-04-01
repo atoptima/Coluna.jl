@@ -292,10 +292,11 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
     sp_ubs = Dict{FormId, Float64}()
 
     for sp_form in reformulation.dw_pricing_subprs
-        lb_convexity_constr_uid = reformulation.dw_pricing_sp_lb[sp_form]
-        ub_convexity_constr_uid = reformulation.dw_pricing_sp_ub[sp_form]
-        sp_lbs[getuid(sp_form)] = master_form.constr_rhs[lb_convexity_constr_uid]
-        sp_ubs[getuid(sp_form)] = master_form.constr_rhs[ub_convexity_constr_uid]
+        sp_uid = getuid(sp_form)
+        lb_convexity_constr_uid = reformulation.dw_pricing_sp_lb[sp_uid]
+        ub_convexity_constr_uid = reformulation.dw_pricing_sp_ub[sp_uid]
+        sp_lbs[sp_uid] = master_form.constr_rhs[lb_convexity_constr_uid]
+        sp_ubs[sp_uid] = master_form.constr_rhs[ub_convexity_constr_uid]
     end
     
 
