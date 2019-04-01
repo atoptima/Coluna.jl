@@ -3,8 +3,8 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::Manager{Variable, VarInfo} 
-    constrs::Manager{Constraint, ConstrInfo} 
+    vars::Manager{Variable, VcId{MoiVarIndex}, VarInfo}
+    constrs::Manager{Constraint, VcId{MoiConstrIndex}, ConstrInfo}
     memberships::Memberships
     obj_sense::ObjSense
     callback
@@ -23,8 +23,8 @@ function Formulation(Duty::Type{<: AbstractFormDuty},
                              parent_formulation,
                              #moi_model,
                              moi_optimizer, 
-                             Manager{Variable, VarInfo}(),
-                             Manager{Constraint, ConstrInfo}(),
+                             Manager(Variable),
+                             Manager(Constraint),
                              Memberships(),
                              Min,
                              nothing,
