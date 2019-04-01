@@ -99,10 +99,11 @@ function retrieve_dual_sol(form::Formulation)
 
     new_sol = ConstrMembership()
 
-    #==
-# problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
-    constr_list = activevar(form)problem.constr_manager.active_static_list
-    constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
+    
+    problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
+    #constr_list = activevar(form)problem.constr_manager.active_static_list
+    #constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
+    
     for constr_idx in 1:length(constr_list)
         constr = constr_list[constr_idx]
         constr.val = 0.0
@@ -120,11 +121,11 @@ function retrieve_dual_sol(form::Formulation)
         @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
                                     MOI.get(optimizer, MOI.ConstraintPrimal(),
                                             constr.moi_index))
-        if constr.val != 0 # TODO use a tolerance
+        if constr.val > 0.00001  || constr.val < - 0.00001 # todo use a tolerance
             new_sol[constr] = constr.val
         end
     end
-==#
+
     dual_sol = DualSolution(-Inf, new_sol)
     return dual_sol
 end

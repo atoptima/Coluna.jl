@@ -13,6 +13,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     map_index_to_constr_uivd::Dict{MoiConstrIndex, ConstrId}
     var_bounds::Dict{VarId, MoiVarBound}
     var_kinds::Dict{VarId, MoiVarKind}
+    constr_rhs::Dict{ConstrId, Float64}
     callback
     primal_inc_bound::Float64
     dual_inc_bound::Float64
@@ -39,6 +40,7 @@ function Formulation(Duty::Type{<: AbstractFormDuty},
                              Dict{MoiConstrIndex, ConstrId}(),
                              Dict{VarId, MoiVarBound}(),
                              Dict{VarId, MoiVarKind}(),
+                             Dict{ConstrId, Float64}(),
                              nothing,
                              Inf,
                              -Inf,
@@ -96,8 +98,8 @@ dynamicconstr(f::Formulation) = f.constrs.members[dynamicmask(f.constrs.status)]
 getuid(f::Formulation) = f.uid
 getvar(f::Formulation, uid::VarId) = getvc(f.vars, uid)
 getconstr(f::Formulation, uid::ConstrId) = getvc(f.constrs, uid)
-getvariableuids(f::Formulation) = get_nz_ids(f.vars)
-getconstraintuids(f::Formulation) = get_nz_ids(f.constrs)
+get_var_uids(f::Formulation) = get_nz_ids(f.vars)
+get_constr_uids(f::Formulation) = get_nz_ids(f.constrs)
 getobjsense(f::Formulation) = f.obj_sense
         
 get_constr_members_of_var(f::Formulation, uid) = get_constr_members_of_var(f.memberships, uid)
@@ -191,12 +193,14 @@ end
 
 function add!(f::Formulation, constr::Constraint)
     add!(f.constrs, constr)
+    f.constr_rhs[getuid(constr)] = constr.rhs
     add_constraint!(f.memberships, getuid(constr))
     return
 end
 
 function add!(f::Formulation, constr::Constraint, membership::VarMembership)
     add!(f.constrs, constr)
+    f.constr_rhs[getuid(constr)] = constr.rhs
     add_constraint!(f.memberships, getuid(constr), membership)
     return
 end
@@ -212,7 +216,7 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for uid in getvariableuids(f)
+    for uid in get_var_uids(f)
         var = getvar(f, uid)
         name = getname(var)
         cost = getcost(var)
@@ -253,7 +257,7 @@ function _show_constraint(io::IO, f::Formulation, uid)
 end
 
 function _show_constraints(io::IO , f::Formulation)
-    for uid in getconstraintuids(f)
+    for uid in get_constr_uids(f)
         _show_constraint(io, f, uid)
     end
     return
@@ -271,7 +275,7 @@ function _show_variable(io::IO, f::Formulation, uid)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for uid in getvariableuids(f)
+    for uid in get_var_uids(f)
         _show_variable(io, f, uid)
     end
 end

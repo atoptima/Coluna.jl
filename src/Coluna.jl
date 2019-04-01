@@ -52,7 +52,6 @@ include("reformulation.jl")
 #include("constraintduties.jl")
 #include("variableduties.jl")
 
-#include("solution.jl")
 #include("mastersm.column.jl")
 #include("problem.jl")
 
@@ -73,7 +72,7 @@ include("bbtree.jl")
 
 ##### Algorithms draft
 include("solandbounds.jl")
-include("algorithms/colgen.jl")
+include("colgen.jl")
 
 ##### Wrapper functions
 include("MOIWrapper.jl")
