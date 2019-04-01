@@ -17,3 +17,7 @@ Base.@kwdef mutable struct Params
     node_eval_mode::NODEEVALMODE = SimplexCg
     art_vars_mode::ARTVARSMOE = Global
 end
+
+update_field!(f_v::Tuple{Symbol,Any}) = setfield!(_params_, f_v[1], f_v[2])
+_set_global_params(p::Params) = map(update_field!, [(f, getfield(p, f)) for f in fieldnames(Params)])
+

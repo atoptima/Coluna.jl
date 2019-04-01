@@ -99,6 +99,7 @@ function coluna_initialization(model::Model)
     #params = model.params
     #extended_problem = model.extended_problem
 
+    _set_global_params(model.params)
     reformulate!(model, DantzigWolfeDecomposition)
 
     #set_prob_ref_to_problem_dict(extended_problem)
