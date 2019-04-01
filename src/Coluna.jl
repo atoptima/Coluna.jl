@@ -26,6 +26,10 @@ import Base.isempty
 import Base.hash
 import Base.isequal
 import Base.filter
+import Base.length
+import Base.iterate
+import Base.getindex
+import Base.lastindex
 
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,

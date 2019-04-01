@@ -1,15 +1,10 @@
 struct Membership{VC <: AbstractVarConstr} <: AbstractMembership
     members::Dict{Id, Float64}
 end
-Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{idtype(T), Float64}())
+Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{indextype(T), Float64}())
 getmembers(m::Membership) = m.members
 # TODO change the name ? (copy?)
 clone_membership(orig_memb::Membership{T}) where {T <: AbstractVarConstr} = Membership{T}(copy(orig_memb.members))
-
-import Base.length
-import Base.iterate
-import Base.getindex
-import Base.lastindex
 
 iterate(m::Membership) = iterate(m.members)
 iterate(m::Membership, state) = iterate(m.members, state)
@@ -230,7 +225,7 @@ function add_constraint!(m::Memberships, constr_id::Id)
 end
 
 function add_constraint!(m::Memberships, constr_id::Id, 
-        membership::Membership{Variable}) 
+        membership::Membership{Variable})
     add_var_members_of_constr!(m, constr_id, membership)
     return
 end
