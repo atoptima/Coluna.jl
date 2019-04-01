@@ -79,7 +79,6 @@ function check_if_exists(dict::Dict{Int, AbstractMembership}, membership::Abstra
     return 0
 end
 
-
 function Memberships()
     var_m = Dict{VarId, ConstrMembership}()
     constr_m = Dict{ConstrId, ConstrMembership}()
@@ -216,7 +215,6 @@ function add_var_members_of_partialsol!(m::Memberships, mc_uid::VarId, new_membe
     end
 end
 
-
 function reset_constr_members_of_var!(m::Memberships, var_uid::VarId, new_membership::ConstrMembership) 
     m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(MAX_SV_ENTRIES)
     constr_uids, vals = get_ids_vals(new_membership)
@@ -257,28 +255,30 @@ function set_var_members_of_constr!(m::Memberships, constr_uid::ConstrId, new_me
     end
 end
 
-
 function add_variable!(m::Memberships, var_uid::VarId)
-    @show m.var_to_constr_members
-    haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
-    m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(Float64, MAX_SV_ENTRIES)
+    #haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
+    if !haskey(m.var_to_constr_members, var_uid)
+        m.var_to_constr_members[var_uid] = ConstrMembership() #spzeros(Float64, MAX_SV_ENTRIES)
+    end
     return
 end
 
 function add_variable!(m::Memberships, var_uid::VarId, membership::ConstrMembership)
-    haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
+    #haskey(m.var_to_constr_members, var_uid) && error("Variable with uid $var_uid already registered.")
     set_constr_members_of_var!(m, var_uid, membership)
     return
 end
 
 function add_constraint!(m::Memberships, constr_uid::ConstrId)
-    haskey(m.constr_to_var_members, constr_uid) && error("Constraint with uid $constr_uid already registered.")
-    m.constr_to_var_members[constr_uid] = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
+    #haskey(m.constr_to_var_members, constr_uid) && error("Constraint with uid $constr_uid already registered.")
+    if !haskey(m.constr_to_var_members, constr_uid)
+        m.constr_to_var_members[constr_uid] = VarMembership() #spzeros(Float64, MAX_SV_ENTRIES)
+    end
     return
 end
 
 function add_constraint!(m::Memberships, constr_uid::ConstrId, membership::VarMembership) 
-    haskey(m.constr_to_var_members, constr_uid) && error("Constraint with uid $constr_uid already registered.")
+    #haskey(m.constr_to_var_members, constr_uid) && error("Constraint with uid $constr_uid already registered.")
     add_var_members_of_constr!(m, constr_uid, membership)
     return
 end

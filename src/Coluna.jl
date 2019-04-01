@@ -1,6 +1,5 @@
 module Coluna
 
-import Parameters.@with_kw
 import HighLevelTypes.@hl
 import HighLevelTypes.tuplejoin
 import MathOptInterface
@@ -61,7 +60,7 @@ include("model.jl")
 include("decomposition.jl")
 include("interfaceMoi.jl")
 
-##### Node and algorithms
+##### Search tree
 include("node.jl")
 include("bbtree.jl")
 #include("nodealgs/solandbounds.jl")
@@ -73,11 +72,16 @@ include("bbtree.jl")
 #include("nodealgs/algtoevalnodebylp.jl")
 
 ##### Algorithms draft
+include("solandbounds.jl")
 include("algorithms/colgen.jl")
 
 ##### Wrapper functions
 include("MOIWrapper.jl")
 #include("decomposition.jl")
 
+include("globals.jl") # Structure that holds values useful in all the procedure
+
+global const _global_params_ = Params()
+global const _globals_ = GlobalValues()
 
 end # module

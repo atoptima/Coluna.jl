@@ -5,7 +5,6 @@ abstract type AbstractMoiDef end
 abstract type AbstractCounter end
 abstract type AbstractMembership end
 abstract type AbstractManager end
-abstract type AbstractAlg end
 abstract type AbstractNode end
 
 ## Duties : 
@@ -57,14 +56,19 @@ struct BendersMaster <: AbstractFormDuty end
 struct DwSp <: AbstractFormDuty end
 struct BendersSp <: AbstractFormDuty end
 
-# Types of algorithm that act in Node
-abstract type AbstractNodeAlg <: AbstractAlg end
-abstract type AbstractSetupNodeAlg <: AbstractNodeAlg end
-abstract type AbstractPreprocessNodeAlg <: AbstractNodeAlg end
-abstract type AbstractEvalNodeAlg <: AbstractNodeAlg end
-abstract type AbstractRecordInfoNodeAlg <: AbstractNodeAlg end
-abstract type AbstractPrimalHeurNodeAlg <: AbstractNodeAlg end
-abstract type AbstractGenChildrenNodeAlg <: AbstractNodeAlg end
+# Types of algorithm
+
+abstract type AbstractAlg end
+
+# TODO : See with Ruslan for algorithm types tree
+
+# abstract type AbstractNodeAlg <: AbstractAlg end
+# abstract type AbstractSetupNodeAlg <: AbstractNodeAlg end
+# abstract type AbstractPreprocessNodeAlg <: AbstractNodeAlg end
+# abstract type AbstractEvalNodeAlg <: AbstractNodeAlg end
+# abstract type AbstractRecordInfoNodeAlg <: AbstractNodeAlg end
+# abstract type AbstractPrimalHeurNodeAlg <: AbstractNodeAlg end
+# abstract type AbstractGenChildrenNodeAlg <: AbstractNodeAlg end
 
 @enum VarSense Positive Negative Free
 @enum VarKind Continuous Binary Integ

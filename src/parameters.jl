@@ -2,7 +2,7 @@
 @enum(NODEEVALMODE, SimplexCg, Lp)
 @enum(ARTVARSMOE, Global, Local)
 
-@with_kw mutable struct Params
+Base.@kwdef mutable struct Params
     use_restricted_master_heur::Bool = false
     restricted_master_heur_solver_type::DataType = GLPK.Optimizer
     max_num_nodes::Int = 100000
