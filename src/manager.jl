@@ -3,21 +3,11 @@
 # f(::Pair{<:AbstractVarConstrId,
 #          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
 
-struct Manager{Id <: AbstractVarConstrId, T} <: AbstractManager
+struct Manager{Id, T} <: AbstractManager
     members::Dict{Id,T}
 end
 
 getmembers(m::Manager) = m.members
-getval(m::Manager, id::Id) = m.members[m]
-
-
-Manager(::Type{Variable}) = Manager(
-    Dict{Id{MoiVarIndex, VarInfo}, Variable}()
-)
-
-Manager(::Type{Constraint}) = Manager(
-    Dict{Id{MoiConstrIndex, ConstrInfo}, Constraint}()
-)
 
 has(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)
 
@@ -25,16 +15,12 @@ get(m::Manager, id::AbstractVarConstrId) = m.members[id]
 
 get(m::Manager, uid::Int) = m.members[Id(uid)]
 
-
-
 getids(m::Manager) = collect(keys(m.members))
-
-getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
 
 Base.filter(f::Function, m::Manager) = filter(f, m.members)
 
-function add!(m::Manager, id::Id, vc::AbstractVarConstr)
-    m.members[id] = vc
+function add!(m::Manager{Id,T}, id::Id, val::T) where {T}
+    m.members[id] = val
     return
 end
 
@@ -45,4 +31,16 @@ function Base.show(io::IO, m::Manager)
     end
     return
 end
+
+Manager(idtype::Type{<:AbstractVarConstr},
+        valtype::DataType) = Manager{
+            indextype(idtype), valtype}(Dict{idtype,valtype}())
+
+VcManager(T::Type{AbstractVarConstr}) = Manager(T, T)
+
+MembershipManager(T::Type{AbstractVarConstr}) = Manager(T, Float64)
+
+
+getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
+
 
