@@ -3,9 +3,9 @@
 # f(::Pair{AbstractVarConstrId,
 #          Pair{AbstractVarConstr, AbstractVarConstrInfo}})::Bool
 
-_active_(vc_info::Pair{AbstractVarConstrId,
-                       Pair{AbstractVarConstr, AbstractVarConstrInfo}}
-         ) = vc_info[2].cur_status == Active
+_active_(id_info::Pair{<:AbstractVarConstrId,
+                       <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}}
+         ) = id_info[2][2].cur_status == Active
 
 
 struct Manager{VC <: AbstractVarConstr,

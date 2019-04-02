@@ -66,6 +66,8 @@ end
 #staticconstr(f::Formulation) = f.constrs.members[staticmask(f.constrs.status)]
 #dynamicconstr(f::Formulation) = f.constrs.members[dynamicmask(f.constrs.status)]
 
+getvarids(fo::Formulation, fu::Function) = filter(fu, fo.vars)
+getconstrids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
 
 getuid(f::Formulation) = f.uid
 getvar(f::Formulation, id::Id) = get(f.vars, id)[1]

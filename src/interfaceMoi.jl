@@ -66,10 +66,12 @@ end
 
 function fill_primal_sol(form::Formulation,
                          membership::Membership{Variable},
-                         var_list::Vector{Id})
-    for var_uid in var_list
-        val = MOI.get(form.moi_optimizer, MOI.VariablePrimal(),
-                      form.map_var_uid_to_index[var_uid])
+                         var_list::Dict{Id,Pair{AbstractVarConstr,
+                                                AbstractVarConstrInfo}})
+    for var_def in var_list
+        var_uid = var_def[1].uid
+        moi_index = var_def[1].index
+        val = MOI.get(form.moi_optimizer, MOI.VariablePrimal(), moi_index)
         @logmsg LogLevel(-4) string("Var ", getname(form.vars[var_uid]), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             add!(membership, var_uid, val)
@@ -106,7 +108,7 @@ function retrieve_primal_sol(form::Formulation)
     new_sol = Membership(Variable)
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     #error("Following line does not work.")
-    fill_primal_sol(form, new_sol, getids(form, _active_))
+    fill_primal_sol(form, new_sol, getvarids(form, _active_))
     primal_sol = PrimalSolution(new_obj_val, new_sol)
     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
     return primal_sol
