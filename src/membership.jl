@@ -2,6 +2,10 @@
 
 MembershipManager(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
 
+const Membership = Manager{Id, Float64}
+
+
+
 function add!(m::Manager{T,Float64}, id::Id, val::Float64)
     haskey(m.members, id) ? (m.members[id] += val) : set!(m, id, val)
     return

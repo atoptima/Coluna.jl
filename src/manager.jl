@@ -3,7 +3,7 @@
 # f(::Pair{<:AbstractVarConstrId,
 #          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
 
-struct Manager{Id, T} <: AbstractManager
+struct Manager{Id <: AbstractVarConstrId, T}  <: AbstractManager
     members::Dict{Id,T}
 end
 
@@ -31,7 +31,7 @@ Base.filter(f::Function, m::Manager) = filter(f, m.members)
 
 clone(m::Manager{T,U}) where {T,U} = Membership{T,U}(copy(m.members))
 
-function set!(m::Manager{Id,T}, id::Id, val::T) where {T}
+function set!(m::Manager{Id,T}, id::Id, val::T) where {Id, T}
     m.members[id] = val
     return
 end
@@ -44,11 +44,11 @@ function Base.show(io::IO, m::Manager)
     return
 end
 
-Manager(idtype::Type{<:AbstractVarConstr},
-        valtype::DataType) = Manager{
-            indextype(idtype), valtype}(Dict{idtype,valtype}())
+Manager(vc_type::Type{<:AbstractVarConstr},
+        val_type::DataType) =
+            Manager{idtype(vc_type), val_type}(Dict{idtype(vc_type),val_type}())
 
-VcManager(T::Type{AbstractVarConstr}) = Manager(T, T)
+VcManager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
 
 getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]

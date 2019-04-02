@@ -160,8 +160,9 @@ function add!(f::Formulation, elems::Vector{VarConstr},
     return
 end
 
-function add!(f::Formulation, var::Variable)
-    add!(f.vars, var)
+function add!(f::Formulation, model::Model, var::Variable, Duty::Type{<: AbstractVarDuty})
+    id = Id{Duty}(model, var)
+    add!(f.vars, id, var)
     add_variable!(f.memberships, getid(var)) 
     return
 end
