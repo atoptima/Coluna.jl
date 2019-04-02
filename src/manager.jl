@@ -3,9 +3,26 @@
 # f(::Pair{<:AbstractVarConstrId,
 #          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
 
-struct Manager{Id <: AbstractVarConstrId, T}  <: AbstractManager
+struct Manager{T}  <: AbstractManager
     members::Dict{Id,T}
 end
+
+function Manager(VCtype::Type{<:AbstractVarConstr})
+    return Manager{idtype(VCtype), VCtype}(Dict{idtype(VCtype),VCtype}())
+end
+
+function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)
+    return Manager{idtype(VCtype), ValType}(Dict{idtype(VCtype),ValType}())
+end
+
+# Maybe we should do something like:
+# const VcManager{T} = Manager{T,T}
+
+VcManager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
+
+
+getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
+
 
 getmembers(m::Manager) = m.members
 
@@ -13,7 +30,7 @@ has(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)
 
 get(m::Manager, id::AbstractVarConstrId) = m.members[id]
 
-get(m::Manager, uid::Int) = m.members[Id(uid)]
+#get(m::Manager, uid::Int) = m.members[Id(uid)]
 
 getids(m::Manager) = collect(keys(m.members))
 
@@ -43,16 +60,3 @@ function Base.show(io::IO, m::Manager)
     end
     return
 end
-
-Manager(vc_type::Type{<:AbstractVarConstr},
-        val_type::DataType) =
-            Manager{idtype(vc_type), val_type}(Dict{idtype(vc_type),val_type}())
-
-
-# Maybe we should do something like:
-# const VcManager{T} = Manager{T,T}
-
-VcManager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
-
-
-getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]

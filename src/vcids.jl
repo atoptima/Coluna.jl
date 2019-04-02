@@ -3,9 +3,13 @@ struct Id{T <: AbstractVarConstr, VcInfo <: AbstractVarConstrInfo} <: AbstractVa
     info::VcInfo
 end
 
-Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{T}(i, infotype(T)())
+#Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{T}(i, infotype(T)())
 
 Id(id::Id{T}) where {T} = Id{T}(id.uid, id.info)
+
+function Id(uid::Int, info::T) where {T <: AbstractVarConstrInfo}
+    return Id{infotype(T), T}(uid, info)
+end
 
 # Id(uid::Int) = Id(uid, nothing)
 
@@ -15,7 +19,7 @@ Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 
 getuid(id::AbstractVarConstrId) = id.uid
 getinfo(id::AbstractVarConstrId) = id.info
-getinfo(p::Pair{Id, Float64}) = p.info
+#getinfo(p::Pair{Id, Float64}) = p.info
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, "Id(", getuid(id), ")")

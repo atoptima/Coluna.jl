@@ -9,18 +9,6 @@ mutable struct Variable <: AbstractVarConstr
     sense::VarSense 
 end
 
-# Commented because it redefines the default constructor
-# function Variable(form_uid::FormId,
-#                   n::String,
-#                   c::Float64,
-#                   lb::Float64, 
-#                   ub::Float64,
-#                   t::VarKind,
-#                   flag::Flag,
-#                   s::VarSense)
-#     return Variable(form_uid, n, c, lb, ub, t, flag, s)
-# end
-
 function Variable(n::String)
     return Variable(0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
 end
@@ -31,14 +19,16 @@ mutable struct VarInfo{Duty <: AbstractVarDuty} <: AbstractVarConstrInfo
     cur_ub::Float64 
     cur_status::Status   # Active or not
     index::MoiVarIndex # moi ref
-    bd_constr_ref::Union{Nothing, MoiVarBound}
-    moi_kind::Union{Nothing, MoiVarKind}
+    bd_constr_ref::Union{Nothing, MoiVarBound} # should be removed
+    moi_kind::Union{Nothing, MoiVarKind} # should be removed
 end
 
 function VarInfo(Duty::Type{<: AbstractVarDuty}, var::Variable)
     return VarInfo{Duty}(getcost(var), getlb(var), getub(var),
         Active, nothing, nothing, nothing)
 end
+
+infotype(::Type{<: VarInfo}) = Variable
 
 getduty(vi::VarInfo{T}) where {T <: AbstractVarDuty} = T
 
@@ -49,11 +39,10 @@ end ==#
 
 
 indextype(::Type{<: Variable}) = MoiVarIndex
-infotype(::Type{<: Variable}) = VarInfo
-idtype(::Type{<: Variable}) = Id{VarInfo}
+idtype(::Type{<: Variable}) = Id{Variable, VarInfo}
 
-getuid(v::Variable) = getuid(v.id)
-getid(v::Variable) = v.id
+#getuid(v::Variable) = getuid(v.id)
+#getid(v::Variable) = v.id
 getform(v::Variable) = v.form_uid
 getname(v::Variable) = v.name
 getcost(v::Variable) = v.cost

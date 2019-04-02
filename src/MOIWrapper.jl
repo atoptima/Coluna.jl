@@ -88,47 +88,47 @@ function load_obj!(vars::Vector{Variable}, m::Model,
     return
 end
 
-function create_origvars!(vars::Vector{Variable}, m::Model, src::MOI.ModelLike, 
-        copy_names::Bool)
+function create_origvars!(vars::Vector{Variable}, f::Formulation, m::Model, 
+        src::MOI.ModelLike, copy_names::Bool)
     for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
             name = MOI.get(src, MOI.VariableName(), m_var_id)
         else
             name = string("var_", m_var_id.value)
         end
-        var = Variable(m, name)
+        var = Variable(name)
         push!(vars, var)
-        c_var_id = MOI.VariableIndex(getuid(var))
-        m.mid2cid_map[m_var_id] = c_var_id
+        c_var_id = add!(f, var, OriginalVar)
+        m.mid2cid_map[m_var_id] = MOI.VariableIndex(getuid(c_var_id))
     end
     return
 end
 
-function create_origconstr!(constrs, memberships, vars, 
-        model, name, f::MOI.SingleVariable, s, m_constr_id)
-    c_var_id = model.mid2cid_map[f.variable].value
-    set!(vars[c_var_id], s)
+function create_origconstr!(constrs, vars, f::Formulation,
+        model, name, func::MOI.SingleVariable, set, m_constr_id)
+    c_var_id = model.mid2cid_map[func.variable].value
+    set!(vars[c_var_id], set)
     return
 end
 
-function create_origconstr!(constrs, memberships::Vector{Membership{Variable}}, vars, 
-        model, name, f::MOI.ScalarAffineFunction, s, m_constr_id)
+function create_origconstr!(constrs, vars, f::Formulation,
+        model, name, func::MOI.ScalarAffineFunction, set, m_constr_id)
     constr = Constraint(model, name)
-    set!(constr, s)
+    set!(constr, set)
     push!(constrs, constr)
     membership = Membership(Variable) #spzeros(Float64, MAX_SV_ENTRIES)
-    for term in f.terms
+    for term in func.terms
         c_var_id = model.mid2cid_map[term.variable_index].value
         add!(membership, Id(Variable, c_var_id), term.coefficient)
     end
-    push!(memberships, membership)
-    c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))
-    model.mid2cid_map[m_constr_id] = c_constr_id
+    c_constr_id = add!(f, constr, membership)
+    id = MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(c_constr_id))
+    model.mid2cid_map[m_constr_id] = id
     return
 end
 
-function create_origconstrs!(constrs::Vector{Constraint}, 
-        memberships::Vector{Membership{Variable}}, m::Model, src::MOI.ModelLike, 
+function create_origconstrs!(constrs::Vector{Constraint}, f::Formulation,
+        m::Model, src::MOI.ModelLike, 
         vars::Vector{Variable}, copy_names::Bool)
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
         for m_constr_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
@@ -137,20 +137,11 @@ function create_origconstrs!(constrs::Vector{Constraint},
             else
                 name = string("constr_", m_constr_id.value)
             end
-            f = MOI.get(src, MOI.ConstraintFunction(), m_constr_id)
-            s = MOI.get(src, MOI.ConstraintSet(), m_constr_id)
-            create_origconstr!(constrs, memberships, vars, m, name, f, s, m_constr_id)
+            func = MOI.get(src, MOI.ConstraintFunction(), m_constr_id)
+            set = MOI.get(src, MOI.ConstraintSet(), m_constr_id)
+            create_origconstr!(constrs, vars, f, m, name, func, set, m_constr_id)
         end
     end
-    return
-end
-
-function create_original_formulation!(model, vars, constrs, memberships::Vector{Membership{Variable}}, 
-        min_sense::Bool)
-    orig_form = get_original_formulation(model)
-    add!(orig_form, vars)
-    add!(orig_form, constrs, memberships)
-    register_objective_sense!(orig_form, min_sense)
     return
 end
 
@@ -160,18 +151,17 @@ function register_original_formulation!(model::Model, dest::Optimizer, src::MOI.
     set_original_formulation!(model, orig_form)
 
     vars = Variable[]
-    create_origvars!(vars, model, src, copy_names)
+    create_origvars!(vars, orig_form, model, src, copy_names)
 
     constrs = Constraint[]
-    memberships = Vector{Membership{Variable}}()
-    create_origconstrs!(constrs, memberships, model, src, vars, copy_names)
+    create_origconstrs!(constrs, orig_form, model, src, vars, copy_names)
 
     obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
     load_obj!(vars, model, obj)
 
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
-    create_original_formulation!(model, vars, constrs, memberships, min_sense)
+    register_objective_sense!(orig_form, min_sense)
     return
 end
 

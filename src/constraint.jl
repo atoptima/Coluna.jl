@@ -6,18 +6,6 @@ mutable struct Constraint <: AbstractVarConstr
     kind::ConstrKind  # Core Facultative SubSystem 
 end
 
-# Commented because it redefines the default constructor
-# function Constraint(form_uid::FormId,
-#                     name::String,
-#                     rhs::Float64,
-#                     sense::ConstrSense, 
-#                     kind::ConstrKind,
-#                     flag::Flag)
-#     uid = getnewuid(m.constr_counter)
-#     cuid = Id(Constraint, uid)
-#     return Constraint(form_uid,  name, rhs, sense, kind, flag)
-# end
-
 function Constraint(name::String)
     return Constraint(0, name, 0.0, Greater, Core, Static)
 end
@@ -33,7 +21,7 @@ function ConstrInfo(Duty::Type{<: AbstractConstrDuty},
                     constr::Constraint)x
     return ConstrInfo{Duty}(getrhs(constr), getsense(constr),  Active, nothing)
 end
-
+infotype(::Type{<: ConstrInfo}) = Constraint
 getduty(ci::ConstrInfo{T}) where {T <: AbstractVarDuty} = T
 
 #==function copy(vc::T, flag::Flag, Duty::Type{<: AbstractDuty},
@@ -51,8 +39,7 @@ end
 ==#
 
 indextype(::Type{Constraint}) = MoiConstrIndex
-infotype(::Type{Constraint}) = ConstrInfo
-idtype(::Type{Constraint}) = Id{ConstrInfo}
+idtype(::Type{Constraint}) = Id{Constraint, ConstrInfo}
 
 getform(c::Constraint) = c.form_uid
 getrhs(c::Constraint) = c.rhs

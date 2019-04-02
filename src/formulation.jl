@@ -1,5 +1,6 @@
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::FormId
+    model::AbstractModel
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
@@ -20,6 +21,7 @@ function Formulation(Duty::Type{<: AbstractFormDuty},
                      moi_optimizer::Union{MOI.AbstractOptimizer, Nothing})
     uid = getnewuid(m.form_counter)
     return Formulation{Duty}(uid,
+                             m,
                              parent_formulation,
                              #moi_model,
                              moi_optimizer, 
@@ -143,48 +145,56 @@ end
     return
 end ==#
 
-function add!(f::Formulation, elems::Vector{VarConstr}) where {VarConstr <: AbstractVarConstr}
-    for elem in elems
-        add!(f, elem)
-    end
-    return
-end
+# function add!(f::Formulation, elems::Vector{VarConstr}) where {VarConstr <: AbstractVarConstr}
+#     for elem in elems
+#         add!(f, elem)
+#     end
+#     return
+# end
 
-function add!(f::Formulation, elems::Vector{VarConstr}, 
-              memberships::Vector{M}) where {VarConstr <: AbstractVarConstr,
-                                                  M <: AbstractMembership}
-    @assert length(elems) == length(memberships)
-    for i in 1:length(elems)
-        add!(f, elems[i], memberships[i])
-    end
-    return
-end
+# function add!(f::Formulation, elems::Vector{VarConstr}, 
+#               memberships::Vector{M}) where {VarConstr <: AbstractVarConstr,
+#                                                   M <: AbstractMembership}
+#     @assert length(elems) == length(memberships)
+#     for i in 1:length(elems)
+#         add!(f, elems[i], memberships[i])
+#     end
+#     return
+# end
 
-function add!(f::Formulation, model::AbstractModel, var::Variable, Duty::Type{<: AbstractVarDuty})
-    id = Id{Duty}(model, var)
+function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
+    uid = getnewuid(f.model.var_counter)
+    id = Id(uid, VarInfo(Duty, var))
     add!(f.vars, id, var)
-    add_variable!(f.memberships, getid(var)) 
-    return
+    add_variable!(f.memberships, id) 
+    return id
 end
 
-function add!(f::Formulation, var::Variable, membership::Membership{Constraint})
-    add!(f.vars, var)
-    add_variable!(f.memberships, getid(var), membership)
-    return
+function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty}, 
+        membership::Membership{Constraint})
+    uid = getnewuid(f.model.var_counter)
+    id = Id(uid, VarInfo(Duty, var))
+    add!(f.vars, id, var)
+    add_variable!(f.memberships, id, membership)
+    return id
 end
 
-function add!(f::Formulation, constr::Constraint)
-    add!(f.constrs, constr)
-    #f.constr_rhs[getuid(constr)] = constr.rhs
-    add_constraint!(f.memberships, getid(constr))
-    return
+function add!(f::Formulation, constr::Constraint, 
+        Duty::Type{<: AbstractConstrDuty})
+    uid = getnewuid(f.model.constr_counter)
+    id = Id(uid, ConstrInfo(Duty, constr))
+    add!(f.constrs, id, constr)
+    add_constraint!(f.memberships, id)
+    return id
 end
 
-function add!(f::Formulation, constr::Constraint, membership::Membership{Variable})
-    add!(f.constrs, constr)
-    #f.constr_rhs[getuid(constr)] = constr.rhs
-    add_constraint!(f.memberships, getid(constr), membership)
-    return
+function add!(f::Formulation, constr::Constraint, 
+        Duty::Type{<: AbstractConstrDuty}, membership::Membership{Variable})
+    uid = getnewuid(f.model.constr_counter)
+    id = Id(uid, ConstrInfo(Duty, constr))
+    add!(f.constrs, id, constr)
+    add_constraint!(f.memberships, id, membership)
+    return id
 end
 
 function register_objective_sense!(f::Formulation, min::Bool)
