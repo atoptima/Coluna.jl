@@ -26,3 +26,8 @@ function Base.show(io::IO, id::Id{T}) where {T}
     print(io, "Id(", getuid(id), ")")
 end
 
+getinfo(Pair{Id, Float64}) = Id.info
+
+getinfo(Id) = Id.info
+
+
