@@ -1,7 +1,7 @@
 # Define default functions to use as filters
 # Functions must be of the form:
-# f(::Pair{AbstractVarConstrId,
-#          Pair{AbstractVarConstr, AbstractVarConstrInfo}})::Bool
+# f(::Pair{<:AbstractVarConstrId,
+#          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
 
 _active_(id_info::Pair{<:AbstractVarConstrId,
                        <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}}
@@ -26,7 +26,7 @@ has(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)
 
 get(m::Manager, id::AbstractVarConstrId) = m.members[id]
 
-get(m::Manager, uid::Ind) = m.members[Id(uid)]
+get(m::Manager, uid::Int) = m.members[Id(uid)]
 
 getvarconstr(m::Manager, id::AbstractVarConstrId) = m.members[id][1]
 

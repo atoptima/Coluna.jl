@@ -87,9 +87,9 @@ getvarids(f::Formulation, D::Type{<:AbstractVarDuty}) = collect(keys(filter(e ->
 
 getconstrids(f::Formulation, D::Type{<:AbstractConstrDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.constrs)))
 
-getvarids(f::Formulation, f::Flag) = collect(keys(filter(e -> getvarconstr_info(e).cur_flag == f, f.vars)))
+getvarids(fo::Formulation, fl::Flag) = collect(keys(filter(e -> getvarconstr_info(e).cur_flag == f, f.vars)))
 
-getConstrids(f::Formulation, f::Flag) = collect(keys(filter(e -> getvarconstr_info(e).cur_flag == f, f.constrs)))
+getConstrids(fo::Formulation, fl::Flag) = collect(keys(filter(e -> getvarconstr_info(e).cur_flag == f, f.constrs)))
 
 getvarids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.vars)))
 
