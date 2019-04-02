@@ -94,7 +94,7 @@ getvarids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_inf
 getConstrids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.constrs)))
 
 getobjsense(f::Formulation) = f.obj_sense
-        
+
 get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.memberships, id)
 
 get_var_members_of_constr(f::Formulation, id::Id) = get_var_members_of_constr(f.memberships, id)

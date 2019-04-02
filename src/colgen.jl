@@ -290,12 +290,12 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
         sp_uid = getuid(sp_form)
         lb_convexity_constr_uid = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_uid = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = master_form.constr_rhs[lb_convexity_constr_uid]
-        sp_ubs[sp_uid] = master_form.constr_rhs[ub_convexity_constr_uid]
+        sp_lbs[sp_uid] = getrhs(getconstr(master_form, lb_convexity_constr_uid))
+        sp_ubs[sp_uid] = getrhs(getconstr(master_form, ub_convexity_constr_uid))
     end
-    
 
-    
+    @show sp_lbs
+
     while true
         # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
         # GLPK.write_lp(glpk_prob, string("/Users/vitornesello/Desktop/mip_", nb_cg_iterations,".lp"))
