@@ -5,6 +5,8 @@ end
 
 Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{indextype(T)}(i, nothing)
 
+Id(id::Id{MoiIndex}) = Id{MoiIndex}(id.uid, nothing)
+
 Base.hash(a::Id, h::UInt) = hash(a.uid, h)
 Base.isequal(a::Id, b::Id) = Base.isequal(hash(a), hash(b)) # why on hashes ?
 Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)

@@ -10,8 +10,16 @@ mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
     sense::VarSense 
 end
 
-function Variable(Duty::Type{<: AbstractVarDuty}, m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 
-        ub::Float64, t::VarKind, flag::Flag, s::VarSense)
+function Variable(Duty::Type{<: AbstractVarDuty},
+                  m::AbstractModel,
+                  form_uid::FormId,
+                  n::String,
+                  c::Float64,
+                  lb::Float64, 
+                  ub::Float64,
+                  t::VarKind,
+                  flag::Flag,
+                  s::VarSense)
     uid = getnewuid(m.var_counter)
     vuid = Id(Variable, uid)
     return Variable{Duty}(vuid, form_uid, n, c, lb, ub, t, flag, s)
@@ -36,8 +44,8 @@ function VarInfo(var::Variable)
         getflag(var), Active)
 end
 
-function copy(var::Variable, flag::Flag, Duty::Type{<: AbstractVarDuty})
-    return Variable{Duty}(getid(var), getform(var), getname(var), getcost(var), 
+function copy(var::Variable, form::AbstractFormulation, flag::Flag, Duty::Type{<: AbstractVarDuty})
+    return Variable{Duty}(Id(getid(var)), form, getname(var), getcost(var), 
         getlb(var), getub(var), getkind(var), flag, getsense(var))
 end
 
