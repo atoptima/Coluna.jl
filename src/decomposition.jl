@@ -148,9 +148,10 @@ function build_dw_pricing_sp!(m::Model,
     #clone_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
     ## Create representative of sp var in master
-    var_uids = getvarids(sp_form, PricingSpVar)
+    var_ids = getvarids(sp_form, PricingSpVar)
+    @show var_ids
     clone_in_formulation!(
-        var_uids, sp_form, master_form, Implicit, MastRepPricingSpVar
+        var_ids, sp_form, master_form, Implicit, MastRepPricingSpVar
     )
 
 

@@ -15,7 +15,7 @@ Manager(::Type{Constraint}) = Manager(
 has(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)
 get(m::Manager, id::AbstractVarConstrId) = m.members[id]
 getvarconstr(m::Manager, id::AbstractVarConstrId) = m.members[id][1]
-getids(m::Manager) = keys(m.members)
+getids(m::Manager) = collect(keys(m.members))
 getvarconstr(e::Pair{Id,Pair{VC,Info}}) where {Id, VC, Info} = e[2][1]
 
 Base.filter(f::Function, m::Manager) = filter(f, m.members)
@@ -26,4 +26,11 @@ function add!(m::Manager, vc::AbstractVarConstr)
     return
 end
 
+function Base.show(io::IO, m::Manager)
+    println(io, typeof(m), ":")
+    for e in m.members
+        println(io, "  ", e)
+    end
+    return
+end
 

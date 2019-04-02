@@ -10,3 +10,8 @@ Base.isequal(a::Id, b::Id) = Base.isequal(hash(a), hash(b))
 
 getuid(id::AbstractVarConstrId) = id.uid
 get_moi_index(id::AbstractVarConstrId) = id.index
+
+function Base.show(io::IO, id::Id{T}) where {T}
+    print(io, "Id(", getuid(id), ")")
+end
+

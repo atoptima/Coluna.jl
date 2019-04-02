@@ -74,8 +74,8 @@ getconstr(f::Formulation, id::Id) = get(f.constrs, id)[1]
 getconstrinfo(f::Formulation, id::Id) = get(f.constrs, id)[2]
 getvarids(f::Formulation) = getids(f.vars)
 getconstrids(f::Formulation) = getids(f.constrs)
-getvarids(f::Formulation, D::Type{<:AbstractVarDuty}) = filter(e -> getduty(getvarconstr(e)) == D, f.vars)
-getconstrids(f::Formulation, D::Type{<:AbstractConstrDuty}) = filter(e -> getduty(getvarconstr(e)) == D, f.constrs)
+getvarids(f::Formulation, D::Type{<:AbstractVarDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.vars)))
+getconstrids(f::Formulation, D::Type{<:AbstractConstrDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.constrs)))
 getobjsense(f::Formulation) = f.obj_sense
         
 get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.memberships, id)
@@ -95,25 +95,25 @@ function clone_in_formulation!(varconstr::AbstractVarConstr,
     return varconstr_copy
 end
 
-function clone_in_formulation!(var_uids::Vector{Id},
+function clone_in_formulation!(var_ids::Vector{VCid},
                                src_form::Formulation,
                                dest_form::Formulation,
                                flag::Flag,
-                               duty::Type{<: AbstractVarDuty})
-    for var_uid in var_uids
-        var = getvar(src_form, var_uid)
+                               duty::Type{<: AbstractVarDuty}) where {VCid <: Id}
+    for var_id in var_ids
+        var = getvar(src_form, var_id)
         var_clone = clone_in_formulation!(var, src_form, dest_form, flag, duty)
-        reset_constr_members_of_var!(dest_form.memberships, var_uid,
-                                     get_constr_members_of_var(src_form, var_uid))
+        reset_constr_members_of_var!(dest_form.memberships, var_id,
+                                     get_constr_members_of_var(src_form, var_id))
     end
     return 
 end
 
-function clone_in_formulation!(constr_uids::Vector{Id},
+function clone_in_formulation!(constr_uids::Vector{VCid},
                                src_form::Formulation,
                                dest_form::Formulation,
                                flag::Flag,
-                               duty::Type{<: AbstractConstrDuty})
+                               duty::Type{<: AbstractConstrDuty}) where {VCid <: Id}
     for constr_uid in constr_uids
         constr = getconstr(src_form, constr_uid)
         constr_clone = clone_in_formulation!(constr, src_form, dest_form, flag, duty)
@@ -224,8 +224,8 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for uid in getvarids(f)
-        var = getvar(f, uid)
+    for id in getvarids(f)
+        var = getvar(f, id)
         name = getname(var)
         cost = getcost(var)
         op = (cost < 0.0) ? "-" : "+" 
@@ -237,15 +237,19 @@ function _show_obj_fun(io::IO, f::Formulation)
     return
 end
 
-function _show_constraint(io::IO, f::Formulation, uid)
-    constr = getconstr(f, uid)
+function _show_constraint(io::IO, f::Formulation, id)
+    constr = getconstr(f, id)
     print(io, " ", getname(constr), " : ")
 
     for (var_id, coeff) in get_var_members_of_constr(f, constr)
-        var = getvar(f, var_id)
-        name = getname(var)
-        op = (coeff < 0.0) ? "-" : "+"
-        print(io, op, " ", abs(coeff), " ", name, " ")
+        if has(f.vars, var_id)
+            var = getvar(f, var_id)
+            name = getname(var)
+            op = (coeff < 0.0) ? "-" : "+"
+            print(io, op, " ", abs(coeff), " ", name, " ")
+        else
+            @warn "Cannot find variable with id $var_id and coeff $coeff which is member of constraint $(getname(constr))"
+        end
     end
 
     if getsense(constr) == Equal
