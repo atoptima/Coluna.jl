@@ -17,9 +17,21 @@ get(m::Manager, uid::Int) = m.members[Id(uid)]
 
 getids(m::Manager) = collect(keys(m.members))
 
+iterate(m::Manager) = iterate(m.members)
+
+iterate(m::Manager, state) = iterate(m.members, state)
+
+length(m::Manager) = length(m.members)
+
+getindex(m::Manager, elements) = getindex(m.members, elements)
+
+lastindex(m::Manager) = lastindex(m.members)
+
 Base.filter(f::Function, m::Manager) = filter(f, m.members)
 
-function add!(m::Manager{Id,T}, id::Id, val::T) where {T}
+clone(m::Manager{T,U}) where {T,U} = Membership{T,U}(copy(m.members))
+
+function set!(m::Manager{Id,T}, id::Id, val::T) where {T}
     m.members[id] = val
     return
 end
@@ -38,9 +50,5 @@ Manager(idtype::Type{<:AbstractVarConstr},
 
 VcManager(T::Type{AbstractVarConstr}) = Manager(T, T)
 
-MembershipManager(T::Type{AbstractVarConstr}) = Manager(T, Float64)
-
 
 getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
-
-
