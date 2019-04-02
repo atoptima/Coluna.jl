@@ -49,12 +49,13 @@ end
  end
 
 
-function insert_cols_in_master(sp_form::Formulation,
+function insert_cols_in_master(model::Model,
+                               sp_form::Formulation,
                                sp_sols::Vector{PrimalSolution})
 
     sp_uid = getuid(sp_form)
     master_form = sp_form.parent
-    m = master_form.memberships
+    mbship = master_form.memberships
     nb_of_gen_col = 0
     
     #var_uids = getvar_uids(sp_form, PricingSpSetupVar)
@@ -81,12 +82,12 @@ function insert_cols_in_master(sp_form::Formulation,
                 lb = 0.0
                 ub = Inf
                 kind = Continuous
-                flag = Dynamic
                 duty = MasterCol
                 sense = Positive
-                mc_var = Variable(m, getuid(master_form), name, cost, lb, ub, kind, flag, duty, sense)
-                mc_uid = getuid(mc_var)
-                name = "MC_$(sp_uid)_$(mc_uid)"
+                mc_var = Variable(getuid(master_form), name, cost, lb, ub, kind, sense)
+                mc_id = add!(master_form, model, mc_var, duty)
+                add!(mbship, mc_id)
+                name = "MC_$(sp_uid)_$(getuid(mc_id))"
                 setname!(mc_var, name)
                 
                 
