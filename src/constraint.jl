@@ -1,5 +1,5 @@
 mutable struct Constraint{Duty <: AbstractConstrDuty} <: AbstractVarConstr
-    constr_id::Id
+    id::Id
     form_uid::FormId
     name::String
     rhs::Float64 
@@ -30,10 +30,11 @@ mutable struct ConstrInfo <: AbstractVarConstrInfo
     cur_sense::ConstrSense # Greater Less Equal
     cur_flag::Flag     # Static, Dynamic/Delayed,  Implicit
     cur_status::Status   # Active or not
+    index::MoiConstrIndex
 end
 
 function ConstrInfo(constr::Constraint)
-    return ConstrInfo(getrhs(constr), getsense(constr), getflag(constr), Active)
+    return ConstrInfo(getrhs(constr), getsense(constr), getflag(constr), Active, nothing)
 end
 
 function copy(vc::T, flag::Flag, Duty::Type{<: AbstractDuty},
@@ -52,8 +53,8 @@ end
 indextype(::Type{<: Constraint}) = MoiConstrIndex
 infotype(::Type{<: Constraint}) = ConstrInfo
 
-getuid(c::Constraint) = getuid(c.constr_id)
-getid(c::Constraint) = c.constr_id
+getuid(c::Constraint) = getuid(c.id)
+getid(c::Constraint) = c.id
 getform(c::Constraint) = c.form_uid
 getrhs(c::Constraint) = c.rhs
 getname(c::Constraint) = c.name
