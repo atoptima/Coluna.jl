@@ -1,6 +1,6 @@
-struct Id{T <: AbstractVarConstr} <: AbstractVarConstrId
+struct Id{T <: AbstractVarConstr, VcInfo <: AbstractVarConstrInfo} <: AbstractVarConstrId
     uid::Int
-    info::AbstractVarConstrInfo
+    info::VcInfo
 end
 
 Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{T}(i, infotype(T)())

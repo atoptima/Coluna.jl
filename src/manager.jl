@@ -48,6 +48,10 @@ Manager(vc_type::Type{<:AbstractVarConstr},
         val_type::DataType) =
             Manager{idtype(vc_type), val_type}(Dict{idtype(vc_type),val_type}())
 
+
+# Maybe we should do something like:
+# const VcManager{T} = Manager{T,T}
+
 VcManager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
 

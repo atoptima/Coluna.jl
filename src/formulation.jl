@@ -3,8 +3,8 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ModelLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::Manager{Variable, Id{MoiVarIndex}, VarInfo}
-    constrs::Manager{Constraint, Id{MoiConstrIndex}, ConstrInfo}
+    vars::Manager{Id{Variable, VarInfo}, Variable}
+    constrs::Manager{Id{Constraint, ConstrInfo}, Constraint}
     memberships::Memberships
     obj_sense::ObjSense
     callback
@@ -160,7 +160,7 @@ function add!(f::Formulation, elems::Vector{VarConstr},
     return
 end
 
-function add!(f::Formulation, model::Model, var::Variable, Duty::Type{<: AbstractVarDuty})
+function add!(f::Formulation, model::AbstractModel, var::Variable, Duty::Type{<: AbstractVarDuty})
     id = Id{Duty}(model, var)
     add!(f.vars, id, var)
     add_variable!(f.memberships, getid(var)) 
