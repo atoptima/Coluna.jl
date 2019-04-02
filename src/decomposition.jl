@@ -60,7 +60,7 @@ function build_dw_master!(model::Model,
     
     #if (local_art_var)
         # local artificial variables
-        for constr_uid in constrs_in_form #  getconstrids(master_form)
+        for constr_uid in constrs_in_form #  getconstr_ids(master_form)
             name = "loc_art_$(getuid(constr_uid))"
             cost = 10.0
             lb = 0.0
@@ -86,7 +86,7 @@ function build_dw_master!(model::Model,
         sense = Positive
         pos_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = Membership(Constraint)
-        for constr_uid in getconstrids(master_form)
+        for constr_uid in getconstr_ids(master_form)
             membership.members[constr_uid] = 1.0
         end
         add!(master_form, pos_global_art_var, membership)
@@ -100,7 +100,7 @@ function build_dw_master!(model::Model,
         sense = Positive
         neg_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = Membership(Constraint)
-        for constr_uid in getconstrids(master_form)
+        for constr_uid in getconstr_ids(master_form)
             membership.members[constr_uid] = -1.0
         end
         add!(master_form, neg_global_art_var, membership)
@@ -148,7 +148,7 @@ function build_dw_pricing_sp!(m::Model,
     #clone_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
     ## Create representative of sp var in master
-    var_ids = getvarids(sp_form, PricingSpVar)
+    var_ids = getvar_ids(sp_form, PricingSpVar)
     @show var_ids
     clone_in_formulation!(
         var_ids, sp_form, master_form, Implicit, MastRepPricingSpVar
