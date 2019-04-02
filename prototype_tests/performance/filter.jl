@@ -49,7 +49,7 @@ function benchmarks()
     f1(var) = (var[2].flag == true)
     f2(var) = (var[2].value <= 2.0)
     f3(var) = (getduty(var[2]) == Another)
-
+    filter(dict, x->(x[2].flag == true))
     @show length(dict)
 
     @btime $(d1 = filter(f1, dict))
