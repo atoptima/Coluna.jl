@@ -77,7 +77,7 @@ getconstrids(f::Formulation) = getids(f.constrs)
 getvarids(f::Formulation, D::Type{<:AbstractVarDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.vars)))
 getconstrids(f::Formulation, D::Type{<:AbstractConstrDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.constrs)))
 getobjsense(f::Formulation) = f.obj_sense
-        
+
 get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.memberships, id)
 get_var_members_of_constr(f::Formulation, id::Id) = get_var_members_of_constr(f.memberships, id)
 

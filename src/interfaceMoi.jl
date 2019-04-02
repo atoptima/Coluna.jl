@@ -106,7 +106,7 @@ function retrieve_primal_sol(form::Formulation)
     new_sol = Membership(Variable)
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     #error("Following line does not work.")
-    fill_primal_sol(form, new_sol, getvarids(form, _active_))
+    fill_primal_sol(form, new_sol, getids(form, _active_))
     primal_sol = PrimalSolution(new_obj_val, new_sol)
     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
     return primal_sol

@@ -1,3 +1,13 @@
+# Define default functions to use as filters
+# Functions must be of the form:
+# f(::Pair{AbstractVarConstrId,
+#          Pair{AbstractVarConstr, AbstractVarConstrInfo}})::Bool
+
+_active_(vc_info::Pair{AbstractVarConstrId,
+                       Pair{AbstractVarConstr, AbstractVarConstrInfo}}
+         ) = vc_info[2].cur_status == Active
+
+
 struct Manager{VC <: AbstractVarConstr,
                Id <: AbstractVarConstrId,
                Info <: AbstractVarConstrInfo} <: AbstractManager
