@@ -13,9 +13,17 @@ Manager(::Type{Constraint}) = Manager(
 )
 
 has(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)
+
 get(m::Manager, id::AbstractVarConstrId) = m.members[id]
+
+get(m::Manager, uid::Ind) = m.members[Id(uid)]
+
 getvarconstr(m::Manager, id::AbstractVarConstrId) = m.members[id][1]
+
+getvarconstr_info(m::Manager, id::AbstractVarConstrId) = m.members[id][2]
+
 getids(m::Manager) = collect(keys(m.members))
+
 getvarconstr(e::Pair{Id,Pair{VC,Info}}) where {Id, VC, Info} = e[2][1]
 
 Base.filter(f::Function, m::Manager) = filter(f, m.members)

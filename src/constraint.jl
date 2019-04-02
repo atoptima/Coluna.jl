@@ -36,8 +36,8 @@ function ConstrInfo(constr::Constraint)
     return ConstrInfo(getrhs(constr), getsense(constr), getflag(constr), Active)
 end
 
-function copy(constr::Constraint, flag::Flag, Duty::Type{<: AbstractConstrDuty})
-    return Constraint{Duty}(getid(constr), getform(constr), getname(constr),
+function copy(constr::Constraint, form::AbstractFormulation, flag::Flag, Duty::Type{<: AbstractConstrDuty})
+    return Constraint{Duty}(Id(getid(constr)), form, getname(constr),
         getrhs(constr), getsense(constr), getkind(constr), flag)
 end
 

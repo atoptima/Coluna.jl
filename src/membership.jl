@@ -1,27 +1,41 @@
-struct Membership{VC <: AbstractVarConstr} <: AbstractMembership
-    members::Dict{Id, Float64}
+struct Membership{VC <: AbstractVarConstr,
+                  Info <: AbstractVarConstrInfo} <: AbstractMembership
+    members::Dict{Id, Pair{Float64,Info}}
 end
 
-Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{indextype(T), Float64}())
+
+Membership(::Type{Variable}) = Membership(
+    Dict{Id{MoiVarIndex}, Pair{Float64,VarInfo}}()
+)
+
+Membership(::Type{Constraint}) = Membership(
+    Dict{Id{MoiConstrIndex}, Pair{Float64,ConstrInfo}}()
+)
+
 getmembers(m::Membership) = m.members
+
 # TODO change the name ? (copy?)
 clone_membership(orig_memb::Membership{T}) where {T <: AbstractVarConstr} = Membership{T}(copy(orig_memb.members))
 
 iterate(m::Membership) = iterate(m.members)
+
 iterate(m::Membership, state) = iterate(m.members, state)
+
 length(m::Membership) = length(m.container)
+
 getindex(m::Membership, elements) = getindex(m.members, elements)
+
 lastindex(m::Membership) = lastindex(m.members)
 
 getids(m::Membership) = collect(keys(m.members))
 
 function add!(m::Membership, id::Id, val::Float64)
-    haskey(m.members, id) ? (m.members[id] += val) : (m.members[id] = val)
+    haskey(m.members, id) ? (m.members[id][1] += val) : (m.members[id][1] = val)
     return
 end
 
 function set!(m::Membership, id::Id, val::Float64)
-    m.members[id] = val
+    m.members[id][1] = val
     return
 end
 

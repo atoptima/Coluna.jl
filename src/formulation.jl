@@ -68,20 +68,39 @@ end
 
 
 getuid(f::Formulation) = f.uid
+
 getvar(f::Formulation, id::Id) = get(f.vars, id)[1]
+
 getvarinfo(f::Formulation, id::Id) = get(f.vars, id)[2]
+
 getconstr(f::Formulation, id::Id) = get(f.constrs, id)[1]
+
 getconstrinfo(f::Formulation, id::Id) = get(f.constrs, id)[2]
+
 getvarids(f::Formulation) = getids(f.vars)
+
 getconstrids(f::Formulation) = getids(f.constrs)
+
 getvarids(f::Formulation, D::Type{<:AbstractVarDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.vars)))
+
 getconstrids(f::Formulation, D::Type{<:AbstractConstrDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.constrs)))
+
+getvarids(f::Formulation, f::Flag) = collect(keys(filter(e -> getvarconstr_info(e).cur_flag == f, f.vars)))
+
+getConstrids(f::Formulation, f::Flag) = collect(keys(filter(e -> getvarconstr_info(e).cur_flag == f, f.constrs)))
+
+getvarids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.vars)))
+
+getConstrids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.constrs)))
+
 getobjsense(f::Formulation) = f.obj_sense
         
 get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.memberships, id)
+
 get_var_members_of_constr(f::Formulation, id::Id) = get_var_members_of_constr(f.memberships, id)
 
 get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getid(var))
+
 get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getid(constr))
 
 function clone_in_formulation!(varconstr::AbstractVarConstr,

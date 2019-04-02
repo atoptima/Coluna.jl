@@ -22,17 +22,14 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::Membership{Const
 
     master_form = sp_form.parent_formulation
 
-    vars = get_subset(sp_form.vars, PricingSpVar)
-
+ 
     ### compute red costs
     for (constr_uid, dual_val) in dual_sol
         var_membership = get_var_members_of_constr(master_form.memeberships, constr_uid)
 
-        
-        # TODO var_membership = intersect(var_membership, var_uids)
-        
-        for (var_uid, coef) in var_membership
-            if haskey(var_membership, var_uid)
+             
+        for (var_id, coef, var_info) in var_membership
+            if var_info.cur_status == active
                 if haskey(new_obj, var_uid)
                     new_obj[var_uid] -= dual_val * coef
                 else
