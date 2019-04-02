@@ -7,6 +7,10 @@ struct Manager{Id <: AbstractVarConstrId, T} <: AbstractManager
     members::Dict{Id,T}
 end
 
+getmembers(m::Manager) = m.members
+getval(m::Manager, id::Id) = m.members[m]
+
+
 Manager(::Type{Variable}) = Manager(
     Dict{Id{MoiVarIndex, VarInfo}, Variable}()
 )
