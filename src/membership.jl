@@ -1,56 +1,12 @@
 # Membership is just a Manager{Id,Float64}
+const Membership{T} = Manager{Id{T},Float64}
 
-MembershipManager(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
+Membership(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
 
-const Membership = Manager{Id, Float64}
-
-
-
-function add!(m::Manager{T,Float64}, id::Id, val::Float64)
+function add!(m::Membership, id::Id, val::Float64)
     haskey(m.members, id) ? (m.members[id] += val) : set!(m, id, val)
     return
 end
-
-# struct Membership{VC <: AbstractVarConstr} <: AbstractMembership
-#     members::Dict{Id, Float64}
-# end
-
-# Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{idtype(T), Float64}())
-
-# getmembers(m::Membership) = m.members
-
-# # TODO change the name ? (copy?)
-# clone_membership(orig_memb::Membership{T}) where {T <: AbstractVarConstr} = Membership{T}(copy(orig_memb.members))
-
-# iterate(m::Membership) = iterate(m.members)
-
-# iterate(m::Membership, state) = iterate(m.members, state)
-
-# length(m::Membership) = length(m.container)
-
-# getindex(m::Membership, elements) = getindex(m.members, elements)
-
-# lastindex(m::Membership) = lastindex(m.members)
-
-# getids(m::Membership) = collect(keys(m.members))
-
-# function add!(m::Membership, id::Id, val::Float64)
-#     haskey(m.members, id) ? (m.members[id] += val) : (m.members[id] = val)
-#     # if haskey(m.members, id)
-#     #     println("has key")
-#     #     (m.members[id][1] += val)
-#     # else
-#     #     (m.members[id][1] = val)
-#     # end
-#     return
-# end
-
-# function set!(m::Membership, id::Id, val::Float64)
-#     m.members[id] = val
-#     return
-# end
-
-# # get_ids_vals(m::Membership) = (collect(keys(m.members)), collect(values(m.members)))
 
 struct Memberships
     var_to_constr_members    ::Dict{Id, Membership{Constraint}}
@@ -89,7 +45,7 @@ end
 
     
 get_subset(m::Membership, d::Type{<:AbstractConstrDuty}, s::Status) =
-    filter(e -> getduty(getinfo(e)) == d && getinfo(e).status == s, m.members)))
+    filter(e -> getduty(getinfo(e)) == d && getinfo(e).status == s, m.members)
 
 
 function get_constr_members_of_var(m::Memberships, var_id::Id) 

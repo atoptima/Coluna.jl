@@ -9,22 +9,23 @@ mutable struct Variable <: AbstractVarConstr
     sense::VarSense 
 end
 
-function Variable(form_uid::FormId,
-                  n::String,
-                  c::Float64,
-                  lb::Float64, 
-                  ub::Float64,
-                  t::VarKind,
-                  flag::Flag,
-                  s::VarSense)
-    return Variable(form_uid, n, c, lb, ub, t, flag, s)
-end
+# Commented because it redefines the default constructor
+# function Variable(form_uid::FormId,
+#                   n::String,
+#                   c::Float64,
+#                   lb::Float64, 
+#                   ub::Float64,
+#                   t::VarKind,
+#                   flag::Flag,
+#                   s::VarSense)
+#     return Variable(form_uid, n, c, lb, ub, t, flag, s)
+# end
 
 function Variable(n::String)
     return Variable(0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
 end
 
-mutable struct VarInfo {Duty <: AbstractVarDuty} <: AbstractVarConstrInfo
+mutable struct VarInfo{Duty <: AbstractVarDuty} <: AbstractVarConstrInfo
     cur_cost::Float64
     cur_lb::Float64
     cur_ub::Float64 
