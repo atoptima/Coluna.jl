@@ -15,13 +15,9 @@ Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 
 getuid(id::AbstractVarConstrId) = id.uid
 getinfo(id::AbstractVarConstrId) = id.info
+getinfo(p::Pair{Id, Float64}) = p.info
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, "Id(", getuid(id), ")")
 end
-
-getinfo(Pair{Id, Float64}) = Id.info
-
-getinfo(Id) = Id.info
-
 
