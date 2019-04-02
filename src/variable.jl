@@ -34,10 +34,9 @@ mutable struct VarInfo {Duty <: AbstractVarDuty} <: AbstractVarConstrInfo
     moi_kind::Union{Nothing, MoiVarKind}
 end
 
-function VarInfo(Duty::Type{<: AbstractVarDuty},
-                  var::Variable)
+function VarInfo(Duty::Type{<: AbstractVarDuty}, var::Variable)
     return VarInfo{Duty}(getcost(var), getlb(var), getub(var),
-        Active,  nothing, nothing, nothing)
+        Active, nothing, nothing, nothing)
 end
 
 #==function copy(var::Variable, form::AbstractFormulation, flag::Flag, Duty::Type{<: AbstractVarDuty})

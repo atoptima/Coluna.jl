@@ -1,16 +1,10 @@
-# struct Manager{Id <: AbstractVarConstrId, T} <: AbstractManager
-#     members::Dict{Id,T}
-# end
-
 # Define default functions to use as filters
 # Functions must be of the form:
 # f(::Pair{<:AbstractVarConstrId,
 #          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
 
-
-struct Manager{VC <: AbstractVarConstr,
-               Id <: AbstractVarConstrI} <: AbstractManager
-    members::Dict{Id,VC}
+struct Manager{Id <: AbstractVarConstrId, T} <: AbstractManager
+    members::Dict{Id,T}
 end
 
 Manager(::Type{Variable}) = Manager(

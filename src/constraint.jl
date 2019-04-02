@@ -49,7 +49,7 @@ end
 
 indextype(::Type{<: Constraint}) = MoiConstrIndex
 infotype(::Type{<: Constraint}) = ConstrInfo
-idtype(::Type{<: Constraint}) = Id{constrInfo}
+idtype(::Type{<: Constraint}) = Id{ConstrInfo}
 
 getform(c::Constraint) = c.form_uid
 getrhs(c::Constraint) = c.rhs
