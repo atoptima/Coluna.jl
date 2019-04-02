@@ -10,18 +10,8 @@ mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
     sense::VarSense 
 end
 
-mutable struct VarInfo <: AbstractVarConstrInfo
-    cur_cost::Float64
-    cur_lb::Float64
-    cur_ub::Float64 
-    bd_constr_ref::MoiVarBound
-    moi_kind::MoiVarKind
-    cur_flag::Flag     # Static, Dynamic, Artifical, Implicit
-    cur_status::Status   # Active or not
-end
-
 function Variable(Duty::Type{<: AbstractVarDuty}, m::AbstractModel, form_uid::FormId, n::String, c::Float64, lb::Float64, 
-                  ub::Float64, t::VarKind, flag::Flag, s::VarSense)
+        ub::Float64, t::VarKind, flag::Flag, s::VarSense)
     uid = getnewuid(m.var_counter)
     vuid = Id(Variable, uid)
     return Variable{Duty}(vuid, form_uid, n, c, lb, ub, t, flag, s)
@@ -31,12 +21,29 @@ function Variable(m::AbstractModel, n::String)
     return Variable(OriginalVar, m, 0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
 end
 
+mutable struct VarInfo <: AbstractVarConstrInfo
+    cur_cost::Float64
+    cur_lb::Float64
+    cur_ub::Float64 
+    bd_constr_ref::Union{Nothing, MoiVarBound}
+    moi_kind::Union{Nothing, MoiVarKind}
+    cur_flag::Flag     # Static, Dynamic, Artifical, Implicit
+    cur_status::Status   # Active or not
+end
+
+function VarInfo(var::Variable)
+    return VarInfo(getcost(var), getlb(var), getub(var), nothing, nothing,
+        getflag(var), Active)
+end
+
 function copy(var::Variable, flag::Flag, Duty::Type{<: AbstractVarDuty})
-    return Variable{Duty}(getuid(var), getform(var), getname(var), getcost(var), 
+    return Variable{Duty}(getid(var), getform(var), getname(var), getcost(var), 
         getlb(var), getub(var), getkind(var), flag, getsense(var))
 end
 
-indextype(::Type{Variable}) = MoiVarIndex
+
+indextype(::Type{<: Variable}) = MoiVarIndex
+infotype(::Type{<: Variable}) = VarInfo
 
 getuid(v::Variable) = getuid(v.var_id)
 getid(v::Variable) = v.var_id

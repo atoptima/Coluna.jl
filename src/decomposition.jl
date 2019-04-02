@@ -6,10 +6,10 @@ function fill_annotations_set!(ann_set, varconstr_annotations)
 end
 
 function inverse(varconstr_annotations)
-    varconstr_in_form = Dict{FormId, Vector{Int}}()
+    varconstr_in_form = Dict{FormId, Vector{Id}}()
     for (varconstr_id, annotation) in varconstr_annotations
         if !haskey(varconstr_in_form, annotation.unique_id)
-            varconstr_in_form[annotation.unique_id] = Int[]
+            varconstr_in_form[annotation.unique_id] = Id[]
         end
         push!(varconstr_in_form[annotation.unique_id], varconstr_id)
     end
@@ -39,14 +39,14 @@ function build_dw_master!(model::Model,
         flag = Static
         duty = MasterConstr #MasterConvexityConstr
         lb_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
-        reformulation.dw_pricing_sp_lb[sp_uid] = getuid(lb_conv_constr)
+        reformulation.dw_pricing_sp_lb[sp_uid] = getid(lb_conv_constr)
         membership = Membership(Variable) 
         add!(master_form, lb_conv_constr, membership)
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
         ub_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
-        reformulation.dw_pricing_sp_ub[sp_uid] = getuid(ub_conv_constr)
+        reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
         membership = Membership(Variable) 
         add!(master_form, ub_conv_constr, membership)
     end
@@ -60,7 +60,7 @@ function build_dw_master!(model::Model,
     
     #if (local_art_var)
         # local artificial variables
-        for constr_uid in constrs_in_form #  get_constr_ids(master_form)
+        for constr_uid in constrs_in_form #  getconstrids(master_form)
             name = "loc_art_$(constr_uid)"
             cost = 10.0
             lb = 0.0
@@ -86,7 +86,7 @@ function build_dw_master!(model::Model,
         sense = Positive
         pos_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = Membership(Constraint)
-        for constr_uid in get_constr_ids(master_form)
+        for constr_uid in getconstrids(master_form)
             membership.members[constr_uid] = 1.0
         end
         add!(master_form, pos_global_art_var, membership)
@@ -100,7 +100,7 @@ function build_dw_master!(model::Model,
         sense = Positive
         neg_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = Membership(Constraint)
-        for constr_uid in get_constr_ids(master_form)
+        for constr_uid in getconstrids(master_form)
             membership.members[constr_uid] = -1.0
         end
         add!(master_form, neg_global_art_var, membership)
@@ -148,7 +148,7 @@ function build_dw_pricing_sp!(m::Model,
     #clone_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
     ## Create representative of sp var in master
-    var_uids = get_var_ids(sp_form, PricingSpVar)
+    var_uids = getvarids(sp_form, PricingSpVar)
     clone_in_formulation!(
         var_uids, sp_form, master_form, Implicit, MastRepPricingSpVar
     )

@@ -119,7 +119,7 @@ function create_origconstr!(constrs, memberships::Vector{Membership{Variable}}, 
     membership = Membership(Variable) #spzeros(Float64, MAX_SV_ENTRIES)
     for term in f.terms
         c_var_id = model.mid2cid_map[term.variable_index].value
-        add!(membership,c_var_id, term.coefficient)
+        add!(membership, Id(Variable, c_var_id), term.coefficient)
     end
     push!(memberships, membership)
     c_constr_id = MOI.ConstraintIndex{typeof(f),typeof(s)}(getuid(constr))
@@ -177,10 +177,12 @@ end
 
 function load_decomposition_annotations!(m::Model, src::MOI.ModelLike)
     for (m_id, c_id) in m.mid2cid_map.conmap
-        m.constr_annotations[c_id.value] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
+        id = Id(Constraint, c_id.value)
+        m.constr_annotations[id] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
     end
     for (m_id, c_id) in m.mid2cid_map.varmap
-        m.var_annotations[c_id.value] = MOI.get(src, BD.VariableDecomposition(), m_id)
+        id = Id(Variable, c_id.value)
+        m.var_annotations[id] = MOI.get(src, BD.VariableDecomposition(), m_id)
     end
     return
 end

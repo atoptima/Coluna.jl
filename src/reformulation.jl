@@ -3,29 +3,27 @@ mutable struct Reformulation <: AbstractFormulation
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
-    dw_pricing_sp_lb::Union{Nothing, Dict{FormId, Id}}
-    dw_pricing_sp_ub::Union{Nothing, Dict{FormId, Id}}
+    dw_pricing_sp_lb::Dict{FormId, Id} # Attribute has ambiguous name
+    dw_pricing_sp_ub::Dict{FormId, Id}
     timer_output::TimerOutputs.TimerOutput
 end
 
-# Reformulation(model::AbstractModel, method::SolutionMethod) = Reformulation(
-#     method, nothing, nothing, Vector{AbstractFormulation}(), Inf, -Inf,
-#     model.timer_output
-# )
+
 Reformulation(model::AbstractModel) = Reformulation(model, DirectMip)
-getmaster(r::Reformulation) = r.master
-setmaster!(r::Reformulation, f) = r.master = f
-add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 
 function Reformulation(model::AbstractModel, method::SolutionMethod)
     return Reformulation(method,
                          nothing,
                          nothing,
                          Vector{AbstractFormulation}(),
-                         nothing,
-                         nothing,
+                         Dict{FormId, Int}(),
+                         Dict{FormId, Int}(),
                          model.timer_output)
 end
+
+getmaster(r::Reformulation) = r.master
+setmaster!(r::Reformulation, f) = r.master = f
+add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 
 function optimize!(reformulation::Reformulation)
     println("\e[1;32m Here starts optimization \e[00m")

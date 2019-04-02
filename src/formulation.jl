@@ -68,21 +68,21 @@ end
 
 
 getuid(f::Formulation) = f.uid
-getvar(f::Formulation, uid::Id) = getvc(f.vars, uid)
-getconstr(f::Formulation, uid::Id) = getvc(f.constrs, uid)
-#get_var_ids(f::Formulation) = get_nz_ids(f.vars)
-#get_var_ids(f::Formulation, d::Type{<:AbstractVarDuty}) = get_ids(f.vars, d)
-#get_var_ids(fo::Formulation, fu::Function) = get_ids(fo.vars, fu)
-#get_var_ids(fo::Formulation, fi::Filter) = get_ids(fo.vars, fi)
-#get_constr_ids(f::Formulation, d::Type{<:AbstractConstrDuty}) = get_ids(f.constrs, d)
-#get_constr_ids(f::Formulation) = get_nz_ids(f.constrs)
+getvar(f::Formulation, id::Id) = get(f.vars, id)[1]
+getvarinfo(f::Formulation, id::Id) = get(f.vars, id)[2]
+getconstr(f::Formulation, id::Id) = get(f.constrs, id)[1]
+getconstrinfo(f::Formulation, id::Id) = get(f.constrs, id)[2]
+getvarids(f::Formulation) = getids(f.vars)
+getconstrids(f::Formulation) = getids(f.constrs)
+getvarids(f::Formulation, D::Type{<:AbstractVarDuty}) = filter(e -> getduty(getvarconstr(e)) == D, f.vars)
+getconstrids(f::Formulation, D::Type{<:AbstractConstrDuty}) = filter(e -> getduty(getvarconstr(e)) == D, f.constrs)
 getobjsense(f::Formulation) = f.obj_sense
         
-get_constr_members_of_var(f::Formulation, uid) = get_constr_members_of_var(f.memberships, uid)
-get_var_members_of_constr(f::Formulation, uid) = get_var_members_of_constr(f.memberships, uid)
+get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.memberships, id)
+get_var_members_of_constr(f::Formulation, id::Id) = get_var_members_of_constr(f.memberships, id)
 
-get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getuid(var))
-get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getuid(constr))
+get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getid(var))
+get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getid(constr))
 
 function clone_in_formulation!(varconstr::AbstractVarConstr,
                                src::Formulation,
@@ -157,27 +157,27 @@ end
 
 function add!(f::Formulation, var::Variable)
     add!(f.vars, var)
-    add_variable!(f.memberships, getuid(var)) 
+    add_variable!(f.memberships, getid(var)) 
     return
 end
 
 function add!(f::Formulation, var::Variable, membership::Membership{Constraint})
     add!(f.vars, var)
-    add_variable!(f.memberships, getuid(var), membership)
+    add_variable!(f.memberships, getid(var), membership)
     return
 end
 
 function add!(f::Formulation, constr::Constraint)
     add!(f.constrs, constr)
-    f.constr_rhs[getuid(constr)] = constr.rhs
-    add_constraint!(f.memberships, getuid(constr))
+    #f.constr_rhs[getuid(constr)] = constr.rhs
+    add_constraint!(f.memberships, getid(constr))
     return
 end
 
 function add!(f::Formulation, constr::Constraint, membership::Membership{Variable})
     add!(f.constrs, constr)
-    f.constr_rhs[getuid(constr)] = constr.rhs
-    add_constraint!(f.memberships, getuid(constr), membership)
+    #f.constr_rhs[getuid(constr)] = constr.rhs
+    add_constraint!(f.memberships, getid(constr), membership)
     return
 end
 
@@ -224,7 +224,7 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for uid in get_var_ids(f)
+    for uid in getvarids(f)
         var = getvar(f, uid)
         name = getname(var)
         cost = getcost(var)
@@ -265,7 +265,7 @@ function _show_constraint(io::IO, f::Formulation, uid)
 end
 
 function _show_constraints(io::IO , f::Formulation)
-    for uid in get_constr_ids(f)
+    for uid in getconstrids(f)
         _show_constraint(io, f, uid)
     end
     return
@@ -283,7 +283,7 @@ function _show_variable(io::IO, f::Formulation, uid)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for uid in get_var_ids(f)
+    for uid in getvarids(f)
         _show_variable(io, f, uid)
     end
 end

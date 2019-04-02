@@ -8,13 +8,6 @@ mutable struct Constraint{Duty <: AbstractConstrDuty} <: AbstractVarConstr
     flag::Flag    # Static, Dynamic/Delayed, Implicit
 end
 
-mutable struct ConstrInfo <: AbstractVarConstrInfo
-    cur_rhs::Float64 
-    cur_sense::ConstrSense # Greater Less Equal
-    cur_flag::Flag     # Static, Dynamic/Delayed,  Implicit
-    cur_status::Status   # Active or not
-end
-
 function Constraint(Duty::Type{<: AbstractConstrDuty},
                     m::AbstractModel,
                     form_uid::FormId,
@@ -32,12 +25,24 @@ function Constraint(m::AbstractModel, name::String)
     return Constraint(OriginalConstr, m, 0, name, 0.0, Greater, Core, Static)
 end
 
+mutable struct ConstrInfo <: AbstractVarConstrInfo
+    cur_rhs::Float64 
+    cur_sense::ConstrSense # Greater Less Equal
+    cur_flag::Flag     # Static, Dynamic/Delayed,  Implicit
+    cur_status::Status   # Active or not
+end
+
+function ConstrInfo(constr::Constraint)
+    return ConstrInfo(getrhs(constr), getsense(constr), getflag(constr), Active)
+end
+
 function copy(constr::Constraint, flag::Flag, Duty::Type{<: AbstractConstrDuty})
-    return Constraint{Duty}(getuid(constr), getform(constr), getname(constr),
+    return Constraint{Duty}(getid(constr), getform(constr), getname(constr),
         getrhs(constr), getsense(constr), getkind(constr), flag)
 end
 
-indextype(::Type{Constraint}) = MoiConstrIndex
+indextype(::Type{<: Constraint}) = MoiConstrIndex
+infotype(::Type{<: Constraint}) = ConstrInfo
 
 getuid(c::Constraint) = getuid(c.constr_id)
 getid(c::Constraint) = c.constr_id

@@ -219,7 +219,7 @@ end
 
 function add_constraint!(m::Memberships, constr_id::Id)
     if !haskey(m.constr_to_var_members, constr_id)
-        m.constr_to_var_members[constr_id] = Membership(Variable)() #spzeros(Float64, MAX_SV_ENTRIES)
+        m.constr_to_var_members[constr_id] = Membership(Variable)
     end
     return
 end
