@@ -5,7 +5,7 @@ import Base.hash
 import Base.isequal
 
 
-using Coluna
+# using Coluna
 
 abstract type AbstractDuty end
 struct Original <: AbstractDuty end
@@ -29,9 +29,9 @@ mutable struct VarInfo{T <: AbstractDuty}
     flag::Bool
     status::Int # 0 -> active
 end
-VarInfo(v::Variable) = VarInfo(v.value, -Inf, Inf, v.flag, 0)
-VarInfo(v::Variable{T}, status::Int) = VarInfo{T}(v.value, -Inf, Inf, v.flag, status)
-getduty(::VarInfo{T}) = T
+VarInfo(v::Variable{T}) where {T}= VarInfo{T}(v.value, -Inf, Inf, v.flag, 0)
+VarInfo(v::Variable{T}, status::Int) where {T} = VarInfo{T}(v.value, -Inf, Inf, v.flag, status)
+getduty(::VarInfo{T}) where {T} = T
 
 
 struct Id
@@ -52,7 +52,7 @@ function init_structs()
     id = 1
     variables = Variable[]
     var_infos = VarInfo[]
-    for i in 1:10_000_000
+    for i in 1:100_000_000
         p = rand(0:0.0001:1)
         if p < 0.05
             v = Variable{Original}(i, rand(0:0.001:10), "var_$i", rand(false:true))
@@ -77,7 +77,7 @@ function init_structs()
         end
     end
 
-    sv = spzeros(Variable, 10_000_000)
+    sv = spzeros(Variable, 100_000_000)
     int_dict = Dict{Int, Variable}()
     id_dict = Dict{Id, Variable}()
     id_to_float_dict = Dict{Id, Float64}()
@@ -89,7 +89,7 @@ function init_structs()
         id_dict[Id(var.id,var_info)] = var
         id_to_float_dict[Id(var.id,var_info)] = rand()
     end
-    return sv, int_dict, id_dict, id_to_float_dict
+    return variables, var_infos, sv, int_dict, id_dict, id_to_float_dict
 end
 
 function createfilter(sv, f)
@@ -97,15 +97,15 @@ function createfilter(sv, f)
 end
 
 function benchmarks()
-    sv, int_dict, id_dict, id_to_float_dict = init_structs()
+    vs, vinfos, sv, int_dict, id_dict, id_to_float_dict = init_structs()
     int_f1(var) = (var[2].flag == true)
     int_f2(var) = (var[2].value <= 2.0)
     int_f3(var) = (getduty(var[2]) == Another)
     int_f4(var) = true
 
-    id_f1(var) = (var[1].flag == true)
-    id_f2(var) = (var[1].value <= 2.0)
-    id_f3(var) = (getduty(var[1]) == Another)
+    id_f1(var) = (var[1].info.flag == true)
+    id_f2(var) = (var[1].info.value <= 2.0)
+    id_f3(var) = (getduty(var[1].info) == Another)
     id_f4(var) = true
 
 
@@ -152,7 +152,8 @@ function benchmarks()
     return
 end
 
-function init_structs2()
+
+function init_structs2(vs, vinfos)
     ids = Int[]
     values = Float64[]
     for i in 1:10_000_000
@@ -165,24 +166,34 @@ function init_structs2()
 
     sv = spzeros(Float64, 10_000_000)
     dict = Dict{Int, Float64}()
+    id_dict = Dict{Id, Float64}()
     for (i, val) in enumerate(values)
+        var = vs[i]
+        var_info = vinfos[i]
         sv[ids[i]] = values[i]
         dict[ids[i]] = values[i]
+        id_dict[Id(var.id,var_info)] = values[i]
     end
-    return sv, dict
+    return sv, dict, id_dict
 end
 
 function multiplication()
-    sv1, dict1 = init_structs2()
-    sv2, dict2 = init_structs2()
+    vs, vinfos, sv, int_dict, id_dict, id_to_float_dict = init_structs()
+    sv1, dict1, id_dict1 = init_structs2(vs, vinfos)
+    sv2, dict2, id_dict2 = init_structs2(vs, vinfos)
 
     @btime $(dict3 = merge(+, dict1, dict2))
     @btime $(val1 = mapreduce(e -> e[2], +, dict3))
     @show val1
-    @btime $(sv3 = sv1 .+ sv2)
-    @btime $(val2 = sum(sv3))
+
+    @btime $(dict4 = merge(+, id_dict1, id_dict2))
+    @btime $(val2 = mapreduce(e -> e[2], +, dict4))
     @show val2
+
+    @btime $(sv3 = sv1 .+ sv2)
+    @btime $(val3 = sum(sv3))
+    @show val3
 end
 
-# multiplication()
+multiplication()
 benchmarks()
