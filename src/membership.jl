@@ -2,7 +2,8 @@ struct Membership{VC <: AbstractVarConstr} <: AbstractMembership
     members::Dict{Id, Float64}
 end
 
-Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{indextype(T), Float64}())
+Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{idtype(T), Float64}())
+
 getmembers(m::Membership) = m.members
 
 # TODO change the name ? (copy?)

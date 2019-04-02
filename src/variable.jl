@@ -1,5 +1,4 @@
-mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
-    id::Id
+mutable struct Variable <: AbstractVarConstr
     form_uid::FormId
     name::String
     cost::Float64 
@@ -10,9 +9,7 @@ mutable struct Variable{Duty <: AbstractVarDuty} <: AbstractVarConstr
     sense::VarSense 
 end
 
-function Variable(Duty::Type{<: AbstractVarDuty},
-                  m::AbstractModel,
-                  form_uid::FormId,
+function Variable(form_uid::FormId,
                   n::String,
                   c::Float64,
                   lb::Float64, 
@@ -20,39 +17,38 @@ function Variable(Duty::Type{<: AbstractVarDuty},
                   t::VarKind,
                   flag::Flag,
                   s::VarSense)
-    uid = getnewuid(m.var_counter)
-    vuid = Id(Variable, uid)
-    return Variable{Duty}(vuid, form_uid, n, c, lb, ub, t, flag, s)
+    return Variable(form_uid, n, c, lb, ub, t, flag, s)
 end
 
-function Variable(m::AbstractModel, n::String)
-    return Variable(OriginalVar, m, 0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
+function Variable(n::String)
+    return Variable(0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
 end
 
-mutable struct VarInfo <: AbstractVarConstrInfo
+mutable struct VarInfo {Duty <: AbstractVarDuty} <: AbstractVarConstrInfo
     cur_cost::Float64
     cur_lb::Float64
     cur_ub::Float64 
-    cur_flag::Flag     # Static, Dynamic, Artifical, Implicit
     cur_status::Status   # Active or not
-    index::MoiIndex # moi ref
+    index::MoiVarIndex # moi ref
     bd_constr_ref::Union{Nothing, MoiVarBound}
     moi_kind::Union{Nothing, MoiVarKind}
 end
 
-function VarInfo(var::Variable)
-    return VarInfo(getcost(var), getlb(var), getub(var),
-        getflag(var), Active,  nothing, nothing, nothing)
+function VarInfo(Duty::Type{<: AbstractVarDuty},
+                  var::Variable)
+    return VarInfo{Duty}(getcost(var), getlb(var), getub(var),
+        Active,  nothing, nothing, nothing)
 end
 
-function copy(var::Variable, form::AbstractFormulation, flag::Flag, Duty::Type{<: AbstractVarDuty})
+#==function copy(var::Variable, form::AbstractFormulation, flag::Flag, Duty::Type{<: AbstractVarDuty})
     return Variable{Duty}(Id(getuid(var)), form, getname(var), getcost(var), 
         getlb(var), getub(var), getkind(var), flag, getsense(var))
-end
+end ==#
 
 
 indextype(::Type{<: Variable}) = MoiVarIndex
 infotype(::Type{<: Variable}) = VarInfo
+idtype(::Type{<: Variable}) = Id{VarInfo}
 
 getuid(v::Variable) = getuid(v.id)
 getid(v::Variable) = v.id
