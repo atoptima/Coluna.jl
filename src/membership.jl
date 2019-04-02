@@ -22,7 +22,7 @@ function set!(m::Membership, id::Id, val::Float64)
     return
 end
 
-get_ids_vals(m::Membership) = (collect(keys(m.members)), collect(values(m.members)))
+# get_ids_vals(m::Membership) = (collect(keys(m.members)), collect(values(m.members)))
 
 struct Memberships
     var_to_constr_members    ::Dict{Id, Membership{Constraint}}
@@ -58,7 +58,6 @@ end
 #function add_constr!(m::Membership{Constraint}, constr_id::Id, val::Float64)
 #    m[constr_id] = val
 #end
-
 
 function get_constr_members_of_var(m::Memberships, var_id::Id) 
     if haskey(m.var_to_constr_members, var_id)
@@ -183,25 +182,22 @@ function reset_var_members_of_constr!(m::Memberships, constr_id::Id,
 end
 
 function set_constr_members_of_var!(m::Memberships, var_id::Id, new_membership::Membership{Constraint}) 
-    m.var_to_constr_members[var_id] = Membership(Constraint)
-    constr_ids, vals = get_ids_vals(new_membership)
-    for j in 1:length(constr_ids)
-        add!(m.var_to_constr_members[var_id],constr_ids[j], vals[j])
-        if !haskey(m.constr_to_var_members, constr_ids[j])
-            m.constr_to_var_members[constr_ids[j]] = Membership(Variable) 
+    m.var_to_constr_members[var_id] = new_membership
+    for (constr_id, val) in new_membership
+        if !haskey(m.constr_to_var_members, constr_id)
+            m.constr_to_var_members[constr_id] = Membership(Variable) 
         end
-        add!(m.constr_to_var_members[constr_ids[j]], var_id, vals[j])
+        add!(m.constr_to_var_members[constr_id], var_id, val)
     end
 end
 
 function set_var_members_of_constr!(m::Memberships, constr_id::Id, new_membership::Membership{Variable}) 
     m.constr_to_var_members[constr_id] = new_membership
-    var_ids, vals = get_ids_vals(new_membership)
-    for j in 1:length(var_ids)
-        if !haskey(m.var_to_constr_members, var_ids[j])
-            m.var_to_constr_members[var_ids[j]] = Membership(Constraint)
+    for (var_id, val) in new_membership
+        if !haskey(m.var_to_constr_members, var_id)
+            m.var_to_constr_members[var_id] = Membership(Constraint)
         end
-        add!(m.var_to_constr_members[var_ids[j]], constr_id, vals[j])
+        add!(m.var_to_constr_members[var_id], constr_id, val)
     end
 end
 

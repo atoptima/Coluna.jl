@@ -241,12 +241,9 @@ function _show_constraint(io::IO, f::Formulation, uid)
     constr = getconstr(f, uid)
     print(io, " ", getname(constr), " : ")
 
-    m = get_var_members_of_constr(f, constr)
-    var_uids, var_coeffs = get_ids_vals(m)
-    for i in 1:length(var_uids)
-        var = getvar(f, var_uids[i])
+    for (var_id, coeff) in get_var_members_of_constr(f, constr)
+        var = getvar(f, var_id)
         name = getname(var)
-        coeff = var_coeffs[i]
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
