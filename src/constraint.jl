@@ -1,16 +1,12 @@
-mutable struct Constraint{Duty <: AbstractConstrDuty} <: AbstractVarConstr
-    id::Id
+mutable struct Constraint <: AbstractVarConstr
     form_uid::FormId
     name::String
     rhs::Float64 
     sense::ConstrSense # Greater Less Equal
     kind::ConstrKind  # Core Facultative SubSystem 
-    flag::Flag    # Static, Dynamic/Delayed, Implicit
 end
 
-function Constraint(Duty::Type{<: AbstractConstrDuty},
-                    m::AbstractModel,
-                    form_uid::FormId,
+function Constraint(form_uid::FormId,
                     name::String,
                     rhs::Float64,
                     sense::ConstrSense, 
@@ -18,26 +14,26 @@ function Constraint(Duty::Type{<: AbstractConstrDuty},
                     flag::Flag)
     uid = getnewuid(m.constr_counter)
     cuid = Id(Constraint, uid)
-    return Constraint{Duty}(cuid, form_uid,  name, rhs, sense, kind, flag)
+    return Constraint(form_uid,  name, rhs, sense, kind, flag)
 end
 
-function Constraint(m::AbstractModel, name::String)
-    return Constraint(OriginalConstr, m, 0, name, 0.0, Greater, Core, Static)
+function Constraint(name::String)
+    return Constraint(0, name, 0.0, Greater, Core, Static)
 end
 
-mutable struct ConstrInfo <: AbstractVarConstrInfo
+mutable struct ConstrInfo {Duty <: AbstractConstrDuty} <: AbstractVarConstrInfo
     cur_rhs::Float64 
     cur_sense::ConstrSense # Greater Less Equal
-    cur_flag::Flag     # Static, Dynamic/Delayed,  Implicit
     cur_status::Status   # Active or not
     index::MoiConstrIndex
 end
 
-function ConstrInfo(constr::Constraint)
-    return ConstrInfo(getrhs(constr), getsense(constr), getflag(constr), Active, nothing)
+function ConstrInfo(Duty::Type{<: AbstractConstrDuty},
+                    constr::Constraint)x
+    return ConstrInfo{Duty}(getrhs(constr), getsense(constr),  Active, nothing)
 end
 
-function copy(vc::T, flag::Flag, Duty::Type{<: AbstractDuty},
+#==function copy(vc::T, flag::Flag, Duty::Type{<: AbstractDuty},
               form_uid::Int) where {T <: AbstractVarConstr}
     return T{Duty}(Id(getid(vc)), form_uid, getname(vc),
                    getrhs(constr), getsense(constr), getkind(constr), flag)
@@ -49,12 +45,12 @@ function copy(constr::Constraint, flag::Flag, Duty::Type{<: AbstractConstrDuty},
     return Constraint{Duty}(Id(getid(constr)), form_uid, getname(constr),
         getrhs(constr), getsense(constr), getkind(constr), flag)
 end
+==#
 
 indextype(::Type{<: Constraint}) = MoiConstrIndex
 infotype(::Type{<: Constraint}) = ConstrInfo
+idtype(::Type{<: Constraint}) = Id{constrInfo}
 
-getuid(c::Constraint) = getuid(c.id)
-getid(c::Constraint) = c.id
 getform(c::Constraint) = c.form_uid
 getrhs(c::Constraint) = c.rhs
 getname(c::Constraint) = c.name

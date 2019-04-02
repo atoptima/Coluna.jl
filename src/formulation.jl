@@ -52,48 +52,33 @@ end
 #getvarcost(f::Formulation, uid) = f.costs[uid]
 #getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
 #getvarub(f::Formulation, uid) = f.upper_bounds[uid]
-#getvartype(f::Formulation, uid) = f.var_types[uid]
 
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
 
-#activevar(f::Formulation) = f.vars.members[activemask(f.vars.status)]
-#staticvar(f::Formulation) = f.vars.members[staticmask(f.vars.status)]
-#dynamicvar(f::Formulation) = f.vars.members[dynamicmask(f.vars.status)]
-#artificalvar(f::Formulation) = f.vars.members[artificialmask(f.vars.status)]
-#activeconstr(f::Formulation) = f.constrs.members[activemask(f.constrs.status)]
-#staticconstr(f::Formulation) = f.constrs.members[staticmask(f.constrs.status)]
-#dynamicconstr(f::Formulation) = f.constrs.members[dynamicmask(f.constrs.status)]
 
-getvarids(fo::Formulation, fu::Function) = filter(fu, fo.vars)
-getconstrids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
+getvar_ids(fo::Formulation, fu::Function) = filter(fu, fo.vars)
+
+getconstr_ids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
 
 getuid(f::Formulation) = f.uid
 
-getvar(f::Formulation, id::Id) = get(f.vars, id)[1]
+getvar(f::Formulation, id::Id) = get(f.vars, id)
 
-getvarinfo(f::Formulation, id::Id) = get(f.vars, id)[2]
+getconstr(f::Formulation, id::Id) = get(f.constrs, id)
 
-getconstr(f::Formulation, id::Id) = get(f.constrs, id)[1]
+getvar_ids(f::Formulation) = getids(f.vars)
 
-getconstrinfo(f::Formulation, id::Id) = get(f.constrs, id)[2]
+getconstr_ids(f::Formulation) = getids(f.constrs)
 
-getvarids(f::Formulation) = getids(f.vars)
+getvar_ids(f::Formulation, d::Type{<:AbstractVarDuty}) = collect(keys(filter(e -> getvarconstr_info(e).duty == d, f.vars)))
 
-getconstrids(f::Formulation) = getids(f.constrs)
+getconstr_ids(f::Formulation, d::Type{<:AbstractConstrDuty}) = collect(keys(filter(e -> getvarconstr_info(e).duty == d, f.constrs)))
 
-getvarids(f::Formulation, D::Type{<:AbstractVarDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.vars)))
+getvar_ids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.vars)))
 
-getconstrids(f::Formulation, D::Type{<:AbstractConstrDuty}) = collect(keys(filter(e -> getduty(getvarconstr(e)) == D, f.constrs)))
-
-getvarids(fo::Formulation, fl::Flag) = collect(keys(filter(e -> getvarconstr_info(e).cur_flag == f, f.vars)))
-
-getConstrids(fo::Formulation, fl::Flag) = collect(keys(filter(e -> getvarconstr_info(e).cur_flag == f, f.constrs)))
-
-getvarids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.vars)))
-
-getConstrids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.constrs)))
+getconstr_ids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.constrs)))
 
 getobjsense(f::Formulation) = f.obj_sense
 
@@ -244,7 +229,7 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for id in getvarids(f)
+    for id in getvar_ids(f)
         var = getvar(f, id)
         name = getname(var)
         cost = getcost(var)
@@ -288,7 +273,7 @@ function _show_constraint(io::IO, f::Formulation, id)
 end
 
 function _show_constraints(io::IO , f::Formulation)
-    for id in sort!(getconstrids(f))
+    for id in sort!(getconstr_ids(f))
         _show_constraint(io, f, id)
     end
     return
@@ -306,7 +291,7 @@ function _show_variable(io::IO, f::Formulation, uid)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for id in sort!(getvarids(f))
+    for id in sort!(getvar_ids(f))
         _show_variable(io, f, id)
     end
 end
