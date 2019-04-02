@@ -267,7 +267,7 @@ function _show_constraint(io::IO, f::Formulation, id)
         op = "<="
     end
     print(io, " ", op, " ", getrhs(constr))
-    d = getduty(constr)
+    d = getduty(id)
     println(io, " (", d ,")")
     return
 end
@@ -279,13 +279,13 @@ function _show_constraints(io::IO , f::Formulation)
     return
 end
 
-function _show_variable(io::IO, f::Formulation, uid)
-    var = getvar(f, uid)
+function _show_variable(io::IO, f::Formulation, id)
+    var = getvar(f, id)
     name = getname(var)
     lb = getlb(var)
     ub = getub(var)
     t = gettype(var)
-    d = getduty(var)
+    d = getduty(id)
     f = getflag(var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d ," | ", f , ")")
 end
