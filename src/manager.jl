@@ -1,3 +1,7 @@
+# struct Manager{Id <: AbstractVarConstrId, T} <: AbstractManager
+#     members::Dict{Id,T}
+# end
+
 # Define default functions to use as filters
 # Functions must be of the form:
 # f(::Pair{<:AbstractVarConstrId,
@@ -6,7 +10,6 @@
 _active_(id_info::Pair{<:AbstractVarConstrId,
                        <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}}
          ) = id_info[2][2].cur_status == Active
-
 
 struct Manager{VC <: AbstractVarConstr,
                Id <: AbstractVarConstrId,

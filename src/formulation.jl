@@ -109,9 +109,8 @@ function clone_in_formulation!(varconstr::AbstractVarConstr,
                                src::Formulation,
                                dest::Formulation,
                                flag::Flag,
-                               duty)
-    varconstr_copy = copy(varconstr, flag, duty)
-    setform!(varconstr_copy, getuid(dest))
+                               duty::Type{<:AbstractDuty})
+    varconstr_copy = copy(varconstr, flag, duty, getuid(dest))
     add!(dest, varconstr_copy)
     return varconstr_copy
 end
