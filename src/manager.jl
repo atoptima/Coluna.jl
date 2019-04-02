@@ -12,7 +12,7 @@ Manager(::Type{Variable}) = Manager(
 )
 
 Manager(::Type{Constraint}) = Manager(
-    Dict{Id{MoiConstrIndex,ConstrInfo},Constraint}()
+    Dict{Id{MoiConstrIndex, ConstrInfo}, Constraint}()
 )
 
 has(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)

@@ -74,6 +74,11 @@ end
 #    m[constr_id] = val
 #end
 
+    
+get_subset(m::Membership, d::Type{<:AbstractConstrDuty}, s::Status) =
+    filter(e -> getduty(getinfo(e)) == d && getinfo(e).status == s, m.members)))
+
+
 function get_constr_members_of_var(m::Memberships, var_id::Id) 
     if haskey(m.var_to_constr_members, var_id)
         return m.var_to_constr_members[var_id]

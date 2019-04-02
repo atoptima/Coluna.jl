@@ -39,6 +39,8 @@ function VarInfo(Duty::Type{<: AbstractVarDuty}, var::Variable)
         Active, nothing, nothing, nothing)
 end
 
+getduty(vi::VarInfo{T}) where {T <: AbstractVarDuty} = T
+
 #==function copy(var::Variable, form::AbstractFormulation, flag::Flag, Duty::Type{<: AbstractVarDuty})
     return Variable{Duty}(Id(getuid(var)), form, getname(var), getcost(var), 
         getlb(var), getub(var), getkind(var), flag, getsense(var))
@@ -58,7 +60,6 @@ getlb(v::Variable) = v.lower_bound
 getub(v::Variable) = v.upper_bound
 gettype(v::Variable) = v.kind
 getkind(v::Variable) = v.kind
-getduty(v::Variable{T}) where {T <: AbstractVarDuty} = T
 getsense(v::Variable) = v.sense
 getflag(v::Variable) = v.flag
 
