@@ -48,14 +48,14 @@ struct Memberships
     expression_to_var_members::Dict{Id, Membership{Variable}}
 end
 
-# function check_if_exists(dict::Dict{Id, Membership}, membership::Membership)
-#     for (id, m) in dict
-#         if (m == membership)
-#             return id
-#         end
-#     end
-#     return 0
-# end
+function check_if_exists(dict::Dict{Id, Membership}, membership::Membership)
+    for (id, m) in dict
+        if (m == membership)
+            return id
+        end
+    end
+    return 0
+end
 
 function Memberships()
     return Memberships(Dict{Id, Membership{Constraint}}(),
