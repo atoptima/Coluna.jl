@@ -61,7 +61,7 @@ function build_dw_master!(model::Model,
     #if (local_art_var)
         # local artificial variables
         for constr_uid in constrs_in_form #  getconstrids(master_form)
-            name = "loc_art_$(constr_uid)"
+            name = "loc_art_$(getuid(constr_uid))"
             cost = 10.0
             lb = 0.0
             ub = 1.0

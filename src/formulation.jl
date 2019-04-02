@@ -240,8 +240,10 @@ end
 function _show_constraint(io::IO, f::Formulation, id)
     constr = getconstr(f, id)
     print(io, " ", getname(constr), " : ")
-
-    for (var_id, coeff) in get_var_members_of_constr(f, constr)
+    membership = get_var_members_of_constr(f, constr)
+    var_ids = getids(membership)
+    for var_id in sort!(var_ids)
+        coeff = membership[var_id]
         if has(f.vars, var_id)
             var = getvar(f, var_id)
             name = getname(var)
@@ -266,8 +268,8 @@ function _show_constraint(io::IO, f::Formulation, id)
 end
 
 function _show_constraints(io::IO , f::Formulation)
-    for uid in getconstrids(f)
-        _show_constraint(io, f, uid)
+    for id in sort!(getconstrids(f))
+        _show_constraint(io, f, id)
     end
     return
 end
@@ -284,8 +286,8 @@ function _show_variable(io::IO, f::Formulation, uid)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for uid in getvarids(f)
-        _show_variable(io, f, uid)
+    for id in sort!(getvarids(f))
+        _show_variable(io, f, id)
     end
 end
 

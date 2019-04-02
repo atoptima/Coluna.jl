@@ -6,7 +6,8 @@ end
 Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{indextype(T)}(i, nothing)
 
 Base.hash(a::Id, h::UInt) = hash(a.uid, h)
-Base.isequal(a::Id, b::Id) = Base.isequal(hash(a), hash(b))
+Base.isequal(a::Id, b::Id) = Base.isequal(hash(a), hash(b)) # why on hashes ?
+Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 
 getuid(id::AbstractVarConstrId) = id.uid
 get_moi_index(id::AbstractVarConstrId) = id.index

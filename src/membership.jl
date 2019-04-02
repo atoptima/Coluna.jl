@@ -1,6 +1,7 @@
 struct Membership{VC <: AbstractVarConstr} <: AbstractMembership
     members::Dict{Id, Float64}
 end
+
 Membership(T::Type{<:AbstractVarConstr}) = Membership{T}(Dict{indextype(T), Float64}())
 getmembers(m::Membership) = m.members
 # TODO change the name ? (copy?)
@@ -11,6 +12,8 @@ iterate(m::Membership, state) = iterate(m.members, state)
 length(m::Membership) = length(m.container)
 getindex(m::Membership, elements) = getindex(m.members, elements)
 lastindex(m::Membership) = lastindex(m.members)
+
+getids(m::Membership) = collect(keys(m.members))
 
 function add!(m::Membership, id::Id, val::Float64)
     haskey(m.members, id) ? (m.members[id] += val) : (m.members[id] = val)
