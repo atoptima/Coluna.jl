@@ -3,13 +3,12 @@ struct Membership{VC <: AbstractVarConstr,
     members::Dict{Id, Pair{Float64,Info}}
 end
 
-
-Membership(::Type{Variable}) = Membership(
-    Dict{Id{MoiVarIndex}, Pair{Float64,VarInfo}}()
+Membership(T::Type{Variable}) = Membership{T,VarInfo}(
+    Dict{indextype(T), Pair{Float64,VarInfo}}()
 )
 
-Membership(::Type{Constraint}) = Membership(
-    Dict{Id{MoiConstrIndex}, Pair{Float64,ConstrInfo}}()
+Membership(T::Type{Constraint}) = Membership{T,VarInfo}(
+    Dict{indextype(T), Pair{Float64,ConstrInfo}}()
 )
 
 getmembers(m::Membership) = m.members
