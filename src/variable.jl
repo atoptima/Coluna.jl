@@ -73,6 +73,7 @@ setlb!(v::VarInfo, lb::Float64) = v.cur_lb = lb
 setub!(v::VarInfo, ub::Float64) = v.cur_ub = ub
 setstatus!(v::VarInfo, s::Status) = v.cur_status = s
 setduty!(v::VarInfo, d) = v.duty = d
+setmoiindex(v::VarInfo, index::MoiVarIndex) = v.index = index
 
 
 vctype(::Type{<: VarInfo}) = Variable

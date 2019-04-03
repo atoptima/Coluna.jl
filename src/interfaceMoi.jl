@@ -50,15 +50,15 @@ function enforce_var_kind_in_optimizer(optimizer::MOI.AbstractOptimizer,
 end
 
 function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                   id::Id,
-                                   cost::Float64,
-                                   lb::Float64,
-                                   ub::Float64,
-                                   kind::VarKind,
-                                   is_relaxed::Bool)
-    index = MOI.add_variable(optimizer)
-    setmoiindex(id, index)
-    update_cost_in_optimizer(optimizer, id, cost)
+                                   id::Id{VarInfo})
+                                   # cost::Float64,
+                                   # lb::Float64,
+                                   # ub::Float64,
+                                   # kind::VarKind,
+                                   # is_relaxed::Bool)
+    moi_index = MOI.add_variable(optimizer)
+    setmoiindex(getinfo(id), moi_index)
+    update_cost_in_optimizer(optimizer, id, getcost(id))
     !is_relaxed && enforce_var_kind_in_optimizer(optimizer, id)
     if (kind != Binary || is_relaxed)
         enforce_initial_bounds_in_optimizer(optimizer, id, lb, ub)

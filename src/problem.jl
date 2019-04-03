@@ -80,8 +80,23 @@ moi2cid(m::Problem, mid) = m.mid2cid_map[mid]
 #     end
 # end
 
+function call_attention()
+    for i in 1:10
+        print("\e[1;31m ! \e[00m")
+        print("\e[1;32m ! \e[00m")
+        print("\e[1;35m ! \e[00m")
+    end
+    println()
+end
+
 function load_problem_in_optimizer(prob::Problem)
-    println("\e[1;32m Load problem in optimizer is currently empty \e[00m")
+    call_attention()
+    println("\e[1;32m -------------> VN: Load problem in optimizer currently bugs. \e[00m")
+    println("\e[1;32m -------------> VN: how do we know if a variable/problem is relaxed? \e[00m")
+    println("\e[1;32m -------------> VN: should we implement add_vc_to_moi in terms of Id or VarConstrInfo? \e[00m")
+    println("\e[1;32m -------------> VN: need to discuss these things before I continue the work. \e[00m")
+    call_attention()
+    # load_problem_in_optimizer(prob.re_formulation)
 end
 
 function initialize_moi_optimizer(prob::Problem)

@@ -357,6 +357,15 @@ function Base.show(io::IO, f::Formulation)
     return
 end
 
+function load_problem_in_optimizer(formulation::Formulation)
+    for (id, var) in filter(_active_, getvars(formulation))
+        add_variable_in_optimizer(formulation.moi_optimizer, id)
+    end
+    for (id, constr) in filter(_active_, getconstrs(formulation))
+        add_constriable_in_optimizer(formulation.moi_optimizer, id)
+    end
+end
+
 function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
     form.moi_optimizer = create_moi_optimizer(factory)
 end

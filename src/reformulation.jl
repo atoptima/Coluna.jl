@@ -25,15 +25,20 @@ getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 
+function load_problem_in_optimizer(reformulation::Reformulation)
+    load_problem_in_optimizer(reformulation.master)
+    for problem in reformulation.dw_pricing_subprs
+        load_problem_in_optimizer(problem)
+    end
+end
+
 function initialize_moi_optimizer(reformulation::Reformulation,
                                   master_factory::JuMP.OptimizerFactory,
                                   pricing_factory::JuMP.OptimizerFactory)
-
     initialize_moi_optimizer(reformulation.master, master_factory)
     for problem in reformulation.dw_pricing_subprs
         initialize_moi_optimizer(problem, pricing_factory)
     end
-
 end
 
 # function set_optimizers_dict(dest::Optimizer)
