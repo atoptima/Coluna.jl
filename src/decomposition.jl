@@ -135,7 +135,7 @@ function build_dw_pricing_sp!(m::Model,
     ub = 1.0
     kind = Binary
     flag = Static
-    duty = PricingSpVar
+    duty = PricingSpSetupVar
     sense = Positive
     setup_var = Variable(duty, m, sp_uid, name, cost, lb, ub, kind, flag, sense)
     membership = Membership(Constraint)

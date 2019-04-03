@@ -21,7 +21,11 @@ function ConstrInfo(Duty::Type{<: AbstractConstrDuty},
                     constr::Constraint)x
     return ConstrInfo{Duty}(getrhs(constr), getsense(constr),  Active, nothing)
 end
+
 infotype(::Type{<: ConstrInfo}) = Constraint
+
+infotype(::Type{<: Constraint}) = ConstrInfo
+
 getduty(ci::ConstrInfo{T}) where {T <: AbstractVarDuty} = T
 
 #==function copy(vc::T, flag::Flag, Duty::Type{<: AbstractDuty},

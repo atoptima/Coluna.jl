@@ -92,9 +92,9 @@ function insert_cols_in_master(model::Model,
                 
                 
                 ### compute column vector
-                for (var_uid, var_val) in sp_sol.var_members
-                    for (constr_uid, var_coef) in get_constr_members_of_var(m, var_uid)
-                        add_constr_members_of_var!(m, mc_uid, constr_uid, var_val * var_coef)
+                for (var_id, var_val) in sp_sol.var_members
+                    for (constr_id, var_coef) in get_constr_members_of_var(m, var_id)
+                        add_constr_members_of_var!(bship, mc_id, constr_id, var_val * var_coef)
                     end
                 end
                 # setup var is in the sp_sol
@@ -103,13 +103,13 @@ function insert_cols_in_master(model::Model,
                # end
                 
                 ### record Sp solution
-                add_var_members_of_partialsol!(m, mc_uid, sp_sol.var_members)
+                add_var_members_of_partialsol!(mbship, mc_id, sp_sol.var_members)
 
                 
                 
                 #update_moi_membership(master_form, mc_var)
 
-                @show string("added column ", mc_var)
+                @show string("added column ", mc_id, mc_var)
                 # TODO  do while sp_sol.next exists
             end
         end
