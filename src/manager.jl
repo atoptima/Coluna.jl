@@ -7,9 +7,9 @@ struct Manager{I <: Id,T}  <: AbstractManager
     members::Dict{I,T}
 end
 
-function Manager{I <: Id, T}()
-    return Manager{I <: Id, T}(Dict{I,T}())
-end
+#function Manager{I <: Id, T}()
+#    return Manager{I <: Id, T}(Dict{I,T}())
+#end
 
 function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)
     return Manager{idtype(VCtype), ValType}(Dict{idtype(VCtype),ValType}())
