@@ -207,7 +207,7 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form = true)    
+function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form = true)
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
     primal_sols = PrimalSolution[]
@@ -222,11 +222,10 @@ function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form
                 dual_solution_record = dual_sol
             end
         end
-
         return (status, primal_sol.value, primal_sols, dual_sol)
     end
     @logmsg LogLevel(-4) string("Solver has no result to show.")
-    return (status, +inf, nothing, nothing)
+    return (status, Inf, nothing, nothing)
 end
 
 function compute_original_cost(sol::PrimalSolution, form::Formulation)

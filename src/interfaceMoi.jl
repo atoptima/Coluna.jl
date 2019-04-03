@@ -1,5 +1,5 @@
 function set_optimizer_obj(form::Formulation,
-                           new_obj::Dict{Id, Float64}) 
+                           new_obj::Dict{Id, Float64})
 
     vec = [MOI.ScalarAffineTerm(cost, form.map_var_uid_to_index[var_uid]) for (var_uid, cost) in new_obj]
     objf = MOI.ScalarAffineFunction(vec, 0.0)
@@ -64,42 +64,16 @@ function add_variable_in_optimizer(form::Formulation,
     end
 end
 
-function fill_primal_sol(form::Formulation,
-                         membership::Membership{Variable},
-                         var_list::Dict{Id,Pair{AbstractVarConstr,
-                                                AbstractVarConstrInfo}})
+function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
+                         sol::Membership{Variable},
+                         var_list::Manager{Id{VarInfo},Variable})
     for var_def in var_list
-        var_uid = var_def[1].uid
-        moi_index = var_def[1].index
-        val = MOI.get(form.moi_optimizer, MOI.VariablePrimal(), moi_index)
-        @logmsg LogLevel(-4) string("Var ", getname(form.vars[var_uid]), " = ", val)
+        id = var_def[1]
+        moi_index = id.info.index
+        val = MOI.get(moi_optimizer, MOI.VariablePrimal(), moi_index)
+        @logmsg LogLevel(-4) string("Var ", getname(var_def[2]), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-            add!(membership, var_uid, val)
-        end
-    end
-end
-
-function fill_dual_sol(form::Formulation,
-                         membership::Membership{Constraint},
-                         constr_list::Vector{Id})
-    for constr_uid in constr_list
-        val = 0.0
-        try # This try is needed because of the erroneous assertion in LQOI
-            val = MOI.get(form.moi_optimizer, MOI.ConstraintDual(),
-                          form.map_constr_uid_to_index[constr_uid])
-        catch err
-            if (typeof(err) == AssertionError &&
-                !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
-                throw(err)
-            end
-        end
-        # @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
-        #                             constr.val)
-        # @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
-        #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
-        #                                     constr.moi_index))
-        if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-            add!(membership, constr_uid, val)
+            add!(sol, id, val)
         end
     end
 end
@@ -112,6 +86,32 @@ function retrieve_primal_sol(form::Formulation)
     primal_sol = PrimalSolution(new_obj_val, new_sol)
     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
     return primal_sol
+end
+
+function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
+                       sol::Membership{Constraint},
+                       constr_list::Manager{Id{ConstrInfo},Constraint})
+    for constr_def in constr_list
+        val = 0.0
+        id = constr_def[1]
+        moi_index = id.info.index
+        try # This try is needed because of the erroneous assertion in LQOI
+            val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
+        catch err
+            if (typeof(err) == AssertionError &&
+                !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
+                throw(err)
+            end
+        end
+        # @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
+        #                             constr.val)
+        # @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
+        #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
+        #                                     constr.moi_index))
+        if val > 0.000001 || val < - 0.000001 # todo use a tolerance
+            add!(sol, id, val)
+        end
+    end
 end
 
 function retrieve_dual_sol(form::Formulation)
