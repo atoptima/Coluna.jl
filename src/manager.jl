@@ -13,13 +13,17 @@ end
 
 Manager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
-function add!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
-    haskey(m.members, id) && @warn "Key $id already exists."
-    set!(m, id, val)
-end
-
 function set!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
     m.members[id] = val
+    return
+end
+
+function add!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
+    if !haskey(m.members, id) 
+        m.members[id] = val
+    else
+        m.members[id] += val
+    end
     return
 end
 

@@ -202,6 +202,7 @@ function reformulate!(m::Problem, method::SolutionMethod)
     end
 
     # Build Master
+    @show master_annotation_id
     @assert master_annotation_id != -1
     vars = Vector{Id}()
     constrs = Vector{Id}()

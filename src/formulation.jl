@@ -166,7 +166,7 @@ end ==#
 function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
     uid = getnewuid(f.problem.var_counter)
     id = Id(uid, VarInfo(Duty, var))
-    add!(f.vars, id, var)
+    set!(f.vars, id, var)
     add_variable!(f.memberships, id) 
     return id
 end
@@ -175,7 +175,7 @@ function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty},
         membership::Membership{ConstrInfo})
     uid = getnewuid(f.problem.var_counter)
     id = Id(uid, VarInfo(Duty, var))
-    add!(f.vars, id, var)
+    set!(f.vars, id, var)
     add_variable!(f.memberships, id, membership)
     return id
 end
@@ -184,7 +184,7 @@ function add!(f::Formulation, constr::Constraint,
         Duty::Type{<: AbstractConstrDuty})
     uid = getnewuid(f.problem.constr_counter)
     id = Id(uid, ConstrInfo(Duty, constr))
-    add!(f.constrs, id, constr)
+    set!(f.constrs, id, constr)
     add_constraint!(f.memberships, id)
     return id
 end
@@ -193,7 +193,7 @@ function add!(f::Formulation, constr::Constraint,
         Duty::Type{<: AbstractConstrDuty}, membership::Membership{VarInfo})
     uid = getnewuid(f.problem.constr_counter)
     id = Id(uid, ConstrInfo(Duty, constr))
-    add!(f.constrs, id, constr)
+    set!(f.constrs, id, constr)
     add_constraint!(f.memberships, id, membership)
     return id
 end

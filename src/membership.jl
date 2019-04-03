@@ -3,14 +3,9 @@ const Membership{T} = Manager{Id{T},Float64}
 
 Membership(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
 
-function add!(m::Membership, id::Id, val::Float64)
-    haskey(m.members, id) ? (m.members[id] += val) : set!(m, id, val)
-    return
-end
-
 struct Memberships
     var_to_constr_members    ::Dict{Id{VarInfo}, Membership{ConstrInfo}}
-    constr_to_var_members    ::Dict{Id{VarInfo}, Membership{VarInfo}}
+    constr_to_var_members    ::Dict{Id{ConstrInfo}, Membership{VarInfo}}
     var_to_partialsol_members::Dict{Id{VarInfo}, Membership{VarInfo}}
     partialsol_to_var_members::Dict{Id{VarInfo}, Membership{VarInfo}}
     var_to_expression_members::Dict{Id{VarInfo}, Membership{VarInfo}}

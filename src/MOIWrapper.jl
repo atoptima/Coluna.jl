@@ -82,7 +82,7 @@ function load_obj!(vars::Vector{Variable}, prob::Problem,
     # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
     # This is safe becasue the variables are initialized with a 0.0 cost_rhs
     for term in f.terms
-        coluna_var_id = prob.mid2cid_map[term.variable_index].value
+        coluna_var_id = prob.mid2uid_map[term.variable_index].value
         setcost!(vars[coluna_var_id], term.coefficient)
     end
     return
@@ -99,14 +99,15 @@ function create_origvars!(vars::Vector{Variable}, f::Formulation, prob::Problem,
         var = Variable(name)
         push!(vars, var)
         c_var_id = add!(f, var, OriginalVar)
-        prob.mid2cid_map[m_var_id] = MOI.VariableIndex(getuid(c_var_id))
+        prob.mid2cid_map[m_var_id] = c_var_id
+        prob.mid2uid_map[m_var_id] = MOI.VariableIndex(getuid(c_var_id))
     end
     return
 end
 
 function create_origconstr!(constrs, vars, f::Formulation,
         prob, name, func::MOI.SingleVariable, set, m_constr_id)
-    c_var_id = prob.mid2cid_map[func.variable].value
+    c_var_id = prob.mid2uid_map[func.variable].value
     set!(vars[c_var_id], set)
     return
 end
@@ -118,12 +119,13 @@ function create_origconstr!(constrs, vars, f::Formulation,
     push!(constrs, constr)
     membership = Membership(Variable) #spzeros(Float64, MAX_SV_ENTRIES)
     for term in func.terms
-        c_var_id = prob.mid2cid_map[term.variable_index].value
-        add!(membership, Id(Variable, c_var_id), term.coefficient)
+        c_var_id = prob.mid2cid_map[term.variable_index]
+        add!(membership, c_var_id, term.coefficient)
     end
-    c_constr_id = add!(f, constr, membership)
+    c_constr_id = add!(f, constr, OriginalConstr, membership)
     id = MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(c_constr_id))
-    prob.mid2cid_map[m_constr_id] = id
+    prob.mid2cid_map[m_constr_id] = c_constr_id
+    prob.mid2uid_map[m_constr_id] = id
     return
 end
 
@@ -165,14 +167,19 @@ function register_original_formulation!(prob::Problem, dest::Optimizer, src::MOI
     return
 end
 
+function load_annotation!(p::Problem, m_id, c_id::Id{VarInfo}, src::MOI.ModelLike)
+    p.var_annotations[c_id] = MOI.get(src, BD.VariableDecomposition(), m_id)
+    return
+end
+
+function load_annotation!(p::Problem, m_id, c_id::Id{ConstrInfo}, src::MOI.ModelLike)
+    p.constr_annotations[c_id] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
+    return
+end
+
 function load_decomposition_annotations!(prob::Problem, src::MOI.ModelLike)
-    for (m_id, c_id) in prob.mid2cid_map.conmap
-        id = Id(Constraint, c_id.value)
-        prob.constr_annotations[id] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
-    end
-    for (m_id, c_id) in prob.mid2cid_map.varmap
-        id = Id(Variable, c_id.value)
-        prob.var_annotations[id] = MOI.get(src, BD.VariableDecomposition(), m_id)
+    for (m_id, c_id) in prob.mid2cid_map
+       load_annotation!(prob, m_id, c_id, src)
     end
     return
 end
@@ -184,7 +191,7 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
 
     # Retrieve annotation
     load_decomposition_annotations!(prob, src)
-    return prob.mid2cid_map
+    return prob.mid2uid_map
 end
 
 # function set_optimizers_dict(dest::Optimizer)
