@@ -6,7 +6,10 @@
 _active_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active
 
 _active_MspVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active &&
-    getduty(getinfo(id_val[1])) isa MastRepPricingSpVar
+    getduty(getinfo(id_val[1])) == MastRepPricingSpVar
+
+_active_pricingSpVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active &&
+    getduty(getinfo(id_val[1])) == PricingSpVar
 
 struct Manager{I <: Id,T}  <: AbstractManager
     members::Dict{I,T}

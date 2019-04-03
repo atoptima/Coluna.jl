@@ -53,8 +53,8 @@ function build_dw_master!(prob::Problem,
                           annotation_id::Int,
                           reformulation::Reformulation,
                           master_form::Formulation,
-                          vars_in_form::Vector{Id},
-                          constrs_in_form::Vector{Id})
+                          vars_in_form::Manager{Id{VarInfo}, Variable},
+                          constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
 
     orig_form = get_original_formulation(prob)
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
@@ -97,8 +97,8 @@ end
 function build_dw_pricing_sp!(m::Problem,
                               annotation_id::Int,
                               sp_form::Formulation,
-                              vars_in_form::Vector{Id},
-                              constrs_in_form::Vector{Id})
+                              vars_in_form::Manager{Id{VarInfo}, Variable},
+                              constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
     
     orig_form = get_original_formulation(m)
 
@@ -132,22 +132,22 @@ function build_dw_pricing_sp!(m::Problem,
     # should be move in build dw master ?
     #clone_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
-    ## Create representative of sp var in master
-    var_ids = getvar_ids(sp_form, PricingSpVar)
-    @show var_ids
+    ## BD.AnnotationCreate representative of sp var in master
+    vars = filter(_active_pricingSpVar_, sp_form)
+    @show vars
 
-    clone_in_formulation!(var_ids, sp_form, master_form, Implicit, MastRepPricingSpVar)
+    clone_in_formulation!(vars, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
     return
 end
 
-function reformulate!(m::Problem, method::SolutionMethod)
+function reformulate!(prob::Problem, method::SolutionMethod)
     println("Do reformulation.")
 
     # Create formulations & reformulations
     ann_set = Set{BD.Annotation}()
-    fill_annotations_set!(ann_set, m.var_annotations)
-    fill_annotations_set!(ann_set, m.constr_annotations)
+    fill_annotations_set!(ann_set, prob.var_annotations)
+    fill_annotations_set!(ann_set, prob.constr_annotations)
 
     # At the moment, BlockDecomposition supports only classic 
     # Dantzig-Wolfe decomposition.
