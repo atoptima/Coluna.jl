@@ -1,66 +1,71 @@
-function set_optimizer_obj(form::Formulation,
-                           new_obj::Dict{Id, Float64})
+function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
+                           new_obj::Membership{VarInfo})
 
-    vec = [MOI.ScalarAffineTerm(cost, form.map_var_uid_to_index[var_uid]) for (var_uid, cost) in new_obj]
+    vec = [MOI.ScalarAffineTerm(cost, getmoiindex(id)) for (id, cost) in new_obj]
     objf = MOI.ScalarAffineFunction(vec, 0.0)
     MOI.set(form.moi_optimizer,
             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
 end
 
-function initialize_formulation_optimizer(form::Formulation)
-    optimizer = MOI.CachingOptimizer(ModelForCachingOptimizer{Float64}(),
-                                           optimizer)
+function create_moi_optimizer()
+    optimizer = MOI.CachingOptimizer(
+        ModelForCachingOptimizer{Float64}(), optimizer
+    )
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
-    MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),f)
+    MOI.set(
+        optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),f
+    )
     MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
-    form.moi_optimizer = optimizer
+    return optimizer
 end
 
-function update_cost_in_optimizer(form::Formulation,
-                                  var_uid::Id,
+function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                  id::Id{VarInfo},
                                   cost::Float64)
-    MOI.modify(form.moi_optimizer,
-               MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-               MOI.ScalarCoefficientChange{Float64}(form.map_var_uid_to_index[var_uid], cost))
+    MOI.modify(
+        optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+        MOI.ScalarCoefficientChange{Float64}(getmoiindex(id), cost)
+    )
 end
 
-function enforce_initial_bounds_in_optimizer(form::Formulation,
-                                             var_uid::Id,
+function enforce_initial_bounds_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                             id::Id,
                                              lb::Float64,
                                              ub::Float64)
     # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
-    var_bounds[var_uid] = MOI.add_constraint(
-        form.moi_optimizer,
-        MOI.SingleVariable(form.map_var_uid_to_index[var_uid]),
-        MOI.Interval(lb, ub))
+    moi_bounds = MOI.add_constraint(
+        optimizer, MOI.SingleVariable(), MOI.Interval(lb, ub)
+    )
+    id.info.bd_constr_ref = moi_bounds
 end
 
-function enforce_var_kind_in_optimizer(form::Formulation,
-                                   var_uid::Id,
-                                   kind::Char)
-    if kind == 'B'
-         var_kinds[var_uid]  = MOI.add_constraint(
-            optimizer, MOI.SingleVariable(form.map_var_uid_to_index[var_uid]), MOI.ZeroOne())
-    elseif kind == 'I'
-        var_kinds[var_uid] = MOI.add_constraint(
-            optimizer, MOI.SingleVariable(form.map_var_uid_to_index[var_uid]), MOI.Integer())
+function enforce_var_kind_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                       id::Id,
+                                       kind::VarKind)
+    if kind == Binary
+        id.info.moi_kind = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(getmoiindex(id), MOI.ZeroOne())
+        )
+    elseif kind == Integ
+        id.info.moi_kind = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(getmoiindex(id), MOI.Integer())
+        )
     end
 end
 
-function add_variable_in_optimizer(form::Formulation,
-                                   var_uid::Id,
+function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                   id::Id,
                                    cost::Float64,
                                    lb::Float64,
                                    ub::Float64,
-                                   kind::Char,
+                                   kind::VarKind,
                                    is_relaxed::Bool)
-    index = MOI.add_variable(form.moi_optimizer)
-    map_index_to_var_uid[index] = var_uid
-    map_var_uid_to_index[var_uid] = index
-    update_cost_in_optimizer(form.moi_optimizer, var_uid, cost)
-    !is_relaxed && enforce_var_kind_in_optimizer(form.moi_optimizer, var_uid)
-    if (kind != 'B' || is_relaxed)
-        enforce_initial_bounds_in_optimizer(form.moi_optimizer, var_uid, lb, ub)
+    index = MOI.add_variable(optimizer)
+    setmoiindex(id, index)
+    update_cost_in_optimizer(optimizer, id, cost)
+    !is_relaxed && enforce_var_kind_in_optimizer(optimizer, id)
+    if (kind != Binary || is_relaxed)
+        enforce_initial_bounds_in_optimizer(optimizer, id, lb, ub)
     end
 end
 
@@ -76,16 +81,6 @@ function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
             add!(sol, id, val)
         end
     end
-end
-
-function retrieve_primal_sol(form::Formulation)
-    new_sol = Membership(Variable)
-    new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
-    #error("Following line does not work.")
-    fill_primal_sol(form, new_sol, getvar_ids(form, _active_))
-    primal_sol = PrimalSolution(new_obj_val, new_sol)
-    @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
-    return primal_sol
 end
 
 function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
@@ -112,18 +107,6 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
             add!(sol, id, val)
         end
     end
-end
-
-function retrieve_dual_sol(form::Formulation)
-    # TODO check if supported by solver
-    if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
-        return nothing
-    end
-    new_sol = Membership(Constraint)
-    problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
-    fill_dual_sol(form, new_sol, getconstr_ids(form, _active_))
-    dual_sol = DualSolution(-Inf, new_sol)
-    return dual_sol
 end
 
 function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
