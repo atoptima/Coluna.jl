@@ -357,8 +357,8 @@ function Base.show(io::IO, f::Formulation)
     return
 end
 
-function initialize_moi_optimizer(form::Formulation)
-    form.moi_optimizer = create_moi_optimizer()
+function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
+    form.moi_optimizer = create_moi_optimizer(factory)
 end
 
 function retrieve_primal_sol(form::Formulation,

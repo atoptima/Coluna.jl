@@ -7,8 +7,10 @@ function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
 end
 
-function create_moi_optimizer()
-    optimizer = MOI.CachingOptimizer(ModelForCachingOptimizer{Float64}(), optimizer)
+function create_moi_optimizer(factory::JuMP.OptimizerFactory)
+    # optimizer = factory() # Try to use direct mode to be faster
+    # readline()
+    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), factory())
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
     MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),f)
     MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)

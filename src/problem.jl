@@ -61,11 +61,6 @@ moi2cid(m::Problem, mid) = m.mid2cid_map[mid]
 #                  Dict{Int,MOI.AbstractOptimizer}())
 # end
 
-function set_problem_optimizers(prob::Problem)
-    initialize_problem_optimizer(prob.re_formulation,
-                                 prob.problemidx_optimizer_map)
-end
-
 #function select_eval_alg(extended_problem::Reformulation, node_eval_mode::NODEEVALMODE)
 #    if node_eval_mode == SimplexCg
 #        return AlgToEvalNodeBySimplexColGen(extended_problem)
@@ -85,6 +80,16 @@ end
 #     end
 # end
 
+function load_problem_in_optimizer(prob::Problem)
+    println("\e[1;32m Load problem in optimizer is currently empty \e[00m")
+end
+
+function initialize_moi_optimizer(prob::Problem)
+    initialize_moi_optimizer(
+        prob.re_formulation, prob.master_factory, prob.pricing_factory
+    )
+end
+
 function initialize_artificial_variables(extended_problem::Reformulation)
     master = extended_problem.master_problem
     init_manager(extended_problem.art_var_manager, master)
@@ -98,8 +103,8 @@ function coluna_initialization(prob::Problem)
     _set_global_params(prob.params)
     reformulate!(prob, DantzigWolfeDecomposition)
 
-    # set_model_optimizers(prob)
-    #load_problem_in_optimizer(extended_problem)
+    initialize_moi_optimizer(prob)
+    load_problem_in_optimizer(prob)
 end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before

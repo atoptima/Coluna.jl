@@ -25,9 +25,48 @@ getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 
-function set_optimizers(reformulation::Reformulation)
-    # set_optimizer(reformulation.mas
+function initialize_moi_optimizer(reformulation::Reformulation,
+                                  master_factory::JuMP.OptimizerFactory,
+                                  pricing_factory::JuMP.OptimizerFactory)
+
+    initialize_moi_optimizer(reformulation.master, master_factory)
+    for problem in reformulation.dw_pricing_subprs
+        initialize_moi_optimizer(problem, pricing_factory)
+    end
+
 end
+
+# function set_optimizers_dict(dest::Optimizer)
+#     # set coluna optimizers
+#     model = dest.inner
+#     master_problem = model.extended_problem.master_problem
+#     model.problemidx_optimizer_map[master_problem.prob_ref] =
+#             dest.master_factory()
+#     for subprobidx in 1:dest.nb_subproblems
+#         pricingprob = model.extended_problem.pricing_vect[subprobidx]
+#         model.problemidx_optimizer_map[pricingprob.prob_ref] =
+#                 dest.pricing_factory()
+#     end
+# end
+
+# function initialize_problem_optimizer(extended_problem::ExtendedProblem,
+#          problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
+
+#     @assert haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
+#     initialize_problem_optimizer(extended_problem.master_problem,
+#             problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
+
+#     for problem in extended_problem.pricing_vect
+#         initialize_problem_optimizer(problem,
+#                 problemidx_optimizer_map[problem.prob_ref])
+#     end
+
+#     for problem in extended_problem.separation_vect
+#         initialize_problem_optimizer(problem,
+#                 problemidx_optimizer_map[problem.prob_ref])
+#     end
+# end
+
 
 function optimize!(reformulation::Reformulation)
     println("\e[1;32m Here starts optimization \e[00m")
