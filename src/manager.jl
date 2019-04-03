@@ -9,8 +9,6 @@ struct Manager{I <: Id,T}  <: AbstractManager
     members::Dict{I,T}
 end
 
-Manager{I, T}() where {I <: Id, T} = Manager{I <: Id, T}(Dict{I,T}())
-
 function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)
     return Manager{idtype(VCtype), ValType}(Dict{idtype(VCtype),ValType}())
 end
@@ -18,8 +16,6 @@ end
 function Manager(VCtype::Type{<:AbstractVarConstr})
     return Manager{idtype(VCtype), VCtype}(Dict{idtype(VCtype),VCtype}())
 end
-
-#Manager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
 function set!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
     m.members[id] = val
