@@ -54,7 +54,7 @@ Base.filter(f::Function, m::Manager) = filter(f, m.members)
 
 clone(m::Manager{T,U}) where {T,U} = Membership{T,U}(copy(m.members))
 
-getinfo(e::Pair{I,T})  where {I <: Id{AbstractVarConstrInfo}, T} = e[1].info
+getinfo(e::Pair{I,T})  where {I <: Id, T} = e[1].info
 
 
 get_subset(m::Manager{I,T}, Duty::Type{<:AbstractConstrDuty}, stat::Status) where {I <: AbstractVarConstrInfo, T} = filter(e -> dutytype(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
