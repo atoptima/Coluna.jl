@@ -31,7 +31,7 @@ function Memberships()
 end
 
 #function add_var!(m::Membership(Variable), var_id::Id, val::Float64)
-#    m[var_id] = val
+#    m[var_id] = valx
 #end
 
 #function add_constr!(m::Membership{ConstrInfo}, constr_id::Id, val::Float64)

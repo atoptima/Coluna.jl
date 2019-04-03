@@ -11,7 +11,8 @@ function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)
     return Manager{idtype(VCtype), ValType}(Dict{idtype(VCtype),ValType}())
 end
 
-Manager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
+
+#Manager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
 function set!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
     m.members[id] = val
@@ -53,11 +54,12 @@ Base.filter(f::Function, m::Manager) = filter(f, m.members)
 
 clone(m::Manager{T,U}) where {T,U} = Membership{T,U}(copy(m.members))
 
-# TODO getinfo()
+getinfo(e::Pair{I,T})  where {I <: Id{AbstractVarConstrInfo}, T} = e[1].info
 
-get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}, stat::Status) where {T <: AbstractVarConstr, U} = filter(e -> dutytype(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
 
-get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}) where {T <: AbstractVarConstr, U} = filter(e -> dutytype(getinfo(e)) == Duty, m.members)
+get_subset(m::Manager{I,T}, Duty::Type{<:AbstractConstrDuty}, stat::Status) where {I <: AbstractVarConstrInfo, T} = filter(e -> dutytype(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
+
+get_subset(m::Manager{I,T}, Duty::Type{<:AbstractConstrDuty}) where {I <: AbstractVarConstrInfo, T} = filter(e -> dutytype(getinfo(e)) == Duty, m.members)
 
 
 function Base.show(io::IO, m::Manager)
@@ -66,4 +68,5 @@ function Base.show(io::IO, m::Manager)
         println(io, "  ", e)
     end
     return
+
 end
