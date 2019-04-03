@@ -13,11 +13,12 @@ function Variable(n::String)
     return Variable(0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
 end
 
-mutable struct VarInfo{Duty <: AbstractVarDuty} <: AbstractVarConstrInfo
+mutable struct VarInfo <: AbstractVarConstrInfo
     cur_cost::Float64
     cur_lb::Float64
     cur_ub::Float64 
     cur_status::Status   # Active or not
+    duty::Type{<: AbstractVarDuty}
     index::MoiVarIndex # moi ref
     bd_constr_ref::Union{Nothing, MoiVarBound} # should be removed
     moi_kind::Union{Nothing, MoiVarKind} # should be removed
@@ -28,18 +29,15 @@ function VarInfo(Duty::Type{<: AbstractVarDuty}, var::Variable)
         Active, nothing, nothing, nothing)
 end
 
-infotype(::Type{<: VarInfo}) = Variable
+vctype(::Type{<: VarInfo}) = Variable
 
-getduty(vi::VarInfo{T}) where {T <: AbstractVarDuty} = T
+infotype(::Type{<: Variable}) = VarInfo
 
-#==function copy(var::Variable, form::AbstractFormulation, flag::Flag, Duty::Type{<: AbstractVarDuty})
-    return Variable{Duty}(Id(getuid(var)), form, getname(var), getcost(var), 
-        getlb(var), getub(var), getkind(var), flag, getsense(var))
-end ==#
-
+dutytype(vi::VarInfo{T}) where {T <: AbstractVarDuty} = T
 
 indextype(::Type{<: Variable}) = MoiVarIndex
-idtype(::Type{<: Variable}) = Id{Variable, VarInfo}
+
+idtype(::Type{<: Variable}) = Id{VarInfo}
 
 #getuid(v::Variable) = getuid(v.id)
 #getid(v::Variable) = v.id

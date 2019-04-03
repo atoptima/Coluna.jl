@@ -28,9 +28,10 @@ struct PureMastVar <: AbstractMasterVar end
 struct MasterCol <: AbstractMasterVar end
 struct MastArtVar <: AbstractMasterVar end
 struct MastRepPricingSpVar <: AbstractMasterVar end
+struct MastRepPricingSetupSpVar <: MastRepPricingSpVar end
 struct MastRepBendSpVar <: AbstractMasterVar end
-struct PricingSpSetupVar <: AbstractDwSpVar end
 struct PricingSpVar <: AbstractDwSpVar end
+struct PricingSpSetupVar <: PricingSpVar end
 struct PricingSpPureVar <: AbstractDwSpVar end
 
 #struct BendersSpVar <: AbstractVarDuty end

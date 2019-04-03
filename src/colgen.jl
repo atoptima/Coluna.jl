@@ -17,9 +17,6 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::Membership{Const
     
     new_obj = Dict{Id, Float64}()
 
-    active = true
-    static = true
-
     master_form = sp_form.parent_formulation
 
     

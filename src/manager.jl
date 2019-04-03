@@ -20,9 +20,7 @@ end
 
 VcManager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
-
 getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
-
 
 getmembers(m::Manager) = m.members
 
@@ -47,6 +45,10 @@ lastindex(m::Manager) = lastindex(m.members)
 Base.filter(f::Function, m::Manager) = filter(f, m.members)
 
 clone(m::Manager{T,U}) where {T,U} = Membership{T,U}(copy(m.members))
+
+# TODO getinfo()
+
+get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}, stat::Status) where {T <: AbstractVarConstr, U} = filter(e -> dutytype(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
 
 function set!(m::Manager{Id,T}, id::Id, val::T) where {Id, T}
     m.members[id] = val

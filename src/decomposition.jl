@@ -27,10 +27,10 @@ function build_dw_master!(model::Model,
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
     reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
     
-    # create convexity constraints
     @assert !isempty(reformulation.dw_pricing_subprs)
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
+
         # create convexity constraint
         name = "sp_lb_$(sp_uid)"
         sense = Greater
@@ -49,7 +49,7 @@ function build_dw_master!(model::Model,
         reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
         membership = Membership(Variable) 
         add!(master_form, ub_conv_constr, membership)
-    end
+   end
 
     # copy of pure master variables
     clone_in_formulation!(vars_in_form, orig_form, master_form, Static, PureMastVar)
@@ -150,9 +150,7 @@ function build_dw_pricing_sp!(m::Model,
     ## Create representative of sp var in master
     var_ids = getvar_ids(sp_form, PricingSpVar)
     @show var_ids
-    clone_in_formulation!(
-        var_ids, sp_form, master_form, Implicit, MastRepPricingSpVar
-    )
+    clone_in_formulation!(var_ids, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
 
     return

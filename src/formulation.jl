@@ -74,13 +74,10 @@ getvar_ids(f::Formulation) = getids(f.vars)
 
 getconstr_ids(f::Formulation) = getids(f.constrs)
 
-getvar_ids(f::Formulation, d::Type{<:AbstractVarDuty}) = collect(keys(filter(e -> getvarconstr_info(e).duty == d, f.vars)))
 
-getconstr_ids(f::Formulation, d::Type{<:AbstractConstrDuty}) = collect(keys(filter(e -> getvarconstr_info(e).duty == d, f.constrs)))
+getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status = Active) = collect(keys(get_subset(f.vars, Duty, stat)))
 
-getvar_ids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.vars)))
-
-getconstr_ids(f::Formulation, s::Status) = collect(keys(filter(e -> getvarconstr_info(e).cur_status == s, f.constrs)))
+getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status = Active) = collect(keys(get_subset(f.vars, Duty, stat)))
 
 getobjsense(f::Formulation) = f.obj_sense
 
@@ -278,7 +275,7 @@ function _show_constraint(io::IO, f::Formulation, id)
         op = "<="
     end
     print(io, " ", op, " ", getrhs(constr))
-    d = getduty(id)
+    d = dutytype(id)
     println(io, " (", d ,")")
     return
 end
@@ -296,7 +293,7 @@ function _show_variable(io::IO, f::Formulation, id)
     lb = getlb(var)
     ub = getub(var)
     t = gettype(var)
-    d = getduty(id)
+    d = dutytype(id)
     f = getflag(var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d ," | ", f , ")")
 end
