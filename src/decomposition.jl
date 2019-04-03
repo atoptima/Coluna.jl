@@ -11,6 +11,8 @@ function inverse(varconstr_annotations)
     for (varconstr_id, annotation) in varconstr_annotations
         if !haskey(varconstr_in_form, annotation.unique_id)
             varconstr_in_form[annotation.unique_id] = Id[]
+            # vc_manager = filter(x->(), varconstr_annotations)
+            # varconstr_in_form[annotation.unique_id] = vc_manager
         end
         # add!(varconstr_in_form[annotation.unique_id], varconstr_id)
         push!(varconstr_in_form[annotation.unique_id], varconstr_id)
@@ -55,8 +57,11 @@ function build_dw_master!(prob::Problem,
                           annotation_id::Int,
                           reformulation::Reformulation,
                           master_form::Formulation,
-                          vars_in_form::Manager{Id{VarInfo}, Variable},
-                          constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
+                          vars_in_form::Vector{Id},
+                          constrs_in_form::Vector{Id})
+                          # Commented for now, I dont think managers are usefull here
+                          # vars_in_form::Manager{Id{VarInfo}, Variable},
+                          # constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
 
     orig_form = get_original_formulation(prob)
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
@@ -87,9 +92,9 @@ function build_dw_master!(prob::Problem,
    end
 
     # copy of pure master variables
-    clone_in_formulation!(vars_in_form, orig_form, master_form, Static, PureMastVar)
+    clone_in_formulation!(vars_in_form, orig_form, master_form, PureMastVar)
     # copy of master constraints
-    clone_in_formulation!(constrs_in_form, orig_form, master_form, Static, MasterConstr)
+    clone_in_formulation!(constrs_in_form, orig_form, master_form, MasterConstr)
     
     initialize_artificial_variables(master_form, constrs_in_form)
 
@@ -99,8 +104,11 @@ end
 function build_dw_pricing_sp!(m::Problem,
                               annotation_id::Int,
                               sp_form::Formulation,
-                              vars_in_form::Manager{Id{VarInfo}, Variable},
-                              constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
+                              vars_in_form::Vector{Id},
+                              constrs_in_form::Vector{Id})
+                              # Commented for now, I dont think managers are usefull here
+                              # vars_in_form::Manager{Id{VarInfo}, Variable},
+                              # constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
     
     orig_form = get_original_formulation(m)
 
@@ -111,8 +119,8 @@ function build_dw_pricing_sp!(m::Problem,
     sp_uid = getuid(sp_form)
 
    ## Create Pure Pricing Sp Var & constr
-    clone_in_formulation!(vars_in_form, orig_form, sp_form, Static, PricingSpVar)
-    clone_in_formulation!(constrs_in_form, orig_form, sp_form, Static, PricingSpPureConstr)
+    clone_in_formulation!(vars_in_form, orig_form, sp_form, PricingSpVar)
+    clone_in_formulation!(constrs_in_form, orig_form, sp_form, PricingSpPureConstr)
 
 
     ## Create PricingSetupVar
@@ -135,10 +143,10 @@ function build_dw_pricing_sp!(m::Problem,
     #clone_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
     ## BD.AnnotationCreate representative of sp var in master
-    vars = filter(_active_pricingSpVar_, sp_form)
+    vars = filter(_active_pricingSpVar_, getvars(sp_form))
     @show vars
 
-    clone_in_formulation!(vars, sp_form, master_form, Implicit, MastRepPricingSpVar)
+    clone_in_formulation!(vars, sp_form, master_form, MastRepPricingSpVar)
 
     return
 end

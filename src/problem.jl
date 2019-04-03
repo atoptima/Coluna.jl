@@ -98,10 +98,7 @@ function coluna_initialization(prob::Problem)
     _set_global_params(prob.params)
     reformulate!(prob, DantzigWolfeDecomposition)
 
-    #set_prob_ref_to_problem_dict(extended_problem)
-    #set_model_optimizers(model)
-    #initialize_convexity_constraints(extended_problem)
-    #initialize_artificial_variables(extended_problem)
+    # set_model_optimizers(prob)
     #load_problem_in_optimizer(extended_problem)
 end
 

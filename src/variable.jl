@@ -5,7 +5,7 @@ mutable struct Variable <: AbstractVarConstr
     lower_bound::Float64
     upper_bound::Float64 
     kind::VarKind
-    flag::Flag     # Static, Dynamic, Artificial, Implicit
+    flag::Flag     # Static, Dynamic, Artificial, Implicit # To be removed because can be deduced from duty
     sense::VarSense 
 end
 

@@ -25,6 +25,10 @@ getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 
+function set_optimizers(reformulation::Reformulation)
+    # set_optimizer(reformulation.mas
+end
+
 function optimize!(reformulation::Reformulation)
     println("\e[1;32m Here starts optimization \e[00m")
     println("\e[1;35m it runs only FV draft algorithm \e[00m")
