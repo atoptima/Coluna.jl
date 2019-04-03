@@ -57,8 +57,11 @@ Base.filter(f::Function, m::Manager) = typeof(m)(filter(f, m.members))
 
 clone(m::Manager{I,T}) where {I,T} = Membership{I,T}(copy(m.members))
 
-get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}, stat::Status) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty && getinfo(e).status == stat, m.members)
-get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) == Duty, m.members)
+get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}, stat::Status) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty && getinfo(e).cur_status == stat, m.members)
+
+get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty, m.members)
+
+get_subset(m::Manager{I,T}, stat::Status) where {I <: Id, T} = filter(e -> getinfo(e).cur_status == stat, m.members)
 
 function Base.show(io::IO, m::Manager)
     println(io, typeof(m), ":")

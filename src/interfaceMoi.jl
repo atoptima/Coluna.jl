@@ -71,25 +71,23 @@ end
 
 function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
                          sol::Membership{VarInfo},
-                         var_list::Manager{Id{VarInfo},Variable})
-    for var_def in var_list
-        id = var_def[1]
-        moi_index = id.info.index
+                         var_ids::Vector{Id{VarInfo}})
+    for var_id in  var_ids
+        moi_index = var_id.info.index
         val = MOI.get(moi_optimizer, MOI.VariablePrimal(), moi_index)
         @logmsg LogLevel(-4) string("Var ", getname(var_def[2]), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-            add!(sol, id, val)
+            add!(sol, var_id, val)
         end
     end
 end
 
 function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
                        sol::Membership{ConstrInfo},
-                       constr_list::Manager{Id{ConstrInfo},Constraint})
-    for constr_def in constr_list
+                       constr_ids::Vector{Id{ConstrInfo}})
+    for constr_id in constr_ids
         val = 0.0
-        id = constr_def[1]
-        moi_index = id.info.index
+        moi_index = constr_id.info.index
         try # This try is needed because of the erroneous assertion in LQOI
             val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
         catch err
@@ -104,7 +102,7 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
         #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
         #                                     constr.moi_index))
         if val > 0.000001 || val < - 0.000001 # todo use a tolerance
-            add!(sol, id, val)
+            add!(sol, constr_id, val)
         end
     end
 end
