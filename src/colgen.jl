@@ -24,7 +24,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::Membership{Const
     for (constr_uid, dual_val) in dual_sol
         var_membership = get_var_members_of_constr(master_form.memberships, constr_uid)
       
-        for (var_id, coef) in get_subset(var_membership, MastRepPricingSpVar, Active)
+        for (var_id, coef) in filter(_active_MspVar_ , var_membership)
             if haskey(new_obj, var_id)
                 new_obj[var_id] -= dual_val * coef
             else

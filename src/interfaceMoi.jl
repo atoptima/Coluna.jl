@@ -8,13 +8,9 @@ function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
 end
 
 function create_moi_optimizer()
-    optimizer = MOI.CachingOptimizer(
-        ModelForCachingOptimizer{Float64}(), optimizer
-    )
+    optimizer = MOI.CachingOptimizer(ModelForCachingOptimizer{Float64}(), optimizer)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
-    MOI.set(
-        optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),f
-    )
+    MOI.set(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),f)
     MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
     return optimizer
 end
@@ -22,20 +18,18 @@ end
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                   id::Id{VarInfo},
                                   cost::Float64)
-    MOI.modify(
-        optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-        MOI.ScalarCoefficientChange{Float64}(getmoiindex(id), cost)
-    )
+    MOI.modify(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+               MOI.ScalarCoefficientChange{Float64}(getmoiindex(id), cost))
 end
 
 function enforce_initial_bounds_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                             id::Id,
+                                             id::Id{VarInfo},
                                              lb::Float64,
                                              ub::Float64)
     # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
-    moi_bounds = MOI.add_constraint(
-        optimizer, MOI.SingleVariable(), MOI.Interval(lb, ub)
-    )
+    moi_bounds = MOI.add_constraint(optimizer,
+                                    MOI.SingleVariable(),
+                                    MOI.Interval(lb, ub) )
     id.info.bd_constr_ref = moi_bounds
 end
 
@@ -71,23 +65,23 @@ end
 
 function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
                          sol::Membership{VarInfo},
-                         var_ids::Vector{Id{VarInfo}})
-    for var_id in  var_ids
-        moi_index = var_id.info.index
+                         vars::Manager{Id{VarInfo}, Variable})
+    for (id,var) in vars
+        moi_index = getmoiindex(getinfo(id))
         val = MOI.get(moi_optimizer, MOI.VariablePrimal(), moi_index)
         @logmsg LogLevel(-4) string("Var ", getname(var_def[2]), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-            add!(sol, var_id, val)
+            add!(sol, id, val)
         end
     end
 end
 
 function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
                        sol::Membership{ConstrInfo},
-                       constr_ids::Vector{Id{ConstrInfo}})
-    for constr_id in constr_ids
+                       constr::Manager{Id{ConstrInfo}, Constraint})
+    for (id,constr) in constrs
         val = 0.0
-        moi_index = constr_id.info.index
+        moi_index = getmoiindex(getinfo(id))
         try # This try is needed because of the erroneous assertion in LQOI
             val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
         catch err
@@ -102,7 +96,7 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
         #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
         #                                     constr.moi_index))
         if val > 0.000001 || val < - 0.000001 # todo use a tolerance
-            add!(sol, constr_id, val)
+            add!(sol, id, val)
         end
     end
 end

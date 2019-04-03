@@ -47,8 +47,8 @@ end
 #end
 
     
-get_subset(m::Membership, Duty::Type{<:AbstractConstrDuty}, stat::Status) =
-    filter(e -> getduty(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
+#get_subset(m::Membership, Duty::Type{<:AbstractConstrDuty}, stat::Status) =
+#    filter(e -> getduty(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
 
 
 function get_constr_members_of_var(m::Memberships, var_id::Id) 

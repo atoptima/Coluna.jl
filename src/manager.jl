@@ -5,6 +5,9 @@
 
 _active_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active
 
+_active_MspVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active &&
+    getduty(getinfo(id_val[1])) isa MastRepPricingSpVar
+
 struct Manager{I <: Id,T}  <: AbstractManager
     members::Dict{I,T}
 end
@@ -55,13 +58,15 @@ lastindex(m::Manager) = lastindex(m.members)
 
 Base.filter(f::Function, m::Manager) = typeof(m)(filter(f, m.members))
 
+
+
 clone(m::Manager{I,T}) where {I,T} = Membership{I,T}(copy(m.members))
 
-get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}, stat::Status) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty && getinfo(e).cur_status == stat, m.members)
+#get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}, stat::Status) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty && getinfo(e).cur_status == stat, m.members)
 
-get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty, m.members)
+#get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty, m.members)
 
-get_subset(m::Manager{I,T}, stat::Status) where {I <: Id, T} = filter(e -> getinfo(e).cur_status == stat, m.members)
+#get_subset(m::Manager{I,T}, stat::Status) where {I <: Id, T} = filter(e -> getinfo(e).cur_status == stat, m.members)
 
 function Base.show(io::IO, m::Manager)
     println(io, typeof(m), ":")

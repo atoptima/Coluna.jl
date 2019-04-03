@@ -75,17 +75,17 @@ getvar_ids(f::Formulation) = getids(f.vars)
 getconstr_ids(f::Formulation) = getids(f.constrs)
 
 
-getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.vars, Duty)))
+#getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.vars, Duty)))
 
-getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.vars, Duty)))
+#getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.vars, Duty)))
 
-getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.vars, Duty, stat)))
+#getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.vars, Duty, stat)))
 
-getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.vars, Duty, stat)))
+#getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.vars, Duty, stat)))
 
-getvar_ids(f::Formulation, stat::Status) = collect(keys(get_subset(f.vars, stat)))
+#getvar_ids(f::Formulation, stat::Status) = collect(keys(get_subset(f.vars, stat)))
 
-getconstr_ids(f::Formulation,  stat::Status) = collect(keys(get_subset(f.vars, stat)))
+#getconstr_ids(f::Formulation,  stat::Status) = collect(keys(get_subset(f.vars, stat)))
 
 getobjsense(f::Formulation) = f.obj_sense
 
@@ -221,11 +221,9 @@ function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form
     primal_sols = PrimalSolution[]
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
-        var_ids = getvar_ids(form, Active)
-        primal_sol = retrieve_primal_sol(form, var_ids)
+        primal_sol = retrieve_primal_sol(form, filter(_active_ , form.vars))
         push!(primal_sols, primal_sol)
-        constr_ids = getconstr_ids(form, Active)
-        dual_sol = retrieve_dual_sol(form, constr_ids)
+        dual_sol = retrieve_dual_sol(form, filter(_active_ , form.constrs))
         if update_form
             form.primal_solution_record = primal_sol
             if dual_sol != nothing
@@ -332,25 +330,25 @@ function initialize_moi_optimizer(form::Formulation)
 end
 
 function retrieve_primal_sol(form::Formulation,
-                             var_ids::Vector{Id{VarInfo}})
+                             vars::Manager{Id{VarInfo}, Variable})
     new_sol = Membership(Variable)
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     #error("Following line does not work.")
-    fill_primal_sol(form.moi_optimizer, new_sol, var_ids)
+    fill_primal_sol(form.moi_optimizer, new_sol, vars)
     primal_sol = PrimalSolution(new_obj_val, new_sol)
     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
     return primal_sol
 end
 
 function retrieve_dual_sol(form::Formulation,
-                           constr_ids::Vector{Id{ConstrInfo}})
+                           constrs::Manager{Id{ConstrInfo}, Constraint})
     # TODO check if supported by solver
     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         return nothing
     end
     new_sol = Membership(Constraint)
     problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
-    fill_dual_sol(form.moi_optimizer, new_sol, constr_ids)
+    fill_dual_sol(form.moi_optimizer, new_sol, constrs)
     dual_sol = DualSolution(-Inf, new_sol)
     return dual_sol
 end
