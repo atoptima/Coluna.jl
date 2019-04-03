@@ -1,8 +1,8 @@
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::FormId
-    model::AbstractModel
+    problem::AbstractProblem
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
-    #moi_model::Union{MOI.ModelLike, Nothing}
+    #moi_model::Union{MOI.ProblemLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     vars::Manager{Id{Variable, VarInfo}, Variable}
     constrs::Manager{Id{Constraint, ConstrInfo}, Constraint}
@@ -16,7 +16,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
 end
 
 function Formulation(Duty::Type{<: AbstractFormDuty},
-                     m::AbstractModel, 
+                     m::AbstractProblem, 
                      parent_formulation::Union{AbstractFormulation, Nothing},
                      moi_optimizer::Union{MOI.AbstractOptimizer, Nothing})
     uid = getnewuid(m.form_counter)
@@ -37,17 +37,17 @@ function Formulation(Duty::Type{<: AbstractFormDuty},
 end
 
 function Formulation(Duty::Type{<: AbstractFormDuty},
-                     m::AbstractModel, 
+                     m::AbstractProblem, 
                      optimizer::Union{MOI.AbstractOptimizer, Nothing})
     return Formulation(Duty, m, nothing, optimizer)
 end
 
-function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel, 
+function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractProblem, 
                      parent_formulation::Union{AbstractFormulation, Nothing})
     return Formulation(Duty, m, parent_formulation, nothing)
 end
 
-function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractModel)
+function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractProblem)
     return Formulation(Duty, m, nothing, nothing)
 end
 
@@ -75,9 +75,13 @@ getvar_ids(f::Formulation) = getids(f.vars)
 getconstr_ids(f::Formulation) = getids(f.constrs)
 
 
-getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status = Active) = collect(keys(get_subset(f.vars, Duty, stat)))
+getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.vars, Duty)))
 
-getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status = Active) = collect(keys(get_subset(f.vars, Duty, stat)))
+getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.vars, Duty)))
+
+getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.vars, Duty, stat)))
+
+getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.vars, Duty, stat)))
 
 getobjsense(f::Formulation) = f.obj_sense
 
@@ -160,7 +164,7 @@ end ==#
 # end
 
 function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
-    uid = getnewuid(f.model.var_counter)
+    uid = getnewuid(f.problem.var_counter)
     id = Id(uid, VarInfo(Duty, var))
     add!(f.vars, id, var)
     add_variable!(f.memberships, id) 
@@ -169,7 +173,7 @@ end
 
 function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty}, 
         membership::Membership{Constraint})
-    uid = getnewuid(f.model.var_counter)
+    uid = getnewuid(f.problem.var_counter)
     id = Id(uid, VarInfo(Duty, var))
     add!(f.vars, id, var)
     add_variable!(f.memberships, id, membership)
@@ -178,7 +182,7 @@ end
 
 function add!(f::Formulation, constr::Constraint, 
         Duty::Type{<: AbstractConstrDuty})
-    uid = getnewuid(f.model.constr_counter)
+    uid = getnewuid(f.problem.constr_counter)
     id = Id(uid, ConstrInfo(Duty, constr))
     add!(f.constrs, id, constr)
     add_constraint!(f.memberships, id)
@@ -187,7 +191,7 @@ end
 
 function add!(f::Formulation, constr::Constraint, 
         Duty::Type{<: AbstractConstrDuty}, membership::Membership{Variable})
-    uid = getnewuid(f.model.constr_counter)
+    uid = getnewuid(f.problem.constr_counter)
     id = Id(uid, ConstrInfo(Duty, constr))
     add!(f.constrs, id, constr)
     add_constraint!(f.memberships, id, membership)

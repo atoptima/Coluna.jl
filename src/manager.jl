@@ -50,6 +50,8 @@ clone(m::Manager{T,U}) where {T,U} = Membership{T,U}(copy(m.members))
 
 get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}, stat::Status) where {T <: AbstractVarConstr, U} = filter(e -> dutytype(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
 
+get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}) where {T <: AbstractVarConstr, U} = filter(e -> dutytype(getinfo(e)) == Duty, m.members)
+
 function set!(m::Manager{Id,T}, id::Id, val::T) where {Id, T}
     m.members[id] = val
     return

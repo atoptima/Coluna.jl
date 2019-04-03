@@ -9,16 +9,16 @@ mutable struct Reformulation <: AbstractFormulation
 end
 
 
-Reformulation(model::AbstractModel) = Reformulation(model, DirectMip)
+Reformulation(prob::AbstractProblem) = Reformulation(prob, DirectMip)
 
-function Reformulation(model::AbstractModel, method::SolutionMethod)
+function Reformulation(prob::AbstractProblem, method::SolutionMethod)
     return Reformulation(method,
                          nothing,
                          nothing,
                          Vector{AbstractFormulation}(),
                          Dict{FormId, Int}(),
                          Dict{FormId, Int}(),
-                         model.timer_output)
+                         prob.timer_output)
 end
 
 getmaster(r::Reformulation) = r.master

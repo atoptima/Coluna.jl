@@ -16,14 +16,14 @@ function inverse(varconstr_annotations)
     return varconstr_in_form
 end
 
-function build_dw_master!(model::Model,
+function build_dw_master!(prob::Problem,
                           annotation_id::Int,
                           reformulation::Reformulation,
                           master_form::Formulation,
                           vars_in_form::Vector{Id},
                           constrs_in_form::Vector{Id})
 
-    orig_form = get_original_formulation(model)
+    orig_form = get_original_formulation(prob)
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
     reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
     
@@ -38,14 +38,14 @@ function build_dw_master!(model::Model,
         kind = Core
         flag = Static
         duty = MasterConstr #MasterConvexityConstr
-        lb_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
+        lb_conv_constr = Constraint(duty, prob, getuid(master_form), name, rhs, sense,kind,flag)
         reformulation.dw_pricing_sp_lb[sp_uid] = getid(lb_conv_constr)
         membership = Membership(Variable) 
         add!(master_form, lb_conv_constr, membership)
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
-        ub_conv_constr = Constraint(duty, model, getuid(master_form), name, rhs, sense,kind,flag)
+        ub_conv_constr = Constraint(duty, prob, getuid(master_form), name, rhs, sense,kind,flag)
         reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
         membership = Membership(Variable) 
         add!(master_form, ub_conv_constr, membership)
@@ -68,7 +68,7 @@ function build_dw_master!(model::Model,
             kind = Binary
             flag = Artificial
             sense = Positive
-            art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+            art_var = Variable(MastArtVar, prob, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
             membership = Membership(Constraint)
             membership.members[constr_uid] = 1.0
             add!(master_form, art_var, membership)
@@ -84,7 +84,7 @@ function build_dw_master!(model::Model,
         kind = Binary
         flag = Artificial
         sense = Positive
-        pos_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+        pos_global_art_var = Variable(MastArtVar, prob, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = Membership(Constraint)
         for constr_uid in getconstr_ids(master_form)
             membership.members[constr_uid] = 1.0
@@ -98,7 +98,7 @@ function build_dw_master!(model::Model,
         kind = Binary
         flag = Artificial
         sense = Positive
-        neg_global_art_var = Variable(MastArtVar, model, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+        neg_global_art_var = Variable(MastArtVar, prob, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = Membership(Constraint)
         for constr_uid in getconstr_ids(master_form)
             membership.members[constr_uid] = -1.0
@@ -109,7 +109,7 @@ function build_dw_master!(model::Model,
     return
 end
 
-function build_dw_pricing_sp!(m::Model,
+function build_dw_pricing_sp!(m::Problem,
                               annotation_id::Int,
                               sp_form::Formulation,
                               vars_in_form::Vector{Id},
@@ -156,7 +156,7 @@ function build_dw_pricing_sp!(m::Model,
     return
 end
 
-function reformulate!(m::Model, method::SolutionMethod)
+function reformulate!(m::Problem, method::SolutionMethod)
     println("Do reformulation.")
 
     # Create formulations & reformulations

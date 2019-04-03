@@ -46,7 +46,7 @@ end
  end
 
 
-function insert_cols_in_master(model::Model,
+function insert_cols_in_master(prob::Problem,
                                sp_form::Formulation,
                                sp_sols::Vector{PrimalSolution})
 
@@ -63,7 +63,7 @@ function insert_cols_in_master(model::Model,
         if sp_sol.value < -0.0001 # TODO use tolerance
             
             ### add setup_var in sp sol: already in solution
-            #add!(sp_sol.var_members, setup_var_uid, 1.0)
+            #add!(sp_sol.var_membeprs, setup_var_uid, 1.0)
 
             ### check if sp sol exists as a registered column
             id_of_existing_mc = check_if_exists(master_form.memberships.partialsol_to_var_members,
@@ -82,7 +82,7 @@ function insert_cols_in_master(model::Model,
                 duty = MasterCol
                 sense = Positive
                 mc_var = Variable(getuid(master_form), name, cost, lb, ub, kind, sense)
-                mc_id = add!(master_form, model, mc_var, duty)
+                mc_id = add!(master_form, prob, mc_var, duty)
                 add!(mbship, mc_id)
                 name = "MC_$(sp_uid)_$(getuid(mc_id))"
                 setname!(mc_var, name)

@@ -2,7 +2,7 @@ abstract type AbstractVarConstr end
 abstract type AbstractVarConstrId end
 abstract type AbstractVarConstrInfo end
 abstract type AbstractFormulation end
-abstract type AbstractModel end
+abstract type AbstractProblem end
 abstract type AbstractMoiDef end
 abstract type AbstractCounter end
 abstract type AbstractMembership end

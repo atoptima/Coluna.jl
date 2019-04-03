@@ -62,7 +62,7 @@ include("reformulation.jl")
 #include("mastersm.column.jl")
 #include("problem.jl")
 
-include("model.jl")
+include("problem.jl")
 include("decomposition.jl")
 include("interfaceMoi.jl")
 

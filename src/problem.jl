@@ -1,4 +1,4 @@
-mutable struct Model <: AbstractModel
+mutable struct Problem <: AbstractProblem
     name::String
     mid2cid_map::MOIU.IndexMap
     original_formulation::Union{Nothing, Formulation}
@@ -15,27 +15,27 @@ mutable struct Model <: AbstractModel
     #problemidx_optimizer_map::Dict{Int, MOI.AbstractOptimizer}
 end
 
-Model(params::Params, master_factory, pricing_factory) = Model("model", MOIU.IndexMap(), nothing, nothing, 
+Problem(params::Params, master_factory, pricing_factory) = Problem("prob", MOIU.IndexMap(), nothing, nothing, 
     VarCounter(), ConstrCounter(), FormCounter(), Dict{Id, BD.Annotation}(), 
     Dict{Id, BD.Annotation}(), TimerOutputs.TimerOutput(), params, master_factory, pricing_factory)
 
-function set_original_formulation!(m::Model, of::Formulation)
+function set_original_formulation!(m::Problem, of::Formulation)
     m.original_formulation = of
     return
 end
 
-function set_re_formulation!(m::Model, r::Reformulation)
+function set_re_formulation!(m::Problem, r::Reformulation)
     m.re_formulation = r
     return
 end
 
-get_original_formulation(m::Model) = m.original_formulation
-get_re_formulation(m::Model) = m.re_formulation
-moi2cid(m::Model, mid) = m.mid2cid_map[mid] 
+get_original_formulation(m::Problem) = m.original_formulation
+get_re_formulation(m::Problem) = m.re_formulation
+moi2cid(m::Problem, mid) = m.mid2cid_map[mid] 
 
 # @hl mutable struct Callback end
 
-# mutable struct Model # user model
+# mutable struct Problem # user model
 #     extended_problem::Union{Nothing, Reformulation}
 #     callback::Callback
 #     params::Params
@@ -43,7 +43,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer}
 # end
 
-# function ModelConstructor(params = Params();
+# function ProblemConstructor(params = Params();
 #                           with_extended_prob = true)
 
 #     callback = Callback()
@@ -55,7 +55,7 @@ moi2cid(m::Model, mid) = m.mid2cid_map[mid]
 #     else
 #         extended_problem = nothing
 #     end
-#     return Model(extended_problem, callback, params, prob_counter,
+#     return Problem(extended_problem, callback, params, prob_counter,
 #                  Dict{Int,MOI.AbstractOptimizer}())
 # end
 
@@ -63,9 +63,9 @@ function create_root_node(extended_problem::Reformulation, params::Params)
     return Node(extended_problem, -Inf, ProblemSetupInfo(), params)
 end
 
-function set_model_optimizers(model::Model)
-    initialize_problem_optimizer(model.re_formulation,
-                                 model.problemidx_optimizer_map)
+function set_problem_optimizers(prob::Problem)
+    initialize_problem_optimizer(prob.re_formulation,
+                                 prob.problemidx_optimizer_map)
 end
 
 #function select_eval_alg(extended_problem::Reformulation, node_eval_mode::NODEEVALMODE)
@@ -95,12 +95,12 @@ function initialize_artificial_variables(extended_problem::Reformulation)
     end
 end
 
-function coluna_initialization(model::Model)
+function coluna_initialization(prob::Problem)
     #params = model.params
     #extended_problem = model.extended_problem
 
-    _set_global_params(model.params)
-    reformulate!(model, DantzigWolfeDecomposition)
+    _set_global_params(prob.params)
+    reformulate!(prob, DantzigWolfeDecomposition)
 
     #set_prob_ref_to_problem_dict(extended_problem)
     #set_model_optimizers(model)
@@ -112,12 +112,12 @@ end
 # # Behaves like optimize!(problem::Problem), but sets parameters before
 # # function optimize!(problem::Reformulation)
 
-function optimize!(m::Model)
+function optimize!(prob::Problem)
     coluna_initialization(m)
     global __initial_solve_time = time()
     @show _params_
-    @timeit m.timer_output "Solve model" begin
-        status = optimize!(m.re_formulation)
+    @timeit prob.timer_output "Solve prob" begin
+        status = optimize!(prob.re_formulation)
     end
-    println(m.timer_output)
+    println(prob.timer_output)
 end

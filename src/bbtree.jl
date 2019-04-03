@@ -46,7 +46,7 @@ end
 #     for child_node in cur_node.children
 #         # push!(bap_tree_nodes, child_node)
 #         # if child_node.dual_bound_is_updated
-#         #     update_cur_valid_dual_bound(model, child_node)
+#         #     update_cur_valid_dual_bound(prob, child_node)
 #         # end
 #         if length(search_tree) < params.open_nodes_limit
 #             DS.enqueue!(search_tree, child_node, get_priority(child_node))
@@ -90,7 +90,7 @@ end
 #     end
 # end
 
-# function update_model_incumbents(problem::Reformulation, node::Node,
+# function update_prob_incumbents(problem::Reformulation, node::Node,
 #         search_tree::DS.PriorityQueue{Node, Float64})
 #     if node.ip_primal_bound_is_updated
 #         update_primal_inc_solution(problem, node.node_inc_ip_primal_sol)
