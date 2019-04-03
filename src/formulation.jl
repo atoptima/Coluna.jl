@@ -316,3 +316,29 @@ function Base.show(io::IO, f::Formulation)
     _show_variables(io, f)
     return
 end
+
+function initialize_moi_optimizer(form::Formulation)
+    form.moi_optimizer = create_moi_optimizer()
+end
+
+function retrieve_primal_sol(form::Formulation)
+    new_sol = Membership(Variable)
+    new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
+    #error("Following line does not work.")
+    fill_primal_sol(form, new_sol, getvar_ids(form, _active_))
+    primal_sol = PrimalSolution(new_obj_val, new_sol)
+    @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
+    return primal_sol
+end
+
+function retrieve_dual_sol(form::Formulation)
+    # TODO check if supported by solver
+    if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
+        return nothing
+    end
+    new_sol = Membership(Constraint)
+    problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
+    fill_dual_sol(form, new_sol, getconstr_ids(form, _active_))
+    dual_sol = DualSolution(-Inf, new_sol)
+    return dual_sol
+end
