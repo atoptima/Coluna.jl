@@ -7,19 +7,20 @@ mutable struct Constraint <: AbstractVarConstr
 end
 
 function Constraint(name::String)
-    return Constraint(0, name, 0.0, Greater, Core, Static)
+    return Constraint(0, name, 0.0, Greater, Core)
 end
 
-mutable struct ConstrInfo{Duty <: AbstractConstrDuty} <: AbstractVarConstrInfo
+mutable struct ConstrInfo <: AbstractVarConstrInfo
     cur_rhs::Float64 
     cur_sense::ConstrSense # Greater Less Equal
     cur_status::Status   # Active or not
     index::MoiConstrIndex # -> moi_index
+    duty::DataType
 end
 
 function ConstrInfo(Duty::Type{<: AbstractConstrDuty},
-                    constr::Constraint)x
-    return ConstrInfo{Duty}(getrhs(constr), getsense(constr),  Active, nothing)
+                    constr::Constraint)
+    return ConstrInfo(getrhs(constr), getsense(constr), Active, nothing, Duty)
 end
 
 vctype(::Type{<: ConstrInfo}) = Constraint
@@ -41,7 +42,7 @@ end
 ==#
 
 indextype(::Type{Constraint}) = MoiConstrIndex
-idtype(::Type{Constraint}) = Id{Constraint, ConstrInfo}
+idtype(::Type{Constraint}) = Id{ConstrInfo}
 
 getform(c::Constraint) = c.form_uid
 getrhs(c::Constraint) = c.rhs

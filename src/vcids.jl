@@ -1,4 +1,4 @@
-struct Id{VcInfo <: AbstractVarConstrInfo} <: AbstractVarConstrId
+struct Id{VcInfo <: AbstractVarConstrInfo} #<: AbstractVarConstrId
     uid::Int
     info::VcInfo
 end
@@ -20,9 +20,9 @@ Base.isequal(a::Id, b::Id) = Base.isequal(a.uid, b.uid)
 
 Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 
-getuid(id::AbstractVarConstrId) = id.uid
+getuid(id::Id) = id.uid
 
-getinfo(id::AbstractVarConstrId) = id.info
+getinfo(id::Id) = id.info
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, "Id(", getuid(id), ")")

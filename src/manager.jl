@@ -3,26 +3,33 @@
 # f(::Pair{<:AbstractVarConstrId,
 #          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
 
-struct Manager{Id,T}  <: AbstractManager
-    members::Dict{Id,T}
+struct Manager{I <: Id,T}  <: AbstractManager
+    members::Dict{I,T}
 end
 
 function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)
     return Manager{idtype(VCtype), ValType}(Dict{idtype(VCtype),ValType}())
 end
 
-# Maybe we should do something like:
-# const VcManager{T} = Manager{T,T}
+Manager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
-VcManager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
+function add!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
+    haskey(m.members, id) && @warn "Key $id already exists."
+    set!(m, id, val)
+end
+
+function set!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
+    m.members[id] = val
+    return
+end
 
 getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
 
 getmembers(m::Manager) = m.members
 
-has(m::Manager, id::AbstractVarConstrId) = haskey(m.members, id)
+has(m::Manager, id::Id) = haskey(m.members, id)
 
-get(m::Manager, id::AbstractVarConstrId) = m.members[id]
+get(m::Manager, id::Id) = m.members[id]
 
 #get(m::Manager, uid::Int) = m.members[Id(uid)]
 
@@ -48,10 +55,6 @@ get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}, stat::Status) wher
 
 get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}) where {T <: AbstractVarConstr, U} = filter(e -> dutytype(getinfo(e)) == Duty, m.members)
 
-function set!(m::Manager{Id,T}, id::Id, val::T) where {Id, T}
-    m.members[id] = val
-    return
-end
 
 function Base.show(io::IO, m::Manager)
     println(io, typeof(m), ":")
