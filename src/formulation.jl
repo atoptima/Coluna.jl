@@ -112,7 +112,7 @@ function clone_in_formulation!(var_id::Id{VarInfo}, src_form::Formulation,
 end
 
 function clone_in_formulation!(constr_id::Id{ConstrInfo}, src_form::Formulation,
-        dest_form::Formulation, flag::Flag, duty::Type{<: AbstractConstrDuty})
+        dest_form::Formulation, flag::Flag, Duty::Type{<: AbstractConstrDuty})
     constr = getconstr(src_form, constr_id)
     id_clone = clone_in_formulation!(constr, constr_id, src_form, dest_form, flag, duty)
     set_var_members_of_constr!(dest_form.memberships, id_clone,
@@ -146,26 +146,7 @@ end
 # end
 
 # TODO membership should be an optional arg
-function add!(f::Formulation, var::Variable, id::Id{VarInfo})
-    set!(f.vars, id, var)
-    add_variable!(f.memberships, id) 
-    return id
-end
-
-function add!(f::Formulation, var::Variable, id::Id{VarInfo}, 
-        membership::Membership{ConstrInfo})
-    set!(f.vars, id, var)
-    add_variable!(f.memberships, id, membership)
-    return id
-end
-
-function add!(f::Formulation, constr::Constraint, id::Id{ConstrInfo})
-    set!(f.constrs, id, constr)
-    add_constraint!(f.memberships, id)
-    return id
-end
-
-function add!(f::Formulation, constr::Constraint, id::Id{ConstrInfo},
+function add!(f::Formulation, constr::Constraint,  id::Id{ConstrInfo},
        membership::Membership{VarInfo})
     set!(f.constrs, id, constr)
     add_constraint!(f.memberships, id, membership)

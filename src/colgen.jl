@@ -82,7 +82,7 @@ function insert_cols_in_master(prob::Problem,
                 duty = MasterCol
                 sense = Positive
                 mc_var = Variable(getuid(master_form), name, cost, lb, ub, kind, sense)
-                mc_id = add!(master_form, prob, mc_var, duty)
+                mc_id = add!(master_form, mc_var, duty)
                 add!(mbship, mc_id)
                 name = "MC_$(sp_uid)_$(getuid(mc_id))"
                 setname!(mc_var, name)
@@ -90,8 +90,8 @@ function insert_cols_in_master(prob::Problem,
                 
                 ### compute column vector
                 for (var_id, var_val) in sp_sol.var_members
-                    for (constr_id, var_coef) in get_constr_members_of_var(m, var_id)
-                        add_constr_members_of_var!(bship, mc_id, constr_id, var_val * var_coef)
+                    for (constr_id, var_coef) in get_constr_members_of_var(mbship, var_id)
+                        add_constr_members_of_var!(mbship, mc_id, constr_id, var_val * var_coef)
                     end
                 end
                 # setup var is in the sp_sol

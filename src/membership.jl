@@ -3,6 +3,14 @@ const Membership{T} = Manager{Id{T},Float64}
 
 Membership(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
 
+const VarMembership = Manager(VarInfo, Float64)
+
+const ConstrMembership = Manager(ConstrInfo, Float64)
+
+const VarId = Id{VarInfo}
+
+const ConstrId = Id{ContrInfo}
+
 struct Memberships
     var_to_constr_members    ::Dict{Id{VarInfo}, Membership{ConstrInfo}}
     constr_to_var_members    ::Dict{Id{ConstrInfo}, Membership{VarInfo}}
