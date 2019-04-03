@@ -192,7 +192,7 @@ function gen_new_columns(reformulation::Reformulation,
                          sp_lbs::Dict{FormId, Float64},
                          sp_ubs::Dict{FormId, Float64})
     
-    nb_new_col = 0
+    nb_new_cols = 0
     dual_bound_contrib = 0.0
     
     for sp_form in reformulation.dw_pricing_subprs
@@ -200,13 +200,13 @@ function gen_new_columns(reformulation::Reformulation,
         (gen_status, contrib) = gen_new_col(sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
         
         if gen_status > 0
-            nb_new_col += gen_status
+            nb_new_cols += gen_status
             dual_bound_contrib += contrib
         elseif gen_status == -1 # Sp is infeasible
             return (gen_status, Inf)
         end
     end
-    return (nb_new_col, dual_bound_contrib)
+    return (nb_new_cols, dual_bound_contrib)
 end
 
 
@@ -265,11 +265,11 @@ function update_lagrangian_dual_bound(alg::SimplexLpColGenAlg,
     if update_dual_bound
         update_dual_lp_bound(alg.incumbents, mast_lagrangian_bnd)
         update_dual_ip_bound(alg.incumbents, mast_lagrangian_bnd)
+    else # if alg.colgen_stabilization != nothing
+        update_dual_lp_bound(alg.incumbents, mast_lagrangian_bnd)
+        update_dual_ip_bound(alg.incumbents, mast_lagrangian_bnd)
     end
-    # if alg.colgen_stabilization != nothing
-    #     update_dual_lp_bound(alg.incumbents, mast_lagrangian_bnd)
-    #     update_dual_ip_bound(alg.incumbents, mast_lagrangian_bnd)
-    # end
+    return mast_lagrangian_bnd
 end
 
 function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
@@ -283,10 +283,10 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
 
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
-        lb_convexity_constr_uid = reformulation.dw_pricing_sp_lb[sp_uid]
-        ub_convexity_constr_uid = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getrhs(getconstr(master_form, lb_convexity_constr_uid))
-        sp_ubs[sp_uid] = getrhs(getconstr(master_form, ub_convexity_constr_uid))
+        lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
+        ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
+        sp_lbs[sp_uid] = lb_convexity_constr_id.info.cur_rhs
+        sp_ubs[sp_uid] = ub_convexity_constr_id.info.cur_rhs
     end
 
     @show sp_lbs
@@ -324,16 +324,18 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
                                                                  dual_sol.members,
                                                                  sp_lbs,
                                                                  sp_ubs)
-           # nb_new_col, sp_time, b, gc, allocs = @timed gen_new_columns(alg)
+            # nb_new_col, sp_time, b, gc, allocs = @timed gen_new_columns(alg)
+
+            update_lagrangian_dual_bound(alg, master_val, sp_dual_bound_contrib, true)
+
             # In case subproblem infeasibility results in master infeasibility
             if nb_new_col < 0
                 #mark_infeasible(alg)
                 return true
             end
-            update_lagrangian_dual_bound(alg, master_val, sp_dual_bound_contrib, true)
             # if alg.colgen_stabilization == nothing
             #|| !update_after_pricing_problem_solution(alg.colgen_stabilization, nb_new_col)
-            break
+            # break
             # end
         end
 
