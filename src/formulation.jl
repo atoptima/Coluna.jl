@@ -67,9 +67,14 @@ getconstr_ids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
 
 getuid(f::Formulation) = f.uid
 
-getvar(f::Formulation, id::Id{VarInfo}) = get(f.vars, id)
+getvar(f::Formulation, id::Id{VarInfo}) = get(f, id)
+getconstr(f::Formulation, id::Id{ConstrInfo}) = get(f, id)
 
-getconstr(f::Formulation, id::Id{ConstrInfo}) = get(f.constrs, id)
+get(f::Formulation, id::Id{VarInfo}) = get(f.vars, id)
+get(f::Formulation, id::Id{ConstrInfo}) = get(f.constrs, id)
+
+@deprecate getvar get
+@deprecate getconstr get
 
 getvar_ids(f::Formulation) = getids(f.vars)
 
@@ -105,60 +110,46 @@ function clone_in_formulation!(varconstr::VC,
     return id_clone
 end
 
-function clone_in_formulation!(id_var::Pair{Id{VarInfo}, Variable},
+function clone_in_formulation!(id::Id{VarInfo},
+                               var::Variable,
                                src::Formulation,
                                dest::Formulation,
                                duty::Type{<: AbstractVarDuty})
-    id_clone = clone_in_formulation!(id_var[2], id_var[1], dest, duty)
+    id_clone = clone_in_formulation!(var, id, dest, duty)
     reset_constr_members_of_var!(dest.memberships, id_clone,
-                                    get_constr_members_of_var(src, id_var[1]))
+                                    get_constr_members_of_var(src, id))
     return id_clone
 end
 
-function clone_in_formulation!(id_constr::Pair{Id{ConstrInfo},Constraint},
+function clone_in_formulation!(id::Id{ConstrInfo},
+                               constr::Constraint,
                                src::Formulation,
                                dest::Formulation,
                                duty::Type{<: AbstractConstrDuty})
 
-    id_clone = clone_in_formulation!(id_constr[2], id_constr[1], dest, duty)
+    id_clone = clone_in_formulation!(constr, id, dest, duty)
     set_var_members_of_constr!(dest.memberships, id_clone,
-                                    get_var_members_of_constr(src, id_constr[1]))
+                                    get_var_members_of_constr(src, id))
     return id_clone
 end
 
+# TODO :facto
 function clone_in_formulation!(vcs::Manager{I,VC},
                                src::Formulation, 
                                dest::Formulation,
                                duty) where {I<:Id,VC<:AbstractVarConstr}
-    for vc in vcs
-        clone_in_formulation!(vc, src, dest, duty)
+    for (id, vc) in vcs
+        clone_in_formulation!(id, vc, src, dest, duty)
     end
     return
 end
 
-## TO BE DELETED BY Guillaume when clones decomposition updated
-function clone_in_formulation!(var_id::Id{VarInfo}, src::Formulation,
-        dest::Formulation, duty::Type{<: AbstractVarDuty})
-    var = getvar(src, var_id)
-    id_clone = clone_in_formulation!(var, var_id, dest, duty)
-    reset_constr_members_of_var!(dest.memberships, id_clone,
-            get_constr_members_of_var(src, var_id))
-    return id_clone
-end
-
-function clone_in_formulation!(constr_id::Id{ConstrInfo}, src::Formulation,
-        dest::Formulation, duty::Type{<: AbstractConstrDuty})
-    constr = getconstr(src, constr_id)
-    id_clone = clone_in_formulation!(constr, constr_id, dest, duty)
-    set_var_members_of_constr!(dest.memberships, id_clone,
-            get_var_members_of_constr(src, constr_id))
-    return id_clone
-end
-
-function clone_in_formulation!(ids::Vector{I}, src::Formulation, 
-        dest::Formulation, duty::Type{<: AbstractDuty}) where {I <: Id}
-    for id in ids
-        clone_in_formulation!(id, src, dest, duty)
+function clone_in_formulation!(vcs::Vector{Tuple{I,VC}},
+                                src::Formulation, 
+                                dest::Formulation,
+                                duty) where {I<:Id,VC<:AbstractVarConstr}
+    for (id, vc) in vcs
+        clone_in_formulation!(id, vc, src, dest, duty)
     end
     return
 end

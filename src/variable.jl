@@ -75,6 +75,20 @@ setstatus!(v::VarInfo, s::Status) = v.cur_status = s
 setduty!(v::VarInfo, d) = v.duty = d
 setmoiindex(v::VarInfo, index::MoiVarIndex) = v.index = index
 
+# TODO : reduce
+function sync!(v::Variable, i::VarInfo)
+    setlb!(v, getlb(i))
+    setub!(v, getub(i))
+    setcost!(v, getcost(i))
+    return
+end
+
+function sync!(i::VarInfo, v::Variable)
+    setlb!(i, getlb(v))
+    setub!(i, getub(v))
+    setcost!(i, getcost(v))
+    return
+end
 
 vctype(::Type{<: VarInfo}) = Variable
 
@@ -114,7 +128,7 @@ end
 function set!(v::Variable, s::MOI.LessThan)
     ub = float(s.upper)
     (v.upper_bound > ub) && setub!(v, ub)
-    (ub <= 0) && settype!(v, Negative)
+    (ub <= 0) && setkind!(v, Negative)
     return
 end
 

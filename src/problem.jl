@@ -1,14 +1,14 @@
 mutable struct Problem <: AbstractProblem
     name::String
     mid2uid_map::MOIU.IndexMap
-    mid2cid_map::Dict{MOI.Index, Id}
+    mid2cid_map::Dict{MOI.Index, Tuple{Id, AbstractVarConstr}}
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     var_counter::VarCounter
     constr_counter::ConstrCounter
     form_counter::FormCounter
-    var_annotations:: Dict{Id{VarInfo}, BD.Annotation}
-    constr_annotations:: Dict{Id{ConstrInfo}, BD.Annotation}
+    var_annotations:: Dict{Tuple{Id{VarInfo}, Variable}, BD.Annotation}
+    constr_annotations:: Dict{Tuple{Id{ConstrInfo}, Constraint}, BD.Annotation}
     timer_output::TimerOutputs.TimerOutput
     params::Params
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
@@ -17,7 +17,7 @@ mutable struct Problem <: AbstractProblem
 end
 
 Problem(params::Params, master_factory, pricing_factory) = Problem("prob", MOIU.IndexMap(), 
-    Dict{MOI.Index, Id}(), nothing, nothing, 
+    Dict{MOI.Index, Tuple{Id, AbstractVarConstr}}(), nothing, nothing, 
     VarCounter(), ConstrCounter(), FormCounter(), Dict{Id, BD.Annotation}(), 
     Dict{Id, BD.Annotation}(), TimerOutputs.TimerOutput(), params, master_factory, pricing_factory)
 

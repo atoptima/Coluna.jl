@@ -5,23 +5,20 @@ function fill_annotations_set!(ann_set, varconstr_annotations)
     return
 end
 
-function inverse(varconstr_annotations)
-    # varconstr_in_form = Dict{FormId, Manager{Id{VarInfo},Variable}}()
-    varconstr_in_form = Dict{FormId, Vector{Id}}()
-    for (varconstr_id, annotation) in varconstr_annotations
+function inverse(varconstr_annotations::Dict{Tuple{I, VC}, BD.Annotation}
+        ) where {I <: Id, VC <: AbstractVarConstr}
+    varconstr_in_form = Dict{FormId, Vector{Tuple{I, VC}}}()
+    for ((id, varconstr), annotation) in varconstr_annotations
         if !haskey(varconstr_in_form, annotation.unique_id)
-            varconstr_in_form[annotation.unique_id] = Id[]
-            # vc_manager = filter(x->(), varconstr_annotations)
-            # varconstr_in_form[annotation.unique_id] = vc_manager
+            varconstr_in_form[annotation.unique_id] = Tuple{I,VC}[]
         end
-        # add!(varconstr_in_form[annotation.unique_id], varconstr_id)
-        push!(varconstr_in_form[annotation.unique_id], varconstr_id)
+        push!(varconstr_in_form[annotation.unique_id], (id, varconstr))
     end
     return varconstr_in_form
 end
 
 function initialize_local_art_vars(master::Formulation, constrs_in_form)
-    for id in constrs_in_form
+    for (id, constr) in constrs_in_form
         art_var = LocalArtVar(getuid(master), getuid(id))
         membership = Membership(Constraint)
         membership.members[id] = 1.0
@@ -57,8 +54,8 @@ function build_dw_master!(prob::Problem,
                           annotation_id::Int,
                           reformulation::Reformulation,
                           master_form::Formulation,
-                          vars_in_form::Vector{Id},
-                          constrs_in_form::Vector{Id})
+                          vars_in_form::Vector,
+                          constrs_in_form::Vector)
                           # Commented for now, I dont think managers are usefull here
                           # vars_in_form::Manager{Id{VarInfo}, Variable},
                           # constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
@@ -104,8 +101,8 @@ end
 function build_dw_pricing_sp!(m::Problem,
                               annotation_id::Int,
                               sp_form::Formulation,
-                              vars_in_form::Vector{Id},
-                              constrs_in_form::Vector{Id})
+                              vars_in_form::Vector,
+                              constrs_in_form::Vector)
                               # Commented for now, I dont think managers are usefull here
                               # vars_in_form::Manager{Id{VarInfo}, Variable},
                               # constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
@@ -199,10 +196,10 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     # Build Master
     @show master_annotation_id
     @assert master_annotation_id != -1
-    vars = Vector{Id}()
-    constrs = Vector{Id}()
+    vars = Vector{Tuple{Id, Variable}}()
+    constrs = Vector{Tuple{Id, Constraint}}()
     if haskey(vars_in_forms, master_annotation_id)
-        vars =  vars_in_forms[master_annotation_id]
+        vars = vars_in_forms[master_annotation_id]
     end
     if haskey(constrs_in_forms, master_annotation_id)
         constrs = constrs_in_forms[master_annotation_id]
@@ -212,8 +209,8 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
         if  annotation.problem == BD.Pricing
-            vars_in = Vector{Id}()
-            constrs_in = Vector{Id}()
+            vars_in = Vector{Tuple{Id, Variable}}()
+            constrs_in = Vector{Tuple{Id, Constraint}}()
             if haskey(vars_in_forms, annotation.unique_id)
                 vars_in =  vars_in_forms[annotation.unique_id]
             end
