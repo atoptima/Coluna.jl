@@ -38,17 +38,17 @@ function build_dw_master!(prob::Problem,
         kind = Core
         flag = Static
         duty = MasterConstr #MasterConvexityConstr
-        lb_conv_constr = Constraint(duty, prob, getuid(master_form), name, rhs, sense,kind,flag)
-        reformulation.dw_pricing_sp_lb[sp_uid] = getid(lb_conv_constr)
+        lb_conv_constr = Constraint(getuid(master_form), name, rhs, sense, kind)
         membership = Membership(Variable) 
-        add!(master_form, lb_conv_constr, membership)
+        ub_conv_constr_id = add!(master_form, lb_conv_constr, duty, membership)
+        reformulation.dw_pricing_sp_lb[sp_uid] = ub_conv_constr_id
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
-        ub_conv_constr = Constraint(duty, prob, getuid(master_form), name, rhs, sense,kind,flag)
-        reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
+        ub_conv_constr = Constraint(getuid(master_form), name, rhs, sense, kind)
         membership = Membership(Variable) 
-        add!(master_form, ub_conv_constr, membership)
+        lb_conv_constr_id = add!(master_form, ub_conv_constr, duty, membership)
+        reformulation.dw_pricing_sp_ub[sp_uid] = lb_conv_constr_id
    end
 
     # copy of pure master variables

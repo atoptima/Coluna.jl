@@ -89,62 +89,44 @@ get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.
 
 get_var_members_of_constr(f::Formulation, id::Id) = get_var_members_of_constr(f.memberships, id)
 
-get_constr_members_of_var(f::Formulation, var::Variable) = get_constr_members_of_var(f, getid(var))
-
-get_var_members_of_constr(f::Formulation, constr::Constraint) = get_var_members_of_constr(f, getid(constr))
-
-function clone_in_formulation!(varconstr::AbstractVarConstr,
+function clone_in_formulation!(varconstr::VC,
+                               id::Id,
                                src::Formulation,
                                dest::Formulation,
                                flag::Flag,
-                               duty::Type{<:AbstractDuty})
-    varconstr_copy = copy(varconstr, flag, duty, getuid(dest))
-    add!(dest, varconstr_copy)
-    return varconstr_copy
+                               duty::Type{<:AbstractDuty}) where {VC <: AbstractVarConstr}
+    varconstr_clone = deepcopy(varconstr)
+    setform!(varconstr_clone, getuid(dest))
+    id_clone = Id(getuid(id), infotype(VC)(duty, varconstr_clone))
+    add!(dest, varconstr_clone, id_clone)
+    return id_clone
 end
 
-function clone_in_formulation!(var_ids::Vector{VCid},
-                               src_form::Formulation,
-                               dest_form::Formulation,
-                               flag::Flag,
-                               duty::Type{<: AbstractVarDuty}) where {VCid <: Id}
-    for var_id in var_ids
-        var = getvar(src_form, var_id)
-        var_clone = clone_in_formulation!(var, src_form, dest_form, flag, duty)
-        reset_constr_members_of_var!(dest_form.memberships, var_id,
-                                     get_constr_members_of_var(src_form, var_id))
-    end
-    return 
+function clone_in_formulation!(var_id::Id{VarInfo}, src_form::Formulation,
+        dest_form::Formulation, flag::Flag, duty::Type{<: AbstractVarDuty})
+    var = getvar(src_form, var_id)
+    id_clone = clone_in_formulation!(var, var_id, src_form, dest_form, flag, duty)
+    reset_constr_members_of_var!(dest_form.memberships, id_clone,
+                                    get_constr_members_of_var(src_form, var_id))
+    return id_clone
 end
 
-function clone_in_formulation!(constr_uids::Vector{VCid},
-                               src_form::Formulation,
-                               dest_form::Formulation,
-                               flag::Flag,
-                               duty::Type{<: AbstractConstrDuty}) where {VCid <: Id}
-    for constr_uid in constr_uids
-        constr = getconstr(src_form, constr_uid)
-        constr_clone = clone_in_formulation!(constr, src_form, dest_form, flag, duty)
-        set_var_members_of_constr!(dest_form.memberships, constr_uid,
-                                     get_var_members_of_constr(src_form, constr_uid))
-    end
-    
-    return 
+function clone_in_formulation!(constr_id::Id{ConstrInfo}, src_form::Formulation,
+        dest_form::Formulation, flag::Flag, duty::Type{<: AbstractConstrDuty})
+    constr = getconstr(src_form, constr_id)
+    id_clone = clone_in_formulation!(constr, constr_id, src_form, dest_form, flag, duty)
+    set_var_members_of_constr!(dest_form.memberships, id_clone,
+                                    get_var_members_of_constr(src_form, constr_id))
+    return id_clone
 end
 
-#==function clone_in_formulation!(varconstr::AbstractVarConstr, src::Formulation, dest::Formulation, duty; membership = false)
-    varconstr_copy = deepcopy(varconstr)
-    setform!(varconstr_copy, getuid(dest))
-    setduty!(varconstr_copy, duty)
-    if membership
-        m = get_constr_members(src, varconstr)
-        m_copy = deepcopy(m)
-        add!(dest, varconstr_copy, m_copy)
-    else
-        add!(dest, varconstr_copy)
+function clone_in_formulation!(ids::Vector{Id}, src_form::Formulation, 
+        dest_form::Formulation, flag::Flag, duty)
+    for id in ids
+        clone_in_formulation!(id, src_form, dest_form, flag, duty)
     end
     return
-end ==#
+end
 
 # function add!(f::Formulation, elems::Vector{VarConstr}) where {VarConstr <: AbstractVarConstr}
 #     for elem in elems
@@ -163,11 +145,37 @@ end ==#
 #     return
 # end
 
+# TODO membership should be an optional arg
+function add!(f::Formulation, var::Variable, id::Id{VarInfo})
+    set!(f.vars, id, var)
+    add_variable!(f.memberships, id) 
+    return id
+end
+
+function add!(f::Formulation, var::Variable, id::Id{VarInfo}, 
+        membership::Membership{ConstrInfo})
+    set!(f.vars, id, var)
+    add_variable!(f.memberships, id, membership)
+    return id
+end
+
+function add!(f::Formulation, constr::Constraint, id::Id{ConstrInfo})
+    set!(f.constrs, id, constr)
+    add_constraint!(f.memberships, id)
+    return id
+end
+
+function add!(f::Formulation, constr::Constraint, id::Id{ConstrInfo},
+       membership::Membership{VarInfo})
+    set!(f.constrs, id, constr)
+    add_constraint!(f.memberships, id, membership)
+    return id
+end
+
 function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
     uid = getnewuid(f.problem.var_counter)
     id = Id(uid, VarInfo(Duty, var))
-    set!(f.vars, id, var)
-    add_variable!(f.memberships, id) 
+    add!(f, var, id)
     return id
 end
 
@@ -175,8 +183,7 @@ function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty},
         membership::Membership{ConstrInfo})
     uid = getnewuid(f.problem.var_counter)
     id = Id(uid, VarInfo(Duty, var))
-    set!(f.vars, id, var)
-    add_variable!(f.memberships, id, membership)
+    add!(f, var, id, membership)
     return id
 end
 
@@ -184,8 +191,7 @@ function add!(f::Formulation, constr::Constraint,
         Duty::Type{<: AbstractConstrDuty})
     uid = getnewuid(f.problem.constr_counter)
     id = Id(uid, ConstrInfo(Duty, constr))
-    set!(f.constrs, id, constr)
-    add_constraint!(f.memberships, id)
+    add!(f, constr, id)
     return id
 end
 
@@ -193,8 +199,7 @@ function add!(f::Formulation, constr::Constraint,
         Duty::Type{<: AbstractConstrDuty}, membership::Membership{VarInfo})
     uid = getnewuid(f.problem.constr_counter)
     id = Id(uid, ConstrInfo(Duty, constr))
-    set!(f.constrs, id, constr)
-    add_constraint!(f.memberships, id, membership)
+    add!(f, constr, id, membership)
     return id
 end
 
@@ -231,7 +236,7 @@ end
 function compute_original_cost(sol::PrimalSolution, form::Formulation)
     cost = 0.0
     for (var_uid, val) in sol.members
-        var = getvar(form,var_uid)
+        var = getvar(form, var_uid)
         cost += var.cost * val
     end
     @logmsg LogLevel(-4) string("intrinsic_cost = ",cost)
@@ -257,7 +262,7 @@ function _show_constraint(io::IO, f::Formulation, id)
     constr = getconstr(f, id)
     constrinfo = getinfo(id)
     print(io, " ", getname(constr), " : ")
-    membership = get_var_members_of_constr(f, constr)
+    membership = get_var_members_of_constr(f, id)
     var_ids = getids(membership)
     for var_id in sort!(var_ids)
         coeff = membership[var_id]
@@ -279,7 +284,7 @@ function _show_constraint(io::IO, f::Formulation, id)
         op = "<="
     end
     print(io, " ", op, " ", getrhs(constr))
-    d = getduty(id)
+    d = getduty(constrinfo)
     println(io, " (", d ,")")
     return
 end

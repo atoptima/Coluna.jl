@@ -27,7 +27,7 @@ function add!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
     return
 end
 
-getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
+#getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
 
 getmembers(m::Manager) = m.members
 
