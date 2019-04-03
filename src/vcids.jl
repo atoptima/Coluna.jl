@@ -1,17 +1,16 @@
-struct Id{T <: AbstractVarConstr, VcInfo <: AbstractVarConstrInfo} <: AbstractVarConstrId
+struct Id{VcInfo <: AbstractVarConstrInfo} <: AbstractVarConstrId
     uid::Int
     info::VcInfo
 end
 
+idtype(::Type{<: Variable}) = Id{VarInfo}
+idtype(::Type{<: Constraint}) = Id{ConstrInfo}
+
 #Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{T}(i, infotype(T)())
 
-Id{T <: AbstractVarConstr}  = Id{T, infotype(T)}
+# Id{T <: AbstractVarConstr} = Id{T, infotype(T)} # Default constructor should be enough
 
 Id(id::Id{T}) where {T} = Id{T}(id.uid, id.info)
-
-function Id(uid::Int, info::T) where {T <: AbstractVarConstrInfo}
-    return Id{vctype(T), T}(uid, info)
-end
 
 # Id(uid::Int) = Id(uid, nothing)
 

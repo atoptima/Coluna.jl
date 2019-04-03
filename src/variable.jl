@@ -19,7 +19,7 @@ mutable struct VarInfo <: AbstractVarConstrInfo
     cur_ub::Float64 
     cur_status::Status   # Active or not
     duty::Type{<: AbstractVarDuty}
-    index::MoiVarIndex # moi ref
+    index::MoiVarIndex # moi ref # -> moi_index
     bd_constr_ref::Union{Nothing, MoiVarBound} # should be removed
     moi_kind::Union{Nothing, MoiVarKind} # should be removed
 end
@@ -33,11 +33,9 @@ vctype(::Type{<: VarInfo}) = Variable
 
 infotype(::Type{<: Variable}) = VarInfo
 
-dutytype(vi::VarInfo{T}) where {T <: AbstractVarDuty} = T
-
 indextype(::Type{<: Variable}) = MoiVarIndex
 
-idtype(::Type{<: Variable}) = Id{VarInfo}
+getdutytype(a::AbstractVarConstrInfo) = a.duty
 
 #getuid(v::Variable) = getuid(v.id)
 #getid(v::Variable) = v.id

@@ -3,12 +3,8 @@
 # f(::Pair{<:AbstractVarConstrId,
 #          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
 
-struct Manager{T}  <: AbstractManager
+struct Manager{Id,T}  <: AbstractManager
     members::Dict{Id,T}
-end
-
-function Manager(VCtype::Type{<:AbstractVarConstr})
-    return Manager{idtype(VCtype), VCtype}(Dict{idtype(VCtype),VCtype}())
 end
 
 function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)

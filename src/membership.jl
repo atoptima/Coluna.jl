@@ -1,5 +1,5 @@
 # Membership is just a Manager{Id,Float64}
-const Membership{T} = Manager{Id{T},Float64}
+const Membership{T} = Manager{T,Float64}
 
 Membership(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
 
@@ -9,12 +9,12 @@ function add!(m::Membership, id::Id, val::Float64)
 end
 
 struct Memberships
-    var_to_constr_members    ::Dict{Id, Membership{Constraint}}
-    constr_to_var_members    ::Dict{Id, Membership{Variable}}
-    var_to_partialsol_members::Dict{Id, Membership{Variable}}
-    partialsol_to_var_members::Dict{Id, Membership{Variable}}
-    var_to_expression_members::Dict{Id, Membership{Variable}}
-    expression_to_var_members::Dict{Id, Membership{Variable}}
+    var_to_constr_members    ::Dict{Id, Membership{Id{ConstrInfo}}}
+    constr_to_var_members    ::Dict{Id, Membership{Id{VarInfo}}}
+    var_to_partialsol_members::Dict{Id, Membership{Id{VarInfo}}}
+    partialsol_to_var_members::Dict{Id, Membership{Id{VarInfo}}}
+    var_to_expression_members::Dict{Id, Membership{Id{VarInfo}}}
+    expression_to_var_members::Dict{Id, Membership{Id{VarInfo}}}
 end
 
 function check_if_exists(dict::Dict{Id, Membership}, membership::Membership)

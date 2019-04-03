@@ -14,7 +14,7 @@ mutable struct ConstrInfo{Duty <: AbstractConstrDuty} <: AbstractVarConstrInfo
     cur_rhs::Float64 
     cur_sense::ConstrSense # Greater Less Equal
     cur_status::Status   # Active or not
-    index::MoiConstrIndex
+    index::MoiConstrIndex # -> moi_index
 end
 
 function ConstrInfo(Duty::Type{<: AbstractConstrDuty},
@@ -25,8 +25,6 @@ end
 vctype(::Type{<: ConstrInfo}) = Constraint
 
 infotype(::Type{<: Constraint}) = ConstrInfo
-
-dutytype(ci::ConstrInfo{T}) where {T <: AbstractVarDuty} = T
 
 #==function copy(vc::T, flag::Flag, Duty::Type{<: AbstractDuty},
               form_uid::Int) where {T <: AbstractVarConstr}
