@@ -10,55 +10,17 @@ function Constraint(name::String)
     return Constraint(0, name, 0.0, Greater, Core)
 end
 
-mutable struct ConstrInfo <: AbstractVarConstrInfo
-    cur_rhs::Float64 
-    cur_sense::ConstrSense # Greater Less Equal
-    cur_status::Status   # Active or not
-    index::MoiConstrIndex # -> moi_index
-    duty::DataType
-end
-
-function ConstrInfo(Duty::Type{<: AbstractConstrDuty},
-                    constr::Constraint)
-    return ConstrInfo(getrhs(constr), getsense(constr), Active, nothing, Duty)
-end
-
-vctype(::Type{<: ConstrInfo}) = Constraint
-
-infotype(::Type{<: Constraint}) = ConstrInfo
-
-#==function copy(vc::T, flag::Flag, Duty::Type{<: AbstractDuty},
-              form_uid::Int) where {T <: AbstractVarConstr}
-    return T{Duty}(Id(getid(vc)), form_uid, getname(vc),
-                   getrhs(constr), getsense(constr), getkind(constr), flag)
-end
-
-
-function copy(constr::Constraint, flag::Flag, Duty::Type{<: AbstractConstrDuty},
-              form_uid::Int)
-    return Constraint{Duty}(Id(getid(constr)), form_uid, getname(constr),
-        getrhs(constr), getsense(constr), getkind(constr), flag)
-end
-==#
-
-indextype(::Type{Constraint}) = MoiConstrIndex
-idtype(::Type{Constraint}) = Id{ConstrInfo}
-
 getform(c::Constraint) = c.form_uid
 getrhs(c::Constraint) = c.rhs
 getname(c::Constraint) = c.name
 getsense(c::Constraint) = c.sense
-gettype(c::Constraint) = c.kind
 getkind(c::Constraint) = c.kind
-getflag(c::Constraint) = c.flag
 
 setform!(c::Constraint, uid::FormId) = c.form_uid = uid
 setname!(c::Constraint, name::String) = c.name = name
-setsense!(c::Constraint, s::ConstrSense) = c.sense = s
-settype!(c::Constraint, t::ConstrKind) = c.kind = t
-setflag!(c::Constraint, f::Flag) = c.flag = f
 setrhs!(c::Constraint, r::Float64) = c.rhs = r
-#setduty!(c::Constraint, d::ConstrDuty) = c.duty = d
+setsense!(c::Constraint, s::ConstrSense) = c.sense = s
+setkind!(c::Constraint, t::ConstrKind) = c.kind = t
 
 function set!(c::Constraint, s::MOI.GreaterThan)
     rhs = float(s.lower)
@@ -80,3 +42,37 @@ function set!(c::Constraint, s::MOI.LessThan)
     setrhs!(c, rhs)
     return
 end
+
+mutable struct ConstrInfo <: AbstractVarConstrInfo
+    cur_rhs::Float64 
+    cur_sense::ConstrSense # Greater Less Equal
+    cur_status::Status   # Active or not
+    index::MoiConstrIndex # -> moi_index
+    duty::DataType
+end
+
+function ConstrInfo(Duty::Type{<: AbstractConstrDuty},
+                    constr::Constraint)
+    return ConstrInfo(getrhs(constr), getsense(constr), Active, nothing, Duty)
+end
+
+getrhs(c::ConstrInfo) = c.cur_rhs
+getsense(c::ConstrInfo) = c.cur_sense
+getstatus(c::ConstrInfo) = c.cur_status
+getmoiindex(c::ConstrInfo) = c.index
+getduty(c::ConstrInfo) = c.duty
+
+setrhs!(c::ConstrInfo, rhs::Float64) = c.cur_rhs = rhs
+setsense!(c::ConstrInfo, s::ConstrSense) = c.cur_sense = s
+setstatus!(c::ConstrInfo, s::Status) = c.cur_status = s
+
+# TODO :
+
+vctype(::Type{<: ConstrInfo}) = Constraint
+infotype(::Type{<: Constraint}) = ConstrInfo
+
+indextype(::Type{Constraint}) = MoiConstrIndex
+idtype(::Type{Constraint}) = Id{ConstrInfo}
+
+
+#setduty!(c::Constraint, d::ConstrDuty) = c.duty = d
