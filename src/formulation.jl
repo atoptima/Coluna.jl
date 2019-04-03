@@ -329,7 +329,7 @@ function retrieve_primal_sol(form::Formulation)
     new_sol = Membership(Variable)
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     #error("Following line does not work.")
-    fill_primal_sol(form, new_sol, getvar_ids(form, _active_))
+    fill_primal_sol(form.moi_optimizer, new_sol, getvar_ids(form, _active_))
     primal_sol = PrimalSolution(new_obj_val, new_sol)
     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
     return primal_sol
@@ -342,7 +342,7 @@ function retrieve_dual_sol(form::Formulation)
     end
     new_sol = Membership(Constraint)
     problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
-    fill_dual_sol(form, new_sol, getconstr_ids(form, _active_))
+    fill_dual_sol(form.moi_optimizer, new_sol, getconstr_ids(form, _active_))
     dual_sol = DualSolution(-Inf, new_sol)
     return dual_sol
 end

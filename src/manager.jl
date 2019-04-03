@@ -3,13 +3,11 @@
 # f(::Pair{<:AbstractVarConstrId,
 #          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
 
+_active_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active
+
 struct Manager{I <: Id,T}  <: AbstractManager
     members::Dict{I,T}
 end
-
-#function Manager{I <: Id, T}()
-#    return Manager{I <: Id, T}(Dict{I,T}())
-#end
 
 function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)
     return Manager{idtype(VCtype), ValType}(Dict{idtype(VCtype),ValType}())
@@ -18,8 +16,6 @@ end
 function Manager(VCtype::Type{<:AbstractVarConstr})
     return Manager{idtype(VCtype), VCtype}(Dict{idtype(VCtype),VCtype}())
 end
-
-#Manager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
 function set!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
     m.members[id] = val
@@ -57,7 +53,7 @@ getindex(m::Manager, elements) = getindex(m.members, elements)
 
 lastindex(m::Manager) = lastindex(m.members)
 
-Base.filter(f::Function, m::Manager) = filter(f, m.members)
+Base.filter(f::Function, m::Manager) = typeof(m)(filter(f, m.members))
 
 clone(m::Manager{I,T}) where {I,T} = Membership{I,T}(copy(m.members))
 
