@@ -191,6 +191,10 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
 
     # Retrieve annotation
     load_decomposition_annotations!(prob, src)
+
+    println(" \e[34m ORIGINAL FORMULATION \e[00m")
+    @show prob.original_formulation
+    println("\e[34m END ORIGINAL FORMULATION \e[00m")
     return prob.mid2uid_map
 end
 

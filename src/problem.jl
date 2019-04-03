@@ -61,10 +61,6 @@ moi2cid(m::Problem, mid) = m.mid2cid_map[mid]
 #                  Dict{Int,MOI.AbstractOptimizer}())
 # end
 
-function create_root_node(extended_problem::Reformulation, params::Params)
-    return Node(extended_problem, -Inf, ProblemSetupInfo(), params)
-end
-
 function set_problem_optimizers(prob::Problem)
     initialize_problem_optimizer(prob.re_formulation,
                                  prob.problemidx_optimizer_map)

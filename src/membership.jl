@@ -3,18 +3,13 @@ const Membership{T} = Manager{Id{T},Float64}
 
 Membership(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
 
-const VarMembership = Membership{VarInfo}
 
-const ConstrMembership = Membership{ConstrInfo}
-
-const VarId = Id{VarInfo}
-
-const ConstrId = Id{ConstrInfo}
-
-const VarManager = Manager{VarId, Variable}
-
-const ConstrManager = Manager{ConstrId, Constraint}
-
+#const VarMembership = Membership{VarInfo}
+#const ConstrMembership = Membership{ConstrInfo}
+#const VarId = Id{VarInfo}
+#const ConstrId = Id{ConstrInfo}
+#const VarManager = Manager{VarId, Variable}
+#const ConstrManager = Manager{ConstrId, Constraint}
 
 struct Memberships
     var_to_constr_members    ::Dict{Id{VarInfo}, Membership{ConstrInfo}}
@@ -53,7 +48,7 @@ end
 
     
 get_subset(m::Membership, Duty::Type{<:AbstractConstrDuty}, stat::Status) =
-    filter(e -> dutytype(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
+    filter(e -> getduty(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
 
 
 function get_constr_members_of_var(m::Memberships, var_id::Id) 
