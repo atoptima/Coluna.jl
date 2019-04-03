@@ -150,8 +150,8 @@ function build_dw_pricing_sp!(m::Problem,
     ## Create representative of sp var in master
     var_ids = getvar_ids(sp_form, PricingSpVar)
     @show var_ids
-    clone_in_formulation!(var_ids, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
+    clone_in_formulation!(var_ids, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
     return
 end

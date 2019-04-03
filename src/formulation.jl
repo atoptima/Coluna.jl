@@ -91,7 +91,6 @@ get_var_members_of_constr(f::Formulation, id::Id) = get_var_members_of_constr(f.
 
 function clone_in_formulation!(varconstr::VC,
                                id::Id,
-                               src::Formulation,
                                dest::Formulation,
                                flag::Flag,
                                duty::Type{<:AbstractDuty}) where {VC <: AbstractVarConstr}
@@ -102,28 +101,28 @@ function clone_in_formulation!(varconstr::VC,
     return id_clone
 end
 
-function clone_in_formulation!(var_id::Id{VarInfo}, src_form::Formulation,
-        dest_form::Formulation, flag::Flag, duty::Type{<: AbstractVarDuty})
-    var = getvar(src_form, var_id)
-    id_clone = clone_in_formulation!(var, var_id, src_form, dest_form, flag, duty)
-    reset_constr_members_of_var!(dest_form.memberships, id_clone,
-                                    get_constr_members_of_var(src_form, var_id))
+function clone_in_formulation!(var_id::Id{VarInfo}, src::Formulation,
+        dest::Formulation, flag::Flag, duty::Type{<: AbstractVarDuty})
+    var = getvar(src, var_id)
+    id_clone = clone_in_formulation!(var, var_id, dest, flag, duty)
+    reset_constr_members_of_var!(dest.memberships, id_clone,
+                                    get_constr_members_of_var(src, var_id))
     return id_clone
 end
 
-function clone_in_formulation!(constr_id::Id{ConstrInfo}, src_form::Formulation,
-        dest_form::Formulation, flag::Flag, duty::Type{<: AbstractConstrDuty})
-    constr = getconstr(src_form, constr_id)
-    id_clone = clone_in_formulation!(constr, constr_id, src_form, dest_form, flag, duty)
-    set_var_members_of_constr!(dest_form.memberships, id_clone,
-                                    get_var_members_of_constr(src_form, constr_id))
+function clone_in_formulation!(constr_id::Id{ConstrInfo}, src::Formulation,
+        dest::Formulation, flag::Flag, duty::Type{<: AbstractConstrDuty})
+    constr = getconstr(src, constr_id)
+    id_clone = clone_in_formulation!(constr, constr_id, dest, flag, duty)
+    set_var_members_of_constr!(dest.memberships, id_clone,
+                                    get_var_members_of_constr(src, constr_id))
     return id_clone
 end
 
-function clone_in_formulation!(ids::Vector{Id}, src_form::Formulation, 
-        dest_form::Formulation, flag::Flag, duty)
+function clone_in_formulation!(ids::Vector{I}, src::Formulation, 
+        dest::Formulation, flag::Flag, duty) where {I <: Id}
     for id in ids
-        clone_in_formulation!(id, src_form, dest_form, flag, duty)
+        clone_in_formulation!(id, src, dest, flag, duty)
     end
     return
 end
