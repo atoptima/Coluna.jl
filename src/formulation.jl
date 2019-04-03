@@ -4,8 +4,8 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ProblemLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::Manager{Id{Variable, VarInfo}, Variable}
-    constrs::Manager{Id{Constraint, ConstrInfo}, Constraint}
+    vars::Manager{Id{VarInfo}, Variable}
+    constrs::Manager{Id{ConstrInfo}, Constraint}
     memberships::Memberships
     obj_sense::ObjSense
     callback
@@ -66,9 +66,9 @@ getconstr_ids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
 
 getuid(f::Formulation) = f.uid
 
-getvar(f::Formulation, id::Id) = get(f.vars, id)
+getvar(f::Formulation, id::Id{VarInfo}) = get(f.vars, id)
 
-getconstr(f::Formulation, id::Id) = get(f.constrs, id)
+getconstr(f::Formulation, id::Id{ConstrInfo}) = get(f.constrs, id)
 
 getvar_ids(f::Formulation) = getids(f.vars)
 
@@ -172,7 +172,7 @@ function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
 end
 
 function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty}, 
-        membership::Membership{Constraint})
+        membership::Membership{ConstrInfo})
     uid = getnewuid(f.problem.var_counter)
     id = Id(uid, VarInfo(Duty, var))
     add!(f.vars, id, var)
@@ -190,7 +190,7 @@ function add!(f::Formulation, constr::Constraint,
 end
 
 function add!(f::Formulation, constr::Constraint, 
-        Duty::Type{<: AbstractConstrDuty}, membership::Membership{Variable})
+        Duty::Type{<: AbstractConstrDuty}, membership::Membership{VarInfo})
     uid = getnewuid(f.problem.constr_counter)
     id = Id(uid, ConstrInfo(Duty, constr))
     add!(f.constrs, id, constr)
@@ -255,6 +255,7 @@ end
 
 function _show_constraint(io::IO, f::Formulation, id)
     constr = getconstr(f, id)
+    constrinfo = getinfo(id)
     print(io, " ", getname(constr), " : ")
     membership = get_var_members_of_constr(f, constr)
     var_ids = getids(membership)
@@ -278,7 +279,7 @@ function _show_constraint(io::IO, f::Formulation, id)
         op = "<="
     end
     print(io, " ", op, " ", getrhs(constr))
-    d = dutytype(id)
+    d = getduty(id)
     println(io, " (", d ,")")
     return
 end
@@ -292,11 +293,12 @@ end
 
 function _show_variable(io::IO, f::Formulation, id)
     var = getvar(f, id)
+    varinfo = getinfo(id)
     name = getname(var)
-    lb = getlb(var)
-    ub = getub(var)
-    t = gettype(var)
-    d = dutytype(id)
+    lb = getlb(varinfo)
+    ub = getub(varinfo)
+    t = getkind(var)
+    d = getduty(varinfo)
     f = getflag(var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d ," | ", f , ")")
 end

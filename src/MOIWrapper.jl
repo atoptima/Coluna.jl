@@ -113,7 +113,7 @@ end
 
 function create_origconstr!(constrs, vars, f::Formulation,
         prob, name, func::MOI.ScalarAffineFunction, set, m_constr_id)
-    constr = Constraint(prob, name)
+    constr = Constraint(name)
     set!(constr, set)
     push!(constrs, constr)
     membership = Membership(Variable) #spzeros(Float64, MAX_SV_ENTRIES)
@@ -139,7 +139,7 @@ function create_origconstrs!(constrs::Vector{Constraint}, f::Formulation,
             end
             func = MOI.get(src, MOI.ConstraintFunction(), m_constr_id)
             set = MOI.get(src, MOI.ConstraintSet(), m_constr_id)
-            create_origconstr!(constrs, vars, f, m, name, func, set, m_constr_id)
+            create_origconstr!(constrs, vars, f, prob, name, func, set, m_constr_id)
         end
     end
     return

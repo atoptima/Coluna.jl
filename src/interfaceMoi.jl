@@ -65,7 +65,7 @@ function add_variable_in_optimizer(form::Formulation,
 end
 
 function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
-                         sol::Membership{Variable},
+                         sol::Membership{VarInfo},
                          var_list::Manager{Id{VarInfo},Variable})
     for var_def in var_list
         id = var_def[1]
@@ -89,7 +89,7 @@ function retrieve_primal_sol(form::Formulation)
 end
 
 function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
-                       sol::Membership{Constraint},
+                       sol::Membership{ConstrInfo},
                        constr_list::Manager{Id{ConstrInfo},Constraint})
     for constr_def in constr_list
         val = 0.0
@@ -136,7 +136,7 @@ function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
 end
 
 #==
-function compute_constr_terms(membership::Membership{Variable})
+function compute_constr_terms(membership::Membership{VarInfo})
     active = true
     return [
         MOI.ScalarAffineTerm{Float64}(var_val, var_index)
@@ -147,7 +147,7 @@ end
 
 function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                  constr::Constraint,
-                                 var_membership::Membership{Variable},
+                                 var_membership::Membership{VarInfo},
                                  rhs::Float64)
     terms = compute_constr_terms(var_membership)
     f = MOI.ScalarAffineFunction(terms, 0.0)

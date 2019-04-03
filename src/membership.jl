@@ -1,5 +1,5 @@
 # Membership is just a Manager{Id,Float64}
-const Membership{T} = Manager{T,Float64}
+const Membership{T} = Manager{Id{T},Float64}
 
 Membership(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
 
@@ -9,12 +9,12 @@ function add!(m::Membership, id::Id, val::Float64)
 end
 
 struct Memberships
-    var_to_constr_members    ::Dict{Id, Membership{Id{ConstrInfo}}}
-    constr_to_var_members    ::Dict{Id, Membership{Id{VarInfo}}}
-    var_to_partialsol_members::Dict{Id, Membership{Id{VarInfo}}}
-    partialsol_to_var_members::Dict{Id, Membership{Id{VarInfo}}}
-    var_to_expression_members::Dict{Id, Membership{Id{VarInfo}}}
-    expression_to_var_members::Dict{Id, Membership{Id{VarInfo}}}
+    var_to_constr_members    ::Dict{Id{VarInfo}, Membership{ConstrInfo}}
+    constr_to_var_members    ::Dict{Id{VarInfo}, Membership{VarInfo}}
+    var_to_partialsol_members::Dict{Id{VarInfo}, Membership{VarInfo}}
+    partialsol_to_var_members::Dict{Id{VarInfo}, Membership{VarInfo}}
+    var_to_expression_members::Dict{Id{VarInfo}, Membership{VarInfo}}
+    expression_to_var_members::Dict{Id{VarInfo}, Membership{VarInfo}}
 end
 
 function check_if_exists(dict::Dict{Id, Membership}, membership::Membership)
@@ -27,19 +27,19 @@ function check_if_exists(dict::Dict{Id, Membership}, membership::Membership)
 end
 
 function Memberships()
-    return Memberships(Dict{Id, Membership{Constraint}}(),
-                       Dict{Id, Membership{Variable}}(), 
-                       Dict{Id, Membership{Variable}}(), 
-                       Dict{Id, Membership{Variable}}(), 
-                       Dict{Id, Membership{Variable}}(), 
-                       Dict{Id, Membership{Variable}}())
+    return Memberships(Dict{Id{VarInfo}, Membership{ConstrInfo}}(),
+                       Dict{Id{ConstrInfo}, Membership{VarInfo}}(), 
+                       Dict{Id{VarInfo}, Membership{VarInfo}}(), 
+                       Dict{Id{VarInfo}, Membership{VarInfo}}(), 
+                       Dict{Id{VarInfo}, Membership{VarInfo}}(), 
+                       Dict{Id{VarInfo}, Membership{VarInfo}}())
 end
 
 #function add_var!(m::Membership(Variable), var_id::Id, val::Float64)
 #    m[var_id] = val
 #end
 
-#function add_constr!(m::Membership{Constraint}, constr_id::Id, val::Float64)
+#function add_constr!(m::Membership{ConstrInfo}, constr_id::Id, val::Float64)
 #    m[constr_id] = val
 #end
 
@@ -83,7 +83,7 @@ function add_constr_members_of_var!(m::Memberships, var_id::Id,
 end
 
 function add_constr_members_of_var!(m::Memberships, var_id::Id, 
-        new_membership::Membership{Constraint}) 
+        new_membership::Membership{ConstrInfo}) 
     m.var_to_constr_members[var_id] = new_membership
 
     for (constr_id, val) in new_membership
@@ -95,7 +95,7 @@ function add_constr_members_of_var!(m::Memberships, var_id::Id,
 end
 
 function add_var_members_of_constr!(m::Memberships, constr_id::Id, 
-        new_membership::Membership{Variable}) 
+        new_membership::Membership{VarInfo}) 
     m.constr_to_var_members[constr_id] = new_membership
 
     for (var_id, val) in new_membership
@@ -120,7 +120,7 @@ function add_partialsol_members_of_var!(m::Memberships, ps_var_id::Id, var_id::I
 end
 
 function add_partialsol_members_of_var!(m::Memberships, ps_var_id::Id, 
-        new_membership::Membership{Variable}) 
+        new_membership::Membership{VarInfo}) 
     m.var_to_partialsol_members[ps_var_id] = new_membership
 
     for (var_id, val) in new_membership
@@ -145,7 +145,7 @@ function add_var_members_of_partialsol!(m::Memberships, mc_uid::Id, spvar_id,
 end
 
 function add_var_members_of_partialsol!(m::Memberships, mc_uid::Id, 
-        new_membership::Membership{Variable}) 
+        new_membership::Membership{VarInfo}) 
     if !haskey(m.partialsol_to_var_members, mc_uid)
         m.partialsol_to_var_members[mc_uid] = Membership(Variable)()
     end
@@ -161,16 +161,16 @@ function add_var_members_of_partialsol!(m::Memberships, mc_uid::Id,
 end
 
 function reset_constr_members_of_var!(m::Memberships, var_id::Id, 
-        new_membership::Membership{Constraint}) 
+        new_membership::Membership{ConstrInfo}) 
     m.var_to_constr_members[var_id] = new_membership
 end
 
 function reset_var_members_of_constr!(m::Memberships, constr_id::Id,
-         new_membership::Membership{Variable}) 
+         new_membership::Membership{VarInfo}) 
     m.constr_to_var_members[constr_id] = new_membership
 end
 
-function set_constr_members_of_var!(m::Memberships, var_id::Id, new_membership::Membership{Constraint}) 
+function set_constr_members_of_var!(m::Memberships, var_id::Id, new_membership::Membership{ConstrInfo}) 
     m.var_to_constr_members[var_id] = new_membership
     for (constr_id, val) in new_membership
         if !haskey(m.constr_to_var_members, constr_id)
@@ -180,7 +180,7 @@ function set_constr_members_of_var!(m::Memberships, var_id::Id, new_membership::
     end
 end
 
-function set_var_members_of_constr!(m::Memberships, constr_id::Id, new_membership::Membership{Variable}) 
+function set_var_members_of_constr!(m::Memberships, constr_id::Id, new_membership::Membership{VarInfo}) 
     m.constr_to_var_members[constr_id] = new_membership
     for (var_id, val) in new_membership
         if !haskey(m.var_to_constr_members, var_id)
@@ -197,7 +197,7 @@ function add_variable!(m::Memberships, var_id::Id)
     return
 end
 
-function add_variable!(m::Memberships, var_id::Id, membership::Membership{Constraint})
+function add_variable!(m::Memberships, var_id::Id, membership::Membership{ConstrInfo})
     set_constr_members_of_var!(m, var_id, membership)
     return
 end
@@ -210,7 +210,7 @@ function add_constraint!(m::Memberships, constr_id::Id)
 end
 
 function add_constraint!(m::Memberships, constr_id::Id, 
-        membership::Membership{Variable})
+        membership::Membership{VarInfo})
     add_var_members_of_constr!(m, constr_id, membership)
     return
 end
