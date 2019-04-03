@@ -31,7 +31,7 @@ function Memberships()
 end
 
 #function add_var!(m::Membership(Variable), var_id::Id, val::Float64)
-#    m[var_id] = val
+#    m[var_id] = valx
 #end
 
 #function add_constr!(m::Membership{ConstrInfo}, constr_id::Id, val::Float64)
@@ -40,7 +40,7 @@ end
 
     
 get_subset(m::Membership, Duty::Type{<:AbstractConstrDuty}, stat::Status) =
-    filter(e -> dutytype(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
+    filter(e -> getduty(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
 
 
 function get_constr_members_of_var(m::Memberships, var_id::Id) 

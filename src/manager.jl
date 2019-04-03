@@ -11,7 +11,11 @@ function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)
     return Manager{idtype(VCtype), ValType}(Dict{idtype(VCtype),ValType}())
 end
 
-Manager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
+function Manager(VCtype::Type{<:AbstractVarConstr})
+    return Manager{idtype(VCtype), VCtype}(Dict{idtype(VCtype),VCtype}())
+end
+
+#Manager(T::Type{<:AbstractVarConstr}) = Manager(T, T)
 
 function set!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
     m.members[id] = val
@@ -53,8 +57,6 @@ Base.filter(f::Function, m::Manager) = filter(f, m.members)
 
 clone(m::Manager{I,T}) where {I,T} = Membership{I,T}(copy(m.members))
 
-# TODO getinfo()
-
 get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}, stat::Status) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty && getinfo(e).status == stat, m.members)
 get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) == Duty, m.members)
 
@@ -64,4 +66,5 @@ function Base.show(io::IO, m::Manager)
         println(io, "  ", e)
     end
     return
+
 end
