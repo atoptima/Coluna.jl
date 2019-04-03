@@ -16,6 +16,39 @@ function inverse(varconstr_annotations)
     return varconstr_in_form
 end
 
+function initialize_local_art_vars(master::Formulation, constrs_in_form)
+    for id in constrs_in_form
+        art_var = LocalArtVar(getuid(master), getuid(id))
+        membership = Membership(Constraint)
+        membership.members[id] = 1.0
+        add!(master, art_var, MastArtVar, membership)
+    end
+end
+
+function initialize_global_art_vars(master::Formulation)
+    global_pos = GlobalArtVar(getuid(master), Positive)
+    global_neg = GlobalArtVar(getuid(master), Negative)
+    pos_membership = Membership(Constraint)
+    neg_membership = Membership(Constraint)
+    for (id, constr) in getconstrs(master)
+        if getsense(constr) == Greater
+            pos_membership.members[id] = 1.0
+        elseif getsense(constr) == Less
+            neg_membership.members[id] = -1.0
+        end
+    end
+    add!(master, global_pos, MastArtVar, pos_membership)
+    add!(master, global_neg, MastArtVar, neg_membership)
+end
+
+function initialize_artificial_variables(master::Formulation, constrs_in_form)
+    # if (_params_.art_vars_mode == Local)
+        initialize_local_art_vars(master, constrs_in_form)
+    # elseif (_params_.art_vars_mode == Global)
+        initialize_global_art_vars(master)
+    # end
+end
+
 function build_dw_master!(prob::Problem,
                           annotation_id::Int,
                           reformulation::Reformulation,
@@ -55,56 +88,8 @@ function build_dw_master!(prob::Problem,
     clone_in_formulation!(vars_in_form, orig_form, master_form, Static, PureMastVar)
     # copy of master constraints
     clone_in_formulation!(constrs_in_form, orig_form, master_form, Static, MasterConstr)
-
-    local_art_var = true
     
-    #if (local_art_var)
-        # local artificial variables
-        for constr_uid in constrs_in_form #  getconstr_ids(master_form)
-            name = "loc_art_$(getuid(constr_uid))"
-            cost = 10.0
-            lb = 0.0
-            ub = 1.0
-            kind = Binary
-            flag = Artificial
-            sense = Positive
-            art_var = Variable(getuid(master_form), name, cost, lb, ub, kind, flag, sense)
-            membership = Membership(Constraint)
-            membership.members[constr_uid] = 1.0
-            add!(master_form, art_var, MastArtVar, membership)
-        end
-
-    #else
-        # global artifical variables
-        
-        name = "glo⁺_art"
-        cost = 100.0
-        lb = 0.0
-        ub = 1.0
-        kind = Binary
-        flag = Artificial
-        sense = Positive
-        pos_global_art_var = Variable(getuid(master_form), name, cost, lb, ub, kind, flag, sense)
-        membership = Membership(Constraint)
-        for constr_uid in getconstr_ids(master_form)
-            membership.members[constr_uid] = 1.0
-        end
-        add!(master_form, pos_global_art_var, MastArtVar, membership)
-
-        name = "glo⁻_art"
-        cost = 100.0
-        lb = 0.0
-        ub = 1.0
-        kind = Binary
-        flag = Artificial
-        sense = Positive
-        neg_global_art_var = Variable(getuid(master_form), name, cost, lb, ub, kind, flag, sense)
-        membership = Membership(Constraint)
-        for constr_uid in getconstr_ids(master_form)
-            membership.members[constr_uid] = -1.0
-        end
-        add!(master_form, neg_global_art_var, MastArtVar, membership)
-    #end
+    initialize_artificial_variables(master_form, constrs_in_form)
 
     return
 end

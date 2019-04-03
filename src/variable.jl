@@ -5,12 +5,25 @@ mutable struct Variable <: AbstractVarConstr
     lower_bound::Float64
     upper_bound::Float64 
     kind::VarKind
-    flag::Flag     # Static, Dynamic, Artifical, Implicit
+    flag::Flag     # Static, Dynamic, Artificial, Implicit
     sense::VarSense 
 end
 
 function Variable(n::String)
     return Variable(0, n, 0.0, -Inf, Inf, Continuous, Static, Free)
+end
+
+LocalArtVar(form_uid::Int, constr_uid::Int) = Variable(
+    form_uid, string("local_art_", constr_uid), 10, 0.0,
+    1.0, Binary, Artificial, Positive
+)
+
+function GlobalArtVar(form_uid::Int, sense::VarSense)
+    sufix = (sense == Positive) ? "pos" : "neg"
+    name = string("glob_", sufix)
+    return Variable(
+        form_uid, name, 100, 0.0, 1.0, Binary, Artificial, Positive
+    )
 end
 
 getform(v::Variable) = v.form_uid

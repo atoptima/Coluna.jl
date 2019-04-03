@@ -58,7 +58,7 @@ end
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
-
+getconstrs(f::Formulation) = f.constrs
 
 getvar_ids(fo::Formulation, fu::Function) = filter(fu, fo.vars)
 

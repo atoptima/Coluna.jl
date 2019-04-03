@@ -94,9 +94,7 @@ function initialize_artificial_variables(extended_problem::Reformulation)
 end
 
 function coluna_initialization(prob::Problem)
-    #params = model.params
-    #extended_problem = model.extended_problem
-
+ 
     _set_global_params(prob.params)
     reformulate!(prob, DantzigWolfeDecomposition)
 
