@@ -130,7 +130,34 @@ function clone_in_formulation!(vcs::Manager{Id, AbstractVarConstr},
                                dest::Formulation,
                                duty) where {I <: Id}
     for vc in vcs
-        clone_in_formulation!(vc, src, dest, flag, duty)
+        clone_in_formulation!(vc, src, dest, duty)
+    end
+    return
+end
+
+## TO BE DELETED BY Guillaume when clones decomposition updated
+function clone_in_formulation!(var_id::Id{VarInfo}, src::Formulation,
+        dest::Formulation, flag::Flag, duty::Type{<: AbstractVarDuty})
+    var = getvar(src, var_id)
+    id_clone = clone_in_formulation!(var, var_id, dest, flag, duty)
+    reset_constr_members_of_var!(dest.memberships, id_clone,
+            get_constr_members_of_var(src, var_id))
+    return id_clone
+end
+
+function clone_in_formulation!(constr_id::Id{ConstrInfo}, src::Formulation,
+        dest::Formulation, flag::Flag, duty::Type{<: AbstractConstrDuty})
+    constr = getconstr(src, constr_id)
+    id_clone = clone_in_formulation!(constr, constr_id, dest, flag, duty)
+    set_var_members_of_constr!(dest.memberships, id_clone,
+            get_var_members_of_constr(src, constr_id))
+    return id_clone
+end
+
+function clone_in_formulation!(ids::Vector{I}, src::Formulation, 
+        dest::Formulation, flag::Flag, duty) where {I <: Id}
+    for id in ids
+        clone_in_formulation!(id, src, dest, flag, duty)
     end
     return
 end
