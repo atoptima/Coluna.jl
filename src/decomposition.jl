@@ -6,11 +6,13 @@ function fill_annotations_set!(ann_set, varconstr_annotations)
 end
 
 function inverse(varconstr_annotations)
+    # varconstr_in_form = Dict{FormId, Manager{Id{VarInfo},Variable}}()
     varconstr_in_form = Dict{FormId, Vector{Id}}()
     for (varconstr_id, annotation) in varconstr_annotations
         if !haskey(varconstr_in_form, annotation.unique_id)
             varconstr_in_form[annotation.unique_id] = Id[]
         end
+        # add!(varconstr_in_form[annotation.unique_id], varconstr_id)
         push!(varconstr_in_form[annotation.unique_id], varconstr_id)
     end
     return varconstr_in_form
@@ -154,20 +156,20 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     # TODO : improve all drafts as soon as BlockDecomposition returns a
     # decomposition-tree.
 
-    vars_in_forms = inverse(m.var_annotations)
-    constrs_in_forms = inverse(m.constr_annotations)
+    vars_in_forms = inverse(prob.var_annotations)
+    constrs_in_forms = inverse(prob.constr_annotations)
     @show vars_in_forms
     @show constrs_in_forms
 
 
     # Create reformulation
-    reformulation = Reformulation(m, method)
-    set_re_formulation!(m, reformulation)
+    reformulation = Reformulation(prob, method)
+    set_re_formulation!(prob, reformulation)
 
     # Create master formulation
-    master_form = Formulation(DwMaster, m, reformulation, m.master_factory())
+    master_form = Formulation(DwMaster, prob, reformulation, prob.master_factory())
     setmaster!(reformulation, master_form)
-    
+
     # Create pricing subproblem formulations
     ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
@@ -178,7 +180,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
             formulations[annotation.unique_id] = master_form
 
         elseif annotation.problem == BD.Pricing
-            f = Formulation(DwSp, m, master_form, m.pricing_factory())
+            f = Formulation(DwSp, prob, master_form, prob.pricing_factory())
             formulations[annotation.unique_id] = f
             add_dw_pricing_sp!(reformulation, f)
         else 
@@ -197,7 +199,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     if haskey(constrs_in_forms, master_annotation_id)
         constrs = constrs_in_forms[master_annotation_id]
     end
-    build_dw_master!(m, master_annotation_id, reformulation, master_form, vars, constrs)
+    build_dw_master!(prob, master_annotation_id, reformulation, master_form, vars, constrs)
 
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
@@ -211,7 +213,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
                 constrs_in = constrs_in_forms[annotation.unique_id]
             end
             println("> build sp $(annotation.unique_id)")
-            build_dw_pricing_sp!(m, annotation.unique_id,
+            build_dw_pricing_sp!(prob, annotation.unique_id,
                                  formulations[annotation.unique_id],
                                  vars_in, constrs_in)
         end
