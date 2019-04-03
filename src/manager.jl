@@ -27,7 +27,7 @@ function add!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
     return
 end
 
-#getvarconstr(e::Pair{Id,VC}) where {Id, VC} = e[2]
+getinfo(e::Pair{I,T}) where {I <: Id, T} = getinfo(e[1])
 
 getmembers(m::Manager) = m.members
 
@@ -51,14 +51,12 @@ lastindex(m::Manager) = lastindex(m.members)
 
 Base.filter(f::Function, m::Manager) = filter(f, m.members)
 
-clone(m::Manager{T,U}) where {T,U} = Membership{T,U}(copy(m.members))
+clone(m::Manager{I,T}) where {I,T} = Membership{I,T}(copy(m.members))
 
 # TODO getinfo()
 
-get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}, stat::Status) where {T <: AbstractVarConstr, U} = filter(e -> dutytype(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
-
-get_subset(m::Manager{T,U}, Duty::Type{<:AbstractConstrDuty}) where {T <: AbstractVarConstr, U} = filter(e -> dutytype(getinfo(e)) == Duty, m.members)
-
+get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}, stat::Status) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty && getinfo(e).status == stat, m.members)
+get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty, m.members)
 
 function Base.show(io::IO, m::Manager)
     println(io, typeof(m), ":")

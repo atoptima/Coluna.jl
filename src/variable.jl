@@ -27,7 +27,7 @@ setname!(v::Variable, name::String) = v.name = name
 setform!(v::Variable, uid::FormId) = v.form_uid = uid
 setlb!(v::Variable, lb::Float64) = v.lower_bound = lb
 setub!(v::Variable, ub::Float64) = v.upper_bound = ub
-settype!(v::Variable, t::VarKind) = v.kind = t
+setkind!(v::Variable, t::VarKind) = v.kind = t
 setsense!(v::Variable, s::VarSense) = v.sense = s
 
 mutable struct VarInfo <: AbstractVarConstrInfo
@@ -71,7 +71,7 @@ indextype(::Type{<: Variable}) = MoiVarIndex
 getdutytype(a::AbstractVarConstrInfo) = a.duty
 
 function set!(v::Variable, ::MOI.ZeroOne)
-    settype!(v, Binary)
+    setkind!(v, Binary)
     setsense!(v, Positive)
     (v.lower_bound < 0) && setlb!(v, 0.0)
     (v.upper_bound > 1) && setub!(v, 1.0)
@@ -79,7 +79,7 @@ function set!(v::Variable, ::MOI.ZeroOne)
 end
 
 function set!(v::Variable, ::MOI.Integer)
-    settype!(v, Integ)
+    setkind!(v, Integ)
     return
 end
 

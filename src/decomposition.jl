@@ -68,10 +68,10 @@ function build_dw_master!(prob::Problem,
             kind = Binary
             flag = Artificial
             sense = Positive
-            art_var = Variable(MastArtVar, prob, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+            art_var = Variable(getuid(master_form), name, cost, lb, ub, kind, flag, sense)
             membership = Membership(Constraint)
             membership.members[constr_uid] = 1.0
-            add!(master_form, art_var, membership)
+            add!(master_form, art_var, MastArtVar, membership)
         end
 
     #else
@@ -84,12 +84,12 @@ function build_dw_master!(prob::Problem,
         kind = Binary
         flag = Artificial
         sense = Positive
-        pos_global_art_var = Variable(MastArtVar, prob, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+        pos_global_art_var = Variable(getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = Membership(Constraint)
         for constr_uid in getconstr_ids(master_form)
             membership.members[constr_uid] = 1.0
         end
-        add!(master_form, pos_global_art_var, membership)
+        add!(master_form, pos_global_art_var, MastArtVar, membership)
 
         name = "glo⁻_art"
         cost = 100.0
@@ -98,12 +98,12 @@ function build_dw_master!(prob::Problem,
         kind = Binary
         flag = Artificial
         sense = Positive
-        neg_global_art_var = Variable(MastArtVar, prob, getuid(master_form), name, cost, lb, ub, kind, flag, sense)
+        neg_global_art_var = Variable(getuid(master_form), name, cost, lb, ub, kind, flag, sense)
         membership = Membership(Constraint)
         for constr_uid in getconstr_ids(master_form)
             membership.members[constr_uid] = -1.0
         end
-        add!(master_form, neg_global_art_var, membership)
+        add!(master_form, neg_global_art_var, MastArtVar, membership)
     #end
 
     return
@@ -137,11 +137,11 @@ function build_dw_pricing_sp!(m::Problem,
     flag = Static
     duty = PricingSpSetupVar
     sense = Positive
-    setup_var = Variable(duty, m, sp_uid, name, cost, lb, ub, kind, flag, sense)
+    setup_var = Variable(sp_uid, name, cost, lb, ub, kind, flag, sense)
     membership = Membership(Constraint)
     set!(membership, reformulation.dw_pricing_sp_lb[sp_uid], 1.0)
     set!(membership, reformulation.dw_pricing_sp_ub[sp_uid], 1.0)
-    add!(sp_form, setup_var, membership)
+    add!(sp_form, setup_var, duty, membership)
     @show setup_var
 
     # should be move in build dw master ?
