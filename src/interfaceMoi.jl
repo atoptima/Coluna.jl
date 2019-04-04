@@ -110,7 +110,7 @@ end
 
 function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
                        sol::Membership{ConstrState},
-                       constr::Manager{Id{ConstrState}, Constraint})
+                       constrs::Manager{Id{ConstrState}, Constraint})
     for (id,constr) in constrs
         val = 0.0
         moi_index = getmoi_index(getstate(id))
