@@ -12,7 +12,7 @@ function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
                            new_obj::VarMemberDict)
 
     vec = [
-        MOI.ScalarAffineTerm(cost, getmoi_index(id))
+        MOI.ScalarAffineTerm(cost, getmoi_index(getstate(id)))
         for (id, cost) in new_obj
     ]
     objf = MOI.ScalarAffineFunction(vec, 0.0)
