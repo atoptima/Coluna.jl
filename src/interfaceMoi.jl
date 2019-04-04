@@ -35,7 +35,7 @@ function enforce_bounds_in_optimizer(optimizer::MOI.AbstractOptimizer,
     # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
     state = getstate(id)
     moi_bounds = MOI.add_constraint(
-        optimizer, MOI.SingleVariable(getmoiindex(state)),
+        optimizer, MOI.SingleVariable(getmoi_index(state)),
         MOI.Interval(getlb(state), getub(state))
     )
     setmoibounds(state, moi_bounds)
