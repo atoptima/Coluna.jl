@@ -3,9 +3,9 @@ mutable struct SolsAndBounds
     alg_inc_lp_primal_bound::Float64
     alg_inc_ip_dual_bound::Float64
     alg_inc_lp_dual_bound::Float64
-    alg_inc_lp_primal_sol::Membership{VarInfo}
-    alg_inc_ip_primal_sol::Membership{VarInfo}
-    alg_inc_lp_dual_sol::Membership{ConstrInfo}
+    alg_inc_lp_primal_sol::Membership{VarState}
+    alg_inc_ip_primal_sol::Membership{VarState}
+    alg_inc_lp_dual_sol::Membership{ConstrState}
     is_alg_inc_ip_primal_bound_updated::Bool
 end
 
@@ -25,7 +25,7 @@ end
 
 function update_primal_ip_incumbents(incumbents::SolsAndBounds,
                                      newbound::Float64,
-                                     var_membership::Membership{VarInfo})
+                                     var_membership::Membership{VarState})
     if newbound < incumbents.alg_inc_ip_primal_bound
         incumbents.alg_inc_ip_primal_bound = newbound
         incumbents.alg_inc_ip_primal_sol = deepcopy(var_membership)
@@ -35,7 +35,7 @@ end
 
 function update_primal_lp_incumbents(incumbents::SolsAndBounds,
                                      newbound::Float64,
-                                     var_membership::Membership{VarInfo})
+                                     var_membership::Membership{VarState})
     if newbound < incumbents.alg_inc_lp_primal_bound
         incumbents.alg_inc_lp_primal_bound = newbound
         incumbents.alg_inc_lp_primal_sol = deepcopy(var_membership)
@@ -60,7 +60,7 @@ end
 
 function update_dual_lp_incumbents(incumbents::SolsAndBounds,
                                    newbound::Float64,
-                                   constr_membership::Membership{ConstrInfo})
+                                   constr_membership::Membership{ConstrState})
     if newbound > incumbents.alg_inc_lp_dual_bound
         incumbents.alg_inc_lp_dual_bound = newbound
         incumbents.alg_inc_lp_dual_sol = deepcopy(constr_membership)

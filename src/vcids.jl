@@ -1,10 +1,10 @@
-struct Id{VcInfo <: AbstractVarConstrInfo} #<: AbstractVarConstrId
+struct Id{VcInfo <: AbstractVarConstrState} #<: AbstractVarConstrId
     uid::Int
     info::VcInfo
 end
 
-idtype(::Type{<: Variable}) = Id{VarInfo}
-idtype(::Type{<: Constraint}) = Id{ConstrInfo}
+idtype(::Type{<: Variable}) = Id{VarState}
+idtype(::Type{<: Constraint}) = Id{ConstrState}
 
 #Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{T}(i, infotype(T)())
 

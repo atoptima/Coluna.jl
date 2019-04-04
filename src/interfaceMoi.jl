@@ -1,7 +1,7 @@
 function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
-                           new_obj::Membership{VarInfo})
+                           new_obj::Membership{VarState})
 
-    vec = [MOI.ScalarAffineTerm(cost, getmoiindex(id)) for (id, cost) in new_obj]
+    vec = [MOI.ScalarAffineTerm(cost, getmoi_index(id)) for (id, cost) in new_obj]
     objf = MOI.ScalarAffineFunction(vec, 0.0)
     MOI.set(form.moi_optimizer,
             MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
@@ -18,14 +18,14 @@ function create_moi_optimizer(factory::JuMP.OptimizerFactory)
 end
 
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                  id::Id{VarInfo},
+                                  id::Id{VarState},
                                   cost::Float64)
     MOI.modify(optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-               MOI.ScalarCoefficientChange{Float64}(getmoiindex(id), cost))
+               MOI.ScalarCoefficientChange{Float64}(getmoi_index(id), cost))
 end
 
 function enforce_initial_bounds_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                             id::Id{VarInfo},
+                                             id::Id{VarState},
                                              lb::Float64,
                                              ub::Float64)
     # @assert var.moi_def.bounds_index.value == -1 # commented because of primal heur
@@ -39,18 +39,18 @@ function enforce_var_kind_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                        id::Id,
                                        kind::VarKind)
     if kind == Binary
-        id.info.moi_kind = MOI.add_constraint(
-            optimizer, MOI.SingleVariable(getmoiindex(id), MOI.ZeroOne())
+        id.info.kind_constr_ref = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(getmoi_index(id), MOI.ZeroOne())
         )
     elseif kind == Integ
-        id.info.moi_kind = MOI.add_constraint(
-            optimizer, MOI.SingleVariable(getmoiindex(id), MOI.Integer())
+        id.info.kind_constr_ref = MOI.add_constraint(
+            optimizer, MOI.SingleVariable(getmoi_index(id), MOI.Integer())
         )
     end
 end
 
 function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                   id::Id{VarInfo})
+                                   id::Id{VarState})
                                    # cost::Float64,
                                    # lb::Float64,
                                    # ub::Float64,
@@ -66,10 +66,10 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
 end
 
 function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
-                         sol::Membership{VarInfo},
-                         vars::Manager{Id{VarInfo}, Variable})
+                         sol::Membership{VarState},
+                         vars::Manager{Id{VarState}, Variable})
     for (id,var) in vars
-        moi_index = getmoiindex(getinfo(id))
+        moi_index = getmoi_index(getinfo(id))
         val = MOI.get(moi_optimizer, MOI.VariablePrimal(), moi_index)
         @logmsg LogLevel(-4) string("Var ", getname(var_def[2]), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
@@ -79,11 +79,11 @@ function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
 end
 
 function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
-                       sol::Membership{ConstrInfo},
-                       constr::Manager{Id{ConstrInfo}, Constraint})
+                       sol::Membership{ConstrState},
+                       constr::Manager{Id{ConstrState}, Constraint})
     for (id,constr) in constrs
         val = 0.0
-        moi_index = getmoiindex(getinfo(id))
+        moi_index = getmoi_index(getinfo(id))
         try # This try is needed because of the erroneous assertion in LQOI
             val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
         catch err
@@ -113,7 +113,7 @@ function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
 end
 
 #==
-function compute_constr_terms(membership::Membership{VarInfo})
+function compute_constr_terms(membership::Membership{VarState})
     active = true
     return [
         MOI.ScalarAffineTerm{Float64}(var_val, var_index)
@@ -124,7 +124,7 @@ end
 
 function add_constr_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                  constr::Constraint,
-                                 var_membership::Membership{VarInfo},
+                                 var_membership::Membership{VarState},
                                  rhs::Float64)
     terms = compute_constr_terms(var_membership)
     f = MOI.ScalarAffineFunction(terms, 0.0)

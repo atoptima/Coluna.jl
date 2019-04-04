@@ -1,7 +1,7 @@
 # Define default functions to use as filters
 # Functions must be of the form:
 # f(::Pair{<:AbstractVarConstrId,
-#          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrInfo}})::Bool
+#          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrState}})::Bool
 
 _active_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active
 

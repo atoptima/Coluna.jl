@@ -1,6 +1,6 @@
 abstract type AbstractVarConstr end
 abstract type AbstractVarConstrId end
-abstract type AbstractVarConstrInfo end
+abstract type AbstractVarConstrState end
 abstract type AbstractFormulation end
 abstract type AbstractProblem end
 abstract type AbstractMoiDef end

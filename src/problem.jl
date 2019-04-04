@@ -7,8 +7,8 @@ mutable struct Problem <: AbstractProblem
     var_counter::VarCounter
     constr_counter::ConstrCounter
     form_counter::FormCounter
-    var_annotations:: Dict{Tuple{Id{VarInfo}, Variable}, BD.Annotation}
-    constr_annotations:: Dict{Tuple{Id{ConstrInfo}, Constraint}, BD.Annotation}
+    var_annotations:: Dict{Tuple{Id{VarState}, Variable}, BD.Annotation}
+    constr_annotations:: Dict{Tuple{Id{ConstrState}, Constraint}, BD.Annotation}
     timer_output::TimerOutputs.TimerOutput
     params::Params
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
@@ -93,7 +93,7 @@ function load_problem_in_optimizer(prob::Problem)
     call_attention()
     println("\e[1;32m -------------> VN: Load problem in optimizer currently bugs. \e[00m")
     println("\e[1;32m -------------> VN: how do we know if a variable/problem is relaxed? \e[00m")
-    println("\e[1;32m -------------> VN: should we implement add_vc_to_moi in terms of Id or VarConstrInfo? \e[00m")
+    println("\e[1;32m -------------> VN: should we implement add_vc_to_moi in terms of Id or VarConstrState? \e[00m")
     println("\e[1;32m -------------> VN: need to discuss these things before I continue the work. \e[00m")
     call_attention()
     # load_problem_in_optimizer(prob.re_formulation)

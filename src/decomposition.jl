@@ -57,8 +57,8 @@ function build_dw_master!(prob::Problem,
                           vars_in_form::Vector,
                           constrs_in_form::Vector)
                           # Commented for now, I dont think managers are usefull here
-                          # vars_in_form::Manager{Id{VarInfo}, Variable},
-                          # constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
+                          # vars_in_form::Manager{Id{VarState}, Variable},
+                          # constrs_in_form::Manager{Id{ConstrState}, Constraint})
 
     orig_form = get_original_formulation(prob)
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
@@ -104,8 +104,8 @@ function build_dw_pricing_sp!(m::Problem,
                               vars_in_form::Vector,
                               constrs_in_form::Vector)
                               # Commented for now, I dont think managers are usefull here
-                              # vars_in_form::Manager{Id{VarInfo}, Variable},
-                              # constrs_in_form::Manager{Id{ConstrInfo}, Constraint})
+                              # vars_in_form::Manager{Id{VarState}, Variable},
+                              # constrs_in_form::Manager{Id{ConstrState}, Constraint})
     
     orig_form = get_original_formulation(m)
 

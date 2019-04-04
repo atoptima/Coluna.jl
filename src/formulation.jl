@@ -4,8 +4,8 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ProblemLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::Manager{Id{VarInfo}, Variable}
-    constrs::Manager{Id{ConstrInfo}, Constraint}
+    vars::Manager{Id{VarState}, Variable}
+    constrs::Manager{Id{ConstrState}, Constraint}
     memberships::Memberships
     obj_sense::ObjSense
     callback
@@ -67,11 +67,11 @@ getconstr_ids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
 
 getuid(f::Formulation) = f.uid
 
-getvar(f::Formulation, id::Id{VarInfo}) = get(f, id)
-getconstr(f::Formulation, id::Id{ConstrInfo}) = get(f, id)
+getvar(f::Formulation, id::Id{VarState}) = get(f, id)
+getconstr(f::Formulation, id::Id{ConstrState}) = get(f, id)
 
-get(f::Formulation, id::Id{VarInfo}) = get(f.vars, id)
-get(f::Formulation, id::Id{ConstrInfo}) = get(f.constrs, id)
+get(f::Formulation, id::Id{VarState}) = get(f.vars, id)
+get(f::Formulation, id::Id{ConstrState}) = get(f.constrs, id)
 
 @deprecate getvar get
 @deprecate getconstr get
@@ -110,7 +110,7 @@ function clone_in_formulation!(varconstr::VC,
     return id_clone
 end
 
-function clone_in_formulation!(id::Id{VarInfo},
+function clone_in_formulation!(id::Id{VarState},
                                var::Variable,
                                src::Formulation,
                                dest::Formulation,
@@ -121,7 +121,7 @@ function clone_in_formulation!(id::Id{VarInfo},
     return id_clone
 end
 
-function clone_in_formulation!(id::Id{ConstrInfo},
+function clone_in_formulation!(id::Id{ConstrState},
                                constr::Constraint,
                                src::Formulation,
                                dest::Formulation,
@@ -172,27 +172,27 @@ end
 # end
 
 # TODO membership should be an optional arg
-function add!(f::Formulation, var::Variable, id::Id{VarInfo})
+function add!(f::Formulation, var::Variable, id::Id{VarState})
     set!(f.vars, id, var)
     add_variable!(f.memberships, id) 
     return id
 end
 
-function add!(f::Formulation, var::Variable, id::Id{VarInfo}, 
-        membership::Membership{ConstrInfo})
+function add!(f::Formulation, var::Variable, id::Id{VarState}, 
+        membership::Membership{ConstrState})
     set!(f.vars, id, var)
     add_variable!(f.memberships, id, membership)
     return id
 end
 
-function add!(f::Formulation, constr::Constraint, id::Id{ConstrInfo})
+function add!(f::Formulation, constr::Constraint, id::Id{ConstrState})
     set!(f.constrs, id, constr)
     add_constraint!(f.memberships, id)
     return id
 end
 
-function add!(f::Formulation, constr::Constraint, id::Id{ConstrInfo},
-       membership::Membership{VarInfo})
+function add!(f::Formulation, constr::Constraint, id::Id{ConstrState},
+       membership::Membership{VarState})
     set!(f.constrs, id, constr)
     add_constraint!(f.memberships, id, membership)
     return id
@@ -200,15 +200,15 @@ end
 
 function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
     uid = getnewuid(f.problem.var_counter)
-    id = Id(uid, VarInfo(Duty, var))
+    id = Id(uid, VarState(Duty, var))
     add!(f, var, id)
     return id
 end
 
 function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty}, 
-        membership::Membership{ConstrInfo})
+        membership::Membership{ConstrState})
     uid = getnewuid(f.problem.var_counter)
-    id = Id(uid, VarInfo(Duty, var))
+    id = Id(uid, VarState(Duty, var))
     add!(f, var, id, membership)
     return id
 end
@@ -216,15 +216,15 @@ end
 function add!(f::Formulation, constr::Constraint, 
         Duty::Type{<: AbstractConstrDuty})
     uid = getnewuid(f.problem.constr_counter)
-    id = Id(uid, ConstrInfo(Duty, constr))
+    id = Id(uid, ConstrState(Duty, constr))
     add!(f, constr, id)
     return id
 end
 
 function add!(f::Formulation, constr::Constraint, 
-        Duty::Type{<: AbstractConstrDuty}, membership::Membership{VarInfo})
+        Duty::Type{<: AbstractConstrDuty}, membership::Membership{VarState})
     uid = getnewuid(f.problem.constr_counter)
-    id = Id(uid, ConstrInfo(Duty, constr))
+    id = Id(uid, ConstrState(Duty, constr))
     add!(f, constr, id, membership)
     return id
 end
@@ -362,7 +362,7 @@ function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFact
 end
 
 function retrieve_primal_sol(form::Formulation,
-                             vars::Manager{Id{VarInfo}, Variable})
+                             vars::Manager{Id{VarState}, Variable})
     new_sol = Membership(Variable)
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     #error("Following line does not work.")
@@ -373,7 +373,7 @@ function retrieve_primal_sol(form::Formulation,
 end
 
 function retrieve_dual_sol(form::Formulation,
-                           constrs::Manager{Id{ConstrInfo}, Constraint})
+                           constrs::Manager{Id{ConstrState}, Constraint})
     # TODO check if supported by solver
     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         return nothing

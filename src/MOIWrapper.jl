@@ -167,12 +167,12 @@ function register_original_formulation!(prob::Problem, dest::Optimizer, src::MOI
     return
 end
 
-function load_annotation!(p::Problem, m_id, c_id::Id{VarInfo}, var, src::MOI.ModelLike)
+function load_annotation!(p::Problem, m_id, c_id::Id{VarState}, var, src::MOI.ModelLike)
     p.var_annotations[(c_id, var)] = MOI.get(src, BD.VariableDecomposition(), m_id)
     return
 end
 
-function load_annotation!(p::Problem, m_id, c_id::Id{ConstrInfo}, constr, src::MOI.ModelLike)
+function load_annotation!(p::Problem, m_id, c_id::Id{ConstrState}, constr, src::MOI.ModelLike)
     p.constr_annotations[(c_id, constr)] = MOI.get(src, BD.ConstraintDecomposition(), m_id)
     return
 end

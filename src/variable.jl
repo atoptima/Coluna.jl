@@ -43,60 +43,60 @@ setub!(v::Variable, ub::Float64) = v.upper_bound = ub
 setkind!(v::Variable, t::VarKind) = v.kind = t
 setsense!(v::Variable, s::VarSense) = v.sense = s
 
-mutable struct VarInfo <: AbstractVarConstrInfo
+mutable struct VarState <: AbstractVarConstrState
     cur_cost::Float64
     cur_lb::Float64
     cur_ub::Float64 
     cur_status::Status   # Active or not
     index::MoiVarIndex # moi ref # -> moi_index
     bd_constr_ref::Union{Nothing, MoiVarBound} # should be removed
-    moi_kind::Union{Nothing, MoiVarKind} # should be removed
+    kind_constr_ref::Union{Nothing, MoiVarKind} # should be removed
     duty::Type{<: AbstractVarDuty}
 end
 
-function VarInfo(Duty::Type{<: AbstractVarDuty}, var::Variable)
-    return VarInfo(getcost(var), getlb(var), getub(var),
+function VarState(Duty::Type{<: AbstractVarDuty}, var::Variable)
+    return VarState(getcost(var), getlb(var), getub(var),
         Active, nothing, nothing, nothing, Duty)
 end
 
-getcost(v::VarInfo) = v.cur_cost
-getlb(v::VarInfo) = v.cur_lb
-getub(v::VarInfo) = v.cur_ub
-getstatus(v::VarInfo) = v.cur_status
-getmoiindex(v::VarInfo) = v.index
-getmoibounds(v::VarInfo) = v.bd_constr_ref
-getmoikind(v::VarInfo) = v.moi_kind
-getduty(v::VarInfo) = v.duty
+getcost(v::VarState) = v.cur_cost
+getlb(v::VarState) = v.cur_lb
+getub(v::VarState) = v.cur_ub
+getstatus(v::VarState) = v.cur_status
+getmoi_index(v::VarState) = v.index
+getmoi_bdconstr(v::VarState) = v.bd_constr_ref
+getmoi_kindconstr(v::VarState) = v.kind_constr_ref
+getduty(v::VarState) = v.duty
 
-setcost!(v::VarInfo, c::Float64) = v.cur_cost = c
-setlb!(v::VarInfo, lb::Float64) = v.cur_lb = lb
-setub!(v::VarInfo, ub::Float64) = v.cur_ub = ub
-setstatus!(v::VarInfo, s::Status) = v.cur_status = s
-setduty!(v::VarInfo, d) = v.duty = d
-setmoiindex(v::VarInfo, index::MoiVarIndex) = v.index = index
+setcost!(v::VarState, c::Float64) = v.cur_cost = c
+setlb!(v::VarState, lb::Float64) = v.cur_lb = lb
+setub!(v::VarState, ub::Float64) = v.cur_ub = ub
+setstatus!(v::VarState, s::Status) = v.cur_status = s
+setduty!(v::VarState, d) = v.duty = d
+setmoiindex(v::VarState, index::MoiVarIndex) = v.index = index
 
 # TODO : reduce
-function sync!(v::Variable, i::VarInfo)
+function sync!(v::Variable, i::VarState)
     setlb!(v, getlb(i))
     setub!(v, getub(i))
     setcost!(v, getcost(i))
     return
 end
 
-function sync!(i::VarInfo, v::Variable)
+function sync!(i::VarState, v::Variable)
     setlb!(i, getlb(v))
     setub!(i, getub(v))
     setcost!(i, getcost(v))
     return
 end
 
-vctype(::Type{<: VarInfo}) = Variable
+vctype(::Type{<: VarState}) = Variable
 
-infotype(::Type{<: Variable}) = VarInfo
+infotype(::Type{<: Variable}) = VarState
 
 indextype(::Type{<: Variable}) = MoiVarIndex
 
-getdutytype(a::AbstractVarConstrInfo) = a.duty
+getdutytype(a::AbstractVarConstrState) = a.duty
 
 function set!(v::Variable, ::MOI.ZeroOne)
     setkind!(v, Binary)
