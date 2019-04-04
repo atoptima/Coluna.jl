@@ -16,73 +16,55 @@ function _explicit_(id_val::Pair{I,T}) where {I<:Id,T}
             && d != MastRepBendSpVar)
 end
 
-struct Manager{I <: Id,T}  <: AbstractManager
-    members::Dict{I,T}
+struct PerIdDict{S <: AbstractState,T}
+    members::Dict{Id{S},T}
 end
+PerIdDict{S,T}() where {S,T} = PerIdDict{S,T}(Dict{Id{S},T}())
 
-function Manager(VCtype::Type{<:AbstractVarConstr}, ValType::DataType)
-    return Manager{idtype(VCtype), ValType}(Dict{idtype(VCtype),ValType}())
-end
-
-function Manager(VCtype::Type{<:AbstractVarConstr})
-    return Manager{idtype(VCtype), VCtype}(Dict{idtype(VCtype),VCtype}())
-end
-
-function set!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T}
-    m.members[id] = val
+function set!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T}
+    d.members[id] = val
     return
 end
 
-function add!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
-    if !haskey(m.members, id) 
-        m.members[id] = val
+function add!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T<:Real}
+    if !haskey(d.members, id) 
+        d.members[id] = val
     else
-        m.members[id] += val
+        d.members[id] += val
     end
     return
 end
 
-Base.copy(m::Manager) = Manager(copy(m.members))
+getinfo(e::Pair{Id{S},T}) where {S<:AbstractState,T} = getinfo(e[1])
 
-getinfo(e::Pair{I,T}) where {I <: Id, T} = getinfo(e[1])
+getmembers(d::PerIdDict) = d.members
 
-getmembers(m::Manager) = m.members
+haskey(d::PerIdDict, id::Id) = haskey(d.members, id)
 
-has(m::Manager, id::Id) = haskey(m.members, id)
+get(d::PerIdDict, id::Id) = d.members[id]
 
-get(m::Manager, id::Id) = m.members[id]
+#get(d::PerIdDict, uid::Int) = d.members[Id(uid)]
+Base.getkey(d::PerIdDict, i::Id, default) = getkey(d.members, i, default)
 
-import Base.getkey
-#get(m::Manager, uid::Int) = m.members[Id(uid)]
-Base.getkey(m::Manager, i::Id, d) = getkey(m.members, i, d)
+getids(d::PerIdDict) = collect(keys(d.members))
 
-getids(m::Manager) = collect(keys(m.members))
+iterate(d::PerIdDict) = iterate(d.members)
 
-iterate(m::Manager) = iterate(m.members)
+iterate(d::PerIdDict, state) = iterate(d.members, state)
 
-iterate(m::Manager, state) = iterate(m.members, state)
+length(d::PerIdDict) = length(d.members)
 
-length(m::Manager) = length(m.members)
+getindex(d::PerIdDict, elements) = getindex(d.members, elements)
 
-getindex(m::Manager, elements) = getindex(m.members, elements)
+copy(d::PerIdDict{S,T}) where {S<:AbstractState,T} = PerIdDict{S,T}(copy(d.members))
 
-lastindex(m::Manager) = lastindex(m.members)
+lastindex(d::PerIdDict) = lastindex(d.members)
 
-Base.filter(f::Function, m::Manager) = typeof(m)(filter(f, m.members))
+Base.filter(f::Function, d::PerIdDict) = typeof(d)(filter(f, d.members))
 
-
-
-clone(m::Manager{I,T}) where {I,T} = Membership{I,T}(copy(m.members))
-
-#get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}, stat::Status) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty && getinfo(e).cur_status == stat, m.members)
-
-#get_subset(m::Manager{I,T}, Duty::Type{<:AbstractDuty}) where {I <: Id, T} = filter(e -> getduty(getinfo(e)) isa Duty, m.members)
-
-#get_subset(m::Manager{I,T}, stat::Status) where {I <: Id, T} = filter(e -> getinfo(e).cur_status == stat, m.members)
-
-function Base.show(io::IO, m::Manager)
-    println(io, typeof(m), ":")
-    for e in m.members
+function Base.show(io::IO, d::PerIdDict)
+    println(io, typeof(d), ":")
+    for e in d.members
         println(io, "  ", e)
     end
     return

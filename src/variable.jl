@@ -38,7 +38,7 @@ setub!(v::Variable, ub::Float64) = v.upper_bound = ub
 setkind!(v::Variable, t::VarKind) = v.kind = t
 setsense!(v::Variable, s::VarSense) = v.sense = s
 
-mutable struct VarState <: AbstractVarConstrState
+mutable struct VarState <: AbstractState
     cur_cost::Float64
     cur_lb::Float64
     cur_ub::Float64 
@@ -85,8 +85,6 @@ vctype(::Type{<: VarState}) = Variable
 infotype(::Type{<: Variable}) = VarState
 
 indextype(::Type{<: Variable}) = MoiVarIndex
-
-getdutytype(a::AbstractVarConstrState) = a.duty
 
 function set!(v::Variable, ::MOI.ZeroOne)
     setkind!(v, Binary)

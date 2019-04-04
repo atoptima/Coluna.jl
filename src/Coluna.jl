@@ -30,6 +30,9 @@ import Base.length
 import Base.iterate
 import Base.getindex
 import Base.lastindex
+import Base.getkey
+import Base.haskey
+import Base.copy
 
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,

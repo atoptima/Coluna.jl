@@ -9,7 +9,7 @@ function create_moi_optimizer(factory::JuMP.OptimizerFactory)
 end
 
 function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
-                           new_obj::Membership{VarState})
+                           new_obj::VarMemberDict)
 
     vec = [
         MOI.ScalarAffineTerm(cost, getmoi_index(id))
@@ -77,7 +77,7 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
     return
 end
 
-function compute_moi_terms(membership::Membership{VarState})
+function compute_moi_terms(membership::VarMemberDict)
     return [
         MOI.ScalarAffineTerm{Float64}(coeff, getmoi_index(getstate(id)))
         for (id, coeff) in membership
@@ -86,7 +86,7 @@ end
 
 function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                      id::Id{ConstrState},
-                                     var_membership::Membership{VarState})
+                                     var_membership::VarMemberDict)
     terms = compute_moi_terms(var_membership)
     f = MOI.ScalarAffineFunction(terms, 0.0)
     state = getstate(id)
@@ -95,8 +95,8 @@ function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
 end
 
 function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
-                         sol::Membership{VarState},
-                         vars::Manager{Id{VarState}, Variable})
+                         sol::VarMemberDict,
+                         vars::VarDict)
     for (id,var) in vars
         moi_index = getmoi_index(getstate(id))
         val = MOI.get(moi_optimizer, MOI.VariablePrimal(), moi_index)
@@ -109,8 +109,8 @@ function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
 end
 
 function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
-                       sol::Membership{ConstrState},
-                       constrs::Manager{Id{ConstrState}, Constraint})
+                       sol::ConstrMemberDict,
+                       constrs::ConstrDict)
     for (id, constr) in constrs
         val = 0.0
         moi_index = getmoi_index(getstate(id))

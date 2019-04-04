@@ -20,7 +20,7 @@ end
 function initialize_local_art_vars(master::Formulation, constrs_in_form)
     for (id, constr) in constrs_in_form
         art_var = LocalArtVar(getuid(master), getuid(id))
-        membership = Membership(Constraint)
+        membership = ConstrMemberDict()
         membership.members[id] = 1.0
         add!(master, art_var, MastArtVar, membership)
     end
@@ -29,8 +29,8 @@ end
 function initialize_global_art_vars(master::Formulation)
     global_pos = GlobalArtVar(getuid(master), Positive)
     global_neg = GlobalArtVar(getuid(master), Negative)
-    pos_membership = Membership(Constraint)
-    neg_membership = Membership(Constraint)
+    pos_membership = ConstrMemberDict()
+    neg_membership = ConstrMemberDict()
     for (id, constr) in getconstrs(master)
         if getsense(constr) == Greater
             pos_membership.members[id] = 1.0
@@ -75,14 +75,14 @@ function build_dw_master!(prob::Problem,
         kind = Core
         duty = MasterConstr #MasterConvexityConstr
         lb_conv_constr = Constraint(getuid(master_form), name, rhs, sense, kind)
-        membership = Membership(Variable) 
+        membership = VarMemberDict()
         ub_conv_constr_id = add!(master_form, lb_conv_constr, duty, membership)
         reformulation.dw_pricing_sp_lb[sp_uid] = ub_conv_constr_id
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
         ub_conv_constr = Constraint(getuid(master_form), name, rhs, sense, kind)
-        membership = Membership(Variable) 
+        membership = VarMemberDict()
         lb_conv_constr_id = add!(master_form, ub_conv_constr, duty, membership)
         reformulation.dw_pricing_sp_ub[sp_uid] = lb_conv_constr_id
    end
@@ -128,7 +128,7 @@ function build_dw_pricing_sp!(m::Problem,
     duty = PricingSpSetupVar
     sense = Positive
     setup_var = Variable(sp_uid, name, cost, lb, ub, kind,  sense)
-    membership = Membership(Constraint)
+    membership = ConstrMemberDict()
     set!(membership, reformulation.dw_pricing_sp_lb[sp_uid], 1.0)
     set!(membership, reformulation.dw_pricing_sp_ub[sp_uid], 1.0)
     add!(sp_form, setup_var, duty, membership)

@@ -1,4 +1,4 @@
-mutable struct Id{VcInfo <: AbstractVarConstrState} #<: AbstractVarConstrId
+mutable struct Id{VcInfo <: AbstractState} #<: AbstractVarConstrId
     uid::Int
     info::VcInfo
 end
@@ -24,7 +24,7 @@ getuid(id::Id) = id.uid
 
 getinfo(id::Id) = id.info
 getstate(id::Id) = id.info
-setstate!(id::Id, s::AbstractVarConstrState) = id.info = s
+setstate!(id::Id, s::AbstractState) = id.info = s
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, "Id{$T}(", getuid(id), ")")
