@@ -35,13 +35,18 @@ function add!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T<:R
     return
 end
 
-function delete!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
-    if haskey(m.members, id)
-        deleteat!(m.members, id)
-    end
+import Base.delete!
+function Base.delete!(m::PerIdDict{S,T}, id::Id{S}) where {S <: AbstractState,T}
+    #if haskey(m.members, id)
+        delete!(m.members, id)
+    #end
     return
 end
 
+function Base.delete!(m::PerIdDict{S,T}, id::Vector{Id}) where {S <: AbstractState, T}
+    delete!(m.members, id)
+    return
+end
 
 
 getinfo(e::Pair{Id{S},T}) where {S<:AbstractState,T} = getinfo(e[1])
@@ -77,5 +82,4 @@ function Base.show(io::IO, d::PerIdDict)
         println(io, "  ", e)
     end
     return
-
 end
