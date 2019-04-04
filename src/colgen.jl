@@ -223,7 +223,7 @@ function solve_restricted_mast(master::Formulation)
     @show primal_sols
     @show dual_sol
     #end # @timeit to(alg) "solve_restricted_mast"
-    return status, value, primal_sols[1], dual_sol.members
+    return status, value, primal_sols[1], dual_sol
 end
 
 
