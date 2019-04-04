@@ -369,8 +369,7 @@ function _show_variable(io::IO, f::Formulation, id)
     ub = getub(varinfo)
     t = getkind(var)
     d = getduty(varinfo)
-    f = getflag(var)
-    println(io, id, " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d ," | ", f , ")")
+    println(io, id, " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , ")")
 end
 
 function _show_variables(io::IO, f::Formulation)

@@ -73,7 +73,6 @@ function build_dw_master!(prob::Problem,
         sense = Greater
         rhs = 1.0
         kind = Core
-        flag = Static
         duty = MasterConstr #MasterConvexityConstr
         lb_conv_constr = Constraint(getuid(master_form), name, rhs, sense, kind)
         membership = Membership(Variable) 
@@ -125,11 +124,10 @@ function build_dw_pricing_sp!(m::Problem,
     cost = 0.0
     lb = 1.0
     ub = 1.0
-    kind = Binary
-    flag = Static
+    kind = Continuous
     duty = PricingSpSetupVar
     sense = Positive
-    setup_var = Variable(sp_uid, name, cost, lb, ub, kind, flag, sense)
+    setup_var = Variable(sp_uid, name, cost, lb, ub, kind,  sense)
     membership = Membership(Constraint)
     set!(membership, reformulation.dw_pricing_sp_lb[sp_uid], 1.0)
     set!(membership, reformulation.dw_pricing_sp_ub[sp_uid], 1.0)
