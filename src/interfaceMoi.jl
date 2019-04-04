@@ -120,7 +120,7 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
             if (typeof(err) == AssertionError &&
                 !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
                 throw(err)
-            end
+            endx
         end
         # @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
         #                             constr.val)
@@ -143,4 +143,15 @@ function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
     close(rd_out)
     redirect_stdout(backup_stdout)
     return
+end
+
+function print_moi_constraints(optimizer::MOI.AbstractOptimizer)
+    println("-------------- Printing MOI constraints")
+    for (F,S) in MOI.get(optimizer, MOI.ListOfConstraints())
+        println("Function type: ", F)
+        for ci in MOI.get(optimizer, MOI.ListOfConstraintIndices{F,S}())
+            println("Constraint ", ci.value)
+        end
+    end
+    println("------------------------------------------")
 end

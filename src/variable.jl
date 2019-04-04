@@ -82,7 +82,7 @@ end
 
 vctype(::Type{<: VarState}) = Variable
 
-infotype(::Type{<: Variable}) = VarState
+statetype(::Type{<: Variable}) = VarState
 
 indextype(::Type{<: Variable}) = MoiVarIndex
 
