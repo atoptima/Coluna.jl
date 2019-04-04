@@ -80,22 +80,20 @@ moi2cid(m::Problem, mid) = m.mid2cid_map[mid]
 #     end
 # end
 
+
+_red(s::String) = string("\e[1;31m ", s, " \e[00m")
+_green(s::String) = string("\e[1;32m ", s, " \e[00m")
+_pink(s::String) = string("\e[1;35m ", s, " \e[00m")
 function call_attention()
     for i in 1:10
-        print("\e[1;31m ! \e[00m")
-        print("\e[1;32m ! \e[00m")
-        print("\e[1;35m ! \e[00m")
+        print(_red("!"))
+        print(_green("!"))
+        print(_pink("!"))
     end
     println()
 end
 
 function load_problem_in_optimizer(prob::Problem)
-    call_attention()
-    println("\e[1;32m -------------> VN: Load problem in optimizer currently bugs. \e[00m")
-    println("\e[1;32m -------------> VN: how do we know if a variable/problem is relaxed? \e[00m")
-    println("\e[1;32m -------------> VN: should we implement add_vc_to_moi in terms of Id or VarConstrState? \e[00m")
-    println("\e[1;32m -------------> VN: need to discuss these things before I continue the work. \e[00m")
-    call_attention()
     load_problem_in_optimizer(prob.re_formulation)
 end
 
@@ -103,23 +101,21 @@ function initialize_moi_optimizer(prob::Problem)
     initialize_moi_optimizer(
         prob.re_formulation, prob.master_factory, prob.pricing_factory
     )
-end
-
-function initialize_artificial_variables(extended_problem::Reformulation)
-    master = extended_problem.master_problem
-    init_manager(extended_problem.art_var_manager, master)
-    for constr in master.constr_manager.active_static_list
-        attach_art_var(extended_problem.art_var_manager, master, constr)
-    end
+    println(_pink("---------------> Problems loaded to MOI <---------------------------"))
 end
 
 function coluna_initialization(prob::Problem)
  
     _set_global_params(prob.params)
     reformulate!(prob, DantzigWolfeDecomposition)
-
     initialize_moi_optimizer(prob)
     load_problem_in_optimizer(prob)
+
+    call_attention()
+    println(_pink("----------------------------> Its a party! <---------------------------"))
+    println(_green("----------------------> Bug now is due to the fact that the artificial variables are set to binary, so the we cannot recover dual status, therefore the bug that you see in colgen <------------------------"))
+    call_attention()
+
 end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before

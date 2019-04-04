@@ -6,6 +6,12 @@ mutable struct Constraint <: AbstractVarConstr
     kind::ConstrKind  # Core Facultative SubSystem 
 end
 
+function type_of_moi_set(sense::ConstrSense)
+    sense == Greater && return MOI.GreaterThan{Float64}
+    sense == Less && return MOI.LessThan{Float64}
+    sense == Equal && return MOI.EqualTo{Float64}
+end
+
 function Constraint(name::String)
     return Constraint(0, name, 0.0, Greater, Core)
 end
@@ -61,11 +67,12 @@ getsense(c::ConstrState) = c.cur_sense
 getstatus(c::ConstrState) = c.cur_status
 getmoi_index(c::ConstrState) = c.index
 getduty(c::ConstrState) = c.duty
+getmoi_set(c::ConstrState) = type_of_moi_set(getsense(c))(getrhs(c))
 
 setrhs!(c::ConstrState, rhs::Float64) = c.cur_rhs = rhs
 setsense!(c::ConstrState, s::ConstrSense) = c.cur_sense = s
 setstatus!(c::ConstrState, s::Status) = c.cur_status = s
-
+setmoi_index!(c::ConstrState, index::MoiConstrIndex) = c.index = index
 # TODO :
 
 vctype(::Type{<: ConstrState}) = Constraint

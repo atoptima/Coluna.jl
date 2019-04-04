@@ -215,10 +215,13 @@ function solve_restricted_mast(master::Formulation)
     #@timeit to(alg) "solve_restricted_mast" begin
  
     status, value, primal_sols, dual_sol = optimize(master)
-    # @shows status
-    # @show result_count = MOI.get(master.optimizer, MOI.ResultCount())
-    # @show primal_status = MOI.get(master.optimizer, MOI.PrimalStatus())
-    # @show dual_status = MOI.get(master.optimizer, MOI.DualStatus())
+    @show status
+    @show result_count = MOI.get(master.moi_optimizer, MOI.ResultCount())
+    @show primal_status = MOI.get(master.moi_optimizer, MOI.PrimalStatus())
+    @show dual_status = MOI.get(master.moi_optimizer, MOI.DualStatus())
+    @show value
+    @show primal_sols
+    @show dual_sol
     #end # @timeit to(alg) "solve_restricted_mast"
     return status, value, primal_sols[1], dual_sol.members
 end

@@ -225,7 +225,6 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     end
     
     end_clone(master_form)
-
     println("\e[1;34m MASTER FORMULATION \e[00m")
     @show master_form
     println("\e[1;34m PRICING SP FORMULATIONS \e[00m")
@@ -234,6 +233,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
         @show p
         println("\e[32m ---------------- \e[00m")
     end
+
     return
 end
 

@@ -183,7 +183,7 @@ function set_constr_members_of_var!(m::Memberships, var_id::Id, new_membership::
     end
 end
 
-function set_var_members_of_constr!(m::Memberships, constr_id::Id, new_membership::Membership{VarState}) 
+function set_var_members_of_constr!(m::Memberships, constr_id::Id, new_membership::Membership{VarState})
     m.constr_to_var_members[constr_id] = new_membership
     for (var_id, val) in new_membership
         if !haskey(m.var_to_constr_members, var_id)

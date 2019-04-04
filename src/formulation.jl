@@ -121,7 +121,7 @@ function clone_in_formulation!(id::Id{VarState},
                                duty::Type{<: AbstractVarDuty})
     id_clone = clone_in_formulation!(var, id, dest, duty)
     reset_constr_members_of_var!(dest.memberships, id_clone,
-                                    get_constr_members_of_var(src, id))
+                                 deepcopy(get_constr_members_of_var(src, id)))
     return id_clone
 end
 
@@ -130,10 +130,9 @@ function clone_in_formulation!(id::Id{ConstrState},
                                src::Formulation,
                                dest::Formulation,
                                duty::Type{<: AbstractConstrDuty})
-
     id_clone = clone_in_formulation!(constr, id, dest, duty)
     set_var_members_of_constr!(dest.memberships, id_clone,
-                               get_var_members_of_constr(src, id))
+                               deepcopy(get_var_members_of_constr(src, id)))
     return id_clone
 end
 
@@ -277,7 +276,8 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form = true)
+function optimize(form::Formulation, optimizer = form.moi_optimizer,
+                  update_form = true)
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
     primal_sols = PrimalSolution[]
@@ -289,7 +289,7 @@ function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form
         if update_form
             form.primal_solution_record = primal_sol
             if dual_sol != nothing
-                dual_solution_record = dual_sol
+                form.dual_solution_record = dual_sol
             end
         end
         return (status, primal_sol.value, primal_sols, dual_sol)
@@ -388,13 +388,10 @@ function Base.show(io::IO, f::Formulation)
 end
 
 function load_problem_in_optimizer(formulation::Formulation)
-    println("Loading formulation ", formulation.uid)
     for (id, var) in filter(_explicit_, getvars(formulation))
         add_variable_in_optimizer(formulation.moi_optimizer, id)
     end
     for (id, constr) in filter(_active_, getconstrs(formulation))
-        @show get_var_members_of_constr(formulation, id)
-        @show filter(_explicit_, get_var_members_of_constr(formulation, id))
         add_constraint_in_optimizer(
             formulation.moi_optimizer, id,
             filter(_explicit_, get_var_members_of_constr(formulation, id))
@@ -421,6 +418,7 @@ function retrieve_dual_sol(form::Formulation,
                            constrs::Manager{Id{ConstrState}, Constraint})
     # TODO check if supported by solver
     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
+        println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
         return nothing
     end
     new_sol = Membership(Constraint)

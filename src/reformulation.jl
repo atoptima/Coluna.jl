@@ -26,6 +26,7 @@ setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 
 function load_problem_in_optimizer(reformulation::Reformulation)
+
     load_problem_in_optimizer(reformulation.master)
     for problem in reformulation.dw_pricing_subprs
         load_problem_in_optimizer(problem)
