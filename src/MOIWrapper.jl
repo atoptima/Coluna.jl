@@ -118,7 +118,7 @@ function create_origconstr!(constrs, f::Formulation,
     constr = Constraint(name)
     set!(constr, set)
     push!(constrs, constr)
-    membership = Membership(Variable)
+    membership = VarMemberDict()
     for term in func.terms
         c_var_id = prob.mid2cid_map[term.variable_index][1]
         add!(membership, c_var_id, term.coefficient)

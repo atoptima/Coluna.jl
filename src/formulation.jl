@@ -1,11 +1,15 @@
+const VcDict{S,T<:AbstractVarConstr} = PerIdDict{S,T}
+const VarDict = VcDict{VarState,Variable}
+const ConstrDict = VcDict{ConstrState,Constraint}
+
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::FormId
     problem::AbstractProblem
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ProblemLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-    vars::Manager{Id{VarState}, Variable}
-    constrs::Manager{Id{ConstrState}, Constraint}
+    vars::VarDict
+    constrs::ConstrDict
     memberships::Memberships
     obj_sense::ObjSense
     callback
@@ -25,8 +29,8 @@ function Formulation(Duty::Type{<: AbstractFormDuty},
                              parent_formulation,
                              #moi_model,
                              moi_optimizer, 
-                             Manager(Variable),
-                             Manager(Constraint),
+                             VarDict(),
+                             ConstrDict(),
                              Memberships(),
                              Min,
                              nothing,
@@ -72,8 +76,8 @@ getconstr(f::Formulation, id::Id{ConstrState}) = get(f, id)
 getstate(f::Formulation, id::Id{VarState}) = getstate(getkey(f.vars, id, 0)) # TODO change the default value (empty Id)
 getstate(f::Formulation, id::Id{ConstrState}) = getstate(getkey(f.constrs, id, 0))
 
-has(f::Formulation, id::Id{VarState}) = has(f.vars, id)
-has(f::Formulation, id::Id{ConstrState}) = has(f.constrs, id)
+has(f::Formulation, id::Id{VarState}) = haskey(f.vars, id)
+has(f::Formulation, id::Id{ConstrState}) = haskey(f.constrs, id)
 get(f::Formulation, id::Id{VarState}) = get(f.vars, id)
 get(f::Formulation, id::Id{ConstrState}) = get(f.constrs, id)
 
@@ -137,10 +141,11 @@ function clone_in_formulation!(id::Id{ConstrState},
 end
 
 # TODO :facto
-function clone_in_formulation!(vcs::Manager{I,VC},
+function clone_in_formulation!(vcs::VcDict{S,VC},
                                src::Formulation, 
                                dest::Formulation,
-                               duty) where {I<:Id,VC<:AbstractVarConstr}
+                               duty) where {S<:AbstractState,
+                                            VC<:AbstractVarConstr}
     for (id, vc) in vcs
         clone_in_formulation!(id, vc, src, dest, duty)
     end
@@ -176,7 +181,7 @@ function clean(f::Formulation, dict)
 end
 
 # TODO : find better name
-function clean(f::Formulation, m::Membership)
+function clean(f::Formulation, m::PerIdDict)
     idstodelete = Id[]
     for (id, val) in m
         if has(f, id)
@@ -217,7 +222,7 @@ function add!(f::Formulation, var::Variable, id::Id{VarState})
 end
 
 function add!(f::Formulation, var::Variable, id::Id{VarState}, 
-        membership::Membership{ConstrState})
+        membership::ConstrMemberDict)
     set!(f.vars, id, var)
     add_variable!(f.memberships, id, membership)
     return id
@@ -230,7 +235,7 @@ function add!(f::Formulation, constr::Constraint, id::Id{ConstrState})
 end
 
 function add!(f::Formulation, constr::Constraint, id::Id{ConstrState},
-       membership::Membership{VarState})
+       membership::VarMemberDict)
     set!(f.constrs, id, constr)
     add_constraint!(f.memberships, id, membership)
     return id
@@ -244,7 +249,7 @@ function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
 end
 
 function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty}, 
-        membership::Membership{ConstrState})
+        membership::ConstrMemberDict)
     uid = getnewuid(f.problem.var_counter)
     id = Id(uid, VarState(Duty, var))
     add!(f, var, id, membership)
@@ -260,7 +265,7 @@ function add!(f::Formulation, constr::Constraint,
 end
 
 function add!(f::Formulation, constr::Constraint, 
-        Duty::Type{<: AbstractConstrDuty}, membership::Membership{VarState})
+        Duty::Type{<: AbstractConstrDuty}, membership::VarMemberDict)
     uid = getnewuid(f.problem.constr_counter)
     id = Id(uid, ConstrState(Duty, constr))
     add!(f, constr, id, membership)
@@ -331,7 +336,7 @@ function _show_constraint(io::IO, f::Formulation, id)
     var_ids = getids(membership)
     for var_id in sort!(var_ids)
         coeff = membership[var_id]
-        if has(f.vars, var_id)
+        if haskey(f.vars, var_id)
             var = getvar(f, var_id)
             name = getname(var)
             op = (coeff < 0.0) ? "-" : "+"
@@ -403,8 +408,8 @@ function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFact
 end
 
 function retrieve_primal_sol(form::Formulation,
-                             vars::Manager{Id{VarState}, Variable})
-    new_sol = Membership(Variable)
+                             vars::VarDict)
+    new_sol = VarMemberDict()
     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     #error("Following line does not work.")
     fill_primal_sol(form.moi_optimizer, new_sol, vars)
@@ -414,13 +419,13 @@ function retrieve_primal_sol(form::Formulation,
 end
 
 function retrieve_dual_sol(form::Formulation,
-                           constrs::Manager{Id{ConstrState}, Constraint})
+                           constrs::ConstrDict)
     # TODO check if supported by solver
     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
         return nothing
     end
-    new_sol = Membership(Constraint)
+    new_sol = ConstrMemberDict()
     obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
     fill_dual_sol(form.moi_optimizer, new_sol, constrs)
     dual_sol = DualSolution(obj_bound, new_sol)

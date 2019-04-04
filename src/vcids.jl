@@ -1,4 +1,4 @@
-mutable struct Id{VcState <: AbstractVarConstrState} #<: AbstractVarConstrId
+mutable struct Id{VcState <: AbstractState} #<: AbstractVarConstrId
     uid::Int
     state::VcState
 end
@@ -10,7 +10,7 @@ idtype(::Type{<: Constraint}) = Id{ConstrState}
 
 # Id{T <: AbstractVarConstr} = Id{T, statetype(T)} # Default constructor should be enough
 
-Id(id::Id{T}) where {T} = Id{T}(id.uid, id.info)
+Id(id::Id{T}) where {T} = Id{T}(id.uid, id.state)
 
 # Id(uid::Int) = Id(uid, nothing)
 
@@ -23,7 +23,7 @@ Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 getuid(id::Id) = id.uid
 
 getstate(id::Id) = id.state
-setstate!(id::Id, s::AbstractVarConstrState) = id.state = s
+setstate!(id::Id, s::AbstractState) = id.state = s
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, "Id{$T}(", getuid(id), ")")

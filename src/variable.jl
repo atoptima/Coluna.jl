@@ -38,7 +38,7 @@ setub!(v::Variable, ub::Float64) = v.upper_bound = ub
 setkind!(v::Variable, t::VarKind) = v.kind = t
 setsense!(v::Variable, s::VarSense) = v.sense = s
 
-mutable struct VarState <: AbstractVarConstrState
+mutable struct VarState <: AbstractState
     cur_cost::Float64
     cur_lb::Float64
     cur_ub::Float64 
@@ -72,6 +72,7 @@ setstatus!(v::VarState, s::Status) = v.cur_status = s
 setduty!(v::VarState, d) = v.duty = d
 setmoiindex(v::VarState, index::MoiVarIndex) = v.index = index
 setmoibounds(v::VarState, bd::Union{Nothing,MoiVarBound}) = v.bd_constr_ref = bd
+setmoikind(v::VarState, kind::Union{Nothing,MoiVarKind}) = v.kind_constr_ref = kind
 
 function sync!(i::VarState, v::Variable)
     setlb!(i, getlb(v))
@@ -85,8 +86,6 @@ vctype(::Type{<: VarState}) = Variable
 statetype(::Type{<: Variable}) = VarState
 
 indextype(::Type{<: Variable}) = MoiVarIndex
-
-getdutytype(a::AbstractVarConstrState) = a.duty
 
 function set!(v::Variable, ::MOI.ZeroOne)
     setkind!(v, Binary)

@@ -1,22 +1,22 @@
 struct PrimalSolution
     value::Float64
-    members::Membership{VarState}
+    members::VarMemberDict
 end
 
 function PrimalSolution()
-    return PrimalSolution(Inf, Membership(Variable))
+    return PrimalSolution(Inf, VarMemberDict())
 end
 
-#function PrimalSolution(value::Float64, sol::Membership{VarState})
+#function PrimalSolution(value::Float64, sol::VarMemberDict)
 #    return PrimalSolution(value, sol)
 #end
 
 struct DualSolution
     value::Float64
-    members::Membership{ConstrState}
+    members::ConstrMemberDict
 end
 
 function DualSolution()
-    return DualSolution(-Inf, Membership(Constraint))
+    return DualSolution(-Inf, ConstrMemberDict())
 end
 

@@ -49,7 +49,7 @@ function set!(c::Constraint, s::MOI.LessThan)
     return
 end
 
-mutable struct ConstrState <: AbstractVarConstrState
+mutable struct ConstrState <: AbstractState
     cur_rhs::Float64 
     cur_sense::ConstrSense # Greater Less Equal
     cur_status::Status   # Active or not

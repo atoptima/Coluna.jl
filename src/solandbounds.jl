@@ -3,16 +3,16 @@ mutable struct SolsAndBounds
     alg_inc_lp_primal_bound::Float64
     alg_inc_ip_dual_bound::Float64
     alg_inc_lp_dual_bound::Float64
-    alg_inc_lp_primal_sol::Membership{VarState}
-    alg_inc_ip_primal_sol::Membership{VarState}
-    alg_inc_lp_dual_sol::Membership{ConstrState}
+    alg_inc_lp_primal_sol::VarMemberDict
+    alg_inc_ip_primal_sol::VarMemberDict
+    alg_inc_lp_dual_sol::ConstrMemberDict
     is_alg_inc_ip_primal_bound_updated::Bool
 end
 
 SolsAndBounds() = SolsAndBounds(Inf, Inf, -Inf, -Inf,
-                                Membership(Variable),
-                                Membership(Variable),
-                                Membership(Constraint),
+                                VarMemberDict(),
+                                VarMemberDict(),
+                                ConstrMemberDict(),
                                 false)
 
 ### Methods of SolsAndBounds
@@ -25,7 +25,7 @@ end
 
 function update_primal_ip_incumbents(incumbents::SolsAndBounds,
                                      newbound::Float64,
-                                     var_membership::Membership{VarState})
+                                     var_membership::VarMemberDict)
     if newbound < incumbents.alg_inc_ip_primal_bound
         incumbents.alg_inc_ip_primal_bound = newbound
         incumbents.alg_inc_ip_primal_sol = copy(var_membership)
@@ -35,7 +35,7 @@ end
 
 function update_primal_lp_incumbents(incumbents::SolsAndBounds,
                                      newbound::Float64,
-                                     var_membership::Membership{VarState})
+                                     var_membership::VarMemberDict)
     if newbound < incumbents.alg_inc_lp_primal_bound
         incumbents.alg_inc_lp_primal_bound = newbound
         incumbents.alg_inc_lp_primal_sol = copy(var_membership)
@@ -60,7 +60,7 @@ end
 
 function update_dual_lp_incumbents(incumbents::SolsAndBounds,
                                    newbound::Float64,
-                                   constr_membership::Membership{ConstrState})
+                                   constr_membership::ConstrMemberDict)
     if newbound > incumbents.alg_inc_lp_dual_bound
         incumbents.alg_inc_lp_dual_bound = newbound
         incumbents.alg_inc_lp_dual_sol = copy(constr_membership)

@@ -1,12 +1,11 @@
 abstract type AbstractVarConstr end
 abstract type AbstractVarConstrId end
-abstract type AbstractVarConstrState end
+abstract type AbstractState end
 abstract type AbstractFormulation end
 abstract type AbstractProblem end
 abstract type AbstractMoiDef end
 abstract type AbstractCounter end
 abstract type AbstractMembership end
-abstract type AbstractManager end
 abstract type AbstractNode end
 
 ## Duties : 

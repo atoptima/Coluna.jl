@@ -30,6 +30,9 @@ import Base.length
 import Base.iterate
 import Base.getindex
 import Base.lastindex
+import Base.getkey
+import Base.haskey
+import Base.copy
 
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,
@@ -51,7 +54,7 @@ include("counters.jl")
 include("constraint.jl")
 include("variable.jl")
 include("vcids.jl")
-include("manager.jl")
+include("vcdict.jl")
 include("membership.jl")
 include("solution.jl")
 include("formulation.jl")

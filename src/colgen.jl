@@ -13,9 +13,9 @@ function optimize!(alg::SimplexLpColGenAlg, r::Reformulation)
     return
 end
 
-function update_pricing_problem(sp_form::Formulation, dual_sol::Membership{ConstrState})
+function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict)
     
-    new_obj = Membership(Variable)
+    new_obj = VarMemberDict()
 
     master_form = sp_form.parent_formulation
 
@@ -134,7 +134,7 @@ function compute_pricing_dual_bound_contrib(sp_form::Formulation,
 end
 
 function gen_new_col(sp_form::Formulation,
-                     dual_sol::Membership{ConstrState},
+                     dual_sol::ConstrMemberDict,
                      sp_lb::Float64,
                      sp_ub::Float64)
     
@@ -189,7 +189,7 @@ function gen_new_col(sp_form::Formulation,
 end
 
 function gen_new_columns(reformulation::Reformulation,
-                         dual_sol::Membership{ConstrState},
+                         dual_sol::ConstrMemberDict,
                          sp_lbs::Dict{FormId, Float64},
                          sp_ubs::Dict{FormId, Float64})
     
@@ -289,8 +289,8 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
         sp_uid = getuid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = lb_convexity_constr_id.info.cur_rhs
-        sp_ubs[sp_uid] = ub_convexity_constr_id.info.cur_rhs
+        sp_lbs[sp_uid] = getrhs(getstate(lb_convexity_constr_id))
+        sp_ubs[sp_uid] = getrhs(getstate(ub_convexity_constr_id))
     end
 
     @show sp_lbs
