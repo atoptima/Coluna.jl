@@ -1,124 +1,10 @@
-# TODO: impl properly the var/constr manager
-abstract type AbstractVarIndexManager end
-abstract type AbstractConstrIndexManager end
 
-mutable struct SimpleVarIndexManager <: AbstractVarIndexManager
-    active_static_list::Vector{Variable}
-    active_dynamic_list::Vector{Variable}
-    unsuitable_dynamic_list::Vector{Variable}
-end
 
-SimpleVarIndexManager() = SimpleVarIndexManager(Vector{Variable}(),
-        Vector{Variable}(), Vector{Variable}())
-
-function get_list(var_manager::SimpleVarIndexManager, status::VCSTATUS, flag::Char)
-    if status == Active && flag in['s', 'a']
-        list = var_manager.active_static_list
-    elseif status == Active && flag == 'd'
-        list = var_manager.active_dynamic_list
-    elseif status == Unsuitable && flag == 'd'
-        list = var_manager.unsuitable_dynamic_list
-    else
-        error("Status $(status) and flag $(flag) are not supported")
-    end
-    return list
-end
-
-function add_var_in_manager(var_manager::SimpleVarIndexManager, var::Variable)
-    list = get_list(var_manager, var.status, var.flag)
-    push!(list, var)
-end
-
-function remove_from_var_manager(var_manager::SimpleVarIndexManager,
-                                 var::Variable)
-    list = get_list(var_manager, var.status, var.flag)
-    idx = findfirst(x->x==var, list)
-    deleteat!(list, idx)
-end
-
-mutable struct SimpleConstrIndexManager <: AbstractConstrIndexManager
-    active_static_list::Vector{Constraint}
-    active_dynamic_list::Vector{Constraint}
-    unsuitable_dynamic_list::Vector{Constraint}
-end
-SimpleConstrIndexManager() = SimpleConstrIndexManager(Vector{Constraint}(),
-        Vector{Constraint}(), Vector{Constraint}())
-
-function get_list(constr_manager::SimpleConstrIndexManager,
-                  status::VCSTATUS, flag::Char)
-    if status == Active && flag == 's'
-        list = constr_manager.active_static_list
-    elseif status == Active && flag == 'd'
-        list = constr_manager.active_dynamic_list
-    elseif status == Unsuitable && flag == 'd'
-        list = constr_manager.unsuitable_dynamic_list
-    else
-        error("Status $(status) and flag $(flag) are not supported")
-    end
-    return list
-end
-
-function add_constr_in_manager(constr_manager::SimpleConstrIndexManager,
-                               constr::Constraint)
-    list = get_list(constr_manager, constr.status, constr.flag)
-    push!(list, constr)
-end
-
-function remove_from_constr_manager(constr_manager::SimpleConstrIndexManager,
-        constr::Constraint)
-    list = get_list(constr_manager, constr.status, constr.flag)
-    idx = findfirst(x->x==constr, list)
-    deleteat!(list, idx)
-end
-
-mutable struct ProblemCounter
-    value::Int
-end
-
-function increment_counter(counter::ProblemCounter)
-    counter.value += 1
-    return counter.value
-end
-
-abstract type Problem end
 
 ###########################
 ##### CompactProblem ######
 ###########################
 
-mutable struct CompactProblem{VM <: AbstractVarIndexManager,
-                    CM <: AbstractConstrIndexManager} <: Problem
-    # TODO: add a flag modified_after_last_solve
-    # if needed
-
-    prob_ref::Int
-    is_relaxed::Bool
-    optimizer::Union{MOI.AbstractOptimizer, Nothing}
-
-    var_manager::VM
-    constr_manager::CM
-
-    # Current solutions
-    primal_sol::PrimalSolution
-    dual_sol::DualSolution
-    partial_solution::PrimalSolution
-
-    counter::VarConstrCounter
-
-end
-
-function CompactProblem{VM,CM}(prob_counter::ProblemCounter,
-                               vc_counter::VarConstrCounter) where {
-    VM <: AbstractVarIndexManager,
-    CM <: AbstractConstrIndexManager}
-
-    optimizer = nothing
-    CompactProblem(increment_counter(prob_counter), false, optimizer,
-                   VM(), CM(), PrimalSolution(), DualSolution(),
-                   PrimalSolution(0.0, Dict{Variable, Float64}()), vc_counter)
-end
-
-SimpleCompactProblem = CompactProblem{SimpleVarIndexManager,SimpleConstrIndexManager}
 
 function initialize_problem_optimizer(problem::CompactProblem,
                                       optimizer::MOI.AbstractOptimizer)
@@ -130,138 +16,11 @@ function initialize_problem_optimizer(problem::CompactProblem,
     problem.optimizer = optimizer
 end
 
-function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float64},
-                         var_list::Vector{Variable}, optimizer)
-
-    for var_idx in 1:length(var_list)
-        var = var_list[var_idx]
-        var.val = MOI.get(optimizer, MOI.VariablePrimal(),
-                          var.moi_def.var_index)
-        @logmsg LogLevel(-4) string("Var ", var.name, " = ", var.val)
-        if var.val > 0.0
-            sol[var] = var.val
-        end
-    end
-end
-
-
-function is_sol_integer(sol::Dict{Variable, Float64}, tolerance::Float64)
-    for var_val in sol
-        if (!is_value_integer(var_val.second, tolerance)
-                && (var_val.first.vc_type == 'I' || var_val.first.vc_type == 'B'))
-            @logmsg LogLevel(-2) "Sol is fractional."
-            return false
-        end
-    end
-    @logmsg LogLevel(-4) "Solution is integer!"
-    return true
-end
-
-# functions that modify Problem only interact with underlying
-# MOI optimizer if explicitly asked by user
-function add_variable(problem::CompactProblem, var::Variable;
-                      update_moi = false)
-    @logmsg LogLevel(-4) "adding Variable $var"
-    add_var_in_manager(problem.var_manager, var)
-    @assert var.prob_ref == -1
-    var.prob_ref = problem.prob_ref
-    if update_moi
-        @assert problem.optimizer != nothing
-        add_variable_in_optimizer(problem.optimizer, var, problem.is_relaxed)
-    end
-end
-
-function update_var_status(problem::CompactProblem,
-                           var::Variable, new_status::VCSTATUS)
-    if var.status == new_status
-        return
-    end
-    remove_from_var_manager(problem.var_manager, var)
-    var.status = new_status
-    add_var_in_manager(problem.var_manager, var)
-end
-
-function update_constr_status(problem::CompactProblem,
-                              constr::Constraint, new_status::VCSTATUS)
-    if constr.status == new_status
-        return
-    end
-    remove_from_constr_manager(problem.constr_manager, constr)
-    constr.status = new_status
-    add_constr_in_manager(problem.constr_manager, constr)
-end
-
-function add_constraint(problem::CompactProblem, constr::Constraint;
-                        update_moi = false)
-    @logmsg LogLevel(-4) "adding Constraint $constr"
-    @assert constr.prob_ref == -1# || constr.prob_ref == problem.prob_ref
-    constr.prob_ref = problem.prob_ref
-    add_constr_in_manager(problem.constr_manager, constr)
-    if update_moi
-        @assert problem.optimizer != nothing
-        add_constr_in_optimizer(problem.optimizer, constr)
-    end
-end
-
-function add_membership(var::Variable, constr::Constraint, coef::Float64;
-                        optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
-
-    @logmsg LogLevel(-4) "add_membership : Variable = $var, Constraint = $constr"
-    var.member_coef_map[constr] = coef
-    constr.member_coef_map[var] = coef
-    if optimizer != nothing
-        update_moi_membership(optimizer, var, constr, coef)
-    end
-end
-
-function add_membership(var::SubprobVar, constr::MasterConstr, coef::Float64;
-                        optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
-    @logmsg LogLevel(-4) "add_membership : SubprobVar = $var, MasterConstraint = $constr"
-    var.master_constr_coef_map[constr] = coef
-    constr.subprob_var_coef_map[var] = coef
-end
-
-# The only interest of having this function is the specific printing
-function add_membership(var::MasterVar, constr::MasterConstr, coef::Float64;
-                        optimizer::T = nothing) where T <: Union{MOI.AbstractOptimizer, Nothing}
-
-    @logmsg LogLevel(-4) "add_membership : MasterVar = $var, MasterConstr = $constr"
-    var.member_coef_map[constr] = coef
-    constr.member_coef_map[var] = coef
-    if optimizer != nothing
-        update_moi_membership(optimizer, var, constr, coef)
-    end
-end
 
 ###############################################################
 ########## Functions that interact directly with MOI ##########
 ###############################################################
 
-function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
-                                   var::Variable)
-    MOI.delete(optimizer, var.moi_def.bounds_index)
-    var.moi_def.bounds_index = MoiBounds(-1)
-    MOI.delete(optimizer, var.moi_def.var_index)
-    var.moi_def.var_index = MOI.VariableIndex(-1)
-end
-
-function set_optimizer_obj(optimizer::MOI.AbstractOptimizer,
-                           new_obj::Dict{V,Float64}) where V <: Variable
-
-    vec = [MOI.ScalarAffineTerm(cost, var.moi_def.var_index) for (var, cost) in new_obj]
-    objf = MOI.ScalarAffineFunction(vec, 0.0)
-    MOI.set(optimizer,
-            MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
-end
-
-function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
-                                       constant::Float64)
-    of = MOI.get(optimizer,
-                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
-    MOI.modify(
-        optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-        MOI.ScalarConstantChange(constant))
-end
 
 
 
@@ -301,14 +60,6 @@ function update_constr_rhs_in_optimizer(optimizer::MOI.AbstractOptimizer,
     @assert (moi_set_type isa MOI.GreaterThan || moi_set_type isa MOI.SmallerThan)
     MOI.set(optimizer, MOI.ConstraintSet(), constr.moi_index,
             moi_set_type(constr.cur_cost_rhs))
-end
-
-function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
-                                      constr::Constraint)
-
-    MOI.delete(optimizer, constr.moi_index)
-    constr.moi_index = MOI.ConstraintIndex{MOI.ScalarAffineFunction,
-                                           constr.set_type}(-1)
 end
 
 function compute_constr_moi_terms(constr::Constraint)
@@ -444,71 +195,6 @@ function optimize(problem::CompactProblem;
     return (status, nothing, nothing)
 end
 
-#########################################
-##### Artificial variables managers #####
-#########################################
-
-pos_art_var(vc_counter) = MasterVar(vc_counter, "art_glob_pos", 1000000.0,
-                                    'P', 'C', 'a', 'U', 1.0, 0.0, Inf)
-neg_art_var(vc_counter) = MasterVar(vc_counter, "art_glob_neg", -1000000.0,
-                                    'N', 'C', 'a', 'U', 1.0, -Inf, 0.0)
-mutable struct GlobalArtVarManager
-    positive::MasterVar
-    negative::MasterVar
-    GlobalArtVarManager() = new()
-end
-
-function init_manager(manager::GlobalArtVarManager, master::CompactProblem)
-    vc_counter = master.counter
-    manager.positive = pos_art_var(vc_counter)
-    manager.negative = neg_art_var(vc_counter)
-    add_variable(master, manager.positive; update_moi = false)
-    add_variable(master, manager.negative; update_moi = false)
-end
-
-function attach_art_var(manager::GlobalArtVarManager, master::CompactProblem,
-                        constr::Constraint)
-    if constr.sense == 'L'
-        add_membership(manager.negative, constr, 1.0; optimizer = nothing)
-    elseif constr.sense == 'G'
-        add_membership(manager.positive, constr, 1.0; optimizer = nothing)
-    elseif constr.sense == 'E'
-        add_membership(manager.negative, constr, 1.0; optimizer = nothing)
-        add_membership(manager.positive, constr, 1.0; optimizer = nothing)
-    end
-end
-
-mutable struct LocalArtVarManager
-    constr_art_var_map::Vector{MasterVar}
-    LocalArtVarManager() = new(MasterVar[])
-end
-
-function init_manager(manager::LocalArtVarManager, master::CompactProblem)
-end
-
-function attach_art_var(manager::LocalArtVarManager, art_var::MasterVar,
-                        master::CompactProblem, constr::Constraint)
-    push!(manager.constr_art_var_map, art_var)
-    add_variable(master, art_var; update_moi = false)
-    add_membership(art_var, constr, 1.0; optimizer = nothing)
-end
-
-function attach_art_var(manager::LocalArtVarManager, master::CompactProblem,
-                        constr::Constraint)
-    vc_counter = master.counter
-    if constr.sense == 'L'
-        art_var = pos_art_var(vc_counter)
-        attach_art_var(manager, art_var, master, constr)
-    elseif constr.sense == 'G'
-        art_var = neg_art_var(vc_counter)
-        attach_art_var(manager, art_var, master, constr)
-    elseif constr.sense == 'E'
-        art_var = pos_art_var(vc_counter)
-        attach_art_var(manager, art_var, master, constr)
-        art_var = neg_art_var(vc_counter)
-        attach_art_var(manager, art_var, master, constr)
-    end
-end
 
 ###########################
 ##### Reformulation #####
@@ -549,12 +235,6 @@ function Reformulation(prob_counter::ProblemCounter,
     )
 end
 
-get_problem(prob::Reformulation,
-            prob_ref::Int) = prob.problem_ref_to_problem[prob_ref]
-
-function get_sp_convexity_bounds(prob::Reformulation, prob_ref::Int)
-    return prob.problem_ref_to_card_bounds[prob_ref]
-end
 
 function load_problem_in_optimizer(extended_problem::Reformulation)
     load_problem_in_optimizer(extended_problem.master_problem)
@@ -563,39 +243,3 @@ function load_problem_in_optimizer(extended_problem::Reformulation)
     end
 end
 
-# Iterates through each problem in extended_problem,
-# check its index and call function
-# initialize_problem_optimizer(index, optimizer), using the dictionary
-function initialize_problem_optimizer(extended_problem::Reformulation,
-         problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
-
-    @assert haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
-    initialize_problem_optimizer(extended_problem.master_problem,
-            problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
-
-    for problem in extended_problem.pricing_vect
-        initialize_problem_optimizer(problem,
-                problemidx_optimizer_map[problem.prob_ref])
-    end
-
-    for problem in extended_problem.separation_vect
-        initialize_problem_optimizer(problem,
-                problemidx_optimizer_map[problem.prob_ref])
-    end
-end
-
-# function add_convexity_constraints(extended_problem::Reformulation,
-#         pricing_prob::Problem)
-#     card_lb, card_ub = get_sp_convexity_bounds(extended_problem, pricing_prob.prob_ref)
-#     master = extended_problem.master_problem
-#     convexity_lb_constr = ConvexityConstr(master.counter,
-#             string("convexity_constr_lb_", pricing_prob.prob_ref),
-#             convert(Float64, card_lb), 'G', 'M', 's')
-#     convexity_ub_constr = ConvexityConstr(master.counter,
-#             string("convexity_constr_ub_", pricing_prob.prob_ref),
-#             convert(Float64, card_ub), 'L', 'M', 's')
-#     extended_problem.pricing_convexity_lbs[pricing_prob] = convexity_lb_constr
-#     extended_problem.pricing_convexity_ubs[pricing_prob] = convexity_ub_constr
-#     add_constraint(master, convexity_lb_constr; update_moi = false)
-#     add_constraint(master, convexity_ub_constr; update_moi = false)
-# end

@@ -14,12 +14,12 @@ end
 
 LocalArtVar(form_uid::Int, constr_uid::Int) = Variable(
     form_uid, string("local_art_", constr_uid), 10, 0.0,
-    1.0, Continuous,  Positive)
+   Inf, Continuous,  Positive)
 
 function GlobalArtVar(form_uid::Int, sense::VarSense)
     sufix = (sense == Positive) ? "pos" : "neg"
-    name = string("glob_", sufix)
-    return Variable(form_uid, name, 100, 0.0, 1.0, Continuous,  Positive)
+    name = string("glob_art_", sufix)
+    return Variable(form_uid, name, 1000.0, 0.0, Inf, Continuous,  Positive)
 end
 
 getform(v::Variable) = v.form_uid

@@ -440,3 +440,18 @@ function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
     @logmsg LogLevel(-4) "Solution is integer!"
     return true
 end
+
+
+function update_var_status(var_id::Id{VarState},
+                           new_status::Status)
+    @logmsg LogLevel(-2) "change var status "  getstatus(getstate(var_id)) == new_status var_id
+
+    setstatus!(getstate(var_id), new_status)
+end
+
+function update_constr_status(constr_id::Id{ConstrState},
+                              new_status::Status)
+    @logmsg LogLevel(-2) "change var status "  getstatus(getstate(constr_id)) == new_status constr_id
+
+    setstatus!(getstate(constr_id), new_status)
+end

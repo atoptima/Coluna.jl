@@ -54,12 +54,13 @@ mutable struct ConstrState <: AbstractVarConstrState
     cur_sense::ConstrSense # Greater Less Equal
     cur_status::Status   # Active or not
     index::MoiConstrIndex # -> moi_index
+    set_type::MoiSetType
     duty::DataType
 end
 
 function ConstrState(Duty::Type{<: AbstractConstrDuty},
                     constr::Constraint)
-    return ConstrState(getrhs(constr), getsense(constr), Active, nothing, Duty)
+    return ConstrState(getrhs(constr), getsense(constr), Active, nothing, nothing, Duty)
 end
 
 getrhs(c::ConstrState) = c.cur_rhs

@@ -120,17 +120,19 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
             if (typeof(err) == AssertionError &&
                 !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
                 throw(err)
-            endx
-        end
-        # @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
-        #                             constr.val)
-        # @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
-        #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
-        #                                     constr.moi_index))
-        if val > 0.000001 || val < - 0.000001 # todo use a tolerance
-            add!(sol, id, val)
+                endx
+            end
+            # @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
+            #                             constr.val)
+            # @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
+            #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
+            #                                     constr.moi_index))
+            if val > 0.000001 || val < - 0.000001 # todo use a tolerance
+                add!(sol, id, val)
+            end
         end
     end
+    
     @show sol
     return
 end
@@ -154,4 +156,40 @@ function print_moi_constraints(optimizer::MOI.AbstractOptimizer)
         end
     end
     println("------------------------------------------")
+end
+
+
+
+function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
+                                       constant::Float64)
+    of = MOI.get(optimizer,
+                 MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    MOI.modify(
+        optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
+        MOI.ScalarConstantChange(constant))
+end
+
+
+function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
+                                   var_id::Id{VarState})
+    state = getstate(var_id)
+    @assert state.index != MOI.VariableIndex(-1)
+    MOI.delete(optimizer, state.bd_constr_ref)
+    state.bd_constr_ref = MoiBounds(-1)
+    MOI.delete(optimizer, state.kind_constr_ref)
+    state.kind_constr_ref = MoiVarKind(-1)
+    MOI.delete(optimizer, state.index)
+    state.index = MOI.VariableIndex(-1)
+end
+
+
+function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
+                                      constr_id::Id{ConstrState})
+
+    state = getstate(constr_id)
+    @assert state.index != MOI.ConstraintIndex(-1)
+    MOI.delete(optimizer, state.index)
+    state.index = MOI.ConstraintIndex{MOI.ScalarAffineFunction,
+                                      state.set_type}(-1)
+    state.set_type = nothing
 end

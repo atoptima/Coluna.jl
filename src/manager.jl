@@ -42,6 +42,13 @@ function add!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
     return
 end
 
+function delete!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
+    if haskey(m.members, id)
+        deleteat!(m.members, id)
+    end
+    return
+end
+
 Base.copy(m::Manager) = Manager(copy(m.members))
 
 getstate(e::Pair{I,T}) where {I <: Id, T} = getstate(e[1])

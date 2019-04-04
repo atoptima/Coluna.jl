@@ -77,13 +77,14 @@ abstract type AbstractAlg end
 @enum VarKind Continuous Binary Integ
 @enum ConstrKind Core Facultative SubSystem 
 @enum ConstrSense Greater Less Equal
-@enum Flag Static Dynamic Delayed Artificial Implicit
+#@enum Flag Static Dynamic Delayed Artificial Implicit
 @enum Status Active Unsuitable
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
 const FormId = Int
 
+const MoiSetType = Union{MOI.AbstractSet, Nothing}
 const MoiObjective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
 const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
 const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
