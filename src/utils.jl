@@ -22,15 +22,4 @@ macro callsuper(ex)
     return blk
 end
 
-function print_moi_constraints(optimizer::MOI.AbstractOptimizer)
-    println("-------------- Printing MOI constraints")
-    for (F,S) in MOI.get(optimizer, MOI.ListOfConstraints())
-        println("Function type: ", F)
-        for ci in MOI.get(optimizer, MOI.ListOfConstraintIndices{F,S}())
-            println("Constraint ", ci.value)
-        end
-    end
-    println("------------------------------------------")
-end
-
 elapsed_solve_time() = (time() - __initial_solve_time)

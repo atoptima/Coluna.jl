@@ -109,7 +109,7 @@ function create_origconstr!(constrs, f::Formulation,
         prob, name, func::MOI.SingleVariable, set, m_constr_id)
     (c_var_id, var) = prob.mid2cid_map[func.variable]
     set!(var, set)
-    sync!(getinfo(c_var_id), var)
+    sync!(getstate(c_var_id), var)
     return
 end
 

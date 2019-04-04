@@ -113,7 +113,7 @@ function clone_in_formulation!(varconstr::VC,
                                duty::Type{<:AbstractDuty}) where {VC <: AbstractVarConstr}
     varconstr_clone = deepcopy(varconstr)
     setform!(varconstr_clone, getuid(dest))
-    id_clone = Id(getuid(id), infotype(VC)(duty, varconstr_clone))
+    id_clone = Id(getuid(id), statetype(VC)(duty, varconstr_clone))
     add!(dest, varconstr_clone, id_clone)
     return id_clone
 end
@@ -330,7 +330,7 @@ end
 
 function _show_constraint(io::IO, f::Formulation, id)
     constr = getconstr(f, id)
-    constrinfo = getinfo(id)
+    constrinfo = getstate(id)
     print(io, id, " ", getname(constr), " : ")
     membership = get_var_members_of_constr(f, id)
     var_ids = getids(membership)
@@ -368,7 +368,7 @@ end
 
 function _show_variable(io::IO, f::Formulation, id)
     var = getvar(f, id)
-    varinfo = getinfo(id)
+    varinfo = getstate(id)
     name = getname(var)
     lb = getlb(varinfo)
     ub = getub(varinfo)
@@ -430,4 +430,18 @@ function retrieve_dual_sol(form::Formulation,
     fill_dual_sol(form.moi_optimizer, new_sol, constrs)
     dual_sol = DualSolution(obj_bound, new_sol)
     return dual_sol
+end
+
+
+
+function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
+    for (var_id, var_val) in sol.members
+        if (!is_value_integer(var_val, tolerance)
+                && (getkind(getstate(var_id)) == 'I' || getkind(getstate(var_id)) == 'B'))
+            @logmsg LogLevel(-2) "Sol is fractional."
+            return false
+        end
+    end
+    @logmsg LogLevel(-4) "Solution is integer!"
+    return true
 end

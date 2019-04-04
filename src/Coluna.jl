@@ -88,7 +88,8 @@ include("colgen.jl")
 include("MOIWrapper.jl")
 #include("decomposition.jl")
 
-include("globals.jl") # Structure that holds values useful in all the procedure
+include("utils.jl") # Structure that holds values useful in all the procedure
+include("globals.jl") 
 
 global const _params_ = Params()
 global const _globals_ = GlobalValues()

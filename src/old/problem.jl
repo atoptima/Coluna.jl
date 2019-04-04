@@ -144,54 +144,6 @@ function fill_primal_sol(problem::CompactProblem, sol::Dict{Variable, Float64},
     end
 end
 
-function retrieve_primal_sol(problem::CompactProblem,
-                             optimizer::MOI.AbstractOptimizer)
-    new_sol = Dict{Variable, Float64}()
-    new_obj_val = MOI.get(optimizer, MOI.ObjectiveValue())
-    fill_primal_sol(
-        problem, new_sol, problem.var_manager.active_static_list, optimizer
-    )
-    fill_primal_sol(
-        problem, new_sol, problem.var_manager.active_dynamic_list, optimizer
-    )
-    primal_sol = PrimalSolution(new_obj_val, new_sol)
-    @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
-    return primal_sol
-end
-
-function retrieve_dual_sol(problem::CompactProblem, optimizer::MOI.AbstractOptimizer)
-    # TODO check if supported by solver
-    if MOI.get(optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
-        return nothing
-    end
-    # problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
-    constr_list = problem.constr_manager.active_static_list
-    constr_list = vcat(constr_list, problem.constr_manager.active_dynamic_list)
-    new_sol = Dict{Constraint, Float64}()
-    for constr_idx in 1:length(constr_list)
-        constr = constr_list[constr_idx]
-        constr.val = 0.0
-        try # This try is needed because of the erroneous assertion in LQOI
-            constr.val = MOI.get(optimizer, MOI.ConstraintDual(),
-                                 constr.moi_index)
-        catch err
-            if (typeof(err) == AssertionError &&
-                !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
-                throw(err)
-            end
-        end
-        @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
-                                    constr.val)
-        @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
-                                    MOI.get(optimizer, MOI.ConstraintPrimal(),
-                                            constr.moi_index))
-        if constr.val != 0 # TODO use a tolerance
-            new_sol[constr] = constr.val
-        end
-    end
-    dual_sol = DualSolution(-Inf, new_sol)
-    return dual_sol
-end
 
 function is_sol_integer(sol::Dict{Variable, Float64}, tolerance::Float64)
     for var_val in sol

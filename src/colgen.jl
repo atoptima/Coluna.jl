@@ -15,7 +15,7 @@ end
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict)
     
-    new_obj = Dict{Id, Float64}()
+    new_obj = VarMemberDict()
 
     master_form = sp_form.parent_formulation
 
@@ -35,7 +35,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
 
     println("new objective func = ", new_obj)
 
-    set_optimizer_obj(sp_form, new_obj)
+    set_optimizer_obj(sp_form.moi_optimizer, new_obj)
 
     return false
 end
@@ -86,7 +86,8 @@ function insert_cols_in_master(prob::Problem,
                 add!(mbship, mc_id)
                 name = "MC_$(sp_uid)_$(getuid(mc_id))"
                 setname!(mc_var, name)
-                
+
+                @show "new column" mc_id mc_var
                 
                 ### compute column vector
                 for (var_id, var_val) in sp_sol.var_members
@@ -154,7 +155,7 @@ function gen_new_col(sp_form::Formulation,
     update_pricing_target(sp_form)
 
     # Reset var bounds, var cost, sp minCost
-    if update_pricing_prob(sp_form, dual_sol) # Never returns true
+    if update_pricing_problem(sp_form, dual_sol) # Never returns true
         #     This code is never executed because update_pricing_prob always returns false
         #     @logmsg LogLevel(-3) "pricing prob is infeasible"
         #     # In case one of the subproblem is infeasible, the master is infeasible
@@ -288,8 +289,8 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
         sp_uid = getuid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = lb_convexity_constr_id.info.cur_rhs
-        sp_ubs[sp_uid] = ub_convexity_constr_id.info.cur_rhs
+        sp_lbs[sp_uid] = getrhs(getstate(lb_convexity_constr_id))
+        sp_ubs[sp_uid] = getrhs(getstate(ub_convexity_constr_id))
     end
 
     @show sp_lbs

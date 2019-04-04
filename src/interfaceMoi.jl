@@ -47,13 +47,13 @@ function enforce_var_kind_in_optimizer(optimizer::MOI.AbstractOptimizer,
     state = getstate(id)
     kind = getkind(state)
     if kind == Binary
-        id.info.kind_constr_ref = MOI.add_constraint(
+        setmoikind(state, MOI.add_constraint(
             optimizer, MOI.SingleVariable(getmoi_index(state)), MOI.ZeroOne()
-        )
+        ))
     elseif kind == Integ
-        id.info.kind_constr_ref = MOI.add_constraint(
+        setmoikind(state, MOI.add_constraint(
             optimizer, MOI.SingleVariable(getmoi_index(state)), MOI.Integer()
-        )
+        ))
     elseif kind == Continuous && getmoi_bdconstr(state) != nothing
         moi_bounds = getmoi_bdconstr(state)
         MOI.delete(optimizer, moi_bounds)
@@ -143,4 +143,15 @@ function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
     close(rd_out)
     redirect_stdout(backup_stdout)
     return
+end
+
+function print_moi_constraints(optimizer::MOI.AbstractOptimizer)
+    println("-------------- Printing MOI constraints")
+    for (F,S) in MOI.get(optimizer, MOI.ListOfConstraints())
+        println("Function type: ", F)
+        for ci in MOI.get(optimizer, MOI.ListOfConstraintIndices{F,S}())
+            println("Constraint ", ci.value)
+        end
+    end
+    println("------------------------------------------")
 end

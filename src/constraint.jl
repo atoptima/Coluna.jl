@@ -76,7 +76,7 @@ setmoi_index!(c::ConstrState, index::MoiConstrIndex) = c.index = index
 # TODO :
 
 vctype(::Type{<: ConstrState}) = Constraint
-infotype(::Type{<: Constraint}) = ConstrState
+statetype(::Type{<: Constraint}) = ConstrState
 
 indextype(::Type{Constraint}) = MoiConstrIndex
 idtype(::Type{Constraint}) = Id{ConstrState}

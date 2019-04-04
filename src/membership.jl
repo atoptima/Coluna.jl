@@ -6,6 +6,8 @@ const ConstrMemberDict = VcMemberDict{ConstrState}
 # const VarMemberDict = PerIdDict{VarState,Float64}
 # const ConstrMemberDict = PerIdDict{ConstrState,Float64}
 
+#base.haskey(m::Membership,id::Id) = 
+
 struct Memberships
     var_to_constr_members    ::Dict{Id{VarState}, ConstrMemberDict}
     constr_to_var_members    ::Dict{Id{ConstrState}, VarMemberDict}
@@ -44,7 +46,7 @@ end
 
     
 #get_subset(m::Membership, Duty::Type{<:AbstractConstrDuty}, stat::Status) =
-#    filter(e -> getduty(getinfo(e)) == Duty && getinfo(e).status == stat, m.members)
+#    filter(e -> getduty(getstate(e)) == Duty && getstate(e).status == stat, m.members)
 
 
 function get_constr_members_of_var(m::Memberships, var_id::Id) 

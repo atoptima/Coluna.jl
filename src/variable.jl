@@ -72,6 +72,7 @@ setstatus!(v::VarState, s::Status) = v.cur_status = s
 setduty!(v::VarState, d) = v.duty = d
 setmoiindex(v::VarState, index::MoiVarIndex) = v.index = index
 setmoibounds(v::VarState, bd::Union{Nothing,MoiVarBound}) = v.bd_constr_ref = bd
+setmoikind(v::VarState, kind::Union{Nothing,MoiVarKind}) = v.kind_constr_ref = kind
 
 function sync!(i::VarState, v::Variable)
     setlb!(i, getlb(v))
@@ -82,7 +83,7 @@ end
 
 vctype(::Type{<: VarState}) = Variable
 
-infotype(::Type{<: Variable}) = VarState
+statetype(::Type{<: Variable}) = VarState
 
 indextype(::Type{<: Variable}) = MoiVarIndex
 
