@@ -421,7 +421,7 @@ function retrieve_dual_sol(form::Formulation,
         return nothing
     end
     new_sol = Membership(Constraint)
-    problem.obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
+    obj_bound = MOI.get(optimizer, MOI.ObjectiveBound())
     fill_dual_sol(form.moi_optimizer, new_sol, constrs)
     dual_sol = DualSolution(-Inf, new_sol)
     return dual_sol
