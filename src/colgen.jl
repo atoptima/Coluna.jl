@@ -14,17 +14,17 @@ function optimize!(alg::SimplexLpColGenAlg, r::Reformulation)
 end
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict)
-    
-    new_obj = VarMemberDict()
 
+    new_obj = VarMemberDict()
     master_form = sp_form.parent_formulation
 
-    
     ### compute red costs
-    for (constr_uid, dual_val) in dual_sol
-        var_membership = get_var_members_of_constr(master_form.memberships, constr_uid)
-      
-        for (var_id, coef) in filter(_active_MspVar_ , var_membership)
+    for (constr_id, dual_val) in dual_sol
+        println("Compute contrib of constraint ", constr_id)
+        var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
+
+        for (var_id, coef) in var_membership
+            println("var : ", var_id, " (", getduty(getstate(var_id)), ")")
             if haskey(new_obj, var_id)
                 new_obj[var_id] -= dual_val * coef
             else

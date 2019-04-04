@@ -8,15 +8,19 @@ function create_moi_optimizer(factory::JuMP.OptimizerFactory)
     return optimizer
 end
 
+function compute_moi_terms(membership::VarMemberDict)
+    return [
+        MOI.ScalarAffineTerm{Float64}(coeff, getmoi_index(getstate(id)))
+        for (id, coeff) in membership
+    ]
+end
+
 function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
                            new_obj::VarMemberDict)
 
-    vec = [
-        MOI.ScalarAffineTerm(cost, getmoi_index(getstate(id)))
-        for (id, cost) in new_obj
-    ]
-    objf = MOI.ScalarAffineFunction(vec, 0.0)
-    MOI.set(form.moi_optimizer, MoiObjective(), objf)
+    terms = compute_moi_terms(new_obj)
+    objf = MOI.ScalarAffineFunction(terms, 0.0)
+    MOI.set(moi_optimizer, MoiObjective(), objf)
     return
 end
 
@@ -75,13 +79,6 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
         enforce_bounds_in_optimizer(optimizer, id)
     end
     return
-end
-
-function compute_moi_terms(membership::VarMemberDict)
-    return [
-        MOI.ScalarAffineTerm{Float64}(coeff, getmoi_index(getstate(id)))
-        for (id, coeff) in membership
-    ]
 end
 
 function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,

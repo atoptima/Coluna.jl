@@ -12,6 +12,8 @@ _active_pricingSpVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getstate(id
 
 function _explicit_(id_val::Pair{I,T}) where {I<:Id,T}
     d = getduty(getstate(id_val[1]))
-    return (d != MastRepPricingSpVar && d != MastRepPricingSetupSpVar
-            && d != MastRepBendSpVar)
+    return (
+        d != MastRepPricingSpVar && d != MastRepPricingSetupSpVar
+        && d != MastRepBendSpVar
+    )
 end
