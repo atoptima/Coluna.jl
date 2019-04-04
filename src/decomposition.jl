@@ -224,11 +224,13 @@ function reformulate!(prob::Problem, method::SolutionMethod)
         end
     end
     
+    end_clone(master_form)
 
     println("\e[1;34m MASTER FORMULATION \e[00m")
     @show master_form
     println("\e[1;34m PRICING SP FORMULATIONS \e[00m")
     for p in reformulation.dw_pricing_subprs
+        end_clone(p)
         @show p
         println("\e[32m ---------------- \e[00m")
     end

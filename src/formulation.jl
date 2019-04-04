@@ -69,7 +69,11 @@ getuid(f::Formulation) = f.uid
 
 getvar(f::Formulation, id::Id{VarState}) = get(f, id)
 getconstr(f::Formulation, id::Id{ConstrState}) = get(f, id)
+getstate(f::Formulation, id::Id{VarState}) = getstate(getkey(f.vars, id, 0)) # TODO change the default value (empty Id)
+getstate(f::Formulation, id::Id{ConstrState}) = getstate(getkey(f.constrs, id, 0))
 
+has(f::Formulation, id::Id{VarState}) = has(f.vars, id)
+has(f::Formulation, id::Id{ConstrState}) = has(f.constrs, id)
 get(f::Formulation, id::Id{VarState}) = get(f.vars, id)
 get(f::Formulation, id::Id{ConstrState}) = get(f.constrs, id)
 
@@ -153,6 +157,41 @@ function clone_in_formulation!(vcs::Vector{Tuple{I,VC}},
     end
     return
 end
+
+function end_clone(dest::Formulation)
+    clean(dest, dest.memberships)
+    return
+end
+
+function clean(f::Formulation, m::Memberships)
+    clean(f, m.var_to_constr_members)
+    clean(f, m.constr_to_var_members)
+    return
+end
+
+function clean(f::Formulation, dict)
+    for (id, membership) in dict
+        clean(f, membership)
+    end
+    return
+end
+
+# TODO : find better name
+function clean(f::Formulation, m::Membership)
+    idstodelete = Id[]
+    for (id, val) in m
+        if has(f, id)
+            #setstate!(id, getstate(id))
+            setstate!(id, getstate(f, id))
+        else
+            #@warn "Formulation has not id $id"
+            push!(idstodelete, id)
+        end
+    end
+    delete!(m.members, idstodelete)
+    return
+end
+
 
 # function add!(f::Formulation, elems::Vector{VarConstr}) where {VarConstr <: AbstractVarConstr}
 #     for elem in elems
@@ -287,7 +326,7 @@ end
 function _show_constraint(io::IO, f::Formulation, id)
     constr = getconstr(f, id)
     constrinfo = getinfo(id)
-    print(io, " ", getname(constr), " : ")
+    print(io, id, " ", getname(constr), " : ")
     membership = get_var_members_of_constr(f, id)
     var_ids = getids(membership)
     for var_id in sort!(var_ids)

@@ -42,6 +42,8 @@ function add!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
     return
 end
 
+Base.copy(m::Manager) = Manager(copy(m.members))
+
 getinfo(e::Pair{I,T}) where {I <: Id, T} = getinfo(e[1])
 
 getmembers(m::Manager) = m.members
@@ -50,7 +52,9 @@ has(m::Manager, id::Id) = haskey(m.members, id)
 
 get(m::Manager, id::Id) = m.members[id]
 
+import Base.getkey
 #get(m::Manager, uid::Int) = m.members[Id(uid)]
+Base.getkey(m::Manager, i::Id, d) = getkey(m.members, i, d)
 
 getids(m::Manager) = collect(keys(m.members))
 
