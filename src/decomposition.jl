@@ -63,7 +63,7 @@ function build_dw_master!(prob::Problem,
     orig_form = get_original_formulation(prob)
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
     reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
-    
+
     @assert !isempty(reformulation.dw_pricing_subprs)
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
@@ -92,7 +92,7 @@ function build_dw_master!(prob::Problem,
     clone_in_formulation!(vars_in_form, orig_form, master_form, PureMastVar)
     # copy of master constraints
     clone_in_formulation!(constrs_in_form, orig_form, master_form, MasterConstr)
-    
+
     initialize_artificial_variables(master_form, constrs_in_form)
 
     return

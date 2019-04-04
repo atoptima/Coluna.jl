@@ -28,7 +28,7 @@ function update_primal_ip_incumbents(incumbents::SolsAndBounds,
                                      var_membership::Membership{VarState})
     if newbound < incumbents.alg_inc_ip_primal_bound
         incumbents.alg_inc_ip_primal_bound = newbound
-        incumbents.alg_inc_ip_primal_sol = deepcopy(var_membership)
+        incumbents.alg_inc_ip_primal_sol = copy(var_membership)
         incumbents.is_alg_inc_ip_primal_bound_updated = true
     end
 end
@@ -38,7 +38,7 @@ function update_primal_lp_incumbents(incumbents::SolsAndBounds,
                                      var_membership::Membership{VarState})
     if newbound < incumbents.alg_inc_lp_primal_bound
         incumbents.alg_inc_lp_primal_bound = newbound
-        incumbents.alg_inc_lp_primal_sol = deepcopy(var_membership)
+        incumbents.alg_inc_lp_primal_sol = copy(var_membership)
     end
 end
 
@@ -63,6 +63,6 @@ function update_dual_lp_incumbents(incumbents::SolsAndBounds,
                                    constr_membership::Membership{ConstrState})
     if newbound > incumbents.alg_inc_lp_dual_bound
         incumbents.alg_inc_lp_dual_bound = newbound
-        incumbents.alg_inc_lp_dual_sol = deepcopy(constr_membership)
+        incumbents.alg_inc_lp_dual_sol = copy(constr_membership)
     end
 end

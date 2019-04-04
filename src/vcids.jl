@@ -23,6 +23,7 @@ Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 getuid(id::Id) = id.uid
 
 getinfo(id::Id) = id.info
+getstate(id::Id) = id.info
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, "Id(", getuid(id), ")")

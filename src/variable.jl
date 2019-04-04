@@ -52,11 +52,12 @@ mutable struct VarState <: AbstractVarConstrState
     bd_constr_ref::Union{Nothing, MoiVarBound} # should be removed
     kind_constr_ref::Union{Nothing, MoiVarKind} # should be removed
     duty::Type{<: AbstractVarDuty}
+    cur_kind::VarKind
 end
 
 function VarState(Duty::Type{<: AbstractVarDuty}, var::Variable)
     return VarState(getcost(var), getlb(var), getub(var),
-        Active, nothing, nothing, nothing, Duty)
+        Active, nothing, nothing, nothing, Duty, getkind(var))
 end
 
 getcost(v::VarState) = v.cur_cost
@@ -67,6 +68,7 @@ getmoi_index(v::VarState) = v.index
 getmoi_bdconstr(v::VarState) = v.bd_constr_ref
 getmoi_kindconstr(v::VarState) = v.kind_constr_ref
 getduty(v::VarState) = v.duty
+getkind(v::VarState) = v.cur_kind
 
 setcost!(v::VarState, c::Float64) = v.cur_cost = c
 setlb!(v::VarState, lb::Float64) = v.cur_lb = lb
@@ -74,14 +76,7 @@ setub!(v::VarState, ub::Float64) = v.cur_ub = ub
 setstatus!(v::VarState, s::Status) = v.cur_status = s
 setduty!(v::VarState, d) = v.duty = d
 setmoiindex(v::VarState, index::MoiVarIndex) = v.index = index
-
-# TODO : reduce
-function sync!(v::Variable, i::VarState)
-    setlb!(v, getlb(i))
-    setub!(v, getub(i))
-    setcost!(v, getcost(i))
-    return
-end
+setmoibounds(v::VarState, bd::Union{Nothing,MoiVarBound}) = v.bd_constr_ref = bd
 
 function sync!(i::VarState, v::Variable)
     setlb!(i, getlb(v))

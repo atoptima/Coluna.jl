@@ -1,7 +1,6 @@
 # Define default functions to use as filters
 # Functions must be of the form:
-# f(::Pair{<:AbstractVarConstrId,
-#          <:Pair{<:AbstractVarConstr, <:AbstractVarConstrState}})::Bool
+# f(::Pair{<:Id, T})::Bool
 
 _active_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active
 
@@ -10,6 +9,12 @@ _active_MspVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1]
 
 _active_pricingSpVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getinfo(id_val[1])) == Active &&
     getduty(getinfo(id_val[1])) == PricingSpVar
+
+function _explicit_(id_val::Pair{I,T}) where {I<:Id,T}
+    d = getduty(getinfo(id_val[1]))
+    return (d != MastRepPricingSpVar && d != MastRepPricingSetupSpVar
+            && d != MastRepBendSpVar)
+end
 
 struct Manager{I <: Id,T}  <: AbstractManager
     members::Dict{I,T}

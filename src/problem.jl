@@ -96,7 +96,7 @@ function load_problem_in_optimizer(prob::Problem)
     println("\e[1;32m -------------> VN: should we implement add_vc_to_moi in terms of Id or VarConstrState? \e[00m")
     println("\e[1;32m -------------> VN: need to discuss these things before I continue the work. \e[00m")
     call_attention()
-    # load_problem_in_optimizer(prob.re_formulation)
+    load_problem_in_optimizer(prob.re_formulation)
 end
 
 function initialize_moi_optimizer(prob::Problem)

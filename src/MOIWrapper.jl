@@ -158,7 +158,7 @@ function register_original_formulation!(prob::Problem, dest::Optimizer, src::MOI
     constrs = Constraint[]
     create_origconstrs!(constrs, orig_form, prob, src, copy_names)
 
-    obj = MOI.get(src, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    obj = MOI.get(src, MoiObjective())
     load_obj!(vars, prob, obj)
 
     sense = MOI.get(src, MOI.ObjectiveSense())

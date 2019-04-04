@@ -84,6 +84,7 @@ abstract type AbstractAlg end
 
 const FormId = Int
 
+const MoiObjective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
 const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
 const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
 const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}

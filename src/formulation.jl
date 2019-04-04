@@ -129,7 +129,7 @@ function clone_in_formulation!(id::Id{ConstrState},
 
     id_clone = clone_in_formulation!(constr, id, dest, duty)
     set_var_members_of_constr!(dest.memberships, id_clone,
-                                    get_var_members_of_constr(src, id))
+                               get_var_members_of_constr(src, id))
     return id_clone
 end
 
@@ -244,7 +244,7 @@ function optimize(form::Formulation, optimizer = form.moi_optimizer, update_form
     primal_sols = PrimalSolution[]
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
-        primal_sol = retrieve_primal_sol(form, filter(_active_ , form.vars))
+        primal_sol = retrieve_primal_sol(form, filter(_explicit_ , form.vars))
         push!(primal_sols, primal_sol)
         dual_sol = retrieve_dual_sol(form, filter(_active_ , form.constrs))
         if update_form
@@ -331,7 +331,7 @@ function _show_variable(io::IO, f::Formulation, id)
     t = getkind(var)
     d = getduty(varinfo)
     f = getflag(var)
-    println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d ," | ", f , ")")
+    println(io, id, " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d ," | ", f , ")")
 end
 
 function _show_variables(io::IO, f::Formulation)
@@ -349,11 +349,17 @@ function Base.show(io::IO, f::Formulation)
 end
 
 function load_problem_in_optimizer(formulation::Formulation)
-    for (id, var) in filter(_active_, getvars(formulation))
+    println("Loading formulation ", formulation.uid)
+    for (id, var) in filter(_explicit_, getvars(formulation))
         add_variable_in_optimizer(formulation.moi_optimizer, id)
     end
     for (id, constr) in filter(_active_, getconstrs(formulation))
-        add_constriable_in_optimizer(formulation.moi_optimizer, id)
+        @show get_var_members_of_constr(formulation, id)
+        @show filter(_explicit_, get_var_members_of_constr(formulation, id))
+        add_constraint_in_optimizer(
+            formulation.moi_optimizer, id,
+            filter(_explicit_, get_var_members_of_constr(formulation, id))
+        )
     end
 end
 
