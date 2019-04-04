@@ -11,6 +11,8 @@ Membership(T::Type{<:AbstractVarConstr}) = Manager(T, Float64)
 #const VarManager = Manager{VarId, Variable}
 #const ConstrManager = Manager{ConstrId, Constraint}
 
+#base.haskey(m::Membership,id::Id) = 
+
 struct Memberships
     var_to_constr_members    ::Dict{Id{VarState}, Membership{ConstrState}}
     constr_to_var_members    ::Dict{Id{ConstrState}, Membership{VarState}}
