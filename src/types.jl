@@ -76,7 +76,7 @@ abstract type AbstractAlg end
 @enum VarKind Continuous Binary Integ
 @enum ConstrKind Core Facultative SubSystem 
 @enum ConstrSense Greater Less Equal
-#@enum Flag Static Dynamic Delayed Artificial Implicit
+@enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
 @enum Status Active Unsuitable
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
