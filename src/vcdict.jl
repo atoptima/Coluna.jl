@@ -39,7 +39,10 @@ haskey(d::PerIdDict, id::Id) = haskey(d.members, id)
 
 get(d::PerIdDict, id::Id) = d.members[id]
 
+#getid(d::PerIdDict, id::Id) = getkey(d.members, id)
+
 #get(d::PerIdDict, uid::Int) = d.members[Id(uid)]
+
 Base.getkey(d::PerIdDict, i::Id, default) = getkey(d.members, i, default)
 
 getids(d::PerIdDict) = collect(keys(d.members))

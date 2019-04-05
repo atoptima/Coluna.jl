@@ -10,7 +10,7 @@ abstract type AbstractNode end
 
 ## Duties : 
 abstract type AbstractDuty end 
-
+abstract type AbstractVarConstrDuty <: AbstractDuty end
 abstract type AbstractVarDuty <: AbstractDuty end
 abstract type AbstractConstrDuty <: AbstractDuty end
 abstract type AbstractFormDuty <: AbstractDuty end
@@ -32,6 +32,7 @@ struct MastRepBendSpVar <: AbstractMasterVar end
 struct PricingSpVar <: AbstractDwSpVar end
 struct PricingSpSetupVar <: AbstractDwSpVar end # Cannot subtype a concrete type
 struct PricingSpPureVar <: AbstractDwSpVar end
+struct UndefinedVarDuty <: AbstractVarDuty end
 
 #struct BendersSpVar <: AbstractVarDuty end
 #struct BlockGenSpVar <: AbstractVarDuty end
@@ -50,6 +51,7 @@ struct MasterConvexityConstr <: AbstractMasterConstr end
 struct MasterBranchConstr <: AbstractMasterConstr end
 struct PricingSpPureConstr <: AbstractDwSpConstr end
 struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
+struct UndefinedConstrDuty <: AbstractConstrDuty end
 
 # Concrete types for FormDuty
 struct Original <: AbstractFormDuty end
