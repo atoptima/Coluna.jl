@@ -1,62 +1,44 @@
 struct PerIdDict{S <: AbstractState,T}
     members::Dict{Id{S},T}
 end
+
 PerIdDict{S,T}() where {S,T} = PerIdDict{S,T}(Dict{Id{S},T}())
 
-function set!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T}
-    d.members[id] = val
-    return
+# Overload of Base methods to use PerIdDict like a Dict
+function Base.getindex(d::PerIdDict{S,T}, id::Id{S}) where {S<:AbstractState, T}
+    Base.getindex(d.members, id)
 end
 
-function add!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T<:Real}
-    if !haskey(d.members, id) 
-        d.members[id] = val
-    else
-        d.members[id] += val
-    end
-    return
+function Base.setindex!(d::PerIdDict{S,T}, val::T, id::Id{S}) where {S<:AbstractState,T}
+    Base.setindex!(d.members, val, id)
 end
 
-function Base.delete!(m::PerIdDict{S,T}, id::Id{S}) where {S <: AbstractState,T}
-    delete!(m.members, id)
-    return
+function Base.delete!(d::PerIdDict{S,T}, id::Id{S}) where {S<:AbstractState,T}
+    Base.delete!(d.members, id)
 end
 
-function Base.delete!(m::PerIdDict{S,T}, id::Vector{Id}) where {S <: AbstractState, T}
-    delete!(m.members, id)
-    return
+function Base.delete!(d::PerIdDict{S,T}, id::Vector{Id}) where {S<:AbstractState,T}
+    Base.delete!(d.members, id)
 end
 
-function Base.setindex!(m::PerIdDict{S,T}, val::T, id::Id{S}) where {S <: AbstractState, T}
-    return Base.setindex!(m.members, val, id)
+function Base.getkey(d::PerIdDict{S,T}, i::Id{S}, default) where {S<:AbstractState,T}
+    Base.getkey(d.members, i, default)
 end
 
-getinfo(e::Pair{Id{S},T}) where {S<:AbstractState,T} = getinfo(e[1])
+function Base.get(d::PerIdDict{S,T}, i::Id{S}, default) where {S<:AbstractState,T}
+    Base.get(d.members, i, default)
+end
 
-getmembers(d::PerIdDict) = d.members
+function Base.copy(d::PerIdDict{S,T}) where {S<:AbstractState,T}
+    PerIdDict{S,T}(copy(d.members))
+end
 
-haskey(d::PerIdDict, id::Id) = haskey(d.members, id)
+function Base.haskey(d::PerIdDict{S,T}, id::Id{S}) where {S<:AbstractState,T}
+    Base.haskey(d.members, id)
+end
 
-get(d::PerIdDict, id::Id) = d.members[id]
-
-#get(d::PerIdDict, uid::Int) = d.members[Id(uid)]
-Base.getkey(d::PerIdDict, i::Id, default) = getkey(d.members, i, default)
-
-getids(d::PerIdDict) = collect(keys(d.members))
-
-iterate(d::PerIdDict) = iterate(d.members)
-
-iterate(d::PerIdDict, state) = iterate(d.members, state)
-
-length(d::PerIdDict) = length(d.members)
-
-getindex(d::PerIdDict, elements) = getindex(d.members, elements)
-
-copy(d::PerIdDict{S,T}) where {S<:AbstractState,T} = PerIdDict{S,T}(copy(d.members))
-
-lastindex(d::PerIdDict) = lastindex(d.members)
-
-Base.filter(f::Function, d::PerIdDict) = typeof(d)(filter(f, d.members))
+Base.keys(d::PerIdDict) = Base.keys(d.members)
+Base.filter(f::Function, d::D) where {D<:PerIdDict} = D(filter(f, d.members))
 
 function Base.show(io::IO, d::PerIdDict)
     println(io, typeof(d), ":")
@@ -65,3 +47,14 @@ function Base.show(io::IO, d::PerIdDict)
     end
     return
 end
+
+# Methods to iterate over a PerIdDict
+iterate(d::PerIdDict) = iterate(d.members)
+iterate(d::PerIdDict, state) = iterate(d.members, state)
+length(d::PerIdDict) = length(d.members)
+lastindex(d::PerIdDict) = lastindex(d.members)
+
+####
+
+getinfo(e::Pair{Id{S},T}) where {S<:AbstractState,T} = getinfo(e[1])
+getids(d::PerIdDict) = collect(keys(d.members))
