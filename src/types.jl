@@ -42,7 +42,7 @@ abstract type AbstractOriginalConstr <: AbstractConstrDuty end
 abstract type AbstractMasterConstr <: AbstractConstrDuty end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
 
-# Concrete types for VarDuty
+# Concrete types for AbstractConstrDuty
 struct OriginalConstr <: AbstractOriginalConstr end
 struct MasterPureConstr <: AbstractMasterConstr end
 struct MasterConstr <: AbstractMasterConstr end
@@ -90,3 +90,29 @@ const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MO
 const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}
 const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
 const MoiVarConstrIndex = Union{MoiVarIndex, MoiConstrIndex}
+
+
+const StaticDuty = Union{
+    OriginalVar, OriginalExpression, PureMastVar, MastRepPricingSpVar,
+    MastRepPricingSetupSpVar, PricingSpVar, PricingSpSetupVar, PricingSpPureVar,
+    OriginalConstr, MasterPureConstr, MasterConstr, MasterConvexityConstr,
+    PricingSpPureConstr
+}
+
+const DynamicDuty = Union{
+    MasterCol, MasterBranchConstr, PricingSpRepMastBranchConstr
+}
+
+const ArtificialDuty = Union{MastArtVar}
+
+const ImplicitDuty = Union{
+    PricingSpRepMastBranchConstr, MastRepPricingSpVar, MastRepPricingSetupSpVar,
+    MastRepBendSpVar
+}
+
+const ExplicitDuty = Union{
+    OriginalVar, OriginalExpression, PureMastVar, MasterCol, MastArtVar,
+    PricingSpVar, PricingSpSetupVar, PricingSpPureVar, OriginalConstr,
+    MasterPureConstr, MasterConstr, MasterConvexityConstr, MasterBranchConstr,
+    PricingSpPureConstr
+}
