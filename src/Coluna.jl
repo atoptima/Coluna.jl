@@ -31,6 +31,8 @@ import Base.iterate
 import Base.getindex
 import Base.lastindex
 import Base.getkey
+import Base.delete!
+import Base.setindex!
 import Base.haskey
 import Base.copy
 
@@ -45,29 +47,21 @@ import Base.copy
         (),
         ())
 
-# include("/Users/vitornesello/.julia/dev/SimpleDebugger/src/SimpleDebugger.jl")
-
 include("types.jl")
 include("parameters.jl")
-#include("utils.jl")
 include("counters.jl")
 include("constraint.jl")
 include("variable.jl")
 include("vcids.jl")
 include("vcdict.jl")
+include("filters.jl")
 include("membership.jl")
 include("solution.jl")
 include("formulation.jl")
 include("reformulation.jl")
-#include("constraintduties.jl")
-#include("variableduties.jl")
-
-#include("mastersm.column.jl")
-#include("problem.jl")
-
 include("problem.jl")
 include("decomposition.jl")
-include("interfaceMoi.jl")
+include("MOIinterface.jl")
 
 ##### Search tree
 include("node.jl")
@@ -85,7 +79,7 @@ include("solandbounds.jl")
 include("colgen.jl")
 
 ##### Wrapper functions
-include("MOIWrapper.jl")
+include("MOIwrapper.jl")
 #include("decomposition.jl")
 
 include("utils.jl") # Structure that holds values useful in all the procedure

@@ -192,10 +192,9 @@ function clean(f::Formulation, m::PerIdDict)
             push!(idstodelete, id)
         end
     end
-    delete!(m.members, idstodelete)
+    delete!(m, idstodelete)
     return
 end
-
 
 # function add!(f::Formulation, elems::Vector{VarConstr}) where {VarConstr <: AbstractVarConstr}
 #     for elem in elems

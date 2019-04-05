@@ -1,21 +1,3 @@
-# Define default functions to use as filters
-# Functions must be of the form:
-# f(::Pair{<:Id, T})::Bool
-
-_active_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getstate(id_val[1])) == Active
-
-_active_MspVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getstate(id_val[1])) == Active &&
-    getduty(getstate(id_val[1])) == MastRepPricingSpVar
-
-_active_pricingSpVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getstate(id_val[1])) == Active &&
-    getduty(getstate(id_val[1])) == PricingSpVar
-
-function _explicit_(id_val::Pair{I,T}) where {I<:Id,T}
-    d = getduty(getstate(id_val[1]))
-    return (d != MastRepPricingSpVar && d != MastRepPricingSetupSpVar
-            && d != MastRepBendSpVar)
-end
-
 struct PerIdDict{S <: AbstractState,T}
     members::Dict{Id{S},T}
 end
@@ -35,14 +17,19 @@ function add!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T<:R
     return
 end
 
-function delete!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T<:Real}
-    if haskey(d.members, id)
-        deleteat!(d.members, id)
-    end
+function Base.delete!(m::PerIdDict{S,T}, id::Id{S}) where {S <: AbstractState,T}
+    delete!(m.members, id)
     return
 end
 
+function Base.delete!(m::PerIdDict{S,T}, id::Vector{Id}) where {S <: AbstractState, T}
+    delete!(m.members, id)
+    return
+end
 
+function Base.setindex!(m::PerIdDict{S,T}, val::T, id::Id{S}) where {S <: AbstractState, T}
+    return Base.setindex!(m.members, val, id)
+end
 
 getinfo(e::Pair{Id{S},T}) where {S<:AbstractState,T} = getinfo(e[1])
 
@@ -77,5 +64,4 @@ function Base.show(io::IO, d::PerIdDict)
         println(io, "  ", e)
     end
     return
-
 end
