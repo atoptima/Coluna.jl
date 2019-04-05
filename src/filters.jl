@@ -11,4 +11,3 @@ _active_pricingSpVar_(id_val::Pair{I,T}) where {I<:Id,T} = getstatus(getstate(id
     getduty(getstate(id_val[1])) == PricingSpVar
 
 _explicit_(id_val::Pair{I,T}) where {I<:Id,T} = (getduty(getstate(id_val[1])) isa ExplicitDuty)
-

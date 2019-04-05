@@ -27,7 +27,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
             println("var : ", m_rep_var_id, " (", getduty(getstate(m_rep_var_id)), ")")
             sp_var_id = getkey(sp_form.vars, m_rep_var_id, Id{VarState}(-1))
             println("collect Sp var : ", sp_var_id, " (", getduty(getstate(sp_var_id)), ")")
-            
+            sp_var_id.uid == -1 && continue
             if haskey(new_obj, sp_var_id)
                 new_obj[sp_var_id] -= dual_val * coef
             else
@@ -218,6 +218,8 @@ function solve_restricted_mast(master::Formulation)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
     #@timeit to(alg) "solve_restricted_mast" begin
  
+    println("Solving master problem: ")
+    @show master
     status, value, primal_sols, dual_sol = optimize(master)
     @show status
     @show result_count = MOI.get(master.moi_optimizer, MOI.ResultCount())
@@ -299,8 +301,8 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
     @show sp_lbs
 
     while true
-        # glpk_prob = alg.extended_problem.master_problem.optimizer.optimizer.inner
-        # GLPK.write_lp(glpk_prob, string("/Users/vitornesello/Desktop/mip_", nb_cg_iterations,".lp"))
+        glpk_prob = master_form.moi_optimizer.optimizer.inner
+        GLPK.write_lp(glpk_prob, string("/Users/vitornesello/Desktop/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         status_rm, master_val, primal_sol, dual_sol = solve_restricted_mast(master_form)
         #status_rm, mst_time, b, gc, allocs = @timed solve_restricted_mast(reformulation.master)
