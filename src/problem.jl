@@ -7,8 +7,13 @@ mutable struct Problem <: AbstractProblem
     var_counter::VarCounter
     constr_counter::ConstrCounter
     form_counter::FormCounter
-    var_annotations:: Dict{Tuple{Id{VarState}, Variable}, BD.Annotation}
-    constr_annotations:: Dict{Tuple{Id{ConstrState}, Constraint}, BD.Annotation}
+
+    var_annotations:: PerIdDict{VarState,BD.Annotation}
+    constr_annotations:: PerIdDict{ConstrState,BD.Annotation}
+
+    # var_annotations:: Dict{Tuple{Id{VarState}, Variable}, BD.Annotation}
+    # constr_annotations:: Dict{Tuple{Id{ConstrState}, Constraint}, BD.Annotation}
+
     timer_output::TimerOutputs.TimerOutput
     params::Params
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
@@ -16,10 +21,15 @@ mutable struct Problem <: AbstractProblem
     #problemidx_optimizer_map::Dict{Int, MOI.AbstractOptimizer}
 end
 
-Problem(params::Params, master_factory, pricing_factory) = Problem("prob", MOIU.IndexMap(), 
-    Dict{MOI.Index, Tuple{Id, AbstractVarConstr}}(), nothing, nothing, 
-    VarCounter(), ConstrCounter(), FormCounter(), Dict{Id, BD.Annotation}(), 
-    Dict{Id, BD.Annotation}(), TimerOutputs.TimerOutput(), params, master_factory, pricing_factory)
+function Problem(params::Params, master_factory, pricing_factory)
+    return Problem(
+        "prob", MOIU.IndexMap(), Dict{MOI.Index, Tuple{Id, AbstractVarConstr}}(),
+        nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
+        PerIdDict{VarState,BD.Annotation}(),
+        PerIdDict{ConstrState,BD.Annotation}(), TimerOutputs.TimerOutput(),
+        params, master_factory, pricing_factory
+    )
+end
 
 function set_original_formulation!(m::Problem, of::Formulation)
     m.original_formulation = of
@@ -112,10 +122,6 @@ function coluna_initialization(prob::Problem)
     load_problem_in_optimizer(prob)
 
     call_attention()
-    println(_pink("----------------------------> Its a party! <---------------------------"))
-    println(_green("----------------------> Bug now is due to the fact that the artificial variables are set to binary, so the we cannot recover dual status, therefore the bug that you see in colgen <------------------------"))
-    call_attention()
-
 end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before
