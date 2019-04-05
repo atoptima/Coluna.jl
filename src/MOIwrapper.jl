@@ -186,11 +186,14 @@ function register_original_formulation!(dest::Optimizer, src::MOI.ModelLike,
     orig_form = Formulation(Original, dest.inner)
     set_original_formulation!(dest.inner, orig_form)
 
-    vars_per_block = create_origvars!(orig_form, src, copy_names, dest.moi_index_to_coluna_uid)
-    constrs_per_block = create_origconstrs!(orig_form, src, copy_names, dest.moi_index_to_coluna_uid)
-
-    @show vars_per_block
-    @show constrs_per_block
+    vars_per_block = create_origvars!(
+        orig_form, src, copy_names, dest.moi_index_to_coluna_uid
+    )
+    constrs_per_block = create_origconstrs!(
+        orig_form, src, copy_names, dest.moi_index_to_coluna_uid
+    )
+    dest.inner.vars_per_block = vars_per_block
+    dest.inner.constrs_per_block = constrs_per_block
 
     load_obj!(orig_form, src, dest.moi_index_to_coluna_uid)
 

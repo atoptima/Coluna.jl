@@ -8,11 +8,9 @@ mutable struct Problem <: AbstractProblem
     constr_counter::ConstrCounter
     form_counter::FormCounter
 
-    var_annotations:: PerIdDict{VarState,BD.Annotation}
-    constr_annotations:: PerIdDict{ConstrState,BD.Annotation}
-
-    # var_annotations:: Dict{Tuple{Id{VarState}, Variable}, BD.Annotation}
-    # constr_annotations:: Dict{Tuple{Id{ConstrState}, Constraint}, BD.Annotation}
+    vars_per_block:: Dict{BD.Annotation, VarDict}
+    constrs_per_block::Dict{BD.Annotation, ConstrDict}
+    annotation_set::Set{BD.Annotation}
 
     timer_output::TimerOutputs.TimerOutput
     params::Params
@@ -24,8 +22,8 @@ end
 function Problem(params::Params, master_factory, pricing_factory)
     return Problem(
         "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
-        PerIdDict{VarState,BD.Annotation}(),
-        PerIdDict{ConstrState,BD.Annotation}(), TimerOutputs.TimerOutput(),
+        Dict{BD.Annotation, VarDict}(), Dict{BD.Annotation, ConstrDict}(),
+        Set{BD.Annotation}(), TimerOutputs.TimerOutput(),
         params, master_factory, pricing_factory
     )
 end

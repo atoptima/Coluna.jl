@@ -1,22 +1,3 @@
-function fill_annotations_set!(ann_set, varconstr_annotations)
-    for (varconstr_id, varconstr_annotation) in varconstr_annotations
-        push!(ann_set, varconstr_annotation)
-    end
-    return
-end
-
-function inverse(varconstr_annotations::Dict{Tuple{I, VC}, BD.Annotation}
-        ) where {I <: Id, VC <: AbstractVarConstr}
-    varconstr_in_form = Dict{FormId, Vector{Tuple{I, VC}}}()
-    for ((id, varconstr), annotation) in varconstr_annotations
-        if !haskey(varconstr_in_form, annotation.unique_id)
-            varconstr_in_form[annotation.unique_id] = Tuple{I,VC}[]
-        end
-        push!(varconstr_in_form[annotation.unique_id], (id, varconstr))
-    end
-    return varconstr_in_form
-end
-
 function initialize_local_art_vars(master::Formulation, constrs_in_form)
     for (id, constr) in constrs_in_form
         art_var = LocalArtVar(getuid(master), getuid(id))
@@ -150,10 +131,9 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     println("Do reformulation.")
 
     # Create formulations & reformulations
-    ann_set = Set{BD.Annotation}()
-    fill_annotations_set!(ann_set, prob.var_annotations)
-    fill_annotations_set!(ann_set, prob.constr_annotations)
 
+    
+ 
     # At the moment, BlockDecomposition supports only classic 
     # Dantzig-Wolfe decomposition.
     # TODO : improve all drafts as soon as BlockDecomposition returns a
@@ -161,12 +141,10 @@ function reformulate!(prob::Problem, method::SolutionMethod)
 
     @show prob.orig_form
 
-
-    vars_in_forms = inverse(prob.var_annotations)
-    constrs_in_forms = inverse(prob.constr_annotations)
-
-    @show vars_in_forms
-    @show constrs_in_forms
+    vars_per_block = prob.vars_per_block #:: Dict{BD.Annotation, VarDict}
+    constrs_per_block  = prob.constrs_per_bloc #::Dict{BD.Annotation, ConstrDict}
+    annotation_set  = prob.annotation_set #::Set{BD.Annotation}()
+    
 
 
     # Create reformulation
@@ -178,12 +156,12 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     setmaster!(reformulation, master_form)
 
     # Create pricing subproblem formulations
-    ann_sorted_by_uid = sort(collect(ann_set), by = ann -> ann.unique_id)
+    ann_sorted_by_uid = sort(collect(annotation_set), by = ann -> ann.unique_id)
     formulations = Dict{Int, Formulation}()
     master_annotation_id = -1
     for annotation in ann_sorted_by_uid
         if annotation.problem == BD.Master
-            master_annotation_id = annotation.unique_id
+            master_annotation = annotation
             formulations[annotation.unique_id] = master_form
 
         elseif annotation.problem == BD.Pricing
@@ -198,31 +176,20 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     # Build Master
     @show master_annotation_id
     @assert master_annotation_id != -1
-    vars = Vector{Tuple{Id, Variable}}()
-    constrs = Vector{Tuple{Id, Constraint}}()
-    if haskey(vars_in_forms, master_annotation_id)
-        vars = vars_in_forms[master_annotation_id]
-    end
-    if haskey(constrs_in_forms, master_annotation_id)
-        constrs = constrs_in_forms[master_annotation_id]
-    end
-    build_dw_master!(prob, master_annotation_id, reformulation, master_form, vars, constrs)
+    vars = vars_per_block[master_annotation]
+    constrs = constrs_per_block[master_annotation]
+    build_dw_master!(prob, master_annotation.unique_id, reformulation,
+                     master_form, vars, constrs)
 
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
         if  annotation.problem == BD.Pricing
-            vars_in = Vector{Tuple{Id, Variable}}()
-            constrs_in = Vector{Tuple{Id, Constraint}}()
-            if haskey(vars_in_forms, annotation.unique_id)
-                vars_in =  vars_in_forms[annotation.unique_id]
-            end
-            if haskey(constrs_in_forms, annotation.unique_id)
-                constrs_in = constrs_in_forms[annotation.unique_id]
-            end
+            vars = vars_per_block[annotation]
+            constrs = constrs_per_block[annotation]
             println("> build sp $(annotation.unique_id)")
             build_dw_pricing_sp!(prob, annotation.unique_id,
                                  formulations[annotation.unique_id],
-                                 vars_in, constrs_in)
+                                 vars, constrs)
         end
     end
     
