@@ -1,25 +1,21 @@
-const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float64},
-                               MOI.SingleVariable}
+const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float64}}
 
-const SupportedVarSets = Union{MOI.Nonnegatives, 
-                                MOI.Zeros,
-                                MOI.Nonpositives,
-                                MOI.ZeroOne,
-                                MOI.Integer,
-                                MOI.LessThan{Float64},
-                                MOI.EqualTo{Float64},
-                                MOI.GreaterThan{Float64},
-                                MOI.Interval{Float64}}
+const SupportedVarSets = Union{MOI.ZeroOne,
+                               MOI.Integer,
+                               MOI.LessThan{Float64},
+                               MOI.EqualTo{Float64},
+                               MOI.GreaterThan{Float64},
+                               MOI.Interval{Float64}}
 
 const SupportedConstrFunc = Union{MOI.ScalarAffineFunction{Float64}}
 
 const SupportedConstrSets = Union{MOI.EqualTo{Float64},
                                   MOI.GreaterThan{Float64},
-                                  MOI.LessThan{Float64},
-                                  MOI.Zeros}
+                                  MOI.LessThan{Float64}}
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Problem
+    moi_index_to_coluna_uid::MOIU.IndexMap
     # varmap::Dict{MOI.VariableIndex,Variable} ## Keys and values are created in this file
     # # add conmap here
     # constr_probidx_map::Dict{Constraint,Int}
@@ -35,7 +31,7 @@ function Optimizer(;master_factory =
         JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
         JuMP.with_optimizer(GLPK.Optimizer), params = Params())
     prob = Problem(params, master_factory, pricing_factory)
-    return Optimizer(prob)
+    return Optimizer(prob, MOIU.IndexMap())
 end
 
 function MOI.optimize!(optimizer::Optimizer)
@@ -79,84 +75,124 @@ function MOI.supports(optimizer::Optimizer,
     return true
 end
 
-function load_obj!(prob::Problem, f::MOI.ScalarAffineFunction,
-                   moi_index_map::MOIU.IndexMap)
+function get_id_var(f::Formulation, uid::Int)
+    id = getvaridfromuid(f, uid)
+    var = get(f, id)
+    return id, var
+end
+
+function load_obj!(f::Formulation, src::MOI.ModelLike,
+                   moi_index_to_coluna_uid::MOIU.IndexMap)
     # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
     # This is safe becasue the variables are initialized with a 0.0 cost_rhs
-    for term in f.terms
-        coluna_var_id = moi_to_coluna_map[term.variable_index].value
-        setcost!(vars[coluna_var_id], term.coefficient)
+    obj = MOI.get(src, MoiObjective())
+    for term in obj.terms
+        id, var = get_id_var(f, moi_index_to_coluna_uid[term.variable_index].value)
+        setcost!(getstate(id), term.coefficient)
+        setcost!(var, term.coefficient)
     end
     return
 end
 
-function create_origvars!(f::Formulation, prob::Problem, 
-                          src::MOI.ModelLike, copy_names::Bool,
-                          moi_index_map::MOIU.IndexMap)
-    for moi_id in MOI.get(src, MOI.ListOfVariableIndices())
+function create_origvars!(f::Formulation, src::MOI.ModelLike,
+                          copy_names::Bool, moi_index_map::MOIU.IndexMap)
+    vars_per_block = Dict{BD.Annotation, VarDict}()
+    for moi_index in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
-            name = MOI.get(src, MOI.VariableName(), moi_id)
+            name = MOI.get(src, MOI.VariableName(), moi_index)
         else
-            name = string("var_", moi_id.value)
+            name = string("var_", moi_index.value)
         end
         var = Variable(name)
         coluna_id = add!(f, var, OriginalVar)
-        moi_index_map[moi_id] = MOI.VariableIndex(getuid(coluna_id))
+        moi_index_map[moi_index] = MOI.VariableIndex(getuid(coluna_id))
+        annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
+        if haskey(vars_per_block, annotation)
+            set!(vars_per_block[annotation], coluna_id, var)
+        else
+            vars_per_block[annotation] = VarDict()
+            set!(vars_per_block[annotation], coluna_id, var)
+        end
     end
+    return vars_per_block
+end
+
+function create_origconstr!(f::Formulation, func::MOI.SingleVariable,
+                            set::SupportedVarSets,
+                            moi_index_map::MOIU.IndexMap)
+    id, var = get_id_var(f, moi_index_map[func.variable].value)
+    set!(var, set)
+    sync!(getstate(id), var)
     return
 end
 
-function create_origconstr!(f::Formulation, prob::Problem, name::String,
+function create_origconstr!(src::MOI.ModelLike,
+                            f::Formulation, name::String,
                             func::MOI.ScalarAffineFunction,
-                            set::MOI.ConstraintSet,
-                            moi_id::MOI.ConstraintIndex,
-                            moi_index_map::MOIU.IndexMap)
+                            set::SupportedConstrSets,
+                            moi_index::MOI.ConstraintIndex,
+                            moi_index_map::MOIU.IndexMap,
+                            constrs_per_block::Dict{BD.Annotation, ConstrDict})
     constr = Constraint(name)
     set!(constr, set)
     membership = VarMemberDict()
     for term in func.terms
-        @show moi_index_map
-        var_id = get(f, Id{VarState}(moi_index_map[term.variable_index].value))
-        # c_var_id = prob.mid2cid_map[term.variable_index][1]
+        var_id = getvaridfromuid(f, moi_index_map[term.variable_index].value)
         add!(membership, var_id, term.coefficient)
     end
-    coluna_id = add!(f, constr, OriginalConstr, membership)
-    moi_index_map[moi_id] = MOI.ConstraintIndex{typeof(func),typeof(set)}(
-        getuid(coluna_id)
+    id = add!(f, constr, OriginalConstr, membership)
+    moi_index_map[moi_index] = MOI.ConstraintIndex{typeof(func),typeof(set)}(
+        getuid(id)
     )
-    return
-end
-
-function create_origconstrs!(f::Formulation,
-        prob::Problem, src::MOI.ModelLike, copy_names::Bool,
-        moi_index_map::MOIU.IndexMap)
-    for (F, S) in MOI.get(src, MOI.ListOfConstraints())
-        for moi_id in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
-            if copy_names
-                name = MOI.get(src, MOI.ConstraintName(), moi_id)
-            else
-                name = string("constr_", moi_id.value)
-            end
-            func = MOI.get(src, MOI.ConstraintFunction(), moi_id)
-            set = MOI.get(src, MOI.ConstraintSet(), moi_id)
-            create_origconstr!(f, prob, name, func, set, moi_id, moi_index_map)
-        end
+    annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
+    if haskey(constrs_per_block, annotation)
+        set!(constrs_per_block[annotation], id, constr)
+    else
+        constrs_per_block[annotation] = ConstrDict()
+        set!(constrs_per_block[annotation], id, constr)
     end
     return
 end
 
-function register_original_formulation!(prob::Problem, dest::Optimizer,
-                                        src::MOI.ModelLike, copy_names,
-                                        moi_index_map::MOIU.IndexMap)
+function create_origconstrs!(f::Formulation, src::MOI.ModelLike,
+        copy_names::Bool, moi_index_to_coluna_uid::MOIU.IndexMap)
+    constrs_per_block = Dict{BD.Annotation, ConstrDict}()
+    for (F, S) in MOI.get(src, MOI.ListOfConstraints())
+        for moi_index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+            if copy_names
+                name = MOI.get(src, MOI.ConstraintName(), moi_index)
+            else
+                name = string("constr_", moi_index.value)
+            end
+            func = MOI.get(src, MOI.ConstraintFunction(), moi_index)
+            set = MOI.get(src, MOI.ConstraintSet(), moi_index)
+
+            if func isa MOI.SingleVariable
+                create_origconstr!(f, func, set, moi_index_to_coluna_uid)
+            else
+                create_origconstr!(
+                    src, f, name, func, set, moi_index,
+                    moi_index_to_coluna_uid, constrs_per_block
+                )
+            end
+        end
+    end
+    return constrs_per_block
+end
+
+function register_original_formulation!(dest::Optimizer, src::MOI.ModelLike,
+                                        copy_names)
     copy_names = true
-    orig_form = Formulation(Original, prob)
-    set_original_formulation!(prob, orig_form)
+    orig_form = Formulation(Original, dest.inner)
+    set_original_formulation!(dest.inner, orig_form)
 
-    create_origvars!(orig_form, prob, src, copy_names, moi_index_map)
-    create_origconstrs!(orig_form, prob, src, copy_names, moi_index_map)
+    vars_per_block = create_origvars!(orig_form, src, copy_names, dest.moi_index_to_coluna_uid)
+    constrs_per_block = create_origconstrs!(orig_form, src, copy_names, dest.moi_index_to_coluna_uid)
 
-    obj = MOI.get(src, MoiObjective())
-    load_obj!(prob, obj, moi_to_coluna_map)
+    @show vars_per_block
+    @show constrs_per_block
+
+    load_obj!(orig_form, src, dest.moi_index_to_coluna_uid)
 
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
@@ -164,53 +200,16 @@ function register_original_formulation!(prob::Problem, dest::Optimizer,
     return
 end
 
-function load_annotation!(p::Problem, moi_id, v_id::Id{VarState}, var, src::MOI.ModelLike)
-    p.var_annotations[v_id] = MOI.get(src, BD.VariableDecomposition(), moi_id)
-    return
-end
-
-function load_annotation!(p::Problem, moi_id, c_id::Id{ConstrState}, constr, src::MOI.ModelLike)
-    p.constr_annotations[c_id] = MOI.get(
-        src, BD.ConstraintDecomposition(), moi_id
-    )
-    return
-end
-
-function load_decomposition_annotations!(prob::Problem, src::MOI.ModelLike)
-    for (moi_id, (c_id, varconstr)) in prob.mid2cid_map
-       load_annotation!(prob, moi_id, c_id, varconstr, src)
-    end
-    return
-end
-
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
     prob = dest.inner
 
-    moi_index_map = MOIU.IndexMap()
-    register_original_formulation!(prob, dest, src, copy_names, moi_index_map)
-
-    # Retrieve annotation
-    load_decomposition_annotations!(prob, src)
+    register_original_formulation!(dest, src, copy_names)
 
     println(" \e[34m ORIGINAL FORMULATION \e[00m")
     @show prob.original_formulation
     println("\e[34m END ORIGINAL FORMULATION \e[00m")
-    return moi_index_map
+    return dest.moi_index_to_coluna_uid
 end
-
-# function set_optimizers_dict(dest::Optimizer)
-#     @warn "To be updated"
-#     # set coluna optimizers
-#     # prob = dest.inner
-#     # master_problem = prob.extended_problem.master_problem
-#     # prob.problemidx_optimizer_map[master_problem.prob_ref] =
-#     #         dest.master_factory()
-#     # for subprobidx in 1:dest.nb_subproblems
-#     #     pricingprob = prob.extended_problem.pricing_vect[subprobidx]
-#     #     prob.problemidx_optimizer_map[pricingprob.prob_ref] =
-#     #             dest.pricing_factory()
-#     # end
-# end
 
 function MOI.empty!(optimizer::Optimizer)
     optimizer.inner.re_formulation = nothing
