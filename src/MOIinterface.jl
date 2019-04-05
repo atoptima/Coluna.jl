@@ -10,8 +10,8 @@ end
 
 function compute_moi_terms(membership::VarMemberDict)
     return [
-        MOI.ScalarAffineTerm{Float64}(coeff, getmoi_index(getstate(id)))
-        for (id, coeff) in membership
+        MOI.ScalarAffineTerm{Float64}(coef, getmoi_index(getstate(id)))
+        for (id, coef) in membership
     ]
 end
 

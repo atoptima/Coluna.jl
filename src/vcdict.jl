@@ -1,6 +1,7 @@
 struct PerIdDict{S <: AbstractState,T}
     members::Dict{Id{S},T}
 end
+
 PerIdDict{S,T}() where {S,T} = PerIdDict{S,T}(Dict{Id{S},T}())
 
 function set!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T}
