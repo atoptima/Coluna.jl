@@ -1,7 +1,7 @@
 mutable struct Problem <: AbstractProblem
     name::String
-    mid2uid_map::MOIU.IndexMap
-    mid2cid_map::Dict{MOI.Index, Tuple{Id, AbstractVarConstr}}
+    # mid2uid_map::MOIU.IndexMap
+    # mid2cid_map::Dict{MOI.Index, Tuple{Id, AbstractVarConstr}}
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     var_counter::VarCounter
@@ -21,8 +21,7 @@ end
 
 function Problem(params::Params, master_factory, pricing_factory)
     return Problem(
-        "prob", MOIU.IndexMap(), Dict{MOI.Index, Tuple{Id, AbstractVarConstr}}(),
-        nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
+        "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
         PerIdDict{VarState,BD.Annotation}(),
         PerIdDict{ConstrState,BD.Annotation}(), TimerOutputs.TimerOutput(),
         params, master_factory, pricing_factory
