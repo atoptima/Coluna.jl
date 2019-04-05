@@ -35,9 +35,9 @@ function add!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T<:R
     return
 end
 
-function delete!(m::Manager{I,T}, id::I, val::T) where {I <: Id, T <: Real}
-    if haskey(m.members, id)
-        deleteat!(m.members, id)
+function delete!(d::PerIdDict{S,T}, id::Id{S}, val::T) where {S<:AbstractState,T<:Real}
+    if haskey(d.members, id)
+        deleteat!(d.members, id)
     end
     return
 end
