@@ -3,8 +3,6 @@ mutable struct Id{VcState <: AbstractState} #<: AbstractVarConstrId
     state::VcState
 end
 
-const VcMemberDict{S} = PerIdDict{S,Float64}
-
 Id(VC::Type{<:AbstractVarConstr}) = Id{S}(-1,S())
 
 Id{S}() where{S<:AbstractState} = Id{S}(-1,S())
