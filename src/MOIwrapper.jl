@@ -43,7 +43,8 @@ function MOI.optimize!(optimizer::Optimizer)
 end
 
 function MOI.get(dest::MOIU.UniversalFallback,
-        attribute::BD.ConstraintDecomposition, ci::MOI.ConstraintIndex)
+                 attribute::BD.ConstraintDecomposition,
+                 ci::MOI.ConstraintIndex)
     if haskey(dest.conattr, attribute)
         if haskey(dest.conattr[attribute], ci)
             return dest.conattr[attribute][ci]
@@ -53,7 +54,8 @@ function MOI.get(dest::MOIU.UniversalFallback,
 end
 
 function MOI.get(dest::MOIU.UniversalFallback,
-        attribute::BD.VariableDecomposition, vi::MOI.VariableIndex)
+                 attribute::BD.VariableDecomposition,
+                 vi::MOI.VariableIndex)
     if haskey(dest.varattr, attribute)
         if haskey(dest.varattr[attribute], vi)
             return dest.varattr[attribute][vi]
@@ -93,14 +95,15 @@ function create_origvars!(f::Formulation, prob::Problem,
     vars = Variable[]
     for m_var_id in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
-            name = MOI.get(src, MOI.VariableName(), m_var_id)
+            name = MOI.get(src, MOI.VariableName(), moi_var_id)
         else
             name = string("var_", m_var_id.value)
         end
         var = Variable(name)
-        push!(vars, var)
-        c_var_id = add!(f, var, OriginalVar)
-        prob.mid2cid_map[m_var_id] = (c_var_id, var)
+       # push!(vars, var)
+        var_id = add!(f, var, OriginalVar, moi_var_id)
+        add!(fmembership, var_id)
+        prob.mid2cid_map[m_var_id] = (var_id, var)
         prob.mid2uid_map[m_var_id] = MOI.VariableIndex(getuid(c_var_id))
     end
     return vars
