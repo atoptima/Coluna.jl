@@ -164,6 +164,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
 
     vars_in_forms = inverse(prob.var_annotations)
     constrs_in_forms = inverse(prob.constr_annotations)
+
     @show vars_in_forms
     @show constrs_in_forms
 
