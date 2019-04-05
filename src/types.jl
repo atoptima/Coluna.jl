@@ -102,19 +102,21 @@ const StaticDuty = Union{
 }
 
 const DynamicDuty = Union{
-    MasterCol, MasterBranchConstr, PricingSpRepMastBranchConstr
+    Type{MasterCol}, Type{MasterBranchConstr},
+    Type{PricingSpRepMastBranchConstr}
 }
 
-const ArtificialDuty = Union{MastArtVar}
+const ArtificialDuty = Union{Type{MastArtVar}}
 
 const ImplicitDuty = Union{
-    PricingSpRepMastBranchConstr, MastRepPricingSpVar, MastRepPricingSetupSpVar,
-    MastRepBendSpVar
+    Type{PricingSpRepMastBranchConstr}, Type{MastRepPricingSpVar},
+    Type{MastRepPricingSetupSpVar}, Type{MastRepBendSpVar}
 }
 
 const ExplicitDuty = Union{
-    OriginalVar, OriginalExpression, PureMastVar, MasterCol, MastArtVar,
-    PricingSpVar, PricingSpSetupVar, PricingSpPureVar, OriginalConstr,
-    MasterPureConstr, MasterConstr, MasterConvexityConstr, MasterBranchConstr,
-    PricingSpPureConstr
+    Type{OriginalVar}, Type{OriginalExpression}, Type{PureMastVar},
+    Type{MasterCol}, Type{MastArtVar}, Type{PricingSpVar},
+    Type{PricingSpSetupVar}, Type{PricingSpPureVar}, Type{OriginalConstr},
+    Type{MasterPureConstr}, Type{MasterConstr}, Type{MasterConvexityConstr},
+    Type{MasterBranchConstr}, Type{PricingSpPureConstr}
 }

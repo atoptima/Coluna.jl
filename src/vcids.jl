@@ -2,17 +2,11 @@ mutable struct Id{VcState <: AbstractState} #<: AbstractVarConstrId
     uid::Int
     state::VcState
 end
+Id{S}() where{S<:AbstractState} = Id{S}(-1,S())
+Id{S}(i::Int) where{S<:AbstractState} = Id{S}(i,S())
 
 idtype(::Type{<: Variable}) = Id{VarState}
 idtype(::Type{<: Constraint}) = Id{ConstrState}
-
-#Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{T}(i, statetype(T)())
-
-# Id{T <: AbstractVarConstr} = Id{T, statetype(T)} # Default constructor should be enough
-
-Id(id::Id{T}) where {T} = Id{T}(id.uid, id.state)
-
-# Id(uid::Int) = Id(uid, nothing)
 
 Base.hash(a::Id, h::UInt) = hash(a.uid, h)
 
