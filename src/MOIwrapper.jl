@@ -192,12 +192,11 @@ function load_decomposition_annotations!(prob::Problem, src::MOI.ModelLike)
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
+
     prob = dest.inner
 
     register_original_formulation!(prob, dest, src, copy_names)
 
-    # Retrieve annotation
-    load_decomposition_annotations!(prob, src)
 
     println(" \e[34m ORIGINAL FORMULATION \e[00m")
     @show prob.original_formulation
