@@ -76,7 +76,7 @@ function MOI.supports(optimizer::Optimizer,
 end
 
 function get_id_var(f::Formulation, uid::Int)
-    id = getvaridfromuid(f, uid)
+    id = get_varid_from_uid(f, uid)
     var = get(f, id)
     return id, var
 end
@@ -94,9 +94,13 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
     return
 end
 
-function create_origvars!(f::Formulation, src::MOI.ModelLike,
-                          copy_names::Bool, moi_index_map::MOIU.IndexMap)
-    vars_per_block = Dict{BD.Annotation, VarDict}()
+function create_origvars!(f::Formulation,
+                          src::MOI.ModelLike,
+                          copy_names::Bool,
+                          moi_index_to_coluna_uid::MOIU.IndexMap,
+                          vars_per_block::Dict{Int, VarDict},
+                          annotation_set::Set{BD.Annotation})
+    
     for moi_index in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
             name = MOI.get(src, MOI.VariableName(), moi_index)
@@ -105,58 +109,69 @@ function create_origvars!(f::Formulation, src::MOI.ModelLike,
         end
         var = Variable(name)
         coluna_id = add!(f, var, OriginalVar)
-        moi_index_map[moi_index] = MOI.VariableIndex(getuid(coluna_id))
+        moi_index_to_coluna_uid[moi_index] = MOI.VariableIndex(getuid(coluna_id))
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
-        if haskey(vars_per_block, annotation)
-            set!(vars_per_block[annotation], coluna_id, var)
+        push!(annotation_set,annotation)
+        if haskey(vars_per_block, annotation.unique_id)
+            set!(vars_per_block[annotation.unique_id], coluna_id, var)
         else
-            vars_per_block[annotation] = VarDict()
-            set!(vars_per_block[annotation], coluna_id, var)
+            vars_per_block[annotation.unique_id] = VarDict()
+            set!(vars_per_block[annotation.unique_id], coluna_id, var)
         end
     end
-    return vars_per_block
-end
-
-function create_origconstr!(f::Formulation, func::MOI.SingleVariable,
-                            set::SupportedVarSets,
-                            moi_index_map::MOIU.IndexMap)
-    id, var = get_id_var(f, moi_index_map[func.variable].value)
-    set!(var, set)
-    sync!(getstate(id), var)
     return
 end
 
+function create_origconstr!(f::Formulation,
+                            func::MOI.SingleVariable,
+                            set::SupportedVarSets,
+                            moi_index_to_coluna_uid::MOIU.IndexMap)
+    
+    id, var = get_id_var(f, moi_index_to_coluna_uid[func.variable].value)
+    set!(var, set)
+    sync!(getstate(id), var)
+    
+   return
+end
+
 function create_origconstr!(src::MOI.ModelLike,
-                            f::Formulation, name::String,
+                            f::Formulation,
+                            name::String,
                             func::MOI.ScalarAffineFunction,
                             set::SupportedConstrSets,
                             moi_index::MOI.ConstraintIndex,
-                            moi_index_map::MOIU.IndexMap,
-                            constrs_per_block::Dict{BD.Annotation, ConstrDict})
+                            moi_index_to_coluna_uid::MOIU.IndexMap,
+                            constrs_per_block::Dict{Int, ConstrDict},
+                            annotation_set::Set{BD.Annotation})
     constr = Constraint(name)
     set!(constr, set)
     membership = VarMemberDict()
     for term in func.terms
-        var_id = getvaridfromuid(f, moi_index_map[term.variable_index].value)
+        var_id = get_varid_from_uid(f, moi_index_to_coluna_uid[term.variable_index].value)
         add!(membership, var_id, term.coefficient)
     end
     id = add!(f, constr, OriginalConstr, membership)
-    moi_index_map[moi_index] = MOI.ConstraintIndex{typeof(func),typeof(set)}(
+    moi_index_to_coluna_uid[moi_index] = MOI.ConstraintIndex{typeof(func),typeof(set)}(
         getuid(id)
     )
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
-    if haskey(constrs_per_block, annotation)
-        set!(constrs_per_block[annotation], id, constr)
+    push!(annotation_set,annotation)
+    if haskey(constrs_per_block, annotation.unique_id)
+        set!(constrs_per_block[annotation.unique_id], id, constr)
     else
-        constrs_per_block[annotation] = ConstrDict()
-        set!(constrs_per_block[annotation], id, constr)
+        constrs_per_block[annotation.unique_id] = ConstrDict()
+        set!(constrs_per_block[annotation.unique_id], id, constr)
     end
     return
 end
 
-function create_origconstrs!(f::Formulation, src::MOI.ModelLike,
-        copy_names::Bool, moi_index_to_coluna_uid::MOIU.IndexMap)
-    constrs_per_block = Dict{BD.Annotation, ConstrDict}()
+function create_origconstrs!(f::Formulation,
+                             src::MOI.ModelLike,
+                             copy_names::Bool,
+                             moi_index_to_coluna_uid::MOIU.IndexMap,
+                             constrs_per_block::Dict{Int, ConstrDict},
+                             annotation_set::Set{BD.Annotation})
+
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
         for moi_index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
             if copy_names
@@ -170,30 +185,35 @@ function create_origconstrs!(f::Formulation, src::MOI.ModelLike,
             if func isa MOI.SingleVariable
                 create_origconstr!(f, func, set, moi_index_to_coluna_uid)
             else
-                create_origconstr!(
-                    src, f, name, func, set, moi_index,
-                    moi_index_to_coluna_uid, constrs_per_block
-                )
+                create_origconstr!(src, f, name, func, set, moi_index,
+                                   moi_index_to_coluna_uid,
+                                   constrs_per_block,
+                                   annotation_set)
             end
         end
     end
-    return constrs_per_block
+    return 
 end
 
-function register_original_formulation!(dest::Optimizer, src::MOI.ModelLike,
+function register_original_formulation!(dest::Optimizer,
+                                        src::MOI.ModelLike,
                                         copy_names)
+    problem = dest.inner
+    
     copy_names = true
-    orig_form = Formulation(Original, dest.inner)
-    set_original_formulation!(dest.inner, orig_form)
+    
+    orig_form = Formulation(Original, problem)
+    set_original_formulation!(problem, orig_form)
 
-    vars_per_block = create_origvars!(
-        orig_form, src, copy_names, dest.moi_index_to_coluna_uid
-    )
-    constrs_per_block = create_origconstrs!(
-        orig_form, src, copy_names, dest.moi_index_to_coluna_uid
-    )
-    dest.inner.vars_per_block = vars_per_block
-    dest.inner.constrs_per_block = constrs_per_block
+    create_origvars!(orig_form, src, copy_names,
+                     dest.moi_index_to_coluna_uid,
+                     problem.vars_per_block,
+                     problem.annotation_set)
+    
+    create_origconstrs!(orig_form, src, copy_names,
+                        dest.moi_index_to_coluna_uid,
+                        problem.constrs_per_block,
+                        problem.annotation_set)
 
     load_obj!(orig_form, src, dest.moi_index_to_coluna_uid)
 

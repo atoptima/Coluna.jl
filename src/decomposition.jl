@@ -35,8 +35,8 @@ function build_dw_master!(prob::Problem,
                           annotation_id::Int,
                           reformulation::Reformulation,
                           master_form::Formulation,
-                          vars_in_form::Vector,
-                          constrs_in_form::Vector)
+                          vars_in_form::VarDict,
+                          constrs_in_form::ConstrDict)
                           # Commented for now, I dont think managers are usefull here
                           # vars_in_form::Manager{Id{VarState}, Variable},
                           # constrs_in_form::Manager{Id{ConstrState}, Constraint})
@@ -78,16 +78,16 @@ function build_dw_master!(prob::Problem,
     return
 end
 
-function build_dw_pricing_sp!(m::Problem,
+function build_dw_pricing_sp!(prob::Problem,
                               annotation_id::Int,
                               sp_form::Formulation,
-                              vars_in_form::Vector,
-                              constrs_in_form::Vector)
-                              # Commented for now, I dont think managers are usefull here
-                              # vars_in_form::Manager{Id{VarState}, Variable},
-                              # constrs_in_form::Manager{Id{ConstrState}, Constraint})
+                              vars_in_form::VarDict,
+                              constrs_in_form::ConstrDict)
+    # Commented for now, I dont think managers are usefull here
+    # vars_in_form::Manager{Id{VarState}, Variable},
+    # constrs_in_form::Manager{Id{ConstrState}, Constraint})
     
-    orig_form = get_original_formulation(m)
+    orig_form = get_original_formulation(prob)
 
     master_form = sp_form.parent_formulation
 
@@ -139,14 +139,13 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     # TODO : improve all drafts as soon as BlockDecomposition returns a
     # decomposition-tree.
 
-    @show prob.orig_form
-
     vars_per_block = prob.vars_per_block #:: Dict{BD.Annotation, VarDict}
-    constrs_per_block  = prob.constrs_per_bloc #::Dict{BD.Annotation, ConstrDict}
-    annotation_set  = prob.annotation_set #::Set{BD.Annotation}()
+    constrs_per_block = prob.constrs_per_block #::Dict{BD.Annotation, ConstrDict}
+    annotation_set = prob.annotation_set #::Set{BD.Annotation}()
     
-
-
+    #@show vars_per_block
+    #@show constrs_per_block
+    
     # Create reformulation
     reformulation = Reformulation(prob, method)
     set_re_formulation!(prob, reformulation)
@@ -157,11 +156,14 @@ function reformulate!(prob::Problem, method::SolutionMethod)
 
     # Create pricing subproblem formulations
     ann_sorted_by_uid = sort(collect(annotation_set), by = ann -> ann.unique_id)
+    @show ann_sorted_by_uid
+    
     formulations = Dict{Int, Formulation}()
-    master_annotation_id = -1
+    master_unique_id = -1
+
     for annotation in ann_sorted_by_uid
         if annotation.problem == BD.Master
-            master_annotation = annotation
+            master_unique_id = annotation.unique_id
             formulations[annotation.unique_id] = master_form
 
         elseif annotation.problem == BD.Pricing
@@ -174,18 +176,30 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     end
 
     # Build Master
-    @show master_annotation_id
-    @assert master_annotation_id != -1
-    vars = vars_per_block[master_annotation]
-    constrs = constrs_per_block[master_annotation]
-    build_dw_master!(prob, master_annotation.unique_id, reformulation,
+    @show master_unique_id
+    vars = VarDict()
+    if haskey(vars_per_block, master_unique_id)
+        vars = vars_per_block[master_unique_id]
+    end
+    constrs = ConstrDict()
+    if haskey(constrs_per_block, master_unique_id)
+        constrs = constrs_per_block[master_unique_id]
+    end
+    build_dw_master!(prob, master_unique_id, reformulation,
                      master_form, vars, constrs)
 
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
+        @show annotation
         if  annotation.problem == BD.Pricing
-            vars = vars_per_block[annotation]
-            constrs = constrs_per_block[annotation]
+            vars = VarDict()
+            if haskey(vars_per_block, annotation.unique_id)
+                vars = vars_per_block[annotation.unique_id]
+            end
+            constrs = ConstrDict()
+            if haskey(constrs_per_block, annotation.unique_id)
+                constrs = constrs_per_block[annotation.unique_id]
+            end
             println("> build sp $(annotation.unique_id)")
             build_dw_pricing_sp!(prob, annotation.unique_id,
                                  formulations[annotation.unique_id],
@@ -194,6 +208,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     end
     
     end_clone(master_form)
+    
     println("\e[1;34m MASTER FORMULATION \e[00m")
     @show master_form
     println("\e[1;34m PRICING SP FORMULATIONS \e[00m")

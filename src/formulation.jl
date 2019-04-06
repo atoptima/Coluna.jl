@@ -62,8 +62,8 @@ end
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
-getvaridfromuid(f::Formulation, uid::Int) = getkey(f.vars, Id{VarState}(uid), Id{VarState}())
-getconstridfromuid(f::Formulation, uid::Int) = getkey(f.constrs, Id{ConstrState}(uid), Id{ConstrState}())
+get_varid_from_uid(f::Formulation, uid::Int) = getkey(f.vars, Id{VarState}(uid), Id{VarState}())
+get_constrid_from_uid(f::Formulation, uid::Int) = getkey(f.constrs, Id{ConstrState}(uid), Id{ConstrState}())
 
 getvars(f::Formulation) = f.vars
 getconstrs(f::Formulation) = f.constrs

@@ -8,8 +8,8 @@ mutable struct Problem <: AbstractProblem
     constr_counter::ConstrCounter
     form_counter::FormCounter
 
-    vars_per_block:: Dict{BD.Annotation, VarDict}
-    constrs_per_block::Dict{BD.Annotation, ConstrDict}
+    vars_per_block:: Dict{Int, VarDict}
+    constrs_per_block::Dict{Int, ConstrDict}
     annotation_set::Set{BD.Annotation}
 
     timer_output::TimerOutputs.TimerOutput
