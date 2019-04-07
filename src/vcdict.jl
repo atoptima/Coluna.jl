@@ -24,7 +24,7 @@ function Base.delete!(m::PerIdDict{S,T}, id::Id{S}) where {S <: AbstractState,T}
 end
 
 function Base.delete!(m::PerIdDict{S,T}, id::Vector{Id}) where {S <: AbstractState, T}
-    delete!(m.members, id)
+    delete!(m.members, id)x
     return
 end
 
@@ -44,7 +44,10 @@ get(d::PerIdDict, id::Id) = d.members[id]
 
 #get(d::PerIdDict, uid::Int) = d.members[Id(uid)]
 
+
 Base.getkey(d::PerIdDict, i::Id, default) = getkey(d.members, i, default)
+
+getkey(d::PerIdDict, i::Id) =  getkey(d.members, i, Id())
 
 getids(d::PerIdDict) = collect(keys(d.members))
 

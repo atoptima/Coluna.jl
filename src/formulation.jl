@@ -110,62 +110,150 @@ get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.
 
 get_var_members_of_constr(f::Formulation, id::Id) = get_var_members_of_constr(f.memberships, id)
 
-function clone_in_formulation!(varconstr::VC,
-                               id::Id,
-                               dest::Formulation,
+#TODO membership should be an optional arg
+function add!(f::Formulation, var::Variable, id::Id{VarState})
+    set!(f.vars, id, var)
+    add_variable!(f.memberships, id) 
+    return id
+end
+
+function add!(f::Formulation, var::Variable, id::Id{VarState}, 
+              membership::ConstrMemberDict)
+    set!(f.vars, id, var)
+    add_variable!(f.memberships, id, membership)
+    return id
+end
+
+function add!(f::Formulation, constr::Constraint, id::Id{ConstrState})
+    set!(f.constrs, id, constr)
+    add_constraint!(f.memberships, id)
+    return id
+end
+
+function add!(f::Formulation, constr::Constraint, id::Id{ConstrState},
+              membership::VarMemberDict)
+    set!(f.constrs, id, constr)
+    add_constraint!(f.memberships, id, membership)
+    return id
+end
+
+function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
+    uid = getnewuid(f.problem.var_counter)
+    id = Id(uid, VarState(Duty, var))
+    add!(f, var, id)
+    return id
+end
+
+function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty}, 
+              membership::ConstrMemberDict)
+    uid = getnewuid(f.problem.var_counter)
+    id = Id(uid, VarState(Duty, var))
+    add!(f, var, id, membership)
+    return id
+end
+
+function add!(f::Formulation, constr::Constraint, 
+              Duty::Type{<: AbstractConstrDuty})
+    uid = getnewuid(f.problem.constr_counter)
+    id = Id(uid, ConstrState(Duty, constr))
+    add!(f, constr, id)
+    return id
+end
+
+function add!(f::Formulation, constr::Constraint, 
+              Duty::Type{<: AbstractConstrDuty}, membership::VarMemberDict)
+    uid = getnewuid(f.problem.constr_counter)
+    id = Id(uid, ConstrState(Duty, constr))
+    add!(f, constr, id, membership)
+    return id
+end
+
+function add!(f::Formulation,
+              var_id::Id,
+              constr_id::Id,
+              coef::Float64)
+    if !haskey(f.vars, var_id)
+        @show var_id
+        @warn "var not in formulation"
+    end
+    if !haskey(f.constrs, constr_id)
+        @show constr_id
+        @warn "constr not in formulation"
+    end
+    f_var_id = getkey(f.vars, var_id, Id(AbstractVarConstr))
+    f_constr_id = getkey(f.constrs, constr_id, Id(AbstractVarConstr))
+    add_constr_members_of_var!(f.memberships, f_var_id, f_constr_id, coef)
+    add_var_members_of_constr!(f.memberships, f_constr_id, f_var_id, coef) 
+end
+
+
+
+
+function clone_vc_in_formulation!(dest::Formulation,
+                               vc_id::Id,
+                               varconstr::VC,
                                duty::Type{<:AbstractDuty}) where {VC <: AbstractVarConstr}
-    varconstr_clone = deepcopy(varconstr)
-    setform!(varconstr_clone, getuid(dest))
-    id_clone = Id(getuid(id), statetype(VC)(duty, varconstr_clone))
-    add!(dest, varconstr_clone, id_clone)
-    return id_clone
+    clone_varconstr = deepcopy(varconstr)
+    setform!(clone_varconstr, getuid(dest))
+    clone_id = Id(getuid(vc_id), statetype(VC)(duty, clone_varconstr))
+    add!(dest, clone_varconstr, clone_id)
+    return 
 end
 
-function clone_in_formulation!(id::Id{VarState},
-                               var::Variable,
-                               src::Formulation,
-                               dest::Formulation,
-                               duty::Type{<: AbstractVarDuty})
-    id_clone = clone_in_formulation!(var, id, dest, duty)
-    reset_constr_members_of_var!(dest.memberships, id_clone,
-                                 deepcopy(get_constr_members_of_var(src, id)))
-    return id_clone
-end
-
-function clone_in_formulation!(id::Id{ConstrState},
-                               constr::Constraint,
-                               src::Formulation,
-                               dest::Formulation,
-                               duty::Type{<: AbstractConstrDuty})
-    id_clone = clone_in_formulation!(constr, id, dest, duty)
-    set_var_members_of_constr!(dest.memberships, id_clone,
-                               deepcopy(get_var_members_of_constr(src, id)))
-    return id_clone
-end
-
-# TODO :facto
-function clone_in_formulation!(vcs::VcDict{S,VC},
+function clone_vc_in_formulation!(dest::Formulation,
                                src::Formulation, 
-                               dest::Formulation,
+                               vcs::VcDict{S,VC},
                                duty) where {S<:AbstractState,
                                             VC<:AbstractVarConstr}
     for (id, vc) in vcs
-        clone_in_formulation!(id, vc, src, dest, duty)
+        clone_vc_in_formulation!(dest, id, vc, duty)
     end
     return
 end
 
-function clone_in_formulation!(vcs::Vector{Tuple{I,VC}},
+function clone_membership_in_formulation!(dest::Formulation,
+                                          src::Formulation,
+                                          var_id::Id{VarState})
+
+    for (constr_id, val) in get_constr_members_of_var(src, var_id)
+        add!(dest, var_id, constr_id, val)
+    end
+end
+
+
+function clone_membership_in_formulation!(dest::Formulation,
+                                          src::Formulation,
+                                          constr_id::Id{ConstrState})
+    
+    for (var_id, val) in get_var_members_of_constr(src, constr_id)
+        add!(dest, var_id, constr_id, val)
+    end  
+end
+
+function clone_membership_in_formulation!(dest::Formulation,
+                                          src::Formulation, 
+                                          vcs::VcDict{S,VC},
+                                          duty) where {S<:AbstractState,
+                                                       VC<:AbstractVarConstr}
+    for (id, vc) in vcs
+        clone_membership_in_formulation!(dest, src, id)
+    end
+    return
+end
+
+#== TODO :facto
+
+function clone_vc_in_formulation!(vcs::Vector{Tuple{I,VC}},
                                 src::Formulation, 
                                 dest::Formulation,
                                 duty) where {I<:Id,VC<:AbstractVarConstr}
     for (id, vc) in vcs
-        clone_in_formulation!(id, vc, src, dest, duty)
+        clone_vc_in_formulation!(id, vc, src, dest, duty)
     end
     return
-end
+end ==#
 
-function end_clone(dest::Formulation)
+#==function end_clone(dest::Formulation)
     clean(dest, dest.memberships)
     return
 end
@@ -198,7 +286,7 @@ function clean(f::Formulation, m::PerIdDict)
     delete!(m, idstodelete)
     return
 end
-
+==#
 # function add!(f::Formulation, elems::Vector{VarConstr}) where {VarConstr <: AbstractVarConstr}
 #     for elem in elems
 #         add!(f, elem)
@@ -216,64 +304,7 @@ end
 #     return
 # end
 
-# TODO membership should be an optional arg
-function add!(f::Formulation, var::Variable, id::Id{VarState})
-    set!(f.vars, id, var)
-    add_variable!(f.memberships, id) 
-    return id
-end
-
-function add!(f::Formulation, var::Variable, id::Id{VarState}, 
-        membership::ConstrMemberDict)
-    set!(f.vars, id, var)
-    add_variable!(f.memberships, id, membership)
-    return id
-end
-
-function add!(f::Formulation, constr::Constraint, id::Id{ConstrState})
-    set!(f.constrs, id, constr)
-    add_constraint!(f.memberships, id)
-    return id
-end
-
-function add!(f::Formulation, constr::Constraint, id::Id{ConstrState},
-       membership::VarMemberDict)
-    set!(f.constrs, id, constr)
-    add_constraint!(f.memberships, id, membership)
-    return id
-end
-
-function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty})
-    uid = getnewuid(f.problem.var_counter)
-    id = Id(uid, VarState(Duty, var))
-    add!(f, var, id)
-    return id
-end
-
-function add!(f::Formulation, var::Variable, Duty::Type{<: AbstractVarDuty}, 
-        membership::ConstrMemberDict)
-    uid = getnewuid(f.problem.var_counter)
-    id = Id(uid, VarState(Duty, var))
-    add!(f, var, id, membership)
-    return id
-end
-
-function add!(f::Formulation, constr::Constraint, 
-        Duty::Type{<: AbstractConstrDuty})
-    uid = getnewuid(f.problem.constr_counter)
-    id = Id(uid, ConstrState(Duty, constr))
-    add!(f, constr, id)
-    return id
-end
-
-function add!(f::Formulation, constr::Constraint, 
-        Duty::Type{<: AbstractConstrDuty}, membership::VarMemberDict)
-    uid = getnewuid(f.problem.constr_counter)
-    id = Id(uid, ConstrState(Duty, constr))
-    add!(f, constr, id, membership)
-    return id
-end
-
+#
 function register_objective_sense!(f::Formulation, min::Bool)
     # if !min
     #     m.obj_sense = Max

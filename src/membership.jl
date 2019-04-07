@@ -65,6 +65,7 @@ function get_var_members_of_expression(m::Memberships, eprex_uid::Id)
     error("Expression $uid not stored in formulation.")
 end
 
+
 function add_constr_members_of_var!(m::Memberships, var_id::Id, 
         constr_id::Id, coef::Float64)
     if !haskey(m.var_to_constr_members, var_id)
@@ -72,34 +73,36 @@ function add_constr_members_of_var!(m::Memberships, var_id::Id,
     end
     add!(m.var_to_constr_members[var_id], constr_id, coef)
 
-    if !haskey(m.constr_to_var_members, constr_id)
+    #==if !haskey(m.constr_to_var_members, constr_id)
         m.constr_to_var_members[constr_id] = VarMemberDict()
     end
     add!(m.constr_to_var_members[constr_id], var_id, coef)
+==#
 end
 
 function add_constr_members_of_var!(m::Memberships, var_id::Id, 
         new_membership::ConstrMemberDict) 
     m.var_to_constr_members[var_id] = new_membership
 
-    for (constr_id, val) in new_membership
+    #==for (constr_id, val) in new_membership
         if !haskey(m.constr_to_var_members, constr_id)
             m.constr_to_var_members[constr_id] = VarMemberDict()
         end
         add!(m.constr_to_var_members[constr_id], var_id, val)
     end
+==#
 end
 
 function add_var_members_of_constr!(m::Memberships, constr_id::Id, 
         new_membership::VarMemberDict) 
     m.constr_to_var_members[constr_id] = new_membership
-
+#==
     for (var_id, val) in new_membership
         if !haskey(m.var_to_constr_members, var_id)
             m.var_to_constr_members[var_id] = ConstrMemberDict()
         end
         add!(m.var_to_constr_members[var_id], constr_id, val)
-    end
+    end==#
 end
 
 function add_partialsol_members_of_var!(m::Memberships, ps_var_id::Id, var_id::Int, 
@@ -119,12 +122,12 @@ function add_partialsol_members_of_var!(m::Memberships, ps_var_id::Id,
         new_membership::VarMemberDict) 
     m.var_to_partialsol_members[ps_var_id] = new_membership
 
-    for (var_id, val) in new_membership
+    #==for (var_id, val) in new_membership
         if !haskey(m.partialsol_to_var_members, var_id)
             m.partialsol_to_var_members[var_id] = VarMemberDict()
         end
         add!(m.partialsol_to_var_members[var_id], ps_var_id, val)
-    end
+    end==#
 end
 
 function add_var_members_of_partialsol!(m::Memberships, mc_uid::Id, spvar_id, 
@@ -149,11 +152,12 @@ function add_var_members_of_partialsol!(m::Memberships, mc_uid::Id,
     spvar_ids, vals = get_ids_vals(new_membership)
     for j in 1:length(mc_uids)
         add!(m.partialsol_to_var_members[mc_uid], spvar_ids[j], vals[j])
-        if !haskey(m.var_to_partialsol_members, spvar_ids[j])
+       #== if !haskey(m.var_to_partialsol_members, spvar_ids[j])
             m.var_to_partialsol_members[spvar_ids[j]] = VarMemberDict()
         end
-        add!(m.var_to_partialsol_members[spvar_ids[j]], mc_uid, vals[j])
+        add!(m.var_to_partialsol_members[spvar_ids[j]], mc_uid, vals[j]) ==#
     end
+
 end
 
 function reset_constr_members_of_var!(m::Memberships, var_id::Id, 
@@ -168,22 +172,22 @@ end
 
 function set_constr_members_of_var!(m::Memberships, var_id::Id, new_membership::ConstrMemberDict) 
     m.var_to_constr_members[var_id] = new_membership
-    for (constr_id, val) in new_membership
+    #==for (constr_id, val) in new_membership
         if !haskey(m.constr_to_var_members, constr_id)
             m.constr_to_var_members[constr_id] = VarMemberDict()
         end
         add!(m.constr_to_var_members[constr_id], var_id, val)
-    end
+    end ==#
 end
 
 function set_var_members_of_constr!(m::Memberships, constr_id::Id, new_membership::VarMemberDict)
     m.constr_to_var_members[constr_id] = new_membership
-    for (var_id, val) in new_membership
+    #==for (var_id, val) in new_membership
         if !haskey(m.var_to_constr_members, var_id)
             m.var_to_constr_members[var_id] = ConstrMemberDict()
         end
         add!(m.var_to_constr_members[var_id], constr_id, val)
-    end
+    end ==#
 end
 
 function add_variable!(m::Memberships, var_id::Id)

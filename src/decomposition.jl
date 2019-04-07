@@ -45,6 +45,16 @@ function build_dw_master!(prob::Problem,
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
     reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
 
+    @show "master vars " vars_in_form
+    @show "master constrs " constrs_in_form
+    
+ 
+    # copy of pure master variables
+    clone_vc_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
+    # copy of master constraints
+    clone_vc_in_formulation!(master_form, orig_form, constrs_in_form, MasterConstr)
+
+
     @assert !isempty(reformulation.dw_pricing_subprs)
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
@@ -66,12 +76,33 @@ function build_dw_master!(prob::Problem,
         membership = VarMemberDict()
         lb_conv_constr_id = add!(master_form, ub_conv_constr, duty, membership)
         reformulation.dw_pricing_sp_ub[sp_uid] = lb_conv_constr_id
-   end
 
-    # copy of pure master variables
-    clone_in_formulation!(vars_in_form, orig_form, master_form, PureMastVar)
-    # copy of master constraints
-    clone_in_formulation!(constrs_in_form, orig_form, master_form, MasterConstr)
+        ## Create PricingSetupVar
+        name = "PricingSetupVar_sp_$(sp_form.uid)"
+        cost = 0.0
+        lb = 1.0
+        ub = 1.0
+        kind = Continuous
+        duty = PricingSpSetupVar
+        sense = Positive
+        setup_var = Variable(sp_uid, name, cost, lb, ub, kind,  sense)
+        membership = ConstrMemberDict()
+        set!(membership, ub_conv_constr_id, 1.0)
+        set!(membership, lb_conv_constr_id, 1.0)
+        add!(sp_form, setup_var, duty, membership)
+        @show setup_var
+
+        vars = filter(_active_pricingSpVar_, getvars(sp_form))
+        @show vars
+        clone_vc_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
+
+        clone_membership_in_formulation!(master_form, sp_form, vars)
+
+    end
+
+    clone_membership_in_formulation!(master_form, orig_form, vars_in_form)
+    #clone_membership_in_formulation!(master_form, orig_form, constrs_in_form)
+
 
     initialize_artificial_variables(master_form, constrs_in_form)
 
@@ -96,33 +127,15 @@ function build_dw_pricing_sp!(prob::Problem,
     sp_uid = getuid(sp_form)
 
    ## Create Pure Pricing Sp Var & constr
-    clone_in_formulation!(vars_in_form, orig_form, sp_form, PricingSpVar)
-    clone_in_formulation!(constrs_in_form, orig_form, sp_form, PricingSpPureConstr)
+    clone_vc_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
+    clone_vc_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
 
 
-    ## Create PricingSetupVar
-    name = "PricingSetupVar_sp_$(sp_form.uid)"
-    cost = 0.0
-    lb = 1.0
-    ub = 1.0
-    kind = Continuous
-    duty = PricingSpSetupVar
-    sense = Positive
-    setup_var = Variable(sp_uid, name, cost, lb, ub, kind,  sense)
-    membership = ConstrMemberDict()
-    set!(membership, reformulation.dw_pricing_sp_lb[sp_uid], 1.0)
-    set!(membership, reformulation.dw_pricing_sp_ub[sp_uid], 1.0)
-    add!(sp_form, setup_var, duty, membership)
-    @show setup_var
-
+ 
     # should be move in build dw master ?
-    #clone_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
+    #clone_vc_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
     ## BD.AnnotationCreate representative of sp var in master
-    vars = filter(_active_pricingSpVar_, getvars(sp_form))
-    @show vars
-
-    clone_in_formulation!(vars, sp_form, master_form, MastRepPricingSpVar)
 
     return
 end
@@ -175,19 +188,6 @@ function reformulate!(prob::Problem, method::SolutionMethod)
         end
     end
 
-    # Build Master
-    @show master_unique_id
-    vars = VarDict()
-    if haskey(vars_per_block, master_unique_id)
-        vars = vars_per_block[master_unique_id]
-    end
-    constrs = ConstrDict()
-    if haskey(constrs_per_block, master_unique_id)
-        constrs = constrs_per_block[master_unique_id]
-    end
-    build_dw_master!(prob, master_unique_id, reformulation,
-                     master_form, vars, constrs)
-
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
         @show annotation
@@ -207,7 +207,20 @@ function reformulate!(prob::Problem, method::SolutionMethod)
         end
     end
     
-    end_clone(master_form)
+ 
+    # Build Master
+    @show master_unique_id
+    vars = VarDict()
+    if haskey(vars_per_block, master_unique_id)
+        vars = vars_per_block[master_unique_id]
+    end
+    constrs = ConstrDict()
+    if haskey(constrs_per_block, master_unique_id)
+        constrs = constrs_per_block[master_unique_id]
+    end
+    build_dw_master!(prob, master_unique_id, reformulation,
+                     master_form, vars, constrs)
+   #end_clone(master_form)
     
     println("\e[1;34m MASTER FORMULATION \e[00m")
     @show master_form
