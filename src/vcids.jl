@@ -3,6 +3,8 @@ mutable struct Id{VcState <: AbstractState} #<: AbstractVarConstrId
     state::VcState
 end
 
+Id(uid::Int, Duty::Type{<: AbstractDuty}, vc::VC) where{VC <: AbstractVarConstr} =  Id{statetype(VC)}(uid,  statetype(VC)(Duty, vc))
+
 Id(VC::Type{<:AbstractVarConstr}) = Id{S}(-1,S())
 
 Id{S}() where{S<:AbstractState} = Id{S}(-1,S())

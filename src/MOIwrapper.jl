@@ -111,7 +111,7 @@ function create_origvars!(f::Formulation,
         coluna_id = add!(f, var, OriginalVar)
         moi_index_to_coluna_uid[moi_index] = MOI.VariableIndex(getuid(coluna_id))
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
-        push!(annotation_set,annotation)
+        push!(annotation_set, annotation)
         if haskey(vars_per_block, annotation.unique_id)
             set!(vars_per_block[annotation.unique_id], coluna_id, var)
         else
