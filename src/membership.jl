@@ -124,7 +124,7 @@ function set_partialsol_members_of_var!(m::Memberships, ps_var_id::Id,
     )
 end
 
-function add_var_members_of_partialsol!(m::Memberships, var_id::Id, 
+function set_var_members_of_partialsol!(m::Memberships, var_id::Id, 
         new_membership::VarMemberDict) 
     _set_membership_!(
         m.var_to_partialsol_members, var_id, m.partialsol_to_var_members,
@@ -132,30 +132,28 @@ function add_var_members_of_partialsol!(m::Memberships, var_id::Id,
     )
 end
 
-# function add_variable!(m::Memberships, var_id::Id)
-#     if !haskey(m.var_to_constr_members, var_id)
-#         m.var_to_constr_members[var_id] = ConstrMemberDict()
-#     end
-#     return
-# end
+function set_variable!(m::Memberships, var_id::Id)
+    _init_members_!(m.var_to_constr_members, var_id)
+    return
+end
 
-# function add_variable!(m::Memberships, var_id::Id, membership::ConstrMemberDict)
-#     set_constr_members_of_var!(m, var_id, membership)
-#     return
-# end
+function set_variable!(m::Memberships, var_id::Id, membership::ConstrMemberDict)
+    _init_members_!(m.var_to_constr_members, var_id)
+    set_constr_members_of_var!(m, var_id, membership)
+    return
+end
 
-# function add_constraint!(m::Memberships, constr_id::Id)
-#     if !haskey(m.constr_to_var_members, constr_id)
-#         m.constr_to_var_members[constr_id] = VarMemberDict()
-#     end
-#     return
-# end
+function set_constraint!(m::Memberships, constr_id::Id)
+    _init_members_!(m.constr_to_var_members, constr_id)
+    return
+end
 
-# function add_constraint!(m::Memberships, constr_id::Id, 
-#         membership::VarMemberDict)
-#     add_var_members_of_constr!(m, constr_id, membership)
-#     return
-# end
+function set_constraint!(m::Memberships, constr_id::Id, 
+        membership::VarMemberDict)
+    _init_members_!(m.constr_to_var_members, constr_id)
+    set_var_members_of_constr!(m, constr_id, membership)
+    return
+end
 
 # function check_if_exists(dict::Dict{Id, VcMemberDict{S}},
 #     membership::VcMemberDict{S}) where {S}

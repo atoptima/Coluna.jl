@@ -124,7 +124,7 @@ function clone_in_formulation!(id::Id{VarState},
                                dest::Formulation,
                                duty::Type{<: AbstractVarDuty})
     id_clone = clone_in_formulation!(var, id, dest, duty)
-    reset_constr_members_of_var!(dest.memberships, id_clone,
+    set_constr_members_of_var!(dest.memberships, id_clone,
                                  deepcopy(get_constr_members_of_var(src, id)))
     return id_clone
 end
@@ -215,28 +215,28 @@ end
 
 # TODO membership should be an optional arg
 function add!(f::Formulation, var::Variable, id::Id{VarState})
-    set!(f.vars, id, var)
-    add_variable!(f.memberships, id) 
+    f.vars[id] = var
+    set_variable!(f.memberships, id) 
     return id
 end
 
 function add!(f::Formulation, var::Variable, id::Id{VarState}, 
         membership::ConstrMemberDict)
-    set!(f.vars, id, var)
-    add_variable!(f.memberships, id, membership)
+    f.vars[id] = var
+    set_variable!(f.memberships, id, membership)
     return id
 end
 
 function add!(f::Formulation, constr::Constraint, id::Id{ConstrState})
-    set!(f.constrs, id, constr)
-    add_constraint!(f.memberships, id)
+    f.constrs[id] = constr
+    set_constraint!(f.memberships, id)
     return id
 end
 
 function add!(f::Formulation, constr::Constraint, id::Id{ConstrState},
        membership::VarMemberDict)
-    set!(f.constrs, id, constr)
-    add_constraint!(f.memberships, id, membership)
+    f.constrs[id] = constr
+    set_constraint!(f.memberships, id, membership)
     return id
 end
 
