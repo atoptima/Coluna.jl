@@ -50,9 +50,9 @@ function build_dw_master!(prob::Problem,
     
  
     # copy of pure master variables
-    clone_vc_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
+    clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
     # copy of master constraints
-    clone_vc_in_formulation!(master_form, orig_form, constrs_in_form, MasterConstr)
+    clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterConstr)
 
 
     @assert !isempty(reformulation.dw_pricing_subprs)
@@ -87,15 +87,14 @@ function build_dw_master!(prob::Problem,
         sense = Positive
         setup_var = Variable(sp_uid, name, cost, lb, ub, kind,  sense)
         membership = ConstrMemberDict()
-        set!(membership, ub_conv_constr_id, 1.0)
-        set!(membership, lb_conv_constr_id, 1.0)
+        membership[ub_conv_constr_id] = 1.0
+        membership[lb_conv_constr_id] = 1.0
         add!(sp_form, setup_var, duty, membership)
         @show setup_var
 
         vars = filter(_active_pricingSpVar_, getvars(sp_form))
         @show vars
-        clone_vc_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
-
+        clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
         clone_membership_in_formulation!(master_form, sp_form, vars)
 
     end
@@ -127,8 +126,8 @@ function build_dw_pricing_sp!(prob::Problem,
     sp_uid = getuid(sp_form)
 
    ## Create Pure Pricing Sp Var & constr
-    clone_vc_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
-    clone_vc_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
+    clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
+    clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
 
 
  
@@ -226,7 +225,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     @show master_form
     println("\e[1;34m PRICING SP FORMULATIONS \e[00m")
     for p in reformulation.dw_pricing_subprs
-        end_clone(p)
+        #end_clone(p)
         @show p
         println("\e[32m ---------------- \e[00m")
     end

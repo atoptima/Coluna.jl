@@ -113,10 +113,10 @@ function create_origvars!(f::Formulation,
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
         push!(annotation_set, annotation)
         if haskey(vars_per_block, annotation.unique_id)
-            set!(vars_per_block[annotation.unique_id], coluna_id, var)
+            vars_per_block[annotation.unique_id][coluna_id] = var
         else
             vars_per_block[annotation.unique_id] = VarDict()
-            set!(vars_per_block[annotation.unique_id], coluna_id, var)
+            vars_per_block[annotation.unique_id][coluna_id] = var
         end
     end
     return
@@ -148,7 +148,7 @@ function create_origconstr!(src::MOI.ModelLike,
     membership = VarMemberDict()
     for term in func.terms
         var_id = get_varid_from_uid(f, moi_index_to_coluna_uid[term.variable_index].value)
-        add!(membership, var_id, term.coefficient)
+        membership[var_id] = term.coefficient
     end
     id = add!(f, constr, OriginalConstr, membership)
     moi_index_to_coluna_uid[moi_index] = MOI.ConstraintIndex{typeof(func),typeof(set)}(
@@ -157,10 +157,10 @@ function create_origconstr!(src::MOI.ModelLike,
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
     push!(annotation_set,annotation)
     if haskey(constrs_per_block, annotation.unique_id)
-        set!(constrs_per_block[annotation.unique_id], id, constr)
+        constrs_per_block[annotation.unique_id][id] = constr
     else
         constrs_per_block[annotation.unique_id] = ConstrDict()
-        set!(constrs_per_block[annotation.unique_id], id, constr)
+        constrs_per_block[annotation.unique_id][id] = constr
     end
     return
 end
