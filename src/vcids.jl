@@ -3,16 +3,17 @@ mutable struct Id{VcState <: AbstractState} #<: AbstractVarConstrId
     state::VcState
 end
 
+Id(uid::Int, Duty::Type{<: AbstractDuty}, vc::VC) where{VC <: AbstractVarConstr} =  Id{statetype(VC)}(uid,  statetype(VC)(Duty, vc))
+
+Id(VC::Type{<:AbstractVarConstr}) = Id{S}(-1,S())
+
+Id{S}() where{S<:AbstractState} = Id{S}(-1,S())
+
+Id{S}(i::Int) where{S<:AbstractState} = Id{S}(i,S())
+
 idtype(::Type{<: Variable}) = Id{VarState}
+
 idtype(::Type{<: Constraint}) = Id{ConstrState}
-
-#Id(T::Type{<: AbstractVarConstr}, i::Int) = Id{T}(i, statetype(T)())
-
-# Id{T <: AbstractVarConstr} = Id{T, statetype(T)} # Default constructor should be enough
-
-Id(id::Id{T}) where {T} = Id{T}(id.uid, id.state)
-
-# Id(uid::Int) = Id(uid, nothing)
 
 Base.hash(a::Id, h::UInt) = hash(a.uid, h)
 
@@ -26,6 +27,6 @@ getstate(id::Id) = id.state
 setstate!(id::Id, s::AbstractState) = id.state = s
 
 function Base.show(io::IO, id::Id{T}) where {T}
-    print(io, "Id{$T}(", getuid(id), ")")
+    print(io, "Id{$T}(", getuid(id), ") = ")#, getstate(id))
 end
 

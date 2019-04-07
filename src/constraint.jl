@@ -57,6 +57,7 @@ mutable struct ConstrState <: AbstractState
     set_type::MoiSetType
     duty::DataType
 end
+ConstrState() = ConstrState(0.0, Greater, Active, nothing, nothing, UndefinedConstrDuty)
 
 function ConstrState(Duty::Type{<: AbstractConstrDuty},
                     constr::Constraint)

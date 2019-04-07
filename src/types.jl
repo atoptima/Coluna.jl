@@ -10,7 +10,7 @@ abstract type AbstractNode end
 
 ## Duties : 
 abstract type AbstractDuty end 
-
+abstract type AbstractVarConstrDuty <: AbstractDuty end
 abstract type AbstractVarDuty <: AbstractDuty end
 abstract type AbstractConstrDuty <: AbstractDuty end
 abstract type AbstractFormDuty <: AbstractDuty end
@@ -32,6 +32,7 @@ struct MastRepBendSpVar <: AbstractMasterVar end
 struct PricingSpVar <: AbstractDwSpVar end
 struct PricingSpSetupVar <: AbstractDwSpVar end # Cannot subtype a concrete type
 struct PricingSpPureVar <: AbstractDwSpVar end
+struct UndefinedVarDuty <: AbstractVarDuty end
 
 #struct BendersSpVar <: AbstractVarDuty end
 #struct BlockGenSpVar <: AbstractVarDuty end
@@ -42,7 +43,7 @@ abstract type AbstractOriginalConstr <: AbstractConstrDuty end
 abstract type AbstractMasterConstr <: AbstractConstrDuty end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
 
-# Concrete types for VarDuty
+# Concrete types for AbstractConstrDuty
 struct OriginalConstr <: AbstractOriginalConstr end
 struct MasterPureConstr <: AbstractMasterConstr end
 struct MasterConstr <: AbstractMasterConstr end
@@ -50,6 +51,7 @@ struct MasterConvexityConstr <: AbstractMasterConstr end
 struct MasterBranchConstr <: AbstractMasterConstr end
 struct PricingSpPureConstr <: AbstractDwSpConstr end
 struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
+struct UndefinedConstrDuty <: AbstractConstrDuty end
 
 # Concrete types for FormDuty
 struct Original <: AbstractFormDuty end
@@ -76,7 +78,7 @@ abstract type AbstractAlg end
 @enum VarKind Continuous Binary Integ
 @enum ConstrKind Core Facultative SubSystem 
 @enum ConstrSense Greater Less Equal
-#@enum Flag Static Dynamic Delayed Artificial Implicit
+@enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
 @enum Status Active Unsuitable
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
@@ -90,3 +92,31 @@ const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MO
 const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}
 const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
 const MoiVarConstrIndex = Union{MoiVarIndex, MoiConstrIndex}
+
+
+const StaticDuty = Union{
+    OriginalVar, OriginalExpression, PureMastVar, MastRepPricingSpVar,
+    MastRepPricingSetupSpVar, PricingSpVar, PricingSpSetupVar, PricingSpPureVar,
+    OriginalConstr, MasterPureConstr, MasterConstr, MasterConvexityConstr,
+    PricingSpPureConstr
+}
+
+const DynamicDuty = Union{
+    Type{MasterCol}, Type{MasterBranchConstr},
+    Type{PricingSpRepMastBranchConstr}
+}
+
+const ArtificialDuty = Union{Type{MastArtVar}}
+
+const ImplicitDuty = Union{
+    Type{PricingSpRepMastBranchConstr}, Type{MastRepPricingSpVar},
+    Type{MastRepPricingSetupSpVar}, Type{MastRepBendSpVar}
+}
+
+const ExplicitDuty = Union{
+    Type{OriginalVar}, Type{OriginalExpression}, Type{PureMastVar},
+    Type{MasterCol}, Type{MastArtVar}, Type{PricingSpVar},
+    Type{PricingSpSetupVar}, Type{PricingSpPureVar}, Type{OriginalConstr},
+    Type{MasterPureConstr}, Type{MasterConstr}, Type{MasterConvexityConstr},
+    Type{MasterBranchConstr}, Type{PricingSpPureConstr}
+}

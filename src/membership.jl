@@ -8,21 +8,21 @@ const ConstrMemberDict = VcMemberDict{ConstrState}
     Doc to do
 """
 struct Memberships
-    var_to_constr_members    ::Dict{Id{VarState}, ConstrMemberDict}
-    constr_to_var_members    ::Dict{Id{ConstrState}, VarMemberDict}
-    var_to_partialsol_members::Dict{Id{VarState}, VarMemberDict}
-    partialsol_to_var_members::Dict{Id{VarState}, VarMemberDict}
-    var_to_expression_members::Dict{Id{VarState}, VarMemberDict}
-    expression_to_var_members::Dict{Id{VarState}, VarMemberDict}
+    var_to_constr_members    ::PerIdDict{VarState, ConstrMemberDict}
+    constr_to_var_members    ::PerIdDict{ConstrState, VarMemberDict}
+    var_to_partialsol_members::PerIdDict{VarState, VarMemberDict}
+    partialsol_to_var_members::PerIdDict{VarState, VarMemberDict}
+    var_to_expression_members::PerIdDict{VarState, VarMemberDict}
+    expression_to_var_members::PerIdDict{VarState, VarMemberDict}
 end
 
 function Memberships()
-    return Memberships(Dict{Id{VarState}, ConstrMemberDict}(),
-                       Dict{Id{ConstrState}, VarMemberDict}(), 
-                       Dict{Id{VarState}, VarMemberDict}(), 
-                       Dict{Id{VarState}, VarMemberDict}(), 
-                       Dict{Id{VarState}, VarMemberDict}(), 
-                       Dict{Id{VarState}, VarMemberDict}())
+    return Memberships(PerIdDict{VarState, ConstrMemberDict}(),
+                       PerIdDict{ConstrState, VarMemberDict}(), 
+                       PerIdDict{VarState, VarMemberDict}(), 
+                       PerIdDict{VarState, VarMemberDict}(), 
+                       PerIdDict{VarState, VarMemberDict}(), 
+                       PerIdDict{VarState, VarMemberDict}())
 end
 
 # Getters

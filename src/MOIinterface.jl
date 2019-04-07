@@ -9,9 +9,10 @@ function create_moi_optimizer(factory::JuMP.OptimizerFactory)
 end
 
 function compute_moi_terms(membership::VarMemberDict)
+    @show membership
     return [
-        MOI.ScalarAffineTerm{Float64}(coeff, getmoi_index(getstate(id)))
-        for (id, coeff) in membership
+        MOI.ScalarAffineTerm{Float64}(coef, getmoi_index(getstate(id)))
+        for (id, coef) in membership
     ]
 end
 
@@ -84,6 +85,8 @@ end
 function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                      id::Id{ConstrState},
                                      var_membership::VarMemberDict)
+
+    @show var_membership
     terms = compute_moi_terms(var_membership)
     f = MOI.ScalarAffineFunction(terms, 0.0)
     state = getstate(id)
