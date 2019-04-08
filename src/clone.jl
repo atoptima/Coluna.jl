@@ -50,6 +50,9 @@ function clone_memberships!(dest::Formulation,
     dest_memberships = get_memberships(dest)
     for (dest_var_id, var) in getvars(dest)
         src_var_id = get_varid_from_uid(src, getuid(dest_var_id))
+        if getuid(src_var_id) == -1 # dest_var is not in src
+            continue
+        end
         src_members = get_constr_members_of_var(src, src_var_id)
         for (src_constr_id, coeff) in src_members
             dest_constr_id = get_constrid_from_uid(dest, getuid(src_constr_id))
