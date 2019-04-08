@@ -56,7 +56,7 @@ function __init_members!(d::PerIdDict{S1, VcMemberDict{S2}}, id::Id{S1}
 end
 
 function _add_coeff!(d1::PerIdDict{S1, VcMemberDict{S2}}, id1::Id{S1}, 
-        d2::PerIdDict{S3, VcMemberDict{S4}}, id2::Id{S4}, val::Float64
+        d2::PerIdDict{S3, VcMemberDict{S4}}, id2::Id{S3}, val::Float64
         ) where {S1,S2,S3,S4}
     __init_members!(d1, id1)
     d1[id1][id2] += val
@@ -81,11 +81,29 @@ function add_var_members_of_partialsol!(m::Memberships, ps_var_id::Id,
     )
 end
 
-function add_partialsol_members_of_var!(m::Memberships, var_id::Id, 
+function add_partialsol_members_of_var!(m::Memberships, var_id::Id,
         ps_var_id::Int, coef::Float64)
     _add_coeff!(
-            m.var_to_partialsol_members, var_id, m.partialsol_to_var_members,
-            ps_var_id, coef
+        m.var_to_partialsol_members, var_id, m.partialsol_to_var_members,
+        ps_var_id, coef
+    )
+end
+
+function _set_coeff!(d1::PerIdDict{S1, VcMemberDict{S2}}, id1::Id{S1}, 
+        d2::PerIdDict{S3, VcMemberDict{S4}}, id2::Id{S3}, val::Float64
+        ) where {S1,S2,S3,S4}
+    __init_members!(d1, id1)
+    d1[id1][id2] = val
+    __init_members!(d2, id2)
+    d2[id2][id1] = val
+    return
+end
+
+function set_constr_members_of_var!(m::Memberships, var_id::Id, 
+        constr_id::Id, coef::Float64)
+    _set_coeff!(
+        m.var_to_constr_members, var_id, m.constr_to_var_members, 
+        constr_id, coef
     )
 end
 
@@ -101,7 +119,7 @@ function _set_membership!(d1::PerIdDict{S1, VcMemberDict{S2}}, id1::Id{S1},
     return
 end
 
-function set_constr_members_of_var!(m::Memberships, var_id::Id, 
+function set_constr_members_of_var!(m::Memberships, var_id::Id,
         new_membership::ConstrMemberDict) 
     _set_membership!(
         m.var_to_constr_members, var_id, m.constr_to_var_members, new_membership

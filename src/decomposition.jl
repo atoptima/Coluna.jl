@@ -47,13 +47,11 @@ function build_dw_master!(prob::Problem,
 
     @show "master vars " vars_in_form
     @show "master constrs " constrs_in_form
-    
- 
+
     # copy of pure master variables
     clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
     # copy of master constraints
     clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterConstr)
-
 
     @assert !isempty(reformulation.dw_pricing_subprs)
     for sp_form in reformulation.dw_pricing_subprs
@@ -95,15 +93,17 @@ function build_dw_master!(prob::Problem,
         vars = filter(_active_pricingSpVar_, getvars(sp_form))
         @show "Sp Var to add in master " vars
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
-        clone_membership_in_formulation!(master_form, sp_form, vars)
-
+        # clone_membership_in_formulation!(master_form, sp_form, vars)
     end
 
-    clone_membership_in_formulation!(master_form, orig_form, vars_in_form)
-    #clone_membership_in_formulation!(master_form, orig_form, constrs_in_form)
-
+    # clone_membership_in_formulation!(master_form, orig_form, vars_in_form)
+    # clone_membership_in_formulation!(master_form, orig_form, constrs_in_form)
+    clone_memberships!(master_form, orig_form)
 
     initialize_artificial_variables(master_form, constrs_in_form)
+
+    @show master_form
+    readline()
 
     return
 end
@@ -125,9 +125,12 @@ function build_dw_pricing_sp!(prob::Problem,
 
     sp_uid = getuid(sp_form)
 
-   ## Create Pure Pricing Sp Var & constr
+    ## Create Pure Pricing Sp Var & constr
     clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
     clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
+    clone_memberships!(sp_form, orig_form)
+
+    # clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
 
 
  
@@ -177,13 +180,13 @@ function reformulate!(prob::Problem, method::SolutionMethod)
         if annotation.problem == BD.Master
             master_unique_id = annotation.unique_id
             formulations[annotation.unique_id] = master_form
-
         elseif annotation.problem == BD.Pricing
             f = Formulation(DwSp, prob, master_form, prob.pricing_factory())
             formulations[annotation.unique_id] = f
             add_dw_pricing_sp!(reformulation, f)
         else 
-            error("Not supported yet.")
+            error(string("Subproblem type ", annotation.problem,
+                         " not supported yet."))
         end
     end
 

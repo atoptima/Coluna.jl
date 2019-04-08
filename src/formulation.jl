@@ -62,6 +62,8 @@ end
 #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
 #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
 
+get_memberships(f::Formulation) = f.memberships
+
 get_varid_from_uid(f::Formulation, uid::Int) = getkey(f.vars, Id{VarState}(uid), Id{VarState}())
 get_constrid_from_uid(f::Formulation, uid::Int) = getkey(f.constrs, Id{ConstrState}(uid), Id{ConstrState}())
 
@@ -168,7 +170,6 @@ function add!(f::Formulation, constr::Constraint,
     add!(f, constr, id, membership)
     return id
 end
-
 
 function register_objective_sense!(f::Formulation, min::Bool)
     # if !min
