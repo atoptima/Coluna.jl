@@ -57,11 +57,11 @@ mutable struct ConstrState <: AbstractState
     set_type::MoiSetType
     duty::DataType
 end
-ConstrState() = ConstrState(0.0, Greater, Active, nothing, nothing, UndefinedConstrDuty)
+ConstrState() = ConstrState(0.0, Greater, Active, MoiConstrIndex(), nothing, UndefinedConstrDuty)
 
 function ConstrState(Duty::Type{<: AbstractConstrDuty},
                     constr::Constraint)
-    return ConstrState(getrhs(constr), getsense(constr), Active, nothing, nothing, Duty)
+    return ConstrState(getrhs(constr), getsense(constr), Active, MoiConstrIndex(), nothing, Duty)
 end
 
 getrhs(c::ConstrState) = c.cur_rhs
