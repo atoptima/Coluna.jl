@@ -87,13 +87,13 @@ function build_dw_master!(prob::Problem,
         membership = ConstrMemberDict()
         membership[ub_conv_constr_id] = 1.0
         membership[lb_conv_constr_id] = 1.0
-        add!(sp_form, setup_var, duty, membership)
         @show setup_var
+        add!(sp_form, setup_var, duty)
+        add!(master_form, setup_var, MastRepPricingSpVar, membership)
 
         vars = filter(_active_pricingSpVar_, getvars(sp_form))
         @show "Sp Var to add in master " vars
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
-        # clone_membership_in_formulation!(master_form, sp_form, vars)
     end
 
     # clone_membership_in_formulation!(master_form, orig_form, vars_in_form)

@@ -32,7 +32,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
             if haskey(new_obj, sp_var_id)
                 new_obj[sp_var_id] -= dual_val * coef
             else
-                new_obj[sp_var_id] = dual_val * coef
+                new_obj[sp_var_id] = - dual_val * coef
             end
         end
     end
