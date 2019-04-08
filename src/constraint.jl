@@ -17,8 +17,8 @@ function Constraint(name::String)
 end
 
 getform(c::Constraint) = c.form_uid
-getrhs(c::Constraint) = c.rhs
 getname(c::Constraint) = c.name
+getrhs(c::Constraint) = c.rhs
 getsense(c::Constraint) = c.sense
 getkind(c::Constraint) = c.kind
 
