@@ -27,6 +27,6 @@ getstate(id::Id) = id.state
 setstate!(id::Id, s::AbstractState) = id.state = s
 
 function Base.show(io::IO, id::Id{T}) where {T}
-    print(io, "Id{$T}(", getuid(id), ") = ")#, getstate(id))
+    print(io, "Id{$T}(", getuid(id), ",", getstate(id).duty, ")")
 end
 

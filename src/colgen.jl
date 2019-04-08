@@ -14,10 +14,15 @@ function optimize!(alg::SimplexLpColGenAlg, r::Reformulation)
 end
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict)
-
+    
     new_obj = VarMemberDict()
     master_form = sp_form.parent_formulation
 
+    ### initialize costs
+    for (id, var) in filter(_active_, sp_form.vars)
+        new_obj[id] = getcost(getstate(id))
+    end
+    
     ### compute red costs
     for (constr_id, dual_val) in dual_sol
         println("Compute contrib of constraint ", constr_id)
@@ -45,9 +50,9 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
 end
 
 
- function update_pricing_target(sp_form::Formulation)
-     println("pricing target will only be needed after automating convexity constraints")
- end
+function update_pricing_target(sp_form::Formulation)
+    println("pricing target will only be needed after automating convexity constraints")
+end
 
 
 function insert_cols_in_master(prob::Problem,

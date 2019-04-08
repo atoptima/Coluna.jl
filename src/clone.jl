@@ -2,12 +2,12 @@ function clone_in_formulation!(dest::Formulation,
                                id::Id,
                                varconstr::VC,
                                duty::Type{<:AbstractDuty}) where {VC <: AbstractVarConstr}
-    println("cloning a ", VC)
+    #println("cloning a ", VC)
     varconstr_clone = deepcopy(varconstr)
     setform!(varconstr_clone, getuid(dest))
     id_clone = Id(getuid(id), statetype(VC)(duty, varconstr_clone))
     add!(dest, varconstr_clone, id_clone)
-    @show id_clone
+    #@show id_clone
     return id_clone
 end
 
