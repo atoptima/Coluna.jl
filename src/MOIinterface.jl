@@ -157,8 +157,6 @@ function print_moi_constraints(optimizer::MOI.AbstractOptimizer)
     println("------------------------------------------")
 end
 
-
-
 function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
                                        constant::Float64)
     of = MOI.get(optimizer,
@@ -167,7 +165,6 @@ function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
         optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
         MOI.ScalarConstantChange(constant))
 end
-
 
 function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
                                    var_id::Id{VarState})
@@ -180,7 +177,6 @@ function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
     MOI.delete(optimizer, state.index)
     state.index = MOI.VariableIndex(-1)
 end
-
 
 function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
                                       constr_id::Id{ConstrState})

@@ -85,13 +85,30 @@ abstract type AbstractAlg end
 
 const FormId = Int
 
+
+##########################################################
+const Moi_SetType = MOI.AbstractSet
+const Moi_Objective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
+const Moi_VarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
+const Moi_VarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
+const Moi_ConstrIndex = MOI.ConstraintIndex
+##########################################################
+
+
+
+
+
 const MoiSetType = Union{MOI.AbstractSet, Nothing}
 const MoiObjective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
 const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
 const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
 const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}
-const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
-const MoiVarConstrIndex = Union{MoiVarIndex, MoiConstrIndex}
+
+# const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
+const MoiVarIndex = MOI.VariableIndex
+MoiVarIndex() = MOI.VariableIndex(-1)
+
+# const MoiVarConstrIndex = Union{MoiVarIndex, MoiConstrIndex}
 
 
 const StaticDuty = Union{

@@ -49,11 +49,11 @@ mutable struct VarState <: AbstractState
     duty::Type{<: AbstractVarDuty}
     cur_kind::VarKind
 end
-VarState() = VarState(0.0, 0.0, 0.0, Active, nothing, nothing, nothing, UndefinedVarDuty, Continuous)
+VarState() = VarState(0.0, 0.0, 0.0, Active, MoiVarIndex(), nothing, nothing, UndefinedVarDuty, Continuous)
 
 function VarState(Duty::Type{<: AbstractVarDuty}, var::Variable)
     return VarState(getcost(var), getlb(var), getub(var),
-        Active, nothing, nothing, nothing, Duty, getkind(var))
+        Active, MoiVarIndex(), nothing, nothing, Duty, getkind(var))
 end
 
 getcost(v::VarState) = v.cur_cost
