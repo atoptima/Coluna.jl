@@ -52,8 +52,8 @@ function clone_membership_in_formulation!(dest::Formulation,
 end
 
 function clone_membership_in_formulation!(dest::Formulation,
-               src::Formulation,
-               constr_id::Id{ConstrState})
+                                          src::Formulation,
+                                          constr_id::Id{ConstrState})
     for (var_id, val) in get_var_members_of_constr(src, constr_id)
         add!(dest, var_id, constr_id, val)
     end  
@@ -61,9 +61,8 @@ end
 
 function clone_membership_in_formulation!(dest::Formulation,
                                           src::Formulation,
-                                          vcs::VcDict{S,VC}, 
-                                          ) where {S<:AbstractState,
-                                                   VC<:AbstractVarConstr}
+                                          vcs::VcDict{S,VC}) where {S<:AbstractState,
+                                                                    VC<:AbstractVarConstr}
     for (id, vc) in vcs
         clone_membership_in_formulation!(dest, src, id)
     end
