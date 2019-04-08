@@ -21,6 +21,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
     ### compute red costs
     for (constr_id, dual_val) in dual_sol
         println("Compute contrib of constraint ", constr_id)
+        @show get_var_members_of_constr(master_form.memberships, constr_id)
         var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
 
         for (m_rep_var_id, coef) in var_membership
