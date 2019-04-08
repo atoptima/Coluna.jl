@@ -50,7 +50,7 @@ end
 function __init_members!(d::PerIdDict{S1, VcMemberDict{S2}}, id::Id{S1}
         ) where {S1<:AbstractState,S2<:AbstractState}
     if !haskey(d, id)
-        d[id] = VcMemberDict{S2}()x
+        d[id] = VcMemberDict{S2}()
     end
     return
 end
