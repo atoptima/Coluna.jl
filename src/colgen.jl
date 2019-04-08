@@ -302,7 +302,7 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
 
     while true
         glpk_prob = master_form.moi_optimizer.optimizer.inner
-        GLPK.write_lp(glpk_prob, string("/Users/vitornesello/Desktop/mip_", nb_cg_iterations,".lp"))
+        GLPK.write_lp(glpk_prob, string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         status_rm, master_val, primal_sol, dual_sol = solve_restricted_mast(master_form)
         #status_rm, mst_time, b, gc, allocs = @timed solve_restricted_mast(reformulation.master)
