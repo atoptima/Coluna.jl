@@ -17,11 +17,11 @@ function unit_tests()
     end
 
     @testset "vcids.jl" begin
-        #vcids_unit_tests()
+        vcids_unit_tests()
     end
 
     @testset "vcdict.jl" begin
-        #vcdict_unit_tests()
+        vcdict_unit_tests()
     end
     return
 end
