@@ -18,27 +18,33 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
     new_obj = VarMemberDict()
     master_form = sp_form.parent_formulation
 
-    ### initialize costs
-    for (id, var) in filter(_active_, sp_form.vars)
+    ### initialized costs
+    sp_vars = filter(_active_, sp_form.vars)
+    for (id, var) in sp_vars
         new_obj[id] = getcost(getstate(id))
     end
+    
+    println("initialized costs = ", new_obj)
     
     ### compute red costs
     for (constr_id, dual_val) in dual_sol
         println("Compute contrib of constraint ", constr_id)
         @show get_var_members_of_constr(master_form.memberships, constr_id)
+
         var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
 
         for (m_rep_var_id, coef) in var_membership
             println("var : ", m_rep_var_id, " (", getduty(getstate(m_rep_var_id)), ")")
-            sp_var_id = getkey(sp_form.vars, m_rep_var_id, Id{VarState}(-1))
+            #if haskey(sp_vars, m_rep_var_id)
+            sp_var_id = getkey(sp_vars, m_rep_var_id, Id{VarState}(-1))
             println("collect Sp var : ", sp_var_id, " (", getduty(getstate(sp_var_id)), ")")
             sp_var_id.uid == -1 && continue
-            if haskey(new_obj, sp_var_id)
-                new_obj[sp_var_id] -= dual_val * coef
-            else
-                new_obj[sp_var_id] = - dual_val * coef
-            end
+            new_obj[sp_var_id] -= dual_val * coef
+            #if haskey(new_obj, sp_var_id)
+            #    new_obj[sp_var_id] -= dual_val * coef
+            #else
+            #    new_obj[sp_var_id] = - dual_val * coef
+            #end
         end
     end
 
