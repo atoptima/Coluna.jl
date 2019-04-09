@@ -27,7 +27,34 @@ pop_node!(t::SearchTree) = DS.dequeue!(t.primary_tree)
 nb_open_nodes(t::SearchTree) = length(t.primary_tree)
 get_treat_order(t::SearchTree) = t.treat_order
 
-function print_info_before_solving_node(search_tree::SearchTree, problem::Reformulation)
+function update_tree(search_tree::SearchTree, cur_node::Node)
+    search_tree.treat_order += 1
+    search_tree.nb_treated_nodes += 1
+    if !to_be_pruned(cur_node)
+        add_node(search_tree, cur_node)
+    end
+    for child_node in cur_node.children
+        add_node(search_tree, child_node)
+    end
+end
+
+function search(search_tree::SearchTree, formulation::AbstractFormulation)
+    add_node(search_tree, RootNode())
+
+    while (!isempty(search_tree)
+           && search_tree.nb_treated_nodes < _params_.max_num_nodes)
+
+        cur_node = pop_node!(search_tree)
+        print_info_before_solving(cur_node, search_tree, formulation)
+        apply_strategy(cur_node, formulation)
+        print_info_after_solving(cur_node, search_tree, formulation)
+        update_formulation(formulation, cur_node)
+        update_tree(search_tree, cur_node, formulation)
+
+    end
+end
+
+function print_info_before_solving_node(search_tree::SearchTree, problem::AbstractFormulation)
     print(nb_open_nodes(search_tree))
     println(" open nodes. Treating node ", get_treat_order(search_tree), ".")
     println("\e[1;31m TODO : display bounds here \e[00m")
@@ -36,27 +63,6 @@ function print_info_before_solving_node(search_tree::SearchTree, problem::Reform
     println("************************************************************")
     return
 end
-
-
-
-# function update_search_trees(cur_node::Node,
-#                              search_tree::DS.PriorityQueue{Node, Float64},
-#                              extended_problem::Reformulation)
-#     params = extended_problem.params
-#     for child_node in cur_node.children
-#         # push!(bap_tree_nodes, child_node)
-#         # if child_node.dual_bound_is_updated
-#         #     update_cur_valid_dual_bound(prob, child_node)
-#         # end
-#         if length(search_tree) < params.open_nodes_limit
-#             DS.enqueue!(search_tree, child_node, get_priority(child_node))
-#         else
-#             println("Limit on the number of open nodes is reached and",
-#                     "no secondary tree is implemented.")
-#             # enqueue(secondary_search_tree, child_node)
-#         end
-#     end
-# end
 
 # function update_cur_valid_dual_bound(problem::Reformulation,
 #         node::NodeWithParent, search_tree::DS.PriorityQueue{Node, Float64})

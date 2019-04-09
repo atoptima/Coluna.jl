@@ -8,7 +8,6 @@ mutable struct Reformulation <: AbstractFormulation
     timer_output::TimerOutputs.TimerOutput
 end
 
-
 Reformulation(prob::AbstractProblem) = Reformulation(prob, DirectMip)
 
 function Reformulation(prob::AbstractProblem, method::SolutionMethod)
@@ -42,47 +41,22 @@ function initialize_moi_optimizer(reformulation::Reformulation,
     end
 end
 
-# function set_optimizers_dict(dest::Optimizer)
-#     # set coluna optimizers
-#     model = dest.inner
-#     master_problem = model.extended_problem.master_problem
-#     model.problemidx_optimizer_map[master_problem.prob_ref] =
-#             dest.master_factory()
-#     for subprobidx in 1:dest.nb_subproblems
-#         pricingprob = model.extended_problem.pricing_vect[subprobidx]
-#         model.problemidx_optimizer_map[pricingprob.prob_ref] =
-#                 dest.pricing_factory()
-#     end
-# end
-
-# function initialize_problem_optimizer(extended_problem::ExtendedProblem,
-#          problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer})
-
-#     @assert haskey(problemidx_optimizer_map, extended_problem.master_problem.prob_ref)
-#     initialize_problem_optimizer(extended_problem.master_problem,
-#             problemidx_optimizer_map[extended_problem.master_problem.prob_ref])
-
-#     for problem in extended_problem.pricing_vect
-#         initialize_problem_optimizer(problem,
-#                 problemidx_optimizer_map[problem.prob_ref])
-#     end
-
-#     for problem in extended_problem.separation_vect
-#         initialize_problem_optimizer(problem,
-#                 problemidx_optimizer_map[problem.prob_ref])
-#     end
-# end
-
-
 function optimize!(reformulation::Reformulation)
     println("\e[1;32m Here starts optimization \e[00m")
     println("\e[1;35m it runs only FV draft algorithm \e[00m")
-    
+
     alg = SimplexLpColGenAlg()
     optimize!(alg, reformulation)
 
-    #search_tree = SearchTree(params.search_strategy)
-    #add_node(search_tree, RootNode())
+    # search_tree = SearchTree(params.search_strategy)
+    # search(search_tree, reformulation)
+
+    return getstatus(reformulation)
+end
+
+
+
+    # add_node(search_tree, RootNode())
 
     # bap_treat_order = 1 # Only usefull for printing
     # treated_nodes = Node[]
@@ -148,4 +122,3 @@ function optimize!(reformulation::Reformulation)
     # # end
     # generate_and_write_bap_tree(treated_nodes)
     # return "dummy_status"
-end

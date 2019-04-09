@@ -180,6 +180,11 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
+# function optimize(form::Formulation, oracle::Any)
+#     setup(oracle, form.orcale_info)
+#     optimize(oracle)
+# end
+
 function optimize(form::Formulation, optimizer = form.moi_optimizer,
                   update_form = true)
     call_moi_optimize_with_silence(form.moi_optimizer)
