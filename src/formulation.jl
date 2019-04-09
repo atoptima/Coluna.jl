@@ -292,7 +292,7 @@ function Base.show(io::IO, f::Formulation)
 end
 
 function load_problem_in_optimizer(formulation::Formulation)
-   for (id, var) in filter(_explicit_, getvars(formulation))
+    for (id, var) in filter(_explicit_, getvars(formulation))
         add_variable_in_optimizer(formulation.moi_optimizer, id)
     end
     for (id, constr) in filter(_active_, getconstrs(formulation))

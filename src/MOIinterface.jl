@@ -199,3 +199,92 @@ function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
                                       state.set_type}(-1)
     state.set_type = nothing
 end
+
+function _show_function(io::IO, moi_model::MOI.ModelLike,
+                        func::MOI.ScalarAffineFunction)
+    for term in func.terms
+        moi_index = term.variable_index
+        coeff = term.coefficient
+        name = MOI.get(moi_model, MOI.VariableName(), moi_index)
+        if name == ""
+            name = string("x", moi_index.value)
+        end
+        print(io, " + ", coeff, name)
+    end
+    return
+end
+
+function _show_function(io::IO, moi_model::MOI.ModelLike,
+                        func::MOI.SingleVariable)
+    moi_index = func.variable
+    name = MOI.get(moi_model, MOI.VariableName(), moi_index)
+    if name == ""
+        name = string("x", moi_index.value)
+    end
+    print(io, " + ", name)
+    return
+end
+
+get_moi_set_info(set::MOI.EqualTo) = ("==", set.value)
+get_moi_set_info(set::MOI.GreaterThan) = (">=", set.lower)
+get_moi_set_info(set::MOI.LessThan) = ("<=", set.upper)
+get_moi_set_info(set::MOI.Integer) = ("is", "Integer")
+get_moi_set_info(set::MOI.ZeroOne) = ("is", "Binary")
+get_moi_set_info(set::MOI.Interval) = (
+    "is bounded in", string("[", set.lower, ";", set.upper, "]")
+)
+
+function _show_set(io::IO, moi_model::MOI.ModelLike,
+                   set::MOI.AbstractScalarSet)
+    op, rhs = get_moi_set_info(set)
+    print(io, " ", op, " ", rhs)
+    return
+end
+
+function _show_constraint(io::IO, moi_model::MOI.ModelLike,
+                          moi_index::MOI.ConstraintIndex)
+    name = MOI.get(moi_model, MOI.ConstraintName(), moi_index)
+    if name == ""
+        name = string("constr_", moi_index.value)
+    end
+    print(io, name, " : ")
+    func = MOI.get(moi_model, MOI.ConstraintFunction(), moi_index)
+    _show_function(io, moi_model, func)
+    set = MOI.get(moi_model, MOI.ConstraintSet(), moi_index)
+    _show_set(io, moi_model, set)
+    println(io, "")
+    return
+end
+
+function _show_constraints(io::IO, moi_model::MOI.ModelLike)
+    for (F, S) in MOI.get(moi_model, MOI.ListOfConstraints())
+        F == MOI.SingleVariable && continue
+        for moi_index in MOI.get(moi_model, MOI.ListOfConstraintIndices{F, S}())
+            _show_constraint(io, moi_model, moi_index)
+        end
+    end
+    for (F, S) in MOI.get(moi_model, MOI.ListOfConstraints())
+        F !== MOI.SingleVariable && continue
+        for moi_index in MOI.get(moi_model, MOI.ListOfConstraintIndices{MOI.SingleVariable,S}())
+            _show_constraint(io, moi_model, moi_index)
+        end
+    end
+    return
+end
+
+function _show_obj_fun(io::IO, moi_model::MOI.ModelLike)
+    sense = MOI.get(moi_model, MOI.ObjectiveSense())
+    sense == MOI.MIN_SENSE ? print(io, "Min") : print(io, "Max")
+    obj = MOI.get(moi_model, MoiObjective())
+    _show_function(io, moi_model, obj)
+    println(io, "")
+    return
+end
+
+function Base.show(io::IO, moi_optimizer::MOIU.CachingOptimizer)
+    println(io, "MOI Optimizer {", typeof(moi_optimizer), "} = ")
+    _show_obj_fun(io, moi_optimizer.model_cache)
+    _show_constraints(io, moi_optimizer.model_cache)
+    return
+end
+
