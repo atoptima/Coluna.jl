@@ -57,6 +57,16 @@ function build_dw_master!(prob::Problem,
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
 
+        vars = filter(_active_pricingSpVar_, getvars(sp_form))
+        @show "Sp Var to add in master " vars
+        clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
+    end
+    clone_memberships!(master_form, orig_form)
+
+    # add convexity constraints and setupvar 
+    for sp_form in reformulation.dw_pricing_subprs
+        sp_uid = getuid(sp_form)
+ 
         # create convexity constraint
         name = "sp_lb_$(sp_uid)"
         sense = Greater
@@ -90,22 +100,18 @@ function build_dw_master!(prob::Problem,
         @show setup_var
         setup_var_id = add!(sp_form, setup_var, duty)
         setup_var_clone_id = clone_in_formulation!(master_form, setup_var_id, setup_var, MastRepPricingSpVar)
+        @show setup_var_clone_id
+        @show lb_conv_constr_id
+        @show ub_conv_constr_id
+        
         set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, ub_conv_constr_id, 1.0)
         set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, lb_conv_constr_id, 1.0)
 
-        vars = filter(_active_pricingSpVar_, getvars(sp_form))
-        @show "Sp Var to add in master " vars
-        clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
     end
 
-    # clone_membership_in_formulation!(master_form, orig_form, vars_in_form)
-    # clone_membership_in_formulation!(master_form, orig_form, constrs_in_form)
-    clone_memberships!(master_form, orig_form)
 
+    # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
-
-    @show master_form
-    readline()
 
     return
 end
@@ -135,7 +141,7 @@ function build_dw_pricing_sp!(prob::Problem,
     # clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
 
 
- 
+
     # should be move in build dw master ?
     #clone_vc_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
 
@@ -146,6 +152,10 @@ end
 
 function reformulate!(prob::Problem, method::SolutionMethod)
     println("Do reformulation.")
+
+    # This function must be cleaned.
+    # subproblem formulations are modified in the function build_dw_master
+
 
     # Create formulations & reformulations
 
@@ -224,8 +234,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     end
     build_dw_master!(prob, master_unique_id, reformulation,
                      master_form, vars, constrs)
-   #end_clone(master_form)
-    
+
     println("\e[1;34m MASTER FORMULATION \e[00m")
     @show master_form
     println("\e[1;34m PRICING SP FORMULATIONS \e[00m")

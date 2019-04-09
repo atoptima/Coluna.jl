@@ -13,14 +13,15 @@ global const CL = Coluna
 #include("colunabasictests.jl")
 #include("colgenroot.jl")
 #include("moi_wrapper.jl")
-#include("unit_tests/unit_tests.jl")
+include("unit/unit_tests.jl")
 
 using Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(1)))
 
+unit_tests()
+
 include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
 
-# unit_tests()
 # testdefaultbuilders()
 #testpuremaster()
 #@testset "cutting stock - colgen root " begin

@@ -38,6 +38,51 @@ setub!(v::Variable, ub::Float64) = v.upper_bound = ub
 setkind!(v::Variable, t::VarKind) = v.kind = t
 setsense!(v::Variable, s::VarSense) = v.sense = s
 
+function updatesense!(var::Variable)
+    if 0 <= var.lower_bound <= var.upper_bound
+        setsense!(var, Positive)
+    elseif var.lower_bound <= var.upper_bound <= 0
+        setsense!(var, Negative)
+    else
+        setsense!(var, Free)
+    end
+    return
+end
+
+function set!(v::Variable, ::MOI.ZeroOne)
+    setkind!(v, Binary)
+    setsense!(v, Positive)
+    (v.lower_bound < 0) && setlb!(v, 0.0)
+    (v.upper_bound > 1) && setub!(v, 1.0)
+    return
+end
+
+function set!(v::Variable, ::MOI.Integer)
+    setkind!(v, Integ)
+    return
+end
+
+function set!(v::Variable, s::MOI.GreaterThan)
+    lb = float(s.lower)
+    (v.lower_bound < lb) && setlb!(v, lb)
+    updatesense!(v)
+    return
+end
+
+function set!(v::Variable, s::MOI.EqualTo)
+    val = float(s.value)
+    setlb!(v, val)
+    setub!(v, val)
+    updatesense!(v)
+    return
+end
+
+function set!(v::Variable, s::MOI.LessThan)
+    ub = float(s.upper)
+    (v.upper_bound > ub) && setub!(v, ub)
+    updatesense!(v)
+end
+
 mutable struct VarState <: AbstractState
     cur_cost::Float64
     cur_lb::Float64
@@ -87,38 +132,4 @@ vctype(::Type{<: VarState}) = Variable
 statetype(::Type{<: Variable}) = VarState
 
 indextype(::Type{<: Variable}) = MoiVarIndex
-
-function set!(v::Variable, ::MOI.ZeroOne)
-    setkind!(v, Binary)
-    setsense!(v, Positive)
-    (v.lower_bound < 0) && setlb!(v, 0.0)
-    (v.upper_bound > 1) && setub!(v, 1.0)
-    return
-end
-
-function set!(v::Variable, ::MOI.Integer)
-    setkind!(v, Integ)
-    return
-end
-
-function set!(v::Variable, s::MOI.GreaterThan)
-    lb = float(s.lower)
-    (v.lower_bound < lb) && setlb!(v, lb)
-    (lb >= 0) && setsense!(v, Positive)
-    return
-end
-
-function set!(v::Variable, s::MOI.EqualTo)
-    val = float(s.value)
-    setlb!(v, val)
-    setub!(v, val)
-    return
-end
-
-function set!(v::Variable, s::MOI.LessThan)
-    ub = float(s.upper)
-    (v.upper_bound > ub) && setub!(v, ub)
-    (ub <= 0) && setkind!(v, Negative)
-    return
-end
 
