@@ -45,8 +45,11 @@ function optimize!(reformulation::Reformulation)
     println("\e[1;32m Here starts optimization \e[00m")
     println("\e[1;35m it runs only FV draft algorithm \e[00m")
 
-    alg = SimplexLpColGenAlg()
-    optimize!(alg, reformulation)
+    r = StrategyRecord()
+    apply(MockStrategy, reformulation, nothing, r, nothing)
+
+    #alg = SimplexLpColGenAlg()
+    #optimize!(alg, reformulation)
 
     # search_tree = SearchTree(params.search_strategy)
     # search(search_tree, reformulation)

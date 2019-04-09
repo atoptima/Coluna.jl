@@ -79,6 +79,16 @@ include("bbtree.jl")
 include("solandbounds.jl")
 include("colgen.jl")
 
+###### Solvers & Strategies
+include("solvers/solver.jl")
+include("strategies/strategy.jl")
+include("solvers/colgen.jl")
+include("solvers/masteripheur.jl")
+# here include solvers
+include("solvers/interfaces.jl")
+include("strategies/mockstrategy.jl")
+# here include strategies
+
 ##### Wrapper functions
 include("MOIwrapper.jl")
 #include("decomposition.jl")
