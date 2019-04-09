@@ -54,9 +54,10 @@ function build_dw_master!(prob::Problem,
     clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterConstr)
 
     @assert !isempty(reformulation.dw_pricing_subprs)
+    # add convexity constraints and setupvar 
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
-
+ 
         # create convexity constraint
         name = "sp_lb_$(sp_uid)"
         sense = Greater
@@ -83,10 +84,17 @@ function build_dw_master!(prob::Problem,
         kind = Continuous
         duty = PricingSpSetupVar
         sense = Positive
-        setup_var = Variable(sp_uid, name, cost, lb, ub, kind, sense)
+        setup_var = Variable(sp_uid, name, cost, lb, ub, kind,  sense)
+        #membership = ConstrMemberDict()
+        #membership[ub_conv_constr_id] = 1.0
+        #membership[lb_conv_constr_id] = 1.0
         @show setup_var
         setup_var_id = add!(sp_form, setup_var, duty)
         setup_var_clone_id = clone_in_formulation!(master_form, setup_var_id, setup_var, MastRepPricingSpVar)
+        @show setup_var_clone_id
+        @show lb_conv_constr_id
+        @show ub_conv_constr_id
+        
         set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, ub_conv_constr_id, 1.0)
         set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, lb_conv_constr_id, 1.0)
 
@@ -97,6 +105,7 @@ function build_dw_master!(prob::Problem,
 
     clone_memberships!(master_form, orig_form)
 
+    # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
 
     return
