@@ -4,8 +4,7 @@ const SupportedVarSets = Union{MOI.ZeroOne,
                                MOI.Integer,
                                MOI.LessThan{Float64},
                                MOI.EqualTo{Float64},
-                               MOI.GreaterThan{Float64},
-                               MOI.Interval{Float64}}
+                               MOI.GreaterThan{Float64}}
 
 const SupportedConstrFunc = Union{MOI.ScalarAffineFunction{Float64}}
 
