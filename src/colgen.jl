@@ -24,31 +24,25 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
         new_obj[id] = getcost(getstate(id))
     end
     
-    println("initialized costs = ", new_obj)
+    #println("initialized costs = ", new_obj)
     
     ### compute red costs
     for (constr_id, dual_val) in dual_sol
-        println("Compute contrib of constraint ", constr_id)
-        @show get_var_members_of_constr(master_form.memberships, constr_id)
+        #println("Compute contrib of constraint ", constr_id)
+        #@show get_var_members_of_constr(master_form.memberships, constr_id)
 
         var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
 
         for (m_rep_var_id, coef) in var_membership
-            println("var : ", m_rep_var_id, " (", getduty(getstate(m_rep_var_id)), ")")
-            #if haskey(sp_vars, m_rep_var_id)
+            #println("var : ", m_rep_var_id, " (", getduty(getstate(m_rep_var_id)), ")")
             sp_var_id = getkey(sp_vars, m_rep_var_id, Id{VarState}(-1))
-            println("collect Sp var : ", sp_var_id, " (", getduty(getstate(sp_var_id)), ")")
+            #println("collect Sp var : ", sp_var_id, " (", getduty(getstate(sp_var_id)), ")")
             sp_var_id.uid == -1 && continue
             new_obj[sp_var_id] -= dual_val * coef
-            #if haskey(new_obj, sp_var_id)
-            #    new_obj[sp_var_id] -= dual_val * coef
-            #else
-            #    new_obj[sp_var_id] = - dual_val * coef
-            #end
         end
     end
 
-    println("new objective func = ", new_obj)
+    println("update_pricing_problem: new objective func = ", new_obj)
 
     set_optimizer_obj(sp_form.moi_optimizer, new_obj)
 
@@ -181,6 +175,8 @@ function gen_new_col(sp_form::Formulation,
     #     # switch off the reduced cost estimation when stabilization is applied
     # end
 
+    @show sp_form
+    
     # Solve sub-problem and insert generated columns in master
     @logmsg LogLevel(-3) "optimizing pricing prob"
     #@timeit to(alg) "optimize!(pricing_prob)"
@@ -188,7 +184,8 @@ function gen_new_col(sp_form::Formulation,
     status, value, p_sols, d_sol = optimize(sp_form)
     #end
     
-    dual_bound_contrib = compute_pricing_dual_bound_contrib(sp_form, value, sp_lb, sp_ub)
+    pricing_dual_bound_contrib = compute_pricing_dual_bound_contrib(sp_form, value, sp_lb, sp_ub)
+    @show pricing_dual_bound_contrib
     
     if status != MOI.OPTIMAL
         @logmsg LogLevel(-3) "pricing prob is infeasible"
@@ -197,7 +194,7 @@ function gen_new_col(sp_form::Formulation,
     
     insertion_status = insert_cols_in_master(sp_form, p_sols)
     
-    return (insertion_status, dual_bound_contrib)
+    return (insertion_status, pricing_dual_bound_contrib)
 
     #end # @timeit to(alg) "gen_new_col" begin
 
