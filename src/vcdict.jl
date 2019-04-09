@@ -17,8 +17,8 @@ function Base.delete!(d::PerIdDict{S,T}, id::Id{S}) where {S<:AbstractState,T}
     Base.delete!(d.members, id)
 end
 
-function Base.delete!(d::PerIdDict{S,T}, id::Vector{Id}) where {S<:AbstractState,T}
-    Base.delete!(d.members, id)
+function Base.delete!(d::PerIdDict, ids::Vector{Id})
+    Base.delete!(d.members, ids)
 end
 
 function Base.getkey(d::PerIdDict{S,T}, i::Id{S}, default) where {S<:AbstractState,T}
