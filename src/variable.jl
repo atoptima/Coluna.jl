@@ -101,6 +101,7 @@ function VarState(Duty::Type{<: AbstractVarDuty}, var::Variable)
         Active, MoiVarIndex(), nothing, nothing, Duty, getkind(var))
 end
 
+setcost(v::VarState, cost::Float64) = v.cur_cost = cost
 getcost(v::VarState) = v.cur_cost
 getlb(v::VarState) = v.cur_lb
 getub(v::VarState) = v.cur_ub
