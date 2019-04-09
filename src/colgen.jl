@@ -21,7 +21,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
     ### initialized costs
     sp_vars = filter(_active_, sp_form.vars)
     for (id, var) in sp_vars
-        new_obj[id] = getcost(getstate(id))
+        setcost(getstate(id), getcost(var))
     end
     
     #println("initialized costs = ", new_obj)
@@ -38,13 +38,14 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict
             sp_var_id = getkey(sp_vars, m_rep_var_id, Id{VarState}(-1))
             #println("collect Sp var : ", sp_var_id, " (", getduty(getstate(sp_var_id)), ")")
             sp_var_id.uid == -1 && continue
-            new_obj[sp_var_id] -= dual_val * coef
+            cost = getcost(getstate(sp_var_id))
+            setcost(getstate(sp_var_id), cost - dual_val * coef)
         end
     end
 
-    println("update_pricing_problem: new objective func = ", new_obj)
+    #println("update_pricing_problem: new objective func = ", new_obj)
 
-    set_optimizer_obj(sp_form.moi_optimizer, new_obj)
+    set_optimizer_obj(sp_form.moi_optimizer, sp_vars)
 
     return false
 end

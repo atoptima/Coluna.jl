@@ -214,10 +214,10 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for id in getvar_ids(f)
+    for id in keys(filter(_explicit_, getvars(f)))
         var = getvar(f, id)
         name = getname(var)
-        cost = getcost(var)
+        cost = getcost(getstate(id))
         op = (cost < 0.0) ? "-" : "+" 
         #if cost != 0.0
             print(io, op, " ", abs(cost), " ", name, " ")
@@ -232,8 +232,8 @@ function _show_constraint(io::IO, f::Formulation, id)
     constrinfo = getstate(id)
     print(io, id, " ", getname(constr), " : ")
     membership = get_var_members_of_constr(f, id)
-    var_ids = getids(membership)
-    for var_id in sort!(var_ids)
+    var_ids = keys(filter(_explicit_, membership))
+    for var_id in var_ids 
         coeff = membership[var_id]
         if haskey(f.vars, var_id)
             var = getvar(f, var_id)
@@ -252,14 +252,14 @@ function _show_constraint(io::IO, f::Formulation, id)
     else
         op = "<="
     end
-    print(io, " ", op, " ", getrhs(constr))
+    print(io, " ", op, " ", getrhs(getstate(id)))
     d = getduty(constrinfo)
     println(io, " (", d ,")")
     return
 end
 
 function _show_constraints(io::IO , f::Formulation)
-    for id in sort!(getconstr_ids(f))
+    for id in keys(filter(_explicit_, getconstrs(f))) #sort!(keys(filter(_explicit_, getconstrs(f))))
         _show_constraint(io, f, id)
     end
     return
@@ -267,17 +267,18 @@ end
 
 function _show_variable(io::IO, f::Formulation, id)
     var = getvar(f, id)
-    varinfo = getstate(id)
+    var_state = getstate(id)
     name = getname(var)
-    lb = getlb(varinfo)
-    ub = getub(varinfo)
+    lb = getlb(var_state)
+    ub = getub(var_state)
     t = getkind(var)
-    d = getduty(varinfo)
+    d = getduty(var_state)
     println(io, id, " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , ")")
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for id in sort!(getvar_ids(f))
+    for id in  keys(filter(_explicit_, getvars(f)))
+        #sort!(keys(filter(_explicit_, getvars(f))))
         _show_variable(io, f, id)
     end
 end
