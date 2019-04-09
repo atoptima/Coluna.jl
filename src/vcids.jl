@@ -1,15 +1,17 @@
-mutable struct Id{VcState <: AbstractState} #<: AbstractVarConstrId
+struct Id{VcState <: AbstractState} #<: AbstractVarConstrId
     uid::Int
     state::VcState
 end
 
-Id(uid::Int, Duty::Type{<: AbstractDuty}, vc::VC) where{VC <: AbstractVarConstr} =  Id{statetype(VC)}(uid,  statetype(VC)(Duty, vc))
+function Id(uid::Int, Duty::Type{<: AbstractDuty}, vc::VC) where{VC <: AbstractVarConstr} 
+    return Id{statetype(VC)}(uid, statetype(VC)(Duty, vc))
+end
+
+Id{S}(i::Int) where{S<:AbstractState} = Id{S}(i,S())
 
 Id(VC::Type{<:AbstractVarConstr}) = Id{S}(-1,S())
 
 Id{S}() where{S<:AbstractState} = Id{S}(-1,S())
-
-Id{S}(i::Int) where{S<:AbstractState} = Id{S}(i,S())
 
 idtype(::Type{<: Variable}) = Id{VarState}
 
@@ -24,7 +26,7 @@ Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 getuid(id::Id) = id.uid
 
 getstate(id::Id) = id.state
-setstate!(id::Id, s::AbstractState) = id.state = s
+
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, "Id{$T}(", getuid(id), ",", getstate(id).duty, ")")
