@@ -77,7 +77,7 @@ include("bbtree.jl")
 
 ##### Algorithms draft
 include("solandbounds.jl")
-include("colgen.jl")
+#include("colgen.jl")
 
 ###### Solvers & Strategies
 include("solvers/solver.jl")
