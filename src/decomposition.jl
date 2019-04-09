@@ -84,12 +84,14 @@ function build_dw_master!(prob::Problem,
         duty = PricingSpSetupVar
         sense = Positive
         setup_var = Variable(sp_uid, name, cost, lb, ub, kind,  sense)
-        membership = ConstrMemberDict()
-        membership[ub_conv_constr_id] = 1.0
-        membership[lb_conv_constr_id] = 1.0
+        #membership = ConstrMemberDict()
+        #membership[ub_conv_constr_id] = 1.0
+        #membership[lb_conv_constr_id] = 1.0
         @show setup_var
-        add!(sp_form, setup_var, duty)
-        add!(master_form, setup_var, MastRepPricingSpVar, membership)
+        setup_var_id = add!(sp_form, setup_var, duty)
+        setup_var_clone_id = clone_in_formulation!(master_form, setup_var_id, setup_var, MastRepPricingSpVar)
+        set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, ub_conv_constr_id, 1.0)
+        set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, lb_conv_constr_id, 1.0)
 
         vars = filter(_active_pricingSpVar_, getvars(sp_form))
         @show "Sp Var to add in master " vars
