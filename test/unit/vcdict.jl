@@ -45,4 +45,9 @@ function vcdict_base_unit_tests()
     @test m[2, :] == new_column
     @test m[2, 5] == 2.0
 
+    for (id, col) in CL.columns(m)
+        println("$id -> $col")
+        @show m[id, :]
+    end
+
 end
