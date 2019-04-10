@@ -47,6 +47,8 @@ import Base.copy
         (),
         ())
 
+include("containers/members.jl")
+
 include("types.jl")
 include("parameters.jl")
 include("counters.jl")

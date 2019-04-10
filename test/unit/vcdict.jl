@@ -3,37 +3,45 @@ function vcdict_unit_tests()
 end
 
 function vcdict_base_unit_tests()
-    dict = CL.PerIdDict{CL.VarState, Float64}()
-    var1 = CL.Variable("var1")
-    var2 = CL.Variable("var2")
-    id1 = CL.Id(1, CL.OriginalVar, var1)
-    id2 = CL.Id(2, CL.MasterCol, var2)
-    id3 = CL.Id(3, CL.OriginalVar, var1)
-    id4 = CL.Id(1, CL.MasterCol, var1)
+    a = CL.MembersVector{Int, Float64}()
+    a[1] = 1
+    @test a[1] == 1.0
+    @test a[2] == 0.0
+    @test a[:] == a
 
-    @test length(dict) == 0
-    dict[id1] = 0.0
-    dict[id2] = 1.0
-    @test length(dict) == 2
-    @test haskey(dict, id1)
-    @test haskey(dict, id2)
-    @test dict[id1] == get(dict, id1, 1000)
-    @test getkey(dict, id3, 1000) == 1000
-    @test getkey(dict, id2, 1000) == id2
-    @test dict[id1] == dict[id4] # same uid
+    b = CL.MembersVector{Int, Float64}()
+    b[4] = 2.0
+    b[1] = 1.5
 
-    delete!(dict, id1)
-    delete!(dict, id2)
-    @test length(dict) == 0
-    dict[id3] = 0.0
-    dict[id4] = 1.0
-    dict[id1] = 2.0 # should overwrite dict[id4]
-    sum_vals = 0.0
-    nb_iter = 0
-    for (id, val) in dict
-        sum_vals += val
-        nb_iter += 1
+    sum_id = 0
+    sum_val = 0.0
+    for (id, val) in b
+        sum_id += id
+        sum_val += val
     end
-    @test sum_vals == 2.0
-    @test nb_iter == 2
+    @test sum_id == 5
+    @test sum_val == 3.5
+
+    c = merge(+, a, b)
+    @test c[1] == 2.5
+    d = reduce(+, c)
+    @test d == 4.5
+
+    cols_elems = Dict(1 => true, 2 => true, 4 => false, 5 => false)
+    rows_elems = Dict(1 => true, 2 => false, 3 => false, 6 => true)
+    m = CL.MembersMatrix{Int,Bool,Int,Bool,Float64}(cols_elems, rows_elems)
+    m[1,2] = 1.0
+    @test m[1,2] == 1.0
+    @test m[1,:][2] == 1.0
+    @test m[:,2][1] == 1.0
+    
+    new_column = CL.MembersVector{Int, Float64}()
+    new_column[2] = 9.0
+    new_column[5] = 2.0
+
+    CL.setcolumn!(m, 2, new_column)
+    @test m[2, :] == new_column
+    @test m[2, 5] == 2.0
+
+    
 end
