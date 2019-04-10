@@ -1,10 +1,11 @@
 struct PrimalSolution
     value::Float64
-    members::VarMemberDict
+    # members::VarMemberDict
 end
 
 function PrimalSolution()
-    return PrimalSolution(Inf, VarMemberDict())
+    # return PrimalSolution(Inf, VarMemberDict())
+    return PrimalSolution(Inf)
 end
 
 #function PrimalSolution(value::Float64, sol::VarMemberDict)
@@ -13,10 +14,11 @@ end
 
 struct DualSolution
     value::Float64
-    members::ConstrMemberDict
+    # members::ConstrMemberDict
 end
 
 function DualSolution()
-    return DualSolution(-Inf, ConstrMemberDict())
+    # return DualSolution(-Inf, ConstrMemberDict())
+    return DualSolution(-Inf)
 end
 

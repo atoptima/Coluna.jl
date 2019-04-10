@@ -1,16 +1,15 @@
 mutable struct Problem <: AbstractProblem
     name::String
-    # mid2uid_map::MOIU.IndexMap
-    # mid2cid_map::Dict{MOI.Index, Tuple{Id, AbstractVarConstr}}
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
-    var_counter::VarCounter
-    constr_counter::ConstrCounter
+
+    var_counter::VarCounter # Can be local to Formulation
+    constr_counter::ConstrCounter # Can be local to Formulation
     form_counter::FormCounter
 
-    vars_per_block:: Dict{Int, VarDict}
-    constrs_per_block::Dict{Int, ConstrDict}
-    annotation_set::Set{BD.Annotation}
+    # vars_per_block:: Dict{Int, VarDict}
+    # constrs_per_block::Dict{Int, ConstrDict}
+    # annotation_set::Set{BD.Annotation}
 
     timer_output::TimerOutputs.TimerOutput
     params::Params
@@ -20,10 +19,18 @@ mutable struct Problem <: AbstractProblem
 end
 
 function Problem(params::Params, master_factory, pricing_factory)
+    # return Problem(
+    #     "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
+    #     Dict{BD.Annotation, VarDict}(), Dict{BD.Annotation, ConstrDict}(),
+    #     Set{BD.Annotation}(), TimerOutputs.TimerOutput(),
+    #     params, master_factory, pricing_factory
+    # )
     return Problem(
         "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
-        Dict{BD.Annotation, VarDict}(), Dict{BD.Annotation, ConstrDict}(),
-        Set{BD.Annotation}(), TimerOutputs.TimerOutput(),
+        # Dict{BD.Annotation, VarDict}(),
+        # Dict{BD.Annotation, ConstrDict}(),
+        # Set{BD.Annotation}(),
+        TimerOutputs.TimerOutput(),
         params, master_factory, pricing_factory
     )
 end
@@ -40,52 +47,6 @@ end
 
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
-moi2cid(m::Problem, mid) = m.mid2cid_map[mid] 
-
-# @hl mutable struct Callback end
-
-# mutable struct Problem # user model
-#     extended_problem::Union{Nothing, Reformulation}
-#     callback::Callback
-#     params::Params
-#     prob_counter::ProblemCounter
-#     problemidx_optimizer_map::Dict{Int,MOI.AbstractOptimizer}
-# end
-
-# function ProblemConstructor(params = Params();
-#                           with_extended_prob = true)
-
-#     callback = Callback()
-#     prob_counter = ProblemCounter(-1) # like cplex convention of prob_ref
-#     vc_counter = VarConstrCounter(0)
-#     if with_extended_prob
-#         extended_problem = Reformulation(prob_counter, vc_counter, params,
-#                                            params.cut_up, params.cut_lo)
-#     else
-#         extended_problem = nothing
-#     end
-#     return Problem(extended_problem, callback, params, prob_counter,
-#                  Dict{Int,MOI.AbstractOptimizer}())
-# end
-
-#function select_eval_alg(extended_problem::Reformulation, node_eval_mode::NODEEVALMODE)
-#    if node_eval_mode == SimplexCg
-#        return AlgToEvalNodeBySimplexColGen(extended_problem)
-#    elseif node_eval_mode == Lp
-#        return AlgToEvalNodeByLp(extended_problem)
-#    else
- #       error("Invalid eval mode: ", node_eval_mode)
-#    end
-#end
-
-# # Add Manager to take care of parallelism.
-# # Maybe inside optimize!(extended_problem::Reformulation) (?)
-
-# function initialize_convexity_constraints(extended_problem::Reformulation)
-#     for pricing_prob in extended_problem.pricing_vect
-#         add_convexity_constraints(extended_problem, pricing_prob)
-#     end
-# end
 
 
 _red(s::String) = string("\e[1;31m ", s, " \e[00m")

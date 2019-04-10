@@ -7,6 +7,7 @@ abstract type AbstractMoiDef end
 abstract type AbstractCounter end
 abstract type AbstractMembership end
 abstract type AbstractNode end
+abstract type AbstractVarConstrData end
 
 ## Duties : 
 abstract type AbstractDuty end 
@@ -79,40 +80,26 @@ abstract type AbstractAlg end
 @enum ConstrKind Core Facultative SubSystem 
 @enum ConstrSense Greater Less Equal
 @enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
-@enum Status Active Unsuitable
+# @enum Status Active Unsuitable
 @enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
 const FormId = Int
 
 
-##########################################################
-const Moi_SetType = MOI.AbstractSet
-const Moi_Objective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
-const Moi_VarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
-const Moi_VarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
-const Moi_ConstrIndex = MOI.ConstraintIndex
-##########################################################
-
-
-
-const MoiSetType = Union{MOI.AbstractSet, Nothing}
 const MoiObjective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
-const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
-const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
 
-# const MoiConstrIndex = Union{MOI.ConstraintIndex, Nothing}
 const MoiConstrIndex = MOI.ConstraintIndex
 MoiConstrIndex{F,S}() where {F,S} = MOI.ConstraintIndex{F,S}(-1)
 MoiConstrIndex() = MOI.ConstraintIndex{
     MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}
 }()
 
-# const MoiVarIndex = Union{MOI.VariableIndex, Nothing}
 const MoiVarIndex = MOI.VariableIndex
 MoiVarIndex() = MOI.VariableIndex(-1)
 
-# const MoiVarConstrIndex = Union{MoiVarIndex, MoiConstrIndex}
+const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
+const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
 
 
 const StaticDuty = Union{

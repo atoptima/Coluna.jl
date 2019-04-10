@@ -1,21 +1,10 @@
-struct Id{VcState <: AbstractState} #<: AbstractVarConstrId
+struct Id{VC <: AbstractVarConstr}
     uid::Int
-    state::VcState
+    form_uid::Int
 end
-
-function Id(uid::Int, Duty::Type{<: AbstractDuty}, vc::VC) where{VC <: AbstractVarConstr} 
-    return Id{statetype(VC)}(uid, statetype(VC)(Duty, vc))
-end
-
-Id{S}(i::Int) where{S<:AbstractState} = Id{S}(i,S())
-
-Id(VC::Type{<:AbstractVarConstr}) = Id{S}(-1,S())
-
-Id{S}() where{S<:AbstractState} = Id{S}(-1,S())
-
-idtype(::Type{<: Variable}) = Id{VarState}
-
-idtype(::Type{<: Constraint}) = Id{ConstrState}
+Id{VC}() where {VC} = Id{VC}(-1, -1)
+Id{VC}(uid::Int) where {VC} = Id{VC}(uid, -1)
+Id(id::Id{VC}, form_uid::Int) where {VC} = Id{VC}(id.uid, form_uid)
 
 Base.hash(a::Id, h::UInt) = hash(a.uid, h)
 
@@ -25,10 +14,8 @@ Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 
 getuid(id::Id) = id.uid
 
-getstate(id::Id) = id.state
-
+getformuid(id::Id) = id.form_uid
 
 function Base.show(io::IO, id::Id{T}) where {T}
-    print(io, "Id{$T}(", getuid(id), ",", getstate(id).duty, ")")
+    print(io, "Id{$T}(", getuid(id), ",", getformuid(id), ")")
 end
-

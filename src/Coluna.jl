@@ -50,23 +50,24 @@ import Base.copy
 include("types.jl")
 include("parameters.jl")
 include("counters.jl")
-include("constraint.jl")
-include("variable.jl")
 include("vcids.jl")
-include("vcdict.jl")
-include("filters.jl")
-include("membership.jl")
+include("variable.jl")
+include("constraint.jl")
+# include("vcdict.jl")
+# include("filters.jl")
+# include("membership.jl")
 include("solution.jl")
 include("formulation.jl")
-include("clone.jl")
+# include("clone.jl")
 include("reformulation.jl")
 include("problem.jl")
-include("decomposition.jl")
-include("MOIinterface.jl")
+# include("decomposition.jl")
+# include("MOIinterface.jl")
 
 ##### Search tree
-include("node.jl")
-include("bbtree.jl")
+# include("node.jl")
+# include("bbtree.jl")
+
 #include("nodealgs/solandbounds.jl")
 #include("nodealgs/algsetupnode.jl")
 #include("nodealgs/algpreprocessnode.jl")
@@ -76,22 +77,22 @@ include("bbtree.jl")
 #include("nodealgs/algtoevalnodebylp.jl")
 
 ##### Algorithms draft
-include("solandbounds.jl")
+# include("solandbounds.jl")
 #include("colgen.jl")
 
-###### Solvers & Strategies
-include("solvers/solver.jl")
-include("strategies/strategy.jl")
-include("solvers/colgen.jl")
-include("solvers/masteripheur.jl")
-# here include solvers
-include("solvers/interfaces.jl")
-include("strategies/mockstrategy.jl")
-# here include strategies
+# ###### Solvers & Strategies
+# include("solvers/solver.jl")
+# include("strategies/strategy.jl")
+# include("solvers/colgen.jl")
+# include("solvers/masteripheur.jl")
+# # here include solvers
+# include("solvers/interfaces.jl")
+# include("strategies/mockstrategy.jl")
+# # here include strategies
 
-##### Wrapper functions
+# ##### Wrapper functions
 include("MOIwrapper.jl")
-#include("decomposition.jl")
+# #include("decomposition.jl")
 
 include("utils.jl") # Structure that holds values useful in all the procedure
 include("globals.jl") 
