@@ -48,7 +48,7 @@ end
 function clone_memberships!(dest::Formulation,
                             src::Formulation)
     dest_memberships = get_memberships(dest)
-    for (dest_var_id, var) in getvars(dest)
+    for (dest_var_id, var) in get_vars(dest)
         src_var_id = get_varid_from_uid(src, getuid(dest_var_id))
         if getuid(src_var_id) == -1 # dest_var is not in src
             continue

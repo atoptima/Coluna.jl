@@ -66,27 +66,12 @@ function set_var!(f::Formulation,
     id = generatevarid(f)
     v_data = VarData(cost, lb, ub, kind, sense, true)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
-    add_var!(f.manager, v)
-    return v
+    return add_var!(f, v)
 end
 
-function add_var!(f::Formulation,
-                  name::String,
-                  duty::Type{<:AbstractVarDuty};
-                  cost::Float64 = 0.0,
-                  lb::Float64 = 0.0,
-                  ub::Float64 = Inf,
-                  kind::VarKind = Continuous,
-                  sense::VarSense = Positive,
-                  moi_index::MoiVarIndex = MoiVarIndex())
-    id = generatevarid(f)
-    v_data = VarData(cost, lb, ub, kind, sense, true)
-    v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
-    add_var!(f.manager, v)
-    return v
-end
+add_var!(f::Formulation, var::Variable) = add_var!(f.manager, var)
 
-function add_constr!(f::Formulation,
+function set_constr!(f::Formulation,
                      name::String,
                      duty::Type{<:AbstractConstrDuty};
                      rhs::Float64 = 0.0,
@@ -96,9 +81,10 @@ function add_constr!(f::Formulation,
     id = generateconstrid(f)
     c_data = ConstrData(rhs, kind, sense, true)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
-    add_constr!(f.manager, c)
-    return c
+    return add_constr!(f, c)
 end
+
+add_constr!(f::Formulation, constr::Constraint) = add_constr!(f.manager, constr)
 
 function register_objective_sense!(f::Formulation, min::Bool)
     !min && error("Coluna does not support maximization yet.")
@@ -107,7 +93,7 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for (id, var) in filter(_explicit_, getvars(f))
+    for (id, var) in filter(_explicit_, get_vars(f))
         name = getname(var)
         cost = getcost(get_cur_data(var))
         op = (cost < 0.0) ? "-" : "+" 
@@ -119,11 +105,11 @@ end
 
 function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
                           members::MembersVector{VarId,Variable,Float64})
-    constr = getconstr(f, constr_id)
+    constr = get_constr(f, constr_id)
     constr_data = get_cur_data(constr)
     print(io, constr_id, " ", getname(constr), " : ")
     for (var_id, coeff) in members
-        var = getvar(f, var_id)
+        var = get_var(f, var_id)
         name = getname(var)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
@@ -142,7 +128,7 @@ end
 
 function _show_constraints(io::IO , f::Formulation)
     constrs = filter(
-        x->(getduty(x) isa ExplicitDuty), rows(get_members_matrix(f))
+        x->(getduty(x) isa ExplicitDuty), rows(get_coefficient_matrix(f))
     )
     for (constr_id, members) in constrs
         _show_constraint(io, f, constr_id, members)
@@ -161,7 +147,7 @@ function _show_variable(io::IO, f::Formulation, var::Variable)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for (id, var) in filter(_explicit_, getvars(f))
+    for (id, var) in filter(_explicit_, get_vars(f))
         _show_variable(io, f, var)
     end
 end
@@ -215,8 +201,8 @@ end
 # #getvarlb(f::Formulation, uid) = f.lower_bounds[uid]
 # #getvarub(f::Formulation, uid) = f.upper_bounds[uid]
 
-# #getconstrrhs(f::Formulation, uid) = f.rhs[uid]
-# #getconstrsense(f::Formulation, uid) = f.constr_senses[uid]
+# #get_constrrhs(f::Formulation, uid) = f.rhs[uid]
+# #get_constrsense(f::Formulation, uid) = f.constr_senses[uid]
 
 # get_memberships(f::Formulation) = f.memberships
 
@@ -226,11 +212,11 @@ end
 
 # getvar_ids(fo::Formulation, fu::Function) = filter(fu, fo.vars)
 
-# getconstr_ids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
+# get_constr_ids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
 
 
 # getvar(f::Formulation, id::Id{VarState}) = get(f, id)
-# getconstr(f::Formulation, id::Id{ConstrState}) = get(f, id)
+# get_constr(f::Formulation, id::Id{ConstrState}) = get(f, id)
 # getstate(f::Formulation, id::Id{VarState}) = getstate(getkey(f.manager.vars, id, 0)) # TODO change the default value (empty Id)
 # getstate(f::Formulation, id::Id{ConstrState}) = getstate(getkey(f.mamanger.constrs, id, 0))
 
@@ -240,24 +226,24 @@ end
 # get(f::Formulation, id::Id{ConstrState}) = f.mamanger.constrs[id]
 
 # @deprecate getvar get
-# @deprecate getconstr get
+# @deprecate get_constr get
 
 # getvar_ids(f::Formulation) = getids(f.manager.vars)
 
-# getconstr_ids(f::Formulation) = getids(f.mamanger.constrs)
+# get_constr_ids(f::Formulation) = getids(f.mamanger.constrs)
 
 
 # #getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.manager.vars, Duty)))
 
-# #getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.manager.vars, Duty)))
+# #get_constr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.manager.vars, Duty)))
 
 # #getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.manager.vars, Duty, stat)))
 
-# #getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.manager.vars, Duty, stat)))
+# #get_constr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.manager.vars, Duty, stat)))
 
 # #getvar_ids(f::Formulation, stat::Status) = collect(keys(get_subset(f.manager.vars, stat)))
 
-# #getconstr_ids(f::Formulation,  stat::Status) = collect(keys(get_subset(f.manager.vars, stat)))
+# #get_constr_ids(f::Formulation,  stat::Status) = collect(keys(get_subset(f.manager.vars, stat)))
 
 
 # get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.memberships, id)
@@ -385,7 +371,7 @@ end
 # end
 
 # function _show_constraint(io::IO, f::Formulation, id)
-#     constr = getconstr(f, id)
+#     constr = get_constr(f, id)
 #     constrinfo = getstate(id)
 #     print(io, id, " ", getname(constr), " : ")
 #     membership = get_var_members_of_constr(f, id)
@@ -416,7 +402,7 @@ end
 # end
 
 # function _show_constraints(io::IO , f::Formulation)
-#     for id in keys(filter(_explicit_, getconstrs(f))) #sort!(keys(filter(_explicit_, getconstrs(f))))
+#     for id in keys(filter(_explicit_, get_constrs(f))) #sort!(keys(filter(_explicit_, get_constrs(f))))
 #         _show_constraint(io, f, id)
 #     end
 #     return
@@ -452,7 +438,7 @@ end
 #     for (id, var) in filter(_explicit_, getvars(formulation))
 #         add_variable_in_optimizer(formulation.moi_optimizer, id)
 #     end
-#     for (id, constr) in filter(_active_, getconstrs(formulation))
+#     for (id, constr) in filter(_active_, get_constrs(formulation))
 #         add_constraint_in_optimizer(
 #             formulation.moi_optimizer, id,
 #             filter(_explicit_, get_var_members_of_constr(formulation, id))

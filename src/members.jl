@@ -7,7 +7,10 @@ end
 
 MembersVector{I,K,T}(elems::Dict{I,K}) where {I,K,T} = MembersVector(elems, Dict{I,T}())
 
+MembersVector{I,K,T}() where {I,K,T} = MembersVector( Dict{I, K}(), Dict{I,T}() )
+
 Base.eltype(vec::MembersVector{I,K,T}) where {I,K,T} = T
+
 Base.ndims(vec::MembersVector) = 1
 
 function Base.setindex!(vec::MembersVector{I,K,T}, val, id::I) where {I,K,T}
@@ -167,26 +170,26 @@ FormulationManager() = FormulationManager(VarDict(),
 
 
 function add_var!(m::FormulationManager, var::Variable)
-    haskey(vars, id) && error(string("Variable of id ", id, " exists"))
-    vars[id] = v
-    return
+    haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))
+    m.vars[var.id] = var
+    return var
 end
 
 function add_constr!(m::FormulationManager, constr::Constraint)
-    haskey(constrs, id) && error(string("Constraint of id ", id, " exists"))
-    constrs[id] = constr
-    return
+    haskey(m.constrs, constr.id) && error(string("Constraint of id ", constr.id, " exists"))
+    m.constrs[constr.id] = constr
+    return constr
 end
 
-get_var(m::FormulationManager, id::VarId) = vars[id]
+get_var(m::FormulationManager, id::VarId) = m.vars[id]
 
-get_constr(m::FormulationManager, id::ConstrId) = constrs[id]
+get_constr(m::FormulationManager, id::ConstrId) = m.constrs[id]
 
-get_vars(m::FormulationManager) = vars
+get_vars(m::FormulationManager) = m.vars
 
-get_constrs(m::FormulationManager) = constrs
+get_constrs(m::FormulationManager) = m.constrs
 
-get_coefficient_matrix(m::FormulationManager) = coefficients
+get_coefficient_matrix(m::FormulationManager) = m.coefficients
 
 
 # =================================================================

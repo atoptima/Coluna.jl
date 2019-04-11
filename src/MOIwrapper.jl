@@ -95,7 +95,7 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
     # This is safe becasue the variables are initialized with a 0.0 cost_rhs
     obj = MOI.get(src, MoiObjective())
     for term in obj.terms
-        var = getvar(f, VarId(moi_index_to_coluna_uid[term.variable_index].value))
+        var = get_var(f, VarId(moi_index_to_coluna_uid[term.variable_index].value))
         initial_data = get_initial_data(var)
         setcost!(initial_data, term.coefficient)
         reset!(var)
@@ -114,7 +114,7 @@ function create_origvars!(f::Formulation,
         else
             name = string("var_", moi_index.value)
         end
-        v = add_var!(f, name, OriginalVar)
+        v = set_var!(f, name, OriginalVar)
         var_id = getid(v)
         dest.moi_index_to_coluna_uid[moi_index] = MOI.VariableIndex(getuid(var_id))
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
@@ -130,7 +130,7 @@ function create_origconstr!(f::Formulation,
                             set::SupportedVarSets,
                             moi_index_to_coluna_uid::MOIU.IndexMap)
 
-    var = getvar(f, VarId(moi_index_to_coluna_uid[func.variable].value))
+    var = get_var(f, VarId(moi_index_to_coluna_uid[func.variable].value))
     initial_data = get_initial_data(var)
     if typeof(set) in [MOI.ZeroOne, MOI.Integer]
         set_kind(initial_data, getkind(set))
@@ -150,14 +150,14 @@ function create_origconstr!(f::Formulation,
                             set::SupportedConstrSets,
                             moi_index::MOI.ConstraintIndex)
 
-    c = add_constr!(
-        f, name, OriginalConstr; rhs = getrhs(set),
-        kind = Core, sense = getsense(set)
-    )
+    c = set_constr!(f, name, OriginalConstr;
+                    rhs = getrhs(set),
+                    kind = Core,
+                    sense = getsense(set))
     constr_id = getid(c)
     dest.moi_index_to_coluna_uid[moi_index] =
         MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constr_id))
-    matrix = get_members_matrix(f)
+    matrix = get_coefficient_matrix(f)
     for term in func.terms
         var_id = VarId(dest.moi_index_to_coluna_uid[term.variable_index].value)
         matrix[var_id,constr_id] = term.coefficient

@@ -12,7 +12,7 @@ function initialize_global_art_vars(master::Formulation)
     global_neg = GlobalArtVar(getuid(master), Negative)
     pos_membership = ConstrMemberDict()
     neg_membership = ConstrMemberDict()
-    for (id, constr) in getconstrs(master)
+    for (id, constr) in get_constrs(master)
         if getsense(constr) == Greater
             pos_membership.members[id] = 1.0
         elseif getsense(constr) == Less
@@ -64,13 +64,13 @@ function build_dw_master!(prob::Problem,
         rhs = 1.0
         kind = Core
         duty = MasterConstr #MasterConvexityConstr
-        lb_conv_constr = add_constr!(master_form, name, duty, rhs, kind, sense)
+        lb_conv_constr = set_constr!(master_form, name, duty, rhs, kind, sense)
         reformulation.dw_pricing_sp_lb[sp_uid] =  getid(lb_conv_constr)
         @show lb_conv_constr
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
-        ub_conv_constr = add_constr!(master_form, name, duty, rhs, kind, sense)
+        ub_conv_constr = set_constr!(master_form, name, duty, rhs, kind, sense)
         reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
         @show ub_conv_constr
 
@@ -82,13 +82,13 @@ function build_dw_master!(prob::Problem,
         kind = Continuous
         duty = PricingSpSetupVar
         sense = Positive
-        setup_var = add_var!(sp_form, name, duty, cost, lb, ub, kind, sense)
+        setup_var = set_var!(sp_form, name, duty, cost, lb, ub, kind, sense)
         @show setup_var
         clone_var!(master_form, name, duty, setup_var)
        # set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, ub_conv_constr_id, 1.0)
         #set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, lb_conv_constr_id, 1.0)
 
-        vars = filter(_active_pricingSpVar_, getvars(sp_form))
+        vars = filter(_active_pricingSpVar_, get_vars(sp_form))
         @show "Sp Var to add in master " vars
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
     end
