@@ -165,10 +165,10 @@ function create_origconstr!(src::MOI.ModelLike,
     moi_index_to_coluna_uid[moi_index] =
         MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constr_id))
     matrix = get_members_matrix(f)
-    # for term in func.terms
-    #     var_id = Id{Variable}(moi_index_to_coluna_uid[term.variable_index].value)
-    #     matrix[var_id,constr_id] = term.coefficient
-    # end
+    for term in func.terms
+        var_id = Id{Variable}(moi_index_to_coluna_uid[term.variable_index].value)
+        matrix[var_id,constr_id] = term.coefficient
+    end
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
     update_helper_structures(src, annotation_set, constrs_per_block,
                              annotation, c)

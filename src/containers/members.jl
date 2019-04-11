@@ -91,9 +91,9 @@ function _getmembersvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::
 end
 
 function Base.setindex!(m::MembersMatrix, val, col_id, row_id)
-    cols = _getmembersvector!(m.cols, col_id, m.cols.elements)
+    cols = _getmembersvector!(m.cols, col_id, m.rows.elements)
     cols[row_id] = val
-    rows = _getmembersvector!(m.rows, row_id, m.rows.elements)
+    rows = _getmembersvector!(m.rows, row_id, m.cols.elements)
     rows[col_id] = val
     m
 end
@@ -107,28 +107,28 @@ function Base.getindex(m::MembersMatrix, col_id, row_id)
 end
 
 function Base.getindex(m::MembersMatrix, ::Colon, row_id)
-    _getmembersvector!(m.rows, row_id, m.rows.elements)
+    _getmembersvector!(m.rows, row_id, m.cols.elements)
 end
 
 function Base.getindex(m::MembersMatrix, col_id, ::Colon)
-    _getmembersvector!(m.cols, col_id, m.cols.elements)
+    _getmembersvector!(m.cols, col_id, m.rows.elements)
 end
 
 function setcolumn!(m::MembersMatrix, col_id, new_col::Dict)
-    col = MembersVector(m.cols.elements, deepcopy(new_col))
+    col = MembersVector(m.rows.elements, deepcopy(new_col))
     m.cols[col_id] = col
     for (row_id, val) in col
-        row = _getmembersvector!(m.rows, row_id, m.rows.elements)
+        row = _getmembersvector!(m.rows, row_id, m.cols.elements)
         row[col_id] = val
     end
     m
 end
 
 function setrow!(m::MembersMatrix, row_id, new_row::Dict)
-    row = MembersVector(m.row_elements, deepcopy(new_row))
+    row = MembersVector(m.col.elements, deepcopy(new_row))
     m.rows[row_id] = row
     for (col_id, val) in row
-        col = _getmembersvector!(m.cols, col_id, m.cols.elements)
+        col = _getmembersvector!(m.cols, col_id, m.rows.elements)
         col[row_id] = val
     end
     m
