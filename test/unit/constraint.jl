@@ -1,8 +1,8 @@
 function constraint_unit_tests()
     # A method to test each method
-    constraint_getters_setters_unit_tests()
-    constraint_set!_unit_tests()
-    constrstate_getters_setters_unit_tests()
+    #constraint_getters_setters_unit_tests()
+   # constraint_set!_unit_tests()
+   # constrstate_getters_setters_unit_tests()
 end
 
 function constraint_getters_setters_unit_tests()

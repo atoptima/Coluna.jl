@@ -1,7 +1,7 @@
 function variable_unit_tests()
-    variable_getters_setters_unit_tests()
-    variable_updatesense!_unit_tests()
-    variable_set!_unit_tests()
+   # variable_getters_setters_unit_tests()
+   # variable_updatesense!_unit_tests()
+  #  variable_set!_unit_tests()
 end
 
 function variable_getters_setters_unit_tests()
