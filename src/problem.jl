@@ -1,3 +1,10 @@
+struct Annotations
+    vars_per_block::Dict{Int, Vector{Variable}}
+    constrs_per_block::Dict{Int, Vector{Constraint}}
+    annotation_set::Set{BD.Annotation}
+end
+Annotations() = Annotations(Dict{Int, Vector{Variable}}(), Dict{Int, Vector{Constraint}}(), Set{BD.Annotation}())
+
 mutable struct Problem <: AbstractProblem
     name::String
     original_formulation::Union{Nothing, Formulation}
@@ -7,23 +14,15 @@ mutable struct Problem <: AbstractProblem
     constr_counter::ConstrCounter # Can be local to Formulation
     form_counter::FormCounter
 
-    vars_per_block::Dict{Int, Vector{Variable}}
-    constrs_per_block::Dict{Int, Vector{Constraint}}
-    annotation_set::Set{BD.Annotation}
-
     timer_output::TimerOutputs.TimerOutput
     params::Params
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
     pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
-    #problemidx_optimizer_map::Dict{Int, MOI.AbstractOptimizer}
 end
 
 function Problem(params::Params, master_factory, pricing_factory)
     return Problem(
         "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
-        Dict{Int, Vector{Variable}}(),
-        Dict{Int, Vector{Constraint}}(),
-        Set{BD.Annotation}(),
         TimerOutputs.TimerOutput(),
         params, master_factory, pricing_factory
     )
@@ -41,7 +40,6 @@ end
 
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
-
 
 _red(s::String) = string("\e[1;31m ", s, " \e[00m")
 _green(s::String) = string("\e[1;32m ", s, " \e[00m")
@@ -66,7 +64,7 @@ function initialize_moi_optimizer(prob::Problem)
     println(_pink("---------------> Problems loaded to MOI <---------------------------"))
 end
 
-function coluna_initialization(prob::Problem)
+function coluna_initialization(prob::Problem, annotations::Annotations)
  
     _set_global_params(prob.params)
     reformulate!(prob, DantzigWolfeDecomposition)
@@ -79,8 +77,8 @@ end
 # # Behaves like optimize!(problem::Problem), but sets parameters before
 # # function optimize!(problem::Reformulation)
 
-function optimize!(prob::Problem)
-    coluna_initialization(prob)
+function optimize!(prob::Problem, annotations::Annotations)
+    coluna_initialization(prob, annotations)
     global __initial_solve_time = time()
     @show _params_
     @timeit prob.timer_output "Solve prob" begin
