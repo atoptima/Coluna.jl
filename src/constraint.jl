@@ -1,13 +1,15 @@
 mutable struct ConstrData <: AbstractVcData
+    rhs::Float64 
     kind::ConstrKind
     sense::ConstrSense
-    rhs::Float64 
     is_active::Bool
 end
-ConstrData(kind::ConstrKind, sense::ConstrSense, rhs::Float64) = ConstrData(kind, sense, rhs, true)
-ConstrData() = ConstrData(Core, Greater, Inf, true)
-
-
+function ConstrData(; rhs::Float64  = -Inf,
+                    kind::ConstrKind = Core,
+                    sense::ConstrSense = Greater,
+                    is_active::Bool = true)
+    return ConstrData(rhs, kind, sense, is_active)
+end
 
 is_active(c::AbstractVcData) = c.is_active
 getrhs(c::ConstrData) = c.rhs
@@ -31,16 +33,13 @@ struct Constraint <: AbstractVarConstr
     moi_record::MoiConstrRecord
 end
 
-
 function Constraint(id::Id{Constraint},
                     name::String,
-                    duty::Type{<:AbstractConstrDuty},
-                    kind::ConstrKind,
-                    sense::ConstrSense,
-                    rhs::Float64;
+                    duty::Type{<:AbstractConstrDuty};
+                    constr_data = ConstrData(),
                     moi_index::MoiConstrIndex = MoiConstrIndex())
     return Constraint(
-        id, name, duty, ConstrData(kind, sense, rhs), ConstrData(kind, sense, rhs),
+        id, name, duty, constr_data, constr_data,
         MoiConstrRecord(index = moi_index)
     )
 end

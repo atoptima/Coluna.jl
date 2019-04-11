@@ -156,9 +156,10 @@ function create_origconstr!(f::Formulation,
                             set::SupportedConstrSets,
                             moi_index::MOI.ConstraintIndex)
 
-    c = add_constr!(f, name, OriginalConstr, Core, getsense(set), getrhs(set))
-    #setrhs!(get_initial_data(c), getrhs(set))
-    reset!(c)
+    c = add_constr!(
+        f, name, OriginalConstr; rhs = getrhs(set),
+        kind = Core, sense = getsense(set)
+    )
     constr_id = getid(c)
     dest.moi_index_to_coluna_uid[moi_index] =
         MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constr_id))

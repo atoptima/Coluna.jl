@@ -60,7 +60,8 @@ function add_var!(f::Formulation,
                   sense::VarSense = Positive,
                   moi_index::MoiVarIndex = MoiVarIndex())
     id = generatevarid(f)
-    v = Variable(id, name, duty, cost, lb, ub, kind, sense; moi_index = moi_index)
+    v_data = VarData(cost, lb, ub, kind, sense, true)
+    v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
     haskey(f.vars, id) && error(string("Variable of id ", id, " exists"))
     f.vars[id] = v
     return v
@@ -68,13 +69,14 @@ end
 
 function add_constr!(f::Formulation,
                      name::String,
-                     duty::Type{<:AbstractConstrDuty},
-                     kind::ConstrKind,
-                     sense::ConstrSense,
-                     rhs::Float64;
+                     duty::Type{<:AbstractConstrDuty};
+                     rhs::Float64 = 0.0,
+                     kind::ConstrKind = 0.0,
+                     sense::ConstrSense = 0.0,
                      moi_index::MoiConstrIndex = MoiConstrIndex())
     id = generateconstrid(f)
-    c = Constraint(id, name, duty, kind, sense, rhs; moi_index = moi_index)
+    c_data = ConstrData(rhs, kind, sense, true)
+    c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
     haskey(f.constrs, id) && error(string("Constraint of id ", id, " exists"))
     f.constrs[id] = c
     return c

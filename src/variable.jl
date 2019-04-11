@@ -6,13 +6,14 @@ mutable struct VarData <: AbstractVcData
     sense::VarSense
     is_active::Bool
 end
-VarData() = VarData(0.0, 0.0, Inf, Continuous, Positive, true)
-
-VarData(cost::Float64,
-        lb::Float64,
-        ub::Float64,
-        kind::VarKind,
-        sense::VarSense) = VarData(cost, lb, ub, kind, sense, true)
+function VarData(; cost::Float64 = 0.0,
+                 lb::Float64 = 0.0,
+                 ub::Float64 = Inf,
+                 kind::VarKind = Continuous,
+                 sense::VarSense = Positive,
+                 is_active::Bool = true)
+    return VarData(cost, lb, ub, kind, sense, is_active)
+end
 
 getcost(v::VarData) = v.cost
 getlb(v::VarData) = v.lower_bound
@@ -67,17 +68,11 @@ end
 
 function Variable(id::Id{Variable},
                   name::String,
-                  duty::Type{<:AbstractVarDuty},
-                  cost::Float64,
-                  lb::Float64,
-                  ub::Float64,
-                  kind::VarKind,
-                  sense::VarSense;
+                  duty::Type{<:AbstractVarDuty};
+                  var_data = VarData(),
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(
-        id, name, duty,
-        VarData(cost, lb, ub, kind, sense, true),
-        VarData(cost, lb, ub, kind, sense, true),
+        id, name, duty, var_data, var_data,
         MoiVarRecord(index = moi_index)
     )
 end
