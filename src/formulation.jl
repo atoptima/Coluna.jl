@@ -49,24 +49,32 @@ end
 function generateconstrid(f::Formulation)
     return Id{Constraint}(getnewuid(f.problem.constr_counter))
 end
-
-function add_var!(f::Formulation, name::String,
-                  d::Type{<:AbstractVarDuty};
+    
+function add_var!(f::Formulation,
+                  name::String,
+                  duty::Type{<:AbstractVarDuty};
+                  cost::Float64 = 0.0,
+                  lb::Float64 = 0.0,
+                  ub::Float64 = Inf,
+                  kind::VarKind = Continuous,
+                  sense::VarSense = Positive,
                   moi_index::MoiVarIndex = MoiVarIndex())
     id = generatevarid(f)
-    v = Variable(id, name, d; moi_index = moi_index)
+    v = Variable(id, name, duty, cost, lb, ub, kind, sense; moi_index = moi_index)
     haskey(f.vars, id) && error(string("Variable of id ", id, " exists"))
     f.vars[id] = v
     return v
 end
 
-function add_constr!(f::Formulation, name::String,
+function add_constr!(f::Formulation,
+                     name::String,
+                     duty::Type{<:AbstractConstrDuty},
                      kind::ConstrKind,
                      sense::ConstrSense,
-                     d::Type{<:AbstractConstrDuty};
+                     rhs::Float64;
                      moi_index::MoiConstrIndex = MoiConstrIndex())
     id = generateconstrid(f)
-    c = Constraint(id, name, kind, sense, d; moi_index = moi_index)
+    c = Constraint(id, name, duty, kind, sense, rhs; moi_index = moi_index)
     haskey(f.constrs, id) && error(string("Constraint of id ", id, " exists"))
     f.constrs[id] = c
     return c

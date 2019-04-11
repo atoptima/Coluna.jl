@@ -1,4 +1,4 @@
-mutable struct VarData <: AbstractVarConstrData
+mutable struct VarData <: AbstractVcData
     cost::Float64
     lower_bound::Float64
     upper_bound::Float64
@@ -7,6 +7,13 @@ mutable struct VarData <: AbstractVarConstrData
     is_active::Bool
 end
 VarData() = VarData(0.0, 0.0, Inf, Continuous, Positive, true)
+
+VarData(cost::Float64,
+        lb::Float64,
+        ub::Float64,
+        kind::VarKind,
+        sense::VarSense) = VarData(cost, lb, ub, kind, sense, true)
+
 getcost(v::VarData) = v.cost
 getlb(v::VarData) = v.lower_bound
 getub(v::VarData) = v.upper_bound
@@ -44,6 +51,7 @@ mutable struct MoiVarRecord
     bounds::MoiVarBound
     kind::MoiVarKind
 end
+    
 MoiVarRecord(;index::MoiVarIndex = MoiVarIndex()) = MoiVarRecord(
     index, MoiVarBound(), MoiVarKind()
 )
@@ -57,11 +65,19 @@ struct Variable <: AbstractVarConstr
     moi_record::MoiVarRecord
 end
 
-function Variable(id::Id{Variable}, name::String,
-                  duty::Type{<:AbstractVarDuty};
+function Variable(id::Id{Variable},
+                  name::String,
+                  duty::Type{<:AbstractVarDuty},
+                  cost::Float64,
+                  lb::Float64,
+                  ub::Float64,
+                  kind::VarKind,
+                  sense::VarSense;
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(
-        id, name, duty, VarData(), VarData(),
+        id, name, duty,
+        VarData(cost, lb, ub, kind, sense, true),
+        VarData(cost, lb, ub, kind, sense, true),
         MoiVarRecord(index = moi_index)
     )
 end

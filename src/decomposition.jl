@@ -64,14 +64,14 @@ function build_dw_master!(prob::Problem,
         rhs = 1.0
         kind = Core
         duty = MasterConstr #MasterConvexityConstr
-        lb_conv_constr = Constraint(getuid(master_form), name, rhs, sense, kind)
+        lb_conv_constr = Constraint(getuid(master_form), name, duty, kind, sense, rhs)
         membership = VarMemberDict()
         ub_conv_constr_id = add!(master_form, lb_conv_constr, duty, membership)
         reformulation.dw_pricing_sp_lb[sp_uid] = ub_conv_constr_id
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
-        ub_conv_constr = Constraint(getuid(master_form), name, rhs, sense, kind)
+        ub_conv_constr = Constraint(getuid(master_form), name, duty, kind, sense, rhs)
         membership = VarMemberDict()
         lb_conv_constr_id = add!(master_form, ub_conv_constr, duty, membership)
         reformulation.dw_pricing_sp_ub[sp_uid] = lb_conv_constr_id
@@ -84,7 +84,7 @@ function build_dw_master!(prob::Problem,
         kind = Continuous
         duty = PricingSpSetupVar
         sense = Positive
-        setup_var = Variable(sp_uid, name, cost, lb, ub, kind,  sense)
+        setup_var = Variable(sp_uid, name, duty, cost, lb, ub, kind,  sense)
         #membership = ConstrMemberDict()
         #membership[ub_conv_constr_id] = 1.0
         #membership[lb_conv_constr_id] = 1.0

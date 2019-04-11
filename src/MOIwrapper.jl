@@ -158,8 +158,8 @@ function create_origconstr!(src::MOI.ModelLike,
                             constrs_per_block::Dict{Int, Vector{Constraint}},
                             annotation_set::Set{BD.Annotation})
 
-    c = add_constr!(f, name, Core, getsense(set), OriginalConstr)
-    setrhs!(get_initial_data(c), getrhs(set))
+    c = add_constr!(f, name, OriginalConstr, Core, getsense(set), getrhs(set))
+    #setrhs!(get_initial_data(c), getrhs(set))
     reset!(c)
     constr_id = getid(c)
     moi_index_to_coluna_uid[moi_index] =

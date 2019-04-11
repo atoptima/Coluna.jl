@@ -7,7 +7,7 @@ abstract type AbstractMoiDef end
 abstract type AbstractCounter end
 abstract type AbstractMembership end
 abstract type AbstractNode end
-abstract type AbstractVarConstrData end
+abstract type AbstractVcData end
 
 ## Duties : 
 abstract type AbstractDuty end 
