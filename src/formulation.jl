@@ -39,8 +39,12 @@ function Formulation{D}(p::AbstractProblem; parent_formulation = nothing,
     )
 end
 
+getvars(f::Formulation) = f.vars
+getconstrs(f::Formulation) = f.constrs
 get_var(f::Formulation, id::Id{Variable}) = f.vars[id]
 get_members_matrix(f::Formulation) = f.members_matrix
+getuid(f::Formulation) = f.uid
+getobjsense(f::Formulation) = f.obj_sense
 
 function generatevarid(f::Formulation)
     return Id{Variable}(getnewuid(f.problem.var_counter))
@@ -87,6 +91,84 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
+function _show_obj_fun(io::IO, f::Formulation)
+    print(io, getobjsense(f), " ")
+    for (id, var) in filter(_explicit_, getvars(f))
+        name = getname(var)
+        cost = getcost(get_cur_data(var))
+        op = (cost < 0.0) ? "-" : "+" 
+        print(io, op, " ", abs(cost), " ", name, " ")
+    end
+    println(io, " ")
+    return
+end
+
+function _show_constraint(io::IO, f::Formulation, id::Id{Constraint},
+                          constr::Constraint)
+    constra_data = get_cur_data(constr)
+    print(io, id, " ", getname(constr), " : ")
+    # vars_in_constr = 
+    # membership = get_var_members_of_constr(f, id)
+    # var_ids = keys(filter(_explicit_, membership))
+    matrix = get_members_matrix(f)
+    for var in matrix[:,id]
+        println(io, var)
+        # coeff = membership[var_id]
+        # if haskey(f.vars, var_id)
+        #     var = getvar(f, var_id)
+        #     name = getname(var)
+        #     op = (coeff < 0.0) ? "-" : "+"
+        #     print(io, op, " ", abs(coeff), " ", name, " ")
+        # else
+        #     @warn "Cannot find variable with id $var_id and coeff $coeff which is member of constraint $(getname(constr))"
+        # end
+    end
+
+    # if getsense(constr) == Equal
+    #     op = "=="
+    # elseif getsense(constr) == Greater
+    #     op = ">="
+    # else
+    #     op = "<="
+    # end
+    # print(io, " ", op, " ", getrhs(get_cur_data(id)))
+    # d = getduty(constrinfo)
+    # println(io, " (", d ,")")
+    return
+end
+
+function _show_constraints(io::IO , f::Formulation)
+    for (id, constr) in filter(_explicit_, getconstrs(f))
+        _show_constraint(io, f, id, constr)
+    end
+    return
+end
+
+# function _show_variable(io::IO, f::Formulation, id)
+#     var = getvar(f, id)
+#     var_state = get_cur_data(id)
+#     name = getname(var)
+#     lb = getlb(var_state)
+#     ub = getub(var_state)
+#     t = getkind(var)
+#     d = getduty(var_state)
+#     println(io, id, " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , ")")
+# end
+
+# function _show_variables(io::IO, f::Formulation)
+#     for id in  keys(filter(_explicit_, getvars(f)))
+#         #sort!(keys(filter(_explicit_, getvars(f))))
+#         _show_variable(io, f, id)
+#     end
+# end
+
+function Base.show(io::IO, f::Formulation)
+    println(io, "Formulation id = ", getuid(f))
+    _show_obj_fun(io, f)
+    _show_constraints(io, f)
+    # _show_variables(io, f)
+    return
+end
 
 ##################################################################
 # function Formulation(Duty::Type{<: AbstractFormDuty},
@@ -137,14 +219,11 @@ end
 # get_varid_from_uid(f::Formulation, uid::Int) = getkey(f.vars, Id{VarState}(uid), Id{VarState}())
 # get_constrid_from_uid(f::Formulation, uid::Int) = getkey(f.constrs, Id{ConstrState}(uid), Id{ConstrState}())
 
-# getvars(f::Formulation) = f.vars
-# getconstrs(f::Formulation) = f.constrs
 
 # getvar_ids(fo::Formulation, fu::Function) = filter(fu, fo.vars)
 
 # getconstr_ids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
 
-# getuid(f::Formulation) = f.uid
 
 # getvar(f::Formulation, id::Id{VarState}) = get(f, id)
 # getconstr(f::Formulation, id::Id{ConstrState}) = get(f, id)
@@ -176,7 +255,6 @@ end
 
 # #getconstr_ids(f::Formulation,  stat::Status) = collect(keys(get_subset(f.vars, stat)))
 
-# getobjsense(f::Formulation) = f.obj_sense
 
 # get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.memberships, id)
 
@@ -285,85 +363,6 @@ end
 #     end
 #     @logmsg LogLevel(-4) string("intrinsic_cost = ",cost)
 #     return cost
-# end
-
-# function _show_obj_fun(io::IO, f::Formulation)
-#     print(io, getobjsense(f), " ")
-#     for id in keys(filter(_explicit_, getvars(f)))
-#         var = getvar(f, id)
-#         name = getname(var)
-#         cost = getcost(getstate(id))
-#         op = (cost < 0.0) ? "-" : "+" 
-#         #if cost != 0.0
-#             print(io, op, " ", abs(cost), " ", name, " ")
-#         #end
-#     end
-#     println(io, " ")
-#     return
-# end
-
-# function _show_constraint(io::IO, f::Formulation, id)
-#     constr = getconstr(f, id)
-#     constrinfo = getstate(id)
-#     print(io, id, " ", getname(constr), " : ")
-#     membership = get_var_members_of_constr(f, id)
-#     var_ids = keys(filter(_explicit_, membership))
-#     for var_id in var_ids 
-#         coeff = membership[var_id]
-#         if haskey(f.vars, var_id)
-#             var = getvar(f, var_id)
-#             name = getname(var)
-#             op = (coeff < 0.0) ? "-" : "+"
-#             print(io, op, " ", abs(coeff), " ", name, " ")
-#         else
-#             @warn "Cannot find variable with id $var_id and coeff $coeff which is member of constraint $(getname(constr))"
-#         end
-#     end
-
-#     if getsense(constr) == Equal
-#         op = "=="
-#     elseif getsense(constr) == Greater
-#         op = ">="
-#     else
-#         op = "<="
-#     end
-#     print(io, " ", op, " ", getrhs(getstate(id)))
-#     d = getduty(constrinfo)
-#     println(io, " (", d ,")")
-#     return
-# end
-
-# function _show_constraints(io::IO , f::Formulation)
-#     for id in keys(filter(_explicit_, getconstrs(f))) #sort!(keys(filter(_explicit_, getconstrs(f))))
-#         _show_constraint(io, f, id)
-#     end
-#     return
-# end
-
-# function _show_variable(io::IO, f::Formulation, id)
-#     var = getvar(f, id)
-#     var_state = getstate(id)
-#     name = getname(var)
-#     lb = getlb(var_state)
-#     ub = getub(var_state)
-#     t = getkind(var)
-#     d = getduty(var_state)
-#     println(io, id, " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , ")")
-# end
-
-# function _show_variables(io::IO, f::Formulation)
-#     for id in  keys(filter(_explicit_, getvars(f)))
-#         #sort!(keys(filter(_explicit_, getvars(f))))
-#         _show_variable(io, f, id)
-#     end
-# end
-
-# function Base.show(io::IO, f::Formulation)
-#     println(io, "Formulation id = ", getuid(f))
-#     _show_obj_fun(io, f)
-#     _show_constraints(io, f)
-#     _show_variables(io, f)
-#     return
 # end
 
 # function load_problem_in_optimizer(formulation::Formulation)
