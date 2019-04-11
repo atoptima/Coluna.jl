@@ -84,7 +84,7 @@ function build_dw_master!(prob::Problem,
         sense = Positive
         setup_var = set_var!(sp_form, name, duty, cost, lb, ub, kind, sense)
         @show setup_var
-        clone_var!(master_form, name, duty, setup_var)
+        clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSpVar)
        # set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, ub_conv_constr_id, 1.0)
         #set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, lb_conv_constr_id, 1.0)
 
@@ -93,7 +93,7 @@ function build_dw_master!(prob::Problem,
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
     end
 
-    clone_memberships!(master_form, orig_form)
+    #clone_memberships!(master_form, orig_form)
 
     # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
@@ -121,17 +121,8 @@ function build_dw_pricing_sp!(prob::Problem,
     ## Create Pure Pricing Sp Var & constr
     clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
     clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
-    clone_memberships!(sp_form, orig_form)
-
-    # clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
-
-
-
-    # should be move in build dw master ?
-    #clone_vc_in_formulation!(setup_var, sp_form, master_form, Implicit, MastRepPricingSpVar)
-
-    ## BD.AnnotationCreate representative of sp var in master
-
+    # clone_memberships!(sp_form, orig_form)
+ 
     return
 end
 
@@ -224,8 +215,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     @show master_form
     println("\e[1;34m PRICING SP FORMULATIONS \e[00m")
     for p in reformulation.dw_pricing_subprs
-        #end_clone(p)
-        @show p
+         @show p
         println("\e[32m ---------------- \e[00m")
     end
 

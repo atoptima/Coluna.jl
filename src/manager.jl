@@ -7,7 +7,7 @@ end
 
 MembersVector{I,K,T}(elems::Dict{I,K}) where {I,K,T} = MembersVector(elems, Dict{I,T}())
 
-MembersVector{I,K,T}() where {I,K,T} = MembersVector( Dict{I, K}(), Dict{I,T}() )
+#MembersVector{I,K,T}() where {I,K,T} = MembersVector( Dict{I, K}(), Dict{I,T}() )
 
 Base.eltype(vec::MembersVector{I,K,T}) where {I,K,T} = T
 
@@ -82,9 +82,9 @@ function MembersMatrix{I,K,J,L,T}(col_elems::Dict{I,K}, row_elems::Dict{J,L}) wh
     MembersMatrix(cols, rows)
 end
 
-function MembersMatrix{I,K,J,L,T}() where {I,K,J,L,T}
-    MembersMatrix(MembersVector{I,K,MembersVector{J,L,T}}(), MembersVector{J,L,MembersVector{I,K,T}}())
-end
+#function MembersMatrix{I,K,J,L,T}() where {I,K,J,L,T}
+#    MembersMatrix(MembersVector{I,K,MembersVector{J,L,T}}(), MembersVector{J,L,MembersVector{I,K,T}}())
+#end
 
 function _getmembersvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}) where {I,K,J,L,T}
     if !haskey(dict, key)
@@ -160,13 +160,18 @@ struct FormulationManager
     expressions::MembMatrix  # rows = expressions, cols = variables
 end
 
-FormulationManager() = FormulationManager(VarDict(),
-                                          ConstrDict(),
-                                          MembMatrix(),
-                                          MembMatrix(),
-                                          MembMatrix())
-                                          
-                                          
+function FormulationManager()
+    vars = VarDict()
+    constrs = ConstrDict()
+    
+    return FormulationManager(vars,
+                              constrs,
+                              MembMatrix(vars,constrs),
+                              MembMatrix(vars,constrs),
+                              MembMatrix(vars,constrs))
+end
+
+
 
 
 function add_var!(m::FormulationManager, var::Variable)
@@ -190,6 +195,19 @@ get_vars(m::FormulationManager) = m.vars
 get_constrs(m::FormulationManager) = m.constrs
 
 get_coefficient_matrix(m::FormulationManager) = m.coefficients
+
+function clone_var!(dest::FormulationManager,
+                    src::FormulationManager,
+                    var::Variable)
+    return var
+end
+
+function clone_constr!(dest::FormulationManager,
+                       src::FormulationManager,
+                       constr::Constraint)
+    return constr
+end
+
 
 
 # =================================================================
