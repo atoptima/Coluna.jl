@@ -7,9 +7,9 @@ mutable struct Problem <: AbstractProblem
     constr_counter::ConstrCounter # Can be local to Formulation
     form_counter::FormCounter
 
-    # vars_per_block:: Dict{Int, VarDict}
-    # constrs_per_block::Dict{Int, ConstrDict}
-    # annotation_set::Set{BD.Annotation}
+    vars_per_block::Dict{Int, Vector{Variable}}
+    constrs_per_block::Dict{Int, Vector{Constraint}}
+    annotation_set::Set{BD.Annotation}
 
     timer_output::TimerOutputs.TimerOutput
     params::Params
@@ -19,17 +19,11 @@ mutable struct Problem <: AbstractProblem
 end
 
 function Problem(params::Params, master_factory, pricing_factory)
-    # return Problem(
-    #     "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
-    #     Dict{BD.Annotation, VarDict}(), Dict{BD.Annotation, ConstrDict}(),
-    #     Set{BD.Annotation}(), TimerOutputs.TimerOutput(),
-    #     params, master_factory, pricing_factory
-    # )
     return Problem(
         "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
-        # Dict{BD.Annotation, VarDict}(),
-        # Dict{BD.Annotation, ConstrDict}(),
-        # Set{BD.Annotation}(),
+        Dict{Int, Vector{Variable}}(),
+        Dict{Int, Vector{Constraint}}(),
+        Set{BD.Annotation}(),
         TimerOutputs.TimerOutput(),
         params, master_factory, pricing_factory
     )

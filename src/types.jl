@@ -86,7 +86,7 @@ abstract type AbstractAlg end
 
 const FormId = Int
 
-
+#######################################################################
 const MoiObjective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
 
 const MoiConstrIndex = MOI.ConstraintIndex
@@ -99,8 +99,22 @@ const MoiVarIndex = MOI.VariableIndex
 MoiVarIndex() = MOI.VariableIndex(-1)
 
 const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
-const MoiVarKind = MOI.ConstraintIndex{MOI.SingleVariable,T} where T <: Union{MOI.Integer,MOI.ZeroOne}
 
+const MoiInteger = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}
+const MoiBinary = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}
+const MoiVarKind = Union{MoiInteger,MoiBinary}
+MoiVarKind() = MoiInteger(-1)
+
+# Helpers
+getsense(::MOI.LessThan{T}) where {T} = Less
+getsense(::MOI.GreaterThan{T}) where {T} = Greater
+getsense(::MOI.EqualTo{T}) where {T} = Equal
+getrhs(set::MOI.LessThan{T}) where {T} = set.upper
+getrhs(set::MOI.GreaterThan{T}) where {T} = set.lower
+getrhs(set::MOI.EqualTo{T}) where {T} = set.value
+getkind(::MOI.ZeroOne) = Binary
+getkind(::MOI.Integer) = Integ
+#######################################################################
 
 const StaticDuty = Union{
     OriginalVar, OriginalExpression, PureMastVar, MastRepPricingSpVar,

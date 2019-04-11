@@ -7,28 +7,77 @@ mutable struct VarData <: AbstractVarConstrData
     is_active::Bool
 end
 VarData() = VarData(0.0, 0.0, Inf, Continuous, Positive, true)
+getcost(v::VarData) = v.cost
+getlb(v::VarData) = v.lower_bound
+getub(v::VarData) = v.upper_bound
+getkind(v::VarData) = v.kind
+getsense(v::VarData) = v.sense
+
+setcost!(v::VarData, cost::Float64) = v.cost = cost
+setlb!(v::VarData, lb::Float64) = v.lower_bound = lb
+setub!(v::VarData, ub::Float64) = v.upper_bound = ub
+setkind!(v::VarData, kind::VarKind) = v.kind = kind
+setsense!(v::VarData, sense::VarSense) = v.sense = sense
+
+function set_bound(v::VarData, sense::ConstrSense, bound::Float64)
+    if sense == Less || sense == Equal
+        set_ub(v, bound)
+    elseif sense == Greater || sense == Equal
+        set_lb(v, bound)
+    end
+    return
+end
+
+function set_kind(v::VarData, kind::VarKind)
+    if kind == Binary
+        v.kind = Binary
+        (v.lower_bound < 0) && setlb!(v, 0.0)
+        (v.upper_bound > 1) && setub!(v, 1.0)
+    elseif kind == Integ
+        v.kind = Integ
+    end
+    return
+end
 
 mutable struct MoiVarRecord
     index::MoiVarIndex
     bounds::MoiVarBound
     kind::MoiVarKind
 end
-MoiVarRecord() = MoiVarRecord(MoiVarIndex(), MoiVarBound(), MoiVarKind())
+MoiVarRecord(;index::MoiVarIndex = MoiVarIndex()) = MoiVarRecord(
+    index, MoiVarBound(), MoiVarKind()
+)
 
 struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
     duty::Type{<: AbstractVarDuty}
-    initial_state::VarData
-    cur_state::VarData
+    initial_data::VarData
+    cur_data::VarData
     moi_record::MoiVarRecord
 end
 
 function Variable(id::Id{Variable}, name::String,
-                  duty::Type{>:AbstractVarDuty},
+                  duty::Type{<:AbstractVarDuty};
                   moi_index::MoiVarIndex = MoiVarIndex())
-    return Variable(id, name, duty, VarData(), VarData(), moi_index)
+    return Variable(
+        id, name, duty, VarData(), VarData(),
+        MoiVarRecord(index = moi_index)
+    )
 end
+
+function reset!(v::Variable)
+    initial = get_initial_data(v)
+    cur = get_cur_data(v)
+    cur.cost = initial.cost
+    cur.lower_bound = initial.lower_bound
+    cur.upper_bound = initial.upper_bound
+    cur.kind = initial.kind
+    cur.sense = initial.sense
+    cur.is_active = initial.is_active
+    return
+end
+
 
 ##########################################################################
 # function Variable(n::String)
@@ -143,13 +192,6 @@ end
 # setmoiindex(v::VarState, index::MoiVarIndex) = v.index = index
 # setmoibounds(v::VarState, bd::Union{Nothing,MoiVarBound}) = v.bd_constr_ref = bd
 # setmoikind(v::VarState, kind::Union{Nothing,MoiVarKind}) = v.kind_constr_ref = kind
-
-# function sync!(i::VarState, v::Variable)
-#     setlb!(i, getlb(v))
-#     setub!(i, getub(v))
-#     setcost!(i, getcost(v))
-#     return
-# end
 
 # vctype(::Type{<: VarState}) = Variable
 

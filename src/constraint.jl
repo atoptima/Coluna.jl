@@ -1,35 +1,59 @@
 mutable struct ConstrData <: AbstractVarConstrData
     rhs::Float64 
-    kind::ConstrKind
-    sense::ConstrSense
     is_active::Bool
 end
-ConstrData() = ConstrData(Inf, Core, Less, true)
+ConstrData() = ConstrData(Inf, true)
+
+is_active(vc::AbstractVarConstrData) = vc.is_active
+getrhs(s::ConstrData) = s.rhs
+
+set_is_active!(vc::AbstractVarConstrData, is_active::Bool) = vc.is_active = is_active
+setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 
 mutable struct MoiConstrRecord
     index::MoiConstrIndex
 end
-MoiConstrRecord() = MoiConstrRecord(MoiConstrIndex())
+MoiConstrRecord(;index = MoiConstrIndex()) = MoiConstrRecord(MoiConstrIndex())
 
 struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
+    kind::ConstrKind
+    sense::ConstrSense
     duty::Type{<: AbstractConstrDuty}
-    initial_state::ConstrData
-    cur_state::ConstrData
+    initial_data::ConstrData
+    cur_data::ConstrData
     moi_record::MoiConstrRecord
 end
-Constraint() = Constraint(Id{Constraint}(), "", UndefinedConstrDuty,
-                          ConstrData(), ConstrData(), MoiConstrRecord())
+
+getkind(c::Constraint) = vc.kind
+getsense(c::Constraint) = vc.sense
+
+function Constraint(id::Id{Constraint}, name::String,
+                    kind::ConstrKind, sense::ConstrSense,
+                    duty::Type{<:AbstractConstrDuty};
+                    moi_index::MoiConstrIndex = MoiConstrIndex())
+    return Constraint(
+        id, name, kind, sense, duty, ConstrData(), ConstrData(),
+        MoiConstrRecord(index = moi_index)
+    )
+end
 
 getid(vc::AbstractVarConstr) = vc.id
 getuid(vc::AbstractVarConstr) = getuid(vc.id)
 getname(vc::AbstractVarConstr) = vc.name
 getduty(vc::AbstractVarConstr) = vc.duty
-get_initial_state(vc::AbstractVarConstr) = vc.initial_state
-get_cur_state(vc::AbstractVarConstr) = vc.cor_state
+get_initial_data(vc::AbstractVarConstr) = vc.initial_data
+get_cur_data(vc::AbstractVarConstr) = vc.cur_data
 get_moi_record(vc::AbstractVarConstr) = vc.moi_record
 
+function reset!(c::Constraint)
+    initial = get_initial_data(c)
+    cur = get_cur_data(c)
+    cur.rhs = initial.rhs
+    cur.is_active = initial.is_active
+    return
+end
 
 
 ###################################################################

@@ -1,8 +1,8 @@
 struct Id{VC <: AbstractVarConstr}
-    uid::Int
+    uid::Int # -> id in form
     form_uid::Int
+    # uid::Int
 end
-Id{VC}() where {VC} = Id{VC}(-1, -1)
 Id{VC}(uid::Int) where {VC} = Id{VC}(uid, -1)
 Id(id::Id{VC}, form_uid::Int) where {VC} = Id{VC}(id.uid, form_uid)
 

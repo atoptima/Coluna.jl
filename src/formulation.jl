@@ -9,9 +9,9 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     #moi_model::Union{MOI.ProblemLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
 
-    # vars::MembersVector{Id{Variable},Variable}
-    # constrs::MembersVector{Id{Constraint},Constraint}
-    # members_matrix::MembersMatrix{Id{Variable},Id{Constraint},Float64}
+    vars::Dict{Id{Variable},Variable}
+    constrs::Dict{Id{Constraint},Constraint}
+    members_matrix::MembersMatrix{Id{Variable},Variable,Id{Constraint},Constraint,Float64}
     # partial_sols::MembersMatrix{Id{Variable},Id{Variable},Float64} # (columns, vars) -> coeff
     # expressions::MembersMatrix{Id{Variable},Id{Variable},Float64} # (expression, vars) -> coeff
 
@@ -23,39 +23,58 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     callback
 end
 
-# function Formulation(p::Problem, d::AbstractFormDuty, 
-
-
-function Formulation(Duty::Type{<: AbstractFormDuty}, m::AbstractProblem, 
-                     parent_formulation::Union{AbstractFormulation, Nothing})
-    return Formulation(Duty, m, parent_formulation, nothing)
+function Formulation{D}(p::AbstractProblem; parent_formulation = nothing,
+                        obj_sense::ObjSense = Min,
+                        primal_inc_bound::Float64 = Inf,
+                        dual_inc_bound::Float64 = -Inf
+                        ) where {D<:AbstractFormDuty}
+    vars = Dict{Id{Variable},Variable}()
+    constrs = Dict{Id{Constraint},Constraint}()
+    return Formulation{D}(
+        getnewuid(p.form_counter), p, parent_formulation, nothing,
+        vars, constrs,
+        MembersMatrix{Id{Variable},Variable,Id{Constraint},Constraint,Float64}(vars, constrs),
+        obj_sense, primal_inc_bound, dual_inc_bound, nothing,
+        nothing, nothing
+    )
 end
 
-function Formulation(Duty::Type{<: AbstractFormDuty},
-                     m::AbstractProblem, 
-                     parent_formulation::Union{AbstractFormulation, Nothing},
-                     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing})
-    uid = getnewuid(m.form_counter)
-    return Formulation{Duty}(uid,
-                             m,
-                             parent_formulation,
-                             moi_optimizer, 
-                             Min,
-                             Inf,
-                             -Inf,
-                             nothing,
-                             nothing,
-                             nothing)
-end
+get_var(f::Formulation, id::Id{Variable}) = f.vars[id]
+get_members_matrix(f::Formulation) = f.members_matrix
 
 function generatevarid(f::Formulation)
     return Id{Variable}(getnewuid(f.problem.var_counter))
 end
 
-function add_var!(f::Formulation, name::String; d::Type{<:AbstractVarDuty},
+function generateconstrid(f::Formulation)
+    return Id{Constraint}(getnewuid(f.problem.constr_counter))
+end
+
+function add_var!(f::Formulation, name::String,
+                  d::Type{<:AbstractVarDuty};
                   moi_index::MoiVarIndex = MoiVarIndex())
     id = generatevarid(f)
-    return Variable(id, name, d, moi_index)
+    v = Variable(id, name, d; moi_index = moi_index)
+    haskey(f.vars, id) && error(string("Variable of id ", id, " exists"))
+    f.vars[id] = v
+    return v
+end
+
+function add_constr!(f::Formulation, name::String,
+                     kind::ConstrKind,
+                     sense::ConstrSense,
+                     d::Type{<:AbstractConstrDuty};
+                     moi_index::MoiConstrIndex = MoiConstrIndex())
+    id = generateconstrid(f)
+    c = Constraint(id, name, kind, sense, d; moi_index = moi_index)
+    haskey(f.constrs, id) && error(string("Constraint of id ", id, " exists"))
+    f.constrs[id] = c
+    return c
+end
+
+function register_objective_sense!(f::Formulation, min::Bool)
+    !min && error("Coluna does not support maximization yet.")
+    return
 end
 
 
