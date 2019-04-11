@@ -142,9 +142,9 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     # TODO : improve all drafts as soon as BlockDecomposition returns a
     # decomposition-tree.
 
-    vars_per_block = prob.vars_per_block #:: Dict{BD.Annotation, VarDict}
-    constrs_per_block = prob.constrs_per_block #::Dict{BD.Annotation, ConstrDict}
-    annotation_set = prob.annotation_set #::Set{BD.Annotation}()
+    vars_per_block = prob.optimizer.annotations.vars_per_block 
+    constrs_per_block = prob.optimizer.annotations.constrs_per_block
+    annotation_set = prob.optimizer.annotations.annotation_set 
     
     #@show vars_per_block
     #@show constrs_per_block

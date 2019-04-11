@@ -18,13 +18,14 @@ mutable struct Problem <: AbstractProblem
     params::Params
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
     pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
+    optimizer::Union{Nothing, MOI.AbstractOptimizer}
 end
 
 function Problem(params::Params, master_factory, pricing_factory)
     return Problem(
         "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
         TimerOutputs.TimerOutput(),
-        params, master_factory, pricing_factory
+        params, master_factory, pricing_factory, nothing
     )
 end
 

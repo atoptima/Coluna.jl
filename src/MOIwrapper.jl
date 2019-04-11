@@ -31,7 +31,8 @@ function Optimizer(;master_factory =
         JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
         JuMP.with_optimizer(GLPK.Optimizer), params = Params())
     prob = Problem(params, master_factory, pricing_factory)
-    return Optimizer(prob, MOIU.IndexMap(), Annotations())
+    prob.optimizer = Optimizer(prob, MOIU.IndexMap(), Annotations())
+    return prob.optimizer
 end
 
 function MOI.optimize!(optimizer::Optimizer)

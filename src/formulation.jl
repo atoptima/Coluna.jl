@@ -109,7 +109,7 @@ function _show_obj_fun(io::IO, f::Formulation)
 end
 
 function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
-                          members::MembersVector{VarId,Variable,Float64})
+                          members::VarMembership)
     constr = get_constr(f, constr_id)
     constr_data = get_cur_data(constr)
     print(io, constr_id, " ", getname(constr), " : ")

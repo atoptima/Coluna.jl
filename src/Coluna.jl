@@ -63,7 +63,7 @@ include("formulation.jl")
 # include("clone.jl")
 include("reformulation.jl")
 include("problem.jl")
-# include("decomposition.jl")
+include("decomposition.jl")
 # include("MOIinterface.jl")
 
 ##### Search tree

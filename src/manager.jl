@@ -86,7 +86,7 @@ end
 #    MembersMatrix(MembersVector{I,K,MembersVector{J,L,T}}(), MembersVector{J,L,MembersVector{I,K,T}}())
 #end
 
-function _getmembersvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}) where {I,K,J,L,T}
+function _getrecordvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}) where {I,K,J,L,T}
     if !haskey(dict, key)
         membersvec = MembersVector{J,L,T}(elems)
         dict[key] = membersvec
@@ -96,9 +96,9 @@ function _getmembersvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::
 end
 
 function Base.setindex!(m::MembersMatrix, val, col_id, row_id)
-    col = _getmembersvector!(m.cols, col_id, m.rows.elements)
+    col = _getrecordvector!(m.cols, col_id, m.rows.elements)
     col[row_id] = val
-    row = _getmembersvector!(m.rows, row_id, m.cols.elements)
+    row = _getrecordvector!(m.rows, row_id, m.cols.elements)
     row[col_id] = val
     m
 end
@@ -112,18 +112,18 @@ function Base.getindex(m::MembersMatrix, col_id, row_id)
 end
 
 function Base.getindex(m::MembersMatrix, ::Colon, row_id)
-    _getmembersvector!(m.rows, row_id, m.cols.elements)
+    _getrecordvector!(m.rows, row_id, m.cols.elements)
 end
 
 function Base.getindex(m::MembersMatrix, col_id, ::Colon)
-    _getmembersvector!(m.cols, col_id, m.rows.elements)
+    _getrecordvector!(m.cols, col_id, m.rows.elements)
 end
 
 function setcolumn!(m::MembersMatrix, col_id, new_col::Dict)
     col = MembersVector(m.rows.elements, deepcopy(new_col))
     m.cols[col_id] = col
     for (row_id, val) in col
-        row = _getmembersvector!(m.rows, row_id, m.cols.elements)
+        row = _getrecordvector!(m.rows, row_id, m.cols.elements)
         row[col_id] = val
     end
     m
@@ -133,7 +133,7 @@ function setrow!(m::MembersMatrix, row_id, new_row::Dict)
     row = MembersVector(m.col.elements, deepcopy(new_row))
     m.rows[row_id] = row
     for (col_id, val) in row
-        col = _getmembersvector!(m.cols, col_id, m.rows.elements)
+        col = _getrecordvector!(m.cols, col_id, m.rows.elements)
         col[row_id] = val
     end
     m
@@ -150,6 +150,8 @@ end
 # =================================================================
 const VarDict = Dict{VarId,Variable}
 const ConstrDict = Dict{ConstrId,Constraint}
+const VarMembership = MembersVector{VarId,Variable,Float64}
+const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const MembMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
 
 struct FormulationManager
@@ -199,12 +201,20 @@ get_coefficient_matrix(m::FormulationManager) = m.coefficients
 function clone_var!(dest::FormulationManager,
                     src::FormulationManager,
                     var::Variable)
+    if haskey(src.coefficients.cols, var.id)
+        dest.coefficients.cols[var.id] = src.coefficients.cols[var.id]
+    end
+    
     return var
 end
 
 function clone_constr!(dest::FormulationManager,
                        src::FormulationManager,
                        constr::Constraint)
+    if haskey(src.coefficients.rows, constr.id)
+        dest.coefficients.rows[constr.id] = src.coefficients.rows[constr.id]
+    end
+
     return constr
 end
 
