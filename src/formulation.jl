@@ -17,13 +17,12 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     callback
 end
 
-function Formulation{D}(p::AbstractProblem; parent_formulation = nothing,
+function Formulation{D}(p::AbstractProblem;
+                        parent_formulation = nothing,
                         obj_sense::ObjSense = Min,
                         primal_inc_bound::Float64 = Inf,
                         dual_inc_bound::Float64 = -Inf
                         ) where {D<:AbstractFormDuty}
-    vars = Dict{Id{Variable},Variable}()
-    constrs = Dict{Id{Constraint},Constraint}()
     return Formulation{D}(
         getnewuid(p.form_counter), p, parent_formulation, nothing,
         FormulationManager(),
@@ -32,17 +31,43 @@ function Formulation{D}(p::AbstractProblem; parent_formulation = nothing,
     )
 end
 
-get_var(f::Formulation, id::Id{Variable}) = get_var(f.manager, id)
-get_constr(f::Formulation, id::Id{Constraint}) = get_constr(f.manager, id)
+get_var(f::Formulation, id::VarId) = get_var(f.manager, id)
 
-#get_members_matrix(f::Formulation) = f.members_matrix
+get_constr(f::Formulation, id::ConstrId) = get_constr(f.manager, id)
+
+get_vars(f::Formulation) = get_vars(f.manager)
+
+get_constrs(f::Formulation) = get_constrs(f.manager)
+
+get_coefficient_matrix(f::Formulation) = get_coefficient_matrix(f.manager)
+
+getuid(f::Formulation) = f.uid
+
+getobjsense(f::Formulation) = f.obj_sense
+
 
 function generatevarid(f::Formulation)
-    return Id{Variable}(getnewuid(f.problem.var_counter))
+    return VarId(getnewuid(f.problem.var_counter))
 end
 
 function generateconstrid(f::Formulation)
-    return Id{Constraint}(getnewuid(f.problem.constr_counter))
+    return ConstrId(getnewuid(f.problem.constr_counter))
+end
+
+function set_var!(f::Formulation,
+                  name::String,
+                  duty::Type{<:AbstractVarDuty};
+                  cost::Float64 = 0.0,
+                  lb::Float64 = 0.0,
+                  ub::Float64 = Inf,
+                  kind::VarKind = Continuous,
+                  sense::VarSense = Positive,
+                  moi_index::MoiVarIndex = MoiVarIndex())
+    id = generatevarid(f)
+    v_data = VarData(cost, lb, ub, kind, sense, true)
+    v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
+    add_var!(f.manager, v)
+    return v
 end
 
 function add_var!(f::Formulation,
@@ -80,6 +105,74 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
+function _show_obj_fun(io::IO, f::Formulation)
+    print(io, getobjsense(f), " ")
+    for (id, var) in filter(_explicit_, getvars(f))
+        name = getname(var)
+        cost = getcost(get_cur_data(var))
+        op = (cost < 0.0) ? "-" : "+" 
+        print(io, op, " ", abs(cost), " ", name, " ")
+    end
+    println(io, " ")
+    return
+end
+
+function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
+                          members::MembersVector{VarId,Variable,Float64})
+    constr = getconstr(f, constr_id)
+    constr_data = get_cur_data(constr)
+    print(io, constr_id, " ", getname(constr), " : ")
+    for (var_id, coeff) in members
+        var = getvar(f, var_id)
+        name = getname(var)
+        op = (coeff < 0.0) ? "-" : "+"
+        print(io, op, " ", abs(coeff), " ", name, " ")
+    end
+    if getsense(constr_data) == Equal
+        op = "=="
+    elseif getsense(constr_data) == Greater
+        op = ">="
+    else
+        op = "<="
+    end
+    print(io, " ", op, " ", getrhs(constr_data))
+    println(io, " (", getduty(constr) ,")")
+    return
+end
+
+function _show_constraints(io::IO , f::Formulation)
+    constrs = filter(
+        x->(getduty(x) isa ExplicitDuty), rows(get_members_matrix(f))
+    )
+    for (constr_id, members) in constrs
+        _show_constraint(io, f, constr_id, members)
+    end
+    return
+end
+
+function _show_variable(io::IO, f::Formulation, var::Variable)
+    var_data = get_cur_data(var)
+    name = getname(var)
+    lb = getlb(var_data)
+    ub = getub(var_data)
+    t = getkind(var_data)
+    d = getduty(var)
+    println(io, getid(var), " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , ")")
+end
+
+function _show_variables(io::IO, f::Formulation)
+    for (id, var) in filter(_explicit_, getvars(f))
+        _show_variable(io, f, var)
+    end
+end
+
+function Base.show(io::IO, f::Formulation)
+    println(io, "Formulation id = ", getuid(f))
+    _show_obj_fun(io, f)
+    _show_constraints(io, f)
+    _show_variables(io, f)
+    return
+end
 
 ##################################################################
 # function Formulation(Duty::Type{<: AbstractFormDuty},
@@ -130,14 +223,11 @@ end
 # get_varid_from_uid(f::Formulation, uid::Int) = getkey(f.manager.vars, Id{VarState}(uid), Id{VarState}())
 # get_constrid_from_uid(f::Formulation, uid::Int) = getkey(f.mamanger.constrs, Id{ConstrState}(uid), Id{ConstrState}())
 
-# getvars(f::Formulation) = f.manager.vars
-# getconstrs(f::Formulation) = f.mamanger.constrs
 
 # getvar_ids(fo::Formulation, fu::Function) = filter(fu, fo.vars)
 
 # getconstr_ids(fo::Formulation, fu::Function) = filter(fu, fo.constrs)
 
-# getuid(f::Formulation) = f.uid
 
 # getvar(f::Formulation, id::Id{VarState}) = get(f, id)
 # getconstr(f::Formulation, id::Id{ConstrState}) = get(f, id)
@@ -169,7 +259,6 @@ end
 
 # #getconstr_ids(f::Formulation,  stat::Status) = collect(keys(get_subset(f.manager.vars, stat)))
 
-# getobjsense(f::Formulation) = f.obj_sense
 
 # get_constr_members_of_var(f::Formulation, id::Id) = get_constr_members_of_var(f.memberships, id)
 

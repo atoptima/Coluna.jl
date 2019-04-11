@@ -145,9 +145,9 @@ function rows(m::MembersMatrix)
 end
 
 # =================================================================
-const VarDict = Dict{Id{Variable},Variable}
-const ConstrDict = Dict{Id{Constraint},Constraint}
-const MembMatrix = MembersMatrix{Id{Variable},Variable,Id{Constraint},Constraint,Float64}
+const VarDict = Dict{VarId,Variable}
+const ConstrDict = Dict{ConstrId,Constraint}
+const MembMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
 
 struct FormulationManager
     vars::VarDict
@@ -178,9 +178,15 @@ function add_constr!(m::FormulationManager, constr::Constraint)
     return
 end
 
-get_var(m::FormulationManager, id::Id{Variable}) = vars[id]
+get_var(m::FormulationManager, id::VarId) = vars[id]
 
-get_constr(m::FormulationManager, id::Id{Constraint}) = constrs[id]
+get_constr(m::FormulationManager, id::ConstrId) = constrs[id]
+
+get_vars(m::FormulationManager) = vars
+
+get_constrs(m::FormulationManager) = constrs
+
+get_coefficient_matrix(m::FormulationManager) = coefficients
 
 
 # =================================================================

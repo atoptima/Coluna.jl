@@ -15,17 +15,15 @@ function VarData(; cost::Float64 = 0.0,
     return VarData(cost, lb, ub, kind, sense, is_active)
 end
 
+# Attention: Some getters and setters are defined over AbstractVcData
+#            in file constraint.jl
 getcost(v::VarData) = v.cost
 getlb(v::VarData) = v.lower_bound
 getub(v::VarData) = v.upper_bound
-getkind(v::VarData) = v.kind
-getsense(v::VarData) = v.sense
 
 setcost!(v::VarData, cost::Float64) = v.cost = cost
 setlb!(v::VarData, lb::Float64) = v.lower_bound = lb
 setub!(v::VarData, ub::Float64) = v.upper_bound = ub
-setkind!(v::VarData, kind::VarKind) = v.kind = kind
-setsense!(v::VarData, sense::VarSense) = v.sense = sense
 
 function set_bound(v::VarData, sense::ConstrSense, bound::Float64)
     if sense == Less || sense == Equal
@@ -65,8 +63,11 @@ struct Variable <: AbstractVarConstr
     cur_data::VarData
     moi_record::MoiVarRecord
 end
+const VarId = Id{Variable}
 
-function Variable(id::Id{Variable},
+
+
+function Variable(id::VarId,
                   name::String,
                   duty::Type{<:AbstractVarDuty};
                   var_data = VarData(),
@@ -76,6 +77,9 @@ function Variable(id::Id{Variable},
         MoiVarRecord(index = moi_index)
     )
 end
+
+# Attention: All getters and setters for Variable are defined
+#            over AbstractVarConstr in file constraint.jl
 
 function reset!(v::Variable)
     initial = get_initial_data(v)
