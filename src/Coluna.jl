@@ -47,7 +47,7 @@ import Base.copy
         (),
         ())
 
-include("containers/members.jl")
+#include("containers/members.jl")
 
 include("types.jl")
 include("parameters.jl")
@@ -57,7 +57,7 @@ include("variable.jl")
 include("constraint.jl")
 # include("vcdict.jl")
 # include("filters.jl")
-# include("membership.jl")
+include("members.jl")
 include("solution.jl")
 include("formulation.jl")
 # include("clone.jl")

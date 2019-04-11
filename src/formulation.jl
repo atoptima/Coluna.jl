@@ -8,13 +8,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     #moi_model::Union{MOI.ProblemLike, Nothing}
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
-
-    vars::Dict{Id{Variable},Variable}
-    constrs::Dict{Id{Constraint},Constraint}
-    members_matrix::MembersMatrix{Id{Variable},Variable,Id{Constraint},Constraint,Float64}
-    # partial_sols::MembersMatrix{Id{Variable},Id{Variable},Float64} # (columns, vars) -> coeff
-    # expressions::MembersMatrix{Id{Variable},Id{Variable},Float64} # (expression, vars) -> coeff
-
+    manager::FormulationManager
     obj_sense::ObjSense
     primal_inc_bound::Float64
     dual_inc_bound::Float64
@@ -32,15 +26,16 @@ function Formulation{D}(p::AbstractProblem; parent_formulation = nothing,
     constrs = Dict{Id{Constraint},Constraint}()
     return Formulation{D}(
         getnewuid(p.form_counter), p, parent_formulation, nothing,
-        vars, constrs,
-        MembersMatrix{Id{Variable},Variable,Id{Constraint},Constraint,Float64}(vars, constrs),
+        FormulationManager(),
         obj_sense, primal_inc_bound, dual_inc_bound, nothing,
         nothing, nothing
     )
 end
 
-get_var(f::Formulation, id::Id{Variable}) = f.vars[id]
-get_members_matrix(f::Formulation) = f.members_matrix
+get_var(f::Formulation, id::Id{Variable}) = get_var(f.manager, id)
+get_constr(f::Formulation, id::Id{Constraint}) = get_constr(f.manager, id)
+
+#get_members_matrix(f::Formulation) = f.members_matrix
 
 function generatevarid(f::Formulation)
     return Id{Variable}(getnewuid(f.problem.var_counter))
@@ -49,7 +44,7 @@ end
 function generateconstrid(f::Formulation)
     return Id{Constraint}(getnewuid(f.problem.constr_counter))
 end
-    
+
 function add_var!(f::Formulation,
                   name::String,
                   duty::Type{<:AbstractVarDuty};
@@ -62,8 +57,7 @@ function add_var!(f::Formulation,
     id = generatevarid(f)
     v_data = VarData(cost, lb, ub, kind, sense, true)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
-    haskey(f.vars, id) && error(string("Variable of id ", id, " exists"))
-    f.vars[id] = v
+    add_var!(f.manager, v)
     return v
 end
 
@@ -77,8 +71,7 @@ function add_constr!(f::Formulation,
     id = generateconstrid(f)
     c_data = ConstrData(rhs, kind, sense, true)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
-    haskey(f.constrs, id) && error(string("Constraint of id ", id, " exists"))
-    f.constrs[id] = c
+    add_constr!(f.manager, c)
     return c
 end
 
@@ -134,11 +127,11 @@ end
 
 # get_memberships(f::Formulation) = f.memberships
 
-# get_varid_from_uid(f::Formulation, uid::Int) = getkey(f.vars, Id{VarState}(uid), Id{VarState}())
-# get_constrid_from_uid(f::Formulation, uid::Int) = getkey(f.constrs, Id{ConstrState}(uid), Id{ConstrState}())
+# get_varid_from_uid(f::Formulation, uid::Int) = getkey(f.manager.vars, Id{VarState}(uid), Id{VarState}())
+# get_constrid_from_uid(f::Formulation, uid::Int) = getkey(f.mamanger.constrs, Id{ConstrState}(uid), Id{ConstrState}())
 
-# getvars(f::Formulation) = f.vars
-# getconstrs(f::Formulation) = f.constrs
+# getvars(f::Formulation) = f.manager.vars
+# getconstrs(f::Formulation) = f.mamanger.constrs
 
 # getvar_ids(fo::Formulation, fu::Function) = filter(fu, fo.vars)
 
@@ -148,33 +141,33 @@ end
 
 # getvar(f::Formulation, id::Id{VarState}) = get(f, id)
 # getconstr(f::Formulation, id::Id{ConstrState}) = get(f, id)
-# getstate(f::Formulation, id::Id{VarState}) = getstate(getkey(f.vars, id, 0)) # TODO change the default value (empty Id)
-# getstate(f::Formulation, id::Id{ConstrState}) = getstate(getkey(f.constrs, id, 0))
+# getstate(f::Formulation, id::Id{VarState}) = getstate(getkey(f.manager.vars, id, 0)) # TODO change the default value (empty Id)
+# getstate(f::Formulation, id::Id{ConstrState}) = getstate(getkey(f.mamanger.constrs, id, 0))
 
-# has(f::Formulation, id::Id{VarState}) = haskey(f.vars, id)
-# has(f::Formulation, id::Id{ConstrState}) = haskey(f.constrs, id)
-# get(f::Formulation, id::Id{VarState}) = f.vars[id]
-# get(f::Formulation, id::Id{ConstrState}) = f.constrs[id]
+# has(f::Formulation, id::Id{VarState}) = haskey(f.manager.vars, id)
+# has(f::Formulation, id::Id{ConstrState}) = haskey(f.mamanger.constrs, id)
+# get(f::Formulation, id::Id{VarState}) = f.manager.vars[id]
+# get(f::Formulation, id::Id{ConstrState}) = f.mamanger.constrs[id]
 
 # @deprecate getvar get
 # @deprecate getconstr get
 
-# getvar_ids(f::Formulation) = getids(f.vars)
+# getvar_ids(f::Formulation) = getids(f.manager.vars)
 
-# getconstr_ids(f::Formulation) = getids(f.constrs)
+# getconstr_ids(f::Formulation) = getids(f.mamanger.constrs)
 
 
-# #getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.vars, Duty)))
+# #getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.manager.vars, Duty)))
 
-# #getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.vars, Duty)))
+# #getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}) = collect(keys(get_subset(f.manager.vars, Duty)))
 
-# #getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.vars, Duty, stat)))
+# #getvar_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.manager.vars, Duty, stat)))
 
-# #getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.vars, Duty, stat)))
+# #getconstr_ids(f::Formulation, Duty::Type{<:AbstractVarDuty}, stat::Status) = collect(keys(get_subset(f.manager.vars, Duty, stat)))
 
-# #getvar_ids(f::Formulation, stat::Status) = collect(keys(get_subset(f.vars, stat)))
+# #getvar_ids(f::Formulation, stat::Status) = collect(keys(get_subset(f.manager.vars, stat)))
 
-# #getconstr_ids(f::Formulation,  stat::Status) = collect(keys(get_subset(f.vars, stat)))
+# #getconstr_ids(f::Formulation,  stat::Status) = collect(keys(get_subset(f.manager.vars, stat)))
 
 # getobjsense(f::Formulation) = f.obj_sense
 
@@ -185,27 +178,27 @@ end
 # #TODO membership should be an optional arg
 # # TODO membership should be an optional arg
 # function add!(f::Formulation, var::Variable, id::Id{VarState})
-#     f.vars[id] = var
+#     f.manager.vars[id] = var
 #     set_variable!(f.memberships, id) 
 #     return id
 # end
 
 # function add!(f::Formulation, var::Variable, id::Id{VarState}, 
 #         membership::ConstrMemberDict)
-#     f.vars[id] = var
+#     f.manager.vars[id] = var
 #     set_variable!(f.memberships, id, membership)
 #     return id
 # end
 
 # function add!(f::Formulation, constr::Constraint, id::Id{ConstrState})
-#     f.constrs[id] = constr
+#     f.mamanger.constrs[id] = constr
 #     set_constraint!(f.memberships, id)
 #     return id
 # end
 
 # function add!(f::Formulation, constr::Constraint, id::Id{ConstrState},
 #        membership::VarMemberDict)
-#     f.constrs[id] = constr
+#     f.mamanger.constrs[id] = constr
 #     set_constraint!(f.memberships, id, membership)
 #     return id
 # end
@@ -310,7 +303,7 @@ end
 #     var_ids = keys(filter(_explicit_, membership))
 #     for var_id in var_ids 
 #         coeff = membership[var_id]
-#         if haskey(f.vars, var_id)
+#         if haskey(f.manager.vars, var_id)
 #             var = getvar(f, var_id)
 #             name = getname(var)
 #             op = (coeff < 0.0) ? "-" : "+"

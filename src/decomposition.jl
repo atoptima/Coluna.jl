@@ -64,17 +64,15 @@ function build_dw_master!(prob::Problem,
         rhs = 1.0
         kind = Core
         duty = MasterConstr #MasterConvexityConstr
-        lb_conv_constr = Constraint(getuid(master_form), name, duty, kind, sense, rhs)
-        membership = VarMemberDict()
-        ub_conv_constr_id = add!(master_form, lb_conv_constr, duty, membership)
-        reformulation.dw_pricing_sp_lb[sp_uid] = ub_conv_constr_id
+        lb_conv_constr = add_constr!(master_form, name, duty, rhs, kind, sense)
+        reformulation.dw_pricing_sp_lb[sp_uid] =  getid(lb_conv_constr)
+        @show lb_conv_constr
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
-        ub_conv_constr = Constraint(getuid(master_form), name, duty, kind, sense, rhs)
-        membership = VarMemberDict()
-        lb_conv_constr_id = add!(master_form, ub_conv_constr, duty, membership)
-        reformulation.dw_pricing_sp_ub[sp_uid] = lb_conv_constr_id
+        ub_conv_constr = add_constr!(master_form, name, duty, rhs, kind, sense)
+        reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
+        @show ub_conv_constr
 
         ## Create PricingSetupVar
         name = "PricingSetupVar_sp_$(sp_form.uid)"
@@ -84,19 +82,11 @@ function build_dw_master!(prob::Problem,
         kind = Continuous
         duty = PricingSpSetupVar
         sense = Positive
-        setup_var = Variable(sp_uid, name, duty, cost, lb, ub, kind,  sense)
-        #membership = ConstrMemberDict()
-        #membership[ub_conv_constr_id] = 1.0
-        #membership[lb_conv_constr_id] = 1.0
+        setup_var = add_var!(sp_form, name, duty, cost, lb, ub, kind, sense)
         @show setup_var
-        setup_var_id = add!(sp_form, setup_var, duty)
-        setup_var_clone_id = clone_in_formulation!(master_form, setup_var_id, setup_var, MastRepPricingSpVar)
-        @show setup_var_clone_id
-        @show lb_conv_constr_id
-        @show ub_conv_constr_id
-        
-        set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, ub_conv_constr_id, 1.0)
-        set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, lb_conv_constr_id, 1.0)
+        clone_var!(master_form, name, duty, setup_var)
+       # set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, ub_conv_constr_id, 1.0)
+        #set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, lb_conv_constr_id, 1.0)
 
         vars = filter(_active_pricingSpVar_, getvars(sp_form))
         @show "Sp Var to add in master " vars

@@ -1,8 +1,8 @@
 abstract type AbstractMembersContainer end
 
 mutable struct MembersVector{I,K,T} <: AbstractMembersContainer
-    elements::Dict{I, K}
-    members::Dict{I, T}
+    elements::Dict{I, K} # holds a reference towards the container of elements (sorted by ID) to which we associate records
+    records::Dict{I, T} # holds the records associated to elements that are identified by their ID
 end
 
 MembersVector{I,K,T}(elems::Dict{I,K}) where {I,K,T} = MembersVector(elems, Dict{I,T}())
@@ -11,15 +11,15 @@ Base.eltype(vec::MembersVector{I,K,T}) where {I,K,T} = T
 Base.ndims(vec::MembersVector) = 1
 
 function Base.setindex!(vec::MembersVector{I,K,T}, val, id::I) where {I,K,T}
-    vec.members[id] = val
+    vec.records[id] = val
 end
 
 function Base.get(vec::MembersVector{I,K,T}, id::I, default) where {I,K,T}
-    Base.get(vec.members, id, default)
+    Base.get(vec.records, id, default)
 end
 
 function Base.getindex(vec::MembersVector{I,K,T}, id::I) where {I,K,T}
-    vec.members[id]
+    vec.records[id]
 end
 
 function Base.getindex(vec::MembersVector{I,K,T}, id::I) where {I,K,T<:Number}
@@ -30,47 +30,45 @@ Base.getindex(vec::MembersVector, ::Colon) = vec
 
 function Base.merge(op, vec1::MembersVector{I,K,T}, vec2::MembersVector{I,K,U}) where {I,K,T,U}
     (vec1.elements === vec2.elements) || error("elements are not the same.") # too much restrictive ?
-    MembersVector(vec1.elements, Base.merge(op, vec1.members, vec2.members))
+    MembersVector(vec1.elements, Base.merge(op, vec1.records, vec2.records))
 end
 
 function Base.reduce(op, vec::MembersVector)
-    Base.mapreduce(e -> e[2], op, vec.members)
+    Base.mapreduce(e -> e[2], op, vec.records)
 end
 
 function Base.:(==)(vec1::MembersVector, vec2::MembersVector)
-    vec1.members == vec2.members
+    vec1.records == vec2.records
 end
 
 function Base.:(==)(vec1::Dict, vec2::MembersVector)
-    vec1 == vec2.members
+    vec1 == vec2.records
 end
 
 function Base.:(==)(vec1::MembersVector, vec2::Dict)
-    vec1.members == vec2
+    vec1.records == vec2
 end
 
 function Base.:(!=)(vec1::MembersVector, vec2::MembersVector)
-    vec1.members != vec2.members
+    vec1.records != vec2.records
 end
 
 function Base.haskey(vec::MembersVector{I,K,T}, id::I) where {I,K,T}
-    Base.haskey(vec.members, id)
+    Base.haskey(vec.records, id)
 end
 
 function Base.filter(f::Function, vec::MembersVector)
-    MembersVector(vec.elements, Base.filter(e -> f(vec.elements[e[1]]), vec.members))
+    MembersVector(vec.elements, Base.filter(e -> f(vec.elements[e[1]]), vec.records))
 end
 
-iterate(d::MembersVector) = iterate(d.members)
-iterate(d::MembersVector, state) = iterate(d.members, state)
-length(d::MembersVector) = length(d.members)
-lastindex(d::MembersVector) = lastindex(d.members)
+iterate(d::MembersVector) = iterate(d.records)
+iterate(d::MembersVector, state) = iterate(d.records, state)
+length(d::MembersVector) = length(d.records)
+lastindex(d::MembersVector) = lastindex(d.records)
 
 # =================================================================
 
 struct MembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
-    #col_elements::Dict{I,K} # should be removed (because in cols)
-    #row_elements::Dict{J,L}
     cols::MembersVector{I,K,MembersVector{J,L,T}}
     rows::MembersVector{J,L,MembersVector{I,K,T}}
 end
@@ -79,6 +77,10 @@ function MembersMatrix{I,K,J,L,T}(col_elems::Dict{I,K}, row_elems::Dict{J,L}) wh
     cols = MembersVector{I,K,MembersVector{J,L,T}}(col_elems)
     rows = MembersVector{J,L,MembersVector{I,K,T}}(row_elems)
     MembersMatrix(cols, rows)
+end
+
+function MembersMatrix{I,K,J,L,T}() where {I,K,J,L,T}
+    MembersMatrix(MembersVector{I,K,MembersVector{J,L,T}}(), MembersVector{J,L,MembersVector{I,K,T}}())
 end
 
 function _getmembersvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}) where {I,K,J,L,T}
@@ -91,10 +93,10 @@ function _getmembersvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::
 end
 
 function Base.setindex!(m::MembersMatrix, val, col_id, row_id)
-    cols = _getmembersvector!(m.cols, col_id, m.rows.elements)
-    cols[row_id] = val
-    rows = _getmembersvector!(m.rows, row_id, m.cols.elements)
-    rows[col_id] = val
+    col = _getmembersvector!(m.cols, col_id, m.rows.elements)
+    col[row_id] = val
+    row = _getmembersvector!(m.rows, row_id, m.cols.elements)
+    row[col_id] = val
     m
 end
 
@@ -141,3 +143,45 @@ end
 function rows(m::MembersMatrix)
     return m.rows
 end
+
+# =================================================================
+const VarDict = Dict{Id{Variable},Variable}
+const ConstrDict = Dict{Id{Constraint},Constraint}
+const MembMatrix = MembersMatrix{Id{Variable},Variable,Id{Constraint},Constraint,Float64}
+
+struct FormulationManager
+    vars::VarDict
+    constrs::ConstrDict
+    coefficients::MembMatrix # rows = constraints, cols = variables
+    partial_sols::MembMatrix # rows = variables, cols = solutions
+    expressions::MembMatrix  # rows = expressions, cols = variables
+end
+
+FormulationManager() = FormulationManager(VarDict(),
+                                          ConstrDict(),
+                                          MembMatrix(),
+                                          MembMatrix(),
+                                          MembMatrix())
+                                          
+                                          
+
+
+function add_var!(m::FormulationManager, var::Variable)
+    haskey(vars, id) && error(string("Variable of id ", id, " exists"))
+    vars[id] = v
+    return
+end
+
+function add_constr!(m::FormulationManager, constr::Constraint)
+    haskey(constrs, id) && error(string("Constraint of id ", id, " exists"))
+    constrs[id] = constr
+    return
+end
+
+get_var(m::FormulationManager, id::Id{Variable}) = vars[id]
+
+get_constr(m::FormulationManager, id::Id{Constraint}) = constrs[id]
+
+
+# =================================================================
+
