@@ -17,7 +17,7 @@ function initialize_local_art_vars(master::Formulation,
             MastArtVar; cost = 1000.0, lb = 0.0, ub = Inf,
             kind = Continuous, sense = Positive
         )
-        matrix[getid(v),constr_id] = 1.0
+        matrix[constr_id, getid(v)] = 1.0
     end
     return
 end
@@ -28,9 +28,9 @@ function initialize_global_art_vars(master::Formulation)
     matrix = get_coefficient_matrix(master)
     for (constr_id, constr) in get_constrs(master)
         if getsense(get_cur_data(constr)) == Greater
-            matrix[getid(global_pos),constr_id] = 1.0
+            matrix[constr_id, getid(global_pos)] = 1.0
         elseif getsense(get_cur_data(constr)) == Less
-            matrix[getid(global_neg),constr_id] = -1.0
+            matrix[constr_id, getid(global_neg)] = -1.0
         end
     end
 end

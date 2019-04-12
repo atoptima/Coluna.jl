@@ -166,7 +166,7 @@ function create_origconstr!(f::Formulation,
     matrix = get_coefficient_matrix(f)
     for term in func.terms
         var_id = moi_uid_to_coluna_id[term.variable_index.value]
-        matrix[var_id,constr_id] = term.coefficient
+        matrix[constr_id, var_id] = term.coefficient
     end
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
     update_annotations(
