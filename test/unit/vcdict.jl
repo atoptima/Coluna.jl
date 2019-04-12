@@ -32,22 +32,22 @@ function vcdict_base_unit_tests()
     cols_elems = Dict(1 => true, 2 => true, 4 => false, 5 => false)
     rows_elems = Dict(1 => true, 2 => false, 3 => false, 6 => true)
     m = CL.MembersMatrix{Int,Bool,Int,Bool,Float64}(cols_elems, rows_elems)
-    m[1,2] = 1.0
-    @test m[1,2] == 1.0
-    @test m[1,:][2] == 1.0
-    @test m[:,2][1] == 1.0
+    m[2,1] = 1.0
+    @test m[2,1] == 1.0
+    @test m[:,1][2] == 1.0
+    @test m[2,:][1] == 1.0
     
     new_column = Dict{Int, Float64}()
     new_column[2] = 9.0
     new_column[5] = 2.0
 
-    CL.setcolumn!(m, 2, new_column)
-    @test m[2, :] == new_column
-    @test m[2, 5] == 2.0
+    m[:, 2] = new_column
+    @test m[:, 2] == new_column
+    @test m[5, 2] == 2.0
 
     for (id, col) in CL.columns(m)
         println("$id -> $col")
-        @show m[id, :]
+        @show m[:, id]
     end
 
 end

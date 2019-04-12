@@ -95,32 +95,13 @@ function _getrecordvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I
     dict[key]
 end
 
-function Base.setindex!(m::MembersMatrix, val, col_id, row_id)
-    col = _getrecordvector!(m.cols, col_id, m.rows.elements)
-    col[row_id] = val
-    row = _getrecordvector!(m.rows, row_id, m.cols.elements)
-    row[col_id] = val
-    m
+function setcolumn!(m::MembersMatrix{I,K,J,L,T}, col_id::I, col::Dict{J,T}) where {I,K,J,L,T}
+    new_col = MembersVector(m.rows.elements, deepcopy(col))
+    setcolumn!(m, col_id, new_col)
 end
 
-function Base.getindex(m::MembersMatrix, col_id, row_id)
-    if length(m.cols) < length(m.rows) # improve ?
-        return m.cols[col_id][row_id]
-    else
-        return m.rows[row_id][col_id]
-    end
-end
-
-function Base.getindex(m::MembersMatrix, ::Colon, row_id)
-    _getrecordvector!(m.rows, row_id, m.cols.elements)
-end
-
-function Base.getindex(m::MembersMatrix, col_id, ::Colon)
-    _getrecordvector!(m.cols, col_id, m.rows.elements)
-end
-
-function setcolumn!(m::MembersMatrix, col_id, new_col::Dict)
-    col = MembersVector(m.rows.elements, deepcopy(new_col))
+function setcolumn!(m::MembersMatrix{I,K,J,L,T}, col_id::I, col::MembersVector{J,L,T}) where {I,K,J,L,T}
+    @assert m.rows.elements == col.elements
     m.cols[col_id] = col
     for (row_id, val) in col
         row = _getrecordvector!(m.rows, row_id, m.cols.elements)
@@ -129,8 +110,13 @@ function setcolumn!(m::MembersMatrix, col_id, new_col::Dict)
     m
 end
 
-function setrow!(m::MembersMatrix, row_id, new_row::Dict)
-    row = MembersVector(m.col.elements, deepcopy(new_row))
+function setrow!(m::MembersMatrix{I,K,J,L,T}, row_id::J, row::Dict{I,T}) where {I,K,J,L,T}
+    new_row = MembersVector(m.col.elements, deepcopy(row))
+    setrow!(m, row_id, new_row)
+end
+
+function setrow!(m::MembersMatrix{I,K,J,L,T}, row_id::J, row::MembersVector{I,K,T}) where {I,K,J,L,T}
+    @assert m.columns.elements == row.elements
     m.rows[row_id] = row
     for (col_id, val) in row
         col = _getrecordvector!(m.cols, col_id, m.rows.elements)
@@ -138,6 +124,39 @@ function setrow!(m::MembersMatrix, row_id, new_row::Dict)
     end
     m
 end
+
+function Base.setindex!(m::MembersMatrix, val, row_id, col_id)
+    col = _getrecordvector!(m.cols, col_id, m.rows.elements)
+    col[row_id] = val
+    row = _getrecordvector!(m.rows, row_id, m.cols.elements)
+    row[col_id] = val
+    m
+end
+
+function Base.setindex!(m::MembersMatrix, row, row_id, ::Colon)
+    setrow!(m, row_id, row)
+end
+
+function Base.setindex!(m::MembersMatrix, col, ::Colon, col_id)
+    setcolumn!(m, col_id, col)
+end
+
+function Base.getindex(m::MembersMatrix, row_id, col_id)
+    if length(m.cols) < length(m.rows) # improve ?
+        return m.cols[col_id][row_id]
+    else
+        return m.rows[row_id][col_id]
+    end
+end
+
+function Base.getindex(m::MembersMatrix, row_id, ::Colon)
+    _getrecordvector!(m.rows, row_id, m.cols.elements)
+end
+
+function Base.getindex(m::MembersMatrix, ::Colon, col_id)
+    _getrecordvector!(m.cols, col_id, m.rows.elements)
+end
+
 
 function columns(m::MembersMatrix)
     return m.cols
