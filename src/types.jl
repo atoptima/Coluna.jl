@@ -4,7 +4,6 @@ abstract type AbstractState end
 abstract type AbstractFormulation end
 abstract type AbstractProblem end
 abstract type AbstractMoiDef end
-abstract type AbstractCounter end
 abstract type AbstractMembership end
 abstract type AbstractNode end
 abstract type AbstractVcData end
@@ -12,8 +11,8 @@ abstract type AbstractVcData end
 ## Duties : 
 abstract type AbstractDuty end 
 abstract type AbstractVarConstrDuty <: AbstractDuty end
-abstract type AbstractVarDuty <: AbstractDuty end
-abstract type AbstractConstrDuty <: AbstractDuty end
+abstract type AbstractVarDuty <: AbstractVarConstrDuty end
+abstract type AbstractConstrDuty <: AbstractVarConstrDuty end
 abstract type AbstractFormDuty <: AbstractDuty end
 
 # First level of specification on VarDuty

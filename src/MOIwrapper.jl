@@ -80,23 +80,24 @@ function update_annotations(srs::MOI.ModelLike,
                             annotation_set::Set{BD.Annotation},
                             vc_per_block::Dict{Int,C},
                             annotation::A,
-                            vc::AbstractVarConstr) where {C,A}
+                            vc::AbstractVarConstr
+                            ) where {C<:VarConstrDict,A}
     push!(annotation_set, annotation)
-    if haskey(vc_per_block, annotation.unique_id)
-        push!(vc_per_block[annotation.unique_id], vc)
-    else
+    if !haskey(vc_per_block, annotation.unique_id)
         vc_per_block[annotation.unique_id] = C()
-        push!(vc_per_block[annotation.unique_id], vc)
     end
+    vc_per_block[annotation.unique_id][getid(vc)] = vc
+    return
 end
 
 function load_obj!(f::Formulation, src::MOI.ModelLike,
-                   moi_index_to_coluna_uid::MOIU.IndexMap)
+                   moi_index_to_coluna_uid::MOIU.IndexMap,
+                   moi_uid_to_coluna_id::Dict{Int,VarId})
     # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
     # This is safe becasue the variables are initialized with a 0.0 cost_rhs
     obj = MOI.get(src, MoiObjective())
     for term in obj.terms
-        var = get_var(f, VarId(moi_index_to_coluna_uid[term.variable_index].value))
+        var = get_var(f, moi_uid_to_coluna_id[term.variable_index.value])
         initial_data = get_initial_data(var)
         setcost!(initial_data, term.coefficient)
         reset!(var)
@@ -107,7 +108,8 @@ end
 function create_origvars!(f::Formulation,
                           dest::Optimizer,
                           src::MOI.ModelLike,
-                          copy_names::Bool)
+                          copy_names::Bool,
+                          moi_uid_to_coluna_id::Dict{Int,VarId})
 
     for moi_index in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
@@ -118,6 +120,7 @@ function create_origvars!(f::Formulation,
         v = set_var!(f, name, OriginalVar)
         var_id = getid(v)
         dest.moi_index_to_coluna_uid[moi_index] = MOI.VariableIndex(getuid(var_id))
+        moi_uid_to_coluna_id[moi_index.value] = var_id
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
         update_annotations(
             src, dest.annotations.annotation_set,
@@ -129,9 +132,10 @@ end
 function create_origconstr!(f::Formulation,
                             func::MOI.SingleVariable,
                             set::SupportedVarSets,
-                            moi_index_to_coluna_uid::MOIU.IndexMap)
+                            moi_index_to_coluna_uid::MOIU.IndexMap,
+                            moi_uid_to_coluna_id::Dict{Int,VarId})
 
-    var = get_var(f, VarId(moi_index_to_coluna_uid[func.variable].value))
+    var = get_var(f, moi_uid_to_coluna_id[func.variable.value])
     initial_data = get_initial_data(var)
     if typeof(set) in [MOI.ZeroOne, MOI.Integer]
         set_kind(initial_data, getkind(set))
@@ -149,7 +153,8 @@ function create_origconstr!(f::Formulation,
                             name::String,
                             func::MOI.ScalarAffineFunction,
                             set::SupportedConstrSets,
-                            moi_index::MOI.ConstraintIndex)
+                            moi_index::MOI.ConstraintIndex,
+                            moi_uid_to_coluna_id::Dict{Int,VarId})
 
     c = set_constr!(f, name, OriginalConstr;
                     rhs = getrhs(set),
@@ -160,7 +165,7 @@ function create_origconstr!(f::Formulation,
         MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constr_id))
     matrix = get_coefficient_matrix(f)
     for term in func.terms
-        var_id = VarId(dest.moi_index_to_coluna_uid[term.variable_index].value)
+        var_id = moi_uid_to_coluna_id[term.variable_index.value]
         matrix[var_id,constr_id] = term.coefficient
     end
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
@@ -174,21 +179,28 @@ end
 function create_origconstrs!(f::Formulation,
                              dest::Optimizer,
                              src::MOI.ModelLike,
-                             copy_names::Bool)
+                             copy_names::Bool,
+                             moi_uid_to_coluna_id::Dict{Int,VarId})
 
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
         for moi_index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
             func = MOI.get(src, MOI.ConstraintFunction(), moi_index)
             set = MOI.get(src, MOI.ConstraintSet(), moi_index)
             if func isa MOI.SingleVariable
-                create_origconstr!(f, func, set, dest.moi_index_to_coluna_uid)
+                create_origconstr!(
+                    f, func, set, dest.moi_index_to_coluna_uid,
+                    moi_uid_to_coluna_id
+                )
             else
                 if copy_names
                     name = MOI.get(src, MOI.ConstraintName(), moi_index)
                 else
                     name = string("constr_", moi_index.value)
                 end
-                create_origconstr!(f, dest, src, name, func, set, moi_index)
+                create_origconstr!(
+                    f, dest, src, name, func, set, moi_index,
+                    moi_uid_to_coluna_id
+                )
             end
         end
     end
@@ -201,13 +213,14 @@ function register_original_formulation!(dest::Optimizer,
 
     copy_names = true
     problem = dest.inner
-    orig_form = Formulation{Original}(problem)
+    orig_form = Formulation{Original}(problem.form_counter)
     set_original_formulation!(problem, orig_form)
+    moi_uid_to_coluna_id = Dict{Int,VarId}()
 
-    create_origvars!(orig_form, dest, src, copy_names)
-    create_origconstrs!(orig_form, dest, src, copy_names)
+    create_origvars!(orig_form, dest, src, copy_names, moi_uid_to_coluna_id)
+    create_origconstrs!(orig_form, dest, src, copy_names, moi_uid_to_coluna_id)
 
-    load_obj!(orig_form, src, dest.moi_index_to_coluna_uid)
+    load_obj!(orig_form, src, dest.moi_index_to_coluna_uid, moi_uid_to_coluna_id)
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
     register_objective_sense!(orig_form, min_sense)

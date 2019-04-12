@@ -1,26 +1,38 @@
-function initialize_local_art_vars(master::Formulation, constrs_in_form)
-    for (id, constr) in constrs_in_form
-        art_var = LocalArtVar(getuid(master), getuid(id))
-        membership = ConstrMemberDict()
-        membership.members[id] = 1.0
-        add!(master, art_var, MastArtVar, membership)
+set_loc_art_var(f::Formulation, constr_id::ConstrId) = set_var!(
+    f, string("local_art_", constr_id), MastArtVar; cost = 10.0,
+    lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+)
+set_glob_art_var(f::Formulation, is_pos::Bool) = set_var!(
+    f, string("global_", (is_pos ? "pos" : "neg"), "_art_var_"),
+    MastArtVar; cost = 1000.0, lb = 0.0, ub = Inf,
+    kind = Continuous, sense = Positive
+)
+
+function initialize_local_art_vars(master::Formulation,
+                                   constrs_in_form)
+    matrix = get_coefficient_matrix(master)
+    for (constr_id, constr) in constrs_in_form
+        v = set_var!(
+            master, string("local_art_", constr_id),
+            MastArtVar; cost = 1000.0, lb = 0.0, ub = Inf,
+            kind = Continuous, sense = Positive
+        )
+        matrix[getid(v),constr_id] = 1.0
     end
+    return
 end
 
 function initialize_global_art_vars(master::Formulation)
-    global_pos = GlobalArtVar(getuid(master), Positive)
-    global_neg = GlobalArtVar(getuid(master), Negative)
-    pos_membership = ConstrMemberDict()
-    neg_membership = ConstrMemberDict()
-    for (id, constr) in get_constrs(master)
-        if getsense(constr) == Greater
-            pos_membership.members[id] = 1.0
-        elseif getsense(constr) == Less
-            neg_membership.members[id] = -1.0
+    global_pos = set_glob_art_var(master, true)
+    global_neg = set_glob_art_var(master, false)
+    matrix = get_coefficient_matrix(master)
+    for (constr_id, constr) in get_constrs(master)
+        if getsense(get_cur_data(constr)) == Greater
+            matrix[getid(global_pos),constr_id] = 1.0
+        elseif getsense(get_cur_data(constr)) == Less
+            matrix[getid(global_neg),constr_id] = -1.0
         end
     end
-    add!(master, global_pos, MastArtVar, pos_membership)
-    add!(master, global_neg, MastArtVar, neg_membership)
 end
 
 function initialize_artificial_variables(master::Formulation, constrs_in_form)
@@ -31,22 +43,29 @@ function initialize_artificial_variables(master::Formulation, constrs_in_form)
     # end
 end
 
+function find_vcs_in_block(uid::Int, vars_per_block::Dict{Int,VarDict},
+                           constrs_per_block::Dict{Int,ConstrDict})
+    vars = VarDict()
+    if haskey(vars_per_block, uid)
+        vars = vars_per_block[uid]
+    end
+    constrs = ConstrDict()
+    if haskey(constrs_per_block, uid)
+        constrs = constrs_per_block[uid]
+    end
+    return vars, constrs
+end
+
 function build_dw_master!(prob::Problem,
                           annotation_id::Int,
                           reformulation::Reformulation,
                           master_form::Formulation,
                           vars_in_form::VarDict,
                           constrs_in_form::ConstrDict)
-                          # Commented for now, I dont think managers are usefull here
-                          # vars_in_form::Manager{Id{VarState}, Variable},
-                          # constrs_in_form::Manager{Id{ConstrState}, Constraint})
 
     orig_form = get_original_formulation(prob)
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
     reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
-
-    @show "master vars " vars_in_form
-    @show "master constrs " constrs_in_form
 
     # copy of pure master variables
     clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
@@ -64,15 +83,19 @@ function build_dw_master!(prob::Problem,
         rhs = 1.0
         kind = Core
         duty = MasterConstr #MasterConvexityConstr
-        lb_conv_constr = set_constr!(master_form, name, duty, rhs, kind, sense)
+        lb_conv_constr = set_constr!(master_form, name, duty;
+                                     rhs = rhs, kind  = kind,
+                                     sense = sense)
         reformulation.dw_pricing_sp_lb[sp_uid] =  getid(lb_conv_constr)
-        @show lb_conv_constr
+        # @show lb_conv_constr
 
         name = "sp_ub_$(sp_uid)"
         sense = Less
-        ub_conv_constr = set_constr!(master_form, name, duty, rhs, kind, sense)
+        ub_conv_constr = set_constr!(master_form, name, duty;
+                                     rhs = rhs, kind = kind,
+                                     sense = sense)
         reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
-        @show ub_conv_constr
+        # @show ub_conv_constr
 
         ## Create PricingSetupVar
         name = "PricingSetupVar_sp_$(sp_form.uid)"
@@ -82,22 +105,20 @@ function build_dw_master!(prob::Problem,
         kind = Continuous
         duty = PricingSpSetupVar
         sense = Positive
-        setup_var = set_var!(sp_form, name, duty, cost, lb, ub, kind, sense)
-        @show setup_var
+        setup_var = set_var!(sp_form, name, duty; cost = cost,
+                             lb = lb, ub = ub, kind = kind,
+                             sense = sense)
+        # @show setup_var
         clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSpVar)
-       # set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, ub_conv_constr_id, 1.0)
-        #set_constr_members_of_var!(master_form.memberships, setup_var_clone_id, lb_conv_constr_id, 1.0)
 
         vars = filter(_active_pricingSpVar_, get_vars(sp_form))
-        @show "Sp Var to add in master " vars
+        # @show "Sp Var to add in master " vars
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar)
     end
 
-    #clone_memberships!(master_form, orig_form)
-
     # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
-
+    @show master_form
     return
 end
 
@@ -106,23 +127,14 @@ function build_dw_pricing_sp!(prob::Problem,
                               sp_form::Formulation,
                               vars_in_form::VarDict,
                               constrs_in_form::ConstrDict)
-    # Commented for now, I dont think managers are usefull here
-    # vars_in_form::Manager{Id{VarState}, Variable},
-    # constrs_in_form::Manager{Id{ConstrState}, Constraint})
-    
+
     orig_form = get_original_formulation(prob)
-
     master_form = sp_form.parent_formulation
-
     reformulation = master_form.parent_formulation
-
-    sp_uid = getuid(sp_form)
-
     ## Create Pure Pricing Sp Var & constr
     clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
     clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
-    # clone_memberships!(sp_form, orig_form)
- 
+    @show sp_form
     return
 end
 
@@ -154,7 +166,10 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     set_re_formulation!(prob, reformulation)
 
     # Create master formulation
-    master_form = Formulation(DwMaster, prob, reformulation, prob.master_factory())
+    master_form = Formulation{DwMaster}(
+        prob.form_counter; parent_formulation = reformulation,
+        moi_optimizer = prob.master_factory()
+    )
     setmaster!(reformulation, master_form)
 
     # Create pricing subproblem formulations
@@ -169,7 +184,10 @@ function reformulate!(prob::Problem, method::SolutionMethod)
             master_unique_id = annotation.unique_id
             formulations[annotation.unique_id] = master_form
         elseif annotation.problem == BD.Pricing
-            f = Formulation(DwSp, prob, master_form, prob.pricing_factory())
+            f = Formulation{DwSp}(
+                prob.form_counter; parent_formulation = master_form,
+                moi_optimizer = prob.pricing_factory()
+            )
             formulations[annotation.unique_id] = f
             add_dw_pricing_sp!(reformulation, f)
         else 
@@ -181,33 +199,22 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
         @show annotation
-        if  annotation.problem == BD.Pricing
-            vars = VarDict()
-            if haskey(vars_per_block, annotation.unique_id)
-                vars = vars_per_block[annotation.unique_id]
-            end
-            constrs = ConstrDict()
-            if haskey(constrs_per_block, annotation.unique_id)
-                constrs = constrs_per_block[annotation.unique_id]
-            end
+        if annotation.problem == BD.Pricing
+            vars, constrs = find_vcs_in_block(
+                annotation.unique_id, vars_per_block, constrs_per_block
+            )
             println("> build sp $(annotation.unique_id)")
             build_dw_pricing_sp!(prob, annotation.unique_id,
                                  formulations[annotation.unique_id],
                                  vars, constrs)
         end
     end
-    
- 
+
     # Build Master
     @show master_unique_id
-    vars = VarDict()
-    if haskey(vars_per_block, master_unique_id)
-        vars = vars_per_block[master_unique_id]
-    end
-    constrs = ConstrDict()
-    if haskey(constrs_per_block, master_unique_id)
-        constrs = constrs_per_block[master_unique_id]
-    end
+    vars, constrs = find_vcs_in_block(
+        master_unique_id, vars_per_block, constrs_per_block
+    )
     build_dw_master!(prob, master_unique_id, reformulation,
                      master_form, vars, constrs)
 
@@ -218,7 +225,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
          @show p
         println("\e[32m ---------------- \e[00m")
     end
-
+    exit()
     return
 end
 

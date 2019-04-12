@@ -8,6 +8,7 @@ import DataStructures
 import GLPK
 import JuMP
 import BlockDecomposition
+import Distributed
 
 using Base.CoreLogging
 using SparseArrays
@@ -55,12 +56,11 @@ include("counters.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
-# include("vcdict.jl")
 include("manager.jl")
 include("filters.jl")
 include("solution.jl")
 include("formulation.jl")
-# include("clone.jl")
+include("clone.jl")
 include("reformulation.jl")
 include("problem.jl")
 include("decomposition.jl")

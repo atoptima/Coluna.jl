@@ -1,19 +1,19 @@
 struct Annotations
-    vars_per_block::Dict{Int, Vector{Variable}}
-    constrs_per_block::Dict{Int, Vector{Constraint}}
+    vars_per_block::Dict{Int, Dict{Id{Variable},Variable}}
+    constrs_per_block::Dict{Int, Dict{Id{Constraint},Constraint}}
     annotation_set::Set{BD.Annotation}
 end
-Annotations() = Annotations(Dict{Int, Vector{Variable}}(), Dict{Int, Vector{Constraint}}(), Set{BD.Annotation}())
+Annotations() = Annotations(
+    Dict{Int, Dict{Id{Variable},Variable}}(),
+    Dict{Int, Dict{Id{Constraint},Constraint}}(),
+    Set{BD.Annotation}()
+)
 
 mutable struct Problem <: AbstractProblem
     name::String
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
-
-    var_counter::VarCounter # Can be local to Formulation
-    constr_counter::ConstrCounter # Can be local to Formulation
-    form_counter::FormCounter
-
+    form_counter::Counter
     timer_output::TimerOutputs.TimerOutput
     params::Params
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
@@ -23,7 +23,7 @@ end
 
 function Problem(params::Params, master_factory, pricing_factory)
     return Problem(
-        "prob", nothing, nothing, VarCounter(), ConstrCounter(), FormCounter(),
+        "prob", nothing, nothing, Counter(-1), # 0 is for original form
         TimerOutputs.TimerOutput(),
         params, master_factory, pricing_factory, nothing
     )

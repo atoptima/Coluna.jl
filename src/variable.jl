@@ -6,6 +6,7 @@ mutable struct VarData <: AbstractVcData
     sense::VarSense
     is_active::Bool
 end
+
 function VarData(; cost::Float64 = 0.0,
                  lb::Float64 = 0.0,
                  ub::Float64 = Inf,
@@ -64,8 +65,6 @@ struct Variable <: AbstractVarConstr
     moi_record::MoiVarRecord
 end
 const VarId = Id{Variable}
-
-
 
 function Variable(id::VarId,
                   name::String,

@@ -150,6 +150,7 @@ end
 # =================================================================
 const VarDict = Dict{VarId,Variable}
 const ConstrDict = Dict{ConstrId,Constraint}
+const VarConstrDict = Union{VarDict,ConstrDict}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const MembMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
@@ -172,9 +173,6 @@ function FormulationManager()
                               MembMatrix(vars,constrs),
                               MembMatrix(vars,constrs))
 end
-
-
-
 
 function add_var!(m::FormulationManager, var::Variable)
     haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))

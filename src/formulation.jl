@@ -1,9 +1,9 @@
-
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
-    uid::FormId
-    problem::AbstractProblem # Should be removed. Only kept here because of counters
+    uid::Int
+    var_counter::Counter
+    constr_counter::Counter
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
-    #moi_model::Union{MOI.ProblemLike, Nothing}
+
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     manager::FormulationManager
     obj_sense::ObjSense
@@ -14,15 +14,17 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     callback
 end
 
-function Formulation{D}(p::AbstractProblem;
+function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
                         obj_sense::ObjSense = Min,
+                        moi_optimizer::Union{MOI.AbstractOptimizer,
+                                             Nothing} = nothing,
                         primal_inc_bound::Float64 = Inf,
                         dual_inc_bound::Float64 = -Inf
                         ) where {D<:AbstractFormDuty}
     return Formulation{D}(
-        getnewuid(p.form_counter), p, parent_formulation, nothing,
-        FormulationManager(),
+        getnewuid(form_counter), Counter(), Counter(),
+        parent_formulation, moi_optimizer, FormulationManager(),
         obj_sense, primal_inc_bound, dual_inc_bound, nothing,
         nothing, nothing
     )
@@ -42,13 +44,12 @@ getuid(f::Formulation) = f.uid
 
 getobjsense(f::Formulation) = f.obj_sense
 
-
 function generatevarid(f::Formulation)
-    return VarId(getnewuid(f.problem.var_counter))
+    return VarId(getnewuid(f.var_counter), f.uid)
 end
 
 function generateconstrid(f::Formulation)
-    return ConstrId(getnewuid(f.problem.constr_counter))
+    return ConstrId(getnewuid(f.constr_counter), f.uid)
 end
 
 function set_var!(f::Formulation,
@@ -68,9 +69,10 @@ end
 
 add_var!(f::Formulation, var::Variable) = add_var!(f.manager, var)
 
-clone_var!(dest::Formulation,
-           src::Formulation,
-           var::Variable) = clone_var!(dest.manager, src.manager, var)
+function clone_var!(dest::Formulation, src::Formulation, var::Variable)
+    add_var!(dest, var)
+    clone_var!(dest.manager, src.manager, var)
+end
 
 function set_constr!(f::Formulation,
                      name::String,
@@ -87,9 +89,10 @@ end
 
 add_constr!(f::Formulation, constr::Constraint) = add_constr!(f.manager, constr)
 
-clone_constr!(dest::Formulation,
-           src::Formulation,
-           constr::Constraint) = clone_constr!(dest.manager, src.manager, constr)
+function clone_constr!(dest::Formulation, src::Formulation, constr::Constraint)
+    add_constr!(dest, constr)
+    clone_constr!(dest.manager, src.manager, constr)
+end
 
 function register_objective_sense!(f::Formulation, min::Bool)
     !min && error("Coluna does not support maximization yet.")
