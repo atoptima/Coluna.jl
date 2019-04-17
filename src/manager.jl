@@ -217,6 +217,19 @@ get_constrs(m::FormulationManager) = m.constrs
 
 get_coefficient_matrix(m::FormulationManager) = m.coefficients
 
+function Base.show(io::IO, m::FormulationManager)
+    println(io, "FormulationManager :")
+    println(io, "> variables : ")
+    for (id, var) in m.vars
+        println(io, "  ", id, " => ", var)
+    end
+    println(io, "> constraints : ")
+    for (id, constr) in m.constrs
+        println(io, " ", id, " => ", constr)
+    end
+    return
+end
+
 
 # =================================================================
 
