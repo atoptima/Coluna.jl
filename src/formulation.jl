@@ -142,6 +142,10 @@ function load_problem_in_optimizer(formulation::Formulation)
         println("Members are")
         @show members
         println("----------")
+        @show formulation.manager.vars
+        println("-----------")
+        @show members == formulation.manager.vars
+        println("---------")
         @show filter(x->(getduty(x) isa ExplicitDuty), members)
         println("----------")
 

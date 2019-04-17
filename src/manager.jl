@@ -5,6 +5,8 @@ mutable struct MembersVector{I,K,T} <: AbstractMembersContainer
     records::Dict{I, T} # holds the records associated to elements that are identified by their ID
 end
 
+getrecords(vec::MembersVector) = vec.records
+
 MembersVector{I,K,T}(elems::Dict{I,K}) where {I,K,T} = MembersVector(elems, Dict{I,T}())
 
 #MembersVector{I,K,T}() where {I,K,T} = MembersVector( Dict{I, K}(), Dict{I,T}() )
@@ -96,7 +98,7 @@ function _getrecordvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I
 end
 
 function setcolumn!(m::MembersMatrix{I,K,J,L,T}, col_id::I, col::Dict{J,T}) where {I,K,J,L,T}
-    new_col = MembersVector(m.rows.elements, deepcopy(col))
+    new_col = MembersVector(m.rows.elements, col)
     setcolumn!(m, col_id, new_col)
 end
 
@@ -111,12 +113,12 @@ function setcolumn!(m::MembersMatrix{I,K,J,L,T}, col_id::I, col::MembersVector{J
 end
 
 function setrow!(m::MembersMatrix{I,K,J,L,T}, row_id::J, row::Dict{I,T}) where {I,K,J,L,T}
-    new_row = MembersVector(m.col.elements, deepcopy(row))
+    new_row = MembersVector(m.cols.elements, row)
     setrow!(m, row_id, new_row)
 end
 
 function setrow!(m::MembersMatrix{I,K,J,L,T}, row_id::J, row::MembersVector{I,K,T}) where {I,K,J,L,T}
-    @assert m.columns.elements == row.elements
+    @assert m.cols.elements == row.elements
     m.rows[row_id] = row
     for (col_id, val) in row
         col = _getrecordvector!(m.cols, col_id, m.rows.elements)
@@ -214,27 +216,6 @@ get_vars(m::FormulationManager) = m.vars
 get_constrs(m::FormulationManager) = m.constrs
 
 get_coefficient_matrix(m::FormulationManager) = m.coefficients
-
-function clone_var!(dest::FormulationManager,
-                    src::FormulationManager,
-                    var::Variable)
-    if haskey(src.coefficients.cols, var.id)
-        dest.coefficients.cols[var.id] = src.coefficients.cols[var.id]
-    end
-    
-    return var
-end
-
-function clone_constr!(dest::FormulationManager,
-                       src::FormulationManager,
-                       constr::Constraint)
-    if haskey(src.coefficients.rows, constr.id)
-        dest.coefficients.rows[constr.id] = src.coefficients.rows[constr.id]
-    end
-
-    return constr
-end
-
 
 
 # =================================================================

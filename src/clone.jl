@@ -5,7 +5,8 @@ function clone_in_formulation!(dest::Formulation,
     var_clone = Variable(
         getid(var), getname(var), duty; var_data = get_initial_data(var)
     )
-    clone_var!(dest, src, var_clone)
+    add_var!(dest, var_clone)
+    clone_in_manager!(dest.manager, src.manager, var_clone)
     return
 end
 
@@ -18,7 +19,8 @@ function clone_in_formulation!(dest::Formulation,
                               getname(constr),
                               duty;
                               constr_data = get_initial_data(constr))
-    clone_constr!(dest, src, constr_clone)
+    add_constr!(dest, constr_clone)
+    clone_in_manager!(dest.manager, src.manager, constr_clone)
     return
 end
 
@@ -31,4 +33,21 @@ function clone_in_formulation!(dest::Formulation,
         clone_in_formulation!(dest, src, vc, duty)
     end
     return
+end
+
+function clone_in_manager!(dest::FormulationManager,
+                    src::FormulationManager,
+                    var::Variable)
+    
+    dest.coefficients[:, var.id] = copy(getrecords(src.coefficients[:, var.id]))
+    return var
+end
+
+function clone_in_manager!(dest::FormulationManager,
+                        src::FormulationManager,
+                        constr::Constraint)
+
+    dest.coefficients[constr.id, :] = copy(getrecords(src.coefficients[constr.id, :]))
+
+    return constr
 end
