@@ -66,13 +66,14 @@ function initialize_moi_optimizer(prob::Problem)
 end
 
 function coluna_initialization(prob::Problem, annotations::Annotations)
- 
+
     _set_global_params(prob.params)
     reformulate!(prob, DantzigWolfeDecomposition)
     initialize_moi_optimizer(prob)
     load_problem_in_optimizer(prob)
 
     call_attention()
+    exit()
 end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before

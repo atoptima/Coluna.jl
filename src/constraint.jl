@@ -26,6 +26,9 @@ mutable struct MoiConstrRecord
 end
 MoiConstrRecord(;index = MoiConstrIndex()) = MoiConstrRecord(MoiConstrIndex())
 
+get_index(record::MoiConstrRecord) = record.index
+set_index(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
+
 struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String

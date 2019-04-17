@@ -44,6 +44,8 @@ getuid(f::Formulation) = f.uid
 
 getobjsense(f::Formulation) = f.obj_sense
 
+get_optimizer(f::Formulation) = f.moi_optimizer
+
 function generatevarid(f::Formulation)
     return VarId(getnewuid(f.var_counter), f.uid)
 end
@@ -98,6 +100,115 @@ function register_objective_sense!(f::Formulation, min::Bool)
     !min && error("Coluna does not support maximization yet.")
     return
 end
+
+
+# function optimize(form::Formulation, optimizer = form.moi_optimizer,
+#                   update_form = true)
+#     call_moi_optimize_with_silence(form.moi_optimizer)
+#     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
+#     primal_sols = PrimalSolution[]
+#     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
+#     if MOI.get(optimizer, MOI.ResultCount()) >= 1
+#         primal_sol = retrieve_primal_sol(form, filter(_explicit_ , form.vars))
+#         push!(primal_sols, primal_sol)
+#         dual_sol = retrieve_dual_sol(form, filter(_active_ , form.constrs))
+#         if update_form
+#             form.primal_solution_record = primal_sol
+#             if dual_sol != nothing
+#                 form.dual_solution_record = dual_sol
+#             end
+#         end
+#         return (status, primal_sol.value, primal_sols, dual_sol)
+#     end
+#     @logmsg LogLevel(-4) string("Solver has no result to show.")
+#     return (status, Inf, nothing, nothing)
+# end
+
+function load_problem_in_optimizer(formulation::Formulation)
+    optimizer = get_optimizer(formulation)
+    for (id, var) in filter(_explicit_, get_vars(formulation))
+        add_variable_in_optimizer(optimizer, var)
+    end
+    constrs = filter(
+        x->(getduty(x) isa ExplicitDuty), rows(get_coefficient_matrix(formulation))
+    )
+
+
+    # constrs = filter(
+    #     _explicit_, rows(get_coefficient_matrix(formulation))
+    # )
+    for (constr_id, members) in constrs
+        println("trying to add constr ", constr_id)
+        println("Members are")
+        @show members
+        println("----------")
+        @show filter(x->(getduty(x) isa ExplicitDuty), members)
+        println("----------")
+
+        add_constraint_in_optimizer(
+            optimizer, id,
+            filter(_explicit_, members)
+        )
+    end
+    println("Showing optimizer after being loaded with problem")
+    @show get_optimizer(formulation)
+end
+
+function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
+    form.moi_optimizer = create_moi_optimizer(factory)
+end
+
+# function retrieve_primal_sol(form::Formulation,
+#                              vars::VarDict)
+#     new_sol = VarMemberDict()
+#     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
+#     #error("Following line does not work.")
+#     fill_primal_sol(form.moi_optimizer, new_sol, vars)
+#     primal_sol = PrimalSolution(new_obj_val, new_sol)
+#     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
+#     return primal_sol
+# end
+
+# function retrieve_dual_sol(form::Formulation,
+#                            constrs::ConstrDict)
+#     # TODO check if supported by solver
+#     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
+#         println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
+#         return nothing
+#     end
+#     new_sol = ConstrMemberDict()
+#     obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
+#     fill_dual_sol(form.moi_optimizer, new_sol, constrs)
+#     dual_sol = DualSolution(obj_bound, new_sol)
+#     return dual_sol
+# end
+
+# function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
+#     for (var_id, var_val) in sol.members
+#         if (!is_value_integer(var_val, tolerance)
+#                 && (getkind(getstate(var_id)) == 'I' || getkind(getstate(var_id)) == 'B'))
+#             @logmsg LogLevel(-2) "Sol is fractional."
+#             return false
+#         end
+#     end
+#     @logmsg LogLevel(-4) "Solution is integer!"
+#     return true
+# end
+
+
+# function update_var_status(var_id::Id{VarState},
+#                            new_status::Status)
+#     @logmsg LogLevel(-2) "change var status "  getstatus(getstate(var_id)) == new_status var_id
+
+#     setstatus!(getstate(var_id), new_status)
+# end
+
+# function update_constr_status(constr_id::Id{ConstrState},
+#                               new_status::Status)
+#     @logmsg LogLevel(-2) "change var status "  getstatus(getstate(constr_id)) == new_status constr_id
+
+#     setstatus!(getstate(constr_id), new_status)
+# end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")

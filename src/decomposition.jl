@@ -225,7 +225,6 @@ function reformulate!(prob::Problem, method::SolutionMethod)
          @show p
         println("\e[32m ---------------- \e[00m")
     end
-    exit()
     return
 end
 

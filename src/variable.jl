@@ -55,6 +55,13 @@ end
 MoiVarRecord(;index::MoiVarIndex = MoiVarIndex()) = MoiVarRecord(
     index, MoiVarBound(), MoiVarKind()
 )
+get_index(record::MoiVarRecord) = record.index
+get_bounds(record::MoiVarRecord) = record.bounds
+get_kind(record::MoiVarRecord) = record.kind
+
+set_index(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
+set_bounds(record::MoiVarRecord, bnds::MoiVarBound) = record.bounds = bnds
+set_kind(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
 
 struct Variable <: AbstractVarConstr
     id::Id{Variable}
