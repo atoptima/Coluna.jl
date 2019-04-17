@@ -40,7 +40,13 @@ function clone_in_manager!(dest::FormulationManager,
                     src::FormulationManager,
                     var::Variable)
     
-    dest.coefficients[:, var.id] = copy(getrecords(src.coefficients[:, var.id]))
+    new_col = Dict{Id{Constraint}, Float64}()
+    for (id, val) in getrecords(src.coefficients[:, var.id])
+        if has(dest, id)
+            new_col[id] = val
+        end
+    end
+    dest.coefficients[:, var.id] = new_col
     return var
 end
 
@@ -48,7 +54,12 @@ function clone_in_manager!(dest::FormulationManager,
                         src::FormulationManager,
                         constr::Constraint)
 
-    dest.coefficients[constr.id, :] = copy(getrecords(src.coefficients[constr.id, :]))
-
+    new_row = Dict{Id{Variable}, Float64}()
+    for (id, val) in getrecords(src.coefficients[constr.id, :])
+        if has(dest, id)
+            new_row[id] = val
+        end
+    end
+    dest.coefficients[constr.id, :] = new_row
     return constr
 end

@@ -30,6 +30,9 @@ function Formulation{D}(form_counter::Counter;
     )
 end
 
+
+has(f::Formulation, id::Id) = has(f.manager, id)
+
 get_var(f::Formulation, id::VarId) = get_var(f.manager, id)
 
 get_constr(f::Formulation, id::ConstrId) = get_constr(f.manager, id)

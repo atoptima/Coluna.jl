@@ -137,13 +137,12 @@ function build_dw_pricing_sp!(prob::Problem,
     @show constrs_in_form
     @show vars_in_form
 
-    @show sp_form.manager.constrs
-    @show sp_form.manager.vars
+    @show sp_form.manager
 
-    for (constr_id, members) in rows(get_coefficient_matrix(sp_form))
-        @show constr_id
-        @show get_constr(sp_form, constr_id)
-    end
+    # for (constr_id, members) in rows(get_coefficient_matrix(sp_form))
+    #     @show constr_id
+    #     @show get_constr(sp_form, constr_id)
+    # end
 
 
 
