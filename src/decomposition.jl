@@ -134,6 +134,19 @@ function build_dw_pricing_sp!(prob::Problem,
     ## Create Pure Pricing Sp Var & constr
     clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
     clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
+    @show constrs_in_form
+    @show vars_in_form
+
+    @show sp_form.manager.constrs
+    @show sp_form.manager.vars
+
+    for (constr_id, members) in rows(get_coefficient_matrix(sp_form))
+        @show constr_id
+        @show get_constr(sp_form, constr_id)
+    end
+
+
+
     @show sp_form
     return
 end

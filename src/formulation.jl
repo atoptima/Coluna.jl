@@ -250,10 +250,17 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
 end
 
 function _show_constraints(io::IO , f::Formulation)
+<<<<<<< HEAD
     @show f.manager
     constrs = filter(
         x->(getduty(x) isa ExplicitDuty), rows(get_coefficient_matrix(f))
     )
+=======
+    # constrs = filter(
+    #     x->(getduty(x) isa ExplicitDuty), rows(get_coefficient_matrix(f))
+    # )
+    constrs = rows(get_coefficient_matrix(f))
+>>>>>>> 1627eea6359cc1f4342e5dc5f85d253abc79b696
     for (constr_id, members) in constrs
         _show_constraint(io, f, constr_id, members)
     end
