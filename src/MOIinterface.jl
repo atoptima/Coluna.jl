@@ -106,57 +106,57 @@ function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
     return
 end
 
-# function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
-#                          sol::VarMemberDict,
-#                          vars::VarDict)
-#     for (id,var) in vars
-#         moi_index = getmoi_index(getstate(id))
-#         val = MOI.get(moi_optimizer, MOI.VariablePrimal(), moi_index)
-#         @logmsg LogLevel(-4) string("Var ", getname(var_def[2]), " = ", val)
-#         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-#             sol[id] = val
-#         end
-#     end
-#     return
-# end
+function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
+                         sol::Dict{VarId,Float64},
+                         vars::VarDict)
+    for (id, var) in vars
+        moi_index = get_index(get_moi_record(var))
+        val = MOI.get(moi_optimizer, MOI.VariablePrimal(), moi_index)
+        @logmsg LogLevel(-4) string("Var ", getname(var_def[2]), " = ", val)
+        if val > 0.000001  || val < - 0.000001 # todo use a tolerance
+            sol[id] = val
+        end
+    end
+    return
+end
 
-# function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
-#                        sol::ConstrMemberDict,
-#                        constrs::ConstrDict)
-#     for (id, constr) in constrs
-#         val = 0.0
-#         moi_index = getmoi_index(getstate(id))
-#         try # This try is needed because of the erroneous assertion in LQOI
-#             val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
-#         catch err
-#             if (typeof(err) == AssertionError &&
-#                 !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
-#                 throw(err)
-#             end
-#         end
-#         # @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
-#         #                             constr.val)
-#         # @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
-#         #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
-#         #                                     constr.moi_index))
-#         if val > 0.000001 || val < - 0.000001 # todo use a tolerance
-#             sol[id] = val
-#         end
-#     end
+function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
+                       sol::Dict{ConstrId,Float64},
+                       constrs::ConstrDict)
+    for (id, constr) in constrs
+        val = 0.0
+        moi_index = get_index(get_moi_record(constr))
+        try # This try is needed because of the erroneous assertion in LQOI
+            val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
+        catch err
+            if (typeof(err) == AssertionError &&
+                !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
+                throw(err)
+            end
+        end
+        # @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
+        #                             constr.val)
+        # @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
+        #                             MOI.get(optimizer, MOI.ConstraintPrimal(),
+        #                                     constr.moi_index))
+        if val > 0.000001 || val < - 0.000001 # todo use a tolerance
+            sol[id] = val
+        end
+    end
     
-#     @show sol
-#     return
-# end
+    @show sol
+    return
+end
 
-# function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
-#     backup_stdout = stdout
-#     (rd_out, wr_out) = redirect_stdout()
-#     MOI.optimize!(optimizer)
-#     close(wr_out)
-#     close(rd_out)
-#     redirect_stdout(backup_stdout)
-#     return
-# end
+function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
+    backup_stdout = stdout
+    (rd_out, wr_out) = redirect_stdout()
+    MOI.optimize!(optimizer)
+    close(wr_out)
+    close(rd_out)
+    redirect_stdout(backup_stdout)
+    return
+end
 
 # function print_moi_constraints(optimizer::MOI.AbstractOptimizer)
 #     println("-------------- Printing MOI constraints")

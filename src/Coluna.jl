@@ -48,8 +48,6 @@ import Base.copy
         (),
         ())
 
-#include("containers/members.jl")
-
 include("types.jl")
 include("parameters.jl")
 include("counters.jl")
@@ -67,21 +65,6 @@ include("problem.jl")
 include("decomposition.jl")
 include("MOIinterface.jl")
 
-##### Search tree
-include("node.jl")
-include("bbtree.jl")
-
-#include("nodealgs/solandbounds.jl")
-#include("nodealgs/algsetupnode.jl")
-#include("nodealgs/algpreprocessnode.jl")
-#include("nodealgs/algevalnode.jl")
-#include("nodealgs/algprimalheurinnode.jl")
-#include("nodealgs/alggeneratechildrennodes.jl")
-#include("nodealgs/algtoevalnodebylp.jl")
-
-##### Algorithms draft
-#include("colgen.jl")
-
 ###### Solvers & Strategies
 include("solvers/solver.jl")
 include("strategies/strategy.jl")
@@ -91,6 +74,10 @@ include("solvers/masteripheur.jl")
 include("solvers/interfaces.jl")
 include("strategies/mockstrategy.jl")
 # here include strategies
+
+##### Search tree
+include("node.jl")
+include("bbtree.jl")
 
 ##### Wrapper functions
 include("MOIwrapper.jl")
