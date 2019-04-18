@@ -5,6 +5,7 @@ mutable struct VarData <: AbstractVcData
     kind::VarKind
     sense::VarSense
     is_active::Bool
+    is_explicit::Bool
 end
 
 function VarData(; cost::Float64 = 0.0,
@@ -12,8 +13,9 @@ function VarData(; cost::Float64 = 0.0,
                  ub::Float64 = Inf,
                  kind::VarKind = Continuous,
                  sense::VarSense = Positive,
-                 is_active::Bool = true)
-    return VarData(cost, lb, ub, kind, sense, is_active)
+                 is_active::Bool = true,
+                 is_explicit::Bool = true)
+    return VarData(cost, lb, ub, kind, sense, is_active, is_explicit)
 end
 
 # Attention: Some getters and setters are defined over AbstractVcData

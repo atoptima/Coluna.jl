@@ -196,8 +196,8 @@ function FormulationManager()
                               MembMatrix(vars,constrs))
 end
 
-has(m::FormulationManager, id::Id{Variable}) = haskey(m.vars, id)
-has(m::FormulationManager, id::Id{Constraint}) = haskey(m.constrs, id)
+haskey(m::FormulationManager, id::Id{Variable}) = haskey(m.vars, id)
+haskey(m::FormulationManager, id::Id{Constraint}) = haskey(m.constrs, id)
 
 function add_var!(m::FormulationManager, var::Variable)
     haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))
