@@ -138,7 +138,7 @@ function create_origconstr!(f::Formulation,
     var = get_var(f, moi_uid_to_coluna_id[func.variable.value])
     initial_data = get_initial_data(var)
     if typeof(set) in [MOI.ZeroOne, MOI.Integer]
-        set_kind(initial_data, getkind(set))
+        setkind!(initial_data, getkind(set))
     else
         set_bound(initial_data, getsense(set), getrhs(set))
     end

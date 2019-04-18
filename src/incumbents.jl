@@ -30,14 +30,12 @@ end
 #     end
 # end
 
-# function update_primal_lp_incumbents(incumbents::SolsAndBounds,
-#                                      newbound::Float64,
-#                                      var_membership::VarMemberDict)
-#     if newbound < incumbents.alg_inc_lp_primal_bound
-#         incumbents.alg_inc_lp_primal_bound = newbound
-#         incumbents.alg_inc_lp_primal_sol = copy(var_membership)
-#     end
-# end
+function update_primal_lp_sol!(inc::Incumbents{S},
+                          lp_primal_sol::PrimalSolution{S}) where {S}
+    if isbetter(getbound(lp_primal_sol), getbound(inc.lp_primal_sol))
+        inc.lp_primal_sol = lp_primal_sol
+    end
+end
 
 # function update_dual_lp_bound(incumbents::SolsAndBounds,
 #                               newbound::Float64)

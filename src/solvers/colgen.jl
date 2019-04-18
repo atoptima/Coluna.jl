@@ -56,7 +56,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMembership
     ### initialized costs
     sp_vars = filter(_active_, sp_form.vars)
     for (id, var) in sp_vars
-        setcost(getstate(id), getcost(var))
+        setcost!(get_cur_data(var), getcost(var))
     end
     
     #println("initialized costs = ", new_obj)
@@ -179,7 +179,7 @@ function compute_pricing_dual_bound_contrib(sp_form::Formulation,
 end
 
 function gen_new_col(sp_form::Formulation,
-                     dual_sol::ConstrMembership,
+                     dual_sol::DualSolution,
                      sp_lb::Float64,
                      sp_ub::Float64)
     
@@ -237,7 +237,7 @@ function gen_new_col(sp_form::Formulation,
 end
 
 function gen_new_columns(reformulation::Reformulation,
-                         dual_sol::ConstrMembership,
+                         dual_sol::DualSolution,
                          sp_lbs::Dict{FormId, Float64},
                          sp_ubs::Dict{FormId, Float64})
     
@@ -364,7 +364,8 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
             #mark_infeasible(alg)
             return true
         end
-        update_primal_lp_incumbents(alg.incumbents, master_val, primal_sol.members)
+
+        update_primal_lp_sol!(alg.incumbents, primal_sol)
         # if integer update_primal_ip_incumbents(alg.incumbents, master_val, primal_sol.members)
         ##cleanup_restricted_mast_columns(alg, nb_cg_iterations)
         nb_cg_iterations += 1
@@ -375,7 +376,7 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
         while true
             @logmsg LogLevel(-2) "need to generate new master columns"
             nb_new_col, sp_dual_bound_contrib =  gen_new_columns(reformulation,
-                                                                 dual_sol.members,
+                                                                 dual_sol,
                                                                  sp_lbs,
                                                                  sp_ubs)
             # nb_new_col, sp_time, b, gc, allocs = @timed gen_new_columns(alg)

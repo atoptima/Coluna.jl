@@ -20,13 +20,13 @@ is_explicit(vc::AbstractVcData) = vc.is_explicit
 getkind(vc::AbstractVcData) = vc.kind
 getsense(vc::AbstractVcData) = vc.sense
 
-is_active(vc::AbstractVarConstr) = vc.cur_data.is_active
-is_explicit(vc::AbstractVarConstr) = vc.cur_data.is_explicit
+isactive(vc::AbstractVarConstr) = vc.cur_data.is_active
+isexplicit(vc::AbstractVarConstr) = vc.cur_data.is_explicit
 
 setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 set_is_active!(vc::AbstractVcData, is_active::Bool) = vc.is_active = is_active
 set_is_explicit!(vc::AbstractVcData, is_explicit::Bool) = vc.is_explicit = is_explicit
-setkindx!(vc::AbstractVcData, kind) = vc.kind = kind
+setkind!(vc::AbstractVcData, kind) = vc.kind = kind
 setsense!(vc::AbstractVcData, sense) = vc.sense = sense
 
 mutable struct MoiConstrRecord
@@ -34,8 +34,8 @@ mutable struct MoiConstrRecord
 end
 MoiConstrRecord(;index = MoiConstrIndex()) = MoiConstrRecord(MoiConstrIndex())
 
-get_index(record::MoiConstrRecord) = record.index
-set_index(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
+getindex(record::MoiConstrRecord) = record.index
+setindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
 struct Constraint <: AbstractVarConstr
     id::Id{Constraint}

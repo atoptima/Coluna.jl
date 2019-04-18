@@ -28,16 +28,16 @@ setcost!(v::VarData, cost::Float64) = v.cost = cost
 setlb!(v::VarData, lb::Float64) = v.lower_bound = lb
 setub!(v::VarData, ub::Float64) = v.upper_bound = ub
 
-function set_bound(v::VarData, sense::ConstrSense, bound::Float64)
+function setbound!(v::VarData, sense::ConstrSense, bound::Float64)
     if sense == Less || sense == Equal
-        set_ub(v, bound)
+        setub!(v, bound)
     elseif sense == Greater || sense == Equal
-        set_lb(v, bound)
+        setlb!(v, bound)
     end
     return
 end
 
-function set_kind(v::VarData, kind::VarKind)
+function setkind!(v::VarData, kind::VarKind)
     if kind == Binary
         v.kind = Binary
         (v.lower_bound < 0) && setlb!(v, 0.0)
@@ -57,13 +57,13 @@ end
 MoiVarRecord(;index::MoiVarIndex = MoiVarIndex()) = MoiVarRecord(
     index, MoiVarBound(), MoiVarKind()
 )
-get_index(record::MoiVarRecord) = record.index
-get_bounds(record::MoiVarRecord) = record.bounds
-get_kind(record::MoiVarRecord) = record.kind
+getindex(record::MoiVarRecord) = record.index
+getbounds(record::MoiVarRecord) = record.bounds
+getkind(record::MoiVarRecord) = record.kind
 
-set_index(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
-set_bounds(record::MoiVarRecord, bnds::MoiVarBound) = record.bounds = bnds
-set_kind(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
+setindex!(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
+setbounds!(record::MoiVarRecord, bounds::MoiVarBound) = record.bounds = bounds
+setkind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
 
 struct Variable <: AbstractVarConstr
     id::Id{Variable}

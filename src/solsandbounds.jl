@@ -26,7 +26,9 @@ diff(b1::PrimalBound{MaxSense}, b2::DualBound{MaxSense}) = b2.value - b1.value
 
 diff(b1::DualBound{MaxSense}, b2::PrimalBound{MaxSense}) = b1.value - b2.value
 
-mutable struct PrimalSolution{S <: AbstractObjSense}
+abstract type AbstractSolution end
+
+mutable struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::PrimalBound{S}
     sol::Dict{Id{Variable},Float64}
 end
@@ -40,7 +42,7 @@ function PrimalSolution{S}(value::Float64, sol::Dict{Id{Variable},Float64}
     return PrimalSolution{S}(PrimalBound{S}(value), sol)
 end
 
-mutable struct DualSolution{S <: AbstractObjSense}
+mutable struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::DualBound{S}
     sol::Dict{Id{Constraint},Float64}
 end
@@ -53,3 +55,6 @@ function DualSolution{S}(value::Float64, sol::Dict{Id{Constraint},Float64}
                            ) where {S <: AbstractObjSense}
     return DualSolution{S}(DualBound{S}(value), sol)
 end
+
+
+getbound(s::AbstractSolution) = s.bound
