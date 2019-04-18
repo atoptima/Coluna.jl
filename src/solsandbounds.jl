@@ -32,7 +32,7 @@ struct PrimalSolution{S <: AbstractObjSense}
 end
 
 function PrimalSolution{S}() where {S <: AbstractObjSense}
-    return PrimalSolution{S}(PrimalBound{S}(), Dict{Id{Variable}}())
+    return PrimalSolution{S}(PrimalBound{S}(), Dict{Id{Variable},Float64}())
 end
 
 struct DualSolution{S <: AbstractObjSense}
@@ -41,5 +41,5 @@ struct DualSolution{S <: AbstractObjSense}
 end
 
 function DualSolution{S}() where {S <: AbstractObjSense}
-    return DualSolution{S}(PrimalBound{S}(), Dict{Id{Constraint}}())
+    return DualSolution{S}(DualBound{S}(), Dict{Id{Constraint},Float64}())
 end

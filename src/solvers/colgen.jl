@@ -20,7 +20,7 @@ function run(::Type{ColumnGeneration}, f, n, p)
     # end
     println("\e[1;31m draft of the col gen algorithm here \e[00m")
     println("main function of the alg")
-    alg = SimplexLpColGenAlg(f.obj_sense)
+    alg = SimplexLpColGenAlg(f.master.obj_sense)
     solve_mast_lp_ph2(alg, f)
     nb_iter = 0
     return ColumnGenerationRecord(nb_iter)
