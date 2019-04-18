@@ -51,7 +51,7 @@ function clone_in_manager!(dest::FormulationManager,
         if haskey(dest, id)
             new_col[id] = val
         else
-            @warn string("WARNING: Manager does not has constr", id)
+            @warn string("WARNING: Manager does not have constr", id)
         end
     end
     dest.coefficients[:, var.id] = new_col
@@ -67,7 +67,7 @@ function clone_in_manager!(dest::FormulationManager,
         if haskey(dest, id)
             new_row[id] = val
         else
-            @warn string("WARNING: Manager does not has var", id)
+            @warn string("WARNING: Manager does not have var", id)
         end
     end
     dest.coefficients[constr.id, :] = new_row

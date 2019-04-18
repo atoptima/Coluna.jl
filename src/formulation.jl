@@ -108,7 +108,7 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-function optimize(form::Formulation, optimizer = form.moi_optimizer,
+function optimize!(form::Formulation, optimizer = form.moi_optimizer,
                   update_form = true)
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
