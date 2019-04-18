@@ -20,7 +20,7 @@ function run(::Type{ColumnGeneration}, f, n, p)
     # end
     println("\e[1;31m draft of the col gen algorithm here \e[00m")
     println("main function of the alg")
-    alg = SimplexLpColGenAlg()
+    alg = SimplexLpColGenAlg(f.obj_sense)
     solve_mast_lp_ph2(alg, f)
     nb_iter = 0
     return ColumnGenerationRecord(nb_iter)
@@ -40,12 +40,12 @@ end
 #### Methods for colgen 
 
 mutable struct SimplexLpColGenAlg <: AbstractAlg
-    incumbents::SolsAndBounds
+    incumbents::Incumbents
     is_converged::Bool
     is_infeasible::Bool
 end
 
-SimplexLpColGenAlg() = SimplexLpColGenAlg(SolsAndBounds(), false, false)
+SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents{S}(), false, false)
 
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMembership)

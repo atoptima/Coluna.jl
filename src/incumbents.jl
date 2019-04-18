@@ -1,20 +1,16 @@
-mutable struct SolsAndBounds
-    alg_inc_ip_primal_bound::Float64
-    alg_inc_lp_primal_bound::Float64
-    alg_inc_ip_dual_bound::Float64
-    alg_inc_lp_dual_bound::Float64
-    alg_inc_lp_primal_sol::VarMembership
-    alg_inc_ip_primal_sol::VarMembership
-    alg_inc_lp_dual_sol::ConstrMembership
-    is_alg_inc_ip_primal_bound_updated::Bool
+mutable struct Incumbents{S}
+    ip_primal_sol::PrimalSolution{S}
+    ip_dual_bound::DualBound{S}
+    lp_primal_sol::PrimalSolution{S}
+    lp_dual_sol::DualSolution{S}
 end
 
-SolsAndBounds(constrs::ConstrDict, vars::VarDict) =
-    SolsAndBounds(Inf, Inf, -Inf, -Inf,
-                  VarMembership(vars),
-                  VarMembership(vars),
-                  ConstrMembership(constrs),
-                  false)
+function Incumbents{S}() where {S<:AbstractObjSense}
+    return Incumbents{S}(
+        PrimalSolution{S}(), DualBound{S}(),
+        PrimalSolution{S}(), DualSolution{S}()
+    )
+end
 
 # ### Methods of SolsAndBounds
 # function update_primal_lp_bound(incumbents::SolsAndBounds,

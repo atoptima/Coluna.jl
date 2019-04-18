@@ -16,6 +16,7 @@ Base.@kwdef mutable struct Params
     force_copy_names::Bool = false
     node_eval_mode::NODEEVALMODE = SimplexCg
     art_vars_mode::ARTVARSMOE = Global
+    original_formulation_obj_sense::Type{<:AbstractObjSense} = MinSense
 end
 
 update_field!(f_v::Tuple{Symbol,Any}) = setfield!(_params_, f_v[1], f_v[2])

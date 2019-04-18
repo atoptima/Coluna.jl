@@ -58,7 +58,8 @@ include("variable.jl")
 include("constraint.jl")
 include("manager.jl")
 include("filters.jl")
-include("solution.jl")
+include("solsandbounds.jl")
+include("incumbents.jl")
 include("formulation.jl")
 include("clone.jl")
 include("reformulation.jl")
@@ -79,7 +80,6 @@ include("bbtree.jl")
 #include("nodealgs/algtoevalnodebylp.jl")
 
 ##### Algorithms draft
-include("solandbounds.jl")
 #include("colgen.jl")
 
 ###### Solvers & Strategies

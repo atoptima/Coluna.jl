@@ -6,7 +6,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
 
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     manager::FormulationManager
-    obj_sense::ObjSense
+    obj_sense::Type{<:AbstractObjSense}
     primal_inc_bound::Float64
     dual_inc_bound::Float64
     primal_solution_record::Union{PrimalSolution, Nothing}
@@ -16,12 +16,12 @@ end
 
 function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
-                        obj_sense::ObjSense = Min,
+                        obj_sense::Type{<:AbstractObjSense} = MinSense,
                         moi_optimizer::Union{MOI.AbstractOptimizer,
                                              Nothing} = nothing,
                         primal_inc_bound::Float64 = Inf,
                         dual_inc_bound::Float64 = -Inf
-                        ) where {D<:AbstractFormDuty}
+                        ) where {D<:AbstractFormDuty,S<:AbstractObjSense}
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, moi_optimizer, FormulationManager(),
@@ -100,7 +100,11 @@ function clone_constr!(dest::Formulation, src::Formulation, constr::Constraint)
 end
 
 function register_objective_sense!(f::Formulation, min::Bool)
-    !min && error("Coluna does not support maximization yet.")
+    if min
+        f.obj_sense = MinSense
+    else
+        f.obj_sense = MaxSense
+    end
     return
 end
 

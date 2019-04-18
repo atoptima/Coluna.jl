@@ -7,6 +7,11 @@ abstract type AbstractMoiDef end
 abstract type AbstractMembership end
 abstract type AbstractNode end
 abstract type AbstractVcData end
+abstract type AbstractObjSense end
+abstract type AbstractBound end
+
+struct MinSense <: AbstractObjSense end
+struct MaxSense <: AbstractObjSense end
 
 ## Duties : 
 abstract type AbstractDuty end 
@@ -80,7 +85,6 @@ abstract type AbstractAlg end
 @enum ConstrSense Greater Less Equal
 @enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
 # @enum Status Active Unsuitable
-@enum ObjSense Min Max
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
 const FormId = Int
