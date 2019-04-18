@@ -40,11 +40,11 @@ end
 
 haskey(f::Formulation, id::Id) = haskey(f.manager, id)
 
-get_var(f::Formulation, id::VarId) = get_var(f.manager, id)
+getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
 
 get_constr(f::Formulation, id::ConstrId) = get_constr(f.manager, id)
 
-get_vars(f::Formulation) = get_vars(f.manager)
+getvars(f::Formulation) = getvars(f.manager)
 
 get_constrs(f::Formulation) = get_constrs(f.manager)
 
@@ -129,7 +129,7 @@ function optimize!(form::Formulation, optimizer = form.moi_optimizer,
     primal_sols = PrimalSolution{form.obj_sense}[]
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
-        primal_sol = retrieve_primal_sol(form, filter(_explicit_ , get_vars(form)))
+        primal_sol = retrieve_primal_sol(form, filter(_explicit_ , getvars(form)))
         push!(primal_sols, primal_sol)
         dual_sol = retrieve_dual_sol(form, filter(_explicit_ , get_constrs(form)))
         if update_form
@@ -146,7 +146,7 @@ end
 
 function load_problem_in_optimizer(formulation::Formulation)
     optimizer = get_optimizer(formulation)
-    for (id, var) in filter(_explicit_, get_vars(formulation))
+    for (id, var) in filter(_explicit_, getvars(formulation))
         add_variable_in_optimizer(optimizer, var)
     end
     constrs = filter(
@@ -219,7 +219,7 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for (id, var) in filter(_explicit_, get_vars(f))
+    for (id, var) in filter(_explicit_, getvars(f))
         name = getname(var)
         cost = getcost(get_cur_data(var))
         op = (cost < 0.0) ? "-" : "+" 
@@ -235,7 +235,7 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
     constr_data = get_cur_data(constr)
     print(io, constr_id, " ", getname(constr), " : ")
     for (var_id, coeff) in members
-        var = get_var(f, var_id)
+        var = getvar(f, var_id)
         name = getname(var)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
@@ -274,7 +274,7 @@ function _show_variable(io::IO, f::Formulation, var::Variable)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for (id, var) in filter(_explicit_, get_vars(f))
+    for (id, var) in filter(_explicit_, getvars(f))
         _show_variable(io, f, var)
     end
 end

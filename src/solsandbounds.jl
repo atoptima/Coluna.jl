@@ -56,5 +56,5 @@ function DualSolution{S}(value::Float64, sol::Dict{Id{Constraint},Float64}
     return DualSolution{S}(DualBound{S}(value), sol)
 end
 
-
 getbound(s::AbstractSolution) = s.bound
+getsol(s::AbstractSolution) = s.sol

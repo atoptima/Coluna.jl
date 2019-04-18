@@ -97,7 +97,7 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
     # This is safe becasue the variables are initialized with a 0.0 cost_rhs
     obj = MOI.get(src, MoiObjective())
     for term in obj.terms
-        var = get_var(f, moi_uid_to_coluna_id[term.variable_index.value])
+        var = getvar(f, moi_uid_to_coluna_id[term.variable_index.value])
         initial_data = get_initial_data(var)
         setcost!(initial_data, term.coefficient)
         reset!(var)
@@ -135,7 +135,7 @@ function create_origconstr!(f::Formulation,
                             moi_index_to_coluna_uid::MOIU.IndexMap,
                             moi_uid_to_coluna_id::Dict{Int,VarId})
 
-    var = get_var(f, moi_uid_to_coluna_id[func.variable.value])
+    var = getvar(f, moi_uid_to_coluna_id[func.variable.value])
     initial_data = get_initial_data(var)
     if typeof(set) in [MOI.ZeroOne, MOI.Integer]
         setkind!(initial_data, getkind(set))

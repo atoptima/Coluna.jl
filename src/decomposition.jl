@@ -112,7 +112,7 @@ function build_dw_master!(prob::Problem,
         is_explicit = false
         clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSpVar, is_explicit)
 
-        vars = filter(_active_pricingSpVar_, get_vars(sp_form))
+        vars = filter(_active_pricingSpVar_, getvars(sp_form))
         # @show "Sp Var to add in master " vars
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
     end

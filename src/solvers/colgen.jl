@@ -48,21 +48,21 @@ end
 SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents{S}(), false, false)
 
 
-function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMembership)
-    
-    new_obj = VarMembership(get_vars(sp_form))
+function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
+
+    new_obj = VarMembership(getvars(sp_form))
     master_form = sp_form.parent_formulation
 
     ### initialized costs
-    sp_vars = filter(_active_, sp_form.vars)
+    sp_vars = filter(_active_, getvars(sp_form))
     for (id, var) in sp_vars
-        setcost!(get_cur_data(var), getcost(var))
+        setcost!(get_cur_data(var), getcost(get_initial_data(var)))
     end
-    
+
     #println("initialized costs = ", new_obj)
-    
+
     ### compute red costs
-    for (constr_id, dual_val) in dual_sol
+    for (constr_id, dual_val) in getsol(dual_sol)
         #println("Compute contrib of constraint ", constr_id)
         #@show get_var_members_of_constr(master_form.memberships, constr_id)
 

@@ -211,11 +211,11 @@ function add_constr!(m::FormulationManager, constr::Constraint)
     return constr
 end
 
-get_var(m::FormulationManager, id::VarId) = m.vars[id]
+getvar(m::FormulationManager, id::VarId) = m.vars[id]
 
 get_constr(m::FormulationManager, id::ConstrId) = m.constrs[id]
 
-get_vars(m::FormulationManager) = m.vars
+getvars(m::FormulationManager) = m.vars
 
 get_constrs(m::FormulationManager) = m.constrs
 
