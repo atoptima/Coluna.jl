@@ -10,7 +10,9 @@ end
 
 function compute_moi_terms(members::VarMembership)
     return [
-        MOI.ScalarAffineTerm{Float64}(coef, getmoi_index(getstate(id)))
+        MOI.ScalarAffineTerm{Float64}(
+            coef, get_index(get_moi_record(getelements(members)[id]))
+        )
         for (id, coef) in members
     ]
 end
@@ -92,12 +94,15 @@ function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                      constr::Constraint,
                                      members::VarMembership)
 
-    println("adding constraint ", constr)
-    @show members
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
-    # state = getstate(id)
-    # setmoi_index!(state, MOI.add_constraint(optimizer, f, getmoi_set(state)))
+    cur_data = get_cur_data(constr)
+    moi_set = get_moi_set(getsense(cur_data))
+    moi_constr = MOI.add_constraint(
+        optimizer, f, moi_set(getrhs(cur_data))
+    )
+    moi_record = get_moi_record(constr)
+    set_index(moi_record, moi_constr)
     return
 end
 
@@ -205,7 +210,7 @@ function _show_function(io::IO, moi_model::MOI.ModelLike,
         if name == ""
             name = string("x", moi_index.value)
         end
-        print(io, " + ", coeff, name)
+        print(io, " + ", coeff, " ", name)
     end
     return
 end
@@ -290,3 +295,13 @@ function Base.show(io::IO, moi_optimizer::MOIU.CachingOptimizer)
     _show_constraints(io, moi_optimizer.model_cache)
     return
 end
+
+# function _show_optimizer(moi_optimizer::MOI.ModelLike)
+# end
+
+# function _show_optimizer(moi_optimizer::MOIU.CachingOptimizer)
+#     println(io, "MOI Optimizer {", typeof(moi_optimizer), "} = ")
+#     _show_obj_fun(io, moi_optimizer.model_cache)
+#     _show_constraints(io, moi_optimizer.model_cache)
+#     return
+# end

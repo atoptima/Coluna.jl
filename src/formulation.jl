@@ -133,32 +133,15 @@ function load_problem_in_optimizer(formulation::Formulation)
         add_variable_in_optimizer(optimizer, var)
     end
     constrs = filter(
-        x->(getduty(x) isa ExplicitDuty), rows(get_coefficient_matrix(formulation))
+        _explicit_, rows(get_coefficient_matrix(formulation))
     )
-
-
-    # constrs = filter(
-    #     _explicit_, rows(get_coefficient_matrix(formulation))
-    # )
     for (constr_id, members) in constrs
-        println("trying to add constr ", constr_id)
-        println("Members are")
-        @show members
-        println("----------")
-        @show formulation.manager.vars
-        println("-----------")
-        @show members == formulation.manager.vars
-        println("---------")
-        @show filter(x->(getduty(x) isa ExplicitDuty), members)
-        println("----------")
-
         add_constraint_in_optimizer(
-            optimizer, id,
+            optimizer, getelements(constrs)[constr_id],
             filter(_explicit_, members)
         )
     end
-    println("Showing optimizer after being loaded with problem")
-    @show get_optimizer(formulation)
+   @show get_optimizer(formulation)
 end
 
 function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
@@ -253,7 +236,6 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
 end
 
 function _show_constraints(io::IO , f::Formulation)
-    @show f.manager
     constrs = filter(
         x->(getduty(x) isa ExplicitDuty), rows(get_coefficient_matrix(f))
     )

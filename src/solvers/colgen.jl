@@ -48,9 +48,9 @@ end
 SimplexLpColGenAlg() = SimplexLpColGenAlg(SolsAndBounds(), false, false)
 
 
-function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMemberDict)
+function update_pricing_problem(sp_form::Formulation, dual_sol::ConstrMembership)
     
-    new_obj = VarMemberDict()
+    new_obj = VarMembership(get_vars(sp_form))
     master_form = sp_form.parent_formulation
 
     ### initialized costs
@@ -179,7 +179,7 @@ function compute_pricing_dual_bound_contrib(sp_form::Formulation,
 end
 
 function gen_new_col(sp_form::Formulation,
-                     dual_sol::ConstrMemberDict,
+                     dual_sol::ConstrMembership,
                      sp_lb::Float64,
                      sp_ub::Float64)
     
@@ -237,7 +237,7 @@ function gen_new_col(sp_form::Formulation,
 end
 
 function gen_new_columns(reformulation::Reformulation,
-                         dual_sol::ConstrMemberDict,
+                         dual_sol::ConstrMembership,
                          sp_lbs::Dict{FormId, Float64},
                          sp_ubs::Dict{FormId, Float64})
     

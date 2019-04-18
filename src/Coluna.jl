@@ -67,8 +67,8 @@ include("decomposition.jl")
 include("MOIinterface.jl")
 
 ##### Search tree
-# include("node.jl")
-# include("bbtree.jl")
+include("node.jl")
+include("bbtree.jl")
 
 #include("nodealgs/solandbounds.jl")
 #include("nodealgs/algsetupnode.jl")
@@ -79,22 +79,22 @@ include("MOIinterface.jl")
 #include("nodealgs/algtoevalnodebylp.jl")
 
 ##### Algorithms draft
-# include("solandbounds.jl")
+include("solandbounds.jl")
 #include("colgen.jl")
 
-# ###### Solvers & Strategies
-# include("solvers/solver.jl")
-# include("strategies/strategy.jl")
-# include("solvers/colgen.jl")
-# include("solvers/masteripheur.jl")
-# # here include solvers
-# include("solvers/interfaces.jl")
-# include("strategies/mockstrategy.jl")
-# # here include strategies
+###### Solvers & Strategies
+include("solvers/solver.jl")
+include("strategies/strategy.jl")
+include("solvers/colgen.jl")
+include("solvers/masteripheur.jl")
+# here include solvers
+include("solvers/interfaces.jl")
+include("strategies/mockstrategy.jl")
+# here include strategies
 
-# ##### Wrapper functions
+##### Wrapper functions
 include("MOIwrapper.jl")
-# #include("decomposition.jl")
+#include("decomposition.jl")
 
 include("utils.jl") # Structure that holds values useful in all the procedure
 include("globals.jl") 

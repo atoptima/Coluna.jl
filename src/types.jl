@@ -76,7 +76,7 @@ abstract type AbstractAlg end
 
 @enum VarSense Positive Negative Free
 @enum VarKind Continuous Binary Integ
-@enum ConstrKind Core Facultative SubSystem 
+@enum ConstrKind Core Facultative SubSystem
 @enum ConstrSense Greater Less Equal
 @enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
 # @enum Status Active Unsuitable
@@ -113,6 +113,11 @@ getrhs(set::MOI.GreaterThan{T}) where {T} = set.lower
 getrhs(set::MOI.EqualTo{T}) where {T} = set.value
 getkind(::MOI.ZeroOne) = Binary
 getkind(::MOI.Integer) = Integ
+function get_moi_set(constr_set::ConstrSense)
+    constr_set == Less && return MOI.LessThan
+    constr_set == Greater && return MOI.GreaterThan
+    return MOI.EqualTo
+end
 #######################################################################
 
 const StaticDuty = Union{

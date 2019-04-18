@@ -6,6 +6,7 @@ mutable struct MembersVector{I,K,T} <: AbstractMembersContainer
 end
 
 getrecords(vec::MembersVector) = vec.records
+getelements(vec::MembersVector) = vec.elements
 
 MembersVector{I,K,T}(elems::Dict{I,K}) where {I,K,T} = MembersVector(elems, Dict{I,T}())
 

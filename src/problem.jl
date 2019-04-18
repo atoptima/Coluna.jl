@@ -73,7 +73,6 @@ function coluna_initialization(prob::Problem, annotations::Annotations)
     load_problem_in_optimizer(prob)
 
     call_attention()
-    exit()
 end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before
