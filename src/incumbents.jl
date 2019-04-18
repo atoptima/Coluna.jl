@@ -12,6 +12,11 @@ function Incumbents{S}() where {S<:AbstractObjSense}
     )
 end
 
+get_ip_primal_sol(i::Incumbents) = i.ip_primal_sol
+get_ip_dual_bound(i::Incumbents) = i.ip_dual_bound
+get_lp_primal_sol(i::Incumbents) = i.lp_primal_sol
+get_lp_dual_sol(i::Incumbents) = i.lp_dual_sol
+
 # ### Methods of SolsAndBounds
 # function update_primal_lp_bound(incumbents::SolsAndBounds,
 #                                 newbound::Float64)

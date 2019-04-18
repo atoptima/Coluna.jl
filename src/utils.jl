@@ -22,4 +22,4 @@ macro callsuper(ex)
     return blk
 end
 
-elapsed_solve_time() = (time() - __initial_solve_time)
+elapsed_solve_time() = (time() - _globals_.initial_solve_time)

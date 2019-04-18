@@ -38,41 +38,54 @@ function update_tree(search_tree::SearchTree, cur_node::Node)
     end
 end
 
-function treat_node(n::Node, f::Reformulation, strategy::AbstractStrategy)
-# function treat_node(n::Node, f::Reformulation)
-    # println("Fake treat node")
-    setup_master(n, f.master)
+function search(search_tree::SearchTree, reformulation::AbstractFormulation)
+    strategy = MockStrategy
     r = StrategyRecord()
-    apply(strategy, f, nothing, r, nothing)
-    record_master_info(n, f.master)
-end
-
-function search(search_tree::SearchTree, formulation::AbstractFormulation)
-    # strategy = formulation.strategy
-    add_node(search_tree, RootNode())
+    add_node(search_tree, RootNode(reformulation.master.obj_sense))
 
     while (!isempty(search_tree)
            && search_tree.nb_treated_nodes < _params_.max_num_nodes)
 
         cur_node = pop_node!(search_tree)
-        print_info_before_solving(cur_node, search_tree, formulation)
-        treat_node(cur_node, formulation, strategy)
-        print_info_after_solving(cur_node, search_tree, formulation)
-        update_formulation(formulation, cur_node)
-        update_tree(search_tree, cur_node, formulation)
+        print_info_before_apply(cur_node, search_tree, reformulation)
 
+        apply(strategy, reformulation, cur_node, r, nothing)
+
+        print_info_after_apply(cur_node, search_tree, reformulation)
+        # update_formulation(reformulation, cur_node)
+        # update_tree(search_tree, cur_node, reformulation)
+
+        exit()
     end
 end
 
-function print_info_before_solving_node(search_tree::SearchTree, problem::AbstractFormulation)
+function print_info_before_apply(n::Node, search_tree::SearchTree,
+                                 form::AbstractFormulation)
     print(nb_open_nodes(search_tree))
-    println(" open nodes. Treating node ", get_treat_order(search_tree), ".")
-    println("\e[1;31m TODO : display bounds here \e[00m")
-    #println("Current best known bounds : [ ", problem.dual_inc_bound,  " , ",
-    #        problem.primal_inc_bound, " ]")
+    print(" open nodes. Treating node ", get_treat_order(n), ".")
+    getparent(n) == nothing && println()
+    getparent(n) != nothing && println("Parent is ", get_treat_order(getparent(n)), ".")
+    println("Current best known bounds : [ ", -Inf,  " , ",
+            Inf, " ]")
+    println("Elapsed time: ", elapsed_solve_time(), " seconds.")
+    println("Subtree dual bound is ", getvalue(
+        get_ip_dual_bound(getincumbents(n))))
+    println("Branching constraint:  ")
+    # coluna_print(n.local_branching_constraints[1])
     println("************************************************************")
     return
 end
+
+function print_info_after_apply(n::Node, search_tree::SearchTree,
+                                form::AbstractFormulation)
+    println("************************************************************")
+    print(nb_open_nodes(search_tree))
+    println("Node ", get_treat_order(n), " is treated.")
+    println("Generated ", length(getchildren(n)), " children nodes.")
+    println("************************************************************")
+    return
+end
+
 
 # function update_cur_valid_dual_bound(problem::Reformulation,
 #         node::NodeWithParent, search_tree::DS.PriorityQueue{Node, Float64})

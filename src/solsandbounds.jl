@@ -10,6 +10,8 @@ end
 DualBound{MinSense}() = DualBound{MinSense}(-Inf)
 DualBound{MaxSense}() = DualBound{MaxSense}(Inf)
 
+getvalue(b::AbstractBound) = b.value
+
 isbetter(b1::PrimalBound{MinSense}, b2::PrimalBound{MinSense}) = b1.value < b2.value
 
 isbetter(b1::PrimalBound{MaxSense}, b2::PrimalBound{MaxSense}) = b1.value > b2.value
