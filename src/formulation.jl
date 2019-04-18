@@ -108,28 +108,27 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-
-# function optimize(form::Formulation, optimizer = form.moi_optimizer,
-#                   update_form = true)
-#     call_moi_optimize_with_silence(form.moi_optimizer)
-#     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
-#     primal_sols = PrimalSolution[]
-#     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
-#     if MOI.get(optimizer, MOI.ResultCount()) >= 1
-#         primal_sol = retrieve_primal_sol(form, filter(_explicit_ , form.vars))
-#         push!(primal_sols, primal_sol)
-#         dual_sol = retrieve_dual_sol(form, filter(_active_ , form.constrs))
-#         if update_form
-#             form.primal_solution_record = primal_sol
-#             if dual_sol != nothing
-#                 form.dual_solution_record = dual_sol
-#             end
-#         end
-#         return (status, primal_sol.value, primal_sols, dual_sol)
-#     end
-#     @logmsg LogLevel(-4) string("Solver has no result to show.")
-#     return (status, Inf, nothing, nothing)
-# end
+function optimize(form::Formulation, optimizer = form.moi_optimizer,
+                  update_form = true)
+    call_moi_optimize_with_silence(form.moi_optimizer)
+    status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
+    primal_sols = PrimalSolution{form.obj_sense}[]
+    @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
+    if MOI.get(optimizer, MOI.ResultCount()) >= 1
+        primal_sol = retrieve_primal_sol(form, filter(_explicit_ , form.vars))
+        push!(primal_sols, primal_sol)
+        dual_sol = retrieve_dual_sol(form, filter(_active_ , form.constrs))
+        if update_form
+            form.primal_solution_record = primal_sol
+            if dual_sol != nothing
+                form.dual_solution_record = dual_sol
+            end
+        end
+        return (status, primal_sol.value, primal_sols, dual_sol)
+    end
+    @logmsg LogLevel(-4) string("Solver has no result to show.")
+    return (status, Inf, nothing, nothing)
+end
 
 function load_problem_in_optimizer(formulation::Formulation)
     optimizer = get_optimizer(formulation)
@@ -152,30 +151,30 @@ function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFact
     form.moi_optimizer = create_moi_optimizer(factory)
 end
 
-# function retrieve_primal_sol(form::Formulation,
-#                              vars::VarDict)
-#     new_sol = VarMemberDict()
-#     new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
-#     #error("Following line does not work.")
-#     fill_primal_sol(form.moi_optimizer, new_sol, vars)
-#     primal_sol = PrimalSolution(new_obj_val, new_sol)
-#     @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
-#     return primal_sol
-# end
+function retrieve_primal_sol(form::Formulation,
+                             vars::VarDict)
+    new_sol = Dict{VarId,Float64}()
+    new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
+    #error("Following line does not work.")
+    fill_primal_sol(form.moi_optimizer, new_sol, vars)
+    primal_sol = PrimalSolution{form.obj_sense}(new_obj_val, new_sol)
+    @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
+    return primal_sol
+end
 
-# function retrieve_dual_sol(form::Formulation,
-#                            constrs::ConstrDict)
-#     # TODO check if supported by solver
-#     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
-#         println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
-#         return nothing
-#     end
-#     new_sol = ConstrMemberDict()
-#     obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
-#     fill_dual_sol(form.moi_optimizer, new_sol, constrs)
-#     dual_sol = DualSolution(obj_bound, new_sol)
-#     return dual_sol
-# end
+function retrieve_dual_sol(form::Formulation,
+                           constrs::ConstrDict)
+    # TODO check if supported by solver
+    if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
+        println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
+        return nothing
+    end
+    new_sol = Dict{ConstrId,Float64}()
+    obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
+    fill_dual_sol(form.moi_optimizer, new_sol, constrs)
+    dual_sol = DualSolution{form.obj_sense}(obj_bound, new_sol)
+    return dual_sol
+end
 
 # function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
 #     for (var_id, var_val) in sol.members
