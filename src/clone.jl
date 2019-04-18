@@ -1,10 +1,13 @@
 function clone_in_formulation!(dest::Formulation,
                                src::Formulation,
                                var::Variable,
-                               duty::Type{<:AbstractDuty})
+                               duty::Type{<:AbstractDuty},
+                               is_explicit::Bool = true)
+    data = deepcopy(get_initial_data(var))
+    set_is_explicit!(data, is_explicit)
     var_clone = Variable(
         getid(var), getname(var), duty;
-        var_data = deepcopy(get_initial_data(var))
+        var_data = data
     )
     add_var!(dest, var_clone)
     clone_in_manager!(dest.manager, src.manager, var_clone)
@@ -14,11 +17,13 @@ end
 function clone_in_formulation!(dest::Formulation,
                                src::Formulation,
                                constr::Constraint,
-                               duty::Type{<:AbstractDuty})
+                               duty::Type{<:AbstractDuty},
+                               is_explicit::Bool = true)
 
+    data = deepcopy(get_initial_data(constr))
+    set_is_explicit!(data, is_explicit)
     constr_clone = Constraint(
-        getid(constr), getname(constr), duty;
-        constr_data = deepcopy(get_initial_data(constr))
+        getid(constr), getname(constr), duty; constr_data = data
     )
     add_constr!(dest, constr_clone)
     clone_in_manager!(dest.manager, src.manager, constr_clone)
@@ -28,10 +33,11 @@ end
 function clone_in_formulation!(dest::Formulation,
                                src::Formulation,
                                vcs::VarConstrDict,
-                               duty::Type{<:AbstractVarConstrDuty}
+                               duty::Type{<:AbstractVarConstrDuty},
+                               is_explicit::Bool = true
                                ) where {VC<:AbstractVarConstr}
     for (id, vc) in vcs
-        clone_in_formulation!(dest, src, vc, duty)
+        clone_in_formulation!(dest, src, vc, duty, is_explicit)
     end
     return
 end
@@ -42,8 +48,10 @@ function clone_in_manager!(dest::FormulationManager,
     
     new_col = Dict{Id{Constraint}, Float64}()
     for (id, val) in getrecords(src.coefficients[:, var.id])
-        if has(dest, id)
+        if haskey(dest, id)
             new_col[id] = val
+        else
+            @warn string("WARNING: Manager does not has constr", id)
         end
     end
     dest.coefficients[:, var.id] = new_col
@@ -56,8 +64,10 @@ function clone_in_manager!(dest::FormulationManager,
 
     new_row = Dict{Id{Variable}, Float64}()
     for (id, val) in getrecords(src.coefficients[constr.id, :])
-        if has(dest, id)
+        if haskey(dest, id)
             new_row[id] = val
+        else
+            @warn string("WARNING: Manager does not has var", id)
         end
     end
     dest.coefficients[constr.id, :] = new_row

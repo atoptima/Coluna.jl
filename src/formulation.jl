@@ -31,7 +31,7 @@ function Formulation{D}(form_counter::Counter;
 end
 
 
-has(f::Formulation, id::Id) = has(f.manager, id)
+haskey(f::Formulation, id::Id) = haskey(f.manager, id)
 
 get_var(f::Formulation, id::VarId) = get_var(f.manager, id)
 
@@ -67,7 +67,7 @@ function set_var!(f::Formulation,
                   sense::VarSense = Positive,
                   moi_index::MoiVarIndex = MoiVarIndex())
     id = generatevarid(f)
-    v_data = VarData(cost, lb, ub, kind, sense, true)
+    v_data = VarData(cost, lb, ub, kind, sense, true, true)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
     return add_var!(f, v)
 end
@@ -87,7 +87,7 @@ function set_constr!(f::Formulation,
                      sense::ConstrSense = 0.0,
                      moi_index::MoiConstrIndex = MoiConstrIndex())
     id = generateconstrid(f)
-    c_data = ConstrData(rhs, kind, sense, true)
+    c_data = ConstrData(rhs, kind, sense, true, true)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
     return add_constr!(f, c)
 end
@@ -235,7 +235,7 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
         op = "<="
     end
     print(io, " ", op, " ", getrhs(constr_data))
-    println(io, " (", getduty(constr) ,")")
+    println(io, " (", getduty(constr), " ", is_explicit(constr_data) ,")")
     return
 end
 
@@ -256,7 +256,8 @@ function _show_variable(io::IO, f::Formulation, var::Variable)
     ub = getub(var_data)
     t = getkind(var_data)
     d = getduty(var)
-    println(io, getid(var), " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , ")")
+    e = is_explicit(var_data)
+    println(io, getid(var), " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
 function _show_variables(io::IO, f::Formulation)

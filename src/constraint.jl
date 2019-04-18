@@ -3,22 +3,27 @@ mutable struct ConstrData <: AbstractVcData
     kind::ConstrKind
     sense::ConstrSense
     is_active::Bool
+    is_explicit::Bool
 end
+
 function ConstrData(; rhs::Float64  = -Inf,
                     kind::ConstrKind = Core,
                     sense::ConstrSense = Greater,
-                    is_active::Bool = true)
-    return ConstrData(rhs, kind, sense, is_active)
+                    is_active::Bool = true,
+                    is_explicit::Bool = true)
+    return ConstrData(rhs, kind, sense, is_active, is_explicit)
 end
 
 getrhs(c::ConstrData) = c.rhs
 is_active(vc::AbstractVcData) = vc.is_active
+is_explicit(vc::AbstractVcData) = vc.is_explicit
 getkind(vc::AbstractVcData) = vc.kind
 getsense(vc::AbstractVcData) = vc.sense
 
 setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 set_is_active!(vc::AbstractVcData, is_active::Bool) = vc.is_active = is_active
-setkind!(vc::AbstractVcData, kind) = vc.kind = kind
+set_is_explicit!(vc::AbstractVcData, is_explicit::Bool) = vc.is_explicit = is_explicit
+setkindx!(vc::AbstractVcData, kind) = vc.kind = kind
 setsense!(vc::AbstractVcData, sense) = vc.sense = sense
 
 mutable struct MoiConstrRecord
