@@ -124,7 +124,7 @@ function optimize!(form::Formulation, optimizer = form.moi_optimizer,
                 form.dual_solution_record = dual_sol
             end
         end
-        return (status, primal_sol.value, primal_sols, dual_sol)
+        return (status, primal_sol.bound, primal_sols, dual_sol)
     end
     @logmsg LogLevel(-4) string("Solver has no result to show.")
     return (status, Inf, nothing, nothing)
