@@ -115,9 +115,9 @@ function optimize!(form::Formulation, optimizer = form.moi_optimizer,
     primal_sols = PrimalSolution{form.obj_sense}[]
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
-        primal_sol = retrieve_primal_sol(form, filter(_explicit_ , form.vars))
+        primal_sol = retrieve_primal_sol(form, filter(_explicit_ , get_vars(form)))
         push!(primal_sols, primal_sol)
-        dual_sol = retrieve_dual_sol(form, filter(_active_ , form.constrs))
+        dual_sol = retrieve_dual_sol(form, filter(_explicit_ , get_constrs(form)))
         if update_form
             form.primal_solution_record = primal_sol
             if dual_sol != nothing
@@ -240,7 +240,7 @@ end
 
 function _show_constraints(io::IO , f::Formulation)
     constrs = filter(
-        x->(getduty(x) isa ExplicitDuty), rows(get_coefficient_matrix(f))
+        _explicit_, rows(get_coefficient_matrix(f))
     )
     for (constr_id, members) in constrs
         _show_constraint(io, f, constr_id, members)

@@ -258,7 +258,6 @@ function gen_new_columns(reformulation::Reformulation,
     return (nb_new_cols, dual_bound_contrib)
 end
 
-
 function solve_restricted_mast(master::Formulation)
     @logmsg LogLevel(-2) "starting solve_restricted_mast"
     #@timeit to(alg) "solve_restricted_mast" begin
