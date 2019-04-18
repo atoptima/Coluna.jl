@@ -38,7 +38,17 @@ function update_tree(search_tree::SearchTree, cur_node::Node)
     end
 end
 
+function treat_node(n::Node, f::Reformulation, strategy::AbstractStrategy)
+# function treat_node(n::Node, f::Reformulation)
+    # println("Fake treat node")
+    setup_master(n, f.master)
+    r = StrategyRecord()
+    apply(strategy, f, nothing, r, nothing)
+    record_master_info(n, f.master)
+end
+
 function search(search_tree::SearchTree, formulation::AbstractFormulation)
+    # strategy = formulation.strategy
     add_node(search_tree, RootNode())
 
     while (!isempty(search_tree)
@@ -46,7 +56,7 @@ function search(search_tree::SearchTree, formulation::AbstractFormulation)
 
         cur_node = pop_node!(search_tree)
         print_info_before_solving(cur_node, search_tree, formulation)
-        apply_strategy(cur_node, formulation)
+        treat_node(cur_node, formulation, strategy)
         print_info_after_solving(cur_node, search_tree, formulation)
         update_formulation(formulation, cur_node)
         update_tree(search_tree, cur_node, formulation)

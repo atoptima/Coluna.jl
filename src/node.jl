@@ -6,9 +6,16 @@ end
 
 mutable struct Node <: AbstractNode
     parent::Union{Nothing, Node}
-    # params::Params
+
     children::Vector{Node}
     depth::Int
+
+    ###
+    # treat_order::Int
+    # incumbents::Incumbents
+    # from_father_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
+    # local_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
+    ###
 
     ## Commented for now
     # # prune_dat_treat_node_start::Bool

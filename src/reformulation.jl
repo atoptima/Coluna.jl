@@ -6,6 +6,7 @@ mutable struct Reformulation <: AbstractFormulation
     dw_pricing_sp_lb::Dict{FormId, Id} # Attribute has ambiguous name
     dw_pricing_sp_ub::Dict{FormId, Id}
     timer_output::TimerOutputs.TimerOutput
+    # strategy::AbstractStrategy
 end
 
 Reformulation(prob::AbstractProblem) = Reformulation(prob, DirectMip)
@@ -48,11 +49,9 @@ function optimize!(reformulation::Reformulation)
     r = StrategyRecord()
     apply(MockStrategy, reformulation, nothing, r, nothing)
 
-    #alg = SimplexLpColGenAlg()
-    #optimize!(alg, reformulation)
-
-    # search_tree = SearchTree(params.search_strategy)
+    # search_tree = SearchTree(_params_.search_strategy)
     # search(search_tree, reformulation)
+    # exit()
 
     return getstatus(reformulation)
 end
