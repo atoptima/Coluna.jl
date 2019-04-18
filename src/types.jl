@@ -8,7 +8,7 @@ abstract type AbstractMembership end
 abstract type AbstractNode end
 abstract type AbstractVcData end
 abstract type AbstractObjSense end
-abstract type AbstractBound end
+abstract type AbstractBound <: Number end
 
 struct MinSense <: AbstractObjSense end
 struct MaxSense <: AbstractObjSense end

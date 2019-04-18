@@ -26,6 +26,11 @@ diff(b1::PrimalBound{MaxSense}, b2::DualBound{MaxSense}) = b2.value - b1.value
 
 diff(b1::DualBound{MaxSense}, b2::PrimalBound{MaxSense}) = b1.value - b2.value
 
+Base.promote_rule(::Type{<:AbstractBound}, ::Type{<:Real}) = Float64
+Base.convert(::Type{Float64}, b::AbstractBound) = b.value
+
+Base.isless(b::AbstractBound, r::Real) = b.value < r
+
 abstract type AbstractSolution end
 
 mutable struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
