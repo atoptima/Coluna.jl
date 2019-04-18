@@ -7,10 +7,17 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
     manager::FormulationManager
     obj_sense::Type{<:AbstractObjSense}
+
+    # Do we still need to store solutions in formulation
+    # Before it was mainly used for partial solutions, but now partial solutions are sotred in manager
     primal_inc_bound::Float64
     dual_inc_bound::Float64
     primal_solution_record::Union{PrimalSolution, Nothing}
     dual_solution_record::Union{DualSolution, Nothing}
+    ###
+
+    # solver_info::Any
+
     callback
 end
 
@@ -107,6 +114,13 @@ function register_objective_sense!(f::Formulation, min::Bool)
     end
     return
 end
+
+# function optimize!(f::Formulation)
+#     setup_solver(f.moi_optimizer, f, solver_info)
+#     res = optimize!(f, f.moi_optimizer, true)
+#     setdown_solver(f.moi_optimizer, f, solver_info)
+#     return res
+# end
 
 function optimize!(form::Formulation, optimizer = form.moi_optimizer,
                   update_form = true)
