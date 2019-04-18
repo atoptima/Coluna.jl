@@ -1,62 +1,26 @@
-abstract type SetupInfo end
-
-mutable struct TreatOrder
-    value::Int
-end
-
-mutable struct Node <: AbstractNode
-    parent::Union{Nothing, Node}
-
-    children::Vector{Node}
+struct Node <: AbstractNode
+    treat_order::Int
     depth::Int
-
-    ###
-    # treat_order::Int
-    # incumbents::Incumbents
-    # from_father_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
-    # local_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
-    ###
-
-    ## Commented for now
-    # # prune_dat_treat_node_start::Bool
-    # # estimated_sub_tree_size::Int
-    # # sub_tree_size::Int
-
-    # node_inc_lp_dual_bound::Float64
-    # node_inc_ip_dual_bound::Float64
-    # node_inc_lp_primal_bound::Float64
-    # node_inc_ip_primal_bound::Float64
-
-    # dual_bound_is_updated::Bool
-    # ip_primal_bound_is_updated::Bool
-
-    # node_inc_ip_primal_sol::PrimalSolution
-    # # partial_solution::PrimalSolution
-
-    # # eval_end_time::Int
-    # treat_order::TreatOrder
-
-    # infeasible::Bool
-    # evaluated::Bool
-    # treated::Bool
-
-    # ### New information recorded when the node was generated
-    # local_branching_constraints::Vector{Constraint}
-
-    # ### Information recorded by father
-    # problem_setup_info::SetupInfo
-    # # eval_info::EvalInfo
-    # # children_generation_info::ChildrenGenerationInfo
-    # # branching_eval_info::BranchingEvaluationInfo #for branching history
-
-    # # problem_and_eval_alg_info_saved::Bool
-    # primal_sol::PrimalSolution # More information than only ::PrimalSolution
-    # # strong_branch_phase_number::Int
-    # # strong_branch_node_number::Int
-
+    parent::Union{Nothing, Node}
+    children::Vector{Node}
+    incumbents::Incumbents
+    solver_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
 end
 
-RootNode() = Node(nothing, Node[], 0)
+function RootNode(obj_sense::Type{<:AbstractObjSense})
+    return Node(
+        1, 0, nothing, Node[], Incumbents{obj_sense}(),
+        Dict{Type{<:AbstractSolver},AbstractSolverRecord}()
+    )
+end
+
+get_treat_order(n::Node) = n.treat_order
+getdepth(n::Node) = n.depth
+getparent(n::Node) = n.parent
+getchildren(n::Node) = n.childre
+getincumbents(n::Node) = n.incumbents
+get_solver_records(n::Node) = n.solver_records
+
 
 # function Node(problem::Reformulation, dual_bound::Float64,
 #     problem_setup_info::SetupInfo, params::Params)
@@ -166,28 +130,6 @@ function update_node_sols(node::Node, sols_and_bounds)
     update_node_duals(node, sols_and_bounds)
 end
 
-
-@hl mutable struct AlgLike end
-
-function run(::AlgLike)
-    @logmsg LogLevel(0) "Empty algorithm"
-    return false
-end
-
-function to(alg::AlgLike; args...)
-    return alg.extended_problem.timer_output
-end
-
-mutable struct TreatAlgs
-    alg_setup_node::AlgLike
-    alg_preprocess_node::AlgLike
-    alg_eval_node::AlgLike
-    alg_setdown_node::AlgLike
-    alg_vect_primal_heur_node::Vector{AlgLike}
-    alg_generate_children_nodes::AlgLike
-    TreatAlgs() = new(AlgLike(), AlgLike(), AlgLike(), AlgLike(), AlgLike[], AlgLike())
-end
-
 # struct TreatAlgsTwo{St <: AbstractSetupNodeAlg,
 #                     Gc <: AbstractGenChildrenNodeAlg,
 #                     Ri <: AbstractRecordInfoNodeAlg
@@ -222,147 +164,147 @@ end
 #     # gen children
 # end
 
-function evaluation(node::Node, treat_algs::TreatAlgs,
-                    global_treat_order::TreatOrder,
-                    inc_primal_bound::Float64)::Bool
-    node.treat_order = TreatOrder(global_treat_order.value)
-    node.node_inc_ip_primal_bound = inc_primal_bound
-    node.ip_primal_bound_is_updated = false
-    node.dual_bound_is_updated = false
+# function evaluation(node::Node, treat_algs::TreatAlgs,
+#                     global_treat_order::TreatOrder,
+#                     inc_primal_bound::Float64)::Bool
+#     node.treat_order = TreatOrder(global_treat_order.value)
+#     node.node_inc_ip_primal_bound = inc_primal_bound
+#     node.ip_primal_bound_is_updated = false
+#     node.dual_bound_is_updated = false
 
-    run(treat_algs.alg_setup_node)
+#     run(treat_algs.alg_setup_node)
 
-    if run(treat_algs.alg_preprocess_node)
-        @logmsg LogLevel(0) string("Preprocess determines infeasibility.")
-        run(treat_algs.alg_setdown_node)
-        record_node_info(node, treat_algs.alg_setdown_node)
-        mark_infeasible_and_exit_treatment(node)
-        return true
-    end
+#     if run(treat_algs.alg_preprocess_node)
+#         @logmsg LogLevel(0) string("Preprocess determines infeasibility.")
+#         run(treat_algs.alg_setdown_node)
+#         record_node_info(node, treat_algs.alg_setdown_node)
+#         mark_infeasible_and_exit_treatment(node)
+#         return true
+#     end
 
-    if run(treat_algs.alg_eval_node, inc_primal_bound)
-        update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
-        run(treat_algs.alg_setdown_node)
-        record_node_info(node, treat_algs.alg_setdown_node)
-        mark_infeasible_and_exit_treatment(node)
-        return true
-    end
-    node.evaluated = true
+#     if run(treat_algs.alg_eval_node, inc_primal_bound)
+#         update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
+#         run(treat_algs.alg_setdown_node)
+#         record_node_info(node, treat_algs.alg_setdown_node)
+#         mark_infeasible_and_exit_treatment(node)
+#         return true
+#     end
+#     node.evaluated = true
 
-    update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
+#     update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
 
-    if is_conquered(node)
-        @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
-        run(treat_algs.alg_setdown_node)
-        record_node_info(node, treat_algs.alg_setdown_node)
-        exit_treatment(node);
-        return true
-    end
+#     if is_conquered(node)
+#         @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
+#         run(treat_algs.alg_setdown_node)
+#         record_node_info(node, treat_algs.alg_setdown_node)
+#         exit_treatment(node);
+#         return true
+#     end
 
-    run(treat_algs.alg_setdown_node)
-    record_node_info(node, treat_algs.alg_setdown_node)
+#     run(treat_algs.alg_setdown_node)
+#     record_node_info(node, treat_algs.alg_setdown_node)
 
-    return true
-end
+#     return true
+# end
 
-function treat(node::Node, treat_algs::TreatAlgs,
-        global_treat_order::TreatOrder, inc_primal_bound::Float64)::Bool
-    # In strong branching, part 1 of treat (setup, preprocessing and solve) is
-    # separated from part 2 (heuristics and children generation).
-    # Therefore, treat() can be called two times. One inside strong branching,
-    # and the second inside the branch-and-price tree. Thus, variables _solved
-    # is used to know whether part 1 has already been done or not.
+# function treat(node::Node, treat_algs::TreatAlgs,
+#         global_treat_order::TreatOrder, inc_primal_bound::Float64)::Bool
+#     # In strong branching, part 1 of treat (setup, preprocessing and solve) is
+#     # separated from part 2 (heuristics and children generation).
+#     # Therefore, treat() can be called two times. One inside strong branching,
+#     # and the second inside the branch-and-price tree. Thus, variables _solved
+#     # is used to know whether part 1 has already been done or not.
 
-    println(">>>>>>>> Treat node")
+#     println(">>>>>>>> Treat node")
 
-    # if !node.evaluated
-    #     evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
-    # end
+#     # if !node.evaluated
+#     #     evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
+#     # end
 
-    # if node.treated
-    #     @logmsg LogLevel(0) "Node is considered as treated after evaluation"
-    #     return true
-    # end
+#     # if node.treated
+#     #     @logmsg LogLevel(0) "Node is considered as treated after evaluation"
+#     #     return true
+#     # end
 
-    # for alg in treat_algs.alg_vect_primal_heur_node
-    #     run(alg, global_treat_order)
-    #     update_node_primal_inc(node, alg.sols_and_bounds.alg_inc_ip_primal_bound,
-    #                            alg.sols_and_bounds.alg_inc_ip_primal_sol_map)
-    #     println("<", typeof(alg), ">", " <mlp=",
-    #             node.node_inc_lp_primal_bound, "> ",
-    #             "<PB=", node.node_inc_ip_primal_bound, ">")
-    #     if is_conquered(node)
-    #         @logmsg LogLevel(0) string("Node is considered conquered ",
-    #                                    "after primal heuristic ", typeof(alg))
-    #         exit_treatment(node)
-    #         return true
-    #     end
-    # end
+#     # for alg in treat_algs.alg_vect_primal_heur_node
+#     #     run(alg, global_treat_order)
+#     #     update_node_primal_inc(node, alg.sols_and_bounds.alg_inc_ip_primal_bound,
+#     #                            alg.sols_and_bounds.alg_inc_ip_primal_sol_map)
+#     #     println("<", typeof(alg), ">", " <mlp=",
+#     #             node.node_inc_lp_primal_bound, "> ",
+#     #             "<PB=", node.node_inc_ip_primal_bound, ">")
+#     #     if is_conquered(node)
+#     #         @logmsg LogLevel(0) string("Node is considered conquered ",
+#     #                                    "after primal heuristic ", typeof(alg))
+#     #         exit_treatment(node)
+#     #         return true
+#     #     end
+#     # end
 
-    # if !run(treat_algs.alg_generate_children_nodes, node.primal_sol)
-    #     generate_children(node, treat_algs.alg_generate_children_nodes)
-    # end
+#     # if !run(treat_algs.alg_generate_children_nodes, node.primal_sol)
+#     #     generate_children(node, treat_algs.alg_generate_children_nodes)
+#     # end
 
-    # exit_treatment(node)
+#     # exit_treatment(node)
 
-    return true
-end
+#     return true
+# end
 
-function prepare_node_for_treatment(extended_problem::Reformulation,
-        node::Node, treat_algs::TreatAlgs,
-        global_treat_order::Int)
+# function prepare_node_for_treatment(extended_problem::Reformulation,
+#         node::Node, treat_algs::TreatAlgs,
+#         global_treat_order::Int)
 
-    if node.parent == nothing
-        println("************************************************************")
-        println("Preparing root node for treatment.")
+#     if node.parent == nothing
+#         println("************************************************************")
+#         println("Preparing root node for treatment.")
 
-        #params = node.params
-        #treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
-        #    node.problem_setup_info, node.local_branching_constraints)
-    else
-        println("************************************************************")
-        println("Preparing node for treatment.")
-        # println("Preparing node ", global_treat_order,
-        #     " for treatment. Parent is ", node.parent.treat_order, ".")
-        # println("Elapsed time: ", elapsed_solve_time(), " seconds.")
-        # println("Current primal bound is ", extended_problem.primal_inc_bound)
-        # println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
-        # print("Branching constraint:  ")
-        # coluna_print(node.local_branching_constraints[1])
+#         #params = node.params
+#         #treat_algs.alg_setup_node = AlgToSetupRootNode(extended_problem,
+#         #    node.problem_setup_info, node.local_branching_constraints)
+#     else
+#         println("************************************************************")
+#         println("Preparing node for treatment.")
+#         # println("Preparing node ", global_treat_order,
+#         #     " for treatment. Parent is ", node.parent.treat_order, ".")
+#         # println("Elapsed time: ", elapsed_solve_time(), " seconds.")
+#         # println("Current primal bound is ", extended_problem.primal_inc_bound)
+#         # println("Subtree dual bound is ", node.node_inc_ip_dual_bound)
+#         # print("Branching constraint:  ")
+#         # coluna_print(node.local_branching_constraints[1])
 
-        # params = node.params
-        # if is_to_be_pruned(node, extended_problem.primal_inc_bound)
-        #     println("Node is conquered, no need for treating it.")
-        #     return false 
-        # end
+#         # params = node.params
+#         # if is_to_be_pruned(node, extended_problem.primal_inc_bound)
+#         #     println("Node is conquered, no need for treating it.")
+#         #     return false 
+#         # end
 
-        # if global_treat_order == node.parent.treat_order+1
-        #     treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
-        #         node.problem_setup_info, node.local_branching_constraints)
-        # else
-        #     treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
-        #         node.problem_setup_info, node.local_branching_constraints)
-        # end
-    end
-    # if params.apply_preprocessing
-    #     treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
-    # end
-    # treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
-    # treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
-    #                                                         extended_problem)
+#         # if global_treat_order == node.parent.treat_order+1
+#         #     treat_algs.alg_setup_node = AlgToSetupBranchingOnly(extended_problem,
+#         #         node.problem_setup_info, node.local_branching_constraints)
+#         # else
+#         #     treat_algs.alg_setup_node = AlgToSetupFull(extended_problem,
+#         #         node.problem_setup_info, node.local_branching_constraints)
+#         # end
+#     end
+#     # if params.apply_preprocessing
+#     #     treat_algs.alg_preprocess_node = AlgToPreprocessNode(node.depth, extended_problem)
+#     # end
+#     # treat_algs.alg_setdown_node = AlgToSetdownNodeFully(extended_problem)
+#     # treat_algs.alg_generate_children_nodes = UsualBranchingAlg(node.depth,
+#     #                                                         extended_problem)
 
-    # if !node.evaluated
-    #     treat_algs.alg_eval_node = select_eval_alg(extended_problem,
-    #                                             params.node_eval_mode)
-    # end
+#     # if !node.evaluated
+#     #     treat_algs.alg_eval_node = select_eval_alg(extended_problem,
+#     #                                             params.node_eval_mode)
+#     # end
 
-    # if params.use_restricted_master_heur
-    #     push!(treat_algs.alg_vect_primal_heur_node,
-    #         AlgToPrimalHeurByRestrictedMip(
-    #             extended_problem,
-    #             params.restricted_master_heur_solver_type)
-    #         )
-    # end
+#     # if params.use_restricted_master_heur
+#     #     push!(treat_algs.alg_vect_primal_heur_node,
+#     #         AlgToPrimalHeurByRestrictedMip(
+#     #             extended_problem,
+#     #             params.restricted_master_heur_solver_type)
+#     #         )
+#     # end
 
-    return true
-end
+#     return true
+# end
