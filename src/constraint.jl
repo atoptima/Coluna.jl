@@ -20,6 +20,9 @@ is_explicit(vc::AbstractVcData) = vc.is_explicit
 getkind(vc::AbstractVcData) = vc.kind
 getsense(vc::AbstractVcData) = vc.sense
 
+is_active(vc::AbstractVarConstr) = vc.cur_data.is_active
+is_explicit(vc::AbstractVarConstr) = vc.cur_data.is_explicit
+
 setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 set_is_active!(vc::AbstractVcData, is_active::Bool) = vc.is_active = is_active
 set_is_explicit!(vc::AbstractVcData, is_explicit::Bool) = vc.is_explicit = is_explicit
@@ -74,3 +77,5 @@ function reset!(c::Constraint)
     cur.is_active = initial.is_active
     return
 end
+
+getrhs(c::Constraint) = c.cur_data.rhs

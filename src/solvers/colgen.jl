@@ -265,7 +265,7 @@ function solve_restricted_mast(master::Formulation)
  
     println("Solving master problem: ")
     @show master
-    status, value, primal_sols, dual_sol = optimize(master)
+    status, value, primal_sols, dual_sol = optimize!(master)
     @show status
     @show result_count = MOI.get(master.moi_optimizer, MOI.ResultCount())
     @show primal_status = MOI.get(master.moi_optimizer, MOI.PrimalStatus())
@@ -335,12 +335,13 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
     sp_lbs = Dict{FormId, Float64}()
     sp_ubs = Dict{FormId, Float64}()
 
+    # collect multiplicity current bounds for each sp
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getrhs(getstate(lb_convexity_constr_id))
-        sp_ubs[sp_uid] = getrhs(getstate(ub_convexity_constr_id))
+        sp_lbs[sp_uid] = getrhs(get_constr(master_form, lb_convexity_constr_id))
+        sp_ubs[sp_uid] = getrhs(get_constr(master_form, ub_convexity_constr_id))
     end
 
     @show sp_lbs
