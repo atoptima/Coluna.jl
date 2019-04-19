@@ -46,8 +46,6 @@ function optimize!(reformulation::Reformulation)
     println("\e[1;32m Here starts optimization \e[00m")
     println("\e[1;35m it runs only FV draft algorithm \e[00m")
 
-    # r = StrategyRecord()
-    # apply(MockStrategy, reformulation, nothing, r, nothing)
     res = apply(TreeSolver, reformulation)
     return res
 end

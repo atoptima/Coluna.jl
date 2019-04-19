@@ -19,8 +19,6 @@ global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
 global const BD = BlockDecomposition
-global __initial_solve_time = 0.0
-global const MAX_SV_ENTRIES = 10_000_000
 
 # Base functions for which we define more methods in Coluna
 import Base.isempty
@@ -83,10 +81,8 @@ include("bbtree.jl")
 
 ##### Wrapper functions
 include("MOIwrapper.jl")
-#include("decomposition.jl")
 
-include("utils.jl") # Structure that holds values useful in all the procedure
-include("globals.jl") 
+include("globals.jl") # Structure that holds values useful in all the procedure
 
 global const _params_ = Params()
 global const _globals_ = GlobalValues()
