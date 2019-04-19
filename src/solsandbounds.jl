@@ -1,3 +1,5 @@
+Base.float(b::AbstractBound) = b.value
+
 struct PrimalBound{S <: AbstractObjSense} <: AbstractBound
     value::Float64
 end
@@ -65,3 +67,14 @@ end
 
 getbound(s::AbstractSolution) = s.bound
 getsol(s::AbstractSolution) = s.sol
+
+_show_sol_type(io::IO, p::PrimalSolution) = println(io, "\n┌ Primal Solution :")
+_show_sol_type(io::IO, d::DualSolution) = println(io, "\n┌ Dual Solution :")
+
+function Base.show(io::IO, s::AbstractSolution)
+    _show_sol_type(io, s)
+    for (id, val) in getsol(s)
+        println(io, "| ", id, " => ", val)
+    end
+    @printf(io, "└ value = %.2f \n", float(getbound(s)))
+end
