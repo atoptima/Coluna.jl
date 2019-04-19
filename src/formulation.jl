@@ -8,16 +8,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:AbstractObjSense}
 
-    # Do we still need to store solutions in formulation
-    # Before it was mainly used for partial solutions, but now partial solutions are sotred in manager
-    primal_inc_bound::Float64
-    dual_inc_bound::Float64
-    primal_solution_record::Union{PrimalSolution, Nothing}
-    dual_solution_record::Union{DualSolution, Nothing}
-    ###
-
     # solver_info::Any
-
     callback
 end
 
@@ -25,15 +16,12 @@ function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
                         obj_sense::Type{<:AbstractObjSense} = MinSense,
                         moi_optimizer::Union{MOI.AbstractOptimizer,
-                                             Nothing} = nothing,
-                        primal_inc_bound::Float64 = Inf,
-                        dual_inc_bound::Float64 = -Inf
+                                             Nothing} = nothing
                         ) where {D<:AbstractFormDuty,S<:AbstractObjSense}
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, moi_optimizer, FormulationManager(),
-        obj_sense, primal_inc_bound, dual_inc_bound, nothing,
-        nothing, nothing
+        obj_sense, nothing
     )
 end
 
@@ -122,25 +110,18 @@ end
 #     return res
 # end
 
-function optimize!(form::Formulation, optimizer = form.moi_optimizer,
-                  update_form = true)
+function optimize!(form::Formulation, optimizer = form.moi_optimizer)
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
-    primal_sols = PrimalSolution{form.obj_sense}[]
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
-        primal_sol = retrieve_primal_sol(form, filter(_explicit_ , getvars(form)))
-        push!(primal_sols, primal_sol)
+        primal_sols = retrieve_primal_sols(
+            form, filter(_explicit_ , getvars(form))
+        )
         dual_sol = retrieve_dual_sol(form, filter(_explicit_ , get_constrs(form)))
-        if update_form
-            form.primal_solution_record = primal_sol
-            if dual_sol != nothing
-                form.dual_solution_record = dual_sol
-            end
-        end
-        return (status, primal_sol.bound, primal_sols, dual_sol)
+        return (status, primal_sols[1].bound, primal_sols, dual_sol)
     end
-    @logmsg LogLevel(-4) string("Solver has no result to show.")
+    @warn "Solver has no result to show."
     return (status, Inf, nothing, nothing)
 end
 
@@ -165,15 +146,16 @@ function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFact
     form.moi_optimizer = create_moi_optimizer(factory)
 end
 
-function retrieve_primal_sol(form::Formulation,
-                             vars::VarDict)
-    new_sol = Dict{VarId,Float64}()
-    new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
-    #error("Following line does not work.")
-    fill_primal_sol(form.moi_optimizer, new_sol, vars)
-    primal_sol = PrimalSolution{form.obj_sense}(new_obj_val, new_sol)
-    @logmsg LogLevel(-4) string("Objective value: ", new_obj_val)
-    return primal_sol
+function retrieve_primal_sols(form::Formulation, vars::VarDict)
+    primal_sols = PrimalSolution{form.obj_sense}[]
+    for res_idx in 1:MOI.get(get_optimizer(form), MOI.ResultCount())
+        new_sol = Dict{VarId,Float64}()
+        new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
+        fill_primal_sol(form.moi_optimizer, new_sol, vars, res_idx)
+        primal_sol = PrimalSolution{form.obj_sense}(new_obj_val, new_sol)
+        push!(primal_sols, primal_sol)
+    end
+    return primal_sols
 end
 
 function retrieve_dual_sol(form::Formulation,

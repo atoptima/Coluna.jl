@@ -36,7 +36,7 @@ function Optimizer(;master_factory =
 end
 
 function MOI.optimize!(optimizer::Optimizer)
-    optimize!(optimizer.inner, optimizer.annotations)
+    res = optimize!(optimizer.inner, optimizer.annotations)
 end
 
 function MOI.get(dest::MOIU.UniversalFallback,

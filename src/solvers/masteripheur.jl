@@ -23,9 +23,3 @@ function run(::Type{MasterIpHeuristic}, f, n, p)
     println("Found optimal solution")
     return MasterIpHeuristicRecord(7)
 end
-
-function apply(S::Type{MasterIpHeuristic}, f, n, r, p)
-    interface(getsolver(r), S, f, n)
-    setsolver!(r, S)
-    return run(S, f, n, p)
-end

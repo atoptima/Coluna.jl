@@ -83,7 +83,9 @@ function optimize!(prob::Problem, annotations::Annotations)
     _globals_.initial_solve_time = time()
     @show _params_
     @timeit prob.timer_output "Solve prob" begin
-        status = optimize!(prob.re_formulation)
+        res = optimize!(prob.re_formulation)
     end
+    # Stock the result in problem?
     println(prob.timer_output)
+    return res
 end

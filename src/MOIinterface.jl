@@ -108,10 +108,10 @@ end
 
 function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
                          sol::Dict{VarId,Float64},
-                         vars::VarDict)
+                         vars::VarDict, res_idx::Int = 1)
     for (id, var) in vars
         moi_index = getindex(get_moi_record(var))
-        val = MOI.get(moi_optimizer, MOI.VariablePrimal(), moi_index)
+        val = MOI.get(moi_optimizer, MOI.VariablePrimal(res_idx), moi_index)
         @logmsg LogLevel(-4) string("Var ", getname(var_def[2]), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             sol[id] = val
