@@ -13,11 +13,19 @@ function Incumbents{S}() where {S<:AbstractObjSense}
 end
 
 get_ip_primal_sol(i::Incumbents) = i.ip_primal_sol
-get_ip_dual_bound(i::Incumbents) = i.ip_dual_bound
 get_lp_primal_sol(i::Incumbents) = i.lp_primal_sol
 get_lp_dual_sol(i::Incumbents) = i.lp_dual_sol
 
-# ### Methods of SolsAndBounds
+get_ip_primal_bound(i::Incumbents) = getbound(i.ip_primal_sol)
+get_ip_dual_bound(i::Incumbents) = i.ip_dual_bound
+get_lp_primal_bound(i::Incumbents) = getbound(i.lp_primal_sol)
+get_lp_dual_bound(i::Incumbents) = getbound(i.lp_dual_sol)
+
+compute_ip_gap(i::Incumbents{MinSense}) = diff(get_ip_primal_bound(i), get_ip_dual_bound(i)) / get_ip_primal_bound(i)
+
+compute_lp_gap(i::Incumbents) = 0.0
+
+
 # function update_primal_lp_bound(incumbents::SolsAndBounds,
 #                                 newbound::Float64)
 #     if newbound < incumbents.alg_inc_lp_primal_bound

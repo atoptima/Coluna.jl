@@ -25,6 +25,8 @@ function run(::Type{MasterIpHeuristic}, f, n, p)
 end
 
 function apply(S::Type{MasterIpHeuristic}, f, n, r, p)
+    # Why apply is defined here?
+    # Shouldnt it be defined only once for all solvers?
     interface(getsolver(r), S, f, n)
     setsolver!(r, S)
     return run(S, f, n, p)

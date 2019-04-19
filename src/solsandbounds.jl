@@ -12,6 +12,8 @@ DualBound{MaxSense}() = DualBound{MaxSense}(Inf)
 
 getvalue(b::AbstractBound) = b.value
 
+gap(b1::PrimalBound{MinSense}, b2::PrimalBound)
+
 isbetter(b1::PrimalBound{MinSense}, b2::PrimalBound{MinSense}) = b1.value < b2.value
 
 isbetter(b1::PrimalBound{MaxSense}, b2::PrimalBound{MaxSense}) = b1.value > b2.value
@@ -28,9 +30,21 @@ diff(b1::PrimalBound{MaxSense}, b2::DualBound{MaxSense}) = b2.value - b1.value
 
 diff(b1::DualBound{MaxSense}, b2::PrimalBound{MaxSense}) = b1.value - b2.value
 
+function printbounds(db::DualBound{S}, pb::PrimalBound{S}) where {S<:MinSense}
+    print("[ ", db,  " , ", pb, " ]")
+end
+
+function printbounds(db::DualBound{S}, pb::PrimalBound{S}) where {S<:MaxSense}
+    print("[ ", pb,  " , ", db, " ]")
+end
+
+function Base.show(io::IO, b::AbstractBound)
+    print(io, getvalue(b))
+end
+
 abstract type AbstractSolution end
 
-mutable struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
+struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::PrimalBound{S}
     sol::Dict{Id{Variable},Float64}
 end
@@ -44,7 +58,7 @@ function PrimalSolution{S}(value::Float64, sol::Dict{Id{Variable},Float64}
     return PrimalSolution{S}(PrimalBound{S}(value), sol)
 end
 
-mutable struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
+struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::DualBound{S}
     sol::Dict{Id{Constraint},Float64}
 end
@@ -60,3 +74,4 @@ end
 
 getbound(s::AbstractSolution) = s.bound
 getsol(s::AbstractSolution) = s.sol
+Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))

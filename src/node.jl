@@ -17,10 +17,14 @@ end
 get_treat_order(n::Node) = n.treat_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
-getchildren(n::Node) = n.childre
+getchildren(n::Node) = n.children
 getincumbents(n::Node) = n.incumbents
 get_solver_records(n::Node) = n.solver_records
 
+
+function to_be_pruned(n::Node)
+    return true
+end
 
 # function Node(problem::Reformulation, dual_bound::Float64,
 #     problem_setup_info::SetupInfo, params::Params)

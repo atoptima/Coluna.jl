@@ -48,11 +48,8 @@ function optimize!(reformulation::Reformulation)
 
     # r = StrategyRecord()
     # apply(MockStrategy, reformulation, nothing, r, nothing)
-
-    search_tree = SearchTree(_params_.search_strategy)
-    search(search_tree, reformulation)
-
-    return getstatus(reformulation)
+    res = apply(TreeSolver, reformulation)
+    return res
 end
 
 

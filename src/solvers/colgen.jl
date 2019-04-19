@@ -31,6 +31,8 @@ function record_output(::Type{ColumnGeneration}, f, n)
 end
 
 function apply(S::Type{ColumnGeneration}, f, n, r, p)
+    # Why apply is defined here?
+    # Shouldnt it be defined only once for all solvers?
     interface(getsolver(r), S, f, n)
     setsolver!(r, S)
     return run(S, f, n, p)
