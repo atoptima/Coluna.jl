@@ -147,12 +147,13 @@ function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFact
 end
 
 function retrieve_primal_sols(form::Formulation, vars::VarDict)
-    primal_sols = PrimalSolution{form.obj_sense}[]
+    ObjSense = getobjsense(form)
+    primal_sols = PrimalSolution{ObjSense}[]
     for res_idx in 1:MOI.get(get_optimizer(form), MOI.ResultCount())
         new_sol = Dict{VarId,Float64}()
         new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
         fill_primal_sol(form.moi_optimizer, new_sol, vars, res_idx)
-        primal_sol = PrimalSolution{form.obj_sense}(new_obj_val, new_sol)
+        primal_sol = PrimalSolution(ObjSense, new_obj_val, new_sol)
         push!(primal_sols, primal_sol)
     end
     return primal_sols

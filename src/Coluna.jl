@@ -69,7 +69,7 @@ include("MOIinterface.jl")
 ###### Solvers & Strategies
 include("solvers/solver.jl")
 include("strategies/strategy.jl")
-include("solvers/colgen2.jl")
+include("solvers/colgen.jl")
 include("solvers/masteripheur.jl")
 # here include solvers
 include("solvers/interfaces.jl")

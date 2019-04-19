@@ -7,9 +7,9 @@ struct Node <: AbstractNode
     solver_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
 end
 
-function RootNode(obj_sense::Type{<:AbstractObjSense})
+function RootNode(ObjSense::Type{<:AbstractObjSense})
     return Node(
-        1, 0, nothing, Node[], Incumbents{obj_sense}(),
+        1, 0, nothing, Node[], Incumbents(ObjSense),
         Dict{Type{<:AbstractSolver},AbstractSolverRecord}()
     )
 end
