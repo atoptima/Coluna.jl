@@ -21,9 +21,8 @@ get_ip_dual_bound(i::Incumbents) = i.ip_dual_bound
 get_lp_primal_bound(i::Incumbents) = getbound(i.lp_primal_sol)
 get_lp_dual_bound(i::Incumbents) = getbound(i.lp_dual_sol)
 
-compute_ip_gap(i::Incumbents{MinSense}) = diff(get_ip_primal_bound(i), get_ip_dual_bound(i)) / get_ip_primal_bound(i)
-
-compute_lp_gap(i::Incumbents) = 0.0
+ip_gap(i::Incumbents) = gap(get_ip_primal_bound(i), get_ip_dual_bound(i))
+lp_gap(i::Incumbents) = gap(get_lp_primal_bound(i), get_lp_dual_bound(i))
 
 
 # function update_primal_lp_bound(incumbents::SolsAndBounds,

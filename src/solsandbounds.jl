@@ -12,23 +12,20 @@ DualBound{MaxSense}() = DualBound{MaxSense}(Inf)
 
 getvalue(b::AbstractBound) = b.value
 
-gap(b1::PrimalBound{MinSense}, b2::PrimalBound)
+gap(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = diff(pb, db) / abs(db.value)
+gap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = diff(pb, db) / abs(pb.value)
+gap(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = diff(pb, db) / abs(db.value)
+gap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = diff(pb, db) / abs(pb.value)
 
 isbetter(b1::PrimalBound{MinSense}, b2::PrimalBound{MinSense}) = b1.value < b2.value
-
 isbetter(b1::PrimalBound{MaxSense}, b2::PrimalBound{MaxSense}) = b1.value > b2.value
-
 isbetter(b1::DualBound{MinSense}, b2::DualBound{MinSense}) = b1.value > b2.value
-
 isbetter(b1::DualBound{MaxSense}, b2::DualBound{MaxSense}) = b1.value < b2.value
 
-diff(b1::PrimalBound{MinSense}, b2::DualBound{MinSense}) = b1.value - b2.value
-
-diff(b1::DualBound{MinSense}, b2::PrimalBound{MinSense}) = b2.value - b1.value
-
-diff(b1::PrimalBound{MaxSense}, b2::DualBound{MaxSense}) = b2.value - b1.value
-
-diff(b1::DualBound{MaxSense}, b2::PrimalBound{MaxSense}) = b1.value - b2.value
+diff(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = pb.value - db.value
+diff(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = pb.value - db.value
+diff(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = db.value - pb.value
+diff(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = db.value - pb.value
 
 function printbounds(db::DualBound{S}, pb::PrimalBound{S}) where {S<:MinSense}
     print("[ ", db,  " , ", pb, " ]")

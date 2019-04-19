@@ -15,3 +15,11 @@ end
 
 # Start node
 struct StartNode <: AbstractSolver end
+
+function apply(S::Type{<:AbstractSolver}, f, n, r, p)
+    # Why apply is defined here?
+    # Shouldnt it be defined only once for all solvers?
+    interface(getsolver(r), S, f, n)
+    setsolver!(r, S)
+    return run(S, f, n, p)
+end
