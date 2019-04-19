@@ -41,6 +41,10 @@ end
 function Base.show(io::IO, b::AbstractBound)
     print(io, getvalue(b))
 end
+Base.promote_rule(::Type{<:AbstractBound}, ::Type{<:Real}) = Float64
+Base.convert(::Type{Float64}, b::AbstractBound) = b.value
+
+Base.isless(b::AbstractBound, r::Real) = b.value < r
 
 abstract type AbstractSolution end
 

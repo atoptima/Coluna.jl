@@ -28,7 +28,7 @@ getformuid(id::Id) = id.form_uid
 getprocuid(id::Id) = id.proc_uid
 
 function Base.show(io::IO, id::Id{T}) where {T}
-    print(io, "Id(", id._hash, ")")
+    print(io, T,"#", id._hash)
     # print(io, "Id{$T}(", id._hash, ")")
     # print(io, "Id{$T}(", getuid(id), ",", getformuid(id), ",", getprocuid(id), ")")
 end

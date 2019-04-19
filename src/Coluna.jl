@@ -36,6 +36,8 @@ import Base.delete!
 import Base.setindex!
 import Base.haskey
 import Base.copy
+import Base.promote_rule
+import Base.convert
 
 # We should not need to import this here
 @MOIU.model(ModelForCachingOptimizer,

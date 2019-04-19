@@ -52,37 +52,53 @@ SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents{
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
-    new_obj = VarMembership(getvars(sp_form))
-    master_form = sp_form.parent_formulation
+    #new_obj = VarMembership(getvars(sp_form))
+    #master_form = sp_form.parent_formulation
 
     ### initialized costs
     sp_vars = filter(_active_, getvars(sp_form))
     for (id, var) in sp_vars
         setcost!(get_cur_data(var), getcost(get_initial_data(var)))
     end
+    
+    coefficient_matrix = get_coefficient_matrix(sp_form)
+    active_sp_var(var) = (is_active(var) && (var isa PricingSpVar))
+    ## compute reduced cost
+    for (constr_id, dual_val) in getsol(dual_sol)
+        #if haskey(sp_form, constr_id)
+            active_sp_vars = filter(active_sp_var, coefficient_matrix[constr_id, :])
+        
+            for (var_id, coeff) in active_sp_vars
+                var = getelement(active_sp_var, var_id)
+                vardata = get_cur_data(var) # shortcut needed 
+                setcost!(vardata, getcost(vardata) - dual_val * coeff)
+            end
+        #end
+    end
 
+    
     #println("initialized costs = ", new_obj)
 
     ### compute red costs
-    for (constr_id, dual_val) in getsol(dual_sol)
-        #println("Compute contrib of constraint ", constr_id)
-        #@show get_var_members_of_constr(master_form.memberships, constr_id)
+    # for (constr_id, dual_val) in getsol(dual_sol)
+    #     #println("Compute contrib of constraint ", constr_id)
+    #     #@show get_var_members_of_constr(master_form.memberships, constr_id)
 
-        var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
+    #     #var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
 
-        for (m_rep_var_id, coef) in var_membership
-            #println("var : ", m_rep_var_id, " (", getduty(getstate(m_rep_var_id)), ")")
-            sp_var_id = getkey(sp_vars, m_rep_var_id, Id{VarState}(-1))
-            #println("collect Sp var : ", sp_var_id, " (", getduty(getstate(sp_var_id)), ")")
-            sp_var_id.uid == -1 && continue
-            cost = getcost(getstate(sp_var_id))
-            setcost(getstate(sp_var_id), cost - dual_val * coef)
-        end
-    end
+    #     for (m_rep_var_id, coef) in var_membership
+    #         #println("var : ", m_rep_var_id, " (", getduty(getstate(m_rep_var_id)), ")")
+    #         sp_var_id = getkey(sp_vars, m_rep_var_id, Id{VarState}(-1))
+    #         #println("collect Sp var : ", sp_var_id, " (", getduty(getstate(sp_var_id)), ")")
+    #         sp_var_id.uid == -1 && continue
+    #         cost = getcost(getstate(sp_var_id))
+    #         setcost(getstate(sp_var_id), cost - dual_val * coef)
+    #     end
+    # end
 
-    #println("update_pricing_problem: new objective func = ", new_obj)
+    # #println("update_pricing_problem: new objective func = ", new_obj)
 
-    set_optimizer_obj(sp_form.moi_optimizer, sp_vars)
+    # set_optimizer_obj(sp_form.moi_optimizer, sp_vars)
 
     return false
 end
@@ -93,10 +109,11 @@ function update_pricing_target(sp_form::Formulation)
 end
 
 
-function insert_cols_in_master(prob::Problem,
+function insert_cols_in_master(
                                sp_form::Formulation,
-                               sp_sols::Vector{PrimalSolution})
+                               sp_sols::Vector{PrimalSolution{S}}) where {S}
 
+    println("\e[1;32m insert cols in master \e[00m")
     sp_uid = getuid(sp_form)
     master_form = sp_form.parent
     mbship = master_form.memberships
@@ -164,9 +181,9 @@ function insert_cols_in_master(prob::Problem,
 end
 
 function compute_pricing_dual_bound_contrib(sp_form::Formulation,
-                                            sp_sol_value::Float64,
+                                            sp_sol_value::PrimalBound{S},
                                             sp_lb::Float64,
-                                            sp_ub::Float64)
+                                            sp_ub::Float64) where {S}
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
     if ( sp_sol_value <= 0) 
@@ -198,8 +215,11 @@ function gen_new_col(sp_form::Formulation,
     #     return flag_cannot_generate_more_col
     # end
 
+
+
     # Compute target
     update_pricing_target(sp_form)
+
 
     # Reset var bounds, var cost, sp minCost
     if update_pricing_problem(sp_form, dual_sol) # Never returns true
@@ -213,13 +233,12 @@ function gen_new_col(sp_form::Formulation,
     #     # switch off the reduced cost estimation when stabilization is applied
     # end
 
-    @show sp_form
     
     # Solve sub-problem and insert generated columns in master
     @logmsg LogLevel(-3) "optimizing pricing prob"
     #@timeit to(alg) "optimize!(pricing_prob)"
     #begin
-    status, value, p_sols, d_sol = optimize(sp_form)
+    status, value, p_sols, d_sol = optimize!(sp_form)
     #end
     
     pricing_dual_bound_contrib = compute_pricing_dual_bound_contrib(sp_form, value, sp_lb, sp_ub)

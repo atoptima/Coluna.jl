@@ -6,7 +6,9 @@ mutable struct MembersVector{I,K,T} <: AbstractMembersContainer
 end
 
 getrecords(vec::MembersVector) = vec.records
+
 getelements(vec::MembersVector) = vec.elements
+getelement(vec::MembersVector{I}, i::I) where {I,K,T} = vec.elements[i]
 
 MembersVector{I,K,T}(elems::Dict{I,K}) where {I,K,T} = MembersVector(elems, Dict{I,T}())
 
@@ -72,6 +74,14 @@ iterate(d::MembersVector, state) = iterate(d.records, state)
 length(d::MembersVector) = length(d.records)
 lastindex(d::MembersVector) = lastindex(d.records)
 
+function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J <: AbstractVarConstr,K}
+    print(io, "[")
+    for (id, val) in vec
+        print(io, " ", id, " => (", getname(getelement(vec, id)), ", " , val, ")  ")
+    end
+    print(io, "]")
+end
+
 # =================================================================
 
 struct MembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
@@ -89,10 +99,12 @@ end
 #    MembersMatrix(MembersVector{I,K,MembersVector{J,L,T}}(), MembersVector{J,L,MembersVector{I,K,T}}())
 #end
 
-function _getrecordvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}) where {I,K,J,L,T}
+function _getrecordvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}, create = true) where {I,K,J,L,T}
     if !haskey(dict, key)
         membersvec = MembersVector{J,L,T}(elems)
-        dict[key] = membersvec
+        if create
+            dict[key] = membersvec
+        end
         return membersvec
     end
     dict[key]
@@ -153,11 +165,11 @@ function Base.getindex(m::MembersMatrix, row_id, col_id)
 end
 
 function Base.getindex(m::MembersMatrix, row_id, ::Colon)
-    _getrecordvector!(m.rows, row_id, m.cols.elements)
+    _getrecordvector!(m.rows, row_id, m.cols.elements, false)
 end
 
 function Base.getindex(m::MembersMatrix, ::Colon, col_id)
-    _getrecordvector!(m.cols, col_id, m.rows.elements)
+    _getrecordvector!(m.cols, col_id, m.rows.elements, false)
 end
 
 
