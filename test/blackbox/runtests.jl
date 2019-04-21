@@ -1,4 +1,3 @@
-
 include("originalformulation.jl")
 
 @testset "Blackbox tests" begin

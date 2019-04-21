@@ -7,42 +7,47 @@
 #
 ############################################################
 
-function create_moi_optimizer(factory::JuMP.OptimizerFactory)
+function create_moi_optimizer(factory::JuMP.OptimizerFactory,
+                              sense::Type{<:AbstractObjSense})
     # optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), factory())
     optimizer = factory()
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
     MOI.set(optimizer, MoiObjective(),f)
-    MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+    set_obj_sense(optimizer, sense)
     return optimizer
+end
+
+function set_obj_sense(optimizer::MOI.AbstractOptimizer, ::Type{<:MaxSense})
+    MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+end
+
+function set_obj_sense(optimizer::MOI.AbstractOptimizer, ::Type{<:MinSense})
+    MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 end
 
 function compute_moi_terms(members::VarMembership)
     return [
         MOI.ScalarAffineTerm{Float64}(
             coef, getindex(get_moi_record(getelements(members)[id]))
-        )
-        for (id, coef) in members
+        ) for (id, coef) in members
     ]
 end
 
-# function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
-#                            new_obj::VarMemberDict)
-#     terms = compute_moi_terms(new_obj)
-#     objf = MOI.ScalarAffineFunction(terms, 0.0)
-#     MOI.set(moi_optimizer, MoiObjective(), objf)
-#     return
-# end
+function compute_moi_terms(var_dict::VarDict)
+    return [
+        MOI.ScalarAffineTerm{Float64}(
+            getcost(get_cur_data(var)), getindex(get_moi_record(var))
+        ) for (id, var) in var_dict
+    ]
+end
 
-# function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
-#                            vars::VarDict)
-#     terms = [
-#         MOI.ScalarAffineTerm{Float64}(getcost(getstate(id)), getmoi_index(getstate(id)))
-#         for id in keys(vars)
-#     ]
-#     objf = MOI.ScalarAffineFunction(terms, 0.0)
-#     MOI.set(moi_optimizer, MoiObjective(), objf)
-#     return
-# end
+function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
+                           new_obj::VarDict)
+    terms = compute_moi_terms(new_obj)
+    objf = MOI.ScalarAffineFunction(terms, 0.0)
+    MOI.set(moi_optimizer, MoiObjective(), objf)
+    return
+end
 
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, v::Variable)
     cost = getcost(get_cur_data(v))

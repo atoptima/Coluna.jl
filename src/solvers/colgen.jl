@@ -50,7 +50,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
     for (id, var) in sp_vars
         setcost!(get_cur_data(var), getcost(get_initial_data(var)))
     end
-    
+
     coefficient_matrix = get_coefficient_matrix(sp_form)
     active_sp_var(var) = (is_active(var) && (var isa PricingSpVar))
     ## compute reduced cost
@@ -66,7 +66,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
         #end
     end
 
-    
+    set_optimizer_obj(get_optimizer(sp_form), sp_vars)
     #println("initialized costs = ", new_obj)
 
     ### compute red costs
@@ -88,7 +88,6 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
     # #println("update_pricing_problem: new objective func = ", new_obj)
 
-    # set_optimizer_obj(sp_form.moi_optimizer, sp_vars)
 
     return false
 end
@@ -111,6 +110,8 @@ function insert_cols_in_master(master_form::Formulation,
     #var_uids = getvar_uids(sp_form, PricingSpSetupVar)
     #@assert length(var_uids) == 1
     #setup_var_uid = var_uids[1]
+
+    @show sp_sols
 
     for sp_sol in sp_sols
         if getvalue(sp_sol) < -0.0001 # TODO use tolerance
@@ -249,15 +250,14 @@ function gen_new_columns(reformulation::Reformulation,
                          dual_sol::DualSolution{S},
                          sp_lbs::Dict{FormId, Float64},
                          sp_ubs::Dict{FormId, Float64}) where {S}
-    
+
     nb_new_cols = 0
     dual_bound_contrib = DualBound(S, 0.0)
     master_form = getmaster(reformulation)
-    
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
         (gen_status, contrib) = gen_new_col(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
-        
+
         if gen_status > 0
             nb_new_cols += gen_status
             dual_bound_contrib += contrib
@@ -362,6 +362,7 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
         GLPK.write_lp(glpk_prob, string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         status_rm, master_val, primal_sol, dual_sol = solve_restricted_mast(master_form)
+
         #status_rm, mst_time, b, gc, allocs = @timed solve_restricted_mast(reformulation.master)
         # status_rm, mas_time = solve_restricted_mast(alg)
         # if alg.colgen_stabilization != nothing # Never evals to true

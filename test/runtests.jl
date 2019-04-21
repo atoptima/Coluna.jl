@@ -9,10 +9,6 @@ global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
 global const CL = Coluna
 
-#include("utils.jl")
-#include("colunabasictests.jl")
-#include("colgenroot.jl")
-#include("moi_wrapper.jl")
 include("unit/unit_tests.jl")
 
 using Base.CoreLogging, Logging
@@ -22,8 +18,6 @@ unit_tests()
 
 include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
 
-# testdefaultbuilders()
-#testpuremaster()
 #@testset "cutting stock - colgen root " begin
 #    testcolgenatroot()
 #end

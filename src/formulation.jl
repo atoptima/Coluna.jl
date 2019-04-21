@@ -111,6 +111,10 @@ end
 # end
 
 function optimize!(form::Formulation, optimizer = form.moi_optimizer)
+    println("About to solve formulation ", getuid(form))
+    @show form
+    # _show_optimizer(optimizer)
+
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
@@ -145,7 +149,7 @@ function load_problem_in_optimizer(formulation::Formulation)
 end
 
 function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
-    form.moi_optimizer = create_moi_optimizer(factory)
+    form.moi_optimizer = create_moi_optimizer(factory, form.obj_sense)
 end
 
 function retrieve_primal_sols(form::Formulation, vars::VarDict)
