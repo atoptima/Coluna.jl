@@ -5,10 +5,10 @@ mutable struct Incumbents{S}
     lp_dual_sol::DualSolution{S}
 end
 
-function Incumbents{S}() where {S<:AbstractObjSense}
+function Incumbents(S::Type{<: AbstractObjSense})
     return Incumbents{S}(
-        PrimalSolution{S}(), DualBound{S}(),
-        PrimalSolution{S}(), DualSolution{S}()
+        PrimalSolution(S), DualBound(S),
+        PrimalSolution(S), DualSolution(S)
     )
 end
 
@@ -42,14 +42,23 @@ lp_gap(i::Incumbents) = gap(get_lp_primal_bound(i), get_lp_dual_bound(i))
 #     end
 # end
 
-function update_primal_lp_sol!(inc::Incumbents{S},
+function set_primal_lp_sol!(inc::Incumbents{S},
                           lp_primal_sol::PrimalSolution{S}) where {S}
     if isbetter(getbound(lp_primal_sol), getbound(inc.lp_primal_sol))
         inc.lp_primal_sol = lp_primal_sol
     end
 end
 
-# function update_dual_lp_bound(incumbents::SolsAndBounds,
+function set_dual_ip_bound!(inc::Incumbents{S},
+                            bound::DualBound{S}) where {S}
+    cur_bound = get_ip_dual_bound(inc)
+    if isbetter(bound, cur_bound)
+        inc.ip_dual_bound = bound
+        return bound
+    end
+    return cur_bound
+end
+#unction _dual_lp_bound(incumbents::SolsAndBounds,
 #                               newbound::Float64)
 #     if newbound > incumbents.alg_inc_lp_dual_bound
 #         incumbents.alg_inc_lp_dual_bound = newbound

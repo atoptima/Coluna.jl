@@ -39,10 +39,10 @@ mutable struct TreeSolver <: AbstractReformulationSolver
 end
 
 function TreeSolver(search_strategy::SEARCHSTRATEGY,
-                    obj_sense::Type{<:AbstractObjSense})
+                    ObjSense::Type{<:AbstractObjSense})
     return TreeSolver(
         SearchTree(search_strategy), SearchTree(DepthFirst),
-        true, 0, 0, Incumbents{obj_sense}()
+        true, 0, 0, Incumbents(ObjSense)
     )
 end
 

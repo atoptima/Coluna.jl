@@ -1,14 +1,18 @@
+Base.float(b::AbstractBound) = b.value
+
 struct PrimalBound{S <: AbstractObjSense} <: AbstractBound
     value::Float64
 end
-PrimalBound{MinSense}() = PrimalBound{MinSense}(Inf)
-PrimalBound{MaxSense}() = PrimalBound{MaxSense}(-Inf)
+PrimalBound(S::Type{MinSense}) = PrimalBound{S}(Inf)
+PrimalBound(S::Type{MaxSense}) = PrimalBound{S}(-Inf)
+PrimalBound(S::Type{<: AbstractObjSense}, n::Number) = PrimalBound{S}(float(n))
 
 struct DualBound{S <: AbstractObjSense} <: AbstractBound
     value::Float64
 end
-DualBound{MinSense}() = DualBound{MinSense}(-Inf)
-DualBound{MaxSense}() = DualBound{MaxSense}(Inf)
+DualBound(S::Type{MinSense}) = DualBound{S}(-Inf)
+DualBound(S::Type{MaxSense}) = DualBound{S}(Inf)
+DualBound(S::Type{<: AbstractObjSense}, n::Number) = DualBound{S}(float(n))
 
 getvalue(b::AbstractBound) = b.value
 
@@ -38,10 +42,17 @@ end
 function Base.show(io::IO, b::AbstractBound)
     print(io, getvalue(b))
 end
-Base.promote_rule(::Type{<:AbstractBound}, ::Type{<:Real}) = Float64
+Base.promote_rule(B::Type{<:AbstractBound}, ::Type{<:Real}) = B
 Base.convert(::Type{Float64}, b::AbstractBound) = b.value
+Base.convert(B::Type{<: AbstractBound}, r::Real)  = B(float(r))
+
+Base.:*(b1::B, b2::B) where {B <: AbstractBound} = B(float(b1) * float(b2))
+Base.:-(b1::B, b2::B) where {B <: AbstractBound} = B(float(b1) - float(b2))
+Base.:+(b1::B, b2::B) where {B <: AbstractBound} = B(float(b1) + float(b2))
+Base.:/(b1::B, b2::B) where {B <: AbstractBound} = B(float(b1) / float(b2))
 
 Base.isless(b::AbstractBound, r::Real) = b.value < r
+Base.isless(b1::B, b2::B) where {B <: AbstractBound} = float(b1) < float(b2)
 
 abstract type AbstractSolution end
 
@@ -50,13 +61,14 @@ struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
     sol::Dict{Id{Variable},Float64}
 end
 
-function PrimalSolution{S}() where {S <: AbstractObjSense}
-    return PrimalSolution{S}(PrimalBound{S}(), Dict{Id{Variable},Float64}())
+function PrimalSolution(S::Type{<: AbstractObjSense})
+    return PrimalSolution{S}(PrimalBound(S), Dict{Id{Variable},Float64}())
 end
 
-function PrimalSolution{S}(value::Float64, sol::Dict{Id{Variable},Float64}
-                           ) where {S <: AbstractObjSense}
-    return PrimalSolution{S}(PrimalBound{S}(value), sol)
+function PrimalSolution(S::Type{<: AbstractObjSense}, 
+                        value::Number, 
+                        sol::Dict{Id{Variable},Float64})
+    return PrimalSolution{S}(PrimalBound(S, value), sol)
 end
 
 struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
@@ -64,15 +76,28 @@ struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     sol::Dict{Id{Constraint},Float64}
 end
 
-function DualSolution{S}() where {S <: AbstractObjSense}
-    return DualSolution{S}(DualBound{S}(), Dict{Id{Constraint},Float64}())
+function DualSolution(S::Type{<: AbstractObjSense})
+    return DualSolution{S}(DualBound(S), Dict{Id{Constraint},Float64}())
 end
 
-function DualSolution{S}(value::Float64, sol::Dict{Id{Constraint},Float64}
-                           ) where {S <: AbstractObjSense}
-    return DualSolution{S}(DualBound{S}(value), sol)
+function DualSolution(S::Type{<: AbstractObjSense}, 
+                      value::Number, 
+                      sol::Dict{Id{Constraint},Float64})
+    return DualSolution{S}(DualBound(S, value), sol)
 end
 
 getbound(s::AbstractSolution) = s.bound
+getvalue(s::AbstractSolution) = float(s.bound)
 getsol(s::AbstractSolution) = s.sol
+
+_show_sol_type(io::IO, p::PrimalSolution) = println(io, "\n┌ Primal Solution :")
+_show_sol_type(io::IO, d::DualSolution) = println(io, "\n┌ Dual Solution :")
+
+function Base.show(io::IO, s::AbstractSolution)
+    _show_sol_type(io, s)
+    for (id, val) in getsol(s)
+        println(io, "| ", id, " => ", val)
+    end
+    @printf(io, "└ value = %.2f \n", float(getbound(s)))
+end
 Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
