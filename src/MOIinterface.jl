@@ -1,7 +1,15 @@
+### Some notes:
+#
+# - Make use of : MOI.VariablePrimalStart(), MOI.ConstraintPrimalStart(),
+#                 MOI.ConstraintDualStart(), MOI.ConstraintBasisStatus()
+#
+# - RawSolver() -> For directly interacting with solver
+#
+############################################################
+
 function create_moi_optimizer(factory::JuMP.OptimizerFactory)
-    optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), factory())
-    # optimizer = factory()
-    @show optimizer
+    # optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), factory())
+    optimizer = factory()
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
     MOI.set(optimizer, MoiObjective(),f)
     MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
@@ -282,26 +290,15 @@ function _show_obj_fun(io::IO, moi_model::MOI.ModelLike)
     return
 end
 
-function Base.show(io::IO, moi_optimizer::MOI.ModelLike)
+function _show_optimizer(io::IO, moi_optimizer::MOI.ModelLike)
     println(io, "MOI Optimizer {", typeof(moi_optimizer), "} = ")
     _show_obj_fun(io, moi_optimizer)
     _show_constraints(io, moi_optimizer)
     return
 end
 
-function Base.show(io::IO, moi_optimizer::MOIU.CachingOptimizer)
-    println(io, "MOI Optimizer {", typeof(moi_optimizer), "} = ")
-    _show_obj_fun(io, moi_optimizer.model_cache)
-    _show_constraints(io, moi_optimizer.model_cache)
-    return
-end
+Base.show(io::IO, moi_optimizer::MOIU.CachingOptimizer) = _show_optimizer(io, moi_optimizer.model_cache)
 
-# function _show_optimizer(moi_optimizer::MOI.ModelLike)
-# end
+Base.show(io::IO, moi_optimizer::MOI.ModelLike) = _show_optimizer(io, moi_optimizer)
 
-# function _show_optimizer(moi_optimizer::MOIU.CachingOptimizer)
-#     println(io, "MOI Optimizer {", typeof(moi_optimizer), "} = ")
-#     _show_obj_fun(io, moi_optimizer.model_cache)
-#     _show_constraints(io, moi_optimizer.model_cache)
-#     return
-# end
+_show_optimizer(moi_optimizer::MOI.ModelLike) = _show_optimizer(stdout, moi_optimizer)

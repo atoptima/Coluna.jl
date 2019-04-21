@@ -139,7 +139,9 @@ function load_problem_in_optimizer(formulation::Formulation)
             filter(_explicit_, members)
         )
     end
-   @show get_optimizer(formulation)
+    # @show get_optimizer(formulation)
+    _show_optimizer(get_optimizer(formulation))
+    return
 end
 
 function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
