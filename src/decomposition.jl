@@ -2,6 +2,7 @@ set_loc_art_var(f::Formulation, constr_id::ConstrId) = set_var!(
     f, string("local_art_", constr_id), MastArtVar; cost = 10.0,
     lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
+
 set_glob_art_var(f::Formulation, is_pos::Bool) = set_var!(
     f, string("global_", (is_pos ? "pos" : "neg"), "_art_var_"),
     MastArtVar; cost = 1000.0, lb = 0.0, ub = Inf,
@@ -14,10 +15,10 @@ function initialize_local_art_vars(master::Formulation,
     for (constr_id, constr) in constrs_in_form
         v = set_var!(
             master, string("local_art_", constr_id),
-            MastArtVar; cost = 1000.0, lb = 0.0, ub = Inf,
+            MastArtVar; cost = get_inc_val(constr), lb = 0.0, ub = Inf,
             kind = Continuous, sense = Positive
         )
-        matrix[constr_id, getid(v)] = 1.0
+        matrix[constr_id, get_id(v)] = 1.0
     end
     return
 end
@@ -26,11 +27,12 @@ function initialize_global_art_vars(master::Formulation)
     global_pos = set_glob_art_var(master, true)
     global_neg = set_glob_art_var(master, false)
     matrix = get_coefficient_matrix(master)
-    for (constr_id, constr) in get_constrs(master)
-        if getsense(get_cur_data(constr)) == Greater
-            matrix[constr_id, getid(global_pos)] = 1.0
-        elseif getsense(get_cur_data(constr)) == Less
-            matrix[constr_id, getid(global_neg)] = -1.0
+    constrs = filter(_active_masterRepOrigConstr_,get_constrs(master))
+    for (constr_id, constr) in constrs
+        if get_sense(get_cur_data(constr)) == Greater
+            matrix[constr_id, get_id(global_pos)] = 1.0
+        elseif get_sense(get_cur_data(constr)) == Less
+            matrix[constr_id, get_id(global_neg)] = -1.0
         end
     end
 end
@@ -75,26 +77,27 @@ function build_dw_master!(prob::Problem,
     @assert !isempty(reformulation.dw_pricing_subprs)
     # add convexity constraints and setupvar 
     for sp_form in reformulation.dw_pricing_subprs
-        sp_uid = getuid(sp_form)
+        sp_uid = get_uid(sp_form)
  
         # create convexity constraint
         name = "sp_lb_$(sp_uid)"
         sense = Greater
-        rhs = 1.0
+        rhs = 0.0
         kind = Core
-        duty = MasterConstr #MasterConvexityConstr
+        duty = MasterConvexityConstr  #MasterConstr #MasterConvexityConstr
         lb_conv_constr = set_constr!(master_form, name, duty;
                                      rhs = rhs, kind  = kind,
                                      sense = sense)
-        reformulation.dw_pricing_sp_lb[sp_uid] =  getid(lb_conv_constr)
+        reformulation.dw_pricing_sp_lb[sp_uid] = get_id(lb_conv_constr)
         # @show lb_conv_constr
 
         name = "sp_ub_$(sp_uid)"
+        rhs = 1.0
         sense = Less
         ub_conv_constr = set_constr!(master_form, name, duty;
                                      rhs = rhs, kind = kind,
                                      sense = sense)
-        reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
+        reformulation.dw_pricing_sp_ub[sp_uid] = get_id(ub_conv_constr)
         # @show ub_conv_constr
 
         ## Create PricingSetupVar
@@ -110,9 +113,10 @@ function build_dw_master!(prob::Problem,
                              sense = sense)
         # @show setup_var
         is_explicit = false
-        clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSpVar, is_explicit)
-
-        vars = filter(_active_pricingSpVar_, getvars(sp_form))
+        setup_var_rep = clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSpVar, is_explicit)
+        @show setup_var_rep
+        
+        vars = filter(_active_pricingSpVar_, get_vars(sp_form))
         # @show "Sp Var to add in master " vars
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
     end
@@ -135,10 +139,10 @@ function build_dw_pricing_sp!(prob::Problem,
     ## Create Pure Pricing Sp Var & constr
     clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
     clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
-    @show constrs_in_form
-    @show vars_in_form
+   # @show constrs_in_form
+   # @show vars_in_form
 
-    @show sp_form.manager
+   # @show sp_form.manager
 
     # for (constr_id, members) in rows(get_coefficient_matrix(sp_form))
     #     @show constr_id

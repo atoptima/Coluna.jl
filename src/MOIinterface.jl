@@ -28,7 +28,7 @@ end
 function compute_moi_terms(members::VarMembership)
     return [
         MOI.ScalarAffineTerm{Float64}(
-            coef, getindex(get_moi_record(getelements(members)[id]))
+            coef, get_index(get_moi_record(get_elements(members)[id]))
         ) for (id, coef) in members
     ]
 end
@@ -36,7 +36,7 @@ end
 function compute_moi_terms(var_dict::VarDict)
     return [
         MOI.ScalarAffineTerm{Float64}(
-            getcost(get_cur_data(var)), getindex(get_moi_record(var))
+            get_cost(get_cur_data(var)), get_index(get_moi_record(var))
         ) for (id, var) in var_dict
     ]
 end
@@ -50,8 +50,8 @@ function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
 end
 
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, v::Variable)
-    cost = getcost(get_cur_data(v))
-    moi_index = getindex(get_moi_record(v))
+    cost = get_cost(get_cur_data(v))
+    moi_index = get_index(get_moi_record(v))
     MOI.modify(
         optimizer, MoiObjective(),
         MOI.ScalarCoefficientChange{Float64}(moi_index, cost)
@@ -64,27 +64,27 @@ function enforce_bounds_in_optimizer(optimizer::MOI.AbstractOptimizer,
     cur_data = get_cur_data(v)
     moi_record = get_moi_record(v)
     moi_bounds = MOI.add_constraint(
-        optimizer, MOI.SingleVariable(getindex(moi_record)),
-        MOI.Interval(getlb(cur_data), getub(cur_data))
+        optimizer, MOI.SingleVariable(get_index(moi_record)),
+        MOI.Interval(get_lb(cur_data), get_ub(cur_data))
     )
-    setbounds!(moi_record, moi_bounds)
+    set_bounds!(moi_record, moi_bounds)
     return
 end
 
 function enforce_var_kind_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                        v::Variable)
-    kind = getkind(get_cur_data(v))
+    kind = get_kind(get_cur_data(v))
     moi_record = get_moi_record(v)
     if kind == Continuous
-        moi_bounds = getbounds(moi_record)
+        moi_bounds = get_bounds(moi_record)
         if moi_bounds.value != -1
             MOI.delete(optimizer, moi_bounds)
-            setbounds!(moi_record, MoiVarBound(-1))
+            set_bounds!(moi_record, MoiVarBound(-1))
         end
     else
         moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
-        setkind!(moi_record, MOI.add_constraint(
-            optimizer, MOI.SingleVariable(getindex(moi_record)), moi_set
+        set_kind!(moi_record, MOI.add_constraint(
+            optimizer, MOI.SingleVariable(get_index(moi_record)), moi_set
         ))
     end
     return
@@ -94,10 +94,10 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer, v::Variable
     cur_data = get_cur_data(v)
     moi_record = get_moi_record(v)
     moi_index = MOI.add_variable(optimizer)
-    setindex!(moi_record, moi_index)
+    set_index!(moi_record, moi_index)
     update_cost_in_optimizer(optimizer, v)
     enforce_var_kind_in_optimizer(optimizer, v)
-    if (getkind(cur_data) != Binary)
+    if (get_kind(cur_data) != Binary)
         enforce_bounds_in_optimizer(optimizer, v)
     end
     return
@@ -110,12 +110,12 @@ function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
     cur_data = get_cur_data(constr)
-    moi_set = get_moi_set(getsense(cur_data))
+    moi_set = get_moi_set(get_sense(cur_data))
     moi_constr = MOI.add_constraint(
-        optimizer, f, moi_set(getrhs(cur_data))
+        optimizer, f, moi_set(get_rhs(cur_data))
     )
     moi_record = get_moi_record(constr)
-    setindex!(moi_record, moi_constr)
+    set_index!(moi_record, moi_constr)
     return
 end
 
@@ -123,9 +123,9 @@ function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
                          sol::Dict{VarId,Float64},
                          vars::VarDict, res_idx::Int = 1)
     for (id, var) in vars
-        moi_index = getindex(get_moi_record(var))
+        moi_index = get_index(get_moi_record(var))
         val = MOI.get(moi_optimizer, MOI.VariablePrimal(res_idx), moi_index)
-        @logmsg LogLevel(-4) string("Var ", getname(var_def[2]), " = ", val)
+        @logmsg LogLevel(-4) string("Var ", get_name(var_def[2]), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             sol[id] = val
         end
@@ -138,7 +138,7 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
                        constrs::ConstrDict)
     for (id, constr) in constrs
         val = 0.0
-        moi_index = getindex(get_moi_record(constr))
+        moi_index = get_index(get_moi_record(constr))
         try # This try is needed because of the erroneous assertion in LQOI
             val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
         catch err

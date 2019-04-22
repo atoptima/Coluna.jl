@@ -5,10 +5,11 @@ mutable struct MembersVector{I,K,T} <: AbstractMembersContainer
     records::Dict{I, T} # holds the records associated to elements that are identified by their ID
 end
 
-getrecords(vec::MembersVector) = vec.records
+get_records(vec::MembersVector) = vec.records
 
-getelements(vec::MembersVector) = vec.elements
-getelement(vec::MembersVector{I}, i::I) where {I,K,T} = vec.elements[i]
+get_elements(vec::MembersVector) = vec.elements
+
+get_element(vec::MembersVector{I}, i::I) where {I,K,T} = vec.elements[i]
 
 MembersVector{I,K,T}(elems::Dict{I,K}) where {I,K,T} = MembersVector(elems, Dict{I,T}())
 
@@ -77,7 +78,7 @@ lastindex(d::MembersVector) = lastindex(d.records)
 function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J <: AbstractVarConstr,K}
     print(io, "[")
     for (id, val) in vec
-        print(io, " ", id, " => (", getname(getelement(vec, id)), ", " , val, ")  ")
+        print(io, " ", id, " => (", get_name(get_element(vec, id)), ", " , val, ")  ")
     end
     print(io, "]")
 end
@@ -227,7 +228,7 @@ getvar(m::FormulationManager, id::VarId) = m.vars[id]
 
 get_constr(m::FormulationManager, id::ConstrId) = m.constrs[id]
 
-getvars(m::FormulationManager) = m.vars
+get_vars(m::FormulationManager) = m.vars
 
 get_constrs(m::FormulationManager) = m.constrs
 

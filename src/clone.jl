@@ -6,12 +6,12 @@ function clone_in_formulation!(dest::Formulation,
     data = deepcopy(get_initial_data(var))
     set_is_explicit!(data, is_explicit)
     var_clone = Variable(
-        getid(var), getname(var), duty;
+        get_id(var), get_name(var), duty;
         var_data = data
     )
     add_var!(dest, var_clone)
     clone_in_manager!(dest.manager, src.manager, var_clone)
-    return
+    return var_clone
 end
 
 function clone_in_formulation!(dest::Formulation,
@@ -23,11 +23,11 @@ function clone_in_formulation!(dest::Formulation,
     data = deepcopy(get_initial_data(constr))
     set_is_explicit!(data, is_explicit)
     constr_clone = Constraint(
-        getid(constr), getname(constr), duty; constr_data = data
+        get_id(constr), get_name(constr), duty; constr_data = data
     )
     add_constr!(dest, constr_clone)
     clone_in_manager!(dest.manager, src.manager, constr_clone)
-    return
+    return constr_clone
 end
 
 function clone_in_formulation!(dest::Formulation,
@@ -47,7 +47,7 @@ function clone_in_manager!(dest::FormulationManager,
                     var::Variable)
     
     new_col = Dict{Id{Constraint}, Float64}()
-    for (id, val) in getrecords(src.coefficients[:, var.id])
+    for (id, val) in get_records(src.coefficients[:, var.id])
         if haskey(dest, id)
             new_col[id] = val
         else
@@ -63,7 +63,7 @@ function clone_in_manager!(dest::FormulationManager,
                         constr::Constraint)
 
     new_row = Dict{Id{Variable}, Float64}()
-    for (id, val) in getrecords(src.coefficients[constr.id, :])
+    for (id, val) in get_records(src.coefficients[constr.id, :])
         if haskey(dest, id)
             new_row[id] = val
         else

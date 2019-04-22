@@ -24,6 +24,7 @@ abstract type AbstractFormDuty <: AbstractDuty end
 abstract type AbstractOriginalVar <: AbstractVarDuty end
 abstract type AbstractMasterVar <: AbstractVarDuty end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
+abstract type AbstractMastRepSpVar <: AbstractDwSpVar end
 
 # Concrete types for VarDuty
 struct OriginalVar <: AbstractOriginalVar end
@@ -31,9 +32,9 @@ struct OriginalExpression <: AbstractOriginalVar end
 struct PureMastVar <: AbstractMasterVar end
 struct MasterCol <: AbstractMasterVar end
 struct MastArtVar <: AbstractMasterVar end
-struct MastRepPricingSpVar <: AbstractMasterVar end
-struct MastRepPricingSetupSpVar <: AbstractMasterVar end # Cannot subtype a concrete type
-struct MastRepBendSpVar <: AbstractMasterVar end
+struct MastRepPricingSpVar <: AbstractMastRepSpVar end
+struct MastRepPricingSetupSpVar <: AbstractMastRepSpVar end # Cannot subtype a concrete type
+struct MastRepBendSpVar <: AbstractMastRepSpVar end
 struct PricingSpVar <: AbstractDwSpVar end
 struct PricingSpSetupVar <: AbstractDwSpVar end # Cannot subtype a concrete type
 struct PricingSpPureVar <: AbstractDwSpVar end
@@ -47,13 +48,14 @@ struct UndefinedVarDuty <: AbstractVarDuty end
 abstract type AbstractOriginalConstr <: AbstractConstrDuty end
 abstract type AbstractMasterConstr <: AbstractConstrDuty end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
+abstract type AbstractMasterRepOriginalConstr <: AbstractMasterConstr end
 
 # Concrete types for AbstractConstrDuty
 struct OriginalConstr <: AbstractOriginalConstr end
 struct MasterPureConstr <: AbstractMasterConstr end
-struct MasterConstr <: AbstractMasterConstr end
+struct MasterConstr <: AbstractMasterRepOriginalConstr end
 struct MasterConvexityConstr <: AbstractMasterConstr end
-struct MasterBranchConstr <: AbstractMasterConstr end
+struct MasterBranchConstr <: AbstractMasterRepOriginalConstr end
 struct PricingSpPureConstr <: AbstractDwSpConstr end
 struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
 struct UndefinedConstrDuty <: AbstractConstrDuty end
@@ -109,14 +111,14 @@ const MoiVarKind = Union{MoiInteger,MoiBinary}
 MoiVarKind() = MoiInteger(-1)
 
 # Helpers
-getsense(::MOI.LessThan{T}) where {T} = Less
-getsense(::MOI.GreaterThan{T}) where {T} = Greater
-getsense(::MOI.EqualTo{T}) where {T} = Equal
-getrhs(set::MOI.LessThan{T}) where {T} = set.upper
-getrhs(set::MOI.GreaterThan{T}) where {T} = set.lower
-getrhs(set::MOI.EqualTo{T}) where {T} = set.value
-getkind(::MOI.ZeroOne) = Binary
-getkind(::MOI.Integer) = Integ
+get_sense(::MOI.LessThan{T}) where {T} = Less
+get_sense(::MOI.GreaterThan{T}) where {T} = Greater
+get_sense(::MOI.EqualTo{T}) where {T} = Equal
+get_rhs(set::MOI.LessThan{T}) where {T} = set.upper
+get_rhs(set::MOI.GreaterThan{T}) where {T} = set.lower
+get_rhs(set::MOI.EqualTo{T}) where {T} = set.value
+get_kind(::MOI.ZeroOne) = Binary
+get_kind(::MOI.Integer) = Integ
 function get_moi_set(constr_set::ConstrSense)
     constr_set == Less && return MOI.LessThan
     constr_set == Greater && return MOI.GreaterThan

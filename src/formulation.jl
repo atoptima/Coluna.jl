@@ -32,13 +32,13 @@ getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
 
 get_constr(f::Formulation, id::ConstrId) = get_constr(f.manager, id)
 
-getvars(f::Formulation) = getvars(f.manager)
+get_vars(f::Formulation) = get_vars(f.manager)
 
 get_constrs(f::Formulation) = get_constrs(f.manager)
 
 get_coefficient_matrix(f::Formulation) = get_coefficient_matrix(f.manager)
 
-getuid(f::Formulation) = f.uid
+get_uid(f::Formulation) = f.uid
 
 getobjsense(f::Formulation) = f.obj_sense
 
@@ -60,9 +60,10 @@ function set_var!(f::Formulation,
                   ub::Float64 = Inf,
                   kind::VarKind = Continuous,
                   sense::VarSense = Positive,
+                  inc_val::Float64 = 0.0,
                   moi_index::MoiVarIndex = MoiVarIndex())
     id = generatevarid(f)
-    v_data = VarData(cost, lb, ub, kind, sense, true, true)
+    v_data = VarData(cost, lb, ub, kind, sense, inc_val, true, true)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
     return add_var!(f, v)
 end
@@ -71,7 +72,7 @@ add_var!(f::Formulation, var::Variable) = add_var!(f.manager, var)
 
 function clone_var!(dest::Formulation, src::Formulation, var::Variable)
     add_var!(dest, var)
-    clone_var!(dest.manager, src.manager, var)
+    return clone_var!(dest.manager, src.manager, var)
 end
 
 function set_constr!(f::Formulation,
@@ -80,18 +81,26 @@ function set_constr!(f::Formulation,
                      rhs::Float64 = 0.0,
                      kind::ConstrKind = 0.0,
                      sense::ConstrSense = 0.0,
+                     inc_val::Float64 = 0.0,
                      moi_index::MoiConstrIndex = MoiConstrIndex())
     id = generateconstrid(f)
-    c_data = ConstrData(rhs, kind, sense, true, true)
+    c_data = ConstrData(rhs, kind, sense,  inc_val, true, true)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
-    return add_constr!(f, c)
+
+    constr = add_constr!(f, c)
+    @show constr
+    
+    return constr
 end
 
 add_constr!(f::Formulation, constr::Constraint) = add_constr!(f.manager, constr)
 
 function clone_constr!(dest::Formulation, src::Formulation, constr::Constraint)
     add_constr!(dest, constr)
-    clone_constr!(dest.manager, src.manager, constr)
+    clone = clone_constr!(dest.manager, src.manager, constr)
+
+    @show clone
+    return clone
 end
 
 function register_objective_sense!(f::Formulation, min::Bool)
@@ -111,7 +120,7 @@ end
 # end
 
 function optimize!(form::Formulation, optimizer = form.moi_optimizer)
-    println("About to solve formulation ", getuid(form))
+    println("About to solve formulation ", get_uid(form))
     @show form
     # _show_optimizer(optimizer)
 
@@ -120,7 +129,7 @@ function optimize!(form::Formulation, optimizer = form.moi_optimizer)
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
     if MOI.get(optimizer, MOI.ResultCount()) >= 1
         primal_sols = retrieve_primal_sols(
-            form, filter(_explicit_ , getvars(form))
+            form, filter(_explicit_ , get_vars(form))
         )
         dual_sol = retrieve_dual_sol(form, filter(_explicit_ , get_constrs(form)))
         return (status, primal_sols[1].bound, primal_sols, dual_sol)
@@ -131,7 +140,7 @@ end
 
 function load_problem_in_optimizer(formulation::Formulation)
     optimizer = get_optimizer(formulation)
-    for (id, var) in filter(_explicit_, getvars(formulation))
+    for (id, var) in filter(_explicit_, get_vars(formulation))
         add_variable_in_optimizer(optimizer, var)
     end
     constrs = filter(
@@ -139,7 +148,7 @@ function load_problem_in_optimizer(formulation::Formulation)
     )
     for (constr_id, members) in constrs
         add_constraint_in_optimizer(
-            optimizer, getelements(constrs)[constr_id],
+            optimizer, get_elements(constrs)[constr_id],
             filter(_explicit_, members)
         )
     end
@@ -182,7 +191,7 @@ end
 # function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
 #     for (var_id, var_val) in sol.members
 #         if (!is_value_integer(var_val, tolerance)
-#                 && (getkind(getstate(var_id)) == 'I' || getkind(getstate(var_id)) == 'B'))
+#                 && (get_kind(getstate(var_id)) == 'I' || get_kind(getstate(var_id)) == 'B'))
 #             @logmsg LogLevel(-2) "Sol is fractional."
 #             return false
 #         end
@@ -208,9 +217,9 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for (id, var) in filter(_explicit_, getvars(f))
-        name = getname(var)
-        cost = getcost(get_cur_data(var))
+    for (id, var) in filter(_explicit_, get_vars(f))
+        name = get_name(var)
+        cost = get_cost(get_cur_data(var))
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
     end
@@ -222,22 +231,22 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
                           members::VarMembership)
     constr = get_constr(f, constr_id)
     constr_data = get_cur_data(constr)
-    print(io, constr_id, " ", getname(constr), " : ")
+    print(io, constr_id, " ", get_name(constr), " : ")
     for (var_id, coeff) in members
         var = getvar(f, var_id)
-        name = getname(var)
+        name = get_name(var)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
-    if getsense(constr_data) == Equal
+    if get_sense(constr_data) == Equal
         op = "=="
-    elseif getsense(constr_data) == Greater
+    elseif get_sense(constr_data) == Greater
         op = ">="
     else
         op = "<="
     end
-    print(io, " ", op, " ", getrhs(constr_data))
-    println(io, " (", getduty(constr), " ", is_explicit(constr_data) ,")")
+    print(io, " ", op, " ", get_rhs(constr_data))
+    println(io, " (", get_duty(constr), " ", is_explicit(constr_data) ,")")
     return
 end
 
@@ -253,23 +262,23 @@ end
 
 function _show_variable(io::IO, f::Formulation, var::Variable)
     var_data = get_cur_data(var)
-    name = getname(var)
-    lb = getlb(var_data)
-    ub = getub(var_data)
-    t = getkind(var_data)
-    d = getduty(var)
+    name = get_name(var)
+    lb = get_lb(var_data)
+    ub = get_ub(var_data)
+    t = get_kind(var_data)
+    d = get_duty(var)
     e = is_explicit(var_data)
-    println(io, getid(var), " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
+    println(io, get_id(var), " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for (id, var) in filter(_explicit_, getvars(f))
+    for (id, var) in filter(_explicit_, get_vars(f))
         _show_variable(io, f, var)
     end
 end
 
 function Base.show(io::IO, f::Formulation)
-    println(io, "Formulation id = ", getuid(f))
+    println(io, "Formulation id = ", get_uid(f))
     _show_obj_fun(io, f)
     _show_constraints(io, f)
     _show_variables(io, f)

@@ -42,31 +42,32 @@ SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents(
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
-    #new_obj = VarMembership(getvars(sp_form))
+    #new_obj = VarMembership(get_vars(sp_form))
     #master_form = sp_form.parent_formulation
 
     ### initialized costs
-    sp_vars = filter(_active_, getvars(sp_form))
-    for (id, var) in sp_vars
-        setcost!(get_cur_data(var), getcost(get_initial_data(var)))
+    active_rep_sp_vars = filter(_active_pricingMastRepSpVar_ , get_vars(sp_form.parent_formulation))
+
+    for (id, var) in active_rep_sp_vars
+        set_cost!(get_cur_data(var), get_cost(get_initial_data(var)))
     end
 
-    coefficient_matrix = get_coefficient_matrix(sp_form)
-    active_sp_var(var) = (is_active(var) && (var isa PricingSpVar))
+    coefficient_matrix = get_coefficient_matrix(sp_form.parent_formulation)
+
     ## compute reduced cost
     for (constr_id, dual_val) in getsol(dual_sol)
-        #if haskey(sp_form, constr_id)
-            active_sp_vars = filter(active_sp_var, coefficient_matrix[constr_id, :])
+
+        active_sp_rep_memb_vars = filter(_active_pricingMastRepSpVar_, coefficient_matrix[constr_id, :])
         
-            for (var_id, coeff) in active_sp_vars
-                var = getelement(active_sp_var, var_id)
-                vardata = get_cur_data(var) # shortcut needed 
-                setcost!(vardata, getcost(vardata) - dual_val * coeff)
-            end
-        #end
+        for (var_id, coeff) in active_sp_rep_memb_vars
+            var = get_element(active_sp_rep_memb_vars, var_id)
+            vardata = get_cur_data(var) # shortcut needed 
+            set_cost!(vardata, get_cost(vardata) - dual_val * coeff)
+        end
+        
     end
 
-    set_optimizer_obj(get_optimizer(sp_form), sp_vars)
+    set_optimizer_obj(get_optimizer(sp_form), active_rep_sp_vars)
     #println("initialized costs = ", new_obj)
 
     ### compute red costs
@@ -77,11 +78,11 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
     #     #var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
 
     #     for (m_rep_var_id, coef) in var_membership
-    #         #println("var : ", m_rep_var_id, " (", getduty(getstate(m_rep_var_id)), ")")
+    #         #println("var : ", m_rep_var_id, " (", get_duty(getstate(m_rep_var_id)), ")")
     #         sp_var_id = getkey(sp_vars, m_rep_var_id, Id{VarState}(-1))
-    #         #println("collect Sp var : ", sp_var_id, " (", getduty(getstate(sp_var_id)), ")")
+    #         #println("collect Sp var : ", sp_var_id, " (", get_duty(getstate(sp_var_id)), ")")
     #         sp_var_id.uid == -1 && continue
-    #         cost = getcost(getstate(sp_var_id))
+    #         cost = get_cost(getstate(sp_var_id))
     #         setcost(getstate(sp_var_id), cost - dual_val * coef)
     #     end
     # end
@@ -103,7 +104,7 @@ function insert_cols_in_master(master_form::Formulation,
                                sp_sols::Vector{PrimalSolution{S}}) where {S}
 
     println("\e[1;32m insert cols in master \e[00m")
-    sp_uid = getuid(sp_form)
+    sp_uid = get_uid(sp_form)
     #mbship = master_form.memberships
     nb_of_gen_col = 0
     
@@ -133,10 +134,10 @@ function insert_cols_in_master(master_form::Formulation,
                 kind = Continuous
                 duty = MasterCol
                 sense = Positive
-                mc_var = Variable(getuid(master_form), name, cost, lb, ub, kind, sense)
+                mc_var = Variable(get_uid(master_form), name, cost, lb, ub, kind, sense)
                 mc_id = add!(master_form, mc_var, duty)
                 #add!(mbship, mc_id)
-                name = "MC_$(sp_uid)_$(getuid(mc_id))"
+                name = "MC_$(sp_uid)_$(get_uid(mc_id))"
                 setname!(mc_var, name)
 
                 @show "new column" mc_id mc_var
@@ -255,7 +256,7 @@ function gen_new_columns(reformulation::Reformulation,
     dual_bound_contrib = DualBound(S, 0.0)
     master_form = getmaster(reformulation)
     for sp_form in reformulation.dw_pricing_subprs
-        sp_uid = getuid(sp_form)
+        sp_uid = get_uid(sp_form)
         (gen_status, contrib) = gen_new_col(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
 
         if gen_status > 0
@@ -348,11 +349,11 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
 
     # collect multiplicity current bounds for each sp
     for sp_form in reformulation.dw_pricing_subprs
-        sp_uid = getuid(sp_form)
+        sp_uid = get_uid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getrhs(get_constr(master_form, lb_convexity_constr_id))
-        sp_ubs[sp_uid] = getrhs(get_constr(master_form, ub_convexity_constr_id))
+        sp_lbs[sp_uid] = get_rhs(get_constr(master_form, lb_convexity_constr_id))
+        sp_ubs[sp_uid] = get_rhs(get_constr(master_form, ub_convexity_constr_id))
     end
 
     @show sp_lbs
