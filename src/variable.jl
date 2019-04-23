@@ -83,7 +83,7 @@ function Variable(id::VarId,
                   var_data = VarData(),
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(
-        id, name, duty, var_data, var_data,
+        id, name, duty, var_data, deepcopy(var_data),
         MoiVarRecord(index = moi_index)
     )
 end

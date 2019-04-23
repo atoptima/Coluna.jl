@@ -59,11 +59,9 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
     return false
 end
 
-
 function update_pricing_target(sp_form::Formulation)
     println("pricing target will only be needed after automating convexity constraints")
 end
-
 
 function compute_original_cost(sp_sol, sp_form)
    println("compute_original_cost")
@@ -75,7 +73,6 @@ function compute_original_cost(sp_sol, sp_form)
     val = sum(get_cost(get_initial_data(getvar(sp_form, var_id))) * value for (var_id, value) in sp_sol)
     return val
 end
-
 
 function insert_cols_in_master(master_form::Formulation,
                                sp_form::Formulation,
