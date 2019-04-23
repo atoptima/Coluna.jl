@@ -254,6 +254,7 @@ function _show_constraints(io::IO , f::Formulation)
     constrs = filter(
         _explicit_, rows(get_coefficient_matrix(f))
     )
+    constrs = rows(get_coefficient_matrix(f))
     for (constr_id, members) in constrs
         _show_constraint(io, f, constr_id, members)
     end
@@ -272,7 +273,7 @@ function _show_variable(io::IO, f::Formulation, var::Variable)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for (id, var) in filter(_explicit_, get_vars(f))
+    for (id, var) in get_vars(f) #filter(_explicit_, get_vars(f))
         _show_variable(io, f, var)
     end
 end
