@@ -42,15 +42,7 @@ SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents(
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
-<<<<<<< HEAD
     active_rep_sp_vars = filter(_active_pricingMastRepSpVar_ , get_vars(sp_form))
-=======
-    #new_obj = VarMembership(get_vars(sp_form))
-    #master_form = sp_form.parent_formulation
-
-    ### initialized costs
-    active_sp_vars = filter(_active_pricingSpVar_ , get_vars(sp_form))
->>>>>>> 2587616ec30a362b99b340619ec2ebdfda3e6b9b
 
     for (id, var) in active_sp_vars
         set_cost!(get_cur_data(var), get_cost(get_initial_data(var)))
@@ -58,93 +50,14 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
     coefficient_matrix = get_coefficient_matrix(sp_form.parent_formulation)
 
-<<<<<<< HEAD
     for (var_id, var) in get_vars(sp_form)
         for (constr_id, dual_val) in getsol(dual_sol)
             vardata = get_cur_data(var) # shortcut needed
             coeff = coefficient_matrix[constr_id, var_id]
             set_cost!(vardata, get_cost(vardata) - dual_val * coeff)
-=======
-
-    println("all vars: ")
-    for (id, var) in get_vars(sp_form.parent_formulation)
-        println(get_name(var), " : ", get_cost(get_cur_data(var)))
-    end
-
-
-
-    println("Costs before: ")
-    for (id, var) in active_sp_vars
-        println(get_name(var), " : ", get_cost(get_cur_data(var)))
-    end
-
-    ## compute reduced cost
-    for (constr_id, dual_val) in getsol(dual_sol)
-
-        println("update reduced cost vars of constr: ", constr_id, " with dual val : ", dual_val)
-
-        println("--------------> All vars with its coeffs")
-        for (id, coeff) in coefficient_matrix[constr_id, :]
-            println(id, " : ", coeff)
-        end
-
-        active_sp_rep_memb_vars = filter(_active_pricingMastRepSpVar_, coefficient_matrix[constr_id, :])
-
-        for (var_id, coeff) in active_sp_rep_memb_vars
-            println("Modifying reduced cost of variable: ", var_id)
-            if haskey(active_sp_vars, var_id)
-                var = get_element(active_sp_vars, var_id)
-                vardata = get_cur_data(var) # shortcut needed
-                set_cost!(vardata, get_cost(vardata) - dual_val * coeff)
-
-                println("new cost: ", get_cost(vardata))
-            end
-            
-
-
-            # set cost also in sp
-            #sp_var = getvar(sp_form, var_id)
-            #sp_vardata = get_cur_data(sp_var)
-            #set_cost!(sp_vardata, get_cost(vardata))
->>>>>>> 2587616ec30a362b99b340619ec2ebdfda3e6b9b
         end
     end
-<<<<<<< HEAD
     set_optimizer_obj(get_optimizer(sp_form), filter(_explicit_, get_vars(sp_form)))
-=======
-
-    println("Costs after: ")
-    for (id, var) in active_sp_vars
-        println(get_name(var), " : ", get_cost(get_cur_data(var)))
-    end
-
-
-    set_optimizer_obj(get_optimizer(sp_form), active_sp_vars) #filter(_explicit_, get_vars(sp_form)))
-
-
-    # println("initialized costs = ", new_obj)
-
-    ### compute red costs
-    # for (constr_id, dual_val) in getsol(dual_sol)
-    #     #println("Compute contrib of constraint ", constr_id)
-    #     #@show get_var_members_of_constr(master_form.memberships, constr_id)
-
-    #     #var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
-
-    #     for (m_rep_var_id, coef) in var_membership
-    #         #println("var : ", m_rep_var_id, " (", get_duty(getstate(m_rep_var_id)), ")")
-    #         sp_var_id = getkey(sp_vars, m_rep_var_id, Id{VarState}(-1))
-    #         #println("collect Sp var : ", sp_var_id, " (", get_duty(getstate(sp_var_id)), ")")
-    #         sp_var_id.uid == -1 && continue
-    #         cost = get_cost(getstate(sp_var_id))
-    #         setcost(getstate(sp_var_id), cost - dual_val * coef)
-    #     end
-    # end
-
-    # #println("update_pricing_problem: new objective func = ", new_obj)
-
-
->>>>>>> 2587616ec30a362b99b340619ec2ebdfda3e6b9b
     return false
 end
 
