@@ -116,9 +116,12 @@ function build_dw_master!(prob::Problem,
         setup_var = set_var!(sp_form, name, duty; cost = cost,
                              lb = lb, ub = ub, kind = kind,
                              sense = sense, is_explicit = is_explicit)
+        matrix = get_coefficient_matrix(master_form)
+        matrix[get_id(ub_conv_constr),get_id(setup_var)] = 1.0
+        matrix[get_id(lb_conv_constr),get_id(setup_var)] = 1.0
         @show setup_var
-        vars = filter(_active_pricingSpVar_, get_vars(sp_form))
 
+        vars = filter(_active_pricingSpVar_, get_vars(sp_form))
         is_explicit = false
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
     end
