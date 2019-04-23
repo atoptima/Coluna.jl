@@ -97,46 +97,40 @@ function insert_cols_in_master(master_form::Formulation,
 
             #if id_of_existing_mc > 0 # already exists
             #    @warn string("column already exists as", id_of_existing_mc)
-            #else
-                ### create new column
-                nb_of_gen_col += 1
-                name = "MC_$(sp_uid)"
-                cost = compute_original_cost(sp_sol, sp_form)
-                lb = 0.0
-                ub = Inf
-                kind = Continuous
-                duty = MasterCol
-                sense = Positive
-                set_var!(master_form, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, sense = sense)
-                # mc_var = Variable(get_uid(master_form), name, cost, lb, ub, kind, sense)
-                # mc_id = add!(master_form, mc_var, duty)
-                #add!(mbship, mc_id)
-                #name = "MC_$(sp_uid)_$(get_uid(mc_id))"
-                #setname!(mc_var, name)
+            #    continue
+            # end
+            ### create new column
+            nb_of_gen_col += 1
+            name = "MC_$(sp_uid)"
+            cost = compute_original_cost(sp_sol, sp_form)
+            lb = 0.0
+            ub = Inf
+            kind = Continuous
+            duty = MasterCol
+            sense = Positive
+            mc = set_var!(
+                master_form, name, duty; cost = cost, lb = lb, ub = ub,
+                kind = kind, sense = sense
+            )
 
-               # @show "new column" mc_id mc_var
-                
-                ### compute column vector
-                # for (var_id, var_val) in sp_sol.var_members
-                #     for (constr_id, var_coef) in get_constr_members_of_var(mbship, var_id)
-                #         add_constr_members_of_var!(mbship, mc_id, constr_id, var_val * var_coef)
-                #     end
-                # end
-                # setup var is in the sp_sol
-                #for (constr_uid, var_coef) in get_constr_members_of_var(m, setup_var_uid)
-               #     add_constr_members_of_var!(m, mc_uid, constr_uid, var_coef)
-               # end
-                
-                ### record Sp solution
-                #add_var_members_of_partialsol!(mbship, mc_id, sp_sol.var_members)
+            # Compute column vector
+            # Normaly this should add the column to the convexity constraints
+            # automatically since the setup variable is in the sp solution and it should have a coefficient in the convexity constraint
+            matrix = get_coefficient_matrix(sp_form.parent_formulation)
+            mc_id = get_id(mc)
+            for (var_id, var_val) in getsol(sp_sol)
+                for (constr_id, var_coef) in matrix[:,var_id]
+                    matrix[constr_id,mc_id] = var_val * var_coef
+                end
+            end
 
-                
-                
-                #update_moi_membership(master_form, mc_var)
-                println("\e[43m column added \e[00m")
-                #@show string("added column ", mc_id, mc_var)
-                # TODO  do while sp_sol.next exists
-            #end
+            ### record Sp solution
+            #add_var_members_of_partialsol!(mbship, mc_id, sp_sol.var_members)
+
+            #update_moi_membership(master_form, mc_var)
+            println("\e[43m column added \e[00m")
+            #@show string("added column ", mc_id, mc_var)
+            # TODO  do while sp_sol.next exists
         end
     end
 
