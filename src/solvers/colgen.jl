@@ -42,18 +42,13 @@ SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents(
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
-    #new_obj = VarMembership(get_vars(sp_form))
-    #master_form = sp_form.parent_formulation
-
-    ### initialized costs
-    active_sp_vars = filter(_active_pricingSpVar_ , get_vars(sp_form))
-
-    for (id, var) in active_sp_vars
+    for (id, var) in filter(_active_pricingMastRepSpVar_ , get_vars(sp_form))
         set_cost!(get_cur_data(var), get_cost(get_initial_data(var)))
     end
 
     coefficient_matrix = get_coefficient_matrix(sp_form.parent_formulation)
 
+#==
 
     #println("all vars: ")
     #for (id, var) in get_vars(sp_form.parent_formulation)
@@ -97,47 +92,27 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
             #sp_var = getvar(sp_form, var_id)
             #sp_vardata = get_cur_data(sp_var)
             #set_cost!(sp_vardata, get_cost(vardata))
+==#
+    for (var_id, var) in get_vars(sp_form)
+        for (constr_id, dual_val) in getsol(dual_sol)
+            vardata = get_cur_data(var) # shortcut needed
+            coeff = coefficient_matrix[constr_id, var_id]
+            set_cost!(vardata, get_cost(vardata) - dual_val * coeff)
         end
-
     end
-
-    println("Costs after: ")
-    for (id, var) in active_sp_vars
-        println(get_name(var), " : ", get_cost(get_cur_data(var)))
-    end
-
-
-    set_optimizer_obj(get_optimizer(sp_form), active_sp_vars) #filter(_explicit_, get_vars(sp_form)))
-
-
-    # println("initialized costs = ", new_obj)
-
-    ### compute red costs
-    # for (constr_id, dual_val) in getsol(dual_sol)
-    #     #println("Compute contrib of constraint ", constr_id)
-    #     #@show get_var_members_of_constr(master_form.memberships, constr_id)
-
-    #     #var_membership = filter(_active_MspVar_, get_var_members_of_constr(master_form.memberships, constr_id))
-
-    #     for (m_rep_var_id, coef) in var_membership
-    #         #println("var : ", m_rep_var_id, " (", get_duty(getstate(m_rep_var_id)), ")")
-    #         sp_var_id = getkey(sp_vars, m_rep_var_id, Id{VarState}(-1))
-    #         #println("collect Sp var : ", sp_var_id, " (", get_duty(getstate(sp_var_id)), ")")
-    #         sp_var_id.uid == -1 && continue
-    #         cost = get_cost(getstate(sp_var_id))
-    #         setcost(getstate(sp_var_id), cost - dual_val * coef)
-    #     end
-    # end
-
-    # #println("update_pricing_problem: new objective func = ", new_obj)
-
-
+    set_optimizer_obj(get_optimizer(sp_form), filter(_explicit_, get_vars(sp_form)))
     return false
 end
 
 
 function update_pricing_target(sp_form::Formulation)
     println("pricing target will only be needed after automating convexity constraints")
+end
+
+
+function compute_original_cost(sp_sol, sp_form)
+    val = sum(get_cost(get_initial_data(getvar(sp_form, var_id))) * value for (var_id, value) in sp_sol)
+    return val
 end
 
 
@@ -176,13 +151,14 @@ function insert_cols_in_master(master_form::Formulation,
                 kind = Continuous
                 duty = MasterCol
                 sense = Positive
-                mc_var = Variable(get_uid(master_form), name, cost, lb, ub, kind, sense)
-                mc_id = add!(master_form, mc_var, duty)
+                set_var!(master_form, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, sense = sense)
+                # mc_var = Variable(get_uid(master_form), name, cost, lb, ub, kind, sense)
+                # mc_id = add!(master_form, mc_var, duty)
                 #add!(mbship, mc_id)
-                name = "MC_$(sp_uid)_$(get_uid(mc_id))"
-                setname!(mc_var, name)
+                #name = "MC_$(sp_uid)_$(get_uid(mc_id))"
+                #setname!(mc_var, name)
 
-                @show "new column" mc_id mc_var
+               # @show "new column" mc_id mc_var
                 
                 ### compute column vector
                 # for (var_id, var_val) in sp_sol.var_members
@@ -201,8 +177,8 @@ function insert_cols_in_master(master_form::Formulation,
                 
                 
                 #update_moi_membership(master_form, mc_var)
-
-                @show string("added column ", mc_id, mc_var)
+                println("\e[43m column added \e[00m")
+                #@show string("added column ", mc_id, mc_var)
                 # TODO  do while sp_sol.next exists
             #end
         end

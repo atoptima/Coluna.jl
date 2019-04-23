@@ -71,8 +71,6 @@ function build_dw_master!(prob::Problem,
 
     # copy of pure master variables
     clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
-    # copy of master constraints
-    clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterConstr)
 
     @assert !isempty(reformulation.dw_pricing_subprs)
     # add convexity constraints and setupvar 
@@ -113,14 +111,14 @@ function build_dw_master!(prob::Problem,
                              lb = lb, ub = ub, kind = kind,
                              sense = sense, is_explicit = is_explicit)
         @show setup_var
-        #setup_var_rep = clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSpVar, is_explicit)
-        #@show setup_var_rep
-
         vars = filter(_active_pricingSpVar_, get_vars(sp_form))
 
         is_explicit = false
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
     end
+
+    # copy of master constraints
+    clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterConstr)
 
     # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
