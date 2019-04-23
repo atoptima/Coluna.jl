@@ -46,7 +46,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
     #master_form = sp_form.parent_formulation
 
     ### initialized costs
-    active_sp_vars = filter(_active_pricingMastRepSpVar_ , get_vars(sp_form))
+    active_sp_vars = filter(_active_pricingSpVar_ , get_vars(sp_form))
 
     for (id, var) in active_sp_vars
         set_cost!(get_cur_data(var), get_cost(get_initial_data(var)))
