@@ -90,21 +90,14 @@ function set_constr!(f::Formulation,
     id = generateconstrid(f)
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
-
-    constr = add_constr!(f, c)
-    @show constr
-    
-    return constr
+    return add_constr!(f, c)
 end
 
 add_constr!(f::Formulation, constr::Constraint) = add_constr!(f.manager, constr)
 
 function clone_constr!(dest::Formulation, src::Formulation, constr::Constraint)
     add_constr!(dest, constr)
-    clone = clone_constr!(dest.manager, src.manager, constr)
-
-    @show clone
-    return clone
+    return clone_constr!(dest.manager, src.manager, constr)
 end
 
 function register_objective_sense!(f::Formulation, min::Bool)
@@ -221,9 +214,11 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    for (id, var) in filter(_explicit_, get_vars(f))
-        name = get_name(var)
-        cost = get_cost(get_cur_data(var))
+    vars = filter(_explicit_, get_vars(f))
+    ids = sort!(collect(keys(vars)), by = getsortid)
+    for id in ids
+        name = get_name(vars[id])
+        cost = get_cost(get_cur_data(vars[id]))
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
     end
@@ -236,8 +231,10 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
     constr = get_constr(f, constr_id)
     constr_data = get_cur_data(constr)
     print(io, constr_id, " ", get_name(constr), " : ")
-    for (var_id, coeff) in members
-        var = getvar(f, var_id)
+    ids = sort!(collect(keys(members)), by = getsortid)
+    for id in ids
+        coeff = members[id]
+        var = getvar(f, id)
         name = get_name(var)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
@@ -255,12 +252,13 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
 end
 
 function _show_constraints(io::IO , f::Formulation)
-    constrs = filter(
-        _explicit_, rows(get_coefficient_matrix(f))
-    )
+    # constrs = filter(
+    #     _explicit_, rows(get_coefficient_matrix(f))
+    # )
     constrs = rows(get_coefficient_matrix(f))
-    for (constr_id, members) in constrs
-        _show_constraint(io, f, constr_id, members)
+    ids = sort!(collect(keys(constrs)), by = getsortid)
+    for id in ids
+        _show_constraint(io, f, id, constrs[id])
     end
     return
 end
@@ -277,8 +275,11 @@ function _show_variable(io::IO, f::Formulation, var::Variable)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    for (id, var) in get_vars(f) #filter(_explicit_, get_vars(f))
-        _show_variable(io, f, var)
+    # vars = filter(_explicit_, get_vars(f))
+    vars = get_vars(f)
+    ids = sort!(collect(keys(vars)), by = getsortid)
+    for id in ids
+        _show_variable(io, f, vars[id])
     end
 end
 
