@@ -25,7 +25,6 @@ function Formulation{D}(form_counter::Counter;
     )
 end
 
-
 haskey(f::Formulation, id::Id) = haskey(f.manager, id)
 
 getvar(f::Formulation, id::VarId) = getvar(f.manager, id) 
@@ -119,9 +118,8 @@ end
 # end
 
 function optimize!(form::Formulation, optimizer = form.moi_optimizer)
-    println("About to solve formulation ", get_uid(form))
-    @show form
-    # _show_optimizer(optimizer)
+    # println("About to solve formulation ", get_uid(form))
+    # @show form
 
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
