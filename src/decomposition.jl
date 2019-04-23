@@ -68,7 +68,7 @@ function build_dw_master!(prob::Problem,
     orig_form = get_original_formulation(prob)
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
     reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
-
+    convexity_constrs = ConstrDict()
     # copy of pure master variables
     clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
 
@@ -87,7 +87,10 @@ function build_dw_master!(prob::Problem,
                                      rhs = rhs, kind  = kind,
                                      sense = sense)
         reformulation.dw_pricing_sp_lb[sp_uid] = get_id(lb_conv_constr)
-        # @show lb_conv_constr
+        set_inc_val!(get_initial_data(lb_conv_constr), 100.0)
+        set_inc_val!(get_cur_data(lb_conv_constr), 100.0)
+        convexity_constrs[get_id(lb_conv_constr)] = lb_conv_constr
+        @show lb_conv_constr
 
         name = "sp_ub_$(sp_uid)"
         rhs = 1.0
@@ -96,7 +99,10 @@ function build_dw_master!(prob::Problem,
                                      rhs = rhs, kind = kind,
                                      sense = sense)
         reformulation.dw_pricing_sp_ub[sp_uid] = get_id(ub_conv_constr)
-        # @show ub_conv_constr
+        set_inc_val!(get_initial_data(ub_conv_constr), 100.0)
+        set_inc_val!(get_cur_data(ub_conv_constr), 100.0)        
+        convexity_constrs[get_id(ub_conv_constr)] = ub_conv_constr
+        @show ub_conv_constr
 
         ## Create PricingSetupVar
         name = "PricingSetupVar_sp_$(sp_form.uid)"
@@ -122,6 +128,7 @@ function build_dw_master!(prob::Problem,
 
     # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
+    initialize_local_art_vars(master_form, convexity_constrs)
     @show master_form
     return
 end
