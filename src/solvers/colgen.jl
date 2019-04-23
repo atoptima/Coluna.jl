@@ -120,7 +120,9 @@ function insert_cols_in_master(master_form::Formulation,
                     matrix[constr_id,mc_id] = var_val * var_coef
                 end
             end
-            add_variable_in_optimizer(get_optimizer(master_form), mc)
+            add_variable_in_optimizer(
+                get_optimizer(master_form), mc, matrix[:,mc_id]
+            )
 
             ### record Sp solution
             #add_var_members_of_partialsol!(mbship, mc_id, sp_sol.var_members)
@@ -240,7 +242,7 @@ function solve_restricted_mast(master::Formulation)
     #@timeit to(alg) "solve_restricted_mast" begin
  
     println("Solving master problem: ")
-    @show master
+    # @show master
     status, value, primal_sols, dual_sol = optimize!(master)
     @show status
     #@show result_count = MOI.get(master.moi_optimizer, MOI.ResultCount())
@@ -290,7 +292,7 @@ function update_lagrangian_dual_bound(alg::SimplexLpColGenAlg,
               alg.sols_and_bounds.alg_inc_lp_primal_bound,
               ". mast_lagrangian_bnd = ", mast_lagrangian_bnd)
 
-            @show mast_lagrangian_bnd
+    @show mast_lagrangian_bnd
 
     #TODO: clarify this comment
     # by Guillaume : subgradient algorithm needs to know when the incumbent
@@ -389,11 +391,12 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
             get_lp_primal_bound(alg.incumbents), get_ip_primal_bound(alg.incumbents)
         )
 
-       if nb_new_col == 0 || diff(lower_bound + 0.00001, upper_bound) < 0
+        if nb_new_col == 0 || diff(lower_bound + 0.00001, upper_bound) < 0
             alg.is_converged = true
             return false
         end
-        if nb_cg_iterations > 10 ##TDalg.max_nb_cg_iterations
+        if nb_cg_iterations > 100 ##TDalg.max_nb_cg_iterations
+            println("Maximum number of column generation iteration is reached")
             @logmsg LogLevel(-2) "max_nb_cg_iterations limit reached"
             alg.is_infeasible = true
             return true
