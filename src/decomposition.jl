@@ -106,12 +106,14 @@ function build_dw_master!(prob::Problem,
         kind = Continuous
         duty = PricingSpSetupVar
         sense = Positive
+        is_explicit = true
         setup_var = set_var!(sp_form, name, duty; cost = cost,
                              lb = lb, ub = ub, kind = kind,
-                             sense = sense)
-        # @show setup_var
-        is_explicit = false
+                             sense = sense, is_explicit = is_explicit)
+        @show setup_var
         vars = filter(_active_pricingSpVar_, get_vars(sp_form))
+
+        is_explicit = false
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
     end
 

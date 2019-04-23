@@ -61,9 +61,11 @@ function set_var!(f::Formulation,
                   kind::VarKind = Continuous,
                   sense::VarSense = Positive,
                   inc_val::Float64 = 0.0,
+                  is_active::Bool = true,
+                  is_explicit::Bool = true,
                   moi_index::MoiVarIndex = MoiVarIndex())
     id = generatevarid(f)
-    v_data = VarData(cost, lb, ub, kind, sense, inc_val, true, true)
+    v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
     return add_var!(f, v)
 end
@@ -82,9 +84,11 @@ function set_constr!(f::Formulation,
                      kind::ConstrKind = 0.0,
                      sense::ConstrSense = 0.0,
                      inc_val::Float64 = 0.0,
+                     is_active::Bool = true,
+                     is_explicit::Bool = true,
                      moi_index::MoiConstrIndex = MoiConstrIndex())
     id = generateconstrid(f)
-    c_data = ConstrData(rhs, kind, sense,  inc_val, true, true)
+    c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
 
     constr = add_constr!(f, c)

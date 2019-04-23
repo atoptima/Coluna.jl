@@ -48,6 +48,51 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
     coefficient_matrix = get_coefficient_matrix(sp_form.parent_formulation)
 
+#==
+
+    #println("all vars: ")
+    #for (id, var) in get_vars(sp_form.parent_formulation)
+    #    println(get_name(var), " : ", get_cost(get_cur_data(var)))
+    #end
+
+
+
+    println("Costs before: ")
+    for (id, var) in active_sp_vars
+        println(get_name(var), " : ", get_cost(get_cur_data(var)))
+    end
+
+    ## compute reduced cost
+    for (constr_id, dual_val) in getsol(dual_sol)
+
+        println("update reduced cost vars of constr: ", constr_id, " with dual val : ", dual_val)
+
+        println("--------------> All vars with its coeffs")
+        for (id, coeff) in coefficient_matrix[constr_id, :]
+            println(id, " : ", coeff)
+        end
+
+        #active_sp_rep_memb_vars = filter(_active_pricingMastRepSpVar_, coefficient_matrix[constr_id, :])
+        active_sp_rep_memb_vars =  coefficient_matrix[constr_id, :]
+
+        for (var_id, coeff) in active_sp_rep_memb_vars
+            println("Modifying reduced cost of variable: ", var_id)
+            if haskey(active_sp_vars, var_id)
+                var = get_element(active_sp_vars, var_id)
+                println("new cost for sp var : ", get_name(var))
+                vardata = get_cur_data(var) # shortcut needed
+                set_cost!(vardata, get_cost(vardata) - dual_val * coeff)
+
+                println("new cost: ", get_cost(vardata))
+            end
+            
+
+
+            # set cost also in sp
+            #sp_var = getvar(sp_form, var_id)
+            #sp_vardata = get_cur_data(sp_var)
+            #set_cost!(sp_vardata, get_cost(vardata))
+==#
     for (var_id, var) in get_vars(sp_form)
         for (constr_id, dual_val) in getsol(dual_sol)
             vardata = get_cur_data(var) # shortcut needed
