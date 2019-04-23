@@ -28,7 +28,9 @@ end
 
 haskey(f::Formulation, id::Id) = haskey(f.manager, id)
 
-getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
+getvar(f::Formulation, id::VarId) = getvar(f.manager, id) 
+
+getvarcounter(f::Formulation) = f.var_counter.value
 
 get_constr(f::Formulation, id::ConstrId) = get_constr(f.manager, id)
 

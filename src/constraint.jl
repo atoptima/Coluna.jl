@@ -23,8 +23,6 @@ get_kind(vc::AbstractVcData) = vc.kind
 get_sense(vc::AbstractVcData) = vc.sense
 get_inc_val(vc::AbstractVcData) = vc.inc_val
 
-is_active(vc::AbstractVarConstr) = vc.cur_data.is_active
-is_explicit(vc::AbstractVarConstr) = vc.cur_data.is_explicit
 
 set_rhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 set_inc_val!(vc::AbstractVcData, val::Float64) =  vc.inc_val = val
@@ -83,6 +81,11 @@ function reset!(c::Constraint)
     cur.is_active = initial.is_active
     return
 end
+
+
+is_active(vc::AbstractVarConstr) = vc.cur_data.is_active
+is_explicit(vc::AbstractVarConstr) = vc.cur_data.is_explicit
+#setname!(vc::AbstractVarConstr, name::String) = vc.name = name
 
 get_rhs(c::Constraint) = get_rhs(c.cur_data)
 is_active(c::Constraint) = is_active(c.cur_data)

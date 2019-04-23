@@ -14,7 +14,7 @@ function constraint_getters_setters_unit_tests()
 
     @test CL.setform!(constr, 1) == 1
     @test CL.get_form(constr) == 1
-    @test CL.setname!(constr, "rtsnoc") == "rtsnoc"
+    #@test CL.setname!(constr, "rtsnoc") == "rtsnoc"
     @test CL.get_name(constr) == "rtsnoc"
     @test CL.set_rhs!(constr, 2.0) == 2.0
     @test CL.get_rhs(constr) == 2.0

@@ -97,7 +97,8 @@ function insert_cols_in_master(master_form::Formulation,
             # end
             ### create new column
             nb_of_gen_col += 1
-            name = "MC_$(sp_uid)"
+            ref = getvarcounter(master_form)
+            name = "MC$(sp_uid)_$(ref)"
             cost = compute_original_cost(sp_sol, sp_form)
             lb = 0.0
             ub = Inf

@@ -16,7 +16,7 @@ function variable_getters_setters_unit_tests()
 
     @test CL.setform!(v, 1) == 1
     @test CL.get_form(v) == 1
-    @test CL.setname!(v, "elbairav") == "elbairav"
+    #@test CL.setname!(v, "elbairav") == "elbairav"
     @test CL.get_name(v) == "elbairav"
     @test CL.set_cost!(v, 1.0) == 1.0
     @test CL.get_cost(v) == 1.0
