@@ -58,7 +58,7 @@ function Constraint(id::ConstrId,
                     constr_data = ConstrData(),
                     moi_index::MoiConstrIndex = MoiConstrIndex())
     return Constraint(
-        id, name, duty, constr_data, constr_data,
+        id, name, duty, constr_data, deepcopy(constr_data),
         MoiConstrRecord(index = moi_index)
     )
 end
