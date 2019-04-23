@@ -4,7 +4,7 @@
 
 _active_masterRepOrigConstr_(id_c::Pair{ConstrId,Constraint}) = is_active(get_cur_data(id_c[2])) == true && get_duty(id_c[2]) <: AbstractMasterRepOriginalConstr
 
-_active_pricingSpVar_(id_v::Pair{VarId,Variable}) = is_active(get_cur_data(id_v[2])) == true && get_duty(id_v[2]) <: PricingSpVar
+_active_pricingSpVar_(id_v::Pair{VarId,Variable}) = is_active(get_cur_data(id_v[2])) == true && get_duty(id_v[2]) <: AbstractPricingSpVar
 
 _active_pricingMastRepSpVar_(id_v::Pair{VarId,Variable}) = is_active(get_cur_data(id_v[2])) == true && get_duty(id_v[2]) <: AbstractMastRepSpVar
 

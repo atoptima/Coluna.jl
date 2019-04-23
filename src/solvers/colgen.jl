@@ -46,9 +46,9 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
     #master_form = sp_form.parent_formulation
 
     ### initialized costs
-    active_rep_sp_vars = filter(_active_pricingMastRepSpVar_ , get_vars(sp_form.parent_formulation))
+    active_sp_vars = filter(_active_pricingSpVar_ , get_vars(sp_form))
 
-    for (id, var) in active_rep_sp_vars
+    for (id, var) in active_sp_vars
         set_cost!(get_cur_data(var), get_cost(get_initial_data(var)))
     end
 
@@ -63,7 +63,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
 
     println("Costs before: ")
-    for (id, var) in active_rep_sp_vars
+    for (id, var) in active_sp_vars
         println(get_name(var), " : ", get_cost(get_cur_data(var)))
     end
 
@@ -81,29 +81,31 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
         for (var_id, coeff) in active_sp_rep_memb_vars
             println("Modifying reduced cost of variable: ", var_id)
+            if haskey(active_sp_vars, var_id)
+                var = get_element(active_sp_vars, var_id)
+                vardata = get_cur_data(var) # shortcut needed
+                set_cost!(vardata, get_cost(vardata) - dual_val * coeff)
 
-            var = get_element(active_sp_rep_memb_vars, var_id)
-            vardata = get_cur_data(var) # shortcut needed
-            set_cost!(vardata, get_cost(vardata) - dual_val * coeff)
-
-            println("new cost: ", get_cost(vardata))
+                println("new cost: ", get_cost(vardata))
+            end
+            
 
 
             # set cost also in sp
-            sp_var = getvar(sp_form, var_id)
-            sp_vardata = get_cur_data(sp_var)
-            set_cost!(sp_vardata, get_cost(vardata))
+            #sp_var = getvar(sp_form, var_id)
+            #sp_vardata = get_cur_data(sp_var)
+            #set_cost!(sp_vardata, get_cost(vardata))
         end
 
     end
 
     println("Costs after: ")
-    for (id, var) in active_rep_sp_vars
+    for (id, var) in active_sp_vars
         println(get_name(var), " : ", get_cost(get_cur_data(var)))
     end
 
 
-    set_optimizer_obj(get_optimizer(sp_form), filter(_explicit_, get_vars(sp_form)))
+    set_optimizer_obj(get_optimizer(sp_form), active_sp_vars) #filter(_explicit_, get_vars(sp_form)))
 
 
     # println("initialized costs = ", new_obj)

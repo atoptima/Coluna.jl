@@ -7,37 +7,37 @@ end
 
 function constraint_getters_setters_unit_tests()
     constr = CL.Constraint(0, "constr", 0.0, CL.Greater, CL.Core)
-    @test CL.getform(constr) == 0
-    @test CL.getname(constr) == "constr"
-    @test CL.getrhs(constr) == 0.0
-    @test CL.getkind(constr) == CL.Core
+    @test CL.get_form(constr) == 0
+    @test CL.get_name(constr) == "constr"
+    @test CL.get_rhs(constr) == 0.0
+    @test CL.get_kind(constr) == CL.Core
 
     @test CL.setform!(constr, 1) == 1
-    @test CL.getform(constr) == 1
+    @test CL.get_form(constr) == 1
     @test CL.setname!(constr, "rtsnoc") == "rtsnoc"
-    @test CL.getname(constr) == "rtsnoc"
-    @test CL.setrhs!(constr, 2.0) == 2.0
-    @test CL.getrhs(constr) == 2.0
-    @test CL.setsense!(constr, CL.Less) == CL.Less
-    @test CL.getsense(constr) == CL.Less
-    @test CL.setkind!(constr, CL.Facultative) == CL.Facultative
-    @test CL.getkind(constr) == CL.Facultative
+    @test CL.get_name(constr) == "rtsnoc"
+    @test CL.set_rhs!(constr, 2.0) == 2.0
+    @test CL.get_rhs(constr) == 2.0
+    @test CL.set_sense!(constr, CL.Less) == CL.Less
+    @test CL.get_sense(constr) == CL.Less
+    @test CL.set_kind!(constr, CL.Facultative) == CL.Facultative
+    @test CL.get_kind(constr) == CL.Facultative
     return
 end
 
 function constraint_set!_unit_tests()
     constr = CL.Constraint(0, "constr", 0.0,  CL.Greater, CL.Core)
     CL.set!(constr, MOI.LessThan{Float64}(100.0))
-    @test CL.getrhs(constr) == 100.0
-    @test CL.getsense(constr) == CL.Less
+    @test CL.get_rhs(constr) == 100.0
+    @test CL.get_sense(constr) == CL.Less
 
     CL.set!(constr, MOI.EqualTo{Float64}(10.0))
-    @test CL.getrhs(constr) == 10.0
-    @test CL.getsense(constr) == CL.Equal
+    @test CL.get_rhs(constr) == 10.0
+    @test CL.get_sense(constr) == CL.Equal
 
     CL.set!(constr, MOI.GreaterThan{Float64}(0.0))
-    @test CL.getrhs(constr) == 0.0
-    @test CL.getsense(constr) == CL.Greater
+    @test CL.get_rhs(constr) == 0.0
+    @test CL.get_sense(constr) == CL.Greater
 end
 
 function constrstate_getters_setters_unit_tests()
