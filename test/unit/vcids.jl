@@ -6,14 +6,14 @@ function id_unit_tests()
     var = CL.Variable(1, "variable", 9.0, -1.0, 10.0, CL.Integ, CL.Free)
     i = CL.Id(1, CL.OriginalVar, var)
 
-    @test CL.getuid(i) == 1
+    @test CL.get_uid(i) == 1
     
     state = CL.getstate(i)
-    @test CL.getduty(state) == CL.OriginalVar
-    @test CL.getcost(state) == CL.getcost(var)
-    @test CL.getlb(state) == CL.getlb(var)
-    @test CL.getub(state) == CL.getub(var)
-    @test CL.getkind(state) == CL.getkind(var)
+    @test CL.get_duty(state) == CL.OriginalVar
+    @test CL.get_cost(state) == CL.get_cost(var)
+    @test CL.get_lb(state) == CL.get_lb(var)
+    @test CL.get_ub(state) == CL.get_ub(var)
+    @test CL.get_kind(state) == CL.get_kind(var)
     @test CL.getstatus(state) == CL.Active
     return
 end
