@@ -90,6 +90,11 @@ getbound(s::AbstractSolution) = s.bound
 getvalue(s::AbstractSolution) = float(s.bound)
 getsol(s::AbstractSolution) = s.sol
 
+iterate(s::AbstractSolution) = iterate(s.sol)
+iterate(s::AbstractSolution, state) = iterate(s.sol, state)
+length(s::AbstractSolution) = length(s.sol)
+lastindex(s::AbstractSolution) = lastindex(s.sol)
+
 _show_sol_type(io::IO, p::PrimalSolution) = println(io, "\n┌ Primal Solution :")
 _show_sol_type(io::IO, d::DualSolution) = println(io, "\n┌ Dual Solution :")
 
