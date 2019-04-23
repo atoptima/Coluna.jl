@@ -42,7 +42,7 @@ SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents(
 
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
-    for (id, var) in filter(_active_pricingMastRepSpVar_ , get_vars(sp_form))
+    for (id, var) in filter(_active_pricingSpVar_ , get_vars(sp_form))
         set_cost!(get_cur_data(var), get_cost(get_initial_data(var)))
     end
 
@@ -192,7 +192,6 @@ function gen_new_col(master_form::Formulation,
     #     # switch off the reduced cost estimation when stabilization is applied
     # end
 
-    
     # Solve sub-problem and insert generated columns in master
     @logmsg LogLevel(-3) "optimizing pricing prob"
     #@timeit to(alg) "optimize!(pricing_prob)"
@@ -396,7 +395,7 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
             alg.is_converged = true
             return false
         end
-        if nb_cg_iterations > 100 ##TDalg.max_nb_cg_iterations
+        if nb_cg_iterations > 300 ##TDalg.max_nb_cg_iterations
             println("Maximum number of column generation iteration is reached")
             @logmsg LogLevel(-2) "max_nb_cg_iterations limit reached"
             alg.is_infeasible = true
