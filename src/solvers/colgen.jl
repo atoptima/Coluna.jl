@@ -234,7 +234,7 @@ function gen_new_columns(reformulation::Reformulation,
 
         if gen_status > 0
             nb_new_cols += gen_status
-            dual_bound_contrib += contrib
+            dual_bound_contrib += float(contrib)
         elseif gen_status == -1 # Sp is infeasible
             return (gen_status, Inf)
         end
@@ -396,7 +396,7 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
             get_lp_primal_bound(alg.incumbents), get_ip_primal_bound(alg.incumbents)
         )
 
-       if nb_new_col == 0 || lower_bound + 0.00001 > upper_bound
+       if nb_new_col == 0 || diff(lower_bound + 0.00001, upper_bound) < 0
             alg.is_converged = true
             return false
         end
