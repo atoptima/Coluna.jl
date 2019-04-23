@@ -24,6 +24,7 @@ abstract type AbstractFormDuty <: AbstractDuty end
 abstract type AbstractOriginalVar <: AbstractVarDuty end
 abstract type AbstractMasterVar <: AbstractVarDuty end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
+abstract type AbstractPricingSpVar <: AbstractDwSpVar end
 abstract type AbstractMastRepSpVar <: AbstractDwSpVar end
 
 # Concrete types for VarDuty
@@ -35,8 +36,8 @@ struct MastArtVar <: AbstractMasterVar end
 struct MastRepPricingSpVar <: AbstractMastRepSpVar end
 struct MastRepPricingSetupSpVar <: AbstractMastRepSpVar end # Cannot subtype a concrete type
 struct MastRepBendSpVar <: AbstractMastRepSpVar end
-struct PricingSpVar <: AbstractDwSpVar end
-struct PricingSpSetupVar <: AbstractDwSpVar end # Cannot subtype a concrete type
+struct PricingSpVar <: AbstractPricingSpVar end
+struct PricingSpSetupVar <: AbstractPricingSpVar end # Cannot subtype a concrete type
 struct PricingSpPureVar <: AbstractDwSpVar end
 struct UndefinedVarDuty <: AbstractVarDuty end
 
