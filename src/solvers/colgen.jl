@@ -120,6 +120,7 @@ function insert_cols_in_master(master_form::Formulation,
                     matrix[constr_id,mc_id] = var_val * var_coef
                 end
             end
+            add_variable_in_optimizer(get_optimizer(master_form), mc)
 
             ### record Sp solution
             #add_var_members_of_partialsol!(mbship, mc_id, sp_sol.var_members)

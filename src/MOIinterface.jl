@@ -103,6 +103,21 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer, v::Variable
     return
 end
 
+function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                   v::Variable,
+                                   members::ConstrMembership)
+
+    add_variable_in_optimizer(optimizer, v)
+    var_index = get_index(get_moi_record(v))
+    for (id, coef) in members
+        constr_index = get_index(get_moi_record(get_elements(members)[id]))
+        MOI.modify(optimizer, constr_index, MOI.ScalarConstantChange{Float64}(
+            var_index, coef
+        ))
+    end
+    return
+end
+
 function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                      constr::Constraint,
                                      members::VarMembership)
