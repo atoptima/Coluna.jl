@@ -255,9 +255,9 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
 end
 
 function _show_constraints(io::IO , f::Formulation)
-    constrs = filter(
-        _explicit_, rows(get_coefficient_matrix(f))
-    )
+    #constrs = filter(
+    #    _explicit_, rows(get_coefficient_matrix(f))
+    #)
     constrs = rows(get_coefficient_matrix(f))
     for (constr_id, members) in constrs
         _show_constraint(io, f, constr_id, members)

@@ -72,6 +72,8 @@ function build_dw_master!(prob::Problem,
     # copy of pure master variables
     clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
 
+    mast_coefficient_matrix = get_coefficient_matrix(master_form)
+    
     @assert !isempty(reformulation.dw_pricing_subprs)
     # add convexity constraints and setupvar 
     for sp_form in reformulation.dw_pricing_subprs
@@ -119,8 +121,13 @@ function build_dw_master!(prob::Problem,
         @show setup_var
         vars = filter(_active_pricingSpVar_, get_vars(sp_form))
 
+        ## add all Sp var in master
         is_explicit = false
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
+
+        ## add setup var coef in convexity constraint
+        mast_coefficient_matrix[get_id(lb_conv_constr),get_id(setup_var)] = 1.0
+        mast_coefficient_matrix[get_id(ub_conv_constr),get_id(setup_var)] = 1.0
     end
 
     # copy of master constraints
