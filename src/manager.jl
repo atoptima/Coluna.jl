@@ -70,6 +70,10 @@ function Base.filter(f::Function, vec::MembersVector)
     MembersVector(vec.elements, Base.filter(e -> f(vec.elements[e[1]]), vec.records))
 end
 
+function Base.keys(vec::MembersVector)
+    Base.keys(vec.records)
+end
+
 iterate(d::MembersVector) = iterate(d.records)
 iterate(d::MembersVector, state) = iterate(d.records, state)
 length(d::MembersVector) = length(d.records)
@@ -172,7 +176,6 @@ end
 function Base.getindex(m::MembersMatrix, ::Colon, col_id)
     _getrecordvector!(m.cols, col_id, m.rows.elements, false)
 end
-
 
 function columns(m::MembersMatrix)
     return m.cols

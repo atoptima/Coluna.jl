@@ -64,10 +64,6 @@ function update_pricing_target(sp_form::Formulation)
 end
 
 function compute_original_cost(sp_sol, sp_form)
-    #println("compute_original_cost")
-    #for (var_id, value) in sp_sol
-    #     println(" var ", var_id, " value " , value, " cost " , get_cost(get_initial_data(getvar(sp_form, var_id))))
-    #end   
     val = sum(get_cost(get_initial_data(getvar(sp_form, var_id))) * value for (var_id, value) in sp_sol)
     return val
 end
@@ -114,8 +110,9 @@ function insert_cols_in_master(master_form::Formulation,
             )
 
             # Compute column vector
-            # Normaly this should add the column to the convexity constraints
-            # automatically since the setup variable is in the sp solution and it should have a coefficient in the convexity constraint
+            # This adds the column to the convexity constraints automatically
+            # since the setup variable is in the sp solution and it has a
+            # a coefficient of 1.0 in the convexity constraints
             matrix = get_coefficient_matrix(sp_form.parent_formulation)
             mc_id = get_id(mc)
             for (var_id, var_val) in getsol(sp_sol)
