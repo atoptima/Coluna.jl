@@ -62,7 +62,7 @@ function update_pricing_target(sp_form::Formulation)
 end
 
 function compute_original_cost(sp_sol, sp_form)
-    val = sum(get_initial_cost(getvar(sp_form, var_id)) * value for (var_id, value) in sp_sol)
+    val = sum(get_init_cost(getvar(sp_form, var_id)) * value for (var_id, value) in sp_sol)
     return val
 end
 

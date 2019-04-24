@@ -67,12 +67,23 @@ function variable_getters_and_setters_tests()
         var_data = v_data
     )
 
-    v.initial_data.cost = -1112.0
-    v.cur_data.cost = 1013.0
-    @test v.initial_data.cost == -1112.0
+    @test CL.get_init_cost(v) == CL.get_cur_cost(v) == CL.get_cost(CL.get_cur_data(v)) == CL.get_cost(CL.get_initial_data(v)) == 13.0
+    @test CL.get_init_lower_bound(v) == CL.get_cur_lower_bound(v) == CL.get_lb(CL.get_cur_data(v)) == CL.get_lb(CL.get_initial_data(v)) == -10.0
+    @test CL.get_init_upper_bound(v) == CL.get_cur_upper_bound(v) == CL.get_ub(CL.get_cur_data(v)) == CL.get_ub(CL.get_initial_data(v)) == 100.0
+
+    CL.set_cur_cost!(v, -134.0)
+    CL.set_cur_lower_bound!(v, -2001.9)
+    CL.set_cur_upper_bound!(v, 2387.0)
+
+    @test CL.get_cur_cost(v) == CL.get_cost(CL.get_cur_data(v)) == -134.0
+    @test CL.get_cur_lower_bound(v) == CL.get_lb(CL.get_cur_data(v)) == -2001.9
+    @test CL.get_cur_upper_bound(v) == CL.get_ub(CL.get_cur_data(v)) == 2387.0
+    @test CL.get_init_cost(v) == CL.get_cost(CL.get_initial_data(v)) == 13.0
+    @test CL.get_init_lower_bound(v) == CL.get_lb(CL.get_initial_data(v)) == -10.0
+    @test CL.get_init_upper_bound(v) == CL.get_ub(CL.get_initial_data(v)) == 100.0
 
     CL.reset!(v)
-    @test v.initial_data.cost == v.cur_data.cost == -1112.0
+    @test v.initial_data.cost == v.cur_data.cost == 13.0
     @test v.initial_data.lower_bound == v.cur_data.lower_bound == -10.0
     @test v.initial_data.upper_bound == v.cur_data.upper_bound == 100.0
     @test v.initial_data.kind == v.cur_data.kind == CL.Continuous

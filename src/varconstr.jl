@@ -23,28 +23,8 @@ get_initial_data(vc::AbstractVarConstr) = vc.initial_data
 get_cur_data(vc::AbstractVarConstr) = vc.cur_data
 get_moi_record(vc::AbstractVarConstr) = vc.moi_record
 
-# Helpers for getters  and stter that acces fields in a level
+# Helpers for getters and setters that acces fields in a level
 # under Variable or Constraint
-
-# Variable
-
-# -> Initial
-get_init_cost(vc::AbstractVarConstr) = vc.initial_data.cost
-get_init_lower_bound(vc::AbstractVarConstr) = vc.initial_data.lower_bound
-get_init_upper_bound(vc::AbstractVarConstr) = vc.initial_data.upper_bound
-set_init_cost!(vc::AbstractVarConstr, cost::Float64) = vc.initial_data.cost
-set_init_lower_bound!(vc::AbstractVarConstr, lb::Float64) = vc.initial_data.lower_bound = lb
-set_init_upper_bound!(vc::AbstractVarConstr, ub::Float64) = vc.initial_data.upper_bound = ub
-# -> Current
-get_cur_cost(vc::AbstractVarConstr) = vc.cur_data.cost
-get_cur_lower_bound(vc::AbstractVarConstr) = vc.cur_data.lower_bound
-get_cur_upper_bound(vc::AbstractVarConstr) = vc.cur_data.upper_bound
-set_cur_cost!(vc::AbstractVarConstr, cost::Float64) = vc.cur_data.cost
-set_cur_lower_bound!(vc::AbstractVarConstr, lb::Float64) = vc.cur_data.lower_bound = lb
-set_cur_upper_bound!(vc::AbstractVarConstr, ub::Float64) = vc.cur_data.upper_bound = ub
-
-
-# AbstractVarConstr
 
 get_uid(vc::AbstractVarConstr) = get_uid(vc.id)
 get_form(vc::AbstractVarConstr) = getformuid(vc.id)

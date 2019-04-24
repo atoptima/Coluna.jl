@@ -4,6 +4,7 @@
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
+include("varconstr.jl")
 # include("manager.jl")
 # include("filters.jl")
 # include("solsandbounds.jl")
@@ -40,6 +41,9 @@ function unit_tests()
     end
     @testset "constraint.jl" begin
         constraint_unit_tests()
+    end
+    @testset "varconstr.jl" begin
+        varconstr_unit_tests()
     end
     # @testset "vcdict.jl" begin
     #     vcdict_unit_tests()
