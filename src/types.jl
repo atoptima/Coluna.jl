@@ -110,7 +110,7 @@ struct BendersMaster <: AbstractFormDuty end
 "A pricing subproblem of formulation decomposed using Dantzig-Wolfe."
 struct DwSp <: AbstractFormDuty end
 
-"A Benders subproblem of formulation decomposed using the Benders."
+"A Benders subproblem of formulation decomposed using Benders."
 struct BendersSp <: AbstractFormDuty end
 
 # Types of algorithm
