@@ -1,19 +1,24 @@
 function vcids_unit_tests()
-   # id_unit_tests()
+   id_unit_tests()
 end
 
 function id_unit_tests()
-    var = CL.Variable(1, "variable", 9.0, -1.0, 10.0, CL.Integ, CL.Free)
-    i = CL.Id(1, CL.OriginalVar, var)
 
-    @test CL.get_uid(i) == 1
-    
-    state = CL.getstate(i)
-    @test CL.get_duty(state) == CL.OriginalVar
-    @test CL.get_cost(state) == CL.get_cost(var)
-    @test CL.get_lb(state) == CL.get_lb(var)
-    @test CL.get_ub(state) == CL.get_ub(var)
-    @test CL.get_kind(state) == CL.get_kind(var)
-    @test CL.getstatus(state) == CL.Active
+    var_id = CL.Id{CL.Variable}(20, 13)
+    @test CL.get_uid(var_id) == 20
+    @test CL.getformuid(var_id) == 13
+    @test CL.getprocuid(var_id) == 1
+    @test var_id._hash == 201301
+    @test isequal(var_id, 201301)
+    @test isequal(201301, var_id)
+
+    constr_id = CL.Id{CL.Constraint}(100, 3)
+    @test CL.get_uid(constr_id) == 100
+    @test CL.getformuid(constr_id) == 3
+    @test CL.getprocuid(constr_id) == 1
+    @test constr_id._hash == 1000301
+    @test isequal(constr_id, 1000301)
+    @test isequal(1000301, constr_id)
+
     return
 end

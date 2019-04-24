@@ -16,20 +16,8 @@ global_logger(ConsoleLogger(stderr, LogLevel(1)))
 
 unit_tests()
 
-include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
-
-#@testset "cutting stock - colgen root " begin
-#    testcolgenatroot()
-#end
-#@testset "knapsack - branch and bound" begin
-#    branch_and_bound_test_instance()
-#end
-#branch_and_bound_bigger_instances()
-#moi_wrapper()
-
-# include("blackbox/runtests.jl")
-
 @testset "gap + csp - JuMP/MOI modeling" begin
+    include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
     model, x = sgap_play()
     JuMP.optimize!(model)
     model, x = sgap_5_100()

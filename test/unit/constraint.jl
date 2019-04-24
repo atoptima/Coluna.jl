@@ -1,45 +1,43 @@
 function constraint_unit_tests()
-    # A method to test each method
-    #constraint_getters_setters_unit_tests()
-   # constraint_set!_unit_tests()
-   # constrstate_getters_setters_unit_tests()
+    constr_data_getters_and_setters_tests()
+    moi_constr_record_getters_and_setters_tests()
+    constraint_getters_and_setters_tests()
 end
 
-function constraint_getters_setters_unit_tests()
-    constr = CL.Constraint(0, "constr", 0.0, CL.Greater, CL.Core)
-    @test CL.get_form(constr) == 0
-    @test CL.get_name(constr) == "constr"
-    @test CL.get_rhs(constr) == 0.0
-    @test CL.get_kind(constr) == CL.Core
+function constr_data_getters_and_setters_tests()
 
-    @test CL.setform!(constr, 1) == 1
-    @test CL.get_form(constr) == 1
-    #@test CL.setname!(constr, "rtsnoc") == "rtsnoc"
-    @test CL.get_name(constr) == "rtsnoc"
-    @test CL.set_rhs!(constr, 2.0) == 2.0
-    @test CL.get_rhs(constr) == 2.0
-    @test CL.set_sense!(constr, CL.Less) == CL.Less
-    @test CL.get_sense(constr) == CL.Less
-    @test CL.set_kind!(constr, CL.Facultative) == CL.Facultative
-    @test CL.get_kind(constr) == CL.Facultative
-    return
+    c_data = CL.ConstrData(
+        ; rhs = -13.0, kind = CL.Facultative, sense = CL.Equal,
+        inc_val = -12.0, is_active = false, is_explicit = false
+    )
+
+    @test CL.get_rhs(c_data) == -13.0
+    @test CL.is_active(c_data) == false
+    @test CL.is_explicit(c_data) == false
+    @test CL.get_inc_val(c_data) == -12.0
+    @test CL.get_sense(c_data) == CL.Equal
+    @test CL.get_kind(c_data) == CL.Facultative
+
+    CL.set_rhs!(c_data, 90.0)
+    CL.set_kind!(c_data, CL.Core)
+    CL.set_sense!(c_data, CL.Less)
+    CL.set_inc_val!(c_data, 90.0)
+    CL.set_is_active!(c_data, true)
+    CL.set_is_explicit!(c_data, true)
+
+    @test CL.get_rhs(c_data) == 90.0
+    @test CL.get_kind(c_data) == CL.Core
+    @test CL.get_sense(c_data) == CL.Less
+    @test CL.get_inc_val(c_data) == 90.0
+    @test CL.is_active(c_data) == true
+    @test CL.is_explicit(c_data) == true
+
 end
 
-function constraint_set!_unit_tests()
-    constr = CL.Constraint(0, "constr", 0.0,  CL.Greater, CL.Core)
-    CL.set!(constr, MOI.LessThan{Float64}(100.0))
-    @test CL.get_rhs(constr) == 100.0
-    @test CL.get_sense(constr) == CL.Less
+function moi_constr_record_getters_and_setters_tests()
 
-    CL.set!(constr, MOI.EqualTo{Float64}(10.0))
-    @test CL.get_rhs(constr) == 10.0
-    @test CL.get_sense(constr) == CL.Equal
-
-    CL.set!(constr, MOI.GreaterThan{Float64}(0.0))
-    @test CL.get_rhs(constr) == 0.0
-    @test CL.get_sense(constr) == CL.Greater
 end
 
-function constrstate_getters_setters_unit_tests()
-    # TODO : state should be immutable ?    
+function constraint_getters_and_setters_tests()
+
 end

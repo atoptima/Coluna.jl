@@ -30,15 +30,6 @@ set_cost!(v::VarData, cost::Float64) = v.cost = cost
 set_lb!(v::VarData, lb::Float64) = v.lower_bound = lb
 set_ub!(v::VarData, ub::Float64) = v.upper_bound = ub
 
-function setbound!(v::VarData, sense::ConstrSense, bound::Float64)
-    if sense == Less || sense == Equal
-        set_ub!(v, bound)
-    elseif sense == Greater || sense == Equal
-        set_lb!(v, bound)
-    end
-    return
-end
-
 function set_kind!(v::VarData, kind::VarKind)
     if kind == Binary
         v.kind = Binary

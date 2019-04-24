@@ -82,10 +82,8 @@ function reset!(c::Constraint)
     return
 end
 
-
 is_active(vc::AbstractVarConstr) = vc.cur_data.is_active
 is_explicit(vc::AbstractVarConstr) = vc.cur_data.is_explicit
-#setname!(vc::AbstractVarConstr, name::String) = vc.name = name
 
 get_rhs(c::Constraint) = get_rhs(c.cur_data)
 is_active(c::Constraint) = is_active(c.cur_data)
