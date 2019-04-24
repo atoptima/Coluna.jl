@@ -5,7 +5,7 @@ set_loc_art_var(f::Formulation, constr_id::ConstrId) = set_var!(
 
 set_glob_art_var(f::Formulation, is_pos::Bool) = set_var!(
     f, string("global_", (is_pos ? "pos" : "neg"), "_art_var_"),
-    MastArtVar; cost = 1000.0, lb = 0.0, ub = Inf,
+    MastArtVar; cost = 100000.0, lb = 0.0, ub = Inf,
     kind = Continuous, sense = Positive
 )
 
@@ -15,7 +15,8 @@ function initialize_local_art_vars(master::Formulation,
     for (constr_id, constr) in constrs_in_form
         v = set_var!(
             master, string("local_art_", constr_id),
-            MastArtVar; cost = get_inc_val(constr), lb = 0.0, ub = Inf,
+            MastArtVar; cost = 10000.0, lb = 0.0, ub = Inf,
+# cost = get_inc_val(constr), lb = 0.0, ub = Inf,
             kind = Continuous, sense = Positive
         )
         matrix[constr_id, get_id(v)] = 1.0

@@ -174,8 +174,6 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
             sol[id] = val
         end
     end
-    
-    @show sol
     return
 end
 

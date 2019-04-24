@@ -47,6 +47,7 @@ function set_primal_lp_sol!(inc::Incumbents{S},
     if isbetter(getbound(lp_primal_sol), getbound(inc.lp_primal_sol))
         inc.lp_primal_sol = lp_primal_sol
     end
+    return
 end
 
 function set_dual_ip_bound!(inc::Incumbents{S},
@@ -54,7 +55,6 @@ function set_dual_ip_bound!(inc::Incumbents{S},
     if isbetter(new_bound, get_ip_dual_bound(inc))
         inc.ip_dual_bound = new_bound
     end
-    @show get_ip_dual_bound(inc)
     return
 end
 

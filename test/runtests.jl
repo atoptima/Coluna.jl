@@ -27,10 +27,14 @@ include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
 #branch_and_bound_bigger_instances()
 #moi_wrapper()
 
-include("blackbox/runtests.jl")
+# include("blackbox/runtests.jl")
 
 @testset "gap + csp - JuMP/MOI modeling" begin
     model, x = sgap_play()
+    JuMP.optimize!(model)
+    model, x = sgap_5_100()
+    JuMP.optimize!(model)
+
     #include("../examples/CuttingStock_SubprobMultiplicity/run_csp.jl")
     #run_csp_10_10()
     #run_csp_10_20()

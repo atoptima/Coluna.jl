@@ -175,7 +175,7 @@ function retrieve_dual_sol(form::Formulation,
                            constrs::ConstrDict)
     # TODO check if supported by solver
     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
-        println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
+        # println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
         return nothing
     end
     new_sol = Dict{ConstrId,Float64}()
