@@ -42,16 +42,15 @@ SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents(
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
     for (id, var) in filter(_active_pricingSpVar_ , get_vars(sp_form))
-        set_cost!(get_cur_data(var), get_cost(get_initial_data(var)))
+        set_cur_cost!(var, get_init_cost(var))
     end
 
     coefficient_matrix = get_coefficient_matrix(sp_form.parent_formulation)
 
     for (var_id, var) in get_vars(sp_form)
         for (constr_id, dual_val) in getsol(dual_sol)
-            vardata = get_cur_data(var) # shortcut needed
             coeff = coefficient_matrix[constr_id, var_id]
-            set_cost!(vardata, get_cost(vardata) - dual_val * coeff)
+            set_cur_cost!(var, get_cur_cost(var) - dual_val * coeff)
         end
     end
     set_optimizer_obj(get_optimizer(sp_form), filter(_explicit_, get_vars(sp_form)))
@@ -63,7 +62,7 @@ function update_pricing_target(sp_form::Formulation)
 end
 
 function compute_original_cost(sp_sol, sp_form)
-    val = sum(get_cost(get_initial_data(getvar(sp_form, var_id))) * value for (var_id, value) in sp_sol)
+    val = sum(get_initial_cost(getvar(sp_form, var_id)) * value for (var_id, value) in sp_sol)
     return val
 end
 
@@ -317,8 +316,8 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
         sp_uid = get_uid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = get_rhs(get_constr(master_form, lb_convexity_constr_id))
-        sp_ubs[sp_uid] = get_rhs(get_constr(master_form, ub_convexity_constr_id))
+        sp_lbs[sp_uid] = get_init_rhs(get_constr(master_form, lb_convexity_constr_id))
+        sp_ubs[sp_uid] = get_init_rhs(get_constr(master_form, ub_convexity_constr_id))
     end
 
     # @show sp_lbs

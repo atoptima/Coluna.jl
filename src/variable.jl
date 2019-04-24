@@ -20,8 +20,9 @@ function VarData(; cost::Float64 = 0.0,
     return VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
 end
 
-# Attention: Some getters and setters are defined over AbstractVcData
-#            in file constraint.jl
+# Attention: Some getters and setters of VarData are defined over AbstractVcData
+#            in file varconstr.jl
+
 get_cost(v::VarData) = v.cost
 get_lb(v::VarData) = v.lower_bound
 get_ub(v::VarData) = v.upper_bound
@@ -80,7 +81,7 @@ function Variable(id::VarId,
 end
 
 # Attention: All getters and setters for Variable are defined
-#            over AbstractVarConstr in file constraint.jl
+#            over AbstractVarConstr in file varconstr.jl
 
 function reset!(v::Variable)
     initial = get_initial_data(v)
@@ -94,19 +95,3 @@ function reset!(v::Variable)
     cur.is_active = initial.is_active
     return
 end
-
-get_cost(v::Variable) = get_cost(v.cur_data)
-get_lb(v::Variable) = get_lb(v.cur_data)
-get_ub(v::Variable) = get_ub(v.cur_data)
-get_kind(v::Variable) = get_kind(v.cur_data)
-get_sense(v::Variable) = get_sense(v.cur_data)
-get_inc_val(v::Variable) = get_inc_val(v.cur_data)
-is_active(v::Variable) = is_active(v.cur_data)
-is_explicit(v::Variable) = is_explicit(v.cur_data)
-set_initial_cost!(v::Variable, cost::Float64) = set_cost!(v.initial_data, cost)
-set_cur_cost!(v::Variable, cost::Float64) = set_cost!(v.cur_data, cost)
-set_inc_val!(v::Variable, val::Float64) = set_inc_val!(v.initial_data, val)
-set_is_active!(v::Variable, is_active::Bool) =  set_is_active!(v.initial_data, is_active)
-set_is_explicit!(v::Variable, is_explicit::Bool) =  set_is_explicit!(v.initial_data, is_explicit)
-set_kind!(v::Variable, kind) =  set_kind!(v.initial_data, kind)
-set_sense!(v::Variable, sense) = set_sense!(v.initial_data, sense)

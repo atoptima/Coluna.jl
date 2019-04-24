@@ -36,8 +36,29 @@ end
 
 function moi_constr_record_getters_and_setters_tests()
 
+    c_rec = CL.MoiConstrRecord(
+        ; index = CL.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-15)
+    )
+
+    @test CL.get_index(c_rec) == CL.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-15)
+
+    CL.set_index!(c_rec, CL.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-20))
+
+    @test CL.get_index(c_rec) == CL.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-20)
+
 end
 
 function constraint_getters_and_setters_tests()
+
+    c_data = CL.ConstrData(
+        ; rhs = -13.0, kind = CL.Facultative, sense = CL.Equal,
+        inc_val = -12.0, is_active = false, is_explicit = false
+    )
+
+    c = CL.Constraint(
+        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchConstr;
+        constr_data = c_data
+    )
+
 
 end

@@ -58,6 +58,7 @@ include("containers/members.jl")
 
 include("vcids.jl")
 include("variable.jl")
+include("varconstr.jl")
 include("constraint.jl")
 include("manager.jl")
 include("filters.jl")
