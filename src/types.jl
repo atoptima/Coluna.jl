@@ -28,17 +28,39 @@ abstract type AbstractPricingSpVar <: AbstractDwSpVar end
 abstract type AbstractMastRepSpVar <: AbstractDwSpVar end
 
 # Concrete types for VarDuty
+"Variable belongs to the original formulation."
 struct OriginalVar <: AbstractOriginalVar end
+
+"Affine function of variables of duty OriginalVar ."
 struct OriginalExpression <: AbstractOriginalVar end
+
+"Variable that belongs to master."
 struct PureMastVar <: AbstractMasterVar end
+
+"Variable that belongs to master and is a partial solution of other variables."
 struct MasterCol <: AbstractMasterVar end
+
+"Artificial variable used to garantee feasibility when not enough columns were yet generated."
 struct MastArtVar <: AbstractMasterVar end
+
+"Master representative of a pricing subproblem variable."
 struct MastRepPricingSpVar <: AbstractMastRepSpVar end
-struct MastRepPricingSetupSpVar <: AbstractMastRepSpVar end # Cannot subtype a concrete type
+
+"Master representative of a pricing setup variable."
+struct MastRepPricingSetupSpVar <: AbstractMastRepSpVar end
+
+"Master representative of a benders subproblem variable."
 struct MastRepBendSpVar <: AbstractMastRepSpVar end
+
+"Variable that belongs to a pricing subproblem."
 struct PricingSpVar <: AbstractPricingSpVar end
-struct PricingSpSetupVar <: AbstractPricingSpVar end # Cannot subtype a concrete type
+
+"Variable that represents the setup (use or not) of a pricing subproblem solution."
+struct PricingSpSetupVar <: AbstractPricingSpVar end
+
+"Variable belongs to a subproblem and has no representatives in the master? FV can you check this?"
 struct PricingSpPureVar <: AbstractDwSpVar end
+
 struct UndefinedVarDuty <: AbstractVarDuty end
 
 #struct BendersSpVar <: AbstractVarDuty end

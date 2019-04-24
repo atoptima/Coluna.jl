@@ -1,5 +1,11 @@
 Base.float(b::AbstractBound) = b.value
 
+"""
+    PrimalBound{S} where S <: AbstractObjSense
+
+A struct to represent a `PrimalBound` for an objective function with sense `S`.
+The expected behaviour of a bound is implemented according to the sense `S`.
+"""
 struct PrimalBound{S <: AbstractObjSense} <: AbstractBound
     value::Float64
 end
@@ -7,6 +13,12 @@ PrimalBound(S::Type{MinSense}) = PrimalBound{S}(Inf)
 PrimalBound(S::Type{MaxSense}) = PrimalBound{S}(-Inf)
 PrimalBound(S::Type{<: AbstractObjSense}, n::Number) = PrimalBound{S}(float(n))
 
+"""
+    DualBound{S} where S <: AbstractObjSense
+
+A struct to represent a `DualBound` for an objective function with sense `S`.
+The expected behaviour of a bound is implemented according to the sense `S`.
+"""
 struct DualBound{S <: AbstractObjSense} <: AbstractBound
     value::Float64
 end
@@ -15,11 +27,6 @@ DualBound(S::Type{MaxSense}) = DualBound{S}(Inf)
 DualBound(S::Type{<: AbstractObjSense}, n::Number) = DualBound{S}(float(n))
 
 getvalue(b::AbstractBound) = b.value
-
-gap(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = diff(pb, db) / abs(db.value)
-gap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = diff(pb, db) / abs(pb.value)
-gap(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = diff(pb, db) / abs(db.value)
-gap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = diff(pb, db) / abs(pb.value)
 
 isbetter(b1::PrimalBound{MinSense}, b2::PrimalBound{MinSense}) = b1.value < b2.value
 isbetter(b1::PrimalBound{MaxSense}, b2::PrimalBound{MaxSense}) = b1.value > b2.value
@@ -30,6 +37,11 @@ diff(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = pb.value - db.value
 diff(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = pb.value - db.value
 diff(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = db.value - pb.value
 diff(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = db.value - pb.value
+
+gap(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = diff(pb, db) / abs(db.value)
+gap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = diff(pb, db) / abs(pb.value)
+gap(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = diff(pb, db) / abs(db.value)
+gap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = diff(pb, db) / abs(pb.value)
 
 function printbounds(db::DualBound{S}, pb::PrimalBound{S}) where {S<:MinSense}
     print("[ ", db,  " , ", pb, " ]")
@@ -56,6 +68,12 @@ Base.isless(b1::B, b2::B) where {B <: AbstractBound} = float(b1) < float(b2)
 
 abstract type AbstractSolution end
 
+"""
+    PrimalSolution{S} where S <: AbstractObjSense
+
+A struct to represent a `PrimalSolution` for an objective function with sense `S`.
+The expected behaviour of a solution is implemented according to the sense `S`.
+"""
 struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::PrimalBound{S}
     sol::Dict{Id{Variable},Float64}
@@ -71,6 +89,12 @@ function PrimalSolution(S::Type{<: AbstractObjSense},
     return PrimalSolution{S}(PrimalBound(S, value), sol)
 end
 
+"""
+    DualSolution{S} where S <: AbstractObjSense
+
+A struct to represent a `DualSolution` for an objective function with sense `S`.
+The expected behaviour of a solution is implemented according to the sense `S`.
+"""
 struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::DualBound{S}
     sol::Dict{Id{Constraint},Float64}

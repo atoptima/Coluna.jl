@@ -7,7 +7,7 @@ include("constraint.jl")
 include("varconstr.jl")
 # include("manager.jl")
 # include("filters.jl")
-# include("solsandbounds.jl")
+include("solsandbounds.jl")
 # include("incumbents.jl")
 # include("formulation.jl")
 # include("clone.jl")
@@ -45,8 +45,8 @@ function unit_tests()
     @testset "varconstr.jl" begin
         varconstr_unit_tests()
     end
-    # @testset "vcdict.jl" begin
-    #     vcdict_unit_tests()
-    # end
+    @testset "solsandbounds.jl" begin
+        solsandbounds_unit_tests()
+    end
     return
 end

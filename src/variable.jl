@@ -1,3 +1,8 @@
+"""
+    VarData
+
+Information that defines a state of a variable. These are the fields of a variable that might change during the solution procedure.
+"""
 mutable struct VarData <: AbstractVcData
     cost::Float64
     lower_bound::Float64
@@ -42,6 +47,11 @@ function set_kind!(v::VarData, kind::VarKind)
     return
 end
 
+"""
+    MoiVarRecord
+
+Structure to hold the pointers to the MOI representation of a Coluna Variable.
+"""
 mutable struct MoiVarRecord
     index::MoiVarIndex
     bounds::MoiVarBound
@@ -59,6 +69,11 @@ set_index!(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
 set_bounds!(record::MoiVarRecord, bounds::MoiVarBound) = record.bounds = bounds
 set_kind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
 
+"""
+    Variable
+
+Representation of a variable in Coluna.
+"""
 struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String

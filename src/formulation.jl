@@ -8,9 +8,20 @@ Used to cache all changes to `f`. When function `optimize!(f)` is called, the mo
 
 When `f` is modified, such modification should not be passed directly to its optimizer, but instead should be passed to `f.cache`.
 
+The concerned modificatios are:
+1. Cost change in a variable
+2. Bound change in a variable
+3. Right-hand side change in a Constraint
+4. Variable is removed
+5. Variable is added
+6. Constraint is removed
+7. Constraint is added
+8. Coefficient in the matrix is modified (reset)
 """
 mutable struct FormulationCache
     changed_cost::Vector{Id{Variable}}
+    changed_bound::Vector{Id{Variable}}
+    changed_rhs::Vector{Id{Constraint}}
     removed_vars::Vector{Id{Variable}}
     added_vars::Vector{Id{Variable}}
     removed_constrs::Vector{Id{Constraint}}
@@ -18,7 +29,8 @@ mutable struct FormulationCache
     reset_coeffs::Dict{Pair{Id{Variable},Id{Constraint}},Float64}
 end
 FormulationCache() = FormulationCache(
-    Id{Variable}[], Id{Variable}[], Id{Variable}[], Id{Constraint}[],
+    Id{Variable}[], Id{Variable}[], Id{Constraint}[],
+    Id{Variable}[], Id{Variable}[], Id{Constraint}[],
     Id{Constraint}[], Dict{Pair{Id{Variable},Id{Constraint}},Float64}()
 )
 
