@@ -1,3 +1,34 @@
+"""
+    FormulationCache()
+
+Construct a `FormulationCache`.
+
+The `FormulationCache` stores all changes done to a `Formulation` `f` since last call to `optimize!`.
+Used to cache all changes to `f`. When function `optimize!(f)` is called, the moi_optimizer is synched with all changes made to `f` using FormulationCache.
+
+When `f` is modified, such modification should not be passed directly to its optimizer, but instead should be passed to `f.cache`.
+
+"""
+mutable struct FormulationCache
+    changed_cost::Vector{Id{Variable}}
+    removed_vars::Vector{Id{Variable}}
+    added_vars::Vector{Id{Variable}}
+    removed_constrs::Vector{Id{Constraint}}
+    added_constrs::Vector{Id{Constraint}}
+    reset_coeffs::Dict{Pair{Id{Variable},Id{Constraint}},Float64}
+end
+FormulationCache() = FormulationCache(
+    Id{Variable}[], Id{Variable}[], Id{Variable}[], Id{Constraint}[],
+    Id{Constraint}[], Dict{Pair{Id{Variable},Id{Constraint}},Float64}()
+)
+
+function add_var!(c::FormulationCache, v::Variable)
+    # if v in removed_vars
+    #     delete from removed_vars
+    # end
+    # and add in added_vars
+end
+
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
     var_counter::Counter
@@ -8,7 +39,8 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:AbstractObjSense}
 
-    # solver_info::Any
+    cache::FormulationCache
+    solver_info::Any
     callback
 end
 
@@ -21,7 +53,7 @@ function Formulation{D}(form_counter::Counter;
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, moi_optimizer, FormulationManager(),
-        obj_sense, nothing
+        obj_sense, FormulationCache(), nothing, nothing
     )
 end
 
@@ -110,18 +142,18 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
-# function optimize!(f::Formulation)
-#     setup_solver(f.moi_optimizer, f, solver_info)
-#     res = optimize!(f, f.moi_optimizer, true)
-#     setdown_solver(f.moi_optimizer, f, solver_info)
-#     return res
-# end
+function sync_solver(f::Formulation)
 
-function optimize!(form::Formulation, optimizer = form.moi_optimizer)
+end
+
+function optimize!(form::Formulation)
+    sync_solver(form)
+#     setup_solver(f.moi_optimizer, f, solver_info)
+
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
-    if MOI.get(optimizer, MOI.ResultCount()) >= 1
+    if MOI.get(form.moi_optimizer, MOI.ResultCount()) >= 1
         primal_sols = retrieve_primal_sols(
             form, filter(_explicit_ , get_vars(form))
         )
@@ -129,6 +161,7 @@ function optimize!(form::Formulation, optimizer = form.moi_optimizer)
         return (status, primal_sols[1].bound, primal_sols, dual_sol)
     end
     @warn "Solver has no result to show."
+#     setdown_solver(f.moi_optimizer, f, solver_info)
     return (status, Inf, nothing, nothing)
 end
 

@@ -60,6 +60,13 @@ get_incumbents(s::TreeSolver) = s.incumbents
 switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 getincumbents(s::TreeSolver) = s.incumbents
 
+function treat(strategy::Type{<:AbstractStrategy}, f::Reformulation, n::Node, r, p)
+    # Check if it needs to be treated, because pb might have improved
+    setup(f, n)
+    apply(strategy, f, n, r, nothing)
+    record(f, n)
+end
+
 function apply(::Type{<:TreeSolver}, f::Reformulation)
     tree_solver = TreeSolver(_params_.search_strategy, f.master.obj_sense)
     add_node(tree_solver, RootNode(f.master.obj_sense))
@@ -74,7 +81,7 @@ function apply(::Type{<:TreeSolver}, f::Reformulation)
         cur_node = pop_node!(tree_solver)
         print_info_before_apply(cur_node, tree_solver)
 
-        apply(strategy, f, cur_node, r, nothing)
+        treat(strategy, f, cur_node, r, nothing)
 
         print_info_after_apply(cur_node, tree_solver)
         update_tree_solver(tree_solver, cur_node)
@@ -93,13 +100,13 @@ end
 function update_duals(s::TreeSolver, n_incumbents::Incumbents)
     s_incumbents = getincumbents(s)
     worst_bound = get_ip_dual_bound(n_incumbents)
-    for n in getnodes(get_primary_tree(s))
+    for (n, priority) in getnodes(get_primary_tree(s))
         db = get_ip_dual_bound(getincumbents(n))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
-    for n in getnodes(get_secondary_tree(s))
+    for (n, priority) in getnodes(get_secondary_tree(s))
         db = get_ip_dual_bound(getincumbents(n))
         if isbetter(worst_bound, db)
             worst_bound = db
@@ -133,7 +140,7 @@ end
 
 function print_info_before_apply(n::Node, s::TreeSolver)
     println("************************************************************")
-    print(nb_open_nodes(s))
+    print(nb_open_nodes(s) + 1)
     print(" open nodes. Treating node ", get_treat_order(n))
     getparent(n) == nothing && println()
     getparent(n) != nothing && println("Parent is ", get_treat_order(getparent(n)))

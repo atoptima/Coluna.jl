@@ -21,10 +21,22 @@ getchildren(n::Node) = n.children
 getincumbents(n::Node) = n.incumbents
 get_solver_records(n::Node) = n.solver_records
 
-
 function to_be_pruned(n::Node)
     return true
+    # How to determine if a node should be pruned?? By the lp_gap?
+
+    # lp_gap(n.incumbents) <= 0.0 && return true
+    # return false
 end
+
+function record(f::Reformulation, n::Node)
+    println("Record for reformulation is empty")
+end
+
+function setup(f::Reformulation, n::Node)
+    println("Setup for reformulation is empty")
+end
+
 
 # function Node(problem::Reformulation, dual_bound::Float64,
 #     problem_setup_info::SetupInfo, params::Params)
