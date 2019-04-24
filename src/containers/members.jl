@@ -8,7 +8,7 @@ end
 """
     MembersVector{I,K,T}(elems::Dict{I,K})
 
-Construct a `MembersVector` with indices of type `I`, elements of type `K` and
+Construct a `MembersVector` with indices of type `I`, elements of type `K`, and
 records of type `T`.
 
 The `MembersVector` maps each index to a tuple of element and record. This 
@@ -20,11 +20,13 @@ Elements allow functions to do operations on the records according to them.
 Overloaded `Base` functions `reduce` and `filter` are provided to process on 
 records according to elements.
 
-#Example
+# Example
 We want to associate variables and coefficients to store a constraint. 
 For this, we create a `MembersVector`
 
-    MembersVector{Id{Variable}, Variable, Float64}(vars_in_formulation)
+```julia-repl
+julia> MembersVector{Id{Variable}, Variable, Float64}(vars_in_formulation)
+```
 
 where `vars_in_formulation` is a dictionnary that contains all the existing
 variables in the formulation.
@@ -106,10 +108,13 @@ Return a `MembersVector` without the records for which `function` with the
 element associated with the record as input returns false.
 
 # Example
-Given a `vec::MembersVector` that associates variables with coefficients, we want
-to coefficients of integer variables :
 
-    filter(var -> integer(var), vec)
+Given a `vec::MembersVector` that associates variables with coefficients, we 
+want the coefficients of integer variables :
+
+```julia-repl
+julia> filter(var -> integer(var), vec)
+```
 
 where function `integer(var)` returns true if variable `var` is integer.
 """

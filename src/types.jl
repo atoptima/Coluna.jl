@@ -51,21 +51,44 @@ abstract type AbstractMasterConstr <: AbstractConstrDuty end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
 abstract type AbstractMasterRepOriginalConstr <: AbstractMasterConstr end
 
-# Concrete types for AbstractConstrDuty
+# Concrete duties for Constraints
+"Constraint belongs to the original formulation."
 struct OriginalConstr <: AbstractOriginalConstr end
+
+"Constraint belongs to the master formulation and involves only pure master variables."
 struct MasterPureConstr <: AbstractMasterConstr end
+
+"Constraint belongs to the master formulation."
 struct MasterConstr <: AbstractMasterRepOriginalConstr end
+
+"Convexity constraint of the master formulation."
 struct MasterConvexityConstr <: AbstractMasterConstr end
+
+"Branching constraint in the master formulation."
 struct MasterBranchConstr <: AbstractMasterRepOriginalConstr end
+
+"Constraint of the pricing subproblem."
 struct PricingSpPureConstr <: AbstractDwSpConstr end
+
+"Representation of a branching constraint from the master in the pricing subproblem."
 struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
+
 struct UndefinedConstrDuty <: AbstractConstrDuty end
 
-# Concrete types for FormDuty
+# Concrete duties for Formulation
+"Formulation provided by the user."
 struct Original <: AbstractFormDuty end
+
+"Master of formulation decomposed using Dantzig-Wolfe."
 struct DwMaster <: AbstractFormDuty end
+
+"Master of formulation decomposed using Benders."
 struct BendersMaster <: AbstractFormDuty end
+
+"A pricing subproblem of formulation decomposed using Dantzig-Wolfe."
 struct DwSp <: AbstractFormDuty end
+
+"A Benders subproblem of formulation decomposed using the Benders."
 struct BendersSp <: AbstractFormDuty end
 
 # Types of algorithm

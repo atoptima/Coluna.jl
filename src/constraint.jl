@@ -31,6 +31,11 @@ MoiConstrRecord(;index = MoiConstrIndex()) = MoiConstrRecord(index)
 get_index(record::MoiConstrRecord) = record.index
 set_index!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
+"""
+    Constraint
+
+Representation of a constraint in Coluna.
+"""
 struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
