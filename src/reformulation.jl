@@ -47,6 +47,7 @@ function optimize!(reformulation::Reformulation)
     return res
 end
 
+
     # add_node(search_tree, RootNode())
 
     # bap_treat_order = 1 # Only usefull for printing
