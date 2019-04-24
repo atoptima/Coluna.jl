@@ -23,20 +23,8 @@ get_initial_data(vc::AbstractVarConstr) = vc.initial_data
 get_cur_data(vc::AbstractVarConstr) = vc.cur_data
 get_moi_record(vc::AbstractVarConstr) = vc.moi_record
 
-# Helpers for getters  and stter that acces fields in a level
+# Helpers for getters and setters that acces fields in a level
 # under Variable or Constraint
-
-# Constraint
-
-# -> Initial
-get_cur_rhs(vc::AbstractVarConstr) = vc.cur_data.rhs
-set_cur_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.cur_data.rhs = rhs
-# -> Current
-get_init_rhs(vc::AbstractVarConstr) = vc.initial_data.rhs
-set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.initial_data.rhs = rhs
-
-
-# AbstractVarConstr
 
 get_uid(vc::AbstractVarConstr) = get_uid(vc.id)
 get_form(vc::AbstractVarConstr) = getformuid(vc.id)
