@@ -42,18 +42,6 @@ end
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
 
-_red(s::String) = string("\e[1;31m ", s, " \e[00m")
-_green(s::String) = string("\e[1;32m ", s, " \e[00m")
-_pink(s::String) = string("\e[1;35m ", s, " \e[00m")
-function call_attention()
-    for i in 1:10
-        print(_red("!"))
-        print(_green("!"))
-        print(_pink("!"))
-    end
-    println()
-end
-
 function load_problem_in_optimizer(prob::Problem)
     load_problem_in_optimizer(prob.re_formulation)
 end
@@ -62,17 +50,23 @@ function initialize_moi_optimizer(prob::Problem)
     initialize_moi_optimizer(
         prob.re_formulation, prob.master_factory, prob.pricing_factory
     )
-    println(_pink("---------------> Problems loaded to MOI <---------------------------"))
+end
+
+function _welcome_message()
+    welcome = """
+    Coluna
+    Version 0.2 - https://github.com/atoptima/Coluna.jl
+    """
+    print(welcome)
 end
 
 function coluna_initialization(prob::Problem, annotations::Annotations)
-
+    _welcome_message()
     _set_global_params(prob.params)
     reformulate!(prob, DantzigWolfeDecomposition)
     initialize_moi_optimizer(prob)
     load_problem_in_optimizer(prob)
-
-    call_attention()
+    @info "Coluna initialized."
 end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before
@@ -81,8 +75,8 @@ end
 function optimize!(prob::Problem, annotations::Annotations)
     coluna_initialization(prob, annotations)
     _globals_.initial_solve_time = time()
-    @show _params_
-    @timeit prob.timer_output "Solve prob" begin
+    @info _params_
+    @timeit prob.timer_output "Solve problem" begin
         res = optimize!(prob.re_formulation)
     end
     # Stock the result in problem?
