@@ -259,21 +259,6 @@ function update_lagrangian_dual_bound(alg::AlgToEvalNodeByLagrangianDuality,
     # end
 end
 
-function print_intermediate_statistics(alg::AlgToEvalNodeByLagrangianDuality, nb_new_col::Int, nb_cg_iterations::Int, mst_time::Float64, sp_time::Float64)
-    mlp = alg.sols_and_bounds.alg_inc_lp_primal_bound
-    db = alg.sols_and_bounds.alg_inc_lp_dual_bound
-    db_ip = alg.sols_and_bounds.alg_inc_ip_dual_bound
-    pb = alg.sols_and_bounds.alg_inc_ip_primal_bound
-    println("<it=", nb_cg_iterations, "> ",
-            "<et=", round(elapsed_solve_time()), "> ",
-            "<mst= ", round(mst_time, digits=3), "> ",
-            "<sp= ", round(sp_time, digits=3), "> ",
-            "<cols=", nb_new_col, "> ",
-            "<mlp=", round(mlp, digits=4), "> ",
-            "<DB=", round(db, digits=4), "> <PB=",
-            round(pb, digits=4), ">")
-end
-
 #########################################
 #### AlgToEvalNodeBySimplexColGen #######
 #########################################

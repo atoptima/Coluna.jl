@@ -7,6 +7,9 @@
 #
 ############################################################
 
+getinner(opt::MOIU.CachingOptimizer) = opt.model_cache.inner
+getinner(opt::MOI.ModelLike) = opt.inner
+
 function create_moi_optimizer(factory::JuMP.OptimizerFactory,
                               sense::Type{<:AbstractObjSense})
     # optimizer = MOIU.CachingOptimizer(ModelForCachingOptimizer{Float64}(), factory())

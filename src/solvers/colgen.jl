@@ -243,13 +243,13 @@ function solve_restricted_mast(master::Formulation)
     println("Solving master problem: ")
     # @show master
     status, value, primal_sols, dual_sol = optimize!(master)
-    @show status
+    # @show status
     #@show result_count = MOI.get(master.moi_optimizer, MOI.ResultCount())
     #@show primal_status = MOI.get(master.moi_optimizer, MOI.PrimalStatus())
     #@show dual_status = MOI.get(master.moi_optimizer, MOI.DualStatus())
-    @show value
-    @show primal_sols
-    @show dual_sol
+    # @show value
+    # @show primal_sols
+    # @show dual_sol
     #end # @timeit to(alg) "solve_restricted_mast"
     return status, value, primal_sols[1], dual_sol
 end
@@ -291,8 +291,6 @@ function update_lagrangian_dual_bound(alg::SimplexLpColGenAlg,
               alg.sols_and_bounds.alg_inc_lp_primal_bound,
               ". mast_lagrangian_bnd = ", mast_lagrangian_bnd)
 
-    @show mast_lagrangian_bnd
-
     #TODO: clarify this comment
     # by Guillaume : subgradient algorithm needs to know when the incumbent
     if update_dual_bound
@@ -326,10 +324,11 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
     @show sp_lbs
 
     while true
-        glpk_prob = master_form.moi_optimizer.inner
-        GLPK.write_lp(glpk_prob, string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
+        # GLPK.write_lp(getinner(get_optimizer(master_form)), string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
+        before_master = time()
         status_rm, master_val, primal_sol, dual_sol = solve_restricted_mast(master_form)
+        mst_time = (time() - before_master)
 
         #status_rm, mst_time, b, gc, allocs = @timed solve_restricted_mast(reformulation.master)
         # status_rm, mas_time = solve_restricted_mast(alg)
@@ -356,11 +355,12 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
         sp_time = 0.0
         while true
             @logmsg LogLevel(-2) "need to generate new master columns"
+            before_sp = time()
             nb_new_col, sp_dual_bound_contrib =  gen_new_columns(reformulation,
                                                                  dual_sol,
                                                                  sp_lbs,
                                                                  sp_ubs)
-            # nb_new_col, sp_time, b, gc, allocs = @timed gen_new_columns(alg)
+            sp_time = (time() - before_sp)
 
             update_lagrangian_dual_bound(alg, master_val, sp_dual_bound_contrib, true)
 
@@ -376,7 +376,9 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
             break
         end
 
-       ##TD print_intermediate_statistics(alg, nb_new_col, nb_cg_iterations, mst_time, sp_time)
+        print_intermediate_statistics(
+            alg, nb_new_col, nb_cg_iterations, mst_time, sp_time
+        )
         # if alg.colgen_stabilization != nothing
         #     # This function does not exist
         #     update_after_colgen_iteration(alg.colgen_stabilization)
@@ -407,3 +409,19 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
     # return false
 end
 
+function print_intermediate_statistics(alg::SimplexLpColGenAlg,
+                                       nb_new_col::Int,
+                                       nb_cg_iterations::Int,
+                                       mst_time::Float64, sp_time::Float64)
+    mlp = getvalue(get_lp_primal_bound(alg.incumbents))
+    db = getvalue(get_ip_dual_bound(alg.incumbents))
+    pb = getvalue(get_ip_primal_bound(alg.incumbents))
+    println("<it=", nb_cg_iterations, "> ",
+            "<et=", round(_elapsed_solve_time()), "> ",
+            "<mst= ", round(mst_time, digits=3), "> ",
+            "<sp= ", round(sp_time, digits=3), "> ",
+            "<cols=", nb_new_col, "> ",
+            "<mlp=", round(mlp, digits=4), "> ",
+            "<DB=", round(db, digits=4), "> <PB=",
+            round(pb, digits=4), ">")
+end

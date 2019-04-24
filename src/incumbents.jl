@@ -43,22 +43,22 @@ lp_gap(i::Incumbents) = gap(get_lp_primal_bound(i), get_lp_dual_bound(i))
 # end
 
 function set_primal_lp_sol!(inc::Incumbents{S},
-                          lp_primal_sol::PrimalSolution{S}) where {S}
+                            lp_primal_sol::PrimalSolution{S}) where {S}
     if isbetter(getbound(lp_primal_sol), getbound(inc.lp_primal_sol))
         inc.lp_primal_sol = lp_primal_sol
     end
 end
 
 function set_dual_ip_bound!(inc::Incumbents{S},
-                            bound::DualBound{S}) where {S}
-    cur_bound = get_ip_dual_bound(inc)
-    if isbetter(bound, cur_bound)
-        inc.ip_dual_bound = bound
-        return bound
+                            new_bound::DualBound{S}) where {S}
+    if isbetter(new_bound, get_ip_dual_bound(inc))
+        inc.ip_dual_bound = new_bound
     end
-    return cur_bound
+    @show get_ip_dual_bound(inc)
+    return
 end
-#unction _dual_lp_bound(incumbents::SolsAndBounds,
+
+# function _dual_lp_bound(incumbents::SolsAndBounds,
 #                               newbound::Float64)
 #     if newbound > incumbents.alg_inc_lp_dual_bound
 #         incumbents.alg_inc_lp_dual_bound = newbound
