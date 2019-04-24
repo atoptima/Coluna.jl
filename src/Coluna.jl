@@ -49,9 +49,13 @@ import Base.convert
         (),
         ())
 
+
 include("types.jl")
 include("parameters.jl")
 include("counters.jl")
+
+include("containers/members.jl")
+
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")

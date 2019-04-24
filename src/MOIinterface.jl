@@ -31,7 +31,7 @@ end
 function compute_moi_terms(members::VarMembership)
     return [
         MOI.ScalarAffineTerm{Float64}(
-            coef, get_index(get_moi_record(get_elements(members)[id]))
+            coef, get_index(get_moi_record(getelements(members)[id]))
         ) for (id, coef) in members
     ]
 end
@@ -113,7 +113,7 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer,
     add_variable_in_optimizer(optimizer, v)
     var_index = get_index(get_moi_record(v))
     for (id, coef) in members
-        constr_index = get_index(get_moi_record(get_elements(members)[id]))
+        constr_index = get_index(get_moi_record(getelements(members)[id]))
         MOI.modify(optimizer, constr_index, MOI.ScalarCoefficientChange{Float64}(
             var_index, coef
         ))

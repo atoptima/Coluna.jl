@@ -145,7 +145,7 @@ function load_problem_in_optimizer(formulation::Formulation)
     )
     for (constr_id, members) in constrs
         add_constraint_in_optimizer(
-            optimizer, get_elements(constrs)[constr_id],
+            optimizer, getelements(constrs)[constr_id],
             filter(_explicit_, members)
         )
     end

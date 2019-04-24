@@ -47,7 +47,7 @@ function clone_in_manager!(dest::FormulationManager,
                     var::Variable)
     
     new_col = Dict{Id{Constraint}, Float64}()
-    for (id, val) in get_records(src.coefficients[:, var.id])
+    for (id, val) in getrecords(src.coefficients[:, var.id])
         if haskey(dest, id)
             new_col[id] = val
         else
@@ -63,7 +63,7 @@ function clone_in_manager!(dest::FormulationManager,
                         constr::Constraint)
 
     new_row = Dict{Id{Variable}, Float64}()
-    for (id, val) in get_records(src.coefficients[constr.id, :])
+    for (id, val) in getrecords(src.coefficients[constr.id, :])
         if haskey(dest, id)
             new_row[id] = val
         else
