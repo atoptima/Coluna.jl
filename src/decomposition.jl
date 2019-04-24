@@ -156,8 +156,6 @@ function build_dw_pricing_sp!(prob::Problem,
 end
 
 function reformulate!(prob::Problem, method::SolutionMethod)
-    println("Do reformulation.")
-
     # This function must be cleaned.
     # subproblem formulations are modified in the function build_dw_master
 
@@ -215,7 +213,6 @@ function reformulate!(prob::Problem, method::SolutionMethod)
             vars, constrs = find_vcs_in_block(
                 annotation.unique_id, vars_per_block, constrs_per_block
             )
-            println("> build sp $(annotation.unique_id)")
             build_dw_pricing_sp!(prob, annotation.unique_id,
                                  formulations[annotation.unique_id],
                                  vars, constrs)

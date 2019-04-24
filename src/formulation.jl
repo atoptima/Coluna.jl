@@ -146,7 +146,7 @@ function load_problem_in_optimizer(formulation::Formulation)
             filter(_explicit_, members)
         )
     end
-    _show_optimizer(get_optimizer(formulation))
+    @debug get_optimizer(formulation)
     return
 end
 

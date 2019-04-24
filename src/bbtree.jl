@@ -132,6 +132,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
 end
 
 function print_info_before_apply(n::Node, s::TreeSolver)
+    println("************************************************************")
     print(nb_open_nodes(s))
     print(" open nodes. Treating node ", get_treat_order(n))
     getparent(n) == nothing && println()

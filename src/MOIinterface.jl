@@ -143,7 +143,7 @@ function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
     for (id, var) in vars
         moi_index = get_index(get_moi_record(var))
         val = MOI.get(moi_optimizer, MOI.VariablePrimal(res_idx), moi_index)
-        @logmsg LogLevel(-4) string("Var ", get_name(var), " = ", val)
+        #@logmsg LogLevel(-4) string("Var ", get_name(var), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             sol[id] = val
         end
@@ -178,12 +178,12 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
 end
 
 function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
-    backup_stdout = stdout
-    (rd_out, wr_out) = redirect_stdout()
+    #backup_stdout = stdout
+    #(rd_out, wr_out) = redirect_stdout()
     MOI.optimize!(optimizer)
-    close(wr_out)
-    close(rd_out)
-    redirect_stdout(backup_stdout)
+    #close(wr_out)
+    #close(rd_out)
+    #redirect_stdout(backup_stdout)
     return
 end
 
