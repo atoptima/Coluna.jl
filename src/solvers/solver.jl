@@ -1,6 +1,14 @@
 abstract type AbstractSolver end
 abstract type AbstractSolverRecord end
 
+# In ordert o correctly implement a solver,
+# one should implement these three functions.
+# To be documented.
+function setup end
+function run end
+function record_output end
+
+# Fallbaccks
 function setup(T::Type{<:AbstractSolver}, f, n)
     error("setup method not implemented for $T.")
 end
@@ -17,8 +25,6 @@ end
 struct StartNode <: AbstractSolver end
 
 function apply(S::Type{<:AbstractSolver}, f, n, r, p)
-    # Why apply is defined here?
-    # Shouldnt it be defined only once for all solvers?
     interface(getsolver(r), S, f, n)
     setsolver!(r, S)
     return run(S, f, n, p)

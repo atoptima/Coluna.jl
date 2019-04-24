@@ -39,7 +39,6 @@ end
 
 SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents(S), false, false)
 
-
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
     for (id, var) in filter(_active_pricingSpVar_ , get_vars(sp_form))

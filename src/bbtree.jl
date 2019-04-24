@@ -79,6 +79,7 @@ function apply(::Type{<:TreeSolver}, f::Reformulation)
         print_info_after_apply(cur_node, tree_solver)
         update_tree_solver(tree_solver, cur_node)
     end
+
 end
 
 function update_primals(s::TreeSolver, n_incumbents::Incumbents)
