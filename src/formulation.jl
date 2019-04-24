@@ -118,9 +118,6 @@ end
 # end
 
 function optimize!(form::Formulation, optimizer = form.moi_optimizer)
-    # println("About to solve formulation ", get_uid(form))
-    # @show form
-
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
@@ -149,7 +146,6 @@ function load_problem_in_optimizer(formulation::Formulation)
             filter(_explicit_, members)
         )
     end
-    # @show get_optimizer(formulation)
     _show_optimizer(get_optimizer(formulation))
     return
 end
@@ -230,7 +226,7 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
                           members::VarMembership)
     constr = get_constr(f, constr_id)
     constr_data = get_cur_data(constr)
-    print(io, constr_id, " ", get_name(constr), " : ")
+    print(io, get_name(constr), " : ")
     ids = sort!(collect(keys(members)), by = getsortid)
     for id in ids
         coeff = members[id]
@@ -247,7 +243,7 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
         op = "<="
     end
     print(io, " ", op, " ", get_rhs(constr_data))
-    println(io, " (", get_duty(constr), " ", is_explicit(constr_data) ,")")
+    println(io, " (", get_duty(constr), " | ", is_explicit(constr_data) ,")")
     return
 end
 
@@ -271,7 +267,7 @@ function _show_variable(io::IO, f::Formulation, var::Variable)
     t = get_kind(var_data)
     d = get_duty(var)
     e = is_explicit(var_data)
-    println(io, get_id(var), " ", lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
+    println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
 function _show_variables(io::IO, f::Formulation)

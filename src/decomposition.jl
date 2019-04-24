@@ -4,7 +4,7 @@ set_loc_art_var(f::Formulation, constr_id::ConstrId) = set_var!(
 )
 
 set_glob_art_var(f::Formulation, is_pos::Bool) = set_var!(
-    f, string("global_", (is_pos ? "pos" : "neg"), "_art_var_"),
+    f, string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
     MastArtVar; cost = 100000.0, lb = 0.0, ub = Inf,
     kind = Continuous, sense = Positive
 )
@@ -14,7 +14,7 @@ function initialize_local_art_vars(master::Formulation,
     matrix = get_coefficient_matrix(master)
     for (constr_id, constr) in constrs_in_form
         v = set_var!(
-            master, string("local_art_", constr_id),
+            master, string("local_art_of_", get_name(constr)),
             MastArtVar; cost = 10000.0, lb = 0.0, ub = Inf,
 # cost = get_inc_val(constr), lb = 0.0, ub = Inf,
             kind = Continuous, sense = Positive
@@ -28,7 +28,7 @@ function initialize_global_art_vars(master::Formulation)
     global_pos = set_glob_art_var(master, true)
     global_neg = set_glob_art_var(master, false)
     matrix = get_coefficient_matrix(master)
-    constrs = filter(_active_masterRepOrigConstr_,get_constrs(master))
+    constrs = filter(_active_masterRepOrigConstr_, get_constrs(master))
     for (constr_id, constr) in constrs
         if get_sense(get_cur_data(constr)) == Greater
             matrix[constr_id, get_id(global_pos)] = 1.0
@@ -93,7 +93,6 @@ function build_dw_master!(prob::Problem,
         set_inc_val!(get_initial_data(lb_conv_constr), 100.0)
         set_inc_val!(get_cur_data(lb_conv_constr), 100.0)
         convexity_constrs[get_id(lb_conv_constr)] = lb_conv_constr
-        @show lb_conv_constr
 
         name = "sp_ub_$(sp_uid)"
         rhs = 1.0
@@ -105,7 +104,6 @@ function build_dw_master!(prob::Problem,
         set_inc_val!(get_initial_data(ub_conv_constr), 100.0)
         set_inc_val!(get_cur_data(ub_conv_constr), 100.0)        
         convexity_constrs[get_id(ub_conv_constr)] = ub_conv_constr
-        @show ub_conv_constr
 
         ## Create PricingSetupVar
         name = "PricingSetupVar_sp_$(sp_form.uid)"
@@ -122,7 +120,6 @@ function build_dw_master!(prob::Problem,
         matrix = get_coefficient_matrix(master_form)
         # matrix[get_id(ub_conv_constr),get_id(setup_var)] = 1.0
         # matrix[get_id(lb_conv_constr),get_id(setup_var)] = 1.0
-        @show setup_var
 
         ## add all Sp var in master
         vars = filter(_active_pricingSpVar_, get_vars(sp_form))
@@ -140,7 +137,6 @@ function build_dw_master!(prob::Problem,
     # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
     initialize_local_art_vars(master_form, convexity_constrs)
-    @show master_form
     return
 end
 
@@ -156,19 +152,6 @@ function build_dw_pricing_sp!(prob::Problem,
     ## Create Pure Pricing Sp Var & constr
     clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
     clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
-   # @show constrs_in_form
-   # @show vars_in_form
-
-   # @show sp_form.manager
-
-    # for (constr_id, members) in rows(get_coefficient_matrix(sp_form))
-    #     @show constr_id
-    #     @show get_constr(sp_form, constr_id)
-    # end
-
-
-
-    @show sp_form
     return
 end
 
@@ -191,10 +174,7 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     vars_per_block = prob.optimizer.annotations.vars_per_block 
     constrs_per_block = prob.optimizer.annotations.constrs_per_block
     annotation_set = prob.optimizer.annotations.annotation_set 
-    
-    #@show vars_per_block
-    #@show constrs_per_block
-    
+  
     # Create reformulation
     reformulation = Reformulation(prob, method)
     set_re_formulation!(prob, reformulation)
@@ -208,7 +188,6 @@ function reformulate!(prob::Problem, method::SolutionMethod)
 
     # Create pricing subproblem formulations
     ann_sorted_by_uid = sort(collect(annotation_set), by = ann -> ann.unique_id)
-    @show ann_sorted_by_uid
     
     formulations = Dict{Int, Formulation}()
     master_unique_id = -1
@@ -232,7 +211,6 @@ function reformulate!(prob::Problem, method::SolutionMethod)
 
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
-        @show annotation
         if annotation.problem == BD.Pricing
             vars, constrs = find_vcs_in_block(
                 annotation.unique_id, vars_per_block, constrs_per_block
@@ -245,19 +223,15 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     end
 
     # Build Master
-    @show master_unique_id
     vars, constrs = find_vcs_in_block(
         master_unique_id, vars_per_block, constrs_per_block
     )
     build_dw_master!(prob, master_unique_id, reformulation,
                      master_form, vars, constrs)
 
-    println("\e[1;34m MASTER FORMULATION \e[00m")
-    @show master_form
-    println("\e[1;34m PRICING SP FORMULATIONS \e[00m")
-    for p in reformulation.dw_pricing_subprs
-         @show p
-        println("\e[32m ---------------- \e[00m")
+    @debug "\e[1;34m Master formulation \e[00m" master_form
+    for sp_form in reformulation.dw_pricing_subprs
+        @debug "\e[1;34m Pricing subproblems formulation \e[00m" sp_form
     end
     return
 end

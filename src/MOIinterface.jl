@@ -143,7 +143,7 @@ function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
     for (id, var) in vars
         moi_index = get_index(get_moi_record(var))
         val = MOI.get(moi_optimizer, MOI.VariablePrimal(res_idx), moi_index)
-        @logmsg LogLevel(-4) string("Var ", get_name(var_def[2]), " = ", val)
+        @logmsg LogLevel(-4) string("Var ", get_name(var), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             sol[id] = val
         end
