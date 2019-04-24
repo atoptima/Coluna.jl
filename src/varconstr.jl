@@ -43,15 +43,6 @@ set_cur_cost!(vc::AbstractVarConstr, cost::Float64) = vc.cur_data.cost
 set_cur_lower_bound!(vc::AbstractVarConstr, lb::Float64) = vc.cur_data.lower_bound = lb
 set_cur_upper_bound!(vc::AbstractVarConstr, ub::Float64) = vc.cur_data.upper_bound = ub
 
-# Constraint
-
-# -> Initial
-get_cur_rhs(vc::AbstractVarConstr) = vc.cur_data.rhs
-set_cur_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.cur_data.rhs = rhs
-# -> Current
-get_init_rhs(vc::AbstractVarConstr) = vc.initial_data.rhs
-set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.initial_data.rhs = rhs
-
 
 # AbstractVarConstr
 

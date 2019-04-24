@@ -52,8 +52,16 @@ function Constraint(id::ConstrId,
     )
 end
 
-# Attention: All getters and setters for Constraint are defined
-#            over AbstractVarConstr in file varconstr.jl
+# Note: Several getters and setters for Constraint are defined
+#       over AbstractVarConstr in file varconstr.jl
+
+# Initial
+get_cur_rhs(vc::Constraint) = vc.cur_data.rhs
+set_cur_rhs!(vc::Constraint, rhs) = set_cur_rhs!(vc, float(rhs))
+set_cur_rhs!(vc::Constraint, rhs::Float64) = vc.cur_data.rhs = rhs
+# Current
+get_init_rhs(vc::Constraint) = vc.initial_data.rhs
+#set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.initial_data.rhs = rhs
 
 function reset!(c::Constraint)
     initial = get_initial_data(c)

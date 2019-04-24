@@ -35,17 +35,13 @@ function constr_data_getters_and_setters_tests()
 end
 
 function moi_constr_record_getters_and_setters_tests()
-
     c_rec = CL.MoiConstrRecord(
         ; index = CL.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-15)
     )
-
     @test CL.get_index(c_rec) == CL.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-15)
 
     CL.set_index!(c_rec, CL.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-20))
-
     @test CL.get_index(c_rec) == CL.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-20)
-
 end
 
 function constraint_getters_and_setters_tests()
@@ -60,5 +56,11 @@ function constraint_getters_and_setters_tests()
         constr_data = c_data
     )
 
+    CL.set_cur_rhs!(c, 10)
+    @test CL.get_cur_rhs(c) == 10
+    @test CL.get_init_rhs(c) == -13
 
+    CL.reset!(c)
+    @test CL.get_cur_rhs(c) == -13
+    @test CL.get_init_rhs(c) == -13
 end
