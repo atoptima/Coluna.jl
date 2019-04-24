@@ -416,12 +416,8 @@ function print_intermediate_statistics(alg::SimplexLpColGenAlg,
     mlp = getvalue(get_lp_primal_bound(alg.incumbents))
     db = getvalue(get_ip_dual_bound(alg.incumbents))
     pb = getvalue(get_ip_primal_bound(alg.incumbents))
-    println("<it=", nb_cg_iterations, "> ",
-            "<et=", round(_elapsed_solve_time()), "> ",
-            "<mst= ", round(mst_time, digits=3), "> ",
-            "<sp= ", round(sp_time, digits=3), "> ",
-            "<cols=", nb_new_col, "> ",
-            "<mlp=", round(mlp, digits=4), "> ",
-            "<DB=", round(db, digits=4), "> <PB=",
-            round(pb, digits=4), ">")
+    @printf(
+            "<it=%i> <et=%i> <mst=%.3f> <sp=%.3f> <cols=%i> <mlp=%.4f> <DB=%.4f> <PB=%.4f>\n",
+            nb_cg_iterations, _elapsed_solve_time(), mst_time, sp_time, nb_new_col, mlp, db, pb
+    )
 end
