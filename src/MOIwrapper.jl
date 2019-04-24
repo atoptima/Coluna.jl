@@ -229,12 +229,8 @@ function register_original_formulation!(dest::Optimizer,
 end
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
-
     register_original_formulation!(dest, src, copy_names)
-
-    println(" \e[34m ORIGINAL FORMULATION \e[00m")
-    @show dest.inner.original_formulation
-    println("\e[34m END ORIGINAL FORMULATION \e[00m")
+    @debug "\e[1;34m Original formulation \e[00m" dest.inner.original_formulation
     return dest.moi_index_to_coluna_uid
 end
 
