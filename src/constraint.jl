@@ -1,5 +1,5 @@
 mutable struct ConstrData <: AbstractVcData
-    rhs::Float64 
+    rhs::Float64
     kind::ConstrKind
     sense::ConstrSense
     inc_val::Float64

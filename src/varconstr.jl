@@ -12,7 +12,6 @@ set_is_explicit!(vc::AbstractVcData, is_explicit::Bool) = vc.is_explicit = is_ex
 set_kind!(vc::AbstractVcData, kind) = vc.kind = kind
 set_sense!(vc::AbstractVcData, sense) = vc.sense = sense
 
-
 # Getters for AbstractVarConstr
 # -> No setters because Variable and Constraint are immutable
 
@@ -35,11 +34,6 @@ get_init_sense(vc::AbstractVarConstr) = vc.initial_data.sense
 get_init_inc_val(vc::AbstractVarConstr) = vc.initial_data.inc_val
 get_init_is_active(vc::AbstractVarConstr) = vc.initial_data.is_active
 get_init_is_explicit(vc::AbstractVarConstr) = vc.initial_data.is_explicit
-set_init_kind(vc::AbstractVarConstr, kind) = vc.initial_data.kind = kind
-set_init_sense(vc::AbstractVarConstr, sense) = vc.initial_data.sense = sense
-set_init_inc_val(vc::AbstractVarConstr, inc_val::Float64) = vc.initial_data.inc_val = inc_val
-set_init_is_active(vc::AbstractVarConstr, is_active::Bool) = vc.initial_data.is_active = is_active
-set_init_is_explicit(vc::AbstractVarConstr, is_explicit::Bool) = vc.initial_data.is_explicit = is_explicit
 # -> Current
 get_cur_kind(vc::AbstractVarConstr) = vc.cur_data.kind
 get_cur_sense(vc::AbstractVarConstr) = vc.cur_data.sense

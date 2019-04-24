@@ -87,8 +87,50 @@ function varcosntr_helpers_tests()
         CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepBendSpVar
     )
 
-    CL.get_uid(v) == 23
-    CL.get_form(v) == 10
+    @test CL.get_uid(v) == 23
+    @test CL.get_form(v) == 10
 
+    @test CL.get_cur_kind(v) == CL.get_init_kind(v) == CL.Continuous
+    @test CL.get_cur_sense(v) == CL.get_init_sense(v) == CL.Positive
+    @test CL.get_cur_inc_val(v) == CL.get_init_inc_val(v) == -1.0
+    @test CL.get_cur_is_active(v) == CL.get_init_is_active(v) == true
+    @test CL.get_cur_is_explicit(v) == CL.get_init_is_explicit(v) == true
+
+    CL.set_cur_kind(v, CL.Integ)
+    CL.set_cur_sense(v, CL.Negative)
+    CL.set_cur_inc_val(v, 10.0)
+    CL.set_cur_is_active(v, false)
+    CL.set_cur_is_explicit(v, false)
+
+    @test CL.get_cur_kind(v) == CL.Integ
+    @test CL.get_cur_sense(v) == CL.Negative
+    @test CL.get_cur_inc_val(v) == 10.0
+    @test CL.get_cur_is_active(v) == false
+    @test CL.get_cur_is_explicit(v) == false
+
+    c = CL.Constraint(
+        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchConstr
+    )
+
+    @test CL.get_uid(c) == 23
+    @test CL.get_form(c) == 10
+
+    @test CL.get_cur_kind(c) == CL.get_init_kind(c) == CL.Core
+    @test CL.get_cur_sense(c) == CL.get_init_sense(c) == CL.Greater
+    @test CL.get_cur_inc_val(c) == CL.get_init_inc_val(c) == -1.0
+    @test CL.get_cur_is_active(c) == CL.get_init_is_active(c) == true
+    @test CL.get_cur_is_explicit(c) == CL.get_init_is_explicit(c) == true
+
+    CL.set_cur_kind(c, CL.Facultative)
+    CL.set_cur_sense(c, CL.Less)
+    CL.set_cur_inc_val(c, 10.0)
+    CL.set_cur_is_active(c, false)
+    CL.set_cur_is_explicit(c, false)
+
+    @test CL.get_cur_kind(c) == CL.Facultative
+    @test CL.get_cur_sense(c) == CL.Less
+    @test CL.get_cur_inc_val(c) == 10.0
+    @test CL.get_cur_is_active(c) == false
+    @test CL.get_cur_is_explicit(c) == false
 
 end
