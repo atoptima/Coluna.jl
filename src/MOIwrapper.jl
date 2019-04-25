@@ -101,6 +101,7 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
         initial_data = get_initial_data(var)
         set_cost!(initial_data, term.coefficient)
         reset!(var)
+        commit_cost_change!(f, var)
     end
     return
 end
@@ -143,7 +144,7 @@ function create_origconstr!(f::Formulation,
         set_bound(initial_data, get_sense(set), get_rhs(set))
     end
     reset!(var)
-
+    commit_bound_change!(f, var)
     return
 end
 

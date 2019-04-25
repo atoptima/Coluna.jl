@@ -42,9 +42,9 @@ end
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
 
-function load_problem_in_optimizer(prob::Problem)
-    load_problem_in_optimizer(prob.re_formulation)
-end
+# function load_problem_in_optimizer(prob::Problem)
+#     load_problem_in_optimizer(prob.re_formulation)
+# end
 
 function initialize_moi_optimizer(prob::Problem)
     initialize_moi_optimizer(
@@ -65,7 +65,7 @@ function coluna_initialization(prob::Problem, annotations::Annotations)
     _set_global_params(prob.params)
     reformulate!(prob, DantzigWolfeDecomposition)
     initialize_moi_optimizer(prob)
-    load_problem_in_optimizer(prob)
+    # load_problem_in_optimizer(prob)
     @info "Coluna initialized."
 end
 
