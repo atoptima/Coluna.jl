@@ -1,15 +1,17 @@
 struct MasterIpHeuristic <: AbstractSolver end
 
+struct MasterIpHeuristicData <: AbstractSolverData end
 
-struct MasterIpHeuristicRecord <: AbstractSolverRecord
+struct MasterIpHeuristicOutput <: AbstractSolverOutput
     time::Float64
 end
 
-function setup(::Type{MasterIpHeuristic}, f, n)
+function setup!(::Type{MasterIpHeuristic}, formulation, node)
     println("\e[32m setup master ip heuristic \e[00m")
 end
 
-function run(::Type{MasterIpHeuristic}, f, n, p)
+function run!(::Type{MasterIpHeuristic}, solver_data, formulation, node, 
+              parameters)
     println("Start Master IP Heuristic")
     println("FAKE CPLEX OUTPUT.")
     db = 1000
@@ -21,5 +23,9 @@ function run(::Type{MasterIpHeuristic}, f, n, p)
         sleep(0.2)
     end
     println("Found optimal solution")
-    return MasterIpHeuristicRecord(7)
+    return
+end
+
+function output(::Type{MasterIpHeuristic}, solver_data, formulation, node)
+    return MasterIpHeuristicOutput(7)
 end

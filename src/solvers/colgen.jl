@@ -1,44 +1,39 @@
 struct ColumnGeneration <: AbstractSolver end
 
-struct ColumnGenerationRecord <: AbstractSolverRecord
-    nb_iterations::Int
-end
-
-function setup(::Type{ColumnGeneration}, f, n)
-    println("\e[31m Setup ColumnGeneration \e[00m")
-end
-
-function run(::Type{ColumnGeneration}, f, n, p)
-    # db = 0
-    # nb_iter = 0
-    # for i in 1:rand(10:20)
-    #     db += rand(0:0.01:100)
-    #     mlp = rand(2000:0.01:2500)
-    #     println("<it=$i> <DB=$db> <Mlp=$mlp>")
-    #     nb_iter += 1
-    #     sleep(0.3)
-    # end
-    println("\e[1;31m draft of the col gen algorithm here \e[00m")
-    println("main function of the alg")
-    alg = SimplexLpColGenAlg(f.master.obj_sense)
-    solve_mast_lp_ph2(alg, f)
-    nb_iter = 0
-    return ColumnGenerationRecord(nb_iter)
-end
-
-function record_output(::Type{ColumnGeneration}, f, n)
-    println("\e[31m record column generation \e[00m")
-end
-#### Methods for colgen 
-
-mutable struct SimplexLpColGenAlg <: AbstractAlg
+mutable struct ColumnGenerationData <: AbstractSolverData
     incumbents::Incumbents
-    is_converged::Bool
-    is_infeasible::Bool
+    has_converged::Bool
+    is_feasible::Bool
 end
 
-SimplexLpColGenAlg(S::Type{<:AbstractObjSense}) = SimplexLpColGenAlg(Incumbents(S), false, false)
+function ColumnGenerationData(S::Type{<:AbstractObjSense})
+    return ColumnGenerationData(Incumbents(S), false, true)
+end
 
+struct ColumnGenerationOutput <: AbstractSolverOutput
+    nb_iterations::Int
+    incumbents::Incumbents
+end
+
+# Overload of the solver interface
+function setup!(::Type{ColumnGeneration}, formulation, node)
+    @logmsg LogLevel(-1) "Setup ColumnGeneration."
+    return ColumnGenerationData(formulation.master.obj_sense)
+end
+
+function run!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData,
+              formulation, node, parameters)
+    @logmsg LogLevel(-1) "Run ColumnGeneration."
+    solve_mast_lp_ph2(solver_data, formulation)
+end
+
+function output(::Type{ColumnGeneration}, solver_data::ColumnGenerationData, 
+                formulation, node)
+    @logmsg LogLevel(-1) "Output ColumnGeneration."
+    @error "\e[31m record column generation \e[00m"
+end
+
+# Internal methods to the column generation
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
     for (id, var) in filter(_active_pricingSpVar_ , get_vars(sp_form))
@@ -254,7 +249,7 @@ function solve_restricted_mast(master::Formulation)
 end
 
 
-function compute_mast_dual_bound_contrib(alg::SimplexLpColGenAlg,
+function compute_mast_dual_bound_contrib(alg::ColumnGenerationData,
                                       restricted_master_sol_value::PrimalBound{S})where {S}
     # stabilization = alg.colgen_stabilization
     # This is commented because function is_active does not exist
@@ -266,7 +261,7 @@ function compute_mast_dual_bound_contrib(alg::SimplexLpColGenAlg,
     # end
 end
 
-function update_lagrangian_dual_bound(alg::SimplexLpColGenAlg,
+function update_lagrangian_dual_bound(alg::ColumnGenerationData,
                                       restricted_master_sol_value::PrimalBound{S},
                                       pricing_sp_dual_bound_contrib::DualBound{S},
                                       update_dual_bound::Bool) where {S}
@@ -302,7 +297,7 @@ function update_lagrangian_dual_bound(alg::SimplexLpColGenAlg,
     return mast_lagrangian_bnd
 end
 
-function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
+function solve_mast_lp_ph2(alg::ColumnGenerationData,
                            reformulation::Reformulation)
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
@@ -392,13 +387,13 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
         )
 
         if nb_new_col == 0 || diff(lower_bound + 0.00001, upper_bound) < 0
-            alg.is_converged = true
+            alg.has_converged = true
             return false
         end
         if nb_cg_iterations > 1000 ##TDalg.max_nb_cg_iterations
             # println("Maximum number of column generation iteration is reached")
             # @logmsg LogLevel(-2) "max_nb_cg_iterations limit reached"
-            alg.is_infeasible = true
+            alg.is_feasible = false
             return true
         end
         # @logmsg LogLevel(-2) "next colgen ph2 iteration"
@@ -408,7 +403,7 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
     # return false
 end
 
-function print_intermediate_statistics(alg::SimplexLpColGenAlg,
+function print_intermediate_statistics(alg::ColumnGenerationData,
                                        nb_new_col::Int,
                                        nb_cg_iterations::Int,
                                        mst_time::Float64, sp_time::Float64)

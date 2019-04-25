@@ -1,7 +1,13 @@
-function interface(::Type{StartNode}, ::Type{ColumnGeneration}, f, n)
-    setup(ColumnGeneration, f, n)
+# Beginning of a node -> ColumnGeneration
+# Nothing to do
+function interface!(::Type{StartNode}, ::Type{ColumnGeneration}, formulation, 
+                    node)
+    return
 end
 
-function interface(::Type{ColumnGeneration}, ::Type{MasterIpHeuristic}, f, n)
+# ColumnGeneration -> MasterIpHeuristic
+function interface!(::Type{ColumnGeneration}, ::Type{MasterIpHeuristic}, 
+                    formulation, node)
     println("\e[33m interface between column generation and masteripheuristic \e[00m")
+    return
 end
