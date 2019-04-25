@@ -10,9 +10,8 @@ function ColumnGenerationData(S::Type{<:AbstractObjSense})
     return ColumnGenerationData(Incumbents(S), false, true)
 end
 
-struct ColumnGenerationOutput <: AbstractSolverOutput
-    nb_iterations::Int
-    incumbents::Incumbents
+struct ColumnGenerationRecord <: AbstractSolverRecord
+    # Data needed for another round of column generation
 end
 
 # Overload of the solver interface
@@ -24,13 +23,12 @@ end
 function run!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData,
               formulation, node, parameters)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    solve_mast_lp_ph2(solver_data, formulation)
+    return solve_mast_lp_ph2(solver_data, formulation)
 end
 
-function output(::Type{ColumnGeneration}, solver_data::ColumnGenerationData, 
+function setdown!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData, 
                 formulation, node)
-    @logmsg LogLevel(-1) "Output ColumnGeneration."
-    @error "\e[31m record column generation \e[00m"
+    @logmsg LogLevel(-1) "Record ColumnGeneration."
 end
 
 # Internal methods to the column generation
@@ -401,6 +399,7 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
     # These lines are never executed becasue there is no break from the outtermost 'while true' above
     # @logmsg LogLevel(-2) "solve_mast_lp_ph2 has finished"
     # return false
+    return ColumnGenerationRecord()
 end
 
 function print_intermediate_statistics(alg::ColumnGenerationData,

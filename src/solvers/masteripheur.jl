@@ -2,7 +2,7 @@ struct MasterIpHeuristic <: AbstractSolver end
 
 struct MasterIpHeuristicData <: AbstractSolverData end
 
-struct MasterIpHeuristicOutput <: AbstractSolverOutput
+struct MasterIpHeuristicRecord <: AbstractSolverRecord
     time::Float64
 end
 
@@ -23,9 +23,9 @@ function run!(::Type{MasterIpHeuristic}, solver_data, formulation, node,
         sleep(0.2)
     end
     println("Found optimal solution")
-    return
+    return MasterIpHeuristicRecord(7)
 end
 
-function output(::Type{MasterIpHeuristic}, solver_data, formulation, node)
-    return MasterIpHeuristicOutput(7)
+function setdown!(::Type{MasterIpHeuristic}, solver_data, formulation, node)
+    println("setdown! masteripheur")
 end

@@ -13,11 +13,12 @@ Store data of a solver. The object exists only when the solver is running.
 abstract type AbstractSolverData  end
 
 """
-    AbstractSolverOutput
+    AbstractSolverRecord
 
 Store data that we want to keep after the end of a solver execution.
+These data can be used to initialize another execution of the solver.
 """
-abstract type AbstractSolverOutput end
+abstract type AbstractSolverRecord end
 
 """
     setup!(SolverType, formulation, node)
@@ -32,16 +33,19 @@ function setup! end
     run!(SolverType, solverdata, formulation, node, parameters)
 
 Run the solver `SolverType` on the `formulation` in a `node` with `parameters`.
+Return the  `AbstractSolverRecord` structure that corresponds to the solver 
+`SolverType`
 """
 function run! end
 
 """
-    output(SolverType, solverdata, formulation, node)
+    setdown!(SolverType, solverdata, formulation, node)
 
-Return the `AbstractSolverOutput` structure that corresponds to the solver 
-`SolverType`. This method is executed after `run!`.
+Update the `formulation` and the `node` after the execution of the solver
+`SolverType`.
+This method is executed after `run!`.
 """
-function output end
+function setdown! end
 
 # Fallbacks
 function setup!(T::Type{<:AbstractSolver}, formulation, node)
@@ -52,8 +56,8 @@ function run!(T::Type{<:AbstractSolver}, solverdata, formulation, node, paramete
     @error "run! method not implemented for $T."
 end
 
-function output(T::Type{<:AbstractSolver}, solverdata, formulation, node)
-    @error "output not implemented for $T."
+function setdown!(T::Type{<:AbstractSolver}, solverdata, formulation, node)
+    @error "setdown! not implemented for $T."
 end
 
 """
@@ -68,8 +72,9 @@ function apply!(S::Type{<:AbstractSolver}, formulation, node, strategyrecord,
     interface!(getsolver(strategyrecord), S, formulation, node)
     setsolver!(strategyrecord, S)
     solver_data = setup!(S, formulation, node)
-    run!(S, solver_data, formulation, node, parameters)
-    return output(S, solver_data, formulation, node)
+    record = run!(S, solver_data, formulation, node, parameters)
+    setdown!(S, solver_data, formulation, node)
+    return
 end
 
 """
