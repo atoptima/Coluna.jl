@@ -15,6 +15,7 @@ const SupportedConstrSets = Union{MOI.EqualTo{Float64},
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Problem
     moi_index_to_coluna_uid::MOIU.IndexMap
+    params::Params
     annotations::Annotations
     # varmap::Dict{MOI.VariableIndex,Variable} ## Keys and values are created in this file
     # # add conmap here
@@ -30,13 +31,12 @@ setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob
 function Optimizer(;master_factory =
         JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
         JuMP.with_optimizer(GLPK.Optimizer), params = Params())
-    prob = Problem(params, master_factory, pricing_factory)
-    prob.optimizer = Optimizer(prob, MOIU.IndexMap(), Annotations())
-    return prob.optimizer
+    prob = Problem(master_factory, pricing_factory)
+    return Optimizer(prob, MOIU.IndexMap(), params, Annotations())
 end
 
 function MOI.optimize!(optimizer::Optimizer)
-    res = optimize!(optimizer.inner, optimizer.annotations)
+    res = optimize!(optimizer.inner, optimizer.annotations, optimizer.params)
 end
 
 function MOI.get(dest::MOIU.UniversalFallback,

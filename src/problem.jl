@@ -9,23 +9,31 @@ Annotations() = Annotations(
     Set{BD.Annotation}()
 )
 
+"""
+    Problem
+
+`Problem` is the most complex structure in Coluna.
+
+Stores the original formulation `original_formulation` given by the user as well as the reformulated problem `re_formulation`.
+"""
 mutable struct Problem <: AbstractProblem
-    name::String
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
-    form_counter::Counter
-    timer_output::TimerOutputs.TimerOutput
-    params::Params
+    form_counter::Counter # 0 is for original form
+    timer_output::TimerOutputs.TimerOutput # Keep it in globals?
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
     pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
-    optimizer::Union{Nothing, MOI.AbstractOptimizer}
 end
 
-function Problem(params::Params, master_factory, pricing_factory)
+"""
+    Problem(params::Params, master_factory, pricing_factory)
+
+Constructs an empty `Problem`.
+"""
+function Problem(master_factory, pricing_factory)
     return Problem(
-        "prob", nothing, nothing, Counter(-1), # 0 is for original form
-        TimerOutputs.TimerOutput(),
-        params, master_factory, pricing_factory, nothing
+        nothing, nothing, Counter(-1), TimerOutputs.TimerOutput(),
+        master_factory, pricing_factory
     )
 end
 
@@ -42,10 +50,6 @@ end
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
 
-# function load_problem_in_optimizer(prob::Problem)
-#     load_problem_in_optimizer(prob.re_formulation)
-# end
-
 function initialize_moi_optimizer(prob::Problem)
     initialize_moi_optimizer(
         prob.re_formulation, prob.master_factory, prob.pricing_factory
@@ -60,20 +64,20 @@ function _welcome_message()
     print(welcome)
 end
 
-function coluna_initialization(prob::Problem, annotations::Annotations)
+function coluna_initialization(prob::Problem, annotations::Annotations,
+                               params::Params)
     _welcome_message()
-    _set_global_params(prob.params)
-    reformulate!(prob, DantzigWolfeDecomposition)
+    _set_global_params(params)
+    reformulate!(prob, annotations, DantzigWolfeDecomposition)
     initialize_moi_optimizer(prob)
-    # load_problem_in_optimizer(prob)
     @info "Coluna initialized."
 end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before
 # # function optimize!(problem::Reformulation)
 
-function optimize!(prob::Problem, annotations::Annotations)
-    coluna_initialization(prob, annotations)
+function optimize!(prob::Problem, annotations::Annotations, params::Params)
+    coluna_initialization(prob, annotations, params)
     _globals_.initial_solve_time = time()
     @info _params_
     @timeit prob.timer_output "Solve problem" begin

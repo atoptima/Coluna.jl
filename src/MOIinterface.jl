@@ -22,10 +22,12 @@ end
 
 function set_obj_sense(optimizer::MOI.AbstractOptimizer, ::Type{<:MaxSense})
     MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    return
 end
 
 function set_obj_sense(optimizer::MOI.AbstractOptimizer, ::Type{<:MinSense})
     MOI.set(optimizer, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+    return
 end
 
 function compute_moi_terms(members::VarMembership)
@@ -105,7 +107,7 @@ function enforce_var_kind_in_optimizer(optimizer::MOI.AbstractOptimizer,
     return
 end
 
-function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer, v::Variable)
+function add_to_optimzer!(optimizer::MOI.AbstractOptimizer, v::Variable)
     cur_data = get_cur_data(v)
     moi_record = get_moi_record(v)
     moi_index = MOI.add_variable(optimizer)
@@ -119,9 +121,9 @@ function add_variable_in_optimizer(optimizer::MOI.AbstractOptimizer, v::Variable
     return
 end
 
-function add_constraint_in_optimizer(optimizer::MOI.AbstractOptimizer,
-                                     constr::Constraint,
-                                     members::VarMembership)
+function add_to_optimzer!(optimizer::MOI.AbstractOptimizer,
+                          constr::Constraint,
+                          members::VarMembership)
 
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
@@ -186,28 +188,8 @@ function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
     return
 end
 
-# function print_moi_constraints(optimizer::MOI.AbstractOptimizer)
-#     println("-------------- Printing MOI constraints")
-#     for (F,S) in MOI.get(optimizer, MOI.ListOfConstraints())
-#         println("Function type: ", F)
-#         for ci in MOI.get(optimizer, MOI.ListOfConstraintIndices{F,S}())
-#             println("Constraint ", ci.value)
-#         end
-#     end
-#     println("------------------------------------------")
-# end
-
-# function update_optimizer_obj_constant(optimizer::MOI.AbstractOptimizer,
-#                                        constant::Float64)
-#     of = MOI.get(optimizer,
-#                  MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
-#     MOI.modify(
-#         optimizer, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(),
-#         MOI.ScalarConstantChange(constant))
-# end
-
-function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
-                                   var::Variable)
+function remove_from_optimizer!(optimizer::MOI.AbstractOptimizer,
+                                var::Variable)
     moi_record = get_moi_record(var)
     @assert get_index(moi_record).value != -1
     MOI.delete(optimizer, get_bounds(moi_record))
@@ -216,14 +198,16 @@ function remove_var_from_optimizer(optimizer::MOI.AbstractOptimizer,
     set_kind!(moi_record, MoiVarKind())
     MOI.delete(optimizer, get_index(moi_record))
     set_index!(optimizer, MoiVarIndex())
+    return
 end
 
-function remove_constr_from_optimizer(optimizer::MOI.AbstractOptimizer,
-                                      constr::Constraint)
+function remove_from_optimizer!(optimizer::MOI.AbstractOptimizer,
+                                constr::Constraint)
     moi_record = get_moi_record(constr)
     @assert get_index(moi_record).value != -1
     MOI.delete(optimizer, get_index(moi_record))
     set_index!(optimizer, MoiConstrIndex())
+    return
 end
 
 function _show_function(io::IO, moi_model::MOI.ModelLike,

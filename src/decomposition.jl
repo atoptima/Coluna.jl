@@ -155,7 +155,8 @@ function build_dw_pricing_sp!(prob::Problem,
     return
 end
 
-function reformulate!(prob::Problem, method::SolutionMethod)
+function reformulate!(prob::Problem, annotations::Annotations,
+                      method::SolutionMethod)
     # This function must be cleaned.
     # subproblem formulations are modified in the function build_dw_master
 
@@ -169,9 +170,9 @@ function reformulate!(prob::Problem, method::SolutionMethod)
     # TODO : improve all drafts as soon as BlockDecomposition returns a
     # decomposition-tree.
 
-    vars_per_block = prob.optimizer.annotations.vars_per_block 
-    constrs_per_block = prob.optimizer.annotations.constrs_per_block
-    annotation_set = prob.optimizer.annotations.annotation_set 
+    vars_per_block = annotations.vars_per_block 
+    constrs_per_block = annotations.constrs_per_block
+    annotation_set = annotations.annotation_set 
   
     # Create reformulation
     reformulation = Reformulation(prob, method)
