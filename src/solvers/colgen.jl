@@ -46,7 +46,10 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
             set_cur_cost!(var, get_cur_cost(var) - dual_val * coeff)
         end
     end
-    set_optimizer_obj(get_optimizer(sp_form), filter(_explicit_, get_vars(sp_form)))
+    for (var_id, var) in get_vars(sp_form)
+        commit_cost_change!(sp_form, var)
+    end
+
     return false
 end
 
@@ -110,11 +113,12 @@ function insert_cols_in_master(master_form::Formulation,
             for (var_id, var_val) in getsol(sp_sol)
                 for (constr_id, var_coef) in matrix[:,var_id]
                     matrix[constr_id,mc_id] = var_val * var_coef
+                    commit_matrix_change!(
+                        sp_form.parent_formulation,
+                        constr_id, mc_id, var_val * var_coef
+                    )
                 end
             end
-            add_variable_in_optimizer(
-                get_optimizer(master_form), mc, matrix[:,mc_id]
-            )
 
             ### record Sp solution
             #add_var_members_of_partialsol!(mbship, mc_id, sp_sol.var_members)
@@ -236,12 +240,13 @@ function solve_restricted_mast(master::Formulation)
     # @show master
     status, value, primal_sols, dual_sol = optimize!(master)
     # @show status
-    #@show result_count = MOI.get(master.moi_optimizer, MOI.ResultCount())
-    #@show primal_status = MOI.get(master.moi_optimizer, MOI.PrimalStatus())
-    #@show dual_status = MOI.get(master.moi_optimizer, MOI.DualStatus())
+    # @show result_count = MOI.get(master.moi_optimizer, MOI.ResultCount())
+    # @show primal_status = MOI.get(master.moi_optimizer, MOI.PrimalStatus())
+    # @show dual_status = MOI.get(master.moi_optimizer, MOI.DualStatus())
     # @show value
     # @show primal_sols
     # @show dual_sol
+    # readline()
     #end # @timeit to(alg) "solve_restricted_mast"
     return status, value, primal_sols[1], dual_sol
 end

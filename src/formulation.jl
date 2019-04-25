@@ -1,10 +1,50 @@
 """
+    VarConstrCache{T<:AbstractVarConstr}
+
+A `VarConstrCache{T}` stores the ids of the entities to be added and removed from the formulation where it belongs.
+"""
+mutable struct VarConstrCache{T<:AbstractVarConstr}
+    added::Set{Id{T}}
+    removed::Set{Id{T}}
+end
+"""
+    VarConstrCache{T}() where {T<:AbstractVarConstr}
+
+Constructs an empty `VarConstrCache{T}` for entities of type `T`.
+"""
+VarConstrCache{T}() where {T<:AbstractVarConstr} = VarConstrCache{T}(Set{T}(), Set{T}())
+
+function add_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
+    !get_cur_is_explicit(vc) && return
+    id = get_id(vc)
+    id in vc_cache.removed && delete!(vc_cache.removed, id)
+    push!(vc_cache.added, id)
+    return
+end
+
+function remove_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
+    !get_cur_is_explicit(vc) && return
+    id = get_id(vc)
+    id in vc_cache.added && delete!(vc_cache.added, id)
+    push!(vc_cache.removed, id)
+    return
+end
+
+mutable struct FormulationCache
+    changed_cost::Set{Id{Variable}}
+    changed_bound::Set{Id{Variable}}
+    changed_rhs::Set{Id{Constraint}}
+    var_cache::VarConstrCache{Variable}
+    constr_cache::VarConstrCache{Constraint}
+    reset_coeffs::Dict{Pair{Id{Constraint},Id{Variable}},Float64}
+end
+"""
     FormulationCache()
 
-Construct a `FormulationCache`.
+Constructs a `FormulationCache`.
 
-The `FormulationCache` stores all changes done to a `Formulation` `f` since last call to `optimize!`.
-Used to cache all changes to `f`. When function `optimize!(f)` is called, the moi_optimizer is synched with all changes made to `f` using FormulationCache.
+A `FormulationCache` stores all changes done to a `Formulation` `f` since last call to `optimize!(f)`.
+When function `optimize!(f)` is called, the moi_optimizer is synched with all changes in FormulationCache.
 
 When `f` is modified, such modification should not be passed directly to its optimizer, but instead should be passed to `f.cache`.
 
@@ -18,29 +58,44 @@ The concerned modificatios are:
 7. Constraint is added
 8. Coefficient in the matrix is modified (reset)
 """
-mutable struct FormulationCache
-    changed_cost::Vector{Id{Variable}}
-    changed_bound::Vector{Id{Variable}}
-    changed_rhs::Vector{Id{Constraint}}
-    removed_vars::Vector{Id{Variable}}
-    added_vars::Vector{Id{Variable}}
-    removed_constrs::Vector{Id{Constraint}}
-    added_constrs::Vector{Id{Constraint}}
-    reset_coeffs::Dict{Pair{Id{Variable},Id{Constraint}},Float64}
-end
 FormulationCache() = FormulationCache(
-    Id{Variable}[], Id{Variable}[], Id{Constraint}[],
-    Id{Variable}[], Id{Variable}[], Id{Constraint}[],
-    Id{Constraint}[], Dict{Pair{Id{Variable},Id{Constraint}},Float64}()
+    Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Constraint}}(),
+    VarConstrCache{Variable}(), VarConstrCache{Constraint}(),
+    Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
 )
 
-function add_var!(c::FormulationCache, v::Variable)
-    # if v in removed_vars
-    #     delete from removed_vars
-    # end
-    # and add in added_vars
+function undo_modifs!(cache::FormulationCache, v::Variable)
+    id = get_id(v)
+    delete!(cache.changed_cost, id)
+    delete!(cache.changed_bound, id)
+    return
 end
 
+function undo_modifs!(cache::FormulationCache, c::Constraint)
+    id = get_id(c)
+    delete!(cache.changed_rhs, id)
+    return
+end
+
+function change_cost!(cache::FormulationCache, v::Variable)
+    !get_cur_is_explicit(v) && return
+    push!(cache.changed_cost, get_id(v))
+    return
+end
+
+function change_bound!(cache::FormulationCache, v::Variable)
+    !get_cur_is_explicit(v) && return
+    push!(cache.changed_bound, get_id(v))
+    return
+end
+
+"""
+    Formulation{Duty<:AbstractFormDuty}
+
+Representation of a formulation which is typically solved by either a MILP or a dynamic program solver.
+
+Such solver must be interfaced with MOI and its pointer is stored in the field `moi_optimizer`.
+"""
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
     var_counter::Counter
@@ -56,12 +111,22 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     callback
 end
 
+"""
+    Formulation{D}(form_counter::Counter,
+                   parent_formulation = nothing,
+                   obj_sense::Type{<:AbstractObjSense} = MinSense,
+                   moi_optimizer::Union{MOI.AbstractOptimizer,
+                                        Nothing} = nothing
+                   ) where {D<:AbstractFormDuty}
+
+Constructs a `Formulation` of duty `D` for which the objective sense is `obj_sense`.
+"""
 function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
                         obj_sense::Type{<:AbstractObjSense} = MinSense,
                         moi_optimizer::Union{MOI.AbstractOptimizer,
                                              Nothing} = nothing
-                        ) where {D<:AbstractFormDuty,S<:AbstractObjSense}
+                        ) where {D<:AbstractFormDuty}
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, moi_optimizer, FormulationManager(),
@@ -97,6 +162,14 @@ function generateconstrid(f::Formulation)
     return ConstrId(getnewuid(f.constr_counter), f.uid)
 end
 
+reset_cache!(f::Formulation) = f.cache = FormulationCache()
+commit_cost_change!(f::Formulation, v::Variable) = change_cost!(f.cache, v)
+commit_bound_change!(f::Formulation, v::Variable) = change_bound!(f.cache, v)
+function commit_matrix_change!(f::Formulation, c_id::Id{Constraint},
+                               v_id::Id{Variable}, coeff::Float64)
+    f.cache.reset_coeffs[Pair(c_id,v_id)] = coeff
+end
+
 function set_var!(f::Formulation,
                   name::String,
                   duty::Type{<:AbstractVarDuty};
@@ -115,7 +188,10 @@ function set_var!(f::Formulation,
     return add_var!(f, v)
 end
 
-add_var!(f::Formulation, var::Variable) = add_var!(f.manager, var)
+function add_var!(f::Formulation, var::Variable)
+    add_vc!(f.cache.var_cache, var)
+    return add_var!(f.manager, var)
+end
 
 function clone_var!(dest::Formulation, src::Formulation, var::Variable)
     add_var!(dest, var)
@@ -138,7 +214,10 @@ function set_constr!(f::Formulation,
     return add_constr!(f, c)
 end
 
-add_constr!(f::Formulation, constr::Constraint) = add_constr!(f.manager, constr)
+function add_constr!(f::Formulation, constr::Constraint)
+    add_vc!(f.cache.constr_cache, constr)
+    return add_constr!(f.manager, constr)
+end
 
 function clone_constr!(dest::Formulation, src::Formulation, constr::Constraint)
     add_constr!(dest, constr)
@@ -155,11 +234,70 @@ function register_objective_sense!(f::Formulation, min::Bool)
 end
 
 function sync_solver(f::Formulation)
-
+    # println("Synching formulation ", get_uid(f))
+    optimizer = get_optimizer(f)
+    cache = f.cache
+    matrix = get_coefficient_matrix(f)
+    # Remove constrs
+    for id in cache.constr_cache.removed
+        @warn "Should not remove constraints yet"
+        c = get_constr(f, id)
+        # println("Removing constraint ", get_name(c))
+        undo_modifs!(cache, c)
+        remove_from_optimizer!(optimizer, c)
+    end
+    # Remove vars
+    for id in cache.var_cache.removed
+        @warn "Should not remove variables yet"
+        v = getvar(f, id)
+        # println("Removing variable ", get_name(v))
+        undo_modifs!(cache, v)
+        remove_from_optimizer!(optimizer, v)
+    end
+    # Add vars
+    for id in cache.var_cache.added
+        v = getvar(f, id)
+        # println("Adding variable ", get_name(v))
+        undo_modifs!(cache, v)
+        add_to_optimzer!(optimizer, v)
+    end
+    # Add constrs
+    for id in cache.constr_cache.added
+        c = get_constr(f, id)
+        # println("Adding constraint ", get_name(c))
+        undo_modifs!(cache, c)
+        add_to_optimzer!(optimizer, c, filter(_explicit_, matrix[id,:]))
+    end
+    # Update variable costs
+    for id in cache.changed_cost
+        update_cost_in_optimizer(optimizer, getvar(f, id))
+    end
+    # Update variable bounds
+    for id in cache.changed_bound
+        @warn "Update of variable bounds not yet implemented"
+    end
+    # Update constraint rhs
+    for id in cache.changed_rhs
+        @warn "Update of constraint rhs not yet implemented"
+    end
+    # Update matrix
+    for ((c_id, v_id), coeff) in cache.reset_coeffs
+        c = get_constr(f, c_id)
+        v = getvar(f, v_id)
+        # println("Setting matrix coefficient: (", get_name(c), ",", get_name(v), ") = ", coeff)
+        update_constr_member_in_optimizer(optimizer, c, v, coeff)
+    end
+    reset_cache!(f)
+    return
 end
 
 function optimize!(form::Formulation)
+    # println("Before sync")
+    # _show_optimizer(form.moi_optimizer)
     sync_solver(form)
+    # println("After sync")
+    # _show_optimizer(form.moi_optimizer)
+
 #     setup_solver(f.moi_optimizer, f, solver_info)
 
     call_moi_optimize_with_silence(form.moi_optimizer)
@@ -175,24 +313,6 @@ function optimize!(form::Formulation)
     @warn "Solver has no result to show."
 #     setdown_solver(f.moi_optimizer, f, solver_info)
     return (status, Inf, nothing, nothing)
-end
-
-function load_problem_in_optimizer(formulation::Formulation)
-    optimizer = get_optimizer(formulation)
-    for (id, var) in filter(_explicit_, get_vars(formulation))
-        add_variable_in_optimizer(optimizer, var)
-    end
-    constrs = filter(
-        _explicit_, rows(get_coefficient_matrix(formulation))
-    )
-    for (constr_id, members) in constrs
-        add_constraint_in_optimizer(
-            optimizer, getelements(constrs)[constr_id],
-            filter(_explicit_, members)
-        )
-    end
-    @debug get_optimizer(formulation)
-    return
 end
 
 function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
