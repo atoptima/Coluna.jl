@@ -233,10 +233,30 @@ function Base.getindex(m::MembersMatrix, ::Colon, col_id)
     _getrecordvector!(m.cols, col_id, m.rows.elements, false)
 end
 
+"""
+    columns(membersmatrix)
+
+Return a `MembersVector` that contains the columns.
+
+When the matrix stores the coefficients of a formulation, the method returns
+a `MembersVector` that contains `Variable` as elements. For each 
+`Variable`, the record is the `MembersVector` that contains the coefficients of
+the `Variable` in each `Constraint`.
+"""
 function columns(m::MembersMatrix)
     return m.cols
 end
 
+"""
+    rows(membersmatrix)
+
+Return a `MembersVector`that contains the rows.
+
+When the matrix stores the coefficients of a formulation, the method returns
+a `MembersVector` that contains `Constraint` as elements. For each 
+`Constraint`, the record is the `MembersVector` that contains the coefficients 
+of each `Variable` in the `Constraint`.
+"""
 function rows(m::MembersMatrix)
     return m.rows
 end
