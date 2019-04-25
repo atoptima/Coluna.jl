@@ -298,10 +298,10 @@ function update_lagrangian_dual_bound(alg::SimplexLpColGenAlg,
     #TODO: clarify this comment
     # by Guillaume : subgradient algorithm needs to know when the incumbent
     if update_dual_bound
-        set_dual_ip_bound!(alg.incumbents, mast_lagrangian_bnd)
+        set_ip_dual_bound!(alg.incumbents, mast_lagrangian_bnd)
         #update_dual_lp_bound(alg.incumbents, mast_lagrangian_bnd) TODO : should provide the dual lp sol
     else # if alg.colgen_stabilization != nothing
-        set_dual_ip_bound!(alg.incumbents, mast_lagrangian_bnd)
+        set_ip_dual_bound!(alg.incumbents, mast_lagrangian_bnd)
         #update_dual_lp_bound(alg.incumbents, mast_lagrangian_bnd)
     end
     return mast_lagrangian_bnd
@@ -349,7 +349,7 @@ function solve_mast_lp_ph2(alg::SimplexLpColGenAlg,
             return true
         end
 
-        set_primal_lp_sol!(alg.incumbents, primal_sol)
+        set_lp_primal_sol!(alg.incumbents, primal_sol)
         # if integer update_primal_ip_incumbents(alg.incumbents, master_val, primal_sol.members)
         ##cleanup_restricted_mast_columns(alg, nb_cg_iterations)
         nb_cg_iterations += 1
