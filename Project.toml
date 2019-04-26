@@ -1,6 +1,6 @@
 name = "Coluna"
 uuid = "88b4ec78-b192-11e8-04aa-4d367dd96a64"
-authors = ["Issam Tahiri <tahiri.inpt@gmail.com>"]
+authors = ["Francois Vanderbeck", "Guillaume Marques", "Vitor Nesello"]
 version = "0.1.0"
 
 [deps]
