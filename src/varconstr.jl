@@ -21,7 +21,7 @@ setsense!(vc::AbstractVcData, sense) = vc.sense = sense
 getid(vc::AbstractVarConstr) = vc.id
 getname(vc::AbstractVarConstr) = vc.name
 getduty(vc::AbstractVarConstr) = vc.duty
-getinitialdata(vc::AbstractVarConstr) = vc.initial_data
+getrecordeddata(vc::AbstractVarConstr) = vc.recorded_data
 getcurdata(vc::AbstractVarConstr) = vc.cur_data
 getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 
@@ -32,11 +32,11 @@ getuid(vc::AbstractVarConstr) = getuid(vc.id)
 getform(vc::AbstractVarConstr) = getformuid(vc.id)
 
 # -> Initial
-getinitkind(vc::AbstractVarConstr) = vc.initial_data.kind
-getinitsense(vc::AbstractVarConstr) = vc.initial_data.sense
-getinitincval(vc::AbstractVarConstr) = vc.initial_data.inc_val
-get_init_is_active(vc::AbstractVarConstr) = vc.initial_data.is_active
-get_init_is_explicit(vc::AbstractVarConstr) = vc.initial_data.is_explicit
+getinitkind(vc::AbstractVarConstr) = vc.recorded_data.kind
+getinitsense(vc::AbstractVarConstr) = vc.recorded_data.sense
+getinitincval(vc::AbstractVarConstr) = vc.recorded_data.inc_val
+get_init_is_active(vc::AbstractVarConstr) = vc.recorded_data.is_active
+get_init_is_explicit(vc::AbstractVarConstr) = vc.recorded_data.is_explicit
 # -> Current
 getcurkind(vc::AbstractVarConstr) = vc.cur_data.kind
 getcursense(vc::AbstractVarConstr) = vc.cur_data.sense

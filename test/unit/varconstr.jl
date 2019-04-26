@@ -64,7 +64,7 @@ function abstract_var_constr_getters_tests()
     @test CL.getid(v) == CL.Id{CL.Variable}(23, 10)
     @test CL.getname(v) == "fake_var"
     @test CL.getduty(v) == CL.MastRepBendSpVar
-    @test CL.getinitialdata(v) === v.initial_data
+    @test CL.getrecordeddata(v) === v.recorded_data
     @test CL.getcurdata(v) === v.cur_data
     @test CL.getmoirecord(v) === v.moirecord
 
@@ -76,7 +76,7 @@ function abstract_var_constr_getters_tests()
     @test CL.getid(c) == CL.Id{CL.Constraint}(23, 10)
     @test CL.getname(c) == "fake_constr"
     @test CL.getduty(c) == CL.MasterBranchConstr
-    @test CL.getinitialdata(c) === c.initial_data
+    @test CL.getrecordeddata(c) === c.recorded_data
     @test CL.getcurdata(c) === c.cur_data
     @test CL.getmoirecord(c) === c.moirecord
 end

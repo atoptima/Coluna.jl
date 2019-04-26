@@ -67,9 +67,9 @@ function variable_getters_and_setters_tests()
         var_data = v_data
     )
 
-    @test CL.getinitcost(v) == CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == CL.get_cost(CL.getinitialdata(v)) == 13.0
-    @test CL.getinitlb(v) == CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == CL.getlb(CL.getinitialdata(v)) == -10.0
-    @test CL.getinitub(v) == CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == CL.getub(CL.getinitialdata(v)) == 100.0
+    @test CL.getinitcost(v) == CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == CL.get_cost(CL.getrecordeddata(v)) == 13.0
+    @test CL.getinitlb(v) == CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == CL.getlb(CL.getrecordeddata(v)) == -10.0
+    @test CL.getinitub(v) == CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == CL.getub(CL.getrecordeddata(v)) == 100.0
 
     CL.setcurcost!(v, -134.0)
     CL.setcurlb!(v, -2001.9)
@@ -78,18 +78,18 @@ function variable_getters_and_setters_tests()
     @test CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == -134.0
     @test CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == -2001.9
     @test CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == 2387.0
-    @test CL.getinitcost(v) == CL.get_cost(CL.getinitialdata(v)) == 13.0
-    @test CL.getinitlb(v) == CL.getlb(CL.getinitialdata(v)) == -10.0
-    @test CL.getinitub(v) == CL.getub(CL.getinitialdata(v)) == 100.0
+    @test CL.getinitcost(v) == CL.get_cost(CL.getrecordeddata(v)) == 13.0
+    @test CL.getinitlb(v) == CL.getlb(CL.getrecordeddata(v)) == -10.0
+    @test CL.getinitub(v) == CL.getub(CL.getrecordeddata(v)) == 100.0
 
     CL.reset!(v)
-    @test v.initial_data.cost == v.cur_data.cost == 13.0
-    @test v.initial_data.lb == v.cur_data.lb == -10.0
-    @test v.initial_data.ub == v.cur_data.ub == 100.0
-    @test v.initial_data.kind == v.cur_data.kind == CL.Continuous
-    @test v.initial_data.sense == v.cur_data.sense == CL.Free
-    @test v.initial_data.inc_val == v.cur_data.inc_val == -1.0
-    @test v.initial_data.is_active == v.cur_data.is_active == false
-    @test v.initial_data.is_explicit == v.cur_data.is_explicit == false
+    @test v.recorded_data.cost == v.cur_data.cost == 13.0
+    @test v.recorded_data.lb == v.cur_data.lb == -10.0
+    @test v.recorded_data.ub == v.cur_data.ub == 100.0
+    @test v.recorded_data.kind == v.cur_data.kind == CL.Continuous
+    @test v.recorded_data.sense == v.cur_data.sense == CL.Free
+    @test v.recorded_data.inc_val == v.cur_data.inc_val == -1.0
+    @test v.recorded_data.is_explicit == v.cur_data.is_explicit == false
+    @test v.recorded_data.is_active == v.cur_data.is_active == false
 
 end

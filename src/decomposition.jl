@@ -90,7 +90,7 @@ function build_dw_master!(prob::Problem,
                                      rhs = rhs, kind  = kind,
                                      sense = sense)
         reformulation.dw_pricing_sp_lb[sp_uid] = getid(lb_conv_constr)
-        setincval!(getinitialdata(lb_conv_constr), 100.0)
+        setincval!(getrecordeddata(lb_conv_constr), 100.0)
         setincval!(getcurdata(lb_conv_constr), 100.0)
         convexity_constrs[getid(lb_conv_constr)] = lb_conv_constr
 
@@ -101,7 +101,7 @@ function build_dw_master!(prob::Problem,
                                      rhs = rhs, kind = kind,
                                      sense = sense)
         reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
-        setincval!(getinitialdata(ub_conv_constr), 100.0)
+        setincval!(getrecordeddata(ub_conv_constr), 100.0)
         setincval!(getcurdata(ub_conv_constr), 100.0)        
         convexity_constrs[getid(ub_conv_constr)] = ub_conv_constr
 

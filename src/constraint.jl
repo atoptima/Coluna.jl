@@ -50,7 +50,7 @@ struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
     duty::Type{<: AbstractConstrDuty}
-    initial_data::ConstrData
+    recorded_data::ConstrData
     cur_data::ConstrData
     moirecord::MoiConstrRecord
 end
@@ -75,11 +75,11 @@ getcurrhs(vc::Constraint) = vc.cur_data.rhs
 setcurrhs!(vc::Constraint, rhs) = setcurrhs!(vc, float(rhs))
 setcurrhs!(vc::Constraint, rhs::Float64) = vc.cur_data.rhs = rhs
 # Current
-getinitrhs(vc::Constraint) = vc.initial_data.rhs
-#set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.initial_data.rhs = rhs
+getinitrhs(vc::Constraint) = vc.recorded_data.rhs
+#set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.recorded_data.rhs = rhs
 
 function reset!(c::Constraint)
-    initial = getinitialdata(c)
+    initial = getrecordeddata(c)
     cur = getcurdata(c)
     cur.rhs = initial.rhs
     cur.inc_val = initial.inc_val

@@ -78,7 +78,7 @@ struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
     duty::Type{<: AbstractVarDuty}
-    initial_data::VarData
+    recorded_data::VarData
     cur_data::VarData
     moirecord::MoiVarRecord
 end
@@ -100,7 +100,7 @@ end
 #            over AbstractVarConstr in file varconstr.jl
 
 function reset!(v::Variable)
-    initial = getinitialdata(v)
+    initial = getrecordeddata(v)
     cur = getcurdata(v)
     cur.cost = initial.cost
     cur.lb = initial.lb
@@ -115,12 +115,12 @@ end
 # Helpers for getters  and stter that acces fields in a level under Variable
 
 # -> Initial
-getinitcost(vc::AbstractVarConstr) = vc.initial_data.cost
-getinitlb(vc::AbstractVarConstr) = vc.initial_data.lb
-getinitub(vc::AbstractVarConstr) = vc.initial_data.ub
-# setinitcost!(vc::AbstractVarConstr, cost::Float64) = vc.initial_data.cost
-# setinitlb!(vc::AbstractVarConstr, lb::Float64) = vc.initial_data.lb = lb
-# setinitub!(vc::AbstractVarConstr, ub::Float64) = vc.initial_data.ub = ub
+getinitcost(vc::AbstractVarConstr) = vc.recorded_data.cost
+getinitlb(vc::AbstractVarConstr) = vc.recorded_data.lb
+getinitub(vc::AbstractVarConstr) = vc.recorded_data.ub
+# setinitcost!(vc::AbstractVarConstr, cost::Float64) = vc.recorded_data.cost
+# setinitlb!(vc::AbstractVarConstr, lb::Float64) = vc.recorded_data.lb = lb
+# setinitub!(vc::AbstractVarConstr, ub::Float64) = vc.recorded_data.ub = ub
 # -> Current
 getcurcost(vc::AbstractVarConstr) = vc.cur_data.cost
 getcurlb(vc::AbstractVarConstr) = vc.cur_data.lb
