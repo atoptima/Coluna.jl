@@ -61,11 +61,12 @@ switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 getincumbents(s::TreeSolver) = s.incumbents
 
 function apply_on_node(strategy::Type{<:AbstractStrategy},
-                       f::Reformulation, n::Node, r, p)
+                       formulation::Reformulation, node::Node, r, p)
     # Check if it needs to be treated, because pb might have improved
-    setup(f, n)
-    apply(strategy, f, n, r, nothing)
-    record(f, n)
+    setup(formulation, node)
+    apply(strategy, formulation, node, r, nothing)
+    record(formulation, node)
+    return
 end
 
 function apply(::Type{<:TreeSolver}, f::Reformulation)
@@ -80,45 +81,46 @@ function apply(::Type{<:TreeSolver}, f::Reformulation)
            && get_nb_treated_nodes(tree_solver) < _params_.max_num_nodes)
 
         cur_node = pop_node!(tree_solver)
+        
         print_info_before_apply(cur_node, tree_solver)
-
         apply_on_node(strategy, f, cur_node, r, nothing)
-
-        print_info_after_apply(cur_node, tree_solver)
         update_tree_solver(tree_solver, cur_node)
+        print_info_after_apply(cur_node, tree_solver)
     end
 
 end
 
-function update_primals(s::TreeSolver, n_incumbents::Incumbents)
-    s_incumbents = getincumbents(s)
-    if isbetter(get_ip_primal_bound(n_incumbents),
-                get_ip_primal_bound(s_incumbents))
-        s_incumbents.ip_primal_sol = copy(get_ip_primal_sol(n_incumbents))
-    end
+function updateprimals!(tree::TreeSolver, cur_node_incumbents::Incumbents)
+    tree_incumbents = getincumbents(tree)
+    set_ip_primal_sol!(
+        tree_incumbents, copy(get_ip_primal_sol(cur_node_incumbents))
+    )
+    return
 end
 
-function update_duals(s::TreeSolver, n_incumbents::Incumbents)
-    s_incumbents = getincumbents(s)
-    worst_bound = get_ip_dual_bound(n_incumbents)
-    for (n, priority) in getnodes(get_primary_tree(s))
-        db = get_ip_dual_bound(getincumbents(n))
+function updateduals!(tree::TreeSolver, cur_node_incumbents::Incumbents)
+    tree_incumbents = getincumbents(tree)
+    worst_bound = get_ip_dual_bound(cur_node_incumbents)
+    for (node, priority) in getnodes(get_primary_tree(tree))
+        db = get_ip_dual_bound(getincumbents(node))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
-    for (n, priority) in getnodes(get_secondary_tree(s))
-        db = get_ip_dual_bound(getincumbents(n))
+    for (node, priority) in getnodes(get_secondary_tree(tree))
+        db = get_ip_dual_bound(getincumbents(node))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
-    s_incumbents.ip_dual_bound = worst_bound
+    set_ip_dual_bound!(tree_incumbents, worst_bound)
+    return
 end
 
-function update_bounds(s::TreeSolver, n_incumbents::Incumbents)
-    update_primals(s, n_incumbents)
-    update_duals(s, n_incumbents)
+function updatebounds!(tree::TreeSolver, cur_node::Node)
+    cur_node_incumbents = getincumbents(cur_node)
+    updateprimals!(tree, cur_node_incumbents)
+    updateduals!(tree, cur_node_incumbents)
 end
 
 function update_tree_solver(s::TreeSolver, n::Node)
@@ -136,7 +138,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
     for idx in length(n.children):-1:1
         add_node(t, pop!(n.children))
     end
-    update_bounds(s, getincumbents(n))
+    updatebounds!(s, n)
 end
 
 function print_info_before_apply(n::Node, s::TreeSolver)
@@ -167,6 +169,21 @@ function print_info_after_apply(n::Node, s::TreeSolver)
     println("************************************************************")
     println("Node ", get_treat_order(n), " is treated")
     println("Generated ", length(getchildren(n)), " children nodes")
+
+    node_incumbents = getincumbents(n)
+    db = get_ip_dual_bound(node_incumbents)
+    pb = get_ip_primal_bound(node_incumbents)
+
+    print("Node bounds : ")
+    printbounds(db, pb)
+    println(" ")
+
+    node_incumbents = getincumbents(s)
+    db = get_ip_dual_bound(node_incumbents)
+    pb = get_ip_primal_bound(node_incumbents)
+    print("Tree bounds : ")
+    printbounds(db, pb)
+    println(" ")
     println("************************************************************")
     return
 end

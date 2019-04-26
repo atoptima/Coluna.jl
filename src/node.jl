@@ -19,7 +19,12 @@ getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
 getincumbents(n::Node) = n.incumbents
-get_solver_records(n::Node) = n.solver_records
+
+function set_solver_record!(n::Node, S::Type{<:AbstractSolver}, 
+                            r::AbstractSolverRecord)
+    n.solver_records[S] = r
+end
+get_solver_record!(n::Node, S::Type{<:AbstractSolver}) = n.solver_records[S]
 
 function to_be_pruned(n::Node)
     return true

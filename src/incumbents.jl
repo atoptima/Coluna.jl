@@ -103,3 +103,12 @@ function set_lp_dual_sol!(inc::Incumbents{S},
     end
     return false
 end
+
+"Updates the fields of `dest` that are worse than those of `src`."
+function set!(dest::Incumbents{S}, src::Incumbents{S}) where {S}
+    set_ip_primal_sol!(dest, get_ip_primal_sol(src))
+    set_lp_primal_sol!(dest, get_lp_primal_sol(src))
+    set_ip_dual_bound!(dest, get_ip_dual_bound(src))
+    set_lp_dual_sol!(dest, get_lp_dual_sol(src))
+    return
+end
