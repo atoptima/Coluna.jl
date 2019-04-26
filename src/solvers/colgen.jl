@@ -10,8 +10,9 @@ function ColumnGenerationData(S::Type{<:AbstractObjSense})
     return ColumnGenerationData(Incumbents(S), false, true)
 end
 
+# Data needed for another round of column generation
 struct ColumnGenerationRecord <: AbstractSolverRecord
-    # Data needed for another round of column generation
+    incumbents::Incumbents
 end
 
 # Overload of the solver interface
@@ -26,9 +27,10 @@ function run!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData,
     return solve_mast_lp_ph2(solver_data, formulation)
 end
 
-function setdown!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData, 
-                formulation, node)
+function setdown!(::Type{ColumnGeneration}, 
+                 solver_record::ColumnGenerationRecord, formulation, node)
     @logmsg LogLevel(-1) "Record ColumnGeneration."
+    set!(node.incumbents, solver_record.incumbents)
 end
 
 # Internal methods to the column generation
@@ -301,7 +303,7 @@ function update_lagrangian_dual_bound(alg::ColumnGenerationData,
 end
 
 function solve_mast_lp_ph2(alg::ColumnGenerationData,
-                           reformulation::Reformulation)
+                           reformulation::Reformulation)::ColumnGenerationRecord
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
@@ -339,7 +341,7 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
         if status_rm == MOI.INFEASIBLE || status_rm == MOI.INFEASIBLE_OR_UNBOUNDED
             # @logmsg LogLevel(-2) "master restrcited lp solver returned infeasible"
             #mark_infeasible(alg)
-            return true
+            return ColumnGenerationRecord(alg.incumbents)
         end
 
         set_lp_primal_sol!(alg.incumbents, primal_sol)
@@ -364,7 +366,7 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
             # In case subproblem infeasibility results in master infeasibility
             if nb_new_col < 0
                 #mark_infeasible(alg)
-                return true
+                return ColumnGenerationRecord(alg.incumbents)
             end
             # if alg.colgen_stabilization == nothing
             #|| !update_after_pricing_problem_solution(alg.colgen_stabilization, nb_new_col)
@@ -391,20 +393,20 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
 
         if nb_new_col == 0 || diff(lower_bound + 0.00001, upper_bound) < 0
             alg.has_converged = true
-            return false
+            return ColumnGenerationRecord(alg.incumbents)
         end
         if nb_cg_iterations > 1000 ##TDalg.max_nb_cg_iterations
             # println("Maximum number of column generation iteration is reached")
             # @logmsg LogLevel(-2) "max_nb_cg_iterations limit reached"
             alg.is_feasible = false
-            return true
+            return ColumnGenerationRecord(alg.incumbents)
         end
         # @logmsg LogLevel(-2) "next colgen ph2 iteration"
     end
     # These lines are never executed becasue there is no break from the outtermost 'while true' above
     # @logmsg LogLevel(-2) "solve_mast_lp_ph2 has finished"
     # return false
-    return ColumnGenerationRecord()
+    return ColumnGenerationRecord(alg.incumbents)
 end
 
 function print_intermediate_statistics(alg::ColumnGenerationData,

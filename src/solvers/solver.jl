@@ -39,7 +39,7 @@ Return the  `AbstractSolverRecord` structure that corresponds to the solver
 function run! end
 
 """
-    setdown!(SolverType, solverdata, formulation, node)
+    setdown!(SolverType, solverrecord, formulation, node)
 
 Updates the `formulation` and the `node` after the execution of the solver
 `SolverType`.
@@ -56,7 +56,7 @@ function run!(T::Type{<:AbstractSolver}, solverdata, formulation, node, paramete
     @error "run! method not implemented for $T."
 end
 
-function setdown!(T::Type{<:AbstractSolver}, solverdata, formulation, node)
+function setdown!(T::Type{<:AbstractSolver}, solverrecord, formulation, node)
     @error "setdown! not implemented for $T."
 end
 
@@ -72,7 +72,8 @@ function apply!(S::Type{<:AbstractSolver}, formulation, node, strategyrecord,
     setsolver!(strategyrecord, S)
     solver_data = setup!(S, formulation, node)
     record = run!(S, solver_data, formulation, node, parameters)
-    setdown!(S, solver_data, formulation, node)
+    set_solver_record!(node, S, record)
+    setdown!(S, record, formulation, node)
     return
 end
 
