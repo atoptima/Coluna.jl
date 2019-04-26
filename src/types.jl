@@ -81,13 +81,13 @@ struct OriginalConstr <: AbstractOriginalConstr end
 struct MasterPureConstr <: AbstractMasterConstr end
 
 "Constraint belongs to the master formulation."
-struct MasterConstr <: AbstractMasterRepOriginalConstr end
+struct MasterConstr <: AbstractMasterRepOriginalConstr end # is it correct?
 
 "Convexity constraint of the master formulation."
 struct MasterConvexityConstr <: AbstractMasterConstr end
 
 "Branching constraint in the master formulation."
-struct MasterBranchConstr <: AbstractMasterRepOriginalConstr end
+struct MasterBranchConstr <: AbstractMasterRepOriginalConstr end # is is correct?
 
 "Constraint of the pricing subproblem."
 struct PricingSpPureConstr <: AbstractDwSpConstr end
@@ -177,14 +177,14 @@ const MoiVarKind = Union{MoiInteger,MoiBinary}
 MoiVarKind() = MoiInteger(-1)
 
 # Helper functions to transform MOI types in Coluna types
-get_sense(::MOI.LessThan{T}) where {T} = Less
-get_sense(::MOI.GreaterThan{T}) where {T} = Greater
-get_sense(::MOI.EqualTo{T}) where {T} = Equal
-get_rhs(set::MOI.LessThan{T}) where {T} = set.upper
-get_rhs(set::MOI.GreaterThan{T}) where {T} = set.lower
-get_rhs(set::MOI.EqualTo{T}) where {T} = set.value
-get_kind(::MOI.ZeroOne) = Binary
-get_kind(::MOI.Integer) = Integ
+setsense(::MOI.LessThan{T}) where {T} = Less
+setsense(::MOI.GreaterThan{T}) where {T} = Greater
+setsense(::MOI.EqualTo{T}) where {T} = Equal
+getrhs(set::MOI.LessThan{T}) where {T} = set.upper
+getrhs(set::MOI.GreaterThan{T}) where {T} = set.lower
+getrhs(set::MOI.EqualTo{T}) where {T} = set.value
+getkind(::MOI.ZeroOne) = Binary
+getkind(::MOI.Integer) = Integ
 function get_moi_set(constr_set::ConstrSense)
     constr_set == Less && return MOI.LessThan
     constr_set == Greater && return MOI.GreaterThan

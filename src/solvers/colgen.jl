@@ -36,8 +36,8 @@ end
 # Internal methods to the column generation
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
-    for (id, var) in filter(_active_pricingSpVar_ , get_vars(sp_form))
-        set_cur_cost!(var, get_init_cost(var))
+    for (id, var) in filter(_active_pricing_sp_var_ , get_vars(sp_form))
+        setcurcost!(var, getinitcost(var))
     end
 
     coefficient_matrix = get_coefficient_matrix(sp_form.parent_formulation)
@@ -45,7 +45,7 @@ function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
     for (var_id, var) in get_vars(sp_form)
         for (constr_id, dual_val) in getsol(dual_sol)
             coeff = coefficient_matrix[constr_id, var_id]
-            set_cur_cost!(var, get_cur_cost(var) - dual_val * coeff)
+            setcurcost!(var, getcurcost(var) - dual_val * coeff)
         end
     end
     for (var_id, var) in get_vars(sp_form)
@@ -60,7 +60,7 @@ function update_pricing_target(sp_form::Formulation)
 end
 
 function compute_original_cost(sp_sol, sp_form)
-    val = sum(get_init_cost(getvar(sp_form, var_id)) * value for (var_id, value) in sp_sol)
+    val = sum(getinitcost(getvar(sp_form, var_id)) * value for (var_id, value) in sp_sol)
     return val
 end
 
@@ -69,7 +69,7 @@ function insert_cols_in_master(master_form::Formulation,
                                sp_sols::Vector{PrimalSolution{S}}) where {S}
 
     # println("\e[1;32m insert cols in master \e[00m")
-    sp_uid = get_uid(sp_form)
+    sp_uid = getuid(sp_form)
     #mbship = master_form.memberships
     nb_of_gen_col = 0
     
@@ -111,7 +111,7 @@ function insert_cols_in_master(master_form::Formulation,
             # since the setup variable is in the sp solution and it has a
             # a coefficient of 1.0 in the convexity constraints
             matrix = get_coefficient_matrix(sp_form.parent_formulation)
-            mc_id = get_id(mc)
+            mc_id = getid(mc)
             for (var_id, var_val) in getsol(sp_sol)
                 for (constr_id, var_coef) in matrix[:,var_id]
                     matrix[constr_id,mc_id] = var_val * var_coef
@@ -221,7 +221,7 @@ function gen_new_columns(reformulation::Reformulation,
     dual_bound_contrib = DualBound(S, 0.0)
     master_form = getmaster(reformulation)
     for sp_form in reformulation.dw_pricing_subprs
-        sp_uid = get_uid(sp_form)
+        sp_uid = getuid(sp_form)
         (gen_status, contrib) = gen_new_col(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
 
         if gen_status > 0
@@ -313,11 +313,11 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
 
     # collect multiplicity current bounds for each sp
     for sp_form in reformulation.dw_pricing_subprs
-        sp_uid = get_uid(sp_form)
+        sp_uid = getuid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = get_init_rhs(get_constr(master_form, lb_convexity_constr_id))
-        sp_ubs[sp_uid] = get_init_rhs(get_constr(master_form, ub_convexity_constr_id))
+        sp_lbs[sp_uid] = getinitrhs(get_constr(master_form, lb_convexity_constr_id))
+        sp_ubs[sp_uid] = getinitrhs(get_constr(master_form, ub_convexity_constr_id))
     end
 
     # @show sp_lbs
@@ -386,12 +386,12 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
         # println("colgen iter ", nb_cg_iterations,
         #                            " : inserted ", nb_new_col, " columns")
 
-        lower_bound = get_ip_dual_bound(alg.incumbents)
-        upper_bound = min(
+        lb = get_ip_dual_bound(alg.incumbents)
+        ub = min(
             get_lp_primal_bound(alg.incumbents), get_ip_primal_bound(alg.incumbents)
         )
 
-        if nb_new_col == 0 || diff(lower_bound + 0.00001, upper_bound) < 0
+        if nb_new_col == 0 || diff(lb + 0.00001, ub) < 0
             alg.has_converged = true
             return ColumnGenerationRecord(alg.incumbents)
         end

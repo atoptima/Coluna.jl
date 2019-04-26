@@ -38,10 +38,10 @@ Base.isequal(a::Id, b::Id) = Base.isequal(a._hash, b._hash)
 Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
 Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
 Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
-get_uid(id::Id) = id.uid
+getuid(id::Id) = id.uid
 getformuid(id::Id) = id.form_uid
 getprocuid(id::Id) = id.proc_uid
-getsortid(id::Id) = get_uid(id) + 1000000 * getformuid(id)
+getsortid(id::Id) = getuid(id) + 1000000 * getformuid(id)
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, T,"#", id._hash)

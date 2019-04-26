@@ -24,7 +24,7 @@ end
 # Attention: Some getters and setters of ConstrData are defined over
 #            AbstractVcData in file varconstr.jl
 
-get_rhs(c::ConstrData) = c.rhs
+getrhs(c::ConstrData) = c.rhs
 set_rhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 
 """
@@ -38,8 +38,8 @@ end
 
 MoiConstrRecord(;index = MoiConstrIndex()) = MoiConstrRecord(index)
 
-get_index(record::MoiConstrRecord) = record.index
-set_index!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
+getindex(record::MoiConstrRecord) = record.index
+setindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
 """
     Constraint
@@ -52,7 +52,7 @@ struct Constraint <: AbstractVarConstr
     duty::Type{<: AbstractConstrDuty}
     initial_data::ConstrData
     cur_data::ConstrData
-    moi_record::MoiConstrRecord
+    moirecord::MoiConstrRecord
 end
 const ConstrId = Id{Constraint}
 
@@ -71,16 +71,16 @@ end
 #       over AbstractVarConstr in file varconstr.jl
 
 # Initial
-get_cur_rhs(vc::Constraint) = vc.cur_data.rhs
-set_cur_rhs!(vc::Constraint, rhs) = set_cur_rhs!(vc, float(rhs))
-set_cur_rhs!(vc::Constraint, rhs::Float64) = vc.cur_data.rhs = rhs
+getcurrhs(vc::Constraint) = vc.cur_data.rhs
+setcurrhs!(vc::Constraint, rhs) = setcurrhs!(vc, float(rhs))
+setcurrhs!(vc::Constraint, rhs::Float64) = vc.cur_data.rhs = rhs
 # Current
-get_init_rhs(vc::Constraint) = vc.initial_data.rhs
+getinitrhs(vc::Constraint) = vc.initial_data.rhs
 #set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.initial_data.rhs = rhs
 
 function reset!(c::Constraint)
-    initial = get_initial_data(c)
-    cur = get_cur_data(c)
+    initial = getinitialdata(c)
+    cur = getcurdata(c)
     cur.rhs = initial.rhs
     cur.inc_val = initial.inc_val
     cur.kind = initial.kind

@@ -81,7 +81,7 @@ function apply(::Type{<:TreeSolver}, f::Reformulation)
            && get_nb_treated_nodes(tree_solver) < _params_.max_num_nodes)
 
         cur_node = pop_node!(tree_solver)
-        
+
         print_info_before_apply(cur_node, tree_solver)
         apply_on_node(strategy, f, cur_node, r, nothing)
         update_tree_solver(tree_solver, cur_node)

@@ -210,7 +210,7 @@ function add_variable_tests()
 
     vars[1].vc_type = 'B'
     vars[1].upper_bound = 1.0
-    vars[1].lower_bound = 0.0
+    vars[1].lb = 0.0
     CL.add_variable(problem, vars[1])
     objf = MOI.get(problem.optimizer,
         MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
@@ -258,7 +258,7 @@ function add_variable_in_optimizer_tests()
 
     vars[1].vc_type = 'B'
     vars[1].upper_bound = 1.0
-    vars[1].lower_bound = 0.0
+    vars[1].lb = 0.0
     CL.add_variable_in_optimizer(problem.optimizer, vars[1], false)
     objf = MOI.get(problem.optimizer,
         MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
@@ -272,7 +272,7 @@ function add_variable_in_optimizer_tests()
 
     vars[2].vc_type = 'B'
     vars[2].upper_bound = 1.0
-    vars[2].lower_bound = 0.1
+    vars[2].lb = 0.1
     CL.add_variable_in_optimizer(problem.optimizer, vars[2], false)
     objf = MOI.get(problem.optimizer,
         MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
@@ -292,7 +292,7 @@ function add_variable_in_optimizer_tests()
     @test MOI.get(problem.optimizer, MOI.ConstraintSet(), list_of_ci[1]) == MOI.Integer()
 
     vars[4].vc_type = 'C'
-    vars[4].lower_bound = 5.0
+    vars[4].lb = 5.0
     vars[4].upper_bound = 10.0
     CL.add_variable_in_optimizer(problem.optimizer, vars[4], false)
     list_of_ci = MOI.get(problem.optimizer,

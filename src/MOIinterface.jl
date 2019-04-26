@@ -33,7 +33,7 @@ end
 function compute_moi_terms(members::VarMembership)
     return [
         MOI.ScalarAffineTerm{Float64}(
-            coef, get_index(get_moi_record(getelements(members)[id]))
+            coef, getindex(getmoirecord(getelements(members)[id]))
         ) for (id, coef) in members
     ]
 end
@@ -41,7 +41,7 @@ end
 function compute_moi_terms(var_dict::VarDict)
     return [
         MOI.ScalarAffineTerm{Float64}(
-            get_cost(get_cur_data(var)), get_index(get_moi_record(var))
+            get_cost(getcurdata(var)), getindex(getmoirecord(var))
         ) for (id, var) in var_dict
     ]
 end
@@ -55,8 +55,8 @@ function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
 end
 
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, v::Variable)
-    cost = get_cost(get_cur_data(v))
-    moi_index = get_index(get_moi_record(v))
+    cost = get_cost(getcurdata(v))
+    moi_index = getindex(getmoirecord(v))
     MOI.modify(
         optimizer, MoiObjective(),
         MOI.ScalarCoefficientChange{Float64}(moi_index, cost)
@@ -67,8 +67,8 @@ end
 function update_constr_member_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                            c::Constraint, v::Variable,
                                            coeff::Float64)
-    moi_c_index = get_index(get_moi_record(c))
-    moi_v_index = get_index(get_moi_record(v))
+    moi_c_index = getindex(getmoirecord(c))
+    moi_v_index = getindex(getmoirecord(v))
     MOI.modify(
         optimizer, moi_c_index,
         MOI.ScalarCoefficientChange{Float64}(moi_v_index, coeff)
@@ -78,46 +78,46 @@ end
 
 function enforce_bounds_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                      v::Variable)
-    cur_data = get_cur_data(v)
-    moi_record = get_moi_record(v)
+    cur_data = getcurdata(v)
+    moirecord = getmoirecord(v)
     moi_bounds = MOI.add_constraint(
-        optimizer, MOI.SingleVariable(get_index(moi_record)),
-        MOI.Interval(get_lb(cur_data), get_ub(cur_data))
+        optimizer, MOI.SingleVariable(getindex(moirecord)),
+        MOI.Interval(getlb(cur_data), getub(cur_data))
     )
-    set_bounds!(moi_record, moi_bounds)
+    setbounds!(moirecord, moi_bounds)
     return
 end
 
 function enforce_var_kind_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                        v::Variable)
-    kind = get_kind(get_cur_data(v))
-    moi_record = get_moi_record(v)
+    kind = getkind(getcurdata(v))
+    moirecord = getmoirecord(v)
     if kind == Continuous
-        moi_bounds = get_bounds(moi_record)
+        moi_bounds = getbounds(moirecord)
         if moi_bounds.value != -1
             MOI.delete(optimizer, moi_bounds)
-            set_bounds!(moi_record, MoiVarBound(-1))
+            setbounds!(moirecord, MoiVarBound(-1))
         end
     else
         moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
-        set_kind!(moi_record, MOI.add_constraint(
-            optimizer, MOI.SingleVariable(get_index(moi_record)), moi_set
+        setkind!(moirecord, MOI.add_constraint(
+            optimizer, MOI.SingleVariable(getindex(moirecord)), moi_set
         ))
     end
     return
 end
 
 function add_to_optimzer!(optimizer::MOI.AbstractOptimizer, v::Variable)
-    cur_data = get_cur_data(v)
-    moi_record = get_moi_record(v)
+    cur_data = getcurdata(v)
+    moirecord = getmoirecord(v)
     moi_index = MOI.add_variable(optimizer)
-    set_index!(moi_record, moi_index)
+    setindex!(moirecord, moi_index)
     update_cost_in_optimizer(optimizer, v)
     enforce_var_kind_in_optimizer(optimizer, v)
-    if (get_kind(cur_data) != Binary)
+    if (getkind(cur_data) != Binary)
         enforce_bounds_in_optimizer(optimizer, v)
     end
-    MOI.set(optimizer, MOI.VariableName(), moi_index, get_name(v))
+    MOI.set(optimizer, MOI.VariableName(), moi_index, getname(v))
     return
 end
 
@@ -127,14 +127,14 @@ function add_to_optimzer!(optimizer::MOI.AbstractOptimizer,
 
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
-    cur_data = get_cur_data(constr)
-    moi_set = get_moi_set(get_sense(cur_data))
+    cur_data = getcurdata(constr)
+    moi_set = get_moi_set(setsense(cur_data))
     moi_constr = MOI.add_constraint(
-        optimizer, f, moi_set(get_rhs(cur_data))
+        optimizer, f, moi_set(getrhs(cur_data))
     )
-    moi_record = get_moi_record(constr)
-    set_index!(moi_record, moi_constr)
-    MOI.set(optimizer, MOI.ConstraintName(), moi_constr, get_name(constr))
+    moirecord = getmoirecord(constr)
+    setindex!(moirecord, moi_constr)
+    MOI.set(optimizer, MOI.ConstraintName(), moi_constr, getname(constr))
     return
 end
 
@@ -142,9 +142,9 @@ function fill_primal_sol(moi_optimizer::MOI.AbstractOptimizer,
                          sol::Dict{VarId,Float64},
                          vars::VarDict, res_idx::Int = 1)
     for (id, var) in vars
-        moi_index = get_index(get_moi_record(var))
+        moi_index = getindex(getmoirecord(var))
         val = MOI.get(moi_optimizer, MOI.VariablePrimal(res_idx), moi_index)
-        #@logmsg LogLevel(-4) string("Var ", get_name(var), " = ", val)
+        #@logmsg LogLevel(-4) string("Var ", getname(var), " = ", val)
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             sol[id] = val
         end
@@ -157,7 +157,7 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
                        constrs::ConstrDict)
     for (id, constr) in constrs
         val = 0.0
-        moi_index = get_index(get_moi_record(constr))
+        moi_index = getindex(getmoirecord(constr))
         try # This try is needed because of the erroneous assertion in LQOI
             val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
         catch err
@@ -190,23 +190,23 @@ end
 
 function remove_from_optimizer!(optimizer::MOI.AbstractOptimizer,
                                 var::Variable)
-    moi_record = get_moi_record(var)
-    @assert get_index(moi_record).value != -1
-    MOI.delete(optimizer, get_bounds(moi_record))
-    set_bounds!(moi_record, MoiVarBound())
-    MOI.delete(optimizer, get_kind(moi_record))
-    set_kind!(moi_record, MoiVarKind())
-    MOI.delete(optimizer, get_index(moi_record))
-    set_index!(optimizer, MoiVarIndex())
+    moirecord = getmoirecord(var)
+    @assert getindex(moirecord).value != -1
+    MOI.delete(optimizer, getbounds(moirecord))
+    setbounds!(moirecord, MoiVarBound())
+    MOI.delete(optimizer, getkind(moirecord))
+    setkind!(moirecord, MoiVarKind())
+    MOI.delete(optimizer, getindex(moirecord))
+    setindex!(optimizer, MoiVarIndex())
     return
 end
 
 function remove_from_optimizer!(optimizer::MOI.AbstractOptimizer,
                                 constr::Constraint)
-    moi_record = get_moi_record(constr)
-    @assert get_index(moi_record).value != -1
-    MOI.delete(optimizer, get_index(moi_record))
-    set_index!(optimizer, MoiConstrIndex())
+    moirecord = getmoirecord(constr)
+    @assert getindex(moirecord).value != -1
+    MOI.delete(optimizer, getindex(moirecord))
+    setindex!(optimizer, MoiConstrIndex())
     return
 end
 

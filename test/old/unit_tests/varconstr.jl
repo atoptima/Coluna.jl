@@ -55,7 +55,7 @@ function variable_test()
     @test var_1.sense == 'P'
     @test var_1.vc_type == 'B'
     @test var_1.flag == 's'
-    @test var_1.lower_bound == 0.0
+    @test var_1.lb == 0.0
     @test var_1.upper_bound == 1.0
 
     var_2 = CL.Variable(var_1, vc_counter)
@@ -69,7 +69,7 @@ function variable_test()
     @test var_2.sense == var_1.sense == 'P'
     @test var_2.vc_type == var_1.vc_type == 'B'
     @test var_2.flag == var_1.flag == 's'
-    @test var_2.lower_bound == -Inf
+    @test var_2.lb == -Inf
     @test var_2.upper_bound == Inf
 end
 

@@ -86,7 +86,7 @@ function update_annotations(srs::MOI.ModelLike,
     if !haskey(vc_per_block, annotation.unique_id)
         vc_per_block[annotation.unique_id] = C()
     end
-    vc_per_block[annotation.unique_id][get_id(vc)] = vc
+    vc_per_block[annotation.unique_id][getid(vc)] = vc
     return
 end
 
@@ -98,8 +98,8 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
     obj = MOI.get(src, MoiObjective())
     for term in obj.terms
         var = getvar(f, moi_uid_to_coluna_id[term.variable_index.value])
-        initial_data = get_initial_data(var)
-        set_cost!(initial_data, term.coefficient)
+        initial_data = getinitialdata(var)
+        setcost!(initial_data, term.coefficient)
         reset!(var)
         commit_cost_change!(f, var)
     end
@@ -119,8 +119,8 @@ function create_origvars!(f::Formulation,
             name = string("var_", moi_index.value)
         end
         v = set_var!(f, name, OriginalVar)
-        var_id = get_id(v)
-        dest.moi_index_to_coluna_uid[moi_index] = MOI.VariableIndex(get_uid(var_id))
+        var_id = getid(v)
+        dest.moi_index_to_coluna_uid[moi_index] = MOI.VariableIndex(getuid(var_id))
         moi_uid_to_coluna_id[moi_index.value] = var_id
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
         update_annotations(
@@ -137,11 +137,11 @@ function create_origconstr!(f::Formulation,
                             moi_uid_to_coluna_id::Dict{Int,VarId})
 
     var = getvar(f, moi_uid_to_coluna_id[func.variable.value])
-    initial_data = get_initial_data(var)
+    initial_data = getinitialdata(var)
     if typeof(set) in [MOI.ZeroOne, MOI.Integer]
-        set_kind!(initial_data, get_kind(set))
+        setkind!(initial_data, getkind(set))
     else
-        set_bound(initial_data, get_sense(set), get_rhs(set))
+        setbound(initial_data, setsense(set), getrhs(set))
     end
     reset!(var)
     commit_bound_change!(f, var)
@@ -158,13 +158,13 @@ function create_origconstr!(f::Formulation,
                             moi_uid_to_coluna_id::Dict{Int,VarId})
 
     c = set_constr!(f, name, OriginalConstr;
-                    rhs = get_rhs(set),
+                    rhs = getrhs(set),
                     kind = Core,
-                    sense = get_sense(set),
+                    sense = setsense(set),
                     inc_val = 10.0) #TODO set inc_val in model
-    constr_id = get_id(c)
+    constr_id = getid(c)
     dest.moi_index_to_coluna_uid[moi_index] =
-        MOI.ConstraintIndex{typeof(func),typeof(set)}(get_uid(constr_id))
+        MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constr_id))
     matrix = get_coefficient_matrix(f)
     for term in func.terms
         var_id = moi_uid_to_coluna_id[term.variable_index.value]

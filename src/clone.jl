@@ -3,10 +3,10 @@ function clone_in_formulation!(dest::Formulation,
                                var::Variable,
                                duty::Type{<:AbstractDuty},
                                is_explicit::Bool = true)
-    data = deepcopy(get_initial_data(var))
+    data = deepcopy(getinitialdata(var))
     set_is_explicit!(data, is_explicit)
     var_clone = Variable(
-        get_id(var), get_name(var), duty;
+        getid(var), getname(var), duty;
         var_data = data
     )
     add_var!(dest, var_clone)
@@ -20,10 +20,10 @@ function clone_in_formulation!(dest::Formulation,
                                duty::Type{<:AbstractDuty},
                                is_explicit::Bool = true)
 
-    data = deepcopy(get_initial_data(constr))
+    data = deepcopy(getinitialdata(constr))
     set_is_explicit!(data, is_explicit)
     constr_clone = Constraint(
-        get_id(constr), get_name(constr), duty; constr_data = data
+        getid(constr), getname(constr), duty; constr_data = data
     )
     add_constr!(dest, constr_clone)
     clone_in_manager!(dest.manager, src.manager, constr_clone)

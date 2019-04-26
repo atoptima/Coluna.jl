@@ -96,7 +96,7 @@ Updates the dual solution to the linear program if the new one is better than th
 current one according to the objective sense.
 """
 function set_lp_dual_sol!(inc::Incumbents{S},
-                            sol::DualSolution{S}) where {S}
+                          sol::DualSolution{S}) where {S}
     if isbetter(getbound(sol), getbound(inc.lp_dual_sol))
         inc.lp_dual_sol = sol
         return true

@@ -5,8 +5,8 @@ Information that defines a state of a variable. These are the fields of a variab
 """
 mutable struct VarData <: AbstractVcData
     cost::Float64
-    lower_bound::Float64
-    upper_bound::Float64
+    lb::Float64
+    ub::Float64
     kind::VarKind
     sense::VarSense
     inc_val::Float64
@@ -29,18 +29,18 @@ end
 #            in file varconstr.jl
 
 get_cost(v::VarData) = v.cost
-get_lb(v::VarData) = v.lower_bound
-get_ub(v::VarData) = v.upper_bound
+getlb(v::VarData) = v.lb
+getub(v::VarData) = v.ub
 
-set_cost!(v::VarData, cost::Float64) = v.cost = cost
-set_lb!(v::VarData, lb::Float64) = v.lower_bound = lb
-set_ub!(v::VarData, ub::Float64) = v.upper_bound = ub
+setcost!(v::VarData, cost::Float64) = v.cost = cost
+set_lb!(v::VarData, lb::Float64) = v.lb = lb
+set_ub!(v::VarData, ub::Float64) = v.ub = ub
 
-function set_kind!(v::VarData, kind::VarKind)
+function setkind!(v::VarData, kind::VarKind)
     if kind == Binary
         v.kind = Binary
-        (v.lower_bound < 0) && set_lb!(v, 0.0)
-        (v.upper_bound > 1) && set_ub!(v, 1.0)
+        (v.lb < 0) && set_lb!(v, 0.0)
+        (v.ub > 1) && set_ub!(v, 1.0)
     elseif kind == Integ
         v.kind = Integ
     end
@@ -61,13 +61,13 @@ end
 MoiVarRecord(;index::MoiVarIndex = MoiVarIndex()) = MoiVarRecord(
     index, MoiVarBound(), MoiVarKind()
 )
-get_index(record::MoiVarRecord) = record.index
-get_bounds(record::MoiVarRecord) = record.bounds
-get_kind(record::MoiVarRecord) = record.kind
+getindex(record::MoiVarRecord) = record.index
+getbounds(record::MoiVarRecord) = record.bounds
+getkind(record::MoiVarRecord) = record.kind
 
-set_index!(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
-set_bounds!(record::MoiVarRecord, bounds::MoiVarBound) = record.bounds = bounds
-set_kind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
+setindex!(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
+setbounds!(record::MoiVarRecord, bounds::MoiVarBound) = record.bounds = bounds
+setkind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
 
 """
     Variable
@@ -80,7 +80,7 @@ struct Variable <: AbstractVarConstr
     duty::Type{<: AbstractVarDuty}
     initial_data::VarData
     cur_data::VarData
-    moi_record::MoiVarRecord
+    moirecord::MoiVarRecord
 end
 const VarId = Id{Variable}
 
@@ -91,6 +91,7 @@ function Variable(id::VarId,
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(
         id, name, duty, var_data, deepcopy(var_data),
+
         MoiVarRecord(index = moi_index)
     )
 end
@@ -99,11 +100,11 @@ end
 #            over AbstractVarConstr in file varconstr.jl
 
 function reset!(v::Variable)
-    initial = get_initial_data(v)
-    cur = get_cur_data(v)
+    initial = getinitialdata(v)
+    cur = getcurdata(v)
     cur.cost = initial.cost
-    cur.lower_bound = initial.lower_bound
-    cur.upper_bound = initial.upper_bound
+    cur.lb = initial.lb
+    cur.ub = initial.ub
     cur.inc_val = initial.inc_val
     cur.kind = initial.kind
     cur.sense = initial.sense
@@ -114,16 +115,16 @@ end
 # Helpers for getters  and stter that acces fields in a level under Variable
 
 # -> Initial
-get_init_cost(vc::AbstractVarConstr) = vc.initial_data.cost
-get_init_lower_bound(vc::AbstractVarConstr) = vc.initial_data.lower_bound
-get_init_upper_bound(vc::AbstractVarConstr) = vc.initial_data.upper_bound
-# set_init_cost!(vc::AbstractVarConstr, cost::Float64) = vc.initial_data.cost
-# set_init_lower_bound!(vc::AbstractVarConstr, lb::Float64) = vc.initial_data.lower_bound = lb
-# set_init_upper_bound!(vc::AbstractVarConstr, ub::Float64) = vc.initial_data.upper_bound = ub
+getinitcost(vc::AbstractVarConstr) = vc.initial_data.cost
+getinitlb(vc::AbstractVarConstr) = vc.initial_data.lb
+getinitub(vc::AbstractVarConstr) = vc.initial_data.ub
+# setinitcost!(vc::AbstractVarConstr, cost::Float64) = vc.initial_data.cost
+# setinitlb!(vc::AbstractVarConstr, lb::Float64) = vc.initial_data.lb = lb
+# setinitub!(vc::AbstractVarConstr, ub::Float64) = vc.initial_data.ub = ub
 # -> Current
-get_cur_cost(vc::AbstractVarConstr) = vc.cur_data.cost
-get_cur_lower_bound(vc::AbstractVarConstr) = vc.cur_data.lower_bound
-get_cur_upper_bound(vc::AbstractVarConstr) = vc.cur_data.upper_bound
-set_cur_cost!(vc::AbstractVarConstr, cost::Float64) = vc.cur_data.cost = cost
-set_cur_lower_bound!(vc::AbstractVarConstr, lb::Float64) = vc.cur_data.lower_bound = lb
-set_cur_upper_bound!(vc::AbstractVarConstr, ub::Float64) = vc.cur_data.upper_bound = ub
+getcurcost(vc::AbstractVarConstr) = vc.cur_data.cost
+getcurlb(vc::AbstractVarConstr) = vc.cur_data.lb
+getcurub(vc::AbstractVarConstr) = vc.cur_data.ub
+setcurcost!(vc::AbstractVarConstr, cost::Float64) = vc.cur_data.cost = cost
+setcurlb!(vc::AbstractVarConstr, lb::Float64) = vc.cur_data.lb = lb
+setcurub!(vc::AbstractVarConstr, ub::Float64) = vc.cur_data.ub = ub

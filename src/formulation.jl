@@ -17,7 +17,7 @@ VarConstrCache{T}() where {T<:AbstractVarConstr} = VarConstrCache{T}(Set{T}(), S
 
 function add_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     !get_cur_is_explicit(vc) && return
-    id = get_id(vc)
+    id = getid(vc)
     id in vc_cache.removed && delete!(vc_cache.removed, id)
     push!(vc_cache.added, id)
     return
@@ -25,7 +25,7 @@ end
 
 function remove_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     !get_cur_is_explicit(vc) && return
-    id = get_id(vc)
+    id = getid(vc)
     id in vc_cache.added && delete!(vc_cache.added, id)
     push!(vc_cache.removed, id)
     return
@@ -69,27 +69,27 @@ FormulationCache() = FormulationCache(
 )
 
 function undo_modifs!(cache::FormulationCache, v::Variable)
-    id = get_id(v)
+    id = getid(v)
     delete!(cache.changed_cost, id)
     delete!(cache.changed_bound, id)
     return
 end
 
 function undo_modifs!(cache::FormulationCache, c::Constraint)
-    id = get_id(c)
+    id = getid(c)
     delete!(cache.changed_rhs, id)
     return
 end
 
 function change_cost!(cache::FormulationCache, v::Variable)
     !get_cur_is_explicit(v) && return
-    push!(cache.changed_cost, get_id(v))
+    push!(cache.changed_cost, getid(v))
     return
 end
 
 function change_bound!(cache::FormulationCache, v::Variable)
     !get_cur_is_explicit(v) && return
-    push!(cache.changed_bound, get_id(v))
+    push!(cache.changed_bound, getid(v))
     return
 end
 
@@ -160,7 +160,7 @@ get_constrs(f::Formulation) = get_constrs(f.manager)
 get_coefficient_matrix(f::Formulation) = get_coefficient_matrix(f.manager)
 
 "Returns the `uid` of `Formulation` `f`."
-get_uid(f::Formulation) = f.uid
+getuid(f::Formulation) = f.uid
 
 "Returns the objective function sense of `Formulation` `f`."
 getobjsense(f::Formulation) = f.obj_sense
@@ -276,7 +276,7 @@ function register_objective_sense!(f::Formulation, min::Bool)
 end
 
 function sync_solver(f::Formulation)
-    # println("Synching formulation ", get_uid(f))
+    # println("Synching formulation ", getuid(f))
     optimizer = get_optimizer(f)
     cache = f.cache
     matrix = get_coefficient_matrix(f)
@@ -284,7 +284,7 @@ function sync_solver(f::Formulation)
     for id in cache.constr_cache.removed
         @warn "Should not remove constraints yet"
         c = get_constr(f, id)
-        # println("Removing constraint ", get_name(c))
+        # println("Removing constraint ", getname(c))
         undo_modifs!(cache, c)
         remove_from_optimizer!(optimizer, c)
     end
@@ -292,21 +292,21 @@ function sync_solver(f::Formulation)
     for id in cache.var_cache.removed
         @warn "Should not remove variables yet"
         v = getvar(f, id)
-        # println("Removing variable ", get_name(v))
+        # println("Removing variable ", getname(v))
         undo_modifs!(cache, v)
         remove_from_optimizer!(optimizer, v)
     end
     # Add vars
     for id in cache.var_cache.added
         v = getvar(f, id)
-        # println("Adding variable ", get_name(v))
+        # println("Adding variable ", getname(v))
         undo_modifs!(cache, v)
         add_to_optimzer!(optimizer, v)
     end
     # Add constrs
     for id in cache.constr_cache.added
         c = get_constr(f, id)
-        # println("Adding constraint ", get_name(c))
+        # println("Adding constraint ", getname(c))
         undo_modifs!(cache, c)
         add_to_optimzer!(optimizer, c, filter(_explicit_, matrix[id,:]))
     end
@@ -326,7 +326,7 @@ function sync_solver(f::Formulation)
     for ((c_id, v_id), coeff) in cache.reset_coeffs
         c = get_constr(f, c_id)
         v = getvar(f, v_id)
-        # println("Setting matrix coefficient: (", get_name(c), ",", get_name(v), ") = ", coeff)
+        # println("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         update_constr_member_in_optimizer(optimizer, c, v, coeff)
     end
     reset_cache!(f)
@@ -391,7 +391,7 @@ end
 # function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
 #     for (var_id, var_val) in sol.members
 #         if (!is_value_integer(var_val, tolerance)
-#                 && (get_kind(getstate(var_id)) == 'I' || get_kind(getstate(var_id)) == 'B'))
+#                 && (getkind(getstate(var_id)) == 'I' || getkind(getstate(var_id)) == 'B'))
 #             @logmsg LogLevel(-2) "Sol is fractional."
 #             return false
 #         end
@@ -419,8 +419,8 @@ function _show_obj_fun(io::IO, f::Formulation)
     vars = filter(_explicit_, get_vars(f))
     ids = sort!(collect(keys(vars)), by = getsortid)
     for id in ids
-        name = get_name(vars[id])
-        cost = get_cost(get_cur_data(vars[id]))
+        name = getname(vars[id])
+        cost = get_cost(getcurdata(vars[id]))
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
     end
@@ -431,25 +431,25 @@ end
 function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
                           members::VarMembership)
     constr = get_constr(f, constr_id)
-    constr_data = get_cur_data(constr)
-    print(io, get_name(constr), " : ")
+    constr_data = getcurdata(constr)
+    print(io, getname(constr), " : ")
     ids = sort!(collect(keys(members)), by = getsortid)
     for id in ids
         coeff = members[id]
         var = getvar(f, id)
-        name = get_name(var)
+        name = getname(var)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
-    if get_sense(constr_data) == Equal
+    if setsense(constr_data) == Equal
         op = "=="
-    elseif get_sense(constr_data) == Greater
+    elseif setsense(constr_data) == Greater
         op = ">="
     else
         op = "<="
     end
-    print(io, " ", op, " ", get_rhs(constr_data))
-    println(io, " (", get_duty(constr), " | ", is_explicit(constr_data) ,")")
+    print(io, " ", op, " ", getrhs(constr_data))
+    println(io, " (", getduty(constr), " | ", is_explicit(constr_data) ,")")
     return
 end
 
@@ -466,12 +466,12 @@ function _show_constraints(io::IO , f::Formulation)
 end
 
 function _show_variable(io::IO, f::Formulation, var::Variable)
-    var_data = get_cur_data(var)
-    name = get_name(var)
-    lb = get_lb(var_data)
-    ub = get_ub(var_data)
-    t = get_kind(var_data)
-    d = get_duty(var)
+    var_data = getcurdata(var)
+    name = getname(var)
+    lb = getlb(var_data)
+    ub = getub(var_data)
+    t = getkind(var_data)
+    d = getduty(var)
     e = is_explicit(var_data)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
@@ -486,7 +486,7 @@ function _show_variables(io::IO, f::Formulation)
 end
 
 function Base.show(io::IO, f::Formulation)
-    println(io, "Formulation id = ", get_uid(f))
+    println(io, "Formulation id = ", getuid(f))
     _show_obj_fun(io, f)
     _show_constraints(io, f)
     _show_variables(io, f)

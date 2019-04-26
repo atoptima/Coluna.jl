@@ -135,10 +135,10 @@ function record_problem_info_tests()
     master_problem.partial_solution = partial_solution
 
     # To test if adds correctly the static variables
-    vars[1].cur_lb = vars[1].lower_bound
-    vars[1].cur_ub = vars[1].upper_bound
+    vars[1].cur_lb = vars[1].lb
+    vars[1].cur_ub = vars[1].ub
     vars[1].cur_cost_rhs = vars[1].cost_rhs
-    vars[2].cur_lb = vars[2].lower_bound - 0.1
+    vars[2].cur_lb = vars[2].lb - 0.1
 
     # To test if adds correctly the dynamic master variables
     sol = CL.PrimalSolution(0.0, Dict{CL.Variable,Float64}())
@@ -159,7 +159,7 @@ function record_problem_info_tests()
     # To test if adds correctly the static (subproblem) variables
     subprob = create_problem_empty()
     sp_vars = create_array_of_vars(2, CL.SubprobVar)
-    sp_vars[1].cur_lb = sp_vars[1].lower_bound
+    sp_vars[1].cur_lb = sp_vars[1].lb
     sp_vars[1].cur_ub = sp_vars[1].upper_bound
     sp_vars[1].cur_global_lb = sp_vars[1].global_lb
     sp_vars[1].cur_global_ub = sp_vars[1].global_ub

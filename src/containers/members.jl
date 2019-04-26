@@ -134,7 +134,7 @@ lastindex(d::MembersVector) = lastindex(d.records)
 function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J <: AbstractVarConstr,K}
     print(io, "[")
     for (id, val) in vec
-        print(io, " ", id, " => (", get_name(getelement(vec, id)), ", " , val, ")  ")
+        print(io, " ", id, " => (", getname(getelement(vec, id)), ", " , val, ")  ")
     end
     print(io, "]")
 end

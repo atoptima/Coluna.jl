@@ -12,26 +12,26 @@ function var_data_getters_and_setters_tests()
     )
 
     @test CL.get_cost(v_data) == 13.0
-    @test CL.get_lb(v_data) == -10.0
-    @test CL.get_ub(v_data) == 100.0
+    @test CL.getlb(v_data) == -10.0
+    @test CL.getub(v_data) == 100.0
 
-    CL.set_cost!(v_data, -113.0)
+    CL.setcost!(v_data, -113.0)
     CL.set_lb!(v_data, -113.0)
     CL.set_ub!(v_data, -113.0)
 
     @test CL.get_cost(v_data) == -113.0
-    @test CL.get_lb(v_data) == -113.0
-    @test CL.get_ub(v_data) == -113.0
+    @test CL.getlb(v_data) == -113.0
+    @test CL.getub(v_data) == -113.0
 
-    CL.set_kind!(v_data, CL.Binary)
-    @test CL.get_kind(v_data) == CL.Binary
-    @test CL.get_lb(v_data) == 0.0
-    @test CL.get_ub(v_data) == -113.0
+    CL.setkind!(v_data, CL.Binary)
+    @test CL.getkind(v_data) == CL.Binary
+    @test CL.getlb(v_data) == 0.0
+    @test CL.getub(v_data) == -113.0
 
-    CL.set_kind!(v_data, CL.Integ)
-    @test CL.get_kind(v_data) == CL.Integ
-    @test CL.get_lb(v_data) == 0.0
-    @test CL.get_ub(v_data) == -113.0
+    CL.setkind!(v_data, CL.Integ)
+    @test CL.getkind(v_data) == CL.Integ
+    @test CL.getlb(v_data) == 0.0
+    @test CL.getub(v_data) == -113.0
 
 end
 
@@ -41,17 +41,17 @@ function moi_var_record_getters_and_setters_tests()
         ; index = CL.MoiVarIndex(-15)
     )
 
-    @test CL.get_index(v_rec) == CL.MoiVarIndex(-15)
-    @test CL.get_bounds(v_rec) == CL.MoiVarBound(-1)
-    @test CL.get_kind(v_rec) == CL.MoiInteger(-1)
+    @test CL.getindex(v_rec) == CL.MoiVarIndex(-15)
+    @test CL.getbounds(v_rec) == CL.MoiVarBound(-1)
+    @test CL.getkind(v_rec) == CL.MoiInteger(-1)
 
-    CL.set_index!(v_rec, CL.MoiVarIndex(-20))
-    CL.set_bounds!(v_rec, CL.MoiVarBound(10))
-    CL.set_kind!(v_rec, CL.MoiBinary(13))
+    CL.setindex!(v_rec, CL.MoiVarIndex(-20))
+    CL.setbounds!(v_rec, CL.MoiVarBound(10))
+    CL.setkind!(v_rec, CL.MoiBinary(13))
 
-    @test CL.get_index(v_rec) == CL.MoiVarIndex(-20)
-    @test CL.get_bounds(v_rec) == CL.MoiVarBound(10)
-    @test CL.get_kind(v_rec) == CL.MoiBinary(13)
+    @test CL.getindex(v_rec) == CL.MoiVarIndex(-20)
+    @test CL.getbounds(v_rec) == CL.MoiVarBound(10)
+    @test CL.getkind(v_rec) == CL.MoiBinary(13)
 
 end
 
@@ -67,25 +67,25 @@ function variable_getters_and_setters_tests()
         var_data = v_data
     )
 
-    @test CL.get_init_cost(v) == CL.get_cur_cost(v) == CL.get_cost(CL.get_cur_data(v)) == CL.get_cost(CL.get_initial_data(v)) == 13.0
-    @test CL.get_init_lower_bound(v) == CL.get_cur_lower_bound(v) == CL.get_lb(CL.get_cur_data(v)) == CL.get_lb(CL.get_initial_data(v)) == -10.0
-    @test CL.get_init_upper_bound(v) == CL.get_cur_upper_bound(v) == CL.get_ub(CL.get_cur_data(v)) == CL.get_ub(CL.get_initial_data(v)) == 100.0
+    @test CL.getinitcost(v) == CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == CL.get_cost(CL.getinitialdata(v)) == 13.0
+    @test CL.getinitlb(v) == CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == CL.getlb(CL.getinitialdata(v)) == -10.0
+    @test CL.getinitub(v) == CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == CL.getub(CL.getinitialdata(v)) == 100.0
 
-    CL.set_cur_cost!(v, -134.0)
-    CL.set_cur_lower_bound!(v, -2001.9)
-    CL.set_cur_upper_bound!(v, 2387.0)
+    CL.setcurcost!(v, -134.0)
+    CL.setcurlb!(v, -2001.9)
+    CL.setcurub!(v, 2387.0)
 
-    @test CL.get_cur_cost(v) == CL.get_cost(CL.get_cur_data(v)) == -134.0
-    @test CL.get_cur_lower_bound(v) == CL.get_lb(CL.get_cur_data(v)) == -2001.9
-    @test CL.get_cur_upper_bound(v) == CL.get_ub(CL.get_cur_data(v)) == 2387.0
-    @test CL.get_init_cost(v) == CL.get_cost(CL.get_initial_data(v)) == 13.0
-    @test CL.get_init_lower_bound(v) == CL.get_lb(CL.get_initial_data(v)) == -10.0
-    @test CL.get_init_upper_bound(v) == CL.get_ub(CL.get_initial_data(v)) == 100.0
+    @test CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == -134.0
+    @test CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == -2001.9
+    @test CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == 2387.0
+    @test CL.getinitcost(v) == CL.get_cost(CL.getinitialdata(v)) == 13.0
+    @test CL.getinitlb(v) == CL.getlb(CL.getinitialdata(v)) == -10.0
+    @test CL.getinitub(v) == CL.getub(CL.getinitialdata(v)) == 100.0
 
     CL.reset!(v)
     @test v.initial_data.cost == v.cur_data.cost == 13.0
-    @test v.initial_data.lower_bound == v.cur_data.lower_bound == -10.0
-    @test v.initial_data.upper_bound == v.cur_data.upper_bound == 100.0
+    @test v.initial_data.lb == v.cur_data.lb == -10.0
+    @test v.initial_data.ub == v.cur_data.ub == 100.0
     @test v.initial_data.kind == v.cur_data.kind == CL.Continuous
     @test v.initial_data.sense == v.cur_data.sense == CL.Free
     @test v.initial_data.inc_val == v.cur_data.inc_val == -1.0
