@@ -27,6 +27,10 @@ is to offer a “black-box” implementation of the method:
 
 ## Dantzig-Wolfe decomposition
 
+!!! warning
+    This example is outdated.
+
+
 Consider the following problem :
 
 ```math
@@ -62,47 +66,6 @@ We partition the constraints.
 
 This decomposition is described through the following annotations:
 
-```julia
-# setting constraint annotations for the decomposition
-for o in 1:3, p in 1:q
-    # constraint in subproblem i
-    # (subproblem annotations need to be contiguous starting at 1)
-    set(model, Coluna.ConstraintDantzigWolfeAnnotation(), sc[o, p], i)
-end
-for o in 1:m
-    # constraint in master (annotated with 0)
-    set(model, Coluna.ConstraintDantzigWolfeAnnotation(), mc[o], 0)
-end
-# setting variable annotations for the decomposition in the same way
-for o in 1:i
-    set(model, Coluna.VariableDantzigWolfeAnnotation(), x[o], 1)
-end
-for o in (i+1):j
-    set(model, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
-end
-for o in (i+j+1):k
-    set(model, Coluna.VariableDantzigWolfeAnnotation(), x[o], 2)
-end
-```
+!!! warning
+    To do.
 
-The decomposition can also be described in a more compact functional way:
-
-```julia
-function decomp_func(name, key)
-    #constraints
-    if name == :mc
-        return 0
-    elseif name == :sc
-        return key[1]
-
-    #variables
-    elseif key[1] < i
-        return 1
-    elseif key[1] < j
-        return 2
-    else
-        return 3
-    end
-end
-Coluna.set_dantzig_wolfe_decompostion(model, decomp_func)
-```
