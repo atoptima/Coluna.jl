@@ -177,8 +177,32 @@ function generateconstrid(f::Formulation)
 end
 
 reset_cache!(f::Formulation) = f.cache = FormulationCache()
+
+"""
+    commit_cost_change!(f::Formulation, v::Variable)
+
+Passes the cost modification of variable `v` to the underlying MOI solver `f.moi_solver`.
+
+Should be called if a cost modificatiom to a variable is definitive and should be transmitted to the underlying MOI solver.
+"""
 commit_cost_change!(f::Formulation, v::Variable) = change_cost!(f.cache, v)
+
+"""
+    commit_bound_change!(f::Formulation, v::Variable)
+
+Passes the bound modification of variable `v` to the underlying MOI solver `f.moi_solver`.
+
+Should be called if a bound modificatiom to a variable is definitive and should be transmitted to the underlying MOI solver.
+"""
 commit_bound_change!(f::Formulation, v::Variable) = change_bound!(f.cache, v)
+
+"""
+    commit_matrix_change!(f::Formulation, c_id::Id{Constraint}, v_id::Id{Variable}, coeff::Float64)
+
+Sets the coefficient `coeff` in the (`c_id`, `v_id`) cell of the matrix.
+
+Should be called if a coefficient modification in the matrix is definitive and should be transmitted to the underlying MOI solver.
+"""
 function commit_matrix_change!(f::Formulation, c_id::Id{Constraint},
                                v_id::Id{Variable}, coeff::Float64)
     f.cache.reset_coeffs[Pair(c_id,v_id)] = coeff
