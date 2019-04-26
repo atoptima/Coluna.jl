@@ -8,14 +8,14 @@ abstract type AbstractSolver end
 """
     AbstractSolverData
 
-Store data of a solver. The object exists only when the solver is running.
+Stores data of a solver. The object exists only when the solver is running.
 """
 abstract type AbstractSolverData  end
 
 """
     AbstractSolverRecord
 
-Store data that we want to keep after the end of a solver execution.
+Stores data that we want to keep after the end of a solver execution.
 These data can be used to initialize another execution of the solver.
 """
 abstract type AbstractSolverRecord end
@@ -23,7 +23,7 @@ abstract type AbstractSolverRecord end
 """
     setup!(SolverType, formulation, node)
 
-Prepare the `formulation` in the `node` to be optimized by solver `SolverType`.
+Prepares the `formulation` in the `node` to be optimized by solver `SolverType`.
 This method should return the `AbstractSolverData` structure that corresponds
 to the solver `SolverType`. 
 """
@@ -32,7 +32,7 @@ function setup! end
 """
     run!(SolverType, solverdata, formulation, node, parameters)
 
-Run the solver `SolverType` on the `formulation` in a `node` with `parameters`.
+Runs the solver `SolverType` on the `formulation` in a `node` with `parameters`.
 Return the  `AbstractSolverRecord` structure that corresponds to the solver 
 `SolverType`
 """
@@ -41,7 +41,7 @@ function run! end
 """
     setdown!(SolverType, solverdata, formulation, node)
 
-Update the `formulation` and the `node` after the execution of the solver
+Updates the `formulation` and the `node` after the execution of the solver
 `SolverType`.
 This method is executed after `run!`.
 """
@@ -63,9 +63,8 @@ end
 """
     apply!(SolverType, formulation, node, strategyrecord, parameters)
 
-Apply the solver `SolverType` on the `formulation` in a `node` with 
+Applies the solver `SolverType` on the `formulation` in a `node` with 
 `parameters`.
-
 """
 function apply!(S::Type{<:AbstractSolver}, formulation, node, strategyrecord, 
                 parameters)
@@ -81,7 +80,7 @@ end
     interface!(SolverTypeSrc, SolverTypeDest, formulation, node)
 
 Given a `formulation` in a `node` optimized using solver `SolverTypeSrc`, 
-this method should prepare the `formulation` in the `node` to be solved using 
+this method prepares the `formulation` in the `node` to be solved using 
 solver `SolverTypeDest`.
 Defining this method allows the user to apply solver `SolverTypeDest` after the
 execution of solver `SolverTypeSrc`.

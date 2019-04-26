@@ -1,7 +1,5 @@
 module Coluna
 
-import HighLevelTypes.@hl
-import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
@@ -10,7 +8,7 @@ import JuMP
 import BlockDecomposition
 import Distributed
 
-using Base.CoreLogging
+using Logging
 using SparseArrays
 using Printf
 import TimerOutputs
@@ -48,7 +46,6 @@ import Base.convert
         (MOI.ScalarAffineFunction,),
         (),
         ())
-
 
 include("types.jl")
 include("parameters.jl")
