@@ -132,45 +132,9 @@ abstract type AbstractAlg end
 @enum ConstrKind Core Facultative SubSystem
 @enum ConstrSense Greater Less Equal
 @enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
-# @enum Status Active Unsuitable
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
 const FormId = Int
-
-#######################################################################
-const MoiObjective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
-
-const MoiConstrIndex = MOI.ConstraintIndex
-MoiConstrIndex{F,S}() where {F,S} = MOI.ConstraintIndex{F,S}(-1)
-MoiConstrIndex() = MOI.ConstraintIndex{
-    MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}
-}()
-
-const MoiVarIndex = MOI.VariableIndex
-MoiVarIndex() = MOI.VariableIndex(-1)
-
-const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
-
-const MoiInteger = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}
-const MoiBinary = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}
-const MoiVarKind = Union{MoiInteger,MoiBinary}
-MoiVarKind() = MoiInteger(-1)
-
-# Helpers
-get_sense(::MOI.LessThan{T}) where {T} = Less
-get_sense(::MOI.GreaterThan{T}) where {T} = Greater
-get_sense(::MOI.EqualTo{T}) where {T} = Equal
-get_rhs(set::MOI.LessThan{T}) where {T} = set.upper
-get_rhs(set::MOI.GreaterThan{T}) where {T} = set.lower
-get_rhs(set::MOI.EqualTo{T}) where {T} = set.value
-get_kind(::MOI.ZeroOne) = Binary
-get_kind(::MOI.Integer) = Integ
-function get_moi_set(constr_set::ConstrSense)
-    constr_set == Less && return MOI.LessThan
-    constr_set == Greater && return MOI.GreaterThan
-    return MOI.EqualTo
-end
-#######################################################################
 
 const StaticDuty = Union{
     OriginalVar, OriginalExpression, PureMastVar, MastRepPricingSpVar,
@@ -185,3 +149,45 @@ const DynamicDuty = Union{
 }
 
 const ArtificialDuty = Union{Type{MastArtVar}}
+
+############################################################################
+######################## MathOptInterface shortcuts ########################
+############################################################################
+# Objective function
+const MoiObjective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
+
+# Constraint
+const MoiConstrIndex = MOI.ConstraintIndex
+MoiConstrIndex{F,S}() where {F,S} = MOI.ConstraintIndex{F,S}(-1)
+MoiConstrIndex() = MOI.ConstraintIndex{
+    MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}
+}()
+
+# Variable
+const MoiVarIndex = MOI.VariableIndex
+MoiVarIndex() = MOI.VariableIndex(-1)
+
+# Bounds on variables
+const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
+
+# Variable kinds
+const MoiInteger = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}
+const MoiBinary = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}
+const MoiVarKind = Union{MoiInteger,MoiBinary}
+MoiVarKind() = MoiInteger(-1)
+
+# Helper functions to transform MOI types in Coluna types
+get_sense(::MOI.LessThan{T}) where {T} = Less
+get_sense(::MOI.GreaterThan{T}) where {T} = Greater
+get_sense(::MOI.EqualTo{T}) where {T} = Equal
+get_rhs(set::MOI.LessThan{T}) where {T} = set.upper
+get_rhs(set::MOI.GreaterThan{T}) where {T} = set.lower
+get_rhs(set::MOI.EqualTo{T}) where {T} = set.value
+get_kind(::MOI.ZeroOne) = Binary
+get_kind(::MOI.Integer) = Integ
+function get_moi_set(constr_set::ConstrSense)
+    constr_set == Less && return MOI.LessThan
+    constr_set == Greater && return MOI.GreaterThan
+    return MOI.EqualTo
+end
+############################################################################

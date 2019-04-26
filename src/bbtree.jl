@@ -60,7 +60,8 @@ get_incumbents(s::TreeSolver) = s.incumbents
 switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 getincumbents(s::TreeSolver) = s.incumbents
 
-function treat(strategy::Type{<:AbstractStrategy}, f::Reformulation, n::Node, r, p)
+function apply_on_node(strategy::Type{<:AbstractStrategy},
+                       f::Reformulation, n::Node, r, p)
     # Check if it needs to be treated, because pb might have improved
     setup(f, n)
     apply(strategy, f, n, r, nothing)
@@ -81,7 +82,7 @@ function apply(::Type{<:TreeSolver}, f::Reformulation)
         cur_node = pop_node!(tree_solver)
         print_info_before_apply(cur_node, tree_solver)
 
-        treat(strategy, f, cur_node, r, nothing)
+        apply_on_node(strategy, f, cur_node, r, nothing)
 
         print_info_after_apply(cur_node, tree_solver)
         update_tree_solver(tree_solver, cur_node)

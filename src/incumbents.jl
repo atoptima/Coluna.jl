@@ -8,7 +8,7 @@ end
 """
     Incumbents(sense)
 
-Return `Incumbents` for an objective function with sense `sense`.
+Returns `Incumbents` for an objective function with sense `sense`.
 Given a mixed-integer program,  `Incumbents` contains the best primal solution
 to the program, the best primal solution to the linear relaxation of the 
 program, the best  dual solution to the linear relaxation of the program, 
@@ -22,38 +22,38 @@ function Incumbents(S::Type{<: AbstractObjSense})
 end
 
 # Getters solutions
-"Return the best primal solution to the mixed-integer program."
+"Returns the best primal solution to the mixed-integer program."
 get_ip_primal_sol(i::Incumbents) = i.ip_primal_sol
 
-"Return the best primal solution to the linear program."
+"Returns the best primal solution to the linear program."
 get_lp_primal_sol(i::Incumbents) = i.lp_primal_sol
 
-"Return the best dual solution to the linear program."
+"Returns the best dual solution to the linear program."
 get_lp_dual_sol(i::Incumbents) = i.lp_dual_sol
 
 # Getters bounds
-"Return the best primal bound of the mixed-integer program."
+"Returns the best primal bound of the mixed-integer program."
 get_ip_primal_bound(i::Incumbents) = getbound(i.ip_primal_sol)
 
-"Return the best dual bound of the mixed-integer program."
+"Returns the best dual bound of the mixed-integer program."
 get_ip_dual_bound(i::Incumbents) = i.ip_dual_bound
 
-"Return the best primal bound of the linear program."
+"Returns the best primal bound of the linear program."
 get_lp_primal_bound(i::Incumbents) = getbound(i.lp_primal_sol)
 
-"Return the best dual bound of the linear program."
+"Returns the best dual bound of the linear program."
 get_lp_dual_bound(i::Incumbents) = getbound(i.lp_dual_sol)
 
 # Gaps
-"Return the gap between the best primal and dual bounds of the integer program."
+"Returns the gap between the best primal and dual bounds of the integer program."
 ip_gap(i::Incumbents) = gap(get_ip_primal_bound(i), get_ip_dual_bound(i))
 
-"Return the gap between the best primal and dual bounds of the linear program."
+"Returns the gap between the best primal and dual bounds of the linear program."
 lp_gap(i::Incumbents) = gap(get_lp_primal_bound(i), get_lp_dual_bound(i))
 
 # Setters
 """
-Update the best primal solution to the mixed-integer program if the new one is
+Updates the best primal solution to the mixed-integer program if the new one is
 better than the current one according to the objective sense.
 """
 function set_ip_primal_sol!(inc::Incumbents{S},
@@ -66,7 +66,7 @@ function set_ip_primal_sol!(inc::Incumbents{S},
 end
 
 """
-Update the best primal solution to the linear program if the new one is better
+Updates the best primal solution to the linear program if the new one is better
 than the current one according to the objective sense.
 """
 function set_lp_primal_sol!(inc::Incumbents{S},
@@ -79,7 +79,7 @@ function set_lp_primal_sol!(inc::Incumbents{S},
 end
 
 """
-Update the dual bound of the mixed-integer program if the new one is better than
+Updates the dual bound of the mixed-integer program if the new one is better than
 the current one according to the objective sense.
 """
 function set_ip_dual_bound!(inc::Incumbents{S},
@@ -92,7 +92,7 @@ function set_ip_dual_bound!(inc::Incumbents{S},
 end
 
 """
-Update the dual solution to the linear program if the new one is better than the
+Updates the dual solution to the linear program if the new one is better than the
 current one according to the objective sense.
 """
 function set_lp_dual_sol!(inc::Incumbents{S},

@@ -2,6 +2,7 @@
 # Nothing to do
 function interface!(::Type{StartNode}, ::Type{ColumnGeneration}, formulation, 
                     node)
+
     return
 end
 

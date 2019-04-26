@@ -1,3 +1,13 @@
+"""
+    Id{VC <: AbstractVarConstr}
+
+Coluna identifier of a `Variable` or a `Constraint`.
+
+It is composed by the following uids:
+1. `proc_uid`: Number of the process where it was generated
+2. `form_uid`: uid of the formulation where it was generated
+3. `uid`: uid in the formulation where it was generated
+"""
 struct Id{VC <: AbstractVarConstr}
     uid::Int
     form_uid::Int
@@ -13,6 +23,11 @@ function _create_hash(uid::Int, form_uid::Int, proc_uid::Int)
     )
 end
 
+"""
+    Id{VC}(uid::Int, form_uid::Int) where {VC<:AbstractVarConstr}
+
+Constructs an `Id` of type `VC` with `uid` = uid and `form_uid` = form_uid.
+"""
 function Id{VC}(uid::Int, form_uid::Int) where {VC}
     proc_uid = Distributed.myid()
     Id{VC}(uid, form_uid, proc_uid, _create_hash(uid, form_uid, proc_uid))
@@ -30,6 +45,4 @@ getsortid(id::Id) = get_uid(id) + 1000000 * getformuid(id)
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, T,"#", id._hash)
-    # print(io, "Id{$T}(", id._hash, ")")
-    # print(io, "Id{$T}(", get_uid(id), ",", getformuid(id), ",", getprocuid(id), ")")
 end
