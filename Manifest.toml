@@ -107,11 +107,6 @@ git-tree-sha1 = "82f64bfd090a95b7670ed0d7c734220f32983386"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
 version = "0.9.1"
 
-[[HighLevelTypes]]
-git-tree-sha1 = "b6d30b8a0661f6e65bb70c9c81fd094ffc0d4ce8"
-uuid = "66835562-f1c4-5586-a145-e564a3963a4b"
-version = "0.0.2"
-
 [[InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"

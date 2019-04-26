@@ -1,3 +1,8 @@
+"""
+    ConstrData
+
+Information that defines a state of a constraint. These are the fields of a constraint that might change during the solution procedure.
+"""
 mutable struct ConstrData <: AbstractVcData
     rhs::Float64
     kind::ConstrKind
@@ -22,6 +27,11 @@ end
 get_rhs(c::ConstrData) = c.rhs
 set_rhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 
+"""
+    MoiConstrRecord
+
+Structure to hold the pointers to the MOI representation of a Coluna Constraint.
+"""
 mutable struct MoiConstrRecord
     index::MoiConstrIndex
 end

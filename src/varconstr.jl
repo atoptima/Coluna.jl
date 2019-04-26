@@ -1,3 +1,6 @@
+# In file varconstrs.jl we define the functions
+# that mutualize the behaviour of Variable and Constraint.
+
 # Getters & setters for AbstractVcData
 
 is_active(vc::AbstractVcData) = vc.is_active

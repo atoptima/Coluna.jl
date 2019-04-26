@@ -1,7 +1,5 @@
 module Coluna
 
-import HighLevelTypes.@hl
-import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
@@ -38,18 +36,6 @@ import Base.copy
 import Base.promote_rule
 import Base.convert
 
-# We should not need to import this here
-@MOIU.model(ModelForCachingOptimizer,
-        (MOI.ZeroOne, MOI.Integer),
-        (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
-        (),
-        (),
-        (MOI.SingleVariable,),
-        (MOI.ScalarAffineFunction,),
-        (),
-        ())
-
-
 include("types.jl")
 include("parameters.jl")
 include("counters.jl")
@@ -58,8 +44,8 @@ include("containers/members.jl")
 
 include("vcids.jl")
 include("variable.jl")
-include("varconstr.jl")
 include("constraint.jl")
+include("varconstr.jl")
 include("manager.jl")
 include("filters.jl")
 include("solsandbounds.jl")
