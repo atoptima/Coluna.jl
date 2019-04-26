@@ -36,19 +36,19 @@ end
 # Internal methods to the column generation
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
-    for (id, var) in filter(_active_pricing_sp_var_ , get_vars(sp_form))
+    for (id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
         setcurcost!(var, getinitcost(var))
     end
 
-    coefficient_matrix = get_coefficient_matrix(sp_form.parent_formulation)
+    coefficient_matrix = getcoefmatrix(sp_form.parent_formulation)
 
-    for (var_id, var) in get_vars(sp_form)
+    for (var_id, var) in getvars(sp_form)
         for (constr_id, dual_val) in getsol(dual_sol)
             coeff = coefficient_matrix[constr_id, var_id]
             setcurcost!(var, getcurcost(var) - dual_val * coeff)
         end
     end
-    for (var_id, var) in get_vars(sp_form)
+    for (var_id, var) in getvars(sp_form)
         commit_cost_change!(sp_form, var)
     end
 
@@ -79,18 +79,20 @@ function insert_cols_in_master(master_form::Formulation,
 
     # @show sp_sols
 
+    coef_matrix = getcoefmatrix(master_form)
+    partialsol_matrix = getpartialsolmatrix(master_form)
+
     for sp_sol in sp_sols
         if getvalue(sp_sol) < -0.0001 # TODO use tolerance
             # println(" >>>> \e[33m  create new column \e[00m")
-            ### add setup_var in sp sol: already in solution
-            #add!(sp_sol.var_membeprs, setup_var_uid, 1.0)
-
+            
             ### TODO  : check if sp sol exists as a registered column
 
             #if id_of_existing_mc > 0 # already exists
             #    @warn string("column already exists as", id_of_existing_mc)
             #    continue
             # end
+            
             ### create new column
             nb_of_gen_col += 1
             ref = getvarcounter(master_form) + 1
@@ -105,26 +107,42 @@ function insert_cols_in_master(master_form::Formulation,
                 master_form, name, duty; cost = cost, lb = lb, ub = ub,
                 kind = kind, sense = sense
             )
+            mc_id = getid(mc)
 
-            # Compute column vector
+            ### TODO record Sp solution
+            #==add_partialsol!(master_form, mc)
+            for (var_id, var_val) in getsol(sp_sol)
+                partialsol_matrix[var_id,mc_id] = var_val 
+            end
+            
+            ### check if column exists
+            id_of_existing_mc = - 1
+            for (col_id, col_var, col_members) in columns(partialsol_matrix)
+                if (col_members == partialsol_matrix[:, mc_id])
+                    id_of_existing_mc = col_id
+                    break
+                end
+            end
+            if (id_of_existing_mc != mc_id)
+                @warn string("column already exists as", id_of_existing_mc)
+            end
+            ==#
+
+            ### Compute column vector
             # This adds the column to the convexity constraints automatically
             # since the setup variable is in the sp solution and it has a
             # a coefficient of 1.0 in the convexity constraints
-            matrix = get_coefficient_matrix(sp_form.parent_formulation)
-            mc_id = getid(mc)
             for (var_id, var_val) in getsol(sp_sol)
-                for (constr_id, var_coef) in matrix[:,var_id]
-                    matrix[constr_id,mc_id] = var_val * var_coef
-                    commit_matrix_change!(
-                        sp_form.parent_formulation,
+                for (constr_id, var_coef) in coef_matrix[:,var_id]
+                    coef_matrix[constr_id,mc_id] = var_val * var_coef
+                    commit_coef_matrix_change!(
+                        master_form,
                         constr_id, mc_id, var_val * var_coef
                     )
                 end
             end
 
-            ### record Sp solution
-            #add_var_members_of_partialsol!(mbship, mc_id, sp_sol.var_members)
-
+ 
             #update_moi_membership(master_form, mc_var)
             # println("\e[43m column added \e[00m")
             #@show string("added column ", mc_id, mc_var)
@@ -316,8 +334,8 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
         sp_uid = getuid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getinitrhs(get_constr(master_form, lb_convexity_constr_id))
-        sp_ubs[sp_uid] = getinitrhs(get_constr(master_form, ub_convexity_constr_id))
+        sp_lbs[sp_uid] = getinitrhs(getconstr(master_form, lb_convexity_constr_id))
+        sp_ubs[sp_uid] = getinitrhs(getconstr(master_form, ub_convexity_constr_id))
     end
 
     # @show sp_lbs

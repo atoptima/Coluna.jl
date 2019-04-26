@@ -56,6 +56,7 @@ mutable struct FormulationCache
     var_cache::VarConstrCache{Variable}
     constr_cache::VarConstrCache{Constraint}
     reset_coeffs::Dict{Pair{Id{Constraint},Id{Variable}},Float64}
+    #reset_partial_sols::Dict{Pair{Id{Variable},Id{Variable}},Float64}
 end
 """
     FormulationCache()
@@ -66,6 +67,7 @@ FormulationCache() = FormulationCache(
     Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Constraint}}(),
     VarConstrCache{Variable}(), VarConstrCache{Constraint}(),
     Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
+    # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()
 )
 
 function undo_modifs!(cache::FormulationCache, v::Variable)
@@ -148,16 +150,17 @@ getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
 getvarcounter(f::Formulation) = f.var_counter.value
 
 "Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `f`."
-get_constr(f::Formulation, id::ConstrId) = get_constr(f.manager, id)
+getconstr(f::Formulation, id::ConstrId) = getconstr(f.manager, id)
 
 "Returns all the variables in `Formulation` `f`."
-get_vars(f::Formulation) = get_vars(f.manager)
+getvars(f::Formulation) = getvars(f.manager)
 
 "Returns all the constraints in `Formulation` `f`."
-get_constrs(f::Formulation) = get_constrs(f.manager)
+getconstrs(f::Formulation) = getconstrs(f.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
-get_coefficient_matrix(f::Formulation) = get_coefficient_matrix(f.manager)
+getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
+getpartialsolmatrix(f::Formulation) = getpartialsolmatrix(f.manager)
 
 "Returns the `uid` of `Formulation` `f`."
 getuid(f::Formulation) = f.uid
@@ -197,16 +200,22 @@ Should be called if a bound modificatiom to a variable is definitive and should 
 commit_bound_change!(f::Formulation, v::Variable) = change_bound!(f.cache, v)
 
 """
-    commit_matrix_change!(f::Formulation, c_id::Id{Constraint}, v_id::Id{Variable}, coeff::Float64)
+    commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint}, v_id::Id{Variable}, coeff::Float64)
 
 Sets the coefficient `coeff` in the (`c_id`, `v_id`) cell of the matrix.
 
 Should be called if a coefficient modification in the matrix is definitive and should be transmitted to the underlying MOI solver.
 """
-function commit_matrix_change!(f::Formulation, c_id::Id{Constraint},
+function commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint},
                                v_id::Id{Variable}, coeff::Float64)
     f.cache.reset_coeffs[Pair(c_id,v_id)] = coeff
 end
+#function commit_partialsol_matrix_change!(f::Formulation,
+#                                          v_id::Id{Variable},
+#                                          ps_id::Id{Variable},
+#                                          coeff::Float64)
+#    f.cache.reset_partial_sols[Pair(v_id,ps_id)] = coeff
+#end
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
 function set_var!(f::Formulation,
@@ -231,6 +240,10 @@ end
 function add_var!(f::Formulation, var::Variable)
     add_vc!(f.cache.var_cache, var)
     return add_var!(f.manager, var)
+end
+
+function add_partialsol!(f::Formulation, var::Variable)
+    return add_partialsol!(f.manager, var)
 end
 
 function clone_var!(dest::Formulation, src::Formulation, var::Variable)
@@ -279,11 +292,11 @@ function sync_solver(f::Formulation)
     # println("Synching formulation ", getuid(f))
     optimizer = get_optimizer(f)
     cache = f.cache
-    matrix = get_coefficient_matrix(f)
+    matrix = getcoefmatrix(f)
     # Remove constrs
     for id in cache.constr_cache.removed
         @warn "Should not remove constraints yet"
-        c = get_constr(f, id)
+        c = getconstr(f, id)
         # println("Removing constraint ", getname(c))
         undo_modifs!(cache, c)
         remove_from_optimizer!(optimizer, c)
@@ -305,7 +318,7 @@ function sync_solver(f::Formulation)
     end
     # Add constrs
     for id in cache.constr_cache.added
-        c = get_constr(f, id)
+        c = getconstr(f, id)
         # println("Adding constraint ", getname(c))
         undo_modifs!(cache, c)
         add_to_optimzer!(optimizer, c, filter(_explicit_, matrix[id,:]))
@@ -324,7 +337,7 @@ function sync_solver(f::Formulation)
     end
     # Update matrix
     for ((c_id, v_id), coeff) in cache.reset_coeffs
-        c = get_constr(f, c_id)
+        c = getconstr(f, c_id)
         v = getvar(f, v_id)
         # println("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         update_constr_member_in_optimizer(optimizer, c, v, coeff)
@@ -348,9 +361,9 @@ function optimize!(form::Formulation)
     @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
     if MOI.get(form.moi_optimizer, MOI.ResultCount()) >= 1
         primal_sols = retrieve_primal_sols(
-            form, filter(_explicit_ , get_vars(form))
+            form, filter(_explicit_ , getvars(form))
         )
-        dual_sol = retrieve_dual_sol(form, filter(_explicit_ , get_constrs(form)))
+        dual_sol = retrieve_dual_sol(form, filter(_explicit_ , getconstrs(form)))
         return (status, primal_sols[1].bound, primal_sols, dual_sol)
     end
     @warn "Solver has no result to show."
@@ -416,7 +429,7 @@ end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")
-    vars = filter(_explicit_, get_vars(f))
+    vars = filter(_explicit_, getvars(f))
     ids = sort!(collect(keys(vars)), by = getsortid)
     for id in ids
         name = getname(vars[id])
@@ -430,7 +443,7 @@ end
 
 function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
                           members::VarMembership)
-    constr = get_constr(f, constr_id)
+    constr = getconstr(f, constr_id)
     constr_data = getcurdata(constr)
     print(io, getname(constr), " : ")
     ids = sort!(collect(keys(members)), by = getsortid)
@@ -455,9 +468,9 @@ end
 
 function _show_constraints(io::IO , f::Formulation)
     # constrs = filter(
-    #     _explicit_, rows(get_coefficient_matrix(f))
+    #     _explicit_, rows(getcoefmatrix(f))
     # )
-    constrs = rows(get_coefficient_matrix(f))
+    constrs = rows(getcoefmatrix(f))
     ids = sort!(collect(keys(constrs)), by = getsortid)
     for id in ids
         _show_constraint(io, f, id, constrs[id])
@@ -477,8 +490,8 @@ function _show_variable(io::IO, f::Formulation, var::Variable)
 end
 
 function _show_variables(io::IO, f::Formulation)
-    # vars = filter(_explicit_, get_vars(f))
-    vars = get_vars(f)
+    # vars = filter(_explicit_, getvars(f))
+    vars = getvars(f)
     ids = sort!(collect(keys(vars)), by = getsortid)
     for id in ids
         _show_variable(io, f, vars[id])

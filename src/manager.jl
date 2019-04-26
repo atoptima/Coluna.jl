@@ -33,6 +33,11 @@ function add_var!(m::FormulationManager, var::Variable)
     return var
 end
 
+function add_partialsol!(m::FormulationManager, var::Variable)
+     ### check if partialsol exists should take place heren along the coeff update
+    return var
+end
+
 function add_constr!(m::FormulationManager, constr::Constraint)
     haskey(m.constrs, constr.id) && error(string("Constraint of id ", constr.id, " exists"))
     m.constrs[constr.id] = constr
@@ -41,13 +46,15 @@ end
 
 getvar(m::FormulationManager, id::VarId) = m.vars[id]
 
-get_constr(m::FormulationManager, id::ConstrId) = m.constrs[id]
+getconstr(m::FormulationManager, id::ConstrId) = m.constrs[id]
 
-get_vars(m::FormulationManager) = m.vars
+getvars(m::FormulationManager) = m.vars
 
-get_constrs(m::FormulationManager) = m.constrs
+getconstrs(m::FormulationManager) = m.constrs
 
-get_coefficient_matrix(m::FormulationManager) = m.coefficients
+getcoefmatrix(m::FormulationManager) = m.coefficients
+
+getpartialsolmatrix(m::FormulationManager) = m.partial_sols
 
 function Base.show(io::IO, m::FormulationManager)
     println(io, "FormulationManager :")

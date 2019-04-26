@@ -11,7 +11,7 @@ set_glob_art_var(f::Formulation, is_pos::Bool) = set_var!(
 
 function initialize_local_art_vars(master::Formulation,
                                    constrs_in_form)
-    matrix = get_coefficient_matrix(master)
+    matrix = getcoefmatrix(master)
     for (constr_id, constr) in constrs_in_form
         v = set_var!(
             master, string("local_art_of_", getname(constr)),
@@ -27,8 +27,8 @@ end
 function initialize_global_art_vars(master::Formulation)
     global_pos = set_glob_art_var(master, true)
     global_neg = set_glob_art_var(master, false)
-    matrix = get_coefficient_matrix(master)
-    constrs = filter(_active_master_rep_orig_constr_, get_constrs(master))
+    matrix = getcoefmatrix(master)
+    constrs = filter(_active_master_rep_orig_constr_, getconstrs(master))
     for (constr_id, constr) in constrs
         if setsense(getcurdata(constr)) == Greater
             matrix[constr_id, getid(global_pos)] = 1.0
@@ -73,7 +73,7 @@ function build_dw_master!(prob::Problem,
     # copy of pure master variables
     clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
 
-    mast_coefficient_matrix = get_coefficient_matrix(master_form)
+    mast_coefficient_matrix = getcoefmatrix(master_form)
     
     @assert !isempty(reformulation.dw_pricing_subprs)
     # add convexity constraints and setupvar 
@@ -117,12 +117,12 @@ function build_dw_master!(prob::Problem,
         setup_var = set_var!(sp_form, name, duty; cost = cost,
                              lb = lb, ub = ub, kind = kind,
                              sense = sense, is_explicit = is_explicit)
-        matrix = get_coefficient_matrix(master_form)
+        matrix = getcoefmatrix(master_form)
         # matrix[getid(ub_conv_constr),getid(setup_var)] = 1.0
         # matrix[getid(lb_conv_constr),getid(setup_var)] = 1.0
 
         ## add all Sp var in master
-        vars = filter(_active_pricing_sp_var_, get_vars(sp_form))
+        vars = filter(_active_pricing_sp_var_, getvars(sp_form))
         is_explicit = false
         clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
 

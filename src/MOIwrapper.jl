@@ -165,7 +165,7 @@ function create_origconstr!(f::Formulation,
     constr_id = getid(c)
     dest.moi_index_to_coluna_uid[moi_index] =
         MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constr_id))
-    matrix = get_coefficient_matrix(f)
+    matrix = getcoefmatrix(f)
     for term in func.terms
         var_id = moi_uid_to_coluna_id[term.variable_index.value]
         matrix[constr_id, var_id] = term.coefficient
