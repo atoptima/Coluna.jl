@@ -1,6 +1,4 @@
 # Define default functions to use as filters
-# Functions must be of the form:
-# f(::Pair{<:Id, T})::Bool
 
 _active_masterRepOrigConstr_(id_c::Pair{ConstrId,Constraint}) = get_cur_is_active(id_c[2]) == true && get_duty(id_c[2]) <: AbstractMasterRepOriginalConstr
 

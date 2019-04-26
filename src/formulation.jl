@@ -7,6 +7,7 @@ mutable struct VarConstrCache{T<:AbstractVarConstr}
     added::Set{Id{T}}
     removed::Set{Id{T}}
 end
+
 """
     VarConstrCache{T}() where {T<:AbstractVarConstr}
 
@@ -30,18 +31,8 @@ function remove_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     return
 end
 
-mutable struct FormulationCache
-    changed_cost::Set{Id{Variable}}
-    changed_bound::Set{Id{Variable}}
-    changed_rhs::Set{Id{Constraint}}
-    var_cache::VarConstrCache{Variable}
-    constr_cache::VarConstrCache{Constraint}
-    reset_coeffs::Dict{Pair{Id{Constraint},Id{Variable}},Float64}
-end
 """
     FormulationCache()
-
-Constructs a `FormulationCache`.
 
 A `FormulationCache` stores all changes done to a `Formulation` `f` since last call to `optimize!(f)`.
 When function `optimize!(f)` is called, the moi_optimizer is synched with all changes in FormulationCache.
@@ -57,6 +48,19 @@ The concerned modificatios are:
 6. Constraint is removed
 7. Constraint is added
 8. Coefficient in the matrix is modified (reset)
+"""
+mutable struct FormulationCache
+    changed_cost::Set{Id{Variable}}
+    changed_bound::Set{Id{Variable}}
+    changed_rhs::Set{Id{Constraint}}
+    var_cache::VarConstrCache{Variable}
+    constr_cache::VarConstrCache{Constraint}
+    reset_coeffs::Dict{Pair{Id{Constraint},Id{Variable}},Float64}
+end
+"""
+    FormulationCache()
+
+Constructs an empty `FormulationCache`.
 """
 FormulationCache() = FormulationCache(
     Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Constraint}}(),
@@ -134,24 +138,34 @@ function Formulation{D}(form_counter::Counter;
     )
 end
 
+"Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `f`."
 haskey(f::Formulation, id::Id) = haskey(f.manager, id)
 
+"Returns the `Variable` whose `Id` is `id` if such variable is in `Formulation` `f`."
 getvar(f::Formulation, id::VarId) = getvar(f.manager, id) 
 
+"Returns the value of the variable counter of `Formulation` `f`."
 getvarcounter(f::Formulation) = f.var_counter.value
 
+"Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `f`."
 get_constr(f::Formulation, id::ConstrId) = get_constr(f.manager, id)
 
+"Returns all the variables in `Formulation` `f`."
 get_vars(f::Formulation) = get_vars(f.manager)
 
+"Returns all the constraints in `Formulation` `f`."
 get_constrs(f::Formulation) = get_constrs(f.manager)
 
+"Returns the representation of the coefficient matrix stored in the formulation manager."
 get_coefficient_matrix(f::Formulation) = get_coefficient_matrix(f.manager)
 
+"Returns the `uid` of `Formulation` `f`."
 get_uid(f::Formulation) = f.uid
 
+"Returns the objective function sense of `Formulation` `f`."
 getobjsense(f::Formulation) = f.obj_sense
 
+"Returns the `MOI.Optimizer` of `Formulation` `f`."
 get_optimizer(f::Formulation) = f.moi_optimizer
 
 function generatevarid(f::Formulation)
@@ -163,13 +177,38 @@ function generateconstrid(f::Formulation)
 end
 
 reset_cache!(f::Formulation) = f.cache = FormulationCache()
+
+"""
+    commit_cost_change!(f::Formulation, v::Variable)
+
+Passes the cost modification of variable `v` to the underlying MOI solver `f.moi_solver`.
+
+Should be called if a cost modificatiom to a variable is definitive and should be transmitted to the underlying MOI solver.
+"""
 commit_cost_change!(f::Formulation, v::Variable) = change_cost!(f.cache, v)
+
+"""
+    commit_bound_change!(f::Formulation, v::Variable)
+
+Passes the bound modification of variable `v` to the underlying MOI solver `f.moi_solver`.
+
+Should be called if a bound modificatiom to a variable is definitive and should be transmitted to the underlying MOI solver.
+"""
 commit_bound_change!(f::Formulation, v::Variable) = change_bound!(f.cache, v)
+
+"""
+    commit_matrix_change!(f::Formulation, c_id::Id{Constraint}, v_id::Id{Variable}, coeff::Float64)
+
+Sets the coefficient `coeff` in the (`c_id`, `v_id`) cell of the matrix.
+
+Should be called if a coefficient modification in the matrix is definitive and should be transmitted to the underlying MOI solver.
+"""
 function commit_matrix_change!(f::Formulation, c_id::Id{Constraint},
                                v_id::Id{Variable}, coeff::Float64)
     f.cache.reset_coeffs[Pair(c_id,v_id)] = coeff
 end
 
+"Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
 function set_var!(f::Formulation,
                   name::String,
                   duty::Type{<:AbstractVarDuty};
@@ -188,6 +227,7 @@ function set_var!(f::Formulation,
     return add_var!(f, v)
 end
 
+"Adds `Variable` `var` to `Formulation` `f`."
 function add_var!(f::Formulation, var::Variable)
     add_vc!(f.cache.var_cache, var)
     return add_var!(f.manager, var)
@@ -198,6 +238,7 @@ function clone_var!(dest::Formulation, src::Formulation, var::Variable)
     return clone_var!(dest.manager, src.manager, var)
 end
 
+"Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `f`."
 function set_constr!(f::Formulation,
                      name::String,
                      duty::Type{<:AbstractConstrDuty};
@@ -214,6 +255,7 @@ function set_constr!(f::Formulation,
     return add_constr!(f, c)
 end
 
+"Adds `Constraint` `constr` to `Formulation` `f`."
 function add_constr!(f::Formulation, constr::Constraint)
     add_vc!(f.cache.constr_cache, constr)
     return add_constr!(f.manager, constr)
@@ -291,6 +333,7 @@ function sync_solver(f::Formulation)
     return
 end
 
+"Calls optimization routine for `Formulation` `f`."
 function optimize!(form::Formulation)
     # println("Before sync")
     # _show_optimizer(form.moi_optimizer)
@@ -332,8 +375,7 @@ function retrieve_primal_sols(form::Formulation, vars::VarDict)
     return primal_sols
 end
 
-function retrieve_dual_sol(form::Formulation,
-                           constrs::ConstrDict)
+function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
     # TODO check if supported by solver
     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         # println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
@@ -357,7 +399,6 @@ end
 #     @logmsg LogLevel(-4) "Solution is integer!"
 #     return true
 # end
-
 
 # function update_var_status(var_id::Id{VarState},
 #                            new_status::Status)

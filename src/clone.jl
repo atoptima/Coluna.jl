@@ -43,9 +43,9 @@ function clone_in_formulation!(dest::Formulation,
 end
 
 function clone_in_manager!(dest::FormulationManager,
-                    src::FormulationManager,
-                    var::Variable)
-    
+                           src::FormulationManager,
+                           var::Variable)
+
     new_col = Dict{Id{Constraint}, Float64}()
     for (id, val) in getrecords(src.coefficients[:, var.id])
         if haskey(dest, id)
@@ -59,8 +59,8 @@ function clone_in_manager!(dest::FormulationManager,
 end
 
 function clone_in_manager!(dest::FormulationManager,
-                        src::FormulationManager,
-                        constr::Constraint)
+                           src::FormulationManager,
+                           constr::Constraint)
 
     new_row = Dict{Id{Variable}, Float64}()
     for (id, val) in getrecords(src.coefficients[constr.id, :])
