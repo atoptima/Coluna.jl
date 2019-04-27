@@ -171,6 +171,9 @@ getobjsense(f::Formulation) = f.obj_sense
 "Returns the `MOI.Optimizer` of `Formulation` `f`."
 get_optimizer(f::Formulation) = f.moi_optimizer
 
+getelem(f::Formulation, id::VarId) = getvar(f, id)
+getelem(f::Formulation, id::ConstrId) = getconstr(f, id)
+
 function generatevarid(f::Formulation)
     return VarId(getnewuid(f.var_counter), f.uid)
 end

@@ -143,11 +143,20 @@ lastindex(s::AbstractSolution) = lastindex(s.sol)
 _show_sol_type(io::IO, p::PrimalSolution) = println(io, "\n┌ Primal Solution :")
 _show_sol_type(io::IO, d::DualSolution) = println(io, "\n┌ Dual Solution :")
 
-function Base.show(io::IO, s::AbstractSolution)
-    _show_sol_type(io, s)
-    for (id, val) in getsol(s)
+function Base.show(io::IO, sol::AbstractSolution)
+    _show_sol_type(io, sol)
+    for (id, val) in sol
         println(io, "| ", id, " => ", val)
     end
-    @printf(io, "└ value = %.2f \n", float(getbound(s)))
+    @printf(io, "└ value = %.2f \n", float(getbound(sol)))
 end
 Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
+
+function showdebug(io::IO, sol::AbstractSolution, 
+                   formulation::AbstractFormulation)
+    _show_sol_type(io, sol)
+    for (id, val) in sol
+        println(io, "| ", getname(getelem(formulation, id)), " => ", val)
+    end
+    @printf(io, "└ value = %.2f \n", float(getbound(sol)))
+end
