@@ -109,11 +109,11 @@ function insert_cols_in_master(master_form::Formulation,
             )
             mc_id = getid(mc)
 
-            ### TODO record Sp solution
-            #==add_partialsol!(master_form, mc)
-            for (var_id, var_val) in getsol(sp_sol)
-                partialsol_matrix[var_id,mc_id] = var_val 
+            ### Record Sp solution
+            for (var_id, var_val) in sp_sol
+                partialsol_matrix[mc_id, var_id] = var_val
             end
+            #==add_partialsol!(master_form, mc)
             
             ### check if column exists
             id_of_existing_mc = - 1
