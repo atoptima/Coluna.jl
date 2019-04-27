@@ -26,14 +26,21 @@ struct MostFractionalRule <: RuleForUsualBranching end
 function run!(::Type{GenerateChildrenNode}, solver_data::GenerateChildrenNodeData,
               formulation, node, parameters)
     @logmsg LogLevel(-1) "Run generate children nodes"
-    var_id = id_of_best_candidate(MostFractionalRule, solver_data)
+    var_id, val = best_candidate(MostFractionalRule, solver_data)
+    @show var_id val
 
-    @show var_id
+    #genbranchingconstr!()
+    #genbranchingconstr!()
     println(" Generate branching constraints... ")
+
+    child1 = Node(node)
+    child2 = Node(node)
+    addchild!(node, child1)
+    addchild!(node, child2)
     return GenerateChildrenNodeRecord()
 end
 
-function id_of_best_candidate(R::Type{<:RuleForUsualBranching}, solver_data)
+function best_candidate(R::Type{<:RuleForUsualBranching}, solver_data)
     master = getmaster(solver_data.reformulation)
     master_primal_sol = get_lp_primal_sol(solver_data.incumbents)
 
@@ -41,22 +48,45 @@ function id_of_best_candidate(R::Type{<:RuleForUsualBranching}, solver_data)
 
     showdebug(stdout, master_primal_sol, master)
     showdebug(stdout, solution, master)
-    return find_id_of_best_candidate(R, solution)
+    return best_candidate(R, solution)
 end
 
 distround(r::Real) = abs(round(r) - r)
 
  # Todo : talk about float tolerance to select the candidate
-function find_id_of_best_candidate(::Type{MostFractionalRule}, sol::PrimalSolution)
+function best_candidate(::Type{MostFractionalRule}, sol::PrimalSolution)
     candidate_id = zero(Id{Variable})
     candidate_val = 0.0
+    best_dist = 0.0
     for (var_id, val) in sol
         dist = distround(val)
-        if dist >= candidate_val
+        if dist >= best_dist
             candidate_id = var_id
-            candidate_val = dist
+            candidate_val = round(val)
+            best_dist = dist
         end
     end
-    return candidate_id
+    return candidate_id, candidate_val
 end
 
+#function genbranchingconstr!(solver_data, )
+
+#end
+
+# function generate_branch_constraint(alg::AlgToGenerateChildrenNodes,
+#         depth::Int, var_to_branch::Variable, sense::Char, rhs::Float64)
+#     extended_problem = alg.extended_problem
+#     constr = MasterBranchConstrConstructor(
+#         extended_problem.counter,
+#         string("branch_",var_to_branch.name,"_",sense, "_", depth),
+#         rhs, sense, depth, var_to_branch
+#     )
+#     # if extended_problem.params.node_eval_mode == SimplexCg
+#     #     attach_art_var(extended_problem.art_var_manager,
+#     #                    extended_problem.master_problem, constr)
+#     # end
+#     push!(alg.generated_branch_constraints, constr)
+#     @logmsg LogLevel(-4) string(
+#         "Generated branching constraint with reference ",
+#         branch_constr.vc_ref)
+# end

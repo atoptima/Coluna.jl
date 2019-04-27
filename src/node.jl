@@ -14,11 +14,22 @@ function RootNode(ObjSense::Type{<:AbstractObjSense})
     )
 end
 
+function Node(parent::Node)
+    depth = getdepth(parent) + 1
+    incumbents = deepcopy(getincumbents(parent))
+    return Node(
+        1, depth, parent, Node[], incumbents,
+        Dict{Type{<:AbstractSolver},AbstractSolverRecord}()
+    )
+end
+
 get_treat_order(n::Node) = n.treat_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
 getincumbents(n::Node) = n.incumbents
+
+addchild!(n::Node, child::Node) = push!(n.children, child)
 
 function set_solver_record!(n::Node, S::Type{<:AbstractSolver}, 
                             r::AbstractSolverRecord)

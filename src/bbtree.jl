@@ -18,10 +18,10 @@ SearchTree(search_strategy::SEARCHSTRATEGY) = SearchTree(
 
 getnodes(t::SearchTree) = t.nodes
 Base.isempty(t::SearchTree) = isempty(t.nodes)
-add_node(t::SearchTree, node::Node) = DS.enqueue!(
+pushnode!(t::SearchTree, node::Node) = DS.enqueue!(
     t.nodes, node, t.priority_function(node)
 )
-pop_node!(t::SearchTree) = DS.dequeue!(t.nodes)
+popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
 
 function build_priority_function(strategy::SEARCHSTRATEGY)
@@ -50,8 +50,8 @@ get_primary_tree(s::TreeSolver) = s.primary_tree
 get_secondary_tree(s::TreeSolver) = s.secondary_tree
 cur_tree(s::TreeSolver) = (s.in_primary ? s.primary_tree : s.secondary_tree)
 Base.isempty(s::TreeSolver) = isempty(cur_tree(s))
-add_node(s::TreeSolver, node::Node) = add_node(cur_tree(s), node)
-pop_node!(s::TreeSolver) = pop_node!(cur_tree(s))
+pushnode!(s::TreeSolver, node::Node) = pushnode!(cur_tree(s), node)
+popnode!(s::TreeSolver) = popnode!(cur_tree(s))
 nb_open_nodes(s::TreeSolver) = (nb_open_nodes(s.primary_tree)
                                 + nb_open_nodes(s.secondary_tree))
 get_treat_order(s::TreeSolver) = s.treat_order
@@ -71,21 +71,25 @@ end
 
 function apply(::Type{<:TreeSolver}, f::Reformulation)
     tree_solver = TreeSolver(_params_.search_strategy, f.master.obj_sense)
-    add_node(tree_solver, RootNode(f.master.obj_sense))
+    pushnode!(tree_solver, RootNode(f.master.obj_sense))
 
     # Node strategy
     strategy = MockStrategy # Should be kept in reformulation?
-    r = StrategyRecord()
+    strategy_record = StrategyRecord()
 
+    nb_treated_nodes = 0 # Tmp
     while (!isempty(tree_solver)
            && get_nb_treated_nodes(tree_solver) < _params_.max_num_nodes)
 
-        cur_node = pop_node!(tree_solver)
+        cur_node = popnode!(tree_solver)
+        setsolver!(strategy_record, StartNode)
 
         print_info_before_apply(cur_node, tree_solver)
-        apply_on_node(strategy, f, cur_node, r, nothing)
+        apply_on_node(strategy, f, cur_node, strategy_record, nothing)
         update_tree_solver(tree_solver, cur_node)
         print_info_after_apply(cur_node, tree_solver)
+        nb_treated_nodes += 1 # tmp
+        (nb_treated_nodes > 5) && break # tmp
     end
 
 end
@@ -128,7 +132,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
     s.nb_treated_nodes += 1
     t = cur_tree(s)
     if !to_be_pruned(n)
-        add_node(t, n)
+        pushnode!(t, n)
     end
     if ((nb_open_nodes(s) + length(n.children))
         >= _params_.open_nodes_limit)
@@ -136,7 +140,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
         t = cur_tree(s)
     end
     for idx in length(n.children):-1:1
-        add_node(t, pop!(n.children))
+        pushnode!(t, pop!(n.children))
     end
     updatebounds!(s, n)
 end
