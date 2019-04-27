@@ -21,7 +21,7 @@ setsense!(vc::AbstractVcData, sense) = vc.sense = sense
 getid(vc::AbstractVarConstr) = vc.id
 getname(vc::AbstractVarConstr) = vc.name
 getduty(vc::AbstractVarConstr) = vc.duty
-getrecordeddata(vc::AbstractVarConstr) = vc.recorded_data
+getrecordeddata(vc::AbstractVarConstr) = vc.peren_data
 getcurdata(vc::AbstractVarConstr) = vc.cur_data
 getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 
@@ -32,11 +32,11 @@ getuid(vc::AbstractVarConstr) = getuid(vc.id)
 getform(vc::AbstractVarConstr) = getformuid(vc.id)
 
 # -> Initial
-getinitkind(vc::AbstractVarConstr) = vc.recorded_data.kind
-getinitsense(vc::AbstractVarConstr) = vc.recorded_data.sense
-getinitincval(vc::AbstractVarConstr) = vc.recorded_data.inc_val
-get_init_is_active(vc::AbstractVarConstr) = vc.recorded_data.is_active
-get_init_is_explicit(vc::AbstractVarConstr) = vc.recorded_data.is_explicit
+getperenkind(vc::AbstractVarConstr) = vc.peren_data.kind
+getperensense(vc::AbstractVarConstr) = vc.peren_data.sense
+getperenincval(vc::AbstractVarConstr) = vc.peren_data.inc_val
+get_init_is_active(vc::AbstractVarConstr) = vc.peren_data.is_active
+get_init_is_explicit(vc::AbstractVarConstr) = vc.peren_data.is_explicit
 # -> Current
 getcurkind(vc::AbstractVarConstr) = vc.cur_data.kind
 getcursense(vc::AbstractVarConstr) = vc.cur_data.sense
