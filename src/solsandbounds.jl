@@ -155,8 +155,9 @@ Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
 function showdebug(io::IO, sol::AbstractSolution, 
                    formulation::AbstractFormulation)
     _show_sol_type(io, sol)
-    for (id, val) in sol
-        println(io, "| ", getname(getelem(formulation, id)), " => ", val)
+    ids = sort!(collect(keys(getsol(sol))))
+    for id in ids
+        println(io, "| ", getname(getelem(formulation, id)), " => ", sol.sol[id])
     end
     @printf(io, "└ value = %.2f \n", float(getbound(sol)))
 end

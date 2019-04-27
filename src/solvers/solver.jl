@@ -88,5 +88,12 @@ execution of solver `SolverTypeSrc`.
 """
 function interface! end
 
-
+# Fallback
+function interface!(Src::Type{<:AbstractSolver}, Dst::Type{<:AbstractSolver}, 
+                    formulation, node)
+    error("""
+        Cannot move on $Dst after a round of $Src. 
+        You should write method interface!(::Type{$Src}, ::Type{$Dst}, formulation, node)
+    """)
+end
 struct StartNode <: AbstractSolver end
