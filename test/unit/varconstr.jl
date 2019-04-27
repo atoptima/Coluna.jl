@@ -64,7 +64,7 @@ function abstract_var_constr_getters_tests()
     @test CL.getid(v) == CL.Id{CL.Variable}(23, 10)
     @test CL.getname(v) == "fake_var"
     @test CL.getduty(v) == CL.MastRepBendSpVar
-    @test CL.getrecordeddata(v) === v.recorded_data
+    @test CL.getrecordeddata(v) === v.peren_data
     @test CL.getcurdata(v) === v.cur_data
     @test CL.getmoirecord(v) === v.moirecord
 
@@ -76,7 +76,7 @@ function abstract_var_constr_getters_tests()
     @test CL.getid(c) == CL.Id{CL.Constraint}(23, 10)
     @test CL.getname(c) == "fake_constr"
     @test CL.getduty(c) == CL.MasterBranchConstr
-    @test CL.getrecordeddata(c) === c.recorded_data
+    @test CL.getrecordeddata(c) === c.peren_data
     @test CL.getcurdata(c) === c.cur_data
     @test CL.getmoirecord(c) === c.moirecord
 end
@@ -90,9 +90,9 @@ function varcosntr_helpers_tests()
     @test CL.getuid(v) == 23
     @test CL.getform(v) == 10
 
-    @test CL.getcurkind(v) == CL.getinitkind(v) == CL.Continuous
-    @test CL.getcursense(v) == CL.getinitsense(v) == CL.Positive
-    @test CL.getcurincval(v) == CL.getinitincval(v) == -1.0
+    @test CL.getcurkind(v) == CL.getperenkind(v) == CL.Continuous
+    @test CL.getcursense(v) == CL.getperensense(v) == CL.Positive
+    @test CL.getcurincval(v) == CL.getperenincval(v) == -1.0
     @test CL.get_cur_is_active(v) == CL.get_init_is_active(v) == true
     @test CL.get_cur_is_explicit(v) == CL.get_init_is_explicit(v) == true
 
@@ -115,9 +115,9 @@ function varcosntr_helpers_tests()
     @test CL.getuid(c) == 23
     @test CL.getform(c) == 10
 
-    @test CL.getcurkind(c) == CL.getinitkind(c) == CL.Core
-    @test CL.getcursense(c) == CL.getinitsense(c) == CL.Greater
-    @test CL.getcurincval(c) == CL.getinitincval(c) == -1.0
+    @test CL.getcurkind(c) == CL.getperenkind(c) == CL.Core
+    @test CL.getcursense(c) == CL.getperensense(c) == CL.Greater
+    @test CL.getcurincval(c) == CL.getperenincval(c) == -1.0
     @test CL.get_cur_is_active(c) == CL.get_init_is_active(c) == true
     @test CL.get_cur_is_explicit(c) == CL.get_init_is_explicit(c) == true
 

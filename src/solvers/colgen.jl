@@ -37,7 +37,7 @@ end
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
     for (id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
-        setcurcost!(var, getinitcost(var))
+        setcurcost!(var, getperencost(var))
     end
 
     coefficient_matrix = getcoefmatrix(sp_form.parent_formulation)
@@ -60,7 +60,7 @@ function update_pricing_target(sp_form::Formulation)
 end
 
 function compute_original_cost(sp_sol, sp_form)
-    val = sum(getinitcost(getvar(sp_form, var_id)) * value for (var_id, value) in sp_sol)
+    val = sum(getperencost(getvar(sp_form, var_id)) * value for (var_id, value) in sp_sol)
     return val
 end
 
@@ -334,8 +334,8 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
         sp_uid = getuid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getinitrhs(getconstr(master_form, lb_convexity_constr_id))
-        sp_ubs[sp_uid] = getinitrhs(getconstr(master_form, ub_convexity_constr_id))
+        sp_lbs[sp_uid] = getperenrhs(getconstr(master_form, lb_convexity_constr_id))
+        sp_ubs[sp_uid] = getperenrhs(getconstr(master_form, ub_convexity_constr_id))
     end
 
     # @show sp_lbs
