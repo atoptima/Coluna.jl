@@ -8,6 +8,6 @@ function proj_cols_on_rep(sol::PrimalSolution{S}, master::Formulation) where {S}
     end
 
     # TODO : add pure master variables
-    
+
     return PrimalSolution(S, float(getbound(sol)), projsol)
 end
