@@ -18,7 +18,7 @@ function constr_data_getters_and_setters_tests()
     @test CL.setsense(c_data) == CL.Equal
     @test CL.getkind(c_data) == CL.Facultative
 
-    CL.set_rhs!(c_data, 90.0)
+    CL.setrhs!(c_data, 90.0)
     CL.setkind!(c_data, CL.Core)
     CL.setsense!(c_data, CL.Less)
     CL.setincval!(c_data, 90.0)

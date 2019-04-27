@@ -18,9 +18,13 @@ SearchTree(search_strategy::SEARCHSTRATEGY) = SearchTree(
 
 getnodes(t::SearchTree) = t.nodes
 Base.isempty(t::SearchTree) = isempty(t.nodes)
-pushnode!(t::SearchTree, node::Node) = DS.enqueue!(
-    t.nodes, node, t.priority_function(node)
-)
+
+function pushnode!(t::SearchTree, node::Node)
+    DS.enqueue!(
+        t.nodes, node, t.priority_function(node)
+    )
+end
+
 popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
 
@@ -56,9 +60,8 @@ nb_open_nodes(s::TreeSolver) = (nb_open_nodes(s.primary_tree)
                                 + nb_open_nodes(s.secondary_tree))
 get_treat_order(s::TreeSolver) = s.treat_order
 get_nb_treated_nodes(s::TreeSolver) = s.nb_treated_nodes
-get_incumbents(s::TreeSolver) = s.incumbents
-switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 getincumbents(s::TreeSolver) = s.incumbents
+switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 
 function apply_on_node(strategy::Type{<:AbstractStrategy},
                        formulation::Reformulation, node::Node, r, p)
@@ -69,9 +72,9 @@ function apply_on_node(strategy::Type{<:AbstractStrategy},
     return
 end
 
-function apply(::Type{<:TreeSolver}, f::Reformulation)
-    tree_solver = TreeSolver(_params_.search_strategy, f.master.obj_sense)
-    pushnode!(tree_solver, RootNode(f.master.obj_sense))
+function apply(::Type{<:TreeSolver}, reform::Reformulation)
+    tree_solver = TreeSolver(_params_.search_strategy, reform.master.obj_sense)
+    pushnode!(tree_solver, RootNode(reform.master.obj_sense))
 
     # Node strategy
     strategy = MockStrategy # Should be kept in reformulation?
@@ -84,8 +87,8 @@ function apply(::Type{<:TreeSolver}, f::Reformulation)
         cur_node = popnode!(tree_solver)
         setsolver!(strategy_record, StartNode)
 
-        print_info_before_apply(cur_node, tree_solver)
-        apply_on_node(strategy, f, cur_node, strategy_record, nothing)
+        print_info_before_apply(cur_node, tree_solver, reform)
+        apply_on_node(strategy, reform, cur_node, strategy_record, nothing)
         update_tree_solver(tree_solver, cur_node)
         print_info_after_apply(cur_node, tree_solver)
         nb_treated_nodes += 1 # tmp
@@ -145,7 +148,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
     updatebounds!(s, n)
 end
 
-function print_info_before_apply(n::Node, s::TreeSolver)
+function print_info_before_apply(n::Node, s::TreeSolver, reform::Reformulation)
     println("************************************************************")
     print(nb_open_nodes(s) + 1)
     print(" open nodes. Treating node ", get_treat_order(n))
@@ -163,8 +166,12 @@ function print_info_before_apply(n::Node, s::TreeSolver)
     println()
     println("Elapsed time: ", _elapsed_solve_time(), " seconds")
     println("Subtree dual bound is ", node_db)
-    println("Branching constraint:  ")
-    # coluna_print(n.local_branching_constraints[1])
+    branch = getbranch(n)
+    if branch != nothing
+        print("Branching constraint: ")
+        show(stdout, branch, getmaster(reform))
+        println(" ")
+    end
     println("************************************************************")
     return
 end

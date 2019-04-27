@@ -1,24 +1,46 @@
+struct Branch
+    var_coeffs::Dict{VarId, Float64}
+    rhs::Float64
+    sense::ConstrSense
+end
+
+Branch(varid::VarId, rhs, sense) = Branch(Dict(varid => 1.0), rhs, sense)
+
+function show(io::IO, branch::Branch, form::Formulation)
+    for (id, coeff) in branch.var_coeffs
+        print(io, " + ", coeff, " ", getname(getelem(form, id)))
+    end
+    if branch.sense == Greater
+        print(io, " >= ")
+    else
+        print(io, " <= ")
+    end
+    print(io, branch.rhs)
+    return
+end
+
 struct Node <: AbstractNode
     treat_order::Int
     depth::Int
     parent::Union{Nothing, Node}
     children::Vector{Node}
     incumbents::Incumbents
+    branch::Union{Nothing, Branch}
     solver_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
 end
 
 function RootNode(ObjSense::Type{<:AbstractObjSense})
     return Node(
-        1, 0, nothing, Node[], Incumbents(ObjSense),
+        1, 0, nothing, Node[], Incumbents(ObjSense), nothing,
         Dict{Type{<:AbstractSolver},AbstractSolverRecord}()
     )
 end
 
-function Node(parent::Node)
+function Node(parent::Node, branch::Branch)
     depth = getdepth(parent) + 1
     incumbents = deepcopy(getincumbents(parent))
     return Node(
-        1, depth, parent, Node[], incumbents,
+        1, depth, parent, Node[], incumbents, branch,
         Dict{Type{<:AbstractSolver},AbstractSolverRecord}()
     )
 end
@@ -28,7 +50,7 @@ getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
 getincumbents(n::Node) = n.incumbents
-
+getbranch(n::Node) = n.branch
 addchild!(n::Node, child::Node) = push!(n.children, child)
 
 function set_solver_record!(n::Node, S::Type{<:AbstractSolver}, 

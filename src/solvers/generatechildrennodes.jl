@@ -33,8 +33,8 @@ function run!(::Type{GenerateChildrenNode}, solver_data::GenerateChildrenNodeDat
     #genbranchingconstr!()
     println(" Generate branching constraints... ")
 
-    child1 = Node(node)
-    child2 = Node(node)
+    child1 = Node(node, Branch(var_id, val, Greater))
+    child2 = Node(node, Branch(var_id, val, Less))
     addchild!(node, child1)
     addchild!(node, child2)
     return GenerateChildrenNodeRecord()
@@ -68,25 +68,3 @@ function best_candidate(::Type{MostFractionalRule}, sol::PrimalSolution)
     end
     return candidate_id, candidate_val
 end
-
-#function genbranchingconstr!(solver_data, )
-
-#end
-
-# function generate_branch_constraint(alg::AlgToGenerateChildrenNodes,
-#         depth::Int, var_to_branch::Variable, sense::Char, rhs::Float64)
-#     extended_problem = alg.extended_problem
-#     constr = MasterBranchConstrConstructor(
-#         extended_problem.counter,
-#         string("branch_",var_to_branch.name,"_",sense, "_", depth),
-#         rhs, sense, depth, var_to_branch
-#     )
-#     # if extended_problem.params.node_eval_mode == SimplexCg
-#     #     attach_art_var(extended_problem.art_var_manager,
-#     #                    extended_problem.master_problem, constr)
-#     # end
-#     push!(alg.generated_branch_constraints, constr)
-#     @logmsg LogLevel(-4) string(
-#         "Generated branching constraint with reference ",
-#         branch_constr.vc_ref)
-# end

@@ -25,7 +25,7 @@ end
 #            AbstractVcData in file varconstr.jl
 
 getrhs(c::ConstrData) = c.rhs
-set_rhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
+setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 
 """
     MoiConstrRecord
