@@ -6,7 +6,7 @@ mutable struct MembersVector{I,K,T} <: AbstractMembersContainer
 end
 
 """
-    MembersVector{I,K,T}(elems::Dict{I,K})
+    MembersVector{T}(elems::Dict{I,K})
 
 Construct a `MembersVector` with indices of type `I`, elements of type `K`, and
 records of type `T`.
@@ -25,14 +25,15 @@ We want to associate variables and coefficients to store a constraint.
 For this, we create a `MembersVector`
 
 ```julia-repl
-julia> MembersVector{Id{Variable}, Variable, Float64}(vars_in_formulation)
+julia> vars_in_formulation = Dict{VarId, Variable}( ... )
+julia> MembersVector{Float64}(vars_in_formulation)
 ```
 
 where `vars_in_formulation` is a dictionnary that contains all the existing
 variables in the formulation.
 """
-function MembersVector{I,K,T}(elems::Dict{I,K}) where {I,K,T} 
-    MembersVector(elems, Dict{I,T}())
+function MembersVector{T}(elems::Dict{I,K}) where {I,K,T} 
+    MembersVector{I,K,T}(elems, Dict{I,T}())
 end
 
 getrecords(vec::MembersVector) = vec.records
@@ -146,7 +147,7 @@ struct MembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
 end
 
 """
-    MembersMatrix{I,K,J,L,T}(columns_elements, rows_elements)
+    MembersMatrix{T}(columns_elems::Dict{I,K}, rows_elems::Dict{J,L})
 
 Construct a matrix that contains records of type `T`. Rows have indices of type
 `J`and elements of type `L`, and columns have indices of type `I` and elements
@@ -154,15 +155,16 @@ of type `K`.
 
 `MembersMatrix` supports julia set and get operations.
 """
-function MembersMatrix{I,K,J,L,T}(col_elems::Dict{I,K}, row_elems::Dict{J,L}) where {I,K,J,L,T}
-    cols = MembersVector{I,K,MembersVector{J,L,T}}(col_elems)
-    rows = MembersVector{J,L,MembersVector{I,K,T}}(row_elems)
-    MembersMatrix(cols, rows)
+function MembersMatrix{T}(col_elems::Dict{I,K}, row_elems::Dict{J,L}
+                      ) where {I,K,J,L,T}
+    cols = MembersVector{MembersVector{J,L,T}}(col_elems)
+    rows = MembersVector{MembersVector{I,K,T}}(row_elems)
+    MembersMatrix{I,K,J,L,T}(cols, rows)
 end
 
 function _getrecordvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}, create = true) where {I,K,J,L,T}
     if !haskey(dict, key)
-        membersvec = MembersVector{J,L,T}(elems)
+        membersvec = MembersVector{T}(elems)
         if create
             dict[key] = membersvec
         end

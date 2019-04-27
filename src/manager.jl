@@ -4,13 +4,14 @@ const VarConstrDict = Union{VarDict,ConstrDict}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const MembMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
+const VarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
 
 struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
     coefficients::MembMatrix # rows = constraints, cols = variables
-    partial_sols::MembMatrix # rows = variables, cols = solutions
-    expressions::MembMatrix  # rows = expressions, cols = variables
+    partial_sols::VarMatrix # rows = variables, cols = solutions
+    expressions::VarMatrix  # rows = expressions, cols = variables
 end
 
 function FormulationManager()
@@ -19,9 +20,9 @@ function FormulationManager()
     
     return FormulationManager(vars,
                               constrs,
-                              MembMatrix(vars,constrs),
-                              MembMatrix(vars,constrs),
-                              MembMatrix(vars,constrs))
+                              MembersMatrix{Float64}(vars,constrs),
+                              MembersMatrix{Float64}(vars,vars),
+                              MembersMatrix{Float64}(vars,vars))
 end
 
 haskey(m::FormulationManager, id::Id{Variable}) = haskey(m.vars, id)
