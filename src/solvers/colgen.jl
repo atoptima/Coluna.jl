@@ -24,7 +24,7 @@ end
 function run!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData,
               formulation, node, parameters)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    return solve_mast_lp_ph2(solver_data, formulation)
+    return colgen_solver_ph2(solver_data, formulation)
 end
 
 function setdown!(::Type{ColumnGeneration}, 
@@ -252,7 +252,7 @@ function gen_new_columns(reformulation::Reformulation,
     return (nb_new_cols, dual_bound_contrib)
 end
 
-function solve_restricted_mast(master::Formulation)
+#==function solve_restricted_mast(master::Formulation)
     # @logmsg LogLevel(-2) "starting solve_restricted_mast"
     #@timeit to(alg) "solve_restricted_mast" begin
  
@@ -269,7 +269,7 @@ function solve_restricted_mast(master::Formulation)
     # readline()
     #end # @timeit to(alg) "solve_restricted_mast"
     return status, value, primal_sols[1], dual_sol
-end
+end ==#
 
 
 function compute_mast_dual_bound_contrib(alg::ColumnGenerationData,
@@ -320,7 +320,7 @@ function update_lagrangian_dual_bound(alg::ColumnGenerationData,
     return mast_lagrangian_bnd
 end
 
-function solve_mast_lp_ph2(alg::ColumnGenerationData,
+function colgen_solver_ph2(alg::ColumnGenerationData,
                            reformulation::Reformulation)::ColumnGenerationRecord
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
@@ -334,8 +334,8 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
         sp_uid = getuid(sp_form)
         lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getperenrhs(getconstr(master_form, lb_convexity_constr_id))
-        sp_ubs[sp_uid] = getperenrhs(getconstr(master_form, ub_convexity_constr_id))
+        sp_lbs[sp_uid] = getcurrhs(getconstr(master_form, lb_convexity_constr_id))
+        sp_ubs[sp_uid] = getcurrhs(getconstr(master_form, ub_convexity_constr_id))
     end
 
     # @show sp_lbs
@@ -344,7 +344,7 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
         # GLPK.write_lp(getinner(get_optimizer(master_form)), string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         before_master = time()
-        status_rm, master_val, primal_sol, dual_sol = solve_restricted_mast(master_form)
+        status_rm, master_val, primal_sols, dual_sol = optimize!(master_form)
         mst_time = (time() - before_master)
 
         #status_rm, mst_time, b, gc, allocs = @timed solve_restricted_mast(reformulation.master)
@@ -362,7 +362,7 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
             return ColumnGenerationRecord(alg.incumbents)
         end
 
-        set_lp_primal_sol!(alg.incumbents, primal_sol)
+        set_lp_primal_sol!(alg.incumbents, primal_sols[1])
         # if integer update_primal_ip_incumbents(alg.incumbents, master_val, primal_sol.members)
         ##cleanup_restricted_mast_columns(alg, nb_cg_iterations)
         nb_cg_iterations += 1
@@ -422,7 +422,7 @@ function solve_mast_lp_ph2(alg::ColumnGenerationData,
         # @logmsg LogLevel(-2) "next colgen ph2 iteration"
     end
     # These lines are never executed becasue there is no break from the outtermost 'while true' above
-    # @logmsg LogLevel(-2) "solve_mast_lp_ph2 has finished"
+    # @logmsg LogLevel(-2) "colgen_solver_ph2 has finished"
     # return false
     return ColumnGenerationRecord(alg.incumbents)
 end
