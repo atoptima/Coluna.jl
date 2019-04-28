@@ -361,8 +361,9 @@ function colgen_solver_ph2(alg::ColumnGenerationData,
             #mark_infeasible(alg)
             return ColumnGenerationRecord(alg.incumbents)
         end
-
         set_lp_primal_sol!(alg.incumbents, primal_sols[1])
+        set_lp_dual_sol!(alg.incumbents, dual_sol)
+
         # if integer update_primal_ip_incumbents(alg.incumbents, master_val, primal_sol.members)
         ##cleanup_restricted_mast_columns(alg, nb_cg_iterations)
         nb_cg_iterations += 1

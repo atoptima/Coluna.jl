@@ -46,7 +46,7 @@ function TreeSolver(search_strategy::SEARCHSTRATEGY,
                     ObjSense::Type{<:AbstractObjSense})
     return TreeSolver(
         SearchTree(search_strategy), SearchTree(DepthFirst),
-        true, 0, 0, Incumbents(ObjSense)
+        true, 1, 0, Incumbents(ObjSense)
     )
 end
 
@@ -80,19 +80,17 @@ function apply(::Type{<:TreeSolver}, reform::Reformulation)
     strategy = MockStrategy # Should be kept in reformulation?
     strategy_record = StrategyRecord()
 
-    nb_treated_nodes = 0 # Tmp
     while (!isempty(tree_solver)
            && get_nb_treated_nodes(tree_solver) < _params_.max_num_nodes)
 
         cur_node = popnode!(tree_solver)
         setsolver!(strategy_record, StartNode)
+        set_treat_order!(cur_node, tree_solver.treat_order)
 
         print_info_before_apply(cur_node, tree_solver, reform)
         apply_on_node(strategy, reform, cur_node, strategy_record, nothing)
-        update_tree_solver(tree_solver, cur_node)
         print_info_after_apply(cur_node, tree_solver)
-        nb_treated_nodes += 1 # tmp
-        (nb_treated_nodes > 5) && break # tmp
+        update_tree_solver(tree_solver, cur_node)
     end
 
 end
@@ -151,7 +149,7 @@ end
 function print_info_before_apply(n::Node, s::TreeSolver, reform::Reformulation)
     println("************************************************************")
     print(nb_open_nodes(s) + 1)
-    print(" open nodes. Treating node ", get_treat_order(n))
+    print(" open nodes. Treating node ", get_treat_order(s), ". ")
     getparent(n) == nothing && println()
     getparent(n) != nothing && println("Parent is ", get_treat_order(getparent(n)))
 
@@ -187,14 +185,16 @@ function print_info_after_apply(n::Node, s::TreeSolver)
 
     print("Node bounds : ")
     printbounds(db, pb)
-    println(" ")
+    println()
 
-    node_incumbents = getincumbents(s)
-    db = get_ip_dual_bound(node_incumbents)
-    pb = get_ip_primal_bound(node_incumbents)
-    print("Tree bounds : ")
-    printbounds(db, pb)
-    println(" ")
+    # Removed the following prints because they are printed in the function print_info_before_apply
+    # and because since the children of a node is poped, we were printing "generated 0 children" every time
+    # node_incumbents = getincumbents(s)
+    # db = get_ip_dual_bound(node_incumbents)
+    # pb = get_ip_primal_bound(node_incumbents)
+    # print("Tree bounds : ")
+    # printbounds(db, pb)
+    # println(" ")
     println("************************************************************")
     return
 end

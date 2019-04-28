@@ -112,3 +112,11 @@ function set!(dest::Incumbents{S}, src::Incumbents{S}) where {S}
     set_lp_dual_sol!(dest, get_lp_dual_sol(src))
     return
 end
+
+function Base.show(io::IO, i::Incumbents{S}) where {S}
+    println(io, "Incumbents{", S, "}:")
+    print(io, "ip_primal_sol : ", i.ip_primal_sol)
+    println(io, "ip_dual_bound : ", i.ip_dual_bound)
+    print(io, "lp_primal_sol : ", i.lp_primal_sol)
+    print(io, "lp_dual_sol : ", i.lp_dual_sol)
+end
