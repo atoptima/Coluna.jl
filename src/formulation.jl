@@ -239,40 +239,6 @@ function set_var!(f::Formulation,
     return add_var!(f, v)
 end
 
-function set_partialsol!(f::Formulation,
-                         name::String,
-                         sol::PrimalSolution{S},
-                         duty::Type{<:AbstractVarDuty};
-                         lb::Float64 = 0.0,
-                         ub::Float64 = Inf,
-                         kind::VarKind = Continuous,
-                         sense::VarSense = Positive,
-                         inc_val::Float64 = 0.0,
-                         is_active::Bool = true,
-                         is_explicit::Bool = true,
-                         moi_index::MoiVarIndex = MoiVarIndex()) where {S}
-    ps_id = generatevarid(f)
-    ps_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
-    ps = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
-
-    coef_matrix = getcoefmatrix(f)
-    partialsol_matrix = getpartialsolmatrix(f)
-
-    for (var_id, var_val) in sol
-        partialsol_matrix[var_id, ps_id] = var_val
-        for (constr_id, var_coef) in coef_matrix[:,var_id]
-            coef_matrix[constr_id, ps_id] = var_val * var_coef
-            commit_coef_matrix_change!(
-                f,
-                constr_id, ps_id, var_val * var_coef
-            )
-        end
-
-    end
-    
-    return add_var!(f, ps)
-end
-
 "Adds `Variable` `var` to `Formulation` `f`."
 function add_var!(f::Formulation, var::Variable)
     add_vc!(f.cache.var_cache, var)
