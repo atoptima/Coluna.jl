@@ -398,7 +398,9 @@ function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
         return nothing
     end
     new_sol = Dict{ConstrId,Float64}()
-    obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
+    # Following line is commented becauss getting dual bound is not stable in some solvers. Getting primal bound instead, which will work for lps
+    # obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
+    obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
     fill_dual_sol(form.moi_optimizer, new_sol, constrs)
     dual_sol = DualSolution{form.obj_sense}(obj_bound, new_sol)
     return dual_sol

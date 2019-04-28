@@ -6,7 +6,7 @@ mutable struct GenerateChildrenNodeData <: AbstractSolverData
 end
 
 struct GenerateChildrenNodeRecord <: AbstractSolverRecord
-    # TODO
+    nodes::Vector{AbstractNode} # Node is not defined when this file is included
 end
 
 function setup!(::Type{GenerateChildrenNode}, formulation, node)
@@ -17,6 +17,8 @@ end
 function setdown!(::Type{GenerateChildrenNode}, solver_record::GenerateChildrenNodeRecord,
                  formulation, node)
     @logmsg LogLevel(-1) "Setdown generate children nodes"
+    node.children = solver_record.nodes
+    return
 end
 
 abstract type RuleForUsualBranching end
@@ -35,9 +37,7 @@ function run!(::Type{GenerateChildrenNode}, solver_data::GenerateChildrenNodeDat
 
     child1 = Node(node, Branch(var_id, val, Greater))
     child2 = Node(node, Branch(var_id, val, Less))
-    addchild!(node, child1)
-    addchild!(node, child2)
-    return GenerateChildrenNodeRecord()
+    return GenerateChildrenNodeRecord([child1, child2])
 end
 
 function best_candidate(R::Type{<:RuleForUsualBranching}, solver_data)
