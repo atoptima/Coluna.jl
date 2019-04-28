@@ -46,8 +46,8 @@ function best_candidate(R::Type{<:RuleForUsualBranching}, solver_data)
 
     solution = proj_cols_on_rep(master_primal_sol, master)
 
-    showdebug(stdout, master_primal_sol, master)
-    showdebug(stdout, solution, master)
+    @show master_primal_sol
+    @show solution
     return best_candidate(R, solution)
 end
 

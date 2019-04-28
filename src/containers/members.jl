@@ -127,6 +127,10 @@ function Base.keys(vec::MembersVector)
     Base.keys(vec.records)
 end
 
+function Base.copy(vec::V) where {V <: MembersVector}
+    return V(vec.elements, deepcopy(vec.records))
+end
+
 iterate(d::MembersVector) = iterate(d.records)
 iterate(d::MembersVector, state) = iterate(d.records, state)
 length(d::MembersVector) = length(d.records)

@@ -419,7 +419,7 @@ function retrieve_primal_sols(form::Formulation, vars::VarDict)
         new_sol = Dict{VarId,Float64}()
         new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
         fill_primal_sol(form.moi_optimizer, new_sol, vars, res_idx)
-        primal_sol = PrimalSolution(ObjSense, new_obj_val, new_sol)
+        primal_sol = PrimalSolution(form, new_obj_val, new_sol)
         push!(primal_sols, primal_sol)
     end
     return primal_sols
@@ -434,7 +434,7 @@ function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
     new_sol = Dict{ConstrId,Float64}()
     obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
     fill_dual_sol(form.moi_optimizer, new_sol, constrs)
-    dual_sol = DualSolution{form.obj_sense}(obj_bound, new_sol)
+    dual_sol = DualSolution(form, obj_bound, new_sol)
     return dual_sol
 end
 

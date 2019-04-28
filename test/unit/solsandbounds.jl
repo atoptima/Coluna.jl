@@ -85,9 +85,12 @@ function bounds_base_functions_tests()
 end
 
 function solution_constructors_and_getters_and_setters_tests()
+    counter = CL.Counter()
+    f1 = CL.Formulation{CL.Original}(counter, obj_sense = CL.MinSense) 
+    primal_sol = CL.PrimalSolution(f1)
 
-    primal_sol = CL.PrimalSolution(CL.MinSense)
-    dual_sol = CL.DualSolution(CL.MaxSense)
+    f2 = CL.Formulation{CL.Original}(counter, obj_sense = CL.MaxSense)
+    dual_sol = CL.DualSolution(f2)
 
     @test CL.getbound(primal_sol) == CL.PrimalBound{CL.MinSense}(Inf)
     @test CL.getvalue(primal_sol) == Inf
@@ -97,8 +100,8 @@ function solution_constructors_and_getters_and_setters_tests()
     @test CL.getvalue(dual_sol) == Inf
     @test CL.getsol(dual_sol) == Dict{CL.Id{CL.Constraint},Float64}()
 
-    primal_sol = CL.PrimalSolution(CL.MinSense, -12.0, Dict{CL.Id{CL.Variable},Float64}())
-    dual_sol = CL.DualSolution(CL.MaxSense, -13.0, Dict{CL.Id{CL.Constraint},Float64}())
+    primal_sol = CL.PrimalSolution(f1, -12.0, Dict{CL.Id{CL.Variable},Float64}())
+    dual_sol = CL.DualSolution(f2, -13.0, Dict{CL.Id{CL.Constraint},Float64}())
 
     @test CL.getbound(primal_sol) == CL.PrimalBound{CL.MinSense}(-12.0)
     @test CL.getvalue(primal_sol) == -12.0
@@ -116,7 +119,9 @@ function solution_base_functions_tests()
     sol[CL.Id{CL.Variable}(1, 10)] = 1.0
     sol[CL.Id{CL.Variable}(2, 10)] = 2.0
     
-    primal_sol = CL.PrimalSolution{CL.MinSense}(CL.PrimalBound{CL.MinSense}(3.0), sol)
+    counter = CL.Counter()
+    f = CL.Formulation{CL.Original}(counter, obj_sense = CL.MinSense) 
+    primal_sol = CL.PrimalSolution(f, CL.PrimalBound{CL.MinSense}(3.0), sol)
     
     copy_sol = CL.Base.copy(primal_sol)
     @test copy_sol.bound === primal_sol.bound

@@ -97,16 +97,27 @@ The expected behaviour of a solution is implemented according to the sense `S`.
 """
 struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::PrimalBound{S}
-    sol::Dict{Id{Variable},Float64}
+    sol::MembersVector{Id{Variable}, Variable, Float64}
 end
 
-function PrimalSolution(S::Type{<: AbstractObjSense})
-    return PrimalSolution{S}(PrimalBound(S), Dict{Id{Variable},Float64}())
+function PrimalSolution(S::Type{<:AbstractObjSense})
+    return PrimalSolution{S}(PrimalBound(S), MembersVector{Float64}(Dict{VarId, Variable}()))
 end
 
-function PrimalSolution(S::Type{<: AbstractObjSense}, 
+function PrimalSolution(f::AbstractFormulation)
+    Sense = getobjsense(f)
+    sol = MembersVector{Float64}(getvars(f))
+    return PrimalSolution{Sense}(PrimalBound(Sense), sol)
+end
+
+function PrimalSolution(f::AbstractFormulation,
                         value::Number, 
-                        sol::Dict{Id{Variable},Float64})
+                        soldict::Dict{Id{Variable},Float64})
+    S = getobjsense(f)
+    sol = MembersVector{Float64}(getvars(f))
+    for (key, val) in soldict
+        sol[key] = val
+    end
     return PrimalSolution{S}(PrimalBound(S, value), sol)
 end
 
@@ -118,16 +129,27 @@ The expected behaviour of a solution is implemented according to the sense `S`.
 """
 struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::DualBound{S}
-    sol::Dict{Id{Constraint},Float64}
+    sol::MembersVector{Id{Constraint}, Constraint, Float64}
 end
 
-function DualSolution(S::Type{<: AbstractObjSense})
-    return DualSolution{S}(DualBound(S), Dict{Id{Constraint},Float64}())
+function DualSolution(S::Type{<:AbstractObjSense})
+    return DualSolution{S}(DualBound(S), MembersVector{Float64}(Dict{ConstrId, Constraint}()))
 end
 
-function DualSolution(S::Type{<: AbstractObjSense}, 
+function DualSolution(f::AbstractFormulation)
+    Sense = getobjsense(f)
+    sol = MembersVector{Float64}(getconstrs(f))
+    return DualSolution{Sense}(DualBound(Sense), sol)
+end
+
+function DualSolution(f::AbstractFormulation, 
                       value::Number, 
-                      sol::Dict{Id{Constraint},Float64})
+                      soldict::Dict{Id{Constraint},Float64})
+    S = getobjsense(f)
+    sol = MembersVector{Float64}(getconstrs(f))
+    for (key, val) in soldict
+        sol[key] = val
+    end
     return DualSolution{S}(DualBound(S, value), sol)
 end
 
@@ -145,19 +167,13 @@ _show_sol_type(io::IO, d::DualSolution) = println(io, "\n┌ Dual Solution :")
 
 function Base.show(io::IO, sol::AbstractSolution)
     _show_sol_type(io, sol)
-    for (id, val) in sol
-        println(io, "| ", id, " => ", val)
+    _sol = getsol(sol)
+    ids = sort!(collect(keys(_sol)))
+    for id in ids
+        println(io, "| ", getname(getelement(_sol, id)), " = ", _sol[id])
     end
     @printf(io, "└ value = %.2f \n", float(getbound(sol)))
 end
+
 Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
 
-function showdebug(io::IO, sol::AbstractSolution, 
-                   formulation::AbstractFormulation)
-    _show_sol_type(io, sol)
-    ids = sort!(collect(keys(getsol(sol))))
-    for id in ids
-        println(io, "| ", getname(getelem(formulation, id)), " => ", sol.sol[id])
-    end
-    @printf(io, "└ value = %.2f \n", float(getbound(sol)))
-end
