@@ -79,8 +79,8 @@ function insert_cols_in_master(master_form::Formulation,
 
     # @show sp_sols
 
-    coef_matrix = getcoefmatrix(master_form)
-    partialsol_matrix = getpartialsolmatrix(master_form)
+    #coef_matrix = getcoefmatrix(master_form)
+    #partialsol_matrix = getpartialsolmatrix(master_form)
 
     for sp_sol in sp_sols
         if getvalue(sp_sol) < -0.0001 # TODO use tolerance
@@ -92,27 +92,27 @@ function insert_cols_in_master(master_form::Formulation,
             #    @warn string("column already exists as", id_of_existing_mc)
             #    continue
             # end
+            setvalue!(sp_sol, compute_original_cost(sp_sol, sp_form))
             
             ### create new column
             nb_of_gen_col += 1
             ref = getvarcounter(master_form) + 1
             name = string("MC", sp_uid, "_", ref)
-            cost = compute_original_cost(sp_sol, sp_form)
             lb = 0.0
             ub = Inf
             kind = Continuous
             duty = MasterCol
             sense = Positive
-            mc = set_var!(
-                master_form, name, duty; cost = cost, lb = lb, ub = ub,
+            mc = set_partialsol!(
+                master_form, name, sp_sol, duty; lb = lb, ub = ub,
                 kind = kind, sense = sense
             )
             mc_id = getid(mc)
 
             ### Record Sp solution
-            for (var_id, var_val) in sp_sol
-                partialsol_matrix[mc_id, var_id] = var_val
-            end
+            #for (var_id, var_val) in sp_sol
+             #   partialsol_matrix[mc_id, var_id] = var_val
+            #end
             #==add_partialsol!(master_form, mc)
             
             ### check if column exists
@@ -132,7 +132,7 @@ function insert_cols_in_master(master_form::Formulation,
             # This adds the column to the convexity constraints automatically
             # since the setup variable is in the sp solution and it has a
             # a coefficient of 1.0 in the convexity constraints
-            for (var_id, var_val) in getsol(sp_sol)
+            #==for (var_id, var_val) in getsol(sp_sol)
                 for (constr_id, var_coef) in coef_matrix[:,var_id]
                     coef_matrix[constr_id,mc_id] = var_val * var_coef
                     commit_coef_matrix_change!(
@@ -141,6 +141,7 @@ function insert_cols_in_master(master_form::Formulation,
                     )
                 end
             end
+==#
 
  
             #update_moi_membership(master_form, mc_var)
