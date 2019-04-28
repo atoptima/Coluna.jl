@@ -259,7 +259,7 @@ function set_partialsol!(f::Formulation,
     partialsol_matrix = getpartialsolmatrix(f)
 
     for (var_id, var_val) in sol
-        partialsol_matrix[var_id, ps_id] = var_val
+        partialsol_matrix[ps_id, var_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
             coef_matrix[constr_id, ps_id] = var_val * var_coef
             commit_coef_matrix_change!(
