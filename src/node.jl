@@ -19,6 +19,11 @@ function show(io::IO, branch::Branch, form::Formulation)
     return
 end
 
+struct NodeRecord
+    active_vars::Dict{VarId, VarData}
+    active_constrs::Dict{ConstrId, ConstrData}
+end
+
 mutable struct Node <: AbstractNode
     treat_order::Int
     depth::Int
@@ -27,12 +32,14 @@ mutable struct Node <: AbstractNode
     incumbents::Incumbents
     branch::Union{Nothing, Branch}
     solver_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
+    record::Union{Nothing, NodeRecord}
 end
 
 function RootNode(ObjSense::Type{<:AbstractObjSense})
     return Node(
         -1, 0, nothing, Node[], Incumbents(ObjSense), nothing,
-        Dict{Type{<:AbstractSolver},AbstractSolverRecord}()
+        Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
+        nothing
     )
 end
 
@@ -41,7 +48,8 @@ function Node(parent::Node, branch::Branch)
     incumbents = deepcopy(getincumbents(parent))
     return Node(
         -1, depth, parent, Node[], incumbents, branch,
-        Dict{Type{<:AbstractSolver},AbstractSolverRecord}()
+        Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
+        nothing
     )
 end
 
@@ -66,8 +74,25 @@ function to_be_pruned(n::Node)
     return false
 end
 
-function record(f::Reformulation, n::Node)
-    println("Record for reformulation is empty")
+function record(reform::Reformulation, node::Node)
+    # TODO : nested decomposition
+    return record(getmaster(reform), node)
+end
+
+function record(form::Formulation, node::Node)
+    active_vars = Dict{VarId, VarData}()
+    for (id, var) in getvars(form)
+        if get_cur_is_active(var)
+            active_vars[id] = deepcopy(getcurdata(var))
+        end
+    end
+    active_constrs = Dict{ConstrId, ConstrData}()
+    for (id, constr) in getconstrs(form)
+        if get_cur_is_active(constr)
+            active_constrs[id] = deepcopy(getcurdata(constr))
+        end
+    end
+    return NodeRecord(active_vars, active_constrs)
 end
 
 function setup(f::Reformulation, n::Node)

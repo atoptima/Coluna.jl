@@ -2,7 +2,6 @@
 # that mutualize the behaviour of Variable and Constraint.
 
 # Getters & setters for AbstractVcData
-
 is_active(vc::AbstractVcData) = vc.is_active
 is_explicit(vc::AbstractVcData) = vc.is_explicit
 getkind(vc::AbstractVcData) = vc.kind
