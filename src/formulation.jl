@@ -232,10 +232,12 @@ function set_var!(f::Formulation,
                   inc_val::Float64 = 0.0,
                   is_active::Bool = true,
                   is_explicit::Bool = true,
-                  moi_index::MoiVarIndex = MoiVarIndex())
+                  moi_index::MoiVarIndex = MoiVarIndex(),
+                  members = nothing)
     id = generatevarid(f)
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
+    members != nothing && set_members!(f, v, members)
     return add_var!(f, v)
 end
 
@@ -280,14 +282,14 @@ end
 
 "Deactivates a variable in the formulation"
 function deactivate_var!(f::Formulation, var::Variable)
-    remove_vc!(f.cache.constr_cache, var)
+    remove_vc!(f.cache.var_cache, var)
     set_cur_is_active(var, false)
     return
 end
 
 "Activate a variable in the formulation"
 function activate_var!(f::Formulation, var::Variable)
-    add_vc!(f.cache.constr_cache, var)
+    add_vc!(f.cache.var_cache, var)
     set_cur_is_active(var, true)
     return
 end
@@ -311,10 +313,12 @@ function set_constr!(f::Formulation,
                      inc_val::Float64 = 0.0,
                      is_active::Bool = true,
                      is_explicit::Bool = true,
-                     moi_index::MoiConstrIndex = MoiConstrIndex())
+                     moi_index::MoiConstrIndex = MoiConstrIndex(),
+                     members = nothing)
     id = generateconstrid(f)
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
+    members != nothing && set_members!(f, c, members)
     return add_constr!(f, c)
 end
 
@@ -341,6 +345,47 @@ end
 function clone_constr!(dest::Formulation, src::Formulation, constr::Constraint)
     add_constr!(dest, constr)
     return clone_constr!(dest.manager, src.manager, constr)
+end
+
+function set_members!(f::Formulation, v::Variable, members)
+    # Compute column vector record partial solution
+    # This adds the column to the convexity constraints automatically
+    # since the setup variable is in the sp solution and it has a
+    # a coefficient of 1.0 in the convexity constraints
+    coef_matrix = getcoefmatrix(f)
+    partialsol_matrix = getpartialsolmatrix(f)
+    id = getid(v)
+    for (var_id, var_val) in members
+        partialsol_matrix[id, var_id] = var_val
+        for (constr_id, var_coef) in coef_matrix[:,var_id]
+            coef_matrix[constr_id, id] = var_val * var_coef
+            commit_coef_matrix_change!(f, constr_id, id, var_val * var_coef)
+        end
+    end
+    return
+end
+
+function set_members!(f::Formulation, constr::Constraint, members)
+    println("Setting members for branching constraint ", getname(constr))
+    coef_matrix = getcoefmatrix(f)
+    partial_sols = getpartialsolmatrix(f)
+    constr_id = getid(constr)
+    for (var_id, member_coeff) in members
+        # Add coef for its own variables
+        coef_matrix[constr_id,var_id] = member_coeff
+        commit_coef_matrix_change!(
+            f, constr_id, var_id, member_coeff
+        )
+        # And for all columns having its own variables
+        for (col_id, coeff) in partial_sols[:,var_id]
+            println("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
+            coef_matrix[constr_id,col_id] = coeff * member_coeff
+            commit_coef_matrix_change!(
+                f, constr_id, col_id, coeff * member_coeff
+            )
+        end
+    end
+    return
 end
 
 function register_objective_sense!(f::Formulation, min::Bool)

@@ -85,14 +85,14 @@ function insert_cols_in_master(master_form::Formulation,
     for sp_sol in sp_sols
         if getvalue(sp_sol) < -0.0001 # TODO use tolerance
             # println(" >>>> \e[33m  create new column \e[00m")
-            
+
             ### TODO  : check if sp sol exists as a registered column
 
             #if id_of_existing_mc > 0 # already exists
             #    @warn string("column already exists as", id_of_existing_mc)
             #    continue
             # end
-            
+
             ### create new column
             nb_of_gen_col += 1
             ref = getvarcounter(master_form) + 1
@@ -105,16 +105,16 @@ function insert_cols_in_master(master_form::Formulation,
             sense = Positive
             mc = set_var!(
                 master_form, name, duty; cost = cost, lb = lb, ub = ub,
-                kind = kind, sense = sense
+                kind = kind, sense = sense, members = sp_sol
             )
-            mc_id = getid(mc)
+            # mc_id = getid(mc)
 
-            ### Record Sp solution
-            for (var_id, var_val) in sp_sol
-                partialsol_matrix[mc_id, var_id] = var_val
-            end
+            # ### Record Sp solution
+            # for (var_id, var_val) in sp_sol
+            #     partialsol_matrix[mc_id, var_id] = var_val
+            # end
             #==add_partialsol!(master_form, mc)
-            
+
             ### check if column exists
             id_of_existing_mc = - 1
             for (col_id, col_var, col_members) in columns(partialsol_matrix)
@@ -128,21 +128,21 @@ function insert_cols_in_master(master_form::Formulation,
             end
             ==#
 
-            ### Compute column vector
-            # This adds the column to the convexity constraints automatically
-            # since the setup variable is in the sp solution and it has a
-            # a coefficient of 1.0 in the convexity constraints
-            for (var_id, var_val) in getsol(sp_sol)
-                for (constr_id, var_coef) in coef_matrix[:,var_id]
-                    coef_matrix[constr_id,mc_id] = var_val * var_coef
-                    commit_coef_matrix_change!(
-                        master_form,
-                        constr_id, mc_id, var_val * var_coef
-                    )
-                end
-            end
+            # ### Compute column vector
+            # # This adds the column to the convexity constraints automatically
+            # # since the setup variable is in the sp solution and it has a
+            # # a coefficient of 1.0 in the convexity constraints
+            # for (var_id, var_val) in getsol(sp_sol)
+            #     for (constr_id, var_coef) in coef_matrix[:,var_id]
+            #         coef_matrix[constr_id,mc_id] = var_val * var_coef
+            #         commit_coef_matrix_change!(
+            #             master_form,
+            #             constr_id, mc_id, var_val * var_coef
+            #         )
+            #     end
+            # end
 
- 
+
             #update_moi_membership(master_form, mc_var)
             # println("\e[43m column added \e[00m")
             #@show string("added column ", mc_id, mc_var)
