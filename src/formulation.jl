@@ -210,15 +210,9 @@ Sets the coefficient `coeff` in the (`c_id`, `v_id`) cell of the matrix.
 Should be called if a coefficient modification in the matrix is definitive and should be transmitted to the underlying MOI solver.
 """
 function commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint},
-                               v_id::Id{Variable}, coeff::Float64)
+                                    v_id::Id{Variable}, coeff::Float64)
     f.cache.reset_coeffs[Pair(c_id,v_id)] = coeff
 end
-#function commit_partialsol_matrix_change!(f::Formulation,
-#                                          v_id::Id{Variable},
-#                                          ps_id::Id{Variable},
-#                                          coeff::Float64)
-#    f.cache.reset_partial_sols[Pair(v_id,ps_id)] = coeff
-#end
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
 function set_var!(f::Formulation,
@@ -261,7 +255,7 @@ function set_partialsol!(f::Formulation,
     partialsol_matrix = getpartialsolmatrix(f)
 
     for (var_id, var_val) in sol
-        partialsol_matrix[ps_id, var_id] = var_val
+        partialsol_matrix[var_id, ps_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
             coef_matrix[constr_id, ps_id] = var_val * var_coef
             commit_coef_matrix_change!(

@@ -79,9 +79,6 @@ function insert_cols_in_master(master_form::Formulation,
 
     # @show sp_sols
 
-    coef_matrix = getcoefmatrix(master_form)
-    partialsol_matrix = getpartialsolmatrix(master_form)
-
     for sp_sol in sp_sols
         if getvalue(sp_sol) < -0.0001 # TODO use tolerance
             # println(" >>>> \e[33m  create new column \e[00m")
