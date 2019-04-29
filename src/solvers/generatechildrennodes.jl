@@ -35,8 +35,8 @@ function run!(::Type{GenerateChildrenNode}, solver_data::GenerateChildrenNodeDat
     #genbranchingconstr!()
     println(" Generate branching constraints... ")
 
-    child1 = Node(node, Branch(var_id, val, Greater))
-    child2 = Node(node, Branch(var_id, val, Less))
+    child1 = Node(node, Branch(var_id, val, Greater, getdepth(node)))
+    child2 = Node(node, Branch(var_id, val, Less, getdepth(node)))
     return GenerateChildrenNodeRecord([child1, child2])
 end
 

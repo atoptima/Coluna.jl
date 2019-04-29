@@ -66,9 +66,9 @@ switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 function apply_on_node(strategy::Type{<:AbstractStrategy},
                        formulation::Reformulation, node::Node, r, p)
     # Check if it needs to be treated, because pb might have improved
-    setup(formulation, node)
+    setup!(formulation, node)
     apply(strategy, formulation, node, r, nothing)
-    record(formulation, node)
+    record!(formulation, node)
     return
 end
 
