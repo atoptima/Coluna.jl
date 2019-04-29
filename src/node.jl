@@ -2,9 +2,13 @@ struct Branch
     var_coeffs::Dict{VarId, Float64}
     rhs::Float64
     sense::ConstrSense
+    depth::Int
 end
-
-Branch(varid::VarId, rhs, sense) = Branch(Dict(varid => 1.0), rhs, sense)
+Branch(varid::VarId, rhs, sense, depth) = Branch(Dict(varid => 1.0), rhs, sense, depth)
+get_var_coeffs(b::Branch) = b.var_coeffs
+getrhs(b::Branch) = b.rhs
+getsense(b::Branch) = b.sense
+getdepth(b::Branch) = b.depth
 
 function show(io::IO, branch::Branch, form::Formulation)
     for (id, coeff) in branch.var_coeffs
@@ -23,6 +27,7 @@ struct NodeRecord
     active_vars::Dict{VarId, VarData}
     active_constrs::Dict{ConstrId, ConstrData}
 end
+NodeRecord() = NodeRecord(Dict{VarId, VarData}(), Dict{ConstrId, ConstrData}())
 
 mutable struct Node <: AbstractNode
     treat_order::Int
@@ -30,16 +35,16 @@ mutable struct Node <: AbstractNode
     parent::Union{Nothing, Node}
     children::Vector{Node}
     incumbents::Incumbents
-    branch::Union{Nothing, Branch}
+    branch::Union{Nothing, Branch} # branch::Id{Constraint}
     solver_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
-    record::Union{Nothing, NodeRecord}
+    record::NodeRecord
 end
 
 function RootNode(ObjSense::Type{<:AbstractObjSense})
     return Node(
         -1, 0, nothing, Node[], Incumbents(ObjSense), nothing,
         Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
-        nothing
+        NodeRecord()
     )
 end
 
@@ -49,7 +54,7 @@ function Node(parent::Node, branch::Branch)
     return Node(
         -1, depth, parent, Node[], incumbents, branch,
         Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
-        nothing
+        NodeRecord()
     )
 end
 
@@ -74,12 +79,12 @@ function to_be_pruned(n::Node)
     return false
 end
 
-function record(reform::Reformulation, node::Node)
+function record!(reform::Reformulation, node::Node)
     # TODO : nested decomposition
-    return record(getmaster(reform), node)
+    return record!(getmaster(reform), node)
 end
 
-function record(form::Formulation, node::Node)
+function record!(form::Formulation, node::Node)
     active_vars = Dict{VarId, VarData}()
     for (id, var) in getvars(form)
         if get_cur_is_active(var)
@@ -92,9 +97,77 @@ function record(form::Formulation, node::Node)
             active_constrs[id] = deepcopy(getcurdata(constr))
         end
     end
-    return NodeRecord(active_vars, active_constrs)
+    node.record = NodeRecord(active_vars, active_constrs)
+    return
 end
 
-function setup(f::Reformulation, n::Node)
-    println("Setup for reformulation is empty")
+function setup!(f::Reformulation, n::Node)
+    println("Setup for reformulation is under construction.")
+    # For now, we do setup only in master
+    setup!(f.master, n)
+    return
 end
+
+function setup!(f::Formulation, n::Node)
+    reset_to_record_state!(f, getparent(n))
+    apply_branch!(f, getbranch(n))
+end
+
+function set_members!(f::Formulation, constr::Constraint, members)
+    println("Setting members for branching constraint ", getname(constr))
+    coef_matrix = getcoefmatrix(f)
+    partial_sols = f.manager.partial_sols
+    constr_id = getid(constr)
+    for (var_id, member_coeff) in members
+        # for all columns having var_id
+        for (col_id, coeff) in partial_sols[:,var_id]
+            println("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
+            coef_matrix[constr_id,col_id] = coeff * member_coeff
+            commit_coef_matrix_change!(
+                f,
+                constr_id, col_id, coeff * member_coeff
+            )
+        end
+    end
+    return
+end
+
+function apply_branch!(f::Formulation, b::Branch)
+    sense = (b.sense == Greater ? "geq_" : "leq_")
+    name = string("branch_", sense,  getdepth(b))
+    branch_constraint = set_constr!(f, name, MasterBranchConstr; rhs = getrhs(b))
+    set_members!(f, branch_constraint, get_var_coeffs(b))
+    return
+end
+
+function reset_to_record_state!(f::Formulation, n::Node)
+    active_vars = n.record.active_vars
+    active_constrs = n.record.active_constrs
+    # Checking vars that are in formulation but should not be
+    for (id, var) in filter(_active_, getvars(f))
+        !haskey(active_vars, id) && deactivate_var!(f, var)
+    end
+    # Checking constrs that are in formulation but should not be
+    for (id, constr) in filter(_active_, getconstrs(f))
+        !haskey(active_constrs, id) && deactivate_var!(f, constr)
+    end
+    # Checking vars that should be in formulation but are not
+    for (id, data) in active_vars
+        var = getvar(f, id)
+        !get_cur_is_active(var) && continue
+        activate_var!(f, var)
+    end
+    # Checking constrs that should be in formulation but are not
+    for (id, data) in active_constrs
+        constr = getconstr(f, id)
+        !get_cur_is_active(constr) && continue
+        activate_constr!(f, constr)
+    end
+    return
+end
+
+# Nothing happens if this function is called for a node with not branch
+apply_branch!(f::Formulation, ::Nothing) = nothing
+
+# Nothing happens if this function is called for the "father" of the root node
+reset_to_record_state!(f::Formulation, ::Nothing) = nothing

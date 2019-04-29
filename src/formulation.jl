@@ -18,16 +18,16 @@ VarConstrCache{T}() where {T<:AbstractVarConstr} = VarConstrCache{T}(Set{T}(), S
 function add_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     !get_cur_is_explicit(vc) && return
     id = getid(vc)
-    id in vc_cache.removed && delete!(vc_cache.removed, id)
-    push!(vc_cache.added, id)
+    !(id in vc_cache.removed) && push!(vc_cache.added, id)
+    delete!(vc_cache.removed, id)
     return
 end
 
 function remove_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     !get_cur_is_explicit(vc) && return
     id = getid(vc)
-    id in vc_cache.added && delete!(vc_cache.added, id)
-    push!(vc_cache.removed, id)
+    !(id in vc_cache.added) && push!(vc_cache.removed, id)
+    delete!(vc_cache.added, id)
     return
 end
 
@@ -261,9 +261,8 @@ function set_partialsol!(f::Formulation,
                 constr_id, ps_id, var_val * var_coef
             )
         end
-
     end
-    
+
     return add_var!(f, ps)
 end
 
@@ -271,6 +270,20 @@ end
 function add_var!(f::Formulation, var::Variable)
     add_vc!(f.cache.var_cache, var)
     return add_var!(f.manager, var)
+end
+
+"Deactivates a variable in the formulation"
+function deactivate_var!(f::Formulation, var::Variable)
+    remove_vc!(f.cache.constr_cache, var)
+    set_cur_is_active(var, false)
+    return
+end
+
+"Activate a variable in the formulation"
+function activate_var!(f::Formulation, var::Variable)
+    add_vc!(f.cache.constr_cache, var)
+    set_cur_is_active(var, true)
+    return
 end
 
 function add_partialsol!(f::Formulation, var::Variable)
@@ -287,8 +300,8 @@ function set_constr!(f::Formulation,
                      name::String,
                      duty::Type{<:AbstractConstrDuty};
                      rhs::Float64 = 0.0,
-                     kind::ConstrKind = 0.0,
-                     sense::ConstrSense = 0.0,
+                     kind::ConstrKind = Core,
+                     sense::ConstrSense = Greater,
                      inc_val::Float64 = 0.0,
                      is_active::Bool = true,
                      is_explicit::Bool = true,
@@ -303,6 +316,20 @@ end
 function add_constr!(f::Formulation, constr::Constraint)
     add_vc!(f.cache.constr_cache, constr)
     return add_constr!(f.manager, constr)
+end
+
+"Deactivates a constraint in the formulation"
+function deactivate_constr!(f::Formulation, constr::Constraint)
+    remove_vc!(f.cache.constr_cache, constr)
+    set_cur_is_active(constr, false)
+    return
+end
+
+"Activates a constraint in the formulation"
+function activate_constr!(f::Formulation, constr::Constraint)
+    add_vc!(f.cache.constr_cache, constr)
+    set_cur_is_active(constr, true)
+    return
 end
 
 function clone_constr!(dest::Formulation, src::Formulation, constr::Constraint)
