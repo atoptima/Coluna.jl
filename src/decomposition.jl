@@ -1,9 +1,9 @@
-set_loc_art_var(f::Formulation, constr_id::ConstrId) = set_var!(
+set_loc_art_var(f::Formulation, constr_id::ConstrId) = setvar!(
     f, string("local_art_", constr_id), MastArtVar; cost = 10.0,
     lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
-set_glob_art_var(f::Formulation, is_pos::Bool) = set_var!(
+set_glob_art_var(f::Formulation, is_pos::Bool) = setvar!(
     f, string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
     MastArtVar; cost = 100000.0, lb = 0.0, ub = Inf,
     kind = Continuous, sense = Positive
@@ -13,7 +13,7 @@ function initialize_local_art_vars(master::Formulation,
                                    constrs_in_form)
     matrix = getcoefmatrix(master)
     for (constr_id, constr) in constrs_in_form
-        v = set_var!(
+        v = setvar!(
             master, string("local_art_of_", getname(constr)),
             MastArtVar; cost = 10000.0, lb = 0.0, ub = Inf,
 # cost = getincval(constr), lb = 0.0, ub = Inf,
@@ -86,7 +86,7 @@ function build_dw_master!(prob::Problem,
         rhs = 0.0
         kind = Core
         duty = MasterConvexityConstr  #MasterConstr #MasterConvexityConstr
-        lb_conv_constr = set_constr!(master_form, name, duty;
+        lb_conv_constr = setconstr!(master_form, name, duty;
                                      rhs = rhs, kind  = kind,
                                      sense = sense)
         reformulation.dw_pricing_sp_lb[sp_uid] = getid(lb_conv_constr)
@@ -97,7 +97,7 @@ function build_dw_master!(prob::Problem,
         name = "sp_ub_$(sp_uid)"
         rhs = 1.0
         sense = Less
-        ub_conv_constr = set_constr!(master_form, name, duty;
+        ub_conv_constr = setconstr!(master_form, name, duty;
                                      rhs = rhs, kind = kind,
                                      sense = sense)
         reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
@@ -114,7 +114,7 @@ function build_dw_master!(prob::Problem,
         duty = PricingSpSetupVar
         sense = Positive
         is_explicit = true
-        setup_var = set_var!(sp_form, name, duty; cost = cost,
+        setup_var = setvar!(sp_form, name, duty; cost = cost,
                              lb = lb, ub = ub, kind = kind,
                              sense = sense, is_explicit = is_explicit)
         matrix = getcoefmatrix(master_form)

@@ -96,9 +96,9 @@ function insert_cols_in_master(master_form::Formulation,
             kind = Continuous
             duty = MasterCol
             sense = Positive
-            mc = set_var!(
-                master_form, name, duty; cost = cost, lb = lb, ub = ub,
-                kind = kind, sense = sense, members = sp_sol
+            mc = setpartialsol!(
+                master_form, name, sp_sol, duty; lb = lb, ub = ub,
+                kind = kind, sense = sense
             )
             # mc_id = getid(mc)
 
@@ -106,7 +106,7 @@ function insert_cols_in_master(master_form::Formulation,
             # for (var_id, var_val) in sp_sol
             #     partialsol_matrix[mc_id, var_id] = var_val
             # end
-            #==add_partialsol!(master_form, mc)
+            #==addpartialsol!(master_form, mc)
 
             ### check if column exists
             id_of_existing_mc = - 1

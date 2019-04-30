@@ -116,7 +116,7 @@ end
 function apply_branch!(f::Formulation, b::Branch)
     sense = (b.sense == Greater ? "geq_" : "leq_")
     name = string("branch_", sense,  getdepth(b))
-    branch_constraint = set_constr!(
+    branch_constraint = setconstr!(
         f, name, MasterBranchConstr; rhs = getrhs(b), members = get_var_coeffs(b)
     )
     return
@@ -127,23 +127,23 @@ function reset_to_record_state!(f::Formulation, n::Node)
     active_constrs = n.record.active_constrs
     # Checking vars that are in formulation but should not be
     for (id, var) in filter(_active_, getvars(f))
-        !haskey(active_vars, id) && deactivate_var!(f, var)
+        !haskey(active_vars, id) && deactivatevar!(f, var)
     end
     # Checking constrs that are in formulation but should not be
     for (id, constr) in filter(_active_, getconstrs(f))
-        !haskey(active_constrs, id) && deactivate_var!(f, constr)
+        !haskey(active_constrs, id) && deactivatevar!(f, constr)
     end
     # Checking vars that should be in formulation but are not
     for (id, data) in active_vars
         var = getvar(f, id)
         !get_cur_is_active(var) && continue
-        activate_var!(f, var)
+        activatevar!(f, var)
     end
     # Checking constrs that should be in formulation but are not
     for (id, data) in active_constrs
         constr = getconstr(f, id)
         !get_cur_is_active(constr) && continue
-        activate_constr!(f, constr)
+        activateconstr!(f, constr)
     end
     return
 end

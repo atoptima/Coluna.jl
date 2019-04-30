@@ -9,7 +9,7 @@ function clone_in_formulation!(dest::Formulation,
         getid(var), getname(var), duty;
         var_data = data
     )
-    add_var!(dest, var_clone)
+    addvar!(dest, var_clone)
     clone_in_manager!(dest.manager, src.manager, var_clone)
     return var_clone
 end
@@ -25,7 +25,7 @@ function clone_in_formulation!(dest::Formulation,
     constr_clone = Constraint(
         getid(constr), getname(constr), duty; constr_data = data
     )
-    add_constr!(dest, constr_clone)
+    addconstr!(dest, constr_clone)
     clone_in_manager!(dest.manager, src.manager, constr_clone)
     return constr_clone
 end

@@ -118,7 +118,7 @@ function create_origvars!(f::Formulation,
         else
             name = string("var_", moi_index.value)
         end
-        v = set_var!(f, name, OriginalVar)
+        v = setvar!(f, name, OriginalVar)
         var_id = getid(v)
         dest.moi_index_to_coluna_uid[moi_index] = MOI.VariableIndex(getuid(var_id))
         moi_uid_to_coluna_id[moi_index.value] = var_id
@@ -157,7 +157,7 @@ function create_origconstr!(f::Formulation,
                             moi_index::MOI.ConstraintIndex,
                             moi_uid_to_coluna_id::Dict{Int,VarId})
 
-    c = set_constr!(f, name, OriginalConstr;
+    c = setconstr!(f, name, OriginalConstr;
                     rhs = getrhs(set),
                     kind = Core,
                     sense = setsense(set),

@@ -28,18 +28,18 @@ end
 haskey(m::FormulationManager, id::Id{Variable}) = haskey(m.vars, id)
 haskey(m::FormulationManager, id::Id{Constraint}) = haskey(m.constrs, id)
 
-function add_var!(m::FormulationManager, var::Variable)
+function addvar!(m::FormulationManager, var::Variable)
     haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))
     m.vars[var.id] = var
     return var
 end
 
-function add_partialsol!(m::FormulationManager, var::Variable)
+function addpartialsol!(m::FormulationManager, var::Variable)
      ### check if partialsol exists should take place heren along the coeff update
     return var
 end
 
-function add_constr!(m::FormulationManager, constr::Constraint)
+function addconstr!(m::FormulationManager, constr::Constraint)
     haskey(m.constrs, constr.id) && error(string("Constraint of id ", constr.id, " exists"))
     m.constrs[constr.id] = constr
     return constr

@@ -15,7 +15,7 @@ Constructs an empty `VarConstrCache{T}` for entities of type `T`.
 """
 VarConstrCache{T}() where {T<:AbstractVarConstr} = VarConstrCache{T}(Set{T}(), Set{T}())
 
-function add_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
+function addvc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     !get_cur_is_explicit(vc) && return
     id = getid(vc)
     !(id in vc_cache.removed) && push!(vc_cache.added, id)
@@ -23,7 +23,7 @@ function add_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     return
 end
 
-function remove_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
+function removevc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     !get_cur_is_explicit(vc) && return
     id = getid(vc)
     !(id in vc_cache.added) && push!(vc_cache.removed, id)
@@ -216,7 +216,7 @@ function commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint},
 end
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
-function set_var!(f::Formulation,
+function setvar!(f::Formulation,
                   name::String,
                   duty::Type{<:AbstractVarDuty};
                   cost::Float64 = 0.0,
@@ -232,11 +232,11 @@ function set_var!(f::Formulation,
     id = generatevarid(f)
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
-    members != nothing && set_members!(f, v, members)
-    return add_var!(f, v)
+    members != nothing && setmembers!(f, v, members)
+    return addvar!(f, v)
 end
 
-function set_partialsol!(f::Formulation,
+function setpartialsol!(f::Formulation,
                          name::String,
                          sol::PrimalSolution{S},
                          duty::Type{<:AbstractVarDuty};
@@ -266,40 +266,40 @@ function set_partialsol!(f::Formulation,
         end
     end
 
-    return add_var!(f, ps)
+    return addvar!(f, ps)
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."
-function add_var!(f::Formulation, var::Variable)
-    add_vc!(f.cache.var_cache, var)
-    return add_var!(f.manager, var)
+function addvar!(f::Formulation, var::Variable)
+    addvc!(f.cache.var_cache, var)
+    return addvar!(f.manager, var)
 end
 
 "Deactivates a variable in the formulation"
-function deactivate_var!(f::Formulation, var::Variable)
-    remove_vc!(f.cache.var_cache, var)
+function deactivatevar!(f::Formulation, var::Variable)
+    removevc!(f.cache.var_cache, var)
     set_cur_is_active(var, false)
     return
 end
 
 "Activate a variable in the formulation"
-function activate_var!(f::Formulation, var::Variable)
-    add_vc!(f.cache.var_cache, var)
+function activatevar!(f::Formulation, var::Variable)
+    addvc!(f.cache.var_cache, var)
     set_cur_is_active(var, true)
     return
 end
 
-function add_partialsol!(f::Formulation, var::Variable)
-    return add_partialsol!(f.manager, var)
+function addpartialsol!(f::Formulation, var::Variable)
+    return addpartialsol!(f.manager, var)
 end
 
-function clone_var!(dest::Formulation, src::Formulation, var::Variable)
-    add_var!(dest, var)
-    return clone_var!(dest.manager, src.manager, var)
+function clonevar!(dest::Formulation, src::Formulation, var::Variable)
+    addvar!(dest, var)
+    return clonevar!(dest.manager, src.manager, var)
 end
 
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `f`."
-function set_constr!(f::Formulation,
+function setconstr!(f::Formulation,
                      name::String,
                      duty::Type{<:AbstractConstrDuty};
                      rhs::Float64 = 0.0,
@@ -313,36 +313,36 @@ function set_constr!(f::Formulation,
     id = generateconstrid(f)
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
-    members != nothing && set_members!(f, c, members)
-    return add_constr!(f, c)
+    members != nothing && setmembers!(f, c, members)
+    return addconstr!(f, c)
 end
 
 "Adds `Constraint` `constr` to `Formulation` `f`."
-function add_constr!(f::Formulation, constr::Constraint)
-    add_vc!(f.cache.constr_cache, constr)
-    return add_constr!(f.manager, constr)
+function addconstr!(f::Formulation, constr::Constraint)
+    addvc!(f.cache.constr_cache, constr)
+    return addconstr!(f.manager, constr)
 end
 
 "Deactivates a constraint in the formulation"
-function deactivate_constr!(f::Formulation, constr::Constraint)
-    remove_vc!(f.cache.constr_cache, constr)
+function deactivateconstr!(f::Formulation, constr::Constraint)
+    removevc!(f.cache.constr_cache, constr)
     set_cur_is_active(constr, false)
     return
 end
 
 "Activates a constraint in the formulation"
-function activate_constr!(f::Formulation, constr::Constraint)
-    add_vc!(f.cache.constr_cache, constr)
+function activateconstr!(f::Formulation, constr::Constraint)
+    addvc!(f.cache.constr_cache, constr)
     set_cur_is_active(constr, true)
     return
 end
 
-function clone_constr!(dest::Formulation, src::Formulation, constr::Constraint)
-    add_constr!(dest, constr)
-    return clone_constr!(dest.manager, src.manager, constr)
+function cloneconstr!(dest::Formulation, src::Formulation, constr::Constraint)
+    addconstr!(dest, constr)
+    return cloneconstr!(dest.manager, src.manager, constr)
 end
 
-function set_members!(f::Formulation, v::Variable, members)
+function setmembers!(f::Formulation, v::Variable, members)
     # Compute column vector record partial solution
     # This adds the column to the convexity constraints automatically
     # since the setup variable is in the sp solution and it has a
@@ -360,7 +360,7 @@ function set_members!(f::Formulation, v::Variable, members)
     return
 end
 
-function set_members!(f::Formulation, constr::Constraint, members)
+function setmembers!(f::Formulation, constr::Constraint, members)
     println("Setting members for branching constraint ", getname(constr))
     coef_matrix = getcoefmatrix(f)
     partial_sols = getpartialsolmatrix(f)
