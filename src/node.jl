@@ -113,30 +113,12 @@ function setup!(f::Formulation, n::Node)
     apply_branch!(f, getbranch(n))
 end
 
-function set_members!(f::Formulation, constr::Constraint, members)
-    println("Setting members for branching constraint ", getname(constr))
-    coef_matrix = getcoefmatrix(f)
-    partial_sols = f.manager.partial_sols
-    constr_id = getid(constr)
-    for (var_id, member_coeff) in members
-        # for all columns having var_id
-        for (col_id, coeff) in partial_sols[:,var_id]
-            println("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
-            coef_matrix[constr_id,col_id] = coeff * member_coeff
-            commit_coef_matrix_change!(
-                f,
-                constr_id, col_id, coeff * member_coeff
-            )
-        end
-    end
-    return
-end
-
 function apply_branch!(f::Formulation, b::Branch)
     sense = (b.sense == Greater ? "geq_" : "leq_")
     name = string("branch_", sense,  getdepth(b))
-    branch_constraint = set_constr!(f, name, MasterBranchConstr; rhs = getrhs(b))
-    set_members!(f, branch_constraint, get_var_coeffs(b))
+    branch_constraint = set_constr!(
+        f, name, MasterBranchConstr; rhs = getrhs(b), members = get_var_coeffs(b)
+    )
     return
 end
 
