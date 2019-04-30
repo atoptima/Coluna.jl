@@ -36,19 +36,10 @@ end
 # Internal methods to the column generation
 function update_pricing_problem(sp_form::Formulation, dual_sol::DualSolution)
 
-    for (id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
-        setcurcost!(var, getperencost(var))
-    end
-
-    coefficient_matrix = getcoefmatrix(sp_form.parent_formulation)
-
-    for (var_id, var) in getvars(sp_form)
-        for (constr_id, dual_val) in getsol(dual_sol)
-            coeff = coefficient_matrix[constr_id, var_id]
-            setcurcost!(var, getcurcost(var) - dual_val * coeff)
-        end
-    end
-    for (var_id, var) in getvars(sp_form)
+    master_form = sp_form.parent_formulation
+    
+    for (var_id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
+        setcurcost!(var, computereducedcost(master_form, var_id, dual_sol))
         commit_cost_change!(sp_form, var)
     end
 

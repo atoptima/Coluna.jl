@@ -513,6 +513,20 @@ function resetsolvalue(form::Formulation, sol::AbstractSolution)
     return val
 end
 
+function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution) 
+
+    var = getvar(form, var_id)
+    rc = getperencost(var)
+    coefficient_matrix = getcoefmatrix(form)
+    
+    for (constr_id, dual_val) in getsol(dual_sol)
+        coeff = coefficient_matrix[constr_id, var_id]
+        rc = rc - dual_val * coeff
+    end
+    
+    return rc
+end
+
 # function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
 #     for (var_id, var_val) in sol.members
 #         if (!is_value_integer(var_val, tolerance)
