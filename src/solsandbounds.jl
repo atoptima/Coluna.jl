@@ -95,7 +95,7 @@ abstract type AbstractSolution end
 A struct to represent a `PrimalSolution` for an objective function with sense `S`.
 The expected behaviour of a solution is implemented according to the sense `S`.
 """
-struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
+mutable struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::PrimalBound{S}
     sol::MembersVector{Id{Variable}, Variable, Float64}
 end
@@ -154,8 +154,10 @@ function DualSolution(f::AbstractFormulation,
 end
 
 getbound(s::AbstractSolution) = s.bound
-getvalue(s::AbstractSolution) = float(s.bound)
 getsol(s::AbstractSolution) = s.sol
+getvalue(s::AbstractSolution) = float(s.bound)
+setvalue!(s::AbstractSolution, v::Float64) = s.bound = v
+
 
 iterate(s::AbstractSolution) = iterate(s.sol)
 iterate(s::AbstractSolution, state) = iterate(s.sol, state)

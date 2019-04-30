@@ -59,10 +59,6 @@ function update_pricing_target(sp_form::Formulation)
     # println("pricing target will only be needed after automating convexity constraints")
 end
 
-function compute_original_cost(sp_sol, sp_form)
-    val = sum(getperencost(getvar(sp_form, var_id)) * value for (var_id, value) in sp_sol)
-    return val
-end
 
 function insert_cols_in_master(master_form::Formulation,
                                sp_form::Formulation,
@@ -94,7 +90,7 @@ function insert_cols_in_master(master_form::Formulation,
             nb_of_gen_col += 1
             ref = getvarcounter(master_form) + 1
             name = string("MC", sp_uid, "_", ref)
-            cost = compute_original_cost(sp_sol, sp_form)
+            resetsolvalue(master_form, sp_sol)
             lb = 0.0
             ub = Inf
             kind = Continuous
@@ -341,6 +337,7 @@ function colgen_solver_ph2(alg::ColumnGenerationData,
         # GLPK.write_lp(getinner(get_optimizer(master_form)), string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         before_master = time()
+        @show master_form
         status_rm, master_val, primal_sols, dual_sol = optimize!(master_form)
         mst_time = (time() - before_master)
 

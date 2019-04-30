@@ -31,6 +31,7 @@ function remove_vc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     return
 end
 
+
 """
     FormulationCache()
 
@@ -459,6 +460,12 @@ function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
     fill_dual_sol(form.moi_optimizer, new_sol, constrs)
     dual_sol = DualSolution(form, obj_bound, new_sol)
     return dual_sol
+end
+
+function resetsolvalue(form::Formulation, sol::AbstractSolution) 
+    val = sum(getperencost(getvar(form, var_id)) * value for (var_id, value) in sol)
+    setvalue!(sol, val)
+    return val
 end
 
 # function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
