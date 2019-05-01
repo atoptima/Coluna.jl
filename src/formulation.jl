@@ -14,7 +14,6 @@ end
 Constructs an empty `VarConstrCache{T}` for entities of type `T`.
 """
 VarConstrCache{T}() where {T<:AbstractVarConstr} = VarConstrCache{T}(Set{T}(), Set{T}())
-
 function addvc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     !get_cur_is_explicit(vc) && return
     id = getid(vc)
