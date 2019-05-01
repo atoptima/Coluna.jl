@@ -35,6 +35,7 @@ import Base.haskey
 import Base.copy
 import Base.promote_rule
 import Base.convert
+import Base.isinteger
 
 include("types.jl")
 include("parameters.jl")

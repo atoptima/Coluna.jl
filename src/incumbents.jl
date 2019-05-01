@@ -16,8 +16,8 @@ and the best dual bound to the program.
 """
 function Incumbents(S::Type{<: AbstractObjSense})
     return Incumbents{S}(
-        PrimalSolution(S), DualBound(S),
-        PrimalSolution(S), DualSolution(S)
+        PrimalSolution{S}(), DualBound{S}(),
+        PrimalSolution{S}(), DualSolution{S}()
     )
 end
 

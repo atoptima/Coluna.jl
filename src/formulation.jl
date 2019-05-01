@@ -24,13 +24,11 @@ function addvc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
 end
 
 function removevc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
-    !get_cur_is_explicit(vc) && return
     id = getid(vc)
     !(id in vc_cache.added) && push!(vc_cache.removed, id)
     delete!(vc_cache.added, id)
     return
 end
-
 
 """
     FormulationCache()
@@ -81,6 +79,34 @@ end
 function undo_modifs!(cache::FormulationCache, c::Constraint)
     id = getid(c)
     delete!(cache.changed_rhs, id)
+    return
+end
+
+function removevc!(cache::FormulationCache, constr::Constraint)
+    !get_cur_is_explicit(constr) && return
+    removevc!(cache.constr_cache, constr)
+    undo_matrix_modifs!(cache, constr)
+    return
+end
+
+function removevc!(cache::FormulationCache, var::Variable)
+    !get_cur_is_explicit(var) && return
+    removevc!(cache.var_cache, var)
+    undo_matrix_modifs!(cache, var)
+    return
+end
+
+function undo_matrix_modifs!(cache::FormulationCache, v::Variable)
+    for (c_id, v_id) in collect(keys(cache.reset_coeffs))
+        v_id == getid(v) && delete!(cache.reset_coeffs, Pair(c_id, v_id))
+    end
+    return
+end
+
+function undo_matrix_modifs!(cache::FormulationCache, c::Constraint)
+    for (c_id, v_id) in collect(keys(cache.reset_coeffs))
+        c_id == getid(c) && delete!(cache.reset_coeffs, Pair(c_id, v_id))
+    end
     return
 end
 
@@ -277,7 +303,7 @@ end
 
 "Deactivates a variable in the formulation"
 function deactivatevar!(f::Formulation, var::Variable)
-    removevc!(f.cache.var_cache, var)
+    removevc!(f.cache, var)
     set_cur_is_active(var, false)
     return
 end
@@ -325,7 +351,7 @@ end
 
 "Deactivates a constraint in the formulation"
 function deactivateconstr!(f::Formulation, constr::Constraint)
-    removevc!(f.cache.constr_cache, constr)
+    removevc!(f.cache, constr)
     set_cur_is_active(constr, false)
     return
 end
@@ -351,7 +377,7 @@ function setmembers!(f::Formulation, v::Variable, members)
     partialsol_matrix = getpartialsolmatrix(f)
     id = getid(v)
     for (var_id, var_val) in members
-        partialsol_matrix[id, var_id] = var_val
+        partialsol_matrix[var_id, id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
             coef_matrix[constr_id, id] = var_val * var_coef
             commit_coef_matrix_change!(f, constr_id, id, var_val * var_coef)
@@ -361,19 +387,24 @@ function setmembers!(f::Formulation, v::Variable, members)
 end
 
 function setmembers!(f::Formulation, constr::Constraint, members)
-    println("Setting members for branching constraint ", getname(constr))
+    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
     coef_matrix = getcoefmatrix(f)
     partial_sols = getpartialsolmatrix(f)
     constr_id = getid(constr)
+    @logmsg LogLevel(-4) "Members are : ", members
     for (var_id, member_coeff) in members
         # Add coef for its own variables
-        coef_matrix[constr_id,var_id] = member_coeff
-        commit_coef_matrix_change!(
-            f, constr_id, var_id, member_coeff
-        )
+        if get_cur_is_explicit(getvar(f, var_id))
+            v = getvar(f, var_id)
+            coef_matrix[constr_id,var_id] = member_coeff
+            @logmsg LogLevel(-4) string("Adidng variable ", getname(v), " with coeff ", member_coeff)
+            commit_coef_matrix_change!(
+                f, constr_id, var_id, member_coeff
+            )
+        end
         # And for all columns having its own variables
-        for (col_id, coeff) in partial_sols[:,var_id]
-            println("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
+        for (col_id, coeff) in partial_sols[var_id,:]
+            @logmsg LogLevel(-4) string("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
             coef_matrix[constr_id,col_id] = coeff * member_coeff
             commit_coef_matrix_change!(
                 f, constr_id, col_id, coeff * member_coeff
@@ -393,37 +424,37 @@ function register_objective_sense!(f::Formulation, min::Bool)
 end
 
 function sync_solver(f::Formulation)
-    # println("Synching formulation ", getuid(f))
+    @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
     optimizer = get_optimizer(f)
     cache = f.cache
     matrix = getcoefmatrix(f)
     # Remove constrs
     for id in cache.constr_cache.removed
-        @warn "Should not remove constraints yet"
         c = getconstr(f, id)
-        # println("Removing constraint ", getname(c))
+        @logmsg LogLevel(-2) string("Removing constraint ", getname(c))
         undo_modifs!(cache, c)
+        undo_matrix_modifs!(cache, c)
         remove_from_optimizer!(optimizer, c)
     end
     # Remove vars
     for id in cache.var_cache.removed
-        @warn "Should not remove variables yet"
         v = getvar(f, id)
-        # println("Removing variable ", getname(v))
+        @logmsg LogLevel(-2) string("Removing variable ", getname(v))
         undo_modifs!(cache, v)
+        undo_matrix_modifs!(cache, v)
         remove_from_optimizer!(optimizer, v)
     end
     # Add vars
     for id in cache.var_cache.added
         v = getvar(f, id)
-        # println("Adding variable ", getname(v))
+        @logmsg LogLevel(-2) string("Adding variable ", getname(v))
         undo_modifs!(cache, v)
         add_to_optimzer!(optimizer, v)
     end
     # Add constrs
     for id in cache.constr_cache.added
         c = getconstr(f, id)
-        # println("Adding constraint ", getname(c))
+        @logmsg LogLevel(-2) string("Adding constraint ", getname(c))
         undo_modifs!(cache, c)
         add_to_optimzer!(optimizer, c, filter(_explicit_, matrix[id,:]))
     end
@@ -433,7 +464,10 @@ function sync_solver(f::Formulation)
     end
     # Update variable bounds
     for id in cache.changed_bound
-        @warn "Update of variable bounds not yet implemented"
+        @logmsg LogLevel(-2) "Changing bound of variable " getname(getvar(f,id))
+        @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(getvar(f,id)))
+        @logmsg LogLevel(-3) string("New upper bound is ", getcurub(getvar(f,id)))
+        update_bounds_in_optimizer(optimizer, getvar(f, id))
     end
     # Update constraint rhs
     for id in cache.changed_rhs
@@ -443,7 +477,8 @@ function sync_solver(f::Formulation)
     for ((c_id, v_id), coeff) in cache.reset_coeffs
         c = getconstr(f, c_id)
         v = getvar(f, v_id)
-        # println("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
+        @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
+        # @logmsg LogLevel(1) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         update_constr_member_in_optimizer(optimizer, c, v, coeff)
     end
     reset_cache!(f)
@@ -452,26 +487,30 @@ end
 
 "Calls optimization routine for `Formulation` `f`."
 function optimize!(form::Formulation)
-    # println("Before sync")
-    # _show_optimizer(form.moi_optimizer)
+    @logmsg LogLevel(0) string("Optimizing formulation ", getuid(form))
+    @logmsg LogLevel(-3) "MOI formulation before sync: "
+    _show_optimizer(form.moi_optimizer)
     sync_solver(form)
-    # println("After sync")
-    # _show_optimizer(form.moi_optimizer)
+    @logmsg LogLevel(-2) "MOI formulation after sync: "
+    _show_optimizer(form.moi_optimizer)
 
 #     setup_solver(f.moi_optimizer, f, solver_info)
 
     call_moi_optimize_with_silence(form.moi_optimizer)
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
-    @logmsg LogLevel(-4) string("Optimization finished with status: ", status)
+    @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
     if MOI.get(form.moi_optimizer, MOI.ResultCount()) >= 1
         primal_sols = retrieve_primal_sols(
-            form, filter(_explicit_ , getvars(form))
+            form, filter(_active_explicit_ , getvars(form))
         )
-        dual_sol = retrieve_dual_sol(form, filter(_explicit_ , getconstrs(form)))
+        dual_sol = retrieve_dual_sol(form, filter(_active_explicit_ , getconstrs(form)))
+        @logmsg LogLevel(-2) string("Primal bound is ", primal_sols[1].bound)
+        dual_sol != nothing && @logmsg LogLevel(-2) string("Dual bound is ", dual_sol.bound)
         return (status, primal_sols[1].bound, primal_sols, dual_sol)
     end
     @warn "Solver has no result to show."
-#     setdown_solver(f.moi_optimizer, f, solver_info)
+
+    #     setdown_solver(f.moi_optimizer, f, solver_info)
     return (status, Inf, nothing, nothing)
 end
 
@@ -508,7 +547,7 @@ function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
 end
 
 function resetsolvalue(form::Formulation, sol::AbstractSolution) 
-    val = sum(getperencost(getvar(form, var_id)) * value for (var_id, value) in sol)
+    val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
     setvalue!(sol, val)
     return val
 end
@@ -516,7 +555,7 @@ end
 function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution) 
 
     var = getvar(form, var_id)
-    rc = getperencost(var)
+    rc = getperenecost(var)
     coefficient_matrix = getcoefmatrix(form)
     
     for (constr_id, dual_val) in getsol(dual_sol)
@@ -526,32 +565,6 @@ function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution)
     
     return rc
 end
-
-# function is_sol_integer(sol::PrimalSolution, tolerance::Float64)
-#     for (var_id, var_val) in sol.members
-#         if (!is_value_integer(var_val, tolerance)
-#                 && (getkind(getstate(var_id)) == 'I' || getkind(getstate(var_id)) == 'B'))
-#             @logmsg LogLevel(-2) "Sol is fractional."
-#             return false
-#         end
-#     end
-#     @logmsg LogLevel(-4) "Solution is integer!"
-#     return true
-# end
-
-# function update_var_status(var_id::Id{VarState},
-#                            new_status::Status)
-#     @logmsg LogLevel(-2) "change var status "  getstatus(getstate(var_id)) == new_status var_id
-
-#     setstatus!(getstate(var_id), new_status)
-# end
-
-# function update_constr_status(constr_id::Id{ConstrState},
-#                               new_status::Status)
-#     @logmsg LogLevel(-2) "change var status "  getstatus(getstate(constr_id)) == new_status constr_id
-
-#     setstatus!(getstate(constr_id), new_status)
-# end
 
 function _show_obj_fun(io::IO, f::Formulation)
     print(io, getobjsense(f), " ")

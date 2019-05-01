@@ -30,7 +30,10 @@ end
 function setdown!(::Type{ColumnGeneration}, 
                  solver_record::ColumnGenerationRecord, formulation, node)
     @logmsg LogLevel(-1) "Record ColumnGeneration."
+    @show node.incumbents
+    @show solver_record.incumbents
     set!(node.incumbents, solver_record.incumbents)
+    @show node.incumbents
 end
 
 # Internal methods to the column generation
@@ -91,6 +94,7 @@ function insert_cols_in_master(master_form::Formulation,
                 master_form, name, sp_sol, duty; lb = lb, ub = ub,
                 kind = kind, sense = sense
             )
+            @logmsg LogLevel(-2) string("Generated column : ", name)
             # mc_id = getid(mc)
 
             # ### Record Sp solution
@@ -220,7 +224,7 @@ function gen_new_columns(reformulation::Reformulation,
                          sp_ubs::Dict{FormId, Float64}) where {S}
 
     nb_new_cols = 0
-    dual_bound_contrib = DualBound(S, 0.0)
+    dual_bound_contrib = DualBound{S}(0.0)
     master_form = getmaster(reformulation)
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
@@ -261,7 +265,7 @@ function compute_mast_dual_bound_contrib(alg::ColumnGenerationData,
     # stabilization = alg.colgen_stabilization
     # This is commented because function is_active does not exist
     # if stabilization == nothing# || !is_active(stabilization)
-        return DualBound(S, restricted_master_sol_value)
+        return DualBound{S}(restricted_master_sol_value)
     # else
     #     error("compute_mast_dual_bound_contrib" *
     #           "is not yet implemented with stabilization")
@@ -272,7 +276,7 @@ function update_lagrangian_dual_bound(alg::ColumnGenerationData,
                                       restricted_master_sol_value::PrimalBound{S},
                                       pricing_sp_dual_bound_contrib::DualBound{S},
                                       update_dual_bound::Bool) where {S}
-    mast_lagrangian_bnd = DualBound(S, 0)
+    mast_lagrangian_bnd = DualBound{S}(0.0)
     mast_lagrangian_bnd += compute_mast_dual_bound_contrib(alg, restricted_master_sol_value)
     # @logmsg LogLevel(-2) string("dual bound contrib of master = ",
     #                            mast_lagrangian_bnd)
@@ -328,7 +332,7 @@ function colgen_solver_ph2(alg::ColumnGenerationData,
         # GLPK.write_lp(getinner(get_optimizer(master_form)), string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
         # solver restricted master lp and update bounds
         before_master = time()
-        @show master_form
+        # @show master_form
         status_rm, master_val, primal_sols, dual_sol = optimize!(master_form)
         mst_time = (time() - before_master)
 
@@ -349,7 +353,9 @@ function colgen_solver_ph2(alg::ColumnGenerationData,
         set_lp_primal_sol!(alg.incumbents, primal_sols[1])
         set_lp_dual_sol!(alg.incumbents, dual_sol)
 
-        # if integer update_primal_ip_incumbents(alg.incumbents, master_val, primal_sol.members)
+        if isinteger(primal_sols[1])
+            set_ip_primal_sol!(alg.incumbents, primal_sols[1])
+        end
         ##cleanup_restricted_mast_columns(alg, nb_cg_iterations)
         nb_cg_iterations += 1
 

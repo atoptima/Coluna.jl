@@ -1,10 +1,15 @@
 struct Branch
-    var_coeffs::Dict{VarId, Float64}
+    var_coeffs::MembersVector{Id{Variable}, Variable, Float64}
     rhs::Float64
     sense::ConstrSense
     depth::Int
 end
-Branch(varid::VarId, rhs, sense, depth) = Branch(Dict(varid => 1.0), rhs, sense, depth)
+function Branch(var::Variable, rhs::Float64, sense::ConstrSense, depth::Int)
+    var_coeffs = MembersVector{Float64}(Dict(getid(var) => var))
+    var_coeffs[getid(var)] = 1.0
+    return Branch(var_coeffs, rhs, sense, depth)
+end
+
 get_var_coeffs(b::Branch) = b.var_coeffs
 getrhs(b::Branch) = b.rhs
 getsense(b::Branch) = b.sense
@@ -51,6 +56,9 @@ end
 function Node(parent::Node, branch::Branch)
     depth = getdepth(parent) + 1
     incumbents = deepcopy(getincumbents(parent))
+    # Resetting lp primals because the lp can get worse during the algorithms,
+    # thus not being updated in the node and breaking the branching
+    incumbents.lp_primal_sol = typeof(incumbents.lp_primal_sol)()
     return Node(
         -1, depth, parent, Node[], incumbents, branch,
         Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
@@ -85,6 +93,7 @@ function record!(reform::Reformulation, node::Node)
 end
 
 function record!(form::Formulation, node::Node)
+    @logmsg LogLevel(0) "Recording reformulation state after solving node."
     active_vars = Dict{VarId, VarData}()
     for (id, var) in getvars(form)
         if get_cur_is_active(var)
@@ -102,54 +111,118 @@ function record!(form::Formulation, node::Node)
 end
 
 function setup!(f::Reformulation, n::Node)
-    println("Setup for reformulation is under construction.")
+    @logmsg LogLevel(0) "Setting up Reformulation before appling strategy on node."
     # For now, we do setup only in master
-    setup!(f.master, n)
-    return
-end
-
-function setup!(f::Formulation, n::Node)
-    reset_to_record_state!(f, getparent(n))
+    @logmsg LogLevel(-1) "Setup on master."
+    reset_to_record_state_of_father!(f, getparent(n))
     apply_branch!(f, getbranch(n))
-end
-
-function apply_branch!(f::Formulation, b::Branch)
-    sense = (b.sense == Greater ? "geq_" : "leq_")
-    name = string("branch_", sense,  getdepth(b))
-    branch_constraint = setconstr!(
-        f, name, MasterBranchConstr; rhs = getrhs(b), members = get_var_coeffs(b)
-    )
     return
 end
 
-function reset_to_record_state!(f::Formulation, n::Node)
+function apply_branch!(f::Reformulation, b::Branch)
+    @logmsg LogLevel(-1) "Adding branching constraint."
+    @logmsg LogLevel(-2) "Apply Branch : " b
+    sense = (getsense(b) == Greater ? "geq_" : "leq_")
+    name = string("branch_", sense,  getdepth(b))
+    # In master we define a branching constraint
+    branch_constraint = setconstr!(
+        f.master, name, MasterBranchConstr; sense = getsense(b), rhs = getrhs(b),
+        members = get_var_coeffs(b)
+    )
+    # In subproblems we only change the bounds
+    # Problem: Only works if val == 1.0 !!! TODO: Fix this problem ?
+    for (id, val) in get_var_coeffs(b)
+        # The following 4 lines should be changed when we store the pointer to the vc represented by the representative
+        owner_form = find_owner_formulation(f, getvar(f.master, id))
+        if getuid(owner_form) != getuid(f.master)
+            sp_var = getvar(owner_form, id)
+            if getsense(b) == Less
+                setcurub!(sp_var, getrhs(b))
+                commit_bound_change!(owner_form, sp_var)
+                println("Commiting to a bound change in variable ", getname(sp_var), " in formulation ", getuid(owner_form))
+                println("Setting upper bound to ", getrhs(b))
+            end
+            if getsense(b) == Greater
+                setcurlb!(sp_var, getrhs(b))
+                commit_bound_change!(owner_form, sp_var)
+            end
+        end
+        @logmsg LogLevel(-2) "Branching constraint added : " branch_constraint
+    end
+    return
+end
+
+# Following two functions are temporary, we must store a pointer to the vc
+# being represented by a representative vc
+function vc_belongs_to_formulation(f::Formulation, vc::AbstractVarConstr)
+    !haskey(f, getid(vc)) && return false
+    vc_in_formulation = getvar(f, getid(vc)) # This will not work if vc is a constraint
+    get_cur_is_explicit(vc_in_formulation) && return true
+    return false
+end
+
+function find_owner_formulation(f::Reformulation, vc::AbstractVarConstr)
+    vc_belongs_to_formulation(f.master, vc) && return f.master
+    for p in f.dw_pricing_subprs
+        vc_belongs_to_formulation(p, vc) && return p
+    end
+    error(string("VC ", getname(vc), " does not belong to any problem in reformulation"))
+end
+
+function reset_to_record_state_of_father!(f::Reformulation, n::Node)
+    @logmsg LogLevel(-1) "Reset the formulation to the state left by the parent node."
     active_vars = n.record.active_vars
     active_constrs = n.record.active_constrs
     # Checking vars that are in formulation but should not be
-    for (id, var) in filter(_active_, getvars(f))
-        !haskey(active_vars, id) && deactivatevar!(f, var)
+    for (id, var) in filter(_active_, getvars(f.master))
+        haskey(active_vars, id) && continue
+        @logmsg LogLevel(-2) "Deactivating variable " getname(var)
+        deactivatevar!(f.master, var)
+        # The following 4 lines should be changed when we store the pointer to the vc represented by the representative
+        owner_form = find_owner_formulation(f, var)
+        if getuid(owner_form) != getuid(f.master)
+            deactivatevar!(owner_form, getvar(owner_form, id))
+        end
     end
     # Checking constrs that are in formulation but should not be
-    for (id, constr) in filter(_active_, getconstrs(f))
-        !haskey(active_constrs, id) && deactivatevar!(f, constr)
+    for (id, constr) in filter(_active_, getconstrs(f.master))
+        haskey(active_constrs, id) && continue
+        @logmsg LogLevel(-2) "Deactivating constraint " getname(constr)
+        deactivateconstr!(f.master, constr)
+        # TODO: Check if something should be changed in the subproblems
     end
-    # Checking vars that should be in formulation but are not
+    # Checking vars that should be active in formulation but are not
     for (id, data) in active_vars
-        var = getvar(f, id)
-        !get_cur_is_active(var) && continue
-        activatevar!(f, var)
+        var = getvar(f.master, id)
+        owner_form = find_owner_formulation(f, var)
+        # Reset bounds
+        if (getcurlb(getvar(owner_form, id)) != getlb(data)
+            || getcurub(getvar(owner_form, id)) != getub(data))
+            setcurlb!(getvar(owner_form, id), getlb(data))
+            setcurub!(getvar(owner_form, id), getub(data))
+            commit_bound_change!(owner_form, getvar(owner_form, id))
+        end
+        get_cur_is_active(var) && continue # Nothing to do if var is already active
+        @logmsg LogLevel(-2) "Activating variable " getname(var)
+        activatevar!(f.master, var)
+        # The following 3 lines should be changed when we store the pointer to the vc represented by the representative
+        if getuid(owner_form) != getuid(f.master)
+            activatevar!(owner_form, getvar(owner_form, id))
+        end
     end
-    # Checking constrs that should be in formulation but are not
+    # Checking constrs that should be active in formulation but are not
     for (id, data) in active_constrs
-        constr = getconstr(f, id)
-        !get_cur_is_active(constr) && continue
-        activateconstr!(f, constr)
+        constr = getconstr(f.master, id)
+        get_cur_is_active(constr) && continue # Nothing to do if constr is already acitve
+        @logmsg LogLevel(-2) "Activating constraint " getname(constr)
+        activateconstr!(f.master, constr)
+        # TODO: Check if something should be changed in the subproblems
     end
     return
 end
 
 # Nothing happens if this function is called for a node with not branch
-apply_branch!(f::Formulation, ::Nothing) = nothing
+apply_branch!(f::Reformulation, ::Nothing) = nothing
 
 # Nothing happens if this function is called for the "father" of the root node
-reset_to_record_state!(f::Formulation, ::Nothing) = nothing
+reset_to_record_state_of_father!(f::Reformulation, ::Nothing) = nothing

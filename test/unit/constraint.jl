@@ -58,9 +58,9 @@ function constraint_getters_and_setters_tests()
 
     CL.setcurrhs!(c, 10)
     @test CL.getcurrhs(c) == 10
-    @test CL.getperenrhs(c) == -13
+    @test CL.getperenerhs(c) == -13
 
     CL.reset!(c)
     @test CL.getcurrhs(c) == -13
-    @test CL.getperenrhs(c) == -13
+    @test CL.getperenerhs(c) == -13
 end

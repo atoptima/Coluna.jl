@@ -183,7 +183,7 @@ function print_info_after_apply(n::Node, s::TreeSolver)
     db = get_ip_dual_bound(node_incumbents)
     pb = get_ip_primal_bound(node_incumbents)
 
-    print("Node bounds : ")
+    print("Node bounds after treatment : ")
     printbounds(db, pb)
     println()
 

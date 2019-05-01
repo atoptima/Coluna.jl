@@ -50,7 +50,7 @@ struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
     duty::Type{<: AbstractConstrDuty}
-    peren_data::ConstrData
+    perene_data::ConstrData
     cur_data::ConstrData
     moirecord::MoiConstrRecord
 end
@@ -75,7 +75,7 @@ getcurrhs(vc::Constraint) = vc.cur_data.rhs
 setcurrhs!(vc::Constraint, rhs) = setcurrhs!(vc, float(rhs))
 setcurrhs!(vc::Constraint, rhs::Float64) = vc.cur_data.rhs = rhs
 # Current
-getperenrhs(vc::Constraint) = vc.peren_data.rhs
+getperenerhs(vc::Constraint) = vc.perene_data.rhs
 #set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.peren_data.rhs = rhs
 
 function reset!(c::Constraint)

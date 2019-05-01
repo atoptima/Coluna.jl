@@ -10,67 +10,67 @@ end
 
 function bounds_constructors_and_getters_tests()
 
-    pb = CL.PrimalBound(CL.MinSense)
+    pb = CL.PrimalBound{CL.MinSense}()
     @test CL.getvalue(pb) == Inf
-    pb = CL.PrimalBound(CL.MaxSense)
+    pb = CL.PrimalBound{CL.MaxSense}()
     @test CL.getvalue(pb) == -Inf
 
-    db = CL.DualBound(CL.MinSense)
+    db = CL.DualBound{CL.MinSense}()
     @test CL.getvalue(db) == -Inf
-    db = CL.DualBound(CL.MaxSense)
+    db = CL.DualBound{CL.MaxSense}()
     @test CL.getvalue(db) == +Inf
 
-    db = CL.DualBound(CL.MinSense, 10)
+    db = CL.DualBound{CL.MinSense}(10)
     @test CL.getvalue(db) == 10.0
-    pb = CL.PrimalBound(CL.MinSense, -13.02)
+    pb = CL.PrimalBound{CL.MinSense}(-13.02)
     @test CL.getvalue(pb) == -13.02
 
 end
 
 function bounds_isbetter_tests()
 
-    pb1 = CL.PrimalBound(CL.MinSense, 10.0)
-    pb2 = CL.PrimalBound(CL.MinSense, 15.0)
+    pb1 = CL.PrimalBound{CL.MinSense}(10.0)
+    pb2 = CL.PrimalBound{CL.MinSense}(15.0)
     @test CL.isbetter(pb1, pb2) == !CL.isbetter(pb2, pb1) == true
 
-    pb1 = CL.PrimalBound(CL.MaxSense, 10.0)
-    pb2 = CL.PrimalBound(CL.MaxSense, 15.0)
+    pb1 = CL.PrimalBound{CL.MaxSense}(10.0)
+    pb2 = CL.PrimalBound{CL.MaxSense}(15.0)
     @test CL.isbetter(pb1, pb2) == !CL.isbetter(pb2, pb1) == false
 
 end
 
 function bounds_diff_tests()
 
-    pb = CL.PrimalBound(CL.MinSense, 10.0)
-    db = CL.DualBound(CL.MinSense, 5.0)
+    pb = CL.PrimalBound{CL.MinSense}(10.0)
+    db = CL.DualBound{CL.MinSense}(5.0)
     @test CL.diff(pb, db) == CL.diff(db, pb) == 5.0
 
-    pb = CL.PrimalBound(CL.MaxSense, 10.0)
-    db = CL.DualBound(CL.MaxSense, 5.0)
+    pb = CL.PrimalBound{CL.MaxSense}(10.0)
+    db = CL.DualBound{CL.MaxSense}(5.0)
     @test CL.diff(pb, db) == CL.diff(db, pb) == -5.0
 
 end
 
 function bounds_gap_tests()
 
-    pb = CL.PrimalBound(CL.MinSense, 10.0)
-    db = CL.DualBound(CL.MinSense, 5.0)
+    pb = CL.PrimalBound{CL.MinSense}(10.0)
+    db = CL.DualBound{CL.MinSense}(5.0)
     @test CL.gap(pb, db) == CL.gap(db, pb) == (10.0-5.0)/5.0
 
-    pb = CL.PrimalBound(CL.MaxSense, 5.0)
-    db = CL.DualBound(CL.MaxSense, 10.0)
+    pb = CL.PrimalBound{CL.MaxSense}(5.0)
+    db = CL.DualBound{CL.MaxSense}(10.0)
     @test CL.gap(pb, db) == CL.gap(db, pb) == (10.0-5.0)/5.0
 
-    pb = CL.PrimalBound(CL.MinSense, 10.0)
-    db = CL.DualBound(CL.MinSense, -5.0)
+    pb = CL.PrimalBound{CL.MinSense}(10.0)
+    db = CL.DualBound{CL.MinSense}(-5.0)
     @test CL.gap(pb, db) == CL.gap(db, pb) == (10.0+5.0)/5.0
 
 end
 
 function bounds_base_functions_tests()
 
-    pb1 = CL.PrimalBound(CL.MinSense, 10.0)
-    pb2 = CL.PrimalBound(CL.MinSense, 12.0)
+    pb1 = CL.PrimalBound{CL.MinSense}(10.0)
+    pb2 = CL.PrimalBound{CL.MinSense}(12.0)
 
     @test CL.Base.promote_rule(CL.PrimalBound{CL.MinSense}, Float64) == CL.PrimalBound{CL.MinSense}
     @test CL.Base.convert(Float64, pb1) == 10.0

@@ -9,9 +9,10 @@ The expected behaviour of a bound is implemented according to the sense `S`.
 struct PrimalBound{S <: AbstractObjSense} <: AbstractBound
     value::Float64
 end
-PrimalBound(S::Type{MinSense}) = PrimalBound{S}(Inf)
-PrimalBound(S::Type{MaxSense}) = PrimalBound{S}(-Inf)
-PrimalBound(S::Type{<: AbstractObjSense}, n::Number) = PrimalBound{S}(float(n))
+PrimalBound{S}() where {S<:AbstractObjSense} = PrimalBound{S}(defaultprimalboundvalue(S))
+
+defaultprimalboundvalue(::Type{MinSense}) = Inf
+defaultprimalboundvalue(::Type{MaxSense}) = -Inf
 
 """
     DualBound{S} where S <: AbstractObjSense
@@ -22,9 +23,10 @@ The expected behaviour of a bound is implemented according to the sense `S`.
 struct DualBound{S <: AbstractObjSense} <: AbstractBound
     value::Float64
 end
-DualBound(S::Type{MinSense}) = DualBound{S}(-Inf)
-DualBound(S::Type{MaxSense}) = DualBound{S}(Inf)
-DualBound(S::Type{<: AbstractObjSense}, n::Number) = DualBound{S}(float(n))
+DualBound{S}() where {S<:AbstractObjSense} = DualBound{S}(defaultdualboundvalue(S))
+
+defaultdualboundvalue(::Type{MinSense}) = -Inf
+defaultdualboundvalue(::Type{MaxSense}) = +Inf
 
 getvalue(b::AbstractBound) = b.value
 
@@ -100,14 +102,14 @@ mutable struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
     sol::MembersVector{Id{Variable}, Variable, Float64}
 end
 
-function PrimalSolution(S::Type{<:AbstractObjSense})
-    return PrimalSolution{S}(PrimalBound(S), MembersVector{Float64}(Dict{VarId, Variable}()))
+function PrimalSolution{S}() where{S<:AbstractObjSense}
+    return PrimalSolution{S}(PrimalBound{S}(), MembersVector{Float64}(Dict{VarId, Variable}()))
 end
 
 function PrimalSolution(f::AbstractFormulation)
     Sense = getobjsense(f)
     sol = MembersVector{Float64}(getvars(f))
-    return PrimalSolution{Sense}(PrimalBound(Sense), sol)
+    return PrimalSolution{Sense}(PrimalBound{Sense}(), sol)
 end
 
 function PrimalSolution(f::AbstractFormulation,
@@ -118,8 +120,16 @@ function PrimalSolution(f::AbstractFormulation,
     for (key, val) in soldict
         sol[key] = val
     end
-    return PrimalSolution{S}(PrimalBound(S, value), sol)
+    return PrimalSolution{S}(PrimalBound{S}(float(value)), sol)
 end
+
+function Base.isinteger(s::PrimalSolution)
+    for (var_id, val) in getsol(s)
+        !isinteger(val) && return false
+    end
+    return true
+end
+
 
 """
     DualSolution{S} where S <: AbstractObjSense
@@ -132,14 +142,14 @@ struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     sol::MembersVector{Id{Constraint}, Constraint, Float64}
 end
 
-function DualSolution(S::Type{<:AbstractObjSense})
-    return DualSolution{S}(DualBound(S), MembersVector{Float64}(Dict{ConstrId, Constraint}()))
+function DualSolution{S}() where {S<:AbstractObjSense}
+    return DualSolution{S}(DualBound{S}(), MembersVector{Float64}(Dict{ConstrId, Constraint}()))
 end
 
 function DualSolution(f::AbstractFormulation)
     Sense = getobjsense(f)
     sol = MembersVector{Float64}(getconstrs(f))
-    return DualSolution{Sense}(DualBound(Sense), sol)
+    return DualSolution{Sense}(DualBound{Sense}(), sol)
 end
 
 function DualSolution(f::AbstractFormulation, 
@@ -150,7 +160,7 @@ function DualSolution(f::AbstractFormulation,
     for (key, val) in soldict
         sol[key] = val
     end
-    return DualSolution{S}(DualBound(S, value), sol)
+    return DualSolution{S}(DualBound{S}(float(value)), sol)
 end
 
 getbound(s::AbstractSolution) = s.bound

@@ -105,6 +105,11 @@ function build_dw_master!(prob::Problem,
         setincval!(getcurdata(ub_conv_constr), 100.0)        
         convexity_constrs[getid(ub_conv_constr)] = ub_conv_constr
 
+        ## add all Sp var in master
+        vars = filter(_active_pricing_sp_var_, getvars(sp_form))
+        is_explicit = false
+        clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
+
         ## Create PricingSetupVar
         name = "PricingSetupVar_sp_$(sp_form.uid)"
         cost = 0.0
@@ -114,19 +119,14 @@ function build_dw_master!(prob::Problem,
         duty = PricingSpSetupVar
         sense = Positive
         is_explicit = true
-        setup_var = setvar!(sp_form, name, duty; cost = cost,
-                             lb = lb, ub = ub, kind = kind,
-                             sense = sense, is_explicit = is_explicit)
-        matrix = getcoefmatrix(master_form)
-        # matrix[getid(ub_conv_constr),getid(setup_var)] = 1.0
-        # matrix[getid(lb_conv_constr),getid(setup_var)] = 1.0
-
-        ## add all Sp var in master
-        vars = filter(_active_pricing_sp_var_, getvars(sp_form))
-        is_explicit = false
-        clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
+        setup_var = setvar!(
+            sp_form, name, duty; cost = cost, lb = lb, ub = ub, kind = kind,
+            sense = sense, is_explicit = is_explicit
+        )
+        clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSetupSpVar, false)
 
         ## add setup var coef in convexity constraint
+        matrix = getcoefmatrix(master_form)
         mast_coefficient_matrix[getid(lb_conv_constr),getid(setup_var)] = 1.0
         mast_coefficient_matrix[getid(ub_conv_constr),getid(setup_var)] = 1.0
     end

@@ -67,9 +67,9 @@ function variable_getters_and_setters_tests()
         var_data = v_data
     )
 
-    @test CL.getperencost(v) == CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == CL.get_cost(CL.getrecordeddata(v)) == 13.0
-    @test CL.getperenlb(v) == CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == CL.getlb(CL.getrecordeddata(v)) == -10.0
-    @test CL.getperenub(v) == CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == CL.getub(CL.getrecordeddata(v)) == 100.0
+    @test CL.getperenecost(v) == CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == CL.get_cost(CL.getrecordeddata(v)) == 13.0
+    @test CL.getperenelb(v) == CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == CL.getlb(CL.getrecordeddata(v)) == -10.0
+    @test CL.getpereneub(v) == CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == CL.getub(CL.getrecordeddata(v)) == 100.0
 
     CL.setcurcost!(v, -134.0)
     CL.setcurlb!(v, -2001.9)
@@ -78,18 +78,18 @@ function variable_getters_and_setters_tests()
     @test CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == -134.0
     @test CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == -2001.9
     @test CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == 2387.0
-    @test CL.getperencost(v) == CL.get_cost(CL.getrecordeddata(v)) == 13.0
-    @test CL.getperenlb(v) == CL.getlb(CL.getrecordeddata(v)) == -10.0
-    @test CL.getperenub(v) == CL.getub(CL.getrecordeddata(v)) == 100.0
+    @test CL.getperenecost(v) == CL.get_cost(CL.getrecordeddata(v)) == 13.0
+    @test CL.getperenelb(v) == CL.getlb(CL.getrecordeddata(v)) == -10.0
+    @test CL.getpereneub(v) == CL.getub(CL.getrecordeddata(v)) == 100.0
 
     CL.reset!(v)
-    @test v.peren_data.cost == v.cur_data.cost == 13.0
-    @test v.peren_data.lb == v.cur_data.lb == -10.0
-    @test v.peren_data.ub == v.cur_data.ub == 100.0
-    @test v.peren_data.kind == v.cur_data.kind == CL.Continuous
-    @test v.peren_data.sense == v.cur_data.sense == CL.Free
-    @test v.peren_data.inc_val == v.cur_data.inc_val == -1.0
-    @test v.peren_data.is_explicit == v.cur_data.is_explicit == false
-    @test v.peren_data.is_active == v.cur_data.is_active == false
+    @test v.perene_data.cost == v.cur_data.cost == 13.0
+    @test v.perene_data.lb == v.cur_data.lb == -10.0
+    @test v.perene_data.ub == v.cur_data.ub == 100.0
+    @test v.perene_data.kind == v.cur_data.kind == CL.Continuous
+    @test v.perene_data.sense == v.cur_data.sense == CL.Free
+    @test v.perene_data.inc_val == v.cur_data.inc_val == -1.0
+    @test v.perene_data.is_explicit == v.cur_data.is_explicit == false
+    @test v.perene_data.is_active == v.cur_data.is_active == false
 
 end

@@ -148,6 +148,10 @@ const DynamicDuty = Union{
     Type{PricingSpRepMastBranchConstr}
 }
 
+const OriginalRepresentatives = Union{
+    Type{PureMastVar}, Type{MastRepPricingSpVar}
+}
+
 const ArtificialDuty = Union{Type{MastArtVar}}
 
 ############################################################################

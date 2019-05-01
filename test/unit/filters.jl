@@ -24,6 +24,26 @@ function filters_tests()
         var_data = v2_data
     )
 
+    v3_data = CL.VarData(
+        ; cost = 13.0, lb = -10.0, ub = 100.0, kind = CL.Continuous,
+        sense = CL.Free, is_active = false, is_explicit = true
+    )
+
+    v3 = CL.Variable(
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepPricingSetupSpVar;
+        var_data = v3_data
+    )
+
+    v4_data = CL.VarData(
+        ; cost = 13.0, lb = -10.0, ub = 100.0, kind = CL.Continuous,
+        sense = CL.Free, is_active = true, is_explicit = false
+    )
+
+    v4 = CL.Variable(
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepPricingSetupSpVar;
+        var_data = v4_data
+    )
+
     c1_data = CL.ConstrData(
         ; rhs = -13.0, kind = CL.Facultative, sense = CL.Equal,
         inc_val = -12.0, is_active = true, is_explicit = true
@@ -59,5 +79,14 @@ function filters_tests()
     @test CL._active_pricing_mast_rep_sp_var_(v2) == false
     @test CL._active_pricing_mast_rep_sp_var_(Pair(CL.getid(v),v)) == true
     @test CL._active_pricing_mast_rep_sp_var_(Pair(CL.getid(v2),v2)) == false
+    @test CL._rep_of_orig_var_(v3) == false
+    @test CL._rep_of_orig_var_(v2) == false
+    @test CL._rep_of_orig_var_(v) == true
+    @test CL._active_explicit_(v) == true
+    @test CL._active_explicit_(v3) == false
+    @test CL._active_explicit_(v4) == false
+    @test CL._active_explicit_(Pair(CL.getid(v), v)) == true
+    @test CL._active_explicit_(Pair(CL.getid(v3), v3)) == false
+    @test CL._active_explicit_(Pair(CL.getid(v4), v4)) == false
 
 end

@@ -3,9 +3,9 @@
 @enum(ARTVARSMOE, Global, Local)
 
 Base.@kwdef mutable struct Params
-    max_num_nodes::Int = 1
+    max_num_nodes::Int = 10
     open_nodes_limit::Int = 100000
-    mip_tolerance_integrality::Float64 = 1e-5
+    integrality_tolerance::Float64 = 1e-5
     cut_up::Float64 = Inf
     cut_lo::Float64 = -Inf
     search_strategy::SEARCHSTRATEGY = DepthFirst

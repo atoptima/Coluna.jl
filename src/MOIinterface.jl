@@ -54,6 +54,30 @@ function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
     return
 end
 
+function update_bounds_in_optimizer(optimizer::MOI.AbstractOptimizer,
+                                    var::Variable)
+    moi_record = getmoirecord(var)
+    moi_kind = getkind(moi_record)
+    moi_bounds = getbounds(moi_record)
+    moi_index = getindex(moi_record)
+    if (getcurkind(var) == Binary && moi_index.value != -1)
+        MOI.delete(optimizer, moi_kind)
+        setkind!(moi_record, MOI.add_constraint(
+            optimizer, MOI.SingleVariable(moi_index), MOI.Integer()
+        ))
+    end
+    if moi_bounds.value != -1
+        MOI.set(optimizer, MOI.ConstraintSet(), moi_bounds,
+            MOI.Interval(getcurlb(var), getcurub(var))
+        )
+    else
+        setbounds!(moi_record, MOI.add_constraint(
+            optimizer, MOI.SingleVariable(moi_index),
+            MOI.Interval(getcurlb(var), getcurub(var))
+        ))
+    end
+end
+
 function update_cost_in_optimizer(optimizer::MOI.AbstractOptimizer, v::Variable)
     cost = get_cost(getcurdata(v))
     moi_index = getindex(getmoirecord(v))
@@ -118,6 +142,19 @@ function add_to_optimzer!(optimizer::MOI.AbstractOptimizer, v::Variable)
         enforce_bounds_in_optimizer(optimizer, v)
     end
     MOI.set(optimizer, MOI.VariableName(), moi_index, getname(v))
+    return
+end
+
+function add_to_optimzer!(optimizer::MOI.AbstractOptimizer, v::Variable,
+                          members::ConstrMembership)
+    cur_data = getcurdata(v)
+    add_to_optimzer!(optimizer, v)
+    for (c_id, coeff) in members
+        update_constr_member_in_optimizer(
+            optimizer, getelements(members)[c_id], 
+            v, coeff
+        )
+    end
     return
 end
 
@@ -194,10 +231,10 @@ function remove_from_optimizer!(optimizer::MOI.AbstractOptimizer,
     @assert getindex(moirecord).value != -1
     MOI.delete(optimizer, getbounds(moirecord))
     setbounds!(moirecord, MoiVarBound())
-    MOI.delete(optimizer, getkind(moirecord))
+    getkind(moirecord).value != -1 && MOI.delete(optimizer, getkind(moirecord))
     setkind!(moirecord, MoiVarKind())
     MOI.delete(optimizer, getindex(moirecord))
-    setindex!(optimizer, MoiVarIndex())
+    setindex!(moirecord, MoiVarIndex())
     return
 end
 
@@ -206,7 +243,7 @@ function remove_from_optimizer!(optimizer::MOI.AbstractOptimizer,
     moirecord = getmoirecord(constr)
     @assert getindex(moirecord).value != -1
     MOI.delete(optimizer, getindex(moirecord))
-    setindex!(optimizer, MoiConstrIndex())
+    setindex!(moirecord, MoiConstrIndex())
     return
 end
 

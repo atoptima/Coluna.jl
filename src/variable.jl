@@ -78,7 +78,7 @@ struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
     duty::Type{<: AbstractVarDuty}
-    peren_data::VarData
+    perene_data::VarData
     cur_data::VarData
     moirecord::MoiVarRecord
 end
@@ -115,12 +115,12 @@ end
 # Helpers for getters  and stter that acces fields in a level under Variable
 
 # -> Initial
-getperencost(vc::AbstractVarConstr) = vc.peren_data.cost
-getperenlb(vc::AbstractVarConstr) = vc.peren_data.lb
-getperenub(vc::AbstractVarConstr) = vc.peren_data.ub
-# setinitcost!(vc::AbstractVarConstr, cost::Float64) = vc.peren_data.cost
-# setinitlb!(vc::AbstractVarConstr, lb::Float64) = vc.peren_data.lb = lb
-# setinitub!(vc::AbstractVarConstr, ub::Float64) = vc.peren_data.ub = ub
+getperenecost(vc::AbstractVarConstr) = vc.perene_data.cost
+getperenelb(vc::AbstractVarConstr) = vc.perene_data.lb
+getpereneub(vc::AbstractVarConstr) = vc.perene_data.ub
+# setinitcost!(vc::AbstractVarConstr, cost::Float64) = vc.perene_data.cost
+# setinitlb!(vc::AbstractVarConstr, lb::Float64) = vc.perene_data.lb = lb
+# setinitub!(vc::AbstractVarConstr, ub::Float64) = vc.perene_data.ub = ub
 # -> Current
 getcurcost(vc::AbstractVarConstr) = vc.cur_data.cost
 getcurlb(vc::AbstractVarConstr) = vc.cur_data.lb
