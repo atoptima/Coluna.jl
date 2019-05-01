@@ -14,7 +14,6 @@ end
 Constructs an empty `VarConstrCache{T}` for entities of type `T`.
 """
 VarConstrCache{T}() where {T<:AbstractVarConstr} = VarConstrCache{T}(Set{T}(), Set{T}())
-
 function addvc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
     !get_cur_is_explicit(vc) && return
     id = getid(vc)
@@ -489,10 +488,10 @@ end
 function optimize!(form::Formulation)
     @logmsg LogLevel(0) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) "MOI formulation before sync: "
-    _show_optimizer(form.moi_optimizer)
+    # _show_optimizer(form.moi_optimizer)
     sync_solver(form)
     @logmsg LogLevel(-2) "MOI formulation after sync: "
-    _show_optimizer(form.moi_optimizer)
+    # _show_optimizer(form.moi_optimizer)
 
 #     setup_solver(f.moi_optimizer, f, solver_info)
 

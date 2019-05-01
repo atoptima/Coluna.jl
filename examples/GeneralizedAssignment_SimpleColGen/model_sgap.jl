@@ -5,11 +5,7 @@ function model_sgap(data::DataGap)
     #                        force_copy_names = true)
 
     gap = BlockModel(with_optimizer(Coluna.Optimizer,# #params = params,
-                               #master_factory = with_optimizer(Gurobi.Optimizer),
-                               #pricing_factory = with_optimizer(Gurobi.Optimizer)
-                               #master_factory = with_optimizer(CPLEX.Optimizer),
-                               #pricing_factory = with_optimizer(CPLEX.Optimizer))
-                               master_factory = with_optimizer(GLPK.Optimizer),
+                                master_factory = with_optimizer(GLPK.Optimizer),
                                pricing_factory = with_optimizer(GLPK.Optimizer)),
                 bridge_constraints=false
                 )
@@ -29,19 +25,6 @@ function model_sgap(data::DataGap)
 
     @dantzig_wolfe_decomposition(gap, dec, M)
 
-    # setting Dantzig Wolfe composition: one subproblem per machine
-    # function gap_decomp_func(name, key)
-    #     if name in [:knp, :x]
-    #         return key[1]
-    #     else
-    #         return 0
-    #     end
-    # end
-    # Coluna.set_dantzig_wolfe_decompostion(gap, gap_decomp_func)
-
-    # setting pricing cardinality bounds
-    # card_bounds_dict = Dict(m => (0,1) for m in data.machines)
-    # Coluna.set_dantzig_wolfe_cardinality_bounds(gap, card_bounds_dict)
-
+ 
     return (gap, x)
 end

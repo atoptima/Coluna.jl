@@ -60,25 +60,14 @@ function insert_cols_in_master(master_form::Formulation,
 
     # println("\e[1;32m insert cols in master \e[00m")
     sp_uid = getuid(sp_form)
-    #mbship = master_form.memberships
     nb_of_gen_col = 0
     
-    #var_uids = getvar_uids(sp_form, PricingSpSetupVar)
-    #@assert length(var_uids) == 1
-    #setup_var_uid = var_uids[1]
 
     # @show sp_sols
 
     for sp_sol in sp_sols
         if getvalue(sp_sol) < -0.0001 # TODO use tolerance
             # println(" >>>> \e[33m  create new column \e[00m")
-
-            ### TODO  : check if sp sol exists as a registered column
-
-            #if id_of_existing_mc > 0 # already exists
-            #    @warn string("column already exists as", id_of_existing_mc)
-            #    continue
-            # end
 
             ### create new column
             nb_of_gen_col += 1
@@ -95,27 +84,20 @@ function insert_cols_in_master(master_form::Formulation,
                 kind = kind, sense = sense
             )
             @logmsg LogLevel(-2) string("Generated column : ", name)
-            # mc_id = getid(mc)
-
-            # ### Record Sp solution
-            # for (var_id, var_val) in sp_sol
-            #     partialsol_matrix[mc_id, var_id] = var_val
-            # end
-            #==addpartialsol!(master_form, mc)
-
             ### check if column exists
+            #== mc_id = getid(mc)
             id_of_existing_mc = - 1
-            for (col_id, col_var, col_members) in columns(partialsol_matrix)
+            partialsol_matrix = getpartialsolmatrix(master_form)
+            for (col, col_members) in columns(partialsol_matrix)
                 if (col_members == partialsol_matrix[:, mc_id])
-                    id_of_existing_mc = col_id
+                    id_of_existing_mc = col[1]
                     break
                 end
             end
             if (id_of_existing_mc != mc_id)
                 @warn string("column already exists as", id_of_existing_mc)
             end
-            ==#
-
+==#
             # ### Compute column vector
             # # This adds the column to the convexity constraints automatically
             # # since the setup variable is in the sp solution and it has a
