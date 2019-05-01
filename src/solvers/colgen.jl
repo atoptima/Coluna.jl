@@ -30,10 +30,8 @@ end
 function setdown!(::Type{ColumnGeneration}, 
                  solver_record::ColumnGenerationRecord, formulation, node)
     @logmsg LogLevel(-1) "Record ColumnGeneration."
-    @show node.incumbents
-    @show solver_record.incumbents
     set!(node.incumbents, solver_record.incumbents)
-    @show node.incumbents
+    @logmsg LogLevel(-2) "Node incumbes updated: " node.incumbents
 end
 
 # Internal methods to the column generation

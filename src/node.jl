@@ -139,8 +139,6 @@ function apply_branch!(f::Reformulation, b::Branch)
             if getsense(b) == Less
                 setcurub!(sp_var, getrhs(b))
                 commit_bound_change!(owner_form, sp_var)
-                println("Commiting to a bound change in variable ", getname(sp_var), " in formulation ", getuid(owner_form))
-                println("Setting upper bound to ", getrhs(b))
             end
             if getsense(b) == Greater
                 setcurlb!(sp_var, getrhs(b))
@@ -198,8 +196,11 @@ function reset_to_record_state_of_father!(f::Reformulation, n::Node)
         # Reset bounds
         if (getcurlb(getvar(owner_form, id)) != getlb(data)
             || getcurub(getvar(owner_form, id)) != getub(data))
+            @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
             setcurlb!(getvar(owner_form, id), getlb(data))
             setcurub!(getvar(owner_form, id), getub(data))
+            @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(var))
+            @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
             commit_bound_change!(owner_form, getvar(owner_form, id))
         end
         get_cur_is_active(var) && continue # Nothing to do if var is already active
