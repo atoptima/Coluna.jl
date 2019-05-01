@@ -92,7 +92,7 @@ function interface! end
 function interface!(Src::Type{<:AbstractSolver}, Dst::Type{<:AbstractSolver}, 
                     formulation, node)
     error("""
-        Cannot move on $Dst after a round of $Src. 
+        Cannot apply $Dst after a round of $Src. 
         You should write method interface!(::Type{$Src}, ::Type{$Dst}, formulation, node)
     """)
 end

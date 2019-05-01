@@ -59,6 +59,7 @@ function best_candidate(::Type{MostFractionalRule}, sol::PrimalSolution)
     candidate_val = 0.0
     best_dist = 0.0
     for (var_id, val) in sol
+        getperenkind(getelements(getsol(sol))[var_id]) != Continuous && continue
         dist = distround(val)
         if dist >= best_dist
             candidate_id = var_id
