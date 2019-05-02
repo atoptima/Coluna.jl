@@ -150,33 +150,29 @@ function apply_branch!(f::Reformulation, b::Branch)
     return
 end
 
-function reset_to_record_state_of_father!(f::Reformulation, n::Node)
+function reset_to_record_state_of_father!(reform::Reformulation, n::Node)
     @logmsg LogLevel(-1) "Reset the formulation to the state left by the parent node."
     active_vars = n.record.active_vars
     active_constrs = n.record.active_constrs
+    master = getmaster(reform)
     # Checking vars that are in formulation but should not be
-    for (id, var) in filter(_active_, getvars(f.master))
-        haskey(active_vars, id) && continue
-        @logmsg LogLevel(-2) "Deactivating variable " getname(var)
-        # TODO : deactivatevar!(f::Reformulation, v::Var)
-        deactivatevar!(f.master, var)
-        # The following 4 lines should be changed when we store the pointer to the vc represented by the representative
-        owner_form = find_owner_formulation(f, var)
-        if getuid(owner_form) != getuid(f.master)
-            deactivatevar!(owner_form, getvar(owner_form, id))
+    for (id, var) in filter(_active_, getvars(master))
+        if !haskey(active_vars, id)
+            @logmsg LogLevel(0) "Deactivating variable " getname(var)
+            deactivate!(reform, id)
         end
     end
     # Checking constrs that are in formulation but should not be
-    for (id, constr) in filter(_active_, getconstrs(f.master))
-        haskey(active_constrs, id) && continue
-        @logmsg LogLevel(-2) "Deactivating constraint " getname(constr)
-        deactivateconstr!(f.master, constr)
-        # TODO: Check if something should be changed in the subproblems
+    for (id, constr) in filter(_active_, getconstrs(master))
+        if !haskey(active_constrs, id)
+            @logmsg LogLevel(-2) "Deactivating constraint " getname(constr)
+            deactivate!(reform, id)
+        end
     end
     # Checking vars that should be active in formulation but are not
     for (id, data) in active_vars
-        var = getvar(f.master, id)
-        owner_form = find_owner_formulation(f, var)
+        var = getvar(master, id)
+        owner_form = find_owner_formulation(reform, var)
         # Reset bounds # TODO: Reset costs
         if (getcurlb(getvar(owner_form, id)) != getlb(data)
             || getcurub(getvar(owner_form, id)) != getub(data))
@@ -187,22 +183,18 @@ function reset_to_record_state_of_father!(f::Reformulation, n::Node)
             @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
             commit_bound_change!(owner_form, getvar(owner_form, id))
         end
-        get_cur_is_active(var) && continue # Nothing to do if var is already active
-        @logmsg LogLevel(-2) "Activating variable " getname(var)
-        activatevar!(f.master, var)
-        # The following 3 lines should be changed when we store the pointer to the vc represented by the representative
-        if getuid(owner_form) != getuid(f.master)
-            activatevar!(owner_form, getvar(owner_form, id))
+        if !get_cur_is_active(var) # Nothing to do if var is already active
+            @logmsg LogLevel(-2) "Activating variable " getname(var)
+            activate!(reform, var)
         end
     end
     # Checking constrs that should be active in formulation but are not
     for (id, data) in active_constrs
-        constr = getconstr(f.master, id)
+        constr = getconstr(master, id)
         # TODO: reset rhs
         get_cur_is_active(constr) && continue # Nothing to do if constr is already acitve
         @logmsg LogLevel(-2) "Activating constraint " getname(constr)
-        activateconstr!(f.master, constr)
-        # TODO: Check if something should be changed in the subproblems
+        activate!(reform, constr)
     end
     return
 end

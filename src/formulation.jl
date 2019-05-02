@@ -14,20 +14,22 @@ end
 Constructs an empty `VarConstrCache{T}` for entities of type `T`.
 """
 VarConstrCache{T}() where {T<:AbstractVarConstr} = VarConstrCache{T}(Set{T}(), Set{T}())
-function addvc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
+
+function add!(cache::VarConstrCache{VC}, vc::VC) where {VC<:AbstractVarConstr}
     !get_cur_is_explicit(vc) && return
     id = getid(vc)
-    !(id in vc_cache.removed) && push!(vc_cache.added, id)
-    delete!(vc_cache.removed, id)
+    !(id in cache.removed) && push!(cache.added, id)
+    delete!(cache.removed, id)
     return
 end
 
-function removevc!(vc_cache::VarConstrCache, vc::AbstractVarConstr)
+function remove!(cache::VarConstrCache{VC}, vc::VC) where {VC<:AbstractVarConstr}
     id = getid(vc)
-    !(id in vc_cache.added) && push!(vc_cache.removed, id)
-    delete!(vc_cache.added, id)
+    !(id in cache.added) && push!(cache.removed, id)
+    delete!(cache.added, id)
     return
 end
+
 
 """
     FormulationCache()
@@ -81,33 +83,33 @@ function undo_modifs!(cache::FormulationCache, c::Constraint)
     return
 end
 
-function removevc!(cache::FormulationCache, constr::Constraint)
+function remove!(cache::FormulationCache, constr::Constraint)
     !get_cur_is_explicit(constr) && return
-    removevc!(cache.constr_cache, constr)
+    remove!(cache.constr_cache, constr)
     undo_matrix_modifs!(cache, constr)
     return
 end
 
-function removevc!(cache::FormulationCache, var::Variable)
+function remove!(cache::FormulationCache, var::Variable)
     !get_cur_is_explicit(var) && return
-    removevc!(cache.var_cache, var)
+    remove!(cache.var_cache, var)
     undo_matrix_modifs!(cache, var)
     return
 end
 
-function undo_matrix_modifs!(cache::FormulationCache, v::Variable)
+function undo_matrix_modifs!(cache::FormulationCache, v::AbstractVarConstr)
     for (c_id, v_id) in collect(keys(cache.reset_coeffs))
         v_id == getid(v) && delete!(cache.reset_coeffs, Pair(c_id, v_id))
     end
     return
 end
 
-function undo_matrix_modifs!(cache::FormulationCache, c::Constraint)
-    for (c_id, v_id) in collect(keys(cache.reset_coeffs))
-        c_id == getid(c) && delete!(cache.reset_coeffs, Pair(c_id, v_id))
-    end
-    return
-end
+# function undo_matrix_modifs!(cache::FormulationCache, c::Constraint)
+#     for (c_id, v_id) in collect(keys(cache.reset_coeffs))
+#         c_id == getid(c) && delete!(cache.reset_coeffs, Pair(c_id, v_id))
+#     end
+#     return
+# end
 
 function change_cost!(cache::FormulationCache, v::Variable)
     !get_cur_is_explicit(v) && return
@@ -292,23 +294,23 @@ end
 
 "Adds `Variable` `var` to `Formulation` `f`."
 function addvar!(f::Formulation, var::Variable)
-    addvc!(f.cache.var_cache, var)
+    add!(f.cache.var_cache, var)
     return addvar!(f.manager, var)
 end
 
-"Deactivates a variable in the formulation"
-function deactivatevar!(f::Formulation, id::Id{Variable})
-    v = getvar(f, id)
-    removevc!(f.cache, v)
-    set_cur_is_active(v, false)
+"Deactivates a variable or a constraint in the formulation"
+function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
+    remove!(f.cache, varconstr)
+    set_cur_is_active(varconstr, false)
     return
 end
+deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 
 "Activates a variable in the formulation"
-function activatevar!(f::Formulation, id::Id{Variable})
-    v = getvar(f, id)
-    addvc!(f.cache.var_cache, v)
-    set_cur_is_active(v, true)
+function activate!(f::Formulation, id::Id)
+    varconstr = getelem(f, id)
+    add!(f.cache.var_cache, varconstr)
+    set_cur_is_active(varconstr, true)
     return
 end
 
@@ -342,22 +344,22 @@ end
 
 "Adds `Constraint` `constr` to `Formulation` `f`."
 function addconstr!(f::Formulation, constr::Constraint)
-    addvc!(f.cache.constr_cache, constr)
+    add!(f.cache.constr_cache, constr)
     return addconstr!(f.manager, constr)
 end
 
-"Deactivates a constraint in the formulation"
-function deactivateconstr!(f::Formulation, id::Id{Constraint})
-    c = getvar(f, id)
-    removevc!(f.cache, c)
-    set_cur_is_active(c, false)
-    return
-end
+# "Deactivates a constraint in the formulation"
+# function deactivateconstr!(f::Formulation, id::Id{Constraint})
+#     c = getvar(f, id)
+#     remove!(f.cache, c)
+#     set_cur_is_active(c, false)
+#     return
+# end
 
 "Activates a constraint in the formulation"
 function activateconstr!(f::Formulation, id::Id{Constraint})
     c = getvar(f, id)
-    addvc!(f.cache.constr_cache, c)
+    add!(f.cache.constr_cache, c)
     set_cur_is_active(c, true)
     return
 end

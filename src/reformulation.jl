@@ -58,7 +58,7 @@ end
 # being represented by a representative vc
 function vc_belongs_to_formulation(f::Formulation, vc::AbstractVarConstr)
     !haskey(f, getid(vc)) && return false
-    vc_in_formulation = getvar(f, getid(vc)) # This will not work if vc is a constraint
+    vc_in_formulation = getelem(f, getid(vc))
     get_cur_is_explicit(vc_in_formulation) && return true
     return false
 end
@@ -68,12 +68,19 @@ function find_owner_formulation(f::Reformulation, vc::AbstractVarConstr)
     for p in f.dw_pricing_subprs
         vc_belongs_to_formulation(p, vc) && return p
     end
-    error(string("VC ", getname(vc), " does not belong to any problem in reformulation"))
+   @error(string("VC ", getname(vc), " does not belong to any problem in reformulation"))
 end
 
-function deactivatevar!(f::Reformulation, id::Id{Variable})
-    haskey(f.master, id) && deactivatevar!(f.master, id)
-    for p in f.dw_pricing_subprs
-        haskey(p, id) && deactivatevar!(p, id)
+function deactivate!(reform::Reformulation, id::Id)
+    haskey(reform.master, id) && deactivate!(reform.master, id)
+    for p in reform.dw_pricing_subprs
+        haskey(p, id) && deactivate!(p, id)
+    end
+end
+
+function activate!(reform::Reformulation, id::Id)
+    haskey(reform.master, id) && activate!(reform.master, id)
+    for p in reform.dw_pricing_subprs
+        haskey(p, id) && activate!(p, id)
     end
 end
