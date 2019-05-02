@@ -6,8 +6,10 @@ mutable struct ColumnGenerationData <: AbstractSolverData
     is_feasible::Bool
 end
 
-function ColumnGenerationData(S::Type{<:AbstractObjSense})
-    return ColumnGenerationData(Incumbents(S), false, true)
+function ColumnGenerationData(S::Type{<:AbstractObjSense}, node_inc::Incumbents)
+    i = Incumbents(S)
+    set_ip_primal_sol!(i, get_ip_primal_sol(node_inc))
+    return ColumnGenerationData(i, false, true)
 end
 
 # Data needed for another round of column generation
@@ -18,7 +20,7 @@ end
 # Overload of the solver interface
 function setup!(::Type{ColumnGeneration}, formulation, node)
     @logmsg LogLevel(-1) "Setup ColumnGeneration."
-    return ColumnGenerationData(formulation.master.obj_sense)
+    return ColumnGenerationData(formulation.master.obj_sense, node.incumbents)
 end
 
 function run!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData,

@@ -253,7 +253,7 @@ function setvar!(f::Formulation,
                   is_active::Bool = true,
                   is_explicit::Bool = true,
                   moi_index::MoiVarIndex = MoiVarIndex(),
-                  members = nothing)
+                  members::Union{ConstrMembership,Nothing} = nothing)
     id = generatevarid(f)
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
@@ -284,10 +284,6 @@ function setpartialsol!(f::Formulation,
         partialsol_matrix[var_id, ps_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
             coef_matrix[constr_id, ps_id] = var_val * var_coef
-            commit_coef_matrix_change!(
-                f,
-                constr_id, ps_id, var_val * var_coef
-            )
         end
     end
 
@@ -301,16 +297,18 @@ function addvar!(f::Formulation, var::Variable)
 end
 
 "Deactivates a variable in the formulation"
-function deactivatevar!(f::Formulation, var::Variable)
-    removevc!(f.cache, var)
-    set_cur_is_active(var, false)
+function deactivatevar!(f::Formulation, id::Id{Variable})
+    v = getvar(f, id)
+    removevc!(f.cache, v)
+    set_cur_is_active(v, false)
     return
 end
 
-"Activate a variable in the formulation"
-function activatevar!(f::Formulation, var::Variable)
-    addvc!(f.cache.var_cache, var)
-    set_cur_is_active(var, true)
+"Activates a variable in the formulation"
+function activatevar!(f::Formulation, id::Id{Variable})
+    v = getvar(f, id)
+    addvc!(f.cache.var_cache, v)
+    set_cur_is_active(v, true)
     return
 end
 
@@ -349,16 +347,18 @@ function addconstr!(f::Formulation, constr::Constraint)
 end
 
 "Deactivates a constraint in the formulation"
-function deactivateconstr!(f::Formulation, constr::Constraint)
-    removevc!(f.cache, constr)
-    set_cur_is_active(constr, false)
+function deactivateconstr!(f::Formulation, id::Id{Constraint})
+    c = getvar(f, id)
+    removevc!(f.cache, c)
+    set_cur_is_active(c, false)
     return
 end
 
 "Activates a constraint in the formulation"
-function activateconstr!(f::Formulation, constr::Constraint)
-    addvc!(f.cache.constr_cache, constr)
-    set_cur_is_active(constr, true)
+function activateconstr!(f::Formulation, id::Id{Constraint})
+    c = getvar(f, id)
+    addvc!(f.cache.constr_cache, c)
+    set_cur_is_active(c, true)
     return
 end
 
@@ -367,7 +367,7 @@ function cloneconstr!(dest::Formulation, src::Formulation, constr::Constraint)
     return cloneconstr!(dest.manager, src.manager, constr)
 end
 
-function setmembers!(f::Formulation, v::Variable, members)
+function setmembers!(f::Formulation, v::Variable, members::ConstrMembership)
     # Compute column vector record partial solution
     # This adds the column to the convexity constraints automatically
     # since the setup variable is in the sp solution and it has a
@@ -375,12 +375,8 @@ function setmembers!(f::Formulation, v::Variable, members)
     coef_matrix = getcoefmatrix(f)
     partialsol_matrix = getpartialsolmatrix(f)
     id = getid(v)
-    for (var_id, var_val) in members
-        partialsol_matrix[var_id, id] = var_val
-        for (constr_id, var_coef) in coef_matrix[:,var_id]
-            coef_matrix[constr_id, id] = var_val * var_coef
-            commit_coef_matrix_change!(f, constr_id, id, var_val * var_coef)
-        end
+    for (constr_id, coeff) in members
+        coef_matrix[constr_id, id] = coeff
     end
     return
 end
@@ -393,21 +389,13 @@ function setmembers!(f::Formulation, constr::Constraint, members)
     @logmsg LogLevel(-4) "Members are : ", members
     for (var_id, member_coeff) in members
         # Add coef for its own variables
-        if get_cur_is_explicit(getvar(f, var_id))
-            v = getvar(f, var_id)
-            coef_matrix[constr_id,var_id] = member_coeff
-            @logmsg LogLevel(-4) string("Adidng variable ", getname(v), " with coeff ", member_coeff)
-            commit_coef_matrix_change!(
-                f, constr_id, var_id, member_coeff
-            )
-        end
+        v = getvar(f, var_id)
+        coef_matrix[constr_id,var_id] = member_coeff
+        @logmsg LogLevel(-4) string("Adidng variable ", getname(v), " with coeff ", member_coeff)
         # And for all columns having its own variables
         for (col_id, coeff) in partial_sols[var_id,:]
             @logmsg LogLevel(-4) string("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
             coef_matrix[constr_id,col_id] = coeff * member_coeff
-            commit_coef_matrix_change!(
-                f, constr_id, col_id, coeff * member_coeff
-            )
         end
     end
     return
@@ -455,7 +443,7 @@ function sync_solver(f::Formulation)
         c = getconstr(f, id)
         @logmsg LogLevel(-2) string("Adding constraint ", getname(c))
         undo_modifs!(cache, c)
-        add_to_optimzer!(optimizer, c, filter(_explicit_, matrix[id,:]))
+        add_to_optimzer!(optimizer, c, filter(_active_explicit_, matrix[id,:]))
     end
     # Update variable costs
     for id in cache.changed_cost
@@ -473,6 +461,16 @@ function sync_solver(f::Formulation)
         @warn "Update of constraint rhs not yet implemented"
     end
     # Update matrix
+    # First check if should update members of just-added vars
+    matrix = getcoefmatrix(f)
+    for id in cache.var_cache.added
+        for (constr_id, coeff) in filter(_active_explicit_, matrix[:,id])
+            constr_id in cache.constr_cache.added && continue
+            c = getconstr(f, constr_id)
+            update_constr_member_in_optimizer(optimizer, c, getvar(f, id), coeff)
+        end
+    end
+    # Then updated the rest of the matrix coeffs
     for ((c_id, v_id), coeff) in cache.reset_coeffs
         c = getconstr(f, c_id)
         v = getvar(f, v_id)

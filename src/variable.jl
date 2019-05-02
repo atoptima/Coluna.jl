@@ -81,6 +81,7 @@ struct Variable <: AbstractVarConstr
     perene_data::VarData
     cur_data::VarData
     moirecord::MoiVarRecord
+    # form_where_explicit::Int
 end
 const VarId = Id{Variable}
 

@@ -12,7 +12,7 @@ end
 
 function run!(::Type{MasterIpHeuristic}, solver_data, formulation, node, 
               parameters)
-    println("Start Master IP Heuristic")
+    @logmsg LogLevel(-1) "Applying Master IP heuristic"
     println("FAKE CPLEX OUTPUT.")
     db = 1000
     pb = 2000

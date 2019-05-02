@@ -150,23 +150,6 @@ function apply_branch!(f::Reformulation, b::Branch)
     return
 end
 
-# Following two functions are temporary, we must store a pointer to the vc
-# being represented by a representative vc
-function vc_belongs_to_formulation(f::Formulation, vc::AbstractVarConstr)
-    !haskey(f, getid(vc)) && return false
-    vc_in_formulation = getvar(f, getid(vc)) # This will not work if vc is a constraint
-    get_cur_is_explicit(vc_in_formulation) && return true
-    return false
-end
-
-function find_owner_formulation(f::Reformulation, vc::AbstractVarConstr)
-    vc_belongs_to_formulation(f.master, vc) && return f.master
-    for p in f.dw_pricing_subprs
-        vc_belongs_to_formulation(p, vc) && return p
-    end
-    error(string("VC ", getname(vc), " does not belong to any problem in reformulation"))
-end
-
 function reset_to_record_state_of_father!(f::Reformulation, n::Node)
     @logmsg LogLevel(-1) "Reset the formulation to the state left by the parent node."
     active_vars = n.record.active_vars
@@ -175,6 +158,7 @@ function reset_to_record_state_of_father!(f::Reformulation, n::Node)
     for (id, var) in filter(_active_, getvars(f.master))
         haskey(active_vars, id) && continue
         @logmsg LogLevel(-2) "Deactivating variable " getname(var)
+        # TODO : deactivatevar!(f::Reformulation, v::Var)
         deactivatevar!(f.master, var)
         # The following 4 lines should be changed when we store the pointer to the vc represented by the representative
         owner_form = find_owner_formulation(f, var)
@@ -193,7 +177,7 @@ function reset_to_record_state_of_father!(f::Reformulation, n::Node)
     for (id, data) in active_vars
         var = getvar(f.master, id)
         owner_form = find_owner_formulation(f, var)
-        # Reset bounds
+        # Reset bounds # TODO: Reset costs
         if (getcurlb(getvar(owner_form, id)) != getlb(data)
             || getcurub(getvar(owner_form, id)) != getub(data))
             @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
@@ -214,6 +198,7 @@ function reset_to_record_state_of_father!(f::Reformulation, n::Node)
     # Checking constrs that should be active in formulation but are not
     for (id, data) in active_constrs
         constr = getconstr(f.master, id)
+        # TODO: reset rhs
         get_cur_is_active(constr) && continue # Nothing to do if constr is already acitve
         @logmsg LogLevel(-2) "Activating constraint " getname(constr)
         activateconstr!(f.master, constr)

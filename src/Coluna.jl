@@ -67,7 +67,7 @@ include("solvers/masteripheur.jl")
 include("solvers/generatechildrennodes.jl")
 # here include solvers
 include("solvers/interfaces.jl")
-include("strategies/mockstrategy.jl")
+include("strategies/simplebnp.jl")
 # here include strategies
 
 ##### Search tree

@@ -145,19 +145,6 @@ function add_to_optimzer!(optimizer::MOI.AbstractOptimizer, v::Variable)
     return
 end
 
-function add_to_optimzer!(optimizer::MOI.AbstractOptimizer, v::Variable,
-                          members::ConstrMembership)
-    cur_data = getcurdata(v)
-    add_to_optimzer!(optimizer, v)
-    for (c_id, coeff) in members
-        update_constr_member_in_optimizer(
-            optimizer, getelements(members)[c_id], 
-            v, coeff
-        )
-    end
-    return
-end
-
 function add_to_optimzer!(optimizer::MOI.AbstractOptimizer,
                           constr::Constraint,
                           members::VarMembership)

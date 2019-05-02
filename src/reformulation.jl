@@ -53,3 +53,27 @@ function optimize!(reformulation::Reformulation)
     res = apply(TreeSolver, reformulation)
     return res
 end
+
+# Following two functions are temporary, we must store a pointer to the vc
+# being represented by a representative vc
+function vc_belongs_to_formulation(f::Formulation, vc::AbstractVarConstr)
+    !haskey(f, getid(vc)) && return false
+    vc_in_formulation = getvar(f, getid(vc)) # This will not work if vc is a constraint
+    get_cur_is_explicit(vc_in_formulation) && return true
+    return false
+end
+
+function find_owner_formulation(f::Reformulation, vc::AbstractVarConstr)
+    vc_belongs_to_formulation(f.master, vc) && return f.master
+    for p in f.dw_pricing_subprs
+        vc_belongs_to_formulation(p, vc) && return p
+    end
+    error(string("VC ", getname(vc), " does not belong to any problem in reformulation"))
+end
+
+function deactivatevar!(f::Reformulation, id::Id{Variable})
+    haskey(f.master, id) && deactivatevar!(f.master, id)
+    for p in f.dw_pricing_subprs
+        haskey(p, id) && deactivatevar!(p, id)
+    end
+end

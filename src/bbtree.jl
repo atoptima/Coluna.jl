@@ -30,7 +30,7 @@ nb_open_nodes(t::SearchTree) = length(t.nodes)
 
 function build_priority_function(strategy::SEARCHSTRATEGY)
     strategy == DepthFirst && return x->(-x.depth)
-    strategy == BestDualBound && return x->x.node_inc_lp_dual_bound
+    strategy == BestDualBound && return x->(get_lp_dual_bound(x.incumbents))
 end
 
 mutable struct TreeSolver <: AbstractReformulationSolver
@@ -67,9 +67,22 @@ function apply_on_node(strategy::Type{<:AbstractStrategy},
                        formulation::Reformulation, node::Node, r, p)
     # Check if it needs to be treated, because pb might have improved
     setup!(formulation, node)
+    setsolver!(r, StartNode)
     apply(strategy, formulation, node, r, nothing)
     record!(formulation, node)
     return
+end
+
+function setup_node!(n::Node, treat_order::Int, tree_incumbents::Incumbents)
+    @logmsg LogLevel(-1) "Setting up node before apply"
+    set_treat_order!(n, treat_order)
+    set_ip_primal_sol!(getincumbents(n), get_ip_primal_sol(tree_incumbents))
+    @logmsg LogLevel(-2) string("New IP primal bound is set to ", get_ip_primal_bound(getincumbents(n)))
+    if (ip_gap(getincumbents(n)) <= 0.0 + 0.00000001)
+        @logmsg LogLevel(-2) string("Gap is non-positive: ", ip_gap(getincumbents(n)), ". Abort treatment.")
+        return false
+    end
+    return true
 end
 
 function apply(::Type{<:TreeSolver}, reform::Reformulation)
@@ -77,18 +90,18 @@ function apply(::Type{<:TreeSolver}, reform::Reformulation)
     pushnode!(tree_solver, RootNode(reform.master.obj_sense))
 
     # Node strategy
-    strategy = MockStrategy # Should be kept in reformulation?
+    strategy = SimpleBnP # Should be kept in reformulation?
     strategy_record = StrategyRecord()
 
     while (!isempty(tree_solver)
            && get_nb_treated_nodes(tree_solver) < _params_.max_num_nodes)
 
         cur_node = popnode!(tree_solver)
-        setsolver!(strategy_record, StartNode)
-        set_treat_order!(cur_node, tree_solver.treat_order)
-
-        print_info_before_apply(cur_node, tree_solver, reform)
-        apply_on_node(strategy, reform, cur_node, strategy_record, nothing)
+        should_apply = setup_node!(
+            cur_node, get_treat_order(tree_solver), getincumbents(tree_solver)
+        )
+        print_info_before_apply(cur_node, tree_solver, reform, should_apply)
+        should_apply && apply_on_node(strategy, reform, cur_node, strategy_record, nothing)
         print_info_after_apply(cur_node, tree_solver)
         update_tree_solver(tree_solver, cur_node)
     end
@@ -146,12 +159,15 @@ function update_tree_solver(s::TreeSolver, n::Node)
     updatebounds!(s, n)
 end
 
-function print_info_before_apply(n::Node, s::TreeSolver, reform::Reformulation)
+function print_info_before_apply(n::Node, s::TreeSolver, reform::Reformulation, strategy_was_applied::Bool)
     println("************************************************************")
     print(nb_open_nodes(s) + 1)
     print(" open nodes. Treating node ", get_treat_order(s), ". ")
     getparent(n) == nothing && println()
     getparent(n) != nothing && println("Parent is ", get_treat_order(getparent(n)))
+    if !strategy_was_applied
+        println("Node ", get_treat_order(n), " is conquered, no need to apply strategy.")
+    end
 
     solver_incumbents = getincumbents(s)
     node_incumbents = getincumbents(n)
