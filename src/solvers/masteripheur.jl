@@ -1,22 +1,36 @@
 struct MasterIpHeuristic <: AbstractSolver end
 
-struct MasterIpHeuristicData <: AbstractSolverData end
+struct MasterIpHeuristicData <: AbstractSolverData 
+    incumbents::Incumbents
+end
+MasterIpHeuristicData(S::Type{<:AbstractObjSense}) = MasterIpHeuristicData(Incumbents(S))
 
 struct MasterIpHeuristicRecord <: AbstractSolverRecord
-    time::Float64
+    incumbents::Incumbents
 end
 
-function setup!(::Type{MasterIpHeuristic}, formulation, node)
-    @warn "setup master ip heuristic"
+function setup!(::Type{MasterIpHeuristic}, formulation::Reformulation, node::AbstractNode)
+    @logmsg LogLevel(-1) "Setup MasterIpHeuristic."
+    return MasterIpHeuristicData(getobjsense(formulation.master))
 end
 
-function run!(::Type{MasterIpHeuristic}, solver_data, formulation, node, 
-              parameters)
-    @logmsg LogLevel(-1) "Applying Master IP heuristic"
-    @warn "Restricted master ip heuristic not implemented yet."
-    return MasterIpHeuristicRecord(7)
+function run!(::Type{MasterIpHeuristic}, solver_data::MasterIpHeuristicData, 
+              formulation::Reformulation, node::AbstractNode, parameters)
+
+    @logmsg LogLevel(1) "Applying Master IP heuristic"
+    enforce_integrality!(formulation.master)
+    status, value, p_sols, d_sol = optimize!(formulation.master)
+    relax_integrality!(formulation.master)
+    set_ip_primal_sol!(solver_data.incumbents, p_sols[1])
+    @logmsg LogLevel(1) string("Found primal solution of ", get_ip_primal_bound(solver_data.incumbents))
+    @logmsg LogLevel(-3) get_ip_primal_sol(solver_data.incumbents)
+
+    return MasterIpHeuristicRecord(solver_data.incumbents)
 end
 
-function setdown!(::Type{MasterIpHeuristic}, solver_data, formulation, node)
-    @warn "setdown! masteripheur"
+function setdown!(::Type{MasterIpHeuristic}, solver_record::MasterIpHeuristicRecord,
+                  formulation::Reformulation, node::AbstractNode)
+    @logmsg LogLevel(-1) "Setdown of Master IP heuristic."
+    set_ip_primal_sol!(node.incumbents, get_ip_primal_sol(solver_record.incumbents))
+    return
 end

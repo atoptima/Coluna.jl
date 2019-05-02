@@ -61,7 +61,7 @@ function insert_cols_in_master(master_form::Formulation,
     # println("\e[1;32m insert cols in master \e[00m")
     sp_uid = getuid(sp_form)
     nb_of_gen_col = 0
-    
+
 
     # @show sp_sols
 

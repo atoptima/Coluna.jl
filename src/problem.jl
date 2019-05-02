@@ -69,6 +69,7 @@ function coluna_initialization(prob::Problem, annotations::Annotations,
     _welcome_message()
     _set_global_params(params)
     reformulate!(prob, annotations, DantzigWolfeDecomposition)
+    relax_integrality!(prob.re_formulation.master)
     initialize_moi_optimizer(prob)
     @info "Coluna initialized."
 end

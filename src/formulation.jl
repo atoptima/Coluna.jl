@@ -30,7 +30,6 @@ function remove!(cache::VarConstrCache{VC}, vc::VC) where {VC<:AbstractVarConstr
     return
 end
 
-
 """
     FormulationCache()
 
@@ -52,6 +51,7 @@ The concerned modificatios are:
 mutable struct FormulationCache
     changed_cost::Set{Id{Variable}}
     changed_bound::Set{Id{Variable}}
+    changed_kind::Set{Id{Variable}}
     changed_rhs::Set{Id{Constraint}}
     var_cache::VarConstrCache{Variable}
     constr_cache::VarConstrCache{Constraint}
@@ -64,8 +64,9 @@ end
 Constructs an empty `FormulationCache`.
 """
 FormulationCache() = FormulationCache(
-    Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Constraint}}(),
-    VarConstrCache{Variable}(), VarConstrCache{Constraint}(),
+    Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
+    Set{Id{Constraint}}(), VarConstrCache{Variable}(),
+    VarConstrCache{Constraint}(),
     Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
     # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()
 )
@@ -86,14 +87,12 @@ end
 function remove!(cache::FormulationCache, constr::Constraint)
     !get_cur_is_explicit(constr) && return
     remove!(cache.constr_cache, constr)
-    undo_matrix_modifs!(cache, constr)
     return
 end
 
 function remove!(cache::FormulationCache, var::Variable)
     !get_cur_is_explicit(var) && return
     remove!(cache.var_cache, var)
-    undo_matrix_modifs!(cache, var)
     return
 end
 
@@ -104,13 +103,6 @@ function undo_matrix_modifs!(cache::FormulationCache, v::AbstractVarConstr)
     return
 end
 
-# function undo_matrix_modifs!(cache::FormulationCache, c::Constraint)
-#     for (c_id, v_id) in collect(keys(cache.reset_coeffs))
-#         c_id == getid(c) && delete!(cache.reset_coeffs, Pair(c_id, v_id))
-#     end
-#     return
-# end
-
 function change_cost!(cache::FormulationCache, v::Variable)
     !get_cur_is_explicit(v) && return
     push!(cache.changed_cost, getid(v))
@@ -120,6 +112,12 @@ end
 function change_bound!(cache::FormulationCache, v::Variable)
     !get_cur_is_explicit(v) && return
     push!(cache.changed_bound, getid(v))
+    return
+end
+
+function change_kind!(cache::FormulationCache, v::Variable)
+    !get_cur_is_explicit(v) && return
+    push!(cache.changed_kind, getid(v))
     return
 end
 
@@ -217,7 +215,7 @@ reset_cache!(f::Formulation) = f.cache = FormulationCache()
 
 Passes the cost modification of variable `v` to the underlying MOI solver `f.moi_solver`.
 
-Should be called if a cost modificatiom to a variable is definitive and should be transmitted to the underlying MOI solver.
+Should be called if a cost modification to a variable is definitive and should be transmitted to the underlying MOI solver.
 """
 commit_cost_change!(f::Formulation, v::Variable) = change_cost!(f.cache, v)
 
@@ -226,9 +224,18 @@ commit_cost_change!(f::Formulation, v::Variable) = change_cost!(f.cache, v)
 
 Passes the bound modification of variable `v` to the underlying MOI solver `f.moi_solver`.
 
-Should be called if a bound modificatiom to a variable is definitive and should be transmitted to the underlying MOI solver.
+Should be called if a bound modification to a variable is definitive and should be transmitted to the underlying MOI solver.
 """
 commit_bound_change!(f::Formulation, v::Variable) = change_bound!(f.cache, v)
+
+"""
+    commit_kind_change!(f::Formulation, v::Variable)
+
+Passes the kind modification of variable `v` to the underlying MOI solver `f.moi_solver`.
+
+Should be called if a kind modification to a variable is definitive and should be transmitted to the underlying MOI solver.
+"""
+commit_kind_change!(f::Formulation, v::Variable) = change_kind!(f.cache, v)
 
 """
     commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint}, v_id::Id{Variable}, coeff::Float64)
@@ -348,13 +355,30 @@ function addconstr!(f::Formulation, constr::Constraint)
     return addconstr!(f.manager, constr)
 end
 
-# "Deactivates a constraint in the formulation"
-# function deactivateconstr!(f::Formulation, id::Id{Constraint})
-#     c = getvar(f, id)
-#     remove!(f.cache, c)
-#     set_cur_is_active(c, false)
-#     return
-# end
+function enforce_integrality!(f::Formulation)
+    @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(f))
+    for (v_id, v) in filter(_active_explicit_, getvars(f))
+        getcurkind(v) == Integ && continue
+        getcurkind(v) == Binary && continue
+        if (getduty(v) == MasterCol || getperenekind(v) != Continuous)
+            @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to Integer")
+            setcurkind(v, Integ)
+            commit_kind_change!(f, v)
+        end
+    end
+    return
+end
+
+function relax_integrality!(f::Formulation)
+    @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(f))
+    for (v_id, v) in filter(_active_explicit_, getvars(f))
+        getcurkind(v) == Continuous && continue
+        @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
+        setcurkind(v, Continuous)
+        commit_kind_change!(f, v)
+    end
+    return
+end
 
 "Activates a constraint in the formulation"
 function activateconstr!(f::Formulation, id::Id{Constraint})
@@ -458,6 +482,12 @@ function sync_solver(f::Formulation)
         @logmsg LogLevel(-3) string("New upper bound is ", getcurub(getvar(f,id)))
         update_bounds_in_optimizer(optimizer, getvar(f, id))
     end
+    # Update variable kind
+    for id in cache.changed_kind
+        @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
+        @logmsg LogLevel(-3) string("New kind is ", getcurkind(getvar(f,id)))
+        enforce_var_kind_in_optimizer(optimizer, getvar(f,id))
+    end
     # Update constraint rhs
     for id in cache.changed_rhs
         @warn "Update of constraint rhs not yet implemented"
@@ -474,6 +504,8 @@ function sync_solver(f::Formulation)
     end
     # Then updated the rest of the matrix coeffs
     for ((c_id, v_id), coeff) in cache.reset_coeffs
+        # Ignore modifications involving vc's that were removed
+        (c_id in cache.constr_cache.removed || v_id in cache.var_cache.removed) && continue
         c = getconstr(f, c_id)
         v = getvar(f, v_id)
         @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)

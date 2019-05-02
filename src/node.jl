@@ -132,7 +132,7 @@ function apply_branch!(f::Reformulation, b::Branch)
     # In subproblems we only change the bounds
     # Problem: Only works if val == 1.0 !!! TODO: Fix this problem ?
     for (id, val) in get_var_coeffs(b)
-        # The following 4 lines should be changed when we store the pointer to the vc represented by the representative
+        # The following lines should be changed when we store the pointer to the vc represented by the representative
         owner_form = find_owner_formulation(f, getvar(f.master, id))
         if getuid(owner_form) != getuid(f.master)
             sp_var = getvar(owner_form, id)

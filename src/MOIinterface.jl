@@ -116,18 +116,23 @@ function enforce_var_kind_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                        v::Variable)
     kind = getkind(getcurdata(v))
     moirecord = getmoirecord(v)
-    if kind == Continuous
+    moi_kind = getkind(moirecord)
+    if moi_kind.value != -1
+        MOI.delete(optimizer, moi_kind)
+        setkind!(moirecord, MoiVarKind())
+    end
+    kind == Continuous && return # Continuous is translated as no constraint in MOI
+    if kind == Binary # If binary and has tighter bounds, set as integer (?)
         moi_bounds = getbounds(moirecord)
         if moi_bounds.value != -1
             MOI.delete(optimizer, moi_bounds)
             setbounds!(moirecord, MoiVarBound(-1))
         end
-    else
-        moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
-        setkind!(moirecord, MOI.add_constraint(
-            optimizer, MOI.SingleVariable(getindex(moirecord)), moi_set
-        ))
     end
+    moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
+    setkind!(moirecord, MOI.add_constraint(
+        optimizer, MOI.SingleVariable(getindex(moirecord)), moi_set
+    ))
     return
 end
 
