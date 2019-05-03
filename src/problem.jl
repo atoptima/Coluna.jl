@@ -20,7 +20,6 @@ mutable struct Problem <: AbstractProblem
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     form_counter::Counter # 0 is for original form
-    timer_output::TimerOutputs.TimerOutput # Keep it in globals?
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
     pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
 end
@@ -32,7 +31,7 @@ Constructs an empty `Problem`.
 """
 function Problem(master_factory, pricing_factory)
     return Problem(
-        nothing, nothing, Counter(-1), TimerOutputs.TimerOutput(),
+        nothing, nothing, Counter(-1),
         master_factory, pricing_factory
     )
 end
