@@ -81,10 +81,9 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
     coluna_initialization(prob, annotations, params)
     _globals_.initial_solve_time = time()
     @info _params_
-    @timeit prob.timer_output "Solve problem" begin
+    TO.@timeit to "Coluna" begin
         res = optimize!(prob.re_formulation)
     end
-    # Stock the result in problem?
-    println(prob.timer_output)
+    println(to)
     return res
 end

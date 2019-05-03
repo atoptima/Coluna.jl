@@ -6,9 +6,9 @@ function interface!(::Type{StartNode}, ::Type{ColumnGeneration}, formulation,
 end
 
 # ColumnGeneration -> MasterIpHeuristic
+# Nothing to do
 function interface!(::Type{ColumnGeneration}, ::Type{MasterIpHeuristic}, 
                     formulation, node)
-    println("\e[33m interface between column generation and masteripheuristic \e[00m")
     return
 end
 
@@ -16,6 +16,5 @@ end
 # Nothing to do
 function interface!(::Type{MasterIpHeuristic}, ::Type{GenerateChildrenNode}, 
                     formulation, node)
-    println("\e[33m interface between masteripheuristic and children generation \e[00m")
     return
 end

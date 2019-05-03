@@ -10,8 +10,6 @@ mutable struct Reformulation <: AbstractFormulation
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
     dw_pricing_sp_lb::Dict{FormId, Id} # Attribute has ambiguous name
     dw_pricing_sp_ub::Dict{FormId, Id}
-    timer_output::TimerOutputs.TimerOutput
-    # strategy::AbstractStrategy
 end
 
 """
@@ -32,8 +30,7 @@ function Reformulation(prob::AbstractProblem, method::SolutionMethod)
                          nothing,
                          Vector{AbstractFormulation}(),
                          Dict{FormId, Int}(),
-                         Dict{FormId, Int}(),
-                         prob.timer_output)
+                         Dict{FormId, Int}())
 end
 
 getmaster(r::Reformulation) = r.master

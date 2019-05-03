@@ -7,17 +7,17 @@ import GLPK
 import JuMP
 import BlockDecomposition
 import Distributed
+import TimerOutputs
 
 using Logging
 using SparseArrays
 using Printf
-import TimerOutputs
-import TimerOutputs.@timeit
 
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
 global const BD = BlockDecomposition
+global const TO = TimerOutputs
 
 # Base functions for which we define more methods in Coluna
 import Base.isempty

@@ -4,4 +4,6 @@ Base.@kwdef mutable struct GlobalValues
     MAX_FORMULATIOS::Int = 100
 end
 
+global const to = TO.TimerOutput()
+
 _elapsed_solve_time() = (time() - _globals_.initial_solve_time)

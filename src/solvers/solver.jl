@@ -71,7 +71,9 @@ function apply!(S::Type{<:AbstractSolver}, formulation, node, strategyrecord,
     interface!(getsolver(strategyrecord), S, formulation, node)
     setsolver!(strategyrecord, S)
     solver_data = setup!(S, formulation, node)
-    record = run!(S, solver_data, formulation, node, parameters)
+    TO.@timeit to string(S) begin
+        record = run!(S, solver_data, formulation, node, parameters)
+    end
     set_solver_record!(node, S, record)
     setdown!(S, record, formulation, node)
     return record

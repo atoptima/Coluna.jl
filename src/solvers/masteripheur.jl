@@ -24,7 +24,6 @@ function run!(::Type{MasterIpHeuristic}, solver_data::MasterIpHeuristicData,
     set_ip_primal_sol!(solver_data.incumbents, p_sols[1])
     @logmsg LogLevel(1) string("Found primal solution of ", get_ip_primal_bound(solver_data.incumbents))
     @logmsg LogLevel(-3) get_ip_primal_sol(solver_data.incumbents)
-
     return MasterIpHeuristicRecord(solver_data.incumbents)
 end
 
