@@ -74,7 +74,7 @@ function apply!(S::Type{<:AbstractSolver}, formulation, node, strategyrecord,
     record = run!(S, solver_data, formulation, node, parameters)
     set_solver_record!(node, S, record)
     setdown!(S, record, formulation, node)
-    return
+    return record
 end
 
 """
