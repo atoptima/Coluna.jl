@@ -3,6 +3,12 @@
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
+[[BenchmarkTools]]
+deps = ["JSON", "Printf", "Statistics", "Test"]
+git-tree-sha1 = "5d1dd8577643ba9014574cd40d9c028cd5e4b85a"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "0.4.2"
+
 [[BinDeps]]
 deps = ["Compat", "Libdl", "SHA", "URIParser"]
 git-tree-sha1 = "12093ca6cdd0ee547c39b1870e0c9c3f154d9ca9"
@@ -14,6 +20,14 @@ deps = ["Libdl", "Pkg", "SHA", "Test"]
 git-tree-sha1 = "055eb2690182ebc31087859c3dd8598371d3ef9e"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
 version = "0.5.3"
+
+[[BlockDecomposition]]
+deps = ["DataStructures", "JuMP", "MathOptInterface", "Test"]
+git-tree-sha1 = "262f96c09167f2cf4136af061bcfff442d3d6164"
+repo-rev = "master"
+repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
+uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
+version = "0.1.0"
 
 [[Calculus]]
 deps = ["Compat"]
@@ -29,15 +43,15 @@ version = "0.2.0"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "49269e311ffe11ac5b334681d212329002a9832a"
+git-tree-sha1 = "84aa74986c5b9b898b0d1acaf3258741ee64754f"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "1.5.1"
+version = "2.1.0"
 
 [[Crayons]]
 deps = ["Test"]
-git-tree-sha1 = "3017c662a988bcb8a3f43306a793617c6524d476"
+git-tree-sha1 = "f621b8ef51fd2004c7cf157ea47f027fdeac5523"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
-version = "1.0.0"
+version = "4.0.0"
 
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections", "Random", "Serialization", "Test"]
@@ -71,21 +85,21 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DocStringExtensions]]
 deps = ["LibGit2", "Markdown", "Pkg", "Test"]
-git-tree-sha1 = "1df01539a1c952cef21f2d2d1c092c2bcf0177d7"
+git-tree-sha1 = "4d30e889c9f106a51ffa4791a88ffd4765bf20c3"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.6.0"
+version = "0.7.0"
 
 [[Documenter]]
-deps = ["Base64", "DocStringExtensions", "InteractiveUtils", "LibGit2", "Logging", "Markdown", "Pkg", "REPL", "Random", "Test", "Unicode"]
-git-tree-sha1 = "f5dd8036d6e6673d8f0f9b60cd844ebb89aec591"
+deps = ["Base64", "DocStringExtensions", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "Pkg", "REPL", "Random", "Test", "Unicode"]
+git-tree-sha1 = "04d40966cddd2ea5d227e7130484b57ac4718596"
 uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.21.4"
+version = "0.22.1"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "InteractiveUtils", "LinearAlgebra", "NaNMath", "Random", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test"]
-git-tree-sha1 = "e393bd3b9102659fb24fe88caedec41f2bc2e7de"
+git-tree-sha1 = "4c4d727f1b7e0092134fabfab6396b8945c1ea5b"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.2"
+version = "0.10.3"
 
 [[GLPK]]
 deps = ["BinaryProvider", "Compat", "Libdl", "LinQuadOptInterface"]
@@ -93,14 +107,15 @@ git-tree-sha1 = "82f64bfd090a95b7670ed0d7c734220f32983386"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
 version = "0.9.1"
 
-[[HighLevelTypes]]
-git-tree-sha1 = "b6d30b8a0661f6e65bb70c9c81fd094ffc0d4ce8"
-uuid = "66835562-f1c4-5586-a145-e564a3963a4b"
-version = "0.0.2"
-
 [[InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
+[[JSON]]
+deps = ["Dates", "Distributed", "Mmap", "Sockets", "Test", "Unicode"]
+git-tree-sha1 = "1f7a25b53ec67f5e9422f1f551ee216503f4a0fa"
+uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+version = "0.20.0"
 
 [[JuMP]]
 deps = ["Calculus", "DataStructures", "ForwardDiff", "LinearAlgebra", "MathOptInterface", "NaNMath", "Random", "SparseArrays", "Statistics", "Test"]
@@ -135,9 +150,11 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
 deps = ["Compat", "Unicode"]
-git-tree-sha1 = "e3c7fb842078f5cd9a21ecb911dc59a4282e3d01"
+git-tree-sha1 = "196e821c1248ab02eeaa25bac96025caaf48d7d2"
+repo-rev = "master"
+repo-url = "https://github.com/guimarqu/MathOptInterface.jl.git"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.8.2"
+version = "0.8.4+"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
@@ -153,12 +170,6 @@ deps = ["Random", "Serialization", "Test"]
 git-tree-sha1 = "85619a3f3e17bb4761fe1b1fd47f0e979f964d5b"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.0.2"
-
-[[Parameters]]
-deps = ["Markdown", "OrderedCollections", "REPL", "Test"]
-git-tree-sha1 = "70bdbfb2bceabb15345c0b54be4544813b3444e4"
-uuid = "d96e819e-fc66-5662-9728-84c9c7592b0a"
-version = "0.10.3"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
@@ -201,9 +212,9 @@ version = "0.7.2"
 
 [[StaticArrays]]
 deps = ["InteractiveUtils", "LinearAlgebra", "Random", "Statistics", "Test"]
-git-tree-sha1 = "1eb114d6e23a817cd3e99abc3226190876d7c898"
+git-tree-sha1 = "3841b39ed5f047db1162627bf5f80a9cd3e39ae2"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "0.10.2"
+version = "0.10.3"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -215,9 +226,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TimerOutputs]]
 deps = ["Crayons", "Printf", "Test", "Unicode"]
-git-tree-sha1 = "89a9bd610d6bfd62a7c2b85112762b99b979fe5f"
+git-tree-sha1 = "b80671c06f8f8bae08c55d67b5ce292c5ae2660c"
 uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
-version = "0.4.0"
+version = "0.5.0"
 
 [[URIParser]]
 deps = ["Test", "Unicode"]

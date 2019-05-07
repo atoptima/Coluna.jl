@@ -1,56 +1,85 @@
 module Coluna
 
-import Parameters.@with_kw
-import HighLevelTypes.@hl
-import HighLevelTypes.tuplejoin
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
 import GLPK
 import JuMP
-
-using Base.CoreLogging
+import BlockDecomposition
+import Distributed
 import TimerOutputs
-import TimerOutputs.@timeit
 
-global const Float = Float64
+using Logging
+using SparseArrays
+using Printf
+
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
-global __initial_solve_time = 0.0
+global const BD = BlockDecomposition
+global const TO = TimerOutputs
 
-# We should not need to import this here
-@MOIU.model(ModelForCachingOptimizer,
-        (MOI.ZeroOne, MOI.Integer),
-        (MOI.EqualTo, MOI.GreaterThan, MOI.LessThan, MOI.Interval),
-        (),
-        (),
-        (MOI.SingleVariable,),
-        (MOI.ScalarAffineFunction,),
-        (),
-        ())
+# Base functions for which we define more methods in Coluna
+import Base.isempty
+import Base.hash
+import Base.isequal
+import Base.filter
+import Base.length
+import Base.iterate
+import Base.getindex
+import Base.lastindex
+import Base.getkey
+import Base.delete!
+import Base.setindex!
+import Base.haskey
+import Base.copy
+import Base.promote_rule
+import Base.convert
+import Base.isinteger
 
-# include("/Users/vitornesello/.julia/dev/SimpleDebugger/src/SimpleDebugger.jl")
-
+include("types.jl")
 include("parameters.jl")
-include("utils.jl")
-include("varconstr.jl")
-include("variables.jl")
-include("constraints.jl")
-include("solution.jl")
-include("mastercolumn.jl")
-include("problem.jl")
-include("node.jl")
-include("nodealgs/algsetupnode.jl")
-include("nodealgs/algpreprocessnode.jl")
-include("nodealgs/algevalnode.jl")
-include("nodealgs/algprimalheurinnode.jl")
-include("nodealgs/alggeneratechildrennodes.jl")
-include("model.jl")
+include("counters.jl")
 
+include("containers/members.jl")
+
+include("vcids.jl")
+include("variable.jl")
+include("constraint.jl")
+include("varconstr.jl")
+include("manager.jl")
+include("filters.jl")
+include("solsandbounds.jl")
+include("incumbents.jl")
+include("formulation.jl")
+include("clone.jl")
+include("reformulation.jl")
+include("projection.jl")
+include("problem.jl")
+include("decomposition.jl")
+include("MOIinterface.jl")
+
+###### Solvers & Strategies
+include("solvers/solver.jl")
+include("strategies/strategy.jl")
+include("solvers/colgen.jl")
+include("solvers/masteripheur.jl")
+include("solvers/generatechildrennodes.jl")
+# here include solvers
+include("solvers/interfaces.jl")
+include("strategies/simplebnp.jl")
+# here include strategies
+
+##### Search tree
+include("node.jl")
+include("bbtree.jl")
 
 ##### Wrapper functions
-include("MOIWrapper.jl")
-include("decomposition.jl")
+include("MOIwrapper.jl")
+
+include("globals.jl") # Structure that holds values useful in all the procedure
+
+global const _params_ = Params()
+global const _globals_ = GlobalValues()
 
 end # module

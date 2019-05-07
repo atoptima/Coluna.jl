@@ -1,282 +1,206 @@
-## Defining infos here
-@hl mutable struct SetupInfo end
-
-mutable struct TreatOrder
-    value::Int
-end
-
-@hl mutable struct Node
-    params::Params
-    children::Vector{Node}
+struct Branch
+    var_coeffs::MembersVector{Id{Variable}, Variable, Float64}
+    rhs::Float64
+    sense::ConstrSense
     depth::Int
-    # prune_dat_treat_node_start::Bool
-    # estimated_sub_tree_size::Int
-    # sub_tree_size::Int
-
-    node_inc_lp_dual_bound::Float
-    node_inc_ip_dual_bound::Float
-    node_inc_lp_primal_bound::Float
-    node_inc_ip_primal_bound::Float
-
-    dual_bound_is_updated::Bool
-    ip_primal_bound_is_updated::Bool
-
-    node_inc_ip_primal_sol::PrimalSolution
-    # partial_solution::PrimalSolution
-
-    # eval_end_time::Int
-    treat_order::TreatOrder
-
-    infeasible::Bool
-    evaluated::Bool
-    treated::Bool
-
-    ### New information recorded when the node was generated
-    local_branching_constraints::Vector{MasterBranchConstr}
-
-    ### Information recorded by father
-    problem_setup_info::SetupInfo
-    # eval_info::EvalInfo
-    # children_generation_info::ChildrenGenerationInfo
-    # branching_eval_info::BranchingEvaluationInfo #for branching history
-
-    # problem_and_eval_alg_info_saved::Bool
-    primal_sol::PrimalSolution # More information than only ::PrimalSolution
-    # strong_branch_phase_number::Int
-    # strong_branch_node_number::Int
-
+end
+function Branch(var::Variable, rhs::Float64, sense::ConstrSense, depth::Int)
+    var_coeffs = MembersVector{Float64}(Dict(getid(var) => var))
+    var_coeffs[getid(var)] = 1.0
+    return Branch(var_coeffs, rhs, sense, depth)
 end
 
-function NodeBuilder(problem::ExtendedProblem, dual_bound::Float,
-    problem_setup_info::SetupInfo)
+get_var_coeffs(b::Branch) = b.var_coeffs
+getrhs(b::Branch) = b.rhs
+getsense(b::Branch) = b.sense
+getdepth(b::Branch) = b.depth
 
-    return (
-        problem.params,
-        Node[],
-        0,
-        dual_bound,
-        dual_bound,
-        problem.primal_inc_bound,
-        problem.primal_inc_bound,
-        false,
-        false,
-        PrimalSolution(),
-        TreatOrder(-1),
-        false,
-        false,
-        false,
-        MasterBranchConstr[],
-        problem_setup_info,
-        PrimalSolution(),
+function show(io::IO, branch::Branch, form::Formulation)
+    for (id, coeff) in branch.var_coeffs
+        print(io, " + ", coeff, " ", getname(getelem(form, id)))
+    end
+    if branch.sense == Greater
+        print(io, " >= ")
+    else
+        print(io, " <= ")
+    end
+    print(io, branch.rhs)
+    return
+end
+
+struct NodeRecord
+    active_vars::Dict{VarId, VarData}
+    active_constrs::Dict{ConstrId, ConstrData}
+end
+NodeRecord() = NodeRecord(Dict{VarId, VarData}(), Dict{ConstrId, ConstrData}())
+
+mutable struct Node <: AbstractNode
+    treat_order::Int
+    depth::Int
+    parent::Union{Nothing, Node}
+    children::Vector{Node}
+    incumbents::Incumbents
+    branch::Union{Nothing, Branch} # branch::Id{Constraint}
+    solver_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
+    record::NodeRecord
+end
+
+function RootNode(ObjSense::Type{<:AbstractObjSense})
+    return Node(
+        -1, 0, nothing, Node[], Incumbents(ObjSense), nothing,
+        Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
+        NodeRecord()
     )
 end
 
-@hl mutable struct NodeWithParent <: Node
-    parent::Node
-end
-
-function NodeWithParentBuilder(problem::ExtendedProblem, parent::Node)
-
-    return tuplejoin(NodeBuilder(problem, parent.node_inc_ip_dual_bound,
-        parent.problem_setup_info),
-        parent
+function Node(parent::Node, branch::Branch)
+    depth = getdepth(parent) + 1
+    incumbents = deepcopy(getincumbents(parent))
+    # Resetting lp primals because the lp can get worse during the algorithms,
+    # thus not being updated in the node and breaking the branching
+    incumbents.lp_primal_sol = typeof(incumbents.lp_primal_sol)()
+    return Node(
+        -1, depth, parent, Node[], incumbents, branch,
+        Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
+        NodeRecord()
     )
-
 end
 
-function get_priority(node::Node)
-    if node.params.search_strategy == DepthFirst
-        return node.depth
-    elseif node.params.search_strategy == BestDualBound
-        return node.node_inc_lp_dual_bound
-    end
+get_treat_order(n::Node) = n.treat_order
+getdepth(n::Node) = n.depth
+getparent(n::Node) = n.parent
+getchildren(n::Node) = n.children
+getincumbents(n::Node) = n.incumbents
+getbranch(n::Node) = n.branch
+addchild!(n::Node, child::Node) = push!(n.children, child)
+set_treat_order!(n::Node, treat_order::Int) = n.treat_order = treat_order
+
+function set_solver_record!(n::Node, S::Type{<:AbstractSolver}, 
+                            r::AbstractSolverRecord)
+    n.solver_records[S] = r
 end
+get_solver_record!(n::Node, S::Type{<:AbstractSolver}) = n.solver_records[S]
 
-function is_conquered(node::Node)
-    return (node.node_inc_ip_primal_bound - node.node_inc_ip_dual_bound
-            <= node.params.mip_tolerance_integrality)
-end
-
-function is_to_be_pruned(node::Node, global_primal_bound::Float)
-    return (global_primal_bound - node.node_inc_ip_dual_bound
-        <= node.params.mip_tolerance_integrality)
-end
-
-function set_branch_and_price_order(node::Node, new_value::Int)
-    node.treat_order = new_value
-end
-
-function exit_treatment(node::Node)
-    # Issam: No need for deleting. I prefer deleting the node and storing the info
-    # needed for printing the tree in a different light structure (for now)
-    # later we can use Nullable for big data such as XXXInfo of node
-
-    node.evaluated = true
-    node.treated = true
-end
-
-function mark_infeasible_and_exit_treatment(node::Node)
-    node.infeasible = true
-    node.node_inc_lp_dual_bound = node.node_inc_ip_dual_bound = Inf
-    exit_treatment(node)
-end
-
-function record_ip_primal_sol_and_update_ip_primal_bound(node::Node,
-        sols_and_bounds)
-
-    if node.node_inc_ip_primal_bound > sols_and_bounds.alg_inc_ip_primal_bound
-        sol = PrimalSolution(sols_and_bounds.alg_inc_ip_primal_bound,
-                             sols_and_bounds.alg_inc_ip_primal_sol_map)
-        node.node_inc_ip_primal_sol = sol
-        node.node_inc_ip_primal_bound = sols_and_bounds.alg_inc_ip_primal_bound
-        node.ip_primal_bound_is_updated = true
-    end
-end
-
-function update_node_duals(node::Node, sols_and_bounds)
-    lp_dual_bound = sols_and_bounds.alg_inc_lp_dual_bound
-    ip_dual_bound = sols_and_bounds.alg_inc_ip_dual_bound
-    if node.node_inc_lp_dual_bound < lp_dual_bound
-        node.node_inc_lp_dual_bound = lp_dual_bound
-        node.dual_bound_is_updated = true
-    end
-    if node.node_inc_ip_dual_bound < ip_dual_bound
-        node.node_inc_ip_dual_bound = ip_dual_bound
-        node.dual_bound_is_updated = true
-    end
-end
-
-function update_node_primals(node::Node, sols_and_bounds)
-    # sols_and_bounds = node.alg_eval_node.sols_and_bounds
-    if sols_and_bounds.is_alg_inc_ip_primal_bound_updated
-        record_ip_primal_sol_and_update_ip_primal_bound(node,
-            sols_and_bounds)
-    end
-    node.node_inc_lp_primal_bound = sols_and_bounds.alg_inc_lp_primal_bound
-    node.primal_sol = PrimalSolution(node.node_inc_lp_primal_bound,
-        sols_and_bounds.alg_inc_lp_primal_sol_map)
-end
-
-function update_node_primal_inc(node::Node, ip_bound::Float,
-                                sol_map::Dict{Variable, Float})
-    if ip_bound < node.node_inc_ip_primal_sol.cost
-        new_sol = PrimalSolution(ip_bound, sol_map)
-        node.node_inc_ip_primal_sol = new_sol
-        node.node_inc_ip_primal_bound = ip_bound
-        node.ip_primal_bound_is_updated = true
-        if ip_bound < node.node_inc_lp_primal_bound
-            node.node_inc_lp_primal_bound = ip_bound
-            node.primal_sol = new_sol
-        end
-    end
-end
-
-function update_node_sols(node::Node, sols_and_bounds)
-    update_node_primals(node, sols_and_bounds)
-    update_node_duals(node, sols_and_bounds)
-end
-
-@hl mutable struct AlgLike end
-
-function run(::AlgLike)
-    @logmsg LogLevel(0) "Empty algorithm"
+function to_be_pruned(n::Node)
+    # How to determine if a node should be pruned?? By the lp_gap?
+    lp_gap(n.incumbents) <= 0.0000001 && return true
     return false
 end
 
-function to(alg::AlgLike; args...)
-    return alg.extended_problem.timer_output
+function record!(reform::Reformulation, node::Node)
+    # TODO : nested decomposition
+    return record!(getmaster(reform), node)
 end
 
-mutable struct TreatAlgs
-    alg_setup_node::AlgLike
-    alg_preprocess_node::AlgLike
-    alg_eval_node::AlgLike
-    alg_setdown_node::AlgLike
-    alg_vect_primal_heur_node::Vector{AlgLike}
-    alg_generate_children_nodes::AlgLike
-    TreatAlgs() = new(AlgLike(), AlgLike(), AlgLike(), AlgLike(), AlgLike[], AlgLike())
-end
-
-function evaluation(node::Node, treat_algs::TreatAlgs,
-                    global_treat_order::TreatOrder,
-                    inc_primal_bound::Float)::Bool
-    node.treat_order = TreatOrder(global_treat_order.value)
-    node.node_inc_ip_primal_bound = inc_primal_bound
-    node.ip_primal_bound_is_updated = false
-    node.dual_bound_is_updated = false
-
-    run(treat_algs.alg_setup_node)
-
-    if run(treat_algs.alg_preprocess_node)
-        @logmsg LogLevel(0) string("Preprocess determines infeasibility.")
-        run(treat_algs.alg_setdown_node)
-        record_node_info(node, treat_algs.alg_setdown_node)
-        mark_infeasible_and_exit_treatment(node)
-        return true
-    end
-
-    if run(treat_algs.alg_eval_node, inc_primal_bound)
-        update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
-        run(treat_algs.alg_setdown_node)
-        record_node_info(node, treat_algs.alg_setdown_node)
-        mark_infeasible_and_exit_treatment(node)
-        return true
-    end
-    node.evaluated = true
-
-    update_node_sols(node, treat_algs.alg_eval_node.sols_and_bounds)
-
-    if is_conquered(node)
-        @logmsg LogLevel(-2) string("Node is conquered, no need for branching.")
-        run(treat_algs.alg_setdown_node)
-        record_node_info(node, treat_algs.alg_setdown_node)
-        exit_treatment(node);
-        return true
-    end
-
-    run(treat_algs.alg_setdown_node)
-    record_node_info(node, treat_algs.alg_setdown_node)
-
-    return true
-end
-
-function treat(node::Node, treat_algs::TreatAlgs,
-        global_treat_order::TreatOrder, inc_primal_bound::Float)::Bool
-    # In strong branching, part 1 of treat (setup, preprocessing and solve) is
-    # separated from part 2 (heuristics and children generation).
-    # Therefore, treat() can be called two times. One inside strong branching,
-    # and the second inside the branch-and-price tree. Thus, variables _solved
-    # is used to know whether part 1 has already been done or not.
-
-    if !node.evaluated
-        evaluation(node, treat_algs, global_treat_order, inc_primal_bound)
-    end
-
-    if node.treated
-        @logmsg LogLevel(0) "Node is considered as treated after evaluation"
-        return true
-    end
-
-    for alg in treat_algs.alg_vect_primal_heur_node
-        run(alg, global_treat_order)
-        update_node_primal_inc(node, alg.sols_and_bounds.alg_inc_ip_primal_bound,
-                               alg.sols_and_bounds.alg_inc_ip_primal_sol_map)
-        println("<", typeof(alg), ">", " <mlp=",
-                node.node_inc_lp_primal_bound, "> ",
-                "<PB=", node.node_inc_ip_primal_bound, ">")
-        if is_conquered(node)
-            @logmsg LogLevel(0) string("Node is considered conquered ",
-                                       "after primal heuristic ", typeof(alg))
-            exit_treatment(node)
-            return true
+function record!(form::Formulation, node::Node)
+    @logmsg LogLevel(0) "Recording reformulation state after solving node."
+    active_vars = Dict{VarId, VarData}()
+    for (id, var) in getvars(form)
+        if get_cur_is_active(var)
+            active_vars[id] = deepcopy(getcurdata(var))
         end
     end
-
-    if !run(treat_algs.alg_generate_children_nodes, node.primal_sol)
-        generate_children(node, treat_algs.alg_generate_children_nodes)
+    active_constrs = Dict{ConstrId, ConstrData}()
+    for (id, constr) in getconstrs(form)
+        if get_cur_is_active(constr)
+            active_constrs[id] = deepcopy(getcurdata(constr))
+        end
     end
-
-    exit_treatment(node)
-
-    return true
+    node.record = NodeRecord(active_vars, active_constrs)
+    return
 end
+
+function setup!(f::Reformulation, n::Node)
+    @logmsg LogLevel(0) "Setting up Reformulation before appling strategy on node."
+    # For now, we do setup only in master
+    @logmsg LogLevel(-1) "Setup on master."
+    reset_to_record_state_of_father!(f, getparent(n))
+    apply_branch!(f, getbranch(n))
+    return
+end
+
+function apply_branch!(f::Reformulation, b::Branch)
+    @logmsg LogLevel(-1) "Adding branching constraint."
+    @logmsg LogLevel(-2) "Apply Branch : " b
+    sense = (getsense(b) == Greater ? "geq_" : "leq_")
+    name = string("branch_", sense,  getdepth(b))
+    # In master we define a branching constraint
+    branch_constraint = setconstr!(
+        f.master, name, MasterBranchConstr; sense = getsense(b), rhs = getrhs(b),
+        members = get_var_coeffs(b)
+    )
+    # In subproblems we only change the bounds
+    # Problem: Only works if val == 1.0 !!! TODO: Fix this problem ?
+    for (id, val) in get_var_coeffs(b)
+        # The following lines should be changed when we store the pointer to the vc represented by the representative
+        owner_form = find_owner_formulation(f, getvar(f.master, id))
+        if getuid(owner_form) != getuid(f.master)
+            sp_var = getvar(owner_form, id)
+            if getsense(b) == Less
+                setcurub!(sp_var, getrhs(b))
+                commit_bound_change!(owner_form, sp_var)
+            end
+            if getsense(b) == Greater
+                setcurlb!(sp_var, getrhs(b))
+                commit_bound_change!(owner_form, sp_var)
+            end
+        end
+        @logmsg LogLevel(-2) "Branching constraint added : " branch_constraint
+    end
+    return
+end
+
+function reset_to_record_state_of_father!(reform::Reformulation, n::Node)
+    @logmsg LogLevel(-1) "Reset the formulation to the state left by the parent node."
+    active_vars = n.record.active_vars
+    active_constrs = n.record.active_constrs
+    master = getmaster(reform)
+    # Checking vars that are in formulation but should not be
+    for (id, var) in filter(_active_, getvars(master))
+        if !haskey(active_vars, id)
+            @logmsg LogLevel(0) "Deactivating variable " getname(var)
+            deactivate!(reform, id)
+        end
+    end
+    # Checking constrs that are in formulation but should not be
+    for (id, constr) in filter(_active_, getconstrs(master))
+        if !haskey(active_constrs, id)
+            @logmsg LogLevel(-2) "Deactivating constraint " getname(constr)
+            deactivate!(reform, id)
+        end
+    end
+    # Checking vars that should be active in formulation but are not
+    for (id, data) in active_vars
+        var = getvar(master, id)
+        owner_form = find_owner_formulation(reform, var)
+        # Reset bounds # TODO: Reset costs
+        if (getcurlb(getvar(owner_form, id)) != getlb(data)
+            || getcurub(getvar(owner_form, id)) != getub(data))
+            @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
+            setcurlb!(getvar(owner_form, id), getlb(data))
+            setcurub!(getvar(owner_form, id), getub(data))
+            @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(var))
+            @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
+            commit_bound_change!(owner_form, getvar(owner_form, id))
+        end
+        if !get_cur_is_active(var) # Nothing to do if var is already active
+            @logmsg LogLevel(-2) "Activating variable " getname(var)
+            activate!(reform, var)
+        end
+    end
+    # Checking constrs that should be active in formulation but are not
+    for (id, data) in active_constrs
+        constr = getconstr(master, id)
+        # TODO: reset rhs
+        get_cur_is_active(constr) && continue # Nothing to do if constr is already acitve
+        @logmsg LogLevel(-2) "Activating constraint " getname(constr)
+        activate!(reform, constr)
+    end
+    return
+end
+
+# Nothing happens if this function is called for a node with not branch
+apply_branch!(f::Reformulation, ::Nothing) = nothing
+
+# Nothing happens if this function is called for the "father" of the root node
+reset_to_record_state_of_father!(f::Reformulation, ::Nothing) = nothing
