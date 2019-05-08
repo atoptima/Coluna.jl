@@ -1,14 +1,16 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
+
 language: julia
 os:
   - linux
-  - osx
+#  - osx
+
 julia:
   - 1.0
+  - 1.1
+
 notifications:
   email: false
-git:
-  depth: 99999999
 
 ## uncomment the following lines to allow failures on nightly julia
 ## (tests will run but not make your overall status red)
@@ -24,13 +26,21 @@ git:
 #before_script: # homebrew for mac
 #  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
 
-## uncomment the following lines to override the default test script
-# script:
-#   - julia -e 'Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.test("Coluna"; coverage=true)'
+
+#script: # the default script is equivalent to the following
+#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+#  - julia -e 'Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.test("Coluna"; coverage=true)';
+
 after_success:
-  - julia -e 'Pkg.add("Documenter")'
-  - julia -e 'cd(Pkg.dir("Coluna")); include(joinpath("docs", "make.jl"))'
-  # push coverage results to Coveralls
-  # - julia -e 'cd(Pkg.dir("Coluna")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
-  # push coverage results to Codecov
-  - julia --inline=no -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; Pkg.add("Coverage");  cd(Pkg.dir("Coluna")); using Coverage; Codecov.submit(Codecov.process_folder())'
+
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1.0
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.clone("https://github.com/atoptima/BlockDecomposition.jl"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip
+
