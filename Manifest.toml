@@ -27,7 +27,6 @@ git-tree-sha1 = "262f96c09167f2cf4136af061bcfff442d3d6164"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
-version = "0.1.0"
 
 [[Calculus]]
 deps = ["Compat"]
