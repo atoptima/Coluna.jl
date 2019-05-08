@@ -1,12 +1,13 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
+sudo: false
 language: julia
 os:
   - linux
   - osx
 
 julia:
-  - 0.7
   - 1.0
+  - 1.1
 
 notifications:
   email: false
@@ -29,6 +30,6 @@ notifications:
 # script:
 #   - julia -e 'Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.test("Coluna"; coverage=true)'
 after_success:
-  - julia -e 'using Pkg; cd(Pkg.dir("Coluna")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; cd(Pkg.dir("Coluna")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(Codecov.process_folder())'
   - julia -e 'using Pkg; Pkg.add("Documenter")'
   - julia -e 'using Pkg; cd(Pkg.dir("Coluna")); include(joinpath("docs", "make.jl"))'
