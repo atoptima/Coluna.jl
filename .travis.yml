@@ -1,5 +1,5 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
-sudo: false
+
 language: julia
 os:
   - linux
@@ -26,10 +26,22 @@ notifications:
 #before_script: # homebrew for mac
 #  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
 
-## uncomment the following lines to override the default test script
-# script:
-#   - julia -e 'Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.test("Coluna"; coverage=true)'
+
+#script: # the default script is equivalent to the following
+#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+#  - julia -e 'Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.test("Coluna"; coverage=true)';
+
 after_success:
-  - julia -e 'using Pkg; cd(Pkg.dir("Coluna")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(Codecov.process_folder())'
-  - julia -e 'using Pkg; Pkg.add("Documenter")'
-  - julia -e 'using Pkg; cd(Pkg.dir("Coluna")); include(joinpath("docs", "make.jl"))'
+  - julia -e 'using Pkg; Pkg.add("Coverage");  cd(Pkg.dir("Coluna")); using Coverage; Codecov.submit(Codecov.process_folder())'
+
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1.0
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.instantiate();
+                                    Pkg.develop(PackageSpec(path=pwd()))'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip
+
