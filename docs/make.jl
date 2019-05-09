@@ -2,8 +2,10 @@ using Documenter, Coluna
 
 makedocs(
     modules = [Coluna],
-    format = :html,
     sitename = "Coluna",
+    format = Documenter.HTML(
+        prettyurls = get(ENV, "CI", nothing) == "true",
+    ),
     pages    = Any[
         "Home"   => "index.md",
         "Installation"   => "installation.md",
@@ -15,8 +17,4 @@ makedocs(
 deploydocs(
     repo = "github.com/atoptima/Coluna.jl.git",
     target = "build",
-    osname = "linux",
-    julia = "0.7",
-    deps   = nothing,
-    make   = nothing,
 )
