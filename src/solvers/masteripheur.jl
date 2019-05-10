@@ -1,6 +1,6 @@
 struct MasterIpHeuristic <: AbstractSolver end
 
-struct MasterIpHeuristicData <: AbstractSolverData 
+struct MasterIpHeuristicData
     incumbents::Incumbents
 end
 MasterIpHeuristicData(S::Type{<:AbstractObjSense}) = MasterIpHeuristicData(Incumbents(S))
@@ -15,14 +15,9 @@ function setup!(::Type{MasterIpHeuristic}, formulation::Reformulation, node,
     return
 end
 
-function solverdata(::Type{MasterIpHeuristic}, formulation, node, params)
-    return MasterIpHeuristicData(getobjsense(formulation.master))
-end
-
-function run!(::Type{MasterIpHeuristic}, solver_data::MasterIpHeuristicData, 
-              formulation, node, params)
-
+function run!(::Type{MasterIpHeuristic}, formulation, node, params)
     @logmsg LogLevel(1) "Applying Master IP heuristic"
+    solver_data = MasterIpHeuristicData(getobjsense(formulation.master))
     enforce_integrality!(formulation.master)
     status, value, p_sols, d_sol = optimize!(formulation.master)
     relax_integrality!(formulation.master)

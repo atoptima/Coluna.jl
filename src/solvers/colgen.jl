@@ -1,6 +1,6 @@
 struct ColumnGeneration <: AbstractSolver end
 
-mutable struct ColumnGenerationData <: AbstractSolverData
+mutable struct ColumnGenerationData
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
@@ -23,13 +23,9 @@ function setup!(::Type{ColumnGeneration}, formulation, node, params)
     return
 end
 
-function solverdata(::Type{ColumnGeneration}, formulation, node, params)
-    return ColumnGenerationData(formulation.master.obj_sense, node.incumbents)
-end
-
-function run!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData,
-              formulation, node, params)
+function run!(::Type{ColumnGeneration}, formulation, node, params)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
+    solver_data = ColumnGenerationData(formulation.master.obj_sense, node.incumbents)
     return colgen_solver_ph2(solver_data, formulation)
 end
 

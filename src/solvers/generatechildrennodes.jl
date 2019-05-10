@@ -1,6 +1,6 @@
 struct GenerateChildrenNode <: AbstractSolver end
 
-mutable struct GenerateChildrenNodeData <: AbstractSolverData 
+mutable struct GenerateChildrenNodeData
     incumbents::Incumbents
     reformulation::Reformulation # should handle reformulation & formulation
 end
@@ -29,9 +29,9 @@ abstract type RuleForUsualBranching end
 struct MostFractionalRule <: RuleForUsualBranching end
 #struct LeastFractionalRule <: RuleForUsualBranching end
 
-function run!(::Type{GenerateChildrenNode}, solver_data::GenerateChildrenNodeData,
-              formulation, node, parameters)
+function run!(::Type{GenerateChildrenNode}, formulation, node, parameters)
     @logmsg LogLevel(0) "Run generate children nodes"
+    solver_data =  GenerateChildrenNodeData(getincumbents(node), formulation)
     if ip_gap(solver_data.incumbents) <= 0.0
         @logmsg LogLevel(-1) string("Subtree is conquered, no need for branching.")
         return GenerateChildrenNodeRecord(Node[])
