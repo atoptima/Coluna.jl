@@ -9,13 +9,18 @@ struct MasterIpHeuristicRecord <: AbstractSolverRecord
     incumbents::Incumbents
 end
 
-function setup!(::Type{MasterIpHeuristic}, formulation::Reformulation, node::AbstractNode)
+function setup!(::Type{MasterIpHeuristic}, formulation::Reformulation, node,
+                params)
     @logmsg LogLevel(-1) "Setup MasterIpHeuristic."
+    return
+end
+
+function solverdata(::Type{MasterIpHeuristic}, formulation, node, params)
     return MasterIpHeuristicData(getobjsense(formulation.master))
 end
 
 function run!(::Type{MasterIpHeuristic}, solver_data::MasterIpHeuristicData, 
-              formulation::Reformulation, node::AbstractNode, parameters)
+              formulation, node, params)
 
     @logmsg LogLevel(1) "Applying Master IP heuristic"
     enforce_integrality!(formulation.master)
@@ -27,9 +32,9 @@ function run!(::Type{MasterIpHeuristic}, solver_data::MasterIpHeuristicData,
     return MasterIpHeuristicRecord(solver_data.incumbents)
 end
 
-function setdown!(::Type{MasterIpHeuristic}, solver_record::MasterIpHeuristicRecord,
-                  formulation::Reformulation, node::AbstractNode)
+function setdown!(::Type{MasterIpHeuristic}, formulation, node, params)
     @logmsg LogLevel(-1) "Setdown of Master IP heuristic."
-    set_ip_primal_sol!(node.incumbents, get_ip_primal_sol(solver_record.incumbents))
+    solver_rec = get_solver_record!(node, MasterIpHeuristic)
+    set_ip_primal_sol!(node.incumbents, get_ip_primal_sol(solver_rec.incumbents))
     return
 end

@@ -21,13 +21,19 @@ These data can be used to initialize another execution of the solver.
 abstract type AbstractSolverRecord end
 
 """
-    setup!(SolverType, formulation, node)
+    setup!(SolverType, formulation, node, parameters)
 
 Prepares the `formulation` in the `node` to be optimized by solver `SolverType`.
+"""
+function setup! end
+
+"""
+    solverdata(SolverType, formulation, node, parameters)
+
 This method should return the `AbstractSolverData` structure that corresponds
 to the solver `SolverType`. 
 """
-function setup! end
+function solverdata end
 
 """
     run!(SolverType, solverdata, formulation, node, parameters)
@@ -39,7 +45,7 @@ Return the  `AbstractSolverRecord` structure that corresponds to the solver
 function run! end
 
 """
-    setdown!(SolverType, solverrecord, formulation, node)
+    setdown!(SolverType, formulation, node, parameters)
 
 Updates the `formulation` and the `node` after the execution of the solver
 `SolverType`.
@@ -48,39 +54,42 @@ This method is executed after `run!`.
 function setdown! end
 
 # Fallbacks
-function setup!(T::Type{<:AbstractSolver}, formulation, node)
-    @error "setup! method not implemented for $T."
+function setup!(T::Type{<:AbstractSolver}, formulation, node, parameters)
+    @error "setup! method not implemented for solver $T."
+end
+
+function solverdata(T::Type{<:AbstractSolver}, formulation, node, parameters)
+    @error "solverdata method not implemented for solver $T."
 end
 
 function run!(T::Type{<:AbstractSolver}, solverdata, formulation, node, parameters)
-    @error "run! method not implemented for $T."
+    @error "run! method not implemented for solver $T."
 end
 
-function setdown!(T::Type{<:AbstractSolver}, solverrecord, formulation, node)
-    @error "setdown! not implemented for $T."
+function setdown!(T::Type{<:AbstractSolver}, formulation, node, parameters)
+    @error "setdown! not implemented for solver $T."
 end
 
 """
-    apply!(SolverType, formulation, node, strategyrecord, parameters)
+    apply!(SolverType, formulation, node, strategy_record, parameters)
 
 Applies the solver `SolverType` on the `formulation` in a `node` with 
 `parameters`.
 """
-function apply!(S::Type{<:AbstractSolver}, formulation, node, strategyrecord, 
-                parameters)
-    interface!(getsolver(strategyrecord), S, formulation, node)
-    setsolver!(strategyrecord, S)
-    solver_data = setup!(S, formulation, node)
+function apply!(S::Type{<:AbstractSolver}, form, node, strategy_rec, 
+                params)
+    solver_data = interface!(getsolver(strategy_rec), S, form, node, params)
+    setsolver!(strategy_rec, S)
+    solver_data = solverdata(S, form, node, params)
     TO.@timeit to string(S) begin
-        record = run!(S, solver_data, formulation, node, parameters)
+        record = run!(S, solver_data, form, node, params)
     end
     set_solver_record!(node, S, record)
-    setdown!(S, record, formulation, node)
     return record
 end
 
 """
-    interface!(SolverTypeSrc, SolverTypeDest, formulation, node)
+    interface!(SolverTypeSrc, SolverTypeDest, formulation, node, parameters)
 
 Given a `formulation` in a `node` optimized using solver `SolverTypeSrc`, 
 this method prepares the `formulation` in the `node` to be solved using 
@@ -92,10 +101,11 @@ function interface! end
 
 # Fallback
 function interface!(Src::Type{<:AbstractSolver}, Dst::Type{<:AbstractSolver}, 
-                    formulation, node)
+                    formulation, node, params)
     error("""
         Cannot apply $Dst after a round of $Src. 
-        You should write method interface!(::Type{$Src}, ::Type{$Dst}, formulation, node)
+        You should write method interface!(::Type{$Src}, ::Type{$Dst}, formulation, node, params)
     """)
 end
 struct StartNode <: AbstractSolver end
+struct EndNode <: AbstractSolver end

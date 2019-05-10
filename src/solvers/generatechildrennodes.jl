@@ -9,15 +9,19 @@ struct GenerateChildrenNodeRecord <: AbstractSolverRecord
     nodes::Vector{AbstractNode} # Node is not defined when this file is included
 end
 
-function setup!(::Type{GenerateChildrenNode}, formulation, node)
+function setup!(::Type{GenerateChildrenNode}, formulation, node, params)
     @logmsg LogLevel(0) "Setup generate children nodes"
+    return
+end
+
+function solverdata(::Type{GenerateChildrenNode}, formulation, node, params)
     return GenerateChildrenNodeData(getincumbents(node), formulation)
 end
 
-function setdown!(::Type{GenerateChildrenNode}, solver_record::GenerateChildrenNodeRecord,
-                 formulation, node)
+function setdown!(::Type{GenerateChildrenNode}, formulation, node, params)
     @logmsg LogLevel(-1) "Setdown generate children nodes"
-    node.children = solver_record.nodes
+    solver_rec = get_solver_record!(node, GenerateChildrenNode)
+    node.children = solver_rec.nodes
     return
 end
 

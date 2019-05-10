@@ -63,15 +63,16 @@ get_nb_treated_nodes(s::TreeSolver) = s.nb_treated_nodes
 getincumbents(s::TreeSolver) = s.incumbents
 switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 
-function apply_on_node!(alg_strategy::Type{<:AbstractConquerStrategy},
-                       branch_strategy::Type{<:AbstractDivideStrategy},
+function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
+                       divide_strategy::Type{<:AbstractDivideStrategy},
                        reform::Reformulation, node::Node, strategy_rec, 
                        params)
     # Check if it needs to be treated, because pb might have improved
     setup!(reform, node)
     setsolver!(strategy_rec, StartNode)
-    apply!(alg_strategy, reform, node, strategy_rec, params)
-    apply!(branch_strategy, reform, node, strategy_rec, params)
+    apply!(conquer_strategy, reform, node, strategy_rec, params)
+    apply!(divide_strategy, reform, node, strategy_rec, params)
+    interface!(getsolver(strategy_rec), EndNode, reform, node, params)
     record!(reform, node)
     return
 end
@@ -93,9 +94,9 @@ function apply(::Type{<:TreeSolver}, reform::Reformulation)
     pushnode!(tree_solver, RootNode(reform.master.obj_sense))
 
     # Node strategy
-    alg_strategy = SimpleBnP # Should be kept in reformulation?
-    branch_strategy = SimpleBranching
-    strategy_record = StrategyRecord()
+    conquer_strategy = SimpleBnP # Should be kept in reformulation?
+    divide_strategy = SimpleBranching
+    strategy_rec = StrategyRecord()
 
     while (!isempty(tree_solver)
            && get_nb_treated_nodes(tree_solver) < _params_.max_num_nodes)
@@ -105,7 +106,12 @@ function apply(::Type{<:TreeSolver}, reform::Reformulation)
             cur_node, get_treat_order(tree_solver), getincumbents(tree_solver)
         )
         print_info_before_apply(cur_node, tree_solver, reform, should_apply)
-        should_apply && apply_on_node!(alg_strategy, branch_strategy, reform, cur_node, strategy_record, nothing)
+        if should_apply
+            apply_on_node!(
+                conquer_strategy, divide_strategy, reform, cur_node, 
+                strategy_rec, nothing
+            )
+        end
         print_info_after_apply(cur_node, tree_solver)
         update_tree_solver(tree_solver, cur_node)
     end
