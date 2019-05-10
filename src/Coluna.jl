@@ -71,11 +71,11 @@ include("solvers/generatechildrennodes.jl")
 # interfaces between solvers
 include("solvers/interfaces.jl")
 
-# here include algorithm strategies
+# here include conquer strategies
 include("strategies/conquer/strategy.jl")
 include("strategies/conquer/simplebnp.jl")
 
-# here include branching strategies
+# here include divide strategies
 include("strategies/divide/strategy.jl")
 include("strategies/divide/simplebranching.jl")
 
