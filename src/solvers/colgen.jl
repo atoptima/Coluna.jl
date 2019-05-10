@@ -1,6 +1,6 @@
 struct ColumnGeneration <: AbstractSolver end
 
-mutable struct ColumnGenerationData <: AbstractSolverData
+mutable struct ColumnGenerationData
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
@@ -18,22 +18,21 @@ struct ColumnGenerationRecord <: AbstractSolverRecord
 end
 
 # Overload of the solver interface
-function setup!(::Type{ColumnGeneration}, formulation, node)
+function setup!(::Type{ColumnGeneration}, formulation, node, params)
     @logmsg LogLevel(-1) "Setup ColumnGeneration."
-    return ColumnGenerationData(formulation.master.obj_sense, node.incumbents)
+    return
 end
 
-function run!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData,
-              formulation, node, parameters)
+function run!(::Type{ColumnGeneration}, formulation, node, params)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    Base.@time e = colgen_solver_ph2(solver_data, formulation)
-    return e
+    solver_data = ColumnGenerationData(formulation.master.obj_sense, node.incumbents)
+    return colgen_solver_ph2(solver_data, formulation)
 end
 
-function setdown!(::Type{ColumnGeneration}, 
-                 solver_record::ColumnGenerationRecord, formulation, node)
+function setdown!(::Type{ColumnGeneration}, formulation, node, params)
     @logmsg LogLevel(-1) "Record ColumnGeneration."
-    set!(node.incumbents, solver_record.incumbents)
+    solver_rec = get_solver_record!(node, ColumnGeneration)
+    set!(node.incumbents, solver_rec.incumbents)
     @logmsg LogLevel(-2) "Node incumbes updated: " node.incumbents
 end
 
