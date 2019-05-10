@@ -63,13 +63,19 @@ get_nb_treated_nodes(s::TreeSolver) = s.nb_treated_nodes
 getincumbents(s::TreeSolver) = s.incumbents
 switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 
-function apply_on_node(strategy::Type{<:AbstractStrategy},
-                       formulation::Reformulation, node::Node, r, p)
+function apply_on_node!(alg_strategy::Type{<:AbstractAlgorithmStrategy},
+                       branch_strategy::Type{<:AbstractBranchingStrategy},
+                       reform::Reformulation, node::Node, strategy_rec, 
+                       params)
     # Check if it needs to be treated, because pb might have improved
-    setup!(formulation, node)
-    setsolver!(r, StartNode)
-    apply(strategy, formulation, node, r, nothing)
-    record!(formulation, node)
+    strategy_rec.do_branching = true
+    setup!(reform, node)
+    setsolver!(strategy_rec, StartNode)
+    apply!(alg_strategy, reform, node, strategy_rec, params)
+    if strategy_rec.do_branching
+        apply!(branch_strategy, reform, node, strategy_rec, params)
+    end
+    record!(reform, node)
     return
 end
 
@@ -90,7 +96,8 @@ function apply(::Type{<:TreeSolver}, reform::Reformulation)
     pushnode!(tree_solver, RootNode(reform.master.obj_sense))
 
     # Node strategy
-    strategy = SimpleBnP # Should be kept in reformulation?
+    alg_strategy = SimpleBnP # Should be kept in reformulation?
+    branch_strategy = SimpleBranching
     strategy_record = StrategyRecord()
 
     while (!isempty(tree_solver)
@@ -101,7 +108,7 @@ function apply(::Type{<:TreeSolver}, reform::Reformulation)
             cur_node, get_treat_order(tree_solver), getincumbents(tree_solver)
         )
         print_info_before_apply(cur_node, tree_solver, reform, should_apply)
-        should_apply && apply_on_node(strategy, reform, cur_node, strategy_record, nothing)
+        should_apply && apply_on_node!(alg_strategy, branch_strategy, reform, cur_node, strategy_record, nothing)
         print_info_after_apply(cur_node, tree_solver)
         update_tree_solver(tree_solver, cur_node)
     end

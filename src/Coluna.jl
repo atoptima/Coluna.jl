@@ -62,13 +62,22 @@ include("MOIinterface.jl")
 ###### Solvers & Strategies
 include("solvers/solver.jl")
 include("strategies/strategy.jl")
+
+# here include solvers
 include("solvers/colgen.jl")
 include("solvers/masteripheur.jl")
 include("solvers/generatechildrennodes.jl")
-# here include solvers
+
+# interfaces between solvers
 include("solvers/interfaces.jl")
-include("strategies/simplebnp.jl")
-# here include strategies
+
+# here include algorithm strategies
+include("strategies/algorithm/strategy.jl")
+include("strategies/algorithm/simplebnp.jl")
+
+# here include branching strategies
+include("strategies/branching/strategy.jl")
+include("strategies/branching/simplebranching.jl")
 
 ##### Search tree
 include("node.jl")
