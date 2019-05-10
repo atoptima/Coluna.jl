@@ -63,18 +63,15 @@ get_nb_treated_nodes(s::TreeSolver) = s.nb_treated_nodes
 getincumbents(s::TreeSolver) = s.incumbents
 switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
 
-function apply_on_node!(alg_strategy::Type{<:AbstractAlgorithmStrategy},
-                       branch_strategy::Type{<:AbstractBranchingStrategy},
+function apply_on_node!(alg_strategy::Type{<:AbstractConquerStrategy},
+                       branch_strategy::Type{<:AbstractDivideStrategy},
                        reform::Reformulation, node::Node, strategy_rec, 
                        params)
     # Check if it needs to be treated, because pb might have improved
-    strategy_rec.do_branching = true
     setup!(reform, node)
     setsolver!(strategy_rec, StartNode)
     apply!(alg_strategy, reform, node, strategy_rec, params)
-    if strategy_rec.do_branching
-        apply!(branch_strategy, reform, node, strategy_rec, params)
-    end
+    apply!(branch_strategy, reform, node, strategy_rec, params)
     record!(reform, node)
     return
 end

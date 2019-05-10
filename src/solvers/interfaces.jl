@@ -12,6 +12,13 @@ function interface!(::Type{ColumnGeneration}, ::Type{MasterIpHeuristic},
     return
 end
 
+# ColumnGeneration -> Generate Children Nodes
+# Nothing to do
+function interface!(::Type{ColumnGeneration}, ::Type{GenerateChildrenNode},
+                    formulation, node)
+    return
+end
+
 # MasterIpHeuristic -> Generate Children Nodes
 # Nothing to do
 function interface!(::Type{MasterIpHeuristic}, ::Type{GenerateChildrenNode}, 

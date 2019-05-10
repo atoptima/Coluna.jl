@@ -72,12 +72,12 @@ include("solvers/generatechildrennodes.jl")
 include("solvers/interfaces.jl")
 
 # here include algorithm strategies
-include("strategies/algorithm/strategy.jl")
-include("strategies/algorithm/simplebnp.jl")
+include("strategies/conquer/strategy.jl")
+include("strategies/conquer/simplebnp.jl")
 
 # here include branching strategies
-include("strategies/branching/strategy.jl")
-include("strategies/branching/simplebranching.jl")
+include("strategies/divide/strategy.jl")
+include("strategies/divide/simplebranching.jl")
 
 ##### Search tree
 include("node.jl")
