@@ -67,15 +67,15 @@ function build_dw_master!(prob::Problem,
                           constrs_in_form::ConstrDict)
 
     orig_form = get_original_formulation(prob)
-    reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
-    reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
+    reformulation.dw_s_lb_convexity_constr_id = Dict{FormId, Id}()
+    reformulation.dw_sp_ub_convexity_constr_id = Dict{FormId, Id}()
     convexity_constrs = ConstrDict()
     # copy of pure master variables
     clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
 
     mast_coefficient_matrix = getcoefmatrix(master_form)
     
-    @assert !isempty(reformulation.dw_pricing_subprs)
+   
     # add convexity constraints and setupvar 
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
@@ -89,7 +89,7 @@ function build_dw_master!(prob::Problem,
         lb_conv_constr = setconstr!(master_form, name, duty;
                                      rhs = rhs, kind  = kind,
                                      sense = sense)
-        reformulation.dw_pricing_sp_lb[sp_uid] = getid(lb_conv_constr)
+        reformulation.dw_s_lb_convexity_constr_id[sp_uid] = getid(lb_conv_constr)
         setincval!(getrecordeddata(lb_conv_constr), 100.0)
         setincval!(getcurdata(lb_conv_constr), 100.0)
         convexity_constrs[getid(lb_conv_constr)] = lb_conv_constr
@@ -100,7 +100,62 @@ function build_dw_master!(prob::Problem,
         ub_conv_constr = setconstr!(master_form, name, duty;
                                      rhs = rhs, kind = kind,
                                      sense = sense)
-        reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
+        reformulation.dw_sp_ub_convexity_constr_id[sp_uid] = getid(ub_conv_constr)
+        setincval!(getrecordeddata(ub_conv_constr), 100.0)
+        setincval!(getcurdata(ub_conv_constr), 100.0)        
+        convexity_constrs[getid(ub_conv_constr)] = ub_conv_constr
+
+        ## add all Sp var in master
+        vars = filter(_active_pricing_sp_var_, getvars(sp_form))
+        is_explicit = false
+        clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
+
+        ## Create PricingSetupVar
+        name = "PricingSetupVar_sp_$(sp_form.uid)"
+        cost = 0.0
+        lb = 1.0
+        ub = 1.0
+        kind = Continuous
+        duty = PricingSpSetupVar
+        sense = Positive
+        is_explicit = true
+        setup_var = setvar!(
+            sp_form, name, duty; cost = cost, lb = lb, ub = ub, kind = kind,
+            sense = sense, is_explicit = is_explicit
+        )
+        clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSetupSpVar, false)
+
+        ## add setup var coef in convexity constraint
+        matrix = getcoefmatrix(master_form)
+        mast_coefficient_matrix[getid(lb_conv_constr),getid(setup_var)] = 1.0
+        mast_coefficient_matrix[getid(ub_conv_constr),getid(setup_var)] = 1.0
+    end
+
+    # add SpArtVar and master SecondStageCostVar 
+    for sp_form in reformulation.benders_sep_subprs
+        sp_uid = getuid(sp_form)
+ 
+        # create convexity constraint
+        name = "sp_lb_$(sp_uid)"
+        sense = Greater
+        rhs = 0.0
+        kind = Core
+        duty = MasterConvexityConstr  #MasterConstr #MasterConvexityConstr
+        lb_conv_constr = setconstr!(master_form, name, duty;
+                                     rhs = rhs, kind  = kind,
+                                     sense = sense)
+        reformulation.dw_s_lb_convexity_constr_id[sp_uid] = getid(lb_conv_constr)
+        setincval!(getrecordeddata(lb_conv_constr), 100.0)
+        setincval!(getcurdata(lb_conv_constr), 100.0)
+        convexity_constrs[getid(lb_conv_constr)] = lb_conv_constr
+
+        name = "sp_ub_$(sp_uid)"
+        rhs = 1.0
+        sense = Less
+        ub_conv_constr = setconstr!(master_form, name, duty;
+                                     rhs = rhs, kind = kind,
+                                     sense = sense)
+        reformulation.dw_sp_ub_convexity_constr_id[sp_uid] = getid(ub_conv_constr)
         setincval!(getrecordeddata(ub_conv_constr), 100.0)
         setincval!(getcurdata(ub_conv_constr), 100.0)        
         convexity_constrs[getid(ub_conv_constr)] = ub_conv_constr
@@ -155,6 +210,21 @@ function build_dw_pricing_sp!(prob::Problem,
     return
 end
 
+function build_benders_sep_sp!(prob::Problem,
+                              annotation_id::Int,
+                              sp_form::Formulation,
+                              vars_in_form::VarDict,
+                              constrs_in_form::ConstrDict)
+
+    orig_form = get_original_formulation(prob)
+    master_form = sp_form.parent_formulation
+    reformulation = master_form.parent_formulation
+    ## Create Pure Pricing Sp Var & constr
+    clone_in_formulation!(sp_form, orig_form, vars_in_form, BendersSepSpVar)
+    clone_in_formulation!(sp_form, orig_form, constrs_in_form, BendersSepSpPureConstr)
+    return
+end
+
 function reformulate!(prob::Problem, annotations::Annotations,
                       method::SolutionMethod)
     # This function must be cleaned.
@@ -202,6 +272,13 @@ function reformulate!(prob::Problem, annotations::Annotations,
             )
             formulations[annotation.unique_id] = f
             add_dw_pricing_sp!(reformulation, f)
+        elseif annotation.problem == BD.Separation
+            f = Formulation{BsSp}(
+                prob.form_counter; parent_formulation = master_form,
+                moi_optimizer = prob.benders_sep_factory()
+            )
+            formulations[annotation.unique_id] = f
+            add_benders_sep_sp!(reformulation, f)
         else 
             error(string("Subproblem type ", annotation.problem,
                          " not supported yet."))
@@ -215,6 +292,13 @@ function reformulate!(prob::Problem, annotations::Annotations,
                 annotation.unique_id, vars_per_block, constrs_per_block
             )
             build_dw_pricing_sp!(prob, annotation.unique_id,
+                                 formulations[annotation.unique_id],
+                                 vars, constrs)
+        elseif annotation.problem == BD.Separation
+            vars, constrs = find_vcs_in_block(
+                annotation.unique_id, vars_per_block, constrs_per_block
+            )
+            build_benders_sep_sp!(prob, annotation.unique_id,
                                  formulations[annotation.unique_id],
                                  vars, constrs)
         end

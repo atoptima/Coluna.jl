@@ -24,8 +24,10 @@ abstract type AbstractFormDuty <: AbstractDuty end
 abstract type AbstractOriginalVar <: AbstractVarDuty end
 abstract type AbstractMasterVar <: AbstractVarDuty end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
+abstract type AbstractBendSpVar <: AbstractVarDuty end
 abstract type AbstractPricingSpVar <: AbstractDwSpVar end
-abstract type AbstractMastRepSpVar <: AbstractDwSpVar end
+abstract type AbstractMastRepDwSpVar <: AbstractDwSpVar end
+abstract type AbstractMastRepBendSpVar <: AbstractBendSpVar end
 
 # Concrete types for VarDuty
 "Variable belongs to the original formulation."
@@ -44,13 +46,13 @@ struct MasterCol <: AbstractMasterVar end
 struct MastArtVar <: AbstractMasterVar end
 
 "Master representative of a pricing subproblem variable."
-struct MastRepPricingSpVar <: AbstractMastRepSpVar end
+struct MastRepPricingSpVar <: AbstractMastRepDwSpVar end
 
 "Master representative of a pricing setup variable."
-struct MastRepPricingSetupSpVar <: AbstractMastRepSpVar end
+struct MastRepPricingSetupSpVar <: AbstractMastRepDwSpVar end
 
 "Master representative of a benders subproblem variable."
-struct MastRepBendSpVar <: AbstractMastRepSpVar end
+struct MastRepBendSpVar <: AbstractMastRepDwSpVar end
 
 "Variable that belongs to a pricing subproblem."
 struct PricingSpVar <: AbstractPricingSpVar end
@@ -60,6 +62,17 @@ struct PricingSpSetupVar <: AbstractPricingSpVar end
 
 "Variable belongs to a subproblem and has no representatives in the master? FV can you check this?"
 struct PricingSpPureVar <: AbstractDwSpVar end
+
+"Variable that belongs to a pricing subproblem."
+struct BendersSepSpVar <: AbstractBendSpVar end
+
+"Variable that represents the setup (use or not) of a pricing subproblem solution."
+struct BendersSepArtVar <: AbstractBendSpVar end
+
+"Variable belongs to a subproblem and has no representatives in the master? FV can you check this?"
+struct BendersSepPureVar <: AbstractBendSpVar end
+
+struct MastRepSecondStageCostVar <: AbstractMastRepBendSpVar end
 
 struct UndefinedVarDuty <: AbstractVarDuty end
 
@@ -94,6 +107,9 @@ struct PricingSpPureConstr <: AbstractDwSpConstr end
 
 "Representation of a branching constraint from the master in the pricing subproblem."
 struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
+
+"Constraint of the pricing subproblem."
+struct BendersSepPureConstr <: AbstractDwSpConstr end
 
 struct UndefinedConstrDuty <: AbstractConstrDuty end
 
