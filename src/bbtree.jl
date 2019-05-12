@@ -72,7 +72,6 @@ function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
     setsolver!(strategy_rec, StartNode)
     apply!(conquer_strategy, reform, node, strategy_rec, params)
     apply!(divide_strategy, reform, node, strategy_rec, params)
-    interface!(getsolver(strategy_rec), EndNode, reform, node, params)
     record!(reform, node)
     return
 end

@@ -15,40 +15,27 @@ setting the transition to another solver.
 abstract type AbstractSolverRecord end
 
 """
-    setup!(SolverType, formulation, node, parameters)
+    prepare!(SolverType, formulation, node, strategy_record, parameters)
 
 Prepares the `formulation` in the `node` to be optimized by solver `SolverType`.
-This method must only be call from within `interface!`.
 """
-function setup! end
+function prepare! end
 
 """
-    run!(SolverType, formulation, node, parameters)
+    run!(SolverType, formulation, node, strategy_record, parameters)
 
 Runs the solver `SolverType` on the `formulation` in a `node` with `parameters`.
 """
 function run! end
 
-"""
-    setdown!(SolverType, formulation, node, parameters)
-
-Updates the `formulation` and the `node` after the execution of the solver
-`SolverType`.
-This method must only be call from within `interface!`.
-"""
-function setdown! end
 
 # Fallbacks
-function setup!(T::Type{<:AbstractSolver}, formulation, node, parameters)
-    @error "setup! method not implemented for solver $T."
+function prepare!(T::Type{<:AbstractSolver}, formulation, node, strategy_rec, parameters)
+    error("prepare! method not implemented for solver $T.")
 end
 
-function run!(T::Type{<:AbstractSolver}, formulation, node, parameters)
-    @error "run! method not implemented for solver $T."
-end
-
-function setdown!(T::Type{<:AbstractSolver}, formulation, node, parameters)
-    @error "setdown! not implemented for solver $T."
+function run!(T::Type{<:AbstractSolver}, formulation, node, strategy_rec, parameters)
+    error("run! method not implemented for solver $T.")
 end
 
 """
@@ -59,33 +46,17 @@ Applies the solver `SolverType` on the `formulation` in a `node` with
 """
 function apply!(S::Type{<:AbstractSolver}, form, node, strategy_rec, 
                 params)
-    solver_data = interface!(getsolver(strategy_rec), S, form, node, params)
     setsolver!(strategy_rec, S)
     TO.@timeit to string(S) begin
-        record = run!(S, form, node, params)
+        TO.@timeit to "prepare" begin
+            prepare!(S, form, node, strategy_rec, params)
+        end
+        TO.@timeit to "run" begin
+            record = run!(S, form, node, strategy_rec, params)
+        end
     end
     set_solver_record!(node, S, record)
     return record
-end
-
-"""
-    interface!(SolverTypeSrc, SolverTypeDest, formulation, node, parameters)
-
-Given a `formulation` in a `node` optimized using solver `SolverTypeSrc`, 
-this method sets up the `formulation` in the `node` to be solved using 
-solver `SolverTypeDest`.
-Defining this method allows the user to apply solver `SolverTypeDest` after the
-execution of solver `SolverTypeSrc`.
-"""
-function interface! end
-
-# Fallback
-function interface!(Src::Type{<:AbstractSolver}, Dst::Type{<:AbstractSolver}, 
-                    formulation, node, params)
-    error("""
-        Cannot apply $Dst after a round of $Src. 
-        You should write method interface!(::Type{$Src}, ::Type{$Dst}, formulation, node, params)
-    """)
 end
 
 """
@@ -94,10 +65,3 @@ end
 Fake solver that indicates the start of the node treatment.
 """
 struct StartNode <: AbstractSolver end
-
-"""
-    EndNode
-
-Fake solver that indicates the end of the node treatment.
-"""
-struct EndNode <: AbstractSolver end

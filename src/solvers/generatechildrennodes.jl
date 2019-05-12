@@ -9,19 +9,8 @@ struct GenerateChildrenNodeRecord <: AbstractSolverRecord
     nodes::Vector{AbstractNode} # Node is not defined when this file is included
 end
 
-function setup!(::Type{GenerateChildrenNode}, formulation, node, params)
-    @logmsg LogLevel(0) "Setup generate children nodes"
-    return
-end
-
-function solverdata(::Type{GenerateChildrenNode}, formulation, node, params)
-    return GenerateChildrenNodeData(getincumbents(node), formulation)
-end
-
-function setdown!(::Type{GenerateChildrenNode}, formulation, node, params)
-    @logmsg LogLevel(-1) "Setdown generate children nodes"
-    solver_rec = get_solver_record!(node, GenerateChildrenNode)
-    node.children = solver_rec.nodes
+function prepare!(::Type{GenerateChildrenNode}, form, node, strategy_rec, params)
+    @logmsg LogLevel(0) "Prepare generate children nodes"
     return
 end
 
@@ -29,7 +18,7 @@ abstract type RuleForUsualBranching end
 struct MostFractionalRule <: RuleForUsualBranching end
 #struct LeastFractionalRule <: RuleForUsualBranching end
 
-function run!(::Type{GenerateChildrenNode}, formulation, node, parameters)
+function run!(::Type{GenerateChildrenNode}, formulation, node, strategy_rec, parameters)
     @logmsg LogLevel(0) "Run generate children nodes"
     solver_data =  GenerateChildrenNodeData(getincumbents(node), formulation)
     if ip_gap(solver_data.incumbents) <= 0.0
@@ -48,7 +37,10 @@ function run!(::Type{GenerateChildrenNode}, formulation, node, parameters)
         @logmsg LogLevel(0) "Did not find variable to do branch on. No children nodes will be generated."
         childs = Node[]
     end
-    return GenerateChildrenNodeRecord(childs)
+    # Record
+    record = GenerateChildrenNodeRecord(childs) 
+    node.children = record.nodes
+    return record
 end
 
 function best_candidate(R::Type{<:RuleForUsualBranching}, solver_data)
