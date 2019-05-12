@@ -184,7 +184,7 @@ end
 
 
 function compute_master_db_contrib(alg::ColumnGenerationData,
-                                   restricted_master_sol_value::PrimalBound{S})where {S}
+                                   restricted_master_sol_value::PrimalBound{S}) where {S}
     # TODO: will change with stabilization
     return DualBound{S}(restricted_master_sol_value)
 end

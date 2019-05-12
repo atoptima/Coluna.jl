@@ -192,30 +192,30 @@ function reformulate!(prob::Problem, annotations::Annotations,
     master_unique_id = -1
 
     for annotation in ann_sorted_by_uid
-        if annotation.problem == BD.Master
-            master_unique_id = annotation.unique_id
-            formulations[annotation.unique_id] = master_form
-        elseif annotation.problem == BD.Pricing
+        if BD.getformulation(annotation) == BD.Master
+            master_unique_id = BD.getid(annotation)
+            formulations[BD.getid(annotation)] = master_form
+        elseif BD.getformulation(annotation) == BD.DwPricingSp
             f = Formulation{DwSp}(
                 prob.form_counter; parent_formulation = master_form,
                 moi_optimizer = prob.pricing_factory()
             )
-            formulations[annotation.unique_id] = f
+            formulations[BD.getid(annotation)] = f
             add_dw_pricing_sp!(reformulation, f)
         else 
-            error(string("Subproblem type ", annotation.problem,
+            error(string("Subproblem type ", BD.getformulation(annotation),
                          " not supported yet."))
         end
     end
 
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
-        if annotation.problem == BD.Pricing
+        if BD.getformulation(annotation) == BD.DwPricingSp
             vars, constrs = find_vcs_in_block(
-                annotation.unique_id, vars_per_block, constrs_per_block
+                BD.getid(annotation), vars_per_block, constrs_per_block
             )
-            build_dw_pricing_sp!(prob, annotation.unique_id,
-                                 formulations[annotation.unique_id],
+            build_dw_pricing_sp!(prob, BD.getid(annotation),
+                                 formulations[BD.getid(annotation)],
                                  vars, constrs)
         end
     end

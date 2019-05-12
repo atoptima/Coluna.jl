@@ -39,28 +39,6 @@ function MOI.optimize!(optimizer::Optimizer)
     res = optimize!(optimizer.inner, optimizer.annotations, optimizer.params)
 end
 
-function MOI.get(dest::MOIU.UniversalFallback,
-                 attribute::BD.ConstraintDecomposition,
-                 ci::MOI.ConstraintIndex)
-    if haskey(dest.conattr, attribute)
-        if haskey(dest.conattr[attribute], ci)
-            return dest.conattr[attribute][ci]
-        end
-    end
-    return ()
-end
-
-function MOI.get(dest::MOIU.UniversalFallback,
-                 attribute::BD.VariableDecomposition,
-                 vi::MOI.VariableIndex)
-    if haskey(dest.varattr, attribute)
-        if haskey(dest.varattr[attribute], vi)
-            return dest.varattr[attribute][vi]
-        end
-    end
-    return ()
-end
-
 function MOI.supports_constraint(optimizer::Optimizer, 
         ::Type{<: SupportedConstrFunc}, ::Type{<: SupportedConstrSets})
     return true
