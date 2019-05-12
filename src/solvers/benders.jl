@@ -38,13 +38,13 @@ function setdown!(::Type{BendersCutGeneration},
 end
 
 # Internal methods to the column generation
-function update_bendersep_problem!(sp_form::Formulation, dual_sol::DualSolution)
+function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolution) # done
 
     master_form = sp_form.parent_formulation
     
-    for (var_id, var) in filter(_active_bendersep_sp_var_ , getvars(sp_form))
-        setcurcost!(var, computereducedcost(master_form, var_id, dual_sol))
-        commit_cost_change!(sp_form, var)
+    for (constr_id, constr) in filter(_active_bendersep_sp_constr_ , getconstrs(sp_form))
+        setcurrhs!(constr, computereducedrhs(master_form, constr_id, primal_sol))
+        commit_rhs_change!(sp_form, constr)
     end
 
     return false

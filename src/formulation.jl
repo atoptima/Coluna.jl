@@ -297,7 +297,7 @@ function setpartialsol!(f::Formulation,
         primal_sp_sol_matrix[var_id, primal_sp_sol_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
             if haskey(coef_matrix, Pair{ConstrId,varId}(cut_id, primal_sp_sol_id))
-                coef_matrix[constr_id, primal_sp_sol_id] += var_val * var_coef
+                coef_matrix[constr_id, primal_sp_sol_id] = coef_matrix[constr_id, primal_sp_sol_id] + var_val * var_coef
             else
                 coef_matrix[constr_id, primal_sp_sol_id] = var_val * var_coef
             end
@@ -314,12 +314,13 @@ function setdualspsol!(f::Formulation,
                        rhs::Float64 = 0.0,
                        kind::ConstrKind = Core,
                        sense::ConstrSense = Less,
+                       inc_val::Float64 = 0.0,
                        is_active::Bool = true,
                        is_explicit::Bool = true,
                        moi_index::MoiConstrIndex = MoiConstrIndex()) where {S}
     
     cut_id = generateconstrid(f)
-    cut_data =  ConstrData(0.0, kind, sense, getvalue(sol), is_active, is_explicit)
+    cut_data =  ConstrData(getvalue(sol), kind, sense, inc_val, is_active, is_explicit)
     cut_constr = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
 
     coef_matrix = getcoefmatrix(f)
@@ -331,7 +332,7 @@ function setdualspsol!(f::Formulation,
         dual_sp_sol_matrix[constr_id, cut_id] = constr_val
         for (var_id, var_coef) in coef_matrix[constr_id,:]
             if haskey( coef_matrix, Pair{ConstrId,varId}(cut_id, var_id))
-                coef_matrix[cut_id, var_id] += constr_val * var_coef
+                coef_matrix[cut_id, var_id] = coef_matrix[cut_id, var_id] + constr_val * var_coef
             else
                 coef_matrix[cut_id, var_id] = constr_val * var_coef
             end
@@ -620,24 +621,46 @@ function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
     return dual_sol
 end
 
-function resetsolvalue(form::Formulation, sol::AbstractSolution) 
-    val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
+function resetsolvalue(form::Formulation, sol::PrimalSolution{S}) where {S}
+    val = sum(getcurcost(getvar(form, var_id)) * value for (var_id, value) in sol)
     setvalue!(sol, val)
     return val
 end
 
+function resetsolvalue(form::Formulation, sol::dualSolution{S}) where {S}
+    val = sum(getcurrhs(getvar(form, constr_id)) * value for (constr_id, value) in sol)
+    setvalue!(sol, val)
+    return val
+end
+
+
+
 function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution) 
 
     var = getvar(form, var_id)
-    rc = getperenecost(var)
+    cost = getcurcost(var)
     coefficient_matrix = getcoefmatrix(form)
     
     for (constr_id, dual_val) in getsol(dual_sol)
         coeff = coefficient_matrix[constr_id, var_id]
-        rc = rc - dual_val * coeff
+        cost = cost - dual_val * coeff
     end
     
-    return rc
+    return cost
+end
+
+function computereducedrhs(form::Formulation, constr_id, primal_sol::PrimalSolution) 
+
+    constr = getvar(form, constr_id)
+    rhs = getcurrhs(constr)
+    coefficient_matrix = getcoefmatrix(form)
+    
+    for (var_id, primal_val) in getsol(primal_sol)
+        coeff = coefficient_matrix[constr_id, var_id]
+        rhs = rhs - primal_val * coeff
+    end
+    
+    return rhs
 end
 
 function _show_obj_fun(io::IO, f::Formulation)
