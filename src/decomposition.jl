@@ -135,12 +135,13 @@ function build_dw_master!(prob::Problem,
     for sp_form in reformulation.benders_sep_subprs
         sp_uid = getuid(sp_form)
  
-        # create convexity constraint
-        name = "sp_lb_$(sp_uid)"
-        sense = Greater
-        rhs = 0.0
-        kind = Core
-        duty = MasterConvexityConstr  #MasterConstr #MasterConvexityConstr
+        # create SecondStageCostVar
+        name = "cost_sp_$(sp_uid)"
+        cost = 1.0
+        lb = 0.0
+        ub = 1.0
+        kind = Continuous
+         duty = MastRepSecondStageCostVar
         lb_conv_constr = setconstr!(master_form, name, duty;
                                      rhs = rhs, kind  = kind,
                                      sense = sense)

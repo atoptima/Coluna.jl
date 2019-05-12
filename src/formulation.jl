@@ -186,7 +186,9 @@ getconstrs(f::Formulation) = getconstrs(f.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
+getexpressionmatrix(f::Formulation) = getexpressionmatrix(f.manager)
 getpartialsolmatrix(f::Formulation) = getpartialsolmatrix(f.manager)
+gedualspsolmatrix(f::Formulation) = getdualspsolmatrix(f.manager)
 
 "Returns the `uid` of `Formulation` `f`."
 getuid(f::Formulation) = f.uid
@@ -282,21 +284,62 @@ function setpartialsol!(f::Formulation,
                          is_active::Bool = true,
                          is_explicit::Bool = true,
                          moi_index::MoiVarIndex = MoiVarIndex()) where {S}
-    ps_id = generatevarid(f)
-    ps_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
-    ps = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
+    primal_sp_sol_id = generatevarid(f)
+    primal_sp_sol_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
+    primal_sp_sol_var = Variable(primal_sp_sol_id, name, duty; var_data = primal_sp_sol_data, moi_index = moi_index)
 
     coef_matrix = getcoefmatrix(f)
-    partialsol_matrix = getpartialsolmatrix(f)
+    primal_sp_sol_matrix = getpartialsolmatrix(f)
 
+    addvar!(f, primal_sp_sol_var)
+    
     for (var_id, var_val) in sol
-        partialsol_matrix[var_id, ps_id] = var_val
+        primal_sp_sol_matrix[var_id, primal_sp_sol_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
-            coef_matrix[constr_id, ps_id] = var_val * var_coef
+            if haskey(coef_matrix, Pair{ConstrId,varId}(cut_id, primal_sp_sol_id))
+                coef_matrix[constr_id, primal_sp_sol_id] += var_val * var_coef
+            else
+                coef_matrix[constr_id, primal_sp_sol_id] = var_val * var_coef
+            end
         end
     end
 
-    return addvar!(f, ps)
+    return primal_sp_sol_var
+end
+
+function setdualspsol!(f::Formulation,
+                       name::String,
+                       sol::DualSolution{S},
+                       duty::Type{<:AbstractConstrDuty};
+                       rhs::Float64 = 0.0,
+                       kind::ConstrKind = Core,
+                       sense::ConstrSense = Less,
+                       is_active::Bool = true,
+                       is_explicit::Bool = true,
+                       moi_index::MoiConstrIndex = MoiConstrIndex()) where {S}
+    
+    cut_id = generateconstrid(f)
+    cut_data =  ConstrData(0.0, kind, sense, getvalue(sol), is_active, is_explicit)
+    cut_constr = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
+
+    coef_matrix = getcoefmatrix(f)
+    dual_sp_sol_matrix = getdualspsolmatrix(f)
+
+    addconstr!(f, cut_constr)
+    
+    for (constr_id, constr_val) in sol
+        dual_sp_sol_matrix[constr_id, cut_id] = constr_val
+        for (var_id, var_coef) in coef_matrix[constr_id,:]
+            if haskey( coef_matrix, Pair{ConstrId,varId}(cut_id, var_id))
+                coef_matrix[cut_id, var_id] += constr_val * var_coef
+            else
+                coef_matrix[cut_id, var_id] = constr_val * var_coef
+            end
+            
+        end
+    end
+
+    return cut_constr
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."

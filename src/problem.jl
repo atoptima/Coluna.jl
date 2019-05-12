@@ -3,6 +3,7 @@ struct Annotations
     constrs_per_block::Dict{Int, Dict{Id{Constraint},Constraint}}
     annotation_set::Set{BD.Annotation}
 end
+
 Annotations() = Annotations(
     Dict{Int, Dict{Id{Variable},Variable}}(),
     Dict{Int, Dict{Id{Constraint},Constraint}}(),
@@ -22,17 +23,18 @@ mutable struct Problem <: AbstractProblem
     form_counter::Counter # 0 is for original form
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
     pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
+    benders_sep_factory::Union{Nothing, JuMP.OptimizerFactory}
 end
 
 """
-    Problem(params::Params, master_factory, pricing_factory)
+    Problem()
 
 Constructs an empty `Problem`.
 """
-function Problem(master_factory, pricing_factory)
+function Problem(master_factory, pricing_factory, benders_sep_factory)
     return Problem(
         nothing, nothing, Counter(-1),
-        master_factory, pricing_factory
+        master_factory, pricing_factory, benders_sep_factory
     )
 end
 
