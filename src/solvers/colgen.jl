@@ -18,23 +18,19 @@ struct ColumnGenerationRecord <: AbstractSolverRecord
 end
 
 # Overload of the solver interface
-function setup!(::Type{ColumnGeneration}, formulation, node, params)
-    @logmsg LogLevel(-1) "Setup ColumnGeneration."
+function prepare!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
+    @logmsg LogLevel(-1) "Prepare ColumnGeneration."
     return
 end
 
-function run!(::Type{ColumnGeneration}, formulation, node, params)
+function run!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    solver_data = ColumnGenerationData(formulation.master.obj_sense, node.incumbents)
-    return colgen_solver_ph2(solver_data, formulation)
+    solver_data = ColumnGenerationData(form.master.obj_sense, node.incumbents)
+    cg_rec = colgen_solver_ph2(solver_data, form)
+    set!(node.incumbents, cg_rec.incumbents)
+    return cg_rec
 end
 
-function setdown!(::Type{ColumnGeneration}, formulation, node, params)
-    @logmsg LogLevel(-1) "Record ColumnGeneration."
-    solver_rec = get_solver_record!(node, ColumnGeneration)
-    set!(node.incumbents, solver_rec.incumbents)
-    @logmsg LogLevel(-2) "Node incumbes updated: " node.incumbents
-end
 
 # Internal methods to the column generation
 function update_pricing_problem!(sp_form::Formulation, dual_sol::DualSolution)

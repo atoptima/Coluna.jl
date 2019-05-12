@@ -68,9 +68,6 @@ include("solvers/colgen.jl")
 include("solvers/masteripheur.jl")
 include("solvers/generatechildrennodes.jl")
 
-# interfaces between solvers
-include("solvers/interfaces.jl")
-
 # here include conquer strategies
 include("strategies/conquer/strategy.jl")
 include("strategies/conquer/simplebnp.jl")
