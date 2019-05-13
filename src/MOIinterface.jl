@@ -208,12 +208,12 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
 end
 
 function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
-    #backup_stdout = stdout
-    #(rd_out, wr_out) = redirect_stdout()
+    backup_stdout = stdout
+    (rd_out, wr_out) = redirect_stdout()
     MOI.optimize!(optimizer)
-    #close(wr_out)
-    #close(rd_out)
-    #redirect_stdout(backup_stdout)
+    close(wr_out)
+    close(rd_out)
+    redirect_stdout(backup_stdout)
     return
 end
 
