@@ -1,42 +1,42 @@
 """
-    VarConstrCache{T<:AbstractVarConstr}
+    VarConstrBuffer{T<:AbstractVarConstr}
 
-A `VarConstrCache{T}` stores the ids of the entities to be added and removed from the formulation where it belongs.
+A `VarConstrBuffer{T}` stores the ids of the entities to be added and removed from the formulation where it belongs.
 """
-mutable struct VarConstrCache{T<:AbstractVarConstr}
+mutable struct VarConstrBuffer{T<:AbstractVarConstr}
     added::Set{Id{T}}
     removed::Set{Id{T}}
 end
 
 """
-    VarConstrCache{T}() where {T<:AbstractVarConstr}
+    VarConstrBuffer{T}() where {T<:AbstractVarConstr}
 
-Constructs an empty `VarConstrCache{T}` for entities of type `T`.
+Constructs an empty `VarConstrBuffer{T}` for entities of type `T`.
 """
-VarConstrCache{T}() where {T<:AbstractVarConstr} = VarConstrCache{T}(Set{T}(), Set{T}())
+VarConstrBuffer{T}() where {T<:AbstractVarConstr} = VarConstrBuffer{T}(Set{T}(), Set{T}())
 
-function add!(cache::VarConstrCache{VC}, vc::VC) where {VC<:AbstractVarConstr}
+function add!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
     !get_cur_is_explicit(vc) && return
     id = getid(vc)
-    !(id in cache.removed) && push!(cache.added, id)
-    delete!(cache.removed, id)
+    !(id in buffer.removed) && push!(buffer.added, id)
+    delete!(buffer.removed, id)
     return
 end
 
-function remove!(cache::VarConstrCache{VC}, vc::VC) where {VC<:AbstractVarConstr}
+function remove!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
     id = getid(vc)
-    !(id in cache.added) && push!(cache.removed, id)
-    delete!(cache.added, id)
+    !(id in buffer.added) && push!(buffer.removed, id)
+    delete!(buffer.added, id)
     return
 end
 
 """
-    FormulationCache()
+    FormulationBuffer()
 
-A `FormulationCache` stores all changes done to a `Formulation` `f` since last call to `optimize!(f)`.
-When function `optimize!(f)` is called, the moi_optimizer is synched with all changes in FormulationCache.
+A `FormulationBuffer` stores all changes done to a `Formulation` `f` since last call to `optimize!(f)`.
+When function `optimize!(f)` is called, the moi_optimizer is synched with all changes in FormulationBuffer
 
-When `f` is modified, such modification should not be passed directly to its optimizer, but instead should be passed to `f.cache`.
+When `f` is modified, such modification should not be passed directly to its optimizer, but instead should be passed to `f.buffer`.
 
 The concerned modificatios are:
 1. Cost change in a variable
@@ -48,76 +48,76 @@ The concerned modificatios are:
 7. Constraint is added
 8. Coefficient in the matrix is modified (reset)
 """
-mutable struct FormulationCache
+mutable struct FormulationBuffer
     changed_cost::Set{Id{Variable}}
     changed_bound::Set{Id{Variable}}
     changed_kind::Set{Id{Variable}}
     changed_rhs::Set{Id{Constraint}}
-    var_cache::VarConstrCache{Variable}
-    constr_cache::VarConstrCache{Constraint}
+    var_buffer::VarConstrBuffer{Variable}
+    constr_buffer::VarConstrBuffer{Constraint}
     reset_coeffs::Dict{Pair{Id{Constraint},Id{Variable}},Float64}
     #reset_partial_sols::Dict{Pair{Id{Variable},Id{Variable}},Float64}
 end
 """
-    FormulationCache()
+    FormulationBuffer()
 
-Constructs an empty `FormulationCache`.
+Constructs an empty `FormulationBuffer`.
 """
-FormulationCache() = FormulationCache(
+FormulationBuffer() = FormulationBuffer(
     Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
-    Set{Id{Constraint}}(), VarConstrCache{Variable}(),
-    VarConstrCache{Constraint}(),
+    Set{Id{Constraint}}(), VarConstrBuffer{Variable}(),
+    VarConstrBuffer{Constraint}(),
     Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
     # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()
 )
 
-function undo_modifs!(cache::FormulationCache, v::Variable)
+function undo_modifs!(buffer::FormulationBuffer, v::Variable)
     id = getid(v)
-    delete!(cache.changed_cost, id)
-    delete!(cache.changed_bound, id)
+    delete!(buffer.changed_cost, id)
+    delete!(buffer.changed_bound, id)
     return
 end
 
-function undo_modifs!(cache::FormulationCache, c::Constraint)
+function undo_modifs!(buffer::FormulationBuffer, c::Constraint)
     id = getid(c)
-    delete!(cache.changed_rhs, id)
+    delete!(buffer.changed_rhs, id)
     return
 end
 
-function remove!(cache::FormulationCache, constr::Constraint)
+function remove!(buffer::FormulationBuffer, constr::Constraint)
     !get_cur_is_explicit(constr) && return
-    remove!(cache.constr_cache, constr)
+    remove!(buffer.constr_buffer, constr)
     return
 end
 
-function remove!(cache::FormulationCache, var::Variable)
+function remove!(buffer::FormulationBuffer, var::Variable)
     !get_cur_is_explicit(var) && return
-    remove!(cache.var_cache, var)
+    remove!(buffer.var_buffer, var)
     return
 end
 
-function undo_matrix_modifs!(cache::FormulationCache, v::AbstractVarConstr)
-    for (c_id, v_id) in collect(keys(cache.reset_coeffs))
-        v_id == getid(v) && delete!(cache.reset_coeffs, Pair(c_id, v_id))
+function undo_matrix_modifs!(buffer::FormulationBuffer, v::AbstractVarConstr)
+    for (c_id, v_id) in collect(keys(buffer.reset_coeffs))
+        v_id == getid(v) && delete!(buffer.reset_coeffs, Pair(c_id, v_id))
     end
     return
 end
 
-function change_cost!(cache::FormulationCache, v::Variable)
+function change_cost!(buffer::FormulationBuffer, v::Variable)
     !get_cur_is_explicit(v) && return
-    push!(cache.changed_cost, getid(v))
+    push!(buffer.changed_cost, getid(v))
     return
 end
 
-function change_bound!(cache::FormulationCache, v::Variable)
+function change_bound!(buffer::FormulationBuffer, v::Variable)
     !get_cur_is_explicit(v) && return
-    push!(cache.changed_bound, getid(v))
+    push!(buffer.changed_bound, getid(v))
     return
 end
 
-function change_kind!(cache::FormulationCache, v::Variable)
+function change_kind!(buffer::FormulationBuffer, v::Variable)
     !get_cur_is_explicit(v) && return
-    push!(cache.changed_kind, getid(v))
+    push!(buffer.changed_kind, getid(v))
     return
 end
 
@@ -138,7 +138,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:AbstractObjSense}
 
-    cache::FormulationCache
+    buffer::FormulationBuffer
     solver_info::Any
     callback
 end
@@ -162,7 +162,7 @@ function Formulation{D}(form_counter::Counter;
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, moi_optimizer, FormulationManager(),
-        obj_sense, FormulationCache(), nothing, nothing
+        obj_sense, FormulationBuffer(), nothing, nothing
     )
 end
 
@@ -208,7 +208,7 @@ function generateconstrid(f::Formulation)
     return ConstrId(getnewuid(f.constr_counter), f.uid)
 end
 
-reset_cache!(f::Formulation) = f.cache = FormulationCache()
+reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 
 """
     commit_cost_change!(f::Formulation, v::Variable)
@@ -217,7 +217,7 @@ Passes the cost modification of variable `v` to the underlying MOI solver `f.moi
 
 Should be called if a cost modification to a variable is definitive and should be transmitted to the underlying MOI solver.
 """
-commit_cost_change!(f::Formulation, v::Variable) = change_cost!(f.cache, v)
+commit_cost_change!(f::Formulation, v::Variable) = change_cost!(f.buffer, v)
 
 """
     commit_bound_change!(f::Formulation, v::Variable)
@@ -226,7 +226,7 @@ Passes the bound modification of variable `v` to the underlying MOI solver `f.mo
 
 Should be called if a bound modification to a variable is definitive and should be transmitted to the underlying MOI solver.
 """
-commit_bound_change!(f::Formulation, v::Variable) = change_bound!(f.cache, v)
+commit_bound_change!(f::Formulation, v::Variable) = change_bound!(f.buffer, v)
 
 """
     commit_kind_change!(f::Formulation, v::Variable)
@@ -235,7 +235,7 @@ Passes the kind modification of variable `v` to the underlying MOI solver `f.moi
 
 Should be called if a kind modification to a variable is definitive and should be transmitted to the underlying MOI solver.
 """
-commit_kind_change!(f::Formulation, v::Variable) = change_kind!(f.cache, v)
+commit_kind_change!(f::Formulation, v::Variable) = change_kind!(f.buffer, v)
 
 """
     commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint}, v_id::Id{Variable}, coeff::Float64)
@@ -246,7 +246,7 @@ Should be called if a coefficient modification in the matrix is definitive and s
 """
 function commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint},
                                     v_id::Id{Variable}, coeff::Float64)
-    f.cache.reset_coeffs[Pair(c_id,v_id)] = coeff
+    f.buffer.reset_coeffs[Pair(c_id,v_id)] = coeff
 end
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
@@ -301,13 +301,13 @@ end
 
 "Adds `Variable` `var` to `Formulation` `f`."
 function addvar!(f::Formulation, var::Variable)
-    add!(f.cache.var_cache, var)
+    add!(f.buffer.var_buffer, var)
     return addvar!(f.manager, var)
 end
 
 "Deactivates a variable or a constraint in the formulation"
 function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
-    remove!(f.cache, varconstr)
+    remove!(f.buffer, varconstr)
     set_cur_is_active(varconstr, false)
     return
 end
@@ -316,7 +316,7 @@ deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 "Activates a variable in the formulation"
 function activate!(f::Formulation, id::Id)
     varconstr = getelem(f, id)
-    add!(f.cache.var_cache, varconstr)
+    add!(f.buffer.var_buffer, varconstr)
     set_cur_is_active(varconstr, true)
     return
 end
@@ -351,7 +351,7 @@ end
 
 "Adds `Constraint` `constr` to `Formulation` `f`."
 function addconstr!(f::Formulation, constr::Constraint)
-    add!(f.cache.constr_cache, constr)
+    add!(f.buffer.constr_buffer, constr)
     return addconstr!(f.manager, constr)
 end
 
@@ -383,7 +383,7 @@ end
 "Activates a constraint in the formulation"
 function activateconstr!(f::Formulation, id::Id{Constraint})
     c = getvar(f, id)
-    add!(f.cache.constr_cache, c)
+    add!(f.buffer.constr_buffer, c)
     set_cur_is_active(c, true)
     return
 end
@@ -439,80 +439,80 @@ end
 function sync_solver(f::Formulation)
     @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
     optimizer = get_optimizer(f)
-    cache = f.cache
+    buffer = f.buffer
     matrix = getcoefmatrix(f)
     # Remove constrs
-    for id in cache.constr_cache.removed
+    for id in buffer.constr_buffer.removed
         c = getconstr(f, id)
         @logmsg LogLevel(-2) string("Removing constraint ", getname(c))
-        undo_modifs!(cache, c)
-        undo_matrix_modifs!(cache, c)
+        undo_modifs!(buffer, c)
+        undo_matrix_modifs!(buffer, c)
         remove_from_optimizer!(optimizer, c)
     end
     # Remove vars
-    for id in cache.var_cache.removed
+    for id in buffer.var_buffer.removed
         v = getvar(f, id)
         @logmsg LogLevel(-2) string("Removing variable ", getname(v))
-        undo_modifs!(cache, v)
-        undo_matrix_modifs!(cache, v)
+        undo_modifs!(buffer, v)
+        undo_matrix_modifs!(buffer, v)
         remove_from_optimizer!(optimizer, v)
     end
     # Add vars
-    for id in cache.var_cache.added
+    for id in buffer.var_buffer.added
         v = getvar(f, id)
         @logmsg LogLevel(-2) string("Adding variable ", getname(v))
-        undo_modifs!(cache, v)
+        undo_modifs!(buffer, v)
         add_to_optimzer!(optimizer, v)
     end
     # Add constrs
-    for id in cache.constr_cache.added
+    for id in buffer.constr_buffer.added
         c = getconstr(f, id)
         @logmsg LogLevel(-2) string("Adding constraint ", getname(c))
-        undo_modifs!(cache, c)
+        undo_modifs!(buffer, c)
         add_to_optimzer!(optimizer, c, filter(_active_explicit_, matrix[id,:]))
     end
     # Update variable costs
-    for id in cache.changed_cost
+    for id in buffer.changed_cost
         update_cost_in_optimizer(optimizer, getvar(f, id))
     end
     # Update variable bounds
-    for id in cache.changed_bound
+    for id in buffer.changed_bound
         @logmsg LogLevel(-2) "Changing bound of variable " getname(getvar(f,id))
         @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(getvar(f,id)))
         @logmsg LogLevel(-3) string("New upper bound is ", getcurub(getvar(f,id)))
         update_bounds_in_optimizer(optimizer, getvar(f, id))
     end
     # Update variable kind
-    for id in cache.changed_kind
+    for id in buffer.changed_kind
         @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
         @logmsg LogLevel(-3) string("New kind is ", getcurkind(getvar(f,id)))
         enforce_var_kind_in_optimizer(optimizer, getvar(f,id))
     end
     # Update constraint rhs
-    for id in cache.changed_rhs
+    for id in buffer.changed_rhs
         @warn "Update of constraint rhs not yet implemented"
     end
     # Update matrix
     # First check if should update members of just-added vars
     matrix = getcoefmatrix(f)
-    for id in cache.var_cache.added
+    for id in buffer.var_buffer.added
         for (constr_id, coeff) in filter(_active_explicit_, matrix[:,id])
-            constr_id in cache.constr_cache.added && continue
+            constr_id in buffer.constr_buffer.added && continue
             c = getconstr(f, constr_id)
             update_constr_member_in_optimizer(optimizer, c, getvar(f, id), coeff)
         end
     end
     # Then updated the rest of the matrix coeffs
-    for ((c_id, v_id), coeff) in cache.reset_coeffs
+    for ((c_id, v_id), coeff) in buffer.reset_coeffs
         # Ignore modifications involving vc's that were removed
-        (c_id in cache.constr_cache.removed || v_id in cache.var_cache.removed) && continue
+        (c_id in buffer.constr_buffer.removed || v_id in buffer.var_buffer.removed) && continue
         c = getconstr(f, c_id)
         v = getvar(f, v_id)
         @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         # @logmsg LogLevel(1) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         update_constr_member_in_optimizer(optimizer, c, v, coeff)
     end
-    reset_cache!(f)
+    reset_buffer!(f)
     return
 end
 
