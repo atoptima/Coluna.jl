@@ -1,127 +1,4 @@
 """
-    VarConstrBuffer{T<:AbstractVarConstr}
-
-A `VarConstrBuffer{T}` stores the ids of the entities to be added and removed from the formulation where it belongs.
-"""
-mutable struct VarConstrBuffer{T<:AbstractVarConstr}
-    added::Set{Id{T}}
-    removed::Set{Id{T}}
-end
-
-"""
-    VarConstrBuffer{T}() where {T<:AbstractVarConstr}
-
-Constructs an empty `VarConstrBuffer{T}` for entities of type `T`.
-"""
-VarConstrBuffer{T}() where {T<:AbstractVarConstr} = VarConstrBuffer{T}(Set{T}(), Set{T}())
-
-function add!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
-    !get_cur_is_explicit(vc) && return
-    id = getid(vc)
-    !(id in buffer.removed) && push!(buffer.added, id)
-    delete!(buffer.removed, id)
-    return
-end
-
-function remove!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
-    id = getid(vc)
-    !(id in buffer.added) && push!(buffer.removed, id)
-    delete!(buffer.added, id)
-    return
-end
-
-"""
-    FormulationBuffer()
-
-A `FormulationBuffer` stores all changes done to a `Formulation` `f` since last call to `optimize!(f)`.
-When function `optimize!(f)` is called, the moi_optimizer is synched with all changes in FormulationBuffer
-
-When `f` is modified, such modification should not be passed directly to its optimizer, but instead should be passed to `f.buffer`.
-
-The concerned modificatios are:
-1. Cost change in a variable
-2. Bound change in a variable
-3. Right-hand side change in a Constraint
-4. Variable is removed
-5. Variable is added
-6. Constraint is removed
-7. Constraint is added
-8. Coefficient in the matrix is modified (reset)
-"""
-mutable struct FormulationBuffer
-    changed_cost::Set{Id{Variable}}
-    changed_bound::Set{Id{Variable}}
-    changed_kind::Set{Id{Variable}}
-    changed_rhs::Set{Id{Constraint}}
-    var_buffer::VarConstrBuffer{Variable}
-    constr_buffer::VarConstrBuffer{Constraint}
-    reset_coeffs::Dict{Pair{Id{Constraint},Id{Variable}},Float64}
-    #reset_partial_sols::Dict{Pair{Id{Variable},Id{Variable}},Float64}
-end
-"""
-    FormulationBuffer()
-
-Constructs an empty `FormulationBuffer`.
-"""
-FormulationBuffer() = FormulationBuffer(
-    Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
-    Set{Id{Constraint}}(), VarConstrBuffer{Variable}(),
-    VarConstrBuffer{Constraint}(),
-    Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
-    # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()
-)
-
-function undo_modifs!(buffer::FormulationBuffer, v::Variable)
-    id = getid(v)
-    delete!(buffer.changed_cost, id)
-    delete!(buffer.changed_bound, id)
-    return
-end
-
-function undo_modifs!(buffer::FormulationBuffer, c::Constraint)
-    id = getid(c)
-    delete!(buffer.changed_rhs, id)
-    return
-end
-
-function remove!(buffer::FormulationBuffer, constr::Constraint)
-    !get_cur_is_explicit(constr) && return
-    remove!(buffer.constr_buffer, constr)
-    return
-end
-
-function remove!(buffer::FormulationBuffer, var::Variable)
-    !get_cur_is_explicit(var) && return
-    remove!(buffer.var_buffer, var)
-    return
-end
-
-function undo_matrix_modifs!(buffer::FormulationBuffer, v::AbstractVarConstr)
-    for (c_id, v_id) in collect(keys(buffer.reset_coeffs))
-        v_id == getid(v) && delete!(buffer.reset_coeffs, Pair(c_id, v_id))
-    end
-    return
-end
-
-function change_cost!(buffer::FormulationBuffer, v::Variable)
-    !get_cur_is_explicit(v) && return
-    push!(buffer.changed_cost, getid(v))
-    return
-end
-
-function change_bound!(buffer::FormulationBuffer, v::Variable)
-    !get_cur_is_explicit(v) && return
-    push!(buffer.changed_bound, getid(v))
-    return
-end
-
-function change_kind!(buffer::FormulationBuffer, v::Variable)
-    !get_cur_is_explicit(v) && return
-    push!(buffer.changed_kind, getid(v))
-    return
-end
-
-"""
     Formulation{Duty<:AbstractFormDuty}
 
 Representation of a formulation which is typically solved by either a MILP or a dynamic program solver.
@@ -208,7 +85,7 @@ function generateconstrid(f::Formulation)
     return ConstrId(getnewuid(f.constr_counter), f.uid)
 end
 
-reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
+_reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 
 """
     commit_cost_change!(f::Formulation, v::Variable)
@@ -301,7 +178,7 @@ end
 
 "Adds `Variable` `var` to `Formulation` `f`."
 function addvar!(f::Formulation, var::Variable)
-    add!(f.buffer.var_buffer, var)
+    add!(f.buffer, var)
     return addvar!(f.manager, var)
 end
 
@@ -316,7 +193,7 @@ deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 "Activates a variable in the formulation"
 function activate!(f::Formulation, id::Id)
     varconstr = getelem(f, id)
-    add!(f.buffer.var_buffer, varconstr)
+    add!(f.buffer, varconstr)
     set_cur_is_active(varconstr, true)
     return
 end
@@ -351,7 +228,7 @@ end
 
 "Adds `Constraint` `constr` to `Formulation` `f`."
 function addconstr!(f::Formulation, constr::Constraint)
-    add!(f.buffer.constr_buffer, constr)
+    add!(f.buffer, constr)
     return addconstr!(f.manager, constr)
 end
 
@@ -383,7 +260,7 @@ end
 "Activates a constraint in the formulation"
 function activateconstr!(f::Formulation, id::Id{Constraint})
     c = getvar(f, id)
-    add!(f.buffer.constr_buffer, c)
+    add!(f.buffer, c)
     set_cur_is_active(c, true)
     return
 end
@@ -436,54 +313,55 @@ function register_objective_sense!(f::Formulation, min::Bool)
     return
 end
 
+function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
+    T <: AbstractVarConstr}
+    for id in ids
+        vc = getelem(f, id)
+        @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(vc))
+        remove_from_optimizer!(f.moi_optimizer, vc)
+    end
+    return
+end
+
 function sync_solver(f::Formulation)
     @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
     optimizer = get_optimizer(f)
     buffer = f.buffer
     matrix = getcoefmatrix(f)
     # Remove constrs
-    for id in buffer.constr_buffer.removed
-        c = getconstr(f, id)
-        @logmsg LogLevel(-2) string("Removing constraint ", getname(c))
-        undo_modifs!(buffer, c)
-        undo_matrix_modifs!(buffer, c)
-        remove_from_optimizer!(optimizer, c)
-    end
+    @logmsg LogLevel(-2) string("Removing constraints")
+    remove_from_optimizer!(buffer.constr_buffer.removed, f)
     # Remove vars
-    for id in buffer.var_buffer.removed
-        v = getvar(f, id)
-        @logmsg LogLevel(-2) string("Removing variable ", getname(v))
-        undo_modifs!(buffer, v)
-        undo_matrix_modifs!(buffer, v)
-        remove_from_optimizer!(optimizer, v)
-    end
+    @logmsg LogLevel(-2) string("Removing variables")
+    remove_from_optimizer!(buffer.var_buffer.removed, f)
     # Add vars
     for id in buffer.var_buffer.added
         v = getvar(f, id)
         @logmsg LogLevel(-2) string("Adding variable ", getname(v))
-        undo_modifs!(buffer, v)
         add_to_optimzer!(optimizer, v)
     end
     # Add constrs
     for id in buffer.constr_buffer.added
         c = getconstr(f, id)
         @logmsg LogLevel(-2) string("Adding constraint ", getname(c))
-        undo_modifs!(buffer, c)
         add_to_optimzer!(optimizer, c, filter(_active_explicit_, matrix[id,:]))
     end
     # Update variable costs
     for id in buffer.changed_cost
+        (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         update_cost_in_optimizer(optimizer, getvar(f, id))
     end
     # Update variable bounds
     for id in buffer.changed_bound
-        @logmsg LogLevel(-2) "Changing bound of variable " getname(getvar(f,id))
+        (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
+        @logmsg LogLevel(-2) "Changing bounds of variable " getname(getvar(f,id))
         @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(getvar(f,id)))
         @logmsg LogLevel(-3) string("New upper bound is ", getcurub(getvar(f,id)))
         update_bounds_in_optimizer(optimizer, getvar(f, id))
     end
     # Update variable kind
     for id in buffer.changed_kind
+        (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
         @logmsg LogLevel(-3) string("New kind is ", getcurkind(getvar(f,id)))
         enforce_var_kind_in_optimizer(optimizer, getvar(f,id))
@@ -512,7 +390,7 @@ function sync_solver(f::Formulation)
         # @logmsg LogLevel(1) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         update_constr_member_in_optimizer(optimizer, c, v, coeff)
     end
-    reset_buffer!(f)
+    _reset_buffer!(f)
     return
 end
 
