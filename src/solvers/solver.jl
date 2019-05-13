@@ -1,11 +1,4 @@
 """
-    AbstractSolver
-
-A solver is an 'text-book' algorithm applied to a formulation in a node.
-"""
-abstract type AbstractSolver end
-
-"""
     AbstractSolverRecord
 
 Stores data after the end of a solver execution.
@@ -27,7 +20,6 @@ function prepare! end
 Runs the solver `SolverType` on the `formulation` in a `node` with `parameters`.
 """
 function run! end
-
 
 # Fallbacks
 function prepare!(T::Type{<:AbstractSolver}, formulation, node, strategy_rec, parameters)
