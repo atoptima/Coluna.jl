@@ -135,33 +135,6 @@ set_matrix_coeff!(
     f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64
 ) = set_matrix_coeff!(f.buffer, v_id, c_id, new_coeff)
 
-"""
-    commit_cost_change!(f::Formulation, v::Variable)
-
-Passes the cost modification of variable `v` to the underlying MOI solver `f.moi_solver`.
-
-Should be called if a cost modification to a variable is definitive and should be transmitted to the underlying MOI solver.
-"""
-commit_cost_change!(f::Formulation, v::Variable) = change_cost!(f.buffer, v)
-
-"""
-    commit_bound_change!(f::Formulation, v::Variable)
-
-Passes the bound modification of variable `v` to the underlying MOI solver `f.moi_solver`.
-
-Should be called if a bound modification to a variable is definitive and should be transmitted to the underlying MOI solver.
-"""
-commit_bound_change!(f::Formulation, v::Variable) = change_bound!(f.buffer, v)
-
-"""
-    commit_kind_change!(f::Formulation, v::Variable)
-
-Passes the kind modification of variable `v` to the underlying MOI solver `f.moi_solver`.
-
-Should be called if a kind modification to a variable is definitive and should be transmitted to the underlying MOI solver.
-"""
-commit_kind_change!(f::Formulation, v::Variable) = change_kind!(f.buffer, v)
-
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
 function setvar!(f::Formulation,
                   name::String,
@@ -287,8 +260,6 @@ function relax_integrality!(f::Formulation)
         getcurkind(v) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
         setkind!(f, v, Continuous)
-        # setcurkind(v, Continuous)
-        # commit_kind_change!(f, v)
     end
     return
 end
