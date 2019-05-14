@@ -14,7 +14,7 @@ function abstract_vc_data_getters_and_setters_tests()
     @test CL.is_active(v_data) == false
     @test CL.is_explicit(v_data) == false
     @test CL.getkind(v_data) == CL.Continuous
-    @test CL.setsense(v_data) == CL.Free
+    @test CL.getsense(v_data) == CL.Free
     @test CL.getincval(v_data) == -135.7
 
     CL.setincval!(v_data, 1.0)
@@ -26,7 +26,7 @@ function abstract_vc_data_getters_and_setters_tests()
     @test CL.is_active(v_data) == true
     @test CL.is_explicit(v_data) == true
     @test CL.getkind(v_data) == CL.Integ
-    @test CL.setsense(v_data) == CL.Negative
+    @test CL.getsense(v_data) == CL.Negative
     @test CL.getincval(v_data) == 1.0
 
 
@@ -38,7 +38,7 @@ function abstract_vc_data_getters_and_setters_tests()
     @test CL.is_active(c_data) == false
     @test CL.is_explicit(c_data) == false
     @test CL.getkind(c_data) == CL.Facultative
-    @test CL.setsense(c_data) == CL.Equal
+    @test CL.getsense(c_data) == CL.Equal
     @test CL.getincval(c_data) == -12.0
 
     CL.setincval!(c_data, 1.0)
@@ -50,7 +50,7 @@ function abstract_vc_data_getters_and_setters_tests()
     @test CL.is_active(c_data) == true
     @test CL.is_explicit(c_data) == true
     @test CL.getkind(c_data) == CL.Core
-    @test CL.setsense(c_data) == CL.Less
+    @test CL.getsense(c_data) == CL.Less
     @test CL.getincval(c_data) == 1.0
 
 end
