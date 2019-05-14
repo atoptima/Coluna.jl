@@ -77,15 +77,63 @@ get_optimizer(f::Formulation) = f.moi_optimizer
 getelem(f::Formulation, id::VarId) = getvar(f, id)
 getelem(f::Formulation, id::ConstrId) = getconstr(f, id)
 
-function generatevarid(f::Formulation)
-    return VarId(getnewuid(f.var_counter), f.uid)
-end
-
-function generateconstrid(f::Formulation)
-    return ConstrId(getnewuid(f.constr_counter), f.uid)
-end
+generatevarid(f::Formulation) = VarId(getnewuid(f.var_counter), f.uid)
+generateconstrid(f::Formulation) = ConstrId(getnewuid(f.constr_counter), f.uid)
 
 _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
+
+"""
+    setcost!(f::Formulation, v::Variable, new_cost::Float64)
+
+Sets `v.cur_data.cost` as well as the cost of `v` in `f.moi_optimizer` to be 
+euqal to `new_cost`. Change on `f.moi_optimizer` will be buffered.
+"""
+function setcost!(f::Formulation, v::Variable, new_cost::Float64)
+    setcurcost!(v, new_cost)
+    change_cost!(f.buffer, v)
+end
+
+"""
+    setub!(f::Formulation, v::Variable, new_ub::Float64)
+
+Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.moi_optimizer`
+according to `new_ub`. Change on `f.moi_optimizer` will be buffered.
+"""
+function setub!(f::Formulation, v::Variable, new_ub::Float64)
+    setcurub!(v, new_ub)
+    change_bound!(f.buffer, v)
+end
+
+"""
+    setlb!(f::Formulation, v::Variable, new_lb::Float64)
+
+Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.moi_optimizer` 
+according to `new_lb`. Change on `f.moi_optimizer` will be buffered.
+"""
+function setlb!(f::Formulation, v::Variable, new_lb::Float64)
+    setcurlb!(v, new_lb)
+    change_bound!(f.buffer, v)
+end
+
+"""
+    setkind!(f::Formulation, v::Variable, new_kind::VarKind)
+
+Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.moi_optimizer` 
+according to `new_kind`. Change on `f.moi_optimizer` will be buffered.
+"""
+function setkind!(f::Formulation, v::Variable, new_kind::VarKind)
+    setcurkind(v, new_kind)
+    change_kind!(f.buffer, v)
+end
+
+"""
+    set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
+
+Buffers the matrix modification in `f.buffer` to be sent to `f.moi_optimizer` right before next call to optimize!.
+"""
+set_matrix_coeff!(
+    f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64
+) = set_matrix_coeff!(f.buffer, v_id, c_id, new_coeff)
 
 """
     commit_cost_change!(f::Formulation, v::Variable)
@@ -113,18 +161,6 @@ Passes the kind modification of variable `v` to the underlying MOI solver `f.moi
 Should be called if a kind modification to a variable is definitive and should be transmitted to the underlying MOI solver.
 """
 commit_kind_change!(f::Formulation, v::Variable) = change_kind!(f.buffer, v)
-
-"""
-    commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint}, v_id::Id{Variable}, coeff::Float64)
-
-Sets the coefficient `coeff` in the (`c_id`, `v_id`) cell of the matrix.
-
-Should be called if a coefficient modification in the matrix is definitive and should be transmitted to the underlying MOI solver.
-"""
-function commit_coef_matrix_change!(f::Formulation, c_id::Id{Constraint},
-                                    v_id::Id{Variable}, coeff::Float64)
-    f.buffer.reset_coeffs[Pair(c_id,v_id)] = coeff
-end
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
 function setvar!(f::Formulation,
@@ -239,8 +275,7 @@ function enforce_integrality!(f::Formulation)
         getcurkind(v) == Binary && continue
         if (getduty(v) == MasterCol || getperenekind(v) != Continuous)
             @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to Integer")
-            setcurkind(v, Integ)
-            commit_kind_change!(f, v)
+            setkind!(f, v, Integ)
         end
     end
     return
@@ -251,8 +286,9 @@ function relax_integrality!(f::Formulation)
     for (v_id, v) in filter(_active_explicit_, getvars(f))
         getcurkind(v) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
-        setcurkind(v, Continuous)
-        commit_kind_change!(f, v)
+        setkind!(f, v, Continuous)
+        # setcurkind(v, Continuous)
+        # commit_kind_change!(f, v)
     end
     return
 end
@@ -502,9 +538,9 @@ function _show_constraint(io::IO, f::Formulation, constr_id::ConstrId,
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
-    if setsense(constr_data) == Equal
+    if getsense(constr_data) == Equal
         op = "=="
-    elseif setsense(constr_data) == Greater
+    elseif getsense(constr_data) == Greater
         op = ">="
     else
         op = "<="

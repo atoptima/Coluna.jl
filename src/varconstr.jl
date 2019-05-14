@@ -5,7 +5,7 @@
 is_active(vc::AbstractVcData) = vc.is_active
 is_explicit(vc::AbstractVcData) = vc.is_explicit
 getkind(vc::AbstractVcData) = vc.kind
-setsense(vc::AbstractVcData) = vc.sense
+getsense(vc::AbstractVcData) = vc.sense
 getincval(vc::AbstractVcData) = vc.inc_val
 
 setincval!(vc::AbstractVcData, val::Float64) =  vc.inc_val = val

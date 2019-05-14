@@ -157,7 +157,7 @@ function add_to_optimzer!(optimizer::MOI.AbstractOptimizer,
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
     cur_data = getcurdata(constr)
-    moi_set = get_moi_set(setsense(cur_data))
+    moi_set = get_moi_set(getsense(cur_data))
     moi_constr = MOI.add_constraint(
         optimizer, f, moi_set(getrhs(cur_data))
     )
