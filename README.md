@@ -50,4 +50,6 @@ The current main contributors to Coluna.jl are:
 
 ## Contributing
 
-See the list of current issues, choose one, and open a PR with a proposition.
+- [ ] See the list of current issues, choose one, and open a PR with a proposition.
+- [ ] Open a new issue with a proposition to enhance the package.
+- [ ] Use it to your own problem, find bugs, and open an issue/PR with the proposal to solve the bug.
