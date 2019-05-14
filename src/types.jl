@@ -9,6 +9,19 @@ abstract type AbstractNode end
 abstract type AbstractVcData end
 abstract type AbstractObjSense end
 abstract type AbstractBound <: Number end
+"""
+    AbstractStrategy
+
+A strategy is a type used to define Coluna's behaviour in its algorithmic parts.
+"""
+abstract type AbstractStrategy end
+"""
+    AbstractSolver
+
+A solver is an 'text-book' algorithm applied to a formulation in a node.
+"""
+abstract type AbstractSolver end
+
 
 struct MinSense <: AbstractObjSense end
 struct MaxSense <: AbstractObjSense end
