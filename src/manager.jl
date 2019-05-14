@@ -12,7 +12,7 @@ struct FormulationManager
     constrs::ConstrDict
     coefficients::MembMatrix # rows = constraints, cols = variables
     expressions::VarMatrix  # rows = expressions, cols = variables
-    partial_sols::VarMatrix # rows = sp vars, cols = DW master columns TODO remane primal_sp_sols
+    primal_sp_sols::VarMatrix # rows = sp vars, cols = DW master columns 
     dual_sp_sols::ConstrMatrix # rows = sp constrs, cols = Bend master cuts
 end
 
@@ -38,13 +38,13 @@ function addvar!(m::FormulationManager, var::Variable)
     return var
 end
 
-function addpartialsol!(m::FormulationManager, var::Variable)
-     ### check if partialsol exists should take place heren along the coeff update
+function addprimalspsol!(m::FormulationManager, var::Variable)
+     ### check if primalspsol exists should take place here along the coeff update
     return var
 end
 
 function adddualspsol!(m::FormulationManager, constr::Constraint)
-     ### check if partialsol exists should take place heren along the coeff update
+     ### check if primalspsol exists should take place here along the coeff update
     return constr
 end
 
@@ -66,7 +66,7 @@ getcoefmatrix(m::FormulationManager) = m.coefficients
 
 getexpressionmatrix(m::FormulationManager) = m.expressions
 
-getpartialsolmatrix(m::FormulationManager) = m.partial_sols
+getprimalspsolmatrix(m::FormulationManager) = m.primal_sp_sols
 
 getdualspsolmatrix(m::FormulationManager) = m.dual_sp_sols
 

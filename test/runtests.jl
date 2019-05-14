@@ -18,10 +18,10 @@ unit_tests()
 
 @testset "gap + csp - JuMP/MOI modeling" begin
     include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
-    model, x = sgap_play()
-    JuMP.optimize!(model)
+    problem, x = sgap_play()
+    JuMP.optimize!(problem)
     # model, x = sgap_5_100()
-    # JuMP.optimize!(model)
+    # JuMP.optimize!(problem)
 
     #include("../examples/CuttingStock_SubprobMultiplicity/run_csp.jl")
     #run_csp_10_10()

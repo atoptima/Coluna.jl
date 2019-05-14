@@ -84,6 +84,8 @@ struct UndefinedVarDuty <: AbstractVarDuty end
 abstract type AbstractOriginalConstr <: AbstractConstrDuty end
 abstract type AbstractMasterConstr <: AbstractConstrDuty end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
+abstract type AbstractBendMasterConstr <: AbstractConstrDuty end
+abstract type AbstractBendSpConstr <: AbstractConstrDuty end
 abstract type AbstractMasterRepOriginalConstr <: AbstractMasterConstr end
 
 # Concrete duties for Constraints
@@ -108,8 +110,13 @@ struct PricingSpPureConstr <: AbstractDwSpConstr end
 "Representation of a branching constraint from the master in the pricing subproblem."
 struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
 
-"Constraint of the pricing subproblem."
-struct BendersSepPureConstr <: AbstractDwSpConstr end
+struct BendersPureSepConstr <: AbstractBendSpConstr end
+
+struct BendersTechnologicalConstr <: AbstractBendSpConstr end
+
+struct BendersPureMasterConstr <: AbstractBendMasterConstr end
+
+struct BendersCutConstr <: AbstractBendMasterConstr end
 
 struct UndefinedConstrDuty <: AbstractConstrDuty end
 

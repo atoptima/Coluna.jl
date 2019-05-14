@@ -19,7 +19,7 @@ function run!(::Type{MasterIpHeuristic}, solver_data::MasterIpHeuristicData,
 
     @logmsg LogLevel(1) "Applying Master IP heuristic"
     enforce_integrality!(formulation.master)
-    status, value, p_sols, d_sol = optimize!(formulation.master)
+    status, value, p_sols, d_sols = optimize!(formulation.master)
     relax_integrality!(formulation.master)
     set_ip_primal_sol!(solver_data.incumbents, p_sols[1])
     @logmsg LogLevel(1) string("Found primal solution of ", get_ip_primal_bound(solver_data.incumbents))

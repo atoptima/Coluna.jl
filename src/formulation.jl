@@ -56,7 +56,7 @@ mutable struct FormulationCache
     var_cache::VarConstrCache{Variable}
     constr_cache::VarConstrCache{Constraint}
     reset_coeffs::Dict{Pair{Id{Constraint},Id{Variable}},Float64}
-    #reset_partial_sols::Dict{Pair{Id{Variable},Id{Variable}},Float64}
+    #reset_primal_sp_sols::Dict{Pair{Id{Variable},Id{Variable}},Float64}
 end
 """
     FormulationCache()
@@ -186,8 +186,11 @@ getconstrs(f::Formulation) = getconstrs(f.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
+
 getexpressionmatrix(f::Formulation) = getexpressionmatrix(f.manager)
-getpartialsolmatrix(f::Formulation) = getpartialsolmatrix(f.manager)
+
+getprimalspsolmatrix(f::Formulation) = getprimalspsolmatrix(f.manager)
+
 gedualspsolmatrix(f::Formulation) = getdualspsolmatrix(f.manager)
 
 "Returns the `uid` of `Formulation` `f`."
@@ -272,7 +275,7 @@ function setvar!(f::Formulation,
     return addvar!(f, v)
 end
 
-function setpartialsol!(f::Formulation,
+function setprimalspsol!(f::Formulation,
                          name::String,
                          sol::PrimalSolution{S},
                          duty::Type{<:AbstractVarDuty};
@@ -289,7 +292,7 @@ function setpartialsol!(f::Formulation,
     primal_sp_sol_var = Variable(primal_sp_sol_id, name, duty; var_data = primal_sp_sol_data, moi_index = moi_index)
 
     coef_matrix = getcoefmatrix(f)
-    primal_sp_sol_matrix = getpartialsolmatrix(f)
+    primal_sp_sol_matrix = getprimalspsolmatrix(f)
 
     addvar!(f, primal_sp_sol_var)
     
@@ -311,7 +314,6 @@ function setdualspsol!(f::Formulation,
                        name::String,
                        sol::DualSolution{S},
                        duty::Type{<:AbstractConstrDuty};
-                       rhs::Float64 = 0.0,
                        kind::ConstrKind = Core,
                        sense::ConstrSense = Less,
                        inc_val::Float64 = 0.0,
@@ -335,8 +337,7 @@ function setdualspsol!(f::Formulation,
                 coef_matrix[cut_id, var_id] = coef_matrix[cut_id, var_id] + constr_val * var_coef
             else
                 coef_matrix[cut_id, var_id] = constr_val * var_coef
-            end
-            
+            end           
         end
     end
 
@@ -365,8 +366,8 @@ function activate!(f::Formulation, id::Id)
     return
 end
 
-function addpartialsol!(f::Formulation, var::Variable)
-    return addpartialsol!(f.manager, var)
+function addprimalspsol!(f::Formulation, var::Variable)
+    return addprimalspsol!(f.manager, var)
 end
 
 function clonevar!(dest::Formulation, src::Formulation, var::Variable)
@@ -443,7 +444,7 @@ function setmembers!(f::Formulation, v::Variable, members::ConstrMembership)
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
     coef_matrix = getcoefmatrix(f)
-    partialsol_matrix = getpartialsolmatrix(f)
+    primalspsol_matrix = getprimalspsolmatrix(f)
     id = getid(v)
     for (constr_id, coeff) in members
         coef_matrix[constr_id, id] = coeff
@@ -454,7 +455,7 @@ end
 function setmembers!(f::Formulation, constr::Constraint, members)
     @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
     coef_matrix = getcoefmatrix(f)
-    partial_sols = getpartialsolmatrix(f)
+    primal_sp_sols = getprimalspsolmatrix(f)
     constr_id = getid(constr)
     @logmsg LogLevel(-4) "Members are : ", members
     for (var_id, member_coeff) in members
@@ -463,7 +464,7 @@ function setmembers!(f::Formulation, constr::Constraint, members)
         coef_matrix[constr_id,var_id] = member_coeff
         @logmsg LogLevel(-4) string("Adidng variable ", getname(v), " with coeff ", member_coeff)
         # And for all columns having its own variables
-        for (col_id, coeff) in partial_sols[var_id,:]
+        for (col_id, coeff) in primal_sp_sols[var_id,:]
             @logmsg LogLevel(-4) string("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
             coef_matrix[constr_id,col_id] = coeff * member_coeff
         end
@@ -578,10 +579,12 @@ function optimize!(form::Formulation)
         primal_sols = retrieve_primal_sols(
             form, filter(_active_explicit_ , getvars(form))
         )
-        dual_sol = retrieve_dual_sol(form, filter(_active_explicit_ , getconstrs(form)))
-        @logmsg LogLevel(-2) string("Primal bound is ", primal_sols[1].bound)
-        dual_sol != nothing && @logmsg LogLevel(-2) string("Dual bound is ", dual_sol.bound)
-        return (status, primal_sols[1].bound, primal_sols, dual_sol)
+        dual_sols = retrieve_dual_sols(
+            form, filter(_active_explicit_ , getconstrs(form))
+        )
+        primal_sols != nothing && @logmsg LogLevel(-2) string("Primal bound is ", primal_sols[1].bound)
+        dual_sols != nothing && @logmsg LogLevel(-2) string("Dual bound is ", dual_sols[1].bound)
+        return (status, primal_sols[1].bound, primal_sols, dual_sols)
     end
     @warn "Solver has no result to show."
 
@@ -606,19 +609,21 @@ function retrieve_primal_sols(form::Formulation, vars::VarDict)
     return primal_sols
 end
 
-function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
+function retrieve_dual_sols(form::Formulation, constrs::ConstrDict)
     # TODO check if supported by solver
     if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         # println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
         return nothing
     end
-    new_sol = Dict{ConstrId,Float64}()
-    # Following line is commented becauss getting dual bound is not stable in some solvers. Getting primal bound instead, which will work for lps
-    # obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
-    obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
-    fill_dual_sol(form.moi_optimizer, new_sol, constrs)
-    dual_sol = DualSolution(form, obj_bound, new_sol)
-    return dual_sol
+    dual_sols = DualSolution{ObjSense}[]
+    for res_idx in 1:MOI.get(get_optimizer(form), MOI.ResultCount())
+        new_sol = Dict{ConstrId,Float64}()
+        new_obj_val = obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
+        fill_dual_sol(form.moi_optimizer, new_sol, constrs)
+        dual_sol = DualSolution(form, obj_bound, new_sol, res_idx)
+        push!(dual_sols, dual_sol)
+    end
+    return dual_sols
 end
 
 function resetsolvalue(form::Formulation, sol::PrimalSolution{S}) where {S}

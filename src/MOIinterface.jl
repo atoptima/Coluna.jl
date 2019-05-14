@@ -183,12 +183,12 @@ end
 
 function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
                        sol::Dict{ConstrId,Float64},
-                       constrs::ConstrDict)
+                       constrs::ConstrDict, res_idx::Int = 1)
     for (id, constr) in constrs
         val = 0.0
         moi_index = getindex(getmoirecord(constr))
         try # This try is needed because of the erroneous assertion in LQOI
-            val = MOI.get(moi_optimizer, MOI.ConstraintDual(), moi_index)
+            val = MOI.get(moi_optimizer, MOI.ConstraintDual(res_idx), moi_index)
         catch err
             if (typeof(err) == AssertionError &&
                 !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))

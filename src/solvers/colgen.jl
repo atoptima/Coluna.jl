@@ -62,7 +62,8 @@ function insert_cols_in_master!(master_form::Formulation,
     nb_of_gen_col = 0
 
     for sp_sol in sp_sols
-        if getvalue(sp_sol) < -0.0001 # TODO use tolerance
+        # the solution value represent the reduced cost at this stage
+        if getvalue(sp_sol) < -0.0001 # TODO use the reduced cost optimality tolerance
             nb_of_gen_col += 1
             ref = getvarcounter(master_form) + 1
             name = string("MC", sp_uid, "_", ref)
@@ -72,7 +73,7 @@ function insert_cols_in_master!(master_form::Formulation,
             kind = Continuous
             duty = MasterCol
             sense = Positive
-            mc = setpartialsol!(
+            mc = setprimalspsol!(
                 master_form, name, sp_sol, duty; lb = lb, ub = ub,
                 kind = kind, sense = sense
             )
@@ -81,9 +82,9 @@ function insert_cols_in_master!(master_form::Formulation,
             # TODO: check if column exists
             #== mc_id = getid(mc)
             id_of_existing_mc = - 1
-            partialsol_matrix = getpartialsolmatrix(master_form)
-            for (col, col_members) in columns(partialsol_matrix)
-                if (col_members == partialsol_matrix[:, mc_id])
+            primalspsol_matrix = getprimalspsolmatrix(master_form)
+            for (col, col_members) in columns(primalspsol_matrix)
+                if (col_members == primalspsol_matrix[:, mc_id])
                     id_of_existing_mc = col[1]
                     break
                 end
@@ -149,7 +150,7 @@ function gencol!(master_form::Formulation,
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
     TO.@timeit to "Pricing subproblem" begin
-        status, value, p_sols, d_sol = optimize!(sp_form)
+        status, value, p_sols, d_sols = optimize!(sp_form)
     end
     
     pricing_db_contrib = compute_pricing_db_contrib(sp_form, value, sp_lb, sp_ub)
@@ -207,9 +208,9 @@ end
 function solve_restricted_master!(master::Formulation)
     # GLPK.write_lp(getinner(get_optimizer(master_form)), string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
     elapsed_time = @elapsed begin
-        status, val, primal_sols, dual_sol = TO.@timeit to "LP restricted master" optimize!(master)
+        status, val, primal_sols, dual_sols = TO.@timeit to "LP restricted master" optimize!(master)
     end
-    return status, val, primal_sols, dual_sol, elapsed_time
+    return status, val, primal_sols, dual_sols, elapsed_time
 end
 
 function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,
@@ -257,7 +258,7 @@ function colgen_solver_ph2(alg::ColumnGenerationData,
         end
 
         set_lp_primal_sol!(alg.incumbents, primal_sols[1])
-        set_lp_dual_sol!(alg.incumbents, dual_sol)
+        
         if isinteger(primal_sols[1])
             set_ip_primal_sol!(alg.incumbents, primal_sols[1])
         end

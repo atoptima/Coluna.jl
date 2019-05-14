@@ -63,6 +63,7 @@ include("MOIinterface.jl")
 include("solvers/solver.jl")
 include("strategies/strategy.jl")
 include("solvers/colgen.jl")
+include("solvers/benders.jl")
 include("solvers/masteripheur.jl")
 include("solvers/generatechildrennodes.jl")
 # here include solvers
