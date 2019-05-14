@@ -156,7 +156,7 @@ function build_dw_pricing_sp!(prob::Problem,
 end
 
 function reformulate!(prob::Problem, annotations::Annotations,
-                      method::SolutionMethod)
+                      strategy::GlobalStrategy)
     # This function must be cleaned.
     # subproblem formulations are modified in the function build_dw_master
 
@@ -175,7 +175,7 @@ function reformulate!(prob::Problem, annotations::Annotations,
     annotation_set = annotations.annotation_set 
   
     # Create reformulation
-    reformulation = Reformulation(prob, method)
+    reformulation = Reformulation(prob, strategy)
     set_re_formulation!(prob, reformulation)
 
     # Create master formulation

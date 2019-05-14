@@ -8,30 +8,19 @@ end
 
 struct SearchTree
     nodes::DS.PriorityQueue{Node, Float64}
-    priority_function::Function
+    search_strategy::Type{<:AbstractTreeSearchStrategy}
 end
 
-SearchTree(search_strategy::SEARCHSTRATEGY) = SearchTree(
-    DS.PriorityQueue{Node, Float64}(Base.Order.Forward),
-    build_priority_function(search_strategy)
+SearchTree(search_strategy::Type{<:AbstractTreeSearchStrategy}) = SearchTree(
+    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), search_strategy
 )
 
 getnodes(t::SearchTree) = t.nodes
 Base.isempty(t::SearchTree) = isempty(t.nodes)
 
-function pushnode!(t::SearchTree, node::Node)
-    DS.enqueue!(
-        t.nodes, node, t.priority_function(node)
-    )
-end
-
+push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.search_strategy, node))
 popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
-
-function build_priority_function(strategy::SEARCHSTRATEGY)
-    strategy == DepthFirst && return x->(-x.depth)
-    strategy == BestDualBound && return x->(get_lp_dual_bound(x.incumbents))
-end
 
 mutable struct TreeSolver <: AbstractReformulationSolver
     primary_tree::SearchTree
@@ -42,7 +31,7 @@ mutable struct TreeSolver <: AbstractReformulationSolver
     incumbents::Incumbents
 end
 
-function TreeSolver(search_strategy::SEARCHSTRATEGY,
+function TreeSolver(search_strategy::Type{<:AbstractTreeSearchStrategy},
                     ObjSense::Type{<:AbstractObjSense})
     return TreeSolver(
         SearchTree(search_strategy), SearchTree(DepthFirst),
@@ -54,7 +43,7 @@ get_primary_tree(s::TreeSolver) = s.primary_tree
 get_secondary_tree(s::TreeSolver) = s.secondary_tree
 cur_tree(s::TreeSolver) = (s.in_primary ? s.primary_tree : s.secondary_tree)
 Base.isempty(s::TreeSolver) = isempty(cur_tree(s))
-pushnode!(s::TreeSolver, node::Node) = pushnode!(cur_tree(s), node)
+push!(s::TreeSolver, node::Node) = push!(cur_tree(s), node)
 popnode!(s::TreeSolver) = popnode!(cur_tree(s))
 nb_open_nodes(s::TreeSolver) = (nb_open_nodes(s.primary_tree)
                                 + nb_open_nodes(s.secondary_tree))
@@ -89,12 +78,14 @@ function setup_node!(n::Node, treat_order::Int, tree_incumbents::Incumbents)
 end
 
 function apply(::Type{<:TreeSolver}, reform::Reformulation)
-    tree_solver = TreeSolver(_params_.search_strategy, reform.master.obj_sense)
-    pushnode!(tree_solver, RootNode(reform.master.obj_sense))
+    # Get all strategies
+    conquer_strategy = reform.strategy.conquer
+    divide_strategy = reform.strategy.divide
+    tree_search_strategy = reform.strategy.tree_search
+    
+    tree_solver = TreeSolver(tree_search_strategy, reform.master.obj_sense)
+    push!(tree_solver, RootNode(reform.master.obj_sense))
 
-    # Node strategy
-    conquer_strategy = SimpleBnP # Should be kept in reformulation?
-    divide_strategy = SimpleBranching
     strategy_rec = StrategyRecord()
 
     while (!isempty(tree_solver)
@@ -155,7 +146,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
     s.nb_treated_nodes += 1
     t = cur_tree(s)
     if !to_be_pruned(n)
-        pushnode!(t, n)
+        push!(t, n)
     end
     if ((nb_open_nodes(s) + length(n.children))
         >= _params_.open_nodes_limit)
@@ -163,7 +154,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
         t = cur_tree(s)
     end
     for idx in length(n.children):-1:1
-        pushnode!(t, pop!(n.children))
+        push!(t, pop!(n.children))
     end
     updatebounds!(s, n)
 end

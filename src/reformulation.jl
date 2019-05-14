@@ -4,7 +4,7 @@
 Representation of a formulation which is solved by Coluna using a decomposition approach. All the sub-structures are defined within the struct `Reformulation`.
 """
 mutable struct Reformulation <: AbstractFormulation
-    solution_method::SolutionMethod
+    strategy::GlobalStrategy
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
@@ -17,15 +17,15 @@ end
 
 Constructs a `Reformulation`.
 """
-Reformulation(prob::AbstractProblem) = Reformulation(prob, DirectMip)
+Reformulation(prob::AbstractProblem) = Reformulation(prob, GlobalStrategy())
 
 """
     Reformulation(prob::AbstractProblem, method::SolutionMethod)
 
-Constructs a `Reformulation` that shall be solved using the `SolutionMethod` `method`.
+Constructs a `Reformulation` that shall be solved using the `GlobalStrategy` `strategy`.
 """
-function Reformulation(prob::AbstractProblem, method::SolutionMethod)
-    return Reformulation(method,
+function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
+    return Reformulation(strategy,
                          nothing,
                          nothing,
                          Vector{AbstractFormulation}(),
