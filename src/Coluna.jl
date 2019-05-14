@@ -71,15 +71,13 @@ include("solvers/masteripheur.jl")
 include("solvers/generatechildrennodes.jl")
 
 # Here include conquer strategies
-include("strategies/conquer/strategy.jl")
 include("strategies/conquer/simplebnp.jl")
 
 # Here include divide strategies
-include("strategies/divide/strategy.jl")
 include("strategies/divide/simplebranching.jl")
 
 # Here include tree search strategies
-include("strategies/treesearch/strategy.jl")
+include("strategies/treesearch/simplestrategies.jl")
 
 # Search tree
 include("node.jl")
