@@ -518,11 +518,16 @@ end
 
 "Calls optimization routine for `Formulation` `f`."
 function optimize!(form::Formulation)
-    @logmsg LogLevel(0) string("Optimizing formulation ", getuid(form))
+    @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
+    @logmsg LogLevel(-3) "Coluna formulation before sync: "
+    @logmsg LogLevel(-3) form
     @logmsg LogLevel(-3) "MOI formulation before sync: "
     # _show_optimizer(form.moi_optimizer)
     sync_solver(form)
+    @logmsg LogLevel(-2) "Coluna formulation after sync: "
+    @logmsg LogLevel(-2) form
     @logmsg LogLevel(-2) "MOI formulation after sync: "
+    # @show form
     # _show_optimizer(form.moi_optimizer)
 
 #     setup_solver(f.moi_optimizer, f, solver_info)
