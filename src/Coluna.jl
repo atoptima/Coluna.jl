@@ -60,6 +60,7 @@ include("clone.jl")
 include("reformulation.jl")
 include("projection.jl")
 include("problem.jl")
+include("node.jl")
 include("decomposition.jl")
 include("MOIinterface.jl")
 
@@ -69,6 +70,7 @@ include("MOIinterface.jl")
 include("solvers/colgen.jl")
 include("solvers/masteripheur.jl")
 include("solvers/generatechildrennodes.jl")
+include("solvers/reformulationsolver.jl")
 
 # Here include conquer strategies
 include("strategies/conquer/simplebnp.jl")
@@ -78,10 +80,6 @@ include("strategies/divide/simplebranching.jl")
 
 # Here include tree search strategies
 include("strategies/treesearch/simplestrategies.jl")
-
-# Search tree
-include("node.jl")
-include("bbtree.jl")
 
 # Wrapper functions
 include("MOIwrapper.jl")
