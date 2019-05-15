@@ -1,6 +1,6 @@
 set_loc_art_var(f::Formulation, constr_id::ConstrId) = setvar!(
     f, string("local_art_", constr_id), MastArtVar;
-    cost = (getobjsense(f) == MinSense ? 1000.0 : -1000.0),
+    cost = (getobjsense(f) == MinSense ? 10.0 : -10.0),
     lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
@@ -17,7 +17,7 @@ function initialize_local_art_vars(master::Formulation,
         v = setvar!(
             master, string("local_art_of_", getname(constr)),
             MastArtVar;
-            cost = (getobjsense(master) == MinSense ? 1000.0 : -1000.0),
+            cost = (getobjsense(master) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
         if setsense(getcurdata(constr)) == Greater
