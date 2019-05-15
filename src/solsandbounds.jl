@@ -87,6 +87,7 @@ Base.:+(b1::B, b2::B) where {B <: AbstractBound} = B(float(b1) + float(b2))
 Base.:/(b1::B, b2::B) where {B <: AbstractBound} = B(float(b1) / float(b2))
 
 Base.isless(b::AbstractBound, r::Real) = b.value < r
+Base.isless(r::Real, b::AbstractBound) = r < b.value
 Base.isless(b1::B, b2::B) where {B <: AbstractBound} = float(b1) < float(b2)
 
 abstract type AbstractSolution end
