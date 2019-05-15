@@ -31,12 +31,11 @@ function run!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
     return cg_rec
 end
 
-
 # Internal methods to the column generation
 function update_pricing_problem!(sp_form::Formulation, dual_sol::DualSolution)
 
     master_form = sp_form.parent_formulation
-    
+
     for (var_id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
         setcurcost!(var, computereducedcost(master_form, var_id, dual_sol))
         commit_cost_change!(sp_form, var)
@@ -94,9 +93,9 @@ function insert_cols_in_master!(master_form::Formulation,
 end
 
 function compute_pricing_db_contrib(sp_form::Formulation,
-                                            sp_sol_value::PrimalBound{S},
-                                            sp_lb::Float64,
-                                            sp_ub::Float64) where {S}
+                                    sp_sol_value::PrimalBound{S},
+                                    sp_lb::Float64,
+                                    sp_ub::Float64) where {S}
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
     if sp_sol_value <= 0 
@@ -127,7 +126,6 @@ function gencol!(master_form::Formulation,
     # Compute target
     update_pricing_target!(sp_form)
 
-
     # Reset var bounds, var cost, sp minCost
     if update_pricing_problem!(sp_form, dual_sol) # Never returns true
         #     This code is never executed because update_pricing_prob always returns false
@@ -146,17 +144,17 @@ function gencol!(master_form::Formulation,
     TO.@timeit to "Pricing subproblem" begin
         status, value, p_sols, d_sol = optimize!(sp_form)
     end
-    
+
     pricing_db_contrib = compute_pricing_db_contrib(sp_form, value, sp_lb, sp_ub)
     # @show pricing_dual_bound_contrib
-    
+
     if status != MOI.OPTIMAL
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
         return flag_is_sp_infeasible
     end
-    
+
     insertion_status = insert_cols_in_master!(master_form, sp_form, p_sols)
-    
+
     return insertion_status, pricing_db_contrib
 end
 
@@ -181,7 +179,6 @@ function gencols!(reformulation::Reformulation,
     end
     return (nb_new_cols, dual_bound_contrib)
 end
-
 
 function compute_master_db_contrib(alg::ColumnGenerationData,
                                    restricted_master_sol_value::PrimalBound{S}) where {S}
@@ -222,7 +219,6 @@ function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,
     end
     return nb_new_columns
 end
-
 
 function colgen_solver_ph2(alg::ColumnGenerationData,
                            reformulation::Reformulation)::ColumnGenerationRecord
@@ -272,7 +268,6 @@ function colgen_solver_ph2(alg::ColumnGenerationData,
             @error "Infeasible subproblem."
             return ColumnGenerationRecord(alg.incumbents)
         end
-
 
         print_intermediate_statistics(
             alg, nb_new_col, nb_cg_iterations, master_time, sp_time
