@@ -36,15 +36,8 @@ function Problem(master_factory, pricing_factory)
     )
 end
 
-function set_original_formulation!(m::Problem, of::Formulation)
-    m.original_formulation = of
-    return
-end
-
-function set_re_formulation!(m::Problem, r::Reformulation)
-    m.re_formulation = r
-    return
-end
+set_original_formulation!(m::Problem, of::Formulation) = m.original_formulation = of
+set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r
 
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation

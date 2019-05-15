@@ -403,11 +403,16 @@ end
 
 "Calls optimization routine for `Formulation` `f`."
 function optimize!(form::Formulation)
-    @logmsg LogLevel(0) string("Optimizing formulation ", getuid(form))
+    @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
+    @logmsg LogLevel(-3) "Coluna formulation before sync: "
+    @logmsg LogLevel(-3) form
     @logmsg LogLevel(-3) "MOI formulation before sync: "
     # _show_optimizer(form.moi_optimizer)
     sync_solver(form)
+    @logmsg LogLevel(-2) "Coluna formulation after sync: "
+    @logmsg LogLevel(-2) form
     @logmsg LogLevel(-2) "MOI formulation after sync: "
+    # @show form
     # _show_optimizer(form.moi_optimizer)
 
 #     setup_solver(f.moi_optimizer, f, solver_info)
@@ -473,12 +478,10 @@ function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution)
     var = getvar(form, var_id)
     rc = getperenecost(var)
     coefficient_matrix = getcoefmatrix(form)
-    
     for (constr_id, dual_val) in getsol(dual_sol)
         coeff = coefficient_matrix[constr_id, var_id]
         rc = rc - dual_val * coeff
     end
-    
     return rc
 end
 
