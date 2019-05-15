@@ -194,9 +194,9 @@ const MoiVarKind = Union{MoiInteger,MoiBinary}
 MoiVarKind() = MoiInteger(-1)
 
 # Helper functions to transform MOI types in Coluna types
-setsense(::MOI.LessThan{T}) where {T} = Less
-setsense(::MOI.GreaterThan{T}) where {T} = Greater
-setsense(::MOI.EqualTo{T}) where {T} = Equal
+getsense(::MOI.LessThan{T}) where {T} = Less
+getsense(::MOI.GreaterThan{T}) where {T} = Greater
+getsense(::MOI.EqualTo{T}) where {T} = Equal
 getrhs(set::MOI.LessThan{T}) where {T} = set.upper
 getrhs(set::MOI.GreaterThan{T}) where {T} = set.lower
 getrhs(set::MOI.EqualTo{T}) where {T} = set.value

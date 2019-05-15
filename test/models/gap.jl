@@ -10,7 +10,7 @@ function gap_with_penalties(data)
 
     penalties = Float64[sum(data.cost[j,m] for m in data.machines) * 0.7 for j in data.jobs]
     penalties ./= length(data.machines)
-    
+
     capacities = Int[ceil(data.capacity[m] * 0.9) for m in data.machines]
 
     max_nb_jobs_not_covered = ceil(0.12 * length(data.jobs))
