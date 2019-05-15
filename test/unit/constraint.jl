@@ -15,7 +15,7 @@ function constr_data_getters_and_setters_tests()
     @test CL.is_active(c_data) == false
     @test CL.is_explicit(c_data) == false
     @test CL.getincval(c_data) == -12.0
-    @test CL.setsense(c_data) == CL.Equal
+    @test CL.getsense(c_data) == CL.Equal
     @test CL.getkind(c_data) == CL.Facultative
 
     CL.setrhs!(c_data, 90.0)
@@ -27,7 +27,7 @@ function constr_data_getters_and_setters_tests()
 
     @test CL.getrhs(c_data) == 90.0
     @test CL.getkind(c_data) == CL.Core
-    @test CL.setsense(c_data) == CL.Less
+    @test CL.getsense(c_data) == CL.Less
     @test CL.getincval(c_data) == 90.0
     @test CL.is_active(c_data) == true
     @test CL.is_explicit(c_data) == true

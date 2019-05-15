@@ -136,14 +136,8 @@ function apply_branch!(f::Reformulation, b::Branch)
         owner_form = find_owner_formulation(f, getvar(f.master, id))
         if getuid(owner_form) != getuid(f.master)
             sp_var = getvar(owner_form, id)
-            if getsense(b) == Less
-                setcurub!(sp_var, getrhs(b))
-                commit_bound_change!(owner_form, sp_var)
-            end
-            if getsense(b) == Greater
-                setcurlb!(sp_var, getrhs(b))
-                commit_bound_change!(owner_form, sp_var)
-            end
+            getsense(b) == Less && setub!(owner_form, sp_var, getrhs(b))
+            getsense(b) == Greater && setlb!(owner_form, sp_var, getrhs(b))
         end
         @logmsg LogLevel(-2) "Branching constraint added : " branch_constraint
     end
@@ -177,11 +171,10 @@ function reset_to_record_state_of_father!(reform::Reformulation, n::Node)
         if (getcurlb(getvar(owner_form, id)) != getlb(data)
             || getcurub(getvar(owner_form, id)) != getub(data))
             @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
-            setcurlb!(getvar(owner_form, id), getlb(data))
-            setcurub!(getvar(owner_form, id), getub(data))
+            setlb!(owner_form, getvar(owner_form, id), getlb(data))
+            setub!(owner_form, getvar(owner_form, id), getub(data))
             @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(var))
             @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
-            commit_bound_change!(owner_form, getvar(owner_form, id))
         end
         if !get_cur_is_active(var) # Nothing to do if var is already active
             @logmsg LogLevel(-2) "Activating variable " getname(var)

@@ -37,8 +37,7 @@ function update_pricing_problem!(sp_form::Formulation, dual_sol::DualSolution)
     master_form = sp_form.parent_formulation
 
     for (var_id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
-        setcurcost!(var, computereducedcost(master_form, var_id, dual_sol))
-        commit_cost_change!(sp_form, var)
+        setcost!(sp_form, var, computereducedcost(master_form, var_id, dual_sol))
     end
 
     return false
