@@ -593,12 +593,10 @@ function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution)
     var = getvar(form, var_id)
     rc = getperenecost(var)
     coefficient_matrix = getcoefmatrix(form)
-    
     for (constr_id, dual_val) in getsol(dual_sol)
         coeff = coefficient_matrix[constr_id, var_id]
         rc = rc - dual_val * coeff
     end
-    
     return rc
 end
 
