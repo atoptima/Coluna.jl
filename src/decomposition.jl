@@ -1,8 +1,3 @@
-set_loc_art_var(f::Formulation, constr_id::ConstrId) = setvar!(
-    f, string("local_art_", constr_id), MastArtVar; cost = 10.0,
-    lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-)
-
 set_glob_art_var(f::Formulation, is_pos::Bool) = setvar!(
     f, string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
     MastArtVar; cost = 100000.0, lb = 0.0, ub = Inf,
