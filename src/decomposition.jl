@@ -1,12 +1,13 @@
 set_loc_art_var(f::Formulation, constr_id::ConstrId) = setvar!(
-    f, string("local_art_", constr_id), MastArtVar; cost = 10.0,
+    f, string("local_art_", constr_id), MastArtVar;
+    cost = (getobjsense(f) == MinSense ? 1000.0 : -1000.0),
     lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
 set_glob_art_var(f::Formulation, is_pos::Bool) = setvar!(
     f, string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
-    MastArtVar; cost = 100000.0, lb = 0.0, ub = Inf,
-    kind = Continuous, sense = Positive
+    MastArtVar; cost = (getobjsense(f) == MinSense ? 100000.0 : -100000.0),
+    lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
 function initialize_local_art_vars(master::Formulation,
@@ -15,11 +16,15 @@ function initialize_local_art_vars(master::Formulation,
     for (constr_id, constr) in constrs_in_form
         v = setvar!(
             master, string("local_art_of_", getname(constr)),
-            MastArtVar; cost = 10000.0, lb = 0.0, ub = Inf,
-# cost = getincval(constr), lb = 0.0, ub = Inf,
-            kind = Continuous, sense = Positive
+            MastArtVar;
+            cost = (getobjsense(master) == MinSense ? 1000.0 : -1000.0),
+            lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
-        matrix[constr_id, getid(v)] = 1.0
+        if setsense(getcurdata(constr)) == Greater
+            matrix[constr_id, getid(v)] = 1.0
+        elseif setsense(getcurdata(constr)) == Less
+            matrix[constr_id, getid(v)] = -1.0
+        end
     end
     return
 end
