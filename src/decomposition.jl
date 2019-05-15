@@ -186,6 +186,7 @@ function reformulate!(prob::Problem, annotations::Annotations,
     # Create master formulation
     master_form = Formulation{DwMaster}(
         prob.form_counter; parent_formulation = reformulation,
+        obj_sense = getobjsense(get_original_formulation(prob)),
         moi_optimizer = prob.master_factory()
     )
     setmaster!(reformulation, master_form)
@@ -203,6 +204,7 @@ function reformulate!(prob::Problem, annotations::Annotations,
         elseif BD.getformulation(annotation) == BD.DwPricingSp
             f = Formulation{DwSp}(
                 prob.form_counter; parent_formulation = master_form,
+                obj_sense = getobjsense(master_form),
                 moi_optimizer = prob.pricing_factory()
             )
             formulations[BD.getid(annotation)] = f
