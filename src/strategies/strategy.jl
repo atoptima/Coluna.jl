@@ -38,7 +38,6 @@ abstract type AbstractTreeSearchStrategy <: AbstractStrategy end
 
 Applies the strategy `S` to whatever context such strategy is defined for.
 
-
     apply!(::Type{<:AbstractDivideStrategy}, reformulation, node, strategy_record, params)
 
 Applies the divide strategy on a `reformulation` in the `node` with `parameters`.
