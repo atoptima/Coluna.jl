@@ -66,14 +66,16 @@ function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
 end
 
 function setup_node!(n::Node, treat_order::Int, tree_incumbents::Incumbents)
-    @logmsg LogLevel(-1) "Setting up node before apply"
+    @logmsg LogLevel(0) string("Setting up node ", treat_order, " before apply")
     set_treat_order!(n, treat_order)
     set_ip_primal_sol!(getincumbents(n), get_ip_primal_sol(tree_incumbents))
-    @logmsg LogLevel(-2) string("New IP primal bound is set to ", get_ip_primal_bound(getincumbents(n)))
+    @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(n)))
+    @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(getincumbents(n)))
     if (ip_gap(getincumbents(n)) <= 0.0 + 0.00000001)
-        @logmsg LogLevel(-2) string("Gap is non-positive: ", ip_gap(getincumbents(n)), ". Abort treatment.")
+        @logmsg LogLevel(-1) string("IP Gap is non-positive: ", ip_gap(getincumbents(n)), ". Abort treatment.")
         return false
     end
+    @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
     return true
 end
 
@@ -142,10 +144,12 @@ function updatebounds!(tree::TreeSolver, cur_node::Node)
 end
 
 function update_tree_solver(s::TreeSolver, n::Node)
+    @logmsg LogLevel(0) string("Updating tree.")
     s.treat_order += 1
     s.nb_treated_nodes += 1
     t = cur_tree(s)
     if !to_be_pruned(n)
+        @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
         push!(t, n)
     end
     if ((nb_open_nodes(s) + length(n.children))
@@ -153,6 +157,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
         switch_tree(s)
         t = cur_tree(s)
     end
+    @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
     for idx in length(n.children):-1:1
         push!(t, pop!(n.children))
     end

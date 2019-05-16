@@ -78,8 +78,7 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
         var = getvar(f, moi_uid_to_coluna_id[term.variable_index.value])
         perene_data = getrecordeddata(var)
         setcost!(perene_data, term.coefficient)
-        reset!(var)
-        commit_cost_change!(f, var)
+        setcost!(f, var, term.coefficient)
     end
     return
 end
@@ -118,11 +117,17 @@ function create_origconstr!(f::Formulation,
     perene_data = getrecordeddata(var)
     if typeof(set) in [MOI.ZeroOne, MOI.Integer]
         setkind!(perene_data, getkind(set))
+        setkind!(f, var, getkind(set))
     else
-        setbound(perene_data, setsense(set), getrhs(set))
+        bound = getrhs(set)
+        if getsense(set) in [Equal, Less]
+            set_ub!(perene_data, bound)
+            setub!(f, var, getub(perene_data))
+        elseif getsense(set) == [Equal, Greater]
+            set_lb!(perene_data, bound)
+            setlb!(f, var, getlb(perene_data))
+        end
     end
-    reset!(var)
-    commit_bound_change!(f, var)
     return
 end
 
@@ -138,7 +143,7 @@ function create_origconstr!(f::Formulation,
     c = setconstr!(f, name, OriginalConstr;
                     rhs = getrhs(set),
                     kind = Core,
-                    sense = setsense(set),
+                    sense = getsense(set),
                     inc_val = 10.0) #TODO set inc_val in model
     constr_id = getid(c)
     dest.moi_index_to_coluna_uid[moi_index] =
