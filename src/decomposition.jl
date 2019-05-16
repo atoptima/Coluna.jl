@@ -20,9 +20,9 @@ function initialize_local_art_vars(master::Formulation,
             cost = (getobjsense(master) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
-        if setsense(getcurdata(constr)) == Greater
+        if getsense(getcurdata(constr)) == Greater
             matrix[constr_id, getid(v)] = 1.0
-        elseif setsense(getcurdata(constr)) == Less
+        elseif getsense(getcurdata(constr)) == Less
             matrix[constr_id, getid(v)] = -1.0
         end
     end
