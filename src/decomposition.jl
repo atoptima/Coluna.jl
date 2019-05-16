@@ -25,9 +25,9 @@ function initialize_global_art_vars(master::Formulation)
     matrix = getcoefmatrix(master)
     constrs = filter(_active_master_rep_orig_constr_, getconstrs(master))
     for (constr_id, constr) in constrs
-        if setsense(getcurdata(constr)) == Greater
+        if getsense(getcurdata(constr)) == Greater
             matrix[constr_id, getid(global_pos)] = 1.0
-        elseif setsense(getcurdata(constr)) == Less
+        elseif getsense(getcurdata(constr)) == Less
             matrix[constr_id, getid(global_neg)] = -1.0
         end
     end
