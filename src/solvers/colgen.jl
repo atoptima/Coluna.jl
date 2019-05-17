@@ -55,7 +55,7 @@ function insert_cols_in_master!(master_form::Formulation,
     nb_of_gen_col = 0
 
     for sp_sol in sp_sols
-        if getvalue(sp_sol) < -0.0001 # TODO use tolerance
+        if contrib_improves_mlp(getbound(sp_sol))
             nb_of_gen_col += 1
             ref = getvarcounter(master_form) + 1
             name = string("MC", sp_uid, "_", ref)
@@ -91,16 +91,19 @@ function insert_cols_in_master!(master_form::Formulation,
     return nb_of_gen_col
 end
 
+contrib_improves_mlp(sp_primal_bound::PrimalBound{MinSense}) = (sp_primal_bound < 0.0 - 1e-8)
+contrib_improves_mlp(sp_primal_bound::PrimalBound{MaxSense}) = (sp_primal_bound > 0.0 + 1e-8)
+
 function compute_pricing_db_contrib(sp_form::Formulation,
-                                    sp_sol_value::PrimalBound{S},
+                                    sp_sol_primal_bound::PrimalBound{S},
                                     sp_lb::Float64,
                                     sp_ub::Float64) where {S}
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
-    if sp_sol_value <= 0 
-        contrib =  sp_sol_value * sp_ub
+    if contrib_improves_mlp(sp_sol_primal_bound)
+        contrib = sp_sol_primal_bound * sp_ub
     else
-        contrib =  sp_sol_value * sp_lb
+        contrib = sp_sol_primal_bound * sp_lb
     end
     return contrib
 end

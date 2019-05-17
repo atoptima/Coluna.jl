@@ -34,3 +34,28 @@ function gap_with_penalties(data)
 
     return gap
 end
+
+function maximization_gap(data)
+    gap = BlockModel(with_optimizer(Coluna.Optimizer,# #params = params,
+        master_factory = with_optimizer(GLPK.Optimizer),
+        pricing_factory = with_optimizer(GLPK.Optimizer)),
+        bridge_constraints=false
+    )
+
+    rewards = data.cost
+    capacities = data.capacity
+
+    @axis(M, data.machines)
+
+    @variable(gap, x[m in M, j in data.jobs], Bin)
+    @constraint(gap, cov[j in data.jobs], sum(x[m,j] for m in M) <= 1)
+
+    @constraint(gap, knp[m in M],
+        sum(data.weight[j,m]*x[m,j] for j in data.jobs) <= capacities[m])
+
+    @objective(gap, Max, sum(rewards[j,m]*x[m,j] for m in M, j in data.jobs))
+
+    @dantzig_wolfe_decomposition(gap, dec, M)
+
+    return gap
+end

@@ -35,6 +35,14 @@ end
     #@show JuMP.objective_value(problem)
 end
 
+@testset "gap with maximisation objective function" begin
+    # JuMP.objective_value(problem) = 416.4
+    problem = maximization_gap(data_gap)
+    println("\e[1;42m GAP maximization objective function \e[00m")
+    JuMP.optimize!(problem)
+    #@show JuMP.objective_value(problem)
+end
+
     # model, x = sgap_5_100()
     # JuMP.optimize!(model)
 
