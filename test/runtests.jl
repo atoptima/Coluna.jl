@@ -1,13 +1,13 @@
 import Coluna
 
-using Test
+using Test, GLPK, ColunaDemos, JuMP
 
-using GLPK
 import MathOptInterface, MathOptInterface.Utilities
 
 global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
 global const CL = Coluna
+global const CLD = ColunaDemos
 
 include("unit/unit_tests.jl")
 
@@ -16,16 +16,22 @@ global_logger(ConsoleLogger(stderr, LogLevel(1)))
 
 unit_tests()
 
-include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
-include("models/gap.jl")
-data_gap = read_dataGap("../examples/GeneralizedAssignment_SimpleColGen/data/smallgap3.txt")
-
 @testset "gap - JuMP/MOI modeling" begin
-    problem, x = model_sgap(data_gap)
-    println("\e[1;42m Classic GAP \e[00m")
+    data = CLD.GeneralizedAssignment.data("play.txt")
+
+    coluna = JuMP.with_optimizer(Coluna.Optimizer,# #params = params,
+        master_factory = with_optimizer(GLPK.Optimizer),
+        pricing_factory = with_optimizer(GLPK.Optimizer))
+
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
     JuMP.optimize!(problem)
     #@show JuMP.objective_value(problem)
 end
+
+include("../examples/GeneralizedAssignment_SimpleColGen/run_sgap.jl")
+include("models/gap.jl")
+data_gap = read_dataGap("../examples/GeneralizedAssignment_SimpleColGen/data/smallgap3.txt")
 
 @testset "gap with penalties - pure master variables" begin
     # JuMP.objective_value(problem) = 416.4
