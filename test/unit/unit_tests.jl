@@ -2,7 +2,7 @@ include("types.jl")
 include("solvers/solver.jl")
 include("strategies/strategy.jl")
 # include("parameters.jl")
-# include("counters.jl")
+include("counters.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
@@ -42,6 +42,9 @@ function unit_tests()
     end
     @testset "strategy.jl" begin
         strategy_unit_tests()
+    end
+    @testset "counters.jl" begin
+        counters_unit_tests()
     end
     @testset "vcids.jl" begin
         vcids_unit_tests()
