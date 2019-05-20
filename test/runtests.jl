@@ -26,8 +26,8 @@ unit_tests()
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
     JuMP.optimize!(problem)
-    abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-    CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 end
 
 @testset "gap - JuMP/MOI modeling" begin
@@ -40,8 +40,8 @@ end
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
     JuMP.optimize!(problem)
-    abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
-    CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
+    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 end
 
 @testset "gap with penalties - pure master variables" begin
