@@ -38,15 +38,8 @@ function Problem(master_factory, pricing_factory, benders_sep_factory)
     )
 end
 
-function set_original_formulation!(m::Problem, of::Formulation)
-    m.original_formulation = of
-    return
-end
-
-function set_re_formulation!(m::Problem, r::Reformulation)
-    m.re_formulation = r
-    return
-end
+set_original_formulation!(m::Problem, of::Formulation) = m.original_formulation = of
+set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r
 
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
@@ -69,7 +62,7 @@ function coluna_initialization(prob::Problem, annotations::Annotations,
                                params::Params)
     _welcome_message()
     _set_global_params(params)
-    reformulate!(prob, annotations, DantzigWolfeDecomposition)
+    reformulate!(prob, annotations, params.global_strategy)
     relax_integrality!(prob.re_formulation.master)
     initialize_moi_optimizer(prob)
     @info "Coluna initialized."
@@ -83,8 +76,12 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
     _globals_.initial_solve_time = time()
     @info _params_
     TO.@timeit to "Coluna" begin
-        res = optimize!(prob.re_formulation)
+        incumbents = optimize!(prob.re_formulation)
     end
     println(to)
-    return res
+    println("Terminated.")
+    @show get_ip_primal_sol(incumbents)
+    println("Primal bound: ", get_ip_primal_bound(incumbents))
+    println("Dual bound: ", get_ip_dual_bound(incumbents))
+    return incumbents
 end

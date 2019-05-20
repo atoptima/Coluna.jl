@@ -18,9 +18,9 @@ struct BendersCutGenerationRecord <: AbstractSolverRecord
 end
 
 # Overload of the solver interface
-function setup!(::Type{BendersCutGeneration}, formulation, node)
-    @logmsg LogLevel(-1) "Setup BendersCutGeneration."
-    return BendersCutGenerationData(formulation.master.obj_sense, node.incumbents)
+function prepare!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
+    @logmsg LogLevel(-1) "Prepare BendersCutGeneration."
+    return
 end
 
 function run!(::Type{BendersCutGeneration}, solver_data::BendersCutGenerationData,
@@ -30,12 +30,6 @@ function run!(::Type{BendersCutGeneration}, solver_data::BendersCutGenerationDat
     return e
 end
 
-function setdown!(::Type{BendersCutGeneration}, 
-                 solver_record::BendersCutGenerationRecord, formulation, node)
-    @logmsg LogLevel(-1) "Record BendersCutGeneration."
-    set!(node.incumbents, solver_record.incumbents)
-    @logmsg LogLevel(-2) "Node incumbes updated: " node.incumbents
-end
 
 # Internal methods to the column generation
 function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolution) 

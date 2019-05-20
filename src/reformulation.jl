@@ -4,7 +4,7 @@
 Representation of a formulation which is solved by Coluna using a decomposition approach. All the sub-structures are defined within the struct `Reformulation`.
 """
 mutable struct Reformulation <: AbstractFormulation
-    solution_method::SolutionMethod
+    strategy::GlobalStrategy
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
@@ -18,15 +18,15 @@ end
 
 Constructs a `Reformulation`.
 """
-Reformulation(prob::AbstractProblem) = Reformulation(prob, DirectMip)
+Reformulation(prob::AbstractProblem) = Reformulation(prob, GlobalStrategy())
 
 """
     Reformulation(prob::AbstractProblem, method::SolutionMethod)
 
-Constructs a `Reformulation` that shall be solved using the `SolutionMethod` `method`.
+Constructs a `Reformulation` that shall be solved using the `GlobalStrategy` `strategy`.
 """
-function Reformulation(prob::AbstractProblem, method::SolutionMethod)
-    return Reformulation(method,
+function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
+    return Reformulation(strategy,
                          nothing,
                          nothing,
                          Vector{AbstractFormulation}(),
@@ -52,8 +52,11 @@ function initialize_moi_optimizer(reformulation::Reformulation,
 end
 
 function optimize!(reformulation::Reformulation)
-    res = apply(TreeSolver, reformulation)
-    return res
+    incumbents = apply!(GlobalStrategy, reformulation)
+    incumbents.ip_primal_sol = proj_cols_on_rep(
+        get_ip_primal_sol(incumbents), getmaster(reformulation)
+    )
+    return incumbents
 end
 
 # Following two functions are temporary, we must store a pointer to the vc

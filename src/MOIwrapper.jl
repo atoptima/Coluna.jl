@@ -17,13 +17,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     moi_index_to_coluna_uid::MOIU.IndexMap
     params::Params
     annotations::Annotations
-    # varmap::Dict{MOI.VariableIndex,Variable} ## Keys and values are created in this file
-    # # add conmap here
-    # constr_probidx_map::Dict{Constraint,Int}
-    # var_probidx_map::Dict{Variable,Int}
-    # nb_subproblems::Int
-    # master_factory::JuMP.OptimizerFactory
-    # pricing_factory::JuMP.OptimizerFactory
+    result::Incumbents
+    varmap::Dict{MOI.VariableIndex,Id{Variable}} # For the user to get VariablePrimal
 end
 
 setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob
@@ -34,33 +29,17 @@ function Optimizer(;
                    benders_sep_factory = JuMP.with_optimizer(GLPK.Optimizer),
                    params = Params())
     prob = Problem(master_factory, pricing_factory, benders_sep_factory)
-    return Optimizer(prob, MOIU.IndexMap(), params, Annotations())
+    return Optimizer(prob, MOIU.IndexMap(), params, Annotations(), Incumbents(MinSense),
+        Dict{MOI.VariableIndex,Id{Variable}}()
+    )
+
 end
 
 function MOI.optimize!(optimizer::Optimizer)
-    res = optimize!(optimizer.inner, optimizer.annotations, optimizer.params)
-end
-
-function MOI.get(dest::MOIU.UniversalFallback,
-                 attribute::BD.ConstraintDecomposition,
-                 ci::MOI.ConstraintIndex)
-    if haskey(dest.conattr, attribute)
-        if haskey(dest.conattr[attribute], ci)
-            return dest.conattr[attribute][ci]
-        end
-    end
-    return ()
-end
-
-function MOI.get(dest::MOIU.UniversalFallback,
-                 attribute::BD.VariableDecomposition,
-                 vi::MOI.VariableIndex)
-    if haskey(dest.varattr, attribute)
-        if haskey(dest.varattr[attribute], vi)
-            return dest.varattr[attribute][vi]
-        end
-    end
-    return ()
+    optimizer.result = optimize!(
+        optimizer.inner, optimizer.annotations, optimizer.params
+    )
+    return
 end
 
 function MOI.supports_constraint(optimizer::Optimizer, 
@@ -102,8 +81,7 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
         var = getvar(f, moi_uid_to_coluna_id[term.variable_index.value])
         perene_data = getrecordeddata(var)
         setcost!(perene_data, term.coefficient)
-        reset!(var)
-        commit_cost_change!(f, var)
+        setcost!(f, var, term.coefficient)
     end
     return
 end
@@ -122,9 +100,11 @@ function create_origvars!(f::Formulation,
         end
         v = setvar!(f, name, OriginalVar)
         var_id = getid(v)
-        dest.moi_index_to_coluna_uid[moi_index] = MOI.VariableIndex(getuid(var_id))
+        moi_index_in_coluna = deepcopy(moi_index) # MOI.VariableIndex(getuid(var_id))
+        dest.moi_index_to_coluna_uid[moi_index] = moi_index_in_coluna
         moi_uid_to_coluna_id[moi_index.value] = var_id
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
+        dest.varmap[moi_index_in_coluna] = var_id
         update_annotations(
             src, dest.annotations.annotation_set,
             dest.annotations.vars_per_block, annotation, v
@@ -142,11 +122,17 @@ function create_origconstr!(f::Formulation,
     perene_data = getrecordeddata(var)
     if typeof(set) in [MOI.ZeroOne, MOI.Integer]
         setkind!(perene_data, getkind(set))
+        setkind!(f, var, getkind(set))
     else
-        setbound(perene_data, setsense(set), getrhs(set))
+        bound = getrhs(set)
+        if getsense(set) in [Equal, Less]
+            set_ub!(perene_data, bound)
+            setub!(f, var, getub(perene_data))
+        elseif getsense(set) == [Equal, Greater]
+            set_lb!(perene_data, bound)
+            setlb!(f, var, getlb(perene_data))
+        end
     end
-    reset!(var)
-    commit_bound_change!(f, var)
     return
 end
 
@@ -162,7 +148,7 @@ function create_origconstr!(f::Formulation,
     c = setconstr!(f, name, OriginalConstr;
                     rhs = getrhs(set),
                     kind = Core,
-                    sense = setsense(set),
+                    sense = getsense(set),
                     inc_val = 10.0) #TODO set inc_val in model
     constr_id = getid(c)
     dest.moi_index_to_coluna_uid[moi_index] =
@@ -247,44 +233,23 @@ end
 
 MOI.is_empty(optimizer::Optimizer) = (optimizer.inner.re_formulation == nothing)
 
-# function MOI.get(coluna_optimizer::Optimizer, object::MOI.ObjectiveBound)
-#     return coluna_optimizer.inner.extended_problem.dual_inc_bound
-# end
+function MOI.get(optimizer::Optimizer, object::MOI.ObjectiveBound)
+    return getvalue(get_ip_dual_bound(optimizer.result))
+end
 
-# function MOI.get(coluna_optimizer::Optimizer, object::MOI.ObjectiveValue)
-#     return coluna_optimizer.inner.extended_problem.primal_inc_bound
-# end
+function MOI.get(optimizer::Optimizer, object::MOI.ObjectiveValue)
+    return getvalue(get_ip_primal_bound(optimizer.result))
+end
 
-# function get_coluna_var_val(coluna_optimizer::Optimizer, sp_var::SubprobVar)
-#     solution = coluna_optimizer.inner.extended_problem.solution.var_val_map
-#     sp_var_val = 0.0
-#     for (var,val) in solution
-#         if isa(var, MasterVar)
-#             continue
-#         end
-#         if haskey(var.solution.var_val_map, sp_var)
-#             sp_var_val += val*var.solution.var_val_map[sp_var]
-#         end
-#     end
-#     return sp_var_val
-# end
+function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
+                 ref::MOI.VariableIndex)
+    id = optimizer.varmap[ref] # This gets a coluna Id{Variable}
+    primal_sol = getsol(optimizer.result.ip_primal_sol)
+    return get(primal_sol, id, 0.0)
+end
 
-# function get_coluna_var_val(coluna_optimizer::Optimizer, var::MasterVar)
-#     solution = coluna_optimizer.inner.extended_problem.solution
-#     if haskey(solution.var_val_map, var)
-#         return solution.var_val_map[var]
-#     else
-#         return 0.0
-#     end
-# end
-
-# function MOI.get(coluna_optimizer::Optimizer,
-#                  object::MOI.VariablePrimal, ref::MOI.VariableIndex)
-#     var = coluna_optimizer.varmap[ref] # This gets a coluna variable
-#     return get_coluna_var_val(coluna_optimizer, var)
-# end
-
-# function MOI.get(coluna_optimizer::Optimizer,
-#                  object::MOI.VariablePrimal, ref::Vector{MOI.VariableIndex})
-#     return [MOI.get(coluna_optimizer, object, ref[i]) for i in 1:length(ref)]
-# end
+function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
+                 refs::Vector{MOI.VariableIndex})
+    primal_sol = getsol(optimizer.result.ip_primal_sol)
+    return [get(primal_sol, optimizer.varmap[ref], 0.0) for ref in refs]
+end

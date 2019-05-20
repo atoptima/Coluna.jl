@@ -157,7 +157,7 @@ function add_to_optimzer!(optimizer::MOI.AbstractOptimizer,
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
     cur_data = getcurdata(constr)
-    moi_set = get_moi_set(setsense(cur_data))
+    moi_set = get_moi_set(getsense(cur_data))
     moi_constr = MOI.add_constraint(
         optimizer, f, moi_set(getrhs(cur_data))
     )
@@ -208,12 +208,12 @@ function fill_dual_sol(moi_optimizer::MOI.AbstractOptimizer,
 end
 
 function call_moi_optimize_with_silence(optimizer::MOI.AbstractOptimizer)
-    #backup_stdout = stdout
-    #(rd_out, wr_out) = redirect_stdout()
+    backup_stdout = stdout
+    (rd_out, wr_out) = redirect_stdout()
     MOI.optimize!(optimizer)
-    #close(wr_out)
-    #close(rd_out)
-    #redirect_stdout(backup_stdout)
+    close(wr_out)
+    close(rd_out)
+    redirect_stdout(backup_stdout)
     return
 end
 

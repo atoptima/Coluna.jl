@@ -36,8 +36,12 @@ import Base.copy
 import Base.promote_rule
 import Base.convert
 import Base.isinteger
+import Base.push!
 
 include("types.jl")
+include("solvers/solver.jl")
+include("strategies/strategy.jl")
+
 include("parameters.jl")
 include("counters.jl")
 
@@ -51,31 +55,35 @@ include("manager.jl")
 include("filters.jl")
 include("solsandbounds.jl")
 include("incumbents.jl")
+include("buffer.jl")
 include("formulation.jl")
 include("clone.jl")
 include("reformulation.jl")
 include("projection.jl")
 include("problem.jl")
+include("node.jl")
 include("decomposition.jl")
 include("MOIinterface.jl")
 
-###### Solvers & Strategies
-include("solvers/solver.jl")
-include("strategies/strategy.jl")
+# Concrete Solvers & Strategies :
+
+# Here include solvers
 include("solvers/colgen.jl")
 include("solvers/benders.jl")
 include("solvers/masteripheur.jl")
 include("solvers/generatechildrennodes.jl")
-# here include solvers
-include("solvers/interfaces.jl")
-include("strategies/simplebnp.jl")
-# here include strategies
+include("solvers/reformulationsolver.jl")
 
-##### Search tree
-include("node.jl")
-include("bbtree.jl")
+# Here include conquer strategies
+include("strategies/conquer/simplebnp.jl")
 
-##### Wrapper functions
+# Here include divide strategies
+include("strategies/divide/simplebranching.jl")
+
+# Here include tree search strategies
+include("strategies/treesearch/simplestrategies.jl")
+
+# Wrapper functions
 include("MOIwrapper.jl")
 
 include("globals.jl") # Structure that holds values useful in all the procedure

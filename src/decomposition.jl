@@ -1,12 +1,13 @@
 set_loc_art_var(f::Formulation, constr_id::ConstrId) = setvar!(
-    f, string("local_art_", constr_id), MastArtVar; cost = 10.0,
+    f, string("local_art_", constr_id), MastArtVar;
+    cost = (getobjsense(f) == MinSense ? 10.0 : -10.0),
     lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
 set_glob_art_var(f::Formulation, is_pos::Bool) = setvar!(
     f, string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
-    MastArtVar; cost = 100000.0, lb = 0.0, ub = Inf,
-    kind = Continuous, sense = Positive
+    MastArtVar; cost = (getobjsense(f) == MinSense ? 100000.0 : -100000.0),
+    lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
 function initialize_local_art_vars(master::Formulation,
@@ -15,11 +16,15 @@ function initialize_local_art_vars(master::Formulation,
     for (constr_id, constr) in constrs_in_form
         v = setvar!(
             master, string("local_art_of_", getname(constr)),
-            MastArtVar; cost = 10000.0, lb = 0.0, ub = Inf,
-# cost = getincval(constr), lb = 0.0, ub = Inf,
-            kind = Continuous, sense = Positive
+            MastArtVar;
+            cost = (getobjsense(master) == MinSense ? 10000.0 : -10000.0),
+            lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
-        matrix[constr_id, getid(v)] = 1.0
+        if getsense(getcurdata(constr)) == Greater
+            matrix[constr_id, getid(v)] = 1.0
+        elseif getsense(getcurdata(constr)) == Less
+            matrix[constr_id, getid(v)] = -1.0
+        end
     end
     return
 end
@@ -30,9 +35,9 @@ function initialize_global_art_vars(master::Formulation)
     matrix = getcoefmatrix(master)
     constrs = filter(_active_master_rep_orig_constr_, getconstrs(master))
     for (constr_id, constr) in constrs
-        if setsense(getcurdata(constr)) == Greater
+        if getsense(getcurdata(constr)) == Greater
             matrix[constr_id, getid(global_pos)] = 1.0
-        elseif setsense(getcurdata(constr)) == Less
+        elseif getsense(getcurdata(constr)) == Less
             matrix[constr_id, getid(global_neg)] = -1.0
         end
     end
@@ -227,7 +232,7 @@ function build_benders_sep_sp!(prob::Problem,
 end
 
 function reformulate!(prob::Problem, annotations::Annotations,
-                      method::SolutionMethod)
+                      strategy::GlobalStrategy)
     # This function must be cleaned.
     # subproblem formulations are modified in the function build_dw_master
 
@@ -246,12 +251,13 @@ function reformulate!(prob::Problem, annotations::Annotations,
     annotation_set = annotations.annotation_set 
   
     # Create reformulation
-    reformulation = Reformulation(prob, method)
+    reformulation = Reformulation(prob, strategy)
     set_re_formulation!(prob, reformulation)
 
     # Create master formulation
     master_form = Formulation{DwMaster}(
         prob.form_counter; parent_formulation = reformulation,
+        obj_sense = getobjsense(get_original_formulation(prob)),
         moi_optimizer = prob.master_factory()
     )
     setmaster!(reformulation, master_form)
@@ -263,15 +269,16 @@ function reformulate!(prob::Problem, annotations::Annotations,
     master_unique_id = -1
 
     for annotation in ann_sorted_by_uid
-        if annotation.problem == BD.Master
-            master_unique_id = annotation.unique_id
-            formulations[annotation.unique_id] = master_form
-        elseif annotation.problem == BD.Pricing
+        if BD.getformulation(annotation) == BD.Master
+            master_unique_id = BD.getid(annotation)
+            formulations[BD.getid(annotation)] = master_form
+        elseif BD.getformulation(annotation) == BD.DwPricingSp
             f = Formulation{DwSp}(
                 prob.form_counter; parent_formulation = master_form,
+                obj_sense = getobjsense(master_form),
                 moi_optimizer = prob.pricing_factory()
             )
-            formulations[annotation.unique_id] = f
+            formulations[BD.getid(annotation)] = f
             add_dw_pricing_sp!(reformulation, f)
         elseif annotation.problem == BD.Separation
             f = Formulation{BsSp}(
@@ -281,19 +288,19 @@ function reformulate!(prob::Problem, annotations::Annotations,
             formulations[annotation.unique_id] = f
             add_benders_sep_sp!(reformulation, f)
         else 
-            error(string("Subproblem type ", annotation.problem,
+            error(string("Subproblem type ", BD.getformulation(annotation),
                          " not supported yet."))
         end
     end
 
     # Build Pricing Sp
     for annotation in ann_sorted_by_uid
-        if annotation.problem == BD.Pricing
+        if BD.getformulation(annotation) == BD.DwPricingSp
             vars, constrs = find_vcs_in_block(
-                annotation.unique_id, vars_per_block, constrs_per_block
+                BD.getid(annotation), vars_per_block, constrs_per_block
             )
-            build_dw_pricing_sp!(prob, annotation.unique_id,
-                                 formulations[annotation.unique_id],
+            build_dw_pricing_sp!(prob, BD.getid(annotation),
+                                 formulations[BD.getid(annotation)],
                                  vars, constrs)
         elseif annotation.problem == BD.Separation
             vars, constrs = find_vcs_in_block(

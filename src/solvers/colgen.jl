@@ -1,6 +1,6 @@
 struct ColumnGeneration <: AbstractSolver end
 
-mutable struct ColumnGenerationData <: AbstractSolverData
+mutable struct ColumnGenerationData
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
@@ -18,33 +18,26 @@ struct ColumnGenerationRecord <: AbstractSolverRecord
 end
 
 # Overload of the solver interface
-function setup!(::Type{ColumnGeneration}, formulation, node)
-    @logmsg LogLevel(-1) "Setup ColumnGeneration."
-    return ColumnGenerationData(formulation.master.obj_sense, node.incumbents)
+function prepare!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
+    @logmsg LogLevel(-1) "Prepare ColumnGeneration."
+    return
 end
 
-function run!(::Type{ColumnGeneration}, solver_data::ColumnGenerationData,
-              formulation, node, parameters)
+function run!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    Base.@time e = colgen_solver_ph2(solver_data, formulation)
-    return e
-end
-
-function setdown!(::Type{ColumnGeneration}, 
-                 solver_record::ColumnGenerationRecord, formulation, node)
-    @logmsg LogLevel(-1) "Record ColumnGeneration."
-    set!(node.incumbents, solver_record.incumbents)
-    @logmsg LogLevel(-2) "Node incumbes updated: " node.incumbents
+    solver_data = ColumnGenerationData(form.master.obj_sense, node.incumbents)
+    cg_rec = colgen_solver_ph2(solver_data, form)
+    set!(node.incumbents, cg_rec.incumbents)
+    return cg_rec
 end
 
 # Internal methods to the column generation
 function update_pricing_problem!(sp_form::Formulation, dual_sol::DualSolution)
 
     master_form = sp_form.parent_formulation
-    
+
     for (var_id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
-        setcurcost!(var, computereducedcost(master_form, var_id, dual_sol))
-        commit_cost_change!(sp_form, var)
+        setcost!(sp_form, var, computereducedcost(master_form, var_id, dual_sol))
     end
 
     return false
@@ -62,8 +55,7 @@ function insert_cols_in_master!(master_form::Formulation,
     nb_of_gen_col = 0
 
     for sp_sol in sp_sols
-        # the solution value represent the reduced cost at this stage
-        if getvalue(sp_sol) < -0.0001 # TODO use the reduced cost optimality tolerance
+        if contrib_improves_mlp(getbound(sp_sol))
             nb_of_gen_col += 1
             ref = getvarcounter(master_form) + 1
             name = string("MC", sp_uid, "_", ref)
@@ -99,16 +91,19 @@ function insert_cols_in_master!(master_form::Formulation,
     return nb_of_gen_col
 end
 
+contrib_improves_mlp(sp_primal_bound::PrimalBound{MinSense}) = (sp_primal_bound < 0.0 - 1e-8)
+contrib_improves_mlp(sp_primal_bound::PrimalBound{MaxSense}) = (sp_primal_bound > 0.0 + 1e-8)
+
 function compute_pricing_db_contrib(sp_form::Formulation,
-                                            sp_sol_value::PrimalBound{S},
-                                            sp_lb::Float64,
-                                            sp_ub::Float64) where {S}
+                                    sp_sol_primal_bound::PrimalBound{S},
+                                    sp_lb::Float64,
+                                    sp_ub::Float64) where {S}
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
-    if sp_sol_value <= 0 
-        contrib =  sp_sol_value * sp_ub
+    if contrib_improves_mlp(sp_sol_primal_bound)
+        contrib = sp_sol_primal_bound * sp_ub
     else
-        contrib =  sp_sol_value * sp_lb
+        contrib = sp_sol_primal_bound * sp_lb
     end
     return contrib
 end
@@ -133,7 +128,6 @@ function gencol!(master_form::Formulation,
     # Compute target
     update_pricing_target!(sp_form)
 
-
     # Reset var bounds, var cost, sp minCost
     if update_pricing_problem!(sp_form, dual_sol) # Never returns true
         #     This code is never executed because update_pricing_prob always returns false
@@ -152,17 +146,17 @@ function gencol!(master_form::Formulation,
     TO.@timeit to "Pricing subproblem" begin
         status, value, p_sols, d_sols = optimize!(sp_form)
     end
-    
+
     pricing_db_contrib = compute_pricing_db_contrib(sp_form, value, sp_lb, sp_ub)
     # @show pricing_dual_bound_contrib
-    
+
     if status != MOI.OPTIMAL
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
         return flag_is_sp_infeasible
     end
-    
+
     insertion_status = insert_cols_in_master!(master_form, sp_form, p_sols)
-    
+
     return insertion_status, pricing_db_contrib
 end
 
@@ -188,9 +182,8 @@ function gencols!(reformulation::Reformulation,
     return (nb_new_cols, dual_bound_contrib)
 end
 
-
 function compute_master_db_contrib(alg::ColumnGenerationData,
-                                   restricted_master_sol_value::PrimalBound{S})where {S}
+                                   restricted_master_sol_value::PrimalBound{S}) where {S}
     # TODO: will change with stabilization
     return DualBound{S}(restricted_master_sol_value)
 end
@@ -228,7 +221,6 @@ function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,
     end
     return nb_new_columns
 end
-
 
 function colgen_solver_ph2(alg::ColumnGenerationData,
                            reformulation::Reformulation)::ColumnGenerationRecord
@@ -278,7 +270,6 @@ function colgen_solver_ph2(alg::ColumnGenerationData,
             @error "Infeasible subproblem."
             return ColumnGenerationRecord(alg.incumbents)
         end
-
 
         print_intermediate_statistics(
             alg, nb_new_col, nb_cg_iterations, master_time, sp_time
