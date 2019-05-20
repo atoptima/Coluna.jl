@@ -1,6 +1,8 @@
-# include("types.jl")
+include("types.jl")
+include("algorithms/algorithm.jl")
+include("strategies/strategy.jl")
 # include("parameters.jl")
-# include("counters.jl")
+include("counters.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
@@ -32,7 +34,18 @@ include("incumbents.jl")
 
 
 function unit_tests()
-
+    @testset "types.jl" begin
+        types_unit_tests()
+    end
+    @testset "algorithm.jl" begin
+        algorithm_unit_tests()
+    end
+    @testset "strategy.jl" begin
+        strategy_unit_tests()
+    end
+    @testset "counters.jl" begin
+        counters_unit_tests()
+    end
     @testset "vcids.jl" begin
         vcids_unit_tests()
     end
