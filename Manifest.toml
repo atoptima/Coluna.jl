@@ -37,7 +37,7 @@ version = "0.4.1"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "JuMP"]
-git-tree-sha1 = "b02cb739035104eedf969a91a4f8a63ce07e94eb"
+git-tree-sha1 = "73347e0b82483e3220544d682696cb5d0d55f445"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
