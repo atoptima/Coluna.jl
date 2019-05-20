@@ -1,17 +1,17 @@
 mutable struct StrategyRecord
-    cur_solver::Type{<:AbstractSolver}
+    cur_algorithm::Type{<:AbstractAlgorithm}
     ext::Dict{Symbol, Any}
 end
 
 StrategyRecord() = StrategyRecord(StartNode, Dict{Symbol, Any}())
 
-setsolver!(r::StrategyRecord, s::Type{<:AbstractSolver}) = r.cur_solver = s
-getsolver(r::StrategyRecord) = r.cur_solver
+setalgorithm!(r::StrategyRecord, s::Type{<:AbstractAlgorithm}) = r.cur_algorithm = s
+getalgorithm(r::StrategyRecord) = r.cur_algorithm
 
 """
     AbstractConquerStrategy
 
-Conquer strategy is a combination of `Solvers` to treat a node of the
+Conquer strategy is a combination of `Algorithms` to treat a node of the
 branch-and-bound tree.
 """
 abstract type AbstractConquerStrategy <: AbstractStrategy end
@@ -19,7 +19,7 @@ abstract type AbstractConquerStrategy <: AbstractStrategy end
 """
     AbstractDivideStrategy
 
-Divide strategy is a combination of `Solvers`that generates one or more children
+Divide strategy is a combination of `Algorithms`that generates one or more children
 branch-and-bound node.
 """
 abstract type AbstractDivideStrategy <: AbstractStrategy end

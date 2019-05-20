@@ -1,11 +1,11 @@
-struct GenerateChildrenNode <: AbstractSolver end
+struct GenerateChildrenNode <: AbstractAlgorithm end
 
 mutable struct GenerateChildrenNodeData
     incumbents::Incumbents
     reformulation::Reformulation # should handle reformulation & formulation
 end
 
-struct GenerateChildrenNodeRecord <: AbstractSolverRecord
+struct GenerateChildrenNodeRecord <: AbstractAlgorithmRecord
     nodes::Vector{AbstractNode} # Node is not defined when this file is included
 end
 
@@ -20,12 +20,12 @@ struct MostFractionalRule <: RuleForUsualBranching end
 
 function run!(::Type{GenerateChildrenNode}, formulation, node, strategy_rec, parameters)
     @logmsg LogLevel(0) "Run generate children nodes"
-    solver_data =  GenerateChildrenNodeData(getincumbents(node), formulation)
-    if ip_gap(solver_data.incumbents) <= 0.0
+    algorithm_data =  GenerateChildrenNodeData(getincumbents(node), formulation)
+    if ip_gap(algorithm_data.incumbents) <= 0.0
         @logmsg LogLevel(-1) string("Subtree is conquered, no need for branching.")
         return GenerateChildrenNodeRecord(Node[])
     end
-    found_candiate, var_id, val = best_candidate(MostFractionalRule, solver_data)
+    found_candiate, var_id, val = best_candidate(MostFractionalRule, algorithm_data)
     if found_candiate
         var = getvar(formulation.master, var_id)
         @logmsg LogLevel(-1) string("Chosen branching variable : ", getname(getvar(formulation.master, var_id)), ". With value ", val, ".")
@@ -43,9 +43,9 @@ function run!(::Type{GenerateChildrenNode}, formulation, node, strategy_rec, par
     return record
 end
 
-function best_candidate(R::Type{<:RuleForUsualBranching}, solver_data)
-    master = getmaster(solver_data.reformulation)
-    master_primal_sol = get_lp_primal_sol(solver_data.incumbents)
+function best_candidate(R::Type{<:RuleForUsualBranching}, algorithm_data)
+    master = getmaster(algorithm_data.reformulation)
+    master_primal_sol = get_lp_primal_sol(algorithm_data.incumbents)
 
     solution = proj_cols_on_rep(master_primal_sol, master)
 

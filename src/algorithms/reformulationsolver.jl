@@ -14,11 +14,11 @@ push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.search_st
 popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
 
-mutable struct ReformulationSolverRecord <: AbstractSolverRecord
+mutable struct ReformulationSolverRecord <: AbstractAlgorithmRecord
     incumbents::Incumbents
 end
 
-mutable struct ReformulationSolver <: AbstractSolver
+mutable struct ReformulationSolver <: AbstractAlgorithm
     primary_tree::SearchTree
     secondary_tree::SearchTree
     in_primary::Bool
@@ -54,7 +54,7 @@ function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
 
     strategy_rec = StrategyRecord()
     setup!(reform, node)
-    setsolver!(strategy_rec, StartNode)
+    setalgorithm!(strategy_rec, StartNode)
     apply!(conquer_strategy, reform, node, strategy_rec, params)
     apply!(divide_strategy, reform, node, strategy_rec, params)
     record!(reform, node)

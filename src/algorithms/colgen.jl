@@ -1,4 +1,4 @@
-struct ColumnGeneration <: AbstractSolver end
+struct ColumnGeneration <: AbstractAlgorithm end
 
 mutable struct ColumnGenerationData
     incumbents::Incumbents
@@ -13,11 +13,11 @@ function ColumnGenerationData(S::Type{<:AbstractObjSense}, node_inc::Incumbents)
 end
 
 # Data needed for another round of column generation
-struct ColumnGenerationRecord <: AbstractSolverRecord
+struct ColumnGenerationRecord <: AbstractAlgorithmRecord
     incumbents::Incumbents
 end
 
-# Overload of the solver interface
+# Overload of the algorithm's prepare function
 function prepare!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
     @logmsg LogLevel(-1) "Prepare ColumnGeneration."
     return
@@ -25,8 +25,8 @@ end
 
 function run!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    solver_data = ColumnGenerationData(form.master.obj_sense, node.incumbents)
-    cg_rec = colgen_solver_ph2(solver_data, form)
+    algorithm_data = ColumnGenerationData(form.master.obj_sense, node.incumbents)
+    cg_rec = colgen_algorithm_ph2(algorithm_data, form)
     set!(node.incumbents, cg_rec.incumbents)
     return cg_rec
 end
@@ -222,8 +222,8 @@ function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,
     return nb_new_columns
 end
 
-function colgen_solver_ph2(alg::ColumnGenerationData,
-                           reformulation::Reformulation)::ColumnGenerationRecord
+function colgen_algorithm_ph2(alg::ColumnGenerationData,
+                              reformulation::Reformulation)::ColumnGenerationRecord
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
