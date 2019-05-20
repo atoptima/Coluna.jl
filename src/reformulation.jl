@@ -47,7 +47,7 @@ function initialize_moi_optimizer(reformulation::Reformulation,
 end
 
 function optimize!(reformulation::Reformulation)
-    res = apply(TreeSolver, reformulation)
+    res = apply!(GlobalStrategy, reformulation)
     return res
 end
 
