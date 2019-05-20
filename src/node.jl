@@ -84,6 +84,7 @@ get_solver_record!(n::Node, S::Type{<:AbstractSolver}) = n.solver_records[S]
 function to_be_pruned(n::Node)
     # How to determine if a node should be pruned?? By the lp_gap?
     lp_gap(n.incumbents) <= 0.0000001 && return true
+    ip_gap(n.incumbents) <= 0.0000001 && return true
     return false
 end
 
