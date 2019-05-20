@@ -39,11 +39,11 @@ Applies the solver `SolverType` on the `formulation` in a `node` with
 function apply!(S::Type{<:AbstractSolver}, form, node, strategy_rec, 
                 params)
     setsolver!(strategy_rec, S)
-    TO.@timeit to string(S) begin
-        TO.@timeit to "prepare" begin
+    TO.@timeit _to string(S) begin
+        TO.@timeit _to "prepare" begin
             prepare!(S, form, node, strategy_rec, params)
         end
-        TO.@timeit to "run" begin
+        TO.@timeit _to "run" begin
             record = run!(S, form, node, strategy_rec, params)
         end
     end

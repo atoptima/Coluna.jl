@@ -143,7 +143,7 @@ function gencol!(master_form::Formulation,
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-    TO.@timeit to "Pricing subproblem" begin
+    TO.@timeit _to "Pricing subproblem" begin
         status, value, p_sols, d_sol = optimize!(sp_form)
     end
 
@@ -201,7 +201,7 @@ end
 function solve_restricted_master!(master::Formulation)
     # GLPK.write_lp(getinner(get_optimizer(master_form)), string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
     elapsed_time = @elapsed begin
-        status, val, primal_sols, dual_sol = TO.@timeit to "LP restricted master" optimize!(master)
+        status, val, primal_sols, dual_sol = TO.@timeit _to "LP restricted master" optimize!(master)
     end
     return status, val, primal_sols, dual_sol, elapsed_time
 end
