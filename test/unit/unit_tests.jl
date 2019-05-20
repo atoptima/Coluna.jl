@@ -1,4 +1,6 @@
 include("types.jl")
+include("solvers/solver.jl")
+include("strategies/strategy.jl")
 # include("parameters.jl")
 # include("counters.jl")
 include("vcids.jl")
@@ -34,6 +36,12 @@ include("incumbents.jl")
 function unit_tests()
     @testset "types.jl" begin
         types_unit_tests()
+    end
+    @testset "solver.jl" begin
+        solver_unit_tests()
+    end
+    @testset "strategy.jl" begin
+        strategy_unit_tests()
     end
     @testset "vcids.jl" begin
         vcids_unit_tests()
