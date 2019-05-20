@@ -40,7 +40,7 @@ jobs:
       julia: 1.0
       os: linux
       script:
-        - julia --project=docs/ -e 'using Pkg; Pkg.clone("https://github.com/atoptima/BlockDecomposition.jl.git"); Pkg.clone("https://github.com/atoptima/ColunaDemos.jl.git); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        - julia --project=docs/ -e 'using Pkg; Pkg.clone("https://github.com/atoptima/BlockDecomposition.jl.git"); Pkg.clone("https://github.com/atoptima/ColunaDemos.jl.git"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       after_success: skip
 
