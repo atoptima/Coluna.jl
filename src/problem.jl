@@ -73,10 +73,10 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
     coluna_initialization(prob, annotations, params)
     _globals_.initial_solve_time = time()
     @info _params_
-    TO.@timeit to "Coluna" begin
+    TO.@timeit _to "Coluna" begin
         incumbents = optimize!(prob.re_formulation)
     end
-    println(to)
+    println(_to)
     println("Terminated.")
     @show get_ip_primal_sol(incumbents)
     println("Primal bound: ", get_ip_primal_bound(incumbents))

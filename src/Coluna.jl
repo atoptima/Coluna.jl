@@ -39,7 +39,7 @@ import Base.isinteger
 import Base.push!
 
 include("types.jl")
-include("solvers/solver.jl")
+include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
 
 include("parameters.jl")
@@ -65,13 +65,13 @@ include("node.jl")
 include("decomposition.jl")
 include("MOIinterface.jl")
 
-# Concrete Solvers & Strategies :
+# Concrete algorithms & Strategies :
 
-# Here include solvers
-include("solvers/colgen.jl")
-include("solvers/masteripheur.jl")
-include("solvers/generatechildrennodes.jl")
-include("solvers/reformulationsolver.jl")
+# Here include algorithms
+include("algorithms/colgen.jl")
+include("algorithms/masteripheur.jl")
+include("algorithms/generatechildrennodes.jl")
+include("algorithms/reformulationsolver.jl")
 
 # Here include conquer strategies
 include("strategies/conquer/simplebnp.jl")

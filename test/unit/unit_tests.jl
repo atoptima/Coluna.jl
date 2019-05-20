@@ -1,5 +1,5 @@
 include("types.jl")
-include("solvers/solver.jl")
+include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
 # include("parameters.jl")
 include("counters.jl")
@@ -37,8 +37,8 @@ function unit_tests()
     @testset "types.jl" begin
         types_unit_tests()
     end
-    @testset "solver.jl" begin
-        solver_unit_tests()
+    @testset "algorithm.jl" begin
+        algorithm_unit_tests()
     end
     @testset "strategy.jl" begin
         strategy_unit_tests()

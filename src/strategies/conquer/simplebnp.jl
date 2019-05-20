@@ -7,4 +7,4 @@ function apply!(::Type{SimpleBnP}, reform, node, strategy_rec::StrategyRecord, p
     end
     mip_rec = apply!(MasterIpHeuristic, reform, node, strategy_rec, params)
     return
-end 
+end
