@@ -1,11 +1,3 @@
-abstract type AbstractReformulationSolver end
-
-function apply end
-
-function apply(T::Type{<:AbstractReformulationSolver}, f::Reformulation)
-    error("Apply function not implemented for solver type ", T)
-end
-
 struct SearchTree
     nodes::DS.PriorityQueue{Node, Float64}
     search_strategy::Type{<:AbstractTreeSearchStrategy}
@@ -22,7 +14,11 @@ push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.search_st
 popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
 
-mutable struct TreeSolver <: AbstractReformulationSolver
+mutable struct ReformulationSolverRecord <: AbstractSolverRecord
+    incumbents::Incumbents
+end
+
+mutable struct ReformulationSolver <: AbstractSolver
     primary_tree::SearchTree
     secondary_tree::SearchTree
     in_primary::Bool
@@ -31,32 +27,32 @@ mutable struct TreeSolver <: AbstractReformulationSolver
     incumbents::Incumbents
 end
 
-function TreeSolver(search_strategy::Type{<:AbstractTreeSearchStrategy},
+function ReformulationSolver(search_strategy::Type{<:AbstractTreeSearchStrategy},
                     ObjSense::Type{<:AbstractObjSense})
-    return TreeSolver(
+    return ReformulationSolver(
         SearchTree(search_strategy), SearchTree(DepthFirst),
         true, 1, 0, Incumbents(ObjSense)
     )
 end
 
-get_primary_tree(s::TreeSolver) = s.primary_tree
-get_secondary_tree(s::TreeSolver) = s.secondary_tree
-cur_tree(s::TreeSolver) = (s.in_primary ? s.primary_tree : s.secondary_tree)
-Base.isempty(s::TreeSolver) = isempty(cur_tree(s))
-push!(s::TreeSolver, node::Node) = push!(cur_tree(s), node)
-popnode!(s::TreeSolver) = popnode!(cur_tree(s))
-nb_open_nodes(s::TreeSolver) = (nb_open_nodes(s.primary_tree)
+get_primary_tree(s::ReformulationSolver) = s.primary_tree
+get_secondary_tree(s::ReformulationSolver) = s.secondary_tree
+cur_tree(s::ReformulationSolver) = (s.in_primary ? s.primary_tree : s.secondary_tree)
+Base.isempty(s::ReformulationSolver) = isempty(cur_tree(s))
+push!(s::ReformulationSolver, node::Node) = push!(cur_tree(s), node)
+popnode!(s::ReformulationSolver) = popnode!(cur_tree(s))
+nb_open_nodes(s::ReformulationSolver) = (nb_open_nodes(s.primary_tree)
                                 + nb_open_nodes(s.secondary_tree))
-get_treat_order(s::TreeSolver) = s.treat_order
-get_nb_treated_nodes(s::TreeSolver) = s.nb_treated_nodes
-getincumbents(s::TreeSolver) = s.incumbents
-switch_tree(s::TreeSolver) = s.in_primary = !s.in_primary
+get_treat_order(s::ReformulationSolver) = s.treat_order
+get_nb_treated_nodes(s::ReformulationSolver) = s.nb_treated_nodes
+getincumbents(s::ReformulationSolver) = s.incumbents
+switch_tree(s::ReformulationSolver) = s.in_primary = !s.in_primary
 
 function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
                        divide_strategy::Type{<:AbstractDivideStrategy},
-                       reform::Reformulation, node::Node, strategy_rec, 
-                       params)
-    # Check if it needs to be treated, because pb might have improved
+                       reform::Reformulation, node::Node, params)
+
+    strategy_rec = StrategyRecord()
     setup!(reform, node)
     setsolver!(strategy_rec, StartNode)
     apply!(conquer_strategy, reform, node, strategy_rec, params)
@@ -79,38 +75,40 @@ function setup_node!(n::Node, treat_order::Int, tree_incumbents::Incumbents)
     return true
 end
 
-function apply(::Type{<:TreeSolver}, reform::Reformulation)
+function apply!(::Type{<:ReformulationSolver}, reform::Reformulation)
     # Get all strategies
     conquer_strategy = reform.strategy.conquer
     divide_strategy = reform.strategy.divide
     tree_search_strategy = reform.strategy.tree_search
-    
-    tree_solver = TreeSolver(tree_search_strategy, reform.master.obj_sense)
-    push!(tree_solver, RootNode(reform.master.obj_sense))
 
-    strategy_rec = StrategyRecord()
+    reform_solver = ReformulationSolver(tree_search_strategy, reform.master.obj_sense)
+    push!(reform_solver, RootNode(reform.master.obj_sense))
 
-    while (!isempty(tree_solver)
-           && get_nb_treated_nodes(tree_solver) < _params_.max_num_nodes)
+    while (!isempty(reform_solver)
+           && get_nb_treated_nodes(reform_solver) < _params_.max_num_nodes)
 
-        cur_node = popnode!(tree_solver)
+        cur_node = popnode!(reform_solver)
         should_apply = setup_node!(
-            cur_node, get_treat_order(tree_solver), getincumbents(tree_solver)
+            cur_node, get_treat_order(reform_solver), getincumbents(reform_solver)
         )
-        print_info_before_apply(cur_node, tree_solver, reform, should_apply)
+        print_info_before_apply(cur_node, reform_solver, reform, should_apply)
         if should_apply
             apply_on_node!(
-                conquer_strategy, divide_strategy, reform, cur_node, 
-                strategy_rec, nothing
+                conquer_strategy, divide_strategy, reform, cur_node, nothing
             )
         end
-        print_info_after_apply(cur_node, tree_solver)
-        update_tree_solver(tree_solver, cur_node)
+        print_info_after_apply(cur_node, reform_solver)
+        update_reform_solver(reform_solver, cur_node)
     end
-
+    return ReformulationSolverRecord(getincumbents(reform_solver))
 end
 
-function updateprimals!(tree::TreeSolver, cur_node_incumbents::Incumbents)
+function apply!(::Type{<:GlobalStrategy}, reform::Reformulation)
+    solver_record = apply!(ReformulationSolver, reform)
+    return solver_record.incumbents
+end
+
+function updateprimals!(tree::ReformulationSolver, cur_node_incumbents::Incumbents)
     tree_incumbents = getincumbents(tree)
     set_ip_primal_sol!(
         tree_incumbents, copy(get_ip_primal_sol(cur_node_incumbents))
@@ -118,7 +116,7 @@ function updateprimals!(tree::TreeSolver, cur_node_incumbents::Incumbents)
     return
 end
 
-function updateduals!(tree::TreeSolver, cur_node_incumbents::Incumbents)
+function updateduals!(tree::ReformulationSolver, cur_node_incumbents::Incumbents)
     tree_incumbents = getincumbents(tree)
     worst_bound = get_ip_dual_bound(cur_node_incumbents)
     for (node, priority) in getnodes(get_primary_tree(tree))
@@ -137,13 +135,13 @@ function updateduals!(tree::TreeSolver, cur_node_incumbents::Incumbents)
     return
 end
 
-function updatebounds!(tree::TreeSolver, cur_node::Node)
+function updatebounds!(tree::ReformulationSolver, cur_node::Node)
     cur_node_incumbents = getincumbents(cur_node)
     updateprimals!(tree, cur_node_incumbents)
     updateduals!(tree, cur_node_incumbents)
 end
 
-function update_tree_solver(s::TreeSolver, n::Node)
+function update_reform_solver(s::ReformulationSolver, n::Node)
     @logmsg LogLevel(0) string("Updating tree.")
     s.treat_order += 1
     s.nb_treated_nodes += 1
@@ -164,7 +162,7 @@ function update_tree_solver(s::TreeSolver, n::Node)
     updatebounds!(s, n)
 end
 
-function print_info_before_apply(n::Node, s::TreeSolver, reform::Reformulation, strategy_was_applied::Bool)
+function print_info_before_apply(n::Node, s::ReformulationSolver, reform::Reformulation, strategy_was_applied::Bool)
     println("************************************************************")
     print(nb_open_nodes(s) + 1)
     print(" open nodes. Treating node ", get_treat_order(s), ". ")
@@ -195,7 +193,7 @@ function print_info_before_apply(n::Node, s::TreeSolver, reform::Reformulation, 
     return
 end
 
-function print_info_after_apply(n::Node, s::TreeSolver)
+function print_info_after_apply(n::Node, s::ReformulationSolver)
     println("************************************************************")
     println("Node ", get_treat_order(n), " is treated")
     println("Generated ", length(getchildren(n)), " children nodes")

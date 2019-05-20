@@ -79,7 +79,3 @@ Constructs a default GlobalStrategy using the strategies
 and `DepthFirst` as TreeSearchStrategy.
 """
 GlobalStrategy() = GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst)
-
-function apply!(S::Type{<:GlobalStrategy}, args...)
-    error("Method apply! is not supposed to be implemented for the Global Strategies.")
-end
