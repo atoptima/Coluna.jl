@@ -32,7 +32,7 @@ function gap_with_penalties(data)
 
     @dantzig_wolfe_decomposition(gap, dec, M)
 
-    return gap
+    return gap, x
 end
 
 function maximization_gap(data)
@@ -57,5 +57,5 @@ function maximization_gap(data)
 
     @dantzig_wolfe_decomposition(gap, dec, M)
 
-    return gap
+    return gap, x
 end
