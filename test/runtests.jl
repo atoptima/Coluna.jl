@@ -61,3 +61,13 @@ end
 #     @test abs(JuMP.objective_value(problem) - 1931.0) < 1e-5
 #     @test print_and_check_sol(data, problem, x)
 # end
+
+global_logger(ConsoleLogger(stderr, LogLevel(-3)))
+@testset "play gap" begin
+    println("\e[1;42m Classic Play GAP \e[00m")
+    data = read_dataGap("../examples/GeneralizedAssignment_SimpleColGen/data/play2.txt")
+    problem, x = sgap_play()
+    JuMP.optimize!(problem)
+    @test abs(JuMP.objective_value(problem) - 75.0) < 1e-5
+    @test print_and_check_sol(data, problem, x)
+end
