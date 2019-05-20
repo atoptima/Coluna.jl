@@ -20,5 +20,9 @@ function id_unit_tests()
     @test isequal(constr_id, 1000301)
     @test isequal(1000301, constr_id)
 
+    @test var_id < constr_id
+    @test CL.getsortid(constr_id) == 100 + 1000000 * 3
+    @test_nowarn Base.show(var_id)
+
     return
 end
