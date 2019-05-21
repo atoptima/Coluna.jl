@@ -13,88 +13,21 @@ global const CL = Coluna
 global const CLD = ColunaDemos
 
 include("unit/unit_tests.jl")
+include("show_functions_tests.jl")
+include("full_instances_tests.jl")
 
 unit_tests()
 
-@testset "play gap" begin
-    data = CLD.GeneralizedAssignment.data("play2.txt")
-
-    coluna = JuMP.with_optimizer(Coluna.Optimizer,# #params = params,
-        master_factory = with_optimizer(GLPK.Optimizer),
-        pricing_factory = with_optimizer(GLPK.Optimizer))
-
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-
-    JuMP.optimize!(problem)
-    @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+@testset "Full instances " begin
+    full_instances_tests()
 end
 
-@testset "gap - JuMP/MOI modeling" begin
-    data = CLD.GeneralizedAssignment.data("smallgap3.txt")
-
-    coluna = JuMP.with_optimizer(Coluna.Optimizer,# #params = params,
-        master_factory = with_optimizer(GLPK.Optimizer),
-        pricing_factory = with_optimizer(GLPK.Optimizer))
-
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-
-    JuMP.optimize!(problem)
-    @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
-    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
-end
-
-@testset "gap with penalties - pure master variables" begin
-    data = CLD.GeneralizedAssignment.data("smallgap3.txt")
-
-    coluna = JuMP.with_optimizer(Coluna.Optimizer,# #params = params,
-        master_factory = with_optimizer(GLPK.Optimizer),
-        pricing_factory = with_optimizer(GLPK.Optimizer)
-    )
-
-    problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
-    JuMP.optimize!(problem)
-    @test abs(JuMP.objective_value(problem) - 416.4) <= 0.00001
-end
-
-@testset "gap with maximisation objective function" begin
-    data = CLD.GeneralizedAssignment.data("smallgap3.txt")
-
-    coluna = JuMP.with_optimizer(Coluna.Optimizer,# #params = params,
-        master_factory = with_optimizer(GLPK.Optimizer),
-        pricing_factory = with_optimizer(GLPK.Optimizer)
-    )
-
-    problem, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
-    JuMP.optimize!(problem)
-    @test abs(JuMP.objective_value(problem) - 580.0) <= 0.00001
-end
-
-# @testset "gap BIG instance" begin
-#     data = CLD.GeneralizedAssignment.data("gapC-5-100.txt")
-
-#     coluna = JuMP.with_optimizer(Coluna.Optimizer,# #params = params,
-#         master_factory = with_optimizer(GLPK.Optimizer),
-#         pricing_factory = with_optimizer(GLPK.Optimizer)
-#     )
-
-#     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-#     JuMP.optimize!(problem)
-#     @test abs(JuMP.objective_value(problem) - 1931.0) <= 0.00001
-#     @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
-# end
-
-@testset "play gap" begin
-    global_logger(ConsoleLogger(stderr, LogLevel(-4)))
-    data = CLD.GeneralizedAssignment.data("play2.txt")
-
-    coluna = JuMP.with_optimizer(Coluna.Optimizer,# #params = params,
-        master_factory = with_optimizer(GLPK.Optimizer),
-        pricing_factory = with_optimizer(GLPK.Optimizer)
-    )
-
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    JuMP.optimize!(problem)
-    @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+@testset "Base.show functions " begin
+    # Test show functions
+    backup_stdout = stdout
+    (rd_out, wr_out) = redirect_stdout()
+    show_functions_tests()
+    close(wr_out)
+    close(rd_out)
+    redirect_stdout(backup_stdout)
 end
