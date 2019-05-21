@@ -38,22 +38,6 @@ function compute_moi_terms(members::VarMembership)
     ]
 end
 
-function compute_moi_terms(var_dict::VarDict)
-    return [
-        MOI.ScalarAffineTerm{Float64}(
-            get_cost(getcurdata(var)), getindex(getmoirecord(var))
-        ) for (id, var) in var_dict
-    ]
-end
-
-function set_optimizer_obj(moi_optimizer::MOI.AbstractOptimizer,
-                           new_obj::VarDict)
-    terms = compute_moi_terms(new_obj)
-    objf = MOI.ScalarAffineFunction(terms, 0.0)
-    MOI.set(moi_optimizer, MoiObjective(), objf)
-    return
-end
-
 function update_bounds_in_optimizer(optimizer::MOI.AbstractOptimizer,
                                     var::Variable)
     moi_record = getmoirecord(var)
