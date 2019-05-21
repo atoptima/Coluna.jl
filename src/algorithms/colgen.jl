@@ -1,4 +1,4 @@
-struct ColumnGeneration <: AbstractAlgorithm end
+struct FullColumnGeneration <: AbstractAlgorithm end
 
 mutable struct ColumnGenerationData
     incumbents::Incumbents
@@ -18,12 +18,12 @@ struct ColumnGenerationRecord <: AbstractAlgorithmRecord
 end
 
 # Overload of the algorithm's prepare function
-function prepare!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
+function prepare!(::Type{FullColumnGeneration}, form, node, strategy_rec, params)
     @logmsg LogLevel(-1) "Prepare ColumnGeneration."
     return
 end
 
-function run!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
+function run!(::Type{FullColumnGeneration}, form, node, strategy_rec, params)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
     algorithm_data = ColumnGenerationData(form.master.obj_sense, node.incumbents)
     cg_rec = colgen_algorithm_ph2(algorithm_data, form)

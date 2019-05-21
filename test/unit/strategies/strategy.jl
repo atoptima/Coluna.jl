@@ -5,8 +5,8 @@ end
 
 function strategy_record_get_n_set()
     r = CL.StrategyRecord()
-    CL.setalgorithm!(r, CL.ColumnGeneration)
-    @test CL.getalgorithm(r) == CL.ColumnGeneration
+    CL.setalgorithm!(r, CL.FullColumnGeneration)
+    @test CL.getalgorithm(r) == CL.FullColumnGeneration
 end
 
 function strategy_fallbacks_tests()
