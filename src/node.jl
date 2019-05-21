@@ -34,6 +34,11 @@ struct NodeRecord
 end
 NodeRecord() = NodeRecord(Dict{VarId, VarData}(), Dict{ConstrId, ConstrData}())
 
+mutable struct FormulationStatus
+    need_to_prepare::Bool
+end
+FormulationStatus() = FormulationStatus(true)
+
 mutable struct Node <: AbstractNode
     treat_order::Int
     depth::Int
@@ -43,13 +48,14 @@ mutable struct Node <: AbstractNode
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     algorithm_records::Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}
     record::NodeRecord
+    statuses::FormulationStatus
 end
 
 function RootNode(ObjSense::Type{<:AbstractObjSense})
     return Node(
         -1, 0, nothing, Node[], Incumbents(ObjSense), nothing,
         Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}(),
-        NodeRecord()
+        NodeRecord(), FormulationStatus()
     )
 end
 
@@ -62,7 +68,7 @@ function Node(parent::Node, branch::Branch)
     return Node(
         -1, depth, parent, Node[], incumbents, branch,
         Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}(),
-        NodeRecord()
+        NodeRecord(), FormulationStatus()
     )
 end
 
@@ -90,6 +96,7 @@ end
 
 function record!(reform::Reformulation, node::Node)
     # TODO : nested decomposition
+    node.statuses.need_to_prepare = true
     return record!(getmaster(reform), node)
 end
 
@@ -111,12 +118,14 @@ function record!(form::Formulation, node::Node)
     return
 end
 
-function setup!(f::Reformulation, n::Node)
+function prepare!(f::Reformulation, n::Node)
     @logmsg LogLevel(0) "Setting up Reformulation before appling strategy on node."
+    !n.statuses.need_to_prepare && return
     # For now, we do setup only in master
     @logmsg LogLevel(-1) "Setup on master."
     reset_to_record_state_of_father!(f, getparent(n))
     apply_branch!(f, getbranch(n))
+    n.statuses.need_to_prepare = false
     return
 end
 
