@@ -9,10 +9,12 @@
 
 
 `Coluna` is a branch-and-price-and-cut framework that decomposes and solves 
-a mixed-integer program (MIP) wrotten by the user using [`JuMP`](https://github.com/JuliaOpt/JuMP.jl) and 
+a mixed-integer program (MIP). The user introduces his "original" problem formulation using the [`JuMP`](https://github.com/JuliaOpt/JuMP.jl)modling language and our specific extension of this modeling language, namely the package
 [`BlockDecomposition`](https://github.com/atoptima/BlockDecomposition.jl). 
-`Coluna` aims to be very modular and tweakable so that any user can define the
-behavior of the branch-and-price-and-cut algorithm.
+
+`Coluna` performs the reformulation of the user problem based on the "annotations" provided along side the original formulation. These annotations are defined using the variable/constraint index: a set of indices defines an axis along which a Dantzig-Wolfe or a Benders decomposition can be automated. 
+
+`Coluna` aims to be very modular and tweakable so that any user can define the behavior of his customized branch-and-price-and-cut algorithm using its own algorithmic strategy that used the algorithmic building blocks that are offered in the library.
 
 ## Installation
 
@@ -33,12 +35,16 @@ As functionality goes, we aim to provide the support for:
 
 - [x] Dantzig-Wolfe decomposition 
 - [ ] Benders decomposition
-- [ ] Nested and mixed Dantzig-Benders decomposition
-- [x] Branch-and-price-and-cut customization
+- [ ] Mixed Dantzig-Benders decomposition
+- [ ] Nested/Recursive decomposition
 - [x] Column generation
 - [ ] Cuts generation
+- [x] Branch-and-price-and-cut customization
 - [ ] Ad-hoc customised oracles for solving subproblems / separation routines
-- [ ] Preprocessing, stabilisation, strong-branching and other standard speed-up methods
+- [ ] Preprocessing specific to reformulated problems / cleaning up of large scale formulations 
+- [ ] stabilisation and other convergence speed-up methods
+- [ ] Strong-branching 
+- [ ] Parallelisation of the Branch-and-bound tree search 
 
 ## Authors
 
@@ -47,6 +53,11 @@ The current main contributors to Coluna.jl are:
 - François Vanderbeck
 - Guillaume Marques
 - Vitor Nesello
+- Teobaldo Bulhoes
+
+## Sponsor
+
+The plateform development has received an important support grant from the international scientific society **Mathematical Optimization Society' (MOS)**
 
 ## Contributing
 
