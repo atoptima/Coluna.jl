@@ -251,3 +251,9 @@ function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
     var_val_dict = getsol(getbestprimalsol(optimizer.result))
     return [get(var_val_dict, optimizer.varmap[ref], 0.0) for ref in refs]
 end
+
+function MOI.get(optimizer::Optimizer, object::MOI.TerminationStatus)
+    result = optimizer.result
+    isfeasible(result) && return MOI.OPTIMAL
+    !isfeasible(result) && return MOI.INFEASIBLE
+end
