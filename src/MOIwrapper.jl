@@ -17,8 +17,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     moi_index_to_coluna_uid::MOIU.IndexMap
     params::Params
     annotations::Annotations
-    result::Incumbents
     varmap::Dict{MOI.VariableIndex,Id{Variable}} # For the user to get VariablePrimal
+    result::OptimizationResult
 end
 
 setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob
@@ -28,8 +28,8 @@ function Optimizer(;master_factory =
         JuMP.with_optimizer(GLPK.Optimizer), params = Params())
     prob = Problem(master_factory, pricing_factory)
     return Optimizer(
-        prob, MOIU.IndexMap(), params, Annotations(), Incumbents(MinSense),
-        Dict{MOI.VariableIndex,Id{Variable}}()
+        prob, MOIU.IndexMap(), params, Annotations(),
+        Dict{MOI.VariableIndex,Id{Variable}}(), OptimizationResult{MinSense}()
     )
 end
 
@@ -232,22 +232,28 @@ end
 MOI.is_empty(optimizer::Optimizer) = (optimizer.inner.re_formulation == nothing)
 
 function MOI.get(optimizer::Optimizer, object::MOI.ObjectiveBound)
-    return getvalue(get_ip_dual_bound(optimizer.result))
+    return getvalue(getprimalbound(optimizer.result))
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.ObjectiveValue)
-    return getvalue(get_ip_primal_bound(optimizer.result))
+    return getvalue(getprimalbound(optimizer.result))
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
                  ref::MOI.VariableIndex)
     id = optimizer.varmap[ref] # This gets a coluna Id{Variable}
-    primal_sol = getsol(optimizer.result.ip_primal_sol)
-    return get(primal_sol, id, 0.0)
+    var_val_dict = getsol(getbestprimalsol(optimizer.result))
+    return get(var_val_dict, id, 0.0)
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
                  refs::Vector{MOI.VariableIndex})
-    primal_sol = getsol(optimizer.result.ip_primal_sol)
-    return [get(primal_sol, optimizer.varmap[ref], 0.0) for ref in refs]
+    var_val_dict = getsol(getbestprimalsol(optimizer.result))
+    return [get(var_val_dict, optimizer.varmap[ref], 0.0) for ref in refs]
+end
+
+function MOI.get(optimizer::Optimizer, object::MOI.TerminationStatus)
+    result = optimizer.result
+    isfeasible(result) && return MOI.OPTIMAL
+    !isfeasible(result) && return MOI.INFEASIBLE
 end
