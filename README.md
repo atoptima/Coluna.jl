@@ -9,12 +9,12 @@
 
 
 `Coluna` is a branch-and-price-and-cut framework that decomposes and solves 
-a mixed-integer program (MIP). The user introduces his "original" problem formulation using the [`JuMP`](https://github.com/JuliaOpt/JuMP.jl)modling language and our specific extension of this modeling language, namely the package
+a mixed-integer program (MIP). The user introduces his "original" problem formulation using the [`JuMP`](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
 [`BlockDecomposition`](https://github.com/atoptima/BlockDecomposition.jl). 
 
-`Coluna` performs the reformulation of the user problem based on the "annotations" provided along side the original formulation. These annotations are defined using the variable/constraint index: a set of indices defines an axis along which a Dantzig-Wolfe or a Benders decomposition can be automated. 
+`Coluna` reformulates the user problem based on the "annotations" provided along side the original formulation using [`BlockDecomposition`](https://github.com/atoptima/BlockDecomposition.jl).
 
-`Coluna` aims to be very modular and tweakable so that any user can define the behavior of his customized branch-and-price-and-cut algorithm using its own algorithmic strategy that used the algorithmic building blocks that are offered in the library.
+`Coluna` aims to be very modular and tweakable so that any user can define the behavior of his customized branch-and-price-and-cut algorithm. The user can create its own algorithmic strategy using the algorithmic building blocks offered in `Coluna`.
 
 ## Installation
 
@@ -53,11 +53,11 @@ The current main contributors to Coluna.jl are:
 - François Vanderbeck
 - Guillaume Marques
 - Vitor Nesello
-- Teobaldo Bulhoes
+- Teobaldo Bulhões
 
 ## Sponsor
 
-The plateform development has received an important support grant from the international scientific society **Mathematical Optimization Society' (MOS)**
+The plateform development has received an important support grant from the international scientific society [**Mathematical Optimization Society' (MOS)**](http://www.mathopt.org/)
 
 ## Contributing
 
