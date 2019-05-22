@@ -36,8 +36,9 @@ NodeRecord() = NodeRecord(Dict{VarId, VarData}(), Dict{ConstrId, ConstrData}())
 
 mutable struct FormulationStatus
     need_to_prepare::Bool
+    proven_infeasible::Bool
 end
-FormulationStatus() = FormulationStatus(true)
+FormulationStatus() = FormulationStatus(true, false)
 
 mutable struct Node <: AbstractNode
     treat_order::Int
@@ -89,6 +90,7 @@ get_algorithm_record!(n::Node, S::Type{<:AbstractAlgorithm}) = n.algorithm_recor
 
 function to_be_pruned(n::Node)
     # How to determine if a node should be pruned?? By the lp_gap?
+    n.status.proven_infeasible && return true
     lp_gap(n.incumbents) <= 0.0000001 && return true
     ip_gap(n.incumbents) <= 0.0000001 && return true
     return false

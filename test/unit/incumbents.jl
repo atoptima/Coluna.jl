@@ -4,6 +4,10 @@ end
 
 function incumbents_getters_and_setters_unit_tests()
     inc = CL.Incumbents(CL.MinSense)
+    max_inc = CL.Incumbents(CL.MaxSense)
+
+    @test CL.getsense(inc) == CL.MinSense
+    @test CL.getsense(max_inc) == CL.MaxSense
 
     f = CL.Formulation{CL.Original}(CL.Counter(), obj_sense = CL.MinSense)
 

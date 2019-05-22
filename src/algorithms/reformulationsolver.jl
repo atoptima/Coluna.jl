@@ -52,10 +52,13 @@ function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
                        divide_strategy::Type{<:AbstractDivideStrategy},
                        reform::Reformulation, node::Node, params)
     strategy_rec = StrategyRecord()
-    setalgorithm!(strategy_rec, StartNode)
+    setalgorithm!(strategy_rec, StartNode) # ToClean
     apply!(conquer_strategy, reform, node, strategy_rec, params)
     apply!(divide_strategy, reform, node, strategy_rec, params)
-    record!(reform, node)
+    # Condition needed because if the last algorithm that was executed did a 
+    # record (because would change the formulation), the following line 
+    # would record the modified problem, which we do not want
+    !node.status.need_to_prepare && record!(reform, node)
     return
 end
 
