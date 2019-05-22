@@ -44,7 +44,7 @@ As functionality goes, we aim to provide the support for:
 - [ ] Preprocessing specific to reformulated problems / cleaning up of large scale formulations 
 - [ ] stabilisation and other convergence speed-up methods
 - [ ] Strong-branching 
-- [ ] Parallelisation of the Branch-and-bound tree search 
+- [ ] Parallelisation of the Branch-and-Bound Tree Search 
 
 ## Authors
 
