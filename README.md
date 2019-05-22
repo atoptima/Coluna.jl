@@ -7,38 +7,38 @@
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
-## What
 
-Coluna.jl is a work-in-progess framework that allows the user to define and solve a deposed 'Reformulation' from an original 'Compact' model. It aims to be very modular and tweakable so that an experienced user can define the desired behaviour on many of the algorithm steps through overriding default methods.
+`Coluna` is a branch-and-price-and-cut framework that decomposes and solves 
+a mixed-integer program (MIP) wrotten by the user using [`JuMP`](https://github.com/JuliaOpt/JuMP.jl) and 
+[`BlockDecomposition`](https://github.com/atoptima/BlockDecomposition.jl). 
+`Coluna` aims to be very modular and tweakable so that any user can define the
+behavior of the branch-and-price-and-cut algorithm.
 
+## Installation
 
-## How it works
+You can install Coluna.jl through the package manager of Julia. 
+Go to the Pkg-REPL-mode using the key `]` from the Julia REPL. 
+Then, run the following command :
 
-Coluna uses BlockDecomposition.jl and JuMP.jl to gather all the information needed related to the model to be solved as well as the desired decomposition structure.
+```
+   pkg> add https://github.com/atoptima/Coluna.jl.git
+```
 
-Once all this information is given by the user, Coluna is able to break the original model in all its sub-structures witch will be solved in a branch-and-bound fashion by applied a master-slave algorithm.
+## Features
 
-
-## Current state
-
-The master version of Coluna is able to solve a standard Branch-and-Price algorithm where master and subproblems are solved by LP and MILP respectively. Coluna is also capable of using a restricted master IP heuristic in order to find primal bounds faster.
-
-
-## Future goals
-
-We aim to integrate to Coluna the state-of-the-art strategies and algorithms used in some of the best research teams on combinatorial optimisation.
+We aim to integrate to Coluna the state-of-the-art techniques used for 
+branch-and-cut-and-price algorithms.
 
 As functionality goes, we aim to provide the support for:
 
 - [x] Dantzig-Wolfe decomposition 
 - [ ] Benders decomposition
 - [ ] Nested and mixed Dantzig-Benders decomposition
-- [ ] Possibility for the user to override a great part of the solution routines in order to have a fully customisable framework
+- [x] Branch-and-price-and-cut customization
 - [x] Column generation
 - [ ] Cuts generation
 - [ ] Ad-hoc customised oracles for solving subproblems / separation routines
 - [ ] Preprocessing, stabilisation, strong-branching and other standard speed-up methods
-
 
 ## Authors
 
@@ -50,6 +50,5 @@ The current main contributors to Coluna.jl are:
 
 ## Contributing
 
-- [ ] See the list of current issues, choose one, and open a PR with a proposition.
-- [ ] Open a new issue with a proposition to enhance the package.
-- [ ] Use it to your own problem, find bugs, and open an issue/PR with the proposal to solve the bug.
+- Choose an issue and open a PR with a proposition to fix it.
+- Open new issues if you find a bug or a way to enhance the package.
