@@ -177,18 +177,22 @@ function gencol!(master_form::Formulation,
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
     TO.@timeit _to "Pricing subproblem" begin
-        status, value, p_sols, d_sol = optimize!(sp_form)
+        opt_result = optimize!(sp_form)
     end
 
-    pricing_db_contrib = compute_pricing_db_contrib(sp_form, value, sp_lb, sp_ub)
+    pricing_db_contrib = compute_pricing_db_contrib(
+        sp_form, getprimalbound(opt_result), sp_lb, sp_ub
+    )
     # @show pricing_dual_bound_contrib
 
-    if status != MOI.OPTIMAL
+    if !isfeasible(opt_result)
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
         return flag_is_sp_infeasible
     end
 
-    insertion_status = insert_cols_in_master!(master_form, sp_form, p_sols)
+    insertion_status = insert_cols_in_master!(
+        master_form, sp_form, getprimalsols(opt_result)
+    )
 
     return insertion_status, pricing_db_contrib
 end
@@ -233,9 +237,10 @@ end
 
 function solve_restricted_master!(master::Formulation)
     elapsed_time = @elapsed begin
-        status, val, primal_sols, dual_sol = TO.@timeit _to "LP restricted master" optimize!(master)
+        opt_result = TO.@timeit _to "LP restricted master" optimize!(master)
     end
-    return status, val, primal_sols, dual_sol, elapsed_time
+    return (isfeasible(opt_result), getprimalbound(opt_result), 
+    getprimalsols(opt_result), getbestdualsol(opt_result), elapsed_time)
 end
 
 function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,

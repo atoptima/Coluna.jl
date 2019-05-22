@@ -40,11 +40,11 @@ function initialize_moi_optimizer(reformulation::Reformulation,
 end
 
 function optimize!(reformulation::Reformulation)
-    incumbents = apply!(GlobalStrategy, reformulation)
-    incumbents.ip_primal_sol = proj_cols_on_rep(
-        get_ip_primal_sol(incumbents), getmaster(reformulation)
-    )
-    return incumbents
+    opt_result = apply!(GlobalStrategy, reformulation)
+    opt_result.primal_sols = [proj_cols_on_rep(
+        getbestprimalsol(opt_result), getmaster(reformulation)
+    )]
+    return opt_result
 end
 
 # Following two functions are temporary, we must store a pointer to the vc
