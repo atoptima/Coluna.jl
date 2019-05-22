@@ -156,7 +156,7 @@ function update_reform_solver(s::ReformulationSolver, n::Node)
         switch_tree(s)
         t = cur_tree(s)
     end
-    @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
+    @logmsg LogLevel(-1) string("Inserting ", length(n.children), " children nodes in tree.")
     for idx in length(n.children):-1:1
         push!(t, pop!(n.children))
     end

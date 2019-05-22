@@ -146,7 +146,7 @@ function gencol!(master_form::Formulation,
                      dual_sol::DualSolution,
                      sp_lb::Float64,
                      sp_ub::Float64)
-    
+
     #flag_need_not_generate_more_col = 0 # Not used
     flag_is_sp_infeasible = -1
     #flag_cannot_generate_more_col = -2 # Not used
@@ -232,7 +232,6 @@ function update_lagrangian_db!(alg::ColumnGenerationData,
 end
 
 function solve_restricted_master!(master::Formulation)
-    # GLPK.write_lp(getinner(get_optimizer(master_form)), string(dirname(@__FILE__ ), "/mip_", nb_cg_iterations,".lp"))
     elapsed_time = @elapsed begin
         status, val, primal_sols, dual_sol = TO.@timeit _to "LP restricted master" optimize!(master)
     end
