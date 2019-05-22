@@ -34,6 +34,12 @@ struct NodeRecord
 end
 NodeRecord() = NodeRecord(Dict{VarId, VarData}(), Dict{ConstrId, ConstrData}())
 
+mutable struct FormulationStatus
+    need_to_prepare::Bool
+    proven_infeasible::Bool
+end
+FormulationStatus() = FormulationStatus(true, false)
+
 mutable struct Node <: AbstractNode
     treat_order::Int
     depth::Int
@@ -41,15 +47,16 @@ mutable struct Node <: AbstractNode
     children::Vector{Node}
     incumbents::Incumbents
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
-    solver_records::Dict{Type{<:AbstractSolver},AbstractSolverRecord}
+    algorithm_records::Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}
     record::NodeRecord
+    status::FormulationStatus
 end
 
 function RootNode(ObjSense::Type{<:AbstractObjSense})
     return Node(
         -1, 0, nothing, Node[], Incumbents(ObjSense), nothing,
-        Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
-        NodeRecord()
+        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}(),
+        NodeRecord(), FormulationStatus()
     )
 end
 
@@ -61,8 +68,8 @@ function Node(parent::Node, branch::Branch)
     incumbents.lp_primal_sol = typeof(incumbents.lp_primal_sol)()
     return Node(
         -1, depth, parent, Node[], incumbents, branch,
-        Dict{Type{<:AbstractSolver},AbstractSolverRecord}(),
-        NodeRecord()
+        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}(),
+        NodeRecord(), FormulationStatus()
     )
 end
 
@@ -75,20 +82,23 @@ getbranch(n::Node) = n.branch
 addchild!(n::Node, child::Node) = push!(n.children, child)
 set_treat_order!(n::Node, treat_order::Int) = n.treat_order = treat_order
 
-function set_solver_record!(n::Node, S::Type{<:AbstractSolver}, 
-                            r::AbstractSolverRecord)
-    n.solver_records[S] = r
+function set_algorithm_record!(n::Node, S::Type{<:AbstractAlgorithm}, 
+                            r::AbstractAlgorithmRecord)
+    n.algorithm_records[S] = r
 end
-get_solver_record!(n::Node, S::Type{<:AbstractSolver}) = n.solver_records[S]
+get_algorithm_record!(n::Node, S::Type{<:AbstractAlgorithm}) = n.algorithm_records[S]
 
 function to_be_pruned(n::Node)
     # How to determine if a node should be pruned?? By the lp_gap?
+    n.status.proven_infeasible && return true
     lp_gap(n.incumbents) <= 0.0000001 && return true
+    ip_gap(n.incumbents) <= 0.0000001 && return true
     return false
 end
 
 function record!(reform::Reformulation, node::Node)
     # TODO : nested decomposition
+    node.status.need_to_prepare = true
     return record!(getmaster(reform), node)
 end
 
@@ -110,12 +120,14 @@ function record!(form::Formulation, node::Node)
     return
 end
 
-function setup!(f::Reformulation, n::Node)
+function prepare!(f::Reformulation, n::Node)
     @logmsg LogLevel(0) "Setting up Reformulation before appling strategy on node."
+    !n.status.need_to_prepare && return
     # For now, we do setup only in master
     @logmsg LogLevel(-1) "Setup on master."
     reset_to_record_state_of_father!(f, getparent(n))
     apply_branch!(f, getbranch(n))
+    n.status.need_to_prepare = false
     return
 end
 

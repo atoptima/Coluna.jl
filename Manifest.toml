@@ -23,7 +23,7 @@ version = "0.5.4"
 
 [[BlockDecomposition]]
 deps = ["DataStructures", "JuMP", "MathOptInterface", "Test"]
-git-tree-sha1 = "dc1188fa95bee1a46dd755c04cf9d6a62d80d834"
+git-tree-sha1 = "c1b57e5ed4b891b2fe3326dba7f558b2e4893654"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
@@ -34,6 +34,14 @@ deps = ["Compat"]
 git-tree-sha1 = "f60954495a7afcee4136f78d1d60350abd37a409"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.4.1"
+
+[[ColunaDemos]]
+deps = ["BlockDecomposition", "JuMP"]
+git-tree-sha1 = "1b45d00d69cf8e75e9aea6b847306ba24022b6eb"
+repo-rev = "master"
+repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
+uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
+version = "0.1.0"
 
 [[CommonSubexpressions]]
 deps = ["Test"]
@@ -123,7 +131,7 @@ git-tree-sha1 = "67a054b8aa451198dcaeff279614125833d4a3e4"
 repo-rev = "7c115a2dcc8d92bdb6422dc4ed0919b7842e30fb"
 repo-url = "https://github.com/JuliaOpt/JuMP.jl.git"
 uuid = "4076af6c-e467-56ae-b986-b466b2749572"
-version = "0.19.0+"
+version = "0.19.1+"
 
 [[LibGit2]]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"

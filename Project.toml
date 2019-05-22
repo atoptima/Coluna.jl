@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
+ColunaDemos = "a54e61d4-7723-11e9-2469-af255fcaa246"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"

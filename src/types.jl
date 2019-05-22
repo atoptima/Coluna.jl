@@ -16,11 +16,11 @@ A strategy is a type used to define Coluna's behaviour in its algorithmic parts.
 """
 abstract type AbstractStrategy end
 """
-    AbstractSolver
+    AbstractAlgorithm
 
-A solver is an 'text-book' algorithm applied to a formulation in a node.
+An algorithm is an 'text-book' algorithm applied to a formulation in a node.
 """
-abstract type AbstractSolver end
+abstract type AbstractAlgorithm end
 
 
 struct MinSense <: AbstractObjSense end

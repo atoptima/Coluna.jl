@@ -13,13 +13,6 @@ mutable struct Reformulation <: AbstractFormulation
 end
 
 """
-    Reformulation(prob::AbstractProblem)
-
-Constructs a `Reformulation`.
-"""
-Reformulation(prob::AbstractProblem) = Reformulation(prob, GlobalStrategy())
-
-"""
     Reformulation(prob::AbstractProblem, method::SolutionMethod)
 
 Constructs a `Reformulation` that shall be solved using the `GlobalStrategy` `strategy`.
@@ -47,8 +40,11 @@ function initialize_moi_optimizer(reformulation::Reformulation,
 end
 
 function optimize!(reformulation::Reformulation)
-    res = apply(TreeSolver, reformulation)
-    return res
+    opt_result = apply!(GlobalStrategy, reformulation)
+    opt_result.primal_sols = [proj_cols_on_rep(
+        getbestprimalsol(opt_result), getmaster(reformulation)
+    )]
+    return opt_result
 end
 
 # Following two functions are temporary, we must store a pointer to the vc

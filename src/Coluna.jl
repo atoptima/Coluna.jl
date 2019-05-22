@@ -39,7 +39,7 @@ import Base.isinteger
 import Base.push!
 
 include("types.jl")
-include("solvers/solver.jl")
+include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
 
 include("parameters.jl")
@@ -54,6 +54,7 @@ include("varconstr.jl")
 include("manager.jl")
 include("filters.jl")
 include("solsandbounds.jl")
+include("optimizationresults.jl")
 include("incumbents.jl")
 include("buffer.jl")
 include("formulation.jl")
@@ -61,15 +62,17 @@ include("clone.jl")
 include("reformulation.jl")
 include("projection.jl")
 include("problem.jl")
+include("node.jl")
 include("decomposition.jl")
 include("MOIinterface.jl")
 
-# Concrete Solvers & Strategies :
+# Concrete algorithms & Strategies :
 
-# Here include solvers
-include("solvers/colgen.jl")
-include("solvers/masteripheur.jl")
-include("solvers/generatechildrennodes.jl")
+# Here include algorithms
+include("algorithms/colgen.jl")
+include("algorithms/masteripheur.jl")
+include("algorithms/generatechildrennodes.jl")
+include("algorithms/reformulationsolver.jl")
 
 # Here include conquer strategies
 include("strategies/conquer/simplebnp.jl")
@@ -79,10 +82,6 @@ include("strategies/divide/simplebranching.jl")
 
 # Here include tree search strategies
 include("strategies/treesearch/simplestrategies.jl")
-
-# Search tree
-include("node.jl")
-include("bbtree.jl")
 
 # Wrapper functions
 include("MOIwrapper.jl")

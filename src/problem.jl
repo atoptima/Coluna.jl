@@ -73,9 +73,13 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
     coluna_initialization(prob, annotations, params)
     _globals_.initial_solve_time = time()
     @info _params_
-    TO.@timeit to "Coluna" begin
-        res = optimize!(prob.re_formulation)
+    TO.@timeit _to "Coluna" begin
+        opt_result = optimize!(prob.re_formulation)
     end
-    println(to)
-    return res
+    println(_to)
+    println("Terminated.")
+    @show getbestprimalsol(opt_result)
+    println("Primal bound: ", getprimalbound(opt_result))
+    println("Dual bound: ", getdualbound(opt_result))
+    return opt_result
 end
