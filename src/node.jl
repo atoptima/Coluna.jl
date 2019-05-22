@@ -48,7 +48,7 @@ mutable struct Node <: AbstractNode
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     algorithm_records::Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}
     record::NodeRecord
-    statuses::FormulationStatus
+    status::FormulationStatus
 end
 
 function RootNode(ObjSense::Type{<:AbstractObjSense})
@@ -96,7 +96,7 @@ end
 
 function record!(reform::Reformulation, node::Node)
     # TODO : nested decomposition
-    node.statuses.need_to_prepare = true
+    node.status.need_to_prepare = true
     return record!(getmaster(reform), node)
 end
 
@@ -120,12 +120,12 @@ end
 
 function prepare!(f::Reformulation, n::Node)
     @logmsg LogLevel(0) "Setting up Reformulation before appling strategy on node."
-    !n.statuses.need_to_prepare && return
+    !n.status.need_to_prepare && return
     # For now, we do setup only in master
     @logmsg LogLevel(-1) "Setup on master."
     reset_to_record_state_of_father!(f, getparent(n))
     apply_branch!(f, getbranch(n))
-    n.statuses.need_to_prepare = false
+    n.status.need_to_prepare = false
     return
 end
 
