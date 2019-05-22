@@ -36,9 +36,10 @@ end
 Applies the algorithm `AlgorithmType` on the `formulation` in a `node` with 
 `parameters`.
 """
-function apply!(S::Type{<:AbstractAlgorithm}, form, node, strategy_rec, 
+function apply!(S::Type{<:AbstractAlgorithm}, form, node, strategy_rec,
                 params)
-                setalgorithm!(strategy_rec, S)
+    prepare!(form, node)
+    setalgorithm!(strategy_rec, S)
     TO.@timeit _to string(S) begin
         TO.@timeit _to "prepare" begin
             prepare!(S, form, node, strategy_rec, params)

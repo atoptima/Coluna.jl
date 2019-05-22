@@ -51,9 +51,7 @@ switch_tree(s::ReformulationSolver) = s.in_primary = !s.in_primary
 function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
                        divide_strategy::Type{<:AbstractDivideStrategy},
                        reform::Reformulation, node::Node, params)
-
     strategy_rec = StrategyRecord()
-    setup!(reform, node)
     setalgorithm!(strategy_rec, StartNode)
     apply!(conquer_strategy, reform, node, strategy_rec, params)
     apply!(divide_strategy, reform, node, strategy_rec, params)
