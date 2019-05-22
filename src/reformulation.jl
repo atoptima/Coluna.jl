@@ -13,13 +13,6 @@ mutable struct Reformulation <: AbstractFormulation
 end
 
 """
-    Reformulation(prob::AbstractProblem)
-
-Constructs a `Reformulation`.
-"""
-Reformulation(prob::AbstractProblem) = Reformulation(prob, GlobalStrategy())
-
-"""
     Reformulation(prob::AbstractProblem, method::SolutionMethod)
 
 Constructs a `Reformulation` that shall be solved using the `GlobalStrategy` `strategy`.
