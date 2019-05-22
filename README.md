@@ -12,7 +12,7 @@
 a mixed-integer program (MIP). The user introduces his "original" problem formulation using the [`JuMP`](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
 [`BlockDecomposition`](https://github.com/atoptima/BlockDecomposition.jl). 
 
-`Coluna` reformulates the user problem based on the "annotations" provided along side the original formulation using [`BlockDecomposition`](https://github.com/atoptima/BlockDecomposition.jl).
+`Coluna` reformulates the user problem based on the "annotations" provided along side the original formulation using `BlockDecomposition`.
 
 `Coluna` aims to be very modular and tweakable so that any user can define the behavior of his customized branch-and-price-and-cut algorithm. The user can create its own algorithmic strategy using the algorithmic building blocks offered in `Coluna`.
 
