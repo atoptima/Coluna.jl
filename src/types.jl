@@ -39,8 +39,8 @@ abstract type AbstractMasterVar <: AbstractVarDuty end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
 abstract type AbstractBendSpVar <: AbstractVarDuty end
 abstract type AbstractPricingSpVar <: AbstractDwSpVar end
-abstract type AbstractMastRepDwSpVar <: AbstractDwSpVar end
-abstract type AbstractMastRepBendSpVar <: AbstractBendSpVar end
+abstract type AbstractMastRepDwSpVar <: AbstractMasterVar end
+abstract type AbstractBendSpRepVar <: AbstractBendSpVar end
 
 # Concrete types for VarDuty
 "Variable belongs to the original formulation."
@@ -79,13 +79,16 @@ struct PricingSpPureVar <: AbstractDwSpVar end
 "Variable that belongs to a pricing subproblem."
 struct BendersSepSpVar <: AbstractBendSpVar end
 
-"Variable that represents the setup (use or not) of a pricing subproblem solution."
-struct BendersSepArtVar <: AbstractBendSpVar end
-
 "Variable belongs to a subproblem and has no representatives in the master? FV can you check this?"
-struct BendersSepPureVar <: AbstractBendSpVar end
+struct BendersSepVar <: AbstractBendSpVar end
 
-struct MastRepSecondStageCostVar <: AbstractMastRepBendSpVar end
+struct BendersSecondStageCostVar <: AbstractMasterVar end
+
+struct BendersFirstStageVar <: AbstractMasterVar end
+
+struct BendersSepRepSecondStageCostVar <: AbstractBendSpVar end
+
+struct BendersSepRepFirstStageVar <: AbstractBendSpVar end
 
 struct UndefinedVarDuty <: AbstractVarDuty end
 
@@ -97,9 +100,9 @@ struct UndefinedVarDuty <: AbstractVarDuty end
 abstract type AbstractOriginalConstr <: AbstractConstrDuty end
 abstract type AbstractMasterConstr <: AbstractConstrDuty end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
-abstract type AbstractBendMasterConstr <: AbstractConstrDuty end
 abstract type AbstractBendSpConstr <: AbstractConstrDuty end
 abstract type AbstractMasterRepOriginalConstr <: AbstractMasterConstr end
+abstract type AbstractBendersTechnologicalConstr <: AbstractBendSpConstr end
 
 # Concrete duties for Constraints
 "Constraint belongs to the original formulation."
@@ -125,11 +128,15 @@ struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
 
 struct BendersPureSepConstr <: AbstractBendSpConstr end
 
-struct BendersTechnologicalConstr <: AbstractBendSpConstr end
+struct BendersFeasibilityTechnologicalConstr <: AbstractBendersTechnologicalConstr end
 
 struct BendersPureMasterConstr <: AbstractBendMasterConstr end
 
-struct BendersCutConstr <: AbstractBendMasterConstr end
+struct BendersSecondStageCostConstr <: AbstractMasterConstr end
+
+struct BendersSepSecondStageCostConstr <: AbstractBendersTechnologicalConstr end
+
+struct BendersCutConstr <: AbstractMasterConstr end
 
 struct UndefinedConstrDuty <: AbstractConstrDuty end
 
