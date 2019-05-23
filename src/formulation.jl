@@ -3,7 +3,7 @@
 
 Representation of a formulation which is typically solved by either a MILP or a dynamic program solver.
 
-Such solver must be interfaced with MOI and its pointer is stored in the field `moi_optimizer`.
+Such solver must be interfaced with MOI and its pointer is stored in the field `optimizer`.
 """
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
@@ -11,35 +11,29 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     constr_counter::Counter
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
 
-    moi_optimizer::Union{MOI.AbstractOptimizer, Nothing}
+    optimizer::AbstractOptimizer
     manager::FormulationManager
     obj_sense::Type{<:AbstractObjSense}
 
     buffer::FormulationBuffer
-    solver_info::Any
-    callback
 end
 
 """
     Formulation{D}(form_counter::Counter,
                    parent_formulation = nothing,
-                   obj_sense::Type{<:AbstractObjSense} = MinSense,
-                   moi_optimizer::Union{MOI.AbstractOptimizer,
-                                        Nothing} = nothing
+                   obj_sense::Type{<:AbstractObjSense} = MinSense
                    ) where {D<:AbstractFormDuty}
 
 Constructs a `Formulation` of duty `D` for which the objective sense is `obj_sense`.
 """
 function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
-                        obj_sense::Type{<:AbstractObjSense} = MinSense,
-                        moi_optimizer::Union{MOI.AbstractOptimizer,
-                                             Nothing} = nothing
+                        obj_sense::Type{<:AbstractObjSense} = MinSense
                         ) where {D<:AbstractFormDuty}
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
-        parent_formulation, moi_optimizer, FormulationManager(),
-        obj_sense, FormulationBuffer(), nothing, nothing
+        parent_formulation, NoOptimizer(), FormulationManager(),
+        obj_sense, FormulationBuffer()
     )
 end
 
@@ -71,8 +65,8 @@ getuid(f::Formulation) = f.uid
 "Returns the objective function sense of `Formulation` `f`."
 getobjsense(f::Formulation) = f.obj_sense
 
-"Returns the `MOI.Optimizer` of `Formulation` `f`."
-get_optimizer(f::Formulation) = f.moi_optimizer
+"Returns the `AbstractOptimizer` of `Formulation` `f`."
+get_optimizer(f::Formulation) = f.optimizer
 
 getelem(f::Formulation, id::VarId) = getvar(f, id)
 getelem(f::Formulation, id::ConstrId) = getconstr(f, id)
@@ -85,8 +79,8 @@ _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 """
     setcost!(f::Formulation, v::Variable, new_cost::Float64)
 
-Sets `v.cur_data.cost` as well as the cost of `v` in `f.moi_optimizer` to be 
-euqal to `new_cost`. Change on `f.moi_optimizer` will be buffered.
+Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
+euqal to `new_cost`. Change on `f.optimizer` will be buffered.
 """
 function setcost!(f::Formulation, v::Variable, new_cost::Float64)
     setcurcost!(v, new_cost)
@@ -96,8 +90,8 @@ end
 """
     setub!(f::Formulation, v::Variable, new_ub::Float64)
 
-Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.moi_optimizer`
-according to `new_ub`. Change on `f.moi_optimizer` will be buffered.
+Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
+according to `new_ub`. Change on `f.optimizer` will be buffered.
 """
 function setub!(f::Formulation, v::Variable, new_ub::Float64)
     setcurub!(v, new_ub)
@@ -107,8 +101,8 @@ end
 """
     setlb!(f::Formulation, v::Variable, new_lb::Float64)
 
-Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.moi_optimizer` 
-according to `new_lb`. Change on `f.moi_optimizer` will be buffered.
+Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer` 
+according to `new_lb`. Change on `f.optimizer` will be buffered.
 """
 function setlb!(f::Formulation, v::Variable, new_lb::Float64)
     setcurlb!(v, new_lb)
@@ -118,8 +112,8 @@ end
 """
     setkind!(f::Formulation, v::Variable, new_kind::VarKind)
 
-Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.moi_optimizer` 
-according to `new_kind`. Change on `f.moi_optimizer` will be buffered.
+Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer` 
+according to `new_kind`. Change on `f.optimizer` will be buffered.
 """
 function setkind!(f::Formulation, v::Variable, new_kind::VarKind)
     setcurkind(v, new_kind)
@@ -129,7 +123,7 @@ end
 """
     set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
-Buffers the matrix modification in `f.buffer` to be sent to `f.moi_optimizer` right before next call to optimize!.
+Buffers the matrix modification in `f.buffer` to be sent to `f.optimizer` right before next call to optimize!.
 """
 set_matrix_coeff!(
     f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64
@@ -325,7 +319,7 @@ function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
     for id in ids
         vc = getelem(f, id)
         @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(vc))
-        remove_from_optimizer!(f.moi_optimizer, vc)
+        remove_from_optimizer!(f.optimizer, vc)
     end
     return
 end
@@ -407,21 +401,21 @@ function optimize!(form::Formulation)
     @logmsg LogLevel(-3) "Coluna formulation before sync: "
     @logmsg LogLevel(-3) form
     @logmsg LogLevel(-3) "MOI formulation before sync: "
-    # _show_optimizer(form.moi_optimizer)
+    # _show_optimizer(form.optimizer)
     sync_solver(form)
     @logmsg LogLevel(-2) "Coluna formulation after sync: "
     @logmsg LogLevel(-2) form
     @logmsg LogLevel(-2) "MOI formulation after sync: "
     # @show form
-    # _show_optimizer(form.moi_optimizer)
+    # _show_optimizer(form.optimizer)
 
-#     setup_solver(f.moi_optimizer, f, solver_info)
+#     setup_solver(f.optimizer, f, solver_info)
 
-    call_moi_optimize_with_silence(form.moi_optimizer)
+    call_moi_optimize_with_silence(form.optimizer)
     result = OptimizationResult{getobjsense(form)}()
-    status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
+    status = MOI.get(form.optimizer.inner, MOI.TerminationStatus())
     @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
-    if MOI.get(form.moi_optimizer, MOI.ResultCount()) >= 1
+    if MOI.get(form.optimizer.inner, MOI.ResultCount()) >= 1
         primal_sols = retrieve_primal_sols(
             form, filter(_active_explicit_ , getvars(form))
         )
@@ -441,17 +435,18 @@ function optimize!(form::Formulation)
     return result
 end
 
-function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
-    form.moi_optimizer = create_moi_optimizer(factory, form.obj_sense)
+function initialize_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
+    form.optimizer = create_optimizer(factory, form.obj_sense)
 end
 
 function retrieve_primal_sols(form::Formulation, vars::VarDict)
+    inner = getinner(get_optimizer(form))
     ObjSense = getobjsense(form)
     primal_sols = PrimalSolution{ObjSense}[]
-    for res_idx in 1:MOI.get(get_optimizer(form), MOI.ResultCount())
+    for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         new_sol = Dict{VarId,Float64}()
-        new_obj_val = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
-        fill_primal_sol(form.moi_optimizer, new_sol, vars, res_idx)
+        new_obj_val = MOI.get(inner, MOI.ObjectiveValue())
+        fill_primal_sol(form.optimizer, new_sol, vars, res_idx)
         primal_sol = PrimalSolution(form, new_obj_val, new_sol)
         push!(primal_sols, primal_sol)
     end
@@ -460,15 +455,15 @@ end
 
 function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
     # TODO check if supported by solver
-    if MOI.get(form.moi_optimizer, MOI.DualStatus()) != MOI.FEASIBLE_POINT
-        # println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
+    if MOI.get(form.optimizer.inner, MOI.DualStatus()) != MOI.FEASIBLE_POINT
+        # println("dual status is : ", MOI.get(form.optimizer, MOI.DualStatus()))
         return nothing
     end
     new_sol = Dict{ConstrId,Float64}()
     # Following line is commented becauss getting dual bound is not stable in some solvers. Getting primal bound instead, which will work for lps
-    # obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveBound())
-    obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
-    fill_dual_sol(form.moi_optimizer, new_sol, constrs)
+    # obj_bound = MOI.get(form.optimizer, MOI.ObjectiveBound())
+    obj_bound = MOI.get(form.optimizer.inner, MOI.ObjectiveValue())
+    fill_dual_sol(form.optimizer, new_sol, constrs)
     dual_sol = DualSolution(form, obj_bound, new_sol)
     return dual_sol
 end
