@@ -266,11 +266,6 @@ function activateconstr!(f::Formulation, id::Id{Constraint})
     return
 end
 
-function cloneconstr!(dest::Formulation, src::Formulation, constr::Constraint)
-    addconstr!(dest, constr)
-    return cloneconstr!(dest.manager, src.manager, constr)
-end
-
 function setmembers!(f::Formulation, v::Variable, members::ConstrMembership)
     # Compute column vector record partial solution
     # This adds the column to the convexity constraints automatically
@@ -324,150 +319,6 @@ function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
     return
 end
 
-function sync_solver(f::Formulation)
-    @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
-    optimizer = get_optimizer(f)
-    buffer = f.buffer
-    matrix = getcoefmatrix(f)
-    # Remove constrs
-    @logmsg LogLevel(-2) string("Removing constraints")
-    remove_from_optimizer!(buffer.constr_buffer.removed, f)
-    # Remove vars
-    @logmsg LogLevel(-2) string("Removing variables")
-    remove_from_optimizer!(buffer.var_buffer.removed, f)
-    # Add vars
-    for id in buffer.var_buffer.added
-        v = getvar(f, id)
-        @logmsg LogLevel(-2) string("Adding variable ", getname(v))
-        add_to_optimzer!(optimizer, v)
-    end
-    # Add constrs
-    for id in buffer.constr_buffer.added
-        c = getconstr(f, id)
-        @logmsg LogLevel(-2) string("Adding constraint ", getname(c))
-        add_to_optimzer!(optimizer, c, filter(_active_explicit_, matrix[id,:]))
-    end
-    # Update variable costs
-    for id in buffer.changed_cost
-        (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        update_cost_in_optimizer(optimizer, getvar(f, id))
-    end
-    # Update variable bounds
-    for id in buffer.changed_bound
-        (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing bounds of variable " getname(getvar(f,id))
-        @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(getvar(f,id)))
-        @logmsg LogLevel(-3) string("New upper bound is ", getcurub(getvar(f,id)))
-        update_bounds_in_optimizer(optimizer, getvar(f, id))
-    end
-    # Update variable kind
-    for id in buffer.changed_kind
-        (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
-        @logmsg LogLevel(-3) string("New kind is ", getcurkind(getvar(f,id)))
-        enforce_var_kind_in_optimizer(optimizer, getvar(f,id))
-    end
-    # Update constraint rhs
-    for id in buffer.changed_rhs
-        @warn "Update of constraint rhs not yet implemented"
-    end
-    # Update matrix
-    # First check if should update members of just-added vars
-    matrix = getcoefmatrix(f)
-    for id in buffer.var_buffer.added
-        for (constr_id, coeff) in filter(_active_explicit_, matrix[:,id])
-            constr_id in buffer.constr_buffer.added && continue
-            c = getconstr(f, constr_id)
-            update_constr_member_in_optimizer(optimizer, c, getvar(f, id), coeff)
-        end
-    end
-    # Then updated the rest of the matrix coeffs
-    for ((c_id, v_id), coeff) in buffer.reset_coeffs
-        # Ignore modifications involving vc's that were removed
-        (c_id in buffer.constr_buffer.removed || v_id in buffer.var_buffer.removed) && continue
-        c = getconstr(f, c_id)
-        v = getvar(f, v_id)
-        @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
-        # @logmsg LogLevel(1) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
-        update_constr_member_in_optimizer(optimizer, c, v, coeff)
-    end
-    _reset_buffer!(f)
-    return
-end
-
-"Calls optimization routine for `Formulation` `f`."
-function optimize!(form::Formulation)
-    @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
-    @logmsg LogLevel(-3) "Coluna formulation before sync: "
-    @logmsg LogLevel(-3) form
-    @logmsg LogLevel(-3) "MOI formulation before sync: "
-    # _show_optimizer(form.optimizer)
-    sync_solver(form)
-    @logmsg LogLevel(-2) "Coluna formulation after sync: "
-    @logmsg LogLevel(-2) form
-    @logmsg LogLevel(-2) "MOI formulation after sync: "
-    # @show form
-    # _show_optimizer(form.optimizer)
-
-#     setup_solver(f.optimizer, f, solver_info)
-
-    call_moi_optimize_with_silence(form.optimizer)
-    result = OptimizationResult{getobjsense(form)}()
-    status = MOI.get(form.optimizer.inner, MOI.TerminationStatus())
-    @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
-    if MOI.get(form.optimizer.inner, MOI.ResultCount()) >= 1
-        primal_sols = retrieve_primal_sols(
-            form, filter(_active_explicit_ , getvars(form))
-        )
-        result.primal_sols = primal_sols
-        result.primal_bound = getbound(primal_sols[1])
-        dual_sol = retrieve_dual_sol(form, filter(_active_explicit_ , getconstrs(form)))
-        @logmsg LogLevel(-2) string("Primal bound is ", primal_sols[1].bound)
-        dual_sol != nothing && @logmsg LogLevel(-2) string("Dual bound is ", dual_sol.bound)
-        if dual_sol != nothing
-            result.dual_sols = [dual_sol]
-            result.dual_bound = getbound(dual_sol)
-        end
-    else
-        @warn "Solver has no result to show."
-        result.feasible = false
-    end
-    return result
-end
-
-function initialize_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
-    form.optimizer = create_optimizer(factory, form.obj_sense)
-end
-
-function retrieve_primal_sols(form::Formulation, vars::VarDict)
-    inner = getinner(get_optimizer(form))
-    ObjSense = getobjsense(form)
-    primal_sols = PrimalSolution{ObjSense}[]
-    for res_idx in 1:MOI.get(inner, MOI.ResultCount())
-        new_sol = Dict{VarId,Float64}()
-        new_obj_val = MOI.get(inner, MOI.ObjectiveValue())
-        fill_primal_sol(form.optimizer, new_sol, vars, res_idx)
-        primal_sol = PrimalSolution(form, new_obj_val, new_sol)
-        push!(primal_sols, primal_sol)
-    end
-    return primal_sols
-end
-
-function retrieve_dual_sol(form::Formulation, constrs::ConstrDict)
-    # TODO check if supported by solver
-    if MOI.get(form.optimizer.inner, MOI.DualStatus()) != MOI.FEASIBLE_POINT
-        # println("dual status is : ", MOI.get(form.optimizer, MOI.DualStatus()))
-        return nothing
-    end
-    new_sol = Dict{ConstrId,Float64}()
-    # Following line is commented becauss getting dual bound is not stable in some solvers. Getting primal bound instead, which will work for lps
-    # obj_bound = MOI.get(form.optimizer, MOI.ObjectiveBound())
-    obj_bound = MOI.get(form.optimizer.inner, MOI.ObjectiveValue())
-    fill_dual_sol(form.optimizer, new_sol, constrs)
-    dual_sol = DualSolution(form, obj_bound, new_sol)
-    return dual_sol
-end
-
 function resetsolvalue(form::Formulation, sol::AbstractSolution) 
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
     setvalue!(sol, val)
@@ -488,6 +339,20 @@ function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution)
         end
     end
     return rc
+end
+
+"Calls optimization routine for `Formulation` `f`."
+function optimize!(form::Formulation)
+    @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
+    @logmsg LogLevel(-3) form
+    res = optimize!(form, get_optimizer(form))
+    @logmsg LogLevel(-2) string("Optimization finished with result:")
+    @logmsg LogLevel(-2) res
+    return res
+end
+
+function initialize_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
+    form.optimizer = create_optimizer(factory, form.obj_sense)
 end
 
 function _show_obj_fun(io::IO, f::Formulation)

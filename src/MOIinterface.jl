@@ -142,46 +142,6 @@ function add_to_optimzer!(optimizer::MoiOptimizer,
     return
 end
 
-function fill_primal_sol(optimizer::MoiOptimizer,
-                         sol::Dict{VarId,Float64},
-                         vars::VarDict, res_idx::Int = 1)
-    for (id, var) in vars
-        moi_index = getindex(getmoirecord(var))
-        val = MOI.get(getinner(optimizer), MOI.VariablePrimal(res_idx), moi_index)
-        #@logmsg LogLevel(-4) string("Var ", getname(var), " = ", val)
-        if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-            sol[id] = val
-        end
-    end
-    return
-end
-
-function fill_dual_sol(optimizer::MoiOptimizer,
-                       sol::Dict{ConstrId,Float64},
-                       constrs::ConstrDict)
-    for (id, constr) in constrs
-        val = 0.0
-        moi_index = getindex(getmoirecord(constr))
-        try # This try is needed because of the erroneous assertion in LQOI
-            val = MOI.get(getinner(optimizer), MOI.ConstraintDual(), moi_index)
-        catch err
-            if (typeof(err) == AssertionError &&
-                !(err.msg == "dual >= 0.0" || err.msg == "dual <= 0.0"))
-                throw(err)
-            end
-        end
-        # @logmsg LogLevel(-4) string("Constr dual ", constr.name, " = ",
-        #                             constr.val)
-        # @logmsg LogLevel(-4) string("Constr primal ", constr.name, " = ",
-        #                             MOI.get(inner, MOI.ConstraintPrimal(),
-        #                                     constr.moi_index))
-        if val > 0.000001 || val < - 0.000001 # todo use a tolerance
-            sol[id] = val
-        end
-    end
-    return
-end
-
 function call_moi_optimize_with_silence(optimizer::MoiOptimizer)
     backup_stdout = stdout
     (rd_out, wr_out) = redirect_stdout()
@@ -212,6 +172,54 @@ function remove_from_optimizer!(optimizer::MoiOptimizer,
     @assert getindex(moirecord).value != -1
     MOI.delete(getinner(optimizer), getindex(moirecord))
     setindex!(moirecord, MoiConstrIndex())
+    return
+end
+
+function fill_primal_result(optimizer::MoiOptimizer, 
+                            result::OptimizationResult{S},
+                            vars::VarDict) where {S<:AbstractObjSense}
+    inner = getinner(optimizer)
+    for res_idx in 1:MOI.get(inner, MOI.ResultCount())
+        pb = PrimalBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
+        sol = MembersVector{Float64}(vars)
+        for (id, var) in vars
+            moi_index = getindex(getmoirecord(var))
+            val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
+            @logmsg LogLevel(-4) string("Var ", getname(var), " = ", val)
+            if val > 0.000001  || val < - 0.000001 # todo use a tolerance
+                sol[id] = val
+            end
+        end
+        push!(result.primal_sols, PrimalSolution{S}(pb, sol))
+    end
+    result.primal_bound = getbound(getbestprimalsol(result))
+    @logmsg LogLevel(-2) string("Primal bound is ", getprimalbound(result))
+    return
+end
+
+function fill_dual_result(optimizer::MoiOptimizer,
+                          result::OptimizationResult{S},
+                          constrs::ConstrDict) where {S<:AbstractObjSense}
+    inner = getinner(optimizer)
+    if MOI.get(inner, MOI.DualStatus()) != MOI.FEASIBLE_POINT
+        # println("dual status is : ", MOI.get(form.optimizer, MOI.DualStatus()))
+        return nothing
+    end
+    db = DualBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
+    sol = MembersVector{Float64}(constrs)
+    # Getting dual bound is not stable in some solvers. 
+    # Getting primal bound instead, which will work for lps
+    for (id, constr) in constrs
+        moi_index = getindex(getmoirecord(constr))
+        val = MOI.get(inner, MOI.ConstraintDual(), moi_index)
+        if val > 0.000001 || val < - 0.000001 # todo use a tolerance
+            @logmsg LogLevel(-4) string("Constr ", getname(constr), " = ", val)
+            sol[id] = val
+        end
+    end
+    push!(result.dual_sols, DualSolution{S}(db, sol))
+    result.dual_bound = getbound(getbestdualsol(result))
+    @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return
 end
 

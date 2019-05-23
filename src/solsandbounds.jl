@@ -131,7 +131,6 @@ function Base.isinteger(s::PrimalSolution)
     return true
 end
 
-
 """
     DualSolution{S} where S <: AbstractObjSense
 
