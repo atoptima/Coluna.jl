@@ -283,7 +283,7 @@ end
 function setmembers!(f::Formulation, constr::Constraint, members)
     @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
     coef_matrix = getcoefmatrix(f)
-   primal_sp_sol = getprimalspsolmatrix(f)
+    primal_sp_sols = getprimalspsolmatrix(f)
     constr_id = getid(constr)
     @logmsg LogLevel(-4) "Members are : ", members
     for (var_id, member_coeff) in members
@@ -292,7 +292,7 @@ function setmembers!(f::Formulation, constr::Constraint, members)
         coef_matrix[constr_id,var_id] = member_coeff
         @logmsg LogLevel(-4) string("Adidng variable ", getname(v), " with coeff ", member_coeff)
         # And for all columns having its own variables
-        for (col_id, coeff) in primal_sp_sol[var_id,:]
+        for (col_id, coeff) in primal_sp_sols[var_id,:]
             @logmsg LogLevel(-4) string("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
             coef_matrix[constr_id,col_id] = coeff * member_coeff
         end
