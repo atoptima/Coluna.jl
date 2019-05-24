@@ -98,7 +98,7 @@ function insert_cols_in_master!(master_form::Formulation,
             kind = Continuous
             duty = MasterCol
             sense = Positive
-            mc = setpartialsol!(
+            mc = setprimalspsol!(
                 master_form, name, sp_sol, duty; lb = lb, ub = ub,
                 kind = kind, sense = sense
             )
