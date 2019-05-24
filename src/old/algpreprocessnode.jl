@@ -778,7 +778,7 @@
 #     master = alg.extended_problem.master_problem
 #     infeas_cols = find_infeasible_columns(master, alg.preprocessed_vars)
 
-#     update_moi_optimizer(
+#     update_optimizer(
 #         master.optimizer, master.is_relaxed,
 #         ProblemUpdate(Constraint[], Constraint[], infeas_cols, Variable[],
 #                       Variable[], Constraint[])

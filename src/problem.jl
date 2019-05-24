@@ -42,8 +42,8 @@ set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
 
-function initialize_moi_optimizer(prob::Problem)
-    initialize_moi_optimizer(
+function initialize_optimizer(prob::Problem)
+    initialize_optimizer(
         prob.re_formulation, prob.master_factory, prob.pricing_factory
     )
 end
@@ -62,7 +62,7 @@ function coluna_initialization(prob::Problem, annotations::Annotations,
     _set_global_params(params)
     reformulate!(prob, annotations, params.global_strategy)
     relax_integrality!(prob.re_formulation.master)
-    initialize_moi_optimizer(prob)
+    initialize_optimizer(prob)
     @info "Coluna initialized."
 end
 
