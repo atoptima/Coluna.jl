@@ -139,6 +139,10 @@ function build_dw_master!(prob::Problem,
     return
 end
 
+function build_benders_master!()
+
+end
+
 function build_dw_pricing_sp!(prob::Problem,
                               annotation_id::Int,
                               sp_form::Formulation,
@@ -154,20 +158,22 @@ function build_dw_pricing_sp!(prob::Problem,
     return
 end
 
+function build_benders_sep_sp!(prob::Problem,
+                               annotation_id::Int,
+                               sp_form::Formulation,
+                               vars_in_form::VarDict,
+                               constrs_in_form::ConstrDict)
+    orig_form = get_original_formulation(prob)
+    master_form = sp_form.parent_formulation
+    reformulation = master_form.parent_formulation
+    ## Create pure Sp benders vars & constr
+    clone_in_formulation!(sp_form, orig_form, vars_in_form, BendersSepSpVar)
+    clone_in_formulation!(sp_form, orig_form, constrs_in_form, BendersSepSpPureConstr)
+end
+
 function reformulate!(prob::Problem, annotations::Annotations,
                       strategy::GlobalStrategy)
-    # This function must be cleaned.
-    # subproblem formulations are modified in the function build_dw_master
-
-
     # Create formulations & reformulations
-
-    
- 
-    # At the moment, BlockDecomposition supports only classic 
-    # Dantzig-Wolfe decomposition.
-    # TODO : improve all drafts as soon as BlockDecomposition returns a
-    # decomposition-tree.
 
     vars_per_block = annotations.vars_per_block 
     constrs_per_block = annotations.constrs_per_block
