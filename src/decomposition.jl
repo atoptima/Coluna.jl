@@ -67,7 +67,7 @@ function build_master!(prob::Problem,
                        constrs_in_form::ConstrDict)
 
     orig_form = get_original_formulation(prob)
-    reformulation.dw_s_lb_convexity_constr_id = Dict{FormId, Id}()
+    reformulation.dw_sp_lb_convexity_constr_id = Dict{FormId, Id}()
     reformulation.dw_sp_ub_convexity_constr_id = Dict{FormId, Id}()
     convexity_constrs = ConstrDict()
     # copy of pure master variables
@@ -76,40 +76,39 @@ function build_master!(prob::Problem,
     orig_coefficient_matrix = getcoefmatrix(orig_form)
 
     
-    pure_mast_vars::VarDict()
-    non_pure_mast_vars::VarDict()
-    for var in vars_in_form
-        constr_membership = orig_coefficient_matrix[:,getid(var)]
-        non_pure_constr_membership = filter(id_c->(getformuid(id_c[1]) != mast_form_uid), constr_membership)
+    pure_mast_vars = VarDict()
+    non_pure_mast_vars = VarDict()
+    for id_var in vars_in_form
+        constr_membership = orig_coefficient_matrix[:,id_var[1]]
+        non_pure_constr_membership = filter(c->(getformuid(c) != mast_form_uid), constr_membership)
         if (length(non_pure_constr_membership) > 0)
-            push!(non_pure_mast_vars, var)
+            push!(non_pure_mast_vars, id_var)
         else
-            push!(pure_mast_vars, var)
+            push!(pure_mast_vars, id_var)
         end
     end
-    clone_in_formulation!(master_form, orig_form, pure_mast_vars, PureMastVar)
+    clone_in_formulation!(master_form, orig_form, pure_mast_vars, MasterPureVar)
     clone_in_formulation!(master_form, orig_form, non_pure_mast_vars, BendersFirstStageVar)
     
     
-    pure_mast_constrs::ConstrDict()
-    non_pure_mast_constrs::ConstrDict()
-    for constr in constrs_in_form
-        var_membership = orig_coefficient_matrix[getid(constr),:]
-        non_pure_var_membership = filter(id_v->(getformuid(id_v[1]) != mast_form_uid), var_membership)
+    pure_mast_constrs = ConstrDict()
+    non_pure_mast_constrs = ConstrDict()
+    for id_constr in constrs_in_form
+        var_membership = orig_coefficient_matrix[id_constr[1],:]
+        non_pure_var_membership = filter(v->(getformuid(v) != mast_form_uid), var_membership)
         if (length(non_pure_var_membership) > 0)
-            push!(non_pure_mast_constrs, constr)
+            push!(non_pure_mast_constrs, id_constr)
         else
-            push!(pure_mast_constrs, constr)
+            push!(pure_mast_constrs, id_constr)
         end
     end
-    clone_in_formulation!(master_form, orig_form, pure_mast_constrs, PureMastConstr)
+    clone_in_formulation!(master_form, orig_form, pure_mast_constrs, MasterPureConstr)
     clone_in_formulation!(master_form, orig_form, non_pure_mast_constrs, MasterConstr)
 
     mast_coefficient_matrix = getcoefmatrix(master_form)
-
     
-    has_pricing_sp = lenght(reformulation.dw_pricing_subprs) > 0
-    has_benders_sp = lenght(reformulation.benders_sep_subprs) > 0
+    has_pricing_sp = length(reformulation.dw_pricing_subprs) > 0
+    has_benders_sp = length(reformulation.benders_sep_subprs) > 0
     
     # add convexity constraints and setupvar 
     for sp_form in reformulation.dw_pricing_subprs
@@ -124,7 +123,7 @@ function build_master!(prob::Problem,
         lb_conv_constr = setconstr!(master_form, name, duty;
                                      rhs = rhs, kind  = kind,
                                      sense = sense)
-        reformulation.dw_s_lb_convexity_constr_id[sp_uid] = getid(lb_conv_constr)
+        reformulation.dw_sp_lb_convexity_constr_id[sp_uid] = getid(lb_conv_constr)
         setincval!(getrecordeddata(lb_conv_constr), 100.0)
         setincval!(getcurdata(lb_conv_constr), 100.0)
         convexity_constrs[getid(lb_conv_constr)] = lb_conv_constr
@@ -210,7 +209,7 @@ function build_master!(prob::Problem,
             duty =  BendersSepSecondStageCostConstr
             rhs = 0.0
             kind = Core
-            sense = Greater
+            sense = (getobjsense(orig_form) == MinSense ? Greater : Less)
             second_stage_cost_constr = setconstr!(sp_form, name, duty;
                                                   rhs = rhs, kind = kind,
                                                   sense = sense)
@@ -336,7 +335,7 @@ function reformulate!(prob::Problem, annotations::Annotations,
             )
             formulations[BD.getid(annotation)] = f
             add_dw_pricing_sp!(reformulation, f)
-        elseif annotation.problem == BD.Separation
+        elseif BD.getformulation(annotation) == BD.BendersSepSp
             f = Formulation{BsSp}(
                 prob.form_counter; parent_formulation = master_form,
                 moi_optimizer = prob.benders_sep_factory()
@@ -358,9 +357,9 @@ function reformulate!(prob::Problem, annotations::Annotations,
             build_dw_pricing_sp!(prob, BD.getid(annotation),
                                  formulations[BD.getid(annotation)],
                                  vars, constrs)
-        elseif annotation.problem == BD.Separation
+        elseif BD.getformulation(annotation) == BD.BendersSepSp
             vars, constrs = find_vcs_in_block(
-                annotation.unique_id, vars_per_block, constrs_per_block
+                annotation.unique_id, Spvars_per_block, constrs_per_block
             )
             build_benders_sep_sp!(prob, annotation.unique_id,
                                  formulations[annotation.unique_id],

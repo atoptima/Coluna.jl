@@ -506,12 +506,13 @@ function retrieve_dual_sols(form::Formulation, constrs::ConstrDict)
         # println("dual status is : ", MOI.get(form.moi_optimizer, MOI.DualStatus()))
         return nothing
     end
+    ObjSense = getobjsense(form)
     dual_sols = DualSolution{ObjSense}[]
     for res_idx in 1:MOI.get(get_optimizer(form), MOI.ResultCount())
         new_sol = Dict{ConstrId,Float64}()
         new_obj_val = obj_bound = MOI.get(form.moi_optimizer, MOI.ObjectiveValue())
         fill_dual_sol(form.moi_optimizer, new_sol, constrs)
-        dual_sol = DualSolution(form, obj_bound, new_sol, res_idx)
+        dual_sol = DualSolution(form, obj_bound, new_sol)
         push!(dual_sols, dual_sol)
     end
     return dual_sols
@@ -523,7 +524,7 @@ function resetsolvalue(form::Formulation, sol::PrimalSolution{S}) where {S}
     return val
 end
 
-function resetsolvalue(form::Formulation, sol::dualSolution{S}) where {S}
+function resetsolvalue(form::Formulation, sol::DualSolution{S}) where {S}
     val = sum(getcurrhs(getvar(form, constr_id)) * value for (constr_id, value) in sol)
     setvalue!(sol, val)
     return val
@@ -538,7 +539,6 @@ function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution)
     coefficient_matrix = getcoefmatrix(form)
     for (constr_id, dual_val) in getsol(dual_sol)
         coeff = coefficient_matrix[constr_id, var_id]
-<<<<<<< HEAD
         cost = cost - dual_val * coeff
     end
     
@@ -557,15 +557,6 @@ function computereducedrhs(form::Formulation, constr_id, primal_sol::PrimalSolut
     end
     
     return rhs
-=======
-        if getobjsense(form) == MinSense
-            rc = rc - dual_val * coeff
-        else
-            rc = rc + dual_val * coeff
-        end
-    end
-    return rc
->>>>>>> master
 end
 
 function _show_obj_fun(io::IO, f::Formulation)

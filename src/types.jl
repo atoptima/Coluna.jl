@@ -50,7 +50,7 @@ struct OriginalVar <: AbstractOriginalVar end
 struct OriginalExpression <: AbstractOriginalVar end
 
 "Variable that belongs to master."
-struct PureMastVar <: AbstractMasterVar end
+struct MasterPureVar <: AbstractMasterVar end
 
 "Variable that belongs to master and is a partial solution of other variables."
 struct MasterCol <: AbstractMasterVar end
@@ -130,8 +130,6 @@ struct BendersPureSepConstr <: AbstractBendSpConstr end
 
 struct BendersFeasibilityTechnologicalConstr <: AbstractBendersTechnologicalConstr end
 
-struct BendersPureMasterConstr <: AbstractBendMasterConstr end
-
 struct BendersSecondStageCostConstr <: AbstractMasterConstr end
 
 struct BendersSepSecondStageCostConstr <: AbstractBendersTechnologicalConstr end
@@ -180,7 +178,7 @@ abstract type AbstractAlg end
 const FormId = Int
 
 const StaticDuty = Union{
-    OriginalVar, OriginalExpression, PureMastVar, MastRepPricingSpVar,
+    OriginalVar, OriginalExpression, MasterPureVar, MastRepPricingSpVar,
     MastRepPricingSetupSpVar, PricingSpVar, PricingSpSetupVar, PricingSpPureVar,
     OriginalConstr, MasterPureConstr, MasterConstr, MasterConvexityConstr,
     PricingSpPureConstr
@@ -192,7 +190,7 @@ const DynamicDuty = Union{
 }
 
 const OriginalRepresentatives = Union{
-    Type{PureMastVar}, Type{MastRepPricingSpVar}
+    Type{MasterPureVar}, Type{MastRepPricingSpVar}
 }
 
 const ArtificialDuty = Union{Type{MastArtVar}}
@@ -205,7 +203,9 @@ const MoiObjective = MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
 
 # Constraint
 const MoiConstrIndex = MOI.ConstraintIndex
+
 MoiConstrIndex{F,S}() where {F,S} = MOI.ConstraintIndex{F,S}(-1)
+
 MoiConstrIndex() = MOI.ConstraintIndex{
     MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}
 }()

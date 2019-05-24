@@ -1,6 +1,6 @@
-struct BendersCutGeneration <: AbstractSolver end
+struct BendersCutGeneration <: AbstractAlgorithm end
 
-mutable struct BendersCutGenerationData <: AbstractSolverData
+mutable struct BendersCutGenerationData <: AbstractAlgorithmData
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
@@ -13,12 +13,12 @@ function BendersCutGenerationData(S::Type{<:AbstractObjSense}, node_inc::Incumbe
 end
 
 # Data needed for another round of column generation
-struct BendersCutGenerationRecord <: AbstractSolverRecord
+struct BendersCutGenerationRecord <: AbstractAlgorithmRecord
     incumbents::Incumbents
 end
 
 # Overload of the solver interface
-function prepare!(::Type{ColumnGeneration}, form, node, strategy_rec, params)
+function prepare!(::Type{BendersCutGeneration}, form, node, strategy_rec, params)
     @logmsg LogLevel(-1) "Prepare BendersCutGeneration."
     return
 end
@@ -32,7 +32,7 @@ end
 
 
 # Internal methods to the column generation
-function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolution) 
+function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolution{S}) where {S}
 
     master_form = sp_form.parent_formulation
     
@@ -103,7 +103,7 @@ end
 
 function gencut!(master_form::Formulation,
                  sp_form::Formulation,
-                 primal_sol::PrimalSolution)
+                 primal_sol::PrimalSolution{S}) where {S}
     
     #flag_need_not_generate_more_cut = 0 # Not used
     # flag_is_sp_infeasible = -1
@@ -180,7 +180,7 @@ function compute_master_pb_contrib(alg::BendersCutGenerationData,
 end
 
 function update_lagrangian_pb!(alg::BendersCutGenerationData,
-                               restricted_master_sol_value::PrimalBound{S},
+                               restricted_master_sol_value::DualBound{S},
                                bendersep_sp_primal_bound_contrib::PrimalBound{S}) where {S}
     lagran_bnd = PrimalBound{S}(0.0)
     lagran_bnd += compute_master_pb_contrib(alg, restricted_master_sol_value)
@@ -197,8 +197,10 @@ function solve_relaxed_master!(master::Formulation)
     return status, val, primal_sols, dual_sols, elapsed_time
 end
 
-function generatecuts!(alg::BendersCutGenerationData, reform::Reformulation,
-                          master_val, primal_sol)
+function generatecuts!(alg::BendersCutGenerationData,
+                       reform::Reformulation,
+                       master_val::DualBound{S},
+                       primal_sol::PrimalSolution{S}) where {S}
     nb_new_cuts = 0
     while true # TODO Replace this condition when starting implement stabilization
         nb_new_cut, sp_pb_contrib =  gencuts!(reform, primal_sol)
@@ -226,7 +228,7 @@ function bendcutgen_solver_ph2(alg::BendersCutGenerationData,
             solve_relaxed_master!(master_form)
 
         if master_status == MOI.INFEASIBLE || master_status == MOI.INFEASIBLE_OR_UNBOUNDED
-            @error "Solver returned that restricted master LP is infeasible or unbounded (status = $master_status)."
+            @error "Algorithm returned that restricted master LP is infeasible or unbounded (status = $master_status)."
             return BendersCutGenerationRecord(alg.incumbents)
         end
 

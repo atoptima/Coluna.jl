@@ -1,7 +1,7 @@
 function varconstr_unit_tests()
     abstract_vc_data_getters_and_setters_tests()
     abstract_var_constr_getters_tests()
-    varcosntr_helpers_tests()
+    varconstr_helpers_tests()
 end
 
 function abstract_vc_data_getters_and_setters_tests()
@@ -81,14 +81,14 @@ function abstract_var_constr_getters_tests()
     @test CL.getmoirecord(c) === c.moirecord
 end
 
-function varcosntr_helpers_tests()
+function varconstr_helpers_tests()
 
     v = CL.Variable(
         CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepBendSpVar
     )
 
     @test CL.getuid(v) == 23
-    @test CL.getform(v) == 10
+    @test CL.getformuid(v) == 10
 
     @test CL.getcurkind(v) == CL.getperenekind(v) == CL.Continuous
     @test CL.getcursense(v) == CL.getperenesense(v) == CL.Positive
@@ -113,7 +113,7 @@ function varcosntr_helpers_tests()
     )
 
     @test CL.getuid(c) == 23
-    @test CL.getform(c) == 10
+    @test CL.getformuid(c) == 10
 
     @test CL.getcurkind(c) == CL.getperenekind(c) == CL.Core
     @test CL.getcursense(c) == CL.getperenesense(c) == CL.Greater

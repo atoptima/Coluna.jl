@@ -18,6 +18,10 @@ setsense!(vc::AbstractVcData, sense) = vc.sense = sense
 # -> No setters because Variable and Constraint are immutable
 
 getid(vc::AbstractVarConstr) = vc.id
+getuid(vc::AbstractVarConstr) = getuid(getid(vc))
+getformuid(vc::AbstractVarConstr) = getformuid(getid(vc))
+getprocuid(vc::AbstractVarConstr) = getprocuid(getid(vc))
+getsortid(vc::AbstractVarConstr) = getsortid(getid(vc))
 getname(vc::AbstractVarConstr) = vc.name
 getduty(vc::AbstractVarConstr) = vc.duty
 getrecordeddata(vc::AbstractVarConstr) = vc.perene_data
@@ -27,8 +31,6 @@ getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 # Helpers for getters and setters that acces fields in a level
 # under Variable or Constraint
 
-getuid(vc::AbstractVarConstr) = getuid(vc.id)
-getform(vc::AbstractVarConstr) = getformuid(vc.id)
 
 # -> Initial
 getperenekind(vc::AbstractVarConstr) = vc.perene_data.kind

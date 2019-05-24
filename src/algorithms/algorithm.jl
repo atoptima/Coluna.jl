@@ -6,6 +6,7 @@ These data can be used to initialize another execution of the same algorithm or 
 setting the transition to another algorithm.
 """
 abstract type AbstractAlgorithmRecord end
+abstract type AbstractAlgorithmData end
 
 """
     prepare!(AlgorithmType, formulation, node, strategy_record, parameters)

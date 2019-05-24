@@ -31,7 +31,8 @@ function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
                          nothing,
                          Vector{AbstractFormulation}(),
                          Dict{FormId, Int}(),
-                         Dict{FormId, Int}())
+                         Dict{FormId, Int}(),
+                         Vector{AbstractFormulation}())
 end
 
 getmaster(r::Reformulation) = r.master
