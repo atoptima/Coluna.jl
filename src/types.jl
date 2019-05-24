@@ -9,6 +9,8 @@ abstract type AbstractNode end
 abstract type AbstractVcData end
 abstract type AbstractObjSense end
 abstract type AbstractBound <: Number end
+abstract type AbstractOptimizer end
+
 """
     AbstractStrategy
 
@@ -21,7 +23,6 @@ abstract type AbstractStrategy end
 An algorithm is an 'text-book' algorithm applied to a formulation in a node.
 """
 abstract type AbstractAlgorithm end
-
 
 struct MinSense <: AbstractObjSense end
 struct MaxSense <: AbstractObjSense end

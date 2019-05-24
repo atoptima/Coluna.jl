@@ -5,6 +5,5 @@ function show_functions_tests()
         pricing_factory = with_optimizer(GLPK.Optimizer))
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
     JuMP.optimize!(problem)
-    @show fieldnames(typeof(problem.moi_backend))
-    @test_nowarn CL._show_optimizer(problem.moi_backend.optimizer.inner.re_formulation.master.moi_optimizer)
+    @test_nowarn Base.show(problem.moi_backend.optimizer.inner.re_formulation.master.optimizer)
 end
