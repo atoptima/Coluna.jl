@@ -179,6 +179,9 @@ function fill_primal_result!(optimizer::MoiOptimizer,
                              vars::VarDict) where {S<:AbstractObjSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
+        if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
+            continue
+        end
         pb = PrimalBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
         sol = MembersVector{Float64}(vars)
         for (id, var) in vars
@@ -191,7 +194,10 @@ function fill_primal_result!(optimizer::MoiOptimizer,
         end
         push!(result.primal_sols, PrimalSolution{S}(pb, sol))
     end
-    result.primal_bound = getbound(getbestprimalsol(result))
+    result.primal_bound = PrimalBound{S}()
+    if nbprimalsols(result) > 0
+        result.primal_bound = getbound(getbestprimalsol(result))
+    end
     @logmsg LogLevel(-2) string("Primal bound is ", getprimalbound(result))
     return
 end
@@ -200,24 +206,28 @@ function fill_dual_result!(optimizer::MoiOptimizer,
                            result::OptimizationResult{S},
                            constrs::ConstrDict) where {S<:AbstractObjSense}
     inner = getinner(optimizer)
-    if MOI.get(inner, MOI.DualStatus()) != MOI.FEASIBLE_POINT
-        # println("dual status is : ", MOI.get(form.optimizer, MOI.DualStatus()))
-        return nothing
-    end
-    db = DualBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
-    sol = MembersVector{Float64}(constrs)
-    # Getting dual bound is not stable in some solvers. 
-    # Getting primal bound instead, which will work for lps
-    for (id, constr) in constrs
-        moi_index = getindex(getmoirecord(constr))
-        val = MOI.get(inner, MOI.ConstraintDual(), moi_index)
-        if val > 0.000001 || val < - 0.000001 # todo use a tolerance
-            @logmsg LogLevel(-4) string("Constr ", getname(constr), " = ", val)
-            sol[id] = val
+    for res_idx in 1:MOI.get(inner, MOI.ResultCount())
+        if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
+            continue
         end
+        db = DualBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
+        sol = MembersVector{Float64}(constrs)
+        # Getting dual bound is not stable in some solvers. 
+        # Getting primal bound instead, which will work for lps
+        for (id, constr) in constrs
+            moi_index = getindex(getmoirecord(constr))
+            val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
+            if val > 0.000001 || val < - 0.000001 # todo use a tolerance
+                @logmsg LogLevel(-4) string("Constr ", getname(constr), " = ", val)
+                sol[id] = val
+            end
+        end
+        push!(result.dual_sols, DualSolution{S}(db, sol))
     end
-    push!(result.dual_sols, DualSolution{S}(db, sol))
-    result.dual_bound = getbound(getbestdualsol(result))
+    result.dual_bound = DualBound{S}()
+    if nbdualsols(result) > 0
+        result.dual_bound = getbound(getbestdualsol(result))
+    end
     @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return
 end
