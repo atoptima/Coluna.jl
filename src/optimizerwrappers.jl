@@ -41,17 +41,17 @@ function create_optimizer(factory::JuMP.OptimizerFactory,
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
     MOI.set(moi_optimizer, MoiObjective(),f)
     optimizer = MoiOptimizer(moi_optimizer)
-    set_obj_sense(optimizer, sense)
+    set_obj_sense!(optimizer, sense)
     return optimizer
 end
 
 function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     result = OptimizationResult{getobjsense(form)}()
     if MOI.get(form.optimizer.inner, MOI.ResultCount()) >= 1
-        fill_primal_result(
+        fill_primal_result!(
             optimizer, result, filter(_active_explicit_ , getvars(form))
         )
-        fill_dual_result(
+        fill_dual_result!(
             optimizer, result, filter(_active_explicit_ , getconstrs(form))
         )
     else
@@ -63,17 +63,17 @@ end
 
 function optimize!(form::Formulation, optimizer::MoiOptimizer)
     @logmsg LogLevel(-4) "MOI formulation before synch: "
-    @logmsg LogLevel(-4) get_optimizer(form)
-    sync_solver(form, get_optimizer(form))
+    @logmsg LogLevel(-4) getoptimizer(form)
+    sync_solver!(getoptimizer(form), form)
     @logmsg LogLevel(-3) "MOI formulation after synch: "
-    @logmsg LogLevel(-3) get_optimizer(form)
+    @logmsg LogLevel(-3) getoptimizer(form)
     call_moi_optimize_with_silence(form.optimizer)
     status = MOI.get(form.optimizer.inner, MOI.TerminationStatus())
     @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
     return retrieve_result(form, optimizer)
 end
 
-function sync_solver(f::Formulation, optimizer::MoiOptimizer)
+function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
     buffer = f.buffer
     matrix = getcoefmatrix(f)
@@ -87,18 +87,18 @@ function sync_solver(f::Formulation, optimizer::MoiOptimizer)
     for id in buffer.var_buffer.added
         v = getvar(f, id)
         @logmsg LogLevel(-2) string("Adding variable ", getname(v))
-        add_to_optimzer!(optimizer, v)
+        add_to_optimizer!(optimizer, v)
     end
     # Add constrs
     for id in buffer.constr_buffer.added
         c = getconstr(f, id)
         @logmsg LogLevel(-2) string("Adding constraint ", getname(c))
-        add_to_optimzer!(optimizer, c, filter(_active_explicit_, matrix[id,:]))
+        add_to_optimizer!(optimizer, c, filter(_active_explicit_, matrix[id,:]))
     end
     # Update variable costs
     for id in buffer.changed_cost
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        update_cost_in_optimizer(optimizer, getvar(f, id))
+        update_cost_in_optimizer!(optimizer, getvar(f, id))
     end
     # Update variable bounds
     for id in buffer.changed_bound
@@ -106,14 +106,14 @@ function sync_solver(f::Formulation, optimizer::MoiOptimizer)
         @logmsg LogLevel(-2) "Changing bounds of variable " getname(getvar(f,id))
         @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(getvar(f,id)))
         @logmsg LogLevel(-3) string("New upper bound is ", getcurub(getvar(f,id)))
-        update_bounds_in_optimizer(optimizer, getvar(f, id))
+        update_bounds_in_optimizer!(optimizer, getvar(f, id))
     end
     # Update variable kind
     for id in buffer.changed_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
         @logmsg LogLevel(-3) string("New kind is ", getcurkind(getvar(f,id)))
-        enforce_var_kind_in_optimizer(optimizer, getvar(f,id))
+        enforce_kind_in_optimizer!(optimizer, getvar(f,id))
     end
     # Update constraint rhs
     for id in buffer.changed_rhs
@@ -126,7 +126,7 @@ function sync_solver(f::Formulation, optimizer::MoiOptimizer)
         for (constr_id, coeff) in filter(_active_explicit_, matrix[:,id])
             constr_id in buffer.constr_buffer.added && continue
             c = getconstr(f, constr_id)
-            update_constr_member_in_optimizer(optimizer, c, getvar(f, id), coeff)
+            update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)
         end
     end
     # Then updated the rest of the matrix coeffs
@@ -137,7 +137,7 @@ function sync_solver(f::Formulation, optimizer::MoiOptimizer)
         v = getvar(f, v_id)
         @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         # @logmsg LogLevel(1) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
-        update_constr_member_in_optimizer(optimizer, c, v, coeff)
+        update_constr_member_in_optimizer!(optimizer, c, v, coeff)
     end
     _reset_buffer!(f)
     return

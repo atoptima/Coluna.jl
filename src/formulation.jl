@@ -66,7 +66,7 @@ getuid(f::Formulation) = f.uid
 getobjsense(f::Formulation) = f.obj_sense
 
 "Returns the `AbstractOptimizer` of `Formulation` `f`."
-get_optimizer(f::Formulation) = f.optimizer
+getoptimizer(f::Formulation) = f.optimizer
 
 getelem(f::Formulation, id::VarId) = getvar(f, id)
 getelem(f::Formulation, id::ConstrId) = getconstr(f, id)
@@ -345,7 +345,7 @@ end
 function optimize!(form::Formulation)
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
-    res = optimize!(form, get_optimizer(form))
+    res = optimize!(form, getoptimizer(form))
     @logmsg LogLevel(-2) string("Optimization finished with result:")
     @logmsg LogLevel(-2) res
     return res

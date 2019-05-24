@@ -7,12 +7,12 @@
 #
 ############################################################
 
-function set_obj_sense(optimizer::MoiOptimizer, ::Type{<:MaxSense})
+function set_obj_sense!(optimizer::MoiOptimizer, ::Type{<:MaxSense})
     MOI.set(getinner(optimizer), MOI.ObjectiveSense(), MOI.MAX_SENSE)
     return
 end
 
-function set_obj_sense(optimizer::MoiOptimizer, ::Type{<:MinSense})
+function set_obj_sense!(optimizer::MoiOptimizer, ::Type{<:MinSense})
     MOI.set(getinner(optimizer), MOI.ObjectiveSense(), MOI.MIN_SENSE)
     return
 end
@@ -25,7 +25,7 @@ function compute_moi_terms(members::VarMembership)
     ]
 end
 
-function update_bounds_in_optimizer(optimizer::MoiOptimizer,
+function update_bounds_in_optimizer!(optimizer::MoiOptimizer,
                                     var::Variable)
     inner = getinner(optimizer)
     moi_record = getmoirecord(var)
@@ -50,7 +50,7 @@ function update_bounds_in_optimizer(optimizer::MoiOptimizer,
     end
 end
 
-function update_cost_in_optimizer(optimizer::MoiOptimizer, v::Variable)
+function update_cost_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
     cost = get_cost(getcurdata(v))
     moi_index = getindex(getmoirecord(v))
     MOI.modify(
@@ -60,9 +60,9 @@ function update_cost_in_optimizer(optimizer::MoiOptimizer, v::Variable)
     return
 end
 
-function update_constr_member_in_optimizer(optimizer::MoiOptimizer,
-                                           c::Constraint, v::Variable,
-                                           coeff::Float64)
+function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
+                                            c::Constraint, v::Variable,
+                                            coeff::Float64)
     moi_c_index = getindex(getmoirecord(c))
     moi_v_index = getindex(getmoirecord(v))
     MOI.modify(
@@ -72,7 +72,7 @@ function update_constr_member_in_optimizer(optimizer::MoiOptimizer,
     return
 end
 
-function enforce_bounds_in_optimizer(optimizer::MoiOptimizer,
+function enforce_bounds_in_optimizer!(optimizer::MoiOptimizer,
                                      v::Variable)
     cur_data = getcurdata(v)
     moirecord = getmoirecord(v)
@@ -84,8 +84,7 @@ function enforce_bounds_in_optimizer(optimizer::MoiOptimizer,
     return
 end
 
-function enforce_var_kind_in_optimizer(optimizer::MoiOptimizer,
-                                       v::Variable)
+function enforce_kind_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
     inner = getinner(optimizer)
     kind = getkind(getcurdata(v))
     moirecord = getmoirecord(v)
@@ -109,24 +108,24 @@ function enforce_var_kind_in_optimizer(optimizer::MoiOptimizer,
     return
 end
 
-function add_to_optimzer!(optimizer::MoiOptimizer, v::Variable)
+function add_to_optimizer!(optimizer::MoiOptimizer, v::Variable)
     inner = getinner(optimizer)
     cur_data = getcurdata(v)
     moirecord = getmoirecord(v)
     moi_index = MOI.add_variable(inner)
     setindex!(moirecord, moi_index)
-    update_cost_in_optimizer(optimizer, v)
-    enforce_var_kind_in_optimizer(optimizer, v)
+    update_cost_in_optimizer!(optimizer, v)
+    enforce_kind_in_optimizer!(optimizer, v)
     if (getkind(cur_data) != Binary)
-        enforce_bounds_in_optimizer(optimizer, v)
+        enforce_bounds_in_optimizer!(optimizer, v)
     end
     MOI.set(inner, MOI.VariableName(), moi_index, getname(v))
     return
 end
 
-function add_to_optimzer!(optimizer::MoiOptimizer,
-                          constr::Constraint,
-                          members::VarMembership)
+function add_to_optimizer!(optimizer::MoiOptimizer,
+                           constr::Constraint,
+                           members::VarMembership)
 
     inner = getinner(optimizer)
     terms = compute_moi_terms(members)
@@ -175,9 +174,9 @@ function remove_from_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
-function fill_primal_result(optimizer::MoiOptimizer, 
-                            result::OptimizationResult{S},
-                            vars::VarDict) where {S<:AbstractObjSense}
+function fill_primal_result!(optimizer::MoiOptimizer, 
+                             result::OptimizationResult{S},
+                             vars::VarDict) where {S<:AbstractObjSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         pb = PrimalBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
@@ -197,9 +196,9 @@ function fill_primal_result(optimizer::MoiOptimizer,
     return
 end
 
-function fill_dual_result(optimizer::MoiOptimizer,
-                          result::OptimizationResult{S},
-                          constrs::ConstrDict) where {S<:AbstractObjSense}
+function fill_dual_result!(optimizer::MoiOptimizer,
+                           result::OptimizationResult{S},
+                           constrs::ConstrDict) where {S<:AbstractObjSense}
     inner = getinner(optimizer)
     if MOI.get(inner, MOI.DualStatus()) != MOI.FEASIBLE_POINT
         # println("dual status is : ", MOI.get(form.optimizer, MOI.DualStatus()))
