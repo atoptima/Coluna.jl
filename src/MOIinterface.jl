@@ -220,9 +220,9 @@ function fill_dual_result!(optimizer::MoiOptimizer,
             end
         end
         push!(result.dual_sols, DualSolution{S}(db, sol))
-        result.dual_bound = getbound(getbestdualsol(result))
-        @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     end
+    result.dual_bound = getbound(getbestdualsol(result))
+    @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return
 end
 
