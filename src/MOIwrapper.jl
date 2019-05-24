@@ -25,8 +25,9 @@ setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob
 
 function Optimizer(;master_factory =
         JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
+        JuMP.with_optimizer(GLPK.Optimizer), benders_sep_factory =
         JuMP.with_optimizer(GLPK.Optimizer), params = Params())
-    prob = Problem(master_factory, pricing_factory)
+    prob = Problem(master_factory, pricing_factory, benders_sep_factory)
     return Optimizer(
         prob, MOIU.IndexMap(), params, Annotations(),
         Dict{MOI.VariableIndex,Id{Variable}}(), OptimizationResult{MinSense}()
