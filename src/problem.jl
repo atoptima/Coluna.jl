@@ -3,7 +3,6 @@ struct Annotations
     constrs_per_block::Dict{Int, Dict{Id{Constraint},Constraint}}
     annotation_set::Set{BD.Annotation}
 end
-
 Annotations() = Annotations(
     Dict{Int, Dict{Id{Variable},Variable}}(),
     Dict{Int, Dict{Id{Constraint},Constraint}}(),
@@ -23,18 +22,17 @@ mutable struct Problem <: AbstractProblem
     form_counter::Counter # 0 is for original form
     master_factory::Union{Nothing, JuMP.OptimizerFactory}
     pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
-    benders_sep_factory::Union{Nothing, JuMP.OptimizerFactory}
 end
 
 """
-    Problem()
+    Problem(params::Params, master_factory, pricing_factory)
 
 Constructs an empty `Problem`.
 """
-function Problem(master_factory, pricing_factory, benders_sep_factory)
+function Problem(master_factory, pricing_factory)
     return Problem(
         nothing, nothing, Counter(-1),
-        master_factory, pricing_factory, benders_sep_factory
+        master_factory, pricing_factory
     )
 end
 
@@ -44,8 +42,8 @@ set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
 
-function initialize_moi_optimizer(prob::Problem)
-    initialize_moi_optimizer(
+function initialize_optimizer(prob::Problem)
+    initialize_optimizer(
         prob.re_formulation, prob.master_factory, prob.pricing_factory
     )
 end
@@ -64,7 +62,7 @@ function coluna_initialization(prob::Problem, annotations::Annotations,
     _set_global_params(params)
     reformulate!(prob, annotations, params.global_strategy)
     relax_integrality!(prob.re_formulation.master)
-    initialize_moi_optimizer(prob)
+    initialize_optimizer(prob)
     @info "Coluna initialized."
 end
 
