@@ -464,23 +464,27 @@ function optimize!(form::Formulation)
 #     setup_solver(f.moi_optimizer, f, solver_info)
 
     call_moi_optimize_with_silence(form.moi_optimizer)
+    result = OptimizationResult{getobjsense(form)}()
     status = MOI.get(form.moi_optimizer, MOI.TerminationStatus())
     @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
     if MOI.get(form.moi_optimizer, MOI.ResultCount()) >= 1
         primal_sols = retrieve_primal_sols(
             form, filter(_active_explicit_ , getvars(form))
         )
-        dual_sols = retrieve_dual_sols(
-            form, filter(_active_explicit_ , getconstrs(form))
-        )
-        primal_sols != nothing && @logmsg LogLevel(-2) string("Primal bound is ", primal_sols[1].bound)
+        result.primal_sols = primal_sols
+        result.primal_bound = getbound(primal_sols[1])
+        dual_sols = retrieve_dual_sols(form, filter(_active_explicit_ , getconstrs(form)))
+        @logmsg LogLevel(-2) string("Primal bound is ", primal_sols[1].bound)
         dual_sols != nothing && @logmsg LogLevel(-2) string("Dual bound is ", dual_sols[1].bound)
-        return (status, primal_sols[1].bound, primal_sols, dual_sols)
+        if dual_sols != nothing
+            result.dual_sols = dual_sols
+            result.dual_bound = getbound(dual_sols[1])
+        end
+    else
+        @warn "Solver has no result to show."
+        result.feasible = false
     end
-    @warn "Solver has no result to show."
-
-    #     setdown_solver(f.moi_optimizer, f, solver_info)
-    return (status, Inf, nothing, nothing)
+    return result
 end
 
 function initialize_moi_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)

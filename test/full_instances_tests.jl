@@ -10,6 +10,7 @@ function full_instances_tests()
 
         JuMP.optimize!(problem)
         @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
@@ -24,6 +25,7 @@ function full_instances_tests()
 
         JuMP.optimize!(problem)
         @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
@@ -37,6 +39,7 @@ function full_instances_tests()
 
         problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
         JuMP.optimize!(problem)
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test abs(JuMP.objective_value(problem) - 416.4) <= 0.00001
     end
 
@@ -50,7 +53,21 @@ function full_instances_tests()
 
         problem, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
         JuMP.optimize!(problem)
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test abs(JuMP.objective_value(problem) - 580.0) <= 0.00001
+    end
+
+    @testset "gap with infeasible subproblem" begin
+    data = CLD.GeneralizedAssignment.data("root_infeas.txt")
+
+    coluna = JuMP.with_optimizer(Coluna.Optimizer,# #params = params,
+        master_factory = with_optimizer(GLPK.Optimizer),
+        pricing_factory = with_optimizer(GLPK.Optimizer))
+    
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+    JuMP.optimize!(problem)
+    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
     end
 
     # @testset "gap BIG instance" begin
@@ -82,6 +99,7 @@ function full_instances_tests()
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
         JuMP.optimize!(problem)
         @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 end

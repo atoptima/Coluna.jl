@@ -15,6 +15,7 @@ popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
 
 mutable struct ReformulationSolverRecord <: AbstractAlgorithmRecord
+    feasible::Bool
     incumbents::Incumbents
 end
 
@@ -25,13 +26,14 @@ mutable struct ReformulationSolver <: AbstractAlgorithm
     treat_order::Int
     nb_treated_nodes::Int
     incumbents::Incumbents
+    found_feasible_sol::Bool
 end
 
 function ReformulationSolver(search_strategy::Type{<:AbstractTreeSearchStrategy},
                     ObjSense::Type{<:AbstractObjSense})
     return ReformulationSolver(
         SearchTree(search_strategy), SearchTree(DepthFirst),
-        true, 1, 0, Incumbents(ObjSense)
+        true, 1, 0, Incumbents(ObjSense), false
     )
 end
 
@@ -51,13 +53,14 @@ switch_tree(s::ReformulationSolver) = s.in_primary = !s.in_primary
 function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
                        divide_strategy::Type{<:AbstractDivideStrategy},
                        reform::Reformulation, node::Node, params)
-
     strategy_rec = StrategyRecord()
-    setup!(reform, node)
-    setalgorithm!(strategy_rec, StartNode)
+    setalgorithm!(strategy_rec, StartNode) # ToClean
     apply!(conquer_strategy, reform, node, strategy_rec, params)
     apply!(divide_strategy, reform, node, strategy_rec, params)
-    record!(reform, node)
+    # Condition needed because if the last algorithm that was executed did a 
+    # record (because would change the formulation), the following line 
+    # would record the modified problem, which we do not want
+    !node.status.need_to_prepare && record!(reform, node)
     return
 end
 
@@ -100,12 +103,19 @@ function apply!(::Type{<:ReformulationSolver}, reform::Reformulation)
         print_info_after_apply(cur_node, reform_solver)
         update_reform_solver(reform_solver, cur_node)
     end
-    return ReformulationSolverRecord(getincumbents(reform_solver))
+    return ReformulationSolverRecord(
+        reform_solver.found_feasible_sol, getincumbents(reform_solver)
+    )
 end
 
 function apply!(::Type{<:GlobalStrategy}, reform::Reformulation)
     solver_record = apply!(ReformulationSolver, reform)
-    return solver_record.incumbents
+    return OptimizationResult{getobjsense(reform.master)}(solver_record.feasible,
+        get_ip_primal_bound(solver_record.incumbents),
+        get_ip_dual_bound(solver_record.incumbents),
+        [get_ip_primal_sol(solver_record.incumbents)],
+        typeof(get_lp_dual_sol(solver_record.incumbents))[]
+    )
 end
 
 function updateprimals!(tree::ReformulationSolver, cur_node_incumbents::Incumbents)
@@ -145,6 +155,9 @@ function update_reform_solver(s::ReformulationSolver, n::Node)
     @logmsg LogLevel(0) string("Updating tree.")
     s.treat_order += 1
     s.nb_treated_nodes += 1
+    if !n.status.proven_infeasible
+        s.found_feasible_sol = true
+    end
     t = cur_tree(s)
     if !to_be_pruned(n)
         @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
@@ -155,7 +168,7 @@ function update_reform_solver(s::ReformulationSolver, n::Node)
         switch_tree(s)
         t = cur_tree(s)
     end
-    @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
+    @logmsg LogLevel(-1) string("Inserting ", length(n.children), " children nodes in tree.")
     for idx in length(n.children):-1:1
         push!(t, pop!(n.children))
     end

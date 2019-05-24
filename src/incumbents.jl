@@ -21,6 +21,9 @@ function Incumbents(S::Type{<: AbstractObjSense})
     )
 end
 
+getsense(::Incumbents{MinSense}) = MinSense
+getsense(::Incumbents{MaxSense}) = MaxSense
+
 # Getters solutions
 "Returns the best primal solution to the mixed-integer program."
 get_ip_primal_sol(i::Incumbents) = i.ip_primal_sol
