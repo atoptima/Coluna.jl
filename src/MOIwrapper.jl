@@ -23,10 +23,13 @@ end
 
 setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob
 
-function Optimizer(;master_factory =
-        JuMP.with_optimizer(GLPK.Optimizer), pricing_factory =
-        JuMP.with_optimizer(GLPK.Optimizer), params = Params())
-    prob = Problem(master_factory, pricing_factory)
+function Optimizer(;default_optimizer = nothing,
+                   params = Params())
+    b = no_optimizer_builder
+    if default_optimizer != nothing
+        b = ()->MoiOptimizer(default_optimizer())
+    end
+    prob = Problem(b)
     return Optimizer(
         prob, MOIU.IndexMap(), params, Annotations(),
         Dict{MOI.VariableIndex,Id{Variable}}(), OptimizationResult{MinSense}()
