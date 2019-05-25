@@ -3,7 +3,6 @@ module Coluna
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
-import GLPK
 import JuMP
 import BlockDecomposition
 import Distributed

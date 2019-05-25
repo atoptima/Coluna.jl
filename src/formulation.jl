@@ -351,8 +351,14 @@ function optimize!(form::Formulation)
     return res
 end
 
-function initialize_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
-    form.optimizer = create_optimizer(factory, form.obj_sense)
+function initialize_optimizer!(form::Formulation, builder::Union{Function})
+    form.optimizer = builder()
+    if form.optimizer isa MoiOptimizer
+        f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
+        MOI.set(form.optimizer.inner, MoiObjective(), f)
+        set_obj_sense!(form.optimizer, getobjsense(form))
+    end
+    return
 end
 
 function _show_obj_fun(io::IO, f::Formulation)
