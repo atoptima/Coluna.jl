@@ -1,9 +1,9 @@
 function proj_cols_on_rep(sol::PrimalSolution{S}, master::Formulation) where {S}
     projected_sol = Dict{VarId, Float64}()
-    partialsolmatrix = getpartialsolmatrix(master)
+    primalspsolmatrix = getprimalspsolmatrix(master)
     for (mc_id, mc_val) in sol
         for (rep_id, rep_val) in filter(
-                _rep_of_orig_var_, partialsolmatrix[:, mc_id]
+                _rep_of_orig_var_, primalspsolmatrix[:, mc_id]
             )
             projected_sol[rep_id] = (get!(projected_sol, rep_id, 0.0)) + rep_val * mc_val
         end

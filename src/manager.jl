@@ -10,7 +10,7 @@ struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
     coefficients::MembMatrix # rows = constraints, cols = variables
-    partial_sols::VarMatrix # rows = variables, cols = solutions
+    primal_sp_sols::VarMatrix # rows = variables, cols = solutions
     expressions::VarMatrix  # rows = expressions, cols = variables
 end
 
@@ -34,8 +34,8 @@ function addvar!(m::FormulationManager, var::Variable)
     return var
 end
 
-function addpartialsol!(m::FormulationManager, var::Variable)
-     ### check if partialsol exists should take place heren along the coeff update
+function addprimalspsol!(m::FormulationManager, var::Variable)
+     ### check if primalspsol exists should take place heren along the coeff update
     return var
 end
 
@@ -55,7 +55,7 @@ getconstrs(m::FormulationManager) = m.constrs
 
 getcoefmatrix(m::FormulationManager) = m.coefficients
 
-getpartialsolmatrix(m::FormulationManager) = m.partial_sols
+getprimalspsolmatrix(m::FormulationManager) = m.primal_sp_sols
 
 function Base.show(io::IO, m::FormulationManager)
     println(io, "FormulationManager :")
