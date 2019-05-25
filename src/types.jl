@@ -20,7 +20,7 @@ abstract type AbstractStrategy end
 """
     AbstractAlgorithm
 
-An algorithm is an 'text-book' algorithm applied to a formulation in a node.
+An algorithm is a 'text-book' algorithm applied to a formulation in a node.
 """
 abstract type AbstractAlgorithm end
 
@@ -38,18 +38,27 @@ abstract type AbstractFormDuty <: AbstractDuty end
 abstract type AbstractOriginalVar <: AbstractVarDuty end
 abstract type AbstractMasterVar <: AbstractVarDuty end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
+abstract type AbstractBendSpVar <: AbstractVarDuty end
+
+# Second level
+## Variables in the pricing sp of Dantzig-Wolfe
 abstract type AbstractPricingSpVar <: AbstractDwSpVar end
-abstract type AbstractMastRepSpVar <: AbstractDwSpVar end
+abstract type AbstractMastRepDwSpVar <: AbstractDwSpVar end
+
+## Variable in the separation sp of Benders
+abstract type AbstractBendSpRepMastVar <: AbstractBendSpVar end
 
 # Concrete types for VarDuty
+## Original
 "Variable belongs to the original formulation."
 struct OriginalVar <: AbstractOriginalVar end
 
 "Affine function of variables of duty OriginalVar ."
 struct OriginalExpression <: AbstractOriginalVar end
 
+## Master 
 "Variable that belongs to master."
-struct PureMastVar <: AbstractMasterVar end
+struct MasterPureVar <: AbstractMasterVar end  # Not used
 
 "Variable that belongs to master and is a partial solution of other variables."
 struct MasterCol <: AbstractMasterVar end
@@ -57,15 +66,20 @@ struct MasterCol <: AbstractMasterVar end
 "Artificial variable used to garantee feasibility when not enough columns were yet generated."
 struct MastArtVar <: AbstractMasterVar end
 
+"Estimation of the second stage cost in the master."
+struct BendSecondStageCostVar <: AbstractMasterVar end
+
+"Benders first stage variable in the master."
+struct BendFirstStageVar <: AbstractMasterVar end
+
+## Representative of variables of the DW pricing sp in the master
 "Master representative of a pricing subproblem variable."
-struct MastRepPricingSpVar <: AbstractMastRepSpVar end
+struct MastRepPricingSpVar <: AbstractMastRepDwSpVar end
 
 "Master representative of a pricing setup variable."
-struct MastRepPricingSetupSpVar <: AbstractMastRepSpVar end
+struct MastRepPricingSetupSpVar <: AbstractMastRepDwSpVar end
 
-"Master representative of a benders subproblem variable."
-struct MastRepBendSpVar <: AbstractMastRepSpVar end
-
+## DW pricing variables
 "Variable that belongs to a pricing subproblem."
 struct PricingSpVar <: AbstractPricingSpVar end
 
@@ -73,7 +87,21 @@ struct PricingSpVar <: AbstractPricingSpVar end
 struct PricingSpSetupVar <: AbstractPricingSpVar end
 
 "Variable belongs to a subproblem and has no representatives in the master? FV can you check this?"
-struct PricingSpPureVar <: AbstractDwSpVar end
+struct PricingSpPureVar <: AbstractDwSpVar end # not used
+
+## Benders separation variables
+"Second-level variable in the Benders pricing subproblem."
+struct BendSepSpVar <: AbstractBendSpVar end
+
+"Pure variables of the Benders pricing subproblem."
+struct BendSepSpPureVar <: AbstractBendSpVar end
+
+"Representative of master first stage variable in the Benders separation subproblem."
+struct BendSepRepFirstStageVar  <: AbstractBendSpRepMastVar end
+
+"Representative of master cost variable in the Benders separation subproblem."
+struct BendSepRepSecondStageCostVar <: AbstractBendSpRepMastVar end
+
 
 struct UndefinedVarDuty <: AbstractVarDuty end
 
@@ -92,7 +120,7 @@ abstract type AbstractMasterRepOriginalConstr <: AbstractMasterConstr end
 struct OriginalConstr <: AbstractOriginalConstr end
 
 "Constraint belongs to the master formulation and involves only pure master variables."
-struct MasterPureConstr <: AbstractMasterConstr end
+struct MasterPureConstr <: AbstractMasterConstr end # not used
 
 "Constraint belongs to the master formulation."
 struct MasterConstr <: AbstractMasterRepOriginalConstr end # is it correct?
@@ -151,7 +179,7 @@ abstract type AbstractAlg end
 const FormId = Int
 
 const StaticDuty = Union{
-    OriginalVar, OriginalExpression, PureMastVar, MastRepPricingSpVar,
+    OriginalVar, OriginalExpression, MasterPureVar, MastRepPricingSpVar,
     MastRepPricingSetupSpVar, PricingSpVar, PricingSpSetupVar, PricingSpPureVar,
     OriginalConstr, MasterPureConstr, MasterConstr, MasterConvexityConstr,
     PricingSpPureConstr
@@ -163,7 +191,7 @@ const DynamicDuty = Union{
 }
 
 const OriginalRepresentatives = Union{
-    Type{PureMastVar}, Type{MastRepPricingSpVar}
+    Type{MasterPureVar}, Type{MastRepPricingSpVar}
 }
 
 const ArtificialDuty = Union{Type{MastArtVar}}

@@ -58,12 +58,12 @@ end
 function abstract_var_constr_getters_tests()
 
     v = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepBendSpVar
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MasterPureVar
     )
 
     @test CL.getid(v) == CL.Id{CL.Variable}(23, 10)
     @test CL.getname(v) == "fake_var"
-    @test CL.getduty(v) == CL.MastRepBendSpVar
+    @test CL.getduty(v) == CL.MasterPureVar
     @test CL.getrecordeddata(v) === v.perene_data
     @test CL.getcurdata(v) === v.cur_data
     @test CL.getmoirecord(v) === v.moirecord
@@ -84,7 +84,7 @@ end
 function varcosntr_helpers_tests()
 
     v = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepBendSpVar
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MasterPureVar
     )
 
     @test CL.getuid(v) == 23

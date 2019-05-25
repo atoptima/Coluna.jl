@@ -70,7 +70,7 @@ function build_dw_master!(prob::Problem,
     reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
     convexity_constrs = ConstrDict()
     # copy of pure master variables
-    clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
+    clone_in_formulation!(master_form, orig_form, vars_in_form, MasterPureVar)
 
     mast_coefficient_matrix = getcoefmatrix(master_form)
     
