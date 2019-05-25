@@ -1,10 +1,31 @@
-function build_master_moi_optimizer()
-    return CL.MoiOptimizer(with_optimizer(GLPK.Optimizer)())
+function mycallback(form::CL.Formulation)
+    vars = [v for (id,v) in filter(CL._active_explicit_, CL.getvars(form))]
+    constr = [c for (id,c) in filter(CL._active_explicit_, CL.getconstrs(form))][1]
+    matrix = CL.getcoefmatrix(form)
+    m = JuMP.Model(with_optimizer(GLPK.Optimizer))
+    @variable(m, CL.getcurlb(vars[i]) <= x[i=1:length(vars)] <= CL.getcurub(vars[i]), Int)
+    @objective(m, Min, sum(CL.getcurcost(vars[j]) * x[j] for j in 1:length(vars)))
+    @constraint(m, knp, 
+        sum(matrix[CL.getid(constr),CL.getid(vars[j])] * x[j]
+        for j in 1:length(vars)) <= CL.getcurrhs(constr)
+    )
+    optimize!(m)
+    result = CL.OptimizationResult{CL.MinSense}()
+    result.primal_bound = CL.PrimalBound{CL.MinSense}(JuMP.objective_value(m))
+    sol = CL.MembersVector{Float64}(CL.getvars(form))
+    for i in 1:length(x)
+        @show i, JuMP.value(x[i])
+        val = JuMP.value(x[i])
+        if val > 0.000001  || val < - 0.000001 # todo use a tolerance
+            sol[CL.getid(vars[i])] = val
+        end
+    end
+    push!(result.primal_sols, CL.PrimalSolution{CL.MinSense}(result.primal_bound, sol))
+    return result
 end
 
-function build_sp_moi_optimizer()
-    return CL.MoiOptimizer(with_optimizer(GLPK.Optimizer)())
-end
+build_sp_moi_optimizer() = CL.UserOptimizer(mycallback)
+build_master_moi_optimizer() = CL.MoiOptimizer(with_optimizer(GLPK.Optimizer)())
 
 function pricing_callback_tests()
 

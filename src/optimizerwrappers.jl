@@ -17,8 +17,8 @@ mutable struct UserOptimizer <: AbstractOptimizer
 end
 
 function optimize!(form::Formulation, optimizer::UserOptimizer)
-    println("Calling user-defined optimization function.")
-    return OptimizationResult{getobjsense(form)}()
+    @logmsg LogLevel(-2) "Calling user-defined optimization function."
+    return optimizer.optimize_function(form)
 end
 
 """
