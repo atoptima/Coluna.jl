@@ -59,7 +59,7 @@ struct MasterRepPricingSetupVar <: AbstractMasterRepDwSpVar end
 
 struct DwSpPricingVar <: AbstractDwSpVar end
 struct DwSpSetupVar <: AbstractDwSpVar end
-struct DwSpPureVar <: AbstractDwSpVar end # not used
+struct DwSpPureVar <: AbstractDwSpVar end 
 
 struct BendSpSepVar <: AbstractBendSpVar end
 struct BendSpPureVar <: AbstractBendSpVar end
@@ -85,8 +85,8 @@ abstract type AbstractBendSpConstr <: AbstractConstrDuty end
 # Concrete duties for Constraints
 struct OriginalConstr <: AbstractOriginalConstr end
 
-struct MasterPureConstr <: AbstractMasterOriginConstr end # not used
-struct MasterMixedConstr <: AbstractMasterOriginConstr end # not used
+struct MasterPureConstr <: AbstractMasterOriginConstr end 
+struct MasterMixedConstr <: AbstractMasterOriginConstr end 
 struct MasterConvexityConstr <: AbstractMasterAddedConstr end
 struct MasterSecondStageCostConstr <: AbstractMasterAddedConstr end
 struct MasterBendCutConstr <: AbstractMasterCutConstr end
