@@ -14,7 +14,6 @@ function mycallback(form::CL.Formulation)
     result.primal_bound = CL.PrimalBound{CL.MinSense}(JuMP.objective_value(m))
     sol = CL.MembersVector{Float64}(CL.getvars(form))
     for i in 1:length(x)
-        @show i, JuMP.value(x[i])
         val = JuMP.value(x[i])
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
             sol[CL.getid(vars[i])] = val
