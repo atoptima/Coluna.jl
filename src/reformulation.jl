@@ -33,15 +33,6 @@ setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 add_benders_sep_sp!(r::Reformulation, f) = push!(r.benders_sep_subprs, f)
 
-function initialize_optimizer(reformulation::Reformulation,
-                                  master_factory::JuMP.OptimizerFactory,
-                                  pricing_factory::JuMP.OptimizerFactory)
-    initialize_optimizer(reformulation.master, master_factory)
-    for problem in reformulation.dw_pricing_subprs
-        initialize_optimizer(problem, pricing_factory)
-    end
-end
-
 function optimize!(reformulation::Reformulation)
     opt_result = apply!(GlobalStrategy, reformulation)
     opt_result.primal_sols = [proj_cols_on_rep(

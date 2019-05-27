@@ -52,7 +52,7 @@ function constraint_getters_and_setters_tests()
     )
 
     c = CL.Constraint(
-        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchConstr;
+        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchOnOrigVarConstr;
         constr_data = c_data
     )
 

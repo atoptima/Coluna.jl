@@ -57,7 +57,7 @@ getconstrs(f::Formulation) = getconstrs(f.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
-getpartialsolmatrix(f::Formulation) = getpartialsolmatrix(f.manager)
+getprimalspsolmatrix(f::Formulation) = getprimalspsolmatrix(f.manager)
 
 "Returns the `uid` of `Formulation` `f`."
 getuid(f::Formulation) = f.uid
@@ -150,7 +150,7 @@ function setvar!(f::Formulation,
     return addvar!(f, v)
 end
 
-function setpartialsol!(f::Formulation,
+function setprimalspsol!(f::Formulation,
                          name::String,
                          sol::PrimalSolution{S},
                          duty::Type{<:AbstractVarDuty};
@@ -167,10 +167,10 @@ function setpartialsol!(f::Formulation,
     ps = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
 
     coef_matrix = getcoefmatrix(f)
-    partialsol_matrix = getpartialsolmatrix(f)
+    primalspsol_matrix = getprimalspsolmatrix(f)
 
     for (var_id, var_val) in sol
-        partialsol_matrix[var_id, ps_id] = var_val
+        primalspsol_matrix[var_id, ps_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
             coef_matrix[constr_id, ps_id] = var_val * var_coef
         end
@@ -201,8 +201,8 @@ function activate!(f::Formulation, id::Id)
     return
 end
 
-function addpartialsol!(f::Formulation, var::Variable)
-    return addpartialsol!(f.manager, var)
+function addprimalspsol!(f::Formulation, var::Variable)
+    return addprimalspsol!(f.manager, var)
 end
 
 function clonevar!(dest::Formulation, src::Formulation, var::Variable)
@@ -272,7 +272,7 @@ function setmembers!(f::Formulation, v::Variable, members::ConstrMembership)
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
     coef_matrix = getcoefmatrix(f)
-    partialsol_matrix = getpartialsolmatrix(f)
+    primalspsol_matrix = getprimalspsolmatrix(f)
     id = getid(v)
     for (constr_id, coeff) in members
         coef_matrix[constr_id, id] = coeff
@@ -283,7 +283,7 @@ end
 function setmembers!(f::Formulation, constr::Constraint, members)
     @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
     coef_matrix = getcoefmatrix(f)
-    partial_sols = getpartialsolmatrix(f)
+    primal_sp_sols = getprimalspsolmatrix(f)
     constr_id = getid(constr)
     @logmsg LogLevel(-4) "Members are : ", members
     for (var_id, member_coeff) in members
@@ -292,7 +292,7 @@ function setmembers!(f::Formulation, constr::Constraint, members)
         coef_matrix[constr_id,var_id] = member_coeff
         @logmsg LogLevel(-4) string("Adidng variable ", getname(v), " with coeff ", member_coeff)
         # And for all columns having its own variables
-        for (col_id, coeff) in partial_sols[var_id,:]
+        for (col_id, coeff) in primal_sp_sols[var_id,:]
             @logmsg LogLevel(-4) string("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
             coef_matrix[constr_id,col_id] = coeff * member_coeff
         end
@@ -351,8 +351,14 @@ function optimize!(form::Formulation)
     return res
 end
 
-function initialize_optimizer(form::Formulation, factory::JuMP.OptimizerFactory)
-    form.optimizer = create_optimizer(factory, form.obj_sense)
+function initialize_optimizer!(form::Formulation, builder::Union{Function})
+    form.optimizer = builder()
+    if form.optimizer isa MoiOptimizer
+        f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
+        MOI.set(form.optimizer.inner, MoiObjective(), f)
+        set_obj_sense!(form.optimizer, getobjsense(form))
+    end
+    return
 end
 
 function _show_obj_fun(io::IO, f::Formulation)
