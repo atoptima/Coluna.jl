@@ -20,34 +20,21 @@ mutable struct Problem <: AbstractProblem
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     form_counter::Counter # 0 is for original form
-    master_factory::Union{Nothing, JuMP.OptimizerFactory}
-    pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
-    benders_sep_factory::Union{Nothing, JuMP.OptimizerFactory}
+    default_optimizer_builder::Function
 end
 
 """
-    Problem(params::Params, master_factory, pricing_factory, benders_sep_factory)
+    Problem(b::Function)
 
 Constructs an empty `Problem`.
 """
-function Problem(master_factory, pricing_factory, benders_sep_factory)
-    return Problem(
-        nothing, nothing, Counter(-1),
-        master_factory, pricing_factory, benders_sep_factory
-    )
-end
+Problem(b::Function) = Problem(nothing, nothing, Counter(-1), b)
 
 set_original_formulation!(m::Problem, of::Formulation) = m.original_formulation = of
 set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r
 
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
-
-function initialize_optimizer(prob::Problem)
-    initialize_optimizer(
-        prob.re_formulation, prob.master_factory, prob.pricing_factory
-    )
-end
 
 function _welcome_message()
     welcome = """
@@ -63,7 +50,6 @@ function coluna_initialization(prob::Problem, annotations::Annotations,
     _set_global_params(params)
     reformulate!(prob, annotations, params.global_strategy)
     relax_integrality!(prob.re_formulation.master)
-    initialize_optimizer(prob)
     @info "Coluna initialized."
 end
 
