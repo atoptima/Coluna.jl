@@ -110,12 +110,10 @@ function lot_sizing_tests()
         data = CLD.SingleModeMultiItemsLotSizing.data("lotSizing-3-20.txt")
         
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            master_factory = with_optimizer(GLPK.Optimizer),
-            benders_sep_factory = with_optimizer(GLPK.Optimizer)
+            default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
         JuMP.optimize!(problem)
-
     end
 end
