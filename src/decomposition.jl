@@ -63,7 +63,8 @@ function build_dw_master!(prob::Problem,
                           reformulation::Reformulation,
                           master_form::Formulation,
                           vars_in_form::VarDict,
-                          constrs_in_form::ConstrDict)
+                          constrs_in_form::ConstrDict,
+                          opt_builder::Function)
 
     orig_form = get_original_formulation(prob)
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
@@ -136,6 +137,7 @@ function build_dw_master!(prob::Problem,
     # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
     initialize_local_art_vars(master_form, convexity_constrs)
+    initialize_optimizer!(master_form, opt_builder)
     return
 end
 
@@ -143,7 +145,8 @@ function build_dw_pricing_sp!(prob::Problem,
                               annotation_id::Int,
                               sp_form::Formulation,
                               vars_in_form::VarDict,
-                              constrs_in_form::ConstrDict)
+                              constrs_in_form::ConstrDict,
+                              opt_builder::Function)
 
     orig_form = get_original_formulation(prob)
     master_form = sp_form.parent_formulation
@@ -151,6 +154,7 @@ function build_dw_pricing_sp!(prob::Problem,
     ## Create Pure Pricing Sp Var & constr
     clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
     clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
+    initialize_optimizer!(sp_form, opt_builder)
     return
 end
 
@@ -188,9 +192,13 @@ function reformulate!(prob::Problem, annotations::Annotations,
     ann_sorted_by_uid = sort(collect(annotation_set), by = ann -> ann.unique_id)
     
     formulations = Dict{Int, Formulation}()
+    optimizer_builders = Dict{Int, Function}()
     master_unique_id = -1
 
     for annotation in ann_sorted_by_uid
+        if BD.getoptimizerbuilder(annotation) != nothing
+            optimizer_builders[BD.getid(annotation)] = BD.getoptimizerbuilder(annotation)
+        end
         if BD.getformulation(annotation) == BD.Master
             master_unique_id = BD.getid(annotation)
             formulations[BD.getid(annotation)] = master_form
@@ -213,9 +221,10 @@ function reformulate!(prob::Problem, annotations::Annotations,
             vars, constrs = find_vcs_in_block(
                 BD.getid(annotation), vars_per_block, constrs_per_block
             )
+            opt_builder = get(optimizer_builders, BD.getid(annotation), prob.default_optimizer_builder)
             build_dw_pricing_sp!(prob, BD.getid(annotation),
                                  formulations[BD.getid(annotation)],
-                                 vars, constrs)
+                                 vars, constrs, opt_builder)
         end
     end
 
@@ -223,8 +232,9 @@ function reformulate!(prob::Problem, annotations::Annotations,
     vars, constrs = find_vcs_in_block(
         master_unique_id, vars_per_block, constrs_per_block
     )
+    opt_builder = get(optimizer_builders, master_unique_id, prob.default_optimizer_builder)
     build_dw_master!(prob, master_unique_id, reformulation,
-                     master_form, vars, constrs)
+                     master_form, vars, constrs, opt_builder)
 
     @debug "\e[1;34m Master formulation \e[00m" master_form
     for sp_form in reformulation.dw_pricing_subprs

@@ -5,6 +5,8 @@ Wrapper to indicate that no optimizer is assigned to a `Formulation`
 """
 struct NoOptimizer <: AbstractOptimizer end
 
+no_optimizer_builder(args...) = NoOptimizer()
+
 """
     UserOptimizer <: AbstractOptimizer
 
@@ -14,13 +16,9 @@ mutable struct UserOptimizer <: AbstractOptimizer
     optimize_function::Function
 end
 
-function create_optimizer(optimize_function::Function)
-    return UserOptimizer(optimize_function)
-end
-
 function optimize!(form::Formulation, optimizer::UserOptimizer)
-    println("Calling user-defined optimization function.")
-    return OptimizationResult{getobjsense(form)}()
+    @logmsg LogLevel(-2) "Calling user-defined optimization function."
+    return optimizer.optimize_function(form)
 end
 
 """
@@ -34,16 +32,6 @@ struct MoiOptimizer <: AbstractOptimizer
 end
 
 getinner(optimizer::MoiOptimizer) = optimizer.inner
-
-function create_optimizer(factory::JuMP.OptimizerFactory,
-                          sense::Type{<:AbstractObjSense})
-    moi_optimizer = factory()
-    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
-    MOI.set(moi_optimizer, MoiObjective(),f)
-    optimizer = MoiOptimizer(moi_optimizer)
-    set_obj_sense!(optimizer, sense)
-    return optimizer
-end
 
 function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     result = OptimizationResult{getobjsense(form)}()
@@ -146,8 +134,4 @@ end
 # Fallbacks
 optimize!(::S) where {S<:AbstractOptimizer} = error(
     string("Function `optimize!` is not defined for object of type ", S)
-)
-
-create_optimizer(::S) where {S<:AbstractOptimizer} = error(
-    string("Function `create_optimizer` is not defined for object of type ", S)
 )
