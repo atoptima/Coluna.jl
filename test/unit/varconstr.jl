@@ -70,12 +70,12 @@ function abstract_var_constr_getters_tests()
 
 
     c = CL.Constraint(
-        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchConstr
+        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchOnOrigVarConstr
     )
 
     @test CL.getid(c) == CL.Id{CL.Constraint}(23, 10)
     @test CL.getname(c) == "fake_constr"
-    @test CL.getduty(c) == CL.MasterBranchConstr
+    @test CL.getduty(c) == CL.MasterBranchOnOrigVarConstr
     @test CL.getrecordeddata(c) === c.perene_data
     @test CL.getcurdata(c) === c.cur_data
     @test CL.getmoirecord(c) === c.moirecord
@@ -109,7 +109,7 @@ function varcosntr_helpers_tests()
     @test CL.get_cur_is_explicit(v) == false
 
     c = CL.Constraint(
-        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchConstr
+        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchOnOrigVarConstr
     )
 
     @test CL.getuid(c) == 23

@@ -37,71 +37,34 @@ abstract type AbstractFormDuty <: AbstractDuty end
 # First level of specification on VarDuty
 abstract type AbstractOriginalVar <: AbstractVarDuty end
 abstract type AbstractMasterVar <: AbstractVarDuty end
+abstract type AbstractOriginMasterVar <: AbstractMasterVar end
+abstract type AbstractAddedMasterVar <: AbstractMasterVar end
+abstract type AbstractImplicitMasterVar <: AbstractMasterVar end
+abstract type AbstractMasterRepDwSpVar <: AbstractImplicitMasterVar end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
 abstract type AbstractBendSpVar <: AbstractVarDuty end
-
-# Second level
-## Variables in the pricing sp of Dantzig-Wolfe
-abstract type AbstractPricingSpVar <: AbstractDwSpVar end
-abstract type AbstractMastRepDwSpVar <: AbstractDwSpVar end
-
-## Variable in the separation sp of Benders
 abstract type AbstractBendSpRepMastVar <: AbstractBendSpVar end
 
 # Concrete types for VarDuty
-## Original
-"Variable belongs to the original formulation."
 struct OriginalVar <: AbstractOriginalVar end
-
-"Affine function of variables of duty OriginalVar ."
 struct OriginalExpression <: AbstractOriginalVar end
 
-## Master 
-"Variable that belongs to master."
-struct MasterPureVar <: AbstractMasterVar end  # Not used
+struct MasterPureVar <: AbstractOriginMasterVar end 
+struct MasterCol <: AbstractAddedMasterVar end
+struct MasterArtVar <: AbstractAddedMasterVar end
+struct MasterBendSecondStageCostVar <: AbstractAddedMasterVar end
+struct MasterBendFirstStageVar <: AbstractOriginMasterVar end
+struct MasterRepPricingVar <: AbstractMasterRepDwSpVar end
+struct MasterRepPricingSetupVar <: AbstractMasterRepDwSpVar end
 
-"Variable that belongs to master and is a partial solution of other variables."
-struct MasterCol <: AbstractMasterVar end
+struct DwSpPricingVar <: AbstractDwSpVar end
+struct DwSpSetupVar <: AbstractDwSpVar end
+struct DwSpPureVar <: AbstractDwSpVar end # not used
 
-"Artificial variable used to garantee feasibility when not enough columns were yet generated."
-struct MastArtVar <: AbstractMasterVar end
-
-"Estimation of the second stage cost in the master."
-struct BendSecondStageCostVar <: AbstractMasterVar end
-
-"Benders first stage variable in the master."
-struct BendFirstStageVar <: AbstractMasterVar end
-
-## Representative of variables of the DW pricing sp in the master
-"Master representative of a pricing subproblem variable."
-struct MastRepPricingSpVar <: AbstractMastRepDwSpVar end
-
-"Master representative of a pricing setup variable."
-struct MastRepPricingSetupSpVar <: AbstractMastRepDwSpVar end
-
-## DW pricing variables
-"Variable that belongs to a pricing subproblem."
-struct PricingSpVar <: AbstractPricingSpVar end
-
-"Variable that represents the setup (use or not) of a pricing subproblem solution."
-struct PricingSpSetupVar <: AbstractPricingSpVar end
-
-"Variable belongs to a subproblem and has no representatives in the master? FV can you check this?"
-struct PricingSpPureVar <: AbstractDwSpVar end # not used
-
-## Benders separation variables
-"Second-level variable in the Benders pricing subproblem."
-struct BendSepSpVar <: AbstractBendSpVar end
-
-"Pure variables of the Benders pricing subproblem."
-struct BendSepSpPureVar <: AbstractBendSpVar end
-
-"Representative of master first stage variable in the Benders separation subproblem."
-struct BendSepRepFirstStageVar  <: AbstractBendSpRepMastVar end
-
-"Representative of master cost variable in the Benders separation subproblem."
-struct BendSepRepSecondStageCostVar <: AbstractBendSpRepMastVar end
-
+struct BendSpSepVar <: AbstractBendSpVar end
+struct BendSpPureVar <: AbstractBendSpVar end
+struct BendSpRepFirstStageVar  <: AbstractBendSpRepMastVar end
+struct BendSpRepSecondStageCostVar <: AbstractBendSpRepMastVar end
 
 struct UndefinedVarDuty <: AbstractVarDuty end
 
@@ -112,30 +75,30 @@ struct UndefinedVarDuty <: AbstractVarDuty end
 # First level of specification on ConstrDuty
 abstract type AbstractOriginalConstr <: AbstractConstrDuty end
 abstract type AbstractMasterConstr <: AbstractConstrDuty end
+abstract type AbstractMasterOriginConstr <: AbstractMasterConstr end
+abstract type AbstractMasterAddedConstr <: AbstractMasterConstr end
+abstract type AbstractMasterCutConstr <: AbstractMasterConstr end
+abstract type AbstractMasterBranchingConstr <: AbstractMasterConstr end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
-abstract type AbstractMasterRepOriginalConstr <: AbstractMasterConstr end
+abstract type AbstractBendSpConstr <: AbstractConstrDuty end
 
 # Concrete duties for Constraints
-"Constraint belongs to the original formulation."
 struct OriginalConstr <: AbstractOriginalConstr end
 
-"Constraint belongs to the master formulation and involves only pure master variables."
-struct MasterPureConstr <: AbstractMasterConstr end # not used
+struct MasterPureConstr <: AbstractMasterOriginConstr end # not used
+struct MasterMixedConstr <: AbstractMasterOriginConstr end # not used
+struct MasterConvexityConstr <: AbstractMasterAddedConstr end
+struct MasterSecondStageCostConstr <: AbstractMasterAddedConstr end
+struct MasterBendCutConstr <: AbstractMasterCutConstr end
+struct MasterBranchOnOrigVarConstr <: AbstractMasterBranchingConstr end
 
-"Constraint belongs to the master formulation."
-struct MasterConstr <: AbstractMasterRepOriginalConstr end # is it correct?
+struct DwSpPureConstr <: AbstractDwSpConstr end
+struct DwSpRepMastBranchConstr <: AbstractDwSpConstr end
 
-"Convexity constraint of the master formulation."
-struct MasterConvexityConstr <: AbstractMasterConstr end
+struct BendSpPureConstr <: AbstractBendSpConstr end
+struct BendSpSecondStageCostConstr <: AbstractBendSpConstr end
+struct BendSpTechnologicalConstr <: AbstractBendSpConstr end
 
-"Branching constraint in the master formulation."
-struct MasterBranchConstr <: AbstractMasterRepOriginalConstr end # is is correct?
-
-"Constraint of the pricing subproblem."
-struct PricingSpPureConstr <: AbstractDwSpConstr end
-
-"Representation of a branching constraint from the master in the pricing subproblem."
-struct PricingSpRepMastBranchConstr <: AbstractDwSpConstr end
 
 struct UndefinedConstrDuty <: AbstractConstrDuty end
 
@@ -179,22 +142,49 @@ abstract type AbstractAlg end
 const FormId = Int
 
 const StaticDuty = Union{
-    OriginalVar, OriginalExpression, MasterPureVar, MastRepPricingSpVar,
-    MastRepPricingSetupSpVar, PricingSpVar, PricingSpSetupVar, PricingSpPureVar,
-    OriginalConstr, MasterPureConstr, MasterConstr, MasterConvexityConstr,
-    PricingSpPureConstr
+    Type{OriginalVar},
+    Type{OriginalExpression},
+    Type{MasterPureVar},
+    Type{MasterArtVar},
+    Type{MasterBendSecondStageCostVar},
+    Type{MasterBendFirstStageVar}, 
+    Type{MasterRepPricingVar}, 
+    Type{MasterRepPricingSetupVar}, 
+    Type{DwSpPricingVar},
+    Type{DwSpSetupVar}, 
+    Type{DwSpPureVar}, 
+    Type{BendSpSepVar}, 
+    Type{BendSpPureVar}, 
+    Type{BendSpRepFirstStageVar },
+    Type{BendSpRepSecondStageCostVar}, 
+    Type{OriginalConstr},
+    Type{MasterPureConstr}, 
+    Type{MasterMixedConstr}, 
+    Type{MasterConvexityConstr},
+    Type{MasterSecondStageCostConstr},
+    Type{DwSpPureConstr}, 
+    Type{BendSpPureConstr}, 
+    Type{BendSpSecondStageCostConstr},
+    Type{BendSpTechnologicalConstr}
 }
 
 const DynamicDuty = Union{
-    Type{MasterCol}, Type{MasterBranchConstr},
-    Type{PricingSpRepMastBranchConstr}
+    Type{MasterCol},
+    Type{MasterBranchOnOrigVarConstr},
+    Type{MasterBendCutConstr},
+    Type{MasterBranchOnOrigVarConstr},
+    Type{DwSpRepMastBranchConstr}, 
+    Type{DwSpRepMastBranchConstr}
 }
 
 const OriginalRepresentatives = Union{
-    Type{MasterPureVar}, Type{MastRepPricingSpVar}
+    Type{MasterPureVar},
+    Type{MasterRepPricingVar}
 }
+const ArtificialDuty = Union{Type{MasterArtVar}}
 
-const ArtificialDuty = Union{Type{MastArtVar}}
+
+
 
 ############################################################################
 ######################## MathOptInterface shortcuts ########################
