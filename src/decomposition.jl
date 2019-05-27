@@ -1,6 +1,6 @@
 set_glob_art_var(f::Formulation, is_pos::Bool) = setvar!(
     f, string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
-    MastArtVar; cost = (getobjsense(f) == MinSense ? 100000.0 : -100000.0),
+    MasterArtVar; cost = (getobjsense(f) == MinSense ? 100000.0 : -100000.0),
     lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
@@ -10,7 +10,7 @@ function initialize_local_art_vars(master::Formulation,
     for (constr_id, constr) in constrs_in_form
         v = setvar!(
             master, string("local_art_of_", getname(constr)),
-            MastArtVar;
+            MasterArtVar;
             cost = (getobjsense(master) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
@@ -70,8 +70,10 @@ function build_dw_master!(prob::Problem,
     reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
     reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
     convexity_constrs = ConstrDict()
+
+
     # copy of pure master variables
-    clone_in_formulation!(master_form, orig_form, vars_in_form, PureMastVar)
+    clone_in_formulation!(master_form, orig_form, vars_in_form, MasterPureVar)
 
     mast_coefficient_matrix = getcoefmatrix(master_form)
     
@@ -85,7 +87,7 @@ function build_dw_master!(prob::Problem,
         sense = Greater
         rhs = 0.0
         kind = Core
-        duty = MasterConvexityConstr  #MasterConstr #MasterConvexityConstr
+        duty = MasterConvexityConstr  
         lb_conv_constr = setconstr!(master_form, name, duty;
                                      rhs = rhs, kind  = kind,
                                      sense = sense)
@@ -108,7 +110,7 @@ function build_dw_master!(prob::Problem,
         ## add all Sp var in master
         vars = filter(_active_pricing_sp_var_, getvars(sp_form))
         is_explicit = false
-        clone_in_formulation!(master_form, sp_form, vars, MastRepPricingSpVar, is_explicit)
+        clone_in_formulation!(master_form, sp_form, vars, MasterRepPricingVar, is_explicit)
 
         ## Create PricingSetupVar
         name = "PricingSetupVar_sp_$(sp_form.uid)"
@@ -116,14 +118,14 @@ function build_dw_master!(prob::Problem,
         lb = 1.0
         ub = 1.0
         kind = Continuous
-        duty = PricingSpSetupVar
+        duty = DwSpSetupVar
         sense = Positive
         is_explicit = true
         setup_var = setvar!(
             sp_form, name, duty; cost = cost, lb = lb, ub = ub, kind = kind,
             sense = sense, is_explicit = is_explicit
         )
-        clone_in_formulation!(master_form, sp_form, setup_var, MastRepPricingSetupSpVar, false)
+        clone_in_formulation!(master_form, sp_form, setup_var, MasterRepPricingSetupVar, false)
 
         ## add setup var coef in convexity constraint
         matrix = getcoefmatrix(master_form)
@@ -132,7 +134,7 @@ function build_dw_master!(prob::Problem,
     end
 
     # copy of master constraints
-    clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterConstr)
+    clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterMixedConstr)
 
     # add artificial var 
     initialize_artificial_variables(master_form, constrs_in_form)
@@ -152,8 +154,8 @@ function build_dw_pricing_sp!(prob::Problem,
     master_form = sp_form.parent_formulation
     reformulation = master_form.parent_formulation
     ## Create Pure Pricing Sp Var & constr
-    clone_in_formulation!(sp_form, orig_form, vars_in_form, PricingSpVar)
-    clone_in_formulation!(sp_form, orig_form, constrs_in_form, PricingSpPureConstr)
+    clone_in_formulation!(sp_form, orig_form, vars_in_form, DwSpPricingVar)
+    clone_in_formulation!(sp_form, orig_form, constrs_in_form, DwSpPureConstr)
     initialize_optimizer!(sp_form, opt_builder)
     return
 end

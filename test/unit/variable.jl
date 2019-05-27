@@ -63,7 +63,7 @@ function variable_getters_and_setters_tests()
     )
 
     v = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepBendSpVar;
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MasterPureVar;
         var_data = v_data
     )
 
