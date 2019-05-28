@@ -81,7 +81,7 @@ function build_dw_master!(prob::Problem,
     # add convexity constraints and setupvar 
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
- 
+        
         # create convexity constraint
         name = "sp_lb_$(sp_uid)"
         sense = Greater
@@ -131,6 +131,8 @@ function build_dw_master!(prob::Problem,
         #matrix = getcoefmatrix(master_form)
         mast_coefficient_matrix[getid(lb_conv_constr),getid(setup_var)] = 1.0
         mast_coefficient_matrix[getid(ub_conv_constr),getid(setup_var)] = 1.0
+        
+
     end
 
     mast_form_uid = getuid(master_form)
@@ -167,7 +169,8 @@ function build_benders_master!(prob::Problem,
                        reformulation::Reformulation,
                        master_form::Formulation,
                        vars_in_form::VarDict,
-                       constrs_in_form::ConstrDict)
+                       constrs_in_form::ConstrDict,
+                          opt_builder::Function)
 
    orig_form = get_original_formulation(prob)
 
@@ -186,7 +189,7 @@ function build_benders_master!(prob::Problem,
         second_stage_cost_exist = false
 
         ## Identify whether there is a second stage cost
-        for var in vars
+        for (var_id, var) in vars
             cost = getperenecost(var)
             if cost > 0.000001
                 second_stage_cost_exist = true
@@ -229,9 +232,9 @@ function build_benders_master!(prob::Problem,
             mast_coefficient_matrix[getid(second_stage_cost_constr),getid(second_stage_cost_var)] = 1.0
 
 
-            for var in vars
+            for (var_id, var) in vars
                 cost = getperenecost(var)
-                mast_coefficient_matrix[getid(second_stage_cost_constr),getid(var)] = - cost
+                mast_coefficient_matrix[getid(second_stage_cost_constr), var_id] = - cost
                 setperenecost!(var, 0.0)
                 setcurcost!(var, 0.0)
                 setcost!(sp_form, var, 0.0)
@@ -241,25 +244,25 @@ function build_benders_master!(prob::Problem,
         end
 
 
-        pure_sp_constrs::ConstrDict()
-        non_pure_sp_constrs::ConstrDict()
+        #==pure_sp_constrs = ConstrDict()
+        non_pure_sp_constrs = ConstrDict()
         sp_form_uid = getuid(sp_form)
-        for constr in getconstrs(sp_form)
-            var_membership = orig_coefficient_matrix[getid(constr),:]
-            non_pure_var_membership = filter(id_v->(getformuid(id_v[1]) != sp_form_uid), var_membership)
+        for id_constr in getconstrs(sp_form)
+            var_membership = orig_coefficient_matrix[id_constr[1],:]
+            non_pure_var_membership = filter(v->(getformuid(v) != sp_form_uid), var_membership)
             if (length(non_pure_var_membership) > 0)
-                push!(non_pure_sp_constrs, constr)
+                push!(non_pure_sp_constrs, id_constr)
             else
-                push!(pure_sp_constrs, constr)
+                push!(pure_sp_constrs, id_constr)
             end
         end
-        clone_in_formulation!(sp_form, orig_form, pure_mast_constrs, BendSpPureConstr)
-        clone_in_formulation!(sp_form, orig_form, non_pure_mast_constrs, BendSpTechnologicalConstr)
-
+        clone_in_formulation!(sp_form, orig_form, pure_sp_constrs, BendSpPureConstr)
+        clone_in_formulation!(sp_form, orig_form, non_pure_sp_constrs, BendSpTechnologicalConstr)
+       is_explicit = true
+        clone_in_formulation!(sp_form, orig_form, vars, BendSpSepVar, is_explicit)
+==#
         
-        is_explicit = true
-        clone_in_formulation!(sp_form, orig_form, vars, BendersSepVar, is_explicit)
-
+ 
     end
 
     
@@ -275,11 +278,16 @@ function build_benders_master!(prob::Problem,
             push!(pure_mast_vars, id_var)
         end
     end
+    # copy of pure master variables
     clone_in_formulation!(master_form, orig_form, pure_mast_vars, MasterPureVar)
+    # copy of first stage  master variables
     clone_in_formulation!(master_form, orig_form, non_pure_mast_vars, MasterBendFirstStageVar)
     
     
+    # copy of pure master constraints
     clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterPureConstr)
+
+    initialize_optimizer!(master_form, opt_builder)
 
 
     return
@@ -298,8 +306,8 @@ function build_dw_pricing_sp!(prob::Problem,
     master_form = sp_form.parent_formulation
     reformulation = master_form.parent_formulation
     ## Create Pure Pricing Sp Var & constr
-    clone_in_formulation!(sp_form, orig_form, vars_in_form, DwSpPureVar)
-    clone_in_formulation!(sp_form, orig_form, constrs_in_form, DwSpPureConstr)
+    clone_in_formulation!(sp_form, orig_form, vars_in_form, DwSpPricingVar) ## To Review
+    clone_in_formulation!(sp_form, orig_form, constrs_in_form, DwSpPureConstr)  ## To Review
     initialize_optimizer!(sp_form, opt_builder)
     return
 end
@@ -308,13 +316,15 @@ function build_benders_sep_sp!(prob::Problem,
                                annotation_id::Int,
                                sp_form::Formulation,
                                vars_in_form::VarDict,
-                               constrs_in_form::ConstrDict)
+                               constrs_in_form::ConstrDict,
+                               opt_builder::Function)
     orig_form = get_original_formulation(prob)
     master_form = sp_form.parent_formulation
     reformulation = master_form.parent_formulation
     ## Create pure Sp benders vars & constr
-    clone_in_formulation!(sp_form, orig_form, vars_in_form, BendSpPureVar)
-    clone_in_formulation!(sp_form, orig_form, constrs_in_form, BendSpPureConstr) 
+    clone_in_formulation!(sp_form, orig_form, vars_in_form, BendSpSepVar) ## To Review
+    clone_in_formulation!(sp_form, orig_form, constrs_in_form, BendSpTechnologicalConstr) ## To Review
+    initialize_optimizer!(sp_form, opt_builder)
 end
 
 function instanciatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})

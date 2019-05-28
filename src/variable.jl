@@ -117,11 +117,9 @@ end
 
 # -> Initial
 getperenecost(vc::AbstractVarConstr) = vc.perene_data.cost
+setperenecost!(vc::AbstractVarConstr, cost::Float64) = vc.perene_data.cost = cost
 getperenelb(vc::AbstractVarConstr) = vc.perene_data.lb
 getpereneub(vc::AbstractVarConstr) = vc.perene_data.ub
-# setinitcost!(vc::AbstractVarConstr, cost::Float64) = vc.perene_data.cost
-# setinitlb!(vc::AbstractVarConstr, lb::Float64) = vc.perene_data.lb = lb
-# setinitub!(vc::AbstractVarConstr, ub::Float64) = vc.perene_data.ub = ub
 # -> Current
 getcurcost(vc::AbstractVarConstr) = vc.cur_data.cost
 getcurlb(vc::AbstractVarConstr) = vc.cur_data.lb

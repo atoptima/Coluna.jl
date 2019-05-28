@@ -9,6 +9,9 @@ _rep_of_orig_var_(v::Variable) = (getduty(v) isa OriginalRepresentatives)
 "Returns true if `id_v[2]` is a pricing subproblem variable and is currently active"
 _active_pricing_sp_var_(id_v::Pair{VarId,Variable}) = get_cur_is_active(id_v[2]) == true && getduty(id_v[2]) <: AbstractDwSpVar
 
+
+_active_benders_sp_var_(id_v::Pair{VarId,Variable}) = get_cur_is_active(id_v[2]) == true && getduty(id_v[2]) <: AbstractBendSpVar
+
 "Returns true if `v` is a master representative of a pricing subproblem variable and is currently active"
 _active_pricing_mast_rep_sp_var_(v::Variable) = get_cur_is_active(v) == true && getduty(v) <: AbstractMasterRepDwSpVar
 
