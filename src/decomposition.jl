@@ -187,6 +187,10 @@ function instanciatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.
     return form
 end
 
+function instanciatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.Benders})
+    error("TODO.")
+end
+
 function createmaster!(form, prob::Problem, reform, ann, annotations, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
     vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
     opt_builder = prob.default_optimizer_builder
@@ -194,6 +198,10 @@ function createmaster!(form, prob::Problem, reform, ann, annotations, ::Type{BD.
         opt_builder = BD.getoptimizerbuilder(ann)
     end
     build_dw_master!(prob, BD.getid(ann), reform, form, vars, constrs, opt_builder)
+end
+
+function createmaster!(form, prob::Problem, reform, ann, annotations, ::Type{BD.Master}, ::Type{BD.Benders})
+    error("TODO")
 end
 
 function createsp!(prob::Problem, reform, mast, ann, annotations, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe})
@@ -210,6 +218,10 @@ function createsp!(prob::Problem, reform, mast, ann, annotations, ::Type{BD.DwPr
     end
     build_dw_pricing_sp!(prob, BD.getid(ann), form, vars, constrs, opt_builder)
     return form
+end
+
+function createsp!(prob::Problem, reform, mast, ann, annotations, ::Type{BD.BendersSepSp}, ::Type{BD.Benders})
+    error("TODO")
 end
 
 function registerformulations!(prob::Problem, annotations::Annotations, reform, 
