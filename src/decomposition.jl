@@ -58,6 +58,20 @@ function find_vcs_in_block(uid::Int, vars_per_block::Dict{Int,VarDict},
     return vars, constrs
 end
 
+function find_vcs_in_block(uid::Int, annotations::Annotations)
+    vars_per_block = annotations.vars_per_block 
+    vars = VarDict()
+    if haskey(vars_per_block, uid)
+        vars = vars_per_block[uid]
+    end
+    constrs_per_block = annotations.constrs_per_block 
+    constrs = ConstrDict()
+    if haskey(constrs_per_block, uid)
+        constrs = constrs_per_block[uid]
+    end
+    return vars, constrs
+end
+
 function build_dw_master!(prob::Problem,
                           annotation_id::Int,
                           reformulation::Reformulation,
@@ -160,7 +174,81 @@ function build_dw_pricing_sp!(prob::Problem,
     return
 end
 
-function reformulate!(prob::Problem, annotations::Annotations,
+function instanciatemaster!(prob::Problem, reform, parent, ann, annotations, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
+    form = Formulation{DwMaster}(
+        prob.form_counter; parent_formulation = reform,
+        obj_sense = getobjsense(get_original_formulation(prob))
+    )
+    setmaster!(reform, form)
+    return form
+end
+
+function createmaster!(form, prob::Problem, reform, parent, ann, annotations, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
+    vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
+    opt_builder = prob.default_optimizer_builder
+    if BD.getoptimizerbuilder(ann) != nothing
+        opt_builder = BD.getoptimizerbuilder(ann)
+    end
+    build_dw_master!(prob, BD.getid(ann), reform, form, vars, constrs, opt_builder)
+end
+
+function createsp!(prob::Problem, reform, parent, ann, annotations, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe})
+    form = Formulation{DwSp}(
+        prob.form_counter; parent_formulation = parent,
+        obj_sense = getobjsense(parent)
+    )
+    add_dw_pricing_sp!(reform, form)
+
+    vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
+    opt_builder = prob.default_optimizer_builder
+    if BD.getoptimizerbuilder(ann) != nothing
+        opt_builder = BD.getoptimizerbuilder(ann)
+    end
+    build_dw_pricing_sp!(prob, BD.getid(ann), form, vars, constrs, opt_builder)
+    return form
+end
+
+function registerformulations!(forms, optimizer_builder, annotations, prob, reform, parent, node::BD.Root)
+    ann = BD.annotation(node)
+    form = instanciatemaster!(prob, reform, parent, ann, annotations, BD.getformulation(ann), BD.getdecomposition(ann))
+    forms[BD.getid(ann)] = form
+    for (id, child) in BD.subproblems(node)
+        registerformulations!(forms, optimizer_builder, annotations, prob, reform, node, child)
+    end
+    createmaster!(form, prob, reform, parent, ann, annotations, BD.getformulation(ann), BD.getdecomposition(ann))
+    return
+end
+
+function registerformulations!(forms, optimizer_builder, annotations, prob, reform, parent, node::BD.Leaf)
+    ann = BD.annotation(node)
+    form = createsp!(prob, reform, getmaster(reform), ann, annotations, BD.getformulation(ann), BD.getdecomposition(ann))
+    forms[BD.getid(ann)] = form
+    return
+end
+
+function reformulate!(prob::Problem, annotations::Annotations, 
+                      strategy::GlobalStrategy)
+    vars_per_block = annotations.vars_per_block 
+    constrs_per_block = annotations.constrs_per_block
+    annotation_set = annotations.annotation_set 
+    decomposition_tree = annotations.tree
+
+    root = BD.getroot(decomposition_tree)
+
+    # Create reformulation
+    reform = Reformulation(prob, strategy)
+    set_re_formulation!(prob, reform)
+
+    forms = Dict{Int, Formulation}()
+    optimizer_builders = Dict{Int, Function}()
+
+    registerformulations!(forms, optimizer_builders, annotations, prob, reform, reform, root)
+
+
+end
+
+
+function reformulate2!(prob::Problem, annotations::Annotations,
                       strategy::GlobalStrategy)
     # This function must be cleaned.
     # subproblem formulations are modified in the function build_dw_master
