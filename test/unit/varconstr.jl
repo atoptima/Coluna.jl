@@ -88,7 +88,7 @@ function varcosntr_helpers_tests()
     )
 
     @test CL.getuid(v) == 23
-    @test CL.getform(v) == 10
+    @test CL.getformuid(v) == 10
 
     @test CL.getcurkind(v) == CL.getperenekind(v) == CL.Continuous
     @test CL.getcursense(v) == CL.getperenesense(v) == CL.Positive
@@ -113,7 +113,7 @@ function varcosntr_helpers_tests()
     )
 
     @test CL.getuid(c) == 23
-    @test CL.getform(c) == 10
+    @test CL.getformuid(c) == 10
 
     @test CL.getcurkind(c) == CL.getperenekind(c) == CL.Core
     @test CL.getcursense(c) == CL.getperenesense(c) == CL.Greater

@@ -27,8 +27,11 @@ getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 # Helpers for getters and setters that acces fields in a level
 # under Variable or Constraint
 
-getuid(vc::AbstractVarConstr) = getuid(vc.id)
-getform(vc::AbstractVarConstr) = getformuid(vc.id)
+getuid(vc::AbstractVarConstr) = getuid(getid(vc))
+getformuid(vc::AbstractVarConstr) = getformuid(getid(vc))
+getprocuid(vc::AbstractVarConstr) = getprocuid(getid(vc))
+getsortid(vc::AbstractVarConstr) = getsortid(getid(vc))
+
 
 # -> Initial
 getperenekind(vc::AbstractVarConstr) = vc.perene_data.kind
