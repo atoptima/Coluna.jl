@@ -58,7 +58,7 @@ function MOI.supports(optimizer::Optimizer,
     return true
 end
 
-function update_annotations(srs::MOI.ModelLike,
+function update_annotations!(srs::MOI.ModelLike,
                             annotation_set::Set{BD.Annotation},
                             vc_per_block::Dict{Int,C},
                             annotation::A,
@@ -106,7 +106,7 @@ function create_origvars!(f::Formulation,
         moi_uid_to_coluna_id[moi_index.value] = var_id
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
         dest.varmap[moi_index_in_coluna] = var_id
-        update_annotations(
+        update_annotations!(
             src, dest.annotations.annotation_set,
             dest.annotations.vars_per_block, annotation, v
         )
@@ -160,7 +160,7 @@ function create_origconstr!(f::Formulation,
         matrix[constr_id, var_id] = term.coefficient
     end
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
-    update_annotations(
+    update_annotations!(
         src, dest.annotations.annotation_set,
         dest.annotations.constrs_per_block, annotation, c
     )
@@ -206,15 +206,17 @@ function register_original_formulation!(dest::Optimizer,
     problem = dest.inner
     orig_form = Formulation{Original}(problem.form_counter)
     set_original_formulation!(problem, orig_form)
-    moi_uid_to_coluna_id = Dict{Int,VarId}()
 
+    moi_uid_to_coluna_id = Dict{Int,VarId}()
     create_origvars!(orig_form, dest, src, copy_names, moi_uid_to_coluna_id)
     create_origconstrs!(orig_form, dest, src, copy_names, moi_uid_to_coluna_id)
-
     load_obj!(orig_form, src, dest.moi_index_to_coluna_uid, moi_uid_to_coluna_id)
+
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
     register_objective_sense!(orig_form, min_sense)
+
+    dest.annotations.tree = MOI.get(src, BD.DecompositionTree())
     return
 end
 
