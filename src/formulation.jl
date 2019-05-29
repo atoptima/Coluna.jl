@@ -74,6 +74,11 @@ getelem(f::Formulation, id::ConstrId) = getconstr(f, id)
 generatevarid(f::Formulation) = VarId(getnewuid(f.var_counter), f.uid)
 generateconstrid(f::Formulation) = ConstrId(getnewuid(f.constr_counter), f.uid)
 
+getmaster(f::Formulation{<:AbstractMasterDuty}) = f
+getmaster(f::Formulation{<:AbstractSpDuty}) = f.parent_formulation
+getreformulation(f::Formulation{<:AbstractMasterDuty}) = f.parent_formulation
+getreformulation(f::Formulation{<:AbstractSpDuty}) = getmaster(f).parent_formulation
+
 _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 
 """

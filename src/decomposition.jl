@@ -320,7 +320,7 @@ function instantiate_orig_vars!(mast::Formulation{BendersMaster}, orig_form, ann
     !haskey(annotations.vars_per_ann, mast_ann) && return
     vars = annotations.vars_per_ann[mast_ann]
     for (id, var) in vars
-        clone_in_formulation!(mast, orig_form, var, MasterBendFirstStageVar)
+        clone_in_formulation!(mast, orig_form, var, MasterPureVar)
     end
     return
 end
@@ -335,6 +335,10 @@ function instantiate_orig_constrs!(mast::Formulation{BendersMaster}, orig_form, 
 end
 
 function create_side_vars_constrs!(mast::Formulation{BendersMaster})
+    setvar!(
+        mast, "η", MasterBendSecondStageCostVar; cost = 1.0, lb = -Inf, ub = Inf, 
+        kind = Continuous, sense = Free, is_explicit = true
+    )
     return
 end
 
@@ -374,11 +378,20 @@ function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form, annota
 end
 
 function create_side_vars_constrs!(sp::Formulation{BendersSp})
-    # name = "PricingSetupVar_sp_$(getuid(sp))"
-    # setvar!(
-    #     sp, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, 
-    #     kind = Continuous, sense = Positive, is_explicit = true
-    # )
+    first_stage_vars = filter(var -> getduty(var[2]) == MasterPureVar, getvars(getmaster(sp))) 
+    for (var_id, var) in first_stage_vars
+        name = "μ_$(getuid(var))"
+        cost = 0.0
+        setvar!(
+            sp, name, BendSpRepFirstStageVar; cost = cost, lb = -Inf, ub = Inf, 
+            kind = Continuous, sense = Free, is_explicit = true
+        )
+    end
+
+    ν = setvar!(
+        sp, "ν", BendSpRepSecondStageCostVar; cost = 1.0, lb = -Inf, ub = Inf,
+        kind = Continuous, sense = Free, is_explicit = true
+    )
     return
 end
 
