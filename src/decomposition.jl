@@ -253,7 +253,7 @@ function create_side_vars_constrs!(mast::Formulation{DwMaster})
         setupvars = filter(var -> getduty(var[2]) == DwSpSetupVar, getvars(sp))
         @assert length(setupvars) == 1
         setupvar = collect(values(setupvars))[1] # issue 106
-        clone_in_formulation!(mast, sp, setupvar, MasterRepPricingSetupVar)
+        clone_in_formulation!(mast, sp, setupvar, MasterRepPricingSetupVar, false)
         # create convexity constraint
         name = "sp_lb_$spuid"
         lb_conv_constr = setconstr!(
@@ -292,7 +292,7 @@ function instantiate_orig_vars!(sp::Formulation{DwSp}, orig_form, annotations, s
     vars = annotations.vars_per_ann[sp_ann]
     for (id, var) in vars
         # An original variable annoted in a subproblem is a DwSpPureVar
-        clone_in_formulation!(sp, orig_form, var, DwSpPureVar)
+        clone_in_formulation!(sp, orig_form, var, DwSpPricingVar)
     end
     return
 end
@@ -391,7 +391,6 @@ function reformulate!(prob::Problem, annotations::Annotations,
     for sp in reform.benders_sep_subprs
         @show sp
     end
-    exit()
 end
 
 

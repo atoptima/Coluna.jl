@@ -50,7 +50,10 @@ function clone_coefficients!(dest::Formulation,
         if haskey(src, cid)
             for (vid, var) in getvars(dest)
                 if haskey(src, vid)
-                    dest_matrix[cid, vid] = src_matrix[cid, vid]
+                    val = src_matrix[cid, vid]
+                    if val != 0
+                        dest_matrix[cid, vid] = val
+                    end
                 end
             end
         end
