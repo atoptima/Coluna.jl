@@ -220,9 +220,9 @@ function instantiatesp!(prob::Problem, reform, mast, ::Type{BD.BendersSepSp}, ::
 end
 
 # Master of Dantzig-Wolfe decomposition
-varduty(F, BDF, BDD) = error("Cannot deduce duty of original variable in $F annoted in $BDF using $BDD.")
-varduty(::Type{DwMaster}, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}) = MasterRepPricingVar
-varduty(::Type{DwMaster}, ::Type{BD.Master}, ::Type{BD.DantzigWolfe}) = MasterPureVar 
+varexpduty(F, BDF, BDD) = error("Cannot deduce duty of original variable in $F annoted in $BDF using $BDD.")
+varexpduty(::Type{DwMaster}, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}) = MasterRepPricingVar, false
+varexpduty(::Type{DwMaster}, ::Type{BD.Master}, ::Type{BD.DantzigWolfe}) = MasterPureVar, true
 
 function instantiate_orig_vars!(mast::Formulation{DwMaster}, orig_form, annotations, mast_ann)
     vars_per_ann = annotations.vars_per_ann
@@ -230,8 +230,8 @@ function instantiate_orig_vars!(mast::Formulation{DwMaster}, orig_form, annotati
         formtype = BD.getformulation(ann)
         dectype = BD.getdecomposition(ann)
         for (id, var) in vars
-            duty = varduty(DwMaster, formtype, dectype)
-            clone_in_formulation!(mast, orig_form, var, duty, false)
+            duty, explicit = varexpduty(DwMaster, formtype, dectype)
+            clone_in_formulation!(mast, orig_form, var, duty, explicit)
         end
     end
     return
@@ -315,6 +315,73 @@ function create_side_vars_constrs!(sp::Formulation{DwSp})
     return
 end
 
+# Master of Benders decomposition
+function instantiate_orig_vars!(mast::Formulation{BendersMaster}, orig_form, annotations, mast_ann)
+    !haskey(annotations.vars_per_ann, mast_ann) && return
+    vars = annotations.vars_per_ann[mast_ann]
+    for (id, var) in vars
+        clone_in_formulation!(mast, orig_form, var, MasterBendFirstStageVar)
+    end
+    return
+end
+
+function instantiate_orig_constrs!(mast::Formulation{BendersMaster}, orig_form, annotations, mast_ann)
+    !haskey(annotations.constrs_per_ann, mast_ann) && return
+    constrs = annotations.constrs_per_ann[mast_ann]
+    for (id, constr) in constrs
+        clone_in_formulation!(mast, orig_form, constr, MasterPureConstr)
+    end
+    return
+end
+
+function create_side_vars_constrs!(mast::Formulation{BendersMaster})
+    return
+end
+
+function create_artificial_vars!(mast::Formulation{BendersMaster})
+    return
+end
+
+# Separation sp of Benders decomposition
+function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotations, sp_ann)
+    !haskey(annotations.vars_per_ann, sp_ann) && return
+    vars = annotations.vars_per_ann[sp_ann]
+    for (id, var) in vars
+        clone_in_formulation!(sp, orig_form, var, BendSpSepVar)
+    end
+    return
+end
+
+function dutyofbendspconstr(constr, annotations, orig_form)
+    coefmatrix = getcoefmatrix(orig_form)
+    for (varid, coef) in coefmatrix[getid(constr), :]
+        var_ann = annotations.ann_per_var[varid]
+        if coef != 0 && BD.getformulation(var_ann) == BD.Master
+            return BendSpTechnologicalConstr
+        end
+    end
+    return BendSpPureConstr
+end
+
+function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form, annotations, sp_ann)
+    !haskey(annotations.constrs_per_ann, sp_ann) && return
+    constrs = annotations.constrs_per_ann[sp_ann]
+    for (id, constr) in constrs
+        duty = dutyofbendspconstr(constr, annotations, orig_form)
+        clone_in_formulation!(sp, orig_form, constr, duty)
+    end
+    return
+end
+
+function create_side_vars_constrs!(sp::Formulation{BendersSp})
+    # name = "PricingSetupVar_sp_$(getuid(sp))"
+    # setvar!(
+    #     sp, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, 
+    #     kind = Continuous, sense = Positive, is_explicit = true
+    # )
+    return
+end
+
 function assign_orig_vars_constrs!(form, orig_form, annotations, ann)
     instantiate_orig_vars!(form, orig_form, annotations, ann)
     instantiate_orig_constrs!(form, orig_form, annotations, ann)
@@ -361,21 +428,9 @@ end
 
 function reformulate!(prob::Problem, annotations::Annotations, 
                       strategy::GlobalStrategy)
-    vars_per_ann = annotations.vars_per_ann
-    constrs_per_ann = annotations.constrs_per_ann
-    annotation_set = annotations.annotation_set 
     decomposition_tree = annotations.tree
 
     root = BD.getroot(decomposition_tree)
-
-    # vars = Dict()
-    # constrs = Dict()
-    # sortvarsconstrs!(vars, constrs, annotations, root)
-
-    # println("\e[31m----------\e[00m")
-    # @show vars
-    # @show constrs
-    # exit()
 
     # Create reformulation
     reform = Reformulation(prob, strategy)
@@ -391,57 +446,5 @@ function reformulate!(prob::Problem, annotations::Annotations,
     for sp in reform.benders_sep_subprs
         @show sp
     end
+    exit()
 end
-
-
-#function createmaster!(form, prob::Problem, reform, ann, annotations, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
-    #     vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
-    #     opt_builder = prob.default_optimizer_builder
-    #     if BD.getoptimizerbuilder(ann) != nothing
-    #         opt_builder = BD.getoptimizerbuilder(ann)
-    #     end
-    #     build_dw_master!(prob, BD.getid(ann), reform, form, vars, constrs, opt_builder)
-    # end
-    
-    # function createmaster!(form, prob::Problem, reform, ann, annotations, ::Type{BD.Master}, ::Type{BD.Benders})
-    #     vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
-    #     opt_builder = prob.default_optimizer_builder
-    #     if BD.getoptimizerbuilder(ann) != nothing
-    #         opt_builder = BD.getoptimizerbuilder(ann)
-    #     end
-    #     build_benders_master!(prob, BD.getid(ann), reform, form, vars, constrs, opt_builder)
-    
-    # end
-    
-    
-    # function createsp!(prob::Problem, reform, mast, ann, annotations, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe})
-    #     form = Formulation{DwSp}(
-    #         prob.form_counter; parent_formulation = mast,
-    #         obj_sense = getobjsense(mast)
-    #     )
-    #     add_dw_pricing_sp!(reform, form)
-    
-    #     vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
-    #     opt_builder = prob.default_optimizer_builder
-    #     if BD.getoptimizerbuilder(ann) != nothing
-    #         opt_builder = BD.getoptimizerbuilder(ann)
-    #     end
-    #     build_dw_pricing_sp!(prob, BD.getid(ann), form, vars, constrs, opt_builder)
-    #     return form
-    # end
-    
-    # function createsp!(prob::Problem, reform, mast, ann, annotations, ::Type{BD.BendersSepSp}, ::Type{BD.Benders})
-    #     form = Formulation{BendersSp}(
-    #         prob.form_counter; parent_formulation = mast,
-    #         obj_sense = getobjsense(mast)
-    #     )
-    #     add_benders_sep_sp!(reform, form)
-    
-    #     vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
-    #     opt_builder = prob.default_optimizer_builder
-    #     if BD.getoptimizerbuilder(ann) != nothing
-    #         opt_builder = BD.getoptimizerbuilder(ann)
-    #     end
-    #     build_benders_sep_sp!(prob, BD.getid(ann), form, vars, constrs, opt_builder)
-    #     return form
-    
