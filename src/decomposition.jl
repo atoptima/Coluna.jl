@@ -318,10 +318,8 @@ function involvedinbendsp(var, orig_form, annotations, sp_ann)
     constrs = annotations.constrs_per_ann[sp_ann]
     orig_coef = getcoefmatrix(orig_form)
     for (constr_id, constr) in constrs
-        for (var_id, val) in orig_coef[constr_id, :]
-            if val != 0 && annotations.ann_per_var[var_id] == sp_ann
-                return true
-            end
+        if orig_coef[constr_id, getid(var)] != 0
+            return true
         end
     end
     return false
@@ -339,7 +337,7 @@ function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotatio
         vars = annotations.vars_per_ann[mast_ann]
         for (id, var) in vars
             if involvedinbendsp(var, orig_form, annotations, sp_ann)
-                clone_in_formulation!(sp, orig_form, var, BendSpRepFirstStageVar)
+                clone_in_formulation!(sp, orig_form, var, BendSpRepFirstStageVar, false)
             end
         end
     end
@@ -368,9 +366,8 @@ function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form, annota
 end
 
 function create_side_vars_constrs!(sp::Formulation{BendersSp})
-    mast = getmaster(sp)
     sp_coef = getcoefmatrix(sp)
-    first_stage_vars = filter(var -> getduty(var[2]) == MasterPureVar, getvars(mast)) 
+    first_stage_vars = filter(var -> getduty(var[2]) == BendSpRepFirstStageVar, getvars(sp)) 
     techno_constrs = filter(constr -> getduty(constr[2]) == BendSpTechnologicalConstr, getconstrs(sp))
     for (var_id, var) in first_stage_vars
         name = "μ_$(getuid(var))"
