@@ -313,11 +313,36 @@ function create_artificial_vars!(mast::Formulation{BendersMaster})
 end
 
 # Separation sp of Benders decomposition
+function involvedinbendsp(var, orig_form, annotations, sp_ann)
+    !haskey(annotations.constrs_per_ann, sp_ann) && return false
+    constrs = annotations.constrs_per_ann[sp_ann]
+    orig_coef = getcoefmatrix(orig_form)
+    for (constr_id, constr) in constrs
+        if orig_coef[constr_id, getid(var)] != 0
+            return true
+        end
+    end
+    return false
+end
+
 function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotations, sp_ann)
     if haskey(annotations.vars_per_ann, sp_ann)
         vars = annotations.vars_per_ann[sp_ann]
         for (id, var) in vars
             clone_in_formulation!(sp, orig_form, var, BendSpSepVar)
+        end
+    end
+    mast_ann = getparent(annotations, sp_ann)
+    if haskey(annotations.vars_per_ann, mast_ann)
+        vars = annotations.vars_per_ann[mast_ann]
+        for (id, var) in vars
+            if involvedinbendsp(var, orig_form, annotations, sp_ann)
+                name = "μ[$(split(getname(var), "[")[end])"
+                μ = setvar!(
+                    sp, name, BendSpRepFirstStageVar; cost = 0.0, lb = -Inf, ub = Inf, 
+                    kind = Continuous, sense = Free, is_explicit = true, id = id
+                )
+            end
         end
     end
     return
@@ -345,27 +370,13 @@ function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form, annota
 end
 
 function create_side_vars_constrs!(sp::Formulation{BendersSp})
-    # Fill techno constraint
     sp_coef = getcoefmatrix(sp)
-    first_stage_vars = filter(var -> getduty(var[2]) == BendSpRepFirstStageVar, getvars(sp)) 
-    techno_constrs = filter(constr -> getduty(constr[2]) == BendSpTechnologicalConstr, getconstrs(sp))
-    for (var_id, var) in first_stage_vars
-        name = "μ_$(getuid(var))"
-        μ = setvar!(
-            sp, name, BendSpRepFirstStageVar; cost = 0.0, lb = -Inf, ub = Inf, 
-            kind = Continuous, sense = Free, is_explicit = true
-        )
-        for (constr_id, constr) in techno_constrs
-            val = sp_coef[constr_id, var_id]
-            if val != 0
-                sp_coef[constr_id, getid(μ)] = val
-            end
-        end
-    end
     # Cost constraint
+    mast = getmaster(sp)
+    η = collect(values(filter(var -> getduty(var[2]) == MasterBendSecondStageCostVar, getvars(mast))))[1]
     ν = setvar!(
         sp, "ν", BendSpRepSecondStageCostVar; cost = 1.0, lb = -Inf, ub = Inf,
-        kind = Continuous, sense = Free, is_explicit = true
+        kind = Continuous, sense = Free, is_explicit = true, id = getid(η)
     )
     cost = setconstr!(
         sp, "cost", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 

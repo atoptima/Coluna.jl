@@ -147,8 +147,8 @@ function setvar!(f::Formulation,
                   is_active::Bool = true,
                   is_explicit::Bool = true,
                   moi_index::MoiVarIndex = MoiVarIndex(),
-                  members::Union{ConstrMembership,Nothing} = nothing)
-    id = generatevarid(f)
+                  members::Union{ConstrMembership,Nothing} = nothing,
+                  id = generatevarid(f))
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
     members != nothing && setmembers!(f, v, members)
