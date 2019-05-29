@@ -116,24 +116,6 @@ function build_benders_master!(prob::Problem,
 
         end
 
-
-        #==pure_sp_constrs = ConstrDict()
-        non_pure_sp_constrs = ConstrDict()
-        sp_form_uid = getuid(sp_form)
-        for id_constr in getconstrs(sp_form)
-            var_membership = orig_coefficient_matrix[id_constr[1],:]
-            non_pure_var_membership = filter(v->(getformuid(v) != sp_form_uid), var_membership)
-            if (length(non_pure_var_membership) > 0)
-                push!(non_pure_sp_constrs, id_constr)
-            else
-                push!(pure_sp_constrs, id_constr)
-            end
-        end
-        clone_in_formulation!(sp_form, orig_form, pure_sp_constrs, BendSpPureConstr)
-        clone_in_formulation!(sp_form, orig_form, non_pure_sp_constrs, BendSpTechnologicalConstr)
-       is_explicit = true
-        clone_in_formulation!(sp_form, orig_form, vars, BendSpSepVar, is_explicit)
-==#
         
  
     end
@@ -166,22 +148,6 @@ function build_benders_master!(prob::Problem,
     return
 end
 
-function build_benders_sep_sp!(prob::Problem,
-                               annotation_id::Int,
-                               sp_form::Formulation,
-                               vars_in_form::VarDict,
-                               constrs_in_form::ConstrDict,
-                               opt_builder::Function)
-    orig_form = get_original_formulation(prob)
-    master_form = sp_form.parent_formulation
-    reformulation = master_form.parent_formulation
-    ## Create pure Sp benders vars & constr
-    clone_in_formulation!(sp_form, orig_form, vars_in_form, BendSpSepVar) ## To Review
-    clone_in_formulation!(sp_form, orig_form, constrs_in_form, BendSpTechnologicalConstr) ## To Review
-    initialize_optimizer!(sp_form, opt_builder)
-    @show sp_form
-    return
-end
 
 function instantiatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
     form = Formulation{DwMaster}(
@@ -347,18 +313,42 @@ function create_artificial_vars!(mast::Formulation{BendersMaster})
 end
 
 # Separation sp of Benders decomposition
+function involvedinbendsp(var, orig_form, annotations, sp_ann)
+    !haskey(annotations.constrs_per_ann, sp_ann) && return false
+    constrs = annotations.constrs_per_ann[sp_ann]
+    orig_coef = getcoefmatrix(orig_form)
+    for (constr_id, constr) in constrs
+        for (var_id, val) in orig_coef[constr_id, :]
+            if val != 0 && annotations.ann_per_var[var_id] == sp_ann
+                return true
+            end
+        end
+    end
+    return false
+end
+
 function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotations, sp_ann)
-    !haskey(annotations.vars_per_ann, sp_ann) && return
-    vars = annotations.vars_per_ann[sp_ann]
-    for (id, var) in vars
-        clone_in_formulation!(sp, orig_form, var, BendSpSepVar)
+    if haskey(annotations.vars_per_ann, sp_ann)
+        vars = annotations.vars_per_ann[sp_ann]
+        for (id, var) in vars
+            clone_in_formulation!(sp, orig_form, var, BendSpSepVar)
+        end
+    end
+    mast_ann = getparent(annotations, sp_ann)
+    if haskey(annotations.vars_per_ann, mast_ann)
+        vars = annotations.vars_per_ann[mast_ann]
+        for (id, var) in vars
+            if involvedinbendsp(var, orig_form, annotations, sp_ann)
+                clone_in_formulation!(sp, orig_form, var, BendSpRepFirstStageVar)
+            end
+        end
     end
     return
 end
 
 function dutyofbendspconstr(constr, annotations, orig_form)
-    coefmatrix = getcoefmatrix(orig_form)
-    for (varid, coef) in coefmatrix[getid(constr), :]
+    orig_coef = getcoefmatrix(orig_form)
+    for (varid, coef) in orig_coef[getid(constr), :]
         var_ann = annotations.ann_per_var[varid]
         if coef != 0 && BD.getformulation(var_ann) == BD.Master
             return BendSpTechnologicalConstr
@@ -378,14 +368,23 @@ function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form, annota
 end
 
 function create_side_vars_constrs!(sp::Formulation{BendersSp})
-    first_stage_vars = filter(var -> getduty(var[2]) == MasterPureVar, getvars(getmaster(sp))) 
+    mast = getmaster(sp)
+    sp_coef = getcoefmatrix(sp)
+    first_stage_vars = filter(var -> getduty(var[2]) == MasterPureVar, getvars(mast)) 
+    techno_constrs = filter(constr -> getduty(constr[2]) == BendSpTechnologicalConstr, getconstrs(sp))
     for (var_id, var) in first_stage_vars
         name = "μ_$(getuid(var))"
         cost = 0.0
-        setvar!(
+        μ = setvar!(
             sp, name, BendSpRepFirstStageVar; cost = cost, lb = -Inf, ub = Inf, 
             kind = Continuous, sense = Free, is_explicit = true
         )
+        for (constr_id, constr) in techno_constrs
+            val = sp_coef[constr_id, var_id]
+            if val != 0
+                sp_coef[constr_id, getid(μ)] = val
+            end
+        end
     end
 
     ν = setvar!(
