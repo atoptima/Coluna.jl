@@ -60,15 +60,15 @@ end
 
 function update_annotations!(srs::MOI.ModelLike,
                             annotation_set::Set{BD.Annotation},
-                            vc_per_block::Dict{Int,C},
+                            vc_per_block::Dict{BD.Annotation,C},
                             annotation::A,
                             vc::AbstractVarConstr
                             ) where {C<:VarConstrDict,A}
     push!(annotation_set, annotation)
-    if !haskey(vc_per_block, annotation.unique_id)
-        vc_per_block[annotation.unique_id] = C()
+    if !haskey(vc_per_block, annotation)
+        vc_per_block[annotation] = C()
     end
-    vc_per_block[annotation.unique_id][getid(vc)] = vc
+    vc_per_block[annotation][getid(vc)] = vc
     return
 end
 
@@ -108,7 +108,7 @@ function create_origvars!(f::Formulation,
         dest.varmap[moi_index_in_coluna] = var_id
         update_annotations!(
             src, dest.annotations.annotation_set,
-            dest.annotations.vars_per_block, annotation, v
+            dest.annotations.vars_per_ann, annotation, v
         )
     end
 end
@@ -162,7 +162,7 @@ function create_origconstr!(f::Formulation,
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
     update_annotations!(
         src, dest.annotations.annotation_set,
-        dest.annotations.constrs_per_block, annotation, c
+        dest.annotations.constrs_per_ann, annotation, c
     )
     return
 end

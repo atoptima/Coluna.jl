@@ -3,7 +3,7 @@ abstract type AbstractVarConstrId end
 abstract type AbstractState end
 abstract type AbstractFormulation end
 abstract type AbstractProblem end
-abstract type AbstractMoiDef end
+abstract type AstractMoiDef end
 abstract type AbstractMembership end
 abstract type AbstractNode end
 abstract type AbstractVcData end

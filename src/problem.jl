@@ -1,14 +1,14 @@
 mutable struct Annotations
     tree::Union{BD.Tree, Nothing}
-    vars_per_block::Dict{Int, Dict{Id{Variable},Variable}}
-    constrs_per_block::Dict{Int, Dict{Id{Constraint},Constraint}}
+    vars_per_ann::Dict{BD.Annotation, Dict{Id{Variable},Variable}}
+    constrs_per_ann::Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}
     annotation_set::Set{BD.Annotation}
 end
 
 Annotations() = Annotations(
     nothing,
-    Dict{Int, Dict{Id{Variable},Variable}}(),
-    Dict{Int, Dict{Id{Constraint},Constraint}}(),
+    Dict{BD.Annotation, Dict{Id{Variable},Variable}}(),
+    Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}(),
     Set{BD.Annotation}()
 )
 

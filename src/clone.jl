@@ -10,7 +10,7 @@ function clone_in_formulation!(dest::Formulation,
         var_data = data
     )
     addvar!(dest, var_clone)
-    clone_in_manager!(dest.manager, src.manager, var_clone)
+    #clone_in_manager!(dest.manager, src.manager, var_clone)
     return var_clone
 end
 
@@ -26,7 +26,7 @@ function clone_in_formulation!(dest::Formulation,
         getid(constr), getname(constr), duty; constr_data = data
     )
     addconstr!(dest, constr_clone)
-    clone_in_manager!(dest.manager, src.manager, constr_clone)
+    #clone_in_manager!(dest.manager, src.manager, constr_clone)
     return constr_clone
 end
 
@@ -42,34 +42,50 @@ function clone_in_formulation!(dest::Formulation,
     return
 end
 
-function clone_in_manager!(dest::FormulationManager,
-                           src::FormulationManager,
-                           var::Variable)
-
-    new_col = Dict{Id{Constraint}, Float64}()
-    for (id, val) in getrecords(src.coefficients[:, var.id])
-        if haskey(dest, id)
-            new_col[id] = val
-        else
-            @debug string("Manager does not have constraint with ", id)
+function clone_coefficients!(dest::Formulation,
+                             src::Formulation)
+    dest_matrix = getcoefmatrix(dest)
+    src_matrix = getcoefmatrix(src)
+    for (cid, constr) in getconstrs(dest)
+        if haskey(src, cid)
+            for (vid, var) in getvars(dest)
+                if haskey(src, vid)
+                    dest_matrix[cid, vid] = src_matrix[cid, vid]
+                end
+            end
         end
     end
-    dest.coefficients[:, var.id] = new_col
-    return var
+    return
 end
 
-function clone_in_manager!(dest::FormulationManager,
-                           src::FormulationManager,
-                           constr::Constraint)
+# function clone_in_manager!(dest::FormulationManager,
+#                            src::FormulationManager,
+#                            var::Variable)
 
-    new_row = Dict{Id{Variable}, Float64}()
-    for (id, val) in getrecords(src.coefficients[constr.id, :])
-        if haskey(dest, id)
-            new_row[id] = val
-        else
-            @debug string("Manager does not have variable with ", id)
-        end
-    end
-    dest.coefficients[constr.id, :] = new_row
-    return constr
-end
+#     new_col = Dict{Id{Constraint}, Float64}()
+#     for (id, val) in getrecords(src.coefficients[:, var.id])
+#         if haskey(dest, id)
+#             new_col[id] = val
+#         else
+#             @debug string("Manager does not have constraint with ", id)
+#         end
+#     end
+#     dest.coefficients[:, var.id] = new_col
+#     return var
+# end
+
+# function clone_in_manager!(dest::FormulationManager,
+#                            src::FormulationManager,
+#                            constr::Constraint)
+
+#     new_row = Dict{Id{Variable}, Float64}()
+#     for (id, val) in getrecords(src.coefficients[constr.id, :])
+#         if haskey(dest, id)
+#             new_row[id] = val
+#         else
+#             @debug string("Manager does not have variable with ", id)
+#         end
+#     end
+#     dest.coefficients[constr.id, :] = new_row
+#     return constr
+# end
