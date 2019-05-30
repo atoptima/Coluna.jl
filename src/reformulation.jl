@@ -8,6 +8,7 @@ mutable struct Reformulation <: AbstractFormulation
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Vector{AbstractFormulation} # vector of Formulation or Reformulation
+    benders_sep_subprs::Vector{AbstractFormulation}
     dw_pricing_sp_lb::Dict{FormId, Id} # Attribute has ambiguous name
     dw_pricing_sp_ub::Dict{FormId, Id}
 end
@@ -22,6 +23,7 @@ function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
                          nothing,
                          nothing,
                          Vector{AbstractFormulation}(),
+                         Vector{AbstractFormulation}(),
                          Dict{FormId, Int}(),
                          Dict{FormId, Int}())
 end
@@ -29,6 +31,7 @@ end
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
+add_benders_sep_sp!(r::Reformulation, f) = push!(r.benders_sep_subprs, f)
 
 function optimize!(reformulation::Reformulation)
     opt_result = apply!(GlobalStrategy, reformulation)

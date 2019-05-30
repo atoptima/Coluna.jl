@@ -1,6 +1,6 @@
 function full_instances_tests()
     generalized_assignment_tests()
-    #lot_sizing_tests()
+    lot_sizing_tests()
 end
 
 function generalized_assignment_tests()
@@ -110,12 +110,10 @@ function lot_sizing_tests()
         data = CLD.SingleModeMultiItemsLotSizing.data("lotSizing-3-20.txt")
         
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            master_factory = with_optimizer(GLPK.Optimizer),
-            separation_factory = with_optimizer(GLPK.Optimizer)
+            default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
         JuMP.optimize!(problem)
-
     end
 end

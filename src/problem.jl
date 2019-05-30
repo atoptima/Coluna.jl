@@ -1,16 +1,54 @@
 mutable struct Annotations
     tree::Union{BD.Tree, Nothing}
-    vars_per_block::Dict{Int, Dict{Id{Variable},Variable}}
-    constrs_per_block::Dict{Int, Dict{Id{Constraint},Constraint}}
+    ann_per_var::Dict{Id{Variable}, BD.Annotation}
+    ann_per_constr::Dict{Id{Constraint}, BD.Annotation}
+    vars_per_ann::Dict{BD.Annotation, Dict{Id{Variable},Variable}}
+    constrs_per_ann::Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}
     annotation_set::Set{BD.Annotation}
 end
 
 Annotations() = Annotations(
     nothing,
-    Dict{Int, Dict{Id{Variable},Variable}}(),
-    Dict{Int, Dict{Id{Constraint},Constraint}}(),
+    Dict{Id{Variable}, BD.Annotation}(), Dict{Id{Constraint}, BD.Annotation}(),
+    Dict{BD.Annotation, Dict{Id{Variable},Variable}}(),
+    Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}(),
     Set{BD.Annotation}()
 )
+
+function store!(annotations::Annotations, ann::BD.Annotation, var::Variable)
+    push!(annotations.annotation_set, ann)
+    annotations.ann_per_var[getid(var)] = ann
+    if !haskey(annotations.vars_per_ann, ann)
+        annotations.vars_per_ann[ann] = Dict{Id{Variable}, Variable}()
+    end
+    annotations.vars_per_ann[ann][getid(var)] = var
+    return
+end
+
+function store!(annotations::Annotations, ann::BD.Annotation, constr::Constraint)
+    push!(annotations.annotation_set, ann)
+    annotations.ann_per_constr[getid(constr)] = ann
+    if !haskey(annotations.constrs_per_ann, ann)
+        annotations.constrs_per_ann[ann] = Dict{Id{Constraint}, Constraint}()
+    end
+    annotations.constrs_per_ann[ann][getid(constr)] = constr
+    return
+end
+
+function getparent(annotations::Annotations, ann)
+    # parent_id = BD.getparent(ann)
+    # for annotation in annotations.annotation_set
+    #     if BD.getid(annotation) == parent_id
+    #         return annotation
+    #     end
+    # end
+    # error("Cannot get parent annotation of $ann.")
+    for annotation in annotations.annotation_set
+        if BD.getformulation(annotation) == BD.Master
+            return annotation
+        end
+    end
+end
 
 """
     Problem

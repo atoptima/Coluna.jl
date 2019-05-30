@@ -74,6 +74,10 @@ getelem(f::Formulation, id::ConstrId) = getconstr(f, id)
 generatevarid(f::Formulation) = VarId(getnewuid(f.var_counter), f.uid)
 generateconstrid(f::Formulation) = ConstrId(getnewuid(f.constr_counter), f.uid)
 
+getmaster(f::Formulation{<:AbstractSpDuty}) = f.parent_formulation
+getreformulation(f::Formulation{<:AbstractMasterDuty}) = f.parent_formulation
+getreformulation(f::Formulation{<:AbstractSpDuty}) = getmaster(f).parent_formulation
+
 _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 
 """
@@ -142,8 +146,8 @@ function setvar!(f::Formulation,
                   is_active::Bool = true,
                   is_explicit::Bool = true,
                   moi_index::MoiVarIndex = MoiVarIndex(),
-                  members::Union{ConstrMembership,Nothing} = nothing)
-    id = generatevarid(f)
+                  members::Union{ConstrMembership,Nothing} = nothing,
+                  id = generatevarid(f))
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
     members != nothing && setmembers!(f, v, members)

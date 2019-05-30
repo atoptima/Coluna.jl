@@ -3,7 +3,7 @@ abstract type AbstractVarConstrId end
 abstract type AbstractState end
 abstract type AbstractFormulation end
 abstract type AbstractProblem end
-abstract type AbstractMoiDef end
+abstract type AstractMoiDef end
 abstract type AbstractMembership end
 abstract type AbstractNode end
 abstract type AbstractVcData end
@@ -102,21 +102,25 @@ struct BendSpTechnologicalConstr <: AbstractBendSpConstr end
 
 struct UndefinedConstrDuty <: AbstractConstrDuty end
 
+# First level of duties 
+abstract type AbstractMasterDuty <: AbstractFormDuty end
+abstract type AbstractSpDuty <: AbstractFormDuty end
+
 # Concrete duties for Formulation
 "Formulation provided by the user."
 struct Original <: AbstractFormDuty end
 
 "Master of formulation decomposed using Dantzig-Wolfe."
-struct DwMaster <: AbstractFormDuty end
+struct DwMaster <: AbstractMasterDuty end
 
 "Master of formulation decomposed using Benders."
-struct BendersMaster <: AbstractFormDuty end
+struct BendersMaster <: AbstractMasterDuty end
 
 "A pricing subproblem of formulation decomposed using Dantzig-Wolfe."
-struct DwSp <: AbstractFormDuty end
+struct DwSp <: AbstractSpDuty end
 
 "A Benders subproblem of formulation decomposed using Benders."
-struct BendersSp <: AbstractFormDuty end
+struct BendersSp <: AbstractSpDuty end
 
 # Types of algorithm
 
