@@ -193,8 +193,8 @@ end
 
 function create_side_vars_constrs!(mast::Formulation{BendersMaster})
     for sp in mast.parent_formulation.benders_sep_subprs
-        ν = collect(values(filter(var -> getduty(var[2]) == BendSpRepSecondStageCostVar, getvars(sp))))[1]
-        clone_in_formulation!(mast, sp, ν, MasterBendSecondStageCostVar)
+        nu = collect(values(filter(var -> getduty(var[2]) == BendSpRepSecondStageCostVar, getvars(sp))))[1]
+        clone_in_formulation!(mast, sp, nu, MasterBendSecondStageCostVar)
     end
     return
 end
@@ -265,7 +265,7 @@ function create_side_vars_constrs!(sp::Formulation{BendersSp})
     sp_id = getuid(sp)
     # Cost constraint
     mast = getmaster(sp)
-    ν = setvar!(
+    nu = setvar!(
         sp, "ν[$sp_id]", BendSpRepSecondStageCostVar; cost = 1.0, lb = -Inf, ub = Inf,
         kind = Continuous, sense = Free, is_explicit = true
     )
@@ -273,7 +273,7 @@ function create_side_vars_constrs!(sp::Formulation{BendersSp})
         sp, "cost", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
         sense = Equal
     )
-    sp_coef[getid(cost), getid(ν)] = 1.0
+    sp_coef[getid(cost), getid(nu)] = 1.0
     for (var_id, var) in filter(var -> getduty(var[2]) == BendSpSepVar, getvars(sp))
             sp_coef[getid(cost), var_id] = - getperenecost(var)
     end
