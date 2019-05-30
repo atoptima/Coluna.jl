@@ -117,7 +117,6 @@ end
 
 # -> Initial
 getperenecost(vc::AbstractVarConstr) = vc.perene_data.cost
-setperenecost!(vc::AbstractVarConstr, cost::Float64) = vc.perene_data.cost = cost
 getperenelb(vc::AbstractVarConstr) = vc.perene_data.lb
 getpereneub(vc::AbstractVarConstr) = vc.perene_data.ub
 # -> Current

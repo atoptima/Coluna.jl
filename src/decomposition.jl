@@ -37,118 +37,6 @@ function create_global_art_vars!(master::Formulation)
     end
 end
 
-function build_benders_master!(prob::Problem,
-                       annotation_id::Int,
-                       reformulation::Reformulation,
-                       master_form::Formulation,
-                       vars_in_form::VarDict,
-                       constrs_in_form::ConstrDict,
-                          opt_builder::Function)
-
-   orig_form = get_original_formulation(prob)
-
-    mast_form_uid = getuid(master_form)
-    orig_coefficient_matrix = getcoefmatrix(orig_form)
-    mast_coefficient_matrix = getcoefmatrix(master_form)
-    
-
-
-    # add SpArtVar and master SecondStageCostVar 
-    for sp_form in reformulation.benders_sep_subprs
-        sp_uid = getuid(sp_form)
- 
-        ## add all Sp var in master SecondStageCostConstr
-        vars = filter(_active_benders_sp_var_, getvars(sp_form))
-        second_stage_cost_exist = false
-
-        ## Identify whether there is a second stage cost
-        for (var_id, var) in vars
-            cost = getperenecost(var)
-            if cost > 0.000001
-                second_stage_cost_exist = true
-                break
-            end
-            if cost < - 0.000001
-                second_stage_cost_exist = true
-                break
-            end
-            
-        end
-        
-        if (second_stage_cost_exist)
-            # create SecondStageCostVar
-            name = "cv_sp_$(sp_uid)"
-            cost = 1.0
-            lb = 0.0
-            ub = 1.0
-            kind = Continuous
-            duty = MasterBendSecondStageCostVar 
-            sense = Positive
-            is_explicit = true
-            second_stage_cost_var = setvar!(
-                master_form, name, duty; cost = cost, lb = lb, ub = ub, kind = kind,
-                sense = sense, is_explicit = is_explicit
-            )
-            clone_in_formulation!(sp_form, master_form, second_stage_cost_var,
-                                  BendSpRepSecondStageCostVar, false)
-
-
-            # create SecondStageCostConstr
-            name = "cc_sp_$(sp_uid)"
-            duty = BendSpSecondStageCostConstr
-            rhs = 0.0
-            kind = Core
-            sense = (getobjsense(orig_form) == MinSense ? Greater : Less)
-            second_stage_cost_constr = setconstr!(sp_form, name, duty;
-                                                  rhs = rhs, kind = kind,
-                                                  sense = sense)
-            mast_coefficient_matrix[getid(second_stage_cost_constr),getid(second_stage_cost_var)] = 1.0
-
-
-            for (var_id, var) in vars
-                cost = getperenecost(var)
-                mast_coefficient_matrix[getid(second_stage_cost_constr), var_id] = - cost
-                setperenecost!(var, 0.0)
-                setcurcost!(var, 0.0)
-                setcost!(sp_form, var, 0.0)
-            end
-            
-
-        end
-
-        
- 
-    end
-
-    
-    
-    pure_mast_vars = VarDict()
-    non_pure_mast_vars = VarDict()
-    for id_var in vars_in_form
-        constr_membership = orig_coefficient_matrix[:,id_var[1]]
-        non_pure_constr_membership = filter(c->(getformuid(c) != mast_form_uid), constr_membership)
-        if (length(non_pure_constr_membership) > 0)
-            push!(non_pure_mast_vars, id_var)
-        else
-            push!(pure_mast_vars, id_var)
-        end
-    end
-    # copy of pure master variables
-    clone_in_formulation!(master_form, orig_form, pure_mast_vars, MasterPureVar)
-    # copy of first stage  master variables
-    clone_in_formulation!(master_form, orig_form, non_pure_mast_vars, MasterBendFirstStageVar)
-    
-    
-    # copy of pure master constraints
-    clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterPureConstr)
-
-    initialize_optimizer!(master_form, opt_builder)
-
-
-    return
-end
-
-
 function instantiatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
     form = Formulation{DwMaster}(
         prob.form_counter; parent_formulation = reform,
@@ -186,6 +74,9 @@ function instantiatesp!(prob::Problem, reform, mast, ::Type{BD.BendersSepSp}, ::
 end
 
 # Master of Dantzig-Wolfe decomposition
+
+# returns the duty of a variable and whether it is explicit according to the 
+# type of formulation it belongs and the type of formulation it will clone in.
 varexpduty(F, BDF, BDD) = error("Cannot deduce duty of original variable in $F annoted in $BDF using $BDD.")
 varexpduty(::Type{DwMaster}, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}) = MasterRepPricingVar, false
 varexpduty(::Type{DwMaster}, ::Type{BD.Master}, ::Type{BD.DantzigWolfe}) = MasterPureVar, true
@@ -338,7 +229,7 @@ function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotatio
         for (id, var) in vars
             if involvedinbendsp(var, orig_form, annotations, sp_ann)
                 name = "μ[$(split(getname(var), "[")[end])"
-                μ = setvar!(
+                setvar!(
                     sp, name, BendSpRepFirstStageVar; cost = 0.0, lb = -Inf, ub = Inf, 
                     kind = Continuous, sense = Free, is_explicit = true, id = id
                 )
@@ -445,10 +336,6 @@ function reformulate!(prob::Problem, annotations::Annotations,
     buildformulations!(prob, annotations, reform, reform, root)
 
     @show getmaster(reform)
-
-    for sp in reform.dw_pricing_subprs
-        @show sp
-    end
 
     for sp in reform.benders_sep_subprs
         @show sp
