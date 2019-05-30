@@ -73,6 +73,7 @@ include("algorithms/colgen.jl")
 include("algorithms/masteripheur.jl")
 include("algorithms/generatechildrennodes.jl")
 include("algorithms/reformulationsolver.jl")
+include("algorithms/preprocessing.jl")
 
 # Here include conquer strategies
 include("strategies/conquer/simplebnp.jl")
