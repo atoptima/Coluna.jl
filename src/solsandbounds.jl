@@ -113,7 +113,6 @@ function PrimalSolution(f::AbstractFormulation)
     return PrimalSolution{Sense}(PrimalBound{Sense}(), sol)
 end
 
-
 function PrimalSolution(f::AbstractFormulation,
                         value::Number, 
                         soldict::Dict{Id{Variable},Float64})
@@ -125,14 +124,12 @@ function PrimalSolution(f::AbstractFormulation,
     return PrimalSolution{S}(PrimalBound{S}(float(value)), sol)
 end
 
-
 function Base.isinteger(s::PrimalSolution)
     for (var_id, val) in getsol(s)
         !isinteger(val) && return false
     end
     return true
 end
-
 
 """
     DualSolution{S} where S <: AbstractObjSense

@@ -1,13 +1,54 @@
-struct Annotations
-    vars_per_block::Dict{Int, Dict{Id{Variable},Variable}}
-    constrs_per_block::Dict{Int, Dict{Id{Constraint},Constraint}}
+mutable struct Annotations
+    tree::Union{BD.Tree, Nothing}
+    ann_per_var::Dict{Id{Variable}, BD.Annotation}
+    ann_per_constr::Dict{Id{Constraint}, BD.Annotation}
+    vars_per_ann::Dict{BD.Annotation, Dict{Id{Variable},Variable}}
+    constrs_per_ann::Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}
     annotation_set::Set{BD.Annotation}
 end
+
 Annotations() = Annotations(
-    Dict{Int, Dict{Id{Variable},Variable}}(),
-    Dict{Int, Dict{Id{Constraint},Constraint}}(),
+    nothing,
+    Dict{Id{Variable}, BD.Annotation}(), Dict{Id{Constraint}, BD.Annotation}(),
+    Dict{BD.Annotation, Dict{Id{Variable},Variable}}(),
+    Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}(),
     Set{BD.Annotation}()
 )
+
+function store!(annotations::Annotations, ann::BD.Annotation, var::Variable)
+    push!(annotations.annotation_set, ann)
+    annotations.ann_per_var[getid(var)] = ann
+    if !haskey(annotations.vars_per_ann, ann)
+        annotations.vars_per_ann[ann] = Dict{Id{Variable}, Variable}()
+    end
+    annotations.vars_per_ann[ann][getid(var)] = var
+    return
+end
+
+function store!(annotations::Annotations, ann::BD.Annotation, constr::Constraint)
+    push!(annotations.annotation_set, ann)
+    annotations.ann_per_constr[getid(constr)] = ann
+    if !haskey(annotations.constrs_per_ann, ann)
+        annotations.constrs_per_ann[ann] = Dict{Id{Constraint}, Constraint}()
+    end
+    annotations.constrs_per_ann[ann][getid(constr)] = constr
+    return
+end
+
+function getparent(annotations::Annotations, ann)
+    # parent_id = BD.getparent(ann)
+    # for annotation in annotations.annotation_set
+    #     if BD.getid(annotation) == parent_id
+    #         return annotation
+    #     end
+    # end
+    # error("Cannot get parent annotation of $ann.")
+    for annotation in annotations.annotation_set
+        if BD.getformulation(annotation) == BD.Master
+            return annotation
+        end
+    end
+end
 
 """
     Problem
@@ -20,33 +61,21 @@ mutable struct Problem <: AbstractProblem
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     form_counter::Counter # 0 is for original form
-    master_factory::Union{Nothing, JuMP.OptimizerFactory}
-    pricing_factory::Union{Nothing, JuMP.OptimizerFactory}
+    default_optimizer_builder::Function
 end
 
 """
-    Problem(params::Params, master_factory, pricing_factory)
+    Problem(b::Function)
 
 Constructs an empty `Problem`.
 """
-function Problem(master_factory, pricing_factory)
-    return Problem(
-        nothing, nothing, Counter(-1),
-        master_factory, pricing_factory
-    )
-end
+Problem(b::Function) = Problem(nothing, nothing, Counter(-1), b)
 
 set_original_formulation!(m::Problem, of::Formulation) = m.original_formulation = of
 set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r
 
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
-
-function initialize_optimizer(prob::Problem)
-    initialize_optimizer(
-        prob.re_formulation, prob.master_factory, prob.pricing_factory
-    )
-end
 
 function _welcome_message()
     welcome = """
@@ -62,7 +91,6 @@ function coluna_initialization(prob::Problem, annotations::Annotations,
     _set_global_params(params)
     reformulate!(prob, annotations, params.global_strategy)
     relax_integrality!(prob.re_formulation.master)
-    initialize_optimizer(prob)
     @info "Coluna initialized."
 end
 

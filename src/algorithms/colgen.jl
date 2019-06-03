@@ -1,6 +1,6 @@
 struct ColumnGeneration <: AbstractAlgorithm end
 
-mutable struct ColumnGenerationData <: AbstractAlgorithmData
+mutable struct ColumnGenerationData
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
@@ -107,9 +107,9 @@ function insert_cols_in_master!(master_form::Formulation,
             # TODO: check if column exists
             #== mc_id = getid(mc)
             id_of_existing_mc = - 1
-            primalspsol_matrix = getprimalspsolmatrix(master_form)
-            for (col, col_members) in columns(primalspsol_matrix)
-                if (col_members == primalspsol_matrix[:, mc_id])
+            partialsol_matrix = getpartialsolmatrix(master_form)
+            for (col, col_members) in columns(partialsol_matrix)
+                if (col_members == partialsol_matrix[:, mc_id])
                     id_of_existing_mc = col[1]
                     break
                 end
@@ -142,10 +142,11 @@ function compute_pricing_db_contrib(sp_form::Formulation,
 end
 
 function gencol!(master_form::Formulation,
-                 sp_form::Formulation,
-                 dual_sol::DualSolution{S},
-                 sp_lb::Float64,
-                 sp_ub::Float64) where {S}
+                     sp_form::Formulation,
+                     dual_sol::DualSolution,
+                     sp_lb::Float64,
+                     sp_ub::Float64)
+
     #flag_need_not_generate_more_col = 0 # Not used
     flag_is_sp_infeasible = -1
     #flag_cannot_generate_more_col = -2 # Not used
@@ -175,7 +176,6 @@ function gencol!(master_form::Formulation,
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-
     TO.@timeit _to "Pricing subproblem" begin
         opt_result = optimize!(sp_form)
     end
@@ -227,7 +227,7 @@ end
 
 function update_lagrangian_db!(alg::ColumnGenerationData,
                                restricted_master_sol_value::PrimalBound{S},
-                               pricing_sp_dual_bound_contrib::DualBound{S})  where {S}
+                               pricing_sp_dual_bound_contrib::DualBound{S}) where {S}
     lagran_bnd = DualBound{S}(0.0)
     lagran_bnd += compute_master_db_contrib(alg, restricted_master_sol_value)
     lagran_bnd += pricing_sp_dual_bound_contrib
@@ -240,15 +240,11 @@ function solve_restricted_master!(master::Formulation)
         opt_result = TO.@timeit _to "LP restricted master" optimize!(master)
     end
     return (isfeasible(opt_result), getprimalbound(opt_result), 
-    getprimalsols(opt_result), getdualsols(opt_result), elapsed_time)
+    getprimalsols(opt_result), getbestdualsol(opt_result), elapsed_time)
 end
 
-function generatecolumns!(alg::ColumnGenerationData,
-                          reform::Reformulation,
-                          master_val::PrimalBound{S},
-                          dual_sol::DualSolution{S},
-                          sp_lbs::Dict{FormId, Float64},
-                          sp_ubs::Dict{FormId, Float64}) where {S}
+function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,
+                          master_val, dual_sol, sp_lbs, sp_ubs)
     nb_new_columns = 0
     while true # TODO Replace this condition when starting implement stabilization
         nb_new_col, sp_db_contrib =  gencols!(reform, dual_sol, sp_lbs, sp_ubs)
@@ -278,14 +274,14 @@ function cg_main_loop(alg::ColumnGenerationData, reformulation::Reformulation,
     # collect multiplicity current bounds for each sp
     for sp_form in reformulation.dw_pricing_subprs
         sp_uid = getuid(sp_form)
-        lb_convexity_constr_id = reformulation.dw_sp_lb_convexity_constr_id[sp_uid]
-        ub_convexity_constr_id = reformulation.dw_sp_ub_convexity_constr_id[sp_uid]
+        lb_convexity_constr_id = reformulation.dw_pricing_sp_lb[sp_uid]
+        ub_convexity_constr_id = reformulation.dw_pricing_sp_ub[sp_uid]
         sp_lbs[sp_uid] = getcurrhs(getconstr(master_form, lb_convexity_constr_id))
         sp_ubs[sp_uid] = getcurrhs(getconstr(master_form, ub_convexity_constr_id))
     end
 
     while true
-        master_status, master_val, primal_sols, dual_sols, master_time =
+        master_status, master_val, primal_sols, dual_sol, master_time =
             solve_restricted_master!(master_form)
 
         if (phase != 1 && (master_status == MOI.INFEASIBLE
@@ -295,7 +291,7 @@ function cg_main_loop(alg::ColumnGenerationData, reformulation::Reformulation,
         end
 
         set_lp_primal_sol!(alg.incumbents, primal_sols[1])
-        
+        set_lp_dual_sol!(alg.incumbents, dual_sol)
         if isinteger(primal_sols[1])
             set_ip_primal_sol!(alg.incumbents, primal_sols[1])
         end
@@ -307,7 +303,7 @@ function cg_main_loop(alg::ColumnGenerationData, reformulation::Reformulation,
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
             nb_new_col = generatecolumns!(
-                alg, reformulation, master_val, dual_sols[1], sp_lbs, sp_ubs
+                alg, reformulation, master_val, dual_sol, sp_lbs, sp_ubs
             )
         end
 

@@ -5,15 +5,13 @@ const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const MembMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
 const VarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
-const ConstrMatrix = MembersMatrix{ConstrId,Constraint,ConstrId,Constraint,Float64}
 
 struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
     coefficients::MembMatrix # rows = constraints, cols = variables
+    primal_sp_sols::VarMatrix # rows = variables, cols = solutions
     expressions::VarMatrix  # rows = expressions, cols = variables
-    primal_sp_sols::VarMatrix # rows = sp vars, cols = DW master columns 
-    dual_sp_sols::ConstrMatrix # rows = sp constrs, cols = Bend master cuts
 end
 
 function FormulationManager()
@@ -24,12 +22,10 @@ function FormulationManager()
                               constrs,
                               MembersMatrix{Float64}(vars,constrs),
                               MembersMatrix{Float64}(vars,vars),
-                              MembersMatrix{Float64}(vars,vars),
-                              MembersMatrix{Float64}(constrs,constrs))
+                              MembersMatrix{Float64}(vars,vars))
 end
 
 haskey(m::FormulationManager, id::Id{Variable}) = haskey(m.vars, id)
-
 haskey(m::FormulationManager, id::Id{Constraint}) = haskey(m.constrs, id)
 
 function addvar!(m::FormulationManager, var::Variable)
@@ -39,13 +35,8 @@ function addvar!(m::FormulationManager, var::Variable)
 end
 
 function addprimalspsol!(m::FormulationManager, var::Variable)
-     ### check if primalspsol exists should take place here along the coeff update
+     ### check if primalspsol exists should take place heren along the coeff update
     return var
-end
-
-function adddualspsol!(m::FormulationManager, constr::Constraint)
-     ### check if primalspsol exists should take place here along the coeff update
-    return constr
 end
 
 function addconstr!(m::FormulationManager, constr::Constraint)
@@ -64,12 +55,7 @@ getconstrs(m::FormulationManager) = m.constrs
 
 getcoefmatrix(m::FormulationManager) = m.coefficients
 
-getexpressionmatrix(m::FormulationManager) = m.expressions
-
 getprimalspsolmatrix(m::FormulationManager) = m.primal_sp_sols
-
-getdualspsolmatrix(m::FormulationManager) = m.dual_sp_sols
-
 
 function Base.show(io::IO, m::FormulationManager)
     println(io, "FormulationManager :")

@@ -1,7 +1,7 @@
 function varconstr_unit_tests()
     abstract_vc_data_getters_and_setters_tests()
     abstract_var_constr_getters_tests()
-    varconstr_helpers_tests()
+    varcosntr_helpers_tests()
 end
 
 function abstract_vc_data_getters_and_setters_tests()
@@ -58,33 +58,33 @@ end
 function abstract_var_constr_getters_tests()
 
     v = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepBendSpVar
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MasterPureVar
     )
 
     @test CL.getid(v) == CL.Id{CL.Variable}(23, 10)
     @test CL.getname(v) == "fake_var"
-    @test CL.getduty(v) == CL.MastRepBendSpVar
+    @test CL.getduty(v) == CL.MasterPureVar
     @test CL.getrecordeddata(v) === v.perene_data
     @test CL.getcurdata(v) === v.cur_data
     @test CL.getmoirecord(v) === v.moirecord
 
 
     c = CL.Constraint(
-        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchConstr
+        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchOnOrigVarConstr
     )
 
     @test CL.getid(c) == CL.Id{CL.Constraint}(23, 10)
     @test CL.getname(c) == "fake_constr"
-    @test CL.getduty(c) == CL.MasterBranchConstr
+    @test CL.getduty(c) == CL.MasterBranchOnOrigVarConstr
     @test CL.getrecordeddata(c) === c.perene_data
     @test CL.getcurdata(c) === c.cur_data
     @test CL.getmoirecord(c) === c.moirecord
 end
 
-function varconstr_helpers_tests()
+function varcosntr_helpers_tests()
 
     v = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepBendSpVar
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MasterPureVar
     )
 
     @test CL.getuid(v) == 23
@@ -109,7 +109,7 @@ function varconstr_helpers_tests()
     @test CL.get_cur_is_explicit(v) == false
 
     c = CL.Constraint(
-        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchConstr
+        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchOnOrigVarConstr
     )
 
     @test CL.getuid(c) == 23
