@@ -138,21 +138,21 @@ function apply_branch!(f::Reformulation, b::Branch)
     name = string("branch_", sense,  getdepth(b))
     # In master we define a branching constraint
     branch_constraint = setconstr!(
-        f.master, name, MasterBranchConstr; sense = getsense(b), rhs = getrhs(b),
+        f.master, name, MasterBranchOnOrigVarConstr; sense = getsense(b), rhs = getrhs(b),
         members = get_var_coeffs(b)
     )
-    # In subproblems we only change the bounds
-    # Problem: Only works if val == 1.0 !!! TODO: Fix this problem ?
-    for (id, val) in get_var_coeffs(b)
-        # The following lines should be changed when we store the pointer to the vc represented by the representative
-        owner_form = find_owner_formulation(f, getvar(f.master, id))
-        if getuid(owner_form) != getuid(f.master)
-            sp_var = getvar(owner_form, id)
-            getsense(b) == Less && setub!(owner_form, sp_var, getrhs(b))
-            getsense(b) == Greater && setlb!(owner_form, sp_var, getrhs(b))
-        end
-        @logmsg LogLevel(-2) "Branching constraint added : " branch_constraint
-    end
+    # # In subproblems we only change the bounds
+    # # Problem: Only works if val == 1.0 !!! TODO: Fix this problem ?
+    # for (id, val) in get_var_coeffs(b)
+    #     # The following lines should be changed when we store the pointer to the vc represented by the representative
+    #     owner_form = find_owner_formulation(f, getvar(f.master, id))
+    #     if getuid(owner_form) != getuid(f.master)
+    #         sp_var = getvar(owner_form, id)
+    #         getsense(b) == Less && setub!(owner_form, sp_var, getrhs(b))
+    #         getsense(b) == Greater && setlb!(owner_form, sp_var, getrhs(b))
+    #     end
+    #     @logmsg LogLevel(-2) "Branching constraint added : " branch_constraint
+    # end
     return
 end
 

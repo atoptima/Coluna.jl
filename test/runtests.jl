@@ -1,6 +1,6 @@
 import Coluna
 
-using Test, GLPK, ColunaDemos, JuMP
+using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
 
 import MathOptInterface, MathOptInterface.Utilities
 
@@ -11,15 +11,21 @@ global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
 global const CL = Coluna
 global const CLD = ColunaDemos
+global const BD = BlockDecomposition
 
 include("unit/unit_tests.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
+include("pricing_callback_tests.jl")
 
 unit_tests()
 
 @testset "Full instances " begin
     full_instances_tests()
+end
+
+@testset "pricing callback" begin
+    pricing_callback_tests()
 end
 
 @testset "Base.show functions " begin

@@ -3,7 +3,6 @@ module Coluna
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
-import GLPK
 import JuMP
 import BlockDecomposition
 import Distributed
@@ -58,6 +57,7 @@ include("optimizationresults.jl")
 include("incumbents.jl")
 include("buffer.jl")
 include("formulation.jl")
+include("optimizerwrappers.jl")
 include("clone.jl")
 include("reformulation.jl")
 include("projection.jl")

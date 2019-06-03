@@ -10,7 +10,7 @@ function filters_tests()
     )
 
     v = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepPricingSpVar;
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MasterRepPricingVar;
         var_data = v_data
     )
 
@@ -20,7 +20,7 @@ function filters_tests()
     )
 
     v2 = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.PricingSpVar;
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.DwSpPricingVar;
         var_data = v2_data
     )
 
@@ -30,7 +30,7 @@ function filters_tests()
     )
 
     v3 = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepPricingSetupSpVar;
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MasterRepPricingSetupVar;
         var_data = v3_data
     )
 
@@ -40,7 +40,7 @@ function filters_tests()
     )
 
     v4 = CL.Variable(
-        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MastRepPricingSetupSpVar;
+        CL.Id{CL.Variable}(23, 10), "fake_var", CL.MasterRepPricingSetupVar;
         var_data = v4_data
     )
 
@@ -50,7 +50,7 @@ function filters_tests()
     )
 
     c1 = CL.Constraint(
-        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchConstr;
+        CL.Id{CL.Constraint}(23, 10), "fake_constr", CL.MasterBranchOnOrigVarConstr;
         constr_data = c1_data
     )
 
@@ -63,7 +63,7 @@ function filters_tests()
         constr_data = c2_data
     )
 
-    @test CL._active_master_rep_orig_constr_(Pair(CL.getid(c1),c1)) == true
+    @test CL._active_master_rep_orig_constr_(Pair(CL.getid(c1),c1)) == false
     @test CL._active_master_rep_orig_constr_(Pair(CL.getid(c2),c2)) == false
     @test CL._explicit_(v) == true
     @test CL._explicit_(c2) == false

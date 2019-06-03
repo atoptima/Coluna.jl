@@ -6,7 +6,7 @@ Structure to be returned by all Coluna `optimize!` methods.
 mutable struct OptimizationResult{S<:AbstractObjSense}
     feasible::Bool # True iff feasible
     primal_bound::PrimalBound{S}
-    dual_bound::PrimalBound{S}
+    dual_bound::DualBound{S}
     primal_sols::Vector{PrimalSolution{S}}
     dual_sols::Vector{DualSolution{S}}
 end
@@ -26,5 +26,7 @@ getprimalbound(res::OptimizationResult) = res.primal_bound
 getdualbound(res::OptimizationResult) = res.dual_bound
 getprimalsols(res::OptimizationResult) = res.primal_sols
 getdualsols(res::OptimizationResult) = res.dual_sols
+nbprimalsols(res::OptimizationResult) = length(res.primal_sols)
+nbdualsols(res::OptimizationResult) = length(res.dual_sols)
 getbestprimalsol(res::OptimizationResult) = res.primal_sols[1]
 getbestdualsol(res::OptimizationResult) = res.dual_sols[1]
