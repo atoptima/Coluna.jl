@@ -44,15 +44,15 @@ struct BendersCutGeneration <: AbstractAlgorithm end
 Each algorithm is defined by
 
 ```@docs
-AbstractAlgorithmRecord
+Coluna.AbstractAlgorithmRecord
 ```
 
 ```@docs
-prepare!
+Coluna.prepare!
 ```
 
 ```@docs
-run!
+Coluna.run!
 ```
 
 The user can create his algorithm outside Coluna. He must overload the data structures and methods introduced above.
