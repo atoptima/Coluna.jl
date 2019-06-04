@@ -1,6 +1,6 @@
 struct BendersCutGeneration <: AbstractAlgorithm end
 
-mutable struct BendersCutGenerationData <: AbstractAlgorithmData
+mutable struct BendersCutGenerationData
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
