@@ -12,14 +12,16 @@ struct Id{VC <: AbstractVarConstr}
     uid::Int
     form_uid::Int
     proc_uid::Int
+    sequence_nb::Int
     _hash::Int
 end
 
-function _create_hash(uid::Int, form_uid::Int, proc_uid::Int)
+function _create_hash(uid::Int, form_uid::Int, proc_uid::Int, sequence_nb::Int)
     return (
-        uid * _globals_.MAX_FORMULATIOS * _globals_.MAX_PROCESSES
-        + form_uid * _globals_.MAX_PROCESSES
-        + proc_uid
+        uid * _globals_.MAX_FORMULATIOS * _globals_.MAX_PROCESSES * _globals_.MAX_IDENTICAL_CLONES
+        + form_uid * _globals_.MAX_PROCESSES * _globals_.MAX_IDENTICAL_CLONES
+        + proc_uid  * _globals_.MAX_IDENTICAL_CLONES
+        + sequence_nb
     )
 end
 
@@ -28,9 +30,13 @@ end
 
 Constructs an `Id` of type `VC` with `uid` = uid and `form_uid` = form_uid.
 """
-function Id{VC}(uid::Int, form_uid::Int) where {VC}
+function Id{VC}(uid::Int, form_uid::Int; sequence_nb = 1) where {VC}
     proc_uid = Distributed.myid()
-    Id{VC}(uid, form_uid, proc_uid, _create_hash(uid, form_uid, proc_uid))
+    Id{VC}(uid, form_uid, proc_uid, 1, _create_hash(uid, form_uid, proc_uid, sequence_nb))
+end
+
+function Id{VC}(id::Id, sequence_nb::Int) where {VC}
+    Id{VC}(id.uid, id.form_uid; sequence_nb = sequence_nb)
 end
 
 Base.hash(a::Id, h::UInt) = hash(a._hash, h)
@@ -41,8 +47,9 @@ Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1) 
 getuid(id::Id) = id.uid
 getformuid(id::Id) = id.form_uid
+getseqnb(id::Id) = id.sequence_nb
 getprocuid(id::Id) = id.proc_uid
-getsortid(id::Id) = getuid(id) + 1000000 * getformuid(id)
+getsortid(id::Id) = getuid(id) + 1000000 * getformuid(id) + 10000000 * getseqnb(id)
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, T,"#", id._hash)

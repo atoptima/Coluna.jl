@@ -1,5 +1,6 @@
 Base.@kwdef mutable struct GlobalValues
     initial_solve_time::Float64 = 0.0
+    MAX_IDENTICAL_CLONES::Int = 10
     MAX_PROCESSES::Int = 100
     MAX_FORMULATIOS::Int = 100
 end

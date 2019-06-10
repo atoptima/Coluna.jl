@@ -207,12 +207,18 @@ end
 
 function create_side_vars_constrs!(mast::Formulation{BendersMaster})
     for sp in mast.parent_formulation.benders_sep_subprs
-        nu = collect(values(filter(var -> getduty(var[2]) == BendSpRepSecondStageCostVar, getvars(sp))))[1]
+        nu = collect(values(filter(var -> getduty(var[2]) == BendSpSlackSecondStageCostVar, getvars(sp))))[1]
         name = "η[$(split(getname(nu), "[")[end])"
         setvar!(
             mast, name, MasterBendSecondStageCostVar; cost = getcurcost(nu),
             lb = -Inf, ub = Inf, 
-            kind = Continuous, sense = Free, is_explicit = true, id =  getid(nu)
+            kind = Continuous, sense = Free, is_explicit = true, id = getid(nu)
+        )
+        setvar!(
+            sp, name, BendSpRepSecondStageCostVar; cost = getcurcost(nu),
+            lb = -Inf, ub = Inf, 
+            kind = Continuous, sense = Free, is_explicit = false,
+            id = Id{Variable}(getid(nu), 2)
         )
         
         # clone_in_formulation!(mast, sp, eta, MasterBendSecondStageCostVar)
@@ -253,10 +259,16 @@ function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotatio
             if dutyofbendmastvar(var, annotations, orig_form) == MasterBendFirstStageVar
                 #if involvedinbendsp(var, orig_form, annotations, sp_ann)
                 name = "μ[$(split(getname(var), "[")[end])"
-                setvar!(
-                    sp, name, BendSpRepFirstStageVar; cost = getcurcost(var),
+                mu = setvar!(
+                    sp, name, BendSpSlackFirstStageVar; cost = getcurcost(var),
                     lb = -Inf, ub = Inf, 
                     kind = Continuous, sense = Free, is_explicit = true, id = id
+                )
+                setvar!(
+                    sp, getname(var), BendSpRepFirstStageVar; cost = 0.0,
+                    lb = -Inf, ub = Inf, 
+                    kind = getperenekind(var), sense = getperenesense(var), is_explicit = false,
+                    id = Id{Variable}(getid(mu), 2)
                 )
             end
         end
@@ -293,7 +305,7 @@ function create_side_vars_constrs!(sp::Formulation{BendersSp})
     # Cost constraint
     mast = getmaster(sp)
     nu = setvar!(
-        sp, "ν[$sp_id]", BendSpRepSecondStageCostVar; cost = 1.0, lb = -Inf, ub = Inf,
+        sp, "ν[$sp_id]", BendSpSlackSecondStageCostVar; cost = 1.0, lb = -Inf, ub = Inf,
         kind = Continuous, sense = Free, is_explicit = true
     )
     cost = setconstr!(
