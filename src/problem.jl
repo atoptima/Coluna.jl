@@ -94,6 +94,7 @@ function coluna_initialization(prob::Problem, annotations::Annotations,
     @info "Coluna initialized."
 end
 
+
 # # Behaves like optimize!(problem::Problem), but sets parameters before
 # # function optimize!(problem::Reformulation)
 
