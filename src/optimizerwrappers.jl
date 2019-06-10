@@ -105,7 +105,10 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     end
     # Update constraint rhs
     for id in buffer.changed_rhs
-        @warn "Update of constraint rhs not yet implemented"
+        (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
+        @logmsg LogLevel(-2) "Changing rhs of constraint " getname(getconstr(f,id))
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(getconstr(f,id)))
+        update_constr_rhs_in_optimizer!(optimizer, getconstr(f,id))
     end
     # Update matrix
     # First check if should update members of just-added vars
