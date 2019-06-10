@@ -63,6 +63,8 @@ struct DwSpPureVar <: AbstractDwSpVar end
 
 struct BendSpSepVar <: AbstractBendSpVar end
 struct BendSpPureVar <: AbstractBendSpVar end
+struct BendSpSlackFirstStageVar  <: AbstractBendSpRepMastVar end
+struct BendSpSlackSecondStageCostVar <: AbstractBendSpRepMastVar end
 struct BendSpRepFirstStageVar  <: AbstractBendSpRepMastVar end
 struct BendSpRepSecondStageCostVar <: AbstractBendSpRepMastVar end
 
