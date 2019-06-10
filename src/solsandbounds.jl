@@ -189,3 +189,12 @@ end
 
 Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
 
+function Base.filter(f::Function, ds::DualSolution{S}) where {S<:AbstractObjSense}
+    newsol = filter(f, ds.sol)
+    elements = getelements(newsol)
+    bound = 0.0
+    for id_val in newsol
+        bound += id_val[2] * getcurrhs(elements[id_val[1]])
+    end
+    return DualSolution{S}(bound, newsol) 
+end

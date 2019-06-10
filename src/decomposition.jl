@@ -208,7 +208,14 @@ end
 function create_side_vars_constrs!(mast::Formulation{BendersMaster})
     for sp in mast.parent_formulation.benders_sep_subprs
         nu = collect(values(filter(var -> getduty(var[2]) == BendSpRepSecondStageCostVar, getvars(sp))))[1]
-        clone_in_formulation!(mast, sp, nu, MasterBendSecondStageCostVar)
+        name = "η[$(split(getname(nu), "[")[end])"
+        setvar!(
+            mast, name, MasterBendSecondStageCostVar; cost = getcurcost(nu),
+            lb = -Inf, ub = Inf, 
+            kind = Continuous, sense = Free, is_explicit = true, id =  getid(nu)
+        )
+        
+        # clone_in_formulation!(mast, sp, eta, MasterBendSecondStageCostVar)
     end
     return
 end

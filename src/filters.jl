@@ -15,6 +15,8 @@ _active_benders_sp_var_(id_v::Pair{VarId,Variable}) = get_cur_is_active(id_v[2])
 
 _active_firststage_mast_var_(id_v::Pair{VarId,Variable}) = get_cur_is_active(id_v[2]) == true && getduty(id_v[2]) <: MasterBendFirstStageVar
 
+_active_firststage_sp_var_(id_v::Pair{VarId,Variable}) = get_cur_is_active(id_v[2]) == true && getduty(id_v[2]) <: BendSpRepFirstStageVar
+
 "Returns true if `v` is a master representative of a pricing subproblem variable and is currently active"
 _active_pricing_mast_rep_sp_var_(v::Variable) = get_cur_is_active(v) == true && getduty(v) <: AbstractMasterRepDwSpVar
 
