@@ -8,6 +8,9 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+            ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
@@ -23,6 +26,9 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+            ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
@@ -38,6 +44,9 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+            ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
@@ -51,6 +60,9 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+            ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
@@ -64,8 +76,11 @@ function generalized_assignment_tests()
     data = CLD.GeneralizedAssignment.data("root_infeas.txt")
 
     coluna = JuMP.with_optimizer(Coluna.Optimizer,
-        default_optimizer = with_optimizer(GLPK.Optimizer)
-    )
+    params = CL.Params(
+        global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+    ),
+    default_optimizer = with_optimizer(GLPK.Optimizer)
+)
     
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
@@ -110,6 +125,9 @@ function lot_sizing_tests()
         data = CLD.SingleModeMultiItemsLotSizing.data("lotSizing-3-20-2.txt")
         
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBenders, CL.SimpleBranching, CL.DepthFirst)
+            ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 

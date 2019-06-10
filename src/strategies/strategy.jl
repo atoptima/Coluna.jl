@@ -77,5 +77,5 @@ Constructs a default GlobalStrategy using the strategies
 `SimpleBnP` as Conquer Strategy, `SimpleBranching` as DivideStrategy 
 and `DepthFirst` as TreeSearchStrategy.
 """
-#GlobalStrategy() = GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst)
+
 GlobalStrategy() = GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst)
