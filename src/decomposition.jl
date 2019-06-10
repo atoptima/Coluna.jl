@@ -172,12 +172,26 @@ function create_side_vars_constrs!(sp::Formulation{DwSp})
     return
 end
 
+
+function dutyofbendmastvar(var, annotations, orig_form)
+    orig_coef = getcoefmatrix(orig_form)
+    for (constrid, coef) in orig_coef[:, getid(var)]
+        constr_ann = annotations.ann_per_constr[constrid]
+        #if coef != 0 && BD.getformulation(constr_ann) == BD.Benders  # TODO use haskey instead testing != 0
+        if BD.getformulation(constr_ann) == BD.BendersSepSp 
+            return MasterBendFirstStageVar
+        end
+    end
+    return MasterPureVar
+end
+
 # Master of Benders decomposition
 function instantiate_orig_vars!(mast::Formulation{BendersMaster}, orig_form, annotations, mast_ann)
     !haskey(annotations.vars_per_ann, mast_ann) && return
     vars = annotations.vars_per_ann[mast_ann]
     for (id, var) in vars
-        clone_in_formulation!(mast, orig_form, var, MasterPureVar)
+        duty = dutyofbendmastvar(var, annotations, orig_form)
+        clone_in_formulation!(mast, orig_form, var, duty)
     end
     return
 end
@@ -204,33 +218,37 @@ function create_artificial_vars!(mast::Formulation{BendersMaster})
 end
 
 # Separation sp of Benders decomposition
-function involvedinbendsp(var, orig_form, annotations, sp_ann)
-    !haskey(annotations.constrs_per_ann, sp_ann) && return false
-    constrs = annotations.constrs_per_ann[sp_ann]
-    orig_coef = getcoefmatrix(orig_form)
-    for (constr_id, constr) in constrs
-        if orig_coef[constr_id, getid(var)] != 0
-            return true
-        end
-    end
-    return false
-end
+#function involvedinbendsp(var, orig_form, annotations, sp_ann)
+#    !haskey(annotations.constrs_per_ann, sp_ann) && return false
+#    constrs = annotations.constrs_per_ann[sp_ann]
+#    orig_coef = getcoefmatrix(orig_form)
+#    for (constr_id, constr) in constrs
+#        if orig_coef[constr_id, getid(var)] != 0 # TODO use haskey instead
+#            return true
+#        end
+#    end
+#    return false
+#end
 
 function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotations, sp_ann)
+
     if haskey(annotations.vars_per_ann, sp_ann)
         vars = annotations.vars_per_ann[sp_ann]
         for (id, var) in vars
             clone_in_formulation!(sp, orig_form, var, BendSpSepVar)
         end
     end
+
     mast_ann = getparent(annotations, sp_ann)
     if haskey(annotations.vars_per_ann, mast_ann)
         vars = annotations.vars_per_ann[mast_ann]
         for (id, var) in vars
-            if involvedinbendsp(var, orig_form, annotations, sp_ann)
+            if dutyofbendmastvar(var, annotations, orig_form) == MasterBendFirstStageVar
+                #if involvedinbendsp(var, orig_form, annotations, sp_ann)
                 name = "μ[$(split(getname(var), "[")[end])"
                 setvar!(
-                    sp, name, BendSpRepFirstStageVar; cost = 0.0, lb = -Inf, ub = Inf, 
+                    sp, name, BendSpRepFirstStageVar; cost = getcurcost(var),
+                    lb = -Inf, ub = Inf, 
                     kind = Continuous, sense = Free, is_explicit = true, id = id
                 )
             end
@@ -239,11 +257,13 @@ function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotatio
     return
 end
 
+
 function dutyofbendspconstr(constr, annotations, orig_form)
     orig_coef = getcoefmatrix(orig_form)
     for (varid, coef) in orig_coef[getid(constr), :]
         var_ann = annotations.ann_per_var[varid]
-        if coef != 0 && BD.getformulation(var_ann) == BD.Master
+        #if coef != 0 && BD.getformulation(var_ann) == BD.Master
+        if BD.getformulation(var_ann) == BD.Master
             return BendSpTechnologicalConstr
         end
     end
@@ -275,7 +295,8 @@ function create_side_vars_constrs!(sp::Formulation{BendersSp})
     )
     sp_coef[getid(cost), getid(nu)] = 1.0
     for (var_id, var) in filter(var -> getduty(var[2]) == BendSpSepVar, getvars(sp))
-            sp_coef[getid(cost), var_id] = - getperenecost(var)
+        sp_coef[getid(cost), var_id] = - getperenecost(var)
+        setperenecost!(var, 0.0)
     end
     return
 end
@@ -294,7 +315,7 @@ function getoptbuilder(prob::Problem, ann)
 end
 
 function buildformulations!(prob::Problem, annotations::Annotations, reform, 
-                               parent, node::BD.Root)
+                            parent, node::BD.Root)
     ann = BD.annotation(node)
     form_type = BD.getformulation(ann)
     dec_type = BD.getdecomposition(ann)
@@ -311,7 +332,7 @@ function buildformulations!(prob::Problem, annotations::Annotations, reform,
 end
 
 function buildformulations!(prob::Problem, annotations::Annotations, reform, 
-                               parent, node::BD.Leaf)
+                            parent, node::BD.Leaf)
     ann = BD.annotation(node)
     form_type = BD.getformulation(ann)
     dec_type = BD.getdecomposition(ann)
