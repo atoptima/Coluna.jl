@@ -40,7 +40,7 @@ function PreprocessData(depth::Int, reformulation::Reformulation)
 end
 
 struct PreprocessRecord <: AbstractAlgorithmRecord
-     infeasible::Bool
+     proven_infeasible::Bool
 end
 
 function prepare!(::Type{Preprocess}, form, node, strategy_rec, params)
@@ -298,9 +298,9 @@ function update_max_slack(alg_data::PreprocessData,
     nb_inf_sources = alg_data.nb_inf_sources_for_max_slack[constr.id]
     sense = getcursense(constr)
     if nb_inf_sources == 0
-        if sense != Greater && alg_data.cur_max_slack[constr.id] < -0.0001
+        if (sense != Greater) && alg_data.cur_max_slack[constr.id] < -0.0001
             return true
-        elseif sense == Greater && alg_data.cur_max_slack[constr.id] <= -0.0001
+        elseif (sense == Greater) && alg_data.cur_max_slack[constr.id] <= -0.0001
             #add_to_preprocessing_list(alg, constr)
             return false
         end
@@ -326,9 +326,9 @@ function update_min_slack(alg_data::PreprocessData,
     nb_inf_sources = alg_data.nb_inf_sources_for_min_slack[constr.id]
     sense = getcursense(constr)
     if nb_inf_sources == 0
-        if sense != Less && alg_data.cur_min_slack[constr.id] > 0.0001
+        if (sense != Less) && alg_data.cur_min_slack[constr.id] > 0.0001
             return true
-        elseif sense == Less && alg_data.cur_min_slack[constr.id] >= 0.0001
+        elseif (sense == Less) && alg_data.cur_min_slack[constr.id] >= 0.0001
             #add_to_preprocessing_list(alg, constr)
             return false
         end
