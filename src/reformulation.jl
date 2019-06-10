@@ -34,8 +34,8 @@ add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 add_benders_sep_sp!(r::Reformulation, f) = push!(r.benders_sep_subprs, f)
 
 function optimize!(reformulation::Reformulation)
-    #opt_result = apply!(GlobalStrategy, reformulation)
-    opt_result = apply!(reformulation.stratergy, reformulation)
+    opt_result = apply!(GlobalStrategy, reformulation)
+    #opt_result = apply!(reformulation.stratregy, reformulation)
     opt_result.primal_sols = [proj_cols_on_rep(
         getbestprimalsol(opt_result), getmaster(reformulation)
     )]
