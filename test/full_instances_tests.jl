@@ -61,7 +61,7 @@ function full_instances_tests()
     coluna = JuMP.with_optimizer(Coluna.Optimizer,
         default_optimizer = with_optimizer(GLPK.Optimizer)
     )
-    
+
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
     JuMP.optimize!(problem)
@@ -70,7 +70,7 @@ function full_instances_tests()
 
     # @testset "gap BIG instance" begin
     #     data = CLD.GeneralizedAssignment.data("gapC-5-100.txt")
-    
+
     # coluna = JuMP.with_optimizer(Coluna.Optimizer,
     #     default_optimizer = with_optimizer(GLPK.Optimizer)
     # )
@@ -87,7 +87,7 @@ function full_instances_tests()
 
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
-    
+
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -97,5 +97,18 @@ function full_instances_tests()
         @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    end
+
+    @testset "clsp small instance" begin
+        data = CLD.CapacitatedLotSizing.readData("testSmall")
+
+        coluna = JuMP.with_optimizer(Coluna.Optimizer,
+                                     default_optimizer = with_optimizer(GLPK.Optimizer)
+                                     )
+
+        model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
+        JuMP.optimize!(model)
+
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
     end
 end
