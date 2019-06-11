@@ -41,7 +41,7 @@ end
 haskey(f::Formulation, id::Id) = haskey(f.manager, id)
 
 "Returns the `Variable` whose `Id` is `id` if such variable is in `Formulation` `f`."
-getvar(f::Formulation, id::VarId) = getvar(f.manager, id) 
+getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
 
 "Returns the value of the variable counter of `Formulation` `f`."
 getvarcounter(f::Formulation) = f.var_counter.value
@@ -79,7 +79,7 @@ _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 """
     setcost!(f::Formulation, v::Variable, new_cost::Float64)
 
-Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
+Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be
 euqal to `new_cost`. Change on `f.optimizer` will be buffered.
 """
 function setcost!(f::Formulation, v::Variable, new_cost::Float64)
@@ -101,7 +101,7 @@ end
 """
     setlb!(f::Formulation, v::Variable, new_lb::Float64)
 
-Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer` 
+Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
 according to `new_lb`. Change on `f.optimizer` will be buffered.
 """
 function setlb!(f::Formulation, v::Variable, new_lb::Float64)
@@ -112,7 +112,7 @@ end
 """
     setkind!(f::Formulation, v::Variable, new_kind::VarKind)
 
-Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer` 
+Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
 according to `new_kind`. Change on `f.optimizer` will be buffered.
 """
 function setkind!(f::Formulation, v::Variable, new_kind::VarKind)
@@ -172,7 +172,7 @@ function setprimalspsol!(f::Formulation,
     for (var_id, var_val) in sol
         primalspsol_matrix[var_id, ps_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
-            coef_matrix[constr_id, ps_id] = var_val * var_coef
+            coef_matrix[constr_id, ps_id] += var_val * var_coef
         end
     end
 
@@ -319,13 +319,13 @@ function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
     return
 end
 
-function resetsolvalue(form::Formulation, sol::AbstractSolution) 
+function resetsolvalue(form::Formulation, sol::AbstractSolution)
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
     setvalue!(sol, val)
     return val
 end
 
-function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution) 
+function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution)
 
     var = getvar(form, var_id)
     rc = getperenecost(var)
@@ -368,7 +368,7 @@ function _show_obj_fun(io::IO, f::Formulation)
     for id in ids
         name = getname(vars[id])
         cost = get_cost(getcurdata(vars[id]))
-        op = (cost < 0.0) ? "-" : "+" 
+        op = (cost < 0.0) ? "-" : "+"
         print(io, op, " ", abs(cost), " ", name, " ")
     end
     println(io, " ")
