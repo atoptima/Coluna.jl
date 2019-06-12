@@ -88,7 +88,7 @@ function instantiate_orig_vars!(mast::Formulation{DwMaster}, orig_form, annotati
         dectype = BD.getdecomposition(ann)
         for (id, var) in vars
             duty, explicit = varexpduty(DwMaster, formtype, dectype)
-            clone_in_formulation!(mast, orig_form, var, duty, is_explicit = explicit)
+            clonevar!(mast, var, duty, is_explicit = explicit)
         end
     end
     return
@@ -98,7 +98,7 @@ function instantiate_orig_constrs!(mast::Formulation{DwMaster}, orig_form, annot
     !haskey(annotations.constrs_per_ann, mast_ann) && return
     constrs = annotations.constrs_per_ann[mast_ann]
     for (id, constr) in constrs
-        clone_in_formulation!(mast, orig_form, constr, MasterMixedConstr)
+        cloneconstr!(mast, constr, MasterMixedConstr)
     end
     return
 end
@@ -110,7 +110,7 @@ function create_side_vars_constrs!(mast::Formulation{DwMaster})
         setupvars = filter(var -> getduty(var[2]) == DwSpSetupVar, getvars(sp))
         @assert length(setupvars) == 1
         setupvar = collect(values(setupvars))[1] # issue 106
-        clone_in_formulation!(mast, sp, setupvar, MasterRepPricingSetupVar, is_explicit = false)
+        clonevar!(mast, setupvar, MasterRepPricingSetupVar, is_explicit = false)
         # create convexity constraint
         name = "sp_lb_$spuid"
         lb_conv_constr = setconstr!(
@@ -149,7 +149,7 @@ function instantiate_orig_vars!(sp::Formulation{DwSp}, orig_form, annotations, s
     vars = annotations.vars_per_ann[sp_ann]
     for (id, var) in vars
         # An original variable annoted in a subproblem is a DwSpPureVar
-        clone_in_formulation!(sp, orig_form, var, DwSpPricingVar)
+        clonevar!(sp, var, DwSpPricingVar)
     end
     return
 end
@@ -158,7 +158,7 @@ function instantiate_orig_constrs!(sp::Formulation{DwSp}, orig_form, annotations
     !haskey(annotations.constrs_per_ann, sp_ann) && return
     constrs = annotations.constrs_per_ann[sp_ann]
     for (id, constr) in constrs
-        clone_in_formulation!(sp, orig_form, constr, DwSpPureConstr)
+        cloneconstr!(sp, constr, DwSpPureConstr)
     end
     return
 end
@@ -191,7 +191,7 @@ function instantiate_orig_vars!(mast::Formulation{BendersMaster}, orig_form, ann
     vars = annotations.vars_per_ann[mast_ann]
     for (id, var) in vars
         duty = dutyofbendmastvar(var, annotations, orig_form)
-        clone_in_formulation!(mast, orig_form, var, duty)
+        clonevar!(mast, var, duty)
     end
     return
 end
@@ -200,7 +200,7 @@ function instantiate_orig_constrs!(mast::Formulation{BendersMaster}, orig_form, 
     !haskey(annotations.constrs_per_ann, mast_ann) && return
     constrs = annotations.constrs_per_ann[mast_ann]
     for (id, constr) in constrs
-        clone_in_formulation!(mast, orig_form, constr, MasterPureConstr)
+        cloneconstr!(mast, constr, MasterPureConstr)
     end
     return
 end
@@ -247,7 +247,7 @@ function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form, annotatio
     if haskey(annotations.vars_per_ann, sp_ann)
         vars = annotations.vars_per_ann[sp_ann]
         for (id, var) in vars
-            clone_in_formulation!(sp, orig_form, var, BendSpSepVar, cost = 0.0)
+            clonevar!(sp, var, BendSpSepVar, cost = 0.0)
         end
     end
     mast_ann = getparent(annotations, sp_ann)
@@ -292,7 +292,7 @@ function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form, annota
     constrs = annotations.constrs_per_ann[sp_ann]
     for (id, constr) in constrs
         duty = dutyofbendspconstr(constr, annotations, orig_form)
-        clone_in_formulation!(sp, orig_form, constr, duty)
+        cloneconstr!(sp, constr, duty)
     end
     return
 end
@@ -320,7 +320,7 @@ end
 function assign_orig_vars_constrs!(form, orig_form, annotations, ann)
     instantiate_orig_vars!(form, orig_form, annotations, ann)
     instantiate_orig_constrs!(form, orig_form, annotations, ann)
-    clone_coefficients!(form, orig_form)
+    clonecoeffs!(form, orig_form)
 end
 
 function getoptbuilder(prob::Problem, ann)
