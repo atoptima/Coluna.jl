@@ -120,7 +120,9 @@ julia> filter(var -> integer(var), vec)
 where function `integer(var)` returns true if variable `var` is integer.
 """
 function Base.filter(f::Function, vec::MembersVector)
-    MembersVector(vec.elements, Base.filter(e -> f(vec.elements[e[1]]), vec.records))
+    # MembersVector(vec.elements, Base.filter(e -> f(vec.elements[e[1]]), vec.records))
+    MembersVector(vec.elements, Base.filter(e -> f(Pair(e[1],vec.elements[e[1]])), vec.records))
+    # MembersVector(vec.elements, Base.filter(f, vec.records))
 end
 
 function Base.keys(vec::MembersVector)

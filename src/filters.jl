@@ -6,6 +6,9 @@ _active_master_rep_orig_constr_(id_c::Pair{ConstrId,Constraint}) = get_cur_is_ac
 "Returns true if `v` is the representative of an OriginalVar"
 _rep_of_orig_var_(v::Variable) = (getduty(v) isa OriginalRepresentatives)
 
+"Returns true if `id_v[2]` is the representative of an OriginalVar"
+_rep_of_orig_var_(id_v::Pair{VarId,Variable}) = _rep_of_orig_var_(id_v[2])
+
 "Returns true if `id_v[2]` is a pricing subproblem variable and is currently active"
 _active_pricing_sp_var_(id_v::Pair{VarId,Variable}) = get_cur_is_active(id_v[2]) == true && getduty(id_v[2]) <: AbstractDwSpVar
 

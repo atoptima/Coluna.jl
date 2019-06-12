@@ -26,7 +26,7 @@ end
 
 function should_do_ph_1(cg_rec::ColumnGenerationRecord)
     primal_lp_sol = getsol(get_lp_primal_sol(cg_rec.incumbents))
-    art_vars = filter(x->(getduty(x) isa ArtificialDuty), primal_lp_sol)
+    art_vars = filter(x->(getduty(x[2]) isa ArtificialDuty), primal_lp_sol)
     if !isempty(art_vars)
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
         return true
