@@ -43,15 +43,15 @@ struct PreprocessRecord <: AbstractAlgorithmRecord
      proven_infeasible::Bool
 end
 
-function prepare!(::Type{Preprocess}, form, node, strategy_rec, params)
-    @logmsg LogLevel(0) "Prepare preprocess node"
+function prepare!(::Type{Preprocess}, reformulation, node, strategy_rec, params)
+    @logmsg LogLevel(0) "Prepare preprocessing"
     return
 end
 
-function run!(::Type{Preprocess}, formulation, node, strategy_rec, parameters)
-    @logmsg LogLevel(0) "Run preprocess node"
+function run!(::Type{Preprocess}, reformulation, node, strategy_rec, parameters)
+    @logmsg LogLevel(0) "Run preprocessing"
 
-    alg_data = PreprocessData(node.depth, formulation)
+    alg_data = PreprocessData(node.depth, reformulation)
     master = getmaster(alg_data.reformulation)
 
     (vars_with_modified_bounds,
@@ -68,6 +68,9 @@ function run!(::Type{Preprocess}, formulation, node, strategy_rec, parameters)
     end
 
     infeasible = propagation(alg_data) 
+    if !infeasible
+       forbid_infeasible_columns(alg_data)
+    end
     return PreprocessRecord(infeasible) 
 end
 
@@ -76,58 +79,65 @@ function change_sp_bounds(alg_data::PreprocessData)
    master = getmaster(reformulation)
    sps_with_modified_bounds = []
 
-   for (var, val) in alg_data.local_partial_sol
-      sp_form = nothing #TODO: how to get form from column?
+   for (col, col_val) in alg_data.local_partial_sol
+      sp_form = get_subproblem(alg_data, col)
       sp_form_id = getuid(sp_form)
       if alg_data.cur_sp_bounds[sp_form_id][1] > 0
-         alg_data.cur_sp_bounds[sp_form_id] = (alg.cur_sp_bounds[sp_form_id][1] - 1, alg.cur_sp_bounds[sp_form_id][2])
+         alg_data.cur_sp_bounds[sp_form_id] = (max(alg.cur_sp_bounds[sp_form_id][1] - col_val, 0), alg.cur_sp_bounds[sp_form_id][2])
          conv_lb_constr = getconstr(master, reformulation.dw_pricing_sp_lb[sp_form_id])
-         #TODO: set new rhs. how??
+         setrhs!(master, conv_lb_constr, alg.cur_sp_bounds[sp_form_id][1])
       end
 
-      alg.cur_sp_bounds[sp_form_id] = (alg.cur_sp_bounds[sp_form_id][1], alg.cur_sp_bounds[sp_form_id][2] - 1)
+      alg.cur_sp_bounds[sp_form_id] = (alg.cur_sp_bounds[sp_form_id][1], alg.cur_sp_bounds[sp_form_id][2] - col_val)
       conv_ub_constr = getconstr(master, reformulation.dw_pricing_sp_ub[sp_form_id])
-      #TODO: set new rhs. how??
+      setrhs!(master, conv_ub_constr, alg.cur_sp_bounds[sp_form_id][2])
       @assert alg.cur_sp_bounds[sp_ref][2] >= 0
 
-      if !(sp_prob in sps_with_modified_bounds)
-         push!(sps_with_modified_bounds, sp_prob)
+      if !(sp_form in sps_with_modified_bounds)
+         push!(sps_with_modified_bounds, sp_form)
       end
    end
    return sps_with_modified_bounds
 end
 
+function get_subproblem(alg_data::PreprocessData, col::Variable)
+    master = getmaster(alg_data.reformulation)
+    primal_sp_sols = getprimalspsolmatrix(master)
+    for (sp_var_id, sp_var_val) in primal_sp_sols[:,getid(col.id)]
+       sp_var = getvar(master, sp_var_id)
+       return find_owner_formulation(alg_data.reformulation, sp_var)
+    end
+end
+
 function project_local_partial_solution(alg_data::PreprocessData)
-   user_vars_vals = Dict{VarId,Float64}()
+   sp_vars_vals = Dict{VarId,Float64}()
    primal_sp_sols = getprimalspsolmatrix(getmaster(alg_data.reformulation))
-   for (var, val) in alg_data.local_partial_sol
-      for (user_var_id, user_var_val) in primal_sp_sols[:,getid(var.id)]
-         if !haskey(user_vars_vals, user_var_id)
-            user_vars_vals[user_var_id] = user_var_val
+   for (col, col_val) in alg_data.local_partial_sol
+      for (sp_var_id, sp_var_val) in primal_sp_sols[:,getid(col.id)]
+         if !haskey(sp_vars_vals, sp_var_id)
+            sp_vars_vals[sp_var_id] = col_val*sp_var_val
          else
-            user_vars_vals[user_var_id] += user_var_val
+            sp_vars_vals[sp_var_id] += col_val*sp_var_val
          end
       end
    end
-   return user_vars_vals
+   return sp_vars_vals
 end
 
 function fix_local_partial_solution(alg_data::PreprocessData)
 
     sps_with_modified_bounds = change_sp_bounds(alg_data)
-    user_vars_vals = project_local_partial_solution(alg_data)
+    sp_vars_vals = project_local_partial_solution(alg_data)
 
     # Updating rhs of master constraints
-    # master vars of partial_sol are ignored here
-    # because we only change their bounds
     master = getmaster(alg_data.reformulation)
     master_coef_matrix = getcoefmatrix(master)
     constrs_with_modified_rhs = Constraint[]
-    for (var_id, val) in user_vars_vals
+    for (var_id, val) in sp_vars_vals
        for (constr_id, coef) in filter(_active_explicit_, master_coef_matrix[:, var_id])
-           #constr.cur_cost_rhs -= val*coef
-           #TODO:modify rhs
-           push!(constrs_with_modified_rhs, getconstr(master, constr_id))
+           constr = getconstr(master, constr_id)
+           setrhs!(master, constr, getcurrhs(constr) - val*coef)
+           push!(constrs_with_modified_rhs, constr)
        end
     end
 
@@ -137,7 +147,7 @@ function fix_local_partial_solution(alg_data::PreprocessData)
         (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[getuid(sp_prob)]
 
 	for (var_id, var) in filter(_active_pricing_sp_var_, getvars(sp_form))
-            var_val_in_local_sol = haskey(user_vars_vals, var_id) ? user_vars_vals[var_id] : 0.0
+            var_val_in_local_sol = haskey(sp_vars_vals, var_id) ? sp_vars_vals[var_id] : 0.0
             bounds_changed = false
 
 	    clone_in_master = getvar(master, var_id)
@@ -212,9 +222,6 @@ function initialize_constraint(alg_data::PreprocessData, constr::Constraint, for
     alg_data.nb_inf_sources_for_max_slack[constr.id] = 0     
     compute_min_slack(alg_data, constr, form)
     compute_max_slack(alg_data, constr, form)
-#     if alg.printing
-#         print_constr(alg, constr)
-#     end
 end
 
 function compute_min_slack(alg_data::PreprocessData, 
@@ -341,6 +348,18 @@ function update_min_slack(alg_data::PreprocessData,
     return false
 end
 
+function add_to_preprocessing_list(alg_data::PreprocessData, var::Variable)
+    if !(var in alg_data.preprocessed_vars)
+        push!(alg_data.preprocessed_vars, var)
+    end
+end
+
+function add_to_preprocessing_list(alg_data::PreprocessData, constr::Constraint)
+    if !(constr in alg_data.preprocessed_constrs)
+        push!(alg_data.preprocessed_constrs, constr)
+    end
+end
+
 function add_to_stack(alg_data::PreprocessData, constr::Constraint, form::Formulation)
     if !alg_data.constr_in_stack[constr.id]
         push!(alg_data.stack, (constr, form))
@@ -373,6 +392,7 @@ function update_lower_bound(alg_data::PreprocessData,
                      "$(cur_lb) to $(new_lb). duty $(getduty(var))")
          end
          setlb!(form, var, new_lb)
+         add_to_preprocessing_list(alg_data, var)
 
          #now we update bounds of clones
          if var.duty == MasterRepPricingVar 
@@ -423,6 +443,7 @@ function update_upper_bound(alg_data::PreprocessData,
                      "$(cur_ub) to $(new_ub). duty $(getduty(var))")
          end
          setub!(form, var, new_ub)
+         add_to_preprocessing_list(alg_data, var)
  
          #now we update bounds of clones
          if var.duty == MasterRepPricingVar 
@@ -534,4 +555,18 @@ function propagation(alg_data::PreprocessData)
          end
      end
      return false
+end
+
+function forbid_infeasible_columns(alg_data::PreprocessData)
+    master = getmaster(alg_data.reformulation)
+    primal_sp_sols = getprimalspsolmatrix(getmaster(alg_data.reformulation))
+    for var in alg_data.preprocessed_vars
+       if var.duty == DwSpPricingVar
+           for (col_id, coef) in primal_sp_sols[getid(var),:]
+	       if !(getcurlb(var) <= coef <= getcurub(var))
+                   setub!(master, getvar(master, col_id), 0.0)
+               end
+	   end
+       end
+    end
 end
