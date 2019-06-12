@@ -347,6 +347,7 @@ end
 
 "Calls optimization routine for `Formulation` `f`."
 function optimize!(form::Formulation)
+    @show "Calls optimization routine for `Formulation` `f`."
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
     res = optimize!(form, getoptimizer(form))

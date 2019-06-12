@@ -28,6 +28,8 @@ function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
                          Dict{FormId, Int}())
 end
 
+getglobalstrategy(r::Reformulation) = r.strategy
+setglobalstrategy!(r::Reformulation, strategy::GlobalStrategy) = r.strategy = strategy
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
@@ -35,7 +37,9 @@ add_benders_sep_sp!(r::Reformulation, f) = push!(r.benders_sep_subprs, f)
 
 function optimize!(reformulation::Reformulation)
     opt_result = apply!(GlobalStrategy, reformulation)
-    #opt_result = apply!(reformulation.stratregy, reformulation)
+   @show "function optimize!(reformulation::Reformulation)"
+     @show reformulation.strategy
+    @show opt_result
     opt_result.primal_sols = [proj_cols_on_rep(
         getbestprimalsol(opt_result), getmaster(reformulation)
     )]

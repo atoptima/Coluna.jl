@@ -23,11 +23,12 @@ function prepare!(::Type{BendersCutGeneration}, form, node, strategy_rec, params
     return
 end
 
-function run!(::Type{BendersCutGeneration}, solver_data::BendersCutGenerationData,
-              formulation, node, parameters)
+function run!(::Type{BendersCutGeneration}, form, node, strategy_rec, params)
+    algorithm_data = BendersCutGenerationData(form.master.obj_sense, node.incumbents)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
-    Base.@time e = bendcutgen_solver_ph2(solver_data, formulation)
-    return e
+    Base.@time bend_rec = bend_cutting_plane_main_loop(algorithm_data, form, 1)
+    set!(node.incumbents, bend_rec.incumbents)
+    return bend_rec
 end
 
 
@@ -190,12 +191,16 @@ function update_lagrangian_pb!(alg::BendersCutGenerationData,
 end
 
 function solve_relaxed_master!(master::Formulation)
-    # GLPK.write_lp(getinner(get_optimizer(master_form)), string(dirname(@__FILE__ ), "/mip_", nb_bc_iterations,".lp"))
+    @show "function solve_relaxed_master!(master::Formulation)"
     elapsed_time = @elapsed begin
-        status, val, primal_sols, dual_sols = TO.@timeit to "LP restricted master" optimize!(master)
+        opt_result = TO.@timeit _to "relaxed master" optimize!(master)
     end
-    return status, val, primal_sols, dual_sols, elapsed_time
+    @show opt_result
+    return (isfeasible(opt_result), getdualbound(opt_result), 
+    getprimalsols(opt_result), getdualsols(opt_result), elapsed_time)
 end
+
+
 
 function generatecuts!(alg::BendersCutGenerationData,
                        reform::Reformulation,
@@ -216,8 +221,11 @@ function generatecuts!(alg::BendersCutGenerationData,
 end
 
 
-function bendcutgen_solver_ph2(alg::BendersCutGenerationData,
-                           reformulation::Reformulation)::BendersCutGenerationRecord
+function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
+                                      reformulation::Reformulation,
+                                      phase::Int)::BendersCutGenerationRecord
+
+    setglobalstrategy!(reformulation, GlobalStrategy(SimpleBenders, SimpleBranching, DepthFirst))
     nb_bc_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
@@ -227,16 +235,18 @@ function bendcutgen_solver_ph2(alg::BendersCutGenerationData,
         master_status, master_val, primal_sols, dual_sols, master_time =
             solve_relaxed_master!(master_form)
 
+        @show master_status, master_val, primal_sols, dual_sols, master_time
+        
         if master_status == MOI.INFEASIBLE || master_status == MOI.INFEASIBLE_OR_UNBOUNDED
-            @error "Algorithm returned that restricted master LP is infeasible or unbounded (status = $master_status)."
-            return BendersCutGenerationRecord(alg.incumbents)
+            @error "Alg_Dataorithm returned that restricted master LP is infeasible or unbounded (status = $master_status)."
+            return BendersCutGenerationRecord(alg_data.incumbents)
         end
-
        
-        set_lp_dual_sol!(alg.incumbents, dual_sols[1])
+       
+        set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
         
         #if isinteger(primal_sols[1])
-       #     set_ip_primal_sol!(alg.incumbents, primal_sols[1])
+       #     set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
         #end
 
         # TODO: cleanup restricted master columns        
@@ -246,47 +256,47 @@ function bendcutgen_solver_ph2(alg::BendersCutGenerationData,
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
             nb_new_cut = generatecuts!(
-                alg, reformulation, master_val, primal_sols[1]
+                alg_data, reformulation, master_val, primal_sols[1]
             )
         end
 
         if nb_new_cut < 0
             @error "Infeasible subproblem."
-            return BendersCutGenerationRecord(alg.incumbents)
+            return BendersCutGenerationRecord(alg_data.incumbents)
         end
 
 
         print_intermediate_statistics(
-            alg, nb_new_cut, nb_bc_iterations, master_time, sp_time
+            alg_data, nb_new_cut, nb_bc_iterations, master_time, sp_time
         )
 
         # TODO: update bendcutgen stabilization
 
         ub = min(
-            get_lp_primal_bound(alg.incumbents), get_ip_primal_bound(alg.incumbents)
+            get_lp_primal_bound(alg_data.incumbents), get_ip_primal_bound(alg_data.incumbents)
         )
-        lb = get_lp_dual_bound(alg.incumbents)
+        lb = get_lp_dual_bound(alg_data.incumbents)
 
         if nb_new_cut == 0 || diff(lb + 0.00001, ub) < 0
-            alg.has_converged = true
-            return BendersCutGenerationRecord(alg.incumbents)
+            alg_data.has_converged = true
+            return BendersCutGenerationRecord(alg_data.incumbents)
         end
-        if nb_bc_iterations > 1000 ##TDalg.max_nb_bc_iterations
+        if nb_bc_iterations > 1000 ##TDalg_data.max_nb_bc_iterations
             @warn "Maximum number of cut generation iteration is reached."
-            alg.is_feasible = false
-            return BendersCutGenerationRecord(alg.incumbents)
+            alg_data.is_feasible = false
+            return BendersCutGenerationRecord(alg_data.incumbents)
         end
     end
-    return BendersCutGenerationRecord(alg.incumbents)
+    return BendersCutGenerationRecord(alg_data.incumbents)
 end
 
-function print_intermediate_statistics(alg::BendersCutGenerationData,
+function print_intermediate_statistics(alg_data::BendersCutGenerationData,
                                        nb_new_cut::Int,
                                        nb_bc_iterations::Int,
                                        mst_time::Float64, sp_time::Float64)
-    mlp = getvalue(get_lp_dual_bound(alg.incumbents))
-    db = getvalue(get_ip_dual_bound(alg.incumbents))
-    pb = getvalue(get_ip_primal_bound(alg.incumbents))
+    mlp = getvalue(get_lp_dual_bound(alg_data.incumbents))
+    db = getvalue(get_ip_dual_bound(alg_data.incumbents))
+    pb = getvalue(get_ip_primal_bound(alg_data.incumbents))
     @printf(
             "<it=%i> <et=%i> <mst=%.3f> <sp=%.3f> <cuts=%i> <mlp=%.4f> <DB=%.4f> <PB=%.4f>\n",
             nb_bc_iterations, _elapsed_solve_time(), mst_time, sp_time, nb_new_cut, mlp, db, pb

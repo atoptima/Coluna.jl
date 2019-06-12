@@ -240,7 +240,7 @@ function solve_restricted_master!(master::Formulation)
         opt_result = TO.@timeit _to "LP restricted master" optimize!(master)
     end
     return (isfeasible(opt_result), getprimalbound(opt_result), 
-    getprimalsols(opt_result), getbestdualsol(opt_result), elapsed_time)
+    getprimalsols(opt_result), getdualsols(opt_result), elapsed_time)
 end
 
 function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,
@@ -262,8 +262,10 @@ end
 ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
 ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
 
-function cg_main_loop(alg::ColumnGenerationData, reformulation::Reformulation, 
-                      phase::Int)
+function cg_main_loop(alg_data::ColumnGenerationData,
+                      reformulation::Reformulation, 
+                      phase::Int)::ColumnGenerationRecord
+    setglobalstrategy!(reformulation, GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst))
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
@@ -281,19 +283,19 @@ function cg_main_loop(alg::ColumnGenerationData, reformulation::Reformulation,
     end
 
     while true
-        master_status, master_val, primal_sols, dual_sol, master_time =
+        master_status, master_val, primal_sols, dual_sols, master_time =
             solve_restricted_master!(master_form)
 
         if (phase != 1 && (master_status == MOI.INFEASIBLE
             || master_status == MOI.INFEASIBLE_OR_UNBOUNDED))
             @error "Solver returned that restricted master LP is infeasible or unbounded (status = $master_status) during phase != 1."
-            return ColumnGenerationRecord(alg.incumbents, true)
+            return ColumnGenerationRecord(alg_data.incumbents, true)
         end
 
-        set_lp_primal_sol!(alg.incumbents, primal_sols[1])
-        set_lp_dual_sol!(alg.incumbents, dual_sol)
+        set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
+        set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
         if isinteger(primal_sols[1])
-            set_ip_primal_sol!(alg.incumbents, primal_sols[1])
+            set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
         end
 
         # TODO: cleanup restricted master columns        
@@ -303,50 +305,50 @@ function cg_main_loop(alg::ColumnGenerationData, reformulation::Reformulation,
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
             nb_new_col = generatecolumns!(
-                alg, reformulation, master_val, dual_sol, sp_lbs, sp_ubs
+                alg_data, reformulation, master_val, dual_sols[1], sp_lbs, sp_ubs
             )
         end
 
         if nb_new_col < 0
             @error "Infeasible subproblem."
-            return ColumnGenerationRecord(alg.incumbents, true)
+            return ColumnGenerationRecord(alg_data.incumbents, true)
         end
 
         print_intermediate_statistics(
-            alg, nb_new_col, nb_cg_iterations, master_time, sp_time
+            alg_data, nb_new_col, nb_cg_iterations, master_time, sp_time
         )
 
         # TODO: update colgen stabilization
 
-        lb = get_ip_dual_bound(alg.incumbents)
+        lb = get_ip_dual_bound(alg_data.incumbents)
         ub = min(
-            get_lp_primal_bound(alg.incumbents), get_ip_primal_bound(alg.incumbents)
+            get_lp_primal_bound(alg_data.incumbents), get_ip_primal_bound(alg_data.incumbents)
         )
 
         if phase == 1 && ph_one_infeasible_db(lb)
-            alg.is_feasible = false
+            alg_data.is_feasible = false
             @logmsg LogLevel(0) "Phase one determines infeasibility."
-            return ColumnGenerationRecord(alg.incumbents, true)
+            return ColumnGenerationRecord(alg_data.incumbents, true)
         end
         if nb_new_col == 0 || diff(lb + 0.00001, ub) < 0
-            alg.has_converged = true
-            return ColumnGenerationRecord(alg.incumbents, false)
+            alg_data.has_converged = true
+            return ColumnGenerationRecord(alg_data.incumbents, false)
         end
-        if nb_cg_iterations > 1000 ##TDalg.max_nb_cg_iterations
+        if nb_cg_iterations > 1000 ##TDalg_data.max_nb_cg_iterations
             @warn "Maximum number of column generation iteration is reached."
-            return ColumnGenerationRecord(alg.incumbents, false)
+            return ColumnGenerationRecord(alg_data.incumbents, false)
         end
     end
-    return ColumnGenerationRecord(alg.incumbents)
+    return ColumnGenerationRecord(alg_data.incumbents)
 end
 
-function print_intermediate_statistics(alg::ColumnGenerationData,
+function print_intermediate_statistics(alg_data::ColumnGenerationData,
                                        nb_new_col::Int,
                                        nb_cg_iterations::Int,
                                        mst_time::Float64, sp_time::Float64)
-    mlp = getvalue(get_lp_primal_bound(alg.incumbents))
-    db = getvalue(get_ip_dual_bound(alg.incumbents))
-    pb = getvalue(get_ip_primal_bound(alg.incumbents))
+    mlp = getvalue(get_lp_primal_bound(alg_data.incumbents))
+    db = getvalue(get_ip_dual_bound(alg_data.incumbents))
+    pb = getvalue(get_ip_primal_bound(alg_data.incumbents))
     @printf(
             "<it=%i> <et=%i> <mst=%.3f> <sp=%.3f> <cols=%i> <mlp=%.4f> <DB=%.4f> <PB=%.4f>\n",
             nb_cg_iterations, _elapsed_solve_time(), mst_time, sp_time, nb_new_col, mlp, db, pb
