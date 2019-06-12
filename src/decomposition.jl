@@ -211,7 +211,7 @@ function create_side_vars_constrs!(mast::Formulation{BendersMaster})
         name = "η[$(split(getname(nu), "[")[end])"
         setvar!(
             mast, name, MasterBendSecondStageCostVar; cost = getcurcost(nu),
-            lb = -Inf, ub = Inf, 
+            lb = -1.0, ub = Inf, 
             kind = Continuous, sense = Free, is_explicit = true, id = getid(nu)
         )
         setvar!(

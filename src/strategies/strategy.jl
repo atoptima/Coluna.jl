@@ -78,4 +78,4 @@ Constructs a default GlobalStrategy using the strategies
 and `DepthFirst` as TreeSearchStrategy.
 """
 
-GlobalStrategy() = GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst)
+#GlobalStrategy() = GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst)
