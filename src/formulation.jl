@@ -225,8 +225,8 @@ function setconstr!(f::Formulation,
                      is_active::Bool = true,
                      is_explicit::Bool = true,
                      moi_index::MoiConstrIndex = MoiConstrIndex(),
-                     members = nothing)
-    id = generateconstrid(f)
+                     members = nothing,
+                     id = generateconstrid(f))
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     c = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
     members != nothing && setmembers!(f, c, members)
