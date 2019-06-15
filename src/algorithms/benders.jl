@@ -37,7 +37,7 @@ function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolut
 
     master_form = sp_form.parent_formulation
     
-    for (constr_id, constr) in filter(_active_BendSpTechnological_constr_ , getconstrs(sp_form))
+    for (constr_id, constr) in filter(_active_BendSpMaster_constr_ , getconstrs(sp_form))
         setcurrhs!(sp_form, constr, computereducedrhs(sp_form, constr_id, primal_sol))
     end
     
@@ -55,24 +55,26 @@ end
 
 
 function insert_cuts_in_master!(master_form::Formulation,
-                               sp_form::Formulation,
-                               sp_sols::Vector{DualSolution{S}}) where {S}
+                                sp_form::Formulation,
+                                primal_sols::Vector{PrimalSolution{S}},
+                                dual_sols::Vector{DualSolution{S}}) where {S}
+    
 
     sp_uid = getuid(sp_form)
     nb_of_gen_cuts = 0
+    sense = (S == MinSense ?  Greater : Less)
 
-    for sp_sol in sp_sols
+    for dual_sol in dual_sols
         # the solution value represent the cut violation at this stage
-        if getvalue(sp_sol) > 0.0001 # TODO the cut feasibility tolerance
+        if getvalue(dual_sol) > 0.0001 # TODO the cut feasibility tolerance
             nb_of_gen_cuts += 1
             ref = getconstrcounter(master_form) + 1
             name = string("BC", sp_uid, "_", ref)
-            resetsolvalue(master_form, sp_sol) # now the sol value represents the dual sol value
+            resetsolvalue(master_form, dual_sol) # now the sol value represents the dual sol value
             kind = Core
-            sense = Less
             duty = BendersCutConstr
             bc = setdualspsol!(
-                master_form, name, sp_sol, duty; 
+                master_form, name, dual_sol, duty; 
                 kind = kind, sense = sense
             )
             @logmsg LogLevel(-2) string("Generated cut : ", name)
@@ -98,7 +100,7 @@ function insert_cuts_in_master!(master_form::Formulation,
 end
 
 function compute_bendersep_pb_contrib(sp_form::Formulation,
-                                      sp_sol_value::PrimalBound{S}) where {S}
+                                      sp_sol_value::DualBound{S}) where {S}
     # Since convexity constraints are not automated and there is no stab
     # the bendersep_dual_bound_contrib is just the reduced cost * multiplicty
     contrib =  sp_sol_value
@@ -141,19 +143,19 @@ function gencut!(master_form::Formulation,
 
     # Solve sub-problem and insert generated cuts in master
     # @logmsg LogLevel(-3) "optimizing bendersep prob"
-    TO.@timeit to "Bendersep subproblem" begin
-        status, value, p_sols, d_sols = optimize!(sp_form)
+    TO.@timeit _to "Bender Sep SubProblem" begin
+        opt_result = optimize!(sp_form)
     end
     
-    bendersep_pb_contrib = compute_bendersep_pb_contrib(sp_form, value)
+    bendersep_pb_contrib = compute_bendersep_pb_contrib(sp_form, getdualbound(opt_result))
     # @show bendersep_primal_bound_contrib
     
-    if status != MOI.OPTIMAL
+    if !isfeasible(opt_result) # if status != MOI.OPTIMAL
         # @logmsg LogLevel(-3) "bendersep prob is infeasible"
         return flag_is_sp_infeasible
     end
     
-    insertion_status = insert_cuts_in_master!(master_form, sp_form, d_sols)
+    insertion_status = insert_cuts_in_master!(master_form, sp_form, getprimalsols(opt_result), getdualsols(opt_result))
     
     return insertion_status, bendersep_pb_contrib
 end
@@ -217,6 +219,15 @@ function generatecuts!(alg::BendersCutGenerationData,
 
     # Filter the dual solution
     master_form = reform.master
+    fonction = c -> getduty(getconstr(master_form, c[1])) == MasterPureConstr
+    for id_val in dual_sol.sol
+        @show id_val
+        @show id_val[1]
+        @show getconstr(master_form, id_val[1])
+        @show getduty(getconstr(master_form, id_val[1]))
+        @show fonction(id_val)
+   end
+
     fonction = c -> getduty(getconstr(master_form, c[1])) == MasterPureConstr
     filtered_dual_sol = filter(fonction, dual_sol)
     

@@ -45,6 +45,7 @@ getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
 
 "Returns the value of the variable counter of `Formulation` `f`."
 getvarcounter(f::Formulation) = f.var_counter.value
+getconstrcounter(f::Formulation) = f.constr_counter.value
 
 "Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `f`."
 getconstr(f::Formulation, id::ConstrId) = getconstr(f.manager, id)

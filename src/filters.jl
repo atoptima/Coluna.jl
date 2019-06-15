@@ -3,7 +3,7 @@
 "Returns true if `id_c[2]` is a master representative of an original constraint and is currently active"
 _active_master_rep_orig_constr_(id_c::Pair{ConstrId,Constraint}) = get_cur_is_active(id_c[2]) == true && getduty(id_c[2]) <: AbstractMasterOriginConstr
 
-_active_BendSpTechnological_constr_(id_c::Pair{ConstrId,Constraint}) = get_cur_is_active(id_c[2]) == true && getduty(id_c[2]) <: BendSpTechnologicalConstr
+_active_BendSpMaster_constr_(id_c::Pair{ConstrId,Constraint}) = get_cur_is_active(id_c[2]) == true && getduty(id_c[2]) <: AbstractBendSpMasterConstr
 
 "Returns true if `v` is the representative of an OriginalVar"
 _rep_of_orig_var_(v::Variable) = (getduty(v) isa OriginalRepresentatives)

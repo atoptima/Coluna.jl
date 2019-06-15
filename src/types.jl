@@ -84,6 +84,7 @@ abstract type AbstractMasterBranchingConstr <: AbstractMasterConstr end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
 abstract type AbstractBendSpPureConstr <: AbstractConstrDuty end
 abstract type AbstractBendSpConstr <: AbstractConstrDuty end
+abstract type AbstractBendSpMasterConstr <: AbstractBendSpConstr end
 
 # Concrete duties for Constraints
 struct OriginalConstr <: AbstractOriginalConstr end
@@ -99,8 +100,8 @@ struct DwSpPureConstr <: AbstractDwSpConstr end
 struct DwSpRepMastBranchConstr <: AbstractDwSpConstr end
 
 struct BendSpPureConstr <: AbstractBendSpConstr end
-struct BendSpSecondStageCostConstr <: AbstractBendSpConstr end
-struct BendSpTechnologicalConstr <: AbstractBendSpConstr end
+struct BendSpSecondStageCostConstr <: AbstractBendSpMasterConstr end
+struct BendSpTechnologicalConstr <: AbstractBendSpMasterConstr end
 
 
 struct UndefinedConstrDuty <: AbstractConstrDuty end
