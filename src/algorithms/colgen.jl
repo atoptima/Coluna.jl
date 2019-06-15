@@ -38,7 +38,7 @@ end
 
 function set_ph_one(master::Formulation)
     for (id, v) in filter(x->(!(getduty(x[2]) isa ArtificialDuty)), getvars(master))
-        setcost!(master, v, 0.0)
+        setcurcost!(master, v, 0.0)
     end
     return
 end
@@ -70,7 +70,7 @@ function update_pricing_problem!(sp_form::Formulation, dual_sol::DualSolution)
     master_form = sp_form.parent_formulation
 
     for (var_id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
-        setcost!(sp_form, var, computereducedcost(master_form, var_id, dual_sol))
+        setcurcost!(sp_form, var, computereducedcost(master_form, var_id, dual_sol))
     end
 
     return false
@@ -205,7 +205,8 @@ function gencols!(reformulation::Reformulation,
     nb_new_cols = 0
     dual_bound_contrib = DualBound{S}(0.0)
     master_form = getmaster(reformulation)
-    for sp_form in reformulation.dw_pricing_subprs
+    sps = get_dw_pricing_sp(reformulation)
+    for sp_form in sps
         sp_uid = getuid(sp_form)
         gen_status, contrib = gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
 

@@ -81,14 +81,19 @@ getreformulation(f::Formulation{<:AbstractSpDuty}) = getmaster(f).parent_formula
 _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 
 """
-    setcost!(f::Formulation, v::Variable, new_cost::Float64)
+    setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
 
 Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
 euqal to `new_cost`. Change on `f.optimizer` will be buffered.
 """
-function setcost!(f::Formulation, v::Variable, new_cost::Float64)
+function setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
     setcurcost!(v, new_cost)
     change_cost!(f.buffer, v)
+end
+
+function setcurrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
+    setcurrhs!(c, new_rhs)
+    change_rhs!(f.buffer, c)
 end
 
 """
@@ -329,7 +334,7 @@ function resetsolvalue(form::Formulation, sol::AbstractSolution)
     return val
 end
 
-function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution) 
+function computereducedcost(form::Formulation, var_id::Id{Variable}, dual_sol::DualSolution{S})  where {S}
 
     var = getvar(form, var_id)
     rc = getperenecost(var)
@@ -337,12 +342,24 @@ function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution)
     for (constr_id, dual_val) in getsol(dual_sol)
         coeff = coefficient_matrix[constr_id, var_id]
         if getobjsense(form) == MinSense
-            rc = rc - dual_val * coeff
+            rc -= dual_val * coeff
         else
-            rc = rc + dual_val * coeff
+            rc += dual_val * coeff
         end
     end
     return rc
+end
+
+function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primal_sol::PrimalSolution{S})  where {S}
+
+    constr = getconstr(form,constr_id)
+    crhs = getperenerhs(constr)
+    coefficient_matrix = getcoefmatrix(form)
+    for (var_id, primal_val) in getsol(primal_sol)
+        coeff = coefficient_matrix[constr_id, var_id]
+        crhs -= primal_val * coeff
+    end
+    return crhs
 end
 
 "Calls optimization routine for `Formulation` `f`."
@@ -372,7 +389,7 @@ function _show_obj_fun(io::IO, f::Formulation)
     ids = sort!(collect(keys(vars)), by = getsortid)
     for id in ids
         name = getname(vars[id])
-        cost = get_cost(getcurdata(vars[id]))
+        cost = getcost(getcurdata(vars[id]))
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
     end

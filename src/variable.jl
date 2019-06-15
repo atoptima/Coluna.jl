@@ -28,19 +28,19 @@ end
 # Attention: Some getters and setters of VarData are defined over AbstractVcData
 #            in file varconstr.jl
 
-get_cost(v::VarData) = v.cost
+getcost(v::VarData) = v.cost
 getlb(v::VarData) = v.lb
 getub(v::VarData) = v.ub
 
 setcost!(v::VarData, cost::Float64) = v.cost = cost
-set_lb!(v::VarData, lb::Float64) = v.lb = lb
-set_ub!(v::VarData, ub::Float64) = v.ub = ub
+setlb!(v::VarData, lb::Float64) = v.lb = lb
+setub!(v::VarData, ub::Float64) = v.ub = ub
 
 function setkind!(v::VarData, kind::VarKind)
     if kind == Binary
         v.kind = Binary
-        (v.lb < 0) && set_lb!(v, 0.0)
-        (v.ub > 1) && set_ub!(v, 1.0)
+        (v.lb < 0) && setlb!(v, 0.0)
+        (v.ub > 1) && setub!(v, 1.0)
     elseif kind == Integ
         v.kind = Integ
     end

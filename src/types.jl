@@ -82,6 +82,7 @@ abstract type AbstractMasterAddedConstr <: AbstractMasterConstr end
 abstract type AbstractMasterCutConstr <: AbstractMasterConstr end
 abstract type AbstractMasterBranchingConstr <: AbstractMasterConstr end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
+abstract type AbstractBendSpPureConstr <: AbstractConstrDuty end
 abstract type AbstractBendSpConstr <: AbstractConstrDuty end
 
 # Concrete duties for Constraints

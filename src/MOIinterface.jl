@@ -51,7 +51,7 @@ function update_bounds_in_optimizer!(optimizer::MoiOptimizer,
 end
 
 function update_cost_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
-    cost = get_cost(getcurdata(v))
+    cost = getcost(getcurdata(v))
     moi_index = getindex(getmoirecord(v))
     MOI.modify(
         getinner(optimizer), MoiObjective(),

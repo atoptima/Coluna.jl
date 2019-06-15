@@ -163,6 +163,7 @@ function DualSolution(f::AbstractFormulation,
     return DualSolution{S}(DualBound{S}(float(value)), sol)
 end
 
+
 getbound(s::AbstractSolution) = s.bound
 getsol(s::AbstractSolution) = s.sol
 getvalue(s::AbstractSolution) = float(s.bound)

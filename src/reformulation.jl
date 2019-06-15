@@ -34,6 +34,8 @@ getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 add_benders_sep_sp!(r::Reformulation, f) = push!(r.benders_sep_subprs, f)
+get_dw_pricing_sp(r::Reformulation) = r.dw_pricing_subprs
+get_benders_sep_sp(r::Reformulation) = r.benders_sep_subprs
 
 function optimize!(reformulation::Reformulation)
     opt_result = apply!(GlobalStrategy, reformulation)
