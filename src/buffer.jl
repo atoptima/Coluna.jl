@@ -83,6 +83,12 @@ remove!(buffer::FormulationBuffer, constr::Constraint) = remove!(
     buffer.constr_buffer, constr
 )
 
+function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
+    !get_cur_is_explicit(constr) && return
+    push!(buffer.changed_rhs, getid(constr))
+    return
+end
+
 function change_cost!(buffer::FormulationBuffer, v::Variable)
     !get_cur_is_explicit(v) && return
     push!(buffer.changed_cost, getid(v))
