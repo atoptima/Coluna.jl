@@ -5,12 +5,14 @@ const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const MembMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
 const VarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
+const ConstrMatrix = MembersMatrix{ConstrId,Constraint,ConstrId,Constraint,Float64}
 
 struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
     coefficients::MembMatrix # rows = constraints, cols = variables
     primal_sp_sols::VarMatrix # rows = variables, cols = solutions
+    dual_sp_sols::ConstrMatrix # rows = sp constrs, cols = Bend master cuts
     expressions::VarMatrix  # rows = expressions, cols = variables
 end
 
@@ -22,6 +24,7 @@ function FormulationManager()
                               constrs,
                               MembersMatrix{Float64}(vars,constrs),
                               MembersMatrix{Float64}(vars,vars),
+                              MembersMatrix{Float64}(constrs, constrs),
                               MembersMatrix{Float64}(vars,vars))
 end
 
@@ -35,8 +38,13 @@ function addvar!(m::FormulationManager, var::Variable)
 end
 
 function addprimalspsol!(m::FormulationManager, var::Variable)
-     ### check if primalspsol exists should take place heren along the coeff update
+    # check if primalspsol exists should take place heren along the coeff update
     return var
+end
+
+function adddualspsol!(m::FormulationManager, constr::Constraint)
+   # check if dualspsol exists should take place here along the coeff update
+   return constr
 end
 
 function addconstr!(m::FormulationManager, constr::Constraint)
@@ -56,6 +64,10 @@ getconstrs(m::FormulationManager) = m.constrs
 getcoefmatrix(m::FormulationManager) = m.coefficients
 
 getprimalspsolmatrix(m::FormulationManager) = m.primal_sp_sols
+
+getdualspsolmatrix(m::FormulationManager) = m.dual_sp_sols
+
+getexpressionmatrix(m::FormulationManager) = m.expressions
 
 function Base.show(io::IO, m::FormulationManager)
     println(io, "FormulationManager :")
