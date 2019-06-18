@@ -11,15 +11,15 @@ function var_data_getters_and_setters_tests()
         sense = CL.Free, is_active = false, is_explicit = false
     )
 
-    @test CL.get_cost(v_data) == 13.0
+    @test CL.getcost(v_data) == 13.0
     @test CL.getlb(v_data) == -10.0
     @test CL.getub(v_data) == 100.0
 
     CL.setcost!(v_data, -113.0)
-    CL.set_lb!(v_data, -113.0)
-    CL.set_ub!(v_data, -113.0)
+    CL.setlb!(v_data, -113.0)
+    CL.setub!(v_data, -113.0)
 
-    @test CL.get_cost(v_data) == -113.0
+    @test CL.getcost(v_data) == -113.0
     @test CL.getlb(v_data) == -113.0
     @test CL.getub(v_data) == -113.0
 
@@ -67,7 +67,7 @@ function variable_getters_and_setters_tests()
         var_data = v_data
     )
 
-    @test CL.getperenecost(v) == CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == CL.get_cost(CL.getrecordeddata(v)) == 13.0
+    @test CL.getperenecost(v) == CL.getcurcost(v) == CL.getcost(CL.getcurdata(v)) == CL.getcost(CL.getrecordeddata(v)) == 13.0
     @test CL.getperenelb(v) == CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == CL.getlb(CL.getrecordeddata(v)) == -10.0
     @test CL.getpereneub(v) == CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == CL.getub(CL.getrecordeddata(v)) == 100.0
 
@@ -75,10 +75,10 @@ function variable_getters_and_setters_tests()
     CL.setcurlb!(v, -2001.9)
     CL.setcurub!(v, 2387.0)
 
-    @test CL.getcurcost(v) == CL.get_cost(CL.getcurdata(v)) == -134.0
+    @test CL.getcurcost(v) == CL.getcost(CL.getcurdata(v)) == -134.0
     @test CL.getcurlb(v) == CL.getlb(CL.getcurdata(v)) == -2001.9
     @test CL.getcurub(v) == CL.getub(CL.getcurdata(v)) == 2387.0
-    @test CL.getperenecost(v) == CL.get_cost(CL.getrecordeddata(v)) == 13.0
+    @test CL.getperenecost(v) == CL.getcost(CL.getrecordeddata(v)) == 13.0
     @test CL.getperenelb(v) == CL.getlb(CL.getrecordeddata(v)) == -10.0
     @test CL.getpereneub(v) == CL.getub(CL.getrecordeddata(v)) == 100.0
 

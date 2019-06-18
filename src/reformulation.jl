@@ -17,7 +17,7 @@ end
     Reformulation(prob::AbstractProblem, method::SolutionMethod)
 
 Constructs a `Reformulation` that shall be solved using the `GlobalStrategy` `strategy`.
-"""
+ """
 function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
     return Reformulation(strategy,
                          nothing,
@@ -39,9 +39,6 @@ get_benders_sep_sp(r::Reformulation) = r.benders_sep_subprs
 
 function optimize!(reformulation::Reformulation)
     opt_result = apply!(GlobalStrategy, reformulation)
-   @show "function optimize!(reformulation::Reformulation)"
-     @show reformulation.strategy
-    @show opt_result
     opt_result.primal_sols = [proj_cols_on_rep(
         getbestprimalsol(opt_result), getmaster(reformulation)
     )]

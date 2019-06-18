@@ -82,7 +82,7 @@ function insert_cuts_in_master!(master_form::Formulation,
             # TODO: check if cut exists
             #== mc_id = getid(mc)
             id_of_existing_mc = - 1
-            primalspsol_matrix = getprimalspsolmatrix(master_form)
+            primalspsol_matrix = getprimaldwspsolmatrix(master_form)
             for (col, col_members) in columns(primalspsol_matrix)
                 if (col_members == primalspsol_matrix[:, mc_id])
                     id_of_existing_mc = col[1]

@@ -58,7 +58,7 @@ getconstrs(f::Formulation) = getconstrs(f.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
-getprimalspsolmatrix(f::Formulation) = getprimalspsolmatrix(f.manager)
+getprimaldwspsolmatrix(f::Formulation) = getprimaldwspsolmatrix(f.manager)
 
 "Returns the `uid` of `Formulation` `f`."
 getuid(f::Formulation) = f.uid
@@ -177,7 +177,7 @@ function setprimalspsol!(f::Formulation,
     ps = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
 
     coef_matrix = getcoefmatrix(f)
-    primalspsol_matrix = getprimalspsolmatrix(f)
+    primalspsol_matrix = getprimaldwspsolmatrix(f)
 
     for (var_id, var_val) in sol
         primalspsol_matrix[var_id, ps_id] = var_val
@@ -282,7 +282,7 @@ function setmembers!(f::Formulation, v::Variable, members::ConstrMembership)
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
     coef_matrix = getcoefmatrix(f)
-    primalspsol_matrix = getprimalspsolmatrix(f)
+    primalspsol_matrix = getprimaldwspsolmatrix(f)
     id = getid(v)
     for (constr_id, coeff) in members
         coef_matrix[constr_id, id] = coeff
@@ -293,7 +293,7 @@ end
 function setmembers!(f::Formulation, constr::Constraint, members)
     @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
     coef_matrix = getcoefmatrix(f)
-    primal_sp_sols = getprimalspsolmatrix(f)
+    primal_dwsp_sols = getprimaldwspsolmatrix(f)
     constr_id = getid(constr)
     @logmsg LogLevel(-4) "Members are : ", members
     for (var_id, member_coeff) in members
@@ -302,7 +302,7 @@ function setmembers!(f::Formulation, constr::Constraint, members)
         coef_matrix[constr_id,var_id] = member_coeff
         @logmsg LogLevel(-4) string("Adidng variable ", getname(v), " with coeff ", member_coeff)
         # And for all columns having its own variables
-        for (col_id, coeff) in primal_sp_sols[var_id,:]
+        for (col_id, coeff) in primal_dwsp_sols[var_id,:]
             @logmsg LogLevel(-4) string("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
             coef_matrix[constr_id,col_id] = coeff * member_coeff
         end

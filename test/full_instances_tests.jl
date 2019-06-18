@@ -1,23 +1,23 @@
 function full_instances_tests()
-    #generalized_assignment_tests()
+    generalized_assignment_tests()
     lot_sizing_tests()
 end
 
 function generalized_assignment_tests()
     @testset "play gap" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+    data = CLD.GeneralizedAssignment.data("play2.txt")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
-            ),
-            default_optimizer = with_optimizer(GLPK.Optimizer)
-        )
+    coluna = JuMP.with_optimizer(Coluna.Optimizer,
+                                 params = CL.Params(
+                                     global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                                 ),
+                                 default_optimizer = with_optimizer(GLPK.Optimizer)
+                                 )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-        JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+    JuMP.optimize!(problem)
+    @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
