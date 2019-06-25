@@ -68,11 +68,12 @@ getcoefmatrix(m::FormulationManager) = m.coefficients
 
 getprimaldwspsolmatrix(m::FormulationManager) = m.primal_dwsp_sols
 
+getdualbendspsolmatrix(m::FormulationManager) = m.dual_bendsp_sols
 
-	getdualbendspsolmatrix(m::FormulationManager) = m.dual_sp_sols
-	
-	getexpressionmatrix(m::FormulationManager) = m.expressions
-	
+getprimalbendspsolmatrix(m::FormulationManager) = m.primal_bendsp_sols
+
+getexpressionmatrix(m::FormulationManager) = m.expressions
+
 	
 function Base.show(io::IO, m::FormulationManager)
     println(io, "FormulationManager :")

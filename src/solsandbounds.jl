@@ -137,7 +137,7 @@ end
 A struct to represent a `DualSolution` for an objective function with sense `S`.
 The expected behaviour of a solution is implemented according to the sense `S`.
 """
-struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
+mutable struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::DualBound{S}
     sol::MembersVector{Id{Constraint}, Constraint, Float64}
 end

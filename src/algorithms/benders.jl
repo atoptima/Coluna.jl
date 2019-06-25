@@ -64,17 +64,24 @@ function insert_cuts_in_master!(master_form::Formulation,
     nb_of_gen_cuts = 0
     sense = (S == MinSense ?  Greater : Less)
 
-    for dual_sol in dual_sols
+    N = length(dual_sols)
+    if length(primal_sols) < N
+        N = length(primal_sols)
+    end
+    
+    for k in 1:N
+        primal_sol = primal_sols[k]
+        dual_sol = dual_sols[k]
         # the solution value represent the cut violation at this stage
         if getvalue(dual_sol) > 0.0001 # TODO the cut feasibility tolerance
             nb_of_gen_cuts += 1
             ref = getconstrcounter(master_form) + 1
             name = string("BC", sp_uid, "_", ref)
-            resetsolvalue(master_form, dual_sol) # now the sol value represents the dual sol value
+            resetsolvalue(sp_form, dual_sol) # now the sol value represents the dual sol value
             kind = Core
-            duty = BendersCutConstr
-            bc = setdualspsol!(
-                master_form, name, dual_sol, duty; 
+            duty = MasterBendCutConstr
+            bc = setprimaldualbendspsol!(
+                master_form, name, primal_sol, dual_sol, duty; 
                 kind = kind, sense = sense
             )
             @logmsg LogLevel(-2) string("Generated cut : ", name)
@@ -184,7 +191,7 @@ end
 
 
 function compute_master_pb_contrib(alg::BendersCutGenerationData,
-                                   restricted_master_sol_value::PrimalBound{S}) where {S}
+                                   restricted_master_sol_value::DualBound{S}) where {S}
     # TODO: will change with stabilization
     return PrimalBound{S}(restricted_master_sol_value)
 end
