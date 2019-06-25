@@ -185,7 +185,7 @@ function setprimaldwspsol!(f::Formulation,
     for (var_id, var_val) in sol
         primalspsol_matrix[var_id, ps_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
-            coef_matrix[constr_id, ps_id] = var_val * var_coef
+            coef_matrix[constr_id, ps_id] += var_val * var_coef
         end
     end
 
@@ -210,6 +210,12 @@ function setprimaldualbendspsol!(f::Formulation,
     dps_data = ConstrData(getvalue(dual_sol), kind, sense, inc_val, is_active, is_explicit)
     dps = Constraint(dps_id, name, duty; constr_data = dps_data, moi_index = moi_index)
 
+    @show primal_sol
+    
+    @show dual_sol
+    
+    @show dps
+    
     coef_matrix = getcoefmatrix(f)
     primalbendspsol_matrix = getprimalbendspsolmatrix(f)
     dualbendspsol_matrix = getdualbendspsolmatrix(f)
@@ -217,12 +223,15 @@ function setprimaldualbendspsol!(f::Formulation,
     for (constr_id, constr_val) in dual_sol
         dualbendspsol_matrix[constr_id, dps_id] = constr_val
         for (var_id, constr_coef) in coef_matrix[constr_id,:]
-            coef_matrix[dps_id, var_id] = constr_val * constr_coef
+            coef_matrix[dps_id, var_id] += constr_val * constr_coef
         end
     end
 
     cut = addconstr!(f, dps)
-    
+
+
+    @show cut
+
     for (var_id, var_val) in primal_sol
         primalbendspsol_matrix[var_id, dps_id] = var_val
     end

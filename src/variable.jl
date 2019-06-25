@@ -124,6 +124,6 @@ getcurcost(vc::AbstractVarConstr) = vc.cur_data.cost
 getcurlb(vc::AbstractVarConstr) = vc.cur_data.lb
 getcurub(vc::AbstractVarConstr) = vc.cur_data.ub
 setcurcost!(vc::AbstractVarConstr, cost::Float64) = vc.cur_data.cost = cost
-setperenecost!(vc::AbstractVarConstr, cost::Float64) = vc.cur_data.cost = vc.perene_data.cost = cost
+#setperenecost!(vc::AbstractVarConstr, cost::Float64) = vc.cur_data.cost = vc.perene_data.cost = cost
 setcurlb!(vc::AbstractVarConstr, lb::Float64) = vc.cur_data.lb = lb
 setcurub!(vc::AbstractVarConstr, ub::Float64) = vc.cur_data.ub = ub
