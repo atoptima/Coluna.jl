@@ -199,13 +199,13 @@ function instantiate_orig_vars!(mast::Formulation{BendersMaster}, orig_form, ann
 end
 
 function dutyexpofbendmastconstr(constr, annotations, orig_form::Formulation)
-    orig_coef = getcoefmatrix(orig_form)
+    #==orig_coef = getcoefmatrix(orig_form)
     for (varid, coef) in orig_coef[getid(constr), :]
         var_ann = annotations.ann_per_var[varid]
         if BD.getformulation(var_ann) == BD.BendersSepSp 
             return MasterRepBendSpTechnologicalConstr, false
         end
-    end
+    end ==# # All constr annotated for master are in master
     return MasterPureConstr, true
 end
 
@@ -243,7 +243,12 @@ function create_side_vars_constrs!(mast::Formulation{BendersMaster}, orig_form::
             kind = Continuous, sense = Free, is_explicit = true, id = getid(nu)
         )
         coefmatrix[getid(cost), getid(nu)] = - 1.0
-
+                                         
+                                         techno_constrs = filter(c -> getduty(c[2]) == BendSpTechnologicalConstr, getconstrs(sp))
+                                         @show techno_constrs
+        for (constr_id, constr) in techno_constrs
+             cloneconstr!(mast, constr, MasterRepBendSpTechnologicalConstr, is_explicit = false)
+        end                                         
     end
     return
 end
@@ -291,25 +296,24 @@ function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form::Formulati
 end
 
 
-function dutyofbendspconstr(constr, annotations, orig_form)
+function dutyexpofbendspconstr(constr, annotations, orig_form)
     orig_coef = getcoefmatrix(orig_form)
     for (varid, coef) in orig_coef[getid(constr), :]
         var_ann = annotations.ann_per_var[varid]
-        #if coef != 0 && BD.getformulation(var_ann) == BD.Master
-        if BD.getformulation(var_ann) == BD.Master
-            return BendSpTechnologicalConstr
+         if BD.getformulation(var_ann) == BD.Master
+            return BendSpTechnologicalConstr, true
         end
     end
-    return BendSpPureConstr
+    return BendSpPureConstr, true
 end
 
 function instantiate_orig_constrs!(sp_form::Formulation{BendersSp}, orig_form::Formulation, annotations, sp_ann)
     !haskey(annotations.constrs_per_ann, sp_ann) && return
     constrs = annotations.constrs_per_ann[sp_ann]
     for (id, constr) in constrs
-        duty = dutyofbendspconstr(constr, annotations, orig_form)
-                                                  cloneconstr!(sp_form, constr, duty)
-    end
+        duty, explicit  = dutyexpofbendspconstr(constr, annotations, orig_form)
+       cloneconstr!(sp_form, constr, duty, is_explicit = explicit)
+   end
     return
 end
 
@@ -323,8 +327,8 @@ function create_side_vars_constrs!(sp::Formulation{BendersSp}, orig_form::Formul
         kind = Continuous, sense = Free, is_explicit = true
     )
     cost = setconstr!(
-        sp, "cost", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
-        sense = Equal
+        sp, "scost", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
+        sense = Equal, is_explicit = true
     )
     sp_coef[getid(cost), getid(nu)] = 1.0
     for (var_id, var) in filter(id_var -> getduty(id_var[2]) == BendSpSepVar, getvars(sp))                                         
@@ -354,11 +358,11 @@ function buildformulations!(prob::Problem, annotations::Annotations, reform,
     dec_type = BD.getdecomposition(ann)
     form = instantiatemaster!(prob, reform, form_type, dec_type)
     orig_form = get_original_formulation(prob)
-    assign_orig_vars_constrs!(form, orig_form, annotations, ann)
     for (id, child) in BD.subproblems(node)
         buildformulations!(prob, annotations, reform, node, child)
     end
     create_side_vars_constrs!(form, orig_form)
+    assign_orig_vars_constrs!(form, orig_form, annotations, ann)
     create_artificial_vars!(form)
     initialize_optimizer!(form, getoptbuilder(prob, ann))
     return
@@ -372,8 +376,8 @@ function buildformulations!(prob::Problem, annotations::Annotations, reform,
     mast = getmaster(reform)
     form = instantiatesp!(prob, reform, mast, form_type, dec_type)
     orig_form = get_original_formulation(prob)
-    assign_orig_vars_constrs!(form, orig_form, annotations, ann)
     create_side_vars_constrs!(form, orig_form)
+    assign_orig_vars_constrs!(form, orig_form, annotations, ann)
     initialize_optimizer!(form, getoptbuilder(prob, ann))
     return
 end
