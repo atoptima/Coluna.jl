@@ -30,7 +30,7 @@ Constructs an `Id` of type `VC` with `uid` = uid and `form_uid` = form_uid.
 """
 function Id{VC}(uid::Int, form_uid::Int) where {VC}
     proc_uid = Distributed.myid()
-    Id{VC}(uid, form_uid, proc_uid, 1, _create_hash(uid, form_uid, proc_uid))
+    Id{VC}(uid, form_uid, proc_uid, _create_hash(uid, form_uid, proc_uid))
 end
 
 function Id{VC}(id::Id) where {VC}
@@ -42,7 +42,7 @@ Base.isequal(a::Id, b::Id) = Base.isequal(a._hash, b._hash)
 Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
 Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
 Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
-Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1, -1) 
+Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1) 
 getuid(id::Id) = id.uid
 getformuid(id::Id) = id.form_uid
 getprocuid(id::Id) = id.proc_uid
