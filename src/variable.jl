@@ -57,7 +57,7 @@ mutable struct MoiVarRecord
     bounds::MoiVarBound
     kind::MoiVarKind
 end
-    
+
 MoiVarRecord(;index::MoiVarIndex = MoiVarIndex()) = MoiVarRecord(
     index, MoiVarBound(), MoiVarKind()
 )
