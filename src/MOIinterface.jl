@@ -74,15 +74,9 @@ end
 
 function update_constr_rhs_in_optimizer!(optimizer::MoiOptimizer, c::Constraint)
     moi_c_index = getindex(getmoirecord(c))
-    rhs = getrhs(getcurdata(c))
+    rhs = getcurrhs(c)
     sense = getcursense(c)
-    if sense == Greater
-        set(getinner(optimizer), ConstraintSet(), c, GreaterThan(rhs)) 
-    elseif sense == Less
-        set(getinner(optimizer), ConstraintSet(), c, LessThan(rhs)) 
-    else
-        set(getinner(optimizer), ConstraintSet(), c, EqualTo(rhs)) 
-    end
+    MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, get_moi_set(sense)(rhs))
     return
 end
 
