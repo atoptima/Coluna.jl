@@ -32,9 +32,6 @@ getsense(::Incumbents{MaxSense}) = MaxSense
 "Returns the best primal solution to the mixed-integer program."
 get_ip_primal_sol(i::Incumbents) = i.ip_primal_sol
 
-"Returns the best primal solution to the linear program."
-get_lp_primal_sol(i::Incumbents) = i.lp_primal_sol
-
 "Returns the best dual solution to the linear program."
 get_lp_dual_sol(i::Incumbents) = i.lp_dual_sol
 
