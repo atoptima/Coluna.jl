@@ -137,7 +137,7 @@ end
 A struct to represent a `DualSolution` for an objective function with sense `S`.
 The expected behaviour of a solution is implemented according to the sense `S`.
 """
-struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
+mutable struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::DualBound{S}
     sol::MembersVector{Id{Constraint}, Constraint, Float64}
 end
@@ -168,7 +168,6 @@ getsol(s::AbstractSolution) = s.sol
 getvalue(s::AbstractSolution) = float(s.bound)
 setvalue!(s::AbstractSolution, v::Float64) = s.bound = v
 
-
 iterate(s::AbstractSolution) = iterate(s.sol)
 iterate(s::AbstractSolution, state) = iterate(s.sol, state)
 length(s::AbstractSolution) = length(s.sol)
@@ -189,3 +188,13 @@ end
 
 Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
 
+function Base.filter(f::Function, dualsol::DualSolution{S}
+        ) where {S<:AbstractObjSense}
+    newsol = filter(f, dualsol.sol)
+    elements = getelements(dualsol.sol)
+    bound = 0.0
+    for (id, val) in newsol
+        bound += val * getcurrhs(elements[id])
+    end
+    return DualSolution{S}(bound, newsol) 
+end
