@@ -1,7 +1,10 @@
 function preprocessing_tests()
-    @testset "Preprocessing with random instances" begin
-        random_instances_tests()
+    @testset "play gap with preprocessing" begin
+        play_gap_with_preprocessing_tests()
     end
+    # @testset "Preprocessing with random instances" begin
+    #     random_instances_tests()
+    # end
 end
 
 function gen_random_small_gap_instance()
@@ -19,6 +22,21 @@ function gen_random_small_gap_instance()
         data.weight[j,m] = Int(ceil(0.1*rand(9:25)*avg_weight))
     end
     return data
+end
+
+function play_gap_with_preprocessing_tests()
+    data = CLD.GeneralizedAssignment.data("play2.txt")
+    coluna = JuMP.with_optimizer(
+        CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
+        params = CL.Params(
+            ; global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess,
+            CL.SimpleBranching, CL.DepthFirst)
+    ))
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    JuMP.optimize!(problem)
+    @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 end
 
 function random_instances_tests()
