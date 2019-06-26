@@ -297,7 +297,6 @@ function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form::Formul
 end
 
 function create_side_vars_constrs!(sp::Formulation{BendersSp}, orig_form::Formulation)
-
     sp_coef = getcoefmatrix(sp)
     sp_id = getuid(sp)
     # Cost constraint
@@ -311,12 +310,9 @@ function create_side_vars_constrs!(sp::Formulation{BendersSp}, orig_form::Formul
         sense = Equal
     )
     sp_coef[getid(cost), getid(nu)] = 1.0
-    for (var_id, var) in filter(id_var -> getduty(id_var[2]) == BendSpSepVar, getvars(sp))
-                                                  
-    orig_var = getvar(orig_form, var_id)
-    @show orig_var
-    sp_coef[getid(cost), var_id] = - getperenecost(orig_var)
-                                                 
+    for (var_id, var) in filter(id_var -> getduty(id_var[2]) == BendSpSepVar, getvars(sp))                                         
+        orig_var = getvar(orig_form, var_id)
+        sp_coef[getid(cost), var_id] = - getperenecost(orig_var)         
     end
     return
 end
@@ -376,10 +372,15 @@ function reformulate!(prob::Problem, annotations::Annotations,
     set_re_formulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
 
-    @show getmaster(reform)
 
+    println("\e[1;31m ------------- \e[00m")
+    @show get_original_formulation(prob)
+    println("\e[1;31m ------------- \e[00m")
+    @show getmaster(reform)
+    println("\e[1;32m ------------- \e[00m")
     for sp in reform.benders_sep_subprs
         @show sp
+        println("\e[1;32m ------------- \e[00m")
         #exit()
     end
 end
