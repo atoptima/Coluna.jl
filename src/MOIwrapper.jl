@@ -68,7 +68,7 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
         var = getvar(f, moi_uid_to_coluna_id[term.variable_index.value])
         perene_data = getrecordeddata(var)
         setcost!(perene_data, term.coefficient)
-        setcost!(f, var, term.coefficient)
+        setcurcost!(f, var, term.coefficient)
     end
     return
 end
@@ -110,10 +110,10 @@ function create_origconstr!(f::Formulation,
     else
         bound = getrhs(set)
         if getsense(set) in [Equal, Less]
-            set_ub!(perene_data, bound)
+            setub!(perene_data, bound)
             setub!(f, var, getub(perene_data))
         elseif getsense(set) == [Equal, Greater]
-            set_lb!(perene_data, bound)
+            setlb!(perene_data, bound)
             setlb!(f, var, getlb(perene_data))
         end
     end

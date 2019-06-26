@@ -51,7 +51,7 @@ function update_bounds_in_optimizer!(optimizer::MoiOptimizer,
 end
 
 function update_cost_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
-    cost = get_cost(getcurdata(v))
+    cost = getcost(getcurdata(v))
     moi_index = getindex(getmoirecord(v))
     MOI.modify(
         getinner(optimizer), MoiObjective(),
@@ -217,9 +217,15 @@ function fill_dual_result!(optimizer::MoiOptimizer,
         for (id, constr) in constrs
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
+            
             if val > 0.000001 || val < - 0.000001 # todo use a tolerance
                 @logmsg LogLevel(-4) string("Constr ", getname(constr), " = ", val)
                 sol[id] = val
+                #if S == MinSense
+                #    sol[id] = (getsense(constr) != Less ? val : - val)
+                #else
+                #    sol[id] = (getsense(constr) != Greater ? val : - val)
+                #end               
             end
         end
         push!(result.dual_sols, DualSolution{S}(db, sol))

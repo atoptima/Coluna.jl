@@ -45,6 +45,7 @@ getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
 
 "Returns the value of the variable counter of `Formulation` `f`."
 getvarcounter(f::Formulation) = f.var_counter.value
+getconstrcounter(f::Formulation) = f.constr_counter.value
 
 "Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `f`."
 getconstr(f::Formulation, id::ConstrId) = getconstr(f.manager, id)
@@ -57,7 +58,10 @@ getconstrs(f::Formulation) = getconstrs(f.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
-getprimalspsolmatrix(f::Formulation) = getprimalspsolmatrix(f.manager)
+getprimaldwspsolmatrix(f::Formulation) = getprimaldwspsolmatrix(f.manager)
+getdualbendspsolmatrix(f::Formulation) = getdualbendspsolmatrix(f.manager)
+getprimalbendspsolmatrix(f::Formulation) = getprimalbendspsolmatrix(f.manager)
+getexpressionmatrix(f::Formulation) = getexpressionmatrix(f.manager)
 
 "Returns the `uid` of `Formulation` `f`."
 getuid(f::Formulation) = f.uid
@@ -81,14 +85,19 @@ getreformulation(f::Formulation{<:AbstractSpDuty}) = getmaster(f).parent_formula
 _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 
 """
-    setcost!(f::Formulation, v::Variable, new_cost::Float64)
+    setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
 
 Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
 euqal to `new_cost`. Change on `f.optimizer` will be buffered.
 """
-function setcost!(f::Formulation, v::Variable, new_cost::Float64)
+function setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
     setcurcost!(v, new_cost)
     change_cost!(f.buffer, v)
+end
+
+function setcurrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
+    setcurrhs!(c, new_rhs)
+    change_rhs!(f.buffer, c)
 end
 
 """
@@ -154,7 +163,7 @@ function setvar!(f::Formulation,
     return addvar!(f, v)
 end
 
-function setprimalspsol!(f::Formulation,
+function setprimaldwspsol!(f::Formulation,
                          name::String,
                          sol::PrimalSolution{S},
                          duty::Type{<:AbstractVarDuty};
@@ -165,22 +174,69 @@ function setprimalspsol!(f::Formulation,
                          inc_val::Float64 = 0.0,
                          is_active::Bool = true,
                          is_explicit::Bool = true,
-                         moi_index::MoiVarIndex = MoiVarIndex()) where {S}
+                         moi_index::MoiVarIndex = MoiVarIndex()) where {S<:AbstractObjSense}
     ps_id = generatevarid(f)
     ps_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
     ps = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
 
     coef_matrix = getcoefmatrix(f)
-    primalspsol_matrix = getprimalspsolmatrix(f)
+    primalspsol_matrix = getprimaldwspsolmatrix(f)
 
     for (var_id, var_val) in sol
         primalspsol_matrix[var_id, ps_id] = var_val
         for (constr_id, var_coef) in coef_matrix[:,var_id]
-            coef_matrix[constr_id, ps_id] = var_val * var_coef
+            coef_matrix[constr_id, ps_id] += var_val * var_coef
         end
     end
 
     return addvar!(f, ps)
+end
+
+
+
+function setprimaldualbendspsol!(f::Formulation,
+                                 name::String,
+                                 primal_sol::PrimalSolution{S},
+                                 dual_sol::DualSolution{S},
+                                 duty::Type{<:AbstractConstrDuty};
+                                 kind::ConstrKind = Core,
+                                 sense::ConstrSense = Greater,
+                                 inc_val::Float64 = -1.0,
+                                 is_active::Bool = true,
+                                 is_explicit::Bool = true,
+                                 moi_index::MoiConstrIndex = MoiConstrIndex()) where {S<:AbstractObjSense}
+    
+    dps_id = generateconstrid(f)
+    dps_data = ConstrData(getvalue(dual_sol), kind, sense, inc_val, is_active, is_explicit)
+    dps = Constraint(dps_id, name, duty; constr_data = dps_data, moi_index = moi_index)
+
+    @show primal_sol
+    
+    @show dual_sol
+    
+    @show dps
+    
+    coef_matrix = getcoefmatrix(f)
+    primalbendspsol_matrix = getprimalbendspsolmatrix(f)
+    dualbendspsol_matrix = getdualbendspsolmatrix(f)
+
+    for (constr_id, constr_val) in dual_sol
+        dualbendspsol_matrix[constr_id, dps_id] = constr_val
+        for (var_id, constr_coef) in coef_matrix[constr_id,:]
+            coef_matrix[dps_id, var_id] += constr_val * constr_coef
+        end
+    end
+
+    cut = addconstr!(f, dps)
+
+
+    @show cut
+
+    for (var_id, var_val) in primal_sol
+        primalbendspsol_matrix[var_id, dps_id] = var_val
+    end
+
+    return cut
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."
@@ -276,7 +332,7 @@ function setmembers!(f::Formulation, v::Variable, members::ConstrMembership)
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
     coef_matrix = getcoefmatrix(f)
-    primalspsol_matrix = getprimalspsolmatrix(f)
+    primalspsol_matrix = getprimaldwspsolmatrix(f)
     id = getid(v)
     for (constr_id, coeff) in members
         coef_matrix[constr_id, id] = coeff
@@ -287,7 +343,7 @@ end
 function setmembers!(f::Formulation, constr::Constraint, members)
     @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
     coef_matrix = getcoefmatrix(f)
-    primal_sp_sols = getprimalspsolmatrix(f)
+    primal_dwsp_sols = getprimaldwspsolmatrix(f)
     constr_id = getid(constr)
     @logmsg LogLevel(-4) "Members are : ", members
     for (var_id, member_coeff) in members
@@ -296,7 +352,7 @@ function setmembers!(f::Formulation, constr::Constraint, members)
         coef_matrix[constr_id,var_id] = member_coeff
         @logmsg LogLevel(-4) string("Adidng variable ", getname(v), " with coeff ", member_coeff)
         # And for all columns having its own variables
-        for (col_id, coeff) in primal_sp_sols[var_id,:]
+        for (col_id, coeff) in primal_dwsp_sols[var_id,:]
             @logmsg LogLevel(-4) string("Adding column ", getname(getvar(f, col_id)), " with coeff ", coeff * member_coeff)
             coef_matrix[constr_id,col_id] = coeff * member_coeff
         end
@@ -323,13 +379,19 @@ function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
     return
 end
 
-function resetsolvalue(form::Formulation, sol::AbstractSolution) 
+function resetsolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
     setvalue!(sol, val)
     return val
 end
 
-function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution) 
+function resetsolvalue(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
+    val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
+    setvalue!(sol, val)
+    return val
+end
+
+function computereducedcost(form::Formulation, var_id::Id{Variable}, dual_sol::DualSolution{S})  where {S<:AbstractObjSense}
 
     var = getvar(form, var_id)
     rc = getperenecost(var)
@@ -337,12 +399,24 @@ function computereducedcost(form::Formulation, var_id, dual_sol::DualSolution)
     for (constr_id, dual_val) in getsol(dual_sol)
         coeff = coefficient_matrix[constr_id, var_id]
         if getobjsense(form) == MinSense
-            rc = rc - dual_val * coeff
+            rc -= dual_val * coeff
         else
-            rc = rc + dual_val * coeff
+            rc += dual_val * coeff
         end
     end
     return rc
+end
+
+function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primal_sol::PrimalSolution{S})  where {S<:AbstractObjSense}
+
+    constr = getconstr(form,constr_id)
+    crhs = getperenerhs(constr)
+    coefficient_matrix = getcoefmatrix(form)
+    for (var_id, primal_val) in getsol(primal_sol)
+        coeff = coefficient_matrix[constr_id, var_id]
+        crhs -= primal_val * coeff
+    end
+    return crhs
 end
 
 "Calls optimization routine for `Formulation` `f`."
@@ -371,7 +445,7 @@ function _show_obj_fun(io::IO, f::Formulation)
     ids = sort!(collect(keys(vars)), by = getsortid)
     for id in ids
         name = getname(vars[id])
-        cost = get_cost(getcurdata(vars[id]))
+        cost = getcost(getcurdata(vars[id]))
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
     end

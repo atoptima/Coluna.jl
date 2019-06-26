@@ -17,7 +17,7 @@ end
     Reformulation(prob::AbstractProblem, method::SolutionMethod)
 
 Constructs a `Reformulation` that shall be solved using the `GlobalStrategy` `strategy`.
-"""
+ """
 function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
     return Reformulation(strategy,
                          nothing,
@@ -28,14 +28,17 @@ function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
                          Dict{FormId, Int}())
 end
 
+getglobalstrategy(r::Reformulation) = r.strategy
+setglobalstrategy!(r::Reformulation, strategy::GlobalStrategy) = r.strategy = strategy
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 add_benders_sep_sp!(r::Reformulation, f) = push!(r.benders_sep_subprs, f)
+get_dw_pricing_sp(r::Reformulation) = r.dw_pricing_subprs
+get_benders_sep_sp(r::Reformulation) = r.benders_sep_subprs
 
 function optimize!(reformulation::Reformulation)
     opt_result = apply!(GlobalStrategy, reformulation)
-    #opt_result = apply!(reformulation.stratregy, reformulation)
     opt_result.primal_sols = [proj_cols_on_rep(
         getbestprimalsol(opt_result), getmaster(reformulation)
     )]

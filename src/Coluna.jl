@@ -77,6 +77,7 @@ include("algorithms/reformulationsolver.jl")
 
 # Here include conquer strategies
 include("strategies/conquer/simplebnp.jl")
+include("strategies/conquer/simplebenders.jl")
 
 # Here include divide strategies
 include("strategies/divide/simplebranching.jl")
