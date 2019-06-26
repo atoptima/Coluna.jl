@@ -121,6 +121,17 @@ function setkind!(f::Formulation, v::Variable, new_kind::VarKind)
 end
 
 """
+    setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
+
+Sets `c.cur_data.rhs` as well as the rhs of `c` in `f.optimizer` 
+according to `new_rhs`. Change on `f.optimizer` will be buffered.
+"""
+function setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
+    setcurrhs!(c, new_rhs)
+    change_rhs!(f.buffer, c)
+end
+
+"""
     set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
 Buffers the matrix modification in `f.buffer` to be sent to `f.optimizer` right before next call to optimize!.

@@ -72,6 +72,14 @@ function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
+function update_constr_rhs_in_optimizer!(optimizer::MoiOptimizer, c::Constraint)
+    moi_c_index = getindex(getmoirecord(c))
+    rhs = getcurrhs(c)
+    sense = getcursense(c)
+    MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, get_moi_set(sense)(rhs))
+    return
+end
+
 function enforce_bounds_in_optimizer!(optimizer::MoiOptimizer,
                                      v::Variable)
     cur_data = getcurdata(v)
