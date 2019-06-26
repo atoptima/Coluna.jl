@@ -2,6 +2,7 @@ mutable struct Incumbents{S}
     ip_primal_sol::PrimalSolution{S}
     ip_dual_bound::DualBound{S}
     lp_primal_sol::PrimalSolution{S}
+    lp_primal_bound::PrimalBound{S}
     lp_dual_sol::DualSolution{S}
 end
 
@@ -16,8 +17,11 @@ and the best dual bound to the program.
 """
 function Incumbents(S::Type{<: AbstractObjSense})
     return Incumbents{S}(
-        PrimalSolution{S}(), DualBound{S}(),
-        PrimalSolution{S}(), DualSolution{S}()
+        PrimalSolution{S}(),
+        DualBound{S}(),
+        PrimalSolution{S}(),
+        PrimalBound{S}(),
+        DualSolution{S}()
     )
 end
 
@@ -28,11 +32,11 @@ getsense(::Incumbents{MaxSense}) = MaxSense
 "Returns the best primal solution to the mixed-integer program."
 get_ip_primal_sol(i::Incumbents) = i.ip_primal_sol
 
-"Returns the best primal solution to the linear program."
-get_lp_primal_sol(i::Incumbents) = i.lp_primal_sol
-
 "Returns the best dual solution to the linear program."
 get_lp_dual_sol(i::Incumbents) = i.lp_dual_sol
+
+"Returns the best primal solution to the linear program."
+get_lp_primal_sol(i::Incumbents) = i.lp_primal_sol
 
 # Getters bounds
 "Returns the best primal bound of the mixed-integer program."
@@ -42,7 +46,7 @@ get_ip_primal_bound(i::Incumbents) = getbound(i.ip_primal_sol)
 get_ip_dual_bound(i::Incumbents) = i.ip_dual_bound
 
 "Returns the best primal bound of the linear program."
-get_lp_primal_bound(i::Incumbents) = getbound(i.lp_primal_sol)
+get_lp_primal_bound(i::Incumbents) = i.lp_primal_bound # getbound(i.lp_primal_sol)
 
 "Returns the best dual bound of the linear program."
 get_lp_dual_bound(i::Incumbents) = getbound(i.lp_dual_sol)
@@ -68,12 +72,18 @@ function set_ip_primal_sol!(inc::Incumbents{S},
     return false
 end
 
+
+
 """
 Updates the best primal solution to the linear program if the new one is better
 than the current one according to the objective sense.
 """
 function set_lp_primal_sol!(inc::Incumbents{S},
                             sol::PrimalSolution{S}) where {S}
+    if isbetter(getbound(sol), inc.lp_primal_bound)
+        inc.lp_primal_bound = getbound(sol)
+    end
+    
     if isbetter(getbound(sol), getbound(inc.lp_primal_sol))
         inc.lp_primal_sol = sol
         return true
@@ -89,6 +99,15 @@ function set_ip_dual_bound!(inc::Incumbents{S},
                             new_bound::DualBound{S}) where {S}
     if isbetter(new_bound, get_ip_dual_bound(inc))
         inc.ip_dual_bound = new_bound
+        return true
+    end
+    return false
+end
+
+function set_lp_primal_bound!(inc::Incumbents{S},
+                              new_bound::PrimalBound{S}) where {S}
+    if isbetter(new_bound, get_lp_primal_bound(inc))
+        inc.lp_primal_bound = new_bound
         return true
     end
     return false

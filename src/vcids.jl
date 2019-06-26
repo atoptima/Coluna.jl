@@ -33,6 +33,10 @@ function Id{VC}(uid::Int, form_uid::Int) where {VC}
     Id{VC}(uid, form_uid, proc_uid, _create_hash(uid, form_uid, proc_uid))
 end
 
+function Id{VC}(id::Id) where {VC}
+    Id{VC}(id.uid, id.form_uid)
+end
+
 Base.hash(a::Id, h::UInt) = hash(a._hash, h)
 Base.isequal(a::Id, b::Id) = Base.isequal(a._hash, b._hash)
 Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
