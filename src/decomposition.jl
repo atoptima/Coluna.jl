@@ -4,10 +4,10 @@ set_glob_art_var(f::Formulation, is_pos::Bool) = setvar!(
     lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
-function initialize_local_art_vars(master::Formulation,
-                                   constrs_in_form)
+function create_local_art_vars!(master::Formulation)
     matrix = getcoefmatrix(master)
-    for (constr_id, constr) in constrs_in_form
+    constrs = filter(v -> getduty(v[2]) == MasterConvexityConstr, getconstrs(master))
+    for (constr_id, constr) in getconstrs(master)
         v = setvar!(
             master, string("local_art_of_", getname(constr)),
             MasterArtVar;
@@ -23,7 +23,7 @@ function initialize_local_art_vars(master::Formulation,
     return
 end
 
-function initialize_global_art_vars(master::Formulation)
+function create_global_art_vars!(master::Formulation)
     global_pos = set_glob_art_var(master, true)
     global_neg = set_glob_art_var(master, false)
     matrix = getcoefmatrix(master)
@@ -37,131 +37,7 @@ function initialize_global_art_vars(master::Formulation)
     end
 end
 
-function initialize_artificial_variables(master::Formulation, constrs_in_form)
-    # if (_params_.art_vars_mode == Local)
-        initialize_local_art_vars(master, constrs_in_form)
-    # elseif (_params_.art_vars_mode == Global)
-        initialize_global_art_vars(master)
-    # end
-end
-
-function find_vcs_in_block(uid::Int, annotations::Annotations)
-    vars_per_block = annotations.vars_per_block 
-    vars = VarDict()
-    if haskey(vars_per_block, uid)
-        vars = vars_per_block[uid]
-    end
-    constrs_per_block = annotations.constrs_per_block 
-    constrs = ConstrDict()
-    if haskey(constrs_per_block, uid)
-        constrs = constrs_per_block[uid]
-    end
-    return vars, constrs
-end
-
-function build_dw_master!(prob::Problem,
-                          annotation_id::Int,
-                          reformulation::Reformulation,
-                          master_form::Formulation,
-                          vars_in_form::VarDict,
-                          constrs_in_form::ConstrDict,
-                          opt_builder::Function)
-
-    orig_form = get_original_formulation(prob)
-    reformulation.dw_pricing_sp_lb = Dict{FormId, Id}()
-    reformulation.dw_pricing_sp_ub = Dict{FormId, Id}()
-    convexity_constrs = ConstrDict()
-
-
-    # copy of pure master variables
-    clone_in_formulation!(master_form, orig_form, vars_in_form, MasterPureVar)
-
-    mast_coefficient_matrix = getcoefmatrix(master_form)
-    
-    @assert !isempty(reformulation.dw_pricing_subprs)
-    # add convexity constraints and setupvar 
-    for sp_form in reformulation.dw_pricing_subprs
-        sp_uid = getuid(sp_form)
- 
-        # create convexity constraint
-        name = "sp_lb_$(sp_uid)"
-        sense = Greater
-        rhs = 0.0
-        kind = Core
-        duty = MasterConvexityConstr  
-        lb_conv_constr = setconstr!(master_form, name, duty;
-                                     rhs = rhs, kind  = kind,
-                                     sense = sense)
-        reformulation.dw_pricing_sp_lb[sp_uid] = getid(lb_conv_constr)
-        setincval!(getrecordeddata(lb_conv_constr), 100.0)
-        setincval!(getcurdata(lb_conv_constr), 100.0)
-        convexity_constrs[getid(lb_conv_constr)] = lb_conv_constr
-
-        name = "sp_ub_$(sp_uid)"
-        rhs = 1.0
-        sense = Less
-        ub_conv_constr = setconstr!(master_form, name, duty;
-                                     rhs = rhs, kind = kind,
-                                     sense = sense)
-        reformulation.dw_pricing_sp_ub[sp_uid] = getid(ub_conv_constr)
-        setincval!(getrecordeddata(ub_conv_constr), 100.0)
-        setincval!(getcurdata(ub_conv_constr), 100.0)        
-        convexity_constrs[getid(ub_conv_constr)] = ub_conv_constr
-
-        ## add all Sp var in master
-        vars = filter(_active_pricing_sp_var_, getvars(sp_form))
-        is_explicit = false
-        clone_in_formulation!(master_form, sp_form, vars, MasterRepPricingVar, is_explicit)
-
-        ## Create PricingSetupVar
-        name = "PricingSetupVar_sp_$(sp_form.uid)"
-        cost = 0.0
-        lb = 1.0
-        ub = 1.0
-        kind = Continuous
-        duty = DwSpSetupVar
-        sense = Positive
-        is_explicit = true
-        setup_var = setvar!(
-            sp_form, name, duty; cost = cost, lb = lb, ub = ub, kind = kind,
-            sense = sense, is_explicit = is_explicit
-        )
-        clone_in_formulation!(master_form, sp_form, setup_var, MasterRepPricingSetupVar, false)
-
-        ## add setup var coef in convexity constraint
-        matrix = getcoefmatrix(master_form)
-        mast_coefficient_matrix[getid(lb_conv_constr),getid(setup_var)] = 1.0
-        mast_coefficient_matrix[getid(ub_conv_constr),getid(setup_var)] = 1.0
-    end
-
-    # copy of master constraints
-    clone_in_formulation!(master_form, orig_form, constrs_in_form, MasterMixedConstr)
-
-    # add artificial var 
-    initialize_artificial_variables(master_form, constrs_in_form)
-    initialize_local_art_vars(master_form, convexity_constrs)
-    initialize_optimizer!(master_form, opt_builder)
-    return
-end
-
-function build_dw_pricing_sp!(prob::Problem,
-                              annotation_id::Int,
-                              sp_form::Formulation,
-                              vars_in_form::VarDict,
-                              constrs_in_form::ConstrDict,
-                              opt_builder::Function)
-
-    orig_form = get_original_formulation(prob)
-    master_form = sp_form.parent_formulation
-    reformulation = master_form.parent_formulation
-    ## Create Pure Pricing Sp Var & constr
-    clone_in_formulation!(sp_form, orig_form, vars_in_form, DwSpPricingVar)
-    clone_in_formulation!(sp_form, orig_form, constrs_in_form, DwSpPureConstr)
-    initialize_optimizer!(sp_form, opt_builder)
-    return
-end
-
-function instanciatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
+function instantiatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
     form = Formulation{DwMaster}(
         prob.form_counter; parent_formulation = reform,
         obj_sense = getobjsense(get_original_formulation(prob))
@@ -170,59 +46,324 @@ function instanciatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.
     return form
 end
 
-function createmaster!(form, prob::Problem, reform, ann, annotations, ::Type{BD.Master}, ::Type{BD.DantzigWolfe})
-    vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
-    opt_builder = prob.default_optimizer_builder
-    if BD.getoptimizerbuilder(ann) != nothing
-        opt_builder = BD.getoptimizerbuilder(ann)
-    end
-    build_dw_master!(prob, BD.getid(ann), reform, form, vars, constrs, opt_builder)
+function instantiatemaster!(prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.Benders})
+    form = Formulation{BendersMaster}(
+        prob.form_counter; parent_formulation = reform,
+        obj_sense = getobjsense(get_original_formulation(prob))
+    )
+    setmaster!(reform, form)
+    return form
 end
 
-function createsp!(prob::Problem, reform, mast, ann, annotations, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe})
+function instantiatesp!(prob::Problem, reform, mast, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe})
     form = Formulation{DwSp}(
         prob.form_counter; parent_formulation = mast,
         obj_sense = getobjsense(mast)
     )
     add_dw_pricing_sp!(reform, form)
-
-    vars, constrs = find_vcs_in_block(BD.getid(ann), annotations)
-    opt_builder = prob.default_optimizer_builder
-    if BD.getoptimizerbuilder(ann) != nothing
-        opt_builder = BD.getoptimizerbuilder(ann)
-    end
-    build_dw_pricing_sp!(prob, BD.getid(ann), form, vars, constrs, opt_builder)
     return form
 end
 
-function registerformulations!(prob::Problem, annotations::Annotations, reform, 
-                               parent, node::BD.Root)
-    ann = BD.annotation(node)
-    form_type = BD.getformulation(ann)
-    dec_type = BD.getdecomposition(ann)
-    form = instanciatemaster!(prob, reform, form_type, dec_type)
-    for (id, child) in BD.subproblems(node)
-        registerformulations!(prob, annotations, reform, node, child)
+function instantiatesp!(prob::Problem, reform, mast, ::Type{BD.BendersSepSp}, ::Type{BD.Benders})
+    form = Formulation{BendersSp}(
+        prob.form_counter; parent_formulation = mast,
+        obj_sense = getobjsense(mast)
+    )
+    add_benders_sep_sp!(reform, form)
+    return form
+end
+
+# Master of Dantzig-Wolfe decomposition
+
+# returns the duty of a variable and whether it is explicit according to the 
+# type of formulation it belongs and the type of formulation it will clone in.
+varexpduty(F, BDF, BDD) = error("Cannot deduce duty of original variable in $F annoted in $BDF using $BDD.")
+varexpduty(::Type{DwMaster}, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}) = MasterRepPricingVar, false
+varexpduty(::Type{DwMaster}, ::Type{BD.Master}, ::Type{BD.DantzigWolfe}) = MasterPureVar, true
+
+function instantiate_orig_vars!(mast::Formulation{DwMaster}, orig_form::Formulation, annotations, mast_ann)
+    vars_per_ann = annotations.vars_per_ann
+    for (ann, vars) in vars_per_ann
+        formtype = BD.getformulation(ann)
+        dectype = BD.getdecomposition(ann)
+        for (id, var) in vars
+            duty, explicit = varexpduty(DwMaster, formtype, dectype)
+            clonevar!(mast, var, duty, is_explicit = explicit)
+        end
     end
-    createmaster!(form, prob, reform, ann, annotations, form_type, dec_type)
     return
 end
 
-function registerformulations!(prob::Problem, annotations::Annotations, reform, 
-                               parent, node::BD.Leaf)
+function instantiate_orig_constrs!(mast::Formulation{DwMaster}, orig_form::Formulation, annotations, mast_ann)
+    !haskey(annotations.constrs_per_ann, mast_ann) && return
+    constrs = annotations.constrs_per_ann[mast_ann]
+    for (id, constr) in constrs
+        cloneconstr!(mast, constr, MasterMixedConstr)
+    end
+    return
+end
+
+function create_side_vars_constrs!(mast::Formulation{DwMaster}, orig_form::Formulation, annotations)
+    coefmatrix = getcoefmatrix(mast)
+    for sp in mast.parent_formulation.dw_pricing_subprs
+        spuid = getuid(sp)
+        ann = get(annotations, sp)
+        setupvars = filter(var -> getduty(var[2]) == DwSpSetupVar, getvars(sp))
+        @assert length(setupvars) == 1
+        setupvar = collect(values(setupvars))[1] # issue 106
+        clonevar!(mast, setupvar, MasterRepPricingSetupVar, is_explicit = false)
+        # create convexity constraint
+        lb_mult = Float64(BD.getminmultiplicity(ann))
+        lb_conv_constr = setconstr!(
+            mast, string("sp_lb", spuid), MasterConvexityConstr; rhs = lb_mult, 
+            kind = Core, sense = Greater
+        )
+        mast.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
+        setincval!(getrecordeddata(lb_conv_constr), 100.0)
+        setincval!(getcurdata(lb_conv_constr), 100.0)
+        coefmatrix[getid(lb_conv_constr), getid(setupvar)] = 1.0
+
+        ub_mult =  Float64(BD.getmaxmultiplicity(ann))
+        ub_conv_constr = setconstr!(
+            mast, string("sp_ub", spuid), MasterConvexityConstr; rhs = ub_mult, 
+            kind = Core, sense = Less
+        )
+        mast.parent_formulation.dw_pricing_sp_ub[spuid] = getid(ub_conv_constr)
+        setincval!(getrecordeddata(ub_conv_constr), 100.0)
+        setincval!(getcurdata(ub_conv_constr), 100.0)       
+        coefmatrix[getid(ub_conv_constr), getid(setupvar)] = 1.0
+    end
+    return
+end
+
+function create_artificial_vars!(mast::Formulation{DwMaster})
+    create_global_art_vars!(mast)
+    create_local_art_vars!(mast)
+    return
+end
+
+# Pricing subproblem of Danztig-Wolfe decomposition
+function instantiate_orig_vars!(sp::Formulation{DwSp}, orig_form::Formulation, annotations, sp_ann)
+    !haskey(annotations.vars_per_ann, sp_ann) && return
+    vars = annotations.vars_per_ann[sp_ann]
+    for (id, var) in vars
+        # An original variable annoted in a subproblem is a DwSpPureVar
+        clonevar!(sp, var, DwSpPricingVar)
+    end
+    return
+end
+
+function instantiate_orig_constrs!(sp::Formulation{DwSp}, orig_form::Formulation, annotations, sp_ann)
+    !haskey(annotations.constrs_per_ann, sp_ann) && return
+    constrs = annotations.constrs_per_ann[sp_ann]
+    for (id, constr) in constrs
+        cloneconstr!(sp, constr, DwSpPureConstr)
+    end
+    return
+end
+
+function create_side_vars_constrs!(sp::Formulation{DwSp}, orig_form::Formulation, annotations)
+    name = "PricingSetupVar_sp_$(getuid(sp))"
+    setvar!(
+        sp, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, 
+        kind = Continuous, sense = Positive, is_explicit = true
+    )
+    return
+end
+
+
+function dutyofbendmastvar(var, annotations, orig_form::Formulation)
+    orig_coef = getcoefmatrix(orig_form)
+    for (constrid, coef) in orig_coef[:, getid(var)]
+        constr_ann = annotations.ann_per_constr[constrid]
+        #if coef != 0 && BD.getformulation(constr_ann) == BD.Benders  # TODO use haskey instead testing != 0
+        if BD.getformulation(constr_ann) == BD.BendersSepSp 
+            return MasterBendFirstStageVar
+        end
+    end
+    return MasterPureVar
+end
+
+# Master of Benders decomposition
+function instantiate_orig_vars!(mast::Formulation{BendersMaster}, orig_form, annotations, mast_ann)
+    !haskey(annotations.vars_per_ann, mast_ann) && return
+    vars = annotations.vars_per_ann[mast_ann]
+    for (id, var) in vars
+        duty = dutyofbendmastvar(var, annotations, orig_form)
+        clonevar!(mast, var, duty)
+    end
+    return
+end
+
+function instantiate_orig_constrs!(mast::Formulation{BendersMaster}, orig_form::Formulation, annotations, mast_ann)
+    !haskey(annotations.constrs_per_ann, mast_ann) && return
+    constrs = annotations.constrs_per_ann[mast_ann]
+    for (id, constr) in constrs
+        cloneconstr!(mast, constr, MasterPureConstr)
+    end
+    return
+end
+
+function create_side_vars_constrs!(mast::Formulation{BendersMaster}, orig_form::Formulation)
+    for sp in mast.parent_formulation.benders_sep_subprs
+        nu = collect(values(filter(var -> getduty(var[2]) == BendSpSlackSecondStageCostVar, getvars(sp))))[1]
+        name = "η[$(split(getname(nu), "[")[end])"
+        setvar!(
+            mast, name, MasterBendSecondStageCostVar; cost = getcurcost(nu),
+            lb = -1.0, ub = Inf, 
+            kind = Continuous, sense = Free, is_explicit = true, id = getid(nu)
+        )
+        # setvar!(
+        #     sp, name, BendSpRepSecondStageCostVar; cost = getcurcost(nu),
+        #     lb = -Inf, ub = Inf, 
+        #     kind = Continuous, sense = Free, is_explicit = false,
+        #     id = Id{Variable}(getid(nu), 2)
+        # )
+        # clone_in_formulation!(mast, sp, eta, MasterBendSecondStageCostVar)
+    end
+    return
+end
+
+function create_artificial_vars!(mast::Formulation{BendersMaster})
+    return
+end
+
+# Separation sp of Benders decomposition
+#function involvedinbendsp(var, orig_form, annotations, sp_ann)
+#    !haskey(annotations.constrs_per_ann, sp_ann) && return false
+#    constrs = annotations.constrs_per_ann[sp_ann]
+#    orig_coef = getcoefmatrix(orig_form)
+#    for (constr_id, constr) in constrs
+#        if orig_coef[constr_id, getid(var)] != 0 # TODO use haskey instead
+#            return true
+#        end
+#    end
+#    return false
+#end
+
+function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form::Formulation, annotations, sp_ann)
+    if haskey(annotations.vars_per_ann, sp_ann)
+        vars = annotations.vars_per_ann[sp_ann]
+        for (id, var) in vars
+            clonevar!(sp, var, BendSpSepVar, cost = 0.0)
+        end
+    end
+    mast_ann = getparent(annotations, sp_ann)
+    if haskey(annotations.vars_per_ann, mast_ann)
+        vars = annotations.vars_per_ann[mast_ann]
+        for (id, var) in vars
+            if dutyofbendmastvar(var, annotations, orig_form) == MasterBendFirstStageVar
+                #if involvedinbendsp(var, orig_form, annotations, sp_ann)
+                name = "μ[$(split(getname(var), "[")[end])"
+                mu = setvar!(
+                    sp, name, BendSpSlackFirstStageVar; cost = getcurcost(var),
+                    lb = -Inf, ub = Inf, 
+                    kind = Continuous, sense = Free, is_explicit = true, id = id
+                )
+                # setvar!(
+                #     sp, getname(var), BendSpRepFirstStageVar; cost = 0.0,
+                #     lb = -Inf, ub = Inf, 
+                #     kind = getperenekind(var), sense = getperenesense(var), is_explicit = false,
+                #     id = Id{Variable}(getid(mu), 2)
+                # )
+            end
+        end
+    end
+    return
+end
+
+
+function dutyofbendspconstr(constr, annotations, orig_form)
+    orig_coef = getcoefmatrix(orig_form)
+    for (varid, coef) in orig_coef[getid(constr), :]
+        var_ann = annotations.ann_per_var[varid]
+        #if coef != 0 && BD.getformulation(var_ann) == BD.Master
+        if BD.getformulation(var_ann) == BD.Master
+            return BendSpTechnologicalConstr
+        end
+    end
+    return BendSpPureConstr
+end
+
+function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form::Formulation, annotations, sp_ann)
+    !haskey(annotations.constrs_per_ann, sp_ann) && return
+    constrs = annotations.constrs_per_ann[sp_ann]
+    for (id, constr) in constrs
+        duty = dutyofbendspconstr(constr, annotations, orig_form)
+        cloneconstr!(sp, constr, duty)
+    end
+    return
+end
+
+function create_side_vars_constrs!(sp::Formulation{BendersSp}, orig_form::Formulation, annotations)
+    sp_coef = getcoefmatrix(sp)
+    sp_id = getuid(sp)
+    # Cost constraint
+    mast = getmaster(sp)
+    nu = setvar!(
+        sp, "ν[$sp_id]", BendSpSlackSecondStageCostVar; cost = 1.0, lb = -Inf, ub = Inf,
+        kind = Continuous, sense = Free, is_explicit = true
+    )
+    cost = setconstr!(
+        sp, "cost", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
+        sense = Equal
+    )
+    sp_coef[getid(cost), getid(nu)] = 1.0
+    for (var_id, var) in filter(id_var -> getduty(id_var[2]) == BendSpSepVar, getvars(sp))                                         
+        orig_var = getvar(orig_form, var_id)
+        sp_coef[getid(cost), var_id] = - getperenecost(orig_var)         
+    end
+    return
+end
+
+function assign_orig_vars_constrs!(form, orig_form::Formulation, annotations, ann)
+    instantiate_orig_vars!(form, orig_form, annotations, ann)
+    instantiate_orig_constrs!(form, orig_form, annotations, ann)
+    clonecoeffs!(form, orig_form)
+end
+
+function getoptbuilder(prob::Problem, ann)
+    if BD.getoptimizerbuilder(ann) != nothing
+        return BD.getoptimizerbuilder(ann)
+    end
+    return prob.default_optimizer_builder
+end
+
+function buildformulations!(prob::Problem, annotations::Annotations, reform, 
+                            parent, node::BD.Root)
+    ann = BD.annotation(node)
+    form_type = BD.getformulation(ann)
+    dec_type = BD.getdecomposition(ann)
+    form = instantiatemaster!(prob, reform, form_type, dec_type)
+    store!(annotations, form, ann)
+    orig_form = get_original_formulation(prob)
+    assign_orig_vars_constrs!(form, orig_form, annotations, ann)
+    for (id, child) in BD.subproblems(node)
+        buildformulations!(prob, annotations, reform, node, child)
+    end
+    create_side_vars_constrs!(form, orig_form, annotations)
+    create_artificial_vars!(form)
+    initialize_optimizer!(form, getoptbuilder(prob, ann))
+    return
+end
+
+function buildformulations!(prob::Problem, annotations::Annotations, reform, 
+                            parent, node::BD.Leaf)
     ann = BD.annotation(node)
     form_type = BD.getformulation(ann)
     dec_type = BD.getdecomposition(ann)
     mast = getmaster(reform)
-    createsp!(prob, reform, mast, ann, annotations, form_type, dec_type)
+    form = instantiatesp!(prob, reform, mast, form_type, dec_type)
+    store!(annotations, form, ann)
+    orig_form = get_original_formulation(prob)
+    assign_orig_vars_constrs!(form, orig_form, annotations, ann)
+    create_side_vars_constrs!(form, orig_form, annotations)
+    initialize_optimizer!(form, getoptbuilder(prob, ann))
     return
 end
 
 function reformulate!(prob::Problem, annotations::Annotations, 
                       strategy::GlobalStrategy)
-    vars_per_block = annotations.vars_per_block 
-    constrs_per_block = annotations.constrs_per_block
-    annotation_set = annotations.annotation_set 
     decomposition_tree = annotations.tree
 
     root = BD.getroot(decomposition_tree)
@@ -230,5 +371,16 @@ function reformulate!(prob::Problem, annotations::Annotations,
     # Create reformulation
     reform = Reformulation(prob, strategy)
     set_re_formulation!(prob, reform)
-    registerformulations!(prob, annotations, reform, reform, root)
+    buildformulations!(prob, annotations, reform, reform, root)
+
+    # println("\e[1;31m ------------- \e[00m")
+    # @show get_original_formulation(prob)
+    # println("\e[1;31m ------------- \e[00m")
+    # @show getmaster(reform)
+    # println("\e[1;32m ------------- \e[00m")
+    # for sp in reform.benders_sep_subprs
+    #     @show sp
+    #     println("\e[1;32m ------------- \e[00m")
+    #     #exit()
+    # end
 end
