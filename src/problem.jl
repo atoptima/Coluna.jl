@@ -4,6 +4,7 @@ mutable struct Annotations
     ann_per_constr::Dict{Id{Constraint}, BD.Annotation}
     vars_per_ann::Dict{BD.Annotation, Dict{Id{Variable},Variable}}
     constrs_per_ann::Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}
+    form_per_ann::Dict{Int, BD.Annotation}
     annotation_set::Set{BD.Annotation}
 end
 
@@ -12,6 +13,7 @@ Annotations() = Annotations(
     Dict{Id{Variable}, BD.Annotation}(), Dict{Id{Constraint}, BD.Annotation}(),
     Dict{BD.Annotation, Dict{Id{Variable},Variable}}(),
     Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}(),
+    Dict{Int, BD.Annotation}(),
     Set{BD.Annotation}()
 )
 
@@ -33,6 +35,23 @@ function store!(annotations::Annotations, ann::BD.Annotation, constr::Constraint
     end
     annotations.constrs_per_ann[ann][getid(constr)] = constr
     return
+end
+
+function store!(annotations::Annotations, form::AbstractFormulation, ann::BD.Annotation)
+    form_uid = getuid(form)
+    if haskey(annotations.form_per_ann, form_uid)
+        error("Formulation with uid $form_uid already has annotation.")
+    end
+    annotations.form_per_ann[form_uid] = ann
+    return
+end
+
+function Base.get(annotations::Annotations, form::AbstractFormulation)
+    form_uid = getuid(form)
+    if !haskey(annotations.form_per_ann, form_uid)
+        error("Formulation with uid $form_uid does not have any annotation.")
+    end
+    return annotations.form_per_ann[form_uid]
 end
 
 function getparent(annotations::Annotations, ann)
