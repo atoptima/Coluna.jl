@@ -103,31 +103,30 @@ function instantiate_orig_constrs!(mast::Formulation{DwMaster}, orig_form::Formu
     return
 end
 
-function create_side_vars_constrs!(mast::Formulation{DwMaster}, orig_form::Formulation)
+function create_side_vars_constrs!(mast::Formulation{DwMaster}, orig_form::Formulation, annotations)
     coefmatrix = getcoefmatrix(mast)
     for sp in mast.parent_formulation.dw_pricing_subprs
         spuid = getuid(sp)
+        ann = get(annotations, sp)
         setupvars = filter(var -> getduty(var[2]) == DwSpSetupVar, getvars(sp))
         @assert length(setupvars) == 1
         setupvar = collect(values(setupvars))[1] # issue 106
         clonevar!(mast, setupvar, MasterRepPricingSetupVar, is_explicit = false)
         # create convexity constraint
-        name = "sp_lb_$spuid"
+        lb_mult = Float64(BD.getminmultiplicity(ann))
         lb_conv_constr = setconstr!(
-            mast, name, MasterConvexityConstr; rhs = 0.0, kind = Core,
-            sense = Greater
+            mast, string("sp_lb", spuid), MasterConvexityConstr; rhs = lb_mult, 
+            kind = Core, sense = Greater
         )
         mast.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
         setincval!(getrecordeddata(lb_conv_constr), 100.0)
         setincval!(getcurdata(lb_conv_constr), 100.0)
         coefmatrix[getid(lb_conv_constr), getid(setupvar)] = 1.0
 
-        name = "sp_ub_$spuid"
-        rhs = 1.0
-        sense = Less
+        ub_mult =  Float64(BD.getmaxmultiplicity(ann))
         ub_conv_constr = setconstr!(
-            mast, name, MasterConvexityConstr; rhs = 1.0, kind = Core, 
-            sense = Less
+            mast, string("sp_ub", spuid), MasterConvexityConstr; rhs = ub_mult, 
+            kind = Core, sense = Less
         )
         mast.parent_formulation.dw_pricing_sp_ub[spuid] = getid(ub_conv_constr)
         setincval!(getrecordeddata(ub_conv_constr), 100.0)
@@ -163,7 +162,7 @@ function instantiate_orig_constrs!(sp::Formulation{DwSp}, orig_form::Formulation
     return
 end
 
-function create_side_vars_constrs!(sp::Formulation{DwSp}, orig_form::Formulation)
+function create_side_vars_constrs!(sp::Formulation{DwSp}, orig_form::Formulation, annotations)
     name = "PricingSetupVar_sp_$(getuid(sp))"
     setvar!(
         sp, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, 
@@ -296,7 +295,7 @@ function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form::Formul
     return
 end
 
-function create_side_vars_constrs!(sp::Formulation{BendersSp}, orig_form::Formulation)
+function create_side_vars_constrs!(sp::Formulation{BendersSp}, orig_form::Formulation, annotations)
     sp_coef = getcoefmatrix(sp)
     sp_id = getuid(sp)
     # Cost constraint
@@ -336,12 +335,13 @@ function buildformulations!(prob::Problem, annotations::Annotations, reform,
     form_type = BD.getformulation(ann)
     dec_type = BD.getdecomposition(ann)
     form = instantiatemaster!(prob, reform, form_type, dec_type)
+    store!(annotations, form, ann)
     orig_form = get_original_formulation(prob)
     assign_orig_vars_constrs!(form, orig_form, annotations, ann)
     for (id, child) in BD.subproblems(node)
         buildformulations!(prob, annotations, reform, node, child)
     end
-    create_side_vars_constrs!(form, orig_form)
+    create_side_vars_constrs!(form, orig_form, annotations)
     create_artificial_vars!(form)
     initialize_optimizer!(form, getoptbuilder(prob, ann))
     return
@@ -354,9 +354,10 @@ function buildformulations!(prob::Problem, annotations::Annotations, reform,
     dec_type = BD.getdecomposition(ann)
     mast = getmaster(reform)
     form = instantiatesp!(prob, reform, mast, form_type, dec_type)
+    store!(annotations, form, ann)
     orig_form = get_original_formulation(prob)
     assign_orig_vars_constrs!(form, orig_form, annotations, ann)
-    create_side_vars_constrs!(form, orig_form)
+    create_side_vars_constrs!(form, orig_form, annotations)
     initialize_optimizer!(form, getoptbuilder(prob, ann))
     return
 end
