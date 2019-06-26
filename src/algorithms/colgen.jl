@@ -232,7 +232,7 @@ function update_lagrangian_db!(alg::ColumnGenerationData,
     lagran_bnd = DualBound{S}(0.0)
     lagran_bnd += compute_master_db_contrib(alg, restricted_master_sol_value)
     lagran_bnd += pricing_sp_dual_bound_contrib
-    set_ip_dual_bound!(algwtr.incumbents, lagran_bnd)
+    set_ip_dual_bound!(alg.incumbents, lagran_bnd)
     return lagran_bnd
 end
 

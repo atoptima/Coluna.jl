@@ -163,22 +163,10 @@ function DualSolution(f::AbstractFormulation,
     return DualSolution{S}(DualBound{S}(float(value)), sol)
 end
 
-function DualSolution{S}(value::Number, 
-                         soldict::Dict{Id{Constraint},Float64},
-                         elements::Dict{Id{Constraint},Constraint}) where{S}
-    sol = MembersVector{Float64}(elements)
-    for (key, val) in soldict
-        sol[key] = val
-    end
-    return DualSolution{S}(DualBound{S}(float(value)), sol)
-end
-
-
 getbound(s::AbstractSolution) = s.bound
 getsol(s::AbstractSolution) = s.sol
 getvalue(s::AbstractSolution) = float(s.bound)
 setvalue!(s::AbstractSolution, v::Float64) = s.bound = v
-
 
 iterate(s::AbstractSolution) = iterate(s.sol)
 iterate(s::AbstractSolution, state) = iterate(s.sol, state)
@@ -200,12 +188,13 @@ end
 
 Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
 
-function Base.filter(f::Function, ds::DualSolution{S}) where {S<:AbstractObjSense}
-    newsol = filter(f, ds.sol.records)
-    elements = getelements(ds.sol)
+function Base.filter(f::Function, dualsol::DualSolution{S}
+        ) where {S<:AbstractObjSense}
+    newsol = filter(f, dualsol.sol)
+    elements = getelements(dualsol.sol)
     bound = 0.0
-    for id_val in newsol
-        bound += id_val[2] * getcurrhs(elements[id_val[1]])
+    for (id, val) in newsol
+        bound += val * getcurrhs(elements[id])
     end
-    return DualSolution{S}(bound, newsol, elements) 
+    return DualSolution{S}(bound, newsol) 
 end

@@ -57,23 +57,14 @@ function addconstr!(m::FormulationManager, constr::Constraint)
 end
 
 getvar(m::FormulationManager, id::VarId) = m.vars[id]
-
 getconstr(m::FormulationManager, id::ConstrId) = m.constrs[id]
-
 getvars(m::FormulationManager) = m.vars
-
 getconstrs(m::FormulationManager) = m.constrs
-
 getcoefmatrix(m::FormulationManager) = m.coefficients
-
 getprimaldwspsolmatrix(m::FormulationManager) = m.primal_dwsp_sols
-
 getdualbendspsolmatrix(m::FormulationManager) = m.dual_bendsp_sols
-
 getprimalbendspsolmatrix(m::FormulationManager) = m.primal_bendsp_sols
-
 getexpressionmatrix(m::FormulationManager) = m.expressions
-
 	
 function Base.show(io::IO, m::FormulationManager)
     println(io, "FormulationManager :")
@@ -87,7 +78,3 @@ function Base.show(io::IO, m::FormulationManager)
     end
     return
 end
-
-
-# =================================================================
-

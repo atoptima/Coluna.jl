@@ -235,9 +235,8 @@ function generatecuts!(alg::BendersCutGenerationData,
         @show fonction(id_val)
    end
 
-    fonction = c -> getduty(getconstr(master_form, c[1])) == MasterPureConstr
+    fonction = constr -> getduty(constr) == MasterPureConstr
     filtered_dual_sol = filter(fonction, dual_sol)
-    
     
     nb_new_cuts = 0
     while true # TODO Replace this condition when starting implement stabilization

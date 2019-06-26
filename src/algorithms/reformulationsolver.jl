@@ -112,9 +112,6 @@ end
 
 function apply!(::Type{<:GlobalStrategy}, reform::Reformulation)
     solver_record = apply!(ReformulationSolver, reform)
-    @show "function apply!(::Type{<:GlobalStrategy}, reform::Reformulation)"
-    @show reform.strategy
-
     return OptimizationResult{getobjsense(reform.master)}(solver_record.feasible,
         get_ip_primal_bound(solver_record.incumbents),
         get_ip_dual_bound(solver_record.incumbents),
