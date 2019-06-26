@@ -82,8 +82,8 @@ function insert_cuts_in_master!(master_form::Formulation,
             duty = MasterBendCutConstr
             bc = setprimaldualbendspsol!(
                 master_form, name, primal_sol, dual_sol, duty; 
-                kind = kind, sense = sense
-            )
+                kind = kind, sense = sense)
+          
             @logmsg LogLevel(-2) string("Generated cut : ", name)
 
             # TODO: check if cut exists
@@ -226,14 +226,15 @@ function generatecuts!(alg::BendersCutGenerationData,
 
     # Filter the dual solution
     master_form = reform.master
-    fonction = c -> getduty(getconstr(master_form, c[1])) == MasterPureConstr
+    
+    #==fonction = c -> getduty(getconstr(master_form, c[1])) == MasterPureConstr
     for id_val in dual_sol.sol
         @show id_val
         @show id_val[1]
         @show getconstr(master_form, id_val[1])
         @show getduty(getconstr(master_form, id_val[1]))
         @show fonction(id_val)
-   end
+   end==#
 
     fonction = constr -> getduty(constr) == MasterPureConstr
     filtered_dual_sol = filter(fonction, dual_sol)

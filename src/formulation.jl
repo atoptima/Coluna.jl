@@ -174,7 +174,7 @@ function setvar!(f::Formulation,
     return addvar!(f, v)
 end
 
-function setprimaldwspsol!(f::Formulation,
+function setprimaldwspsol!(master_form::Formulation,
                          name::String,
                          sol::PrimalSolution{S},
                          duty::Type{<:AbstractVarDuty};
@@ -186,26 +186,30 @@ function setprimaldwspsol!(f::Formulation,
                          is_active::Bool = true,
                          is_explicit::Bool = true,
                          moi_index::MoiVarIndex = MoiVarIndex()) where {S<:AbstractObjSense}
-    ps_id = generatevarid(f)
+
+    #master_form = sp_form.parent_formulation
+    ps_id = generatevarid(master_form)
     ps_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
     ps = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
 
-    coef_matrix = getcoefmatrix(f)
-    primalspsol_matrix = getprimaldwspsolmatrix(f)
+    master_coef_matrix = getcoefmatrix(master_form)
+    primalspsol_matrix = getprimaldwspsolmatrix(master_form)
 
     for (var_id, var_val) in sol
         primalspsol_matrix[var_id, ps_id] = var_val
-        for (constr_id, var_coef) in coef_matrix[:,var_id]
-            coef_matrix[constr_id, ps_id] += var_val * var_coef
+         @show getvar(master_form, var_id)
+      @show  master_coef_matrix[:,var_id]
+        for (constr_id, var_coef) in master_coef_matrix[:,var_id]
+            master_coef_matrix[constr_id, ps_id] += var_val * var_coef
         end
     end
 
-    return addvar!(f, ps)
+    return addvar!(master_form, ps)
 end
 
 
 
-function setprimaldualbendspsol!(f::Formulation,
+function setprimaldualbendspsol!(master_form::Formulation,
                                  name::String,
                                  primal_sol::PrimalSolution{S},
                                  dual_sol::DualSolution{S},
@@ -216,8 +220,9 @@ function setprimaldualbendspsol!(f::Formulation,
                                  is_active::Bool = true,
                                  is_explicit::Bool = true,
                                  moi_index::MoiConstrIndex = MoiConstrIndex()) where {S<:AbstractObjSense}
-    
-    dps_id = generateconstrid(f)
+
+    #master_form = sp_form.parent_formulation
+    dps_id = generateconstrid(master_form)
     dps_data = ConstrData(getvalue(dual_sol), kind, sense, inc_val, is_active, is_explicit)
     dps = Constraint(dps_id, name, duty; constr_data = dps_data, moi_index = moi_index)
 
@@ -227,14 +232,30 @@ function setprimaldualbendspsol!(f::Formulation,
     
     @show dps
     
-    coef_matrix = getcoefmatrix(f)
-    primalbendspsol_matrix = getprimalbendspsolmatrix(f)
-    dualbendspsol_matrix = getdualbendspsolmatrix(f)
+    master_coef_matrix = getcoefmatrix(master_form)
+    #sp_coef_matrix = getcoefmatrix(sp_form)
+    primalbendspsol_matrix = getprimalbendspsolmatrix(master_form)
+    dualbendspsol_matrix = getdualbendspsolmatrix(master_form)
+
+    #==for (constr_id, constr_val) in dual_sol
+        constr = get(sp_form, constr_id)
+        if getduty(constr) <: AbstractBendSpMasterConstr
+            dualbendspsol_matrix[constr_id, dps_id] = constr_val
+            for (var_id, constr_coef) in sp_coef_matrix[constr_id,:]
+                var = get(sp_form, var_id)
+                if getduty(var) <: AbstractBendSpRepMastVar
+                     master_coef_matrix[dps_id, var_id] += constr_val * constr_coef
+                end
+            end
+        end
+    end ==#
 
     for (constr_id, constr_val) in dual_sol
         dualbendspsol_matrix[constr_id, dps_id] = constr_val
-        for (var_id, constr_coef) in coef_matrix[constr_id,:]
-            coef_matrix[dps_id, var_id] += constr_val * constr_coef
+        @show getconstr(master_form, constr_id)
+        @show master_coef_matrix[constr_id,:]
+        for (var_id, constr_coef) in master_coef_matrix[constr_id,:]
+            master_coef_matrix[dps_id, var_id] += constr_val * constr_coef
         end
     end
 

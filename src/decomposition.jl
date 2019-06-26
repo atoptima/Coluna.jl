@@ -98,7 +98,7 @@ function instantiate_orig_constrs!(mast::Formulation{DwMaster}, orig_form::Formu
     !haskey(annotations.constrs_per_ann, mast_ann) && return
     constrs = annotations.constrs_per_ann[mast_ann]
     for (id, constr) in constrs
-        cloneconstr!(mast, constr, MasterMixedConstr)
+        cloneconstr!(mast, constr, MasterMixedConstr) # TODO distinguish Pure versus Mixed
     end
     return
 end
@@ -173,54 +173,77 @@ function create_side_vars_constrs!(sp::Formulation{DwSp}, orig_form::Formulation
 end
 
 
-function dutyofbendmastvar(var, annotations, orig_form::Formulation)
+function dutyexpofbendmastvar(var, annotations, orig_form::Formulation)
     orig_coef = getcoefmatrix(orig_form)
     for (constrid, coef) in orig_coef[:, getid(var)]
         constr_ann = annotations.ann_per_constr[constrid]
         #if coef != 0 && BD.getformulation(constr_ann) == BD.Benders  # TODO use haskey instead testing != 0
         if BD.getformulation(constr_ann) == BD.BendersSepSp 
-            return MasterBendFirstStageVar
+            return MasterBendFirstStageVar, true
         end
     end
-    return MasterPureVar
+    return MasterPureVar, true
 end
+
+
 
 # Master of Benders decomposition
 function instantiate_orig_vars!(mast::Formulation{BendersMaster}, orig_form, annotations, mast_ann)
     !haskey(annotations.vars_per_ann, mast_ann) && return
     vars = annotations.vars_per_ann[mast_ann]
     for (id, var) in vars
-        duty = dutyofbendmastvar(var, annotations, orig_form)
-        clonevar!(mast, var, duty)
+        duty, explicit = dutyexpofbendmastvar(var, annotations, orig_form)
+        clonevar!(mast, var, duty, is_explicit = explicit)
     end
     return
+end
+
+function dutyexpofbendmastconstr(constr, annotations, orig_form::Formulation)
+    orig_coef = getcoefmatrix(orig_form)
+    for (varid, coef) in orig_coef[getid(constr), :]
+        var_ann = annotations.ann_per_var[varid]
+        if BD.getformulation(var_ann) == BD.BendersSepSp 
+            return MasterRepBendSpTechnologicalConstr, false
+        end
+    end
+    return MasterPureConstr, true
 end
 
 function instantiate_orig_constrs!(mast::Formulation{BendersMaster}, orig_form::Formulation, annotations, mast_ann)
     !haskey(annotations.constrs_per_ann, mast_ann) && return
     constrs = annotations.constrs_per_ann[mast_ann]
     for (id, constr) in constrs
-        cloneconstr!(mast, constr, MasterPureConstr)
+        duty, explicit = dutyexpofbendmastconstr(constr, annotations, orig_form)
+        cloneconstr!(mast, constr, duty, is_explicit = explicit)
     end
     return
 end
 
 function create_side_vars_constrs!(mast::Formulation{BendersMaster}, orig_form::Formulation)
+    
+    coefmatrix = getcoefmatrix(mast)
+
+    eta = setvar!(
+            mast, "η", MasterBendSecondStageCostVar; cost = 1.0,
+            lb = -1.0, ub = Inf, 
+            kind = Continuous, sense = Free, is_explicit = true
+    )
+    cost = setconstr!(
+              mast, "mcost", MasterRepBendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
+              sense = Equal, is_explicit = true
+              )
+    coefmatrix[getid(cost), getid(eta)] = 1.0
+ 
     for sp in mast.parent_formulation.benders_sep_subprs
         nu = collect(values(filter(var -> getduty(var[2]) == BendSpSlackSecondStageCostVar, getvars(sp))))[1]
-        name = "η[$(split(getname(nu), "[")[end])"
-        setvar!(
-            mast, name, MasterBendSecondStageCostVar; cost = getcurcost(nu),
+        name = "ν[$(split(getname(nu), "[")[end])"
+        mast_nu = setvar!(
+            mast, name, MasterBendSecondStageCostVar; cost = 0.0,
             lb = -1.0, ub = Inf, 
             kind = Continuous, sense = Free, is_explicit = true, id = getid(nu)
         )
-        # setvar!(
-        #     sp, name, BendSpRepSecondStageCostVar; cost = getcurcost(nu),
-        #     lb = -Inf, ub = Inf, 
-        #     kind = Continuous, sense = Free, is_explicit = false,
-        #     id = Id{Variable}(getid(nu), 2)
-        # )
-        # clone_in_formulation!(mast, sp, eta, MasterBendSecondStageCostVar)
+        coefmatrix[getid(cost), getid(nu)] = - 1.0
+
     end
     return
 end
@@ -252,21 +275,15 @@ function instantiate_orig_vars!(sp::Formulation{BendersSp}, orig_form::Formulati
     mast_ann = getparent(annotations, sp_ann)
     if haskey(annotations.vars_per_ann, mast_ann)
         vars = annotations.vars_per_ann[mast_ann]
-        for (id, var) in vars
-            if dutyofbendmastvar(var, annotations, orig_form) == MasterBendFirstStageVar
-                #if involvedinbendsp(var, orig_form, annotations, sp_ann)
+           for (id, var) in vars
+            duty, explicit = dutyexpofbendmastvar(var, annotations, orig_form)
+            if duty == MasterBendFirstStageVar
                 name = "μ[$(split(getname(var), "[")[end])"
                 mu = setvar!(
                     sp, name, BendSpSlackFirstStageVar; cost = getcurcost(var),
                     lb = -Inf, ub = Inf, 
                     kind = Continuous, sense = Free, is_explicit = true, id = id
                 )
-                # setvar!(
-                #     sp, getname(var), BendSpRepFirstStageVar; cost = 0.0,
-                #     lb = -Inf, ub = Inf, 
-                #     kind = getperenekind(var), sense = getperenesense(var), is_explicit = false,
-                #     id = Id{Variable}(getid(mu), 2)
-                # )
             end
         end
     end
@@ -286,12 +303,12 @@ function dutyofbendspconstr(constr, annotations, orig_form)
     return BendSpPureConstr
 end
 
-function instantiate_orig_constrs!(sp::Formulation{BendersSp}, orig_form::Formulation, annotations, sp_ann)
+function instantiate_orig_constrs!(sp_form::Formulation{BendersSp}, orig_form::Formulation, annotations, sp_ann)
     !haskey(annotations.constrs_per_ann, sp_ann) && return
     constrs = annotations.constrs_per_ann[sp_ann]
     for (id, constr) in constrs
         duty = dutyofbendspconstr(constr, annotations, orig_form)
-        cloneconstr!(sp, constr, duty)
+                                                  cloneconstr!(sp_form, constr, duty)
     end
     return
 end
@@ -383,3 +400,7 @@ function reformulate!(prob::Problem, annotations::Annotations,
     #     #exit()
     # end
 end
+
+                                                  #if duty <: AbstractMasterRepBendSpConstr
+                                                  #cloneconstr!(master_form, constr, duty)
+                                                  #end

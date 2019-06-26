@@ -44,6 +44,7 @@ abstract type AbstractMasterRepDwSpVar <: AbstractImplicitMasterVar end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
 abstract type AbstractBendSpVar <: AbstractVarDuty end
 abstract type AbstractBendSpRepMastVar <: AbstractBendSpVar end
+abstract type AbstractBendSpSlackMastVar <: AbstractBendSpVar end
 
 # Concrete types for VarDuty
 struct OriginalVar <: AbstractOriginalVar end
@@ -63,9 +64,9 @@ struct DwSpPureVar <: AbstractDwSpVar end
 
 struct BendSpSepVar <: AbstractBendSpVar end
 struct BendSpPureVar <: AbstractBendSpVar end
-struct BendSpSlackFirstStageVar  <: AbstractBendSpRepMastVar end
-struct BendSpSlackSecondStageCostVar <: AbstractBendSpRepMastVar end
-struct BendSpRepFirstStageVar  <: AbstractBendSpRepMastVar end
+struct BendSpSlackFirstStageVar <: AbstractBendSpSlackMastVar end
+struct BendSpSlackSecondStageCostVar <: AbstractBendSpSlackMastVar end
+struct BendSpRepFirstStageVar <: AbstractBendSpRepMastVar end
 struct BendSpRepSecondStageCostVar <: AbstractBendSpRepMastVar end
 
 struct UndefinedVarDuty <: AbstractVarDuty end
@@ -79,6 +80,8 @@ abstract type AbstractOriginalConstr <: AbstractConstrDuty end
 abstract type AbstractMasterConstr <: AbstractConstrDuty end
 abstract type AbstractMasterOriginConstr <: AbstractMasterConstr end
 abstract type AbstractMasterAddedConstr <: AbstractMasterConstr end
+abstract type AbstractMasterImplicitConstr <: AbstractMasterConstr end
+abstract type AbstractMasterRepBendSpConstr <: AbstractMasterImplicitConstr end
 abstract type AbstractMasterCutConstr <: AbstractMasterConstr end
 abstract type AbstractMasterBranchingConstr <: AbstractMasterConstr end
 abstract type AbstractDwSpConstr <: AbstractConstrDuty end
@@ -95,6 +98,8 @@ struct MasterConvexityConstr <: AbstractMasterAddedConstr end
 struct MasterSecondStageCostConstr <: AbstractMasterAddedConstr end
 struct MasterBendCutConstr <: AbstractMasterCutConstr end
 struct MasterBranchOnOrigVarConstr <: AbstractMasterBranchingConstr end
+struct MasterRepBendSpSecondStageCostConstr <: AbstractMasterRepBendSpConstr end
+struct MasterRepBendSpTechnologicalConstr <: AbstractMasterRepBendSpConstr end
 
 struct DwSpPureConstr <: AbstractDwSpConstr end
 struct DwSpRepMastBranchConstr <: AbstractDwSpConstr end
