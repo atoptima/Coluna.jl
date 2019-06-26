@@ -408,7 +408,6 @@ function computereducedcost(form::Formulation, var_id::Id{Variable}, dual_sol::D
 end
 
 function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primal_sol::PrimalSolution{S})  where {S<:AbstractObjSense}
-
     constr = getconstr(form,constr_id)
     crhs = getperenerhs(constr)
     coefficient_matrix = getcoefmatrix(form)
