@@ -83,9 +83,9 @@ remove!(buffer::FormulationBuffer, constr::Constraint) = remove!(
     buffer.constr_buffer, constr
 )
 
-function change_rhs!(buffer::FormulationBuffer, c::Constraint)
-    !get_cur_is_explicit(c) && return
-    push!(buffer.changed_rhs, getid(c))
+function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
+    !get_cur_is_explicit(constr) && return
+    push!(buffer.changed_rhs, getid(constr))
     return
 end
 
