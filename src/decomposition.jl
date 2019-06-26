@@ -375,14 +375,14 @@ function reformulate!(prob::Problem, annotations::Annotations,
     set_re_formulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
 
-    println("\e[1;31m ------------- \e[00m")
-    @show get_original_formulation(prob)
-    println("\e[1;31m ------------- \e[00m")
-    @show getmaster(reform)
-    println("\e[1;32m ------------- \e[00m")
-    for sp in reform.benders_sep_subprs
-        @show sp
-        println("\e[1;32m ------------- \e[00m")
-        #exit()
-    end
+    # println("\e[1;31m ------------- \e[00m")
+    # @show get_original_formulation(prob)
+    # println("\e[1;31m ------------- \e[00m")
+    # @show getmaster(reform)
+    # println("\e[1;32m ------------- \e[00m")
+    # for sp in reform.benders_sep_subprs
+    #     @show sp
+    #     println("\e[1;32m ------------- \e[00m")
+    #     #exit()
+    # end
 end
