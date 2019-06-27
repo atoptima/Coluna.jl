@@ -68,7 +68,9 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
     end
     println(_to)
     println("Terminated.")
-    @show getbestprimalsol(opt_result)
+    if nbprimalsols(opt_result) >= 1
+        @show getbestprimalsol(opt_result)
+    end
     println("Primal bound: ", getprimalbound(opt_result))
     println("Dual bound: ", getdualbound(opt_result))
     return opt_result

@@ -21,8 +21,8 @@ struct MostFractionalRule <: RuleForUsualBranching end
 function run!(::Type{GenerateChildrenNode}, formulation, node, strategy_rec, parameters)
     @logmsg LogLevel(0) "Run generate children nodes"
     algorithm_data =  GenerateChildrenNodeData(getincumbents(node), formulation)
-    if ip_gap(algorithm_data.incumbents) <= 0.0
-        @logmsg LogLevel(-1) string("Subtree is conquered, no need for branching.")
+    if !isfertile(node)
+        @logmsg LogLevel(1) "Node is not capable of generating childre, aborting branching"
         return GenerateChildrenNodeRecord(Node[])
     end
     found_candiate, var_id, val = best_candidate(MostFractionalRule, algorithm_data)
