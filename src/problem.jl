@@ -125,5 +125,6 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
         opt_result = optimize!(prob.re_formulation)
     end
     println(_to)
+    TO.reset_timer!(_to)
     return opt_result
 end
