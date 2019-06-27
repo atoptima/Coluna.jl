@@ -1,8 +1,24 @@
 # Algorithms and Strategies
 
-Modern branch-and-cut-and-price frameworks combine several algorithms. Conquering a node may involve column generation, cut generation, a heuristic to find feasible solutions...  Generating children may involve simple algorithms (e.g. select more fractional variable) as well as more advanced methods that combine algorithms (e.g. strong branching).
+Modern branch-and-cut-and-price frameworks combine several algorithms. 
+Conquering a node may involve column generation, cut generation, a heuristic to 
+find feasible solutions...  
+Generating children may involve simple algorithms (e.g. select more fractional 
+variable) as well as more advanced methods that combine algorithms (e.g. 
+strong branching).
 
-`Coluna` proposes an environment that allows the user to easily combine algorithms to build advanced methods. A combination of algorithms is called a **Strategy**.
+## Optimize the decomposed problem
+A decomposed problem is optimized by a branch-and-bound algorithm embbeded in 
+`ReformulationSolver`.
+
+```@docs
+Coluna.ReformulationSolver
+```
+
+## Strategies
+`Coluna` proposes an environment that allows the user to easily combine 
+algorithms to build advanced methods. A combination of algorithms is 
+called a **Strategy**.
 
 ```julia
 abstract type AbstractStrategy end
@@ -16,9 +32,14 @@ abstract type AbstractDivideStrategy <: AbstractStrategy end # To branch
 abstract type AbstractTreeSearchStrategy <: AbstractStrategy end # To choose the node
 ```
 
-The role of a strategy is to implement some of the sub-routines of the whole algorithm. Its use is linked to the part of the algorithm which it was designed for. For example, a strategy inheriting from `AbstractConquerStrategy` defines how a node of the branch-and-bound tree is going to be solved.
+The role of a strategy is to implement some of the sub-routines of the whole 
+algorithm. Its use is linked to the part of the algorithm which it was designed 
+for. For example, a strategy inheriting from `AbstractConquerStrategy` defines 
+how a node of the branch-and-bound tree is going to be solved.
 
-A combination of these three types of strategy is a `GlobalStrategy`. It defines the behavior of `Coluna` to solve the decomposed problem.
+A combination of these three types of strategy is a `GlobalStrategy`. 
+It defines the behavior of the `ReformulationSolver` to optimize the decomposed 
+problem.
 
 ```julia
 struct GlobalStrategy <: AbstractStrategy
@@ -27,8 +48,6 @@ struct GlobalStrategy <: AbstractStrategy
 	tree_search_strategy::AbstractTreeSearchStrategy
 end
 ```
-
-
 
 ## Algorithms as atomic sub-routines
 
@@ -55,5 +74,13 @@ Coluna.prepare!
 Coluna.run!
 ```
 
-The user can create his algorithm outside Coluna. He must overload the data structures and methods introduced above.
+The user can create his own algorithm outside Coluna. 
+He must overload the data structures and methods introduced above.
+
+## Rules
+
+- A `Strategy` can call several `Strategy` and `Algorithm`
+- An `Algorithm` can call only a `ReformulationSolver`
+- A `ReformulationSolver` is a branch-and-bound algorithm which behavior is 
+  defined by a `GlobalStrategy`.
 
