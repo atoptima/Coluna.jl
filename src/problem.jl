@@ -125,9 +125,5 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
         opt_result = optimize!(prob.re_formulation)
     end
     println(_to)
-    println("Terminated.")
-    @show getbestprimalsol(opt_result)
-    println("Primal bound: ", getprimalbound(opt_result))
-    println("Dual bound: ", getdualbound(opt_result))
     return opt_result
 end
