@@ -73,18 +73,18 @@ function generalized_assignment_tests()
     end
 
     @testset "gap with infeasible subproblem" begin
-    data = CLD.GeneralizedAssignment.data("root_infeas.txt")
+        data = CLD.GeneralizedAssignment.data("root_infeas.txt")
 
-    coluna = JuMP.with_optimizer(Coluna.Optimizer,
-    params = CL.Params(
-            global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
-        ),
-        default_optimizer = with_optimizer(GLPK.Optimizer))
+        coluna = JuMP.with_optimizer(Coluna.Optimizer,
+        params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer))
    
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-    JuMP.optimize!(problem)
-    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+        JuMP.optimize!(problem)
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
     end
 
     # @testset "gap BIG instance" begin
