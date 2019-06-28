@@ -116,7 +116,6 @@ end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before
 # # function optimize!(problem::Reformulation)
-
 function optimize!(prob::Problem, annotations::Annotations, params::Params)
     coluna_initialization(prob, annotations, params)
     _globals_.initial_solve_time = time()
@@ -125,9 +124,9 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
         opt_result = optimize!(prob.re_formulation)
     end
     println(_to)
-    println("Terminated.")
-    @show getbestprimalsol(opt_result)
-    println("Primal bound: ", getprimalbound(opt_result))
-    println("Dual bound: ", getdualbound(opt_result))
+    TO.reset_timer!(_to)
+    @logmsg LogLevel(1) "Terminated"
+    @logmsg LogLevel(1) string("Primal bound: ", getprimalbound(opt_result))
+    @logmsg LogLevel(1) string("Dual bound: ", getdualbound(opt_result))
     return opt_result
 end
