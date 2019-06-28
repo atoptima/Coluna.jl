@@ -2,9 +2,9 @@ function preprocessing_tests()
     @testset "play gap with preprocessing" begin
         play_gap_with_preprocessing_tests()
     end
-#    @testset "Preprocessing with random instances" begin
-#       random_instances_tests()
-#   end
+    @testset "Preprocessing with random instances" begin
+        random_instances_tests()
+    end
 end
 
 function gen_random_small_gap_instance()

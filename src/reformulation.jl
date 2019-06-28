@@ -31,10 +31,11 @@ setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = push!(r.dw_pricing_subprs, f)
 
 function optimize!(reformulation::Reformulation)
-    opt_result = apply!(GlobalStrategy, reformulation)
-    opt_result.primal_sols = [proj_cols_on_rep(
-        getbestprimalsol(opt_result), getmaster(reformulation)
-    )]
+    opt_result = apply!(GlobalStrategy, reformulation).result
+    master = getmaster(reformulation)
+    for (idx, sol) in enumerate(getprimalsols(opt_result))
+        opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)
+    end
     return opt_result
 end
 

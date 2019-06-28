@@ -96,6 +96,12 @@ function to_be_pruned(n::Node)
     return false
 end
 
+function isfertile(n::Node)
+    ip_gap(getincumbents(n)) <= 0.0 && return false
+    isinteger(get_lp_primal_sol(getincumbents(n))) && return false
+    return true
+end
+
 function record!(reform::Reformulation, node::Node)
     @logmsg LogLevel(0) "Recording reformulation state after solving node."
     node.status.need_to_prepare = true

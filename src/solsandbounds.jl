@@ -30,6 +30,9 @@ defaultdualboundvalue(::Type{MaxSense}) = +Inf
 
 getvalue(b::AbstractBound) = b.value
 
+valueinminsense(b::PrimalBound) = b.value
+valueinminsense(b::DualBound) = -b.value
+
 "Returns `true` iff `b1` is considered to be a better primal bound than `b2` for a minimization objective function."
 isbetter(b1::PrimalBound{MinSense}, b2::PrimalBound{MinSense}) = b1.value < b2.value
 
@@ -131,6 +134,8 @@ function Base.isinteger(s::PrimalSolution)
     return true
 end
 
+isfractional(s::AbstractSolution) = !Base.isinteger(s)
+
 """
     DualSolution{S} where S <: AbstractObjSense
 
@@ -167,7 +172,6 @@ getbound(s::AbstractSolution) = s.bound
 getsol(s::AbstractSolution) = s.sol
 getvalue(s::AbstractSolution) = float(s.bound)
 setvalue!(s::AbstractSolution, v::Float64) = s.bound = v
-
 
 iterate(s::AbstractSolution) = iterate(s.sol)
 iterate(s::AbstractSolution, state) = iterate(s.sol, state)
