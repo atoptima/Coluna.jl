@@ -11,6 +11,7 @@ makedocs(
         "Installation"   => "installation.md",
         "Introduction"   => "introduction.md",
         "Basic Example"   => "basic.md",
+        "Algorithms & Strategies" => "strategies.md"
     ]
 )
 

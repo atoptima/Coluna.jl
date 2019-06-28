@@ -19,6 +19,11 @@ mutable struct ReformulationSolverRecord <: AbstractAlgorithmRecord
     incumbents::Incumbents
 end
 
+"""
+    ReformulationSolver
+
+Branch-and-bound algorithm to optimize a `Reformulation`.
+"""
 mutable struct ReformulationSolver <: AbstractAlgorithm
     primary_tree::SearchTree
     secondary_tree::SearchTree
