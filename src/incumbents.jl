@@ -72,8 +72,6 @@ function set_ip_primal_sol!(inc::Incumbents{S},
     return false
 end
 
-
-
 """
 Updates the best primal solution to the linear program if the new one is better
 than the current one according to the objective sense.
