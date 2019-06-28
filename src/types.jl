@@ -43,7 +43,7 @@ abstract type AbstractImplicitMasterVar <: AbstractMasterVar end
 abstract type AbstractMasterRepDwSpVar <: AbstractImplicitMasterVar end
 abstract type AbstractDwSpVar <: AbstractVarDuty end
 abstract type AbstractBendSpVar <: AbstractVarDuty end
-abstract type AbstractBendSpRepMastVar <: AbstractBendSpVar end
+#abstract type AbstractBendSpRepMastVar <: AbstractBendSpVar end
 abstract type AbstractBendSpSlackMastVar <: AbstractBendSpVar end
 
 # Concrete types for VarDuty
@@ -66,8 +66,8 @@ struct BendSpSepVar <: AbstractBendSpVar end
 struct BendSpPureVar <: AbstractBendSpVar end
 struct BendSpSlackFirstStageVar <: AbstractBendSpSlackMastVar end
 struct BendSpSlackSecondStageCostVar <: AbstractBendSpSlackMastVar end
-struct BendSpRepFirstStageVar <: AbstractBendSpRepMastVar end
-struct BendSpRepSecondStageCostVar <: AbstractBendSpRepMastVar end
+#struct BendSpRepFirstStageVar <: AbstractBendSpRepMastVar end
+#struct BendSpRepSecondStageCostVar <: AbstractBendSpRepMastVar end
 
 struct UndefinedVarDuty <: AbstractVarDuty end
 
@@ -168,8 +168,8 @@ const StaticDuty = Union{
     Type{DwSpPureVar}, 
     Type{BendSpSepVar}, 
     Type{BendSpPureVar}, 
-    Type{BendSpRepFirstStageVar },
-    Type{BendSpRepSecondStageCostVar}, 
+    Type{BendSpSlackFirstStageVar },
+    Type{BendSpSlackSecondStageCostVar}, 
     Type{OriginalConstr},
     Type{MasterPureConstr}, 
     Type{MasterMixedConstr}, 

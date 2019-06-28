@@ -266,3 +266,15 @@ of each `Variable` in the `Constraint`.
 function rows(m::MembersMatrix)
     return m.rows
 end
+
+function haskey(m::MembersMatrix{I,K,J,L,T}, row_id::J, col_id::I) where {I,K,J,L,T}
+    if !haskey(m.cols.records, col_id)
+        return false
+    end
+    if !haskey(m.rows.records, row_id)
+        return false
+    end
+    
+    return true
+end
+

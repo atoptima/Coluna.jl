@@ -188,28 +188,34 @@ function setprimaldwspsol!(master_form::Formulation,
                          moi_index::MoiVarIndex = MoiVarIndex()) where {S<:AbstractObjSense}
 
     #master_form = sp_form.parent_formulation
-    ps_id = generatevarid(master_form)
-    ps_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
-    ps = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
+    mastcol_id = generatevarid(master_form)
+    mastcol_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
+    mastcol = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
 
     master_coef_matrix = getcoefmatrix(master_form)
     primalspsol_matrix = getprimaldwspsolmatrix(master_form)
 
     for (var_id, var_val) in sol
         primalspsol_matrix[var_id, ps_id] = var_val
-         @show getvar(master_form, var_id)
-      @show  master_coef_matrix[:,var_id]
+        @show getvar(master_form, var_id)
+        @show  master_coef_matrix[:,var_id]
         for (constr_id, var_coef) in master_coef_matrix[:,var_id]
-            master_coef_matrix[constr_id, ps_id] += var_val * var_coef
+            if haskey(master_coef_matrix, constr_id, mastcol_id)
+                master_coef_matrix[constr_id, mastcol_id] += coef + var_val * var_coef
+            else
+                master_coef_matrix[constr_id, mastcol_id] = coef + var_val * var_coef
+            end
+            
         end
     end
 
-    return addvar!(master_form, ps)
+    return addvar!(master_form, mastcol)
 end
 
 
 
 function setprimaldualbendspsol!(master_form::Formulation,
+                                 sp_form::Formulation,
                                  name::String,
                                  primal_sol::PrimalSolution{S},
                                  dual_sol::DualSolution{S},
@@ -221,54 +227,79 @@ function setprimaldualbendspsol!(master_form::Formulation,
                                  is_explicit::Bool = true,
                                  moi_index::MoiConstrIndex = MoiConstrIndex()) where {S<:AbstractObjSense}
 
-    #master_form = sp_form.parent_formulation
-    dps_id = generateconstrid(master_form)
-    dps_data = ConstrData(getvalue(dual_sol), kind, sense, inc_val, is_active, is_explicit)
-    dps = Constraint(dps_id, name, duty; constr_data = dps_data, moi_index = moi_index)
+   
+
+
+    benders_cut = setconstr!(master_form,
+                     name,
+                     duty;
+                     rhs = getvalue(dual_sol),
+                     kind = Core,
+                     sense = sense,
+                     inc_val = inc_val,
+                     is_active = is_active,
+                     is_explicit = is_explicit,
+                     moi_index = moi_index)
+    cut_id = getid(benders_cut)
+    
+    #==cut_id = generateconstrid(master_form)
+    cut_data = ConstrData(getvalue(dual_sol), kind, sense, inc_val, is_active, is_explicit)
+    cut = Constraint(cut_id, name, duty; constr_data = cut_data, moi_index = moi_index)
+    benders_cut = addconstr!(master_form, cut)==#
 
     @show primal_sol
     
     @show dual_sol
     
-    @show dps
     
     master_coef_matrix = getcoefmatrix(master_form)
-    #sp_coef_matrix = getcoefmatrix(sp_form)
+    sp_coef_matrix = getcoefmatrix(sp_form)
     primalbendspsol_matrix = getprimalbendspsolmatrix(master_form)
     dualbendspsol_matrix = getdualbendspsolmatrix(master_form)
 
-    #==for (constr_id, constr_val) in dual_sol
-        constr = get(sp_form, constr_id)
+    @show "********** building cut *************"
+    for (constr_id, constr_val) in dual_sol
+        constr = getconstr(sp_form, constr_id)
+        #@show " dual sol includes " constr constr_val
         if getduty(constr) <: AbstractBendSpMasterConstr
-            dualbendspsol_matrix[constr_id, dps_id] = constr_val
+            dualbendspsol_matrix[constr_id, cut_id] = constr_val
             for (var_id, constr_coef) in sp_coef_matrix[constr_id,:]
-                var = get(sp_form, var_id)
-                if getduty(var) <: AbstractBendSpRepMastVar
-                     master_coef_matrix[dps_id, var_id] += constr_val * constr_coef
+                var = getvar(sp_form, var_id)
+                #@show " constr  includes var " var constr_val constr_coef
+                #@show getconstr(master_form, cut_id)
+                #@show master_coef_matrix[cut_id,:]
+                #@show getname(var)
+                #@show master_coef_matrix
+                if getduty(var) <: AbstractBendSpSlackMastVar
+                    if haskey(master_coef_matrix, cut_id, var_id)
+                        master_coef_matrix[cut_id, var_id] += constr_val * constr_coef
+                    else
+                        master_coef_matrix[cut_id, var_id] = constr_val * constr_coef
+                    end
                 end
             end
         end
-    end ==#
+    end 
+    @show "cut coefs *************"  master_coef_matrix[cut_id,:]
 
-    for (constr_id, constr_val) in dual_sol
+      
+   #== for (constr_id, constr_val) in dual_sol
         dualbendspsol_matrix[constr_id, dps_id] = constr_val
         @show getconstr(master_form, constr_id)
         @show master_coef_matrix[constr_id,:]
         for (var_id, constr_coef) in master_coef_matrix[constr_id,:]
             master_coef_matrix[dps_id, var_id] += constr_val * constr_coef
         end
-    end
-
-    cut = addconstr!(f, dps)
+    end==#
 
 
-    @show cut
+    @show benders_cut
 
     for (var_id, var_val) in primal_sol
-        primalbendspsol_matrix[var_id, dps_id] = var_val
+        primalbendspsol_matrix[var_id, cut_id] = var_val
     end
 
-    return cut
+    return benders_cut
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."

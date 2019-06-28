@@ -15,6 +15,7 @@ end
 # Data needed for another round of column generation
 struct BendersCutGenerationRecord <: AbstractAlgorithmRecord
     incumbents::Incumbents
+    proven_infeasible::Bool
 end
 
 # Overload of the solver interface
@@ -81,7 +82,7 @@ function insert_cuts_in_master!(master_form::Formulation,
             kind = Core
             duty = MasterBendCutConstr
             bc = setprimaldualbendspsol!(
-                master_form, name, primal_sol, dual_sol, duty; 
+                master_form, sp_form, name, primal_sol, dual_sol, duty; 
                 kind = kind, sense = sense)
           
             @logmsg LogLevel(-2) string("Generated cut : ", name)
@@ -272,7 +273,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         
         if master_status == MOI.INFEASIBLE || master_status == MOI.INFEASIBLE_OR_UNBOUNDED
             @error "Alg_Dataorithm returned that restricted master LP is infeasible or unbounded (status = $master_status)."
-            return BendersCutGenerationRecord(alg_data.incumbents)
+            return BendersCutGenerationRecord(alg_data.incumbents, true)
         end
        
        
@@ -294,8 +295,8 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         end
 
         if nb_new_cut < 0
-            @error "Infeasible subproblem."
-            return BendersCutGenerationRecord(alg_data.incumbents)
+            @error "infeasible subproblem."
+            return BendersCutGenerationRecord(alg_data.incumbents, true)
         end
 
 
@@ -314,7 +315,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
             alg_data.has_converged = true
             return BendersCutGenerationRecord(alg_data.incumbents)
         end
-        if nb_bc_iterations > 4 ##TDalg_data.max_nb_bc_iterations
+        if nb_bc_iterations > 10 ##TDalg_data.max_nb_bc_iterations
             @warn "Maximum number of cut generation iteration is reached."
             alg_data.is_feasible = false
             return BendersCutGenerationRecord(alg_data.incumbents)
