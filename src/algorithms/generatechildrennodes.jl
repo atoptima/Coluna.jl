@@ -22,7 +22,7 @@ function run!(::Type{GenerateChildrenNode}, formulation, node, strategy_rec, par
     @logmsg LogLevel(0) "Run generate children nodes"
     algorithm_data =  GenerateChildrenNodeData(getincumbents(node), formulation)
     if !isfertile(node)
-        @logmsg LogLevel(1) "Node is not capable of generating childre, aborting branching"
+        @logmsg LogLevel(1) "Node cannot generate children, aborting branching"
         return GenerateChildrenNodeRecord(Node[])
     end
     found_candiate, var_id, val = best_candidate(MostFractionalRule, algorithm_data)

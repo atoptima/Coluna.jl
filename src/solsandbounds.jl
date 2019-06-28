@@ -134,7 +134,7 @@ function Base.isinteger(s::PrimalSolution)
     return true
 end
 
-isfractional(s::PrimalSolution) = !Base.isinteger(s)
+isfractional(s::AbstractSolution) = !Base.isinteger(s)
 
 """
     DualSolution{S} where S <: AbstractObjSense
