@@ -125,5 +125,8 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
     end
     println(_to)
     TO.reset_timer!(_to)
+    @logmsg LogLevel(1) "Terminated"
+    @logmsg LogLevel(1) string("Primal bound: ", getprimalbound(opt_result))
+    @logmsg LogLevel(1) string("Dual bound: ", getdualbound(opt_result))
     return opt_result
 end
