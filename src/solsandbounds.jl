@@ -127,22 +127,13 @@ function PrimalSolution(f::AbstractFormulation,
     return PrimalSolution{S}(PrimalBound{S}(float(value)), sol)
 end
 
-function Base.isinteger(s::PrimalSolution)
-    for (var_id, val) in getsol(s)
-        !isinteger(val) && return false
-    end
-    return true
-end
-
-isfractional(s::AbstractSolution) = !Base.isinteger(s)
-
 """
     DualSolution{S} where S <: AbstractObjSense
 
 A struct to represent a `DualSolution` for an objective function with sense `S`.
 The expected behaviour of a solution is implemented according to the sense `S`.
 """
-struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
+mutable struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::DualBound{S}
     sol::MembersVector{Id{Constraint}, Constraint, Float64}
 end
@@ -193,3 +184,28 @@ end
 
 Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
 
+function Base.isinteger(sol::AbstractSolution)
+    for (vc_id, val) in getsol(sol)
+        !isinteger(val) && return false
+    end
+    return true
+end
+
+isfractional(s::AbstractSolution) = !Base.isinteger(s)
+
+function contains(sol::AbstractSolution, D::Type{<:AbstractVarConstrDuty})
+    filtered_sol = filter(vc -> getduty(vc) <: D, getsol(sol))
+    return length(filtered_sol) > 0
+end
+
+_value(constr::Constraint) = getcurrhs(constr)
+_value(var::Variable) = getcurcost(var)
+function Base.filter(f::Function, sol::T) where {T<:AbstractSolution}
+    newsol = filter(f, getsol(sol))
+    elements = getelements(getsol(sol))
+    bound = 0.0
+    for (id, val) in newsol
+        bound += val * _value(elements[id])
+    end
+    return T(bound, newsol) 
+end

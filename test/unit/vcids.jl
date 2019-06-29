@@ -22,6 +22,5 @@ function id_unit_tests()
 
     @test var_id < constr_id
     @test CL.getsortid(constr_id) == 100 + 1000000 * 3
-
     return
 end

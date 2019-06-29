@@ -58,20 +58,6 @@ function MOI.supports(optimizer::Optimizer,
     return true
 end
 
-function update_annotations!(srs::MOI.ModelLike,
-                            annotation_set::Set{BD.Annotation},
-                            vc_per_block::Dict{Int,C},
-                            annotation::A,
-                            vc::AbstractVarConstr
-                            ) where {C<:VarConstrDict,A}
-    push!(annotation_set, annotation)
-    if !haskey(vc_per_block, annotation.unique_id)
-        vc_per_block[annotation.unique_id] = C()
-    end
-    vc_per_block[annotation.unique_id][getid(vc)] = vc
-    return
-end
-
 function load_obj!(f::Formulation, src::MOI.ModelLike,
                    moi_index_to_coluna_uid::MOIU.IndexMap,
                    moi_uid_to_coluna_id::Dict{Int,VarId})
@@ -82,7 +68,7 @@ function load_obj!(f::Formulation, src::MOI.ModelLike,
         var = getvar(f, moi_uid_to_coluna_id[term.variable_index.value])
         perene_data = getrecordeddata(var)
         setcost!(perene_data, term.coefficient)
-        setcost!(f, var, term.coefficient)
+        setcurcost!(f, var, term.coefficient)
     end
     return
 end
@@ -106,10 +92,7 @@ function create_origvars!(f::Formulation,
         moi_uid_to_coluna_id[moi_index.value] = var_id
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
         dest.varmap[moi_index_in_coluna] = var_id
-        update_annotations!(
-            src, dest.annotations.annotation_set,
-            dest.annotations.vars_per_block, annotation, v
-        )
+        store!(dest.annotations, annotation, v)
     end
 end
 
@@ -127,10 +110,10 @@ function create_origconstr!(f::Formulation,
     else
         bound = getrhs(set)
         if getsense(set) in [Equal, Less]
-            set_ub!(perene_data, bound)
+            setub!(perene_data, bound)
             setub!(f, var, getub(perene_data))
         elseif getsense(set) == [Equal, Greater]
-            set_lb!(perene_data, bound)
+            setlb!(perene_data, bound)
             setlb!(f, var, getlb(perene_data))
         end
     end
@@ -160,10 +143,7 @@ function create_origconstr!(f::Formulation,
         matrix[constr_id, var_id] = term.coefficient
     end
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
-    update_annotations!(
-        src, dest.annotations.annotation_set,
-        dest.annotations.constrs_per_block, annotation, c
-    )
+    store!(dest.annotations, annotation, c)
     return
 end
 
@@ -201,7 +181,6 @@ end
 function register_original_formulation!(dest::Optimizer,
                                         src::MOI.ModelLike,
                                         copy_names::Bool)
-
     copy_names = true
     problem = dest.inner
     orig_form = Formulation{Original}(problem.form_counter)

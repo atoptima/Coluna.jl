@@ -1,75 +1,54 @@
-function clone_in_formulation!(dest::Formulation,
-                               src::Formulation,
-                               var::Variable,
-                               duty::Type{<:AbstractDuty},
-                               is_explicit::Bool = true)
-    data = deepcopy(getrecordeddata(var))
-    set_is_explicit!(data, is_explicit)
-    var_clone = Variable(
-        getid(var), getname(var), duty;
-        var_data = data
+function clonevar!(dest::Formulation,
+                   var::Variable,
+                   duty::Type{<:AbstractDuty};
+                   name::String = getname(var),
+                   cost::Float64 = getperenecost(var),
+                   lb::Float64 = getperenelb(var),
+                   ub::Float64 = getpereneub(var),
+                   kind::VarKind = getperenekind(var),
+                   sense::VarSense = getperenesense(var),
+                   inc_val::Float64 = getpereneincval(var),
+                   is_active::Bool = get_init_is_active(var),
+                   is_explicit::Bool = get_init_is_explicit(var))
+    return setvar!(
+        dest, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
+        sense = sense, inc_val = inc_val, is_active = is_active,
+        is_explicit = is_explicit, id = getid(var)
     )
-    addvar!(dest, var_clone)
-    clone_in_manager!(dest.manager, src.manager, var_clone)
-    return var_clone
 end
 
-function clone_in_formulation!(dest::Formulation,
-                               src::Formulation,
-                               constr::Constraint,
-                               duty::Type{<:AbstractDuty},
-                               is_explicit::Bool = true)
-
-    data = deepcopy(getrecordeddata(constr))
-    set_is_explicit!(data, is_explicit)
-    constr_clone = Constraint(
-        getid(constr), getname(constr), duty; constr_data = data
+function cloneconstr!(dest::Formulation,
+                      constr::Constraint,
+                      duty::Type{<:AbstractDuty};
+                      name::String = getname(constr),
+                      rhs::Float64 = getperenerhs(constr),
+                      kind::ConstrKind = getperenekind(constr),
+                      sense::ConstrSense = getperenesense(constr),
+                      inc_val::Float64 = getpereneincval(constr),
+                      is_active::Bool = get_init_is_active(constr),
+                      is_explicit::Bool = get_init_is_explicit(constr))
+    return setconstr!(
+        dest, name, duty, rhs = rhs, kind = kind, sense = sense, 
+        inc_val = inc_val, is_active = is_active, is_explicit = is_explicit,
+        id = getid(constr)
     )
-    addconstr!(dest, constr_clone)
-    clone_in_manager!(dest.manager, src.manager, constr_clone)
-    return constr_clone
 end
 
-function clone_in_formulation!(dest::Formulation,
-                               src::Formulation,
-                               vcs::VarConstrDict,
-                               duty::Type{<:AbstractVarConstrDuty},
-                               is_explicit::Bool = true
-                               ) where {VC<:AbstractVarConstr}
-    for (id, vc) in vcs
-        clone_in_formulation!(dest, src, vc, duty, is_explicit)
+function clonecoeffs!(dest::Formulation,
+                             src::Formulation)
+    dest_matrix = getcoefmatrix(dest)
+    src_matrix = getcoefmatrix(src)
+    for (cid, constr) in getconstrs(dest)
+        if haskey(src, cid)
+            for (vid, var) in getvars(dest)
+                if haskey(src, vid)
+                    val = src_matrix[cid, vid]
+                    if val != 0
+                        dest_matrix[cid, vid] = val
+                    end
+                end
+            end
+        end
     end
     return
-end
-
-function clone_in_manager!(dest::FormulationManager,
-                           src::FormulationManager,
-                           var::Variable)
-
-    new_col = Dict{Id{Constraint}, Float64}()
-    for (id, val) in getrecords(src.coefficients[:, var.id])
-        if haskey(dest, id)
-            new_col[id] = val
-        else
-            @debug string("Manager does not have constraint with ", id)
-        end
-    end
-    dest.coefficients[:, var.id] = new_col
-    return var
-end
-
-function clone_in_manager!(dest::FormulationManager,
-                           src::FormulationManager,
-                           constr::Constraint)
-
-    new_row = Dict{Id{Variable}, Float64}()
-    for (id, val) in getrecords(src.coefficients[constr.id, :])
-        if haskey(dest, id)
-            new_row[id] = val
-        else
-            @debug string("Manager does not have variable with ", id)
-        end
-    end
-    dest.coefficients[constr.id, :] = new_row
-    return constr
 end

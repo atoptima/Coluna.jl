@@ -70,6 +70,7 @@ include("MOIinterface.jl")
 
 # Here include algorithms
 include("algorithms/colgen.jl")
+include("algorithms/benders.jl")
 include("algorithms/masteripheur.jl")
 include("algorithms/generatechildrennodes.jl")
 include("algorithms/reformulationsolver.jl")
@@ -77,6 +78,7 @@ include("algorithms/preprocessing.jl")
 
 # Here include conquer strategies
 include("strategies/conquer/simplebnp.jl")
+include("strategies/conquer/simplebenders.jl")
 
 # Here include divide strategies
 include("strategies/divide/simplebranching.jl")
