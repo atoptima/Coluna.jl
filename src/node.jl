@@ -196,9 +196,9 @@ function apply_data!(form::Formulation, var::Variable, var_data::VarData)
         @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
     end
     # Cost
-    if (getcurcost(var) != get_cost(var_data))
+    if (getcurcost(var) != getcost(var_data))
         @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(var))
-        setcost!(form, var, get_cost(var_data))
+        setcost!(form, var, getcost(var_data))
         @logmsg LogLevel(-3) string("New cost is ", getcurcost(var))
     end
     return
