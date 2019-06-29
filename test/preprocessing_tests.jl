@@ -31,7 +31,8 @@ function play_gap_with_preprocessing_tests()
         params = CL.Params(
             ; global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess,
             CL.SimpleBranching, CL.DepthFirst)
-    ))
+        )
+    )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
     JuMP.optimize!(problem)
     @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
@@ -40,48 +41,63 @@ function play_gap_with_preprocessing_tests()
 end
 
 function random_instances_tests()
-    for problem_idx in 1:1
-        data = gen_random_small_gap_instance()
+    for problem_idx in 1:100
+        test_random_gap_instance()
+    end
+    return
+end
+
+function test_random_gap_instance()
+    data = gen_random_small_gap_instance()
+    coluna = JuMP.with_optimizer(CL.Optimizer,
+    default_optimizer = with_optimizer(
+        GLPK.Optimizer), params = CL.Params(
+            ;global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess,
+            CL.NoBranching, CL.DepthFirst)
+        )
+    )
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    # We flip a coin to decide if we add a branching constraint
+    if rand(Bool)
+        j = rand(data.jobs)
+        m = rand(data.machines)
+        if rand(Bool)
+            @constraint(problem, random_br, x[m,j] <= 0)
+        else
+            @constraint(problem, random_br, x[m,j] >= 1)
+        end
+    end
+    JuMP.optimize!(problem)
+
+    if MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
         coluna = JuMP.with_optimizer(
-            CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
-            params = CL.Params(
-                ; global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess,
-                CL.NoBranching, CL.DepthFirst)
-        ))
-        #how to select another strategy? only preprocessing is needed here
+            CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
         JuMP.optimize!(problem)
-
-        if MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
-            #here I should disable preprocessing and check if the problem remains infeasible
-            coluna = JuMP.with_optimizer(CL.Optimizer,
-            default_optimizer = with_optimizer(GLPK.Optimizer)
-            )
-            problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-            JuMP.optimize!(problem)
-            @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
-        else
-            coluna_optimizer = problem.moi_backend.optimizer
-            master = CL.getmaster(coluna_optimizer.inner.re_formulation)
-            for (moi_index, var_id) in coluna_optimizer.varmap
-                var = CL.getvar(master, var_id)
-                if CL.getcurlb(var) == CL.getcurub(var)
-                    var_name = CL.getname(var)
-                    m = parse(Int, split(split(var_name, ",")[1], "[")[2])
-                    j = parse(Int, split(split(var_name, ",")[2], "]")[1])
-                    forbidden_machs = CL.getcurlb(var) == 0 ? [m] : [mach_idx for mach_idx in data.machines if mach_idx != m]
-                    modified_data = deepcopy(data)
-                    for mach_idx in forbidden_machs
-                        modified_data.weights[j,mach_idx] = modified_data.capacity[mach_idx] + 1
-                    end
-                    #here I need the default strategy, without preprocessing
-                    coluna = JuMP.with_optimizer(CL.Optimizer,
-                    default_optimizer = with_optimizer(GLPK.Optimizer)
-                    )
-                    modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna)
-                    JuMP.optimize!(modified_problem)
-                    @test MOI.get(modified_problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+    else
+        coluna_optimizer = problem.moi_backend.optimizer
+        master = CL.getmaster(coluna_optimizer.inner.re_formulation)
+        for (moi_index, var_id) in coluna_optimizer.varmap
+            var = CL.getvar(master, var_id)
+            if CL.getcurlb(var) == CL.getcurub(var)
+                var_name = CL.getname(var)
+                m = parse(Int, split(split(var_name, ",")[1], "[")[2])
+                j = parse(Int, split(split(var_name, ",")[2], "]")[1])
+                forbidden_machs = (
+                    CL.getcurlb(var) == 0 ? [m] : [mach_idx for mach_idx in data.machines if mach_idx != m]
+                )
+                modified_data = deepcopy(data)
+                for mach_idx in forbidden_machs
+                    modified_data.weights[j,mach_idx] = modified_data.capacity[mach_idx] + 1
                 end
+                coluna = JuMP.with_optimizer(
+                    CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+                )
+                modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna)
+                JuMP.optimize!(modified_problem)
+                @test MOI.get(modified_problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
             end
         end
     end
