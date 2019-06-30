@@ -1,25 +1,27 @@
+import Random
+
 function preprocessing_tests()
     @testset "play gap with preprocessing" begin
         play_gap_with_preprocessing_tests()
     end
     @testset "Preprocessing with random instances" begin
         random_instances_tests()
-    end
+   end
 end
 
 function gen_random_small_gap_instance()
-    nb_jobs = rand(7:15)
-    nb_machs = rand(2:3)
+    nb_jobs = Random.rand(7:15)
+    nb_machs = Random.rand(2:3)
     data = CLD.GeneralizedAssignment.Data(nb_machs, nb_jobs)
     for m in 1:nb_machs
-        data.capacity[m] = rand(100:120)
+        data.capacity[m] = Random.rand(100:120)
     end
     avg_weight = sum(data.capacity)/nb_jobs
     for j in 1:nb_jobs, m in 1:nb_machs
-        data.cost[j,m] = rand(1:10)
+        data.cost[j,m] = Random.rand(1:10)
     end
     for j in 1:nb_jobs, m in 1:nb_machs
-        data.weight[j,m] = Int(ceil(0.1*rand(9:25)*avg_weight))
+        data.weight[j,m] = Int(ceil(0.1*Random.rand(6:8)*avg_weight))
     end
     return data
 end
@@ -41,7 +43,8 @@ function play_gap_with_preprocessing_tests()
 end
 
 function random_instances_tests()
-    for problem_idx in 1:100
+    Random.seed!(3)
+    for problem_idx in 1:3
         test_random_gap_instance()
     end
     return
@@ -58,10 +61,10 @@ function test_random_gap_instance()
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
     # We flip a coin to decide if we add a branching constraint
-    if rand(Bool)
-        j = rand(data.jobs)
-        m = rand(data.machines)
-        if rand(Bool)
+    if Random.rand(Bool)
+        j = Random.rand(data.jobs)
+        m = Random.rand(data.machines)
+        if Random.rand(Bool)
             @constraint(problem, random_br, x[m,j] <= 0)
         else
             @constraint(problem, random_br, x[m,j] >= 1)
@@ -90,7 +93,7 @@ function test_random_gap_instance()
                 )
                 modified_data = deepcopy(data)
                 for mach_idx in forbidden_machs
-                    modified_data.weights[j,mach_idx] = modified_data.capacity[mach_idx] + 1
+                    modified_data.weight[j,mach_idx] = modified_data.capacity[mach_idx] + 1
                 end
                 coluna = JuMP.with_optimizer(
                     CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
