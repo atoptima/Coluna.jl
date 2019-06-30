@@ -1,4 +1,4 @@
-struct SearchTree
+mutable struct SearchTree
     nodes::DS.PriorityQueue{Node, Float64}
     search_strategy::Type{<:AbstractTreeSearchStrategy}
     fully_explored::Bool
