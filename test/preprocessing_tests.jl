@@ -21,8 +21,9 @@ function gen_random_small_gap_instance()
         data.cost[j,m] = Random.rand(1:10)
     end
     for j in 1:nb_jobs, m in 1:nb_machs
-        data.weight[j,m] = Int(ceil(0.1*Random.rand(6:8)*avg_weight))
+        data.weight[j,m] = Int(ceil(0.1*Random.rand(6:12)*avg_weight))
     end
+
     return data
 end
 
@@ -44,9 +45,17 @@ end
 
 function random_instances_tests()
     Random.seed!(3)
-    for problem_idx in 1:3
-        test_random_gap_instance()
+    nb_prep_vars = 0
+    nb_infeas = 0
+    for problem_idx in 1:100
+        res = test_random_gap_instance()
+        if !res[1]
+	    nb_infeas += 1
+	else
+	    nb_prep_vars += res[2]
+	end
     end
+    println("nb_infeas: $(nb_infeas) avg_prep_vars: $(nb_prep_vars/(100 - nb_infeas))")
     return
 end
 
@@ -60,15 +69,15 @@ function test_random_gap_instance()
         )
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    # We flip a coin to decide if we add a branching constraint
+    #adding a random branching constraint
+    j = Random.rand(data.jobs)
+    m = Random.rand(data.machines)
     if Random.rand(Bool)
-        j = Random.rand(data.jobs)
-        m = Random.rand(data.machines)
-        if Random.rand(Bool)
-            @constraint(problem, random_br, x[m,j] <= 0)
-        else
-            @constraint(problem, random_br, x[m,j] >= 1)
-        end
+        @constraint(problem, random_br, x[m,j] <= 0)
+        random_branch_cons = (m,j,0)
+    else
+        @constraint(problem, random_br, x[m,j] >= 1)
+        random_branch_cons = (m,j,1)
     end
     JuMP.optimize!(problem)
 
@@ -79,7 +88,9 @@ function test_random_gap_instance()
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
         JuMP.optimize!(problem)
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+	return (false, 0)
     else
+        nb_prep_vars = 0
         coluna_optimizer = problem.moi_backend.optimizer
         master = CL.getmaster(coluna_optimizer.inner.re_formulation)
         for (moi_index, var_id) in coluna_optimizer.varmap
@@ -89,7 +100,7 @@ function test_random_gap_instance()
                 m = parse(Int, split(split(var_name, ",")[1], "[")[2])
                 j = parse(Int, split(split(var_name, ",")[2], "]")[1])
                 forbidden_machs = (
-                    CL.getcurlb(var) == 0 ? [m] : [mach_idx for mach_idx in data.machines if mach_idx != m]
+                    CL.getcurlb(var) == 1 ? [m] : [mach_idx for mach_idx in data.machines if mach_idx != m]
                 )
                 modified_data = deepcopy(data)
                 for mach_idx in forbidden_machs
@@ -99,10 +110,18 @@ function test_random_gap_instance()
                     CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
                 )
                 modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna)
+		(m,j,rhs) = random_branch_cons
+		if rhs == 1
+                   @constraint(modified_problem, random_br, x[m,j] >= 1)
+                else
+                   @constraint(modified_problem, random_br, x[m,j] <= 0)
+                end
                 JuMP.optimize!(modified_problem)
                 @test MOI.get(modified_problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+		nb_prep_vars += 1
             end
         end
+	return (true, nb_prep_vars)
     end
     return
 end
