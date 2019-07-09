@@ -34,8 +34,7 @@ The user must be familiar with the syntax of JuMP, which is described in its
 Pages = [
     "index.md",
     "installation.md",
-    "start.md",
-    "strategies.md"
+    "start.md"
 ]
 Depth = 1
 ```    

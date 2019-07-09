@@ -12,7 +12,7 @@ decomposition. In this example, we use `GLPK` as the underlying solver.
 using JuMP, BlockDecomposition, GLPK, Coluna
 ```
 
-We instantiate the solver and define how we want to solve the decomposed formulation. See the page [Strategies and Algorithms](https://atoptima.github.io/Coluna.jl/latest/strategies/) for more information.
+We instantiate the solver and define how we want to solve the decomposed formulation.
 
 ```julia
 coluna = JuMP.with_optimizer(

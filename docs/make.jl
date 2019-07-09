@@ -9,8 +9,7 @@ makedocs(
     pages    = Any[
         "Home"   => "index.md",
         "Installation"   => "installation.md",
-        "Quick start"   => "start.md",
-        "Algorithms & Strategies" => "strategies.md"
+        "Quick start"   => "start.md"
     ]
 )
 
