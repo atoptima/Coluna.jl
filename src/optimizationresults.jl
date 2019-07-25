@@ -54,8 +54,8 @@ getbestprimalsol(res::OptimizationResult) = res.primal_sols[1]
 getbestdualsol(res::OptimizationResult) = res.dual_sols[1]
 setprimalbound!(res::OptimizationResult, b::PrimalBound) = res.primal_bound = b
 setdualbound!(res::OptimizationResult, b::DualBound) = res.dual_bound = b
-setterminationstatus(res::OptimizationResult, status::TerminationStatus) = res.termination_status = status
-setfeasibilitystatus(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
+setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.termination_status = status
+setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
 gap(res::OptimizationResult) = gap(getprimalbound(res), getdualbound(res))
 
 function add_primal_sol!(res::OptimizationResult, solution::AbstractSolution)
@@ -70,19 +70,20 @@ end
 function determine_statuses(res::OptimizationResult, fully_explored::Bool)
     gap_is_zero = gap(res) <= 0.00001
     found_sols = length(getprimalsols(res)) >= 1
+    # We assume that gap cannot be zero if no solution was found
     gap_is_zero && @assert found_sols
-    found_sols && setfeasibilitystatus(res, FEASIBLE)
-    gap_is_zero && setterminationstatus(res, OPTIMAL)
-    if !found_sols # gap is not zero
-        setterminationstatus(res, EMPTY_RESULT)
+    found_sols && setfeasibilitystatus!(res, FEASIBLE)
+    gap_is_zero && setterminationstatus!(res, OPTIMAL)
+    if !found_sols # Implies that gap is not zero
+        setterminationstatus!(res, EMPTY_RESULT)
         # Determine if we can prove that is was infeasible
         if fully_explored
-            setfeasibilitystatus(res, INFEASIBLE)
+            setfeasibilitystatus!(res, INFEASIBLE)
         else
-            setfeasibilitystatus(res, UNKNOWN_FEASIBILITY)
+            setfeasibilitystatus!(res, UNKNOWN_FEASIBILITY)
         end
     elseif !gap_is_zero
-        setterminationstatus(res, OTHER_LIMIT)
+        setterminationstatus!(res, OTHER_LIMIT)
     end
     return
 end
