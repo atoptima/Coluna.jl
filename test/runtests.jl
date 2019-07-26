@@ -16,6 +16,7 @@ global const BD = BlockDecomposition
 include("unit/unit_tests.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
+include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
 
 unit_tests()
@@ -23,7 +24,9 @@ unit_tests()
 @testset "Full instances " begin
     full_instances_tests()
 end
-
+@testset "Preprocessing " begin
+    preprocessing_tests()
+end
 @testset "pricing callback" begin
     pricing_callback_tests()
 end

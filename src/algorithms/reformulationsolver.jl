@@ -1,10 +1,12 @@
-struct SearchTree
+mutable struct SearchTree
     nodes::DS.PriorityQueue{Node, Float64}
     search_strategy::Type{<:AbstractTreeSearchStrategy}
+    fully_explored::Bool
 end
 
 SearchTree(search_strategy::Type{<:AbstractTreeSearchStrategy}) = SearchTree(
-    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), search_strategy
+    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), search_strategy,
+    true
 )
 
 getnodes(t::SearchTree) = t.nodes
@@ -13,10 +15,10 @@ Base.isempty(t::SearchTree) = isempty(t.nodes)
 push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.search_strategy, node))
 popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
+was_fully_explored(t::SearchTree) = t.fully_explored
 
 mutable struct ReformulationSolverRecord <: AbstractAlgorithmRecord
-    feasible::Bool
-    incumbents::Incumbents
+    result::OptimizationResult
 end
 
 """
@@ -30,15 +32,14 @@ mutable struct ReformulationSolver <: AbstractAlgorithm
     in_primary::Bool
     treat_order::Int
     nb_treated_nodes::Int
-    incumbents::Incumbents
-    found_feasible_sol::Bool
+    result::OptimizationResult
 end
 
 function ReformulationSolver(search_strategy::Type{<:AbstractTreeSearchStrategy},
                     ObjSense::Type{<:AbstractObjSense})
     return ReformulationSolver(
         SearchTree(search_strategy), SearchTree(DepthFirst),
-        true, 1, 0, Incumbents(ObjSense), false
+        true, 1, 0, OptimizationResult{ObjSense}()
     )
 end
 
@@ -52,7 +53,7 @@ nb_open_nodes(s::ReformulationSolver) = (nb_open_nodes(s.primary_tree)
                                 + nb_open_nodes(s.secondary_tree))
 get_treat_order(s::ReformulationSolver) = s.treat_order
 get_nb_treated_nodes(s::ReformulationSolver) = s.nb_treated_nodes
-getincumbents(s::ReformulationSolver) = s.incumbents
+getresult(s::ReformulationSolver) = s.result
 switch_tree(s::ReformulationSolver) = s.in_primary = !s.in_primary
 
 function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
@@ -71,10 +72,10 @@ function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
     return
 end
 
-function setup_node!(n::Node, treat_order::Int, tree_incumbents::Incumbents)
+function setup_node!(n::Node, treat_order::Int, res::OptimizationResult)
     @logmsg LogLevel(0) string("Setting up node ", treat_order, " before apply")
     set_treat_order!(n, treat_order)
-    set_ip_primal_sol!(getincumbents(n), get_ip_primal_sol(tree_incumbents))
+    nbprimalsols(res) >= 1 && set_ip_primal_sol!(getincumbents(n), getbestprimalsol(res))
     @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(n)))
     @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(getincumbents(n)))
     if (ip_gap(getincumbents(n)) <= 0.0 + 0.00000001)
@@ -99,7 +100,7 @@ function apply!(::Type{<:ReformulationSolver}, reform::Reformulation)
 
         cur_node = popnode!(reform_solver)
         should_apply = setup_node!(
-            cur_node, get_treat_order(reform_solver), getincumbents(reform_solver)
+            cur_node, get_treat_order(reform_solver), getresult(reform_solver)
         )
         print_info_before_apply(cur_node, reform_solver, reform, should_apply)
         if should_apply
@@ -110,65 +111,66 @@ function apply!(::Type{<:ReformulationSolver}, reform::Reformulation)
         print_info_after_apply(cur_node, reform_solver)
         update_reform_solver(reform_solver, cur_node)
     end
-    return ReformulationSolverRecord(
-        reform_solver.found_feasible_sol, getincumbents(reform_solver)
+    res = getresult(reform_solver)
+    tree_fully_explored = (
+        was_fully_explored(get_primary_tree(reform_solver))
+        && was_fully_explored(get_secondary_tree(reform_solver))
+        && get_nb_treated_nodes(reform_solver) < _params_.max_num_nodes
     )
+    determine_statuses(res, tree_fully_explored)
+    return ReformulationSolverRecord(res)
 end
 
-function apply!(::Type{<:GlobalStrategy}, reform::Reformulation)
-    solver_record = apply!(ReformulationSolver, reform)
-    return OptimizationResult{getobjsense(reform.master)}(solver_record.feasible,
-        get_ip_primal_bound(solver_record.incumbents),
-        get_ip_dual_bound(solver_record.incumbents),
-        [get_ip_primal_sol(solver_record.incumbents)],
-        typeof(get_lp_dual_sol(solver_record.incumbents))[]
-    )
-end
+apply!(::Type{<:GlobalStrategy}, reform::Reformulation) = apply!(ReformulationSolver, reform)
 
-function updateprimals!(tree::ReformulationSolver, cur_node_incumbents::Incumbents)
-    tree_incumbents = getincumbents(tree)
-    set_ip_primal_sol!(
-        tree_incumbents, copy(get_ip_primal_sol(cur_node_incumbents))
-    )
+function updateprimals!(solver::ReformulationSolver, cur_node_incumbents::Incumbents{S}) where{S}
+    if isbetter(getbound(get_ip_primal_sol(cur_node_incumbents)), PrimalBound{S}())
+        add_primal_sol!(getresult(solver), copy(get_ip_primal_sol(cur_node_incumbents)))
+    end
     return
 end
 
-function updateduals!(tree::ReformulationSolver, cur_node_incumbents::Incumbents)
-    tree_incumbents = getincumbents(tree)
+function updateduals!(solver::ReformulationSolver, cur_node_incumbents::Incumbents)
+    result = getresult(solver)
     worst_bound = get_ip_dual_bound(cur_node_incumbents)
-    for (node, priority) in getnodes(get_primary_tree(tree))
+    for (node, priority) in getnodes(get_primary_tree(solver))
         db = get_ip_dual_bound(getincumbents(node))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
-    for (node, priority) in getnodes(get_secondary_tree(tree))
+    for (node, priority) in getnodes(get_secondary_tree(solver))
         db = get_ip_dual_bound(getincumbents(node))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
-    set_ip_dual_bound!(tree_incumbents, worst_bound)
+    setdualbound!(result, worst_bound)
     return
 end
 
-function updatebounds!(tree::ReformulationSolver, cur_node::Node)
+function updatebounds!(solver::ReformulationSolver, cur_node::Node)
     cur_node_incumbents = getincumbents(cur_node)
-    updateprimals!(tree, cur_node_incumbents)
-    updateduals!(tree, cur_node_incumbents)
+    updateprimals!(solver, cur_node_incumbents)
+    updateduals!(solver, cur_node_incumbents)
+    return
 end
 
 function update_reform_solver(s::ReformulationSolver, n::Node)
     @logmsg LogLevel(0) string("Updating tree.")
     s.treat_order += 1
     s.nb_treated_nodes += 1
-    if !n.status.proven_infeasible
-        s.found_feasible_sol = true
-    end
     t = cur_tree(s)
     if !to_be_pruned(n)
         @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
         push!(t, n)
+    else
+        # If a node did not generate any childre AND is pruned AND is fertile,
+        # then it means that the tree is not fully, explored impacting the decision
+        # about whether the reformulation is feasible of not
+        if length(getchildren(n)) == 0 && isfertile(n)
+            t.fully_explored = false
+        end
     end
     if ((nb_open_nodes(s) + length(n.children))
         >= _params_.open_nodes_limit)
@@ -180,6 +182,7 @@ function update_reform_solver(s::ReformulationSolver, n::Node)
         push!(t, pop!(n.children))
     end
     updatebounds!(s, n)
+    return
 end
 
 function print_info_before_apply(n::Node, s::ReformulationSolver, reform::Reformulation, strategy_was_applied::Bool)
@@ -192,10 +195,9 @@ function print_info_before_apply(n::Node, s::ReformulationSolver, reform::Reform
         println("Node ", get_treat_order(n), " is conquered, no need to apply strategy.")
     end
 
-    solver_incumbents = getincumbents(s)
     node_incumbents = getincumbents(n)
-    db = get_ip_dual_bound(solver_incumbents)
-    pb = get_ip_primal_bound(solver_incumbents)
+    db = getdualbound(getresult(s))
+    pb = getprimalbound(getresult(s))
     node_db = get_ip_dual_bound(node_incumbents)
 
     print("Current best known bounds : ")

@@ -85,6 +85,16 @@ getreformulation(f::Formulation{<:AbstractSpDuty}) = getmaster(f).parent_formula
 _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 
 """
+    setcost!(f::Formulation, v::Variable, new_cost::Float64)
+Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
+euqal to `new_cost`. Change on `f.optimizer` will be buffered.
+"""
+function setcost!(f::Formulation, v::Variable, new_cost::Float64)
+    setcurcost!(v, new_cost)
+    change_cost!(f.buffer, v)
+end
+
+"""
     setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
 
 Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be
