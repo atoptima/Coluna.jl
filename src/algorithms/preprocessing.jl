@@ -176,7 +176,6 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
             end
         end
     end
-
     return (vars_with_modified_bounds, constrs_with_modified_rhs)
 end
 
@@ -220,16 +219,16 @@ function initconstraints!(
             return true
         end
     end
-
     return false
 end
 
 function initconstraint!(alg_data::PreprocessData, constr::Constraint, form::Formulation)
     alg_data.constr_in_stack[getid(constr)] = false
     alg_data.nb_inf_sources_for_min_slack[getid(constr)] = 0
-    alg_data.nb_inf_sources_for_max_slack[getid(constr)] = 0     
+    alg_data.nb_inf_sources_for_max_slack[getid(constr)] = 0
     compute_min_slack!(alg_data, constr, form)
     compute_max_slack!(alg_data, constr, form)
+    return
 end
 
 function compute_min_slack!(
@@ -264,6 +263,7 @@ function compute_min_slack!(
         end
     end
     alg_data.cur_min_slack[getid(constr)] = slack
+    return
 end
 
 function compute_max_slack!(
@@ -298,6 +298,7 @@ function compute_max_slack!(
         end
     end
     alg_data.cur_max_slack[getid(constr)] = slack
+    return
 end
 
 function update_max_slack!(
