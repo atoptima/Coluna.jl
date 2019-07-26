@@ -20,8 +20,8 @@ function mycallback(form::CL.Formulation)
         end
     end
     push!(result.primal_sols, CL.PrimalSolution{CL.MinSense}(result.primal_bound, sol))
-    CL.setfeasibilitystatus(result, CL.FEASIBLE)
-    CL.setterminationstatus(result, CL.OPTIMAL)
+    CL.setfeasibilitystatus!(result, CL.FEASIBLE)
+    CL.setterminationstatus!(result, CL.OPTIMAL)
     return result
 end
 

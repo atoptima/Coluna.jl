@@ -42,16 +42,16 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
         fill_dual_result!(
             optimizer, result, filter(_active_explicit_ , getconstrs(form))
         )
-        setfeasibilitystatus(result, FEASIBLE)
-        setterminationstatus(
+        setfeasibilitystatus!(result, FEASIBLE)
+        setterminationstatus!(
             result, convert_status(MOI.get(
                 getinner(optimizer), MOI.TerminationStatus()
             ))
         )
     else
         @warn "Solver has no result to show."
-        setfeasibilitystatus(result, INFEASIBLE)
-        setterminationstatus(result, EMPTY_RESULT)
+        setfeasibilitystatus!(result, INFEASIBLE)
+        setterminationstatus!(result, EMPTY_RESULT)
     end
     return result
 end
