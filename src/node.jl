@@ -206,7 +206,7 @@ end
 
 function apply_data!(form::Formulation, constr::Constraint, constr_data::ConstrData)
     # Rhs
-    if (getcurrhs(constr) != getrhs(constr_data))
+    if getcurrhs(constr) != getrhs(constr_data)
         @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
         setrhs!(form, constr, getrhs(constr_data))
         @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(constr))
@@ -216,13 +216,13 @@ end
 
 function reset_to_record_state_of_father!(form::Formulation, record::NodeRecord)
     @logmsg LogLevel(-2) "Checking variables"
-    reset_var_constr(form, record.active_vars, getvars(form))
+    reset_var_constr!(form, record.active_vars, getvars(form))
     @logmsg LogLevel(-2) "Checking constraints"
-    reset_var_constr(form, record.active_constrs, getconstrs(form))
+    reset_var_constr!(form, record.active_constrs, getconstrs(form))
     return
 end
 
-function reset_var_constr(form::Formulation, active_var_constrs, var_constrs_in_formulation)
+function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in_formulation)
     for (id, vc) in var_constrs_in_formulation
         @logmsg LogLevel(-4) "Checking " getname(vc)
         # vc should NOT be active but is active in formulation
