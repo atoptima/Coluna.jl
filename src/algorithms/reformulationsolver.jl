@@ -17,10 +17,6 @@ popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
 was_fully_explored(t::SearchTree) = t.fully_explored
 
-mutable struct ReformulationSolverRecord <: AbstractAlgorithmRecord
-    result::OptimizationResult
-end
-
 """
     ReformulationSolver
 
@@ -86,13 +82,15 @@ function setup_node!(n::Node, treat_order::Int, res::OptimizationResult)
     return true
 end
 
-function apply!(::Type{<:ReformulationSolver}, reform::Reformulation)
+function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
     # Get all strategies
-    conquer_strategy = reform.strategy.conquer
-    divide_strategy = reform.strategy.divide
-    tree_search_strategy = reform.strategy.tree_search
+    conquer_strategy = strategy.conquer
+    divide_strategy = strategy.divide
+    tree_search_strategy = strategy.tree_search
 
-    reform_solver = ReformulationSolver(tree_search_strategy, reform.master.obj_sense)
+    reform_solver = ReformulationSolver(
+        tree_search_strategy, reform.master.obj_sense
+    )
     push!(reform_solver, RootNode(reform.master.obj_sense))
 
     while (!isempty(reform_solver)
@@ -118,10 +116,8 @@ function apply!(::Type{<:ReformulationSolver}, reform::Reformulation)
         && get_nb_treated_nodes(reform_solver) < _params_.max_num_nodes
     )
     determine_statuses(res, tree_fully_explored)
-    return ReformulationSolverRecord(res)
+    return res
 end
-
-apply!(::Type{<:GlobalStrategy}, reform::Reformulation) = apply!(ReformulationSolver, reform)
 
 function updateprimals!(solver::ReformulationSolver, cur_node_incumbents::Incumbents{S}) where{S}
     if isbetter(getbound(get_ip_primal_sol(cur_node_incumbents)), PrimalBound{S}())
