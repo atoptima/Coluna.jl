@@ -295,7 +295,7 @@ function cg_main_loop(alg_data::ColumnGenerationData,
 
         set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
         set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
-        if isinteger(primal_sols[1])
+        if isinteger(primal_sols[1]) && !contains(primal_sols[1], MasterArtVar)
             set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
         end
 

@@ -15,7 +15,7 @@ Prepares the `formulation` in the `node` to be optimized by algorithm `Algorithm
 function prepare! end
 
 """
-run!(AlgorithmType, formulation, node, strategy_record, parameters)
+    run!(AlgorithmType, formulation, node, strategy_record, parameters)
 
 Runs the algorithm `AlgorithmType` on the `formulation` in a `node` with `parameters`.
 """

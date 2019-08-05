@@ -30,6 +30,9 @@ defaultdualboundvalue(::Type{MaxSense}) = +Inf
 
 getvalue(b::AbstractBound) = b.value
 
+valueinminsense(b::PrimalBound) = b.value
+valueinminsense(b::DualBound) = -b.value
+
 "Returns `true` iff `b1` is considered to be a better primal bound than `b2` for a minimization objective function."
 isbetter(b1::PrimalBound{MinSense}, b2::PrimalBound{MinSense}) = b1.value < b2.value
 
@@ -124,13 +127,6 @@ function PrimalSolution(f::AbstractFormulation,
     return PrimalSolution{S}(PrimalBound{S}(float(value)), sol)
 end
 
-function Base.isinteger(s::PrimalSolution)
-    for (var_id, val) in getsol(s)
-        !isinteger(val) && return false
-    end
-    return true
-end
-
 """
     DualSolution{S} where S <: AbstractObjSense
 
@@ -188,13 +184,28 @@ end
 
 Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
 
-function Base.filter(f::Function, dualsol::DualSolution{S}
-        ) where {S<:AbstractObjSense}
-    newsol = filter(f, dualsol.sol)
-    elements = getelements(dualsol.sol)
+function Base.isinteger(sol::AbstractSolution)
+    for (vc_id, val) in getsol(sol)
+        !isinteger(val) && return false
+    end
+    return true
+end
+
+isfractional(s::AbstractSolution) = !Base.isinteger(s)
+
+function contains(sol::AbstractSolution, D::Type{<:AbstractVarConstrDuty})
+    filtered_sol = filter(vc -> getduty(vc) <: D, getsol(sol))
+    return length(filtered_sol) > 0
+end
+
+_value(constr::Constraint) = getcurrhs(constr)
+_value(var::Variable) = getcurcost(var)
+function Base.filter(f::Function, sol::T) where {T<:AbstractSolution}
+    newsol = filter(f, getsol(sol))
+    elements = getelements(getsol(sol))
     bound = 0.0
     for (id, val) in newsol
-        bound += val * getcurrhs(elements[id])
+        bound += val * _value(elements[id])
     end
-    return DualSolution{S}(bound, newsol) 
+    return T(bound, newsol) 
 end

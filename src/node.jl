@@ -96,34 +96,52 @@ function to_be_pruned(n::Node)
     return false
 end
 
-function record!(reform::Reformulation, node::Node)
-    # TODO : nested decomposition
-    node.status.need_to_prepare = true
-    return record!(getmaster(reform), node)
+function isfertile(n::Node)
+    ip_gap(getincumbents(n)) <= 0.0 && return false
+    isinteger(get_lp_primal_sol(getincumbents(n))) && return false
+    return true
 end
 
-function record!(form::Formulation, node::Node)
+function record!(reform::Reformulation, node::Node)
     @logmsg LogLevel(0) "Recording reformulation state after solving node."
-    active_vars = Dict{VarId, VarData}()
+    node.status.need_to_prepare = true
+    recorded_info = NodeRecord()
+    add_to_recorded!(reform, recorded_info)
+    node.record = recorded_info
+    return
+end
+
+function add_to_recorded!(reform::Reformulation, recorded_info::NodeRecord)
+    @logmsg LogLevel(0) "Recording master info."
+    add_to_recorded!(getmaster(reform), recorded_info)
+    for sp in reform.dw_pricing_subprs
+        @logmsg LogLevel(0) string("Recording sp ", getuid(sp), " info.")
+        add_to_recorded!(sp, recorded_info)
+    end
+    return
+end
+
+function add_to_recorded!(form::Formulation, recorded_info::NodeRecord)
     for (id, var) in getvars(form)
-        if get_cur_is_active(var)
-            active_vars[id] = deepcopy(getcurdata(var))
+        if get_cur_is_active(var) && get_cur_is_explicit(var)
+            recorded_info.active_vars[id] = deepcopy(getcurdata(var))
         end
     end
     active_constrs = Dict{ConstrId, ConstrData}()
     for (id, constr) in getconstrs(form)
-        if get_cur_is_active(constr)
-            active_constrs[id] = deepcopy(getcurdata(constr))
+        if get_cur_is_active(constr) && get_cur_is_explicit(constr)
+            recorded_info.active_constrs[id] = deepcopy(getcurdata(constr))
         end
     end
-    node.record = NodeRecord(active_vars, active_constrs)
     return
 end
 
 function prepare!(f::Reformulation, n::Node)
-    @logmsg LogLevel(0) "Setting up Reformulation before appling strategy on node."
-    !n.status.need_to_prepare && return
-    # For now, we do setup only in master
+    @logmsg LogLevel(0) "Setting up Reformulation before applying or algorithm."
+    if !n.status.need_to_prepare
+        @logmsg LogLevel(0) "Formulation is up-to-date, aborting preparation."
+        return
+    end
     @logmsg LogLevel(-1) "Setup on master."
     reset_to_record_state_of_father!(f, getparent(n))
     apply_branch!(f, getbranch(n))
@@ -157,49 +175,73 @@ function apply_branch!(f::Reformulation, b::Branch)
 end
 
 function reset_to_record_state_of_father!(reform::Reformulation, n::Node)
-    @logmsg LogLevel(-1) "Reset the formulation to the state left by the parent node."
-    active_vars = n.record.active_vars
-    active_constrs = n.record.active_constrs
-    master = getmaster(reform)
-    # Checking vars that are in formulation but should not be
-    for (id, var) in filter(_active_, getvars(master))
-        if !haskey(active_vars, id)
-            @logmsg LogLevel(0) "Deactivating variable " getname(var)
-            deactivate!(reform, id)
-        end
+    @logmsg LogLevel(0) "Resetting reformulation state to the one of father node"
+    @logmsg LogLevel(0) "Resetting reformulation master state"
+    reset_to_record_state_of_father!(getmaster(reform), n.record)
+    for sp in reform.dw_pricing_subprs
+        @logmsg LogLevel(0) string("Resetting sp ", getuid(sp), " state.")
+        reset_to_record_state_of_father!(sp, n.record)
     end
-    # Checking constrs that are in formulation but should not be
-    for (id, constr) in filter(_active_, getconstrs(master))
-        if !haskey(active_constrs, id)
-            @logmsg LogLevel(-2) "Deactivating constraint " getname(constr)
-            deactivate!(reform, id)
-        end
+    return
+end
+
+function apply_data!(form::Formulation, var::Variable, var_data::VarData)
+    # Bounds
+    if (getcurlb(var) != getlb(var_data)
+        || getcurub(var) != getub(var_data))
+        @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
+        setlb!(form, var, getlb(var_data))
+        setub!(form, var, getub(var_data))
+        @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(var))
+        @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
     end
-    # Checking vars that should be active in formulation but are not
-    for (id, data) in active_vars
-        var = getvar(master, id)
-        owner_form = find_owner_formulation(reform, var)
-        # Reset bounds # TODO: Reset costs
-        if (getcurlb(getvar(owner_form, id)) != getlb(data)
-            || getcurub(getvar(owner_form, id)) != getub(data))
-            @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
-            setlb!(owner_form, getvar(owner_form, id), getlb(data))
-            setub!(owner_form, getvar(owner_form, id), getub(data))
-            @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(var))
-            @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
-        end
-        if !get_cur_is_active(var) # Nothing to do if var is already active
-            @logmsg LogLevel(-2) "Activating variable " getname(var)
-            activate!(reform, var)
-        end
+    # Cost
+    if (getcurcost(var) != getcost(var_data))
+        @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(var))
+        setcost!(form, var, getcost(var_data))
+        @logmsg LogLevel(-3) string("New cost is ", getcurcost(var))
     end
-    # Checking constrs that should be active in formulation but are not
-    for (id, data) in active_constrs
-        constr = getconstr(master, id)
-        # TODO: reset rhs
-        get_cur_is_active(constr) && continue # Nothing to do if constr is already acitve
-        @logmsg LogLevel(-2) "Activating constraint " getname(constr)
-        activate!(reform, constr)
+    return
+end
+
+function apply_data!(form::Formulation, constr::Constraint, constr_data::ConstrData)
+    # Rhs
+    if getcurrhs(constr) != getrhs(constr_data)
+        @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
+        setrhs!(form, constr, getrhs(constr_data))
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(constr))
+    end
+    return
+end
+
+function reset_to_record_state_of_father!(form::Formulation, record::NodeRecord)
+    @logmsg LogLevel(-2) "Checking variables"
+    reset_var_constr!(form, record.active_vars, getvars(form))
+    @logmsg LogLevel(-2) "Checking constraints"
+    reset_var_constr!(form, record.active_constrs, getconstrs(form))
+    return
+end
+
+function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in_formulation)
+    for (id, vc) in var_constrs_in_formulation
+        @logmsg LogLevel(-4) "Checking " getname(vc)
+        # vc should NOT be active but is active in formulation
+        if !haskey(active_var_constrs, id) && get_cur_is_active(vc)
+            @logmsg LogLevel(-4) "Deactivating"
+            deactivate!(form, id)
+            continue
+        end
+        # vc should be active in formulation
+        if haskey(active_var_constrs, id)
+            # But var_constr is currently NOT active in formulation
+            if !get_cur_is_active(vc)
+                @logmsg LogLevel(-4) "Activating"
+                activate!(form, vc)
+            end
+            # After making sure that var activity is up-to-date
+            @logmsg LogLevel(-4) "Updating data"
+            apply_data!(form, vc, active_var_constrs[id])
+        end
     end
     return
 end

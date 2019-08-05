@@ -37,11 +37,14 @@ add_benders_sep_sp!(r::Reformulation, f) = push!(r.benders_sep_subprs, f)
 get_dw_pricing_sp(r::Reformulation) = r.dw_pricing_subprs
 get_benders_sep_sp(r::Reformulation) = r.benders_sep_subprs
 
-function optimize!(reformulation::Reformulation)
-    opt_result = apply!(GlobalStrategy, reformulation)
-    opt_result.primal_sols = [proj_cols_on_rep(
-        getbestprimalsol(opt_result), getmaster(reformulation)
-    )]
+function optimize!(
+        reform::Reformulation; strategy::GlobalStrategy = reform.strategy
+    )
+    opt_result = run_reform_solver!(reform, strategy)
+    master = getmaster(reform)
+    for (idx, sol) in enumerate(getprimalsols(opt_result))
+        opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)
+    end
     return opt_result
 end
 

@@ -35,16 +35,23 @@ getinner(optimizer::MoiOptimizer) = optimizer.inner
 
 function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     result = OptimizationResult{getobjsense(form)}()
-    if MOI.get(form.optimizer.inner, MOI.ResultCount()) >= 1
+    if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1
         fill_primal_result!(
             optimizer, result, filter(_active_explicit_ , getvars(form))
         )
         fill_dual_result!(
             optimizer, result, filter(_active_explicit_ , getconstrs(form))
         )
+        setfeasibilitystatus!(result, FEASIBLE)
+        setterminationstatus!(
+            result, convert_status(MOI.get(
+                getinner(optimizer), MOI.TerminationStatus()
+            ))
+        )
     else
         @warn "Solver has no result to show."
-        result.feasible = false
+        setfeasibilitystatus!(result, INFEASIBLE)
+        setterminationstatus!(result, EMPTY_RESULT)
     end
     return result
 end

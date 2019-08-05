@@ -4,6 +4,7 @@ mutable struct Annotations
     ann_per_constr::Dict{Id{Constraint}, BD.Annotation}
     vars_per_ann::Dict{BD.Annotation, Dict{Id{Variable},Variable}}
     constrs_per_ann::Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}
+    ann_per_form::Dict{Int, BD.Annotation}
     annotation_set::Set{BD.Annotation}
 end
 
@@ -12,6 +13,7 @@ Annotations() = Annotations(
     Dict{Id{Variable}, BD.Annotation}(), Dict{Id{Constraint}, BD.Annotation}(),
     Dict{BD.Annotation, Dict{Id{Variable},Variable}}(),
     Dict{BD.Annotation, Dict{Id{Constraint},Constraint}}(),
+    Dict{Int, BD.Annotation}(),
     Set{BD.Annotation}()
 )
 
@@ -33,6 +35,23 @@ function store!(annotations::Annotations, ann::BD.Annotation, constr::Constraint
     end
     annotations.constrs_per_ann[ann][getid(constr)] = constr
     return
+end
+
+function store!(annotations::Annotations, form::AbstractFormulation, ann::BD.Annotation)
+    form_uid = getuid(form)
+    if haskey(annotations.ann_per_form, form_uid)
+        error("Formulation with uid $form_uid already has annotation.")
+    end
+    annotations.ann_per_form[form_uid] = ann
+    return
+end
+
+function Base.get(annotations::Annotations, form::AbstractFormulation)
+    form_uid = getuid(form)
+    if !haskey(annotations.ann_per_form, form_uid)
+        error("Formulation with uid $form_uid does not have any annotation.")
+    end
+    return annotations.ann_per_form[form_uid]
 end
 
 function getparent(annotations::Annotations, ann)
@@ -97,7 +116,6 @@ end
 
 # # Behaves like optimize!(problem::Problem), but sets parameters before
 # # function optimize!(problem::Reformulation)
-
 function optimize!(prob::Problem, annotations::Annotations, params::Params)
     coluna_initialization(prob, annotations, params)
     _globals_.initial_solve_time = time()
@@ -106,9 +124,9 @@ function optimize!(prob::Problem, annotations::Annotations, params::Params)
         opt_result = optimize!(prob.re_formulation)
     end
     println(_to)
-    println("Terminated.")
-    @show getbestprimalsol(opt_result)
-    println("Primal bound: ", getprimalbound(opt_result))
-    println("Dual bound: ", getdualbound(opt_result))
+    TO.reset_timer!(_to)
+    @logmsg LogLevel(1) "Terminated"
+    @logmsg LogLevel(1) string("Primal bound: ", getprimalbound(opt_result))
+    @logmsg LogLevel(1) string("Dual bound: ", getdualbound(opt_result))
     return opt_result
 end

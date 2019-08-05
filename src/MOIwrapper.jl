@@ -238,6 +238,13 @@ end
 
 function MOI.get(optimizer::Optimizer, object::MOI.TerminationStatus)
     result = optimizer.result
-    isfeasible(result) && return MOI.OPTIMAL
-    !isfeasible(result) && return MOI.INFEASIBLE
+    isfeasible(result) && return convert_status(getterminationstatus(result))
+    getfeasibilitystatus(result) == INFEASIBLE && return MOI.INFEASIBLE
+    getfeasibilitystatus(result) == UNKNOWN_FEASIBILITY && return MOI.OTHER_LIMIT
+    error(string(
+        "Could not determine MOI status. Coluna termination : ", 
+        getterminationstatus(result), ". Coluna feasibility : ", 
+        getfeasibilitystatus(result)
+    ))
+    return
 end
