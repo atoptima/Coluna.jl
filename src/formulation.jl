@@ -200,7 +200,7 @@ function setprimaldwspsol!(master_form::Formulation,
     #master_form = sp_form.parent_formulation
     mastcol_id = generatevarid(master_form)
     mastcol_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
-    mastcol = Variable(mastcol_id, name, duty; var_data = ps_data, moi_index = moi_index)
+    mastcol = Variable(mastcol_id, name, duty; var_data = mastcol_data, moi_index = moi_index)
 
     master_coef_matrix = getcoefmatrix(master_form)
     primalspsol_matrix = getprimaldwspsolmatrix(master_form)
@@ -211,9 +211,9 @@ function setprimaldwspsol!(master_form::Formulation,
         @show  master_coef_matrix[:,var_id]
         for (constr_id, var_coef) in master_coef_matrix[:,var_id]
             if haskey(master_coef_matrix, constr_id, mastcol_id)
-                master_coef_matrix[constr_id, mastcol_id] += coef + var_val * var_coef
+                master_coef_matrix[constr_id, mastcol_id] += var_val * var_coef
             else
-                master_coef_matrix[constr_id, mastcol_id] = coef + var_val * var_coef
+                master_coef_matrix[constr_id, mastcol_id] = var_val * var_coef
             end
             
         end

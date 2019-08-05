@@ -167,7 +167,7 @@ end
 
 
 function create_side_vars_constrs!(sp_form::Formulation{DwSp}, orig_form::Formulation, annotations)
-    name = "PricingSetupVar_sp_$(getuid(sp))"
+    name = "PricingSetupVar_sp_$(getuid(sp_form))"
     setvar!(
     sp_form, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, 
         kind = Continuous, sense = Positive, is_explicit = true
@@ -222,7 +222,7 @@ function instantiate_orig_constrs!(master_form::Formulation{BendersMaster}, orig
     return
 end
 
-function create_side_vars_constrs!(master_form::Formulation{BendersMaster}, orig_form::Formulation)
+function create_side_vars_constrs!(master_form::Formulation{BendersMaster}, orig_form::Formulation, annotations)
     
     coefmatrix = getcoefmatrix(master_form)
 
@@ -385,7 +385,7 @@ function buildformulations!(prob::Problem, annotations::Annotations, reform,
     store!(annotations, sp_form, ann)
     orig_form = get_original_formulation(prob)
     assign_orig_vars_constrs!(sp_form, orig_form, annotations, ann)
-    create_side_vars_constrs!(sp_form, orig_form)
+    create_side_vars_constrs!(sp_form, orig_form, annotations)
     initialize_optimizer!(sp_form, getoptbuilder(prob, ann))
     return
 end
