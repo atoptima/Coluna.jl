@@ -335,7 +335,7 @@ function cg_main_loop(alg_data::ColumnGenerationData,
             alg_data.has_converged = true
             return ColumnGenerationRecord(alg_data.incumbents, false)
         end
-        if nb_cg_iterations > 1000 ##TDalg_data.max_nb_cg_iterations
+        if nb_cg_iterations > 10 ##TDalg_data.max_nb_cg_iterations
             @warn "Maximum number of column generation iteration is reached."
             return ColumnGenerationRecord(alg_data.incumbents, false)
         end

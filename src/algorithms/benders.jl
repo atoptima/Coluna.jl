@@ -313,12 +313,12 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
 
         if nb_new_cut == 0 || diff(lb + 0.00001, ub) < 0
             alg_data.has_converged = true
-            return BendersCutGenerationRecord(alg_data.incumbents)
+            return BendersCutGenerationRecord(alg_data.incumbents, false)
         end
-        if nb_bc_iterations > 10 ##TDalg_data.max_nb_bc_iterations
+        if nb_bc_iterations > 1000 #TDalg_data.max_nb_bc_iterations
             @warn "Maximum number of cut generation iteration is reached."
             alg_data.is_feasible = false
-            return BendersCutGenerationRecord(alg_data.incumbents)
+            return BendersCutGenerationRecord(alg_data.incumbents, false)
         end
         #exit()
     end
