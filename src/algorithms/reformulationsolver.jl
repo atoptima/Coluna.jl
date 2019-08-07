@@ -74,8 +74,8 @@ function setup_node!(n::Node, treat_order::Int, res::OptimizationResult)
     nbprimalsols(res) >= 1 && set_ip_primal_sol!(getincumbents(n), getbestprimalsol(res))
     @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(n)))
     @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(getincumbents(n)))
-    if (ip_gap(getincumbents(n)) <= 0.0 + 0.00000001)
-        @logmsg LogLevel(-1) string("IP Gap is non-positive: ", ip_gap(getincumbents(n)), ". Abort treatment.")
+    if (ip_relativegap(getincumbents(n)) <= 0.0 + 0.00000001)
+        @logmsg LogLevel(-1) string("IP Gap is non-positive: ", ip_relativegap(getincumbents(n)), ". Abort treatment.")
         return false
     end
     @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")

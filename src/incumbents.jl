@@ -52,11 +52,11 @@ get_lp_primal_bound(i::Incumbents) = i.lp_primal_bound # getbound(i.lp_primal_so
 get_lp_dual_bound(i::Incumbents) = getbound(i.lp_dual_sol)
 
 # Gaps
-"Returns the gap between the best primal and dual bounds of the integer program."
-ip_gap(i::Incumbents) = gap(get_ip_primal_bound(i), get_ip_dual_bound(i))
+"Returns the relativegap between the best primal and dual bounds of the integer program."
+ip_relativegap(i::Incumbents) = relativegap(get_ip_primal_bound(i), get_ip_dual_bound(i))
 
-"Returns the gap between the best primal and dual bounds of the linear program."
-lp_gap(i::Incumbents) = gap(get_lp_primal_bound(i), get_lp_dual_bound(i))
+"Returns the relativegap between the best primal and dual bounds of the linear program."
+lp_relativegap(i::Incumbents) = relativegap(get_lp_primal_bound(i), get_lp_dual_bound(i))
 
 # Setters
 """

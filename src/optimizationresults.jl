@@ -56,7 +56,7 @@ setprimalbound!(res::OptimizationResult, b::PrimalBound) = res.primal_bound = b
 setdualbound!(res::OptimizationResult, b::DualBound) = res.dual_bound = b
 setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.termination_status = status
 setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
-gap(res::OptimizationResult) = gap(getprimalbound(res), getdualbound(res))
+relativegap(res::OptimizationResult) = relativegap(getprimalbound(res), getdualbound(res))
 
 function add_primal_sol!(res::OptimizationResult, solution::AbstractSolution)
     push!(res.primal_sols, solution)
@@ -68,13 +68,13 @@ function add_primal_sol!(res::OptimizationResult, solution::AbstractSolution)
 end
 
 function determine_statuses(res::OptimizationResult, fully_explored::Bool)
-    gap_is_zero = gap(res) <= 0.00001
+    gap_is_zero = relativegap(res) <= 0.00001
     found_sols = length(getprimalsols(res)) >= 1
-    # We assume that gap cannot be zero if no solution was found
+    # We assume that relativegap cannot be zero if no solution was found
     gap_is_zero && @assert found_sols
     found_sols && setfeasibilitystatus!(res, FEASIBLE)
     gap_is_zero && setterminationstatus!(res, OPTIMAL)
-    if !found_sols # Implies that gap is not zero
+    if !found_sols # Implies that relativegap is not zero
         setterminationstatus!(res, EMPTY_RESULT)
         # Determine if we can prove that is was infeasible
         if fully_explored

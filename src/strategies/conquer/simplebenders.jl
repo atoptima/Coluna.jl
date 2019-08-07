@@ -7,7 +7,7 @@ function apply!(::Type{SimpleBenders}, reform, node, strategy_rec::StrategyRecor
         node.status.proven_infeasible = true
         return
     end
-    #ip_gap(colgen_rec.incumbents) <= 0 && return
+    #ip_relativegap(colgen_rec.incumbents) <= 0 && return
     #mip_rec = apply!(MasterIpHeuristic, reform, node, strategy_rec, params)
     return
 end

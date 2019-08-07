@@ -2,7 +2,7 @@ function solsandbounds_unit_tests()
     bounds_constructors_and_getters_tests()
     bounds_isbetter_tests()
     bounds_absolutegap_tests()
-    bounds_gap_tests()
+    bounds_relativegap_tests()
     bounds_base_functions_tests()
     solution_constructors_and_getters_and_setters_tests()
     solution_base_functions_tests()
@@ -51,19 +51,19 @@ function bounds_absolutegap_tests()
 
 end
 
-function bounds_gap_tests()
+function bounds_relativegap_tests()
 
     pb = CL.PrimalBound{CL.MinSense}(10.0)
     db = CL.DualBound{CL.MinSense}(5.0)
-    @test CL.gap(pb, db) == CL.gap(db, pb) == (10.0-5.0)/5.0
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == (10.0-5.0)/5.0
 
     pb = CL.PrimalBound{CL.MaxSense}(5.0)
     db = CL.DualBound{CL.MaxSense}(10.0)
-    @test CL.gap(pb, db) == CL.gap(db, pb) == (10.0-5.0)/5.0
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == (10.0-5.0)/5.0
 
     pb = CL.PrimalBound{CL.MinSense}(10.0)
     db = CL.DualBound{CL.MinSense}(-5.0)
-    @test CL.gap(pb, db) == CL.gap(db, pb) == (10.0+5.0)/5.0
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == (10.0+5.0)/5.0
 
 end
 

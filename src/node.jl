@@ -89,15 +89,15 @@ end
 get_algorithm_record!(n::Node, S::Type{<:AbstractAlgorithm}) = n.algorithm_records[S]
 
 function to_be_pruned(n::Node)
-    # How to determine if a node should be pruned?? By the lp_gap?
+    # How to determine if a node should be pruned?? By the lp_relativegap?
     n.status.proven_infeasible && return true
-    lp_gap(n.incumbents) <= 0.0000001 && return true
-    ip_gap(n.incumbents) <= 0.0000001 && return true
+    lp_relativegap(n.incumbents) <= 0.0000001 && return true
+    ip_relativegap(n.incumbents) <= 0.0000001 && return true
     return false
 end
 
 function isfertile(n::Node)
-    ip_gap(getincumbents(n)) <= 0.0 && return false
+    ip_relativegap(getincumbents(n)) <= 0.0 && return false
     isinteger(get_lp_primal_sol(getincumbents(n))) && return false
     return true
 end

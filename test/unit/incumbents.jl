@@ -46,6 +46,6 @@ function incumbents_getters_and_setters_unit_tests()
     @test CL.set_ip_dual_bound!(inc, bound)
     @test CL.get_ip_dual_bound(inc) == 2.0
 
-    @test CL.ip_gap(inc) == (12.0 - 2.0) / 2.0
-    @test CL.lp_gap(inc) == (8.1 - 1.1) / 1.1
+    @test CL.ip_relativegap(inc) == (12.0 - 2.0) / 2.0
+    @test CL.lp_relativegap(inc) == (8.1 - 1.1) / 1.1
 end

@@ -6,7 +6,7 @@ function apply!(::Type{SimpleBnP}, reform, node, strategy_rec::StrategyRecord, p
         node.status.proven_infeasible = true
         return
     end
-    ip_gap(colgen_rec.incumbents) <= 0 && return
+    ip_relativegap(colgen_rec.incumbents) <= 0 && return
     mip_rec = apply!(MasterIpHeuristic, reform, node, strategy_rec, params)
     return
 end
@@ -24,7 +24,7 @@ function apply!(::Type{BnPnPreprocess}, reform, node, strategy_rec::StrategyReco
         node.status.proven_infeasible = true
         return
     end
-    ip_gap(colgen_rec.incumbents) <= 0 && return
+    ip_relativegap(colgen_rec.incumbents) <= 0 && return
     mip_rec = apply!(MasterIpHeuristic, reform, node, strategy_rec, params)
     return
 end
