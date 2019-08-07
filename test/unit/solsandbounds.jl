@@ -1,7 +1,7 @@
 function solsandbounds_unit_tests()
     bounds_constructors_and_getters_tests()
     bounds_isbetter_tests()
-    bounds_diff_tests()
+    bounds_absolutegap_tests()
     bounds_gap_tests()
     bounds_base_functions_tests()
     solution_constructors_and_getters_and_setters_tests()
@@ -39,15 +39,15 @@ function bounds_isbetter_tests()
 
 end
 
-function bounds_diff_tests()
+function bounds_absolutegap_tests()
 
     pb = CL.PrimalBound{CL.MinSense}(10.0)
     db = CL.DualBound{CL.MinSense}(5.0)
-    @test CL.diff(pb, db) == CL.diff(db, pb) == 5.0
+    @test CL.absolutegap(pb, db) == CL.absolutegap(db, pb) == 5.0
 
     pb = CL.PrimalBound{CL.MaxSense}(10.0)
     db = CL.DualBound{CL.MaxSense}(5.0)
-    @test CL.diff(pb, db) == CL.diff(db, pb) == -5.0
+    @test CL.absolutegap(pb, db) == CL.absolutegap(db, pb) == -5.0
 
 end
 

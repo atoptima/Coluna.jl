@@ -46,28 +46,28 @@ isbetter(b1::DualBound{MinSense}, b2::DualBound{MinSense}) = b1.value > b2.value
 isbetter(b1::DualBound{MaxSense}, b2::DualBound{MaxSense}) = b1.value < b2.value
 
 "Returns the `pb` - `db` for a minimization objective function. In this sense because in a minimization problem the primal bound is supposed to be larger than the dual bound."
-diff(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = pb.value - db.value
+absolutegap(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = pb.value - db.value
 
 "Returns the `pb` - `db` for a minimization objective function. In this sense because in a minimization problem the primal bound is supposed to be larger than the dual bound."
-diff(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = pb.value - db.value
+absolutegap(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = pb.value - db.value
 
 "Returns the `db` - `pb` for a maximization objective function. In this sense because in a maximization problem the dual bound is supposed to be larger than the primal bound."
-diff(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = db.value - pb.value
+absolutegap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = db.value - pb.value
 
 "Returns the `db` - `pb` for a maximization objective function. In this sense because in a maximization problem the dual bound is supposed to be larger than the primal bound."
-diff(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = db.value - pb.value
+absolutegap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = db.value - pb.value
 
 "Returns the relative gap between `pb` and `db`. A negative number if `db` is larger than `pb`."
-gap(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = diff(pb, db) / abs(db.value)
+gap(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = absolutegap(pb, db) / abs(db.value)
 
 "Returns the relative gap between `pb` and `db`. A negative number if `db` is larger than `pb`."
-gap(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = diff(pb, db) / abs(db.value)
+gap(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = absolutegap(pb, db) / abs(db.value)
 
 "Returns the relative gap between `pb` and `db`. A negative number if `pb` is larger than `db`."
-gap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = diff(pb, db) / abs(pb.value)
+gap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = absolutegap(pb, db) / abs(pb.value)
 
 "Returns the relative gap between `pb` and `db`. A negative number if `pb` is larger than `db`."
-gap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = diff(pb, db) / abs(pb.value)
+gap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = absolutegap(pb, db) / abs(pb.value)
 
 function printbounds(db::DualBound{S}, pb::PrimalBound{S}) where {S<:MinSense}
     print("[ ", db,  " , ", pb, " ]")

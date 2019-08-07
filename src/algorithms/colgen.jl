@@ -331,7 +331,7 @@ function cg_main_loop(alg_data::ColumnGenerationData,
             @logmsg LogLevel(0) "Phase one determines infeasibility."
             return ColumnGenerationRecord(alg_data.incumbents, true)
         end
-        if nb_new_col == 0 || diff(lb + 0.00001, ub) < 0
+        if nb_new_col == 0 || absolutegap(lb + 0.00001, ub) < 0
             alg_data.has_converged = true
             return ColumnGenerationRecord(alg_data.incumbents, false)
         end
