@@ -58,16 +58,31 @@ absolutegap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = db.value - pb.
 absolutegap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = db.value - pb.value
 
 "Returns the relative gap between `pb` and `db`. A negative number if `db` is larger than `pb`."
-relativegap(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = absolutegap(pb, db) / abs(db.value)
+_relativegap(pb::PrimalBound{MinSense}, db::DualBound{MinSense}) = absolutegap(pb, db) / abs(db.value)
 
 "Returns the relative gap between `pb` and `db`. A negative number if `db` is larger than `pb`."
-relativegap(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = absolutegap(pb, db) / abs(db.value)
+_relativegap(db::DualBound{MinSense}, pb::PrimalBound{MinSense}) = absolutegap(pb, db) / abs(db.value)
 
 "Returns the relative gap between `pb` and `db`. A negative number if `pb` is larger than `db`."
-relativegap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = absolutegap(pb, db) / abs(pb.value)
+_relativegap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = absolutegap(pb, db) / abs(pb.value)
 
 "Returns the relative gap between `pb` and `db`. A negative number if `pb` is larger than `db`."
-relativegap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = absolutegap(pb, db) / abs(pb.value)
+_relativegap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = absolutegap(pb, db) / abs(pb.value)
+
+function relativegap(b1::PrimalBound{S}, b2::PrimalBound{S}) where {S}
+    b1.value == b2.value && return 0.0
+    return _relativegap(b1, b2)
+end
+
+function relativegap(b1::PrimalBound{S}, b2::DualBound{S}) where {S}
+    if b1.value == Inf || b2.value == Inf || b1.value == -Inf || b2.value == -Inf
+        return Inf
+    end
+    b1.value == b2.value && return 0.0
+    return _relativegap(b1, b2)
+end
+
+relativegap(b1::DualBound{S}, b2::PrimalBound{S}) where {S} = relativegap(b2, b1)
 
 function printbounds(db::DualBound{S}, pb::PrimalBound{S}) where {S<:MinSense}
     print("[ ", db,  " , ", pb, " ]")

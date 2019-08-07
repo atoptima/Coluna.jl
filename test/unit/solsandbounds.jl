@@ -61,9 +61,33 @@ function bounds_relativegap_tests()
     db = CL.DualBound{CL.MaxSense}(10.0)
     @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == (10.0-5.0)/5.0
 
-    pb = CL.PrimalBound{CL.MinSense}(10.0)
-    db = CL.DualBound{CL.MinSense}(-5.0)
-    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == (10.0+5.0)/5.0
+    pb = CL.PrimalBound{CL.MinSense}(0.0)
+    db = CL.DualBound{CL.MinSense}(0.0)
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == 0.0
+
+    pb = CL.PrimalBound{CL.MinSense}(1.0)
+    db = CL.DualBound{CL.MinSense}(1.0)
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == 0.0
+
+    pb = CL.PrimalBound{CL.MinSense}(Inf)
+    db = CL.DualBound{CL.MinSense}(-Inf)
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == Inf
+
+    pb = CL.PrimalBound{CL.MinSense}(Inf)
+    db = CL.DualBound{CL.MinSense}(Inf)
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == Inf
+
+    pb = CL.PrimalBound{CL.MinSense}(Inf)
+    db = CL.DualBound{CL.MinSense}(-2)
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == Inf
+
+    pb = CL.PrimalBound{CL.MinSense}(12)
+    db = CL.DualBound{CL.MinSense}(-Inf)
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == Inf
+
+    pb = CL.PrimalBound{CL.MinSense}(-2)
+    db = CL.DualBound{CL.MinSense}(-Inf)
+    @test CL.relativegap(pb, db) == CL.relativegap(db, pb) == Inf
 
 end
 
