@@ -1,6 +1,10 @@
+import ColunaDemos.CuttingStock.data
+
+
 function full_instances_tests()
-    generalized_assignment_tests()
+    #generalized_assignment_tests()
     #lot_sizing_tests()
+    cutting_stock_tests()
 end
 
 function generalized_assignment_tests()
@@ -144,6 +148,23 @@ function lot_sizing_tests()
         )
 
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
+        JuMP.optimize!(problem)
+    end
+end
+
+function cutting_stock_tests()
+    @testset "play cutting stock" begin
+        data = CLD.CuttingStock.data("randomInstances/inst10-10")
+
+        coluna = JuMP.with_optimizer(Coluna.Optimizer,
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
+
+        problem, x, y, dec = CLD.CuttingStock.model(data, coluna)
         JuMP.optimize!(problem)
     end
 end
