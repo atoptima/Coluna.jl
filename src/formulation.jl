@@ -10,11 +10,9 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     var_counter::Counter
     constr_counter::Counter
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
-
     optimizer::AbstractOptimizer
     manager::FormulationManager
     obj_sense::Type{<:AbstractObjSense}
-
     buffer::FormulationBuffer
 end
 

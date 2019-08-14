@@ -1,23 +1,24 @@
 function full_instances_tests()
-    generalized_assignment_tests()
-    #lot_sizing_tests()
+    #generalized_assignment_tests()
+    lot_sizing_tests()
+    #capacitated_lot_sizing_tests()
 end
 
 function generalized_assignment_tests()
     @testset "play gap" begin
-    data = CLD.GeneralizedAssignment.data("play2.txt")
+        data = CLD.GeneralizedAssignment.data("play2.txt")
 
-    coluna = JuMP.with_optimizer(Coluna.Optimizer,
-                                 params = CL.Params(
-                                     global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
-                                 ),
-                                 default_optimizer = with_optimizer(GLPK.Optimizer)
-                                 )
+        coluna = JuMP.with_optimizer(Coluna.Optimizer,
+                                     params = CL.Params(
+                                         global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                                     ),
+                                     default_optimizer = with_optimizer(GLPK.Optimizer)
+                                     )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-    JuMP.optimize!(problem)
-    @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+        JuMP.optimize!(problem)
+        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
@@ -134,16 +135,44 @@ end
 
 function lot_sizing_tests()
     @testset "play single mode multi items lot sizing" begin
+       # io = IOBuffer()
+       # global_logger(ConsoleLogger(io, LogLevel(-4)))
+
         data = CLD.SingleModeMultiItemsLotSizing.data("lotSizing-3-20-2.txt")
         
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBenders, CL.SimpleBranching, CL.DepthFirst)
-            ),
-            default_optimizer = with_optimizer(GLPK.Optimizer)
-        )
+                                     params = CL.Params(max_num_nodes = 3, 
+                                                        global_strategy =
+                                                        CL.GlobalStrategy(CL.SimpleBenders, CL.SimpleBranching, CL.DepthFirst)
+                                                        ),
+                                     default_optimizer = with_optimizer(GLPK.Optimizer)
+                                     )
 
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
         JuMP.optimize!(problem)
+    end
+end
+
+function capacitated_lot_sizing_tests()
+    @testset "play  multi items capacited lot sizing" begin
+
+        # To redirect logging output
+        io = IOBuffer()
+        global_logger(ConsoleLogger(io, LogLevel(-1)))
+
+
+        data = CLD.CapacitatedLotSizing.readData("testSmall")
+        
+        coluna = JuMP.with_optimizer(Coluna.Optimizer,
+                                     params = CL.Params(
+                                         global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                                     ),
+                                     default_optimizer = with_optimizer(GLPK.Optimizer)
+                                     )
+
+        clsp, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
+
+        
+        JuMP.optimize!(clsp)
     end
 end

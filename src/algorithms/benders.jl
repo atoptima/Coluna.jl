@@ -276,12 +276,13 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
             return BendersCutGenerationRecord(alg_data.incumbents, true)
         end
        
-       
-        set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
         
-        #if isinteger(primal_sols[1])
-       #     set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
-        #end
+        set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
+        #set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
+        
+        if isinteger(primal_sols[1])
+            set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
+        end
 
         # TODO: cleanup restricted master columns        
 
@@ -306,23 +307,26 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
 
         # TODO: update bendcutgen stabilization
 
-        ub = min(
-            get_lp_primal_bound(alg_data.incumbents), get_ip_primal_bound(alg_data.incumbents)
-        )
-        lb = get_lp_dual_bound(alg_data.incumbents)
+        primal_bound = get_lp_primal_bound(alg_data.incumbents)
+        dual_bound = get_lp_dual_bound(alg_data.incumbents)
+        cur_gap = gap(primal_bound, dual_bound)
 
-        if nb_new_cut == 0 || diff(lb + 0.00001, ub) < 0
+        if nb_new_cut == 0 || cur_gap < 0.00001  #_params_.relative_optimality_tolerance
+            @show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
             alg_data.has_converged = true
-            return BendersCutGenerationRecord(alg_data.incumbents, false)
+            break
+            # return BendersCutGenerationRecord(alg_data.incumbents, false)
         end
-        if nb_bc_iterations > 1000 #TDalg_data.max_nb_bc_iterations
+        
+        if nb_bc_iterations > 3 #TDalg_data.max_nb_bc_iterations
             @warn "Maximum number of cut generation iteration is reached."
             alg_data.is_feasible = false
-            return BendersCutGenerationRecord(alg_data.incumbents, false)
+            break
+            # return BendersCutGenerationRecord(alg_data.incumbents, false)
         end
         #exit()
     end
-    return BendersCutGenerationRecord(alg_data.incumbents)
+    return BendersCutGenerationRecord(alg_data.incumbents, false)
 end
 
 function print_intermediate_statistics(alg_data::BendersCutGenerationData,

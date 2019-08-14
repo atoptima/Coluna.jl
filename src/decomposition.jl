@@ -117,7 +117,7 @@ function create_side_vars_constrs!(master_form::Formulation{DwMaster}, orig_form
         lb_mult = Float64(BD.getminmultiplicity(ann))
         name = "sp_lb_$spuid"
         lb_conv_constr = setconstr!(
-            master_form, string(name, spuid), MasterConvexityConstr; rhs = lb_mult, 
+            master_form, name, MasterConvexityConstr; rhs = lb_mult, 
             kind = Core, sense = Greater
         )
         master_form.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
@@ -228,11 +228,11 @@ function create_side_vars_constrs!(master_form::Formulation{BendersMaster}, orig
 
     eta = setvar!(
         master_form, "η", MasterBendSecondStageCostVar; cost = 1.0,
-        lb = -1.0, ub = Inf, 
+        lb = 0.0 , ub = Inf, 
         kind = Continuous, sense = Free, is_explicit = true
     )
     cost = setconstr!(
-        master_form, "mcost", MasterRepBendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
+        master_form, "cost", MasterRepBendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
         sense = Equal, is_explicit = true
     )
     coefmatrix[getid(cost), getid(eta)] = 1.0
@@ -242,7 +242,7 @@ function create_side_vars_constrs!(master_form::Formulation{BendersMaster}, orig
         name = "ν[$(split(getname(nu), "[")[end])"
         setvar!(
             master_form, name, MasterBendSecondStageCostVar; cost = 0.0,
-            lb = -1.0, ub = Inf, 
+            lb = -  Inf, ub = Inf, 
             kind = Continuous, sense = Free, is_explicit = true, id = getid(nu)
         )
         coefmatrix[getid(cost), getid(nu)] = - 1.0
@@ -290,8 +290,8 @@ function instantiate_orig_vars!(sp_form::Formulation{BendersSp}, orig_form::Form
                 #clonevar!(sp_form, var, BendSpSepVar)
                 mu = setvar!(
                     sp_form, name, BendSpSlackFirstStageVar; cost = getcurcost(var),
-                    lb = getcurlb(var), ub = getcurub(var), 
-                    kind = getcurkind(var), sense = getcursense(var), is_explicit = true, id = id
+                    lb = - getcurub(var), ub = getcurub(var), 
+                    kind = Continuous, sense = getcursense(var), is_explicit = true, id = id
                 )
             end
         end
@@ -331,7 +331,7 @@ function create_side_vars_constrs!(sp_form::Formulation{BendersSp}, orig_form::F
         kind = Continuous, sense = Free, is_explicit = true
     )
     cost = setconstr!(
-        sp_form, "scost", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
+        sp_form, "cost[$sp_id]", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
         sense = Equal, is_explicit = true
     )
     sp_coef[getid(cost), getid(nu)] = 1.0
@@ -395,7 +395,8 @@ function reformulate!(prob::Problem, annotations::Annotations,
     decomposition_tree = annotations.tree
 
     root = BD.getroot(decomposition_tree)
-
+    @show prob.original_formulation
+                                                 
     # Create reformulation
     reform = Reformulation(prob, strategy)
     set_re_formulation!(prob, reform)

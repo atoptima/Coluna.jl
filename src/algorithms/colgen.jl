@@ -321,26 +321,28 @@ function cg_main_loop(alg_data::ColumnGenerationData,
 
         # TODO: update colgen stabilization
 
-        lb = get_ip_dual_bound(alg_data.incumbents)
-        ub = min(
-            get_lp_primal_bound(alg_data.incumbents), get_ip_primal_bound(alg_data.incumbents)
-        )
-
-        if phase == 1 && ph_one_infeasible_db(lb)
+        dual_bound = get_ip_dual_bound(alg_data.incumbents)
+        primal_bound = get_lp_primal_bound(alg_data.incumbents)     
+        cur_gap = gap(primal_bound, dual_bound)
+        
+        if phase == 1 && ph_one_infeasible_db(dual_bound)
             alg_data.is_feasible = false
             @logmsg LogLevel(0) "Phase one determines infeasibility."
             return ColumnGenerationRecord(alg_data.incumbents, true)
         end
-        if nb_new_col == 0 || diff(lb + 0.00001, ub) < 0
+        if nb_new_col == 0 || cur_gap < 0.00001 #_params_.relative_optimality_tolerance
+            @show "Column Generation Algorithm has converged." nb_new_col cur_gap
             alg_data.has_converged = true
-            return ColumnGenerationRecord(alg_data.incumbents, false)
+            break
+            # return ColumnGenerationRecord(alg_data.incumbents, false)
         end
         if nb_cg_iterations > 10 ##TDalg_data.max_nb_cg_iterations
             @warn "Maximum number of column generation iteration is reached."
-            return ColumnGenerationRecord(alg_data.incumbents, false)
+            break
+            # return ColumnGenerationRecord(alg_data.incumbents, false)
         end
     end
-    return ColumnGenerationRecord(alg_data.incumbents)
+    return ColumnGenerationRecord(alg_data.incumbents, false)
 end
 
 function print_intermediate_statistics(alg_data::ColumnGenerationData,

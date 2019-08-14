@@ -37,9 +37,7 @@ version = "0.5.0"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "8448a7f85d7b2a0757251ac1e7b07a1f01b3d63e"
-repo-rev = "master"
-repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
+path = "/Users/fv/.julia/dev/ColunaDemos"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
 version = "0.1.0"
 
@@ -99,9 +97,9 @@ version = "0.8.0"
 
 [[Documenter]]
 deps = ["Base64", "DocStringExtensions", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "REPL", "Test", "Unicode"]
-git-tree-sha1 = "1dba3854d6b0e35b3ed77f84419efbaf81f28886"
+git-tree-sha1 = "c61d6eedbc3c4323c08b64af12d29c8ee0fcbb5f"
 uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.23.1"
+version = "0.23.2"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "InteractiveUtils", "LinearAlgebra", "NaNMath", "Random", "SparseArrays", "SpecialFunctions", "StaticArrays", "Test"]
