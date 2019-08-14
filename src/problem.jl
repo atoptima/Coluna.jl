@@ -104,7 +104,8 @@ function _welcome_message()
     print(welcome)
 end
 
-function coluna_initialization(prob::Problem, annotations::Annotations,
+function coluna_initialization(prob::Problem,
+                               annotations::Annotations,
                                params::Params)
     _welcome_message()
     _set_global_params(params)

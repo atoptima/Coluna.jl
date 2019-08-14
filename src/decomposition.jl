@@ -115,10 +115,10 @@ function create_side_vars_constrs!(master_form::Formulation{DwMaster}, orig_form
         clonevar!(master_form, setupvar, MasterRepPricingSetupVar, is_explicit = false)
         # create convexity constraint
         lb_mult = Float64(BD.getminmultiplicity(ann))
-        name = "sp_lb_$spuid"
+        name = string("sp_lb_", spuid)
         lb_conv_constr = setconstr!(
-            master_form, name, MasterConvexityConstr; rhs = lb_mult, 
-            kind = Core, sense = Greater
+            master_form, name, MasterConvexityConstr; 
+            rhs = lb_mult, kind = Core, sense = Greater
         )
         master_form.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
         setincval!(getrecordeddata(lb_conv_constr), 100.0)
@@ -126,7 +126,7 @@ function create_side_vars_constrs!(master_form::Formulation{DwMaster}, orig_form
         coefmatrix[getid(lb_conv_constr), getid(setupvar)] = 1.0
 
         ub_mult =  Float64(BD.getmaxmultiplicity(ann))
-        name = "sp_ub_$spuid"
+        name = string("sp_ub_", spuid)
         ub_conv_constr = setconstr!(
             master_form, name, MasterConvexityConstr; rhs = ub_mult, 
             kind = Core, sense = Less

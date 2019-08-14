@@ -205,15 +205,8 @@ function setprimaldwspsol!(master_form::Formulation,
 
     for (var_id, var_val) in sol
         primalspsol_matrix[var_id, mastcol_id] = var_val
-        @show getvar(master_form, var_id)
-        @show  master_coef_matrix[:,var_id]
         for (constr_id, var_coef) in master_coef_matrix[:,var_id]
-            if haskey(master_coef_matrix, constr_id, mastcol_id)
-                master_coef_matrix[constr_id, mastcol_id] += var_val * var_coef
-            else
-                master_coef_matrix[constr_id, mastcol_id] = var_val * var_coef
-            end
-            
+            master_coef_matrix[constr_id, mastcol_id] += var_val * var_coef
         end
     end
 
