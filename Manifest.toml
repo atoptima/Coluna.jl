@@ -16,10 +16,10 @@ uuid = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
 version = "0.8.10"
 
 [[BinaryProvider]]
-deps = ["Libdl", "SHA"]
+deps = ["Libdl", "Logging", "SHA"]
 git-tree-sha1 = "c7361ce8a2129f20b0e05a89f7070820cfed6648"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
-version = "0.5.4"
+version = "0.5.6"
 
 [[BlockDecomposition]]
 deps = ["DataStructures", "JuMP", "MathOptInterface", "Test"]
@@ -31,9 +31,9 @@ version = "0.1.0"
 
 [[Calculus]]
 deps = ["Compat"]
-git-tree-sha1 = "f60954495a7afcee4136f78d1d60350abd37a409"
+git-tree-sha1 = "bd8bbd105ba583a42385bd6dc4a20dad8ab3dc11"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
-version = "0.4.1"
+version = "0.5.0"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
@@ -110,10 +110,12 @@ uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.3"
 
 [[GLPK]]
-deps = ["BinaryProvider", "Libdl", "LinQuadOptInterface", "SparseArrays"]
-git-tree-sha1 = "b12093a67c3007b69d5403625d1920d59c16ac61"
+deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
+git-tree-sha1 = "676e2e1cfd2edbf844f10b5862a39f5107f3da5b"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaOpt/GLPK.jl.git"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-version = "0.10.0"
+version = "0.11.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -126,26 +128,18 @@ uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.0"
 
 [[JuMP]]
-deps = ["Calculus", "DataStructures", "ForwardDiff", "LinearAlgebra", "MathOptInterface", "NaNMath", "Random", "SparseArrays", "Statistics", "Test"]
-git-tree-sha1 = "67a054b8aa451198dcaeff279614125833d4a3e4"
-repo-rev = "7c115a2dcc8d92bdb6422dc4ed0919b7842e30fb"
+deps = ["Calculus", "DataStructures", "ForwardDiff", "LinearAlgebra", "MathOptInterface", "NaNMath", "Random", "SparseArrays", "Statistics"]
+git-tree-sha1 = "d159ea2b4c9a6c5dfb5926867688a008ed9a8e9d"
+repo-rev = "master"
 repo-url = "https://github.com/JuliaOpt/JuMP.jl.git"
 uuid = "4076af6c-e467-56ae-b986-b466b2749572"
-version = "0.19.2+"
+version = "0.19.2"
 
 [[LibGit2]]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
-
-[[LinQuadOptInterface]]
-deps = ["Compat", "MathOptInterface"]
-git-tree-sha1 = "2b8bb460097381a6948d52afc4f531878b1f2811"
-repo-rev = "83213683fcb527a4ee45dc7fe32c4aa9e1d9f4a1"
-repo-url = "https://github.com/JuliaOpt/LinQuadOptInterface.jl.git"
-uuid = "f8899e07-120b-5979-ab1d-7b97bb9e1a48"
-version = "0.6.0+"
 
 [[LinearAlgebra]]
 deps = ["Libdl"]
@@ -159,12 +153,10 @@ deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
-deps = ["Compat", "Unicode"]
-git-tree-sha1 = "ffb9d8324fbc3c640ace0347643c654499fd841c"
-repo-rev = "master"
-repo-url = "https://github.com/guimarqu/MathOptInterface.jl.git"
+deps = ["BenchmarkTools", "LinearAlgebra", "OrderedCollections", "SparseArrays", "Test", "Unicode"]
+git-tree-sha1 = "5e6e36e2f01efbc62b3f8bf68c8cf82035e2c6a6"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.8.4+"
+version = "0.9.1"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"

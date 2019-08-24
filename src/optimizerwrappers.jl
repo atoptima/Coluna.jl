@@ -28,7 +28,7 @@ Wrapper that is used when the optimizer of a formulation
 is an `MOI.AbstractOptimizer`, thus inheriting MOI functionalities.
 """
 struct MoiOptimizer <: AbstractOptimizer
-    inner::MOI.AbstractOptimizer
+    inner::MOI.ModelLike
 end
 
 getinner(optimizer::MoiOptimizer) = optimizer.inner
