@@ -52,6 +52,7 @@ function Base.get(vec::MembersVector{I,K,T}, id::I, default) where {I,K,T}
 end
 
 function Base.getindex(vec::MembersVector{I,K,T}, id::I) where {I,K,T}
+    @show T
     vec.records[id]
 end
 

@@ -37,7 +37,9 @@ version = "0.5.0"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-path = "/Users/fv/.julia/dev/ColunaDemos"
+git-tree-sha1 = "e921ad1f064bdc799c8244afb347f388732efd7d"
+repo-rev = "master"
+repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
 version = "0.1.0"
 

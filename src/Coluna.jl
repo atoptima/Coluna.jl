@@ -88,6 +88,7 @@ include("strategies/treesearch/simplestrategies.jl")
 
 # Wrapper functions
 include("MOIwrapper.jl")
+
 include("globals.jl") # Structure that holds values useful in all the procedure
 
 global const _params_ = Params()
