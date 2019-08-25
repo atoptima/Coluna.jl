@@ -52,7 +52,7 @@ function Base.get(vec::MembersVector{I,K,T}, id::I, default) where {I,K,T}
 end
 
 function Base.getindex(vec::MembersVector{I,K,MembersVector{J,L,T}}, id::I) where {I,J,K,L,T<:Number}
-    Base.get(vec, id, zero(T))
+    Base.get(vec, id, Nothing)
 end
 
 function Base.getindex(vec::MembersVector{I,K,T}, id::I) where {I,K,T<:Number}
@@ -226,11 +226,11 @@ end
 function Base.getindex(m::MembersMatrix{I,K,J,L,T}, row_id::J, col_id::I) where {I,K,J,L,T}
     if length(m.cols) < length(m.rows) # improve ?
         col = m.cols[col_id]
-        col isa T && return col
+        col === Nothing && return zero(T)
         return col[row_id]
     else
         row = m.rows[row_id]
-        row isa T && return row
+        row === Nothing && return zero(T)
         return row[col_id]
     end
 end
