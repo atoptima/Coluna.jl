@@ -54,21 +54,6 @@ function Base.get(annotations::Annotations, form::AbstractFormulation)
     return annotations.ann_per_form[form_uid]
 end
 
-function getparent(annotations::Annotations, ann)
-    # parent_id = BD.getparent(ann)
-    # for annotation in annotations.annotation_set
-    #     if BD.getid(annotation) == parent_id
-    #         return annotation
-    #     end
-    # end
-    # error("Cannot get parent annotation of $ann.")
-    for annotation in annotations.annotation_set
-        if BD.getformulation(annotation) == BD.Master
-            return annotation
-        end
-    end
-end
-
 """
     Problem
 
