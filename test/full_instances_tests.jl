@@ -134,6 +134,7 @@ function generalized_assignment_tests()
 
         @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
     end
+    return
 end
 
 function lot_sizing_tests()
@@ -150,6 +151,7 @@ function lot_sizing_tests()
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
         JuMP.optimize!(problem)
     end
+    return
 end
 
 function cutting_stock_tests()
