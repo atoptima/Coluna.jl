@@ -395,7 +395,7 @@ function reformulate!(prob::Problem, annotations::Annotations,
     decomposition_tree = annotations.tree
 
     root = BD.getroot(decomposition_tree)
-    @show prob.original_formulation
+    #@show prob.original_formulation
                                                  
     # Create reformulation
     reform = Reformulation(prob, strategy)

@@ -48,7 +48,7 @@ function best_candidate(Rule::Type{<:RuleForUsualBranching}, algorithm_data)
     master_primal_sol = get_lp_primal_sol(algorithm_data.incumbents)
 
     solution = proj_cols_on_rep(master_primal_sol, master)
-    @show "fractional solution" solution
+    #@show "fractional solution" solution
 
     return best_candidate(Rule, solution)
 end

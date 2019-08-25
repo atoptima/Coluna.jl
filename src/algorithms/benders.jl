@@ -208,11 +208,11 @@ function update_lagrangian_pb!(alg::BendersCutGenerationData,
 end
 
 function solve_relaxed_master!(master::Formulation)
-    @show "function solve_relaxed_master!(master::Formulation)"
+    #@show "function solve_relaxed_master!(master::Formulation)"
     elapsed_time = @elapsed begin
         opt_result = TO.@timeit _to "relaxed master" optimize!(master)
     end
-    @show opt_result
+    #@show opt_result
     return (isfeasible(opt_result), getdualbound(opt_result), 
     getprimalsols(opt_result), getdualsols(opt_result), elapsed_time)
 end
@@ -269,7 +269,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         master_status, master_val, primal_sols, dual_sols, master_time =
             solve_relaxed_master!(master_form)
 
-        @show master_status, master_val, primal_sols, dual_sols, master_time
+        #@show master_status, master_val, primal_sols, dual_sols, master_time
         
         if master_status == MOI.INFEASIBLE || master_status == MOI.INFEASIBLE_OR_UNBOUNDED
             @error "Alg_Dataorithm returned that restricted master LP is infeasible or unbounded (status = $master_status)."
@@ -312,7 +312,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         cur_gap = gap(primal_bound, dual_bound)
 
         if nb_new_cut == 0 || cur_gap < 0.00001  #_params_.relative_optimality_tolerance
-            @show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
+            #@show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
             alg_data.has_converged = true
             break
             # return BendersCutGenerationRecord(alg_data.incumbents, false)

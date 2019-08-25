@@ -47,7 +47,7 @@ function vcdict_base_unit_tests()
 
     for (id, col) in CL.columns(m)
         println("$id -> $col")
-        @show m[:, id]
+        #@show m[:, id]
     end
 
 end

@@ -183,7 +183,6 @@ function gencol!(master_form::Formulation,
     pricing_db_contrib = compute_pricing_db_contrib(
         sp_form, getprimalbound(opt_result), sp_lb, sp_ub
     )
-    # @show pricing_dual_bound_contrib
 
     if !isfeasible(opt_result)
         # @logmsg LogLevel(-3) "pricing prob is infeasible"

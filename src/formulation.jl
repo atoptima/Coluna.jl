@@ -230,73 +230,30 @@ function setprimaldualbendspsol!(master_form::Formulation,
     bendcut_id = generateconstrid(master_form)
     bendcut_data = ConstrData(getvalue(dual_sol), Core, sense, inc_val, is_active, is_explicit)
     bendcut = Constraint(bendcut_id, name, duty; constr_data = bendcut_data, moi_index = moi_index)
-    
-    # bendcut = setconstr!(master_form,
-    #                  name,
-    #                  duty;
-    #                  rhs = getvalue(dual_sol),
-    #                  kind = Core,
-    #                  sense = sense,
-    #                  inc_val = inc_val,
-    #                  is_active = is_active,
-    #                  is_explicit = is_explicit,
-    #                  moi_index = moi_index)
-    #cut_id = getid(bendcut)
-    
-    #==cut_id = generateconstrid(master_form)
-    cut_data = ConstrData(getvalue(dual_sol), kind, sense, inc_val, is_active, is_explicit)
-    cut = Constraint(cut_id, name, duty; constr_data = cut_data, moi_index = moi_index)
-    bendcut = addconstr!(master_form, cut)==#
 
-    @show primal_sol
-    
-    @show dual_sol
-    
-    
     master_coef_matrix = getcoefmatrix(master_form)
     sp_coef_matrix = getcoefmatrix(sp_form)
     primalbendspsol_matrix = getprimalbendspsolmatrix(master_form)
     dualbendspsol_matrix = getdualbendspsolmatrix(master_form)
 
-    @show "********** building cut *************"
     for (constr_id, constr_val) in dual_sol
         constr = getconstr(sp_form, constr_id)
-        #@show " dual sol includes " constr constr_val
         if getduty(constr) <: AbstractBendSpMasterConstr
             dualbendspsol_matrix[constr_id, bendcut_id] = constr_val
             for (var_id, constr_coef) in sp_coef_matrix[constr_id,:]
                 var = getvar(sp_form, var_id)
-                #@show " constr  includes var " var constr_val constr_coef
-                #@show getconstr(master_form, cut_id)
-                #@show master_coef_matrix[cut_id,:]
-                #@show getname(var)
-                #@show master_coef_matrix
                 if getduty(var) <: AbstractBendSpSlackMastVar
                     master_coef_matrix[bendcut_id, var_id] += constr_val * constr_coef
                 end
             end
         end
     end 
-    @show "cut coefs *************"  master_coef_matrix[bendcut_id,:]
-
-      
-   #== for (constr_id, constr_val) in dual_sol
-        dualbendspsol_matrix[constr_id, dps_id] = constr_val
-        @show getconstr(master_form, constr_id)
-        @show master_coef_matrix[constr_id,:]
-        for (var_id, constr_coef) in master_coef_matrix[constr_id,:]
-            master_coef_matrix[dps_id, var_id] += constr_val * constr_coef
-        end
-    end==#
-
-
-    @show bendcut
 
     for (var_id, var_val) in primal_sol
         primalbendspsol_matrix[var_id, bendcut_id] = var_val
     end
 
-    return bendcut
+    return addconstr!(master_form, bendcut)
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."
