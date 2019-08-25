@@ -395,8 +395,7 @@ function reformulate!(prob::Problem, annotations::Annotations,
     decomposition_tree = annotations.tree
 
     root = BD.getroot(decomposition_tree)
-    #@show prob.original_formulation
-                                                 
+                                       
     # Create reformulation
     reform = Reformulation(prob, strategy)
     set_re_formulation!(prob, reform)
@@ -414,6 +413,3 @@ function reformulate!(prob::Problem, annotations::Annotations,
     # end
 end
 
-#if duty <: AbstractMasterRepBendSpnConstr
-#cloneconstr!(master_form, constr, duty)
-#end
