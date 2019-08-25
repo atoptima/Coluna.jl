@@ -330,13 +330,12 @@ function cg_main_loop(alg_data::ColumnGenerationData,
             return ColumnGenerationRecord(alg_data.incumbents, true)
         end
         if nb_new_col == 0 || cur_gap < 0.00001 #_params_.relative_optimality_tolerance
-            @show "Column Generation Algorithm has converged." nb_new_col cur_gap
+            @logmsg LogLevel(0) "Column Generation Algorithm has converged." #nb_new_col cur_gap
             alg_data.has_converged = true
             return ColumnGenerationRecord(alg_data.incumbents, false)
         end
-        if nb_cg_iterations > 10 ##TDalg_data.max_nb_cg_iterations
+        if nb_cg_iterations > 1000 ##TDalg_data.max_nb_cg_iterations
             @warn "Maximum number of column generation iteration is reached."
-            break
             return ColumnGenerationRecord(alg_data.incumbents, false)
         end
     end
