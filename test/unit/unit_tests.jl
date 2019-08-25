@@ -1,6 +1,7 @@
 include("types.jl")
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
+include("containers/members.jl")
 # include("parameters.jl")
 include("counters.jl")
 include("vcids.jl")
@@ -57,6 +58,9 @@ function unit_tests()
     end
     @testset "varconstr.jl" begin
         varconstr_unit_tests()
+    end
+    @testset "members.jl" begin
+        members_unit_tests()
     end
     @testset "solsandbounds.jl" begin
         solsandbounds_unit_tests()

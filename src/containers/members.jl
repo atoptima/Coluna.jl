@@ -51,9 +51,8 @@ function Base.get(vec::MembersVector{I,K,T}, id::I, default) where {I,K,T}
     Base.get(vec.records, id, default)
 end
 
-function Base.getindex(vec::MembersVector{I,K,T}, id::I) where {I,K,T}
-    @show T
-    vec.records[id]
+function Base.getindex(vec::MembersVector{I,K,MembersVector{J,L,T}}, id::I) where {I,J,K,L,T<:Number}
+    Base.get(vec, id, Nothing)
 end
 
 function Base.getindex(vec::MembersVector{I,K,T}, id::I) where {I,K,T<:Number}
@@ -224,19 +223,23 @@ function Base.setindex!(m::MembersMatrix, col, ::Colon, col_id)
     _setcolumn!(m, col_id, col)
 end
 
-function Base.getindex(m::MembersMatrix, row_id, col_id)
+function Base.getindex(m::MembersMatrix{I,K,J,L,T}, row_id::J, col_id::I) where {I,K,J,L,T}
     if length(m.cols) < length(m.rows) # improve ?
-        return m.cols[col_id][row_id]
+        col = m.cols[col_id]
+        col === Nothing && return zero(T)
+        return col[row_id]
     else
-        return m.rows[row_id][col_id]
+        row = m.rows[row_id]
+        row === Nothing && return zero(T)
+        return row[col_id]
     end
 end
 
-function Base.getindex(m::MembersMatrix, row_id, ::Colon)
+function Base.getindex(m::MembersMatrix{I,K,J,L,T}, row_id::J, ::Colon) where {I,K,J,L,T}
     _getrecordvector!(m.rows, row_id, m.cols.elements, false)
 end
 
-function Base.getindex(m::MembersMatrix, ::Colon, col_id)
+function Base.getindex(m::MembersMatrix{I,K,J,L,T}, ::Colon, col_id::I) where {I,K,J,L,T}
     _getrecordvector!(m.cols, col_id, m.rows.elements, false)
 end
 
