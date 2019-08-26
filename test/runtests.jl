@@ -25,10 +25,10 @@ unit_tests()
     full_instances_tests()
 end
 @testset "Preprocessing " begin
-    preprocessing_tests()
+    #preprocessing_tests()
 end
 @testset "pricing callback" begin
-    pricing_callback_tests()
+    #pricing_callback_tests()
 end
 
 @testset "Base.show functions " begin

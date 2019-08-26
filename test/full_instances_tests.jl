@@ -158,7 +158,7 @@ function capacitated_lot_sizing_tests()
         
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
                                      params = CL.Params(
-                                         global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                                         global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.NoBranching, CL.DepthFirst)
                                      ),
                                      default_optimizer = with_optimizer(GLPK.Optimizer)
                                      )
