@@ -50,8 +50,8 @@ getprimalsols(res::OptimizationResult) = res.primal_sols
 getdualsols(res::OptimizationResult) = res.dual_sols
 nbprimalsols(res::OptimizationResult) = length(res.primal_sols)
 nbdualsols(res::OptimizationResult) = length(res.dual_sols)
-getbestprimalsol(res::OptimizationResult) = res.primal_sols[1]
-getbestdualsol(res::OptimizationResult) = res.dual_sols[1]
+getbestprimalsol(res::OptimizationResult) = get(res.primal_sols, 1, nothing)
+getbestdualsol(res::OptimizationResult) = get(res.dual_sols, 1, nothing)
 setprimalbound!(res::OptimizationResult, b::PrimalBound) = res.primal_bound = b
 setdualbound!(res::OptimizationResult, b::DualBound) = res.dual_bound = b
 setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.termination_status = status
