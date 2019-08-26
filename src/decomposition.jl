@@ -226,7 +226,7 @@ function create_side_vars_constrs!(master_form::Formulation{BendersMaster}, orig
     
     coefmatrix = getcoefmatrix(master_form)
 
-    eta = setvar!(
+    #==eta = setvar!(
         master_form, "η", MasterBendSecondStageCostVar; cost = 1.0,
         lb = 0.0 , ub = Inf, 
         kind = Continuous, sense = Free, is_explicit = true
@@ -236,16 +236,17 @@ function create_side_vars_constrs!(master_form::Formulation{BendersMaster}, orig
         sense = Equal, is_explicit = true
     )
     coefmatrix[getid(cost), getid(eta)] = 1.0
+    ==#
     
     for sp_form in master_form.parent_formulation.benders_sep_subprs
         nu = collect(values(filter(var -> getduty(var[2]) == BendSpSlackSecondStageCostVar, getvars(sp_form))))[1]
-        name = "ν[$(split(getname(nu), "[")[end])"
+        name = "η[$(split(getname(nu), "[")[end])"
         setvar!(
-            master_form, name, MasterBendSecondStageCostVar; cost = 0.0,
-            lb = -  Inf, ub = Inf, 
+            master_form, name, MasterBendSecondStageCostVar; cost = 1.0,
+            lb = 0.0 , ub = Inf, 
             kind = Continuous, sense = Free, is_explicit = true, id = getid(nu)
         )
-        coefmatrix[getid(cost), getid(nu)] = - 1.0
+        #==coefmatrix[getid(cost), getid(nu)] = - 1.0 ==#
         
         #==techno_constrs = filter(c -> getduty(c[2]) == BendSpTechnologicalConstr, getconstrs(sp_form))
         @show techno_constrs
@@ -291,7 +292,7 @@ function instantiate_orig_vars!(sp_form::Formulation{BendersSp}, orig_form::Form
                 #clonevar!(sp_form, var, BendSpSepVar)
                 mu = setvar!(
                     sp_form, name, BendSpSlackFirstStageVar; cost = getcurcost(var),
-                    lb = - getcurub(var), ub = getcurub(var), 
+                    lb = 0.0 #==- getcurub(var)==#, ub = getcurub(var), 
                     kind = Continuous, sense = getcursense(var), is_explicit = true, id = id
                 )
             end
@@ -328,12 +329,12 @@ function create_side_vars_constrs!(sp_form::Formulation{BendersSp}, orig_form::F
     # Cost constraint
     master_form = sp_form.parent_formulation
     nu = setvar!(
-        sp_form, "ν[$sp_id]", BendSpSlackSecondStageCostVar; cost = 1.0, lb = -Inf, ub = Inf,
+        sp_form, "ν[$sp_id]", BendSpSlackSecondStageCostVar; cost = 1.0, lb = 0.0 , ub = Inf,
         kind = Continuous, sense = Free, is_explicit = true
     )
     cost = setconstr!(
         sp_form, "cost[$sp_id]", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
-        sense = Equal, is_explicit = true
+        sense = Greater, is_explicit = true
     )
     sp_coef[getid(cost), getid(nu)] = 1.0
     #@show "*****scost****" getvars(sp_form)

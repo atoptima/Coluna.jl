@@ -277,13 +277,8 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         end
        
         
-        set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
-        #set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
+        set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
         
-        if isinteger(primal_sols[1])
-            set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
-        end
-
         # TODO: cleanup restricted master columns        
 
         nb_bc_iterations += 1
@@ -307,13 +302,20 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
 
         # TODO: update bendcutgen stabilization
 
-        primal_bound = get_lp_primal_bound(alg_data.incumbents)
         dual_bound = get_lp_dual_bound(alg_data.incumbents)
         cur_gap = gap(primal_bound, dual_bound)
 
         if nb_new_cut == 0 || cur_gap < 0.00001  #_params_.relative_optimality_tolerance
             #@show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
             alg_data.has_converged = true
+            set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
+            primal_bound = get_lp_primal_bound(alg_data.incumbents)
+            cur_gap = gap(primal_bound, dual_bound)
+
+            if isinteger(primal_sols[1])
+                set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
+            end
+
             break
             # return BendersCutGenerationRecord(alg_data.incumbents, false)
         end
