@@ -43,7 +43,11 @@ function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolut
     end
     
     for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(sp_form))
-        setcurcost!(sp_form, var, computereducedcost(master_form, var_id, dual_sol))
+        cost = getcurcost(var)
+        @show var cost
+        rc = computereducedcost(master_form, var_id, dual_sol)
+        @show var rc
+        setcurcost!(sp_form, var, rc)
     end
 
 
@@ -203,7 +207,7 @@ function update_lagrangian_pb!(alg::BendersCutGenerationData,
     lagran_bnd = PrimalBound{S}(0.0)
     lagran_bnd += compute_master_pb_contrib(alg, restricted_master_sol_value)
     lagran_bnd += bendersep_sp_primal_bound_contrib
-    set_lp_primal_bound!(alg.incumbents, lagran_bnd)
+    set_ip_primal_bound!(alg.incumbents, lagran_bnd)
     return lagran_bnd
 end
 
@@ -239,6 +243,8 @@ function generatecuts!(alg::BendersCutGenerationData,
 
     fonction = constr -> getduty(constr) == MasterPureConstr
     filtered_dual_sol = filter(fonction, dual_sol)
+
+    @show filtered_dual_sol
     
     nb_new_cuts = 0
     while true # TODO Replace this condition when starting implement stabilization
@@ -278,6 +284,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
        
         
         set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
+        @show  get_lp_dual_bound(alg_data.incumbents)
         
         # TODO: cleanup restricted master columns        
 
@@ -303,18 +310,21 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         # TODO: update bendcutgen stabilization
 
         dual_bound = get_lp_dual_bound(alg_data.incumbents)
+        primal_bound = get_lp_primal_bound(alg_data.incumbents)
         cur_gap = gap(primal_bound, dual_bound)
 
-        if nb_new_cut == 0 || cur_gap < 0.00001  #_params_.relative_optimality_tolerance
+        if nb_new_cut == 0  || cur_gap < 0.00001  #_params_.relative_optimality_tolerance
             #@show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
             alg_data.has_converged = true
             set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
             primal_bound = get_lp_primal_bound(alg_data.incumbents)
+            @show primal_bound
             cur_gap = gap(primal_bound, dual_bound)
 
             if isinteger(primal_sols[1])
                 set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
             end
+
 
             break
             # return BendersCutGenerationRecord(alg_data.incumbents, false)

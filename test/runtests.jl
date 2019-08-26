@@ -40,3 +40,4 @@ end
     close(rd_out)
     redirect_stdout(backup_stdout)
 end
+te
