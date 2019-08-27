@@ -274,12 +274,42 @@ function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
 end
 deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 
+function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
+    vars = filter(id_v -> get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))
+    for (id, var) in vars
+        deactivate!(f, var)
+    end
+    return
+end
+
+function deactivate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
+    constrs = filter(id_c -> get_cur_is_active(id_c[2]) && getduty(id_c[2]) <: Duty, getconstrs(f))
+    for (id, constr) in constrs
+        deactivate!(f, constr)
+    end
+    return
+end
+
 "Activates a variable in the formulation"
 function activate!(f::Formulation, id::Id)
     varconstr = getelem(f, id)
     add!(f.buffer, varconstr)
     set_cur_is_active(varconstr, true)
     return
+end
+
+function activate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
+    vars = filter(id_v -> !get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))
+    for (id, var) in vars
+        activate!(f, var)
+    end
+end
+
+function activate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
+    constrs = filter(id_c -> !get_cur_is_active(id_c[2]) && getduty(id_c[2]) <: Duty, getconstrs(f))
+    for (id, constr) in constrs
+        activate!(f, constr)
+    end
 end
 
 function addprimalspsol!(f::Formulation, var::Variable)
