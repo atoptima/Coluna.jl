@@ -81,13 +81,13 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Add vars
     for id in buffer.var_buffer.added
         v = getvar(f, id)
-        @logmsg LogLevel(-2) string("Adding variable ", getname(v))
+        @logmsg LogLevel(-4) string("Adding variable ", getname(v))
         add_to_optimizer!(optimizer, v)
     end
     # Add constrs
     for id in buffer.constr_buffer.added
         c = getconstr(f, id)
-        @logmsg LogLevel(-2) string("Adding constraint ", getname(c))
+        @logmsg LogLevel(-4) string("Adding constraint ", getname(c))
         add_to_optimizer!(optimizer, c, filter(_active_explicit_, matrix[id,:]))
     end
     # Update variable costs
@@ -98,9 +98,9 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Update variable bounds
     for id in buffer.changed_bound
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing bounds of variable " getname(getvar(f,id))
-        @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(getvar(f,id)))
-        @logmsg LogLevel(-3) string("New upper bound is ", getcurub(getvar(f,id)))
+        @logmsg LogLevel(-4) "Changing bounds of variable " getname(getvar(f,id))
+        @logmsg LogLevel(-5) string("New lower bound is ", getcurlb(getvar(f,id)))
+        @logmsg LogLevel(-5) string("New upper bound is ", getcurub(getvar(f,id)))
         update_bounds_in_optimizer!(optimizer, getvar(f, id))
     end
     # Update variable kind

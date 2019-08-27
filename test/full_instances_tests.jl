@@ -139,15 +139,25 @@ function lot_sizing_tests()
         data = CLD.SingleModeMultiItemsLotSizing.data("lotSizing-3-20-2.txt")
         
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
-                                     params = CL.Params(max_num_nodes = 3, 
+                                     params = CL.Params(max_num_nodes = 1, 
                                                         global_strategy =
-                                                        CL.GlobalStrategy(CL.SimpleBenders, CL.SimpleBranching, CL.DepthFirst)
+                                                        CL.GlobalStrategy(CL.SimpleBenders, CL.NoBranching, CL.DepthFirst)
                                                         ),
                                      default_optimizer = with_optimizer(GLPK.Optimizer)
                                      )
 
+        problem1, x, y = CLD.SingleModeMultiItemsLotSizing.model_nodecomposition(data, JuMP.with_optimizer(GLPK.Optimizer))
+        JuMP.optimize!(problem1)
+        println("\e[41m")
+        @show JuMP.objective_value(problem1)
+        println(JuMP.value.(x))
+        println(JuMP.value.(y))
+        println("\e[00m")
+
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
         JuMP.optimize!(problem)
+        # Objective value should be ? §infeasible
+        error("stop tests here.")
     end
     return
 end

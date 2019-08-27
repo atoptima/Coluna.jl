@@ -44,9 +44,9 @@ function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolut
     
     for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(sp_form))
         cost = getcurcost(var)
-        @show var cost
+        @show getname(var) cost
         rc = computereducedcost(master_form, var_id, dual_sol)
-        @show var rc
+        @show getname(var) rc
         setcurcost!(sp_form, var, rc)
     end
 
@@ -90,6 +90,7 @@ function insert_cuts_in_master!(master_form::Formulation,
                 kind = kind, sense = sense)
           
             @logmsg LogLevel(-2) string("Generated cut : ", name)
+            @show bc
 
             # TODO: check if cut exists
             #== mc_id = getid(mc)
@@ -207,7 +208,7 @@ function update_lagrangian_pb!(alg::BendersCutGenerationData,
     lagran_bnd = PrimalBound{S}(0.0)
     lagran_bnd += compute_master_pb_contrib(alg, restricted_master_sol_value)
     lagran_bnd += bendersep_sp_primal_bound_contrib
-    set_ip_primal_bound!(alg.incumbents, lagran_bnd)
+    set_lp_primal_bound!(alg.incumbents, lagran_bnd)
     return lagran_bnd
 end
 
