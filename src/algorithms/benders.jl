@@ -41,7 +41,7 @@ function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolut
     for (constr_id, constr) in filter(_active_BendSpMaster_constr_ , getconstrs(sp_form))
         setcurrhs!(sp_form, constr, computereducedrhs(sp_form, constr_id, primal_sol))
     end
-    
+   #== 
     for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(sp_form))
         cost = getcurcost(var)
         @show getname(var) cost
@@ -49,7 +49,7 @@ function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolut
         @show getname(var) rc
         setcurcost!(sp_form, var, rc)
     end
-
+    ==#
 
     return false
 end
