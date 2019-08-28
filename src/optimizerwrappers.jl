@@ -62,6 +62,11 @@ function optimize!(form::Formulation, optimizer::MoiOptimizer)
     sync_solver!(getoptimizer(form), form)
     @logmsg LogLevel(-3) "MOI formulation after synch: "
     @logmsg LogLevel(-3) getoptimizer(form)
+    nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())
+    if nbvars <= 0
+        @warn "No variable in the formulation. Coluna does not call the solver."
+        return retrieve_result(form, optimizer)
+    end
     call_moi_optimize_with_silence(form.optimizer)
     status = MOI.get(form.optimizer.inner, MOI.TerminationStatus())
     @logmsg LogLevel(-2) string("Optimization finished with status: ", status)

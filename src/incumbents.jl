@@ -71,6 +71,7 @@ function set_ip_primal_sol!(inc::Incumbents{S},
     end
     return false
 end
+set_ip_primal_sol!(inc::Incumbents, ::Nothing) = false
 
 """
 Updates the best primal solution to the linear program if the new one is better
@@ -88,6 +89,7 @@ function set_lp_primal_sol!(inc::Incumbents{S},
     end
     return false
 end
+set_lp_primal_sol!(inc::Incumbents, ::Nothing) = false
 
 """
 Updates the dual bound of the mixed-integer program if the new one is better than
@@ -123,6 +125,7 @@ function set_lp_dual_sol!(inc::Incumbents{S},
     end
     return false
 end
+set_lp_dual_sol!(inc::Incumbents, ::Nothing) = false
 
 "Updates the fields of `dest` that are worse than those of `src`."
 function set!(dest::Incumbents{S}, src::Incumbents{S}) where {S}

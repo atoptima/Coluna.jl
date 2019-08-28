@@ -9,6 +9,7 @@ include("variable.jl")
 include("constraint.jl")
 include("varconstr.jl")
 # include("manager.jl")
+include("optimizationresults.jl")
 include("filters.jl")
 include("solsandbounds.jl")
 include("incumbents.jl")
@@ -64,6 +65,9 @@ function unit_tests()
     end
     @testset "solsandbounds.jl" begin
         solsandbounds_unit_tests()
+    end
+    @testset "optimizationresults.jl" begin
+        optimizationresults_unit_test()
     end
     @testset "incumbents.jl" begin
         incumbents_unit_tests()
