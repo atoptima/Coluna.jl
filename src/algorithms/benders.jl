@@ -52,8 +52,8 @@ function update_bendersep_problem!(sp_form::Formulation, primal_sol::PrimalSolut
     ==#
 
     return false
-end
 
+end
 function update_bendersep_target!(sp_form::Formulation)
     # println("bendersep target will only be needed after automating convexity constraints")
 end
@@ -167,10 +167,16 @@ function gencut!(master_form::Formulation,
         # @logmsg LogLevel(-3) "bendersep prob is infeasible"
         return flag_is_sp_infeasible
     end
+
     
-    insertion_status = insert_cuts_in_master!(master_form, sp_form, getprimalsols(opt_result), getdualsols(opt_result))
+
+    primal_sols = getprimalsols(opt_result)
+
+    spsol_is_a_relaxed_sol = contains(primal_sols[1], AbstractBendSpSlackMastVar)
     
-    return insertion_status, bendersep_pb_contrib
+    insertion_status = insert_cuts_in_master!(master_form, sp_form, primal_sols, getdualsols(opt_result))
+    
+    return insertion_status, spsol_is_a_relaxed_sol, bendersep_pb_contrib
 end
 
 function gencuts!(reformulation::Reformulation,
@@ -178,13 +184,18 @@ function gencuts!(reformulation::Reformulation,
                   dual_sol::DualSolution{S}) where {S}
 
     nb_new_cuts = 0
+    relaxation_status = false
     primal_bound_contrib = PrimalBound{S}(0.0)
     master_form = getmaster(reformulation)
     sps = get_benders_sep_sp(reformulation)
     for sp_form in sps
         sp_uid = getuid(sp_form)
-        gen_status, contrib = gencut!(master_form, sp_form, primal_sol, dual_sol)
+        gen_status, spsol_is_a_relaxed_sol, contrib = gencut!(master_form, sp_form, primal_sol, dual_sol)
 
+        if spsol_is_a_relaxed_sol
+            relaxation_status = true
+        end
+        
         if gen_status > 0
             nb_new_cuts += gen_status
             primal_bound_contrib += float(contrib)
@@ -192,7 +203,7 @@ function gencuts!(reformulation::Reformulation,
             return (gen_status, Inf)
         end
     end
-    return (nb_new_cuts, primal_bound_contrib)
+    return (nb_new_cuts, relaxation_status, primal_bound_contrib)
 end
 
 
@@ -248,17 +259,19 @@ function generatecuts!(alg::BendersCutGenerationData,
     @show filtered_dual_sol
     
     nb_new_cuts = 0
+    one_spsol_is_a_relaxed_sol = false
+    
     while true # TODO Replace this condition when starting implement stabilization
-        nb_new_cut, sp_pb_contrib =  gencuts!(reform, primal_sol, filtered_dual_sol)
+        nb_new_cut, one_spsol_is_a_relaxed_sol, sp_pb_contrib =  gencuts!(reform, primal_sol, filtered_dual_sol)
         nb_new_cuts += nb_new_cut
         update_lagrangian_pb!(alg, master_val, sp_pb_contrib)
         if nb_new_cut < 0
             # subproblem infeasibility leads to master infeasibility
             return -1
         end
-        break # TODO : rm
+        break # TODO : rm once you implement stabilisation
     end
-    return nb_new_cuts
+    return nb_new_cuts, one_spsol_is_a_relaxed_sol
 end
 
 
@@ -293,19 +306,20 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
 
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
-            nb_new_cut = generatecuts!(
+            nb_new_cuts, one_spsol_is_a_relaxed_sol = generatecuts!(
                 alg_data, reformulation, master_val, primal_sols[1], dual_sols[1]
             )
         end
+        @show nb_new_cuts,  one_spsol_is_a_relaxed_sol
 
-        if nb_new_cut < 0
+        if nb_new_cuts < 0
             @error "infeasible subproblem."
             return BendersCutGenerationRecord(alg_data.incumbents, true)
         end
 
 
         print_intermediate_statistics(
-            alg_data, nb_new_cut, nb_bc_iterations, master_time, sp_time
+            alg_data, nb_new_cuts, nb_bc_iterations, master_time, sp_time
         )
 
         # TODO: update bendcutgen stabilization
@@ -314,24 +328,32 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         primal_bound = get_lp_primal_bound(alg_data.incumbents)
         cur_gap = gap(primal_bound, dual_bound)
 
-        if nb_new_cut == 0  || cur_gap < 0.00001  #_params_.relative_optimality_tolerance
+        if nb_new_cuts == 0  
             #@show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
             alg_data.has_converged = true
-            set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
-            primal_bound = get_lp_primal_bound(alg_data.incumbents)
-            @show primal_bound
-            cur_gap = gap(primal_bound, dual_bound)
 
-            if isinteger(primal_sols[1])
-                set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
+            if  !one_spsol_is_a_relaxed_sol
+                set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
+                primal_bound = get_lp_primal_bound(alg_data.incumbents)
+                @show primal_bound
+                cur_gap = gap(primal_bound, dual_bound)
+                
+                if isinteger(primal_sols[1])
+                    set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
+                end
             end
+
 
 
             break
             # return BendersCutGenerationRecord(alg_data.incumbents, false)
         end
         
-        if nb_bc_iterations > 3 #TDalg_data.max_nb_bc_iterations
+        if cur_gap < 0.00001  #_params_.relative_optimality_tolerance
+            break
+        end
+        
+        if nb_bc_iterations >= 100 #alg_data.max_nb_bc_iterations
             @warn "Maximum number of cut generation iteration is reached."
             alg_data.is_feasible = false
             break
