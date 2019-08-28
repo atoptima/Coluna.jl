@@ -291,12 +291,12 @@ function deactivate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
 end
 
 "Activates a variable in the formulation"
-function activate!(f::Formulation, id::Id)
-    varconstr = getelem(f, id)
+function activate!(f::Formulation, varconstr::AbstractVarConstr)
     add!(f.buffer, varconstr)
     set_cur_is_active(varconstr, true)
     return
 end
+activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
 
 function activate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
     vars = filter(id_v -> !get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))

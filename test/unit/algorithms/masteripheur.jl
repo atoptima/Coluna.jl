@@ -27,5 +27,6 @@ function infeasible_master_ip_heur_tests()
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
         JuMP.optimize!(problem)
+        @test JuMP.objective_value(problem) == Inf
     end
 end
