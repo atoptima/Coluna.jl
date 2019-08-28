@@ -229,8 +229,7 @@ function solve_relaxed_master!(master::Formulation)
         opt_result = TO.@timeit _to "relaxed master" optimize!(master)
     end
     #@show opt_result
-    return (isfeasible(opt_result), getdualbound(opt_result), 
-    getprimalsols(opt_result), getdualsols(opt_result), elapsed_time)
+    return opt_result, elapsed_time
 end
 
 
@@ -286,18 +285,19 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
     master_form = reformulation.master
 
     while true
-        master_status, master_val, primal_sols, dual_sols, master_time =
-            solve_relaxed_master!(master_form)
+        opt_result, master_time = solve_relaxed_master!(master_form)
 
         #@show master_status, master_val, primal_sols, dual_sols, master_time
-        
-        if master_status == MOI.INFEASIBLE || master_status == MOI.INFEASIBLE_OR_UNBOUNDED
-            @error "Alg_Dataorithm returned that restricted master LP is infeasible or unbounded (status = $master_status)."
+
+        dualsol = getbestdualsol(opt_result)
+        primalsol = getbestprimalsol(opt_result) 
+
+        if !isfeasible(opt_result) || primalsol == nothing || dualsol == nothing
+            error("Alg_Dataorithm returned that restricted master LP is infeasible or unbounded.")
             return BendersCutGenerationRecord(alg_data.incumbents, true)
         end
-       
         
-        set_lp_dual_sol!(alg_data.incumbents, dual_sols[1])
+        set_lp_dual_sol!(alg_data.incumbents, dualsol)
         @show  get_lp_dual_bound(alg_data.incumbents)
         
         # TODO: cleanup restricted master columns        
@@ -307,7 +307,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
             nb_new_cuts, one_spsol_is_a_relaxed_sol = generatecuts!(
-                alg_data, reformulation, master_val, primal_sols[1], dual_sols[1]
+                alg_data, reformulation, master_val, primalsol, dualsol
             )
         end
         @show nb_new_cuts,  one_spsol_is_a_relaxed_sol
@@ -333,13 +333,13 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
             alg_data.has_converged = true
 
             if  !one_spsol_is_a_relaxed_sol
-                set_lp_primal_sol!(alg_data.incumbents, primal_sols[1])
+                set_lp_primal_sol!(alg_data.incumbents, primalsol)
                 primal_bound = get_lp_primal_bound(alg_data.incumbents)
                 @show primal_bound
                 cur_gap = gap(primal_bound, dual_bound)
                 
-                if isinteger(primal_sols[1])
-                    set_ip_primal_sol!(alg_data.incumbents, primal_sols[1])
+                if isinteger(primalsol)
+                    set_ip_primal_sol!(alg_data.incumbents, primalsol)
                 end
             end
 
