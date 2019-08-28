@@ -1,5 +1,8 @@
+include("masteripheur.jl")
+
 function algorithm_unit_tests()
     algorithm_fallbacks_tests()
+    masteripheur_tests()
 end
 
 function algorithm_fallbacks_tests()
