@@ -97,6 +97,15 @@ function Variable(id::VarId,
     )
 end
 
+function setcurkind(var::Variable, kind::VarKind)
+    var.cur_data.kind = kind
+    if kind == Binary
+        var.cur_data.lb = 0.0
+        var.cur_data.ub = 1.0
+    end
+    return
+end
+
 # Attention: All getters and setters for Variable are defined
 #            over AbstractVarConstr in file varconstr.jl
 
