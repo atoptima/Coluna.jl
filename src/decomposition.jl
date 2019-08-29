@@ -289,10 +289,9 @@ function instantiate_orig_vars!(sp_form::Formulation{BendersSp}, orig_form::Form
             duty, explicit = dutyexpofbendmastvar(var, annotations, orig_form)
             if duty == MasterBendFirstStageVar
                 name = "μ[$(split(getname(var), "[")[end])"
-                #clonevar!(sp_form, var, BendSpSepVar)
                 mu = setvar!(
                     sp_form, name, BendSpSlackFirstStageVar; cost = getcurcost(var),
-                    lb =  #==0.0==#  getcurlb(var), ub = getcurub(var), 
+                    lb =  getcurlb(var), ub = getcurub(var), 
                     kind = Continuous, sense = getcursense(var), is_explicit = true, id = id
                 )
             end
@@ -327,20 +326,21 @@ function create_side_vars_constrs!(sp_form::Formulation{BendersSp}, orig_form::F
 
     sp_has_second_stage_cost = false
     sp_vars = filter(id_var -> getduty(id_var[2]) == BendSpSepVar, getvars(sp_form))
-    global_cost = 0.0
+    global_costprofit_ub = 0.0
+    global_costprofit_lb = 0.0
     for (var_id, var) in sp_vars
        orig_var = getvar(orig_form, var_id)
        cost =  getperenecost(orig_var)
-        if cost > 0.00001  # Todo generalize to maximisatio problem
-           sp_has_second_stage_cost = true
-           global_cost += cost * getcurub(orig_var)
+        if cost > 0.00001 
+             global_costprofit_ub += cost * getcurub(orig_var)
+             global_costprofit_lb += cost * getcurlb(orig_var)
         elseif cost < - 0.00001  
-           sp_has_second_stage_cost = true
-           global_cost -= cost * getcurub(orig_var)
+             global_costprofit_ub += cost * getcurlb(orig_var)
+             global_costprofit_lb += cost * getcurub(orig_var)
         end
     end
 
-    if global_cost > 0.00001  ||global_cost > - 0.00001 
+    if global_costprofit_ub > 0.00001  || global_costprofit_lb < - 0.00001 
         sp_has_second_stage_cost = true
     end
 
@@ -350,7 +350,7 @@ function create_side_vars_constrs!(sp_form::Formulation{BendersSp}, orig_form::F
        # Cost constraint
        nu = setvar!(
         sp_form, "ν[$sp_id]", BendSpSlackSecondStageCostVar; cost = 1.0,
-        lb = - global_cost , ub = global_cost, 
+        lb = - global_costprofit_lb , ub = global_costprofit_ub, 
         kind = Continuous, sense = Free, is_explicit = true
        )
        setcurlb!(nu, 0.0)                                          

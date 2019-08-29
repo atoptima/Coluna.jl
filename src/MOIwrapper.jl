@@ -85,16 +85,20 @@ function create_origvars!(f::Formulation,
         else
             name = string("var_", moi_index.value)
         end
-        v = setvar!(f, name, OriginalVar)
-        var_id = getid(v)
+        var = setvar!(f, name, OriginalVar)
+        var_id = getid(var)
         moi_index_in_coluna = deepcopy(moi_index) # MOI.VariableIndex(getuid(var_id))
         dest.moi_index_to_coluna_uid[moi_index] = moi_index_in_coluna
         moi_uid_to_coluna_id[moi_index.value] = var_id
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
         dest.varmap[moi_index_in_coluna] = var_id
-        store!(dest.annotations, annotation, v)
+        store!(dest.annotations, annotation, var)
     end
 end
+
+#==
+SEEMS USED
+==#
 
 function create_origconstr!(f::Formulation,
                             func::MOI.SingleVariable,

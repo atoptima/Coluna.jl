@@ -22,7 +22,9 @@ function VarData(; cost::Float64 = 0.0,
                  inc_val::Float64 = -1.0,
                  is_active::Bool = true,
                  is_explicit::Bool = true)
-    return VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
+    vc = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
+    setkind!(vc, kind)
+    return vc
 end
 
 # Attention: Some getters and setters of VarData are defined over AbstractVcData
