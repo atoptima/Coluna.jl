@@ -243,7 +243,7 @@ function create_side_vars_constrs!(master_form::Formulation{BendersMaster}, orig
             name = "η[$(split(getname(nu_var), "[")[end])"
             setvar!(
                 master_form, name, MasterBendSecondStageCostVar; cost = 1.0,
-                lb = getcurlb(nu_var), ub = getcurub(nu_var), 
+                lb = getperenelb(nu_var), ub = getpereneub(nu_var), 
                 kind = Continuous, sense = Free, is_explicit = true, id = getid(nu_var)
                                                 )
                                                 #==coefmatrix[getid(cost), getid(nu)] = - 1.0 ==#
@@ -353,9 +353,12 @@ function create_side_vars_constrs!(sp_form::Formulation{BendersSp}, orig_form::F
         lb = - global_cost , ub = global_cost, 
         kind = Continuous, sense = Free, is_explicit = true
        )
+       setcurlb!(nu, 0.0)                                          
+       setcurub!(nu, Inf)                                          
+
        cost = setconstr!(
         sp_form, "cost[$sp_id]", BendSpSecondStageCostConstr; rhs = 0.0, kind = Core, 
-        sense = Equal, is_explicit = true
+        sense = Greater, is_explicit = true
        )
        sp_coef[getid(cost), getid(nu)] = 1.0
     #@show "*****scost****" getvars(sp_form)

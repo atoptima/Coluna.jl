@@ -127,7 +127,7 @@ function gencut!(master_form::Formulation,
                  dual_sol::DualSolution{S}) where {S}
     
     #flag_need_not_generate_more_cut = 0 # Not used
-    # flag_is_sp_infeasible = -1
+    flag_is_sp_infeasible = -1
     #flag_cannot_generate_more_cut = -2 # Not used
     #primal_bound_contrib = 0 # Not used
     #pseudo_primal_bound_contrib = 0 # Not used
@@ -289,11 +289,12 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
 
         #@show master_status, master_val, primal_sols, dual_sols, master_time
 
+        master_val = getdualbound(opt_result)
         dualsol = getbestdualsol(opt_result)
         primalsol = getbestprimalsol(opt_result) 
 
         if !isfeasible(opt_result) || primalsol == nothing || dualsol == nothing
-            error("Alg_Dataorithm returned that restricted master LP is infeasible or unbounded.")
+            error("Algorithm returned that restricted master LP is infeasible or unbounded.")
             return BendersCutGenerationRecord(alg_data.incumbents, true)
         end
         
@@ -310,7 +311,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
                 alg_data, reformulation, master_val, primalsol, dualsol
             )
         end
-        @show nb_new_cuts,  one_spsol_is_a_relaxed_sol
+        @show nb_new_cuts, one_spsol_is_a_relaxed_sol
 
         if nb_new_cuts < 0
             @error "infeasible subproblem."
