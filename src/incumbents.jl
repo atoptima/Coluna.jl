@@ -1,5 +1,6 @@
 mutable struct Incumbents{S}
     ip_primal_sol::PrimalSolution{S}
+    ip_primal_bound::PrimalBound{S}
     ip_dual_bound::DualBound{S}
     lp_primal_sol::PrimalSolution{S}
     lp_primal_bound::PrimalBound{S}
@@ -18,6 +19,7 @@ and the best dual bound to the program.
 function Incumbents(S::Type{<: AbstractObjSense})
     return Incumbents{S}(
         PrimalSolution{S}(),
+        PrimalBound{S}(),
         DualBound{S}(),
         PrimalSolution{S}(),
         PrimalBound{S}(),
@@ -64,8 +66,13 @@ Updates the best primal solution to the mixed-integer program if the new one is
 better than the current one according to the objective sense.
 """
 function set_ip_primal_sol!(inc::Incumbents{S},
-                            sol::PrimalSolution{S}) where {S}
-    if isbetter(getbound(sol), getbound(inc.ip_primal_sol))
+                            sol::PrimalSolution{S};
+                            correction::PrimalBound{S} = PrimalBound{S}(0.0)) where {S}
+
+    newbound = getbound(sol) + correction
+
+    if isbetter(newbound, getbound(inc.ip_primal_sol))
+        inc.ip_primal_bound = newbound
         inc.ip_primal_sol = sol
         return true
     end
@@ -78,18 +85,20 @@ Updates the best primal solution to the linear program if the new one is better
 than the current one according to the objective sense.
 """
 function set_lp_primal_sol!(inc::Incumbents{S},
-                            sol::PrimalSolution{S}) where {S}
-    if isbetter(getbound(sol), inc.lp_primal_bound)
-        inc.lp_primal_bound = getbound(sol)
-    end
-    
-    if isbetter(getbound(sol), getbound(inc.lp_primal_sol))
+                            sol::PrimalSolution{S};
+                            correction::PrimalBound{S} = PrimalBound{S}(0.0)) where {S}
+
+    newbound = getbound(sol) + correction
+     
+    if isbetter(newbound, getbound(inc.lp_primal_sol))
+        inc.lp_primal_bound = newbound
         inc.lp_primal_sol = sol
         return true
     end
     return false
 end
 set_lp_primal_sol!(inc::Incumbents, ::Nothing) = false
+
 
 """
 Updates the dual bound of the mixed-integer program if the new one is better than
