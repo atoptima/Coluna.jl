@@ -305,18 +305,29 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
     while true
         opt_result, master_time = solve_relaxed_master!(master_form)
 
-        #@show master_status, master_val, primal_sols, dual_sols, master_time
+        @show  opt_result
 
-        master_val = getdualbound(opt_result)
+        if getfeasibilitystatus(opt_result) == INFEASIBLE
+            sense = getobjsense(master_form)
+            db = DualBound{sense}(infeasibledualboundvalue(sense))
+            pb =PrimalBound{sense}(defaultprimalboundvalue(sense))
+            set_lp_dual_bound!(alg_data.incumbents, db)
+            set_lp_primal_bound!(alg_data.incumbents, pb)
+            return BendersCutGenerationRecord(alg_data.incumbents, true)
+        end
+           
+
         master_dual_sol = getbestdualsol(opt_result)
         master_primal_sol = getbestprimalsol(opt_result)
-        primal_cost_correction = 0.0
 
         if !isfeasible(opt_result) || master_primal_sol == nothing || master_dual_sol == nothing
-            error("Algorithm returned that restricted master LP is infeasible or unbounded.")
+            error("Benders algorithm:  the relaxed master LP is infeasible or unboundedhas no solution.")
             return BendersCutGenerationRecord(alg_data.incumbents, true)
         end
         
+        master_val = getdualbound(opt_result)
+        primal_cost_correction = 0.0
+
         set_lp_dual_sol!(alg_data.incumbents, master_dual_sol)
         dual_bound = get_lp_dual_bound(alg_data.incumbents)
         @show dual_bound 

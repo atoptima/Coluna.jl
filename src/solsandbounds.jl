@@ -27,6 +27,8 @@ DualBound{S}() where {S<:AbstractObjSense} = DualBound{S}(defaultdualboundvalue(
 
 defaultdualboundvalue(::Type{MinSense}) = -Inf
 defaultdualboundvalue(::Type{MaxSense}) = +Inf
+infeasibledualboundvalue(::Type{MinSense}) = +Inf
+infeasibledualboundvalue(::Type{MaxSense}) = -Inf
 
 getvalue(b::AbstractBound) = b.value
 
