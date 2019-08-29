@@ -58,9 +58,9 @@ function update_bendersep_problem!(sp_form::Formulation, master_primal_sol::Prim
     if option_use_reduced_cost
         for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(sp_form))
             cost = getcurcost(var)
-            @show getname(var) cost
+            #@show getname(var) cost
             rc = computereducedcost(master_form, var_id, master_dual_sol)
-            @show getname(var) rc
+            #@show getname(var) rc
             setcurcost!(sp_form, var, rc)
         end
     end
@@ -104,7 +104,7 @@ function insert_cuts_in_master!(master_form::Formulation,
                 kind = kind, sense = sense)
           
             @logmsg LogLevel(-2) string("Generated cut : ", name)
-            @show bc
+            #@show bc
 
             # TODO: check if cut exists
             #== mc_id = getid(mc)
@@ -282,7 +282,7 @@ function generatecuts!(alg::BendersCutGenerationData,
     fonction = constr -> getduty(constr) == MasterPureConstr
     filtered_dual_sol = filter(fonction, master_dual_sol)
 
-    @show filtered_dual_sol
+    #@show filtered_dual_sol
     
     nb_new_cuts = 0
     one_spsol_is_a_relaxed_sol = false
@@ -316,7 +316,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
     while true
         opt_result, master_time = solve_relaxed_master!(master_form)
 
-        @show  opt_result
+        #@show  opt_result
 
         if getfeasibilitystatus(opt_result) == INFEASIBLE
             sense = getobjsense(master_form)
@@ -341,7 +341,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
 
         set_lp_dual_sol!(alg_data.incumbents, master_dual_sol)
         dual_bound = get_lp_dual_bound(alg_data.incumbents)
-        @show dual_bound 
+        #@show dual_bound 
         
         # TODO: cleanup restricted master columns        
 
@@ -354,7 +354,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
                     alg_data, reformulation, master_val, master_primal_sol, master_dual_sol
                 )
         end
-        @show nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_cost_correction
+        #@show nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_cost_correction
 
 
         print_intermediate_statistics(
@@ -371,7 +371,7 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         if  !one_spsol_is_a_relaxed_sol
             set_lp_primal_sol!(alg_data.incumbents, master_primal_sol, primal_cost_correction)
             primal_bound = get_lp_primal_bound(alg_data.incumbents)
-            @show primal_bound
+            #@show primal_bound
             cur_gap = gap(primal_bound, dual_bound)
             
             if isinteger(master_primal_sol)
