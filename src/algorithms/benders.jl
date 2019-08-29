@@ -37,10 +37,21 @@ end
 function update_bendersep_problem!(sp_form::Formulation, master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S}) where {S}
 
     master_form = sp_form.parent_formulation
-    
+
+    # Update rhs of technological constraints
     for (constr_id, constr) in filter(_active_BendSpMaster_constr_ , getconstrs(sp_form))
         setcurrhs!(sp_form, constr, computereducedrhs(sp_form, constr_id, master_primal_sol))
     end
+    # Update bounds on slack var "BendSpSlackFirstStageVar"
+    cur_sol = getsol(master_primal_sol)
+    for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(sp_form))
+        if haskey(cur_sol, var_id)
+            #setcurlb!(var, getperenelb(var) - cur_sol[var_id])
+            setcurub!(var, getpereneub(var) - cur_sol[var_id])
+        end
+        
+    end
+    
 
     option_use_reduced_cost = false
 

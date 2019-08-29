@@ -292,7 +292,7 @@ function instantiate_orig_vars!(sp_form::Formulation{BendersSp}, orig_form::Form
                 #clonevar!(sp_form, var, BendSpSepVar)
                 mu = setvar!(
                     sp_form, name, BendSpSlackFirstStageVar; cost = getcurcost(var),
-                    lb =  #==0.0==#  getcurlb(var), ub = getcurub(var), 
+                    lb =  getcurlb(var), ub = getcurub(var), 
                     kind = Continuous, sense = getcursense(var), is_explicit = true, id = id
                 )
             end
