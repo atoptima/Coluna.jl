@@ -1,6 +1,3 @@
-import ColunaDemos.CuttingStock.data
-
-
 function full_instances_tests()
     #generalized_assignment_tests()
     #lot_sizing_tests()
