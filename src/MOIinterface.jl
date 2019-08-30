@@ -204,7 +204,7 @@ function fill_primal_result!(optimizer::MoiOptimizer,
     end
     result.primal_bound = PrimalBound{S}()
     if nbprimalsols(result) > 0
-        result.primal_bound = getbound(getbestprimalsol(result))
+        result.primal_bound = getbound(unsafe_getbestprimalsol(result))
     end
     @logmsg LogLevel(-2) string("Primal bound is ", getprimalbound(result))
     return
@@ -240,7 +240,7 @@ function fill_dual_result!(optimizer::MoiOptimizer,
     end
     result.dual_bound = DualBound{S}()
     if nbdualsols(result) > 0
-        result.dual_bound = getbound(getbestdualsol(result))
+        result.dual_bound = getbound(unsafe_getbestdualsol(result))
     end
     @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return
