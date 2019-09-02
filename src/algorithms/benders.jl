@@ -33,7 +33,7 @@ function run!(::Type{BendersCutGeneration}, form, node, strategy_rec, params)
 end
 
 
-# Internal methods to the column generation
+
 function update_bendersep_problem!(sp_form::Formulation, master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S}) where {S}
 
     master_form = sp_form.parent_formulation

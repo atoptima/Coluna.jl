@@ -37,7 +37,7 @@ version = "0.5.0"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "83499ecf9d432136923214cd731cf9f60bd777f1"
+git-tree-sha1 = "99a7238771e5a956e8920808cfe7ac716953687d"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
@@ -111,11 +111,11 @@ version = "0.10.3"
 
 [[GLPK]]
 deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "d0ce139313842456f4101d87c3c0945f1275a234"
+git-tree-sha1 = "07096d326788fad9902e55ae3e92220abffda2cf"
 repo-rev = "master"
 repo-url = "https://github.com/JuliaOpt/GLPK.jl.git"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-version = "0.11.1"
+version = "0.11.2"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
