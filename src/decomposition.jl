@@ -400,7 +400,7 @@ function buildformulations!(prob::Problem, annotations::Annotations, reform,
     create_side_vars_constrs!(master_form, orig_form, annotations)
     create_artificial_vars!(master_form)
     initialize_optimizer!(master_form, getoptbuilder(prob, ann))
-    initialize_optimizer!(orig_form, getoptbuilder(prob, ann))
+    #initialize_optimizer!(orig_form, getoptbuilder(prob, ann))
     return
 end
 
@@ -430,23 +430,23 @@ function reformulate!(prob::Problem, annotations::Annotations,
     set_re_formulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
 
-    println("\e[1;31m ------------- \e[00m")
-    orig = get_original_formulation(prob)
-    @show orig
-    println("*************************")
-    res = optimize!(orig)
-    println("\e[31m")
-    @show res
-    println("\e[00m")
-    println("*************************")
-    println("*************************")
-    println("\e[1;31m ------------- \e[00m")
-    @show getmaster(reform)
-    println("\e[1;32m ------------- \e[00m")
-    for sp in reform.benders_sep_subprs
-        @show sp
-        println("\e[1;32m ------------- \e[00m")
-    #     #exit()
-    end
+    # println("\e[1;31m ------------- \e[00m")
+    # orig = get_original_formulation(prob)
+    # @show orig
+    # println("*************************")
+    # res = optimize!(orig)
+    # println("\e[31m")
+    # @show res
+    # println("\e[00m")
+    # println("*************************")
+    # println("*************************")
+    # println("\e[1;31m ------------- \e[00m")
+    # @show getmaster(reform)
+    # println("\e[1;32m ------------- \e[00m")
+    # for sp in reform.benders_sep_subprs
+    #     @show sp
+    #     println("\e[1;32m ------------- \e[00m")
+    # #     #exit()
+    # end
 end
 

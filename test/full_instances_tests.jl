@@ -1,7 +1,7 @@
 function full_instances_tests()
-    #generalized_assignment_tests()
+    generalized_assignment_tests()
     lot_sizing_tests()
-    #capacitated_lot_sizing_tests()
+    capacitated_lot_sizing_tests()
 end
 
 function generalized_assignment_tests()
@@ -146,18 +146,9 @@ function lot_sizing_tests()
                                      default_optimizer = with_optimizer(GLPK.Optimizer)
                                      )
 
-        problem1, x, y = CLD.SingleModeMultiItemsLotSizing.model_nodecomposition(data, JuMP.with_optimizer(GLPK.Optimizer))
-        JuMP.optimize!(problem1)
-        println("\e[41m")
-        @show JuMP.objective_value(problem1)
-        println(JuMP.value.(x))
-        println(JuMP.value.(y))
-        println("\e[00m")
-
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
         JuMP.optimize!(problem)
-        # Objective value should be ? §infeasible
-        error("stop tests here.")
+        #@test  objective_value(problem) == 
     end
     return
 end
