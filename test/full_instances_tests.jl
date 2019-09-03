@@ -1,7 +1,7 @@
 function full_instances_tests()
-    generalized_assignment_tests()
+    #generalized_assignment_tests()
     lot_sizing_tests()
-    capacitated_lot_sizing_tests()
+    #capacitated_lot_sizing_tests()
 end
 
 function generalized_assignment_tests()
