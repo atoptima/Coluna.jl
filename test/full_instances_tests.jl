@@ -145,10 +145,17 @@ function lot_sizing_tests()
                                                         ),
                                      default_optimizer = with_optimizer(GLPK.Optimizer)
                                      )
-
+        # problem1, x, y = CLD.SingleModeMultiItemsLotSizing.model_nodecomposition(data, JuMP.with_optimizer(Cbc.Optimizer))
+        # JuMP.optimize!(problem1)
+        # println("\e[41m")
+        # @show JuMP.objective_value(problem1)
+        # println(JuMP.value.(x))
+        # println(JuMP.value.(y))
+        # println("\e[00m")
+        
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
         JuMP.optimize!(problem)
-        #@test  objective_value(problem) == 
+        @test objective_value(problem) == 600.0
     end
     return
 end
