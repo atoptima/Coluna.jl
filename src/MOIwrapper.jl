@@ -96,10 +96,6 @@ function create_origvars!(f::Formulation,
     end
 end
 
-#==
-SEEMS USED
-==#
-
 function create_origconstr!(f::Formulation,
                             func::MOI.SingleVariable,
                             set::SupportedVarSets,
