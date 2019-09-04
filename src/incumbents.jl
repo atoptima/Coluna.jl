@@ -89,7 +89,7 @@ function set_lp_primal_sol!(inc::Incumbents{S},
     if isbetter(newbound, getbound(inc.lp_primal_sol))
         inc.lp_primal_bound = newbound
         inc.lp_primal_sol = sol
-        return trues
+        return true
     end
     return false
 end

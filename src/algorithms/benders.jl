@@ -442,13 +442,14 @@ function bend_cutting_plane_main_loop(alg_data::BendersCutGenerationData,
         # TODO: update bendcutgen stabilization
 
         if  !one_spsol_is_a_relaxed_sol
-            set_lp_primal_sol!(alg_data.incumbents, master_primal_sol, primal_bound_correction)
+            setvalue!(master_primal_sol, getvalue(master_primal_sol) + primal_bound_correction)
+            set_lp_primal_sol!(alg_data.incumbents, master_primal_sol)
             primal_bound = get_lp_primal_bound(alg_data.incumbents)
             #@show primal_bound
             cur_gap = gap(primal_bound, dual_bound)
             
             if isinteger(master_primal_sol)
-                set_ip_primal_sol!(alg_data.incumbents, master_primal_sol, primal_bound_correction)
+                set_ip_primal_sol!(alg_data.incumbents, master_primal_sol)
             end
         end
 
