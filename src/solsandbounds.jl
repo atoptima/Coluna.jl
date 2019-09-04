@@ -27,8 +27,6 @@ DualBound{S}() where {S<:AbstractObjSense} = DualBound{S}(defaultdualboundvalue(
 
 defaultdualboundvalue(::Type{MinSense}) = -Inf
 defaultdualboundvalue(::Type{MaxSense}) = +Inf
-infeasibledualboundvalue(::Type{MinSense}) = +Inf
-infeasibledualboundvalue(::Type{MaxSense}) = -Inf
 
 getvalue(b::AbstractBound) = b.value
 
@@ -195,6 +193,13 @@ end
 
 isfractional(s::AbstractSolution) = !Base.isinteger(s)
 
+function contains(sol::AbstractSolution, D::Type{<:AbstractVarConstrDuty})
+    filtered_sol = filter(vc -> getduty(vc) <: D, getsol(sol))
+    return length(filtered_sol) > 0
+end
+
+_value(constr::Constraint) = getcurrhs(constr)
+_value(var::Variable) = getcurcost(var)
 function Base.filter(f::Function, sol::T) where {T<:AbstractSolution}
     newsol = filter(f, getsol(sol))
     elements = getelements(getsol(sol))
@@ -204,15 +209,3 @@ function Base.filter(f::Function, sol::T) where {T<:AbstractSolution}
     end
     return T(bound, newsol) 
 end
-
-function filter(sol::AbstractSolution, D::Type{<:AbstractVarConstrDuty})
-    filtered_sol = filter(vc -> getduty(vc) <: D, getsol(sol))
-    return filtered_sol
-end
-
-function contains(sol::AbstractSolution, D::Type{<:AbstractVarConstrDuty})
-    return length(filter(sol, D)) > 0
-end
-
-_value(constr::Constraint) = getcurrhs(constr)
-_value(var::Variable) = getcurcost(var)
