@@ -145,6 +145,7 @@ abstract type AbstractAlg end
 # abstract type AbstractPrimalHeurNodeAlg <: AbstractNodeAlg end
 # abstract type AbstractGenChildrenNodeAlg <: AbstractNodeAlg end
 
+@enum FormulationPhase PurePhase1 PurePhase2 HybridPhase
 @enum VarSense Positive Negative Free
 @enum VarKind Continuous Binary Integ
 @enum ConstrKind Core Facultative SubSystem

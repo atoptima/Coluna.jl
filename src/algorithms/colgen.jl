@@ -141,7 +141,7 @@ function compute_pricing_db_contrib(sp_form::Formulation,
     return contrib
 end
 
-function gencol!(master_form::Formulation,
+function solve_sp_to_gencol!(master_form::Formulation,
                      sp_form::Formulation,
                      dual_sol::DualSolution,
                      sp_lb::Float64,
@@ -196,7 +196,7 @@ function gencol!(master_form::Formulation,
     return insertion_status, pricing_db_contrib
 end
 
-function gencols!(reformulation::Reformulation,
+function solve_sps_to_gencols!(reformulation::Reformulation,
                   dual_sol::DualSolution{S},
                   sp_lbs::Dict{FormId, Float64},
                   sp_ubs::Dict{FormId, Float64}) where {S}
@@ -207,7 +207,7 @@ function gencols!(reformulation::Reformulation,
     sps = get_dw_pricing_sp(reformulation)
     for sp_form in sps
         sp_uid = getuid(sp_form)
-        gen_status, contrib = gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
+        gen_status, contrib = solve_sp_to_gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
 
         if gen_status > 0
             nb_new_cols += gen_status
@@ -247,7 +247,7 @@ function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,
                           master_val, dual_sol, sp_lbs, sp_ubs)
     nb_new_columns = 0
     while true # TODO Replace this condition when starting implement stabilization
-        nb_new_col, sp_db_contrib =  gencols!(reform, dual_sol, sp_lbs, sp_ubs)
+        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(reform, dual_sol, sp_lbs, sp_ubs)
         nb_new_columns += nb_new_col
         update_lagrangian_db!(alg, master_val, sp_db_contrib)
         if nb_new_col < 0

@@ -4,10 +4,10 @@
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[BenchmarkTools]]
-deps = ["JSON", "Printf", "Statistics", "Test"]
-git-tree-sha1 = "5d1dd8577643ba9014574cd40d9c028cd5e4b85a"
+deps = ["JSON", "Printf", "Statistics"]
+git-tree-sha1 = "90b73db83791c5f83155016dd1cc1f684d4e1361"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "0.4.2"
+version = "0.4.3"
 
 [[BinDeps]]
 deps = ["Compat", "Libdl", "SHA", "URIParser"]
@@ -37,7 +37,7 @@ version = "0.5.0"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "c4dc1bb68d24db4942ff8ff0c16ec167b2cf15b2"
+git-tree-sha1 = "ec7405623c42daf5de443348cdc9a60629690591"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
@@ -111,11 +111,11 @@ version = "0.10.3"
 
 [[GLPK]]
 deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "8c831e5c795c24c05cd65b78648ca0b69945e78c"
+git-tree-sha1 = "93be0c23900ce7a23db56bdcb29daf9fb38b12ef"
 repo-rev = "master"
 repo-url = "https://github.com/JuliaOpt/GLPK.jl.git"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-version = "0.11.2"
+version = "0.11.3"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
