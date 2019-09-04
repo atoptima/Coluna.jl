@@ -25,7 +25,7 @@ function Incumbents(S::Type{<: AbstractObjSense})
         PrimalSolution{S}(),
         PrimalBound{S}(),
         DualSolution{S}(),
-       DualBound{S}()
+        DualBound{S}()
      )
 end
 
@@ -68,11 +68,8 @@ Updates the best primal solution to the mixed-integer program if the new one is
 better than the current one according to the objective sense.
 """
 function set_ip_primal_sol!(inc::Incumbents{S},
-                            sol::PrimalSolution{S};
-                            correction::PrimalBound{S} = PrimalBound{S}(0.0)) where {S}
-
-    newbound = getbound(sol) + correction
-
+                            sol::PrimalSolution{S}) where {S}
+    newbound = getbound(sol)
     if isbetter(newbound, getbound(inc.ip_primal_sol))
         inc.ip_primal_bound = newbound
         inc.ip_primal_sol = sol
@@ -87,15 +84,12 @@ Updates the best primal solution to the linear program if the new one is better
 than the current one according to the objective sense.
 """
 function set_lp_primal_sol!(inc::Incumbents{S},
-                            sol::PrimalSolution{S};
-                            correction::PrimalBound{S} = PrimalBound{S}(0.0)) where {S}
-
-    newbound = getbound(sol) + correction
-     
+                            sol::PrimalSolution{S}) where {S}
+    newbound = getbound(sol)
     if isbetter(newbound, getbound(inc.lp_primal_sol))
         inc.lp_primal_bound = newbound
         inc.lp_primal_sol = sol
-        return true
+        return trues
     end
     return false
 end
@@ -137,11 +131,8 @@ end
 Updates the dual solution to the linear program if the new one is better than the
 current one according to the objective sense.
 """
-function set_lp_dual_sol!(inc::Incumbents{S},
-                          sol::DualSolution{S}) where {S}
-    
+function set_lp_dual_sol!(inc::Incumbents{S}, sol::DualSolution{S}) where {S}
     newbound = getbound(sol) 
-
     if isbetter(newbound , getbound(inc.lp_dual_sol))
         inc.lp_dual_bound = newbound 
         inc.lp_dual_sol = sol
@@ -149,7 +140,6 @@ function set_lp_dual_sol!(inc::Incumbents{S},
     end
     return false
 end
-
 set_lp_dual_sol!(inc::Incumbents, ::Nothing) = false
 
 "Updates the fields of `dest` that are worse than those of `src`."
