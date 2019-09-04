@@ -48,7 +48,6 @@ function run!(::Type{BendersCutGeneration}, form, node, strategy_rec, params)
 end
 
 function update_bendersep_slackvar_cost_for_ph1!(spform::Formulation)
-    println("\e[31m apply phase 1 cost \e[00m")
     for (varid, var) in filter(_active_BendSpSlackFirstStage_var_, getvars(spform))
         setcurcost!(spform, var, 1.0)
     end
@@ -58,7 +57,6 @@ end
 update_bendersep_slackvar_cost_for_ph2!(spform::Formulation) = return
 
 function update_bendersep_slackvar_cost_for_hyb_ph!(spform::Formulation)
-    println("\e[32m apply peren cost \e[00m")
     for (varid, var) in filter(_active_, getvars(spform))
         setcurcost!(spform, var, getperenecost(spform, var))
     end
@@ -241,21 +239,11 @@ function solve_sp_to_gencut!(
 
     if spsol_relaxed      
         if -1e-5 <= getprimalbound(optresult) <= 1e-5
-            println("\e[44m reset benders sep to feasibility problem \e[00m")
             spform_uid = getuid(spform)
             algdata.spform_phase[spform_uid] = PurePhase1
             algdata.spform_phase_applied[spform_uid] = false
 
-            TO.@timeit _to "Resolve Bender Sep SubProblem" begin
-                optresult = optimize!(spform)
-            end
-            if !isfeasible(optresult) # if status != MOI.OPTIMAL
-                # @logmsg LogLevel(-3) "bendersep prob is infeasible"
-                return flag_is_sp_infeasible ## TODO type instability
-            end
-            primal_bound_correction = defaultprimalboundvalue(S)
-
-            spsol_is_a_relaxed_sol = contains(primalsol, BendSpSlackFirstStageVar)
+            # TODO : rerun the subproblem here with the modification. (split this method)
         else
             for (var, value) in filter(var -> getduty(var) <: BendSpSlackFirstStageVar, getsol(primalsol))
                 if S == MinSense
@@ -388,10 +376,8 @@ function bend_cutting_plane_main_loop(
             return BendersCutGenerationRecord(algdata.incumbents, true)
         end
 
-
         set_lp_dual_sol!(algdata.incumbents, master_dual_sol)
         dual_bound = get_lp_dual_bound(algdata.incumbents)
-        #@show dual_bound 
         
         # TODO: cleanup restricted master columns        
 
@@ -406,10 +392,6 @@ function bend_cutting_plane_main_loop(
         end
         #@show nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound_correction
 
-        print_intermediate_statistics(
-            algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
-        )
-
         if nb_new_cuts < 0
             @error "infeasible subproblem."
             return BendersCutGenerationRecord(algdata.incumbents, true)
@@ -422,23 +404,35 @@ function bend_cutting_plane_main_loop(
             primal_bound = get_lp_primal_bound(algdata.incumbents)
             #@show primal_bound
             cur_gap = gap(primal_bound, dual_bound)
-            
-            if isinteger(master_primal_sol)
+
+            # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
+            sol_integer = true
+            for (var, val) in filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
+                if !isinteger(val)
+                    sol_integer = false
+                    break
+                end
+            end
+            if sol_integer
                 set_ip_primal_sol!(algdata.incumbents, master_primal_sol)
             end
         end
 
+        print_intermediate_statistics(
+            algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
+        )
+
         if nb_new_cuts == 0 && allphasesapplied(algdata)
             #@show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
-            println("end convergence")
             algdata.has_converged = true
             break
         end
         
         primal_bound = get_lp_primal_bound(algdata.incumbents)
         cur_gap = gap(primal_bound, dual_bound)
-        if cur_gap < 0.00001  #_params_.relative_optimality_tolerance
-            println("end cur_gap")
+        if cur_gap < 0.00001
+            println("Should stop because pb = $primal_bound & db = $dual_bound")
+            # TODO : problem with the gap
             #break
         end
         
