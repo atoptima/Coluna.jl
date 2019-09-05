@@ -52,7 +52,7 @@ function update_bendersep_slackvar_cost_for_ph1!(spform::Formulation)
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 1.0)
         else
-            #setcurcost!(spform, var, 0.0)
+            setcurcost!(spform, var, 0.0)
         end
     end
     return
