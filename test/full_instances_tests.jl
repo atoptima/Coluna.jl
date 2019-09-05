@@ -1,7 +1,8 @@
 function full_instances_tests()
-    generalized_assignment_tests()
-    lot_sizing_tests()
-    capacitated_lot_sizing_tests()
+    facility_location_tests()
+    #generalized_assignment_tests()
+    #lot_sizing_tests()
+    #capacitated_lot_sizing_tests()
 end
 
 function generalized_assignment_tests()
@@ -167,4 +168,22 @@ function capacitated_lot_sizing_tests()
         clsp, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)  
         JuMP.optimize!(clsp)
     end
+end
+
+function facility_location_tests()
+    @testset "play facility locatio ntest " begin
+        data = CLD.FacilityLocation.data("play.txt")
+        
+        coluna = JuMP.with_optimizer(Coluna.Optimizer,
+                                     params = CL.Params(max_num_nodes = 1, 
+                                                        global_strategy =
+                                                        CL.GlobalStrategy(CL.SimpleBenders, CL.NoBranching, CL.DepthFirst)
+                                                        ),
+                                     default_optimizer = with_optimizer(GLPK.Optimizer)
+                                     )
+
+        problem, x, y, dec = CLD.FacilityLocation.model(data, coluna)
+        JuMP.optimize!(problem)
+    end
+    return
 end
