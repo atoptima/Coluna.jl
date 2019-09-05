@@ -1,8 +1,8 @@
 function full_instances_tests()
-    facility_location_tests()
-    #generalized_assignment_tests()
-    #lot_sizing_tests()
-    #capacitated_lot_sizing_tests()
+    generalized_assignment_tests()
+    capacitated_lot_sizing_tests()
+    lot_sizing_tests()
+    #facility_location_tests()
 end
 
 function generalized_assignment_tests()
@@ -81,7 +81,8 @@ function generalized_assignment_tests()
             Coluna.Optimizer, params = CL.Params(
                 global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
             ),
-            default_optimizer = with_optimizer(GLPK.Optimizer))
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
    
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
@@ -109,8 +110,8 @@ function generalized_assignment_tests()
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            default_optimizer = with_optimizer(GLPK.Optimizer)
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -123,9 +124,9 @@ function generalized_assignment_tests()
     @testset "clsp small instance" begin
         data = CLD.CapacitatedLotSizing.readData("testSmall")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-                                     default_optimizer = with_optimizer(GLPK.Optimizer)
-                                     )
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
 
         model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
         JuMP.optimize!(model)
@@ -140,12 +141,12 @@ function lot_sizing_tests()
         data = CLD.SingleModeMultiItemsLotSizing.data("lotSizing-3-20-2.txt")
         
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
-                                     params = CL.Params(max_num_nodes = 1, 
-                                                        global_strategy =
-                                                        CL.GlobalStrategy(CL.SimpleBenders, CL.NoBranching, CL.DepthFirst)
-                                                        ),
-                                     default_optimizer = with_optimizer(GLPK.Optimizer)
-                                     )
+            params = CL.Params(
+                max_num_nodes = 1, 
+                global_strategy = CL.GlobalStrategy(CL.SimpleBenders, CL.NoBranching, CL.DepthFirst)
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
 
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
         JuMP.optimize!(problem)
@@ -158,12 +159,12 @@ function capacitated_lot_sizing_tests()
     @testset "play multi items capacited lot sizing" begin
         data = CLD.CapacitatedLotSizing.readData("testSmall")
         
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-                                     params = CL.Params(
-                                         global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.NoBranching, CL.DepthFirst)
-                                     ),
-                                     default_optimizer = with_optimizer(GLPK.Optimizer)
-                                     )
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.NoBranching, CL.DepthFirst)
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
 
         clsp, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)  
         JuMP.optimize!(clsp)
@@ -174,13 +175,14 @@ function facility_location_tests()
     @testset "play facility locatio ntest " begin
         data = CLD.FacilityLocation.data("play.txt")
         
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-                                     params = CL.Params(max_num_nodes = 1, 
-                                                        global_strategy =
-                                                        CL.GlobalStrategy(CL.SimpleBenders, CL.NoBranching, CL.DepthFirst)
-                                                        ),
-                                     default_optimizer = with_optimizer(GLPK.Optimizer)
-                                     )
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer,
+            params = CL.Params(
+                max_num_nodes = 1, 
+                global_strategy = CL.GlobalStrategy(CL.SimpleBenders, CL.NoBranching, CL.DepthFirst)
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
 
         problem, x, y, dec = CLD.FacilityLocation.model(data, coluna)
         JuMP.optimize!(problem)
