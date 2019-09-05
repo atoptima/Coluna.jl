@@ -1,9 +1,11 @@
 mutable struct Incumbents{S}
     ip_primal_sol::PrimalSolution{S}
-    ip_dual_bound::DualBound{S}
+    ip_primal_bound::PrimalBound{S}
+    ip_dual_bound::DualBound{S} # the IP dual bound can be the result of computation other than using the LP dual bound
     lp_primal_sol::PrimalSolution{S}
     lp_primal_bound::PrimalBound{S}
     lp_dual_sol::DualSolution{S}
+    lp_dual_bound::DualBound{S}
 end
 
 """
@@ -18,11 +20,13 @@ and the best dual bound to the program.
 function Incumbents(S::Type{<: AbstractObjSense})
     return Incumbents{S}(
         PrimalSolution{S}(),
+        PrimalBound{S}(),
         DualBound{S}(),
         PrimalSolution{S}(),
         PrimalBound{S}(),
-        DualSolution{S}()
-    )
+        DualSolution{S}(),
+        DualBound{S}()
+     )
 end
 
 getsense(::Incumbents{MinSense}) = MinSense
@@ -49,7 +53,7 @@ get_ip_dual_bound(i::Incumbents) = i.ip_dual_bound
 get_lp_primal_bound(i::Incumbents) = i.lp_primal_bound # getbound(i.lp_primal_sol)
 
 "Returns the best dual bound of the linear program."
-get_lp_dual_bound(i::Incumbents) = getbound(i.lp_dual_sol)
+get_lp_dual_bound(i::Incumbents) = i.lp_dual_bound
 
 # Gaps
 "Returns the gap between the best primal and dual bounds of the integer program."
@@ -65,7 +69,9 @@ better than the current one according to the objective sense.
 """
 function set_ip_primal_sol!(inc::Incumbents{S},
                             sol::PrimalSolution{S}) where {S}
-    if isbetter(getbound(sol), getbound(inc.ip_primal_sol))
+    newbound = getbound(sol)
+    if isbetter(newbound, getbound(inc.ip_primal_sol))
+        inc.ip_primal_bound = newbound
         inc.ip_primal_sol = sol
         return true
     end
@@ -79,17 +85,16 @@ than the current one according to the objective sense.
 """
 function set_lp_primal_sol!(inc::Incumbents{S},
                             sol::PrimalSolution{S}) where {S}
-    if isbetter(getbound(sol), inc.lp_primal_bound)
-        inc.lp_primal_bound = getbound(sol)
-    end
-    
-    if isbetter(getbound(sol), getbound(inc.lp_primal_sol))
+    newbound = getbound(sol)
+    if isbetter(newbound, getbound(inc.lp_primal_sol))
+        inc.lp_primal_bound = newbound
         inc.lp_primal_sol = sol
         return true
     end
     return false
 end
 set_lp_primal_sol!(inc::Incumbents, ::Nothing) = false
+
 
 """
 Updates the dual bound of the mixed-integer program if the new one is better than
@@ -113,13 +118,23 @@ function set_lp_primal_bound!(inc::Incumbents{S},
     return false
 end
 
+function set_lp_dual_bound!(inc::Incumbents{S},
+                            new_bound::DualBound{S}) where {S}
+    if isbetter(new_bound, get_lp_dual_bound(inc))
+        inc.lp_dual_bound = new_bound
+        return true
+    end
+    return false
+end
+
 """
 Updates the dual solution to the linear program if the new one is better than the
 current one according to the objective sense.
 """
-function set_lp_dual_sol!(inc::Incumbents{S},
-                          sol::DualSolution{S}) where {S}
-    if isbetter(getbound(sol), getbound(inc.lp_dual_sol))
+function set_lp_dual_sol!(inc::Incumbents{S}, sol::DualSolution{S}) where {S}
+    newbound = getbound(sol) 
+    if isbetter(newbound , getbound(inc.lp_dual_sol))
+        inc.lp_dual_bound = newbound 
         inc.lp_dual_sol = sol
         return true
     end

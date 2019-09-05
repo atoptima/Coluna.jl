@@ -89,8 +89,9 @@ function _welcome_message()
     print(welcome)
 end
 
-function coluna_initialization(prob::Problem, annotations::Annotations,
-                               params::Params)
+function coluna_initialization(
+    prob::Problem, annotations::Annotations, params::Params
+)
     _welcome_message()
     _set_global_params(params)
     reformulate!(prob, annotations, params.global_strategy)

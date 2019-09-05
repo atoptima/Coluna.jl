@@ -141,7 +141,7 @@ function compute_pricing_db_contrib(sp_form::Formulation,
     return contrib
 end
 
-function gencol!(master_form::Formulation,
+function solve_sp_to_gencol!(master_form::Formulation,
                      sp_form::Formulation,
                      dual_sol::DualSolution,
                      sp_lb::Float64,
@@ -183,7 +183,6 @@ function gencol!(master_form::Formulation,
     pricing_db_contrib = compute_pricing_db_contrib(
         sp_form, getprimalbound(opt_result), sp_lb, sp_ub
     )
-    # @show pricing_dual_bound_contrib
 
     if !isfeasible(opt_result)
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
@@ -197,7 +196,7 @@ function gencol!(master_form::Formulation,
     return insertion_status, pricing_db_contrib
 end
 
-function gencols!(reformulation::Reformulation,
+function solve_sps_to_gencols!(reformulation::Reformulation,
                   dual_sol::DualSolution{S},
                   sp_lbs::Dict{FormId, Float64},
                   sp_ubs::Dict{FormId, Float64}) where {S}
@@ -208,7 +207,7 @@ function gencols!(reformulation::Reformulation,
     sps = get_dw_pricing_sp(reformulation)
     for sp_form in sps
         sp_uid = getuid(sp_form)
-        gen_status, contrib = gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
+        gen_status, contrib = solve_sp_to_gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
 
         if gen_status > 0
             nb_new_cols += gen_status
@@ -248,7 +247,7 @@ function generatecolumns!(alg::ColumnGenerationData, reform::Reformulation,
                           master_val, dual_sol, sp_lbs, sp_ubs)
     nb_new_columns = 0
     while true # TODO Replace this condition when starting implement stabilization
-        nb_new_col, sp_db_contrib =  gencols!(reform, dual_sol, sp_lbs, sp_ubs)
+        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(reform, dual_sol, sp_lbs, sp_ubs)
         nb_new_columns += nb_new_col
         update_lagrangian_db!(alg, master_val, sp_db_contrib)
         if nb_new_col < 0
@@ -321,17 +320,17 @@ function cg_main_loop(alg_data::ColumnGenerationData,
 
         # TODO: update colgen stabilization
 
-        lb = get_ip_dual_bound(alg_data.incumbents)
-        ub = min(
-            get_lp_primal_bound(alg_data.incumbents), get_ip_primal_bound(alg_data.incumbents)
-        )
-
-        if phase == 1 && ph_one_infeasible_db(lb)
+        dual_bound = get_ip_dual_bound(alg_data.incumbents)
+        primal_bound = get_lp_primal_bound(alg_data.incumbents)     
+        cur_gap = gap(primal_bound, dual_bound)
+        
+        if phase == 1 && ph_one_infeasible_db(dual_bound)
             alg_data.is_feasible = false
             @logmsg LogLevel(0) "Phase one determines infeasibility."
             return ColumnGenerationRecord(alg_data.incumbents, true)
         end
-        if nb_new_col == 0 || diff(lb + 0.00001, ub) < 0
+        if nb_new_col == 0 || cur_gap < 0.00001 #_params_.relative_optimality_tolerance
+            @logmsg LogLevel(0) "Column Generation Algorithm has converged." #nb_new_col cur_gap
             alg_data.has_converged = true
             return ColumnGenerationRecord(alg_data.incumbents, false)
         end
@@ -340,7 +339,7 @@ function cg_main_loop(alg_data::ColumnGenerationData,
             return ColumnGenerationRecord(alg_data.incumbents, false)
         end
     end
-    return ColumnGenerationRecord(alg_data.incumbents)
+    return ColumnGenerationRecord(alg_data.incumbents, false)
 end
 
 function print_intermediate_statistics(alg_data::ColumnGenerationData,
