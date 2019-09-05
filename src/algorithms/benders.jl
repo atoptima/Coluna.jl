@@ -48,16 +48,11 @@ function run!(::Type{BendersCutGeneration}, form, node, strategy_rec, params)
 end
 
 function update_bendersep_slackvar_cost_for_ph1!(spform::Formulation)
-    #==It is not enough to set cost 1 to mu var, the nu var needs to take cost 0 for a pure phase 1
-    for (varid, var) in filter(_active_BendSpSlackFirstStage_var_, getvars(spform))
-        setcurcost!(spform, var, 1.0)
-    end
-==#
-    for (var_id, var) in filter(_active_ , getvars(spform))
+    for (varid, var) in filter(_active_ , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
-            setcurcost!(sp_form, var, 1.0)
+            setcurcost!(spform, var, 1.0)
         else
-            setcurcost!(sp_form, var, 0.0)
+            #setcurcost!(spform, var, 0.0)
         end
     end
     return
@@ -67,7 +62,7 @@ update_bendersep_slackvar_cost_for_ph2!(spform::Formulation) = return
 
 function update_bendersep_slackvar_cost_for_hyb_ph!(spform::Formulation)
     for (varid, var) in filter(_active_, getvars(spform))
-        setcurcost!(spform, var, getperenecost(spform, var))
+        setcurcost!(spform, var, getperenecost(var))
     end
     return
 end
@@ -85,7 +80,7 @@ function update_bendersep_problem!(
         if phase_to_apply == PurePhase1
             update_bendersep_slackvar_cost_for_ph1!(spform)
         elseif phase_to_apply == HybridPhase
-            update_bendersep_slackvar_cost_for_hybph!(spform)
+            update_bendersep_slackvar_cost_for_hyb_ph!(spform)
         end
         algdata.spform_phase_applied[spform_uid] = true
     end
@@ -127,15 +122,14 @@ function update_bendersep_target!(sp_form::Formulation)
 end
 
 
-function insert_cuts_in_master!(master_form::Formulation,
+function insert_cuts_in_master!(algdata, master_form::Formulation,
                                 sp_form::Formulation,
                                 spresult::OptimizationResult{S}) where {S}
-    
     primal_sols = getprimalsols(spresult)
     dual_sols = getdualsols(spresult)
     sp_uid = getuid(sp_form)
     nb_of_gen_cuts = 0
-    sense = (S == MinSense ?  Greater : Less)
+    sense = (S == MinSense ? Greater : Less)
 
     N = length(dual_sols)
     if length(primal_sols) < N
@@ -146,7 +140,7 @@ function insert_cuts_in_master!(master_form::Formulation,
         primal_sol = primal_sols[k]
         dual_sol = dual_sols[k]
         # the solution value represent the cut violation at this stage
-        if getvalue(dual_sol) > 0.0001 # TODO the cut feasibility tolerance
+        if getvalue(dual_sol) > 0.0001 || algdata.spform_phase[getuid(sp_form)] == PurePhase1 # TODO the cut feasibility tolerance
             nb_of_gen_cuts += 1
             ref = getconstrcounter(master_form) + 1
             name = string("BC", sp_uid, "_", ref)
@@ -155,7 +149,8 @@ function insert_cuts_in_master!(master_form::Formulation,
             duty = MasterBendCutConstr
             bc = setprimaldualbendspsol!(
                 master_form, sp_form, name, primal_sol, dual_sol, duty; 
-                kind = kind, sense = sense)
+                kind = kind, sense = sense
+            )
           
             @logmsg LogLevel(-2) string("Generated cut : ", name)
             #@show bc
@@ -185,16 +180,6 @@ function compute_bendersep_pb_contrib(
 ) where {S}
     dualsol = getbestdualsol(spsol)
     contrib = getvalue(dualsol)
-
-        #== primalsol = getsol(getbestprimalsol(spsol))
-    for (var, value) in filter(var -> getduty(var) <: BendSpSlackFirstStageVar, primalsol)
-        contrib -= alg.slack_cost_increase * value
-    end    
-   if -1e-5 <= contrib <= 1e-5
-        alg.slack_cost_increase += 1
-        alg.slack_cost_increase_applied = false
-    end
-==#
     return contrib
 end
 
@@ -214,59 +199,66 @@ function solve_sp_to_gencut!(
     # Compute target
     update_bendersep_target!(spform)
 
-    # Reset var bounds, var cost, sp minCost
-    if update_bendersep_problem!(algdata, spform, master_primal_sol, master_dual_sol) # Never returns true
-        #     This code is never executed because update_bendersep_prob always returns false
-        #     @logmsg LogLevel(-3) "bendersep prob is infeasible"
-        #     # In case one of the subproblem is infeasible, the master is infeasible
-        #     compute_bendersep_primal_bound_contrib(alg, bendersep_prob)
-        #     return flag_is_sp_infeasible
-    end
+    while true
+        # Reset var bounds, var cost, sp minCost
+        if update_bendersep_problem!(algdata, spform, master_primal_sol, master_dual_sol) # Never returns true
+            #     This code is never executed because update_bendersep_prob always returns false
+            #     @logmsg LogLevel(-3) "bendersep prob is infeasible"
+            #     # In case one of the subproblem is infeasible, the master is infeasible
+            #     compute_bendersep_primal_bound_contrib(alg, bendersep_prob)
+            #     return flag_is_sp_infeasible
+        end
 
-    # if alg.bendcutgen_stabilization != nothing && true #= TODO add conds =#
-    #     # switch off the reduced cost estimation when stabilization is applied
-    # end
+                # if alg.bendcutgen_stabilization != nothing && true #= TODO add conds =#
+        #     # switch off the reduced cost estimation when stabilization is applied
+        # end
 
-    # Solve sub-problem and insert generated cuts in master
-    # @logmsg LogLevel(-3) "optimizing bendersep prob"
-    TO.@timeit _to "Bender Sep SubProblem" begin
-        optresult = optimize!(spform)
-    end
-    
-    bendersep_pb_contrib = compute_bendersep_pb_contrib(algdata, spform, optresult)
-    # @show bendersep_primal_bound_contrib
-    
-    if !isfeasible(optresult) # if status != MOI.OPTIMAL
-        # @logmsg LogLevel(-3) "bendersep prob is infeasible"
-        return flag_is_sp_infeasible
-    end
+        # Solve sub-problem and insert generated cuts in master
+        # @logmsg LogLevel(-3) "optimizing bendersep prob"
+        TO.@timeit _to "Bender Sep SubProblem" begin
+            optresult = optimize!(spform)
+        end
 
-    primalsol = getbestprimalsol(optresult)
-    spsol_relaxed = contains(primalsol, BendSpSlackFirstStageVar)
+        if !isfeasible(optresult) # if status != MOI.OPTIMAL
+            # @logmsg LogLevel(-3) "bendersep prob is infeasible"
+            return flag_is_sp_infeasible
+        end
 
-    primal_bound_correction = 0.0
+        bendersep_pb_contrib = compute_bendersep_pb_contrib(algdata, spform, optresult)
 
-    if spsol_relaxed      
-        if -1e-5 <= getprimalbound(optresult) <= 1e-5
-            spform_uid = getuid(spform)
-            algdata.spform_phase[spform_uid] = PurePhase1
-            algdata.spform_phase_applied[spform_uid] = false
-
-            # TODO : rerun the subproblem here with the modification. (split this method)
-        else
-            for (var, value) in filter(var -> getduty(var) <: BendSpSlackFirstStageVar, getsol(primalsol))
-                if S == MinSense
-                    primal_bound_correction += value
-                else
-                    primal_bound_correction -= value
+        primalsol = getbestprimalsol(optresult)
+        spsol_relaxed = contains(primalsol, BendSpSlackFirstStageVar)
+        primal_bound_correction = 0.0
+        insertion_status = 0
+        if spsol_relaxed
+            if -1e-5 <= getprimalbound(optresult) <= 1e-5
+                spform_uid = getuid(spform)
+                algdata.spform_phase[spform_uid] = PurePhase1
+                algdata.spform_phase_applied[spform_uid] = false
+                continue
+            else
+                for (var, value) in filter(var -> getduty(var) <: BendSpSlackFirstStageVar, getsol(primalsol))
+                    if S == MinSense
+                        primal_bound_correction += value
+                    else
+                        primal_bound_correction -= value
+                    end
                 end
             end
         end
+        insertion_status = insert_cuts_in_master!(algdata, masterform, spform, optresult)
+       
+        if !spsol_relaxed && -1e-5 <= getprimalbound(optresult) <= 1e-5
+            spform_uid = getuid(spform)
+            if algdata.spform_phase[spform_uid] == PurePhase1
+                algdata.spform_phase_applied[spform_uid] = false
+                algdata.spform_phase[spform_uid] = HybridPhase
+            end
+        end
+        
+        return insertion_status, spsol_relaxed, primal_bound_correction, bendersep_pb_contrib
     end
-    
-    insertion_status = insert_cuts_in_master!(masterform, spform, optresult)
-    
-    return insertion_status, spsol_relaxed, primal_bound_correction, bendersep_pb_contrib
+    return
 end
 
 function solve_sps_to_gencuts!(

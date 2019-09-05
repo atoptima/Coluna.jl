@@ -40,7 +40,8 @@ function create_global_art_vars!(masterform::Formulation)
 end
 
 function instantiatemaster!(
-    prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.DantzigWolfe}
+    prob::Problem, reform::Reformulation, ::Type{BD.Master}, 
+    ::Type{BD.DantzigWolfe}
 )
     form = Formulation{DwMaster}(
         prob.form_counter; parent_formulation = reform,
@@ -51,7 +52,7 @@ function instantiatemaster!(
 end
 
 function instantiatemaster!(
-    prob::Problem, reform, ::Type{BD.Master}, ::Type{BD.Benders}
+    prob::Problem, reform::Reformulation, ::Type{BD.Master}, ::Type{BD.Benders}
 )
     masterform = Formulation{BendersMaster}(
         prob.form_counter; parent_formulation = reform,
@@ -62,8 +63,8 @@ function instantiatemaster!(
 end
 
 function instantiatesp!(
-    prob::Problem, reform, masterform, ::Type{BD.DwPricingSp}, 
-    ::Type{BD.DantzigWolfe}
+    prob::Problem, reform::Reformulation, masterform::Formulation{DwMaster}, 
+    ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}
 )
     spform = Formulation{DwSp}(
         prob.form_counter; parent_formulation = masterform,
@@ -74,8 +75,8 @@ function instantiatesp!(
 end
 
 function instantiatesp!(
-    prob::Problem, reform, masterform, ::Type{BD.BendersSepSp}, 
-    ::Type{BD.Benders}
+    prob::Problem, reform::Reformulation, masterform::Formulation{BendersMaster}, 
+    ::Type{BD.BendersSepSp}, ::Type{BD.Benders}
 )
     spform = Formulation{BendersSp}(
         prob.form_counter; parent_formulation = masterform,
@@ -110,7 +111,7 @@ function instantiate_orig_vars!(
 end
 
 function instantiate_orig_constrs!(
-    masterform::Formulation{DwMaster}, origform::Formulation, 
+    masterform::Formulation{DwMaster}, origform::Formulation{Original}, 
     annotations::Annotations, mast_ann
 )
     !haskey(annotations.constrs_per_ann, mast_ann) && return
@@ -122,7 +123,7 @@ function instantiate_orig_constrs!(
 end
 
 function create_side_vars_constrs!(
-    masterform::Formulation{DwMaster}, origform::Formulation, 
+    masterform::Formulation{DwMaster}, origform::Formulation{Original}, 
     annotations::Annotations
 )
     coefmatrix = getcoefmatrix(masterform)
@@ -167,8 +168,8 @@ end
 
 # Pricing subproblem of Danztig-Wolfe decomposition
 function instantiate_orig_vars!(
-    spform::Formulation{DwSp}, origform::Formulation, annotations::Annotations, 
-    sp_ann
+    spform::Formulation{DwSp}, origform::Formulation{Original}, 
+    annotations::Annotations, sp_ann
 )
     !haskey(annotations.vars_per_ann, sp_ann) && return
     vars = annotations.vars_per_ann[sp_ann]
@@ -180,8 +181,8 @@ function instantiate_orig_vars!(
 end
 
 function instantiate_orig_constrs!(
-    spform::Formulation{DwSp}, origform::Formulation, annotations::Annotations, 
-    sp_ann
+    spform::Formulation{DwSp}, origform::Formulation{Original}, 
+    annotations::Annotations, sp_ann
 )
     !haskey(annotations.constrs_per_ann, sp_ann) && return
     constrs = annotations.constrs_per_ann[sp_ann]
@@ -192,7 +193,8 @@ function instantiate_orig_constrs!(
 end
 
 function create_side_vars_constrs!(
-    spform::Formulation{DwSp}, origform::Formulation, annotations::Annotations
+    spform::Formulation{DwSp}, origform::Formulation{Original}, 
+    annotations::Annotations
 )
     name = "PricingSetupVar_sp_$(getuid(spform))"
     setvar!(
@@ -202,8 +204,8 @@ function create_side_vars_constrs!(
     return
 end
 
-function dutyexpofbendmastvar(
-    var, annotations::Annotations, origform::Formulation
+function _dutyexpofbendmastvar(
+    var::Variable, annotations::Annotations, origform::Formulation{Original}
 )
     orig_coef = getcoefmatrix(origform)
     for (constrid, coef) in orig_coef[:, getid(var)]
@@ -219,20 +221,21 @@ end
 # Master of Benders decomposition
 
 function instantiate_orig_vars!(
-    masterform::Formulation{BendersMaster}, origform, annotations::Annotations, 
-    mast_ann
+    masterform::Formulation{BendersMaster}, origform::Formulation{Original}, 
+    annotations::Annotations, mast_ann
 )
     !haskey(annotations.vars_per_ann, mast_ann) && return
     vars = annotations.vars_per_ann[mast_ann]
     for (id, var) in vars
-        duty, explicit = dutyexpofbendmastvar(var, annotations, origform)
+        duty, explicit = _dutyexpofbendmastvar(var, annotations, origform)
         clonevar!(masterform, var, duty, is_explicit = explicit)
     end
     return
 end
 
 function _dutyexpofbendmastconstr(
-    constr, annotations::Annotations, origform::Formulation
+    constr::Constraint, annotations::Annotations, 
+    origform::Formulation{Original}
 )
     #==orig_coef = getcoefmatrix(origform)
     for (varid, coef) in orig_coef[getid(constr), :]
@@ -245,7 +248,7 @@ function _dutyexpofbendmastconstr(
 end
 
 function instantiate_orig_constrs!(
-    masterform::Formulation{BendersMaster}, origform::Formulation, 
+    masterform::Formulation{BendersMaster}, origform::Formulation{Original}, 
     annotations::Annotations, mast_ann
 )
     !haskey(annotations.constrs_per_ann, mast_ann) && return
@@ -258,7 +261,7 @@ function instantiate_orig_constrs!(
 end
 
 function create_side_vars_constrs!(
-    masterform::Formulation{BendersMaster}, origform::Formulation, 
+    masterform::Formulation{BendersMaster}, origform::Formulation{Original}, 
     annotations::Annotations
 )
     coefmatrix = getcoefmatrix(masterform)
@@ -280,12 +283,10 @@ function create_side_vars_constrs!(
     return
 end
 
-function create_artificial_vars!(masterform::Formulation{BendersMaster})
-    return
-end
+create_artificial_vars!(masterform::Formulation{BendersMaster}) = return
 
 function instantiate_orig_vars!(
-    spform::Formulation{BendersSp}, origform::Formulation, 
+    spform::Formulation{BendersSp}, origform::Formulation{Original}, 
     annotations::Annotations, sp_ann
 )
     if haskey(annotations.vars_per_ann, sp_ann)
@@ -299,7 +300,7 @@ function instantiate_orig_vars!(
     if haskey(annotations.vars_per_ann, mast_ann)
         vars = annotations.vars_per_ann[mast_ann]
         for (id, var) in vars
-            duty, explicit = dutyexpofbendmastvar(var, annotations, origform)
+            duty, explicit = _dutyexpofbendmastvar(var, annotations, origform)
             if duty == MasterBendFirstStageVar
                 name = "μ[$(split(getname(var), "[")[end])"
                 mu = setvar!(
@@ -325,8 +326,9 @@ function _dutyexpofbendspconstr(constr, annotations::Annotations, origform)
     return BendSpPureConstr, true
 end
 
-function instantiate_orig_constrs!(spform::Formulation{BendersSp}, 
-    origform::Formulation, annotations::Annotations, sp_ann
+function instantiate_orig_constrs!(
+    spform::Formulation{BendersSp}, origform::Formulation{Original}, 
+    annotations::Annotations, sp_ann
 )
     !haskey(annotations.constrs_per_ann, sp_ann) && return
     constrs = annotations.constrs_per_ann[sp_ann]
@@ -338,7 +340,7 @@ function instantiate_orig_constrs!(spform::Formulation{BendersSp},
 end
 
 function create_side_vars_constrs!(
-    spform::Formulation{BendersSp}, origform::Formulation, 
+    spform::Formulation{BendersSp}, origform::Formulation{Original}, 
     annotations::Annotations
 )
     sp_has_second_stage_cost = false
@@ -388,7 +390,8 @@ function create_side_vars_constrs!(
 end
 
 function assign_orig_vars_constrs!(
-    form, origform::Formulation, annotations::Annotations, ann
+    form::Formulation, origform::Formulation{Original}, 
+    annotations::Annotations, ann
 )
     instantiate_orig_vars!(form, origform, annotations, ann)
     instantiate_orig_constrs!(form, origform, annotations, ann)
@@ -403,7 +406,8 @@ function getoptbuilder(prob::Problem, ann)
 end
 
 function buildformulations!(
-    prob::Problem, annotations::Annotations, reform, parent, node::BD.Root
+    prob::Problem, annotations::Annotations, reform::Reformulation, parent, 
+    node::BD.Root
 )
     ann = BD.annotation(node)
     form_type = BD.getformulation(ann)
@@ -423,7 +427,8 @@ function buildformulations!(
 end
 
 function buildformulations!(
-    prob::Problem, annotations::Annotations, reform, parent, node::BD.Leaf
+    prob::Problem, annotations::Annotations, reform::Reformulation, 
+    parent, node::BD.Leaf
 )
     ann = BD.annotation(node)
     form_type = BD.getformulation(ann)
