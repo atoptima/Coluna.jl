@@ -48,8 +48,17 @@ function run!(::Type{BendersCutGeneration}, form, node, strategy_rec, params)
 end
 
 function update_bendersep_slackvar_cost_for_ph1!(spform::Formulation)
+    #==It is not enough to set cost 1 to mu var, the nu var needs to take cost 0 for a pure phase 1
     for (varid, var) in filter(_active_BendSpSlackFirstStage_var_, getvars(spform))
         setcurcost!(spform, var, 1.0)
+    end
+==#
+    for (var_id, var) in filter(_active_ , getvars(spform))
+        if getduty(var) == BendSpSlackFirstStageVar
+            setcurcost!(sp_form, var, 1.0)
+        else
+            setcurcost!(sp_form, var, 0.0)
+        end
     end
     return
 end
