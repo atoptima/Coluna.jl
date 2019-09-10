@@ -182,7 +182,7 @@ function setvar!(f::Formulation,
     return addvar!(f, v)
 end
 
-function setprimaldwspsol!(master_form::Formulation,
+function setprimaldwspsol!(masterform::Formulation,
                          name::String,
                          sol::PrimalSolution{S},
                          duty::Type{<:AbstractVarDuty};
@@ -195,13 +195,13 @@ function setprimaldwspsol!(master_form::Formulation,
                          is_explicit::Bool = true,
                          moi_index::MoiVarIndex = MoiVarIndex()) where {S<:AbstractObjSense}
 
-    #master_form = sp_form.parent_formulation
-    mastcol_id = generatevarid(master_form)
+    #masterform = spform.parent_formulation
+    mastcol_id = generatevarid(masterform)
     mastcol_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
     mastcol = Variable(mastcol_id, name, duty; var_data = mastcol_data, moi_index = moi_index)
 
-    master_coef_matrix = getcoefmatrix(master_form)
-    primalspsol_matrix = getprimaldwspsolmatrix(master_form)
+    master_coef_matrix = getcoefmatrix(masterform)
+    primalspsol_matrix = getprimaldwspsolmatrix(masterform)
 
     for (var_id, var_val) in sol
         primalspsol_matrix[var_id, mastcol_id] = var_val
@@ -210,13 +210,13 @@ function setprimaldwspsol!(master_form::Formulation,
         end
     end
 
-    return addvar!(master_form, mastcol)
+    return addvar!(masterform, mastcol)
 end
 
 
 
-function setprimaldualbendspsol!(master_form::Formulation,
-                                 sp_form::Formulation,
+function setprimaldualbendspsol!(masterform::Formulation,
+                                 spform::Formulation,
                                  name::String,
                                  primal_sol::PrimalSolution{S},
                                  dual_sol::DualSolution{S},
@@ -227,21 +227,21 @@ function setprimaldualbendspsol!(master_form::Formulation,
                                  is_active::Bool = true,
                                  is_explicit::Bool = true,
                                  moi_index::MoiConstrIndex = MoiConstrIndex()) where {S<:AbstractObjSense}
-    bendcut_id = generateconstrid(master_form)
+    bendcut_id = generateconstrid(masterform)
     bendcut_data = ConstrData(getvalue(dual_sol), Core, sense, inc_val, is_active, is_explicit)
     bendcut = Constraint(bendcut_id, name, duty; constr_data = bendcut_data, moi_index = moi_index)
 
-    master_coef_matrix = getcoefmatrix(master_form)
-    sp_coef_matrix = getcoefmatrix(sp_form)
-    primalbendspsol_matrix = getprimalbendspsolmatrix(master_form)
-    dualbendspsol_matrix = getdualbendspsolmatrix(master_form)
+    master_coef_matrix = getcoefmatrix(masterform)
+    sp_coef_matrix = getcoefmatrix(spform)
+    primalbendspsol_matrix = getprimalbendspsolmatrix(masterform)
+    dualbendspsol_matrix = getdualbendspsolmatrix(masterform)
 
     for (constr_id, constr_val) in dual_sol
-        constr = getconstr(sp_form, constr_id)
+        constr = getconstr(spform, constr_id)
         if getduty(constr) <: AbstractBendSpMasterConstr
             dualbendspsol_matrix[constr_id, bendcut_id] = constr_val
             for (var_id, constr_coef) in sp_coef_matrix[constr_id,:]
-                var = getvar(sp_form, var_id)
+                var = getvar(spform, var_id)
                 if getduty(var) <: AbstractBendSpSlackMastVar
                     master_coef_matrix[bendcut_id, var_id] += constr_val * constr_coef
                 end
@@ -253,7 +253,7 @@ function setprimaldualbendspsol!(master_form::Formulation,
         primalbendspsol_matrix[var_id, bendcut_id] = var_val
     end
 
-    return addconstr!(master_form, bendcut)
+    return addconstr!(masterform, bendcut)
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."
@@ -427,15 +427,21 @@ function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
 end
 
 function resetsolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
-    val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
-    setvalue!(sol, val)
-    return val
+    if length(sol) > 0
+        val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
+        setvalue!(sol, val)
+        return val
+    end
+    return 0.0
 end
 
 function resetsolvalue(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
-    val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
-    setvalue!(sol, val)
-    return val
+    if length(sol) > 0
+        val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
+        setvalue!(sol, val)
+        return val
+    end
+    return 0.0   
 end
 
 function computereducedcost(form::Formulation, var_id::Id{Variable}, dual_sol::DualSolution{S})  where {S<:AbstractObjSense}

@@ -32,7 +32,7 @@ function PreprocessData(depth::Int, reformulation::Reformulation)
     )
 end
 
-struct PreprocessRecord <: AbstractAlgorithmRecord
+struct PreprocessRecord <: AbstractAlgorithmResult
     proven_infeasible::Bool
 end
 
@@ -73,29 +73,29 @@ function change_sp_bounds!(alg_data::PreprocessData)
     sps_with_modified_bounds = []
 
     for (col, col_val) in alg_data.local_partial_sol
-        sp_form = getsp(alg_data, col)
-        sp_form_id = getuid(sp_form)
-        if alg_data.cur_sp_bounds[sp_form_id][1] > 0
-            alg_data.cur_sp_bounds[sp_form_id] = (
-                max(alg.cur_sp_bounds[sp_form_id][1] - col_val, 0),
-                alg.cur_sp_bounds[sp_form_id][2]
+        spform = getsp(alg_data, col)
+        spform_id = getuid(spform)
+        if alg_data.cur_sp_bounds[spform_id][1] > 0
+            alg_data.cur_sp_bounds[spform_id] = (
+                max(alg.cur_sp_bounds[spform_id][1] - col_val, 0),
+                alg.cur_sp_bounds[spform_id][2]
             )
             conv_lb_constr = getconstr(
-                master, reformulation.dw_pricing_sp_lb[sp_form_id]
+                master, reformulation.dw_pricing_sp_lb[spform_id]
             )
-            setrhs!(master, conv_lb_constr, alg.cur_sp_bounds[sp_form_id][1])
+            setrhs!(master, conv_lb_constr, alg.cur_sp_bounds[spform_id][1])
         end
-        alg.cur_sp_bounds[sp_form_id] = (
-            alg.cur_sp_bounds[sp_form_id][1],
-            alg.cur_sp_bounds[sp_form_id][2] - col_val
+        alg.cur_sp_bounds[spform_id] = (
+            alg.cur_sp_bounds[spform_id][1],
+            alg.cur_sp_bounds[spform_id][2] - col_val
         )
         conv_ub_constr = getconstr(
-            master, reformulation.dw_pricing_sp_ub[sp_form_id]
+            master, reformulation.dw_pricing_sp_ub[spform_id]
         )
-        setrhs!(master, conv_ub_constr, alg.cur_sp_bounds[sp_form_id][2])
+        setrhs!(master, conv_ub_constr, alg.cur_sp_bounds[spform_id][2])
         @assert alg.cur_sp_bounds[sp_ref][2] >= 0
-        if !(sp_form in sps_with_modified_bounds)
-            push!(sps_with_modified_bounds, sp_form)
+        if !(spform in sps_with_modified_bounds)
+            push!(sps_with_modified_bounds, spform)
         end
     end
     return sps_with_modified_bounds
@@ -146,7 +146,7 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     for sp_prob in sps_with_modified_bounds
         (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[getuid(sp_prob)]
 
-        for (var_id, var) in filter(_active_pricing_sp_var_, getvars(sp_form))
+        for (var_id, var) in filter(_active_pricing_sp_var_, getvars(spform))
             var_val_in_local_sol = (
                 haskey(sp_vars_vals, var_id) ? sp_vars_vals[var_id] : 0.0
             )

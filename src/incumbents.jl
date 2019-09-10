@@ -44,7 +44,7 @@ get_lp_primal_sol(i::Incumbents) = i.lp_primal_sol
 
 # Getters bounds
 "Returns the best primal bound of the mixed-integer program."
-get_ip_primal_bound(i::Incumbents) = getbound(i.ip_primal_sol)
+get_ip_primal_bound(i::Incumbents) = i.ip_primal_bound
 
 "Returns the best dual bound of the mixed-integer program."
 get_ip_dual_bound(i::Incumbents) = i.ip_dual_bound
@@ -109,6 +109,15 @@ function set_ip_dual_bound!(inc::Incumbents{S},
     return false
 end
 
+function set_ip_primal_bound!(inc::Incumbents{S},
+                              new_bound::PrimalBound{S}) where {S}
+    if isbetter(new_bound, get_ip_primal_bound(inc))
+        inc.ip_primal_bound = new_bound
+        return true
+    end
+    return false
+end
+
 function set_lp_primal_bound!(inc::Incumbents{S},
                               new_bound::PrimalBound{S}) where {S}
     if isbetter(new_bound, get_lp_primal_bound(inc))
@@ -144,17 +153,23 @@ set_lp_dual_sol!(inc::Incumbents, ::Nothing) = false
 
 "Updates the fields of `dest` that are worse than those of `src`."
 function set!(dest::Incumbents{S}, src::Incumbents{S}) where {S}
+    set_ip_dual_bound!(dest, get_ip_dual_bound(src))
+    set_ip_primal_bound!(dest, get_ip_primal_bound(src))
+    set_lp_dual_bound!(dest, get_lp_dual_bound(src))
+    set_lp_primal_bound!(dest, get_lp_primal_bound(src))
     set_ip_primal_sol!(dest, get_ip_primal_sol(src))
     set_lp_primal_sol!(dest, get_lp_primal_sol(src))
-    set_ip_dual_bound!(dest, get_ip_dual_bound(src))
     set_lp_dual_sol!(dest, get_lp_dual_sol(src))
     return
 end
 
 function Base.show(io::IO, i::Incumbents{S}) where {S}
     println(io, "Incumbents{", S, "}:")
-    print(io, "ip_primal_sol : ", i.ip_primal_sol)
+    println(io, "ip_primal_bound : ", i.ip_primal_bound)
     println(io, "ip_dual_bound : ", i.ip_dual_bound)
+    println(io, "lp_primal_bound : ", i.lp_primal_bound)
+    println(io, "lp_dual_bound : ", i.lp_dual_bound)
+    print(io, "ip_primal_sol : ", i.ip_primal_sol)
     print(io, "lp_primal_sol : ", i.lp_primal_sol)
     print(io, "lp_dual_sol : ", i.lp_dual_sol)
 end

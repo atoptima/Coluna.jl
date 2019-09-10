@@ -1,11 +1,11 @@
 mutable struct StrategyRecord
-    cur_algorithm::Type{<:AbstractAlgorithm}
+    cur_algorithm::AbstractAlgorithm
     ext::Dict{Symbol, Any}
 end
 
-StrategyRecord() = StrategyRecord(StartNode, Dict{Symbol, Any}())
+StrategyRecord() = StrategyRecord(FakeAlgorithm(), Dict{Symbol, Any}())
 
-setalgorithm!(r::StrategyRecord, s::Type{<:AbstractAlgorithm}) = r.cur_algorithm = s
+setalgorithm!(r::StrategyRecord, algo::AbstractAlgorithm) = r.cur_algorithm = algo
 getalgorithm(r::StrategyRecord) = r.cur_algorithm
 
 """

@@ -58,7 +58,7 @@ function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
     # Prepare formulation before calling `apply!(::AbstractStrategy)`
     prepare!(reform, node)
     strategy_rec = StrategyRecord()
-    setalgorithm!(strategy_rec, StartNode) # ToClean
+    setalgorithm!(strategy_rec, FakeAlgorithm()) # ToClean
     apply!(conquer_strategy, reform, node, strategy_rec, params)
     apply!(divide_strategy, reform, node, strategy_rec, params)
     # Condition needed because if the last algorithm that was executed did a 

@@ -1,11 +1,21 @@
-"""
-    AbstractAlgorithmRecord
 
-Stores data after the end of an algorithm execution.
+"""
+    AbstractAlgorithmTmpRecord
+
+Stores intermediate computational recors .
 These data can be used to initialize another execution of the same algorithm or in 
 setting the transition to another algorithm.
 """
-abstract type AbstractAlgorithmRecord end
+abstract type AbstractAlgorithmTmpRecord end
+
+"""
+    AbstractAlgorithmResult
+
+Stores the computational results after the end of an algorithm execution.
+These data can be used to initialize another execution of the same algorithm or in 
+setting the transition to another algorithm.
+"""
+abstract type AbstractAlgorithmResult end
 
 """
     prepare!(AlgorithmType, formulation, node, strategy_record, parameters)
@@ -22,12 +32,12 @@ Runs the algorithm `AlgorithmType` on the `formulation` in a `node` with `parame
 function run! end
 
 # Fallbacks
-function prepare!(T::Type{<:AbstractAlgorithm}, formulation, node, strategy_rec, parameters)
+function prepare!(algo::AbstractAlgorithm, formulation, node, strategy_rec, parameters)
     error("prepare! method not implemented for algorithm $T.")
 end
 
-function run!(T::Type{<:AbstractAlgorithm}, formulation, node, strategy_rec, parameters)
-    error("run! method not implemented for algorithm $T.")
+function run!(algo::AbstractAlgorithm, formulation, node, strategy_rec, parameters)
+    error("run! method not implemented for algorithm $algo.")
 end
 
 """
@@ -36,25 +46,25 @@ end
 Applies the algorithm `AlgorithmType` on the `formulation` in a `node` with 
 `parameters`.
 """
-function apply!(A::Type{<:AbstractAlgorithm}, form, node, strategy_rec,
+function apply!(algo::AbstractAlgorithm, form, node, strategy_rec,
                 params)
     prepare!(form, node)
-    setalgorithm!(strategy_rec, A)
-    TO.@timeit _to string(A) begin
+    setalgorithm!(strategy_rec, algo)
+    TO.@timeit _to string(algo) begin
         TO.@timeit _to "prepare" begin
-            prepare!(A, form, node, strategy_rec, params)
+            prepare!(algo, form, node, strategy_rec, params)
         end
         TO.@timeit _to "run" begin
-            record = run!(A, form, node, strategy_rec, params)
+            record = run!(algo, form, node, strategy_rec, params)
         end
     end
-    set_algorithm_record!(node, A, record)
+    set_algorithm_result!(node, algo, record)
     return record
 end
 
 """
-    StartNode
+    FakeAlgorithm
 
-Fake algorithm that indicates the start of the node treatment.
+Fake algorithm that fills the field at the start of the node treatment.
 """
-struct StartNode <: AbstractAlgorithm end
+struct FakeAlgorithm <: AbstractAlgorithm end

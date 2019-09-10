@@ -1,7 +1,7 @@
 struct SimpleBnP <: AbstractConquerStrategy end
 
 function apply!(::Type{SimpleBnP}, reform, node, strategy_rec::StrategyRecord, params)
-    colgen_rec = apply!(ColumnGeneration, reform, node, strategy_rec, params)
+    colgen_rec = apply!(ColumnGeneration(), reform, node, strategy_rec, params)
     if colgen_rec.proven_infeasible
         node.status.proven_infeasible = true
         return
@@ -19,7 +19,7 @@ function apply!(::Type{BnPnPreprocess}, reform, node, strategy_rec::StrategyReco
        node.status.proven_infeasible = true
        return
     end
-    colgen_rec = apply!(ColumnGeneration, reform, node, strategy_rec, params)
+    colgen_rec = apply!(ColumnGeneration(), reform, node, strategy_rec, params)
     if colgen_rec.proven_infeasible
         node.status.proven_infeasible = true
         return

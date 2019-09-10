@@ -5,7 +5,7 @@ mutable struct GenerateChildrenNodeData
     reformulation::Reformulation # should handle reformulation & formulation
 end
 
-struct GenerateChildrenNodeRecord <: AbstractAlgorithmRecord
+struct GenerateChildrenNodeRecord <: AbstractAlgorithmResult
     nodes::Vector{AbstractNode} # Node is not defined when this file is included
 end
 
