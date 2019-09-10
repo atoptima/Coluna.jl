@@ -2,6 +2,8 @@ Base.@kwdef struct BendersCutGeneration <: AbstractAlgorithm
     option_use_reduced_cost::Bool = false
     option_increase_cost_in_hybrid_phase::Bool = false
     feasibility_tol::Float64 = 1e-5
+    optimality_tol::Float64 = 1e-5
+    max_nb_iterations::Int = 100
 end
 
 #BendersCutGeneration() = BendersCutGeneration(false)
@@ -19,6 +21,13 @@ end
 function allphasesapplied(algdata::BendersCutGenTmpRecord)
     for (key, applied) in algdata.spform_phase_applied
         !applied && return false
+    end
+    return true
+end
+
+function all_sp_in_phase2(algdata::BendersCutGenTmpRecord)
+    for (key, phase) in algdata.spform_phase
+        phase != PurePhase2 && return false
     end
     return true
 end
@@ -66,7 +75,7 @@ function update_bendersep_slackvar_cost_for_ph2!(spform::Formulation)
     for (varid, var) in filter(_active_ , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 0.0)
-            setcurub!(spform, var, 0.0)
+            setcurub!(var, 0.0)
         else
             setcurcost!(spform, var, getperenecost(var))
         end
@@ -88,20 +97,7 @@ function update_bendersep_problem!(
 ) where {S}
     masterform = spform.parent_formulation
 
-    # Update objective function
-    spform_uid = getuid(spform)
-    phase_applied = algdata.spform_phase_applied[spform_uid]
-    if !phase_applied
-        phase_to_apply = algdata.spform_phase[spform_uid]
-        if phase_to_apply == PurePhase1
-            update_bendersep_slackvar_cost_for_ph1!(spform)
-            
-        elseif phase_to_apply == HybridPhase
-            update_bendersep_slackvar_cost_for_hyb_ph!(spform)
-        end
-        algdata.spform_phase_applied[spform_uid] = true
-    end
-    
+     
     # Update rhs of technological constraints
     for (constrid, constr) in filter(_active_BendSpMaster_constr_ , getconstrs(spform))
         setcurrhs!(spform, constr, computereducedrhs(spform, constrid, master_primal_sol))
@@ -127,6 +123,30 @@ function update_bendersep_problem!(
             setcurcost!(spform, var, rc)
         end
     end
+
+    return false
+
+end
+
+function update_bendersep_phase!(
+    algo::BendersCutGeneration, algdata::BendersCutGenTmpRecord, spform::Formulation
+) 
+
+    # Update objective function
+    spform_uid = getuid(spform)
+    phase_applied = algdata.spform_phase_applied[spform_uid]
+    if !phase_applied
+        phase_to_apply = algdata.spform_phase[spform_uid]
+        if phase_to_apply == HybridPhase
+            update_bendersep_slackvar_cost_for_hyb_ph!(spform)
+        elseif phase_to_apply == PurePhase1
+            update_bendersep_slackvar_cost_for_ph1!(spform)
+        elseif phase_to_apply == PurePhase2
+            update_bendersep_slackvar_cost_for_ph2!(spform)
+        end
+        algdata.spform_phase_applied[spform_uid] = true
+    end
+    
 
     return false
 
@@ -202,7 +222,7 @@ end
 function solve_sp_to_gencut!(
     algo::BendersCutGeneration, algdata::BendersCutGenTmpRecord, masterform::Formulation, 
     spform::Formulation, master_primal_sol::PrimalSolution{S},
-    master_dual_sol::DualSolution{S}
+    master_dual_sol::DualSolution{S}, phase::FormulationPhase
 ) where {S}
 
     flag_is_sp_infeasible = -1
@@ -219,7 +239,7 @@ function solve_sp_to_gencut!(
     bendsp_lagrangian_bound_contrib =  0.0
     
     # Reset to hybrid separation
-    if algdata.spform_phase[spform_uid] == PurePhase1
+    if algdata.spform_phase[spform_uid] != HybridPhase
         algdata.spform_phase_applied[spform_uid] = false
         algdata.spform_phase[spform_uid] = HybridPhase
     end
@@ -227,16 +247,18 @@ function solve_sp_to_gencut!(
     # Compute target
     update_bendersep_target!(spform)
 
-    while true
-        # Reset var bounds, var cost, sp minCost
-        if update_bendersep_problem!(algo, algdata, spform, master_primal_sol, master_dual_sol) # Never returns true
-            #     This code is never executed because update_bendersep_prob always returns false
-            #     @logmsg LogLevel(-3) "bendersep prob is infeasible"
-            #     # In case one of the subproblem is infeasible, the master is infeasible
-            #     compute_bendersep_primal_bound_contrib(alg, bendersep_prob)
-            #     return flag_is_sp_infeasible
-        end
+    # Reset var bounds, constr rhs
+    if update_bendersep_problem!(algo, algdata, spform, master_primal_sol, master_dual_sol) # Never returns true
+        #     This code is never executed because update_bendersep_prob always returns false
+        #     @logmsg LogLevel(-3) "bendersep prob is infeasible"
+        #     # In case one of the subproblem is infeasible, the master is infeasible
+        #     compute_bendersep_primal_bound_contrib(alg, bendersep_prob)
+        #     return flag_is_sp_infeasible
+    end
 
+    while true
+
+        update_bendersep_phase!(algo, algdata, spform)
                 # if alg.bendcutgen_stabilization != nothing && true #= TODO add conds =#
         #     # switch off the reduced cost estimation when stabilization is applied
         # end
@@ -277,8 +299,13 @@ function solve_sp_to_gencut!(
                 algdata.spform_phase_applied[spform_uid] = false
                 continue
             else
-                # sepration algo has converge as far as this subproblem is concerned
-                break
+                if algdata.spform_phase[spform_uid] == PurePhase2
+                    break
+                end
+                # else one more phase to try
+                algdata.spform_phase[spform_uid] = PurePhase2
+                algdata.spform_phase_applied[spform_uid] = false
+                continue
             end
             
         else # a cut can be generated since there is a violation
@@ -329,7 +356,7 @@ end
 
 function solve_sps_to_gencuts!(
     algo::BendersCutGeneration, algdata::BendersCutGenTmpRecord, reform::Reformulation, 
-    primalsol::PrimalSolution{S}, dualsol::DualSolution{S}
+    primalsol::PrimalSolution{S}, dualsol::DualSolution{S}, phase::FormulationPhase
 ) where {S}
     nb_new_cuts = 0
     spsols_relaxed = false
@@ -339,7 +366,7 @@ function solve_sps_to_gencuts!(
     sps = get_benders_sep_sp(reform)
     for spform in sps
         gen_status, spsol_relaxed, bendsp_primal_bound_contrib, bendsp_lagrangian_bound_contrib =
-            solve_sp_to_gencut!(algo, algdata, masterform, spform, primalsol, dualsol)
+            solve_sp_to_gencut!(algo, algdata, masterform, spform, primalsol, dualsol, phase)
 
         spsols_relaxed |= spsol_relaxed
         total_pb_correction += bendsp_primal_bound_contrib
@@ -387,8 +414,8 @@ end
 
 function generatecuts!(
     algo::BendersCutGeneration, algdata::BendersCutGenTmpRecord, reform::Reformulation,
-    master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S}
-)::Tuple{Int, Bool} where {S}
+    master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S}, phase::FormulationPhase
+)::Tuple{Int, Bool, PrimalBound{S}} where {S}
     masterform = reform.master
     
     masterpureconstr = constr -> getduty(constr) == MasterPureConstr
@@ -397,7 +424,7 @@ function generatecuts!(
     ## TODO stabilization : move the following code inside a loop
     nb_new_cuts, spsols_relaxed, pb_correction, sp_pb_contrib =
         solve_sps_to_gencuts!(
-            algo, algdata, reform, master_primal_sol, filtered_dual_sol
+            algo, algdata, reform, master_primal_sol, filtered_dual_sol, phase
         )
     update_lagrangian_pb!(algdata, master_dual_sol, sp_pb_contrib)
     if nb_new_cuts < 0
@@ -405,9 +432,9 @@ function generatecuts!(
         return (-1, false)
     end
     # end TODO
-
-    setvalue!(master_primal_sol, getvalue(master_primal_sol) + pb_correction)
-    return nb_new_cuts, spsols_relaxed
+    primal_bound = PrimalBound{S}(getvalue(master_primal_sol) + pb_correction)
+    #setvalue!(master_primal_sol, getvalue(master_primal_sol) + pb_correction)
+    return nb_new_cuts, spsols_relaxed, primal_bound
 end
 
 function bend_cutting_plane_main_loop(
@@ -422,8 +449,12 @@ function bend_cutting_plane_main_loop(
         algdata.spform_phase[spform_uid] = HybridPhase
         algdata.spform_phase_applied[spform_uid] = true
     end
+ 
 
     while true
+        nb_new_cuts = 0
+        cur_gap = 0.0
+        
         optresult, master_time = solve_relaxed_master!(masterform)
 
         if getfeasibilitystatus(optresult) == INFEASIBLE
@@ -445,65 +476,79 @@ function bend_cutting_plane_main_loop(
 
         set_lp_dual_sol!(algdata.incumbents, master_dual_sol)
         dual_bound = get_lp_dual_bound(algdata.incumbents)
+        @show dual_bound
         
-        # TODO: cleanup restricted master columns        
+                
 
-        nb_bc_iterations += 1
+        phase = HybridPhase
 
-        # generate new cuts by solving the subproblems
-        sp_time = @elapsed begin
-            nb_new_cuts, one_spsol_is_a_relaxed_sol =
-                generatecuts!(
-                    algo, algdata, reform, master_primal_sol, master_dual_sol
-                )
-        end
-        @show nb_new_cuts, one_spsol_is_a_relaxed_sol
+        while true # loop on phases
+            
+            nb_bc_iterations += 1
 
-        if nb_new_cuts < 0
-            @error "infeasible subproblem."
-            return BendersCutGenerationRecord(algdata.incumbents, true)
-        end
+            # generate new cuts by solving the subproblems
+            sp_time = @elapsed begin
+                nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound  =
+                    generatecuts!(
+                        algo, algdata, reform, master_primal_sol, master_dual_sol, phase
+                    )
+            end
+            @show nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound
 
-        # TODO: update bendcutgen stabilization
+            if nb_new_cuts < 0
+                @error "infeasible subproblem."
+                return BendersCutGenerationRecord(algdata.incumbents, true)
+            end
 
-        if  !one_spsol_is_a_relaxed_sol
+            # TODO: update bendcutgen stabilization
             set_lp_primal_sol!(algdata.incumbents, master_primal_sol)
-            primal_bound = get_lp_primal_bound(algdata.incumbents)
-            #@show primal_bound
+            set_lp_primal_bound!(algdata.incumbents, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
 
-            # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
-            sol_integer = true
-            for (var, val) in filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
-                if !isinteger(val)
-                    sol_integer = false
-                    break
+            if !one_spsol_is_a_relaxed_sol
+                
+                # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
+                sol_integer = true
+                for (var, val) in filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
+                    if !isinteger(val)
+                        sol_integer = false
+                        break
+                    end
+                end
+                if sol_integer
+                    set_ip_primal_sol!(algdata.incumbents, master_primal_sol)
+                    set_ip_primal_bound!(algdata.incumbents, valid_primal_bound)
                 end
             end
-            if sol_integer
-                set_ip_primal_sol!(algdata.incumbents, master_primal_sol)
+
+            print_intermediate_statistics(
+                algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
+            )
+            if (nb_new_cuts > 0)
+                # cuts have been found
+                break
+            end
+            
+            if all_sp_in_phase2(algdata) 
+               # all sp is in phase 2; no more phases
+                break
             end
         end
-
-        print_intermediate_statistics(
-            algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
-        )
-
-        if nb_new_cuts == 0 && allphasesapplied(algdata)
+        
+ 
+        if nb_new_cuts == 0 
             #@show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
             algdata.has_converged = true
             break
         end
         
-        primal_bound = get_lp_primal_bound(algdata.incumbents)
-        cur_gap = gap(primal_bound, dual_bound)
-        if cur_gap < 0.00001
+        if cur_gap < algo.optimality_tol
             println("Should stop because pb = $primal_bound & db = $dual_bound")
             # TODO : problem with the gap
-            #break
+            break
         end
         
-        if nb_bc_iterations >= 100 #algdata.max_nb_bc_iterations
+        if nb_bc_iterations >= algo.max_nb_iterations
             @warn "Maximum number of cut generation iteration is reached."
             algdata.is_feasible = false
             break
