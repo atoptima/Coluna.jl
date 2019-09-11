@@ -79,6 +79,7 @@ function update_bendersep_slackvar_cost_for_ph2!(spform::Formulation)
         else
             setcurcost!(spform, var, getperenecost(var))
         end
+        @show "phase2" var
     end
     return
 end
@@ -294,7 +295,12 @@ function solve_sp_to_gencut!(
         
         if - algo.feasibility_tol <= getprimalbound(optresult) <= algo.feasibility_tol
         # no cuts are generated since there is no violation 
-            if spsol_relaxed               
+            if spsol_relaxed
+                if algdata.spform_phase[spform_uid] == PurePhase2
+                    @show "ERROR"
+                    break
+                end
+                
                 algdata.spform_phase[spform_uid] = PurePhase1
                 algdata.spform_phase_applied[spform_uid] = false
                 continue
