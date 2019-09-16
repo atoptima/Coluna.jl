@@ -44,12 +44,14 @@ include("strategies/strategy.jl")
 include("parameters.jl")
 include("counters.jl")
 
-include("containers/members.jl")
-
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
 include("varconstr.jl")
+
+include("containers/elements.jl")
+include("containers/members.jl")
+
 include("manager.jl")
 include("filters.jl")
 include("solsandbounds.jl")

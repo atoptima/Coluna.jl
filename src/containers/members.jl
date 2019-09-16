@@ -11,29 +11,18 @@ end
 Construct a `MembersVector` with indices of type `I`, elements of type `K`, and
 records of type `T`.
 
-The `MembersVector` maps each index to a tuple of element and record. This 
-structure is used like a `Container{I,T}`. Thus, accessing to the container at 
-a given index returns the record associated to the index. If an index has no 
-record, `MembersVector` returns `zeros(T)`.
-
-Elements allow functions to do operations on the records according to them.
-Overloaded `Base` functions `reduce` and `filter` are provided to process on 
-records according to elements.
-
-# Example
-We want to associate variables and coefficients to store a constraint. 
-For this, we create a `MembersVector`
-
-```julia-repl
-julia> vars_in_formulation = Dict{VarId, Variable}( ... )
-julia> MembersVector{Float64}(vars_in_formulation)
+The `MembersVector` maps each index to a tuple of element and record. The  
+use should use this structure like a `Dict{I,T}`. If the user looks for an index 
+that that has an element associated but no record, `MembersVector` returns 
+`zeros(T)`.
 ```
-
-where `vars_in_formulation` is a dictionnary that contains all the existing
-variables in the formulation.
 """
 function MembersVector{T}(elems::Dict{I,K}) where {I,K,T} 
-    MembersVector{I,K,T}(elems, Dict{I,T}())
+    return MembersVector{I,K,T}(elems, Dict{I,T}())
+end
+
+function MembersVector{T}(elems::ElemDict{VC}) where {VC,T}
+    return MembersVector{T}(elems.elements)
 end
 
 getrecords(vec::MembersVector) = vec.records
@@ -159,11 +148,18 @@ of type `K`.
 
 `MembersMatrix` supports julia set and get operations.
 """
-function MembersMatrix{T}(col_elems::Dict{I,K}, row_elems::Dict{J,L}
-                      ) where {I,K,J,L,T}
+function MembersMatrix{T}(
+    col_elems::Dict{I,K}, row_elems::Dict{J,L}
+) where {I,K,J,L,T}
     cols = MembersVector{MembersVector{J,L,T}}(col_elems)
     rows = MembersVector{MembersVector{I,K,T}}(row_elems)
     MembersMatrix{I,K,J,L,T}(cols, rows)
+end
+
+function MembersMatrix{T}(
+    col_elems::ElemDict{VC1}, row_elems::ElemDict{VC2}
+) where {VC1,VC2,T}
+    return MembersMatrix{T}(col_elems.elements, row_elems.elements)
 end
 
 function _getrecordvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}, create = true) where {I,K,J,L,T}

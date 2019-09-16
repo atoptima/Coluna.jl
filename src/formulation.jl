@@ -271,7 +271,7 @@ end
 deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 
 function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(id_v -> get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))
+    vars = filter(v -> get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
     for (id, var) in vars
         deactivate!(f, var)
     end
@@ -279,7 +279,7 @@ function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
 end
 
 function deactivate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(id_c -> get_cur_is_active(id_c[2]) && getduty(id_c[2]) <: Duty, getconstrs(f))
+    constrs = filter(c -> get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
     for (id, constr) in constrs
         deactivate!(f, constr)
     end
@@ -295,14 +295,14 @@ end
 activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
 
 function activate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(id_v -> !get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))
+    vars = filter(v -> !get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
     for (id, var) in vars
         activate!(f, var)
     end
 end
 
 function activate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(id_c -> !get_cur_is_active(id_c[2]) && getduty(id_c[2]) <: Duty, getconstrs(f))
+    constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
     for (id, constr) in constrs
         activate!(f, constr)
     end

@@ -37,7 +37,7 @@ function should_do_ph_1(cg_rec::ColumnGenerationRecord)
 end
 
 function set_ph_one(master::Formulation)
-    for (id, v) in filter(x->(!(getduty(x[2]) isa ArtificialDuty)), getvars(master))
+    for (id, v) in filter(x->(!(getduty(x) isa ArtificialDuty)), getvars(master))
         setcurcost!(master, v, 0.0)
     end
     return

@@ -7,7 +7,7 @@ set_glob_art_var(f::Formulation, is_pos::Bool) = setvar!(
 function create_local_art_vars!(masterform::Formulation)
     matrix = getcoefmatrix(masterform)
     constrs = filter(
-        v -> getduty(v[2]) == MasterConvexityConstr, getconstrs(masterform)
+        v -> getduty(v) == MasterConvexityConstr, getconstrs(masterform)
     )
     for (constr_id, constr) in getconstrs(masterform)
         var = setvar!(
@@ -130,9 +130,9 @@ function create_side_vars_constrs!(
     for spform in masterform.parent_formulation.dw_pricing_subprs
         spuid = getuid(spform)
         ann = get(annotations, spform)
-        setupvars = filter(var -> getduty(var[2]) == DwSpSetupVar, getvars(spform))
+        setupvars = filter(var -> getduty(var) == DwSpSetupVar, getvars(spform))
         @assert length(setupvars) == 1
-        setupvar = collect(values(setupvars))[1] # issue 106
+        setupvar = collect(values(setupvars))[1]
         clonevar!(masterform, setupvar, MasterRepPricingSetupVar, is_explicit = false)
         # create convexity constraint
         lb_mult = Float64(BD.getminmultiplicity(ann))
@@ -268,7 +268,7 @@ function create_side_vars_constrs!(
     
     for spform in masterform.parent_formulation.benders_sep_subprs
         nu_var = collect(values(filter(
-            var -> getduty(var[2]) == BendSpSlackSecondStageCostVar, 
+            var -> getduty(var) == BendSpSlackSecondStageCostVar, 
             getvars(spform)
         )))[1]
         
@@ -344,7 +344,7 @@ function create_side_vars_constrs!(
     annotations::Annotations
 )
     sp_has_second_stage_cost = false
-    sp_vars = filter(id_var -> getduty(id_var[2]) == BendSpSepVar, getvars(spform))
+    sp_vars = filter(var -> getduty(var) == BendSpSepVar, getvars(spform))
     global_costprofit_ub = 0.0
     global_costprofit_lb = 0.0
     for (var_id, var) in sp_vars
