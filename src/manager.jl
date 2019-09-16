@@ -1,6 +1,5 @@
-const VarDict = Dict{VarId,Variable}
-const ConstrDict = Dict{ConstrId,Constraint}
-const VarConstrDict = Union{VarDict,ConstrDict}
+const VarDict = ElemDict{Variable}
+const ConstrDict = ElemDict{Constraint}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const VarVarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
@@ -65,7 +64,7 @@ getprimaldwspsolmatrix(m::FormulationManager) = m.primal_dwsp_sols
 getdualbendspsolmatrix(m::FormulationManager) = m.dual_bendsp_sols
 getprimalbendspsolmatrix(m::FormulationManager) = m.primal_bendsp_sols
 getexpressionmatrix(m::FormulationManager) = m.expressions
-	
+
 function Base.show(io::IO, m::FormulationManager)
     println(io, "FormulationManager :")
     println(io, "> variables : ")
