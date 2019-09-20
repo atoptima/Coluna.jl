@@ -112,6 +112,10 @@ function Base.filter(f::Function, vec::MembersVector)
     MembersVector(vec.elements, Base.filter(e -> f(vec.elements[e[1]]), vec.records))
 end
 
+function Base.Iterators.filter(f::Function, vec::MembersVector)
+    return Base.Iterators.filter(e -> f(vec.elements[e[1]]), vec.records)
+end
+
 function Base.keys(vec::MembersVector)
     Base.keys(vec.records)
 end

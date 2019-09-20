@@ -37,7 +37,7 @@ function should_do_ph_1(cg_rec::ColumnGenerationRecord)
 end
 
 function set_ph_one(master::Formulation)
-    for (id, v) in filter(x->(!(getduty(x) isa ArtificialDuty)), getvars(master))
+    for (id, v) in Iterators.filter(x->(!(getduty(x) isa ArtificialDuty)), getvars(master))
         setcurcost!(master, v, 0.0)
     end
     return
@@ -69,7 +69,7 @@ function update_pricing_problem!(sp_form::Formulation, dual_sol::DualSolution)
 
     master_form = sp_form.parent_formulation
 
-    for (var_id, var) in filter(_active_pricing_sp_var_ , getvars(sp_form))
+    for (var_id, var) in Iterators.filter(_active_pricing_sp_var_ , getvars(sp_form))
         setcurcost!(sp_form, var, computereducedcost(master_form, var_id, dual_sol))
     end
 

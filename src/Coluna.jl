@@ -22,7 +22,6 @@ global const TO = TimerOutputs
 import Base.isempty
 import Base.hash
 import Base.isequal
-import Base.filter
 import Base.length
 import Base.iterate
 import Base.getindex
@@ -36,6 +35,8 @@ import Base.promote_rule
 import Base.convert
 import Base.isinteger
 import Base.push!
+import Base.filter
+import Base.Iterators.filter
 
 include("types.jl")
 include("algorithms/algorithm.jl")
