@@ -237,10 +237,10 @@ function solve_sp_to_gencut!(
     spsol_relaxed = false
     bendsp_lagrangian_bound_contrib =  0.0
     
-    # Reset to hybrid separation
-    if algdata.spform_phase[spform_uid] != HybridPhase
+    # Reset to  separation phase
+    if algdata.spform_phase[spform_uid] != phase
         algdata.spform_phase_applied[spform_uid] = false
-        algdata.spform_phase[spform_uid] = HybridPhase
+        algdata.spform_phase[spform_uid] = phase
     end
 
     # Compute target
@@ -262,6 +262,8 @@ function solve_sp_to_gencut!(
         #     # switch off the reduced cost estimation when stabilization is applied
         # end
 
+        @show algdata.spform_phase[spform_uid]
+        
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing bendersep prob"
         TO.@timeit _to "Bender Sep SubProblem" begin
@@ -295,32 +297,36 @@ function solve_sp_to_gencut!(
         # no cuts are generated since there is no violation 
             if spsol_relaxed
                 if algdata.spform_phase[spform_uid] == PurePhase2
-                    @show "ERROR"
+                    @show "ERROR : in PurePhase2, art var were not supposed to be in sp forlumation "
                     break
                 end
-                
+                if algdata.spform_phase[spform_uid] == PurePhase1
+                    @show "ERROR : in PurePhase1, if art var were in sol, the objective should be strictly positive "
+                    break
+                end
+                # algdata.spform_phase[spform_uid] == HybridPhase
                 algdata.spform_phase[spform_uid] = PurePhase1
                 algdata.spform_phase_applied[spform_uid] = false
                 continue
             else
-                if algdata.spform_phase[spform_uid] == PurePhase2
+                if algdata.spform_phase[spform_uid] != PurePhase1
+                    # no more cut to generate
                     break
-                end
-                # else one more phase to try
-                algdata.spform_phase[spform_uid] = PurePhase2
-                algdata.spform_phase_applied[spform_uid] = false
-                continue
+                else #  one more phase to try
+                    algdata.spform_phase[spform_uid] = PurePhase2
+                    algdata.spform_phase_applied[spform_uid] = false
+                    continue
+                end             
             end
             
         else # a cut can be generated since there is a violation
+            insertion_status = insert_cuts_in_master!(algdata, masterform, spform, optresult)
             if spsol_relaxed &&  algo.option_increase_cost_in_hybrid_phase
                 #check algdata.spform_phase[spform_uid] == HybridPhase
                 # Todo increase cost
-                continue
-            else
-                insertion_status = insert_cuts_in_master!(algdata, masterform, spform, optresult)
-                break
+                #continue
             end
+            break
         end
     end
     return insertion_status, spsol_relaxed, bendsp_primal_bound_contrib, bendsp_lagrangian_bound_contrib
@@ -455,7 +461,7 @@ function bend_cutting_plane_main_loop(
     end
  
 
-    while true
+    while true # loop on master solution
         nb_new_cuts = 0
         cur_gap = 0.0
         
@@ -486,7 +492,7 @@ function bend_cutting_plane_main_loop(
 
         phase = HybridPhase
 
-        while true # loop on phases
+        while true # loop on separation phases
             
             nb_bc_iterations += 1
 
@@ -509,8 +515,7 @@ function bend_cutting_plane_main_loop(
             set_lp_primal_bound!(algdata.incumbents, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
 
-            if !one_spsol_is_a_relaxed_sol
-                
+            if !one_spsol_is_a_relaxed_sol                
                 # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
                 sol_integer = true
                 for (var, val) in filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
@@ -521,43 +526,59 @@ function bend_cutting_plane_main_loop(
                 end
                 if sol_integer
                     set_ip_primal_sol!(algdata.incumbents, master_primal_sol)
-                    set_ip_primal_bound!(algdata.incumbents, valid_primal_bound)
+                    set_ip_primal_bound!(algdata.incumbents, primal_bound)
                 end
             end
 
             print_intermediate_statistics(
                 algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
             )
-            if (nb_new_cuts > 0)
-                # cuts have been found
-                break
+            
+            if nb_new_cuts > 0
+                @show " cuts have been found"
+                break # loop on separation phases
+            else # nb_new_cuts == 0
+                if phase == HybridPhase
+                    phase = PurePhase1
+                    continue
+                else
+                    break # loop on separation phases
+                end               
             end
             
-            if all_sp_in_phase2(algdata) 
-               # all sp is in phase 2; no more phases
-                break
+            
+            
+            if cur_gap < algo.optimality_tol
+                println("Should stop because pb = $primal_bound & db = $dual_bound")
+                # TODO : problem with the gap
+                 break # loop on separation phases
             end
-        end
-        
- 
-        if nb_new_cuts == 0 
-            #@show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
-            algdata.has_converged = true
-            break
-        end
+            
+            if nb_bc_iterations >= algo.max_nb_iterations
+                @warn "Maximum number of cut generation iteration is reached."
+                algdata.is_feasible = false
+                break # loop on separation phases
+            end
+            
+        end # loop on separation phases
         
         if cur_gap < algo.optimality_tol
-            println("Should stop because pb = $primal_bound & db = $dual_bound")
-            # TODO : problem with the gap
-            break
+            break # loop on master lp solution 
         end
         
         if nb_bc_iterations >= algo.max_nb_iterations
             @warn "Maximum number of cut generation iteration is reached."
             algdata.is_feasible = false
-            break
+            break # loop on master lp solution 
         end
-    end
+        
+        if nb_new_cuts == 0 
+            @show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
+            algdata.has_converged = true
+            break # loop on master lp solution          
+        end
+        
+    end  # loop on master lp solution 
 
     return BendersCutGenerationRecord(algdata.incumbents, false)
 end

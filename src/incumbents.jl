@@ -102,25 +102,34 @@ the current one according to the objective sense.
 """
 function set_ip_dual_bound!(inc::Incumbents{S},
                             new_bound::DualBound{S}) where {S}
-    if isbetter(new_bound, get_ip_dual_bound(inc))
+    #if isbetter(new_bound, get_ip_dual_bound(inc))
         inc.ip_dual_bound = new_bound
-        return true
-    end
+       # return true
+    #end
     return false
 end
 
 function set_ip_primal_bound!(inc::Incumbents{S},
                               new_bound::PrimalBound{S}) where {S}
-    if isbetter(new_bound, get_ip_primal_bound(inc))
+    #if isbetter(new_bound, get_ip_primal_bound(inc))
         inc.ip_primal_bound = new_bound
-        return true
-    end
+    #    return true
+    #end
     return false
 end
 
 function set_lp_primal_bound!(inc::Incumbents{S},
                               new_bound::PrimalBound{S}) where {S}
-    if isbetter(new_bound, get_lp_primal_bound(inc))
+   # if isbetter(new_bound, get_lp_primal_bound(inc))
+        inc.lp_primal_bound = new_bound
+   #     return true
+   # end
+    return false
+end
+
+function update_lp_primal_bound!(inc::Incumbents{S},
+                              new_bound::PrimalBound{S}) where {S}
+   if isbetter(new_bound, get_lp_primal_bound(inc))
         inc.lp_primal_bound = new_bound
         return true
     end
@@ -129,10 +138,10 @@ end
 
 function set_lp_dual_bound!(inc::Incumbents{S},
                             new_bound::DualBound{S}) where {S}
-    if isbetter(new_bound, get_lp_dual_bound(inc))
+    #if isbetter(new_bound, get_lp_dual_bound(inc))
         inc.lp_dual_bound = new_bound
-        return true
-    end
+   #     return true
+   # end
     return false
 end
 
