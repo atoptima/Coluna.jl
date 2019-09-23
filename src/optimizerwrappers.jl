@@ -126,7 +126,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # First check if should update members of just-added vars
     matrix = getcoefmatrix(f)
     for id in buffer.var_buffer.added
-        for (constr_id, coeff) in filter(_active_explicit_, matrix[:,id])
+        for (constr_id, coeff) in Iterators.filter(_active_explicit_, matrix[:,id])
             constr_id in buffer.constr_buffer.added && continue
             c = getconstr(f, constr_id)
             update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)

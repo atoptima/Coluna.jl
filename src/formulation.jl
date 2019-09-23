@@ -344,7 +344,7 @@ end
 
 function enforce_integrality!(f::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(f))
-    for (v_id, v) in filter(_active_explicit_, getvars(f))
+    for (v_id, v) in Iterators.filter(_active_explicit_, getvars(f))
         getcurkind(v) == Integ && continue
         getcurkind(v) == Binary && continue
         if (getduty(v) == MasterCol || getperenekind(v) != Continuous)
@@ -357,7 +357,7 @@ end
 
 function relax_integrality!(f::Formulation)
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(f))
-    for (v_id, v) in filter(_active_explicit_, getvars(f))
+    for (v_id, v) in Iterators.filter(_active_explicit_, getvars(f))
         getcurkind(v) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
         setkind!(f, v, Continuous)

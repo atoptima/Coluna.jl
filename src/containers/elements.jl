@@ -16,3 +16,7 @@ lastindex(d::ElemDict) = lastindex(d.elements)
 function Base.filter(f::Function, elems::ElemDict{VC}) where {VC}
     return ElemDict{VC}(filter(e -> f(e[2]), elems.elements))
 end
+
+function Base.Iterators.filter(f::Function, elems::ElemDict{VC}) where {VC}
+    return Base.Iterators.filter(e -> f(e[2]), elems.elements)
+end

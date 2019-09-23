@@ -48,7 +48,7 @@ function run!(::Type{BendersCutGeneration}, form, node, strategy_rec, params)
 end
 
 function update_bendersep_slackvar_cost_for_ph1!(spform::Formulation)
-    for (varid, var) in filter(_active_ , getvars(spform))
+    for (varid, var) in Iterators.filter(_active_ , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 1.0)
         else
@@ -61,7 +61,7 @@ end
 update_bendersep_slackvar_cost_for_ph2!(spform::Formulation) = return
 
 function update_bendersep_slackvar_cost_for_hyb_ph!(spform::Formulation)
-    for (varid, var) in filter(_active_, getvars(spform))
+    for (varid, var) in Iterators.filter(_active_, getvars(spform))
         setcurcost!(spform, var, getperenecost(var))
     end
     return
@@ -86,13 +86,13 @@ function update_bendersep_problem!(
     end
     
     # Update rhs of technological constraints
-    for (constrid, constr) in filter(_active_BendSpMaster_constr_ , getconstrs(spform))
+    for (constrid, constr) in Iterators.filter(_active_BendSpMaster_constr_ , getconstrs(spform))
         setcurrhs!(spform, constr, computereducedrhs(spform, constrid, master_primal_sol))
     end
     
     # Update bounds on slack var "BendSpSlackFirstStageVar"
     cursol = getsol(master_primal_sol)
-    for (varid, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
+    for (varid, var) in Iterators.filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
         if haskey(cursol, varid)
             #setcurlb!(var, getperenelb(var) - cur_sol[var_id])
             setcurub!(var, getpereneub(var) - cursol[varid])
@@ -103,7 +103,7 @@ function update_bendersep_problem!(
     #option_use_reduced_cost = false
 
     # if option_use_reduced_cost
-    #     for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(sp_form))
+    #     for (var_id, var) in Iterators.filter(_active_BendSpSlackFirstStage_var_ , getvars(sp_form))
     #         cost = getcurcost(var)
     #         #@show getname(var) cost
     #         rc = computereducedcost(master_form, var_id, master_dual_sol)
@@ -237,7 +237,7 @@ function solve_sp_to_gencut!(
                 algdata.spform_phase_applied[spform_uid] = false
                 continue
             else
-                for (var, value) in filter(var -> getduty(var) <: BendSpSlackFirstStageVar, getsol(primalsol))
+                for (var, value) in Iterators.filter(var -> getduty(var) <: BendSpSlackFirstStageVar, getsol(primalsol))
                     if S == MinSense
                         primal_bound_correction += value
                     else
@@ -408,7 +408,7 @@ function bend_cutting_plane_main_loop(
 
             # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
             sol_integer = true
-            for (var, val) in filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
+            for (var, val) in Iterators.filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
                 if !isinteger(val)
                     sol_integer = false
                     break
