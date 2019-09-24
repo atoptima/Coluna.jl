@@ -472,6 +472,7 @@ function bend_cutting_plane_main_loop(
     masterform = getmaster(reform)
     one_spsol_is_a_relaxed_sol = false
     master_primal_sol = PrimalSolution{getobjsense(masterform)}()
+    primal_bound = PrimalBound{getobjsense(masterform)}()
     
     for spform in get_benders_sep_sp(reform)
         spform_uid = getuid(spform) 
@@ -505,6 +506,8 @@ function bend_cutting_plane_main_loop(
 
         set_lp_dual_sol!(algdata.incumbents, master_dual_sol)
         dual_bound = get_lp_dual_bound(algdata.incumbents)
+        update_lp_dual_bound!(algdata.incumbents, dual_bound)
+        update_ip_dual_bound!(algdata.incumbents, dual_bound)
         @show dual_bound
         
                 
@@ -534,7 +537,8 @@ function bend_cutting_plane_main_loop(
             set_lp_primal_bound!(algdata.incumbents, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
 
-
+            @show algdata.incumbents
+            
             print_intermediate_statistics(
                 algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
             )
@@ -576,18 +580,24 @@ function bend_cutting_plane_main_loop(
         
     end  # loop on master lp solution 
 
+    @show one_spsol_is_a_relaxed_sol 
     if !one_spsol_is_a_relaxed_sol                
         # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
         sol_integer = true
         for (var, val) in filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
-            if !isinteger(val)
+            round_down_val = Float64(val, RoundDown)
+            round_up_val = Float64(val, RoundUp)
+            
+            @show (var, val, round_down_val, round_up_val)
+            if round_down_val < round_up_val - algo.feasibility_tol #!isinteger(truncated_val)
                 sol_integer = false
                 break
             end
         end
+        @show sol_integer
         if sol_integer
             set_ip_primal_sol!(algdata.incumbents, master_primal_sol)
-            set_ip_primal_bound!(algdata.incumbents, primal_bound)
+            update_ip_primal_bound!(algdata.incumbents, primal_bound)
         end
     end
     
