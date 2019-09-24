@@ -530,7 +530,7 @@ function bend_cutting_plane_main_loop(
             
             
             if cur_gap < algo.optimality_tol
-                @warn "Should stop because pb = $primal_bound & db = $dual_bound"
+                @logmsg LogLevel(1) "Should stop because pb = $primal_bound & db = $dual_bound"
                 # TODO : problem with the gap
                  break # loop on separation phases
             end
