@@ -9,12 +9,12 @@ struct MasterIpHeuristicRecord <: AbstractAlgorithmResult
     incumbents::Incumbents
 end
 
-function prepare!(::Type{MasterIpHeuristic}, form, node, strategy_rec, params)
+function prepare!(algo::MasterIpHeuristic, form, node)
     @logmsg LogLevel(-1) "Prepare MasterIpHeuristic."
     return
 end
 
-function run!(::Type{MasterIpHeuristic}, form, node, strategy_rec, params)
+function run!(algo::MasterIpHeuristic, form, node)
     @logmsg LogLevel(1) "Applying Master IP heuristic"
     master = getmaster(form)
     algorithm_data = MasterIpHeuristicData(getobjsense(master))

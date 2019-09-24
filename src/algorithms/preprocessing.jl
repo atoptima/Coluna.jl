@@ -36,12 +36,12 @@ struct PreprocessRecord <: AbstractAlgorithmResult
     proven_infeasible::Bool
 end
 
-function prepare!(::Type{Preprocess}, reformulation, node, strategy_rec, params)
+function prepare!(algo::Preprocess, reformulation, node)
     @logmsg LogLevel(0) "Prepare preprocessing"
     return
 end
 
-function run!(::Type{Preprocess}, reformulation, node, strategy_rec, parameters)
+function run!(algo::Preprocess, reformulation, node)
     @logmsg LogLevel(0) "Run preprocessing"
 
     alg_data = PreprocessData(node.depth, reformulation)

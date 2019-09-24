@@ -8,7 +8,7 @@ end
 
 #BendersCutGeneration() = BendersCutGeneration(false)
 
-mutable struct BendersCutGenTmpRecord <: AbstractAlgorithmTmpRecord
+mutable struct BendersCutGenTmpRecord
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
@@ -46,12 +46,12 @@ struct BendersCutGenerationRecord <: AbstractAlgorithmResult
 end
 
 # Overload of the solver interface
-function prepare!(algo::BendersCutGeneration, form, node, strategy_rec, params)
+function prepare!(algo::BendersCutGeneration, form, node)
     @logmsg LogLevel(-1) "Prepare BendersCutGeneration."
     return
 end
 
-function run!(algo::BendersCutGeneration, form, node, strategy_rec, params)
+function run!(algo::BendersCutGeneration, form, node)
     algdata = BendersCutGenTmpRecord(form.master.obj_sense, node.incumbents)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop(algo, algdata, form)

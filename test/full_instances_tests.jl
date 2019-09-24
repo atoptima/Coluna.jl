@@ -1,6 +1,6 @@
 function full_instances_tests()
-    #generalized_assignment_tests()
-    #capacitated_lot_sizing_tests()
+    generalized_assignment_tests()
+    capacitated_lot_sizing_tests()
     lot_sizing_tests()
     #facility_location_tests()
 end
@@ -11,7 +11,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -29,7 +29,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -47,7 +47,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -63,7 +63,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -79,7 +79,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -143,7 +143,7 @@ function lot_sizing_tests()
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
             params = CL.Params(
                 max_num_nodes = 1, 
-                global_strategy = CL.GlobalStrategy(CL.SimpleBenders, CL.NoBranching, CL.DepthFirst)
+                global_strategy = CL.GlobalStrategy(CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -161,7 +161,7 @@ function capacitated_lot_sizing_tests()
         
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.NoBranching, CL.DepthFirst)
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.NoBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -179,7 +179,7 @@ function facility_location_tests()
             Coluna.Optimizer,
             params = CL.Params(
                 max_num_nodes = 1, 
-                global_strategy = CL.GlobalStrategy(CL.SimpleBenders, CL.NoBranching, CL.DepthFirst)
+                global_strategy = CL.GlobalStrategy(CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )

@@ -43,7 +43,7 @@ function incumbents_getters_and_setters_unit_tests()
     @test CL.get_lp_dual_bound(inc) == 1.1
 
     bound = CL.DualBound{CL.MinSense}(2.0)
-    @test CL.set_ip_dual_bound!(inc, bound)
+    @test CL.update_ip_dual_bound!(inc, bound)
     @test CL.get_ip_dual_bound(inc) == 2.0
 
     @test CL.ip_gap(inc) == (12.0 - 2.0) / 2.0
