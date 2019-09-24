@@ -1,8 +1,8 @@
 abstract type AbstractMembersContainer end
 
 mutable struct MembersVector{I,K,T} <: AbstractMembersContainer
-    elements::Dict{I, K} # holds a reference towards the container of elements (sorted by ID) to which we associate records
-    records::Dict{I, T} # holds the records associated to elements that are identified by their ID
+    elements::Dict{I,K} # holds a reference towards the container of elements (sorted by ID) to which we associate records
+    records::Dict{I,T} # holds the records associated to elements that are identified by their ID
 end
 
 """
@@ -11,11 +11,10 @@ end
 Construct a `MembersVector` with indices of type `I`, elements of type `K`, and
 records of type `T`.
 
-The `MembersVector` maps each index to a tuple of element and record. The  
-use should use this structure like a `Dict{I,T}`. If the user looks for an index 
+The `MembersVector` maps each index to a tuple of element and record. This 
+structure must be use like a `Vector{I,T}`.  If the user looks for an index 
 that that has an element associated but no record, `MembersVector` returns 
 `zeros(T)`.
-```
 """
 function MembersVector{T}(elems::Dict{I,K}) where {I,K,T} 
     return MembersVector{I,K,T}(elems, Dict{I,T}())
@@ -25,10 +24,15 @@ function MembersVector{T}(elems::ElemDict{VC}) where {VC,T}
     return MembersVector{T}(elems.elements)
 end
 
-getrecords(vec::MembersVector) = vec.records
-getelements(vec::MembersVector) = vec.elements
+"""
+    getelement(vec, i)
+
+Return the element of `vec` with id `i`.
+"""
 getelement(vec::MembersVector{I}, i::I) where {I,K,T} = vec.elements[i]
 
+getrecords(vec::MembersVector) = vec.records
+getelements(vec::MembersVector) = vec.elements
 Base.eltype(vec::MembersVector{I,K,T}) where {I,K,T} = T
 Base.ndims(vec::MembersVector) = 1
 
@@ -50,23 +54,11 @@ end
 
 Base.getindex(vec::MembersVector, ::Colon) = vec
 
-"""
-    merge(op, vec1::MembersVector{I,K,T}, vec2::MembersVector{I,K,T})
-
-Return a new `MembersVector` in which the records are equal to 
-`op(vec1.records, vec2.records)`.
-Note that elements of `vec1` and `vec2` must be identical.
-"""
 function Base.merge(op, vec1::MembersVector{I,K,T}, vec2::MembersVector{I,K,U}) where {I,K,T,U}
     (vec1.elements === vec2.elements) || error("elements are not the same.") # too much restrictive ?
     MembersVector(vec1.elements, Base.merge(op, vec1.records, vec2.records))
 end
 
-"""
-    reduce(op, vec)
-
-Reduce the array of records of `vec` to a value using operation `op`.
-"""
 function Base.reduce(op, vec::MembersVector)
     Base.mapreduce(e -> e[2], op, vec.records)
 end
@@ -94,19 +86,26 @@ end
 """
     filter(function, vec)
 
-Return a `MembersVector` without the records for which `function` with the
-element associated with the record as input returns false.
+Return a copy of `MembersVector` that contains records that are associated to
+elements for which the filtering function returns `true`
 
 # Example
 
-Given a `vec::MembersVector` that associates variables with coefficients, we 
-want the coefficients of integer variables :
-
+Consider a `vec::MembersVector` that associates variables to coefficients.
+We want the coefficients of integer variables :
 ```julia-repl
 julia> filter(var -> integer(var), vec)
 ```
-
 where function `integer(var)` returns true if variable `var` is integer.
+
+# Iterators
+
+If you want to only iterate over a filtered `MembersVector`, we provide a
+method that does not return a copy :
+```julia
+for (id, value) in Iterators.filter(var -> integer(var), vec)
+    # body
+end
 """
 function Base.filter(f::Function, vec::MembersVector)
     MembersVector(vec.elements, Base.filter(e -> f(vec.elements[e[1]]), vec.records))
@@ -147,7 +146,7 @@ end
     MembersMatrix{T}(columns_elems::Dict{I,K}, rows_elems::Dict{J,L})
 
 Construct a matrix that contains records of type `T`. Rows have indices of type
-`J`and elements of type `L`, and columns have indices of type `I` and elements
+`J` and elements of type `L`, and columns have indices of type `I` and elements
 of type `K`.
 
 `MembersMatrix` supports julia set and get operations.
@@ -166,23 +165,30 @@ function MembersMatrix{T}(
     return MembersMatrix{T}(col_elems.elements, row_elems.elements)
 end
 
-function _getrecordvector!(dict::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}, create = true) where {I,K,J,L,T}
-    if !haskey(dict, key)
+function _getrecordvector!(
+    vec::MembersVector{I,K,MembersVector{J,L,T}}, key::I, elems::Dict{J,L}, 
+    create = true
+) where {I,K,J,L,T}
+    if !haskey(vec, key)
         membersvec = MembersVector{T}(elems)
         if create
-            dict[key] = membersvec
+            vec[key] = membersvec
         end
         return membersvec
     end
-    dict[key]
+    vec[key]
 end
 
-function _setcolumn!(m::MembersMatrix{I,K,J,L,T}, col_id::I, col::Dict{J,T}) where {I,K,J,L,T}
+function _setcolumn!(
+    m::MembersMatrix{I,K,J,L,T}, col_id::I, col::Dict{J,T}
+) where {I,K,J,L,T}
     new_col = MembersVector(m.rows.elements, col)
     _setcolumn!(m, col_id, new_col)
 end
 
-function _setcolumn!(m::MembersMatrix{I,K,J,L,T}, col_id::I, col::MembersVector{J,L,T}) where {I,K,J,L,T}
+function _setcolumn!(
+    m::MembersMatrix{I,K,J,L,T}, col_id::I, col::MembersVector{J,L,T}
+) where {I,K,J,L,T}
     @assert m.rows.elements == col.elements
     m.cols[col_id] = col
     for (row_id, val) in col
@@ -192,12 +198,16 @@ function _setcolumn!(m::MembersMatrix{I,K,J,L,T}, col_id::I, col::MembersVector{
     m
 end
 
-function _setrow!(m::MembersMatrix{I,K,J,L,T}, row_id::J, row::Dict{I,T}) where {I,K,J,L,T}
+function _setrow!(
+    m::MembersMatrix{I,K,J,L,T}, row_id::J, row::Dict{I,T}
+) where {I,K,J,L,T}
     new_row = MembersVector(m.cols.elements, row)
     _setrow!(m, row_id, new_row)
 end
 
-function _setrow!(m::MembersMatrix{I,K,J,L,T}, row_id::J, row::MembersVector{I,K,T}) where {I,K,J,L,T}
+function _setrow!(
+    m::MembersMatrix{I,K,J,L,T}, row_id::J, row::MembersVector{I,K,T}
+) where {I,K,J,L,T}
     @assert m.cols.elements == row.elements
     m.rows[row_id] = row
     for (col_id, val) in row
@@ -223,7 +233,9 @@ function Base.setindex!(m::MembersMatrix, col, ::Colon, col_id)
     _setcolumn!(m, col_id, col)
 end
 
-function Base.getindex(m::MembersMatrix{I,K,J,L,T}, row_id::J, col_id::I) where {I,K,J,L,T}
+function Base.getindex(
+    m::MembersMatrix{I,K,J,L,T}, row_id::J, col_id::I
+) where {I,K,J,L,T}
     if length(m.cols) < length(m.rows) # improve ?
         col = m.cols[col_id]
         col === Nothing && return zero(T)
@@ -235,11 +247,15 @@ function Base.getindex(m::MembersMatrix{I,K,J,L,T}, row_id::J, col_id::I) where 
     end
 end
 
-function Base.getindex(m::MembersMatrix{I,K,J,L,T}, row_id::J, ::Colon) where {I,K,J,L,T}
+function Base.getindex(
+    m::MembersMatrix{I,K,J,L,T}, row_id::J, ::Colon
+) where {I,K,J,L,T}
     _getrecordvector!(m.rows, row_id, m.cols.elements, false)
 end
 
-function Base.getindex(m::MembersMatrix{I,K,J,L,T}, ::Colon, col_id::I) where {I,K,J,L,T}
+function Base.getindex(
+    m::MembersMatrix{I,K,J,L,T}, ::Colon, col_id::I
+) where {I,K,J,L,T}
     _getrecordvector!(m.cols, col_id, m.rows.elements, false)
 end
 
@@ -270,3 +286,6 @@ of each `Variable` in the `Constraint`.
 function rows(m::MembersMatrix)
     return m.rows
 end
+
+# Consistence
+# TODO
