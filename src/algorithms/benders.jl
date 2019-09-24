@@ -98,8 +98,7 @@ function update_bendersep_problem!(
 ) where {S}
     masterform = spform.parent_formulation
 
-     
-    # Update rhs of technological constraints
+     # Update rhs of technological constraints
     for (constrid, constr) in filter(_active_BendSpMaster_constr_ , getconstrs(spform))
         setcurrhs!(spform, constr, computereducedrhs(spform, constrid, master_primal_sol))
     end
@@ -151,6 +150,20 @@ function update_bendersep_phase!(
 
 end
 
+function reset_bendersep_phase!(algdata::BendersCutGenTmpRecord, reform::Reformulation)
+
+    sps = get_benders_sep_sp(reform)
+    for spform in sps
+        # Reset to  separation phase
+        spform_uid = getuid(spform)
+        if algdata.spform_phase[spform_uid] != HybridPhase
+            algdata.spform_phase_applied[spform_uid] = false
+            algdata.spform_phase[spform_uid] = HybridPhase
+        end
+    end
+    return 
+
+end
 
 function update_bendersep_target!(spform::Formulation)
     # println("bendersep target will only be needed after automating convexity constraints")
@@ -221,7 +234,7 @@ end
 function solve_sp_to_gencut!(
     algo::BendersCutGeneration, algdata::BendersCutGenTmpRecord, masterform::Formulation, 
     spform::Formulation, master_primal_sol::PrimalSolution{S},
-    master_dual_sol::DualSolution{S}, phase::FormulationPhase
+    master_dual_sol::DualSolution{S}, upto_phase::FormulationPhase
 ) where {S}
 
     flag_is_sp_infeasible = -1
@@ -237,11 +250,6 @@ function solve_sp_to_gencut!(
     spsol_relaxed = false
     bendsp_lagrangian_bound_contrib =  0.0
     
-    # Reset to  separation phase
-    if algdata.spform_phase[spform_uid] != phase
-        algdata.spform_phase_applied[spform_uid] = false
-        algdata.spform_phase[spform_uid] = phase
-    end
 
     # Compute target
     update_bendersep_target!(spform)
@@ -255,7 +263,8 @@ function solve_sp_to_gencut!(
         #     return flag_is_sp_infeasible
     end
 
-    while true
+
+    while true # loop on phases
 
         update_bendersep_phase!(algo, algdata, spform)
                 # if alg.bendcutgen_stabilization != nothing && true #= TODO add conds =#
@@ -307,6 +316,10 @@ function solve_sp_to_gencut!(
                 # algdata.spform_phase[spform_uid] == HybridPhase
                 algdata.spform_phase[spform_uid] = PurePhase1
                 algdata.spform_phase_applied[spform_uid] = false
+                if PurePhase1 > upto_phase
+                    break
+                end
+                # else
                 continue
             else
                 if algdata.spform_phase[spform_uid] != PurePhase1
@@ -315,6 +328,10 @@ function solve_sp_to_gencut!(
                 else #  one more phase to try
                     algdata.spform_phase[spform_uid] = PurePhase2
                     algdata.spform_phase_applied[spform_uid] = false
+                    if PurePhase2 > upto_phase
+                        break
+                    end
+                    # else
                     continue
                 end             
             end
@@ -366,7 +383,7 @@ end
 
 function solve_sps_to_gencuts!(
     algo::BendersCutGeneration, algdata::BendersCutGenTmpRecord, reform::Reformulation, 
-    primalsol::PrimalSolution{S}, dualsol::DualSolution{S}, phase::FormulationPhase
+    primalsol::PrimalSolution{S}, dualsol::DualSolution{S}, upto_phase::FormulationPhase
 ) where {S}
     nb_new_cuts = 0
     spsols_relaxed = false
@@ -376,7 +393,7 @@ function solve_sps_to_gencuts!(
     sps = get_benders_sep_sp(reform)
     for spform in sps
         gen_status, spsol_relaxed, bendsp_primal_bound_contrib, bendsp_lagrangian_bound_contrib =
-            solve_sp_to_gencut!(algo, algdata, masterform, spform, primalsol, dualsol, phase)
+            solve_sp_to_gencut!(algo, algdata, masterform, spform, primalsol, dualsol, upto_phase)
 
         spsols_relaxed |= spsol_relaxed
         total_pb_correction += bendsp_primal_bound_contrib
@@ -489,10 +506,10 @@ function bend_cutting_plane_main_loop(
         @show dual_bound
         
                 
+        reset_bendersep_phase!(algdata, reform) # phase = HybridPhase
+        
 
-        phase = HybridPhase
-
-        while true # loop on separation phases
+        for upto_phase in (HybridPhase,PurePhase1,PurePhase2)  # loop on separation phases
             
             nb_bc_iterations += 1
 
@@ -500,7 +517,7 @@ function bend_cutting_plane_main_loop(
             sp_time = @elapsed begin
                 nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound  =
                     generatecuts!(
-                        algo, algdata, reform, master_primal_sol, master_dual_sol, phase
+                        algo, algdata, reform, master_primal_sol, master_dual_sol, upto_phase
                     )
             end
             @show nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound
@@ -534,19 +551,6 @@ function bend_cutting_plane_main_loop(
                 algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
             )
             
-            if nb_new_cuts > 0
-                @show " cuts have been found"
-                break # loop on separation phases
-            else # nb_new_cuts == 0
-                if phase == HybridPhase
-                    phase = PurePhase1
-                    continue
-                else
-                    break # loop on separation phases
-                end               
-            end
-            
-            
             
             if cur_gap < algo.optimality_tol
                 println("Should stop because pb = $primal_bound & db = $dual_bound")
@@ -560,6 +564,10 @@ function bend_cutting_plane_main_loop(
                 break # loop on separation phases
             end
             
+            if nb_new_cuts > 0
+                @show " cuts have been found"
+                break # loop on separation phases
+            end
         end # loop on separation phases
         
         if cur_gap < algo.optimality_tol
