@@ -5,7 +5,7 @@ using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
 import MathOptInterface, MathOptInterface.Utilities
 
 using Base.CoreLogging, Logging
-global_logger(ConsoleLogger(stderr, LogLevel(-3)))
+#global_logger(ConsoleLogger(stderr, LogLevel(-3)))
 
 global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface

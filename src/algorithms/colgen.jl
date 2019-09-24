@@ -2,7 +2,7 @@ Base.@kwdef struct ColumnGeneration <: AbstractAlgorithm
     option::Bool = false
 end
 
-mutable struct ColumnGenTmpRecord <: AbstractAlgorithmTmpRecord
+mutable struct ColumnGenTmpRecord
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
@@ -21,7 +21,7 @@ mutable struct ColumnGenerationRecord <: AbstractAlgorithmResult
 end
 
 # Overload of the algorithm's prepare function
-function prepare!(algo::ColumnGeneration, form, node, strategy_rec, params)
+function prepare!(algo::ColumnGeneration, form, node)
     @logmsg LogLevel(-1) "Prepare ColumnGeneration."
     return
 end
@@ -39,13 +39,13 @@ function should_do_ph_1(cg_rec::ColumnGenerationRecord)
 end
 
 function set_ph_one(master::Formulation)
-    for (id, v) in filter(x->(!(getduty(x[2]) isa ArtificialDuty)), getvars(master))
+    for (id, v) in Iterators.filter(x->(!(getduty(x) isa ArtificialDuty)), getvars(master))
         setcurcost!(master, v, 0.0)
     end
     return
 end
 
-function run!(algo::ColumnGeneration, form, node, strategy_rec, params)
+function run!(algo::ColumnGeneration, form, node)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
     algdataa = ColumnGenTmpRecord(form.master.obj_sense, node.incumbents)
     cg_rec = cg_main_loop(algdataa, form, 2)
@@ -71,7 +71,7 @@ function update_pricing_problem!(spform::Formulation, dual_sol::DualSolution)
 
     masterform = spform.parent_formulation
 
-    for (var_id, var) in filter(_active_pricing_sp_var_ , getvars(spform))
+    for (var_id, var) in Iterators.filter(_active_pricing_sp_var_ , getvars(spform))
         setcurcost!(spform, var, computereducedcost(masterform, var_id, dual_sol))
     end
 
@@ -233,7 +233,7 @@ function update_lagrangian_db!(algdata::ColumnGenTmpRecord,
     lagran_bnd = DualBound{S}(0.0)
     lagran_bnd += compute_master_db_contrib(algdata, restricted_master_sol_value)
     lagran_bnd += pricing_sp_dual_bound_contrib
-    set_ip_dual_bound!(algdata.incumbents, lagran_bnd)
+    update_ip_dual_bound!(algdata.incumbents, lagran_bnd)
     return lagran_bnd
 end
 
@@ -267,7 +267,6 @@ ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
 function cg_main_loop(algdata::ColumnGenTmpRecord,
                       reformulation::Reformulation, 
                       phase::Int)::ColumnGenerationRecord
-    setglobalstrategy!(reformulation, GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst))
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply

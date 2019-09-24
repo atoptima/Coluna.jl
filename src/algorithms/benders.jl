@@ -8,7 +8,7 @@ end
 
 #BendersCutGeneration() = BendersCutGeneration(false)
 
-mutable struct BendersCutGenTmpRecord <: AbstractAlgorithmTmpRecord
+mutable struct BendersCutGenTmpRecord
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
@@ -46,12 +46,12 @@ struct BendersCutGenerationRecord <: AbstractAlgorithmResult
 end
 
 # Overload of the solver interface
-function prepare!(algo::BendersCutGeneration, form, node, strategy_rec, params)
+function prepare!(algo::BendersCutGeneration, form, node)
     @logmsg LogLevel(-1) "Prepare BendersCutGeneration."
     return
 end
 
-function run!(algo::BendersCutGeneration, form, node, strategy_rec, params)
+function run!(algo::BendersCutGeneration, form, node)
     algdata = BendersCutGenTmpRecord(form.master.obj_sense, node.incumbents)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop(algo, algdata, form)
@@ -60,7 +60,7 @@ function run!(algo::BendersCutGeneration, form, node, strategy_rec, params)
 end
 
 function update_bendersep_slackvar_cost_for_ph1!(spform::Formulation)
-    for (varid, var) in filter(_active_ , getvars(spform))
+    for (varid, var) in Iterators.filter(_active_ , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 1.0)
         else
@@ -85,7 +85,7 @@ function update_bendersep_slackvar_cost_for_ph2!(spform::Formulation)
 end
 
 function update_bendersep_slackvar_cost_for_hyb_ph!(spform::Formulation)
-    for (varid, var) in filter(_active_, getvars(spform))
+    for (varid, var) in Iterators.filter(_active_, getvars(spform))
         setcurcost!(spform, var, getperenecost(var))
         # TODO if previous phase is  a pure phase 2, reset current ub
     end
@@ -99,13 +99,13 @@ function update_bendersep_problem!(
     masterform = spform.parent_formulation
 
      # Update rhs of technological constraints
-    for (constrid, constr) in filter(_active_BendSpMaster_constr_ , getconstrs(spform))
+    for (constrid, constr) in Iterators.filter(_active_BendSpMaster_constr_ , getconstrs(spform))
         setcurrhs!(spform, constr, computereducedrhs(spform, constrid, master_primal_sol))
     end
     
     # Update bounds on slack var "BendSpSlackFirstStageVar"
     cursol = getsol(master_primal_sol)
-    for (varid, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
+    for (varid, var) in Iterators.filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
         if haskey(cursol, varid)
             #setcurlb!(var, getperenelb(var) - cur_sol[var_id])
             setub!(spform, var, getpereneub(var) - cursol[varid])
@@ -129,7 +129,6 @@ end
 function update_bendersep_phase!(
     algo::BendersCutGeneration, algdata::BendersCutGenTmpRecord, spform::Formulation
 ) 
-
     # Update objective function
     spform_uid = getuid(spform)
     phase_applied = algdata.spform_phase_applied[spform_uid]
@@ -144,10 +143,7 @@ function update_bendersep_phase!(
         end
         algdata.spform_phase_applied[spform_uid] = true
     end
-    
-
     return false
-
 end
 
 function reset_bendersep_phase!(algdata::BendersCutGenTmpRecord, reform::Reformulation)
@@ -161,8 +157,7 @@ function reset_bendersep_phase!(algdata::BendersCutGenTmpRecord, reform::Reformu
             algdata.spform_phase[spform_uid] = HybridPhase
         end
     end
-    return 
-
+    return
 end
 
 function update_bendersep_target!(spform::Formulation)
@@ -357,7 +352,7 @@ end
                 algdata.spform_phase_applied[spform_uid] = false
                 continue
             else
-                for (var, value) in filter(var -> getduty(var) <: BendSpSlackFirstStageVar, getsol(primalsol))
+                for (var, value) in Iterators.filter(var -> getduty(var) <: BendSpSlackFirstStageVar, getsol(primalsol))
                     if S == MinSense
                         bendsp_primal_bound_contrib += value
                     else

@@ -1,8 +1,7 @@
 struct SimpleBenders <: AbstractConquerStrategy end
 
-
-function apply!(::Type{SimpleBenders}, reform, node, strategy_rec::StrategyRecord, params)
-    benders_rec = apply!(BendersCutGeneration(), reform, node, strategy_rec, params)
+function apply!(strategy::SimpleBenders, reform, node)
+    benders_rec = apply!(BendersCutGeneration(), reform, node)
     if benders_rec.proven_infeasible
         node.status.proven_infeasible = true
         return

@@ -9,7 +9,7 @@ struct GenerateChildrenNodeRecord <: AbstractAlgorithmResult
     nodes::Vector{AbstractNode} # Node is not defined when this file is included
 end
 
-function prepare!(::Type{GenerateChildrenNode}, form, node, strategy_rec, params)
+function prepare!(algo::GenerateChildrenNode, form, node)
     @logmsg LogLevel(0) "Prepare generate children nodes"
     return
 end
@@ -18,7 +18,7 @@ abstract type RuleForUsualBranching end
 struct MostFractionalRule <: RuleForUsualBranching end
 #struct LeastFractionalRule <: RuleForUsualBranching end
 
-function run!(::Type{GenerateChildrenNode}, formulation, node, strategy_rec, parameters)
+function run!(algo::GenerateChildrenNode, formulation, node)
     @logmsg LogLevel(0) "Run generate children nodes"
     algorithm_data =  GenerateChildrenNodeData(getincumbents(node), formulation)
     if !isfertile(node)

@@ -1,13 +1,3 @@
-
-"""
-    AbstractAlgorithmTmpRecord
-
-Stores intermediate computational recors .
-These data can be used to initialize another execution of the same algorithm or in 
-setting the transition to another algorithm.
-"""
-abstract type AbstractAlgorithmTmpRecord end
-
 """
     AbstractAlgorithmResult
 
@@ -41,30 +31,21 @@ function run!(algo::AbstractAlgorithm, formulation, node, strategy_rec, paramete
 end
 
 """
-    apply!(AlgorithmType, formulation, node, strategy_record, parameters)
+    apply!(Algorithm, formulation, node)
 
-Applies the algorithm `AlgorithmType` on the `formulation` in a `node` with 
+Applies the algorithm `Algorithm` on the `formulation` in a `node` with 
 `parameters`.
 """
-function apply!(algo::AbstractAlgorithm, form, node, strategy_rec,
-                params)
+function apply!(algo::AbstractAlgorithm, form, node)
     prepare!(form, node)
-    setalgorithm!(strategy_rec, algo)
     TO.@timeit _to string(algo) begin
         TO.@timeit _to "prepare" begin
-            prepare!(algo, form, node, strategy_rec, params)
+            prepare!(algo, form, node)
         end
         TO.@timeit _to "run" begin
-            record = run!(algo, form, node, strategy_rec, params)
+            record = run!(algo, form, node)
         end
     end
     set_algorithm_result!(node, algo, record)
     return record
 end
-
-"""
-    FakeAlgorithm
-
-Fake algorithm that fills the field at the start of the node treatment.
-"""
-struct FakeAlgorithm <: AbstractAlgorithm end

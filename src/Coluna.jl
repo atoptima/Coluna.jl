@@ -19,23 +19,9 @@ global const BD = BlockDecomposition
 global const TO = TimerOutputs
 
 # Base functions for which we define more methods in Coluna
-import Base.isempty
-import Base.hash
-import Base.isequal
-import Base.filter
-import Base.length
-import Base.iterate
-import Base.getindex
-import Base.lastindex
-import Base.getkey
-import Base.delete!
-import Base.setindex!
-import Base.haskey
-import Base.copy
-import Base.promote_rule
-import Base.convert
-import Base.isinteger
-import Base.push!
+import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
+    getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
+    push!, filter
 
 include("types.jl")
 include("algorithms/algorithm.jl")
@@ -44,12 +30,14 @@ include("strategies/strategy.jl")
 include("parameters.jl")
 include("counters.jl")
 
-include("containers/members.jl")
-
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
 include("varconstr.jl")
+
+include("containers/elements.jl")
+include("containers/members.jl")
+
 include("manager.jl")
 include("filters.jl")
 include("solsandbounds.jl")
