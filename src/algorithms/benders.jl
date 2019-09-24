@@ -470,7 +470,9 @@ function bend_cutting_plane_main_loop(
 
     nb_bc_iterations = 0
     masterform = getmaster(reform)
-
+    one_spsol_is_a_relaxed_sol = false
+    master_primal_sol = PrimalSolution{getobjsense(masterform)}()
+    
     for spform in get_benders_sep_sp(reform)
         spform_uid = getuid(spform) 
         algdata.spform_phase[spform_uid] = HybridPhase
@@ -532,20 +534,6 @@ function bend_cutting_plane_main_loop(
             set_lp_primal_bound!(algdata.incumbents, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
 
-            if !one_spsol_is_a_relaxed_sol                
-                # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
-                sol_integer = true
-                for (var, val) in filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
-                    if !isinteger(val)
-                        sol_integer = false
-                        break
-                    end
-                end
-                if sol_integer
-                    set_ip_primal_sol!(algdata.incumbents, master_primal_sol)
-                    set_ip_primal_bound!(algdata.incumbents, primal_bound)
-                end
-            end
 
             print_intermediate_statistics(
                 algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
@@ -588,6 +576,21 @@ function bend_cutting_plane_main_loop(
         
     end  # loop on master lp solution 
 
+    if !one_spsol_is_a_relaxed_sol                
+        # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
+        sol_integer = true
+        for (var, val) in filter(var -> getperenekind(var) != Continuous, getsol(master_primal_sol))
+            if !isinteger(val)
+                sol_integer = false
+                break
+            end
+        end
+        if sol_integer
+            set_ip_primal_sol!(algdata.incumbents, master_primal_sol)
+            set_ip_primal_bound!(algdata.incumbents, primal_bound)
+        end
+    end
+    
     return BendersCutGenerationRecord(algdata.incumbents, false)
 end
 
