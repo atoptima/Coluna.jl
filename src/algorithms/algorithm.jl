@@ -8,26 +8,28 @@ setting the transition to another algorithm.
 abstract type AbstractAlgorithmResult end
 
 """
-    prepare!(AlgorithmType, formulation, node, strategy_record, parameters)
+    prepare!(Algorithm, formulation, node)
 
-Prepares the `formulation` in the `node` to be optimized by algorithm `AlgorithmType`.
+Prepares the `formulation` in the `node` to be optimized by algorithm `Algorithm`.
 """
 function prepare! end
 
 """
-    run!(AlgorithmType, formulation, node, strategy_record, parameters)
+    run!(Algorithm, formulation, node)
 
-Runs the algorithm `AlgorithmType` on the `formulation` in a `node` with `parameters`.
+Runs the algorithm `Algorithm` on the `formulation` in a `node`.
 """
 function run! end
 
 # Fallbacks
-function prepare!(algo::AbstractAlgorithm, formulation, node, strategy_rec, parameters)
-    error("prepare! method not implemented for algorithm $T.")
+function prepare!(algo::AbstractAlgorithm, formulation, node)
+    algotype = typeof(algo)
+    error("prepare! method not implemented for algorithm $(algotype).")
 end
 
-function run!(algo::AbstractAlgorithm, formulation, node, strategy_rec, parameters)
-    error("run! method not implemented for algorithm $algo.")
+function run!(algo::AbstractAlgorithm, formulation, node)
+    algotype = typeof(algo)
+    error("run! method not implemented for algorithm $(algotype).")
 end
 
 """

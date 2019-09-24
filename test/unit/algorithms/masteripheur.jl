@@ -6,9 +6,9 @@ CL.to_be_pruned(n::CL.Node) = true # issue 166
 
 struct InfeasibleMasterIpHeur <: CL.AbstractConquerStrategy end
 
-function CL.apply!(::Type{InfeasibleMasterIpHeur}, reform, node)
+function CL.apply!(strategy::InfeasibleMasterIpHeur, reform, node)
     # Apply directly master ip heuristic => infeasible
-    mip_rec = CL.apply!(CL.MasterIpHeuristic, reform, node, strategy_rec, params)
+    mip_rec = CL.apply!(CL.MasterIpHeuristic(), reform, node)
     return
 end
 

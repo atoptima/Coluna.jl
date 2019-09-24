@@ -79,7 +79,6 @@ function update_bendersep_slackvar_cost_for_ph2!(spform::Formulation)
         else
             setcurcost!(spform, var, getperenecost(var))
         end
-        @show "phase2" var
     end
     return
 end
@@ -265,8 +264,6 @@ function solve_sp_to_gencut!(
                 # if alg.bendcutgen_stabilization != nothing && true #= TODO add conds =#
         #     # switch off the reduced cost estimation when stabilization is applied
         # end
-
-        @show algdata.spform_phase[spform_uid]
         
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing bendersep prob"
@@ -295,18 +292,15 @@ function solve_sp_to_gencut!(
                 bendsp_primal_bound_contrib -= value
             end
         end
-        @show bendsp_primal_bound_contrib
         
         if - algo.feasibility_tol <= getprimalbound(optresult) <= algo.feasibility_tol
         # no cuts are generated since there is no violation 
             if spsol_relaxed
                 if algdata.spform_phase[spform_uid] == PurePhase2
-                    @show "ERROR : in PurePhase2, art var were not supposed to be in sp forlumation "
-                    break
+                    error("In PurePhase2, art var were not supposed to be in sp forlumation ")
                 end
                 if algdata.spform_phase[spform_uid] == PurePhase1
-                    @show "ERROR : in PurePhase1, if art var were in sol, the objective should be strictly positive "
-                    break
+                    error("In PurePhase1, if art var were in sol, the objective should be strictly positive.")
                 end
                 # algdata.spform_phase[spform_uid] == HybridPhase
                 algdata.spform_phase[spform_uid] = PurePhase1
@@ -503,14 +497,10 @@ function bend_cutting_plane_main_loop(
         dual_bound = get_lp_dual_bound(algdata.incumbents)
         update_lp_dual_bound!(algdata.incumbents, dual_bound)
         update_ip_dual_bound!(algdata.incumbents, dual_bound)
-        @show dual_bound
-        
                 
         reset_bendersep_phase!(algdata, reform) # phase = HybridPhase
-        
 
         for upto_phase in (HybridPhase,PurePhase1,PurePhase2)  # loop on separation phases
-            
             nb_bc_iterations += 1
 
             # generate new cuts by solving the subproblems
@@ -520,10 +510,10 @@ function bend_cutting_plane_main_loop(
                         algo, algdata, reform, master_primal_sol, master_dual_sol, upto_phase
                     )
             end
-            @show nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound
+            #@show nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound
 
             if nb_new_cuts < 0
-                @error "infeasible subproblem."
+                #@error "infeasible subproblem."
                 return BendersCutGenerationRecord(algdata.incumbents, true)
             end
 
@@ -532,7 +522,7 @@ function bend_cutting_plane_main_loop(
             set_lp_primal_bound!(algdata.incumbents, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
 
-            @show algdata.incumbents
+            #@show algdata.incumbents
             
             print_intermediate_statistics(
                 algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
@@ -540,7 +530,7 @@ function bend_cutting_plane_main_loop(
             
             
             if cur_gap < algo.optimality_tol
-                println("Should stop because pb = $primal_bound & db = $dual_bound")
+                @warn "Should stop because pb = $primal_bound & db = $dual_bound"
                 # TODO : problem with the gap
                  break # loop on separation phases
             end
@@ -552,7 +542,7 @@ function bend_cutting_plane_main_loop(
             end
             
             if nb_new_cuts > 0
-                @show " cuts have been found"
+                @logmsg LogLevel(0) "Cuts have been found."
                 break # loop on separation phases
             end
         end # loop on separation phases
@@ -568,14 +558,14 @@ function bend_cutting_plane_main_loop(
         end
         
         if nb_new_cuts == 0 
-            @show "Benders Speration Algorithm has converged." nb_new_cut cur_gap
+            @logmsg LogLevel(0) "Benders Speration Algorithm has converged." nb_new_cut cur_gap
             algdata.has_converged = true
             break # loop on master lp solution          
         end
         
     end  # loop on master lp solution 
 
-    @show one_spsol_is_a_relaxed_sol 
+    #@show one_spsol_is_a_relaxed_sol 
     if !one_spsol_is_a_relaxed_sol                
         # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
         sol_integer = true
@@ -583,13 +573,13 @@ function bend_cutting_plane_main_loop(
             round_down_val = Float64(val, RoundDown)
             round_up_val = Float64(val, RoundUp)
             
-            @show (var, val, round_down_val, round_up_val)
+            #@show (var, val, round_down_val, round_up_val)
             if round_down_val < round_up_val - algo.feasibility_tol #!isinteger(truncated_val)
                 sol_integer = false
                 break
             end
         end
-        @show sol_integer
+        #@show sol_integer
         if sol_integer
             set_ip_primal_sol!(algdata.incumbents, master_primal_sol)
             update_ip_primal_bound!(algdata.incumbents, primal_bound)

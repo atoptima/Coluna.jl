@@ -103,10 +103,6 @@ function generalized_assignment_tests()
     #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     # end
 
-    # To redirect logging output
-    #io = IOBuffer()
-    #global_logger(ConsoleLogger(io, LogLevel(-4)))
-
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
