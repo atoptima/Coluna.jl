@@ -63,30 +63,30 @@ function filters_tests()
         constr_data = c2_data
     )
 
-    @test CL._active_master_rep_orig_constr_(Pair(CL.getid(c1),c1)) == false
-    @test CL._active_master_rep_orig_constr_(Pair(CL.getid(c2),c2)) == false
+    @test CL._active_master_rep_orig_constr_(c1) == false
+    @test CL._active_master_rep_orig_constr_(c2) == false
     @test CL._explicit_(v) == true
     @test CL._explicit_(c2) == false
     @test CL._active_(v) == true
     @test CL._active_(c2) == false
-    @test CL._explicit_(Pair(CL.getid(v),v)) == true
-    @test CL._explicit_(Pair(CL.getid(c2),c2)) == false
-    @test CL._active_(Pair(CL.getid(v),v)) == true
-    @test CL._active_(Pair(CL.getid(c2),c2)) == false
-    @test CL._active_pricing_sp_var_(Pair(CL.getid(v),v)) == false
-    @test CL._active_pricing_sp_var_(Pair(CL.getid(v2),v2)) == true
+    @test CL._explicit_(v) == true
+    @test CL._explicit_(c2) == false
+    @test CL._active_(v) == true
+    @test CL._active_(c2) == false
+    @test CL._active_pricing_sp_var_(v) == false
+    @test CL._active_pricing_sp_var_(v2) == true
     @test CL._active_pricing_mast_rep_sp_var_(v) == true
     @test CL._active_pricing_mast_rep_sp_var_(v2) == false
-    @test CL._active_pricing_mast_rep_sp_var_(Pair(CL.getid(v),v)) == true
-    @test CL._active_pricing_mast_rep_sp_var_(Pair(CL.getid(v2),v2)) == false
+    @test CL._active_pricing_mast_rep_sp_var_(v) == true
+    @test CL._active_pricing_mast_rep_sp_var_(v2) == false
     @test CL._rep_of_orig_var_(v3) == false
     @test CL._rep_of_orig_var_(v2) == false
     @test CL._rep_of_orig_var_(v) == true
     @test CL._active_explicit_(v) == true
     @test CL._active_explicit_(v3) == false
     @test CL._active_explicit_(v4) == false
-    @test CL._active_explicit_(Pair(CL.getid(v), v)) == true
-    @test CL._active_explicit_(Pair(CL.getid(v3), v3)) == false
-    @test CL._active_explicit_(Pair(CL.getid(v4), v4)) == false
+    @test CL._active_explicit_(v) == true
+    @test CL._active_explicit_(v3) == false
+    @test CL._active_explicit_(v4) == false
 
 end

@@ -271,7 +271,7 @@ end
 deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 
 function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(id_v -> get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))
+    vars = filter(v -> get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
     for (id, var) in vars
         deactivate!(f, var)
     end
@@ -279,7 +279,7 @@ function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
 end
 
 function deactivate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(id_c -> get_cur_is_active(id_c[2]) && getduty(id_c[2]) <: Duty, getconstrs(f))
+    constrs = filter(c -> get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
     for (id, constr) in constrs
         deactivate!(f, constr)
     end
@@ -295,14 +295,14 @@ end
 activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
 
 function activate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(id_v -> !get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))
+    vars = filter(v -> !get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
     for (id, var) in vars
         activate!(f, var)
     end
 end
 
 function activate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(id_c -> !get_cur_is_active(id_c[2]) && getduty(id_c[2]) <: Duty, getconstrs(f))
+    constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
     for (id, constr) in constrs
         activate!(f, constr)
     end
@@ -344,7 +344,7 @@ end
 
 function enforce_integrality!(f::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(f))
-    for (v_id, v) in filter(_active_explicit_, getvars(f))
+    for (v_id, v) in Iterators.filter(_active_explicit_, getvars(f))
         getcurkind(v) == Integ && continue
         getcurkind(v) == Binary && continue
         if (getduty(v) == MasterCol || getperenekind(v) != Continuous)
@@ -357,7 +357,7 @@ end
 
 function relax_integrality!(f::Formulation)
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(f))
-    for (v_id, v) in filter(_active_explicit_, getvars(f))
+    for (v_id, v) in Iterators.filter(_active_explicit_, getvars(f))
         getcurkind(v) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
         setkind!(f, v, Continuous)
