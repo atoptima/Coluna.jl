@@ -12,7 +12,7 @@ Construct a `MembersVector` with indices of type `I`, elements of type `K`, and
 records of type `T`.
 
 The `MembersVector` maps each index to a tuple of element and record. This 
-structure must be use like a `Vector{I,T}`.  If the user looks for an index 
+structure must be use like a `Vector{I,T}`. If the user looks for an index 
 that that has an element associated but no record, `MembersVector` returns 
 `zeros(T)`.
 """
