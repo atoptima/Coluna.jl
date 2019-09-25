@@ -74,25 +74,25 @@ function change_sp_bounds!(alg_data::PreprocessData)
 
     for (col, col_val) in alg_data.local_partial_sol
         spform = getsp(alg_data, col)
-        spform_id = getuid(spform)
-        if alg_data.cur_sp_bounds[spform_id][1] > 0
-            alg_data.cur_sp_bounds[spform_id] = (
-                max(alg.cur_sp_bounds[spform_id][1] - col_val, 0),
-                alg.cur_sp_bounds[spform_id][2]
+        sp_form_id = getuid(spform)
+        if alg_data.cur_sp_bounds[sp_form_id][1] > 0
+            alg_data.cur_sp_bounds[sp_form_id] = (
+                max(alg.cur_sp_bounds[sp_form_id][1] - col_val, 0),
+                alg.cur_sp_bounds[sp_form_id][2]
             )
             conv_lb_constr = getconstr(
-                master, reformulation.dw_pricing_sp_lb[spform_id]
+                master, reformulation.dw_pricing_sp_lb[sp_form_id]
             )
-            setrhs!(master, conv_lb_constr, alg.cur_sp_bounds[spform_id][1])
+            setrhs!(master, conv_lb_constr, alg.cur_sp_bounds[sp_form_id][1])
         end
-        alg.cur_sp_bounds[spform_id] = (
-            alg.cur_sp_bounds[spform_id][1],
-            alg.cur_sp_bounds[spform_id][2] - col_val
+        alg.cur_sp_bounds[sp_form_id] = (
+            alg.cur_sp_bounds[sp_form_id][1],
+            alg.cur_sp_bounds[sp_form_id][2] - col_val
         )
         conv_ub_constr = getconstr(
-            master, reformulation.dw_pricing_sp_ub[spform_id]
+            master, reformulation.dw_pricing_sp_ub[sp_form_id]
         )
-        setrhs!(master, conv_ub_constr, alg.cur_sp_bounds[spform_id][2])
+        setrhs!(master, conv_ub_constr, alg.cur_sp_bounds[sp_form_id][2])
         @assert alg.cur_sp_bounds[sp_ref][2] >= 0
         if !(spform in sps_with_modified_bounds)
             push!(sps_with_modified_bounds, spform)

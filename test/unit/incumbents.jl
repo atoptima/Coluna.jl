@@ -18,27 +18,27 @@ function incumbents_getters_and_setters_unit_tests()
     solution = Dict(var_ids[1] => 2.1, var_ids[3] => 1.4)
     lp_primal_sol = CL.PrimalSolution(f, bound, solution)
 
-    @test CL.set_lp_primal_sol!(inc, lp_primal_sol)
+    @test CL.update_lp_primal_sol!(inc, lp_primal_sol)
     @test CL.get_lp_primal_sol(inc) == lp_primal_sol
     @test CL.get_lp_primal_bound(inc) == 8.1
 
     bound = CL.PrimalBound{CL.MinSense}(9.6)
     solution = Dict(var_ids[2] => 3.5)
     lp_primal_sol = CL.PrimalSolution(f, bound, solution)
-    @test !CL.set_lp_primal_sol!(inc, lp_primal_sol)
+    @test !CL.update_lp_primal_sol!(inc, lp_primal_sol)
     @test CL.get_lp_primal_bound(inc) == 8.1
 
     bound = CL.PrimalBound{CL.MinSense}(12.0)
     solution = Dict(var_ids[3] => 2.0, var_ids[4] => 1.0)
     ip_primal_sol = CL.PrimalSolution(f, bound, solution)
-    @test CL.set_ip_primal_sol!(inc, ip_primal_sol)
+    @test CL.update_ip_primal_sol!(inc, ip_primal_sol)
     @test CL.get_ip_primal_sol(inc) == ip_primal_sol
     @test CL.get_ip_primal_bound(inc) == 12.0
 
     bound = CL.DualBound{CL.MinSense}(1.1)
     solution = Dict(constr_ids[3] => 0.1, constr_ids[5] => 0.9)
     lp_dual_sol = CL.DualSolution(f, bound, solution)
-    @test CL.set_lp_dual_sol!(inc, lp_dual_sol)
+    @test CL.update_lp_dual_sol!(inc, lp_dual_sol)
     @test CL.get_lp_dual_sol(inc) == lp_dual_sol
     @test CL.get_lp_dual_bound(inc) == 1.1
 

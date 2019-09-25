@@ -20,7 +20,7 @@ was_fully_explored(t::SearchTree) = t.fully_explored
 """
     ReformulationSolver
 
-Branch-and-bound algorithm to optimize a `Reformulationjuli.
+Branch-and-bound algorithm to optimize a `Reformulation`.
 """
 mutable struct ReformulationSolver <: AbstractAlgorithm
     primary_tree::SearchTree
@@ -69,7 +69,7 @@ end
 function setup_node!(n::Node, treat_order::Int, res::OptimizationResult)
     @logmsg LogLevel(0) string("Setting up node ", treat_order, " before apply")
     set_treat_order!(n, treat_order)
-    nbprimalsols(res) >= 1 && set_ip_primal_sol!(getincumbents(n), unsafe_getbestprimalsol(res))
+    nbprimalsols(res) >= 1 && update_ip_primal_sol!(getincumbents(n), unsafe_getbestprimalsol(res))
     @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(n)))
     @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(getincumbents(n)))
     if (ip_gap(getincumbents(n)) <= 0.0 + 0.00000001)

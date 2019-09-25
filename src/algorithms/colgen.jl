@@ -10,7 +10,7 @@ end
 
 function ColumnGenTmpRecord(S::Type{<:AbstractObjSense}, node_inc::Incumbents)
     i = Incumbents(S)
-    set_ip_primal_sol!(i, get_ip_primal_sol(node_inc))
+    update_ip_primal_sol!(i, get_ip_primal_sol(node_inc))
     return ColumnGenTmpRecord(i, false, true)
 end
 
@@ -62,7 +62,7 @@ function run!(algo::ColumnGeneration, form, node)
     else
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status FEASIBLE."
     end
-    set!(node.incumbents, cg_rec.incumbents)
+    update!(node.incumbents, cg_rec.incumbents)
     return cg_rec
 end
 
@@ -94,7 +94,7 @@ function insert_cols_in_master!(masterform::Formulation,
             nb_of_gen_col += 1
             ref = getvarcounter(masterform) + 1
             name = string("MC", sp_uid, "_", ref)
-            resetsolvalue(masterform, sp_sol)
+            resetsolvalue!(masterform, sp_sol)
             lb = 0.0
             ub = Inf
             kind = Continuous
@@ -293,10 +293,10 @@ function cg_main_loop(algdata::ColumnGenTmpRecord,
             return ColumnGenerationRecord(algdata.incumbents, true)
         end
 
-        set_lp_primal_sol!(algdata.incumbents, primal_sols[1])
-        set_lp_dual_sol!(algdata.incumbents, dual_sols[1])
+        update_lp_primal_sol!(algdata.incumbents, primal_sols[1])
+        update_lp_dual_sol!(algdata.incumbents, dual_sols[1])
         if isinteger(primal_sols[1]) && !contains(primal_sols[1], MasterArtVar)
-            set_ip_primal_sol!(algdata.incumbents, primal_sols[1])
+            update_ip_primal_sol!(algdata.incumbents, primal_sols[1])
         end
 
         # TODO: cleanup restricted master columns        
