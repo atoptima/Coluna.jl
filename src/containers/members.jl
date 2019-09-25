@@ -139,7 +139,6 @@ function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J <: AbstractVarC
     print(io, "]")
 end
 
-
 struct MembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
     cols::MembersVector{I,K,MembersVector{J,L,T}}
     rows::MembersVector{J,L,MembersVector{I,K,T}}
