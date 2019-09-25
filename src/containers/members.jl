@@ -107,12 +107,15 @@ for (id, value) in Iterators.filter(var -> integer(var), vec)
     # body
 end
 """
-function Base.filter(f::Function, vec::MembersVector)
-    MembersVector(vec.elements, Base.filter(e -> f(vec.elements[e[1]]), vec.records))
+function Base.filter(f::Function, vec::MembersVector{I,K,T}) where {I,K,T}
+    r = Base.filter(e -> f(vec.elements[e[1]]) && e[2] != zero(T), vec.records)
+    MembersVector(vec.elements, r)
 end
 
-function Base.Iterators.filter(f::Function, vec::MembersVector)
-    return Base.Iterators.filter(e -> f(vec.elements[e[1]]), vec.records)
+function Base.Iterators.filter(f::Function, vec::MembersVector{I,K,T}) where {I,K,T}
+    return Base.Iterators.filter(
+        e -> f(vec.elements[e[1]]) && e[2] != zero(T), vec.records
+    )
 end
 
 function Base.keys(vec::MembersVector)
@@ -287,5 +290,36 @@ function rows(m::MembersMatrix)
     return m.rows
 end
 
-# Consistence
-# TODO
+"""
+    is_consistent(vec::MembersVector)
+
+Return `true` if all non-zero records are associated to an element.
+
+    is_consistent(m::MembersMatrix)
+
+Return `true` if all columns and rows are consistent. 
+
+We recommend the use of `is_consistent` only for debugging purposes.
+"""
+function is_consistent(vec::MembersVector{I,K,T}) where {I,K,T}
+    for (id, value) in vec.records
+        if value != zero(T) && !haskey(vec.elements, id)
+            return false
+        end
+    end
+    return true
+end
+
+function is_consistent(m::MembersMatrix)
+    for (key, row) in rows(m)
+        if !is_consistent(row)
+            return false
+        end
+    end
+    for (key, col) in columns(m)
+        if !is_consistent(col)
+            return false
+        end
+    end
+    return true
+end
