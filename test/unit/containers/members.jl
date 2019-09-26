@@ -2,6 +2,7 @@ function members_unit_tests()
     add_elems_in_matrix_tests(5, 5)
     add_elems_in_matrix_tests(10, 5)
     add_elems_in_matrix_tests(5, 10)
+    doc_tests()
 end
 
 function create_variable(i)
@@ -67,4 +68,51 @@ function add_elems_in_matrix_tests(nbvars, nbconstrs)
     c, id = create_constraint(nbconstrs + 100)
     matrix[id, col_ids[1]] = 2.0
     @test matrix[id, col_ids[1]] == 2.0
+    return
+end
+
+function doc_tests()
+    # MembersVector
+    variables = Dict{Int, String}(1 => "x_1", 2 => "x_2", 3 => "x_3", 10 => "y")
+    vector = CL.MembersVector{Float64}(variables)
+    vector[1] = 1
+    vector[3] = 1/2
+    vector[10] = 2.5
+    vector[1] = 0
+    @test vector[1] == 0.0
+    @test vector[10] == 2.5
+    @test vector[11] == 0.0
+    @test reduce(+, vector) == 3.0
+    vector[8] = 15 
+    @test CL.is_consistent(vector) == false
+    @test_throws KeyError CL.getelement(vector, 8)
+    @test vector[8] == 15
+    variables[8] = "z_0"
+    @test CL.getelement(vector, 8) == "z_0"
+    @test CL.is_consistent(vector) == true
+    for (key, record) in Iterators.filter(element -> element[1] == 'x', vector)
+        varname = CL.getelement(vector, key)
+        @test varname == "x_3"
+    end
+
+    # MembersMatrix
+    variables = Dict{Int, String}(1 => "x_1", 2 => "x_2", 3 => "x_3", 10 => "y_1", 11 => "y_2")
+    constraints = Dict{Char, String}('a' => "constr_1", 'b' => "constr_2", 'c' => "constr_3" , 'e' => "bounds_1")
+    matrix = CL.MembersMatrix{Float64}(variables, constraints)
+    matrix['a', 1] = 2
+    matrix['a', 11] = 5
+    matrix['b', 3] = 2.5
+    matrix['b', 11] = 10
+    matrix['c', 2] = -1
+    matrix['c', 10] = 42
+    matrix['e', 3] = 13/7
+    @test matrix['a', 1] == 2
+    @test matrix['z', 42] == 0
+    matrix['a', 2] += 100
+    @test matrix['a', 2] == 100
+    matrix['d', 1] = 2 # No constraints with id `d`
+    @test CL.is_consistent(matrix) == false
+    constraints['d'] = "bounds_2"
+    @test CL.is_consistent(matrix) == true
+    return 
 end
