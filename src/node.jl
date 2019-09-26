@@ -47,7 +47,7 @@ mutable struct Node <: AbstractNode
     children::Vector{Node}
     incumbents::Incumbents
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
-    algorithm_records::Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}
+    algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
     record::NodeRecord
     status::FormulationStatus
 end
@@ -55,7 +55,7 @@ end
 function RootNode(ObjSense::Type{<:AbstractObjSense})
     return Node(
         -1, 0, nothing, Node[], Incumbents(ObjSense), nothing,
-        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}(),
+        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
         NodeRecord(), FormulationStatus()
     )
 end
@@ -68,7 +68,7 @@ function Node(parent::Node, branch::Branch)
     incumbents.lp_primal_sol = typeof(incumbents.lp_primal_sol)()
     return Node(
         -1, depth, parent, Node[], incumbents, branch,
-        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmRecord}(),
+        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
         NodeRecord(), FormulationStatus()
     )
 end
@@ -82,11 +82,11 @@ getbranch(n::Node) = n.branch
 addchild!(n::Node, child::Node) = push!(n.children, child)
 set_treat_order!(n::Node, treat_order::Int) = n.treat_order = treat_order
 
-function set_algorithm_record!(n::Node, S::Type{<:AbstractAlgorithm}, 
-                            r::AbstractAlgorithmRecord)
-    n.algorithm_records[S] = r
+function set_algorithm_result!(n::Node, algo::AbstractAlgorithm, 
+                            r::AbstractAlgorithmResult)
+    n.algorithm_results[algo] = r
 end
-get_algorithm_record!(n::Node, S::Type{<:AbstractAlgorithm}) = n.algorithm_records[S]
+get_algorithm_result!(n::Node, algo::AbstractAlgorithm) = n.algorithm_results[algo]
 
 function to_be_pruned(n::Node)
     # How to determine if a node should be pruned?? By the lp_gap?
