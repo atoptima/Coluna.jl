@@ -23,7 +23,7 @@ version = "0.5.6"
 
 [[BlockDecomposition]]
 deps = ["DataStructures", "JuMP", "MathOptInterface", "Test"]
-git-tree-sha1 = "8e047cc85a38985c897967dcab1b0297d9d1d278"
+git-tree-sha1 = "0c1abf326a5e46f06c73fa8ddfc2271998b61279"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
@@ -37,7 +37,7 @@ version = "0.5.0"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "2483a4f578de38846a254b78f20986e3dca47d9d"
+git-tree-sha1 = "0a2603e8bad82166f8611d7c3b004c43ae978c9c"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
@@ -111,7 +111,7 @@ version = "0.10.3"
 
 [[GLPK]]
 deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "514692c8ffb0cb4f37afcb0f175573f31551c408"
+git-tree-sha1 = "94627f7ac9118017ec54e6676b30fdacb677cdec"
 repo-rev = "master"
 repo-url = "https://github.com/JuliaOpt/GLPK.jl.git"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
