@@ -31,8 +31,8 @@ function play_gap_with_preprocessing_tests()
     coluna = JuMP.with_optimizer(
         CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
         params = CL.Params(
-            ; global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess,
-            CL.SimpleBranching, CL.DepthFirst)
+            ; global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess(),
+            CL.SimpleBranching(), CL.DepthFirst())
         )
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -72,8 +72,8 @@ function test_random_gap_instance()
     coluna = JuMP.with_optimizer(CL.Optimizer,
     default_optimizer = with_optimizer(
         GLPK.Optimizer), params = CL.Params(
-            ;global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess,
-            CL.NoBranching, CL.DepthFirst)
+            ;global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess(),
+            CL.NoBranching(), CL.DepthFirst())
         )
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
