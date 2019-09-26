@@ -32,16 +32,16 @@ function PreprocessData(depth::Int, reformulation::Reformulation)
     )
 end
 
-struct PreprocessRecord <: AbstractAlgorithmRecord
+struct PreprocessRecord <: AbstractAlgorithmResult
     proven_infeasible::Bool
 end
 
-function prepare!(::Type{Preprocess}, reformulation, node, strategy_rec, params)
+function prepare!(algo::Preprocess, reformulation, node)
     @logmsg LogLevel(0) "Prepare preprocessing"
     return
 end
 
-function run!(::Type{Preprocess}, reformulation, node, strategy_rec, parameters)
+function run!(algo::Preprocess, reformulation, node)
     @logmsg LogLevel(0) "Run preprocessing"
 
     alg_data = PreprocessData(node.depth, reformulation)
@@ -73,8 +73,8 @@ function change_sp_bounds!(alg_data::PreprocessData)
     sps_with_modified_bounds = []
 
     for (col, col_val) in alg_data.local_partial_sol
-        sp_form = getsp(alg_data, col)
-        sp_form_id = getuid(sp_form)
+        spform = getsp(alg_data, col)
+        sp_form_id = getuid(spform)
         if alg_data.cur_sp_bounds[sp_form_id][1] > 0
             alg_data.cur_sp_bounds[sp_form_id] = (
                 max(alg.cur_sp_bounds[sp_form_id][1] - col_val, 0),
@@ -94,8 +94,8 @@ function change_sp_bounds!(alg_data::PreprocessData)
         )
         setrhs!(master, conv_ub_constr, alg.cur_sp_bounds[sp_form_id][2])
         @assert alg.cur_sp_bounds[sp_ref][2] >= 0
-        if !(sp_form in sps_with_modified_bounds)
-            push!(sps_with_modified_bounds, sp_form)
+        if !(spform in sps_with_modified_bounds)
+            push!(sps_with_modified_bounds, spform)
         end
     end
     return sps_with_modified_bounds
@@ -146,7 +146,7 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     for sp_prob in sps_with_modified_bounds
         (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[getuid(sp_prob)]
 
-        for (var_id, var) in Iterators.filter(_active_pricing_sp_var_, getvars(sp_form))
+        for (var_id, var) in Iterators.filter(_active_pricing_sp_var_, getvars(spform))
             var_val_in_local_sol = (
                 haskey(sp_vars_vals, var_id) ? sp_vars_vals[var_id] : 0.0
             )
