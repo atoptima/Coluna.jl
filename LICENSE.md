@@ -1,6 +1,6 @@
 The Coluna.jl package is licensed under the Mozilla Public License, Version 2.0:
 
-> Copyright (c) 2018: Issam Tahiri.
+> Copyright (c) 2019: Atoptima.
 >
 > Mozilla Public License, version 2.0
 >
