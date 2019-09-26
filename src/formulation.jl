@@ -10,11 +10,9 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     var_counter::Counter
     constr_counter::Counter
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
-
     optimizer::AbstractOptimizer
     manager::FormulationManager
     obj_sense::Type{<:AbstractObjSense}
-
     buffer::FormulationBuffer
 end
 
@@ -184,80 +182,74 @@ function setvar!(f::Formulation,
     return addvar!(f, v)
 end
 
-function setprimaldwspsol!(f::Formulation,
-                         name::String,
-                         sol::PrimalSolution{S},
-                         duty::Type{<:AbstractVarDuty};
-                         lb::Float64 = 0.0,
-                         ub::Float64 = Inf,
-                         kind::VarKind = Continuous,
-                         sense::VarSense = Positive,
-                         inc_val::Float64 = 0.0,
-                         is_active::Bool = true,
-                         is_explicit::Bool = true,
-                         moi_index::MoiVarIndex = MoiVarIndex()) where {S<:AbstractObjSense}
-    ps_id = generatevarid(f)
-    ps_data = VarData(getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit)
-    ps = Variable(ps_id, name, duty; var_data = ps_data, moi_index = moi_index)
+function setprimaldwspsol!(
+    mastform::Formulation, name::String, sol::PrimalSolution{S},
+    duty::Type{<:AbstractVarDuty}; lb::Float64 = 0.0, ub::Float64 = Inf,
+    kind::VarKind = Continuous, sense::VarSense = Positive, 
+    inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
+    moi_index::MoiVarIndex = MoiVarIndex()
+) where {S<:AbstractObjSense}
+    mast_col_id = generatevarid(mastform)
+    mast_col_data = VarData(
+        getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit
+    )
+    mastcol = Variable(
+        mast_col_id, name, duty; var_data = mast_col_data, moi_index = moi_index
+    )
 
-    coef_matrix = getcoefmatrix(f)
-    primalspsol_matrix = getprimaldwspsolmatrix(f)
+    master_coef_matrix = getcoefmatrix(mastform)
+    primal_sp_sol_matrix = getprimaldwspsolmatrix(mastform)
 
     for (var_id, var_val) in sol
-        primalspsol_matrix[var_id, ps_id] = var_val
-        for (constr_id, var_coef) in coef_matrix[:,var_id]
-            coef_matrix[constr_id, ps_id] += var_val * var_coef
+        primal_sp_sol_matrix[var_id, mast_col_id] = var_val
+        for (constr_id, var_coef) in master_coef_matrix[:,var_id]
+            master_coef_matrix[constr_id, mast_col_id] += var_val * var_coef
         end
     end
 
-    return addvar!(f, ps)
+    return addvar!(mastform, mastcol)
 end
 
+function setprimaldualbendspsol!(
+    mastform::Formulation, spform::Formulation, name::String,
+    primalsol::PrimalSolution{S}, dualsol::DualSolution{S},
+    duty::Type{<:AbstractConstrDuty}; kind::ConstrKind = Core,
+    sense::ConstrSense = Greater, inc_val::Float64 = -1.0, 
+    is_active::Bool = true, is_explicit::Bool = true,
+    moi_index::MoiConstrIndex = MoiConstrIndex()
+) where {S<:AbstractObjSense}
+    benders_cut_id = generateconstrid(mastform)
+    benders_cut_data = ConstrData(
+        getvalue(dualsol), Core, sense, inc_val, is_active, is_explicit
+    )
+    benderscut = Constraint(
+        benders_cut_id, name, duty; constr_data = benders_cut_data, 
+        moi_index = moi_index
+    )
 
+    master_coef_matrix = getcoefmatrix(mastform)
+    sp_coef_matrix = getcoefmatrix(spform)
+    primal_bend_sp_sol_matrix = getprimalbendspsolmatrix(mastform)
+    dual_bend_sp_sol_matrix = getdualbendspsolmatrix(mastform)
 
-function setprimaldualbendspsol!(f::Formulation,
-                                 name::String,
-                                 primal_sol::PrimalSolution{S},
-                                 dual_sol::DualSolution{S},
-                                 duty::Type{<:AbstractConstrDuty};
-                                 kind::ConstrKind = Core,
-                                 sense::ConstrSense = Greater,
-                                 inc_val::Float64 = -1.0,
-                                 is_active::Bool = true,
-                                 is_explicit::Bool = true,
-                                 moi_index::MoiConstrIndex = MoiConstrIndex()) where {S<:AbstractObjSense}
-    
-    dps_id = generateconstrid(f)
-    dps_data = ConstrData(getvalue(dual_sol), kind, sense, inc_val, is_active, is_explicit)
-    dps = Constraint(dps_id, name, duty; constr_data = dps_data, moi_index = moi_index)
-
-    @show primal_sol
-    
-    @show dual_sol
-    
-    @show dps
-    
-    coef_matrix = getcoefmatrix(f)
-    primalbendspsol_matrix = getprimalbendspsolmatrix(f)
-    dualbendspsol_matrix = getdualbendspsolmatrix(f)
-
-    for (constr_id, constr_val) in dual_sol
-        dualbendspsol_matrix[constr_id, dps_id] = constr_val
-        for (var_id, constr_coef) in coef_matrix[constr_id,:]
-            coef_matrix[dps_id, var_id] += constr_val * constr_coef
+    for (constr_id, constr_val) in dualsol
+        constr = getconstr(spform, constr_id)
+        if getduty(constr) <: AbstractBendSpMasterConstr
+            dual_bend_sp_sol_matrix[constr_id, benders_cut_id] = constr_val
+            for (var_id, constr_coef) in sp_coef_matrix[constr_id,:]
+                var = getvar(spform, var_id)
+                if getduty(var) <: AbstractBendSpSlackMastVar
+                    master_coef_matrix[benders_cut_id, var_id] += constr_val * constr_coef
+                end
+            end
         end
+    end 
+
+    for (var_id, var_val) in primalsol
+        primal_bend_sp_sol_matrix[var_id, benders_cut_id] = var_val
     end
 
-    cut = addconstr!(f, dps)
-
-
-    @show cut
-
-    for (var_id, var_val) in primal_sol
-        primalbendspsol_matrix[var_id, dps_id] = var_val
-    end
-
-    return cut
+    return addconstr!(mastform, benderscut)
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."
@@ -275,7 +267,7 @@ end
 deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 
 function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(id_v -> get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))
+    vars = filter(v -> get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
     for (id, var) in vars
         deactivate!(f, var)
     end
@@ -283,7 +275,7 @@ function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
 end
 
 function deactivate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(id_c -> get_cur_is_active(id_c[2]) && getduty(id_c[2]) <: Duty, getconstrs(f))
+    constrs = filter(c -> get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
     for (id, constr) in constrs
         deactivate!(f, constr)
     end
@@ -299,14 +291,14 @@ end
 activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
 
 function activate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(id_v -> !get_cur_is_active(id_v[2]) && getduty(id_v[2]) <: Duty, getvars(f))
+    vars = filter(v -> !get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
     for (id, var) in vars
         activate!(f, var)
     end
 end
 
 function activate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(id_c -> !get_cur_is_active(id_c[2]) && getduty(id_c[2]) <: Duty, getconstrs(f))
+    constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
     for (id, constr) in constrs
         activate!(f, constr)
     end
@@ -348,7 +340,7 @@ end
 
 function enforce_integrality!(f::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(f))
-    for (v_id, v) in filter(_active_explicit_, getvars(f))
+    for (v_id, v) in Iterators.filter(_active_explicit_, getvars(f))
         getcurkind(v) == Integ && continue
         getcurkind(v) == Binary && continue
         if (getduty(v) == MasterCol || getperenekind(v) != Continuous)
@@ -361,7 +353,7 @@ end
 
 function relax_integrality!(f::Formulation)
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(f))
-    for (v_id, v) in filter(_active_explicit_, getvars(f))
+    for (v_id, v) in Iterators.filter(_active_explicit_, getvars(f))
         getcurkind(v) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
         setkind!(f, v, Continuous)
@@ -383,7 +375,7 @@ function setmembers!(f::Formulation, v::Variable, members::ConstrMembership)
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
     coef_matrix = getcoefmatrix(f)
-    primalspsol_matrix = getprimaldwspsolmatrix(f)
+    primal_sp_sol_matrix = getprimaldwspsolmatrix(f)
     id = getid(v)
     for (constr_id, coeff) in members
         coef_matrix[constr_id, id] = coeff
@@ -430,23 +422,23 @@ function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
     return
 end
 
-function resetsolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
+function resetsolvalue!(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
     setvalue!(sol, val)
     return val
 end
 
-function resetsolvalue(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
+function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
     val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
     setvalue!(sol, val)
-    return val
+    return val 
 end
 
-function computereducedcost(form::Formulation, var_id::Id{Variable}, dual_sol::DualSolution{S})  where {S<:AbstractObjSense}
+function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::DualSolution{S})  where {S<:AbstractObjSense}
     var = getvar(form, var_id)
     rc = getperenecost(var)
     coefficient_matrix = getcoefmatrix(form)
-    for (constr_id, dual_val) in getsol(dual_sol)
+    for (constr_id, dual_val) in getsol(dualsol)
         coeff = coefficient_matrix[constr_id, var_id]
         if getobjsense(form) == MinSense
             rc -= dual_val * coeff
@@ -457,11 +449,11 @@ function computereducedcost(form::Formulation, var_id::Id{Variable}, dual_sol::D
     return rc
 end
 
-function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primal_sol::PrimalSolution{S})  where {S<:AbstractObjSense}
+function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primalsol::PrimalSolution{S})  where {S<:AbstractObjSense}
     constr = getconstr(form,constr_id)
     crhs = getperenerhs(constr)
     coefficient_matrix = getcoefmatrix(form)
-    for (var_id, primal_val) in getsol(primal_sol)
+    for (var_id, primal_val) in getsol(primalsol)
         coeff = coefficient_matrix[constr_id, var_id]
         crhs -= primal_val * coeff
     end

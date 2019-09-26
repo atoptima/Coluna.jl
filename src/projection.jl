@@ -1,8 +1,8 @@
-function proj_cols_on_rep(sol::PrimalSolution{S}, master::Formulation) where {S}
+function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMaster}) where {Sense}
     projected_sol = Dict{VarId, Float64}()
     primalspsolmatrix = getprimaldwspsolmatrix(master)
     for (mc_id, mc_val) in sol
-        for (rep_id, rep_val) in filter(
+        for (rep_id, rep_val) in Iterators.filter(
                 _rep_of_orig_var_, primalspsolmatrix[:, mc_id]
             )
             projected_sol[rep_id] = (get!(projected_sol, rep_id, 0.0)) + rep_val * mc_val
@@ -12,4 +12,8 @@ function proj_cols_on_rep(sol::PrimalSolution{S}, master::Formulation) where {S}
     # TODO : add pure master variables
 
     return PrimalSolution(master, float(getbound(sol)), projected_sol)
+end
+
+function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{BendersMaster}) where {Sense}
+    return sol
 end

@@ -5,11 +5,11 @@ mutable struct GenerateChildrenNodeData
     reformulation::Reformulation # should handle reformulation & formulation
 end
 
-struct GenerateChildrenNodeRecord <: AbstractAlgorithmRecord
+struct GenerateChildrenNodeRecord <: AbstractAlgorithmResult
     nodes::Vector{AbstractNode} # Node is not defined when this file is included
 end
 
-function prepare!(::Type{GenerateChildrenNode}, form, node, strategy_rec, params)
+function prepare!(algo::GenerateChildrenNode, form, node)
     @logmsg LogLevel(0) "Prepare generate children nodes"
     return
 end
@@ -18,15 +18,15 @@ abstract type RuleForUsualBranching end
 struct MostFractionalRule <: RuleForUsualBranching end
 #struct LeastFractionalRule <: RuleForUsualBranching end
 
-function run!(::Type{GenerateChildrenNode}, formulation, node, strategy_rec, parameters)
+function run!(algo::GenerateChildrenNode, formulation, node)
     @logmsg LogLevel(0) "Run generate children nodes"
     algorithm_data =  GenerateChildrenNodeData(getincumbents(node), formulation)
     if !isfertile(node)
         @logmsg LogLevel(1) "Node cannot generate children, aborting branching"
         return GenerateChildrenNodeRecord(Node[])
     end
-    found_candiate, var_id, val = best_candidate(MostFractionalRule, algorithm_data)
-    if found_candiate
+    found_candidate, var_id, val = best_candidate(MostFractionalRule, algorithm_data)
+    if found_candidate
         var = getvar(formulation.master, var_id)
         @logmsg LogLevel(-1) string("Chosen branching variable : ", getname(getvar(formulation.master, var_id)), ". With value ", val, ".")
         child1 = Node(node, Branch(var, ceil(val), Greater, getdepth(node)))
@@ -43,13 +43,14 @@ function run!(::Type{GenerateChildrenNode}, formulation, node, strategy_rec, par
     return record
 end
 
-function best_candidate(R::Type{<:RuleForUsualBranching}, algorithm_data)
+function best_candidate(Rule::Type{<:RuleForUsualBranching}, algorithm_data)
     master = getmaster(algorithm_data.reformulation)
     master_primal_sol = get_lp_primal_sol(algorithm_data.incumbents)
 
     solution = proj_cols_on_rep(master_primal_sol, master)
+    #@show "fractional solution" solution
 
-    return best_candidate(R, solution)
+    return best_candidate(Rule, solution)
 end
 
 distround(r::Real) = abs(round(r) - r)

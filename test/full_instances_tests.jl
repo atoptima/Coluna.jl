@@ -1,24 +1,26 @@
 function full_instances_tests()
-    #generalized_assignment_tests()
-    #lot_sizing_tests()
+    generalized_assignment_tests()
+    capacitated_lot_sizing_tests()
+    lot_sizing_tests()
+    #facility_location_tests()
     cutting_stock_tests()
 end
 
 function generalized_assignment_tests()
     @testset "play gap" begin
-    data = CLD.GeneralizedAssignment.data("play2.txt")
+        data = CLD.GeneralizedAssignment.data("play2.txt")
 
-    coluna = JuMP.with_optimizer(Coluna.Optimizer,
-                                 params = CL.Params(
-                                     global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
-                                 ),
-                                 default_optimizer = with_optimizer(GLPK.Optimizer)
-                                 )
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-    JuMP.optimize!(problem)
-    @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+        JuMP.optimize!(problem)
+        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
@@ -26,9 +28,9 @@ function generalized_assignment_tests()
     @testset "gap - JuMP/MOI modeling" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -44,9 +46,9 @@ function generalized_assignment_tests()
     @testset "gap with penalties - pure master variables" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -60,9 +62,9 @@ function generalized_assignment_tests()
     @testset "gap with maximisation objective function" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -76,11 +78,12 @@ function generalized_assignment_tests()
     @testset "gap with infeasible subproblem" begin
         data = CLD.GeneralizedAssignment.data("root_infeas.txt")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-        params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP, CL.SimpleBranching, CL.DepthFirst)
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
-            default_optimizer = with_optimizer(GLPK.Optimizer))
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
    
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
@@ -101,15 +104,11 @@ function generalized_assignment_tests()
     #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     # end
 
-    # To redirect logging output
-    io = IOBuffer()
-    global_logger(ConsoleLogger(io, LogLevel(-4)))
-
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-            default_optimizer = with_optimizer(GLPK.Optimizer)
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -122,9 +121,9 @@ function generalized_assignment_tests()
     @testset "clsp small instance" begin
         data = CLD.CapacitatedLotSizing.readData("testSmall")
 
-        coluna = JuMP.with_optimizer(Coluna.Optimizer,
-                                     default_optimizer = with_optimizer(GLPK.Optimizer)
-                                     )
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
 
         model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
         JuMP.optimize!(model)
@@ -140,12 +139,49 @@ function lot_sizing_tests()
         
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
             params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBenders, CL.SimpleBranching, CL.DepthFirst)
+                max_num_nodes = 1, 
+                global_strategy = CL.GlobalStrategy(CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
+        JuMP.optimize!(problem)
+        @test 600 - 1e-6 <= objective_value(problem) <= 600 + 1e-6
+    end
+    return
+end
+
+function capacitated_lot_sizing_tests()
+    @testset "play multi items capacited lot sizing" begin
+        data = CLD.CapacitatedLotSizing.readData("testSmall")
+        
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.NoBranching(), CL.DepthFirst())
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
+
+        clsp, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)  
+        JuMP.optimize!(clsp)
+    end
+end
+
+function facility_location_tests()
+    @testset "play facility locatio ntest " begin
+        data = CLD.FacilityLocation.data("play.txt")
+        
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer,
+            params = CL.Params(
+                max_num_nodes = 1, 
+                global_strategy = CL.GlobalStrategy(CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst())
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
+
+        problem, x, y, dec = CLD.FacilityLocation.model(data, coluna)
         JuMP.optimize!(problem)
     end
     return
