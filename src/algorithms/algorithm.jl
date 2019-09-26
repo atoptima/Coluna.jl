@@ -1,60 +1,53 @@
 """
-    AbstractAlgorithmRecord
+    AbstractAlgorithmResult
 
-Stores data after the end of an algorithm execution.
+Stores the computational results after the end of an algorithm execution.
 These data can be used to initialize another execution of the same algorithm or in 
 setting the transition to another algorithm.
 """
-abstract type AbstractAlgorithmRecord end
+abstract type AbstractAlgorithmResult end
 
 """
-    prepare!(AlgorithmType, formulation, node, strategy_record, parameters)
+    prepare!(Algorithm, formulation, node)
 
-Prepares the `formulation` in the `node` to be optimized by algorithm `AlgorithmType`.
+Prepares the `formulation` in the `node` to be optimized by algorithm `Algorithm`.
 """
 function prepare! end
 
 """
-    run!(AlgorithmType, formulation, node, strategy_record, parameters)
+    run!(Algorithm, formulation, node)
 
-Runs the algorithm `AlgorithmType` on the `formulation` in a `node` with `parameters`.
+Runs the algorithm `Algorithm` on the `formulation` in a `node`.
 """
 function run! end
 
 # Fallbacks
-function prepare!(T::Type{<:AbstractAlgorithm}, formulation, node, strategy_rec, parameters)
-    error("prepare! method not implemented for algorithm $T.")
+function prepare!(algo::AbstractAlgorithm, formulation, node)
+    algotype = typeof(algo)
+    error("prepare! method not implemented for algorithm $(algotype).")
 end
 
-function run!(T::Type{<:AbstractAlgorithm}, formulation, node, strategy_rec, parameters)
-    error("run! method not implemented for algorithm $T.")
+function run!(algo::AbstractAlgorithm, formulation, node)
+    algotype = typeof(algo)
+    error("run! method not implemented for algorithm $(algotype).")
 end
 
 """
-    apply!(AlgorithmType, formulation, node, strategy_record, parameters)
+    apply!(Algorithm, formulation, node)
 
-Applies the algorithm `AlgorithmType` on the `formulation` in a `node` with 
+Applies the algorithm `Algorithm` on the `formulation` in a `node` with 
 `parameters`.
 """
-function apply!(A::Type{<:AbstractAlgorithm}, form, node, strategy_rec,
-                params)
+function apply!(algo::AbstractAlgorithm, form, node)
     prepare!(form, node)
-    setalgorithm!(strategy_rec, A)
-    TO.@timeit _to string(A) begin
+    TO.@timeit _to string(algo) begin
         TO.@timeit _to "prepare" begin
-            prepare!(A, form, node, strategy_rec, params)
+            prepare!(algo, form, node)
         end
         TO.@timeit _to "run" begin
-            record = run!(A, form, node, strategy_rec, params)
+            record = run!(algo, form, node)
         end
     end
-    set_algorithm_record!(node, A, record)
+    set_algorithm_result!(node, algo, record)
     return record
 end
-
-"""
-    StartNode
-
-Fake algorithm that indicates the start of the node treatment.
-"""
-struct StartNode <: AbstractAlgorithm end
