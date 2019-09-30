@@ -15,13 +15,14 @@ branch-and-bound node.
 abstract type AbstractDivideStrategy <: AbstractStrategy end
 
 """
-    AbstractTreeSearchStrategy
+    AbstractExploreStrategy
 
-A TreeSearchStrategy defines how the branch-and-bound tree shall be
-searhed. To define a concrete `AbstractTreeSearchStrategy` one must define the function
-`apply!(strategy::Type{<:AbstractTreeSearchStrategy}, n::Node)`.
+An ExploreStrategy defines how the branch-and-bound tree shall be
+searched. To define a concrete `AbstractExploreStrategy`, one must define 
+the function
+`apply!(strategy::Type{<:AbstractExploreStrategy}, n::Node)`.
 """
-abstract type AbstractTreeSearchStrategy <: AbstractStrategy end
+abstract type AbstractExploreStrategy <: AbstractStrategy end
 
 """
     apply!(strategy::AbstractStrategy, args...)
@@ -58,5 +59,5 @@ in solving a `Reformulation`. Each `Reformulation` keeps an objecto of type Glob
 struct GlobalStrategy <: AbstractStrategy
     conquer::AbstractConquerStrategy
     divide::AbstractDivideStrategy
-    tree_search::AbstractTreeSearchStrategy
+    explore::AbstractExploreStrategy
 end
