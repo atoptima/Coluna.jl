@@ -37,11 +37,12 @@ function pricing_callback_tests()
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-        BD.assignsolver(dec, build_master_moi_optimizer)
-        BD.assignsolver(dec[1:2], build_sp_moi_optimizer)
-        @test BD.getoptimizerbuilder(dec) == build_master_moi_optimizer
-        @test BD.getoptimizerbuilder(dec[1]) == build_sp_moi_optimizer
-        @test BD.getoptimizerbuilder(dec[2]) == build_sp_moi_optimizer
+        master = BD.getmaster(dec)
+        subproblems = BD.getsubproblems(dec)
+        
+        BD.assignsolver!(master, build_master_moi_optimizer)
+        BD.assignsolver!(subproblems[1], build_sp_moi_optimizer)
+        BD.assignsolver!(subproblems[2], build_sp_moi_optimizer)
 
         JuMP.optimize!(problem)
         @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001

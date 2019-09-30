@@ -33,7 +33,7 @@ function BnPnPreprocess(
     return BnPnPreprocess(preprocess, colgen, mastipheur)
 end
 
-function apply!(stragey::BnPnPreprocess, reform, node)
+function apply!(strategy::BnPnPreprocess, reform, node)
     prepr_rec = apply!(strategy.preprocess, reform, node)
     if prepr_rec.proven_infeasible
        node.status.proven_infeasible = true
