@@ -1,18 +1,18 @@
 mutable struct SearchTree
     nodes::DS.PriorityQueue{Node, Float64}
-    search_strategy::AbstractTreeSearchStrategy
+    explore_strategy::AbstractExploreStrategy
     fully_explored::Bool
 end
 
-SearchTree(search_strategy::AbstractTreeSearchStrategy) = SearchTree(
-    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), search_strategy,
+SearchTree(explore_strategy::AbstractExploreStrategy) = SearchTree(
+    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), explore_strategy,
     true
 )
 
 getnodes(t::SearchTree) = t.nodes
 Base.isempty(t::SearchTree) = isempty(t.nodes)
 
-push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.search_strategy, node))
+push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.explore_strategy, node))
 popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
 was_fully_explored(t::SearchTree) = t.fully_explored
@@ -31,10 +31,10 @@ mutable struct ReformulationSolver <: AbstractAlgorithm
     result::OptimizationResult
 end
 
-function ReformulationSolver(search_strategy::AbstractTreeSearchStrategy,
+function ReformulationSolver(explore_strategy::AbstractExploreStrategy,
                     ObjSense::Type{<:AbstractObjSense})
     return ReformulationSolver(
-        SearchTree(search_strategy), SearchTree(DepthFirst()),
+        SearchTree(explore_strategy), SearchTree(DepthFirst()),
         true, 1, 0, OptimizationResult{ObjSense}()
     )
 end
@@ -84,10 +84,10 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
     # Get all strategies
     conquer_strategy = strategy.conquer
     divide_strategy = strategy.divide
-    tree_search_strategy = strategy.tree_search
+    explore_strategy = strategy.explore
 
     reform_solver = ReformulationSolver(
-        tree_search_strategy, reform.master.obj_sense
+        explore_strategy, reform.master.obj_sense
     )
     push!(reform_solver, RootNode(reform.master.obj_sense))
 
