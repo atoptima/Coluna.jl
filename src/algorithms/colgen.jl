@@ -47,12 +47,12 @@ end
 
 function run!(algo::ColumnGeneration, form, node)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    algdataa = ColumnGenTmpRecord(form.master.obj_sense, node.incumbents)
-    cg_rec = cg_main_loop(algdataa, form, 2)
+    algdata = ColumnGenTmpRecord(form.master.obj_sense, node.incumbents)
+    cg_rec = cg_main_loop(algdata, form, 2)
     if should_do_ph_1(cg_rec)
         record!(form, node)
         set_ph_one(form.master)
-        cg_rec = cg_main_loop(algdataa, form, 1)
+        cg_rec = cg_main_loop(algdata, form, 1)
     end
     if cg_rec.proven_infeasible
         cg_rec.incumbents = Incumbents(getsense(cg_rec.incumbents))
@@ -325,13 +325,20 @@ function cg_main_loop(algdata::ColumnGenTmpRecord,
         primal_bound = get_lp_primal_bound(algdata.incumbents)     
         cur_gap = gap(primal_bound, dual_bound)
         
+        ip_primal_bound = get_ip_primal_bound(algdata.incumbents)
+
+        if diff(dual_bound, ip_primal_bound) < -1e-6
+            algdata.has_converged = false # ???
+            @logmsg LogLevel(1) "Dual bound reached primal bound."
+            return ColumnGenerationRecord(algdata.incumbents, false)
+        end
         if phase == 1 && ph_one_infeasible_db(dual_bound)
             algdata.is_feasible = false
-            @logmsg LogLevel(0) "Phase one determines infeasibility."
+            @logmsg LogLevel(1) "Phase one determines infeasibility."
             return ColumnGenerationRecord(algdata.incumbents, true)
         end
         if nb_new_col == 0 || cur_gap < 0.00001 #_params_.relative_optimality_tolerance
-            @logmsg LogLevel(0) "Column Generation Algorithm has converged." #nb_new_col cur_gap
+            @logmsg LogLevel(1) "Column Generation Algorithm has converged." #nb_new_col cur_gap
             algdata.has_converged = true
             return ColumnGenerationRecord(algdata.incumbents, false)
         end

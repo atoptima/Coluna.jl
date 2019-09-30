@@ -3,6 +3,7 @@ function full_instances_tests()
     capacitated_lot_sizing_tests()
     lot_sizing_tests()
     #facility_location_tests()
+    cutting_stock_tests()
 end
 
 function generalized_assignment_tests()
@@ -139,7 +140,9 @@ function lot_sizing_tests()
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
             params = CL.Params(
                 max_num_nodes = 1, 
-                global_strategy = CL.GlobalStrategy(CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(
+                    CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst()
+                )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -157,7 +160,9 @@ function capacitated_lot_sizing_tests()
         
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.NoBranching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(
+                    CL.SimpleBnP(), CL.NoBranching(), CL.DepthFirst()
+                )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -175,13 +180,35 @@ function facility_location_tests()
             Coluna.Optimizer,
             params = CL.Params(
                 max_num_nodes = 1, 
-                global_strategy = CL.GlobalStrategy(CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(
+                    CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst()
+                )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         problem, x, y, dec = CLD.FacilityLocation.model(data, coluna)
         JuMP.optimize!(problem)
+    end
+    return
+end
+
+function cutting_stock_tests()
+    @testset "play cutting stock" begin
+        data = CLD.CuttingStock.data("randomInstances/inst10-10")
+
+        coluna = JuMP.with_optimizer(Coluna.Optimizer,
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(
+                    CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst()
+                )
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
+
+        problem, x, y, dec = CLD.CuttingStock.model(data, coluna)
+        JuMP.optimize!(problem)
+        @test 4 - 1e-6 <= objective_value(problem) <= 4 + 1e-6
     end
     return
 end

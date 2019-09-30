@@ -135,7 +135,7 @@ function create_side_vars_constrs!(
         setupvar = collect(values(setupvars))[1]
         clonevar!(masterform, setupvar, MasterRepPricingSetupVar, is_explicit = false)
         # create convexity constraint
-        lb_mult = Float64(BD.getminmultiplicity(ann))
+        lb_mult = Float64(BD.getlowermultiplicity(ann))
         name = string("sp_lb_", spuid)
         lb_conv_constr = setconstr!(
             masterform, name, MasterConvexityConstr; 
@@ -146,7 +146,7 @@ function create_side_vars_constrs!(
         setincval!(getcurdata(lb_conv_constr), 100.0)
         coefmatrix[getid(lb_conv_constr), getid(setupvar)] = 1.0
 
-        ub_mult =  Float64(BD.getmaxmultiplicity(ann))
+        ub_mult =  Float64(BD.getuppermultiplicity(ann))
         name = string("sp_ub_", spuid)
         ub_conv_constr = setconstr!(
             masterform, name, MasterConvexityConstr; rhs = ub_mult, 
