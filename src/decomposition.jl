@@ -446,14 +446,15 @@ end
 function reformulate!(
     prob::Problem, annotations::Annotations, strategy::GlobalStrategy
 )
-    decomposition_tree = annotations.tree
-
-    root = BD.getroot(decomposition_tree)
-                                       
+    decomposition_tree = annotations.tree                                       
     # Create reformulation
     reform = Reformulation(prob, strategy)
     set_re_formulation!(prob, reform)
-    buildformulations!(prob, annotations, reform, reform, root)
+    
+    if decomposition_tree != nothing
+        root = BD.getroot(decomposition_tree)
+        buildformulations!(prob, annotations, reform, reform, root)
+    end
     return
 end
 

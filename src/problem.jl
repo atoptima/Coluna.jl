@@ -95,7 +95,9 @@ function coluna_initialization(
     _welcome_message()
     _set_global_params(params)
     reformulate!(prob, annotations, params.global_strategy)
-    relax_integrality!(prob.re_formulation.master)
+    if prob.re_formulation.master != nothing
+        relax_integrality!(prob.re_formulation.master)
+    end
     @info "Coluna initialized."
 end
 

@@ -28,6 +28,7 @@ function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
                          Dict{FormId, Int}())
 end
 
+getparent(r::Reformulation) = r.parent
 getglobalstrategy(r::Reformulation) = r.strategy
 setglobalstrategy!(r::Reformulation, strategy::GlobalStrategy) = r.strategy = strategy
 getmaster(r::Reformulation) = r.master

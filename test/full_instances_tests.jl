@@ -6,6 +6,14 @@ function full_instances_tests()
     cutting_stock_tests()
 end
 
+struct StrategyOnOrigForm <: Coluna.AbstractConquerStrategy end
+function CL.apply!(strategy::StrategyOnOrigForm, reform, node)
+    origform = CL.getparent(reform)
+    @show origform
+    CL.apply!(CL.MasterIpHeuristic(), origform, node)
+    return
+end
+
 function generalized_assignment_tests()
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
@@ -116,6 +124,28 @@ function generalized_assignment_tests()
         @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    end
+
+    @testset "not decomposed" begin
+        data = CLD.GeneralizedAssignment.data("play2.txt")
+
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
+        
+        gap = JuMP.Model(coluna)
+
+        BD.@axis(M, data.machines)
+    
+        @variable(gap, x[m in M, j in data.jobs], Bin)
+        @constraint(gap, cov[j in data.jobs], sum(x[m,j] for m in M) >= 1)
+        @constraint(gap, knp[m in M],
+                sum(data.weight[j,m]*x[m,j] for j in data.jobs) <= data.capacity[m])
+        @objective(gap, Min,
+                sum(data.cost[j,m]*x[m,j] for m in M, j in data.jobs))
+
+        JuMP.optimize!(gap)
+        @test abs(JuMP.objective_value(gap) - 75.0) <= 0.00001
     end
 
     @testset "clsp small instance" begin

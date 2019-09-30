@@ -92,9 +92,12 @@ function create_origvars!(f::Formulation,
         dest.moi_index_to_coluna_uid[moi_index] = moi_index_in_coluna
         moi_uid_to_coluna_id[moi_index.value] = var_id
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
+        if annotation != nothing
+            store!(dest.annotations, annotation, var)
+        end
         dest.varmap[moi_index_in_coluna] = var_id
-        store!(dest.annotations, annotation, var)
     end
+    return
 end
 
 function create_origconstr!(f::Formulation,
@@ -144,7 +147,9 @@ function create_origconstr!(f::Formulation,
         matrix[constr_id, var_id] = term.coefficient
     end
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
-    store!(dest.annotations, annotation, c)
+    if annotation != nothing
+        store!(dest.annotations, annotation, c)
+    end
     return
 end
 
