@@ -4,19 +4,19 @@ Base.@kwdef struct ColumnGeneration <: AbstractAlgorithm
 end
 
 # Data stored while algorithm is running
-mutable struct ColumnGenerationAuxRec
+mutable struct ColGenRuntimeData
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
     params::ColumnGeneration
 end
 
-function ColumnGenerationAuxRec(
+function ColGenRuntimeData(
     algparams::ColumnGeneration, form::Reformulation, node::Node
 )
     inc = Incumbents(form.master.obj_sense)
     update_ip_primal_sol!(inc, get_ip_primal_sol(node.incumbents))
-    return ColumnGenerationAuxRec(inc, false, true, algparams)
+    return ColGenRuntimeData(inc, false, true, algparams)
 end
 
 # Data needed for another round of column generation
@@ -34,7 +34,7 @@ end
 # Overload of the algorithm's run function
 function run!(alg::ColumnGeneration, form::Reformulation, node::Node)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    algdata = ColumnGenerationAuxRec(alg, form, node)
+    algdata = ColGenRuntimeData(alg, form, node)
     result = cg_main_loop(algdata, form, 2)
     if should_do_ph_1(result)
         record!(form, node)
@@ -221,14 +221,14 @@ function solve_sps_to_gencols!(
 end
 
 function compute_master_db_contrib(
-    algdata::ColumnGenerationAuxRec, restricted_master_sol_value::PrimalBound{S}
+    algdata::ColGenRuntimeData, restricted_master_sol_value::PrimalBound{S}
 ) where {S}
     # TODO: will change with stabilization
     return DualBound{S}(restricted_master_sol_value)
 end
 
 function update_lagrangian_db!(
-    algdata::ColumnGenerationAuxRec, restricted_master_sol_value::PrimalBound{S},
+    algdata::ColGenRuntimeData, restricted_master_sol_value::PrimalBound{S},
     pricing_sp_dual_bound_contrib::DualBound{S}
 ) where {S}
     lagran_bnd = DualBound{S}(0.0)
@@ -247,7 +247,7 @@ function solve_restricted_master!(master::Formulation)
 end
 
 function generatecolumns!(
-    algdata::ColumnGenerationAuxRec, reform::Reformulation, master_val, 
+    algdata::ColGenRuntimeData, reform::Reformulation, master_val, 
     dual_sol, sp_lbs, sp_ubs
 )
     nb_new_columns = 0
@@ -268,7 +268,7 @@ ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
 ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
 
 function cg_main_loop(
-    algdata::ColumnGenerationAuxRec, reform::Reformulation, phase::Int
+    algdata::ColGenRuntimeData, reform::Reformulation, phase::Int
 )::ColumnGenerationResult
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
@@ -352,7 +352,7 @@ function cg_main_loop(
 end
 
 function print_intermediate_statistics(
-    algdata::ColumnGenerationAuxRec, nb_new_col::Int, nb_cg_iterations::Int,
+    algdata::ColGenRuntimeData, nb_new_col::Int, nb_cg_iterations::Int,
     mst_time::Float64, sp_time::Float64
 )
     mlp = getvalue(get_lp_primal_bound(algdata.incumbents))
