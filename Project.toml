@@ -1,24 +1,28 @@
 name = "Coluna"
 uuid = "88b4ec78-b192-11e8-04aa-4d367dd96a64"
-authors = ["Francois Vanderbeck", "Guillaume Marques", "Vitor Nesello"]
+authors = ["François Vanderbeck", "Guillaume Marques", "Vitor Nesello"]
 version = "0.1.0"
 
 [deps]
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
-ColunaDemos = "a54e61d4-7723-11e9-2469-af255fcaa246"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
-MathOptInterface = "~0.9"
+MathOptInterface = "≥ 0.9"
 julia = "1"
+
+[extras]
+ColunaDemos = "a54e61d4-7723-11e9-2469-af255fcaa246"
+GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["ColunaDemos", "GLPK", "JuMP", "Test"]

@@ -3,13 +3,11 @@ module Coluna
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
-import JuMP
 import BlockDecomposition
 import Distributed
 import TimerOutputs
 
 using Logging
-using SparseArrays
 using Printf
 
 global const MOI = MathOptInterface
