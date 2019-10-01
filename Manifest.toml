@@ -35,14 +35,6 @@ git-tree-sha1 = "bd8bbd105ba583a42385bd6dc4a20dad8ab3dc11"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.5.0"
 
-[[ColunaDemos]]
-deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "8f5d96d3cb8efc4ae985f2df7b85da4cfb9cb3f1"
-repo-rev = "master"
-repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
-uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
-version = "0.1.0"
-
 [[CommonSubexpressions]]
 deps = ["Test"]
 git-tree-sha1 = "efdaf19ab11c7889334ca247ff4c9f7c322817b0"
