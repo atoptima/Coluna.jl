@@ -27,9 +27,9 @@ notifications:
 #  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
 
 
-#script: # the default script is equivalent to the following
-#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia -e 'Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.test("Coluna"; coverage=true)';
+script: # the default script is equivalent to the following
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.clone("https://github.com/atoptima/ColunaDemos.jl.git"); Pkg.clone(pwd()); Pkg.build("Coluna"); Pkg.test("Coluna"; coverage=true)';
 
 after_success:
   - julia -e 'using Pkg; Pkg.add("Coverage");  cd(Pkg.dir("Coluna")); using Coverage; Codecov.submit(Codecov.process_folder())'
