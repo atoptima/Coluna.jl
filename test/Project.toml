@@ -1,0 +1,6 @@
+[deps]
+BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
+ColunaDemos = "a54e61d4-7723-11e9-2469-af255fcaa246"
+GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
