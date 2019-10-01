@@ -43,6 +43,32 @@ function generalized_assignment_tests()
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
+    @testset "gap - ColGen max nb iterations" begin
+        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(
+                    CL.SimpleBnP(
+                        colgen = CL.ColumnGeneration(
+                            max_nb_iterations = 8
+                        )
+                    ),
+                    CL.SimpleBranching(), 
+                    CL.DepthFirst()
+                )
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
+        )
+
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+        JuMP.optimize!(problem)
+        @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    end
+
     @testset "gap with penalties - pure master variables" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
