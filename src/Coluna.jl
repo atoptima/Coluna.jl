@@ -7,6 +7,7 @@ import JuMP
 import BlockDecomposition
 import Distributed
 import TimerOutputs
+import Base.Threads
 
 using Logging
 using SparseArrays
