@@ -197,48 +197,51 @@ function solve_sp_to_gencol!(
     return insertion_status, pricing_db_contrib
 end
 
+# function solve_sps_to_gencols!(
+#     reform::Reformulation, dual_sol::DualSolution{S},
+#     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
+# ) where {S}
+#     nb_new_cols = 0
+#     dual_bound_contrib = DualBound{S}(0.0)
+#     masterform = getmaster(reform)
+#     sps = get_dw_pricing_sp(reform)
+#     for spform in sps
+#         sp_uid = getuid(spform)
+#         gen_status, contrib = solve_sp_to_gencol!(
+#             masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
+#         )
+#
+#         if gen_status > 0
+#             nb_new_cols += gen_status
+#             dual_bound_contrib += float(contrib)
+#         elseif gen_status == -1 # Sp is infeasible
+#             println("infeasible")
+#             return (gen_status, Inf)
+#         end
+#     end
+#     @show nb_new_cols, dual_bound_contrib
+#     return (nb_new_cols, dual_bound_contrib)
+# end
+
 function solve_sps_to_gencols!(
     reform::Reformulation, dual_sol::DualSolution{S},
     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 ) where {S}
-    nb_new_cols = 0
-    dual_bound_contrib = DualBound{S}(0.0)
+    nb_new_cols = Threads.Atomic{Int64}(0)
+    dual_bound_contrib = Threads.Atomic{Float64}(0.0)
     masterform = getmaster(reform)
     sps = get_dw_pricing_sp(reform)
-    for spform in sps
+    Threads.@threads for spform in sps
         sp_uid = getuid(spform)
         gen_status, contrib = solve_sp_to_gencol!(
             masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
         )
 
         if gen_status > 0
-            nb_new_cols += gen_status
-            dual_bound_contrib += float(contrib)
-        elseif gen_status == -1 # Sp is infeasible
-            println("infeasible")
-            return (gen_status, Inf)
-        end
-    end
-    @show nb_new_cols, dual_bound_contrib
-    return (nb_new_cols, dual_bound_contrib)
-end
-
-function solve_sps_to_gencols!(reformulation::Reformulation,
-                  dual_sol::DualSolution{S},
-                  sp_lbs::Dict{FormId, Float64},
-                  sp_ubs::Dict{FormId, Float64}) where {S}
-
-    nb_new_cols = Threads.Atomic{Int64}(0)
-    dual_bound_contrib = Threads.Atomic{Float64}(0.0)
-    master_form = getmaster(reformulation)
-    sps = get_dw_pricing_sp(reformulation)
-    Threads.@threads for sp_form in sps
-        sp_uid = getuid(sp_form)
-        gen_status, contrib = solve_sp_to_gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
-        if gen_status > 0
             Threads.atomic_add!(nb_new_cols, gen_status)
             Threads.atomic_add!(dual_bound_contrib, float(contrib))
         elseif gen_status == -1 # Sp is infeasible
+            println("infeasible")
             return (gen_status, Inf)
         end
     end
