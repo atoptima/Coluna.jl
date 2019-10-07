@@ -86,7 +86,7 @@ function update_pricing_target!(spform::Formulation)
 end
 
 function insert_cols_in_master!(
-    masterform::Formulation, spform::Formulation, 
+    masterform::Formulation, spform::Formulation,
     spsols::Vector{PrimalSolution{S}}
 ) where {S}
     sp_uid = getuid(spform)
@@ -197,45 +197,6 @@ function solve_sp_to_gencol!(
     return insertion_status, pricing_db_contrib
 end
 
-<<<<<<< HEAD
-# function solve_sps_to_gencols!(reformulation::Reformulation,
-#                   dual_sol::DualSolution{S},
-#                   sp_lbs::Dict{FormId, Float64},
-#                   sp_ubs::Dict{FormId, Float64}) where {S}
-#
-#     nb_new_cols = 0
-#     dual_bound_contrib = DualBound{S}(0.0)
-#     master_form = getmaster(reformulation)
-#     sps = get_dw_pricing_sp(reformulation)
-#     for sp_form in sps
-#         sp_uid = getuid(sp_form)
-#         gen_status, contrib = solve_sp_to_gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
-#
-#         if gen_status > 0
-#             nb_new_cols += gen_status
-#             dual_bound_contrib += float(contrib)
-#         elseif gen_status == -1 # Sp is infeasible
-#             println("infeasible")
-#             return (gen_status, Inf)
-#         end
-#     end
-#     @show nb_new_cols, dual_bound_contrib
-#     return (nb_new_cols, dual_bound_contrib)
-# end
-
-function solve_sps_to_gencols!(reformulation::Reformulation,
-                  dual_sol::DualSolution{S},
-                  sp_lbs::Dict{FormId, Float64},
-                  sp_ubs::Dict{FormId, Float64}) where {S}
-
-    nb_new_cols = Threads.Atomic{Int64}(0)
-    dual_bound_contrib = Threads.Atomic{Float64}(0.0)
-    master_form = getmaster(reformulation)
-    sps = get_dw_pricing_sp(reformulation)
-    Threads.@threads for sp_form in sps
-        sp_uid = getuid(sp_form)
-        gen_status, contrib = solve_sp_to_gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
-=======
 function solve_sps_to_gencols!(
     reform::Reformulation, dual_sol::DualSolution{S},
     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
@@ -249,7 +210,31 @@ function solve_sps_to_gencols!(
         gen_status, contrib = solve_sp_to_gencol!(
             masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
         )
->>>>>>> 5bb8eba8ec9f997e034a490349eb57b9d5f0db31
+
+        if gen_status > 0
+            nb_new_cols += gen_status
+            dual_bound_contrib += float(contrib)
+        elseif gen_status == -1 # Sp is infeasible
+            println("infeasible")
+            return (gen_status, Inf)
+        end
+    end
+    @show nb_new_cols, dual_bound_contrib
+    return (nb_new_cols, dual_bound_contrib)
+end
+
+function solve_sps_to_gencols!(reformulation::Reformulation,
+                  dual_sol::DualSolution{S},
+                  sp_lbs::Dict{FormId, Float64},
+                  sp_ubs::Dict{FormId, Float64}) where {S}
+
+    nb_new_cols = Threads.Atomic{Int64}(0)
+    dual_bound_contrib = Threads.Atomic{Float64}(0.0)
+    master_form = getmaster(reformulation)
+    sps = get_dw_pricing_sp(reformulation)
+    Threads.@threads for sp_form in sps
+        sp_uid = getuid(sp_form)
+        gen_status, contrib = solve_sp_to_gencol!(master_form, sp_form, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid])
         if gen_status > 0
             Threads.atomic_add!(nb_new_cols, gen_status)
             Threads.atomic_add!(dual_bound_contrib, float(contrib))
@@ -290,7 +275,7 @@ function solve_restricted_master!(master::Formulation)
 end
 
 function generatecolumns!(
-    algdata::ColGenRuntimeData, reform::Reformulation, master_val, 
+    algdata::ColGenRuntimeData, reform::Reformulation, master_val,
     dual_sol, sp_lbs, sp_ubs
 )
     nb_new_columns = 0
@@ -310,16 +295,9 @@ end
 ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
 ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
 
-<<<<<<< HEAD
-function cg_main_loop(alg_data::ColumnGenerationData,
-                      reformulation::Reformulation,
-                      phase::Int)::ColumnGenerationRecord
-    setglobalstrategy!(reformulation, GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst))
-=======
 function cg_main_loop(
     algdata::ColGenRuntimeData, reform::Reformulation, phase::Int
 )::ColumnGenerationResult
->>>>>>> 5bb8eba8ec9f997e034a490349eb57b9d5f0db31
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
@@ -374,14 +352,8 @@ function cg_main_loop(
 
         # TODO: update colgen stabilization
 
-<<<<<<< HEAD
-        dual_bound = get_ip_dual_bound(alg_data.incumbents)
-        primal_bound = get_lp_primal_bound(alg_data.incumbents)
-        cur_gap = gap(primal_bound, dual_bound)
-
-=======
         dual_bound = get_ip_dual_bound(algdata.incumbents)
-        primal_bound = get_lp_primal_bound(algdata.incumbents)     
+        primal_bound = get_lp_primal_bound(algdata.incumbents)
         ip_primal_bound = get_ip_primal_bound(algdata.incumbents)
 
         if diff(dual_bound, ip_primal_bound) < algdata.params.optimality_tol
@@ -389,7 +361,6 @@ function cg_main_loop(
             @logmsg LogLevel(1) "Dual bound reached primal bound."
             return ColumnGenerationResult(algdata.incumbents, false)
         end
->>>>>>> 5bb8eba8ec9f997e034a490349eb57b9d5f0db31
         if phase == 1 && ph_one_infeasible_db(dual_bound)
             algdata.is_feasible = false
             @logmsg LogLevel(1) "Phase one determines infeasibility."
