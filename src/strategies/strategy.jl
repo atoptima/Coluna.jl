@@ -1,13 +1,3 @@
-mutable struct StrategyRecord
-    cur_algorithm::Type{<:AbstractAlgorithm}
-    ext::Dict{Symbol, Any}
-end
-
-StrategyRecord() = StrategyRecord(StartNode, Dict{Symbol, Any}())
-
-setalgorithm!(r::StrategyRecord, s::Type{<:AbstractAlgorithm}) = r.cur_algorithm = s
-getalgorithm(r::StrategyRecord) = r.cur_algorithm
-
 """
     AbstractConquerStrategy
 
@@ -25,28 +15,29 @@ branch-and-bound node.
 abstract type AbstractDivideStrategy <: AbstractStrategy end
 
 """
-    AbstractTreeSearchStrategy
+    AbstractExploreStrategy
 
-A TreeSearchStrategy defines how the branch-and-bound tree shall be
-searhed. To define a concrete `AbstractTreeSearchStrategy` one must define the function
-`apply!(strategy::Type{<:AbstractTreeSearchStrategy}, n::Node)`.
+An ExploreStrategy defines how the branch-and-bound tree shall be
+searched. To define a concrete `AbstractExploreStrategy`, one must define 
+the function
+`apply!(strategy::Type{<:AbstractExploreStrategy}, n::Node)`.
 """
-abstract type AbstractTreeSearchStrategy <: AbstractStrategy end
+abstract type AbstractExploreStrategy <: AbstractStrategy end
 
 """
-    apply!(S::Type{<:AbstractStrategy}, args...)
+    apply!(strategy::AbstractStrategy, args...)
 
-Applies the strategy `S` to whatever context such strategy is defined for.
+Apply `strategy` to whatever context such strategy is defined for.
 
-    apply!(::Type{<:AbstractDivideStrategy}, reformulation, node, strategy_record, params)
+    apply!(strategy::AbstractDivideStrategy, reformulation, node)
 
-Applies the divide strategy on a `reformulation` in the `node` with `parameters`.
+Apply the divide strategy on a `reformulation` in the `node`.
 
-    apply!(::Type{<:AbstractConquerStrategy}, reformulation, node, strategy_record, params)
+    apply!(strategy::AbstractDivideStrategy, reformulation, node)
 
-Applies the conquer strategy on a `reformulation` in the `node` with `parameters`.
+Apply the conquer strategy on a `reformulation` in the `node`.
 
-    apply!(S::Type{<:AbstractTreeSearchStrategy}, n::Node)::Real
+    apply!(strategy::AbstractDivideStrategy, n::Node)::Real
 
 computes the `Node` `n` preference to be treated according to 
 the strategy type `S` and returns the corresponding Real number.
@@ -54,8 +45,9 @@ the strategy type `S` and returns the corresponding Real number.
 function apply! end
 
 # Fallback
-function apply!(S::Type{<:AbstractStrategy}, args...)
-    error("Method apply! not implemented for conquer strategy $S.")
+function apply!(strategy::AbstractStrategy, args...)
+    strategy_type = typeof(strategy)
+    error("Method apply! not implemented for strategy $(strategy_type).")
 end
 
 """
@@ -65,17 +57,7 @@ A GlobalStrategy encapsulates all three strategies necessary to define Coluna's 
 in solving a `Reformulation`. Each `Reformulation` keeps an objecto of type GlobalStrategy.
 """
 struct GlobalStrategy <: AbstractStrategy
-    conquer::Type{<:AbstractConquerStrategy}
-    divide::Type{<:AbstractDivideStrategy}
-    tree_search::Type{<:AbstractTreeSearchStrategy}
+    conquer::AbstractConquerStrategy
+    divide::AbstractDivideStrategy
+    explore::AbstractExploreStrategy
 end
-
-"""
-    GlobalStrategy()
-
-Constructs a default GlobalStrategy using the strategies 
-`SimpleBnP` as Conquer Strategy, `SimpleBranching` as DivideStrategy 
-and `DepthFirst` as TreeSearchStrategy.
-"""
-
-#GlobalStrategy() = GlobalStrategy(SimpleBnP, SimpleBranching, DepthFirst)

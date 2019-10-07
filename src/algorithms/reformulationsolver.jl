@@ -1,18 +1,18 @@
 mutable struct SearchTree
     nodes::DS.PriorityQueue{Node, Float64}
-    search_strategy::Type{<:AbstractTreeSearchStrategy}
+    explore_strategy::AbstractExploreStrategy
     fully_explored::Bool
 end
 
-SearchTree(search_strategy::Type{<:AbstractTreeSearchStrategy}) = SearchTree(
-    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), search_strategy,
+SearchTree(explore_strategy::AbstractExploreStrategy) = SearchTree(
+    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), explore_strategy,
     true
 )
 
 getnodes(t::SearchTree) = t.nodes
 Base.isempty(t::SearchTree) = isempty(t.nodes)
 
-push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.search_strategy, node))
+push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.explore_strategy, node))
 popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
 nb_open_nodes(t::SearchTree) = length(t.nodes)
 was_fully_explored(t::SearchTree) = t.fully_explored
@@ -31,10 +31,10 @@ mutable struct ReformulationSolver <: AbstractAlgorithm
     result::OptimizationResult
 end
 
-function ReformulationSolver(search_strategy::Type{<:AbstractTreeSearchStrategy},
+function ReformulationSolver(explore_strategy::AbstractExploreStrategy,
                     ObjSense::Type{<:AbstractObjSense})
     return ReformulationSolver(
-        SearchTree(search_strategy), SearchTree(DepthFirst),
+        SearchTree(explore_strategy), SearchTree(DepthFirst()),
         true, 1, 0, OptimizationResult{ObjSense}()
     )
 end
@@ -52,15 +52,13 @@ get_nb_treated_nodes(s::ReformulationSolver) = s.nb_treated_nodes
 getresult(s::ReformulationSolver) = s.result
 switch_tree(s::ReformulationSolver) = s.in_primary = !s.in_primary
 
-function apply_on_node!(conquer_strategy::Type{<:AbstractConquerStrategy},
-                       divide_strategy::Type{<:AbstractDivideStrategy},
-                       reform::Reformulation, node::Node, params)
+function apply_on_node!(conquer_strategy::AbstractConquerStrategy,
+                       divide_strategy::AbstractDivideStrategy,
+                       reform::Reformulation, node::Node)
     # Prepare formulation before calling `apply!(::AbstractStrategy)`
     prepare!(reform, node)
-    strategy_rec = StrategyRecord()
-    setalgorithm!(strategy_rec, StartNode) # ToClean
-    apply!(conquer_strategy, reform, node, strategy_rec, params)
-    apply!(divide_strategy, reform, node, strategy_rec, params)
+    apply!(conquer_strategy, reform, node)
+    apply!(divide_strategy, reform, node)
     # Condition needed because if the last algorithm that was executed did a 
     # record (because would change the formulation), the following line 
     # would record the modified problem, which we do not want
@@ -71,7 +69,7 @@ end
 function setup_node!(n::Node, treat_order::Int, res::OptimizationResult)
     @logmsg LogLevel(0) string("Setting up node ", treat_order, " before apply")
     set_treat_order!(n, treat_order)
-    nbprimalsols(res) >= 1 && set_ip_primal_sol!(getincumbents(n), unsafe_getbestprimalsol(res))
+    nbprimalsols(res) >= 1 && update_ip_primal_sol!(getincumbents(n), unsafe_getbestprimalsol(res))
     @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(n)))
     @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(getincumbents(n)))
     if (ip_gap(getincumbents(n)) <= 0.0 + 0.00000001)
@@ -86,10 +84,10 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
     # Get all strategies
     conquer_strategy = strategy.conquer
     divide_strategy = strategy.divide
-    tree_search_strategy = strategy.tree_search
+    explore_strategy = strategy.explore
 
     reform_solver = ReformulationSolver(
-        tree_search_strategy, reform.master.obj_sense
+        explore_strategy, reform.master.obj_sense
     )
     push!(reform_solver, RootNode(reform.master.obj_sense))
 
@@ -102,9 +100,7 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
         )
         print_info_before_apply(cur_node, reform_solver, reform, should_apply)
         if should_apply
-            apply_on_node!(
-                conquer_strategy, divide_strategy, reform, cur_node, nothing
-            )
+            apply_on_node!(conquer_strategy, divide_strategy, reform, cur_node)
         end
         print_info_after_apply(cur_node, reform_solver)
         update_reform_solver(reform_solver, cur_node)

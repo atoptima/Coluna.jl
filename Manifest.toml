@@ -22,12 +22,12 @@ uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
 version = "0.5.6"
 
 [[BlockDecomposition]]
-deps = ["DataStructures", "JuMP", "MathOptInterface", "Test"]
-git-tree-sha1 = "8e047cc85a38985c897967dcab1b0297d9d1d278"
+deps = ["DataStructures", "JuMP", "MathOptInterface"]
+git-tree-sha1 = "5feba4e22cb36607a7b96149a4776a6086d43c0c"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
-version = "0.1.0"
+version = "1.0.0"
 
 [[Calculus]]
 deps = ["Compat"]
@@ -37,7 +37,7 @@ version = "0.5.0"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "ec7405623c42daf5de443348cdc9a60629690591"
+git-tree-sha1 = "8f5d96d3cb8efc4ae985f2df7b85da4cfb9cb3f1"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
@@ -111,11 +111,11 @@ version = "0.10.3"
 
 [[GLPK]]
 deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "93be0c23900ce7a23db56bdcb29daf9fb38b12ef"
+git-tree-sha1 = "94627f7ac9118017ec54e6676b30fdacb677cdec"
 repo-rev = "master"
 repo-url = "https://github.com/JuliaOpt/GLPK.jl.git"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-version = "0.11.3"
+version = "0.11.4"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -152,9 +152,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
 deps = ["BenchmarkTools", "LinearAlgebra", "OrderedCollections", "SparseArrays", "Test", "Unicode"]
-git-tree-sha1 = "5e6e36e2f01efbc62b3f8bf68c8cf82035e2c6a6"
+git-tree-sha1 = "2880e4eca97edb87ea53e986880de6bc2fbcefb1"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.9.1"
+version = "0.9.3"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"

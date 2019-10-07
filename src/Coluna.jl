@@ -72,8 +72,8 @@ include("strategies/conquer/simplebenders.jl")
 # Here include divide strategies
 include("strategies/divide/simplebranching.jl")
 
-# Here include tree search strategies
-include("strategies/treesearch/simplestrategies.jl")
+# Here include explore strategies
+include("strategies/explore/simplestrategies.jl")
 
 # Wrapper functions
 include("MOIwrapper.jl")

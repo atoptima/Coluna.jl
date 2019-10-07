@@ -1,4 +1,5 @@
-const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float64}}
+const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float64},
+                               MOI.SingleVariable}
 
 const SupportedVarSets = Union{MOI.ZeroOne,
                                MOI.Integer,
