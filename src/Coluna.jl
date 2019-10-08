@@ -19,6 +19,8 @@ global const DS = DataStructures
 global const BD = BlockDecomposition
 global const TO = TimerOutputs
 
+global const withthreads = Ref(false)
+
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,

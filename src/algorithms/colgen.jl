@@ -197,33 +197,33 @@ function solve_sp_to_gencol!(
     return insertion_status, pricing_db_contrib
 end
 
-# function solve_sps_to_gencols!(
-#     reform::Reformulation, dual_sol::DualSolution{S},
-#     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
-# ) where {S}
-#     nb_new_cols = 0
-#     dual_bound_contrib = DualBound{S}(0.0)
-#     masterform = getmaster(reform)
-#     sps = get_dw_pricing_sp(reform)
-#     for spform in sps
-#         sp_uid = getuid(spform)
-#         gen_status, contrib = solve_sp_to_gencol!(
-#             masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
-#         )
-#
-#         if gen_status > 0
-#             nb_new_cols += gen_status
-#             dual_bound_contrib += float(contrib)
-#         elseif gen_status == -1 # Sp is infeasible
-#             println("infeasible")
-#             return (gen_status, Inf)
-#         end
-#     end
-#     @show nb_new_cols, dual_bound_contrib
-#     return (nb_new_cols, dual_bound_contrib)
-# end
-
 function solve_sps_to_gencols!(
+    reform::Reformulation, dual_sol::DualSolution{S},
+    sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
+) where {S}
+    nb_new_cols = 0
+    dual_bound_contrib = DualBound{S}(0.0)
+    masterform = getmaster(reform)
+    sps = get_dw_pricing_sp(reform)
+    for spform in sps
+        sp_uid = getuid(spform)
+        gen_status, contrib = solve_sp_to_gencol!(
+            masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
+        )
+
+        if gen_status > 0
+            nb_new_cols += gen_status
+            dual_bound_contrib += float(contrib)
+        elseif gen_status == -1 # Sp is infeasible
+            println("infeasible")
+            return (gen_status, Inf)
+        end
+    end
+    @show nb_new_cols, dual_bound_contrib
+    return (nb_new_cols, dual_bound_contrib)
+end
+
+function solve_sps_to_gencols_with_threads!(
     reform::Reformulation, dual_sol::DualSolution{S},
     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 ) where {S}
@@ -295,6 +295,24 @@ function generatecolumns!(
     return nb_new_columns
 end
 
+function generate_columns_with_threads!(
+    algdata::ColGenRuntimeData, reform::Reformulation, master_val,
+    dual_sol, sp_lbs, sp_ubs
+)
+    nb_new_columns = 0
+    while true # TODO Replace this condition when starting implement stabilization
+        nb_new_col, sp_db_contrib =  solve_sps_to_gencols_with_threads!(reform, dual_sol, sp_lbs, sp_ubs)
+        nb_new_columns += nb_new_col
+        update_lagrangian_db!(algdata, master_val, sp_db_contrib)
+        if nb_new_col < 0
+            # subproblem infeasibility leads to master infeasibility
+            return -1
+        end
+        break # TODO : rm
+    end
+    return nb_new_columns
+end
+
 ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
 ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
 
@@ -315,6 +333,12 @@ function cg_main_loop(
         ub_convexity_constr_id = reform.dw_pricing_sp_ub[sp_uid]
         sp_lbs[sp_uid] = getcurrhs(getconstr(masterform, lb_convexity_constr_id))
         sp_ubs[sp_uid] = getcurrhs(getconstr(masterform, ub_convexity_constr_id))
+    end
+
+    if withthreads[]
+        generate_columns_func! = generate_columns_with_threads!
+    else
+        generate_columns_func! = generatecolumns!
     end
 
     while true
@@ -339,7 +363,7 @@ function cg_main_loop(
 
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
-            nb_new_col = generatecolumns!(
+            nb_new_col = generate_columns_func!(
                 algdata, reform, master_val, dual_sols[1], sp_lbs, sp_ubs
             )
         end
