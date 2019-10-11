@@ -189,13 +189,37 @@ addprimalsol!(
 
 function setprimalsol!(
     form::Formulation,
-    sol::PrimalSolution{S}
-) where {S<:AbstractObjSense}
+    primalsol::PrimalSolution{S}
+)::Tuple{Bool,VarId} where {S<:AbstractObjSense}
     ### check if primalsol exists should take place heren along the coeff update
 
+    primal_sols = getprimalsolmatrix(form)
+
+    for (sol_id, sol) in columns(primal_sols)
+        #@show sol
+        is_identical = true
+        for (var_id, var_val) in getrecords(sol)
+            #@show (var_id, var_val)
+            if !haskey(sol, var_id)
+                is_identical = false
+                break
+            end
+            if sol[var_id] != var_val
+                is_identical = false
+                break
+            end
+        end
+        if is_identical
+            return (false, sol_id)
+        end
+    end
+    
     ### else
     sol_id = generatevarid(spform)
-    return addprimalsol!(form, sol, sol_id)
+
+    addprimalsol!(form, primalsol, sol_id)
+    
+    return (true, sol_id)
 end
 
 adddualsol!(
@@ -208,8 +232,37 @@ adddualsol!(
 function setdualsol!(
     form::Formulation,
     dualsol::DualSolution{S}
-) where {S<:AbstractObjSense}
-    ### check if dualspsol exists should take place here along the coeff update
+)::Tuple{Bool,ConstrId} where {S<:AbstractObjSense}
+    ### check if dualsol exists  take place here along the coeff update
+
+    dual_sols = getdualsolmatrix(form)
+
+    for (sol_id, sol) in columns(dual_sols)
+        #@show col
+        factor = 1.0
+        scaling_in_place = false
+        is_identical = true
+        for (constr_id, constr_val) in getrecords(sol)
+            #@show (var_id, var_val)
+            if !haskey(sol, constr_id)
+                is_identical = false
+                break
+            end
+            if dual_sol[constr_id] != factor * constr_val
+                if !scaling_in_place
+                    scaling_in_place = true
+                    factor = sol[constr_id] / constr_val
+                else
+                    is_identical = false
+                    break
+                end
+            end
+        end
+        if is_identical
+            return (false, sol_id)
+        end
+    end
+    
 
     ### else
 
@@ -471,14 +524,24 @@ function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
     return
 end
 
-function resetsolvalue!(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
+function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
+    return val
+end
+
+function resetsolvalue!(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
+    val = computesolvalue(form, sol)
     setvalue!(sol, val)
     return val
 end
 
-function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
+function computesolvalue(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
     val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
+    return val 
+end
+
+function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
+    val = computesolvalue(form, sol)
     setvalue!(sol, val)
     return val 
 end

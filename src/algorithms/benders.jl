@@ -153,17 +153,30 @@ function update_benders_sp_target!(spform::Formulation)
     # println("benders_sp target will only be needed after automating convexity constraints")
 end
 
-function insert_cuts_in_master!(
-    algdata, masterform::Formulation, spform::Formulation,
+function record_solutions!(
+    algdata,
+    spform::Formulation,
     spresult::OptimizationResult{S}
-) where {S}
-    primal_sols = getprimalsols(spresult)
-    dual_sols = getdualsols(spresult)
-    sp_uid = getuid(spform)
-    nb_of_gen_cuts = 0
-    sense = (S == MinSense ? Greater : Less)
+)::Vector{ConstrId} where {S}
 
-    N = length(dual_sols)
+    recorded_dual_solution_ids = Vector{ConstrId}()
+
+    #primal_sols = getprimalsols(spresult)
+    dual_sols = getdualsols(spresult)
+
+    for dual_sol in dual_sols
+        if getvalue(dual_sol) > 0.0001 #|| algdata.spform_phase[getuid(spform)] == PurePhase1
+            (insertion_status, cut_id) = setdualsol!(spform, dual_sol)
+            if insertion_status
+                push!(recorded_dual_solution_ids, cut_id)
+            else
+                @warn string("cut already exists as", cut_id)
+            end
+
+        end
+    end
+
+ #==   N = length(dual_sols)
     if length(primal_sols) < N
         N = length(primal_sols)
     end
@@ -203,6 +216,39 @@ function insert_cuts_in_master!(
             ==#
         end
     end
+==#
+    return recorded_dual_solution_ids 
+end
+
+
+function insert_cuts_in_master!(
+    masterform::Formulation,
+    spform::Formulation,
+    dualsol_ids::Vector{ConstrId},
+) 
+    sp_uid = getuid(spform)
+    nb_of_gen_cuts = 0
+    sense = (S == MinSense ? Greater : Less)
+
+    for dual_sol_id in dualsol_ids
+        nb_of_gen_cuts += 1
+        name = string("BC", dual_sol_id)
+        dual_sol = getdualsolmatrix(spform)[:;dual_sol_id]
+        rhs = computesolvalue(spform, dual_sol) # now the sol value represents the dual sol value
+        kind = Core
+        duty = MasterBendCutConstr
+        bc = setcut_from_sp_dualsol!(
+            masterform,
+            spform,
+            name,
+            duty;
+            rhs = rhs
+            kind = kind,
+            sense = sense
+        )
+        
+        @logmsg LogLevel(-2) string("Generated cut : ", name)
+    end
 
     return nb_of_gen_cuts
 end
@@ -216,24 +262,28 @@ function compute_benders_sp_lagrangian_bound_contrib(
 end
 
 function solve_sp_to_gencut!(
-    algo::BendersCutGeneration, algdata::BendersCutGenData, masterform::Formulation, 
-    spform::Formulation, master_primal_sol::PrimalSolution{S},
-    master_dual_sol::DualSolution{S}, up_to_phase::FormulationPhase
-) where {S}
+    algo::BendersCutGeneration,
+    algdata::BendersCutGenData,
+    masterform::Formulation, 
+    spform::Formulation,
+    master_primal_sol::PrimalSolution{S},
+    master_dual_sol::DualSolution{S},
+    up_to_phase::FormulationPhase
+)::Tuple{Bool, Bool, Vector{ConstrId}, Float64, Float64} where {S}
 
-    flag_is_sp_infeasible = -1
+    recorded_dual_solution_ids = Vector{ConstrId}()
+    sp_is_feasible = true
 
     # TODO renable this. Needed at least for the diving
     # if can_not_generate_more_cut(spform)
     #     return flag_cannot_generate_more_cut
     # end
 
-    spform_uid = getuid(spform)
     benders_sp_primal_bound_contrib = 0.0
+    benders_sp_lagrangian_bound_contrib =  0.0
+
     insertion_status = 0
     spsol_relaxed = false
-    benders_sp_lagrangian_bound_contrib =  0.0
-    
 
     # Compute target
     update_benders_sp_target!(spform)
@@ -262,8 +312,10 @@ function solve_sp_to_gencut!(
         end
 
         if !isfeasible(optresult) # if status != MOI.OPTIMAL
+        sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
-            return flag_is_sp_infeasible
+            bd = defaultprimalboundvalue(getobjsense(spform)) 
+            return sp_is_feasible, spsol_relaxed, recorded_dual_solution_ids, bd, bd
         end
 
         benders_sp_lagrangian_bound_contrib = compute_benders_sp_lagrangian_bound_contrib(algdata, spform, optresult)
@@ -316,8 +368,8 @@ function solve_sp_to_gencut!(
             end
             
         else # a cut can be generated since there is a violation
-            insertion_status = insert_cuts_in_master!(algdata, masterform, spform, optresult)
-            if spsol_relaxed &&  algo.option_increase_cost_in_hybrid_phase
+            recorded_dual_solution_ids = record_solutions!(algdata,  spform, optresult)
+            if spsol_relaxed && algo.option_increase_cost_in_hybrid_phase
                 #check algdata.spform_phase[spform_uid] == HybridPhase
                 # Todo increase cost
                 #continue
@@ -325,7 +377,11 @@ function solve_sp_to_gencut!(
             break
         end
     end
-    return insertion_status, spsol_relaxed, benders_sp_primal_bound_contrib, benders_sp_lagrangian_bound_contrib
+    
+    return sp_is_feasible, spsol_relaxed,
+    recorded_dual_solution_ids,
+    benders_sp_primal_bound_contrib,
+    benders_sp_lagrangian_bound_contrib
 end
 
         
@@ -361,8 +417,12 @@ end
 ==#
 
 function solve_sps_to_gencuts!(
-    algo::BendersCutGeneration, algdata::BendersCutGenData, reform::Reformulation, 
-    primalsol::PrimalSolution{S}, dualsol::DualSolution{S}, up_to_phase::FormulationPhase
+    algo::BendersCutGeneration,
+    algdata::BendersCutGenData,
+    reform::Reformulation, 
+    master_primalsol::PrimalSolution{S},
+    master_dualsol::DualSolution{S},
+    up_to_phase::FormulationPhase
 ) where {S}
     nb_new_cuts = 0
     spsols_relaxed = false
@@ -370,21 +430,51 @@ function solve_sps_to_gencuts!(
     total_pb_contrib = 0.0
     masterform = getmaster(reform)
     sps = get_benders_sep_sp(reform)
-    for spform in sps
-        gen_status, spsol_relaxed, benders_sp_primal_bound_contrib, benders_sp_lagrangian_bound_contrib =
-            solve_sp_to_gencut!(algo, algdata, masterform, spform, primalsol, dualsol, up_to_phase)
+    recorded_sp_dual_solution_ids = Dict{FormId, Vector{ConstrId}}()
+    sp_pb_corrections = Dict{FormId, Float64}()
+    sp_pb_contribs = Dict{FormId, Float64}()
+    spsol_relaxed_status = Dict{FormId, Bool}()
+    insertion_status = Dict{FormId, Bool}()
 
-        spsols_relaxed |= spsol_relaxed
-        total_pb_correction += benders_sp_primal_bound_contrib
-        total_pb_contrib += benders_sp_lagrangian_bound_contrib
-        
-        if gen_status > 0
+
+    ### BEGIN LOOP TO BE PARALLELIZED
+    for spform in sps
+        sp_uid = getuid(spform)
+        gen_status, spsol_relaxed,
+        recorded_dual_solution_ids,
+        benders_sp_primal_bound_contrib,
+        benders_sp_lagrangian_bound_contrib =
+            solve_sp_to_gencut!(algo, algdata, masterform, spform,
+                                master_primalsol, master_dualsol,
+                                up_to_phase)
+
+        recorded_sp_dual_solution_ids[sp_uid] = recorded_dual_solution_ids
+        sp_pb_corrections[sp_uid] = benders_sp_primal_bound_contrib
+        sp_pb_contribs[sp_uid] = benders_sp_lagrangian_bound_contrib
+        insertion_status[sp_uid] = gen_status
+        spsol_relaxed_status[sp_uid] = spsol_relaxed
+    end
+    ### END LOOP TO BE PARALLELIZED
+
+    global_gen_status = true
+    for spform in sps
+       sp_uid = getuid(spform)
+        global_gen_status &= insertion_status[sp_uid]
+        spsols_relaxed |= spsol_relaxed[sp_uid]
+        total_pb_correction += sp_pb_corrections[sp_uid] 
+        total_pb_contrib += sp_pb_contribs[sp_uid]
+        nb_new_cuts += insert_cuts_in_master!(masterform, spform, recorded_sp_dual_solution_ids[sp_uid])
+    end
+    
+   #==     if gen_status > 0
             nb_new_cuts += gen_status
         elseif gen_status == -1 # Sp is infeasible
             return (gen_status, false, 0.0, 0.0) # TODO : correct those numbers
         end
         # TODO : here gen_status = 0 ???
+==#
     end
+ 
     if spsols_relaxed
         total_pb_correction = defaultprimalboundvalue(S)
     end
