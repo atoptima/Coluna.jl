@@ -85,6 +85,47 @@ function update_pricing_target!(spform::Formulation)
     # println("pricing target will only be needed after automating convexity constraints")
 end
 
+function record_solutions!(form::Formulation, 
+    sols::Vector{PrimalSolution{S}}
+) where {S}
+    sp_uid = getuid(form)
+    nb_of_recorded_sol = 0
+    for sol in sols
+        if contrib_improves_mlp(getbound(spsol))
+            nb_of_gen_col += 1
+            ref = getvarcounter(masterform) + 1
+            name = string("MC", sp_uid, "_", ref)
+            resetsolvalue!(masterform, spsol)
+            lb = 0.0
+            ub = Inf
+            kind = Continuous
+            duty = MasterCol
+            sense = Positive
+            mc = setprimalsol!(
+                masterform, name, spsol, duty; lb = lb, ub = ub,
+                kind = kind, sense = sense
+            )
+            @logmsg LogLevel(-2) string("Generated column : ", name)
+
+            # TODO: check if column exists
+            #== mc_id = getid(mc)
+            id_of_existing_mc = - 1
+            partialsol_matrix = getpartialsolmatrix(masterform)
+            for (col, col_members) in columns(partialsol_matrix)
+                if (col_members == partialsol_matrix[:, mc_id])
+                    id_of_existing_mc = col[1]
+                    break
+                end
+            end
+            if (id_of_existing_mc != mc_id)
+                @warn string("column already exists as", id_of_existing_mc)
+            end
+            ==#
+        end
+    end
+    return nb_of_gen_col
+end
+
 function insert_cols_in_master!(
     masterform::Formulation, spform::Formulation, 
     spsols::Vector{PrimalSolution{S}}
@@ -102,7 +143,7 @@ function insert_cols_in_master!(
             kind = Continuous
             duty = MasterCol
             sense = Positive
-            mc = setprimaldwspsol!(
+            mc = setprimalsol!(
                 masterform, name, spsol, duty; lb = lb, ub = ub,
                 kind = kind, sense = sense
             )

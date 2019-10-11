@@ -56,9 +56,8 @@ getconstrs(f::Formulation) = getconstrs(f.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
-getprimaldwspsolmatrix(f::Formulation) = getprimaldwspsolmatrix(f.manager)
-getdualbendspsolmatrix(f::Formulation) = getdualbendspsolmatrix(f.manager)
-getprimalbendspsolmatrix(f::Formulation) = getprimalbendspsolmatrix(f.manager)
+getprimalsolmatrix(f::Formulation) = getprimalsolmatrix(f.manager)
+getdualsolmatrix(f::Formulation) = getdualsolmatrix(f.manager)
 getexpressionmatrix(f::Formulation) = getexpressionmatrix(f.manager)
 
 "Returns the `uid` of `Formulation` `f`."
@@ -182,74 +181,124 @@ function setvar!(f::Formulation,
     return addvar!(f, v)
 end
 
-function setprimaldwspsol!(
-    mastform::Formulation, name::String, sol::PrimalSolution{S},
-    duty::Type{<:AbstractVarDuty}; lb::Float64 = 0.0, ub::Float64 = Inf,
-    kind::VarKind = Continuous, sense::VarSense = Positive, 
-    inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
-    moi_index::MoiVarIndex = MoiVarIndex()
+addprimalsol!(
+    form::Formulation,
+    sol::PrimalSolution{S},
+    sol_id::VarId
+) where {S<:AbstractObjSense} = addprimalsol!(form.manager, sol, sol_id)
+
+function setprimalsol!(
+    form::Formulation,
+    sol::PrimalSolution{S}
 ) where {S<:AbstractObjSense}
-    mast_col_id = generatevarid(mastform)
-    mast_col_data = VarData(
-        getvalue(sol), lb, ub, kind, sense, inc_val, is_active, is_explicit
+    ### check if primalsol exists should take place heren along the coeff update
+
+    ### else
+    sol_id = generatevarid(spform)
+    return addprimalsol!(form, sol, sol_id)
+end
+
+adddualsol!(
+    form::Formulation,
+    dualsol::DualSolution{S},
+    dualsol_id::ConstrId
+) where {S<:AbstractObjSense} = adddualsol!(form.manager, dualsol, dualsol_id)
+
+
+function setdualsol!(
+    form::Formulation,
+    dualsol::DualSolution{S}
+) where {S<:AbstractObjSense}
+    ### check if dualspsol exists should take place here along the coeff update
+
+    ### else
+
+    dualsol_id = generateconstrid(spform)
+
+
+    return adddualsol!(form, dualsol, dualsol_id)
+end
+
+
+function setcol_from_sp_primalsol!(
+    masterform::Formulation,
+    spform::Formulation,
+    sol_id::VarId,
+    name::String, 
+    duty::Type{<:AbstractVarDuty};
+    cost::Float64 = 0.0,
+    lb::Float64 = 0.0,
+    ub::Float64 = Inf,
+    kind::VarKind = Continuous,
+    sense::VarSense = Positive, 
+    inc_val::Float64 = 0.0,
+    is_active::Bool = true,
+    is_explicit::Bool = true,
+    moi_index::MoiVarIndex = MoiVarIndex()
+) where 
+    col_id = sol_id
+    col_data = VarData(
+        cost, lb, ub, kind, sense, inc_val, is_active, is_explicit
     )
-    mastcol = Variable(
-        mast_col_id, name, duty; var_data = mast_col_data, moi_index = moi_index
+    col = Variable(
+        col_id, name, duty; var_data = mast_col_data, moi_index = moi_index
     )
 
-    master_coef_matrix = getcoefmatrix(mastform)
-    primal_sp_sol_matrix = getprimaldwspsolmatrix(mastform)
+    coef_matrix = getcoefmatrix(masterform)
+    primal_sol_matrix = getprimalsolmatrix(spform)
+    sol = primal_sol_matrix[:,sol_id]
 
     for (var_id, var_val) in sol
-        primal_sp_sol_matrix[var_id, mast_col_id] = var_val
         for (constr_id, var_coef) in master_coef_matrix[:,var_id]
             master_coef_matrix[constr_id, mast_col_id] += var_val * var_coef
         end
     end
 
-    return addvar!(mastform, mastcol)
+    return addvar!(masterform, col)
 end
 
-function setprimaldualbendspsol!(
-    mastform::Formulation, spform::Formulation, name::String,
-    primalsol::PrimalSolution{S}, dualsol::DualSolution{S},
-    duty::Type{<:AbstractConstrDuty}; kind::ConstrKind = Core,
-    sense::ConstrSense = Greater, inc_val::Float64 = -1.0, 
-    is_active::Bool = true, is_explicit::Bool = true,
+function setcut_from_sp_dualsol!(
+    masterform::Formulation,
+    spform::Formulation,
+    dualsol_id::ConstrId,
+    name::String,
+    duty::Type{<:AbstractConstrDuty};
+    rhs::Float64 = 0.0,
+    kind::ConstrKind = Core,
+    sense::ConstrSense = Greater,
+    inc_val::Float64 = -1.0, 
+    is_active::Bool = true,
+    is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
-) where {S<:AbstractObjSense}
-    benders_cut_id = generateconstrid(mastform)
-    benders_cut_data = ConstrData(
-        getvalue(dualsol), Core, sense, inc_val, is_active, is_explicit
+) where 
+    cut_id = dualsol_id #generateconstrid(mastform)
+    cut_data = ConstrData(
+        rhs, Core, sense, inc_val, is_active, is_explicit
     )
-    benderscut = Constraint(
-        benders_cut_id, name, duty; constr_data = benders_cut_data, 
+    cut = Constraint(
+        cut_id, name, duty; constr_data = benders_cut_data, 
         moi_index = moi_index
     )
 
     master_coef_matrix = getcoefmatrix(mastform)
     sp_coef_matrix = getcoefmatrix(spform)
-    primal_bend_sp_sol_matrix = getprimalbendspsolmatrix(mastform)
-    dual_bend_sp_sol_matrix = getdualbendspsolmatrix(mastform)
+    dual_sol_matrix = getdualsolmatrix(spform)
+    dualsol = dual_sol_matrix[dualsol_id,:]
 
-    for (constr_id, constr_val) in dualsol
-        constr = getconstr(spform, constr_id)
-        if getduty(constr) <: AbstractBendSpMasterConstr
-            dual_bend_sp_sol_matrix[constr_id, benders_cut_id] = constr_val
-            for (var_id, constr_coef) in sp_coef_matrix[constr_id,:]
+    for (ds_constr_id, ds_constr_val) in dualsol
+        ds_constr = getconstr(spform, ds_constr_id)
+        if getduty(ds_constr) <: AbstractBendSpMasterConstr
+            for (var_id, constr_coef) in sp_coef_matrix[ds_constr_id,:]
                 var = getvar(spform, var_id)
                 if getduty(var) <: AbstractBendSpSlackMastVar
-                    master_coef_matrix[benders_cut_id, var_id] += constr_val * constr_coef
+                    master_coef_matrix[cut_id, var_id] += ds_constr_val * constr_coef
                 end
             end
         end
     end 
 
-    for (var_id, var_val) in primalsol
-        primal_bend_sp_sol_matrix[var_id, benders_cut_id] = var_val
-    end
 
-    return addconstr!(mastform, benderscut)
+    return addconstr!(mastform, cut)
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."
@@ -304,8 +353,8 @@ function activate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
     end
 end
 
-function addprimalspsol!(f::Formulation, var::Variable)
-    return addprimalspsol!(f.manager, var)
+function addprimalsol!(f::Formulation, var::Variable)
+    return addprimalsol!(f.manager, var)
 end
 
 function clonevar!(dest::Formulation, src::Formulation, var::Variable)
@@ -375,7 +424,7 @@ function setmembers!(f::Formulation, v::Variable, members::ConstrMembership)
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
     coef_matrix = getcoefmatrix(f)
-    primal_sp_sol_matrix = getprimaldwspsolmatrix(f)
+    primal_sp_sol_matrix = getprimalsolmatrix(f)
     id = getid(v)
     for (constr_id, coeff) in members
         coef_matrix[constr_id, id] = coeff
@@ -386,7 +435,7 @@ end
 function setmembers!(f::Formulation, constr::Constraint, members)
     @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
     coef_matrix = getcoefmatrix(f)
-    primal_dwsp_sols = getprimaldwspsolmatrix(f)
+    primal_dwsp_sols = getprimalsolmatrix(f)
     constr_id = getid(constr)
     @logmsg LogLevel(-4) "Members are : ", members
     for (var_id, member_coeff) in members

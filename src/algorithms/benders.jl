@@ -179,7 +179,7 @@ function insert_cuts_in_master!(
             resetsolvalue!(spform, dual_sol) # now the sol value represents the dual sol value
             kind = Core
             duty = MasterBendCutConstr
-            bc = setprimaldualbendspsol!(
+            bc = setprimaldualsol!(
                 masterform, spform, name, primal_sol, dual_sol, duty; 
                 kind = kind, sense = sense
             )
@@ -190,7 +190,7 @@ function insert_cuts_in_master!(
             # TODO: check if cut exists
             #== mc_id = getid(mc)
             id_of_existing_mc = - 1
-            primalspsol_matrix = getprimaldwspsolmatrix(masterform)
+            primalspsol_matrix = getprimalsolmatrix(masterform)
             for (col, col_members) in columns(primalspsol_matrix)
                 if (col_members == primalspsol_matrix[:, mc_id])
                     id_of_existing_mc = col[1]
