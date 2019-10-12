@@ -405,6 +405,14 @@ function getoptbuilder(prob::Problem, ann)
     return prob.default_optimizer_builder
 end
 
+function getmilpoptbuilder(prob::Problem, ann)
+    # TODO : Add this feature in BlockDecomposition
+    if BD.getoptimizerbuilder(ann) != nothing
+        return BD.getoptimizerbuilder(ann)
+    end
+    return prob.default_milp_optimizer_builder
+end
+
 function buildformulations!(
     prob::Problem, annotations::Annotations, reform::Reformulation, parent, 
     node::BD.Root
@@ -421,8 +429,12 @@ function buildformulations!(
     end
     create_side_vars_constrs!(masterform, origform, annotations)
     create_artificial_vars!(masterform)
-    initialize_optimizer!(masterform, getoptbuilder(prob, ann))
-    initialize_optimizer!(origform, getoptbuilder(prob, ann))
+    initialize_optimizers!(
+        masterform, getoptbuilder(prob, ann), getmilpoptbuilder(prob, ann)
+    )
+    initialize_optimizers!(
+        origform, getoptbuilder(prob, ann), getmilpoptbuilder(prob, ann)
+    )
     return
 end
 
@@ -439,7 +451,9 @@ function buildformulations!(
     origform = get_original_formulation(prob)
     assign_orig_vars_constrs!(spform, origform, annotations, ann)
     create_side_vars_constrs!(spform, origform, annotations)
-    initialize_optimizer!(spform, getoptbuilder(prob, ann))
+    initialize_optimizers!(
+        spform, getoptbuilder(prob, ann), getmilpoptbuilder(prob, ann)
+    )
     return
 end
 

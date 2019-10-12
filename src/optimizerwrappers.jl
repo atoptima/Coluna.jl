@@ -73,6 +73,9 @@ function optimize!(form::Formulation, optimizer::MoiOptimizer)
     return retrieve_result(form, optimizer)
 end
 
+sync_solver!(optimizer::UserOptimizer, f::Formulation) = nothing
+sync_solver!(optimizer::NoOptimizer, f::Formulation) = nothing
+
 function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
     buffer = f.buffer
@@ -142,11 +145,10 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         # @logmsg LogLevel(1) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         update_constr_member_in_optimizer!(optimizer, c, v, coeff)
     end
-    _reset_buffer!(f)
     return
 end
 
 # Fallbacks
-optimize!(::S) where {S<:AbstractOptimizer} = error(
+optimize!(form::Formulation, ::S) where {S<:AbstractOptimizer} = error(
     string("Function `optimize!` is not defined for object of type ", S)
 )

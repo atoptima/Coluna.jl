@@ -66,6 +66,7 @@ mutable struct Problem <: AbstractProblem
     re_formulation::Union{Nothing, Reformulation}
     form_counter::Counter # 0 is for original form
     default_optimizer_builder::Function
+    default_milp_optimizer_builder::Function
 end
 
 """
@@ -73,7 +74,9 @@ end
 
 Constructs an empty `Problem`.
 """
-Problem(b::Function) = Problem(nothing, nothing, Counter(-1), b)
+function Problem(default_builder::Function, milp_builder::Function)
+    return Problem(nothing, nothing, Counter(-1), default_builder, milp_builder)
+end
 
 set_original_formulation!(m::Problem, of::Formulation) = m.original_formulation = of
 set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r

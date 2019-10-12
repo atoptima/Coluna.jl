@@ -11,6 +11,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     constr_counter::Counter
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     optimizer::AbstractOptimizer
+    milp_optimizer::AbstractOptimizer
     manager::FormulationManager
     obj_sense::Type{<:AbstractObjSense}
     buffer::FormulationBuffer
@@ -30,7 +31,7 @@ function Formulation{D}(form_counter::Counter;
                         ) where {D<:AbstractFormDuty}
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
-        parent_formulation, NoOptimizer(), FormulationManager(),
+        parent_formulation, NoOptimizer(), NoOptimizer(), FormulationManager(),
         obj_sense, FormulationBuffer()
     )
 end
@@ -69,6 +70,16 @@ getobjsense(f::Formulation) = f.obj_sense
 
 "Returns the `AbstractOptimizer` of `Formulation` `f`."
 getoptimizer(f::Formulation) = f.optimizer
+getmilpoptimizer(f::Formulation) = f.milp_optimizer
+
+function getoptimizers(f::Formulation)
+    optimizers = AbstractOptimizer[]
+    push!(optimizers, getoptimizer(f))
+    if getoptimizer(f) !== getmilpoptimizer(f)
+        push!(optimizers, getmilpoptimizer(f))
+    end
+    return optimizers
+end
 
 getelem(f::Formulation, id::VarId) = getvar(f, id)
 getelem(f::Formulation, id::ConstrId) = getconstr(f, id)
@@ -461,21 +472,50 @@ function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primals
 end
 
 "Calls optimization routine for `Formulation` `f`."
-function optimize!(form::Formulation)
+function optimize!(form::Formulation; call_milp_optimizer = false)
+    # Do synchronization
+    sync_solvers!(form, getoptimizers(form)...)
+
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
-    res = optimize!(form, getoptimizer(form))
+    optimizer = ifelse(
+        call_milp_optimizer, getmilpoptimizer(form), getoptimizer(form)
+    )
+    res = optimize!(form, optimizer)
     @logmsg LogLevel(-2) string("Optimization finished with result:")
     @logmsg LogLevel(-2) res
     return res
 end
 
-function initialize_optimizer!(form::Formulation, builder::Union{Function})
+function sync_solvers!(form::Formulation, optimizers...)
+    for optimizer in optimizers
+        @logmsg LogLevel(-4) "MOI formulation before synch: "
+        @logmsg LogLevel(-4) optimizer
+        sync_solver!(optimizer, form)
+        @logmsg LogLevel(-3) "MOI formulation after synch: "
+        @logmsg LogLevel(-3) optimizer
+    end
+    _reset_buffer!(form)
+    return
+end
+
+function initialize_optimizers!(
+    form::Formulation, builder::Function, milp_builder::Function
+)
     form.optimizer = builder()
+    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
     if form.optimizer isa MoiOptimizer
-        f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
         MOI.set(form.optimizer.inner, MoiObjective(), f)
         set_obj_sense!(form.optimizer, getobjsense(form))
+    end
+    if builder === milp_builder
+        form.milp_optimizer = form.optimizer
+    else
+        form.milp_optimizer = milp_builder()
+        if form.milp_optimizer isa MoiOptimizer
+            MOI.set(form.milp_optimizer.inner, MoiObjective(), f)
+            set_obj_sense!(form.milp_optimizer, getobjsense(form))
+        end
     end
     return
 end

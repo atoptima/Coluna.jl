@@ -24,13 +24,24 @@ end
 
 setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob
 
-function Optimizer(;default_optimizer = nothing,
-                   params = Params())
-    b = no_optimizer_builder
+function Optimizer(
+    ;default_optimizer = nothing, milp_optimizer = default_optimizer,
+    params = Params()
+)
+    default_solver_builder = no_optimizer_builder
     if default_optimizer != nothing
-        b = ()->MoiOptimizer(default_optimizer())
+        default_solver_builder = ()->MoiOptimizer(default_optimizer())
     end
-    prob = Problem(b)
+    milp_solver_builder = no_optimizer_builder
+    if milp_optimizer === default_optimizer
+        milp_solver_builder = default_solver_builder
+    else
+        if milp_optimizer != nothing
+            milp_solver_builder = ()->MoiOptimizer(milp_optimizer())
+        end
+    end
+
+    prob = Problem(default_solver_builder, milp_solver_builder)
     return Optimizer(
         prob, MOIU.IndexMap(), params, Annotations(),
         Dict{MOI.VariableIndex,Id{Variable}}(), OptimizationResult{MinSense}()
