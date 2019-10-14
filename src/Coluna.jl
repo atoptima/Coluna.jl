@@ -70,6 +70,7 @@ include("strategies/conquer/simplebenders.jl")
 
 # Here include divide strategies
 include("strategies/divide/simplebranching.jl")
+include("strategies/divide/branching.jl")
 
 # Here include explore strategies
 include("strategies/explore/simplestrategies.jl")
