@@ -1,3 +1,5 @@
+projection_is_possible(master::Formulation{DwMaster}) = true
+
 function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMaster}) where {Sense}
     projected_sol = Dict{VarId, Float64}()
     primalspsolmatrix = getprimaldwspsolmatrix(master)
@@ -13,6 +15,8 @@ function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMast
 
     return PrimalSolution(master, float(getbound(sol)), projected_sol)
 end
+
+projection_is_possible(master::Formulation{BendersMaster}) = false
 
 function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{BendersMaster}) where {Sense}
     return sol
