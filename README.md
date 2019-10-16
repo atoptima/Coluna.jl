@@ -40,18 +40,13 @@ As functionality goes, we aim to provide the support for:
 - [x] Branch-and-price-and-cut customization
 - [ ] Ad-hoc customised oracles for solving subproblems / separation routines
 - [ ] Preprocessing specific to reformulated problems / cleaning up of large scale formulations 
-- [ ] stabilisation and other convergence speed-up methods
+- [ ] Stabilisation and other convergence speed-up methods
 - [ ] Strong-branching 
 - [ ] Parallelisation of the Branch-and-Bound Tree Search 
 
 ## Authors
 
-The current main contributors to Coluna.jl are:
-
-- François Vanderbeck
-- Guillaume Marques
-- Vitor Nesello
-- Teobaldo Bulhões
+The current main contributors to Coluna.jl are Cristiana Bentes, Teobaldo Bulhões, Guillaume Marques, Vitor Nesello, Artur Alves Pessoa, Ruslan Sadykov, Anand Subramanian, and François Vanderbeck.
 
 ## Sponsor
 
