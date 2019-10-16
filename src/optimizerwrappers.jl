@@ -147,6 +147,6 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
 end
 
 # Fallbacks
-optimize!(::S) where {S<:AbstractOptimizer} = error(
+optimize!(f::Formulation, ::S) where {S<:AbstractOptimizer} = error(
     string("Function `optimize!` is not defined for object of type ", S)
 )
