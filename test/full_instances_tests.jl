@@ -7,41 +7,65 @@ function full_instances_tests()
 end
 
 function generalized_assignment_tests()
-    @testset "play gap" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+    # @testset "play gap" begin
+    #     data = CLD.GeneralizedAssignment.data("play2.txt")
 
-        coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
-            ),
-            default_optimizer = with_optimizer(GLPK.Optimizer)
-        )
+    #     coluna = JuMP.with_optimizer(
+    #         Coluna.Optimizer, params = CL.Params(
+    #             global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+    #         ),
+    #         default_optimizer = with_optimizer(GLPK.Optimizer)
+    #     )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    #     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-        JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
-    end
+    #     JuMP.optimize!(problem)
+    #     @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+    #     @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+    #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    # end
 
-    @testset "gap - JuMP/MOI modeling" begin
+    # @testset "gap - JuMP/MOI modeling" begin
+    #     data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+
+    #     coluna = JuMP.with_optimizer(
+    #         Coluna.Optimizer, params = CL.Params(
+    #             global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+    #         ),
+    #         default_optimizer = with_optimizer(GLPK.Optimizer)
+    #     )
+
+    #     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+    #     JuMP.optimize!(problem)
+    #     @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
+    #     @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+    #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    # end
+
+    @testset "gap - branching" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
+        branching = Coluna.BranchingStrategy()
+        push!(branching.branching_rules, Coluna.VarBranchingRule())
+
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(
+                    CL.SimpleBnP(), 
+                    branching, 
+                    CL.DepthFirst()
+                )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
-
+    
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-
         JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
+
+    error("End test")
 
     @testset "gap - ColGen max nb iterations" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
