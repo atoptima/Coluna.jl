@@ -49,7 +49,7 @@ function run!(alg::ColumnGeneration, form::Reformulation, node::Node)
     else
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status FEASIBLE."
     end
-    update!(node.incumbents, result.incumbents)
+    update!(node.incumbents, result.incumbents) # this should be done in the strategy, no?
     return result
 end
 

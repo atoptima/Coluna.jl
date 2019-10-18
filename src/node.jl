@@ -73,6 +73,18 @@ function Node(parent::Node, branch::Branch)
     )
 end
 
+# this function creates a child node by copying info from another child
+# used in strong branching
+function Node(parent::Node, child::Node)
+    depth = getdepth(parent) + 1
+    incumbents = deepcopy(getincumbents(child))
+    return Node(
+        -1, depth, parent, Node[], incumbents, child.branch,
+        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
+        child.record, FormulationStatus()
+    )
+end
+
 get_treat_order(n::Node) = n.treat_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent

@@ -54,11 +54,11 @@ switch_tree(s::ReformulationSolver) = s.in_primary = !s.in_primary
 
 function apply_on_node!(conquer_strategy::AbstractConquerStrategy,
                        divide_strategy::AbstractDivideStrategy,
-                       reform::Reformulation, node::Node)
+                       reform::Reformulation, node::Node, treat_order::Int64)
     # Prepare formulation before calling `apply!(::AbstractStrategy)`
     prepare!(reform, node)
     apply!(conquer_strategy, reform, node)
-    apply!(divide_strategy, reform, node)
+    apply!(divide_strategy, reform, node, treat_order)
     # Condition needed because if the last algorithm that was executed did a 
     # record (because would change the formulation), the following line 
     # would record the modified problem, which we do not want
@@ -100,7 +100,7 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
         )
         print_info_before_apply(cur_node, reform_solver, reform, should_apply)
         if should_apply
-            apply_on_node!(conquer_strategy, divide_strategy, reform, cur_node)
+            apply_on_node!(conquer_strategy, divide_strategy, reform, cur_node, get_treat_order(reform_solver))
         end
         print_info_after_apply(cur_node, reform_solver)
         update_reform_solver(reform_solver, cur_node)

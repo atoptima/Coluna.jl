@@ -20,6 +20,24 @@ function apply!(strategy::SimpleBnP, reform, node)
     return
 end
 
+struct RestrictedMasterResolve <: AbstractConquerStrategy 
+    master_lp::MasterLp
+end
+
+function RestrictedMasterResolve()
+    return RestrictedMasterResolve(MasterLp())
+end
+
+function apply!(strategy::RestrictedMasterResolve, reform, node)
+    record = apply!(strategy.master_lp, reform, node)
+    update!(node.incumbents, record.incumbents) 
+    if record.proven_infeasible
+        node.status.proven_infeasible = true
+    end
+    return
+end
+
+
 struct BnPnPreprocess <: AbstractConquerStrategy 
     preprocess::Preprocess
     colgen::ColumnGeneration
