@@ -168,6 +168,23 @@ function generalized_assignment_tests()
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
+    @testset "play gap with no solver" begin
+        data = CLD.GeneralizedAssignment.data("play2.txt")
+
+        coluna = JuMP.with_optimizer(
+            Coluna.Optimizer, params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+            ),
+        )
+
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        try
+            JuMP.optimize!(problem)
+        catch e
+            @test repr(e) == "ErrorException(\"Function `optimize!` is not defined for object of type Coluna.NoOptimizer\")"
+        end
+    end
+
     @testset "clsp small instance" begin
         data = CLD.CapacitatedLotSizing.readData("testSmall")
 
