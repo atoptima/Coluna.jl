@@ -38,7 +38,8 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
     if terminationstatus != MOI.INFEASIBLE &&
             terminationstatus != MOI.DUAL_INFEASIBLE &&
-            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED
+            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
+            terminationstatus != MOI.OPTIMIZE_NOT_CALLED
         fill_primal_result!(
             optimizer, result, filter(_active_explicit_ , getvars(form))
         )
