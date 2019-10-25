@@ -1,3 +1,5 @@
+threadstasks = Task[]
+
 Base.@kwdef struct ColumnGeneration <: AbstractAlgorithm
     max_nb_iterations::Int = 1000
     optimality_tol::Float64 = 1e-5
@@ -231,20 +233,29 @@ function solve_sps_to_gencols_with_threads!(
     dual_bound_contrib = Threads.Atomic{Float64}(0.0)
     masterform = getmaster(reform)
     sps = get_dw_pricing_sp(reform)
-    Threads.@threads for spform in sps
-        sp_uid = getuid(spform)
-        gen_status, contrib = solve_sp_to_gencol!(
-            masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
-        )
+    #Threads.@threads for spform in sps
+    for spform in sps
+        push!(threadstasks, Threads.@spawn begin
+            sp_uid = getuid(spform)
+            gen_status, contrib = solve_sp_to_gencol!(
+                masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
+            )
 
-        if gen_status > 0
-            Threads.atomic_add!(nb_new_cols, gen_status)
-            Threads.atomic_add!(dual_bound_contrib, float(contrib))
-        elseif gen_status == -1 # Sp is infeasible
-            println("infeasible")
-            return (gen_status, Inf)
+            if gen_status > 0
+                Threads.atomic_add!(nb_new_cols, gen_status)
+                Threads.atomic_add!(dual_bound_contrib, float(contrib))
+            elseif gen_status == -1 # Sp is infeasible
+                println("infeasible")
+                return (gen_status, Inf)
+            end
         end
+        )
     end
+    for task in threadstasks
+        wait(task)
+    end
+    empty!(threadstasks)
+
     nb_new_cols = nb_new_cols[]
     dual_bound_contrib = DualBound{S}(dual_bound_contrib[])
     @show nb_new_cols, dual_bound_contrib
