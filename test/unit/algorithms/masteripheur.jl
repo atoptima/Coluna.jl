@@ -2,7 +2,7 @@ function masteripheur_tests()
     infeasible_master_ip_heur_tests()
 end
 
-CL.to_be_pruned(n::CL.Node) = true # issue 166
+#CL.to_be_pruned(n::CL.Node) = true # issue 166
 
 struct InfeasibleMasterIpHeur <: CL.AbstractConquerStrategy end
 

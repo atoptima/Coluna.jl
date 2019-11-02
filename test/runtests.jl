@@ -1,3 +1,4 @@
+#using Revise
 import Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
@@ -19,7 +20,7 @@ include("full_instances_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
 
-#unit_tests()
+unit_tests()
 
 @testset "Full instances " begin
     full_instances_tests()

@@ -42,11 +42,13 @@ FormulationStatus() = FormulationStatus(true, false)
 
 mutable struct Node <: AbstractNode
     treat_order::Int
+    istreated::Bool
     depth::Int
     parent::Union{Nothing, Node}
     children::Vector{Node}
     incumbents::Incumbents
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
+    branchdescription::String
     algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
     record::NodeRecord
     status::FormulationStatus
@@ -54,22 +56,22 @@ end
 
 function RootNode(ObjSense::Type{<:AbstractObjSense})
     return Node(
-        -1, 0, nothing, Node[], Incumbents(ObjSense), nothing,
-        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
+        -1, false, 0, nothing, Node[], Incumbents(ObjSense), nothing,
+        "", Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
         NodeRecord(), FormulationStatus()
     )
 end
 
-function Node(parent::Node, branch::Branch)
+function Node(parent::Node, branch::Branch, branchdescription::String)
     depth = getdepth(parent) + 1
     incumbents = deepcopy(getincumbents(parent))
     # Resetting lp primals because the lp can get worse during the algorithms,
     # thus not being updated in the node and breaking the branching
     incumbents.lp_primal_sol = typeof(incumbents.lp_primal_sol)()
     return Node(
-        -1, depth, parent, Node[], incumbents, branch,
+        -1, false, depth, parent, Node[], incumbents, branch, branchdescription, 
         Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
-        NodeRecord(), FormulationStatus()
+        parent.record, FormulationStatus()
     )
 end
 
@@ -79,7 +81,7 @@ function Node(parent::Node, child::Node)
     depth = getdepth(parent) + 1
     incumbents = deepcopy(getincumbents(child))
     return Node(
-        -1, depth, parent, Node[], incumbents, child.branch,
+        -1, false, depth, parent, Node[], incumbents, nothing, child.branchdescription,
         Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
         child.record, FormulationStatus()
     )
@@ -93,6 +95,8 @@ getincumbents(n::Node) = n.incumbents
 getbranch(n::Node) = n.branch
 addchild!(n::Node, child::Node) = push!(n.children, child)
 set_treat_order!(n::Node, treat_order::Int) = n.treat_order = treat_order
+settreated!(n::Node) = n.istreated = true
+istreated(n::Node) = n.istreated
 
 function set_algorithm_result!(n::Node, algo::AbstractAlgorithm, 
                             r::AbstractAlgorithmResult)
@@ -103,7 +107,6 @@ get_algorithm_result!(n::Node, algo::AbstractAlgorithm) = n.algorithm_results[al
 function to_be_pruned(n::Node)
     # How to determine if a node should be pruned?? By the lp_gap?
     n.status.proven_infeasible && return true
-    lp_gap(n.incumbents) <= 0.0000001 && return true
     ip_gap(n.incumbents) <= 0.0000001 && return true
     return false
 end
@@ -120,6 +123,7 @@ function record!(reform::Reformulation, node::Node)
     recorded_info = NodeRecord()
     add_to_recorded!(reform, recorded_info)
     node.record = recorded_info
+    settreated!(node)
     return
 end
 
@@ -155,13 +159,18 @@ function prepare!(f::Reformulation, n::Node)
         return
     end
     @logmsg LogLevel(-1) "Setup on master."
-    reset_to_record_state_of_father!(f, getparent(n))
+    if (getdepth(n) > 0)
+        reset_to_record_state!(f, n.record)
+    end
     apply_branch!(f, getbranch(n))
     n.status.need_to_prepare = false
     return
 end
 
 function apply_branch!(f::Reformulation, b::Branch)
+    if b == Nothing
+        return
+    end
     @logmsg LogLevel(-1) "Adding branching constraint."
     @logmsg LogLevel(-2) "Apply Branch : " b
     sense = (getsense(b) == Greater ? "geq_" : "leq_")
@@ -186,13 +195,13 @@ function apply_branch!(f::Reformulation, b::Branch)
     return
 end
 
-function reset_to_record_state_of_father!(reform::Reformulation, n::Node)
-    @logmsg LogLevel(0) "Resetting reformulation state to the one of father node"
+function reset_to_record_state!(reform::Reformulation, record::NodeRecord)
+    @logmsg LogLevel(0) "Resetting reformulation state to node record"
     @logmsg LogLevel(0) "Resetting reformulation master state"
-    reset_to_record_state_of_father!(getmaster(reform), n.record)
+    reset_to_record_state!(getmaster(reform), record)
     for sp in reform.dw_pricing_subprs
         @logmsg LogLevel(0) string("Resetting sp ", getuid(sp), " state.")
-        reset_to_record_state_of_father!(sp, n.record)
+        reset_to_record_state!(sp, record)
     end
     return
 end
@@ -226,7 +235,7 @@ function apply_data!(form::Formulation, constr::Constraint, constr_data::ConstrD
     return
 end
 
-function reset_to_record_state_of_father!(form::Formulation, record::NodeRecord)
+function reset_to_record_state!(form::Formulation, record::NodeRecord)
     @logmsg LogLevel(-2) "Checking variables"
     reset_var_constr!(form, record.active_vars, getvars(form))
     @logmsg LogLevel(-2) "Checking constraints"
@@ -262,4 +271,4 @@ end
 apply_branch!(f::Reformulation, ::Nothing) = nothing
 
 # Nothing happens if this function is called for the "father" of the root node
-reset_to_record_state_of_father!(f::Reformulation, ::Nothing) = nothing
+reset_to_record_state!(f::Reformulation, ::Nothing) = nothing

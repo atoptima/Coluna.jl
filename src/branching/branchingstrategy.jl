@@ -10,10 +10,9 @@ struct BranchingPhase
 end
 
 function exact_branching_phase(candidates_num::Int64)     
-    colgen = ColumnGeneration()
-    colgen.max_nb_iterations = typemax(Int64)
-    master_ip_heur = MasterIpHeuristic()
-    return BranchingPhase(candidates_num, SimpleBnP(colgen, master_ip_heur))
+    return BranchingPhase(candidates_num, SimpleBnP(
+            colgen = ColumnGeneration(max_nb_iterations = typemax(Int64))
+        ))
 end
 
 function only_restricted_master_branching_phase(candidates_num::Int64)
@@ -35,6 +34,12 @@ Base.@kwdef struct BranchingStrategy <: AbstractDivideStrategy
     branching_rules::Vector{AbstractBranchingRule} = []
 end
 
+function simple_branching()
+    strategy = BranchingStrategy()
+    push!(strategy.branching_rules, VarBranchingRule())
+    return strategy
+end
+
 function prepare!(strategy::BranchingStrategy, reform::Reformulation)
 
     #TO DO : here we need to verify whether branching phases are well set
@@ -46,18 +51,16 @@ function prepare!(strategy::BranchingStrategy, reform::Reformulation)
 end
 
 function perform_strong_branching_with_phases!(
-        strategy::BranchingStrategy, reform::Reformulation, parent::Node, 
-        groups::Vector{BranchingGroup}, treat_order::Int64
+        phases::Vector{BranchingPhase}, reform::Reformulation, parent::Node, groups::Vector{BranchingGroup}
     )
-    for (phase_index, current_phase) in enumerate(strategy.strong_branching_phases)
+    for (phase_index, current_phase) in enumerate(phases)
         nb_candidates_for_next_phase::Int64 = 1        
-        if phase_index < length(strategy.strong_branching_phases)
-            nb_candidates_for_next_phase = strategy.strong_branching_phases[phase_index + 1].max_nb_candidates
-        end
-        
-        if length(groups) <= nb_candidates_for_next_phase && !current_phase.exact
-            continue
-        end
+        if phase_index < length(phases)
+            nb_candidates_for_next_phase = phases[phase_index + 1].max_nb_candidates
+            if length(groups) <= nb_candidates_for_next_phase 
+                continue
+            end
+        end        
 
         #TO DO : we need to define a print level parameter
         println("**** Strong branching phase ", phase_index, " is started *****");
@@ -65,7 +68,7 @@ function perform_strong_branching_with_phases!(
         #for nice printing, we compute the maximum description length
         max_descr_length::Int64 = 0
         for group in groups
-            description = getdescription(group.candidate_info.candidate)
+            description = getdescription(group.candidate)
             if (max_descr_length < length(description)) 
                 max_descr_length = length(description)
             end
@@ -82,47 +85,65 @@ function perform_strong_branching_with_phases!(
             end
                         
             if phase_index > 1
-                sort!(current_phase.nodes, by =  x -> get_lp_primal_bound(getincumbents(x)))
+                sort!(group.children, by =  x -> get_lp_primal_bound(getincumbents(x)))
             end
             
-            all_nodes_to_be_prunned::Bool = true
-            for (node_index, node) in enumerate(group.nodes)
-                if current_phase.log_print_frequency > 0
+            pruned_nodes_indices = Vector{Int64}()            
+            for (node_index, node) in enumerate(group.children)
+                if isverbose(current_phase.conquer_strategy)
                     print("**** SB phase ", phase_index, " evaluation of candidate ", group_index, 
-                          ", branch ", node_index)
-                    show(stdout, node.branch, getmaster(reform))
-                    println("), value = ", get_lp_primal_bound(getincumbents(node)))
+                          " (branch ", node_index, node.branchdescription)
+                    @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getincumbents(node)))
                 end
 
-                # this replaces setup_node! in ReformulationSolver
                 # we update the best integer solution of the node 
                 # (it might have been changed since the node has been created)    
-                update_ip_primal_sol!(getincumbents(node), get_ip_primal_bound(getincumbents(parent)))
-                if to_be_pruned(node) 
-                    println("Branch is already conquered")
-                    continue
-                end
+                update_ip_primal_sol!(getincumbents(node), get_ip_primal_sol(getincumbents(parent)))
 
-                # this replaces apply_on_node! in ReformulationSolver
-                treat_order += 1
-                set_treat_order!(node, treat_order)
-                reset_to_record_state_of_father!(reform, node) # TO DO : remove _of_father from this name
+                # we apply the conquer strategy of the current branching phase on the current node
+                reset_to_record_state!(reform, node.record) # TO DO : remove _of_father from this name
                 apply_branch!(reform, getbranch(node))
                 apply!(current_phase.conquer_strategy, reform, node)
                 record!(reform, node)
-                update_ip_primal_sol!(getincumbents(parent), get_ip_primal_bound(getincumbents(node)))            
+                update_ip_primal_sol!(getincumbents(parent), get_ip_primal_sol(getincumbents(node)))            
 
-                if !to_be_pruned(node) 
-                    all_nodes_to_be_prunned = false
+                if to_be_pruned(node) 
+                    if isverbose(current_phase.conquer_strategy)
+                        println("Branch is conquered!")
+                    end
+                    push!(pruned_nodes_indices, node_index)
                 end
             end
 
-            if all_nodes_to_be_prunned
-                println(" SB phase ", phase_index, " candidate ", group_index, " is conquered !");
-                break;
+            update_father_dual_bound!(group, parent)
+
+            deleteat!(group.children, pruned_nodes_indices)
+
+            if isempty(group.children)
+                setconquered!(group)
+                if isverbose(current_phase.conquer_strategy)
+                    println(" SB phase ", phase_index, " candidate ", group_index, " is conquered !")
+                end    
+                break
             end
 
+            if phase_index < length(phases) 
+                # not the last phase, thus we compute the product score
+                compute_product_score!(group, getincumbents(parent))
+            else    
+                # the last phase, thus we compute the tree size score
+                compute_tree_depth_score!(group, getincumbents(parent))
+            end
+            print_bounds_and_score(group, phase_index, max_descr_length)
         end
+
+        sort!(groups, rev = true, by = x -> (x.isconquered, x.score))
+
+        if groups[1].isconquered
+            nb_candidates_for_next_phase == 1 
+        end
+
+        resize!(groups, nb_candidates_for_next_phase)
     end
 end
 
@@ -162,7 +183,7 @@ function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node
     #   than priorities of not yet considered branching rules
     nb_candidates_needed::Int64 = 1;
     if !isempty(strategy.strong_branching_phases)
-        strategy.strong_branching_phases[1].max_nb_candidates
+        nb_candidates_needed = strategy.strong_branching_phases[1].max_nb_candidates
     end    
     local_id::Int64 = 0
     min_priority::Float64 = getpriority(strategy.branching_rules[1], parent_is_root)
@@ -201,7 +222,7 @@ function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node
             resize!(kept_branch_groups, nb_candidates_needed)
         end
     end
-
+    
     if isempty(kept_branch_groups)
         @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
         return
@@ -211,7 +232,7 @@ function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node
         #in the case of simple branching, it remains to generate the children
         generate_children!(kept_branch_groups[1], reform, parent)
     else
-        perform_strong_branching_with_phases!(strategy, reform, parent, kept_branch_groups)
+        perform_strong_branching_with_phases!(strategy.strong_branching_phases, reform, parent, kept_branch_groups)
     end
 
     parent.children = kept_branch_groups[1].children

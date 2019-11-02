@@ -1,9 +1,10 @@
 Base.@kwdef struct ColumnGeneration <: AbstractAlgorithm
     max_nb_iterations::Int = 1000
     optimality_tol::Float64 = 1e-5
+    log_print_frequency::Int = 1
 end
 
-# Data stored while algorithm is running
+# Data stored while algorithm is runningf
 mutable struct ColGenRuntimeData
     incumbents::Incumbents
     has_converged::Bool
@@ -55,6 +56,7 @@ end
 
 # Internal methods to the column generation
 function should_do_ph_1(result::ColumnGenerationResult)
+    gap(get_ip_primal_bound(result.incumbents), get_ip_dual_bound(result.incumbents)) <= 0.00001 && return false
     primal_lp_sol = getsol(get_lp_primal_sol(result.incumbents))
     art_vars = filter(x->(getduty(x) isa ArtificialDuty), primal_lp_sol)
     if !isempty(art_vars)
@@ -227,14 +229,13 @@ function compute_master_db_contrib(
     return DualBound{S}(restricted_master_sol_value)
 end
 
-function update_lagrangian_db!(
+function calculate_lagrangian_db!(
     algdata::ColGenRuntimeData, restricted_master_sol_value::PrimalBound{S},
     pricing_sp_dual_bound_contrib::DualBound{S}
 ) where {S}
     lagran_bnd = DualBound{S}(0.0)
     lagran_bnd += compute_master_db_contrib(algdata, restricted_master_sol_value)
     lagran_bnd += pricing_sp_dual_bound_contrib
-    update_ip_dual_bound!(algdata.incumbents, lagran_bnd)
     return lagran_bnd
 end
 
@@ -254,7 +255,9 @@ function generatecolumns!(
     while true # TODO Replace this condition when starting implement stabilization
         nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(reform, dual_sol, sp_lbs, sp_ubs)
         nb_new_columns += nb_new_col
-        update_lagrangian_db!(algdata, master_val, sp_db_contrib)
+        lagran_bnd = calculate_lagrangian_db!(algdata, master_val, sp_db_contrib)
+        update_ip_dual_bound!(algdata.incumbents, lagran_bnd)
+        update_lp_dual_bound!(algdata.incumbents, lagran_bnd)
         if nb_new_col < 0
             # subproblem infeasibility leads to master infeasibility
             return -1
@@ -297,7 +300,6 @@ function cg_main_loop(
         end
 
         update_lp_primal_sol!(algdata.incumbents, primal_sols[1])
-        update_lp_dual_sol!(algdata.incumbents, dual_sols[1])
         if isinteger(primal_sols[1]) && !contains(primal_sols[1], MasterArtVar)
             update_ip_primal_sol!(algdata.incumbents, primal_sols[1])
         end
@@ -359,7 +361,7 @@ function print_intermediate_statistics(
     db = getvalue(get_ip_dual_bound(algdata.incumbents))
     pb = getvalue(get_ip_primal_bound(algdata.incumbents))
     @printf(
-        "<it=%i> <et=%i> <mst=%.3f> <sp=%.3f> <cols=%i> <mlp=%.4f> <DB=%.4f> <PB=%.4f>\n",
+        "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <mlp=%10.4f> <DB=%10.4f> <PB=%.4f>\n",
         nb_cg_iterations, _elapsed_solve_time(), mst_time, sp_time, nb_new_col, mlp, db, pb
     )
     return

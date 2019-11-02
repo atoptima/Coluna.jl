@@ -14,8 +14,12 @@ function generate_children(candidate::VarBranchingCandidate, lhs::Float64, refor
     var = getvar(reform.master, candidate.var_id)
     @logmsg LogLevel(-1) string("Chosen branching variable : ", 
                                 getname(getvar(reform.master, candidate.var_id)), ". With value ", lhs, ".")
-    child1 = Node(node, Branch(var, ceil(lhs), Greater, getdepth(node)))
-    child2 = Node(node, Branch(var, floor(lhs), Less, getdepth(node)))
+    child1description = candidate.description * ">=" * string(ceil(lhs))                               
+    child1 = Node(node, Branch(var, ceil(lhs), Greater, getdepth(node)), 
+                  child1description)
+    child2description = candidate.description * "<=" * string(floor(lhs))                               
+    child2 = Node(node, Branch(var, floor(lhs), Less, getdepth(node)),
+                  child2description)
     return [child1, child2]
 end
 
@@ -39,7 +43,7 @@ function gen_candidates_for_orig_sol(
         rule::VarBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 
         max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
     ) where Sense
-    candidates = Vector{BranchingGroup}()
+    groups = Vector{BranchingGroup}()
     for (var_id, val) in sol
         # Do not consider continuous variables as branching candidates
         getperenekind(getelements(getsol(sol))[var_id]) == Continuous && continue
@@ -47,13 +51,19 @@ function gen_candidates_for_orig_sol(
             #description string is just the variable name
             candidate = VarBranchingCandidate(getname(getvar(reform.master, var_id)), var_id)
             local_id += 1 
-            push!(candidates, BranchingGroup(candidate, local_id, val))
+            push!(groups, BranchingGroup(candidate, local_id, val))
         end
     end
 
-    if length(candidates) > max_nb_candidates
-        resize!(candidates, max_nb_candidates)
+    if criterion == FirstFoundCriterion
+        sort!(groups, by = x -> x.local_id)
+    elseif criterion == MostFractionalCriterion    
+        sort!(groups, rev = true, by = x -> get_lhs_distance_to_integer(x))
+    end
+
+    if length(groups) > max_nb_candidates
+        resize!(groups, max_nb_candidates)
     end    
 
-    return local_id, candidates
+    return local_id, groups
 end

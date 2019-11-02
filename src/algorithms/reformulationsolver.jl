@@ -56,13 +56,18 @@ function apply_on_node!(conquer_strategy::AbstractConquerStrategy,
                        divide_strategy::AbstractDivideStrategy,
                        reform::Reformulation, node::Node, treat_order::Int64)
     # Prepare formulation before calling `apply!(::AbstractStrategy)`
-    prepare!(reform, node)
-    apply!(conquer_strategy, reform, node)
-    apply!(divide_strategy, reform, node, treat_order)
+    if !istreated(node)
+        prepare!(reform, node)
+        apply!(conquer_strategy, reform, node)
+        record!(reform, node)
+    end
+    if !to_be_pruned(node)        
+        apply!(divide_strategy, reform, node, treat_order)
+    end
     # Condition needed because if the last algorithm that was executed did a 
     # record (because would change the formulation), the following line 
     # would record the modified problem, which we do not want
-    !node.status.need_to_prepare && record!(reform, node)
+    #!node.status.need_to_prepare && record!(reform, node)
     return
 end
 
@@ -102,7 +107,8 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
         if should_apply
             apply_on_node!(conquer_strategy, divide_strategy, reform, cur_node, get_treat_order(reform_solver))
         end
-        print_info_after_apply(cur_node, reform_solver)
+        # I do not think it is necessary to print after apply
+        #print_info_after_apply(cur_node, reform_solver)
         update_reform_solver(reform_solver, cur_node)
     end
     res = getresult(reform_solver)
@@ -153,19 +159,21 @@ function update_reform_solver(s::ReformulationSolver, n::Node)
     s.treat_order += 1
     s.nb_treated_nodes += 1
     t = cur_tree(s)
-    if !to_be_pruned(n)
-        @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
-        push!(t, n)
-    else
-        # If a node did not generate any childre AND is pruned AND is fertile,
-        # then it means that the tree is not fully, explored impacting the decision
-        # about whether the reformulation is feasible of not
-        if length(getchildren(n)) == 0 && isfertile(n)
-            t.fully_explored = false
-        end
-    end
-    if ((nb_open_nodes(s) + length(n.children))
-        >= _params_.open_nodes_limit)
+    
+    # Ruslan : I do not undertand this part
+    # if !to_be_pruned(n)
+    #     @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
+    #     push!(t, n)
+    # else
+    #     # If a node did not generate any childre AND is pruned AND is fertile,
+    #     # then it means that the tree is not fully, explored impacting the decision
+    #     # about whether the reformulation is feasible of not
+    #     if length(getchildren(n)) == 0 && isfertile(n)
+    #         t.fully_explored = false
+    #     end
+    # end
+
+    if ((nb_open_nodes(s) + length(n.children)) >= _params_.open_nodes_limit)
         switch_tree(s)
         t = cur_tree(s)
     end
@@ -195,13 +203,16 @@ function print_info_before_apply(n::Node, s::ReformulationSolver, reform::Reform
     print("Current best known bounds : ")
     printbounds(db, pb)
     println()
-    println("Elapsed time: ", _elapsed_solve_time(), " seconds")
+    @printf "Elapsed time: %.2f seconds\n" _elapsed_solve_time()
     println("Subtree dual bound is ", node_db)
     branch = getbranch(n)
-    if branch != nothing
-        print("Branching constraint: ")
-        show(stdout, branch, getmaster(reform))
-        println(" ")
+    # if branch != nothing
+    #     print("Branching constraint: ")
+    #     show(stdout, branch, getmaster(reform))
+    #     println(" ")
+    # end
+    if n.branchdescription != ""
+        println("Branching constraint: ", n.branchdescription)
     end
     println("************************************************************")
     return

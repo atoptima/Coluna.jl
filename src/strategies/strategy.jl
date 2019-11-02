@@ -6,6 +6,10 @@ branch-and-bound tree.
 """
 abstract type AbstractConquerStrategy <: AbstractStrategy end
 
+# should return true if the strategy outputs more than one line 
+# it is used by strong branching
+isverbose(strategy::AbstractConquerStrategy) = false
+
 """
     AbstractDivideStrategy
 

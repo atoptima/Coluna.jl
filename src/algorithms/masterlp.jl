@@ -14,7 +14,7 @@ function run!(algo::MasterLp, form, node)
     master = getmaster(form)
 
     incumbents = Incumbents(form.master.obj_sense)
-    update_ip_primal_sol!(incumbents, get_ip_primal_sol(node.incumbents))
+    #update_ip_primal_sol!(incumbents, get_ip_primal_sol(node.incumbents))
 
     elapsed_time = @elapsed begin
         opt_result = TO.@timeit _to "LP restricted master" optimize!(master)
@@ -24,8 +24,8 @@ function run!(algo::MasterLp, form, node)
 
     primal_sols = getprimalsols(opt_result)
     dual_sols = getdualsols(opt_result)
-    update_lp_primal_sol!(incumbents, primal_sols)
-    update_lp_dual_sol!(incumbents, primal_sols)
+    update_lp_primal_sol!(incumbents, primal_sols[1])
+    update_lp_dual_sol!(incumbents, dual_sols[1])
     if isinteger(primal_sols[1]) && !contains(primal_sols[1], MasterArtVar)
         update_ip_primal_sol!(incumbents, primal_sols[1])
     end

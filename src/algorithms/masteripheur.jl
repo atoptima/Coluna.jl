@@ -25,7 +25,8 @@ function run!(algo::MasterIpHeuristic, form, node)
         relax_integrality!(master)
         activate!(master, MasterArtVar)
         update_ip_primal_sol!(algorithm_data.incumbents, getbestprimalsol(opt_result))
-        @logmsg LogLevel(1) string("Found primal solution of ", get_ip_primal_bound(algorithm_data.incumbents))
+        @logmsg LogLevel(1) string("Found primal solution of ", 
+                                   @sprintf "%.4f" getvalue(get_ip_primal_bound(algorithm_data.incumbents)))
         @logmsg LogLevel(-3) get_ip_primal_sol(algorithm_data.incumbents)
         # Record data 
         update_ip_primal_sol!(node.incumbents, get_ip_primal_sol(algorithm_data.incumbents))
