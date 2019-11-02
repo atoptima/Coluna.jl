@@ -36,18 +36,26 @@ getinner(optimizer::MoiOptimizer) = optimizer.inner
 function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     result = OptimizationResult{getobjsense(form)}()
     terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
-    if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1 && 
-            terminationstatus != MOI.INFEASIBLE &&
+    if terminationstatus != MOI.INFEASIBLE &&
             terminationstatus != MOI.DUAL_INFEASIBLE &&
-            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED
+            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
+            terminationstatus != MOI.OPTIMIZE_NOT_CALLED
         fill_primal_result!(
             optimizer, result, filter(_active_explicit_ , getvars(form))
         )
         fill_dual_result!(
             optimizer, result, filter(_active_explicit_ , getconstrs(form))
         )
-        setfeasibilitystatus!(result, FEASIBLE)
-        setterminationstatus!(result, convert_status(terminationstatus))
+        if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1 
+            setfeasibilitystatus!(result, FEASIBLE)
+            setterminationstatus!(result, convert_status(terminationstatus))
+        else
+            msg = """
+            Termination status = $(terminationstatus) but no results.
+            Please, open an issue at https://github.com/atoptima/Coluna.jl/issues
+            """
+            error(msg)
+        end
     else
         @warn "Solver has no result to show."
         setfeasibilitystatus!(result, INFEASIBLE)
