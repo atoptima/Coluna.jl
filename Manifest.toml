@@ -23,11 +23,11 @@ version = "0.5.7"
 
 [[BlockDecomposition]]
 deps = ["DataStructures", "JuMP", "MathOptInterface"]
-git-tree-sha1 = "5feba4e22cb36607a7b96149a4776a6086d43c0c"
+git-tree-sha1 = "7a2e6ef9fbde591c21acd116126b0efb9f4909fc"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
-version = "1.0.0"
+version = "1.1.0"
 
 [[Calculus]]
 deps = ["Compat"]
@@ -43,7 +43,7 @@ version = "0.5.8"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "8f5d96d3cb8efc4ae985f2df7b85da4cfb9cb3f1"
+git-tree-sha1 = "7b06d67b3883ff9d9ec7c655cc288948b9894fc0"
 repo-rev = "master"
 repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
@@ -69,9 +69,9 @@ version = "4.0.0"
 
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "0809951a1774dc724da22d26e4289bbaab77809a"
+git-tree-sha1 = "1fe8fad5fc84686dcbc674aa255bc867a64f8132"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.17.0"
+version = "0.17.5"
 
 [[Dates]]
 deps = ["Printf"]
@@ -105,9 +105,9 @@ version = "0.8.1"
 
 [[Documenter]]
 deps = ["Base64", "DocStringExtensions", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "REPL", "Test", "Unicode"]
-git-tree-sha1 = "1b6ae3796f60311e39cd1770566140d2c056e87f"
+git-tree-sha1 = "d45c163c7a3ae293c15361acc52882c0f853f97c"
 uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.23.3"
+version = "0.23.4"
 
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -120,11 +120,11 @@ version = "0.10.4"
 
 [[GLPK]]
 deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "94627f7ac9118017ec54e6676b30fdacb677cdec"
+git-tree-sha1 = "c115fd487db7a6c31ded5fb959c6f15def5b80e6"
 repo-rev = "master"
 repo-url = "https://github.com/JuliaOpt/GLPK.jl.git"
 uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-version = "0.11.4"
+version = "0.12.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -138,9 +138,9 @@ version = "0.21.0"
 
 [[JuMP]]
 deps = ["Calculus", "DataStructures", "ForwardDiff", "LinearAlgebra", "MathOptInterface", "NaNMath", "Random", "SparseArrays", "Statistics"]
-git-tree-sha1 = "a970a86abc924f2c126cdb4978a5e8923d0e7b22"
+git-tree-sha1 = "ba7f96010ed290d77d5c941c32e5df107ca688a4"
 uuid = "4076af6c-e467-56ae-b986-b466b2749572"
-version = "0.20.0"
+version = "0.20.1"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
@@ -173,9 +173,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
 deps = ["BenchmarkTools", "LinearAlgebra", "OrderedCollections", "SparseArrays", "Test", "Unicode"]
-git-tree-sha1 = "2880e4eca97edb87ea53e986880de6bc2fbcefb1"
+git-tree-sha1 = "78427dcc212e0c0ad9658049bc56a50303ad9737"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.9.3"
+version = "0.9.7"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
