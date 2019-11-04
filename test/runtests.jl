@@ -1,3 +1,4 @@
+#using Revise
 import Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
