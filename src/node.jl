@@ -159,7 +159,7 @@ function prepare!(f::Reformulation, n::Node)
         return
     end
     @logmsg LogLevel(-1) "Setup on master."
-    if (getdepth(n) > 0)
+    if getdepth(n) > 0
         reset_to_record_state!(f, n.record)
     end
     apply_branch!(f, getbranch(n))
@@ -208,8 +208,7 @@ end
 
 function apply_data!(form::Formulation, var::Variable, var_data::VarData)
     # Bounds
-    if (getcurlb(var) != getlb(var_data)
-        || getcurub(var) != getub(var_data))
+    if getcurlb(var) != getlb(var_data) || getcurub(var) != getub(var_data)
         @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
         setlb!(form, var, getlb(var_data))
         setub!(form, var, getub(var_data))
@@ -217,7 +216,7 @@ function apply_data!(form::Formulation, var::Variable, var_data::VarData)
         @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
     end
     # Cost
-    if (getcurcost(var) != getcost(var_data))
+    if getcurcost(var) != getcost(var_data)
         @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(var))
         setcost!(form, var, getcost(var_data))
         @logmsg LogLevel(-3) string("New cost is ", getcurcost(var))

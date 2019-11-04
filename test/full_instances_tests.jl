@@ -12,7 +12,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.simple_branching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -30,7 +30,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.simple_branching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -85,7 +85,7 @@ function generalized_assignment_tests()
                             max_nb_iterations = 8
                         )
                     ),
-                    CL.simple_branching(), 
+                    CL.SimpleBranching(), 
                     CL.DepthFirst()
                 )
             ),
@@ -105,7 +105,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.simple_branching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -121,7 +121,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.simple_branching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -137,7 +137,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.simple_branching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -180,7 +180,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.simple_branching(), CL.DepthFirst())
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
             ),
         )
 
@@ -274,7 +274,7 @@ function cutting_stock_tests()
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
             params = CL.Params(
                 global_strategy = CL.GlobalStrategy(
-                    CL.SimpleBnP(), CL.simple_branching(), CL.DepthFirst()
+                    CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst()
                 )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)

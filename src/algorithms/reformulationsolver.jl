@@ -54,7 +54,7 @@ switch_tree(s::ReformulationSolver) = s.in_primary = !s.in_primary
 
 function apply_on_node!(conquer_strategy::AbstractConquerStrategy,
                        divide_strategy::AbstractDivideStrategy,
-                       reform::Reformulation, node::Node, treat_order::Int64)
+                       reform::Reformulation, node::Node)
     # Prepare formulation before calling `apply!(::AbstractStrategy)`
     if !istreated(node)
         prepare!(reform, node)
@@ -62,12 +62,15 @@ function apply_on_node!(conquer_strategy::AbstractConquerStrategy,
         record!(reform, node)
     end
     if !to_be_pruned(node)        
-        apply!(divide_strategy, reform, node, treat_order)
+        apply!(divide_strategy, reform, node)
     end
     # Condition needed because if the last algorithm that was executed did a 
     # record (because would change the formulation), the following line 
     # would record the modified problem, which we do not want
-    #!node.status.need_to_prepare && record!(reform, node)
+    # !node.status.need_to_prepare && record!(reform, node)
+    # Ruslan : Commented because record should be done before divide strategy. 
+    # I am going to redesign node recording and setup. 
+    # For the moment, to make it more simple, we always record (before divide).
     return
 end
 
@@ -105,10 +108,8 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
         )
         print_info_before_apply(cur_node, reform_solver, reform, should_apply)
         if should_apply
-            apply_on_node!(conquer_strategy, divide_strategy, reform, cur_node, get_treat_order(reform_solver))
+            apply_on_node!(conquer_strategy, divide_strategy, reform, cur_node)
         end
-        # I do not think it is necessary to print after apply
-        #print_info_after_apply(cur_node, reform_solver)
         update_reform_solver(reform_solver, cur_node)
     end
     res = getresult(reform_solver)
@@ -159,19 +160,6 @@ function update_reform_solver(s::ReformulationSolver, n::Node)
     s.treat_order += 1
     s.nb_treated_nodes += 1
     t = cur_tree(s)
-    
-    # Ruslan : I do not undertand this part
-    # if !to_be_pruned(n)
-    #     @logmsg LogLevel(-1) string("Node should not be pruned. Re-inserting in the tree.")
-    #     push!(t, n)
-    # else
-    #     # If a node did not generate any childre AND is pruned AND is fertile,
-    #     # then it means that the tree is not fully, explored impacting the decision
-    #     # about whether the reformulation is feasible of not
-    #     if length(getchildren(n)) == 0 && isfertile(n)
-    #         t.fully_explored = false
-    #     end
-    # end
 
     if ((nb_open_nodes(s) + length(n.children)) >= _params_.open_nodes_limit)
         switch_tree(s)
@@ -205,12 +193,8 @@ function print_info_before_apply(n::Node, s::ReformulationSolver, reform::Reform
     println()
     @printf "Elapsed time: %.2f seconds\n" _elapsed_solve_time()
     println("Subtree dual bound is ", node_db)
+
     branch = getbranch(n)
-    # if branch != nothing
-    #     print("Branching constraint: ")
-    #     show(stdout, branch, getmaster(reform))
-    #     println(" ")
-    # end
     if n.branchdescription != ""
         println("Branching constraint: ", n.branchdescription)
     end
@@ -231,14 +215,6 @@ function print_info_after_apply(n::Node, s::ReformulationSolver)
     printbounds(db, pb)
     println()
 
-    # Removed the following prints because they are printed in the function print_info_before_apply
-    # and because since the children of a node is poped, we were printing "generated 0 children" every time
-    # node_incumbents = getincumbents(s)
-    # db = get_ip_dual_bound(node_incumbents)
-    # pb = get_ip_primal_bound(node_incumbents)
-    # print("Tree bounds : ")
-    # printbounds(db, pb)
-    # println(" ")
     println("************************************************************")
     return
 end

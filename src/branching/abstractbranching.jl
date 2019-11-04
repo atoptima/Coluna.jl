@@ -1,7 +1,6 @@
 """
     SelectionCriterion
 """
-
 @enum SelectionCriterion FirstFoundCriterion MostFractionalCriterion 
 
 """
@@ -17,7 +16,10 @@
 abstract type AbstractBranchingCandidate end
 
 getdescription(candidate::AbstractBranchingCandidate) = ""
-generate_children!(candidate::AbstractBranchingCandidate, lhs::Float64, reform::Reformulation, node::Node) = nothing
+generate_children!(
+    candidate::AbstractBranchingCandidate, lhs::Float64, reform::Reformulation, 
+    node::Node
+) = nothing
 
 """
     AbstractRelaxationImprovement
@@ -45,15 +47,15 @@ abstract type AbstractBranchingRule <: AbstractRelaxationImprovement end
 prepare!(rule::AbstractBranchingRule, reform::Reformulation) = nothing
 
 function gen_candidates_for_ext_sol(
-        rule::AbstractBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 
-        max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
-    ) where Sense
+    rule::AbstractBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 
+    max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
+) where Sense
     return local_id, Vector{BranchingGroup}()
 end
 
 function gen_candidates_for_orig_sol(
-        rule::AbstractBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 
-        max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
-    ) where Sense
+    rule::AbstractBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 
+    max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
+) where Sense
     return local_id, Vector{BranchingGroup}()
 end

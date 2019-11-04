@@ -10,10 +10,18 @@ end
 
 getdescription(candidate::VarBranchingCandidate) = candidate.description
 
-function generate_children(candidate::VarBranchingCandidate, lhs::Float64, reform::Reformulation, node::Node)
+function generate_children(
+    candidate::VarBranchingCandidate, lhs::Float64, reform::Reformulation, 
+    node::Node
+)
     var = getvar(reform.master, candidate.var_id)
-    @logmsg LogLevel(-1) string("Chosen branching variable : ", 
-                                getname(getvar(reform.master, candidate.var_id)), ". With value ", lhs, ".")
+
+    @logmsg LogLevel(-1) string(
+        "Chosen branching variable : ",
+        getname(getvar(reform.master, candidate.var_id)), ". With value ", 
+        lhs, "."
+    )
+
     child1description = candidate.description * ">=" * string(ceil(lhs))                               
     child1 = Node(node, Branch(var, ceil(lhs), Greater, getdepth(node)), 
                   child1description)
@@ -40,9 +48,9 @@ getrootpriority(rule::VarBranchingRule) = rule.root_priority
 getnonrootpriority(rule::VarBranchingRule) = rule.nonroot_priority
 
 function gen_candidates_for_orig_sol(
-        rule::VarBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 
-        max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
-    ) where Sense
+    rule::VarBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 
+    max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
+) where Sense
     groups = Vector{BranchingGroup}()
     for (var_id, val) in sol
         # Do not consider continuous variables as branching candidates

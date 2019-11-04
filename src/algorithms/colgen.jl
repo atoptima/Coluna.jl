@@ -229,7 +229,7 @@ function compute_master_db_contrib(
     return DualBound{S}(restricted_master_sol_value)
 end
 
-function calculate_lagrangian_db!(
+function calculate_lagrangian_db(
     algdata::ColGenRuntimeData, restricted_master_sol_value::PrimalBound{S},
     pricing_sp_dual_bound_contrib::DualBound{S}
 ) where {S}
@@ -255,7 +255,7 @@ function generatecolumns!(
     while true # TODO Replace this condition when starting implement stabilization
         nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(reform, dual_sol, sp_lbs, sp_ubs)
         nb_new_columns += nb_new_col
-        lagran_bnd = calculate_lagrangian_db!(algdata, master_val, sp_db_contrib)
+        lagran_bnd = calculate_lagrangian_db(algdata, master_val, sp_db_contrib)
         update_ip_dual_bound!(algdata.incumbents, lagran_bnd)
         update_lp_dual_bound!(algdata.incumbents, lagran_bnd)
         if nb_new_col < 0

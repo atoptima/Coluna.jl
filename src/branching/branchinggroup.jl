@@ -7,7 +7,7 @@ mutable struct BranchingGroup
     candidate::AbstractBranchingCandidate
     local_id::Int64
     lhs::Float64
-    fromhistory::Bool    
+    fromhistory::Bool
     children::Vector{Node}
     isconquered::Bool
     score::Float64
@@ -24,15 +24,16 @@ get_lhs_distance_to_integer(group::BranchingGroup) =
 
 function generate_children!(group::BranchingGroup, reform::Reformulation, parent::Node)
     group.children = generate_children(group.candidate, group.lhs, reform, parent)
+    return
 end
 
 function regenerate_children!(group::BranchingGroup, reform::Reformulation, parent::Node)
     new_children = Vector{Node}()
-
     for child in group.children
         push!(new_children, Node(parent, child))
     end
     group.children = new_children
+    return
 end
 
 function update_father_dual_bound!(group::BranchingGroup, parent::Node)
@@ -49,6 +50,7 @@ function update_father_dual_bound!(group::BranchingGroup, parent::Node)
 
     update_ip_dual_bound!(getincumbents(parent), worst_dual_bound)
     update_lp_dual_bound!(getincumbents(parent), worst_dual_bound)
+    return
 end
 
 function compute_product_score!(group::BranchingGroup, parent_inc::Incumbents)
@@ -86,6 +88,7 @@ function compute_product_score!(group::BranchingGroup, parent_inc::Incumbents)
         end
     end
     group.score = score
+    return
 end
 
 function number_of_leaves(gap::Float64, deltas::Vector{Float64})    
@@ -145,6 +148,7 @@ function compute_tree_depth_score!(group::BranchingGroup, parent_inc::Incumbents
     end
 
     group.score = score
+    return
 end
 
 function print_bounds_and_score(group::BranchingGroup, phase_index::Int64, max_description_length::Int64)
@@ -157,4 +161,5 @@ function print_bounds_and_score(group::BranchingGroup, phase_index::Int64, max_d
         @printf "%10.4f" getvalue(get_lp_primal_bound(getincumbents(node)))
     end
     @printf "], score = %10.4f\n" group.score
+    return
 end

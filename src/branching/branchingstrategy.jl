@@ -34,7 +34,7 @@ Base.@kwdef struct BranchingStrategy <: AbstractDivideStrategy
     branching_rules::Vector{AbstractBranchingRule} = []
 end
 
-function simple_branching()
+function SimpleBranching()
     strategy = BranchingStrategy()
     push!(strategy.branching_rules, VarBranchingRule())
     return strategy
@@ -48,11 +48,13 @@ function prepare!(strategy::BranchingStrategy, reform::Reformulation)
     for rule in strategy.branching_rules
         prepare!(rule, reform)
     end
+    return
 end
 
 function perform_strong_branching_with_phases!(
-        phases::Vector{BranchingPhase}, reform::Reformulation, parent::Node, groups::Vector{BranchingGroup}
-    )
+    phases::Vector{BranchingPhase}, reform::Reformulation, parent::Node, 
+    groups::Vector{BranchingGroup}
+)
     for (phase_index, current_phase) in enumerate(phases)
         nb_candidates_for_next_phase::Int64 = 1        
         if phase_index < length(phases)
@@ -91,8 +93,10 @@ function perform_strong_branching_with_phases!(
             pruned_nodes_indices = Vector{Int64}()            
             for (node_index, node) in enumerate(group.children)
                 if isverbose(current_phase.conquer_strategy)
-                    print("**** SB phase ", phase_index, " evaluation of candidate ", group_index, 
-                          " (branch ", node_index, node.branchdescription)
+                    print(
+                        "**** SB phase ", phase_index, " evaluation of candidate ", 
+                        group_index, " (branch ", node_index, node.branchdescription
+                    )
                     @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getincumbents(node)))
                 end
 
@@ -145,10 +149,10 @@ function perform_strong_branching_with_phases!(
 
         resize!(groups, nb_candidates_for_next_phase)
     end
+    return
 end
 
-function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node, treat_order::Int64)
-
+function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node)
     if isempty(strategy.branching_rules)
         @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
         return
