@@ -61,7 +61,6 @@ include("algorithms/colgen.jl")
 include("algorithms/benders.jl")
 include("algorithms/masteripheur.jl")
 include("algorithms/masterlp.jl")
-include("algorithms/generatechildrennodes.jl") # to remove
 include("algorithms/reformulationsolver.jl")
 include("algorithms/preprocessing.jl")
 

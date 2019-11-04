@@ -161,7 +161,7 @@ function update_reform_solver(s::ReformulationSolver, n::Node)
     s.nb_treated_nodes += 1
     t = cur_tree(s)
 
-    if ((nb_open_nodes(s) + length(n.children)) >= _params_.open_nodes_limit)
+    if nb_open_nodes(s) + length(n.children) >= _params_.open_nodes_limit
         switch_tree(s)
         t = cur_tree(s)
     end

@@ -80,7 +80,7 @@ function perform_strong_branching_with_phases!(
         for (group_index,group) in enumerate(groups)
             #TO DO: verify if time limit is reached
 
-            if (phase_index == 1)
+            if phase_index == 1
                 generate_children!(group, reform, parent)
             else    
                 regenerate_children!(group, reform, parent)

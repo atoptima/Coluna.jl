@@ -13,11 +13,11 @@ mutable struct BranchingGroup
     score::Float64
 end
 
-function BranchingGroup(candidate_::AbstractBranchingCandidate, local_id_::Int64, lhs_::Float64)
-    return BranchingGroup(candidate_, local_id_, lhs_, false, Vector{Node}(), false, typemin(Float64))
+function BranchingGroup(candidate::AbstractBranchingCandidate, local_id::Int64, lhs::Float64)
+    return BranchingGroup(candidate, local_id, lhs, false, Vector{Node}(), false, typemin(Float64))
 end
 
-setconquered!(group::BranchingGroup) = isconqured = true
+setconquered!(group::BranchingGroup) = group.isconquered = true
 
 get_lhs_distance_to_integer(group::BranchingGroup) = 
     min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)    

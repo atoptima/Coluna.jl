@@ -56,7 +56,7 @@ end
 
 # Internal methods to the column generation
 function should_do_ph_1(result::ColumnGenerationResult)
-    gap(get_ip_primal_bound(result.incumbents), get_ip_dual_bound(result.incumbents)) <= 0.00001 && return false
+    ip_gap(result.incumbents) <= 0.00001 && return false
     primal_lp_sol = getsol(get_lp_primal_sol(result.incumbents))
     art_vars = filter(x->(getduty(x) isa ArtificialDuty), primal_lp_sol)
     if !isempty(art_vars)
