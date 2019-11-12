@@ -43,7 +43,7 @@ function addprimalsol!(m::FormulationManager,
                        sol_id::VarId
                        ) where {S<:AbstractObjSense}
     for (var_id, var_val) in sol
-        m.primal_sol_matrix[var_id, sol_id] = var_val
+        m.primal_sols[var_id, sol_id] = var_val
     end
 
     return sol_id
@@ -57,7 +57,8 @@ function adddualsol!(m::FormulationManager,
     for (constr_id, constr_val) in dualsol
         constr = m.constrs[constr_id]
         if getduty(constr) <: AbstractBendSpMasterConstr
-            m.dual_sol_matrix[constr_id, dualsol_id] = constr_val
+
+            m.dual_sols[constr_id, dualsol_id] = constr_val
         end
     end
     

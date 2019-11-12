@@ -103,7 +103,7 @@ end
 
 function getsp(alg_data::PreprocessData, col::Variable)
     master = getmaster(alg_data.reformulation)
-    primal_sp_sols = getprimaldwspsolmatrix(master)
+    primal_sp_sols = getprimalsolmatrix(master)
     for (sp_var_id, sp_var_val) in primal_sp_sols[:,getid(getid(col))]
         sp_var = getvar(master, sp_var_id)
         return find_owner_formulation(alg_data.reformulation, sp_var)
@@ -112,7 +112,7 @@ end
 
 function project_local_partial_solution(alg_data::PreprocessData)
     sp_vars_vals = Dict{VarId,Float64}()
-    primal_sp_sols = getprimaldwspsolmatrix(getmaster(alg_data.reformulation))
+    primal_sp_sols = getprimalsolmatrix(getmaster(alg_data.reformulation))
     for (col, col_val) in alg_data.local_partial_sol
         for (sp_var_id, sp_var_val) in primal_sp_sols[:,getid(getid(col))]
             if !haskey(sp_vars_vals, sp_var_id)
@@ -606,7 +606,7 @@ end
 
 function forbid_infeasible_columns!(alg_data::PreprocessData)
     master = getmaster(alg_data.reformulation)
-    primal_sp_sols = getprimaldwspsolmatrix(getmaster(alg_data.reformulation))
+    primal_sp_sols = getprimalsolmatrix(getmaster(alg_data.reformulation))
     for var in alg_data.preprocessed_vars
         if getduty(var) == DwSpPricingVar
             for (col_id, coef) in primal_sp_sols[getid(var),:]

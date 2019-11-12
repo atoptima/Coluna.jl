@@ -191,7 +191,7 @@ function setprimalsol!(
     form::Formulation,
     primalsol::PrimalSolution{S}
 )::Tuple{Bool,VarId} where {S<:AbstractObjSense}
-    ### check if primalsol exists should take place heren along the coeff update
+    ### check if primalsol exists does takes place here along the coeff update
 
     primal_sols = getprimalsolmatrix(form)
 
@@ -215,7 +215,7 @@ function setprimalsol!(
     end
     
     ### else
-    sol_id = generatevarid(spform)
+    sol_id = generatevarid(form)
 
     addprimalsol!(form, primalsol, sol_id)
     
@@ -266,7 +266,7 @@ function setdualsol!(
 
     ### else
 
-    dualsol_id = generateconstrid(spform)
+    dualsol_id = generateconstrid(form)
 
 
     return adddualsol!(form, dualsol, dualsol_id)
@@ -288,7 +288,7 @@ function setcol_from_sp_primalsol!(
     is_active::Bool = true,
     is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
-) where 
+) 
     col_id = sol_id
     col_data = VarData(
         cost, lb, ub, kind, sense, inc_val, is_active, is_explicit
@@ -298,8 +298,8 @@ function setcol_from_sp_primalsol!(
     )
 
     coef_matrix = getcoefmatrix(masterform)
-    primal_sol_matrix = getprimalsolmatrix(spform)
-    sol = primal_sol_matrix[:,sol_id]
+    primal_sols = getprimalsolmatrix(spform)
+    sol = primal_sols[:,sol_id]
 
     for (var_id, var_val) in sol
         for (constr_id, var_coef) in master_coef_matrix[:,var_id]
@@ -323,7 +323,7 @@ function setcut_from_sp_dualsol!(
     is_active::Bool = true,
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
-) where 
+) 
     cut_id = dualsol_id #generateconstrid(mastform)
     cut_data = ConstrData(
         rhs, Core, sense, inc_val, is_active, is_explicit
@@ -335,8 +335,8 @@ function setcut_from_sp_dualsol!(
 
     master_coef_matrix = getcoefmatrix(mastform)
     sp_coef_matrix = getcoefmatrix(spform)
-    dual_sol_matrix = getdualsolmatrix(spform)
-    dualsol = dual_sol_matrix[dualsol_id,:]
+    dual_sols = getdualsolmatrix(spform)
+    dualsol = dual_sols[dualsol_id,:]
 
     for (ds_constr_id, ds_constr_val) in dualsol
         ds_constr = getconstr(spform, ds_constr_id)

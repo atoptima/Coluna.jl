@@ -92,7 +92,7 @@ function record_solutions!(
 
     recorded_solution_ids = Vector{VarId}()
     for sol in sols
-        if contrib_improves_mlp(getbound(spsol))
+        if contrib_improves_mlp(getbound(sol))
             (insertion_status, col_id) = setprimalsol!(spform, sol)
             if insertion_status
                 push!(recorded_solution_ids, col_id)
@@ -103,24 +103,6 @@ function record_solutions!(
         end
     end
     
-    
-    #==
-            ref = getvarcounter(masterform) + 1
-            name = string("MC", sp_uid, "_", ref)
-            resetsolvalue!(masterform, spsol)
-            lb = 0.0
-            ub = Inf
-            kind = Continuous
-            duty = MasterCol
-            sense = Positive
-            mc = setprimalsol!(
-                masterform, name, spsol, duty; lb = lb, ub = ub,
-                kind = kind, sense = sense
-            )
-            @logmsg LogLevel(-2) string("Generated column : ", name)
-            ==#
-        end
-    end
     return recorded_solution_ids
 end
 
@@ -134,7 +116,7 @@ function insert_cols_in_master!(
     for sol_id in solution_ids
         nb_of_gen_col += 1
         spsol = getprimalsolmatrix(spform)[:;sol_id]
-        name = string("MC",sol_id)
+        name = string("MC",sol_id) #name = string("MC", sp_uid, "_", ref)
         cost = computesolvalue(masterform, spsol)
         lb = 0.0
         ub = Inf

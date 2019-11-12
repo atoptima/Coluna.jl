@@ -242,7 +242,7 @@ function insert_cuts_in_master!(
             spform,
             name,
             duty;
-            rhs = rhs
+            rhs = rhs,
             kind = kind,
             sense = sense
         )
@@ -413,7 +413,7 @@ end
         
         return insertion_status, spsol_relaxed, benders_sp_primal_bound_contrib, benders_sp_lagrangian_bound_contrib
     end
-    return
+return
 ==#
 
 function solve_sps_to_gencuts!(
@@ -424,6 +424,7 @@ function solve_sps_to_gencuts!(
     master_dualsol::DualSolution{S},
     up_to_phase::FormulationPhase
 ) where {S}
+    
     nb_new_cuts = 0
     spsols_relaxed = false
     total_pb_correction = 0.0
@@ -458,7 +459,7 @@ function solve_sps_to_gencuts!(
 
     global_gen_status = true
     for spform in sps
-       sp_uid = getuid(spform)
+        sp_uid = getuid(spform)
         global_gen_status &= insertion_status[sp_uid]
         spsols_relaxed |= spsol_relaxed[sp_uid]
         total_pb_correction += sp_pb_corrections[sp_uid] 
@@ -466,15 +467,14 @@ function solve_sps_to_gencuts!(
         nb_new_cuts += insert_cuts_in_master!(masterform, spform, recorded_sp_dual_solution_ids[sp_uid])
     end
     
-   #==     if gen_status > 0
-            nb_new_cuts += gen_status
-        elseif gen_status == -1 # Sp is infeasible
-            return (gen_status, false, 0.0, 0.0) # TODO : correct those numbers
-        end
-        # TODO : here gen_status = 0 ???
-==#
+    #==     if gen_status > 0
+    nb_new_cuts += gen_status
+    elseif gen_status == -1 # Sp is infeasible
+    return (gen_status, false, 0.0, 0.0) # TODO : correct those numbers
     end
- 
+    # TODO : here gen_status = 0 ???
+    ==#
+
     if spsols_relaxed
         total_pb_correction = defaultprimalboundvalue(S)
     end
