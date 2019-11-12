@@ -19,11 +19,9 @@ a mixed-integer program (MIP). The user introduces his "original" problem formul
 ## Installation
 
 You can install Coluna.jl through the package manager of Julia. 
-Go to the Pkg-REPL-mode using the key `]` from the Julia REPL. 
-Then, run the following command :
 
 ```
-   pkg> add https://github.com/atoptima/Coluna.jl.git
+   ] add https://github.com/atoptima/Coluna.jl.git
 ```
 
 ## Features
