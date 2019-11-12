@@ -46,7 +46,7 @@ As functionality goes, we aim to provide the support for:
 
 ## Authors
 
-The current main contributors to Coluna.jl are Cristiana Bentes, Teobaldo Bulhões, Guillaume Marques, Vitor Nesello, Artur Alves Pessoa, Ruslan Sadykov, Anand Subramanian, and François Vanderbeck.
+The current main contributors to Coluna.jl are Cristiana Bentes, Teobaldo Bulhões, Guillaume Marques, Vitor Nesello, Artur Alves Pessoa, Ruslan Sadykov, Anand Subramanian, Eduardo Uchoa, and François Vanderbeck.
 
 ## Sponsor
 

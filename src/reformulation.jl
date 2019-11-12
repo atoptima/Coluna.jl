@@ -40,6 +40,7 @@ get_benders_sep_sp(r::Reformulation) = r.benders_sep_subprs
 function optimize!(
         reform::Reformulation; strategy::GlobalStrategy = reform.strategy
     )
+    prepare!(strategy, reform)
     opt_result = run_reform_solver!(reform, strategy)
     master = getmaster(reform)
     for (idx, sol) in enumerate(getprimalsols(opt_result))
