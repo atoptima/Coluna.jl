@@ -26,8 +26,9 @@ coluna = JuMP.with_optimizer(
 Then, we instanciate the model
 
 ```julia
-model = BlockModel(coluna)
+model = BlockModel(coluna, bridge_constraints = false)
 ```  
+The second argument is mandatory because of a bug in MOI/BlockDecomposition.
 
 ## Generalized Assignment Problem
 
@@ -105,7 +106,6 @@ Now, we can solve the problem.
 
 ```julia
 optimize!(model)
-```
 ```
 
 ## Logs
