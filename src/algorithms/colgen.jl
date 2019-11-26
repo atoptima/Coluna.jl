@@ -115,7 +115,7 @@ function insert_cols_in_master!(
     nb_of_gen_col = 0
     for sol_id in solution_ids
         nb_of_gen_col += 1
-        spsol = getprimalsolmatrix(spform)[:;sol_id]
+        spsol = getprimalsolmatrix(spform)[:,sol_id]
         name = string("MC",sol_id) #name = string("MC", sp_uid, "_", ref)
         cost = computesolvalue(masterform, spsol)
         lb = 0.0
