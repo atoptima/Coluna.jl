@@ -1,5 +1,5 @@
 struct Branch
-    var_coeffs::MembersVector{Id{Variable}, Variable, Float64}
+    var_coeffs::PrimalSolVector
     rhs::Float64
     sense::ConstrSense
     depth::Int

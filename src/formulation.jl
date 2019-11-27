@@ -231,27 +231,27 @@ adddualsol!(
 
 function setdualsol!(
     form::Formulation,
-    dualsol::DualSolution{S}
+    new_dual_sol::DualSolution{S}
 )::Tuple{Bool,ConstrId} where {S<:AbstractObjSense}
     ### check if dualsol exists  take place here along the coeff update
 
-    dual_sols = getdualsolmatrix(form)
+    prev_dual_sols = getdualsolmatrix(form)
 
-    for (sol_id, sol) in columns(dual_sols)
+    for (prev_dual_sol_id, prev_dual_sol) in columns(prev_dual_sols)
         #@show col
         factor = 1.0
         scaling_in_place = false
         is_identical = true
-        for (constr_id, constr_val) in getrecords(sol)
+        for (constr_id, constr_val) in getrecords(prev_dual_sol)
             #@show (var_id, var_val)
-            if !haskey(sol, constr_id)
+            if !haskey(new_dual_sol, constr_id)
                 is_identical = false
                 break
             end
-            if dual_sol[constr_id] != factor * constr_val
+            if new_dual_sol[constr_id] != factor * constr_val
                 if !scaling_in_place
                     scaling_in_place = true
-                    factor = sol[constr_id] / constr_val
+                    factor = new_dual_sol[constr_id] / constr_val
                 else
                     is_identical = false
                     break
@@ -259,17 +259,16 @@ function setdualsol!(
             end
         end
         if is_identical
-            return (false, sol_id)
+            return (false, prev_dual_sol_id)
         end
     end
     
 
     ### else
 
-    dualsol_id = generateconstrid(form)
-
-
-    return adddualsol!(form, dualsol, dualsol_id)
+    new_dual_sol_id = generateconstrid(form)
+    adddualsol!(form, new_dual_sol, new_dual_sol_id)
+    return (true, new_dual_sol_id)
 end
 
 
@@ -289,25 +288,27 @@ function setcol_from_sp_primalsol!(
     is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
 ) 
-    col_id = sol_id
-    col_data = VarData(
+    mast_col_id = sol_id
+    mast_col_data = VarData(
         cost, lb, ub, kind, sense, inc_val, is_active, is_explicit
     )
-    col = Variable(
-        col_id, name, duty; var_data = mast_col_data, moi_index = moi_index
+    mast_col = Variable(
+        mast_col_id, name, duty;
+        var_data = mast_col_data,
+        moi_index = moi_index
     )
 
-    coef_matrix = getcoefmatrix(masterform)
+    master_coef_matrix = getcoefmatrix(masterform)
     primal_sols = getprimalsolmatrix(spform)
-    sol = primal_sols[:,sol_id]
+    sp_sol = primal_sols[:,sol_id]
 
-    for (var_id, var_val) in sol
-        for (constr_id, var_coef) in master_coef_matrix[:,var_id]
-            master_coef_matrix[constr_id, mast_col_id] += var_val * var_coef
+    for (sp_var_id, sp_var_val) in sp_sol
+        for (master_constr_id, sp_var_coef) in master_coef_matrix[:,sp_var_id]
+            master_coef_matrix[master_constr_id, mast_col_id] += sp_var_val * sp_var_coef
         end
     end
 
-    return addvar!(masterform, col)
+    return addvar!(masterform, mast_col)
 end
 
 function setcut_from_sp_dualsol!(
@@ -324,34 +325,35 @@ function setcut_from_sp_dualsol!(
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
 ) 
-    cut_id = dualsol_id #generateconstrid(mastform)
-    cut_data = ConstrData(
+    benders_cut_id = dualsol_id #generateconstrid(mastform)
+    benders_cut_data = ConstrData(
         rhs, Core, sense, inc_val, is_active, is_explicit
     )
-    cut = Constraint(
-        cut_id, name, duty; constr_data = benders_cut_data, 
+    benders_cut = Constraint(
+        benders_cut_id, name, duty;
+        constr_data = benders_cut_data, 
         moi_index = moi_index
     )
 
     master_coef_matrix = getcoefmatrix(mastform)
     sp_coef_matrix = getcoefmatrix(spform)
     dual_sols = getdualsolmatrix(spform)
-    dualsol = dual_sols[dualsol_id,:]
+    sp_dualsol = dual_sols[dualsol_id,:]
 
-    for (ds_constr_id, ds_constr_val) in dualsol
+    for (ds_constr_id, ds_constr_val) in sp_dualsol
         ds_constr = getconstr(spform, ds_constr_id)
         if getduty(ds_constr) <: AbstractBendSpMasterConstr
-            for (var_id, constr_coef) in sp_coef_matrix[ds_constr_id,:]
-                var = getvar(spform, var_id)
+            for (master_var_id, sp_constr_coef) in sp_coef_matrix[ds_constr_id,:]
+                var = getvar(spform, master_var_id)
                 if getduty(var) <: AbstractBendSpSlackMastVar
-                    master_coef_matrix[cut_id, var_id] += ds_constr_val * constr_coef
+                    master_coef_matrix[benders_cut_id, master_var_id] += ds_constr_val * sp_constr_coef
                 end
             end
         end
     end 
 
 
-    return addconstr!(mastform, cut)
+    return addconstr!(mastform, benders_cut)
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."
@@ -524,6 +526,12 @@ function remove_from_optimizer!(ids::Set{Id{T}}, f::Formulation) where {
     return
 end
 
+function computesolvalue(form::Formulation, sol_vec::PrimalSolVector) 
+    val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol_vec)
+    return val
+end
+
+
 function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
     return val
@@ -533,6 +541,11 @@ function resetsolvalue!(form::Formulation, sol::PrimalSolution{S}) where {S<:Abs
     val = computesolvalue(form, sol)
     setvalue!(sol, val)
     return val
+end
+
+function computesolvalue(form::Formulation, sol_vec::DualSolVector) 
+    val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
+    return val 
 end
 
 function computesolvalue(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}

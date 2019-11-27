@@ -154,7 +154,8 @@ function update_benders_sp_target!(spform::Formulation)
 end
 
 function record_solutions!(
-    algdata,
+    algo::BendersCutGeneration,
+    algdata::BendersCutGenData,
     spform::Formulation,
     spresult::OptimizationResult{S}
 )::Vector{ConstrId} where {S}
@@ -165,7 +166,7 @@ function record_solutions!(
     dual_sols = getdualsols(spresult)
 
     for dual_sol in dual_sols
-        if getvalue(dual_sol) > 0.0001 #|| algdata.spform_phase[getuid(spform)] == PurePhase1
+        if getvalue(dual_sol) > algo.feasibility_tol #|| algdata.spform_phase[getuid(spform)] == PurePhase1
             (insertion_status, cut_id) = setdualsol!(spform, dual_sol)
             if insertion_status
                 push!(recorded_dual_solution_ids, cut_id)
@@ -228,7 +229,7 @@ function insert_cuts_in_master!(
 ) 
     sp_uid = getuid(spform)
     nb_of_gen_cuts = 0
-    sense = (S == MinSense ? Greater : Less)
+    sense = (getobjsense(masterform) == MinSense ? Greater : Less)
 
     for dual_sol_id in dualsol_ids
         nb_of_gen_cuts += 1
@@ -368,7 +369,7 @@ function solve_sp_to_gencut!(
             end
             
         else # a cut can be generated since there is a violation
-            recorded_dual_solution_ids = record_solutions!(algdata,  spform, optresult)
+            recorded_dual_solution_ids = record_solutions!(algo, algdata, spform, optresult)
             if spsol_relaxed && algo.option_increase_cost_in_hybrid_phase
                 #check algdata.spform_phase[spform_uid] == HybridPhase
                 # Todo increase cost
@@ -461,7 +462,7 @@ function solve_sps_to_gencuts!(
     for spform in sps
         sp_uid = getuid(spform)
         global_gen_status &= insertion_status[sp_uid]
-        spsols_relaxed |= spsol_relaxed[sp_uid]
+        spsols_relaxed |= spsol_relaxed_status[sp_uid]
         total_pb_correction += sp_pb_corrections[sp_uid] 
         total_pb_contrib += sp_pb_contribs[sp_uid]
         nb_new_cuts += insert_cuts_in_master!(masterform, spform, recorded_sp_dual_solution_ids[sp_uid])
