@@ -21,7 +21,7 @@ a mixed-integer program (MIP). The user introduces his "original" problem formul
 You can install Coluna.jl through the package manager of Julia. 
 
 ```
-   ] add https://github.com/atoptima/Coluna.jl.git
+   ] add Coluna
 ```
 
 ## Features
