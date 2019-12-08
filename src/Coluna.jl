@@ -6,6 +6,7 @@ import DataStructures
 import BlockDecomposition
 import Distributed
 import TimerOutputs
+import Primes
 
 using Logging
 using Printf
@@ -35,6 +36,7 @@ include("varconstr.jl")
 
 include("containers/elements.jl")
 include("containers/members.jl")
+include("containers/nestedenum.jl")
 
 include("manager.jl")
 include("filters.jl")
