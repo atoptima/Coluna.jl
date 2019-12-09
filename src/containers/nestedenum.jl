@@ -1,9 +1,10 @@
 abstract type NestedEnum end
 
-function ←(a::T, b::T) where {T <: NestedEnum}
+import Base.<=
+function <=(a::T, b::T) where {T <: NestedEnum}
     return a.id % b.id == 0
 end
-export ←
+
 
 function _store!(expr::Symbol, i, names, parent_pos, leaves, primes)
     names[i] = expr
@@ -15,15 +16,15 @@ end
 
 function _store!(expr::Expr, i, names, parent_pos, leaves, primes)
     expr.head == :call || error("Syntax.")
-    expr.args[1] == :← || error("Syntax 2.")
-    i > 1 || error("Parent not registered.")
+    expr.args[1] == :(<=) || error("Syntax error : Child <= Parent ")
+    i > 1 || error("First element cannot have a parent.")
 
     name = expr.args[2]
     parent_name = expr.args[3]
 
     r = findall(n -> n == parent_name, names[1:i-1])
-    length(r) == 0 && error("Cannot find parent name.")
-    length(r) > 1 && error("Element $parent_name registered more than once.")
+    length(r) == 0 && error("Unknow parent $(parent_name).")
+    length(r) > 1 && error("$parent_name registered more than once.")
     parent_pos[i] = r[1]
     names[i] = name
     leaves[i] = true
@@ -44,6 +45,10 @@ function _compute_values!(values, parent_pos, primes)
 end
 
 macro nestedenum(expr)
+    Base.remove_linenums!(expr)
+
+    expr.head == :block || error("Block expression expected.")
+
     len = length(expr.args)
     names = Array{Symbol}(undef, len)
     parent_pos = zeros(Int, len)
@@ -51,7 +56,6 @@ macro nestedenum(expr)
     primes = zeros(Int, len)
     values = zeros(UInt32, len)
 
-    @assert expr.head == :tuple
     name_values = Dict{Symbol, Int}() 
     for (i, arg) in enumerate(expr.args)
         _store!(arg, i, names, parent_pos, leaves, primes)
@@ -65,13 +69,5 @@ macro nestedenum(expr)
     for i in 2:len
         push!(enum_expr.args, :($(names[i]) = $(root_name)(UInt($(values[i])))))
     end
-
-    # @show root_name
-    # @show names
-    # @show parent_pos
-    # @show primes
-    # @show values
-
-    @show enum_expr
     return esc(enum_expr)
 end
