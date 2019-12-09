@@ -1,10 +1,10 @@
 abstract type NestedEnum end
 
 import Base.<=
+
 function <=(a::T, b::T) where {T <: NestedEnum}
     return a.id % b.id == 0
 end
-
 
 function _store!(expr::Symbol, i, names, parent_pos, leaves, primes)
     names[i] = expr
@@ -44,6 +44,22 @@ function _compute_values!(values, parent_pos, primes)
     return
 end
 
+"""
+    @nestedenum begin 
+        Root
+        ChildA <= Root
+            GrandChildA1 <= ChildA
+            GrandChildA2 <= ChildA
+        ChildB <= Root
+        ChildC <= Root
+    end
+
+Create a nested enumeration with name `Root` and elements `ChildA`, 
+`GrandChildA1`, `GrandChildA2`, `ChildB`, and `ChildC`.
+The operator `<=` indicates the parent of the element.
+In this example, `Root` is the parent of `ChildA`, `ChildB`, and `ChildC`;
+`ChildA` is the parent of `GrandChildA1` and `GrandChildA2`.
+"""
 macro nestedenum(expr)
     Base.remove_linenums!(expr)
 
