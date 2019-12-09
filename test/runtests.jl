@@ -1,5 +1,5 @@
 #using Revise
-import Coluna
+using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
 
