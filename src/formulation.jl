@@ -189,21 +189,32 @@ addprimalsol!(
 
 function setprimalsol!(
     form::Formulation,
-    primalsol::PrimalSolution{S}
+    newprimalsol::PrimalSolution{S}
 )::Tuple{Bool,VarId} where {S<:AbstractObjSense}
     ### check if primalsol exists does takes place here along the coeff update
 
     primal_sols = getprimalsolmatrix(form)
 
     for (sol_id, sol) in columns(primal_sols)
-        #@show sol
+        #@show sol_idx
         is_identical = true
         for (var_id, var_val) in getrecords(sol)
+            if !haskey(newprimalsol.sol, var_id)
+                is_identical = false
+                break
+            end
+        end
+        if !is_identical
+            break
+        end
+ 
+        for (var_id, var_val) in getrecords(newprimalsol.sol)
             #@show (var_id, var_val)
             if !haskey(sol, var_id)
                 is_identical = false
                 break
             end
+        
             if sol[var_id] != var_val
                 is_identical = false
                 break
@@ -214,12 +225,10 @@ function setprimalsol!(
         end
     end
     
-    ### else
-    sol_id = generatevarid(form)
-
-    addprimalsol!(form, primalsol, sol_id)
-    
-    return (true, sol_id)
+    ### else not identical to any existing column
+    new_sol_id = generatevarid(form)
+    addprimalsol!(form, newprimalsol, new_sol_id)
+    return (true, new_sol_id)
 end
 
 adddualsol!(
@@ -239,19 +248,31 @@ function setdualsol!(
 
     for (prev_dual_sol_id, prev_dual_sol) in columns(prev_dual_sols)
         #@show col
-        factor = 1.0
-        scaling_in_place = false
         is_identical = true
         for (constr_id, constr_val) in getrecords(prev_dual_sol)
             #@show (var_id, var_val)
-            if !haskey(new_dual_sol, constr_id)
+            if !haskey(new_dual_sol.sol, constr_id)
                 is_identical = false
                 break
             end
-            if new_dual_sol[constr_id] != factor * constr_val
+        end
+        if !is_identical
+            break
+        end
+
+        factor = 1.0
+        scaling_in_place = false
+        for (constr_id, constr_val) in getrecords(new_dual_sol.sol)
+            #@show (var_id, var_val)
+            if !haskey(prev_dual_sol, constr_id)
+                is_identical = false
+                break
+            end
+            
+            if prev_dual_sol[constr_id] != factor * constr_val
                 if !scaling_in_place
                     scaling_in_place = true
-                    factor = new_dual_sol[constr_id] / constr_val
+                    factor = prev_dual_sol[constr_id] / constr_val
                 else
                     is_identical = false
                     break
@@ -264,8 +285,7 @@ function setdualsol!(
     end
     
 
-    ### else
-
+    ### else not identical to any existing dual sol
     new_dual_sol_id = generateconstrid(form)
     adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)

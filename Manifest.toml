@@ -10,10 +10,10 @@ uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 version = "0.4.3"
 
 [[BinDeps]]
-deps = ["Compat", "Libdl", "SHA", "URIParser"]
-git-tree-sha1 = "12093ca6cdd0ee547c39b1870e0c9c3f154d9ca9"
+deps = ["Libdl", "Pkg", "SHA", "URIParser", "Unicode"]
+git-tree-sha1 = "66158ad56b4bf6cc8413b37d0b7bc52402682764"
 uuid = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
-version = "0.8.10"
+version = "1.0.0"
 
 [[BinaryProvider]]
 deps = ["Libdl", "SHA"]
@@ -99,9 +99,9 @@ version = "0.24.2"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
-git-tree-sha1 = "4407e7b76999eca2646abdb68203bd4302476168"
+git-tree-sha1 = "da46ac97b17793eba44ff366dc6cb70f1238a738"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.6"
+version = "0.10.7"
 
 [[GLPK]]
 deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
