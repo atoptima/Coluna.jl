@@ -6,7 +6,7 @@ using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
 import MathOptInterface, MathOptInterface.Utilities
 
 using Base.CoreLogging, Logging
-global_logger(ConsoleLogger(stderr, LogLevel(1)))
+global_logger(ConsoleLogger(stderr, LogLevel(-4)))
 
 global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
@@ -20,11 +20,12 @@ include("full_instances_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
 
-unit_tests()
+#unit_tests()
 
 @testset "Full instances " begin
     full_instances_tests()
 end
+#==
 @testset "Preprocessing " begin
     preprocessing_tests()
 end
@@ -41,3 +42,4 @@ end
     close(rd_out)
     redirect_stdout(backup_stdout)
 end
+==#
