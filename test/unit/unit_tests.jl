@@ -2,6 +2,7 @@ include("types.jl")
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
 include("containers/members.jl")
+include("containers/nestedenum.jl")
 # include("parameters.jl")
 include("counters.jl")
 include("vcids.jl")
@@ -36,6 +37,10 @@ include("incumbents.jl")
 
 
 function unit_tests()
+    @testset "Containers" begin
+        nestedenum_unit()
+    end
+    
     @testset "types.jl" begin
         types_unit_tests()
     end
