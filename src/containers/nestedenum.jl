@@ -7,16 +7,15 @@ function <=(a::T, b::T) where {T <: NestedEnum}
 end
 
 # Store the item defined in expr at position i
-function _store!(expr::Symbol, i, names, parent_pos, leaves, primes)
+function _store!(expr::Symbol, i, names, parent_pos, primes)
     names[i] = expr
     parent_pos[i] = 0 # No parent
-    leaves[i] = true
     primes[i] = Primes.prime(i)
     return
 end
 
 # Store the item defined in expr at position i
-function _store!(expr::Expr, i, names, parent_pos, leaves, primes)
+function _store!(expr::Expr, i, names, parent_pos, primes)
     expr.head == :call || error("Syntax error :  Child <= Parent ")
     expr.args[1] == :(<=) || error("Syntax error : Child <= Parent ")
     i > 1 || error("First element cannot have a parent.")
@@ -29,7 +28,6 @@ function _store!(expr::Expr, i, names, parent_pos, leaves, primes)
     length(r) > 1 && error("$(parent_name) registered more than once.")
     parent_pos[i] = r[1]
     names[i] = name
-    leaves[i] = true
     primes[i] = Primes.prime(i)
     return
 end
@@ -73,13 +71,12 @@ macro nestedenum(expr)
     len = length(expr.args)
     names = Array{Symbol}(undef, len)
     parent_pos = zeros(Int, len) # Position of the parent.
-    leaves = falses(len)
     primes = zeros(Int, len) # We assign a prime to each item.
     values = zeros(UInt32, len) # The value is the multiplication of primes of the item and its ancestors.
 
     name_values = Dict{Symbol, Int}() 
     for (i, arg) in enumerate(expr.args)
-        _store!(arg, i, names, parent_pos, leaves, primes)
+        _store!(arg, i, names, parent_pos, primes)
     end
 
     _compute_values!(values, parent_pos, primes)
