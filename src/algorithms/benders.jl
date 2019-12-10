@@ -166,58 +166,18 @@ function record_solutions!(
     dual_sols = getdualsols(spresult)
 
     for dual_sol in dual_sols
-        if getvalue(dual_sol) > algo.feasibility_tol #|| algdata.spform_phase[getuid(spform)] == PurePhase1
-            (insertion_status, cut_id) = setdualsol!(spform, dual_sol)
+        if getvalue(dual_sol) > algo.feasibility_tol 
+            (insertion_status, dual_sol_id) = setdualsol!(spform, dual_sol)
             if insertion_status
-                push!(recorded_dual_solution_ids, cut_id)
+                push!(recorded_dual_solution_ids, dual_sol_id)
+                @show string("new dual sol for Benders cut ", dual_sol_id)
             else
-                @warn string("cut already exists as", cut_id)
+                @warn string("dual sol already exists as ", dual_sol_id)
             end
 
         end
     end
 
- #==   N = length(dual_sols)
-    if length(primal_sols) < N
-        N = length(primal_sols)
-    end
-    
-    for k in 1:N
-        primal_sol = primal_sols[k]
-        dual_sol = dual_sols[k]
-        # the solution value represent the cut violation at this stage
-        if getvalue(dual_sol) > 0.0001 || algdata.spform_phase[getuid(spform)] == PurePhase1 # TODO the cut feasibility tolerance
-            nb_of_gen_cuts += 1
-            ref = getconstrcounter(masterform) + 1
-            name = string("BC", sp_uid, "_", ref)
-            resetsolvalue!(spform, dual_sol) # now the sol value represents the dual sol value
-            kind = Core
-            duty = MasterBendCutConstr
-            bc = setprimaldualsol!(
-                masterform, spform, name, primal_sol, dual_sol, duty; 
-                kind = kind, sense = sense
-            )
-          
-            @logmsg LogLevel(-2) string("Generated cut : ", name)
-            #@show bc
-
-            # TODO: check if cut exists
-            #== mc_id = getid(mc)
-            id_of_existing_mc = - 1
-            primalspsol_matrix = getprimalsolmatrix(masterform)
-            for (col, col_members) in columns(primalspsol_matrix)
-                if (col_members == primalspsol_matrix[:, mc_id])
-                    id_of_existing_mc = col[1]
-                    break
-                end
-            end
-            if (id_of_existing_mc != mc_id)
-                @warn string("column already exists as", id_of_existing_mc)
-            end
-            ==#
-        end
-    end
-==#
     return recorded_dual_solution_ids 
 end
 
@@ -225,22 +185,26 @@ end
 function insert_cuts_in_master!(
     masterform::Formulation,
     spform::Formulation,
-    dualsol_ids::Vector{ConstrId},
-) 
+    sp_dualsol_ids::Vector{ConstrId},
+)
     sp_uid = getuid(spform)
+    @show string("insert_cuts_in_master ", sp_uid)
     nb_of_gen_cuts = 0
     sense = (getobjsense(masterform) == MinSense ? Greater : Less)
 
-    for dual_sol_id in dualsol_ids
+    for dual_sol_id in sp_dualsol_ids
         nb_of_gen_cuts += 1
-        name = string("BC", dual_sol_id)
-        dual_sol = getdualsolmatrix(spform)[:;dual_sol_id]
+        name = string("BendCut", getsortid(dual_sol_id))
+        dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
+        @show string("Benders cut ", nb_of_gen_cuts, " gen from dual sol ", dual_sol_id)
         rhs = computesolvalue(spform, dual_sol) # now the sol value represents the dual sol value
+        @show rhs
         kind = Core
         duty = MasterBendCutConstr
         bc = setcut_from_sp_dualsol!(
             masterform,
             spform,
+            dual_sol_id,
             name,
             duty;
             rhs = rhs,
@@ -313,7 +277,7 @@ function solve_sp_to_gencut!(
         end
 
         if !isfeasible(optresult) # if status != MOI.OPTIMAL
-        sp_is_feasible = false 
+            sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
             bd = defaultprimalboundvalue(getobjsense(spform)) 
             return sp_is_feasible, spsol_relaxed, recorded_dual_solution_ids, bd, bd
@@ -442,15 +406,15 @@ function solve_sps_to_gencuts!(
     ### BEGIN LOOP TO BE PARALLELIZED
     for spform in sps
         sp_uid = getuid(spform)
-        gen_status, spsol_relaxed,
-        recorded_dual_solution_ids,
-        benders_sp_primal_bound_contrib,
-        benders_sp_lagrangian_bound_contrib =
-            solve_sp_to_gencut!(algo, algdata, masterform, spform,
-                                master_primalsol, master_dualsol,
-                                up_to_phase)
-
-        recorded_sp_dual_solution_ids[sp_uid] = recorded_dual_solution_ids
+        recorded_sp_dual_solution_ids[sp_uid] = Vector{ConstrId}()
+        gen_status, spsol_relaxed, recorded_dual_solution_ids, benders_sp_primal_bound_contrib, benders_sp_lagrangian_bound_contrib = solve_sp_to_gencut!(
+            algo, algdata, masterform, spform,
+            master_primalsol, master_dualsol,
+            up_to_phase
+        )
+        if gen_status # else Sp is infeasible: contrib = Inf
+            recorded_sp_dual_solution_ids[sp_uid] = recorded_dual_solution_ids
+        end        
         sp_pb_corrections[sp_uid] = benders_sp_primal_bound_contrib
         sp_pb_contribs[sp_uid] = benders_sp_lagrangian_bound_contrib
         insertion_status[sp_uid] = gen_status
@@ -468,14 +432,6 @@ function solve_sps_to_gencuts!(
         nb_new_cuts += insert_cuts_in_master!(masterform, spform, recorded_sp_dual_solution_ids[sp_uid])
     end
     
-    #==     if gen_status > 0
-    nb_new_cuts += gen_status
-    elseif gen_status == -1 # Sp is infeasible
-    return (gen_status, false, 0.0, 0.0) # TODO : correct those numbers
-    end
-    # TODO : here gen_status = 0 ???
-    ==#
-
     if spsols_relaxed
         total_pb_correction = defaultprimalboundvalue(S)
     end

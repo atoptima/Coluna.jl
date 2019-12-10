@@ -205,7 +205,7 @@ function setprimalsol!(
             end
         end
         if !is_identical
-            break
+            continue
         end
  
         for (var_id, var_val) in getrecords(newprimalsol.sol)
@@ -257,7 +257,7 @@ function setdualsol!(
             end
         end
         if !is_identical
-            break
+            continue
         end
 
         factor = 1.0
@@ -319,8 +319,7 @@ function setcol_from_sp_primalsol!(
     )
 
     master_coef_matrix = getcoefmatrix(masterform)
-    primal_sols = getprimalsolmatrix(spform)
-    sp_sol = primal_sols[:,sol_id]
+    sp_sol = getprimalsolmatrix(spform)[:,sol_id]
 
     for (sp_var_id, sp_var_val) in sp_sol
         for (master_constr_id, sp_var_coef) in master_coef_matrix[:,sp_var_id]
@@ -334,7 +333,7 @@ end
 function setcut_from_sp_dualsol!(
     masterform::Formulation,
     spform::Formulation,
-    dualsol_id::ConstrId,
+    dual_sol_id::ConstrId,
     name::String,
     duty::Type{<:AbstractConstrDuty};
     rhs::Float64 = 0.0,
@@ -345,7 +344,7 @@ function setcut_from_sp_dualsol!(
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
 ) 
-    benders_cut_id = dualsol_id #generateconstrid(mastform)
+    benders_cut_id = dual_sol_id 
     benders_cut_data = ConstrData(
         rhs, Core, sense, inc_val, is_active, is_explicit
     )
@@ -354,13 +353,12 @@ function setcut_from_sp_dualsol!(
         constr_data = benders_cut_data, 
         moi_index = moi_index
     )
-
-    master_coef_matrix = getcoefmatrix(mastform)
+    @show benders_cut
+    master_coef_matrix = getcoefmatrix(masterform)
     sp_coef_matrix = getcoefmatrix(spform)
-    dual_sols = getdualsolmatrix(spform)
-    sp_dualsol = dual_sols[dualsol_id,:]
+    sp_dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
 
-    for (ds_constr_id, ds_constr_val) in sp_dualsol
+    for (ds_constr_id, ds_constr_val) in sp_dual_sol
         ds_constr = getconstr(spform, ds_constr_id)
         if getduty(ds_constr) <: AbstractBendSpMasterConstr
             for (master_var_id, sp_constr_coef) in sp_coef_matrix[ds_constr_id,:]
@@ -373,7 +371,7 @@ function setcut_from_sp_dualsol!(
     end 
 
 
-    return addconstr!(mastform, benders_cut)
+    return addconstr!(masterform, benders_cut)
 end
 
 "Adds `Variable` `var` to `Formulation` `f`."
@@ -564,7 +562,7 @@ function resetsolvalue!(form::Formulation, sol::PrimalSolution{S}) where {S<:Abs
 end
 
 function computesolvalue(form::Formulation, sol_vec::DualSolVector) 
-    val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
+    val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol_vec)
     return val 
 end
 

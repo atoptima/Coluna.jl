@@ -109,14 +109,15 @@ end
 function insert_cols_in_master!(
     masterform::Formulation,
     spform::Formulation, 
-    solution_ids::Vector{VarId}
+    sp_solution_ids::Vector{VarId}
 ) 
     sp_uid = getuid(spform)
     nb_of_gen_col = 0
-    for sol_id in solution_ids
+
+    for sol_id in sp_solution_ids
         nb_of_gen_col += 1
         spsol = getprimalsolmatrix(spform)[:,sol_id]
-        name = string("MC",sol_id) #name = string("MC", sp_uid, "_", ref)
+        name = string("MastCol", getsortid(sol_id)) 
         cost = computesolvalue(masterform, spsol)
         lb = 0.0
         ub = Inf
@@ -137,6 +138,7 @@ function insert_cols_in_master!(
         )
         @logmsg LogLevel(-2) string("Generated column : ", name)
     end
+    
     return nb_of_gen_col
 end
 
@@ -231,7 +233,7 @@ function solve_sps_to_gencols!(
     ### BEGIN LOOP TO BE PARALLELIZED
     for spform in sps
         sp_uid = getuid(spform)
-        gen_status , new_sp_solution_ids, sp_dual_contrib = solve_sp_to_gencol!(
+        gen_status, new_sp_solution_ids, sp_dual_contrib = solve_sp_to_gencol!(
             masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
         )
         if gen_status # else Sp is infeasible: contrib = Inf
