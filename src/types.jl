@@ -28,89 +28,67 @@ struct MinSense <: AbstractObjSense end
 struct MaxSense <: AbstractObjSense end
 
 ## Duties : 
-abstract type AbstractDuty end 
-abstract type AbstractVarConstrDuty <: AbstractDuty end
-abstract type AbstractVarDuty <: AbstractVarConstrDuty end
-abstract type AbstractConstrDuty <: AbstractVarConstrDuty end
-abstract type AbstractFormDuty <: AbstractDuty end
+@nestedenum begin
+    AbstractDuty
+    AbstractVarConstrDuty <= AbstractDuty
+        AbstractVarDuty <= AbstractVarConstrDuty
+            AbstractOriginalVar <= AbstractVarDuty
+                OriginalVar <= AbstractOriginalVar
+                OriginalExpression <= AbstractOriginalVar
+            AbstractMasterVar <= AbstractVarDuty
+                AbstractOriginMasterVar <= AbstractMasterVar
+                    MasterPureVar <= AbstractOriginMasterVar 
+                    MasterBendFirstStageVar <= AbstractOriginMasterVar
+                AbstractAddedMasterVar <= AbstractMasterVar
+                    MasterCol <= AbstractAddedMasterVar
+                    MasterArtVar <= AbstractAddedMasterVar
+                    MasterBendSecondStageCostVar <= AbstractAddedMasterVar
+                AbstractImplicitMasterVar <= AbstractMasterVar
+                    AbstractMasterRepDwSpVar <= AbstractImplicitMasterVar
+                        MasterRepPricingVar <= AbstractMasterRepDwSpVar
+                        MasterRepPricingSetupVar <= AbstractMasterRepDwSpVar
+            AbstractDwSpVar <= AbstractVarDuty
+                DwSpPricingVar <= AbstractDwSpVar
+                DwSpSetupVar <= AbstractDwSpVar
+                DwSpPureVar <= AbstractDwSpVar 
+            AbstractBendSpVar <= AbstractVarDuty
+                AbstractBendSpSlackMastVar <= AbstractBendSpVar
+                    BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
+                    BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
+                BendSpSepVar <= AbstractBendSpVar
+                BendSpPureVar <= AbstractBendSpVar
+            UndefinedVarDuty <= AbstractVarDuty
+        AbstractConstrDuty <= AbstractVarConstrDuty
+            AbstractOriginalConstr <= AbstractConstrDuty
+                OriginalConstr <= AbstractOriginalConstr 
+            AbstractMasterConstr <= AbstractConstrDuty
+                AbstractMasterOriginConstr <= AbstractMasterConstr
+                    MasterPureConstr <= AbstractMasterOriginConstr 
+                    MasterMixedConstr <= AbstractMasterOriginConstr
+                AbstractMasterAddedConstr <= AbstractMasterConstr
+                    MasterConvexityConstr <= AbstractMasterAddedConstr
+                    MasterSecondStageCostConstr <= AbstractMasterAddedConstr
+                AbstractMasterImplicitConstr <= AbstractMasterConstr
+                    AbstractMasterRepBendSpConstr <= AbstractMasterImplicitConstr
+                        MasterRepBendSpSecondStageCostConstr <= AbstractMasterRepBendSpConstr
+                        MasterRepBendSpTechnologicalConstr <= AbstractMasterRepBendSpConstr
+                AbstractMasterCutConstr <= AbstractMasterConstr
+                    MasterBendCutConstr <= AbstractMasterCutConstr
+                AbstractMasterBranchingConstr <= AbstractMasterConstr
+                MasterBranchOnOrigVarConstr <= AbstractMasterBranchingConstr
+            AbstractDwSpConstr <= AbstractConstrDuty
+                DwSpPureConstr <= AbstractDwSpConstr
+                DwSpRepMastBranchConstr <= AbstractDwSpConstr
+            AbstractBendSpPureConstr <= AbstractConstrDuty
+            AbstractBendSpConstr <= AbstractConstrDuty
+                AbstractBendSpMasterConstr <= AbstractBendSpConstr
+                    BendSpSecondStageCostConstr <= AbstractBendSpMasterConstr
+                    BendSpTechnologicalConstr <= AbstractBendSpMasterConstr
+                BendSpPureConstr <= AbstractBendSpConstr
+            UndefinedConstrDuty <= AbstractConstrDuty
+end
 
-# First level of specification on VarDuty
-abstract type AbstractOriginalVar <: AbstractVarDuty end
-abstract type AbstractMasterVar <: AbstractVarDuty end
-abstract type AbstractOriginMasterVar <: AbstractMasterVar end
-abstract type AbstractAddedMasterVar <: AbstractMasterVar end
-abstract type AbstractImplicitMasterVar <: AbstractMasterVar end
-abstract type AbstractMasterRepDwSpVar <: AbstractImplicitMasterVar end
-abstract type AbstractDwSpVar <: AbstractVarDuty end
-abstract type AbstractBendSpVar <: AbstractVarDuty end
-#abstract type AbstractBendSpRepMastVar <: AbstractBendSpVar end
-abstract type AbstractBendSpSlackMastVar <: AbstractBendSpVar end
-
-# Concrete types for VarDuty
-struct OriginalVar <: AbstractOriginalVar end
-struct OriginalExpression <: AbstractOriginalVar end
-
-struct MasterPureVar <: AbstractOriginMasterVar end 
-struct MasterCol <: AbstractAddedMasterVar end
-struct MasterArtVar <: AbstractAddedMasterVar end
-struct MasterBendSecondStageCostVar <: AbstractAddedMasterVar end
-struct MasterBendFirstStageVar <: AbstractOriginMasterVar end
-struct MasterRepPricingVar <: AbstractMasterRepDwSpVar end
-struct MasterRepPricingSetupVar <: AbstractMasterRepDwSpVar end
-
-struct DwSpPricingVar <: AbstractDwSpVar end
-struct DwSpSetupVar <: AbstractDwSpVar end
-struct DwSpPureVar <: AbstractDwSpVar end 
-
-struct BendSpSepVar <: AbstractBendSpVar end
-struct BendSpPureVar <: AbstractBendSpVar end
-struct BendSpSlackFirstStageVar <: AbstractBendSpSlackMastVar end
-struct BendSpSlackSecondStageCostVar <: AbstractBendSpSlackMastVar end
-#struct BendSpRepFirstStageVar <: AbstractBendSpRepMastVar end
-#struct BendSpRepSecondStageCostVar <: AbstractBendSpRepMastVar end
-
-struct UndefinedVarDuty <: AbstractVarDuty end
-
-#struct BendersSpVar <: AbstractVarDuty end
-#struct BlockGenSpVar <: AbstractVarDuty end
-#struct MastRepBlockSpVar <: AbstractVarDuty end
-
-# First level of specification on ConstrDuty
-abstract type AbstractOriginalConstr <: AbstractConstrDuty end
-abstract type AbstractMasterConstr <: AbstractConstrDuty end
-abstract type AbstractMasterOriginConstr <: AbstractMasterConstr end
-abstract type AbstractMasterAddedConstr <: AbstractMasterConstr end
-abstract type AbstractMasterImplicitConstr <: AbstractMasterConstr end
-abstract type AbstractMasterRepBendSpConstr <: AbstractMasterImplicitConstr end
-abstract type AbstractMasterCutConstr <: AbstractMasterConstr end
-abstract type AbstractMasterBranchingConstr <: AbstractMasterConstr end
-abstract type AbstractDwSpConstr <: AbstractConstrDuty end
-abstract type AbstractBendSpPureConstr <: AbstractConstrDuty end
-abstract type AbstractBendSpConstr <: AbstractConstrDuty end
-abstract type AbstractBendSpMasterConstr <: AbstractBendSpConstr end
-
-# Concrete duties for Constraints
-struct OriginalConstr <: AbstractOriginalConstr end
-
-struct MasterPureConstr <: AbstractMasterOriginConstr end 
-struct MasterMixedConstr <: AbstractMasterOriginConstr end 
-struct MasterConvexityConstr <: AbstractMasterAddedConstr end
-struct MasterSecondStageCostConstr <: AbstractMasterAddedConstr end
-struct MasterBendCutConstr <: AbstractMasterCutConstr end
-struct MasterBranchOnOrigVarConstr <: AbstractMasterBranchingConstr end
-struct MasterRepBendSpSecondStageCostConstr <: AbstractMasterRepBendSpConstr end
-struct MasterRepBendSpTechnologicalConstr <: AbstractMasterRepBendSpConstr end
-
-struct DwSpPureConstr <: AbstractDwSpConstr end
-struct DwSpRepMastBranchConstr <: AbstractDwSpConstr end
-
-struct BendSpPureConstr <: AbstractBendSpConstr end
-struct BendSpSecondStageCostConstr <: AbstractBendSpMasterConstr end
-struct BendSpTechnologicalConstr <: AbstractBendSpMasterConstr end
-
-
-struct UndefinedConstrDuty <: AbstractConstrDuty end
-
+abstract type AbstractFormDuty end
 # First level of duties 
 abstract type AbstractMasterDuty <: AbstractFormDuty end
 abstract type AbstractSpDuty <: AbstractFormDuty end
@@ -130,6 +108,13 @@ struct DwSp <: AbstractSpDuty end
 
 "A Benders subproblem of formulation decomposed using Benders."
 struct BendersSp <: AbstractSpDuty end
+
+#BendSpRepFirstStageVar <= AbstractBendSpRepMastVar
+#BendSpRepSecondStageCostVar <= AbstractBendSpRepMastVar
+
+#BendersSpVar <= AbstractVarDuty
+#BlockGenSpVar <= AbstractVarDuty
+#MastRepBlockSpVar <= AbstractVarDuty
 
 # Types of algorithm
 
