@@ -6,6 +6,7 @@ function <=(a::T, b::T) where {T <: NestedEnum}
     return a.id % b.id == 0
 end
 
+# Store the item defined in expr at position i
 function _store!(expr::Symbol, i, names, parent_pos, leaves, primes)
     names[i] = expr
     parent_pos[i] = 0 # No parent
@@ -14,8 +15,9 @@ function _store!(expr::Symbol, i, names, parent_pos, leaves, primes)
     return
 end
 
+# Store the item defined in expr at position i
 function _store!(expr::Expr, i, names, parent_pos, leaves, primes)
-    expr.head == :call || error("Syntax.")
+    expr.head == :call || error("Syntax error :  Child <= Parent ")
     expr.args[1] == :(<=) || error("Syntax error : Child <= Parent ")
     i > 1 || error("First element cannot have a parent.")
 
@@ -24,7 +26,7 @@ function _store!(expr::Expr, i, names, parent_pos, leaves, primes)
 
     r = findall(n -> n == parent_name, names[1:i-1])
     length(r) == 0 && error("Unknow parent $(parent_name).")
-    length(r) > 1 && error("$parent_name registered more than once.")
+    length(r) > 1 && error("$(parent_name) registered more than once.")
     parent_pos[i] = r[1]
     names[i] = name
     leaves[i] = true
@@ -32,9 +34,11 @@ function _store!(expr::Expr, i, names, parent_pos, leaves, primes)
     return
 end
 
+# Compute the value of each item. The value is equal to the multiplication of 
+# the prime numbers assigned to the item and its ancestors.
 function _compute_values!(values, parent_pos, primes)
     for i in 1:length(parent_pos)
-        factor = 1.0
+        factor = 1
         j = parent_pos[i]
         if j != 0
             factor = values[j]
@@ -54,11 +58,12 @@ end
         ChildC <= Root
     end
 
-Create a nested enumeration with name `Root` and elements `ChildA`, 
+Create a nested enumeration with name `Root` and items `ChildA`, 
 `GrandChildA1`, `GrandChildA2`, `ChildB`, and `ChildC`.
-The operator `<=` indicates the parent of the element.
-In this example, `Root` is the parent of `ChildA`, `ChildB`, and `ChildC`;
-`ChildA` is the parent of `GrandChildA1` and `GrandChildA2`.
+The operator `<=` indicates the parent of the item.
+In this example, `Root` is parent of `ChildA`, `ChildB`, and `ChildC`;
+`Root` is grand-parent of `GrandChildA1` and `GrandChildA2`;
+`ChildA` is parent of `GrandChildA1` and `GrandChildA2`.
 """
 macro nestedenum(expr)
     Base.remove_linenums!(expr)
@@ -67,10 +72,10 @@ macro nestedenum(expr)
 
     len = length(expr.args)
     names = Array{Symbol}(undef, len)
-    parent_pos = zeros(Int, len)
+    parent_pos = zeros(Int, len) # Position of the parent.
     leaves = falses(len)
-    primes = zeros(Int, len)
-    values = zeros(UInt32, len)
+    primes = zeros(Int, len) # We assign a prime to each item.
+    values = zeros(UInt32, len) # The value is the multiplication of primes of the item and its ancestors.
 
     name_values = Dict{Symbol, Int}() 
     for (i, arg) in enumerate(expr.args)
