@@ -27,38 +27,41 @@ abstract type AbstractAlgorithm end
 struct MinSense <: AbstractObjSense end
 struct MaxSense <: AbstractObjSense end
 
+abstract type AbstractDuty end
+
 ## Duties : 
 @nestedenum begin
-    AbstractDuty
-    AbstractVarConstrDuty <= AbstractDuty
-        AbstractVarDuty <= AbstractVarConstrDuty
-            AbstractOriginalVar <= AbstractVarDuty
-                OriginalVar <= AbstractOriginalVar
-                OriginalExpression <= AbstractOriginalVar
-            AbstractMasterVar <= AbstractVarDuty
-                AbstractOriginMasterVar <= AbstractMasterVar
-                    MasterPureVar <= AbstractOriginMasterVar 
-                    MasterBendFirstStageVar <= AbstractOriginMasterVar
-                AbstractAddedMasterVar <= AbstractMasterVar
-                    MasterCol <= AbstractAddedMasterVar
-                    MasterArtVar <= AbstractAddedMasterVar
-                    MasterBendSecondStageCostVar <= AbstractAddedMasterVar
-                AbstractImplicitMasterVar <= AbstractMasterVar
-                    AbstractMasterRepDwSpVar <= AbstractImplicitMasterVar
-                        MasterRepPricingVar <= AbstractMasterRepDwSpVar
-                        MasterRepPricingSetupVar <= AbstractMasterRepDwSpVar
-            AbstractDwSpVar <= AbstractVarDuty
-                DwSpPricingVar <= AbstractDwSpVar
-                DwSpSetupVar <= AbstractDwSpVar
-                DwSpPureVar <= AbstractDwSpVar 
-            AbstractBendSpVar <= AbstractVarDuty
-                AbstractBendSpSlackMastVar <= AbstractBendSpVar
-                    BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
-                    BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
-                BendSpSepVar <= AbstractBendSpVar
-                BendSpPureVar <= AbstractBendSpVar
-            UndefinedVarDuty <= AbstractVarDuty
-        AbstractConstrDuty <= AbstractVarConstrDuty
+    AbstractVarDuty
+    AbstractOriginalVar <= AbstractVarDuty
+        OriginalVar <= AbstractOriginalVar
+        OriginalExpression <= AbstractOriginalVar
+    AbstractMasterVar <= AbstractVarDuty
+        AbstractOriginMasterVar <= AbstractMasterVar
+            MasterPureVar <= AbstractOriginMasterVar 
+            MasterBendFirstStageVar <= AbstractOriginMasterVar
+        AbstractAddedMasterVar <= AbstractMasterVar
+            MasterCol <= AbstractAddedMasterVar
+            MasterArtVar <= AbstractAddedMasterVar
+            MasterBendSecondStageCostVar <= AbstractAddedMasterVar
+        AbstractImplicitMasterVar <= AbstractMasterVar
+            AbstractMasterRepDwSpVar <= AbstractImplicitMasterVar
+                MasterRepPricingVar <= AbstractMasterRepDwSpVar
+                MasterRepPricingSetupVar <= AbstractMasterRepDwSpVar
+    AbstractDwSpVar <= AbstractVarDuty
+        DwSpPricingVar <= AbstractDwSpVar
+        DwSpSetupVar <= AbstractDwSpVar
+        DwSpPureVar <= AbstractDwSpVar 
+    AbstractBendSpVar <= AbstractVarDuty
+        AbstractBendSpSlackMastVar <= AbstractBendSpVar
+            BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
+            BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
+        BendSpSepVar <= AbstractBendSpVar
+        BendSpPureVar <= AbstractBendSpVar
+    UndefinedVarDuty <= AbstractVarDuty
+end
+
+@nestedenum begin
+    AbstractConstrDuty
             AbstractOriginalConstr <= AbstractConstrDuty
                 OriginalConstr <= AbstractOriginalConstr 
             AbstractMasterConstr <= AbstractConstrDuty
@@ -88,6 +91,7 @@ struct MaxSense <: AbstractObjSense end
             UndefinedConstrDuty <= AbstractConstrDuty
 end
 
+abstract type AbstractVarConstrDuty <: AbstractDuty end
 abstract type AbstractFormDuty end
 # First level of duties 
 abstract type AbstractMasterDuty <: AbstractFormDuty end
