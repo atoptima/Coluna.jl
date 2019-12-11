@@ -164,7 +164,7 @@ set_matrix_coeff!(
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
 function setvar!(f::Formulation,
                   name::String,
-                  duty::Type{<:AbstractVarDuty};
+                  duty::AbstractVarDuty;
                   cost::Float64 = 0.0,
                   lb::Float64 = 0.0,
                   ub::Float64 = Inf,
@@ -184,7 +184,7 @@ end
 
 function setprimaldwspsol!(
     mastform::Formulation, name::String, sol::PrimalSolution{S},
-    duty::Type{<:AbstractVarDuty}; lb::Float64 = 0.0, ub::Float64 = Inf,
+    duty::AbstractVarDuty; lb::Float64 = 0.0, ub::Float64 = Inf,
     kind::VarKind = Continuous, sense::VarSense = Positive, 
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
@@ -213,7 +213,7 @@ end
 function setprimaldualbendspsol!(
     mastform::Formulation, spform::Formulation, name::String,
     primalsol::PrimalSolution{S}, dualsol::DualSolution{S},
-    duty::Type{<:AbstractConstrDuty}; kind::ConstrKind = Core,
+    duty::AbstractConstrDuty; kind::ConstrKind = Core,
     sense::ConstrSense = Greater, inc_val::Float64 = -1.0, 
     is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
@@ -234,11 +234,11 @@ function setprimaldualbendspsol!(
 
     for (constr_id, constr_val) in dualsol
         constr = getconstr(spform, constr_id)
-        if getduty(constr) <: AbstractBendSpMasterConstr
+        if getduty(constr) <= AbstractBendSpMasterConstr
             dual_bend_sp_sol_matrix[constr_id, benders_cut_id] = constr_val
             for (var_id, constr_coef) in sp_coef_matrix[constr_id,:]
                 var = getvar(spform, var_id)
-                if getduty(var) <: AbstractBendSpSlackMastVar
+                if getduty(var) <= AbstractBendSpSlackMastVar
                     master_coef_matrix[benders_cut_id, var_id] += constr_val * constr_coef
                 end
             end
@@ -266,16 +266,16 @@ function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
 end
 deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 
-function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(v -> get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
+function deactivate!(f::Formulation, duty::AbstractVarDuty)
+    vars = filter(v -> get_cur_is_active(v) && getduty(v) <= duty, getvars(f))
     for (id, var) in vars
         deactivate!(f, var)
     end
     return
 end
 
-function deactivate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(c -> get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
+function deactivate!(f::Formulation, duty::AbstractConstrDuty)
+    constrs = filter(c -> get_cur_is_active(c) && getduty(c) <= duty, getconstrs(f))
     for (id, constr) in constrs
         deactivate!(f, constr)
     end
@@ -290,15 +290,15 @@ function activate!(f::Formulation, varconstr::AbstractVarConstr)
 end
 activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
 
-function activate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(v -> !get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
+function activate!(f::Formulation, duty::AbstractVarDuty)
+    vars = filter(v -> !get_cur_is_active(v) && getduty(v) <= duty, getvars(f))
     for (id, var) in vars
         activate!(f, var)
     end
 end
 
-function activate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
+function activate!(f::Formulation, duty::AbstractConstrDuty)
+    constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <= duty, getconstrs(f))
     for (id, constr) in constrs
         activate!(f, constr)
     end
@@ -316,7 +316,7 @@ end
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `f`."
 function setconstr!(f::Formulation,
                      name::String,
-                     duty::Type{<:AbstractConstrDuty};
+                     duty::AbstractConstrDuty;
                      rhs::Float64 = 0.0,
                      kind::ConstrKind = Core,
                      sense::ConstrSense = Greater,
