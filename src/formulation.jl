@@ -685,7 +685,10 @@ function _show_constraints(io::IO , f::Formulation)
     constrs = rows(getcoefmatrix(f))
     ids = sort!(collect(keys(constrs)), by = getsortid)
     for id in ids
-        _show_constraint(io, f, id, constrs[id])
+        constr = getconstr(f, id)
+        if get_cur_is_active(constr)
+            _show_constraint(io, f, id, constrs[id])
+        end
     end
     return
 end

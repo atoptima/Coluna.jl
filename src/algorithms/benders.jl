@@ -632,7 +632,7 @@ function print_intermediate_statistics(algdata::BendersCutGenData,
     db = getvalue(get_ip_dual_bound(algdata.incumbents))
     pb = getvalue(get_ip_primal_bound(algdata.incumbents))
     @printf(
-            "<it=%i> <et=%i> <mst=%.3f> <sp=%.3f> <cuts=%i> <mlp=%.4f> <DB=%.4f> <PB=%.4f>\n",
+            "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <mlp=%10.4f> <DB=%10.4f> <PB=%10.4f>\n",
             nb_bc_iterations, _elapsed_solve_time(), mst_time, sp_time, nb_new_cut, mlp, db, pb
     )
 end

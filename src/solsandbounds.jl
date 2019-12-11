@@ -30,8 +30,10 @@ defaultdualboundvalue(::Type{MaxSense}) = +Inf
 
 getvalue(b::AbstractBound) = b.value
 
-valueinminsense(b::PrimalBound) = b.value
-valueinminsense(b::DualBound) = -b.value
+valueinminsense(b::PrimalBound{MinSense}) = b.value
+valueinminsense(b::DualBound{MinSense}) = b.value
+valueinminsense(b::PrimalBound{MaxSense}) = -b.value
+valueinminsense(b::DualBound{MaxSense}) = -b.value
 
 "Returns `true` iff `b1` is considered to be a better primal bound than `b2` for a minimization objective function."
 isbetter(b1::PrimalBound{MinSense}, b2::PrimalBound{MinSense}) = b1.value < b2.value
@@ -70,11 +72,11 @@ gap(pb::PrimalBound{MaxSense}, db::DualBound{MaxSense}) = diff(pb, db) / abs(pb.
 gap(db::DualBound{MaxSense}, pb::PrimalBound{MaxSense}) = diff(pb, db) / abs(pb.value)
 
 function printbounds(db::DualBound{S}, pb::PrimalBound{S}) where {S<:MinSense}
-    print("[ ", db,  " , ", pb, " ]")
+    @printf "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
 end
 
 function printbounds(db::DualBound{S}, pb::PrimalBound{S}) where {S<:MaxSense}
-    print("[ ", pb,  " , ", db, " ]")
+    @printf "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
 end
 
 function Base.show(io::IO, b::AbstractBound)

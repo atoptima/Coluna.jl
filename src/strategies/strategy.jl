@@ -6,6 +6,10 @@ branch-and-bound tree.
 """
 abstract type AbstractConquerStrategy <: AbstractStrategy end
 
+# should return true if the strategy outputs more than one line 
+# it is used by strong branching
+isverbose(strategy::AbstractConquerStrategy) = false
+
 """
     AbstractDivideStrategy
 
@@ -50,6 +54,9 @@ function apply!(strategy::AbstractStrategy, args...)
     error("Method apply! not implemented for strategy $(strategy_type).")
 end
 
+# definition of the preparation function is optional
+prepare!(strategy::AbstractStrategy, reform::AbstractFormulation) = nothing
+
 """
     GlobalStrategy
 
@@ -60,4 +67,10 @@ struct GlobalStrategy <: AbstractStrategy
     conquer::AbstractConquerStrategy
     divide::AbstractDivideStrategy
     explore::AbstractExploreStrategy
+end
+
+function prepare!(strategy::GlobalStrategy, reform::AbstractFormulation)
+    prepare!(strategy.conquer, reform)
+    prepare!(strategy.divide, reform)
+    prepare!(strategy.explore, reform)
 end

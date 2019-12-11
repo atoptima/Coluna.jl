@@ -23,9 +23,7 @@ version = "0.5.8"
 
 [[BlockDecomposition]]
 deps = ["DataStructures", "JuMP", "MathOptInterface"]
-git-tree-sha1 = "46da24d8e85a3da6a62385a998f42824552f2a42"
-repo-rev = "master"
-repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
+git-tree-sha1 = "7a2e6ef9fbde591c21acd116126b0efb9f4909fc"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 version = "1.1.0"
 
@@ -39,7 +37,7 @@ version = "0.5.1"
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
 git-tree-sha1 = "7b06d67b3883ff9d9ec7c655cc288948b9894fc0"
 repo-rev = "master"
-repo-url = "https://github.com/atoptima/ColunaDemos.jl.git"
+repo-url = "git@github.com:atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
 version = "0.1.0"
 
@@ -57,9 +55,9 @@ version = "2.2.0"
 
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "a1b652fb77ae8ca7ea328fa7ba5aa151036e5c10"
+git-tree-sha1 = "1fe8fad5fc84686dcbc674aa255bc867a64f8132"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.17.6"
+version = "0.17.5"
 
 [[Dates]]
 deps = ["Printf"]
@@ -85,31 +83,11 @@ version = "0.1.0"
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
-[[DocStringExtensions]]
-deps = ["LibGit2", "Markdown", "Pkg", "Test"]
-git-tree-sha1 = "88bb0edb352b16608036faadcc071adda068582a"
-uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.8.1"
-
-[[Documenter]]
-deps = ["Base64", "Dates", "DocStringExtensions", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "REPL", "Test", "Unicode"]
-git-tree-sha1 = "0be9bf63e854a2408c2ecd3c600d68d4d87d8a73"
-uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.24.2"
-
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
 git-tree-sha1 = "da46ac97b17793eba44ff366dc6cb70f1238a738"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.7"
-
-[[GLPK]]
-deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "87ca5fd36aa7879edf3f6a10041fb443cf037338"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaOpt/GLPK.jl.git"
-uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-version = "0.12.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -174,6 +152,12 @@ version = "0.3.10"
 deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
+[[Primes]]
+deps = ["Test"]
+git-tree-sha1 = "ff1a2323cb468ec5f201838fcbe3c232266b1f95"
+uuid = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
+version = "0.4.0"
+
 [[Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
@@ -225,9 +209,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TimerOutputs]]
 deps = ["Printf"]
-git-tree-sha1 = "311765af81bbb48d7bad01fb016d9c328c6ede03"
+git-tree-sha1 = "d9c67bd7ac89aafa75037307331d050998bb5a96"
 uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
-version = "0.5.3"
+version = "0.5.1"
 
 [[URIParser]]
 deps = ["Test", "Unicode"]
