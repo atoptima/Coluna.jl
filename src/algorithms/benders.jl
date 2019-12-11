@@ -171,6 +171,7 @@ function record_solutions!(
             if insertion_status
                 push!(recorded_dual_solution_ids, dual_sol_id)
                 @show string("new dual sol for Benders cut ", dual_sol_id)
+                @show dual_sol
             else
                 @warn string("dual sol already exists as ", dual_sol_id)
             end
@@ -195,10 +196,7 @@ function insert_cuts_in_master!(
     for dual_sol_id in sp_dualsol_ids
         nb_of_gen_cuts += 1
         name = string("BendCut", getsortid(dual_sol_id))
-        dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
         @show string("Benders cut ", nb_of_gen_cuts, " gen from dual sol ", dual_sol_id)
-        rhs = computesolvalue(spform, dual_sol) # now the sol value represents the dual sol value
-        @show rhs
         kind = Core
         duty = MasterBendCutConstr
         bc = setcut_from_sp_dualsol!(
@@ -207,7 +205,6 @@ function insert_cuts_in_master!(
             dual_sol_id,
             name,
             duty;
-            rhs = rhs,
             kind = kind,
             sense = sense
         )
@@ -244,6 +241,7 @@ function solve_sp_to_gencut!(
     #     return flag_cannot_generate_more_cut
     # end
 
+    spform_uid = getuid(spform)
     benders_sp_primal_bound_contrib = 0.0
     benders_sp_lagrangian_bound_contrib =  0.0
 

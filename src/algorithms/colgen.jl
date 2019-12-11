@@ -116,9 +116,7 @@ function insert_cols_in_master!(
 
     for sol_id in sp_solution_ids
         nb_of_gen_col += 1
-        spsol = getprimalsolmatrix(spform)[:,sol_id]
         name = string("MastCol", getsortid(sol_id)) 
-        cost = computesolvalue(masterform, spsol)
         lb = 0.0
         ub = Inf
         kind = Continuous
@@ -130,7 +128,6 @@ function insert_cols_in_master!(
             sol_id,
             name,
             duty;
-            cost = cost,
             lb = lb,
             ub = ub,
             kind = kind,

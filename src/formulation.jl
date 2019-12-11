@@ -1,10 +1,10 @@
 """
-    Formulation{Duty<:AbstractFormDuty}
+        Formulation{Duty<:AbstractFormDuty}
 
-Representation of a formulation which is typically solved by either a MILP or a dynamic program solver.
+    Representation of a formulation which is typically solved by either a MILP or a dynamic program solver.
 
-Such solver must be interfaced with MOI and its pointer is stored in the field `optimizer`.
-"""
+    Such solver must be interfaced with MOI and its pointer is stored in the field `optimizer`.
+    """
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
     var_counter::Counter
@@ -17,13 +17,13 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
 end
 
 """
-    Formulation{D}(form_counter::Counter,
-                   parent_formulation = nothing,
-                   obj_sense::Type{<:AbstractObjSense} = MinSense
-                   ) where {D<:AbstractFormDuty}
+        Formulation{D}(form_counter::Counter,
+                       parent_formulation = nothing,
+                       obj_sense::Type{<:AbstractObjSense} = MinSense
+                       ) where {D<:AbstractFormDuty}
 
-Constructs a `Formulation` of duty `D` for which the objective sense is `obj_sense`.
-"""
+    Constructs a `Formulation` of duty `D` for which the objective sense is `obj_sense`.
+    """
 function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
                         obj_sense::Type{<:AbstractObjSense} = MinSense
@@ -57,8 +57,11 @@ getconstrs(f::Formulation) = getconstrs(f.manager)
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
 getprimalsolmatrix(f::Formulation) = getprimalsolmatrix(f.manager)
+getprimalsolcosts(f::Formulation) = getprimalsolcosts(f.manager)
 getdualsolmatrix(f::Formulation) = getdualsolmatrix(f.manager)
+getdualsolrhss(f::Formulation) = getdualsolrhss(f.manager)
 getexpressionmatrix(f::Formulation) = getexpressionmatrix(f.manager)
+
 
 "Returns the `uid` of `Formulation` `f`."
 getuid(f::Formulation) = f.uid
@@ -82,21 +85,21 @@ getreformulation(f::Formulation{<:AbstractSpDuty}) = getmaster(f).parent_formula
 _reset_buffer!(f::Formulation) = f.buffer = FormulationBuffer()
 
 """
-    setcost!(f::Formulation, v::Variable, new_cost::Float64)
-Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
-euqal to `new_cost`. Change on `f.optimizer` will be buffered.
-"""
+        setcost!(f::Formulation, v::Variable, new_cost::Float64)
+    Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
+    euqal to `new_cost`. Change on `f.optimizer` will be buffered.
+    """
 function setcost!(f::Formulation, v::Variable, new_cost::Float64)
     setcurcost!(v, new_cost)
     change_cost!(f.buffer, v)
 end
 
 """
-    setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
+        setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
 
-Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be
-euqal to `new_cost`. Change on `f.optimizer` will be buffered.
-"""
+    Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be
+    euqal to `new_cost`. Change on `f.optimizer` will be buffered.
+    """
 function setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
     setcurcost!(v, new_cost)
     change_cost!(f.buffer, v)
@@ -108,73 +111,73 @@ function setcurrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
 end
 
 """
-    setub!(f::Formulation, v::Variable, new_ub::Float64)
+        setub!(f::Formulation, v::Variable, new_ub::Float64)
 
-Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
-according to `new_ub`. Change on `f.optimizer` will be buffered.
-"""
+    Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
+    according to `new_ub`. Change on `f.optimizer` will be buffered.
+    """
 function setub!(f::Formulation, v::Variable, new_ub::Float64)
     setcurub!(v, new_ub)
     change_bound!(f.buffer, v)
 end
 
 """
-    setlb!(f::Formulation, v::Variable, new_lb::Float64)
+        setlb!(f::Formulation, v::Variable, new_lb::Float64)
 
-Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
-according to `new_lb`. Change on `f.optimizer` will be buffered.
-"""
+    Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
+    according to `new_lb`. Change on `f.optimizer` will be buffered.
+    """
 function setlb!(f::Formulation, v::Variable, new_lb::Float64)
     setcurlb!(v, new_lb)
     change_bound!(f.buffer, v)
 end
 
 """
-    setkind!(f::Formulation, v::Variable, new_kind::VarKind)
+        setkind!(f::Formulation, v::Variable, new_kind::VarKind)
 
-Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
-according to `new_kind`. Change on `f.optimizer` will be buffered.
-"""
+    Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
+    according to `new_kind`. Change on `f.optimizer` will be buffered.
+    """
 function setkind!(f::Formulation, v::Variable, new_kind::VarKind)
     setcurkind(v, new_kind)
     change_kind!(f.buffer, v)
 end
 
 """
-    setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
+        setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
 
-Sets `c.cur_data.rhs` as well as the rhs of `c` in `f.optimizer` 
-according to `new_rhs`. Change on `f.optimizer` will be buffered.
-"""
+    Sets `c.cur_data.rhs` as well as the rhs of `c` in `f.optimizer` 
+    according to `new_rhs`. Change on `f.optimizer` will be buffered.
+    """
 function setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
     setcurrhs!(c, new_rhs)
     change_rhs!(f.buffer, c)
 end
 
 """
-    set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
+        set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
-Buffers the matrix modification in `f.buffer` to be sent to `f.optimizer` right before next call to optimize!.
-"""
+    Buffers the matrix modification in `f.buffer` to be sent to `f.optimizer` right before next call to optimize!.
+    """
 set_matrix_coeff!(
     f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64
 ) = set_matrix_coeff!(f.buffer, v_id, c_id, new_coeff)
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
 function setvar!(f::Formulation,
-                  name::String,
-                  duty::Type{<:AbstractVarDuty};
-                  cost::Float64 = 0.0,
-                  lb::Float64 = 0.0,
-                  ub::Float64 = Inf,
-                  kind::VarKind = Continuous,
-                  sense::VarSense = Positive,
-                  inc_val::Float64 = 0.0,
-                  is_active::Bool = true,
-                  is_explicit::Bool = true,
-                  moi_index::MoiVarIndex = MoiVarIndex(),
-                  members::Union{ConstrMembership,Nothing} = nothing,
-                  id = generatevarid(f))
+                 name::String,
+                 duty::Type{<:AbstractVarDuty};
+                 cost::Float64 = 0.0,
+                 lb::Float64 = 0.0,
+                 ub::Float64 = Inf,
+                 kind::VarKind = Continuous,
+                 sense::VarSense = Positive,
+                 inc_val::Float64 = 0.0,
+                 is_active::Bool = true,
+                 is_explicit::Bool = true,
+                 moi_index::MoiVarIndex = MoiVarIndex(),
+                 members::Union{ConstrMembership,Nothing} = nothing,
+                 id = generatevarid(f))
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     v = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
     members != nothing && setmembers!(f, v, members)
@@ -187,6 +190,7 @@ addprimalsol!(
     sol_id::VarId
 ) where {S<:AbstractObjSense} = addprimalsol!(form.manager, sol, sol_id)
 
+
 function setprimalsol!(
     form::Formulation,
     newprimalsol::PrimalSolution{S}
@@ -197,6 +201,14 @@ function setprimalsol!(
 
     for (sol_id, sol) in columns(primal_sols)
         #@show sol_idx
+        cost = getprimalsolcosts(form)[sol_id]
+        if newprimalsol.bound < cost
+             continue
+        end
+        if newprimalsol.bound > cost
+             continue
+        end
+            
         is_identical = true
         for (var_id, var_val) in getrecords(sol)
             if !haskey(newprimalsol.sol, var_id)
@@ -207,14 +219,14 @@ function setprimalsol!(
         if !is_identical
             continue
         end
- 
+        
         for (var_id, var_val) in getrecords(newprimalsol.sol)
             #@show (var_id, var_val)
             if !haskey(sol, var_id)
                 is_identical = false
                 break
             end
-        
+            
             if sol[var_id] != var_val
                 is_identical = false
                 break
@@ -248,6 +260,17 @@ function setdualsol!(
 
     for (prev_dual_sol_id, prev_dual_sol) in columns(prev_dual_sols)
         #@show col
+        rhs = getdualsolrhss(form)[prev_dual_sol_id]
+        factor = 1.0
+        if new_dual_sol.bound < rhs
+            factor = rhs / new_dual_sol.bound
+            
+        else
+            if new_dual_sol.bound > rhs
+                factor = rhs / new_dual_sol.bound
+            end 
+        end
+        
         is_identical = true
         for (constr_id, constr_val) in getrecords(prev_dual_sol)
             #@show (var_id, var_val)
@@ -260,28 +283,21 @@ function setdualsol!(
             continue
         end
 
-        factor = 1.0
-        scaling_in_place = false
         for (constr_id, constr_val) in getrecords(new_dual_sol.sol)
-            #@show (var_id, var_val)
+            @show (var_id, var_val)
             if !haskey(prev_dual_sol, constr_id)
                 is_identical = false
                 break
             end
             
             if prev_dual_sol[constr_id] != factor * constr_val
-                if !scaling_in_place
-                    scaling_in_place = true
-                    factor = prev_dual_sol[constr_id] / constr_val
-                else
-                    is_identical = false
-                    break
-                end
+                is_identical = false
+                break
             end
         end
         if is_identical
             return (false, prev_dual_sol_id)
-        end
+        end    
     end
     
 
@@ -298,7 +314,6 @@ function setcol_from_sp_primalsol!(
     sol_id::VarId,
     name::String, 
     duty::Type{<:AbstractVarDuty};
-    cost::Float64 = 0.0,
     lb::Float64 = 0.0,
     ub::Float64 = Inf,
     kind::VarKind = Continuous,
@@ -309,6 +324,7 @@ function setcol_from_sp_primalsol!(
     moi_index::MoiVarIndex = MoiVarIndex()
 ) 
     mast_col_id = sol_id
+    cost = getprimalsolcosts(spform)[sol_id]
     mast_col_data = VarData(
         cost, lb, ub, kind, sense, inc_val, is_active, is_explicit
     )
@@ -336,7 +352,6 @@ function setcut_from_sp_dualsol!(
     dual_sol_id::ConstrId,
     name::String,
     duty::Type{<:AbstractConstrDuty};
-    rhs::Float64 = 0.0,
     kind::ConstrKind = Core,
     sense::ConstrSense = Greater,
     inc_val::Float64 = -1.0, 
@@ -344,6 +359,7 @@ function setcut_from_sp_dualsol!(
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
 ) 
+    rhs = getdualsolrhss(spform)[dual_sol_id]
     benders_cut_id = dual_sol_id 
     benders_cut_data = ConstrData(
         rhs, Core, sense, inc_val, is_active, is_explicit

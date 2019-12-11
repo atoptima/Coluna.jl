@@ -13,7 +13,9 @@ struct FormulationManager
     coefficients::VarConstrMatrix # cols = variables, rows = constraints
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables 
+    primal_sol_costs::VarMembership # primal solutions with varid map to their cost
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
+    dual_sol_rhss::ConstrMembership # dual solutions with constrid map to their rhs
 end
 
 function FormulationManager()
@@ -25,7 +27,9 @@ function FormulationManager()
                               MembersMatrix{Float64}(vars,constrs),
                               MembersMatrix{Float64}(vars,vars),
                               MembersMatrix{Float64}(vars,vars),
-                              MembersMatrix{Float64}(constrs,constrs)
+                              MembersVector{Float64}(vars),
+                              MembersMatrix{Float64}(constrs,constrs),
+                              MembersVector{Float64}(constrs)
                               )
 end
 
@@ -42,9 +46,15 @@ function addprimalsol!(m::FormulationManager,
                        sol::PrimalSolution{S},
                        sol_id::VarId
                        ) where {S<:AbstractObjSense}
+    cost = 0.0
     for (var_id, var_val) in sol
-        m.primal_sols[var_id, sol_id] = var_val
+        var = m.vars[var_id]
+        cost += getperenecost(var) * var_val
+        if getduty(var) <: AbstractBendSpMasterConstr
+            m.primal_sols[var_id, sol_id] = var_val
+        end
     end
+    m.primal_sol_costs[sol_id] = cost
 
     return sol_id
 end
@@ -54,13 +64,15 @@ function adddualsol!(m::FormulationManager,
                      dualsol_id::ConstrId
                      ) where {S<:AbstractObjSense}
 
+    rhs = 0.0
     for (constr_id, constr_val) in dualsol
         constr = m.constrs[constr_id]
+        rhs += getperenerhs(constr) * constr_val 
         if getduty(constr) <: AbstractBendSpMasterConstr
-
             m.dual_sols[constr_id, dualsol_id] = constr_val
         end
     end
+    m.dual_sol_rhss[dualsol_id] = rhs
     
     return dualsol_id
 end
@@ -78,7 +90,9 @@ getconstrs(m::FormulationManager) = m.constrs
 getcoefmatrix(m::FormulationManager) = m.coefficients
 getexpressionmatrix(m::FormulationManager) = m.expressions
 getprimalsolmatrix(m::FormulationManager) = m.primal_sols
+getprimalsolcosts(m::FormulationManager) = m.primal_sol_costs
 getdualsolmatrix(m::FormulationManager) =  m.dual_sols
+getdualsolrhss(m::FormulationManager) =  m.dual_sol_rhss
 
 function Base.show(io::IO, m::FormulationManager)
     println(io, "FormulationManager :")
