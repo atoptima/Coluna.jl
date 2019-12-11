@@ -6,7 +6,6 @@ import DataStructures
 import BlockDecomposition
 import Distributed
 import TimerOutputs
-import Primes
 
 using Logging
 using Printf
@@ -22,6 +21,9 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
     push!, filter
 
+include("containers/containers.jl")
+using .Containers
+
 include("types.jl")
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
@@ -36,7 +38,6 @@ include("varconstr.jl")
 
 include("containers/elements.jl")
 include("containers/members.jl")
-include("containers/nestedenum.jl")
 
 include("manager.jl")
 include("filters.jl")
