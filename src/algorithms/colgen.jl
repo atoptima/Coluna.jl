@@ -113,26 +113,19 @@ function insert_cols_in_master!(
 
     for sol_id in sp_solution_ids
         nb_of_gen_col += 1
-        name = string("MastCol", getsortid(sol_id)) 
+        name = string("MC_", getsortid(sol_id)) 
         lb = 0.0
         ub = Inf
         kind = Continuous
         duty = MasterCol
         sense = Positive
         mc = setcol_from_sp_primalsol!(
-            masterform,
-            spform,
-            sol_id,
-            name,
-            duty;
-            lb = lb,
-            ub = ub,
-            kind = kind,
-            sense = sense
+            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, 
+            kind = kind, sense = sense
         )
         @logmsg LogLevel(-2) string("Generated column : ", name)
     end
-    
+
     return nb_of_gen_col
 end
 
@@ -161,7 +154,7 @@ function solve_sp_to_gencol!(
     recorded_solution_ids = Vector{VarId}()
     sp_is_feasible = true
 
-     #dual_bound_contrib = 0 # Not used
+    #dual_bound_contrib = 0 # Not used
     #pseudo_dual_bound_contrib = 0 # Not used
 
     # TODO renable this. Needed at least for the diving
