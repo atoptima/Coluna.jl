@@ -195,8 +195,8 @@ end
 
 isfractional(s::AbstractSolution) = !Base.isinteger(s)
 
-function contains(sol::AbstractSolution, D::Type{<:AbstractVarConstrDuty})
-    filtered_sol = filter(vc -> getduty(vc) <: D, getsol(sol))
+function contains(sol::AbstractSolution, D::AbstractVarConstrDuty)
+    filtered_sol = filter(vc -> getduty(vc) <= D, getsol(sol))
     return length(filtered_sol) > 0
 end
 

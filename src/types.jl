@@ -91,7 +91,8 @@ end
             UndefinedConstrDuty <= AbstractConstrDuty
 end
 
-abstract type AbstractVarConstrDuty <: AbstractDuty end
+const AbstractVarConstrDuty = Union{AbstractVarDuty, AbstractConstrDuty}
+
 abstract type AbstractFormDuty end
 # First level of duties 
 abstract type AbstractMasterDuty <: AbstractFormDuty end
@@ -144,47 +145,50 @@ abstract type AbstractAlg end
 
 const FormId = Int
 
-const StaticDuty = Union{
-    Type{OriginalVar},
-    Type{OriginalExpression},
-    Type{MasterPureVar},
-    Type{MasterArtVar},
-    Type{MasterBendSecondStageCostVar},
-    Type{MasterBendFirstStageVar}, 
-    Type{MasterRepPricingVar}, 
-    Type{MasterRepPricingSetupVar}, 
-    Type{DwSpPricingVar},
-    Type{DwSpSetupVar}, 
-    Type{DwSpPureVar}, 
-    Type{BendSpSepVar}, 
-    Type{BendSpPureVar}, 
-    Type{BendSpSlackFirstStageVar },
-    Type{BendSpSlackSecondStageCostVar}, 
-    Type{OriginalConstr},
-    Type{MasterPureConstr}, 
-    Type{MasterMixedConstr}, 
-    Type{MasterConvexityConstr},
-    Type{MasterSecondStageCostConstr},
-    Type{DwSpPureConstr}, 
-    Type{BendSpPureConstr}, 
-    Type{BendSpSecondStageCostConstr},
-    Type{BendSpTechnologicalConstr}
-}
+function isaStaticDuty(duty::NestedEnum)
+    return duty <= OriginalVar ||
+    duty <= OriginalExpression ||
+    duty <= MasterPureVar ||
+    duty <= MasterArtVar ||
+    duty <= MasterBendSecondStageCostVar ||
+    duty <= MasterBendFirstStageVar || 
+    duty <= MasterRepPricingVar || 
+    duty <= MasterRepPricingSetupVar || 
+    duty <= DwSpPricingVar ||
+    duty <= DwSpSetupVar || 
+    duty <= DwSpPureVar || 
+    duty <= BendSpSepVar || 
+    duty <= BendSpPureVar || 
+    duty <= BendSpSlackFirstStageVar  ||
+    duty <= BendSpSlackSecondStageCostVar || 
+    duty <= OriginalConstr ||
+    duty <= MasterPureConstr || 
+    duty <= MasterMixedConstr || 
+    duty <= MasterConvexityConstr ||
+    duty <= MasterSecondStageCostConstr ||
+    duty <= DwSpPureConstr || 
+    duty <= BendSpPureConstr || 
+    duty <= BendSpSecondStageCostConstr ||
+    duty <= BendSpTechnologicalConstr
+end
 
-const DynamicDuty = Union{
-    Type{MasterCol},
-    Type{MasterBranchOnOrigVarConstr},
-    Type{MasterBendCutConstr},
-    Type{MasterBranchOnOrigVarConstr},
-    Type{DwSpRepMastBranchConstr}, 
-    Type{DwSpRepMastBranchConstr}
-}
+function isaDynamicDuty(duty::NestedEnum)
+    duty <= MasterCol ||
+    duty <= MasterBranchOnOrigVarConstr ||
+    duty <= MasterBendCutConstr ||
+    duty <= MasterBranchOnOrigVarConstr ||
+    duty <= DwSpRepMastBranchConstr || 
+    duty <= DwSpRepMastBranchConstr
+end
 
-const OriginalRepresentatives = Union{
-    Type{MasterPureVar},
-    Type{MasterRepPricingVar}
-}
-const ArtificialDuty = Union{Type{MasterArtVar}}
+function isaOriginalRepresentatives(duty::NestedEnum)
+    duty <= MasterPureVar ||
+    duty <= MasterRepPricingVar
+end
+
+function isaArtificialDuty(duty::NestedEnum) 
+    return duty <= MasterArtVar
+end
 
 
 
