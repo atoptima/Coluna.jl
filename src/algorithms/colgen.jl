@@ -88,10 +88,8 @@ function update_pricing_target!(spform::Formulation)
 end
 
 function record_solutions!(
-    spform::Formulation, 
-    sols::Vector{PrimalSolution{S}}
+    spform::Formulation, sols::Vector{PrimalSolution{S}}
 )::Vector{VarId} where {S}
-
     recorded_solution_ids = Vector{VarId}()
     for sol in sols
         if contrib_improves_mlp(getbound(sol))
@@ -104,14 +102,11 @@ function record_solutions!(
 
         end
     end
-    
     return recorded_solution_ids
 end
 
 function insert_cols_in_master!(
-    masterform::Formulation,
-    spform::Formulation, 
-    sp_solution_ids::Vector{VarId}
+    masterform::Formulation, spform::Formulation, sp_solution_ids::Vector{VarId}
 ) 
     sp_uid = getuid(spform)
     nb_of_gen_col = 0
@@ -159,11 +154,8 @@ function compute_pricing_db_contrib(
 end
 
 function solve_sp_to_gencol!(
-    masterform::Formulation,
-    spform::Formulation,
-    dual_sol::DualSolution,
-    sp_lb::Float64,
-    sp_ub::Float64
+    masterform::Formulation, spform::Formulation, dual_sol::DualSolution,
+    sp_lb::Float64, sp_ub::Float64
 )::Tuple{Bool,Vector{VarId},Float64}
     
     recorded_solution_ids = Vector{VarId}()
@@ -217,10 +209,8 @@ function solve_sp_to_gencol!(
 end
 
 function solve_sps_to_gencols!(
-    reform::Reformulation,
-    dual_sol::DualSolution{S},
-    sp_lbs::Dict{FormId, Float64},
-    sp_ubs::Dict{FormId, Float64}
+    reform::Reformulation, dual_sol::DualSolution{S}, 
+    sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 ) where {S}
     nb_new_cols = 0
     dual_bound_contrib = DualBound{S}(0.0)

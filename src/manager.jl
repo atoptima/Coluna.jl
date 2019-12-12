@@ -50,7 +50,7 @@ function addprimalsol!(m::FormulationManager,
     for (var_id, var_val) in sol
         var = m.vars[var_id]
         cost += getperenecost(var) * var_val
-        if getduty(var) <: AbstractBendSpMasterConstr
+        if getduty(var) <: DwSpSetupVar || getduty(var) <: DwSpPricingVar
             m.primal_sols[var_id, sol_id] = var_val
         end
     end

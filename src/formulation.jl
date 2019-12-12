@@ -208,7 +208,7 @@ function setprimalsol!(
         if newprimalsol.bound > cost
              continue
         end
-            
+
         is_identical = true
         for (var_id, var_val) in getrecords(sol)
             if !haskey(newprimalsol.sol, var_id)
@@ -309,18 +309,10 @@ end
 
 
 function setcol_from_sp_primalsol!(
-    masterform::Formulation,
-    spform::Formulation,
-    sol_id::VarId,
-    name::String, 
-    duty::Type{<:AbstractVarDuty};
-    lb::Float64 = 0.0,
-    ub::Float64 = Inf,
-    kind::VarKind = Continuous,
-    sense::VarSense = Positive, 
-    inc_val::Float64 = 0.0,
-    is_active::Bool = true,
-    is_explicit::Bool = true,
+    masterform::Formulation, spform::Formulation, sol_id::VarId,
+    name::String, duty::Type{<:AbstractVarDuty}; lb::Float64 = 0.0,
+    ub::Float64 = Inf, kind::VarKind = Continuous, sense::VarSense = Positive, 
+    inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
 ) 
     mast_col_id = sol_id
@@ -568,12 +560,6 @@ end
 
 function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
-    return val
-end
-
-function resetsolvalue!(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
-    val = computesolvalue(form, sol)
-    setvalue!(sol, val)
     return val
 end
 
