@@ -130,9 +130,9 @@ end
 function add_to_recorded!(reform::Reformulation, recorded_info::NodeRecord)
     @logmsg LogLevel(0) "Recording master info."
     add_to_recorded!(getmaster(reform), recorded_info)
-    for sp in reform.dw_pricing_subprs
-        @logmsg LogLevel(0) string("Recording sp ", getuid(sp), " info.")
-        add_to_recorded!(sp, recorded_info)
+    for (spuid, spform) in enumeraterr(get_dw_pricing_sps(reform))
+        @logmsg LogLevel(0) string("Recording sp ", spuid, " info.")
+        add_to_recorded!(spform, recorded_info)
     end
     return
 end
@@ -199,9 +199,9 @@ function reset_to_record_state!(reform::Reformulation, record::NodeRecord)
     @logmsg LogLevel(0) "Resetting reformulation state to node record"
     @logmsg LogLevel(0) "Resetting reformulation master state"
     reset_to_record_state!(getmaster(reform), record)
-    for sp in reform.dw_pricing_subprs
-        @logmsg LogLevel(0) string("Resetting sp ", getuid(sp), " state.")
-        reset_to_record_state!(sp, record)
+    for (spuid, spform) in enumerate(get_dw_pricing_sps(reform))
+        @logmsg LogLevel(0) string("Resetting sp ", spuid, " state.")
+        reset_to_record_state!(spform, record)
     end
     return
 end

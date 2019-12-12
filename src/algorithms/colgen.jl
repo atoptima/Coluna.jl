@@ -208,28 +208,26 @@ function solve_sps_to_gencols!(
     nb_new_cols = 0
     dual_bound_contrib = DualBound{S}(0.0)
     masterform = getmaster(reform)
-    sps = get_dw_pricing_sp(reform)
+    sps = get_dw_pricing_sps(reform)
     recorded_sp_solution_ids = Dict{FormId, Vector{VarId}}()
     sp_dual_bound_contribs = Dict{FormId, Float64}()
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    for spform in sps
-        sp_uid = getuid(spform)
+    for (spuid, spform) in enumerate(sps)
         gen_status, new_sp_solution_ids, sp_dual_contrib = solve_sp_to_gencol!(
-            masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
+            masterform, spform, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
         )
         if gen_status # else Sp is infeasible: contrib = Inf
-            recorded_sp_solution_ids[sp_uid] = new_sp_solution_ids
+            recorded_sp_solution_ids[spuid] = new_sp_solution_ids
         end
-        sp_dual_bound_contribs[sp_uid] = sp_dual_contrib #float(contrib)
+        sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
     end
     ### END LOOP TO BE PARALLELIZED
 
     nb_new_cols = 0
-    for spform in sps
-        sp_uid = getuid(spform)
-        dual_bound_contrib += sp_dual_bound_contribs[sp_uid]
-        nb_new_cols += insert_cols_in_master!(masterform, spform, recorded_sp_solution_ids[sp_uid]) 
+    for (spuid, spform) in enumerate(sps)
+        dual_bound_contrib += sp_dual_bound_contribs[spuid]
+        nb_new_cols += insert_cols_in_master!(masterform, spform, recorded_sp_solution_ids[spuid]) 
     end
     
     
@@ -295,8 +293,7 @@ function cg_main_loop(
     sp_ubs = Dict{FormId, Float64}()
 
     # collect multiplicity current bounds for each sp
-    for spform in reform.dw_pricing_subprs
-        sp_uid = getuid(spform)
+    for (sp_uid, spform) in enumerate(get_dw_pricing_sps(reform))
         lb_convexity_constr_id = reform.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reform.dw_pricing_sp_ub[sp_uid]
         sp_lbs[sp_uid] = getcurrhs(getconstr(masterform, lb_convexity_constr_id))

@@ -16,16 +16,16 @@ mutable struct PreprocessData
     printing::Bool
 end
 
-function PreprocessData(depth::Int, reformulation::Reformulation)
+function PreprocessData(depth::Int, reform::Reformulation)
     cur_sp_bounds = Dict{FormId,Tuple{Int,Int}}()
-    master = getmaster(reformulation)
-    for subprob in reformulation.dw_pricing_subprs
-        conv_lb = getconstr(master, reformulation.dw_pricing_sp_lb[getuid(subprob)])
-        conv_ub = getconstr(master, reformulation.dw_pricing_sp_ub[getuid(subprob)])
-        cur_sp_bounds[getuid(subprob)] = (getcurrhs(conv_lb), getcurrhs(conv_ub))
+    master = getmaster(reform)
+    for (spuid, spform) in enumerate(get_dw_pricing_sps(reform))
+        conv_lb = getconstr(master, reform.dw_pricing_sp_lb[spuid])
+        conv_ub = getconstr(master, reform.dw_pricing_sp_ub[spuid])
+        cur_sp_bounds[spuid] = (getcurrhs(conv_lb), getcurrhs(conv_ub))
     end
     return PreprocessData(
-        depth, reformulation, Dict{ConstrId,Bool}(),
+        depth, reform, Dict{ConstrId,Bool}(),
         DS.Stack{Tuple{Constraint, Formulation}}(), Dict{ConstrId,Float64}(),
         Dict{ConstrId,Float64}(), Dict{ConstrId,Int}(), Dict{ConstrId,Int}(), 
         Constraint[], Variable[], cur_sp_bounds, Tuple{Variable,Int}[], false
@@ -197,10 +197,10 @@ function initconstraints!(
     end
 
     # Subproblem constraints
-    for subprob in alg_data.reformulation.dw_pricing_subprs 
-        for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(subprob))
-            initconstraint!(alg_data, constr, subprob)
-            push!(constrs_to_stack, (constr, subprob))
+    for spform in get_dw_pricing_sps(alg_data.reformulation)
+        for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(spform))
+            initconstraint!(alg_data, constr, spform)
+            push!(constrs_to_stack, (constr, spform))
         end
     end
 

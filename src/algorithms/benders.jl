@@ -137,13 +137,12 @@ function update_benders_sp_phase!(
 end
 
 function reset_benders_sp_phase!(algdata::BendersCutGenData, reform::Reformulation)
-    sps = get_benders_sep_sp(reform)
-    for spform in sps
+    sps = get_benders_sep_sps(reform)
+    for (spuid, spform) in sps
         # Reset to  separation phase
-        spform_uid = getuid(spform)
-        if algdata.spform_phase[spform_uid] != HybridPhase
-            algdata.spform_phase_applied[spform_uid] = false
-            algdata.spform_phase[spform_uid] = HybridPhase
+        if algdata.spform_phase[spuid] != HybridPhase
+            algdata.spform_phase_applied[spuid] = false
+            algdata.spform_phase[spuid] = HybridPhase
         end
     end
     return
@@ -393,7 +392,7 @@ function solve_sps_to_gencuts!(
     total_pb_correction = 0.0
     total_pb_contrib = 0.0
     masterform = getmaster(reform)
-    sps = get_benders_sep_sp(reform)
+    sps = get_benders_sep_sps(reform)
     recorded_sp_dual_solution_ids = Dict{FormId, Vector{ConstrId}}()
     sp_pb_corrections = Dict{FormId, Float64}()
     sp_pb_contribs = Dict{FormId, Float64}()
@@ -402,32 +401,31 @@ function solve_sps_to_gencuts!(
 
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    for spform in sps
-        sp_uid = getuid(spform)
-        recorded_sp_dual_solution_ids[sp_uid] = Vector{ConstrId}()
+    for (spuid, spform) in enumerate(sps)
+        recorded_sp_dual_solution_ids[spuid] = Vector{ConstrId}()
         gen_status, spsol_relaxed, recorded_dual_solution_ids, benders_sp_primal_bound_contrib, benders_sp_lagrangian_bound_contrib = solve_sp_to_gencut!(
             algo, algdata, masterform, spform,
             master_primalsol, master_dualsol,
             up_to_phase
         )
         if gen_status # else Sp is infeasible: contrib = Inf
-            recorded_sp_dual_solution_ids[sp_uid] = recorded_dual_solution_ids
+            recorded_sp_dual_solution_ids[spuid] = recorded_dual_solution_ids
         end        
-        sp_pb_corrections[sp_uid] = benders_sp_primal_bound_contrib
-        sp_pb_contribs[sp_uid] = benders_sp_lagrangian_bound_contrib
-        insertion_status[sp_uid] = gen_status
-        spsol_relaxed_status[sp_uid] = spsol_relaxed
+        sp_pb_corrections[spuid] = benders_sp_primal_bound_contrib
+        sp_pb_contribs[spuid] = benders_sp_lagrangian_bound_contrib
+        insertion_status[spuid] = gen_status
+        spsol_relaxed_status[spuid] = spsol_relaxed
     end
     ### END LOOP TO BE PARALLELIZED
 
     global_gen_status = true
-    for spform in sps
+    for (spuid, spform) in enumerate(sps)
         sp_uid = getuid(spform)
-        global_gen_status &= insertion_status[sp_uid]
-        spsols_relaxed |= spsol_relaxed_status[sp_uid]
-        total_pb_correction += sp_pb_corrections[sp_uid] 
-        total_pb_contrib += sp_pb_contribs[sp_uid]
-        nb_new_cuts += insert_cuts_in_master!(masterform, spform, recorded_sp_dual_solution_ids[sp_uid])
+        global_gen_status &= insertion_status[spuid]
+        spsols_relaxed |= spsol_relaxed_status[spuid]
+        total_pb_correction += sp_pb_corrections[spuid] 
+        total_pb_contrib += sp_pb_contribs[spuid]
+        nb_new_cuts += insert_cuts_in_master!(masterform, spform, recorded_sp_dual_solution_ids[spuid])
     end
     
     if spsols_relaxed
@@ -498,10 +496,9 @@ function bend_cutting_plane_main_loop(
     master_primal_sol = PrimalSolution{getobjsense(masterform)}()
     primal_bound = PrimalBound{getobjsense(masterform)}()
     
-    for spform in get_benders_sep_sp(reform)
-        spform_uid = getuid(spform) 
-        algdata.spform_phase[spform_uid] = HybridPhase
-        algdata.spform_phase_applied[spform_uid] = true
+    for (spuid, spform) in enumerate(get_benders_sep_sps(reform))
+        algdata.spform_phase[spuid] = HybridPhase
+        algdata.spform_phase_applied[spuid] = true
     end
  
 

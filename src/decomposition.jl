@@ -127,8 +127,7 @@ function create_side_vars_constrs!(
     annotations::Annotations
 )
     coefmatrix = getcoefmatrix(masterform)
-    for spform in masterform.parent_formulation.dw_pricing_subprs
-        spuid = getuid(spform)
+    for (spuid, spform) in enumerate(get_dw_pricing_sps(masterform.parent_formulation))
         ann = get(annotations, spform)
         setupvars = filter(var -> getduty(var) == DwSpSetupVar, getvars(spform))
         @assert length(setupvars) == 1
@@ -266,7 +265,7 @@ function create_side_vars_constrs!(
 )
     coefmatrix = getcoefmatrix(masterform)
     
-    for spform in masterform.parent_formulation.benders_sep_subprs
+    for spform in get_benders_sep_sps(masterform.parent_formulation)
         nu_var = collect(values(filter(
             var -> getduty(var) == BendSpSlackSecondStageCostVar, 
             getvars(spform)
