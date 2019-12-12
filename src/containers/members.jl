@@ -20,10 +20,6 @@ function MembersVector{T}(elems::Dict{I,K}) where {I,K,T}
     return MembersVector{I,K,T}(elems, Dict{I,T}())
 end
 
-function MembersVector{T}(elems::ElemDict{VC}) where {VC,T}
-    return MembersVector{T}(elems.elements)
-end
-
 """
     getelement(vec, i)
 
@@ -131,10 +127,10 @@ iterate(d::MembersVector, state) = iterate(d.records, state)
 length(d::MembersVector) = length(d.records)
 lastindex(d::MembersVector) = lastindex(d.records)
 
-function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J <: AbstractVarConstr,K}
+function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J,K}
     print(io, "[")
     for (id, val) in vec
-        print(io, " ", id, " => (", getname(getelement(vec, id)), ", " , val, ")  ")
+        print(io, " ", id, " => " , val, " ")
     end
     print(io, "]")
 end

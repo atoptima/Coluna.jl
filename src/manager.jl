@@ -1,5 +1,5 @@
-const VarDict = ElemDict{Variable}
-const ConstrDict = ElemDict{Constraint}
+const VarDict = ElemDict{Id{Variable}, Variable}
+const ConstrDict = ElemDict{Id{Constraint}, Constraint}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const VarVarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}

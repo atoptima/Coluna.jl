@@ -21,6 +21,8 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
     push!, filter
 
+include("containers/elements.jl")
+
 include("containers/containers.jl")
 using .Containers
 
@@ -35,9 +37,6 @@ include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
 include("varconstr.jl")
-
-include("containers/elements.jl")
-include("containers/members.jl")
 
 include("manager.jl")
 include("filters.jl")
