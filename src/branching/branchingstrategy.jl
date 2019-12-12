@@ -179,6 +179,8 @@ function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node
         original_solution = get_lp_primal_sol(parent.incumbents)
     end
 
+    @show original_solution
+
     # phase 0 of branching : we ask branching rules to generate branching candidates
     # we stop when   
     # - at least one candidate was generated, and its priority rounded down is stricly greater 

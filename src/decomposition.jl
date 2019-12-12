@@ -127,7 +127,7 @@ function create_side_vars_constrs!(
     annotations::Annotations
 )
     coefmatrix = getcoefmatrix(masterform)
-    for (spuid, spform) in enumerate(get_dw_pricing_sps(masterform.parent_formulation))
+    for (spuid, spform) in get_dw_pricing_sps(masterform.parent_formulation)
         ann = get(annotations, spform)
         setupvars = filter(var -> getduty(var) == DwSpSetupVar, getvars(spform))
         @assert length(setupvars) == 1

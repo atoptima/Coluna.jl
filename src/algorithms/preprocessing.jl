@@ -19,7 +19,7 @@ end
 function PreprocessData(depth::Int, reform::Reformulation)
     cur_sp_bounds = Dict{FormId,Tuple{Int,Int}}()
     master = getmaster(reform)
-    for (spuid, spform) in enumerate(get_dw_pricing_sps(reform))
+    for (spuid, spform) in get_dw_pricing_sps(reform)
         conv_lb = getconstr(master, reform.dw_pricing_sp_lb[spuid])
         conv_ub = getconstr(master, reform.dw_pricing_sp_ub[spuid])
         cur_sp_bounds[spuid] = (getcurrhs(conv_lb), getcurrhs(conv_ub))

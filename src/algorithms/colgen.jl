@@ -34,6 +34,8 @@ end
 
 # Overload of the algorithm's run function
 function run!(alg::ColumnGeneration, form::Reformulation, node::Node)
+    @show form.master
+    
     @logmsg LogLevel(-1) "Run ColumnGeneration."
     algdata = ColGenRuntimeData(alg, form, node)
     result = cg_main_loop(algdata, form, 2)
@@ -213,7 +215,7 @@ function solve_sps_to_gencols!(
     sp_dual_bound_contribs = Dict{FormId, Float64}()
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    for (spuid, spform) in enumerate(sps)
+    for (spuid, spform) in sps
         gen_status, new_sp_solution_ids, sp_dual_contrib = solve_sp_to_gencol!(
             masterform, spform, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
         )
@@ -225,7 +227,7 @@ function solve_sps_to_gencols!(
     ### END LOOP TO BE PARALLELIZED
 
     nb_new_cols = 0
-    for (spuid, spform) in enumerate(sps)
+    for (spuid, spform) in sps
         dual_bound_contrib += sp_dual_bound_contribs[spuid]
         nb_new_cols += insert_cols_in_master!(masterform, spform, recorded_sp_solution_ids[spuid]) 
     end
@@ -293,7 +295,7 @@ function cg_main_loop(
     sp_ubs = Dict{FormId, Float64}()
 
     # collect multiplicity current bounds for each sp
-    for (sp_uid, spform) in enumerate(get_dw_pricing_sps(reform))
+    for (sp_uid, spform) in get_dw_pricing_sps(reform)
         lb_convexity_constr_id = reform.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reform.dw_pricing_sp_ub[sp_uid]
         sp_lbs[sp_uid] = getcurrhs(getconstr(masterform, lb_convexity_constr_id))
