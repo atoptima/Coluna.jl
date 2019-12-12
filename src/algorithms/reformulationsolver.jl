@@ -100,7 +100,7 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
     push!(reform_solver, RootNode(reform.master.obj_sense))
 
     while (!isempty(reform_solver)
-           && get_nb_treated_nodes(reform_solver) < _params_.max_num_nodes)
+           && get_nb_treated_nodes(reform_solver) < 1)#_params_.max_num_nodes)
 
         cur_node = popnode!(reform_solver)
         should_apply = setup_node!(
