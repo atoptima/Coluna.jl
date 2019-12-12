@@ -32,32 +32,32 @@ abstract type AbstractDuty end
 ## Duties : 
 @nestedenum begin
     AbstractVarDuty
-    AbstractOriginalVar <= AbstractVarDuty
-        OriginalVar <= AbstractOriginalVar
-        OriginalExpression <= AbstractOriginalVar
-    AbstractMasterVar <= AbstractVarDuty
-        AbstractOriginMasterVar <= AbstractMasterVar
-            MasterPureVar <= AbstractOriginMasterVar 
-            MasterBendFirstStageVar <= AbstractOriginMasterVar
-        AbstractAddedMasterVar <= AbstractMasterVar
-            MasterCol <= AbstractAddedMasterVar
-            MasterArtVar <= AbstractAddedMasterVar
-            MasterBendSecondStageCostVar <= AbstractAddedMasterVar
-        AbstractImplicitMasterVar <= AbstractMasterVar
-            AbstractMasterRepDwSpVar <= AbstractImplicitMasterVar
-                MasterRepPricingVar <= AbstractMasterRepDwSpVar
-                MasterRepPricingSetupVar <= AbstractMasterRepDwSpVar
-    AbstractDwSpVar <= AbstractVarDuty
-        DwSpPricingVar <= AbstractDwSpVar
-        DwSpSetupVar <= AbstractDwSpVar
-        DwSpPureVar <= AbstractDwSpVar 
-    AbstractBendSpVar <= AbstractVarDuty
-        AbstractBendSpSlackMastVar <= AbstractBendSpVar
-            BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
-            BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
-        BendSpSepVar <= AbstractBendSpVar
-        BendSpPureVar <= AbstractBendSpVar
-    UndefinedVarDuty <= AbstractVarDuty
+        AbstractOriginalVar <= AbstractVarDuty
+            OriginalVar <= AbstractOriginalVar
+            OriginalExpression <= AbstractOriginalVar
+        AbstractMasterVar <= AbstractVarDuty
+            AbstractOriginMasterVar <= AbstractMasterVar
+                MasterPureVar <= AbstractOriginMasterVar 
+                MasterBendFirstStageVar <= AbstractOriginMasterVar
+            AbstractAddedMasterVar <= AbstractMasterVar
+                MasterCol <= AbstractAddedMasterVar
+                MasterArtVar <= AbstractAddedMasterVar
+                MasterBendSecondStageCostVar <= AbstractAddedMasterVar
+            AbstractImplicitMasterVar <= AbstractMasterVar
+                AbstractMasterRepDwSpVar <= AbstractImplicitMasterVar
+                    MasterRepPricingVar <= AbstractMasterRepDwSpVar
+                    MasterRepPricingSetupVar <= AbstractMasterRepDwSpVar
+        AbstractDwSpVar <= AbstractVarDuty
+            DwSpPricingVar <= AbstractDwSpVar
+            DwSpSetupVar <= AbstractDwSpVar
+            DwSpPureVar <= AbstractDwSpVar 
+        AbstractBendSpVar <= AbstractVarDuty
+            AbstractBendSpSlackMastVar <= AbstractBendSpVar
+                BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
+                BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
+            BendSpSepVar <= AbstractBendSpVar
+            BendSpPureVar <= AbstractBendSpVar
+        UndefinedVarDuty <= AbstractVarDuty
 end
 
 @nestedenum begin
@@ -90,8 +90,6 @@ end
                 BendSpPureConstr <= AbstractBendSpConstr
             UndefinedConstrDuty <= AbstractConstrDuty
 end
-
-const AbstractVarConstrDuty = Union{AbstractVarDuty, AbstractConstrDuty}
 
 abstract type AbstractFormDuty end
 # First level of duties 
