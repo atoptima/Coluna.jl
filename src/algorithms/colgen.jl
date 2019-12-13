@@ -58,7 +58,7 @@ end
 function should_do_ph_1(result::ColumnGenerationResult)
     ip_gap(result.incumbents) <= 0.00001 && return false
     primal_lp_sol = getsol(get_lp_primal_sol(result.incumbents))
-    art_vars = filter(x->(getduty(x) isa ArtificialDuty), primal_lp_sol)
+    art_vars = filter(x -> isaArtificialDuty(getduty(x)), primal_lp_sol)
     if !isempty(art_vars)
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
         return true
@@ -69,7 +69,7 @@ function should_do_ph_1(result::ColumnGenerationResult)
 end
 
 function set_ph_one(master::Formulation)
-    for (id, v) in Iterators.filter(x->(!(getduty(x) isa ArtificialDuty)), getvars(master))
+    for (id, v) in Iterators.filter(x->(!isaArtificialDuty(getduty(x))), getvars(master))
         setcurcost!(master, v, 0.0)
     end
     return

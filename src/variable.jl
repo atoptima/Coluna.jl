@@ -79,7 +79,7 @@ Representation of a variable in Coluna.
 struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
-    duty::Type{<: AbstractVarDuty}
+    duty::AbstractVarDuty
     perene_data::VarData
     cur_data::VarData
     moirecord::MoiVarRecord
@@ -89,12 +89,11 @@ const VarId = Id{Variable}
 
 function Variable(id::VarId,
                   name::String,
-                  duty::Type{<:AbstractVarDuty};
+                  duty::AbstractVarDuty;
                   var_data = VarData(),
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(
-        id, name, duty, var_data, deepcopy(var_data),
-
+        id, name, duty, var_data, deepcopy(var_data), 
         MoiVarRecord(index = moi_index)
     )
 end
