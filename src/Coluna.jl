@@ -35,9 +35,6 @@ include("strategies/strategy.jl")
 include("parameters.jl")
 include("counters.jl")
 
-include("containers/elements.jl")
-include("containers/members.jl")
-
 include("MOIinterface.jl")
 include("node.jl")
 

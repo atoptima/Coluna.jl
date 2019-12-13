@@ -1,22 +1,23 @@
-struct ElemDict{VC <: AbstractVarConstr}
-    elements::Dict{Id{VC}, VC}
+struct ElemDict{K,T}
+    elements::Dict{K,T}
 end
 
-ElemDict{VC}() where {VC <: AbstractVarConstr} = ElemDict{VC}(Dict{Id{VC}, VC}())
-Base.setindex!(d::ElemDict{VC}, val::VC, id::Id{VC}) where {VC} = d.elements[id] = val
-Base.getindex(d::ElemDict{VC}, i::Id{VC}) where {VC} = Base.getindex(d.elements, i)
-Base.haskey(d::ElemDict{VC}, i::Id{VC}) where {VC} = Base.haskey(d.elements, i)
+ElemDict{K,T}() where {K,T} = ElemDict{K,T}(Dict{K,T}())
+
+Base.setindex!(d::ElemDict{K,T}, val::T, id::K) where {K,T} = d.elements[id] = val
+Base.getindex(d::ElemDict{K,T}, i::K) where {K,T} = Base.getindex(d.elements, i)
+Base.haskey(d::ElemDict{K,T}, i::K) where {K,T} = Base.haskey(d.elements, i)
 Base.keys(d::ElemDict) = Base.keys(d.elements)
 Base.values(d::ElemDict) = Base.values(d.elements)
-iterate(d::ElemDict) = iterate(d.elements)
-iterate(d::ElemDict, state) = iterate(d.elements, state)
-length(d::ElemDict) = length(d.elements)
-lastindex(d::ElemDict) = lastindex(d.elements)
+Base.iterate(d::ElemDict) = iterate(d.elements)
+Base.iterate(d::ElemDict, state) = iterate(d.elements, state)
+Base.length(d::ElemDict) = length(d.elements)
+Base.lastindex(d::ElemDict) = lastindex(d.elements)
 
-function Base.filter(f::Function, elems::ElemDict{VC}) where {VC}
-    return ElemDict{VC}(filter(e -> f(e[2]), elems.elements))
+function Base.filter(f::Function, elems::ElemDict{K,T}) where {K,T}
+    return ElemDict{K,T}(filter(e -> f(e[2]), elems.elements))
 end
 
-function Base.Iterators.filter(f::Function, elems::ElemDict{VC}) where {VC}
+function Base.Iterators.filter(f::Function, elems::ElemDict{K,T}) where {K,T}
     return Base.Iterators.filter(e -> f(e[2]), elems.elements)
 end
