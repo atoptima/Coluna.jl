@@ -21,8 +21,6 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
     push!, filter
 
-include("containers/elements.jl")
-
 include("containers/containers.jl")
 using .Containers
 
