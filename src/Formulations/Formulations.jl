@@ -1,5 +1,10 @@
 module Formulations
 
+using ..Containers
+
+import MathOptInterface
+global const MOI = MathOptInterface
+
 include("types.jl")
 include("vcids.jl")
 include("variable.jl")

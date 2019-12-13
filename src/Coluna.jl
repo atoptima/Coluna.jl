@@ -24,8 +24,11 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
 include("containers/containers.jl")
 using .Containers
 
-
 include("types.jl")
+
+include("Formulations/Formulations.jl")
+using .Formulations
+
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
 
@@ -34,10 +37,6 @@ include("counters.jl")
 
 include("containers/elements.jl")
 include("containers/members.jl")
-
-include("Formulations/Formulations.jl")
-using .Formulations
-
 
 include("MOIinterface.jl")
 include("node.jl")
