@@ -20,6 +20,10 @@ function MembersVector{T}(elems::Dict{I,K}) where {I,K,T}
     return MembersVector{I,K,T}(elems, Dict{I,T}())
 end
 
+function MembersVector{T}(elems::ElemDict{I,K}) where {I,K,T}
+    return MembersVector{T}(elems.elements)
+end
+
 """
     getelement(vec, i)
 

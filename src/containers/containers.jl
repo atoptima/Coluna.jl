@@ -6,7 +6,7 @@ import Base: <=, setindex!, get, getindex, haskey, keys, values, iterate,
 
 export NestedEnum, @nestedenum,
        ElemDict,
-       MembersVector, MembersMatrix
+       MembersVector, MembersMatrix, getelements
 
 include("nestedenum.jl")
 include("elements.jl")
