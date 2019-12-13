@@ -623,8 +623,8 @@ end
 function initialize_optimizer!(form::Formulation, builder::Union{Function})
     form.optimizer = builder()
     if form.optimizer isa MoiOptimizer
-        form = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
-        MOI.set(form.optimizer.inner, MoiObjective(), form)
+        f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
+        MOI.set(form.optimizer.inner, MoiObjective(), f)
         set_obj_sense!(form.optimizer, getobjsense(form))
     end
     return

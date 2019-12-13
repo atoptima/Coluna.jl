@@ -14,7 +14,7 @@ function clonevar!(originform::Formulation,
     return setvar!(
         destform, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
         sense = sense, inc_val = inc_val, is_active = is_active,
-        is_explicit = is_explicit, id = Id(getid(var), getuid(destform))
+        is_explicit = is_explicit, id = Id{Variable}(getid(var), getuid(destform))
     )
 end
 
@@ -32,19 +32,19 @@ function cloneconstr!(originform::Formulation,
     return setconstr!(
         destform, name, duty, rhs = rhs, kind = kind, sense = sense, 
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit,
-        id = Id(getid(constr), getuid(destform))
+        id = Id{Constraint}(getid(constr), getuid(destform))
     )
 end
 
 function clonecoeffs!(originform::Formulation,
                       destform::Formulation)
     dest_matrix = getcoefmatrix(destform)
-    src_matrix = getcoefmatrix(originform)
+    orig_matrix = getcoefmatrix(originform)
     for (cid, constr) in getconstrs(destform)
         if haskey(originform, cid)
             for (vid, var) in getvars(destform)
-                if haskey(src, vid)
-                    val = src_matrix[cid, vid]
+                if haskey(originform, vid)
+                    val = orig_matrix[cid, vid]
                     if val != 0
                         dest_matrix[cid, vid] = val
                     end
