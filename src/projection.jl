@@ -4,7 +4,7 @@ function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMast
     projected_sol = Dict{VarId, Float64}()
 
     for (mc_id, mc_val) in sol
-        origin_form_uid = getformuid(mc_id)
+        origin_form_uid = getoriginformuid(mc_id)
         spform = get_dw_pricing_sps(master.parent_formulation)[origin_form_uid]
         col = getprimalsolmatrix(spform)[:, mc_id]
         for (rep_id, rep_val) in Iterators.filter(_sp_var_rep_in_orig_, col)

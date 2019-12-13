@@ -115,7 +115,7 @@ function insert_cols_in_master!(
 
     for sol_id in sp_solution_ids
         nb_of_gen_col += 1
-        name = string("MC_", getsortid(sol_id)) 
+        name = string("MC_", getsortuid(sol_id)) 
         lb = 0.0
         ub = Inf
         kind = Continuous

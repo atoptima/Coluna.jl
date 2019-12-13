@@ -194,7 +194,7 @@ function insert_cuts_in_master!(
 
     for dual_sol_id in sp_dualsol_ids
         nb_of_gen_cuts += 1
-        name = string("BendCut", getsortid(dual_sol_id))
+        name = string("BendCut", getsortuid(dual_sol_id))
         @show string("Benders cut ", nb_of_gen_cuts, " gen from dual sol ", dual_sol_id)
         kind = Core
         duty = MasterBendCutConstr

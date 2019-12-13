@@ -1,4 +1,5 @@
-function clonevar!(dest::Formulation,
+function clonevar!(originform::Formulation,
+                   destform::Formulation,
                    var::Variable,
                    duty::Type{<:AbstractDuty};
                    name::String = getname(var),
@@ -11,13 +12,14 @@ function clonevar!(dest::Formulation,
                    is_active::Bool = get_init_is_active(var),
                    is_explicit::Bool = get_init_is_explicit(var))
     return setvar!(
-        dest, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
+        destform, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
         sense = sense, inc_val = inc_val, is_active = is_active,
-        is_explicit = is_explicit, id = getid(var)
+        is_explicit = is_explicit, id = Id(getid(var), getuid(destform))
     )
 end
 
-function cloneconstr!(dest::Formulation,
+function cloneconstr!(originform::Formulation,
+                      destform::Formulation,
                       constr::Constraint,
                       duty::Type{<:AbstractDuty};
                       name::String = getname(constr),
@@ -28,19 +30,19 @@ function cloneconstr!(dest::Formulation,
                       is_active::Bool = get_init_is_active(constr),
                       is_explicit::Bool = get_init_is_explicit(constr))
     return setconstr!(
-        dest, name, duty, rhs = rhs, kind = kind, sense = sense, 
+        destform, name, duty, rhs = rhs, kind = kind, sense = sense, 
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit,
-        id = getid(constr)
+        id = Id(getid(constr), getuid(destform))
     )
 end
 
-function clonecoeffs!(dest::Formulation,
-                             src::Formulation)
-    dest_matrix = getcoefmatrix(dest)
-    src_matrix = getcoefmatrix(src)
-    for (cid, constr) in getconstrs(dest)
-        if haskey(src, cid)
-            for (vid, var) in getvars(dest)
+function clonecoeffs!(originform::Formulation,
+                      destform::Formulation)
+    dest_matrix = getcoefmatrix(destform)
+    src_matrix = getcoefmatrix(originform)
+    for (cid, constr) in getconstrs(destform)
+        if haskey(originform, cid)
+            for (vid, var) in getvars(destform)
                 if haskey(src, vid)
                     val = src_matrix[cid, vid]
                     if val != 0

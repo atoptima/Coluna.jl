@@ -28,9 +28,10 @@ getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 # under Variable or Constraint
 
 getuid(vc::AbstractVarConstr) = getuid(getid(vc))
-getformuid(vc::AbstractVarConstr) = getformuid(getid(vc))
+getoriginformuid(vc::AbstractVarConstr) = getoriginformuid(getid(vc))
+getassignedformuid(vc::AbstractVarConstr) = getassignedformuid(getid(vc))
 getprocuid(vc::AbstractVarConstr) = getprocuid(getid(vc))
-getsortid(vc::AbstractVarConstr) = getsortid(getid(vc))
+getsortuid(vc::AbstractVarConstr) = getsortuid(getid(vc))
 
 
 # -> Initial
@@ -39,6 +40,7 @@ getperenesense(vc::AbstractVarConstr) = vc.perene_data.sense
 getpereneincval(vc::AbstractVarConstr) = vc.perene_data.inc_val
 get_init_is_active(vc::AbstractVarConstr) = vc.perene_data.is_active
 get_init_is_explicit(vc::AbstractVarConstr) = vc.perene_data.is_explicit
+
 # -> Current
 getcurkind(vc::AbstractVarConstr) = vc.cur_data.kind
 getcursense(vc::AbstractVarConstr) = vc.cur_data.sense
