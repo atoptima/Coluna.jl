@@ -24,6 +24,7 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
 include("containers/containers.jl")
 using .Containers
 
+
 include("types.jl")
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
@@ -31,29 +32,16 @@ include("strategies/strategy.jl")
 include("parameters.jl")
 include("counters.jl")
 
-include("vcids.jl")
-include("variable.jl")
-include("constraint.jl")
-include("varconstr.jl")
-
 include("containers/elements.jl")
 include("containers/members.jl")
 
-include("manager.jl")
-include("filters.jl")
-include("solsandbounds.jl")
-include("optimizationresults.jl")
-include("incumbents.jl")
-include("buffer.jl")
-include("formulation.jl")
-include("optimizerwrappers.jl")
-include("clone.jl")
-include("reformulation.jl")
-include("projection.jl")
-include("problem.jl")
-include("node.jl")
-include("decomposition.jl")
+include("Formulations/Formulations.jl")
+using .Formulations
+
+
 include("MOIinterface.jl")
+include("node.jl")
+
 
 # Concrete algorithms & Strategies :
 
