@@ -112,7 +112,7 @@ macro nestedenum(expr)
     _compute_values!(values, parent_pos, primes)
 
     root_name = names[1]
-    enum_expr = Expr(:block, :(struct $root_name <: Coluna.NestedEnum id::UInt end))
+    enum_expr = Expr(:block, :(struct $root_name <: Coluna.Containers.NestedEnum id::UInt end))
 
     for i in 2:len
         push!(enum_expr.args, :(const $(names[i]) = $(root_name)(UInt($(values[i])))))

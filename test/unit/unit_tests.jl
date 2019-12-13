@@ -39,6 +39,7 @@ include("incumbents.jl")
 function unit_tests()
     @testset "Containers" begin
         nestedenum_unit()
+        members_unit()
     end
     
     @testset "types.jl" begin
@@ -64,9 +65,6 @@ function unit_tests()
     end
     @testset "varconstr.jl" begin
         varconstr_unit_tests()
-    end
-    @testset "members.jl" begin
-        members_unit_tests()
     end
     @testset "solsandbounds.jl" begin
         solsandbounds_unit_tests()
