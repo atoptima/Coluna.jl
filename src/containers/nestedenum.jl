@@ -1,7 +1,7 @@
 abstract type NestedEnum end
 
 function <=(a::T, b::T) where {T <: NestedEnum}
-    return a.id % b.id == 0
+    return a.value % b.value == 0
 end
 
 # Store the item defined in expr at position i
@@ -57,6 +57,51 @@ function _update_parent_pos!(parent_pos, p)
     return
 end
 
+function _build_expression(names, values, export_symb::Bool = false)
+    len = length(names)
+    root_name = names[1]
+    enum_expr = Expr(:block, :(struct $root_name <: Coluna.Containers.NestedEnum value::UInt end))
+
+    for i in 2:len
+        push!(enum_expr.args, :(const $(names[i]) = $(root_name)(UInt($(values[i])))))
+        if export_symb
+            push!(enum_expr.args, :(export $(names[i])))
+        end
+    end
+    return enum_expr
+end
+
+function _assign_values_to_items(expr)
+    Base.remove_linenums!(expr)
+
+    expr.head == :block || error("Block expression expected.")
+
+    len = length(expr.args)
+    names = Array{Symbol}(undef, len)
+    parent_pos = zeros(Int, len) # Position of the parent.
+    depths = zeros(Int, len) # Depth of each item
+    values = zeros(UInt32, len) # The value is the multiplication of primes of the item and its ancestors.
+    primes = zeros(Int, len) # We assign a prime to each item.
+
+    name_values = Dict{Symbol, Int}() 
+    for (i, arg) in enumerate(expr.args)
+        _store!(arg, i, names, parent_pos, depths)
+    end
+
+    p = sortperm(depths)
+    permute!(names, p)
+    _update_parent_pos!(parent_pos, p)
+    
+    # Assign small primes to items having small depths
+    for i in 1:len
+        primes[i] = Primes.prime(i)
+    end
+
+    _compute_values!(values, parent_pos, primes)
+    return names, values
+end
+
+
 """
 
     @nestedenum block_expression
@@ -84,38 +129,14 @@ In this example, `Root` is parent of `ChildA`, `ChildB`, and `ChildC`;
 `ChildA` is parent of `GrandChildA1` and `GrandChildA2`.
 """
 macro nestedenum(expr)
-    Base.remove_linenums!(expr)
-
-    expr.head == :block || error("Block expression expected.")
-
-    len = length(expr.args)
-    names = Array{Symbol}(undef, len)
-    parent_pos = zeros(Int, len) # Position of the parent.
-    depths = zeros(Int, len) # Depth of each item
-    values = zeros(UInt32, len) # The value is the multiplication of primes of the item and its ancestors.
-    primes = zeros(Int, len) # We assign a prime to each item.
-
-    name_values = Dict{Symbol, Int}() 
-    for (i, arg) in enumerate(expr.args)
-        _store!(arg, i, names, parent_pos, depths)
-    end
-
-    p = sortperm(depths)
-    permute!(names, p)
-    _update_parent_pos!(parent_pos, p)
-    
-    # Assign small primes to items having small depths
-    for i in 1:len
-        primes[i] = Primes.prime(i)
-    end
-
-    _compute_values!(values, parent_pos, primes)
-
-    root_name = names[1]
-    enum_expr = Expr(:block, :(struct $root_name <: Coluna.Containers.NestedEnum id::UInt end))
-
-    for i in 2:len
-        push!(enum_expr.args, :(const $(names[i]) = $(root_name)(UInt($(values[i])))))
-    end
+    names, values = _assign_values_to_items(expr)
+    enum_expr = _build_expression(names, values)
     return esc(enum_expr)
+end
+
+"Create a nested enumeration and export all the items."
+macro exported_nestedenum(expr)
+    names, values = _assign_values_to_items(expr, true)
+    enum_expr = _build_expression(names, values)
+    return esc(enum_expr)  
 end
