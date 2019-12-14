@@ -89,6 +89,7 @@ function _welcome_message()
     print(welcome)
 end
 
+# TODO : put Coluna initialization outside of Formulation submodule
 function coluna_initialization(
     prob::Problem, annotations::Annotations, params::Params
 )
@@ -100,6 +101,7 @@ function coluna_initialization(
 end
 
 
+# TODO : should be outside
 # # Behaves like optimize!(problem::Problem), but sets parameters before
 # # function optimize!(problem::Reformulation)
 function optimize!(prob::Problem, annotations::Annotations, params::Params)

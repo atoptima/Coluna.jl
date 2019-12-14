@@ -1,5 +1,7 @@
 module Containers
 
+import ..Coluna
+
 import Primes
 import Base: <=, setindex!, get, getindex, haskey, keys, values, iterate, 
              length, lastindex, filter, show, keys, copy

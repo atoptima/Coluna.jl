@@ -13,3 +13,6 @@ An algorithm is a 'text-book' algorithm applied to a formulation in a node.
 """
 abstract type AbstractAlgorithm end
 
+# Temporary abstract (to be deleted)
+abstract type AbstractGlobalStrategy <: AbstractStrategy end
+struct EmptyGlobalStrategy <: AbstractGlobalStrategy end
