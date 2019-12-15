@@ -1,5 +1,6 @@
 module Coluna
 
+import BlockDecomposition
 import MathOptInterface
 import MathOptInterface.Utilities
 import DataStructures
@@ -9,6 +10,7 @@ import TimerOutputs
 using Logging
 using Printf
 
+global const BD = BlockDecomposition
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const DS = DataStructures
@@ -20,7 +22,8 @@ export Containers, Formulations
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
-    push!, filter
+    push!, filter, diff
+
 
 include("containers/containers.jl")
 using .Containers
@@ -31,10 +34,12 @@ include("parameters.jl")
 include("Formulations/Formulations.jl")
 using .Formulations
 
+# To be deleted :
+import .Formulations: getrhs, getsense, optimize!
+
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
 
-include("MOIinterface.jl")
 include("node.jl")
 
 
@@ -67,9 +72,11 @@ include("strategies/explore/simplestrategies.jl")
 # Wrapper functions
 include("MOIwrapper.jl")
 
+# TODO : put global values here
 include("globals.jl") # Structure that holds values useful in all the procedure
 
 global const _params_ = Params()
 global const _globals_ = GlobalValues()
+#export _params_, _globals_, _to # to be deleted
 
 end # module

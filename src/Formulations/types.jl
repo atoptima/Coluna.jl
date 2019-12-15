@@ -16,15 +16,15 @@ struct MaxSense <: AbstractObjSense end
 
 abstract type AbstractDuty end
 
-## Duties : 
-@nestedenum begin
+## Duties :
+@exported_nestedenum begin
     AbstractVarDuty
         AbstractOriginalVar <= AbstractVarDuty
             OriginalVar <= AbstractOriginalVar
             OriginalExpression <= AbstractOriginalVar
         AbstractMasterVar <= AbstractVarDuty
             AbstractOriginMasterVar <= AbstractMasterVar
-                MasterPureVar <= AbstractOriginMasterVar 
+                MasterPureVar <= AbstractOriginMasterVar
                 MasterBendFirstStageVar <= AbstractOriginMasterVar
             AbstractAddedMasterVar <= AbstractMasterVar
                 MasterCol <= AbstractAddedMasterVar
@@ -37,7 +37,7 @@ abstract type AbstractDuty end
         AbstractDwSpVar <= AbstractVarDuty
             DwSpPricingVar <= AbstractDwSpVar
             DwSpSetupVar <= AbstractDwSpVar
-            DwSpPureVar <= AbstractDwSpVar 
+            DwSpPureVar <= AbstractDwSpVar
         AbstractBendSpVar <= AbstractVarDuty
             AbstractBendSpSlackMastVar <= AbstractBendSpVar
                 BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
@@ -47,13 +47,13 @@ abstract type AbstractDuty end
         UndefinedVarDuty <= AbstractVarDuty
 end
 
-@nestedenum begin
+@exported_nestedenum begin
     AbstractConstrDuty
             AbstractOriginalConstr <= AbstractConstrDuty
-                OriginalConstr <= AbstractOriginalConstr 
+                OriginalConstr <= AbstractOriginalConstr
             AbstractMasterConstr <= AbstractConstrDuty
                 AbstractMasterOriginConstr <= AbstractMasterConstr
-                    MasterPureConstr <= AbstractMasterOriginConstr 
+                    MasterPureConstr <= AbstractMasterOriginConstr
                     MasterMixedConstr <= AbstractMasterOriginConstr
                 AbstractMasterAddedConstr <= AbstractMasterConstr
                     MasterConvexityConstr <= AbstractMasterAddedConstr
@@ -79,7 +79,7 @@ end
 end
 
 abstract type AbstractFormDuty end
-# First level of duties 
+# First level of duties
 abstract type AbstractMasterDuty <: AbstractFormDuty end
 abstract type AbstractSpDuty <: AbstractFormDuty end
 
@@ -120,13 +120,22 @@ abstract type AbstractAlg end
 # abstract type AbstractPrimalHeurNodeAlg <: AbstractNodeAlg end
 # abstract type AbstractGenChildrenNodeAlg <: AbstractNodeAlg end
 
-@enum FormulationPhase HybridPhase PurePhase1 PurePhase2 
-@enum VarSense Positive Negative Free
-@enum VarKind Continuous Binary Integ
-@enum ConstrKind Core Facultative SubSystem
-@enum ConstrSense Greater Less Equal
-@enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
-@enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
+# Source : https://discourse.julialang.org/t/export-enum/5396
+macro exported_enum(name, args...)
+    esc(quote
+        @enum($name, $(args...))
+        export $name
+        $([:(export $arg) for arg in args]...)
+        end)
+end
+
+@exported_enum FormulationPhase HybridPhase PurePhase1 PurePhase2
+@exported_enum VarSense Positive Negative Free
+@exported_enum VarKind Continuous Binary Integ
+@exported_enum ConstrKind Core Facultative SubSystem
+@exported_enum ConstrSense Greater Less Equal
+@exported_enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
+@exported_enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
 const FormId = Int
 
@@ -136,23 +145,23 @@ function isaStaticDuty(duty::NestedEnum)
     duty <= MasterPureVar ||
     duty <= MasterArtVar ||
     duty <= MasterBendSecondStageCostVar ||
-    duty <= MasterBendFirstStageVar || 
-    duty <= MasterRepPricingVar || 
-    duty <= MasterRepPricingSetupVar || 
+    duty <= MasterBendFirstStageVar ||
+    duty <= MasterRepPricingVar ||
+    duty <= MasterRepPricingSetupVar ||
     duty <= DwSpPricingVar ||
-    duty <= DwSpSetupVar || 
-    duty <= DwSpPureVar || 
-    duty <= BendSpSepVar || 
-    duty <= BendSpPureVar || 
+    duty <= DwSpSetupVar ||
+    duty <= DwSpPureVar ||
+    duty <= BendSpSepVar ||
+    duty <= BendSpPureVar ||
     duty <= BendSpSlackFirstStageVar  ||
-    duty <= BendSpSlackSecondStageCostVar || 
+    duty <= BendSpSlackSecondStageCostVar ||
     duty <= OriginalConstr ||
-    duty <= MasterPureConstr || 
-    duty <= MasterMixedConstr || 
+    duty <= MasterPureConstr ||
+    duty <= MasterMixedConstr ||
     duty <= MasterConvexityConstr ||
     duty <= MasterSecondStageCostConstr ||
-    duty <= DwSpPureConstr || 
-    duty <= BendSpPureConstr || 
+    duty <= DwSpPureConstr ||
+    duty <= BendSpPureConstr ||
     duty <= BendSpSecondStageCostConstr ||
     duty <= BendSpTechnologicalConstr
 end
@@ -162,7 +171,7 @@ function isaDynamicDuty(duty::NestedEnum)
     duty <= MasterBranchOnOrigVarConstr ||
     duty <= MasterBendCutConstr ||
     duty <= MasterBranchOnOrigVarConstr ||
-    duty <= DwSpRepMastBranchConstr || 
+    duty <= DwSpRepMastBranchConstr ||
     duty <= DwSpRepMastBranchConstr
 end
 
@@ -171,7 +180,7 @@ function isaOriginalRepresentatives(duty::NestedEnum)
     duty <= MasterRepPricingVar
 end
 
-function isaArtificialDuty(duty::NestedEnum) 
+function isaArtificialDuty(duty::NestedEnum)
     return duty <= MasterArtVar
 end
 
@@ -216,6 +225,3 @@ function get_moi_set(constr_set::ConstrSense)
     return MOI.EqualTo
 end
 ############################################################################
-
-
-

@@ -136,7 +136,7 @@ end
 
 "Create a nested enumeration and export all the items."
 macro exported_nestedenum(expr)
-    names, values = _assign_values_to_items(expr, true)
-    enum_expr = _build_expression(names, values)
+    names, values = _assign_values_to_items(expr)
+    enum_expr = _build_expression(names, values, true)
     return esc(enum_expr)  
 end

@@ -165,7 +165,11 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+            Coluna.Optimizer, 
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -181,14 +185,14 @@ function generalized_assignment_tests()
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
                 global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
-            ),
+            )
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
         try
             JuMP.optimize!(problem)
         catch e
-            @test repr(e) == "ErrorException(\"Function `optimize!` is not defined for object of type Coluna.NoOptimizer\")"
+            @test repr(e) == "ErrorException(\"Function `optimize!` is not defined for object of type Coluna.Formulations.NoOptimizer\")"
         end
     end
 
@@ -196,7 +200,11 @@ function generalized_assignment_tests()
         data = CLD.CapacitatedLotSizing.readData("testSmall")
 
         coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+            Coluna.Optimizer, 
+            params = CL.Params(
+                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)

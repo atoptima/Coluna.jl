@@ -177,7 +177,7 @@ function insert_cuts_in_master!(
             ref = getconstrcounter(masterform) + 1
             name = string("BC", sp_uid, "_", ref)
             resetsolvalue!(spform, dual_sol) # now the sol value represents the dual sol value
-            kind = Core
+            kind = Formulations.Formulations.Core
             duty = MasterBendCutConstr
             bc = setprimaldualbendspsol!(
                 masterform, spform, name, primal_sol, dual_sol, duty; 
