@@ -110,6 +110,7 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
         if should_apply
             apply_on_node!(conquer_strategy, divide_strategy, reform, cur_node)
         end
+        print_info_after_apply(cur_node, reform_solver)
         update_reform_solver(reform_solver, cur_node)
     end
     res = getresult(reform_solver)

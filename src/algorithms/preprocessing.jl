@@ -16,16 +16,16 @@ mutable struct PreprocessData
     printing::Bool
 end
 
-function PreprocessData(depth::Int, reformulation::Reformulation)
+function PreprocessData(depth::Int, reform::Reformulation)
     cur_sp_bounds = Dict{FormId,Tuple{Int,Int}}()
-    master = getmaster(reformulation)
-    for subprob in reformulation.dw_pricing_subprs
-        conv_lb = getconstr(master, reformulation.dw_pricing_sp_lb[getuid(subprob)])
-        conv_ub = getconstr(master, reformulation.dw_pricing_sp_ub[getuid(subprob)])
-        cur_sp_bounds[getuid(subprob)] = (getcurrhs(conv_lb), getcurrhs(conv_ub))
+    master = getmaster(reform)
+    for (spuid, spform) in get_dw_pricing_sps(reform)
+        conv_lb = getconstr(master, reform.dw_pricing_sp_lb[spuid])
+        conv_ub = getconstr(master, reform.dw_pricing_sp_ub[spuid])
+        cur_sp_bounds[spuid] = (getcurrhs(conv_lb), getcurrhs(conv_ub))
     end
     return PreprocessData(
-        depth, reformulation, Dict{ConstrId,Bool}(),
+        depth, reform, Dict{ConstrId,Bool}(),
         DS.Stack{Tuple{Constraint, Formulation}}(), Dict{ConstrId,Float64}(),
         Dict{ConstrId,Float64}(), Dict{ConstrId,Int}(), Dict{ConstrId,Int}(), 
         Constraint[], Variable[], cur_sp_bounds, Tuple{Variable,Int}[], false
@@ -103,7 +103,7 @@ end
 
 function getsp(alg_data::PreprocessData, col::Variable)
     master = getmaster(alg_data.reformulation)
-    primal_sp_sols = getprimaldwspsolmatrix(master)
+    primal_sp_sols = getprimalsolmatrix(master)
     for (sp_var_id, sp_var_val) in primal_sp_sols[:,getid(getid(col))]
         sp_var = getvar(master, sp_var_id)
         return find_owner_formulation(alg_data.reformulation, sp_var)
@@ -112,7 +112,7 @@ end
 
 function project_local_partial_solution(alg_data::PreprocessData)
     sp_vars_vals = Dict{VarId,Float64}()
-    primal_sp_sols = getprimaldwspsolmatrix(getmaster(alg_data.reformulation))
+    primal_sp_sols = getprimalsolmatrix(getmaster(alg_data.reformulation))
     for (col, col_val) in alg_data.local_partial_sol
         for (sp_var_id, sp_var_val) in primal_sp_sols[:,getid(getid(col))]
             if !haskey(sp_vars_vals, sp_var_id)
@@ -197,10 +197,10 @@ function initconstraints!(
     end
 
     # Subproblem constraints
-    for subprob in alg_data.reformulation.dw_pricing_subprs 
-        for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(subprob))
-            initconstraint!(alg_data, constr, subprob)
-            push!(constrs_to_stack, (constr, subprob))
+    for (spuid, spform) in get_dw_pricing_sps(alg_data.reformulation)
+        for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(spform))
+            initconstraint!(alg_data, constr, spform)
+            push!(constrs_to_stack, (constr, spform))
         end
     end
 
@@ -606,7 +606,7 @@ end
 
 function forbid_infeasible_columns!(alg_data::PreprocessData)
     master = getmaster(alg_data.reformulation)
-    primal_sp_sols = getprimaldwspsolmatrix(getmaster(alg_data.reformulation))
+    primal_sp_sols = getprimalsolmatrix(getmaster(alg_data.reformulation))
     for var in alg_data.preprocessed_vars
         if getduty(var) == DwSpPricingVar
             for (col_id, coef) in primal_sp_sols[getid(var),:]
