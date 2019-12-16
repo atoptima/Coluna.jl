@@ -200,7 +200,6 @@ function setprimalsol!(
     primal_sols = getprimalsolmatrix(form)
 
     for (sol_id, sol) in columns(primal_sols)
-        #@show sol_idx
         cost = getprimalsolcosts(form)[sol_id]
         if newprimalsol.bound < cost
              continue
@@ -221,7 +220,6 @@ function setprimalsol!(
         end
         
         for (var_id, var_val) in getrecords(newprimalsol.sol)
-            #@show (var_id, var_val)
             if !haskey(sol, var_id)
                 is_identical = false
                 break
@@ -259,7 +257,6 @@ function setdualsol!(
     prev_dual_sols = getdualsolmatrix(form)
 
     for (prev_dual_sol_id, prev_dual_sol) in columns(prev_dual_sols)
-        #@show col
         rhs = getdualsolrhss(form)[prev_dual_sol_id]
         factor = 1.0
         if new_dual_sol.bound < rhs
@@ -273,7 +270,6 @@ function setdualsol!(
         
         is_identical = true
         for (constr_id, constr_val) in getrecords(prev_dual_sol)
-            #@show (var_id, var_val)
             if !haskey(new_dual_sol.sol, constr_id)
                 is_identical = false
                 break
@@ -284,7 +280,6 @@ function setdualsol!(
         end
 
         for (constr_id, constr_val) in getrecords(new_dual_sol.sol)
-            @show (var_id, var_val)
             if !haskey(prev_dual_sol, constr_id)
                 is_identical = false
                 break
@@ -361,7 +356,6 @@ function setcut_from_sp_dualsol!(
         constr_data = benders_cut_data, 
         moi_index = moi_index
     )
-    @show benders_cut
     master_coef_matrix = getcoefmatrix(masterform)
     sp_coef_matrix = getcoefmatrix(spform)
     sp_dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
@@ -528,7 +522,6 @@ function setmembers!(form::Formulation, constr::Constraint, members::VarMembersh
         if getduty(var) <= MasterRepPricingVar  || getduty(var) <= MasterRepPricingSetupVar          
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(var_id)
-            @show assigned_form_uid var
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in getprimalsolmatrix(spform)[var_id,:]
                 @logmsg LogLevel(-4) string("Adding column ", getname(getvar(form, col_id)), " with coeff ", col_coeff * var_coeff)
@@ -589,7 +582,6 @@ end
 function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::DualSolution{S})  where {S<:AbstractObjSense}
     var = getvar(form, var_id)
     rc = getperenecost(var)
-    #@show var_id rc
     coefficient_matrix = getcoefmatrix(form)
     sign = 1
     if getobjsense(form) == MinSense
@@ -597,10 +589,8 @@ function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::Du
     end
     for (constr_id, dual_val) in getsol(dualsol)
         coeff = coefficient_matrix[constr_id, var_id]
-        #@show constr_id dual_val coeff
         rc += sign * dual_val * coeff
     end
-    #@show rc
     return rc
 end
 

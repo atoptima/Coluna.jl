@@ -3,7 +3,7 @@ function full_instances_tests()
     capacitated_lot_sizing_tests()
     lot_sizing_tests()
     #facility_location_tests()
-#    cutting_stock_tests()
+    cutting_stock_tests()
 end
 
 function generalized_assignment_tests()
@@ -25,7 +25,7 @@ function generalized_assignment_tests()
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
-  #==  @testset "gap - JuMP/MOI modeling" begin
+    @testset "gap - JuMP/MOI modeling" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
         coluna = JuMP.with_optimizer(
@@ -204,7 +204,6 @@ function generalized_assignment_tests()
 
         @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
     end
-==#
     return
 end
 

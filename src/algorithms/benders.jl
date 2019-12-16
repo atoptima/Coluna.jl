@@ -105,15 +105,12 @@ function update_benders_sp_problem!(
     if algo.option_use_reduced_cost
         for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
             cost = getcurcost(var)
-            #@show getname(var) cost
             rc = computereducedcost(masterform, var_id, master_dual_sol)
-            #@show getname(var) rc
             setcurcost!(spform, var, rc)
         end
     end
 
     return false
-
 end
 
 function update_benders_sp_phase!(
@@ -137,8 +134,7 @@ function update_benders_sp_phase!(
 end
 
 function reset_benders_sp_phase!(algdata::BendersCutGenData, reform::Reformulation)
-    sps = get_benders_sep_sps(reform)
-    for (spuid, spform) in sps
+    for (spuid, spform) in get_benders_sep_sps(reform)
         # Reset to  separation phase
         if algdata.spform_phase[spuid] != HybridPhase
             algdata.spform_phase_applied[spuid] = false
@@ -153,9 +149,7 @@ function update_benders_sp_target!(spform::Formulation)
 end
 
 function record_solutions!(
-    algo::BendersCutGeneration,
-    algdata::BendersCutGenData,
-    spform::Formulation,
+    algo::BendersCutGeneration, algdata::BendersCutGenData, spform::Formulation,
     spresult::OptimizationResult{S}
 )::Vector{ConstrId} where {S}
 
@@ -169,8 +163,6 @@ function record_solutions!(
             (insertion_status, dual_sol_id) = setdualsol!(spform, dual_sol)
             if insertion_status
                 push!(recorded_dual_solution_ids, dual_sol_id)
-                @show string("new dual sol for Benders cut ", dual_sol_id)
-                @show dual_sol
             else
                 @warn string("dual sol already exists as ", dual_sol_id)
             end
@@ -181,21 +173,16 @@ function record_solutions!(
     return recorded_dual_solution_ids 
 end
 
-
 function insert_cuts_in_master!(
-    masterform::Formulation,
-    spform::Formulation,
-    sp_dualsol_ids::Vector{ConstrId},
+    masterform::Formulation, spform::Formulation, sp_dualsol_ids::Vector{ConstrId},
 )
     sp_uid = getuid(spform)
-    @show string("insert_cuts_in_master ", sp_uid)
     nb_of_gen_cuts = 0
     sense = (getobjsense(masterform) == MinSense ? Greater : Less)
 
     for dual_sol_id in sp_dualsol_ids
         nb_of_gen_cuts += 1
-        name = string("BendCut", getsortuid(dual_sol_id))
-        @show string("Benders cut ", nb_of_gen_cuts, " gen from dual sol ", dual_sol_id)
+        name = string("BC_", getsortuid(dual_sol_id))
         kind = Core
         duty = MasterBendCutConstr
         bc = setcut_from_sp_dualsol!(
@@ -223,12 +210,9 @@ function compute_benders_sp_lagrangian_bound_contrib(
 end
 
 function solve_sp_to_gencut!(
-    algo::BendersCutGeneration,
-    algdata::BendersCutGenData,
-    masterform::Formulation, 
-    spform::Formulation,
-    master_primal_sol::PrimalSolution{S},
-    master_dual_sol::DualSolution{S},
+    algo::BendersCutGeneration, algdata::BendersCutGenData,
+    masterform::Formulation, spform::Formulation,
+    master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S},
     up_to_phase::FormulationPhase
 )::Tuple{Bool, Bool, Vector{ConstrId}, Float64, Float64} where {S}
 
@@ -379,12 +363,9 @@ return
 ==#
 
 function solve_sps_to_gencuts!(
-    algo::BendersCutGeneration,
-    algdata::BendersCutGenData,
-    reform::Reformulation, 
-    master_primalsol::PrimalSolution{S},
-    master_dualsol::DualSolution{S},
-    up_to_phase::FormulationPhase
+    algo::BendersCutGeneration, algdata::BendersCutGenData, 
+    reform::Reformulation,  master_primalsol::PrimalSolution{S}, 
+    master_dualsol::DualSolution{S}, up_to_phase::FormulationPhase
 ) where {S}
     
     nb_new_cuts = 0
@@ -452,11 +433,9 @@ function update_lagrangian_pb!(algdata::BendersCutGenData,
 end
 
 function solve_relaxed_master!(master::Formulation)
-    #@show "function solve_relaxed_master!(master::Formulation)"
     elapsed_time = @elapsed begin
         optresult = TO.@timeit _to "relaxed master" optimize!(master)
     end
-    #@show optresult
     return optresult, elapsed_time
 end
 
@@ -541,7 +520,6 @@ function bend_cutting_plane_main_loop(
                         algo, algdata, reform, master_primal_sol, master_dual_sol, up_to_phase
                     )
             end
-            #@show nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound
 
             if nb_new_cuts < 0
                 #@error "infeasible subproblem."
@@ -552,8 +530,6 @@ function bend_cutting_plane_main_loop(
             update_lp_primal_sol!(algdata.incumbents, master_primal_sol)
             set_lp_primal_bound!(algdata.incumbents, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
-
-            #@show algdata.incumbents
             
             print_intermediate_statistics(
                 algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
@@ -596,7 +572,6 @@ function bend_cutting_plane_main_loop(
         
     end  # loop on master lp solution 
 
-    #@show one_spsol_is_a_relaxed_sol 
     if !one_spsol_is_a_relaxed_sol                
         # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
         sol_integer = true
@@ -604,19 +579,16 @@ function bend_cutting_plane_main_loop(
             round_down_val = Float64(val, RoundDown)
             round_up_val = Float64(val, RoundUp)
             
-            #@show (var, val, round_down_val, round_up_val)
             if round_down_val < round_up_val - algo.feasibility_tol #!isinteger(truncated_val)
                 sol_integer = false
                 break
             end
         end
-        #@show sol_integer
         if sol_integer
             update_ip_primal_sol!(algdata.incumbents, master_primal_sol)
             update_ip_primal_bound!(algdata.incumbents, primal_bound)
         end
     end
-    
     return BendersCutGenerationRecord(algdata.incumbents, false)
 end
 

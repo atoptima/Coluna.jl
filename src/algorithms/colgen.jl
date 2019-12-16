@@ -33,9 +33,7 @@ function prepare!(alg::ColumnGeneration, form, node)
 end
 
 # Overload of the algorithm's run function
-function run!(alg::ColumnGeneration, form::Reformulation, node::Node)
-    @show form.master
-    
+function run!(alg::ColumnGeneration, form::Reformulation, node::Node)    
     @logmsg LogLevel(-1) "Run ColumnGeneration."
     algdata = ColGenRuntimeData(alg, form, node)
     result = cg_main_loop(algdata, form, 2)
