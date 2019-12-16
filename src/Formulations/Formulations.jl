@@ -26,7 +26,7 @@ export AbstractFormulation, MaxSense, MinSense, MoiOptimizer, VarMembership,
        ConstrDict, Id, ConstrSense, VarSense, Formulation, Reformulation, VarId,
        ConstrId, VarData, ConstrData, Incumbents, DualSolution, PrimalSolution,
        PrimalBound, DualBound, FormId, FormulationPhase, Problem, Annotations,
-       Original, Counter, UserOptimizer, MoiObjective
+       Original, Counter, UserOptimizer, MoiObjective, PrimalSolVector
 
 export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 
@@ -54,7 +54,9 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        defaultprimalboundvalue, set_lp_primal_bound!, getpereneub, _active_,
        getperenecost, update_ip_primal_bound!, getprimaldwspsolmatrix, _active_explicit_,
        _rep_of_orig_var_, getcursense, getcurkind, find_owner_formulation,
-       setfeasibilitystatus!, setterminationstatus!
+       setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
+       setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
+       get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix
 
 
 
@@ -70,9 +72,9 @@ include("variable.jl")
 include("constraint.jl")
 include("varconstr.jl")
 
+include("solsandbounds.jl")
 include("manager.jl")
 include("filters.jl")
-include("solsandbounds.jl")
 include("optimizationresults.jl")
 include("incumbents.jl")
 include("buffer.jl")
