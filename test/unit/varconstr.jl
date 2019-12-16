@@ -6,89 +6,89 @@ end
 
 function abstract_vc_data_getters_and_setters_tests()
 
-    v_data = ClF.VarData(
-        ;cost = 13.0, lb = -10.0, ub = 100.0, kind = ClF.Continuous,
-        inc_val = -135.7, sense = ClF.Free, is_active = false, is_explicit = false
+    v_data = ClFF.VarData(
+        ;cost = 13.0, lb = -10.0, ub = 100.0, kind = ClFF.Continuous,
+        inc_val = -135.7, sense = ClFF.Free, is_active = false, is_explicit = false
     )
 
-    @test ClF.is_active(v_data) == false
-    @test ClF.is_explicit(v_data) == false
-    @test ClF.getkind(v_data) == ClF.Continuous
-    @test ClF.getsense(v_data) == ClF.Free
-    @test ClF.getincval(v_data) == -135.7
+    @test ClFF.is_active(v_data) == false
+    @test ClFF.is_explicit(v_data) == false
+    @test ClFF.getkind(v_data) == ClFF.Continuous
+    @test ClFF.getsense(v_data) == ClFF.Free
+    @test ClFF.getincval(v_data) == -135.7
 
-    ClF.setincval!(v_data, 1.0)
-    ClF.set_is_active!(v_data, true)
-    ClF.set_is_explicit!(v_data, true)
-    ClF.setkind!(v_data, ClF.Integ)
-    ClF.setsense!(v_data, ClF.Negative)
+    ClFF.setincval!(v_data, 1.0)
+    ClFF.set_is_active!(v_data, true)
+    ClFF.set_is_explicit!(v_data, true)
+    ClFF.setkind!(v_data, ClFF.Integ)
+    ClFF.setsense!(v_data, ClFF.Negative)
 
-    @test ClF.is_active(v_data) == true
-    @test ClF.is_explicit(v_data) == true
-    @test ClF.getkind(v_data) == ClF.Integ
-    @test ClF.getsense(v_data) == ClF.Negative
-    @test ClF.getincval(v_data) == 1.0
+    @test ClFF.is_active(v_data) == true
+    @test ClFF.is_explicit(v_data) == true
+    @test ClFF.getkind(v_data) == ClFF.Integ
+    @test ClFF.getsense(v_data) == ClFF.Negative
+    @test ClFF.getincval(v_data) == 1.0
 
 
-    c_data = ClF.ConstrData(
-        ; rhs = -13.0, kind = ClF.Facultative, sense = ClF.Equal,
+    c_data = ClFF.ConstrData(
+        ; rhs = -13.0, kind = ClFF.Facultative, sense = ClFF.Equal,
         inc_val = -12.0, is_active = false, is_explicit = false
     )
 
-    @test ClF.is_active(c_data) == false
-    @test ClF.is_explicit(c_data) == false
-    @test ClF.getkind(c_data) == ClF.Facultative
-    @test ClF.getsense(c_data) == ClF.Equal
-    @test ClF.getincval(c_data) == -12.0
+    @test ClFF.is_active(c_data) == false
+    @test ClFF.is_explicit(c_data) == false
+    @test ClFF.getkind(c_data) == ClFF.Facultative
+    @test ClFF.getsense(c_data) == ClFF.Equal
+    @test ClFF.getincval(c_data) == -12.0
 
-    ClF.setincval!(c_data, 1.0)
-    ClF.set_is_active!(c_data, true)
-    ClF.set_is_explicit!(c_data, true)
-    ClF.setkind!(c_data, ClF.Formulations.Core)
-    ClF.setsense!(c_data, ClF.Less)
+    ClFF.setincval!(c_data, 1.0)
+    ClFF.set_is_active!(c_data, true)
+    ClFF.set_is_explicit!(c_data, true)
+    ClFF.setkind!(c_data, ClFF.Formulations.Core)
+    ClFF.setsense!(c_data, ClFF.Less)
 
-    @test ClF.is_active(c_data) == true
-    @test ClF.is_explicit(c_data) == true
-    @test ClF.getkind(c_data) == ClF.Formulations.Core
-    @test ClF.getsense(c_data) == ClF.Less
-    @test ClF.getincval(c_data) == 1.0
+    @test ClFF.is_active(c_data) == true
+    @test ClFF.is_explicit(c_data) == true
+    @test ClFF.getkind(c_data) == ClFF.Formulations.Core
+    @test ClFF.getsense(c_data) == ClFF.Less
+    @test ClFF.getincval(c_data) == 1.0
 
 end
 
 function abstract_var_constr_getters_tests()
 
-    v = ClF.Variable(
-        ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.MasterPureVar
+    v = ClFF.Variable(
+        ClFF.Id{ClFF.Variable}(23, 10), "fake_var", ClFF.MasterPureVar
     )
 
-    @test ClF.getid(v) == ClF.Id{ClF.Variable}(23, 10)
-    @test ClF.getname(v) == "fake_var"
-    @test ClF.getduty(v) == ClF.MasterPureVar
-    @test ClF.getrecordeddata(v) === v.perene_data
-    @test ClF.getcurdata(v) === v.cur_data
-    @test ClF.getmoirecord(v) === v.moirecord
+    @test ClFF.getid(v) == ClFF.Id{ClFF.Variable}(23, 10)
+    @test ClFF.getname(v) == "fake_var"
+    @test ClFF.getduty(v) == ClFF.MasterPureVar
+    @test ClFF.getrecordeddata(v) === v.perene_data
+    @test ClFF.getcurdata(v) === v.cur_data
+    @test ClFF.getmoirecord(v) === v.moirecord
 
 
-    c = ClF.Constraint(
-        ClF.Id{ClF.Constraint}(23, 10), "fake_constr", ClF.MasterBranchOnOrigVarConstr
+    c = ClFF.Constraint(
+        ClFF.Id{ClFF.Constraint}(23, 10), "fake_constr", ClFF.MasterBranchOnOrigVarConstr
     )
 
-    @test ClF.getid(c) == ClF.Id{ClF.Constraint}(23, 10)
-    @test ClF.getname(c) == "fake_constr"
-    @test ClF.getduty(c) == ClF.MasterBranchOnOrigVarConstr
-    @test ClF.getrecordeddata(c) === c.perene_data
-    @test ClF.getcurdata(c) === c.cur_data
-    @test ClF.getmoirecord(c) === c.moirecord
+    @test ClFF.getid(c) == ClFF.Id{ClFF.Constraint}(23, 10)
+    @test ClFF.getname(c) == "fake_constr"
+    @test ClFF.getduty(c) == ClFF.MasterBranchOnOrigVarConstr
+    @test ClFF.getrecordeddata(c) === c.perene_data
+    @test ClFF.getcurdata(c) === c.cur_data
+    @test ClFF.getmoirecord(c) === c.moirecord
 end
 
 function varcosntr_helpers_tests()
 
-    v = ClF.Variable(
-        ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.MasterPureVar
+    v = ClFF.Variable(
+        ClFF.Id{ClFF.Variable}(23, 10), "fake_var", ClFF.MasterPureVar
     )
 
     @test ClF.getuid(v) == 23
-    @test ClF.getformuid(v) == 10
+    @test ClF.getoriginformuid(v) == 10
 
     @test ClF.getcurkind(v) == ClF.getperenekind(v) == ClF.Continuous
     @test ClF.getcursense(v) == ClF.getperenesense(v) == ClF.Positive
@@ -113,9 +113,9 @@ function varcosntr_helpers_tests()
     )
 
     @test ClF.getuid(c) == 23
-    @test ClF.getformuid(c) == 10
+    @test ClF.getoriginformuid(c) == 10
 
-    @test ClF.getcurkind(c) == ClF.getperenekind(c) == ClF.Formulations.Core
+    @test ClF.getcurkind(c) == ClF.getperenekind(c) == ClF.Core
     @test ClF.getcursense(c) == ClF.getperenesense(c) == ClF.Greater
     @test ClF.getcurincval(c) == ClF.getpereneincval(c) == -1.0
     @test ClF.get_cur_is_active(c) == ClF.get_init_is_active(c) == true

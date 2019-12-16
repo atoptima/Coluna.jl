@@ -97,6 +97,9 @@ Base.isless(b1::B, b2::B) where {B <: AbstractBound} = float(b1) < float(b2)
 
 abstract type AbstractSolution end
 
+const PrimalSolVector = MembersVector{Id{Variable}, Variable, Float64}
+const DualSolVector = MembersVector{Id{Constraint}, Constraint, Float64}
+
 """
     PrimalSolution{S} where S <: AbstractObjSense
 
@@ -105,7 +108,7 @@ The expected behaviour of a solution is implemented according to the sense `S`.
 """
 mutable struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::PrimalBound{S}
-    sol::MembersVector{Id{Variable}, Variable, Float64}
+    sol::PrimalSolVector
 end
 
 function PrimalSolution{S}() where{S<:AbstractObjSense}
@@ -137,7 +140,7 @@ The expected behaviour of a solution is implemented according to the sense `S`.
 """
 mutable struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
     bound::DualBound{S}
-    sol::MembersVector{Id{Constraint}, Constraint, Float64}
+    sol::DualSolVector
 end
 
 function DualSolution{S}() where {S<:AbstractObjSense}

@@ -33,7 +33,7 @@ function prepare!(alg::ColumnGeneration, form, node)
 end
 
 # Overload of the algorithm's run function
-function run!(alg::ColumnGeneration, form::Reformulation, node::Node)
+function run!(alg::ColumnGeneration, form::Reformulation, node::Node)    
     @logmsg LogLevel(-1) "Run ColumnGeneration."
     algdata = ColGenRuntimeData(alg, form, node)
     result = cg_main_loop(algdata, form, 2)
@@ -87,45 +87,45 @@ function update_pricing_target!(spform::Formulation)
     # println("pricing target will only be needed after automating convexity constraints")
 end
 
-function insert_cols_in_master!(
-    masterform::Formulation, spform::Formulation, 
-    spsols::Vector{PrimalSolution{S}}
-) where {S}
-    sp_uid = getuid(spform)
-    nb_of_gen_col = 0
-    for spsol in spsols
-        if contrib_improves_mlp(getbound(spsol))
-            nb_of_gen_col += 1
-            ref = getvarcounter(masterform) + 1
-            name = string("MC", sp_uid, "_", ref)
-            resetsolvalue!(masterform, spsol)
-            lb = 0.0
-            ub = Inf
-            kind = Continuous
-            duty = MasterCol
-            sense = Positive
-            mc = setprimaldwspsol!(
-                masterform, name, spsol, duty; lb = lb, ub = ub,
-                kind = kind, sense = sense
-            )
-            @logmsg LogLevel(-2) string("Generated column : ", name)
+function record_solutions!(
+    spform::Formulation, sols::Vector{PrimalSolution{S}}
+)::Vector{VarId} where {S}
+    recorded_solution_ids = Vector{VarId}()
+    for sol in sols
+        if contrib_improves_mlp(getbound(sol))
+            (insertion_status, col_id) = setprimalsol!(spform, sol)
+            if insertion_status
+                push!(recorded_solution_ids, col_id)
+            else
+                @warn string("column already exists as", col_id)
+            end
 
-            # TODO: check if column exists
-            #== mc_id = getid(mc)
-            id_of_existing_mc = - 1
-            partialsol_matrix = getpartialsolmatrix(masterform)
-            for (col, col_members) in columns(partialsol_matrix)
-                if (col_members == partialsol_matrix[:, mc_id])
-                    id_of_existing_mc = col[1]
-                    break
-                end
-            end
-            if (id_of_existing_mc != mc_id)
-                @warn string("column already exists as", id_of_existing_mc)
-            end
-            ==#
         end
     end
+    return recorded_solution_ids
+end
+
+function insert_cols_in_master!(
+    masterform::Formulation, spform::Formulation, sp_solution_ids::Vector{VarId}
+) 
+    sp_uid = getuid(spform)
+    nb_of_gen_col = 0
+
+    for sol_id in sp_solution_ids
+        nb_of_gen_col += 1
+        name = string("MC_", getsortuid(sol_id)) 
+        lb = 0.0
+        ub = Inf
+        kind = Continuous
+        duty = MasterCol
+        sense = Positive
+        mc = setcol_from_sp_primalsol!(
+            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, 
+            kind = kind, sense = sense
+        )
+        @logmsg LogLevel(-2) string("Generated column : ", name)
+    end
+
     return nb_of_gen_col
 end
 
@@ -149,10 +149,11 @@ end
 function solve_sp_to_gencol!(
     masterform::Formulation, spform::Formulation, dual_sol::DualSolution,
     sp_lb::Float64, sp_ub::Float64
-)
-    #flag_need_not_generate_more_col = 0 # Not used
-    flag_is_sp_infeasible = -1
-    #flag_cannot_generate_more_col = -2 # Not used
+)::Tuple{Bool,Vector{VarId},Float64}
+    
+    recorded_solution_ids = Vector{VarId}()
+    sp_is_feasible = true
+
     #dual_bound_contrib = 0 # Not used
     #pseudo_dual_bound_contrib = 0 # Not used
 
@@ -188,37 +189,48 @@ function solve_sp_to_gencol!(
     )
 
     if !isfeasible(opt_result)
+        sp_is_feasible = false 
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
-        return flag_is_sp_infeasible
+        return sp_is_feasible, recorded_solution_ids, defaultprimalboundvalue(getobjsense(spform))
     end
 
-    insertion_status = insert_cols_in_master!(
-        masterform, spform, getprimalsols(opt_result)
+    recorded_solution_ids = record_solutions!(
+        spform, getprimalsols(opt_result)
     )
 
-    return insertion_status, pricing_db_contrib
+    return sp_is_feasible, recorded_solution_ids, pricing_db_contrib
 end
 
 function solve_sps_to_gencols!(
-    reform::Reformulation, dual_sol::DualSolution{S},
+    reform::Reformulation, dual_sol::DualSolution{S}, 
     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 ) where {S}
     nb_new_cols = 0
     dual_bound_contrib = DualBound{S}(0.0)
     masterform = getmaster(reform)
-    sps = get_dw_pricing_sp(reform)
-    for spform in sps
-        sp_uid = getuid(spform)
-        gen_status, contrib = solve_sp_to_gencol!(
-            masterform, spform, dual_sol, sp_lbs[sp_uid], sp_ubs[sp_uid]
+    sps = get_dw_pricing_sps(reform)
+    recorded_sp_solution_ids = Dict{FormId, Vector{VarId}}()
+    sp_dual_bound_contribs = Dict{FormId, Float64}()
+
+    ### BEGIN LOOP TO BE PARALLELIZED
+    for (spuid, spform) in sps
+        gen_status, new_sp_solution_ids, sp_dual_contrib = solve_sp_to_gencol!(
+            masterform, spform, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
         )
-        if gen_status > 0
-            nb_new_cols += gen_status
-            dual_bound_contrib += float(contrib)
-        elseif gen_status == -1 # Sp is infeasible
-            return (gen_status, Inf)
+        if gen_status # else Sp is infeasible: contrib = Inf
+            recorded_sp_solution_ids[spuid] = new_sp_solution_ids
         end
+        sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
     end
+    ### END LOOP TO BE PARALLELIZED
+
+    nb_new_cols = 0
+    for (spuid, spform) in sps
+        dual_bound_contrib += sp_dual_bound_contribs[spuid]
+        nb_new_cols += insert_cols_in_master!(masterform, spform, recorded_sp_solution_ids[spuid]) 
+    end
+    
+    
     return (nb_new_cols, dual_bound_contrib)
 end
 
@@ -281,8 +293,7 @@ function cg_main_loop(
     sp_ubs = Dict{FormId, Float64}()
 
     # collect multiplicity current bounds for each sp
-    for spform in reform.dw_pricing_subprs
-        sp_uid = getuid(spform)
+    for (sp_uid, spform) in get_dw_pricing_sps(reform)
         lb_convexity_constr_id = reform.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reform.dw_pricing_sp_ub[sp_uid]
         sp_lbs[sp_uid] = getcurrhs(getconstr(masterform, lb_convexity_constr_id))

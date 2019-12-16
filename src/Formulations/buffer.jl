@@ -89,25 +89,25 @@ function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
     return
 end
 
-function change_cost!(buffer::FormulationBuffer, v::Variable)
-    !get_cur_is_explicit(v) && return
-    push!(buffer.changed_cost, getid(v))
+function change_cost!(buffer::FormulationBuffer, var::Variable)
+    !get_cur_is_explicit(var) && return
+    push!(buffer.changed_cost, getid(var))
     return
 end
 
-function change_bound!(buffer::FormulationBuffer, v::Variable)
-    !get_cur_is_explicit(v) && return
-    push!(buffer.changed_bound, getid(v))
+function change_bound!(buffer::FormulationBuffer, var::Variable)
+    !get_cur_is_explicit(var) && return
+    push!(buffer.changed_bound, getid(var))
     return
 end
 
-function change_kind!(buffer::FormulationBuffer, v::Variable)
-    !get_cur_is_explicit(v) && return
-    push!(buffer.changed_kind, getid(v))
+function change_kind!(buffer::FormulationBuffer, var::Variable)
+    !get_cur_is_explicit(var) && return
+    push!(buffer.changed_kind, getid(var))
     return
 end
 
-function set_matrix_coeff!(buffer::FormulationBuffer, v_id::Id{Variable},
-                           c_id::Id{Constraint}, new_coeff::Float64)
-    buffer.reset_coeffs[Pair(c_id,v_id)] = new_coeff
+function set_matrix_coeff!(buffer::FormulationBuffer, var_id::Id{Variable},
+                           constr_id::Id{Constraint}, new_coeff::Float64)
+    buffer.reset_coeffs[Pair(constr_id,var_id)] = new_coeff
 end

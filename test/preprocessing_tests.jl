@@ -6,7 +6,7 @@ function preprocessing_tests()
     # end
     @testset "Preprocessing with random instances" begin
         random_instances_tests()
-   end
+    end
 end
 
 function gen_random_small_gap_instance()

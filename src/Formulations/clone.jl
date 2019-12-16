@@ -1,4 +1,6 @@
-function clonevar!(dest::Formulation,
+function clonevar!(originform::Formulation,
+                   destform::Formulation,
+                   assignedform::Formulation,
                    var::Variable,
                    duty::AbstractVarDuty;
                    name::String = getname(var),
@@ -9,15 +11,19 @@ function clonevar!(dest::Formulation,
                    sense::VarSense = getperenesense(var),
                    inc_val::Float64 = getpereneincval(var),
                    is_active::Bool = get_init_is_active(var),
-                   is_explicit::Bool = get_init_is_explicit(var))
+                   is_explicit::Bool = get_init_is_explicit(var),
+                   members::Union{ConstrMembership,Nothing} = nothing)
     return setvar!(
-        dest, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
+        destform, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
         sense = sense, inc_val = inc_val, is_active = is_active,
-        is_explicit = is_explicit, id = getid(var)
+        is_explicit = is_explicit, members = members,
+        id = Id{Variable}(getid(var), getuid(assignedform))
     )
 end
 
-function cloneconstr!(dest::Formulation,
+function cloneconstr!(originform::Formulation,
+                      destform::Formulation,
+                      assignedform::Formulation,
                       constr::Constraint,
                       duty::AbstractConstrDuty;
                       name::String = getname(constr),
@@ -26,23 +32,25 @@ function cloneconstr!(dest::Formulation,
                       sense::ConstrSense = getperenesense(constr),
                       inc_val::Float64 = getpereneincval(constr),
                       is_active::Bool = get_init_is_active(constr),
-                      is_explicit::Bool = get_init_is_explicit(constr))
+                      is_explicit::Bool = get_init_is_explicit(constr),
+                      members::Union{VarMembership,Nothing}  = nothing)
     return setconstr!(
-        dest, name, duty, rhs = rhs, kind = kind, sense = sense, 
+        destform, name, duty, rhs = rhs, kind = kind, sense = sense, 
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit,
-        id = getid(constr)
+        members = members,
+        id = Id{Constraint}(getid(constr), getuid(assignedform))
     )
 end
 
-function clonecoeffs!(dest::Formulation,
-                             src::Formulation)
-    dest_matrix = getcoefmatrix(dest)
-    src_matrix = getcoefmatrix(src)
-    for (cid, constr) in getconstrs(dest)
-        if haskey(src, cid)
-            for (vid, var) in getvars(dest)
-                if haskey(src, vid)
-                    val = src_matrix[cid, vid]
+function clonecoeffs!(originform::Formulation,
+                      destform::Formulation)
+    dest_matrix = getcoefmatrix(destform)
+    orig_matrix = getcoefmatrix(originform)
+    for (cid, constr) in getconstrs(destform)
+        if haskey(originform, cid)
+            for (vid, var) in getvars(destform)
+                if haskey(originform, vid)
+                    val = orig_matrix[cid, vid]
                     if val != 0
                         dest_matrix[cid, vid] = val
                     end

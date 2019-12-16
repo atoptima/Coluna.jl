@@ -10,7 +10,7 @@ export NestedEnum, @nestedenum, @exported_nestedenum,
        ElemDict,
        MembersVector, MembersMatrix
 
-export getelements, getelement, rows, cols
+export getelements, getelement, rows, cols, columns, getrecords
 
 include("nestedenum.jl")
 include("elements.jl")
