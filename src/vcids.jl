@@ -60,7 +60,7 @@ Base.isequal(a::Id, b::Id) = Base.isequal(a._hash, b._hash)
 Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
 Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
 Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
-Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1) 
+Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1, -1) 
 getuid(id::Id)::VcUid = id.uid
 getoriginformuid(id::Id)::FormUid = id.origin_form_uid
 getassignedformuid(id::Id)::FormUid = id.assigned_form_uid_in_reformulation
@@ -68,5 +68,10 @@ getprocuid(id::Id)::ProcessUid = id.proc_uid
 getsortuid(id::Id)::Int = getuid(id) + 1000000 * getoriginformuid(id)
 
 function Base.show(io::IO, id::Id{T}) where {T}
-    print(io, T,"#", id._hash)
+    print(io, T, "#",
+          "u", id.uid,
+          "f", id.origin_form_uid,
+          "a", id.assigned_form_uid_in_reformulation,
+          "p", id.proc_uid ,
+          "h", id._hash)
 end

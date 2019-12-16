@@ -41,7 +41,7 @@ function optimize!(
         reform::Reformulation; strategy::GlobalStrategy = reform.strategy
     )
     prepare!(strategy, reform)
-    opt_result = run_reform_solver!(reform, strategy)
+    opt_result = run_reform_solver!(reform, strategy) 
     master = getmaster(reform)
     for (idx, sol) in enumerate(getprimalsols(opt_result))
         opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)

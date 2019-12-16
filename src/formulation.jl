@@ -35,23 +35,23 @@ function Formulation{D}(form_counter::Counter;
     )
 end
 
-"Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `f`."
+"Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `form`."
 haskey(f::Formulation, id::Id) = haskey(f.manager, id)
 
-"Returns the `Variable` whose `Id` is `id` if such variable is in `Formulation` `f`."
+"Returns the `Variable` whose `Id` is `id` if such variable is in `Formulation` `form`."
 getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
 
-"Returns the value of the variable counter of `Formulation` `f`."
+"Returns the value of the variable counter of `Formulation` `form`."
 getvarcounter(f::Formulation) = f.var_counter.value
 getconstrcounter(f::Formulation) = f.constr_counter.value
 
-"Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `f`."
+"Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `form`."
 getconstr(f::Formulation, id::ConstrId) = getconstr(f.manager, id)
 
-"Returns all the variables in `Formulation` `f`."
+"Returns all the variables in `Formulation` `form`."
 getvars(f::Formulation) = getvars(f.manager)
 
-"Returns all the constraints in `Formulation` `f`."
+"Returns all the constraints in `Formulation` `form`."
 getconstrs(f::Formulation) = getconstrs(f.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
@@ -63,13 +63,13 @@ getdualsolrhss(f::Formulation) = getdualsolrhss(f.manager)
 getexpressionmatrix(f::Formulation) = getexpressionmatrix(f.manager)
 
 
-"Returns the `uid` of `Formulation` `f`."
+"Returns the `uid` of `Formulation` `form`."
 getuid(form::Formulation) = form.uid
 
-"Returns the objective function sense of `Formulation` `f`."
+"Returns the objective function sense of `Formulation` `form`."
 getobjsense(form::Formulation) = form.obj_sense
 
-"Returns the `AbstractOptimizer` of `Formulation` `f`."
+"Returns the `AbstractOptimizer` of `Formulation` `form`."
 getoptimizer(form::Formulation) = form.optimizer
 
 getelem(form::Formulation, id::VarId) = getvar(form, id)
@@ -163,7 +163,7 @@ set_matrix_coeff!(
     form::Formulation, var_id::Id{Variable}, constr_id::Id{Constraint}, new_coeff::Float64
 ) = set_matrix_coeff!(form.buffer, var_id, constr_id, new_coeff)
 
-"Creates a `Variable` according to the parameters passed and adds it to `Formulation` `f`."
+"Creates a `Variable` according to the parameters passed and adds it to `Formulation` `form`."
 function setvar!(form::Formulation,
                  name::String,
                  duty::Type{<:AbstractVarDuty};
@@ -238,7 +238,7 @@ function setprimalsol!(
     end
     
     ### else not identical to any existing column
-    new_sol_id = Id(generatevarid(form), getuid(form))
+    new_sol_id = Id{Variable}(generatevarid(form), getuid(form))
     addprimalsol!(form, newprimalsol, new_sol_id)
     return (true, new_sol_id)
 end
@@ -302,7 +302,7 @@ function setdualsol!(
     
 
     ### else not identical to any existing dual sol
-    new_dual_sol_id = Id(generateconstrid(form), getuid(form))
+    new_dual_sol_id = Id{Constraint}(generateconstrid(form), getuid(form))
     adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
@@ -382,7 +382,7 @@ function setcut_from_sp_dualsol!(
     return addconstr!(masterform, benders_cut)
 end
 
-"Adds `Variable` `var` to `Formulation` `f`."
+"Adds `Variable` `var` to `Formulation` `form`."
 function addvar!(f::Formulation, var::Variable)
     add!(f.buffer, var)
     return addvar!(f.manager, var)
@@ -438,12 +438,13 @@ function addprimalsol!(f::Formulation, var::Variable)
     return addprimalsol!(f.manager, var)
 end
 
-function clonevar!(dest::Formulation, src::Formulation, var::Variable)
+#==function clonevar!(dest::Formulation, src::Formulation, var::Variable)
     addvar!(dest, var)
-    return clonevar!(dest.manager, src.manager, var)
+    return clonevar!(dest.manager, src.manager, src.manager, var)
 end
+==#
 
-"Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `f`."
+"Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
 function setconstr!(form::Formulation,
                     name::String,
                     duty::Type{<:AbstractConstrDuty};
@@ -454,7 +455,7 @@ function setconstr!(form::Formulation,
                     is_active::Bool = true,
                     is_explicit::Bool = true,
                     moi_index::MoiConstrIndex = MoiConstrIndex(),
-                    members = nothing,
+                    members::Union{VarMembership,Nothing}  = nothing,
                     id = generateconstrid(form))
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     constr = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
@@ -462,7 +463,7 @@ function setconstr!(form::Formulation,
     return addconstr!(form, constr)
 end
 
-"Adds `Constraint` `constr` to `Formulation` `f`."
+"Adds `Constraint` `constr` to `Formulation` `form`."
 function addconstr!(form::Formulation, constr::Constraint)
     add!(form.buffer, constr)
     return addconstr!(form.manager, constr)
@@ -527,6 +528,7 @@ function setmembers!(form::Formulation, constr::Constraint, members::VarMembersh
         if getduty(var) <: MasterRepPricingVar  || getduty(var) <: MasterRepPricingSetupVar          
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(var_id)
+            @show assigned_form_uid var
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in getprimalsolmatrix(spform)[var_id,:]
                 @logmsg LogLevel(-4) string("Adding column ", getname(getvar(form, col_id)), " with coeff ", col_coeff * var_coeff)
@@ -587,15 +589,18 @@ end
 function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::DualSolution{S})  where {S<:AbstractObjSense}
     var = getvar(form, var_id)
     rc = getperenecost(var)
+    #@show var_id rc
     coefficient_matrix = getcoefmatrix(form)
+    sign = 1
+    if getobjsense(form) == MinSense
+        sign = -1
+    end
     for (constr_id, dual_val) in getsol(dualsol)
         coeff = coefficient_matrix[constr_id, var_id]
-        if getobjsense(form) == MinSense
-            rc -= dual_val * coeff
-        else
-            rc += dual_val * coeff
-        end
+        #@show constr_id dual_val coeff
+        rc += sign * dual_val * coeff
     end
+    #@show rc
     return rc
 end
 
@@ -610,7 +615,7 @@ function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primals
     return crhs
 end
 
-"Calls optimization routine for `Formulation` `f`."
+"Calls optimization routine for `Formulation` `form`."
 function optimize!(form::Formulation)
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
@@ -665,7 +670,7 @@ function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId,
         op = "<="
     end
     print(io, " ", op, " ", getrhs(constr_data))
-    println(io, " (", getduty(constr), " | ", is_explicit(constr_data) ,")")
+    println(io, " (", getduty(constr), getid(constr), " | ", is_explicit(constr_data) ,")")
     return
 end
 
@@ -692,7 +697,7 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     t = getkind(var_data)
     d = getduty(var)
     e = is_explicit(var_data)
-    println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
+    println(io, lb, " <= ", name, getid(var), " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
 function _show_variables(io::IO, form::Formulation)

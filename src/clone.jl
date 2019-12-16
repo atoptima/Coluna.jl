@@ -1,5 +1,6 @@
 function clonevar!(originform::Formulation,
                    destform::Formulation,
+                   assignedform::Formulation,
                    var::Variable,
                    duty::Type{<:AbstractDuty};
                    name::String = getname(var),
@@ -10,16 +11,19 @@ function clonevar!(originform::Formulation,
                    sense::VarSense = getperenesense(var),
                    inc_val::Float64 = getpereneincval(var),
                    is_active::Bool = get_init_is_active(var),
-                   is_explicit::Bool = get_init_is_explicit(var))
+                   is_explicit::Bool = get_init_is_explicit(var),
+                   members::Union{ConstrMembership,Nothing} = nothing)
     return setvar!(
         destform, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
         sense = sense, inc_val = inc_val, is_active = is_active,
-        is_explicit = is_explicit, id = Id{Variable}(getid(var), getuid(destform))
+        is_explicit = is_explicit, members = members,
+        id = Id{Variable}(getid(var), getuid(assignedform))
     )
 end
 
 function cloneconstr!(originform::Formulation,
                       destform::Formulation,
+                      assignedform::Formulation,
                       constr::Constraint,
                       duty::Type{<:AbstractDuty};
                       name::String = getname(constr),
@@ -28,11 +32,13 @@ function cloneconstr!(originform::Formulation,
                       sense::ConstrSense = getperenesense(constr),
                       inc_val::Float64 = getpereneincval(constr),
                       is_active::Bool = get_init_is_active(constr),
-                      is_explicit::Bool = get_init_is_explicit(constr))
+                      is_explicit::Bool = get_init_is_explicit(constr),
+                      members::Union{VarMembership,Nothing}  = nothing)
     return setconstr!(
         destform, name, duty, rhs = rhs, kind = kind, sense = sense, 
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit,
-        id = Id{Constraint}(getid(constr), getuid(destform))
+        members = members,
+        id = Id{Constraint}(getid(constr), getuid(assignedform))
     )
 end
 
