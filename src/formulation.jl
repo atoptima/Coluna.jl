@@ -1,10 +1,10 @@
 """
-        Formulation{Duty<:AbstractFormDuty}
+    Formulation{Duty<:AbstractFormDuty}
 
-    Representation of a formulation which is typically solved by either a MILP or a dynamic program solver.
+Representation of a formulation which is typically solved by either a MILP or a dynamic program solver.
 
-    Such solver must be interfaced with MOI and its pointer is stored in the field `optimizer`.
-    """
+Such solver must be interfaced with MOI and its pointer is stored in the field `optimizer`.
+"""
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
     var_counter::Counter
@@ -17,13 +17,13 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
 end
 
 """
-        Formulation{D}(form_counter::Counter,
-                       parent_formulation = nothing,
-                       obj_sense::Type{<:AbstractObjSense} = MinSense
-                       ) where {D<:AbstractFormDuty}
+    Formulation{D}(form_counter::Counter,
+                    parent_formulation = nothing,
+                    obj_sense::Type{<:AbstractObjSense} = MinSense
+                    ) where {D<:AbstractFormDuty}
 
-    Constructs a `Formulation` of duty `D` for which the objective sense is `obj_sense`.
-    """
+Constructs a `Formulation` of duty `D` for which the objective sense is `obj_sense`.
+"""
 function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
                         obj_sense::Type{<:AbstractObjSense} = MinSense
@@ -85,21 +85,21 @@ getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_f
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
 """
-        setcost!(f::Formulation, v::Variable, new_cost::Float64)
-    Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
-    euqal to `new_cost`. Change on `f.optimizer` will be buffered.
-    """
+    setcost!(f::Formulation, v::Variable, new_cost::Float64)
+Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
+euqal to `new_cost`. Change on `f.optimizer` will be buffered.
+"""
 function setcost!(form::Formulation, var::Variable, new_cost::Float64)
     setcurcost!(var, new_cost)
     change_cost!(form.buffer, var)
 end
 
 """
-        setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
+    setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
 
-    Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be
-    euqal to `new_cost`. Change on `f.optimizer` will be buffered.
-    """
+Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be
+euqal to `new_cost`. Change on `f.optimizer` will be buffered.
+"""
 function setcurcost!(form::Formulation, var::Variable, new_cost::Float64)
     setcurcost!(var, new_cost)
     change_cost!(form.buffer, var)
@@ -111,54 +111,54 @@ function setcurrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
 end
 
 """
-        setub!(f::Formulation, v::Variable, new_ub::Float64)
+    setub!(f::Formulation, v::Variable, new_ub::Float64)
 
-    Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
-    according to `new_ub`. Change on `f.optimizer` will be buffered.
-    """
+Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
+according to `new_ub`. Change on `f.optimizer` will be buffered.
+"""
 function setub!(form::Formulation, var::Variable, new_ub::Float64)
     setcurub!(var, new_ub)
     change_bound!(form.buffer, var)
 end
 
 """
-        setlb!(f::Formulation, v::Variable, new_lb::Float64)
+    setlb!(f::Formulation, v::Variable, new_lb::Float64)
 
-    Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
-    according to `new_lb`. Change on `f.optimizer` will be buffered.
-    """
+Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
+according to `new_lb`. Change on `f.optimizer` will be buffered.
+"""
 function setlb!(f::Formulation, var::Variable, new_lb::Float64)
     setcurlb!(var, new_lb)
     change_bound!(f.buffer, var)
 end
 
 """
-        setkind!(f::Formulation, v::Variable, new_kind::VarKind)
+    setkind!(f::Formulation, v::Variable, new_kind::VarKind)
 
-    Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
-    according to `new_kind`. Change on `f.optimizer` will be buffered.
-    """
+Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
+according to `new_kind`. Change on `f.optimizer` will be buffered.
+"""
 function setkind!(form::Formulation, var::Variable, new_kind::VarKind)
     setcurkind(var, new_kind)
     change_kind!(form.buffer, var)
 end
 
 """
-        setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
+    setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
 
-    Sets `c.cur_data.rhs` as well as the rhs of `c` in `f.optimizer` 
-    according to `new_rhs`. Change on `f.optimizer` will be buffered.
-    """
+Sets `c.cur_data.rhs` as well as the rhs of `c` in `f.optimizer` 
+according to `new_rhs`. Change on `f.optimizer` will be buffered.
+"""
 function setrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
     setcurrhs!(constr, new_rhs)
     change_rhs!(form.buffer, constr)
 end
 
 """
-        set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
+    set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
-    Buffers the matrix modification in `f.buffer` to be sent to `f.optimizer` right before next call to optimize!.
-    """
+Buffers the matrix modification in `f.buffer` to be sent to `f.optimizer` right before next call to optimize!.
+"""
 set_matrix_coeff!(
     form::Formulation, var_id::Id{Variable}, constr_id::Id{Constraint}, new_coeff::Float64
 ) = set_matrix_coeff!(form.buffer, var_id, constr_id, new_coeff)

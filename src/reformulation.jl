@@ -7,10 +7,10 @@ mutable struct Reformulation <: AbstractFormulation
     strategy::GlobalStrategy
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
-    dw_pricing_subprs::Dict{FormUid, AbstractFormulation} # vector of Formulation or Reformulation
-    benders_sep_subprs::Dict{FormUid, AbstractFormulation}
-    dw_pricing_sp_lb::Dict{FormUid, Id} # Attribute has ambiguous name
-    dw_pricing_sp_ub::Dict{FormUid, Id}
+    dw_pricing_subprs::Dict{FormId, AbstractFormulation} # vector of Formulation or Reformulation
+    benders_sep_subprs::Dict{FormId, AbstractFormulation}
+    dw_pricing_sp_lb::Dict{FormId, Id} # Attribute has ambiguous name
+    dw_pricing_sp_ub::Dict{FormId, Id}
 end
 
 """
@@ -22,10 +22,10 @@ function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
     return Reformulation(strategy,
                          nothing,
                          nothing,
-                         Dict{FormUid, AbstractFormulation}(),
-                         Dict{FormUid, AbstractFormulation}(),
-                         Dict{FormUid, Int}(),
-                         Dict{FormUid, Int}())
+                         Dict{FormId, AbstractFormulation}(),
+                         Dict{FormId, AbstractFormulation}(),
+                         Dict{FormId, Int}(),
+                         Dict{FormId, Int}())
 end
 
 getglobalstrategy(r::Reformulation) = r.strategy

@@ -142,8 +142,6 @@ abstract type AbstractAlg end
 @enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
 const FormId = Int
-const VcUid = Int
-const FormUid = Int
 const ProcessUid = Int
 
 function isaStaticDuty(duty::NestedEnum)
