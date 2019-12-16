@@ -60,7 +60,7 @@ end
 
 function find_owner_formulation(reform::Reformulation, vc::AbstractVarConstr)
     vc_belongs_to_formulation(reform.master, vc) && return reform.master
-    for spform in get_dw_pricing_sps(reform)
+    for (formid, spform) in get_dw_pricing_sps(reform)
         vc_belongs_to_formulation(spform, vc) && return spform
     end
    @error(string("VC ", getname(vc), " does not belong to any problem in reformulation"))
