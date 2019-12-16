@@ -1,4 +1,4 @@
-Coluna.@nestedenum begin
+Coluna.Containers.@nestedenum begin
     VarConstrDuty
     A <= VarConstrDuty
         A1 <= A

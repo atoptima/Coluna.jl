@@ -235,7 +235,7 @@ function compute_min_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
     slack = getrhs(getcurdata(constr))
-    if getduty(constr) <:AbstractMasterConstr
+    if getduty(constr) <= AbstractMasterConstr
         var_filter = _rep_of_orig_var_ 
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
@@ -270,7 +270,7 @@ function compute_max_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
     slack = getrhs(getcurdata(constr))
-    if getduty(constr) <:AbstractMasterConstr
+    if getduty(constr) <= AbstractMasterConstr
         var_filter = _rep_of_orig_var_ 
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
@@ -559,7 +559,7 @@ end
 function strengthen_var_bounds_in_constr!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    if getduty(constr) <: AbstractMasterConstr
+    if getduty(constr) <= AbstractMasterConstr
         var_filter = _rep_of_orig_var_ 
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))

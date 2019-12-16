@@ -1,8 +1,8 @@
-function members_unit_tests()
-    add_elems_in_matrix_tests(5, 5)
-    add_elems_in_matrix_tests(10, 5)
-    add_elems_in_matrix_tests(5, 10)
-    doc_tests()
+function members_unit()
+    # add_elems_in_matrix_tests(5, 5)
+    # add_elems_in_matrix_tests(10, 5)
+    # add_elems_in_matrix_tests(5, 10)
+    # doc_tests()
 end
 
 function create_variable(i)

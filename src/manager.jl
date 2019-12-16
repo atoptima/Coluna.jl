@@ -1,5 +1,5 @@
-const VarDict = ElemDict{Variable}
-const ConstrDict = ElemDict{Constraint}
+const VarDict = ElemDict{Id{Variable}, Variable}
+const ConstrDict = ElemDict{Id{Constraint}, Constraint}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const VarVarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
@@ -50,7 +50,7 @@ function addprimalsol!(m::FormulationManager,
     for (var_id, var_val) in sol
         var = m.vars[var_id]
         cost += getperenecost(var) * var_val
-        if getduty(var) <: DwSpSetupVar || getduty(var) <: DwSpPricingVar
+        if getduty(var) <= DwSpSetupVar || getduty(var) <= DwSpPricingVar
             m.primal_sols[var_id, sol_id] = var_val
         end
     end
@@ -68,7 +68,7 @@ function adddualsol!(m::FormulationManager,
     for (constr_id, constr_val) in dualsol
         constr = m.constrs[constr_id]
         rhs += getperenerhs(constr) * constr_val 
-        if getduty(constr) <: AbstractBendSpMasterConstr
+        if getduty(constr) <= AbstractBendSpMasterConstr
             m.dual_sols[constr_id, dualsol_id] = constr_val
         end
     end

@@ -166,7 +166,7 @@ set_matrix_coeff!(
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `form`."
 function setvar!(form::Formulation,
                  name::String,
-                 duty::Type{<:AbstractVarDuty};
+                 duty::AbstractVarDuty;
                  cost::Float64 = 0.0,
                  lb::Float64 = 0.0,
                  ub::Float64 = Inf,
@@ -310,7 +310,7 @@ end
 
 function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId,
-    name::String, duty::Type{<:AbstractVarDuty}; lb::Float64 = 0.0,
+    name::String, duty::AbstractVarDuty; lb::Float64 = 0.0,
     ub::Float64 = Inf, kind::VarKind = Continuous, sense::VarSense = Positive, 
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
@@ -343,7 +343,7 @@ function setcut_from_sp_dualsol!(
     spform::Formulation,
     dual_sol_id::ConstrId,
     name::String,
-    duty::Type{<:AbstractConstrDuty};
+    duty::AbstractConstrDuty;
     kind::ConstrKind = Core,
     sense::ConstrSense = Greater,
     inc_val::Float64 = -1.0, 
@@ -368,10 +368,10 @@ function setcut_from_sp_dualsol!(
 
     for (ds_constr_id, ds_constr_val) in sp_dual_sol
         ds_constr = getconstr(spform, ds_constr_id)
-        if getduty(ds_constr) <: AbstractBendSpMasterConstr
+        if getduty(ds_constr) <= AbstractBendSpMasterConstr
             for (master_var_id, sp_constr_coef) in sp_coef_matrix[ds_constr_id,:]
                 var = getvar(spform, master_var_id)
-                if getduty(var) <: AbstractBendSpSlackMastVar
+                if getduty(var) <= AbstractBendSpSlackMastVar
                     master_coef_matrix[benders_cut_id, master_var_id] += ds_constr_val * sp_constr_coef
                 end
             end
@@ -396,16 +396,16 @@ function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
 end
 deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 
-function deactivate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(v -> get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
+function deactivate!(f::Formulation, duty::AbstractVarDuty)
+    vars = filter(v -> get_cur_is_active(v) && getduty(v) <= duty, getvars(f))
     for (id, var) in vars
         deactivate!(f, var)
     end
     return
 end
 
-function deactivate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(c -> get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
+function deactivate!(f::Formulation, duty::AbstractConstrDuty)
+    constrs = filter(c -> get_cur_is_active(c) && getduty(c) <= duty, getconstrs(f))
     for (id, constr) in constrs
         deactivate!(f, constr)
     end
@@ -420,15 +420,15 @@ function activate!(f::Formulation, varconstr::AbstractVarConstr)
 end
 activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
 
-function activate!(f::Formulation, Duty::Type{<:AbstractVarDuty})
-    vars = filter(v -> !get_cur_is_active(v) && getduty(v) <: Duty, getvars(f))
+function activate!(f::Formulation, duty::AbstractVarDuty)
+    vars = filter(v -> !get_cur_is_active(v) && getduty(v) <= duty, getvars(f))
     for (id, var) in vars
         activate!(f, var)
     end
 end
 
-function activate!(f::Formulation, Duty::Type{<:AbstractConstrDuty})
-    constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <: Duty, getconstrs(f))
+function activate!(f::Formulation, duty::AbstractConstrDuty)
+    constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <= duty, getconstrs(f))
     for (id, constr) in constrs
         activate!(f, constr)
     end
@@ -447,7 +447,7 @@ end
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
 function setconstr!(form::Formulation,
                     name::String,
-                    duty::Type{<:AbstractConstrDuty};
+                    duty::AbstractConstrDuty;
                     rhs::Float64 = 0.0,
                     kind::ConstrKind = Core,
                     sense::ConstrSense = Greater,
@@ -525,7 +525,7 @@ function setmembers!(form::Formulation, constr::Constraint, members::VarMembersh
         coef_matrix[constr_id, var_id] = var_coeff
         @logmsg LogLevel(-4) string("Adding variable ", getname(var), " with coeff ", var_coeff)
 
-        if getduty(var) <: MasterRepPricingVar  || getduty(var) <: MasterRepPricingSetupVar          
+        if getduty(var) <= MasterRepPricingVar  || getduty(var) <= MasterRepPricingSetupVar          
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(var_id)
             @show assigned_form_uid var

@@ -289,7 +289,7 @@ function solve_sp_to_gencut!(
         # compute benders_sp_primal_bound_contrib which stands for the sum of nu var,
         # i.e. the second stage cost as it would appear as 
         # the separation subproblem objective in a pure phase 2
-        for (var, value) in filter(var -> getduty(var) <: BendSpSlackSecondStageCostVar, getsol(primalsol))
+        for (var, value) in filter(var -> getduty(var) <= BendSpSlackSecondStageCostVar, getsol(primalsol))
             if S == MinSense
                 benders_sp_primal_bound_contrib += value
             else

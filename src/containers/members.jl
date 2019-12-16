@@ -20,7 +20,7 @@ function MembersVector{T}(elems::Dict{I,K}) where {I,K,T}
     return MembersVector{I,K,T}(elems, Dict{I,T}())
 end
 
-function MembersVector{T}(elems::ElemDict{VC}) where {VC,T}
+function MembersVector{T}(elems::ElemDict{I,K}) where {I,K,T}
     return MembersVector{T}(elems.elements)
 end
 
@@ -126,22 +126,24 @@ function Base.copy(vec::V) where {V <: MembersVector}
     return V(vec.elements, deepcopy(vec.records))
 end
 
-iterate(d::MembersVector) = iterate(d.records)
-iterate(d::MembersVector, state) = iterate(d.records, state)
-length(d::MembersVector) = length(d.records)
-lastindex(d::MembersVector) = lastindex(d.records)
+Base.iterate(d::MembersVector) = iterate(d.records)
+Base.iterate(d::MembersVector, state) = iterate(d.records, state)
+Base.length(d::MembersVector) = length(d.records)
+Base.lastindex(d::MembersVector) = lastindex(d.records)
 
-function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J <: AbstractVarConstr,K}
+function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J,K}
     print(io, "[")
     for (id, val) in vec
-        print(io, " ", id, " => (", getname(getelement(vec, id)), ", " , val, ")  ")
+        print(io, " ", id, " => " , val, " ")
     end
     print(io, "]")
 end
 
 struct MembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
-    cols::MembersVector{I,K,MembersVector{J,L,T}}
-    rows::MembersVector{J,L,MembersVector{I,K,T}}
+    #matrix_csc::DynamicSparseArrays.MappedPackedCSC{}
+    #matrix_csr::DynamicSparseArrays.MappedPackedCSC{}
+    cols::MembersVector{I,K,MembersVector{J,L,T}} # to rm
+    rows::MembersVector{J,L,MembersVector{I,K,T}} # to rm
 end
 
 """
