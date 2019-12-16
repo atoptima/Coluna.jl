@@ -220,7 +220,7 @@ function create_side_vars_constrs!(
     return
 end
 
-#==function _dutyexpofbendmastvar(
+function _dutyexpofbendmastvar(
     var::Variable, annotations::Annotations, origform::Formulation{Original}
 )
     orig_coef = getcoefmatrix(origform)
@@ -233,18 +233,20 @@ end
     end
     return MasterPureVar, true
 end
-==#
+#====#
 
 # Master of Benders decomposition
 
 function instantiate_orig_vars!(
-    masterform::Formulation{BendersMaster}, origform::Formulation{Original}, 
-    annotations::Annotations, mast_ann
+    masterform::Formulation{BendersMaster},
+    origform::Formulation{Original}, 
+    annotations::Annotations,
+    mast_ann
 )
     !haskey(annotations.vars_per_ann, mast_ann) && return
     vars = annotations.vars_per_ann[mast_ann]
     for (id, var) in vars
-        #duty, explicit = _dutyexpofbendmastvar(var, annotations, origform)
+        duty, explicit = _dutyexpofbendmastvar(var, annotations, origform)
         clonevar!(origform, masterform,  masterform, var, MasterPureVar, is_explicit = true)
     end
     return
@@ -324,7 +326,7 @@ function instantiate_orig_vars!(
                     cost = getcurcost(var), lb = getcurlb(var), 
                     ub = getcurub(var), kind = Continuous, 
                     sense = getcursense(var), is_explicit = true, 
-                    id = Id{Variable}(id, getuid(spform))
+                    id = Id{Variable}(id, getuid(getmaster(spform)))
                 )
             end
         end

@@ -197,7 +197,7 @@ function initconstraints!(
     end
 
     # Subproblem constraints
-    for spform in get_dw_pricing_sps(alg_data.reformulation)
+    for (spuid, spform) in get_dw_pricing_sps(alg_data.reformulation)
         for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(spform))
             initconstraint!(alg_data, constr, spform)
             push!(constrs_to_stack, (constr, spform))
