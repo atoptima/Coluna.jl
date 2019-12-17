@@ -14,7 +14,7 @@ global const CL = Coluna
 global const CLD = ColunaDemos
 global const BD = BlockDecomposition
 
-global const ClF = Coluna.Formulations
+global const ClF = Coluna.MathProg
 
 include("unit/unit_tests.jl")
 include("show_functions_tests.jl")

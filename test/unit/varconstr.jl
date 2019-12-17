@@ -44,12 +44,12 @@ function abstract_vc_data_getters_and_setters_tests()
     ClF.setincval!(c_data, 1.0)
     ClF.set_is_active!(c_data, true)
     ClF.set_is_explicit!(c_data, true)
-    ClF.setkind!(c_data, ClF.Formulations.Core)
+    ClF.setkind!(c_data, ClF.MathProg.Core)
     ClF.setsense!(c_data, ClF.Less)
 
     @test ClF.is_active(c_data) == true
     @test ClF.is_explicit(c_data) == true
-    @test ClF.getkind(c_data) == ClF.Formulations.Core
+    @test ClF.getkind(c_data) == ClF.MathProg.Core
     @test ClF.getsense(c_data) == ClF.Less
     @test ClF.getincval(c_data) == 1.0
 

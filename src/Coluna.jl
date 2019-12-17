@@ -17,7 +17,7 @@ global const DS = DataStructures
 global const TO = TimerOutputs
 
 # submodules
-export Containers, Formulations
+export Containers, MathProg
 
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
@@ -31,11 +31,11 @@ using .Containers
 include("types.jl")
 include("parameters.jl")
 
-include("Formulations/Formulations.jl")
-using .Formulations
+include("MathProg/MathProg.jl")
+using .MathProg
 
 # To be deleted :
-import .Formulations: getrhs, getsense, optimize!
+import .MathProg: getrhs, getsense, optimize!
 
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")

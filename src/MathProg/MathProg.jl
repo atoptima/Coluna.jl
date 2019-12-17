@@ -1,4 +1,4 @@
-module Formulations
+module MathProg
 
 import BlockDecomposition
 import Distributed

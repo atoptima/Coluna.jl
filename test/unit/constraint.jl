@@ -19,14 +19,14 @@ function constr_data_getters_and_setters_tests()
     @test ClF.getkind(c_data) == ClF.Facultative
 
     ClF.setrhs!(c_data, 90.0)
-    ClF.setkind!(c_data, ClF.Formulations.Core)
+    ClF.setkind!(c_data, ClF.MathProg.Core)
     ClF.setsense!(c_data, ClF.Less)
     ClF.setincval!(c_data, 90.0)
     ClF.set_is_active!(c_data, true)
     ClF.set_is_explicit!(c_data, true)
 
     @test ClF.getrhs(c_data) == 90.0
-    @test ClF.getkind(c_data) == ClF.Formulations.Core
+    @test ClF.getkind(c_data) == ClF.MathProg.Core
     @test ClF.getsense(c_data) == ClF.Less
     @test ClF.getincval(c_data) == 90.0
     @test ClF.is_active(c_data) == true

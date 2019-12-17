@@ -1,7 +1,7 @@
 include("containers/members.jl")
 include("containers/nestedenum.jl")
 
-include("Formulations/types.jl")
+include("MathProg/types.jl")
 
 
 include("algorithms/algorithm.jl")
@@ -45,7 +45,7 @@ function unit_tests()
         members_unit()
     end
 
-    @testset "Formulations submodule" begin
+    @testset "MathProg submodule" begin
     
         @testset "types.jl" begin
             types_unit_tests()
