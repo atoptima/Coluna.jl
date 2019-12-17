@@ -468,8 +468,9 @@ function buildformulations!(
     return
 end
 
+# TODO : remove strategy
 function reformulate!(
-    prob::Problem, annotations::Annotations, strategy::GlobalStrategy
+    prob::Problem, annotations::Annotations, strategy::AbstractGlobalStrategy
 )
     decomposition_tree = annotations.tree
 

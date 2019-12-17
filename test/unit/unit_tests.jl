@@ -1,8 +1,12 @@
-include("types.jl")
-include("algorithms/algorithm.jl")
-include("strategies/strategy.jl")
 include("containers/members.jl")
 include("containers/nestedenum.jl")
+
+include("MathProg/types.jl")
+
+
+include("algorithms/algorithm.jl")
+include("strategies/strategy.jl")
+
 # include("parameters.jl")
 include("counters.jl")
 include("vcids.jl")
@@ -35,16 +39,20 @@ include("incumbents.jl")
 # include("node.jl")
 # include("bbtree.jl")
 
-
 function unit_tests()
-    @testset "Containers" begin
+    @testset "Containers submodule" begin
         nestedenum_unit()
         members_unit()
     end
+
+    @testset "MathProg submodule" begin
     
-    @testset "types.jl" begin
-        types_unit_tests()
+        @testset "types.jl" begin
+            types_unit_tests()
+        end
+
     end
+
     @testset "algorithm.jl" begin
         algorithm_unit_tests()
     end

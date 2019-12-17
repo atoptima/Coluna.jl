@@ -132,7 +132,7 @@ function create_origconstr!(form::Formulation,
 
     constr = setconstr!(form, name, OriginalConstr;
                     rhs = getrhs(set),
-                    kind = Core,
+                    kind = MathProg.Core,
                     sense = getsense(set),
                     inc_val = 10.0) #TODO set inc_val in model
     constr_id = getid(constr)

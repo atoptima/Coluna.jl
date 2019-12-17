@@ -4,7 +4,7 @@
 Representation of a formulation which is solved by Coluna using a decomposition approach. All the sub-structures are defined within the struct `Reformulation`.
 """
 mutable struct Reformulation <: AbstractFormulation
-    strategy::GlobalStrategy
+    strategy::AbstractGlobalStrategy # to do : remove the link with algorithms
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Dict{FormId, AbstractFormulation} # vector of Formulation or Reformulation
@@ -18,7 +18,7 @@ end
 
 Constructs a `Reformulation` that shall be solved using the `GlobalStrategy` `strategy`.
  """
-function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
+function Reformulation(prob::AbstractProblem, strategy::AbstractGlobalStrategy)
     return Reformulation(strategy,
                          nothing,
                          nothing,
@@ -29,7 +29,7 @@ function Reformulation(prob::AbstractProblem, strategy::GlobalStrategy)
 end
 
 getglobalstrategy(r::Reformulation) = r.strategy
-setglobalstrategy!(r::Reformulation, strategy::GlobalStrategy) = r.strategy = strategy
+setglobalstrategy!(r::Reformulation, strategy::AbstractGlobalStrategy) = r.strategy = strategy
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = r.dw_pricing_subprs[getuid(f)] = f
@@ -37,11 +37,12 @@ add_benders_sep_sp!(r::Reformulation, f) = r.benders_sep_subprs[getuid(f)] = f
 get_dw_pricing_sps(r::Reformulation) = r.dw_pricing_subprs
 get_benders_sep_sps(r::Reformulation) = r.benders_sep_subprs
 
+
 function optimize!(
-        reform::Reformulation; strategy::GlobalStrategy = reform.strategy
+        reform::Reformulation; strategy::AbstractGlobalStrategy = reform.strategy
     )
-    prepare!(strategy, reform)
-    opt_result = run_reform_solver!(reform, strategy) 
+    Coluna.prepare!(strategy, reform)
+    opt_result = Coluna.run_reform_solver!(reform, strategy) 
     master = getmaster(reform)
     for (idx, sol) in enumerate(getprimalsols(opt_result))
         opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)

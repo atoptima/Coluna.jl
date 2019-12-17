@@ -3,7 +3,7 @@ function counters_unit_tests()
 end
 
 function counter_builder_n_getnewuid()
-    c = CL.Counter()
+    c = ClF.Counter()
     @test c.value == 0
-    @test CL.getnewuid(c) == 1
+    @test ClF.getnewuid(c) == 1
 end

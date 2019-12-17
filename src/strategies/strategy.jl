@@ -63,7 +63,7 @@ prepare!(strategy::AbstractStrategy, reform::AbstractFormulation) = nothing
 A GlobalStrategy encapsulates all three strategies necessary to define Coluna's behavious 
 in solving a `Reformulation`. Each `Reformulation` keeps an objecto of type GlobalStrategy.
 """
-struct GlobalStrategy <: AbstractStrategy
+struct GlobalStrategy <: AbstractGlobalStrategy
     conquer::AbstractConquerStrategy
     divide::AbstractDivideStrategy
     explore::AbstractExploreStrategy

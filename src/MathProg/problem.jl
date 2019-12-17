@@ -89,6 +89,7 @@ function _welcome_message()
     print(welcome)
 end
 
+# TODO : put Coluna initialization outside of Formulation submodule
 function coluna_initialization(
     prob::Problem, annotations::Annotations, params::Params
 )
@@ -100,17 +101,18 @@ function coluna_initialization(
 end
 
 
+# TODO : should be outside
 # # Behaves like optimize!(problem::Problem), but sets parameters before
 # # function optimize!(problem::Reformulation)
 function optimize!(prob::Problem, annotations::Annotations, params::Params)
     coluna_initialization(prob, annotations, params)
-    _globals_.initial_solve_time = time()
+    Coluna._globals_.initial_solve_time = time()
     @info _params_
-    TO.@timeit _to "Coluna" begin
+    TO.@timeit Coluna._to "Coluna" begin
         opt_result = optimize!(prob.re_formulation)
     end
-    println(_to)
-    TO.reset_timer!(_to)
+    println(Coluna._to)
+    TO.reset_timer!(Coluna._to)
     @logmsg LogLevel(1) "Terminated"
     @logmsg LogLevel(1) string("Primal bound: ", getprimalbound(opt_result))
     @logmsg LogLevel(1) string("Dual bound: ", getdualbound(opt_result))

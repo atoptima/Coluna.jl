@@ -3,9 +3,9 @@ function optimizationresults_unit_test()
 end
 
 function emptyresults_tests()
-    result = CL.OptimizationResult{CL.MinSense}()
-    @test CL.getprimalbound(result) == Inf
-    @test CL.getdualbound(result) == -Inf
-    @test CL.getbestprimalsol(result) == nothing
-    @test CL.getbestdualsol(result) == nothing
+    result = ClF.OptimizationResult{ClF.MinSense}()
+    @test ClF.getprimalbound(result) == Inf
+    @test ClF.getdualbound(result) == -Inf
+    @test ClF.getbestprimalsol(result) == nothing
+    @test ClF.getbestdualsol(result) == nothing
 end
