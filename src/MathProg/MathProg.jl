@@ -58,9 +58,6 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
        get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix
 
-
-
-
 # Parameters
 const MAX_FORMULATIONS = 100
 const MAX_PROCESSES = 100

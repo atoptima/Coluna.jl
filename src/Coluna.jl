@@ -24,7 +24,6 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
     push!, filter, diff
 
-
 include("containers/containers.jl")
 using .Containers
 
@@ -41,7 +40,6 @@ include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
 
 include("node.jl")
-
 
 # Concrete algorithms & Strategies :
 
