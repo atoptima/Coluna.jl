@@ -6,7 +6,7 @@ import MathOptInterface
 import TimerOutputs
 
 import ..Coluna # for NestedEnum (types.jl:210)
-using ..Coluna: AbstractGlobalStrategy, Params, _set_global_params, iterate # to be deleted
+using ..Coluna: Params, _set_global_params, iterate # to be deleted
 using ..Containers
 
 import Base: haskey, length, iterate, diff
@@ -57,6 +57,9 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
        setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
        get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix
+
+# Below this line, clean up has been done :
+export reformulate!
 
 # Parameters
 const MAX_FORMULATIONS = 100

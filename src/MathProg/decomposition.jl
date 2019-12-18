@@ -468,16 +468,11 @@ function buildformulations!(
     return
 end
 
-# TODO : remove strategy
-function reformulate!(
-    prob::Problem, annotations::Annotations, strategy::AbstractGlobalStrategy
-)
+function reformulate!(prob::Problem, annotations::Annotations)
     decomposition_tree = annotations.tree
-
     root = BD.getroot(decomposition_tree)
-    
     # Create reformulation
-    reform = Reformulation(prob, strategy)
+    reform = Reformulation(prob)
     set_re_formulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
     return

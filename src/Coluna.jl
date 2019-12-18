@@ -32,9 +32,12 @@ include("parameters.jl")
 
 include("MathProg/MathProg.jl")
 using .MathProg
+const MP = MathProg
 
 # To be deleted :
 import .MathProg: getrhs, getsense, optimize!
+
+include("optimize.jl")
 
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")

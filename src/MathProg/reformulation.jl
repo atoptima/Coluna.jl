@@ -1,10 +1,4 @@
-"""
-    Reformulation
-
-Representation of a formulation which is solved by Coluna using a decomposition approach. All the sub-structures are defined within the struct `Reformulation`.
-"""
 mutable struct Reformulation <: AbstractFormulation
-    strategy::AbstractGlobalStrategy # to do : remove the link with algorithms
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
     dw_pricing_subprs::Dict{FormId, AbstractFormulation} # vector of Formulation or Reformulation
@@ -14,13 +8,15 @@ mutable struct Reformulation <: AbstractFormulation
 end
 
 """
-    Reformulation(prob::AbstractProblem, method::SolutionMethod)
+`Reformulation` is a representation of a formulation which is solved by Coluna 
+using a decomposition approach.
 
-Constructs a `Reformulation` that shall be solved using the `GlobalStrategy` `strategy`.
+    Reformulation(prob::AbstractProblem)
+
+Construct a `Reformulation` for problem `prob`.
  """
-function Reformulation(prob::AbstractProblem, strategy::AbstractGlobalStrategy)
-    return Reformulation(strategy,
-                         nothing,
+function Reformulation(prob::AbstractProblem)
+    return Reformulation(nothing,
                          nothing,
                          Dict{FormId, AbstractFormulation}(),
                          Dict{FormId, AbstractFormulation}(),
@@ -28,27 +24,12 @@ function Reformulation(prob::AbstractProblem, strategy::AbstractGlobalStrategy)
                          Dict{FormId, Int}())
 end
 
-getglobalstrategy(r::Reformulation) = r.strategy
-setglobalstrategy!(r::Reformulation, strategy::AbstractGlobalStrategy) = r.strategy = strategy
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = r.dw_pricing_subprs[getuid(f)] = f
 add_benders_sep_sp!(r::Reformulation, f) = r.benders_sep_subprs[getuid(f)] = f
 get_dw_pricing_sps(r::Reformulation) = r.dw_pricing_subprs
 get_benders_sep_sps(r::Reformulation) = r.benders_sep_subprs
-
-
-function optimize!(
-        reform::Reformulation; strategy::AbstractGlobalStrategy = reform.strategy
-    )
-    Coluna.prepare!(strategy, reform)
-    opt_result = Coluna.run_reform_solver!(reform, strategy) 
-    master = getmaster(reform)
-    for (idx, sol) in enumerate(getprimalsols(opt_result))
-        opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)
-    end
-    return opt_result
-end
 
 # Following two functions are temporary, we must store a pointer to the vc
 # being represented by a representative vc
