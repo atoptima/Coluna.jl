@@ -14,6 +14,7 @@ function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params
     _set_global_params(params)
     reformulate!(prob, annotations)
     _globals_.initial_solve_time = time()
+    MP.relax_integrality!(prob.re_formulation.master) # TODO : remove
     @info "Coluna ready to start."
     @info _params_
     TO.@timeit _to "Coluna" begin
