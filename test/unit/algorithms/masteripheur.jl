@@ -4,11 +4,11 @@ end
 
 #CL.to_be_pruned(n::CL.Node) = true # issue 166
 
-struct InfeasibleMasterIpHeur <: CL.AbstractConquerStrategy end
+struct InfeasibleMasterIpHeur <: ClA.AbstractConquerStrategy end
 
-function CL.apply!(strategy::InfeasibleMasterIpHeur, reform, node)
+function ClA.apply!(strategy::InfeasibleMasterIpHeur, reform, node)
     # Apply directly master ip heuristic => infeasible
-    mip_rec = CL.apply!(CL.MasterIpHeuristic(), reform, node)
+    mip_rec = ClA.apply!(ClA.MasterIpHeuristic(), reform, node)
     return
 end
 
@@ -19,7 +19,7 @@ function infeasible_master_ip_heur_tests()
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer,
             params = CL.Params(
-                global_strategy = CL.GlobalStrategy(InfeasibleMasterIpHeur(), CL.NoBranching(), CL.DepthFirst())
+                global_strategy = ClA.GlobalStrategy(InfeasibleMasterIpHeur(), ClA.NoBranching(), ClA.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )

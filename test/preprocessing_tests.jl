@@ -31,8 +31,8 @@ function play_gap_with_preprocessing_tests()
     coluna = JuMP.with_optimizer(
         CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
         params = CL.Params(
-            ; global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess(),
-            CL.SimpleBranching(), CL.DepthFirst())
+            ; global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
+            ClA.SimpleBranching(), ClA.DepthFirst())
         )
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -72,8 +72,8 @@ function test_random_gap_instance()
     coluna = JuMP.with_optimizer(CL.Optimizer,
     default_optimizer = with_optimizer(
         GLPK.Optimizer), params = CL.Params(
-            ;global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess(),
-            CL.NoBranching(), CL.DepthFirst())
+            ;global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
+            ClA.NoBranching(), ClA.DepthFirst())
         )
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -88,7 +88,7 @@ function test_random_gap_instance()
         coluna = JuMP.with_optimizer(
             CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
             params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             )
         )
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -116,7 +116,7 @@ function test_random_gap_instance()
                 coluna = JuMP.with_optimizer(
                     CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
                     params = CL.Params(
-                        global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+                        global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
                     )
                 )
                 modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna)

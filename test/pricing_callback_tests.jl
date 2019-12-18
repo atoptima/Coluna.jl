@@ -36,8 +36,8 @@ function pricing_callback_tests()
         coluna = JuMP.with_optimizer(CL.Optimizer,
             default_optimizer = with_optimizer(
             GLPK.Optimizer), params = CL.Params(
-                ;global_strategy = CL.GlobalStrategy(CL.SimpleBnP(),
-                CL.SimpleBranching(), CL.DepthFirst())
+                ;global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(),
+                ClA.SimpleBranching(), ClA.DepthFirst())
             )
         )
 

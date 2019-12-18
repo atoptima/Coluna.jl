@@ -3,7 +3,6 @@ module Coluna
 import BlockDecomposition
 import MathOptInterface
 import MathOptInterface.Utilities
-import DataStructures
 import Distributed
 import TimerOutputs
 
@@ -13,11 +12,10 @@ using Printf
 global const BD = BlockDecomposition
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
-global const DS = DataStructures
 global const TO = TimerOutputs
 
 # submodules
-export Containers, MathProg
+export Containers, MathProg, Algorithm
 
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
@@ -27,48 +25,15 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
 include("containers/containers.jl")
 using .Containers
 
-include("types.jl")
-include("parameters.jl")
-
 include("MathProg/MathProg.jl")
 using .MathProg
 const MP = MathProg
 
-# To be deleted :
-import .MathProg: getrhs, getsense, optimize!
+include("Algorithm/Algorithm.jl")
+using .Algorithm
 
+include("parameters.jl")
 include("optimize.jl")
-
-include("algorithms/algorithm.jl")
-include("strategies/strategy.jl")
-
-include("node.jl")
-
-# Concrete algorithms & Strategies :
-
-# Here include algorithms
-include("algorithms/colgen.jl")
-include("algorithms/benders.jl")
-include("algorithms/masteripheur.jl")
-include("algorithms/masterlp.jl")
-include("algorithms/reformulationsolver.jl")
-include("algorithms/preprocessing.jl")
-
-# Here include conquer strategies
-include("strategies/conquer/simplebnp.jl")
-include("strategies/conquer/simplebenders.jl")
-
-# Here include branching algorithms
-include("branching/abstractbranching.jl")
-include("branching/varbranching.jl")
-include("branching/branchinggroup.jl")
-include("branching/branchingstrategy.jl")
-
-# Here include divide strategies
-include("strategies/divide/simplebranching.jl") # to remove
-
-# Here include explore strategies
-include("strategies/explore/simplestrategies.jl")
 
 # Wrapper functions
 include("MOIwrapper.jl")

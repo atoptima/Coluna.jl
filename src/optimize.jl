@@ -28,15 +28,16 @@ function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params
     return opt_result
 end
 
-
+# TODO : Replace AbstractGlobalStrategy by a "Solver"
+# TODO : Rm run_reform_solver (ReformulationSolver to delete)
 """
 Solve a reformulation
 """
 function optimize!(
         reform::MP.Reformulation, strategy::AbstractGlobalStrategy
     )
-    prepare!(strategy, reform)
-    opt_result = run_reform_solver!(reform, strategy) 
+    Algorithm.prepare!(strategy, reform)
+    opt_result = Algorithm.run_reform_solver!(reform, strategy) 
     master = getmaster(reform)
     for (idx, sol) in enumerate(getprimalsols(opt_result))
         opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)

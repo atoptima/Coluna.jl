@@ -17,7 +17,7 @@ function run!(algo::MasterLp, form, node)
     #update_ip_primal_sol!(incumbents, get_ip_primal_sol(node.incumbents))
 
     elapsed_time = @elapsed begin
-        opt_result = TO.@timeit _to "LP restricted master" optimize!(master)
+        opt_result = TO.@timeit Coluna._to "LP restricted master" optimize!(master)
     end
 
     proven_infeasible = opt_result == MOI.INFEASIBLE || opt_result == MOI.INFEASIBLE_OR_UNBOUNDED

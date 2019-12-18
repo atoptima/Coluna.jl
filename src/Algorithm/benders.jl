@@ -253,7 +253,7 @@ function solve_sp_to_gencut!(
         
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing benders_sp prob"
-        TO.@timeit _to "Bender Sep SubProblem" begin
+        TO.@timeit Coluna._to "Bender Sep SubProblem" begin
             optresult = optimize!(spform)
         end
 
@@ -434,7 +434,7 @@ end
 
 function solve_relaxed_master!(master::Formulation)
     elapsed_time = @elapsed begin
-        optresult = TO.@timeit _to "relaxed master" optimize!(master)
+        optresult = TO.@timeit Coluna._to "relaxed master" optimize!(master)
     end
     return optresult, elapsed_time
 end
@@ -601,6 +601,6 @@ function print_intermediate_statistics(algdata::BendersCutGenData,
     pb = getvalue(get_ip_primal_bound(algdata.incumbents))
     @printf(
             "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <mlp=%10.4f> <DB=%10.4f> <PB=%10.4f>\n",
-            nb_bc_iterations, _elapsed_solve_time(), mst_time, sp_time, nb_new_cut, mlp, db, pb
+            nb_bc_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_cut, mlp, db, pb
     )
 end

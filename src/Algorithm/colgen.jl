@@ -180,7 +180,7 @@ function solve_sp_to_gencol!(
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-    TO.@timeit _to "Pricing subproblem" begin
+    TO.@timeit Coluna._to "Pricing subproblem" begin
         opt_result = optimize!(spform)
     end
 
@@ -253,7 +253,7 @@ end
 
 function solve_restricted_master!(master::Formulation)
     elapsed_time = @elapsed begin
-        opt_result = TO.@timeit _to "LP restricted master" optimize!(master)
+        opt_result = TO.@timeit Coluna._to "LP restricted master" optimize!(master)
     end
     return (isfeasible(opt_result), getprimalbound(opt_result), 
     getprimalsols(opt_result), getdualsols(opt_result), elapsed_time)
@@ -373,7 +373,7 @@ function print_intermediate_statistics(
     pb = getvalue(get_ip_primal_bound(algdata.incumbents))
     @printf(
         "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <mlp=%10.4f> <DB=%10.4f> <PB=%.4f>\n",
-        nb_cg_iterations, _elapsed_solve_time(), mst_time, sp_time, nb_new_col, mlp, db, pb
+        nb_cg_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, mlp, db, pb
     )
     return
 end
