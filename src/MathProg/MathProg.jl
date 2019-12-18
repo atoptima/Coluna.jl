@@ -6,7 +6,7 @@ import MathOptInterface
 import TimerOutputs
 
 import ..Coluna # for NestedEnum (types.jl:210)
-using ..Coluna: Params, _set_global_params, iterate # to be deleted
+using ..Coluna: iterate # to be deleted
 using ..Containers
 
 import Base: haskey, length, iterate, diff

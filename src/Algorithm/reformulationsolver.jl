@@ -100,7 +100,7 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
     push!(reform_solver, RootNode(reform.master.obj_sense))
 
     while (!isempty(reform_solver)
-           && get_nb_treated_nodes(reform_solver) < _params_.max_num_nodes)
+           && get_nb_treated_nodes(reform_solver) < MAX_NUM_NODES)
 
         cur_node = popnode!(reform_solver)
         should_apply = setup_node!(
@@ -117,7 +117,7 @@ function run_reform_solver!(reform::Reformulation, strategy::GlobalStrategy)
     tree_fully_explored = (
         was_fully_explored(get_primary_tree(reform_solver))
         && was_fully_explored(get_secondary_tree(reform_solver))
-        && get_nb_treated_nodes(reform_solver) < _params_.max_num_nodes
+        && get_nb_treated_nodes(reform_solver) < MAX_NUM_NODES
     )
     determine_statuses(res, tree_fully_explored)
     return res
@@ -162,7 +162,7 @@ function update_reform_solver(s::ReformulationSolver, n::Node)
     s.nb_treated_nodes += 1
     t = cur_tree(s)
 
-    if nb_open_nodes(s) + length(n.children) >= _params_.open_nodes_limit
+    if nb_open_nodes(s) + length(n.children) >= OPEN_NODES_LIMIT
         switch_tree(s)
         t = cur_tree(s)
     end
@@ -192,7 +192,7 @@ function print_info_before_apply(n::Node, s::ReformulationSolver, reform::Reform
     print("Current best known bounds : ")
     printbounds(db, pb)
     println()
-    @printf "Elapsed time: %.2f seconds\n" _elapsed_solve_time()
+    @printf "Elapsed time: %.2f seconds\n" Coluna._elapsed_solve_time()
     println("Subtree dual bound is ", node_db)
 
     branch = getbranch(n)

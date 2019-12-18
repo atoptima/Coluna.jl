@@ -3,8 +3,8 @@ function show_functions_tests()
     coluna = JuMP.with_optimizer(CL.Optimizer,
         default_optimizer = with_optimizer(
         GLPK.Optimizer), params = CL.Params(
-            ;global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess(),
-            CL.NoBranching(), CL.DepthFirst())
+            ;global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
+            ClA.NoBranching(), ClA.DepthFirst())
         )
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)

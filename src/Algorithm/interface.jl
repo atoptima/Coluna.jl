@@ -1,3 +1,22 @@
+abstract type AbstractNode end
+
+"""
+    AbstractStrategy
+
+A strategy is a type used to define Coluna's behaviour in its algorithmic parts.
+"""
+abstract type AbstractStrategy end
+"""
+    AbstractAlgorithm
+
+An algorithm is a 'text-book' algorithm applied to a formulation in a node.
+"""
+abstract type AbstractAlgorithm end
+
+# Temporary abstract (to be deleted)
+abstract type AbstractGlobalStrategy <: AbstractStrategy end
+struct EmptyGlobalStrategy <: AbstractGlobalStrategy end
+
 """
     AbstractAlgorithmResult
 
@@ -40,11 +59,11 @@ Applies the algorithm `Algorithm` on the `formulation` in a `node` with
 """
 function apply!(algo::AbstractAlgorithm, form, node)
     prepare!(form, node)
-    TO.@timeit _to string(algo) begin
-        TO.@timeit _to "prepare" begin
+    TO.@timeit Coluna._to string(algo) begin
+        TO.@timeit Coluna._to "prepare" begin
             prepare!(algo, form, node)
         end
-        TO.@timeit _to "run" begin
+        TO.@timeit Coluna._to "run" begin
             record = run!(algo, form, node)
         end
     end
