@@ -6,6 +6,7 @@ import DataStructures
 import BlockDecomposition
 import Distributed
 import TimerOutputs
+import Base.Threads
 
 using Logging
 using Printf

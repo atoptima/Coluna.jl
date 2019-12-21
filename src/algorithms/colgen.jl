@@ -107,20 +107,20 @@ end
 
 function insert_cols_in_master!(
     masterform::Formulation, spform::Formulation, sp_solution_ids::Vector{VarId}
-) 
+)
     sp_uid = getuid(spform)
     nb_of_gen_col = 0
 
     for sol_id in sp_solution_ids
         nb_of_gen_col += 1
-        name = string("MC_", getsortid(sol_id)) 
+        name = string("MC_", getsortid(sol_id))
         lb = 0.0
         ub = Inf
         kind = Continuous
         duty = MasterCol
         sense = Positive
         mc = setcol_from_sp_primalsol!(
-            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, 
+            masterform, spform, sol_id, name, duty; lb = lb, ub = ub,
             kind = kind, sense = sense
         )
         @logmsg LogLevel(-2) string("Generated column : ", name)
@@ -150,7 +150,7 @@ function solve_sp_to_gencol!(
     masterform::Formulation, spform::Formulation, dual_sol::DualSolution,
     sp_lb::Float64, sp_ub::Float64
 )::Tuple{Bool,Vector{VarId},Float64}
-    
+
     recorded_solution_ids = Vector{VarId}()
     sp_is_feasible = true
 
@@ -189,7 +189,7 @@ function solve_sp_to_gencol!(
     )
 
     if !isfeasible(opt_result)
-        sp_is_feasible = false 
+        sp_is_feasible = false
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
         return sp_is_feasible, recorded_solution_ids, defaultprimalboundvalue(getobjsense(spform))
     end
@@ -202,9 +202,10 @@ function solve_sp_to_gencol!(
 end
 
 function solve_sps_to_gencols!(
-    reform::Reformulation, dual_sol::DualSolution{S}, 
+    reform::Reformulation, dual_sol::DualSolution{S},
     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 ) where {S}
+    threadstasks = Task[]
     nb_new_cols = 0
     dual_bound_contrib = DualBound{S}(0.0)
     masterform = getmaster(reform)
@@ -213,6 +214,7 @@ function solve_sps_to_gencols!(
     sp_dual_bound_contribs = Dict{FormId, Float64}()
 
     ### BEGIN LOOP TO BE PARALLELIZED
+    push!(threadstasks, Threads.@spawn begin
     for (spuid, spform) in sps
         gen_status, new_sp_solution_ids, sp_dual_contrib = solve_sp_to_gencol!(
             masterform, spform, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
@@ -222,15 +224,19 @@ function solve_sps_to_gencols!(
         end
         sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
     end
+    end)
+    for task in threadstasks
+        wait(task)
+    end
     ### END LOOP TO BE PARALLELIZED
 
     nb_new_cols = 0
     for (spuid, spform) in sps
         dual_bound_contrib += sp_dual_bound_contribs[spuid]
-        nb_new_cols += insert_cols_in_master!(masterform, spform, recorded_sp_solution_ids[spuid]) 
+        nb_new_cols += insert_cols_in_master!(masterform, spform, recorded_sp_solution_ids[spuid])
     end
-    
-    
+
+
     return (nb_new_cols, dual_bound_contrib)
 end
 
@@ -255,12 +261,12 @@ function solve_restricted_master!(master::Formulation)
     elapsed_time = @elapsed begin
         opt_result = TO.@timeit _to "LP restricted master" optimize!(master)
     end
-    return (isfeasible(opt_result), getprimalbound(opt_result), 
+    return (isfeasible(opt_result), getprimalbound(opt_result),
     getprimalsols(opt_result), getdualsols(opt_result), elapsed_time)
 end
 
 function generatecolumns!(
-    algdata::ColGenRuntimeData, reform::Reformulation, master_val, 
+    algdata::ColGenRuntimeData, reform::Reformulation, master_val,
     dual_sol, sp_lbs, sp_ubs
 )
     nb_new_columns = 0
@@ -315,7 +321,7 @@ function cg_main_loop(
             update_ip_primal_sol!(algdata.incumbents, primal_sols[1])
         end
 
-        # TODO: cleanup restricted master columns        
+        # TODO: cleanup restricted master columns
 
         nb_cg_iterations += 1
 
@@ -338,7 +344,7 @@ function cg_main_loop(
         # TODO: update colgen stabilization
 
         dual_bound = get_ip_dual_bound(algdata.incumbents)
-        primal_bound = get_lp_primal_bound(algdata.incumbents)     
+        primal_bound = get_lp_primal_bound(algdata.incumbents)
         ip_primal_bound = get_ip_primal_bound(algdata.incumbents)
 
         if diff(dual_bound, ip_primal_bound) < algdata.params.optimality_tol
