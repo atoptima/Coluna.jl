@@ -150,12 +150,12 @@ function add_to_optimizer!(optimizer::MoiOptimizer,
 end
 
 function call_moi_optimize_with_silence(optimizer::MoiOptimizer)
-    backup_stdout = stdout
-    (rd_out, wr_out) = redirect_stdout()
+    # backup_stdout = stdout
+    # (rd_out, wr_out) = redirect_stdout()
     MOI.optimize!(getinner(optimizer))
-    close(wr_out)
-    close(rd_out)
-    redirect_stdout(backup_stdout)
+    # close(wr_out)
+    # close(rd_out)
+    # redirect_stdout(backup_stdout)
     return
 end
 
@@ -182,7 +182,7 @@ function remove_from_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
-function fill_primal_result!(optimizer::MoiOptimizer, 
+function fill_primal_result!(optimizer::MoiOptimizer,
                              result::OptimizationResult{S},
                              vars::VarDict) where {S<:AbstractObjSense}
     inner = getinner(optimizer)
@@ -220,12 +220,12 @@ function fill_dual_result!(optimizer::MoiOptimizer,
         end
         db = DualBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
         sol = MembersVector{Float64}(constrs)
-        # Getting dual bound is not stable in some solvers. 
+        # Getting dual bound is not stable in some solvers.
         # Getting primal bound instead, which will work for lps
         for (id, constr) in constrs
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
-            
+
             if val > 0.000001 || val < - 0.000001 # todo use a tolerance
                 @logmsg LogLevel(-4) string("Constr ", getname(constr), " = ", val)
                 sol[id] = val
@@ -233,7 +233,7 @@ function fill_dual_result!(optimizer::MoiOptimizer,
                 #    sol[id] = (getsense(constr) != Less ? val : - val)
                 #else
                 #    sol[id] = (getsense(constr) != Greater ? val : - val)
-                #end               
+                #end
             end
         end
         push!(result.dual_sols, DualSolution{S}(db, sol))
