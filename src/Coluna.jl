@@ -22,7 +22,7 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
     push!, filter, diff
 
-include("containers/containers.jl")
+include("Containers/Containers.jl")
 using .Containers
 
 include("MathProg/MathProg.jl")
