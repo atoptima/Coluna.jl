@@ -7,7 +7,6 @@ abstract type AstractMoiDef end
 abstract type AbstractMembership end
 abstract type AbstractVcData end
 abstract type AbstractObjSense end
-abstract type AbstractBound <: Number end
 abstract type AbstractOptimizer end
 
 
