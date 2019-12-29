@@ -1,0 +1,196 @@
+function bound_unit()
+    Primal = Coluna.AbstractPrimalSpace
+    Dual = Coluna.AbstractDualSpace
+    MinSense = Coluna.AbstractMinSense
+    MaxSense = Coluna.AbstractMaxSense
+
+    @testset "Bound" begin
+        pb = Coluna.Containers.Bound{Primal,MinSense}()
+        @test pb == Inf
+        
+        pb = Coluna.Containers.Bound{Primal,MaxSense}()
+        @test pb == -Inf
+
+        db = Coluna.Containers.Bound{Dual,MinSense}()
+        @test db == -Inf
+
+        db = Coluna.Containers.Bound{Dual,MaxSense}()
+        @test db == Inf
+
+        pb = Coluna.Containers.Bound{Primal,MinSense}(100)
+        @test pb == 100
+
+        db = Coluna.Containers.Bound{Dual,MinSense}(-π)
+        @test db == -π
+    end
+
+    @testset "isbetter" begin
+        # In minimization, pb with value 10 is better than pb with value 15
+        pb1 = Coluna.Containers.Bound{Primal,MinSense}(10.0)
+        pb2 = Coluna.Containers.Bound{Primal,MinSense}(15.0)
+        @test Coluna.Containers.isbetter(pb1, pb2) == !Coluna.Containers.isbetter(pb2, pb1) == true
+
+        # In maximization, pb with value 15 is better than pb with value 10
+        pb1 = Coluna.Containers.Bound{Primal,MaxSense}(10.0)
+        pb2 = Coluna.Containers.Bound{Primal,MaxSense}(15.0)
+        @test Coluna.Containers.isbetter(pb2, pb1) == !Coluna.Containers.isbetter(pb1, pb2) == true
+
+        # In minimization, db with value 15 is better than db with value 10
+        db1 = Coluna.Containers.Bound{Dual,MinSense}(15.0)
+        db2 = Coluna.Containers.Bound{Dual,MinSense}(10.0)
+        @test Coluna.Containers.isbetter(db1, db2) == !Coluna.Containers.isbetter(db2, db1) == true
+
+        # In maximization, db with value 10 is better than db with value 15
+        db1 = Coluna.Containers.Bound{Dual,MaxSense}(15.0)
+        db2 = Coluna.Containers.Bound{Dual,MaxSense}(10.0)
+        @test Coluna.Containers.isbetter(db2, db1) == !Coluna.Containers.isbetter(db1, db2) == true
+
+        # Cannot compare a primal & a dual bound
+        db1 = Coluna.Containers.Bound{Dual,MaxSense}(-10.0)
+        @test_throws MethodError Coluna.Containers.isbetter(db1, pb1)
+
+        # Cannot compare a bound from maximization & a bound from minimization
+        db2 = Coluna.Containers.Bound{Dual,MinSense}(10.0)
+        @test_throws MethodError Coluna.Containers.isbetter(db1, db2)
+    end
+
+    @testset "diff" begin
+        
+    end
+
+    @testset "gap" begin
+
+    end
+
+    @testset "printbounds" begin
+
+    end
+
+    @testset "show" begin
+
+    end
+
+    @testset "operations & comparisons" begin
+
+    end
+end
+
+function solution_unit()
+
+end
+
+    # bounds_isbetter_tests()
+    # bounds_diff_tests()
+    # bounds_gap_tests()
+    # bounds_base_functions_tests()
+    # solution_constructors_and_getters_and_setters_tests()
+    # solution_base_functions_tests()
+
+
+# function bounds_isbetter_tests()
+
+#     pb1 = ClF.PrimalBound{ClF.MinSense}(10.0)
+#     pb2 = ClF.PrimalBound{ClF.MinSense}(15.0)
+#     @test ClF.isbetter(pb1, pb2) == !ClF.isbetter(pb2, pb1) == true
+
+#     pb1 = ClF.PrimalBound{ClF.MaxSense}(10.0)
+#     pb2 = ClF.PrimalBound{ClF.MaxSense}(15.0)
+#     @test ClF.isbetter(pb1, pb2) == !ClF.isbetter(pb2, pb1) == false
+
+# end
+
+# function bounds_diff_tests()
+
+#     pb = ClF.PrimalBound{ClF.MinSense}(10.0)
+#     db = ClF.DualBound{ClF.MinSense}(5.0)
+#     @test ClF.diff(pb, db) == ClF.diff(db, pb) == 5.0
+
+#     pb = ClF.PrimalBound{ClF.MaxSense}(10.0)
+#     db = ClF.DualBound{ClF.MaxSense}(5.0)
+#     @test ClF.diff(pb, db) == ClF.diff(db, pb) == -5.0
+
+# end
+
+# function bounds_gap_tests()
+
+#     pb = ClF.PrimalBound{ClF.MinSense}(10.0)
+#     db = ClF.DualBound{ClF.MinSense}(5.0)
+#     @test ClF.gap(pb, db) == ClF.gap(db, pb) == (10.0-5.0)/5.0
+
+#     pb = ClF.PrimalBound{ClF.MaxSense}(5.0)
+#     db = ClF.DualBound{ClF.MaxSense}(10.0)
+#     @test ClF.gap(pb, db) == ClF.gap(db, pb) == (10.0-5.0)/5.0
+
+#     pb = ClF.PrimalBound{ClF.MinSense}(10.0)
+#     db = ClF.DualBound{ClF.MinSense}(-5.0)
+#     @test ClF.gap(pb, db) == ClF.gap(db, pb) == (10.0+5.0)/5.0
+
+# end
+
+# function bounds_base_functions_tests()
+
+#     pb1 = ClF.PrimalBound{ClF.MinSense}(10.0)
+#     pb2 = ClF.PrimalBound{ClF.MinSense}(12.0)
+
+#     @test ClF.Base.promote_rule(ClF.PrimalBound{ClF.MinSense}, Float64) == ClF.PrimalBound{ClF.MinSense}
+#     @test ClF.Base.convert(Float64, pb1) == 10.0
+#     @test ClF.Base.convert(ClF.PrimalBound{ClF.MinSense}, 10.0) === pb1
+#     @test pb1 * pb2 == ClF.PrimalBound{ClF.MinSense}(120.0)
+#     @test pb1 - pb2 == ClF.PrimalBound{ClF.MinSense}(-2.0)
+#     @test pb1 + pb2 == ClF.PrimalBound{ClF.MinSense}(22.0)
+#     @test pb2 / pb1 == ClF.PrimalBound{ClF.MinSense}(1.2)
+#     @test ClF.Base.isless(pb1, 20.0) == true
+#     @test ClF.Base.isless(pb2, pb1) == false
+
+# end
+
+# function solution_constructors_and_getters_and_setters_tests()
+#     counter = ClF.Counter()
+#     f1 = ClF.Formulation{ClF.Original}(counter, obj_sense = ClF.MinSense) 
+#     primal_sol = ClF.PrimalSolution(f1)
+
+#     f2 = ClF.Formulation{ClF.Original}(counter, obj_sense = ClF.MaxSense)
+#     dual_sol = ClF.DualSolution(f2)
+
+#     @test ClF.getbound(primal_sol) == ClF.PrimalBound{ClF.MinSense}(Inf)
+#     @test ClF.getvalue(primal_sol) == Inf
+#     @test ClF.getsol(primal_sol) == Dict{ClF.Id{ClF.Variable},Float64}()
+
+#     @test ClF.getbound(dual_sol) == ClF.DualBound{ClF.MaxSense}(Inf)
+#     @test ClF.getvalue(dual_sol) == Inf
+#     @test ClF.getsol(dual_sol) == Dict{ClF.Id{ClF.Constraint},Float64}()
+
+#     primal_sol = ClF.PrimalSolution(f1, -12.0, Dict{ClF.Id{ClF.Variable},Float64}())
+#     dual_sol = ClF.DualSolution(f2, -13.0, Dict{ClF.Id{ClF.Constraint},Float64}())
+
+#     @test ClF.getbound(primal_sol) == ClF.PrimalBound{ClF.MinSense}(-12.0)
+#     @test ClF.getvalue(primal_sol) == -12.0
+#     @test ClF.getsol(primal_sol) == Dict{ClF.Id{ClF.Variable},Float64}()
+
+#     @test ClF.getbound(dual_sol) == ClF.DualBound{ClF.MaxSense}(-13.0)
+#     @test ClF.getvalue(dual_sol) == -13.0
+#     @test ClF.getsol(dual_sol) == Dict{ClF.Id{ClF.Constraint},Float64}()
+
+# end
+
+# function solution_base_functions_tests()
+
+#     sol = Dict{ClF.Id{ClF.Variable},Float64}()
+#     sol[ClF.Id{ClF.Variable}(1, 10)] = 1.0
+#     sol[ClF.Id{ClF.Variable}(2, 10)] = 2.0
+    
+#     counter = ClF.Counter()
+#     f = ClF.Formulation{ClF.Original}(counter, obj_sense = ClF.MinSense) 
+#     primal_sol = ClF.PrimalSolution(f, ClF.PrimalBound{ClF.MinSense}(3.0), sol)
+    
+#     copy_sol = ClF.Base.copy(primal_sol)
+#     @test copy_sol.bound === primal_sol.bound
+#     @test copy_sol.sol == primal_sol.sol
+
+#     @test ClF.Base.length(primal_sol) == 2
+#     for (v, val) in primal_sol
+#         @test typeof(v) <: ClF.Id
+#         @test typeof(val) == Float64
+#     end
+
+# end

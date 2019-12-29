@@ -1,5 +1,6 @@
 include("containers/members.jl")
 include("containers/nestedenum.jl")
+include("containers/solsandbounds.jl")
 
 include("MathProg/types.jl")
 
@@ -16,7 +17,6 @@ include("varconstr.jl")
 # include("manager.jl")
 include("optimizationresults.jl")
 include("filters.jl")
-include("solsandbounds.jl")
 include("incumbents.jl")
 # include("formulation.jl")
 # include("clone.jl")
@@ -42,6 +42,8 @@ include("incumbents.jl")
 function unit_tests()
     @testset "Containers submodule" begin
         nestedenum_unit()
+        bound_unit()
+        solution_unit()
         members_unit()
     end
 
@@ -73,9 +75,6 @@ function unit_tests()
     end
     @testset "varconstr.jl" begin
         varconstr_unit_tests()
-    end
-    @testset "solsandbounds.jl" begin
-        solsandbounds_unit_tests()
     end
     @testset "optimizationresults.jl" begin
         optimizationresults_unit_test()
