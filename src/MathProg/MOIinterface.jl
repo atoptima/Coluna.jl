@@ -184,7 +184,7 @@ end
 
 function fill_primal_result!(optimizer::MoiOptimizer, 
                              result::OptimizationResult{S},
-                             vars::VarDict) where {S<:AbstractObjSense}
+                             vars::VarDict) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
@@ -212,7 +212,7 @@ end
 
 function fill_dual_result!(optimizer::MoiOptimizer,
                            result::OptimizationResult{S},
-                           constrs::ConstrDict) where {S<:AbstractObjSense}
+                           constrs::ConstrDict) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT

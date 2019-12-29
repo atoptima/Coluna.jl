@@ -12,21 +12,21 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     optimizer::AbstractOptimizer
     manager::FormulationManager
-    obj_sense::Type{<:AbstractObjSense}
+    obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
 end
 
 """
     Formulation{D}(form_counter::Counter,
                     parent_formulation = nothing,
-                    obj_sense::Type{<:AbstractObjSense} = MinSense
+                    obj_sense::Type{<:Coluna.AbstractSense} = MinSense
                     ) where {D<:AbstractFormDuty}
 
 Constructs a `Formulation` of duty `D` for which the objective sense is `obj_sense`.
 """
 function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
-                        obj_sense::Type{<:AbstractObjSense} = MinSense
+                        obj_sense::Type{<:Coluna.AbstractSense} = MinSense
                         ) where {D<:AbstractFormDuty}
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
@@ -188,13 +188,13 @@ addprimalsol!(
     form::Formulation,
     sol::PrimalSolution{S},
     sol_id::VarId
-) where {S<:AbstractObjSense} = addprimalsol!(form.manager, sol, sol_id)
+) where {S<:Coluna.AbstractSense} = addprimalsol!(form.manager, sol, sol_id)
 
 
 function setprimalsol!(
     form::Formulation,
     newprimalsol::PrimalSolution{S}
-)::Tuple{Bool,VarId} where {S<:AbstractObjSense}
+)::Tuple{Bool,VarId} where {S<:Coluna.AbstractSense}
     ### check if primalsol exists does takes place here along the coeff update
 
     primal_sols = getprimalsolmatrix(form)
@@ -245,13 +245,13 @@ adddualsol!(
     form::Formulation,
     dualsol::DualSolution{S},
     dualsol_id::ConstrId
-) where {S<:AbstractObjSense} = adddualsol!(form.manager, dualsol, dualsol_id)
+) where {S<:Coluna.AbstractSense} = adddualsol!(form.manager, dualsol, dualsol_id)
 
 
 function setdualsol!(
     form::Formulation,
     new_dual_sol::DualSolution{S}
-)::Tuple{Bool,ConstrId} where {S<:AbstractObjSense}
+)::Tuple{Bool,ConstrId} where {S<:Coluna.AbstractSense}
     ### check if dualsol exists  take place here along the coeff update
 
     prev_dual_sols = getdualsolmatrix(form)
@@ -552,34 +552,34 @@ function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
     return
 end
 
-function computesolvalue(form::Formulation, sol_vec::PrimalSolVector) 
+function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64}) 
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol_vec)
     return val
 end
 
 
-function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:AbstractObjSense}
+function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:Coluna.AbstractSense}
     val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
     return val
 end
 
-function computesolvalue(form::Formulation, sol_vec::DualSolVector) 
+function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Constraint}, Float64}) 
     val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol_vec)
     return val 
 end
 
-function computesolvalue(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
+function computesolvalue(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
     val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
     return val 
 end
 
-function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:AbstractObjSense}
+function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
     val = computesolvalue(form, sol)
     setvalue!(sol, val)
     return val 
 end
 
-function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::DualSolution{S})  where {S<:AbstractObjSense}
+function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::DualSolution{S})  where {S<:Coluna.AbstractSense}
     var = getvar(form, var_id)
     rc = getperenecost(var)
     coefficient_matrix = getcoefmatrix(form)
@@ -594,7 +594,7 @@ function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::Du
     return rc
 end
 
-function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primalsol::PrimalSolution{S})  where {S<:AbstractObjSense}
+function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primalsol::PrimalSolution{S})  where {S<:Coluna.AbstractSense}
     constr = getconstr(form,constr_id)
     crhs = getperenerhs(constr)
     coefficient_matrix = getcoefmatrix(form)

@@ -4,14 +4,16 @@ const Dual = Coluna.AbstractDualSpace
 const MinSense = Coluna.AbstractMinSense
 const MaxSense = Coluna.AbstractMaxSense
 
+
+# Bounds
 struct Bound{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense} <: Number
     value::Float64
 end   
 
-_defaultboundvalue(::Type{<: Primal}, ::Type{<: MinSense}) = Inf
-_defaultboundvalue(::Type{<: Primal}, ::Type{<: MaxSense}) = -Inf
-_defaultboundvalue(::Type{<: Dual}, ::Type{<: MinSense}) = -Inf
-_defaultboundvalue(::Type{<: Dual}, ::Type{<: MaxSense}) = Inf
+_defaultboundvalue(::Type{<:Primal}, ::Type{<:MinSense}) = Inf
+_defaultboundvalue(::Type{<:Primal}, ::Type{<:MaxSense}) = -Inf
+_defaultboundvalue(::Type{<:Dual}, ::Type{<:MinSense}) = -Inf
+_defaultboundvalue(::Type{<:Dual}, ::Type{<:MaxSense}) = Inf
 
 """
     Bound{Space, Sense}
@@ -82,6 +84,11 @@ function gap(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
     return diff(pb, db) / abs(pb.value)
 end
 
+"""
+    printbounds
+
+doc todo
+"""
 function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MinSense}
     Printf.@printf "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
 end
@@ -107,137 +114,53 @@ Base.isless(b::Bound, r::Real) = b.value < r
 Base.isless(r::Real, b::Bound) = r < b.value
 Base.isless(b1::B, b2::B) where {B<:Bound} = float(b1) < float(b2)
 
-"""
-    Solution
-"""
 
-struct Solution{Space <: Coluna.AbstractSpace, Sense <: Coluna.AstractSense, Decision, Value}
+# Solution
+struct Solution{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense,Decision,Value} <: AbstractDict{Decision,Value}
     bound::Bound{Space, Sense}
     sol::DataStructures.SortedDict{Decision,Value}
 end
 
-
-
-# TODO move : 
-# const PrimalSolVector = MembersVector{Id{Variable}, Variable, Float64}
-# const DualSolVector = MembersVector{Id{Constraint}, Constraint, Float64}
-
 """
-    PrimalSolution{S} where S <: AbstractObjSense
+    Solution
 
-A struct to represent a `PrimalSolution` for an objective function with sense `S`.
-The expected behaviour of a solution is implemented according to the sense `S`.
+Should be used like a dict
+doc todo
 """
-# mutable struct PrimalSolution{S <: AbstractObjSense} <: AbstractSolution
-#     bound::PrimalBound{S}
-#     sol::PrimalSolVector
-# end
-
-function PrimalSolution{S}() where{S<:AbstractObjSense}
-    return PrimalSolution{S}(PrimalBound{S}(), MembersVector{Float64}(Dict{VarId, Variable}()))
+function Solution{Sp,Se,De,Va}() where {Sp<:Coluna.AbstractSpace,Se<:Coluna.AbstractSense,De,Va}
+    bound = Bound{Sp,Se}()
+    sol = DataStructures.SortedDict{De,Va}()
+    return Solution(bound, sol)
 end
 
-function PrimalSolution(f::AbstractFormulation)
-    Sense = getobjsense(f)
-    sol = MembersVector{Float64}(getvars(f))
-    return PrimalSolution{Sense}(PrimalBound{Sense}(), sol)
+function Solution{Sp,Se,De,Va}(solution::Dict{De,Va}, value::Float64) where {Sp<:Coluna.AbstractSpace,Se<:Coluna.AbstractSense,De,Va}
+    bound = Bound{Sp,Se}(value)
+    sol = DataStructures.SortedDict{De,Va}(solution)
+    return Solution(bound, sol)
 end
 
-function PrimalSolution(f::AbstractFormulation,
-                        value::Number, 
-                        soldict::Dict{Id{Variable},Float64})
-    S = getobjsense(f)
-    sol = MembersVector{Float64}(getvars(f))
-    for (key, val) in soldict
-        sol[key] = val
+function Solution{Sp,Se,De,Va}(solution::Dict{De,Va}, bound::Bound{Sp,Se}) where {Sp<:Coluna.AbstractSpace,Se<:Coluna.AbstractSense,De,Va}
+    sol = DataStructures.SortedDict{De,Va}(solution)
+    return Solution(bound, sol)
+end
+
+getbound(s::Solution) = s.bound
+getvalue(s::Solution) = float(s.bound)
+setvalue!(s::Solution, v::Float64) = s.bound = v
+
+Base.iterate(s::Solution) = iterate(s.sol)
+Base.iterate(s::Solution, state) = iterate(s.sol, state)
+Base.length(s::Solution) = length(s.sol)
+Base.lastindex(s::Solution) = lastindex(s.sol)
+
+_show_sol_type(io::IO, ::Type{<:Primal}) = println(io, "\n┌ Primal Solution :")
+_show_sol_type(io::IO, ::Type{<:Dual}) = println(io, "\n┌ Dual Solution :")
+function Base.show(io::IO, solution::Solution{Sp,Se,De,Va}) where {Sp,Se,De,Va}
+    _show_sol_type(io, Sp)
+    for (decision, value) in solution
+        println(io, "| ", decision, " = ", value)
     end
-    return PrimalSolution{S}(PrimalBound{S}(float(value)), sol)
+    Printf.@printf(io, "└ value = %.2f \n", float(getbound(solution)))
 end
 
-"""
-    DualSolution{S} where S <: AbstractObjSense
-
-A struct to represent a `DualSolution` for an objective function with sense `S`.
-The expected behaviour of a solution is implemented according to the sense `S`.
-"""
-# mutable struct DualSolution{S <: AbstractObjSense} <: AbstractSolution
-#     bound::DualBound{S}
-#     sol::DualSolVector
-# end
-
-function DualSolution{S}() where {S<:AbstractObjSense}
-    return DualSolution{S}(DualBound{S}(), MembersVector{Float64}(Dict{ConstrId, Constraint}()))
-end
-
-function DualSolution(f::AbstractFormulation)
-    Sense = getobjsense(f)
-    sol = MembersVector{Float64}(getconstrs(f))
-    return DualSolution{Sense}(DualBound{Sense}(), sol)
-end
-
-function DualSolution(f::AbstractFormulation, 
-                      value::Number, 
-                      soldict::Dict{Id{Constraint},Float64})
-    S = getobjsense(f)
-    sol = MembersVector{Float64}(getconstrs(f))
-    for (key, val) in soldict
-        sol[key] = val
-    end
-    return DualSolution{S}(DualBound{S}(float(value)), sol)
-end
-
-getbound(s::AbstractSolution) = s.bound
-getsol(s::AbstractSolution) = s.sol
-getvalue(s::AbstractSolution) = float(s.bound)
-setvalue!(s::AbstractSolution, v::Float64) = s.bound = v
-
-iterate(s::AbstractSolution) = iterate(s.sol)
-iterate(s::AbstractSolution, state) = iterate(s.sol, state)
-length(s::AbstractSolution) = length(s.sol)
-lastindex(s::AbstractSolution) = lastindex(s.sol)
-
-_show_sol_type(io::IO, p::PrimalSolution) = println(io, "\n┌ Primal Solution :")
-_show_sol_type(io::IO, d::DualSolution) = println(io, "\n┌ Dual Solution :")
-
-function Base.show(io::IO, sol::AbstractSolution)
-    _show_sol_type(io, sol)
-    _sol = getsol(sol)
-    ids = sort!(collect(keys(_sol)))
-    for id in ids
-        println(io, "| ", getname(getelement(_sol, id)), " = ", _sol[id])
-    end
-    @printf(io, "└ value = %.2f \n", float(getbound(sol)))
-end
-
-Base.copy(s::T) where {T<:AbstractSolution} = T(s.bound, copy(s.sol))
-
-function Base.isinteger(sol::AbstractSolution)
-    for (vc_id, val) in getsol(sol)
-        !isinteger(val) && return false
-    end
-    return true
-end
-
-isfractional(s::AbstractSolution) = !Base.isinteger(s)
-
-function contains(sol::PrimalSolution, d::AbstractVarDuty)
-    filtered_sol = filter(v -> getduty(v) <= d, getsol(sol))
-    return length(filtered_sol) > 0
-end
-
-function contains(sol::DualSolution, d::AbstractConstrDuty)
-    filtered_sol = filter(c -> getduty(c) <= d, getsol(sol))
-    return length(filtered_sol) > 0
-end
-
-_value(constr::Constraint) = getcurrhs(constr)
-_value(var::Variable) = getcurcost(var)
-function Base.filter(f::Function, sol::T) where {T<:AbstractSolution}
-    newsol = filter(f, getsol(sol))
-    elements = getelements(getsol(sol))
-    bound = 0.0
-    for (id, val) in newsol
-        bound += val * _value(elements[id])
-    end
-    return T(bound, newsol) 
-end
+Base.copy(s::S) where {S<:Solution} = S(s.bound, copy(s.sol))

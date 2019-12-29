@@ -32,7 +32,7 @@ mutable struct ReformulationSolver <: AbstractAlgorithm
 end
 
 function ReformulationSolver(explore_strategy::AbstractExploreStrategy,
-                    ObjSense::Type{<:AbstractObjSense})
+                    ObjSense::Type{<:Coluna.AbstractSense})
     return ReformulationSolver(
         SearchTree(explore_strategy), SearchTree(DepthFirst()),
         true, 1, 0, OptimizationResult{ObjSense}()

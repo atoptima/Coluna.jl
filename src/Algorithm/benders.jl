@@ -23,7 +23,7 @@ function all_sp_in_phase2(algdata::BendersCutGenData)
     return true
 end
 
-function BendersCutGenData(S::Type{<:AbstractObjSense}, node_inc::Incumbents)
+function BendersCutGenData(S::Type{<:Coluna.AbstractSense}, node_inc::Incumbents)
     i = Incumbents(S)
     update_ip_primal_sol!(i, get_ip_primal_sol(node_inc))
     

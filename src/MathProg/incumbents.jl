@@ -17,7 +17,7 @@ to the program, the best primal solution to the linear relaxation of the
 program, the best  dual solution to the linear relaxation of the program, 
 and the best dual bound to the program.
 """
-function Incumbents(S::Type{<: AbstractObjSense})
+function Incumbents(S::Type{<: Coluna.AbstractSense})
     return Incumbents{S}(
         PrimalSolution{S}(),
         PrimalBound{S}(),
