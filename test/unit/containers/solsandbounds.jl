@@ -55,94 +55,123 @@ function bound_unit()
     end
 
     @testset "diff" begin
-        
+        # Compute distance between primal bound and dual bound
+        # In minimization, if pb = 10 & db = 5, distance is 5
+        pb = Coluna.Containers.Bound{Primal,MinSense}(10)
+        db = Coluna.Containers.Bound{Dual,MinSense}(5)
+        @test Coluna.Containers.diff(pb, db) == Coluna.Containers.diff(db, pb) == 5
+
+        # In maximisation if pb = 10 & db = 5, distance is -5
+        pb = Coluna.Containers.Bound{Primal,MaxSense}(10)
+        db = Coluna.Containers.Bound{Dual,MaxSense}(5)
+        @test Coluna.Containers.diff(pb, db) == Coluna.Containers.diff(db, pb) == -5
+
+        # Cannot compute the distance between two primal bounds
+        pb1 = Coluna.Containers.Bound{Primal,MaxSense}(10)
+        pb2 = Coluna.Containers.Bound{Primal,MaxSense}(15)
+        @test_throws MethodError Coluna.Containers.diff(pb1, pb2)
+
+        # Cannot compute the distance between two dual bounds
+        db1 = Coluna.Containers.Bound{Dual,MaxSense}(5)
+        db2 = Coluna.Containers.Bound{Dual,MaxSense}(50)
+        @test_throws MethodError Coluna.Containers.diff(db1, db2)
+
+        # Cannot compute the distance between two bounds from different sense
+        pb = Coluna.Containers.Bound{Primal,MaxSense}(10)
+        db = Coluna.Containers.Bound{Dual,MinSense}(5)
+        @test_throws MethodError Coluna.Containers.diff(pb, db)
     end
 
     @testset "gap" begin
+        # In minimisation, gap = (pb - db)/db
+        pb = Coluna.Containers.Bound{Primal,MinSense}(10.0)
+        db = Coluna.Containers.Bound{Dual,MinSense}(5.0)
+        @test Coluna.Containers.gap(pb, db) == Coluna.Containers.gap(db, pb) == (10.0-5.0)/5.0
+    
+        # In maximisation, gap = (db - pb)/pb
+        pb = Coluna.Containers.Bound{Primal,MaxSense}(5.0)
+        db = Coluna.Containers.Bound{Dual,MaxSense}(10.0)
+        @test Coluna.Containers.gap(pb, db) == Coluna.Containers.gap(db, pb) == (10.0-5.0)/5.0
+    
+        pb = Coluna.Containers.Bound{Primal,MinSense}(10.0)
+        db = Coluna.Containers.Bound{Dual,MinSense}(-5.0)
+        @test Coluna.Containers.gap(pb, db) == Coluna.Containers.gap(db, pb) == (10.0+5.0)/5.0   
 
+        # Cannot compute the gap between 2 primal bounds
+        pb1 = Coluna.Containers.Bound{Primal,MaxSense}(10)
+        pb2 = Coluna.Containers.Bound{Primal,MaxSense}(15)
+        @test_throws MethodError Coluna.Containers.gap(pb1, pb2)
+
+        # Cannot compute the gap between 2 dual bounds
+        db1 = Coluna.Containers.Bound{Dual,MaxSense}(5)
+        db2 = Coluna.Containers.Bound{Dual,MaxSense}(50)
+        @test_throws MethodError Coluna.Containers.gap(db1, db2)
+
+        # Cannot compute the gap between 2 bounds with different sense
+        pb = Coluna.Containers.Bound{Primal,MaxSense}(10)
+        db = Coluna.Containers.Bound{Dual,MinSense}(5)
+        @test_throws MethodError Coluna.Containers.gap(pb, db)
     end
 
     @testset "printbounds" begin
+        # In minimisation sense
+        pb1 = Coluna.Containers.Bound{Primal, MinSense}(100)
+        db1 = Coluna.Containers.Bound{Dual, MinSense}(-100)
+        # TODO
 
+        # In maximisation sense
+        pb2 = Coluna.Containers.Bound{Primal, MaxSense}(-100)
+        db2 = Coluna.Containers.Bound{Dual, MaxSense}(100)
+        # TODO
     end
 
     @testset "show" begin
-
+        pb = Coluna.Containers.Bound{Primal,MaxSense}(4)
+        @test repr(pb) == "4.0"
     end
 
-    @testset "operations & comparisons" begin
+    @testset "Promotions & conversions" begin
+        pb = Coluna.Containers.Bound{Primal,MaxSense}(4.0)
+        @test eltype(promote(pb, 1)) == typeof(pb)
+        @test eltype(promote(pb, 2.0)) == typeof(pb)
+        @test eltype(promote(pb, π)) == typeof(pb)
+        @test eltype(promote(pb, 1, 2.0, π)) == typeof(pb)
 
+        @test typeof(pb + 1) == typeof(pb) # check that promotion works
+
+        @test pb < 5
+        @test pb > 3
+        @test pb <= 4
+        @test pb >= 4
+        @test pb == 4
+        @test pb != 3
+        @test pb + 1 == 5
+        @test pb - 1 == 3
+        @test pb / 4 == 1
+        @test pb * 2 == 8
+
+        db = Coluna.Containers.Bound{Dual,MaxSense}(2.5)
+        # In a given sense, promotion of pb & a db gives a float
+        @test eltype(promote(pb, db)) == Float64
+
+        # Promotion between two bounds of different senses does not work
+        pb1 = Coluna.Containers.Bound{Primal,MaxSense}(2.5)
+        pb2 = Coluna.Containers.Bound{Primal,MinSense}(2.5)
+        @test_throws ErrorException promote(pb1, pb2)
+
+        db1 = Coluna.Containers.Bound{Dual,MaxSense}(2.5)
+        db2 = Coluna.Containers.Bound{Dual,MinSense}(2.5)
+        @test_throws ErrorException promote(db1, db2)
+
+        pb = Coluna.Containers.Bound{Primal,MaxSense}(2.5)
+        db = Coluna.Containers.Bound{Dual,MinSense}(2.5)
+        @test_throws ErrorException promote(pb, db)
     end
 end
 
 function solution_unit()
 
 end
-
-    # bounds_isbetter_tests()
-    # bounds_diff_tests()
-    # bounds_gap_tests()
-    # bounds_base_functions_tests()
-    # solution_constructors_and_getters_and_setters_tests()
-    # solution_base_functions_tests()
-
-
-# function bounds_isbetter_tests()
-
-#     pb1 = ClF.PrimalBound{ClF.MinSense}(10.0)
-#     pb2 = ClF.PrimalBound{ClF.MinSense}(15.0)
-#     @test ClF.isbetter(pb1, pb2) == !ClF.isbetter(pb2, pb1) == true
-
-#     pb1 = ClF.PrimalBound{ClF.MaxSense}(10.0)
-#     pb2 = ClF.PrimalBound{ClF.MaxSense}(15.0)
-#     @test ClF.isbetter(pb1, pb2) == !ClF.isbetter(pb2, pb1) == false
-
-# end
-
-# function bounds_diff_tests()
-
-#     pb = ClF.PrimalBound{ClF.MinSense}(10.0)
-#     db = ClF.DualBound{ClF.MinSense}(5.0)
-#     @test ClF.diff(pb, db) == ClF.diff(db, pb) == 5.0
-
-#     pb = ClF.PrimalBound{ClF.MaxSense}(10.0)
-#     db = ClF.DualBound{ClF.MaxSense}(5.0)
-#     @test ClF.diff(pb, db) == ClF.diff(db, pb) == -5.0
-
-# end
-
-# function bounds_gap_tests()
-
-#     pb = ClF.PrimalBound{ClF.MinSense}(10.0)
-#     db = ClF.DualBound{ClF.MinSense}(5.0)
-#     @test ClF.gap(pb, db) == ClF.gap(db, pb) == (10.0-5.0)/5.0
-
-#     pb = ClF.PrimalBound{ClF.MaxSense}(5.0)
-#     db = ClF.DualBound{ClF.MaxSense}(10.0)
-#     @test ClF.gap(pb, db) == ClF.gap(db, pb) == (10.0-5.0)/5.0
-
-#     pb = ClF.PrimalBound{ClF.MinSense}(10.0)
-#     db = ClF.DualBound{ClF.MinSense}(-5.0)
-#     @test ClF.gap(pb, db) == ClF.gap(db, pb) == (10.0+5.0)/5.0
-
-# end
-
-# function bounds_base_functions_tests()
-
-#     pb1 = ClF.PrimalBound{ClF.MinSense}(10.0)
-#     pb2 = ClF.PrimalBound{ClF.MinSense}(12.0)
-
-#     @test ClF.Base.promote_rule(ClF.PrimalBound{ClF.MinSense}, Float64) == ClF.PrimalBound{ClF.MinSense}
-#     @test ClF.Base.convert(Float64, pb1) == 10.0
-#     @test ClF.Base.convert(ClF.PrimalBound{ClF.MinSense}, 10.0) === pb1
-#     @test pb1 * pb2 == ClF.PrimalBound{ClF.MinSense}(120.0)
-#     @test pb1 - pb2 == ClF.PrimalBound{ClF.MinSense}(-2.0)
-#     @test pb1 + pb2 == ClF.PrimalBound{ClF.MinSense}(22.0)
-#     @test pb2 / pb1 == ClF.PrimalBound{ClF.MinSense}(1.2)
-#     @test ClF.Base.isless(pb1, 20.0) == true
-#     @test ClF.Base.isless(pb2, pb1) == false
-
-# end
 
 # function solution_constructors_and_getters_and_setters_tests()
 #     counter = ClF.Counter()

@@ -6,7 +6,7 @@ const MaxSense = Coluna.AbstractMaxSense
 
 
 # Bounds
-struct Bound{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense} <: Number
+mutable struct Bound{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense} <: Real
     value::Float64
 end   
 
@@ -40,11 +40,12 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.
 # should we add a fallback ?
 
 """
-    diff
+    diff 
 
 distance to reach the dual bound from the primal bound;
 non-positive if dual bound reached.
 """
+# diff already exist in Base, rename this method dist ?
 function diff(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
     return pb.value - db.value
 end
@@ -89,31 +90,39 @@ end
 
 doc todo
 """
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MinSense}
-    Printf.@printf "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
+function printbounds(io::IO, db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MinSense}
+    Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
 end
 
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MaxSense}
-    Printf.@printf "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
+function printbounds(io::IO, db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MaxSense}
+    Printf.@printf io "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
 end
 
 function Base.show(io::IO, b::Bound)
     print(io, getvalue(b))
 end
 
-Base.promote_rule(B::Type{<:Bound}, ::Type{<:Real}) = B
-Base.convert(::Type{Float64}, b::Bound) = b.value
-Base.convert(B::Type{<:Bound}, r::Real)  = B(float(r))
+Base.promote_rule(B::Type{<:Bound}, ::Type{<:AbstractFloat}) = B
+Base.promote_rule(B::Type{<:Bound}, ::Type{<:Integer}) = B
+Base.promote_rule(B::Type{<:Bound}, ::Type{<:AbstractIrrational}) = B
+Base.promote_rule(::Type{Bound{Primal,Se}}, ::Type{Bound{Dual,Se}}) where {Se<:Coluna.AbstractSense} = Float64
 
-Base.:*(b1::B, b2::B) where {B<:Bound} = B(float(b1) * float(b2))
-Base.:-(b1::B, b2::B) where {B<:Bound} = B(float(b1) - float(b2))
-Base.:+(b1::B, b2::B) where {B<:Bound} = B(float(b1) + float(b2))
-Base.:/(b1::B, b2::B) where {B<:Bound} = B(float(b1) / float(b2))
+Base.convert(::Type{<:AbstractFloat}, b::Bound) = b.value
+Base.convert(::Type{<:Integer}, b::Bound) = b.value
+Base.convert(::Type{<:AbstractIrrational}, b::Bound) = b.value
+Base.convert(B::Type{<:Bound}, f::AbstractFloat) = B(f)
+Base.convert(B::Type{<:Bound}, i::Integer) = B(i)
+Base.convert(B::Type{<:Bound}, i::AbstractIrrational) = B(i)
 
-Base.isless(b::Bound, r::Real) = b.value < r
-Base.isless(r::Real, b::Bound) = r < b.value
-Base.isless(b1::B, b2::B) where {B<:Bound} = float(b1) < float(b2)
-
+Base.:+(b1::B, b2::B) where {B<:Bound} = B(b1.value + b2.value)
+Base.:-(b1::B, b2::B) where {B<:Bound} = B(b1.value - b2.value)
+Base.:*(b1::B, b2::B) where {B<:Bound} = B(b1.value * b2.value)
+Base.:/(b1::B, b2::B) where {B<:Bound} = B(b1.value / b2.value)
+Base.:(==)(b1::B, b2::B) where {B<:Bound} = b1.value == b2.value
+Base.:<(b1::B, b2::B) where {B<:Bound} = b1.value < b2.value
+Base.:(<=)(b1::B, b2::B) where {B<:Bound} = b1.value <= b2.value
+Base.:(>=)(b1::B, b2::B) where {B<:Bound} = b1.value >= b2.value
+Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value 
 
 # Solution
 struct Solution{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense,Decision,Value} <: AbstractDict{Decision,Value}
