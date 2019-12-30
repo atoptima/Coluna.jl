@@ -11,6 +11,7 @@ using ..Containers
 
 import Base: haskey, length, iterate, diff
 
+using DynamicSparseArrays
 using Logging
 using Printf
 
@@ -48,8 +49,8 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        get_lp_primal_bound, diff, gap, update!, get_lp_primal_sol, getsol, 
        get_benders_sep_sp, convert_status, getduty, getbestdualsol, update_lp_dual_sol!,
        projection_is_possible, proj_cols_on_rep, get_lp_dual_bound, getperenekind,
-       _active_BendSpMaster_constr_, getname, computereducedrhs, getcurlb,
-       unsafe_getbestprimalsol, getcurub, setcurrhs!, getcurcost, getcost,
+       _active_BendSpMaster_constr_, getname, computereducedrhs,
+       unsafe_getbestprimalsol, setcurrhs!, getcost,
        _active_BendSpSlackFirstStage_var_, getconstrcounter, setprimaldualbendspsol!,
        defaultprimalboundvalue, set_lp_primal_bound!, getpereneub, _active_,
        getperenecost, update_ip_primal_bound!, getprimaldwspsolmatrix, _active_explicit_,
@@ -61,6 +62,14 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
 # Below this line, clean up has been done :
 export reformulate!
 
+# Methods related to variables 
+export getcurcost,
+       setcurcost!,
+       getcurlb,
+       setcurlb!,
+       getcurub,
+       setcurub!
+
 # Parameters
 const MAX_FORMULATIONS = 100
 const MAX_PROCESSES = 100
@@ -70,7 +79,7 @@ include("types.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
-include("varconstr.jl")
+include("varconstr.jl") # to rm
 
 include("solsandbounds.jl")
 include("manager.jl")
@@ -79,6 +88,7 @@ include("optimizationresults.jl")
 include("incumbents.jl")
 include("buffer.jl")
 include("formulation.jl")
+include("new_varconstr.jl") 
 include("optimizerwrappers.jl")
 include("clone.jl")
 include("reformulation.jl")

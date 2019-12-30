@@ -4,9 +4,6 @@
 Information that defines a state of a variable. These are the fields of a variable that might change during the solution procedure.
 """
 mutable struct VarData <: AbstractVcData
-    cost::Float64
-    lb::Float64
-    ub::Float64
     kind::VarKind
     sense::VarSense
     inc_val::Float64

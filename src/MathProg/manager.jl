@@ -1,3 +1,5 @@
+const DynSparseVector{I} = PackedMemoryArray{I, Float64} 
+
 const VarDict = ElemDict{Id{Variable}, Variable}
 const ConstrDict = ElemDict{Id{Constraint}, Constraint}
 const VarMembership = MembersVector{VarId,Variable,Float64}
@@ -10,6 +12,9 @@ const ConstrConstrMatrix = MembersMatrix{ConstrId,Constraint,ConstrId,Constraint
 struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
+    var_costs::DynSparseVector{VarId}
+    var_lbs::DynSparseVector{VarId}
+    var_ubs::DynSparseVector{VarId}
     coefficients::VarConstrMatrix # cols = variables, rows = constraints
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables 
@@ -24,6 +29,9 @@ function FormulationManager()
     
     return FormulationManager(vars,
                               constrs,
+                              dynamicsparsevec(VarId[], Float64[]),
+                              dynamicsparsevec(VarId[], Float64[]),
+                              dynamicsparsevec(VarId[], Float64[]),
                               MembersMatrix{Float64}(vars,constrs),
                               MembersMatrix{Float64}(vars,vars),
                               MembersMatrix{Float64}(vars,vars),
