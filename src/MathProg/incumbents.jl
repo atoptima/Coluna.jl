@@ -1,3 +1,33 @@
+# Constructors for Primal & Dual Solutions
+function PrimalSolution(
+    form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
+) where {De,Va}
+    Se = getobjsense(form)
+    return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, val)
+end
+
+function PrimalSolution(
+    form::AbstractFormulation, sol::Dict{De,Va}, bound::Coluna.Containers.Bound{Primal,Se}
+) where {Se,De,Va}
+    @assert Se == getobjsense(form)
+    return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, bound)
+end
+
+function DualSolution(
+    form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
+) where {De,Va}
+    Se = getobjsense(form)
+    return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, val)
+end
+
+function DualSolution(
+    form::AbstractFormulation, sol::Dict{De,Va}, bound::Coluna.Containers.Bound{Dual,Se}
+) where {Se,De,Va}
+    @assert Se == getobjsense(form)
+    return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, bound)
+end
+
+
 mutable struct Incumbents{S}
     ip_primal_sol::PrimalSolution{S}
     ip_primal_bound::PrimalBound{S}
