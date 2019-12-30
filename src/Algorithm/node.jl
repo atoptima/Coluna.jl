@@ -1,11 +1,11 @@
 struct Branch
-    var_coeffs::Dict{Id{Variable}, Float64}
+    var_coeffs::Dict{VarId, Float64}
     rhs::Float64
     sense::ConstrSense
     depth::Int
 end
 function Branch(var::Variable, rhs::Float64, sense::ConstrSense, depth::Int)
-    var_coeffs = Dict(getid(var) => var)
+    var_coeffs = Dict{VarId,Float64}()
     var_coeffs[getid(var)] = 1.0
     return Branch(var_coeffs, rhs, sense, depth)
 end

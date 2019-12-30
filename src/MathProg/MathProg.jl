@@ -51,12 +51,12 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        _active_BendSpMaster_constr_, getname, computereducedrhs, getcurlb,
        unsafe_getbestprimalsol, getcurub, setcurrhs!, getcurcost, getcost,
        _active_BendSpSlackFirstStage_var_, getconstrcounter, setprimaldualbendspsol!,
-       defaultprimalboundvalue, set_lp_primal_bound!, getpereneub, _active_,
+       set_lp_primal_bound!, getpereneub, _active_,
        getperenecost, update_ip_primal_bound!, getprimaldwspsolmatrix, _active_explicit_,
        _rep_of_orig_var_, getcursense, getcurkind, find_owner_formulation,
        setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
        setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
-       get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix
+       get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix, contains
 
 # Below this line, clean up has been done :
 export reformulate!

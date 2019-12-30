@@ -125,7 +125,7 @@ end
 
 function updateprimals!(solver::ReformulationSolver, cur_node_incumbents::Incumbents{S}) where{S}
     if isbetter(getbound(get_ip_primal_sol(cur_node_incumbents)), PrimalBound{S}())
-        add_primal_sol!(getresult(solver), copy(get_ip_primal_sol(cur_node_incumbents)))
+        add_primal_sol!(getresult(solver), deepcopy(get_ip_primal_sol(cur_node_incumbents)))
     end
     return
 end

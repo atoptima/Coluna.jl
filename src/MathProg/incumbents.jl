@@ -1,4 +1,14 @@
 # Constructors for Primal & Dual Solutions
+function PrimalBound(form::AbstractFormulation)
+    Se = getobjsense(form)
+    return Coluna.Containers.Bound{Primal,Se}()
+end
+
+function PrimalBound(form::AbstractFormulation, val::Float64)
+    Se = getobjsense(form)
+    return Coluna.Containers.Bound{Primal,Se}(val)
+end
+
 function PrimalSolution(
     form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
 ) where {De,Va}
@@ -13,6 +23,16 @@ function PrimalSolution(
     return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, bound)
 end
 
+function DualBound(form::AbstractFormulation)
+    Se = getobjsense(form)
+    return Coluna.Containers.Bound{Dual,Se}()
+end
+
+function DualBound(form::AbstractFormulation, val::Float64)
+    Se = getobjsense(form)
+    return Coluna.Containers.Bound{Dual,Se}(val)
+end
+
 function DualSolution(
     form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
 ) where {De,Va}
@@ -25,6 +45,37 @@ function DualSolution(
 ) where {Se,De,Va}
     @assert Se == getobjsense(form)
     return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, bound)
+end
+
+valueinminsense(b::PrimalBound{MinSense}) = b.value
+valueinminsense(b::DualBound{MinSense}) = b.value
+valueinminsense(b::PrimalBound{MaxSense}) = -b.value
+valueinminsense(b::DualBound{MaxSense}) = -b.value
+
+# TODO : check that the type of the variable is integer
+function Base.isinteger(sol::Coluna.Containers.Solution)
+    for (vc_id, val) in sol
+        !isinteger(val) && return false
+    end
+    return true
+end
+
+isfractional(sol::Coluna.Containers.Solution) = !Base.isinteger(sol)
+
+function contains(form::AbstractFormulation, sol::PrimalSolution, duty::AbstractVarDuty)
+    for (id, val) in sol
+        var = getvar(form, id)
+        getduty(var) <= duty && return true
+    end
+    return false
+end
+
+function contains(form::AbstractFormulation, sol::DualSolution, duty::AbstractConstrDuty)
+    for (id, val) in sol
+        constr = getconstr(form, id)
+        getduty(constr) <= duty && return true
+    end
+    return false
 end
 
 

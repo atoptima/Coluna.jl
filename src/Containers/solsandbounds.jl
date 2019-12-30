@@ -46,19 +46,19 @@ distance to reach the dual bound from the primal bound;
 non-positive if dual bound reached.
 """
 # diff already exist in Base, rename this method dist ?
-function diff(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
+function Base.diff(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
     return pb.value - db.value
 end
 
-function diff(db::Bound{<:Dual,<:MinSense}, pb::Bound{<:Primal,<:MinSense})
+function Base.diff(db::Bound{<:Dual,<:MinSense}, pb::Bound{<:Primal,<:MinSense})
     return pb.value - db.value
 end
 
-function diff(pb::Bound{<:Primal,<:MaxSense}, db::Bound{<:Dual,<:MaxSense})
+function Base.diff(pb::Bound{<:Primal,<:MaxSense}, db::Bound{<:Dual,<:MaxSense})
     return db.value - pb.value
 end
 
-function diff(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
+function Base.diff(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
     return db.value - pb.value
 end
 
@@ -163,6 +163,10 @@ Base.iterate(s::Solution, state) = iterate(s.sol, state)
 Base.length(s::Solution) = length(s.sol)
 Base.get(s::Solution{Sp,Se,De,Va}, id::De, default) where {Sp,Se,De,Va} = Base.get(s.sol, id, default)
 Base.setindex!(s::Solution{Sp,Se,De,Va}, val::Va, id::De) where {Sp,Se,De,Va} = Base.setindex!(s.sol, val, id)
+
+function Base.filter(f::Function, s::S) where {S <: Solution}
+    return S(s.bound, filter(f, s.sol))
+end
 
 _show_sol_type(io::IO, ::Type{<:Primal}) = println(io, "\n┌ Primal Solution :")
 _show_sol_type(io::IO, ::Type{<:Dual}) = println(io, "\n┌ Dual Solution :")

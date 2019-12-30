@@ -227,13 +227,13 @@ end
 function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
                  ref::MOI.VariableIndex)
     id = optimizer.varmap[ref] # This gets a coluna Id{Variable}
-    var_val_dict = getsol(unsafe_getbestprimalsol(optimizer.result))
+    var_val_dict = unsafe_getbestprimalsol(optimizer.result)
     return get(var_val_dict, id, 0.0)
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
                  refs::Vector{MOI.VariableIndex})
-    var_val_dict = getsol(unsafe_getbestprimalsol(optimizer.result))
+    var_val_dict = unsafe_getbestprimalsol(optimizer.result)
     return [get(var_val_dict, optimizer.varmap[ref], 0.0) for ref in refs]
 end
 

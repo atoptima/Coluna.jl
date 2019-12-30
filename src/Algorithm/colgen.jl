@@ -37,7 +37,7 @@ function run!(alg::ColumnGeneration, form::Reformulation, node::Node)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
     algdata = ColGenRuntimeData(alg, form, node)
     result = cg_main_loop(algdata, form, 2)
-    if should_do_ph_1(result)
+    if should_do_ph_1(form.master, result)
         record!(form, node)
         set_ph_one(form.master)
         result = cg_main_loop(algdata, form, 1)
@@ -55,11 +55,10 @@ function run!(alg::ColumnGeneration, form::Reformulation, node::Node)
 end
 
 # Internal methods to the column generation
-function should_do_ph_1(result::ColumnGenerationResult)
+function should_do_ph_1(master::Formulation, result::ColumnGenerationResult)
     ip_gap(result.incumbents) <= 0.00001 && return false
-    primal_lp_sol = getsol(get_lp_primal_sol(result.incumbents))
-    art_vars = filter(x -> isaArtificialDuty(getduty(x)), primal_lp_sol)
-    if !isempty(art_vars)
+    primal_lp_sol = get_lp_primal_sol(result.incumbents)
+    if contains(master, primal_lp_sol, MasterArtVar)
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
         return true
     else
@@ -191,7 +190,7 @@ function solve_sp_to_gencol!(
     if !isfeasible(opt_result)
         sp_is_feasible = false 
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
-        return sp_is_feasible, recorded_solution_ids, defaultprimalboundvalue(getobjsense(spform))
+        return sp_is_feasible, recorded_solution_ids, PrimalBound(spform)
     end
 
     recorded_solution_ids = record_solutions!(
@@ -311,7 +310,7 @@ function cg_main_loop(
         end
 
         update_lp_primal_sol!(algdata.incumbents, primal_sols[1])
-        if isinteger(primal_sols[1]) && !contains(primal_sols[1], MasterArtVar)
+        if isinteger(primal_sols[1]) && !contains(masterform, primal_sols[1], MasterArtVar)
             update_ip_primal_sol!(algdata.incumbents, primal_sols[1])
         end
 
