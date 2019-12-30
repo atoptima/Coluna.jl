@@ -169,8 +169,61 @@ function bound_unit()
     end
 end
 
-function solution_unit()
+function fake_solution_factory(nbdecisions)
+    decisions = Set{Int}()
+    i = 0
+    while i < nbdecisions
+        v = rand(rng, 1:100)
+        if v ∉ decisions
+            push!(decisions, v)
+            i += 1
+        end
+    end
+    solution = Dict{Int, Float64}()
+    for d in decisions
+        solution[d] = rand(rng, 0:0.0001:1000)
+    end
+    return solution
+end
 
+function test_solution_iterations(solution::Coluna.Containers.Solution, dict::Dict)
+    prev_decision = nothing
+    for (decision, value) in solution
+        if prev_decision != nothing
+            @test prev_decision < decision
+        end
+        @test solution[decision] == dict[decision]
+        solution[decision] += 1
+        @test solution[decision] == dict[decision] + 1
+    end
+    return
+end
+
+function solution_unit()
+    Primal = Coluna.AbstractPrimalSpace
+    Dual = Coluna.AbstractDualSpace
+    MinSense = Coluna.AbstractMinSense
+    MaxSense = Coluna.AbstractMaxSense
+
+    PrimalSolution{S} = Coluna.Containers.Solution{Primal,S,Int,Float64}
+    DualSolution{S} = Coluna.Containers.Solution{Dual,S,Int,Float64}
+
+    dict_sol = fake_solution_factory(100)
+    primal_sol = PrimalSolution{MinSense}(dict_sol, 12.3)
+    test_solution_iterations(primal_sol, dict_sol)
+    @test Coluna.Containers.getvalue(primal_sol) == 12.3
+    Coluna.Containers.setvalue!(primal_sol, 123.4)
+    @test Coluna.Containers.getvalue(primal_sol) == 123.4
+    @test typeof(Coluna.Containers.getbound(primal_sol)) == Coluna.Containers.Bound{Primal,MinSense}
+    
+    dict_sol = fake_solution_factory(100)
+    dual_sol = DualSolution{MaxSense}(dict_sol, 32.1)
+    test_solution_iterations(dual_sol, dict_sol)
+    @test Coluna.Containers.getvalue(dual_sol) == 32.1
+    Coluna.Containers.setvalue!(dual_sol, 432.1)
+    @test Coluna.Containers.getvalue(dual_sol) == 432.1
+    @test typeof(Coluna.Containers.getbound(dual_sol)) == Coluna.Containers.Bound{Dual,MaxSense}
+    return
 end
 
 # function solution_constructors_and_getters_and_setters_tests()

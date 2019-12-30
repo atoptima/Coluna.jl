@@ -90,12 +90,12 @@ end
 
 doc todo
 """
-function printbounds(io::IO, db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MinSense}
-    Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
+function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MinSense}
+    Printf.@printf "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
 end
 
-function printbounds(io::IO, db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MaxSense}
-    Printf.@printf io "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
+function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MaxSense}
+    Printf.@printf "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
 end
 
 function Base.show(io::IO, b::Bound)
@@ -124,9 +124,10 @@ Base.:(<=)(b1::B, b2::B) where {B<:Bound} = b1.value <= b2.value
 Base.:(>=)(b1::B, b2::B) where {B<:Bound} = b1.value >= b2.value
 Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value 
 
+
 # Solution
 struct Solution{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense,Decision,Value} <: AbstractDict{Decision,Value}
-    bound::Bound{Space, Sense}
+    bound::Bound{Space,Sense}
     sol::DataStructures.SortedDict{Decision,Value}
 end
 
@@ -155,12 +156,13 @@ end
 
 getbound(s::Solution) = s.bound
 getvalue(s::Solution) = float(s.bound)
-setvalue!(s::Solution, v::Float64) = s.bound = v
+setvalue!(s::Solution, v::Float64) = s.bound.value = v
 
 Base.iterate(s::Solution) = iterate(s.sol)
 Base.iterate(s::Solution, state) = iterate(s.sol, state)
 Base.length(s::Solution) = length(s.sol)
-Base.lastindex(s::Solution) = lastindex(s.sol)
+Base.get(s::Solution{Sp,Se,De,Va}, id::De, default) where {Sp,Se,De,Va} = Base.get(s.sol, id, default)
+Base.setindex!(s::Solution{Sp,Se,De,Va}, val::Va, id::De) where {Sp,Se,De,Va} = Base.setindex!(s.sol, val, id)
 
 _show_sol_type(io::IO, ::Type{<:Primal}) = println(io, "\n┌ Primal Solution :")
 _show_sol_type(io::IO, ::Type{<:Dual}) = println(io, "\n┌ Dual Solution :")
