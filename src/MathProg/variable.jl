@@ -3,6 +3,43 @@
 
 Information that defines a state of a variable. These are the fields of a variable that might change during the solution procedure.
 """
+abstract type AbstractVarData <: AbstractVcData end
+
+struct PerenVarData <: AbstractVcData
+    cost::Float64
+    lb::Float64
+    ub::Float64
+    kind::VarKind
+    sense::VarSense
+    inc_val::Float64
+    is_active::Bool
+    is_explicit::Bool
+end
+
+function _setkind!(v::PerenVarData, kind::VarKind)
+    if kind == Binary
+        v.kind = Binary
+        (v.lb < 0) && setlb!(v, 0.0)
+        (v.ub > 1) && setub!(v, 1.0)
+    end
+    return
+end
+
+function PerenVarData(
+    ;cost::Float64 = 0.0,
+    lb::Float64 = 0.0,
+    ub::Float64 = Inf,
+    kind::VarKind = Continuous,
+    sense::VarSense = Positive,
+    inc_val::Float64 = -1.0,
+    is_active::Bool = true,
+    is_explicit::Bool = true
+)
+    vc = PerenVarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
+    _setkind!(vc, kind)
+    return vc
+end
+
 mutable struct VarData <: AbstractVcData
     kind::VarKind
     sense::VarSense
@@ -11,16 +48,14 @@ mutable struct VarData <: AbstractVcData
     is_explicit::Bool
 end
 
-function VarData(; cost::Float64 = 0.0,
-                 lb::Float64 = 0.0,
-                 ub::Float64 = Inf,
-                 kind::VarKind = Continuous,
-                 sense::VarSense = Positive,
-                 inc_val::Float64 = -1.0,
-                 is_active::Bool = true,
-                 is_explicit::Bool = true)
-    vc = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
-    setkind!(vc, kind)
+function VarData(
+    ;kind::VarKind = Continuous,
+    sense::VarSense = Positive,
+    inc_val::Float64 = -1.0,
+    is_active::Bool = true,
+    is_explicit::Bool = true
+)
+    vc = VarData(kind, sense, inc_val, is_active, is_explicit)
     return vc
 end
 
@@ -35,16 +70,6 @@ setcost!(v::VarData, cost::Float64) = v.cost = cost
 setlb!(v::VarData, lb::Float64) = v.lb = lb
 setub!(v::VarData, ub::Float64) = v.ub = ub
 
-function setkind!(v::VarData, kind::VarKind)
-    if kind == Binary
-        v.kind = Binary
-        (v.lb < 0) && setlb!(v, 0.0)
-        (v.ub > 1) && setub!(v, 1.0)
-    elseif kind == Integ
-        v.kind = Integ
-    end
-    return
-end
 
 """
     MoiVarRecord
