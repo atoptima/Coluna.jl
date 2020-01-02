@@ -178,6 +178,10 @@ function setvar!(form::Formulation,
                  moi_index::MoiVarIndex = MoiVarIndex(),
                  members::Union{ConstrMembership,Nothing} = nothing,
                  id = generatevarid(form))
+    if kind == Binary
+        lb = (lb < 0.0) ? 0.0 : lb
+        ub = (ub > 1.0) ? 1.0 : ub
+    end
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     var = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
     members != nothing && setmembers!(form, var, members)
