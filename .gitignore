@@ -7,3 +7,4 @@ docs/site/
 *TAGS
 updateEtags.sh
 *.lp
+.vscode
