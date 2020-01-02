@@ -663,7 +663,7 @@ function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId,
         op = "<="
     end
     print(io, " ", op, " ", getcurrhs(constr))
-    println(io, " (", getduty(constr), getid(constr), " | ", is_cur_explicit(constr) ,")")
+    println(io, " (", getduty(constr), getid(constr), " | ", get_cur_is_explicit(constr) ,")")
     return
 end
 
@@ -688,7 +688,7 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     ub = getcurub(var)
     t = getcurkind(var)
     d = getduty(var)
-    e = is_cur_explicit(var)
+    e = get_cur_is_explicit(var)
     println(io, lb, " <= ", name, getid(var), " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
