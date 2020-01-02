@@ -203,7 +203,6 @@ function register_original_formulation!(dest::Optimizer,
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
     register_objective_sense!(orig_form, min_sense)
-    @show orig_form
 
     dest.annotations.tree = MOI.get(src, BD.DecompositionTree())
     return
