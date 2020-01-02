@@ -33,13 +33,13 @@ export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 # Methods
 export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setvar!, getid, store!, getrhs, getsense, setconstr!, getuid, getcoefmatrix,
-       getvar, getvars, getconstr, getconstrs, getrecordeddata, getkind, setkind!,
+       getvar, getvars, getconstr, getconstrs, getkind, setkind!,
        setub!, setlb!, getub, getlb, setcost!, setcurcost!,
        register_objective_sense!, optimize!, nbprimalsols, ip_gap, getdualbound,
        getprimalbound, get_ip_dual_bound, printbounds, getmaster, deactivate!, 
        enforce_integrality!, relax_integrality!, activate!, update_ip_primal_sol!,
        getobjsense, getoptimizer, getbestprimalsol, get_ip_primal_bound, get_ip_primal_sol,
-       get_cur_is_active, get_cur_is_explicit, getcurdata, getbound, isbetter,
+       get_cur_is_active, get_cur_is_explicit, getbound, isbetter,
        add_primal_sol!, getresult, setdualbound!, determine_statuses, getvalue,
        isfeasible, getterminationstatus, getfeasibilitystatus, getcurrhs,
        getprimalsols, getdualsols, update_lp_primal_sol!, contains, get_dw_pricing_sp,
@@ -56,7 +56,8 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        _rep_of_orig_var_, getcursense, getcurkind, find_owner_formulation,
        setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
        setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
-       get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix
+       get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix,
+       setcurincval!, setpereneincval!, getcurdata
 
 # Below this line, clean up has been done :
 export reformulate!

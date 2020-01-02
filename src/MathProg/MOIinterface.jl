@@ -51,7 +51,7 @@ function update_bounds_in_optimizer!(optimizer::MoiOptimizer,
 end
 
 function update_cost_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
-    cost = getcost(getcurdata(v))
+    cost = getcurcost(v)
     moi_index = getindex(getmoirecord(v))
     MOI.modify(
         getinner(optimizer), MoiObjective(),
@@ -82,11 +82,10 @@ end
 
 function enforce_bounds_in_optimizer!(optimizer::MoiOptimizer,
                                      v::Variable)
-    cur_data = getcurdata(v)
     moirecord = getmoirecord(v)
     moi_bounds = MOI.add_constraint(
         getinner(optimizer), MOI.SingleVariable(getindex(moirecord)),
-        MOI.Interval(getlb(cur_data), getub(cur_data))
+        MOI.Interval(getcurlb(v), getcurub(v))
     )
     setbounds!(moirecord, moi_bounds)
     return
@@ -94,7 +93,7 @@ end
 
 function enforce_kind_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
     inner = getinner(optimizer)
-    kind = getkind(getcurdata(v))
+    kind = getcurkind(v)
     moirecord = getmoirecord(v)
     moi_kind = getkind(moirecord)
     if moi_kind.value != -1
@@ -118,13 +117,12 @@ end
 
 function add_to_optimizer!(optimizer::MoiOptimizer, v::Variable)
     inner = getinner(optimizer)
-    cur_data = getcurdata(v)
     moirecord = getmoirecord(v)
     moi_index = MOI.add_variable(inner)
     setindex!(moirecord, moi_index)
     update_cost_in_optimizer!(optimizer, v)
     enforce_kind_in_optimizer!(optimizer, v)
-    if (getkind(cur_data) != Binary)
+    if getcurkind(v) != Binary
         enforce_bounds_in_optimizer!(optimizer, v)
     end
     MOI.set(inner, MOI.VariableName(), moi_index, getname(v))
@@ -138,10 +136,9 @@ function add_to_optimizer!(optimizer::MoiOptimizer,
     inner = getinner(optimizer)
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
-    cur_data = getcurdata(constr)
-    moi_set = get_moi_set(getsense(cur_data))
+    moi_set = get_moi_set(getcursense(constr))
     moi_constr = MOI.add_constraint(
-        inner, f, moi_set(getrhs(cur_data))
+        inner, f, moi_set(getcurrhs(constr))
     )
     moirecord = getmoirecord(constr)
     setindex!(moirecord, moi_constr)

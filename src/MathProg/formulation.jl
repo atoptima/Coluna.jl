@@ -635,7 +635,7 @@ function _show_obj_fun(io::IO, form::Formulation)
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
         name = getname(vars[id])
-        cost = getcost(getcurdata(vars[id]))
+        cost = getcurcost(vars[id])
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
     end
@@ -646,7 +646,6 @@ end
 function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId,
                           members::VarMembership)
     constr = getconstr(form, constr_id)
-    constr_data = getcurdata(constr)
     print(io, getname(constr), " : ")
     ids = sort!(collect(keys(members)), by = getsortuid)
     for id in ids
@@ -656,15 +655,15 @@ function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId,
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
-    if getsense(constr_data) == Equal
+    if getcursense(constr) == Equal
         op = "=="
-    elseif getsense(constr_data) == Greater
+    elseif getcursense(constr) == Greater
         op = ">="
     else
         op = "<="
     end
-    print(io, " ", op, " ", getrhs(constr_data))
-    println(io, " (", getduty(constr), getid(constr), " | ", is_explicit(constr_data) ,")")
+    print(io, " ", op, " ", getcurrhs(constr))
+    println(io, " (", getduty(constr), getid(constr), " | ", is_cur_explicit(constr) ,")")
     return
 end
 
@@ -684,13 +683,12 @@ function _show_constraints(io::IO , form::Formulation)
 end
 
 function _show_variable(io::IO, form::Formulation, var::Variable)
-    var_data = getcurdata(var)
     name = getname(var)
-    lb = getlb(var_data)
-    ub = getub(var_data)
-    t = getkind(var_data)
+    lb = getcurlb(var)
+    ub = getcurub(var)
+    t = getcurkind(var)
     d = getduty(var)
-    e = is_explicit(var_data)
+    e = is_cur_explicit(var)
     println(io, lb, " <= ", name, getid(var), " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
