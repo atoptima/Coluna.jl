@@ -37,9 +37,10 @@ function run!(alg::ColumnGeneration, form::Reformulation, node::Node)
     @logmsg LogLevel(-1) "Run ColumnGeneration."
     algdata = ColGenRuntimeData(alg, form, node)
     result = cg_main_loop(algdata, form, 2)
-    if should_do_ph_1(form.master, result)
+    masterform = getmaster(form)
+    if should_do_ph_1(masterform, result)
         record!(form, node)
-        set_ph_one(form.master)
+        set_ph_one(masterform)
         result = cg_main_loop(algdata, form, 1)
     end
     if result.proven_infeasible
@@ -287,7 +288,7 @@ function cg_main_loop(
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
-    masterform = reform.master
+    masterform = getmaster(reform)
     sp_lbs = Dict{FormId, Float64}()
     sp_ubs = Dict{FormId, Float64}()
 

@@ -514,7 +514,7 @@ function _setmembers!(form::Formulation, var::Variable, members::AbstractDict{Co
     for (constr_id, constr_coeff) in members
         coef_matrix[constr_id, id] = constr_coeff
     end
-    return    
+    return
 end
 
 # TODO : delete
@@ -615,13 +615,13 @@ end
 
 function computesolvalue(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
     val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
-    return val 
+    return val
 end
 
 function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
     val = computesolvalue(form, sol)
     setvalue!(sol, val)
-    return val 
+    return val
 end
 
 function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::DualSolution{S})  where {S<:Coluna.AbstractSense}

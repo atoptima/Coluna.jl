@@ -8,7 +8,7 @@ const MaxSense = Coluna.AbstractMaxSense
 # Bounds
 mutable struct Bound{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense} <: Real
     value::Float64
-end   
+end
 
 _defaultboundvalue(::Type{<:Primal}, ::Type{<:MinSense}) = Inf
 _defaultboundvalue(::Type{<:Primal}, ::Type{<:MaxSense}) = -Inf
@@ -37,7 +37,6 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MinSense} = b
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MaxSense} = b1.value > b2.value
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.value > b2.value
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
-# should we add a fallback ?
 
 """
     diff 
@@ -45,7 +44,6 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.
 distance to reach the dual bound from the primal bound;
 non-positive if dual bound reached.
 """
-# diff already exist in Base, rename this method dist ?
 function Base.diff(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
     return pb.value - db.value
 end
@@ -61,8 +59,6 @@ end
 function Base.diff(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
     return db.value - pb.value
 end
-
-# fallback ?
 
 """
     gap
@@ -122,8 +118,7 @@ Base.:(==)(b1::B, b2::B) where {B<:Bound} = b1.value == b2.value
 Base.:<(b1::B, b2::B) where {B<:Bound} = b1.value < b2.value
 Base.:(<=)(b1::B, b2::B) where {B<:Bound} = b1.value <= b2.value
 Base.:(>=)(b1::B, b2::B) where {B<:Bound} = b1.value >= b2.value
-Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value 
-
+Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value
 
 # Solution
 struct Solution{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense,Decision,Value} <: AbstractDict{Decision,Value}

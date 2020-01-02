@@ -6,8 +6,6 @@ const VarVarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
 const VarConstrMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
 const ConstrVarMatrix = MembersMatrix{ConstrId,Constraint,VarId,Variable,Float64}
 const ConstrConstrMatrix = MembersMatrix{ConstrId,Constraint,ConstrId,Constraint,Float64}
-
-
 const PrimalSolution{S} = Solution{Primal, S, Id{Variable}, Float64}
 const DualSolution{S} = Solution{Dual, S, Id{Constraint}, Float64}
 const PrimalBound{S} = Bound{Primal, S}
