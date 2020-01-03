@@ -16,9 +16,9 @@ function create_local_art_vars!(masterform::Formulation)
             cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
-        if getsense(getcurdata(constr)) == Greater
+        if getcursense(constr) == Greater
             matrix[constr_id, getid(var)] = 1.0
-        elseif getsense(getcurdata(constr)) == Less
+        elseif getcursense(constr) == Less
             matrix[constr_id, getid(var)] = -1.0
         end
     end
@@ -31,9 +31,9 @@ function create_global_art_vars!(masterform::Formulation)
     matrix = getcoefmatrix(masterform)
     constrs = filter(_active_master_rep_orig_constr_, getconstrs(masterform))
     for (constr_id, constr) in constrs
-        if getsense(getcurdata(constr)) == Greater
+        if getcursense(constr) == Greater
             matrix[constr_id, getid(global_pos)] = 1.0
-        elseif getsense(getcurdata(constr)) == Less
+        elseif getcursense(constr) == Less
             matrix[constr_id, getid(global_neg)] = -1.0
         end
     end
@@ -148,8 +148,8 @@ function create_side_vars_constrs!(
             rhs = lb_mult, kind = Core, sense = Greater
         )
         masterform.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
-        setincval!(getrecordeddata(lb_conv_constr), 100.0)
-        setincval!(getcurdata(lb_conv_constr), 100.0)
+        setpereneincval!(lb_conv_constr, 100.0)
+        setcurincval!(lb_conv_constr, 100.0)
         coefmatrix[getid(lb_conv_constr), getid(setupvar)] = 1.0
 
         ub_mult =  Float64(BD.getuppermultiplicity(ann))
@@ -159,8 +159,8 @@ function create_side_vars_constrs!(
             kind = Core, sense = Less
         )
         masterform.parent_formulation.dw_pricing_sp_ub[spuid] = getid(ub_conv_constr)
-        setincval!(getrecordeddata(ub_conv_constr), 100.0)
-        setincval!(getcurdata(ub_conv_constr), 100.0)       
+        setpereneincval!(ub_conv_constr, 100.0)
+        setcurincval!(ub_conv_constr, 100.0)       
         coefmatrix[getid(ub_conv_constr), getid(setupvar)] = 1.0
     end
     return

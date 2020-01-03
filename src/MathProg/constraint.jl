@@ -21,9 +21,6 @@ function ConstrData(; rhs::Float64  = -Inf,
     return ConstrData(rhs, kind, sense, inc_val, is_active, is_explicit)
 end
 
-# Attention: Some getters and setters of ConstrData are defined over
-#            AbstractVcData in file varconstr.jl
-
 getrhs(c::ConstrData) = c.rhs
 setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 
@@ -79,12 +76,10 @@ getperenerhs(vc::Constraint) = vc.perene_data.rhs
 #set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.peren_data.rhs = rhs
 
 function reset!(c::Constraint)
-    initial = getrecordeddata(c)
-    cur = getcurdata(c)
-    cur.rhs = initial.rhs
-    cur.inc_val = initial.inc_val
-    cur.kind = initial.kind
-    cur.sense = initial.sense
-    cur.is_active = initial.is_active
+    c.cur_data.rhs = c.perene_data.rhs
+    c.cur_data.inc_val = c.perene_data.inc_val
+    c.cur_data.kind = c.perene_data.kind
+    c.cur_data.sense = c.perene_data.sense
+    c.cur_data.is_active = c.perene_data.is_active
     return
 end
