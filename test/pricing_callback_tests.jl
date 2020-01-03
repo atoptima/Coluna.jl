@@ -4,7 +4,7 @@ function mycallback(form::CL.Formulation)
     matrix = CL.getcoefmatrix(form)
     m = JuMP.Model(with_optimizer(GLPK.Optimizer))
     @variable(m, CL.getcurlb(vars[i]) <= x[i=1:length(vars)] <= CL.getcurub(vars[i]), Int)
-    @objective(m, Min, sum(CL.getcurcost(vars[j]) * x[j] for j in 1:length(vars)))
+    @objective(m, Min, sum(CL.getcurcost(form, vars[j]) * x[j] for j in 1:length(vars)))
     @constraint(m, knp, 
         sum(matrix[CL.getid(constr),CL.getid(vars[j])] * x[j]
         for j in 1:length(vars)) <= CL.getcurrhs(constr)

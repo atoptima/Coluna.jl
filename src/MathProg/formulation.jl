@@ -84,53 +84,14 @@ getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_f
 
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
-"""
-    setcost!(f::Formulation, v::Variable, new_cost::Float64)
-Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
-euqal to `new_cost`. Change on `f.optimizer` will be buffered.
-"""
-function setcost!(form::Formulation, var::Variable, new_cost::Float64)
-    setcurcost!(var, new_cost)
-    change_cost!(form.buffer, var)
-end
 
-"""
-    setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
-
-Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be
-euqal to `new_cost`. Change on `f.optimizer` will be buffered.
-"""
-function setcurcost!(form::Formulation, var::Variable, new_cost::Float64)
-    setcurcost!(var, new_cost)
-    change_cost!(form.buffer, var)
-end
 
 function setcurrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
     setcurrhs!(constr, new_rhs)
     change_rhs!(form.buffer, constr)
 end
 
-"""
-    setub!(f::Formulation, v::Variable, new_ub::Float64)
 
-Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
-according to `new_ub`. Change on `f.optimizer` will be buffered.
-"""
-function setub!(form::Formulation, var::Variable, new_ub::Float64)
-    setcurub!(var, new_ub)
-    change_bound!(form.buffer, var)
-end
-
-"""
-    setlb!(f::Formulation, v::Variable, new_lb::Float64)
-
-Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
-according to `new_lb`. Change on `f.optimizer` will be buffered.
-"""
-function setlb!(f::Formulation, var::Variable, new_lb::Float64)
-    setcurlb!(var, new_lb)
-    change_bound!(f.buffer, var)
-end
 
 """
     setkind!(f::Formulation, v::Variable, new_kind::VarKind)
@@ -184,8 +145,16 @@ function setvar!(form::Formulation,
     end
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     var = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
+    if haskey(form.manager.vars, getid(var))
+        error(string("Variable of id ", getid(var), " exists"))
+    end
+    form.manager.vars[getid(var)] = var
+    form.manager.var_costs[getid(var)] = cost
+    form.manager.var_lbs[getid(var)] = lb
+    form.manager.var_ubs[getid(var)] = ub
     members != nothing && _setmembers!(form, var, members)
-    return addvar!(form, var)
+    add!(form.buffer, var)
+    return var
 end
 
 addprimalsol!(
@@ -598,13 +567,13 @@ function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
 end
 
 function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64}) 
-    val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol_vec)
+    val = sum(getperenecost(form, var_id) * value for (var_id, value) in sol_vec)
     return val
 end
 
 
 function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:Coluna.AbstractSense}
-    val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
+    val = sum(getperenecost(form, var_id) * value for (var_id, value) in sol)
     return val
 end
 
@@ -626,7 +595,7 @@ end
 
 function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::DualSolution{S})  where {S<:Coluna.AbstractSense}
     var = getvar(form, var_id)
-    rc = getperenecost(var)
+    rc = getperenecost(form, var)
     coefficient_matrix = getcoefmatrix(form)
     sign = 1
     if getobjsense(form) == MinSense
@@ -676,7 +645,7 @@ function _show_obj_fun(io::IO, form::Formulation)
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
         name = getname(vars[id])
-        cost = getcurcost(vars[id])
+        cost = getcurcost(form, id)
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
     end
@@ -725,8 +694,8 @@ end
 
 function _show_variable(io::IO, form::Formulation, var::Variable)
     name = getname(var)
-    lb = getcurlb(var)
-    ub = getcurub(var)
+    lb = getcurlb(form, var)
+    ub = getcurub(form, var)
     t = getcurkind(var)
     d = getduty(var)
     e = get_cur_is_explicit(var)

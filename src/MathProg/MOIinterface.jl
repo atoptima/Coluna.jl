@@ -50,9 +50,10 @@ function update_bounds_in_optimizer!(optimizer::MoiOptimizer,
     end
 end
 
-function update_cost_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
-    cost = getcurcost(v)
-    moi_index = getindex(getmoirecord(v))
+function update_cost_in_optimizer!(form::Formulation, var::Variable)
+    optimizer = getoptimizer(form)
+    cost = getcurcost(form, var)
+    moi_index = getindex(getmoirecord(var))
     MOI.modify(
         getinner(optimizer), MoiObjective(),
         MOI.ScalarCoefficientChange{Float64}(moi_index, cost)
@@ -80,12 +81,12 @@ function update_constr_rhs_in_optimizer!(optimizer::MoiOptimizer, c::Constraint)
     return
 end
 
-function enforce_bounds_in_optimizer!(optimizer::MoiOptimizer,
-                                     v::Variable)
-    moirecord = getmoirecord(v)
+function enforce_bounds_in_optimizer!(form::Formulation, var::Variable)
+    optimizer = getoptimizer(form)
+    moirecord = getmoirecord(var)
     moi_bounds = MOI.add_constraint(
         getinner(optimizer), MOI.SingleVariable(getindex(moirecord)),
-        MOI.Interval(getcurlb(v), getcurub(v))
+        MOI.Interval(getcurlb(form, var), getcurub(form, var))
     )
     setbounds!(moirecord, moi_bounds)
     return
@@ -115,17 +116,18 @@ function enforce_kind_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
     return
 end
 
-function add_to_optimizer!(optimizer::MoiOptimizer, v::Variable)
+function add_to_optimizer!(form::Formulation, var::Variable)
+    optimizer = getoptimizer(form)
     inner = getinner(optimizer)
-    moirecord = getmoirecord(v)
+    moirecord = getmoirecord(var)
     moi_index = MOI.add_variable(inner)
     setindex!(moirecord, moi_index)
-    update_cost_in_optimizer!(optimizer, v)
-    enforce_kind_in_optimizer!(optimizer, v)
-    if getcurkind(v) != Binary
-        enforce_bounds_in_optimizer!(optimizer, v)
+    update_cost_in_optimizer!(form, var)
+    enforce_kind_in_optimizer!(optimizer, var)
+    if getcurkind(var) != Binary
+        enforce_bounds_in_optimizer!(form, var)
     end
-    MOI.set(inner, MOI.VariableName(), moi_index, getname(v))
+    MOI.set(inner, MOI.VariableName(), moi_index, getname(var))
     return
 end
 

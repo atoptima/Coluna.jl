@@ -95,7 +95,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.var_buffer.added
         v = getvar(f, id)
         @logmsg LogLevel(-4) string("Adding variable ", getname(v))
-        add_to_optimizer!(optimizer, v)
+        add_to_optimizer!(f, v)
     end
     # Add constrs
     for id in buffer.constr_buffer.added
@@ -106,7 +106,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Update variable costs
     for id in buffer.changed_cost
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        update_cost_in_optimizer!(optimizer, getvar(f, id))
+        update_cost_in_optimizer!(f, getvar(f, id))
     end
     # Update variable bounds
     for id in buffer.changed_bound

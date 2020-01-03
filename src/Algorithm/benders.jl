@@ -103,7 +103,7 @@ function update_benders_sp_problem!(
 
     if algo.option_use_reduced_cost
         for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
-            cost = getcurcost(var)
+            cost = getcurcost(spform, var)
             rc = computereducedcost(masterform, var_id, master_dual_sol)
             setcurcost!(spform, var, rc)
         end

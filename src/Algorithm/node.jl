@@ -150,7 +150,7 @@ end
 function add_to_recorded!(form::Formulation, recorded_info::NodeRecord)
     for (id, var) in getvars(form)
         if get_cur_is_active(var) && get_cur_is_explicit(var)
-            varstate = VarState(getcurcost(var), getcurlb(var), getcurub(var))
+            varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
             recorded_info.active_vars[id] = varstate
         end
     end
@@ -219,18 +219,18 @@ end
 
 function apply_data!(form::Formulation, var::Variable, var_state::VarState)
     # Bounds
-    if getcurlb(var) != var_state.lb || getcurub(var) != var_state.ub
+    if getcurlb(form, var) != var_state.lb || getcurub(form, var) != var_state.ub
         @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
-        setlb!(form, var, var_state.lb)
-        setub!(form, var, var_state.ub)
-        @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(var))
-        @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
+        setcurlb!(form, var, var_state.lb)
+        setcurub!(form, var, var_state.ub)
+        @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(form, var))
+        @logmsg LogLevel(-3) string("New upper bound is ", getcurub(form, var))
     end
     # Cost
-    if getcurcost(var) != var_state.cost
+    if getcurcost(form, var) != var_state.cost
         @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(var))
-        setcost!(form, var, var_state.cost)
-        @logmsg LogLevel(-3) string("New cost is ", getcurcost(var))
+        setcurcost!(form, var, var_state.cost)
+        @logmsg LogLevel(-3) string("New cost is ", getcurcost(form, var))
     end
     return
 end
