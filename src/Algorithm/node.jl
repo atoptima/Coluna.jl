@@ -1,11 +1,11 @@
 struct Branch
-    var_coeffs::PrimalSolVector
+    var_coeffs::Dict{VarId, Float64}
     rhs::Float64
     sense::ConstrSense
     depth::Int
 end
 function Branch(var::Variable, rhs::Float64, sense::ConstrSense, depth::Int)
-    var_coeffs = MembersVector{Float64}(Dict(getid(var) => var))
+    var_coeffs = Dict{VarId,Float64}()
     var_coeffs[getid(var)] = 1.0
     return Branch(var_coeffs, rhs, sense, depth)
 end
@@ -54,7 +54,7 @@ mutable struct Node <: AbstractNode
     status::FormulationStatus
 end
 
-function RootNode(ObjSense::Type{<:AbstractObjSense})
+function RootNode(ObjSense::Type{<:Coluna.AbstractSense})
     return Node(
         -1, false, 0, nothing, Node[], Incumbents(ObjSense), nothing,
         "", Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),

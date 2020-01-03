@@ -2,6 +2,7 @@
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
+using Random
 
 import MathOptInterface, MathOptInterface.Utilities
 
@@ -22,6 +23,8 @@ include("show_functions_tests.jl")
 include("full_instances_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
+
+rng = MersenneTwister(1234123)
 
 unit_tests()
 

@@ -18,7 +18,7 @@ function generate_children(
 
     @logmsg LogLevel(-1) string(
         "Chosen branching variable : ",
-        getname(getvar(reform.master, candidate.var_id)), ". With value ", 
+        getname(getvar(getmaster(reform), candidate.var_id)), ". With value ", 
         lhs, "."
     )
 
@@ -54,7 +54,7 @@ function gen_candidates_for_orig_sol(
     groups = Vector{BranchingGroup}()
     for (var_id, val) in sol
         # Do not consider continuous variables as branching candidates
-        getperenekind(getelements(getsol(sol))[var_id]) == Continuous && continue
+        getperenekind(getvar(reform.master, var_id)) == Continuous && continue
         if !isinteger(val)
             #description string is just the variable name
             candidate = VarBranchingCandidate(getname(getvar(reform.master, var_id)), var_id)

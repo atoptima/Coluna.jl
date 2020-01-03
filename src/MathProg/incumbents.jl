@@ -1,3 +1,84 @@
+# Constructors for Primal & Dual Solutions
+function PrimalBound(form::AbstractFormulation)
+    Se = getobjsense(form)
+    return Coluna.Containers.Bound{Primal,Se}()
+end
+
+function PrimalBound(form::AbstractFormulation, val::Float64)
+    Se = getobjsense(form)
+    return Coluna.Containers.Bound{Primal,Se}(val)
+end
+
+function PrimalSolution(
+    form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
+) where {De,Va}
+    Se = getobjsense(form)
+    return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, val)
+end
+
+function PrimalSolution(
+    form::AbstractFormulation, sol::Dict{De,Va}, bound::Coluna.Containers.Bound{Primal,Se}
+) where {Se,De,Va}
+    @assert Se == getobjsense(form)
+    return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, bound)
+end
+
+function DualBound(form::AbstractFormulation)
+    Se = getobjsense(form)
+    return Coluna.Containers.Bound{Dual,Se}()
+end
+
+function DualBound(form::AbstractFormulation, val::Float64)
+    Se = getobjsense(form)
+    return Coluna.Containers.Bound{Dual,Se}(val)
+end
+
+function DualSolution(
+    form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
+) where {De,Va}
+    Se = getobjsense(form)
+    return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, val)
+end
+
+function DualSolution(
+    form::AbstractFormulation, sol::Dict{De,Va}, bound::Coluna.Containers.Bound{Dual,Se}
+) where {Se,De,Va}
+    @assert Se == getobjsense(form)
+    return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, bound)
+end
+
+valueinminsense(b::PrimalBound{MinSense}) = b.value
+valueinminsense(b::DualBound{MinSense}) = b.value
+valueinminsense(b::PrimalBound{MaxSense}) = -b.value
+valueinminsense(b::DualBound{MaxSense}) = -b.value
+
+# TODO : check that the type of the variable is integer
+function Base.isinteger(sol::Coluna.Containers.Solution)
+    for (vc_id, val) in sol
+        !isinteger(val) && return false
+    end
+    return true
+end
+
+isfractional(sol::Coluna.Containers.Solution) = !Base.isinteger(sol)
+
+function contains(form::AbstractFormulation, sol::PrimalSolution, duty::AbstractVarDuty)
+    for (id, val) in sol
+        var = getvar(form, id)
+        getduty(var) <= duty && return true
+    end
+    return false
+end
+
+function contains(form::AbstractFormulation, sol::DualSolution, duty::AbstractConstrDuty)
+    for (id, val) in sol
+        constr = getconstr(form, id)
+        getduty(constr) <= duty && return true
+    end
+    return false
+end
+
+
 mutable struct Incumbents{S}
     ip_primal_sol::PrimalSolution{S}
     ip_primal_bound::PrimalBound{S}
@@ -17,7 +98,7 @@ to the program, the best primal solution to the linear relaxation of the
 program, the best  dual solution to the linear relaxation of the program, 
 and the best dual bound to the program.
 """
-function Incumbents(S::Type{<: AbstractObjSense})
+function Incumbents(S::Type{<: Coluna.AbstractSense})
     return Incumbents{S}(
         PrimalSolution{S}(),
         PrimalBound{S}(),

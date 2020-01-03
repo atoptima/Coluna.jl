@@ -32,7 +32,7 @@ mutable struct ReformulationSolver <: AbstractAlgorithm
 end
 
 function ReformulationSolver(explore_strategy::AbstractExploreStrategy,
-                    ObjSense::Type{<:AbstractObjSense})
+                    ObjSense::Type{<:Coluna.AbstractSense})
     return ReformulationSolver(
         SearchTree(explore_strategy), SearchTree(DepthFirst()),
         true, 1, 0, OptimizationResult{ObjSense}()
@@ -125,7 +125,7 @@ end
 
 function updateprimals!(solver::ReformulationSolver, cur_node_incumbents::Incumbents{S}) where{S}
     if isbetter(getbound(get_ip_primal_sol(cur_node_incumbents)), PrimalBound{S}())
-        add_primal_sol!(getresult(solver), copy(get_ip_primal_sol(cur_node_incumbents)))
+        add_primal_sol!(getresult(solver), deepcopy(get_ip_primal_sol(cur_node_incumbents)))
     end
     return
 end
