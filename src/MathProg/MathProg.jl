@@ -56,7 +56,7 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
        setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
        get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix,
-       setpereneincval!
+       setpereneincval!, contains
 
 # Below this line, clean up has been done :
 export reformulate!,
