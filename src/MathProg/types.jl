@@ -6,13 +6,14 @@ abstract type AbstractProblem end
 abstract type AstractMoiDef end
 abstract type AbstractMembership end
 abstract type AbstractVcData end
-abstract type AbstractObjSense end
-abstract type AbstractBound <: Number end
 abstract type AbstractOptimizer end
 
+# Interface (src/interface.jl)
+struct Primal <: Coluna.AbstractPrimalSpace end
+struct Dual <: Coluna.AbstractDualSpace end
 
-struct MinSense <: AbstractObjSense end
-struct MaxSense <: AbstractObjSense end
+struct MinSense <: Coluna.AbstractMinSense end
+struct MaxSense <: Coluna.AbstractMaxSense end
 
 abstract type AbstractDuty end
 

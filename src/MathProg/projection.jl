@@ -15,7 +15,7 @@ function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMast
             projected_sol[rep_id] = (get!(projected_sol, rep_id, 0.0)) + rep_val * mc_val
         end
     end
-    return PrimalSolution(master, float(getbound(sol)), projected_sol)
+    return PrimalSolution(master, projected_sol, float(getbound(sol)))
 end
 
 projection_is_possible(master::Formulation{BendersMaster}) = false

@@ -26,7 +26,7 @@ function run!(algo::MasterLp, form, node)
     dual_sols = getdualsols(opt_result)
     update_lp_primal_sol!(incumbents, primal_sols[1])
     update_lp_dual_sol!(incumbents, dual_sols[1])
-    if isinteger(primal_sols[1]) && !contains(primal_sols[1], MasterArtVar)
+    if isinteger(primal_sols[1]) && !contains(master, primal_sols[1], MasterArtVar)
         update_ip_primal_sol!(incumbents, primal_sols[1])
     end
     return MasterLpRecord(incumbents, proven_infeasible)

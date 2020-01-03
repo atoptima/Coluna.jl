@@ -6,6 +6,10 @@ const VarVarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
 const VarConstrMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
 const ConstrVarMatrix = MembersMatrix{ConstrId,Constraint,VarId,Variable,Float64}
 const ConstrConstrMatrix = MembersMatrix{ConstrId,Constraint,ConstrId,Constraint,Float64}
+const PrimalSolution{S} = Solution{Primal, S, Id{Variable}, Float64}
+const DualSolution{S} = Solution{Dual, S, Id{Constraint}, Float64}
+const PrimalBound{S} = Bound{Primal, S}
+const DualBound{S} = Bound{Dual, S}
 
 struct FormulationManager
     vars::VarDict
@@ -45,7 +49,7 @@ end
 function addprimalsol!(m::FormulationManager, 
                        sol::PrimalSolution{S},
                        sol_id::VarId
-                       ) where {S<:AbstractObjSense}
+                       ) where {S<:Coluna.AbstractSense}
     cost = 0.0
     for (var_id, var_val) in sol
         var = m.vars[var_id]
@@ -62,7 +66,7 @@ end
 function adddualsol!(m::FormulationManager,
                      dualsol::DualSolution{S},
                      dualsol_id::ConstrId
-                     ) where {S<:AbstractObjSense}
+                     ) where {S<:Coluna.AbstractSense}
 
     rhs = 0.0
     for (constr_id, constr_val) in dualsol
