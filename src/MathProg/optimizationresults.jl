@@ -22,7 +22,7 @@ end
 
 Structure to be returned by all Coluna `optimize!` methods.
 """
-mutable struct OptimizationResult{S<:AbstractObjSense}
+mutable struct OptimizationResult{S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
     primal_bound::PrimalBound{S}
@@ -62,9 +62,9 @@ setprimalbound!(res::OptimizationResult, b::PrimalBound) = res.primal_bound = b
 setdualbound!(res::OptimizationResult, b::DualBound) = res.dual_bound = b
 setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.termination_status = status
 setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
-gap(res::OptimizationResult) = gap(getprimalbound(res), getdualbound(res))
+Containers.gap(res::OptimizationResult) = gap(getprimalbound(res), getdualbound(res))
 
-function add_primal_sol!(res::OptimizationResult, solution::AbstractSolution)
+function add_primal_sol!(res::OptimizationResult, solution::Solution)
     push!(res.primal_sols, solution)
     if isbetter(getbound(solution), getprimalbound(res))
         setprimalbound!(res, getbound(solution))

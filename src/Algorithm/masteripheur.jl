@@ -3,7 +3,7 @@ struct MasterIpHeuristic <: AbstractAlgorithm end
 struct MasterIpHeuristicData
     incumbents::Incumbents
 end
-MasterIpHeuristicData(S::Type{<:AbstractObjSense}) = MasterIpHeuristicData(Incumbents(S))
+MasterIpHeuristicData(S::Type{<:Coluna.AbstractSense}) = MasterIpHeuristicData(Incumbents(S))
 
 struct MasterIpHeuristicRecord <: AbstractAlgorithmResult
     incumbents::Incumbents

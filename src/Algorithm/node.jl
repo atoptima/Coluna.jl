@@ -1,11 +1,11 @@
 struct Branch
-    var_coeffs::PrimalSolVector
+    var_coeffs::Dict{VarId, Float64}
     rhs::Float64
     sense::ConstrSense
     depth::Int
 end
 function Branch(var::Variable, rhs::Float64, sense::ConstrSense, depth::Int)
-    var_coeffs = MembersVector{Float64}(Dict(getid(var) => var))
+    var_coeffs = Dict{VarId,Float64}()
     var_coeffs[getid(var)] = 1.0
     return Branch(var_coeffs, rhs, sense, depth)
 end
@@ -28,11 +28,21 @@ function show(io::IO, branch::Branch, form::Formulation)
     return
 end
 
-struct NodeRecord
-    active_vars::Dict{VarId, VarData}
-    active_constrs::Dict{ConstrId, ConstrData}
+struct VarState
+    cost::Float64
+    lb::Float64
+    ub::Float64
 end
-NodeRecord() = NodeRecord(Dict{VarId, VarData}(), Dict{ConstrId, ConstrData}())
+
+struct ConstrState
+    rhs::Float64
+end
+
+struct NodeRecord
+    active_vars::Dict{VarId, VarState}
+    active_constrs::Dict{ConstrId, ConstrState}
+end
+NodeRecord() = NodeRecord(Dict{VarId, VarState}(), Dict{ConstrId, ConstrState}())
 
 mutable struct FormulationStatus
     need_to_prepare::Bool
@@ -54,7 +64,7 @@ mutable struct Node <: AbstractNode
     status::FormulationStatus
 end
 
-function RootNode(ObjSense::Type{<:AbstractObjSense})
+function RootNode(ObjSense::Type{<:Coluna.AbstractSense})
     return Node(
         -1, false, 0, nothing, Node[], Incumbents(ObjSense), nothing,
         "", Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
@@ -140,13 +150,14 @@ end
 function add_to_recorded!(form::Formulation, recorded_info::NodeRecord)
     for (id, var) in getvars(form)
         if get_cur_is_active(var) && get_cur_is_explicit(var)
-            recorded_info.active_vars[id] = deepcopy(getcurdata(var))
+            varstate = VarState(getcurcost(var), getcurlb(var), getcurub(var))
+            recorded_info.active_vars[id] = varstate
         end
     end
-    active_constrs = Dict{ConstrId, ConstrData}()
     for (id, constr) in getconstrs(form)
         if get_cur_is_active(constr) && get_cur_is_explicit(constr)
-            recorded_info.active_constrs[id] = deepcopy(getcurdata(constr))
+            constrstate = ConstrState(getcurrhs(constr))
+            recorded_info.active_constrs[id] = constrstate
         end
     end
     return
@@ -206,29 +217,29 @@ function reset_to_record_state!(reform::Reformulation, record::NodeRecord)
     return
 end
 
-function apply_data!(form::Formulation, var::Variable, var_data::VarData)
+function apply_data!(form::Formulation, var::Variable, var_state::VarState)
     # Bounds
-    if getcurlb(var) != getlb(var_data) || getcurub(var) != getub(var_data)
+    if getcurlb(var) != var_state.lb || getcurub(var) != var_state.ub
         @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
-        setlb!(form, var, getlb(var_data))
-        setub!(form, var, getub(var_data))
+        setlb!(form, var, var_state.lb)
+        setub!(form, var, var_state.ub)
         @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(var))
         @logmsg LogLevel(-3) string("New upper bound is ", getcurub(var))
     end
     # Cost
-    if getcurcost(var) != getcost(var_data)
+    if getcurcost(var) != var_state.cost
         @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(var))
-        setcost!(form, var, getcost(var_data))
+        setcost!(form, var, var_state.cost)
         @logmsg LogLevel(-3) string("New cost is ", getcurcost(var))
     end
     return
 end
 
-function apply_data!(form::Formulation, constr::Constraint, constr_data::ConstrData)
+function apply_data!(form::Formulation, constr::Constraint, constr_state::ConstrState)
     # Rhs
-    if getcurrhs(constr) != getrhs(constr_data)
+    if getcurrhs(constr) != constr_state.rhs
         @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
-        setrhs!(form, constr, getrhs(constr_data))
+        setrhs!(form, constr, constr_state.rhs)
         @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(constr))
     end
     return

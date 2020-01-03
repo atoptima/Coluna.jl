@@ -59,9 +59,6 @@ function VarData(
     return vc
 end
 
-# Attention: Some getters and setters of VarData are defined over AbstractVcData
-#            in file varconstr.jl
-
 getcost(v::VarData) = v.cost
 getlb(v::VarData) = v.lb
 getub(v::VarData) = v.ub
@@ -133,15 +130,13 @@ end
 #            over AbstractVarConstr in file varconstr.jl
 
 function reset!(v::Variable)
-    initial = getrecordeddata(v)
-    cur = getcurdata(v)
-    cur.cost = initial.cost
-    cur.lb = initial.lb
-    cur.ub = initial.ub
-    cur.inc_val = initial.inc_val
-    cur.kind = initial.kind
-    cur.sense = initial.sense
-    cur.is_active = initial.is_active
+    v.cur_data.cost = v.perene_data.cost
+    v.cur_data.lb = v.perene_data.lb
+    v.cur_data.ub = v.perene_data.ub
+    v.cur_data.inc_val = v.perene_data.inc_val
+    v.cur_data.kind = v.perene_data.kind
+    v.cur_data.sense = v.perene_data.sense
+    v.cur_data.is_active = v.perene_data.is_active
     return
 end
 

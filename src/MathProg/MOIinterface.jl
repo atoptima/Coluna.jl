@@ -51,7 +51,7 @@ function update_bounds_in_optimizer!(optimizer::MoiOptimizer,
 end
 
 function update_cost_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
-    cost = getcost(getcurdata(v))
+    cost = getcurcost(v)
     moi_index = getindex(getmoirecord(v))
     MOI.modify(
         getinner(optimizer), MoiObjective(),
@@ -82,11 +82,10 @@ end
 
 function enforce_bounds_in_optimizer!(optimizer::MoiOptimizer,
                                      v::Variable)
-    cur_data = getcurdata(v)
     moirecord = getmoirecord(v)
     moi_bounds = MOI.add_constraint(
         getinner(optimizer), MOI.SingleVariable(getindex(moirecord)),
-        MOI.Interval(getlb(cur_data), getub(cur_data))
+        MOI.Interval(getcurlb(v), getcurub(v))
     )
     setbounds!(moirecord, moi_bounds)
     return
@@ -94,7 +93,7 @@ end
 
 function enforce_kind_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
     inner = getinner(optimizer)
-    kind = getkind(getcurdata(v))
+    kind = getcurkind(v)
     moirecord = getmoirecord(v)
     moi_kind = getkind(moirecord)
     if moi_kind.value != -1
@@ -118,13 +117,12 @@ end
 
 function add_to_optimizer!(optimizer::MoiOptimizer, v::Variable)
     inner = getinner(optimizer)
-    cur_data = getcurdata(v)
     moirecord = getmoirecord(v)
     moi_index = MOI.add_variable(inner)
     setindex!(moirecord, moi_index)
     update_cost_in_optimizer!(optimizer, v)
     enforce_kind_in_optimizer!(optimizer, v)
-    if (getkind(cur_data) != Binary)
+    if getcurkind(v) != Binary
         enforce_bounds_in_optimizer!(optimizer, v)
     end
     MOI.set(inner, MOI.VariableName(), moi_index, getname(v))
@@ -138,10 +136,9 @@ function add_to_optimizer!(optimizer::MoiOptimizer,
     inner = getinner(optimizer)
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
-    cur_data = getcurdata(constr)
-    moi_set = get_moi_set(getsense(cur_data))
+    moi_set = get_moi_set(getcursense(constr))
     moi_constr = MOI.add_constraint(
-        inner, f, moi_set(getrhs(cur_data))
+        inner, f, moi_set(getcurrhs(constr))
     )
     moirecord = getmoirecord(constr)
     setindex!(moirecord, moi_constr)
@@ -184,27 +181,27 @@ end
 
 function fill_primal_result!(optimizer::MoiOptimizer, 
                              result::OptimizationResult{S},
-                             vars::VarDict) where {S<:AbstractObjSense}
+                             vars::VarDict) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
         pb = PrimalBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
-        sol = MembersVector{Float64}(vars)
+        sol = Dict{Id{Variable}, Float64}()
         for (id, var) in vars
             moi_index = getindex(getmoirecord(var))
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
-            @logmsg LogLevel(-4) string("Var ", getname(var), " = ", val)
             if val > 0.000001  || val < - 0.000001 # todo use a tolerance
+                @logmsg LogLevel(-4) string("Var ", getname(var), " = ", val)
                 sol[id] = val
             end
         end
-        push!(result.primal_sols, PrimalSolution{S}(pb, sol))
+        push!(result.primal_sols, PrimalSolution{S}(sol, pb))
     end
     result.primal_bound = PrimalBound{S}()
     if nbprimalsols(result) > 0
-        result.primal_bound = getbound(unsafe_getbestprimalsol(result))
+        result.primal_bound = Coluna.Containers.getbound(unsafe_getbestprimalsol(result))
     end
     @logmsg LogLevel(-2) string("Primal bound is ", getprimalbound(result))
     return
@@ -212,35 +209,29 @@ end
 
 function fill_dual_result!(optimizer::MoiOptimizer,
                            result::OptimizationResult{S},
-                           constrs::ConstrDict) where {S<:AbstractObjSense}
+                           constrs::ConstrDict) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
         db = DualBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
-        sol = MembersVector{Float64}(constrs)
+        sol = Dict{Id{Constraint}, Float64}()
         # Getting dual bound is not stable in some solvers. 
         # Getting primal bound instead, which will work for lps
         for (id, constr) in constrs
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
-            
             if val > 0.000001 || val < - 0.000001 # todo use a tolerance
                 @logmsg LogLevel(-4) string("Constr ", getname(constr), " = ", val)
-                sol[id] = val
-                #if S == MinSense
-                #    sol[id] = (getsense(constr) != Less ? val : - val)
-                #else
-                #    sol[id] = (getsense(constr) != Greater ? val : - val)
-                #end               
+                sol[id] = val           
             end
         end
-        push!(result.dual_sols, DualSolution{S}(db, sol))
+        push!(result.dual_sols, DualSolution{S}(sol, db))
     end
     result.dual_bound = DualBound{S}()
     if nbdualsols(result) > 0
-        result.dual_bound = getbound(unsafe_getbestdualsol(result))
+        result.dual_bound = Coluna.Containers.getbound(unsafe_getbestdualsol(result))
     end
     @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return

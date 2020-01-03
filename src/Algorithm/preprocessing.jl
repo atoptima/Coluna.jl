@@ -234,7 +234,7 @@ end
 function compute_min_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    slack = getrhs(getcurdata(constr))
+    slack = getcurrhs(constr)
     if getduty(constr) <= AbstractMasterConstr
         var_filter = _rep_of_orig_var_ 
     else
@@ -247,14 +247,14 @@ function compute_min_slack!(
             continue
         end
         if coef > 0
-            cur_ub = getub(getcurdata(var))
+            cur_ub = getcurub(var)
             if cur_ub == Inf
                 alg_data.nb_inf_sources_for_min_slack[getid(constr)] += 1
             else
                 slack -= coef * cur_ub
             end
         else
-            cur_lb = getlb(getcurdata(var))
+            cur_lb = getcurlb(var)
             if cur_lb == -Inf
                 alg_data.nb_inf_sources_for_min_slack[getid(constr)] += 1
             else
@@ -269,7 +269,7 @@ end
 function compute_max_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    slack = getrhs(getcurdata(constr))
+    slack = getcurrhs(constr)
     if getduty(constr) <= AbstractMasterConstr
         var_filter = _rep_of_orig_var_ 
     else
@@ -282,14 +282,14 @@ function compute_max_slack!(
             continue
         end
         if coef > 0
-            cur_lb = getlb(getcurdata(var))
+            cur_lb = getcurlb(var)
             if cur_lb == -Inf
                 alg_data.nb_inf_sources_for_max_slack[getid(constr)] += 1
             else
                 slack -= coef*cur_lb
             end
         else
-            cur_ub = getub(getcurdata(var))
+            cur_ub = getcurub(var)
             if cur_ub == Inf
                 alg_data.nb_inf_sources_for_max_slack[getid(constr)] += 1
             else
