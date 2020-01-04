@@ -48,12 +48,10 @@ function unit_tests()
     end
 
     @testset "MathProg submodule" begin
-    
         @testset "types.jl" begin
             types_unit_tests()
             variables_unit_tests()
         end
-        exit()
     end
 
     @testset "algorithm.jl" begin

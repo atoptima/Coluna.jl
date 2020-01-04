@@ -10,7 +10,7 @@ getperenecost(form::Formulation, var::Variable) = var.perene_data.cost
 doc todo
 """
 #getcurcost(form::Formulation, varid::VarId) = form.manager.var_costs[getuid(varid)]
-getcurcost(form::Formulation, varid::VarId) = get(form.manager.var_costs, getuid(varid), 0.0)
+getcurcost(form::Formulation, varid::VarId) = get(form.manager.var_costs, varid, 0.0)
 getcurcost(form::Formulation, var::Variable) = getcurcost(form, getid(var))
 
 """
@@ -41,7 +41,7 @@ getperenelb(form::Formulation, var::Variable) = var.perene_data.lb
 doc todo
 """
 #getcurlb(form::Formulation, varid::VarId) = form.manager.var_lbs[getuid(varid)]
-getcurlb(form::Formulation, varid::VarId) = get(form.manager.var_lbs, getuid(varid), 0.0)
+getcurlb(form::Formulation, varid::VarId) = get(form.manager.var_lbs, varid, 0.0)
 getcurlb(form::Formulation, var::Variable) = getcurlb(form, getid(var))
 
 """
@@ -110,9 +110,9 @@ end
 doc todo
 """
 function reset!(form::Formulation, var::Variable)
-    setcurcost!(form, getperenecost(form, var))
-    setcurlb!(form, getperenelb(form, var))
-    setcurub!(form, getpereneub(form, var))
+    setcurcost!(form, var, getperenecost(form, var))
+    setcurlb!(form, var, getperenelb(form, var))
+    setcurub!(form, var, getpereneub(form, var))
     var.cur_data.inc_val = var.perene_data.inc_val
     var.cur_data.kind = var.perene_data.kind
     var.cur_data.sense = var.perene_data.sense
