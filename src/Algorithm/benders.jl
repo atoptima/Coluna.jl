@@ -68,7 +68,7 @@ function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation)
             setcurcost!(spform, var, 0.0)
             setub!(spform, var, 0.0)
         else
-            setcurcost!(spform, var, getperenecost(var))
+            setcurcost!(spform, var, getperenecost(spform, var))
         end
     end
     return
@@ -76,7 +76,7 @@ end
 
 function update_benders_sp_slackvar_cost_for_hyb_ph!(spform::Formulation)
     for (varid, var) in Iterators.filter(_active_, getvars(spform))
-        setcurcost!(spform, var, getperenecost(var))
+        setcurcost!(spform, var, getperenecost(spform, var))
         # TODO if previous phase is  a pure phase 2, reset current ub
     end
     return

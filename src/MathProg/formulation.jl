@@ -157,12 +157,20 @@ function setvar!(form::Formulation,
     return var
 end
 
-addprimalsol!(
-    form::Formulation,
-    sol::PrimalSolution{S},
-    sol_id::VarId
-) where {S<:Coluna.AbstractSense} = addprimalsol!(form.manager, sol, sol_id)
-
+function addprimalsol!(
+    form::Formulation, sol::PrimalSolution{S}, sol_id::VarId
+) where {S<:Coluna.AbstractSense}
+    cost = 0.0
+    for (var_id, var_val) in sol
+        var = form.manager.vars[var_id]
+        cost += getperenecost(form, var) * var_val
+        if getduty(var) <= DwSpSetupVar || getduty(var) <= DwSpPricingVar
+            form.manager.primal_sols[var_id, sol_id] = var_val
+        end
+    end
+    form.manager.primal_sol_costs[sol_id] = cost
+    return sol_id
+end
 
 function setprimalsol!(
     form::Formulation,
@@ -400,16 +408,6 @@ function activate!(f::Formulation, duty::AbstractConstrDuty)
         activate!(f, constr)
     end
 end
-
-function addprimalsol!(f::Formulation, var::Variable)
-    return addprimalsol!(f.manager, var)
-end
-
-#==function clonevar!(dest::Formulation, src::Formulation, var::Variable)
-    addvar!(dest, var)
-    return clonevar!(dest.manager, src.manager, src.manager, var)
-end
-==#
 
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
 function setconstr!(form::Formulation,
@@ -699,7 +697,7 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     t = getcurkind(var)
     d = getduty(var)
     e = get_cur_is_explicit(var)
-    println(io, lb, " <= ", name, getid(var), " <= ", ub, " (", t, " | ", d , " | ", e, ")")
+    println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
 function _show_variables(io::IO, form::Formulation)

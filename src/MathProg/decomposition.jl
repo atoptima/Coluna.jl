@@ -476,6 +476,11 @@ function reformulate!(prob::Problem, annotations::Annotations)
     reform = Reformulation(prob)
     set_re_formulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
+
+    @show reform.master
+    for sp in reform.dw_pricing_subprs
+        @show sp
+    end
     return
 end
 
