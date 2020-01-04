@@ -102,12 +102,12 @@ function test_random_gap_instance()
         master = CL.getmaster(coluna_optimizer.inner.re_formulation)
         for (moi_index, var_id) in coluna_optimizer.varmap
             var = CL.getvar(master, var_id)
-            if CL.getcurlb(var) == CL.getcurub(var)
+            if CL.getcurlb(master, var) == CL.getcurub(master, var)
                 var_name = CL.getname(var)
                 m = parse(Int, split(split(var_name, ",")[1], "[")[2])
                 j = parse(Int, split(split(var_name, ",")[2], "]")[1])
                 forbidden_machs = (
-                    CL.getcurlb(var) == 1 ? [m] : [mach_idx for mach_idx in data.machines if mach_idx != m]
+                    CL.getcurlb(master, var) == 1 ? [m] : [mach_idx for mach_idx in data.machines if mach_idx != m]
                 )
                 modified_data = deepcopy(data)
                 for mach_idx in forbidden_machs

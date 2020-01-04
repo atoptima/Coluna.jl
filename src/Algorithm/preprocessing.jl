@@ -407,7 +407,7 @@ function update_lower_bound!(
             "updating lb of var ", getname(var), " from ", cur_lb, " to ",
             new_lb, " duty ", getduty(var)
         )
-        setlb!(form, var, new_lb)
+        setcurlb!(form, var, new_lb)
         add_to_preprocessing_list!(alg_data, var)
 
         # Now we update bounds of clones
@@ -469,7 +469,7 @@ function update_upper_bound!(
                 " to ", new_ub, " duty ", getduty(var)
             )
         end
-        setub!(form, var, new_ub)
+        setcurub!(form, var, new_ub)
         add_to_preprocessing_list!(alg_data, var)
 
         # Now we update bounds of clones
@@ -488,7 +488,7 @@ function update_upper_bound!(
             (sp_lb, sp_ub) = alg_data.cur_sp_bounds[getuid(form)]
             clone_in_master = getvar(master, getid(var))
             if update_upper_bound!(
-                alg_data, clone_in_master, master, getcurub(var) * sp_ub
+                alg_data, clone_in_master, master, getcurub(form, var) * sp_ub
             )
                 return true
             end
@@ -611,7 +611,7 @@ function forbid_infeasible_columns!(alg_data::PreprocessData)
         if getduty(var) == DwSpPricingVar
             for (col_id, coef) in primal_sp_sols[getid(var),:]
                 if !(getcurlb(var) <= coef <= getcurub(var)) # TODO ; get the subproblem...
-                    setub!(master, getvar(master, col_id), 0.0)
+                    setcurub!(master, getvar(master, col_id), 0.0)
                 end
             end
         end
