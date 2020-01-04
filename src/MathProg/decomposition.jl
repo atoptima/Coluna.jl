@@ -291,8 +291,8 @@ function create_side_vars_constrs!(
         name = "η[$(split(getname(nu_var), "[")[end])"
         setvar!(
             masterform, name, MasterBendSecondStageCostVar; cost = 1.0,
-            lb = getperenelb(masterform, nu_var), 
-            ub = getpereneub(masterform, nu_var), kind = Continuous, 
+            lb = getperenelb(spform, nu_var), 
+            ub = getpereneub(spform, nu_var), kind = Continuous, 
             sense = Free, is_explicit = true, 
             id = Id{Variable}(getid(nu_var),getuid(masterform))
         )                                 
@@ -324,8 +324,9 @@ function instantiate_orig_vars!(
                 name = "μ[$(split(getname(var), "[")[end])"
                 mu = setvar!(
                     spform, name, BendSpSlackFirstStageVar; 
-                    cost = getcurcost(spform, var), lb = getcurlb(var), 
-                    ub = getcurub(var), kind = Continuous, 
+                    cost = getcurcost(masterform, var), 
+                    lb = getcurlb(masterform, var), 
+                    ub = getcurub(masterform, var), kind = Continuous, 
                     sense = getcursense(var), is_explicit = true, 
                     id = Id{Variable}(id, getuid(getmaster(spform)))
                 )
@@ -374,11 +375,11 @@ function create_side_vars_constrs!(
         orig_var = getvar(origform, var_id)
         cost =  getperenecost(origform, orig_var)
         if cost > 0.00001 
-            global_costprofit_ub += cost * getcurub(orig_var)
-            global_costprofit_lb += cost * getcurlb(orig_var)
+            global_costprofit_ub += cost * getcurub(origform, orig_var)
+            global_costprofit_lb += cost * getcurlb(origform, orig_var)
         elseif cost < - 0.00001  
-            global_costprofit_ub += cost * getcurlb(orig_var)
-            global_costprofit_lb += cost * getcurub(orig_var)
+            global_costprofit_ub += cost * getcurlb(origform, orig_var)
+            global_costprofit_lb += cost * getcurub(origform, orig_var)
         end
     end
 
