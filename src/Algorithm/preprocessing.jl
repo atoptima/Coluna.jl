@@ -571,7 +571,7 @@ function strengthen_var_bounds_in_constr!(
             continue
         end
         (is_ub, bound) = compute_new_var_bound(
-            alg_data, var, getcurlb(form, var), getcurub(var), coef, constr
+            alg_data, var, getcurlb(form, var), getcurub(form, var), coef, constr
         )
         if !isinf(bound)
             bound = adjust_bound(var, bound, is_ub)

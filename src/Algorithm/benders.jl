@@ -66,7 +66,7 @@ function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation)
     for (varid, var) in filter(_active_ , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 0.0)
-            setub!(spform, var, 0.0)
+            setcurub!(spform, var, 0.0)
         else
             setcurcost!(spform, var, getperenecost(spform, var))
         end
@@ -97,7 +97,7 @@ function update_benders_sp_problem!(
     for (varid, var) in Iterators.filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
         if haskey(master_primal_sol, varid)
             #setcurlb!(var, getperenelb(var) - cur_sol[var_id])
-            setub!(spform, var, getpereneub(var) - master_primal_sol[varid])
+            setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
         end
     end
 

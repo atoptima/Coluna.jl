@@ -396,8 +396,8 @@ function create_side_vars_constrs!(
             lb = - global_costprofit_lb , ub = global_costprofit_ub, 
             kind = Continuous, sense = Free, is_explicit = true
         )
-        setcurlb!(nu, 0.0)                                          
-        setcurub!(nu, Inf)                                          
+        setcurlb!(spform, nu, 0.0)                                          
+        setcurub!(spform, nu, Inf)                                          
 
         cost = setconstr!(
             spform, "cost[$sp_id]", BendSpSecondStageCostConstr; rhs = 0.0, 
@@ -478,10 +478,10 @@ function reformulate!(prob::Problem, annotations::Annotations)
     set_re_formulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
 
-    @show reform.master
-    for sp in reform.dw_pricing_subprs
-        @show sp
-    end
+    # @show reform.master
+    # for sp in reform.dw_pricing_subprs
+    #     @show sp
+    # end
     return
 end
 

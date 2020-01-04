@@ -25,8 +25,9 @@ function compute_moi_terms(members::VarMembership)
     ]
 end
 
-function update_bounds_in_optimizer!(optimizer::MoiOptimizer,
+function update_bounds_in_optimizer!(form::Formulation,
                                     var::Variable)
+    optimizer = getoptimizer(form)
     inner = getinner(optimizer)
     moi_record = getmoirecord(var)
     moi_kind = getkind(moi_record)
@@ -40,12 +41,12 @@ function update_bounds_in_optimizer!(optimizer::MoiOptimizer,
     end
     if moi_bounds.value != -1
         MOI.set(inner, MOI.ConstraintSet(), moi_bounds,
-            MOI.Interval(getcurlb(var), getcurub(var))
+            MOI.Interval(getcurlb(form, var), getcurub(form, var))
         )
     else
         setbounds!(moi_record, MOI.add_constraint(
             inner, MOI.SingleVariable(moi_index),
-            MOI.Interval(getcurlb(var), getcurub(var))
+            MOI.Interval(getcurlb(form, var), getcurub(form, var))
         ))
     end
 end

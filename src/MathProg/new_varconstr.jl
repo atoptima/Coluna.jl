@@ -72,7 +72,7 @@ getpereneub(form::Formulation, var::Variable) = var.perene_data.ub
 doc todo
 """
 #getcurub(form::Formulation, varid::VarId) = form.manager.var_ubs[getuid(varid)]
-getcurub(form::Formulation, varid::VarId) = get(form.manager.var_ubs, varid, 0.0)
+getcurub(form::Formulation, varid::VarId) = get(form.manager.var_ubs, varid, Inf)
 getcurub(form::Formulation, var::Variable) = getcurub(form, getid(var))
 
 """

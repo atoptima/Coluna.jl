@@ -260,7 +260,7 @@ function setdualsol!(
             continue
         end
 
-        for (constr_id, constr_val) in getrecords(new_dual_sol.sol)
+        for (constr_id, constr_val) in new_dual_sol
             if !haskey(prev_dual_sol, constr_id)
                 is_identical = false
                 break
@@ -291,27 +291,33 @@ function setcol_from_sp_primalsol!(
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
 ) 
-    mast_col_id = sol_id
     cost = getprimalsolcosts(spform)[sol_id]
-    mast_col_data = VarData(
-        cost, lb, ub, kind, sense, inc_val, is_active, is_explicit
-    )
-    mast_col = Variable(
-        mast_col_id, name, duty;
-        var_data = mast_col_data,
-        moi_index = moi_index
-    )
 
     master_coef_matrix = getcoefmatrix(masterform)
     sp_sol = getprimalsolmatrix(spform)[:,sol_id]
+    members = MembersVector{Float64}(getconstrs(masterform))
 
     for (sp_var_id, sp_var_val) in sp_sol
         for (master_constr_id, sp_var_coef) in master_coef_matrix[:,sp_var_id]
-            master_coef_matrix[master_constr_id, mast_col_id] += sp_var_val * sp_var_coef
+            members[master_constr_id] += sp_var_val * sp_var_coef
         end
     end
 
-    return addvar!(masterform, mast_col)
+    mast_col = setvar!(
+        masterform, name, duty,
+        cost = cost,
+        lb = lb,
+        ub = ub,
+        kind = kind,
+        sense = sense,
+        inc_val = inc_val,
+        is_active = is_active,
+        is_explicit = is_explicit,
+        moi_index = moi_index,
+        members = members,
+        id = sol_id
+    )
+    return mast_col
 end
 
 function setcut_from_sp_dualsol!(
@@ -353,15 +359,14 @@ function setcut_from_sp_dualsol!(
         end
     end 
 
-
     return addconstr!(masterform, benders_cut)
 end
 
-"Adds `Variable` `var` to `Formulation` `form`."
-function addvar!(f::Formulation, var::Variable)
-    add!(f.buffer, var)
-    return addvar!(f.manager, var)
-end
+# "Adds `Variable` `var` to `Formulation` `form`."
+# function addvar!(f::Formulation, var::Variable)
+#     add!(f.buffer, var)
+#     return addvar!(f.manager, var)
+# end
 
 "Deactivates a variable or a constraint in the formulation"
 function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
