@@ -78,7 +78,7 @@ deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DynamicSparseArrays]]
-git-tree-sha1 = "de138b1bf6a811ca7dbd9954ae65ab13446e7eb4"
+git-tree-sha1 = "a8d96f180cd259675a86f2f4af1b7564c5ca52be"
 uuid = "8086fd22-9a0c-46a5-a6c8-6e24676501fe"
 version = "0.2.1"
 
