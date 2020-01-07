@@ -11,11 +11,17 @@ struct VarData <: AbstractVcData
     is_explicit::Bool
 end
 
-function _setkind!(v::VarData, kind::VarKind)
+function _set_bounds_acc_kind!(vdata::VarData, kind::VarKind)
     if kind == Binary
-        v.kind = Binary
-        (v.lb < 0) && setlb!(v, 0.0)
-        (v.ub > 1) && setub!(v, 1.0)
+        if vdata.lb < 0
+            vdata.lb = 0
+        end
+        if vdata.ub > 1
+            vdata.ub = 0
+        end
+    elseif kind == Integer
+        vdata.lb = ceil(vdata.lb)
+        vdata.ub = floor(vdata.ub)
     end
     return
 end
@@ -36,7 +42,7 @@ function VarData(
     is_explicit::Bool = true
 )
     vc = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
-    _setkind!(vc, kind) # should move in preprocessing ?
+    _set_bounds_acc_kind!(vc, kind)
     return vc
 end
 

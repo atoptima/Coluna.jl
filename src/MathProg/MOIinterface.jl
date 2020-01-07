@@ -25,8 +25,7 @@ function compute_moi_terms(members::VarMembership)
     ]
 end
 
-function update_bounds_in_optimizer!(form::Formulation,
-                                    var::Variable)
+function update_bounds_in_optimizer!(form::Formulation, var::Variable)
     optimizer = getoptimizer(form)
     inner = getinner(optimizer)
     moi_record = getmoirecord(var)
