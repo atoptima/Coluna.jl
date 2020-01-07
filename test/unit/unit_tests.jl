@@ -3,7 +3,7 @@ include("containers/nestedenum.jl")
 include("containers/solsandbounds.jl")
 
 include("MathProg/types.jl")
-
+include("MathProg/variables.jl")
 
 include("algorithms/algorithm.jl")
 include("strategies/strategy.jl")
@@ -48,11 +48,10 @@ function unit_tests()
     end
 
     @testset "MathProg submodule" begin
-    
         @testset "types.jl" begin
             types_unit_tests()
+            variables_unit_tests()
         end
-
     end
 
     @testset "algorithm.jl" begin

@@ -10,8 +10,6 @@ It is composed by the following uids:
 4. `proc_uid`: Number of the process where it was generated 
 For a origin jump var/constr the origin_form_uid is the jump model while the assigned_form_uid_in_reformulation is the spform for a pure spform and the master for a pure master var. For a added var/constr the origin_form_uid is where is was created : for instance a master column 's orginal formulation  is the subproblem for which it was a solution and is assigned formulation is the master program.Number of the process where it was generated 
 """
-
-    
 struct Id{VC <: AbstractVarConstr}
     uid::Int
     origin_form_uid::FormId
@@ -19,8 +17,6 @@ struct Id{VC <: AbstractVarConstr}
     proc_uid::Int
     _hash::Int
 end
-
-
 
 function _create_hash(uid::Int, origin_form_uid::FormId, proc_uid::Int)
     return (
@@ -53,14 +49,19 @@ function Id{VC}(id::Id{VC}) where {VC}
     Id{VC}(id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, id._hash)
 end
 
-#Id{VC}(id::Id, form::Formulation) where {VC} = Id{VC}(id, getuid(form))
-
 Base.hash(a::Id, h::UInt) = hash(a._hash, h)
 Base.isequal(a::Id, b::Id) = Base.isequal(a._hash, b._hash)
 Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
 Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
 Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
-Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1, -1) 
+Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1, -1)
+
+Base.:(<)(a::Id, b::Id) = a._hash < b._hash
+Base.:(<=)(a::Id, b::Id) = a._hash <= b._hash
+Base.:(==)(a::Id, b::Id) = a._hash == b._hash
+Base.:(>)(a::Id, b::Id) = a._hash > b._hash
+Base.:(>=)(a::Id, b::Id) = a._hash >= b._hash
+
 getuid(id::Id)::Int = id.uid
 getoriginformuid(id::Id)::FormId = id.origin_form_uid
 getassignedformuid(id::Id)::FormId = id.assigned_form_uid_in_reformulation

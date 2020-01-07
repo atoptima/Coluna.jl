@@ -11,6 +11,7 @@ using ..Containers
 
 import Base: haskey, length, iterate, diff
 
+using DynamicSparseArrays
 using Logging
 using Printf
 
@@ -73,6 +74,14 @@ export reformulate!,
        get_cur_is_active, 
        get_cur_is_explicit
 
+# Methods related to variables 
+export getcurcost,
+       setcurcost!,
+       getcurlb,
+       setcurlb!,
+       getcurub,
+       setcurub!
+
 # Parameters
 const MAX_FORMULATIONS = 100
 const MAX_PROCESSES = 100
@@ -82,7 +91,7 @@ include("types.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
-include("varconstr.jl")
+include("varconstr.jl") # to rm
 
 include("manager.jl")
 include("filters.jl")
@@ -90,6 +99,7 @@ include("optimizationresults.jl")
 include("incumbents.jl")
 include("buffer.jl")
 include("formulation.jl")
+include("new_varconstr.jl") 
 include("optimizerwrappers.jl")
 include("clone.jl")
 include("reformulation.jl")

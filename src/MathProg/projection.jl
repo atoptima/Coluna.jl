@@ -6,7 +6,7 @@ function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMast
         origin_form_uid = getoriginformuid(mc_id)
         # TODO : enhance following
         spform = master 
-        if origin_form_uid != 0
+        if origin_form_uid != 0 && origin_form_uid != 1 # if id = 1 this is the master
             spform = get_dw_pricing_sps(master.parent_formulation)[origin_form_uid]
         end
         # END TODO

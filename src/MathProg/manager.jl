@@ -1,3 +1,5 @@
+const DynSparseVector{I} = DynamicSparseArrays.PackedMemoryArray{I, Float64} 
+
 const VarDict = ElemDict{Id{Variable}, Variable}
 const ConstrDict = ElemDict{Id{Constraint}, Constraint}
 const VarMembership = MembersVector{VarId,Variable,Float64}
@@ -14,6 +16,9 @@ const DualBound{S} = Bound{Dual, S}
 struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
+    var_costs::DynSparseVector{VarId}
+    var_lbs::Dict{VarId, Float64}
+    var_ubs::Dict{VarId, Float64}
     coefficients::VarConstrMatrix # cols = variables, rows = constraints
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables 
@@ -28,6 +33,9 @@ function FormulationManager()
     
     return FormulationManager(vars,
                               constrs,
+                              dynamicsparsevec(VarId[], Float64[]),
+                              Dict{VarId, Float64}(), #dynamicsparsevec(Int[], Float64[]),
+                              Dict{VarId, Float64}(), #dynamicsparsevec(Int[], Float64[]),
                               MembersMatrix{Float64}(vars,constrs),
                               MembersMatrix{Float64}(vars,vars),
                               MembersMatrix{Float64}(vars,vars),
@@ -44,23 +52,6 @@ function addvar!(m::FormulationManager, var::Variable)
     haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))
     m.vars[var.id] = var
     return var
-end
-
-function addprimalsol!(m::FormulationManager, 
-                       sol::PrimalSolution{S},
-                       sol_id::VarId
-                       ) where {S<:Coluna.AbstractSense}
-    cost = 0.0
-    for (var_id, var_val) in sol
-        var = m.vars[var_id]
-        cost += getperenecost(var) * var_val
-        if getduty(var) <= DwSpSetupVar || getduty(var) <= DwSpPricingVar
-            m.primal_sols[var_id, sol_id] = var_val
-        end
-    end
-    m.primal_sol_costs[sol_id] = cost
-
-    return sol_id
 end
 
 function adddualsol!(m::FormulationManager,

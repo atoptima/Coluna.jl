@@ -68,25 +68,25 @@ function variable_getters_and_setters_tests()
         var_data = v_data
     )
 
-    @test ClF.getperenecost(v) == ClF.getcurcost(v) == 13.0
-    @test ClF.getperenelb(v) == ClF.getcurlb(v) == -10.0
-    @test ClF.getpereneub(v) == ClF.getcurub(v) == 100.0
+    #@test ClF.getperenecost(v) == ClF.getcurcost(v) == 13.0
+    #@test ClF.getperenelb(v) == ClF.getcurlb(v) == -10.0
+    #@test ClF.getpereneub(v) == ClF.getcurub(v) == 100.0
 
-    ClF.setcurcost!(v, -134.0)
-    ClF.setcurlb!(v, -2001.9)
-    ClF.setcurub!(v, 2387.0)
+    #ClF.setcurcost!(v, -134.0)
+    #ClF.setcurlb!(v, -2001.9)
+    #ClF.setcurub!(v, 2387.0)
 
-    @test ClF.getcurcost(v) == -134.0
-    @test ClF.getcurlb(v) == -2001.9
-    @test ClF.getcurub(v) == 2387.0
-    @test ClF.getperenecost(v) == 13.0
-    @test ClF.getperenelb(v) == -10.0
-    @test ClF.getpereneub(v) == 100.0
+    #@test ClF.getcurcost(v) == -134.0
+    #@test ClF.getcurlb(v) == -2001.9
+    #@test ClF.getcurub(v) == 2387.0
+    #@test ClF.getperenecost(v) == 13.0
+    #@test ClF.getperenelb(v) == -10.0
+    #@test ClF.getpereneub(v) == 100.0
 
-    ClF.reset!(v)
-    @test v.perene_data.cost == v.cur_data.cost == 13.0
-    @test v.perene_data.lb == v.cur_data.lb == -10.0
-    @test v.perene_data.ub == v.cur_data.ub == 100.0
+    #ClF.reset!(v)
+    #@test v.perene_data.cost == v.cur_data.cost == 13.0
+    #@test v.perene_data.lb == v.cur_data.lb == -10.0
+    #@test v.perene_data.ub == v.cur_data.ub == 100.0
     @test v.perene_data.kind == v.cur_data.kind == ClF.Continuous
     @test v.perene_data.sense == v.cur_data.sense == ClF.Free
     @test v.perene_data.inc_val == v.cur_data.inc_val == -1.0

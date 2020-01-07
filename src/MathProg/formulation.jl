@@ -84,53 +84,14 @@ getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_f
 
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
-"""
-    setcost!(f::Formulation, v::Variable, new_cost::Float64)
-Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be 
-euqal to `new_cost`. Change on `f.optimizer` will be buffered.
-"""
-function setcost!(form::Formulation, var::Variable, new_cost::Float64)
-    setcurcost!(var, new_cost)
-    change_cost!(form.buffer, var)
-end
 
-"""
-    setcurcost!(f::Formulation, v::Variable, new_cost::Float64)
-
-Sets `v.cur_data.cost` as well as the cost of `v` in `f.optimizer` to be
-euqal to `new_cost`. Change on `f.optimizer` will be buffered.
-"""
-function setcurcost!(form::Formulation, var::Variable, new_cost::Float64)
-    setcurcost!(var, new_cost)
-    change_cost!(form.buffer, var)
-end
 
 function setcurrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
     setcurrhs!(constr, new_rhs)
     change_rhs!(form.buffer, constr)
 end
 
-"""
-    setub!(f::Formulation, v::Variable, new_ub::Float64)
 
-Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
-according to `new_ub`. Change on `f.optimizer` will be buffered.
-"""
-function setub!(form::Formulation, var::Variable, new_ub::Float64)
-    setcurub!(var, new_ub)
-    change_bound!(form.buffer, var)
-end
-
-"""
-    setlb!(f::Formulation, v::Variable, new_lb::Float64)
-
-Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
-according to `new_lb`. Change on `f.optimizer` will be buffered.
-"""
-function setlb!(f::Formulation, var::Variable, new_lb::Float64)
-    setcurlb!(var, new_lb)
-    change_bound!(f.buffer, var)
-end
 
 """
     setkind!(f::Formulation, v::Variable, new_kind::VarKind)
@@ -184,16 +145,32 @@ function setvar!(form::Formulation,
     end
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     var = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
+    if haskey(form.manager.vars, getid(var))
+        error(string("Variable of id ", getid(var), " exists"))
+    end
+    form.manager.vars[getid(var)] = var
+    form.manager.var_costs[getid(var)] = cost
+    form.manager.var_lbs[getid(var)] = lb
+    form.manager.var_ubs[getid(var)] = ub
     members != nothing && _setmembers!(form, var, members)
-    return addvar!(form, var)
+    add!(form.buffer, var)
+    return var
 end
 
-addprimalsol!(
-    form::Formulation,
-    sol::PrimalSolution{S},
-    sol_id::VarId
-) where {S<:Coluna.AbstractSense} = addprimalsol!(form.manager, sol, sol_id)
-
+function addprimalsol!(
+    form::Formulation, sol::PrimalSolution{S}, sol_id::VarId
+) where {S<:Coluna.AbstractSense}
+    cost = 0.0
+    for (var_id, var_val) in sol
+        var = form.manager.vars[var_id]
+        cost += getperenecost(form, var) * var_val
+        if getduty(var) <= DwSpSetupVar || getduty(var) <= DwSpPricingVar
+            form.manager.primal_sols[var_id, sol_id] = var_val
+        end
+    end
+    form.manager.primal_sol_costs[sol_id] = cost
+    return sol_id
+end
 
 function setprimalsol!(
     form::Formulation,
@@ -283,7 +260,7 @@ function setdualsol!(
             continue
         end
 
-        for (constr_id, constr_val) in getrecords(new_dual_sol.sol)
+        for (constr_id, constr_val) in new_dual_sol
             if !haskey(prev_dual_sol, constr_id)
                 is_identical = false
                 break
@@ -314,27 +291,33 @@ function setcol_from_sp_primalsol!(
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
 ) 
-    mast_col_id = sol_id
     cost = getprimalsolcosts(spform)[sol_id]
-    mast_col_data = VarData(
-        cost, lb, ub, kind, sense, inc_val, is_active, is_explicit
-    )
-    mast_col = Variable(
-        mast_col_id, name, duty;
-        var_data = mast_col_data,
-        moi_index = moi_index
-    )
 
     master_coef_matrix = getcoefmatrix(masterform)
     sp_sol = getprimalsolmatrix(spform)[:,sol_id]
+    members = MembersVector{Float64}(getconstrs(masterform))
 
     for (sp_var_id, sp_var_val) in sp_sol
         for (master_constr_id, sp_var_coef) in master_coef_matrix[:,sp_var_id]
-            master_coef_matrix[master_constr_id, mast_col_id] += sp_var_val * sp_var_coef
+            members[master_constr_id] += sp_var_val * sp_var_coef
         end
     end
 
-    return addvar!(masterform, mast_col)
+    mast_col = setvar!(
+        masterform, name, duty,
+        cost = cost,
+        lb = lb,
+        ub = ub,
+        kind = kind,
+        sense = sense,
+        inc_val = inc_val,
+        is_active = is_active,
+        is_explicit = is_explicit,
+        moi_index = moi_index,
+        members = members,
+        id = sol_id
+    )
+    return mast_col
 end
 
 function setcut_from_sp_dualsol!(
@@ -376,15 +359,14 @@ function setcut_from_sp_dualsol!(
         end
     end 
 
-
     return addconstr!(masterform, benders_cut)
 end
 
-"Adds `Variable` `var` to `Formulation` `form`."
-function addvar!(f::Formulation, var::Variable)
-    add!(f.buffer, var)
-    return addvar!(f.manager, var)
-end
+# "Adds `Variable` `var` to `Formulation` `form`."
+# function addvar!(f::Formulation, var::Variable)
+#     add!(f.buffer, var)
+#     return addvar!(f.manager, var)
+# end
 
 "Deactivates a variable or a constraint in the formulation"
 function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
@@ -431,16 +413,6 @@ function activate!(f::Formulation, duty::AbstractConstrDuty)
         activate!(f, constr)
     end
 end
-
-function addprimalsol!(f::Formulation, var::Variable)
-    return addprimalsol!(f.manager, var)
-end
-
-#==function clonevar!(dest::Formulation, src::Formulation, var::Variable)
-    addvar!(dest, var)
-    return clonevar!(dest.manager, src.manager, src.manager, var)
-end
-==#
 
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
 function setconstr!(form::Formulation,
@@ -598,13 +570,13 @@ function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
 end
 
 function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64}) 
-    val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol_vec)
+    val = sum(getperenecost(form, var_id) * value for (var_id, value) in sol_vec)
     return val
 end
 
 
 function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:Coluna.AbstractSense}
-    val = sum(getperenecost(getvar(form, var_id)) * value for (var_id, value) in sol)
+    val = sum(getperenecost(form, var_id) * value for (var_id, value) in sol)
     return val
 end
 
@@ -626,7 +598,7 @@ end
 
 function computereducedcost(form::Formulation, var_id::Id{Variable}, dualsol::DualSolution{S})  where {S<:Coluna.AbstractSense}
     var = getvar(form, var_id)
-    rc = getperenecost(var)
+    rc = getperenecost(form, var)
     coefficient_matrix = getcoefmatrix(form)
     sign = 1
     if getobjsense(form) == MinSense
@@ -676,7 +648,7 @@ function _show_obj_fun(io::IO, form::Formulation)
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
         name = getname(vars[id])
-        cost = getcurcost(vars[id])
+        cost = getcurcost(form, id)
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
     end
@@ -725,12 +697,12 @@ end
 
 function _show_variable(io::IO, form::Formulation, var::Variable)
     name = getname(var)
-    lb = getcurlb(var)
-    ub = getcurub(var)
+    lb = getcurlb(form, var)
+    ub = getcurub(form, var)
     t = getcurkind(var)
     d = getduty(var)
     e = get_cur_is_explicit(var)
-    println(io, lb, " <= ", name, getid(var), " <= ", ub, " (", t, " | ", d , " | ", e, ")")
+    println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
 function _show_variables(io::IO, form::Formulation)

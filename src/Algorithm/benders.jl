@@ -66,9 +66,9 @@ function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation)
     for (varid, var) in filter(_active_ , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 0.0)
-            setub!(spform, var, 0.0)
+            setcurub!(spform, var, 0.0)
         else
-            setcurcost!(spform, var, getperenecost(var))
+            setcurcost!(spform, var, getperenecost(spform, var))
         end
     end
     return
@@ -76,7 +76,7 @@ end
 
 function update_benders_sp_slackvar_cost_for_hyb_ph!(spform::Formulation)
     for (varid, var) in Iterators.filter(_active_, getvars(spform))
-        setcurcost!(spform, var, getperenecost(var))
+        setcurcost!(spform, var, getperenecost(spform, var))
         # TODO if previous phase is  a pure phase 2, reset current ub
     end
     return
@@ -97,13 +97,13 @@ function update_benders_sp_problem!(
     for (varid, var) in Iterators.filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
         if haskey(master_primal_sol, varid)
             #setcurlb!(var, getperenelb(var) - cur_sol[var_id])
-            setub!(spform, var, getpereneub(var) - master_primal_sol[varid])
+            setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
         end
     end
 
     if algo.option_use_reduced_cost
         for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
-            cost = getcurcost(var)
+            cost = getcurcost(spform, var)
             rc = computereducedcost(masterform, var_id, master_dual_sol)
             setcurcost!(spform, var, rc)
         end

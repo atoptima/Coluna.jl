@@ -56,8 +56,8 @@ function run!(algo::Preprocess, reformulation, node)
 
     # Now we try to update local bounds of sp vars
     for var in vars_with_modified_bounds
-        update_lower_bound!(alg, var, master, getcurlb(var), false)
-        update_upper_bound!(alg, var, master, getcurub(var), false)
+        update_lower_bound!(alg, var, master, getcurlb(master, var), false)
+        update_upper_bound!(alg, var, master, getcurub(master, var), false)
     end
 
     infeasible = propagation!(alg_data) 
@@ -154,19 +154,19 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
 
             clone_in_master = getvar(master, var_id)
             new_global_lb = max(
-                getcurlb(clone_in_master) - var_val_in_local_sol,
-                getcurlb(var) * cur_sp_lb
+                getcurlb(master, clone_in_master) - var_val_in_local_sol,
+                getcurlb(sp_prob, var) * cur_sp_lb
             )
-            if new_global_lb != getcurlb(clone_in_master)
+            if new_global_lb != getcurlb(master, clone_in_master)
                 setlb!(clone_in_master) = new_global_lb
                 bounds_changed = true
             end
 
             new_global_ub = min(
-                getcurub(clone_in_master) - var_val_in_local_sol,
-                getcurub(var) * cur_sp_ub
+                getcurub(master, clone_in_master) - var_val_in_local_sol,
+                getcurub(sp_prob, var) * cur_sp_ub
             )
-            if new_global_ub != getcurub(clone_in_master)
+            if new_global_ub != getcurub(master, clone_in_master)
                 setub!(clone_in_master) = new_global_ub
                 bounds_changed = true
             end
@@ -247,14 +247,14 @@ function compute_min_slack!(
             continue
         end
         if coef > 0
-            cur_ub = getcurub(var)
+            cur_ub = getcurub(form, var)
             if cur_ub == Inf
                 alg_data.nb_inf_sources_for_min_slack[getid(constr)] += 1
             else
                 slack -= coef * cur_ub
             end
         else
-            cur_lb = getcurlb(var)
+            cur_lb = getcurlb(form, var)
             if cur_lb == -Inf
                 alg_data.nb_inf_sources_for_min_slack[getid(constr)] += 1
             else
@@ -282,14 +282,14 @@ function compute_max_slack!(
             continue
         end
         if coef > 0
-            cur_lb = getcurlb(var)
+            cur_lb = getcurlb(form, var)
             if cur_lb == -Inf
                 alg_data.nb_inf_sources_for_max_slack[getid(constr)] += 1
             else
                 slack -= coef*cur_lb
             end
         else
-            cur_ub = getcurub(var)
+            cur_ub = getcurub(form, var)
             if cur_ub == Inf
                 alg_data.nb_inf_sources_for_max_slack[getid(constr)] += 1
             else
@@ -385,8 +385,8 @@ function update_lower_bound!(
         alg_data::PreprocessData, var::Variable, form::Formulation,
         new_lb::Float64, check_monotonicity::Bool = true
     )
-    cur_lb = getcurlb(var)
-    cur_ub = getcurub(var)
+    cur_lb = getcurlb(form, var)
+    cur_ub = getcurub(form, var)
     if new_lb > cur_lb || !check_monotonicity
         if new_lb > cur_ub
             return true
@@ -407,7 +407,7 @@ function update_lower_bound!(
             "updating lb of var ", getname(var), " from ", cur_lb, " to ",
             new_lb, " duty ", getduty(var)
         )
-        setlb!(form, var, new_lb)
+        setcurlb!(form, var, new_lb)
         add_to_preprocessing_list!(alg_data, var)
 
         # Now we update bounds of clones
@@ -417,7 +417,7 @@ function update_lower_bound!(
             clone_in_sp = getvar(subprob, getid(var))
             if update_lower_bound!(
                     alg_data, clone_in_sp, subprob,
-                    getcurlb(var) - (max(sp_ub, 1) - 1) * getcurub(clone_in_sp)
+                    getcurlb(form, var) - (max(sp_ub, 1) - 1) * getcurub(subprob, clone_in_sp)
                 )
                 return true
             end
@@ -426,12 +426,12 @@ function update_lower_bound!(
             (sp_lb, sp_ub) = alg_data.cur_sp_bounds[getuid(form)]
             clone_in_master = getvar(master, getid(var))
             if update_lower_bound!(
-                    alg_data, clone_in_master, master, getcurlb(var) * sp_lb
+                    alg_data, clone_in_master, master, getcurlb(form, var) * sp_lb
                 )
                 return true
             end
             new_ub_in_sp = (
-                getcurub(clone_in_master) - (max(sp_lb, 1) - 1) * getcurlb(var)
+                getcurub(master, clone_in_master) - (max(sp_lb, 1) - 1) * getcurlb(form, var)
             )
             if update_upper_bound!(alg_data, var, form, new_ub_in_sp)
                 return true
@@ -445,8 +445,8 @@ function update_upper_bound!(
         alg_data::PreprocessData, var::Variable, form::Formulation,
         new_ub::Float64, check_monotonicity::Bool = true
     )
-    cur_lb = getcurlb(var)
-    cur_ub = getcurub(var)
+    cur_lb = getcurlb(form, var)
+    cur_ub = getcurub(form, var)
     if new_ub < cur_ub || !check_monotonicity
         if new_ub < cur_lb
             return true
@@ -469,7 +469,7 @@ function update_upper_bound!(
                 " to ", new_ub, " duty ", getduty(var)
             )
         end
-        setub!(form, var, new_ub)
+        setcurub!(form, var, new_ub)
         add_to_preprocessing_list!(alg_data, var)
 
         # Now we update bounds of clones
@@ -479,7 +479,7 @@ function update_upper_bound!(
             clone_in_sp = getvar(subprob, getid(var))
             if update_upper_bound!(
                 alg_data, clone_in_sp, subprob,
-                getcurub(var) - (max(sp_lb, 1) - 1) * getcurlb(clone_in_sp)
+                getcurub(form, var) - (max(sp_lb, 1) - 1) * getcurlb(subprob, clone_in_sp)
             )
                 return true
             end
@@ -488,12 +488,12 @@ function update_upper_bound!(
             (sp_lb, sp_ub) = alg_data.cur_sp_bounds[getuid(form)]
             clone_in_master = getvar(master, getid(var))
             if update_upper_bound!(
-                alg_data, clone_in_master, master, getcurub(var) * sp_ub
+                alg_data, clone_in_master, master, getcurub(form, var) * sp_ub
             )
                 return true
             end
             new_lb_in_sp = (
-                getcurlb(clone_in_master) - (max(sp_ub, 1) - 1) * getcurub(var)
+                getcurlb(master, clone_in_master) - (max(sp_ub, 1) - 1) * getcurub(form, var)
             )
             if update_lower_bound!(alg_data, var, form, new_lb_in_sp)
                 return true
@@ -571,7 +571,7 @@ function strengthen_var_bounds_in_constr!(
             continue
         end
         (is_ub, bound) = compute_new_var_bound(
-            alg_data, var, getcurlb(var), getcurub(var), coef, constr
+            alg_data, var, getcurlb(form, var), getcurub(form, var), coef, constr
         )
         if !isinf(bound)
             bound = adjust_bound(var, bound, is_ub)
@@ -610,8 +610,8 @@ function forbid_infeasible_columns!(alg_data::PreprocessData)
     for var in alg_data.preprocessed_vars
         if getduty(var) == DwSpPricingVar
             for (col_id, coef) in primal_sp_sols[getid(var),:]
-                if !(getcurlb(var) <= coef <= getcurub(var))
-                    setub!(master, getvar(master, col_id), 0.0)
+                if !(getcurlb(var) <= coef <= getcurub(var)) # TODO ; get the subproblem...
+                    setcurub!(master, getvar(master, col_id), 0.0)
                 end
             end
         end

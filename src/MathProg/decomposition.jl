@@ -291,8 +291,9 @@ function create_side_vars_constrs!(
         name = "η[$(split(getname(nu_var), "[")[end])"
         setvar!(
             masterform, name, MasterBendSecondStageCostVar; cost = 1.0,
-            lb = getperenelb(nu_var), ub = getpereneub(nu_var), 
-            kind = Continuous, sense = Free, is_explicit = true, 
+            lb = getperenelb(spform, nu_var), 
+            ub = getpereneub(spform, nu_var), kind = Continuous, 
+            sense = Free, is_explicit = true, 
             id = Id{Variable}(getid(nu_var),getuid(masterform))
         )                                 
     end
@@ -323,8 +324,9 @@ function instantiate_orig_vars!(
                 name = "μ[$(split(getname(var), "[")[end])"
                 mu = setvar!(
                     spform, name, BendSpSlackFirstStageVar; 
-                    cost = getcurcost(var), lb = getcurlb(var), 
-                    ub = getcurub(var), kind = Continuous, 
+                    cost = getcurcost(masterform, var), 
+                    lb = getcurlb(masterform, var), 
+                    ub = getcurub(masterform, var), kind = Continuous, 
                     sense = getcursense(var), is_explicit = true, 
                     id = Id{Variable}(id, getuid(getmaster(spform)))
                 )
@@ -371,13 +373,13 @@ function create_side_vars_constrs!(
     global_costprofit_lb = 0.0
     for (var_id, var) in sp_vars
         orig_var = getvar(origform, var_id)
-        cost =  getperenecost(orig_var)
+        cost =  getperenecost(origform, orig_var)
         if cost > 0.00001 
-            global_costprofit_ub += cost * getcurub(orig_var)
-            global_costprofit_lb += cost * getcurlb(orig_var)
+            global_costprofit_ub += cost * getcurub(origform, orig_var)
+            global_costprofit_lb += cost * getcurlb(origform, orig_var)
         elseif cost < - 0.00001  
-            global_costprofit_ub += cost * getcurlb(orig_var)
-            global_costprofit_lb += cost * getcurub(orig_var)
+            global_costprofit_ub += cost * getcurlb(origform, orig_var)
+            global_costprofit_lb += cost * getcurub(origform, orig_var)
         end
     end
 
@@ -394,8 +396,8 @@ function create_side_vars_constrs!(
             lb = - global_costprofit_lb , ub = global_costprofit_ub, 
             kind = Continuous, sense = Free, is_explicit = true
         )
-        setcurlb!(nu, 0.0)                                          
-        setcurub!(nu, Inf)                                          
+        setcurlb!(spform, nu, 0.0)                                          
+        setcurub!(spform, nu, Inf)                                          
 
         cost = setconstr!(
             spform, "cost[$sp_id]", BendSpSecondStageCostConstr; rhs = 0.0, 
@@ -405,7 +407,7 @@ function create_side_vars_constrs!(
 
         for (var_id, var) in sp_vars
             orig_var = getvar(origform, var_id)
-            sp_coef[getid(cost), var_id] = - getperenecost(orig_var)         
+            sp_coef[getid(cost), var_id] = - getperenecost(origform, orig_var)         
         end
     end
     return
@@ -475,6 +477,11 @@ function reformulate!(prob::Problem, annotations::Annotations)
     reform = Reformulation(prob)
     set_re_formulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
+
+    # @show reform.master
+    # for sp in reform.dw_pricing_subprs
+    #     @show sp
+    # end
     return
 end
 
