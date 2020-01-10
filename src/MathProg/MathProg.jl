@@ -34,8 +34,7 @@ export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 # Methods
 export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setvar!, getid, store!, getrhs, getsense, setconstr!, getuid, getcoefmatrix,
-       getvar, getvars, getconstr, getconstrs, getkind,
-       setub!, setlb!, getub, getlb, setcost!,
+       getvar, getvars, getconstr, getconstrs,
        register_objective_sense!, optimize!, nbprimalsols, ip_gap, getdualbound,
        getprimalbound, get_ip_dual_bound, getmaster, deactivate!, 
        enforce_integrality!, relax_integrality!, activate!, update_ip_primal_sol!,
@@ -47,12 +46,11 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        resetsolvalue!, setprimaldwspsol!, update_ip_dual_bound!, update_lp_dual_bound!,
        get_lp_primal_bound, update!, get_lp_primal_sol, 
        get_benders_sep_sp, convert_status, getduty, getbestdualsol, update_lp_dual_sol!,
-       projection_is_possible, proj_cols_on_rep, get_lp_dual_bound, getperenekind,
+       projection_is_possible, proj_cols_on_rep, get_lp_dual_bound,
        _active_BendSpMaster_constr_, getname, computereducedrhs, 
        unsafe_getbestprimalsol, getcost,
        _active_BendSpSlackFirstStage_var_, getconstrcounter, setprimaldualbendspsol!,
-       set_lp_primal_bound!, getpereneub, _active_,
-       getperenecost, update_ip_primal_bound!, getprimaldwspsolmatrix, _active_explicit_,
+       set_lp_primal_bound!, _active_, update_ip_primal_bound!, getprimaldwspsolmatrix, _active_explicit_,
        _rep_of_orig_var_, find_owner_formulation,
        setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
        setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
@@ -61,26 +59,36 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
 
 # Below this line, clean up has been done :
 export reformulate!,
-       getcurcost,
        getcurrhs,
        setcurrhs!,
-       getcurub,
-       getcurlb,
-       getcursense,
-       getcurkind,
-       setcurcost!,
-       getcurincval,
-       setcurincval!,
        get_cur_is_active, 
        get_cur_is_explicit
 
 # Methods related to variables 
-export getcurcost,
+export getperenecost,
+       getcurcost,
        setcurcost!,
+       getperenelb,
        getcurlb,
        setcurlb!,
+       getpereneub,
        getcurub,
-       setcurub!
+       setcurub!,
+       getperenesense,
+       getcursense,
+       setcursense!,
+       getperenekind,
+       getcurkind,
+       setcurkind!,
+       getpereneincval,
+       getcurincval,
+       setcurincval!
+
+# Translation methods
+export tr_sense_Coluna_to_MOI,
+       tr_sense_MOI_to_Coluna,
+       tr_rhs_MOI_to_Coluna,
+       tr_kind_MOI_to_Coluna
 
 # Parameters
 const MAX_FORMULATIONS = 100

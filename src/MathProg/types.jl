@@ -212,15 +212,16 @@ const MoiVarKind = Union{MoiInteger,MoiBinary}
 MoiVarKind() = MoiInteger(-1)
 
 # Helper functions to transform MOI types in Coluna types
-getsense(::MOI.LessThan{T}) where {T} = Less
-getsense(::MOI.GreaterThan{T}) where {T} = Greater
-getsense(::MOI.EqualTo{T}) where {T} = Equal
-getrhs(set::MOI.LessThan{T}) where {T} = set.upper
-getrhs(set::MOI.GreaterThan{T}) where {T} = set.lower
-getrhs(set::MOI.EqualTo{T}) where {T} = set.value
-getkind(::MOI.ZeroOne) = Binary
-getkind(::MOI.Integer) = Integ
-function get_moi_set(constr_set::ConstrSense)
+tr_sense_MOI_to_Coluna(::MOI.LessThan{T}) where {T} = Less
+tr_sense_MOI_to_Coluna(::MOI.GreaterThan{T}) where {T} = Greater
+tr_sense_MOI_to_Coluna(::MOI.EqualTo{T}) where {T} = Equal
+tr_rhs_MOI_to_Coluna(set::MOI.LessThan{T}) where {T} = set.upper
+tr_rhs_MOI_to_Coluna(set::MOI.GreaterThan{T}) where {T} = set.lower
+tr_rhs_MOI_to_Coluna(set::MOI.EqualTo{T}) where {T} = set.value
+tr_kind_MOI_to_Coluna(::MOI.ZeroOne) = Binary
+tr_kind_MOI_to_Coluna(::MOI.Integer) = Integ
+
+function tr_sense_Coluna_to_MOI(constr_set::ConstrSense)
     constr_set == Less && return MOI.LessThan
     constr_set == Greater && return MOI.GreaterThan
     return MOI.EqualTo
