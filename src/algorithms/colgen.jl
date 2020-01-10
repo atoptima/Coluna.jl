@@ -214,20 +214,22 @@ function solve_sps_to_gencols!(
     sp_dual_bound_contribs = Dict{FormId, Float64}()
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    push!(threadstasks, Threads.@spawn begin
+
     for (spuid, spform) in sps
-        gen_status, new_sp_solution_ids, sp_dual_contrib = solve_sp_to_gencol!(
-            masterform, spform, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
-        )
-        if gen_status # else Sp is infeasible: contrib = Inf
-            recorded_sp_solution_ids[spuid] = new_sp_solution_ids
-        end
-        sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
+        push!(threadstasks, Threads.@spawn begin
+            gen_status, new_sp_solution_ids, sp_dual_contrib = solve_sp_to_gencol!(
+                masterform, spform, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
+            )
+            if gen_status # else Sp is infeasible: contrib = Inf
+                recorded_sp_solution_ids[spuid] = new_sp_solution_ids
+            end
+            sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
+        end)
     end
-    end)
     for task in threadstasks
         wait(task)
     end
+    empty!(threadstasks)
     ### END LOOP TO BE PARALLELIZED
 
     nb_new_cols = 0
