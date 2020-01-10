@@ -78,7 +78,7 @@ function update_constr_rhs_in_optimizer!(form::Formulation, c::Constraint)
     moi_c_index = getindex(getmoirecord(c))
     rhs = getcurrhs(c)
     sense = getcursense(form, c)
-    MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, get_moi_set(sense)(rhs))
+    MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, tr_sense_Coluna_to_MOI(sense)(rhs))
     return
 end
 
@@ -138,7 +138,7 @@ function add_to_optimizer!(form::Formulation,
     inner = getinner(getoptimizer(form))
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
-    moi_set = get_moi_set(getcursense(form, constr))
+    moi_set = tr_sense_Coluna_to_MOI(getcursense(form, constr))
     moi_constr = MOI.add_constraint(
         inner, f, moi_set(getcurrhs(constr))
     )
