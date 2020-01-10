@@ -32,7 +32,7 @@ function update_bounds_in_optimizer!(form::Formulation, var::Variable)
     moi_kind = getkind(moi_record)
     moi_bounds = getbounds(moi_record)
     moi_index = getindex(moi_record)
-    if (getcurkind(var) == Binary && moi_index.value != -1)
+    if (getcurkind(form, var) == Binary && moi_index.value != -1)
         MOI.delete(inner, moi_kind)
         setkind!(moi_record, MOI.add_constraint(
             inner, MOI.SingleVariable(moi_index), MOI.Integer()
@@ -73,10 +73,11 @@ function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
-function update_constr_rhs_in_optimizer!(optimizer::MoiOptimizer, c::Constraint)
+function update_constr_rhs_in_optimizer!(form::Formulation, c::Constraint)
+    optimizer = getoptimizer(form)
     moi_c_index = getindex(getmoirecord(c))
     rhs = getcurrhs(c)
-    sense = getcursense(c)
+    sense = getcursense(form, c)
     MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, get_moi_set(sense)(rhs))
     return
 end
@@ -92,9 +93,9 @@ function enforce_bounds_in_optimizer!(form::Formulation, var::Variable)
     return
 end
 
-function enforce_kind_in_optimizer!(optimizer::MoiOptimizer, v::Variable)
-    inner = getinner(optimizer)
-    kind = getcurkind(v)
+function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
+    inner = getinner(getoptimizer(form))
+    kind = getcurkind(form, v)
     moirecord = getmoirecord(v)
     moi_kind = getkind(moirecord)
     if moi_kind.value != -1
@@ -123,22 +124,21 @@ function add_to_optimizer!(form::Formulation, var::Variable)
     moi_index = MOI.add_variable(inner)
     setindex!(moirecord, moi_index)
     update_cost_in_optimizer!(form, var)
-    enforce_kind_in_optimizer!(optimizer, var)
-    if getcurkind(var) != Binary
+    enforce_kind_in_optimizer!(form, var)
+    if getcurkind(form, var) != Binary
         enforce_bounds_in_optimizer!(form, var)
     end
     MOI.set(inner, MOI.VariableName(), moi_index, getname(var))
     return
 end
 
-function add_to_optimizer!(optimizer::MoiOptimizer,
+function add_to_optimizer!(form::Formulation,
                            constr::Constraint,
                            members::VarMembership)
-
-    inner = getinner(optimizer)
+    inner = getinner(getoptimizer(form))
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
-    moi_set = get_moi_set(getcursense(constr))
+    moi_set = get_moi_set(getcursense(form, constr))
     moi_constr = MOI.add_constraint(
         inner, f, moi_set(getcurrhs(constr))
     )

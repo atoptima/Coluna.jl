@@ -16,9 +16,9 @@ function create_local_art_vars!(masterform::Formulation)
             cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
-        if getcursense(constr) == Greater
+        if getcursense(masterform, constr) == Greater
             matrix[constr_id, getid(var)] = 1.0
-        elseif getcursense(constr) == Less
+        elseif getcursense(masterform, constr) == Less
             matrix[constr_id, getid(var)] = -1.0
         end
     end
@@ -31,9 +31,9 @@ function create_global_art_vars!(masterform::Formulation)
     matrix = getcoefmatrix(masterform)
     constrs = filter(_active_master_rep_orig_constr_, getconstrs(masterform))
     for (constr_id, constr) in constrs
-        if getcursense(constr) == Greater
+        if getcursense(masterform, constr) == Greater
             matrix[constr_id, getid(global_pos)] = 1.0
-        elseif getcursense(constr) == Less
+        elseif getcursense(masterform, constr) == Less
             matrix[constr_id, getid(global_neg)] = -1.0
         end
     end
@@ -145,22 +145,18 @@ function create_side_vars_constrs!(
         name = string("sp_lb_", spuid)
         lb_conv_constr = setconstr!(
             masterform, name, MasterConvexityConstr; 
-            rhs = lb_mult, kind = Core, sense = Greater
+            rhs = lb_mult, kind = Core, sense = Greater, inc_val = 100.0
         )
         masterform.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
-        setpereneincval!(lb_conv_constr, 100.0)
-        setcurincval!(lb_conv_constr, 100.0)
         coefmatrix[getid(lb_conv_constr), getid(setupvar)] = 1.0
 
         ub_mult =  Float64(BD.getuppermultiplicity(ann))
         name = string("sp_ub_", spuid)
         ub_conv_constr = setconstr!(
             masterform, name, MasterConvexityConstr; rhs = ub_mult, 
-            kind = Core, sense = Less
+            kind = Core, sense = Less, inc_val = 100.0
         )
-        masterform.parent_formulation.dw_pricing_sp_ub[spuid] = getid(ub_conv_constr)
-        setpereneincval!(ub_conv_constr, 100.0)
-        setcurincval!(ub_conv_constr, 100.0)       
+        masterform.parent_formulation.dw_pricing_sp_ub[spuid] = getid(ub_conv_constr)  
         coefmatrix[getid(ub_conv_constr), getid(setupvar)] = 1.0
     end
     return
@@ -327,7 +323,7 @@ function instantiate_orig_vars!(
                     cost = getcurcost(masterform, var), 
                     lb = getcurlb(masterform, var), 
                     ub = getcurub(masterform, var), kind = Continuous, 
-                    sense = getcursense(var), is_explicit = true, 
+                    sense = getcursense(masterform, var), is_explicit = true, 
                     id = Id{Variable}(id, getuid(getmaster(spform)))
                 )
             end

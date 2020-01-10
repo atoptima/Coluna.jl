@@ -92,18 +92,6 @@ function setcurrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
 end
 
 
-
-"""
-    setkind!(f::Formulation, v::Variable, new_kind::VarKind)
-
-Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
-according to `new_kind`. Change on `f.optimizer` will be buffered.
-"""
-function setkind!(form::Formulation, var::Variable, new_kind::VarKind)
-    setcurkind(var, new_kind)
-    change_kind!(form.buffer, var)
-end
-
 """
     setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
 
@@ -442,11 +430,11 @@ end
 function enforce_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(form))
     for (v_id, v) in Iterators.filter(_active_explicit_, getvars(form))
-        getcurkind(v) == Integ && continue
-        getcurkind(v) == Binary && continue
-        if (getduty(v) == MasterCol || getperenekind(v) != Continuous)
+        getcurkind(form, v) == Integ && continue
+        getcurkind(form, v) == Binary && continue
+        if (getduty(v) == MasterCol || getperenekind(form, v) != Continuous)
             @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to Integer")
-            setkind!(form, v, Integ)
+            setcurkind!(form, v, Integ)
         end
     end
     return
@@ -455,9 +443,9 @@ end
 function relax_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(form))
     for (v_id, v) in Iterators.filter(_active_explicit_, getvars(form))
-        getcurkind(v) == Continuous && continue
+        getcurkind(form, v) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
-        setkind!(form, v, Continuous)
+        setcurkind!(form, v, Continuous)
     end
     return
 end
@@ -668,9 +656,9 @@ function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId,
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
-    if getcursense(constr) == Equal
+    if getcursense(form, constr) == Equal
         op = "=="
-    elseif getcursense(constr) == Greater
+    elseif getcursense(form, constr) == Greater
         op = ">="
     else
         op = "<="
@@ -699,7 +687,7 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     name = getname(var)
     lb = getcurlb(form, var)
     ub = getcurub(form, var)
-    t = getcurkind(var)
+    t = getcurkind(form, var)
     d = getduty(var)
     e = get_cur_is_explicit(var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")

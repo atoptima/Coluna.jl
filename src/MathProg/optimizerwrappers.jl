@@ -101,7 +101,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.constr_buffer.added
         c = getconstr(f, id)
         @logmsg LogLevel(-4) string("Adding constraint ", getname(c))
-        add_to_optimizer!(optimizer, c, filter(_active_explicit_, matrix[id,:]))
+        add_to_optimizer!(f, c, filter(_active_explicit_, matrix[id,:]))
     end
     # Update variable costs
     for id in buffer.changed_cost
@@ -120,15 +120,15 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.changed_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
-        @logmsg LogLevel(-3) string("New kind is ", getcurkind(getvar(f,id)))
-        enforce_kind_in_optimizer!(optimizer, getvar(f,id))
+        @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, getvar(f,id)))
+        enforce_kind_in_optimizer!(f, getvar(f,id))
     end
     # Update constraint rhs
     for id in buffer.changed_rhs
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing rhs of constraint " getname(getconstr(f,id))
         @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(getconstr(f,id)))
-        update_constr_rhs_in_optimizer!(optimizer, getconstr(f,id))
+        update_constr_rhs_in_optimizer!(f, getconstr(f, id))
     end
     # Update matrix
     # First check if should update members of just-added vars

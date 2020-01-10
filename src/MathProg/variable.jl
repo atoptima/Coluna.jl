@@ -127,12 +127,3 @@ function Variable(id::VarId,
         MoiVarRecord(index = moi_index)
     )
 end
-
-function setcurkind(var::Variable, kind::VarKind)
-    var.cur_data.kind = kind
-    if kind == Binary
-        var.cur_data.lb = 0.0
-        var.cur_data.ub = 1.0
-    end
-    return
-end

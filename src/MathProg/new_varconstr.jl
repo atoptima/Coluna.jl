@@ -97,6 +97,94 @@ end
 
 
 # Variable & Constraints
+## kind
+"""
+todo
+"""
+getperenekind(form::Formulation, varid::VarId) = getperenekind(form, getvar(form, varid))
+getperenekind(form::Formulation, var::Variable) = var.perene_data.kind
+getperenekind(form::Formulation, constrid::ConstrId) = getperenekind(form, getconstr(form, constrid))
+getperenekind(form::Formulation, constr::Constraint) = constr.perene_data.kind
+
+"""
+todo
+"""
+getcurkind(form::Formulation, varid::VarId) = getcurkind(form, getvar(form, varid))
+getcurkind(form::Formulation, var::Variable) = var.cur_data.kind
+getcurkind(form::Formulation, constrid::ConstrId) = getcurkind(form, getconstr(form, constrid))
+getcurkind(form::Formulation, constr::Constraint) = constr.cur_data.kind
+
+"""
+    setcurkind!(f::Formulation, v::Variable, kind::VarKind)
+    setcurkind!(f::Formulation, c::Constraint, kind::ConstrKind)
+
+Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
+according to `new_kind`. Change on `f.optimizer` will be buffered.
+"""
+setcurkind!(form::Formulation, varid::VarId, kind::VarKind) = setcurkind!(form, getvar(form, varid), kind)
+function setcurkind!(form::Formulation, var::Variable, kind::VarKind)
+    var.cur_data.kind = kind
+    change_kind!(form.buffer, var)
+    return
+end
+setcurkind!(form::Formulation, constrid::ConstrId, kind::ConstrKind) = setcurkind!(form, getconstr(form, constrid), kind)
+setcurkind!(form::Formulation, constr::Constraint, kind::ConstrKind) = constr.cur_data.kind = kind
+
+
+## sense
+"""
+todo
+"""
+getperenesense(form::Formulation, varid::VarId) = getperenesense(form, getvar(form, varid))
+getperenesense(form::Formulation, var::Variable) = var.perene_data.sense
+getperenesense(form::Formulation, constrid::ConstrId) = getperenesense(form, getconstr(form, constrid))
+getperenesense(form::Formulation, constr::Constraint) = constr.perene_data.sense
+
+"""
+todo
+"""
+getcursense(form::Formulation, varid::VarId) = getcursense(form, getvar(form, varid))
+getcursense(form::Formulation, var::Variable) = var.cur_data.sense
+getcursense(form::Formulation, constrid::ConstrId) = getcursense(form, getconstr(form, constrid))
+getcursense(form::Formulation, constr::Constraint) = constr.cur_data.sense
+
+"""
+todo
+"""
+setcursense!(form::Formulation, varid::VarId, sense::VarSense) = setcursense!(form, getvar(form, varid), sense)
+setcursense!(form::Formulation, var::Variable, sense::VarSense) = var.cur_data.sense = sense
+setcursense!(form::Formulation, constrid::ConstrId, sense::ConstrSense) = setcursense!(form, getconstr(form, constrid), sense)
+setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense) = constr.cur_data.sense = sense
+
+## inc_val
+"""
+todo
+"""
+getpereneincval(form::Formulation, varid::VarId) = getpereneincval(form, getvar(form, varid))
+getpereneincval(form::Formulation, var::Variable) = var.perene_data.inc_val
+getpereneincval(form::Formulation, constrid::ConstrId) = getpereneincval(form, getconstr(form, constr))
+getpereneincval(form::Formulation, constr::Constraint) = constr.perene_data.inc_val
+
+"""
+todo
+"""
+getcurincval(form::Formulation, varid::VarId) = getcurincval(form, getvar(form, varid))
+getcurincval(form::Formulation, var::Variable) = var.cur_data.inc_val
+getcurincval(form::Formulation, constrid::ConstrId) = getcurincval(form, getconstr(form, constrid))
+getcurincval(form::Formulation, constr::Constraint) = constr.cur_data.inc_val
+
+"""
+todo
+"""
+setcurincval!(form::Formulation, varid::VarId, inc_val::Real) = setcurincval!(form, getvar(form, varid), inc_val)
+setcurincval!(form::Formulation, var::Variable, inc_val::Real) = var.cur_data.inc_val = inc_val
+setcurincval!(form::Formulation, constrid::ConstrId, inc_val::Real) = setcurincval!(form, getconstr(form, constrid), inc_val)
+setcurincval!(form::Formulation, constr::Constraint, inc_val::Real) = constr.cur_data.inc_val = inc_val
+
+## active
+
+## explicit
+
 
 
 # Reset
@@ -120,3 +208,13 @@ function reset!(form::Formulation, var::Variable)
     return
 end
 reset!(form::Formulation, varid::VarId) = reset!(form, getvar(form, varid))
+
+function reset!(form::Formulation, constr::Constraint)
+    constr.cur_data.rhs = constr.perene_data.rhs
+    constr.cur_data.inc_val = constr.perene_data.inc_val
+    constr.cur_data.kind = constr.perene_data.kind
+    constr.cur_data.sense = constr.perene_data.sense
+    constr.cur_data.is_active = constr.perene_data.is_active
+    return
+end
+reset!(form::Formulation, constrid::ConstrId) = reset!(form, getconstr(form, constrid))

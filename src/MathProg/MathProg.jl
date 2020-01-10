@@ -34,7 +34,7 @@ export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 # Methods
 export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setvar!, getid, store!, getrhs, getsense, setconstr!, getuid, getcoefmatrix,
-       getvar, getvars, getconstr, getconstrs, getkind, setkind!,
+       getvar, getvars, getconstr, getconstrs, getkind,
        setub!, setlb!, getub, getlb, setcost!,
        register_objective_sense!, optimize!, nbprimalsols, ip_gap, getdualbound,
        getprimalbound, get_ip_dual_bound, getmaster, deactivate!, 
@@ -57,7 +57,7 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
        setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
        get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix,
-       setpereneincval!, contains
+       contains
 
 # Below this line, clean up has been done :
 export reformulate!,
