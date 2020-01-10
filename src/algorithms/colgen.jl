@@ -180,9 +180,9 @@ function solve_sp_to_gencol!(
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-    TO.@timeit _to "Pricing subproblem" begin
+    # TO.@timeit _to "Pricing subproblem" begin
         opt_result = optimize!(spform)
-    end
+    # end
 
     pricing_db_contrib = compute_pricing_db_contrib(
         spform, getprimalbound(opt_result), sp_lb, sp_ub
