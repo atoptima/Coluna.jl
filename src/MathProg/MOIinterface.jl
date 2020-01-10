@@ -132,9 +132,9 @@ function add_to_optimizer!(form::Formulation, var::Variable)
     return
 end
 
-function add_to_optimizer!(form::Formulation,
-                           constr::Constraint,
-                           members::VarMembership)
+function add_to_optimizer!(
+    form::Formulation, constr::Constraint, members::VarMembership
+)
     inner = getinner(getoptimizer(form))
     terms = compute_moi_terms(members)
     f = MOI.ScalarAffineFunction(terms, 0.0)
