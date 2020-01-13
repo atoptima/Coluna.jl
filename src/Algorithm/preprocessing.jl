@@ -311,7 +311,7 @@ function update_max_slack!(
     end
 
     nb_inf_sources = alg_data.nb_inf_sources_for_max_slack[getid(constr)]
-    sense = getcursense(constr)
+    sense = getcursense(form, constr)
     if nb_inf_sources == 0
         if (sense != Greater) && alg_data.cur_max_slack[getid(constr)] < -0.0001
             return true
@@ -338,7 +338,7 @@ function update_min_slack!(
     end
 
     nb_inf_sources = alg_data.nb_inf_sources_for_min_slack[getid(constr)]
-    sense = getcursense(constr)
+    sense = getcursense(form, constr)
     if nb_inf_sources == 0
         if (sense != Less) && alg_data.cur_min_slack[getid(constr)] > 0.0001
             return true
@@ -503,8 +503,8 @@ function update_upper_bound!(
     return false
 end
 
-function adjust_bound(var::Variable, bound::Float64, is_upper::Bool)
-    if getcurkind(var) != Continuous 
+function adjust_bound(form::Formulation, var::Variable, bound::Float64, is_upper::Bool)
+    if getcurkind(form, var) != Continuous 
         bound = is_upper ? floor(bound) : ceil(bound)
     end
     return bound
@@ -525,23 +525,23 @@ function compute_new_bound(
 end
 
 function compute_new_var_bound(
-        alg_data::PreprocessData, var::Variable, cur_lb::Float64,
-        cur_ub::Float64, coef::Float64, constr::Constraint
+        alg_data::PreprocessData, var::Variable, form::Formulation, 
+        cur_lb::Float64, cur_ub::Float64, coef::Float64, constr::Constraint
     )
 
-    if coef > 0 && getcursense(constr) == Less
+    if coef > 0 && getcursense(form, constr) == Less
         is_ub = true
         return (is_ub, compute_new_bound(
             alg_data.nb_inf_sources_for_max_slack[getid(constr)],
             alg_data.cur_max_slack[getid(constr)], -coef * cur_lb, Inf, coef
         ))
-    elseif coef > 0 && getcursense(constr) != Less
+    elseif coef > 0 && getcursense(form, constr) != Less
         is_ub = false
         return (is_ub, compute_new_bound(
             alg_data.nb_inf_sources_for_min_slack[getid(constr)],
             alg_data.cur_min_slack[getid(constr)], -coef * cur_ub, -Inf, coef
         ))
-    elseif coef < 0 && getcursense(constr) != Greater
+    elseif coef < 0 && getcursense(form, constr) != Greater
         is_ub = false
         return (is_ub, compute_new_bound(
             alg_data.nb_inf_sources_for_max_slack[getid(constr)],
@@ -571,10 +571,10 @@ function strengthen_var_bounds_in_constr!(
             continue
         end
         (is_ub, bound) = compute_new_var_bound(
-            alg_data, var, getcurlb(form, var), getcurub(form, var), coef, constr
+            alg_data, var, form, getcurlb(form, var), getcurub(form, var), coef, constr
         )
         if !isinf(bound)
-            bound = adjust_bound(var, bound, is_ub)
+            bound = adjust_bound(form, var, bound, is_ub)
             func = is_ub ? update_upper_bound! : update_lower_bound!
             if func(alg_data, var, form, bound)
                 return true

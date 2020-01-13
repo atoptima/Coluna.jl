@@ -82,15 +82,15 @@ function get_var_kinds_and_bounds(src::MOI.ModelLike)
                 set = MOI.get(src, MOI.ConstraintSet(), moi_index)
                 id = func.variable.value
                 if S in [MOI.ZeroOne, MOI.Integer]
-                    kinds[id] = getkind(set)
+                    kinds[id] = convert_moi_kind_to_coluna(set)
                 else
-                    bound = getrhs(set)
-                    if getsense(set) in [Equal, Less]
+                    bound = convert_moi_rhs_to_coluna(set)
+                    if convert_moi_sense_to_coluna(set) in [Equal, Less]
                         cur_ub = get(ubs, id, Inf)
                         if bound < cur_ub
                             ubs[id] = bound
                         end
-                    elseif getsense(set) in [Equal, Greater]
+                    elseif convert_moi_sense_to_coluna(set) in [Equal, Greater]
                         cur_lb = get(lbs, id, -Inf)
                         if bound > cur_lb
                             lbs[id] = bound
@@ -132,19 +132,15 @@ function create_origvars!(
     end
 end
 
-function create_origconstr!(form::Formulation,
-                            dest::Optimizer,
-                            src::MOI.ModelLike,
-                            name::String,
-                            func::MOI.ScalarAffineFunction,
-                            set::SupportedConstrSets,
-                            moi_index::MOI.ConstraintIndex,
-                            moi_uid_to_coluna_id::Dict{Int,VarId})
-
+function create_origconstr!(
+    form::Formulation, dest::Optimizer, src::MOI.ModelLike, name::String,
+    func::MOI.ScalarAffineFunction, set::SupportedConstrSets,
+    moi_index::MOI.ConstraintIndex, moi_uid_to_coluna_id::Dict{Int,VarId}
+)
     constr = setconstr!(form, name, OriginalConstr;
-                    rhs = getrhs(set),
+                    rhs = convert_moi_rhs_to_coluna(set),
                     kind = MathProg.Core,
-                    sense = getsense(set),
+                    sense = convert_moi_sense_to_coluna(set),
                     inc_val = 10.0) #TODO set inc_val in model
     constr_id = getid(constr)
     dest.moi_index_to_coluna_uid[moi_index] =
@@ -159,12 +155,10 @@ function create_origconstr!(form::Formulation,
     return
 end
 
-function create_origconstrs!(form::Formulation,
-                             dest::Optimizer,
-                             src::MOI.ModelLike,
-                             copy_names::Bool,
-                             moi_uid_to_coluna_id::Dict{Int,VarId})
-
+function create_origconstrs!(
+    form::Formulation, dest::Optimizer, src::MOI.ModelLike, copy_names::Bool,
+    moi_uid_to_coluna_id::Dict{Int,VarId}
+)
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
         if F != MOI.SingleVariable
             for moi_index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
@@ -185,9 +179,9 @@ function create_origconstrs!(form::Formulation,
     return 
 end
 
-function register_original_formulation!(dest::Optimizer,
-                                        src::MOI.ModelLike,
-                                        copy_names::Bool)
+function register_original_formulation!(
+    dest::Optimizer, src::MOI.ModelLike, copy_names::Bool
+)
     copy_names = true
     problem = dest.inner
     orig_form = Formulation{Original}(problem.form_counter)

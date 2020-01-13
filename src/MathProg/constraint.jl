@@ -75,11 +75,3 @@ setcurrhs!(vc::Constraint, rhs::Float64) = vc.cur_data.rhs = rhs
 getperenerhs(vc::Constraint) = vc.perene_data.rhs
 #set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.peren_data.rhs = rhs
 
-function reset!(c::Constraint)
-    c.cur_data.rhs = c.perene_data.rhs
-    c.cur_data.inc_val = c.perene_data.inc_val
-    c.cur_data.kind = c.perene_data.kind
-    c.cur_data.sense = c.perene_data.sense
-    c.cur_data.is_active = c.perene_data.is_active
-    return
-end

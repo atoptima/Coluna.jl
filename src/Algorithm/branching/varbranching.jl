@@ -54,7 +54,7 @@ function gen_candidates_for_orig_sol(
     groups = Vector{BranchingGroup}()
     for (var_id, val) in sol
         # Do not consider continuous variables as branching candidates
-        getperenekind(getvar(reform.master, var_id)) == Continuous && continue
+        getperenekind(getmaster(reform), var_id) == Continuous && continue
         if !isinteger(val)
             #description string is just the variable name
             candidate = VarBranchingCandidate(getname(getvar(reform.master, var_id)), var_id)

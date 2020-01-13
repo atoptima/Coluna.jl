@@ -576,8 +576,7 @@ function bend_cutting_plane_main_loop(
         # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
         sol_integer = true
         for (var_id, val) in master_primal_sol
-            var = getvar(masterform, var_id)
-            if getperenekind(var) != Continuous
+            if getperenekind(masterform, var_id) != Continuous
                 round_down_val = Float64(val, RoundDown)
                 round_up_val = Float64(val, RoundUp)
                 
