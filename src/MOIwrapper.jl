@@ -82,15 +82,15 @@ function get_var_kinds_and_bounds(src::MOI.ModelLike)
                 set = MOI.get(src, MOI.ConstraintSet(), moi_index)
                 id = func.variable.value
                 if S in [MOI.ZeroOne, MOI.Integer]
-                    kinds[id] = tr_kind_MOI_to_Coluna(set)
+                    kinds[id] = convert_moi_kind_to_coluna(set)
                 else
-                    bound = tr_rhs_MOI_to_Coluna(set)
-                    if tr_sense_MOI_to_Coluna(set) in [Equal, Less]
+                    bound = convert_moi_rhs_to_coluna(set)
+                    if convert_moi_sense_to_coluna(set) in [Equal, Less]
                         cur_ub = get(ubs, id, Inf)
                         if bound < cur_ub
                             ubs[id] = bound
                         end
-                    elseif tr_sense_MOI_to_Coluna(set) in [Equal, Greater]
+                    elseif convert_moi_sense_to_coluna(set) in [Equal, Greater]
                         cur_lb = get(lbs, id, -Inf)
                         if bound > cur_lb
                             lbs[id] = bound
@@ -138,9 +138,9 @@ function create_origconstr!(
     moi_index::MOI.ConstraintIndex, moi_uid_to_coluna_id::Dict{Int,VarId}
 )
     constr = setconstr!(form, name, OriginalConstr;
-                    rhs = tr_rhs_MOI_to_Coluna(set),
+                    rhs = convert_moi_rhs_to_coluna(set),
                     kind = MathProg.Core,
-                    sense = tr_sense_MOI_to_Coluna(set),
+                    sense = convert_moi_sense_to_coluna(set),
                     inc_val = 10.0) #TODO set inc_val in model
     constr_id = getid(constr)
     dest.moi_index_to_coluna_uid[moi_index] =

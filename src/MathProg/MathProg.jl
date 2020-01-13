@@ -85,10 +85,10 @@ export getperenecost,
        setcurincval!
 
 # Translation methods
-export tr_sense_Coluna_to_MOI,
-       tr_sense_MOI_to_Coluna,
-       tr_rhs_MOI_to_Coluna,
-       tr_kind_MOI_to_Coluna
+export convert_coluna_sense_to_moi,
+       convert_moi_sense_to_coluna,
+       convert_moi_rhs_to_coluna,
+       convert_moi_kind_to_coluna
 
 # Parameters
 const MAX_FORMULATIONS = 100
