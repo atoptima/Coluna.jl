@@ -54,7 +54,7 @@ mutable struct VarCurData <: AbstractVcData
     is_explicit::Bool
 end
 
-"""
+#=="""
     VarCurData
 
 Subset of the information stored in VarData. Current state of the variable.
@@ -76,6 +76,7 @@ function VarCurData(vardata::VarData)
         vardata.is_explicit
     )
 end
+==#
 
 """
     MoiVarRecord
@@ -109,7 +110,6 @@ struct Variable <: AbstractVarConstr
     name::String
     duty::AbstractVarDuty
     perene_data::VarData
-    cur_data::VarCurData
     moirecord::MoiVarRecord
     # form_where_explicit::Int
 end

@@ -1,6 +1,7 @@
 const DynSparseVector{I} = DynamicSparseArrays.PackedMemoryArray{I, Float64} 
 
-const VarDict = ElemDict{Id{Variable}, Variable}
+const VarDict = Dict{Id{Variable}, Variable}
+const VarDataDict = Dict{Id{Variable}, VarData}
 const ConstrDict = ElemDict{Id{Constraint}, Constraint}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
@@ -15,10 +16,8 @@ const DualBound{S} = Bound{Dual, S}
 
 struct FormulationManager
     vars::VarDict
+    var_datas::VarDataDict
     constrs::ConstrDict
-    var_costs::DynSparseVector{VarId}
-    var_lbs::Dict{VarId, Float64}
-    var_ubs::Dict{VarId, Float64}
     coefficients::VarConstrMatrix # cols = variables, rows = constraints
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables 
