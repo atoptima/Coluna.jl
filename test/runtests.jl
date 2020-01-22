@@ -1,7 +1,8 @@
 #using Revise
-import Coluna
+using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
+using Random
 
 import MathOptInterface, MathOptInterface.Utilities
 
@@ -14,27 +15,31 @@ global const CL = Coluna
 global const CLD = ColunaDemos
 global const BD = BlockDecomposition
 
+global const ClF = Coluna.MathProg
+global const ClA = Coluna.Algorithm
+
 include("unit/unit_tests.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
 
-#unit_tests()
+rng = MersenneTwister(1234123)
+
+unit_tests()
 
 @testset "Full instances " begin
     full_instances_tests()
 end
-#==
 @testset "Preprocessing " begin
     preprocessing_tests()
 end
+
 @testset "pricing callback" begin
     pricing_callback_tests()
 end
 
 @testset "Base.show functions " begin
-    # Test show functions
     backup_stdout = stdout
     (rd_out, wr_out) = redirect_stdout()
     show_functions_tests()
@@ -42,4 +47,3 @@ end
     close(rd_out)
     redirect_stdout(backup_stdout)
 end
-==#

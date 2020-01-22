@@ -6,7 +6,7 @@ function preprocessing_tests()
     # end
     @testset "Preprocessing with random instances" begin
         random_instances_tests()
-   end
+    end
 end
 
 function gen_random_small_gap_instance()
@@ -31,8 +31,8 @@ function play_gap_with_preprocessing_tests()
     coluna = JuMP.with_optimizer(
         CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
         params = CL.Params(
-            ; global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess(),
-            CL.SimpleBranching(), CL.DepthFirst())
+            ; global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
+            ClA.SimpleBranching(), ClA.DepthFirst())
         )
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -72,8 +72,8 @@ function test_random_gap_instance()
     coluna = JuMP.with_optimizer(CL.Optimizer,
     default_optimizer = with_optimizer(
         GLPK.Optimizer), params = CL.Params(
-            ;global_strategy = CL.GlobalStrategy(CL.BnPnPreprocess(),
-            CL.NoBranching(), CL.DepthFirst())
+            ;global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
+            ClA.NoBranching(), ClA.DepthFirst())
         )
     )
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -86,7 +86,10 @@ function test_random_gap_instance()
 
     if MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
         coluna = JuMP.with_optimizer(
-            CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+            CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
+            params = CL.Params(
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
+            )
         )
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
         apply_random_branching_constraint!(problem, x, br_m, br_j, leq)
@@ -99,19 +102,22 @@ function test_random_gap_instance()
         master = CL.getmaster(coluna_optimizer.inner.re_formulation)
         for (moi_index, var_id) in coluna_optimizer.varmap
             var = CL.getvar(master, var_id)
-            if CL.getcurlb(var) == CL.getcurub(var)
+            if CL.getcurlb(master, var) == CL.getcurub(master, var)
                 var_name = CL.getname(var)
                 m = parse(Int, split(split(var_name, ",")[1], "[")[2])
                 j = parse(Int, split(split(var_name, ",")[2], "]")[1])
                 forbidden_machs = (
-                    CL.getcurlb(var) == 1 ? [m] : [mach_idx for mach_idx in data.machines if mach_idx != m]
+                    CL.getcurlb(master, var) == 1 ? [m] : [mach_idx for mach_idx in data.machines if mach_idx != m]
                 )
                 modified_data = deepcopy(data)
                 for mach_idx in forbidden_machs
                     modified_data.weight[j,mach_idx] = modified_data.capacity[mach_idx] + 1
                 end
                 coluna = JuMP.with_optimizer(
-                    CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+                    CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
+                    params = CL.Params(
+                        global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
+                    )
                 )
                 modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna)
                 apply_random_branching_constraint!(modified_problem, x, br_m, br_j, leq)

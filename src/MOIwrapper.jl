@@ -59,36 +59,71 @@ function MOI.supports(optimizer::Optimizer,
     return true
 end
 
-function load_obj!(f::Formulation, src::MOI.ModelLike,
-                   moi_index_to_coluna_uid::MOIU.IndexMap,
-                   moi_uid_to_coluna_id::Dict{Int,VarId})
+function getvarcosts(src::MOI.ModelLike)
     # We need to increment values of cost_rhs with += to handle cases like $x_1 + x_2 + x_1$
     # This is safe becasue the variables are initialized with a 0.0 cost_rhs
+    costs = Dict{Int,Float64}()
     obj = MOI.get(src, MoiObjective())
     for term in obj.terms
-        var = getvar(f, moi_uid_to_coluna_id[term.variable_index.value])
-        perene_data = getrecordeddata(var)
-        setcost!(perene_data, term.coefficient)
-        setcurcost!(f, var, term.coefficient)
+        id = term.variable_index.value
+        costs[id] = get(costs, id, 0.0) + term.coefficient
     end
-    return
+    return costs
 end
 
-function create_origvars!(f::Formulation,
-                          dest::Optimizer,
-                          src::MOI.ModelLike,
-                          copy_names::Bool,
-                          moi_uid_to_coluna_id::Dict{Int,VarId})
+function get_var_kinds_and_bounds(src::MOI.ModelLike)
+    kinds = Dict{Int,VarKind}()
+    lbs = Dict{Int,Float64}()
+    ubs = Dict{Int,Float64}()
+    for (F, S) in MOI.get(src, MOI.ListOfConstraints())
+        if F == MOI.SingleVariable
+            for moi_index in MOI.get(src, MOI.ListOfConstraintIndices{F,S}())
+                func = MOI.get(src, MOI.ConstraintFunction(), moi_index)
+                set = MOI.get(src, MOI.ConstraintSet(), moi_index)
+                id = func.variable.value
+                if S in [MOI.ZeroOne, MOI.Integer]
+                    kinds[id] = convert_moi_kind_to_coluna(set)
+                else
+                    bound = convert_moi_rhs_to_coluna(set)
+                    if convert_moi_sense_to_coluna(set) in [Equal, Less]
+                        cur_ub = get(ubs, id, Inf)
+                        if bound < cur_ub
+                            ubs[id] = bound
+                        end
+                    elseif convert_moi_sense_to_coluna(set) in [Equal, Greater]
+                        cur_lb = get(lbs, id, -Inf)
+                        if bound > cur_lb
+                            lbs[id] = bound
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return kinds, lbs, ubs
+end
 
+function create_origvars!(
+    form::Formulation, dest::Optimizer, src::MOI.ModelLike, 
+    costs::Dict{Int,Float64}, kinds::Dict{Int, VarKind},
+    lbs::Dict{Int, Float64}, ubs::Dict{Int, Float64}, copy_names::Bool,
+    moi_uid_to_coluna_id::Dict{Int,VarId}
+)
     for moi_index in MOI.get(src, MOI.ListOfVariableIndices())
         if copy_names
             name = MOI.get(src, MOI.VariableName(), moi_index)
         else
             name = string("var_", moi_index.value)
         end
-        var = setvar!(f, name, OriginalVar)
+        var = setvar!(
+            form, name, OriginalVar; 
+            cost = get(costs, moi_index.value, 0.0),
+            kind = get(kinds, moi_index.value, Continuous),
+            lb = get(lbs, moi_index.value, -Inf),
+            ub = get(ubs, moi_index.value, Inf)
+        )
         var_id = getid(var)
-        moi_index_in_coluna = deepcopy(moi_index) # MOI.VariableIndex(getuid(var_id))
+        moi_index_in_coluna = deepcopy(moi_index) 
         dest.moi_index_to_coluna_uid[moi_index] = moi_index_in_coluna
         moi_uid_to_coluna_id[moi_index.value] = var_id
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
@@ -97,80 +132,45 @@ function create_origvars!(f::Formulation,
     end
 end
 
-function create_origconstr!(f::Formulation,
-                            func::MOI.SingleVariable,
-                            set::SupportedVarSets,
-                            moi_index_to_coluna_uid::MOIU.IndexMap,
-                            moi_uid_to_coluna_id::Dict{Int,VarId})
-
-    var = getvar(f, moi_uid_to_coluna_id[func.variable.value])
-    perene_data = getrecordeddata(var)
-    if typeof(set) in [MOI.ZeroOne, MOI.Integer]
-        setkind!(perene_data, getkind(set))
-        setkind!(f, var, getkind(set))
-    else
-        bound = getrhs(set)
-        if getsense(set) in [Equal, Less]
-            setub!(perene_data, bound)
-            setub!(f, var, getub(perene_data))
-        elseif getsense(set) == [Equal, Greater]
-            setlb!(perene_data, bound)
-            setlb!(f, var, getlb(perene_data))
-        end
-    end
-    return
-end
-
-function create_origconstr!(f::Formulation,
-                            dest::Optimizer,
-                            src::MOI.ModelLike,
-                            name::String,
-                            func::MOI.ScalarAffineFunction,
-                            set::SupportedConstrSets,
-                            moi_index::MOI.ConstraintIndex,
-                            moi_uid_to_coluna_id::Dict{Int,VarId})
-
-    c = setconstr!(f, name, OriginalConstr;
-                    rhs = getrhs(set),
-                    kind = Core,
-                    sense = getsense(set),
+function create_origconstr!(
+    form::Formulation, dest::Optimizer, src::MOI.ModelLike, name::String,
+    func::MOI.ScalarAffineFunction, set::SupportedConstrSets,
+    moi_index::MOI.ConstraintIndex, moi_uid_to_coluna_id::Dict{Int,VarId}
+)
+    constr = setconstr!(form, name, OriginalConstr;
+                    rhs = convert_moi_rhs_to_coluna(set),
+                    kind = MathProg.Core,
+                    sense = convert_moi_sense_to_coluna(set),
                     inc_val = 10.0) #TODO set inc_val in model
-    constr_id = getid(c)
+    constr_id = getid(constr)
     dest.moi_index_to_coluna_uid[moi_index] =
         MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constr_id))
-    matrix = getcoefmatrix(f)
+    matrix = getcoefmatrix(form)
     for term in func.terms
         var_id = moi_uid_to_coluna_id[term.variable_index.value]
         matrix[constr_id, var_id] = term.coefficient
     end
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
-    store!(dest.annotations, annotation, c)
+    store!(dest.annotations, annotation, constr)
     return
 end
 
-function create_origconstrs!(f::Formulation,
-                             dest::Optimizer,
-                             src::MOI.ModelLike,
-                             copy_names::Bool,
-                             moi_uid_to_coluna_id::Dict{Int,VarId})
-
+function create_origconstrs!(
+    form::Formulation, dest::Optimizer, src::MOI.ModelLike, copy_names::Bool,
+    moi_uid_to_coluna_id::Dict{Int,VarId}
+)
     for (F, S) in MOI.get(src, MOI.ListOfConstraints())
-        for moi_index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
-            func = MOI.get(src, MOI.ConstraintFunction(), moi_index)
-            set = MOI.get(src, MOI.ConstraintSet(), moi_index)
-            if func isa MOI.SingleVariable
-                create_origconstr!(
-                    f, func, set, dest.moi_index_to_coluna_uid,
-                    moi_uid_to_coluna_id
-                )
-            else
+        if F != MOI.SingleVariable
+            for moi_index in MOI.get(src, MOI.ListOfConstraintIndices{F, S}())
+                func = MOI.get(src, MOI.ConstraintFunction(), moi_index)
+                set = MOI.get(src, MOI.ConstraintSet(), moi_index)
                 if copy_names
                     name = MOI.get(src, MOI.ConstraintName(), moi_index)
                 else
                     name = string("constr_", moi_index.value)
                 end
                 create_origconstr!(
-                    f, dest, src, name, func, set, moi_index,
+                    form, dest, src, name, func, set, moi_index,
                     moi_uid_to_coluna_id
                 )
             end
@@ -179,18 +179,20 @@ function create_origconstrs!(f::Formulation,
     return 
 end
 
-function register_original_formulation!(dest::Optimizer,
-                                        src::MOI.ModelLike,
-                                        copy_names::Bool)
+function register_original_formulation!(
+    dest::Optimizer, src::MOI.ModelLike, copy_names::Bool
+)
     copy_names = true
     problem = dest.inner
     orig_form = Formulation{Original}(problem.form_counter)
     set_original_formulation!(problem, orig_form)
 
+    costs = getvarcosts(src)
+    kinds, lbs, ubs = get_var_kinds_and_bounds(src)
+
     moi_uid_to_coluna_id = Dict{Int,VarId}()
-    create_origvars!(orig_form, dest, src, copy_names, moi_uid_to_coluna_id)
+    create_origvars!(orig_form, dest, src, costs, kinds, lbs, ubs, copy_names, moi_uid_to_coluna_id)
     create_origconstrs!(orig_form, dest, src, copy_names, moi_uid_to_coluna_id)
-    load_obj!(orig_form, src, dest.moi_index_to_coluna_uid, moi_uid_to_coluna_id)
 
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
@@ -227,13 +229,13 @@ end
 function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
                  ref::MOI.VariableIndex)
     id = optimizer.varmap[ref] # This gets a coluna Id{Variable}
-    var_val_dict = getsol(unsafe_getbestprimalsol(optimizer.result))
+    var_val_dict = unsafe_getbestprimalsol(optimizer.result)
     return get(var_val_dict, id, 0.0)
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
                  refs::Vector{MOI.VariableIndex})
-    var_val_dict = getsol(unsafe_getbestprimalsol(optimizer.result))
+    var_val_dict = unsafe_getbestprimalsol(optimizer.result)
     return [get(var_val_dict, optimizer.varmap[ref], 0.0) for ref in refs]
 end
 

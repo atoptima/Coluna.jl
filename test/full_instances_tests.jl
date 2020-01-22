@@ -12,7 +12,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -30,7 +30,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -46,19 +46,19 @@ function generalized_assignment_tests()
     @testset "gap - strong branching" begin
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
-        branching = CL.BranchingStrategy()
+        branching = ClA.BranchingStrategy()
         push!(branching.strong_branching_phases, 
-              CL.only_restricted_master_branching_phase(5))
-        push!(branching.strong_branching_phases, CL.exact_branching_phase(1))
-        push!(branching.branching_rules, CL.VarBranchingRule())
+              ClA.only_restricted_master_branching_phase(5))
+        push!(branching.strong_branching_phases, ClA.exact_branching_phase(1))
+        push!(branching.branching_rules, ClA.VarBranchingRule())
 
         coluna = JuMP.with_optimizer(
             CL.Optimizer, params = CL.Params(
                 max_num_nodes = 300,
-                global_strategy = CL.GlobalStrategy(
-                    CL.SimpleBnP(), 
+                global_strategy = ClA.GlobalStrategy(
+                    ClA.SimpleBnP(), 
                     branching, 
-                    CL.DepthFirst()
+                    ClA.DepthFirst()
                 )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
@@ -79,14 +79,14 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(
-                    CL.SimpleBnP(
-                        colgen = CL.ColumnGeneration(
+                global_strategy = ClA.GlobalStrategy(
+                    ClA.SimpleBnP(
+                        colgen = ClA.ColumnGeneration(
                             max_nb_iterations = 8
                         )
                     ),
-                    CL.SimpleBranching(), 
-                    CL.DepthFirst()
+                    ClA.SimpleBranching(), 
+                    ClA.DepthFirst()
                 )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
@@ -105,7 +105,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -121,7 +121,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -137,7 +137,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
@@ -165,7 +165,11 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+            Coluna.Optimizer, 
+            params = CL.Params(
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -180,15 +184,15 @@ function generalized_assignment_tests()
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst())
-            ),
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
+            )
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
         try
             JuMP.optimize!(problem)
         catch e
-            @test repr(e) == "ErrorException(\"Function `optimize!` is not defined for object of type Coluna.NoOptimizer\")"
+            @test repr(e) == "ErrorException(\"Function `optimize!` is not defined for object of type Coluna.MathProg.NoOptimizer\")"
         end
     end
 
@@ -196,7 +200,11 @@ function generalized_assignment_tests()
         data = CLD.CapacitatedLotSizing.readData("testSmall")
 
         coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer)
+            Coluna.Optimizer, 
+            params = CL.Params(
+                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
+            ),
+            default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
         model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
@@ -214,8 +222,8 @@ function lot_sizing_tests()
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
             params = CL.Params(
                 max_num_nodes = 1, 
-                global_strategy = CL.GlobalStrategy(
-                    CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst()
+                global_strategy = ClA.GlobalStrategy(
+                    ClA.SimpleBenders(), ClA.NoBranching(), ClA.DepthFirst()
                 )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
@@ -234,8 +242,8 @@ function capacitated_lot_sizing_tests()
         
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
-                global_strategy = CL.GlobalStrategy(
-                    CL.SimpleBnP(), CL.NoBranching(), CL.DepthFirst()
+                global_strategy = ClA.GlobalStrategy(
+                    ClA.SimpleBnP(), ClA.NoBranching(), ClA.DepthFirst()
                 )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
@@ -254,8 +262,8 @@ function facility_location_tests()
             Coluna.Optimizer,
             params = CL.Params(
                 max_num_nodes = 1, 
-                global_strategy = CL.GlobalStrategy(
-                    CL.SimpleBenders(), CL.NoBranching(), CL.DepthFirst()
+                global_strategy = ClA.GlobalStrategy(
+                    ClA.SimpleBenders(), ClA.NoBranching(), ClA.DepthFirst()
                 )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
@@ -273,8 +281,8 @@ function cutting_stock_tests()
 
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
             params = CL.Params(
-                global_strategy = CL.GlobalStrategy(
-                    CL.SimpleBnP(), CL.SimpleBranching(), CL.DepthFirst()
+                global_strategy = ClA.GlobalStrategy(
+                    ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst()
                 )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
