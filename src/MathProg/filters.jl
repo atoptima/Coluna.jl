@@ -6,7 +6,7 @@ _active_master_rep_orig_constr_(c::Constraint) = get_cur_is_active(c) == true &&
 _active_BendSpMaster_constr_(c::Constraint) = get_cur_is_active(c) == true && getduty(c) <= AbstractBendSpMasterConstr
 
 "Returns true if `v` is the representative of an OriginalVar"
-_rep_of_orig_var_(v::Variable) = isaOriginalRepresentatives(getduty(v))
+_rep_of_orig_var_(v::Variable) = isanOriginalRepresentatives(getduty(v))
 
 _sp_var_rep_in_orig_(v::Variable) = getduty(v) <= DwSpPricingVar || getduty(v) <= DwSpSetupVar
 

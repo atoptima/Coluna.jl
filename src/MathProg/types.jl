@@ -17,66 +17,8 @@ struct MaxSense <: Coluna.AbstractMaxSense end
 
 abstract type AbstractDuty end
 
-## Duties :
-@exported_nestedenum begin
-    AbstractVarDuty
-        AbstractOriginalVar <= AbstractVarDuty
-            OriginalVar <= AbstractOriginalVar
-            OriginalExpression <= AbstractOriginalVar
-        AbstractMasterVar <= AbstractVarDuty
-            AbstractOriginMasterVar <= AbstractMasterVar
-                MasterPureVar <= AbstractOriginMasterVar
-                MasterBendFirstStageVar <= AbstractOriginMasterVar
-            AbstractAddedMasterVar <= AbstractMasterVar
-                MasterCol <= AbstractAddedMasterVar
-                MasterArtVar <= AbstractAddedMasterVar
-                MasterBendSecondStageCostVar <= AbstractAddedMasterVar
-            AbstractImplicitMasterVar <= AbstractMasterVar
-                AbstractMasterRepDwSpVar <= AbstractImplicitMasterVar
-                    MasterRepPricingVar <= AbstractMasterRepDwSpVar
-                    MasterRepPricingSetupVar <= AbstractMasterRepDwSpVar
-        AbstractDwSpVar <= AbstractVarDuty
-            DwSpPricingVar <= AbstractDwSpVar
-            DwSpSetupVar <= AbstractDwSpVar
-            DwSpPureVar <= AbstractDwSpVar
-        AbstractBendSpVar <= AbstractVarDuty
-            AbstractBendSpSlackMastVar <= AbstractBendSpVar
-                BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
-                BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
-            BendSpSepVar <= AbstractBendSpVar
-            BendSpPureVar <= AbstractBendSpVar
-        UndefinedVarDuty <= AbstractVarDuty
-end
-
-@exported_nestedenum begin
-    AbstractConstrDuty
-            AbstractOriginalConstr <= AbstractConstrDuty
-                OriginalConstr <= AbstractOriginalConstr
-            AbstractMasterConstr <= AbstractConstrDuty
-                AbstractMasterOriginConstr <= AbstractMasterConstr
-                    MasterPureConstr <= AbstractMasterOriginConstr
-                    MasterMixedConstr <= AbstractMasterOriginConstr
-                AbstractMasterAddedConstr <= AbstractMasterConstr
-                    MasterConvexityConstr <= AbstractMasterAddedConstr
-                    MasterSecondStageCostConstr <= AbstractMasterAddedConstr
-                AbstractMasterImplicitConstr <= AbstractMasterConstr
-                    AbstractMasterRepBendSpConstr <= AbstractMasterImplicitConstr
-                        MasterRepBendSpSecondStageCostConstr <= AbstractMasterRepBendSpConstr
-                        MasterRepBendSpTechnologicalConstr <= AbstractMasterRepBendSpConstr
-                AbstractMasterCutConstr <= AbstractMasterConstr
-                    MasterBendCutConstr <= AbstractMasterCutConstr
-                AbstractMasterBranchingConstr <= AbstractMasterConstr
-                MasterBranchOnOrigVarConstr <= AbstractMasterBranchingConstr
-            AbstractDwSpConstr <= AbstractConstrDuty
-                DwSpPureConstr <= AbstractDwSpConstr
-                DwSpRepMastBranchConstr <= AbstractDwSpConstr
-            AbstractBendSpPureConstr <= AbstractConstrDuty
-            AbstractBendSpConstr <= AbstractConstrDuty
-                AbstractBendSpMasterConstr <= AbstractBendSpConstr
-                    BendSpSecondStageCostConstr <= AbstractBendSpMasterConstr
-                    BendSpTechnologicalConstr <= AbstractBendSpMasterConstr
-                BendSpPureConstr <= AbstractBendSpConstr
-            UndefinedConstrDuty <= AbstractConstrDuty
+struct Duty{VC <: AbstractVarConstr} <: NestedEnum
+    value::UInt
 end
 
 abstract type AbstractFormDuty end
@@ -103,9 +45,9 @@ struct BendersSp <: AbstractSpDuty end
 #BendSpRepFirstStageVar <= AbstractBendSpRepMastVar
 #BendSpRepSecondStageCostVar <= AbstractBendSpRepMastVar
 
-#BendersSpVar <= AbstractVarDuty
-#BlockGenSpVar <= AbstractVarDuty
-#MastRepBlockSpVar <= AbstractVarDuty
+#BendersSpVar <= Duty{Variable}
+#BlockGenSpVar <= Duty{Variable}
+#MastRepBlockSpVar <= Duty{Variable}
 
 # Types of algorithm
 
@@ -139,51 +81,6 @@ end
 @exported_enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
 
 const FormId = Int
-
-function isaStaticDuty(duty::NestedEnum)
-    return duty <= OriginalVar ||
-    duty <= OriginalExpression ||
-    duty <= MasterPureVar ||
-    duty <= MasterArtVar ||
-    duty <= MasterBendSecondStageCostVar ||
-    duty <= MasterBendFirstStageVar ||
-    duty <= MasterRepPricingVar ||
-    duty <= MasterRepPricingSetupVar ||
-    duty <= DwSpPricingVar ||
-    duty <= DwSpSetupVar ||
-    duty <= DwSpPureVar ||
-    duty <= BendSpSepVar ||
-    duty <= BendSpPureVar ||
-    duty <= BendSpSlackFirstStageVar  ||
-    duty <= BendSpSlackSecondStageCostVar ||
-    duty <= OriginalConstr ||
-    duty <= MasterPureConstr ||
-    duty <= MasterMixedConstr ||
-    duty <= MasterConvexityConstr ||
-    duty <= MasterSecondStageCostConstr ||
-    duty <= DwSpPureConstr ||
-    duty <= BendSpPureConstr ||
-    duty <= BendSpSecondStageCostConstr ||
-    duty <= BendSpTechnologicalConstr
-end
-
-function isaDynamicDuty(duty::NestedEnum)
-    duty <= MasterCol ||
-    duty <= MasterBranchOnOrigVarConstr ||
-    duty <= MasterBendCutConstr ||
-    duty <= MasterBranchOnOrigVarConstr ||
-    duty <= DwSpRepMastBranchConstr ||
-    duty <= DwSpRepMastBranchConstr
-end
-
-function isaOriginalRepresentatives(duty::NestedEnum)
-    duty <= MasterPureVar ||
-    duty <= MasterRepPricingVar
-end
-
-function isaArtificialDuty(duty::NestedEnum)
-    return duty <= MasterArtVar
-end
 
 ############################################################################
 ######################## MathOptInterface shortcuts ########################
