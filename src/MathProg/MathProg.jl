@@ -42,7 +42,7 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        add_primal_sol!, getresult, setdualbound!, determine_statuses, getvalue,
        isfeasible, getterminationstatus, getfeasibilitystatus,
        getprimalsols, getdualsols, update_lp_primal_sol!, get_dw_pricing_sp,
-       _active_pricing_sp_var_, computereducedcost, isaArtificialDuty, getvarcounter,
+       _active_pricing_sp_var_, computereducedcost, isanArtificialDuty, getvarcounter,
        resetsolvalue!, setprimaldwspsol!, update_ip_dual_bound!, update_lp_dual_bound!,
        get_lp_primal_bound, update!, get_lp_primal_sol, 
        get_benders_sep_sp, convert_status, getduty, getbestdualsol, update_lp_dual_sol!,
@@ -99,8 +99,8 @@ include("types.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
+include("duties.jl")
 include("varconstr.jl") # to rm
-
 include("manager.jl")
 include("filters.jl")
 include("optimizationresults.jl")
