@@ -112,7 +112,7 @@ function setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64)
     end
     return
 end
-setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64) = setcurrhs!(form, getid(form), rhs)
+setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64) = setcurrhs!(form, getid(constr), rhs)
 
 
 # Variable & Constraints

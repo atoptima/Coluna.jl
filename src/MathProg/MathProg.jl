@@ -64,7 +64,7 @@ export reformulate!,
        get_cur_is_active, 
        get_cur_is_explicit
 
-# Methods related to variables 
+# Methods related to variables and constraints
 export getperenecost,
        getcurcost,
        setcurcost!,
@@ -82,7 +82,14 @@ export getperenecost,
        setcurkind!,
        getpereneincval,
        getcurincval,
-       setcurincval!
+       setcurincval!,
+       getpereneisactive,
+       getcurisactive,
+       setcurisactive!,
+       getpereneisexplicit,
+       getcurisexplicit,
+       setcurisexplicit!,
+       reset!
 
 # Translation methods
 export convert_coluna_sense_to_moi,
