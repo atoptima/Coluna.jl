@@ -36,31 +36,31 @@ function Formulation{D}(form_counter::Counter;
 end
 
 "Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `form`."
-haskey(f::Formulation, id::Id) = haskey(f.manager, id)
+haskey(form::Formulation, id::Id) = haskey(form.manager, id)
 
 "Returns the `Variable` whose `Id` is `id` if such variable is in `Formulation` `form`."
-getvar(f::Formulation, id::VarId) = getvar(f.manager, id)
+getvar(form::Formulation, id::VarId) = getvar(form.manager, id)
 
 "Returns the value of the variable counter of `Formulation` `form`."
-getvarcounter(f::Formulation) = f.var_counter.value
-getconstrcounter(f::Formulation) = f.constr_counter.value
+getvarcounter(form::Formulation) = form.var_counter.value
+getconstrcounter(form::Formulation) = form.constr_counter.value
 
 "Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `form`."
-getconstr(f::Formulation, id::ConstrId) = getconstr(f.manager, id)
+getconstr(form::Formulation, id::ConstrId) = getconstr(form.manager, id)
 
 "Returns all the variables in `Formulation` `form`."
-getvars(f::Formulation) = getvars(f.manager)
+getvars(form::Formulation) = getvars(form.manager)
 
 "Returns all the constraints in `Formulation` `form`."
-getconstrs(f::Formulation) = getconstrs(f.manager)
+getconstrs(form::Formulation) = getconstrs(form.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
-getcoefmatrix(f::Formulation) = getcoefmatrix(f.manager)
-getprimalsolmatrix(f::Formulation) = getprimalsolmatrix(f.manager)
-getprimalsolcosts(f::Formulation) = getprimalsolcosts(f.manager)
-getdualsolmatrix(f::Formulation) = getdualsolmatrix(f.manager)
-getdualsolrhss(f::Formulation) = getdualsolrhss(f.manager)
-getexpressionmatrix(f::Formulation) = getexpressionmatrix(f.manager)
+getcoefmatrix(form::Formulation) = getcoefmatrix(form.manager)
+getprimalsolmatrix(form::Formulation) = getprimalsolmatrix(form.manager)
+getprimalsolcosts(form::Formulation) = getprimalsolcosts(form.manager)
+getdualsolmatrix(form::Formulation) = getdualsolmatrix(form.manager)
+getdualsolrhss(form::Formulation) = getdualsolrhss(form.manager)
+getexpressionmatrix(form::Formulation) = getexpressionmatrix(form.manager)
 
 
 "Returns the `uid` of `Formulation` `form`."
@@ -93,10 +93,10 @@ end =#
 
 
 """
-    setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
+    setrhs!(form::Formulation, c::Constraint, new_rhs::Float64)
 
-Sets `c.cur_data.rhs` as well as the rhs of `c` in `f.optimizer` 
-according to `new_rhs`. Change on `f.optimizer` will be buffered.
+Sets `c.cur_data.rhs` as well as the rhs of `c` in `form.optimizer` 
+according to `new_rhs`. Change on `form.optimizer` will be buffered.
 """
 #= function setrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
     setcurrhs!(constr, new_rhs)
@@ -104,9 +104,9 @@ according to `new_rhs`. Change on `f.optimizer` will be buffered.
 end =#
 
 """
-    set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
+    set_matrix_coeff!(form::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
-Buffers the matrix modification in `f.buffer` to be sent to `f.optimizer` right before next call to optimize!.
+Buffers the matrix modification in `form.buffer` to be sent to `form.optimizer` right before next call to optimize!.
 """
 set_matrix_coeff!(
     form::Formulation, var_id::Id{Variable}, constr_id::Id{Constraint}, new_coeff::Float64
@@ -118,7 +118,7 @@ function setvar!(form::Formulation,
     duty::AbstractVarDuty;
     cost::Float64 = 0.0,
     lb::Float64 = 0.0,
-    ub::Float64 = Inf,
+    ub::Float64 = Inform,
     kind::VarKind = Continuous,
     sense::VarSense = Positive,
     inc_val::Float64 = 0.0,
@@ -379,48 +379,50 @@ end
 
 
 "Deactivates a variable or a constraint in the formulation"
-function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
-    remove!(f.buffer, varconstr)
-    set_cur_is_active(varconstr, false)
+function deactivate!(form::Formulation, varconstr::AbstractVarConstr)
+    if getcurisexplicit(form, varconstr)
+        remove!(form.buffer, varconstr)
+    end
+    setcurisactive!(form, varconstr, false)
     return
 end
-deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
+deactivate!(form::Formulation, id::Id) = deactivate!(form, getelem(form, id))
 
-function deactivate!(f::Formulation, duty::AbstractVarDuty)
-    vars = filter(v -> get_cur_is_active(v) && getduty(v) <= duty, getvars(f))
+function deactivate!(form::Formulation, duty::AbstractVarDuty)
+    vars = filter(v -> getcurisactive(form,v) && getduty(v) <= duty, getvars(form))
     for (id, var) in vars
-        deactivate!(f, var)
+        deactivate!(form, var)
     end
     return
 end
 
-function deactivate!(f::Formulation, duty::AbstractConstrDuty)
-    constrs = filter(c -> get_cur_is_active(c) && getduty(c) <= duty, getconstrs(f))
+function deactivate!(form::Formulation, duty::AbstractConstrDuty)
+    constrs = filter(c -> getcurisactive(form,c) && getduty(c) <= duty, getconstrs(form))
     for (id, constr) in constrs
-        deactivate!(f, constr)
+        deactivate!(form, constr)
     end
     return
 end
 
 "Activates a variable in the formulation"
-function activate!(f::Formulation, varconstr::AbstractVarConstr)
-    add!(f.buffer, varconstr)
-    set_cur_is_active(varconstr, true)
+function activate!(form::Formulation, varconstr::AbstractVarConstr)
+    add!(form.buffer, varconstr)
+    setcurisactive!(form, varconstr, true)
     return
 end
-activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
+activate!(form::Formulation, id::Id) = activate!(form, getelem(form, id))
 
-function activate!(f::Formulation, duty::AbstractVarDuty)
-    vars = filter(v -> !get_cur_is_active(v) && getduty(v) <= duty, getvars(f))
+function activate!(form::Formulation, duty::AbstractVarDuty)
+    vars = filter(v -> !getcurisactive(form,v) && getduty(v) <= duty, getvars(form))
     for (id, var) in vars
-        activate!(f, var)
+        activate!(form, var)
     end
 end
 
-function activate!(f::Formulation, duty::AbstractConstrDuty)
-    constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <= duty, getconstrs(f))
+function activate!(form::Formulation, duty::AbstractConstrDuty)
+    constrs = filter(c -> !getcurisactive(form,c) && getduty(c) <= duty, getconstrs(form))
     for (id, constr) in constrs
-        activate!(f, constr)
+        activate!(form, constr)
     end
 end
 
@@ -456,7 +458,10 @@ end
 
 function enforce_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(form))
-    for (v_id, v) in Iterators.filter(_active_explicit_, getvars(form))
+    for (v_id, v) in Iterators.filter(
+        vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc),
+        getvars(form)
+        )
         getcurkind(form, v) == Integ && continue
         getcurkind(form, v) == Binary && continue
         if (getduty(v) == MasterCol || getperenekind(form, v) != Continuous)
@@ -469,7 +474,10 @@ end
 
 function relax_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(form))
-    for (v_id, v) in Iterators.filter(_active_explicit_, getvars(form))
+    for (v_id, v) in Iterators.filter(
+        vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc),
+        getvars(form)
+        )
         getcurkind(form, v) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
         setcurkind!(form, v, Continuous)
@@ -598,12 +606,12 @@ function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:Co
 end
 
 function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Constraint}, Float64}) 
-    val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol_vec)
+    val = sum(getperenerhs(form, getconstr(form, constr_id)) * value for (constr_id, value) in sol_vec)
     return val 
 end
 
 function computesolvalue(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
-    val = sum(getperenerhs(getconstr(form, constr_id)) * value for (constr_id, value) in sol)
+    val = sum(getperenerhs(form, getconstr(form, constr_id)) * value for (constr_id, value) in sol)
     return val
 end
 
@@ -630,7 +638,7 @@ end
 
 function computereducedrhs(form::Formulation, constr_id::Id{Constraint}, primalsol::PrimalSolution{S})  where {S<:Coluna.AbstractSense}
     constr = getconstr(form,constr_id)
-    crhs = getperenerhs(constr)
+    crhs = getperenerhs(form, constr)
     coefficient_matrix = getcoefmatrix(form)
     for (var_id, primal_val) in primalsol
         coeff = coefficient_matrix[constr_id, var_id]
@@ -661,7 +669,9 @@ end
 
 function _show_obj_fun(io::IO, form::Formulation)
     print(io, getobjsense(form), " ")
-    vars = filter(_explicit_, getvars(form))
+    vars = filter(
+        vc -> getcurisactive(form,vc),
+        getvars(form))
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
         name = getname(vars[id])
@@ -692,20 +702,20 @@ function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId,
     else
         op = "<="
     end
-    print(io, " ", op, " ", getcurrhs(constr))
-    println(io, " (", getduty(constr), getid(constr), " | ", get_cur_is_explicit(constr) ,")")
+    print(io, " ", op, " ", getcurrhs(form, constr))
+    println(io, " (", getduty(constr), getid(constr), " | ", getcurisexplicit(form,constr) ,")")
     return
 end
 
 function _show_constraints(io::IO , form::Formulation)
     # constrs = filter(
-    #     _explicit_, rows(getcoefmatrix(f))
+    #     _explicit_, rows(getcoefmatrix(form))
     # )
     constrs = rows(getcoefmatrix(form))
     ids = sort!(collect(keys(constrs)), by = getsortuid)
     for id in ids
         constr = getconstr(form, id)
-        if get_cur_is_active(constr)
+        if getcurisactive(form,constr)
             _show_constraint(io, form, id, constrs[id])
         end
     end
@@ -718,12 +728,11 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     ub = getcurub(form, var)
     t = getcurkind(form, var)
     d = getduty(var)
-    e = get_cur_is_explicit(var)
+    e = getcurisexplicit(form,var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 
 function _show_variables(io::IO, form::Formulation)
-    # vars = filter(_explicit_, getvars(f))
     vars = getvars(form)
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids

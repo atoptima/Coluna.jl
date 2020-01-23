@@ -45,6 +45,18 @@ function VarData(
     _set_bounds_acc_kind!(vc, kind)
     return vc
 end
+
+VarData(vd::VarData) = VarData(
+vd.cost,
+vd.lb,
+vd.ub,
+vd.kind,
+vd.sense,
+vd.inc_val,
+vd.is_active,
+vd.is_explicit
+)
+
 #==
 mutable struct VarCurData <: AbstractVcData
     kind::VarKind

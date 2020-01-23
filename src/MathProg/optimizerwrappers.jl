@@ -40,11 +40,16 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
             terminationstatus != MOI.DUAL_INFEASIBLE &&
             terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
             terminationstatus != MOI.OPTIMIZE_NOT_CALLED
-        fill_primal_result!(
-            optimizer, result, filter(_active_explicit_ , getvars(form))
-        )
-        fill_dual_result!(
-            optimizer, result, filter(_active_explicit_ , getconstrs(form))
+            fill_primal_result!(
+            optimizer, result, filter(
+            vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc), 
+            getvars(form)
+            )
+            )
+            fill_dual_result!(
+            optimizer, result, filter(
+                vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc), 
+                getconstrs(form))
         )
         if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1 
             setfeasibilitystatus!(result, FEASIBLE)
@@ -101,7 +106,11 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.constr_buffer.added
         c = getconstr(f, id)
         @logmsg LogLevel(-4) string("Adding constraint ", getname(c))
-        add_to_optimizer!(f, c, filter(_active_explicit_, matrix[id,:]))
+        members = VarMembership(Iterators.filter(
+            vc -> getcurisactive(f,vc) && getcurisexplicit(f,vc),
+        matrix[id,:]))
+        add_to_optimizer!(f, c, members)
+        
     end
     # Update variable costs
     for id in buffer.changed_cost
@@ -134,7 +143,10 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # First check if should update members of just-added vars
     matrix = getcoefmatrix(f)
     for id in buffer.var_buffer.added
-        for (constr_id, coeff) in Iterators.filter(_active_explicit_, matrix[:,id])
+        for (constr_id, coeff) in Iterators.filter(
+            vc -> getcurisactive(f,vc) && getcurisexplicit(f,vc), 
+            matrix[:,id]
+            )
             constr_id in buffer.constr_buffer.added && continue
             c = getconstr(f, constr_id)
             update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)

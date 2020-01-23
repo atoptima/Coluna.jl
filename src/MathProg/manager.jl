@@ -52,7 +52,7 @@ haskey(m::FormulationManager, id::Id{Constraint}) = haskey(m.constrs, id)
 function _addvar!(m::FormulationManager, var::Variable)
     haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))
     m.vars[var.id] = var
-    m.var_datas[var.id] = var.perene_data
+    m.var_datas[var.id] = VarData(var.perene_data)
     
     return var
 end
@@ -61,7 +61,7 @@ end
 function _addconstr!(m::FormulationManager, constr::Constraint)
     haskey(m.constrs, constr.id) && error(string("Constraint of id ", constr.id, " exists"))
     m.constrs[constr.id] = constr
-    m.constr_datas[constr.id] = constr.perene_data
+    m.constr_datas[constr.id] = ConstrData(constr.perene_data)
   
     return constr
 end

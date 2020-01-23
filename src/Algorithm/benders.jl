@@ -51,7 +51,7 @@ function run!(algo::BendersCutGeneration, form, node)
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
-    for (varid, var) in Iterators.filter(_active_ , getvars(spform))
+    for (varid, var) in Iterators.filter(v -> getcurisactive(spform,v) , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 1.0)
         else
@@ -63,7 +63,7 @@ function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
 end
 
 function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation) 
-    for (varid, var) in filter(_active_ , getvars(spform))
+    for (varid, var) in filter(v -> getcurisactive(spform,v) , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 0.0)
             setcurub!(spform, var, 0.0)
@@ -75,7 +75,7 @@ function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation)
 end
 
 function update_benders_sp_slackvar_cost_for_hyb_ph!(spform::Formulation)
-    for (varid, var) in Iterators.filter(_active_, getvars(spform))
+    for (varid, var) in Iterators.filter(v -> getcurisactive(spform,v), getvars(spform))
         setcurcost!(spform, var, getperenecost(spform, var))
         # TODO if previous phase is  a pure phase 2, reset current ub
     end
@@ -89,12 +89,17 @@ function update_benders_sp_problem!(
     masterform = spform.parent_formulation
 
      # Update rhs of technological constraints
-    for (constrid, constr) in Iterators.filter(_active_BendSpMaster_constr_ , getconstrs(spform))
+    for (constrid, constr) in Iterators.filter(
+        c -> getcurisactive(form,c) == true && getduty(c) <= AbstractBendSpMasterConstr,
+         getconstrs(spform))
         setcurrhs!(spform, constr, computereducedrhs(spform, constrid, master_primal_sol))
     end
     
     # Update bounds on slack var "BendSpSlackFirstStageVar"
-    for (varid, var) in Iterators.filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
+    for (varid, var) in Iterators.filter(
+        v -> getcurisactive(spform,v) == true && getduty(v) <= BendSpSlackFirstStageVar,
+        getvars(spform)
+        )
         if haskey(master_primal_sol, varid)
             #setcurlb!(var, getperenelb(var) - cur_sol[var_id])
             setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
@@ -102,7 +107,10 @@ function update_benders_sp_problem!(
     end
 
     if algo.option_use_reduced_cost
-        for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
+        for (var_id, var) in Iterators.filter(
+            v -> getcurisactive(spform,v) == true && getduty(v) <= BendSpSlackFirstStageVar,
+            getvars(spform)
+            )
             cost = getcurcost(spform, var)
             rc = computereducedcost(masterform, var_id, master_dual_sol)
             setcurcost!(spform, var, rc)

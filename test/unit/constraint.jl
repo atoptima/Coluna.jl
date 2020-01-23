@@ -45,22 +45,19 @@ function moi_constr_record_getters_and_setters_tests()
 end
 
 function constraint_getters_and_setters_tests()
-
-    # c_data = ClF.ConstrData(
-    #     ; rhs = -13.0, kind = ClF.Facultative, sense = ClF.Equal,
-    #     inc_val = -12.0, is_active = false, is_explicit = false
-    # )
-
-    # c = ClF.Constraint(
-    #     ClF.Id{ClF.Constraint}(23, 10), "fake_constr", ClF.MasterBranchOnOrigVarConstr;
-    #     constr_data = c_data
-    # )
-
-    # ClF.setcurrhs!(c, 10)
-    # @test ClF.getcurrhs(c) == 10
-    # @test ClF.getperenerhs(c) == -13
-
-    # ClF.reset!(c)
-    # @test ClF.getcurrhs(c) == -13
-    # @test ClF.getperenerhs(c) == -13
+    
+    form = createformulation()
+    
+    c = ClF.setconstr!(form, "fake_constr", ClF.MasterBranchOnOrigVarConstr,
+    rhs = -13.0, kind = ClF.Facultative, sense = ClF.Equal,
+    inc_val = -12.0, is_active = false, is_explicit = false
+    )
+    
+    ClF.setcurrhs!(form, c, 10)
+    @test ClF.getcurrhs(form,c) == 10
+    @test ClF.getperenerhs(form,c) == -13
+    
+    ClF.reset!(form, c)
+    @test ClF.getcurrhs(form, c) == -13
+    @test ClF.getperenerhs(form, c) == -13
 end

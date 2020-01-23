@@ -21,6 +21,15 @@ function ConstrData(; rhs::Float64  = -Inf,
     return ConstrData(rhs, kind, sense, inc_val, is_active, is_explicit)
 end
 
+ConstrData(cd::ConstrData) = ConstrData(
+cd.rhs,
+cd.kind,
+cd.sense,
+cd.inc_val,
+cd.is_active,
+cd.is_explicit
+)
+
 getrhs(c::ConstrData) = c.rhs
 setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 
@@ -48,7 +57,6 @@ struct Constraint <: AbstractVarConstr
     name::String
     duty::AbstractConstrDuty
     perene_data::ConstrData
-    #cur_data::ConstrData
     moirecord::MoiConstrRecord
 end
 const ConstrId = Id{Constraint}
@@ -59,7 +67,7 @@ function Constraint(id::ConstrId,
                     constr_data = ConstrData(),
                     moi_index::MoiConstrIndex = MoiConstrIndex())
     return Constraint(
-        id, name, duty, constr_data, deepcopy(constr_data),
+        id, name, duty, constr_data, 
         MoiConstrRecord(index = moi_index)
     )
 end

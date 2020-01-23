@@ -134,9 +134,11 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     master_coef_matrix = getcoefmatrix(master)
     constrs_with_modified_rhs = Constraint[]
     for (var_id, val) in sp_vars_vals 
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, master_coef_matrix[:,var_id])
+        for (constr_id, coef) in Iterators.filter(vc ->
+            getcurisactive(master,vc) && getcurisexplicit(mastervc),
+            master_coef_matrix[:,var_id])
             constr = getconstr(master, constr_id)
-            setrhs!(master, constr, getcurrhs(constr) - val * coef)
+            setrhs!(master, constr, getcurrhs(master, constr) - val * coef)
             push!(constrs_with_modified_rhs, constr)
         end
     end
@@ -146,7 +148,9 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     for sp_prob in sps_with_modified_bounds
         (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[getuid(sp_prob)]
 
-        for (var_id, var) in Iterators.filter(_active_pricing_sp_var_, getvars(spform))
+        for (var_id, var) in Iterators.filter(
+            v -> getcurisactive(spform,v) == true && getduty(v) <= AbstractDwSpVar,
+            getvars(spform))
             var_val_in_local_sol = (
                 haskey(sp_vars_vals, var_id) ? sp_vars_vals[var_id] : 0.0
             )
@@ -189,7 +193,9 @@ function initconstraints!(
     # Master constraints
     master = getmaster(alg_data.reformulation)
     master_coef_matrix = getcoefmatrix(master)
-    for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(master))
+    for (constr_id, constr) in Iterators.filter(
+        c -> getcurisactive(master,c) && getcurisexplicit(master, c), 
+        getconstrs(master))
         if getduty(constr) != MasterConvexityConstr
             initconstraint!(alg_data, constr, master)
             push!(constrs_to_stack, (constr, master))
@@ -198,7 +204,9 @@ function initconstraints!(
 
     # Subproblem constraints
     for (spuid, spform) in get_dw_pricing_sps(alg_data.reformulation)
-        for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(spform))
+        for (constr_id, constr) in Iterators.filter(
+            c -> getcurisactive(spform,c) && getcurisexplicit(spform, c), 
+            getconstrs(spform))
             initconstraint!(alg_data, constr, spform)
             push!(constrs_to_stack, (constr, spform))
         end
@@ -394,7 +402,10 @@ function update_lower_bound!(
 
         diff = cur_lb == -Inf ? -new_lb : cur_lb - new_lb
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, coef_matrix[:, getid(var)])
+        for (constr_id, coef) in Iterators.filter(
+            c -> getcurisactive(form,c) && getcurisexplicit(form, c), 
+            coef_matrix[:, getid(var)])
+
             func = coef < 0 ? update_min_slack! : update_max_slack!
             if func(
                     alg_data, getconstr(form, constr_id),
@@ -454,7 +465,9 @@ function update_upper_bound!(
 
         diff = cur_ub == Inf ? -new_ub : cur_ub - new_ub
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, coef_matrix[:, getid(var)])
+        for (constr_id, coef) in Iterators.filter(
+            c -> getcurisactive(form,c) && getcurisexplicit(form, c), 
+            coef_matrix[:, getid(var)])
             func = coef > 0 ? update_min_slack! : update_max_slack!
             if func(
                 alg_data, getconstr(form, constr_id),
@@ -592,7 +605,7 @@ function propagation!(alg_data::PreprocessData)
         if alg_data.printing
             println("constr ", getname(constr), " ", typeof(constr), " popped")
             println(
-                "rhs ", getcurrhs(constr), " max: ",
+                "rhs ", getcurrhs(form, constr), " max: ",
                 alg_data.cur_max_slack[getid(constr)], " min: ",
                 alg_data.cur_min_slack[getid(constr)]
             )

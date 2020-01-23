@@ -77,7 +77,9 @@ end
 
 function update_pricing_problem!(spform::Formulation, dual_sol::DualSolution)
     masterform = getmaster(spform)
-    for (var_id, var) in Iterators.filter(_active_pricing_sp_var_ , getvars(spform))
+    for (var_id, var) in Iterators.filter(
+        v -> getcurisactive(spform,v) == true && getduty(v) <= AbstractDwSpVar,
+         getvars(spform))
         setcurcost!(spform, var, computereducedcost(masterform, var_id, dual_sol))
     end
     return false
