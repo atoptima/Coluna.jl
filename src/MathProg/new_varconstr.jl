@@ -22,7 +22,9 @@ Set the current cost of variable `var` with id `id` to `cost` in formulation
 """
 function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
     form.manager.var_datas[varid].cost = cost
-    change_cost!(form.buffer, getvar(form, varid)) # TODO : change buffer
+    if getcurisexplicit(form, varid) 
+        change_cost!(form.buffer, getvar(form, varid)) # TODO : change buffer
+    end
     return
 end
 
@@ -53,7 +55,10 @@ according to `new_lb`. Change on `f.optimizer` will be buffered.
 """
 function setcurlb!(form::Formulation, varid::VarId, lb::Float64)
     form.manager.var_datas[varid].lb = lb
-    change_bound!(form.buffer, getvar(form, varid))
+    if getcurisexplicit(form, varid) 
+        change_bound!(form.buffer, getvar(form, varid))
+    end
+
     return
 end
 
@@ -84,7 +89,9 @@ according to `new_ub`. Change on `f.optimizer` will be buffered.
 """
 function setcurub!(form::Formulation, varid::VarId, ub::Float64)
     form.manager.var_datas[varid].ub = ub
-    change_bound!(form.buffer, getvar(form, varid))
+    if getcurisexplicit(form, varid) 
+        change_bound!(form.buffer, getvar(form, varid))
+    end
     return
 end
 
@@ -100,14 +107,16 @@ setperenerhs!(form::Formulation, constr::Constraint, rhs::Float64) = constr.pere
 setperenerhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setperenerhs!(form, getconstr(form, constrid), rhs)
 
 # Current
-getcurrhs(form::Formulation, constr::Constraint) = constr.cur_data.rhs 
-getcurrhs(form::Formulation, constrid::ConstrId) = getcurrhs!(form, getconstr(form, constrid))
-function setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64) 
-    constr.cur_data.rhs = rhs
-    #change_rhs!(form.buffer, getconstr(form, constrid))
+getcurrhs(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].rhs
+getcurrhs(form::Formulation, constr::Constraint) = getcurrhs(form, getid(constr))
+function setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) 
+    form.manager.constr_datas[constrid].rhs = rhs
+    if getcurisexplicit(form, constrid) 
+        change_rhs!(form.buffer, constr) #change_rhs!(form.buffer, getconstr(form, constrid))
+    end
     return
 end
-setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setcurrhs!(form, getconstr(form, constrid), rhs)
+setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64) = setcurrhs!(form, getid(form), rhs)
 
 
 # Variable & Constraints
@@ -125,8 +134,8 @@ todo
 """
 getcurkind(form::Formulation, varid::VarId) = form.manager.var_datas[varid].kind # getcurkind(form, getvar(form, varid))
 getcurkind(form::Formulation, var::Variable) = getcurkind(form, getid(var))
-getcurkind(form::Formulation, constrid::ConstrId) = getcurkind(form, getconstr(form, constrid))
-getcurkind(form::Formulation, constr::Constraint) = constr.cur_data.kind
+getcurkind(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].kind
+getcurkind(form::Formulation, constr::Constraint) = getcurkind(form, getid(constr))
 
 """
     setcurkind!(f::Formulation, v::Variable, kind::VarKind)
@@ -137,12 +146,20 @@ according to `new_kind`. Change on `f.optimizer` will be buffered.
 """
 function setcurkind!(form::Formulation, varid::VarId, kind::VarKind)
     form.manager.var_datas[varid].kind = kind
-    change_kind!(form.buffer, getvar(form, varid))
+    if getcurisexplicit(form, varid) 
+        change_kind!(form.buffer, getvar(form, varid))
+    end
     return
 end
 setcurkind!(form::Formulation, var::Variable, kind::VarKind) = setcurkind!(form, getid(var), kind)
-setcurkind!(form::Formulation, constrid::ConstrId, kind::ConstrKind) = setcurkind!(form, getconstr(form, constrid), kind)
-setcurkind!(form::Formulation, constr::Constraint, kind::ConstrKind) = constr.cur_data.kind = kind
+function setcurkind!(form::Formulation, constrid::ConstrId, kind::ConstrKind)
+    form.manager.constr_datas[constrid].kind = kind
+    if getcurisexplicit(form, constrid) 
+        change_kind!(form.buffer, getconstr(form, constrid))
+    end
+    return
+end
+setcurkind!(form::Formulation, constr::Constraint, kind::ConstrKind) = setcurkind!(form, getid(constr), kind) 
 
 
 ## sense
@@ -159,20 +176,29 @@ todo
 """
 getcursense(form::Formulation, varid::VarId) = form.manager.var_datas[varid].sense
 getcursense(form::Formulation, var::Variable) = getcursense(form, getid(var))
-getcursense(form::Formulation, constrid::ConstrId) = getcursense(form, getconstr(form, constrid))
-getcursense(form::Formulation, constr::Constraint) = constr.cur_data.sense
+getcursense(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].sense
+getcursense(form::Formulation, constr::Constraint) = getcursense(form, getid(constr))
 
 """
 todo
 """
 function setcursense!(form::Formulation, varid::VarId, sense::VarSense)
     form.manager.var_datas[varid].sense = sense
-    #change_sense!(form.buffer, getvar(form, varid))
+    if getcurisexplicit(form, varid) 
+        #change_sense!(form.buffer, getvar(form, varid))
+    end
     return
 end
 setcursense!(form::Formulation, var::Variable, sense::VarSense) = setcursense!(form, getid(var), sense)
-setcursense!(form::Formulation, constrid::ConstrId, sense::ConstrSense) = setcursense!(form, getconstr(form, constrid), sense)
-setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense) = constr.cur_data.sense = sense
+setcursense!(form::Formulation, constrid::ConstrId, sense::ConstrSense) 
+function setcursense!(form::Formulation, constrid::ConstrId, sense::VarSense)
+    form.manager.constr_datas[constrid].sense = sense
+    if getcurisexplicit(form, constrid) 
+        #change_sense!(form.buffer, getvar(form, varid))
+    end
+    return
+end
+setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense) = setcursense!(form, getid(constr), sense)
 
 ## inc_val
 """
@@ -188,20 +214,28 @@ todo
 """
 getcurincval(form::Formulation, varid::VarId) = form.manager.var_datas[varid].inc_val
 getcurincval(form::Formulation, var::Variable) = getcurincval(form, getid(var))
-getcurincval(form::Formulation, constrid::ConstrId) = getcurincval(form, getconstr(form, constrid))
-getcurincval(form::Formulation, constr::Constraint) = constr.cur_data.inc_val
+getcurincval(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].inc_val 
+getcurincval(form::Formulation, constr::Constraint) = getcurincval(form, getid(constr))
 
 """
 todo
 """
 function setcurincval!(form::Formulation, varid::VarId, inc_val::Real)
     form.manager.var_datas[varid].inc_val = inc_val
-    #change_inc_val!(form.buffer, getvar(form, varid))
+    if getcurisexplicit(form, varid) 
+        #change_inc_val!(form.buffer, getvar(form, varid))
+    end
     return
 end
 setcurincval!(form::Formulation, var::Variable, inc_val::Real) = setcurincval!(form, getid(var), inc_val)
-setcurincval!(form::Formulation, constrid::ConstrId, inc_val::Real) = setcurincval!(form, getconstr(form, constrid), inc_val)
-setcurincval!(form::Formulation, constr::Constraint, inc_val::Real) = constr.cur_data.inc_val = inc_val
+function setcurincval!(form::Formulation, constrid::ConstrId, inc_val::Real)
+    form.manager.constr_datas[constrid].inc_val = inc_val
+    if getcurisexplicit(form, constrid) 
+        #change_inc_val!(form.buffer, getconstr(form, constrid))
+    end
+    return
+end
+setcurincval!(form::Formulation, constr::Constraint, inc_val::Real) = setcurincval!(form, getid(constr), inc_val)
 
 ## active
 """
@@ -217,8 +251,8 @@ todo
 """
 getcurisactive(form::Formulation, varid::VarId) = form.manager.var_datas[varid].is_active
 getcurisactive(form::Formulation, var::Variable) = getcurisactive(form, getid(var))
-getcurisactive(form::Formulation, constrid::ConstrId) = getcurisactive(form, getconstr(form, constrid))
-getcurisactive(form::Formulation, constr::Constraint) = constr.cur_data.is_active
+getcurisactive(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].is_active
+getcurisactive(form::Formulation, constr::Constraint) = getcurisactive(form, getid(constr))
 
 """
 todo
@@ -229,8 +263,12 @@ function setcurisactive!(form::Formulation, varid::VarId, is_active::Bool)
     return
 end
 setcurisactive!(form::Formulation, var::Variable, is_active::Bool) = setcurisactive!(form, getid(var), is_active)
-setcurisactive!(form::Formulation, constrid::ConstrId, is_active::Bool) = setcurisactive!(form, getconstr(form, constrid), is_active)
-setcurisactive!(form::Formulation, constr::Constraint, is_active::Bool) = constr.cur_data.is_active = is_active
+function setcurisactive!(form::Formulation, constrid::ConstrId, is_active::Bool) 
+    form.manager.constr_datas[constrid].is_active = is_active
+    #change_is_active!(form.buffer, getvar(form, constrid))
+    return
+end
+setcurisactive!(form::Formulation, constr::Constraint, is_active::Bool) = setcurisactive!(form, getid(constr), is_active)
 
 ## explicit
 """
@@ -246,8 +284,8 @@ todo
 """
 getcurisexplicit(form::Formulation, varid::VarId) = form.manager.var_datas[varid].is_explicit
 getcurisexplicit(form::Formulation, var::Variable) = getcurisexplicit(form, getid(var))
-getcurisexplicit(form::Formulation, constrid::ConstrId) = getcurisexplicit(form, getconstr(form, constrid))
-getcurisexplicit(form::Formulation, constr::Constraint) = constr.cur_data.is_explicit
+getcurisexplicit(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].is_explicit
+getcurisexplicit(form::Formulation, constr::Constraint) = getcurisexplicit(form, getid(constr))
 
 """
 todo
@@ -258,8 +296,12 @@ function setcurisexplicit!(form::Formulation, varid::VarId, is_explicit::Bool)
     return
 end
 setcurisexplicit!(form::Formulation, var::Variable, is_explicit::Bool) = setcurisexplicit!(form, getid(var), is_explicit)
-setcurisexplicit!(form::Formulation, constrid::ConstrId, is_explicit::Bool) = setcurisexplicit!(form, getconstr(form, constrid), is_explicit)
-setcurisexplicit!(form::Formulation, constr::Constraint, is_explicit::Bool) = constr.cur_data.is_explicit = is_explicit
+function setcurisexplicit!(form::Formulation, constrid::ConstrId, is_explicit::Bool)
+    form.manager.constr_datas[constrid].is_explicit = is_explicit
+    #change_is_explicit!(form.buffer, getvar(form, varid))
+    return
+end
+setcurisexplicit!(form::Formulation, constr::Constraint, is_explicit::Bool) = setcurisexplicit!(form, getid(constr), is_explicit)
 
 
 
@@ -274,7 +316,9 @@ setcurisexplicit!(form::Formulation, constr::Constraint, is_explicit::Bool) = co
 doc todo
 """
 function reset!(form::Formulation, var::Variable)
-    setcurcost!(form, var, getperenecost(form, var))
+    form.manager.var_datas[getid(var)] = var.perene_data
+
+ #=    setcurcost!(form, var, getperenecost(form, var))
     setcurlb!(form, var, getperenelb(form, var))
     setcurub!(form, var, getpereneub(form, var))
     setcurkind!(form, var, getperenekind(form, var))
@@ -282,17 +326,26 @@ function reset!(form::Formulation, var::Variable)
     setcurincval!(form, var, getpereneincval(form, var))
     setcurisactive!(form, var, getpereneisactive(form, var))
     setcurisexplicit!(form, var, getpereneisexplicit(form, var))
+ =#    return
+end
+function reset!(form::Formulation, varid::VarId) 
+    form.manager.var_datas[varid] = getvar(form, varid).perene_data
     return
 end
-reset!(form::Formulation, varid::VarId) = reset!(form, getvar(form, varid))
+
 
 function reset!(form::Formulation, constr::Constraint)
-    setcurrhs!(form, constr, getperenerhs(form, constr))
+    form.manager.constr_datas[getid(constr)] = constr.perene_data
+  #==   setcurrhs!(form, constr, getperenerhs(form, constr))
     setcurkind!(form, constr, getperenekind(form, constr))
     setcursense!(form, constr, getperenesense(form, constr))
     setcurincval!(form, constr , getpereneincval(form, constr))
     setcurisactive!(form, constr, getpereneisactive(form, constr))
     setcurisexplicit!(form, constr, getpereneisexplicit(form, constr))
+    ==#
     return
 end
-reset!(form::Formulation, constrid::ConstrId) = reset!(form, getconstr(form, constrid))
+function reset!(form::Formulation, constrid::ConstrId) 
+    form.manager.constr_datas[constrid] = getconstr(form, constrid).perene_data
+    return 
+end

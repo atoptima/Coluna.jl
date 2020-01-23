@@ -48,7 +48,7 @@ struct Constraint <: AbstractVarConstr
     name::String
     duty::AbstractConstrDuty
     perene_data::ConstrData
-    cur_data::ConstrData
+    #cur_data::ConstrData
     moirecord::MoiConstrRecord
 end
 const ConstrId = Id{Constraint}
@@ -63,15 +63,4 @@ function Constraint(id::ConstrId,
         MoiConstrRecord(index = moi_index)
     )
 end
-
-# Note: Several getters and setters for Constraint are defined
-#       over AbstractVarConstr in file varconstr.jl
-
-# Initial
-getcurrhs(vc::Constraint) = vc.cur_data.rhs
-setcurrhs!(vc::Constraint, rhs) = setcurrhs!(vc, float(rhs))
-setcurrhs!(vc::Constraint, rhs::Float64) = vc.cur_data.rhs = rhs
-# Current
-getperenerhs(vc::Constraint) = vc.perene_data.rhs
-#set_init_rhs!(vc::AbstractVarConstr, rhs::Float64) = vc.peren_data.rhs = rhs
 

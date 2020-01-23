@@ -296,8 +296,8 @@ function cg_main_loop(
     for (sp_uid, spform) in get_dw_pricing_sps(reform)
         lb_convexity_constr_id = reform.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reform.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getcurrhs(getconstr(masterform, lb_convexity_constr_id))
-        sp_ubs[sp_uid] = getcurrhs(getconstr(masterform, ub_convexity_constr_id))
+        sp_lbs[sp_uid] = getcurrhs(masterform, lb_convexity_constr_id)
+        sp_ubs[sp_uid] = getcurrhs(masterform, ub_convexity_constr_id)
     end
 
     while true

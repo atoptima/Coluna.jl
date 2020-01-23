@@ -7,7 +7,7 @@ function mycallback(form::CL.Formulation)
     @objective(m, Min, sum(CL.getcurcost(form, vars[j]) * x[j] for j in 1:length(vars)))
     @constraint(m, knp, 
         sum(matrix[CL.getid(constr),CL.getid(vars[j])] * x[j]
-        for j in 1:length(vars)) <= CL.getcurrhs(constr)
+        for j in 1:length(vars)) <= CL.getcurrhs(form, constr)
     )
     optimize!(m)
     result = CL.OptimizationResult{CL.MinSense}()

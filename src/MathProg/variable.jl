@@ -1,6 +1,6 @@
 abstract type AbstractVarData <: AbstractVcData end
 
-struct VarData <: AbstractVcData
+mutable struct VarData <: AbstractVcData
     cost::Float64
     lb::Float64
     ub::Float64
@@ -45,7 +45,7 @@ function VarData(
     _set_bounds_acc_kind!(vc, kind)
     return vc
 end
-
+#==
 mutable struct VarCurData <: AbstractVcData
     kind::VarKind
     sense::VarSense
@@ -53,6 +53,7 @@ mutable struct VarCurData <: AbstractVcData
     is_active::Bool
     is_explicit::Bool
 end
+==#
 
 #=="""
     VarCurData
@@ -123,7 +124,7 @@ function Variable(id::VarId,
                   var_data = VarData(),
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(
-        id, name, duty, var_data, VarCurData(var_data), 
+        id, name, duty, var_data,  
         MoiVarRecord(index = moi_index)
     )
 end

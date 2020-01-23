@@ -127,7 +127,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.changed_rhs
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing rhs of constraint " getname(getconstr(f,id))
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(getconstr(f,id)))
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(f,id))
         update_constr_rhs_in_optimizer!(f, getconstr(f, id))
     end
     # Update matrix

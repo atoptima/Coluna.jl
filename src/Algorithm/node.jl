@@ -237,10 +237,10 @@ end
 
 function apply_data!(form::Formulation, constr::Constraint, constr_state::ConstrState)
     # Rhs
-    if getcurrhs(constr) != constr_state.rhs
+    if getcurrhs(form, constr) != constr_state.rhs
         @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
-        setrhs!(form, constr, constr_state.rhs)
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(constr))
+        setcurrhs!(form, constr, constr_state.rhs)
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(form, constr))
     end
     return
 end

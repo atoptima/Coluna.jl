@@ -22,7 +22,7 @@ function PreprocessData(depth::Int, reform::Reformulation)
     for (spuid, spform) in get_dw_pricing_sps(reform)
         conv_lb = getconstr(master, reform.dw_pricing_sp_lb[spuid])
         conv_ub = getconstr(master, reform.dw_pricing_sp_ub[spuid])
-        cur_sp_bounds[spuid] = (getcurrhs(conv_lb), getcurrhs(conv_ub))
+        cur_sp_bounds[spuid] = (getcurrhs(master, conv_lb), getcurrhs(master, conv_ub))
     end
     return PreprocessData(
         depth, reform, Dict{ConstrId,Bool}(),
@@ -234,7 +234,7 @@ end
 function compute_min_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    slack = getcurrhs(constr)
+    slack = getcurrhs(form, constr)
     if getduty(constr) <= AbstractMasterConstr
         var_filter = _rep_of_orig_var_ 
     else
@@ -269,7 +269,7 @@ end
 function compute_max_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    slack = getcurrhs(constr)
+    slack = getcurrhs(form, constr)
     if getduty(constr) <= AbstractMasterConstr
         var_filter = _rep_of_orig_var_ 
     else

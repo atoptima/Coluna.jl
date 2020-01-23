@@ -85,11 +85,11 @@ getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_f
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
 
-
+#= 
 function setcurrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
     setcurrhs!(constr, new_rhs)
     change_rhs!(form.buffer, constr)
-end
+end =#
 
 
 """
@@ -98,10 +98,10 @@ end
 Sets `c.cur_data.rhs` as well as the rhs of `c` in `f.optimizer` 
 according to `new_rhs`. Change on `f.optimizer` will be buffered.
 """
-function setrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
+#= function setrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
     setcurrhs!(constr, new_rhs)
     change_rhs!(form.buffer, constr)
-end
+end =#
 
 """
     set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
@@ -114,19 +114,19 @@ set_matrix_coeff!(
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `form`."
 function setvar!(form::Formulation,
-                 name::String,
-                 duty::AbstractVarDuty;
-                 cost::Float64 = 0.0,
-                 lb::Float64 = 0.0,
-                 ub::Float64 = Inf,
-                 kind::VarKind = Continuous,
-                 sense::VarSense = Positive,
-                 inc_val::Float64 = 0.0,
-                 is_active::Bool = true,
-                 is_explicit::Bool = true,
-                 moi_index::MoiVarIndex = MoiVarIndex(),
-                 members::Union{ConstrMembership,Nothing} = nothing,
-                 id = generatevarid(form))
+    name::String,
+    duty::AbstractVarDuty;
+    cost::Float64 = 0.0,
+    lb::Float64 = 0.0,
+    ub::Float64 = Inf,
+    kind::VarKind = Continuous,
+    sense::VarSense = Positive,
+    inc_val::Float64 = 0.0,
+    is_active::Bool = true,
+    is_explicit::Bool = true,
+    moi_index::MoiVarIndex = MoiVarIndex(),
+    members::Union{ConstrMembership,Nothing} = nothing,
+    id = generatevarid(form))
     if kind == Binary
         lb = (lb < 0.0) ? 0.0 : lb
         ub = (ub > 1.0) ? 1.0 : ub
@@ -136,13 +136,27 @@ function setvar!(form::Formulation,
     if haskey(form.manager.vars, getid(var))
         error(string("Variable of id ", getid(var), " exists"))
     end
+    #= done in _addvar!(form, var)
     form.manager.vars[getid(var)] = var
     form.manager.var_costs[getid(var)] = cost
     form.manager.var_lbs[getid(var)] = lb
     form.manager.var_ubs[getid(var)] = ub
+    ==#
+    _addvar!(form, var)
     members != nothing && _setmembers!(form, var, members)
-    add!(form.buffer, var)
     return var
+end
+
+
+"Adds `Variable` `var` to `Formulation` `form`."
+function _addvar!(form::Formulation, var::Variable)
+    _addvar!(form.manager, var)
+    
+    if getcurisexplicit(form, var) 
+        add!(form.buffer, var)
+    end
+    return 
+
 end
 
 function addprimalsol!(
@@ -210,11 +224,24 @@ function setprimalsol!(
     return (true, new_sol_id)
 end
 
-adddualsol!(
+function adddualsol!(
     form::Formulation,
     dualsol::DualSolution{S},
     dualsol_id::ConstrId
-) where {S<:Coluna.AbstractSense} = adddualsol!(form.manager, dualsol, dualsol_id)
+    ) where {S<:Coluna.AbstractSense} 
+    
+    rhs = 0.0
+    for (constr_id, constr_val) in dualsol
+        constr = getconstr(form, constr_id)
+        rhs += getperenerhs(form, constr) * constr_val 
+        if getduty(constr) <= AbstractBendSpMasterConstr
+            form.manager.dual_sols[constr_id, dualsol_id] = constr_val
+        end
+    end
+    form.manager.dual_sol_rhss[dualsol_id] = rhs
+    
+    return dualsol_id
+end
 
 
 function setdualsol!(
@@ -346,15 +373,10 @@ function setcut_from_sp_dualsol!(
             end
         end
     end 
-
-    return addconstr!(masterform, benders_cut)
+    _addconstr!(masterform, benders_cut)
+    return benders_cut
 end
 
-# "Adds `Variable` `var` to `Formulation` `form`."
-# function addvar!(f::Formulation, var::Variable)
-#     add!(f.buffer, var)
-#     return addvar!(f.manager, var)
-# end
 
 "Deactivates a variable or a constraint in the formulation"
 function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
@@ -418,13 +440,18 @@ function setconstr!(form::Formulation,
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     constr = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
     members != nothing && _setmembers!(form, constr, members)
-    return addconstr!(form, constr)
+    _addconstr!(form, constr)
+    return constr
 end
 
 "Adds `Constraint` `constr` to `Formulation` `form`."
-function addconstr!(form::Formulation, constr::Constraint)
-    add!(form.buffer, constr)
-    return addconstr!(form.manager, constr)
+function _addconstr!(form::Formulation, constr::Constraint)
+    _addconstr!(form.manager, constr)
+    
+    if getcurisexplicit(form, constr) 
+        add!(form.buffer, constr)
+    end
+    return 
 end
 
 function enforce_integrality!(form::Formulation)
@@ -451,10 +478,12 @@ function relax_integrality!(form::Formulation)
 end
 
 "Activates a constraint in the formulation"
-function activateconstr!(form::Formulation, id::Id{Constraint})
-    c = getvar(form, id)
-    add!(form.buffer, c)
-    set_cur_is_active(c, true)
+function activateconstr!(form::Formulation, constrid::Id{Constraint})
+    constr = getconstr(form, constrid)
+    if getcurisexplicit(form, constrid) 
+        add!(form.buffer, constr)
+    end
+    setcurisactive(form, constr, true)
     return
 end
 
