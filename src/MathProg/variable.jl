@@ -107,7 +107,7 @@ Representation of a variable in Coluna.
 struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
-    duty::AbstractVarDuty
+    duty::Duty{Variable}
     perene_data::VarData
     cur_data::VarCurData
     moirecord::MoiVarRecord
@@ -119,7 +119,7 @@ getid(var::Variable) = var.id
 
 function Variable(id::VarId,
                   name::String,
-                  duty::AbstractVarDuty;
+                  duty::Duty{Variable};
                   var_data = VarData(),
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(

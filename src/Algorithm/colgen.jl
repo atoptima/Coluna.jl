@@ -69,7 +69,7 @@ function should_do_ph_1(master::Formulation, result::ColumnGenerationResult)
 end
 
 function set_ph_one(master::Formulation)
-    for (id, v) in Iterators.filter(x->(!isaArtificialDuty(getduty(x))), getvars(master))
+    for (id, v) in Iterators.filter(x->(!isanArtificialDuty(getduty(x))), getvars(master))
         setcurcost!(master, v, 0.0)
     end
     return
