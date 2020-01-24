@@ -22,12 +22,12 @@ function ConstrData(; rhs::Float64  = -Inf,
 end
 
 ConstrData(cd::ConstrData) = ConstrData(
-cd.rhs,
-cd.kind,
-cd.sense,
-cd.inc_val,
-cd.is_active,
-cd.is_explicit
+    cd.rhs,
+    cd.kind,
+    cd.sense,
+    cd.inc_val,
+    cd.is_active,
+    cd.is_explicit
 )
 
 getrhs(c::ConstrData) = c.rhs

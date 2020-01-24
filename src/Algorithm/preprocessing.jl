@@ -136,7 +136,8 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     for (var_id, val) in sp_vars_vals 
         for (constr_id, coef) in Iterators.filter(vc ->
             getcurisactive(master,vc) && getcurisexplicit(mastervc),
-            master_coef_matrix[:,var_id])
+            master_coef_matrix[:,var_id]
+        )
             constr = getconstr(master, constr_id)
             setrhs!(master, constr, getcurrhs(master, constr) - val * coef)
             push!(constrs_with_modified_rhs, constr)
@@ -186,7 +187,6 @@ end
 function initconstraints!(
         alg_data::PreprocessData, constrs_with_modified_rhs::Vector{Constraint}
     )
-
     # Contains the constraints to start propagation
     constrs_to_stack = Tuple{Constraint,Formulation}[]
 

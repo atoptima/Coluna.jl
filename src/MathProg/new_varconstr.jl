@@ -9,7 +9,6 @@ getperenecost(form::Formulation, var::Variable) = var.perene_data.cost
 """
 doc todo
 """
-#getcurcost(form::Formulation, varid::VarId) = form.manager.var_costs[getuid(varid)]
 getcurcost(form::Formulation, varid::VarId) = form.manager.var_datas[varid].cost
 getcurcost(form::Formulation, var::Variable) = getcurcost(form, getid(var))
 
@@ -128,7 +127,7 @@ getperenekind(form::Formulation, constr::Constraint) = constr.perene_data.kind
 """
 todo
 """
-getcurkind(form::Formulation, varid::VarId) = form.manager.var_datas[varid].kind # getcurkind(form, getvar(form, varid))
+getcurkind(form::Formulation, varid::VarId) = form.manager.var_datas[varid].kind
 getcurkind(form::Formulation, var::Variable) = getcurkind(form, getid(var))
 getcurkind(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].kind
 getcurkind(form::Formulation, constr::Constraint) = getcurkind(form, getid(constr))
@@ -311,8 +310,6 @@ setcurisexplicit!(form::Formulation, constr::Constraint, is_explicit::Bool) = se
 doc todo
 """
 function reset!(form::Formulation, var::Variable)
-   #=  form.manager.var_datas[getid(var)] = var.perene_data
-=# 
     setcurcost!(form, var, getperenecost(form, var))
     setcurlb!(form, var, getperenelb(form, var))
     setcurub!(form, var, getpereneub(form, var))
@@ -324,17 +321,9 @@ function reset!(form::Formulation, var::Variable)
     return
 end
 reset!(form::Formulation, varid::VarId)  = reset!(form, getvar(form, varid)) 
-#==
-function reset!(form::Formulation, varid::VarId) 
-    form.manager.var_datas[varid] = getvar(form, varid).perene_data
-    return
-end
-==#
 
 
 function reset!(form::Formulation, constr::Constraint)
-     #== form.manager.constr_datas[getid(constr)] = constr.perene_data
-    ==#
     setcurrhs!(form, constr, getperenerhs(form, constr))
     setcurkind!(form, constr, getperenekind(form, constr))
     setcursense!(form, constr, getperenesense(form, constr))
@@ -345,9 +334,3 @@ function reset!(form::Formulation, constr::Constraint)
 end
 
 reset!(form::Formulation, constrid::ConstrId) = reset!(form, getconstr(form,constrid))
-#==
-function reset!(form::Formulation, constrid::ConstrId) 
-    form.manager.constr_datas[constrid] = getconstr(form, constrid).perene_data
-    return 
-end
-==#

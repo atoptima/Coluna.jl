@@ -63,7 +63,7 @@ function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
 end
 
 function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation) 
-    for (varid, var) in filter(v -> getcurisactive(spform,v) , getvars(spform))
+    for (varid, var) in Iterators.filter(v -> getcurisactive(spform,v) , getvars(spform))
         if getduty(var) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 0.0)
             setcurub!(spform, var, 0.0)
@@ -89,31 +89,28 @@ function update_benders_sp_problem!(
     masterform = spform.parent_formulation
 
      # Update rhs of technological constraints
-    for (constrid, constr) in Iterators.filter(
-        c -> getcurisactive(spform,c) == true && getduty(c) <= AbstractBendSpMasterConstr,
-         getconstrs(spform))
-        setcurrhs!(spform, constr, computereducedrhs(spform, constrid, master_primal_sol))
+    for (constrid, constr) in getconstrs(spform)
+        if getcurisactive(spform, constr) && getduty(constr) <= AbstractBendSpMasterConstr
+            redrhs = computereducedrhs(spform, constrid, master_primal_sol)
+            setcurrhs!(spform, constr, redrhs)
+        end
     end
     
     # Update bounds on slack var "BendSpSlackFirstStageVar"
-    for (varid, var) in Iterators.filter(
-        v -> getcurisactive(spform,v) == true && getduty(v) <= BendSpSlackFirstStageVar,
-        getvars(spform)
-        )
-        if haskey(master_primal_sol, varid)
-            #setcurlb!(var, getperenelb(var) - cur_sol[var_id])
+    for (varid, var) in getvars(spform)
+        if getcurisactive(spform, var) && getduty(var) <= BendSpSlackFirstStageVar &&
+                haskey(master_primal_sol, varid)
             setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
         end
     end
 
     if algo.option_use_reduced_cost
-        for (var_id, var) in Iterators.filter(
-            v -> getcurisactive(spform,v) == true && getduty(v) <= BendSpSlackFirstStageVar,
-            getvars(spform)
-            )
-            cost = getcurcost(spform, var)
-            rc = computereducedcost(masterform, var_id, master_dual_sol)
-            setcurcost!(spform, var, rc)
+        for (var_id, var) in getvars(spform)
+            if getcurisactive(spform, var) && getduty(var) <= BendSpSlackFirstStageVar
+                cost = getcurcost(spform, var)
+                rc = computereducedcost(masterform, var_id, master_dual_sol)
+                setcurcost!(spform, var, rc)
+            end
         end
     end
 
