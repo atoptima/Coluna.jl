@@ -1,24 +1,5 @@
 using ..Coluna # to remove when merging to the master branch
 
-"""
-    AbstractStorage
-
-    Storage is a used by algoirithms to keep computed data.
-"""
-abstract type AbstractStorage end
-
-struct EmptyStorage <: AbstractStorage end
-
-
-"""
-    AbstractOutput
-
-    Output of an algorithm.     
-"""
-abstract type AbstractOutput end
-
-struct EmptyOutput <: AbstractOutput end
-
 
 """
     AbstractAlgorithm
@@ -53,14 +34,14 @@ function run!(algo::AbstractAlgorithm, storage::AbstractStorage)::AbstractOutput
 end
 
 
-"""
-    AbstractOptimizationOutput
+# """
+#     AbstractOptimizationOutput
 
-    Should be able to communicate OptimizationResult.
-"""
-abstract type AbstractOptimizationOutput end
+#     Should be able to communicate OptimizationResult.
+# """
+# abstract type AbstractOptimizationOutput end
 
-getoptimizationresult(output::AbstractOptimizationOutput)::OptimizationResult = nothing
+# getoptimizationresult(output::AbstractOptimizationOutput)::OptimizationResult = nothing
 
 
 """

@@ -20,9 +20,9 @@ end
 """
     OptimizationResult{S}
 
-Structure to be returned by all Coluna `optimize!` methods.
+    Structure to be returned by all Coluna `optimize!` methods.
 """
-mutable struct OptimizationResult{S<:Coluna.AbstractSense}
+mutable struct OptimizationResult{S<:Coluna.AbstractSense} <: AbstractOutput
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
     primal_bound::PrimalBound{S}

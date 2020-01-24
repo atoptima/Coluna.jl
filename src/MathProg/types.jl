@@ -124,3 +124,22 @@ function convert_coluna_sense_to_moi(constr_set::ConstrSense)
     return MOI.EqualTo
 end
 ############################################################################
+
+"""
+    AbstractStorage
+
+    Storage is a used by algoirithms to keep computed data.
+"""
+abstract type AbstractStorage end
+
+struct EmptyStorage <: AbstractStorage end
+
+
+"""
+    AbstractOutput
+
+    Output of an algorithm.     
+"""
+abstract type AbstractOutput end 
+
+struct EmptyOutput <: AbstractOutput end

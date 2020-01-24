@@ -1,3 +1,42 @@
+using ..Coluna # to remove when merging to the master branch
+
+"""
+    AbstractRecord
+
+    Record is a used to recover the state of a storage or a formulation in a different node of a search tree
+"""
+abstract type AbstractRecord end
+
+struct EmptyRecord <: AbstractRecord end
+
+function getrootrecord(storage::AbstractStorage)::AbstractRecord
+    return EmptyRecord()
+end 
+
+"""
+    prepare!(Storage, Record)
+
+    This function recovers the state of Storage using Record    
+"""
+function prepare!(storage::AbstractStorage, record::AbstractRecord) end
+
+"""
+    record(Storage)::Record
+
+    This function records the state of Storage to Record. By default, the record is empty.
+"""
+function record(storage::AbstractStorage)::AbstractRecord
+    return EmptyRecord()
+end 
+
+"""
+    AbstractConquerRecord
+
+    Record of a conquer algorithm used by the tree search algorithm.
+    Should contain ReformulationRecord
+"""
+abstract type AbstractConquerRecord <: AbstractRecord end
+
 struct Branch
     var_coeffs::Dict{VarId, Float64}
     rhs::Float64
@@ -51,25 +90,30 @@ mutable struct FormulationStatus
 end
 FormulationStatus() = FormulationStatus(true, false)
 
-mutable struct Node #<: AbstractNode
-    treat_order::Int
+mutable struct Node{CR<:AbstractConquerRecord, DR<:AbstractRecord} #<: AbstractNode
+    tree_order::Int
     istreated::Bool
     depth::Int
     parent::Union{Nothing, Node}
-    children::Vector{Node}
+    #children::Vector{Node}
     incumbents::Incumbents
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
     #algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
-    record::ReformulationRecord
-    status::FormulationStatus
+    conquerrecord::Union{Nothing, CR}
+    dividerecord::Union{Nothing, DR}
+    conquerwasrun::Bool
+    infeasible::Bool
+    #status::FormulationStatus
 end
 
-function RootNode(ObjSense::Type{<:Coluna.AbstractSense})
+function RootNode(
+    conquerrecord::AbstractConquerRecord, dividerecord::AbstractRecord, 
+    ObjSense::Type{<:Coluna.AbstractSense}
+    )
     return Node(
-        -1, false, 0, nothing, Node[], Incumbents(ObjSense), nothing,
-        "", Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
-        NodeRecord(), FormulationStatus()
+        -1, false, 0, nothing, Incumbents(ObjSense), nothing,
+        "", conquerrecord, dividerecord, false, false
     )
 end
 
@@ -80,9 +124,8 @@ function Node(parent::Node, branch::Branch, branchdescription::String)
     # thus not being updated in the node and breaking the branching
     incumbents.lp_primal_sol = typeof(incumbents.lp_primal_sol)()
     return Node(
-        -1, false, depth, parent, Node[], incumbents, branch, branchdescription, 
-        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
-        parent.record, FormulationStatus()
+        -1, false, depth, parent, incumbents, branch, branchdescription, 
+        parent.conquerrecord, parent.dividerecord, false, false
     )
 end
 
@@ -92,22 +135,23 @@ function Node(parent::Node, child::Node)
     depth = getdepth(parent) + 1
     incumbents = deepcopy(getincumbents(child))
     return Node(
-        -1, false, depth, parent, Node[], incumbents, nothing, child.branchdescription,
-        Dict{Type{<:AbstractAlgorithm},AbstractAlgorithmResult}(),
-        child.record, FormulationStatus()
+        -1, false, depth, parent, incumbents, nothing, child.branchdescription,
+        child.conquerrecord, child.dividerecord, false, false
     )
 end
 
-get_treat_order(n::Node) = n.treat_order
+get_tree_order(n::Node) = n.treat_order
+set_tree_order!(n::Node, tree_order::Int) = n.tree_order = tree_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
 getincumbents(n::Node) = n.incumbents
 getbranch(n::Node) = n.branch
 addchild!(n::Node, child::Node) = push!(n.children, child)
-set_treat_order!(n::Node, treat_order::Int) = n.treat_order = treat_order
 settreated!(n::Node) = n.istreated = true
 istreated(n::Node) = n.istreated
+getinfeasible(n::Node) = n.infesible
+setinfeasible(n::Node, status::Bool) = n.infesible = status
 
 function set_algorithm_result!(n::Node, algo::AbstractAlgorithm, 
                             r::AbstractAlgorithmResult)
