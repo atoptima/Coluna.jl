@@ -26,11 +26,16 @@ export AbstractGlobalStrategy, EmptyGlobalStrategy
 const MAX_NUM_NODES = 100 # TODO : rm & should be a parameter of the B&B Algorithm
 const OPEN_NODES_LIMIT = 100 # TODO : rm & should be param of B&B algo
 
-# Concrete algorithms & Strategies :
+# Abstract storage, output, algorithms
 include("interface.jl")
+
+# Abstract record, algorithms: conquer, divide, tree search
+include("node.jl") # TODO : break interdependance between node & Algorithm #224 & rm file
+include("treesearch.jl")
+
+# Concrete algorithms & Strategies :
 include("strategies/strategy.jl")
 
-include("node.jl") # TODO : break interdependance between node & Algorithm #224 & rm file
 
 # Here include algorithms
 include("colgen.jl")

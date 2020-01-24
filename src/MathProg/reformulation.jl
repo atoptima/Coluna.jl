@@ -24,6 +24,15 @@ function Reformulation(prob::AbstractProblem)
                          Dict{FormId, Int}())
 end
 
+function Reformulation()
+    return Reformulation(nothing,
+                         nothing,
+                         Dict{FormId, AbstractFormulation}(),
+                         Dict{FormId, AbstractFormulation}(),
+                         Dict{FormId, Int}(),
+                         Dict{FormId, Int}())
+end
+
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f
 add_dw_pricing_sp!(r::Reformulation, f) = r.dw_pricing_subprs[getuid(f)] = f

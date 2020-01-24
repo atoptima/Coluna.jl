@@ -1,21 +1,4 @@
-mutable struct SearchTree
-    nodes::DS.PriorityQueue{Node, Float64}
-    explore_strategy::AbstractExploreStrategy
-    fully_explored::Bool
-end
-
-SearchTree(explore_strategy::AbstractExploreStrategy) = SearchTree(
-    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), explore_strategy,
-    true
-)
-
-getnodes(t::SearchTree) = t.nodes
-Base.isempty(t::SearchTree) = isempty(t.nodes)
-
-push!(t::SearchTree, node::Node) = DS.enqueue!(t.nodes, node, apply!(t.explore_strategy, node))
-popnode!(t::SearchTree) = DS.dequeue!(t.nodes)
-nb_open_nodes(t::SearchTree) = length(t.nodes)
-was_fully_explored(t::SearchTree) = t.fully_explored
+using ..Coluna # to remove when merging to the master branch
 
 """
     ReformulationSolver

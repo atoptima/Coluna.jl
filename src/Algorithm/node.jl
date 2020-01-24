@@ -38,11 +38,12 @@ struct ConstrState
     rhs::Float64
 end
 
-struct NodeRecord
+# TO DO : to rewrite ReformulationRecord
+struct ReformulationRecord
     active_vars::Dict{VarId, VarState}
     active_constrs::Dict{ConstrId, ConstrState}
 end
-NodeRecord() = NodeRecord(Dict{VarId, VarState}(), Dict{ConstrId, ConstrState}())
+ReformulationRecord() = ReformulationRecord(Dict{VarId, VarState}(), Dict{ConstrId, ConstrState}())
 
 mutable struct FormulationStatus
     need_to_prepare::Bool
@@ -50,7 +51,7 @@ mutable struct FormulationStatus
 end
 FormulationStatus() = FormulationStatus(true, false)
 
-mutable struct Node <: AbstractNode
+mutable struct Node #<: AbstractNode
     treat_order::Int
     istreated::Bool
     depth::Int
@@ -59,8 +60,8 @@ mutable struct Node <: AbstractNode
     incumbents::Incumbents
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
-    algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
-    record::NodeRecord
+    #algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
+    record::ReformulationRecord
     status::FormulationStatus
 end
 
@@ -282,3 +283,22 @@ apply_branch!(f::Reformulation, ::Nothing) = nothing
 
 # Nothing happens if this function is called for the "father" of the root node
 reset_to_record_state!(f::Reformulation, ::Nothing) = nothing
+
+
+"""
+    AbstractTreeExploreStrategy
+
+    Strategy for the tree exploration
+
+"""
+abstract type AbstractTreeExploreStrategy end
+
+getvalue(strategy::AbstractTreeExploreStrategy, node::Node) = 0
+
+# Depth-first strategy
+struct DepthFirstStrategy <: AbstractTreeExploreStrategy end
+getvalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
+
+# Best dual bound strategy
+struct BestDualBoundStrategy <: AbstractTreeExploreStrategy end
+apply!(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(getincumbents(n))

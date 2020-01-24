@@ -1,9 +1,39 @@
 function full_instances_tests()
-    generalized_assignment_tests()
-    capacitated_lot_sizing_tests()
-    lot_sizing_tests()
+    #generalized_assignment_tests()
+    #capacitated_lot_sizing_tests()
+    #lot_sizing_tests()
     #facility_location_tests()
-    cutting_stock_tests()
+    #cutting_stock_tests()
+end
+
+function mytest()
+    data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
+
+    branching = ClA.BranchingStrategy()
+    push!(branching.strong_branching_phases,
+          ClA.only_restricted_master_branching_phase(5))
+    push!(branching.strong_branching_phases, ClA.exact_branching_phase(1))
+    push!(branching.branching_rules, ClA.VarBranchingRule())
+
+    coluna = JuMP.with_optimizer(
+        CL.Optimizer, params = CL.Params(
+            max_num_nodes = 300,
+            global_strategy = ClA.GlobalStrategy(
+                ClA.SimpleBnP(),
+                branching,
+                ClA.DepthFirst()
+            )
+        ),
+        default_optimizer = with_optimizer(GLPK.Optimizer)
+    )
+
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+    JuMP.optimize!(problem)
+
+    @test abs(JuMP.objective_value(problem) - 1553.0) <= 0.00001
+    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 end
 
 function generalized_assignment_tests()
@@ -47,7 +77,7 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
         branching = ClA.BranchingStrategy()
-        push!(branching.strong_branching_phases, 
+        push!(branching.strong_branching_phases,
               ClA.only_restricted_master_branching_phase(5))
         push!(branching.strong_branching_phases, ClA.exact_branching_phase(1))
         push!(branching.branching_rules, ClA.VarBranchingRule())
@@ -56,8 +86,8 @@ function generalized_assignment_tests()
             CL.Optimizer, params = CL.Params(
                 max_num_nodes = 300,
                 global_strategy = ClA.GlobalStrategy(
-                    ClA.SimpleBnP(), 
-                    branching, 
+                    ClA.SimpleBnP(),
+                    branching,
                     ClA.DepthFirst()
                 )
             ),
@@ -85,7 +115,7 @@ function generalized_assignment_tests()
                             max_nb_iterations = 8
                         )
                     ),
-                    ClA.SimpleBranching(), 
+                    ClA.SimpleBranching(),
                     ClA.DepthFirst()
                 )
             ),
@@ -141,7 +171,7 @@ function generalized_assignment_tests()
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
-   
+
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
         JuMP.optimize!(problem)
@@ -165,7 +195,7 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, 
+            Coluna.Optimizer,
             params = CL.Params(
                 global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             ),
@@ -200,7 +230,7 @@ function generalized_assignment_tests()
         data = CLD.CapacitatedLotSizing.readData("testSmall")
 
         coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, 
+            Coluna.Optimizer,
             params = CL.Params(
                 global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             ),
@@ -218,10 +248,10 @@ end
 function lot_sizing_tests()
     @testset "play single mode multi items lot sizing" begin
         data = CLD.SingleModeMultiItemsLotSizing.data("lotSizing-3-20-2.txt")
-        
+
         coluna = JuMP.with_optimizer(Coluna.Optimizer,
             params = CL.Params(
-                max_num_nodes = 1, 
+                max_num_nodes = 1,
                 global_strategy = ClA.GlobalStrategy(
                     ClA.SimpleBenders(), ClA.NoBranching(), ClA.DepthFirst()
                 )
@@ -239,7 +269,7 @@ end
 function capacitated_lot_sizing_tests()
     @testset "play multi items capacited lot sizing" begin
         data = CLD.CapacitatedLotSizing.readData("testSmall")
-        
+
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
                 global_strategy = ClA.GlobalStrategy(
@@ -249,7 +279,7 @@ function capacitated_lot_sizing_tests()
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
-        clsp, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)  
+        clsp, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
         JuMP.optimize!(clsp)
     end
 end
@@ -257,11 +287,11 @@ end
 function facility_location_tests()
     @testset "play facility location test " begin
         data = CLD.FacilityLocation.data("play.txt")
-        
+
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer,
             params = CL.Params(
-                max_num_nodes = 1, 
+                max_num_nodes = 1,
                 global_strategy = ClA.GlobalStrategy(
                     ClA.SimpleBenders(), ClA.NoBranching(), ClA.DepthFirst()
                 )
