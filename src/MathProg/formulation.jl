@@ -115,7 +115,7 @@ set_matrix_coeff!(
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `form`."
 function setvar!(form::Formulation,
                  name::String,
-                 duty::AbstractVarDuty;
+                 duty::Duty{Variable};
                  cost::Float64 = 0.0,
                  lb::Float64 = 0.0,
                  ub::Float64 = Inf,
@@ -274,7 +274,7 @@ end
 
 function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId,
-    name::String, duty::AbstractVarDuty; lb::Float64 = 0.0,
+    name::String, duty::Duty{Variable}; lb::Float64 = 0.0,
     ub::Float64 = Inf, kind::VarKind = Continuous, sense::VarSense = Positive, 
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
@@ -313,7 +313,7 @@ function setcut_from_sp_dualsol!(
     spform::Formulation,
     dual_sol_id::ConstrId,
     name::String,
-    duty::AbstractConstrDuty;
+    duty::Duty{Constraint};
     kind::ConstrKind = Core,
     sense::ConstrSense = Greater,
     inc_val::Float64 = -1.0, 
@@ -364,7 +364,7 @@ function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
 end
 deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
 
-function deactivate!(f::Formulation, duty::AbstractVarDuty)
+function deactivate!(f::Formulation, duty::Duty{Variable})
     vars = filter(v -> get_cur_is_active(v) && getduty(v) <= duty, getvars(f))
     for (id, var) in vars
         deactivate!(f, var)
@@ -372,7 +372,7 @@ function deactivate!(f::Formulation, duty::AbstractVarDuty)
     return
 end
 
-function deactivate!(f::Formulation, duty::AbstractConstrDuty)
+function deactivate!(f::Formulation, duty::Duty{Constraint})
     constrs = filter(c -> get_cur_is_active(c) && getduty(c) <= duty, getconstrs(f))
     for (id, constr) in constrs
         deactivate!(f, constr)
@@ -388,14 +388,14 @@ function activate!(f::Formulation, varconstr::AbstractVarConstr)
 end
 activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
 
-function activate!(f::Formulation, duty::AbstractVarDuty)
+function activate!(f::Formulation, duty::Duty{Variable})
     vars = filter(v -> !get_cur_is_active(v) && getduty(v) <= duty, getvars(f))
     for (id, var) in vars
         activate!(f, var)
     end
 end
 
-function activate!(f::Formulation, duty::AbstractConstrDuty)
+function activate!(f::Formulation, duty::Duty{Constraint})
     constrs = filter(c -> !get_cur_is_active(c) && getduty(c) <= duty, getconstrs(f))
     for (id, constr) in constrs
         activate!(f, constr)
@@ -405,7 +405,7 @@ end
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
 function setconstr!(form::Formulation,
                     name::String,
-                    duty::AbstractConstrDuty;
+                    duty::Duty{Constraint};
                     rhs::Float64 = 0.0,
                     kind::ConstrKind = Core,
                     sense::ConstrSense = Greater,
