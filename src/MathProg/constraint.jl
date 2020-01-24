@@ -55,7 +55,7 @@ Representation of a constraint in Coluna.
 struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
-    duty::AbstractConstrDuty
+    duty::Duty{Constraint}
     perene_data::ConstrData
     moirecord::MoiConstrRecord
 end
@@ -63,7 +63,7 @@ const ConstrId = Id{Constraint}
 
 function Constraint(id::ConstrId,
                     name::String,
-                    duty::AbstractConstrDuty;
+                    duty::Duty{Constraint};
                     constr_data = ConstrData(),
                     moi_index::MoiConstrIndex = MoiConstrIndex())
     return Constraint(

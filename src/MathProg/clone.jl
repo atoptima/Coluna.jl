@@ -2,7 +2,7 @@ function clonevar!(originform::Formulation,
                    destform::Formulation,
                    assignedform::Formulation,
                    var::Variable,
-                   duty::AbstractVarDuty;
+                   duty::Duty{Variable};
                    name::String = getname(var),
                    cost::Float64 = getperenecost(originform, var),
                    lb::Float64 = getperenelb(originform, var),
@@ -25,7 +25,7 @@ function cloneconstr!(originform::Formulation,
                       destform::Formulation,
                       assignedform::Formulation,
                       constr::Constraint,
-                      duty::AbstractConstrDuty;
+                      duty::Duty{Constraint};
                       name::String = getname(constr),
                       rhs::Float64 = getperenerhs(originform, constr),
                       kind::ConstrKind = getperenekind(originform, constr),

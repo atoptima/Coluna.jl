@@ -114,19 +114,19 @@ set_matrix_coeff!(
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `form`."
 function setvar!(form::Formulation,
-    name::String,
-    duty::AbstractVarDuty;
-    cost::Float64 = 0.0,
-    lb::Float64 = 0.0,
-    ub::Float64 = Inform,
-    kind::VarKind = Continuous,
-    sense::VarSense = Positive,
-    inc_val::Float64 = 0.0,
-    is_active::Bool = true,
-    is_explicit::Bool = true,
-    moi_index::MoiVarIndex = MoiVarIndex(),
-    members::Union{ConstrMembership,Nothing} = nothing,
-    id = generatevarid(form))
+                 name::String,
+                 duty::Duty{Variable};
+                 cost::Float64 = 0.0,
+                 lb::Float64 = 0.0,
+                 ub::Float64 = Inf,
+                 kind::VarKind = Continuous,
+                 sense::VarSense = Positive,
+                 inc_val::Float64 = 0.0,
+                 is_active::Bool = true,
+                 is_explicit::Bool = true,
+                 moi_index::MoiVarIndex = MoiVarIndex(),
+                 members::Union{ConstrMembership,Nothing} = nothing,
+                 id = generatevarid(form))
     if kind == Binary
         lb = (lb < 0.0) ? 0.0 : lb
         ub = (ub > 1.0) ? 1.0 : ub
@@ -301,7 +301,7 @@ end
 
 function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId,
-    name::String, duty::AbstractVarDuty; lb::Float64 = 0.0,
+    name::String, duty::Duty{Variable}; lb::Float64 = 0.0,
     ub::Float64 = Inf, kind::VarKind = Continuous, sense::VarSense = Positive, 
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
@@ -340,7 +340,7 @@ function setcut_from_sp_dualsol!(
     spform::Formulation,
     dual_sol_id::ConstrId,
     name::String,
-    duty::AbstractConstrDuty;
+    duty::Duty{Constraint};
     kind::ConstrKind = Core,
     sense::ConstrSense = Greater,
     inc_val::Float64 = -1.0, 
@@ -388,6 +388,7 @@ function deactivate!(form::Formulation, varconstr::AbstractVarConstr)
 end
 deactivate!(form::Formulation, id::Id) = deactivate!(form, getelem(form, id))
 
+
 function deactivate!(form::Formulation, duty::AbstractVarDuty)
     vars = filter(v -> getcurisactive(form,v) && getduty(v) <= duty, getvars(form))
     for (id, var) in vars
@@ -395,6 +396,7 @@ function deactivate!(form::Formulation, duty::AbstractVarDuty)
     end
     return
 end
+
 
 function deactivate!(form::Formulation, duty::AbstractConstrDuty)
     constrs = filter(c -> getcurisactive(form,c) && getduty(c) <= duty, getconstrs(form))
@@ -412,6 +414,7 @@ function activate!(form::Formulation, varconstr::AbstractVarConstr)
 end
 activate!(form::Formulation, id::Id) = activate!(form, getelem(form, id))
 
+
 function activate!(form::Formulation, duty::AbstractVarDuty)
     vars = filter(v -> !getcurisactive(form,v) && getduty(v) <= duty, getvars(form))
     for (id, var) in vars
@@ -419,8 +422,10 @@ function activate!(form::Formulation, duty::AbstractVarDuty)
     end
 end
 
+
 function activate!(form::Formulation, duty::AbstractConstrDuty)
     constrs = filter(c -> !getcurisactive(form,c) && getduty(c) <= duty, getconstrs(form))
+
     for (id, constr) in constrs
         activate!(form, constr)
     end
@@ -429,7 +434,7 @@ end
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
 function setconstr!(form::Formulation,
                     name::String,
-                    duty::AbstractConstrDuty;
+                    duty::Duty{Constraint};
                     rhs::Float64 = 0.0,
                     kind::ConstrKind = Core,
                     sense::ConstrSense = Greater,

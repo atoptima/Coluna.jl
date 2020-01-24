@@ -107,8 +107,8 @@ include("types.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
+include("duties.jl")
 include("varconstr.jl") # to rm
-
 include("manager.jl")
 include("filters.jl")
 include("optimizationresults.jl")

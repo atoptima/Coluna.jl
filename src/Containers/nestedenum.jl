@@ -14,6 +14,13 @@ end
 
 # Store the item defined in expr at position i
 function _store!(expr::Expr, i, names, parent_pos, depths)
+    if i == 1 # parent can be a curly expression e.g. Duty{Variable}
+        expr.head == :curly || error("Syntax error : parent can be a Symbol or a curly expression.")
+        names[i] = expr
+        parent_pos[i] = 0
+        depths[i] = 0
+        return
+    end
     expr.head == :call || error("Syntax error :  Child <= Parent ")
     expr.args[1] == :(<=) || error("Syntax error : Child <= Parent ")
     i > 1 || error("First element cannot have a parent.")
@@ -60,8 +67,13 @@ end
 function _build_expression(names, values, export_symb::Bool = false)
     len = length(names)
     root_name = names[1]
-    enum_expr = Expr(:block, :(struct $root_name <: Coluna.Containers.NestedEnum value::UInt end))
-
+    enum_expr = Expr(:block, :())
+    # We define a new type iif the root name is a Symbol
+    # If the root name is a curly expression, the user must have defined the
+    # template type inheriting from NestedEnum in its code.
+    if root_name isa Symbol
+        push!(enum_expr.args, :(struct $root_name <: Coluna.Containers.NestedEnum value::UInt end))
+    end
     for i in 2:len
         push!(enum_expr.args, :(const $(names[i]) = $(root_name)(UInt($(values[i])))))
         if export_symb
@@ -77,13 +89,13 @@ function _assign_values_to_items(expr)
     expr.head == :block || error("Block expression expected.")
 
     len = length(expr.args)
-    names = Array{Symbol}(undef, len)
+    names = Array{Union{Symbol, Expr}}(undef, len)
     parent_pos = zeros(Int, len) # Position of the parent.
     depths = zeros(Int, len) # Depth of each item
     values = zeros(UInt32, len) # The value is the multiplication of primes of the item and its ancestors.
     primes = zeros(Int, len) # We assign a prime to each item.
 
-    name_values = Dict{Symbol, Int}() 
+    name_values = Dict{Union{Symbol, Expr}, Int}() 
     for (i, arg) in enumerate(expr.args)
         _store!(arg, i, names, parent_pos, depths)
     end
