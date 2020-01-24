@@ -20,6 +20,32 @@ global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const TO = TimerOutputs
 
+# Parameters
+const MAX_FORMULATIONS = 100
+const MAX_PROCESSES = 100
+
+include("counters.jl")
+include("types.jl")
+include("vcids.jl")
+include("variable.jl")
+include("constraint.jl")
+include("duties.jl")
+include("varconstr.jl") # to rm
+include("manager.jl")
+include("filters.jl")
+include("optimizationresults.jl")
+include("incumbents.jl")
+include("buffer.jl")
+include("formulation.jl")
+include("new_varconstr.jl") 
+include("optimizerwrappers.jl")
+include("clone.jl")
+include("reformulation.jl")
+include("projection.jl")
+include("problem.jl")
+include("decomposition.jl")
+include("MOIinterface.jl")
+
 # TODO : clean up
 # Types
 export AbstractFormulation, MaxSense, MinSense, MoiOptimizer, VarMembership, 
@@ -42,8 +68,8 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        add_primal_sol!, getresult, setdualbound!, determine_statuses, getvalue,
        isfeasible, getterminationstatus, getfeasibilitystatus,
        getprimalsols, getdualsols, update_lp_primal_sol!, get_dw_pricing_sp,
-       computereducedcost, isaStaticDuty, isaDynamicDuty, isaOriginalRepresentatives, 
-       isaArtificialDuty, getvarcounter,
+       computereducedcost, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives, 
+       isanArtificialDuty, getvarcounter,
        resetsolvalue!, setprimaldwspsol!, update_ip_dual_bound!, update_lp_dual_bound!,
        get_lp_primal_bound, update!, get_lp_primal_sol, 
        get_benders_sep_sp, convert_status, getduty, getbestdualsol, update_lp_dual_sol!,
@@ -98,30 +124,6 @@ export convert_coluna_sense_to_moi,
        convert_moi_rhs_to_coluna,
        convert_moi_kind_to_coluna
 
-# Parameters
-const MAX_FORMULATIONS = 100
-const MAX_PROCESSES = 100
 
-include("counters.jl")
-include("types.jl")
-include("vcids.jl")
-include("variable.jl")
-include("constraint.jl")
-include("duties.jl")
-include("varconstr.jl") # to rm
-include("manager.jl")
-include("filters.jl")
-include("optimizationresults.jl")
-include("incumbents.jl")
-include("buffer.jl")
-include("formulation.jl")
-include("new_varconstr.jl") 
-include("optimizerwrappers.jl")
-include("clone.jl")
-include("reformulation.jl")
-include("projection.jl")
-include("problem.jl")
-include("decomposition.jl")
-include("MOIinterface.jl")
 
 end

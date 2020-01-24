@@ -389,7 +389,7 @@ end
 deactivate!(form::Formulation, id::Id) = deactivate!(form, getelem(form, id))
 
 
-function deactivate!(form::Formulation, duty::AbstractVarDuty)
+function deactivate!(form::Formulation, duty::Duty{Variable})
     vars = filter(v -> getcurisactive(form,v) && getduty(v) <= duty, getvars(form))
     for (id, var) in vars
         deactivate!(form, var)
@@ -398,7 +398,7 @@ function deactivate!(form::Formulation, duty::AbstractVarDuty)
 end
 
 
-function deactivate!(form::Formulation, duty::AbstractConstrDuty)
+function deactivate!(form::Formulation, duty::Duty{Constraint})
     constrs = filter(c -> getcurisactive(form,c) && getduty(c) <= duty, getconstrs(form))
     for (id, constr) in constrs
         deactivate!(form, constr)
@@ -415,7 +415,7 @@ end
 activate!(form::Formulation, id::Id) = activate!(form, getelem(form, id))
 
 
-function activate!(form::Formulation, duty::AbstractVarDuty)
+function activate!(form::Formulation, duty::Duty{Variable})
     vars = filter(v -> !getcurisactive(form,v) && getduty(v) <= duty, getvars(form))
     for (id, var) in vars
         activate!(form, var)
@@ -423,7 +423,7 @@ function activate!(form::Formulation, duty::AbstractVarDuty)
 end
 
 
-function activate!(form::Formulation, duty::AbstractConstrDuty)
+function activate!(form::Formulation, duty::Duty{Constraint})
     constrs = filter(c -> !getcurisactive(form,c) && getduty(c) <= duty, getconstrs(form))
 
     for (id, constr) in constrs

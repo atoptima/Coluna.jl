@@ -246,7 +246,7 @@ function compute_min_slack!(
     )
     slack = getcurrhs(form, constr)
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = (var -> isaOriginalRepresentatives(getduty(var)))
+        var_filter = (var -> isanOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
@@ -281,7 +281,7 @@ function compute_max_slack!(
     )
     slack = getcurrhs(form, constr)
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = (var -> isaOriginalRepresentatives(getduty(var)))
+        var_filter = (var -> isanOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
@@ -575,7 +575,7 @@ function strengthen_var_bounds_in_constr!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = (var -> isaOriginalRepresentatives(getduty(var)))
+        var_filter = (var -> isanOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
