@@ -108,7 +108,7 @@ getcurrhs(form::Formulation, constr::Constraint) = getcurrhs(form, getid(constr)
 function setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) 
     form.manager.constr_datas[constrid].rhs = rhs
     if getcurisexplicit(form, constrid) 
-        change_rhs!(form.buffer, constr) #change_rhs!(form.buffer, getconstr(form, constrid))
+        change_rhs!(form.buffer, getconstr(form, constrid))
     end
     return
 end

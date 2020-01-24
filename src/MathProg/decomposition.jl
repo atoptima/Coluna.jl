@@ -322,12 +322,16 @@ function instantiate_orig_vars!(
             if duty == MasterBendFirstStageVar
                 name = "μ[$(split(getname(var), "[")[end])"
                 mu = setvar!(
-                    spform, name, BendSpSlackFirstStageVar; 
-                    cost = getcurcost(masterform, var), 
-                    lb = getcurlb(masterform, var), 
-                    ub = getcurub(masterform, var), kind = Continuous, 
-                    sense = getcursense(masterform, var), is_explicit = true, 
-                    id = Id{Variable}(id, getuid(getmaster(spform)))
+                    spform, 
+                    name, 
+                    BendSpSlackFirstStageVar; 
+                    cost = getcurcost(origform, var), 
+                    lb = getcurlb(origform, var), 
+                    ub = getcurub(origform, var), 
+                    kind = Continuous, 
+                    sense = getcursense(origform, var), 
+                    is_explicit = true, 
+                    id = Id{Variable}(id, getuid(masterform))
                 )
             end
         end

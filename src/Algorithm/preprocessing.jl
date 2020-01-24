@@ -230,7 +230,9 @@ function initconstraints!(
     return false
 end
 
-function initconstraint!(alg_data::PreprocessData, constr::Constraint, form::Formulation)
+function initconstraint!(
+    alg_data::PreprocessData, constr::Constraint, form::Formulation
+    )
     alg_data.constr_in_stack[getid(constr)] = false
     alg_data.nb_inf_sources_for_min_slack[getid(constr)] = 0
     alg_data.nb_inf_sources_for_max_slack[getid(constr)] = 0
@@ -244,7 +246,7 @@ function compute_min_slack!(
     )
     slack = getcurrhs(form, constr)
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+        var_filter = (var -> isaOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
@@ -279,7 +281,7 @@ function compute_max_slack!(
     )
     slack = getcurrhs(form, constr)
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+        var_filter = (var -> isaOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
@@ -573,7 +575,7 @@ function strengthen_var_bounds_in_constr!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+        var_filter = (var -> isaOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end

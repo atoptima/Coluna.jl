@@ -90,7 +90,7 @@ function update_benders_sp_problem!(
 
      # Update rhs of technological constraints
     for (constrid, constr) in Iterators.filter(
-        c -> getcurisactive(form,c) == true && getduty(c) <= AbstractBendSpMasterConstr,
+        c -> getcurisactive(spform,c) == true && getduty(c) <= AbstractBendSpMasterConstr,
          getconstrs(spform))
         setcurrhs!(spform, constr, computereducedrhs(spform, constrid, master_primal_sol))
     end
