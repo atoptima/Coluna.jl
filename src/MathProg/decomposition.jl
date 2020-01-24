@@ -29,7 +29,10 @@ function create_global_art_vars!(masterform::Formulation)
     global_pos = set_glob_art_var(masterform, true)
     global_neg = set_glob_art_var(masterform, false)
     matrix = getcoefmatrix(masterform)
-    constrs = filter(_active_master_rep_orig_constr_, getconstrs(masterform))
+    constrs = filter( c ->
+    getcurisactive(masterform,c) == true && getduty(c) <= AbstractMasterOriginConstr, 
+    getconstrs(masterform)
+    )
     for (constr_id, constr) in constrs
         if getcursense(masterform, constr) == Greater
             matrix[constr_id, getid(global_pos)] = 1.0
@@ -319,12 +322,16 @@ function instantiate_orig_vars!(
             if duty == MasterBendFirstStageVar
                 name = "μ[$(split(getname(var), "[")[end])"
                 mu = setvar!(
-                    spform, name, BendSpSlackFirstStageVar; 
-                    cost = getcurcost(masterform, var), 
-                    lb = getcurlb(masterform, var), 
-                    ub = getcurub(masterform, var), kind = Continuous, 
-                    sense = getcursense(masterform, var), is_explicit = true, 
-                    id = Id{Variable}(id, getuid(getmaster(spform)))
+                    spform, 
+                    name, 
+                    BendSpSlackFirstStageVar; 
+                    cost = getcurcost(origform, var), 
+                    lb = getcurlb(origform, var), 
+                    ub = getcurub(origform, var), 
+                    kind = Continuous, 
+                    sense = getcursense(origform, var), 
+                    is_explicit = true, 
+                    id = Id{Variable}(id, getuid(masterform))
                 )
             end
         end

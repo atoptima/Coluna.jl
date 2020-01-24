@@ -149,14 +149,14 @@ end
 
 function add_to_recorded!(form::Formulation, recorded_info::NodeRecord)
     for (id, var) in getvars(form)
-        if get_cur_is_active(var) && get_cur_is_explicit(var)
+        if getcurisactive(form,var) && getcurisexplicit(form,var)
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
             recorded_info.active_vars[id] = varstate
         end
     end
     for (id, constr) in getconstrs(form)
-        if get_cur_is_active(constr) && get_cur_is_explicit(constr)
-            constrstate = ConstrState(getcurrhs(constr))
+        if getcurisactive(form,constr) && getcurisexplicit(form,constr)
+            constrstate = ConstrState(getcurrhs(form, constr))
             recorded_info.active_constrs[id] = constrstate
         end
     end
@@ -237,10 +237,10 @@ end
 
 function apply_data!(form::Formulation, constr::Constraint, constr_state::ConstrState)
     # Rhs
-    if getcurrhs(constr) != constr_state.rhs
+    if getcurrhs(form, constr) != constr_state.rhs
         @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
-        setrhs!(form, constr, constr_state.rhs)
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(constr))
+        setcurrhs!(form, constr, constr_state.rhs)
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(form, constr))
     end
     return
 end
@@ -257,7 +257,7 @@ function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in
     for (id, vc) in var_constrs_in_formulation
         @logmsg LogLevel(-4) "Checking " getname(vc)
         # vc should NOT be active but is active in formulation
-        if !haskey(active_var_constrs, id) && get_cur_is_active(vc)
+        if !haskey(active_var_constrs, id) && getcurisactive(form,vc)
             @logmsg LogLevel(-4) "Deactivating"
             deactivate!(form, id)
             continue
@@ -265,7 +265,7 @@ function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in
         # vc should be active in formulation
         if haskey(active_var_constrs, id)
             # But var_constr is currently NOT active in formulation
-            if !get_cur_is_active(vc)
+            if !getcurisactive(form,vc)
                 @logmsg LogLevel(-4) "Activating"
                 activate!(form, vc)
             end

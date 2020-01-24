@@ -16,7 +16,6 @@ Constructs an empty `VarConstrBuffer{T}` for entities of type `T`.
 VarConstrBuffer{T}() where {T<:AbstractVarConstr} = VarConstrBuffer{T}(Set{T}(), Set{T}())
 
 function add!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
-    !get_cur_is_explicit(vc) && return # cannot modify implicit vcs
     id = getid(vc)
     !(id in buffer.removed) && push!(buffer.added, id)
     delete!(buffer.removed, id)
@@ -24,7 +23,6 @@ function add!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
 end
 
 function remove!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
-    !get_cur_is_explicit(vc) && return # cannot modify implicit vcs
     id = getid(vc)
     !(id in buffer.added) && push!(buffer.removed, id)
     delete!(buffer.added, id)
@@ -84,25 +82,22 @@ remove!(buffer::FormulationBuffer, constr::Constraint) = remove!(
 )
 
 function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
-    !get_cur_is_explicit(constr) && return
+    #!getcurisexplicit(form,constr) && return
     push!(buffer.changed_rhs, getid(constr))
     return
 end
 
 function change_cost!(buffer::FormulationBuffer, var::Variable)
-    !get_cur_is_explicit(var) && return
     push!(buffer.changed_cost, getid(var))
     return
 end
 
 function change_bound!(buffer::FormulationBuffer, var::Variable)
-    !get_cur_is_explicit(var) && return
     push!(buffer.changed_bound, getid(var))
     return
 end
 
 function change_kind!(buffer::FormulationBuffer, var::Variable)
-    !get_cur_is_explicit(var) && return
     push!(buffer.changed_kind, getid(var))
     return
 end

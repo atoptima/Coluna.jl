@@ -22,7 +22,7 @@ function PreprocessData(depth::Int, reform::Reformulation)
     for (spuid, spform) in get_dw_pricing_sps(reform)
         conv_lb = getconstr(master, reform.dw_pricing_sp_lb[spuid])
         conv_ub = getconstr(master, reform.dw_pricing_sp_ub[spuid])
-        cur_sp_bounds[spuid] = (getcurrhs(conv_lb), getcurrhs(conv_ub))
+        cur_sp_bounds[spuid] = (getcurrhs(master, conv_lb), getcurrhs(master, conv_ub))
     end
     return PreprocessData(
         depth, reform, Dict{ConstrId,Bool}(),
@@ -134,9 +134,12 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     master_coef_matrix = getcoefmatrix(master)
     constrs_with_modified_rhs = Constraint[]
     for (var_id, val) in sp_vars_vals 
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, master_coef_matrix[:,var_id])
+        for (constr_id, coef) in Iterators.filter(vc ->
+            getcurisactive(master,vc) && getcurisexplicit(mastervc),
+            master_coef_matrix[:,var_id]
+        )
             constr = getconstr(master, constr_id)
-            setrhs!(master, constr, getcurrhs(constr) - val * coef)
+            setrhs!(master, constr, getcurrhs(master, constr) - val * coef)
             push!(constrs_with_modified_rhs, constr)
         end
     end
@@ -146,7 +149,9 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     for sp_prob in sps_with_modified_bounds
         (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[getuid(sp_prob)]
 
-        for (var_id, var) in Iterators.filter(_active_pricing_sp_var_, getvars(spform))
+        for (var_id, var) in Iterators.filter(
+            v -> getcurisactive(spform,v) == true && getduty(v) <= AbstractDwSpVar,
+            getvars(spform))
             var_val_in_local_sol = (
                 haskey(sp_vars_vals, var_id) ? sp_vars_vals[var_id] : 0.0
             )
@@ -182,14 +187,15 @@ end
 function initconstraints!(
         alg_data::PreprocessData, constrs_with_modified_rhs::Vector{Constraint}
     )
-
     # Contains the constraints to start propagation
     constrs_to_stack = Tuple{Constraint,Formulation}[]
 
     # Master constraints
     master = getmaster(alg_data.reformulation)
     master_coef_matrix = getcoefmatrix(master)
-    for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(master))
+    for (constr_id, constr) in Iterators.filter(
+        c -> getcurisactive(master,c) && getcurisexplicit(master, c), 
+        getconstrs(master))
         if getduty(constr) != MasterConvexityConstr
             initconstraint!(alg_data, constr, master)
             push!(constrs_to_stack, (constr, master))
@@ -198,7 +204,9 @@ function initconstraints!(
 
     # Subproblem constraints
     for (spuid, spform) in get_dw_pricing_sps(alg_data.reformulation)
-        for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(spform))
+        for (constr_id, constr) in Iterators.filter(
+            c -> getcurisactive(spform,c) && getcurisexplicit(spform, c), 
+            getconstrs(spform))
             initconstraint!(alg_data, constr, spform)
             push!(constrs_to_stack, (constr, spform))
         end
@@ -222,7 +230,9 @@ function initconstraints!(
     return false
 end
 
-function initconstraint!(alg_data::PreprocessData, constr::Constraint, form::Formulation)
+function initconstraint!(
+    alg_data::PreprocessData, constr::Constraint, form::Formulation
+    )
     alg_data.constr_in_stack[getid(constr)] = false
     alg_data.nb_inf_sources_for_min_slack[getid(constr)] = 0
     alg_data.nb_inf_sources_for_max_slack[getid(constr)] = 0
@@ -234,9 +244,9 @@ end
 function compute_min_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    slack = getcurrhs(constr)
+    slack = getcurrhs(form, constr)
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+        var_filter = (var -> isanOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
@@ -269,9 +279,9 @@ end
 function compute_max_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    slack = getcurrhs(constr)
+    slack = getcurrhs(form, constr)
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+        var_filter = (var -> isanOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
@@ -394,7 +404,10 @@ function update_lower_bound!(
 
         diff = cur_lb == -Inf ? -new_lb : cur_lb - new_lb
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, coef_matrix[:, getid(var)])
+        for (constr_id, coef) in Iterators.filter(
+            c -> getcurisactive(form,c) && getcurisexplicit(form, c), 
+            coef_matrix[:, getid(var)])
+
             func = coef < 0 ? update_min_slack! : update_max_slack!
             if func(
                     alg_data, getconstr(form, constr_id),
@@ -454,7 +467,9 @@ function update_upper_bound!(
 
         diff = cur_ub == Inf ? -new_ub : cur_ub - new_ub
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, coef_matrix[:, getid(var)])
+        for (constr_id, coef) in Iterators.filter(
+            c -> getcurisactive(form,c) && getcurisexplicit(form, c), 
+            coef_matrix[:, getid(var)])
             func = coef > 0 ? update_min_slack! : update_max_slack!
             if func(
                 alg_data, getconstr(form, constr_id),
@@ -560,7 +575,7 @@ function strengthen_var_bounds_in_constr!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
     if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+        var_filter = (var -> isanOriginalRepresentatives(getduty(var)))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
@@ -592,7 +607,7 @@ function propagation!(alg_data::PreprocessData)
         if alg_data.printing
             println("constr ", getname(constr), " ", typeof(constr), " popped")
             println(
-                "rhs ", getcurrhs(constr), " max: ",
+                "rhs ", getcurrhs(form, constr), " max: ",
                 alg_data.cur_max_slack[getid(constr)], " min: ",
                 alg_data.cur_min_slack[getid(constr)]
             )

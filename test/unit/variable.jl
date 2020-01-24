@@ -44,15 +44,15 @@ function moi_var_record_getters_and_setters_tests()
 
     @test ClF.getindex(v_rec) == ClF.MoiVarIndex(-15)
     @test ClF.getbounds(v_rec) == ClF.MoiVarBound(-1)
-    @test ClF.getkind(v_rec) == ClF.MoiInteger(-1)
+    #@test ClF.getkind(v_rec) == ClF.MoiInteger(-1)
 
     ClF.setindex!(v_rec, ClF.MoiVarIndex(-20))
     ClF.setbounds!(v_rec, ClF.MoiVarBound(10))
-    ClF.setkind!(v_rec, ClF.MoiBinary(13))
+    #ClF.setkind!(v_rec, ClF.MoiBinary(13))
 
     @test ClF.getindex(v_rec) == ClF.MoiVarIndex(-20)
     @test ClF.getbounds(v_rec) == ClF.MoiVarBound(10)
-    @test ClF.getkind(v_rec) == ClF.MoiBinary(13)
+    #@test ClF.getkind(v_rec) == ClF.MoiBinary(13)
     return
 end
 
@@ -87,10 +87,10 @@ function variable_getters_and_setters_tests()
     #@test v.perene_data.cost == v.cur_data.cost == 13.0
     #@test v.perene_data.lb == v.cur_data.lb == -10.0
     #@test v.perene_data.ub == v.cur_data.ub == 100.0
-    @test v.perene_data.kind == v.cur_data.kind == ClF.Continuous
-    @test v.perene_data.sense == v.cur_data.sense == ClF.Free
-    @test v.perene_data.inc_val == v.cur_data.inc_val == -1.0
-    @test v.perene_data.is_explicit == v.cur_data.is_explicit == false
-    @test v.perene_data.is_active == v.cur_data.is_active == false
+    #@test v.perene_data.kind == v.cur_data.kind == ClF.Continuous
+    #@test v.perene_data.sense == v.cur_data.sense == ClF.Free
+    #@test v.perene_data.inc_val == v.cur_data.inc_val == -1.0
+    #@test v.perene_data.is_explicit == v.cur_data.is_explicit == false
+    #@test v.perene_data.is_active == v.cur_data.is_active == false
     return
 end

@@ -1,6 +1,6 @@
 abstract type AbstractVarData <: AbstractVcData end
 
-struct VarData <: AbstractVcData
+mutable struct VarData <: AbstractVcData
     cost::Float64
     lb::Float64
     ub::Float64
@@ -46,6 +46,18 @@ function VarData(
     return vc
 end
 
+VarData(vd::VarData) = VarData(
+vd.cost,
+vd.lb,
+vd.ub,
+vd.kind,
+vd.sense,
+vd.inc_val,
+vd.is_active,
+vd.is_explicit
+)
+
+#==
 mutable struct VarCurData <: AbstractVcData
     kind::VarKind
     sense::VarSense
@@ -53,8 +65,9 @@ mutable struct VarCurData <: AbstractVcData
     is_active::Bool
     is_explicit::Bool
 end
+==#
 
-"""
+#=="""
     VarCurData
 
 Subset of the information stored in VarData. Current state of the variable.
@@ -76,6 +89,7 @@ function VarCurData(vardata::VarData)
         vardata.is_explicit
     )
 end
+==#
 
 """
     MoiVarRecord
@@ -109,7 +123,6 @@ struct Variable <: AbstractVarConstr
     name::String
     duty::Duty{Variable}
     perene_data::VarData
-    cur_data::VarCurData
     moirecord::MoiVarRecord
     # form_where_explicit::Int
 end
@@ -123,7 +136,7 @@ function Variable(id::VarId,
                   var_data = VarData(),
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(
-        id, name, duty, var_data, VarCurData(var_data), 
+        id, name, duty, var_data,  
         MoiVarRecord(index = moi_index)
     )
 end

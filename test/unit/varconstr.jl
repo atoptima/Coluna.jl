@@ -57,7 +57,7 @@ end
 
 function abstract_var_constr_getters_tests()
 
-    v = ClF.Variable(
+  v = ClF.Variable(
         ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.MasterPureVar
     )
 
@@ -93,20 +93,20 @@ function varcosntr_helpers_tests()
    # @test ClF.getcurkind(v) == ClF.getperenekind(v) == ClF.Continuous
    # @test ClF.getcursense(v) == ClF.getperenesense(v) == ClF.Positive
    # @test ClF.getcurincval(v) == ClF.getpereneincval(v) == -1.0
-    @test ClF.get_cur_is_active(v) == ClF.get_init_is_active(v) == true
-    @test ClF.get_cur_is_explicit(v) == ClF.get_init_is_explicit(v) == true
+# @test ClF.getcurisactive(form,v) == ClF.get_init_is_active(v) == true
+   # @test ClF.getcurisexplicit(form,v) == ClF.get_init_is_explicit(v) == true
 
     #ClF.setcurkind!(v, ClF.Integ)
     #ClF.setcursense!(v, ClF.Negative)
     #ClF.setcurincval!(v, 10.0)
-    ClF.set_cur_is_active(v, false)
-    ClF.set_cur_is_explicit(v, false)
+    # ClF.set_cur_is_active(v, false)
+    #ClF.set_cur_is_explicit(v, false)
 
     #@test ClF.getcurkind(v) == ClF.Integ
     #@test ClF.getcursense(v) == ClF.Negative
     #@test ClF.getcurincval(v) == 10.0
-    @test ClF.get_cur_is_active(v) == false
-    @test ClF.get_cur_is_explicit(v) == false
+    #@test ClF.getcurisactive(form,v) == false
+    #@test ClF.getcurisexplicit(form,v) == false
 
     c = ClF.Constraint(
         ClF.Id{ClF.Constraint}(23, 10), "fake_constr", ClF.MasterBranchOnOrigVarConstr
@@ -118,19 +118,19 @@ function varcosntr_helpers_tests()
     #@test ClF.getcurkind(c) == ClF.getperenekind(c) == ClF.Core
     #@test ClF.getcursense(c) == ClF.getperenesense(c) == ClF.Greater
     #@test ClF.getcurincval(c) == ClF.getpereneincval(c) == -1.0
-    @test ClF.get_cur_is_active(c) == ClF.get_init_is_active(c) == true
-    @test ClF.get_cur_is_explicit(c) == ClF.get_init_is_explicit(c) == true
+   #@test ClF.getcurisactive(form,c) == ClF.get_init_is_active(c) == true
+   # @test ClF.getcurisexplicit(form,c) == ClF.get_init_is_explicit(c) == true
 
     #ClF.setcurkind!(c, ClF.Facultative)
     #ClF.setcursense!(c, ClF.Less)
     #ClF.setcurincval!(c, 10.0)
-    ClF.set_cur_is_active(c, false)
-    ClF.set_cur_is_explicit(c, false)
+  # ClF.set_cur_is_active(c, false)
+   # ClF.set_cur_is_explicit(c, false)
 
     #@test ClF.getcurkind(c) == ClF.Facultative
     #@test ClF.getcursense(c) == ClF.Less
     #@test ClF.getcurincval(c) == 10.0
-    @test ClF.get_cur_is_active(c) == false
-    @test ClF.get_cur_is_explicit(c) == false
+    #@test ClF.getcurisactive(form,c) == false
+    #@test ClF.getcurisexplicit(form,c) == false
 
 end
