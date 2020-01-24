@@ -6,10 +6,11 @@ const ConstrDict = ElemDict{Id{Constraint}, Constraint}
 const ConstrDataDict = Dict{Id{Constraint}, ConstrData}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
-const VarVarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
-const VarConstrMatrix = MembersMatrix{VarId,Variable,ConstrId,Constraint,Float64}
-const ConstrVarMatrix = MembersMatrix{ConstrId,Constraint,VarId,Variable,Float64}
-const ConstrConstrMatrix = MembersMatrix{ConstrId,Constraint,ConstrId,Constraint,Float64}
+const VarVarMatrix = OldMembersMatrix{VarId,Variable,VarId,Variable,Float64}
+
+const ConstrVarMatrix = MembersMatrix{ConstrId,VarId,Float64}
+
+const ConstrConstrMatrix = OldMembersMatrix{ConstrId,Constraint,ConstrId,Constraint,Float64}
 const PrimalSolution{S} = Solution{Primal, S, Id{Variable}, Float64}
 const DualSolution{S} = Solution{Dual, S, Id{Constraint}, Float64}
 const PrimalBound{S} = Bound{Primal, S}
@@ -20,7 +21,7 @@ struct FormulationManager
     constrs::ConstrDict
     var_datas::VarDataDict
     constr_datas::ConstrDataDict
-    coefficients::VarConstrMatrix # cols = variables, rows = constraints
+    coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables 
     primal_sol_costs::VarMembership # primal solutions with varid map to their cost
@@ -31,18 +32,17 @@ end
 function FormulationManager()
     vars = VarDict()
     constrs = ConstrDict()
-    
     return FormulationManager(
-    vars,
-    constrs,
-    VarDataDict(),
-    ConstrDataDict(),
-    MembersMatrix{Float64}(vars,constrs),
-    MembersMatrix{Float64}(vars,vars),
-    MembersMatrix{Float64}(vars,vars),
-    MembersVector{Float64}(vars),
-    MembersMatrix{Float64}(constrs,constrs),
-    MembersVector{Float64}(constrs)
+        vars,
+        constrs,
+        VarDataDict(),
+        ConstrDataDict(),
+        ConstrVarMatrix(),
+        OldMembersMatrix{Float64}(vars,vars),
+        OldMembersMatrix{Float64}(vars,vars),
+        MembersVector{Float64}(vars),
+        OldMembersMatrix{Float64}(constrs,constrs),
+        MembersVector{Float64}(constrs)
     )
 end
 
