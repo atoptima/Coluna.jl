@@ -20,9 +20,10 @@ function PreprocessData(depth::Int, reform::Reformulation)
     cur_sp_bounds = Dict{FormId,Tuple{Int,Int}}()
     master = getmaster(reform)
     for (spuid, spform) in get_dw_pricing_sps(reform)
-        conv_lb = getconstr(master, reform.dw_pricing_sp_lb[spuid])
-        conv_ub = getconstr(master, reform.dw_pricing_sp_ub[spuid])
-        cur_sp_bounds[spuid] = (getcurrhs(conv_lb), getcurrhs(conv_ub))
+        cur_sp_bounds[spuid] = (
+            getcurrhs(master, reform.dw_pricing_sp_lb[spuid]), 
+            getcurrhs(master, reform.dw_pricing_sp_ub[spuid])
+            )
     end
     return PreprocessData(
         depth, reform, Dict{ConstrId,Bool}(),
@@ -104,8 +105,8 @@ end
 function getsp(alg_data::PreprocessData, col::Variable)
     master = getmaster(alg_data.reformulation)
     primal_sp_sols = getprimalsolmatrix(master)
-    for (sp_var_id, sp_var_val) in primal_sp_sols[:,getid(getid(col))]
-        sp_var = getvar(master, sp_var_id)
+    for (sp_varid, sp_var_val) in primal_sp_sols[:,getid(getid(col))]
+        sp_var = getvar(master, sp_varid)
         return find_owner_formulation(alg_data.reformulation, sp_var)
     end
 end
@@ -133,10 +134,12 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     master = getmaster(alg_data.reformulation)
     master_coef_matrix = getcoefmatrix(master)
     constrs_with_modified_rhs = Constraint[]
-    for (var_id, val) in sp_vars_vals 
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, master_coef_matrix[:,var_id])
-            constr = getconstr(master, constr_id)
-            setrhs!(master, constr, getcurrhs(constr) - val * coef)
+    for (varid, val) in sp_vars_vals 
+        for (constrid, coef) in master_coef_matrix[:,varid]
+            getcurisactive(master, constrid) || continue
+            getcurisexplicit(master, constrid) || continue
+            constr = getconstr(master, constrid)
+            setrhs!(master, constrid, getcurrhs(master, constrid) - val * coef)
             push!(constrs_with_modified_rhs, constr)
         end
     end
@@ -146,13 +149,15 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     for sp_prob in sps_with_modified_bounds
         (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[getuid(sp_prob)]
 
-        for (var_id, var) in Iterators.filter(_active_pricing_sp_var_, getvars(spform))
+        for (varid, var) in getvars(spform)
+            getcurisactive(spform, varid) || continue
+            getduty(varid) <=  AbstractDwSpVar || continue
             var_val_in_local_sol = (
-                haskey(sp_vars_vals, var_id) ? sp_vars_vals[var_id] : 0.0
+                haskey(sp_vars_vals, varid) ? sp_vars_vals[varid] : 0.0
             )
             bounds_changed = false
 
-            clone_in_master = getvar(master, var_id)
+            clone_in_master = getvar(master, varid)
             new_global_lb = max(
                 getcurlb(master, clone_in_master) - var_val_in_local_sol,
                 getcurlb(sp_prob, var) * cur_sp_lb
@@ -189,16 +194,19 @@ function initconstraints!(
     # Master constraints
     master = getmaster(alg_data.reformulation)
     master_coef_matrix = getcoefmatrix(master)
-    for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(master))
-        if getduty(constr) != MasterConvexityConstr
-            initconstraint!(alg_data, constr, master)
-            push!(constrs_to_stack, (constr, master))
-        end
+    for (constrid, constr) in getconstrs(master)
+        getcurisactive(master, constrid) || continue
+        getcurisexplicit(master, constrid) || continue
+        getduty(constrid) != MasterConvexityConstr && continue
+        initconstraint!(alg_data, constr, master)
+        push!(constrs_to_stack, (constr, master))   
     end
 
     # Subproblem constraints
     for (spuid, spform) in get_dw_pricing_sps(alg_data.reformulation)
-        for (constr_id, constr) in Iterators.filter(_active_explicit_, getconstrs(spform))
+        for (constrid, constr) in getconstrs(spform)
+            getcurisactive(spform, constrid) || continue
+            getcurisexplicit(spform, constrid) || continue
             initconstraint!(alg_data, constr, spform)
             push!(constrs_to_stack, (constr, spform))
         end
@@ -234,15 +242,15 @@ end
 function compute_min_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    slack = getcurrhs(constr)
-    if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+    slack = getcurrhs(form, constr)
+    if getduty(getid(constr)) <= AbstractMasterConstr
+        var_filter = (var -> isanOriginalRepresentatives(getduty(getid(var)))
     else
-        var_filter = (var -> (getduty(var) == DwSpPricingVar))
+        var_filter = (var -> (getduty(getid(var)) == DwSpPricingVar))
     end
     coef_matrix = getcoefmatrix(form)
-    for (var_id, coef) in coef_matrix[getid(constr),:]
-        var = getvar(form, var_id)
+    for (varid, coef) in coef_matrix[getid(constr),:]
+        var = getvar(form, varid)
         if !var_filter(var) 
             continue
         end
@@ -269,15 +277,15 @@ end
 function compute_max_slack!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    slack = getcurrhs(constr)
-    if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+    slack = getcurrhs(form, constr)
+    if getduty(getid(constr)) <= AbstractMasterConstr
+        var_filter = (var -> isanOriginalRepresentatives(getduty(getid(var))))
     else
-        var_filter = (var -> (getduty(var) == DwSpPricingVar))
+        var_filter = (var -> (getduty(getid(var)) == DwSpPricingVar))
     end
     coef_matrix = getcoefmatrix(form)
-    for (var_id, coef) in coef_matrix[getid(constr),:]
-        var = getvar(form, var_id)
+    for (varid, coef) in coef_matrix[getid(constr),:]
+        var = getvar(form, varid)
         if !var_filter(var) 
             continue
         end
@@ -387,6 +395,7 @@ function update_lower_bound!(
     )
     cur_lb = getcurlb(form, var)
     cur_ub = getcurub(form, var)
+    varid = getid(var)
     if new_lb > cur_lb || !check_monotonicity
         if new_lb > cur_ub
             return true
@@ -394,10 +403,12 @@ function update_lower_bound!(
 
         diff = cur_lb == -Inf ? -new_lb : cur_lb - new_lb
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, coef_matrix[:, getid(var)])
+        for (constrid, coef) in coef_matrix[:, varid]
+            getcurisactive(form, constrid) || continue
+            getcurisexplicit(form, constrid) || continue
             func = coef < 0 ? update_min_slack! : update_max_slack!
             if func(
-                    alg_data, getconstr(form, constr_id),
+                    alg_data, getconstr(form, constrid),
                     form, cur_lb == -Inf , diff * coef
                 )
                 return true
@@ -405,33 +416,33 @@ function update_lower_bound!(
         end
         alg_data.printing && println(
             "updating lb of var ", getname(var), " from ", cur_lb, " to ",
-            new_lb, " duty ", getduty(var)
+            new_lb, " duty ", getduty(varid)
         )
         setcurlb!(form, var, new_lb)
         add_to_preprocessing_list!(alg_data, var)
 
         # Now we update bounds of clones
-        if getduty(var) == MasterRepPricingVar 
+        if getduty(varid) == MasterRepPricingVar 
             subprob = find_owner_formulation(form.parent_formulation, var)
             (sp_lb, sp_ub) = alg_data.cur_sp_bounds[getuid(subprob)]
-            clone_in_sp = getvar(subprob, getid(var))
+            clone_in_sp = getvar(subprob, varid)
             if update_lower_bound!(
                     alg_data, clone_in_sp, subprob,
                     getcurlb(form, var) - (max(sp_ub, 1) - 1) * getcurub(subprob, clone_in_sp)
                 )
                 return true
             end
-        elseif getduty(var) == DwSpPricingVar
+        elseif getduty(varid) == DwSpPricingVar
             master = form.parent_formulation
             (sp_lb, sp_ub) = alg_data.cur_sp_bounds[getuid(form)]
-            clone_in_master = getvar(master, getid(var))
+            clone_in_master = getvar(master, varid)
             if update_lower_bound!(
-                    alg_data, clone_in_master, master, getcurlb(form, var) * sp_lb
+                    alg_data, clone_in_master, master, getcurlb(form, varid) * sp_lb
                 )
                 return true
             end
             new_ub_in_sp = (
-                getcurub(master, clone_in_master) - (max(sp_lb, 1) - 1) * getcurlb(form, var)
+                getcurub(master, clone_in_master) - (max(sp_lb, 1) - 1) * getcurlb(form, varid)
             )
             if update_upper_bound!(alg_data, var, form, new_ub_in_sp)
                 return true
@@ -447,6 +458,7 @@ function update_upper_bound!(
     )
     cur_lb = getcurlb(form, var)
     cur_ub = getcurub(form, var)
+    varid = getid(var)
     if new_ub < cur_ub || !check_monotonicity
         if new_ub < cur_lb
             return true
@@ -454,10 +466,10 @@ function update_upper_bound!(
 
         diff = cur_ub == Inf ? -new_ub : cur_ub - new_ub
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(_active_explicit_, coef_matrix[:, getid(var)])
+        for (constrid, coef) in Iterators.filter(_active_explicit_, coef_matrix[:, varid])
             func = coef > 0 ? update_min_slack! : update_max_slack!
             if func(
-                alg_data, getconstr(form, constr_id),
+                alg_data, getconstr(form, constrid),
                 form, cur_ub == Inf , diff*coef
             )
                 return true
@@ -466,34 +478,34 @@ function update_upper_bound!(
         if alg_data.printing
             println(
                 "updating ub of var ", getname(var), " from ", cur_ub,
-                " to ", new_ub, " duty ", getduty(var)
+                " to ", new_ub, " duty ", getduty(varid)
             )
         end
-        setcurub!(form, var, new_ub)
+        setcurub!(form, varid, new_ub)
         add_to_preprocessing_list!(alg_data, var)
 
         # Now we update bounds of clones
-        if getduty(var) == MasterRepPricingVar 
+        if getduty(varid) == MasterRepPricingVar 
             subprob = find_owner_formulation(form.parent_formulation, var)
             (sp_lb, sp_ub) = alg_data.cur_sp_bounds[getuid(subprob)]
-            clone_in_sp = getvar(subprob, getid(var))
+            clone_in_sp = getvar(subprob, varid)
             if update_upper_bound!(
                 alg_data, clone_in_sp, subprob,
-                getcurub(form, var) - (max(sp_lb, 1) - 1) * getcurlb(subprob, clone_in_sp)
+                getcurub(form, varid) - (max(sp_lb, 1) - 1) * getcurlb(subprob, clone_in_sp)
             )
                 return true
             end
-        elseif getduty(var) == DwSpPricingVar
+        elseif getduty(varid) == DwSpPricingVar
             master = form.parent_formulation
             (sp_lb, sp_ub) = alg_data.cur_sp_bounds[getuid(form)]
-            clone_in_master = getvar(master, getid(var))
+            clone_in_master = getvar(master, varid)
             if update_upper_bound!(
-                alg_data, clone_in_master, master, getcurub(form, var) * sp_ub
+                alg_data, clone_in_master, master, getcurub(form, varid) * sp_ub
             )
                 return true
             end
             new_lb_in_sp = (
-                getcurlb(master, clone_in_master) - (max(sp_ub, 1) - 1) * getcurub(form, var)
+                getcurlb(master, clone_in_master) - (max(sp_ub, 1) - 1) * getcurub(form, varid)
             )
             if update_lower_bound!(alg_data, var, form, new_lb_in_sp)
                 return true
@@ -528,30 +540,30 @@ function compute_new_var_bound(
         alg_data::PreprocessData, var::Variable, form::Formulation, 
         cur_lb::Float64, cur_ub::Float64, coef::Float64, constr::Constraint
     )
-
-    if coef > 0 && getcursense(form, constr) == Less
+    constrid = getid(constr)
+    if coef > 0 && getcursense(form, constrid) == Less
         is_ub = true
         return (is_ub, compute_new_bound(
-            alg_data.nb_inf_sources_for_max_slack[getid(constr)],
-            alg_data.cur_max_slack[getid(constr)], -coef * cur_lb, Inf, coef
+            alg_data.nb_inf_sources_for_max_slack[constrid],
+            alg_data.cur_max_slack[constrid], -coef * cur_lb, Inf, coef
         ))
-    elseif coef > 0 && getcursense(form, constr) != Less
+    elseif coef > 0 && getcursense(form, constrid) != Less
         is_ub = false
         return (is_ub, compute_new_bound(
-            alg_data.nb_inf_sources_for_min_slack[getid(constr)],
-            alg_data.cur_min_slack[getid(constr)], -coef * cur_ub, -Inf, coef
+            alg_data.nb_inf_sources_for_min_slack[constrid],
+            alg_data.cur_min_slack[constrid], -coef * cur_ub, -Inf, coef
         ))
-    elseif coef < 0 && getcursense(form, constr) != Greater
+    elseif coef < 0 && getcursense(form, constrid) != Greater
         is_ub = false
         return (is_ub, compute_new_bound(
-            alg_data.nb_inf_sources_for_max_slack[getid(constr)],
-            alg_data.cur_max_slack[getid(constr)], -coef * cur_ub, -Inf
+            alg_data.nb_inf_sources_for_max_slack[constrid],
+            alg_data.cur_max_slack[constrid], -coef * cur_ub, -Inf
         ))
     else
         is_ub = true
         return (is_ub, compute_new_bound(
-            alg_data.nb_inf_sources_for_min_slack[getid(constr)], 
-            alg_data.cur_min_slack[getid(constr)], -coef * cur_lb, Inf
+            alg_data.nb_inf_sources_for_min_slack[constrid], 
+            alg_data.cur_min_slack[constrid], -coef * cur_lb, Inf
         ))
     end
 end
@@ -559,19 +571,20 @@ end
 function strengthen_var_bounds_in_constr!(
         alg_data::PreprocessData, constr::Constraint, form::Formulation
     )
-    if getduty(constr) <= AbstractMasterConstr
-        var_filter = _rep_of_orig_var_ 
+    constrid = getid(constr)
+    if getduty(constrid) <= AbstractMasterConstr
+        var_filter =  (var -> isanOriginalRepresentatives(getduty(getid(var))))
     else
         var_filter = (var -> (getduty(var) == DwSpPricingVar))
     end
     coef_matrix = getcoefmatrix(form)
-    for (var_id, coef) in coef_matrix[getid(constr),:]
-        var = getvar(form, var_id)
+    for (varid, coef) in coef_matrix[constrid,:]
+        var = getvar(form, varid)
         if !var_filter(var) 
             continue
         end
         (is_ub, bound) = compute_new_var_bound(
-            alg_data, var, form, getcurlb(form, var), getcurub(form, var), coef, constr
+            alg_data, var, form, getcurlb(form, varid), getcurub(form, varid), coef, constr
         )
         if !isinf(bound)
             bound = adjust_bound(form, var, bound, is_ub)
@@ -592,7 +605,7 @@ function propagation!(alg_data::PreprocessData)
         if alg_data.printing
             println("constr ", getname(constr), " ", typeof(constr), " popped")
             println(
-                "rhs ", getcurrhs(constr), " max: ",
+                "rhs ", getcurrhs(form, constr), " max: ",
                 alg_data.cur_max_slack[getid(constr)], " min: ",
                 alg_data.cur_min_slack[getid(constr)]
             )
@@ -608,9 +621,10 @@ function forbid_infeasible_columns!(alg_data::PreprocessData)
     master = getmaster(alg_data.reformulation)
     primal_sp_sols = getprimalsolmatrix(getmaster(alg_data.reformulation))
     for var in alg_data.preprocessed_vars
-        if getduty(var) == DwSpPricingVar
-            for (col_id, coef) in primal_sp_sols[getid(var),:]
-                if !(getcurlb(var) <= coef <= getcurub(var)) # TODO ; get the subproblem...
+        varid = getid(var)
+        if getduty(varid) == DwSpPricingVar
+            for (col_id, coef) in primal_sp_sols[varid,:]
+                if !(getcurlb(master, varid) <= coef <= getcurub(master, varid)) # TODO ; get the subproblem...
                     setcurub!(master, getvar(master, col_id), 0.0)
                 end
             end

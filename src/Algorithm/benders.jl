@@ -51,8 +51,9 @@ function run!(algo::BendersCutGeneration, form, node)
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
-    for (varid, var) in Iterators.filter(_active_ , getvars(spform))
-        if getduty(var) == BendSpSlackFirstStageVar
+    for (varid, var) in getvars(spform)
+        getcurisactive(spform, varid) || continue
+        if getduty(varid) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 1.0)
         else
             setcurcost!(spform, var, 0.0)
@@ -63,8 +64,9 @@ function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
 end
 
 function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation) 
-    for (varid, var) in filter(_active_ , getvars(spform))
-        if getduty(var) == BendSpSlackFirstStageVar
+    for (varid, var) in getvars(spform)
+        getcurisactive(spform, varid) || continue
+        if getduty(varid) == BendSpSlackFirstStageVar
             setcurcost!(spform, var, 0.0)
             setcurub!(spform, var, 0.0)
         else
@@ -75,7 +77,8 @@ function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation)
 end
 
 function update_benders_sp_slackvar_cost_for_hyb_ph!(spform::Formulation)
-    for (varid, var) in Iterators.filter(_active_, getvars(spform))
+    for (varid, var) in getvars(spform)
+        getcurisactive(spform, varid) || continue
         setcurcost!(spform, var, getperenecost(spform, var))
         # TODO if previous phase is  a pure phase 2, reset current ub
     end
@@ -89,22 +92,28 @@ function update_benders_sp_problem!(
     masterform = spform.parent_formulation
 
      # Update rhs of technological constraints
-    for (constrid, constr) in Iterators.filter(_active_BendSpMaster_constr_ , getconstrs(spform))
+    for (constrid, constr) in getconstrs(spform)
+        getcurisactive(spform, constrid) || continue
+        getduty(constrid) <= AbstractBendSpMasterConstr || continue
         setcurrhs!(spform, constr, computereducedrhs(spform, constrid, master_primal_sol))
     end
     
     # Update bounds on slack var "BendSpSlackFirstStageVar"
-    for (varid, var) in Iterators.filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
+    for (varid, var) in getvars(spform)
+        getcurisactive(spform, varid) || continue
+        getduty(varid) <= BendSpSlackFirstStageVar || continue
         if haskey(master_primal_sol, varid)
-            #setcurlb!(var, getperenelb(var) - cur_sol[var_id])
+            #setcurlb!(var, getperenelb(var) - cur_sol[varid])
             setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
         end
     end
 
     if algo.option_use_reduced_cost
-        for (var_id, var) in filter(_active_BendSpSlackFirstStage_var_ , getvars(spform))
+        for (varid, var) in getvars(spform)
+            getcurisactive(spform, varid) || continue
+            getduty(varid) <= BendSpSlackFirstStageVar || continue
             cost = getcurcost(spform, var)
-            rc = computereducedcost(masterform, var_id, master_dual_sol)
+            rc = computereducedcost(masterform, varid, master_dual_sol)
             setcurcost!(spform, var, rc)
         end
     end
@@ -272,8 +281,8 @@ function solve_sp_to_gencut!(
         # compute benders_sp_primal_bound_contrib which stands for the sum of nu var,
         # i.e. the second stage cost as it would appear as 
         # the separation subproblem objective in a pure phase 2
-        for (var_id, value) in primalsol #filter(var -> getduty(var) <= BendSpSlackSecondStageCostVar, primalsol)
-            if getduty(getvar(spform, var_id)) <= BendSpSlackSecondStageCostVar
+        for (varid, value) in primalsol 
+            if getduty(varid) <= BendSpSlackSecondStageCostVar
                 if S == MinSense
                     benders_sp_primal_bound_contrib += value
                 else
@@ -332,36 +341,6 @@ function solve_sp_to_gencut!(
 end
 
         
- #==       if spsol_relaxed
-            if - feasibility_tol <= getprimalbound(optresult) <= feasibility_tol
-                spform_uid = getuid(spform)
-                algdata.spform_phase[spform_uid] = PurePhase1
-                algdata.spform_phase_applied[spform_uid] = false
-                continue
-            else
-                for (var, value) in Iterators.filter(var -> getduty(var) <: BendSpSlackFirstStageVar, getsol(primalsol))
-                    if S == MinSense
-                        benders_sp_primal_bound_contrib += value
-                    else
-                        benders_sp_primal_bound_contrib -= value
-                    end
-                end
-            end
-        end
-        insertion_status = insert_cuts_in_master!(algdata, masterform, spform, optresult)
-       
-        if !spsol_relaxed && -1e-5 <= getprimalbound(optresult) <= 1e-5
-            spform_uid = getuid(spform)
-            if algdata.spform_phase[spform_uid] == PurePhase1
-                algdata.spform_phase_applied[spform_uid] = false
-                algdata.spform_phase[spform_uid] = HybridPhase
-            end
-        end
-        
-        return insertion_status, spsol_relaxed, benders_sp_primal_bound_contrib, benders_sp_lagrangian_bound_contrib
-    end
-return
-==#
 
 function solve_sps_to_gencuts!(
     algo::BendersCutGeneration, algdata::BendersCutGenData, 
@@ -446,7 +425,7 @@ function generatecuts!(
     master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S}, phase::FormulationPhase
 )::Tuple{Int, Bool, PrimalBound{S}} where {S}
     masterform = getmaster(reform)
-    filtered_dual_sol = filter(constr -> getduty(getconstr(masterform, constr[1])) == MasterPureConstr, master_dual_sol)
+    filtered_dual_sol = filter(elem -> getduty(elem[1]) == MasterPureConstr, master_dual_sol)
 
     ## TODO stabilization : move the following code inside a loop
     nb_new_cuts, spsols_relaxed, pb_correction, sp_pb_contrib =
@@ -575,8 +554,8 @@ function bend_cutting_plane_main_loop(
     if !one_spsol_is_a_relaxed_sol                
         # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
         sol_integer = true
-        for (var_id, val) in master_primal_sol
-            if getperenekind(masterform, var_id) != Continuous
+        for (varid, val) in master_primal_sol
+            if getperenekind(masterform, varid) != Continuous
                 round_down_val = Float64(val, RoundDown)
                 round_up_val = Float64(val, RoundUp)
                 

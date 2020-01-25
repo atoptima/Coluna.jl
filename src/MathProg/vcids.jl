@@ -11,6 +11,7 @@ It is composed by the following uids:
 For a origin jump var/constr the origin_form_uid is the jump model while the assigned_form_uid_in_reformulation is the spform for a pure spform and the master for a pure master var. For a added var/constr the origin_form_uid is where is was created : for instance a master column 's orginal formulation  is the subproblem for which it was a solution and is assigned formulation is the master program.Number of the process where it was generated 
 """
 struct Id{VC <: AbstractVarConstr}
+    duty::Duty{VC}
     uid::Int
     origin_form_uid::FormId
     assigned_form_uid_in_reformulation::FormId
@@ -25,6 +26,8 @@ function _create_hash(uid::Int, origin_form_uid::FormId, proc_uid::Int)
         + proc_uid
     )
 end
+
+getduty(vcid::Id{VC}) where {VC <: AbstractVarConstr} = vcid.duty
 
 """
     Id{VC}(uid::Int, form_uid::Int) where {VC<:AbstractVarConstr}

@@ -6,7 +6,6 @@
 
 getid(vc::AbstractVarConstr) = vc.id
 getname(vc::AbstractVarConstr) = vc.name
-getduty(vc::AbstractVarConstr) = vc.duty
 getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 
 # Helpers for getters and setters that acces fields in a level

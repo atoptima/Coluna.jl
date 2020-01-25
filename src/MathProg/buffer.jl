@@ -107,7 +107,7 @@ function change_kind!(buffer::FormulationBuffer, var::Variable)
     return
 end
 
-function set_matrix_coeff!(buffer::FormulationBuffer, var_id::Id{Variable},
-                           constr_id::Id{Constraint}, new_coeff::Float64)
-    buffer.reset_coeffs[Pair(constr_id,var_id)] = new_coeff
+function set_matrix_coeff!(buffer::FormulationBuffer, varid::Id{Variable},
+                           constrid::Id{Constraint}, new_coeff::Float64)
+    buffer.reset_coeffs[Pair(constrid,varid)] = new_coeff
 end

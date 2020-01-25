@@ -4,6 +4,7 @@ struct Branch
     sense::ConstrSense
     depth::Int
 end
+
 function Branch(var::Variable, rhs::Float64, sense::ConstrSense, depth::Int)
     var_coeffs = Dict{VarId,Float64}()
     var_coeffs[getid(var)] = 1.0
@@ -148,16 +149,16 @@ function add_to_recorded!(reform::Reformulation, recorded_info::NodeRecord)
 end
 
 function add_to_recorded!(form::Formulation, recorded_info::NodeRecord)
-    for (id, var) in getvars(form)
+    for (varid, var) in getvars(form)
         if get_cur_is_active(var) && get_cur_is_explicit(var)
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
-            recorded_info.active_vars[id] = varstate
+            recorded_info.active_vars[varid] = varstate
         end
     end
-    for (id, constr) in getconstrs(form)
+    for (constrid, constr) in getconstrs(form)
         if get_cur_is_active(constr) && get_cur_is_explicit(constr)
-            constrstate = ConstrState(getcurrhs(constr))
-            recorded_info.active_constrs[id] = constrstate
+            constrstate = ConstrState(getcurrhs(form, constr))
+            recorded_info.active_constrs[constrid] = constrstate
         end
     end
     return
@@ -237,10 +238,10 @@ end
 
 function apply_data!(form::Formulation, constr::Constraint, constr_state::ConstrState)
     # Rhs
-    if getcurrhs(constr) != constr_state.rhs
+    if getcurrhs(form, constr) != constr_state.rhs
         @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
         setrhs!(form, constr, constr_state.rhs)
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(constr))
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(form, constr))
     end
     return
 end

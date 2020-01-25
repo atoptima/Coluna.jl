@@ -5,7 +5,7 @@
 """
 struct VarBranchingCandidate <: AbstractBranchingCandidate 
     description::String
-    var_id::VarId
+    varid::VarId
 end
 
 getdescription(candidate::VarBranchingCandidate) = candidate.description
@@ -14,11 +14,11 @@ function generate_children(
     candidate::VarBranchingCandidate, lhs::Float64, reform::Reformulation, 
     node::Node
 )
-    var = getvar(reform.master, candidate.var_id)
+    var = getvar(reform.master, candidate.varid)
 
     @logmsg LogLevel(-1) string(
         "Chosen branching variable : ",
-        getname(getvar(getmaster(reform), candidate.var_id)), ". With value ", 
+        getname(getvar(getmaster(reform), candidate.varid)), ". With value ", 
         lhs, "."
     )
 
@@ -52,12 +52,12 @@ function gen_candidates_for_orig_sol(
     max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
 ) where Sense
     groups = Vector{BranchingGroup}()
-    for (var_id, val) in sol
+    for (varid, val) in sol
         # Do not consider continuous variables as branching candidates
-        getperenekind(getmaster(reform), var_id) == Continuous && continue
+        getperenekind(getmaster(reform), varid) == Continuous && continue
         if !isinteger(val)
             #description string is just the variable name
-            candidate = VarBranchingCandidate(getname(getvar(reform.master, var_id)), var_id)
+            candidate = VarBranchingCandidate(getname(getvar(reform.master, varid)), varid)
             local_id += 1 
             push!(groups, BranchingGroup(candidate, local_id, val))
         end

@@ -122,12 +122,12 @@ function create_origvars!(
             lb = get(lbs, moi_index.value, -Inf),
             ub = get(ubs, moi_index.value, Inf)
         )
-        var_id = getid(var)
+        varid = getid(var)
         moi_index_in_coluna = deepcopy(moi_index) 
         dest.moi_index_to_coluna_uid[moi_index] = moi_index_in_coluna
-        moi_uid_to_coluna_id[moi_index.value] = var_id
+        moi_uid_to_coluna_id[moi_index.value] = varid
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
-        dest.varmap[moi_index_in_coluna] = var_id
+        dest.varmap[moi_index_in_coluna] = varid
         store!(dest.annotations, annotation, var)
     end
 end
@@ -142,13 +142,13 @@ function create_origconstr!(
                     kind = MathProg.Core,
                     sense = convert_moi_sense_to_coluna(set),
                     inc_val = 10.0) #TODO set inc_val in model
-    constr_id = getid(constr)
+    constrid = getid(constr)
     dest.moi_index_to_coluna_uid[moi_index] =
-        MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constr_id))
+        MOI.ConstraintIndex{typeof(func),typeof(set)}(getuid(constrid))
     matrix = getcoefmatrix(form)
     for term in func.terms
-        var_id = moi_uid_to_coluna_id[term.variable_index.value]
-        matrix[constr_id, var_id] = term.coefficient
+        varid = moi_uid_to_coluna_id[term.variable_index.value]
+        matrix[constrid, varid] = term.coefficient
     end
     annotation = MOI.get(src, BD.ConstraintDecomposition(), moi_index)
     store!(dest.annotations, annotation, constr)

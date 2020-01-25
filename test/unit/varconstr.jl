@@ -60,10 +60,10 @@ function abstract_var_constr_getters_tests()
     v = ClF.Variable(
         ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.MasterPureVar
     )
-
-    @test ClF.getid(v) == ClF.Id{ClF.Variable}(23, 10)
+    vid = ClF.getid(v)
+    @test vid == ClF.Id{ClF.Variable}(23, 10)
     @test ClF.getname(v) == "fake_var"
-    @test ClF.getduty(v) == ClF.MasterPureVar
+    @test vid == ClF.MasterPureVar
     #@test ClF.getrecordeddata(v) === v.perene_data
     #@test ClF.getcurdata(v) === v.cur_data
     @test ClF.getmoirecord(v) === v.moirecord
@@ -72,10 +72,10 @@ function abstract_var_constr_getters_tests()
     c = ClF.Constraint(
         ClF.Id{ClF.Constraint}(23, 10), "fake_constr", ClF.MasterBranchOnOrigVarConstr
     )
-
-    @test ClF.getid(c) == ClF.Id{ClF.Constraint}(23, 10)
+    cid = ClF.getid(c) 
+    @test cid == ClF.Id{ClF.Constraint}(23, 10)
     @test ClF.getname(c) == "fake_constr"
-    @test ClF.getduty(c) == ClF.MasterBranchOnOrigVarConstr
+    @test cid == ClF.MasterBranchOnOrigVarConstr
     #@test ClF.getrecordeddata(c) === c.perene_data
     #@test ClF.getcurdata(c) === c.cur_data
     @test ClF.getmoirecord(c) === c.moirecord

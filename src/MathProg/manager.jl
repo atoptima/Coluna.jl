@@ -60,11 +60,11 @@ function adddualsol!(m::FormulationManager,
                      ) where {S<:Coluna.AbstractSense}
 
     rhs = 0.0
-    for (constr_id, constr_val) in dualsol
-        constr = m.constrs[constr_id]
+    for (constrid, constr_val) in dualsol
+        constr = m.constrs[constrid]
         rhs += getperenerhs(constr) * constr_val 
-        if getduty(constr) <= AbstractBendSpMasterConstr
-            m.dual_sols[constr_id, dualsol_id] = constr_val
+        if getduty(constrid) <= AbstractBendSpMasterConstr
+            m.dual_sols[constrid, dualsol_id] = constr_val
         end
     end
     m.dual_sol_rhss[dualsol_id] = rhs

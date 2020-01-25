@@ -37,14 +37,20 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     result = OptimizationResult{getobjsense(form)}()
     terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
     if terminationstatus != MOI.INFEASIBLE &&
-            terminationstatus != MOI.DUAL_INFEASIBLE &&
-            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
-            terminationstatus != MOI.OPTIMIZE_NOT_CALLED
+        terminationstatus != MOI.DUAL_INFEASIBLE &&
+        terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
+        terminationstatus != MOI.OPTIMIZE_NOT_CALLED
         fill_primal_result!(
-            optimizer, result, filter(_active_explicit_ , getvars(form))
+        optimizer, result, filter(
+        var ->  getcurisactive(form, var) && getcurisexplicit(form, var), 
+        getvars(form)
+        )
         )
         fill_dual_result!(
-            optimizer, result, filter(_active_explicit_ , getconstrs(form))
+        optimizer, result, filter(
+            constr ->  getcurisactive(form, constr) && getcurisexplicit(form, constr), 
+            getconstrs(form)
+            )
         )
         if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1 
             setfeasibilitystatus!(result, FEASIBLE)
@@ -101,7 +107,10 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.constr_buffer.added
         c = getconstr(f, id)
         @logmsg LogLevel(-4) string("Adding constraint ", getname(c))
-        add_to_optimizer!(f, c, filter(_active_explicit_, matrix[id,:]))
+        add_to_optimizer!(f, c, filter(
+            constr ->  getcurisactive(form, constr) && getcurisexplicit(form, constr), 
+            matrix[id,:])
+            )
     end
     # Update variable costs
     for id in buffer.changed_cost
@@ -127,16 +136,18 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.changed_rhs
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing rhs of constraint " getname(getconstr(f,id))
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(getconstr(f,id)))
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(f,id))
         update_constr_rhs_in_optimizer!(f, getconstr(f, id))
     end
     # Update matrix
     # First check if should update members of just-added vars
     matrix = getcoefmatrix(f)
     for id in buffer.var_buffer.added
-        for (constr_id, coeff) in Iterators.filter(_active_explicit_, matrix[:,id])
-            constr_id in buffer.constr_buffer.added && continue
-            c = getconstr(f, constr_id)
+        for (constrid, coeff) in  matrix[:,id]
+            getcurisactive(f, constrid) || continue
+            getcurisexplicit(f, constrid) || continue
+            constrid in buffer.constr_buffer.added && continue
+            c = getconstr(f, constrid)
             update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)
         end
     end

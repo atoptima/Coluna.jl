@@ -1,13 +1,18 @@
 function mycallback(form::CL.Formulation)
-    vars = [v for (id,v) in Iterators.filter(CL._active_explicit_, CL.getvars(form))]
-    constr = [c for (id,c) in Iterators.filter(CL._active_explicit_, CL.getconstrs(form))][1]
+    vars = [v for (id,v) in Iterators.filter(
+        var -> CL.getcurisactive(form, var) && CL.getcurisexplicit(form, var), 
+        CL.getvars(form)
+        )]
+    constr = [c for (id,c) in Iterators.filter(constr -> CL.getcurisactive(form, constr) && CL.getcurisexplicit(form, constr),
+     CL.getconstrs(form)
+     )][1]
     matrix = CL.getcoefmatrix(form)
     m = JuMP.Model(with_optimizer(GLPK.Optimizer))
     @variable(m, CL.getcurlb(form, vars[i]) <= x[i=1:length(vars)] <= CL.getcurub(form, vars[i]), Int)
     @objective(m, Min, sum(CL.getcurcost(form, vars[j]) * x[j] for j in 1:length(vars)))
     @constraint(m, knp, 
         sum(matrix[CL.getid(constr),CL.getid(vars[j])] * x[j]
-        for j in 1:length(vars)) <= CL.getcurrhs(constr)
+        for j in 1:length(vars)) <= CL.getcurrhs(form, constr)
     )
     optimize!(m)
     result = CL.OptimizationResult{CL.MinSense}()
