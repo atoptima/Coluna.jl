@@ -108,15 +108,10 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     end
 
     # Add constrs
-    for id in buffer.constr_buffer.added
-        c = getconstr(f, id)
-        @logmsg LogLevel(-4) string("Adding constraint ", getname(c))
-        add_to_optimizer!(
-            f, c, filter(
-                vc -> getcurisactive(f, vc) && getcurisexplicit(f, vc), 
-                matrix[id, :]
-            )  
-        )
+    for constr_id in buffer.constr_buffer.added
+        constr = getconstr(f, constr_id)
+        @logmsg LogLevel(-4) string("Adding constraint ", getname(constr))
+        add_to_optimizer!(f, constr)  
     end
 
     # Update variable costs

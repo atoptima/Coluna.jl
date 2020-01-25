@@ -152,8 +152,18 @@ function MembersMatrix{I,J,T}() where {I,J,T}
     )
 end
 
+function Base.setindex!(m::MembersMatrix, val, row_id, col_id)
+    m.cols_major[row_id, col_id] = val
+    m.rows_major[col_id, row_id] = val
+    m
+end
 
+function Base.getindex(m::MembersMatrix, row_id, col_id)
+    # TODO : check number of rows & cols
+    return m.cols_major[row_id, col_id]
+end
 
+######## DELETE BELOW THIS LINE #########
     
 struct OldMembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
     #matrix_csc::DynamicSparseArrays.MappedPackedCSC{}
@@ -161,7 +171,6 @@ struct OldMembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
     cols::MembersVector{I,K,MembersVector{J,L,T}} # to rm
     rows::MembersVector{J,L,MembersVector{I,K,T}} # to rm
 end
-
 
 """
     OldMembersMatrix{T}(columns_elems::Dict{I,K}, rows_elems::Dict{J,L})

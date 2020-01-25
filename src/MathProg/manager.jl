@@ -10,6 +10,9 @@ const VarVarMatrix = OldMembersMatrix{VarId,Variable,VarId,Variable,Float64}
 
 const ConstrVarMatrix = MembersMatrix{ConstrId,VarId,Float64}
 
+# Define the semaphore of the dynamic sparse matrix using MathProg.Id as index
+DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
+
 const ConstrConstrMatrix = OldMembersMatrix{ConstrId,Constraint,ConstrId,Constraint,Float64}
 const PrimalSolution{S} = Solution{Primal, S, Id{Variable}, Float64}
 const DualSolution{S} = Solution{Dual, S, Id{Constraint}, Float64}
