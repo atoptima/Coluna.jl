@@ -18,6 +18,8 @@ const TO = TimerOutputs
 const DS = DataStructures
 const MOI = MathOptInterface
 
+using DynamicSparseArrays
+
 import Base: push!
 
 # TODO clean up :
