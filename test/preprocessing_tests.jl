@@ -103,7 +103,7 @@ function test_random_gap_instance()
         for (moi_index, var_id) in coluna_optimizer.varmap
             var = CL.getvar(master, var_id)
             if CL.getcurlb(master, var) == CL.getcurub(master, var)
-                var_name = CL.getname(var)
+                var_name = CL.getname(master, var)
                 m = parse(Int, split(split(var_name, ",")[1], "[")[2])
                 j = parse(Int, split(split(var_name, ",")[2], "]")[1])
                 forbidden_machs = (

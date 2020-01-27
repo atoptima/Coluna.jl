@@ -470,7 +470,7 @@ function enforce_integrality!(form::Formulation)
         getcurkind(form, v) == Integ && continue
         getcurkind(form, v) == Binary && continue
         if (getduty(v) == MasterCol || getperenekind(form, v) != Continuous)
-            @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to Integer")
+            @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, v), " to Integer")
             setcurkind!(form, v, Integ)
         end
     end
@@ -484,7 +484,7 @@ function relax_integrality!(form::Formulation)
         getvars(form)
         )
         getcurkind(form, v) == Continuous && continue
-        @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
+        @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, v), " to continuous")
         setcurkind!(form, v, Continuous)
     end
     return
@@ -525,7 +525,7 @@ function _setmembers!(form::Formulation, constr::Constraint, members::VarMembers
     # This adds the column to the convexity constraints automatically
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
-    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
+    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(form, constr))
     coef_matrix = getcoefmatrix(form)
     constr_id = getid(constr)
     @logmsg LogLevel(-4) "Members are : ", members
@@ -534,14 +534,14 @@ function _setmembers!(form::Formulation, constr::Constraint, members::VarMembers
         # Add coef for its own variables
         var = getvar(form, var_id)
         coef_matrix[constr_id, var_id] = var_coeff
-        @logmsg LogLevel(-4) string("Adding variable ", getname(var), " with coeff ", var_coeff)
+        @logmsg LogLevel(-4) string("Adding variable ", getname(form, var), " with coeff ", var_coeff)
 
         if getduty(var) <= MasterRepPricingVar  || getduty(var) <= MasterRepPricingSetupVar          
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(var_id)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in getprimalsolmatrix(spform)[var_id,:]
-                @logmsg LogLevel(-4) string("Adding column ", getname(getvar(form, col_id)), " with coeff ", col_coeff * var_coeff)
+                @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
                 coef_matrix[constr_id, col_id] = col_coeff * var_coeff
             end
         end
@@ -555,7 +555,7 @@ function _setmembers!(form::Formulation, constr::Constraint, members::AbstractDi
     # This adds the column to the convexity constraints automatically
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
-    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(constr))
+    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(form, constr))
     coef_matrix = getcoefmatrix(form)
     constr_id = getid(constr)
     @logmsg LogLevel(-4) "Members are : ", members
@@ -564,14 +564,14 @@ function _setmembers!(form::Formulation, constr::Constraint, members::AbstractDi
         # Add coef for its own variables
         var = getvar(form, var_id)
         coef_matrix[constr_id, var_id] = var_coeff
-        @logmsg LogLevel(-4) string("Adding variable ", getname(var), " with coeff ", var_coeff)
+        @logmsg LogLevel(-4) string("Adding variable ", getname(form, var), " with coeff ", var_coeff)
 
         if getduty(var) <= MasterRepPricingVar  || getduty(var) <= MasterRepPricingSetupVar          
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(var_id)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in getprimalsolmatrix(spform)[var_id,:]
-                @logmsg LogLevel(-4) string("Adding column ", getname(getvar(form, col_id)), " with coeff ", col_coeff * var_coeff)
+                @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
                 coef_matrix[constr_id, col_id] = col_coeff * var_coeff
             end
         end
@@ -593,7 +593,7 @@ function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
     T <: AbstractVarConstr}
     for id in ids
         vc = getelem(form, id)
-        @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(vc))
+        @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(form, vc))
         remove_from_optimizer!(form.optimizer, vc)
     end
     return
@@ -679,7 +679,7 @@ function _show_obj_fun(io::IO, form::Formulation)
         getvars(form))
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
-        name = getname(vars[id])
+        name = getname(form, vars[id])
         cost = getcurcost(form, id)
         op = (cost < 0.0) ? "-" : "+" 
         print(io, op, " ", abs(cost), " ", name, " ")
@@ -688,12 +688,11 @@ function _show_obj_fun(io::IO, form::Formulation)
     return
 end
 
-function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId)
-    constr = getconstr(form, constr_id)
-    print(io, getname(constr), " : ")
-    for (varid, coeff) in getcoefmatrix(form)[constr_id, :]
-        var = getvar(form, constr_id)
-        name = getname(var)
+function _show_constraint(io::IO, form::Formulation, constrid::ConstrId)
+    constr = getconstr(form, constrid)
+    print(io, getname(form, constr), " : ")
+    for (varid, coeff) in getcoefmatrix(form)[constrid, :]
+        name = getname(form, varid)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
@@ -704,7 +703,7 @@ function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId)
         op = ">="
     end
     print(io, " ", op, " ", getcurrhs(form, constr))
-    println(io, " (", getduty(constr), getid(constr), " | ", getcurisexplicit(form,constr) ,")")
+    println(io, " (", getduty(constr), getid(constr), " | ", getcurisexplicit(form, constr) ,")")
     return
 end
 
@@ -720,7 +719,7 @@ function _show_constraints(io::IO , form::Formulation)
 end
 
 function _show_variable(io::IO, form::Formulation, var::Variable)
-    name = getname(var)
+    name = getname(form, var)
     lb = getcurlb(form, var)
     ub = getcurub(form, var)
     t = getcurkind(form, var)
