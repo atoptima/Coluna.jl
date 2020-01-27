@@ -237,15 +237,12 @@ deps = ["Printf"]
 git-tree-sha1 = "311765af81bbb48d7bad01fb016d9c328c6ede03"
 uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 version = "0.5.3"
-<<<<<<< HEAD
-=======
 
 [[TranscodingStreams]]
 deps = ["Random", "Test"]
 git-tree-sha1 = "7c53c35547de1c5b9d46a4797cf6d8253807108c"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.9.5"
->>>>>>> c3d17fbe0475da199212e0a5aec173dbaca7e160
 
 [[URIParser]]
 deps = ["Test", "Unicode"]
