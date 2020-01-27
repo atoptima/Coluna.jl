@@ -58,11 +58,11 @@ function constraint_getters_and_setters_tests()
 
     ClF._addconstr!(form, c)
 
-    ClF.setcurrhs!(form, c, 10)
-    @test ClF.getcurrhs(form, c) == 10
-    @test ClF.getperenerhs(form, c) == -13
+    ClF.setcurrhs!(form, c, 10.0)
+    @test ClF.getcurrhs(form, c) == 10.0
+    @test ClF.getperenerhs(form, c) == -13.0
 
     ClF.reset!(form, c)
-    @test ClF.getcurrhs(form, c) == -13
-    @test ClF.getperenerhs(form, c) == -13
+    @test ClF.getcurrhs(form, c) == -13.0
+    @test ClF.getperenerhs(form, c) == -13.0
 end

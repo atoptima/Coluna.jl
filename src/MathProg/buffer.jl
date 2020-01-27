@@ -50,7 +50,8 @@ The concerned modificatios are:
 mutable struct FormulationBuffer
     changed_cost::Set{Id{Variable}}
     changed_bound::Set{Id{Variable}}
-    changed_kind::Set{Id{Variable}}
+    changed_var_kind::Set{Id{Variable}}
+    changed_constr_kind::Set{Id{Constraint}}
     changed_rhs::Set{Id{Constraint}}
     var_buffer::VarConstrBuffer{Variable}
     constr_buffer::VarConstrBuffer{Constraint}
@@ -86,6 +87,11 @@ function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
     return
 end
 
+function change_kind!(buffer::FormulationBuffer, constr::Constraint)
+    push!(buffer.changed_constr_kind, getid(constr))
+    return
+end
+
 function change_cost!(buffer::FormulationBuffer, var::Variable)
      push!(buffer.changed_cost, getid(var))
     return
@@ -97,7 +103,7 @@ function change_bound!(buffer::FormulationBuffer, var::Variable)
 end
 
 function change_kind!(buffer::FormulationBuffer, var::Variable)
-    push!(buffer.changed_kind, getid(var))
+    push!(buffer.changed_var_kind, getid(var))
     return
 end
 

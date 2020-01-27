@@ -108,7 +108,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         c = getconstr(f, id)
         @logmsg LogLevel(-4) string("Adding constraint ", getname(c))
         add_to_optimizer!(f, c, filter(
-            constr ->  getcurisactive(form, constr) && getcurisexplicit(form, constr), 
+            constr ->  getcurisactive(f, constr) && getcurisexplicit(f, constr), 
             matrix[id,:])
             )
     end
@@ -130,7 +130,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
         @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, getvar(f,id)))
-        enforce_kind_in_optimizer!(f, getvar(f,id))
+        enforce_kind_in_optimizer!(f, getvar(f, id))
     end
     # Update constraint rhs
     for id in buffer.changed_rhs
