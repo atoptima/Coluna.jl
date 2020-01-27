@@ -117,6 +117,32 @@ function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
     return
 end
 
+function enforce_kind_in_optimizer!(form::Formulation, c::Constraint)
+    inner = getinner(getoptimizer(form))
+    kind = getcurkind(form, c)
+    moirecord = getmoirecord(c)
+    moi_kind = getkind(moirecord)
+    if moi_kind.value != -1
+        MOI.delete(inner, moi_kind)
+        setkind!(moirecord, MoiConstrKind())
+    end
+    # TODO
+    #==kind == Continuous && return # Continuous is translated as no constraint in MOI
+    if kind == Binary # If binary and has tighter bounds, set as integer (?)
+        moi_bounds = getbounds(moirecord)
+        if moi_bounds.value != -1
+            MOI.delete(inner, moi_bounds)
+            setbounds!(moirecord, MoiVarBound(-1))
+        end
+    end
+    moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
+    setkind!(moirecord, MOI.add_constraint(
+        inner, MOI.SingleVariable(getindex(moirecord)), moi_set
+    ))
+    ==#
+    return
+end
+
 function add_to_optimizer!(form::Formulation, var::Variable)
     optimizer = getoptimizer(form)
     inner = getinner(optimizer)

@@ -10,7 +10,7 @@ function filters_tests()
     )
 
     v = ClF.Variable(
-        ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.MasterRepPricingVar;
+        ClF.Id{ClF.Variable}(ClF.MasterRepPricingVar, 23, 10), "fake_var";
         var_data = v_data
     )
 

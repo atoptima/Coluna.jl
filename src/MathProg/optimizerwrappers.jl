@@ -126,11 +126,18 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         update_bounds_in_optimizer!(f, getvar(f, id))
     end
     # Update variable kind
-    for id in buffer.changed_kind
+    for id in buffer.changed_var_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
         @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, getvar(f,id)))
         enforce_kind_in_optimizer!(f, getvar(f, id))
+    end
+    # Update variable kind
+    for id in buffer.changed_constr_kind
+        (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
+        @logmsg LogLevel(-2) "Changing kind of constraint " getname(getconstr(f,id))
+        @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, getconstr(f,id)))
+        enforce_kind_in_optimizer!(f, getconstr(f, id))
     end
     # Update constraint rhs
     for id in buffer.changed_rhs

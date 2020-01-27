@@ -131,7 +131,7 @@ function varcosntr_helpers_tests()
     ClF.setcurisactive!(form, c, false)
     ClF.setcurisexplicit!(form, c, false)
 
-    @test ClF.getcurkind(vc) == ClF.Facultative
+    @test ClF.getcurkind(form, c) == ClF.Facultative
     @test ClF.getcursense(form, c) == ClF.Less
     @test ClF.getcurincval(form, c) == 10.0
     @test ClF.getcurisactive(form, c) == false

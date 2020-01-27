@@ -65,7 +65,7 @@ Constructs an empty `FormulationBuffer`.
 """
 FormulationBuffer() = FormulationBuffer(
     Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
-    Set{Id{Constraint}}(), VarConstrBuffer{Variable}(),
+    Set{Id{Constraint}}(), Set{Id{Constraint}}(), VarConstrBuffer{Variable}(),
     VarConstrBuffer{Constraint}(),
     Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
     # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()

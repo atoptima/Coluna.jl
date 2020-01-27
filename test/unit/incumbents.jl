@@ -11,8 +11,8 @@ function incumbents_getters_and_setters_unit_tests()
 
     f = ClF.Formulation{ClF.Original}(ClF.Counter(), obj_sense = ClF.MinSense)
 
-    varids = [ClF.Id{ClF.Variable}(i, 1) for i in 1:5]
-    constrids = [ClF.Id{ClF.Constraint}(i, 1) for i in 1:5]
+    varids = [ClF.Id{ClF.Variable}(ClF.OriginalVar, i, 1) for i in 1:5]
+    constrids = [ClF.Id{ClF.Constraint}(ClF.OriginalConstr, i, 1) for i in 1:5]
 
     bound = ClF.PrimalBound{ClF.MinSense}(8.1)
     solution = Dict(varids[1] => 2.1, varids[3] => 1.4)
