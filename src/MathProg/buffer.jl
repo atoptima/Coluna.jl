@@ -87,8 +87,8 @@ function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
     return
 end
 
-function change_cost!(buffer::FormulationBuffer, var::Variable)
-    push!(buffer.changed_cost, getid(var))
+function change_cost!(buffer::FormulationBuffer, varid::VarId)
+    push!(buffer.changed_cost, varid)
     return
 end
 

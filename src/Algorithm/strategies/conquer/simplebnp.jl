@@ -18,7 +18,7 @@ function apply!(strategy::SimpleBnP, reform, node)
         return
     end
     ip_gap(colgen_rec.incumbents) <= 0 && return
-    mip_rec = apply!(strategy.mastipheur, reform, node)
+    #mip_rec = apply!(strategy.mastipheur, reform, node)
     return
 end
 

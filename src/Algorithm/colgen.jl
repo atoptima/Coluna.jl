@@ -1,5 +1,5 @@
 Base.@kwdef struct ColumnGeneration <: AbstractAlgorithm
-    max_nb_iterations::Int = 1000
+    max_nb_iterations::Int = 100
     optimality_tol::Float64 = 1e-5
     log_print_frequency::Int = 1
 end
@@ -252,20 +252,193 @@ function ReducedCostsVector(varids::Vector{VarId}, form::Vector{Formulation})
     return ReducedCostsVector(len, varids, perenecosts, form)
 end
 
-function computereducedcosts!(reform::Reformulation, redcostsvec, dualsol)
-    redcost = deepcopy(redcostsvec.perenecosts)
+function _getcoeffpos(coeffpos::Int, coeffarray::Vector{Union{Nothing, Tuple{ConstrId, Float64}}}, constrid::ConstrId, constridsem::ConstrId)
+    coeffpos -= 1
+    lookforkeycoeff = true
+    while lookforkeycoeff
+        coeffpos += 1
+        keycoeff = coeffarray[coeffpos]
 
+        if keycoeff === nothing
+            lookforkeycoeff = true
+        else
+            lookforkeycoeff = (keycoeff[1] < constrid && keycoeff[1] != constridsem && coeffpos < length(coeffarray))
+        end
+    end
+    return coeffpos
+end
+
+function _computeTEST(coeffarray, coeffposbegin, coeffposend, dualsol)::Float64
+    term::Float64 = 0
+    coeffpos = coeffposbegin
+    keycoeff = coeffarray[coeffpos]
+    for (constrid, val) in dualsol
+        #println("\e[33m constraint $constrid in membership of var ? \e[00m")
+        while keycoeff === nothing || (keycoeff[1] < constrid && coeffpos < coeffposend - 1)
+            coeffpos += 1
+            keycoeff = coeffarray[coeffpos]
+        end
+        #println("\t coeffpos = $coeffpos.")
+        if keycoeff !== nothing && keycoeff[1] == constrid
+            #println("\t yes.")
+            term += keycoeff[2] * val
+        end
+    end
+    return term
+end
+
+
+function test2(reform::Reformulation, redcostsvec, dualsol)
+    redcosts = deepcopy(redcostsvec.perenecosts)
+    master = getmaster(reform)
+    sign = getobjsense(master) == MinSense ? -1 : 1
+    matrix = getcoefmatrix(master)
+    sum::Float64 = 0
+    # for i in 1:length(matrix.cols_major.pcsc.pma.array)
+    #     elem = matrix.cols_major.pcsc.pma.array[i]
+    #     if elem !== nothing
+    #         if elem[1] == 
+    #         sum += elem[2]
+    #     end
+    # end
+
+    colmajormatrix = matrix.cols_major
+    colkeys = colmajormatrix.col_keys
+    colkeyslen = length(colkeys)
+    semaphores = colmajormatrix.pcsc.semaphores
+    coeffarray = colmajormatrix.pcsc.pma.array
+    coeffarraylen = length(coeffarray)
+    constridsem = DynamicSparseArrays.semaphore_key(ConstrId)
+    redcost_pos = 1
+    varkey_pos = 1
+    term::Float64 = 0
+    coeffpos::Int = 1
+    keycoeff::Union{Nothing, Tuple{ConstrId, Float64}} = coeffarray[1]
+    @show length(dualsol)
+    for redcost_pos in 1:redcostsvec.length
+        varid = redcostsvec.varids[redcost_pos]
+        curcolkey = colkeys[varkey_pos]
+        #println("\e[31m computing red cost for variable $varid (curcolkey = $curcolkey) \e[00m")
+        while curcolkey === nothing || (curcolkey < varid && varkey_pos < colkeyslen)
+            varkey_pos += 1
+            curcolkey = colkeys[varkey_pos]
+        end
+        if curcolkey == varid
+            #println("> found")
+            # term = 0
+            # coeffpos = semaphores[varkey_pos] + 1
+            # keycoeff = coeffarray[coeffpos]
+            # for (constrid, val) in dualsol
+            #     #println("\e[33m constraint $constrid in membership of var ? \e[00m")
+            #     while keycoeff === nothing || (keycoeff[1] < constrid && keycoeff[1] != constridsem && coeffpos < coeffarraylen)
+            #         coeffpos += 1
+            #         keycoeff = coeffarray[coeffpos]
+            #     end
+            #     #println("\t coeffpos = $coeffpos.")
+            #     if keycoeff !== nothing && keycoeff[1] == constrid
+            #         #println("\t yes.")
+            #         term += keycoeff[2] * val
+            #     end
+            # end
+            coeffposbegin = semaphores[varkey_pos] + 1
+            curcolkey = colkeys[varkey_pos]
+            while curcolkey === nothing
+                varkey_pos += 1
+                curcolkey = colkeys[varkey_pos]
+            end
+            coeffposend = semaphores[varkey_pos] + 1
+            @time term = _computeTEST(coeffarray, coeffposbegin, coeffposend, dualsol)
+            redcosts[redcost_pos] += sign * term
+        end
+    end
+    return redcosts
+end
+
+function test3(reform::Reformulation, redcostsvec, dualsol)
+    redcosts = deepcopy(redcostsvec.perenecosts)
+    master = getmaster(reform)
+    sign = getobjsense(master) == MinSense ? -1 : 1
+    matrix = getcoefmatrix(master)
+    sum::Float64 = 0
+    for i in 1:length(matrix.cols_major.pcsc.pma.array)
+         elem = matrix.cols_major.pcsc.pma.array[i]
+         if elem !== nothing
+             sum += elem[2]
+         end
+    end
+    return sum
+end
+
+# function test1(vec1)
+#     sum_val = 0
+#     sum_key = 0
+#     for i in 1:length(vec1)
+#         elem = vec1[i]
+#         if elem !== nothing
+#             sum_val += elem[2]
+#             sum_key += elem[1]
+#         end
+#     end
+#     return sum_val
+# end
+
+# function test2(vec2, vec3)
+#     sum_val = 0
+#     sum_key = 0
+#     for i in 1:length(vec2)
+#         key = vec2[i]
+#         if key !== nothing
+#             sum_val += vec3[i]
+#             sum_key += key
+#         end
+#     end
+#     return sum_val
+# end
+
+# function main()
+#     vec1 = Vector{Union{Nothing, Tuple{Int,Int}}}()
+#     vec2 = Vector{Union{Nothing, Int}}()
+#     vec3 = Vector{Union{Nothing, Int}}()
+
+#     for i in 1:10000000
+#         if rand(0:0.01:1) < 0.3
+#             key = rand(1:10000)
+#             value = rand(1:100000)
+#             push!(vec1, (key, value))
+#             push!(vec2, key)
+#             push!(vec3, value)
+#         else
+#             push!(vec1, nothing)
+#             push!(vec2, nothing)
+#             push!(vec3, nothing)
+#         end
+#     end
+
+#     test1(vec1)
+#     test2(vec2, vec3)
+    
+#     @time test1(vec1)
+#     @time test2(vec2, vec3)
+
+#     return
+# end
+# #for ()
+function computereducedcosts!(reform::Reformulation, redcostsvec, dualsol)
+    redcosts = deepcopy(redcostsvec.perenecosts)
     master = getmaster(reform)
     sign = getobjsense(master) == MinSense ? -1 : 1
     matrix = getcoefmatrix(master)
 
+    term::Float64 = 0
+
     redcost_pos = 1
     varkey_pos = 1
-    for varid in redcostsvec.varids
+    for i in 1:redcostsvec.length
+        varid = redcostsvec.varids[i]
         #println("\e[41m computing red cost of $varid \e[00m (looking for var)")
         while true
             #println("\t\t \e[35m varkeypos = $varkey_pos  && varid = $(matrix.cols_major.col_keys[varkey_pos]) \e[00m")
-            if matrix.cols_major.col_keys[varkey_pos] != nothing && (matrix.cols_major.col_keys[varkey_pos] >= varid || varkey_pos >= length(matrix.cols_major.col_keys))
+            if matrix.cols_major.col_keys[varkey_pos] !== nothing && (matrix.cols_major.col_keys[varkey_pos] >= varid || varkey_pos >= length(matrix.cols_major.col_keys))
                 break
             end
             varkey_pos += 1
@@ -278,7 +451,7 @@ function computereducedcosts!(reform::Reformulation, redcostsvec, dualsol)
                 #println("\t\t membership of var in constraint $constrid (val = $val) ?")
                 while true
                     keycoeff = matrix.cols_major.pcsc.pma.array[coeffpos]
-                    if keycoeff != nothing && (keycoeff[1] >= constrid || keycoeff[1] == DynamicSparseArrays.semaphore_key(ConstrId))
+                    if keycoeff !== nothing && (keycoeff[1] >= constrid || keycoeff[1] == DynamicSparseArrays.semaphore_key(ConstrId))
                         break
                     end
                     coeffpos += 1
@@ -288,11 +461,12 @@ function computereducedcosts!(reform::Reformulation, redcostsvec, dualsol)
                     term += val * matrix.cols_major.pcsc.pma.array[coeffpos][2]
                 end
             end
-            redcost[redcost_pos] += sign * term
+            
+            redcosts[i] += sign * term #setcurcost!(redcostsvec.form[i], varid, redcostsvec.perenecosts[i] + sign * term)
         end
         redcost_pos += 1
     end
-    return redcost
+    return redcosts
 end
 
 function solve_sps_to_gencols!(
@@ -311,41 +485,49 @@ function solve_sps_to_gencols!(
     @time begin
         redcosts = computereducedcosts!(reform, redcostsvec, dual_sol)
     end
-    # @show redcosts
-    # for i in 1:length(redcosts)
-    #     setcurcost!(redcostsvec.form[i], redcostsvec.varids[i], redcosts[i])
-    # end
+
+    for i in 1:length(redcosts)
+        setcurcost!(redcostsvec.form[i], redcostsvec.varids[i], redcosts[i])
+    end
 
     @time begin
-        for (spuid, spform) in sps
+        redcosts = test2(reform, redcostsvec, dual_sol)
+    end
+
+    @time begin
+        t = test3(reform, redcostsvec, dual_sol)
+    end
+
+    # @time begin
+    #     for (spuid, spform) in sps
             
 
-            # Reset var bounds, var cost, sp minCost
-            if update_pricing_problem!(spform, dual_sol) # Never returns true
-                #     This code is never executed because update_pricing_prob always returns false
-                #     @logmsg LogLevel(-3) "pricing prob is infeasible"
-                #     # In case one of the subproblem is infeasible, the master is infeasible
-                #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
-                #     return flag_is_sp_infeasible
-            end
-        end
-    end
+    #         # Reset var bounds, var cost, sp minCost
+    #         if update_pricing_problem!(spform, dual_sol) # Never returns true
+    #             #     This code is never executed because update_pricing_prob always returns false
+    #             #     @logmsg LogLevel(-3) "pricing prob is infeasible"
+    #             #     # In case one of the subproblem is infeasible, the master is infeasible
+    #             #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
+    #             #     return flag_is_sp_infeasible
+    #         end
+    #     end
+    # end
 
-    redcosts2 = Dict{VarId, Float64}()
-    for i in 1:length(redcosts)
-        redcosts2[redcostsvec.varids[i]] = redcosts[i]
-    end
+    # redcosts2 = Dict{VarId, Float64}()
+    # for i in 1:length(redcosts)
+    #     redcosts2[redcostsvec.varids[i]] = redcosts[i]
+    # end
 
-    for (spuid, spform) in sps
-        # Reset var bounds, var cost, sp minCost
-        if update_pricing_problem2!(spform, dual_sol, redcosts2) # Never returns true
-            #     This code is never executed because update_pricing_prob always returns false
-            #     @logmsg LogLevel(-3) "pricing prob is infeasible"
-            #     # In case one of the subproblem is infeasible, the master is infeasible
-            #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
-            #     return flag_is_sp_infeasible
-        end
-    end
+    # for (spuid, spform) in sps
+    #     # Reset var bounds, var cost, sp minCost
+    #     if update_pricing_problem2!(spform, dual_sol, redcosts2) # Never returns true
+    #         #     This code is never executed because update_pricing_prob always returns false
+    #         #     @logmsg LogLevel(-3) "pricing prob is infeasible"
+    #         #     # In case one of the subproblem is infeasible, the master is infeasible
+    #         #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
+    #         #     return flag_is_sp_infeasible
+    #     end
+    # end
 
     #@show redcostsvec
 

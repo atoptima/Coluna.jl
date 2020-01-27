@@ -22,7 +22,7 @@ Set the current cost of variable `var` with id `id` to `cost` in formulation
 function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
     form.manager.var_datas[varid].cost = cost
     if getcurisexplicit(form, varid) 
-        change_cost!(form.buffer, getvar(form, varid)) # TODO : change buffer
+        change_cost!(form.buffer, varid) # TODO : change buffer
     end
     return
 end
