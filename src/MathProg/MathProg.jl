@@ -74,7 +74,7 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        get_lp_primal_bound, update!, get_lp_primal_sol, 
        get_benders_sep_sp, convert_status, getduty, getbestdualsol, update_lp_dual_sol!,
        projection_is_possible, proj_cols_on_rep, get_lp_dual_bound,
-       getname, computereducedrhs, 
+       computereducedrhs, 
        unsafe_getbestprimalsol, getcost,
        getconstrcounter, setprimaldualbendspsol!,
        set_lp_primal_bound!, _active_, update_ip_primal_bound!, getprimaldwspsolmatrix, _active_explicit_,
@@ -116,6 +116,7 @@ export getperenecost,
        getpereneisexplicit,
        getcurisexplicit,
        setcurisexplicit!,
+       getname,
        reset!
 
 # Translation methods

@@ -17,7 +17,7 @@ getdepth(b::Branch) = b.depth
 
 function show(io::IO, branch::Branch, form::Formulation)
     for (id, coeff) in branch.var_coeffs
-        print(io, " + ", coeff, " ", getname(getelem(form, id)))
+        print(io, " + ", coeff, " ", getname(form, id))
     end
     if branch.sense == Greater
         print(io, " >= ")
@@ -220,7 +220,7 @@ end
 function apply_data!(form::Formulation, var::Variable, var_state::VarState)
     # Bounds
     if getcurlb(form, var) != var_state.lb || getcurub(form, var) != var_state.ub
-        @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
+        @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(form, var))
         setcurlb!(form, var, var_state.lb)
         setcurub!(form, var, var_state.ub)
         @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(form, var))
@@ -228,7 +228,7 @@ function apply_data!(form::Formulation, var::Variable, var_state::VarState)
     end
     # Cost
     if getcurcost(form, var) != var_state.cost
-        @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(var))
+        @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(form, var))
         setcurcost!(form, var, var_state.cost)
         @logmsg LogLevel(-3) string("New cost is ", getcurcost(form, var))
     end
@@ -238,7 +238,7 @@ end
 function apply_data!(form::Formulation, constr::Constraint, constr_state::ConstrState)
     # Rhs
     if getcurrhs(form, constr) != constr_state.rhs
-        @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
+        @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(form, constr))
         setcurrhs!(form, constr, constr_state.rhs)
         @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(form, constr))
     end
@@ -255,9 +255,9 @@ end
 
 function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in_formulation)
     for (id, vc) in var_constrs_in_formulation
-        @logmsg LogLevel(-4) "Checking " getname(vc)
+        @logmsg LogLevel(-4) "Checking " getname(form, vc)
         # vc should NOT be active but is active in formulation
-        if !haskey(active_var_constrs, id) && getcurisactive(form,vc)
+        if !haskey(active_var_constrs, id) && getcurisactive(form, vc)
             @logmsg LogLevel(-4) "Deactivating"
             deactivate!(form, id)
             continue
