@@ -62,7 +62,7 @@ function abstract_var_constr_getters_tests()
     )
 
     @test ClF.getid(v) == ClF.Id{ClF.Variable}(23, 10)
-    @test ClF.getname(v) == "fake_var"
+    #@test ClF.getname(v) == "fake_var"
     @test ClF.getduty(v) == ClF.MasterPureVar
     #@test ClF.getrecordeddata(v) === v.perene_data
     #@test ClF.getcurdata(v) === v.cur_data
@@ -74,7 +74,7 @@ function abstract_var_constr_getters_tests()
     )
 
     @test ClF.getid(c) == ClF.Id{ClF.Constraint}(23, 10)
-    @test ClF.getname(c) == "fake_constr"
+    #@test ClF.getname(c) == "fake_constr"
     @test ClF.getduty(c) == ClF.MasterBranchOnOrigVarConstr
     #@test ClF.getrecordeddata(c) === c.perene_data
     #@test ClF.getcurdata(c) === c.cur_data

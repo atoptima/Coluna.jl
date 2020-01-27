@@ -103,14 +103,14 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Add vars
     for id in buffer.var_buffer.added
         v = getvar(f, id)
-        @logmsg LogLevel(-4) string("Adding variable ", getname(v))
+        @logmsg LogLevel(-4) string("Adding variable ", getname(f, v))
         add_to_optimizer!(f, v)
     end
 
     # Add constrs
     for id in buffer.constr_buffer.added
         c = getconstr(f, id)
-        @logmsg LogLevel(-4) string("Adding constraint ", getname(c))
+        @logmsg LogLevel(-4) string("Adding constraint ", getname(f, c))
         add_to_optimizer!(
             f, c, filter(
                 vc -> getcurisactive(f, vc) && getcurisexplicit(f, vc), 
@@ -128,24 +128,24 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Update variable bounds
     for id in buffer.changed_bound
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-4) "Changing bounds of variable " getname(getvar(f,id))
-        @logmsg LogLevel(-5) string("New lower bound is ", getcurlb(getvar(f,id)))
-        @logmsg LogLevel(-5) string("New upper bound is ", getcurub(getvar(f,id)))
+        @logmsg LogLevel(-4) "Changing bounds of variable " getname(f,id)
+        @logmsg LogLevel(-5) string("New lower bound is ", getcurlb(f,id))
+        @logmsg LogLevel(-5) string("New upper bound is ", getcurub(f,id))
         update_bounds_in_optimizer!(f, getvar(f, id))
     end
 
     # Update variable kind
     for id in buffer.changed_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing kind of variable " getname(getvar(f,id))
-        @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, getvar(f,id)))
+        @logmsg LogLevel(-2) "Changing kind of variable " getname(f,id)
+        @logmsg LogLevel(-3) string("New kind is ", getcurkind(f,id))
         enforce_kind_in_optimizer!(f, getvar(f,id))
     end
 
     # Update constraint rhs
     for id in buffer.changed_rhs
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing rhs of constraint " getname(getconstr(f,id))
+        @logmsg LogLevel(-2) "Changing rhs of constraint " getname(f,id)
         @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(f,id))
         update_constr_rhs_in_optimizer!(f, getconstr(f, id))
     end
@@ -169,7 +169,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         (c_id in buffer.constr_buffer.removed || v_id in buffer.var_buffer.removed) && continue
         c = getconstr(f, c_id)
         v = getvar(f, v_id)
-        @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
+        @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(f, c), ",", getname(f, v), ") = ", coeff)
         # @logmsg LogLevel(1) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         update_constr_member_in_optimizer!(optimizer, c, v, coeff)
     end

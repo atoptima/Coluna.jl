@@ -417,7 +417,7 @@ function update_lower_bound!(
             end
         end
         alg_data.printing && println(
-            "updating lb of var ", getname(var), " from ", cur_lb, " to ",
+            "updating lb of var ", getname(form, var), " from ", cur_lb, " to ",
             new_lb, " duty ", getduty(var)
         )
         setcurlb!(form, var, new_lb)
@@ -480,7 +480,7 @@ function update_upper_bound!(
         end
         if alg_data.printing
             println(
-                "updating ub of var ", getname(var), " from ", cur_ub,
+                "updating ub of var ", getname(form, var), " from ", cur_ub,
                 " to ", new_ub, " duty ", getduty(var)
             )
         end
@@ -605,7 +605,7 @@ function propagation!(alg_data::PreprocessData)
         alg_data.constr_in_stack[getid(constr)] = false
 
         if alg_data.printing
-            println("constr ", getname(constr), " ", typeof(constr), " popped")
+            println("constr ", getname(form, constr), " ", typeof(constr), " popped")
             println(
                 "rhs ", getcurrhs(form, constr), " max: ",
                 alg_data.cur_max_slack[getid(constr)], " min: ",

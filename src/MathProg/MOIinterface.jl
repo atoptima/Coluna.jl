@@ -128,7 +128,7 @@ function add_to_optimizer!(form::Formulation, var::Variable)
     if getcurkind(form, var) != Binary
         enforce_bounds_in_optimizer!(form, var)
     end
-    MOI.set(inner, MOI.VariableName(), moi_index, getname(var))
+    MOI.set(inner, MOI.VariableName(), moi_index, getname(form, var))
     return
 end
 
@@ -144,7 +144,7 @@ function add_to_optimizer!(
     )
     moirecord = getmoirecord(constr)
     setindex!(moirecord, moi_constr)
-    MOI.set(inner, MOI.ConstraintName(), moi_constr, getname(constr))
+    MOI.set(inner, MOI.ConstraintName(), moi_constr, getname(form, constr))
     return
 end
 
@@ -195,7 +195,7 @@ function fill_primal_result!(optimizer::MoiOptimizer,
             moi_index = getindex(getmoirecord(var))
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
             if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-                @logmsg LogLevel(-4) string("Var ", getname(var), " = ", val)
+                @logmsg LogLevel(-4) string("Var ", var.name , " = ", val)
                 sol[id] = val
             end
         end
@@ -225,7 +225,7 @@ function fill_dual_result!(optimizer::MoiOptimizer,
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
             if val > 0.000001 || val < - 0.000001 # todo use a tolerance
-                @logmsg LogLevel(-4) string("Constr ", getname(constr), " = ", val)
+                @logmsg LogLevel(-4) string("Constr ", constr.name, " = ", val)
                 sol[id] = val           
             end
         end
