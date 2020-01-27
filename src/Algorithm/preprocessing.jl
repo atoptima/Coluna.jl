@@ -244,7 +244,7 @@ function compute_min_slack!(
     )
     slack = getcurrhs(form, constr)
     if getduty(getid(constr)) <= AbstractMasterConstr
-        var_filter = (var -> isanOriginalRepresentatives(getduty(getid(var)))
+        var_filter = (var -> isanOriginalRepresentatives(getduty(getid(var))))
     else
         var_filter = (var -> (getduty(getid(var)) == DwSpPricingVar))
     end

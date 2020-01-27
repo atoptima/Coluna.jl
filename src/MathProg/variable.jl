@@ -1,6 +1,6 @@
 abstract type AbstractVarData <: AbstractVcData end
 
-struct VarData <: AbstractVcData
+mutable struct VarData <: AbstractVcData
     cost::Float64
     lb::Float64
     ub::Float64
@@ -46,36 +46,16 @@ function VarData(
     return vc
 end
 
-mutable struct VarCurData <: AbstractVcData
-    kind::VarKind
-    sense::VarSense
-    inc_val::Float64
-    is_active::Bool
-    is_explicit::Bool
-end
-
-"""
-    VarCurData
-
-Subset of the information stored in VarData. Current state of the variable.
-"""
-function VarCurData(
-    ;kind::VarKind = Continuous,
-    sense::VarSense = Positive,
-    inc_val::Float64 = -1.0,
-    is_active::Bool = true,
-    is_explicit::Bool = true
+VarData(vd::VarData) = VarData(
+vd.cost,
+vd.lb,
+vd.ub,
+vd.kind,
+vd.sense,
+vd.inc_val,
+vd.is_active,
+vd.is_explicit
 )
-    vc = VarCurData(kind, sense, inc_val, is_active, is_explicit)
-    return vc
-end
-
-function VarCurData(vardata::VarData)
-    return VarCurData(
-        vardata.kind, vardata.sense, vardata.inc_val, vardata.is_active, 
-        vardata.is_explicit
-    )
-end
 
 """
     MoiVarRecord
@@ -108,21 +88,21 @@ struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
     perene_data::VarData
-    cur_data::VarCurData
     moirecord::MoiVarRecord
-    # form_where_explicit::Int
 end
+
 const VarId = Id{Variable}
 
 getid(var::Variable) = var.id
 
 function Variable(id::VarId,
-                  name::String,
-                  duty::Duty{Variable};
+                  name::String;
                   var_data = VarData(),
                   moi_index::MoiVarIndex = MoiVarIndex())
     return Variable(
-        id, name, duty, var_data, VarCurData(var_data), 
+        id, 
+        name, 
+        var_data, 
         MoiVarRecord(index = moi_index)
     )
 end

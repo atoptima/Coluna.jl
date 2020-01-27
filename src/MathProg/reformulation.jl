@@ -36,7 +36,7 @@ get_benders_sep_sps(r::Reformulation) = r.benders_sep_subprs
 function vc_belongs_to_formulation(f::Formulation, vc::AbstractVarConstr)
     !haskey(f, getid(vc)) && return false
     vc_in_formulation = getelem(f, getid(vc))
-    get_cur_is_explicit(vc_in_formulation) && return true
+    getcurisexplicit(form, vc_in_formulation) && return true
     return false
 end
 

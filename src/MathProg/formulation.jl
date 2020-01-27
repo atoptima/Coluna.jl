@@ -75,8 +75,8 @@ getoptimizer(form::Formulation) = form.optimizer
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(form::Formulation) = VarId(getnewuid(form.var_counter), getuid(form))
-generateconstrid(form::Formulation) = ConstrId(getnewuid(form.constr_counter), getuid(form))
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, getnewuid(form.var_counter), getuid(form))
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, getnewuid(form.constr_counter), getuid(form))
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -85,23 +85,6 @@ getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_f
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
 
-
-function setcurrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
-    setcurrhs!(constr, new_rhs)
-    change_rhs!(form.buffer, constr)
-end
-
-
-"""
-    setrhs!(f::Formulation, c::Constraint, new_rhs::Float64)
-
-Sets `c.cur_data.rhs` as well as the rhs of `c` in `f.optimizer` 
-according to `new_rhs`. Change on `f.optimizer` will be buffered.
-"""
-function setrhs!(form::Formulation, constr::Constraint, new_rhs::Float64)
-    setcurrhs!(constr, new_rhs)
-    change_rhs!(form.buffer, constr)
-end
 
 """
     set_matrix_coeff!(f::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
@@ -126,23 +109,31 @@ function setvar!(form::Formulation,
                  is_explicit::Bool = true,
                  moi_index::MoiVarIndex = MoiVarIndex(),
                  members::Union{ConstrMembership,Nothing} = nothing,
-                 id = generatevarid(form))
+                 id = generatevarid(duty, form))
     if kind == Binary
         lb = (lb < 0.0) ? 0.0 : lb
         ub = (ub > 1.0) ? 1.0 : ub
     end
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
-    var = Variable(id, name, duty; var_data = v_data, moi_index = moi_index)
+    var = Variable(id, name; var_data = v_data, moi_index = moi_index)
     if haskey(form.manager.vars, getid(var))
         error(string("Variable of id ", getid(var), " exists"))
     end
-    form.manager.vars[getid(var)] = var
-    form.manager.var_costs[getid(var)] = cost
-    form.manager.var_lbs[getid(var)] = lb
-    form.manager.var_ubs[getid(var)] = ub
+    _addvar!(form, var)
     members != nothing && _setmembers!(form, var, members)
-    add!(form.buffer, var)
     return var
+end
+
+
+"Adds `Variable` `var` to `Formulation` `form`."
+function _addvar!(form::Formulation, var::Variable)
+    _addvar!(form.manager, var)
+    
+    if getcurisexplicit(form, var) 
+        add!(form.buffer, var)
+    end
+    return 
+
 end
 
 function addprimalsol!(
@@ -210,12 +201,25 @@ function setprimalsol!(
     return (true, new_sol_id)
 end
 
-adddualsol!(
+
+function adddualsol!(
     form::Formulation,
     dualsol::DualSolution{S},
     dualsol_id::ConstrId
-) where {S<:Coluna.AbstractSense} = adddualsol!(form.manager, dualsol, dualsol_id)
-
+    ) where {S<:Coluna.AbstractSense} 
+    
+    rhs = 0.0
+    for (constr_id, constr_val) in dualsol
+        constr = getconstr(form, constr_id)
+        rhs += getperenerhs(form, constr) * constr_val 
+        if getduty(constr) <= AbstractBendSpMasterConstr
+            form.manager.dual_sols[constr_id, dualsol_id] = constr_val
+        end
+    end
+    form.manager.dual_sol_rhss[dualsol_id] = rhs
+    
+    return dualsol_id
+end
 
 function setdualsol!(
     form::Formulation,
@@ -322,12 +326,12 @@ function setcut_from_sp_dualsol!(
     moi_index::MoiConstrIndex = MoiConstrIndex()
 ) 
     rhs = getdualsolrhss(spform)[dual_sol_id]
-    benders_cut_id = dual_sol_id 
+    benders_cut_id = Id{Constraint}(duty, dual_sol_id) 
     benders_cut_data = ConstrData(
         rhs, Core, sense, inc_val, is_active, is_explicit
     )
     benders_cut = Constraint(
-        benders_cut_id, name, duty;
+        benders_cut_id, name;
         constr_data = benders_cut_data, 
         moi_index = moi_index
     )
@@ -346,29 +350,26 @@ function setcut_from_sp_dualsol!(
             end
         end
     end 
+    _addconstr!(masterform, benders_cut)
+    return benders_cut
 
-    return addconstr!(masterform, benders_cut)
 end
-
-# "Adds `Variable` `var` to `Formulation` `form`."
-# function addvar!(f::Formulation, var::Variable)
-#     add!(f.buffer, var)
-#     return addvar!(f.manager, var)
-# end
 
 "Deactivates a variable or a constraint in the formulation"
-function deactivate!(f::Formulation, varconstr::AbstractVarConstr)
-    remove!(f.buffer, varconstr)
-    set_cur_is_active(varconstr, false)
+function deactivate!(form::Formulation, varconstr::AbstractVarConstr)
+    if getcurisexplicit(form, varconstr)
+        remove!(form.buffer, varconstr)
+    end
+    setcurisactive!(form, varconstr, false)
     return
 end
-deactivate!(f::Formulation, id::Id) = deactivate!(f, getelem(f, id))
+deactivate!(form::Formulation, id::Id) = deactivate!(form, getelem(f, id))
 
-function deactivate!(f::Formulation, duty::Duty{Variable})
-    for (varid, var) in vars
+function deactivate!(form::Formulation, duty::Duty{Variable})
+    for (varid, var) in getvars(form)
         getcurisactive(form, varid) || continue
         getduty(varid) <= duty || continue
-        deactivate!(f, var)
+        deactivate!(form, var)
     end
     return
 end
@@ -384,8 +385,10 @@ end
 
 "Activates a variable in the formulation"
 function activate!(form::Formulation, varconstr::AbstractVarConstr)
-    add!(form.buffer, varconstr)
-    set_cur_is_active(varconstr, true)
+    if getcurisexplicit(form, varconstr)
+        add!(form.buffer, varconstr)
+    end
+    setcurisactive!(form, varconstr, true)
     return
 end
 activate!(f::Formulation, id::Id) = activate!(f, getelem(f, id))
@@ -418,17 +421,21 @@ function setconstr!(form::Formulation,
                     is_explicit::Bool = true,
                     moi_index::MoiConstrIndex = MoiConstrIndex(),
                     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
-                    id = generateconstrid(form))
+                    id = generateconstrid(duty, form))
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
-    constr = Constraint(id, name, duty; constr_data = c_data, moi_index = moi_index)
+    constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index)
     members != nothing && _setmembers!(form, constr, members)
-    return addconstr!(form, constr)
+    _addconstr!(form, constr)
+    return constr
 end
 
 "Adds `Constraint` `constr` to `Formulation` `form`."
-function addconstr!(form::Formulation, constr::Constraint)
-    add!(form.buffer, constr)
-    return addconstr!(form.manager, constr)
+function _addconstr!(form::Formulation, constr::Constraint)
+    _addconstr!(form.manager, constr)
+    if getcurisexplicit(form, constr)
+        add!(form.buffer, constr)
+    end
+    return 
 end
 
 function enforce_integrality!(form::Formulation)
@@ -448,39 +455,41 @@ end
 
 function relax_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(form))
-    for (v_id, v) in getvars(form)
+    for (varid, var) in getvars(form)
         getcurisactive(form, varid) || continue
         getcurisexplicit(form, varid) || continue
-        getcurkind(form, v) == Continuous && continue
-        @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to continuous")
-        setcurkind!(form, v, Continuous)
+        getcurkind(form, var) == Continuous && continue
+        @logmsg LogLevel(-3) string("Setting kind of var ", getname(var), " to continuous")
+        setcurkind!(form, varid, Continuous)
     end
     return
 end
 
 "Activates a constraint in the formulation"
 function activateconstr!(form::Formulation, id::Id{Constraint})
-    c = getvar(form, id)
-    add!(form.buffer, c)
-    set_cur_is_active(c, true)
+    constr = getvar(form, id)
+    if getcurisexplicit(form, constr)
+        add!(form.buffer, constr)
+    end
+    setcurisactive!(form, constr, true)
     return
 end
 
 # TODO : delete
 function _setmembers!(form::Formulation, var::Variable, members::ConstrMembership)
     coef_matrix = getcoefmatrix(form)
-    id = getid(var)
+    varid = getid(var)
     for (constrid, constr_coeff) in members
-        coef_matrix[constrid, id] = constr_coeff
+        coef_matrix[constrid, varid] = constr_coeff
     end
     return
 end
 
 function _setmembers!(form::Formulation, var::Variable, members::AbstractDict{ConstrId, Float64})
     coef_matrix = getcoefmatrix(form)
-    id = getid(var)
+    varid = getid(var)
     for (constrid, constr_coeff) in members
-        coef_matrix[constrid, id] = constr_coeff
+        coef_matrix[constrid, varid] = constr_coeff
     end
     return
 end
@@ -671,8 +680,9 @@ function _show_constraint(io::IO, form::Formulation, constrid::ConstrId,
     else
         op = "<="
     end
-    print(io, " ", op, " ", getcurrhs(constr))
-    println(io, " (", getduty(constr), getid(constr), " | ", get_cur_is_explicit(constr) ,")")
+    print(io, " ", op, " ", getcurrhs(form, constr))
+    constrid = getid(constr)
+    println(io, " (", getduty(constrid), constrid, " | ",  getcurisexplicit(form, constr) ,")")
     return
 end
 
@@ -692,7 +702,7 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     ub = getcurub(form, var)
     t = getcurkind(form, var)
     d = getduty(getid(var))
-    e = get_cur_is_explicit(var)
+    e = getcurisexplicit(form, var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 

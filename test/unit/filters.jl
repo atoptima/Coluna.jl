@@ -20,7 +20,7 @@ function filters_tests()
     )
 
     v2 = ClF.Variable(
-        ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.DwSpPricingVar;
+        ClF.Id{ClF.Variable}(ClF.DwSpPricingVar, 23, 10), "fake_var";
         var_data = v2_data
     )
 
@@ -30,7 +30,7 @@ function filters_tests()
     )
 
     v3 = ClF.Variable(
-        ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.MasterRepPricingSetupVar;
+        ClF.Id{ClF.Variable}(ClF.MasterRepPricingSetupVar, 23, 10), "fake_var";
         var_data = v3_data
     )
 
@@ -40,7 +40,7 @@ function filters_tests()
     )
 
     v4 = ClF.Variable(
-        ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.MasterRepPricingSetupVar;
+        ClF.Id{ClF.Variable}(ClF.MasterRepPricingSetupVar, 23, 10), "fake_var";
         var_data = v4_data
     )
 
@@ -50,7 +50,7 @@ function filters_tests()
     )
 
     c1 = ClF.Constraint(
-        ClF.Id{ClF.Constraint}(23, 10), "fake_constr", ClF.MasterBranchOnOrigVarConstr;
+        ClF.Id{ClF.Constraint}(ClF.MasterBranchOnOrigVarConstr, 23, 10), "fake_constr";
         constr_data = c1_data
     )
 
@@ -59,10 +59,10 @@ function filters_tests()
         inc_val = -12.0, is_active = false, is_explicit = false
     )
     c2 = ClF.Constraint(
-        ClF.Id{ClF.Constraint}(23, 10), "fake_constr", ClF.MasterPureConstr;
+        ClF.Id{ClF.Constraint}(ClF.MasterPureConstr, 23, 10), "fake_constr";
         constr_data = c2_data
     )
-
+#==
     @test ClF._active_master_rep_orig_constr_(c1) == false
     @test ClF._active_master_rep_orig_constr_(c2) == false
     @test ClF._explicit_(v) == true
@@ -88,5 +88,5 @@ function filters_tests()
     @test ClF._active_explicit_(v) == true
     @test ClF._active_explicit_(v3) == false
     @test ClF._active_explicit_(v4) == false
-
+==#
 end

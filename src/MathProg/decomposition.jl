@@ -176,7 +176,7 @@ function instantiate_orig_vars!(
 )
     !haskey(annotations.vars_per_ann, sp_ann) && return
     vars = annotations.vars_per_ann[sp_ann]
-     masterform = spform.parent_formulation
+    masterform = spform.parent_formulation
     for (id, var) in vars
         # An original variable annoted in a subproblem is a DwSpPureVar
         clonevar!(origform, spform, spform, var, DwSpPricingVar, is_explicit =  true)

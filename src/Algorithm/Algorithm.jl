@@ -8,9 +8,6 @@ import ..Coluna
 using ..Containers
 using ..MathProg
 
-# To be deleted :
-import .MathProg: getrhs, getsense, optimize! # because of branch
-
 using Logging
 using Printf
 

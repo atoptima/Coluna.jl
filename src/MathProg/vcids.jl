@@ -34,22 +34,22 @@ getduty(vcid::Id{VC}) where {VC <: AbstractVarConstr} = vcid.duty
 
 Constructs an `Id` of type `VC` with `uid` = uid and `form_uid` = form_uid.
 """
-function Id{VC}(uid::Int, origin_form_uid::FormId, assigned_form_uid::FormId) where {VC}
+function Id{VC}(duty::Duty{VC}, uid::Int, origin_form_uid::FormId, assigned_form_uid::FormId) where {VC}
     proc_uid = Distributed.myid()
-    Id{VC}(uid, origin_form_uid, assigned_form_uid, proc_uid, _create_hash(uid, origin_form_uid, proc_uid))
+    Id{VC}(duty, uid, origin_form_uid, assigned_form_uid, proc_uid, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
-function Id{VC}(uid::Int, origin_form_uid::FormId) where {VC}
+function Id{VC}(duty::Duty{VC}, uid::Int, origin_form_uid::FormId) where {VC}
     proc_uid = Distributed.myid()
-    Id{VC}(uid, origin_form_uid, origin_form_uid, proc_uid, _create_hash(uid, origin_form_uid, proc_uid))
+    Id{VC}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
-function Id{VC}(id::Id{VC}, assigned_form_uid_in_reformulation::FormId) where {VC}
-    Id{VC}(id.uid, id.origin_form_uid, assigned_form_uid_in_reformulation, id.proc_uid, id._hash)
+function Id{VC}(duty::Duty{VC}, id::Id{VC}, assigned_form_uid_in_reformulation::FormId) where {VC}
+    Id{VC}(duty, id.uid, id.origin_form_uid, assigned_form_uid_in_reformulation, id.proc_uid, id._hash)
 end
 
-function Id{VC}(id::Id{VC}) where {VC}
-    Id{VC}(id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, id._hash)
+function Id{VC}(duty::Duty{VC}, id::Id{VC}) where {VC}
+    Id{VC}(duty, id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, id._hash)
 end
 
 Base.hash(a::Id, h::UInt) = hash(a._hash, h)
