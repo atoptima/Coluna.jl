@@ -79,7 +79,7 @@ function contains(form::AbstractFormulation, sol::DualSolution, duty::Duty{Const
 end
 
 
-mutable struct Incumbents{S}
+mutable struct Incumbents{S} <: AbstractInput
     ip_primal_sol::PrimalSolution{S}
     ip_primal_bound::PrimalBound{S}
     ip_dual_bound::DualBound{S} # the IP dual bound can be the result of computation other than using the LP dual bound

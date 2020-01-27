@@ -14,6 +14,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
+    storages::StorageDict
 end
 
 """
@@ -31,9 +32,10 @@ function Formulation{D}(form_counter::Counter;
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, NoOptimizer(), FormulationManager(),
-        obj_sense, FormulationBuffer()
+        obj_sense, FormulationBuffer(), Dict{Type{<:AbstractStorage}, AbstractStorage}()
     )
 end
+
 
 "Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `form`."
 haskey(f::Formulation, id::Id) = haskey(f.manager, id)

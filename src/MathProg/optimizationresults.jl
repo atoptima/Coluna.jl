@@ -41,6 +41,30 @@ OptimizationResult{S}() where {S} = OptimizationResult{S}(
     DualBound{S}(), PrimalSolution{S}[], DualSolution{S}[]
 )
 
+"""
+    OptimizationResult{S}(Incumbents{S})
+
+    Builds OptimizationResult from initial incumbents.
+"""
+function OptimizationResult{S}(incumb::Incumbents{S}) where {S} 
+    primal_sols = PrimalSolution{S}()
+    primalsol = get_ip_primal_sol(incumb) 
+    if length(primalsol) == 0 # TO DO : to change to === nothing 
+        push!(primal_sols, primalsol)
+    end
+    dual_sols = DualSolution{S}()
+    dualsol = get_lp_dual_sol(incumb) 
+    if length(dualsol) == 0 # TO DO : to change to === nothing 
+        push!(dual_sols, dualsol)
+    end
+
+    return OptimizationResult{S}(
+        NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, get_ip_primal_bound(incumb),
+        get_ip_dual_bound(incumb), primal_sols, dual_sols
+    )
+end
+
+
 getterminationstatus(res::OptimizationResult) = res.termination_status
 getfeasibilitystatus(res::OptimizationResult) = res.feasibility_status
 isfeasible(res::OptimizationResult) = res.feasibility_status == FEASIBLE

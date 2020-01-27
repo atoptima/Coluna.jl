@@ -21,7 +21,7 @@ const MOI = MathOptInterface
 import Base: push!
 
 # TODO clean up :
-export AbstractGlobalStrategy, EmptyGlobalStrategy
+#export AbstractGlobalStrategy, EmptyGlobalStrategy
 
 const MAX_NUM_NODES = 100 # TODO : rm & should be a parameter of the B&B Algorithm
 const OPEN_NODES_LIMIT = 100 # TODO : rm & should be param of B&B algo

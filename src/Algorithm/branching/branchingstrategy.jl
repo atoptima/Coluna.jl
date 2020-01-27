@@ -105,7 +105,7 @@ function perform_strong_branching_with_phases!(
                 update_ip_primal_sol!(getincumbents(node), get_ip_primal_sol(getincumbents(parent)))
 
                 # we apply the conquer strategy of the current branching phase on the current node
-                reset_to_record_state!(reform, node.record) # TO DO : remove _of_father from this name
+                reset_to_record_state!(reform, node.record) 
                 apply_branch!(reform, getbranch(node))
                 apply!(current_phase.conquer_strategy, reform, node)
                 record!(reform, node)

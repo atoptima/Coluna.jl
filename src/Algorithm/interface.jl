@@ -4,7 +4,8 @@ using ..Coluna # to remove when merging to the master branch
 """
     AbstractAlgorithm
 
-    An algorithm is a procedure with a known interface (input and output) applied on a formulation.
+    An algorithm is a procedure with a known interface (input and output) applied to a formulation.
+    An algorithm can use an additional storage to keep its computed data.
     Input of an algorithm is put to its storage before running it.
     The algorithm itself contains only its parameters. 
     Other data used by the algorithm is contained in its storage. 
@@ -14,22 +15,29 @@ using ..Coluna # to remove when merging to the master branch
 abstract type AbstractAlgorithm end
 
 """
-    construct(Algorithm)::Storage
+    getstoragetype(Algorithm, Formulation)::Type{<:Storage}
 
-    Every algorithm should know how to initialize its storage.
-    Initialization happens when the formulation, on which the algoirithm is applied, is known.
-    By default, the storage is empty.    
+    Every algorithm should communicate its storage type. By default, the storage is empty.    
 """
-function construct(algo::AbstractAlgorithm, form::AbstractFormulation)::AbstractStorage
-    return EmptyStorage()
-end
+getstoragetype(algo::AbstractAlgorithm)::Type{<:AbstractStorage} = EmptyStorage
 
 """
-    run!(Algorithm, Storage)::Output
+    getslavealgorithms!(Algorithm, Formulation, Vector{Tuple{Formulation, AlgorithmType})
 
-    Runs the algorithm using its storage. Returns algorithm's output.    
+    Every algorithm should communicate its slave algorithms together with formulations 
+    to which they are applied    
 """
-function run!(algo::AbstractAlgorithm, storage::AbstractStorage)::AbstractOutput
+getslavealgorithms!(
+    algo::AbstractAlgorithm, form::AbstractFormulation, 
+    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}) = nothing
+
+"""
+    run!(Algorithm, Formulation)::Output
+
+    Runs the algorithm. The storage of the algorithm can be obtained by asking
+    the formulation. Returns algorithm's output.    
+"""
+function run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::AbstractInput)::AbstractOutput
     return EmptyOutput()
 end
 
@@ -49,11 +57,18 @@ end
 
     This type of algorithm is used to "bound" a formulation, i.e. to improve primal
     and dual bounds of the formulation. Solving to optimality is a special case of "bounding".
-    The storage of such algorithm should contain AbstractFormulation.
-    The output of such algorithm should be of type AbstractReformulationAlgorithmOutput.    
+    The input of such algorithm should be of type Incumbents.    
+    The output of such algorithm should be of type OptimizationResult.    
 """
 abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
+function run!(
+    algo::AbstractOptimizationAlgorithm, form::AbstractFormulation, input::Incumbents
+    )::OptimizationResult
+     algotype = typeof(algo)
+     error("Method run! which takes formulation and Incumbents as input returns OptimizationOutput
+            is not implemented for algorithm $algotype.")
+end
 
 
 
