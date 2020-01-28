@@ -196,7 +196,7 @@ function setprimalsol!(
     end
     
     ### else not identical to any existing column
-    new_sol_id = Id{Variable}(generatevarid(form), getuid(form))
+    new_sol_id = Id{Variable}(DwSpPrimalSol, generatevarid(form), getuid(form))
     addprimalsol!(form, newprimalsol, new_sol_id)
     return (true, new_sol_id)
 end
@@ -270,7 +270,7 @@ function setdualsol!(
     
 
     ### else not identical to any existing dual sol
-    new_dual_sol_id = Id{Constraint}(generateconstrid(form), getuid(form))
+    new_dual_sol_id = Id{Constraint}(BendSpDualSol, generateconstrid(form), getuid(form))
     adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
@@ -602,8 +602,7 @@ function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:Colun
 end
 
 function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution{S})  where {S<:Coluna.AbstractSense}
-    var = getvar(form, varid)
-    rc = getperenecost(form, var)
+    redcost = getperenecost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
     sign = 1
     if getobjsense(form) == MinSense
@@ -611,20 +610,19 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
     end
     for (constrid, dual_val) in dualsol
         coeff = coefficient_matrix[constrid, varid]
-        rc += sign * dual_val * coeff
+        redcost += sign * dual_val * coeff
     end
-    return rc
+    return redcost
 end
 
 function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution{S})  where {S<:Coluna.AbstractSense}
-    constr = getconstr(form,constrid)
-    crhs = getperenerhs(constr)
+    constrrhs = getperenerhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol
         coeff = coefficient_matrix[constrid, varid]
-        crhs -= primal_val * coeff
+        constrrhs -= primal_val * coeff
     end
-    return crhs
+    return constrrhs
 end
 
 "Calls optimization routine for `Formulation` `form`."

@@ -1,7 +1,12 @@
 set_glob_art_var(form::Formulation, is_pos::Bool) = setvar!(
-    form, string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
-    MasterArtVar; cost = (getobjsense(form) == MinSense ? 100000.0 : -100000.0),
-    lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+    form, 
+    string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
+    MasterArtVar; 
+    cost = (getobjsense(form) == MinSense ? 100000.0 : -100000.0),
+    lb = 0.0, 
+    ub = Inf, 
+    kind = Continuous, 
+    sense = Positive
 )
 
 function create_local_art_vars!(masterform::Formulation)
@@ -9,10 +14,14 @@ function create_local_art_vars!(masterform::Formulation)
     for (constrid, constr) in getconstrs(masterform)
         getduty(constrid) == MasterConvexityConstr && continue
         var = setvar!(
-            masterform, string("local_art_of_", getname(constr)),
+            masterform, 
+            string("local_art_of_", getname(constr)),
             MasterArtVar;
             cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
-            lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+            lb = 0.0, 
+            ub = Inf, 
+            kind = Continuous, 
+            sense = Positive
         )
         if getcursense(masterform, constr) == Greater
             matrix[constrid, getid(var)] = 1.0
@@ -43,7 +52,8 @@ function instantiatemaster!(
     ::Type{BD.DantzigWolfe}
 )
     form = Formulation{DwMaster}(
-        prob.form_counter; parent_formulation = reform,
+        prob.form_counter; 
+        parent_formulation = reform,
         obj_sense = getobjsense(get_original_formulation(prob))
     )
     setmaster!(reform, form)
@@ -54,7 +64,8 @@ function instantiatemaster!(
     prob::Problem, reform::Reformulation, ::Type{BD.Master}, ::Type{BD.Benders}
 )
     masterform = Formulation{BendersMaster}(
-        prob.form_counter; parent_formulation = reform,
+        prob.form_counter; 
+        parent_formulation = reform,
         obj_sense = getobjsense(get_original_formulation(prob))
     )
     setmaster!(reform, masterform)
@@ -66,7 +77,8 @@ function instantiatesp!(
     ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}
 )
     spform = Formulation{DwSp}(
-        prob.form_counter; parent_formulation = masterform,
+        prob.form_counter; 
+        parent_formulation = masterform,
         obj_sense = getobjsense(masterform)
     )
     add_dw_pricing_sp!(reform, spform)
@@ -78,7 +90,8 @@ function instantiatesp!(
     ::Type{BD.BendersSepSp}, ::Type{BD.Benders}
 )
     spform = Formulation{BendersSp}(
-        prob.form_counter; parent_formulation = masterform,
+        prob.form_counter; 
+        parent_formulation = masterform,
         obj_sense = getobjsense(masterform)
     )
     add_benders_sep_sp!(reform, spform)
@@ -87,12 +100,7 @@ end
 
 # Master of Dantzig-Wolfe decomposition
 
-# returns the duty of a variable and whether it is explicit according to the 
-# type of formulation it belongs and the type of formulation it will clone in.
-#==_varexpduty(F, BDF, BDD) = error("Cannot deduce duty of original variable in $F annoted in $BDF using $BDD.")
-_varexpduty(::Type{DwMaster}, ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}) = MasterRepPricingVar, false
-_varexpduty(::Type{DwMaster}, ::Type{BD.Master}, ::Type{BD.DantzigWolfe}) = MasterPureVar, true
-==#
+
 function instantiate_orig_vars!(
     masterform::Formulation{DwMaster},
     origform::Formulation, 
@@ -207,9 +215,14 @@ function create_side_vars_constrs!(
 )
     name = "PricingSetupVar_sp_$(getuid(spform))"
     setvar!(
-        spform, name, DwSpSetupVar;
-        cost = 0.0, lb = 1.0, ub = 1.0, 
-        kind = Continuous, sense = Positive,
+        spform, 
+        name, 
+        DwSpSetupVar;
+        cost = 0.0, 
+        lb = 1.0, 
+        ub = 1.0, 
+        kind = Continuous, 
+        sense = Positive,
         is_explicit = true
     ) 
     return
@@ -285,11 +298,16 @@ function create_side_vars_constrs!(
         
         name = "η[$(split(getname(nu_var), "[")[end])"
         setvar!(
-            masterform, name, MasterBendSecondStageCostVar; cost = 1.0,
+            masterform, 
+            name, 
+            MasterBendSecondStageCostVar; 
+            cost = 1.0,
             lb = getperenelb(spform, nu_var), 
-            ub = getpereneub(spform, nu_var), kind = Continuous, 
-            sense = Free, is_explicit = true, 
-            id = Id{Variable}(getid(nu_var),getuid(masterform))
+            ub = getpereneub(spform, nu_var), 
+            kind = Continuous, 
+            sense = Free, 
+            is_explicit = true, 
+            id = Id{Variable}(MasterBendSecondStageCostVar, getid(nu_var),getuid(masterform))
         )                                 
     end
     return
@@ -318,12 +336,16 @@ function instantiate_orig_vars!(
             if duty == MasterBendFirstStageVar
                 name = "μ[$(split(getname(var), "[")[end])"
                 mu = setvar!(
-                    spform, name, BendSpSlackFirstStageVar; 
-                    cost = getcurcost(masterform, var), 
-                    lb = getcurlb(masterform, var), 
-                    ub = getcurub(masterform, var), kind = Continuous, 
-                    sense = getcursense(masterform, var), is_explicit = true, 
-                    id = Id{Variable}(id, getuid(getmaster(spform)))
+                    spform, 
+                    name, 
+                    BendSpSlackFirstStageVar; 
+                    cost = getcurcost(origform, var), 
+                    lb = getcurlb(origform, var), 
+                    ub = getcurub(origform, var), 
+                    kind = Continuous, 
+                    sense = getcursense(origform, var), 
+                    is_explicit = true, 
+                    id = Id{Variable}(BendSpSlackFirstStageVar, id, getuid(masterform))
                 )
             end
         end
@@ -387,22 +409,33 @@ function create_side_vars_constrs!(
         sp_id = getuid(spform)
         # Cost constraint
         nu = setvar!(
-            spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar; cost = 1.0,
-            lb = - global_costprofit_lb , ub = global_costprofit_ub, 
-            kind = Continuous, sense = Free, is_explicit = true
+            spform, "
+            ν[$sp_id]", 
+            BendSpSlackSecondStageCostVar; 
+            cost = 1.0,
+            lb = - global_costprofit_lb, 
+            ub = global_costprofit_ub, 
+            kind = Continuous, 
+            sense = Free, 
+            is_explicit = true
         )
         setcurlb!(spform, nu, 0.0)                                          
         setcurub!(spform, nu, Inf)                                          
 
         cost = setconstr!(
-            spform, "cost[$sp_id]", BendSpSecondStageCostConstr; rhs = 0.0, 
-            kind = Core, sense = Greater, is_explicit = true
+            spform, 
+            "cost[$sp_id]", 
+            BendSpSecondStageCostConstr; 
+            rhs = 0.0, 
+            kind = Core, 
+            sense = Greater, 
+            is_explicit = true
         )
         sp_coef[getid(cost), getid(nu)] = 1.0
 
-        for (varid, var) in sp_vars
-            orig_var = getvar(origform, varid)
-            sp_coef[getid(cost), varid] = - getperenecost(origform, orig_var)         
+        for (varid, var) in getvars(spform)
+            getduty(varid) == BendSpSepVar || continue
+            sp_coef[getid(cost), varid] = - getperenecost(origform, varid)         
         end
     end
     return

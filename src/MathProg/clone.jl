@@ -14,9 +14,18 @@ function clonevar!(originform::Formulation,
                    is_explicit::Bool = getpereneisexplicit(originform, var),
                    members::Union{ConstrMembership,Nothing} = nothing)
     return setvar!(
-        destform, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
-        sense = sense, inc_val = inc_val, is_active = is_active,
-        is_explicit = is_explicit, members = members,
+        destform, 
+        name, 
+        duty; 
+        cost = cost, 
+        lb = lb, 
+        ub = ub, 
+        kind = kind, 
+        sense = sense, 
+        inc_val = inc_val, 
+        is_active = is_active,
+        is_explicit = is_explicit, 
+        members = members,
         id = Id{Variable}(duty, getid(var), getuid(assignedform))
     )
 end
@@ -35,8 +44,15 @@ function cloneconstr!(originform::Formulation,
                       is_explicit::Bool = getpereneisexplicit(originform, constr),
                       members::Union{VarMembership,Nothing}  = nothing)
     return setconstr!(
-        destform, name, duty, rhs = rhs, kind = kind, sense = sense, 
-        inc_val = inc_val, is_active = is_active, is_explicit = is_explicit,
+        destform, 
+        name, 
+        duty, 
+        rhs = rhs, 
+        kind = kind, 
+        sense = sense, 
+        inc_val = inc_val, 
+        is_active = is_active, 
+        is_explicit = is_explicit,
         members = members,
         id = Id{Constraint}(duty, getid(constr), getuid(assignedform))
     )
