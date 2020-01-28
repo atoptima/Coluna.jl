@@ -196,7 +196,7 @@ function setprimalsol!(
     end
     
     ### else not identical to any existing column
-    new_sol_id = Id{Variable}(DwSpPrimalSol, generatevarid(form), getuid(form))
+    new_sol_id = generatevarid(DwSpPrimalSol, form)
     addprimalsol!(form, newprimalsol, new_sol_id)
     return (true, new_sol_id)
 end
@@ -209,11 +209,10 @@ function adddualsol!(
     ) where {S<:Coluna.AbstractSense} 
     
     rhs = 0.0
-    for (constr_id, constr_val) in dualsol
-        constr = getconstr(form, constr_id)
-        rhs += getperenerhs(form, constr) * constr_val 
-        if getduty(constr) <= AbstractBendSpMasterConstr
-            form.manager.dual_sols[constr_id, dualsol_id] = constr_val
+    for (constrid, constrval) in dualsol
+        rhs += getperenerhs(form, constrid) * constrval 
+        if getduty(constrid) <= AbstractBendSpMasterConstr
+            form.manager.dual_sols[constrid, dualsol_id] = constrval
         end
     end
     form.manager.dual_sol_rhss[dualsol_id] = rhs
@@ -270,7 +269,7 @@ function setdualsol!(
     
 
     ### else not identical to any existing dual sol
-    new_dual_sol_id = Id{Constraint}(BendSpDualSol, generateconstrid(form), getuid(form))
+    new_dual_sol_id = generateconstrid(BendSpDualSol, form)
     adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
@@ -445,9 +444,9 @@ function enforce_integrality!(form::Formulation)
         getcurisexplicit(form, varid) || continue
         getcurkind(form, varid) == Integ && continue
         getcurkind(form, varid) == Binary && continue
-        if (getduty(varid) == MasterCol || getperenekind(form, v) != Continuous)
-            @logmsg LogLevel(-3) string("Setting kind of var ", getname(v), " to Integer")
-            setcurkind!(form, v, Integ)
+        if (getduty(varid) == MasterCol || getperenekind(form, varid) != Continuous)
+            @logmsg LogLevel(-3) string("Setting kind of var ", getname(var), " to Integer")
+            setcurkind!(form, varid, Integ)
         end
     end
     return

@@ -61,7 +61,7 @@ export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 # Methods
 export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setvar!, getid, store!, setconstr!, getuid, getcoefmatrix,
-       getvar, getvars, getconstr, getconstrs,
+       getvar, getvars, getconstr, getconstrs, getsense,
        register_objective_sense!, optimize!, nbprimalsols, ip_gap, getdualbound,
        getprimalbound, get_ip_dual_bound, getmaster, deactivate!, 
        enforce_integrality!, relax_integrality!, activate!, update_ip_primal_sol!,

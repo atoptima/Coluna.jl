@@ -70,7 +70,7 @@ end
 
 function set_ph_one(master::Formulation)
     for (varid, var) in getvars(master)
-        isanArtificialDuty(varid) && continue
+        isanArtificialDuty(getduty(varid)) && continue
         setcurcost!(master, varid, 0.0)
     end
     return
@@ -297,10 +297,8 @@ function cg_main_loop(
 
     # collect multiplicity current bounds for each sp
     for (sp_uid, spform) in get_dw_pricing_sps(reform)
-        lb_convexity_constrid = reform.dw_pricing_sp_lb[sp_uid]
-        ub_convexity_constr_id = reform.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getcurrhs(masterform, lb_convexity_constr_id)
-        sp_ubs[sp_uid] = getcurrhs(masterform, ub_convexity_constr_id)
+        sp_lbs[sp_uid] = getcurrhs(masterform, reform.dw_pricing_sp_lb[sp_uid])
+        sp_ubs[sp_uid] = getcurrhs(masterform, reform.dw_pricing_sp_ub[sp_uid])
     end
 
     while true
