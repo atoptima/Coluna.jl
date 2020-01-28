@@ -30,7 +30,11 @@ ConstrData(cd::ConstrData) = ConstrData(
     cd.is_explicit
 )
 
+<<<<<<< HEAD
 #==getrhs(c::ConstrData) = c.rhs
+=======
+getrhs(c::ConstrData) = c.rhs
+>>>>>>> master
 setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
 ==#
 
@@ -67,9 +71,13 @@ function Constraint(id::ConstrId,
                     constr_data = ConstrData(),
                     moi_index::MoiConstrIndex = MoiConstrIndex())
     return Constraint(
+<<<<<<< HEAD
         id, 
         name, 
         constr_data, 
+=======
+        id, name, duty, constr_data, 
+>>>>>>> master
         MoiConstrRecord(index = moi_index)
     )
 end

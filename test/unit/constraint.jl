@@ -45,23 +45,18 @@ function moi_constr_record_getters_and_setters_tests()
 end
 
 function constraint_getters_and_setters_tests()
+    
     form = createformulation()
-    c_data = ClF.ConstrData(
-         ; rhs = -13.0, kind = ClF.Facultative, sense = ClF.Equal,
-         inc_val = -12.0, is_active = false, is_explicit = false
-     )
-
-     c = ClF.Constraint(
-         ClF.Id{ClF.Constraint}(ClF.MasterBranchOnOrigVarConstr, 23, 10), "fake_constr";
-         constr_data = c_data
-     )
-
-    ClF._addconstr!(form, c)
-
+    
+    c = ClF.setconstr!(form, "fake_constr", ClF.MasterBranchOnOrigVarConstr,
+    rhs = -13.0, kind = ClF.Facultative, sense = ClF.Equal,
+    inc_val = -12.0, is_active = false, is_explicit = false
+    )
+    
     ClF.setcurrhs!(form, c, 10.0)
-    @test ClF.getcurrhs(form, c) == 10.0
-    @test ClF.getperenerhs(form, c) == -13.0
-
+    @test ClF.getcurrhs(form,c) == 10.0
+    @test ClF.getperenerhs(form,c) == -13.0
+    
     ClF.reset!(form, c)
     @test ClF.getcurrhs(form, c) == -13.0
     @test ClF.getperenerhs(form, c) == -13.0

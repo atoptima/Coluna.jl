@@ -14,8 +14,12 @@ function create_local_art_vars!(masterform::Formulation)
     for (constrid, constr) in getconstrs(masterform)
         getduty(constrid) == MasterConvexityConstr && continue
         var = setvar!(
+<<<<<<< HEAD
             masterform, 
             string("local_art_of_", getname(constr)),
+=======
+            masterform, string("local_art_of_", getname(masterform, constr)),
+>>>>>>> master
             MasterArtVar;
             cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, 
@@ -36,9 +40,17 @@ function create_global_art_vars!(masterform::Formulation)
     global_pos = set_glob_art_var(masterform, true)
     global_neg = set_glob_art_var(masterform, false)
     matrix = getcoefmatrix(masterform)
+<<<<<<< HEAD
     for (constrid, constr) in getconstrs(masterform)
         !getcurisactive(masterform, constrid) && continue
         !(getduty(constrid) <= AbstractMasterOriginConstr) && continue
+=======
+    constrs = filter( c ->
+    getcurisactive(masterform,c) == true && getduty(c) <= AbstractMasterOriginConstr, 
+    getconstrs(masterform)
+    )
+    for (constr_id, constr) in constrs
+>>>>>>> master
         if getcursense(masterform, constr) == Greater
             matrix[constrid, getid(global_pos)] = 1.0
         elseif getcursense(masterform, constr) == Less
@@ -296,7 +308,7 @@ function create_side_vars_constrs!(
             getvars(spform)
         )))[1]
         
-        name = "η[$(split(getname(nu_var), "[")[end])"
+        name = "η[$(split(getname(spform, nu_var), "[")[end])"
         setvar!(
             masterform, 
             name, 
@@ -334,7 +346,7 @@ function instantiate_orig_vars!(
         for (id, var) in vars
             duty, explicit = _dutyexpofbendmastvar(var, annotations, origform)
             if duty == MasterBendFirstStageVar
-                name = "μ[$(split(getname(var), "[")[end])"
+                name = "μ[$(split(getname(origform, var), "[")[end])"
                 mu = setvar!(
                     spform, 
                     name, 
@@ -345,7 +357,11 @@ function instantiate_orig_vars!(
                     kind = Continuous, 
                     sense = getcursense(origform, var), 
                     is_explicit = true, 
+<<<<<<< HEAD
                     id = Id{Variable}(BendSpSlackFirstStageVar, id, getuid(masterform))
+=======
+                    id = Id{Variable}(id, getuid(masterform))
+>>>>>>> master
                 )
             end
         end

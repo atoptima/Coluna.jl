@@ -11,11 +11,19 @@ function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMast
         end
         # END TODO
         col = getprimalsolmatrix(spform)[:, mc_id]
+<<<<<<< HEAD
         for (rep_id, rep_val) in col
             if getduty(rep_id) <= DwSpPricingVar || getduty(rep_id) <= DwSpSetupVar
                 projected_sol[rep_id] = (get!(projected_sol, rep_id, 0.0)) + rep_val * mc_val
             end
         end        
+=======
+        for (rep_id, rep_val) in Iterators.filter(
+            v -> getduty(v) <= DwSpPricingVar || getduty(v) <= DwSpSetupVar,
+            col)
+            projected_sol[rep_id] = (get!(projected_sol, rep_id, 0.0)) + rep_val * mc_val
+        end
+>>>>>>> master
     end
     return PrimalSolution(master, projected_sol, float(getbound(sol)))
 end

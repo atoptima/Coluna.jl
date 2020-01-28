@@ -57,13 +57,13 @@ end
 
 function abstract_var_constr_getters_tests()
 
-    v = ClF.Variable(
-        ClF.Id{ClF.Variable}(ClF.MasterPureVar, 23, 10), "fake_var"
+  v = ClF.Variable(
+        ClF.Id{ClF.Variable}(23, 10), "fake_var", ClF.MasterPureVar
     )
-    vid = ClF.getid(v)
-    @test vid == ClF.Id{ClF.Variable}(ClF.MasterPureVar, 23, 10)
-    @test ClF.getname(v) == "fake_var"
-    #@test vid == ClF.MasterPureVar
+
+    @test ClF.getid(v) == ClF.Id{ClF.Variable}(23, 10)
+    #@test ClF.getname(v) == "fake_var"
+    @test ClF.getduty(v) == ClF.MasterPureVar
     #@test ClF.getrecordeddata(v) === v.perene_data
     #@test ClF.getcurdata(v) === v.cur_data
     @test ClF.getmoirecord(v) === v.moirecord
@@ -72,10 +72,10 @@ function abstract_var_constr_getters_tests()
     c = ClF.Constraint(
         ClF.Id{ClF.Constraint}(ClF.MasterBranchOnOrigVarConstr, 23, 10), "fake_constr"
     )
-    cid = ClF.getid(c) 
-    @test cid == ClF.Id{ClF.Constraint}(ClF.MasterBranchOnOrigVarConstr, 23, 10)
-    @test ClF.getname(c) == "fake_constr"
-    #@test getduty(cid) == ClF.MasterBranchOnOrigVarConstr
+
+    @test ClF.getid(c) == ClF.Id{ClF.Constraint}(23, 10)
+    #@test ClF.getname(c) == "fake_constr"
+    @test ClF.getduty(c) == ClF.MasterBranchOnOrigVarConstr
     #@test ClF.getrecordeddata(c) === c.perene_data
     #@test ClF.getcurdata(c) === c.cur_data
     @test ClF.getmoirecord(c) === c.moirecord
@@ -93,23 +93,23 @@ function varcosntr_helpers_tests()
     @test ClF.getuid(v) == 23
     @test ClF.getoriginformuid(v) == 10
 
-   @test ClF.getcurkind(form, v) == ClF.getperenekind(form, v) == ClF.Continuous
-   @test ClF.getcursense(form, v) == ClF.getperenesense(form, v) == ClF.Positive
-   @test ClF.getcurincval(form, v) == ClF.getpereneincval(form, v) == -1.0
-   @test ClF.getcurisactive(form, v) == ClF.getpereneisactive(form, v) == true
-   @test ClF.getcurisexplicit(form, v) == ClF.getpereneisexplicit(form, v) == true
+   # @test ClF.getcurkind(v) == ClF.getperenekind(v) == ClF.Continuous
+   # @test ClF.getcursense(v) == ClF.getperenesense(v) == ClF.Positive
+   # @test ClF.getcurincval(v) == ClF.getpereneincval(v) == -1.0
+# @test ClF.getcurisactive(form,v) == ClF.get_init_is_active(v) == true
+   # @test ClF.getcurisexplicit(form,v) == ClF.get_init_is_explicit(v) == true
 
-    ClF.setcurkind!(form, v, ClF.Integ)
-    ClF.setcursense!(form, v, ClF.Negative)
-    ClF.setcurincval!(form, v, 10.0)
-    ClF.setcurisactive!(form, v, false)
-    ClF.setcurisexplicit!(form, v, false)
+    #ClF.setcurkind!(v, ClF.Integ)
+    #ClF.setcursense!(v, ClF.Negative)
+    #ClF.setcurincval!(v, 10.0)
+    # ClF.set_cur_is_active(v, false)
+    #ClF.set_cur_is_explicit(v, false)
 
-    @test ClF.getcurkind(form, v) == ClF.Integ
-    @test ClF.getcursense(form, v) == ClF.Negative
-    @test ClF.getcurincval(form, v) == 10.0
-    @test ClF.getcurisactive(form, v) == false
-    @test ClF.getcurisexplicit(form, v) == false
+    #@test ClF.getcurkind(v) == ClF.Integ
+    #@test ClF.getcursense(v) == ClF.Negative
+    #@test ClF.getcurincval(v) == 10.0
+    #@test ClF.getcurisactive(form,v) == false
+    #@test ClF.getcurisexplicit(form,v) == false
 
     c = ClF.Constraint(
         ClF.Id{ClF.Constraint}(ClF.MasterBranchOnOrigVarConstr, 23, 10), "fake_constr"
@@ -119,22 +119,22 @@ function varcosntr_helpers_tests()
     @test ClF.getuid(c) == 23
     @test ClF.getoriginformuid(c) == 10
 
-    @test ClF.getcurkind(form, c) == ClF.getperenekind(form, c) == ClF.Core
-    @test ClF.getcursense(form, c) == ClF.getperenesense(form, c) == ClF.Greater
-    @test ClF.getcurincval(form, c) == ClF.getpereneincval(form, c) == -1.0
-    @test ClF.getcurisactive(form, c) == ClF.getpereneisactive(form, c) == true
-    @test ClF.getcurisexplicit(form, c) == ClF.getpereneisexplicit(form, c) == true
+    #@test ClF.getcurkind(c) == ClF.getperenekind(c) == ClF.Core
+    #@test ClF.getcursense(c) == ClF.getperenesense(c) == ClF.Greater
+    #@test ClF.getcurincval(c) == ClF.getpereneincval(c) == -1.0
+   #@test ClF.getcurisactive(form,c) == ClF.get_init_is_active(c) == true
+   # @test ClF.getcurisexplicit(form,c) == ClF.get_init_is_explicit(c) == true
 
-    ClF.setcurkind!(form, c, ClF.Facultative)
-    ClF.setcursense!(form, c, ClF.Less)
-    ClF.setcurincval!(form, c, 10.0)
-    ClF.setcurisactive!(form, c, false)
-    ClF.setcurisexplicit!(form, c, false)
+    #ClF.setcurkind!(c, ClF.Facultative)
+    #ClF.setcursense!(c, ClF.Less)
+    #ClF.setcurincval!(c, 10.0)
+  # ClF.set_cur_is_active(c, false)
+   # ClF.set_cur_is_explicit(c, false)
 
-    @test ClF.getcurkind(form, c) == ClF.Facultative
-    @test ClF.getcursense(form, c) == ClF.Less
-    @test ClF.getcurincval(form, c) == 10.0
-    @test ClF.getcurisactive(form, c) == false
-    @test ClF.getcurisexplicit(form, c) == false
+    #@test ClF.getcurkind(c) == ClF.Facultative
+    #@test ClF.getcursense(c) == ClF.Less
+    #@test ClF.getcurincval(c) == 10.0
+    #@test ClF.getcurisactive(form,c) == false
+    #@test ClF.getcurisexplicit(form,c) == false
 
 end

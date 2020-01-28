@@ -144,7 +144,12 @@ function compute_tree_depth_score!(group::BranchingGroup, parent_inc::Incumbents
     elseif length(deltas) == 1
         score = - parent_delta / deltas[1] 
     else
-        score = - log(number_of_leaves(parent_delta, deltas)) / log(length(deltas))
+        numleaves = number_of_leaves(parent_delta, deltas)
+        if numleaves < 0
+            score = - Inf
+        else
+            score = - log(numleaves) / log(length(deltas))
+        end
     end
 
     group.score = score

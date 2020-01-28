@@ -18,7 +18,7 @@ getdepth(b::Branch) = b.depth
 
 function show(io::IO, branch::Branch, form::Formulation)
     for (id, coeff) in branch.var_coeffs
-        print(io, " + ", coeff, " ", getname(getelem(form, id)))
+        print(io, " + ", coeff, " ", getname(form, id))
     end
     if branch.sense == Greater
         print(io, " >= ")
@@ -150,14 +150,14 @@ end
 
 function add_to_recorded!(form::Formulation, recorded_info::NodeRecord)
     for (varid, var) in getvars(form)
-        if getcurisactive(form, var) && getcurisexplicit(form, var)
-            varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
+        if getcurisactive(form, varid) && getcurisexplicit(form, varid)
+            varstate = VarState(getcurcost(form, varid), getcurlb(form, varid), getcurub(form, varid))
             recorded_info.active_vars[varid] = varstate
         end
     end
     for (constrid, constr) in getconstrs(form)
-        if getcurisactive(form, constr) && getcurisexplicit(form, constr)
-            constrstate = ConstrState(getcurrhs(form, constr))
+        if getcurisactive(form, constrid) && getcurisexplicit(form, constrid)
+            constrstate = ConstrState(getcurrhs(form, constrid))
             recorded_info.active_constrs[constrid] = constrstate
         end
     end
@@ -221,7 +221,7 @@ end
 function apply_data!(form::Formulation, var::Variable, var_state::VarState)
     # Bounds
     if getcurlb(form, var) != var_state.lb || getcurub(form, var) != var_state.ub
-        @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
+        @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(form, var))
         setcurlb!(form, var, var_state.lb)
         setcurub!(form, var, var_state.ub)
         @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(form, var))
@@ -229,7 +229,7 @@ function apply_data!(form::Formulation, var::Variable, var_state::VarState)
     end
     # Cost
     if getcurcost(form, var) != var_state.cost
-        @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(var))
+        @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(form, var))
         setcurcost!(form, var, var_state.cost)
         @logmsg LogLevel(-3) string("New cost is ", getcurcost(form, var))
     end
@@ -239,8 +239,8 @@ end
 function apply_data!(form::Formulation, constr::Constraint, constr_state::ConstrState)
     # Rhs
     if getcurrhs(form, constr) != constr_state.rhs
-        @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
-        setrhs!(form, constr, constr_state.rhs)
+        @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(form, constr))
+        setcurrhs!(form, constr, constr_state.rhs)
         @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(form, constr))
     end
     return
@@ -256,7 +256,7 @@ end
 
 function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in_formulation)
     for (id, vc) in var_constrs_in_formulation
-        @logmsg LogLevel(-4) "Checking " getname(vc)
+        @logmsg LogLevel(-4) "Checking " getname(form, vc)
         # vc should NOT be active but is active in formulation
         if !haskey(active_var_constrs, id) && getcurisactive(form, vc)
             @logmsg LogLevel(-4) "Deactivating"

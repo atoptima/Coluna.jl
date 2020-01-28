@@ -52,15 +52,15 @@ function moi_var_record_getters_and_setters_tests()
 
     @test ClF.getindex(v_rec) == ClF.MoiVarIndex(-15)
     @test ClF.getbounds(v_rec) == ClF.MoiVarBound(-1)
-    @test ClF.getkind(v_rec) == ClF.MoiInteger(-1)
+    #@test ClF.getkind(v_rec) == ClF.MoiInteger(-1)
 
     ClF.setindex!(v_rec, ClF.MoiVarIndex(-20))
     ClF.setbounds!(v_rec, ClF.MoiVarBound(10))
-    ClF.setkind!(v_rec, ClF.MoiBinary(13))
+    #ClF.setkind!(v_rec, ClF.MoiBinary(13))
 
     @test ClF.getindex(v_rec) == ClF.MoiVarIndex(-20)
     @test ClF.getbounds(v_rec) == ClF.MoiVarBound(10)
-    @test ClF.getkind(v_rec) == ClF.MoiBinary(13)
+    #@test ClF.getkind(v_rec) == ClF.MoiBinary(13)
     return
 end
 

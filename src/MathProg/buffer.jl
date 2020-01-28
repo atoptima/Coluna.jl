@@ -22,7 +22,11 @@ function add!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
     return
 end
 
+<<<<<<< HEAD
 function remove!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}    
+=======
+function remove!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
+>>>>>>> master
     id = getid(vc)
     !(id in buffer.added) && push!(buffer.removed, id)
     delete!(buffer.added, id)
@@ -83,6 +87,10 @@ remove!(buffer::FormulationBuffer, constr::Constraint) = remove!(
 )
 
 function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
+<<<<<<< HEAD
+=======
+    #!getcurisexplicit(form,constr) && return
+>>>>>>> master
     push!(buffer.changed_rhs, getid(constr))
     return
 end
@@ -93,17 +101,29 @@ function change_kind!(buffer::FormulationBuffer, constr::Constraint)
 end
 
 function change_cost!(buffer::FormulationBuffer, var::Variable)
+<<<<<<< HEAD
      push!(buffer.changed_cost, getid(var))
+=======
+    push!(buffer.changed_cost, getid(var))
+>>>>>>> master
     return
 end
 
 function change_bound!(buffer::FormulationBuffer, var::Variable)
+<<<<<<< HEAD
      push!(buffer.changed_bound, getid(var))
+=======
+    push!(buffer.changed_bound, getid(var))
+>>>>>>> master
     return
 end
 
 function change_kind!(buffer::FormulationBuffer, var::Variable)
+<<<<<<< HEAD
     push!(buffer.changed_var_kind, getid(var))
+=======
+    push!(buffer.changed_kind, getid(var))
+>>>>>>> master
     return
 end
 

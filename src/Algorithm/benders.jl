@@ -102,10 +102,8 @@ function update_benders_sp_problem!(
     for (varid, var) in getvars(spform)
         getcurisactive(spform, varid) || continue
         getduty(varid) <= BendSpSlackFirstStageVar || continue
-        if haskey(master_primal_sol, varid)
-            #setcurlb!(var, getperenelb(var) - cur_sol[varid])
-            setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
-        end
+        haskey(master_primal_sol, varid) || continue
+        setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
     end
 
     if algo.option_use_reduced_cost

@@ -100,12 +100,6 @@ git-tree-sha1 = "88b082d492be6b63f967b6c96b352e25ced1a34c"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.9"
 
-[[GLPK]]
-deps = ["BinaryProvider", "Libdl", "MathOptInterface", "SparseArrays"]
-git-tree-sha1 = "3420033e843e140d9237238d69937a5bc7292e5a"
-uuid = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
-version = "0.12.1"
-
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]
 git-tree-sha1 = "5c49dab19938b119fe204fd7d7e8e174f4e9c68b"

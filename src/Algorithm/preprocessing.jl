@@ -190,7 +190,6 @@ end
 function initconstraints!(
         alg_data::PreprocessData, constrs_with_modified_rhs::Vector{Constraint}
     )
-
     # Contains the constraints to start propagation
     constrs_to_stack = Tuple{Constraint,Formulation}[]
 
@@ -233,7 +232,9 @@ function initconstraints!(
     return false
 end
 
-function initconstraint!(alg_data::PreprocessData, constr::Constraint, form::Formulation)
+function initconstraint!(
+    alg_data::PreprocessData, constr::Constraint, form::Formulation
+    )
     alg_data.constr_in_stack[getid(constr)] = false
     alg_data.nb_inf_sources_for_min_slack[getid(constr)] = 0
     alg_data.nb_inf_sources_for_max_slack[getid(constr)] = 0
@@ -426,7 +427,7 @@ function update_lower_bound!(
             end
         end
         alg_data.printing && println(
-            "updating lb of var ", getname(var), " from ", cur_lb, " to ",
+            "updating lb of var ", getname(form, var), " from ", cur_lb, " to ",
             new_lb, " duty ", getduty(varid)
         )
         setcurlb!(form, var, new_lb)
@@ -483,13 +484,13 @@ function update_upper_bound!(
             status = false
             if coef > 0 
                 status = update_min_slack!(
-                alg_data, getconstr(form, constrid),
-                form, cur_ub == Inf , diff*coef
+                    alg_data, getconstr(form, constrid),
+                    form, cur_ub == Inf , diff*coef
                 )
             else
-                ustatus = pdate_max_slack!(
-                alg_data, getconstr(form, constrid),
-                form, cur_ub == Inf , diff*coef
+                status = update_max_slack!(
+                    alg_data, getconstr(form, constrid),
+                    form, cur_ub == Inf , diff*coef
                 )
             end
             if status
@@ -498,7 +499,7 @@ function update_upper_bound!(
         end
         if alg_data.printing
             println(
-            "updating ub of var ", getname(var), " from ", cur_ub,
+            "updating ub of var ", getname(form, var), " from ", cur_ub,
             " to ", new_ub, " duty ", getduty(varid)
             )
         end
@@ -629,11 +630,11 @@ function propagation!(alg_data::PreprocessData)
         alg_data.constr_in_stack[getid(constr)] = false
         
         if alg_data.printing
-            println("constr ", getname(constr), " ", typeof(constr), " popped")
+            println("constr ", getname(form, constr), " ", typeof(constr), " popped")
             println(
-            "rhs ", getcurrhs(form, constr), " max: ",
-            alg_data.cur_max_slack[getid(constr)], " min: ",
-            alg_data.cur_min_slack[getid(constr)]
+                "rhs ", getcurrhs(form, constr), " max: ",
+                alg_data.cur_max_slack[getid(constr)], " min: ",
+                alg_data.cur_min_slack[getid(constr)]
             )
         end
         if strengthen_var_bounds_in_constr!(alg_data, constr, form)

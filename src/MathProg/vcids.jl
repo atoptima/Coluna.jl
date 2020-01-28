@@ -59,11 +59,11 @@ Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
 Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
 Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1, -1)
 
-Base.:(<)(a::Id, b::Id) = a._hash < b._hash
-Base.:(<=)(a::Id, b::Id) = a._hash <= b._hash
-Base.:(==)(a::Id, b::Id) = a._hash == b._hash
-Base.:(>)(a::Id, b::Id) = a._hash > b._hash
-Base.:(>=)(a::Id, b::Id) = a._hash >= b._hash
+Base.:(<)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash < b._hash
+Base.:(<=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash <= b._hash
+Base.:(==)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash == b._hash
+Base.:(>)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash > b._hash
+Base.:(>=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash >= b._hash
 
 getuid(id::Id)::Int = id.uid
 getoriginformuid(id::Id)::FormId = id.origin_form_uid
