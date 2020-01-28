@@ -35,11 +35,7 @@ function cloneconstr!(originform::Formulation,
                       assignedform::Formulation,
                       constr::Constraint,
                       duty::Duty{Constraint};
-<<<<<<< HEAD
-                      name::String = getname(constr),
-=======
                       name::String = getname(originform, constr),
->>>>>>> master
                       rhs::Float64 = getperenerhs(originform, constr),
                       kind::ConstrKind = getperenekind(originform, constr),
                       sense::ConstrSense = getperenesense(originform, constr),

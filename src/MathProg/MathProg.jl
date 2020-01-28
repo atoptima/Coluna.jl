@@ -24,10 +24,6 @@ global const TO = TimerOutputs
 const MAX_FORMULATIONS = 100
 const MAX_PROCESSES = 100
 
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 include("counters.jl")
 include("types.jl")
 include("vcids.jl")

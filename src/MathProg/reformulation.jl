@@ -33,15 +33,9 @@ get_benders_sep_sps(r::Reformulation) = r.benders_sep_subprs
 
 # Following two functions are temporary, we must store a pointer to the vc
 # being represented by a representative vc
-<<<<<<< HEAD
-function vc_belongs_to_formulation(f::Formulation, vc::AbstractVarConstr)
-    !haskey(f, getid(vc)) && return false
-    vc_in_formulation = getelem(f, getid(vc))
-=======
 function vc_belongs_to_formulation(form::Formulation, vc::AbstractVarConstr)
     !haskey(form, getid(vc)) && return false
     vc_in_formulation = getelem(form, getid(vc))
->>>>>>> master
     getcurisexplicit(form, vc_in_formulation) && return true
     return false
 end

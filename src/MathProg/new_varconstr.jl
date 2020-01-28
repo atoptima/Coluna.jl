@@ -276,25 +276,6 @@ getcurisexplicit(form::Formulation, varid::VarId) = form.manager.var_datas[varid
 getcurisexplicit(form::Formulation, var::Variable) = getcurisexplicit(form, getid(var))
 getcurisexplicit(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].is_explicit
 getcurisexplicit(form::Formulation, constr::Constraint) = getcurisexplicit(form, getid(constr))
-<<<<<<< HEAD
-
-"""
-todo
-"""
-function setcurisexplicit!(form::Formulation, varid::VarId, is_explicit::Bool)
-    form.manager.var_datas[varid].is_explicit = is_explicit
-    #change_is_explicit!(form.buffer, getvar(form, varid))
-    return
-end
-setcurisexplicit!(form::Formulation, var::Variable, is_explicit::Bool) = setcurisexplicit!(form, getid(var), is_explicit)
-function setcurisexplicit!(form::Formulation, constrid::ConstrId, is_explicit::Bool)
-    form.manager.constr_datas[constrid].is_explicit = is_explicit
-    #change_is_explicit!(form.buffer, getvar(form, varid))
-    return
-end
-setcurisexplicit!(form::Formulation, constr::Constraint, is_explicit::Bool) = setcurisexplicit!(form, getid(constr), is_explicit)
-=======
->>>>>>> master
 
 """
 todo

@@ -14,12 +14,7 @@ function create_local_art_vars!(masterform::Formulation)
     for (constrid, constr) in getconstrs(masterform)
         getduty(constrid) == MasterConvexityConstr && continue
         var = setvar!(
-<<<<<<< HEAD
-            masterform, 
-            string("local_art_of_", getname(constr)),
-=======
             masterform, string("local_art_of_", getname(masterform, constr)),
->>>>>>> master
             MasterArtVar;
             cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, 
@@ -40,17 +35,9 @@ function create_global_art_vars!(masterform::Formulation)
     global_pos = set_glob_art_var(masterform, true)
     global_neg = set_glob_art_var(masterform, false)
     matrix = getcoefmatrix(masterform)
-<<<<<<< HEAD
     for (constrid, constr) in getconstrs(masterform)
-        !getcurisactive(masterform, constrid) && continue
-        !(getduty(constrid) <= AbstractMasterOriginConstr) && continue
-=======
-    constrs = filter( c ->
-    getcurisactive(masterform,c) == true && getduty(c) <= AbstractMasterOriginConstr, 
-    getconstrs(masterform)
-    )
-    for (constr_id, constr) in constrs
->>>>>>> master
+        getcurisactive(masterform, constrid) || continue
+        getduty(constrid) <= AbstractMasterOriginConstr || continue
         if getcursense(masterform, constr) == Greater
             matrix[constrid, getid(global_pos)] = 1.0
         elseif getcursense(masterform, constr) == Less
@@ -357,11 +344,7 @@ function instantiate_orig_vars!(
                     kind = Continuous, 
                     sense = getcursense(origform, var), 
                     is_explicit = true, 
-<<<<<<< HEAD
                     id = Id{Variable}(BendSpSlackFirstStageVar, id, getuid(masterform))
-=======
-                    id = Id{Variable}(id, getuid(masterform))
->>>>>>> master
                 )
             end
         end

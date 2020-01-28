@@ -75,15 +75,9 @@ end
 
 function update_constr_rhs_in_optimizer!(form::Formulation, constr::Constraint)
     optimizer = getoptimizer(form)
-<<<<<<< HEAD
     moi_c_index = getindex(getmoirecord(constr))
     rhs = getcurrhs(form, constr)
     sense = getcursense(form, constr)
-=======
-    moi_c_index = getindex(getmoirecord(c))
-    rhs = getcurrhs(form, c)
-    sense = getcursense(form, c)
->>>>>>> master
     MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, convert_coluna_sense_to_moi(sense)(rhs))
     return
 end
