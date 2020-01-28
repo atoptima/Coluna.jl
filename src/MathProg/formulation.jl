@@ -193,7 +193,7 @@ function setprimalsol!(
 
         is_identical = true
         for (var_id, var_val) in getrecords(sol)
-            if !haskey(newprimalsol.sol, var_id)
+            if newprimalsol[var_id] == 0
                 is_identical = false
                 break
             end
@@ -203,7 +203,7 @@ function setprimalsol!(
         end
         
         for (var_id, var_val) in getrecords(newprimalsol.sol)
-            if !haskey(sol, var_id)
+            if sol[var_id] == 0
                 is_identical = false
                 break
             end
@@ -243,7 +243,6 @@ function adddualsol!(
     return dualsol_id
 end
 
-
 function setdualsol!(
     form::Formulation,
     new_dual_sol::DualSolution{S}
@@ -266,7 +265,7 @@ function setdualsol!(
         
         is_identical = true
         for (constr_id, constr_val) in getrecords(prev_dual_sol)
-            if !haskey(new_dual_sol.sol, constr_id)
+            if new_dual_sol[constr_id] == 0
                 is_identical = false
                 break
             end
@@ -276,7 +275,7 @@ function setdualsol!(
         end
 
         for (constr_id, constr_val) in new_dual_sol
-            if !haskey(prev_dual_sol, constr_id)
+            if prev_dual_sol[constr_id] == 0
                 is_identical = false
                 break
             end
@@ -291,13 +290,11 @@ function setdualsol!(
         end    
     end
     
-
     ### else not identical to any existing dual sol
     new_dual_sol_id = Id{Constraint}(generateconstrid(form), getuid(form))
     adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
-
 
 function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId,

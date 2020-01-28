@@ -190,16 +190,19 @@ function fill_primal_result!(optimizer::MoiOptimizer,
             continue
         end
         pb = PrimalBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
-        sol = Dict{Id{Variable}, Float64}()
+        solvars = Vector{VarId}()
+        solvals = Vector{Float64}()
         for (id, var) in vars
             moi_index = getindex(getmoirecord(var))
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
-            if val > 0.000001  || val < - 0.000001 # todo use a tolerance
+            val = round(val, digits = Coluna._params_.integrality_tol_digits)
+            if val != 0
                 @logmsg LogLevel(-4) string("Var ", var.name , " = ", val)
-                sol[id] = val
+                push!(solvars, id)
+                push!(solvals, val)
             end
         end
-        push!(result.primal_sols, PrimalSolution{S}(sol, pb))
+        push!(result.primal_sols, PrimalSolution{S}(solvars, solvals, pb))
     end
     result.primal_bound = PrimalBound{S}()
     if nbprimalsols(result) > 0
@@ -218,7 +221,8 @@ function fill_dual_result!(optimizer::MoiOptimizer,
             continue
         end
         db = DualBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
-        sol = Dict{Id{Constraint}, Float64}()
+        solconstrs = Vector{ConstrId}()
+        solvals = Vector{Float64}()
         # Getting dual bound is not stable in some solvers. 
         # Getting primal bound instead, which will work for lps
         for (id, constr) in constrs
@@ -226,10 +230,11 @@ function fill_dual_result!(optimizer::MoiOptimizer,
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
             if val > 0.000001 || val < - 0.000001 # todo use a tolerance
                 @logmsg LogLevel(-4) string("Constr ", constr.name, " = ", val)
-                sol[id] = val           
+                push!(solconstrs, id)
+                push!(solvals, val)      
             end
         end
-        push!(result.dual_sols, DualSolution{S}(sol, db))
+        push!(result.dual_sols, DualSolution{S}(solconstrs, solvals, db))
     end
     result.dual_bound = DualBound{S}()
     if nbdualsols(result) > 0

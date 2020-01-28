@@ -17,14 +17,16 @@ function mycallback(form::CL.Formulation)
     optimize!(m)
     result = CL.OptimizationResult{CL.MinSense}()
     result.primal_bound = CL.PrimalBound(form, JuMP.objective_value(m))
-    sol = Dict{CL.VarId, Float64}()
+    solvarids = Vector{CL.VarId}()
+    solvarvals = Vector{CL.Float64}()
     for i in 1:length(x)
         val = JuMP.value(x[i])
         if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-            sol[CL.getid(vars[i])] = val
+            push!(solvarids, CL.getid(vars[i]))
+            push!(solvarvals, val)
         end
     end
-    push!(result.primal_sols, CL.PrimalSolution(form, sol, result.primal_bound))
+    push!(result.primal_sols, CL.PrimalSolution(form, solvarids, solvarvals, result.primal_bound))
     CL.setfeasibilitystatus!(result, CL.FEASIBLE)
     CL.setterminationstatus!(result, CL.OPTIMAL)
     return result

@@ -50,10 +50,10 @@ function Id{VC}(id::Id{VC}) where {VC}
 end
 
 Base.hash(a::Id, h::UInt) = hash(a._hash, h)
-Base.isequal(a::Id, b::Id) = Base.isequal(a._hash, b._hash)
+Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = Base.isequal(a._hash, b._hash)
 Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
 Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
-Base.isless(a::Id, b::Id) = Base.isless(a.uid, b.uid)
+Base.isless(a::Id{VC}, b::Id{VC}) where {VC} = Base.isless(a._hash, b._hash)
 Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1, -1)
 
 Base.:(<)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash < b._hash

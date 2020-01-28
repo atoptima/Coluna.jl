@@ -611,3 +611,4 @@ function print_intermediate_statistics(algdata::BendersCutGenData,
             nb_bc_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_cut, mlp, db, pb
     )
 end
+
