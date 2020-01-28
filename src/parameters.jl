@@ -4,6 +4,7 @@ Base.@kwdef mutable struct Params
     integrality_tolerance::Float64 = 1e-5
     absolute_optimality_tolerance::Float64 = 1e-5
     relative_optimality_tolerance::Float64 = 1e-5
+    ϵ_tol::Float64 = 1e-6 # if - ϵ_tol < val < ϵ_tol, we consider val = 0
     integrality_tol_digits::Int = 6 # because round(val, digits = 6)
     cut_up::Float64 = Inf
     cut_lo::Float64 = -Inf
