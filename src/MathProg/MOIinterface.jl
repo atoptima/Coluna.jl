@@ -54,6 +54,7 @@ function update_cost_in_optimizer!(form::Formulation, var::Variable)
     optimizer = getoptimizer(form)
     cost = getcurcost(form, var)
     moi_index = getindex(getmoirecord(var))
+    println("\e[34m var = $(getname(form, var)) \e[00m")
     MOI.modify(
         getinner(optimizer), MoiObjective(),
         MOI.ScalarCoefficientChange{Float64}(moi_index, cost)
@@ -181,9 +182,9 @@ function remove_from_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
-function fill_primal_result!(optimizer::MoiOptimizer, 
-                             result::OptimizationResult{S},
-                             vars::VarDict) where {S<:Coluna.AbstractSense}
+function fill_primal_result!(
+    form::Formulation, optimizer::MoiOptimizer, result::OptimizationResult{S}
+) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
@@ -192,14 +193,28 @@ function fill_primal_result!(optimizer::MoiOptimizer,
         pb = PrimalBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
         solvars = Vector{VarId}()
         solvals = Vector{Float64}()
-        for (id, var) in vars
-            moi_index = getindex(getmoirecord(var))
-            val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
-            val = round(val, digits = Coluna._params_.integrality_tol_digits)
-            if val != 0
-                @logmsg LogLevel(-4) string("Var ", var.name , " = ", val)
-                push!(solvars, id)
-                push!(solvals, val)
+        for (varid, var) in getvars(form)
+            if getcurisactive(form, varid) && getcurisexplicit(form, varid)
+                moi_index = getindex(getmoirecord(var))
+                val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
+                varkind = getcurkind(form, varid)
+                if varkind == Integ || varkind == Binary
+                    val = round(val, digits = Coluna._params_.integrality_tol_digits)
+                else
+                    curub = getcurub(form, varid)
+                    curlb = getcurlb(form, varid)
+                    if val > curub
+                        val = curub
+                    end
+                    if val < curlb
+                        val = curlb
+                    end
+                end
+                if val != 0
+                    @logmsg LogLevel(-4) string("Var ", var.name , " = ", val)
+                    push!(solvars, varid)
+                    push!(solvals, val)
+                end
             end
         end
         push!(result.primal_sols, PrimalSolution{S}(solvars, solvals, pb))

@@ -7,7 +7,7 @@ using Random
 import MathOptInterface, MathOptInterface.Utilities
 
 using Base.CoreLogging, Logging
-global_logger(ConsoleLogger(stderr, LogLevel(1)))
+global_logger(ConsoleLogger(stderr, LogLevel(-4)))
 
 global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
@@ -31,6 +31,7 @@ unit_tests()
 @testset "Full instances " begin
     full_instances_tests()
 end
+
 @testset "Preprocessing " begin
     preprocessing_tests()
 end
