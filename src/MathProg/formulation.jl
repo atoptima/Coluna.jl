@@ -36,6 +36,7 @@ function Formulation{D}(form_counter::Counter;
     )
 end
 
+getstoragedict(form::Formulation)::StorageDict = form.storages
 
 "Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `form`."
 haskey(f::Formulation, id::Id) = haskey(f.manager, id)

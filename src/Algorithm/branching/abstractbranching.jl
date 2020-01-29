@@ -22,30 +22,30 @@ generate_children!(
     node::Node
 ) = nothing
 
-"""
-    AbstractRelaxationImprovement
+# """
+#     AbstractRelaxationImprovement
 
-    Relaxation imporovement is an algorithm to strengethen the current relaxation of the problem
-    Usual types of such algorithms are finding branching candidates and cut separation
-    However, other types are possible, for example, increasing ng-neighbourhood in the ng-path relaxation
-    Each relaxation improvement should have a root and non-root priority
-"""
-abstract type AbstractRelaxationImprovement end
+#     Relaxation imporovement is an algorithm to strengethen the current relaxation of the problem
+#     Usual types of such algorithms are finding branching candidates and cut separation
+#     However, other types are possible, for example, increasing ng-neighbourhood in the ng-path relaxation
+#     Each relaxation improvement should have a root and non-root priority
+# """
+# abstract type AbstractRelaxationImprovement end
 
-getrootpriority(improvement::AbstractRelaxationImprovement) = 1.0
-getnonrootpriority(improvement::AbstractRelaxationImprovement) = 1.0
-getpriority(improvement::AbstractRelaxationImprovement, rootnode::Bool) = 
-    rootnode ? getrootpriority(improvement) : getnonrootpriority(improvement) 
+# getrootpriority(improvement::AbstractRelaxationImprovement) = 1.0
+# getnonrootpriority(improvement::AbstractRelaxationImprovement) = 1.0
+# getpriority(improvement::AbstractRelaxationImprovement, rootnode::Bool) = 
+#     rootnode ? getrootpriority(improvement) : getnonrootpriority(improvement) 
 
 """
     AbstractBranchingRule
 
     Branching rules are algorithms which find branching candidates (a vector of BranchingGroup)
 """
-abstract type AbstractBranchingRule <: AbstractRelaxationImprovement end
+abstract type AbstractBranchingRule <: AbstractAlgorithm end
 
-# this function is called once after the formulation is submitted by the user
-prepare!(rule::AbstractBranchingRule, reform::Reformulation) = nothing
+# # this function is called once after the formulation is submitted by the user
+# prepare!(rule::AbstractBranchingRule, reform::Reformulation) = nothing
 
 function gen_candidates_for_ext_sol(
     rule::AbstractBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 

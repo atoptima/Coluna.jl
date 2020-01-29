@@ -41,6 +41,7 @@ function run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::Abstrac
     return EmptyOutput()
 end
 
+run!(algo::AbstractAlgorithm, form::AbstractFormulation) = run!(algo, form, EmptyInput())
 
 # """
 #     AbstractOptimizationOutput

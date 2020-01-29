@@ -6,7 +6,7 @@
 
 struct BranchingPhase
     max_nb_candidates::Int64
-    conquer_strategy::AbstractConquerStrategy
+    conqueralg::AbstractConquerStrategy
 end
 
 function exact_branching_phase(candidates_num::Int64)     
@@ -27,17 +27,17 @@ end
     Contains branching phases parameterisation and selection criterion
     Should be populated by branching rules before branch-and-bound execution
 """
-Base.@kwdef struct BranchingStrategy <: AbstractDivideStrategy
+Base.@kwdef struct StrongBranching <: AbstractDivideAlgorithm
     # default parameterisation corresponds to simple branching (no strong branching phases)
     strong_branching_phases::Vector{BranchingPhase} = []
     selection_criterion::SelectionCriterion = MostFractionalCriterion
     branching_rules::Vector{AbstractBranchingRule} = []
 end
 
-function SimpleBranching()
-    strategy = BranchingStrategy()
-    push!(strategy.branching_rules, VarBranchingRule())
-    return strategy
+function SimpleBranching()::AbstractDivideAlgorithm
+    algo = StrongBranching()
+    push!(algo.branching_rules, VarBranchingRule())
+    return algo
 end
 
 function prepare!(strategy::BranchingStrategy, reform::Reformulation)

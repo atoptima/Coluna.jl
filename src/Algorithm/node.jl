@@ -1,41 +1,8 @@
 using ..Coluna # to remove when merging to the master branch
 
-"""
-    AbstractRecord
-
-    Record is a used to recover the state of a storage or a formulation in a different node of a search tree
-"""
-abstract type AbstractRecord end
-
-struct EmptyRecord <: AbstractRecord end
-
-function getrootrecord(storage::AbstractStorage)::AbstractRecord
-    return EmptyRecord()
-end 
-
-"""
-    prepare!(Storage, Record)
-
-    This function recovers the state of Storage using Record    
-"""
-function prepare!(storage::AbstractStorage, record::AbstractRecord) end
-
-"""
-    record(Storage)::Record
-
-    This function records the state of Storage to Record. By default, the record is empty.
-"""
-function record(storage::AbstractStorage)::AbstractRecord
-    return EmptyRecord()
-end 
-
-"""
-    AbstractConquerRecord
-
-    Record of a conquer algorithm used by the tree search algorithm.
-    Should contain ReformulationRecord
-"""
-abstract type AbstractConquerRecord <: AbstractRecord end
+####################################################################
+#                      Branch
+####################################################################
 
 struct Branch
     var_coeffs::Dict{VarId, Float64}
@@ -67,30 +34,39 @@ function show(io::IO, branch::Branch, form::Formulation)
     return
 end
 
-struct VarState
-    cost::Float64
-    lb::Float64
-    ub::Float64
+function apply_branch!(f::Reformulation, b::Branch)
+    if b == Nothing
+        return
+    end
+    @logmsg LogLevel(-1) "Adding branching constraint."
+    @logmsg LogLevel(-2) "Apply Branch : " b
+    sense = (getsense(b) == Greater ? "geq_" : "leq_")
+    name = string("branch_", sense,  getdepth(b))
+    # In master we define a branching constraint
+    branch_constraint = setconstr!(
+        f.master, name, MasterBranchOnOrigVarConstr; sense = getsense(b), rhs = getrhs(b),
+        members = get_var_coeffs(b)
+    )
+    # # In subproblems we only change the bounds
+    # # Problem: Only works if val == 1.0 !!! TODO: Fix this problem ?
+    # for (id, val) in get_var_coeffs(b)
+    #     # The following lines should be changed when we store the pointer to the vc represented by the representative
+    #     owner_form = find_owner_formulation(f, getvar(f.master, id))
+    #     if getuid(owner_form) != getuid(f.master)
+    #         sp_var = getvar(owner_form, id)
+    #         getsense(b) == Less && setub!(owner_form, sp_var, getrhs(b))
+    #         getsense(b) == Greater && setlb!(owner_form, sp_var, getrhs(b))
+    #     end
+    #     @logmsg LogLevel(-2) "Branching constraint added : " branch_constraint
+    # end
+    return
 end
 
-struct ConstrState
-    rhs::Float64
-end
+####################################################################
+#                      Node
+####################################################################
 
-# TO DO : to rewrite ReformulationRecord
-struct ReformulationRecord
-    active_vars::Dict{VarId, VarState}
-    active_constrs::Dict{ConstrId, ConstrState}
-end
-ReformulationRecord() = ReformulationRecord(Dict{VarId, VarState}(), Dict{ConstrId, ConstrState}())
-
-mutable struct FormulationStatus
-    need_to_prepare::Bool
-    proven_infeasible::Bool
-end
-FormulationStatus() = FormulationStatus(true, false)
-
-mutable struct Node{CR<:AbstractConquerRecord, DR<:AbstractRecord} #<: AbstractNode
+mutable struct Node #<: AbstractNode
     tree_order::Int
     istreated::Bool
     depth::Int
@@ -100,20 +76,20 @@ mutable struct Node{CR<:AbstractConquerRecord, DR<:AbstractRecord} #<: AbstractN
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
     #algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
-    conquerrecord::Union{Nothing, CR}
-    dividerecord::Union{Nothing, DR}
+    conquerrecord::ConquerRecord
+    dividerecord::Union{Nothing, AbstractRecord}
     conquerwasrun::Bool
     infeasible::Bool
     #status::FormulationStatus
 end
 
 function RootNode(
-    conquerrecord::AbstractConquerRecord, dividerecord::AbstractRecord, 
-    ObjSense::Type{<:Coluna.AbstractSense}
-    )
+    conquerrecord::ConquerRecord, dividerecord::AbstractRecord, 
+    ObjSense::Type{<:Coluna.AbstractSense}, skipconquer::Bool
+)
     return Node(
         -1, false, 0, nothing, Incumbents(ObjSense), nothing,
-        "", conquerrecord, dividerecord, false, false
+        "", conquerrecord, dividerecord, skipconquer, false
     )
 end
 
@@ -150,199 +126,65 @@ getbranch(n::Node) = n.branch
 addchild!(n::Node, child::Node) = push!(n.children, child)
 settreated!(n::Node) = n.istreated = true
 istreated(n::Node) = n.istreated
+isrootnode(n::Node) = n.tree_order == 1
 getinfeasible(n::Node) = n.infesible
 setinfeasible(n::Node, status::Bool) = n.infesible = status
 
-function set_algorithm_result!(n::Node, algo::AbstractAlgorithm, 
-                            r::AbstractAlgorithmResult)
-    n.algorithm_results[algo] = r
-end
-get_algorithm_result!(n::Node, algo::AbstractAlgorithm) = n.algorithm_results[algo]
-
 function to_be_pruned(n::Node)
     # How to determine if a node should be pruned?? By the lp_gap?
-    n.status.proven_infeasible && return true
+    n.infeasible && return true
     ip_gap(n.incumbents) <= 0.0000001 && return true
     return false
 end
 
-function isfertile(n::Node)
-    ip_gap(getincumbents(n)) <= 0.0 && return false
-    isinteger(get_lp_primal_sol(getincumbents(n))) && return false
-    return true
-end
 
-function record!(reform::Reformulation, node::Node)
-    @logmsg LogLevel(0) "Recording reformulation state after solving node."
-    node.status.need_to_prepare = true
-    recorded_info = NodeRecord()
-    add_to_recorded!(reform, recorded_info)
-    node.record = recorded_info
-    settreated!(node)
-    return
-end
+####################################################################
+# Everything below can be deleted
+####################################################################
 
-function add_to_recorded!(reform::Reformulation, recorded_info::NodeRecord)
-    @logmsg LogLevel(0) "Recording master info."
-    add_to_recorded!(getmaster(reform), recorded_info)
-    for (spuid, spform) in get_dw_pricing_sps(reform)
-        @logmsg LogLevel(0) string("Recording sp ", spuid, " info.")
-        add_to_recorded!(spform, recorded_info)
-    end
-    return
-end
+# function set_algorithm_result!(n::Node, algo::AbstractAlgorithm, 
+#                             r::AbstractAlgorithmResult)
+#     n.algorithm_results[algo] = r
+# end
+# get_algorithm_result!(n::Node, algo::AbstractAlgorithm) = n.algorithm_results[algo]
 
-function add_to_recorded!(form::Formulation, recorded_info::NodeRecord)
-    for (id, var) in getvars(form)
-        if get_cur_is_active(var) && get_cur_is_explicit(var)
-            varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
-            recorded_info.active_vars[id] = varstate
-        end
-    end
-    for (id, constr) in getconstrs(form)
-        if get_cur_is_active(constr) && get_cur_is_explicit(constr)
-            constrstate = ConstrState(getcurrhs(constr))
-            recorded_info.active_constrs[id] = constrstate
-        end
-    end
-    return
-end
+# function isfertile(n::Node)
+#     ip_gap(getincumbents(n)) <= 0.0 && return false
+#     isinteger(get_lp_primal_sol(getincumbents(n))) && return false
+#     return true
+# end
 
-function prepare!(f::Reformulation, n::Node)
-    @logmsg LogLevel(0) "Setting up Reformulation before applying or algorithm."
-    if !n.status.need_to_prepare
-        @logmsg LogLevel(0) "Formulation is up-to-date, aborting preparation."
-        return
-    end
-    @logmsg LogLevel(-1) "Setup on master."
-    if getdepth(n) > 0
-        reset_to_record_state!(f, n.record)
-    end
-    apply_branch!(f, getbranch(n))
-    n.status.need_to_prepare = false
-    return
-end
-
-function apply_branch!(f::Reformulation, b::Branch)
-    if b == Nothing
-        return
-    end
-    @logmsg LogLevel(-1) "Adding branching constraint."
-    @logmsg LogLevel(-2) "Apply Branch : " b
-    sense = (getsense(b) == Greater ? "geq_" : "leq_")
-    name = string("branch_", sense,  getdepth(b))
-    # In master we define a branching constraint
-    branch_constraint = setconstr!(
-        f.master, name, MasterBranchOnOrigVarConstr; sense = getsense(b), rhs = getrhs(b),
-        members = get_var_coeffs(b)
-    )
-    # # In subproblems we only change the bounds
-    # # Problem: Only works if val == 1.0 !!! TODO: Fix this problem ?
-    # for (id, val) in get_var_coeffs(b)
-    #     # The following lines should be changed when we store the pointer to the vc represented by the representative
-    #     owner_form = find_owner_formulation(f, getvar(f.master, id))
-    #     if getuid(owner_form) != getuid(f.master)
-    #         sp_var = getvar(owner_form, id)
-    #         getsense(b) == Less && setub!(owner_form, sp_var, getrhs(b))
-    #         getsense(b) == Greater && setlb!(owner_form, sp_var, getrhs(b))
-    #     end
-    #     @logmsg LogLevel(-2) "Branching constraint added : " branch_constraint
-    # end
-    return
-end
-
-function reset_to_record_state!(reform::Reformulation, record::NodeRecord)
-    @logmsg LogLevel(0) "Resetting reformulation state to node record"
-    @logmsg LogLevel(0) "Resetting reformulation master state"
-    reset_to_record_state!(getmaster(reform), record)
-    for (spuid, spform) in get_dw_pricing_sps(reform)
-        @logmsg LogLevel(0) string("Resetting sp ", spuid, " state.")
-        reset_to_record_state!(spform, record)
-    end
-    return
-end
-
-function apply_data!(form::Formulation, var::Variable, var_state::VarState)
-    # Bounds
-    if getcurlb(form, var) != var_state.lb || getcurub(form, var) != var_state.ub
-        @logmsg LogLevel(-2) string("Reseting bounds of variable ", getname(var))
-        setcurlb!(form, var, var_state.lb)
-        setcurub!(form, var, var_state.ub)
-        @logmsg LogLevel(-3) string("New lower bound is ", getcurlb(form, var))
-        @logmsg LogLevel(-3) string("New upper bound is ", getcurub(form, var))
-    end
-    # Cost
-    if getcurcost(form, var) != var_state.cost
-        @logmsg LogLevel(-2) string("Reseting cost of variable ", getname(var))
-        setcurcost!(form, var, var_state.cost)
-        @logmsg LogLevel(-3) string("New cost is ", getcurcost(form, var))
-    end
-    return
-end
-
-function apply_data!(form::Formulation, constr::Constraint, constr_state::ConstrState)
-    # Rhs
-    if getcurrhs(constr) != constr_state.rhs
-        @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
-        setrhs!(form, constr, constr_state.rhs)
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(constr))
-    end
-    return
-end
-
-function reset_to_record_state!(form::Formulation, record::NodeRecord)
-    @logmsg LogLevel(-2) "Checking variables"
-    reset_var_constr!(form, record.active_vars, getvars(form))
-    @logmsg LogLevel(-2) "Checking constraints"
-    reset_var_constr!(form, record.active_constrs, getconstrs(form))
-    return
-end
-
-function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in_formulation)
-    for (id, vc) in var_constrs_in_formulation
-        @logmsg LogLevel(-4) "Checking " getname(vc)
-        # vc should NOT be active but is active in formulation
-        if !haskey(active_var_constrs, id) && get_cur_is_active(vc)
-            @logmsg LogLevel(-4) "Deactivating"
-            deactivate!(form, id)
-            continue
-        end
-        # vc should be active in formulation
-        if haskey(active_var_constrs, id)
-            # But var_constr is currently NOT active in formulation
-            if !get_cur_is_active(vc)
-                @logmsg LogLevel(-4) "Activating"
-                activate!(form, vc)
-            end
-            # After making sure that var activity is up-to-date
-            @logmsg LogLevel(-4) "Updating data"
-            apply_data!(form, vc, active_var_constrs[id])
-        end
-    end
-    return
-end
-
-# Nothing happens if this function is called for a node with not branch
-apply_branch!(f::Reformulation, ::Nothing) = nothing
-
-# Nothing happens if this function is called for the "father" of the root node
-reset_to_record_state!(f::Reformulation, ::Nothing) = nothing
+# function prepare!(f::Reformulation, n::Node)
+#     @logmsg LogLevel(0) "Setting up Reformulation before applying or algorithm."
+#     if !n.status.need_to_prepare
+#         @logmsg LogLevel(0) "Formulation is up-to-date, aborting preparation."
+#         return
+#     end
+#     @logmsg LogLevel(-1) "Setup on master."
+#     if getdepth(n) > 0
+#         reset_to_record_state!(f, n.record)
+#     end
+#     apply_branch!(f, getbranch(n))
+#     n.status.need_to_prepare = false
+#     return
+# end
 
 
-"""
-    AbstractTreeExploreStrategy
+# function reset_to_record_state!(reform::Reformulation, record::NodeRecord)
+#     @logmsg LogLevel(0) "Resetting reformulation state to node record"
+#     @logmsg LogLevel(0) "Resetting reformulation master state"
+#     reset_to_record_state!(getmaster(reform), record)
+#     for (spuid, spform) in get_dw_pricing_sps(reform)
+#         @logmsg LogLevel(0) string("Resetting sp ", spuid, " state.")
+#         reset_to_record_state!(spform, record)
+#     end
+#     return
+# end
 
-    Strategy for the tree exploration
 
-"""
-abstract type AbstractTreeExploreStrategy end
+# # Nothing happens if this function is called for a node with not branch
+# apply_branch!(f::Reformulation, ::Nothing) = nothing
 
-getvalue(strategy::AbstractTreeExploreStrategy, node::Node) = 0
+# # Nothing happens if this function is called for the "father" of the root node
+# reset_to_record_state!(f::Reformulation, ::Nothing) = nothing
 
-# Depth-first strategy
-struct DepthFirstStrategy <: AbstractTreeExploreStrategy end
-getvalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
-
-# Best dual bound strategy
-struct BestDualBoundStrategy <: AbstractTreeExploreStrategy end
-apply!(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(getincumbents(n))

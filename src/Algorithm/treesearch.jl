@@ -1,33 +1,5 @@
 using ..Coluna # to remove when merging to the master branch
 
-
-"""
-    AbstractConquerOutput
-
-    Output of a conquer algorithm used by the tree search algorithm.
-    Should contain current incumbents, infeasibility status, and the record of its storage.
-"""
-abstract type AbstractConquerOutput <: AbstractOutput end
-
-function getincumbents(output::AbstractConquerOutput)::Incumbents end
-function getrecord(output::AbstractConquerOutput)::AbstractConquerRecord end
-function getinfeasible(output::AbstractConquerOutput)::Bool end
-
-
-"""
-    AbstractConquerAlgorithm
-
-    This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
-    Input of this algorithm is current incumbents    
-"""
-abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
-
-function run!(algo::AbstractConquerAlgorithm, reform::Reformulation, incumb::Incumbents)::AbstractConquerOutput
-    algotype = typeof(algo)
-    error("Method run! which takes Reformulation and Incumbents as parameters and returns AbstractConquerOutput 
-           is not implemented for algorithm $algotype.")
-end    
-
 """
     AbstractDivideStorage
 
@@ -60,6 +32,24 @@ function run!(algo::AbstractDivideAlgorithm, reform::Reformulation, node::Node):
     error("Method run! which takes Reformulation and Node as parameters and returns AbstractDivideOutput 
            is not implemented for algorithm $algotype.")
 end    
+
+"""
+    AbstractTreeExploreStrategy
+
+    Strategy for the tree exploration
+
+"""
+abstract type AbstractTreeExploreStrategy end
+
+getvalue(strategy::AbstractTreeExploreStrategy, node::Node) = 0
+
+# Depth-first strategy
+struct DepthFirstStrategy <: AbstractTreeExploreStrategy end
+getvalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
+
+# Best dual bound strategy
+struct BestDualBoundStrategy <: AbstractTreeExploreStrategy end
+getvalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(getincumbents(n))
 
 
 """
@@ -135,6 +125,9 @@ Base.@kwdef struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy()
     maxnumnodes::Int64 = 100000 
     opennodeslimit::Int64 = 100 
+    skiprootnodeconquer = false # true for diving heuristics
+    rootpriority = 0
+    nontrootpriority = 0
 end
 
 # storage of the tree search algorithm is empty for the moment
@@ -198,7 +191,7 @@ end
 
 
 # returns true if the conquer algorithm should be run 
-function prepare_conqueralg!(data::TreeSearchData, node::Node, cstorage::AbstractStorage)::Bool
+function prepare_conqueralg!(data::TreeSearchData, reform::Reformulation, node::Node)::Bool
 
     node.conquerwasrun && return false
 
@@ -216,7 +209,7 @@ function prepare_conqueralg!(data::TreeSearchData, node::Node, cstorage::Abstrac
     end
     @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-    prepare!(cstorage, node.conquerrecord)    
+    !isrootnode(node) && prepare!(reform, node.conquerrecord)    
     node.conquerrecord = nothing
 
     return true
@@ -265,18 +258,21 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, incumb::Incumben
         OptimizationResult(incumb)
     )
     push!(data, RootNode(
-        getrootrecord(conquerstorage), getrootrecord(dividestorage), reform.master.obj_sense
-        )
-    )
+        getrootrecord(conquerstorage), getrootrecord(dividestorage), reform.master.obj_sense,
+        algo.skiprootnodeconquer
+    ))
     data.tree_order += 1
 
     while (!isempty(data) && get_tree_order(data) <= algo.maxnumnodes)
 
         cur_node = popnode!(data)
         print_node_info_before_conquer(data, cur_node)
-        if prepare_conqueralg!(data, cur_node, conquerstorage)
+        if prepare_conqueralg!(data, reform, cur_node)
 
-            conqueroutput = run!(algo.conqueralg, reform, getincumbents(cur_node))
+            conqueroutput = run!(
+                algo.conqueralg, reform, ConquerInput(getincumbents(cur_node), isrootnode(cur_node))
+            )
+            cur_node.conquerwasrun = true
             update!(getincumbents(cur_node), getincumbents(conqueroutput))
             if isbetter(get_ip_primal_bound(getincumbents(cur_node)), getprimalbound(getresult(data)))
                 add_primal_sol!(getresult(data), deepcopy(get_ip_primal_sol(getincumbents(cur_node))))
