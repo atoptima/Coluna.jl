@@ -10,17 +10,17 @@ function PrimalBound(form::AbstractFormulation, val::Float64)
 end
 
 function PrimalSolution(
-    form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
+    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, val::Float64
 ) where {De,Va}
     Se = getobjsense(form)
-    return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, val)
+    return Coluna.Containers.Solution{Primal,Se,De,Va}(decisions, vals, val)
 end
 
 function PrimalSolution(
-    form::AbstractFormulation, sol::Dict{De,Va}, bound::Coluna.Containers.Bound{Primal,Se}
+    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, bound::Coluna.Containers.Bound{Primal,Se}
 ) where {Se,De,Va}
     @assert Se == getobjsense(form)
-    return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, bound)
+    return Coluna.Containers.Solution{Primal,Se,De,Va}(decisions, vals, bound)
 end
 
 function DualBound(form::AbstractFormulation)
@@ -34,17 +34,17 @@ function DualBound(form::AbstractFormulation, val::Float64)
 end
 
 function DualSolution(
-    form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
+    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, val::Float64
 ) where {De,Va}
     Se = getobjsense(form)
-    return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, val)
+    return Coluna.Containers.Solution{Dual,Se,De,Va}(decisions, vals, val)
 end
 
 function DualSolution(
-    form::AbstractFormulation, sol::Dict{De,Va}, bound::Coluna.Containers.Bound{Dual,Se}
+    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, bound::Coluna.Containers.Bound{Dual,Se}
 ) where {Se,De,Va}
     @assert Se == getobjsense(form)
-    return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, bound)
+    return Coluna.Containers.Solution{Dual,Se,De,Va}(decisions, vals, bound)
 end
 
 valueinminsense(b::PrimalBound{MinSense}) = b.value

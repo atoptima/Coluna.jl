@@ -40,12 +40,7 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
             terminationstatus != MOI.DUAL_INFEASIBLE &&
             terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
             terminationstatus != MOI.OPTIMIZE_NOT_CALLED
-        fill_primal_result!(
-            optimizer, result, filter(
-                vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc), 
-                getvars(form)
-            )
-        )
+        fill_primal_result!(form, optimizer, result)
         fill_dual_result!(
             optimizer, result, filter(
                 vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc), 
