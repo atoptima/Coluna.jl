@@ -124,7 +124,7 @@ function add_to_optimizer!(form::Formulation, var::Variable)
     return
 end
 
-function add_to_optimizer!(form::Formulation, constr::Constraint)
+function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::Function)
     constr_id = getid(constr)
 
     inner = getinner(getoptimizer(form))
@@ -132,7 +132,7 @@ function add_to_optimizer!(form::Formulation, constr::Constraint)
     matrix = getcoefmatrix(form)
     terms = MOI.ScalarAffineTerm{Float64}[]
     for (varid, coeff) in matrix[constr_id, :]
-        if getcurisactive(form, varid) && getcurisexplicit(form, varid)
+        if var_checker(form, varid)
             moi_id = getindex(getmoirecord(getvar(form, varid)))
             push!(terms, MOI.ScalarAffineTerm{Float64}(coeff, moi_id))
         end
