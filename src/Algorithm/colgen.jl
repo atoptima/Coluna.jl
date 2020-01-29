@@ -77,8 +77,11 @@ end
 
 function update_pricing_problem!(spform::Formulation, dual_sol::DualSolution)
     masterform = getmaster(spform)
-    for (var_id, var) in Iterators.filter(_active_pricing_sp_var_ , getvars(spform))
-        setcurcost!(spform, var, computereducedcost(masterform, var_id, dual_sol))
+    for (var_id, var) in getvars(spform)
+        if getcurisactive(spform, var) && getduty(var) <= AbstractDwSpVar
+            redcost = computereducedcost(masterform, var_id, dual_sol)
+            setcurcost!(spform, var, redcost)
+        end
     end
     return false
 end
@@ -296,8 +299,8 @@ function cg_main_loop(
     for (sp_uid, spform) in get_dw_pricing_sps(reform)
         lb_convexity_constr_id = reform.dw_pricing_sp_lb[sp_uid]
         ub_convexity_constr_id = reform.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getcurrhs(getconstr(masterform, lb_convexity_constr_id))
-        sp_ubs[sp_uid] = getcurrhs(getconstr(masterform, ub_convexity_constr_id))
+        sp_lbs[sp_uid] = getcurrhs(masterform, lb_convexity_constr_id)
+        sp_ubs[sp_uid] = getcurrhs(masterform, ub_convexity_constr_id)
     end
 
     while true

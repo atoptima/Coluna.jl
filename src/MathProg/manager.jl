@@ -1,7 +1,9 @@
 const DynSparseVector{I} = DynamicSparseArrays.PackedMemoryArray{I, Float64} 
 
 const VarDict = ElemDict{Id{Variable}, Variable}
+const VarDataDict = Dict{Id{Variable}, VarData}
 const ConstrDict = ElemDict{Id{Constraint}, Constraint}
+const ConstrDataDict = Dict{Id{Constraint}, ConstrData}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
 const VarVarMatrix = MembersMatrix{VarId,Variable,VarId,Variable,Float64}
@@ -16,9 +18,8 @@ const DualBound{S} = Bound{Dual, S}
 struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
-    var_costs::DynSparseVector{VarId}
-    var_lbs::Dict{VarId, Float64}
-    var_ubs::Dict{VarId, Float64}
+    var_datas::VarDataDict
+    constr_datas::ConstrDataDict
     coefficients::VarConstrMatrix # cols = variables, rows = constraints
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables 
@@ -31,56 +32,44 @@ function FormulationManager()
     vars = VarDict()
     constrs = ConstrDict()
     
-    return FormulationManager(vars,
-                              constrs,
-                              dynamicsparsevec(VarId[], Float64[]),
-                              Dict{VarId, Float64}(), #dynamicsparsevec(Int[], Float64[]),
-                              Dict{VarId, Float64}(), #dynamicsparsevec(Int[], Float64[]),
-                              MembersMatrix{Float64}(vars,constrs),
-                              MembersMatrix{Float64}(vars,vars),
-                              MembersMatrix{Float64}(vars,vars),
-                              MembersVector{Float64}(vars),
-                              MembersMatrix{Float64}(constrs,constrs),
-                              MembersVector{Float64}(constrs)
-                              )
+    return FormulationManager(
+    vars,
+    constrs,
+    VarDataDict(),
+    ConstrDataDict(),
+    MembersMatrix{Float64}(vars,constrs),
+    MembersMatrix{Float64}(vars,vars),
+    MembersMatrix{Float64}(vars,vars),
+    MembersVector{Float64}(vars),
+    MembersMatrix{Float64}(constrs,constrs),
+    MembersVector{Float64}(constrs)
+    )
 end
 
 haskey(m::FormulationManager, id::Id{Variable}) = haskey(m.vars, id)
 haskey(m::FormulationManager, id::Id{Constraint}) = haskey(m.constrs, id)
 
-function addvar!(m::FormulationManager, var::Variable)
+function _addvar!(m::FormulationManager, var::Variable)
     haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))
     m.vars[var.id] = var
+    m.var_datas[var.id] = VarData(var.perene_data)
+    
     return var
 end
 
-function adddualsol!(m::FormulationManager,
-                     dualsol::DualSolution{S},
-                     dualsol_id::ConstrId
-                     ) where {S<:Coluna.AbstractSense}
 
-    rhs = 0.0
-    for (constr_id, constr_val) in dualsol
-        constr = m.constrs[constr_id]
-        rhs += getperenerhs(constr) * constr_val 
-        if getduty(constr) <= AbstractBendSpMasterConstr
-            m.dual_sols[constr_id, dualsol_id] = constr_val
-        end
-    end
-    m.dual_sol_rhss[dualsol_id] = rhs
-    
-    return dualsol_id
-end
-
-function addconstr!(m::FormulationManager, constr::Constraint)
+function _addconstr!(m::FormulationManager, constr::Constraint)
     haskey(m.constrs, constr.id) && error(string("Constraint of id ", constr.id, " exists"))
     m.constrs[constr.id] = constr
+    m.constr_datas[constr.id] = ConstrData(constr.perene_data)
+  
     return constr
 end
 
 getvar(m::FormulationManager, id::VarId) = m.vars[id]
 getconstr(m::FormulationManager, id::ConstrId) = m.constrs[id]
 getvars(m::FormulationManager) = m.vars
+getvardatas(m::FormulationManager) = m.vardatas
 getconstrs(m::FormulationManager) = m.constrs
 getcoefmatrix(m::FormulationManager) = m.coefficients
 getexpressionmatrix(m::FormulationManager) = m.expressions

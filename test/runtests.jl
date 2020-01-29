@@ -31,7 +31,6 @@ unit_tests()
 @testset "Full instances " begin
     full_instances_tests()
 end
-
 @testset "Preprocessing " begin
     preprocessing_tests()
 end

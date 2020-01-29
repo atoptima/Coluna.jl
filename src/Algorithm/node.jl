@@ -23,7 +23,7 @@ getdepth(b::Branch) = b.depth
 
 function show(io::IO, branch::Branch, form::Formulation)
     for (id, coeff) in branch.var_coeffs
-        print(io, " + ", coeff, " ", getname(getelem(form, id)))
+        print(io, " + ", coeff, " ", getname(form, id))
     end
     if branch.sense == Greater
         print(io, " >= ")
@@ -136,7 +136,6 @@ function to_be_pruned(n::Node)
     ip_gap(n.incumbents) <= 0.0000001 && return true
     return false
 end
-
 
 ####################################################################
 # Everything below can be deleted
