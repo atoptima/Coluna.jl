@@ -685,40 +685,31 @@ function _show_obj_fun(io::IO, form::Formulation)
     return
 end
 
-function _show_constraint(io::IO, form::Formulation, constr_id::ConstrId,
-                          members::VarMembership)
-    constr = getconstr(form, constr_id)
+function _show_constraint(io::IO, form::Formulation, constrid::ConstrId)
+    constr = getconstr(form, constrid)
     print(io, getname(form, constr), " : ")
-    ids = sort!(collect(keys(members)), by = getsortuid)
-    for id in ids
-        coeff = members[id]
-        var = getvar(form, id)
-        name = getname(form, var)
+    for (varid, coeff) in getcoefmatrix(form)[constrid, :]
+        name = getname(form, varid)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
+    op = "<="
     if getcursense(form, constr) == Equal
         op = "=="
     elseif getcursense(form, constr) == Greater
         op = ">="
-    else
-        op = "<="
     end
     print(io, " ", op, " ", getcurrhs(form, constr))
-    println(io, " (", getduty(constr), getid(constr), " | ", getcurisexplicit(form,constr) ,")")
+    println(io, " (", getduty(constr), getid(constr), " | ", getcurisexplicit(form, constr) ,")")
     return
 end
 
 function _show_constraints(io::IO , form::Formulation)
-    # constrs = filter(
-    #     _explicit_, rows(getcoefmatrix(form))
-    # )
-    constrs = rows(getcoefmatrix(form))
+    constrs = getconstrs(form)
     ids = sort!(collect(keys(constrs)), by = getsortuid)
-    for id in ids
-        constr = getconstr(form, id)
-        if getcurisactive(form,constr)
-            _show_constraint(io, form, id, constrs[id])
+    for constr_id in ids
+        if getcurisactive(form, constr_id)
+            _show_constraint(io, form, constr_id)
         end
     end
     return
