@@ -404,16 +404,15 @@ function update_lower_bound!(
 
         diff = cur_lb == -Inf ? -new_lb : cur_lb - new_lb
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(
-            c -> getcurisactive(form,c) && getcurisexplicit(form, c), 
-            coef_matrix[:, getid(var)])
-
-            func = coef < 0 ? update_min_slack! : update_max_slack!
-            if func(
-                    alg_data, getconstr(form, constr_id),
-                    form, cur_lb == -Inf , diff * coef
-                )
-                return true
+        for (constr_id, coef) in coef_matrix[:, getid(var)]
+            if getcurisactive(form, constr_id) && getcurisexplicit(form, constr_id)
+                func = coef < 0 ? update_min_slack! : update_max_slack!
+                if func(
+                        alg_data, getconstr(form, constr_id),
+                        form, cur_lb == -Inf , diff * coef
+                    )
+                    return true
+                end
             end
         end
         alg_data.printing && println(
@@ -467,15 +466,15 @@ function update_upper_bound!(
 
         diff = cur_ub == Inf ? -new_ub : cur_ub - new_ub
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(
-            c -> getcurisactive(form,c) && getcurisexplicit(form, c), 
-            coef_matrix[:, getid(var)])
-            func = coef > 0 ? update_min_slack! : update_max_slack!
-            if func(
-                alg_data, getconstr(form, constr_id),
-                form, cur_ub == Inf , diff*coef
-            )
-                return true
+        for (constr_id, coef) in coef_matrix[:, getid(var)]
+            if getcurisactive(form, constr_id) && getcurisexplicit(form, constr_id)
+                func = coef > 0 ? update_min_slack! : update_max_slack!
+                if func(
+                    alg_data, getconstr(form, constr_id),
+                    form, cur_ub == Inf , diff*coef
+                )
+                    return true
+                end
             end
         end
         if alg_data.printing

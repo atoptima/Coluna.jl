@@ -17,14 +17,6 @@ function set_obj_sense!(optimizer::MoiOptimizer, ::Type{<:MinSense})
     return
 end
 
-function compute_moi_terms(members::VarMembership)
-    return [
-        MOI.ScalarAffineTerm{Float64}(
-            coef, getindex(getmoirecord(getelements(members)[id]))
-        ) for (id, coef) in members
-    ]
-end
-
 function update_bounds_in_optimizer!(form::Formulation, var::Variable)
     optimizer = getoptimizer(form)
     inner = getinner(optimizer)
@@ -132,16 +124,26 @@ function add_to_optimizer!(form::Formulation, var::Variable)
     return
 end
 
-function add_to_optimizer!(
-    form::Formulation, constr::Constraint, members::VarMembership
-)
+function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::Function)
+    constr_id = getid(constr)
+
     inner = getinner(getoptimizer(form))
-    terms = compute_moi_terms(members)
-    f = MOI.ScalarAffineFunction(terms, 0.0)
+    
+    matrix = getcoefmatrix(form)
+    terms = MOI.ScalarAffineTerm{Float64}[]
+    for (varid, coeff) in matrix[constr_id, :]
+        if var_checker(form, varid)
+            moi_id = getindex(getmoirecord(getvar(form, varid)))
+            push!(terms, MOI.ScalarAffineTerm{Float64}(coeff, moi_id))
+        end
+    end
+
+    lhs = MOI.ScalarAffineFunction(terms, 0.0)
     moi_set = convert_coluna_sense_to_moi(getcursense(form, constr))
     moi_constr = MOI.add_constraint(
-        inner, f, moi_set(getcurrhs(form, constr))
+        inner, lhs, moi_set(getcurrhs(form, constr))
     )
+    
     moirecord = getmoirecord(constr)
     setindex!(moirecord, moi_constr)
     MOI.set(inner, MOI.ConstraintName(), moi_constr, getname(form, constr))

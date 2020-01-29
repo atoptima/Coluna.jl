@@ -31,7 +31,7 @@ function vcdict_base_unit_tests()
 
     cols_elems = Dict(1 => true, 2 => true, 4 => false, 5 => false)
     rows_elems = Dict(1 => true, 2 => false, 3 => false, 6 => true)
-    m = CL.MembersMatrix{Int,Bool,Int,Bool,Float64}(cols_elems, rows_elems)
+    m = CL.OldMembersMatrix{Int,Bool,Int,Bool,Float64}(cols_elems, rows_elems)
     m[2,1] = 1.0
     @test m[2,1] == 1.0
     @test m[:,1][2] == 1.0
