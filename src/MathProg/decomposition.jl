@@ -11,7 +11,7 @@ function create_local_art_vars!(masterform::Formulation)
     )
     for (constr_id, constr) in getconstrs(masterform)
         var = setvar!(
-            masterform, string("local_art_of_", getname(constr)),
+            masterform, string("local_art_of_", getname(masterform, constr)),
             MasterArtVar;
             cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
@@ -287,7 +287,7 @@ function create_side_vars_constrs!(
             getvars(spform)
         )))[1]
         
-        name = "η[$(split(getname(nu_var), "[")[end])"
+        name = "η[$(split(getname(spform, nu_var), "[")[end])"
         setvar!(
             masterform, name, MasterBendSecondStageCostVar; cost = 1.0,
             lb = getperenelb(spform, nu_var), 
@@ -320,7 +320,7 @@ function instantiate_orig_vars!(
         for (id, var) in vars
             duty, explicit = _dutyexpofbendmastvar(var, annotations, origform)
             if duty == MasterBendFirstStageVar
-                name = "μ[$(split(getname(var), "[")[end])"
+                name = "μ[$(split(getname(origform, var), "[")[end])"
                 mu = setvar!(
                     spform, 
                     name, 

@@ -5,7 +5,6 @@
 # -> No setters because Variable and Constraint are immutable
 
 getid(vc::AbstractVarConstr) = vc.id
-getname(vc::AbstractVarConstr) = vc.name
 getduty(vc::AbstractVarConstr) = vc.duty
 getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 

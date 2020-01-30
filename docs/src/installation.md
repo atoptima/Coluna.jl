@@ -13,7 +13,7 @@ The Pkg REPL-mode is entered from the Julia REPL using the key `]`.
 Then, run the following command :
 
 ```
-pkg> add https://github.com/atoptima/Coluna.jl.git
+pkg> add Coluna
 ```
 
 This command will install Coluna.jl and its dependencies.

@@ -404,20 +404,19 @@ function update_lower_bound!(
 
         diff = cur_lb == -Inf ? -new_lb : cur_lb - new_lb
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(
-            c -> getcurisactive(form,c) && getcurisexplicit(form, c), 
-            coef_matrix[:, getid(var)])
-
-            func = coef < 0 ? update_min_slack! : update_max_slack!
-            if func(
-                    alg_data, getconstr(form, constr_id),
-                    form, cur_lb == -Inf , diff * coef
-                )
-                return true
+        for (constr_id, coef) in coef_matrix[:, getid(var)]
+            if getcurisactive(form, constr_id) && getcurisexplicit(form, constr_id)
+                func = coef < 0 ? update_min_slack! : update_max_slack!
+                if func(
+                        alg_data, getconstr(form, constr_id),
+                        form, cur_lb == -Inf , diff * coef
+                    )
+                    return true
+                end
             end
         end
         alg_data.printing && println(
-            "updating lb of var ", getname(var), " from ", cur_lb, " to ",
+            "updating lb of var ", getname(form, var), " from ", cur_lb, " to ",
             new_lb, " duty ", getduty(var)
         )
         setcurlb!(form, var, new_lb)
@@ -467,20 +466,20 @@ function update_upper_bound!(
 
         diff = cur_ub == Inf ? -new_ub : cur_ub - new_ub
         coef_matrix = getcoefmatrix(form)
-        for (constr_id, coef) in Iterators.filter(
-            c -> getcurisactive(form,c) && getcurisexplicit(form, c), 
-            coef_matrix[:, getid(var)])
-            func = coef > 0 ? update_min_slack! : update_max_slack!
-            if func(
-                alg_data, getconstr(form, constr_id),
-                form, cur_ub == Inf , diff*coef
-            )
-                return true
+        for (constr_id, coef) in coef_matrix[:, getid(var)]
+            if getcurisactive(form, constr_id) && getcurisexplicit(form, constr_id)
+                func = coef > 0 ? update_min_slack! : update_max_slack!
+                if func(
+                    alg_data, getconstr(form, constr_id),
+                    form, cur_ub == Inf , diff*coef
+                )
+                    return true
+                end
             end
         end
         if alg_data.printing
             println(
-                "updating ub of var ", getname(var), " from ", cur_ub,
+                "updating ub of var ", getname(form, var), " from ", cur_ub,
                 " to ", new_ub, " duty ", getduty(var)
             )
         end
@@ -605,7 +604,7 @@ function propagation!(alg_data::PreprocessData)
         alg_data.constr_in_stack[getid(constr)] = false
 
         if alg_data.printing
-            println("constr ", getname(constr), " ", typeof(constr), " popped")
+            println("constr ", getname(form, constr), " ", typeof(constr), " popped")
             println(
                 "rhs ", getcurrhs(form, constr), " max: ",
                 alg_data.cur_max_slack[getid(constr)], " min: ",

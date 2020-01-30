@@ -155,7 +155,7 @@ end
 function Base.setindex!(m::MembersMatrix, val, row_id, col_id)
     m.cols_major[row_id, col_id] = val
     m.rows_major[col_id, row_id] = val
-    m
+    return m
 end
 
 function Base.getindex(m::MembersMatrix, row_id, col_id)

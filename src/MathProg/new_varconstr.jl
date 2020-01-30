@@ -297,7 +297,14 @@ function setcurisexplicit!(form::Formulation, constrid::ConstrId, is_explicit::B
 end
 setcurisexplicit!(form::Formulation, constr::Constraint, is_explicit::Bool) = setcurisexplicit!(form, getid(constr), is_explicit)
 
-
+## name
+"""
+todo
+"""
+getname(form::Formulation, varid::VarId) = getvar(form, varid).name
+getname(form::Formulation, var::Variable) = var.name
+getname(form::Formulation, constrid::ConstrId) = getconstr(form, constrid).name
+getname(form::Formulation, constr::Constraint) = constr.name
 
 # Reset
 
