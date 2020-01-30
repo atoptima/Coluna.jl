@@ -8,7 +8,7 @@ end
 
 function generalized_assignment_tests()
     @testset "play gap" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+        data = CLD.GeneralizedAssignment.data("gapC-20-400.txt")
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(
@@ -24,7 +24,7 @@ function generalized_assignment_tests()
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
-
+    exit()
     @testset "gap - JuMP/MOI modeling" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 

@@ -272,7 +272,7 @@ function _computeTEST(coeffarray, coeffposbegin, coeffposend, dualsol)::Float64
     term::Float64 = 0
     coeffpos = coeffposbegin
     keycoeff = coeffarray[coeffpos]
-    for (constrid, val) in dualsol
+    for (constrid, val) in dualsol.sol
         #println("\e[33m constraint $constrid in membership of var ? \e[00m")
         while keycoeff === nothing || (keycoeff[1] < constrid && coeffpos < coeffposend - 1)
             coeffpos += 1
@@ -314,7 +314,7 @@ function test2(reform::Reformulation, redcostsvec, dualsol)
     term::Float64 = 0
     coeffpos::Int = 1
     keycoeff::Union{Nothing, Tuple{ConstrId, Float64}} = coeffarray[1]
-    @show length(dualsol)
+    #@show length(dualsol)
     for redcost_pos in 1:redcostsvec.length
         varid = redcostsvec.varids[redcost_pos]
         curcolkey = colkeys[varkey_pos]
@@ -347,7 +347,7 @@ function test2(reform::Reformulation, redcostsvec, dualsol)
                 curcolkey = colkeys[varkey_pos]
             end
             coeffposend = semaphores[varkey_pos] + 1
-            @time term = _computeTEST(coeffarray, coeffposbegin, coeffposend, dualsol)
+            term = _computeTEST(coeffarray, coeffposbegin, coeffposend, dualsol)
             redcosts[redcost_pos] += sign * term
         end
     end
@@ -498,20 +498,19 @@ function solve_sps_to_gencols!(
         t = test3(reform, redcostsvec, dual_sol)
     end
 
-    # @time begin
-    #     for (spuid, spform) in sps
-            
+    @time begin
+         for (spuid, spform) in sps
 
     #         # Reset var bounds, var cost, sp minCost
-    #         if update_pricing_problem!(spform, dual_sol) # Never returns true
+             if update_pricing_problem!(spform, dual_sol) # Never returns true
     #             #     This code is never executed because update_pricing_prob always returns false
     #             #     @logmsg LogLevel(-3) "pricing prob is infeasible"
     #             #     # In case one of the subproblem is infeasible, the master is infeasible
     #             #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
     #             #     return flag_is_sp_infeasible
-    #         end
-    #     end
-    # end
+             end
+         end
+     end
 
     # redcosts2 = Dict{VarId, Float64}()
     # for i in 1:length(redcosts)
