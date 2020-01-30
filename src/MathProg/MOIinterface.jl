@@ -183,25 +183,48 @@ function remove_from_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
-function fill_primal_result!(optimizer::MoiOptimizer, 
+function _getcolunakind(record::MoiVarRecord)
+    record.kind.value == -1 && return Continuous
+    record.kind isa MoiBinary && return Binary
+    return Integ
+end
+
+function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer, 
                              result::OptimizationResult{S},
-                             vars::VarDict) where {S<:Coluna.AbstractSense}
+                             ) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
         pb = PrimalBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
-        sol = Dict{Id{Variable}, Float64}()
-        for (id, var) in vars
-            moi_index = getindex(getmoirecord(var))
+        solvars = Vector{VarId}()
+        solvals = Vector{Float64}()
+        for (id, var) in getvars(form)
+            getcurisactive(form, id) && getcurisexplicit(form, id) || continue
+            moirec = getmoirecord(var)
+            moi_index = getindex(moirec)
+            kind = _getcolunakind(moirec)
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
-            if val > 0.000001  || val < - 0.000001 # todo use a tolerance
+            if kind == Integ || kind == Binary
+                val = round(val, digits = Coluna._params_.tol_digits)
+            else # Continuous
+                moi_bounds = getbounds(moirec)
+                moiset = MOI.get(inner, MOI.ConstraintSet(), getbounds(moirec))
+                if val < moiset.lower
+                    val = moiset.lower
+                end
+                if val > moiset.upper
+                    val = moiset.upper
+                end
+            end
+            if abs(val) > Coluna._params_.tol
                 @logmsg LogLevel(-4) string("Var ", var.name , " = ", val)
-                sol[id] = val
+                push!(solvars, id)
+                push!(solvals, val)
             end
         end
-        push!(result.primal_sols, PrimalSolution{S}(sol, pb))
+        push!(result.primal_sols, PrimalSolution{S}(solvars, solvals, pb))
     end
     result.primal_bound = PrimalBound{S}()
     if nbprimalsols(result) > 0
@@ -220,7 +243,8 @@ function fill_dual_result!(optimizer::MoiOptimizer,
             continue
         end
         db = DualBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
-        sol = Dict{Id{Constraint}, Float64}()
+        solconstrs = Vector{ConstrId}()
+        solvals = Vector{Float64}()
         # Getting dual bound is not stable in some solvers. 
         # Getting primal bound instead, which will work for lps
         for (id, constr) in constrs
@@ -228,10 +252,11 @@ function fill_dual_result!(optimizer::MoiOptimizer,
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
             if val > 0.000001 || val < - 0.000001 # todo use a tolerance
                 @logmsg LogLevel(-4) string("Constr ", constr.name, " = ", val)
-                sol[id] = val           
+                push!(solconstrs, id)
+                push!(solvals, val)      
             end
         end
-        push!(result.dual_sols, DualSolution{S}(sol, db))
+        push!(result.dual_sols, DualSolution{S}(solconstrs, solvals, db))
     end
     result.dual_bound = DualBound{S}()
     if nbdualsols(result) > 0

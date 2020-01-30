@@ -1,7 +1,8 @@
 projection_is_possible(master::Formulation{DwMaster}) = true
 
 function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMaster}) where {Sense}
-    projected_sol = Dict{VarId, Float64}()
+    projected_sol_vars = Vector{VarId}()
+    projected_sol_vals = Vector{Float64}()
     for (mc_id, mc_val) in sol
         origin_form_uid = getoriginformuid(mc_id)
         # TODO : enhance following
@@ -14,10 +15,11 @@ function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMast
         for (rep_id, rep_val) in Iterators.filter(
             v -> getduty(v) <= DwSpPricingVar || getduty(v) <= DwSpSetupVar,
             col)
-            projected_sol[rep_id] = (get!(projected_sol, rep_id, 0.0)) + rep_val * mc_val
+            push!(projected_sol_vars, rep_id)
+            push!(projected_sol_vals, rep_val * mc_val)
         end
     end
-    return PrimalSolution(master, projected_sol, float(getbound(sol)))
+    return PrimalSolution(master, projected_sol_vars, projected_sol_vals, float(getbound(sol)))
 end
 
 projection_is_possible(master::Formulation{BendersMaster}) = false

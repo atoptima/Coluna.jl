@@ -4,7 +4,7 @@ using DynamicSparseArrays
 
 import ..Coluna
 
-import DataStructures
+import DynamicSparseArrays
 import Primes
 import Printf
 import Base: <=, setindex!, get, getindex, haskey, keys, values, iterate, 
