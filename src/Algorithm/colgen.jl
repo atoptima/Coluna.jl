@@ -272,16 +272,19 @@ function _computeTEST(coeffarray, coeffposbegin, coeffposend, dualsol)::Float64
     term::Float64 = 0
     coeffpos = coeffposbegin
     keycoeff = coeffarray[coeffpos]
-    for (constrid, val) in dualsol.sol
+    for k in 1:length(dualsol.sol.array)
+        dualsolentry = dualsol.sol.array[k]
+        dualsolentry === nothing && continue
+
         #println("\e[33m constraint $constrid in membership of var ? \e[00m")
-        while keycoeff === nothing || (keycoeff[1] < constrid && coeffpos < coeffposend - 1)
+        while keycoeff === nothing || (keycoeff[1] < dualsolentry[1] && coeffpos < coeffposend - 1)
             coeffpos += 1
             keycoeff = coeffarray[coeffpos]
         end
         #println("\t coeffpos = $coeffpos.")
-        if keycoeff !== nothing && keycoeff[1] == constrid
+        if keycoeff !== nothing && keycoeff[1] == dualsolentry[1]
             #println("\t yes.")
-            term += keycoeff[2] * val
+            term += keycoeff[2] * dualsolentry[2]
         end
     end
     return term
