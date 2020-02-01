@@ -32,32 +32,37 @@ include("interface.jl")
 # Abstract record
 include("record.jl")
 
-# Here include conquer algorithms
-include("conquer.jl")
+# Here include slave algorithms used by conquer algorithms
 include("colgen.jl")
 include("benders.jl")
 include("masteripheur.jl")
 include("masterlp.jl")
-include("reformulationsolver.jl")
 include("preprocessing.jl")
 
-# Here include conquer strategies
-include("strategies/conquer/simplebnp.jl")
-include("strategies/conquer/simplebenders.jl")
+# Here include conquer algorithms
+include("conquer.jl")
 
 include("node.jl") # TODO : break interdependance between node & Algorithm #224 & rm file
 
+include("divide.jl")
+
 # Here include divide algorithms
-include("branching/abstractbranching.jl")
-include("branching/varbranching.jl")
 include("branching/branchinggroup.jl")
-include("branching/branchingstrategy.jl")
+include("branching/branchingrule.jl")
+include("branching/varbranching.jl")
+include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
+
+
+# Here include conquer strategies
+# include("strategies/conquer/simplebnp.jl")
+# include("strategies/conquer/simplebenders.jl")
 
 # # Concrete algorithms & Strategies :
 # include("strategies/strategy.jl")
 
+# include("reformulationsolver.jl")
 
 # # Here include divide strategies
 # include("strategies/divide/simplebranching.jl") # to remove

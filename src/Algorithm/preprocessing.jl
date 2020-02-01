@@ -1,7 +1,6 @@
 struct Preprocess <: AbstractAlgorithm end
 
 mutable struct PreprocessData
-    depth::Int
     reformulation::Reformulation # Should handle reformulation & formulation
     constr_in_stack::Dict{ConstrId,Bool}
     stack::DS.Stack{Tuple{Constraint,Formulation}}
@@ -16,7 +15,7 @@ mutable struct PreprocessData
     printing::Bool
 end
 
-function PreprocessData(depth::Int, reform::Reformulation)
+function PreprocessData(reform::Reformulation)
     cur_sp_bounds = Dict{FormId,Tuple{Int,Int}}()
     master = getmaster(reform)
     for (spuid, spform) in get_dw_pricing_sps(reform)
@@ -25,46 +24,46 @@ function PreprocessData(depth::Int, reform::Reformulation)
         cur_sp_bounds[spuid] = (getcurrhs(master, conv_lb), getcurrhs(master, conv_ub))
     end
     return PreprocessData(
-        depth, reform, Dict{ConstrId,Bool}(),
+        reform, Dict{ConstrId,Bool}(),
         DS.Stack{Tuple{Constraint, Formulation}}(), Dict{ConstrId,Float64}(),
         Dict{ConstrId,Float64}(), Dict{ConstrId,Int}(), Dict{ConstrId,Int}(), 
         Constraint[], Variable[], cur_sp_bounds, Tuple{Variable,Int}[], false
     )
 end
 
-struct PreprocessRecord <: AbstractAlgorithmResult
-    proven_infeasible::Bool
-end
+# struct PreprocessRecord <: AbstractAlgorithmResult
+#     proven_infeasible::Bool
+# end
 
-function prepare!(algo::Preprocess, reformulation, node)
-    @logmsg LogLevel(0) "Prepare preprocessing"
-    return
-end
+# function prepare!(algo::Preprocess, reformulation)
+#     @logmsg LogLevel(0) "Prepare preprocessing"
+#     return
+# end
 
-function run!(algo::Preprocess, reformulation, node)
+function run!(algo::Preprocess, reformulation, node)::Bool
     @logmsg LogLevel(0) "Run preprocessing"
 
-    alg_data = PreprocessData(node.depth, reformulation)
+    alg_data = PreprocessData(reformulation)
     master = getmaster(alg_data.reformulation)
 
     (vars_with_modified_bounds,
     constrs_with_modified_rhs) = fix_local_partial_solution!(alg_data)
 
     if initconstraints!(alg_data, constrs_with_modified_rhs)
-        return PreprocessRecord(true) 
+        return true
     end
 
     # Now we try to update local bounds of sp vars
     for var in vars_with_modified_bounds
-        update_lower_bound!(alg, var, master, getcurlb(master, var), false)
-        update_upper_bound!(alg, var, master, getcurub(master, var), false)
+        update_lower_bound!(algo, var, master, getcurlb(master, var), false)
+        update_upper_bound!(algo, var, master, getcurub(master, var), false)
     end
 
     infeasible = propagation!(alg_data) 
     if !infeasible
         forbid_infeasible_columns!(alg_data)
     end
-    return PreprocessRecord(infeasible) 
+    return infeasible 
 end
 
 function change_sp_bounds!(alg_data::PreprocessData)
@@ -77,23 +76,23 @@ function change_sp_bounds!(alg_data::PreprocessData)
         sp_form_id = getuid(spform)
         if alg_data.cur_sp_bounds[sp_form_id][1] > 0
             alg_data.cur_sp_bounds[sp_form_id] = (
-                max(alg.cur_sp_bounds[sp_form_id][1] - col_val, 0),
-                alg.cur_sp_bounds[sp_form_id][2]
+                max(alg_data.cur_sp_bounds[sp_form_id][1] - col_val, 0),
+                alg_data.cur_sp_bounds[sp_form_id][2]
             )
             conv_lb_constr = getconstr(
                 master, reformulation.dw_pricing_sp_lb[sp_form_id]
             )
-            setrhs!(master, conv_lb_constr, alg.cur_sp_bounds[sp_form_id][1])
+            setrhs!(master, conv_lb_constr, alg_data.cur_sp_bounds[sp_form_id][1])
         end
-        alg.cur_sp_bounds[sp_form_id] = (
-            alg.cur_sp_bounds[sp_form_id][1],
-            alg.cur_sp_bounds[sp_form_id][2] - col_val
+        alg_data.cur_sp_bounds[sp_form_id] = (
+            alg_data.cur_sp_bounds[sp_form_id][1],
+            alg_data.cur_sp_bounds[sp_form_id][2] - col_val
         )
         conv_ub_constr = getconstr(
             master, reformulation.dw_pricing_sp_ub[sp_form_id]
         )
-        setrhs!(master, conv_ub_constr, alg.cur_sp_bounds[sp_form_id][2])
-        @assert alg.cur_sp_bounds[sp_ref][2] >= 0
+        setrhs!(master, conv_ub_constr, alg_data.cur_sp_bounds[sp_form_id][2])
+        @assert alg_data.cur_sp_bounds[sp_ref][2] >= 0
         if !(spform in sps_with_modified_bounds)
             push!(sps_with_modified_bounds, spform)
         end

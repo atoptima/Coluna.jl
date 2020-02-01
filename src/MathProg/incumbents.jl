@@ -78,7 +78,7 @@ function contains(form::AbstractFormulation, sol::DualSolution, duty::Duty{Const
     return false
 end
 
-
+# TO DO : should contain only bounds, solutions should be in OptimizationResult
 mutable struct Incumbents{S} <: AbstractInput
     ip_primal_sol::PrimalSolution{S}
     ip_primal_bound::PrimalBound{S}

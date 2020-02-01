@@ -66,6 +66,8 @@ end
 #                      Node
 ####################################################################
 
+# TO DO : LP primal solution (relaxation solution) should be moved
+# from incumbents directly to Node
 mutable struct Node #<: AbstractNode
     tree_order::Int
     istreated::Bool
@@ -76,20 +78,17 @@ mutable struct Node #<: AbstractNode
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
     #algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
-    conquerrecord::ConquerRecord
+    conquerrecord::Union{Nothing, ConquerRecord}
     dividerecord::Union{Nothing, AbstractRecord}
     conquerwasrun::Bool
     infeasible::Bool
     #status::FormulationStatus
 end
 
-function RootNode(
-    conquerrecord::ConquerRecord, dividerecord::AbstractRecord, 
-    ObjSense::Type{<:Coluna.AbstractSense}, skipconquer::Bool
-)
+function RootNode(incumb::Incumbents, skipconquer::Bool)
     return Node(
-        -1, false, 0, nothing, Incumbents(ObjSense), nothing,
-        "", conquerrecord, dividerecord, skipconquer, false
+        -1, false, 0, nothing, incumb, nothing,
+        "", nothing, nothing, nothing, skipconquer, false
     )
 end
 
@@ -136,6 +135,61 @@ function to_be_pruned(n::Node)
     ip_gap(n.incumbents) <= 0.0000001 && return true
     return false
 end
+
+# returns the optimization part of the output of the conquer algorithm 
+function apply_conquer_alg_to_node!(
+    node::Node, algo::AbstractConquerAlgorithm, 
+    reform::Reformulation, result::OptimizationResult
+)::OptimizationOutput
+
+    node_incumbents = getincumbents(node)
+
+    if nbprimalsols(result) >= 1 
+        update_ip_primal_bound!(node_incumbents, getprimalbound(result))
+    end
+    if isverbose(algo)
+        @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(node)))
+        @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(getincumbents(node)))
+    end
+    if (ip_gap(getincumbents(node)) <= 0.0 + 0.00000001)
+        isverbose(algo) && @logmsg LogLevel(-1) string(
+            "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
+        )
+        node.conquerrecord = nothing
+        return OptimizationOutput(getincumbents(node))
+    end
+    isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
+
+    prepare!(reform, node.conquerrecord)    
+    node.conquerrecord = nothing
+
+    # TO DO : get rid of Branch 
+    apply_branch!(reform, getbranch(node))
+
+    conqueroutput = run!(
+        algo.conqueralg, reform, ConquerInput(node_incumbents, isrootnode(node))
+    )
+
+    node.conquerwasrun = true
+
+    # update of node incumbents
+    optoutput = getoptoutput(conqueroutput)
+    update_ip_dual_bound!(node_incumbents, getdualbound(getresult(optoutput)))
+    update_ip_primal_bound!(node_incumbents, getprimalbound(getresult(optoutput)))
+    update_lp_dual_bound!(node_incumbents, get_lp_dual_bound(optoutput))
+    update_lp_primal_sol!(node_incumbents, get_lp_primal_sol(optoutput))
+
+    # update of tree search algorithm primal solutions 
+    for primal_sol in getprimalsols(getresult(optoutput))
+        add_primal_sol!(result, deepcopy(primal_sol))
+    end        
+    getinfeasible(optoutput) && setinfeasible(node)
+    !to_be_pruned(node) && node.conquerrecord = getrecord(conqueroutput)
+
+    return optoutput
+end
+
+
 
 ####################################################################
 # Everything below can be deleted

@@ -1,64 +1,81 @@
-Base.@kwdef struct ColumnGeneration <: AbstractAlgorithm
+Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     max_nb_iterations::Int = 1000
     optimality_tol::Float64 = 1e-5
     log_print_frequency::Int = 1
+    store_all_ip_primal_sols::Bool = false
 end
 
-# Data stored while algorithm is runningf
+# Data stored while algorithm is running
 mutable struct ColGenRuntimeData
     incumbents::Incumbents
     has_converged::Bool
     is_feasible::Bool
-    params::ColumnGeneration
+    ip_primal_sols::Vector{PrimalSolution}
+    phase::Int64
 end
 
 function ColGenRuntimeData(
-    algparams::ColumnGeneration, form::Reformulation, node::Node
+    algparams::ColumnGeneration, form::Reformulation, ipprimalbound::PrimalBound
 )
     inc = Incumbents(form.master.obj_sense)
-    update_ip_primal_sol!(inc, get_ip_primal_sol(node.incumbents))
-    return ColGenRuntimeData(inc, false, true, algparams)
+    update_ip_primal_bound!(inc, ipprimalbound)
+    return ColGenRuntimeData(inc, false, true, [], 2)
 end
 
-# Data needed for another round of column generation
-mutable struct ColumnGenerationResult <: AbstractAlgorithmResult
-    incumbents::Incumbents
-    proven_infeasible::Bool
-end
+# # Data needed for another round of column generation
+# mutable struct ColumnGenerationResult <: AbstractAlgorithmResult
+#     incumbents::Incumbents
+#     proven_infeasible::Bool
+# end
 
 # Overload of the algorithm's prepare function
-function prepare!(alg::ColumnGeneration, form, node)
-    @logmsg LogLevel(-1) "Prepare ColumnGeneration."
-    return
-end
+# function prepare!(alg::ColumnGeneration, form, node)
+#     @logmsg LogLevel(-1) "Prepare ColumnGeneration."
+#     return
+# end
 
 # Overload of the algorithm's run function
-function run!(alg::ColumnGeneration, form::Reformulation, node::Node)    
+function run!(algo::ColumnGeneration, reform::Reformulation, initincumb::Incumbents)::OptimizationOutput    
+
     @logmsg LogLevel(-1) "Run ColumnGeneration."
-    algdata = ColGenRuntimeData(alg, form, node)
-    result = cg_main_loop(algdata, form, 2)
-    masterform = getmaster(form)
-    if should_do_ph_1(masterform, result)
-        record!(form, node)
-        set_ph_one(masterform)
-        result = cg_main_loop(algdata, form, 1)
+
+    data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(initincumb))
+
+    result = cg_main_loop!(algo, data, reform)
+    masterform = getmaster(reform)
+    if should_do_ph_1(masterform, data)
+        set_ph_one(masterform, data)        
+        cg_main_loop!(algo, data, reform)
+        # TO DO : to implement unsetting phase one !!
+        # TO DO : to implement repeating of phase two in the case phase 1 succeded
     end
-    if result.proven_infeasible
-        result.incumbents = Incumbents(getsense(result.incumbents))
-    end
-    if result.proven_infeasible
-        @logmsg LogLevel(-1) "ColumnGeneration terminated with status INFEASIBLE."
-    else
+
+    if data.is_feasible
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status FEASIBLE."
+    else
+        data.incumbents = Incumbents(getsense(data.incumbents))
+        @logmsg LogLevel(-1) "ColumnGeneration terminated with status INFEASIBLE."
     end
-    update!(node.incumbents, result.incumbents) # this should be done in the strategy, no?
-    return result
+
+    if !algo.store_all_ip_primal_sols && length(get_ip_primal_sol(data.incumbents)) > 0
+        push!(data.ip_primal_sols, get_ip_primal_sol(data.incumbents))
+    end
+
+    return OptimizationOutput(
+        OptimizationResult(
+            data.hasconverged ? OPTIMAL : OTHER_LIMIT, 
+            data.is_feasible ? FEASIBLE : INFEASIBLE, 
+            get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
+            data.ip_primal_sols, []
+        ), 
+        get_lp_primal_sol(data.incumbents), get_lp_dual_bound(data.incumbents)
+    )
 end
 
 # Internal methods to the column generation
-function should_do_ph_1(master::Formulation, result::ColumnGenerationResult)
-    ip_gap(result.incumbents) <= 0.00001 && return false
-    primal_lp_sol = get_lp_primal_sol(result.incumbents)
+function should_do_ph_1(master::Formulation, data::ColGenRuntimeData)
+    ip_gap(data.incumbents) <= 0.00001 && return false
+    primal_lp_sol = get_lp_primal_sol(data.incumbents)
     if contains(master, primal_lp_sol, MasterArtVar)
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
         return true
@@ -68,10 +85,11 @@ function should_do_ph_1(master::Formulation, result::ColumnGenerationResult)
     end
 end
 
-function set_ph_one(master::Formulation)
+function set_ph_one(master::Formulation, data::ColGenRuntimeData)
     for (id, v) in Iterators.filter(x->(!isanArtificialDuty(getduty(x))), getvars(master))
         setcurcost!(master, v, 0.0)
     end
+    data.phase = 1
     return
 end
 
@@ -238,18 +256,18 @@ function solve_sps_to_gencols!(
 end
 
 function compute_master_db_contrib(
-    algdata::ColGenRuntimeData, restricted_master_sol_value::PrimalBound{S}
+    alg::ColGenRuntimeData, restricted_master_sol_value::PrimalBound{S}
 ) where {S}
     # TODO: will change with stabilization
     return DualBound{S}(restricted_master_sol_value)
 end
 
 function calculate_lagrangian_db(
-    algdata::ColGenRuntimeData, restricted_master_sol_value::PrimalBound{S},
+    data::ColGenRuntimeData, restricted_master_sol_value::PrimalBound{S},
     pricing_sp_dual_bound_contrib::DualBound{S}
 ) where {S}
     lagran_bnd = DualBound{S}(0.0)
-    lagran_bnd += compute_master_db_contrib(algdata, restricted_master_sol_value)
+    lagran_bnd += compute_master_db_contrib(data, restricted_master_sol_value)
     lagran_bnd += pricing_sp_dual_bound_contrib
     return lagran_bnd
 end
@@ -263,16 +281,16 @@ function solve_restricted_master!(master::Formulation)
 end
 
 function generatecolumns!(
-    algdata::ColGenRuntimeData, reform::Reformulation, master_val, 
+    data::ColGenRuntimeData, reform::Reformulation, master_val, 
     dual_sol, sp_lbs, sp_ubs
 )
     nb_new_columns = 0
     while true # TODO Replace this condition when starting implement stabilization
         nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(reform, dual_sol, sp_lbs, sp_ubs)
         nb_new_columns += nb_new_col
-        lagran_bnd = calculate_lagrangian_db(algdata, master_val, sp_db_contrib)
-        update_ip_dual_bound!(algdata.incumbents, lagran_bnd)
-        update_lp_dual_bound!(algdata.incumbents, lagran_bnd)
+        lagran_bnd = calculate_lagrangian_db(data, master_val, sp_db_contrib)
+        update_ip_dual_bound!(data.incumbents, lagran_bnd)
+        update_lp_dual_bound!(data.incumbents, lagran_bnd)
         if nb_new_col < 0
             # subproblem infeasibility leads to master infeasibility
             return -1
@@ -285,9 +303,7 @@ end
 ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
 ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
 
-function cg_main_loop(
-    algdata::ColGenRuntimeData, reform::Reformulation, phase::Int
-)::ColumnGenerationResult
+function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::Reformulation)
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
@@ -307,15 +323,21 @@ function cg_main_loop(
         master_status, master_val, primal_sols, dual_sols, master_time =
             solve_restricted_master!(masterform)
 
-        if (phase != 1 && (master_status == MOI.INFEASIBLE
+        if (data.phase != 1 && (master_status == MOI.INFEASIBLE
             || master_status == MOI.INFEASIBLE_OR_UNBOUNDED))
-            @error "Solver returned that restricted master LP is infeasible or unbounded (status = $master_status) during phase != 1."
-            return ColumnGenerationResult(algdata.incumbents, true)
+            @error "Solver returned that restricted master LP is infeasible or unbounded 
+                    (status = $master_status) during phase != 1."
+            data.is_feasible = false        
+            return 
         end
 
-        update_lp_primal_sol!(algdata.incumbents, primal_sols[1])
+        update_lp_primal_sol!(data.incumbents, primal_sols[1])
         if isinteger(primal_sols[1]) && !contains(masterform, primal_sols[1], MasterArtVar)
-            update_ip_primal_sol!(algdata.incumbents, primal_sols[1])
+            if algo.store_all_ip_primal_sols
+                push!(data.ip_primal_sols, primal_sols[1])
+            else
+                update_ip_primal_sol!(data.incumbents, primal_sols[1])
+            end
         end
 
         # TODO: cleanup restricted master columns        
@@ -325,46 +347,47 @@ function cg_main_loop(
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
             nb_new_col = generatecolumns!(
-                algdata, reform, master_val, dual_sols[1], sp_lbs, sp_ubs
+                data, reform, master_val, dual_sols[1], sp_lbs, sp_ubs
             )
         end
 
         if nb_new_col < 0
             @error "Infeasible subproblem."
-            return ColumnGenerationResult(algdata.incumbents, true)
+            data.is_feasible = false        
+            return 
         end
 
         print_intermediate_statistics(
-            algdata, nb_new_col, nb_cg_iterations, master_time, sp_time
+            data, nb_new_col, nb_cg_iterations, master_time, sp_time
         )
 
         # TODO: update colgen stabilization
 
-        dual_bound = get_ip_dual_bound(algdata.incumbents)
-        primal_bound = get_lp_primal_bound(algdata.incumbents)     
-        ip_primal_bound = get_ip_primal_bound(algdata.incumbents)
+        dual_bound = get_ip_dual_bound(data.incumbents)
+        primal_bound = get_lp_primal_bound(data.incumbents)     
+        ip_primal_bound = get_ip_primal_bound(data.incumbents)
 
-        if diff(dual_bound, ip_primal_bound) < algdata.params.optimality_tol
-            algdata.has_converged = false # ???
+        if diff(dual_bound, ip_primal_bound) < algo.optimality_tol
+            data.has_converged = true
             @logmsg LogLevel(1) "Dual bound reached primal bound."
-            return ColumnGenerationResult(algdata.incumbents, false)
+            return 
         end
-        if phase == 1 && ph_one_infeasible_db(dual_bound)
-            algdata.is_feasible = false
+        if data.phase == 1 && ph_one_infeasible_db(dual_bound)
+            data.is_feasible = false
             @logmsg LogLevel(1) "Phase one determines infeasibility."
-            return ColumnGenerationResult(algdata.incumbents, true)
+            return 
         end
-        if nb_new_col == 0 || gap(primal_bound, dual_bound) < algdata.params.optimality_tol
+        if nb_new_col == 0 || gap(primal_bound, dual_bound) < algo.optimality_tol
             @logmsg LogLevel(1) "Column Generation Algorithm has converged."
-            algdata.has_converged = true
-            return ColumnGenerationResult(algdata.incumbents, false)
+            data.has_converged = true
+            return 
         end
-        if nb_cg_iterations > algdata.params.max_nb_iterations
+        if nb_cg_iterations > data.params.max_nb_iterations
             @warn "Maximum number of column generation iteration is reached."
-            return ColumnGenerationResult(algdata.incumbents, false)
+            return 
         end
     end
-    return ColumnGenerationResult(algdata.incumbents, false)
+    return 
 end
 
 function print_intermediate_statistics(

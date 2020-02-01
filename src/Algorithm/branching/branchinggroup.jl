@@ -1,4 +1,22 @@
 """
+    AbstractBranchingCandidate
+
+    A branching candidate should contain all information needed to generate node's children    
+    Branching candiates are also used to store the branching history. 
+    History of a branching candidate is a collection of statistic records for every time this branching
+        candidate was used to generate children nodes 
+    Every branching candidate should contain a description, i.e. a string which serves for printing purposed,
+    and also to detect the same branching candidates    
+"""
+abstract type AbstractBranchingCandidate end
+
+getdescription(candidate::AbstractBranchingCandidate) = ""
+generate_children!(
+    candidate::AbstractBranchingCandidate, lhs::Float64, reform::Reformulation, 
+    node::Node
+) = nothing
+
+"""
     BranchingGroup
 
     Contains a branching candidate together with additional "local" information needed during current branching

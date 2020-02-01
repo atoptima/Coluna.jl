@@ -43,15 +43,43 @@ end
 
 run!(algo::AbstractAlgorithm, form::AbstractFormulation) = run!(algo, form, EmptyInput())
 
-# """
-#     AbstractOptimizationOutput
+"""
+    OptimizationOutput
 
-#     Should be able to communicate OptimizationResult.
-# """
-# abstract type AbstractOptimizationOutput end
+    Should contain OptimizationResult and PrimalSolution (solution to relaxation)
+"""
+# TO DO : OptimizationOutput shoud be replaced by OptimizationResult which should contain all
+struct OptimizationOutput{S} <: AbstractOutput
+    result::OptimizationResult{S}
+    lp_primal_sol::PrimalSolution{S}
+    lp_dual_bound::DualBound{S}
+end
 
-# getoptimizationresult(output::AbstractOptimizationOutput)::OptimizationResult = nothing
+function OptimizationOutput{S}(incumb::Incumbents{S}) where {S} 
+    return OptimizationOutput{S}(
+        OptimizationResult{S}(
+            NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, get_ip_primal_bound(incumb),
+            get_ip_dual_bound(incumb), [], []
+        ), 
+        PrimalSolution{S}(), DualBound{S}()
+    )
+end
 
+getresult(output::OptimizationOutput)::OptimizationResult = output.result
+get_lp_primal_sol(output::OptimizationOutput)::PrimalSolution = output.lp_primal_sol
+get_lp_dual_bound(output::OptimizationOutput)::DualBound = output.lp_dual_bound
+set_lp_primal_sol(output::OptimizationOutput, ::Nothing) = nothing
+set_lp_primal_sol(output::OptimizationOutput{S}, sol::PrimalSolution{S}) where {S} = output.lp_primal_sol = sol
+set_lp_dual_bound(output::OptimizationOutput{S}, bound::DualBound{S}) where {S} = output.lp_dual_bound = bound
+
+setfeasibilitystatus!(output::OptimizationOutput, status::FeasibilityStatus) = setfeasibilitystatus!(output.result, status)
+setterminationstatus!(output::OptimizationOutput, status::TerminationStatus) = setterminationstatus!(output.result, status)
+
+add_ip_primal_sol!(output::OptimizationOutput, ::Nothing) = nothing
+function add_ip_primal_sol!(output::OptimizationOutput{S}, solution::Solution{S}) where {S}
+    add_primal_sol!(output.result, solution)
+    return
+end
 
 """
     AbstractOptimizationAlgorithm
@@ -65,7 +93,7 @@ abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 function run!(
     algo::AbstractOptimizationAlgorithm, form::AbstractFormulation, input::Incumbents
-    )::OptimizationResult
+)::OptimizationOutput
      algotype = typeof(algo)
      error("Method run! which takes formulation and Incumbents as input returns OptimizationOutput
             is not implemented for algorithm $algotype.")

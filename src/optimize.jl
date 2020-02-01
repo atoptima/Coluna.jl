@@ -35,19 +35,19 @@ Solve a reformulation
 """
 function optimize!(reform::MP.Reformulation, algorithm::AL.AbstractOptimizationAlgorithm)
 
-    slaves = Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}()
+    slaves = Vector{Tuple{AbstractFormulation, Type{<:AL.AbstractAlgorithm}}}()
     push!(slaves,(reform, typeof(algorithm)))
-    getslavealgorithms!(algorithm, reform, slaves)
+    AL.getslavealgorithms!(algorithm, reform, slaves)
 
     for (form, algotype) in slaves
-        initstorage(form, getstoragetype(algotype))
+        initstorage(form, AL.getstoragetype(algotype))
     end
 
     # TO DO : initial incumbents may be defined by the user
     master = getmaster(reform)
     init_incumbents = Incumbents{master.obj_sense}() 
 
-    opt_result = AL.run!(algorithm, reform, init_incumbents) 
+    opt_result = AL.getresult(AL.run!(algorithm, reform, init_incumbents))
 
     for (idx, sol) in enumerate(getprimalsols(opt_result))
         opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)

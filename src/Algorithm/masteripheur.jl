@@ -1,39 +1,52 @@
-struct MasterIpHeuristic <: AbstractAlgorithm end
-
-struct MasterIpHeuristicData
-    incumbents::Incumbents
-end
-MasterIpHeuristicData(S::Type{<:Coluna.AbstractSense}) = MasterIpHeuristicData(Incumbents(S))
-
-struct MasterIpHeuristicRecord <: AbstractAlgorithmResult
-    incumbents::Incumbents
+struct MasterIpHeuristic <: AbstractOptimizationAlgorithm 
 end
 
-function prepare!(algo::MasterIpHeuristic, form, node)
-    @logmsg LogLevel(-1) "Prepare MasterIpHeuristic."
-    return
-end
+# struct MasterIpHeuristicData
+#     incumbents::Incumbents
+# end
+# MasterIpHeuristicData(S::Type{<:Coluna.AbstractSense}) = MasterIpHeuristicData(Incumbents(S))
 
-function run!(algo::MasterIpHeuristic, form, node)
+# struct MasterIpHeuristicRecord <: AbstractAlgorithmResult
+#     incumbents::Incumbents
+# end
+
+# function prepare!(algo::MasterIpHeuristic, form, node)
+#     @logmsg LogLevel(-1) "Prepare MasterIpHeuristic."
+#     return
+# end
+
+function run!(algo::MasterIpHeuristic, reform::Reformulation, initincumb::Incumbents)::OptimizationOutput
     @logmsg LogLevel(1) "Applying Master IP heuristic"
-    master = getmaster(form)
-    algorithm_data = MasterIpHeuristicData(getobjsense(master))
-    if MOI.supports_constraint(getoptimizer(form.master).inner, MOI.SingleVariable, MOI.Integer)
+
+    output = OptimizationOutput(initincumb)
+    master = getmaster(reform)
+    if MOI.supports_constraint(getoptimizer(master).inner, MOI.SingleVariable, MOI.Integer)
+
+        # TO DO : enforce here the upper bound and maximum solution time    
+
         deactivate!(master, MasterArtVar)
         enforce_integrality!(master)
         opt_result = optimize!(master)
         relax_integrality!(master)
         activate!(master, MasterArtVar)
-        update_ip_primal_sol!(algorithm_data.incumbents, getbestprimalsol(opt_result))
+
         @logmsg LogLevel(1) string(
             "Found primal solution of ", 
-            @sprintf "%.4f" getvalue(get_ip_primal_bound(algorithm_data.incumbents))
+            @sprintf "%.4f" getprimalbound(opt_result)
         )
-        @logmsg LogLevel(-3) get_ip_primal_sol(algorithm_data.incumbents)
-        # Record data 
-        update_ip_primal_sol!(node.incumbents, get_ip_primal_sol(algorithm_data.incumbents))
-    else
-        @warn "Master optimizer does not support integer variables. Skip Restricted IP Master Heuristic."
+        @logmsg LogLevel(-3) getbestprimalsol(opt_result)
+
+        # this heuristic can only update the primal ip solution
+        # dual bound cannot be updated
+        for sol in getprimalsols(opt_result)
+            output.add_ip_primal_sol!(sol)
+        end
+
+        return output
     end
-    return MasterIpHeuristicRecord(algorithm_data.incumbents)
+
+    @warn "Master optimizer does not support integer variables. Skip Restricted IP Master Heuristic."
+
+    sense = getsense(initincumb)
+    return output
 end

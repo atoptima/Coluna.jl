@@ -1,33 +1,36 @@
-struct MasterLp <: AbstractAlgorithm end
+struct MasterLpAlgorithm <: AbstractOptimizationAlgorithm end
 
-struct MasterLpRecord <: AbstractAlgorithmResult
-    incumbents::Incumbents
-    proven_infeasible::Bool
-end
+# struct MasterLpRecord <: AbstractAlgorithmResult
+#     incumbents::Incumbents
+#     proven_infeasible::Bool
+# end
 
-function prepare!(algo::MasterLp, form, node)
-    @logmsg LogLevel(-1) "Prepare MasterLp."
-    return
-end
+# function prepare!(algo::MasterLp, form, node)
+#     @logmsg LogLevel(-1) "Prepare MasterLp."
+#     return
+# end
 
-function run!(algo::MasterLp, form, node)
-    master = getmaster(form)
+function run!(algo::MasterLpAlgorithm, reform::Reformulation, initincumb::Incumbents)::OptimizationOutput
 
-    incumbents = Incumbents(form.master.obj_sense)
-    #update_ip_primal_sol!(incumbents, get_ip_primal_sol(node.incumbents))
+    master = getmaster(reform)
+
+    output = OptimizationOutput(initincumb)    
 
     elapsed_time = @elapsed begin
-        opt_result = TO.@timeit Coluna._to "LP restricted master" optimize!(master)
+        lpresult = TO.@timeit Coluna._to "LP restricted master" optimize!(master)
     end
 
-    proven_infeasible = opt_result == MOI.INFEASIBLE || opt_result == MOI.INFEASIBLE_OR_UNBOUNDED
+    setfeasibilitystatus!(getfeasibilitystatus(lpresult))    
+    setterminationstatus!(NOT_YET_DETERMINED)    
+    lpsol = getbestprimalsol(lpresult)
+    set_lp_primal_sol(output, lpsol)
 
-    primal_sols = getprimalsols(opt_result)
-    dual_sols = getdualsols(opt_result)
-    update_lp_primal_sol!(incumbents, primal_sols[1])
-    update_lp_dual_sol!(incumbents, dual_sols[1])
-    if isinteger(primal_sols[1]) && !contains(master, primal_sols[1], MasterArtVar)
-        update_ip_primal_sol!(incumbents, primal_sols[1])
+    # here we suppose that there are DW subproblems and thus the value of the LP solution
+    # is not a valid dual bound, so the dual bound is not updated
+
+    if isinteger(lpsol) && !contains(master, lpsol, MasterArtVar)
+        add_primal_sol!(output, lpsol)
     end
-    return MasterLpRecord(incumbents, proven_infeasible)
+
+    return output
 end

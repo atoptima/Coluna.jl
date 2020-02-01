@@ -9,9 +9,9 @@ abstract type AbstractRecord end
 
 struct EmptyRecord <: AbstractRecord end
 
-function getrootrecord(storage::AbstractStorage)::AbstractRecord
-    return EmptyRecord()
-end 
+# function getrootrecord(storage::AbstractStorage)::AbstractRecord
+#     return EmptyRecord()
+# end 
 
 """
     prepare!(Storage, Record)
