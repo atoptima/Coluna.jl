@@ -1,8 +1,10 @@
 module Containers
 
+using DynamicSparseArrays
+
 import ..Coluna
 
-import DataStructures
+import DynamicSparseArrays
 import Primes
 import Printf
 import Base: <=, setindex!, get, getindex, haskey, keys, values, iterate, 
@@ -15,9 +17,11 @@ export NestedEnum, @nestedenum, @exported_nestedenum
 export Bound, Solution,
        getvalue, isbetter, diff, gap, printbounds, getbound, setvalue!
 
+export MembersMatrix
+
 # To be deleted :
 export ElemDict,
-       MembersVector, MembersMatrix
+       MembersVector, OldMembersMatrix
 
 export getelements, getelement, rows, cols, columns, getrecords
 

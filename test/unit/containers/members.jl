@@ -54,7 +54,7 @@ function add_elems_in_matrix_tests(nbvars, nbconstrs)
     @assert nbvars >= 4 && nbconstrs >= 4
     col_elems, col_ids = create_variables(nbvars)
     row_elems, row_ids = create_constraints(nbconstrs)
-    matrix = ClF.MembersMatrix{Float64}(col_elems, row_elems)
+    matrix = ClF.OldMembersMatrix{Float64}(col_elems, row_elems)
     @test matrix[row_ids[1], col_ids[3]] == 0.0
     @test matrix[row_ids[3], col_ids[1]] == 0.0
     @test matrix[row_ids[nbconstrs], col_ids[nbvars]] == 0.0
@@ -95,10 +95,10 @@ function doc_tests()
         @test varname == "x_3"
     end
 
-    # MembersMatrix
+    # OldMembersMatrix
     variables = Dict{Int, String}(1 => "x_1", 2 => "x_2", 3 => "x_3", 10 => "y_1", 11 => "y_2")
     constraints = Dict{Char, String}('a' => "constr_1", 'b' => "constr_2", 'c' => "constr_3" , 'e' => "bounds_1")
-    matrix = ClF.MembersMatrix{Float64}(variables, constraints)
+    matrix = ClF.OldMembersMatrix{Float64}(variables, constraints)
     matrix['a', 1] = 2
     matrix['a', 11] = 5
     matrix['b', 3] = 2.5

@@ -103,7 +103,6 @@ function generalized_assignment_tests()
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
-
     @testset "gap - ColGen max nb iterations" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 

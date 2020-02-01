@@ -40,12 +40,7 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
             terminationstatus != MOI.DUAL_INFEASIBLE &&
             terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
             terminationstatus != MOI.OPTIMIZE_NOT_CALLED
-        fill_primal_result!(
-            optimizer, result, filter(
-                vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc), 
-                getvars(form)
-            )
-        )
+        fill_primal_result!(form, optimizer, result)
         fill_dual_result!(
             optimizer, result, filter(
                 vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc), 
@@ -108,15 +103,10 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     end
 
     # Add constrs
-    for id in buffer.constr_buffer.added
-        c = getconstr(f, id)
-        @logmsg LogLevel(-4) string("Adding constraint ", getname(f, c))
-        add_to_optimizer!(
-            f, c, filter(
-                vc -> getcurisactive(f, vc) && getcurisexplicit(f, vc), 
-                matrix[id, :]
-            )  
-        )
+    for constr_id in buffer.constr_buffer.added
+        constr = getconstr(f, constr_id)
+        @logmsg LogLevel(-4) string("Adding constraint ", getname(f, constr))
+        add_to_optimizer!(f, constr, (f, constr) -> getcurisactive(f, constr) && getcurisexplicit(f, constr))  
     end
 
     # Update variable costs
@@ -128,25 +118,25 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Update variable bounds
     for id in buffer.changed_bound
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-4) "Changing bounds of variable " getname(f,id)
-        @logmsg LogLevel(-5) string("New lower bound is ", getcurlb(f,id))
-        @logmsg LogLevel(-5) string("New upper bound is ", getcurub(f,id))
+        @logmsg LogLevel(-4) "Changing bounds of variable " getname(f, id)
+        @logmsg LogLevel(-5) string("New lower bound is ", getcurlb(f, id))
+        @logmsg LogLevel(-5) string("New upper bound is ", getcurub(f, id))
         update_bounds_in_optimizer!(f, getvar(f, id))
     end
 
     # Update variable kind
     for id in buffer.changed_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing kind of variable " getname(f,id)
-        @logmsg LogLevel(-3) string("New kind is ", getcurkind(f,id))
+        @logmsg LogLevel(-2) "Changing kind of variable " getname(f, id)
+        @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, id))
         enforce_kind_in_optimizer!(f, getvar(f,id))
     end
 
     # Update constraint rhs
     for id in buffer.changed_rhs
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing rhs of constraint " getname(f,id)
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(f,id))
+        @logmsg LogLevel(-2) "Changing rhs of constraint " getname(f, id)
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(f, id))
         update_constr_rhs_in_optimizer!(f, getconstr(f, id))
     end
 
