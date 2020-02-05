@@ -18,7 +18,7 @@ function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params
     @info "Coluna ready to start."
     @info _params_
     TO.@timeit _to "Coluna" begin
-        opt_result = optimize!(prob.re_formulation, params.global_strategy)
+        opt_result = optimize!(prob.re_formulation, params.solver)
     end
     println(_to)
     TO.reset_timer!(_to)
@@ -40,14 +40,14 @@ function optimize!(reform::MP.Reformulation, algorithm::AL.AbstractOptimizationA
     AL.getslavealgorithms!(algorithm, reform, slaves)
 
     for (form, algotype) in slaves
-        initstorage(form, AL.getstoragetype(algotype))
+        MP.initstorage(form, AL.getstoragetype(algotype))
     end
 
     # TO DO : initial incumbents may be defined by the user
     master = getmaster(reform)
-    init_incumbents = Incumbents{master.obj_sense}() 
+    init_incumbents = Incumbents(master.obj_sense) 
 
-    opt_result = AL.getresult(AL.run!(algorithm, reform, init_incumbents))
+    opt_result = AL.getresult(AL.run!(algorithm, reform, AL.OptimizationInput(init_incumbents)))
 
     for (idx, sol) in enumerate(getprimalsols(opt_result))
         opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)

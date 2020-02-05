@@ -15,9 +15,10 @@ end
 #     return
 # end
 
-function run!(algo::MasterIpHeuristic, reform::Reformulation, initincumb::Incumbents)::OptimizationOutput
+function run!(algo::MasterIpHeuristic, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
     @logmsg LogLevel(1) "Applying Master IP heuristic"
 
+    initincumb = getincumbents(input)
     output = OptimizationOutput(initincumb)
     master = getmaster(reform)
     if MOI.supports_constraint(getoptimizer(master).inner, MOI.SingleVariable, MOI.Integer)
@@ -47,6 +48,5 @@ function run!(algo::MasterIpHeuristic, reform::Reformulation, initincumb::Incumb
 
     @warn "Master optimizer does not support integer variables. Skip Restricted IP Master Heuristic."
 
-    sense = getsense(initincumb)
     return output
 end

@@ -36,7 +36,7 @@ function Reformulation()
                          Dict{Type{<:AbstractStorage}, AbstractStorage}())
 end
 
-getstoragedict(form::Formulation)::StorageDict = form.storages
+getstoragedict(form::Reformulation)::StorageDict = form.storages
 
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f

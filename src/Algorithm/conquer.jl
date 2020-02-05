@@ -90,7 +90,7 @@ Base.@kwdef struct BendersConquer <: AbstractConquerAlgorithm
     benders::BendersCutGeneration = BendersCutGeneration()
 end
 
-isverbose(strategy::AbstractConquerAlgorithm) = false
+isverbose(strategy::BendersConquer) = true
 
 function getslavealgorithms!(
     algo::BendersConquer, reform::Reformulation, 
@@ -101,7 +101,7 @@ function getslavealgorithms!(
 end
 
 function run!(algo::BendersConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
-    optoutput = run!(algo.benders, reform, getincumbents(input))
+    optoutput = run!(algo.benders, reform, OptimizationInput(getincumbents(input)))
     return ConquerOutput(optoutput, ConquerRecord(record!(reform)))
 end
 
@@ -113,14 +113,14 @@ Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm
     colgen::ColumnGeneration = ColumnGeneration()
     mastipheur::MasterIpHeuristic = MasterIpHeuristic()
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
-    run_mastipheur::Bool = true
+    run_mastipheur::Bool = false # put to true
     run_preprocessing::Bool = false
 end
 
 isverbose(algo::ColGenConquer) = algo.colgen.log_print_frequency > 0
 
 function getslavealgorithms!(
-    algo::BendersConquer, reform::Reformulation, 
+    algo::ColGenConquer, reform::Reformulation, 
     slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
 )
     push!(slaves, (reform, typeof(algo.colgen)))
@@ -138,21 +138,22 @@ function getslavealgorithms!(
 
 end
 
-function run!(algo::ColGenConquer, reform::Reformulation, incumb::Incumbents)::ConquerOutput
+function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
 
+    incumb = getincumbents(input)
     if algo.run_preprocessing && run!(algo.preprocess, reform)
         optoutput = OptimizationOutput(incumb)
         setfeasibilitystatus!(optoutput, INFEASIBLE)
         return ConquerOutput(optoutput, ConquerRecord(record!(reform)))
     end
 
-    optoutput = run!(algo.colgen, reform, incumb)
+    optoutput = run!(algo.colgen, reform, OptimizationInput(incumb))
     record = record!(reform)
 
     gap_is_positive = gap(getresult(optoutput)) >= 0.00001 # TO DO : make a parameter
     if algo.run_mastipheur && isfeasible(getresult(optoutput)) && gap_is_positive
         # TO DO : update incumb with col.gen. output
-        heuroutput = run!(algo.colgen, reform, incumb)
+        heuroutput = run!(algo.mastipheur, reform, OptimizationInput(incumb))
         for sol in getprimalsols(getresult(heuroutput))
             optoutput.add_ip_primal_sol!(sol)
         end
@@ -177,9 +178,9 @@ function getslavealgorithms!(
     getslavealgorithms!(algo.masterlpalgo, reform, slaves)
 end
 
-function run!(algo::ColGenConquer, reform::Reformulation, incumb::Incumbents)::ConquerOutput
+function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
     return ConquerOutput(
-        run!(algo.masterlpalgo, reform, incumb), record!(reform)
+        run!(algo.masterlpalgo, reform, OptimizationInput(getincumbents(input))), record!(reform)
     )
 end
 

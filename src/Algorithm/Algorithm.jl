@@ -11,6 +11,10 @@ using ..MathProg
 # To be deleted :
 import .MathProg: getrhs, getsense, optimize! # because of branch
 
+# TO be deleted ???
+import .MathProg: FeasibilityStatus, TerminationStatus, AbstractStorage, EmptyStorage, getstorage, setprimalbound!, setdualbound!
+import .MathProg: OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, EMPTY_RESULT, NOT_YET_DETERMINED
+
 using Logging
 using Printf
 
@@ -23,8 +27,8 @@ import Base: push!
 # TODO clean up :
 #export AbstractGlobalStrategy, EmptyGlobalStrategy
 
-const MAX_NUM_NODES = 100 # TODO : rm & should be a parameter of the B&B Algorithm
-const OPEN_NODES_LIMIT = 100 # TODO : rm & should be param of B&B algo
+# const MAX_NUM_NODES = 100 # TODO : rm & should be a parameter of the B&B Algorithm
+# const OPEN_NODES_LIMIT = 100 # TODO : rm & should be param of B&B algo
 
 # Abstract algorithm
 include("interface.jl")
@@ -53,6 +57,12 @@ include("branching/varbranching.jl")
 include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
+
+# Types
+export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColGenConquer, ColumnGeneration, 
+       BendersConquer, BendersCutGeneration, MasterIpHeuristic, ExactBranchingPhase, 
+       OnlyRestrictedMasterBranchingPhase
+
 
 
 # Here include conquer strategies

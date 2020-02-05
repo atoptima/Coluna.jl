@@ -7,61 +7,6 @@ abstract type AbstractMembership end
 abstract type AbstractVcData end
 abstract type AbstractOptimizer end
 
-"""
-    AbstractStorage
-
-    Storage can be useful to keep computed data between different runs 
-    of an algorithm or between runs of different algorithms.
-    Each storage is attached to a formulation (user's data) and usually
-    contains data computed based on the formulation data.
-    For every storage a constructor should be defined which
-    takes a formulation as a parameter. This constructor is 
-    called when the formulation is completely known so the data
-    can be safely computed.
-"""
-abstract type AbstractStorage end
-
-struct EmptyStorage <: AbstractStorage end
-
-EmptyStorage(form::AbstractFormulation) = EmptyStorage()
-
-const StorageDict = Dict{Type{<:AbstractStorage}, AbstractStorage}
-
-"""
-    AbstractFormulation
-
-    Formulation is a mathematical representation of a problem 
-    (model of a problem). A problem may have different formulations. 
-    We may rename "formulation" to "model" after.
-    Different algorithms may be applied to a formulation.
-    A formulation should contain a dictionary of storages
-    used by algorithms. A formulation contains one storage 
-    per storage type used by algorithms.    
-"""
-abstract type AbstractFormulation end
-
-function getstoragedict(form::AbstractFormulation)::StorageDict
-    formtype = typeof(form)
-    error("Method getstoragedict(formulation) is not defined for formulation $formtype.")
-end
-
-function initstorage(form::AbstractFormulation, storagetype::Type{<:AbstractStorage})
-    storagedict = getstoragedict(form)
-    if !haskey(storagedict, storagetype)
-        storagedict[storagetype] = storagetype(form)
-    end
-end
-
-function getstorage(form::AbstractFormulation, storagetype::Type{<:AbstractStorage})::AbstractStorage
-    storagedict = getstoragedict(form)
-    if haskey(storagedict, storagetype)
-        return get(storagedict, storagetype, EmptyStorage())
-    end
-    form_uid = getuid(form)
-    error("No storage of type $storagetype in a formulation")
-end
-
-
 # Interface (src/interface.jl)
 struct Primal <: Coluna.AbstractPrimalSpace end
 struct Dual <: Coluna.AbstractDualSpace end
@@ -179,21 +124,56 @@ function convert_coluna_sense_to_moi(constr_set::ConstrSense)
 end
 ############################################################################
 
+"""
+    AbstractStorage
+
+    Storage can be useful to keep computed data between different runs 
+    of an algorithm or between runs of different algorithms.
+    Each storage is attached to a formulation (user's data) and usually
+    contains data computed based on the formulation data.
+    For every storage a constructor should be defined which
+    takes a formulation as a parameter. This constructor is 
+    called when the formulation is completely known so the data
+    can be safely computed.
+"""
+abstract type AbstractStorage end
+
+struct EmptyStorage <: AbstractStorage end
+
+const StorageDict = Dict{Type{<:AbstractStorage}, AbstractStorage}
 
 """
-    AbstractInput
+    AbstractFormulation
 
-    Input of an algorithm.     
+    Formulation is a mathematical representation of a problem 
+    (model of a problem). A problem may have different formulations. 
+    We may rename "formulation" to "model" after.
+    Different algorithms may be applied to a formulation.
+    A formulation should contain a dictionary of storages
+    used by algorithms. A formulation contains one storage 
+    per storage type used by algorithms.    
 """
-abstract type AbstractInput end 
+abstract type AbstractFormulation end
 
-struct EmptyInput <: AbstractInput end
+EmptyStorage(form::AbstractFormulation) = EmptyStorage()
 
-"""
-    AbstractOutput
+function getstoragedict(form::AbstractFormulation)::StorageDict
+    formtype = typeof(form)
+    error("Method getstoragedict(formulation) is not defined for formulation $formtype.")
+end
 
-    Output of an algorithm.     
-"""
-abstract type AbstractOutput end 
+function initstorage(form::AbstractFormulation, storagetype::Type{<:AbstractStorage})
+    storagedict = getstoragedict(form)
+    if !haskey(storagedict, storagetype)
+        storagedict[storagetype] = storagetype(form)
+    end
+end
 
-struct EmptyOutput <: AbstractOutput end
+function getstorage(form::AbstractFormulation, storagetype::Type{<:AbstractStorage})::AbstractStorage
+    storagedict = getstoragedict(form)
+    if haskey(storagedict, storagetype)
+        return get(storagedict, storagetype, EmptyStorage())
+    end
+    form_uid = getuid(form)
+    error("No storage of type $storagetype in a formulation")
+end

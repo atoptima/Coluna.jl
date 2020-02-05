@@ -42,7 +42,9 @@ end
 #     return
 # end
 
-function run!(algo::BendersCutGeneration, reform::Reformulation, initincumb::Incumbents)::OptimizationOutput    
+function run!(algo::BendersCutGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
+
+    initincumb = getincumbents(input)
     data = BendersCutGenRuntimeData(reform.master.obj_sense, initincumb)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)

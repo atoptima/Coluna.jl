@@ -34,6 +34,8 @@ function show(io::IO, branch::Branch, form::Formulation)
     return
 end
 
+apply_branch!(f::Reformulation, ::Nothing) = nothing
+
 function apply_branch!(f::Reformulation, b::Branch)
     if b == Nothing
         return
@@ -88,7 +90,7 @@ end
 function RootNode(incumb::Incumbents, skipconquer::Bool)
     return Node(
         -1, false, 0, nothing, incumb, nothing,
-        "", nothing, nothing, nothing, skipconquer, false
+        "", nothing, nothing, skipconquer, false
     )
 end
 
@@ -115,7 +117,7 @@ function Node(parent::Node, child::Node)
     )
 end
 
-get_tree_order(n::Node) = n.treat_order
+get_tree_order(n::Node) = n.tree_order
 set_tree_order!(n::Node, tree_order::Int) = n.tree_order = tree_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
@@ -127,7 +129,7 @@ settreated!(n::Node) = n.istreated = true
 istreated(n::Node) = n.istreated
 isrootnode(n::Node) = n.tree_order == 1
 getinfeasible(n::Node) = n.infesible
-setinfeasible(n::Node, status::Bool) = n.infesible = status
+setinfeasible(n::Node, status::Bool) = n.infeasible = status
 
 function to_be_pruned(n::Node)
     # How to determine if a node should be pruned?? By the lp_gap?
@@ -144,9 +146,8 @@ function apply_conquer_alg_to_node!(
 
     node_incumbents = getincumbents(node)
 
-    if nbprimalsols(result) >= 1 
-        update_ip_primal_bound!(node_incumbents, getprimalbound(result))
-    end
+    update_ip_primal_bound!(node_incumbents, getprimalbound(result))
+    
     if isverbose(algo)
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(node)))
         @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(getincumbents(node)))
@@ -167,24 +168,27 @@ function apply_conquer_alg_to_node!(
     apply_branch!(reform, getbranch(node))
 
     conqueroutput = run!(
-        algo.conqueralg, reform, ConquerInput(node_incumbents, isrootnode(node))
+        algo, reform, ConquerInput(node_incumbents, isrootnode(node))
     )
 
     node.conquerwasrun = true
 
     # update of node incumbents
     optoutput = getoptoutput(conqueroutput)
+
     update_ip_dual_bound!(node_incumbents, getdualbound(getresult(optoutput)))
     update_ip_primal_bound!(node_incumbents, getprimalbound(getresult(optoutput)))
     update_lp_dual_bound!(node_incumbents, get_lp_dual_bound(optoutput))
-    update_lp_primal_sol!(node_incumbents, get_lp_primal_sol(optoutput))
+    update_lp_primal_sol!(node_incumbents, get_lp_primal_sol(optoutput))    
 
     # update of tree search algorithm primal solutions 
     for primal_sol in getprimalsols(getresult(optoutput))
         add_primal_sol!(result, deepcopy(primal_sol))
     end        
-    getinfeasible(optoutput) && setinfeasible(node)
-    !to_be_pruned(node) && node.conquerrecord = getrecord(conqueroutput)
+    !isfeasible(getresult(optoutput)) && setinfeasible(node, true)
+    if !to_be_pruned(node) 
+        node.conquerrecord = getrecord(conqueroutput)
+    end
 
     return optoutput
 end

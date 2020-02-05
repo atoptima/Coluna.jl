@@ -1,4 +1,4 @@
-#using Revise
+using Revise
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
@@ -26,25 +26,27 @@ include("pricing_callback_tests.jl")
 
 rng = MersenneTwister(1234123)
 
-unit_tests()
+mytest()
 
-@testset "Full instances " begin
-    full_instances_tests()
-end
+# unit_tests()
 
-@testset "Preprocessing " begin
-    preprocessing_tests()
-end
+# @testset "Full instances " begin
+#     full_instances_tests()
+# end
 
-@testset "pricing callback" begin
-    pricing_callback_tests()
-end
+# @testset "Preprocessing " begin
+#     preprocessing_tests()
+# end
 
-@testset "Base.show functions " begin
-    backup_stdout = stdout
-    (rd_out, wr_out) = redirect_stdout()
-    show_functions_tests()
-    close(wr_out)
-    close(rd_out)
-    redirect_stdout(backup_stdout)
-end
+# @testset "pricing callback" begin
+#     pricing_callback_tests()
+# end
+
+# @testset "Base.show functions " begin
+#     backup_stdout = stdout
+#     (rd_out, wr_out) = redirect_stdout()
+#     show_functions_tests()
+#     close(wr_out)
+#     close(rd_out)
+#     redirect_stdout(backup_stdout)
+# end

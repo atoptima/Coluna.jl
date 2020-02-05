@@ -28,13 +28,13 @@ mutable struct SearchTree
 end
 
 SearchTree(strategy::AbstractTreeExploreStrategy) = SearchTree(
-    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), strategy, true
+    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), strategy
 )
 
 getnodes(tree::SearchTree) = tree.nodes
 Base.isempty(tree::SearchTree) = isempty(tree.nodes)
 
-push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getvalue(tree.explore_strategy, node))
+push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getvalue(tree.strategy, node))
 popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
 nb_open_nodes(tree::SearchTree) = length(tree.nodes)
 
@@ -96,9 +96,6 @@ Base.@kwdef struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     storelpsolution = false 
 end
 
-# storage of the tree search algorithm is empty for the moment
-getstoragetype(algo::TreeSearchAlgorithm) = EmptyStorage
-
 function getslavealgorithms!(
     algo::TreeSearchAlgorithm, reform::Reformulation, 
     slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
@@ -113,7 +110,7 @@ function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
     println("************************************************************")
     print(nb_open_nodes(data) + 1)
     println(" open nodes.")
-    if !node.conquerwasrun
+    if node.conquerwasrun
         print("Node ", get_tree_order(node), " is conquered, no need to treat. ")
     else    
         print("Treating node ", get_tree_order(data), ". ")
@@ -144,13 +141,16 @@ function prepare_and_run_conquer_algorithm!(
     data::TreeSearchRuntimeData, algo::AbstractConquerAlgorithm, 
     reform::Reformulation, node::Node, store_lp_solution::Bool
 )
+    if (!node.conquerwasrun)
+        set_tree_order!(node, data.tree_order)
+        data.tree_order += 1
+    end
+
     print_node_info_before_conquer(data, node)
 
     node.conquerwasrun && return 
 
     @logmsg LogLevel(0) string("Setting up node ", data.tree_order, " before apply")
-    set_tree_order!(node, data.tree_order)
-    data.tree_order += 1
 
     optoutput = apply_conquer_alg_to_node!(node, algo, reform, getresult(data))        
 
@@ -161,7 +161,7 @@ function prepare_and_run_conquer_algorithm!(
     end 
 end
 
-function print_info_after_divide(node::Node, output::AbstractOutput)
+function print_info_after_divide(node::Node, output::DivideOutput)
     println("************************************************************")
     println("Node ", get_tree_order(node), " is treated")
     println("Generated ", length(getchildren(output)), " children nodes")
@@ -198,18 +198,18 @@ function prepare_and_run_divide_algorithm!(
 )
     to_be_pruned(node) && return
 
-    storage = getstorage(reform, getstoragetype(algo))
+    storage = getstorage(reform, getstoragetype(typeof(algo)))
     prepare!(storage, node.dividerecord)
     node.dividerecord = nothing
 
-    output = run!(algo, reform, node)
-    print_info_after_divide(data, node, output)
+    output = run!(algo, reform, DivideInput(node, getprimalbound(getresult(data))))
+    print_info_after_divide(node, output)
     
     update_tree!(data, output)
 
     for primal_sol in getprimalsols(getresult(output))
         add_primal_sol!(getresult(data), deepcopy(primal_sol))
-    end        
+    end
 end
 
 function updatedualbound!(data::TreeSearchRuntimeData, cur_node::Node)
@@ -231,13 +231,14 @@ function updatedualbound!(data::TreeSearchRuntimeData, cur_node::Node)
     return
 end
 
-function run!(algo::TreeSearchAlgorithm, reform::Reformulation, incumb::Incumbents)::OptimizationOutput
+function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
 
+    initincumb = getincumbents(input)
     data = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 0,
-        OptimizationResult(incumb)
+        OptimizationOutput(initincumb)
     )
-    push!(data, RootNode(incumb,algo.skiprootnodeconquer))
+    push!(data, RootNode(initincumb,algo.skiprootnodeconquer))
     data.tree_order += 1
 
     while (!isempty(data) && get_tree_order(data) <= algo.maxnumnodes)

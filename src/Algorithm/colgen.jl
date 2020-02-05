@@ -1,3 +1,5 @@
+using ..Coluna # to remove when merging to the master branch
+
 Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     max_nb_iterations::Int = 1000
     optimality_tol::Float64 = 1e-5
@@ -17,7 +19,8 @@ end
 function ColGenRuntimeData(
     algparams::ColumnGeneration, form::Reformulation, ipprimalbound::PrimalBound
 )
-    inc = Incumbents(form.master.obj_sense)
+    sense = form.master.obj_sense
+    inc = Incumbents(sense)
     update_ip_primal_bound!(inc, ipprimalbound)
     return ColGenRuntimeData(inc, false, true, [], 2)
 end
@@ -35,13 +38,14 @@ end
 # end
 
 # Overload of the algorithm's run function
-function run!(algo::ColumnGeneration, reform::Reformulation, initincumb::Incumbents)::OptimizationOutput    
+function run!(algo::ColumnGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
 
     @logmsg LogLevel(-1) "Run ColumnGeneration."
 
+    initincumb = getincumbents(input)
     data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(initincumb))
 
-    result = cg_main_loop!(algo, data, reform)
+    cg_main_loop!(algo, data, reform)
     masterform = getmaster(reform)
     if should_do_ph_1(masterform, data)
         set_ph_one(masterform, data)        
@@ -61,21 +65,22 @@ function run!(algo::ColumnGeneration, reform::Reformulation, initincumb::Incumbe
         push!(data.ip_primal_sols, get_ip_primal_sol(data.incumbents))
     end
 
+    sense = getsense(initincumb)    
     return OptimizationOutput(
-        OptimizationResult(
-            data.hasconverged ? OPTIMAL : OTHER_LIMIT, 
+        OptimizationResult{sense}(
+            data.has_converged ? OPTIMAL : OTHER_LIMIT, 
             data.is_feasible ? FEASIBLE : INFEASIBLE, 
             get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
-            data.ip_primal_sols, []
+            data.ip_primal_sols, Vector{DualSolution{sense}}()
         ), 
-        get_lp_primal_sol(data.incumbents), get_lp_dual_bound(data.incumbents)
+        Coluna.MathProg.get_lp_primal_sol(data.incumbents), Coluna.MathProg.get_lp_dual_bound(data.incumbents)
     )
 end
 
 # Internal methods to the column generation
 function should_do_ph_1(master::Formulation, data::ColGenRuntimeData)
     ip_gap(data.incumbents) <= 0.00001 && return false
-    primal_lp_sol = get_lp_primal_sol(data.incumbents)
+    primal_lp_sol = Coluna.MathProg.get_lp_primal_sol(data.incumbents)
     if contains(master, primal_lp_sol, MasterArtVar)
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
         return true
@@ -300,8 +305,8 @@ function generatecolumns!(
     return nb_new_columns
 end
 
-ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
-ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
+ph_one_infeasible_db(db::DualBound{MinSense}) = Coluna.Containers.getvalue(db) > (0.0 + 1e-5)
+ph_one_infeasible_db(db::DualBound{MaxSense}) = Coluna.Containers.getvalue(db) < (0.0 - 1e-5)
 
 function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::Reformulation)
     nb_cg_iterations = 0
@@ -331,14 +336,20 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
             return 
         end
 
-        update_lp_primal_sol!(data.incumbents, primal_sols[1])
-        if isinteger(primal_sols[1]) && !contains(masterform, primal_sols[1], MasterArtVar)
-            if algo.store_all_ip_primal_sols
-                push!(data.ip_primal_sols, primal_sols[1])
-            else
-                update_ip_primal_sol!(data.incumbents, primal_sols[1])
+        if update_lp_primal_sol!(data.incumbents, primal_sols[1])
+            if isinteger(primal_sols[1]) && !contains(masterform, primal_sols[1], MasterArtVar) &&
+               Coluna.MathProg.update_ip_primal_bound!(data.incumbents, master_val)
+                if algo.store_all_ip_primal_sols
+                    push!(data.ip_primal_sols, primal_sols[1])
+                else
+                    update_ip_primal_sol!(data.incumbents, primal_sols[1])
+                end
             end
-        end
+        else
+            # even if the current lp solution is not better than the best one
+            # we should update one (the best lp solution should always be the last one)
+            data.incumbents.lp_primal_sol = primal_sols[1]
+        end 
 
         # TODO: cleanup restricted master columns        
 
@@ -382,7 +393,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
             data.has_converged = true
             return 
         end
-        if nb_cg_iterations > data.params.max_nb_iterations
+        if nb_cg_iterations > algo.max_nb_iterations
             @warn "Maximum number of column generation iteration is reached."
             return 
         end
@@ -394,9 +405,10 @@ function print_intermediate_statistics(
     algdata::ColGenRuntimeData, nb_new_col::Int, nb_cg_iterations::Int,
     mst_time::Float64, sp_time::Float64
 )
-    mlp = getvalue(get_lp_primal_bound(algdata.incumbents))
-    db = getvalue(get_ip_dual_bound(algdata.incumbents))
-    pb = getvalue(get_ip_primal_bound(algdata.incumbents))
+    # Ruslan : does not work without Coluna.Containers, I do not understand why
+    mlp = Coluna.Containers.getvalue(get_lp_primal_bound(algdata.incumbents))
+    db = Coluna.Containers.getvalue(get_ip_dual_bound(algdata.incumbents))
+    pb = Coluna.Containers.getvalue(get_ip_primal_bound(algdata.incumbents))
     @printf(
         "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <mlp=%10.4f> <DB=%10.4f> <PB=%.4f>\n",
         nb_cg_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, mlp, db, pb

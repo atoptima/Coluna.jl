@@ -18,7 +18,16 @@ struct EmptyRecord <: AbstractRecord end
 
     This function recovers the state of Storage using Record    
 """
-function prepare!(storage::AbstractStorage, record::AbstractRecord) end
+prepare!(storage::AbstractStorage, ::Nothing) = nothing
+
+function prepare!(storage::AbstractStorage, record::AbstractRecord) 
+    storagetype = typeof(storage)
+    recordtype = typeof(record)
+    error("Method prepare!(storage, record) which takes is not implemented for storage $storagetype.
+           and for record $recordtype")
+end
+
+prepare!(storage::EmptyStorage, record::EmptyRecord) = nothing
 
 """
     record(Storage)::Record
@@ -64,14 +73,14 @@ end
 
 function add_to_recorded!(form::Formulation, record::ReformulationRecord)
     for (id, var) in getvars(form)
-        if get_cur_is_active(var) && get_cur_is_explicit(var)
+        if getcurisactive(form, var) && getcurisexplicit(form, var)
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
             record.active_vars[id] = varstate
         end
     end
     for (id, constr) in getconstrs(form)
-        if get_cur_is_active(constr) && get_cur_is_explicit(constr)
-            constrstate = ConstrState(getcurrhs(constr))
+        if getcurisactive(form, constr) && getcurisexplicit(form, constr)
+            constrstate = ConstrState(getcurrhs(form, constr))
             record.active_constrs[id] = constrstate
         end
     end
@@ -98,10 +107,10 @@ end
 
 function apply_data!(form::Formulation, constr::Constraint, constr_state::ConstrState)
     # Rhs
-    if getcurrhs(constr) != constr_state.rhs
+    if getcurrhs(form, constr) != constr_state.rhs
         @logmsg LogLevel(-2) string("Reseting rhs of constraint ", getname(constr))
         setrhs!(form, constr, constr_state.rhs)
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(constr))
+        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(form, constr))
     end
     return
 end
@@ -110,7 +119,7 @@ function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in
     for (id, vc) in var_constrs_in_formulation
         @logmsg LogLevel(-4) "Checking " getname(vc)
         # vc should NOT be active but is active in formulation
-        if !haskey(active_var_constrs, id) && get_cur_is_active(vc)
+        if !haskey(active_var_constrs, id) && getcurisactive(form, vc)
             @logmsg LogLevel(-4) "Deactivating"
             deactivate!(form, id)
             continue
@@ -118,7 +127,7 @@ function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in
         # vc should be active in formulation
         if haskey(active_var_constrs, id)
             # But var_constr is currently NOT active in formulation
-            if !get_cur_is_active(vc)
+            if !getcurisactive(form, vc)
                 @logmsg LogLevel(-4) "Activating"
                 activate!(form, vc)
             end

@@ -1,4 +1,4 @@
-struct Preprocess <: AbstractAlgorithm end
+struct PreprocessAlgorithm <: AbstractAlgorithm end
 
 mutable struct PreprocessData
     reformulation::Reformulation # Should handle reformulation & formulation
@@ -40,7 +40,7 @@ end
 #     return
 # end
 
-function run!(algo::Preprocess, reformulation, node)::Bool
+function run!(algo::PreprocessAlgorithm, reformulation, node)::Bool
     @logmsg LogLevel(0) "Run preprocessing"
 
     alg_data = PreprocessData(reformulation)
@@ -134,7 +134,7 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     constrs_with_modified_rhs = Constraint[]
     for (var_id, val) in sp_vars_vals 
         for (constr_id, coef) in Iterators.filter(vc ->
-            getcurisactive(master,vc) && getcurisexplicit(mastervc),
+            getcurisactive(master,vc) && getcurisexplicit(master,vc),
             master_coef_matrix[:,var_id]
         )
             constr = getconstr(master, constr_id)
@@ -146,7 +146,7 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     # Changing global bounds of subprob variables
     vars_with_modified_bounds = Variable[]
     for sp_prob in sps_with_modified_bounds
-        (cur_sp_lb, cur_sp_ub) = alg.cur_sp_bounds[getuid(sp_prob)]
+        (cur_sp_lb, cur_sp_ub) = alg_data.cur_sp_bounds[getuid(sp_prob)]
 
         for (var_id, var) in Iterators.filter(
             v -> getcurisactive(spform,v) == true && getduty(v) <= AbstractDwSpVar,

@@ -10,8 +10,9 @@ struct MasterLpAlgorithm <: AbstractOptimizationAlgorithm end
 #     return
 # end
 
-function run!(algo::MasterLpAlgorithm, reform::Reformulation, initincumb::Incumbents)::OptimizationOutput
+function run!(algo::MasterLpAlgorithm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
 
+    initincumb = getincumbents(input)
     master = getmaster(reform)
 
     output = OptimizationOutput(initincumb)    
@@ -20,16 +21,17 @@ function run!(algo::MasterLpAlgorithm, reform::Reformulation, initincumb::Incumb
         lpresult = TO.@timeit Coluna._to "LP restricted master" optimize!(master)
     end
 
-    setfeasibilitystatus!(getfeasibilitystatus(lpresult))    
-    setterminationstatus!(NOT_YET_DETERMINED)    
+    setfeasibilitystatus!(output, getfeasibilitystatus(lpresult))    
+    setterminationstatus!(output, NOT_YET_DETERMINED)    
     lpsol = getbestprimalsol(lpresult)
     set_lp_primal_sol(output, lpsol)
 
     # here we suppose that there are DW subproblems and thus the value of the LP solution
     # is not a valid dual bound, so the dual bound is not updated
 
-    if isinteger(lpsol) && !contains(master, lpsol, MasterArtVar)
-        add_primal_sol!(output, lpsol)
+    if isinteger(lpsol) && !contains(master, lpsol, MasterArtVar) &&
+        Coluna.MathProg.update_ip_primal_bound!(initincumb, getprimalbound(lpresult))
+        add_ip_primal_sol!(output, lpsol)
     end
 
     return output

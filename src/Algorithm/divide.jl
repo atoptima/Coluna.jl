@@ -1,7 +1,21 @@
 using ..Coluna # to remove when merging to the master branch
 
 """
-    AbstractDivideOutput
+    DivideInput
+
+    Input of a divide algorithm used by the tree search algorithm.
+    Should contain the parent node and the current best
+"""
+struct DivideInput <: AbstractInput
+    parent::Node
+    ip_primal_bound::PrimalBound
+end
+
+getparent(input::DivideInput) = input.parent
+get_ip_primal_bound(input::DivideInput) = input.ip_primal_bound
+
+"""
+    DivideOutput
 
     Output of a divide algorithm used by the tree search algorithm.
     Should contain the vector of generated nodes.
@@ -21,8 +35,8 @@ getresult(output::DivideOutput)::OptimizationResult = output.result
 """
 abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 
-function run!(algo::AbstractDivideAlgorithm, reform::Reformulation, node::Node)::DivideOutput
+function run!(algo::AbstractDivideAlgorithm, reform::Reformulation, input::DivideInput)::DivideOutput
     algotype = typeof(algo)
-    error("Method run! which takes Reformulation and Node as parameters and returns DivideOutput 
+    error("Method run! which takes Reformulation and DivideInput as parameters and returns DivideOutput 
            is not implemented for algorithm $algotype.")
 end    

@@ -14,6 +14,11 @@
 # getpriority(improvement::AbstractRelaxationImprovement, rootnode::Bool) = 
 #     rootnode ? getrootpriority(improvement) : getnonrootpriority(improvement) 
 
+"""
+    SelectionCriterion
+"""
+@enum SelectionCriterion FirstFoundCriterion MostFractionalCriterion 
+
 
 """
     BranchingRuleInput
@@ -23,8 +28,9 @@
 """
 struct BranchingRuleInput <: AbstractInput 
     solution::PrimalSolution 
-    original_sol::Bool
+    isoriginalsol::Bool
     max_nb_candidates::Int64
+    criterion::SelectionCriterion
     local_id::Int64
 end
 
@@ -34,13 +40,12 @@ end
     Input of a branching rule (branching separation algorithm)
     Contains current incumbents, infeasibility status, and the record of its storage.
 """
-# TO DO : replace OptimizationOutput by OptimizationResult
 struct BranchingRuleOutput <: AbstractOutput 
     local_id::Int64
-    groups::Vector{BranchingGroup}()
+    groups::Vector{BranchingGroup}
 end
 
-function BranchingRuleOuput(input::BranchingRuleOutput)
+function BranchingRuleOuput(input::BranchingRuleInput)
     return BranchingRuleOuput(input.local_id, Vector{BranchingGroup}())
 end
 
@@ -56,7 +61,7 @@ getgroups(output::BranchingRuleOutput) = output.groups
 abstract type AbstractBranchingRule <: AbstractAlgorithm end
 
 function run!(
-    rule::rule::AbstractBranchingRule, reform::Reformulation, input::BranchingRuleInput
+    rule::AbstractBranchingRule, reform::Reformulation, input::BranchingRuleInput
 )::BranchingRuleOutput
     algotype = typeof(rule)
     error("Method run! which takes formulation and BranchingRuleInput as input 

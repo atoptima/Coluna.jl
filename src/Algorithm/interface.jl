@@ -1,5 +1,23 @@
 using ..Coluna # to remove when merging to the master branch
 
+"""
+    AbstractInput
+
+    Input of an algorithm.     
+"""
+abstract type AbstractInput end 
+
+struct EmptyInput <: AbstractInput end
+
+"""
+    AbstractOutput
+
+    Output of an algorithm.     
+"""
+abstract type AbstractOutput end 
+
+struct EmptyOutput <: AbstractOutput end
+
 
 """
     AbstractAlgorithm
@@ -15,11 +33,11 @@ using ..Coluna # to remove when merging to the master branch
 abstract type AbstractAlgorithm end
 
 """
-    getstoragetype(Algorithm, Formulation)::Type{<:Storage}
+    getstoragetype(AlgorithmType)::StorageType
 
     Every algorithm should communicate its storage type. By default, the storage is empty.    
 """
-getstoragetype(algo::AbstractAlgorithm)::Type{<:AbstractStorage} = EmptyStorage
+getstoragetype(algotype::Type{<:AbstractAlgorithm})::Type{<:AbstractStorage} = EmptyStorage
 
 """
     getslavealgorithms!(Algorithm, Formulation, Vector{Tuple{Formulation, AlgorithmType})
@@ -44,24 +62,38 @@ end
 run!(algo::AbstractAlgorithm, form::AbstractFormulation) = run!(algo, form, EmptyInput())
 
 """
+    OptimizationInput
+
+    Contains Incumbents
+"""
+
+struct OptimizationInput{S} <: AbstractInput
+    incumbents::Incumbents{S}
+end
+
+getincumbents(input::OptimizationInput) = input.incumbents
+
+"""
     OptimizationOutput
 
-    Should contain OptimizationResult and PrimalSolution (solution to relaxation)
+    Contain OptimizationResult, PrimalSolution (solution to relaxation), and 
+    DualBound (dual bound value)
 """
 # TO DO : OptimizationOutput shoud be replaced by OptimizationResult which should contain all
-struct OptimizationOutput{S} <: AbstractOutput
+mutable struct OptimizationOutput{S} <: AbstractOutput
     result::OptimizationResult{S}
     lp_primal_sol::PrimalSolution{S}
     lp_dual_bound::DualBound{S}
 end
 
-function OptimizationOutput{S}(incumb::Incumbents{S}) where {S} 
-    return OptimizationOutput{S}(
-        OptimizationResult{S}(
+function OptimizationOutput(incumb::Incumbents)
+    sense = getsense(incumb)
+    return OptimizationOutput{sense}(
+        OptimizationResult{sense}(
             NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, get_ip_primal_bound(incumb),
             get_ip_dual_bound(incumb), [], []
         ), 
-        PrimalSolution{S}(), DualBound{S}()
+        PrimalSolution{sense}(), DualBound{sense}()
     )
 end
 
@@ -72,11 +104,11 @@ set_lp_primal_sol(output::OptimizationOutput, ::Nothing) = nothing
 set_lp_primal_sol(output::OptimizationOutput{S}, sol::PrimalSolution{S}) where {S} = output.lp_primal_sol = sol
 set_lp_dual_bound(output::OptimizationOutput{S}, bound::DualBound{S}) where {S} = output.lp_dual_bound = bound
 
-setfeasibilitystatus!(output::OptimizationOutput, status::FeasibilityStatus) = setfeasibilitystatus!(output.result, status)
-setterminationstatus!(output::OptimizationOutput, status::TerminationStatus) = setterminationstatus!(output.result, status)
+setfeasibilitystatus!(output::OptimizationOutput, status::FeasibilityStatus) = Coluna.MathProg.setfeasibilitystatus!(output.result, status)
+setterminationstatus!(output::OptimizationOutput, status::TerminationStatus) = Coluna.MathProg.setterminationstatus!(output.result, status)
 
 add_ip_primal_sol!(output::OptimizationOutput, ::Nothing) = nothing
-function add_ip_primal_sol!(output::OptimizationOutput{S}, solution::Solution{S}) where {S}
+function add_ip_primal_sol!(output::OptimizationOutput, solution::Solution)
     add_primal_sol!(output.result, solution)
     return
 end
@@ -92,7 +124,7 @@ end
 abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 function run!(
-    algo::AbstractOptimizationAlgorithm, form::AbstractFormulation, input::Incumbents
+    algo::AbstractOptimizationAlgorithm, form::AbstractFormulation, input::OptimizationInput
 )::OptimizationOutput
      algotype = typeof(algo)
      error("Method run! which takes formulation and Incumbents as input returns OptimizationOutput
