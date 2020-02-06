@@ -1,5 +1,5 @@
 Base.@kwdef struct ColumnGeneration <: AbstractAlgorithm
-    max_nb_iterations::Int = 100
+    max_nb_iterations::Int = 500
     optimality_tol::Float64 = 1e-5
     log_print_frequency::Int = 1
 end
@@ -485,35 +485,35 @@ function solve_sps_to_gencols!(
 
     # guillaume 
     # Update pricing var cost
-    @time begin
-        redcosts = computereducedcosts!(reform, redcostsvec, dual_sol)
-    end
+    # @time begin
+    #     redcosts = computereducedcosts!(reform, redcostsvec, dual_sol)
+    # end
+
+    #@time begin
+        redcosts = test2(reform, redcostsvec, dual_sol)
+    #end
 
     for i in 1:length(redcosts)
         setcurcost!(redcostsvec.form[i], redcostsvec.varids[i], redcosts[i])
     end
 
-    @time begin
-        redcosts = test2(reform, redcostsvec, dual_sol)
-    end
+    # @time begin
+    #     t = test3(reform, redcostsvec, dual_sol)
+    # end
 
-    @time begin
-        t = test3(reform, redcostsvec, dual_sol)
-    end
+    # @time begin
+    #      for (spuid, spform) in sps
 
-    @time begin
-         for (spuid, spform) in sps
-
-    #         # Reset var bounds, var cost, sp minCost
-             if update_pricing_problem!(spform, dual_sol) # Never returns true
-    #             #     This code is never executed because update_pricing_prob always returns false
-    #             #     @logmsg LogLevel(-3) "pricing prob is infeasible"
-    #             #     # In case one of the subproblem is infeasible, the master is infeasible
-    #             #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
-    #             #     return flag_is_sp_infeasible
-             end
-         end
-     end
+    # #         # Reset var bounds, var cost, sp minCost
+    #          if update_pricing_problem!(spform, dual_sol) # Never returns true
+    # #             #     This code is never executed because update_pricing_prob always returns false
+    # #             #     @logmsg LogLevel(-3) "pricing prob is infeasible"
+    # #             #     # In case one of the subproblem is infeasible, the master is infeasible
+    # #             #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
+    # #             #     return flag_is_sp_infeasible
+    #          end
+    #      end
+    #  end
 
     # redcosts2 = Dict{VarId, Float64}()
     # for i in 1:length(redcosts)

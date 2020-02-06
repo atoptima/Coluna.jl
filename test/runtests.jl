@@ -1,7 +1,7 @@
 #using Revise
 using Coluna
 
-using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
+using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition, CPLEX
 using Random
 
 import MathOptInterface, MathOptInterface.Utilities

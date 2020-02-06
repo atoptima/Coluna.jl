@@ -14,7 +14,7 @@ function generalized_assignment_tests()
             Coluna.Optimizer, params = CL.Params(
                 global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             ),
-            default_optimizer = with_optimizer(GLPK.Optimizer)
+            default_optimizer = with_optimizer(CPLEX.Optimizer)
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
