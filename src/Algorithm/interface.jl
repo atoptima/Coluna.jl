@@ -59,7 +59,7 @@ function run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::Abstrac
     return EmptyOutput()
 end
 
-run!(algo::AbstractAlgorithm, form::AbstractFormulation) = run!(algo, form, EmptyInput())
+run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::EmptyInput) = run!(algo, form)
 
 """
     OptimizationInput

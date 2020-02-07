@@ -49,20 +49,23 @@ function run!(algo::BendersCutGeneration, reform::Reformulation, input::Optimiza
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
 
-    ip_primal_sols = Vector{PrimalSolution}()
+    Sense = getsense(initincumb)
+    ip_primal_sols = Vector{PrimalSolution{Sense}}()
     if length(get_ip_primal_sol(data.incumbents)) > 0
         push!(ip_primal_sols, get_ip_primal_sol(data.incumbents))
     end
 
     return OptimizationOutput(
-        OptimizationResult(
-            data.hasconverged ? OPTIMAL : OTHER_LIMIT, 
+        OptimizationResult{Sense}(
+            data.has_converged ? OPTIMAL : OTHER_LIMIT, 
             data.is_feasible ? FEASIBLE : INFEASIBLE, 
             get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
-            ip_primal_sols, []
+            ip_primal_sols, Vector{DualSolution{Sense}}()
         ), 
-        get_lp_primal_sol(data.incumbents), get_lp_dual_bound(data.incumbents)
+        Coluna.MathProg.get_lp_primal_sol(data.incumbents), 
+        Coluna.MathProg.get_lp_dual_bound(data.incumbents)
     )
+
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
@@ -178,7 +181,7 @@ function record_solutions!(
     dual_sols = getdualsols(spresult)
 
     for dual_sol in dual_sols
-        if getvalue(dual_sol) > algo.feasibility_tol 
+        if Coluna.Containers.getvalue(dual_sol) > algo.feasibility_tol 
             (insertion_status, dual_sol_id) = setdualsol!(spform, dual_sol)
             if insertion_status
                 push!(recorded_dual_solution_ids, dual_sol_id)
@@ -224,7 +227,7 @@ function compute_benders_sp_lagrangian_bound_contrib(
     algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::OptimizationResult{S}
 ) where {S}
     dualsol = getbestdualsol(spsol)
-    contrib = getvalue(dualsol)
+    contrib = Coluna.Containers.getvalue(dualsol)
     return contrib
 end
 
@@ -439,7 +442,7 @@ end
 function compute_master_pb_contrib(algdata::BendersCutGenRuntimeData, master::Formulation,
                                    restricted_master_sol_value::DualBound{S}) where {S}
     # TODO: will change with stabilization
-    return PrimalBound(master, getvalue(restricted_master_sol_value))
+    return PrimalBound(master, Coluna.Containers.getvalue(restricted_master_sol_value))
 end
 
 function update_lagrangian_pb!(algdata::BendersCutGenRuntimeData, reform::Reformulation,
@@ -526,7 +529,7 @@ function bend_cutting_plane_main_loop!(
         end
 
         update_lp_dual_sol!(algdata.incumbents, master_dual_sol)
-        dual_bound = get_lp_dual_bound(algdata.incumbents)
+        dual_bound = Coluna.MathProg.get_lp_dual_bound(algdata.incumbents)
         update_lp_dual_bound!(algdata.incumbents, dual_bound)
         update_ip_dual_bound!(algdata.incumbents, dual_bound)
                 
@@ -621,9 +624,9 @@ function print_intermediate_statistics(data::BendersCutGenRuntimeData,
                                        nb_new_cut::Int,
                                        nb_bc_iterations::Int,
                                        mst_time::Float64, sp_time::Float64)
-    mlp = getvalue(get_lp_dual_bound(data.incumbents))
-    db = getvalue(get_ip_dual_bound(data.incumbents))
-    pb = getvalue(get_ip_primal_bound(data.incumbents))
+    mlp = Coluna.Containers.getvalue(Coluna.MathProg.get_lp_dual_bound(data.incumbents))
+    db = Coluna.Containers.getvalue(get_ip_dual_bound(data.incumbents))
+    pb = Coluna.Containers.getvalue(get_ip_primal_bound(data.incumbents))
     @printf(
             "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <mlp=%10.4f> <DB=%10.4f> <PB=%10.4f>\n",
             nb_bc_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_cut, mlp, db, pb

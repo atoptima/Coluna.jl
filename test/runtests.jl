@@ -1,4 +1,4 @@
-# using Revise # to comment when merging to the master branch
+#using Revise # to comment when merging to the master branch
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
@@ -34,9 +34,9 @@ unit_tests()
     full_instances_tests()
 end
 
-# @testset "Preprocessing " begin
-#     preprocessing_tests()
-# end
+@testset "Preprocessing " begin
+    preprocessing_tests()
+end
 
 @testset "pricing callback" begin
     pricing_callback_tests()

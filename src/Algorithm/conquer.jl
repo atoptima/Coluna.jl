@@ -139,13 +139,14 @@ end
 
 function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
 
-    incumb = getincumbents(input)
-    if algo.run_preprocessing && run!(algo.preprocess, reform)
+     
+    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform))
         optoutput = OptimizationOutput(incumb)
         setfeasibilitystatus!(optoutput, INFEASIBLE)
         return ConquerOutput(optoutput, ConquerRecord(record!(reform)))
     end
 
+    incumb = getincumbents(input)
     optoutput = run!(algo.colgen, reform, OptimizationInput(incumb))
     record = record!(reform)
 

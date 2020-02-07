@@ -31,6 +31,12 @@ function PreprocessData(reform::Reformulation)
     )
 end
 
+struct PreprocessingOutput <: AbstractOutput
+    infeasible::Bool
+end
+
+isinfeasible(output::PreprocessingOutput) = output.infeasible
+
 # struct PreprocessRecord <: AbstractAlgorithmResult
 #     proven_infeasible::Bool
 # end
@@ -40,7 +46,7 @@ end
 #     return
 # end
 
-function run!(algo::PreprocessAlgorithm, reformulation, node)::Bool
+function run!(algo::PreprocessAlgorithm, reformulation)::PreprocessingOutput
     @logmsg LogLevel(0) "Run preprocessing"
 
     alg_data = PreprocessData(reformulation)
@@ -50,7 +56,7 @@ function run!(algo::PreprocessAlgorithm, reformulation, node)::Bool
     constrs_with_modified_rhs) = fix_local_partial_solution!(alg_data)
 
     if initconstraints!(alg_data, constrs_with_modified_rhs)
-        return true
+        return PreprocessingOutput(true)
     end
 
     # Now we try to update local bounds of sp vars
@@ -63,7 +69,7 @@ function run!(algo::PreprocessAlgorithm, reformulation, node)::Bool
     if !infeasible
         forbid_infeasible_columns!(alg_data)
     end
-    return infeasible 
+    return PreprocessingOutput(infeasible)
 end
 
 function change_sp_bounds!(alg_data::PreprocessData)

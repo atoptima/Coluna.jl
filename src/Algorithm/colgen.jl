@@ -1,4 +1,4 @@
-using ..Coluna # to remove when merging to the master branch
+# using ..Coluna # to comment when merging to the master branch
 
 Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     max_nb_iterations::Int = 1000
@@ -65,15 +65,16 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
         push!(data.ip_primal_sols, get_ip_primal_sol(data.incumbents))
     end
 
-    sense = getsense(initincumb)    
+    Sense = getsense(initincumb)    
     return OptimizationOutput(
-        OptimizationResult{sense}(
+        OptimizationResult{Sense}(
             data.has_converged ? OPTIMAL : OTHER_LIMIT, 
             data.is_feasible ? FEASIBLE : INFEASIBLE, 
             get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
-            data.ip_primal_sols, Vector{DualSolution{sense}}()
+            data.ip_primal_sols, Vector{DualSolution{Sense}}()
         ), 
-        Coluna.MathProg.get_lp_primal_sol(data.incumbents), Coluna.MathProg.get_lp_dual_bound(data.incumbents)
+        Coluna.MathProg.get_lp_primal_sol(data.incumbents), 
+        Coluna.MathProg.get_lp_dual_bound(data.incumbents)
     )
 end
 

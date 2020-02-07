@@ -38,6 +38,22 @@ function getpriority(rule::PrioritisedBranchingRule, isroot::Bool)::Float64
     return isroot ? rule.root_priority : rule.nonroot_priority
 end
 
+"""
+    NoBranching
+
+    The empty divide algorithm
+"""
+struct NoBranching <: AbstractDivideAlgorithm
+end
+
+function run!(algo::NoBranching, reform::Reformulation, input::DivideInput)::DivideOutput
+    parent = getparent(input)
+    parent_incumb = getincumbents(parent)
+    Sense = getsense(parent_incumb)
+    result = OptimizationResult{Sense}()
+    return DivideOutput([], result)
+end
+
 
 """
     StrongBranching
