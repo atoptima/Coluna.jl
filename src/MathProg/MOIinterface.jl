@@ -206,18 +206,7 @@ function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
             moi_index = getindex(moirec)
             kind = _getcolunakind(moirec)
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
-            if kind == Integ || kind == Binary
-                val = round(val, digits = Coluna._params_.tol_digits)
-            else # Continuous
-                moi_bounds = getbounds(moirec)
-                moiset = MOI.get(inner, MOI.ConstraintSet(), getbounds(moirec))
-                if val < moiset.lower
-                    val = moiset.lower
-                end
-                if val > moiset.upper
-                    val = moiset.upper
-                end
-            end
+            val = round(val, digits = Coluna._params_.tol_digits)
             if abs(val) > Coluna._params_.tol
                 @logmsg LogLevel(-4) string("Var ", var.name , " = ", val)
                 push!(solvars, id)
