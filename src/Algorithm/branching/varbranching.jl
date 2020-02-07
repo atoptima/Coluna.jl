@@ -55,7 +55,6 @@ function run!(
         # Do not consider continuous variables as branching candidates
         getperenekind(master, var_id) == Continuous && continue
         if !isinteger(val)
-            @show getname(master, var_id) val
             #description string is just the variable name
             candidate = VarBranchingCandidate(getname(master, var_id), var_id)
             local_id += 1 

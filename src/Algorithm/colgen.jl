@@ -43,7 +43,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
     @logmsg LogLevel(-1) "Run ColumnGeneration."
 
     initincumb = getincumbents(input)
-    data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(initincumb))
+    data = ColGenRuntimeData(algo, reform, Coluna.MathProg.get_ip_primal_bound(initincumb))
 
     cg_main_loop!(algo, data, reform)
     masterform = getmaster(reform)

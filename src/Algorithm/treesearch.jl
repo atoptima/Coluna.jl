@@ -1,4 +1,4 @@
-using ..Coluna # to remove when merging to the master branch
+# using ..Coluna # to comment when merging to the master branch
 
 """
     AbstractTreeExploreStrategy
@@ -51,6 +51,7 @@ mutable struct TreeSearchRuntimeData
     secondary_tree::SearchTree
     tree_order::Int64
     output::OptimizationOutput
+    Sense::Type{<:Coluna.AbstractSense}
 end
 
 Base.isempty(data::TreeSearchRuntimeData) = isempty(data.primary_tree) && isempty(data.secondary_tree)
@@ -107,33 +108,28 @@ function getslavealgorithms!(
 end
 
 function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
-    println("************************************************************")
-    print(nb_open_nodes(data) + 1)
-    println(" open nodes.")
-    if node.conquerwasrun
-        print("Node ", get_tree_order(node), " is conquered, no need to treat. ")
-    else    
-        print("Treating node ", get_tree_order(data), ". ")
+    println("***************************************************************************************")
+    if isrootnode(node)
+        println("**** BaB tree root node")
+    else
+        println("**** BaB tree node N° ", get_tree_order(node), 
+                ", parent N° ", get_tree_order(getparent(node)),
+                ", depth ", getdepth(node),
+                ", ", nb_open_nodes(data) + 1, " open nodes")
     end
-    getparent(node) === nothing && println()
-    getparent(node) !== nothing && println("Parent is ", get_tree_order(getparent(node)))
 
-    node_incumbents = getincumbents(node)
-    db = getdualbound(getresult(data))
-    pb = getprimalbound(getresult(data))
-    node_db = get_ip_dual_bound(node_incumbents)
-
-    print("Current best known bounds : ")
-    printbounds(db, pb)
-    println()
-    @printf "Elapsed time: %.2f seconds\n" Coluna._elapsed_solve_time()
-    println("Subtree dual bound is ", node_db)
+    db = Coluna.Containers.getvalue(getdualbound(getresult(data)))
+    pb = Coluna.Containers.getvalue(getprimalbound(getresult(data)))
+    node_db = Coluna.Containers.getvalue(get_ip_dual_bound(getincumbents(node)))
+    @printf "**** Local DB = %.4f," node_db
+    @printf " global bounds : [ %.4f , %.4f ]," db pb
+    @printf " time = %.2f sec.\n" Coluna._elapsed_solve_time()
 
     branch = getbranch(node)
     if node.branchdescription != ""
-        println("Branching constraint: ", node.branchdescription)
+        println("**** Branching constraint: ", node.branchdescription)
     end
-    println("************************************************************")
+    println("***************************************************************************************")
     return
 end
 
@@ -161,34 +157,22 @@ function prepare_and_run_conquer_algorithm!(
     end 
 end
 
-function print_info_after_divide(node::Node, output::DivideOutput)
-    println("************************************************************")
-    println("Node ", get_tree_order(node), " is treated")
-    println("Generated ", length(getchildren(output)), " children nodes")
-
-    node_incumbents = getincumbents(node)
-    db = get_ip_dual_bound(node_incumbents)
-    pb = get_ip_primal_bound(node_incumbents)
-
-    print("Node bounds after treatment : ")
-    printbounds(db, pb)
-    println()
-
-    println("************************************************************")
-    return
-end
-
 function update_tree!(data::TreeSearchRuntimeData, output::DivideOutput)
     @logmsg LogLevel(0) string("Updating tree.")
 
-    @logmsg LogLevel(-1) string("Inserting ", length(output.children), " children nodes in tree.")
+    isempty(getchildren(output)) && return
+
+    print("Child nodes generated :")
+
     for child in getchildren(output)
         if (child.conquerwasrun)
             set_tree_order!(child, data.tree_order)
             data.tree_order += 1
+            print(" N° ", get_tree_order(child) ," ")
         end
         push!(data, child)
     end
+    println()
     return
 end
 
@@ -196,14 +180,16 @@ function prepare_and_run_divide_algorithm!(
     data::TreeSearchRuntimeData, algo::AbstractDivideAlgorithm, 
     reform::Reformulation, node::Node
 )
-    to_be_pruned(node) && return
+    if to_be_pruned(node, getprimalbound(getresult(data)))
+        println("Node is already conquered. No children will be generated")
+        return
+    end        
 
     storage = getstorage(reform, getstoragetype(typeof(algo)))
     prepare!(storage, node.dividerecord)
     node.dividerecord = nothing
 
     output = run!(algo, reform, DivideInput(node, getprimalbound(getresult(data))))
-    print_info_after_divide(node, output)
     
     update_tree!(data, output)
 
@@ -212,9 +198,10 @@ function prepare_and_run_divide_algorithm!(
     end
 end
 
-function updatedualbound!(data::TreeSearchRuntimeData, cur_node::Node)
+function updatedualbound!(data::TreeSearchRuntimeData)
     result = getresult(data)
-    worst_bound = get_ip_dual_bound(getincumbents(cur_node))
+    bound_value = Coluna.Containers.getvalue(getprimalbound(result))
+    worst_bound = DualBound{data.Sense}(bound_value)  
     for (node, priority) in getnodes(data.primary_tree)
         db = get_ip_dual_bound(getincumbents(node))
         if isbetter(worst_bound, db)
@@ -236,7 +223,7 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::Optimizat
     initincumb = getincumbents(input)
     data = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 0,
-        OptimizationOutput(initincumb)
+        OptimizationOutput(initincumb), getsense(initincumb)
     )
     push!(data, RootNode(initincumb,algo.skiprootnodeconquer))
     data.tree_order += 1
@@ -252,7 +239,7 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::Optimizat
             data, algo.dividealg, reform, cur_node
         )
         
-        updatedualbound!(data, cur_node)
+        updatedualbound!(data)
     end
 
     determine_statuses(getresult(data), isempty(data))

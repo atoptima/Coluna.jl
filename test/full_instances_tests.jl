@@ -1,7 +1,7 @@
 function full_instances_tests()
     generalized_assignment_tests()
     capacitated_lot_sizing_tests()
-    lot_sizing_tests()
+     #lot_sizing_tests()
     #facility_location_tests()
     cutting_stock_tests()
 end
@@ -33,13 +33,6 @@ end
 function generalized_assignment_tests()
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
-
-        # coluna = JuMP.with_optimizer(
-        #     Coluna.Optimizer, params = CL.Params(
-        #         global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
-        #     ),
-        #     default_optimizer = with_optimizer(GLPK.Optimizer)
-        # )
 
         coluna = JuMP.with_optimizer(
             Coluna.Optimizer, params = CL.Params(),
@@ -76,7 +69,7 @@ function generalized_assignment_tests()
         branching = ClA.StrongBranching()
         push!(branching.phases, ClA.OnlyRestrictedMasterBranchingPhase(5))
         push!(branching.phases, ClA.ExactBranchingPhase(1))
-        push!(branching.rules, ClA.VarBranchingRule())
+        push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
     
         coluna = JuMP.with_optimizer(
             CL.Optimizer, params = CL.Params(
@@ -100,7 +93,7 @@ function generalized_assignment_tests()
         coluna = JuMP.with_optimizer(
             CL.Optimizer, params = CL.Params(
                 solver = ClA.TreeSearchAlgorithm(conqueralg = ClA.ColGenConquer(
-                    colgen = ColumnGeneration(max_nb_iterations = 8))
+                    colgen = ClA.ColumnGeneration(max_nb_iterations = 8))
                 )
             ),
             default_optimizer = with_optimizer(GLPK.Optimizer)
@@ -110,7 +103,7 @@ function generalized_assignment_tests()
 
         JuMP.optimize!(problem)
         @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OTHER_LIMIT # Problem with final dual bound ?
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL # Problem with final dual bound ?
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
@@ -156,19 +149,6 @@ function generalized_assignment_tests()
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
     end
 
-    # @testset "gap BIG instance" begin
-    #     data = CLD.GeneralizedAssignment.data("gapC-5-100.txt")
-
-    # coluna = JuMP.with_optimizer(Coluna.Optimizer,
-    #     default_optimizer = with_optimizer(GLPK.Optimizer)
-    # )
-
-    #     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    #     JuMP.optimize!(problem)
-    #     @test abs(JuMP.objective_value(problem) - 1931.0) <= 0.00001
-    #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
-    # end
-
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
@@ -199,20 +179,7 @@ function generalized_assignment_tests()
         end
     end
 
-    @testset "clsp small instance" begin
-        data = CLD.CapacitatedLotSizing.readData("testSmall")
-
-        coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, params = CL.Params(),
-            default_optimizer = with_optimizer(GLPK.Optimizer)
-        )
-
-        model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
-        JuMP.optimize!(model)
-
-        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    end
-    return
+    # return
 end
 
 function lot_sizing_tests()
@@ -234,7 +201,7 @@ function lot_sizing_tests()
 end
 
 function capacitated_lot_sizing_tests()
-    @testset "play multi items capacited lot sizing" begin
+    @testset "clsp small instance" begin
         data = CLD.CapacitatedLotSizing.readData("testSmall")
 
         coluna = JuMP.with_optimizer(
@@ -242,8 +209,10 @@ function capacitated_lot_sizing_tests()
             default_optimizer = with_optimizer(GLPK.Optimizer)
         )
 
-        clsp, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
-        JuMP.optimize!(clsp)
+        model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
+        JuMP.optimize!(model)
+
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
     end
 end
 

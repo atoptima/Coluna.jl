@@ -1,5 +1,4 @@
-using ..Coluna # to remove when merging to the master branch
-
+# using ..Coluna # to comment when merging to the master branch
 
 """
     ConquerRecord
@@ -113,7 +112,7 @@ Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm
     colgen::ColumnGeneration = ColumnGeneration()
     mastipheur::MasterIpHeuristic = MasterIpHeuristic()
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
-    run_mastipheur::Bool = false # put to true
+    run_mastipheur::Bool = true
     run_preprocessing::Bool = false
 end
 
@@ -155,7 +154,7 @@ function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)::
         # TO DO : update incumb with col.gen. output
         heuroutput = run!(algo.mastipheur, reform, OptimizationInput(incumb))
         for sol in getprimalsols(getresult(heuroutput))
-            optoutput.add_ip_primal_sol!(sol)
+            add_ip_primal_sol!(optoutput, sol)
         end
     end 
 

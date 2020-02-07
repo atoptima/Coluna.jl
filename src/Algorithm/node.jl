@@ -1,4 +1,4 @@
-using ..Coluna # to remove when merging to the master branch
+# using ..Coluna # to comment when merging to the master branch
 
 ####################################################################
 #                      Branch
@@ -132,11 +132,17 @@ getinfeasible(n::Node) = n.infesible
 setinfeasible(n::Node, status::Bool) = n.infeasible = status
 
 function to_be_pruned(n::Node)
-    # How to determine if a node should be pruned?? By the lp_gap?
     n.infeasible && return true
     ip_gap(n.incumbents) <= 0.0000001 && return true
     return false
 end
+
+function to_be_pruned(n::Node, ip_primal_bound::PrimalBound)
+    n.infeasible && return true
+    gap(ip_primal_bound, get_ip_dual_bound(n.incumbents)) <= 0.0000001 && return true
+    return false
+end
+
 
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(

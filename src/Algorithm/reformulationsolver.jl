@@ -1,4 +1,3 @@
-using ..Coluna # to remove when merging to the master branch
 
 # """
 #     ReformulationSolver

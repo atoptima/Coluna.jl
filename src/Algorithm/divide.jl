@@ -1,4 +1,4 @@
-using ..Coluna # to remove when merging to the master branch
+# using ..Coluna # to comment when merging to the master branch
 
 """
     DivideInput
@@ -12,7 +12,6 @@ struct DivideInput <: AbstractInput
 end
 
 getparent(input::DivideInput) = input.parent
-get_ip_primal_bound(input::DivideInput) = input.ip_primal_bound
 
 """
     DivideOutput

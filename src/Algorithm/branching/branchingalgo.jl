@@ -137,14 +137,14 @@ function perform_strong_branching_with_phases!(
             end
 
             # TO CHECK : Should we do this???
-            update_father_dual_bound!(group, parent)
+            #update_father_dual_bound!(group, parent)
 
             deleteat!(group.children, pruned_nodes_indices)
 
             if isempty(group.children)
                 setconquered!(group)
                 if isverbose(current_phase.conquer_algo)
-                    println(" SB phase ", phase_index, " candidate ", group_index, " is conquered !")
+                    println("SB phase ", phase_index, " candidate ", group_index, " is conquered !")
                 end    
                 break
             end
@@ -175,7 +175,7 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
     parent_incumb = getincumbents(parent)
     sense = getsense(parent_incumb)
     result = OptimizationResult{sense}()
-    setprimalbound!(result, get_ip_primal_bound(input))
+    setprimalbound!(result, input.ip_primal_bound)
     setdualbound!(result, get_ip_dual_bound(parent_incumb))
     if isempty(algo.rules)
         @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."

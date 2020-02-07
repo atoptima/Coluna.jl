@@ -42,7 +42,6 @@ OptimizationResult{S}() where {S} = OptimizationResult{S}(
     DualBound{S}(), PrimalSolution{S}[], DualSolution{S}[]
 )
 
-
 getterminationstatus(res::OptimizationResult) = res.termination_status
 getfeasibilitystatus(res::OptimizationResult) = res.feasibility_status
 isfeasible(res::OptimizationResult) = res.feasibility_status == FEASIBLE

@@ -33,14 +33,18 @@ function run!(algo::MasterIpHeuristic, reform::Reformulation, input::Optimizatio
 
         @logmsg LogLevel(1) string(
             "Found primal solution of ", 
-            @sprintf "%.4f" getprimalbound(opt_result)
+            @sprintf "%.4f" Coluna.Containers.getvalue(getprimalbound(opt_result))
         )
         @logmsg LogLevel(-3) getbestprimalsol(opt_result)
 
         # this heuristic can only update the primal ip solution
         # dual bound cannot be updated
         for sol in getprimalsols(opt_result)
-            output.add_ip_primal_sol!(sol)
+            # TO DO : this verification can be removed when the upper bound
+            # is set for the restricted master heuristic
+            if isbetter(getbound(sol), get_ip_primal_bound(initincumb))
+                add_ip_primal_sol!(output, sol)
+            end
         end
 
         return output

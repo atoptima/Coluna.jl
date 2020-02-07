@@ -148,11 +148,12 @@ function compute_tree_depth_score!(group::BranchingGroup, parent_inc::Incumbents
         if node_delta < 1e-6 # TO DO : use tolerance here
             nb_zero_deltas += 1
         end
-        if node_delta < parent_delta
-            push!(deltas, max(node_delta, parent_delta * 1e-4))
-        else
-            push!(deltas, parent_delta)
-        end
+        push!(deltas, min(parent_delta, node_delta))
+    end
+
+    max_delta = maximum(deltas)
+    if nb_zero_deltas < length(deltas) && parent_delta > max_delta * 30
+        parent_delta = max_delta * 30
     end
 
     if isempty(deltas)
