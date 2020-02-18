@@ -5,6 +5,7 @@ version = "0.2.0"
 
 [deps]
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
+ColunaDemos = "a54e61d4-7723-11e9-2469-af255fcaa246"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 DynamicSparseArrays = "8086fd22-9a0c-46a5-a6c8-6e24676501fe"
@@ -19,7 +20,7 @@ TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 BlockDecomposition = "1.1"
 DataStructures = "0.17"
 DynamicSparseArrays = "0.2.2"
-MathOptInterface = "0.9"
+MathOptInterface = "~0.9.9"
 TimerOutputs = "0.5"
 julia = "1"
 
