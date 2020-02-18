@@ -89,8 +89,6 @@ function getslavealgorithms!(
     end
 end
 
-# stopped here
-
 function perform_strong_branching_with_phases!(
     algo::StrongBranching, reform::Reformulation, parent::Node, 
     groups::Vector{BranchingGroup}, result::OptimizationResult

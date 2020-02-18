@@ -30,18 +30,6 @@ function BendersCutGenRuntimeData(S::Type{<:Coluna.AbstractSense}, node_inc::Inc
     return BendersCutGenRuntimeData(i, false, true, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
 end
 
-# Data needed for another round of column generation
-# struct BendersCutGenerationRecord <: AbstractAlgorithmResult
-#     incumbents::Incumbents
-#     proven_infeasible::Bool
-# end
-
-# Overload of the solver interface
-# function prepare!(algo::BendersCutGeneration, form, node)
-#     @logmsg LogLevel(-1) "Prepare BendersCutGeneration."
-#     return
-# end
-
 function run!(algo::BendersCutGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
 
     initincumb = getincumbents(input)

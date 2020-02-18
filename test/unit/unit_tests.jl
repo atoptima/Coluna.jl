@@ -6,7 +6,6 @@ include("MathProg/types.jl")
 include("MathProg/variables.jl")
 
 include("algorithms/algorithm.jl")
-include("strategies/strategy.jl")
 
 # include("parameters.jl")
 include("counters.jl")
@@ -57,9 +56,7 @@ function unit_tests()
     @testset "algorithm.jl" begin
         algorithm_unit_tests()
     end
-    # @testset "strategy.jl" begin
-    #     strategy_unit_tests()
-    # end
+
     @testset "counters.jl" begin
         counters_unit_tests()
     end

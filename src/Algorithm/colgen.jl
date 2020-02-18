@@ -1,5 +1,3 @@
-# using ..Coluna # to comment when merging to the master branch
-
 Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     max_nb_iterations::Int = 1000
     optimality_tol::Float64 = 1e-5
@@ -24,18 +22,6 @@ function ColGenRuntimeData(
     update_ip_primal_bound!(inc, ipprimalbound)
     return ColGenRuntimeData(inc, false, true, [], 2)
 end
-
-# # Data needed for another round of column generation
-# mutable struct ColumnGenerationResult <: AbstractAlgorithmResult
-#     incumbents::Incumbents
-#     proven_infeasible::Bool
-# end
-
-# Overload of the algorithm's prepare function
-# function prepare!(alg::ColumnGeneration, form, node)
-#     @logmsg LogLevel(-1) "Prepare ColumnGeneration."
-#     return
-# end
 
 # Overload of the algorithm's run function
 function run!(algo::ColumnGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    

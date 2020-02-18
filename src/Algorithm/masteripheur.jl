@@ -1,19 +1,4 @@
-struct MasterIpHeuristic <: AbstractOptimizationAlgorithm 
-end
-
-# struct MasterIpHeuristicData
-#     incumbents::Incumbents
-# end
-# MasterIpHeuristicData(S::Type{<:Coluna.AbstractSense}) = MasterIpHeuristicData(Incumbents(S))
-
-# struct MasterIpHeuristicRecord <: AbstractAlgorithmResult
-#     incumbents::Incumbents
-# end
-
-# function prepare!(algo::MasterIpHeuristic, form, node)
-#     @logmsg LogLevel(-1) "Prepare MasterIpHeuristic."
-#     return
-# end
+struct MasterIpHeuristic <: AbstractOptimizationAlgorithm end
 
 function run!(algo::MasterIpHeuristic, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
     @logmsg LogLevel(1) "Applying Master IP heuristic"

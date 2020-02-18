@@ -25,12 +25,6 @@ const MOI = MathOptInterface
 
 import Base: push!
 
-# TODO clean up :
-#export AbstractGlobalStrategy, EmptyGlobalStrategy
-
-# const MAX_NUM_NODES = 100 # TODO : rm & should be a parameter of the B&B Algorithm
-# const OPEN_NODES_LIMIT = 100 # TODO : rm & should be param of B&B algo
-
 # Abstract algorithm
 include("interface.jl")
 
@@ -63,22 +57,5 @@ include("treesearch.jl")
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColGenConquer, ColumnGeneration, 
        BendersConquer, BendersCutGeneration, MasterIpHeuristic, ExactBranchingPhase, 
        OnlyRestrictedMasterBranchingPhase
-
-
-
-# Here include conquer strategies
-# include("strategies/conquer/simplebnp.jl")
-# include("strategies/conquer/simplebenders.jl")
-
-# # Concrete algorithms & Strategies :
-# include("strategies/strategy.jl")
-
-# include("reformulationsolver.jl")
-
-# # Here include divide strategies
-# include("strategies/divide/simplebranching.jl") # to remove
-
-# Here include explore strategies
-# include("strategies/explore/simplestrategies.jl")
 
 end
