@@ -17,11 +17,12 @@ function infeasible_master_ip_heur_tests()
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
         # Apply directly master ip heuristic => infeasible        
-        coluna = JuMP.with_optimizer(
-            Coluna.Optimizer, params = CL.Params(
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer,
+            "params" => CL.Params(
                 solver = ClA.MasterIpHeuristic()
             ),
-            default_optimizer = with_optimizer(GLPK.Optimizer)
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
