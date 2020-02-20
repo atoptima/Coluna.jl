@@ -7,7 +7,7 @@ function mycallback(form::CL.Formulation)
         c -> (CL.getcurisactive(form,c) && CL.getcurisexplicit(form,c)),
         CL.getconstrs(form))][1]
     matrix = CL.getcoefmatrix(form)
-    m = JuMP.Model(with_optimizer(GLPK.Optimizer))
+    m = JuMP.Model(GLPK.Optimizer)
     @variable(m, CL.getcurlb(form, vars[i]) <= x[i=1:length(vars)] <= CL.getcurub(form, vars[i]), Int)
     @objective(m, Min, sum(CL.getcurcost(form, vars[j]) * x[j] for j in 1:length(vars)))
     @constraint(m, knp, 
@@ -33,16 +33,17 @@ function mycallback(form::CL.Formulation)
 end
 
 build_sp_moi_optimizer() = CL.UserOptimizer(mycallback)
-build_master_moi_optimizer() = CL.MoiOptimizer(with_optimizer(GLPK.Optimizer)())
+build_master_moi_optimizer() = CL.MoiOptimizer(GLPK.Optimizer())
 
 function pricing_callback_tests()
 
     @testset "GAP with ad-hoc pricing callback " begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
-        coluna = JuMP.with_optimizer(CL.Optimizer,
-            default_optimizer = with_optimizer(
-            GLPK.Optimizer), params = CL.Params(
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer,
+            "default_optimizer" => GLPK.Optimizer,
+            "params" => CL.Params(
                 ;global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(),
                 ClA.SimpleBranching(), ClA.DepthFirst())
             )

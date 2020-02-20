@@ -1,8 +1,9 @@
 function show_functions_tests()
     data = CLD.GeneralizedAssignment.data("play2.txt")
-    coluna = JuMP.with_optimizer(CL.Optimizer,
-        default_optimizer = with_optimizer(
-        GLPK.Optimizer), params = CL.Params(
+    coluna = JuMP.optimizer_with_attributes(
+        CL.Optimizer,
+        "default_optimizer" => GLPK.Optimizer, 
+        "params" => CL.Params(
             ;global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
             ClA.NoBranching(), ClA.DepthFirst())
         )

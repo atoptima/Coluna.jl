@@ -13,8 +13,9 @@ const SupportedConstrSets = Union{MOI.EqualTo{Float64},
                                   MOI.GreaterThan{Float64},
                                   MOI.LessThan{Float64}}
 
+
 mutable struct Optimizer <: MOI.AbstractOptimizer
-    inner::Problem
+    inner::Union{Nothing, Problem}
     moi_index_to_coluna_uid::MOIU.IndexMap
     params::Params
     annotations::Annotations
@@ -24,16 +25,24 @@ end
 
 setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob
 
-function Optimizer(;default_optimizer = nothing,
-                   params = Params())
-    b = no_optimizer_builder
-    if default_optimizer != nothing
-        b = ()->MoiOptimizer(default_optimizer())
+# Parameters
+function MOI.set(model::Optimizer, param::MOI.RawParameter, val)
+    if param.name == "params"
+        model.params = val
+    elseif param.name == "default_optimizer"
+        optimizer_builder = () -> MoiOptimizer(val())
+        model.inner.default_optimizer_builder = optimizer_builder
+    else
+        @warn("Unknown parameter $(param.name).")
     end
-    prob = Problem(b)
+    return
+end
+
+function Optimizer()
+    prob = Problem()
     return Optimizer(
-        prob, MOIU.IndexMap(), params, Annotations(),
-        Dict{MOI.VariableIndex,Id{Variable}}(), OptimizationResult{MinSense}()
+        prob, MOIU.IndexMap(), Params(), Annotations(),
+        Dict{MOI.VariableIndex,Id{Variable}}(), OptimizationResult{MinSense}(),
     )
 end
 
@@ -216,7 +225,9 @@ end
 # ### Get functions ####
 # ######################
 
-MOI.is_empty(optimizer::Optimizer) = (optimizer.inner.re_formulation == nothing)
+function MOI.is_empty(optimizer::Optimizer)
+    return optimizer.inner === nothing || optimizer.inner.re_formulation === nothing
+end
 
 function MOI.get(optimizer::Optimizer, object::MOI.ObjectiveBound)
     return getvalue(getprimalbound(optimizer.result))

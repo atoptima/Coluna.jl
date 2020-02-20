@@ -28,9 +28,10 @@ end
 
 function play_gap_with_preprocessing_tests()
     data = CLD.GeneralizedAssignment.data("play2.txt")
-    coluna = JuMP.with_optimizer(
-        CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
-        params = CL.Params(
+    coluna = JuMP.optimizer_with_attributes(
+        CL.Optimizer, 
+        "default_optimizer" => GLPK.Optimizer,
+        "params" => CL.Params(
             ; global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
             ClA.SimpleBranching(), ClA.DepthFirst())
         )
@@ -69,9 +70,10 @@ end
 
 function test_random_gap_instance()
     data = gen_random_small_gap_instance()
-    coluna = JuMP.with_optimizer(CL.Optimizer,
-    default_optimizer = with_optimizer(
-        GLPK.Optimizer), params = CL.Params(
+    coluna = JuMP.optimizer_with_attributes(
+        CL.Optimizer,
+        "default_optimizer" => GLPK.Optimizer, 
+        "params" => CL.Params(
             ;global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
             ClA.NoBranching(), ClA.DepthFirst())
         )
@@ -85,9 +87,10 @@ function test_random_gap_instance()
     JuMP.optimize!(problem)
 
     if MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
-        coluna = JuMP.with_optimizer(
-            CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
-            params = CL.Params(
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer, 
+            "default_optimizer" => GLPK.Optimizer,
+            "params" => CL.Params(
                 global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
             )
         )
@@ -113,9 +116,10 @@ function test_random_gap_instance()
                 for mach_idx in forbidden_machs
                     modified_data.weight[j,mach_idx] = modified_data.capacity[mach_idx] + 1
                 end
-                coluna = JuMP.with_optimizer(
-                    CL.Optimizer, default_optimizer = with_optimizer(GLPK.Optimizer),
-                    params = CL.Params(
+                coluna = JuMP.optimizer_with_attributes(
+                    CL.Optimizer,
+                    "default_optimizer" => GLPK.Optimizer,
+                    "params" => CL.Params(
                         global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
                     )
                 )
