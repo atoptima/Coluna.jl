@@ -16,12 +16,12 @@ function infeasible_master_ip_heur_tests()
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
-        coluna = JuMP.with_optimizer(
+        coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            params = CL.Params(
+            "params" => CL.Params(
                 global_strategy = ClA.GlobalStrategy(InfeasibleMasterIpHeur(), ClA.NoBranching(), ClA.DepthFirst())
             ),
-            default_optimizer = with_optimizer(GLPK.Optimizer)
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)

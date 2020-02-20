@@ -73,11 +73,13 @@ end
 
 Constructs an empty `Problem`.
 """
-Problem(b::Function) = Problem(nothing, nothing, Counter(-1), b)
+Problem() = Problem(nothing, nothing, Counter(-1), no_optimizer_builder)
 
 set_original_formulation!(m::Problem, of::Formulation) = m.original_formulation = of
 set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r
 
 get_original_formulation(m::Problem) = m.original_formulation
 get_re_formulation(m::Problem) = m.re_formulation
+
+set_default_optimizer_builder!(p::Problem, default_opt_builder) = p.default_optimizer_builder = default_opt_builder
 

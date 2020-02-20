@@ -13,13 +13,13 @@ using JuMP, BlockDecomposition, GLPK, Coluna
 We instantiate the solver and define how we want to solve the decomposed formulation.
 
 ```julia
-coluna = JuMP.with_optimizer(
+coluna = JuMP.optimizer_with_attributes(
     Coluna.Optimizer,
-    params = Coluna.Params(
+    "params" => Coluna.Params(
         global_strategy = Coluna.GlobalStrategy(
                 Coluna.SimpleBnP(), Coluna.SimpleBranching(), Coluna.DepthFirst())
         ),
-    default_optimizer = with_optimizer(GLPK.Optimizer)
+    "default_optimizer" => with_optimizer(GLPK.Optimizer)
 )
 ```
 
