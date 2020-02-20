@@ -17,9 +17,7 @@ version = "0.5.8"
 
 [[BlockDecomposition]]
 deps = ["DataStructures", "JuMP", "MathOptInterface"]
-git-tree-sha1 = "fd819db66791675becb4c9c770042d020ba66769"
-repo-rev = "master"
-repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
+git-tree-sha1 = "7a2e6ef9fbde591c21acd116126b0efb9f4909fc"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 version = "1.1.0"
 
@@ -152,9 +150,9 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[MutableArithmetics]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
-git-tree-sha1 = "f1c1ceab8adc1141ac5eba3881b0d53b277949c0"
+git-tree-sha1 = "12d31f26620590e85730f34228107cedd6448774"
 uuid = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
-version = "0.2.2"
+version = "0.2.3"
 
 [[NaNMath]]
 git-tree-sha1 = "928b8ca9b2791081dc71a51c55347c27c618760f"
