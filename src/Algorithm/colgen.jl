@@ -59,7 +59,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
             get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
             data.ip_primal_sols, Vector{DualSolution{Sense}}()
         ), 
-        Coluna.MathProg.get_lp_primal_sol(data.incumbents), 
+        get_lp_primal_sol(data.incumbents), 
         Coluna.MathProg.get_lp_dual_bound(data.incumbents)
     )
 end
@@ -67,7 +67,7 @@ end
 # Internal methods to the column generation
 function should_do_ph_1(master::Formulation, data::ColGenRuntimeData)
     ip_gap(data.incumbents) <= 0.00001 && return false
-    primal_lp_sol = Coluna.MathProg.get_lp_primal_sol(data.incumbents)
+    primal_lp_sol = get_lp_primal_sol(data.incumbents)
     if contains(master, primal_lp_sol, MasterArtVar)
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
         return true

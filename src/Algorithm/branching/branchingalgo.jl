@@ -207,10 +207,10 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
     original_solution = PrimalSolution{sense}()
     extended_solution = PrimalSolution{sense}()
     if projection_is_possible(master)
-        extended_solution = Coluna.MathProg.get_lp_primal_sol(parent.incumbents)
+        extended_solution = get_lp_primal_sol(parent.incumbents)
         original_solution = proj_cols_on_rep(extended_solution, master)
     else
-        original_solution = Coluna.MathProg.get_lp_primal_sol(parent.incumbents)
+        original_solution = get_lp_primal_sol(parent.incumbents)
     end
 
     # phase 0 of branching : we ask branching rules to generate branching candidates

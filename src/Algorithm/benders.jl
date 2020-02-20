@@ -50,7 +50,7 @@ function run!(algo::BendersCutGeneration, reform::Reformulation, input::Optimiza
             get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
             ip_primal_sols, Vector{DualSolution{Sense}}()
         ), 
-        Coluna.MathProg.get_lp_primal_sol(data.incumbents), 
+        get_lp_primal_sol(data.incumbents), 
         Coluna.MathProg.get_lp_dual_bound(data.incumbents)
     )
 
