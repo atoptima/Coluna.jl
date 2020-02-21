@@ -18,7 +18,7 @@ function run!(algo::MasterIpHeuristic, reform::Reformulation, input::Optimizatio
 
         @logmsg LogLevel(1) string(
             "Found primal solution of ", 
-            @sprintf "%.4f" Coluna.Containers.getvalue(getprimalbound(opt_result))
+            @sprintf "%.4f" getvalue(getprimalbound(opt_result))
         )
         @logmsg LogLevel(-3) getbestprimalsol(opt_result)
 

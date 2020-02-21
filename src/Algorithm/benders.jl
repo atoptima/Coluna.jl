@@ -169,7 +169,7 @@ function record_solutions!(
     dual_sols = getdualsols(spresult)
 
     for dual_sol in dual_sols
-        if Coluna.Containers.getvalue(dual_sol) > algo.feasibility_tol 
+        if getvalue(dual_sol) > algo.feasibility_tol 
             (insertion_status, dual_sol_id) = setdualsol!(spform, dual_sol)
             if insertion_status
                 push!(recorded_dual_solution_ids, dual_sol_id)
@@ -215,7 +215,7 @@ function compute_benders_sp_lagrangian_bound_contrib(
     algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::OptimizationResult{S}
 ) where {S}
     dualsol = getbestdualsol(spsol)
-    contrib = Coluna.Containers.getvalue(dualsol)
+    contrib = getvalue(dualsol)
     return contrib
 end
 
@@ -430,7 +430,7 @@ end
 function compute_master_pb_contrib(algdata::BendersCutGenRuntimeData, master::Formulation,
                                    restricted_master_sol_value::DualBound{S}) where {S}
     # TODO: will change with stabilization
-    return PrimalBound(master, Coluna.Containers.getvalue(restricted_master_sol_value))
+    return PrimalBound(master, getvalue(restricted_master_sol_value))
 end
 
 function update_lagrangian_pb!(algdata::BendersCutGenRuntimeData, reform::Reformulation,
@@ -612,9 +612,9 @@ function print_intermediate_statistics(data::BendersCutGenRuntimeData,
                                        nb_new_cut::Int,
                                        nb_bc_iterations::Int,
                                        mst_time::Float64, sp_time::Float64)
-    mlp = Coluna.Containers.getvalue(get_lp_dual_bound(data.incumbents))
-    db = Coluna.Containers.getvalue(get_ip_dual_bound(data.incumbents))
-    pb = Coluna.Containers.getvalue(get_ip_primal_bound(data.incumbents))
+    mlp = getvalue(get_lp_dual_bound(data.incumbents))
+    db = getvalue(get_ip_dual_bound(data.incumbents))
+    pb = getvalue(get_ip_primal_bound(data.incumbents))
     @printf(
             "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <mlp=%10.4f> <DB=%10.4f> <PB=%10.4f>\n",
             nb_bc_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_cut, mlp, db, pb

@@ -118,9 +118,9 @@ function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
                 ", ", nb_open_nodes(data) + 1, " open nodes")
     end
 
-    db = Coluna.Containers.getvalue(getdualbound(getresult(data)))
-    pb = Coluna.Containers.getvalue(getprimalbound(getresult(data)))
-    node_db = Coluna.Containers.getvalue(get_ip_dual_bound(getincumbents(node)))
+    db = getvalue(getdualbound(getresult(data)))
+    pb = getvalue(getprimalbound(getresult(data)))
+    node_db = getvalue(get_ip_dual_bound(getincumbents(node)))
     @printf "**** Local DB = %.4f," node_db
     @printf " global bounds : [ %.4f , %.4f ]," db pb
     @printf " time = %.2f sec.\n" Coluna._elapsed_solve_time()
@@ -200,7 +200,7 @@ end
 
 function updatedualbound!(data::TreeSearchRuntimeData)
     result = getresult(data)
-    bound_value = Coluna.Containers.getvalue(getprimalbound(result))
+    bound_value = getvalue(getprimalbound(result))
     worst_bound = DualBound{data.Sense}(bound_value)  
     for (node, priority) in getnodes(data.primary_tree)
         db = get_ip_dual_bound(getincumbents(node))

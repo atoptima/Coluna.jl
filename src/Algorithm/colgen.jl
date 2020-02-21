@@ -292,8 +292,8 @@ function generatecolumns!(
     return nb_new_columns
 end
 
-ph_one_infeasible_db(db::DualBound{MinSense}) = Coluna.Containers.getvalue(db) > (0.0 + 1e-5)
-ph_one_infeasible_db(db::DualBound{MaxSense}) = Coluna.Containers.getvalue(db) < (0.0 - 1e-5)
+ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
+ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
 
 function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::Reformulation)
     nb_cg_iterations = 0
@@ -393,9 +393,9 @@ function print_intermediate_statistics(
     mst_time::Float64, sp_time::Float64
 )
     # Ruslan : does not work without Coluna.Containers, I do not understand why
-    mlp = Coluna.Containers.getvalue(get_lp_primal_bound(algdata.incumbents))
-    db = Coluna.Containers.getvalue(get_ip_dual_bound(algdata.incumbents))
-    pb = Coluna.Containers.getvalue(get_ip_primal_bound(algdata.incumbents))
+    mlp = getvalue(get_lp_primal_bound(algdata.incumbents))
+    db = getvalue(get_ip_dual_bound(algdata.incumbents))
+    pb = getvalue(get_ip_primal_bound(algdata.incumbents))
     @printf(
         "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <mlp=%10.4f> <DB=%10.4f> <PB=%.4f>\n",
         nb_cg_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, mlp, db, pb

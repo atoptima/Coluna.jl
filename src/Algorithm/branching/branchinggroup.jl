@@ -182,7 +182,7 @@ function print_bounds_and_score(group::BranchingGroup, phase_index::Int64, max_d
     print(repeat(" ", lengthdiff), " : [")
     for (node_index, node) in enumerate(group.children)
         node_index > 1 && print(",")            
-        @printf "%10.4f" Coluna.Containers.getvalue(get_lp_primal_bound(getincumbents(node)))
+        @printf "%10.4f" getvalue(get_lp_primal_bound(getincumbents(node)))
     end
     @printf "], score = %10.4f\n" group.score
     return
