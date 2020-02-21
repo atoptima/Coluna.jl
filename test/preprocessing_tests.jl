@@ -28,7 +28,6 @@ end
 
 function play_gap_with_preprocessing_tests()
     data = CLD.GeneralizedAssignment.data("play2.txt")
-
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer, 
         "default_optimizer" => GLPK.Optimizer,
@@ -73,7 +72,6 @@ end
 
 function test_random_gap_instance()
     data = gen_random_small_gap_instance()
-
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
         "default_optimizer" => GLPK.Optimizer, 
