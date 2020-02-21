@@ -29,7 +29,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
     @logmsg LogLevel(-1) "Run ColumnGeneration."
 
     initincumb = getincumbents(input)
-    data = ColGenRuntimeData(algo, reform, Coluna.MathProg.get_ip_primal_bound(initincumb))
+    data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(initincumb))
 
     cg_main_loop!(algo, data, reform)
     masterform = getmaster(reform)
@@ -60,7 +60,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
             data.ip_primal_sols, Vector{DualSolution{Sense}}()
         ), 
         get_lp_primal_sol(data.incumbents), 
-        Coluna.MathProg.get_lp_dual_bound(data.incumbents)
+        get_lp_dual_bound(data.incumbents)
     )
 end
 
@@ -325,7 +325,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
 
         if update_lp_primal_sol!(data.incumbents, primal_sols[1])
             if isinteger(primal_sols[1]) && !contains(masterform, primal_sols[1], MasterArtVar) &&
-               Coluna.MathProg.update_ip_primal_bound!(data.incumbents, master_val)
+               update_ip_primal_bound!(data.incumbents, master_val)
                 if algo.store_all_ip_primal_sols
                     push!(data.ip_primal_sols, primal_sols[1])
                 else

@@ -135,7 +135,7 @@ function perform_strong_branching_with_phases!(
                         "**** SB phase ", phase_index, " evaluation of candidate ", 
                         group_index, " (branch ", node_index, node.branchdescription
                     )
-                    @printf "), value = %6.2f\n" Coluna.MathProg.getvalue(get_lp_primal_bound(getincumbents(node)))
+                    @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getincumbents(node)))
                 end
 
                 optoutput = apply_conquer_alg_to_node!(

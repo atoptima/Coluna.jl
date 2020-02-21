@@ -30,7 +30,7 @@ function run!(algo::MasterLpAlgorithm, reform::Reformulation, input::Optimizatio
     # is not a valid dual bound, so the dual bound is not updated
 
     if isinteger(lpsol) && !contains(master, lpsol, MasterArtVar) &&
-        Coluna.MathProg.update_ip_primal_bound!(initincumb, getprimalbound(lpresult))
+        update_ip_primal_bound!(initincumb, getprimalbound(lpresult))
         add_ip_primal_sol!(output, lpsol)
     end
 

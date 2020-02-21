@@ -51,7 +51,7 @@ function run!(algo::BendersCutGeneration, reform::Reformulation, input::Optimiza
             ip_primal_sols, Vector{DualSolution{Sense}}()
         ), 
         get_lp_primal_sol(data.incumbents), 
-        Coluna.MathProg.get_lp_dual_bound(data.incumbents)
+        get_lp_dual_bound(data.incumbents)
     )
 
 end
@@ -517,7 +517,7 @@ function bend_cutting_plane_main_loop!(
         end
 
         update_lp_dual_sol!(algdata.incumbents, master_dual_sol)
-        dual_bound = Coluna.MathProg.get_lp_dual_bound(algdata.incumbents)
+        dual_bound = get_lp_dual_bound(algdata.incumbents)
         update_lp_dual_bound!(algdata.incumbents, dual_bound)
         update_ip_dual_bound!(algdata.incumbents, dual_bound)
                 
@@ -612,7 +612,7 @@ function print_intermediate_statistics(data::BendersCutGenRuntimeData,
                                        nb_new_cut::Int,
                                        nb_bc_iterations::Int,
                                        mst_time::Float64, sp_time::Float64)
-    mlp = Coluna.Containers.getvalue(Coluna.MathProg.get_lp_dual_bound(data.incumbents))
+    mlp = Coluna.Containers.getvalue(get_lp_dual_bound(data.incumbents))
     db = Coluna.Containers.getvalue(get_ip_dual_bound(data.incumbents))
     pb = Coluna.Containers.getvalue(get_ip_primal_bound(data.incumbents))
     @printf(

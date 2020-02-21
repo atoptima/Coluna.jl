@@ -16,6 +16,8 @@ import .MathProg: FeasibilityStatus, TerminationStatus, AbstractStorage, EmptySt
 import .MathProg: OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, EMPTY_RESULT, NOT_YET_DETERMINED
 import ..Coluna: AbstractSense
 
+import .MathProg: get_lp_primal_sol, get_lp_dual_bound, setfeasibilitystatus!, setterminationstatus!, getvalue
+
 using Logging
 using Printf
 

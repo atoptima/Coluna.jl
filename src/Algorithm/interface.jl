@@ -102,8 +102,8 @@ set_lp_primal_sol(output::OptimizationOutput, ::Nothing) = nothing
 set_lp_primal_sol(output::OptimizationOutput{S}, sol::PrimalSolution{S}) where {S} = output.lp_primal_sol = sol
 set_lp_dual_bound(output::OptimizationOutput{S}, bound::DualBound{S}) where {S} = output.lp_dual_bound = bound
 
-setfeasibilitystatus!(output::OptimizationOutput, status::FeasibilityStatus) = Coluna.MathProg.setfeasibilitystatus!(output.result, status)
-setterminationstatus!(output::OptimizationOutput, status::TerminationStatus) = Coluna.MathProg.setterminationstatus!(output.result, status)
+setfeasibilitystatus!(output::OptimizationOutput, status::FeasibilityStatus) = setfeasibilitystatus!(output.result, status)
+setterminationstatus!(output::OptimizationOutput, status::TerminationStatus) = setterminationstatus!(output.result, status)
 
 add_ip_primal_sol!(output::OptimizationOutput, ::Nothing) = nothing
 function add_ip_primal_sol!(output::OptimizationOutput, solution::Solution)
