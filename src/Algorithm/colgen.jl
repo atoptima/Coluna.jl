@@ -392,7 +392,6 @@ function print_intermediate_statistics(
     algdata::ColGenRuntimeData, nb_new_col::Int, nb_cg_iterations::Int,
     mst_time::Float64, sp_time::Float64
 )
-    # Ruslan : does not work without Coluna.Containers, I do not understand why
     mlp = getvalue(get_lp_primal_bound(algdata.incumbents))
     db = getvalue(get_ip_dual_bound(algdata.incumbents))
     pb = getvalue(get_ip_primal_bound(algdata.incumbents))
