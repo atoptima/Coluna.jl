@@ -1,64 +1,102 @@
 """
     BranchingPhase
 
-    Contains parameters to determing what will be done in a branching phase
+    A phase in strong branching. Containts the maximum number of candidates
+    to evaluate and the conquer algorithm which does evaluation.
 """
 
 struct BranchingPhase
     max_nb_candidates::Int64
-    conquer_strategy::AbstractConquerStrategy
+    conquer_algo::AbstractConquerAlgorithm
 end
 
-function exact_branching_phase(candidates_num::Int64)     
-    return BranchingPhase(candidates_num, SimpleBnP(
+function ExactBranchingPhase(candidates_num::Int64)     
+    return BranchingPhase(
+        candidates_num, ColGenConquer(
             colgen = ColumnGeneration(max_nb_iterations = typemax(Int64))
-        ))
+        )
+    )
 end
 
-function only_restricted_master_branching_phase(candidates_num::Int64)
-    return BranchingPhase(candidates_num, RestrictedMasterResolve()) 
+function OnlyRestrictedMasterBranchingPhase(candidates_num::Int64)
+    return BranchingPhase(candidates_num, RestrMasterLPConquer()) 
 end    
 
+"""
+    PrioritisedBranchingRule
+
+    A branching rule with root and non-root priorities. 
+"""
+
+struct PrioritisedBranchingRule
+    root_priority::Float64
+    nonroot_priority::Float64
+    rule::AbstractBranchingRule
+end
+
+function getpriority(rule::PrioritisedBranchingRule, isroot::Bool)::Float64
+    return isroot ? rule.root_priority : rule.nonroot_priority
+end
 
 """
-    BranchingStrategy
+    NoBranching
 
-    The strategy to perform (strong) branching in a branch-and-bound algorithm
-    Contains branching phases parameterisation and selection criterion
-    Should be populated by branching rules before branch-and-bound execution
+    The empty divide algorithm
 """
-Base.@kwdef struct BranchingStrategy <: AbstractDivideStrategy
-    # default parameterisation corresponds to simple branching (no strong branching phases)
-    strong_branching_phases::Vector{BranchingPhase} = []
+struct NoBranching <: AbstractDivideAlgorithm
+end
+
+function run!(algo::NoBranching, reform::Reformulation, input::DivideInput)::DivideOutput
+    parent = getparent(input)
+    parent_incumb = getincumbents(parent)
+    Sense = getsense(parent_incumb)
+    result = OptimizationResult{Sense}()
+    return DivideOutput([], result)
+end
+
+
+"""
+    StrongBranching
+
+    The algorithm to perform (strong) branching in a tree search algorithm
+    Contains branching phases and branching rules.
+    Should be populated by branching rules before execution.
+"""
+Base.@kwdef struct StrongBranching <: AbstractDivideAlgorithm
+    phases::Vector{BranchingPhase} = []
+    rules::Vector{PrioritisedBranchingRule} = []
     selection_criterion::SelectionCriterion = MostFractionalCriterion
-    branching_rules::Vector{AbstractBranchingRule} = []
 end
 
-function SimpleBranching()
-    strategy = BranchingStrategy()
-    push!(strategy.branching_rules, VarBranchingRule())
-    return strategy
+# default parameterisation corresponds to simple branching (no strong branching phases)
+function SimpleBranching()::AbstractDivideAlgorithm
+    algo = StrongBranching()
+    push!(algo.rules, PrioritisedBranchingRule(1.0, 1.0, VarBranchingRule()))
+    return algo
 end
 
-function prepare!(strategy::BranchingStrategy, reform::Reformulation)
-
-    #TO DO : here we need to verify whether branching phases are well set
-    #for example, that the max_nb_iterations is not decreasing, etc
-
-    for rule in strategy.branching_rules
-        prepare!(rule, reform)
+function getslavealgorithms!(
+    algo::StrongBranching, reform::Reformulation, 
+    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+)
+    for phase in algo.phases
+        push!(slaves, (reform, typeof(phase.conquer_algo)))
+        getslavealgorithms!(phase.conquer_algo, reform, slaves)
     end
-    return
+    for prioritised_rule in algo.rules
+        push!(slaves, (reform, typeof(prioritised_rule.rule)))
+        getslavealgorithms!(prioritised_rule.rule, reform, slaves)
+    end
 end
 
 function perform_strong_branching_with_phases!(
-    phases::Vector{BranchingPhase}, reform::Reformulation, parent::Node, 
-    groups::Vector{BranchingGroup}
+    algo::StrongBranching, reform::Reformulation, parent::Node, 
+    groups::Vector{BranchingGroup}, result::OptimizationResult
 )
-    for (phase_index, current_phase) in enumerate(phases)
+    for (phase_index, current_phase) in enumerate(algo.phases)
         nb_candidates_for_next_phase::Int64 = 1        
-        if phase_index < length(phases)
-            nb_candidates_for_next_phase = phases[phase_index + 1].max_nb_candidates
+        if phase_index < length(algo.phases)
+            nb_candidates_for_next_phase = algo.phases[phase_index + 1].max_nb_candidates
             if length(groups) <= nb_candidates_for_next_phase 
                 continue
             end
@@ -92,7 +130,7 @@ function perform_strong_branching_with_phases!(
             
             pruned_nodes_indices = Vector{Int64}()            
             for (node_index, node) in enumerate(group.children)
-                if isverbose(current_phase.conquer_strategy)
+                if isverbose(current_phase.conquer_algo)
                     print(
                         "**** SB phase ", phase_index, " evaluation of candidate ", 
                         group_index, " (branch ", node_index, node.branchdescription
@@ -100,38 +138,32 @@ function perform_strong_branching_with_phases!(
                     @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getincumbents(node)))
                 end
 
-                # we update the best integer solution of the node 
-                # (it might have been changed since the node has been created)    
-                update_ip_primal_sol!(getincumbents(node), get_ip_primal_sol(getincumbents(parent)))
-
-                # we apply the conquer strategy of the current branching phase on the current node
-                reset_to_record_state!(reform, node.record) # TO DO : remove _of_father from this name
-                apply_branch!(reform, getbranch(node))
-                apply!(current_phase.conquer_strategy, reform, node)
-                record!(reform, node)
-                update_ip_primal_sol!(getincumbents(parent), get_ip_primal_sol(getincumbents(node)))            
+                optoutput = apply_conquer_alg_to_node!(
+                    node, current_phase.conquer_algo, reform, result
+                )        
 
                 if to_be_pruned(node) 
-                    if isverbose(current_phase.conquer_strategy)
+                    if isverbose(current_phase.conquer_algo)
                         println("Branch is conquered!")
                     end
                     push!(pruned_nodes_indices, node_index)
                 end
             end
 
-            update_father_dual_bound!(group, parent)
+            # TO CHECK : Should we do this???
+            #update_father_dual_bound!(group, parent)
 
             deleteat!(group.children, pruned_nodes_indices)
 
             if isempty(group.children)
                 setconquered!(group)
-                if isverbose(current_phase.conquer_strategy)
-                    println(" SB phase ", phase_index, " candidate ", group_index, " is conquered !")
+                if isverbose(current_phase.conquer_algo)
+                    println("SB phase ", phase_index, " candidate ", group_index, " is conquered !")
                 end    
                 break
             end
 
-            if phase_index < length(phases) 
+            if phase_index < length(algo.phases) 
                 # not the last phase, thus we compute the product score
                 compute_product_score!(group, getincumbents(parent))
             else    
@@ -152,26 +184,28 @@ function perform_strong_branching_with_phases!(
     return
 end
 
-function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node)
-    if isempty(strategy.branching_rules)
+function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput)::DivideOutput
+    parent = getparent(input)
+    parent_incumb = getincumbents(parent)
+    sense = getsense(parent_incumb)
+    result = OptimizationResult{sense}()
+    setprimalbound!(result, input.ip_primal_bound)
+    setdualbound!(result, get_ip_dual_bound(parent_incumb))
+    if isempty(algo.rules)
         @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
-        return
+        return DivideOutput([], result)
     end
 
     kept_branch_groups = Vector{BranchingGroup}()
     parent_is_root::Bool = getdepth(parent) == 0
 
     # first we sort branching rules by their root/non-root priority (depending on the node depth)
-    if parent_is_root
-        sort!(strategy.branching_rules, rev = true, by = x -> getrootpriority(x))
-    else  
-        sort!(strategy.branching_rules, rev = true, by = x -> getnonrootpriority(x))
-    end
+    sort!(algo.rules, rev = true, by = x -> getpriority(x, parent_is_root))
 
     # we obtain the original and extended solutions
     master = getmaster(reform)
-    original_solution = PrimalSolution{getobjsense(master)}()
-    extended_solution = PrimalSolution{getobjsense(master)}()
+    original_solution = PrimalSolution{sense}()
+    extended_solution = PrimalSolution{sense}()
     if projection_is_possible(master)
         extended_solution = get_lp_primal_sol(parent.incumbents)
         original_solution = proj_cols_on_rep(extended_solution, master)
@@ -186,14 +220,15 @@ function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node
     # - all needed candidates were generated and their smallest priority is strictly greater
     #   than priorities of not yet considered branching rules
     nb_candidates_needed::Int64 = 1;
-    if !isempty(strategy.strong_branching_phases)
-        nb_candidates_needed = strategy.strong_branching_phases[1].max_nb_candidates
+    if !isempty(algo.phases)
+        nb_candidates_needed = algo.phases[1].max_nb_candidates
     end    
     local_id::Int64 = 0
-    min_priority::Float64 = getpriority(strategy.branching_rules[1], parent_is_root)
-    for rule in strategy.branching_rules
+    min_priority::Float64 = getpriority(algo.rules[1], parent_is_root)
+    for prioritised_rule in algo.rules
+        rule = prioritised_rule.rule
         # decide whether to stop generating candidates or not
-        priority::Float64 = getpriority(rule, parent_is_root) 
+        priority::Float64 = getpriority(prioritised_rule, parent_is_root) 
         nb_candidates_found::Int64 = length(kept_branch_groups)
         if priority < floor(min_priority) && nb_candidates_found > 0
             break
@@ -203,23 +238,26 @@ function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node
         min_priority = priority
 
         # generate candidates
-        branch_groups = Vector{BranchingGroup}()
-        local_id, branch_groups = gen_candidates_for_orig_sol(rule, reform, original_solution, nb_candidates_needed, 
-                                                              local_id, strategy.selection_criterion)
-        nb_candidates_found += length(branch_groups)
-        append!(kept_branch_groups, branch_groups)
+        output = run!(rule, reform, BranchingRuleInput(
+            original_solution, true, nb_candidates_needed, algo.selection_criterion, local_id
+        ))
+        nb_candidates_found += length(output.groups)
+        append!(kept_branch_groups, output.groups)
+        local_id = output.local_id
                                 
         if projection_is_possible(master)
-            local_id, branch_groups = gen_candidates_for_ext_sol(rule, reform, extended_solution, nb_candidates_needed, 
-                                                                 local_id, strategy.selection_criterion)
-            nb_candidates_found += length(branch_groups)
-            append!(kept_branch_groups, branch_groups)
+            output = run!(rule, reform, BranchingRuleInput(
+                extended_solution, false, nb_candidates_needed, algo.selection_criterion, local_id
+            ))   
+            nb_candidates_found += length(output.groups)
+            append!(kept_branch_groups, output.groups)
+            local_id = output.local_id
         end
 
         # sort branching candidates according to the selection criterion and remove excess ones
-        if strategy.selection_criterion == FirstFoundCriterion
+        if algo.selection_criterion == FirstFoundCriterion
             sort!(kept_branch_groups, by = x -> x.local_id)
-        elseif strategy.selection_criterion == MostFractionalCriterion    
+        elseif algo.selection_criterion == MostFractionalCriterion    
             sort!(kept_branch_groups, rev = true, by = x -> get_lhs_distance_to_integer(x))
         end
         if length(kept_branch_groups) > nb_candidates_needed
@@ -229,17 +267,15 @@ function apply!(strategy::BranchingStrategy, reform::Reformulation, parent::Node
     
     if isempty(kept_branch_groups)
         @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
-        return
+        return DivideOutput(Vector{Node}(), result)
     end
 
-    if isempty(strategy.strong_branching_phases) 
+    if isempty(algo.phases) 
         #in the case of simple branching, it remains to generate the children
         generate_children!(kept_branch_groups[1], reform, parent)
     else
-        perform_strong_branching_with_phases!(strategy.strong_branching_phases, reform, parent, kept_branch_groups)
+        perform_strong_branching_with_phases!(algo, reform, parent, kept_branch_groups, result)
     end
 
-    parent.children = kept_branch_groups[1].children
-
-    return
+    return DivideOutput(kept_branch_groups[1].children, result)
 end

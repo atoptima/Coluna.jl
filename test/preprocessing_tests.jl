@@ -32,10 +32,12 @@ function play_gap_with_preprocessing_tests()
         CL.Optimizer, 
         "default_optimizer" => GLPK.Optimizer,
         "params" => CL.Params(
-            ; global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
-            ClA.SimpleBranching(), ClA.DepthFirst())
+            solver = ClA.TreeSearchAlgorithm(
+                conqueralg = ClA.ColGenConquer(run_preprocessing = true)
+            )
         )
     )
+
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
     JuMP.optimize!(problem)
     @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
@@ -74,10 +76,13 @@ function test_random_gap_instance()
         CL.Optimizer,
         "default_optimizer" => GLPK.Optimizer, 
         "params" => CL.Params(
-            ;global_strategy = ClA.GlobalStrategy(ClA.BnPnPreprocess(),
-            ClA.NoBranching(), ClA.DepthFirst())
+            solver = ClA.TreeSearchAlgorithm(
+                conqueralg = ClA.ColGenConquer(run_preprocessing = true),
+                dividealg = ClA.NoBranching()
+            )
         )
     )
+
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
     # Adding a random branching constraint
     br_j = Random.rand(data.jobs)
@@ -91,7 +96,9 @@ function test_random_gap_instance()
             CL.Optimizer, 
             "default_optimizer" => GLPK.Optimizer,
             "params" => CL.Params(
-                global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
+                solver = ClA.TreeSearchAlgorithm(
+                    conqueralg = ClA.ColGenConquer(run_preprocessing = false)
+                )
             )
         )
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -120,7 +127,9 @@ function test_random_gap_instance()
                     CL.Optimizer,
                     "default_optimizer" => GLPK.Optimizer,
                     "params" => CL.Params(
-                        global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(), ClA.SimpleBranching(), ClA.DepthFirst())
+                        solver = ClA.TreeSearchAlgorithm(
+                            conqueralg = ClA.ColGenConquer(run_preprocessing = false)
+                        )
                     )
                 )
                 modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna)

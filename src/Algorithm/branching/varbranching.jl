@@ -40,20 +40,18 @@ end
     in order to be able to give different priorities to different groups of variables
 """
 Base.@kwdef struct VarBranchingRule <: AbstractBranchingRule 
-    root_priority::Float64 = 1.0
-    nonroot_priority::Float64 = 1.0
 end
 
-getrootpriority(rule::VarBranchingRule) = rule.root_priority
-getnonrootpriority(rule::VarBranchingRule) = rule.nonroot_priority
+function run!(
+    rule::VarBranchingRule, reform::Reformulation, input::BranchingRuleInput
+)::BranchingRuleOutput    
+    # variable branching works only for the original solution
+    !input.isoriginalsol && return BranchingRuleOutput(input.local_id, Vector{BranchingGroup}())
 
-function gen_candidates_for_orig_sol(
-    rule::VarBranchingRule, reform::Reformulation, sol::PrimalSolution{Sense}, 
-    max_nb_candidates::Int64, local_id::Int64, criterion::SelectionCriterion
-) where Sense
     master = getmaster(reform)
     groups = Vector{BranchingGroup}()
-    for (var_id, val) in sol
+    local_id = input.local_id
+    for (var_id, val) in input.solution
         # Do not consider continuous variables as branching candidates
         getperenekind(master, var_id) == Continuous && continue
         if !isinteger(val)
@@ -64,15 +62,17 @@ function gen_candidates_for_orig_sol(
         end
     end
 
-    if criterion == FirstFoundCriterion
+    if input.criterion == FirstFoundCriterion
         sort!(groups, by = x -> x.local_id)
-    elseif criterion == MostFractionalCriterion    
+    elseif input.criterion == MostFractionalCriterion    
         sort!(groups, rev = true, by = x -> get_lhs_distance_to_integer(x))
     end
 
-    if length(groups) > max_nb_candidates
-        resize!(groups, max_nb_candidates)
+    if length(groups) > input.max_nb_candidates
+        resize!(groups, input.max_nb_candidates)
     end    
 
-    return local_id, groups
+    return BranchingRuleOutput(local_id, groups)
 end
+
+

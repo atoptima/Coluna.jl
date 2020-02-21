@@ -36,6 +36,7 @@ const MP = MathProg
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm
+const AL = Algorithm
 
 include("parameters.jl")
 include("optimize.jl")

@@ -9,7 +9,7 @@ Base.@kwdef mutable struct Params
     cut_up::Float64 = Inf
     cut_lo::Float64 = -Inf
     force_copy_names::Bool = false
-    global_strategy::AbstractGlobalStrategy = EmptyGlobalStrategy() # = GlobalStrategy(SimpleBnP(), SimpleBranching(), DepthFirst())
+    solver::AbstractOptimizationAlgorithm = TreeSearchAlgorithm() 
 end
 
 update_field!(f_v::Tuple{Symbol,Any}) = setfield!(_params_, f_v[1], f_v[2])

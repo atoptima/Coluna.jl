@@ -20,8 +20,9 @@ end
 """
     OptimizationResult{S}
 
-Structure to be returned by all Coluna `optimize!` methods.
+    Structure to be returned by all Coluna `optimize!` methods.
 """
+# TO DO : Optimization result should include information about both IP and LP solutions
 mutable struct OptimizationResult{S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
