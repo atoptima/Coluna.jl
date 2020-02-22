@@ -49,6 +49,38 @@ function generalized_assignment_tests()
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
+    @testset "play gap with lazy constraint callback" begin
+    data = CLD.GeneralizedAssignment.data("play2.txt")
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer, 
+        "params" => CL.Params(),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    problem, x, dec = CLD.GeneralizedAssignment.model_with_penalty(data, coluna)
+
+    # Core cut callback that will fix assignment variables to 0
+    function my_callback_function(cb_data)
+        println("\e[31m cut callback called \e[00m")
+        x_vals = [JuMP.callback_value(cb_data, x[m,j]) for m in data.Machines, j in data.Jobs]
+        for m in data.Machines, j in data.Jobs
+            x_val = JuMP.callback_value(cb_data, x[m,j])
+            if x_val > 1e-6
+                con = JuMP.@build_constraint(x[m,j] <= 0)
+                MOI.submit(model, MOI.LazyConstraint(cb_data), con)
+            end
+        end
+        return
+    end
+    MOI.set(problem, MOI.LazyConstraintCallback(), my_callback_function)
+
+    JuMP.optimize!(problem)
+    @test abs(JuMP.objective_value(problem) - 70000.0) <= 0.00001
+    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+    exit()
+end
+
     @testset "gap - JuMP/MOI modeling" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
