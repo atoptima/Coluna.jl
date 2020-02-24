@@ -16,10 +16,13 @@ We instantiate the solver and define how we want to solve the decomposed formula
 coluna = JuMP.optimizer_with_attributes(
     Coluna.Optimizer,
     "params" => Coluna.Params(
-        global_strategy = Coluna.GlobalStrategy(
-                Coluna.SimpleBnP(), Coluna.SimpleBranching(), Coluna.DepthFirst())
-        ),
-    "default_optimizer" => with_optimizer(GLPK.Optimizer)
+        solver = Coluna.Algorithm.TreeSearchAlgorithm(
+            conqueralg = Coluna.Algorithm.ColGenConquer(),
+            dividealg = Coluna.Algorithm.SimpleBranching(),
+            explorestrategy = Coluna.Algorithm.DepthFirstStrategy()
+        )
+    ),
+    "default_optimizer" => GLPK.Optimizer
 )
 ```
 
