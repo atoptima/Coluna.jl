@@ -78,10 +78,10 @@ function contains(form::AbstractFormulation, sol::DualSolution, duty::Duty{Const
     return false
 end
 
-_solspace(::Coluna.Containers.Solution{<:Dual,Se,De,Va}) where {Se,De,Va} = "Dual solution :"
-_solspace(::Coluna.Containers.Solution{<:Primal,Se,De,Va}) where {Se,De,Va} = "Primal solution :"
+_solspacestring(::Coluna.Containers.Solution{<:Dual,Se,De,Va}) where {Se,De,Va} = "Dual solution :"
+_solspacestring(::Coluna.Containers.Solution{<:Primal,Se,De,Va}) where {Se,De,Va} = "Primal solution :"
 function Base.print(io::IO, form::AbstractFormulation, sol::Coluna.Containers.Solution)
-    println(io, _solspace(sol))
+    println(io, _solspacestring(sol))
     for (id, val) in sol
         println(io, getname(form, id), " = ", val)
     end
