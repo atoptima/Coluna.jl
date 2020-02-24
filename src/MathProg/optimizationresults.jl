@@ -94,3 +94,19 @@ function determine_statuses(res::OptimizationResult, fully_explored::Bool)
     end
     return
 end
+
+function Base.print(io::IO, form::AbstractFormulation, res::OptimizationResult)
+    println(io, "┌ Optimization result ")
+    println(io, "│ Termination status : ", res.termination_status)
+    println(io, "│ Feasibility status : ", res.feasibility_status)
+    println(io, "| Primal solutions : ")
+    for sol in res.primal_sols
+        print(io, form, sol)
+    end
+    println(io, "| Dual solutions : ")
+    for sol in res.dual_sols
+        print(io, form, sol)
+    end
+    println(io, "└")
+    return
+end

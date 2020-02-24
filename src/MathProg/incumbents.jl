@@ -78,6 +78,16 @@ function contains(form::AbstractFormulation, sol::DualSolution, duty::Duty{Const
     return false
 end
 
+_solspacestring(::Coluna.Containers.Solution{<:Dual,Se,De,Va}) where {Se,De,Va} = "Dual solution :"
+_solspacestring(::Coluna.Containers.Solution{<:Primal,Se,De,Va}) where {Se,De,Va} = "Primal solution :"
+function Base.print(io::IO, form::AbstractFormulation, sol::Coluna.Containers.Solution)
+    println(io, _solspacestring(sol))
+    for (id, val) in sol
+        println(io, getname(form, id), " = ", val)
+    end
+    return
+end
+
 # TO DO : should contain only bounds, solutions should be in OptimizationResult
 mutable struct Incumbents{S} 
     ip_primal_sol::PrimalSolution{S}
