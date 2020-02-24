@@ -657,8 +657,10 @@ function optimize!(form::Formulation)
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
     res = optimize!(form, getoptimizer(form))
-    @logmsg LogLevel(-2) string("Optimization finished with result:")
-    @logmsg LogLevel(-2) res
+    @logmsg LogLevel(-2) begin 
+        string("Optimization finished with result:")
+        print(form, res)
+    end
     return res
 end
 
