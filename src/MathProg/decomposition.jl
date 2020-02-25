@@ -1,6 +1,6 @@
 set_glob_art_var(form::Formulation, is_pos::Bool) = setvar!(
     form, string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
-    MasterArtVar; cost = (getobjsense(form) == MinSense ? 1e9 : -1e9),
+    MasterArtVar; cost = (getobjsense(form) == MinSense ? 100000.0 : -100000.0),
     lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
@@ -13,7 +13,7 @@ function create_local_art_vars!(masterform::Formulation)
         var = setvar!(
             masterform, string("local_art_of_", getname(masterform, constr)),
             MasterArtVar;
-            cost = (getobjsense(masterform) == MinSense ? 1e9 : -1e9),
+            cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
             lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
         if getcursense(masterform, constr) == Greater
