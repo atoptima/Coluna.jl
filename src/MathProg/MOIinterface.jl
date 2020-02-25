@@ -239,7 +239,8 @@ function fill_dual_result!(optimizer::MoiOptimizer,
         for (id, constr) in constrs
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
-            if val > 0.000001 || val < - 0.000001 # todo use a tolerance
+            val = round(val, digits = Coluna._params_.tol_digits)
+            if abs(val) > Coluna._params_.tol
                 @logmsg LogLevel(-4) string("Constr ", constr.name, " = ", val)
                 push!(solconstrs, id)
                 push!(solvals, val)      
