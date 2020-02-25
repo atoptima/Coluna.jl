@@ -106,11 +106,11 @@ function record_solutions!(
     recorded_solution_ids = Vector{VarId}()
     for sol in sols
         if contrib_improves_mlp(getbound(sol))
-            (insertion_status, col_id) = setprimalsol!(spform, sol)
+            insertion_status, col_id = setprimalsol!(spform, sol)
             if insertion_status
                 push!(recorded_solution_ids, col_id)
             else
-                @warn string("column already exists as", col_id)
+                @warn string("column already exists as ", getname(getmaster(spform), col_id))
             end
 
         end

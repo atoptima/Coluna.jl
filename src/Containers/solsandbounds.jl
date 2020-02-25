@@ -119,6 +119,9 @@ Base.:<(b1::B, b2::B) where {B<:Bound} = b1.value < b2.value
 Base.:(<=)(b1::B, b2::B) where {B<:Bound} = b1.value <= b2.value
 Base.:(>=)(b1::B, b2::B) where {B<:Bound} = b1.value >= b2.value
 Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value
+Base.isapprox(b1::B, b2::B) where {B<:Bound} = isapprox(b1.value, b2.value)
+Base.isapprox(b::B, val::Number) where {B<:Bound} = isapprox(b.value, val)
+Base.isapprox(val::Number, b::B) where {B<:Bound} = isapprox(b.value, val)
 
 # Solution
 struct Solution{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense,Decision,Value} <: AbstractDict{Decision,Value}
@@ -150,6 +153,7 @@ function Solution{Sp,Se,De,Va}(decisions::Vector{De}, vals::Vector{Va}, bound::B
 end
 
 getbound(s::Solution) = s.bound
+getsol(s::Solution) = s.sol
 getvalue(s::Solution) = float(s.bound)
 setvalue!(s::Solution, v::Float64) = s.bound.value = v
 

@@ -8,14 +8,14 @@ import DynamicSparseArrays
 import Primes
 import Printf
 import Base: <=, setindex!, get, getindex, haskey, keys, values, iterate, 
-             length, lastindex, filter, show, keys, copy
+             length, lastindex, filter, show, keys, copy, isapprox
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
 
 # solsandbounds.jl
 export Bound, Solution,
-       getvalue, isbetter, diff, gap, printbounds, getbound, setvalue!
+       getvalue, isbetter, diff, gap, printbounds, getbound, getsol, setvalue!
 
 export MembersMatrix
 
