@@ -3,24 +3,17 @@ set_glob_art_var(form::Formulation, is_pos::Bool) = setvar!(
     string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
     MasterArtVar; 
     cost = (getobjsense(form) == MinSense ? 100000.0 : -100000.0),
-    lb = 0.0, 
-    ub = Inf, 
-    kind = Continuous, 
-    sense = Positive
+    lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
 )
 
 function create_local_art_vars!(masterform::Formulation)
     matrix = getcoefmatrix(masterform)
     for (constrid, constr) in getconstrs(masterform)
-        getduty(constrid) == MasterConvexityConstr && continue
         var = setvar!(
             masterform, string("local_art_of_", getname(masterform, constr)),
             MasterArtVar;
             cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
-            lb = 0.0, 
-            ub = Inf, 
-            kind = Continuous, 
-            sense = Positive
+            lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
         if getcursense(masterform, constr) == Greater
             matrix[constrid, getid(var)] = 1.0
@@ -220,7 +213,7 @@ function create_side_vars_constrs!(
         cost = 0.0, 
         lb = 1.0, 
         ub = 1.0, 
-        kind = Continuous, 
+        kind = Integ, 
         sense = Positive,
         is_explicit = true
     ) 
