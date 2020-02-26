@@ -115,6 +115,9 @@ function setvar!(form::Formulation,
         lb = (lb < 0.0) ? 0.0 : lb
         ub = (ub > 1.0) ? 1.0 : ub
     end
+    if getduty(id) != duty
+        id = VarId(duty, id)
+    end
     v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
     var = Variable(id, name; var_data = v_data, moi_index = moi_index)
     if haskey(form.manager.vars, getid(var))
@@ -360,7 +363,7 @@ function deactivate!(form::Formulation, varconstr::AbstractVarConstr)
     return
 end
 
-deactivate!(form::Formulation, id::Id) = deactivate!(form, getelem(f, id))
+deactivate!(form::Formulation, id::Id) = deactivate!(form, getelem(form, id))
 
 function deactivate!(form::Formulation, duty::Duty{Variable})
     for (varid, var) in getvars(form)
@@ -398,7 +401,7 @@ function activate!(form::Formulation, duty::Duty{Variable})
     end
 end
 
-function activate!(f::Formulation, duty::Duty{Constraint})
+function activate!(form::Formulation, duty::Duty{Constraint})
     for (constrid, constr) in getconstrs(form)
         getcurisactive(form, constrid) || continue
         getduty(constrid) <= duty || continue
@@ -419,9 +422,12 @@ function setconstr!(form::Formulation,
                     moi_index::MoiConstrIndex = MoiConstrIndex(),
                     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
                     id = generateconstrid(duty, form))
+    if getduty(id) != duty
+        id = ConstrId(duty, id)
+    end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index)
-    members != nothing && _setmembers!(form, constr, members)
+    members !== nothing && _setmembers!(form, constr, members)
     _addconstr!(form, constr)
     return constr
 end
@@ -442,11 +448,8 @@ function enforce_integrality!(form::Formulation)
         !getcurisexplicit(form, varid) && continue
         getcurkind(form, varid) == Integ && continue
         getcurkind(form, varid) == Binary && continue
-        @show getname(form, varid)
-        @show getduty(varid) <= MasterCol
-        println("----")
         if getduty(varid) <= MasterCol || getperenekind(form, varid) != Continuous
-            @logmsg LogLevel(1) string("Setting kind of var ", getname(form, var), " to Integer")
+            @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to Integer")
             setcurkind!(form, varid, Integ)
         end
     end

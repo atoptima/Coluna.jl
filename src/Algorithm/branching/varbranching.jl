@@ -53,10 +53,10 @@ function run!(
     local_id = input.local_id
     for (var_id, val) in input.solution
         # Do not consider continuous variables as branching candidates
-        getperenekind(master, varid) == Continuous && continue
+        getperenekind(master, var_id) == Continuous && continue
         if !isinteger(val)
             #description string is just the variable name
-            candidate = VarBranchingCandidate(getname(master, varid), varid)
+            candidate = VarBranchingCandidate(getname(master, var_id), var_id)
             local_id += 1 
             push!(groups, BranchingGroup(candidate, local_id, val))
         end
