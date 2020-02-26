@@ -90,7 +90,9 @@ deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DynamicSparseArrays]]
-git-tree-sha1 = "55ed108b3336d98f21aa4ebee3584ebafa86e80f"
+git-tree-sha1 = "20f6dbf0ab8fb009edddf244f33289a716fb20a5"
+repo-rev = "master"
+repo-url = "https://github.com/atoptima/DynamicSparseArrays.jl.git"
 uuid = "8086fd22-9a0c-46a5-a6c8-6e24676501fe"
 version = "0.2.2"
 
@@ -153,9 +155,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
 deps = ["BenchmarkTools", "CodecBzip2", "CodecZlib", "JSON", "JSONSchema", "LinearAlgebra", "MutableArithmetics", "OrderedCollections", "SparseArrays", "Test", "Unicode"]
-git-tree-sha1 = "793416d916e8fb1d16cdd016dabe8df87c636198"
+git-tree-sha1 = "b6ed13ad3e125a2a44c031136eee2e22abb534db"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.9.10"
+version = "0.9.11"
 
 [[MbedTLS]]
 deps = ["BinaryProvider", "Dates", "Libdl", "Random", "Sockets"]

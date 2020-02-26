@@ -140,15 +140,13 @@ function _addvar!(form::Formulation, var::Variable)
 
 end
 
-function addprimalsol!(
-    form::Formulation, sol::PrimalSolution{S}, sol_id::VarId
+function _addprimalsol!(
+    form::Formulation, sol_id::VarId, sol::PrimalSolution{S}, cost::Float64
 ) where {S<:Coluna.AbstractSense}
-    cost = 0.0
-    for (varid, var_val) in sol
-        var = form.manager.vars[varid]
-        cost += getperenecost(form, var) * var_val
-        if getduty(varid) == DwSpSetupVar || getduty(varid) == DwSpPricingVar
-            form.manager.primal_sols[varid, sol_id] = var_val
+    for (var_id, var_val) in sol
+        var = form.manager.vars[var_id]
+        if getduty(var) <= DwSpSetupVar || getduty(var) <= DwSpPricingVar
+            form.manager.primal_sols[var_id, sol_id] = var_val
         end
     end
     form.manager.primal_sol_costs[sol_id] = cost
@@ -157,51 +155,29 @@ end
 
 function setprimalsol!(
     form::Formulation,
-    newprimalsol::PrimalSolution{S}
+    new_primal_sol::PrimalSolution{S}
 )::Tuple{Bool,VarId} where {S<:Coluna.AbstractSense}
-    ### check if primalsol exists does takes place here along the coeff update
-
     primal_sols = getprimalsolmatrix(form)
+    primal_sol_costs = getprimalsolcosts(form)
+    
+    # compute original cost of the column
+    new_cost = 0.0
+    for (var_id, var_val) in new_primal_sol
+        new_cost += getperenecost(form, var_id) * var_val
+    end
 
-    for (sol_id, sol) in columns(primal_sols)
-        cost = getprimalsolcosts(form)[sol_id]
-        if newprimalsol.bound < cost
-             continue
-        end
-        if newprimalsol.bound > cost
-             continue
-        end
-
-        is_identical = true
-        for (var_id, var_val) in getrecords(sol)
-            if newprimalsol[var_id] == 0
-                is_identical = false
-                break
-            end
-        end
-        if !is_identical
-            continue
-        end
-        
-        for (var_id, var_val) in getrecords(newprimalsol.sol)
-            if sol[var_id] == 0
-                is_identical = false
-                break
-            end
-            
-            if sol[varid] != var_val
-                is_identical = false
-                break
-            end
-        end
-        if is_identical
-            return (false, sol_id)
+    # look for an identical column
+    for (cur_sol_id, cur_cost) in primal_sol_costs
+        cur_primal_sol = primal_sols[:, cur_sol_id]
+        if isapprox(new_cost, cur_cost) &&
+                getsol(new_primal_sol) == cur_primal_sol
+            return (false, cur_sol_id)
         end
     end
-    
-    ### else not identical to any existing column
-    new_sol_id = generatevarid(DwSpPrimalSol, form)
-    addprimalsol!(form, newprimalsol, new_sol_id)
+
+    # no identical column, we insert a new column
+    new_sol_id = Id{Variable}(generatevarid(form), getuid(form))
+    _addprimalsol!(form, new_sol_id, new_primal_sol, new_cost)
     return (true, new_sol_id)
 end
 
