@@ -145,7 +145,7 @@ function _addprimalsol!(
 ) where {S<:Coluna.AbstractSense}
     for (var_id, var_val) in sol
         var = form.manager.vars[var_id]
-        if getduty(var) <= DwSpSetupVar || getduty(var) <= DwSpPricingVar
+        if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
             form.manager.primal_sols[var_id, sol_id] = var_val
         end
     end
@@ -176,7 +176,7 @@ function setprimalsol!(
     end
 
     # no identical column, we insert a new column
-    new_sol_id = Id{Variable}(generatevarid(form), getuid(form))
+    new_sol_id = generatevarid(DwSpPrimalSol, form)
     _addprimalsol!(form, new_sol_id, new_primal_sol, new_cost)
     return (true, new_sol_id)
 end
