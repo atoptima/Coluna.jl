@@ -15,6 +15,7 @@ getcurcost(form::Formulation, var::Variable) = getcurcost(form, getid(var))
 """
     setcurcost!(form::Formulation, id::Id{Variable}, cost::Float64)
     setcurcost!(form::Formulation, var::Variable, cost::Float64)
+
 Set the current cost of variable `var` with id `id` to `cost` in formulation
 `form`.
 """
@@ -47,6 +48,7 @@ getcurlb(form::Formulation, var::Variable) = getcurlb(form, getid(var))
 """
     setcurlb!(form::Formulation, id::Id{Variable}, lb::Float64)
     setcurlb!(form::Formulation, var::Variable, lb::Float64)
+
 Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
 according to `new_lb`. Change on `f.optimizer` will be buffered.
 """
@@ -78,6 +80,7 @@ getcurub(form::Formulation, var::Variable) = getcurub(form, getid(var))
 """
     setcurub!(form::Formulation, id::Id{Variable}, ub::Float64)
     setcurub!(form::Formulation, var::Variable, ub::Float64)
+
 Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
 according to `new_ub`. Change on `f.optimizer` will be buffered.
 """
@@ -132,6 +135,7 @@ getcurkind(form::Formulation, constr::Constraint) = getcurkind(form, getid(const
 """
     setcurkind!(f::Formulation, v::Variable, kind::VarKind)
     setcurkind!(f::Formulation, c::Constraint, kind::ConstrKind)
+
 Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
 according to `new_kind`. Change on `f.optimizer` will be buffered.
 """
@@ -309,6 +313,7 @@ getname(form::Formulation, constr::Constraint) = constr.name
     reset!(form, varid)
     reset!(form, constr)
     reset!(form, constraint)
+
 doc todo
 """
 function reset!(form::Formulation, var::Variable)

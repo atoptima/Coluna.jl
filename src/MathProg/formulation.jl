@@ -707,7 +707,6 @@ function _show_variables(io::IO, form::Formulation)
     vars = getvars(form)
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for varid in ids
-        #getcurisexplicit(form, varid) || continue
         _show_variable(io, form, vars[varid])
     end
 end
