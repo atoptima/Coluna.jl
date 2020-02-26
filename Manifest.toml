@@ -72,7 +72,9 @@ deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DynamicSparseArrays]]
-git-tree-sha1 = "55ed108b3336d98f21aa4ebee3584ebafa86e80f"
+git-tree-sha1 = "20f6dbf0ab8fb009edddf244f33289a716fb20a5"
+repo-rev = "master"
+repo-url = "https://github.com/atoptima/DynamicSparseArrays.jl.git"
 uuid = "8086fd22-9a0c-46a5-a6c8-6e24676501fe"
 version = "0.2.2"
 
@@ -84,9 +86,9 @@ version = "0.10.9"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]
-git-tree-sha1 = "5c49dab19938b119fe204fd7d7e8e174f4e9c68b"
+git-tree-sha1 = "a8ca7e1524ea2bf2cb79d139dbf669cb82e7c04c"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.8.8"
+version = "0.8.9"
 
 [[IniFile]]
 deps = ["Test"]
@@ -111,10 +113,10 @@ uuid = "7d188eb4-7ad8-530c-ae41-71a32a6d4692"
 version = "0.2.0"
 
 [[JuMP]]
-deps = ["Calculus", "DataStructures", "ForwardDiff", "LinearAlgebra", "MathOptInterface", "NaNMath", "Random", "SparseArrays", "Statistics"]
-git-tree-sha1 = "ba7f96010ed290d77d5c941c32e5df107ca688a4"
+deps = ["Calculus", "DataStructures", "ForwardDiff", "LinearAlgebra", "MathOptInterface", "MutableArithmetics", "NaNMath", "Random", "SparseArrays", "Statistics"]
+git-tree-sha1 = "8e87337fd19b6717fd9d5324bfab99848e363d9f"
 uuid = "4076af6c-e467-56ae-b986-b466b2749572"
-version = "0.20.1"
+version = "0.21.1"
 
 [[LibGit2]]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
@@ -135,9 +137,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MathOptInterface]]
 deps = ["BenchmarkTools", "CodecBzip2", "CodecZlib", "JSON", "JSONSchema", "LinearAlgebra", "MutableArithmetics", "OrderedCollections", "SparseArrays", "Test", "Unicode"]
-git-tree-sha1 = "d52d0671560f209b8a4604e7267d1f76ceae1f23"
+git-tree-sha1 = "b6ed13ad3e125a2a44c031136eee2e22abb534db"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
-version = "0.9.9"
+version = "0.9.11"
 
 [[MbedTLS]]
 deps = ["BinaryProvider", "Dates", "Libdl", "Random", "Sockets"]
@@ -150,9 +152,9 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[MutableArithmetics]]
 deps = ["LinearAlgebra", "SparseArrays", "Test"]
-git-tree-sha1 = "12d31f26620590e85730f34228107cedd6448774"
+git-tree-sha1 = "e028134a24f45c5d2c2cbd98bfd4c9fa50cf7752"
 uuid = "d8a4904e-b15c-11e9-3269-09a3773c0cb0"
-version = "0.2.3"
+version = "0.2.6"
 
 [[NaNMath]]
 git-tree-sha1 = "928b8ca9b2791081dc71a51c55347c27c618760f"
