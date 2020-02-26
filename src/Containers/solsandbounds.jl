@@ -101,7 +101,7 @@ end
 Base.promote_rule(B::Type{<:Bound}, ::Type{<:AbstractFloat}) = B
 Base.promote_rule(B::Type{<:Bound}, ::Type{<:Integer}) = B
 Base.promote_rule(B::Type{<:Bound}, ::Type{<:AbstractIrrational}) = B
-Base.promote_rule(::Type{Bound{Primal,Se}}, ::Type{Bound{Dual,Se}}) where {Se<:Coluna.AbstractSense} = Float64
+Base.promote_rule(::Type{<:Bound{<:Primal,Se}}, ::Type{<:Bound{<:Dual,Se}}) where {Se<:Coluna.AbstractSense} = Float64
 
 Base.convert(::Type{<:AbstractFloat}, b::Bound) = b.value
 Base.convert(::Type{<:Integer}, b::Bound) = b.value
