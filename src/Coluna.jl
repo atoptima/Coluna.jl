@@ -17,6 +17,9 @@ global const TO = TimerOutputs
 # submodules
 export Containers, MathProg, Algorithm
 
+# parameters
+export Parameters, DefaultOptimizer
+
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
@@ -33,6 +36,7 @@ const MP = MathProg
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm
+const AL = Algorithm
 
 include("parameters.jl")
 include("optimize.jl")

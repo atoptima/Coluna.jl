@@ -179,11 +179,16 @@ function fake_solution_factory(nbdecisions)
             i += 1
         end
     end
-    solution = Dict{Int, Float64}()
+    dict = Dict{Int, Float64}()
+    soldecisions = Vector{Int}()
+    solvals = Vector{Float64}()
     for d in decisions
-        solution[d] = rand(rng, 0:0.0001:1000)
+        val = rand(rng, 0:0.0001:1000)
+        dict[d] = val
+        push!(soldecisions, d)
+        push!(solvals, val)
     end
-    return solution
+    return dict, soldecisions, solvals
 end
 
 function test_solution_iterations(solution::Coluna.Containers.Solution, dict::Dict)
@@ -208,16 +213,16 @@ function solution_unit()
     PrimalSolution{S} = Coluna.Containers.Solution{Primal,S,Int,Float64}
     DualSolution{S} = Coluna.Containers.Solution{Dual,S,Int,Float64}
 
-    dict_sol = fake_solution_factory(100)
-    primal_sol = PrimalSolution{MinSense}(dict_sol, 12.3)
+    dict_sol, soldecs, solvals = fake_solution_factory(100)
+    primal_sol = PrimalSolution{MinSense}(soldecs, solvals, 12.3)
     test_solution_iterations(primal_sol, dict_sol)
     @test Coluna.Containers.getvalue(primal_sol) == 12.3
     Coluna.Containers.setvalue!(primal_sol, 123.4)
     @test Coluna.Containers.getvalue(primal_sol) == 123.4
     @test typeof(Coluna.Containers.getbound(primal_sol)) == Coluna.Containers.Bound{Primal,MinSense}
     
-    dict_sol = fake_solution_factory(100)
-    dual_sol = DualSolution{MaxSense}(dict_sol, 32.1)
+    dict_sol, soldecs, solvals = fake_solution_factory(100)
+    dual_sol = DualSolution{MaxSense}(soldecs, solvals, 32.1)
     test_solution_iterations(dual_sol, dict_sol)
     @test Coluna.Containers.getvalue(dual_sol) == 32.1
     Coluna.Containers.setvalue!(dual_sol, 432.1)

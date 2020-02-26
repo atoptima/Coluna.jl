@@ -14,6 +14,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
+    storages::StorageDict
 end
 
 """
@@ -31,9 +32,11 @@ function Formulation{D}(form_counter::Counter;
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, NoOptimizer(), FormulationManager(),
-        obj_sense, FormulationBuffer()
+        obj_sense, FormulationBuffer(), Dict{Type{<:AbstractStorage}, AbstractStorage}()
     )
 end
+
+getstoragedict(form::Formulation)::StorageDict = form.storages
 
 "Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `form`."
 haskey(form::Formulation, id::Id) = haskey(form.manager, id)
@@ -167,8 +170,8 @@ function setprimalsol!(
         end
 
         is_identical = true
-        for (varid, var_val) in getrecords(sol)
-            if !haskey(newprimalsol.sol, varid)
+        for (var_id, var_val) in getrecords(sol)
+            if newprimalsol[var_id] == 0
                 is_identical = false
                 break
             end
@@ -177,8 +180,8 @@ function setprimalsol!(
             continue
         end
         
-        for (varid, var_val) in getrecords(newprimalsol.sol)
-            if !haskey(sol, varid)
+        for (var_id, var_val) in getrecords(newprimalsol.sol)
+            if sol[var_id] == 0
                 is_identical = false
                 break
             end
@@ -238,8 +241,8 @@ function setdualsol!(
         end
         
         is_identical = true
-        for (constrid, constr_val) in getrecords(prev_dual_sol)
-            if !haskey(new_dual_sol.sol, constrid)
+        for (constr_id, constr_val) in getrecords(prev_dual_sol)
+            if new_dual_sol[constr_id] == 0
                 is_identical = false
                 break
             end
@@ -248,13 +251,13 @@ function setdualsol!(
             continue
         end
 
-        for (constrid, constr_val) in new_dual_sol
-            if !haskey(prev_dual_sol, constrid)
+        for (constr_id, constr_val) in new_dual_sol
+            if prev_dual_sol[constr_id] == 0
                 is_identical = false
                 break
             end
             
-            if prev_dual_sol[constrid] != factor * constr_val
+            if prev_dual_sol[constr_id] != factor * constr_val
                 is_identical = false
                 break
             end
@@ -264,13 +267,11 @@ function setdualsol!(
         end    
     end
     
-
     ### else not identical to any existing dual sol
     new_dual_sol_id = generateconstrid(BendSpDualSol, form)
     adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
-
 
 function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId,
@@ -625,8 +626,10 @@ function optimize!(form::Formulation)
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
     res = optimize!(form, getoptimizer(form))
-    @logmsg LogLevel(-2) string("Optimization finished with result:")
-    @logmsg LogLevel(-2) res
+    @logmsg LogLevel(-2) begin 
+        string("Optimization finished with result:")
+        print(form, res)
+    end
     return res
 end
 
@@ -654,36 +657,32 @@ function _show_obj_fun(io::IO, form::Formulation)
     return
 end
 
-function _show_constraint(io::IO, form::Formulation, constrid::ConstrId,
-                          members::VarMembership)
+function _show_constraint(io::IO, form::Formulation, constrid::ConstrId)
     constr = getconstr(form, constrid)
     print(io, getname(form, constr), " : ")
-    ids = sort!(collect(keys(members)), by = getsortuid)
-    for id in ids
-        coeff = members[id]
-        var = getvar(form, id)
-        name = getname(form, var)
+    for (varid, coeff) in getcoefmatrix(form)[constrid, :]
+        name = getname(form, varid)
         op = (coeff < 0.0) ? "-" : "+"
         print(io, op, " ", abs(coeff), " ", name, " ")
     end
+    op = "<="
     if getcursense(form, constr) == Equal
         op = "=="
     elseif getcursense(form, constr) == Greater
         op = ">="
-    else
-        op = "<="
     end
-    print(io, " ", op, " ", getcurrhs(form, constrid))
-    println(io, " (", getduty(constrid), constrid, " | ", getcurisexplicit(form, constrid) ,")")
+    print(io, " ", op, " ", getcurrhs(form, constr))
+    println(io, " (", getduty(constrid), constrid, " | ", getcurisexplicit(form, constr) ,")")
     return
 end
 
 function _show_constraints(io::IO , form::Formulation)
-    constrs = rows(getcoefmatrix(form))
+    constrs = getconstrs(form)
     ids = sort!(collect(keys(constrs)), by = getsortuid)
-    for constrid in ids
-        #getcurisactive(form, constrid) || continue
-        _show_constraint(io, form, constrid, constrs[constrid])
+    for constr_id in ids
+        if getcurisactive(form, constr_id)
+            _show_constraint(io, form, constr_id)
+        end
     end
     return
 end

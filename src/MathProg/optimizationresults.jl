@@ -20,8 +20,9 @@ end
 """
     OptimizationResult{S}
 
-Structure to be returned by all Coluna `optimize!` methods.
+    Structure to be returned by all Coluna `optimize!` methods.
 """
+# TO DO : Optimization result should include information about both IP and LP solutions
 mutable struct OptimizationResult{S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
@@ -91,5 +92,21 @@ function determine_statuses(res::OptimizationResult, fully_explored::Bool)
     elseif !gap_is_zero
         setterminationstatus!(res, OTHER_LIMIT)
     end
+    return
+end
+
+function Base.print(io::IO, form::AbstractFormulation, res::OptimizationResult)
+    println(io, "┌ Optimization result ")
+    println(io, "│ Termination status : ", res.termination_status)
+    println(io, "│ Feasibility status : ", res.feasibility_status)
+    println(io, "| Primal solutions : ")
+    for sol in res.primal_sols
+        print(io, form, sol)
+    end
+    println(io, "| Dual solutions : ")
+    for sol in res.dual_sols
+        print(io, form, sol)
+    end
+    println(io, "└")
     return
 end

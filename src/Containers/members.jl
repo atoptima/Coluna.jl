@@ -139,7 +139,33 @@ function Base.show(io::IO, vec::MembersVector{I,J,K}) where {I,J,K}
     print(io, "]")
 end
 
-struct MembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
+## New matrix
+struct MembersMatrix{I,J,T}
+    cols_major::DynamicSparseArrays.MappedPackedCSC{I,J,T}
+    rows_major::DynamicSparseArrays.MappedPackedCSC{J,I,T}
+end
+
+function MembersMatrix{I,J,T}() where {I,J,T}
+    return MembersMatrix{I,J,T}(
+        DynamicSparseArrays.MappedPackedCSC(I,J,T),
+        DynamicSparseArrays.MappedPackedCSC(J,I,T)
+    )
+end
+
+function Base.setindex!(m::MembersMatrix, val, row_id, col_id)
+    m.cols_major[row_id, col_id] = val
+    m.rows_major[col_id, row_id] = val
+    return m
+end
+
+function Base.getindex(m::MembersMatrix, row_id, col_id)
+    # TODO : check number of rows & cols
+    return m.cols_major[row_id, col_id]
+end
+
+######## DELETE BELOW THIS LINE #########
+    
+struct OldMembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
     #matrix_csc::DynamicSparseArrays.MappedPackedCSC{}
     #matrix_csr::DynamicSparseArrays.MappedPackedCSC{}
     cols::MembersVector{I,K,MembersVector{J,L,T}} # to rm
@@ -147,26 +173,26 @@ struct MembersMatrix{I,K,J,L,T} <: AbstractMembersContainer
 end
 
 """
-    MembersMatrix{T}(columns_elems::Dict{I,K}, rows_elems::Dict{J,L})
+    OldMembersMatrix{T}(columns_elems::Dict{I,K}, rows_elems::Dict{J,L})
 
 Construct a matrix that contains records of type `T`. Rows have indices of type
 `J` and elements of type `L`, and columns have indices of type `I` and elements
 of type `K`.
 
-`MembersMatrix` supports julia set and get operations.
+`OldMembersMatrix` supports julia set and get operations.
 """
-function MembersMatrix{T}(
+function OldMembersMatrix{T}(
     col_elems::Dict{I,K}, row_elems::Dict{J,L}
 ) where {I,K,J,L,T}
     cols = MembersVector{MembersVector{J,L,T}}(col_elems)
     rows = MembersVector{MembersVector{I,K,T}}(row_elems)
-    MembersMatrix{I,K,J,L,T}(cols, rows)
+    OldMembersMatrix{I,K,J,L,T}(cols, rows)
 end
 
-function MembersMatrix{T}(
+function OldMembersMatrix{T}(
     col_elems::ElemDict{VC1}, row_elems::ElemDict{VC2}
 ) where {VC1,VC2,T}
-    return MembersMatrix{T}(col_elems.elements, row_elems.elements)
+    return OldMembersMatrix{T}(col_elems.elements, row_elems.elements)
 end
 
 function _getrecordvector!(
@@ -184,14 +210,14 @@ function _getrecordvector!(
 end
 
 function _setcolumn!(
-    m::MembersMatrix{I,K,J,L,T}, col_id::I, col::Dict{J,T}
+    m::OldMembersMatrix{I,K,J,L,T}, col_id::I, col::Dict{J,T}
 ) where {I,K,J,L,T}
     new_col = MembersVector(m.rows.elements, col)
     _setcolumn!(m, col_id, new_col)
 end
 
 function _setcolumn!(
-    m::MembersMatrix{I,K,J,L,T}, col_id::I, col::MembersVector{J,L,T}
+    m::OldMembersMatrix{I,K,J,L,T}, col_id::I, col::MembersVector{J,L,T}
 ) where {I,K,J,L,T}
     @assert m.rows.elements == col.elements
     m.cols[col_id] = col
@@ -203,14 +229,14 @@ function _setcolumn!(
 end
 
 function _setrow!(
-    m::MembersMatrix{I,K,J,L,T}, row_id::J, row::Dict{I,T}
+    m::OldMembersMatrix{I,K,J,L,T}, row_id::J, row::Dict{I,T}
 ) where {I,K,J,L,T}
     new_row = MembersVector(m.cols.elements, row)
     _setrow!(m, row_id, new_row)
 end
 
 function _setrow!(
-    m::MembersMatrix{I,K,J,L,T}, row_id::J, row::MembersVector{I,K,T}
+    m::OldMembersMatrix{I,K,J,L,T}, row_id::J, row::MembersVector{I,K,T}
 ) where {I,K,J,L,T}
     @assert m.cols.elements == row.elements
     m.rows[row_id] = row
@@ -221,7 +247,7 @@ function _setrow!(
     m
 end
 
-function Base.setindex!(m::MembersMatrix, val, row_id, col_id)
+function Base.setindex!(m::OldMembersMatrix, val, row_id, col_id)
     col = _getrecordvector!(m.cols, col_id, m.rows.elements)
     col[row_id] = val
     row = _getrecordvector!(m.rows, row_id, m.cols.elements)
@@ -229,16 +255,16 @@ function Base.setindex!(m::MembersMatrix, val, row_id, col_id)
     m
 end
 
-function Base.setindex!(m::MembersMatrix, row, row_id, ::Colon)
+function Base.setindex!(m::OldMembersMatrix, row, row_id, ::Colon)
     _setrow!(m, row_id, row)
 end
 
-function Base.setindex!(m::MembersMatrix, col, ::Colon, col_id)
+function Base.setindex!(m::OldMembersMatrix, col, ::Colon, col_id)
     _setcolumn!(m, col_id, col)
 end
 
 function Base.getindex(
-    m::MembersMatrix{I,K,J,L,T}, row_id::J, col_id::I
+    m::OldMembersMatrix{I,K,J,L,T}, row_id::J, col_id::I
 ) where {I,K,J,L,T}
     if length(m.cols) < length(m.rows) # improve ?
         col = m.cols[col_id]
@@ -252,13 +278,13 @@ function Base.getindex(
 end
 
 function Base.getindex(
-    m::MembersMatrix{I,K,J,L,T}, row_id::J, ::Colon
+    m::OldMembersMatrix{I,K,J,L,T}, row_id::J, ::Colon
 ) where {I,K,J,L,T}
     _getrecordvector!(m.rows, row_id, m.cols.elements, false)
 end
 
 function Base.getindex(
-    m::MembersMatrix{I,K,J,L,T}, ::Colon, col_id::I
+    m::OldMembersMatrix{I,K,J,L,T}, ::Colon, col_id::I
 ) where {I,K,J,L,T}
     _getrecordvector!(m.cols, col_id, m.rows.elements, false)
 end
@@ -273,7 +299,7 @@ a `MembersVector` that contains `Variable` as elements. For each
 `Variable`, the record is the `MembersVector` that contains the coefficients of
 the `Variable` in each `Constraint`.
 """
-function columns(m::MembersMatrix)
+function columns(m::OldMembersMatrix)
     return m.cols
 end
 
@@ -287,7 +313,7 @@ a `MembersVector` that contains `Constraint` as elements. For each
 `Constraint`, the record is the `MembersVector` that contains the coefficients 
 of each `Variable` in the `Constraint`.
 """
-function rows(m::MembersMatrix)
+function rows(m::OldMembersMatrix)
     return m.rows
 end
 
@@ -296,7 +322,7 @@ end
 
 Return `true` if all non-zero records are associated to an element.
 
-    is_consistent(m::MembersMatrix)
+    is_consistent(m::OldMembersMatrix)
 
 Return `true` if all columns and rows are consistent. 
 
@@ -311,7 +337,7 @@ function is_consistent(vec::MembersVector{I,K,T}) where {I,K,T}
     return true
 end
 
-function is_consistent(m::MembersMatrix)
+function is_consistent(m::OldMembersMatrix)
     for (key, row) in rows(m)
         if !is_consistent(row)
             return false

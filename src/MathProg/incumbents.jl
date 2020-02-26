@@ -10,17 +10,17 @@ function PrimalBound(form::AbstractFormulation, val::Float64)
 end
 
 function PrimalSolution(
-    form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
+    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, val::Float64
 ) where {De,Va}
     Se = getobjsense(form)
-    return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, val)
+    return Coluna.Containers.Solution{Primal,Se,De,Va}(decisions, vals, val)
 end
 
 function PrimalSolution(
-    form::AbstractFormulation, sol::Dict{De,Va}, bound::Coluna.Containers.Bound{Primal,Se}
+    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, bound::Coluna.Containers.Bound{Primal,Se}
 ) where {Se,De,Va}
     @assert Se == getobjsense(form)
-    return Coluna.Containers.Solution{Primal,Se,De,Va}(sol, bound)
+    return Coluna.Containers.Solution{Primal,Se,De,Va}(decisions, vals, bound)
 end
 
 function DualBound(form::AbstractFormulation)
@@ -34,17 +34,17 @@ function DualBound(form::AbstractFormulation, val::Float64)
 end
 
 function DualSolution(
-    form::AbstractFormulation, sol::Dict{De,Va}, val::Float64
+    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, val::Float64
 ) where {De,Va}
     Se = getobjsense(form)
-    return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, val)
+    return Coluna.Containers.Solution{Dual,Se,De,Va}(decisions, vals, val)
 end
 
 function DualSolution(
-    form::AbstractFormulation, sol::Dict{De,Va}, bound::Coluna.Containers.Bound{Dual,Se}
+    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, bound::Coluna.Containers.Bound{Dual,Se}
 ) where {Se,De,Va}
     @assert Se == getobjsense(form)
-    return Coluna.Containers.Solution{Dual,Se,De,Va}(sol, bound)
+    return Coluna.Containers.Solution{Dual,Se,De,Va}(decisions, vals, bound)
 end
 
 valueinminsense(b::PrimalBound{MinSense}) = b.value
@@ -76,8 +76,18 @@ function contains(form::AbstractFormulation, sol::DualSolution, duty::Duty{Const
     return false
 end
 
+_solspacestring(::Coluna.Containers.Solution{<:Dual,Se,De,Va}) where {Se,De,Va} = "Dual solution :"
+_solspacestring(::Coluna.Containers.Solution{<:Primal,Se,De,Va}) where {Se,De,Va} = "Primal solution :"
+function Base.print(io::IO, form::AbstractFormulation, sol::Coluna.Containers.Solution)
+    println(io, _solspacestring(sol))
+    for (id, val) in sol
+        println(io, getname(form, id), " = ", val)
+    end
+    return
+end
 
-mutable struct Incumbents{S}
+# TO DO : should contain only bounds, solutions should be in OptimizationResult
+mutable struct Incumbents{S} 
     ip_primal_sol::PrimalSolution{S}
     ip_primal_bound::PrimalBound{S}
     ip_dual_bound::DualBound{S} # the IP dual bound can be the result of computation other than using the LP dual bound

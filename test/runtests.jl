@@ -1,4 +1,4 @@
-#using Revise
+#using Revise # to comment when merging to the master branch
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
@@ -31,6 +31,7 @@ unit_tests()
 @testset "Full instances " begin
     full_instances_tests()
 end
+
 @testset "Preprocessing " begin
     preprocessing_tests()
 end
@@ -47,3 +48,4 @@ end
     close(rd_out)
     redirect_stdout(backup_stdout)
 end
+

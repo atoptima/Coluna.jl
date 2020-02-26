@@ -8,6 +8,16 @@ import ..Coluna
 using ..Containers
 using ..MathProg
 
+# To be deleted :
+import .MathProg: getsense, optimize! # because of branch
+
+# TO be deleted ???
+import .MathProg: FeasibilityStatus, TerminationStatus, AbstractStorage, EmptyStorage, getstorage, setprimalbound!, setdualbound!
+import .MathProg: OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, EMPTY_RESULT, NOT_YET_DETERMINED
+import ..Coluna: AbstractSense
+
+import .MathProg: get_lp_primal_sol, get_lp_dual_bound, setfeasibilitystatus!, setterminationstatus!, getvalue
+
 using Logging
 using Printf
 
@@ -17,39 +27,37 @@ const MOI = MathOptInterface
 
 import Base: push!
 
-# TODO clean up :
-export AbstractGlobalStrategy, EmptyGlobalStrategy
-
-const MAX_NUM_NODES = 100 # TODO : rm & should be a parameter of the B&B Algorithm
-const OPEN_NODES_LIMIT = 100 # TODO : rm & should be param of B&B algo
-
-# Concrete algorithms & Strategies :
+# Abstract algorithm
 include("interface.jl")
-include("strategies/strategy.jl")
 
-include("node.jl") # TODO : break interdependance between node & Algorithm #224 & rm file
+# Abstract record
+include("record.jl")
 
-# Here include algorithms
+# Here include slave algorithms used by conquer algorithms
 include("colgen.jl")
 include("benders.jl")
 include("masteripheur.jl")
 include("masterlp.jl")
-include("reformulationsolver.jl")
 include("preprocessing.jl")
 
-# Here include conquer strategies
-include("strategies/conquer/simplebnp.jl")
-include("strategies/conquer/simplebenders.jl")
+# Here include conquer algorithms
+include("conquer.jl")
 
-# Here include branching algorithms
-include("branching/abstractbranching.jl")
-include("branching/varbranching.jl")
+include("node.jl") # TODO : break interdependance between node & Algorithm #224 & rm file
+
+include("divide.jl")
+
+# Here include divide algorithms
 include("branching/branchinggroup.jl")
-include("branching/branchingstrategy.jl")
+include("branching/branchingrule.jl")
+include("branching/varbranching.jl")
+include("branching/branchingalgo.jl")
 
-# Here include divide strategies
-include("strategies/divide/simplebranching.jl") # to remove
+include("treesearch.jl")
 
-# Here include explore strategies
-include("strategies/explore/simplestrategies.jl")
+# Types
+export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColGenConquer, ColumnGeneration, 
+       BendersConquer, BendersCutGeneration, MasterIpHeuristic, ExactBranchingPhase, 
+       OnlyRestrictedMasterBranchingPhase
+
 end

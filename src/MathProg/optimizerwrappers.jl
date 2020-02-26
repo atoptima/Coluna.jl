@@ -37,15 +37,10 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     result = OptimizationResult{getobjsense(form)}()
     terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
     if terminationstatus != MOI.INFEASIBLE &&
-        terminationstatus != MOI.DUAL_INFEASIBLE &&
-        terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
-        terminationstatus != MOI.OPTIMIZE_NOT_CALLED
-        fill_primal_result!(
-            optimizer, result, filter(
-                var -> getcurisactive(form, var) && getcurisexplicit(form, var), 
-                getvars(form)
-            )
-        )
+            terminationstatus != MOI.DUAL_INFEASIBLE &&
+            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
+            terminationstatus != MOI.OPTIMIZE_NOT_CALLED
+        fill_primal_result!(form, optimizer, result)
         fill_dual_result!(
         optimizer, result, filter(
                 constr -> getcurisactive(form, constr) && getcurisexplicit(form, constr), 
@@ -108,14 +103,10 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     end
 
     # Add constrs
-    for id in buffer.constr_buffer.added
-        c = getconstr(f, id)
-        @logmsg LogLevel(-4) string("Adding constraint ", getname(f, c))
-        add_to_optimizer!(f, c, filter(
-                constr -> getcurisactive(f, constr) && getcurisexplicit(f, constr), 
-                matrix[id,:]
-            )
-        )
+    for constr_id in buffer.constr_buffer.added
+        constr = getconstr(f, constr_id)
+        @logmsg LogLevel(-4) string("Adding constraint ", getname(f, constr))
+        add_to_optimizer!(f, constr, (f, constr) -> getcurisactive(f, constr) && getcurisexplicit(f, constr))  
     end
 
     # Update variable costs
