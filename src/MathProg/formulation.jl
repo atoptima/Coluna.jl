@@ -144,7 +144,7 @@ function addprimalsol!(
     for (varid, var_val) in sol
         var = form.manager.vars[varid]
         cost += getperenecost(form, var) * var_val
-        if getduty(varid) <= DwSpSetupVar || getduty(varid) <= DwSpPricingVar
+        if getduty(varid) == DwSpSetupVar || getduty(varid) == DwSpPricingVar
             form.manager.primal_sols[varid, sol_id] = var_val
         end
     end
@@ -341,7 +341,7 @@ function setcut_from_sp_dualsol!(
         if getduty(ds_constrid) <= AbstractBendSpMasterConstr
             for (master_var_id, sp_constr_coef) in sp_coef_matrix[ds_constrid,:]
                 var = getvar(spform, master_var_id)
-                if getduty(getid(var)) <= AbstractBendSpSlackMastVar
+                if getduty(master_var_id) <= AbstractBendSpSlackMastVar
                     master_coef_matrix[benders_cut_id, master_var_id] += ds_constr_val * sp_constr_coef
                 end
             end
@@ -442,8 +442,11 @@ function enforce_integrality!(form::Formulation)
         !getcurisexplicit(form, varid) && continue
         getcurkind(form, varid) == Integ && continue
         getcurkind(form, varid) == Binary && continue
-        if getduty(varid) == MasterCol || getperenekind(form, varid) != Continuous
-            @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to Integer")
+        @show getname(form, varid)
+        @show getduty(varid) <= MasterCol
+        println("----")
+        if getduty(varid) <= MasterCol || getperenekind(form, varid) != Continuous
+            @logmsg LogLevel(1) string("Setting kind of var ", getname(form, var), " to Integer")
             setcurkind!(form, varid, Integ)
         end
     end

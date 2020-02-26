@@ -4,7 +4,7 @@ function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMast
     projected_sol_vals = Vector{Float64}()
 
     for (varid, val) in sol
-        duty = getduty(getvar(master, varid))
+        duty = getduty(varid)
         if duty <= MasterPureVar
             push!(projected_sol_vars, varid)
             push!(projected_sol_vals, val)

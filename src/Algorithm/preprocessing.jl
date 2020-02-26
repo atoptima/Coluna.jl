@@ -200,7 +200,7 @@ function initconstraints!(
     for (constrid, constr) in getconstrs(master)
         getcurisactive(master, constrid) || continue
         getcurisexplicit(master, constrid) || continue
-        getduty(constrid) != MasterConvexityConstr && continue
+        getduty(constrid) == MasterConvexityConstr || continue
         initconstraint!(alg_data, constr, master)
         push!(constrs_to_stack, (constr, master))   
     end

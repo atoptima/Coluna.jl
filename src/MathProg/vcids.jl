@@ -27,8 +27,6 @@ function _create_hash(uid::Int, origin_form_uid::FormId, proc_uid::Int)
     )
 end
 
-getduty(vcid::Id{VC}) where {VC <: AbstractVarConstr} = vcid.duty
-
 """
     Id{VC}(uid::Int, form_uid::Int) where {VC<:AbstractVarConstr}
 
@@ -57,7 +55,7 @@ Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = Base.isequal(a._hash, b._hash)
 Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
 Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
 Base.isless(a::Id{VC}, b::Id{VC}) where {VC} = Base.isless(a._hash, b._hash)
-Base.zero(I::Type{<:Id}) = I(-1, -1, -1, -1, -1)
+Base.zero(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), -1, -1, -1, -1, -1)
 
 Base.:(<)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash < b._hash
 Base.:(<=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash <= b._hash
@@ -66,6 +64,7 @@ Base.:(>)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash > b._hash
 Base.:(>=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash >= b._hash
 
 getuid(id::Id)::Int = id.uid
+getduty(vcid::Id{VC}) where {VC} = vcid.duty
 getoriginformuid(id::Id)::FormId = id.origin_form_uid
 getassignedformuid(id::Id)::FormId = id.assigned_form_uid_in_reformulation
 getprocuid(id::Id)::Int = id.proc_uid
