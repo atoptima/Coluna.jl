@@ -81,7 +81,7 @@ export no_optimizer_builder, set_original_formulation!, create_origvars!,
        setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
        setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
        get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix,
-       contains
+       contains, set_ip_primal_bound!, set_lp_dual_bound!
 
 # Below this line, clean up has been done :
 export reformulate!,
@@ -118,12 +118,14 @@ export getperenecost,
        getname,
        reset!
 
+# Methods related to Problem
+export set_initial_dual_bound!, set_initial_primal_bound!,
+       get_initial_dual_bound, get_initial_primal_bound
+
 # Translation methods
 export convert_coluna_sense_to_moi,
        convert_moi_sense_to_coluna,
        convert_moi_rhs_to_coluna,
        convert_moi_kind_to_coluna
-
-
 
 end

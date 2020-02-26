@@ -12,13 +12,20 @@ Starting point of the solver.
 function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params)
     _welcome_message()
     _set_global_params(params)
-    reformulate!(prob, annotations)
+    reformulate!(prob, annotations, params)
     _globals_.initial_solve_time = time()
     MP.relax_integrality!(prob.re_formulation.master) # TODO : remove
     @info "Coluna ready to start."
     @info _params_
+
+    # Retrieve initial bounds on the objective given by the user
+    init_pb = get_initial_primal_bound(prob)
+    init_db = get_initial_dual_bound(prob)
+
     TO.@timeit _to "Coluna" begin
-        opt_result = optimize!(prob.re_formulation, params.solver)
+        opt_result = optimize!(
+            prob.re_formulation, params.solver, init_pb, init_db
+        )
     end
     println(_to)
     TO.reset_timer!(_to)
@@ -28,13 +35,13 @@ function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params
     return opt_result
 end
 
-# TODO : Replace AbstractGlobalStrategy by a "Solver"
-# TODO : Rm run_reform_solver (ReformulationSolver to delete)
 """
 Solve a reformulation
 """
-function optimize!(reform::MP.Reformulation, algorithm::AL.AbstractOptimizationAlgorithm)
-
+function optimize!(
+    reform::MP.Reformulation, algorithm::AL.AbstractOptimizationAlgorithm,
+    initial_primal_bound, initial_dual_bound
+)
     slaves = Vector{Tuple{AbstractFormulation, Type{<:AL.AbstractAlgorithm}}}()
     push!(slaves,(reform, typeof(algorithm)))
     AL.getslavealgorithms!(algorithm, reform, slaves)
@@ -46,6 +53,8 @@ function optimize!(reform::MP.Reformulation, algorithm::AL.AbstractOptimizationA
     # TO DO : initial incumbents may be defined by the user
     master = getmaster(reform)
     init_incumbents = Incumbents(master.obj_sense) 
+    set_ip_primal_bound!(init_incumbents, initial_primal_bound)
+    set_lp_dual_bound!(init_incumbents, initial_dual_bound)
 
     opt_result = AL.getresult(AL.run!(algorithm, reform, AL.OptimizationInput(init_incumbents)))
 

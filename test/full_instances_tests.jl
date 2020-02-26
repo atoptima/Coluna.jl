@@ -22,13 +22,14 @@ function mytest()
         "default_optimizer" => GLPK.Optimizer
     )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    BD.objectiveprimalbound!(model, 2000.0)
 
-    JuMP.optimize!(problem)
+    JuMP.optimize!(model)
 
-    @test abs(JuMP.objective_value(problem) - 1553.0) <= 0.00001
-    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    @test JuMP.objective_value(model) ≈ 1553.0
+    @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 end
 
 function generalized_assignment_tests()
@@ -41,12 +42,15 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 100.0)
+        BD.objectivedualbound!(model, 0.0)
 
-        JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        JuMP.optimize!(model)
+
+        @test JuMP.objective_value(model) ≈ 75.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
     @testset "gap - JuMP/MOI modeling" begin
@@ -58,12 +62,14 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 500.0)
+        BD.objectivedualbound!(model, 0.0)
 
-        JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        JuMP.optimize!(model)
+        @test JuMP.objective_value(model) ≈ 438.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
     @testset "gap - strong branching" begin
@@ -81,14 +87,16 @@ function generalized_assignment_tests()
             ),
             "default_optimizer" => GLPK.Optimizer
         )
-    
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-        JuMP.optimize!(problem)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 2000.0)
+        BD.objectivedualbound!(model, 0.0)
 
-        @test abs(JuMP.objective_value(problem) - 1553.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        JuMP.optimize!(model)
+
+        @test JuMP.objective_value(model) ≈ 1553.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
     @testset "gap - ColGen max nb iterations" begin
