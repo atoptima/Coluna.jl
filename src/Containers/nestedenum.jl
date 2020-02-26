@@ -83,6 +83,23 @@ function _build_expression(names, values, export_symb::Bool = false)
     return enum_expr
 end
 
+function _build_print_expression(names, values)
+    root_name = names[1]
+    print_expr = Expr(:function)
+    push!(print_expr.args, :(Base.print(io::IO, obj::$(root_name)))) #signature
+
+    # build the if list in reverse order
+    prev_cond = :(print(io, "UNKOWN_DUTY"))
+    for i in length(names):-1:2
+        head = (i == 2) ? :if : :elseif
+        msg = string(names[i])
+        cond = Expr(head, :(obj == $(names[i])), :(print(io, $msg)), prev_cond)
+        prev_cond = cond
+    end
+    push!(print_expr.args, Expr(:block, prev_cond))
+    return print_expr
+end
+
 function _assign_values_to_items(expr)
     Base.remove_linenums!(expr)
 
@@ -141,14 +158,21 @@ In this example, `Root` is parent of `ChildA`, `ChildB`, and `ChildC`;
 `ChildA` is parent of `GrandChildA1` and `GrandChildA2`.
 """
 macro nestedenum(expr)
-    names, values = _assign_values_to_items(expr)
-    enum_expr = _build_expression(names, values)
-    return esc(enum_expr)
+    return _nestedenum(expr, false)
 end
 
 "Create a nested enumeration and export all the items."
 macro exported_nestedenum(expr)
+    return _nestedenum(expr, true)
+end
+
+function _nestedenum(expr, export_names)
     names, values = _assign_values_to_items(expr)
-    enum_expr = _build_expression(names, values, true)
-    return esc(enum_expr)  
+    enum_expr = _build_expression(names, values, export_names)
+    print_expr = _build_print_expression(names, values)
+    final_expr = quote
+        $enum_expr
+        $print_expr
+    end
+    return esc(final_expr)
 end
