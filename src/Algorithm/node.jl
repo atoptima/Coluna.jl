@@ -8,6 +8,7 @@ struct Branch
     sense::ConstrSense
     depth::Int
 end
+
 function Branch(var::Variable, rhs::Float64, sense::ConstrSense, depth::Int)
     var_coeffs = Dict{VarId,Float64}()
     var_coeffs[getid(var)] = 1.0

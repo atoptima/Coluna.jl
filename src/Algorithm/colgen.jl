@@ -78,8 +78,9 @@ function should_do_ph_1(master::Formulation, data::ColGenRuntimeData)
 end
 
 function set_ph_one(master::Formulation, data::ColGenRuntimeData)
-    for (id, v) in Iterators.filter(x->(!isanArtificialDuty(getduty(x))), getvars(master))
-        setcurcost!(master, v, 0.0)
+    for (varid, var) in getvars(master)
+        isanArtificialDuty(getduty(varid)) && continue
+        setcurcost!(master, varid, 0.0)
     end
     data.phase = 1
     return
@@ -87,11 +88,10 @@ end
 
 function update_pricing_problem!(spform::Formulation, dual_sol::DualSolution)
     masterform = getmaster(spform)
-    for (var_id, var) in getvars(spform)
-        if getcurisactive(spform, var) && getduty(var) <= AbstractDwSpVar
-            redcost = computereducedcost(masterform, var_id, dual_sol)
-            setcurcost!(spform, var, redcost)
-        end
+    for (varid, var) in getvars(spform)
+        getcurisactive(spform, varid) || continue
+        getduty(varid) <= AbstractDwSpVar || continue
+        setcurcost!(spform, var, computereducedcost(masterform, varid, dual_sol))
     end
     return false
 end
@@ -302,10 +302,8 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
 
     # collect multiplicity current bounds for each sp
     for (sp_uid, spform) in get_dw_pricing_sps(reform)
-        lb_convexity_constr_id = reform.dw_pricing_sp_lb[sp_uid]
-        ub_convexity_constr_id = reform.dw_pricing_sp_ub[sp_uid]
-        sp_lbs[sp_uid] = getcurrhs(masterform, lb_convexity_constr_id)
-        sp_ubs[sp_uid] = getcurrhs(masterform, ub_convexity_constr_id)
+        sp_lbs[sp_uid] = getcurrhs(masterform, reform.dw_pricing_sp_lb[sp_uid])
+        sp_ubs[sp_uid] = getcurrhs(masterform, reform.dw_pricing_sp_ub[sp_uid])
     end
 
     while true

@@ -65,11 +65,11 @@ function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
-function update_constr_rhs_in_optimizer!(form::Formulation, c::Constraint)
+function update_constr_rhs_in_optimizer!(form::Formulation, constr::Constraint)
     optimizer = getoptimizer(form)
-    moi_c_index = getindex(getmoirecord(c))
-    rhs = getcurrhs(form, c)
-    sense = getcursense(form, c)
+    moi_c_index = getindex(getmoirecord(constr))
+    rhs = getcurrhs(form, constr)
+    sense = getcursense(form, constr)
     MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, convert_coluna_sense_to_moi(sense)(rhs))
     return
 end
@@ -106,6 +106,11 @@ function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
     setkind!(moirecord, MOI.add_constraint(
         inner, MOI.SingleVariable(getindex(moirecord)), moi_set
     ))
+    return
+end
+
+function enforce_kind_in_optimizer!(form::Formulation, c::Constraint)
+    # to do : issue #266
     return
 end
 

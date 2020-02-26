@@ -5,7 +5,6 @@
 # -> No setters because Variable and Constraint are immutable
 
 getid(vc::AbstractVarConstr) = vc.id
-getduty(vc::AbstractVarConstr) = vc.duty
 getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 
 # Helpers for getters and setters that acces fields in a level
