@@ -42,8 +42,8 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
             terminationstatus != MOI.OPTIMIZE_NOT_CALLED
         fill_primal_result!(form, optimizer, result)
         fill_dual_result!(
-            optimizer, result, filter(
-                vc -> getcurisactive(form,vc) && getcurisexplicit(form,vc), 
+        optimizer, result, filter(
+                constr -> getcurisactive(form, constr) && getcurisexplicit(form, constr), 
                 getconstrs(form)
             )
         )
@@ -125,7 +125,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     end
 
     # Update variable kind
-    for id in buffer.changed_kind
+    for id in buffer.changed_var_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         @logmsg LogLevel(-2) "Changing kind of variable " getname(f, id)
         @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, id))
@@ -144,12 +144,12 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # First check if should update members of just-added vars
     matrix = getcoefmatrix(f)
     for id in buffer.var_buffer.added
-        for (constr_id, coeff) in matrix[:, id]
-            if getcurisactive(f, constr_id) && getcurisexplicit(f, constr_id) && 
-                    constr_id ∉ buffer.constr_buffer.added
-                c = getconstr(f, constr_id)
-                update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)
-            end
+        for (constrid, coeff) in  matrix[:,id]
+            getcurisactive(f, constrid) || continue
+            getcurisexplicit(f, constrid) || continue
+            constrid ∉ buffer.constr_buffer.added || continue
+            c = getconstr(f, constrid)
+            update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)
         end
     end
 

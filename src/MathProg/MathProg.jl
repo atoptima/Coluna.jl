@@ -32,7 +32,6 @@ include("constraint.jl")
 include("duties.jl")
 include("varconstr.jl") # to rm
 include("manager.jl")
-include("filters.jl")
 include("optimizationresults.jl")
 include("incumbents.jl")
 include("buffer.jl")
@@ -59,8 +58,8 @@ export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 
 # Methods
 export no_optimizer_builder, set_original_formulation!, create_origvars!,
-       setvar!, getid, store!, getrhs, getsense, setconstr!, getuid, getcoefmatrix,
-       getvar, getvars, getconstr, getconstrs,
+       setvar!, getid, store!, setconstr!, getuid, getcoefmatrix,
+       getvar, getvars, getconstr, getconstrs, getsense,
        register_objective_sense!, optimize!, nbprimalsols, ip_gap, getdualbound,
        getprimalbound, get_ip_dual_bound, getmaster, deactivate!, 
        enforce_integrality!, relax_integrality!, activate!, update_ip_primal_sol!,

@@ -9,7 +9,7 @@ using ..Containers
 using ..MathProg
 
 # To be deleted :
-import .MathProg: getrhs, getsense, optimize! # because of branch
+import .MathProg: getsense, optimize! # because of branch
 
 # TO be deleted ???
 import .MathProg: FeasibilityStatus, TerminationStatus, AbstractStorage, EmptyStorage, getstorage, setprimalbound!, setdualbound!

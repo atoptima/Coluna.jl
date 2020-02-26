@@ -50,7 +50,8 @@ The concerned modificatios are:
 mutable struct FormulationBuffer
     changed_cost::Set{Id{Variable}}
     changed_bound::Set{Id{Variable}}
-    changed_kind::Set{Id{Variable}}
+    changed_var_kind::Set{Id{Variable}}
+    changed_constr_kind::Set{Id{Constraint}}
     changed_rhs::Set{Id{Constraint}}
     var_buffer::VarConstrBuffer{Variable}
     constr_buffer::VarConstrBuffer{Constraint}
@@ -64,7 +65,7 @@ Constructs an empty `FormulationBuffer`.
 """
 FormulationBuffer() = FormulationBuffer(
     Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
-    Set{Id{Constraint}}(), VarConstrBuffer{Variable}(),
+    Set{Id{Constraint}}(), Set{Id{Constraint}}(), VarConstrBuffer{Variable}(),
     VarConstrBuffer{Constraint}(),
     Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
     # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()
@@ -82,8 +83,12 @@ remove!(buffer::FormulationBuffer, constr::Constraint) = remove!(
 )
 
 function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
-    #!getcurisexplicit(form,constr) && return
     push!(buffer.changed_rhs, getid(constr))
+    return
+end
+
+function change_kind!(buffer::FormulationBuffer, constr::Constraint)
+    push!(buffer.changed_constr_kind, getid(constr))
     return
 end
 
@@ -98,11 +103,11 @@ function change_bound!(buffer::FormulationBuffer, var::Variable)
 end
 
 function change_kind!(buffer::FormulationBuffer, var::Variable)
-    push!(buffer.changed_kind, getid(var))
+    push!(buffer.changed_var_kind, getid(var))
     return
 end
 
-function set_matrix_coeff!(buffer::FormulationBuffer, var_id::Id{Variable},
-                           constr_id::Id{Constraint}, new_coeff::Float64)
-    buffer.reset_coeffs[Pair(constr_id,var_id)] = new_coeff
+function set_matrix_coeff!(buffer::FormulationBuffer, varid::Id{Variable},
+                           constrid::Id{Constraint}, new_coeff::Float64)
+    buffer.reset_coeffs[Pair(constrid,varid)] = new_coeff
 end

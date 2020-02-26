@@ -63,17 +63,15 @@ end
 isfractional(sol::Coluna.Containers.Solution) = !Base.isinteger(sol)
 
 function contains(form::AbstractFormulation, sol::PrimalSolution, duty::Duty{Variable})
-    for (id, val) in sol
-        var = getvar(form, id)
-        getduty(var) <= duty && return true
+    for (varid, val) in sol
+        getduty(varid) <= duty && return true
     end
     return false
 end
 
 function contains(form::AbstractFormulation, sol::DualSolution, duty::Duty{Constraint})
-    for (id, val) in sol
-        constr = getconstr(form, id)
-        getduty(constr) <= duty && return true
+    for (constrid, val) in sol
+        getduty(constrid) <= duty && return true
     end
     return false
 end

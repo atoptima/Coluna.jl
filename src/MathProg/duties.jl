@@ -20,12 +20,14 @@
             DwSpPricingVar <= AbstractDwSpVar
             DwSpSetupVar <= AbstractDwSpVar
             DwSpPureVar <= AbstractDwSpVar
+            DwSpPrimalSol <= AbstractDwSpVar
         AbstractBendSpVar <= Duty{Variable}
             AbstractBendSpSlackMastVar <= AbstractBendSpVar
                 BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
                 BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
             BendSpSepVar <= AbstractBendSpVar
             BendSpPureVar <= AbstractBendSpVar
+            BendSpPrimalSol <= AbstractBendSpVar
         UndefinedVarDuty <= Duty{Variable}
 end
 
@@ -50,6 +52,7 @@ end
             MasterBranchOnOrigVarConstr <= AbstractMasterBranchingConstr
         AbstractDwSpConstr <= Duty{Constraint}
             DwSpPureConstr <= AbstractDwSpConstr
+            DwSpDualSol <= AbstractDwSpConstr
             DwSpRepMastBranchConstr <= AbstractDwSpConstr
         AbstractBendSpPureConstr <= Duty{Constraint}
         AbstractBendSpConstr <= Duty{Constraint}
@@ -57,6 +60,7 @@ end
                 BendSpSecondStageCostConstr <= AbstractBendSpMasterConstr
                 BendSpTechnologicalConstr <= AbstractBendSpMasterConstr
             BendSpPureConstr <= AbstractBendSpConstr
+            BendSpDualSol <= AbstractBendSpConstr
         UndefinedConstrDuty <= Duty{Constraint}
 end
 
@@ -72,6 +76,8 @@ function isaStaticDuty(duty::NestedEnum)
     duty <= DwSpPricingVar ||
     duty <= DwSpSetupVar ||
     duty <= DwSpPureVar ||
+    duty <= DwSpPrimalSol ||
+    duty <= DwSpDualSol ||
     duty <= BendSpSepVar ||
     duty <= BendSpPureVar ||
     duty <= BendSpSlackFirstStageVar  ||
@@ -83,6 +89,8 @@ function isaStaticDuty(duty::NestedEnum)
     duty <= MasterSecondStageCostConstr ||
     duty <= DwSpPureConstr ||
     duty <= BendSpPureConstr ||
+    duty <= BendSpDualSol ||
+    duty <= BendSpPrimalSol ||
     duty <= BendSpSecondStageCostConstr ||
     duty <= BendSpTechnologicalConstr
 end

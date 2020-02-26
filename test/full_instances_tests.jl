@@ -190,21 +190,6 @@ function generalized_assignment_tests()
             @test repr(e) == "ErrorException(\"Function `optimize!` is not defined for object of type Coluna.MathProg.NoOptimizer\")"
         end
     end
-
-    @testset "clsp small instance" begin
-        data = CLD.CapacitatedLotSizing.readData("testSmall")
-
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(),
-            "default_optimizer" => GLPK.Optimizer
-        )
-
-        model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
-        JuMP.optimize!(model)
-
-        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    end
     return
 end
 

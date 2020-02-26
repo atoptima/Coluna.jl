@@ -10,8 +10,8 @@ function create_variable(i)
         ; cost = 10.0 * i, lb = -10.0, ub = 100.0, kind = ClF.Continuous,
         sense = ClF.Free, is_active = false, is_explicit = false
     )
-    id = ClF.Id{ClF.Variable}(i, 1)
-    v = ClF.Variable(id, "fake_var_$i", ClF.MasterPureVar; var_data = v_data)
+    id = ClF.Id{ClF.Variable}(ClF.MasterPureVar, i, 1)
+    v = ClF.Variable(id, "fake_var_$i"; var_data = v_data)
     return v, id
 end
 
@@ -31,9 +31,9 @@ function create_constraint(i)
         ; rhs = -13.0 * i, kind = ClF.Facultative, sense = ClF.Equal,
         inc_val = -12.0, is_active = false, is_explicit = false
     )
-    id = ClF.Id{ClF.Constraint}(i, 1)
+    id = ClF.Id{ClF.Constraint}(ClF.MasterBranchOnOrigVarConstr, i, 1)
     c = ClF.Constraint(
-        id, "fake_constr_$i", ClF.MasterBranchOnOrigVarConstr; 
+        id, "fake_constr_$i"; 
         constr_data = c_data
     )
     return c, id
