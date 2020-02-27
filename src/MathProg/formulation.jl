@@ -129,7 +129,7 @@ end
 function _addvar!(form::Formulation, var::Variable)
     _addvar!(form.manager, var)
     
-    if getcurisexplicit(form, var) 
+    if iscurexplicit(form, var) 
         add!(form.buffer, getid(var))
     end
     return 
@@ -352,7 +352,7 @@ end
 "Adds `Constraint` `constr` to `Formulation` `form`."
 function _addconstr!(form::Formulation, constr::Constraint)
     _addconstr!(form.manager, constr)
-    if getcurisexplicit(form, constr)
+    if iscurexplicit(form, constr)
         add!(form.buffer, getid(constr))
     end
     return 
@@ -362,7 +362,7 @@ function enforce_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(form))
     for (varid, var) in getvars(form)
         !iscuractive(form, varid) && continue
-        !getcurisexplicit(form, varid) && continue
+        !iscurexplicit(form, varid) && continue
         getcurkind(form, varid) == Integ && continue
         getcurkind(form, varid) == Binary && continue
         if getduty(varid) <= MasterCol || getperenekind(form, varid) != Continuous
@@ -377,7 +377,7 @@ function relax_integrality!(form::Formulation) # TODO remove : should be in Algo
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(form))
     for (varid, var) in getvars(form)
         !iscuractive(form, varid) && continue
-        !getcurisexplicit(form, varid) && continue
+        !iscurexplicit(form, varid) && continue
         getcurkind(form, var) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to continuous")
         setcurkind!(form, varid, Continuous)
@@ -505,7 +505,7 @@ end
 
 function _show_obj_fun(io::IO, form::Formulation)
     print(io, getobjsense(form), " ")
-    vars = filter(var -> getcurisexplicit(form, var), getvars(form))
+    vars = filter(var -> iscurexplicit(form, var), getvars(form))
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
         name = getname(form, vars[id])
@@ -532,7 +532,7 @@ function _show_constraint(io::IO, form::Formulation, constrid::ConstrId)
         op = ">="
     end
     print(io, " ", op, " ", getcurrhs(form, constr))
-    println(io, " (", getduty(constrid), constrid, " | ", getcurisexplicit(form, constr) ,")")
+    println(io, " (", getduty(constrid), constrid, " | ", iscurexplicit(form, constr) ,")")
     return
 end
 
@@ -553,7 +553,7 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     ub = getcurub(form, var)
     t = getcurkind(form, var)
     d = getduty(getid(var))
-    e = getcurisexplicit(form, var)
+    e = iscurexplicit(form, var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 

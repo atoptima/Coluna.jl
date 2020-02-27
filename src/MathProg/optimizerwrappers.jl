@@ -43,7 +43,7 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
         fill_primal_result!(form, optimizer, result)
         fill_dual_result!(
         optimizer, result, filter(
-                constr -> iscuractive(form, constr) && getcurisexplicit(form, constr), 
+                constr -> iscuractive(form, constr) && iscurexplicit(form, constr), 
                 getconstrs(form)
             )
         )
@@ -106,7 +106,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for constr_id in buffer.constr_buffer.added
         constr = getconstr(f, constr_id)
         @logmsg LogLevel(-4) string("Adding constraint ", getname(f, constr))
-        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && getcurisexplicit(f, constr))  
+        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && iscurexplicit(f, constr))  
     end
 
     # Update variable costs
@@ -146,7 +146,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.var_buffer.added
         for (constrid, coeff) in  matrix[:,id]
             iscuractive(f, constrid) || continue
-            getcurisexplicit(f, constrid) || continue
+            iscurexplicit(f, constrid) || continue
             constrid ∉ buffer.constr_buffer.added || continue
             c = getconstr(f, constrid)
             update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)

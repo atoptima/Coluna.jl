@@ -21,7 +21,7 @@ Set the current cost of variable `var` with id `id` to `cost` in formulation
 """
 function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
     form.manager.var_datas[varid].cost = cost
-    if getcurisexplicit(form, varid) 
+    if iscurexplicit(form, varid) 
         change_cost!(form.buffer, varid)
     end
     return
@@ -54,7 +54,7 @@ according to `new_lb`. Change on `f.optimizer` will be buffered.
 """
 function setcurlb!(form::Formulation, varid::VarId, lb::Float64)
     form.manager.var_datas[varid].lb = lb
-    if getcurisexplicit(form, varid) 
+    if iscurexplicit(form, varid) 
         change_bound!(form.buffer, varid)
     end
     return
@@ -85,7 +85,7 @@ according to `new_ub`. Change on `f.optimizer` will be buffered.
 """
 function setcurub!(form::Formulation, varid::VarId, ub::Float64)
     form.manager.var_datas[varid].ub = ub
-    if getcurisexplicit(form, varid) 
+    if iscurexplicit(form, varid) 
         change_bound!(form.buffer, varid)
     end
     return
@@ -105,7 +105,7 @@ getcurrhs(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[con
 getcurrhs(form::Formulation, constr::Constraint) = getcurrhs(form, getid(constr))
 function setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) 
     form.manager.constr_datas[constrid].rhs = rhs
-    if getcurisexplicit(form, constrid) 
+    if iscurexplicit(form, constrid) 
         change_rhs!(form.buffer, constrid)
     end
     return
@@ -140,7 +140,7 @@ according to `new_kind`. Change on `f.optimizer` will be buffered.
 """
 function setcurkind!(form::Formulation, varid::VarId, kind::VarKind)
     form.manager.var_datas[varid].kind = kind
-    if getcurisexplicit(form, varid) 
+    if iscurexplicit(form, varid) 
         change_kind!(form.buffer, varid)
     end
     return
@@ -148,7 +148,7 @@ end
 setcurkind!(form::Formulation, var::Variable, kind::VarKind) = setcurkind!(form, getid(var), kind)
 function setcurkind!(form::Formulation, constrid::ConstrId, kind::ConstrKind)
     form.manager.constr_datas[constrid].kind = kind
-    if getcurisexplicit(form, constrid) 
+    if iscurexplicit(form, constrid) 
         change_kind!(form.buffer, constrid)
     end
     return
@@ -178,7 +178,7 @@ todo
 """
 function setcursense!(form::Formulation, varid::VarId, sense::VarSense)
     form.manager.var_datas[varid].sense = sense
-    if getcurisexplicit(form, varid) 
+    if iscurexplicit(form, varid) 
         #change_sense!(form.buffer, getvar(form, varid))
     end
     return
@@ -186,7 +186,7 @@ end
 setcursense!(form::Formulation, var::Variable, sense::VarSense) = setcursense!(form, getid(var), sense)
 function setcursense!(form::Formulation, constrid::ConstrId, sense::ConstrSense)
     form.manager.constr_datas[constrid].sense = sense
-    if getcurisexplicit(form, constrid) 
+    if iscurexplicit(form, constrid) 
         #change_sense!(form.buffer, getvar(form, varid))
     end
     return
@@ -215,7 +215,7 @@ todo
 """
 function setcurincval!(form::Formulation, varid::VarId, inc_val::Real)
     form.manager.var_datas[varid].inc_val = inc_val
-    if getcurisexplicit(form, varid) 
+    if iscurexplicit(form, varid) 
         #change_inc_val!(form.buffer, getvar(form, varid))
     end
     return
@@ -223,7 +223,7 @@ end
 setcurincval!(form::Formulation, var::Variable, inc_val::Real) = setcurincval!(form, getid(var), inc_val)
 function setcurincval!(form::Formulation, constrid::ConstrId, inc_val::Real)
     form.manager.constr_datas[constrid].inc_val = inc_val
-    if getcurisexplicit(form, constrid) 
+    if iscurexplicit(form, constrid) 
         #change_inc_val!(form.buffer, getconstr(form, constrid))
     end
     return
@@ -259,7 +259,7 @@ end
 
 "Activates a variable in the formulation"
 function activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
-    if getcurisexplicit(form, varconstrid)
+    if iscurexplicit(form, varconstrid)
         add!(form.buffer, varconstrid)
     end
     _setiscuractive!(form, varconstrid, true)
@@ -287,7 +287,7 @@ end
 Deactivate a variable or a constraint in the formulation
 """
 function deactivate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
-    if getcurisexplicit(form, varconstrid)
+    if iscurexplicit(form, varconstrid)
         remove!(form.buffer, varconstrid)
     end
     _setiscuractive!(form, varconstrid, false)
@@ -318,34 +318,34 @@ end
 """
 todo
 """
-getpereneisexplicit(form::Formulation, varid::VarId) = getperenisexplicit(form, getvar(form, varid))
-getpereneisexplicit(form::Formulation, var::Variable) = var.perene_data.is_explicit
-getpereneisexplicit(form::Formulation, constrid::ConstrId) = getpereneisexplicit(form, getconstr(form, constr))
-getpereneisexplicit(form::Formulation, constr::Constraint) = constr.perene_data.is_explicit
+ispereneexplicit(form::Formulation, varid::VarId) = getperenisexplicit(form, getvar(form, varid))
+ispereneexplicit(form::Formulation, var::Variable) = var.perene_data.is_explicit
+ispereneexplicit(form::Formulation, constrid::ConstrId) = ispereneexplicit(form, getconstr(form, constr))
+ispereneexplicit(form::Formulation, constr::Constraint) = constr.perene_data.is_explicit
 
 """
 todo
 """
-getcurisexplicit(form::Formulation, varid::VarId) = form.manager.var_datas[varid].is_explicit
-getcurisexplicit(form::Formulation, var::Variable) = getcurisexplicit(form, getid(var))
-getcurisexplicit(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].is_explicit
-getcurisexplicit(form::Formulation, constr::Constraint) = getcurisexplicit(form, getid(constr))
+iscurexplicit(form::Formulation, varid::VarId) = form.manager.var_datas[varid].is_explicit
+iscurexplicit(form::Formulation, var::Variable) = iscurexplicit(form, getid(var))
+iscurexplicit(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].is_explicit
+iscurexplicit(form::Formulation, constr::Constraint) = iscurexplicit(form, getid(constr))
 
 """
 todo
 """
-function setcurisexplicit!(form::Formulation, varid::VarId, is_explicit::Bool)
+function setiscurexplicit!(form::Formulation, varid::VarId, is_explicit::Bool)
     form.manager.var_datas[varid].is_explicit = is_explicit
     #change_is_explicit!(form.buffer, getvar(form, varid))
     return
 end
-setcurisexplicit!(form::Formulation, var::Variable, is_explicit::Bool) = setcurisexplicit!(form, getid(var), is_explicit)
-function setcurisexplicit!(form::Formulation, constrid::ConstrId, is_explicit::Bool)
+setiscurexplicit!(form::Formulation, var::Variable, is_explicit::Bool) = setiscurexplicit!(form, getid(var), is_explicit)
+function setiscurexplicit!(form::Formulation, constrid::ConstrId, is_explicit::Bool)
     form.manager.constr_datas[constrid].is_explicit = is_explicit
     #change_is_explicit!(form.buffer, getvar(form, varid))
     return
 end
-setcurisexplicit!(form::Formulation, constr::Constraint, is_explicit::Bool) = setcurisexplicit!(form, getid(constr), is_explicit)
+setiscurexplicit!(form::Formulation, constr::Constraint, is_explicit::Bool) = setiscurexplicit!(form, getid(constr), is_explicit)
 
 ## name
 """
@@ -380,7 +380,7 @@ function reset!(form::Formulation, var::Variable)
         deactivate!(form, var)
     end
 
-    setcurisexplicit!(form, var, getpereneisexplicit(form, var))
+    setiscurexplicit!(form, var, ispereneexplicit(form, var))
     return
 end
 reset!(form::Formulation, varid::VarId)  = reset!(form, getvar(form, varid)) 
@@ -398,7 +398,7 @@ function reset!(form::Formulation, constr::Constraint)
         deactivate!(form, constr)
     end
 
-    setcurisexplicit!(form, constr, getpereneisexplicit(form, constr))
+    setiscurexplicit!(form, constr, ispereneexplicit(form, constr))
     return
 end
 
