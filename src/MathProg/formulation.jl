@@ -505,7 +505,7 @@ end
 
 function _show_obj_fun(io::IO, form::Formulation)
     print(io, getobjsense(form), " ")
-    vars = filter(var -> iscurexplicit(form, var), getvars(form))
+    vars = filter(v -> iscurexplicit(form, v.first), getvars(form))
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
         name = getname(form, vars[id])

@@ -135,7 +135,7 @@ function create_side_vars_constrs!(
     coefmatrix = getcoefmatrix(masterform)
     for (spuid, spform) in get_dw_pricing_sps(masterform.parent_formulation)
         ann = get(annotations, spform)
-        setupvars = filter(var -> getduty(getid(var)) == DwSpSetupVar, getvars(spform))
+        setupvars = filter(v -> getduty(v.first) == DwSpSetupVar, getvars(spform))
         @assert length(setupvars) == 1
         setupvar = collect(values(setupvars))[1]
         clonevar!(origform, masterform, spform, setupvar, MasterRepPricingSetupVar, is_explicit = false)
@@ -268,7 +268,7 @@ function create_side_vars_constrs!(
     
     for (spuid, spform) in get_benders_sep_sps(masterform.parent_formulation)
         nu_var = collect(values(filter(
-            var -> getduty(getid(var)) == BendSpSlackSecondStageCostVar, 
+            v -> getduty(v.first) == BendSpSlackSecondStageCostVar, 
             getvars(spform)
         )))[1]
         

@@ -1,10 +1,10 @@
 function mycallback(form::CL.Formulation)
     vars = [v for (id,v) in Iterators.filter(
-        v -> (CL.iscuractive(form,v) && CL.iscurexplicit(form,v)),
+        v -> (CL.iscuractive(form,v.first) && CL.iscurexplicit(form,v.first)),
         CL.getvars(form)
     )]
     constr = [c for (id,c) in Iterators.filter(
-        c -> (CL.iscuractive(form,c) && CL.iscurexplicit(form,c)),
+        c -> (CL.iscuractive(form,c.first) && CL.iscurexplicit(form,c.first)),
         CL.getconstrs(form))][1]
     matrix = CL.getcoefmatrix(form)
     m = JuMP.Model(GLPK.Optimizer)
