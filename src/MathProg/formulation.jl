@@ -200,46 +200,33 @@ function setdualsol!(
     new_dual_sol::DualSolution{S}
 )::Tuple{Bool,ConstrId} where {S<:Coluna.AbstractSense}
     ### check if dualsol exists  take place here along the coeff update
-
-    prev_dual_sols = getdualsolmatrix(form)
-
-    for (prev_dual_sol_id, prev_dual_sol) in columns(prev_dual_sols)
-        rhs = getdualsolrhss(form)[prev_dual_sol_id]
+    dual_sols = getdualsolmatrix(form)
+    dual_sol_rhss = getdualsolrhss(form)
+    
+    for (cur_sol_id, cur_rhs) in dual_sol_rhss
         factor = 1.0
-        if new_dual_sol.bound < rhs
-            factor = rhs / new_dual_sol.bound
-            
-        else
-            if new_dual_sol.bound > rhs
-                factor = rhs / new_dual_sol.bound
-            end 
+        if getbound(new_dual_sol) != cur_rhs
+            factor = cur_rhs / getbound(new_dual_sol)
+        end
+
+        # TODO : implement broadcasting for PMA in DynamicSparseArrays
+        is_identical = true
+        cur_dual_sol = dual_sols[cur_sol_id, :]
+        for (constr_id, constr_val) in cur_dual_sol
+            if factor * getsol(new_dual_sol)[constr_id] != constr_val
+                is_identical = false
+                break
+            end
+        end
+
+        for (constr_id, constr_val) in getsol(new_dual_sol)
+            if factor * constr_val != cur_dual_sol[constr_id]
+                is_identical = false
+                break
+            end
         end
         
-        is_identical = true
-        for (constr_id, constr_val) in getrecords(prev_dual_sol)
-            if new_dual_sol[constr_id] == 0
-                is_identical = false
-                break
-            end
-        end
-        if !is_identical
-            continue
-        end
-
-        for (constr_id, constr_val) in new_dual_sol
-            if prev_dual_sol[constr_id] == 0
-                is_identical = false
-                break
-            end
-            
-            if prev_dual_sol[constr_id] != factor * constr_val
-                is_identical = false
-                break
-            end
-        end
-        if is_identical
-            return (false, prev_dual_sol_id)
-        end    
+        is_identical && return (false, cur_sol_id)
     end
     
     ### else not identical to any existing dual sol
