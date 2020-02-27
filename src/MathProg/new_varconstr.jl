@@ -22,7 +22,7 @@ Set the current cost of variable `var` with id `id` to `cost` in formulation
 function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
     form.manager.var_datas[varid].cost = cost
     if getcurisexplicit(form, varid) 
-        change_cost!(form.buffer, getvar(form, varid)) # TODO : change buffer
+        change_cost!(form.buffer, varid)
     end
     return
 end
@@ -55,9 +55,8 @@ according to `new_lb`. Change on `f.optimizer` will be buffered.
 function setcurlb!(form::Formulation, varid::VarId, lb::Float64)
     form.manager.var_datas[varid].lb = lb
     if getcurisexplicit(form, varid) 
-        change_bound!(form.buffer, getvar(form, varid))
+        change_bound!(form.buffer, varid)
     end
-
     return
 end
 setcurlb!(form::Formulation, var::Variable, lb::Float64) =  setcurlb!(form, getid(var), lb)
@@ -87,7 +86,7 @@ according to `new_ub`. Change on `f.optimizer` will be buffered.
 function setcurub!(form::Formulation, varid::VarId, ub::Float64)
     form.manager.var_datas[varid].ub = ub
     if getcurisexplicit(form, varid) 
-        change_bound!(form.buffer, getvar(form, varid))
+        change_bound!(form.buffer, varid)
     end
     return
 end
@@ -107,7 +106,7 @@ getcurrhs(form::Formulation, constr::Constraint) = getcurrhs(form, getid(constr)
 function setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) 
     form.manager.constr_datas[constrid].rhs = rhs
     if getcurisexplicit(form, constrid) 
-        change_rhs!(form.buffer, getconstr(form, constrid))
+        change_rhs!(form.buffer, constrid)
     end
     return
 end
@@ -142,7 +141,7 @@ according to `new_kind`. Change on `f.optimizer` will be buffered.
 function setcurkind!(form::Formulation, varid::VarId, kind::VarKind)
     form.manager.var_datas[varid].kind = kind
     if getcurisexplicit(form, varid) 
-        change_kind!(form.buffer, getvar(form, varid))
+        change_kind!(form.buffer, varid)
     end
     return
 end
@@ -150,7 +149,7 @@ setcurkind!(form::Formulation, var::Variable, kind::VarKind) = setcurkind!(form,
 function setcurkind!(form::Formulation, constrid::ConstrId, kind::ConstrKind)
     form.manager.constr_datas[constrid].kind = kind
     if getcurisexplicit(form, constrid) 
-        change_kind!(form.buffer, getconstr(form, constrid))
+        change_kind!(form.buffer, constrid)
     end
     return
 end
@@ -198,7 +197,7 @@ setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense) = setcur
 """
 todo
 """
-getpereneincval(form::Formulation, varid::VarId) = getperenincval(form, getvar(form, varid))
+getpereneincval(form::Formulation, varid::VarId) = getpereneincval(form, getvar(form, varid))
 getpereneincval(form::Formulation, var::Variable) = var.perene_data.inc_val
 getpereneincval(form::Formulation, constrid::ConstrId) = getpereneincval(form, getconstr(form, constr))
 getpereneincval(form::Formulation, constr::Constraint) = constr.perene_data.inc_val
@@ -235,34 +234,85 @@ setcurincval!(form::Formulation, constr::Constraint, inc_val::Real) = setcurincv
 """
 todo
 """
-getpereneisactive(form::Formulation, varid::VarId) = getperenisactive(form, getvar(form, varid))
-getpereneisactive(form::Formulation, var::Variable) = var.perene_data.is_active
-getpereneisactive(form::Formulation, constrid::ConstrId) = getpereneisactive(form, getconstr(form, constr))
-getpereneisactive(form::Formulation, constr::Constraint) = constr.perene_data.is_active
+ispereneactive(form::Formulation, varid::VarId) = ispereneactive(form, getvar(form, varid))
+ispereneactive(form::Formulation, var::Variable) = var.perene_data.is_active
+ispereneactive(form::Formulation, constrid::ConstrId) = ispereneactive(form, getconstr(form, constrid))
+ispereneactive(form::Formulation, constr::Constraint) = constr.perene_data.is_active
 
 """
 todo
 """
-getcurisactive(form::Formulation, varid::VarId) = form.manager.var_datas[varid].is_active
-getcurisactive(form::Formulation, var::Variable) = getcurisactive(form, getid(var))
-getcurisactive(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].is_active
-getcurisactive(form::Formulation, constr::Constraint) = getcurisactive(form, getid(constr))
+iscuractive(form::Formulation, varid::VarId) = form.manager.var_datas[varid].is_active
+iscuractive(form::Formulation, var::Variable) = iscuractive(form, getid(var))
+iscuractive(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].is_active
+iscuractive(form::Formulation, constr::Constraint) = iscuractive(form, getid(constr))
 
-"""
-todo
-"""
-function setcurisactive!(form::Formulation, varid::VarId, is_active::Bool)
+function _setiscuractive!(form::Formulation, varid::VarId, is_active::Bool)
     form.manager.var_datas[varid].is_active = is_active
-    #change_is_active!(form.buffer, getvar(form, varid))
     return
 end
-setcurisactive!(form::Formulation, var::Variable, is_active::Bool) = setcurisactive!(form, getid(var), is_active)
-function setcurisactive!(form::Formulation, constrid::ConstrId, is_active::Bool) 
+
+function _setiscuractive!(form::Formulation, constrid::ConstrId, is_active::Bool) 
     form.manager.constr_datas[constrid].is_active = is_active
-    #change_is_active!(form.buffer, getvar(form, constrid))
     return
 end
-setcurisactive!(form::Formulation, constr::Constraint, is_active::Bool) = setcurisactive!(form, getid(constr), is_active)
+
+"Activates a variable in the formulation"
+function activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
+    if getcurisexplicit(form, varconstrid)
+        add!(form.buffer, varconstrid)
+    end
+    _setiscuractive!(form, varconstrid, true)
+    return
+end
+activate!(form::Formulation, varconstr::AbstractVarConstr) = activate!(form, getid(varconstr))
+
+function activate!(form::Formulation, duty::Duty{Variable})
+    for (varid, _) in getvars(form)
+        if iscuractive(form, varid) && getduty(varid) <= duty
+            activate!(form, varid)
+        end
+    end
+end
+
+function activate!(form::Formulation, duty::Duty{Constraint})
+    for (constrid, _) in getconstrs(form)
+        if iscuractive(form, constrid) && getduty(constrid) <= duty
+            activate!(form, constrid)
+        end
+    end
+end
+
+"""
+Deactivate a variable or a constraint in the formulation
+"""
+function deactivate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
+    if getcurisexplicit(form, varconstrid)
+        remove!(form.buffer, varconstrid)
+    end
+    _setiscuractive!(form, varconstrid, false)
+    return
+end
+deactivate!(form::Formulation, varconstr::AbstractVarConstr) = deactivate!(form, getid(varconstr))
+
+function deactivate!(form::Formulation, duty::Duty{Variable})
+    for (varid, _) in getvars(form)
+        if iscuractive(form, varid) && getduty(varid) <= duty
+            deactivate!(form, varid)
+        end
+    end
+    return
+end
+
+function deactivate!(form::Formulation, duty::Duty{Constraint})
+    for (constrid, _) in getconstrs(form)
+        if iscuractive(form, constrid) && getduty(constrid) <= duty
+            deactivate!(form, constrid)
+        end
+    end
+    return
+end
+
 
 ## explicit
 """
@@ -323,7 +373,13 @@ function reset!(form::Formulation, var::Variable)
     setcurkind!(form, var, getperenekind(form, var))
     setcursense!(form, var, getperenesense(form, var))
     setcurincval!(form, var, getpereneincval(form, var))
-    setcurisactive!(form, var, getpereneisactive(form, var))
+
+    if ispereneactive(form, var)
+        activate!(form, var)
+    else
+        deactivate!(form, var)
+    end
+
     setcurisexplicit!(form, var, getpereneisexplicit(form, var))
     return
 end
@@ -335,7 +391,13 @@ function reset!(form::Formulation, constr::Constraint)
     setcurkind!(form, constr, getperenekind(form, constr))
     setcursense!(form, constr, getperenesense(form, constr))
     setcurincval!(form, constr , getpereneincval(form, constr))
-    setcurisactive!(form, constr, getpereneisactive(form, constr))
+    
+    if ispereneactive(form, constr)
+        activate!(form, constr)
+    else
+        deactivate!(form, constr)
+    end
+
     setcurisexplicit!(form, constr, getpereneisexplicit(form, constr))
     return
 end

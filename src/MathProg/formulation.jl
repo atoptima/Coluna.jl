@@ -134,7 +134,7 @@ function _addvar!(form::Formulation, var::Variable)
     _addvar!(form.manager, var)
     
     if getcurisexplicit(form, var) 
-        add!(form.buffer, var)
+        add!(form.buffer, getid(var))
     end
     return 
 
@@ -330,61 +330,6 @@ function setcut_from_sp_dualsol!(
     return benders_cut
 end
 
-"Deactivates a variable or a constraint in the formulation"
-function deactivate!(form::Formulation, varconstr::AbstractVarConstr)
-    if getcurisexplicit(form, varconstr)
-        remove!(form.buffer, varconstr)
-    end
-    setcurisactive!(form, varconstr, false)
-    return
-end
-
-deactivate!(form::Formulation, id::Id) = deactivate!(form, getelem(form, id))
-
-function deactivate!(form::Formulation, duty::Duty{Variable})
-    for (varid, var) in getvars(form)
-        getcurisactive(form, varid) || continue
-        getduty(varid) <= duty || continue
-        deactivate!(form, var)
-    end
-    return
-end
-
-function deactivate!(form::Formulation, duty::Duty{Constraint})
-    for (constrid, constr) in getconstrs(form)
-        getcurisactive(form, constrid) || continue
-        getduty(constrid) <= duty || continue
-        deactivate!(form, constr)
-    end
-    return
-end
-
-"Activates a variable in the formulation"
-function activate!(form::Formulation, varconstr::AbstractVarConstr)
-    if getcurisexplicit(form, varconstr)
-        add!(form.buffer, varconstr)
-    end
-    setcurisactive!(form, varconstr, true)
-    return
-end
-activate!(form::Formulation, id::Id) = activate!(form, getelem(form, id))
-
-function activate!(form::Formulation, duty::Duty{Variable})
-    for (varid, var) in getvars(form)
-        getcurisactive(form, varid) || continue
-        getduty(varid) <= duty || continue
-        activate!(form, var)
-    end
-end
-
-function activate!(form::Formulation, duty::Duty{Constraint})
-    for (constrid, constr) in getconstrs(form)
-        getcurisactive(form, constrid) || continue
-        getduty(constrid) <= duty || continue
-        activate!(form, constr)
-    end
-end
-
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
 function setconstr!(form::Formulation,
                     name::String,
@@ -412,7 +357,7 @@ end
 function _addconstr!(form::Formulation, constr::Constraint)
     _addconstr!(form.manager, constr)
     if getcurisexplicit(form, constr)
-        add!(form.buffer, constr)
+        add!(form.buffer, getid(constr))
     end
     return 
 end
@@ -420,7 +365,7 @@ end
 function enforce_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(form))
     for (varid, var) in getvars(form)
-        !getcurisactive(form, varid) && continue
+        !iscuractive(form, varid) && continue
         !getcurisexplicit(form, varid) && continue
         getcurkind(form, varid) == Integ && continue
         getcurkind(form, varid) == Binary && continue
@@ -432,25 +377,15 @@ function enforce_integrality!(form::Formulation)
     return
 end
 
-function relax_integrality!(form::Formulation)
+function relax_integrality!(form::Formulation) # TODO remove : should be in Algorithm
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(form))
     for (varid, var) in getvars(form)
-        !getcurisactive(form, varid) && continue
+        !iscuractive(form, varid) && continue
         !getcurisexplicit(form, varid) && continue
         getcurkind(form, var) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to continuous")
         setcurkind!(form, varid, Continuous)
     end
-    return
-end
-
-"Activates a constraint in the formulation"
-function activateconstr!(form::Formulation, id::Id{Constraint})
-    constr = getvar(form, id)
-    if getcurisexplicit(form, constr)
-        add!(form.buffer, constr)
-    end
-    setcurisactive!(form, constr, true)
     return
 end
 
@@ -662,7 +597,7 @@ function _show_constraints(io::IO , form::Formulation)
     constrs = getconstrs(form)
     ids = sort!(collect(keys(constrs)), by = getsortuid)
     for constr_id in ids
-        if getcurisactive(form, constr_id)
+        if iscuractive(form, constr_id)
             _show_constraint(io, form, constr_id)
         end
     end

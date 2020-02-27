@@ -141,7 +141,7 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     constrs_with_modified_rhs = Constraint[]
     for (varid, val) in sp_vars_vals 
         for (constrid, coef) in master_coef_matrix[:,varid]
-            getcurisactive(master, constrid) || continue
+            iscuractive(master, constrid) || continue
             getcurisexplicit(master, constrid) || continue
             setrhs!(master, constrid, getcurrhs(master, constrid) - val * coef)
             push!(constrs_with_modified_rhs, getconstr(master, constrid))
@@ -154,7 +154,7 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
         (cur_sp_lb, cur_sp_ub) = alg_data.cur_sp_bounds[getuid(sp_prob)]
 
         for (varid, var) in getvars(spform)
-            getcurisactive(spform, varid) || continue
+            iscuractive(spform, varid) || continue
             getduty(varid) <=  AbstractDwSpVar || continue
             var_val_in_local_sol = (
                 haskey(sp_vars_vals, varid) ? sp_vars_vals[varid] : 0.0
@@ -198,7 +198,7 @@ function initconstraints!(
     master = getmaster(alg_data.reformulation)
     master_coef_matrix = getcoefmatrix(master)
     for (constrid, constr) in getconstrs(master)
-        getcurisactive(master, constrid) || continue
+        iscuractive(master, constrid) || continue
         getcurisexplicit(master, constrid) || continue
         getduty(constrid) == MasterConvexityConstr || continue
         initconstraint!(alg_data, constr, master)
@@ -208,7 +208,7 @@ function initconstraints!(
     # Subproblem constraints
     for (spuid, spform) in get_dw_pricing_sps(alg_data.reformulation)
         for (constrid, constr) in getconstrs(spform)
-            getcurisactive(spform, constrid) || continue
+            iscuractive(spform, constrid) || continue
             getcurisexplicit(spform, constrid) || continue
             initconstraint!(alg_data, constr, spform)
             push!(constrs_to_stack, (constr, spform))
@@ -409,7 +409,7 @@ function update_lower_bound!(
         diff = cur_lb == -Inf ? -new_lb : cur_lb - new_lb
         coef_matrix = getcoefmatrix(form)
         for (constrid, coef) in coef_matrix[:, varid]
-            getcurisactive(form, constrid) || continue
+            iscuractive(form, constrid) || continue
             getcurisexplicit(form, constrid) || continue
             status = false
             if coef < 0 
@@ -480,7 +480,7 @@ function update_upper_bound!(
         diff = cur_ub == Inf ? -new_ub : cur_ub - new_ub
         coef_matrix = getcoefmatrix(form)
         for (constrid, coef) in coef_matrix[:, varid]
-            getcurisactive(form, constrid) || continue
+            iscuractive(form, constrid) || continue
             getcurisexplicit(form, constrid) || continue
             status = false
             if coef > 0 
