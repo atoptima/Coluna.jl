@@ -15,15 +15,13 @@ Constructs an empty `VarConstrBuffer{T}` for entities of type `T`.
 """
 VarConstrBuffer{T}() where {T<:AbstractVarConstr} = VarConstrBuffer{T}(Set{T}(), Set{T}())
 
-function add!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
-    id = getid(vc)
+function add!(buffer::VarConstrBuffer{VC}, id::Id{VC}) where {VC<:AbstractVarConstr}
     !(id in buffer.removed) && push!(buffer.added, id)
     delete!(buffer.removed, id)
     return
 end
 
-function remove!(buffer::VarConstrBuffer{VC}, vc::VC) where {VC<:AbstractVarConstr}
-    id = getid(vc)
+function remove!(buffer::VarConstrBuffer{VC}, id::Id{VC}) where {VC<:AbstractVarConstr}
     !(id in buffer.added) && push!(buffer.removed, id)
     delete!(buffer.added, id)
     return
@@ -71,43 +69,43 @@ FormulationBuffer() = FormulationBuffer(
     # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()
 )
 
-add!(b::FormulationBuffer, var::Variable) = add!(b.var_buffer, var)
-add!(b::FormulationBuffer, constr::Constraint) = add!(b.constr_buffer, constr)
+add!(b::FormulationBuffer, varid::VarId) = add!(b.var_buffer, varid)
+add!(b::FormulationBuffer, constrid::ConstrId) = add!(b.constr_buffer, constrid)
 
-remove!(buffer::FormulationBuffer, var::Variable) = remove!(
-    buffer.var_buffer, var
+remove!(buffer::FormulationBuffer, varid::VarId) = remove!(
+    buffer.var_buffer, varid
 )
 
-remove!(buffer::FormulationBuffer, constr::Constraint) = remove!(
-    buffer.constr_buffer, constr
+remove!(buffer::FormulationBuffer, constrid::ConstrId) = remove!(
+    buffer.constr_buffer, constrid
 )
 
-function change_rhs!(buffer::FormulationBuffer, constr::Constraint)
-    push!(buffer.changed_rhs, getid(constr))
+function change_rhs!(buffer::FormulationBuffer, constrid::ConstrId)
+    push!(buffer.changed_rhs, constrid)
     return
 end
 
-function change_kind!(buffer::FormulationBuffer, constr::Constraint)
-    push!(buffer.changed_constr_kind, getid(constr))
+function change_kind!(buffer::FormulationBuffer, constrid::ConstrId)
+    push!(buffer.changed_constr_kind, constrid)
     return
 end
 
-function change_cost!(buffer::FormulationBuffer, var::Variable)
-    push!(buffer.changed_cost, getid(var))
+function change_cost!(buffer::FormulationBuffer, varid::VarId)
+    push!(buffer.changed_cost, varid)
     return
 end
 
-function change_bound!(buffer::FormulationBuffer, var::Variable)
-    push!(buffer.changed_bound, getid(var))
+function change_bound!(buffer::FormulationBuffer, varid::VarId)
+    push!(buffer.changed_bound, varid)
     return
 end
 
-function change_kind!(buffer::FormulationBuffer, var::Variable)
-    push!(buffer.changed_var_kind, getid(var))
+function change_kind!(buffer::FormulationBuffer, varid::VarId)
+    push!(buffer.changed_var_kind, varid)
     return
 end
 
-function set_matrix_coeff!(buffer::FormulationBuffer, varid::Id{Variable},
-                           constrid::Id{Constraint}, new_coeff::Float64)
-    buffer.reset_coeffs[Pair(constrid,varid)] = new_coeff
+function set_matrix_coeff!(buffer::FormulationBuffer, varid::VarId,
+                           constrid::ConstrId, new_coeff::Float64)
+    buffer.reset_coeffs[Pair(constrid, varid)] = new_coeff
 end
