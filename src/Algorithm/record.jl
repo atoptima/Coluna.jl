@@ -73,13 +73,13 @@ end
 
 function add_to_recorded!(form::Formulation, record::ReformulationRecord)
     for (id, var) in getvars(form)
-        if iscuractive(form, var) && getcurisexplicit(form, var)
+        if iscuractive(form, var) && iscurexplicit(form, var)
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
             record.active_vars[id] = varstate
         end
     end
     for (id, constr) in getconstrs(form)
-        if iscuractive(form, constr) && getcurisexplicit(form, constr)
+        if iscuractive(form, constr) && iscurexplicit(form, constr)
             constrstate = ConstrState(getcurrhs(form, constr))
             record.active_constrs[id] = constrstate
         end
