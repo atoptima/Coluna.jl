@@ -201,7 +201,6 @@ function solve_sp_to_gencol!(
             else
                 msg = """
                 Column already exists as $(getname(masterform, col_id)) and is already active.
-                Please check that the initial cost of artifical variables is not too large.
                 """
                 @warn string(msg)
             end

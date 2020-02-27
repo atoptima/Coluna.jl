@@ -7,12 +7,31 @@ function _welcome_message()
 end
 
 function _adjust_params(params, init_pb)
-    if init_pb != Inf && init_pb != -Inf
-        exp = ceil(log(10, init_pb))
-        cost_loc_art_var = 10^exp
-        cost_glob_art_var = 10^(exp + 1)
-        params.global_art_var_cost = cost_glob_art_var
-        params.local_art_var_cost = cost_loc_art_var
+    if params.global_art_var_cost === nothing
+        if init_pb != Inf && init_pb != -Inf
+            exp = ceil(log(10, init_pb))
+            params.global_art_var_cost = 10^(exp + 1)
+        else
+            params.global_art_var_cost = 100000.0
+            msg = """
+            No initial primal bound and no cost for global artificial variables.
+            Cost of global artificial variables set to 100000.0
+            """
+            @warn(msg)
+        end
+    end
+    if params.local_art_var_cost === nothing
+        if init_pb != Inf && init_pb != -Inf
+            exp = ceil(log(10, init_pb))
+            params.local_art_var_cost = 10^exp
+        else
+            params.local_art_var_cost = 10000.0
+            msg = """
+            No initial primal bound and no cost for local artificial variables.
+            Cost of local artificial variables set to 10000.0
+            """
+            @warn(msg)
+        end
     end
     return
 end
