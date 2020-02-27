@@ -206,7 +206,7 @@ function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
         solvars = Vector{VarId}()
         solvals = Vector{Float64}()
         for (id, var) in getvars(form)
-            getcurisactive(form, id) && getcurisexplicit(form, id) || continue
+            iscuractive(form, id) && iscurexplicit(form, id) || continue
             moirec = getmoirecord(var)
             moi_index = getindex(moirec)
             kind = _getcolunakind(moirec)

@@ -44,10 +44,6 @@ haskey(form::Formulation, id::Id) = haskey(form.manager, id)
 "Returns the `Variable` whose `Id` is `id` if such variable is in `Formulation` `form`."
 getvar(form::Formulation, id::VarId) = getvar(form.manager, id)
 
-"Returns the value of the variable counter of `Formulation` `form`."
-getvarcounter(form::Formulation) = form.var_counter.value
-getconstrcounter(form::Formulation) = form.constr_counter.value
-
 "Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `form`."
 getconstr(form::Formulation, id::ConstrId) = getconstr(form.manager, id)
 
@@ -133,8 +129,8 @@ end
 function _addvar!(form::Formulation, var::Variable)
     _addvar!(form.manager, var)
     
-    if getcurisexplicit(form, var) 
-        add!(form.buffer, var)
+    if iscurexplicit(form, var) 
+        add!(form.buffer, getid(var))
     end
     return 
 
@@ -330,61 +326,6 @@ function setcut_from_sp_dualsol!(
     return benders_cut
 end
 
-"Deactivates a variable or a constraint in the formulation"
-function deactivate!(form::Formulation, varconstr::AbstractVarConstr)
-    if getcurisexplicit(form, varconstr)
-        remove!(form.buffer, varconstr)
-    end
-    setcurisactive!(form, varconstr, false)
-    return
-end
-
-deactivate!(form::Formulation, id::Id) = deactivate!(form, getelem(form, id))
-
-function deactivate!(form::Formulation, duty::Duty{Variable})
-    for (varid, var) in getvars(form)
-        getcurisactive(form, varid) || continue
-        getduty(varid) <= duty || continue
-        deactivate!(form, var)
-    end
-    return
-end
-
-function deactivate!(form::Formulation, duty::Duty{Constraint})
-    for (constrid, constr) in getconstrs(form)
-        getcurisactive(form, constrid) || continue
-        getduty(constrid) <= duty || continue
-        deactivate!(form, constr)
-    end
-    return
-end
-
-"Activates a variable in the formulation"
-function activate!(form::Formulation, varconstr::AbstractVarConstr)
-    if getcurisexplicit(form, varconstr)
-        add!(form.buffer, varconstr)
-    end
-    setcurisactive!(form, varconstr, true)
-    return
-end
-activate!(form::Formulation, id::Id) = activate!(form, getelem(form, id))
-
-function activate!(form::Formulation, duty::Duty{Variable})
-    for (varid, var) in getvars(form)
-        getcurisactive(form, varid) || continue
-        getduty(varid) <= duty || continue
-        activate!(form, var)
-    end
-end
-
-function activate!(form::Formulation, duty::Duty{Constraint})
-    for (constrid, constr) in getconstrs(form)
-        getcurisactive(form, constrid) || continue
-        getduty(constrid) <= duty || continue
-        activate!(form, constr)
-    end
-end
-
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
 function setconstr!(form::Formulation,
                     name::String,
@@ -411,8 +352,8 @@ end
 "Adds `Constraint` `constr` to `Formulation` `form`."
 function _addconstr!(form::Formulation, constr::Constraint)
     _addconstr!(form.manager, constr)
-    if getcurisexplicit(form, constr)
-        add!(form.buffer, constr)
+    if iscurexplicit(form, constr)
+        add!(form.buffer, getid(constr))
     end
     return 
 end
@@ -420,8 +361,8 @@ end
 function enforce_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(form))
     for (varid, var) in getvars(form)
-        !getcurisactive(form, varid) && continue
-        !getcurisexplicit(form, varid) && continue
+        !iscuractive(form, varid) && continue
+        !iscurexplicit(form, varid) && continue
         getcurkind(form, varid) == Integ && continue
         getcurkind(form, varid) == Binary && continue
         if getduty(varid) <= MasterCol || getperenekind(form, varid) != Continuous
@@ -432,25 +373,15 @@ function enforce_integrality!(form::Formulation)
     return
 end
 
-function relax_integrality!(form::Formulation)
+function relax_integrality!(form::Formulation) # TODO remove : should be in Algorithm
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(form))
     for (varid, var) in getvars(form)
-        !getcurisactive(form, varid) && continue
-        !getcurisexplicit(form, varid) && continue
+        !iscuractive(form, varid) && continue
+        !iscurexplicit(form, varid) && continue
         getcurkind(form, var) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to continuous")
         setcurkind!(form, varid, Continuous)
     end
-    return
-end
-
-"Activates a constraint in the formulation"
-function activateconstr!(form::Formulation, id::Id{Constraint})
-    constr = getvar(form, id)
-    if getcurisexplicit(form, constr)
-        add!(form.buffer, constr)
-    end
-    setcurisactive!(form, constr, true)
     return
 end
 
@@ -469,37 +400,6 @@ function _setmembers!(form::Formulation, var::Variable, members::AbstractDict{Co
     varid = getid(var)
     for (constrid, constr_coeff) in members
         coef_matrix[constrid, varid] = constr_coeff
-    end
-    return
-end
-
-# TODO : delete
-function _setmembers!(form::Formulation, constr::Constraint, members::VarMembership)
-    # Compute row vector from the recorded subproblem solution
-    # This adds the column to the convexity constraints automatically
-    # since the setup variable is in the sp solution and it has a
-    # a coefficient of 1.0 in the convexity constraints
-    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(form, constr))
-    coef_matrix = getcoefmatrix(form)
-    constrid = getid(constr)
-    @logmsg LogLevel(-4) "Members are : ", members
-
-    for (varid, var_coeff) in members
-        # Add coef for its own variables
-        var = getvar(form, varid)
-        coef_matrix[constrid, varid] = var_coeff
-        @logmsg LogLevel(-4) string("Adding variable ", getname(form, var), " with coeff ", var_coeff)
-
-        if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar          
-            # then for all columns having its own variables
-            assigned_form_uid = getassignedformuid(varid)
-            spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
-            for (col_id, col_coeff) in getprimalsolmatrix(spform)[varid,:]
-                @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
-                coef_matrix[constrid, col_id] = col_coeff * var_coeff
-            end
-        end
-        
     end
     return
 end
@@ -557,28 +457,6 @@ function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, 
     return val
 end
 
-
-function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:Coluna.AbstractSense}
-    val = sum(getperenecost(form, varid) * value for (varid, value) in sol)
-    return val
-end
-
-function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Constraint}, Float64}) 
-    val = sum(getperenerhs(form, getconstr(form, constr_id)) * value for (constr_id, value) in sol_vec)
-    return val 
-end
-
-function computesolvalue(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
-    val = sum(getperenerhs(form, getconstr(form, constr_id)) * value for (constr_id, value) in sol)
-    return val
-end
-
-function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
-    val = computesolvalue(form, sol)
-    setvalue!(sol, val)
-    return val
-end
-
 function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution{S})  where {S<:Coluna.AbstractSense}
     redcost = getperenecost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
@@ -627,7 +505,7 @@ end
 
 function _show_obj_fun(io::IO, form::Formulation)
     print(io, getobjsense(form), " ")
-    vars = filter(var -> getcurisexplicit(form, var), getvars(form))
+    vars = filter(var -> iscurexplicit(form, var), getvars(form))
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
         name = getname(form, vars[id])
@@ -654,7 +532,7 @@ function _show_constraint(io::IO, form::Formulation, constrid::ConstrId)
         op = ">="
     end
     print(io, " ", op, " ", getcurrhs(form, constr))
-    println(io, " (", getduty(constrid), constrid, " | ", getcurisexplicit(form, constr) ,")")
+    println(io, " (", getduty(constrid), constrid, " | ", iscurexplicit(form, constr) ,")")
     return
 end
 
@@ -662,7 +540,7 @@ function _show_constraints(io::IO , form::Formulation)
     constrs = getconstrs(form)
     ids = sort!(collect(keys(constrs)), by = getsortuid)
     for constr_id in ids
-        if getcurisactive(form, constr_id)
+        if iscuractive(form, constr_id)
             _show_constraint(io, form, constr_id)
         end
     end
@@ -675,7 +553,7 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     ub = getcurub(form, var)
     t = getcurkind(form, var)
     d = getduty(getid(var))
-    e = getcurisexplicit(form, var)
+    e = iscurexplicit(form, var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 

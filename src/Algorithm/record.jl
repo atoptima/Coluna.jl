@@ -73,13 +73,13 @@ end
 
 function add_to_recorded!(form::Formulation, record::ReformulationRecord)
     for (id, var) in getvars(form)
-        if getcurisactive(form, var) && getcurisexplicit(form, var)
+        if iscuractive(form, var) && iscurexplicit(form, var)
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
             record.active_vars[id] = varstate
         end
     end
     for (id, constr) in getconstrs(form)
-        if getcurisactive(form, constr) && getcurisexplicit(form, constr)
+        if iscuractive(form, constr) && iscurexplicit(form, constr)
             constrstate = ConstrState(getcurrhs(form, constr))
             record.active_constrs[id] = constrstate
         end
@@ -119,7 +119,7 @@ function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in
     for (id, vc) in var_constrs_in_formulation
         @logmsg LogLevel(-4) "Checking " getname(form, vc)
         # vc should NOT be active but is active in formulation
-        if !haskey(active_var_constrs, id) && getcurisactive(form, vc)
+        if !haskey(active_var_constrs, id) && iscuractive(form, vc)
             @logmsg LogLevel(-4) "Deactivating"
             deactivate!(form, id)
             continue
@@ -127,7 +127,7 @@ function reset_var_constr!(form::Formulation, active_var_constrs, var_constrs_in
         # vc should be active in formulation
         if haskey(active_var_constrs, id)
             # But var_constr is currently NOT active in formulation
-            if !getcurisactive(form, vc)
+            if !iscuractive(form, vc)
                 @logmsg LogLevel(-4) "Activating"
                 activate!(form, vc)
             end

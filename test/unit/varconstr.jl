@@ -96,8 +96,8 @@ function varcosntr_helpers_tests()
    # @test ClF.getcurkind(v) == ClF.getperenekind(v) == ClF.Continuous
    # @test ClF.getcursense(v) == ClF.getperenesense(v) == ClF.Positive
    # @test ClF.getcurincval(v) == ClF.getpereneincval(v) == -1.0
-# @test ClF.getcurisactive(form,v) == ClF.get_init_is_active(v) == true
-   # @test ClF.getcurisexplicit(form,v) == ClF.get_init_is_explicit(v) == true
+# @test ClF.iscuractive(form,v) == ClF.get_init_is_active(v) == true
+   # @test ClF.iscurexplicit(form,v) == ClF.get_init_is_explicit(v) == true
 
     #ClF.setcurkind!(v, ClF.Integ)
     #ClF.setcursense!(v, ClF.Negative)
@@ -108,8 +108,8 @@ function varcosntr_helpers_tests()
     #@test ClF.getcurkind(v) == ClF.Integ
     #@test ClF.getcursense(v) == ClF.Negative
     #@test ClF.getcurincval(v) == 10.0
-    #@test ClF.getcurisactive(form,v) == false
-    #@test ClF.getcurisexplicit(form,v) == false
+    #@test ClF.iscuractive(form,v) == false
+    #@test ClF.iscurexplicit(form,v) == false
 
     # c = ClF.Constraint(
     #     ClF.Id{ClF.Constraint}(ClF.MasterBranchOnOrigVarConstr, 23, 10), "fake_constr"
@@ -122,8 +122,8 @@ function varcosntr_helpers_tests()
     #@test ClF.getcurkind(c) == ClF.getperenekind(c) == ClF.Core
     #@test ClF.getcursense(c) == ClF.getperenesense(c) == ClF.Greater
     #@test ClF.getcurincval(c) == ClF.getpereneincval(c) == -1.0
-   #@test ClF.getcurisactive(form,c) == ClF.get_init_is_active(c) == true
-   # @test ClF.getcurisexplicit(form,c) == ClF.get_init_is_explicit(c) == true
+   #@test ClF.iscuractive(form,c) == ClF.get_init_is_active(c) == true
+   # @test ClF.iscurexplicit(form,c) == ClF.get_init_is_explicit(c) == true
 
     #ClF.setcurkind!(c, ClF.Facultative)
     #ClF.setcursense!(c, ClF.Less)
@@ -134,7 +134,7 @@ function varcosntr_helpers_tests()
     #@test ClF.getcurkind(c) == ClF.Facultative
     #@test ClF.getcursense(c) == ClF.Less
     #@test ClF.getcurincval(c) == 10.0
-    #@test ClF.getcurisactive(form,c) == false
-    #@test ClF.getcurisexplicit(form,c) == false
+    #@test ClF.iscuractive(form,c) == false
+    #@test ClF.iscurexplicit(form,c) == false
 
 end

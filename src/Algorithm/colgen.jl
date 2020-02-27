@@ -89,7 +89,7 @@ end
 function update_pricing_problem!(spform::Formulation, dual_sol::DualSolution)
     masterform = getmaster(spform)
     for (varid, var) in getvars(spform)
-        getcurisactive(spform, varid) || continue
+        iscuractive(spform, varid) || continue
         getduty(varid) <= AbstractDwSpVar || continue
         setcurcost!(spform, var, computereducedcost(masterform, varid, dual_sol))
     end
@@ -196,7 +196,7 @@ function solve_sp_to_gencol!(
             insertion_status, col_id = setprimalsol!(spform, sol)
             if insertion_status
                 push!(recorded_solution_ids, col_id)
-            elseif !insertion_status && !getcurisactive(masterform, col_id)
+            elseif !insertion_status && !iscuractive(masterform, col_id)
                 push!(sp_solution_ids_to_activate, col_id)
             else
                 msg = """

@@ -32,7 +32,7 @@ function create_global_art_vars!(masterform::Formulation)
     global_neg = set_glob_art_var(masterform, false)
     matrix = getcoefmatrix(masterform)
     for (constrid, constr) in getconstrs(masterform)
-        getcurisactive(masterform, constrid) || continue
+        iscuractive(masterform, constrid) || continue
         getduty(constrid) <= AbstractMasterOriginConstr || continue
         if getcursense(masterform, constr) == Greater
             matrix[constrid, getid(global_pos)] = 1.0
