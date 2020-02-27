@@ -17,7 +17,9 @@ version = "0.5.8"
 
 [[BlockDecomposition]]
 deps = ["DataStructures", "JuMP", "MathOptInterface"]
-git-tree-sha1 = "7a2e6ef9fbde591c21acd116126b0efb9f4909fc"
+git-tree-sha1 = "f6bc1f49a41e53d875e8e0dfec31122f52e9e2d8"
+repo-rev = "master"
+repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 version = "1.1.0"
 
@@ -41,7 +43,7 @@ version = "0.6.0"
 
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "7b06d67b3883ff9d9ec7c655cc288948b9894fc0"
+git-tree-sha1 = "8435aa34ecb01fc3c74fd25d2223b34b2c468dff"
 repo-rev = "master"
 repo-url = "git@github.com:atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
@@ -104,9 +106,9 @@ version = "0.10.9"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]
-git-tree-sha1 = "003d2e773b019fccb93a447bb0517256fda1a71e"
+git-tree-sha1 = "d52325a46b4df64bdf38ffbbaef00f0a0296943c"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.8.10"
+version = "0.8.11"
 
 [[IniFile]]
 deps = ["Test"]
