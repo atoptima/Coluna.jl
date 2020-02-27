@@ -62,6 +62,8 @@ end
 Stores the original formulation `original_formulation` given by the user as well as the reformulated problem `re_formulation`.
 """
 mutable struct Problem <: AbstractProblem
+    initial_primal_bound::Union{Nothing, Float64}
+    initial_dual_bound::Union{Nothing, Float64}
     original_formulation::Union{Nothing, Formulation}
     re_formulation::Union{Nothing, Reformulation}
     form_counter::Counter # 0 is for original form
@@ -73,7 +75,7 @@ end
 
 Constructs an empty `Problem`.
 """
-Problem() = Problem(nothing, nothing, Counter(-1), no_optimizer_builder)
+Problem() = Problem(nothing, nothing, nothing, nothing, Counter(-1), no_optimizer_builder)
 
 set_original_formulation!(m::Problem, of::Formulation) = m.original_formulation = of
 set_re_formulation!(m::Problem, r::Reformulation) = m.re_formulation = r
@@ -83,3 +85,27 @@ get_re_formulation(m::Problem) = m.re_formulation
 
 set_default_optimizer_builder!(p::Problem, default_opt_builder) = p.default_optimizer_builder = default_opt_builder
 
+set_initial_primal_bound!(p::Problem, value::Float64) = p.initial_primal_bound = value
+set_initial_dual_bound!(p::Problem, value::Float64) = p.initial_dual_bound = value
+
+function get_initial_primal_bound(p::Problem)
+    if p.original_formulation === nothing
+        error("Cannot retrieve initial primal bound because the problem does not have original formulation.")
+    end
+    S = getobjsense(get_original_formulation(p))
+    if p.initial_primal_bound !== nothing
+        return PrimalBound{S}(p.initial_primal_bound)
+    end
+    return PrimalBound{S}()
+end
+
+function get_initial_dual_bound(p::Problem)
+    if p.original_formulation === nothing
+        error("Cannot retrieve initial dual bound because the problem does not have original formulation.")
+    end
+    S = getobjsense(get_original_formulation(p))
+    if p.initial_dual_bound !== nothing
+        return DualBound{S}(p.initial_dual_bound)
+    end
+    return DualBound{S}()
+end

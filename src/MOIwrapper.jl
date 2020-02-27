@@ -207,6 +207,11 @@ function register_original_formulation!(
     min_sense = (sense == MOI.MIN_SENSE)
     register_objective_sense!(orig_form, min_sense)
 
+    ipb = MOI.get(src, BD.ObjectivePrimalBound())
+    idb = MOI.get(src, BD.ObjectiveDualBound())
+    ipb !== nothing && set_initial_primal_bound!(problem, ipb)
+    idb !== nothing && set_initial_dual_bound!(problem, idb)
+
     dest.annotations.tree = MOI.get(src, BD.DecompositionTree())
     return
 end
