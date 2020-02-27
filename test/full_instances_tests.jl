@@ -38,7 +38,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -58,7 +58,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -127,7 +127,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -142,7 +142,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -157,7 +157,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -172,7 +172,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -188,7 +188,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params()
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -226,7 +226,7 @@ function capacitated_lot_sizing_tests()
         
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -261,7 +261,7 @@ function cutting_stock_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 

@@ -19,10 +19,7 @@ global const BD = BlockDecomposition
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const TO = TimerOutputs
-
-# Parameters
-const MAX_FORMULATIONS = 100
-const MAX_PROCESSES = 100
+const Cl = Coluna
 
 include("counters.jl")
 include("types.jl")

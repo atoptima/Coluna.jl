@@ -26,6 +26,8 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     push!, filter, diff
 
 include("interface.jl")
+include("parameters.jl")
+global const _params_ = Params()
 
 include("Containers/Containers.jl")
 using .Containers
@@ -38,7 +40,6 @@ include("Algorithm/Algorithm.jl")
 using .Algorithm
 const AL = Algorithm
 
-include("parameters.jl")
 include("optimize.jl")
 
 # Wrapper functions
@@ -47,7 +48,6 @@ include("MOIwrapper.jl")
 # TODO : put global values here
 include("globals.jl") # Structure that holds values useful in all the procedure
 
-global const _params_ = Params()
 global const _globals_ = GlobalValues()
 #export _params_, _globals_, _to # to be deleted
 
