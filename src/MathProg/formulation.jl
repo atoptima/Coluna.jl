@@ -44,10 +44,6 @@ haskey(form::Formulation, id::Id) = haskey(form.manager, id)
 "Returns the `Variable` whose `Id` is `id` if such variable is in `Formulation` `form`."
 getvar(form::Formulation, id::VarId) = getvar(form.manager, id)
 
-"Returns the value of the variable counter of `Formulation` `form`."
-getvarcounter(form::Formulation) = form.var_counter.value
-getconstrcounter(form::Formulation) = form.constr_counter.value
-
 "Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `form`."
 getconstr(form::Formulation, id::ConstrId) = getconstr(form.manager, id)
 
@@ -408,37 +404,6 @@ function _setmembers!(form::Formulation, var::Variable, members::AbstractDict{Co
     return
 end
 
-# TODO : delete
-function _setmembers!(form::Formulation, constr::Constraint, members::VarMembership)
-    # Compute row vector from the recorded subproblem solution
-    # This adds the column to the convexity constraints automatically
-    # since the setup variable is in the sp solution and it has a
-    # a coefficient of 1.0 in the convexity constraints
-    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(form, constr))
-    coef_matrix = getcoefmatrix(form)
-    constrid = getid(constr)
-    @logmsg LogLevel(-4) "Members are : ", members
-
-    for (varid, var_coeff) in members
-        # Add coef for its own variables
-        var = getvar(form, varid)
-        coef_matrix[constrid, varid] = var_coeff
-        @logmsg LogLevel(-4) string("Adding variable ", getname(form, var), " with coeff ", var_coeff)
-
-        if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar          
-            # then for all columns having its own variables
-            assigned_form_uid = getassignedformuid(varid)
-            spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
-            for (col_id, col_coeff) in getprimalsolmatrix(spform)[varid,:]
-                @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
-                coef_matrix[constrid, col_id] = col_coeff * var_coeff
-            end
-        end
-        
-    end
-    return
-end
-
 function _setmembers!(form::Formulation, constr::Constraint, members::AbstractDict{VarId, Float64})
     # Compute row vector from the recorded subproblem solution
     # This adds the column to the convexity constraints automatically
@@ -489,28 +454,6 @@ end
 
 function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64}) 
     val = sum(getperenecost(form, varid) * value for (varid, value) in sol_vec)
-    return val
-end
-
-
-function computesolvalue(form::Formulation, sol::PrimalSolution{S}) where {S<:Coluna.AbstractSense}
-    val = sum(getperenecost(form, varid) * value for (varid, value) in sol)
-    return val
-end
-
-function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Constraint}, Float64}) 
-    val = sum(getperenerhs(form, getconstr(form, constr_id)) * value for (constr_id, value) in sol_vec)
-    return val 
-end
-
-function computesolvalue(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
-    val = sum(getperenerhs(form, getconstr(form, constr_id)) * value for (constr_id, value) in sol)
-    return val
-end
-
-function resetsolvalue!(form::Formulation, sol::DualSolution{S}) where {S<:Coluna.AbstractSense}
-    val = computesolvalue(form, sol)
-    setvalue!(sol, val)
     return val
 end
 
