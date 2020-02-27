@@ -1,17 +1,16 @@
 function set_glob_art_var(form::Formulation, is_pos::Bool)
     name = string("global_", (is_pos ? "pos" : "neg"), "_art_var")
-    cost = _params_.global_art_var_cost
+    cost = Cl._params_.global_art_var_cost
     cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
-    setvar!(
+    return setvar!(
         form, name, MasterArtVar; 
         cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
     )
-    return
 end
 
 function create_local_art_vars!(masterform::Formulation)
     matrix = getcoefmatrix(masterform)
-    cost = _params_.local_art_var_cost
+    cost = Cl._params_.local_art_var_cost
     cost *= getobjsense(masterform) == MinSense ? 1.0 : -1.0
     for (constrid, constr) in getconstrs(masterform)
         name = string("local_art_of_", getname(masterform, constr))

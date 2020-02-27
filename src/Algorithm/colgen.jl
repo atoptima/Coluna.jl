@@ -199,7 +199,11 @@ function solve_sp_to_gencol!(
             elseif !insertion_status && !getcurisactive(masterform, col_id)
                 push!(sp_solution_ids_to_activate, col_id)
             else
-                @warn string("Column already exists as ", getname(masterform, col_id), " and is already active. Please open an issue.")
+                msg = """
+                Column already exists as $(getname(masterform, col_id)) and is already active.
+                Please check that the initial cost of artifical variables is not too large.
+                """
+                @warn string(msg)
             end
         end
     end

@@ -6,21 +6,40 @@ function _welcome_message()
     print(welcome)
 end
 
+function _adjust_params(params, init_pb)
+    if init_pb != Inf && init_pb != -Inf
+        exp = ceil(log(10, init_pb))
+        cost_loc_art_var = 10^exp
+        cost_glob_art_var = 10^(exp + 1)
+        params.global_art_var_cost = cost_glob_art_var
+        params.local_art_var_cost = cost_loc_art_var
+    end
+    return
+end
+
 """
 Starting point of the solver.
 """
 function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params)
     _welcome_message()
+
+    # Adjust parameters
+    ## Retrieve initial bounds on the objective given by the user
+    init_pb = get_initial_primal_bound(prob)
+    init_db = get_initial_dual_bound(prob)
+    _adjust_params(params, init_pb)
+
     _set_global_params(params)
-    reformulate!(prob, annotations, params)
+
+    # Apply decomposition
+    reformulate!(prob, annotations)
+
+    # Coluna ready to start
     _globals_.initial_solve_time = time()
-    MP.relax_integrality!(prob.re_formulation.master) # TODO : remove
     @info "Coluna ready to start."
     @info _params_
 
-    # Retrieve initial bounds on the objective given by the user
-    init_pb = get_initial_primal_bound(prob)
-    init_db = get_initial_dual_bound(prob)
+    MP.relax_integrality!(prob.re_formulation.master) # TODO : remove
 
     TO.@timeit _to "Coluna" begin
         opt_result = optimize!(
