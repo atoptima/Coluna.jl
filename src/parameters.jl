@@ -9,7 +9,9 @@ Base.@kwdef mutable struct Params
     cut_up::Float64 = Inf
     cut_lo::Float64 = -Inf
     force_copy_names::Bool = false
-    solver::AbstractOptimizationAlgorithm = TreeSearchAlgorithm() 
+    solver = nothing
+    max_nb_processes::Int = 100
+    max_nb_formulations::Int = 100
 end
 
 update_field!(f_v::Tuple{Symbol,Any}) = setfield!(_params_, f_v[1], f_v[2])

@@ -43,7 +43,7 @@ function pricing_callback_tests()
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
             "default_optimizer" => GLPK.Optimizer,
-            "params" => CL.Params()
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
