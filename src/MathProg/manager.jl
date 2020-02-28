@@ -1,11 +1,11 @@
 const DynSparseVector{I} = DynamicSparseArrays.PackedMemoryArray{I, Float64} 
 
-const VarDict = ElemDict{Id{Variable}, Variable}
-const VarDataDict = Dict{Id{Variable}, VarData}
-const ConstrDict = ElemDict{Id{Constraint}, Constraint}
-const ConstrDataDict = Dict{Id{Constraint}, ConstrData}
-const VarMembership = MembersVector{VarId,Variable,Float64}
-const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
+const VarDict = Dict{VarId, Variable}
+const VarDataDict = Dict{VarId, VarData}
+const ConstrDict = Dict{ConstrId, Constraint}
+const ConstrDataDict = Dict{ConstrId, ConstrData}
+const VarMembership = Dict{VarId,Float64}
+const ConstrMembership = Dict{ConstrId,Float64}
 const ConstrConstrMatrix = MembersMatrix{ConstrId,ConstrId,Float64}
 const ConstrVarMatrix = MembersMatrix{ConstrId,VarId,Float64}
 const VarVarMatrix = MembersMatrix{VarId,VarId,Float64}

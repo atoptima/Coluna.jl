@@ -43,7 +43,7 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
         fill_primal_result!(form, optimizer, result)
         fill_dual_result!(
         optimizer, result, filter(
-                constr -> iscuractive(form, constr) && iscurexplicit(form, constr), 
+                c -> iscuractive(form, c.first) && iscurexplicit(form, c.first), 
                 getconstrs(form)
             )
         )
