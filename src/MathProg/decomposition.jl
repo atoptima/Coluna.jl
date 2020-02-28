@@ -1,19 +1,22 @@
-set_glob_art_var(form::Formulation, is_pos::Bool) = setvar!(
-    form, 
-    string("global_", (is_pos ? "pos" : "neg"), "_art_var"),
-    MasterArtVar; 
-    cost = (getobjsense(form) == MinSense ? 100000.0 : -100000.0),
-    lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-)
+function set_glob_art_var(form::Formulation, is_pos::Bool)
+    name = string("global_", (is_pos ? "pos" : "neg"), "_art_var")
+    cost = Cl._params_.global_art_var_cost
+    cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
+    return setvar!(
+        form, name, MasterArtVar; 
+        cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+    )
+end
 
 function create_local_art_vars!(masterform::Formulation)
     matrix = getcoefmatrix(masterform)
+    cost = Cl._params_.local_art_var_cost
+    cost *= getobjsense(masterform) == MinSense ? 1.0 : -1.0
     for (constrid, constr) in getconstrs(masterform)
+        name = string("local_art_of_", getname(masterform, constr))
         var = setvar!(
-            masterform, string("local_art_of_", getname(masterform, constr)),
-            MasterArtVar;
-            cost = (getobjsense(masterform) == MinSense ? 10000.0 : -10000.0),
-            lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+            masterform, name, MasterArtVar;
+            cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
         if getcursense(masterform, constr) == Greater
             matrix[constrid, getid(var)] = 1.0
