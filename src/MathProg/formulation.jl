@@ -89,7 +89,7 @@ _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 Buffers the matrix modification in `form.buffer` to be sent to `form.optimizer` right before next call to optimize!.
 """
 set_matrix_coeff!(
-    form::Formulation, varid::Id{Variable}, constrid::Id{Constraint}, new_coeff::Float64
+    form::Formulation, varid::VarId, constrid::ConstrId, new_coeff::Float64
 ) = set_matrix_coeff!(form.buffer, varid, constrid, new_coeff)
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `form`."
@@ -246,11 +246,12 @@ function setcol_from_sp_primalsol!(
 
     master_coef_matrix = getcoefmatrix(masterform)
     sp_sol = getprimalsolmatrix(spform)[:,sol_id]
-    members = MembersVector{Float64}(getconstrs(masterform))
+    members = ConstrMembership()
 
     for (sp_var_id, sp_var_val) in sp_sol
         for (master_constrid, sp_var_coef) in master_coef_matrix[:,sp_var_id]
-            members[master_constrid] += sp_var_val * sp_var_coef
+            val = get(members, master_constrid, 0.0)
+            members[master_constrid] = val + sp_var_val * sp_var_coef
         end
     end
 

@@ -1,6 +1,6 @@
 abstract type NestedEnum end
 
-function <=(a::T, b::T) where {T <: NestedEnum}
+function Base.:(<=)(a::T, b::T) where {T <: NestedEnum}
     return a.value % b.value == 0
 end
 
