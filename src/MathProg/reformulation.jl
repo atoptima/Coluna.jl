@@ -1,8 +1,8 @@
 mutable struct Reformulation <: AbstractFormulation
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation
     master::Union{Nothing, Formulation}
-    dw_pricing_subprs::Dict{FormId, AbstractFormulation} # vector of Formulation or Reformulation
-    benders_sep_subprs::Dict{FormId, AbstractFormulation}
+    dw_pricing_subprs::Dict{FormId, AbstractModel} 
+    benders_sep_subprs::Dict{FormId, AbstractModel}
     dw_pricing_sp_lb::Dict{FormId, Id} # Attribute has ambiguous name
     dw_pricing_sp_ub::Dict{FormId, Id}
     storages::Dict{Type{<:AbstractStorage}, AbstractStorage}
@@ -19,8 +19,8 @@ Construct a `Reformulation` for problem `prob`.
 function Reformulation(prob::AbstractProblem)
     return Reformulation(nothing,
                          nothing,
-                         Dict{FormId, AbstractFormulation}(),
-                         Dict{FormId, AbstractFormulation}(),
+                         Dict{FormId, AbstractModel}(),
+                         Dict{FormId, AbstractModel}(),
                          Dict{FormId, Int}(),
                          Dict{FormId, Int}(),
                          Dict{Type{<:AbstractStorage}, AbstractStorage}())

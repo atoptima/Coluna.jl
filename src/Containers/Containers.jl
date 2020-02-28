@@ -10,6 +10,9 @@ import Printf
 import Base: <=, setindex!, get, getindex, haskey, keys, values, iterate, 
              length, lastindex, filter, show, keys, copy, isapprox
 
+# interface.jl
+export AbstractModel, AbstractProblem             
+
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
 
@@ -25,6 +28,7 @@ export ElemDict,
 
 export getelements, getelement, rows, cols, columns, getrecords
 
+include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
 
