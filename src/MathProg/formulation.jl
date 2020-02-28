@@ -59,7 +59,7 @@ getprimalsolmatrix(form::Formulation) = getprimalsolmatrix(form.manager)
 getprimalsolcosts(form::Formulation) = getprimalsolcosts(form.manager)
 getdualsolmatrix(form::Formulation) = getdualsolmatrix(form.manager)
 getdualsolrhss(form::Formulation) = getdualsolrhss(form.manager)
-getexpressionmatrix(form::Formulation) = getexpressionmatrix(form.manager)
+#getexpressionmatrix(form::Formulation) = getexpressionmatrix(form.manager) # Not used for now
 
 
 "Returns the `uid` of `Formulation` `form`."
@@ -177,7 +177,7 @@ function setprimalsol!(
     return (true, new_sol_id)
 end
 
-function adddualsol!(
+function _adddualsol!(
     form::Formulation,
     dualsol::DualSolution{S},
     dualsol_id::ConstrId
@@ -231,7 +231,7 @@ function setdualsol!(
     
     ### else not identical to any existing dual sol
     new_dual_sol_id = generateconstrid(BendSpDualSol, form)
-    adddualsol!(form, new_dual_sol, new_dual_sol_id)
+    _adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
 
@@ -373,7 +373,6 @@ function relax_integrality!(form::Formulation) # TODO remove : should be in Algo
     return
 end
 
-# TODO : delete
 function _setmembers!(form::Formulation, var::Variable, members::ConstrMembership)
     coef_matrix = getcoefmatrix(form)
     varid = getid(var)
@@ -383,16 +382,7 @@ function _setmembers!(form::Formulation, var::Variable, members::ConstrMembershi
     return
 end
 
-function _setmembers!(form::Formulation, var::Variable, members::AbstractDict{ConstrId, Float64})
-    coef_matrix = getcoefmatrix(form)
-    varid = getid(var)
-    for (constrid, constr_coeff) in members
-        coef_matrix[constrid, varid] = constr_coeff
-    end
-    return
-end
-
-function _setmembers!(form::Formulation, constr::Constraint, members::AbstractDict{VarId, Float64})
+function _setmembers!(form::Formulation, constr::Constraint, members::VarMembership)
     # Compute row vector from the recorded subproblem solution
     # This adds the column to the convexity constraints automatically
     # since the setup variable is in the sp solution and it has a
