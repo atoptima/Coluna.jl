@@ -8,6 +8,9 @@ import Base
 import Primes
 import Printf
 
+# interface.jl
+export AbstractModel, AbstractProblem             
+
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
 

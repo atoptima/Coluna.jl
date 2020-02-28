@@ -1,7 +1,6 @@
 abstract type AbstractVarConstr end
 abstract type AbstractVarConstrId end
 abstract type AbstractState end
-abstract type AbstractProblem end
 abstract type AstractMoiDef end
 abstract type AbstractMembership end
 abstract type AbstractVcData end
@@ -153,7 +152,7 @@ const StorageDict = Dict{Type{<:AbstractStorage}, AbstractStorage}
     used by algorithms. A formulation contains one storage 
     per storage type used by algorithms.    
 """
-abstract type AbstractFormulation end
+abstract type AbstractFormulation <: AbstractModel end
 
 EmptyStorage(form::AbstractFormulation) = EmptyStorage()
 
