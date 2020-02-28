@@ -21,6 +21,7 @@ export Bound, Solution,
 # members.jl
 export MembersMatrix
 
+include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
 include("members.jl")
