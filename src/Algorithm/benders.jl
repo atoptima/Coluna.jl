@@ -176,9 +176,8 @@ function record_solutions!(
             if insertion_status
                 push!(recorded_dual_solution_ids, dual_sol_id)
             else
-                @warn string("dual sol already exists as ", dual_sol_id)
+                @warn string("dual sol already exists as ", getname(spform, dual_sol))
             end
-
         end
     end
 

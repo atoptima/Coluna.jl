@@ -24,7 +24,7 @@ export MembersMatrix
 
 # To be deleted :
 export ElemDict,
-       MembersVector, OldMembersMatrix
+       MembersVector
 
 export getelements, getelement, rows, cols, columns, getrecords
 

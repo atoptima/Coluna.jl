@@ -1,4 +1,3 @@
-include("containers/members.jl")
 include("containers/nestedenum.jl")
 include("containers/solsandbounds.jl")
 
@@ -43,7 +42,6 @@ function unit_tests()
         nestedenum_unit()
         bound_unit()
         solution_unit()
-        members_unit()
     end
 
     @testset "MathProg submodule" begin
@@ -60,9 +58,11 @@ function unit_tests()
     @testset "counters.jl" begin
         counters_unit_tests()
     end
+
     @testset "vcids.jl" begin
         vcids_unit_tests()
     end
+
     @testset "variable.jl" begin
         variable_unit_tests()
     end

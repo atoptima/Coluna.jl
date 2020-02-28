@@ -6,14 +6,13 @@ const ConstrDict = ElemDict{Id{Constraint}, Constraint}
 const ConstrDataDict = Dict{Id{Constraint}, ConstrData}
 const VarMembership = MembersVector{VarId,Variable,Float64}
 const ConstrMembership = MembersVector{ConstrId,Constraint,Float64}
-
+const ConstrConstrMatrix = MembersMatrix{ConstrId,ConstrId,Float64}
 const ConstrVarMatrix = MembersMatrix{ConstrId,VarId,Float64}
 const VarVarMatrix = MembersMatrix{VarId,VarId,Float64}
 
 # Define the semaphore of the dynamic sparse matrix using MathProg.Id as index
 DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
 
-const ConstrConstrMatrix = OldMembersMatrix{ConstrId,Constraint,ConstrId,Constraint,Float64}
 const PrimalSolution{S} = Solution{Primal, S, Id{Variable}, Float64}
 const DualSolution{S} = Solution{Dual, S, Id{Constraint}, Float64}
 const PrimalBound{S} = Bound{Primal, S}
@@ -29,7 +28,7 @@ struct FormulationManager
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables 
     primal_sol_costs::DynSparseVector{VarId} # primal solutions with varid map to their cost
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
-    dual_sol_rhss::ConstrMembership # dual solutions with constrid map to their rhs
+    dual_sol_rhss::DynSparseVector{ConstrId} # dual solutions with constrid map to their rhs
 end
 
 function FormulationManager()
@@ -44,8 +43,8 @@ function FormulationManager()
         VarVarMatrix(),
         VarVarMatrix(),
         dynamicsparsevec(VarId[], Float64[]),
-        OldMembersMatrix{Float64}(constrs,constrs),
-        MembersVector{Float64}(constrs)
+        ConstrConstrMatrix(),
+        dynamicsparsevec(ConstrId[], Float64[])
     )
 end
 
@@ -58,7 +57,6 @@ function _addvar!(m::FormulationManager, var::Variable)
     m.var_datas[var.id] = VarData(var.perene_data)
     return 
 end
-
 
 function _addconstr!(m::FormulationManager, constr::Constraint)
     haskey(m.constrs, constr.id) && error(string("Constraint of id ", constr.id, " exists"))
