@@ -1,4 +1,4 @@
-function mycallback(form::CL.Formulation)
+function my_pricing_oracle(form::CL.Formulation)
     vars = [v for (id,v) in Iterators.filter(
         v -> (CL.iscuractive(form,v.first) && CL.iscurexplicit(form,v.first)),
         CL.getvars(form)
@@ -51,12 +51,13 @@ function pricing_callback_tests()
         master = BD.getmaster(dec)
         subproblems = BD.getsubproblems(dec)
         
-        BD.assignsolver!(master, build_master_moi_optimizer)
-        BD.assignsolver!(subproblems[1], build_sp_moi_optimizer)
-        BD.assignsolver!(subproblems[2], build_sp_moi_optimizer)
+        BD.specify!.(subproblems, solver = my_pricing_oracle)
+        # BD.assignsolver!(master, build_master_moi_optimizer)
+        # BD.assignsolver!(subproblems[1], build_sp_moi_optimizer)
+        # BD.assignsolver!(subproblems[2], build_sp_moi_optimizer)
 
         JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
+        @test JuMP.objective_value(problem) ≈ 75.0
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
