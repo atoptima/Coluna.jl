@@ -46,8 +46,8 @@ function generalized_assignment_tests()
         BD.objectiveprimalbound!(model, 100.0)
         BD.objectivedualbound!(model, 0.0)
 
-        JuMP.optimize!(problem)
-        @test JuMP.objective_value(problem) == 443
+        JuMP.optimize!(model)
+        @test JuMP.objective_value(model) ≈ 443
         #@test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
         #@test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
         #@test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)

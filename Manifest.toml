@@ -16,12 +16,10 @@ uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
 version = "0.5.8"
 
 [[BlockDecomposition]]
-deps = ["DataStructures", "JuMP", "MathOptInterface"]
-git-tree-sha1 = "f6bc1f49a41e53d875e8e0dfec31122f52e9e2d8"
-repo-rev = "master"
-repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
+deps = ["JuMP", "MathOptInterface"]
+git-tree-sha1 = "4569a940d6590561acc9567784e22057f33735a0"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
-version = "1.1.0"
+version = "1.1.1"
 
 [[Calculus]]
 deps = ["LinearAlgebra"]
@@ -139,6 +137,7 @@ uuid = "4076af6c-e467-56ae-b986-b466b2749572"
 version = "0.21.1"
 
 [[LibGit2]]
+deps = ["Printf"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]

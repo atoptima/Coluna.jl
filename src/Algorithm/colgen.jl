@@ -233,9 +233,13 @@ function solve_sps_to_gencols!(
                 recorded_sp_solution_ids[spuid] = new_sp_solution_ids
                 sp_solution_to_activate[spuid] = sp_solution_ids_to_activate
             end
+            sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
         end)
-        sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
     end
+    for task in threadstasks
+        wait(task)
+    end
+    empty!(threadstasks)
     ### END LOOP TO BE PARALLELIZED
 
     nb_new_cols = 0
