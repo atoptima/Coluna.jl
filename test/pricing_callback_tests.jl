@@ -46,15 +46,12 @@ function pricing_callback_tests()
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
 
         master = BD.getmaster(dec)
         subproblems = BD.getsubproblems(dec)
         
-        BD.specify!.(subproblems, solver = my_pricing_oracle)
-        # BD.assignsolver!(master, build_master_moi_optimizer)
-        # BD.assignsolver!(subproblems[1], build_sp_moi_optimizer)
-        # BD.assignsolver!(subproblems[2], build_sp_moi_optimizer)
+        BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_oracle)
 
         JuMP.optimize!(problem)
         @test JuMP.objective_value(problem) ≈ 75.0
