@@ -3,49 +3,53 @@ function incumbents_unit_tests()
 end
 
 function incumbents_getters_and_setters_unit_tests()
-    inc = CL.Incumbents(CL.MinSense)
-    max_inc = CL.Incumbents(CL.MaxSense)
+    inc = ClF.Incumbents(ClF.MinSense)
+    max_inc = ClF.Incumbents(ClF.MaxSense)
 
-    @test CL.getsense(inc) == CL.MinSense
-    @test CL.getsense(max_inc) == CL.MaxSense
+    @test ClF.getsense(inc) == ClF.MinSense
+    @test ClF.getsense(max_inc) == ClF.MaxSense
 
-    f = CL.Formulation{CL.Original}(CL.Counter(), obj_sense = CL.MinSense)
+    f = ClF.Formulation{ClF.Original}(ClF.Counter(), obj_sense = ClF.MinSense)
 
-    var_ids = [CL.Id{CL.Variable}(i, 1) for i in 1:5]
-    constr_ids = [CL.Id{CL.Constraint}(i, 1) for i in 1:5]
+    varids = [ClF.Id{ClF.Variable}(ClF.OriginalVar, i, 1) for i in 1:5]
+    constrids = [ClF.Id{ClF.Constraint}(ClF.OriginalConstr, i, 1) for i in 1:5]
 
-    bound = CL.PrimalBound{CL.MinSense}(8.1)
-    solution = Dict(var_ids[1] => 2.1, var_ids[3] => 1.4)
-    lp_primal_sol = CL.PrimalSolution(f, bound, solution)
+    bound = ClF.PrimalBound{ClF.MinSense}(8.1)
+    sol_varids = [varids[1], varids[3]]
+    sol_vals = [2.1, 1.4]
+    lp_primal_sol = ClF.PrimalSolution(f, sol_varids, sol_vals, bound)
 
-    @test CL.update_lp_primal_sol!(inc, lp_primal_sol)
-    @test CL.get_lp_primal_sol(inc) == lp_primal_sol
-    @test CL.get_lp_primal_bound(inc) == 8.1
+    @test ClF.update_lp_primal_sol!(inc, lp_primal_sol)
+    @test ClF.get_lp_primal_sol(inc) == lp_primal_sol
+    @test ClF.get_lp_primal_bound(inc) == 8.1
 
-    bound = CL.PrimalBound{CL.MinSense}(9.6)
-    solution = Dict(var_ids[2] => 3.5)
-    lp_primal_sol = CL.PrimalSolution(f, bound, solution)
-    @test !CL.update_lp_primal_sol!(inc, lp_primal_sol)
-    @test CL.get_lp_primal_bound(inc) == 8.1
+    bound = ClF.PrimalBound{ClF.MinSense}(9.6)
+    sol_varids = [varids[2]]
+    sol_vals = [3.5]
+    lp_primal_sol = ClF.PrimalSolution(f, sol_varids, sol_vals, bound)
+    @test !ClF.update_lp_primal_sol!(inc, lp_primal_sol)
+    @test ClF.get_lp_primal_bound(inc) == 8.1
 
-    bound = CL.PrimalBound{CL.MinSense}(12.0)
-    solution = Dict(var_ids[3] => 2.0, var_ids[4] => 1.0)
-    ip_primal_sol = CL.PrimalSolution(f, bound, solution)
-    @test CL.update_ip_primal_sol!(inc, ip_primal_sol)
-    @test CL.get_ip_primal_sol(inc) == ip_primal_sol
-    @test CL.get_ip_primal_bound(inc) == 12.0
+    bound = ClF.PrimalBound{ClF.MinSense}(12.0)
+    sol_varids = [varids[3], varids[4]]
+    sol_vals = [2.0, 1.0]
+    ip_primal_sol = ClF.PrimalSolution(f, sol_varids, sol_vals, bound)
+    @test ClF.update_ip_primal_sol!(inc, ip_primal_sol)
+    @test ClF.get_ip_primal_sol(inc) == ip_primal_sol
+    @test ClF.get_ip_primal_bound(inc) == 12.0
 
-    bound = CL.DualBound{CL.MinSense}(1.1)
-    solution = Dict(constr_ids[3] => 0.1, constr_ids[5] => 0.9)
-    lp_dual_sol = CL.DualSolution(f, bound, solution)
-    @test CL.update_lp_dual_sol!(inc, lp_dual_sol)
-    @test CL.get_lp_dual_sol(inc) == lp_dual_sol
-    @test CL.get_lp_dual_bound(inc) == 1.1
+    bound = ClF.DualBound{ClF.MinSense}(1.1)
+    sol_constrids = [constrids[3], constrids[5]]
+    sol_vals = [0.1, 0.9]
+    lp_dual_sol = ClF.DualSolution(f, sol_constrids, sol_vals, bound)
+    @test ClF.update_lp_dual_sol!(inc, lp_dual_sol)
+    @test ClF.get_lp_dual_sol(inc) == lp_dual_sol
+    @test ClF.get_lp_dual_bound(inc) == 1.1
 
-    bound = CL.DualBound{CL.MinSense}(2.0)
-    @test CL.update_ip_dual_bound!(inc, bound)
-    @test CL.get_ip_dual_bound(inc) == 2.0
+    bound = ClF.DualBound{ClF.MinSense}(2.0)
+    @test ClF.update_ip_dual_bound!(inc, bound)
+    @test ClF.get_ip_dual_bound(inc) == 2.0
 
-    @test CL.ip_gap(inc) == (12.0 - 2.0) / 2.0
-    @test CL.lp_gap(inc) == (8.1 - 1.1) / 1.1
+    @test ClF.ip_gap(inc) == (12.0 - 2.0) / 2.0
+    @test ClF.lp_gap(inc) == (8.1 - 1.1) / 1.1
 end

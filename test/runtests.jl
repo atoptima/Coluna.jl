@@ -1,7 +1,8 @@
-#using Revise
+#using Revise # to comment when merging to the master branch
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
+using Random
 
 import MathOptInterface, MathOptInterface.Utilities
 
@@ -14,11 +15,16 @@ global const CL = Coluna
 global const CLD = ColunaDemos
 global const BD = BlockDecomposition
 
+global const ClF = Coluna.MathProg
+global const ClA = Coluna.Algorithm
+
 include("unit/unit_tests.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
+
+rng = MersenneTwister(1234123)
 
 unit_tests()
 
@@ -41,3 +47,4 @@ end
 #     close(rd_out)
 #     redirect_stdout(backup_stdout)
 # end
+

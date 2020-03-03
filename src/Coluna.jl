@@ -1,9 +1,8 @@
 module Coluna
 
+import BlockDecomposition
 import MathOptInterface
 import MathOptInterface.Utilities
-import DataStructures
-import BlockDecomposition
 import Distributed
 import TimerOutputs
 import Base.Threads
@@ -11,83 +10,46 @@ import Base.Threads
 using Logging
 using Printf
 
+global const BD = BlockDecomposition
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
-global const DS = DataStructures
-global const BD = BlockDecomposition
 global const TO = TimerOutputs
+
+# submodules
+export Containers, MathProg, Algorithm
+
+# parameters
+export Parameters, DefaultOptimizer
 
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
-    push!, filter
+    push!, filter, diff
 
-include("containers/containers.jl")
+include("interface.jl")
+include("parameters.jl")
+global const _params_ = Params()
+
+include("Containers/Containers.jl")
 using .Containers
 
-include("types.jl")
-include("algorithms/algorithm.jl")
-include("strategies/strategy.jl")
+include("MathProg/MathProg.jl")
+using .MathProg
+const MP = MathProg
 
-include("parameters.jl")
-include("counters.jl")
+include("Algorithm/Algorithm.jl")
+using .Algorithm
+const AL = Algorithm
 
-include("vcids.jl")
-include("variable.jl")
-include("constraint.jl")
-include("varconstr.jl")
-
-include("containers/elements.jl")
-include("containers/members.jl")
-
-include("solsandbounds.jl")
-include("manager.jl")
-include("filters.jl")
-include("optimizationresults.jl")
-include("incumbents.jl")
-include("buffer.jl")
-include("formulation.jl")
-include("optimizerwrappers.jl")
-include("clone.jl")
-include("reformulation.jl")
-include("projection.jl")
-include("problem.jl")
-include("node.jl")
-include("decomposition.jl")
-include("MOIinterface.jl")
-
-# Concrete algorithms & Strategies :
-
-# Here include algorithms
-include("algorithms/colgen.jl")
-include("algorithms/benders.jl")
-include("algorithms/masteripheur.jl")
-include("algorithms/masterlp.jl")
-include("algorithms/reformulationsolver.jl")
-include("algorithms/preprocessing.jl")
-
-# Here include conquer strategies
-include("strategies/conquer/simplebnp.jl")
-include("strategies/conquer/simplebenders.jl")
-
-# Here include branching algorithms
-include("branching/abstractbranching.jl")
-include("branching/varbranching.jl")
-include("branching/branchinggroup.jl")
-include("branching/branchingstrategy.jl")
-
-# Here include divide strategies
-include("strategies/divide/simplebranching.jl") # to remove
-
-# Here include explore strategies
-include("strategies/explore/simplestrategies.jl")
+include("optimize.jl")
 
 # Wrapper functions
 include("MOIwrapper.jl")
 
+# TODO : put global values here
 include("globals.jl") # Structure that holds values useful in all the procedure
 
-global const _params_ = Params()
 global const _globals_ = GlobalValues()
+#export _params_, _globals_, _to # to be deleted
 
 end # module
