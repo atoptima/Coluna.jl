@@ -30,9 +30,6 @@ ConstrData(cd::ConstrData) = ConstrData(
     cd.is_explicit
 )
 
-getrhs(c::ConstrData) = c.rhs
-setrhs!(s::ConstrData, rhs::Float64) = s.rhs = rhs
-
 """
     MoiConstrRecord
 
@@ -52,22 +49,21 @@ setindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
 Representation of a constraint in Coluna.
 """
+
 struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
-    duty::Duty{Constraint}
     perene_data::ConstrData
     moirecord::MoiConstrRecord
 end
 const ConstrId = Id{Constraint}
 
 function Constraint(id::ConstrId,
-                    name::String,
-                    duty::Duty{Constraint};
+                    name::String;
                     constr_data = ConstrData(),
                     moi_index::MoiConstrIndex = MoiConstrIndex())
     return Constraint(
-        id, name, duty, constr_data, 
+        id, name, constr_data, 
         MoiConstrRecord(index = moi_index)
     )
 end

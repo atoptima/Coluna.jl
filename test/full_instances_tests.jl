@@ -22,13 +22,14 @@ function mytest()
         "default_optimizer" => GLPK.Optimizer
     )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    BD.objectiveprimalbound!(model, 2000.0)
 
-    JuMP.optimize!(problem)
+    JuMP.optimize!(model)
 
-    @test abs(JuMP.objective_value(problem) - 1553.0) <= 0.00001
-    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    @test JuMP.objective_value(model) ≈ 1553.0
+    @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
 end
 
 function generalized_assignment_tests()
@@ -37,16 +38,19 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 100.0)
+        BD.objectivedualbound!(model, 0.0)
 
-        JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        JuMP.optimize!(model)
+
+        @test JuMP.objective_value(model) ≈ 75.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
     @testset "play gap with lazy constraint callback" begin
@@ -86,16 +90,18 @@ end
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 500.0)
+        BD.objectivedualbound!(model, 0.0)
 
-        JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        JuMP.optimize!(model)
+        @test JuMP.objective_value(model) ≈ 438.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
     @testset "gap - strong branching" begin
@@ -113,14 +119,16 @@ end
             ),
             "default_optimizer" => GLPK.Optimizer
         )
-    
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-        JuMP.optimize!(problem)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 2000.0)
+        BD.objectivedualbound!(model, 0.0)
 
-        @test abs(JuMP.objective_value(problem) - 1553.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        JuMP.optimize!(model)
+
+        @test JuMP.objective_value(model) ≈ 1553.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
     @testset "gap - ColGen max nb iterations" begin
@@ -151,7 +159,7 @@ end
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -166,7 +174,7 @@ end
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -181,7 +189,7 @@ end
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -196,7 +204,7 @@ end
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -212,7 +220,7 @@ end
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params()
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -221,21 +229,6 @@ end
         catch e
             @test repr(e) == "ErrorException(\"Function `optimize!` is not defined for object of type Coluna.MathProg.NoOptimizer\")"
         end
-    end
-
-    @testset "clsp small instance" begin
-        data = CLD.CapacitatedLotSizing.readData("testSmall")
-
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(),
-            "default_optimizer" => GLPK.Optimizer
-        )
-
-        model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
-        JuMP.optimize!(model)
-
-        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
     end
     return
 end
@@ -265,7 +258,7 @@ function capacitated_lot_sizing_tests()
         
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -300,7 +293,7 @@ function cutting_stock_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 

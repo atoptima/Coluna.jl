@@ -5,7 +5,7 @@
 """
 struct VarBranchingCandidate <: AbstractBranchingCandidate 
     description::String
-    var_id::VarId
+    varid::VarId
 end
 
 getdescription(candidate::VarBranchingCandidate) = candidate.description
@@ -14,7 +14,7 @@ function generate_children(
     candidate::VarBranchingCandidate, lhs::Float64, reform::Reformulation, 
     node::Node
 )
-    var = getvar(reform.master, candidate.var_id)
+    var = getvar(reform.master, candidate.varid)
 
     @logmsg LogLevel(-1) string(
         "Chosen branching variable : ",

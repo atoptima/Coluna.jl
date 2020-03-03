@@ -1,10 +1,10 @@
 function mycallback(form::CL.Formulation)
     vars = [v for (id,v) in Iterators.filter(
-        v -> (CL.getcurisactive(form,v) && CL.getcurisexplicit(form,v)),
+        v -> (CL.iscuractive(form,v.first) && CL.iscurexplicit(form,v.first)),
         CL.getvars(form)
     )]
     constr = [c for (id,c) in Iterators.filter(
-        c -> (CL.getcurisactive(form,c) && CL.getcurisexplicit(form,c)),
+        c -> (CL.iscuractive(form,c.first) && CL.iscurexplicit(form,c.first)),
         CL.getconstrs(form))][1]
     matrix = CL.getcoefmatrix(form)
     m = JuMP.Model(GLPK.Optimizer)
@@ -43,7 +43,7 @@ function pricing_callback_tests()
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
             "default_optimizer" => GLPK.Optimizer,
-            "params" => CL.Params()
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)

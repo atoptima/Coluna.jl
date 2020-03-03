@@ -65,11 +65,11 @@ function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
-function update_constr_rhs_in_optimizer!(form::Formulation, c::Constraint)
+function update_constr_rhs_in_optimizer!(form::Formulation, constr::Constraint)
     optimizer = getoptimizer(form)
-    moi_c_index = getindex(getmoirecord(c))
-    rhs = getcurrhs(form, c)
-    sense = getcursense(form, c)
+    moi_c_index = getindex(getmoirecord(constr))
+    rhs = getcurrhs(form, constr)
+    sense = getcursense(form, constr)
     MOI.set(getinner(optimizer), MOI.ConstraintSet(), moi_c_index, convert_coluna_sense_to_moi(sense)(rhs))
     return
 end
@@ -106,6 +106,11 @@ function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
     setkind!(moirecord, MOI.add_constraint(
         inner, MOI.SingleVariable(getindex(moirecord)), moi_set
     ))
+    return
+end
+
+function enforce_kind_in_optimizer!(form::Formulation, c::Constraint)
+    # to do : issue #266
     return
 end
 
@@ -201,7 +206,7 @@ function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
         solvars = Vector{VarId}()
         solvals = Vector{Float64}()
         for (id, var) in getvars(form)
-            getcurisactive(form, id) && getcurisexplicit(form, id) || continue
+            iscuractive(form, id) && iscurexplicit(form, id) || continue
             moirec = getmoirecord(var)
             moi_index = getindex(moirec)
             kind = _getcolunakind(moirec)
@@ -239,7 +244,8 @@ function fill_dual_result!(optimizer::MoiOptimizer,
         for (id, constr) in constrs
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
-            if val > 0.000001 || val < - 0.000001 # todo use a tolerance
+            val = round(val, digits = Coluna._params_.tol_digits)
+            if abs(val) > Coluna._params_.tol
                 @logmsg LogLevel(-4) string("Constr ", constr.name, " = ", val)
                 push!(solconstrs, id)
                 push!(solvals, val)      

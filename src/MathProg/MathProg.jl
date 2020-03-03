@@ -19,10 +19,7 @@ global const BD = BlockDecomposition
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const TO = TimerOutputs
-
-# Parameters
-const MAX_FORMULATIONS = 100
-const MAX_PROCESSES = 100
+const Cl = Coluna
 
 include("counters.jl")
 include("types.jl")
@@ -32,7 +29,6 @@ include("constraint.jl")
 include("duties.jl")
 include("varconstr.jl") # to rm
 include("manager.jl")
-include("filters.jl")
 include("optimizationresults.jl")
 include("incumbents.jl")
 include("buffer.jl")
@@ -58,38 +54,54 @@ export AbstractFormulation, MaxSense, MinSense, MoiOptimizer, VarMembership,
 export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 
 # Methods
-export no_optimizer_builder, set_original_formulation!, create_origvars!,
-       setvar!, getid, store!, getrhs, getsense, setconstr!, getuid, getcoefmatrix,
-       getvar, getvars, getconstr, getconstrs,
-       register_objective_sense!, optimize!, nbprimalsols, ip_gap, getdualbound,
-       getprimalbound, get_ip_dual_bound, getmaster, deactivate!, 
-       enforce_integrality!, relax_integrality!, activate!, update_ip_primal_sol!,
+export no_optimizer_builder, set_original_formulation!,
+       getid, store!, getuid,
+       getsense,
+       register_objective_sense!, nbprimalsols, ip_gap, getdualbound,
+       getprimalbound, get_ip_dual_bound,
+       enforce_integrality!, relax_integrality!, update_ip_primal_sol!,
        getobjsense, getoptimizer, getbestprimalsol, get_ip_primal_bound, get_ip_primal_sol,
-       add_primal_sol!, getresult, setdualbound!, determine_statuses, getvalue,
+       add_primal_sol!, setdualbound!, determine_statuses,
        isfeasible, getterminationstatus, getfeasibilitystatus,
-       getprimalsols, getdualsols, update_lp_primal_sol!, get_dw_pricing_sp,
-       computereducedcost, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives, 
-       isanArtificialDuty, getvarcounter,
-       resetsolvalue!, setprimaldwspsol!, update_ip_dual_bound!, update_lp_dual_bound!,
+       getprimalsols, getdualsols, update_lp_primal_sol!,
+       computereducedcost,
+       update_ip_dual_bound!, update_lp_dual_bound!,
        get_lp_primal_bound, update!,
-       get_benders_sep_sp, convert_status, getduty, getbestdualsol, update_lp_dual_sol!,
-       projection_is_possible, proj_cols_on_rep, get_lp_dual_bound,
+       convert_status, getduty, getbestdualsol, update_lp_dual_sol!,
+       get_lp_dual_bound,
        computereducedrhs, 
-       unsafe_getbestprimalsol, getcost,
-       getconstrcounter, setprimaldualbendspsol!,
-       set_lp_primal_bound!, _active_, update_ip_primal_bound!, getprimaldwspsolmatrix, _active_explicit_,
+       unsafe_getbestprimalsol,
+       set_lp_primal_bound!, update_ip_primal_bound!,
         find_owner_formulation,
        setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
-       setprimalsol!, setdualsol!, getsortuid, setcol_from_sp_primalsol!,
-       get_benders_sep_sps, setcut_from_sp_dualsol!, getprimalsolmatrix,
-       contains
+       getsortuid,
+       get_benders_sep_sps,
+       contains, set_ip_primal_bound!, set_lp_dual_bound!
 
 # Below this line, clean up has been done :
-export reformulate!,
-       getcurrhs,
-       setcurrhs!,
-       getcurisactive, 
-       getcurisexplicit
+export reformulate!, optimize!
+
+# Methods related to Problem
+export set_initial_dual_bound!, set_initial_primal_bound!,
+       get_initial_dual_bound, get_initial_primal_bound
+
+# Methods related to formulations
+export getmaster, getreformulation,
+       getvar, getvars, getconstr, getconstrs, getelem,
+       getcoefmatrix,
+       getprimalsolmatrix,
+       getprimalsolcosts,
+       getdualsolmatrix,
+       getdualsolrhss,
+       setvar!, setconstr!,
+       setprimalsol!, setdualsol!,
+       setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
+
+# Methods related to duties
+export isanArtificialDuty, 
+       isaStaticDuty, 
+       isaDynamicDuty, 
+       isanOriginalRepresentatives
 
 # Methods related to variables and constraints
 export getperenecost,
@@ -101,6 +113,9 @@ export getperenecost,
        getpereneub,
        getcurub,
        setcurub!,
+       getperenerhs,
+       getcurrhs,
+       setcurrhs!,
        getperenesense,
        getcursense,
        setcursense!,
@@ -110,21 +125,23 @@ export getperenecost,
        getpereneincval,
        getcurincval,
        setcurincval!,
-       getpereneisactive,
-       getcurisactive,
-       setcurisactive!,
-       getpereneisexplicit,
-       getcurisexplicit,
-       setcurisexplicit!,
+       ispereneactive,
+       iscuractive,
+       activate!,
+       deactivate!,
+       ispereneexplicit,
+       iscurexplicit,
+       setiscurexplicit!,
        getname,
        reset!
 
-# Translation methods
+# methods related to projections
+export projection_is_possible, proj_cols_on_rep
+
+# convert methods
 export convert_coluna_sense_to_moi,
        convert_moi_sense_to_coluna,
        convert_moi_rhs_to_coluna,
        convert_moi_kind_to_coluna
-
-
 
 end

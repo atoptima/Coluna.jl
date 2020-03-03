@@ -4,32 +4,26 @@ using DynamicSparseArrays
 
 import ..Coluna
 
-import DynamicSparseArrays
+import Base
 import Primes
 import Printf
-import Base: <=, setindex!, get, getindex, haskey, keys, values, iterate, 
-             length, lastindex, filter, show, keys, copy
+
+# interface.jl
+export AbstractModel, AbstractProblem             
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
 
 # solsandbounds.jl
 export Bound, Solution,
-       getvalue, isbetter, diff, gap, printbounds, getbound, setvalue!
+       getvalue, isbetter, diff, gap, printbounds, getbound, getsol, setvalue!
 
+# members.jl
 export MembersMatrix
 
-# To be deleted :
-export ElemDict,
-       MembersVector, OldMembersMatrix
-
-export getelements, getelement, rows, cols, columns, getrecords
-
+include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
-
-# Following files will be deleted
-include("elements.jl")
 include("members.jl")
 
 end
