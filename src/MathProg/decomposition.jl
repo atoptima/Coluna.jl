@@ -423,10 +423,12 @@ function assign_orig_vars_constrs!(
     clonecoeffs!(origform, destform)
 end
 
-function getoptbuilder(prob::Problem,
-                       ann)
-    if BD.getoptimizerbuilder(ann) != nothing
-        return BD.getoptimizerbuilder(ann)
+function getoptbuilder(prob::Problem, ann::BD.Annotation)
+    if BD.getpricingoracle(ann) !== nothing
+        return () -> UserOptimizer(BD.getpricingoracle(ann))
+    end
+    if BD.getoptimizerbuilder(ann) !== nothing
+        return () -> MoiOptimizer(BD.getoptimizerbuilder(ann))
     end
     return prob.default_optimizer_builder
 end
