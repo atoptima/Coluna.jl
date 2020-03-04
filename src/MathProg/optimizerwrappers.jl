@@ -171,3 +171,13 @@ end
 optimize!(f::Formulation, ::S) where {S<:AbstractOptimizer} = error(
     string("Function `optimize!` is not defined for object of type ", S)
 )
+
+# Initialization of optimizers
+function _initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)
+    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
+    MOI.set(form.optimizer.inner, MoiObjective(), f)
+    set_obj_sense!(form.optimizer, getobjsense(form))
+    return
+end
+
+_initialize_optimizer!(optimizer, form::Formulation) = return
