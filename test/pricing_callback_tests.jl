@@ -9,8 +9,9 @@ function pricing_callback_tests()
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
         )
 
-        function my_pricing_oracle(form::CL.Formulation)
+        function my_pricing_oracle(oracledata)
             println("Pricing callback called")
+            @show typeof(oracledata)
             # machine_id = CL.getuid(form) - 1
             # vars = [v for (id,v) in Iterators.filter(
             #     v -> (CL.iscuractive(form,v.first) && CL.iscurexplicit(form,v.first) && CL.getduty(v.first) <= CL.DwSpPricingVar),
