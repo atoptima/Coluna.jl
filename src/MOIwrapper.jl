@@ -19,7 +19,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     moi_index_to_coluna_uid::MOIU.IndexMap
     params::Params
     annotations::Annotations
-    varmap::Dict{MOI.VariableIndex,Id{Variable}} # For the user to get VariablePrimal
+    varmap::Dict{MOI.VariableIndex,VarId} # For the user to get VariablePrimal
     result::OptimizationResult
 end
 
@@ -42,7 +42,7 @@ function Optimizer()
     prob = Problem()
     return Optimizer(
         prob, MOIU.IndexMap(), Params(), Annotations(),
-        Dict{MOI.VariableIndex,Id{Variable}}(), OptimizationResult{MinSense}(),
+        Dict{MOI.VariableIndex,VarId}(), OptimizationResult{MinSense}(),
     )
 end
 
