@@ -13,12 +13,17 @@ no_optimizer_builder(args...) = NoOptimizer()
 Wrapper that is used when the `optimize!(f::Formulation)` function should call an user-defined callback.
 """
 mutable struct UserOptimizer <: AbstractOptimizer
-    optimize_function::Function
+    user_oracle::Function
+end
+
+struct OracleData 
+    form::Formulation
 end
 
 function optimize!(form::Formulation, optimizer::UserOptimizer)
     @logmsg LogLevel(-2) "Calling user-defined optimization function."
-    return optimizer.optimize_function(form)
+    od = OracleData(form)
+    return optimizer.user_oracle(od)
 end
 
 """
