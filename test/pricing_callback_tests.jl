@@ -9,75 +9,47 @@ function pricing_callback_tests()
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
+        model, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
 
         function my_pricing_oracle(oracledata)
-            println("Pricing callback called")
+            machine_id = BD.oracle_spid(oracledata, model)
 
-            machine = BD.oracle_spid(oracledata, problem)
+            costs = [BD.oracle_cost(oracledata, x[machine_id, j]) for j in data.jobs]
+            lbs = [BD.oracle_lb(oracledata, x[machine_id, j]) for j in data.jobs]
+            ubs =  [BD.oracle_ub(oracledata, x[machine_id, j]) for j in data.jobs]
 
-            @show machine
+            #test_costs = BD.oracle_cost.(oracledata, x[machine_id, :]) # TODO
 
-            @show typeof(oracledata)
-            form = oracledata.form
-    
-            #subproblem = CL.get_sp_axis_id(cbdata)
+            # Model to solve the knp subproblem
+            sp = JuMP.Model(GLPK.Optimizer)
+            @variable(sp, lbs[j] <= y[j in data.jobs] <= ubs[j], Int)
+            @objective(sp, Min, sum(costs[j] * y[j] for j in data.jobs))
 
-            println("\e[34m ******************** \e[00m")
-            @show form
-        
-
-            vars = [v for (id,v) in Iterators.filter(
-                v -> (CL.iscuractive(form,v.first) && CL.iscurexplicit(form,v.first) && CL.getduty(v.first) <= CL.DwSpPricingVar),
-                CL.getvars(form)
-            )]
-            vars_job_id = Vector{Int}()
-            for v in vars
-                m = match(r"x\[\d+\,(\d)+\]", CL.getname(form, v))
-                job_id = parse(Int, m.captures[1])
-                push!(vars_job_id, job_id)
-            end
-
-            m = match(r"x\[(\d)+\,\d+\]", CL.getname(form, vars[1]))
-            machine_id = parse(Int, m.captures[1])
-            @show machine_id
-
-            setup_var = [v for (id,v) in Iterators.filter(
-                v -> (CL.iscuractive(form,v.first) && CL.iscurexplicit(form,v.first) && CL.getduty(v.first) <= CL.DwSpSetupVar),
-                CL.getvars(form)
-            )][1]
-           
-            m = JuMP.Model(GLPK.Optimizer)
-            @variable(m, CL.getcurlb(form, vars[i]) <= xsp[i=1:length(vars)] <= CL.getcurub(form, vars[i]), Int)
-            @objective(m, Min, sum(CL.getcurcost(form, vars[j]) * xsp[j] for j in 1:length(vars)))
-            @constraint(m, knp, 
-                sum(data.weight[j,machine_id] * xsp[j]
-                for j in 1:length(vars)) <= data.capacity[machine_id]
+            @constraint(sp, knp, 
+                sum(data.weight[j,machine_id] * y[j]
+                for j in data.jobs) <= data.capacity[machine_id]
             )
-            optimize!(m)
 
-            @show m
-            println("\e[34m ~~~~~******************** \e[00m")
+            JuMP.optimize!(sp)
 
-            #result = CL.OptimizationResult{CL.MinSense}()
-            #result.primal_bound = CL.PrimalBound(form, JuMP.objective_value(m))
-            solvars = Vector{JuMP.VariableRef}()
-            solvarvals = Vector{Float64}()
-            for i in 1:length(xsp)
-                val = JuMP.value(xsp[i])
-                if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-                    push!(solvars, x[machine_id, vars_job_id[i]])
-                    push!(solvarvals, val)
+            # Retrieve the solution
+            solcost = JuMP.objective_value(sp)
+            solvars = JuMP.VariableRef[]
+            solvarvals = Float64[]
+            for j in data.jobs
+                val = JuMP.value(y[j])
+                if val ≈ 1
+                    push!(solvars, x[machine_id, j])
+                    push!(solvarvals, 1.0)
                 end
             end
-            #push!(solvarids, CL.getid(setup_var))
-            #push!(solvarvals, 1.0)
-            #push!(result.primal_sols, CL.PrimalSolution(form, solvarids, solvarvals, result.primal_bound))
-            #CL.setfeasibilitystatus!(result, CL.FEASIBLE)
-            #CL.setterminationstatus!(result, CL.OPTIMAL)
 
-            MOI.submit(problem, BD.PricingSolution(oracledata), solvars, solvarvals)
-            return #result
+            # Submit the solution
+            MOI.submit(
+                model, BD.PricingSolution(oracledata), solcost, solvars, 
+                solvarvals
+            )
+            return
         end
 
         master = BD.getmaster(dec)
@@ -85,10 +57,10 @@ function pricing_callback_tests()
         
         BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_oracle)
 
-        JuMP.optimize!(problem)
-        @test JuMP.objective_value(problem) ≈ 75.0
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        JuMP.optimize!(model)
+        @test JuMP.objective_value(model) ≈ 75.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
 end
