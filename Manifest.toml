@@ -17,8 +17,8 @@ version = "0.5.8"
 
 [[BlockDecomposition]]
 deps = ["JuMP", "MathOptInterface"]
-git-tree-sha1 = "df882b2289d0e57deb6d07b77259abc2f787b25e"
-repo-rev = "pricing_oracle_bounds_methods"
+git-tree-sha1 = "df3d9827114bed2898f21264cc53676a8fa5954f"
+repo-rev = "master"
 repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 version = "1.1.1"
@@ -44,7 +44,7 @@ version = "0.6.0"
 [[ColunaDemos]]
 deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
 git-tree-sha1 = "fa2954a1170d38684d9ea7d64c58c461c77748b4"
-repo-rev = "bd_unreleased"
+repo-rev = "master"
 repo-url = "git@github.com:atoptima/ColunaDemos.jl.git"
 uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
 version = "0.1.0"

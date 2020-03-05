@@ -11,24 +11,35 @@ function pricing_callback_tests()
 
         model, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
 
-        function my_pricing_oracle(oracledata)
-            machine_id = BD.oracle_spid(oracledata, model)
-
-            costs = [BD.oracle_cost(oracledata, x[machine_id, j]) for j in data.jobs]
-            lbs = [BD.oracle_lb(oracledata, x[machine_id, j]) for j in data.jobs]
-            ubs =  [BD.oracle_ub(oracledata, x[machine_id, j]) for j in data.jobs]
-
-            #test_costs = BD.oracle_cost.(oracledata, x[machine_id, :]) # TODO
-
-            # Model to solve the knp subproblem
+        # Subproblem models are created once and for all
+        # One model for each machine
+        sp_models = Dict{Int, Any}()
+        for m in data.machines
             sp = JuMP.Model(GLPK.Optimizer)
-            @variable(sp, lbs[j] <= y[j in data.jobs] <= ubs[j], Int)
-            @objective(sp, Min, sum(costs[j] * y[j] for j in data.jobs))
+            @variable(sp, y[j in data.jobs], Bin)
+            @variable(sp, lb_y[j in data.jobs] >= 0)
+            @variable(sp, ub_y[j in data.jobs] >= 0)
+            @constraint(sp, knp, sum(data.weight[j,m]*y[j] for j in data.jobs) <= data.capacity[m])
+            @constraint(sp, lbs[j in data.jobs], y[j] + lb_y[j] >= 0)
+            @constraint(sp, ubs[j in data.jobs], y[j] - ub_y[j] <= 0)
+            sp_models[m] = (sp, y, lb_y, ub_y)
+        end
 
-            @constraint(sp, knp, 
-                sum(data.weight[j,machine_id] * y[j]
-                for j in data.jobs) <= data.capacity[machine_id]
-            )
+        function my_pricing_callback(cbdata)
+            machine_id = BD.callback_spid(cbdata, model)
+
+            sp, y, lb_y, ub_y = sp_models[machine_id]
+
+            red_costs = [BD.callback_reduced_cost(cbdata, x[machine_id, j]) for j in data.jobs]
+
+            # Update the model
+            ## Bounds on subproblem variables
+            for j in data.jobs
+                JuMP.fix(lb_y[j], BD.callback_lb(cbdata, x[machine_id, j]), force = true)
+                JuMP.fix(ub_y[j], BD.callback_ub(cbdata, x[machine_id, j]), force = true)
+            end
+            ## Objective function
+            @objective(sp, Min, sum(red_costs[j]*y[j] for j in data.jobs))
 
             JuMP.optimize!(sp)
 
@@ -46,8 +57,7 @@ function pricing_callback_tests()
 
             # Submit the solution
             MOI.submit(
-                model, BD.PricingSolution(oracledata), solcost, solvars, 
-                solvarvals
+                model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals
             )
             return
         end
@@ -55,7 +65,7 @@ function pricing_callback_tests()
         master = BD.getmaster(dec)
         subproblems = BD.getsubproblems(dec)
         
-        BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_oracle)
+        BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback)
 
         JuMP.optimize!(model)
         @test JuMP.objective_value(model) ≈ 75.0

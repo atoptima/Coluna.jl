@@ -16,16 +16,16 @@ mutable struct UserOptimizer <: AbstractOptimizer
     user_oracle::Function
 end
 
-mutable struct OracleData 
+mutable struct PricingCallbackData
     form::Formulation
     result::Union{Nothing, OptimizationResult}
 end
 
 function optimize!(form::Formulation, optimizer::UserOptimizer)
     @logmsg LogLevel(-2) "Calling user-defined optimization function."
-    od = OracleData(form, nothing)
-    optimizer.user_oracle(od)
-    return od.result
+    cbdata = PricingCallbackData(form, nothing)
+    optimizer.user_oracle(cbdata)
+    return cbdata.result
 end
 
 """

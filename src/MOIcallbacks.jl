@@ -1,11 +1,11 @@
 function MOI.submit(
     model::Optimizer,
-    cb::BD.PricingSolution{MP.OracleData},
+    cb::BD.PricingSolution{MP.PricingCallbackData},
     cost::Float64,
     variables::Vector{MOI.VariableIndex},
     values::Vector{Float64}
 )
-    form = cb.oracle_data.form 
+    form = cb.callback_data.form 
     S = getobjsense(form)
     result = OptimizationResult{S}()
     pb = PrimalBound(form, cost)
@@ -25,37 +25,37 @@ function MOI.submit(
     push!(result.primal_sols, PrimalSolution(form, colunavarids, values, pb))
     setfeasibilitystatus!(result, FEASIBLE)
     setterminationstatus!(result, OPTIMAL)
-    cb.oracle_data.result = result
+    cb.callback_data.result = result
     return
 end
 
-function MOI.get(model::Optimizer, spid::BD.OracleSubproblemId{MP.OracleData})
-    oracle_data = spid.oracle_data
-    uid = getuid(oracle_data.form)
+function MOI.get(model::Optimizer, spid::BD.PricingSubproblemId{MP.PricingCallbackData})
+    callback_data = spid.callback_data
+    uid = getuid(callback_data.form)
     axis_index_value = model.annotations.ann_per_form[uid].axis_index_value
     return axis_index_value
 end
 
 function MOI.get(
-    model::Optimizer, vc::BD.OracleVariableCost{MP.OracleData}, 
+    model::Optimizer, vc::BD.PricingVariableCost{MP.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = vc.oracle_data.form
+    form = vc.callback_data.form
     return getcurcost(form, _get_orig_varid(model, x))
 end
 
 function MOI.get(
-    model::Optimizer, vc::BD.OracleVariableLowerBound{MP.OracleData}, 
+    model::Optimizer, vc::BD.PricingVariableLowerBound{MP.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = vc.oracle_data.form
+    form = vc.callback_data.form
     return getcurlb(form, _get_orig_varid(model, x))
 end
 
 function MOI.get(
-    model::Optimizer, vc::BD.OracleVariableUpperBound{MP.OracleData}, 
+    model::Optimizer, vc::BD.PricingVariableUpperBound{MP.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = vc.oracle_data.form
+    form = vc.callback_data.form
     return getcurub(form, _get_orig_varid(model, x))
 end
