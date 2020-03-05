@@ -17,11 +17,9 @@ version = "0.5.8"
 
 [[BlockDecomposition]]
 deps = ["JuMP", "MathOptInterface"]
-git-tree-sha1 = "df3d9827114bed2898f21264cc53676a8fa5954f"
-repo-rev = "master"
-repo-url = "https://github.com/atoptima/BlockDecomposition.jl.git"
+git-tree-sha1 = "d29a71d873a4bc2375c10d50b0bc14db6649effe"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
-version = "1.1.1"
+version = "1.2.0"
 
 [[Calculus]]
 deps = ["LinearAlgebra"]
