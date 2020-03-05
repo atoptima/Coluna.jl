@@ -8,17 +8,14 @@
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
 
-`Coluna` is a branch-and-price-and-cut framework that decomposes and solves 
-a mixed-integer program (MIP). The user introduces his "original" problem formulation using the [`JuMP`](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
-[`BlockDecomposition`](https://github.com/atoptima/BlockDecomposition.jl). 
-
-`Coluna` reformulates the user problem based on the "annotations" provided along side the original formulation using `BlockDecomposition`.
-
-`Coluna` aims to be very modular and tweakable so that any user can define the behavior of his customized branch-and-price-and-cut algorithm. The user can create its own algorithmic strategy using the algorithmic building blocks offered in `Coluna`.
+Coluna is a branch-and-price-and-cut framework written in Julia. 
+The user introduces his problem formulation using the [JuMP](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
+[BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl). Then, Coluna reformulates the user problem and optimizes the reformulation using the algorithms chosen by the user. 
+Coluna aims to be very modular and tweakable so that any user can define the behavior of his customized branch-and-price-and-cut algorithm. 
 
 ## Installation
 
-You can install Coluna.jl through the package manager of Julia. 
+You can install Coluna through the Julia package manager: 
 
 ```
    ] add Coluna
@@ -27,32 +24,48 @@ You can install Coluna.jl through the package manager of Julia.
 ## Features
 
 We aim to integrate to Coluna the state-of-the-art techniques used for 
-branch-and-cut-and-price algorithms.
+branch-and-cut-and-price algorithms. We look for beta users as Coluna is under
+active development.
 
-As functionality goes, we aim to provide the support for:
+- No stable feature at the moment
+- Features that work but you may have some bugs
+  - Dantzig-Wolfe decomposition 
+  - Column generation algorithm
+  - Pricing callback
+- Features for which the structural work is done
+  - Branch-and-price-and-cut algorithm
+  - Benders decomposition
+- Features in development, fundations have been laid
+  - Nested/Recursive decomposition
+  - Cuts generation
+  - Stabilisation and other convergence speed-up methods
+  - Strong-branching 
+  - Parallelisation of the Branch-and-Bound Tree Search 
+- Future features
+  - Mixed Dantzig-Benders decomposition
+  - Preprocessing specific to reformulated problems / cleaning up of large scale formulations 
 
-- [x] Dantzig-Wolfe decomposition 
-- [ ] Benders decomposition
-- [ ] Mixed Dantzig-Benders decomposition
-- [ ] Nested/Recursive decomposition
-- [x] Column generation
-- [ ] Cuts generation
-- [x] Branch-and-price-and-cut customization
-- [ ] Ad-hoc customised oracles for solving subproblems / separation routines
-- [ ] Preprocessing specific to reformulated problems / cleaning up of large scale formulations 
-- [ ] Stabilisation and other convergence speed-up methods
-- [ ] Strong-branching 
-- [ ] Parallelisation of the Branch-and-Bound Tree Search 
-
-## Authors
-
-The current main contributors to Coluna.jl are Cristiana Bentes, Teobaldo Bulhões, Guillaume Marques, Vitor Nesello, Artur Alves Pessoa, Ruslan Sadykov, Anand Subramanian, Eduardo Uchoa, and François Vanderbeck.
-
-## Sponsor
-
-The plateform development has received an important support grant from the international scientific society [**Mathematical Optimization Society' (MOS)**](http://www.mathopt.org/)
 
 ## Contributing
 
-- Choose an issue and open a PR with a proposition to fix it.
-- Open new issues if you find a bug or a way to enhance the package.
+Contributors are first and foremost users of the framework. If you encounter a
+bug or something unexpected happens while using Coluna, please open an issue via
+the GitHub issues tracker or chat with us on the 
+[discord](https://discord.gg/cg77wFW) dedicated to Coluna.
+
+You can also suggest new features or ways to improve the package.
+
+You want to fix some bugs or code new features ? Let us know and we will help 
+you if you have troubles!
+
+See the list of [contributors](https://github.com/atoptima/Coluna.jl/graphs/contributors)
+who make Coluna possible.
+
+## Acknowledgments
+
+[**AtOptima**](https://atoptima.com/)
+
+The plateform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/)
+
+[**Université de Bordeaux**](https://www.u-bordeaux.fr/)
+
