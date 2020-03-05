@@ -1,5 +1,6 @@
 # Coluna.jl
 
+[![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://atoptima.github.io/Coluna.jl/stable)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://atoptima.github.io/Coluna.jl/latest)
 [![Build Status](https://travis-ci.org/atoptima/Coluna.jl.svg?branch=master)](https://travis-ci.org/atoptima/Coluna.jl)
 [![codecov](https://codecov.io/gh/atoptima/Coluna.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/atoptima/Coluna.jl)
@@ -21,6 +22,11 @@ You can install Coluna through the Julia package manager:
    ] add Coluna
 ```
 
+Then, read the [documentation](https://atoptima.github.io/Coluna.jl/stable) and
+start use Coluna.
+
+If you are working with the development version, read this [documentation](https://atoptima.github.io/Coluna.jl/latest).
+
 ## Features
 
 We aim to integrate to Coluna the state-of-the-art techniques used for 
@@ -28,14 +34,14 @@ branch-and-cut-and-price algorithms. We look for beta users as Coluna is under
 active development. 
 
 - ![Stable](https://img.shields.io/badge/-stable-brightgreen) No stable feature at the moment
-- ![Beta](https://img.shields.io/badge/-_beta_-green) Features that work but you may have some bugs:
+- ![Beta](https://img.shields.io/badge/-beta-green) Features that work but you may have some bugs:
   - Dantzig-Wolfe decomposition 
   - Column generation algorithm
   - Pricing callback
-- ![Alpha](https://img.shields.io/badge/-alpha_-yellow) Features that should work. Structural work is done but it may be not performant:
+- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but it may be not performant:
   - Branch-and-price-and-cut algorithm
   - Benders decomposition
-- ![Dev](https://img.shields.io/badge/-_dev_-orange) Features in development, fundations have been laid:
+- ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, fundations have been laid:
   - Nested/Recursive decomposition
   - Cuts generation
   - Stabilisation and other convergence speed-up methods
