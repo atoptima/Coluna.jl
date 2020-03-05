@@ -9,9 +9,7 @@ function MOI.submit(
     S = getobjsense(form)
     result = OptimizationResult{S}()
     pb = PrimalBound(form, cost)
-    result.primal_bound = pb
 
-    @show cost
     colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]
 
     # setup variable
@@ -21,7 +19,9 @@ function MOI.submit(
     )][1]
     push!(colunavarids, setup_var_id)
     push!(values, 1.0)
-        
+    pb += getcurcost(form, setup_var_id)
+
+    result.primal_bound = pb
     push!(result.primal_sols, PrimalSolution(form, colunavarids, values, pb))
     setfeasibilitystatus!(result, FEASIBLE)
     setterminationstatus!(result, OPTIMAL)
