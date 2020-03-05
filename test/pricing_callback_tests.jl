@@ -18,16 +18,11 @@ function pricing_callback_tests()
             lbs = [BD.oracle_lb(oracledata, x[machine_id, j]) for j in data.jobs]
             ubs =  [BD.oracle_ub(oracledata, x[machine_id, j]) for j in data.jobs]
 
-            println("\e[43m")
-            for j in data.jobs
-                println("\t\t >> x[$machine_id, $j] = ", costs[j])
-            end
-            println("\e[00m")
             #test_costs = BD.oracle_cost.(oracledata, x[machine_id, :]) # TODO
 
             # Model to solve the knp subproblem
             sp = JuMP.Model(GLPK.Optimizer)
-            @variable(sp, lbs[j] <= y[j in data.jobs] <= ubs[j])
+            @variable(sp, lbs[j] <= y[j in data.jobs] <= ubs[j], Int)
             @objective(sp, Min, sum(costs[j] * y[j] for j in data.jobs))
 
             @constraint(sp, knp, 
@@ -54,7 +49,6 @@ function pricing_callback_tests()
                 model, BD.PricingSolution(oracledata), solcost, solvars, 
                 solvarvals
             )
-            print(oracledata.form, oracledata.result)
             return
         end
 

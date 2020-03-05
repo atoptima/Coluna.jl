@@ -11,7 +11,8 @@ function MOI.submit(
     pb = PrimalBound(form, cost)
     result.primal_bound = pb
 
-    colunavarids = [model.varmap[var] for var in variables]
+    @show cost
+    colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]
 
     # setup variable
     setup_var_id = [id for (id,v) in Iterators.filter(
@@ -39,28 +40,22 @@ function MOI.get(
     model::Optimizer, vc::BD.OracleVariableCost{MP.OracleData}, 
     x::MOI.VariableIndex
 )
-    oracle_data = vc.oracle_data
-    form = oracle_data.form
-    varid = model.varmap[x]
-    return getcurcost(form, varid)
+    form = vc.oracle_data.form
+    return getcurcost(form, _get_orig_varid(model, x))
 end
 
 function MOI.get(
     model::Optimizer, vc::BD.OracleVariableLowerBound{MP.OracleData}, 
     x::MOI.VariableIndex
 )
-    oracle_data = vc.oracle_data
-    form = oracle_data.form
-    varid = model.varmap[x]
-    return getcurlb(form, varid)
+    form = vc.oracle_data.form
+    return getcurlb(form, _get_orig_varid(model, x))
 end
 
 function MOI.get(
     model::Optimizer, vc::BD.OracleVariableUpperBound{MP.OracleData}, 
     x::MOI.VariableIndex
 )
-    oracle_data = vc.oracle_data
-    form = oracle_data.form
-    varid = model.varmap[x]
-    return getcurub(form, varid)
+    form = vc.oracle_data.form
+    return getcurub(form, _get_orig_varid(model, x))
 end

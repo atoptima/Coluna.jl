@@ -46,6 +46,25 @@ function Optimizer()
     )
 end
 
+function _get_orig_varid(optimizer::Optimizer, x::MOI.VariableIndex)
+    origid = get(optimizer.varmap, x, nothing)
+    if origid === nothing
+        msg = """
+        Cannot find JuMP variable with MOI index $x in original formulation of Coluna.
+        Are you sure this variable is attached to the JuMP model ?
+        """
+        error(msg)
+    end
+    return origid
+end
+
+function _get_orig_varid_in_form(
+    optimizer::Optimizer, form::Formulation, x::MOI.VariableIndex
+)
+    origid = _get_orig_varid(optimizer, x)
+    return getid(getvar(form, origid))
+end
+
 function MOI.optimize!(optimizer::Optimizer)
     optimizer.result = optimize!(
         optimizer.inner, optimizer.annotations, optimizer.params
