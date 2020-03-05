@@ -9,8 +9,8 @@
 
 
 Coluna is a branch-and-price-and-cut framework written in Julia. 
-The user introduces his problem formulation using the [JuMP](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
-[BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl). Then, Coluna reformulates the user problem and optimizes the reformulation using the algorithms chosen by the user. 
+The user introduces an original MIP that model his problem using the [JuMP](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
+[BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl). Then, Coluna reformulates the original MIP and optimizes the reformulation using the algorithms chosen by the user. 
 Coluna aims to be very modular and tweakable so that any user can define the behavior of his customized branch-and-price-and-cut algorithm. 
 
 ## Installation
@@ -25,26 +25,26 @@ You can install Coluna through the Julia package manager:
 
 We aim to integrate to Coluna the state-of-the-art techniques used for 
 branch-and-cut-and-price algorithms. We look for beta users as Coluna is under
-active development.
+active development. 
 
-- No stable feature at the moment
-- Features that work but you may have some bugs
+- ![Stable](https://img.shields.io/badge/-stable-brightgreen) No stable feature at the moment
+- ![Beta](https://img.shields.io/badge/-beta-green) Features that work but you may have some bugs:
   - Dantzig-Wolfe decomposition 
   - Column generation algorithm
   - Pricing callback
-- Features for which the structural work is done
+- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but it may be not performant:
   - Branch-and-price-and-cut algorithm
   - Benders decomposition
-- Features in development, fundations have been laid
+- ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, fundations have been laid:
   - Nested/Recursive decomposition
   - Cuts generation
   - Stabilisation and other convergence speed-up methods
   - Strong-branching 
   - Parallelisation of the Branch-and-Bound Tree Search 
-- Future features
+  - Cleaning up of large scale formulations 
+- ![Future](https://img.shields.io/badge/-project-red) Future features:
   - Mixed Dantzig-Benders decomposition
-  - Preprocessing specific to reformulated problems / cleaning up of large scale formulations 
-
+  - Preprocessing specific to reformulated problems
 
 ## Contributing
 
@@ -56,7 +56,7 @@ the GitHub issues tracker or chat with us on the
 You can also suggest new features or ways to improve the package.
 
 You want to fix some bugs or code new features ? Let us know and we will help 
-you if you have troubles!
+you!
 
 See the list of [contributors](https://github.com/atoptima/Coluna.jl/graphs/contributors)
 who make Coluna possible.
