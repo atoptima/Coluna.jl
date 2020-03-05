@@ -41,14 +41,6 @@ git-tree-sha1 = "05916673a2627dd91b4969ff8ba6941bc85a960e"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
 version = "0.6.0"
 
-[[ColunaDemos]]
-deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
-git-tree-sha1 = "fa2954a1170d38684d9ea7d64c58c461c77748b4"
-repo-rev = "master"
-repo-url = "git@github.com:atoptima/ColunaDemos.jl.git"
-uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
-version = "0.1.0"
-
 [[CommonSubexpressions]]
 deps = ["Test"]
 git-tree-sha1 = "efdaf19ab11c7889334ca247ff4c9f7c322817b0"
@@ -70,10 +62,6 @@ version = "0.17.10"
 [[Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
-
-[[DelimitedFiles]]
-deps = ["Mmap"]
-uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffResults]]
 deps = ["StaticArrays"]
@@ -164,9 +152,9 @@ version = "0.9.12"
 
 [[MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "Random", "Sockets"]
-git-tree-sha1 = "709797fadd2d3b7e3f040a9f6e12726a6d6d2bf5"
+git-tree-sha1 = "a9e2221f06b42f56052f43ad7edecb01d0ef5ab4"
 uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
-version = "1.0.0"
+version = "1.0.1"
 
 [[MbedTLS_jll]]
 deps = ["Libdl", "Pkg"]
