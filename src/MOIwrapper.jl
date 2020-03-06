@@ -19,7 +19,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     moi_index_to_coluna_uid::MOIU.IndexMap
     params::Params
     annotations::Annotations
-    varmap::Dict{MOI.VariableIndex,Id{Variable}} # For the user to get VariablePrimal
+    varmap::Dict{MOI.VariableIndex,VarId} # For the user to get VariablePrimal
     result::OptimizationResult
 end
 
@@ -42,8 +42,27 @@ function Optimizer()
     prob = Problem()
     return Optimizer(
         prob, MOIU.IndexMap(), Params(), Annotations(),
-        Dict{MOI.VariableIndex,Id{Variable}}(), OptimizationResult{MinSense}(),
+        Dict{MOI.VariableIndex,VarId}(), OptimizationResult{MinSense}(),
     )
+end
+
+function _get_orig_varid(optimizer::Optimizer, x::MOI.VariableIndex)
+    origid = get(optimizer.varmap, x, nothing)
+    if origid === nothing
+        msg = """
+        Cannot find JuMP variable with MOI index $x in original formulation of Coluna.
+        Are you sure this variable is attached to the JuMP model ?
+        """
+        error(msg)
+    end
+    return origid
+end
+
+function _get_orig_varid_in_form(
+    optimizer::Optimizer, form::Formulation, x::MOI.VariableIndex
+)
+    origid = _get_orig_varid(optimizer, x)
+    return getid(getvar(form, origid))
 end
 
 function MOI.optimize!(optimizer::Optimizer)

@@ -13,12 +13,19 @@ no_optimizer_builder(args...) = NoOptimizer()
 Wrapper that is used when the `optimize!(f::Formulation)` function should call an user-defined callback.
 """
 mutable struct UserOptimizer <: AbstractOptimizer
-    optimize_function::Function
+    user_oracle::Function
+end
+
+mutable struct PricingCallbackData
+    form::Formulation
+    result::Union{Nothing, OptimizationResult}
 end
 
 function optimize!(form::Formulation, optimizer::UserOptimizer)
     @logmsg LogLevel(-2) "Calling user-defined optimization function."
-    return optimizer.optimize_function(form)
+    cbdata = PricingCallbackData(form, nothing)
+    optimizer.user_oracle(cbdata)
+    return cbdata.result
 end
 
 """
@@ -171,3 +178,13 @@ end
 optimize!(f::Formulation, ::S) where {S<:AbstractOptimizer} = error(
     string("Function `optimize!` is not defined for object of type ", S)
 )
+
+# Initialization of optimizers
+function _initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)
+    f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
+    MOI.set(form.optimizer.inner, MoiObjective(), f)
+    set_obj_sense!(form.optimizer, getobjsense(form))
+    return
+end
+
+_initialize_optimizer!(optimizer, form::Formulation) = return
