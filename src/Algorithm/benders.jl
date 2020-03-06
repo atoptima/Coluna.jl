@@ -23,8 +23,8 @@ function all_sp_in_phase2(algdata::BendersCutGenRuntimeData)
     return true
 end
 
-function BendersCutGenRuntimeData(S::Type{<:Coluna.AbstractSense}, node_inc::Incumbents)
-    i = Incumbents(S)
+function BendersCutGenRuntimeData(form::Reformulation, node_inc::Incumbents)
+    i = Incumbents(getmaster(form))
     update_ip_primal_sol!(i, get_ip_primal_sol(node_inc))
     
     return BendersCutGenRuntimeData(i, false, true, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
@@ -33,7 +33,7 @@ end
 function run!(algo::BendersCutGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
 
     initincumb = getincumbents(input)
-    data = BendersCutGenRuntimeData(reform.master.obj_sense, initincumb)
+    data = BendersCutGenRuntimeData(reform, initincumb)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
 
@@ -44,11 +44,11 @@ function run!(algo::BendersCutGeneration, reform::Reformulation, input::Optimiza
     end
 
     return OptimizationOutput(
-        OptimizationResult{Sense}(
+        OptimizationResult{Formulation,Sense}(
             data.has_converged ? OPTIMAL : OTHER_LIMIT, 
             data.is_feasible ? FEASIBLE : INFEASIBLE, 
             get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
-            ip_primal_sols, Vector{DualSolution{Sense}}()
+            ip_primal_sols, Vector{DualSolution{Formulation}}()
         ), 
         get_lp_primal_sol(data.incumbents), 
         get_lp_dual_bound(data.incumbents)
@@ -162,8 +162,8 @@ end
 
 function record_solutions!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, spform::Formulation,
-    spresult::OptimizationResult{S}
-)::Vector{ConstrId} where {S}
+    spresult::OptimizationResult
+)::Vector{ConstrId}
 
     recorded_dual_solution_ids = Vector{ConstrId}()
 
@@ -213,8 +213,8 @@ function insert_cuts_in_master!(
 end
 
 function compute_benders_sp_lagrangian_bound_contrib(
-    algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::OptimizationResult{S}
-) where {S}
+    algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::OptimizationResult
+)
     dualsol = getbestdualsol(spsol)
     contrib = getvalue(dualsol)
     return contrib
@@ -425,9 +425,10 @@ end
 
 function generatecuts!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, reform::Reformulation,
-    master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S}, phase::FormulationPhase
-)::Tuple{Int, Bool, PrimalBound{S}} where {S}
+    master_primal_sol::PrimalSolution, master_dual_sol::DualSolution, phase::FormulationPhase
+)::Tuple{Int, Bool, PrimalBound}
     masterform = getmaster(reform)
+    S = getobjsense(masterform)
     filtered_dual_sol = filter(elem -> getduty(elem[1]) == MasterPureConstr, master_dual_sol)
 
     ## TODO stabilization : move the following code inside a loop
@@ -442,7 +443,7 @@ function generatecuts!(
     end
     # end TODO
     #primal_bound = PrimalBound(masterform, getvalue(master_primal_sol) + getvalue(pb_correction))
-    primal_bound = getbound(master_primal_sol) + pb_correction
+    primal_bound = PrimalBound{S}(getvalue(master_primal_sol) + pb_correction)
     #setvalue!(master_primal_sol, getvalue(master_primal_sol) + pb_correction)
     return nb_new_cuts, spsols_relaxed, primal_bound
 end

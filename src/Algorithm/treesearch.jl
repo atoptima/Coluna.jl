@@ -221,7 +221,7 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::Optimizat
     initincumb = getincumbents(input)
     data = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 0,
-        OptimizationOutput(initincumb), getsense(initincumb)
+        OptimizationOutput(reform, initincumb), getobjsense(reform)
     )
     push!(data, RootNode(initincumb,algo.skiprootnodeconquer))
     data.tree_order += 1

@@ -50,7 +50,7 @@ function run!(algo::NoBranching, reform::Reformulation, input::DivideInput)::Div
     parent = getparent(input)
     parent_incumb = getincumbents(parent)
     Sense = getsense(parent_incumb)
-    result = OptimizationResult{Sense}()
+    result = OptimizationResult(getmaster(reform))
     return DivideOutput([], result)
 end
 

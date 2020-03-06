@@ -41,19 +41,14 @@ end
 getinner(optimizer::MoiOptimizer) = optimizer.inner
 
 function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
-    result = OptimizationResult{getobjsense(form)}()
+    result = OptimizationResult(form)
     terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
     if terminationstatus != MOI.INFEASIBLE &&
             terminationstatus != MOI.DUAL_INFEASIBLE &&
             terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
             terminationstatus != MOI.OPTIMIZE_NOT_CALLED
         fill_primal_result!(form, optimizer, result)
-        fill_dual_result!(
-        optimizer, result, filter(
-                c -> iscuractive(form, c.first) && iscurexplicit(form, c.first), 
-                getconstrs(form)
-            )
-        )
+        fill_dual_result!(form, optimizer, result)
         if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1 
             setfeasibilitystatus!(result, FEASIBLE)
             setterminationstatus!(result, convert_status(terminationstatus))

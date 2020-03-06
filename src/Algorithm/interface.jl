@@ -78,29 +78,26 @@ getincumbents(input::OptimizationInput) = input.incumbents
     DualBound (dual bound value)
 """
 # TO DO : OptimizationOutput shoud be replaced by OptimizationResult which should contain all
-mutable struct OptimizationOutput{S} <: AbstractOutput
-    result::OptimizationResult{S}
-    lp_primal_sol::PrimalSolution{S}
-    lp_dual_bound::DualBound{S}
+mutable struct OptimizationOutput <: AbstractOutput
+    result::OptimizationResult
+    lp_primal_sol::PrimalSolution
+    lp_dual_bound::DualBound
 end
 
-function OptimizationOutput(incumb::Incumbents)
-    sense = getsense(incumb)
-    return OptimizationOutput{sense}(
-        OptimizationResult{sense}(
-            NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, get_ip_primal_bound(incumb),
-            get_ip_dual_bound(incumb), [], []
-        ), 
-        PrimalSolution{sense}(), DualBound{sense}()
-    )
+function OptimizationOutput(form::M, incumb::Incumbents) where {M<:AbstractFormulation}
+    S = getobjsense(form)
+    or = OptimizationResult(form)
+    or.primal_bound = get_ip_primal_bound(incumb)
+    or.dual_bound = get_ip_dual_bound(incumb)
+    return OptimizationOutput(or, PrimalSolution{M}(form), DualBound{S}())
 end
 
 getresult(output::OptimizationOutput)::OptimizationResult = output.result
 get_lp_primal_sol(output::OptimizationOutput)::PrimalSolution = output.lp_primal_sol
 get_lp_dual_bound(output::OptimizationOutput)::DualBound = output.lp_dual_bound
 set_lp_primal_sol(output::OptimizationOutput, ::Nothing) = nothing
-set_lp_primal_sol(output::OptimizationOutput{S}, sol::PrimalSolution{S}) where {S} = output.lp_primal_sol = sol
-set_lp_dual_bound(output::OptimizationOutput{S}, bound::DualBound{S}) where {S} = output.lp_dual_bound = bound
+set_lp_primal_sol(output::OptimizationOutput, sol::PrimalSolution) = output.lp_primal_sol = sol
+set_lp_dual_bound(output::OptimizationOutput, bound::DualBound) = output.lp_dual_bound = bound
 
 setfeasibilitystatus!(output::OptimizationOutput, status::FeasibilityStatus) = setfeasibilitystatus!(output.result, status)
 setterminationstatus!(output::OptimizationOutput, status::TerminationStatus) = setterminationstatus!(output.result, status)

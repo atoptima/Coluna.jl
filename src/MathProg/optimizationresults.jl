@@ -18,29 +18,46 @@ function convert_status(coluna_status::TerminationStatus)
 end
 
 """
-    OptimizationResult{S}
+    OptimizationResult{M,S}
 
     Structure to be returned by all Coluna `optimize!` methods.
 """
 # TO DO : Optimization result should include information about both IP and LP solutions
-mutable struct OptimizationResult{S<:Coluna.AbstractSense}
+mutable struct OptimizationResult{M<:Coluna.Containers.AbstractModel,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
     primal_bound::PrimalBound{S}
     dual_bound::DualBound{S}
-    primal_sols::Vector{PrimalSolution{S}}
-    dual_sols::Vector{DualSolution{S}}
+    primal_sols::Vector{PrimalSolution{M}}
+    dual_sols::Vector{DualSolution{M}}
 end
 
 """
-    OptimizationResult{S}()
+    OptimizationResult(model)
 
 Builds an empty OptimizationResult.
 """
-OptimizationResult{S}() where {S} = OptimizationResult{S}(
-    NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound{S}(),
-    DualBound{S}(), PrimalSolution{S}[], DualSolution{S}[]
-)
+function OptimizationResult(model::M) where {M<:Coluna.Containers.AbstractModel}
+    S = getobjsense(model)
+    return OptimizationResult{M,S}(
+        NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound{S}(),
+        DualBound{S}(), PrimalSolution{M}[], DualSolution{M}[]
+    )
+end
+
+function OptimizationResult(
+    model::M, ts::TerminationStatus, fs::FeasibilityStatus; pb = nothing,
+    db = nothing, primal_sols = nothing, dual_sols = nothing
+) where {M<:Coluna.Containers.AbstractModel}
+    S = getobjsense(model)
+    return OptimizationResult{M,S}(
+        ts, fs,
+        pb === nothing ? PrimalBound{S}() : pb,
+        db === nothing ? DualBound{S}() : db,
+        primal_sols === nothing ? PrimalSolution{M}[] : primal_sols,
+        dual_sols === nothing ? DualSolution{M}[] : dual_sols
+    )
+end
 
 getterminationstatus(res::OptimizationResult) = res.termination_status
 getfeasibilitystatus(res::OptimizationResult) = res.feasibility_status

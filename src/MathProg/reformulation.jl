@@ -34,7 +34,7 @@ add_dw_pricing_sp!(r::Reformulation, f) = r.dw_pricing_subprs[getuid(f)] = f
 add_benders_sep_sp!(r::Reformulation, f) = r.benders_sep_subprs[getuid(f)] = f
 get_dw_pricing_sps(r::Reformulation) = r.dw_pricing_subprs
 get_benders_sep_sps(r::Reformulation) = r.benders_sep_subprs
-
+getobjsense(r::Reformulation) = getobjsense(r.master)
 # Following two functions are temporary, we must store a pointer to the vc
 # being represented by a representative vc
 function vc_belongs_to_formulation(form::Formulation, vc::AbstractVarConstr)

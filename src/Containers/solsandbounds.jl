@@ -124,8 +124,9 @@ Base.isapprox(b::B, val::Number) where {B<:Bound} = isapprox(b.value, val)
 Base.isapprox(val::Number, b::B) where {B<:Bound} = isapprox(b.value, val)
 
 # Solution
-struct Solution{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense,Decision,Value} <: AbstractDict{Decision,Value}
-    bound::Bound{Space,Sense}
+struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Value}
+    model::Model
+    bound::Float64
     sol::DynamicSparseArrays.PackedMemoryArray{Decision,Value}
 end
 
@@ -135,33 +136,24 @@ end
 Should be used like a dict
 doc todo
 """
-function Solution{Sp,Se,De,Va}() where {Sp<:Coluna.AbstractSpace,Se<:Coluna.AbstractSense,De,Va}
-    bound = Bound{Sp,Se}()
+function Solution{Mo,De,Va}(model::Mo) where {Mo<:AbstractModel,De,Va}
     sol = DynamicSparseArrays.dynamicsparsevec(De[], Va[])
-    return Solution(bound, sol)
+    return Solution(model, NaN, sol)
 end
 
-function Solution{Sp,Se,De,Va}(decisions::Vector{De}, vals::Vector{Va}, value::Float64) where {Sp<:Coluna.AbstractSpace,Se<:Coluna.AbstractSense,De,Va}
-    bound = Bound{Sp,Se}(value)
+function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, vals::Vector{Va}, value::Float64) where {Mo<:AbstractModel,De,Va}
     sol = DynamicSparseArrays.dynamicsparsevec(decisions, vals)
-    return Solution(bound, sol)
+    return Solution(model, value, sol)
 end
 
-function Solution{Sp,Se,De,Va}(decisions::Vector{De}, vals::Vector{Va}, bound::Bound{Sp,Se}) where {Sp<:Coluna.AbstractSpace,Se<:Coluna.AbstractSense,De,Va}
-    sol = DynamicSparseArrays.dynamicsparsevec(decisions, vals)
-    return Solution(bound, sol)
-end
-
-getbound(s::Solution) = s.bound
 getsol(s::Solution) = s.sol
 getvalue(s::Solution) = float(s.bound)
-setvalue!(s::Solution, v::Float64) = s.bound.value = v
 
 Base.iterate(s::Solution) = iterate(s.sol)
 Base.iterate(s::Solution, state) = iterate(s.sol, state)
 Base.length(s::Solution) = length(s.sol)
-Base.get(s::Solution{Sp,Se,De,Va}, id::De, default) where {Sp,Se,De,Va} = s.sol[id]
-Base.setindex!(s::Solution{Sp,Se,De,Va}, val::Va, id::De) where {Sp,Se,De,Va} = s.sol[id] = val
+Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id]
+Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
 
 # todo: move in DynamicSparseArrays or avoid using filter ?
 function Base.filter(f::Function, pma::DynamicSparseArrays.PackedMemoryArray{K,T,P}) where {K,T,P}
@@ -180,14 +172,12 @@ function Base.filter(f::Function, s::S) where {S <: Solution}
     return S(s.bound, filter(f, s.sol))
 end
 
-_show_sol_type(io::IO, ::Type{<:Primal}) = println(io, "\n┌ Primal Solution :")
-_show_sol_type(io::IO, ::Type{<:Dual}) = println(io, "\n┌ Dual Solution :")
-function Base.show(io::IO, solution::Solution{Sp,Se,De,Va}) where {Sp,Se,De,Va}
-    _show_sol_type(io, Sp)
+function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
+    println(io, "Solution")
     for (decision, value) in solution
         println(io, "| ", decision, " = ", value)
     end
-    Printf.@printf(io, "└ value = %.2f \n", float(getbound(solution)))
+    Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
 
 Base.copy(s::S) where {S<:Solution} = S(s.bound, copy(s.sol))

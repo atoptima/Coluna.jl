@@ -4,7 +4,7 @@ function run!(algo::MasterIpHeuristic, reform::Reformulation, input::Optimizatio
     @logmsg LogLevel(1) "Applying Master IP heuristic"
 
     initincumb = getincumbents(input)
-    output = OptimizationOutput(initincumb)
+    output = OptimizationOutput(getmaster(reform), initincumb)
     master = getmaster(reform)
     if MOI.supports_constraint(getoptimizer(master).inner, MOI.SingleVariable, MOI.Integer)
 
@@ -27,11 +27,10 @@ function run!(algo::MasterIpHeuristic, reform::Reformulation, input::Optimizatio
         for sol in getprimalsols(opt_result)
             # TO DO : this verification can be removed when the upper bound
             # is set for the restricted master heuristic
-            if isbetter(getbound(sol), get_ip_primal_bound(initincumb))
+            if isbetter(PrimalBound{S}(getvalue(sol)), get_ip_primal_bound(initincumb))
                 add_ip_primal_sol!(output, sol)
             end
         end
-
         return output
     end
 
