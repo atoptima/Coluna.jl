@@ -37,25 +37,25 @@ function MOI.get(model::Optimizer, spid::BD.PricingSubproblemId{MP.PricingCallba
 end
 
 function MOI.get(
-    model::Optimizer, vc::BD.PricingVariableCost{MP.PricingCallbackData}, 
+    model::Optimizer, pvc::BD.PricingVariableCost{MP.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = vc.callback_data.form
+    form = pvc.callback_data.form
     return getcurcost(form, _get_orig_varid(model, x))
 end
 
 function MOI.get(
-    model::Optimizer, vc::BD.PricingVariableLowerBound{MP.PricingCallbackData}, 
+    model::Optimizer, pvlb::BD.PricingVariableLowerBound{MP.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = vc.callback_data.form
+    form = pvlb.callback_data.form
     return getcurlb(form, _get_orig_varid(model, x))
 end
 
 function MOI.get(
-    model::Optimizer, vc::BD.PricingVariableUpperBound{MP.PricingCallbackData}, 
+    model::Optimizer, pvub::BD.PricingVariableUpperBound{MP.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = vc.callback_data.form
+    form = pvub.callback_data.form
     return getcurub(form, _get_orig_varid(model, x))
 end
