@@ -97,8 +97,7 @@ export getmaster, getreformulation,
        getdualsolmatrix,
        getdualsolrhss,
        setvar!, setconstr!,
-       setprimalsol!, setdualsol!,
-       setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
+       setprimalsol!, setdualsol!
 
 # Methods related to duties
 export isanArtificialDuty, 
