@@ -471,13 +471,10 @@ function optimize!(form::Formulation)
     return res
 end
 
-function initialize_optimizer!(form::Formulation, builder::Union{Function})
-    form.optimizer = builder()
-    if form.optimizer isa MoiOptimizer
-        f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
-        MOI.set(form.optimizer.inner, MoiObjective(), f)
-        set_obj_sense!(form.optimizer, getobjsense(form))
-    end
+function initialize_optimizer!(form::Formulation, builder::Function)
+    opt = builder()
+    form.optimizer = opt
+    _initialize_optimizer!(opt, form)
     return
 end
 
