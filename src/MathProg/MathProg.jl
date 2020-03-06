@@ -51,6 +51,9 @@ export AbstractFormulation, MaxSense, MinSense, MoiOptimizer, VarMembership,
        PrimalBound, DualBound, FormId, FormulationPhase, Problem, Annotations,
        Original, Counter, UserOptimizer, MoiObjective, PrimalSolVector
 
+
+export VarMembership, ConstrMembership
+
 export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 
 # Methods
@@ -95,7 +98,7 @@ export getmaster, getreformulation,
        getdualsolrhss,
        setvar!, setconstr!,
        setprimalsol!, setdualsol!,
-       setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
+       setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
 
 # Methods related to duties
 export isanArtificialDuty, 
