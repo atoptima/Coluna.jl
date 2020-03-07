@@ -204,8 +204,8 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
 
     # we obtain the original and extended solutions
     master = getmaster(reform)
-    original_solution = PrimalSolution{Formulation}(getmaster(reform))
-    extended_solution = PrimalSolution{Formulation}(getmaster(reform))
+    original_solution = PrimalSolution(getmaster(reform))
+    extended_solution = PrimalSolution(getmaster(reform))
     if projection_is_possible(master)
         extended_solution = get_lp_primal_sol(parent.incumbents)
         original_solution = proj_cols_on_rep(extended_solution, master)

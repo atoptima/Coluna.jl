@@ -1,48 +1,4 @@
-# Constructors for Primal & Dual Solutions
-function PrimalBound(form::AbstractFormulation)
-    Se = getobjsense(form)
-    return Coluna.Containers.Bound{Primal,Se}()
-end
 
-function PrimalBound(form::AbstractFormulation, val::Float64)
-    Se = getobjsense(form)
-    return Coluna.Containers.Bound{Primal,Se}(val)
-end
-
-function PrimalSolution(form::M) where {M}
-    return Coluna.Containers.Solution{M,VarId,Float64}(form)
-end
-
-function PrimalSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
-) where {M<:AbstractFormulation,De,Va}
-    return Coluna.Containers.Solution{M,De,Va}(form, decisions, vals, val)
-end
-
-function DualBound(form::AbstractFormulation)
-    Se = getobjsense(form)
-    return Coluna.Containers.Bound{Dual,Se}()
-end
-
-function DualBound(form::AbstractFormulation, val::Float64)
-    Se = getobjsense(form)
-    return Coluna.Containers.Bound{Dual,Se}(val)
-end
-
-function DualSolution(form::M) where {M}
-    return Coluna.Containers.Solution{M,ConstrId,Float64}(form)
-end
-
-function DualSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
-) where {M<:AbstractFormulation,De,Va}
-    return Coluna.Containers.Solution{M,De,Va}(form, decisions, vals, val)
-end
-
-valueinminsense(b::PrimalBound{MinSense}) = b.value
-valueinminsense(b::DualBound{MinSense}) = b.value
-valueinminsense(b::PrimalBound{MaxSense}) = -b.value
-valueinminsense(b::DualBound{MaxSense}) = -b.value
 
 # TODO : check that the type of the variable is integer
 function Base.isinteger(sol::Coluna.Containers.Solution)
@@ -68,13 +24,6 @@ function contains(form::AbstractFormulation, sol::DualSolution, duty::Duty{Const
     return false
 end
 
-function Base.print(io::IO, form::AbstractFormulation, sol::Coluna.Containers.Solution)
-    println(io, "Solution")
-    for (id, val) in sol
-        println(io, getname(form, id), " = ", val)
-    end
-    return
-end
 
 # TO DO : should contain only bounds, solutions should be in OptimizationResult
 mutable struct Incumbents{M,S} 
@@ -99,17 +48,17 @@ and the best dual bound to the program.
 function Incumbents(form::M) where {M<:AbstractFormulation}
     S = getobjsense(form)
     return Incumbents{M,S}(
-        PrimalSolution{M}(form),
-        PrimalBound{S}(),
-        DualBound{S}(),
-        PrimalSolution{M}(form),
-        PrimalBound{S}(),
-        DualSolution{M}(form),
-        DualBound{S}()
+        PrimalSolution(form),
+        PrimalBound(form),
+        DualBound(form),
+        PrimalSolution(form),
+        PrimalBound(form),
+        DualSolution(form),
+        DualBound(form)
      )
 end
 
-getsense(::Incumbents{M,S}) where {M,S} = M
+getsense(::Incumbents{M,S}) where {M,S} = S
 
 # Getters solutions
 "Return the best primal solution to the mixed-integer program."

@@ -40,8 +40,8 @@ Builds an empty OptimizationResult.
 function OptimizationResult(model::M) where {M<:Coluna.Containers.AbstractModel}
     S = getobjsense(model)
     return OptimizationResult{M,S}(
-        NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound{S}(),
-        DualBound{S}(), PrimalSolution{M}[], DualSolution{M}[]
+        NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound(model),
+        DualBound(model), PrimalSolution{M}[], DualSolution{M}[]
     )
 end
 
@@ -52,8 +52,8 @@ function OptimizationResult(
     S = getobjsense(model)
     return OptimizationResult{M,S}(
         ts, fs,
-        pb === nothing ? PrimalBound{S}() : pb,
-        db === nothing ? DualBound{S}() : db,
+        pb === nothing ? PrimalBound(model) : pb,
+        db === nothing ? DualBound(model) : db,
         primal_sols === nothing ? PrimalSolution{M}[] : primal_sols,
         dual_sols === nothing ? DualSolution{M}[] : dual_sols
     )

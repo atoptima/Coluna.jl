@@ -89,7 +89,7 @@ function OptimizationOutput(form::M, incumb::Incumbents) where {M<:AbstractFormu
     or = OptimizationResult(form)
     or.primal_bound = get_ip_primal_bound(incumb)
     or.dual_bound = get_ip_dual_bound(incumb)
-    return OptimizationOutput(or, PrimalSolution{M}(form), DualBound{S}())
+    return OptimizationOutput(or, PrimalSolution(form), DualBound(form))
 end
 
 getresult(output::OptimizationOutput)::OptimizationResult = output.result

@@ -38,7 +38,8 @@ function run!(algo::BendersCutGeneration, reform::Reformulation, input::Optimiza
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
 
     Sense = getsense(initincumb)
-    ip_primal_sols = Vector{PrimalSolution{Sense}}()
+    M = typeof(getmaster(reform))
+    ip_primal_sols = Vector{PrimalSolution{M}}()
     if length(get_ip_primal_sol(data.incumbents)) > 0
         push!(ip_primal_sols, get_ip_primal_sol(data.incumbents))
     end
@@ -444,9 +445,9 @@ function generatecuts!(
         return (-1, false)
     end
     # end TODO
-    S = getobjsense(reform)
     #primal_bound = PrimalBound(masterform, getvalue(master_primal_sol) + getvalue(pb_correction))
-    primal_bound = PrimalBound{S}(getvalue(master_primal_sol) + pb_correction)
+    val = getvalue(master_primal_sol) + pb_correction
+    primal_bound = PrimalBound(masterform, float(val))
     #setvalue!(master_primal_sol, getvalue(master_primal_sol) + pb_correction)
     return nb_new_cuts, spsols_relaxed, primal_bound
 end

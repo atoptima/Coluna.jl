@@ -27,7 +27,7 @@ function run!(algo::MasterIpHeuristic, reform::Reformulation, input::Optimizatio
         for sol in getprimalsols(opt_result)
             # TO DO : this verification can be removed when the upper bound
             # is set for the restricted master heuristic
-            if isbetter(PrimalBound{S}(getvalue(sol)), get_ip_primal_bound(initincumb))
+            if isbetter(PrimalBound(master, getvalue(sol)), get_ip_primal_bound(initincumb))
                 add_ip_primal_sol!(output, sol)
             end
         end

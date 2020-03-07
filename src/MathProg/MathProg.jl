@@ -29,6 +29,7 @@ include("constraint.jl")
 include("duties.jl")
 include("varconstr.jl") # to rm
 include("manager.jl")
+include("solutions.jl")
 include("optimizationresults.jl")
 include("incumbents.jl")
 include("buffer.jl")
