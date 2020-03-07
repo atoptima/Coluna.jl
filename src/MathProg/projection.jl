@@ -1,8 +1,5 @@
 projection_is_possible(master::Formulation{DwMaster}) = true
 function proj_cols_on_rep(sol::PrimalSolution, master::Formulation{DwMaster})
-    println("\e[32m")
-    @show sol
-    println("\e[00m")
     projected_sol_vars = Vector{VarId}()
     projected_sol_vals = Vector{Float64}()
 

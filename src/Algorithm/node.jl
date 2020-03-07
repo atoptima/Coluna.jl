@@ -98,7 +98,7 @@ function Node(parent::Node, branch::Branch, branchdescription::String)
     incumbents = deepcopy(getincumbents(parent))
     # Resetting lp primals because the lp can get worse during the algorithms,
     # thus not being updated in the node and breaking the branching
-    incumbents.lp_primal_sol = typeof(incumbents.lp_primal_sol)()
+    incumbents.lp_primal_sol = PrimalSolution(incumbents.lp_primal_sol.model)
     return Node(
         -1, false, depth, parent, incumbents, branch, branchdescription, 
         parent.conquerrecord, parent.dividerecord, false, false
@@ -184,7 +184,7 @@ function apply_conquer_alg_to_node!(
     update_ip_dual_bound!(node_incumbents, getdualbound(getresult(optoutput)))
     update_ip_primal_bound!(node_incumbents, getprimalbound(getresult(optoutput)))
     update_lp_dual_bound!(node_incumbents, get_lp_dual_bound(optoutput))
-    update_lp_primal_sol!(node_incumbents, get_lp_primal_sol(optoutput))    
+    update_lp_primal_sol!(node_incumbents, get_lp_primal_sol(optoutput)) 
 
     # update of tree search algorithm primal solutions 
     for primal_sol in getprimalsols(getresult(optoutput))

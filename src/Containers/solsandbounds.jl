@@ -8,6 +8,7 @@ const MaxSense = Coluna.AbstractMaxSense
 # Bounds
 mutable struct Bound{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense} <: Real
     value::Float64
+    Bound{Space,Sense}(x::Number) where {Space,Sense} = new(x === NaN ? _defaultboundvalue(Space, Sense) : x)
 end
 
 _defaultboundvalue(::Type{<:Primal}, ::Type{<:MinSense}) = Inf
@@ -24,6 +25,7 @@ function Bound{Space,Sense}() where {Space<:Coluna.AbstractSpace,Sense<:Coluna.A
     val = _defaultboundvalue(Space, Sense)
     return Bound{Space,Sense}(val)
 end
+
 
 getvalue(b::Bound) = b.value
 Base.float(b::Bound) = b.value
@@ -170,7 +172,7 @@ function Base.filter(f::Function, pma::DynamicSparseArrays.PackedMemoryArray{K,T
 end
 
 function Base.filter(f::Function, s::S) where {S <: Solution}
-    return S(s.value, filter(f, s.sol))
+    return S(s.model, s.bound, filter(f, s.sol))
 end
 
 function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}

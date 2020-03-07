@@ -88,7 +88,7 @@ function add_primal_sol!(res::OptimizationResult{M,S}, solution::PrimalSolution{
     if isbetter(pb, getprimalbound(res))
         setprimalbound!(res, pb)
     end
-    sort!(res.primal_sols; by = x->valueinminsense(getvalue(x)))
+    sort!(res.primal_sols; by = x->valueinminsense(PrimalBound{S}(getvalue(x))))
     return
 end
 

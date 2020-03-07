@@ -148,16 +148,10 @@ function prepare_and_run_conquer_algorithm!(
 
     optoutput = apply_conquer_alg_to_node!(node, algo, reform, getresult(data))        
 
-    println("\e[31m ")
-    @show get_lp_primal_sol(optoutput)
-    println("\e[00m")
-    @show isrootnode(node)
-    @show store_lp_solution
     if isrootnode(node) && store_lp_solution
         treesearchoutput = getoutput(data)
         set_lp_dual_bound(treesearchoutput, get_lp_dual_bound(optoutput))
         set_lp_primal_sol(treesearchoutput, get_lp_primal_sol(optoutput)) 
-        @show get_lp_primal_sol(treesearchoutput)  
     end 
 end
 

@@ -9,6 +9,10 @@ function PrimalBound(form::AbstractFormulation, val::Float64)
     return Coluna.Containers.Bound{Primal,Se}(val)
 end
 
+function PrimalSolution(form::M) where {M}
+    return Coluna.Containers.Solution{M,VarId,Float64}(form)
+end
+
 function PrimalSolution(
     form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
 ) where {M<:AbstractFormulation,De,Va}
@@ -23,6 +27,10 @@ end
 function DualBound(form::AbstractFormulation, val::Float64)
     Se = getobjsense(form)
     return Coluna.Containers.Bound{Dual,Se}(val)
+end
+
+function DualSolution(form::M) where {M}
+    return Coluna.Containers.Solution{M,ConstrId,Float64}(form)
 end
 
 function DualSolution(

@@ -213,9 +213,6 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         original_solution = get_lp_primal_sol(parent.incumbents)
     end
 
-    @show extended_solution
-    @show original_solution
-
     # phase 0 of branching : we ask branching rules to generate branching candidates
     # we stop when   
     # - at least one candidate was generated, and its priority rounded down is stricly greater 
@@ -268,7 +265,6 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         end
     end
    
-    @show kept_branch_groups
     if isempty(kept_branch_groups)
         @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
         return DivideOutput(Vector{Node}(), result)
