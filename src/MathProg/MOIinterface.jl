@@ -218,11 +218,7 @@ function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
                 push!(solvals, val)
             end
         end
-        push!(result.primal_sols, PrimalSolution(form, solvars, solvals, solcost))
-    end
-    result.primal_bound = PrimalBound(form)
-    if nbprimalsols(result) > 0
-        result.primal_bound = PrimalBound(form, getvalue(unsafe_getbestprimalsol(result)))
+        add_primal_sol!(result, PrimalSolution(form, solvars, solvals, solcost))
     end
     @logmsg LogLevel(-2) string("Primal bound is ", getprimalbound(result))
     return
@@ -252,11 +248,7 @@ function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
                 push!(solvals, val)      
             end
         end
-        push!(result.dual_sols, DualSolution(form, solconstrs, solvals, solcost))
-    end
-    result.dual_bound = DualBound(form)
-    if nbdualsols(result) > 0
-        result.dual_bound = DualBound(form, getvalue(unsafe_getbestdualsol(result)))
+        add_dual_sol!(result, DualSolution(form, solconstrs, solvals, solcost))
     end
     @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return

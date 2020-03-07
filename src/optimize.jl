@@ -97,7 +97,7 @@ function optimize!(
     opt_result = AL.getresult(AL.run!(algorithm, reform, AL.OptimizationInput(init_incumbents)))
 
     for (idx, sol) in enumerate(getprimalsols(opt_result))
-        opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)
+        opt_result.lp_primal_sols[idx] = proj_cols_on_rep(sol, master) # TODO change
     end
     return opt_result
 end

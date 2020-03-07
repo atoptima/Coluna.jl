@@ -73,7 +73,7 @@ end
 todo
 """
 function ObjValues(form::M) where {M<:AbstractFormulation}
-    Se = getobjsense(form)
+    S = getobjsense(form)
     return ObjValues{S}(
         PrimalBound(form), DualBound(form), PrimalBound(form), DualBound(form)
     )

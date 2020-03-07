@@ -28,8 +28,10 @@ mutable struct OptimizationResult{M<:Coluna.Containers.AbstractModel,S<:Coluna.A
     feasibility_status::FeasibilityStatus
     primal_bound::PrimalBound{S}
     dual_bound::DualBound{S}
-    primal_sols::Vector{PrimalSolution{M}}
-    dual_sols::Vector{DualSolution{M}}
+    incumbents::ObjValues{S}
+    ip_primal_sols::Union{Nothing, Vector{PrimalSolution{M}}}
+    lp_primal_sols::Union{Nothing, Vector{PrimalSolution{M}}}
+    lp_dual_sols::Union{Nothing, Vector{DualSolution{M}}}
 end
 
 """
@@ -41,7 +43,8 @@ function OptimizationResult(model::M) where {M<:Coluna.Containers.AbstractModel}
     S = getobjsense(model)
     return OptimizationResult{M,S}(
         NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound(model),
-        DualBound(model), PrimalSolution{M}[], DualSolution{M}[]
+        DualBound(model), ObjValues(model), 
+        PrimalSolution{M}[], PrimalSolution{M}[], DualSolution{M}[]
     )
 end
 
@@ -54,6 +57,8 @@ function OptimizationResult(
         ts, fs,
         pb === nothing ? PrimalBound(model) : pb,
         db === nothing ? DualBound(model) : db,
+        ObjValues(model),
+        PrimalSolution{M}[],
         primal_sols === nothing ? PrimalSolution{M}[] : primal_sols,
         dual_sols === nothing ? DualSolution{M}[] : dual_sols
     )
@@ -64,17 +69,17 @@ getfeasibilitystatus(res::OptimizationResult) = res.feasibility_status
 isfeasible(res::OptimizationResult) = res.feasibility_status == FEASIBLE
 getprimalbound(res::OptimizationResult) = res.primal_bound
 getdualbound(res::OptimizationResult) = res.dual_bound
-getprimalsols(res::OptimizationResult) = res.primal_sols
-getdualsols(res::OptimizationResult) = res.dual_sols
-nbprimalsols(res::OptimizationResult) = length(res.primal_sols)
-nbdualsols(res::OptimizationResult) = length(res.dual_sols)
+getprimalsols(res::OptimizationResult) = res.lp_primal_sols
+getdualsols(res::OptimizationResult) = res.lp_dual_sols
+nbprimalsols(res::OptimizationResult) = length(res.lp_primal_sols)
+nbdualsols(res::OptimizationResult) = length(res.lp_dual_sols)
 
 # For documentation : Only unsafe methods must be used to retrieve best
 # solutions in the core of Coluna.
-unsafe_getbestprimalsol(res::OptimizationResult) = res.primal_sols[1]
-unsafe_getbestdualsol(res::OptimizationResult) = res.dual_sols[1]
-getbestprimalsol(res::OptimizationResult) = get(res.primal_sols, 1, nothing)
-getbestdualsol(res::OptimizationResult) = get(res.dual_sols, 1, nothing)
+unsafe_getbestprimalsol(res::OptimizationResult) = res.lp_primal_sols[1]
+unsafe_getbestdualsol(res::OptimizationResult) = res.lp_dual_sols[1]
+getbestprimalsol(res::OptimizationResult) = get(res.lp_primal_sols, 1, nothing)
+getbestdualsol(res::OptimizationResult) = get(res.lp_dual_sols, 1, nothing)
 
 setprimalbound!(res::OptimizationResult, b::PrimalBound) = res.primal_bound = b
 setdualbound!(res::OptimizationResult, b::DualBound) = res.dual_bound = b
@@ -83,12 +88,22 @@ setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.
 Containers.gap(res::OptimizationResult) = gap(getprimalbound(res), getdualbound(res))
 
 function add_primal_sol!(res::OptimizationResult{M,S}, solution::PrimalSolution{M}) where {M,S}
-    push!(res.primal_sols, solution)
+    push!(res.lp_primal_sols, solution)
     pb = PrimalBound{S}(getvalue(solution))
     if isbetter(pb, getprimalbound(res))
         setprimalbound!(res, pb)
     end
-    sort!(res.primal_sols; by = x->valueinminsense(PrimalBound{S}(getvalue(x))))
+    sort!(res.lp_primal_sols; by = x->valueinminsense(PrimalBound{S}(getvalue(x))))
+    return
+end
+
+function add_dual_sol!(res::OptimizationResult{M,S}, solution::DualSolution{M}) where {M,S}
+    push!(res.lp_dual_sols, solution)
+    db = DualBound{S}(getvalue(solution))
+    if isbetter(db, getdualbound(res))
+        setdualbound!(res, db)
+    end
+    #sort!(res.dual_sols; by = x->valueinminsense(DualBound{S}(getvalue(x)))))
     return
 end
 
