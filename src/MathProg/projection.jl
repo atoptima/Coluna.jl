@@ -1,5 +1,5 @@
 projection_is_possible(master::Formulation{DwMaster}) = true
-function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMaster}) where {Sense}
+function proj_cols_on_rep(sol::PrimalSolution, master::Formulation{DwMaster})
     projected_sol_vars = Vector{VarId}()
     projected_sol_vals = Vector{Float64}()
 
@@ -20,11 +20,11 @@ function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{DwMast
             end
         end
     end
-    return PrimalSolution(master, projected_sol_vars, projected_sol_vals, float(getbound(sol)))
+    return PrimalSolution(master, projected_sol_vars, projected_sol_vals, getvalue(sol))
 end
 
 projection_is_possible(master::Formulation{BendersMaster}) = false
 
-function proj_cols_on_rep(sol::PrimalSolution{Sense}, master::Formulation{BendersMaster}) where {Sense}
+function proj_cols_on_rep(sol::PrimalSolution, master::Formulation{BendersMaster})
     return sol
 end

@@ -151,7 +151,7 @@ function prepare_and_run_conquer_algorithm!(
     if isrootnode(node) && store_lp_solution
         treesearchoutput = getoutput(data)
         set_lp_dual_bound(treesearchoutput, get_lp_dual_bound(optoutput))
-        set_lp_primal_sol(treesearchoutput, get_lp_primal_sol(optoutput))    
+        set_lp_primal_sol(treesearchoutput, get_lp_primal_sol(optoutput)) 
     end 
 end
 
@@ -221,7 +221,7 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::Optimizat
     initincumb = getincumbents(input)
     data = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 0,
-        OptimizationOutput(initincumb), getsense(initincumb)
+        OptimizationOutput(getmaster(reform), initincumb), getobjsense(reform)
     )
     push!(data, RootNode(initincumb,algo.skiprootnodeconquer))
     data.tree_order += 1

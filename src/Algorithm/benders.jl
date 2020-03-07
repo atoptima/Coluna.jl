@@ -23,8 +23,8 @@ function all_sp_in_phase2(algdata::BendersCutGenRuntimeData)
     return true
 end
 
-function BendersCutGenRuntimeData(S::Type{<:Coluna.AbstractSense}, node_inc::Incumbents)
-    i = Incumbents(S)
+function BendersCutGenRuntimeData(form::Reformulation, node_inc::Incumbents)
+    i = Incumbents(getmaster(form))
     update_ip_primal_sol!(i, get_ip_primal_sol(node_inc))
     
     return BendersCutGenRuntimeData(i, false, true, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
@@ -33,22 +33,25 @@ end
 function run!(algo::BendersCutGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
 
     initincumb = getincumbents(input)
-    data = BendersCutGenRuntimeData(reform.master.obj_sense, initincumb)
+    data = BendersCutGenRuntimeData(reform, initincumb)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
 
     Sense = getsense(initincumb)
-    ip_primal_sols = Vector{PrimalSolution{Sense}}()
+    M = typeof(getmaster(reform))
+    ip_primal_sols = Vector{PrimalSolution{M}}()
     if length(get_ip_primal_sol(data.incumbents)) > 0
         push!(ip_primal_sols, get_ip_primal_sol(data.incumbents))
     end
 
     return OptimizationOutput(
-        OptimizationResult{Sense}(
+        OptimizationResult(
+            getmaster(reform),
             data.has_converged ? OPTIMAL : OTHER_LIMIT, 
             data.is_feasible ? FEASIBLE : INFEASIBLE, 
-            get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
-            ip_primal_sols, Vector{DualSolution{Sense}}()
+            pb = get_ip_primal_bound(data.incumbents), 
+            db = get_ip_dual_bound(data.incumbents), 
+            primal_sols = ip_primal_sols
         ), 
         get_lp_primal_sol(data.incumbents), 
         get_lp_dual_bound(data.incumbents)
@@ -93,8 +96,8 @@ end
 
 function update_benders_sp_problem!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, spform::Formulation, 
-    master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S}
-) where {S}
+    master_primal_sol::PrimalSolution, master_dual_sol::DualSolution
+)
     masterform = spform.parent_formulation
 
      # Update rhs of technological constraints
@@ -162,8 +165,8 @@ end
 
 function record_solutions!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, spform::Formulation,
-    spresult::OptimizationResult{S}
-)::Vector{ConstrId} where {S}
+    spresult::OptimizationResult
+)::Vector{ConstrId}
 
     recorded_dual_solution_ids = Vector{ConstrId}()
 
@@ -213,8 +216,8 @@ function insert_cuts_in_master!(
 end
 
 function compute_benders_sp_lagrangian_bound_contrib(
-    algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::OptimizationResult{S}
-) where {S}
+    algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::OptimizationResult
+)
     dualsol = getbestdualsol(spsol)
     contrib = getvalue(dualsol)
     return contrib
@@ -223,10 +226,10 @@ end
 function solve_sp_to_gencut!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData,
     masterform::Formulation, spform::Formulation,
-    master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S},
+    master_primal_sol::PrimalSolution, master_dual_sol::DualSolution,
     up_to_phase::FormulationPhase
-)::Tuple{Bool, Bool, Vector{ConstrId}, Float64, Float64} where {S}
-
+)::Tuple{Bool, Bool, Vector{ConstrId}, Float64, Float64}
+    S = getobjsense(masterform)
     recorded_dual_solution_ids = Vector{ConstrId}()
     sp_is_feasible = true
 
@@ -347,9 +350,9 @@ end
 
 function solve_sps_to_gencuts!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, 
-    reform::Reformulation,  master_primalsol::PrimalSolution{S}, 
-    master_dualsol::DualSolution{S}, up_to_phase::FormulationPhase
-) where {S}
+    reform::Reformulation,  master_primalsol::PrimalSolution, 
+    master_dualsol::DualSolution, up_to_phase::FormulationPhase
+)
     
     nb_new_cuts = 0
     spsols_relaxed = false
@@ -399,16 +402,16 @@ end
 
 
 function compute_master_pb_contrib(algdata::BendersCutGenRuntimeData, master::Formulation,
-                                   restricted_master_sol_value::DualBound{S}) where {S}
+                                   restricted_master_sol_value)
     # TODO: will change with stabilization
-    return PrimalBound(master, getvalue(restricted_master_sol_value))
+    return PrimalBound(master, restricted_master_sol_value)
 end
 
 function update_lagrangian_pb!(algdata::BendersCutGenRuntimeData, reform::Reformulation,
-                               restricted_master_sol_dual_sol::DualSolution{S},
-                               benders_sp_sp_primal_bound_contrib) where {S}
+                               restricted_master_sol_dual_sol::DualSolution,
+                               benders_sp_sp_primal_bound_contrib)
     master = getmaster(reform)
-    restricted_master_sol_value = getbound(restricted_master_sol_dual_sol)
+    restricted_master_sol_value = getvalue(restricted_master_sol_dual_sol)
     lagran_bnd = PrimalBound(master, 0.0)
     lagran_bnd += compute_master_pb_contrib(algdata, master, restricted_master_sol_value)
     lagran_bnd += benders_sp_sp_primal_bound_contrib
@@ -425,9 +428,10 @@ end
 
 function generatecuts!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, reform::Reformulation,
-    master_primal_sol::PrimalSolution{S}, master_dual_sol::DualSolution{S}, phase::FormulationPhase
-)::Tuple{Int, Bool, PrimalBound{S}} where {S}
+    master_primal_sol::PrimalSolution, master_dual_sol::DualSolution, phase::FormulationPhase
+)::Tuple{Int, Bool, PrimalBound}
     masterform = getmaster(reform)
+    S = getobjsense(masterform)
     filtered_dual_sol = filter(elem -> getduty(elem[1]) == MasterPureConstr, master_dual_sol)
 
     ## TODO stabilization : move the following code inside a loop
@@ -442,7 +446,8 @@ function generatecuts!(
     end
     # end TODO
     #primal_bound = PrimalBound(masterform, getvalue(master_primal_sol) + getvalue(pb_correction))
-    primal_bound = getbound(master_primal_sol) + pb_correction
+    val = getvalue(master_primal_sol) + pb_correction
+    primal_bound = PrimalBound(masterform, float(val))
     #setvalue!(master_primal_sol, getvalue(master_primal_sol) + pb_correction)
     return nb_new_cuts, spsols_relaxed, primal_bound
 end

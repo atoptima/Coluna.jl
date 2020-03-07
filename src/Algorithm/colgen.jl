@@ -18,7 +18,7 @@ function ColGenRuntimeData(
     algparams::ColumnGeneration, form::Reformulation, ipprimalbound::PrimalBound
 )
     sense = form.master.obj_sense
-    inc = Incumbents(sense)
+    inc = Incumbents(getmaster(form))
     update_ip_primal_bound!(inc, ipprimalbound)
     return ColGenRuntimeData(inc, false, true, [], 2)
 end
@@ -43,7 +43,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
     if data.is_feasible
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status FEASIBLE."
     else
-        data.incumbents = Incumbents(getsense(data.incumbents))
+        data.incumbents = Incumbents(getmaster(reform))
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status INFEASIBLE."
     end
 
@@ -51,13 +51,14 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
         push!(data.ip_primal_sols, get_ip_primal_sol(data.incumbents))
     end
 
-    Sense = getsense(initincumb)    
     return OptimizationOutput(
-        OptimizationResult{Sense}(
+        OptimizationResult(
+            masterform,
             data.has_converged ? OPTIMAL : OTHER_LIMIT, 
             data.is_feasible ? FEASIBLE : INFEASIBLE, 
-            get_ip_primal_bound(data.incumbents), get_ip_dual_bound(data.incumbents), 
-            data.ip_primal_sols, Vector{DualSolution{Sense}}()
+            pb = get_ip_primal_bound(data.incumbents), 
+            db = get_ip_dual_bound(data.incumbents), 
+            primal_sols = data.ip_primal_sols
         ), 
         get_lp_primal_sol(data.incumbents), 
         get_lp_dual_bound(data.incumbents)
@@ -124,13 +125,15 @@ function insert_cols_in_master!(
     return nb_of_gen_col
 end
 
+contrib_improves_mlp(::Type{MinSense}, sp_primal_bound::Float64) = (sp_primal_bound < 0.0 - 1e-8)
+contrib_improves_mlp(::Type{MaxSense}, sp_primal_bound::Float64) = (sp_primal_bound > 0.0 + 1e-8)
 contrib_improves_mlp(sp_primal_bound::PrimalBound{MinSense}) = (sp_primal_bound < 0.0 - 1e-8)
 contrib_improves_mlp(sp_primal_bound::PrimalBound{MaxSense}) = (sp_primal_bound > 0.0 + 1e-8)
 
 function compute_pricing_db_contrib(
-    spform::Formulation, sp_sol_primal_bound::PrimalBound{S}, sp_lb::Float64,
+    spform::Formulation, sp_sol_primal_bound::PrimalBound, sp_lb::Float64,
     sp_ub::Float64
-) where {S}
+)
     # Since convexity constraints are not automated and there is no stab
     # the pricing_dual_bound_contrib is just the reduced cost * multiplicty
     if contrib_improves_mlp(sp_sol_primal_bound)
@@ -192,7 +195,7 @@ function solve_sp_to_gencol!(
     end
 
     for sol in getprimalsols(opt_result)
-        if contrib_improves_mlp(getbound(sol)) # has negative reduced cost
+        if contrib_improves_mlp(getobjsense(spform), getvalue(sol)) # has negative reduced cost
             insertion_status, col_id = setprimalsol!(spform, sol)
             if insertion_status
                 push!(recorded_solution_ids, col_id)
@@ -211,11 +214,12 @@ function solve_sp_to_gencol!(
 end
 
 function solve_sps_to_gencols!(
-    reform::Reformulation, dual_sol::DualSolution{S}, 
+    reform::Reformulation, dual_sol::DualSolution, 
     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
-) where {S}
+)
+    masterform = getmaster(reform)
     nb_new_cols = 0
-    dual_bound_contrib = DualBound{S}(0.0)
+    dual_bound_contrib = DualBound(masterform, 0.0)
     masterform = getmaster(reform)
     sps = get_dw_pricing_sps(reform)
     recorded_sp_solution_ids = Dict{FormId, Vector{VarId}}()

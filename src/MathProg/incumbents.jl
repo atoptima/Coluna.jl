@@ -1,56 +1,4 @@
-# Constructors for Primal & Dual Solutions
-function PrimalBound(form::AbstractFormulation)
-    Se = getobjsense(form)
-    return Coluna.Containers.Bound{Primal,Se}()
-end
 
-function PrimalBound(form::AbstractFormulation, val::Float64)
-    Se = getobjsense(form)
-    return Coluna.Containers.Bound{Primal,Se}(val)
-end
-
-function PrimalSolution(
-    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, val::Float64
-) where {De,Va}
-    Se = getobjsense(form)
-    return Coluna.Containers.Solution{Primal,Se,De,Va}(decisions, vals, val)
-end
-
-function PrimalSolution(
-    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, bound::Coluna.Containers.Bound{Primal,Se}
-) where {Se,De,Va}
-    @assert Se == getobjsense(form)
-    return Coluna.Containers.Solution{Primal,Se,De,Va}(decisions, vals, bound)
-end
-
-function DualBound(form::AbstractFormulation)
-    Se = getobjsense(form)
-    return Coluna.Containers.Bound{Dual,Se}()
-end
-
-function DualBound(form::AbstractFormulation, val::Float64)
-    Se = getobjsense(form)
-    return Coluna.Containers.Bound{Dual,Se}(val)
-end
-
-function DualSolution(
-    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, val::Float64
-) where {De,Va}
-    Se = getobjsense(form)
-    return Coluna.Containers.Solution{Dual,Se,De,Va}(decisions, vals, val)
-end
-
-function DualSolution(
-    form::AbstractFormulation, decisions::Vector{De}, vals::Vector{Va}, bound::Coluna.Containers.Bound{Dual,Se}
-) where {Se,De,Va}
-    @assert Se == getobjsense(form)
-    return Coluna.Containers.Solution{Dual,Se,De,Va}(decisions, vals, bound)
-end
-
-valueinminsense(b::PrimalBound{MinSense}) = b.value
-valueinminsense(b::DualBound{MinSense}) = b.value
-valueinminsense(b::PrimalBound{MaxSense}) = -b.value
-valueinminsense(b::DualBound{MaxSense}) = -b.value
 
 # TODO : check that the type of the variable is integer
 function Base.isinteger(sol::Coluna.Containers.Solution)
@@ -76,24 +24,15 @@ function contains(form::AbstractFormulation, sol::DualSolution, duty::Duty{Const
     return false
 end
 
-_solspacestring(::Coluna.Containers.Solution{<:Dual,Se,De,Va}) where {Se,De,Va} = "Dual solution :"
-_solspacestring(::Coluna.Containers.Solution{<:Primal,Se,De,Va}) where {Se,De,Va} = "Primal solution :"
-function Base.print(io::IO, form::AbstractFormulation, sol::Coluna.Containers.Solution)
-    println(io, _solspacestring(sol))
-    for (id, val) in sol
-        println(io, getname(form, id), " = ", val)
-    end
-    return
-end
 
 # TO DO : should contain only bounds, solutions should be in OptimizationResult
-mutable struct Incumbents{S} 
-    ip_primal_sol::PrimalSolution{S}
+mutable struct Incumbents{M,S} 
+    ip_primal_sol::PrimalSolution{M}
     ip_primal_bound::PrimalBound{S}
     ip_dual_bound::DualBound{S} # the IP dual bound can be the result of computation other than using the LP dual bound
-    lp_primal_sol::PrimalSolution{S}
+    lp_primal_sol::PrimalSolution{M}
     lp_primal_bound::PrimalBound{S}
-    lp_dual_sol::DualSolution{S}
+    lp_dual_sol::DualSolution{M}
     lp_dual_bound::DualBound{S}
 end
 
@@ -106,20 +45,20 @@ to the program, the best primal solution to the linear relaxation of the
 program, the best  dual solution to the linear relaxation of the program, 
 and the best dual bound to the program.
 """
-function Incumbents(S::Type{<: Coluna.AbstractSense})
-    return Incumbents{S}(
-        PrimalSolution{S}(),
-        PrimalBound{S}(),
-        DualBound{S}(),
-        PrimalSolution{S}(),
-        PrimalBound{S}(),
-        DualSolution{S}(),
-        DualBound{S}()
+function Incumbents(form::M) where {M<:AbstractFormulation}
+    S = getobjsense(form)
+    return Incumbents{M,S}(
+        PrimalSolution(form),
+        PrimalBound(form),
+        DualBound(form),
+        PrimalSolution(form),
+        PrimalBound(form),
+        DualSolution(form),
+        DualBound(form)
      )
 end
 
-getsense(::Incumbents{MinSense}) = MinSense
-getsense(::Incumbents{MaxSense}) = MaxSense
+getsense(::Incumbents{M,S}) where {M,S} = S
 
 # Getters solutions
 "Return the best primal solution to the mixed-integer program."
@@ -158,10 +97,10 @@ Update the best primal solution to the mixed-integer program if the new one is
 better than the current one according to the objective sense.
 """
 function update_ip_primal_sol!(
-    inc::Incumbents{S}, sol::PrimalSolution{S}
-) where {S}
-    newbound = getbound(sol)
-    if isbetter(newbound, getbound(inc.ip_primal_sol))
+    inc::Incumbents{M,S}, sol::PrimalSolution{M}
+) where {M,S}
+    newbound = PrimalBound{S}(getvalue(sol))
+    if isbetter(newbound, PrimalBound{S}(getvalue(inc.ip_primal_sol)))
         inc.ip_primal_bound = newbound
         inc.ip_primal_sol = sol
         return true
@@ -176,8 +115,8 @@ Update the primal bound of the mixed-integer program if the new one is better
 than the current one according to the objective sense.
 """
 function update_ip_primal_bound!(
-    inc::Incumbents{S}, bound::PrimalBound{S}
-) where {S}
+    inc::Incumbents{M,S}, bound::PrimalBound{S}
+) where {M,S}
     if isbetter(bound, get_ip_primal_bound(inc))
         inc.ip_primal_bound = bound
         return true
@@ -187,8 +126,8 @@ end
 
 "Set the current primal bound of the mixed-integer program."
 function set_ip_primal_bound!(
-    inc::Incumbents{S}, bound::PrimalBound{S}
-) where {S}
+    inc::Incumbents{M,S}, bound::PrimalBound{S}
+) where {M,S}
     inc.ip_primal_bound = bound
     return 
 end
@@ -199,8 +138,8 @@ Update the dual bound of the mixed-integer program if the new one is better than
 the current one according to the objective sense.
 """
 function update_ip_dual_bound!(
-    inc::Incumbents{S}, bound::DualBound{S}
-) where {S}
+    inc::Incumbents{M,S}, bound::DualBound{S}
+) where {M,S}
     if isbetter(bound, get_ip_dual_bound(inc))
         inc.ip_dual_bound = bound
         return true
@@ -209,7 +148,7 @@ function update_ip_dual_bound!(
 end
 
 "Set the current dual bound of the mixed-integer program."
-function set_ip_dual_bound!(inc::Incumbents{S}, bound::DualBound{S}) where {S}
+function set_ip_dual_bound!(inc::Incumbents{M,S}, bound::DualBound{S}) where {M,S}
     inc.ip_dual_bound = bound
     return 
 end
@@ -220,10 +159,10 @@ Update the best primal solution to the linear program if the new one is better
 than the current one according to the objective sense.
 """
 function update_lp_primal_sol!(
-    inc::Incumbents{S}, sol::PrimalSolution{S}
-) where {S}
-    newbound = getbound(sol)
-    if isbetter(newbound, getbound(inc.lp_primal_sol))
+    inc::Incumbents{M,S}, sol::PrimalSolution{M}
+) where {M,S}
+    newbound = PrimalBound{S}(getvalue(sol))
+    if isbetter(newbound, PrimalBound{S}(getvalue(inc.lp_primal_sol)))
         inc.lp_primal_bound = newbound
         inc.lp_primal_sol = sol
         return true
@@ -238,8 +177,8 @@ Update the primal bound of the linear program if the new one is better than the
 current one according to the objective sense.
 """
 function update_lp_primal_bound!(
-    inc::Incumbents{S}, bound::PrimalBound{S}
-) where {S}
+    inc::Incumbents{M,S}, bound::PrimalBound{S}
+) where {M,S}
    if isbetter(bound, get_lp_primal_bound(inc))
         inc.lp_primal_bound = bound
         return true
@@ -249,8 +188,8 @@ end
 
 "Set the primal bound of the linear program"
 function set_lp_primal_bound!(
-    inc::Incumbents{S}, bound::PrimalBound{S}
-) where {S}
+    inc::Incumbents{M,S}, bound::PrimalBound{S}
+) where {M,S}
     inc.lp_primal_bound = bound
     return 
 end
@@ -261,8 +200,8 @@ Update the dual bound of the linear program if the new one is better than the
 current one according to the objective sense.
 """
 function update_lp_dual_bound!(
-    inc::Incumbents{S}, bound::DualBound{S}
-) where {S}
+    inc::Incumbents{M,S}, bound::DualBound{S}
+) where {M,S}
     if isbetter(bound, get_lp_dual_bound(inc))
         inc.lp_dual_bound = bound
         return true
@@ -272,8 +211,8 @@ end
 
 "Set the dual bound of the linear program."
 function set_lp_dual_bound!(
-    inc::Incumbents{S}, bound::DualBound{S}
-) where {S}
+    inc::Incumbents{M,S}, bound::DualBound{S}
+) where {M,S}
     inc.lp_dual_bound = bound
     return 
 end
@@ -283,9 +222,9 @@ end
 Update the dual solution to the linear program if the new one is better than the
 current one according to the objective sense.
 """
-function update_lp_dual_sol!(inc::Incumbents{S}, sol::DualSolution{S}) where {S}
-    newbound = getbound(sol) 
-    if isbetter(newbound , getbound(inc.lp_dual_sol))
+function update_lp_dual_sol!(inc::Incumbents{M,S}, sol::DualSolution{M}) where {M,S}
+    newbound = DualBound{S}(getvalue(sol))
+    if isbetter(newbound, DualBound{S}(getvalue(inc.lp_dual_sol)))
         inc.lp_dual_bound = newbound 
         inc.lp_dual_sol = sol
         return true
@@ -295,7 +234,7 @@ end
 update_lp_dual_sol!(inc::Incumbents, ::Nothing) = false
 
 "Update the fields of `dest` that are worse than those of `src`."
-function update!(dest::Incumbents{S}, src::Incumbents{S}) where {S}
+function update!(dest::Incumbents{M,S}, src::Incumbents{M,S}) where {M,S}
     update_ip_dual_bound!(dest, get_ip_dual_bound(src))
     update_ip_primal_bound!(dest, get_ip_primal_bound(src))
     update_lp_dual_bound!(dest, get_lp_dual_bound(src))
@@ -306,7 +245,7 @@ function update!(dest::Incumbents{S}, src::Incumbents{S}) where {S}
     return
 end
 
-function Base.show(io::IO, i::Incumbents{S}) where {S}
+function Base.show(io::IO, i::Incumbents{M,S}) where {M,S}
     println(io, "Incumbents{", S, "}:")
     println(io, "ip_primal_bound : ", i.ip_primal_bound)
     println(io, "ip_dual_bound : ", i.ip_dual_bound)

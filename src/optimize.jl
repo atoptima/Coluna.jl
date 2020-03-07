@@ -90,7 +90,7 @@ function optimize!(
 
     # TO DO : initial incumbents may be defined by the user
     master = getmaster(reform)
-    init_incumbents = Incumbents(master.obj_sense) 
+    init_incumbents = Incumbents(master) 
     set_ip_primal_bound!(init_incumbents, initial_primal_bound)
     set_lp_dual_bound!(init_incumbents, initial_dual_bound)
 

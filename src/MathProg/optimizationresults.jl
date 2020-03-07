@@ -18,29 +18,46 @@ function convert_status(coluna_status::TerminationStatus)
 end
 
 """
-    OptimizationResult{S}
+    OptimizationResult{M,S}
 
     Structure to be returned by all Coluna `optimize!` methods.
 """
 # TO DO : Optimization result should include information about both IP and LP solutions
-mutable struct OptimizationResult{S<:Coluna.AbstractSense}
+mutable struct OptimizationResult{M<:Coluna.Containers.AbstractModel,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
     primal_bound::PrimalBound{S}
     dual_bound::DualBound{S}
-    primal_sols::Vector{PrimalSolution{S}}
-    dual_sols::Vector{DualSolution{S}}
+    primal_sols::Vector{PrimalSolution{M}}
+    dual_sols::Vector{DualSolution{M}}
 end
 
 """
-    OptimizationResult{S}()
+    OptimizationResult(model)
 
 Builds an empty OptimizationResult.
 """
-OptimizationResult{S}() where {S} = OptimizationResult{S}(
-    NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound{S}(),
-    DualBound{S}(), PrimalSolution{S}[], DualSolution{S}[]
-)
+function OptimizationResult(model::M) where {M<:Coluna.Containers.AbstractModel}
+    S = getobjsense(model)
+    return OptimizationResult{M,S}(
+        NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound(model),
+        DualBound(model), PrimalSolution{M}[], DualSolution{M}[]
+    )
+end
+
+function OptimizationResult(
+    model::M, ts::TerminationStatus, fs::FeasibilityStatus; pb = nothing,
+    db = nothing, primal_sols = nothing, dual_sols = nothing
+) where {M<:Coluna.Containers.AbstractModel}
+    S = getobjsense(model)
+    return OptimizationResult{M,S}(
+        ts, fs,
+        pb === nothing ? PrimalBound(model) : pb,
+        db === nothing ? DualBound(model) : db,
+        primal_sols === nothing ? PrimalSolution{M}[] : primal_sols,
+        dual_sols === nothing ? DualSolution{M}[] : dual_sols
+    )
+end
 
 getterminationstatus(res::OptimizationResult) = res.termination_status
 getfeasibilitystatus(res::OptimizationResult) = res.feasibility_status
@@ -65,12 +82,13 @@ setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.
 setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
 Containers.gap(res::OptimizationResult) = gap(getprimalbound(res), getdualbound(res))
 
-function add_primal_sol!(res::OptimizationResult, solution::Solution)
+function add_primal_sol!(res::OptimizationResult{M,S}, solution::PrimalSolution{M}) where {M,S}
     push!(res.primal_sols, solution)
-    if isbetter(getbound(solution), getprimalbound(res))
-        setprimalbound!(res, getbound(solution))
+    pb = PrimalBound{S}(getvalue(solution))
+    if isbetter(pb, getprimalbound(res))
+        setprimalbound!(res, pb)
     end
-    sort!(res.primal_sols; by = x->valueinminsense(getbound(x)))
+    sort!(res.primal_sols; by = x->valueinminsense(PrimalBound{S}(getvalue(x))))
     return
 end
 
