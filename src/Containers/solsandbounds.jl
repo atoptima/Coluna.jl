@@ -38,6 +38,7 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MaxSense} = b
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.value > b2.value
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
 
+
 """
     diff 
 
@@ -169,7 +170,7 @@ function Base.filter(f::Function, pma::DynamicSparseArrays.PackedMemoryArray{K,T
 end
 
 function Base.filter(f::Function, s::S) where {S <: Solution}
-    return S(s.bound, filter(f, s.sol))
+    return S(s.value, filter(f, s.sol))
 end
 
 function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}

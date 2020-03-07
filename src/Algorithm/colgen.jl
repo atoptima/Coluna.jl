@@ -43,7 +43,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
     if data.is_feasible
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status FEASIBLE."
     else
-        data.incumbents = Incumbents(getsense(data.incumbents))
+        data.incumbents = Incumbents(getmaster(reform))
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status INFEASIBLE."
     end
 

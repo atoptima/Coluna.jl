@@ -82,12 +82,13 @@ setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.
 setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
 Containers.gap(res::OptimizationResult) = gap(getprimalbound(res), getdualbound(res))
 
-function add_primal_sol!(res::OptimizationResult, solution::Solution)
+function add_primal_sol!(res::OptimizationResult{M,S}, solution::PrimalSolution{M}) where {M,S}
     push!(res.primal_sols, solution)
-    if isbetter(getbound(solution), getprimalbound(res))
-        setprimalbound!(res, getbound(solution))
+    pb = PrimalBound{S}(getvalue(solution))
+    if isbetter(pb, getprimalbound(res))
+        setprimalbound!(res, pb)
     end
-    sort!(res.primal_sols; by = x->valueinminsense(getbound(x)))
+    sort!(res.primal_sols; by = x->valueinminsense(getvalue(x)))
     return
 end
 

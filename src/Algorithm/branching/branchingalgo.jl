@@ -188,11 +188,11 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
     parent = getparent(input)
     parent_incumb = getincumbents(parent)
     sense = getsense(parent_incumb)
-    result = OptimizationResult{sense}()
+    result = OptimizationResult(getmaster(reform))
     setprimalbound!(result, input.ip_primal_bound)
     setdualbound!(result, get_ip_dual_bound(parent_incumb))
     if isempty(algo.rules)
-        @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
+        @logmsg LogLevel(1) "No branching rule is defined. No children will be generated."
         return DivideOutput([], result)
     end
 
@@ -204,14 +204,17 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
 
     # we obtain the original and extended solutions
     master = getmaster(reform)
-    original_solution = PrimalSolution{sense}()
-    extended_solution = PrimalSolution{sense}()
+    original_solution = PrimalSolution{Formulation}(getmaster(reform))
+    extended_solution = PrimalSolution{Formulation}(getmaster(reform))
     if projection_is_possible(master)
         extended_solution = get_lp_primal_sol(parent.incumbents)
         original_solution = proj_cols_on_rep(extended_solution, master)
     else
         original_solution = get_lp_primal_sol(parent.incumbents)
     end
+
+    @show extended_solution
+    @show original_solution
 
     # phase 0 of branching : we ask branching rules to generate branching candidates
     # we stop when   
@@ -264,9 +267,10 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
             resize!(kept_branch_groups, nb_candidates_needed)
         end
     end
-    
+   
+    @show kept_branch_groups
     if isempty(kept_branch_groups)
-        @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
+        @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
         return DivideOutput(Vector{Node}(), result)
     end
 

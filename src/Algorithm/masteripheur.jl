@@ -2,7 +2,7 @@ struct MasterIpHeuristic <: AbstractOptimizationAlgorithm end
 
 function run!(algo::MasterIpHeuristic, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
     @logmsg LogLevel(1) "Applying Master IP heuristic"
-
+    S = getobjsense(reform)
     initincumb = getincumbents(input)
     output = OptimizationOutput(getmaster(reform), initincumb)
     master = getmaster(reform)

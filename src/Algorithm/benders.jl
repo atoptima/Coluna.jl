@@ -408,7 +408,7 @@ function update_lagrangian_pb!(algdata::BendersCutGenRuntimeData, reform::Reform
                                restricted_master_sol_dual_sol::DualSolution{S},
                                benders_sp_sp_primal_bound_contrib) where {S}
     master = getmaster(reform)
-    restricted_master_sol_value = getbound(restricted_master_sol_dual_sol)
+    restricted_master_sol_value = getvalue(restricted_master_sol_dual_sol)
     lagran_bnd = PrimalBound(master, 0.0)
     lagran_bnd += compute_master_pb_contrib(algdata, master, restricted_master_sol_value)
     lagran_bnd += benders_sp_sp_primal_bound_contrib

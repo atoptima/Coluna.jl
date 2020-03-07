@@ -205,8 +205,8 @@ function setdualsol!(
     
     for (cur_sol_id, cur_rhs) in dual_sol_rhss
         factor = 1.0
-        if getbound(new_dual_sol) != cur_rhs
-            factor = cur_rhs / getbound(new_dual_sol)
+        if getvalue(new_dual_sol) != cur_rhs
+            factor = cur_rhs / getvalue(new_dual_sol)
         end
 
         # TODO : implement broadcasting for PMA in DynamicSparseArrays
