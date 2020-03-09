@@ -151,34 +151,6 @@ function OptimizationResult(model::M) where {M<:Coluna.Containers.AbstractModel}
     )
 end
 
-# function OptimizationResult(
-#     model::M, ts::TerminationStatus, fs::FeasibilityStatus; pb = nothing,
-#     db = nothing, primal_sols = nothing, dual_sols = nothing
-# ) where {M<:Coluna.Containers.AbstractModel}
-#     @warn "bad constructor."
-#     println("\e[31m")
-#     println(stacktrace()[3])
-#     println("\e[00m")
-#     S = getobjsense(model)
-#     return OptimizationResult{M,S}(
-#         ts, fs,
-#         pb === nothing ? PrimalBound(model) : pb,
-#         db === nothing ? DualBound(model) : db,
-#         ObjValues(model),
-#         PrimalSolution{M}[],
-#         primal_sols === nothing ? PrimalSolution{M}[] : primal_sols,
-#         dual_sols === nothing ? DualSolution{M}[] : dual_sols
-#     )
-# end
-
-# function OldOutput(form::M, incumb::Incumbents) where {M<:AbstractFormulation}
-#     S = getobjsense(form)
-#     or = OptimizationResult(form)
-#     or.primal_bound = get_ip_primal_bound(incumb)
-#     or.dual_bound = get_ip_dual_bound(incumb)
-#     return OldOutput(or, PrimalSolution(form), DualBound(form))
-# end
-
 function OptimizationResult(
     form::F, fs::FeasibilityStatus, ts::TerminationStatus;
     ip_primal_bound::Union{Nothing,PrimalBound} = nothing,

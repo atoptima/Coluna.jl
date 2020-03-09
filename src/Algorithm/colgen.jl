@@ -67,9 +67,6 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
     
     add_lp_primal_sol!(result, get_lp_primal_sol(data.incumbents))
 
-    println("\e[31m end of column generation with")
-    print(masterform, result)
-    println("\e[00m")
     return OptimizationOutput(result)
 end
 

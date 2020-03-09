@@ -113,8 +113,5 @@ function optimize!(
             add_ip_primal_sol!(result, proj_cols_on_rep(sol, master))
         end
     end
-    println("\e[42m final result : ")
-    print(master, result)
-    println("\e[00m")
     return result
 end

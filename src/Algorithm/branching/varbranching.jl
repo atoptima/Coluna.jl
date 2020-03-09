@@ -72,11 +72,6 @@ function run!(
         resize!(groups, input.max_nb_candidates)
     end    
 
-    println("\e[1;45m *******************")
-    @show input.solution
-    @show groups
-    println("******** \e[00m")
-
     return BranchingRuleOutput(local_id, groups)
 end
 
