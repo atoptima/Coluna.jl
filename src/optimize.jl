@@ -94,10 +94,15 @@ function optimize!(
     set_ip_primal_bound!(init_incumbents, initial_primal_bound)
     set_lp_dual_bound!(init_incumbents, initial_dual_bound)
 
-    opt_result = AL.getresult(AL.run!(algorithm, reform, AL.OptimizationInput(init_incumbents)))
+    output = AL.run!(algorithm, reform, AL.OptimizationInput(init_incumbents))
+    opt_result = AL.getresult(output)
 
-    for (idx, sol) in enumerate(getprimalsols(opt_result))
-        opt_result.lp_primal_sols[idx] = proj_cols_on_rep(sol, master) # TODO change
+    ip_primal_sols = get_ip_primal_sols(opt_result)
+    if ip_primal_sols !== nothing  
+        for sol in ip_primal_sols
+            add_ip_primal_sol!(opt_result, proj_cols_on_rep(sol, master))
+        end
     end
+    
     return opt_result
 end

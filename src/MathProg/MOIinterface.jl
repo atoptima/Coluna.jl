@@ -195,7 +195,7 @@ function _getcolunakind(record::MoiVarRecord)
 end
 
 function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer, 
-                             result::OptimizationResult{<:Formulation,S},
+                             result::MoiResult{<:Formulation,S},
                              ) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
@@ -225,7 +225,7 @@ function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
 end
 
 function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
-                           result::OptimizationResult{<:Formulation,S}
+                           result::MoiResult{<:Formulation,S}
                            ) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())

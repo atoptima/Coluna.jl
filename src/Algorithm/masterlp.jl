@@ -15,7 +15,7 @@ function run!(algo::MasterLpAlgorithm, reform::Reformulation, input::Optimizatio
     initincumb = getincumbents(input)
     master = getmaster(reform)
 
-    output = OptimizationOutput(getmaster(reform), initincumb)    
+    output = OptimizationOutput(getmaster(reform),initincumb)    
 
     elapsed_time = @elapsed begin
         lpresult = TO.@timeit Coluna._to "LP restricted master" optimize!(master)

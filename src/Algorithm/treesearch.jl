@@ -219,9 +219,10 @@ end
 function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
 
     initincumb = getincumbents(input)
+    res = OptimizationResult(getmaster(reform), initincumb)
     data = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 0,
-        OptimizationOutput(getmaster(reform), initincumb), getobjsense(reform)
+        OptimizationOutput(res), getobjsense(reform)
     )
     push!(data, RootNode(initincumb,algo.skiprootnodeconquer))
     data.tree_order += 1
@@ -240,6 +241,27 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::Optimizat
         updatedualbound!(data)
     end
 
-    determine_statuses(getresult(data), isempty(data))
+    #determine_statuses(getresult(data), isempty(data))
+    # TODO : make it better
+    fully_explored = isempty(data)
+    found_sols = (nb_ip_primal_sols(res) > 0)
+    #res = getresult(data)
+    gap_is_zero = gap(res) <= 0.00001
+    # We assume that gap cannot be zero if no solution was found
+    gap_is_zero && @assert found_sols
+    found_sols && setfeasibilitystatus!(res, FEASIBLE)
+    gap_is_zero && setterminationstatus!(res, OPTIMAL)
+    if !found_sols # Implies that gap is not zero
+        setterminationstatus!(res, EMPTY_RESULT)
+        # Determine if we can prove that is was infeasible
+        if fully_explored
+            setfeasibilitystatus!(res, INFEASIBLE)
+        else
+            setfeasibilitystatus!(res, UNKNOWN_FEASIBILITY)
+        end
+    elseif !gap_is_zero
+        setterminationstatus!(res, OTHER_LIMIT)
+    end
+    # end TODO
     return getoutput(data)
 end

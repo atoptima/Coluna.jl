@@ -62,9 +62,8 @@ run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::EmptyInput) = ru
 """
     OptimizationInput
 
-    Contains Incumbents
+Contains Incumbents
 """
-
 struct OptimizationInput{S} <: AbstractInput
     incumbents::Incumbents{S}
 end
@@ -74,39 +73,15 @@ getincumbents(input::OptimizationInput) = input.incumbents
 """
     OptimizationOutput
 
-    Contain OptimizationResult, PrimalSolution (solution to relaxation), and 
-    DualBound (dual bound value)
+Contain OptimizationResult, PrimalSolution (solution to relaxation), and 
+DualBound (dual bound value)
 """
-# TO DO : OptimizationOutput shoud be replaced by OptimizationResult which should contain all
-mutable struct OptimizationOutput <: AbstractOutput
-    result::OptimizationResult
-    lp_primal_sol::PrimalSolution
-    lp_dual_bound::DualBound
-end
-
-function OptimizationOutput(form::M, incumb::Incumbents) where {M<:AbstractFormulation}
-    S = getobjsense(form)
-    or = OptimizationResult(form)
-    or.primal_bound = get_ip_primal_bound(incumb)
-    or.dual_bound = get_ip_dual_bound(incumb)
-    return OptimizationOutput(or, PrimalSolution(form), DualBound(form))
+struct OptimizationOutput{F,S} <: AbstractOutput
+    result::OptimizationResult{F,S}    
 end
 
 getresult(output::OptimizationOutput)::OptimizationResult = output.result
-get_lp_primal_sol(output::OptimizationOutput)::PrimalSolution = output.lp_primal_sol
-get_lp_dual_bound(output::OptimizationOutput)::DualBound = output.lp_dual_bound
-set_lp_primal_sol(output::OptimizationOutput, ::Nothing) = nothing
-set_lp_primal_sol(output::OptimizationOutput, sol::PrimalSolution) = output.lp_primal_sol = sol
-set_lp_dual_bound(output::OptimizationOutput, bound::DualBound) = output.lp_dual_bound = bound
 
-setfeasibilitystatus!(output::OptimizationOutput, status::FeasibilityStatus) = setfeasibilitystatus!(output.result, status)
-setterminationstatus!(output::OptimizationOutput, status::TerminationStatus) = setterminationstatus!(output.result, status)
-
-add_ip_primal_sol!(output::OptimizationOutput, ::Nothing) = nothing
-function add_ip_primal_sol!(output::OptimizationOutput, solution::Solution)
-    add_primal_sol!(output.result, solution)
-    return
-end
 
 """
     AbstractOptimizationAlgorithm
@@ -120,8 +95,8 @@ abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 function run!(
     algo::AbstractOptimizationAlgorithm, form::AbstractFormulation, input::OptimizationInput
-)::OptimizationOutput
+)::OldOutput
      algotype = typeof(algo)
-     error("Method run! which takes formulation and Incumbents as input returns OptimizationOutput
+     error("Method run! which takes formulation and Incumbents as input returns OldOutput
             is not implemented for algorithm $algotype.")
 end
