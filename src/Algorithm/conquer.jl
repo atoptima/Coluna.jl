@@ -137,7 +137,6 @@ end
 
 function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
 
-     
     if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform))
         optoutput = OptimizationOutput(incumb)
         setfeasibilitystatus!(optoutput, INFEASIBLE)
@@ -152,8 +151,12 @@ function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)::
     if algo.run_mastipheur && isfeasible(getresult(optoutput)) && gap_is_positive
         # TO DO : update incumb with col.gen. output
         heuroutput = run!(algo.mastipheur, reform, OptimizationInput(incumb))
-        for sol in getprimalsols(getresult(heuroutput))
-            add_ip_primal_sol!(optoutput, sol)
+        heuroutputres = getresult(heuroutput)
+        if nb_ip_primal_sols(heuroutputres) > 0
+            add_ip_primal_sol!(getresult(optoutput), get_best_ip_primal_sol(heuroutputres))
+            #for sol in get_ip_primal_sols(heuroutputres)
+            #    add_ip_primal_sol!(getresult(optoutput), sol)
+            #end
         end
     end 
 

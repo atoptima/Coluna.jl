@@ -151,7 +151,7 @@ function apply_conquer_alg_to_node!(
 
     node_incumbents = getincumbents(node)
 
-    update_ip_primal_bound!(node_incumbents, getprimalbound(result))
+    update_ip_primal_bound!(node_incumbents, get_ip_primal_bound(result))
     
     if isverbose(algo)
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(node)))
@@ -201,5 +201,8 @@ function apply_conquer_alg_to_node!(
         update_lp_primal_sol!(node_incumbents, get_best_lp_primal_sol(optoutputres)) 
     end
 
+    println("\e[31m ***** \e[00m")
+    print(getmaster(reform), optoutputres)
+    println("\e[31m ****** \e[00m")
     return optoutput
 end

@@ -48,7 +48,7 @@ mutable struct TreeSearchRuntimeData
     max_primary_tree_size::Int64
     secondary_tree::SearchTree
     tree_order::Int64
-    output::OptimizationOutput
+    result::OptimizationResult
     Sense::Type{<:Coluna.AbstractSense}
 end
 
@@ -70,12 +70,11 @@ function popnode!(data::TreeSearchRuntimeData)::Node
     return popnode!(data.secondary_tree)
 end
 
-nb_open_nodes(data::TreeSearchRuntimeData) = (nb_open_nodes(data.primary_tree)
-                                       + nb_open_nodes(data.secondary_tree))
+function nb_open_nodes(data::TreeSearchRuntimeData)
+    return nb_open_nodes(data.primary_tree) + nb_open_nodes(data.secondary_tree)
+end
 get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
-
-getoutput(data::TreeSearchRuntimeData) = data.output
-getresult(data::TreeSearchRuntimeData) = getresult(data.output)
+getresult(data::TreeSearchRuntimeData) = data.result
 
 """
     TreeSearchAlgorithm
@@ -116,8 +115,8 @@ function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
                 ", ", nb_open_nodes(data) + 1, " open nodes")
     end
 
-    db = getvalue(getdualbound(getresult(data)))
-    pb = getvalue(getprimalbound(getresult(data)))
+    db = getvalue(get_ip_dual_bound(getresult(data)))
+    pb = getvalue(get_ip_primal_bound(getresult(data)))
     node_db = getvalue(get_ip_dual_bound(getincumbents(node)))
     @printf "**** Local DB = %.4f," node_db
     @printf " global bounds : [ %.4f , %.4f ]," db pb
@@ -149,9 +148,9 @@ function prepare_and_run_conquer_algorithm!(
     optoutput = apply_conquer_alg_to_node!(node, algo, reform, getresult(data))        
 
     if isrootnode(node) && store_lp_solution
-        treesearchoutput = getoutput(data)
-        set_lp_dual_bound(treesearchoutput, get_lp_dual_bound(optoutput))
-        set_lp_primal_sol(treesearchoutput, get_lp_primal_sol(optoutput)) 
+        treesearchresult = getresult(data)
+        set_lp_dual_bound(treesearchresult, get_lp_dual_bound(optoutput))
+        set_lp_primal_sol(treesearchresult, get_lp_primal_sol(optoutput)) 
     end 
 end
 
@@ -198,7 +197,7 @@ end
 
 function updatedualbound!(data::TreeSearchRuntimeData)
     result = getresult(data)
-    bound_value = getvalue(getprimalbound(result))
+    bound_value = getvalue(get_ip_primal_bound(result))
     worst_bound = DualBound{data.Sense}(bound_value)  
     for (node, priority) in getnodes(data.primary_tree)
         db = get_ip_dual_bound(getincumbents(node))
@@ -212,17 +211,24 @@ function updatedualbound!(data::TreeSearchRuntimeData)
             worst_bound = db
         end
     end
-    setdualbound!(result, worst_bound)
+    set_ip_dual_bound!(result, worst_bound)
     return
 end
 
 function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
 
     initincumb = getincumbents(input)
+    @show initincumb
+
     res = OptimizationResult(getmaster(reform), initincumb)
+
+    println("\e[32m ****** init result ******")
+    print(getmaster(reform), res)
+    println("************* \e[00m")
+
     data = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 0,
-        OptimizationOutput(res), getobjsense(reform)
+        res, getobjsense(reform)
     )
     push!(data, RootNode(initincumb,algo.skiprootnodeconquer))
     data.tree_order += 1
@@ -246,7 +252,7 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::Optimizat
     fully_explored = isempty(data)
     found_sols = (nb_ip_primal_sols(res) > 0)
     #res = getresult(data)
-    gap_is_zero = gap(res) <= 0.00001
+    gap_is_zero = (get_ip_primal_bound(res) / get_ip_dual_bound(res) ≈ 1.0)
     # We assume that gap cannot be zero if no solution was found
     gap_is_zero && @assert found_sols
     found_sols && setfeasibilitystatus!(res, FEASIBLE)
@@ -263,5 +269,5 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::Optimizat
         setterminationstatus!(res, OTHER_LIMIT)
     end
     # end TODO
-    return getoutput(data)
+    return OptimizationOutput(res)
 end

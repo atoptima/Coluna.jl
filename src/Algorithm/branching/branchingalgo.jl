@@ -189,8 +189,8 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
     parent_incumb = getincumbents(parent)
     sense = getsense(parent_incumb)
     result = OptimizationResult(getmaster(reform))
-    setprimalbound!(result, input.ip_primal_bound)
-    setdualbound!(result, get_ip_dual_bound(parent_incumb))
+    set_ip_primal_bound!(result, input.ip_primal_bound)
+    set_ip_dual_bound!(result, get_ip_dual_bound(parent_incumb))
     if isempty(algo.rules)
         @logmsg LogLevel(1) "No branching rule is defined. No children will be generated."
         return DivideOutput([], result)

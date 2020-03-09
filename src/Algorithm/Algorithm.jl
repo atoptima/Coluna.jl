@@ -12,7 +12,7 @@ using ..MathProg
 import .MathProg: getsense, optimize! # because of branch
 
 # TO be deleted ???
-import .MathProg: FeasibilityStatus, TerminationStatus, AbstractStorage, EmptyStorage, getstorage, setprimalbound!, setdualbound!, add_ip_primal_sol!
+import .MathProg: FeasibilityStatus, TerminationStatus, AbstractStorage, EmptyStorage, getstorage, setprimalbound!, setdualbound!
 import .MathProg: OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, EMPTY_RESULT, NOT_YET_DETERMINED
 import ..Coluna: AbstractSense
 

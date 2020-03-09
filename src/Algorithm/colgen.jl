@@ -56,7 +56,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
         data.is_feasible ? FEASIBLE : INFEASIBLE,
         data.has_converged ? OPTIMAL : OTHER_LIMIT,
         ip_primal_bound = get_ip_primal_bound(data.incumbents),
-        ip_dual_bound = get_ip_dual_bound(data.incumbents),
+        ip_dual_bound = get_lp_dual_bound(data.incumbents), # TODO : check if objective function is integer
         lp_dual_bound = get_lp_dual_bound(data.incumbents)
     )
 
@@ -67,6 +67,9 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
     
     add_lp_primal_sol!(result, get_lp_primal_sol(data.incumbents))
 
+    println("\e[31m end of column generation with")
+    print(masterform, result)
+    println("\e[00m")
     return OptimizationOutput(result)
 end
 
