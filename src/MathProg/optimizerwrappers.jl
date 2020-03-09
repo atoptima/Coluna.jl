@@ -41,7 +41,7 @@ end
 getinner(optimizer::MoiOptimizer) = optimizer.inner
 
 function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
-    result = OptimizationResult(form)
+    result = MoiResult(form)
     terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
     if terminationstatus != MOI.INFEASIBLE &&
             terminationstatus != MOI.DUAL_INFEASIBLE &&

@@ -30,8 +30,8 @@ include("duties.jl")
 include("varconstr.jl") # to rm
 include("manager.jl")
 include("solutions.jl")
+include("incumbents.jl") # to rm
 include("optimizationresults.jl")
-include("incumbents.jl")
 include("buffer.jl")
 include("formulation.jl")
 include("new_varconstr.jl") 
@@ -46,11 +46,11 @@ include("MOIinterface.jl")
 # TODO : clean up
 # Types
 export AbstractFormulation, MaxSense, MinSense, MoiOptimizer, VarMembership, 
-       Variable, Constraint, OptimizationResult, VarDict,
+       Variable, Constraint, VarDict,
        ConstrDict, Id, ConstrSense, VarSense, Formulation, Reformulation, VarId,
        ConstrId, Incumbents, DualSolution, PrimalSolution,
        PrimalBound, DualBound, FormId, FormulationPhase, Problem, Annotations,
-       Original, Counter, UserOptimizer, MoiObjective, PrimalSolVector
+       Original, Counter, UserOptimizer, MoiObjective, PrimalSolVector, MoiResult
 
 export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 
@@ -135,6 +135,32 @@ export getperenecost,
        setiscurexplicit!,
        getname,
        reset!
+
+# methods related to solutions
+export OptimizationResult
+
+export getterminationstatus,
+       getfeasibilitystatus,
+       get_ip_primal_bound,
+       get_lp_primal_bound,
+       get_ip_dual_bound,
+       get_lp_dual_bound,
+       set_ip_primal_bound!,
+       set_lp_primal_bound!,
+       set_ip_dual_bound!,
+       set_lp_dual_bound!,
+       nb_ip_primal_sols,
+       nb_lp_primal_sols,
+       nb_lp_dual_sols,
+       get_ip_primal_sols,
+       get_best_ip_primal_sol,
+       get_lp_primal_sols,
+       get_best_lp_primal_sol,
+       get_lp_dual_sols,
+       get_best_lp_dual_sol,
+       add_ip_primal_sol!,
+       add_lp_primal_sol!,
+       add_lp_dual_sol!
 
 # methods related to projections
 export projection_is_possible, proj_cols_on_rep

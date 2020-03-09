@@ -4,37 +4,36 @@ function run!(algo::MasterIpHeuristic, reform::Reformulation, input::Optimizatio
     @logmsg LogLevel(1) "Applying Master IP heuristic"
     S = getobjsense(reform)
     initincumb = getincumbents(input)
-    output = OptimizationOutput(getmaster(reform), initincumb)
     master = getmaster(reform)
-    if MOI.supports_constraint(getoptimizer(master).inner, MOI.SingleVariable, MOI.Integer)
 
+    opt_result = OptimizationResult(master, initincumb)
+    if MOI.supports_constraint(getoptimizer(master).inner, MOI.SingleVariable, MOI.Integer)
         # TO DO : enforce here the upper bound and maximum solution time    
 
         deactivate!(master, MasterArtVar)
         enforce_integrality!(master)
-        opt_result = optimize!(master)
+        moi_result = optimize!(master)
+
         relax_integrality!(master)
         activate!(master, MasterArtVar)
 
+        setfeasibilitystatus!(opt_result, getfeasibilitystatus(moi_result))
+        setterminationstatus!(opt_result, getterminationstatus(moi_result))
+
+        bestprimalsol = getbestprimalsol(moi_result)
+        if bestprimalsol !== nothing
+            add_ip_primal_sol!(opt_result, bestprimalsol) 
+        end
+
         @logmsg LogLevel(1) string(
             "Found primal solution of ", 
-            @sprintf "%.4f" getvalue(getprimalbound(opt_result))
+            @sprintf "%.4f" getvalue(get_ip_primal_bound(opt_result))
         )
-        @logmsg LogLevel(-3) getbestprimalsol(opt_result)
+        @logmsg LogLevel(-3) get_best_primal_sol(opt_result)
 
-        # this heuristic can only update the primal ip solution
-        # dual bound cannot be updated
-        for sol in getprimalsols(opt_result)
-            # TO DO : this verification can be removed when the upper bound
-            # is set for the restricted master heuristic
-            if isbetter(PrimalBound(master, getvalue(sol)), get_ip_primal_bound(initincumb))
-                add_ip_primal_sol!(output, sol)
-            end
-        end
-        return output
+        return OptimizationOutput(opt_result)
     end
 
     @warn "Master optimizer does not support integer variables. Skip Restricted IP Master Heuristic."
-
-    return output
+    return OptimizationOutput(opt_result)
 end

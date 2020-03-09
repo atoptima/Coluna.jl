@@ -73,7 +73,7 @@ end
 todo
 """
 function ObjValues(form::M) where {M<:AbstractFormulation}
-    Se = getobjsense(form)
+    S = getobjsense(form)
     return ObjValues{S}(
         PrimalBound(form), DualBound(form), PrimalBound(form), DualBound(form)
     )
@@ -107,28 +107,28 @@ lp_gap(ov::ObjValues) = gap(get_lp_primal_bound(ov), get_lp_dual_bound(ov))
 #lp_ratio(ov::ObjValues) = get_lp_primal_bound(ov) / get_lp_dual_bound(ov)
 
 function set_lp_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
-    inc.lp_primal_bound = b
+    ov.lp_primal_bound = b
     return
 end
 
 function set_lp_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
-    inc.lp_dual_bound = b
+    ov.lp_dual_bound = b
     return
 end
 
 function set_ip_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
-    inc.ip_primal_bound = b
+    ov.ip_primal_bound = b
     return
 end
 
 function set_ip_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
-    inc.ip_dual_bound = b
+    ov.ip_dual_bound = b
     return
 end
 
 function update_lp_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
     if isbetter(b, get_lp_primal_bound(ov))
-        inc.lp_primal_bound = b
+        ov.lp_primal_bound = b
         return true
     end
     return false
@@ -136,7 +136,7 @@ end
 
 function update_lp_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
     if isbetter(b, get_lp_dual_bound(ov))
-        inc.lp_dual_bound = b
+        ov.lp_dual_bound = b
         return true
     end
     return false
@@ -144,7 +144,7 @@ end
 
 function update_ip_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
     if isbetter(b, get_ip_primal_bound(ov))
-        inc.ip_primal_bound = b
+        ov.ip_primal_bound = b
         return true
     end
     return false
@@ -152,7 +152,7 @@ end
 
 function update_ip_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
     if isbetter(b, get_ip_dual_bound(ov))
-        inc.ip_dual_bound = b
+        ov.ip_dual_bound = b
         return true
     end
     return false

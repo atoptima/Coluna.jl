@@ -15,24 +15,24 @@ function run!(algo::MasterLpAlgorithm, reform::Reformulation, input::Optimizatio
     initincumb = getincumbents(input)
     master = getmaster(reform)
 
-    output = OptimizationOutput(getmaster(reform), initincumb)    
+    result = OptimizationResult(getmaster(reform), initincumb)    
 
     elapsed_time = @elapsed begin
         lpresult = TO.@timeit Coluna._to "LP restricted master" optimize!(master)
     end
 
-    setfeasibilitystatus!(output, getfeasibilitystatus(lpresult))    
-    setterminationstatus!(output, NOT_YET_DETERMINED)    
+    setfeasibilitystatus!(result, getfeasibilitystatus(lpresult))    
+    setterminationstatus!(result, NOT_YET_DETERMINED)    
     lpsol = getbestprimalsol(lpresult)
-    set_lp_primal_sol(output, lpsol)
+    add_lp_primal_sol!(result, lpsol)
 
     # here we suppose that there are DW subproblems and thus the value of the LP solution
     # is not a valid dual bound, so the dual bound is not updated
 
     if isinteger(lpsol) && !contains(master, lpsol, MasterArtVar) &&
         update_ip_primal_bound!(initincumb, getprimalbound(lpresult))
-        add_ip_primal_sol!(output, lpsol)
+        add_ip_primal_sol!(result, lpsol)
     end
 
-    return output
+    return OptimizationOutput(result)
 end

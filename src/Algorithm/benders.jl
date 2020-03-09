@@ -44,19 +44,19 @@ function run!(algo::BendersCutGeneration, reform::Reformulation, input::Optimiza
         push!(ip_primal_sols, get_ip_primal_sol(data.incumbents))
     end
 
-    return OptimizationOutput(
-        OptimizationResult(
-            getmaster(reform),
-            data.has_converged ? OPTIMAL : OTHER_LIMIT, 
-            data.is_feasible ? FEASIBLE : INFEASIBLE, 
-            pb = get_ip_primal_bound(data.incumbents), 
-            db = get_ip_dual_bound(data.incumbents), 
-            primal_sols = ip_primal_sols
-        ), 
-        get_lp_primal_sol(data.incumbents), 
-        get_lp_dual_bound(data.incumbents)
+    result = OptimizationResult(
+        getmaster(reform),
+        data.is_feasible ? FEASIBLE : INFEASIBLE, 
+        data.has_converged ? OPTIMAL : OTHER_LIMIT,
+        ip_dual_bound = get_ip_dual_bound(data.incumbents),
+        lp_dual_bound = get_lp_dual_bound(data.incumbents)
     )
+    add_lp_primal_sol!(result, get_lp_primal_sol(data.incumbents))
+    for ip_primal_sol in ip_primal_sols
+        add_ip_primal_sol!(result, ip_primal_sol)
+    end
 
+    return OptimizationOutput(result)
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
@@ -165,7 +165,7 @@ end
 
 function record_solutions!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, spform::Formulation,
-    spresult::OptimizationResult
+    spresult::MoiResult
 )::Vector{ConstrId}
 
     recorded_dual_solution_ids = Vector{ConstrId}()
@@ -216,7 +216,7 @@ function insert_cuts_in_master!(
 end
 
 function compute_benders_sp_lagrangian_bound_contrib(
-    algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::OptimizationResult
+    algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::MoiResult
 )
     dualsol = getbestdualsol(spsol)
     contrib = getvalue(dualsol)

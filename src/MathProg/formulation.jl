@@ -435,7 +435,7 @@ function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, 
     return val
 end
 
-function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)  where {S<:Coluna.AbstractSense}
+function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)
     redcost = getperenecost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
     sign = 1
@@ -449,7 +449,7 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
     return redcost
 end
 
-function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution)  where {S<:Coluna.AbstractSense}
+function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution)
     constrrhs = getperenerhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol

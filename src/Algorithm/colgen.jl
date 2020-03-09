@@ -51,18 +51,23 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
         push!(data.ip_primal_sols, get_ip_primal_sol(data.incumbents))
     end
 
-    return OptimizationOutput(
-        OptimizationResult(
-            masterform,
-            data.has_converged ? OPTIMAL : OTHER_LIMIT, 
-            data.is_feasible ? FEASIBLE : INFEASIBLE, 
-            pb = get_ip_primal_bound(data.incumbents), 
-            db = get_ip_dual_bound(data.incumbents), 
-            primal_sols = data.ip_primal_sols
-        ), 
-        get_lp_primal_sol(data.incumbents), 
-        get_lp_dual_bound(data.incumbents)
+    result = OptimizationResult(
+        masterform, 
+        data.is_feasible ? FEASIBLE : INFEASIBLE,
+        data.has_converged ? OPTIMAL : OTHER_LIMIT,
+        ip_primal_bound = get_ip_primal_bound(data.incumbents),
+        ip_dual_bound = get_lp_dual_bound(data.incumbents), # TODO : check if objective function is integer
+        lp_dual_bound = get_lp_dual_bound(data.incumbents)
     )
+
+    # add primal sols (data.ip_primal_sols)
+    for ip_primal_sol in data.ip_primal_sols
+        add_ip_primal_sol!(result, ip_primal_sol)
+    end
+    
+    add_lp_primal_sol!(result, get_lp_primal_sol(data.incumbents))
+
+    return OptimizationOutput(result)
 end
 
 # Internal methods to the column generation

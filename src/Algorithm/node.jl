@@ -151,7 +151,7 @@ function apply_conquer_alg_to_node!(
 
     node_incumbents = getincumbents(node)
 
-    update_ip_primal_bound!(node_incumbents, getprimalbound(result))
+    update_ip_primal_bound!(node_incumbents, get_ip_primal_bound(result))
     
     if isverbose(algo)
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(node)))
@@ -181,19 +181,24 @@ function apply_conquer_alg_to_node!(
     # update of node incumbents
     optoutput = getoptoutput(conqueroutput)
 
-    update_ip_dual_bound!(node_incumbents, getdualbound(getresult(optoutput)))
-    update_ip_primal_bound!(node_incumbents, getprimalbound(getresult(optoutput)))
-    update_lp_dual_bound!(node_incumbents, get_lp_dual_bound(optoutput))
-    update_lp_primal_sol!(node_incumbents, get_lp_primal_sol(optoutput)) 
-
     # update of tree search algorithm primal solutions 
-    for primal_sol in getprimalsols(getresult(optoutput))
-        add_primal_sol!(result, deepcopy(primal_sol))
-    end        
-    !isfeasible(getresult(optoutput)) && setinfeasible(node, true)
+    optoutputres = getresult(optoutput)
+    if nb_ip_primal_sols(optoutputres) > 0
+        for ip_primal_sol in get_ip_primal_sols(optoutputres)
+            add_ip_primal_sol!(result, deepcopy(ip_primal_sol))
+        end    
+    end    
+    !isfeasible(optoutputres) && setinfeasible(node, true)
     if !to_be_pruned(node) 
         node.conquerrecord = getrecord(conqueroutput)
     end
 
+    update_ip_dual_bound!(node_incumbents, get_ip_dual_bound(optoutputres))
+    update_ip_primal_bound!(node_incumbents, get_ip_primal_bound(optoutputres))
+    update_lp_dual_bound!(node_incumbents, get_lp_dual_bound(optoutputres))
+
+    if nb_lp_primal_sols(optoutputres) > 0
+        update_lp_primal_sol!(node_incumbents, get_best_lp_primal_sol(optoutputres)) 
+    end
     return optoutput
 end
