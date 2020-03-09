@@ -198,19 +198,23 @@ end
 function updatedualbound!(data::TreeSearchRuntimeData)
     result = getresult(data)
     bound_value = getvalue(get_ip_primal_bound(result))
+    println("\e[41m bound value = $(bound_value) \e[00m")
     worst_bound = DualBound{data.Sense}(bound_value)  
     for (node, priority) in getnodes(data.primary_tree)
         db = get_ip_dual_bound(getincumbents(node))
+        println("\e[41m >>>>> first db = $(db) \e[00m")
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
     for (node, priority) in getnodes(data.secondary_tree)
         db = get_ip_dual_bound(getincumbents(node))
+        println("\e[41m >>>>> second db = $(db) \e[00m")
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
+    println("\e[41m worst bound = $worst_bound \e[00m")
     set_ip_dual_bound!(result, worst_bound)
     return
 end
@@ -244,6 +248,9 @@ function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::Optimizat
             data, algo.dividealg, reform, cur_node
         )
         
+        println("\e[35m ============ result ============")
+        print(getmaster(reform), getresult(data))
+        println("\e[00m")
         updatedualbound!(data)
     end
 

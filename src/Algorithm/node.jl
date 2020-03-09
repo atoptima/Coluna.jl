@@ -201,7 +201,7 @@ function apply_conquer_alg_to_node!(
         update_lp_primal_sol!(node_incumbents, get_best_lp_primal_sol(optoutputres)) 
     end
 
-    println("\e[31m ***** \e[00m")
+    println("\e[31m ******* apply_conquer_alg_to_node! ***** \e[00m")
     print(getmaster(reform), optoutputres)
     println("\e[31m ****** \e[00m")
     return optoutput
