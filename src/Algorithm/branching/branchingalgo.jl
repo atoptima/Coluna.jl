@@ -207,11 +207,15 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
     original_solution = PrimalSolution(getmaster(reform))
     extended_solution = PrimalSolution(getmaster(reform))
     if projection_is_possible(master)
+        println("projection is possible")
         extended_solution = get_lp_primal_sol(parent.incumbents)
         original_solution = proj_cols_on_rep(extended_solution, master)
     else
         original_solution = get_lp_primal_sol(parent.incumbents)
     end
+
+    println("\e[1;45m extended solution = $(extended_solution) \e[00m")
+    println("\e[1;45m origin solution = $(original_solution) \e[00m")
 
     # phase 0 of branching : we ask branching rules to generate branching candidates
     # we stop when   
@@ -244,7 +248,7 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         nb_candidates_found += length(output.groups)
         append!(kept_branch_groups, output.groups)
         local_id = output.local_id
-                                
+
         if projection_is_possible(master)
             output = run!(rule, reform, BranchingRuleInput(
                 extended_solution, false, nb_candidates_needed, algo.selection_criterion, local_id

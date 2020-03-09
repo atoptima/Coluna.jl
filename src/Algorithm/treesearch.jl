@@ -177,7 +177,7 @@ function prepare_and_run_divide_algorithm!(
     data::TreeSearchRuntimeData, algo::AbstractDivideAlgorithm, 
     reform::Reformulation, node::Node
 )
-    if to_be_pruned(node, getprimalbound(getresult(data)))
+    if to_be_pruned(node, get_ip_primal_bound(getresult(data)))
         println("Node is already conquered. No children will be generated")
         return
     end        
@@ -186,12 +186,14 @@ function prepare_and_run_divide_algorithm!(
     prepare!(storage, node.dividerecord)
     node.dividerecord = nothing
 
-    output = run!(algo, reform, DivideInput(node, getprimalbound(getresult(data))))
+    output = run!(algo, reform, DivideInput(node, get_ip_primal_bound(getresult(data))))
     
     update_tree!(data, output)
 
-    for primal_sol in getprimalsols(getresult(output))
-        add_primal_sol!(getresult(data), deepcopy(primal_sol))
+    if nb_ip_primal_sols(getresult(output)) > 0
+        for primal_sol in get_ip_primal_sols(getresult(output))
+            add_ip_primal_sol!(getresult(data), deepcopy(primal_sol))
+        end
     end
 end
 

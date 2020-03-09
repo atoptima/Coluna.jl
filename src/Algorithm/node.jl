@@ -197,7 +197,7 @@ function apply_conquer_alg_to_node!(
     update_ip_primal_bound!(node_incumbents, get_ip_primal_bound(optoutputres))
     update_lp_dual_bound!(node_incumbents, get_lp_dual_bound(optoutputres))
 
-    if nb_ip_primal_sols(optoutputres) > 0
+    if nb_lp_primal_sols(optoutputres) > 0
         update_lp_primal_sol!(node_incumbents, get_best_lp_primal_sol(optoutputres)) 
     end
 
