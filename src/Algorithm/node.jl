@@ -99,6 +99,7 @@ function Node(parent::Node, branch::Branch, branchdescription::String)
     # Resetting lp primals because the lp can get worse during the algorithms,
     # thus not being updated in the node and breaking the branching
     inc_res.lp_primal_sols = nothing
+    
     return Node(
         -1, false, depth, parent, inc_res, branch, branchdescription, 
         parent.conquerrecord, parent.dividerecord, false, false
@@ -152,8 +153,8 @@ function apply_conquer_alg_to_node!(
 )::OptimizationOutput
 
     node_inc_res = getincumbentresult(node)
-    # should reset lp bound here instead of reseting a the end of conquer alg?
 
+    # should reset lp bound here instead of reseting a the end of conquer alg?
     update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(result))
     
     if isverbose(algo)
@@ -196,13 +197,14 @@ function apply_conquer_alg_to_node!(
         node.conquerrecord = getrecord(conqueroutput)
     end
 
-    update_ip_dual_bound!(node_inc_res, get_ip_dual_bound(optoutputres))
     update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(optoutputres))
+    update_ip_dual_bound!(node_inc_res, get_ip_dual_bound(optoutputres))
+    update_lp_primal_bound!(node_inc_res, get_lp_primal_bound(optoutputres))
     update_lp_dual_bound!(node_inc_res, get_lp_dual_bound(optoutputres))
 
     if nb_lp_primal_sols(optoutputres) > 0
         add_lp_primal_sol!(node_inc_res, get_best_lp_primal_sol(optoutputres))
-        set_lp_primal_bound!(node_inc_res, get_lp_primal_bound(optoutputres))
+        #set_lp_primal_bound!(node_inc_res, get_lp_primal_bound(optoutputres))
     end
     return optoutput
 end
