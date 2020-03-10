@@ -277,14 +277,6 @@ function calculate_lagrangian_db(
     return lagran_bnd
 end
 
-function solve_restricted_master!(master::Formulation)
-    elapsed_time = @elapsed begin
-        opt_result = TO.@timeit Coluna._to "LP restricted master" optimize!(master)
-    end
-    return (isfeasible(opt_result), getprimalbound(opt_result), 
-    getprimalsols(opt_result), getdualsols(opt_result), elapsed_time)
-end
-
 function generatecolumns!(
     data::ColGenRuntimeData, reform::Reformulation, master_val, 
     dual_sol, sp_lbs, sp_ubs
@@ -323,31 +315,33 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
     end
 
     while true
-        master_status, master_val, primal_sols, dual_sols, master_time =
-            solve_restricted_master!(masterform)
 
-        if (data.phase != 1 && (master_status == MOI.INFEASIBLE
-            || master_status == MOI.INFEASIBLE_OR_UNBOUNDED))
-            @error "Solver returned that restricted master LP is infeasible or unbounded 
-                    (status = $master_status) during phase != 1."
-            data.is_feasible = false        
-            return 
+        master_time = @elapsed begin
+            master_output = run!(LpForm(), masterform, LpFormInput())
+        end
+        master_result = getresult(master_output)
+        master_val = get_lp_primal_bound(master_result)
+        dual_sols = get_lp_dual_sols(master_result)
+
+        if data.phase != 1 && !isfeasible(master_result)
+            @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
+            "(feasibility status = ", getfeasibilitystatus(master_result),") during phase != 1.")
+            data.is_feasible = false
+            return
         end
 
-        if update_lp_primal_sol!(data.incumbents, primal_sols[1])
-            if isinteger(primal_sols[1]) && !contains(masterform, primal_sols[1], MasterArtVar) &&
-               update_ip_primal_bound!(data.incumbents, master_val)
-                if algo.store_all_ip_primal_sols
-                    push!(data.ip_primal_sols, primal_sols[1])
-                else
-                    update_ip_primal_sol!(data.incumbents, primal_sols[1])
-                end
-            end
+        if nb_lp_primal_sols(master_result) > 0
+            data.incumbents.lp_primal_sol = get_best_lp_primal_sol(master_result)
         else
-            # even if the current lp solution is not better than the best one
-            # we should update one (the best lp solution should always be the last one)
-            data.incumbents.lp_primal_sol = primal_sols[1]
-        end 
+            @error string("Solver returned that the LP restricted master is feasible but ",
+            "did not return a primal solution. ",
+            "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
+        end
+
+        if nb_ip_primal_sols(master_result) > 0
+            # if algo.store_all_ip_primal_sols
+            update_ip_primal_sol!(data.incumbents, get_best_ip_primal_sol(master_result))
+        end
 
         # TODO: cleanup restricted master columns        
 

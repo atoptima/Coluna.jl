@@ -35,14 +35,14 @@ function run!(algo::LpForm, form::Formulation, input::LpFormInput)::Optimization
     setfeasibilitystatus!(algoresult, getfeasibilitystatus(optimizer_result))    
     setterminationstatus!(algoresult, getterminationstatus(optimizer_result))   
 
-    lpsol = getbestprimalsol(optimizer_result)
-    if lpsol !== nothing
-        add_lp_primal_sol!(algoresult, lpsol)
-
+    lp_primal_sol = getbestprimalsol(optimizer_result)
+    if lp_primal_sol !== nothing
+        add_lp_primal_sol!(algoresult, lp_primal_sol)
+        add_lp_dual_sol!(algoresult, getbestdualsol(optimizer_result))
         # here we suppose that there are DW subproblems and thus the value of the LP solution
         # is not a valid dual bound, so the dual bound is not updated -> we should suppose nothing
-        if isinteger(lpsol) && !contains(lpsol, varid -> isanArtificialDuty(getduty(varid)))
-            add_ip_primal_sol!(algoresult, lpsol)
+        if isinteger(lp_primal_sol) && !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
+            add_ip_primal_sol!(algoresult, lp_primal_sol)
         end
     end
 
