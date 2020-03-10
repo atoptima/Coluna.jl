@@ -14,7 +14,7 @@ struct EmptyInput <: AbstractInput end
 """
 abstract type AbstractOutput end 
 
-struct EmptyOutput <: AbstractOutput end
+struct EmptyOutput <: AbstractOutput end #Usefull ?
 
 
 """
@@ -54,21 +54,22 @@ getslavealgorithms!(
     the formulation. Returns algorithm's output.    
 """
 function run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::AbstractInput)::AbstractOutput
-    return EmptyOutput()
+    error("run! not defined for algorithm $(typeof(algo)), input $(typeof(input)).")
 end
 
-run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::EmptyInput) = run!(algo, form)
+run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::EmptyInput) = run!(algo, form) # good idea ?
 
 """
-    OptimizationInput
+    NewOptimizationInput
 
 Contains Incumbents
 """
-struct OptimizationInput{S} <: AbstractInput
-    incumbents::Incumbents{S}
+struct NewOptimizationInput{F,S} <: AbstractInput
+    incumbents::OptimizationResult{F,S}
 end
 
-getincumbents(input::OptimizationInput) = input.incumbents
+getinputresult(input::NewOptimizationInput) =  input.incumbents
+
 
 """
     OptimizationOutput
@@ -94,7 +95,7 @@ getresult(output::OptimizationOutput)::OptimizationResult = output.result
 abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 function run!(
-    algo::AbstractOptimizationAlgorithm, form::AbstractFormulation, input::OptimizationInput
+    algo::AbstractOptimizationAlgorithm, form::AbstractFormulation, input::NewOptimizationInput
 )::OptimizationOutput
      algotype = typeof(algo)
      error("Method run! which takes formulation and Incumbents as input returns OldOutput

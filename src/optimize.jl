@@ -88,14 +88,15 @@ function optimize!(
         MP.initstorage(form, AL.getstoragetype(algotype))
     end
 
-    # TO DO : initial incumbents may be defined by the user
     master = getmaster(reform)
-    init_incumbents = Incumbents(master) 
-    set_ip_primal_bound!(init_incumbents, initial_primal_bound)
-    set_ip_dual_bound!(init_incumbents, initial_dual_bound)
-    set_lp_dual_bound!(init_incumbents, initial_dual_bound)
+    init_result = OptimizationResult(
+        master,
+        ip_primal_bound = initial_primal_bound,
+        ip_dual_bound = initial_dual_bound,
+        lp_dual_bound = initial_dual_bound
+    )
 
-    output = AL.run!(algorithm, reform, AL.OptimizationInput(init_incumbents))
+    output = AL.run!(algorithm, reform, AL.NewOptimizationInput(init_result))
     opt_result = AL.getresult(output)
     
     result = OptimizationResult(

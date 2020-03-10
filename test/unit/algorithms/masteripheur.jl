@@ -2,7 +2,7 @@ function masteripheur_tests()
     infeasible_master_ip_heur_tests()
 end
 
-function ClA.run!(alg::ClA.IpForm, reform::ClMP.Reformulation, input::ClA.OptimizationInput)
+function ClA.run!(alg::ClA.IpForm, reform::ClMP.Reformulation, input::ClA.NewOptimizationInput)
     master = ClMP.getmaster(reform)
     ipforminput = ClA.IpFormInput(ClMP.ObjValues(master))
     return ClA.run!(alg, master, ipforminput)

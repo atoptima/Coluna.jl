@@ -121,8 +121,6 @@ end
 mutable struct OptimizationResult{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
-    primal_bound::PrimalBound{S}
-    dual_bound::DualBound{S}
     incumbents::ObjValues{S}
     ip_primal_sols::Union{Nothing, Vector{PrimalSolution{F}}}
     lp_primal_sols::Union{Nothing, Vector{PrimalSolution{F}}}
@@ -140,9 +138,8 @@ Builds an empty OptimizationResult.
 function OptimizationResult(model::M) where {M<:Coluna.Containers.AbstractModel}
     S = getobjsense(model)
     return OptimizationResult{M,S}(
-        NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound(model),
-        DualBound(model), ObjValues(model), 
-        PrimalSolution{M}[], PrimalSolution{M}[], DualSolution{M}[]
+        NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, ObjValues(model), 
+        nothing, nothing, nothing
     )
 end
 
@@ -164,15 +161,9 @@ function OptimizationResult(
     )
     S = getobjsense(form)
     result = OptimizationResult{F,S}(
-        termination_status, feasibility_status, PrimalBound(form), DualBound(form), 
-        incumbents, nothing, nothing, nothing
+        termination_status, feasibility_status, incumbents,
+        nothing, nothing, nothing
     )
-    if ip_primal_bound !== nothing   
-        setprimalbound!(result, ip_primal_bound)
-    end
-    if ip_dual_bound !== nothing
-        setdualbound!(result, ip_dual_bound)
-    end
     return result
 end
 
@@ -180,19 +171,46 @@ end
 function OptimizationResult(
     form::F, incumbents::Incumbents
 ) where {F}
-    ov = OptimizationResult(form, 
+    return OptimizationResult(
+            form, 
             feasibility_status = UNKNOWN_FEASIBILITY, 
             termination_status = NOT_YET_DETERMINED,
             ip_primal_bound = get_ip_primal_bound(incumbents),
-            ip_dual_bound = get_ip_dual_bound(incumbents))
-    setprimalbound!(ov, get_ip_primal_bound(incumbents))
-    setdualbound!(ov, get_ip_dual_bound(incumbents))
-    return ov
+            ip_dual_bound = get_ip_dual_bound(incumbents)
+    )
 end
 # end TODO
 
+function OptimizationResult(
+    form::AbstractFormulation, or::OptimizationResult
+)
+    newor = OptimizationResult(
+        form,
+        feasibility_status = getfeasibilitystatus(or),
+        termination_status = getterminationstatus(or),
+        ip_primal_bound = get_ip_primal_bound(or),
+        ip_dual_bound = get_ip_dual_bound(or),
+        lp_primal_bound = get_lp_primal_bound(or),
+        lp_dual_bound = get_lp_dual_bound(or)
+    )
+    if or.ip_primal_sols !== nothing
+        newor.ip_primal_sols = copy(or.ip_primal_sols)
+    end
+    if or.lp_primal_sols !== nothing
+        newor.lp_primal_sols = copy(or.lp_primal_sols)
+    end
+    if or.lp_primal_sols !== nothing
+        newor.lp_dual_sols = copy(or.lp_primal_sols)
+    end
+    return newor
+end
+
 getterminationstatus(res::OptimizationResult) = res.termination_status
 getfeasibilitystatus(res::OptimizationResult) = res.feasibility_status
+
+setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.termination_status = status
+setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
+
 isfeasible(res::OptimizationResult) = res.feasibility_status == FEASIBLE
 
 get_ip_primal_bound(res::OptimizationResult) = get_ip_primal_bound(res.incumbents)
@@ -204,6 +222,11 @@ set_ip_primal_bound!(res::OptimizationResult, val) = set_ip_primal_bound!(res.in
 set_lp_primal_bound!(res::OptimizationResult, val) = set_lp_primal_bound!(res.incumbents, val)
 set_ip_dual_bound!(res::OptimizationResult, val) = set_ip_dual_bound!(res.incumbents, val)
 set_lp_dual_bound!(res::OptimizationResult, val) = set_lp_dual_bound!(res.incumbents, val)
+
+update_ip_primal_bound!(res::OptimizationResult, val) = update_ip_primal_bound!(res.incumbents, val)
+update_ip_dual_bound!(res::OptimizationResult, val) = update_ip_dual_bound!(res.incumbents, val)
+update_lp_primal_bound!(res::OptimizationResult, val) = update_lp_primal_bound!(res.incumbents, val)
+update_lp_dual_bound!(res::OptimizationResult, val) = update_lp_dual_bound!(res.incumbents, val)
 
 function nb_ip_primal_sols(res::OptimizationResult)
     return res.ip_primal_sols === nothing ? 0 : length(res.ip_primal_sols)
@@ -243,29 +266,6 @@ function get_best_lp_dual_sol(res::OptimizationResult)
     nb_lp_dual_sols(res) == 0 && return nothing
     return get_lp_dual_sols(res)
 end
-
-function getprimalbound(res::OptimizationResult)
-    res.primal_bound
-end
-
-getdualbound(res::OptimizationResult) = res.dual_bound
-getprimalsols(res::OptimizationResult) = res.lp_primal_sols
-getdualsols(res::OptimizationResult) = res.lp_dual_sols
-nbprimalsols(res::OptimizationResult) = length(res.lp_primal_sols)
-nbdualsols(res::OptimizationResult) = length(res.lp_dual_sols)
-
-# For documentation : Only unsafe methods must be used to retrieve best
-# solutions in the core of Coluna.
-unsafe_getbestprimalsol(res::OptimizationResult) = res.lp_primal_sols[1]
-unsafe_getbestdualsol(res::OptimizationResult) = res.lp_dual_sols[1]
-getbestprimalsol(res::OptimizationResult) = get(res.lp_primal_sols, 1, nothing)
-getbestdualsol(res::OptimizationResult) = get(res.lp_dual_sols, 1, nothing)
-
-setprimalbound!(res::OptimizationResult, b::PrimalBound) = res.primal_bound = b
-setdualbound!(res::OptimizationResult, b::DualBound) = res.dual_bound = b
-setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.termination_status = status
-setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
-Containers.gap(res::OptimizationResult) = gap(getprimalbound(res), getdualbound(res))
 
 function add_ip_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSolution{F}) where {F,S}
     if res.ip_primal_sols === nothing
@@ -309,32 +309,6 @@ function add_lp_dual_sol!(res::OptimizationResult{F,S}, solution::DualSolution{F
         push!(res.lp_dual_sols, solution)
     end
     #sort!(res.lp_dual_sols; by = x -> valueinminsense(PrimalBound{S}(getvalue(x))))
-    return
-end
-
-function add_primal_sol!(res::OptimizationResult{M,S}, solution::PrimalSolution{M}) where {M,S}
-    if res.lp_primal_sols === nothing
-        res.lp_primal_sols = PrimalSolution{M}[]
-    end
-    push!(res.lp_primal_sols, solution)
-    pb = PrimalBound{S}(getvalue(solution))
-    if isbetter(pb, getprimalbound(res))
-        setprimalbound!(res, pb)
-    end
-    sort!(res.lp_primal_sols; by = x->valueinminsense(PrimalBound{S}(getvalue(x))))
-    return
-end
-
-function add_dual_sol!(res::OptimizationResult{M,S}, solution::DualSolution{M}) where {M,S}
-    if res.lp_dual_sols === nothing
-        res.lp_dual_sols = DualSolution{M}[]
-    end
-    push!(res.lp_dual_sols, solution)
-    db = DualBound{S}(getvalue(solution))
-    if isbetter(db, getdualbound(res))
-        setdualbound!(res, db)
-    end
-    #sort!(res.dual_sols; by = x->valueinminsense(DualBound{S}(getvalue(x)))))
     return
 end
 

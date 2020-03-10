@@ -30,9 +30,9 @@ function BendersCutGenRuntimeData(form::Reformulation, node_inc::Incumbents)
     return BendersCutGenRuntimeData(i, false, true, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
 end
 
-function run!(algo::BendersCutGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
+function run!(algo::BendersCutGeneration, reform::Reformulation, input::NewOptimizationInput)::OptimizationOutput    
 
-    initincumb = getincumbents(input)
+    initincumb = getincumbentresult(input)
     data = BendersCutGenRuntimeData(reform, initincumb)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)

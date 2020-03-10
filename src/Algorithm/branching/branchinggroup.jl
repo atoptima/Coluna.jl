@@ -71,7 +71,7 @@ function update_father_dual_bound!(group::BranchingGroup, parent::Node)
     return
 end
 
-function compute_product_score!(group::BranchingGroup, parent_inc::Incumbents)
+function compute_product_score!(group::BranchingGroup, parent_inc::ObjValues)
     # TO DO : we need to mesure the gap to the cut-off value
     parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
     parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
@@ -134,7 +134,7 @@ function number_of_leaves(gap::Float64, deltas::Vector{Float64})
     return mid
 end
 
-function compute_tree_depth_score!(group::BranchingGroup, parent_inc::Incumbents)
+function compute_tree_depth_score!(group::BranchingGroup, parent_inc::ObjValues)
     score::Float64 = 0.0
     
     # TO DO : we need to mesure the gap to the cut-off value

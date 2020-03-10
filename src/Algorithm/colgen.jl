@@ -23,13 +23,9 @@ function ColGenRuntimeData(
     return ColGenRuntimeData(inc, false, true, [], 2)
 end
 
-# Overload of the algorithm's run function
-function run!(algo::ColumnGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
-
-    @logmsg LogLevel(-1) "Run ColumnGeneration."
-
-    initincumb = getincumbents(input)
-    data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(initincumb))
+function run!(algo::ColumnGeneration, reform::Reformulation, input::NewOptimizationInput)::OptimizationOutput    
+    input_result = getinputresult(input)
+    data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(input_result))
 
     cg_main_loop!(algo, data, reform)
     masterform = getmaster(reform)

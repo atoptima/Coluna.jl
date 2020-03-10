@@ -39,11 +39,12 @@ end
     Contains current incumbents and the root node flag.
 """
 struct ConquerInput <: AbstractInput 
-    incumb::Incumbents
+    incumb::OptimizationResult
     rootnodeflag::Bool
 end
 
-getincumbents(input::ConquerInput)::Incumbents = input.incumb
+getincumbentresult(input::ConquerInput) = input.incumb
+getincumbents(input::ConquerInput)::OptimizationResult = input.incumb
 
 """
     ConquerOutput
@@ -98,7 +99,7 @@ function getslavealgorithms!(
 end
 
 function run!(algo::BendersConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
-    optoutput = run!(algo.benders, reform, OptimizationInput(getincumbents(input)))
+    optoutput = run!(algo.benders, reform, NewOptimizationInput(getincumbents(input)))
     return ConquerOutput(optoutput, ConquerRecord(record!(reform)))
 end
 
@@ -143,24 +144,26 @@ function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)::
         return ConquerOutput(optoutput, ConquerRecord(record!(reform)))
     end
 
-    incumb = getincumbents(input)
-    optoutput = run!(algo.colgen, reform, OptimizationInput(incumb))
+    incumbres = getincumbentresult(input)
+    colgen_output = run!(algo.colgen, reform, NewOptimizationInput(incumbres))
+    colgen_res = getresult(colgen_output)
     record = record!(reform)
 
-    gap_is_positive = gap(getresult(optoutput)) >= 0.00001 # TO DO : make a parameter
-    if algo.run_mastipheur && isfeasible(getresult(optoutput)) && gap_is_positive
+    bound_ratio = get_ip_primal_bound(colgen_res) / get_ip_dual_bound(colgen_res)
+    gap_is_positive = isapprox(bound_ratio, 1) 
+    if algo.run_mastipheur && isfeasible(colgen_res) && gap_is_positive
         # TO DO : update incumb with col.gen. output
-        heuroutput = run!(algo.mastipheur, reform, OptimizationInput(incumb))
-        heuroutputres = getresult(heuroutput)
-        if nb_ip_primal_sols(heuroutputres) > 0
-            add_ip_primal_sol!(getresult(optoutput), get_best_ip_primal_sol(heuroutputres))
+        heur_output = run!(algo.mastipheur, reform, NewOptimizationInput(incumbres))
+        heur_res = getresult(heur_output)
+        if nb_ip_primal_sols(heur_res) > 0
+            add_ip_primal_sol!(colgen_res, get_best_ip_primal_sol(heur_res))
             #for sol in get_ip_primal_sols(heuroutputres)
             #    add_ip_primal_sol!(getresult(optoutput), sol)
             #end
         end
     end 
 
-    return ConquerOutput(optoutput, record)
+    return ConquerOutput(colgen_output, record)
 end
 
 ####################################################################

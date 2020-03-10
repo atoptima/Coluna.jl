@@ -60,4 +60,6 @@ export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColGenConquer, Column
        BendersConquer, BendersCutGeneration, IpForm, LpForm, ExactBranchingPhase, 
        OnlyRestrictedMasterBranchingPhase
 
+export getinputresult
+
 end
