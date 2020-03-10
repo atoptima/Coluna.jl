@@ -2,15 +2,11 @@ function masteripheur_tests()
     infeasible_master_ip_heur_tests()
 end
 
-#CL.to_be_pruned(n::CL.Node) = true # issue 166
-
-# struct InfeasibleMasterIpHeur <: ClA.AbstractConquerAlgorithm end
-
-# function ClA.run!(strategy::InfeasibleMasterIpHeur, reform, node)
-#     # Apply directly master ip heuristic => infeasible
-#     mip_rec = ClA.run!(ClA.MasterIpHeuristic(), reform, node)
-#     return
-# end
+function ClA.run!(alg::ClA.IpForm, reform::ClMP.Reformulation, input::ClA.OptimizationInput)
+    master = ClMP.getmaster(reform)
+    ipforminput = ClA.IpFormInput(ClMP.ObjValues(master))
+    return ClA.run!(alg, master, ipforminput)
+end
 
 function infeasible_master_ip_heur_tests()
     @testset "play gap" begin
@@ -20,7 +16,7 @@ function infeasible_master_ip_heur_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(
-                solver = ClA.MasterIpHeuristic()
+                solver = ClA.IpForm()
             ),
             "default_optimizer" => GLPK.Optimizer
         )

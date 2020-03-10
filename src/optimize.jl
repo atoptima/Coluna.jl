@@ -99,8 +99,9 @@ function optimize!(
     opt_result = AL.getresult(output)
     
     result = OptimizationResult(
-        master, getfeasibilitystatus(opt_result),
-        getterminationstatus(opt_result),
+        master, 
+        feasibility_status = getfeasibilitystatus(opt_result),
+        termination_status = getterminationstatus(opt_result),
         ip_primal_bound = get_ip_primal_bound(opt_result),
         ip_dual_bound = get_ip_dual_bound(opt_result),
         lp_primal_bound = get_lp_primal_bound(opt_result),

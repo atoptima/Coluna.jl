@@ -16,6 +16,18 @@ function PrimalBound(form::AbstractFormulation, val::Float64)
     return Coluna.Containers.Bound{Primal,Se}(val)
 end
 
+function PrimalBound(form::AbstractFormulation, pb::PrimalBound{S}) where {S}
+    Se = getobjsense(form)
+    if Se != S
+        msg = """
+        Cannot create primal bound.
+        Sense of the formulation is $Se and sense of the bound is $S.
+        """
+        error(msg)
+    end
+    return Coluna.Containers.Bound{Primal,Se}(getvalue(pb))
+end
+
 function PrimalSolution(form::M) where {M}
     return Coluna.Containers.Solution{M,VarId,Float64}(form)
 end
@@ -34,6 +46,18 @@ end
 function DualBound(form::AbstractFormulation, val::Float64)
     Se = getobjsense(form)
     return Coluna.Containers.Bound{Dual,Se}(val)
+end
+
+function DualBound(form::AbstractFormulation, db::DualBound{S}) where {S}
+    Se = getobjsense(form)
+    if Se != S
+        msg = """
+        Cannot create primal bound.
+        Sense of the formulation is $Se and sense of the bound is $S.
+        """
+        error(msg)
+    end
+    return Coluna.Containers.Bound{Dual,Se}(getvalue(db))
 end
 
 function DualSolution(form::M) where {M}
@@ -72,11 +96,30 @@ end
 
 todo
 """
-function ObjValues(form::M) where {M<:AbstractFormulation}
+function ObjValues(
+    form::M; 
+    ip_primal_bound = nothing,
+    ip_dual_bound = nothing,
+    lp_primal_bound = nothing,
+    lp_dual_bound = nothing
+) where {M<:AbstractFormulation}
     S = getobjsense(form)
-    return ObjValues{S}(
+    ov = ObjValues{S}(
         PrimalBound(form), DualBound(form), PrimalBound(form), DualBound(form)
     )
+    if ip_primal_bound !== nothing
+        set_ip_primal_bound!(ov, PrimalBound(form, ip_primal_bound))
+    end
+    if ip_dual_bound !== nothing
+        set_ip_dual_bound!(ov, DualBound(ip_dual_bound))
+    end
+    if lp_primal_bound !== nothing
+        set_lp_primal_bound!(ov, PrimalBound(lp_primal_bound))
+    end
+    if lp_dual_bound !== nothing
+        set_lp_dual_bound!(ov, DualBound(lp_dual_bound))
+    end
+    return ov
 end
 
 ## Getters bounds

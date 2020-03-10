@@ -95,7 +95,7 @@ abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 function run!(
     algo::AbstractOptimizationAlgorithm, form::AbstractFormulation, input::OptimizationInput
-)::OldOutput
+)::OptimizationOutput
      algotype = typeof(algo)
      error("Method run! which takes formulation and Incumbents as input returns OldOutput
             is not implemented for algorithm $algotype.")

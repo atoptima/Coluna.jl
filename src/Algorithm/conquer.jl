@@ -108,7 +108,7 @@ end
 
 Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm 
     colgen::ColumnGeneration = ColumnGeneration()
-    mastipheur::MasterIpHeuristic = MasterIpHeuristic()
+    mastipheur::IpForm = IpForm()
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
