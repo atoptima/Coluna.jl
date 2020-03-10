@@ -1,7 +1,11 @@
 abstract type NestedEnum end
 
-function Base.:(<=)(a::T, b::T) where {T <: NestedEnum}
+function Base.:(<=)(a::T, b::T) where {T<:NestedEnum}
     return a.value % b.value == 0
+end
+
+function Base.:(<=)(a::T, b::U) where {T<:NestedEnum,U<:NestedEnum}
+    return false
 end
 
 # Store the item defined in expr at position i

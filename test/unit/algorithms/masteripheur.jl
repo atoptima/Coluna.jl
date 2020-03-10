@@ -12,6 +12,10 @@ end
 #     return
 # end
 
+function ClA.run!(alg::ClA.IpForm, reform::ClMP.Reformulation, input::ClA.OptimizationInput)
+    return ClA.run!(alg, ClMP.getmaster(reform), input)
+end
+
 function infeasible_master_ip_heur_tests()
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
@@ -20,7 +24,7 @@ function infeasible_master_ip_heur_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(
-                solver = ClA.MasterIpHeuristic()
+                solver = ClA.IpForm()
             ),
             "default_optimizer" => GLPK.Optimizer
         )
