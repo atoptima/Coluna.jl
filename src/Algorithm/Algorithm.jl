@@ -37,7 +37,7 @@ include("record.jl")
 include("colgen.jl")
 include("benders.jl")
 include("ipform.jl")
-include("masterlp.jl")
+include("lpform.jl")
 include("preprocessing.jl")
 
 # Here include conquer algorithms
@@ -57,7 +57,7 @@ include("treesearch.jl")
 
 # Types
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColGenConquer, ColumnGeneration, 
-       BendersConquer, BendersCutGeneration, IpForm, ExactBranchingPhase, 
+       BendersConquer, BendersCutGeneration, IpForm, LpForm, ExactBranchingPhase, 
        OnlyRestrictedMasterBranchingPhase
 
 end

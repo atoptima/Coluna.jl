@@ -33,8 +33,6 @@ function run!(algo::IpForm, form::Formulation, input::IpFormInput)::Optimization
 end
 
 function run_ipform!(algo::IpForm, form::Formulation, input::IpFormInput)::OptimizationOutput
-    @logmsg LogLevel(1) "Algorithm IpForm"
-
     algoresult = OptimizationResult(
         form, ip_primal_bound = get_ip_primal_bound(input.incumbents)
     )

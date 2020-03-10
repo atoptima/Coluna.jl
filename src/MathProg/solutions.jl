@@ -75,6 +75,20 @@ valueinminsense(b::DualBound{MinSense}) = b.value
 valueinminsense(b::PrimalBound{MaxSense}) = -b.value
 valueinminsense(b::DualBound{MaxSense}) = -b.value
 
+function contains(sol::PrimalSolution, f::Function)
+    for (varid, val) in sol
+        f(varid) && return true
+    end
+    return false
+end
+
+function contains(sol::DualSolution, f::Function)
+    for (constrid, val) in sol
+        f(constrid) && return true
+    end
+    return false
+end
+
 function Base.print(io::IO, form::AbstractFormulation, sol::Coluna.Containers.Solution)
     println(io, "Solution")
     for (id, val) in sol
