@@ -8,16 +8,16 @@ Base.@kwdef struct IpForm <: AbstractOptimizationAlgorithm
     time_limit::Int = 600
 end
 
-# TODO : content of OptimizationInput ? 
-#
-# struct IpFormInput <: AbstractOptimizationInput
-#    incumbents::ObjValues{S}
-# end
+struct IpFormInput{S} <: AbstractInput
+    incumbents::ObjValues{S}
+end
 
-function run!(algo::IpForm, form::Formulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::IpForm, form::Formulation, input::IpFormInput)::OptimizationOutput
     @logmsg LogLevel(1) "Algorithm IpForm"
-    initincumb = getincumbents(input)
-    optresult = OptimizationResult(form, initincumb)
+
+    optresult = OptimizationResult(
+        form, ip_primal_bound = get_ip_primal_bound(input.incumbents)
+    )
     optimizer = getoptimizer(form).inner
 
     if MOI.supports_constraint(optimizer, MOI.SingleVariable, MOI.Integer)

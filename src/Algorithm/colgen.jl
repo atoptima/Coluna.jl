@@ -53,8 +53,8 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
 
     result = OptimizationResult(
         masterform, 
-        data.is_feasible ? FEASIBLE : INFEASIBLE,
-        data.has_converged ? OPTIMAL : OTHER_LIMIT,
+        feasibility_status = data.is_feasible ? FEASIBLE : INFEASIBLE,
+        termination_status = data.has_converged ? OPTIMAL : OTHER_LIMIT,
         ip_primal_bound = get_ip_primal_bound(data.incumbents),
         ip_dual_bound = get_lp_dual_bound(data.incumbents), # TODO : check if objective function is integer
         lp_dual_bound = get_lp_dual_bound(data.incumbents)

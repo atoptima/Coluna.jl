@@ -137,7 +137,7 @@ export getperenecost,
        reset!
 
 # methods related to solutions
-export OptimizationResult
+export OptimizationResult, ObjValues
 
 export getterminationstatus,
        getfeasibilitystatus,

@@ -2,18 +2,10 @@ function masteripheur_tests()
     infeasible_master_ip_heur_tests()
 end
 
-#CL.to_be_pruned(n::CL.Node) = true # issue 166
-
-# struct InfeasibleMasterIpHeur <: ClA.AbstractConquerAlgorithm end
-
-# function ClA.run!(strategy::InfeasibleMasterIpHeur, reform, node)
-#     # Apply directly master ip heuristic => infeasible
-#     mip_rec = ClA.run!(ClA.MasterIpHeuristic(), reform, node)
-#     return
-# end
-
 function ClA.run!(alg::ClA.IpForm, reform::ClMP.Reformulation, input::ClA.OptimizationInput)
-    return ClA.run!(alg, ClMP.getmaster(reform), input)
+    master = ClMP.getmaster(reform)
+    ipforminput = ClA.IpFormInput(ClMP.ObjValues(master))
+    return ClA.run!(alg, master, ipforminput)
 end
 
 function infeasible_master_ip_heur_tests()

@@ -46,8 +46,8 @@ function run!(algo::BendersCutGeneration, reform::Reformulation, input::Optimiza
 
     result = OptimizationResult(
         getmaster(reform),
-        data.is_feasible ? FEASIBLE : INFEASIBLE, 
-        data.has_converged ? OPTIMAL : OTHER_LIMIT,
+        feasibility_status = data.is_feasible ? FEASIBLE : INFEASIBLE, 
+        termination_status = data.has_converged ? OPTIMAL : OTHER_LIMIT,
         ip_dual_bound = get_ip_dual_bound(data.incumbents),
         lp_dual_bound = get_lp_dual_bound(data.incumbents)
     )
