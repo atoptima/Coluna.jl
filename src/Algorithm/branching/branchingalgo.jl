@@ -213,6 +213,16 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         else
             original_solution = get_best_lp_primal_sol(parent_incumb_res)
         end
+
+        println("\e[31m ******")
+        @show get_best_lp_primal_sol(parent_incumb_res)
+
+        println("-----------------------")
+        println("-----------------------")
+        println("-----------------------")
+        println("-----------------------")
+        @show parent_incumb_res
+        println("***** \e[00m")
     else
         error("No LP primal solutions. Cannot perform branching.")
     end
@@ -268,11 +278,13 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
             resize!(kept_branch_groups, nb_candidates_needed)
         end
     end
-   
+
     if isempty(kept_branch_groups)
         @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
         return DivideOutput(Vector{Node}(), result)
     end
+
+    println("\e[45m kept_branch_groups = $kept_branch_groups \e[00m")
 
     if isempty(algo.phases) 
         #in the case of simple branching, it remains to generate the children
