@@ -150,7 +150,7 @@ function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)::
     record = record!(reform)
 
     bound_ratio = get_ip_primal_bound(colgen_res) / get_ip_dual_bound(colgen_res)
-    gap_is_positive = isapprox(bound_ratio, 1) 
+    gap_is_positive = !isapprox(bound_ratio, 1) && ip_gap(colgen_res) > 0
     if algo.run_mastipheur && isfeasible(colgen_res) && gap_is_positive
         # TO DO : update incumb with col.gen. output
         heur_output = run!(algo.mastipheur, reform, NewOptimizationInput(incumbres))

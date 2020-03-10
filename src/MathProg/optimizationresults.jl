@@ -218,6 +218,8 @@ get_lp_primal_bound(res::OptimizationResult) = get_lp_primal_bound(res.incumbent
 get_ip_dual_bound(res::OptimizationResult) = get_ip_dual_bound(res.incumbents)
 get_lp_dual_bound(res::OptimizationResult) = get_lp_dual_bound(res.incumbents)
 
+ip_gap(res::OptimizationResult) = ip_gap(res.incumbents)
+
 set_ip_primal_bound!(res::OptimizationResult, val) = set_ip_primal_bound!(res.incumbents, val)
 set_lp_primal_bound!(res::OptimizationResult, val) = set_lp_primal_bound!(res.incumbents, val)
 set_ip_dual_bound!(res::OptimizationResult, val) = set_ip_dual_bound!(res.incumbents, val)
