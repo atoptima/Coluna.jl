@@ -168,7 +168,7 @@ end
 ####################################################################
 
 Base.@kwdef struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
-    masterlpalgo::MasterLpAlgorithm = MasterLpAlgorithm()
+    masterlpalgo::LpForm = LpForm()
 end
 
 function getslavealgorithms!(
@@ -181,7 +181,7 @@ end
 
 function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
     return ConquerOutput(
-        run!(algo.masterlpalgo, reform, OptimizationInput(getincumbents(input))), record!(reform)
+        run!(algo.masterlpalgo, getmaster(reform), LpFormInput()), record!(reform)
     )
 end
 
