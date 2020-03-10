@@ -185,32 +185,36 @@ function solve_sp_to_gencol!(
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
+    ipform = IpForm(deactivate_artificial_vars = false, enforce_integrality = false, log_level = 2)
     TO.@timeit Coluna._to "Pricing subproblem" begin
-        opt_result = optimize!(spform)
+        sp_output = run!(ipform, spform, IpFormInput(ObjValues(spform)))
     end
+    sp_result = getresult(sp_output)
 
     pricing_db_contrib = compute_pricing_db_contrib(
-        spform, getprimalbound(opt_result), sp_lb, sp_ub
+        spform, get_ip_primal_bound(sp_result), sp_lb, sp_ub
     )
 
-    if !isfeasible(opt_result)
+    if !isfeasible(sp_result)
         sp_is_feasible = false 
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
         return sp_is_feasible, recorded_solution_ids, PrimalBound(spform)
     end
 
-    for sol in getprimalsols(opt_result)
-        if contrib_improves_mlp(getobjsense(spform), getvalue(sol)) # has negative reduced cost
-            insertion_status, col_id = setprimalsol!(spform, sol)
-            if insertion_status
-                push!(recorded_solution_ids, col_id)
-            elseif !insertion_status && !iscuractive(masterform, col_id)
-                push!(sp_solution_ids_to_activate, col_id)
-            else
-                msg = """
-                Column already exists as $(getname(masterform, col_id)) and is already active.
-                """
-                @warn string(msg)
+    if nb_ip_primal_sols(sp_result) > 0
+        for sol in get_ip_primal_sols(sp_result)
+            if contrib_improves_mlp(getobjsense(spform), getvalue(sol)) # has negative reduced cost
+                insertion_status, col_id = setprimalsol!(spform, sol)
+                if insertion_status
+                    push!(recorded_solution_ids, col_id)
+                elseif !insertion_status && !iscuractive(masterform, col_id)
+                    push!(sp_solution_ids_to_activate, col_id)
+                else
+                    msg = """
+                    Column already exists as $(getname(masterform, col_id)) and is already active.
+                    """
+                    @warn string(msg)
+                end
             end
         end
     end
