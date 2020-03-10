@@ -121,7 +121,6 @@ set_tree_order!(n::Node, tree_order::Int) = n.tree_order = tree_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
-#getincumbents(n::Node) = n.incumbents
 getincumbents(n::Node) = n.incumbent_result.incumbents
 getincumbentresult(n::Node) = n.incumbent_result
 getbranch(n::Node) = n.branch
@@ -153,6 +152,7 @@ function apply_conquer_alg_to_node!(
 )::OptimizationOutput
 
     node_inc_res = getincumbentresult(node)
+    # should reset lp bound here instead of reseting a the end of conquer alg?
 
     update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(result))
     
@@ -201,7 +201,8 @@ function apply_conquer_alg_to_node!(
     update_lp_dual_bound!(node_inc_res, get_lp_dual_bound(optoutputres))
 
     if nb_lp_primal_sols(optoutputres) > 0
-        add_lp_primal_sol!(node_inc_res, get_best_lp_primal_sol(optoutputres)) 
+        add_lp_primal_sol!(node_inc_res, get_best_lp_primal_sol(optoutputres))
+        set_lp_primal_bound!(node_inc_res, get_lp_primal_bound(optoutputres))
     end
     return optoutput
 end

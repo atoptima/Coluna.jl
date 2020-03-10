@@ -49,7 +49,6 @@ end
 function run!(algo::NoBranching, reform::Reformulation, input::DivideInput)::DivideOutput
     parent = getparent(input)
     parent_incumb = getincumbents(parent)
-    Sense = getsense(parent_incumb)
     result = OptimizationResult(getmaster(reform))
     return DivideOutput([], result)
 end
@@ -187,7 +186,6 @@ end
 function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput)::DivideOutput
     parent = getparent(input)
     parent_incumb_res = getincumbentresult(parent)
-    sense = getobjsense(reform)
     result = OptimizationResult(getmaster(reform))
     set_ip_primal_bound!(result, input.ip_primal_bound)
     set_ip_dual_bound!(result, get_ip_dual_bound(parent_incumb_res))
@@ -213,16 +211,6 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         else
             original_solution = get_best_lp_primal_sol(parent_incumb_res)
         end
-
-        println("\e[31m ******")
-        @show get_best_lp_primal_sol(parent_incumb_res)
-
-        println("-----------------------")
-        println("-----------------------")
-        println("-----------------------")
-        println("-----------------------")
-        @show parent_incumb_res
-        println("***** \e[00m")
     else
         error("No LP primal solutions. Cannot perform branching.")
     end
@@ -283,8 +271,6 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
         return DivideOutput(Vector{Node}(), result)
     end
-
-    println("\e[45m kept_branch_groups = $kept_branch_groups \e[00m")
 
     if isempty(algo.phases) 
         #in the case of simple branching, it remains to generate the children
