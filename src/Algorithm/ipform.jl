@@ -11,7 +11,7 @@ end
 # TODO : content of OptimizationInput ? 
 #
 # struct IpFormInput <: AbstractOptimizationInput
-#    initial_primal_bound
+#    incumbents::ObjValues{S}
 # end
 
 function run!(algo::IpForm, form::Formulation, input::OptimizationInput)::OptimizationOutput
