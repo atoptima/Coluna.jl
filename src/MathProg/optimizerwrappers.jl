@@ -18,7 +18,7 @@ end
 
 mutable struct PricingCallbackData
     form::Formulation
-    result::Union{Nothing, OptimizationResult}
+    result::Union{Nothing, MoiResult}
 end
 
 function optimize!(form::Formulation, optimizer::UserOptimizer)
