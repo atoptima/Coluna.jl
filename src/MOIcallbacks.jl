@@ -7,7 +7,7 @@ function MOI.submit(
 )
     form = cb.callback_data.form 
     S = getobjsense(form)
-    result = OptimizationResult(form)
+    result = MoiResult(form)
     solval = cost
 
     colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]

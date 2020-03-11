@@ -218,17 +218,16 @@ function updatedualbound!(data::TreeSearchRuntimeData)
     return
 end
 
-function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::NewOptimizationInput)::OptimizationOutput
+    initresult = getinputresult(input)
 
-    initincumb = getincumbents(input)
-    
-    res = OptimizationResult(getmaster(reform), initincumb)
+    res = OptimizationResult(getmaster(reform), initresult)
 
     data = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 0,
         res, getobjsense(reform)
     )
-    push!(data, RootNode(initincumb,algo.skiprootnodeconquer))
+    push!(data, RootNode(res, algo.skiprootnodeconquer))
     data.tree_order += 1
 
     while (!isempty(data) && get_tree_order(data) <= algo.maxnumnodes)

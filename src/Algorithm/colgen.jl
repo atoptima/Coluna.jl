@@ -23,13 +23,9 @@ function ColGenRuntimeData(
     return ColGenRuntimeData(inc, false, true, [], 2)
 end
 
-# Overload of the algorithm's run function
-function run!(algo::ColumnGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
-
-    @logmsg LogLevel(-1) "Run ColumnGeneration."
-
-    initincumb = getincumbents(input)
-    data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(initincumb))
+function run!(algo::ColumnGeneration, reform::Reformulation, input::NewOptimizationInput)::OptimizationOutput    
+    input_result = getinputresult(input)
+    data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(input_result))
 
     cg_main_loop!(algo, data, reform)
     masterform = getmaster(reform)
@@ -332,6 +328,8 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
 
         if nb_lp_primal_sols(master_result) > 0
             data.incumbents.lp_primal_sol = get_best_lp_primal_sol(master_result)
+            data.incumbents.lp_primal_bound = get_lp_primal_bound(master_result)
+            data.incumbents.lp_dual_sol = get_best_lp_dual_sol(master_result)
         else
             @error string("Solver returned that the LP restricted master is feasible but ",
             "did not return a primal solution. ",
