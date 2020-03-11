@@ -279,7 +279,7 @@ function solve_sp_to_gencut!(
         benders_sp_lagrangian_bound_contrib = compute_benders_sp_lagrangian_bound_contrib(algdata, spform, optresult)
 
         primalsol = getbestprimalsol(optresult)
-        spsol_relaxed = contains(spform, primalsol, BendSpSlackFirstStageVar)
+        spsol_relaxed = contains(primalsol, varid -> getduty(varid) == BendSpSlackFirstStageVar)
 
         benders_sp_primal_bound_contrib = 0.0
         # compute benders_sp_primal_bound_contrib which stands for the sum of nu var,

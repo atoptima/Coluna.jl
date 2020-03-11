@@ -167,20 +167,6 @@ function OptimizationResult(
     return result
 end
 
-# TODO delete
-function OptimizationResult(
-    form::F, incumbents::Incumbents
-) where {F}
-    return OptimizationResult(
-            form, 
-            feasibility_status = UNKNOWN_FEASIBILITY, 
-            termination_status = NOT_YET_DETERMINED,
-            ip_primal_bound = get_ip_primal_bound(incumbents),
-            ip_dual_bound = get_ip_dual_bound(incumbents)
-    )
-end
-# end TODO
-
 function OptimizationResult(
     form::AbstractFormulation, or::OptimizationResult
 )

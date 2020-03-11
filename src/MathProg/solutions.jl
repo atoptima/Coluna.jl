@@ -75,6 +75,15 @@ valueinminsense(b::DualBound{MinSense}) = b.value
 valueinminsense(b::PrimalBound{MaxSense}) = -b.value
 valueinminsense(b::DualBound{MaxSense}) = -b.value
 
+function Base.isinteger(sol::Coluna.Containers.Solution)
+    for (vc_id, val) in sol
+        !isinteger(val) && return false
+    end
+    return true
+end
+
+isfractional(sol::Coluna.Containers.Solution) = !Base.isinteger(sol)
+
 function contains(sol::PrimalSolution, f::Function)
     for (varid, val) in sol
         f(varid) && return true
@@ -183,6 +192,10 @@ function set_ip_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
     return
 end
 
+"""
+Update the primal bound of the linear program if the new one is better than the
+current one according to the objective sense.
+"""
 function update_lp_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
     if isbetter(b, get_lp_primal_bound(ov))
         ov.lp_primal_bound = b
@@ -191,6 +204,10 @@ function update_lp_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
     return false
 end
 
+"""
+Update the dual bound of the linear program if the new one is better than the 
+current one according to the objective sense.
+"""
 function update_lp_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
     if isbetter(b, get_lp_dual_bound(ov))
         ov.lp_dual_bound = b
@@ -199,6 +216,10 @@ function update_lp_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
     return false
 end
 
+"""
+Update the primal bound of the mixed-integer program if the new one is better
+than the current one according to the objective sense.
+"""
 function update_ip_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
     if isbetter(b, get_ip_primal_bound(ov))
         ov.ip_primal_bound = b
@@ -207,6 +228,10 @@ function update_ip_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
     return false
 end
 
+"""
+Update the dual bound of the mixed-integer program if the new one is better than
+the current one according to the objective sense.
+"""
 function update_ip_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
     if isbetter(b, get_ip_dual_bound(ov))
         ov.ip_dual_bound = b
