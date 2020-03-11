@@ -48,8 +48,8 @@ include("MOIinterface.jl")
 export AbstractFormulation, MaxSense, MinSense, MoiOptimizer, VarMembership, 
        Variable, Constraint, VarDict,
        ConstrDict, Id, ConstrSense, VarSense, Formulation, Reformulation, VarId,
-       ConstrId, Incumbents, DualSolution, PrimalSolution,
-       PrimalBound, DualBound, FormId, FormulationPhase, Problem, Annotations,
+       ConstrId,
+        FormId, FormulationPhase, Problem, Annotations,
        Original, Counter, UserOptimizer, MoiObjective, PrimalSolVector, MoiResult
 
 export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
@@ -136,8 +136,9 @@ export getperenecost,
        getname,
        reset!
 
-# methods related to solutions
-export OptimizationResult, ObjValues
+# methods related to solutions & bounds
+export PrimalBound, DualBound, PrimalSolution, DualSolution, 
+       OptimizationResult, ObjValues
 
 export getterminationstatus,
        getfeasibilitystatus,
