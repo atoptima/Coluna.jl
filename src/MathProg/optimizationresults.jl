@@ -275,8 +275,8 @@ function add_ip_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSoluti
         res.ip_primal_sols = PrimalSolution{F}[]
     end
     pb = PrimalBound{S}(getvalue(solution))
-    inc_sol = update_ip_primal_bound!(res.incumbents, pb)
-    if (force || inc_sol) && length(res.ip_primal_sols) > 0
+    inc_sol = force ? true : update_ip_primal_bound!(res.incumbents, pb)
+    if inc_sol && length(res.ip_primal_sols) > 0
         res.ip_primal_sols[1] = solution
     elseif length(res.ip_primal_sols) == 0
         push!(res.ip_primal_sols, solution)
@@ -290,8 +290,8 @@ function add_lp_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSoluti
         res.lp_primal_sols = PrimalSolution{F}[]
     end
     pb = PrimalBound{S}(getvalue(solution))
-    inc_sol = update_lp_primal_bound!(res.incumbents, pb)
-    if (force || inc_sol) && length(res.lp_primal_sols) > 0
+    inc_sol = force ? true : update_lp_primal_bound!(res.incumbents, pb)
+    if inc_sol && length(res.lp_primal_sols) > 0
         res.lp_primal_sols[1] = solution
     elseif length(res.lp_primal_sols) == 0
         push!(res.lp_primal_sols, solution)
@@ -305,8 +305,8 @@ function add_lp_dual_sol!(res::OptimizationResult{F,S}, solution::DualSolution{F
         res.lp_dual_sols = DualSolution{F}[]
     end
     db = DualBound{S}(getvalue(solution))
-    inc_sol = update_lp_dual_bound!(res.incumbents, db)
-    if (force || inc_sol) && length(res.lp_dual_sols) > 0
+    inc_sol = force ? true : update_lp_dual_bound!(res.incumbents, db)
+    if inc_sol && length(res.lp_dual_sols) > 0
         res.lp_dual_sols[1] = solution
     elseif length(res.lp_dual_sols) == 0
         push!(res.lp_dual_sols, solution)

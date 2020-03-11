@@ -7,7 +7,7 @@ end
 
 # Data stored while algorithm is running
 mutable struct ColGenRuntimeData
-    incumbents::Incumbents
+    incumbents::OptimizationResult
     has_converged::Bool
     is_feasible::Bool
     ip_primal_sols::Vector{PrimalSolution}
@@ -17,9 +17,8 @@ end
 function ColGenRuntimeData(
     algparams::ColumnGeneration, form::Reformulation, ipprimalbound::PrimalBound
 )
-    sense = form.master.obj_sense
-    inc = Incumbents(getmaster(form))
-    update_ip_primal_bound!(inc, ipprimalbound)
+    inc = OptimizationResult(getmaster(form))
+    set_ip_primal_bound!(inc, ipprimalbound)
     return ColGenRuntimeData(inc, false, true, [], 2)
 end
 
@@ -39,12 +38,15 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::NewOptimizat
     if data.is_feasible
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status FEASIBLE."
     else
-        data.incumbents = Incumbents(getmaster(reform))
+        data.incumbents = OptimizationResult(getmaster(reform))
+        setfeasibilitystatus!(data.incumbents, INFEASIBLE)
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status INFEASIBLE."
     end
 
-    if !algo.store_all_ip_primal_sols && length(get_ip_primal_sol(data.incumbents)) > 0
-        push!(data.ip_primal_sols, get_ip_primal_sol(data.incumbents))
+    if !algo.store_all_ip_primal_sols && nb_ip_primal_sols(data.incumbents) > 0
+        for ip_primal_sol in get_ip_primal_sols(data.incumbents)
+            push!(data.ip_primal_sols, ip_primal_sol)
+        end
     end
 
     result = OptimizationResult(
@@ -61,16 +63,19 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::NewOptimizat
         add_ip_primal_sol!(result, ip_primal_sol)
     end
     
-    add_lp_primal_sol!(result, get_lp_primal_sol(data.incumbents))
-
+    if nb_lp_primal_sols(data.incumbents) > 0
+        for lp_primal_sol in get_lp_primal_sols(data.incumbents)
+            add_lp_primal_sol!(result, lp_primal_sol)
+        end
+    end
     return OptimizationOutput(result)
 end
 
 # Internal methods to the column generation
 function should_do_ph_1(master::Formulation, data::ColGenRuntimeData)
     ip_gap(data.incumbents) <= 0.00001 && return false
-    primal_lp_sol = get_lp_primal_sol(data.incumbents)
-    if contains(master, primal_lp_sol, MasterArtVar)
+    primal_lp_sol = get_lp_primal_sols(data.incumbents)[1]
+    if contains(primal_lp_sol, vid -> isanArtificialDuty(getduty(vid)))
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
         return true
     else
@@ -327,9 +332,9 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
         end
 
         if nb_lp_primal_sols(master_result) > 0
-            data.incumbents.lp_primal_sol = get_best_lp_primal_sol(master_result)
-            data.incumbents.lp_primal_bound = get_lp_primal_bound(master_result)
-            data.incumbents.lp_dual_sol = get_best_lp_dual_sol(master_result)
+            add_lp_primal_sol!(data.incumbents, get_best_lp_primal_sol(master_result), true)
+            set_lp_primal_bound!(data.incumbents, get_lp_primal_bound(master_result))
+            add_lp_dual_sol!(data.incumbents, get_best_lp_dual_sol(master_result), true)
         else
             @error string("Solver returned that the LP restricted master is feasible but ",
             "did not return a primal solution. ",
@@ -338,7 +343,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
 
         if nb_ip_primal_sols(master_result) > 0
             # if algo.store_all_ip_primal_sols
-            update_ip_primal_sol!(data.incumbents, get_best_ip_primal_sol(master_result))
+            add_ip_primal_sol!(data.incumbents, get_best_ip_primal_sol(master_result))
         end
 
         # TODO: cleanup restricted master columns        
