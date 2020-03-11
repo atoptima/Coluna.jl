@@ -136,14 +136,14 @@ function to_be_pruned(node::Node)
     node.infeasible && return true
     incres = getincumbentresult(node)
     bounds_ratio = get_ip_primal_bound(incres) / get_ip_dual_bound(incres)
-    return isapprox(bounds_ratio, 1)
+    return isapprox(bounds_ratio, 1) || ip_gap(incres) < 0
 end
 
 function to_be_pruned(node::Node, ip_primal_bound::PrimalBound)
     node.infeasible && return true
     incres = getincumbentresult(node)
     bounds_ratio = ip_primal_bound / get_ip_dual_bound(incres)
-    return isapprox(bounds_ratio, 1)
+    return isapprox(bounds_ratio, 1) || ip_gap(incres) < 0
 end
 
 # returns the optimization part of the output of the conquer algorithm 
@@ -154,7 +154,7 @@ function apply_conquer_alg_to_node!(
 
     node_inc_res = getincumbentresult(node)
 
-    # should reset lp bound here instead of reseting a the end of conquer alg?
+    # should reset lp bound here ? Maybe in the Node constructor ?
     update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(result))
     set_lp_primal_bound!(node_inc_res, PrimalBound(getmaster(reform)))
     

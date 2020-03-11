@@ -194,10 +194,6 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         return DivideOutput([], result)
     end
 
-    println("\e[31m")
-    @show result
-    println("\e[00m")
-
     kept_branch_groups = Vector{BranchingGroup}()
     parent_is_root::Bool = getdepth(parent) == 0
 
@@ -216,7 +212,8 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
             original_solution = get_best_lp_primal_sol(parent_incumb_res)
         end
     else
-        error("No LP primal solutions. Cannot perform branching.")
+        @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
+        return DivideOutput(Vector{Node}(), result)
     end
 
     # phase 0 of branching : we ask branching rules to generate branching candidates

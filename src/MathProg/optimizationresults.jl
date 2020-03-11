@@ -269,13 +269,14 @@ function get_best_lp_dual_sol(res::OptimizationResult)
     return get_lp_dual_sols(res)[1]
 end
 
-function add_ip_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSolution{F}) where {F,S}
+# TODO : create set_ip_primal_sol if length list = 1
+function add_ip_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSolution{F}, force = false) where {F,S}
     if res.ip_primal_sols === nothing
         res.ip_primal_sols = PrimalSolution{F}[]
     end
     pb = PrimalBound{S}(getvalue(solution))
     inc_sol = update_ip_primal_bound!(res.incumbents, pb)
-    if inc_sol && length(res.ip_primal_sols) > 0
+    if (force || inc_sol) && length(res.ip_primal_sols) > 0
         res.ip_primal_sols[1] = solution
     elseif length(res.ip_primal_sols) == 0
         push!(res.ip_primal_sols, solution)
@@ -284,13 +285,13 @@ function add_ip_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSoluti
     return
 end
 
-function add_lp_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSolution{F}) where {F,S}
+function add_lp_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSolution{F}, force = false) where {F,S}
     if res.lp_primal_sols === nothing
         res.lp_primal_sols = PrimalSolution{F}[]
     end
     pb = PrimalBound{S}(getvalue(solution))
     inc_sol = update_lp_primal_bound!(res.incumbents, pb)
-    if inc_sol && length(res.lp_primal_sols) > 0
+    if (force || inc_sol) && length(res.lp_primal_sols) > 0
         res.lp_primal_sols[1] = solution
     elseif length(res.lp_primal_sols) == 0
         push!(res.lp_primal_sols, solution)
@@ -299,13 +300,13 @@ function add_lp_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSoluti
     return
 end
 
-function add_lp_dual_sol!(res::OptimizationResult{F,S}, solution::DualSolution{F}) where {F,S}
+function add_lp_dual_sol!(res::OptimizationResult{F,S}, solution::DualSolution{F}, force = false) where {F,S}
     if res.lp_dual_sols === nothing
         res.lp_dual_sols = DualSolution{F}[]
     end
     db = DualBound{S}(getvalue(solution))
     inc_sol = update_lp_dual_bound!(res.incumbents, db)
-    if inc_sol && length(res.lp_dual_sols) > 0
+    if (force || inc_sol) && length(res.lp_dual_sols) > 0
         res.lp_dual_sols[1] = solution
     elseif length(res.lp_dual_sols) == 0
         push!(res.lp_dual_sols, solution)

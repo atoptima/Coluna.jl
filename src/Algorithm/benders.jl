@@ -7,11 +7,11 @@ Base.@kwdef struct BendersCutGeneration <: AbstractOptimizationAlgorithm
 end
 
 mutable struct BendersCutGenRuntimeData
-    incumbents::Incumbents
+    incumbents::OptimizationResult
     has_converged::Bool
     is_feasible::Bool
-    spform_phase::Dict{Int, FormulationPhase}
-    spform_phase_applied::Dict{Int, Bool}
+    spform_phase::Dict{FormId, FormulationPhase}
+    spform_phase_applied::Dict{FormId, Bool}
     #slack_cost_increase::Float64
     #slack_cost_increase_applied::Bool
 end
@@ -23,39 +23,37 @@ function all_sp_in_phase2(algdata::BendersCutGenRuntimeData)
     return true
 end
 
-function BendersCutGenRuntimeData(form::Reformulation, node_inc::Incumbents)
-    i = Incumbents(getmaster(form))
-    update_ip_primal_sol!(i, get_ip_primal_sol(node_inc))
-    
+function BendersCutGenRuntimeData(form::Reformulation, node_inc::OptimizationResult)
+    i = OptimizationResult(getmaster(form))
+    if nb_ip_primal_sols(node_inc) > 0
+        add_ip_primal_sol!(i, get_best_ip_primal_sol(node_inc))
+    end
     return BendersCutGenRuntimeData(i, false, true, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
 end
 
 function run!(algo::BendersCutGeneration, reform::Reformulation, input::NewOptimizationInput)::OptimizationOutput    
 
-    initincumb = getincumbentresult(input)
-    data = BendersCutGenRuntimeData(reform, initincumb)
+    init_res = getinputresult(input)
+    data = BendersCutGenRuntimeData(reform, init_res)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
 
-    Sense = getsense(initincumb)
-    M = typeof(getmaster(reform))
-    ip_primal_sols = Vector{PrimalSolution{M}}()
-    if length(get_ip_primal_sol(data.incumbents)) > 0
-        push!(ip_primal_sols, get_ip_primal_sol(data.incumbents))
-    end
-
+    runtime_res = data.incumbents
     result = OptimizationResult(
         getmaster(reform),
         feasibility_status = data.is_feasible ? FEASIBLE : INFEASIBLE, 
         termination_status = data.has_converged ? OPTIMAL : OTHER_LIMIT,
-        ip_dual_bound = get_ip_dual_bound(data.incumbents),
-        lp_dual_bound = get_lp_dual_bound(data.incumbents)
+        ip_dual_bound = get_ip_dual_bound(runtime_res),
+        lp_dual_bound = get_lp_dual_bound(runtime_res)
     )
-    add_lp_primal_sol!(result, get_lp_primal_sol(data.incumbents))
-    for ip_primal_sol in ip_primal_sols
-        add_ip_primal_sol!(result, ip_primal_sol)
+    if nb_lp_primal_sols(runtime_res) > 0
+        add_lp_primal_sol!(result, get_best_lp_primal_sol(runtime_res))
     end
-
+    if nb_ip_primal_sols(runtime_res) > 0
+        for ip_primal_sol in get_ip_primal_sols(runtime_res)
+            add_ip_primal_sol!(result, ip_primal_sol)
+        end
+    end
     return OptimizationOutput(result)
 end
 
@@ -492,10 +490,10 @@ function bend_cutting_plane_main_loop!(
             return 
         end
 
-        update_lp_dual_sol!(algdata.incumbents, master_dual_sol)
+        add_lp_dual_sol!(algdata.incumbents, master_dual_sol, true)
         dual_bound = get_lp_dual_bound(algdata.incumbents)
-        update_lp_dual_bound!(algdata.incumbents, dual_bound)
-        update_ip_dual_bound!(algdata.incumbents, dual_bound)
+        set_lp_dual_bound!(algdata.incumbents, dual_bound)
+        set_ip_dual_bound!(algdata.incumbents, dual_bound)
                 
         reset_benders_sp_phase!(algdata, reform) # phase = HybridPhase
 
@@ -517,7 +515,7 @@ function bend_cutting_plane_main_loop!(
             end
 
             # TODO: update bendcutgen stabilization
-            update_lp_primal_sol!(algdata.incumbents, master_primal_sol)
+            add_lp_primal_sol!(algdata.incumbents, master_primal_sol, true)
             set_lp_primal_bound!(algdata.incumbents, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
             
@@ -577,8 +575,8 @@ function bend_cutting_plane_main_loop!(
             end
         end
         if sol_integer
-            update_ip_primal_sol!(algdata.incumbents, master_primal_sol)
-            update_ip_primal_bound!(algdata.incumbents, primal_bound)
+            add_ip_primal_sol!(algdata.incumbents, master_primal_sol)
+            #add_ip_primal_bound!(algdata.incumbents, primal_bound)
         end
     end
     return 
