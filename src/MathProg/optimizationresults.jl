@@ -266,7 +266,7 @@ end
 
 function get_best_lp_dual_sol(res::OptimizationResult)
     nb_lp_dual_sols(res) == 0 && return nothing
-    return get_lp_dual_sols(res)
+    return get_lp_dual_sols(res)[1]
 end
 
 function add_ip_primal_sol!(res::OptimizationResult{F,S}, solution::PrimalSolution{F}) where {F,S}

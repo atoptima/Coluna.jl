@@ -194,6 +194,10 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         return DivideOutput([], result)
     end
 
+    println("\e[31m")
+    @show result
+    println("\e[00m")
+
     kept_branch_groups = Vector{BranchingGroup}()
     parent_is_root::Bool = getdepth(parent) == 0
 

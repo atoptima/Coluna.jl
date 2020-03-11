@@ -156,6 +156,7 @@ function apply_conquer_alg_to_node!(
 
     # should reset lp bound here instead of reseting a the end of conquer alg?
     update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(result))
+    set_lp_primal_bound!(node_inc_res, PrimalBound(getmaster(reform)))
     
     if isverbose(algo)
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(node)))
