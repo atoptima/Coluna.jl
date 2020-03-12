@@ -1,9 +1,9 @@
 """
-    LpForm
+    SolveLpForm
 
 todo
 """
-Base.@kwdef struct LpForm <: AbstractOptimizationAlgorithm 
+Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm 
     relax_integrality = false
     log_level = 1
 end
@@ -18,12 +18,12 @@ end
 #     return
 # end
 
-struct LpFormInput <: AbstractInput
+struct SolveLpFormInput <: AbstractInput
     #incumbents::ObjValues{S} # needed ?
     # base ?
 end
 
-function run!(algo::LpForm, form::Formulation, input::LpFormInput)::OptimizationOutput
+function run!(algo::SolveLpForm, form::Formulation, input::SolveLpFormInput)::OptimizationOutput
     algoresult = OptimizationResult(form)
 
     if algo.relax_integrality

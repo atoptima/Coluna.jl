@@ -109,7 +109,7 @@ end
 
 Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm 
     colgen::ColumnGeneration = ColumnGeneration()
-    mastipheur::IpForm = IpForm()
+    mastipheur::SolveIpForm = SolveIpForm()
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
@@ -171,7 +171,7 @@ end
 ####################################################################
 
 Base.@kwdef struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
-    masterlpalgo::LpForm = LpForm()
+    masterlpalgo::SolveLpForm = SolveLpForm()
 end
 
 function getslavealgorithms!(
@@ -184,7 +184,7 @@ end
 
 function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
     return ConquerOutput(
-        run!(algo.masterlpalgo, getmaster(reform), LpFormInput()), record!(reform)
+        run!(algo.masterlpalgo, getmaster(reform), SolveLpFormInput()), record!(reform)
     )
 end
 

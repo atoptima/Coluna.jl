@@ -31,10 +31,10 @@ include("interface.jl")
 include("record.jl")
 
 # Here include slave algorithms used by conquer algorithms
+include("solveipform.jl")
+include("solvelpform.jl")
 include("colgen.jl")
 include("benders.jl")
-include("ipform.jl")
-include("lpform.jl")
 include("preprocessing.jl")
 
 # Here include conquer algorithms
@@ -54,7 +54,7 @@ include("treesearch.jl")
 
 # Types
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColGenConquer, ColumnGeneration, 
-       BendersConquer, BendersCutGeneration, IpForm, LpForm, ExactBranchingPhase, 
+       BendersConquer, BendersCutGeneration, SolveIpForm, SolveLpForm, ExactBranchingPhase, 
        OnlyRestrictedMasterBranchingPhase
 
 export getinputresult

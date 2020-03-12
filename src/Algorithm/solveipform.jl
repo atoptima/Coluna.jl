@@ -1,17 +1,17 @@
 """
-    IpForm
+    SolveIpForm
 
 todo
 Solve ip formulation
 """
-Base.@kwdef struct IpForm <: AbstractOptimizationAlgorithm
+Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
     time_limit::Int = 600
     deactivate_artificial_vars = true
     enforce_integrality = true
     log_level = 1
 end
 
-struct IpFormInput{S} <: AbstractInput
+struct SolveIpFormInput{S} <: AbstractInput
     incumbents::ObjValues{S}
 end
 
@@ -25,21 +25,21 @@ end
 #     return get(logger.message_limits, id, 1) > 0
 # end
 
-function run!(algo::IpForm, form::Formulation, input::IpFormInput)::OptimizationOutput
+function run!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInput)::OptimizationOutput
     logger = ConsoleLogger(stderr, LogLevel(algo.log_level))
     with_logger(logger) do
         return run_ipform!(algo, form, input)
     end
 end
 
-function run_ipform!(algo::IpForm, form::Formulation, input::IpFormInput)::OptimizationOutput
+function run_ipform!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInput)::OptimizationOutput
     algoresult = OptimizationResult(
         form, ip_primal_bound = get_ip_primal_bound(input.incumbents)
     )
 
     ip_supported = check_if_optimizer_supports_ip(getoptimizer(form))
     if !ip_supported
-        @warn "Optimizer of formulation with id =", getuid(form) ," does not support integer variables. Skip IpForm algorithm."
+        @warn "Optimizer of formulation with id =", getuid(form) ," does not support integer variables. Skip SolveIpForm algorithm."
         return OptimizationOutput(algoresult)
     end
 
@@ -72,7 +72,7 @@ function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
 end
 check_if_optimizer_supports_ip(optimizer::UserOptimizer) = true
 
-function optimize_ip_form!(algo::IpForm, optimizer::MoiOptimizer, form::Formulation)
+function optimize_ip_form!(algo::SolveIpForm, optimizer::MoiOptimizer, form::Formulation)
     MOI.set(optimizer.inner, MOI.TimeLimitSec(), algo.time_limit)
     # No way to enforce upper bound through MOI. 
     # Add a constraint c'x <= UB in form ?
@@ -95,6 +95,6 @@ function optimize_ip_form!(algo::IpForm, optimizer::MoiOptimizer, form::Formulat
     return optimizer_result
 end
 
-function optimize_ip_form!(algo::IpForm, optimizer::UserOptimizer, form::Formulation)
+function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Formulation)
     return optimize!(form)
 end

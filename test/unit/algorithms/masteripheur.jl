@@ -2,9 +2,9 @@ function masteripheur_tests()
     infeasible_master_ip_heur_tests()
 end
 
-function ClA.run!(alg::ClA.IpForm, reform::ClMP.Reformulation, input::ClA.NewOptimizationInput)
+function ClA.run!(alg::ClA.SolveIpForm, reform::ClMP.Reformulation, input::ClA.NewOptimizationInput)
     master = ClMP.getmaster(reform)
-    ipforminput = ClA.IpFormInput(ClMP.ObjValues(master))
+    ipforminput = ClA.SolveIpFormInput(ClMP.ObjValues(master))
     return ClA.run!(alg, master, ipforminput)
 end
 
@@ -16,7 +16,7 @@ function infeasible_master_ip_heur_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(
-                solver = ClA.IpForm()
+                solver = ClA.SolveIpForm()
             ),
             "default_optimizer" => GLPK.Optimizer
         )

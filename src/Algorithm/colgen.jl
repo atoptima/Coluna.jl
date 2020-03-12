@@ -186,9 +186,9 @@ function solve_sp_to_gencol!(
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-    ipform = IpForm(deactivate_artificial_vars = false, enforce_integrality = false, log_level = 2)
+    ipform = SolveIpForm(deactivate_artificial_vars = false, enforce_integrality = false, log_level = 2)
     TO.@timeit Coluna._to "Pricing subproblem" begin
-        sp_output = run!(ipform, spform, IpFormInput(ObjValues(spform)))
+        sp_output = run!(ipform, spform, SolveIpFormInput(ObjValues(spform)))
     end
     sp_result = getresult(sp_output)
 
@@ -318,7 +318,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
     while true
 
         master_time = @elapsed begin
-            master_output = run!(LpForm(), masterform, LpFormInput())
+            master_output = run!(SolveLpForm(), masterform, SolveLpFormInput())
         end
         master_result = getresult(master_output)
         master_val = get_lp_primal_bound(master_result)
