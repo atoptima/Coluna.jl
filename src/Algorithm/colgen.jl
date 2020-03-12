@@ -332,9 +332,9 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
         end
 
         if nb_lp_primal_sols(master_result) > 0
-            add_lp_primal_sol!(data.incumbents, get_best_lp_primal_sol(master_result), true)
+            set_lp_primal_sol!(data.incumbents, get_best_lp_primal_sol(master_result))
             set_lp_primal_bound!(data.incumbents, get_lp_primal_bound(master_result))
-            add_lp_dual_sol!(data.incumbents, get_best_lp_dual_sol(master_result), true)
+            set_lp_dual_sol!(data.incumbents, get_best_lp_dual_sol(master_result))
         else
             @error string("Solver returned that the LP restricted master is feasible but ",
             "did not return a primal solution. ",
