@@ -17,9 +17,8 @@ function convert_status(coluna_status::TerminationStatus)
     return MOI.OTHER_LIMIT
 end
 
-### START : TO BE DELETED
 #### Old Optimization Result (usefull only to return the result of the call to
-### a solver through MOI). Will be removed very soon
+### a solver through MOI).
 mutable struct MoiResult{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
@@ -95,28 +94,6 @@ function add_dual_sol!(res::MoiResult{M,S}, solution::DualSolution{M}) where {M,
     return
 end
 
-function determine_statuses(res::MoiResult, fully_explored::Bool)
-    gap_is_zero = gap(res) <= 0.00001
-    found_sols = length(getprimalsols(res)) >= 1
-    # We assume that gap cannot be zero if no solution was found
-    gap_is_zero && @assert found_sols
-    found_sols && setfeasibilitystatus!(res, FEASIBLE)
-    gap_is_zero && setterminationstatus!(res, OPTIMAL)
-    if !found_sols # Implies that gap is not zero
-        setterminationstatus!(res, EMPTY_RESULT)
-        # Determine if we can prove that is was infeasible
-        if fully_explored
-            setfeasibilitystatus!(res, INFEASIBLE)
-        else
-            setfeasibilitystatus!(res, UNKNOWN_FEASIBILITY)
-        end
-    elseif !gap_is_zero
-        setterminationstatus!(res, OTHER_LIMIT)
-    end
-    return
-end
-
-### END : TO BE DELETED
 
 mutable struct OptimizationResult{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
@@ -155,12 +132,26 @@ function pushfirst(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {So
 end
 
 """
-    OptimizationResult{M,S}
-Structure to be returned by all Coluna `optimize!` methods.
+    OptimizationResult(
+        form; feasibility_status = UNKNOWN_FEASIBILITY, termination_status = NOT_YET_DETERMINED,
+        ip_primal_bound = nothing, ip_dual_bound = nothing, lp_primal_bound = nothing, lp_dual_bound = nothing,
+        max_length_ip_primal_sols = 1, max_length_lp_dual_sols = 1, max_length_lp_dual_sols = 1,
+        insert_function_ip_primal_sols = bestbound, insert_function_lp_primal_sols = bestbound, 
+        insert_function_lp_dual_sols = bestbound
+        )
 
-    OptimizationResult(model)
-
-Builds an empty OptimizationResult.
+A convenient structure to maintain and return solutions and bounds of a formulation `form` during an
+optimization process. The feasibility and termination statuses are considered as
+unknown by default. You can define the initial incumbent bounds using `ip_primal_bound`,
+`ip_dual_bound`, `lp_primal_bound`, and `lp_primal_bound` keyword arguments. Incumbent
+bounds are set to infinite (according to formulation objective sense) by default.
+You can store three types of solutions `ip_primal_sols`, `lp_primal_sols`, and `lp_dual_sols`.
+These solutions are stored in three lists. Keywords `max_length_ip_primal_sols`,
+`max_length_lp_primal_sols`, and `max_length_lp_dual_sols` let you define the maximum
+size of the lists. Keywords `insert_function_ip_primal_sols`, `insert_function_lp_primal_sols`,
+and `insert_function_lp_dual_sols` let you provide a function to define the way
+you want to insert a new solution in each list. By default, lists are sorted by
+best bound.
 """
 function OptimizationResult(
     form::F;

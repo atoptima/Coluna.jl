@@ -18,7 +18,7 @@ function generate_children(
 
     @logmsg LogLevel(-1) string(
         "Chosen branching variable : ",
-        getname(getmaster(reform), candidate.var_id), ". With value ", 
+        getname(getmaster(reform), candidate.varid), ". With value ", 
         lhs, "."
     )
 
