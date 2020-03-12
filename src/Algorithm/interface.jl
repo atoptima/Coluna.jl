@@ -65,7 +65,7 @@ run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::EmptyInput) = ru
 Contains Incumbents
 """
 struct NewOptimizationInput{F,S} <: AbstractInput
-    incumbents::OptimizationResult{F,S}
+    incumbents::OptimizationState{F,S}
 end
 
 getinputresult(input::NewOptimizationInput) =  input.incumbents
@@ -74,14 +74,14 @@ getinputresult(input::NewOptimizationInput) =  input.incumbents
 """
     OptimizationOutput
 
-Contain OptimizationResult, PrimalSolution (solution to relaxation), and 
+Contain OptimizationState, PrimalSolution (solution to relaxation), and 
 DualBound (dual bound value)
 """
 struct OptimizationOutput{F,S} <: AbstractOutput
-    result::OptimizationResult{F,S}    
+    result::OptimizationState{F,S}    
 end
 
-getresult(output::OptimizationOutput)::OptimizationResult = output.result
+getresult(output::OptimizationOutput)::OptimizationState = output.result
 
 
 """
@@ -90,7 +90,7 @@ getresult(output::OptimizationOutput)::OptimizationResult = output.result
     This type of algorithm is used to "bound" a formulation, i.e. to improve primal
     and dual bounds of the formulation. Solving to optimality is a special case of "bounding".
     The input of such algorithm should be of type Incumbents.    
-    The output of such algorithm should be of type OptimizationResult.    
+    The output of such algorithm should be of type OptimizationState.    
 """
 abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 

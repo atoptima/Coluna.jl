@@ -89,7 +89,7 @@ function optimize!(
     end
 
     master = getmaster(reform)
-    init_result = OptimizationResult(
+    init_result = OptimizationState(
         master,
         ip_primal_bound = initial_primal_bound,
         ip_dual_bound = initial_dual_bound,
@@ -99,7 +99,7 @@ function optimize!(
     output = AL.run!(algorithm, reform, AL.NewOptimizationInput(init_result))
     opt_result = AL.getresult(output)
     
-    result = OptimizationResult(
+    result = OptimizationState(
         master, 
         feasibility_status = getfeasibilitystatus(opt_result),
         termination_status = getterminationstatus(opt_result),

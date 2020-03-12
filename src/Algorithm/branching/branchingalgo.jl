@@ -49,7 +49,7 @@ end
 function run!(algo::NoBranching, reform::Reformulation, input::DivideInput)::DivideOutput
     parent = getparent(input)
     parent_incumb = getincumbents(parent)
-    result = OptimizationResult(getmaster(reform))
+    result = OptimizationState(getmaster(reform))
     return DivideOutput([], result)
 end
 
@@ -90,7 +90,7 @@ end
 
 function perform_strong_branching_with_phases!(
     algo::StrongBranching, reform::Reformulation, parent::Node, 
-    groups::Vector{BranchingGroup}, result::OptimizationResult
+    groups::Vector{BranchingGroup}, result::OptimizationState
 )
     for (phase_index, current_phase) in enumerate(algo.phases)
         nb_candidates_for_next_phase::Int64 = 1        
@@ -186,7 +186,7 @@ end
 function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput)::DivideOutput
     parent = getparent(input)
     parent_incumb_res = getincumbentresult(parent)
-    result = OptimizationResult(getmaster(reform))
+    result = OptimizationState(getmaster(reform))
     set_ip_primal_bound!(result, input.ip_primal_bound)
     set_ip_dual_bound!(result, get_ip_dual_bound(parent_incumb_res))
     if isempty(algo.rules)

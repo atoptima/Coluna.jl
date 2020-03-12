@@ -3,7 +3,7 @@ function optimizationresults_unit_test()
 end
 
 function emptyresults_tests()
-    # result = ClF.OptimizationResult{ClF.MinSense}()
+    # result = ClF.OptimizationState{ClF.MinSense}()
     # @test ClF.getprimalbound(result) == Inf
     # @test ClF.getdualbound(result) == -Inf
     # @test ClF.getbestprimalsol(result) == nothing

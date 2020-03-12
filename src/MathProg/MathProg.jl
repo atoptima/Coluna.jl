@@ -135,7 +135,7 @@ export getperenecost,
 
 # methods related to solutions & bounds
 export PrimalBound, DualBound, PrimalSolution, DualSolution, 
-       OptimizationResult, ObjValues
+       OptimizationState, ObjValues
 
 export getterminationstatus,
        getfeasibilitystatus,

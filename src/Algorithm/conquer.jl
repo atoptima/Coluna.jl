@@ -39,12 +39,12 @@ end
     Contains current incumbents and the root node flag.
 """
 struct ConquerInput <: AbstractInput 
-    incumb::OptimizationResult
+    incumb::OptimizationState
     rootnodeflag::Bool
 end
 
 getincumbentresult(input::ConquerInput) = input.incumb
-getincumbents(input::ConquerInput)::OptimizationResult = input.incumb
+getincumbents(input::ConquerInput)::OptimizationState = input.incumb
 
 """
     ConquerOutput
@@ -52,7 +52,7 @@ getincumbents(input::ConquerInput)::OptimizationResult = input.incumb
     Output of a conquer algorithm used by the tree search algorithm.
     Contain current incumbents, infeasibility status, and the record of its storage.
 """
-# TO DO : replace OptimizationOutput by OptimizationResult
+# TO DO : replace OptimizationOutput by OptimizationState
 struct ConquerOutput <: AbstractOutput 
     optoutput::OptimizationOutput
     record::ConquerRecord

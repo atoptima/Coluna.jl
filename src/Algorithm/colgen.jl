@@ -7,7 +7,7 @@ end
 
 # Data stored while algorithm is running
 mutable struct ColGenRuntimeData
-    incumbents::OptimizationResult
+    incumbents::OptimizationState
     has_converged::Bool
     is_feasible::Bool
     ip_primal_sols::Vector{PrimalSolution}
@@ -17,7 +17,7 @@ end
 function ColGenRuntimeData(
     algparams::ColumnGeneration, form::Reformulation, ipprimalbound::PrimalBound
 )
-    inc = OptimizationResult(getmaster(form))
+    inc = OptimizationState(getmaster(form))
     set_ip_primal_bound!(inc, ipprimalbound)
     return ColGenRuntimeData(inc, false, true, [], 2)
 end
@@ -38,7 +38,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::NewOptimizat
     if data.is_feasible
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status FEASIBLE."
     else
-        data.incumbents = OptimizationResult(getmaster(reform))
+        data.incumbents = OptimizationState(getmaster(reform))
         setfeasibilitystatus!(data.incumbents, INFEASIBLE)
         @logmsg LogLevel(-1) "ColumnGeneration terminated with status INFEASIBLE."
     end
@@ -49,7 +49,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::NewOptimizat
         end
     end
 
-    result = OptimizationResult(
+    result = OptimizationState(
         masterform, 
         feasibility_status = data.is_feasible ? FEASIBLE : INFEASIBLE,
         termination_status = data.has_converged ? OPTIMAL : OTHER_LIMIT,

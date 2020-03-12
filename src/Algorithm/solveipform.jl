@@ -33,7 +33,7 @@ function run!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInput)::Op
 end
 
 function run_ipform!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInput)::OptimizationOutput
-    algoresult = OptimizationResult(
+    algoresult = OptimizationState(
         form, ip_primal_bound = get_ip_primal_bound(input.incumbents)
     )
 

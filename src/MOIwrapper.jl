@@ -20,7 +20,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     params::Params
     annotations::Annotations
     varmap::Dict{MOI.VariableIndex,VarId} # For the user to get VariablePrimal
-    result::Union{Nothing,OptimizationResult}
+    result::Union{Nothing,OptimizationState}
 end
 
 setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob

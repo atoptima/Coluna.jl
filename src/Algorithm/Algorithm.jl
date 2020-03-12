@@ -65,7 +65,7 @@ include("treesearch.jl")
 # Other Coluna's submodules should be independent to Algorithm
 
 # Utilities
-export OptimizationResult, getterminationstatus, getfeasibilitystatus, setterminationstatus!,
+export OptimizationState, getterminationstatus, getfeasibilitystatus, setterminationstatus!,
     setfeasibilitystatus!, isfeasible, nb_ip_primal_sols, nb_lp_primal_sols, nb_lp_dual_sols,
     get_ip_primal_sols, get_lp_primal_sols, get_lp_dual_sols, get_best_ip_primal_sol,
     get_best_lp_primal_sol, get_best_lp_dual_sol, update_ip_primal_sol!, 

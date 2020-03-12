@@ -1,4 +1,4 @@
-mutable struct OptimizationResult{F<:AbstractFormulation,S<:Coluna.AbstractSense}
+mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
     incumbents::ObjValues{S}
@@ -35,7 +35,7 @@ function pushfirst(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {So
 end
 
 """
-    OptimizationResult(
+    OptimizationState(
         form; feasibility_status = UNKNOWN_FEASIBILITY, termination_status = NOT_YET_DETERMINED,
         ip_primal_bound = nothing, ip_dual_bound = nothing, lp_primal_bound = nothing, lp_dual_bound = nothing,
         max_length_ip_primal_sols = 1, max_length_lp_dual_sols = 1, max_length_lp_dual_sols = 1,
@@ -56,7 +56,7 @@ and `insert_function_lp_dual_sols` let you provide a function to define the way
 you want to insert a new solution in each list. By default, lists are sorted by
 best bound.
 """
-function OptimizationResult(
+function OptimizationState(
     form::F;
     feasibility_status::FeasibilityStatus = UNKNOWN_FEASIBILITY,
     termination_status::TerminationStatus = NOT_YET_DETERMINED,
@@ -79,7 +79,7 @@ function OptimizationResult(
         lp_dual_bound = lp_dual_bound
     )
     S = getobjsense(form)
-    result = OptimizationResult{F,S}(
+    result = OptimizationState{F,S}(
         termination_status, 
         feasibility_status, 
         incumbents,
@@ -94,10 +94,10 @@ function OptimizationResult(
     return result
 end
 
-function OptimizationResult(
-    form::AbstractFormulation, or::OptimizationResult
+function OptimizationState(
+    form::AbstractFormulation, or::OptimizationState
 )
-    newor = OptimizationResult(
+    newor = OptimizationState(
         form,
         feasibility_status = getfeasibilitystatus(or),
         termination_status = getterminationstatus(or),
@@ -118,60 +118,60 @@ function OptimizationResult(
     return newor
 end
 
-getterminationstatus(res::OptimizationResult) = res.termination_status
-getfeasibilitystatus(res::OptimizationResult) = res.feasibility_status
+getterminationstatus(res::OptimizationState) = res.termination_status
+getfeasibilitystatus(res::OptimizationState) = res.feasibility_status
 
-setterminationstatus!(res::OptimizationResult, status::TerminationStatus) = res.termination_status = status
-setfeasibilitystatus!(res::OptimizationResult, status::FeasibilityStatus) = res.feasibility_status = status
+setterminationstatus!(res::OptimizationState, status::TerminationStatus) = res.termination_status = status
+setfeasibilitystatus!(res::OptimizationState, status::FeasibilityStatus) = res.feasibility_status = status
 
-isfeasible(res::OptimizationResult) = res.feasibility_status == FEASIBLE
+isfeasible(res::OptimizationState) = res.feasibility_status == FEASIBLE
 
-get_ip_primal_bound(res::OptimizationResult) = get_ip_primal_bound(res.incumbents)
-get_lp_primal_bound(res::OptimizationResult) = get_lp_primal_bound(res.incumbents)
-get_ip_dual_bound(res::OptimizationResult) = get_ip_dual_bound(res.incumbents)
-get_lp_dual_bound(res::OptimizationResult) = get_lp_dual_bound(res.incumbents)
+get_ip_primal_bound(res::OptimizationState) = get_ip_primal_bound(res.incumbents)
+get_lp_primal_bound(res::OptimizationState) = get_lp_primal_bound(res.incumbents)
+get_ip_dual_bound(res::OptimizationState) = get_ip_dual_bound(res.incumbents)
+get_lp_dual_bound(res::OptimizationState) = get_lp_dual_bound(res.incumbents)
 
-update_ip_primal_bound!(res::OptimizationResult, val) = update_ip_primal_bound!(res.incumbents, val)
-update_ip_dual_bound!(res::OptimizationResult, val) = update_ip_dual_bound!(res.incumbents, val)
-update_lp_primal_bound!(res::OptimizationResult, val) = update_lp_primal_bound!(res.incumbents, val)
-update_lp_dual_bound!(res::OptimizationResult, val) = update_lp_dual_bound!(res.incumbents, val)
+update_ip_primal_bound!(res::OptimizationState, val) = update_ip_primal_bound!(res.incumbents, val)
+update_ip_dual_bound!(res::OptimizationState, val) = update_ip_dual_bound!(res.incumbents, val)
+update_lp_primal_bound!(res::OptimizationState, val) = update_lp_primal_bound!(res.incumbents, val)
+update_lp_dual_bound!(res::OptimizationState, val) = update_lp_dual_bound!(res.incumbents, val)
 
-set_ip_primal_bound!(res::OptimizationResult, val) = set_ip_primal_bound!(res.incumbents, val)
-set_lp_primal_bound!(res::OptimizationResult, val) = set_lp_primal_bound!(res.incumbents, val)
-set_ip_dual_bound!(res::OptimizationResult, val) = set_ip_dual_bound!(res.incumbents, val)
-set_lp_dual_bound!(res::OptimizationResult, val) = set_lp_dual_bound!(res.incumbents, val)
+set_ip_primal_bound!(res::OptimizationState, val) = set_ip_primal_bound!(res.incumbents, val)
+set_lp_primal_bound!(res::OptimizationState, val) = set_lp_primal_bound!(res.incumbents, val)
+set_ip_dual_bound!(res::OptimizationState, val) = set_ip_dual_bound!(res.incumbents, val)
+set_lp_dual_bound!(res::OptimizationState, val) = set_lp_dual_bound!(res.incumbents, val)
 
-ip_gap(res::OptimizationResult) = ip_gap(res.incumbents)
+ip_gap(res::OptimizationState) = ip_gap(res.incumbents)
 
-function nb_ip_primal_sols(res::OptimizationResult)
+function nb_ip_primal_sols(res::OptimizationState)
     return res.ip_primal_sols === nothing ? 0 : length(res.ip_primal_sols)
 end
 
-function nb_lp_primal_sols(res::OptimizationResult)
+function nb_lp_primal_sols(res::OptimizationState)
     return res.lp_primal_sols === nothing ? 0 : length(res.lp_primal_sols)
 end
 
-function nb_lp_dual_sols(res::OptimizationResult)
+function nb_lp_dual_sols(res::OptimizationState)
     return res.lp_dual_sols === nothing ? 0 : length(res.lp_dual_sols)
 end
 
-get_ip_primal_sols(res::OptimizationResult) = res.ip_primal_sols
+get_ip_primal_sols(res::OptimizationState) = res.ip_primal_sols
 
-function get_best_ip_primal_sol(res::OptimizationResult)
+function get_best_ip_primal_sol(res::OptimizationState)
     nb_ip_primal_sols(res) == 0 && return nothing
     return get_ip_primal_sols(res)[1]
 end
 
-get_lp_primal_sols(res::OptimizationResult) = res.lp_primal_sols
+get_lp_primal_sols(res::OptimizationState) = res.lp_primal_sols
 
-function get_best_lp_primal_sol(res::OptimizationResult)
+function get_best_lp_primal_sol(res::OptimizationState)
     nb_lp_primal_sols(res) == 0 && return nothing
     return get_lp_primal_sols(res)[1]
 end
 
-get_lp_dual_sols(res::OptimizationResult) = res.lp_dual_sols
+get_lp_dual_sols(res::OptimizationState) = res.lp_dual_sols
 
-function get_best_lp_dual_sol(res::OptimizationResult)
+function get_best_lp_dual_sol(res::OptimizationState)
     nb_lp_dual_sols(res) == 0 && return nothing
     return get_lp_dual_sols(res)[1]
 end
@@ -181,7 +181,7 @@ end
 
 Add the solution `sol` in the solutions list of `optstate` if and only if the 
 value of the solution is better than the incumbent. The solution is inserted in the list
-by the method defined in `insert_function_ip_primal_sols` field of `OptimizationResult`.
+by the method defined in `insert_function_ip_primal_sols` field of `OptimizationState`.
 If the maximum length of the list is reached, the solution located at the end of the list
 is removed.
 """
@@ -236,7 +236,7 @@ macro gen_new_sol_method(expr)
         end
     end
     code = quote
-        function $method_name(res::OptimizationResult{F,S}, sol::$(sol_type)) where {F,S}
+        function $method_name(res::OptimizationState{F,S}, sol::$(sol_type)) where {F,S}
             $max_len == 0 && return
             if $field === nothing
                 $define_array
@@ -261,7 +261,7 @@ end
 @gen_new_sol_method set, lp_dual, Dual
 
 
-function Base.print(io::IO, form::AbstractFormulation, res::OptimizationResult)
+function Base.print(io::IO, form::AbstractFormulation, res::OptimizationState)
     println(io, "┌ Optimization result ")
     println(io, "│ Termination status: ", res.termination_status)
     println(io, "│ Feasibility status: ", res.feasibility_status)

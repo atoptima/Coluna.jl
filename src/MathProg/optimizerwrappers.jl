@@ -43,7 +43,7 @@ function MoiResult(
     db = nothing, primal_sols = nothing, dual_sols = nothing
 ) where {M<:Coluna.Containers.AbstractModel}
     S = getobjsense(model)
-    return OptimizationResult{M,S}(
+    return OptimizationState{M,S}(
         ts, fs,
         pb === nothing ? PrimalBound(model) : pb,
         db === nothing ? DualBound(model) : db,

@@ -7,7 +7,7 @@ Base.@kwdef struct BendersCutGeneration <: AbstractOptimizationAlgorithm
 end
 
 mutable struct BendersCutGenRuntimeData
-    incumbents::OptimizationResult
+    incumbents::OptimizationState
     has_converged::Bool
     is_feasible::Bool
     spform_phase::Dict{FormId, FormulationPhase}
@@ -23,8 +23,8 @@ function all_sp_in_phase2(algdata::BendersCutGenRuntimeData)
     return true
 end
 
-function BendersCutGenRuntimeData(form::Reformulation, node_inc::OptimizationResult)
-    i = OptimizationResult(getmaster(form))
+function BendersCutGenRuntimeData(form::Reformulation, node_inc::OptimizationState)
+    i = OptimizationState(getmaster(form))
     if nb_ip_primal_sols(node_inc) > 0
         add_ip_primal_sol!(i, get_best_ip_primal_sol(node_inc))
     end
@@ -39,7 +39,7 @@ function run!(algo::BendersCutGeneration, reform::Reformulation, input::NewOptim
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
 
     runtime_res = data.incumbents
-    result = OptimizationResult(
+    result = OptimizationState(
         getmaster(reform),
         feasibility_status = data.is_feasible ? FEASIBLE : INFEASIBLE, 
         termination_status = data.has_converged ? OPTIMAL : OTHER_LIMIT,
