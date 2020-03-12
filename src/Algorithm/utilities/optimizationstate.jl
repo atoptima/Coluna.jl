@@ -35,12 +35,26 @@ function pushfirst(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {So
 end
 
 """
-    OptimizationResult{M,S}
-Structure to be returned by all Coluna `optimize!` methods.
+    OptimizationResult(
+        form; feasibility_status = UNKNOWN_FEASIBILITY, termination_status = NOT_YET_DETERMINED,
+        ip_primal_bound = nothing, ip_dual_bound = nothing, lp_primal_bound = nothing, lp_dual_bound = nothing,
+        max_length_ip_primal_sols = 1, max_length_lp_dual_sols = 1, max_length_lp_dual_sols = 1,
+        insert_function_ip_primal_sols = bestbound, insert_function_lp_primal_sols = bestbound, 
+        insert_function_lp_dual_sols = bestbound
+        )
 
-    OptimizationResult(model)
-
-Builds an empty OptimizationResult.
+A convenient structure to maintain and return solutions and bounds of a formulation `form` during an
+optimization process. The feasibility and termination statuses are considered as
+unknown by default. You can define the initial incumbent bounds using `ip_primal_bound`,
+`ip_dual_bound`, `lp_primal_bound`, and `lp_primal_bound` keyword arguments. Incumbent
+bounds are set to infinite (according to formulation objective sense) by default.
+You can store three types of solutions `ip_primal_sols`, `lp_primal_sols`, and `lp_dual_sols`.
+These solutions are stored in three lists. Keywords `max_length_ip_primal_sols`,
+`max_length_lp_primal_sols`, and `max_length_lp_dual_sols` let you define the maximum
+size of the lists. Keywords `insert_function_ip_primal_sols`, `insert_function_lp_primal_sols`,
+and `insert_function_lp_dual_sols` let you provide a function to define the way
+you want to insert a new solution in each list. By default, lists are sorted by
+best bound.
 """
 function OptimizationResult(
     form::F;

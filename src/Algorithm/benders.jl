@@ -490,10 +490,10 @@ function bend_cutting_plane_main_loop!(
             return 
         end
 
-        set_lp_dual_sol!(algdata.incumbents, master_dual_sol)
+        update_lp_dual_sol!(algdata.incumbents, master_dual_sol)
         dual_bound = get_lp_dual_bound(algdata.incumbents)
-        set_lp_dual_bound!(algdata.incumbents, dual_bound)
-        set_ip_dual_bound!(algdata.incumbents, dual_bound)
+        update_lp_dual_bound!(algdata.incumbents, dual_bound)
+        update_ip_dual_bound!(algdata.incumbents, dual_bound)
                 
         reset_benders_sp_phase!(algdata, reform) # phase = HybridPhase
 
@@ -515,7 +515,7 @@ function bend_cutting_plane_main_loop!(
             end
 
             # TODO: update bendcutgen stabilization
-            set_lp_primal_sol!(algdata.incumbents, master_primal_sol)
+            update_lp_primal_sol!(algdata.incumbents, master_primal_sol)
             set_lp_primal_bound!(algdata.incumbents, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
             
@@ -575,8 +575,7 @@ function bend_cutting_plane_main_loop!(
             end
         end
         if sol_integer
-            add_ip_primal_sol!(algdata.incumbents, master_primal_sol)
-            #add_ip_primal_bound!(algdata.incumbents, primal_bound)
+            update_ip_primal_sol!(algdata.incumbents, master_primal_sol)
         end
     end
     return 
