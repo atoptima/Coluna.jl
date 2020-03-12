@@ -24,7 +24,7 @@ struct SolveLpFormInput <: AbstractInput
 end
 
 function run!(algo::SolveLpForm, form::Formulation, input::SolveLpFormInput)::OptimizationOutput
-    algoresult = OptimizationResult(form)
+    algoresult = OptimizationState(form)
 
     if algo.relax_integrality
         relax_integrality!(form)

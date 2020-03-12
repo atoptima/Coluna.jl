@@ -48,7 +48,7 @@ mutable struct TreeSearchRuntimeData
     max_primary_tree_size::Int64
     secondary_tree::SearchTree
     tree_order::Int64
-    result::OptimizationResult
+    result::OptimizationState
     Sense::Type{<:Coluna.AbstractSense}
 end
 
@@ -221,7 +221,7 @@ end
 function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::NewOptimizationInput)::OptimizationOutput
     initresult = getinputresult(input)
 
-    res = OptimizationResult(getmaster(reform), initresult)
+    res = OptimizationState(getmaster(reform), initresult)
 
     data = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 0,

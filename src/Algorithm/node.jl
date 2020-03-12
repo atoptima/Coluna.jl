@@ -75,7 +75,7 @@ mutable struct Node #<: AbstractNode
     depth::Int
     parent::Union{Nothing, Node}
     #children::Vector{Node}
-    incumbent_result::OptimizationResult
+    incumbent_result::OptimizationState
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
     #algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
@@ -86,7 +86,7 @@ mutable struct Node #<: AbstractNode
     #status::FormulationStatus
 end
 
-function RootNode(incumbresult::OptimizationResult, skipconquer::Bool)
+function RootNode(incumbresult::OptimizationState, skipconquer::Bool)
     return Node(
         -1, false, 0, nothing, incumbresult, nothing,
         "", nothing, nothing, skipconquer, false
@@ -149,7 +149,7 @@ end
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
     node::Node, algo::AbstractConquerAlgorithm, 
-    reform::Reformulation, result::OptimizationResult
+    reform::Reformulation, result::OptimizationState
 )::OptimizationOutput
 
     node_inc_res = getincumbentresult(node)
