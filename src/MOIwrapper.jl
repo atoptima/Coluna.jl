@@ -15,7 +15,7 @@ const SupportedConstrSets = Union{MOI.EqualTo{Float64},
 
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
-    inner::Union{Nothing, Problem}
+    inner::Union{Nothing,Problem}
     moi_index_to_coluna_uid::MOIU.IndexMap
     params::Params
     annotations::Annotations
