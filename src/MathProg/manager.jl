@@ -13,11 +13,6 @@ const VarVarMatrix = MembersMatrix{VarId,VarId,Float64}
 # Define the semaphore of the dynamic sparse matrix using MathProg.Id as index
 DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
 
-const PrimalSolution{S} = Solution{Primal, S, Id{Variable}, Float64}
-const DualSolution{S} = Solution{Dual, S, Id{Constraint}, Float64}
-const PrimalBound{S} = Bound{Primal, S}
-const DualBound{S} = Bound{Dual, S}
-
 struct FormulationManager
     vars::VarDict
     constrs::ConstrDict

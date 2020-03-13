@@ -68,8 +68,8 @@ function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params
     println(_to)
     TO.reset_timer!(_to)
     @logmsg LogLevel(1) "Terminated"
-    @logmsg LogLevel(1) string("Primal bound: ", getprimalbound(opt_result))
-    @logmsg LogLevel(1) string("Dual bound: ", getdualbound(opt_result))
+    @logmsg LogLevel(1) string("Primal bound: ", get_ip_primal_bound(opt_result))
+    @logmsg LogLevel(1) string("Dual bound: ", get_ip_dual_bound(opt_result))
     return opt_result
 end
 
@@ -88,16 +88,32 @@ function optimize!(
         MP.initstorage(form, AL.getstoragetype(algotype))
     end
 
-    # TO DO : initial incumbents may be defined by the user
     master = getmaster(reform)
-    init_incumbents = Incumbents(master.obj_sense) 
-    set_ip_primal_bound!(init_incumbents, initial_primal_bound)
-    set_lp_dual_bound!(init_incumbents, initial_dual_bound)
+    init_result = OptimizationState(
+        master,
+        ip_primal_bound = initial_primal_bound,
+        ip_dual_bound = initial_dual_bound,
+        lp_dual_bound = initial_dual_bound
+    )
 
-    opt_result = AL.getresult(AL.run!(algorithm, reform, AL.OptimizationInput(init_incumbents)))
+    output = AL.run!(algorithm, reform, AL.NewOptimizationInput(init_result))
+    opt_result = AL.getresult(output)
+    
+    result = OptimizationState(
+        master, 
+        feasibility_status = getfeasibilitystatus(opt_result),
+        termination_status = getterminationstatus(opt_result),
+        ip_primal_bound = get_ip_primal_bound(opt_result),
+        ip_dual_bound = get_ip_dual_bound(opt_result),
+        lp_primal_bound = get_lp_primal_bound(opt_result),
+        lp_dual_bound = get_lp_dual_bound(opt_result)
+    )
 
-    for (idx, sol) in enumerate(getprimalsols(opt_result))
-        opt_result.primal_sols[idx] = proj_cols_on_rep(sol, master)
+    ip_primal_sols = get_ip_primal_sols(opt_result)
+    if ip_primal_sols !== nothing  
+        for sol in ip_primal_sols
+            add_ip_primal_sol!(result, proj_cols_on_rep(sol, master))
+        end
     end
-    return opt_result
+    return result
 end

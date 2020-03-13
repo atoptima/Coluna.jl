@@ -49,8 +49,7 @@ end
 function run!(algo::NoBranching, reform::Reformulation, input::DivideInput)::DivideOutput
     parent = getparent(input)
     parent_incumb = getincumbents(parent)
-    Sense = getsense(parent_incumb)
-    result = OptimizationResult{Sense}()
+    result = OptimizationState(getmaster(reform))
     return DivideOutput([], result)
 end
 
@@ -91,7 +90,7 @@ end
 
 function perform_strong_branching_with_phases!(
     algo::StrongBranching, reform::Reformulation, parent::Node, 
-    groups::Vector{BranchingGroup}, result::OptimizationResult
+    groups::Vector{BranchingGroup}, result::OptimizationState
 )
     for (phase_index, current_phase) in enumerate(algo.phases)
         nb_candidates_for_next_phase::Int64 = 1        
@@ -186,13 +185,12 @@ end
 
 function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput)::DivideOutput
     parent = getparent(input)
-    parent_incumb = getincumbents(parent)
-    sense = getsense(parent_incumb)
-    result = OptimizationResult{sense}()
-    setprimalbound!(result, input.ip_primal_bound)
-    setdualbound!(result, get_ip_dual_bound(parent_incumb))
+    parent_incumb_res = getincumbentresult(parent)
+    result = OptimizationState(getmaster(reform))
+    set_ip_primal_bound!(result, input.ip_primal_bound)
+    set_ip_dual_bound!(result, get_ip_dual_bound(parent_incumb_res))
     if isempty(algo.rules)
-        @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
+        @logmsg LogLevel(1) "No branching rule is defined. No children will be generated."
         return DivideOutput([], result)
     end
 
@@ -204,13 +202,18 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
 
     # we obtain the original and extended solutions
     master = getmaster(reform)
-    original_solution = PrimalSolution{sense}()
-    extended_solution = PrimalSolution{sense}()
-    if projection_is_possible(master)
-        extended_solution = get_lp_primal_sol(parent.incumbents)
-        original_solution = proj_cols_on_rep(extended_solution, master)
+    original_solution = PrimalSolution(getmaster(reform))
+    extended_solution = PrimalSolution(getmaster(reform))
+    if nb_lp_primal_sols(parent_incumb_res) > 0
+        if projection_is_possible(master)
+            extended_solution = get_best_lp_primal_sol(parent_incumb_res)
+            original_solution = proj_cols_on_rep(extended_solution, master)
+        else
+            original_solution = get_best_lp_primal_sol(parent_incumb_res)
+        end
     else
-        original_solution = get_lp_primal_sol(parent.incumbents)
+        @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
+        return DivideOutput(Vector{Node}(), result)
     end
 
     # phase 0 of branching : we ask branching rules to generate branching candidates
@@ -244,7 +247,7 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
         nb_candidates_found += length(output.groups)
         append!(kept_branch_groups, output.groups)
         local_id = output.local_id
-                                
+
         if projection_is_possible(master)
             output = run!(rule, reform, BranchingRuleInput(
                 extended_solution, false, nb_candidates_needed, algo.selection_criterion, local_id
@@ -264,9 +267,9 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
             resize!(kept_branch_groups, nb_candidates_needed)
         end
     end
-    
+
     if isempty(kept_branch_groups)
-        @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
+        @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
         return DivideOutput(Vector{Node}(), result)
     end
 

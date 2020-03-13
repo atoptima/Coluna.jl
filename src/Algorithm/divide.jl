@@ -19,11 +19,11 @@ getparent(input::DivideInput) = input.parent
 """
 struct DivideOutput <: AbstractOutput 
     children::Vector{Node}
-    result::OptimizationResult
+    result::OptimizationState
 end
 
 getchildren(output::DivideOutput)::Vector{Node} = output.children
-getresult(output::DivideOutput)::OptimizationResult = output.result
+getresult(output::DivideOutput)::OptimizationState = output.result
 
 """
     AbstractDivideAlgorithm

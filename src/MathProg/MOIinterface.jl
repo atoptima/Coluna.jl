@@ -195,14 +195,14 @@ function _getcolunakind(record::MoiVarRecord)
 end
 
 function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer, 
-                             result::OptimizationResult{S},
+                             result::MoiResult{<:Formulation,S},
                              ) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
-        pb = PrimalBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
+        solcost = MOI.get(inner, MOI.ObjectiveValue())
         solvars = Vector{VarId}()
         solvals = Vector{Float64}()
         for (id, var) in getvars(form)
@@ -218,30 +218,27 @@ function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
                 push!(solvals, val)
             end
         end
-        push!(result.primal_sols, PrimalSolution{S}(solvars, solvals, pb))
-    end
-    result.primal_bound = PrimalBound{S}()
-    if nbprimalsols(result) > 0
-        result.primal_bound = getbound(unsafe_getbestprimalsol(result))
+        add_primal_sol!(result, PrimalSolution(form, solvars, solvals, solcost))
     end
     @logmsg LogLevel(-2) string("Primal bound is ", getprimalbound(result))
     return
 end
 
-function fill_dual_result!(optimizer::MoiOptimizer,
-                           result::OptimizationResult{S},
-                           constrs::ConstrDict) where {S<:Coluna.AbstractSense}
+function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
+                           result::MoiResult{<:Formulation,S}
+                           ) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
-        db = DualBound{S}(MOI.get(inner, MOI.ObjectiveValue()))
+        solcost = MOI.get(inner, MOI.ObjectiveValue())
         solconstrs = Vector{ConstrId}()
         solvals = Vector{Float64}()
         # Getting dual bound is not stable in some solvers. 
         # Getting primal bound instead, which will work for lps
-        for (id, constr) in constrs
+        for (id, constr) in getconstrs(form)
+            iscuractive(form, id) && iscurexplicit(form, id) || continue
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
             val = round(val, digits = Coluna._params_.tol_digits)
@@ -251,11 +248,7 @@ function fill_dual_result!(optimizer::MoiOptimizer,
                 push!(solvals, val)      
             end
         end
-        push!(result.dual_sols, DualSolution{S}(solconstrs, solvals, db))
-    end
-    result.dual_bound = DualBound{S}()
-    if nbdualsols(result) > 0
-        result.dual_bound = getbound(unsafe_getbestdualsol(result))
+        add_dual_sol!(result, DualSolution(form, solconstrs, solvals, solcost))
     end
     @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return

@@ -257,7 +257,7 @@ function _setiscuractive!(form::Formulation, constrid::ConstrId, is_active::Bool
     return
 end
 
-"Activates a variable in the formulation"
+"Activate a variable in the formulation"
 function activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
     if iscurexplicit(form, varconstrid)
         add!(form.buffer, varconstrid)
@@ -267,20 +267,18 @@ function activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVa
 end
 activate!(form::Formulation, varconstr::AbstractVarConstr) = activate!(form, getid(varconstr))
 
-function activate!(form::Formulation, duty::Duty{Variable})
+function activate!(form::Formulation, f::Function)
     for (varid, _) in getvars(form)
-        if iscuractive(form, varid) && getduty(varid) <= duty
+        if iscuractive(form, varid) && f(varid)
             activate!(form, varid)
         end
     end
-end
-
-function activate!(form::Formulation, duty::Duty{Constraint})
     for (constrid, _) in getconstrs(form)
-        if iscuractive(form, constrid) && getduty(constrid) <= duty
+        if iscuractive(form, constrid) && f(constrid)
             activate!(form, constrid)
         end
     end
+    return
 end
 
 """
@@ -295,24 +293,19 @@ function deactivate!(form::Formulation, varconstrid::Id{VC}) where {VC<:Abstract
 end
 deactivate!(form::Formulation, varconstr::AbstractVarConstr) = deactivate!(form, getid(varconstr))
 
-function deactivate!(form::Formulation, duty::Duty{Variable})
+function deactivate!(form::Formulation, f::Function)
     for (varid, _) in getvars(form)
-        if iscuractive(form, varid) && getduty(varid) <= duty
+        if iscuractive(form, varid) && f(varid)
             deactivate!(form, varid)
         end
     end
-    return
-end
-
-function deactivate!(form::Formulation, duty::Duty{Constraint})
     for (constrid, _) in getconstrs(form)
-        if iscuractive(form, constrid) && getduty(constrid) <= duty
+        if iscuractive(form, constrid) && f(constrid)
             deactivate!(form, constrid)
         end
     end
     return
 end
-
 
 ## explicit
 """
