@@ -77,9 +77,10 @@ who make Coluna possible.
 
 ## Acknowledgments
 
-[**AtOptima**](https://atoptima.com/)
-
 The plateform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/)
 
-[**Université de Bordeaux**](https://www.u-bordeaux.fr/)
+[**Atoptima**](https://atoptima.com/)
 
+[**University of Bordeaux**](https://www.u-bordeaux.fr/)
+
+[**Inria**](https://www.inria.fr/fr)
