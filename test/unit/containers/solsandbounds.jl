@@ -204,29 +204,23 @@ function test_solution_iterations(solution::Coluna.Containers.Solution, dict::Di
     return
 end
 
+struct FakeModel <: Coluna.Containers.AbstractModel end
+
 function solution_unit()
     Primal = Coluna.AbstractPrimalSpace
     Dual = Coluna.AbstractDualSpace
     MinSense = Coluna.AbstractMinSense
     MaxSense = Coluna.AbstractMaxSense
 
-    PrimalSolution{S} = Coluna.Containers.Solution{Primal,S,Int,Float64}
-    DualSolution{S} = Coluna.Containers.Solution{Dual,S,Int,Float64}
+    model = FakeModel()
+
+    Solution = Coluna.Containers.Solution{FakeModel,Int,Float64}
 
     dict_sol, soldecs, solvals = fake_solution_factory(100)
-    primal_sol = PrimalSolution{MinSense}(soldecs, solvals, 12.3)
+    primal_sol = Solution(model, soldecs, solvals, 12.3)
     test_solution_iterations(primal_sol, dict_sol)
     @test Coluna.Containers.getvalue(primal_sol) == 12.3
-    Coluna.Containers.setvalue!(primal_sol, 123.4)
-    @test Coluna.Containers.getvalue(primal_sol) == 123.4
-    @test typeof(Coluna.Containers.getbound(primal_sol)) == Coluna.Containers.Bound{Primal,MinSense}
-    
-    dict_sol, soldecs, solvals = fake_solution_factory(100)
-    dual_sol = DualSolution{MaxSense}(soldecs, solvals, 32.1)
-    test_solution_iterations(dual_sol, dict_sol)
-    @test Coluna.Containers.getvalue(dual_sol) == 32.1
-    Coluna.Containers.setvalue!(dual_sol, 432.1)
-    @test Coluna.Containers.getvalue(dual_sol) == 432.1
-    @test typeof(Coluna.Containers.getbound(dual_sol)) == Coluna.Containers.Bound{Dual,MaxSense}
+    #Coluna.Containers.setvalue!(primal_sol, 123.4)
+    #@test Coluna.Containers.getvalue(primal_sol) == 123.4
     return
 end

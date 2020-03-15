@@ -137,8 +137,8 @@ function _addvar!(form::Formulation, var::Variable)
 end
 
 function _addprimalsol!(
-    form::Formulation, sol_id::VarId, sol::PrimalSolution{S}, cost::Float64
-) where {S<:Coluna.AbstractSense}
+    form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64
+)
     for (var_id, var_val) in sol
         var = form.manager.vars[var_id]
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
@@ -151,8 +151,8 @@ end
 
 function setprimalsol!(
     form::Formulation,
-    new_primal_sol::PrimalSolution{S}
-)::Tuple{Bool,VarId} where {S<:Coluna.AbstractSense}
+    new_primal_sol::PrimalSolution
+)::Tuple{Bool,VarId}
     primal_sols = getprimalsolmatrix(form)
     primal_sol_costs = getprimalsolcosts(form)
     
@@ -179,9 +179,9 @@ end
 
 function _adddualsol!(
     form::Formulation,
-    dualsol::DualSolution{S},
+    dualsol::DualSolution,
     dualsol_id::ConstrId
-    ) where {S<:Coluna.AbstractSense} 
+    )
     
     rhs = 0.0
     for (constrid, constrval) in dualsol
@@ -197,16 +197,16 @@ end
 
 function setdualsol!(
     form::Formulation,
-    new_dual_sol::DualSolution{S}
-)::Tuple{Bool,ConstrId} where {S<:Coluna.AbstractSense}
+    new_dual_sol::DualSolution
+)::Tuple{Bool,ConstrId}
     ### check if dualsol exists  take place here along the coeff update
     dual_sols = getdualsolmatrix(form)
     dual_sol_rhss = getdualsolrhss(form)
     
     for (cur_sol_id, cur_rhs) in dual_sol_rhss
         factor = 1.0
-        if getbound(new_dual_sol) != cur_rhs
-            factor = cur_rhs / getbound(new_dual_sol)
+        if getvalue(new_dual_sol) != cur_rhs
+            factor = cur_rhs / getvalue(new_dual_sol)
         end
 
         # TODO : implement broadcasting for PMA in DynamicSparseArrays
@@ -435,7 +435,7 @@ function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, 
     return val
 end
 
-function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution{S})  where {S<:Coluna.AbstractSense}
+function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)
     redcost = getperenecost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
     sign = 1
@@ -449,7 +449,7 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
     return redcost
 end
 
-function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution{S})  where {S<:Coluna.AbstractSense}
+function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution)
     constrrhs = getperenerhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol
@@ -464,10 +464,7 @@ function optimize!(form::Formulation)
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
     res = optimize!(form, getoptimizer(form))
-    @logmsg LogLevel(-2) begin 
-        string("Optimization finished with result:")
-        print(form, res)
-    end
+    @logmsg LogLevel(-2) "Optimization finished with result:" print(form, res)
     return res
 end
 

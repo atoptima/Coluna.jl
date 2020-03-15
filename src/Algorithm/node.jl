@@ -75,7 +75,7 @@ mutable struct Node #<: AbstractNode
     depth::Int
     parent::Union{Nothing, Node}
     #children::Vector{Node}
-    incumbents::Incumbents
+    incumbent_result::OptimizationState
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
     #algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
@@ -86,21 +86,22 @@ mutable struct Node #<: AbstractNode
     #status::FormulationStatus
 end
 
-function RootNode(incumb::Incumbents, skipconquer::Bool)
+function RootNode(incumbresult::OptimizationState, skipconquer::Bool)
     return Node(
-        -1, false, 0, nothing, incumb, nothing,
+        -1, false, 0, nothing, incumbresult, nothing,
         "", nothing, nothing, skipconquer, false
     )
 end
 
 function Node(parent::Node, branch::Branch, branchdescription::String)
     depth = getdepth(parent) + 1
-    incumbents = deepcopy(getincumbents(parent))
+    inc_res = deepcopy(getincumbentresult(parent))
     # Resetting lp primals because the lp can get worse during the algorithms,
     # thus not being updated in the node and breaking the branching
-    incumbents.lp_primal_sol = typeof(incumbents.lp_primal_sol)()
+    inc_res.lp_primal_sols = nothing
+    
     return Node(
-        -1, false, depth, parent, incumbents, branch, branchdescription, 
+        -1, false, depth, parent, inc_res, branch, branchdescription, 
         parent.conquerrecord, parent.dividerecord, false, false
     )
 end
@@ -109,9 +110,9 @@ end
 # used in strong branching
 function Node(parent::Node, child::Node)
     depth = getdepth(parent) + 1
-    incumbents = deepcopy(getincumbents(child))
+    inc_res = deepcopy(getincumbentresult(child))
     return Node(
-        -1, false, depth, parent, incumbents, nothing, child.branchdescription,
+        -1, false, depth, parent, inc_res, nothing, child.branchdescription,
         child.conquerrecord, child.dividerecord, false, false
     )
 end
@@ -121,7 +122,8 @@ set_tree_order!(n::Node, tree_order::Int) = n.tree_order = tree_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
-getincumbents(n::Node) = n.incumbents
+getincumbents(n::Node) = n.incumbent_result.incumbents
+getincumbentresult(n::Node) = n.incumbent_result
 getbranch(n::Node) = n.branch
 addchild!(n::Node, child::Node) = push!(n.children, child)
 settreated!(n::Node) = n.istreated = true
@@ -130,28 +132,31 @@ isrootnode(n::Node) = n.tree_order == 1
 getinfeasible(n::Node) = n.infesible
 setinfeasible(n::Node, status::Bool) = n.infeasible = status
 
-function to_be_pruned(n::Node)
-    n.infeasible && return true
-    ip_gap(n.incumbents) <= 0.0000001 && return true
-    return false
+function to_be_pruned(node::Node)
+    node.infeasible && return true
+    incres = getincumbentresult(node)
+    bounds_ratio = get_ip_primal_bound(incres) / get_ip_dual_bound(incres)
+    return isapprox(bounds_ratio, 1) || ip_gap(incres) < 0
 end
 
-function to_be_pruned(n::Node, ip_primal_bound::PrimalBound)
-    n.infeasible && return true
-    gap(ip_primal_bound, get_ip_dual_bound(n.incumbents)) <= 0.0000001 && return true
-    return false
+function to_be_pruned(node::Node, ip_primal_bound::PrimalBound)
+    node.infeasible && return true
+    incres = getincumbentresult(node)
+    bounds_ratio = ip_primal_bound / get_ip_dual_bound(incres)
+    return isapprox(bounds_ratio, 1) || ip_gap(incres) < 0
 end
-
 
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
     node::Node, algo::AbstractConquerAlgorithm, 
-    reform::Reformulation, result::OptimizationResult
+    reform::Reformulation, result::OptimizationState
 )::OptimizationOutput
 
-    node_incumbents = getincumbents(node)
+    node_inc_res = getincumbentresult(node)
 
-    update_ip_primal_bound!(node_incumbents, getprimalbound(result))
+    # should reset lp bound here ? Maybe in the Node constructor ?
+    update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(result))
+    set_lp_primal_bound!(node_inc_res, PrimalBound(getmaster(reform)))
     
     if isverbose(algo)
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(node)))
@@ -162,7 +167,7 @@ function apply_conquer_alg_to_node!(
             "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
         )
         node.conquerrecord = nothing
-        return OptimizationOutput(getincumbents(node))
+        return OptimizationOutput(getincumbentresult(node))
     end
     isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
@@ -173,7 +178,7 @@ function apply_conquer_alg_to_node!(
     apply_branch!(reform, getbranch(node))
 
     conqueroutput = run!(
-        algo, reform, ConquerInput(node_incumbents, isrootnode(node))
+        algo, reform, ConquerInput(getincumbentresult(node), isrootnode(node))
     )
 
     node.conquerwasrun = true
@@ -181,19 +186,26 @@ function apply_conquer_alg_to_node!(
     # update of node incumbents
     optoutput = getoptoutput(conqueroutput)
 
-    update_ip_dual_bound!(node_incumbents, getdualbound(getresult(optoutput)))
-    update_ip_primal_bound!(node_incumbents, getprimalbound(getresult(optoutput)))
-    update_lp_dual_bound!(node_incumbents, get_lp_dual_bound(optoutput))
-    update_lp_primal_sol!(node_incumbents, get_lp_primal_sol(optoutput))    
-
     # update of tree search algorithm primal solutions 
-    for primal_sol in getprimalsols(getresult(optoutput))
-        add_primal_sol!(result, deepcopy(primal_sol))
-    end        
-    !isfeasible(getresult(optoutput)) && setinfeasible(node, true)
+    optoutputres = getresult(optoutput)
+    if nb_ip_primal_sols(optoutputres) > 0
+        for ip_primal_sol in get_ip_primal_sols(optoutputres)
+            add_ip_primal_sol!(result, deepcopy(ip_primal_sol))
+        end    
+    end    
+    !isfeasible(optoutputres) && setinfeasible(node, true)
     if !to_be_pruned(node) 
         node.conquerrecord = getrecord(conqueroutput)
     end
 
+    update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(optoutputres))
+    update_ip_dual_bound!(node_inc_res, get_ip_dual_bound(optoutputres))
+    update_lp_primal_bound!(node_inc_res, get_lp_primal_bound(optoutputres))
+    update_lp_dual_bound!(node_inc_res, get_lp_dual_bound(optoutputres))
+
+    if nb_lp_primal_sols(optoutputres) > 0
+        add_lp_primal_sol!(node_inc_res, get_best_lp_primal_sol(optoutputres))
+        #set_lp_primal_bound!(node_inc_res, get_lp_primal_bound(optoutputres))
+    end
     return optoutput
 end

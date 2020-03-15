@@ -15,12 +15,12 @@ const SupportedConstrSets = Union{MOI.EqualTo{Float64},
 
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
-    inner::Union{Nothing, Problem}
+    inner::Union{Nothing,Problem}
     moi_index_to_coluna_uid::MOIU.IndexMap
     params::Params
     annotations::Annotations
     varmap::Dict{MOI.VariableIndex,VarId} # For the user to get VariablePrimal
-    result::OptimizationResult
+    result::Union{Nothing,OptimizationState}
 end
 
 setinnerprob!(o::Optimizer, prob::Problem) = o.inner = prob
@@ -42,7 +42,7 @@ function Optimizer()
     prob = Problem()
     return Optimizer(
         prob, MOIU.IndexMap(), Params(), Annotations(),
-        Dict{MOI.VariableIndex,VarId}(), OptimizationResult{MinSense}(),
+        Dict{MOI.VariableIndex,VarId}(), nothing
     )
 end
 
@@ -254,24 +254,32 @@ function MOI.is_empty(optimizer::Optimizer)
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.ObjectiveBound)
-    return getvalue(getprimalbound(optimizer.result))
+    return getvalue(get_ip_dual_bound(optimizer.result))
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.ObjectiveValue)
-    return getvalue(getprimalbound(optimizer.result))
+    return getvalue(get_ip_primal_bound(optimizer.result))
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
                  ref::MOI.VariableIndex)
     id = optimizer.varmap[ref] # This gets a coluna Id{Variable}
-    var_val_dict = unsafe_getbestprimalsol(optimizer.result)
-    return get(var_val_dict, id, 0.0)
+    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
+    if best_primal_sol === nothing
+        @warn "Coluna did not find a primal feasible solution."
+        return NaN
+    end
+    return get(best_primal_sol, id, 0.0)
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.VariablePrimal,
                  refs::Vector{MOI.VariableIndex})
-    var_val_dict = unsafe_getbestprimalsol(optimizer.result)
-    return [get(var_val_dict, optimizer.varmap[ref], 0.0) for ref in refs]
+    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
+    if best_primal_sol === nothing
+        @warn "Coluna did not find a primal feasible solution."
+        return [NaN for ref in refs]
+    end
+    return [get(best_primal_sol, optimizer.varmap[ref], 0.0) for ref in refs]
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.TerminationStatus)

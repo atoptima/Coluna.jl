@@ -29,8 +29,10 @@ include("constraint.jl")
 include("duties.jl")
 include("varconstr.jl") # to rm
 include("manager.jl")
+include("bounds.jl")
+include("solutions.jl")
+include("incumbents.jl") # to rm
 include("optimizationresults.jl")
-include("incumbents.jl")
 include("buffer.jl")
 include("formulation.jl")
 include("new_varconstr.jl") 
@@ -45,38 +47,34 @@ include("MOIinterface.jl")
 # TODO : clean up
 # Types
 export AbstractFormulation, MaxSense, MinSense, MoiOptimizer, VarMembership, 
-       Variable, Constraint, OptimizationResult, VarDict,
+       Variable, Constraint, VarDict,
        ConstrDict, Id, ConstrSense, VarSense, Formulation, Reformulation, VarId,
-       ConstrId, Incumbents, DualSolution, PrimalSolution,
-       PrimalBound, DualBound, FormId, FormulationPhase, Problem, Annotations,
-       Original, Counter, UserOptimizer, MoiObjective, PrimalSolVector
+       ConstrId,
+        FormId, FormulationPhase, Problem, Annotations,
+       Original, Counter, UserOptimizer, MoiObjective, PrimalSolVector, MoiResult
 
 export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
 
 # Methods
 export no_optimizer_builder, set_original_formulation!,
        getid, store!, getuid,
-       getsense,
-       register_objective_sense!, nbprimalsols, ip_gap, getdualbound,
-       getprimalbound, get_ip_dual_bound,
-       enforce_integrality!, relax_integrality!, update_ip_primal_sol!,
-       getobjsense, getoptimizer, getbestprimalsol, get_ip_primal_bound, get_ip_primal_sol,
-       add_primal_sol!, setdualbound!, determine_statuses,
-       isfeasible, getterminationstatus, getfeasibilitystatus,
-       getprimalsols, getdualsols, update_lp_primal_sol!,
+       register_objective_sense!, nbprimalsols, getdualbound,
+       getprimalbound,
+       enforce_integrality!, relax_integrality!, 
+       getobjsense, getoptimizer, getbestprimalsol,
+       add_primal_sol!, setdualbound!,
+       getprimalsols, getdualsols,
        computereducedcost,
        update_ip_dual_bound!, update_lp_dual_bound!,
        get_lp_primal_bound, update!,
-       convert_status, getduty, getbestdualsol, update_lp_dual_sol!,
-       get_lp_dual_bound,
+       convert_status, getduty, getbestdualsol, 
        computereducedrhs, 
        unsafe_getbestprimalsol,
-       set_lp_primal_bound!, update_ip_primal_bound!,
         find_owner_formulation,
-       setfeasibilitystatus!, setterminationstatus!, get_dw_pricing_sps, 
+        get_dw_pricing_sps, 
        getsortuid,
        get_benders_sep_sps,
-       contains, set_ip_primal_bound!, set_lp_dual_bound!
+       contains
 
 # Below this line, clean up has been done :
 export reformulate!, optimize!
@@ -134,6 +132,47 @@ export getperenecost,
        setiscurexplicit!,
        getname,
        reset!
+
+# methods related to solutions & bounds
+export PrimalBound, DualBound, PrimalSolution, DualSolution, 
+       OptimizationState, ObjValues
+
+export getterminationstatus,
+       getfeasibilitystatus,
+       setterminationstatus!,
+       setfeasibilitystatus!,
+       isfeasible,
+       get_ip_primal_bound,
+       get_lp_primal_bound,
+       get_ip_dual_bound,
+       get_lp_dual_bound,
+       update_ip_primal_bound!,
+       update_lp_primal_bound!,
+       update_ip_dual_bound!,
+       update_lp_dual_bound!, 
+       set_ip_primal_bound!,
+       set_lp_primal_bound!,
+       set_ip_dual_bound!,
+       set_lp_dual_bound!,
+       ip_gap,    
+       nb_ip_primal_sols,
+       nb_lp_primal_sols,
+       nb_lp_dual_sols,
+       get_ip_primal_sols,
+       get_best_ip_primal_sol,
+       get_lp_primal_sols,
+       get_best_lp_primal_sol,
+       get_lp_dual_sols,
+       get_best_lp_dual_sol,
+       update_ip_primal_sol!,
+       update_lp_primal_sol!,
+       update_lp_dual_sol!,
+       add_ip_primal_sol!,
+       add_lp_primal_sol!,
+       add_lp_dual_sol!,
+       set_ip_primal_sol!,
+       set_lp_primal_sol!,
+       set_lp_dual_sol!
 
 # methods related to projections
 export projection_is_possible, proj_cols_on_rep
