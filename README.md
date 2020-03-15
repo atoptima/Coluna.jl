@@ -10,11 +10,17 @@
 
 
 Coluna is a branch-and-price-and-cut framework written in Julia. 
-The user introduces an original MIP that model his problem using the [JuMP](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
-[BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl). Then, Coluna reformulates the original MIP and optimizes the reformulation using the algorithms chosen by the user. 
-Coluna aims to be very modular and tweakable so that any user can define the behavior of his customized branch-and-price-and-cut algorithm. 
+The user introduces an original MIP that model his problem using the 
+[JuMP](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension 
+[BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl) that offers a syntax 
+to specify the problem decomposition. Then, Coluna reformulates the original MIP and 
+optimizes the reformulation using the algorithms chosen by the user. 
+Coluna aims to be very modular and tweakable so that any user can define the behavior of
+his customized branch-and-price-and-cut algorithm. 
 
 ## Installation
+
+Coluna is package for Julia 1.0+
 
 You can install Coluna through the Julia package manager: 
 
@@ -22,10 +28,9 @@ You can install Coluna through the Julia package manager:
    ] add Coluna
 ```
 
-Then, read the [documentation](https://atoptima.github.io/Coluna.jl/stable) and
-start use Coluna.
+See the [documentation](https://atoptima.github.io/Coluna.jl/stable) for examples.
 
-If you are working with the development version, read this [documentation](https://atoptima.github.io/Coluna.jl/latest).
+If you are working with the development version, you may want to check the [dev documentation](https://atoptima.github.io/Coluna.jl/latest).
 
 ## Features
 
@@ -59,7 +64,10 @@ bug or something unexpected happens while using Coluna, please open an issue via
 the GitHub issues tracker or chat with us on the 
 [discord](https://discord.gg/cg77wFW) dedicated to Coluna.
 
-You can also suggest new features or ways to improve the package.
+You can suggest new features or ways to improve the package.
+
+You can also suggest new models in [ColunaDemos](https://github.com/atoptima/ColunaDemos.jl)
+for tests and benchmarks.
 
 You want to fix some bugs or code new features ? Let us know and we will help 
 you!
