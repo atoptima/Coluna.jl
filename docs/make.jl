@@ -2,14 +2,15 @@ using Documenter, Coluna
 
 makedocs(
     modules = [Coluna],
-    sitename = "Coluna",
+    checkdocs = :exports,
+    sitename = "Coluna User Guide",
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
     ),
-    pages    = Any[
-        "Home"   => "index.md",
-        "Installation"   => "installation.md",
-        "Quick start"   => "start.md"
+    pages = Any[
+        "Introduction"   => "index.md",
+        "Getting started"   => "user/start.md",
+        "Callbacks"   => "user/callbacks.md"
     ]
 )
 
