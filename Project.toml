@@ -20,6 +20,7 @@ BlockDecomposition = "1.2.0"
 DataStructures = "0.17"
 DynamicSparseArrays = "0.2.2"
 MathOptInterface = "0.9"
+Primes = "0.4"
 TimerOutputs = "0.5"
 julia = "1"
 
