@@ -13,15 +13,31 @@ function create_local_art_vars!(masterform::Formulation)
     cost = Cl._params_.local_art_var_cost
     cost *= getobjsense(masterform) == MinSense ? 1.0 : -1.0
     for (constrid, constr) in getconstrs(masterform)
-        name = string("local_art_of_", getname(masterform, constr))
-        var = setvar!(
-            masterform, name, MasterArtVar;
-            cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-        )
-        if getcursense(masterform, constr) == Greater
-            matrix[constrid, getid(var)] = 1.0
-        elseif getcursense(masterform, constr) == Less
-            matrix[constrid, getid(var)] = -1.0
+        constrname = getname(masterform, constr)
+        if getcursense(masterform, constr) == Equal 
+            name1 = string("local_art_of_", constrname, "1")
+            name2 = string("local_art_of_", constrname, "2")
+            var1 = setvar!(
+                masterform, name1, MasterArtVar;
+                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+            )
+            var2 = setvar!(
+                masterform, name1, MasterArtVar;
+                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+            )
+            matrix[constrid, getid(var1)] = 1.0
+            matrix[constrid, getid(var2)] = -1.0
+        else
+            name = string("local_art_of_", constrname)
+            var = setvar!(
+                masterform, name, MasterArtVar;
+                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+            )
+            if getcursense(masterform, constr) == Greater
+                matrix[constrid, getid(var)] = 1.0
+            elseif getcursense(masterform, constr) == Less
+                matrix[constrid, getid(var)] = -1.0
+            end
         end
     end
     return
@@ -37,6 +53,9 @@ function create_global_art_vars!(masterform::Formulation)
         if getcursense(masterform, constr) == Greater
             matrix[constrid, getid(global_pos)] = 1.0
         elseif getcursense(masterform, constr) == Less
+            matrix[constrid, getid(global_neg)] = -1.0
+        else # Equal
+            matrix[constrid, getid(global_pos)] = 1.0
             matrix[constrid, getid(global_neg)] = -1.0
         end
     end
