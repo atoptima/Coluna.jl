@@ -2,12 +2,6 @@ function masteripheur_tests()
     infeasible_master_ip_heur_tests()
 end
 
-function ClA.run!(alg::ClA.SolveIpForm, reform::ClMP.Reformulation, input::ClA.NewOptimizationInput)
-    master = ClMP.getmaster(reform)
-    ipforminput = ClA.SolveIpFormInput(ClMP.ObjValues(master))
-    return ClA.run!(alg, master, ipforminput)
-end
-
 function infeasible_master_ip_heur_tests()
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")

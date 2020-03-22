@@ -98,3 +98,9 @@ end
 function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Formulation)
     return optimize!(form)
 end
+
+function run!(alg::SolveIpForm, reform::Reformulation, input::NewOptimizationInput)
+    master = getmaster(reform)
+    ipforminput = SolveIpFormInput(ObjValues(master))
+    return run!(alg, master, ipforminput)
+end
