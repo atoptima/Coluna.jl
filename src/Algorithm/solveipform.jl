@@ -26,10 +26,10 @@ end
 # end
 
 function run!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInput)::OptimizationOutput
-    logger = ConsoleLogger(stderr, LogLevel(algo.log_level))
-    with_logger(logger) do
+    #logger = ConsoleLogger(stderr, LogLevel(algo.log_level))
+    #with_logger(logger) do
         return run_ipform!(algo, form, input)
-    end
+    #end
 end
 
 function run_ipform!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInput)::OptimizationOutput
