@@ -15,7 +15,7 @@ global const MOIU = MathOptInterface.Utilities
 global const TO = TimerOutputs
 
 # submodules
-export Containers, MathProg, Algorithm
+export ColunaBase, MathProg, Algorithm
 
 # parameters
 export Parameters, DefaultOptimizer
@@ -29,16 +29,14 @@ include("interface.jl")
 include("parameters.jl")
 global const _params_ = Params()
 
-include("Containers/Containers.jl")
-using .Containers
+include("ColunaBase/ColunaBase.jl")
+using .ColunaBase
 
 include("MathProg/MathProg.jl")
 using .MathProg
-const MP = MathProg
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm
-const AL = Algorithm
 
 include("optimize.jl")
 

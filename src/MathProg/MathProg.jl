@@ -7,7 +7,7 @@ import TimerOutputs
 
 import ..Coluna # for NestedEnum (types.jl:210)
 using ..Coluna: iterate # to be deleted
-using ..Containers
+using ..ColunaBase
 
 import Base: haskey, length, iterate, diff
 

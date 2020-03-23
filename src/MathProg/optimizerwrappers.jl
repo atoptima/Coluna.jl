@@ -29,7 +29,7 @@ mutable struct MoiResult{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     dual_sols::Vector{DualSolution{F}}
 end
 
-function MoiResult(model::M) where {M<:Coluna.Containers.AbstractModel}
+function MoiResult(model::M) where {M<:AbstractModel}
     S = getobjsense(model)
     return MoiResult{M,S}(
         NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound(model),
@@ -41,7 +41,7 @@ end
 function MoiResult(
     model::M, ts::TerminationStatus, fs::FeasibilityStatus; pb = nothing,
     db = nothing, primal_sols = nothing, dual_sols = nothing
-) where {M<:Coluna.Containers.AbstractModel}
+) where {M<:AbstractModel}
     S = getobjsense(model)
     return OptimizationState{M,S}(
         ts, fs,
@@ -73,7 +73,7 @@ setprimalbound!(res::MoiResult, b::PrimalBound) = res.primal_bound = b
 setdualbound!(res::MoiResult, b::DualBound) = res.dual_bound = b
 setterminationstatus!(res::MoiResult, status::TerminationStatus) = res.termination_status = status
 setfeasibilitystatus!(res::MoiResult, status::FeasibilityStatus) = res.feasibility_status = status
-Containers.gap(res::MoiResult) = gap(getprimalbound(res), getdualbound(res))
+gap(res::MoiResult) = gap(getprimalbound(res), getdualbound(res))
 
 function add_primal_sol!(res::MoiResult{M,S}, solution::PrimalSolution{M}) where {M,S}
     push!(res.primal_sols, solution)

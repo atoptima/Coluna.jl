@@ -1,22 +1,21 @@
-module Containers
+module ColunaBase
 
 using DynamicSparseArrays
-
-import ..Coluna
 
 import Base
 import Primes
 import Printf
 
 # interface.jl
-export AbstractModel, AbstractProblem             
+export AbstractModel, AbstractProblem, AbstractSense, AbstractMinSense, AbstractMaxSense,
+    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, AbstractAlgorithm, AbstractInput, 
+    AbstractOutput, run!           
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
 
 # solsandbounds.jl
-export Bound, Solution,
-       getvalue, isbetter, diff, gap, printbounds, getbound, getsol, setvalue!
+export Bound, Solution, getvalue, isbetter, diff, gap, printbounds, getsol
 
 # members.jl
 export MembersMatrix

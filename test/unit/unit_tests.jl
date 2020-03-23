@@ -38,7 +38,7 @@ include("incumbents.jl")
 # include("bbtree.jl")
 
 function unit_tests()
-    @testset "Containers submodule" begin
+    @testset "ColunaBase submodule" begin
         nestedenum_unit()
         bound_unit()
         solution_unit()

@@ -3,12 +3,12 @@ const DualBound{S} = Bound{Dual, S}
 
 function PrimalBound(form::AbstractFormulation)
     Se = getobjsense(form)
-    return Coluna.Containers.Bound{Primal,Se}()
+    return Bound{Primal,Se}()
 end
 
 function PrimalBound(form::AbstractFormulation, val::Float64)
     Se = getobjsense(form)
-    return Coluna.Containers.Bound{Primal,Se}(val)
+    return Bound{Primal,Se}(val)
 end
 
 function PrimalBound(form::AbstractFormulation, pb::PrimalBound{S}) where {S}
@@ -20,17 +20,17 @@ function PrimalBound(form::AbstractFormulation, pb::PrimalBound{S}) where {S}
         """
         error(msg)
     end
-    return Coluna.Containers.Bound{Primal,Se}(getvalue(pb))
+    return Bound{Primal,Se}(getvalue(pb))
 end
 
 function DualBound(form::AbstractFormulation)
     Se = getobjsense(form)
-    return Coluna.Containers.Bound{Dual,Se}()
+    return Bound{Dual,Se}()
 end
 
 function DualBound(form::AbstractFormulation, val::Float64)
     Se = getobjsense(form)
-    return Coluna.Containers.Bound{Dual,Se}(val)
+    return Bound{Dual,Se}(val)
 end
 
 function DualBound(form::AbstractFormulation, db::DualBound{S}) where {S}
@@ -42,7 +42,7 @@ function DualBound(form::AbstractFormulation, db::DualBound{S}) where {S}
         """
         error(msg)
     end
-    return Coluna.Containers.Bound{Dual,Se}(getvalue(db))
+    return Bound{Dual,Se}(getvalue(db))
 end
 
 valueinminsense(b::PrimalBound{MinSense}) = b.value

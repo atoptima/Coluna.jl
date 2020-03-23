@@ -1,12 +1,11 @@
 # alias only used in this file
-const Primal = Coluna.AbstractPrimalSpace
-const Dual = Coluna.AbstractDualSpace
-const MinSense = Coluna.AbstractMinSense
-const MaxSense = Coluna.AbstractMaxSense
-
+const Primal = AbstractPrimalSpace
+const Dual = AbstractDualSpace
+const MinSense = AbstractMinSense
+const MaxSense = AbstractMaxSense
 
 # Bounds
-struct Bound{Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense} <: Real
+struct Bound{Space<:AbstractSpace,Sense<:AbstractSense} <: Real
     value::Float64
     Bound{Space,Sense}(x::Number) where {Space,Sense} = new(x === NaN ? _defaultboundvalue(Space, Sense) : x)
 end
@@ -21,7 +20,7 @@ _defaultboundvalue(::Type{<:Dual}, ::Type{<:MaxSense}) = Inf
 
 doc todo
 """
-function Bound{Space,Sense}() where {Space<:Coluna.AbstractSpace,Sense<:Coluna.AbstractSense}
+function Bound{Space,Sense}() where {Space<:AbstractSpace,Sense<:AbstractSense}
     val = _defaultboundvalue(Space, Sense)
     return Bound{Space,Sense}(val)
 end
@@ -104,7 +103,7 @@ end
 Base.promote_rule(B::Type{<:Bound}, ::Type{<:AbstractFloat}) = B
 Base.promote_rule(B::Type{<:Bound}, ::Type{<:Integer}) = B
 Base.promote_rule(B::Type{<:Bound}, ::Type{<:AbstractIrrational}) = B
-Base.promote_rule(::Type{<:Bound{<:Primal,Se}}, ::Type{<:Bound{<:Dual,Se}}) where {Se<:Coluna.AbstractSense} = Float64
+Base.promote_rule(::Type{<:Bound{<:Primal,Se}}, ::Type{<:Bound{<:Dual,Se}}) where {Se<:AbstractSense} = Float64
 
 Base.convert(::Type{<:AbstractFloat}, b::Bound) = b.value
 Base.convert(::Type{<:Integer}, b::Bound) = b.value

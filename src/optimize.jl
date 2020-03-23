@@ -39,7 +39,7 @@ end
 """
 Starting point of the solver.
 """
-function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params)
+function optimize!(prob::MathProg.Problem, annotations::MathProg.Annotations, params::Params)
     _welcome_message()
 
     # Adjust parameters
@@ -58,7 +58,7 @@ function optimize!(prob::MP.Problem, annotations::MP.Annotations, params::Params
     @info "Coluna ready to start."
     @info _params_
 
-    MP.relax_integrality!(prob.re_formulation.master) # TODO : remove
+    relax_integrality!(prob.re_formulation.master) # TODO : remove
 
     TO.@timeit _to "Coluna" begin
         opt_result = optimize!(
@@ -77,15 +77,15 @@ end
 Solve a reformulation
 """
 function optimize!(
-    reform::MP.Reformulation, algorithm::AL.AbstractOptimizationAlgorithm,
+    reform::MathProg.Reformulation, algorithm::Algorithm.AbstractOptimizationAlgorithm,
     initial_primal_bound, initial_dual_bound
 )
-    slaves = Vector{Tuple{AbstractFormulation, Type{<:AL.AbstractAlgorithm}}}()
+    slaves = Vector{Tuple{AbstractFormulation, Type{<:ColunaBase.AbstractAlgorithm}}}()
     push!(slaves,(reform, typeof(algorithm)))
-    AL.getslavealgorithms!(algorithm, reform, slaves)
+    Algorithm.getslavealgorithms!(algorithm, reform, slaves)
 
     for (form, algotype) in slaves
-        MP.initstorage(form, AL.getstoragetype(algotype))
+        MathProg.initstorage(form, Algorithm.getstoragetype(algotype))
     end
 
     master = getmaster(reform)
@@ -96,8 +96,8 @@ function optimize!(
         lp_dual_bound = initial_dual_bound
     )
 
-    output = AL.run!(algorithm, reform, AL.NewOptimizationInput(init_result))
-    opt_result = AL.getresult(output)
+    output = run!(algorithm, reform, Algorithm.NewOptimizationInput(init_result))
+    opt_result = Algorithm.getresult(output)
     
     result = OptimizationState(
         master, 
