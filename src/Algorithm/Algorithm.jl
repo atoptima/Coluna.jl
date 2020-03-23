@@ -9,10 +9,7 @@ using ..ColunaBase
 using ..MathProg
 
 # TO be deleted ???
-import .MathProg: AbstractStorage, EmptyStorage, getstorage, setprimalbound!, setdualbound!
-import .MathProg: OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, EMPTY_RESULT, NOT_YET_DETERMINED
-
-import .MathProg: getvalue
+import .MathProg: AbstractStorage, EmptyStorage, getstorage, getvalue
 
 using Logging
 using Printf
