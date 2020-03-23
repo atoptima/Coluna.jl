@@ -5,26 +5,26 @@ const PrimalSolution{M} = Solution{M, VarId, Float64}
 const DualSolution{M} = Solution{M, ConstrId, Float64}
 
 function PrimalSolution(form::M) where {M}
-    return Coluna.Containers.Solution{M,VarId,Float64}(form)
+    return Solution{M,VarId,Float64}(form)
 end
 
 function PrimalSolution(
     form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
 ) where {M<:AbstractFormulation,De,Va}
-    return Coluna.Containers.Solution{M,De,Va}(form, decisions, vals, val)
+    return Solution{M,De,Va}(form, decisions, vals, val)
 end
 
 function DualSolution(form::M) where {M}
-    return Coluna.Containers.Solution{M,ConstrId,Float64}(form)
+    return Solution{M,ConstrId,Float64}(form)
 end
 
 function DualSolution(
     form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
 ) where {M<:AbstractFormulation,De,Va}
-    return Coluna.Containers.Solution{M,De,Va}(form, decisions, vals, val)
+    return Solution{M,De,Va}(form, decisions, vals, val)
 end
 
-function Base.isinteger(sol::Coluna.Containers.Solution)
+function Base.isinteger(sol::Solution)
     for (vc_id, val) in sol
         #if getperenekind(sol.model, vc_id) != Continuous
             !isinteger(val) && return false
@@ -33,7 +33,7 @@ function Base.isinteger(sol::Coluna.Containers.Solution)
     return true
 end
 
-isfractional(sol::Coluna.Containers.Solution) = !Base.isinteger(sol)
+isfractional(sol::Solution) = !Base.isinteger(sol)
 
 function contains(sol::PrimalSolution, f::Function)
     for (varid, val) in sol
@@ -49,7 +49,7 @@ function contains(sol::DualSolution, f::Function)
     return false
 end
 
-function Base.print(io::IO, form::AbstractFormulation, sol::Coluna.Containers.Solution)
+function Base.print(io::IO, form::AbstractFormulation, sol::Solution)
     println(io, "Solution")
     for (id, val) in sol
         println(io, getname(form, id), " = ", val)

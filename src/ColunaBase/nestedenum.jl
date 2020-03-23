@@ -76,7 +76,7 @@ function _build_expression(names, values, export_symb::Bool = false)
     # If the root name is a curly expression, the user must have defined the
     # template type inheriting from NestedEnum in its code.
     if root_name isa Symbol
-        push!(enum_expr.args, :(struct $root_name <: Coluna.Containers.NestedEnum value::UInt end))
+        push!(enum_expr.args, :(struct $root_name <: Coluna.ColunaBase.NestedEnum value::UInt end))
     end
     for i in 2:len
         push!(enum_expr.args, :(const $(names[i]) = $(root_name)(UInt($(values[i])))))

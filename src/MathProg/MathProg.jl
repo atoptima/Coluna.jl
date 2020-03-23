@@ -7,7 +7,7 @@ import TimerOutputs
 
 import ..Coluna # for NestedEnum (types.jl:210)
 using ..Coluna: iterate # to be deleted
-using ..Containers
+using ..ColunaBase
 
 import Base: haskey, length, iterate, diff
 
@@ -46,14 +46,10 @@ include("MOIinterface.jl")
 
 # TODO : clean up
 # Types
-export AbstractFormulation, MaxSense, MinSense, MoiOptimizer, VarMembership, 
-       Variable, Constraint, VarDict,
-       ConstrDict, Id, ConstrSense, VarSense, Formulation, Reformulation, VarId,
-       ConstrId,
-        FormId, FormulationPhase, Problem, Annotations,
-       Original, Counter, UserOptimizer, MoiObjective, PrimalSolVector, MoiResult
-
-export INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE, OPTIMAL
+export  MaxSense, MinSense, MoiOptimizer,
+         Id, ConstrSense, VarSense,
+        FormId, FormulationPhase, Annotations,
+       Original, Counter, UserOptimizer, MoiObjective
 
 # Methods
 export no_optimizer_builder, set_original_formulation!,
@@ -65,8 +61,7 @@ export no_optimizer_builder, set_original_formulation!,
        add_primal_sol!, setdualbound!,
        getprimalsols, getdualsols,
        computereducedcost,
-       update_ip_dual_bound!, update_lp_dual_bound!,
-       get_lp_primal_bound, update!,
+       update!,
        convert_status, getduty, getbestdualsol, 
        computereducedrhs, 
        unsafe_getbestprimalsol,
@@ -74,17 +69,17 @@ export no_optimizer_builder, set_original_formulation!,
         get_dw_pricing_sps, 
        getsortuid,
        get_benders_sep_sps,
-       contains
+       contains, setprimalbound!
 
 # Below this line, clean up has been done :
 export reformulate!, optimize!
 
 # Methods related to Problem
-export set_initial_dual_bound!, set_initial_primal_bound!,
+export Problem, set_initial_dual_bound!, set_initial_primal_bound!,
        get_initial_dual_bound, get_initial_primal_bound
 
 # Methods related to formulations
-export getmaster, getreformulation,
+export AbstractFormulation, Reformulation, Formulation, getmaster, getreformulation,
        getvar, getvars, getconstr, getconstrs, getelem,
        getcoefmatrix,
        getprimalsolmatrix,
@@ -96,83 +91,26 @@ export getmaster, getreformulation,
        setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
 
 # Methods related to duties
-export isanArtificialDuty, 
-       isaStaticDuty, 
-       isaDynamicDuty, 
-       isanOriginalRepresentatives
+export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
 
-# Methods related to variables and constraints
-export getperenecost,
-       getcurcost,
-       setcurcost!,
-       getperenelb,
-       getcurlb,
-       setcurlb!,
-       getpereneub,
-       getcurub,
-       setcurub!,
-       getperenerhs,
-       getcurrhs,
-       setcurrhs!,
-       getperenesense,
-       getcursense,
-       setcursense!,
-       getperenekind,
-       getcurkind,
-       setcurkind!,
-       getpereneincval,
-       getcurincval,
-       setcurincval!,
-       ispereneactive,
-       iscuractive,
-       activate!,
-       deactivate!,
-       ispereneexplicit,
-       iscurexplicit,
-       setiscurexplicit!,
-       getname,
-       reset!
+# Types and methods related to variables and constraints
+export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership, 
+    getperenecost, getcurcost, setcurcost!, getperenelb, getcurlb, setcurlb!, 
+    getpereneub, getcurub, setcurub!, getperenerhs, getcurrhs, setcurrhs!, getperenesense,
+    getcursense, setcursense!, getperenekind, getcurkind, setcurkind!, getpereneincval, 
+    getcurincval, setcurincval!, ispereneactive, iscuractive, activate!, deactivate!,
+    ispereneexplicit, iscurexplicit, setiscurexplicit!, getname, reset!
 
-# methods related to solutions & bounds
-export PrimalBound, DualBound, PrimalSolution, DualSolution, 
-       OptimizationState, ObjValues
-
-export getterminationstatus,
-       getfeasibilitystatus,
-       setterminationstatus!,
-       setfeasibilitystatus!,
-       isfeasible,
-       get_ip_primal_bound,
-       get_lp_primal_bound,
-       get_ip_dual_bound,
-       get_lp_dual_bound,
-       update_ip_primal_bound!,
-       update_lp_primal_bound!,
-       update_ip_dual_bound!,
-       update_lp_dual_bound!, 
-       set_ip_primal_bound!,
-       set_lp_primal_bound!,
-       set_ip_dual_bound!,
-       set_lp_dual_bound!,
-       ip_gap,    
-       nb_ip_primal_sols,
-       nb_lp_primal_sols,
-       nb_lp_dual_sols,
-       get_ip_primal_sols,
-       get_best_ip_primal_sol,
-       get_lp_primal_sols,
-       get_best_lp_primal_sol,
-       get_lp_dual_sols,
-       get_best_lp_dual_sol,
-       update_ip_primal_sol!,
-       update_lp_primal_sol!,
-       update_lp_dual_sol!,
-       add_ip_primal_sol!,
-       add_lp_primal_sol!,
-       add_lp_dual_sol!,
-       set_ip_primal_sol!,
-       set_lp_primal_sol!,
-       set_lp_dual_sol!
+# Types & methods related to solutions & bounds
+# Note : we should export only get methods for MoiResult (the solution is built in MathProg)
+export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues, TerminationStatus,
+    FeasibilityStatus, MoiResult, OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, 
+    EMPTY_RESULT, NOT_YET_DETERMINED, INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE,
+    getterminationstatus, getfeasibilitystatus, setterminationstatus!, 
+    setfeasibilitystatus!, isfeasible, get_ip_primal_bound, get_lp_primal_bound,
+    get_ip_dual_bound, get_lp_dual_bound, update_ip_primal_bound!, update_lp_primal_bound!,
+    update_ip_dual_bound!, update_lp_dual_bound!, set_ip_primal_bound!, 
+    set_lp_primal_bound!, set_ip_dual_bound!, set_lp_dual_bound!, ip_gap
 
 # methods related to projections
 export projection_is_possible, proj_cols_on_rep

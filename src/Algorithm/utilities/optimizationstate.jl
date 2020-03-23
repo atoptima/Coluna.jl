@@ -16,7 +16,7 @@ end
 _sort!(sols::Vector{PrimalSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(PrimalBound(x.model, x.value)))
 _sort!(sols::Vector{DualSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(DualBound(x.model, x.value)))
 
-function bestbound(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Coluna.Containers.Solution}
+function bestbound(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
     if length(solutions) < max_len
         push!(solutions, new_sol)
     else
@@ -26,7 +26,7 @@ function bestbound(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {So
     return
 end
 
-function pushfirst(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Coluna.Containers.Solution}
+function pushfirst(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
     pushfirst!(solutions, new_sol)
     if length(solutions) > max_len
         pop!(solutions)
