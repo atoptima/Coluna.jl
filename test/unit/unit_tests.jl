@@ -1,4 +1,3 @@
-include("containers/members.jl")
 include("containers/nestedenum.jl")
 include("containers/solsandbounds.jl")
 
@@ -6,7 +5,6 @@ include("MathProg/types.jl")
 include("MathProg/variables.jl")
 
 include("algorithms/algorithm.jl")
-include("strategies/strategy.jl")
 
 # include("parameters.jl")
 include("counters.jl")
@@ -40,11 +38,10 @@ include("incumbents.jl")
 # include("bbtree.jl")
 
 function unit_tests()
-    @testset "Containers submodule" begin
+    @testset "ColunaBase submodule" begin
         nestedenum_unit()
         bound_unit()
         solution_unit()
-        members_unit()
     end
 
     @testset "MathProg submodule" begin
@@ -57,15 +54,15 @@ function unit_tests()
     @testset "algorithm.jl" begin
         algorithm_unit_tests()
     end
-    @testset "strategy.jl" begin
-        strategy_unit_tests()
-    end
+
     @testset "counters.jl" begin
         counters_unit_tests()
     end
+
     @testset "vcids.jl" begin
         vcids_unit_tests()
     end
+
     @testset "variable.jl" begin
         variable_unit_tests()
     end

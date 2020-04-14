@@ -1,72 +1,56 @@
-abstract type AbstractNode end
+struct EmptyInput <: AbstractInput end
+struct EmptyOutput <: AbstractOutput end #Usefull ?
 
 """
-    AbstractStrategy
+    getstoragetype(AlgorithmType)::StorageType
 
-A strategy is a type used to define Coluna's behaviour in its algorithmic parts.
+    Every algorithm should communicate its storage type. By default, the storage is empty.    
 """
-abstract type AbstractStrategy end
-"""
-    AbstractAlgorithm
-
-An algorithm is a 'text-book' algorithm applied to a formulation in a node.
-"""
-abstract type AbstractAlgorithm end
-
-# Temporary abstract (to be deleted)
-abstract type AbstractGlobalStrategy <: AbstractStrategy end
-struct EmptyGlobalStrategy <: AbstractGlobalStrategy end
+getstoragetype(algotype::Type{<:AbstractAlgorithm})::Type{<:AbstractStorage} = EmptyStorage
 
 """
-    AbstractAlgorithmResult
+    getslavealgorithms!(Algorithm, Formulation, Vector{Tuple{Formulation, AlgorithmType})
 
-Stores the computational results after the end of an algorithm execution.
-These data can be used to initialize another execution of the same algorithm or in 
-setting the transition to another algorithm.
+    Every algorithm should communicate its slave algorithms together with formulations 
+    to which they are applied    
 """
-abstract type AbstractAlgorithmResult end
+getslavealgorithms!(
+    algo::AbstractAlgorithm, form::AbstractFormulation, 
+    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}) = nothing
 
-"""
-    prepare!(Algorithm, formulation, node)
-
-Prepares the `formulation` in the `node` to be optimized by algorithm `Algorithm`.
-"""
-function prepare! end
+run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::EmptyInput) = run!(algo, form) # good idea ?
 
 """
-    run!(Algorithm, formulation, node)
+    NewOptimizationInput
 
-Runs the algorithm `Algorithm` on the `formulation` in a `node`.
+Contains Incumbents
 """
-function run! end
-
-# Fallbacks
-function prepare!(algo::AbstractAlgorithm, formulation, node)
-    algotype = typeof(algo)
-    error("prepare! method not implemented for algorithm $(algotype).")
+struct NewOptimizationInput{F,S} <: AbstractInput
+    incumbents::OptimizationState{F,S}
 end
 
-function run!(algo::AbstractAlgorithm, formulation, node)
-    algotype = typeof(algo)
-    error("run! method not implemented for algorithm $(algotype).")
-end
+getinputresult(input::NewOptimizationInput) =  input.incumbents
+
 
 """
-    apply!(Algorithm, formulation, node)
+    OptimizationOutput
 
-Applies the algorithm `Algorithm` on the `formulation` in a `node` with 
-`parameters`.
+Contain OptimizationState, PrimalSolution (solution to relaxation), and 
+DualBound (dual bound value)
 """
-function apply!(algo::AbstractAlgorithm, form, node)
-    prepare!(form, node)
-    TO.@timeit Coluna._to string(algo) begin
-        TO.@timeit Coluna._to "prepare" begin
-            prepare!(algo, form, node)
-        end
-        TO.@timeit Coluna._to "run" begin
-            record = run!(algo, form, node)
-        end
-    end
-    set_algorithm_result!(node, algo, record)
-    return record
+struct OptimizationOutput{F,S} <: AbstractOutput
+    result::OptimizationState{F,S}    
 end
+
+getresult(output::OptimizationOutput)::OptimizationState = output.result
+
+
+"""
+    AbstractOptimizationAlgorithm
+
+    This type of algorithm is used to "bound" a formulation, i.e. to improve primal
+    and dual bounds of the formulation. Solving to optimality is a special case of "bounding".
+    The input of such algorithm should be of type Incumbents.    
+    The output of such algorithm should be of type OptimizationState.    
+"""
+abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end

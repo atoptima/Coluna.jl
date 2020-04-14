@@ -1,66 +1,76 @@
-function mycallback(form::CL.Formulation)
-    vars = [v for (id,v) in Iterators.filter(
-        v -> (CL.getcurisactive(form,v) && CL.getcurisexplicit(form,v)),
-        CL.getvars(form)
-    )]
-    constr = [c for (id,c) in Iterators.filter(
-        c -> (CL.getcurisactive(form,c) && CL.getcurisexplicit(form,c)),
-        CL.getconstrs(form))][1]
-    matrix = CL.getcoefmatrix(form)
-    m = JuMP.Model(with_optimizer(GLPK.Optimizer))
-    @variable(m, CL.getcurlb(form, vars[i]) <= x[i=1:length(vars)] <= CL.getcurub(form, vars[i]), Int)
-    @objective(m, Min, sum(CL.getcurcost(form, vars[j]) * x[j] for j in 1:length(vars)))
-    @constraint(m, knp, 
-        sum(matrix[CL.getid(constr),CL.getid(vars[j])] * x[j]
-        for j in 1:length(vars)) <= CL.getcurrhs(form, constr)
-    )
-    optimize!(m)
-    result = CL.OptimizationResult{CL.MinSense}()
-    result.primal_bound = CL.PrimalBound(form, JuMP.objective_value(m))
-    solvarids = Vector{CL.VarId}()
-    solvarvals = Vector{CL.Float64}()
-    for i in 1:length(x)
-        val = JuMP.value(x[i])
-        if val > 0.000001  || val < - 0.000001 # todo use a tolerance
-            push!(solvarids, CL.getid(vars[i]))
-            push!(solvarvals, val)
-        end
-    end
-    push!(result.primal_sols, CL.PrimalSolution(form, solvarids, solvarvals, result.primal_bound))
-    CL.setfeasibilitystatus!(result, CL.FEASIBLE)
-    CL.setterminationstatus!(result, CL.OPTIMAL)
-    return result
-end
-
-build_sp_moi_optimizer() = CL.UserOptimizer(mycallback)
-build_master_moi_optimizer() = CL.MoiOptimizer(with_optimizer(GLPK.Optimizer)())
-
 function pricing_callback_tests()
 
     @testset "GAP with ad-hoc pricing callback " begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
-        coluna = JuMP.with_optimizer(CL.Optimizer,
-            default_optimizer = with_optimizer(
-            GLPK.Optimizer), params = CL.Params(
-                ;global_strategy = ClA.GlobalStrategy(ClA.SimpleBnP(),
-                ClA.SimpleBranching(), ClA.DepthFirst())
-            )
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer,
+            "default_optimizer" => GLPK.Optimizer,
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
+
+        # Subproblem models are created once and for all
+        # One model for each machine
+        sp_models = Dict{Int, Any}()
+        for m in data.machines
+            sp = JuMP.Model(GLPK.Optimizer)
+            @variable(sp, y[j in data.jobs], Bin)
+            @variable(sp, lb_y[j in data.jobs] >= 0)
+            @variable(sp, ub_y[j in data.jobs] >= 0)
+            @constraint(sp, knp, sum(data.weight[j,m]*y[j] for j in data.jobs) <= data.capacity[m])
+            @constraint(sp, lbs[j in data.jobs], y[j] + lb_y[j] >= 0)
+            @constraint(sp, ubs[j in data.jobs], y[j] - ub_y[j] <= 0)
+            sp_models[m] = (sp, y, lb_y, ub_y)
+        end
+
+        function my_pricing_callback(cbdata)
+            machine_id = BD.callback_spid(cbdata, model)
+
+            sp, y, lb_y, ub_y = sp_models[machine_id]
+
+            red_costs = [BD.callback_reduced_cost(cbdata, x[machine_id, j]) for j in data.jobs]
+
+            # Update the model
+            ## Bounds on subproblem variables
+            for j in data.jobs
+                JuMP.fix(lb_y[j], BD.callback_lb(cbdata, x[machine_id, j]), force = true)
+                JuMP.fix(ub_y[j], BD.callback_ub(cbdata, x[machine_id, j]), force = true)
+            end
+            ## Objective function
+            @objective(sp, Min, sum(red_costs[j]*y[j] for j in data.jobs))
+
+            JuMP.optimize!(sp)
+
+            # Retrieve the solution
+            solcost = JuMP.objective_value(sp)
+            solvars = JuMP.VariableRef[]
+            solvarvals = Float64[]
+            for j in data.jobs
+                val = JuMP.value(y[j])
+                if val ≈ 1
+                    push!(solvars, x[machine_id, j])
+                    push!(solvarvals, 1.0)
+                end
+            end
+
+            # Submit the solution
+            MOI.submit(
+                model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals
+            )
+            return
+        end
 
         master = BD.getmaster(dec)
         subproblems = BD.getsubproblems(dec)
         
-        BD.assignsolver!(master, build_master_moi_optimizer)
-        BD.assignsolver!(subproblems[1], build_sp_moi_optimizer)
-        BD.assignsolver!(subproblems[2], build_sp_moi_optimizer)
+        BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback)
 
-        JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        JuMP.optimize!(model)
+        @test JuMP.objective_value(model) ≈ 75.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
 end

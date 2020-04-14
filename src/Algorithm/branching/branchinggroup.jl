@@ -1,4 +1,22 @@
 """
+    AbstractBranchingCandidate
+
+    A branching candidate should contain all information needed to generate node's children    
+    Branching candiates are also used to store the branching history. 
+    History of a branching candidate is a collection of statistic records for every time this branching
+        candidate was used to generate children nodes 
+    Every branching candidate should contain a description, i.e. a string which serves for printing purposed,
+    and also to detect the same branching candidates    
+"""
+abstract type AbstractBranchingCandidate end
+
+getdescription(candidate::AbstractBranchingCandidate) = ""
+generate_children!(
+    candidate::AbstractBranchingCandidate, lhs::Float64, reform::Reformulation, 
+    node::Node
+) = nothing
+
+"""
     BranchingGroup
 
     Contains a branching candidate together with additional "local" information needed during current branching
@@ -36,24 +54,24 @@ function regenerate_children!(group::BranchingGroup, reform::Reformulation, pare
     return
 end
 
-function update_father_dual_bound!(group::BranchingGroup, parent::Node)
-    isempty(group.children) && return
+# function update_father_dual_bound!(group::BranchingGroup, parent::Node)
+#     isempty(group.children) && return
 
-    worst_dual_bound = get_lp_dual_bound(getincumbents(group.children[1]))
-    for (node_index, node) in enumerate(group.children)
-        node_index == 1 && continue
-        node_dual_bound = get_lp_dual_bound(getincumbents(node))
-        if isbetter(worst_dual_bound, node_dual_bound)
-            worst_dual_bound = node_dual_bound
-        end
-    end
+#     worst_dual_bound = get_lp_dual_bound(getincumbents(group.children[1]))
+#     for (node_index, node) in enumerate(group.children)
+#         node_index == 1 && continue
+#         node_dual_bound = get_lp_dual_bound(getincumbents(node))
+#         if isbetter(worst_dual_bound, node_dual_bound)
+#             worst_dual_bound = node_dual_bound
+#         end
+#     end
 
-    update_ip_dual_bound!(getincumbents(parent), worst_dual_bound)
-    update_lp_dual_bound!(getincumbents(parent), worst_dual_bound)
-    return
-end
+#     update_ip_dual_bound!(getincumbents(parent), worst_dual_bound)
+#     update_lp_dual_bound!(getincumbents(parent), worst_dual_bound)
+#     return
+# end
 
-function compute_product_score!(group::BranchingGroup, parent_inc::Incumbents)
+function compute_product_score!(group::BranchingGroup, parent_inc::ObjValues)
     # TO DO : we need to mesure the gap to the cut-off value
     parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
     parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
@@ -116,7 +134,7 @@ function number_of_leaves(gap::Float64, deltas::Vector{Float64})
     return mid
 end
 
-function compute_tree_depth_score!(group::BranchingGroup, parent_inc::Incumbents)
+function compute_tree_depth_score!(group::BranchingGroup, parent_inc::ObjValues)
     score::Float64 = 0.0
     
     # TO DO : we need to mesure the gap to the cut-off value
@@ -130,11 +148,12 @@ function compute_tree_depth_score!(group::BranchingGroup, parent_inc::Incumbents
         if node_delta < 1e-6 # TO DO : use tolerance here
             nb_zero_deltas += 1
         end
-        if node_delta < parent_delta
-            push!(deltas, max(node_delta, parent_delta * 1e-4))
-        else
-            push!(deltas, parent_delta)
-        end
+        push!(deltas, min(parent_delta, node_delta))
+    end
+
+    max_delta = maximum(deltas)
+    if nb_zero_deltas < length(deltas) && parent_delta > max_delta * 30
+        parent_delta = max_delta * 30
     end
 
     if isempty(deltas)

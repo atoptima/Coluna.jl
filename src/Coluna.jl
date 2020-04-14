@@ -15,7 +15,10 @@ global const MOIU = MathOptInterface.Utilities
 global const TO = TimerOutputs
 
 # submodules
-export Containers, MathProg, Algorithm
+export ColunaBase, MathProg, Algorithm
+
+# parameters
+export Parameters, DefaultOptimizer
 
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
@@ -23,27 +26,27 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     push!, filter, diff
 
 include("interface.jl")
+include("parameters.jl")
+global const _params_ = Params()
 
-include("Containers/Containers.jl")
-using .Containers
+include("ColunaBase/ColunaBase.jl")
+using .ColunaBase
 
 include("MathProg/MathProg.jl")
 using .MathProg
-const MP = MathProg
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm
 
-include("parameters.jl")
 include("optimize.jl")
 
 # Wrapper functions
 include("MOIwrapper.jl")
+include("MOIcallbacks.jl")
 
 # TODO : put global values here
 include("globals.jl") # Structure that holds values useful in all the procedure
 
-global const _params_ = Params()
 global const _globals_ = GlobalValues()
 #export _params_, _globals_, _to # to be deleted
 

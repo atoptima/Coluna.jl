@@ -10,14 +10,15 @@ function clonevar!(originform::Formulation,
                    kind::VarKind = getperenekind(originform, var),
                    sense::VarSense = getperenesense(originform, var),
                    inc_val::Float64 = getpereneincval(originform, var),
-                   is_active::Bool = getpereneisactive(originform, var),
-                   is_explicit::Bool = getpereneisexplicit(originform, var),
+                   is_active::Bool = ispereneactive(originform, var),
+                   is_explicit::Bool = ispereneexplicit(originform, var),
                    members::Union{ConstrMembership,Nothing} = nothing)
     return setvar!(
-        destform, name, duty; cost = cost, lb = lb, ub = ub, kind = kind, 
-        sense = sense, inc_val = inc_val, is_active = is_active,
-        is_explicit = is_explicit, members = members,
-        id = Id{Variable}(getid(var), getuid(assignedform))
+        destform, name, duty; 
+        cost = cost, lb = lb, ub = ub, kind = kind, sense = sense, 
+        inc_val = inc_val, is_active = is_active, is_explicit = is_explicit, 
+        members = members,
+        id = Id{Variable}(duty, getid(var), getuid(assignedform))
     )
 end
 
@@ -31,14 +32,14 @@ function cloneconstr!(originform::Formulation,
                       kind::ConstrKind = getperenekind(originform, constr),
                       sense::ConstrSense = getperenesense(originform, constr),
                       inc_val::Float64 = getpereneincval(originform, constr),
-                      is_active::Bool = getpereneisactive(originform, constr),
-                      is_explicit::Bool = getpereneisexplicit(originform, constr),
+                      is_active::Bool = ispereneactive(originform, constr),
+                      is_explicit::Bool = ispereneexplicit(originform, constr),
                       members::Union{VarMembership,Nothing}  = nothing)
     return setconstr!(
-        destform, name, duty, rhs = rhs, kind = kind, sense = sense, 
-        inc_val = inc_val, is_active = is_active, is_explicit = is_explicit,
-        members = members,
-        id = Id{Constraint}(getid(constr), getuid(assignedform))
+        destform, name, duty; 
+        rhs = rhs, kind = kind, sense = sense, inc_val = inc_val,
+        is_active = is_active, is_explicit = is_explicit, members = members,
+        id = Id{Constraint}(duty, getid(constr), getuid(assignedform))
     )
 end
 

@@ -1,4 +1,4 @@
-#using Revise
+#using Revise # to comment when merging to the master branch
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition, CPLEX
@@ -15,7 +15,8 @@ global const CL = Coluna
 global const CLD = ColunaDemos
 global const BD = BlockDecomposition
 
-global const ClF = Coluna.MathProg
+global const ClF = Coluna.MathProg # Must be deleted
+global const ClMP = Coluna.MathProg
 global const ClA = Coluna.Algorithm
 
 include("unit/unit_tests.jl")
@@ -48,3 +49,4 @@ end
     close(rd_out)
     redirect_stdout(backup_stdout)
 end
+

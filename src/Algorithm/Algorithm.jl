@@ -4,12 +4,12 @@ import DataStructures
 import MathOptInterface
 import TimerOutputs
 
-import ..Coluna
-using ..Containers
+using ..Coluna
+using ..ColunaBase
 using ..MathProg
 
-# To be deleted :
-import .MathProg: getrhs, getsense, optimize! # because of branch
+# TO be deleted ???
+import .MathProg: AbstractStorage, EmptyStorage, getstorage, getvalue
 
 using Logging
 using Printf
@@ -22,39 +22,60 @@ using DynamicSparseArrays
 
 import Base: push!
 
-# TODO clean up :
-export AbstractGlobalStrategy, EmptyGlobalStrategy
+# Import to extend methods to OptimizationState
+import .MathProg: getfeasibilitystatus, getterminationstatus, setfeasibilitystatus!,
+    setterminationstatus!, isfeasible, get_ip_primal_bound, get_ip_dual_bound, 
+    get_lp_primal_bound, get_lp_dual_bound, update_ip_primal_bound!, update_ip_dual_bound!, 
+    update_lp_primal_bound!, update_lp_dual_bound!, set_ip_primal_bound!, 
+    set_ip_dual_bound!, set_lp_primal_bound!, set_lp_dual_bound!, ip_gap
 
-const MAX_NUM_NODES = 100 # TODO : rm & should be a parameter of the B&B Algorithm
-const OPEN_NODES_LIMIT = 100 # TODO : rm & should be param of B&B algo
+# Import to define run! method of algorithms
+import .ColunaBase: run!
 
-# Concrete algorithms & Strategies :
+# Utilities to build algorithms
+include("utilities/optimizationstate.jl")
+include("utilities/record.jl")
+
+# Abstract algorithm
 include("interface.jl")
-include("strategies/strategy.jl")
+
+# Here include slave algorithms used by conquer algorithms
+include("solveipform.jl")
+include("solvelpform.jl")
+include("colgen.jl")
+include("benders.jl")
+include("preprocessing.jl")
+
+# Here include conquer algorithms
+include("conquer.jl")
 
 include("node.jl") # TODO : break interdependance between node & Algorithm #224 & rm file
 
-# Here include algorithms
-include("colgen.jl")
-include("benders.jl")
-include("masteripheur.jl")
-include("masterlp.jl")
-include("reformulationsolver.jl")
-include("preprocessing.jl")
+include("divide.jl")
 
-# Here include conquer strategies
-include("strategies/conquer/simplebnp.jl")
-include("strategies/conquer/simplebenders.jl")
-
-# Here include branching algorithms
-include("branching/abstractbranching.jl")
-include("branching/varbranching.jl")
+# Here include divide algorithms
 include("branching/branchinggroup.jl")
-include("branching/branchingstrategy.jl")
+include("branching/branchingrule.jl")
+include("branching/varbranching.jl")
+include("branching/branchingalgo.jl")
 
-# Here include divide strategies
-include("strategies/divide/simplebranching.jl") # to remove
+include("treesearch.jl")
 
-# Here include explore strategies
-include("strategies/explore/simplestrategies.jl")
+# Algorithm should export only methods usefull to define & parametrize algorithms, and 
+# data structures from utilities.
+# Other Coluna's submodules should be independent to Algorithm
+
+# Utilities
+export OptimizationState, getterminationstatus, getfeasibilitystatus, setterminationstatus!,
+    setfeasibilitystatus!, isfeasible, nb_ip_primal_sols, nb_lp_primal_sols, nb_lp_dual_sols,
+    get_ip_primal_sols, get_lp_primal_sols, get_lp_dual_sols, get_best_ip_primal_sol,
+    get_best_lp_primal_sol, get_best_lp_dual_sol, update_ip_primal_sol!, 
+    update_lp_primal_sol!, update_lp_dual_sol!, add_ip_primal_sol!, add_lp_primal_sol!,
+    add_lp_dual_sol!, set_ip_primal_sol!, set_lp_primal_sol!, set_lp_dual_sol!
+
+# Algorithm's types
+export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColGenConquer, ColumnGeneration, 
+       BendersConquer, BendersCutGeneration, SolveIpForm, SolveLpForm, ExactBranchingPhase, 
+       OnlyRestrictedMasterBranchingPhase
+
 end
