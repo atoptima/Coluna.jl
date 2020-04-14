@@ -52,7 +52,7 @@ function run_ipform!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInp
     if bestprimalsol !== nothing
         add_ip_primal_sol!(algoresult, bestprimalsol) 
 
-        @logmsg LogLevel(1) string(
+        @logmsg LogLevel(-1) string(
             "Found primal solution of ", 
             @sprintf "%.4f" getvalue(get_ip_primal_bound(algoresult))
         )

@@ -22,6 +22,25 @@ function ColGenRuntimeData(
     return ColGenRuntimeData(inc, false, true, [], 2)
 end
 
+struct ReducedCostsVector
+    length::Int
+    varids::Vector{VarId}
+    perenecosts::Vector{Float64}
+    form::Vector{Formulation}
+end
+
+function ReducedCostsVector(varids::Vector{VarId}, form::Vector{Formulation})
+    len = length(varids)
+    perenecosts = zeros(Float64, len)
+    p = sortperm(varids)
+    permute!(varids, p)
+    permute!(form, p)
+    for i in 1:len
+        perenecosts[i] = getperenecost(form[i], varids[i])
+    end
+    return ReducedCostsVector(len, varids, perenecosts, form)
+end
+
 function run!(algo::ColumnGeneration, reform::Reformulation, input::NewOptimizationInput)::OptimizationOutput    
     input_result = getinputresult(input)
     data = ColGenRuntimeData(algo, reform, get_ip_primal_bound(input_result))
@@ -93,15 +112,15 @@ function set_ph_one(master::Formulation, data::ColGenRuntimeData)
     return
 end
 
-function update_pricing_problem!(spform::Formulation, dual_sol::DualSolution)
-    masterform = getmaster(spform)
-    for (varid, var) in getvars(spform)
-        iscuractive(spform, varid) || continue
-        getduty(varid) <= AbstractDwSpVar || continue
-        setcurcost!(spform, var, computereducedcost(masterform, varid, dual_sol))
-    end
-    return false
-end
+# function update_pricing_problem!(spform::Formulation, dual_sol::DualSolution)
+#     masterform = getmaster(spform)
+#     for (varid, var) in getvars(spform)
+#         iscuractive(spform, varid) || continue
+#         getduty(varid) <= AbstractDwSpVar || continue
+#         #(spform, var, computereducedcost(masterform, varid, dual_sol))
+#     end
+#     return false
+# end
 
 function update_pricing_target!(spform::Formulation)
     # println("pricing target will only be needed after automating convexity constraints")
@@ -172,13 +191,13 @@ function solve_sp_to_gencol!(
     update_pricing_target!(spform)
 
     # Reset var bounds, var cost, sp minCost
-    if update_pricing_problem!(spform, dual_sol) # Never returns true
+    #if update_pricing_problem!(spform, dual_sol) # Never returns true
         #     This code is never executed because update_pricing_prob always returns false
         #     @logmsg LogLevel(-3) "pricing prob is infeasible"
         #     # In case one of the subproblem is infeasible, the master is infeasible
         #     compute_pricing_dual_bound_contrib(alg, pricing_prob)
         #     return flag_is_sp_infeasible
-    end
+    #end
 
     # if alg.colgen_stabilization != nothing && true #= TODO add conds =#
     #     # switch off the reduced cost estimation when stabilization is applied
@@ -223,8 +242,62 @@ function solve_sp_to_gencol!(
     return sp_is_feasible, recorded_solution_ids, sp_solution_ids_to_activate, pricing_db_contrib
 end
 
+function computereducedcosts(reform::Reformulation, redcostsvec::ReducedCostsVector, dualsol::DualSolution)
+    redcosts = deepcopy(redcostsvec.perenecosts)
+    master = getmaster(reform)
+    sign = getobjsense(master) == MinSense ? -1 : 1
+    matrix = getcoefmatrix(master)
+
+    cmm = matrix.cols_major
+
+    term::Float64 = 0.0
+
+    var_key_pos = 1
+    next_var_key_pos = 2
+    for (i, varid) in enumerate(redcostsvec.varids)
+        term = 0.0
+        while var_key_pos <= length(cmm.col_keys) && cmm.col_keys[var_key_pos] != varid
+            var_key_pos += 1
+        end
+        (var_key_pos > length(cmm.col_keys)) && break
+        next_var_key_pos = var_key_pos + 1
+        while next_var_key_pos <= length(cmm.col_keys) && cmm.col_keys[next_var_key_pos] === nothing
+            next_var_key_pos += 1
+        end
+
+        pma_start = cmm.pcsc.semaphores[var_key_pos]
+        pma_end = length(cmm.pcsc.pma.array)
+        if next_var_key_pos <= length(cmm.col_keys)
+            pma_end = cmm.pcsc.semaphores[next_var_key_pos] - 1
+        end
+
+        k = pma_start
+        for (constrid, val) in dualsol
+            found_next_entry = false
+            while !found_next_entry && k <= pma_end
+                found_sym_entry = false
+                entry = cmm.pcsc.pma.array[k]
+                if entry !== nothing
+                    cmm_constrid, coeff = cmm.pcsc.pma.array[k]
+                    found_next_entry = cmm_constrid >= constrid
+                    if cmm_constrid == constrid
+                        found_sym_entry = true
+                        term += val * coeff
+                    end
+                end
+                if !found_next_entry || found_sym_entry
+                    k += 1
+                end
+            end
+            k > pma_end && break
+        end
+        redcosts[i] += sign * term
+    end
+    return redcosts
+end
+
 function solve_sps_to_gencols!(
-    reform::Reformulation, dual_sol::DualSolution, 
+    reform::Reformulation, redcostsvec::ReducedCostsVector, dual_sol::DualSolution, 
     sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 )
     masterform = getmaster(reform)
@@ -235,6 +308,13 @@ function solve_sps_to_gencols!(
     recorded_sp_solution_ids = Dict{FormId, Vector{VarId}}()
     sp_solution_to_activate = Dict{FormId, Vector{VarId}}()
     sp_dual_bound_contribs = Dict{FormId, Float64}()
+
+    # update reduced costs
+    redcosts = computereducedcosts(reform, redcostsvec, dual_sol)
+
+    for i in 1:length(redcosts)
+        setcurcost!(redcostsvec.form[i], redcostsvec.varids[i], redcosts[i])
+    end
 
     ### BEGIN LOOP TO BE PARALLELIZED
     for (spuid, spform) in sps
@@ -279,12 +359,12 @@ function calculate_lagrangian_db(
 end
 
 function generatecolumns!(
-    data::ColGenRuntimeData, reform::Reformulation, master_val, 
-    dual_sol, sp_lbs, sp_ubs
+    data::ColGenRuntimeData, reform::Reformulation, redcostsvec::ReducedCostsVector, 
+    master_val, dual_sol, sp_lbs, sp_ubs
 )
     nb_new_columns = 0
     while true # TODO Replace this condition when starting implement stabilization
-        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(reform, dual_sol, sp_lbs, sp_ubs)
+        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(reform, redcostsvec, dual_sol, sp_lbs, sp_ubs)
         nb_new_columns += nb_new_col
         lagran_bnd = calculate_lagrangian_db(data, master_val, sp_db_contrib)
         update_ip_dual_bound!(data.incumbents, lagran_bnd)
@@ -310,10 +390,24 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
     sp_ubs = Dict{FormId, Float64}()
 
     # collect multiplicity current bounds for each sp
-    for (sp_uid, spform) in get_dw_pricing_sps(reform)
-        sp_lbs[sp_uid] = getcurrhs(masterform, reform.dw_pricing_sp_lb[sp_uid])
-        sp_ubs[sp_uid] = getcurrhs(masterform, reform.dw_pricing_sp_ub[sp_uid])
+    dwspvars = Vector{VarId}()
+    dwspforms = Vector{Formulation}()
+
+    for (spid, spform) in get_dw_pricing_sps(reform)
+        lb_convexity_constr_id = reform.dw_pricing_sp_lb[spid]
+        ub_convexity_constr_id = reform.dw_pricing_sp_ub[spid]
+        sp_lbs[spid] = getcurrhs(masterform, lb_convexity_constr_id)
+        sp_ubs[spid] = getcurrhs(masterform, ub_convexity_constr_id)
+
+        for (varid, var) in getvars(spform)
+            if iscuractive(spform, varid) && getduty(varid) <= AbstractDwSpVar
+                push!(dwspvars, varid)
+                push!(dwspforms, spform)
+            end
+        end
     end
+
+    redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
 
     while true
 
@@ -353,7 +447,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
             nb_new_col = generatecolumns!(
-                data, reform, master_val, dual_sols[1], sp_lbs, sp_ubs
+                data, reform, redcostsvec, master_val, dual_sols[1], sp_lbs, sp_ubs
             )
         end
 
