@@ -11,8 +11,7 @@ end
 getdescription(candidate::VarBranchingCandidate) = candidate.description
 
 function generate_children(
-    candidate::VarBranchingCandidate, lhs::Float64, reform::Reformulation, 
-    node::Node
+    candidate::VarBranchingCandidate, lhs::Float64, reform::Reformulation, parent::Node
 )
     var = getvar(reform.master, candidate.varid)
 
@@ -23,11 +22,11 @@ function generate_children(
     )
 
     child1description = candidate.description * ">=" * string(ceil(lhs))                               
-    child1 = Node(node, Branch(var, ceil(lhs), Greater, getdepth(node)), 
-                  child1description)
+    child1 = Node(getmaster(reform), parent, Branch(var, ceil(lhs), Greater, 
+                  getdepth(parent)), child1description)
     child2description = candidate.description * "<=" * string(floor(lhs))                               
-    child2 = Node(node, Branch(var, floor(lhs), Less, getdepth(node)),
-                  child2description)
+    child2 = Node(getmaster(reform), parent, Branch(var, floor(lhs), Less, 
+                  getdepth(parent)), child2description)
     return [child1, child2]
 end
 

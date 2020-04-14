@@ -1,65 +1,15 @@
-"""
-    ConquerRecord
-
-    Record of a conquer algorithm used by the tree search algorithm.
-    Contain ReformulationRecord and records for all storages used by 
-    reformulation algorithms.
-"""
-# TO DO : add records for storages and record id
-struct ConquerRecord <: AbstractRecord 
-    # id::Int64
-    reformrecord::ReformulationRecord
-    # storagerecords::Dict{Tuple{AbstractFormulation, Type{<:AbstractStorage}}, AbstractRecord}    
-end
-
-function record!(reform::Reformulation)::ConquerRecord
-    @logmsg LogLevel(0) "Recording reformulation state."
-    reformrecord = ReformulationRecord()
-    add_to_recorded!(reform, reformrecord)
-    return ConquerRecord(reformrecord)
-end
-
-prepare!(reform::Reformulation, ::Nothing) = nothing
-
-function prepare!(reform::Reformulation, record::ConquerRecord)
-    @logmsg LogLevel(0) "Preparing reformulation according to node record"
-    @logmsg LogLevel(0) "Preparing reformulation master"
-    prepare!(getmaster(reform), record.reformrecord)
-    for (spuid, spform) in get_dw_pricing_sps(reform)
-        @logmsg LogLevel(0) string("Resetting sp ", spuid, " state.")
-        prepare!(spform, record.reformrecord)
-    end
-    return
-end
 
 """
     ConquerInput
 
     Input of a conquer algorithm used by the tree search algorithm.
-    Contains current incumbents and the root node flag.
+    Contains the node in the search tree.
 """
 struct ConquerInput <: AbstractInput 
-    incumb::OptimizationState
-    rootnodeflag::Bool
+    node::Node    
 end
 
-getincumbentresult(input::ConquerInput) = input.incumb
-getincumbents(input::ConquerInput)::OptimizationState = input.incumb
-
-"""
-    ConquerOutput
-
-    Output of a conquer algorithm used by the tree search algorithm.
-    Contain current incumbents, infeasibility status, and the record of its storage.
-"""
-# TO DO : replace OptimizationOutput by OptimizationState
-struct ConquerOutput <: AbstractOutput 
-    optoutput::OptimizationOutput
-    record::ConquerRecord
-end
-
-getrecord(output::ConquerOutput) = output.record
-getoptoutput(output::ConquerOutput) = output.optoutput
+getnode(input::ConquerInput) = input.node
 
 
 """
@@ -77,7 +27,38 @@ function run!(algo::AbstractConquerAlgorithm, reform::Reformulation, input::Conq
 end    
 
 # this function is needed in strong branching (to have a better screen logging)
-isverbose(strategy::AbstractConquerAlgorithm) = false
+isverbose(algo::AbstractConquerAlgorithm) = false
+
+# this function is needed to check whether the best primal solution should be copied to the node optimization state
+exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
+
+# returns the optimization part of the output of the conquer algorithm 
+function apply_conquer_alg_to_node!(
+    node::Node, algo::AbstractConquerAlgorithm, reform::Reformulation
+)  
+    nodestate = getoptstate(node)
+    if isverbose(algo)
+        @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(nodestate))
+        @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
+    end
+    if (ip_gap(nodestate) <= 0.0 + 0.00000001)
+        isverbose(algo) && @logmsg LogLevel(-1) string(
+            "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
+        )
+        node.conquerrecord = nothing
+        return 
+    end
+    isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
+
+    prepare!(reform, node.conquerrecord)    
+    node.conquerrecord = nothing
+
+    # TO DO : get rid of Branch 
+    apply_branch!(reform, getbranch(node))
+
+    run!(algo, reform, ConquerInput(node))
+    node.conquerwasrun = true
+end
 
 
 ####################################################################
@@ -98,9 +79,14 @@ function getslavealgorithms!(
     getslavealgorithms!(algo.benders, reform, slaves)
 end
 
-function run!(algo::BendersConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
-    optoutput = run!(algo.benders, reform, NewOptimizationInput(getincumbents(input)))
-    return ConquerOutput(optoutput, ConquerRecord(record!(reform)))
+function run!(algo::BendersConquer, reform::Reformulation, input::ConquerInput)
+    node = getnode(input)
+    nodestate = getoptstate(node)
+    output = run!(algo.benders, reform, OptimizationInput(nodestate))
+
+    update!(nodestate, getoptstate(output))
+    node.conquerrecord = record!(reform)
+    return 
 end
 
 ####################################################################
@@ -136,34 +122,28 @@ function getslavealgorithms!(
 
 end
 
-function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
+function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)
 
+    node = getnode(input)
+    nodestate = getoptstate(node)
     if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform))
-        optoutput = OptimizationOutput(incumb)
-        setfeasibilitystatus!(optoutput, INFEASIBLE)
-        return ConquerOutput(optoutput, ConquerRecord(record!(reform)))
+        setfeasibilitystatus!(nodestate, INFEASIBLE)
+        return 
     end
 
-    incumbres = getincumbentresult(input)
-    colgen_output = run!(algo.colgen, reform, NewOptimizationInput(incumbres))
-    colgen_res = getresult(colgen_output)
-    record = record!(reform)
+    colgen_output = run!(algo.colgen, reform, OptimizationInput(nodestate))
+    update!(nodestate, getoptstate(colgen_output))
 
-    bound_ratio = get_ip_primal_bound(colgen_res) / get_ip_dual_bound(colgen_res)
-    gap_is_positive = !isapprox(bound_ratio, 1) && ip_gap(colgen_res) > 0
-    if algo.run_mastipheur && isfeasible(colgen_res) && gap_is_positive
-        # TO DO : update incumb with col.gen. output
-        heur_output = run!(algo.mastipheur, reform, NewOptimizationInput(incumbres))
-        heur_res = getresult(heur_output)
-        if nb_ip_primal_sols(heur_res) > 0
-            add_ip_primal_sol!(colgen_res, get_best_ip_primal_sol(heur_res))
-            #for sol in get_ip_primal_sols(heuroutputres)
-            #    add_ip_primal_sol!(getresult(optoutput), sol)
-            #end
+    if (!to_be_pruned(node))
+        node.conquerrecord = record!(reform)
+        if algo.run_mastipheur 
+            heur_output = run!(
+                algo.mastipheur, getmaster(reform), OptimizationInput(nodestate)
+            )
+            update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         end
     end 
 
-    return ConquerOutput(colgen_output, record)
 end
 
 ####################################################################
@@ -182,9 +162,11 @@ function getslavealgorithms!(
     getslavealgorithms!(algo.masterlpalgo, reform, slaves)
 end
 
-function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)::ConquerOutput
-    return ConquerOutput(
-        run!(algo.masterlpalgo, getmaster(reform), SolveLpFormInput()), record!(reform)
-    )
+function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)
+    node = getnode(input)
+    nodestate = getoptstate(node)
+    output = run!(algo.masterlpalgo, getmaster(reform), OptimizationInput(nodestate))
+    update!(nodestate, getoptstate(output))
+    node.conquerrecord = record!(reform)
 end
 

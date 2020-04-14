@@ -11,10 +11,6 @@ Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
     log_level = 1
 end
 
-struct SolveIpFormInput{S} <: AbstractInput
-    incumbents::ObjValues{S}
-end
-
 
 # TO DO : create an Algorithm Logger
 # function Logging.shouldlog(logger::ConsoleLogger, level, _module, group, id)
@@ -25,46 +21,42 @@ end
 #     return get(logger.message_limits, id, 1) > 0
 # end
 
-function run!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInput)::OptimizationOutput
-    #logger = ConsoleLogger(stderr, LogLevel(algo.log_level))
-    #with_logger(logger) do
-        return run_ipform!(algo, form, input)
-    #end
-end
+function run!(algo::SolveIpForm, form::Formulation, input::OptimizationInput)::OptimizationOutput
 
-function run_ipform!(algo::SolveIpForm, form::Formulation, input::SolveIpFormInput)::OptimizationOutput
-    algoresult = OptimizationState(
-        form, ip_primal_bound = get_ip_primal_bound(input.incumbents)
+    optstate = OptimizationState(
+        form, ip_primal_bound = get_ip_primal_bound(getoptstate(input))
     )
 
     ip_supported = check_if_optimizer_supports_ip(getoptimizer(form))
     if !ip_supported
-        @warn "Optimizer of formulation with id =", getuid(form) ," does not support integer variables. Skip SolveIpForm algorithm."
-        return OptimizationOutput(algoresult)
+        @warn "Optimizer of formulation with id =", getuid(form),
+              " does not support integer variables. Skip SolveIpForm algorithm."
+        setterminationstatus!(optstate, EMPTY_RESULT)
+        return OptimizationOutput(optstate)
     end
 
     optimizer_result = optimize_ip_form!(algo, getoptimizer(form), form)
 
-    setfeasibilitystatus!(algoresult, getfeasibilitystatus(optimizer_result))
-    setterminationstatus!(algoresult, getterminationstatus(optimizer_result))
+    setfeasibilitystatus!(optstate, getfeasibilitystatus(optimizer_result))
+    setterminationstatus!(optstate, getterminationstatus(optimizer_result))
 
     bestprimalsol = getbestprimalsol(optimizer_result)
     if bestprimalsol !== nothing
-        add_ip_primal_sol!(algoresult, bestprimalsol) 
+        add_ip_primal_sol!(optstate, bestprimalsol) 
 
-        @logmsg LogLevel(1) string(
+        @logmsg LogLevel(-1) string(
             "Found primal solution of ", 
-            @sprintf "%.4f" getvalue(get_ip_primal_bound(algoresult))
+            @sprintf "%.4f" getvalue(get_ip_primal_bound(optstate))
         )
-        @logmsg LogLevel(-3) get_best_ip_primal_sol(algoresult)
+        @logmsg LogLevel(-3) get_best_ip_primal_sol(optstate)
     else
-        @logmsg LogLevel(1) string(
+        @logmsg LogLevel(-1) string(
             "No primal solution found. Termination status is ", 
-            getterminationstatus(algoresult), ". Feasibility status is ",
-            getfeasibilitystatus(algoresult), "."
+            getterminationstatus(optstate), ". Feasibility status is ",
+            getfeasibilitystatus(optstate), "."
         )
     end
-    return OptimizationOutput(algoresult)
+    return OptimizationOutput(optstate)
 end
 
 function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
@@ -99,8 +91,6 @@ function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Fo
     return optimize!(form)
 end
 
-function run!(alg::SolveIpForm, reform::Reformulation, input::NewOptimizationInput)
-    master = getmaster(reform)
-    ipforminput = SolveIpFormInput(ObjValues(master))
-    return run!(alg, master, ipforminput)
+function run!(alg::SolveIpForm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
+    return run!(alg, getmaster(reform), input)
 end

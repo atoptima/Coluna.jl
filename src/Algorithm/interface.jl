@@ -1,5 +1,4 @@
 struct EmptyInput <: AbstractInput end
-struct EmptyOutput <: AbstractOutput end #Usefull ?
 
 """
     getstoragetype(AlgorithmType)::StorageType
@@ -21,15 +20,15 @@ getslavealgorithms!(
 run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::EmptyInput) = run!(algo, form) # good idea ?
 
 """
-    NewOptimizationInput
+    OptimizationInput
 
-Contains Incumbents
+    Contains OptimizationResult
 """
-struct NewOptimizationInput{F,S} <: AbstractInput
-    incumbents::OptimizationState{F,S}
+struct OptimizationInput{F,S} <: AbstractInput
+    optstate::OptimizationState{F,S}
 end
 
-getinputresult(input::NewOptimizationInput) =  input.incumbents
+getoptstate(input::OptimizationInput) =  input.optstate
 
 
 """
@@ -39,10 +38,10 @@ Contain OptimizationState, PrimalSolution (solution to relaxation), and
 DualBound (dual bound value)
 """
 struct OptimizationOutput{F,S} <: AbstractOutput
-    result::OptimizationState{F,S}    
+    optstate::OptimizationState{F,S}    
 end
 
-getresult(output::OptimizationOutput)::OptimizationState = output.result
+getoptstate(output::OptimizationOutput)::OptimizationState = output.optstate
 
 
 """
@@ -54,3 +53,5 @@ getresult(output::OptimizationOutput)::OptimizationState = output.result
     The output of such algorithm should be of type OptimizationState.    
 """
 abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
+
+exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false

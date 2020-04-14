@@ -2,14 +2,15 @@
     DivideInput
 
     Input of a divide algorithm used by the tree search algorithm.
-    Should contain the parent node and the current best
+    Contains the parent node in the search tree for which children should be genrated.
 """
 struct DivideInput <: AbstractInput
     parent::Node
-    ip_primal_bound::PrimalBound
+    optstate::OptimizationState
 end
 
 getparent(input::DivideInput) = input.parent
+getoptstate(input::DivideInput) = input.optstate
 
 """
     DivideOutput
@@ -19,11 +20,11 @@ getparent(input::DivideInput) = input.parent
 """
 struct DivideOutput <: AbstractOutput 
     children::Vector{Node}
-    result::OptimizationState
+    optstate::OptimizationState
 end
 
-getchildren(output::DivideOutput)::Vector{Node} = output.children
-getresult(output::DivideOutput)::OptimizationState = output.result
+getchildren(output::DivideOutput) = output.children
+getoptstate(output::DivideOutput) = output.optstate
 
 """
     AbstractDivideAlgorithm
@@ -37,3 +38,6 @@ function run!(algo::AbstractDivideAlgorithm, reform::Reformulation, input::Divid
     error("Method run! which takes Reformulation and DivideInput as parameters and returns DivideOutput 
            is not implemented for algorithm $algotype.")
 end    
+
+# this function is needed to check whether the best primal solution should be copied to the node optimization state
+exploits_primal_solutions(algo::AbstractDivideAlgorithm) = false

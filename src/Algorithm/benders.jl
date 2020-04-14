@@ -7,9 +7,7 @@ Base.@kwdef struct BendersCutGeneration <: AbstractOptimizationAlgorithm
 end
 
 mutable struct BendersCutGenRuntimeData
-    incumbents::OptimizationState
-    has_converged::Bool
-    is_feasible::Bool
+    optstate::OptimizationState
     spform_phase::Dict{FormId, FormulationPhase}
     spform_phase_applied::Dict{FormId, Bool}
     #slack_cost_increase::Float64
@@ -23,38 +21,23 @@ function all_sp_in_phase2(algdata::BendersCutGenRuntimeData)
     return true
 end
 
-function BendersCutGenRuntimeData(form::Reformulation, node_inc::OptimizationState)
-    i = OptimizationState(getmaster(form))
-    if nb_ip_primal_sols(node_inc) > 0
-        add_ip_primal_sol!(i, get_best_ip_primal_sol(node_inc))
+function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
+    optstate = OptimizationState(getmaster(form))
+    if nb_ip_primal_sols(init_optstate) > 0
+        add_ip_primal_sol!(optstate, get_best_ip_primal_sol(init_optstate))
     end
-    return BendersCutGenRuntimeData(i, false, true, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
+    return BendersCutGenRuntimeData(optstate, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
 end
 
-function run!(algo::BendersCutGeneration, reform::Reformulation, input::NewOptimizationInput)::OptimizationOutput    
+getoptstate(data::BendersCutGenRuntimeData) = data.optstate
 
-    init_res = getinputresult(input)
-    data = BendersCutGenRuntimeData(reform, init_res)
+function run!(algo::BendersCutGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
+
+    data = BendersCutGenRuntimeData(reform, getoptstate(input))
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
 
-    runtime_res = data.incumbents
-    result = OptimizationState(
-        getmaster(reform),
-        feasibility_status = data.is_feasible ? FEASIBLE : INFEASIBLE, 
-        termination_status = data.has_converged ? OPTIMAL : OTHER_LIMIT,
-        ip_dual_bound = get_ip_dual_bound(runtime_res),
-        lp_dual_bound = get_lp_dual_bound(runtime_res)
-    )
-    if nb_lp_primal_sols(runtime_res) > 0
-        add_lp_primal_sol!(result, get_best_lp_primal_sol(runtime_res))
-    end
-    if nb_ip_primal_sols(runtime_res) > 0
-        for ip_primal_sol in get_ip_primal_sols(runtime_res)
-            add_ip_primal_sol!(result, ip_primal_sol)
-        end
-    end
-    return OptimizationOutput(result)
+    return OptimizationOutput(data.optstate)
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
@@ -413,7 +396,7 @@ function update_lagrangian_pb!(algdata::BendersCutGenRuntimeData, reform::Reform
     lagran_bnd = PrimalBound(master, 0.0)
     lagran_bnd += compute_master_pb_contrib(algdata, master, restricted_master_sol_value)
     lagran_bnd += benders_sp_sp_primal_bound_contrib
-    set_lp_primal_bound!(algdata.incumbents, lagran_bnd)
+    set_lp_primal_bound!(getoptstate(algdata), lagran_bnd)
     return lagran_bnd
 end
 
@@ -458,6 +441,7 @@ function bend_cutting_plane_main_loop!(
     masterform = getmaster(reform)
     one_spsol_is_a_relaxed_sol = false
     master_primal_sol = nothing
+    bnd_optstate = getoptstate(algdata)
     primal_bound = PrimalBound(masterform)
     
     for (spuid, spform) in get_benders_sep_sps(reform)
@@ -473,11 +457,11 @@ function bend_cutting_plane_main_loop!(
         optresult, master_time = solve_relaxed_master!(masterform)
 
         if getfeasibilitystatus(optresult) == INFEASIBLE
-            db = - DualBound(masterform)
-            pb = - PrimalBound(masterform)
-            set_lp_dual_bound!(algdata.incumbents, db)
-            set_lp_primal_bound!(algdata.incumbents, pb)
-            algdata.is_feasible = false
+            db = - getvalue(DualBound(masterform))
+            pb = - getvalue(PrimalBound(masterform))
+            set_lp_dual_bound!(bnd_optstate, DualBound(masterform, db))
+            set_lp_primal_bound!(bnd_optstate, PrimalBound(masterform, pb))
+            setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
             return 
         end
            
@@ -486,14 +470,14 @@ function bend_cutting_plane_main_loop!(
 
         if !isfeasible(optresult) || master_primal_sol == nothing || master_dual_sol == nothing
             error("Benders algorithm:  the relaxed master LP is infeasible or unboundedhas no solution.")
-            algdata.is_feasible = false
+            setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
             return 
         end
 
-        update_lp_dual_sol!(algdata.incumbents, master_dual_sol)
-        dual_bound = get_lp_dual_bound(algdata.incumbents)
-        update_lp_dual_bound!(algdata.incumbents, dual_bound)
-        update_ip_dual_bound!(algdata.incumbents, dual_bound)
+        update_lp_dual_sol!(bnd_optstate, master_dual_sol)
+        dual_bound = get_lp_dual_bound(bnd_optstate)
+        # update_lp_dual_bound!(algdata.incumbents, dual_bound)
+        update_ip_dual_bound!(bnd_optstate, get_lp_dual_bound(bnd_optstate))
                 
         reset_benders_sp_phase!(algdata, reform) # phase = HybridPhase
 
@@ -510,17 +494,17 @@ function bend_cutting_plane_main_loop!(
 
             if nb_new_cuts < 0
                 #@error "infeasible subproblem."
-                algdata.is_feasible = false
+                setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
                 return
             end
 
             # TODO: update bendcutgen stabilization
-            update_lp_primal_sol!(algdata.incumbents, master_primal_sol)
-            set_lp_primal_bound!(algdata.incumbents, primal_bound)
+            update_lp_primal_sol!(bnd_optstate, master_primal_sol)
+            set_lp_primal_bound!(bnd_optstate, primal_bound)
             cur_gap = gap(primal_bound, dual_bound)
             
-            print_intermediate_statistics(
-                algdata, nb_new_cuts, nb_bc_iterations, master_time, sp_time
+            print_benders_statistics(
+                bnd_optstate, nb_new_cuts, nb_bc_iterations, master_time, sp_time
             )
             
             
@@ -532,7 +516,7 @@ function bend_cutting_plane_main_loop!(
             
             if nb_bc_iterations >= algo.max_nb_iterations
                 @warn "Maximum number of cut generation iteration is reached."
-                algdata.is_feasible = false
+                setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
                 break # loop on separation phases
             end
             
@@ -543,18 +527,19 @@ function bend_cutting_plane_main_loop!(
         end # loop on separation phases
         
         if cur_gap < algo.optimality_tol
+            setterminationstatus!(bnd_optstate, OPTIMAL)
             break # loop on master lp solution 
         end
         
         if nb_bc_iterations >= algo.max_nb_iterations
             @warn "Maximum number of cut generation iteration is reached."
-            algdata.is_feasible = false # ??? (Ruslan :: infeasible if the iterations number limit is reached?)
+            setterminationstatus!(bnd_optstate, OTHER_LIMIT)
             break # loop on master lp solution 
         end
         
         if nb_new_cuts == 0 
             @logmsg LogLevel(0) "Benders Speration Algorithm has converged." nb_new_cuts cur_gap
-            algdata.has_converged = true
+            setterminationstatus!(bnd_optstate, OPTIMAL)
             break # loop on master lp solution          
         end
         
@@ -575,22 +560,22 @@ function bend_cutting_plane_main_loop!(
             end
         end
         if sol_integer
-            update_ip_primal_sol!(algdata.incumbents, master_primal_sol)
+            update_ip_primal_sol!(bnd_optstate, master_primal_sol)
         end
     end
     return 
 end
 
-function print_intermediate_statistics(data::BendersCutGenRuntimeData,
-                                       nb_new_cut::Int,
-                                       nb_bc_iterations::Int,
-                                       mst_time::Float64, sp_time::Float64)
-    mlp = getvalue(get_lp_dual_bound(data.incumbents))
-    db = getvalue(get_ip_dual_bound(data.incumbents))
-    pb = getvalue(get_ip_primal_bound(data.incumbents))
+function print_benders_statistics(
+    optstate::OptimizationState, nb_new_cut::Int,
+    nb_bc_iterations::Int, mst_time::Float64, sp_time::Float64
+)
+    mlp = getvalue(get_lp_dual_bound(optstate))
+    db = getvalue(get_ip_dual_bound(optstate))
+    pb = getvalue(get_ip_primal_bound(optstate))
     @printf(
-            "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <mlp=%10.4f> <DB=%10.4f> <PB=%10.4f>\n",
-            nb_bc_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_cut, mlp, db, pb
+            "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <DB=%10.4f> <mlp=%10.4f> <PB=%10.4f>\n",
+            nb_bc_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_cut, db, mlp, pb
     )
 end
 
