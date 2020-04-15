@@ -4,7 +4,9 @@
 todo
 """
 Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm 
+    get_dual_solution = false
     relax_integrality = false
+    set_dual_bound = false
     log_level = 1
 end
 
@@ -18,13 +20,8 @@ end
 #     return
 # end
 
-struct SolveLpFormInput <: AbstractInput
-    #incumbents::ObjValues{S} # needed ?
-    # base ?
-end
-
-function run!(algo::SolveLpForm, form::Formulation, input::SolveLpFormInput)::OptimizationOutput
-    algoresult = OptimizationState(form)
+function run!(algo::SolveLpForm, form::Formulation, input::OptimizationInput)::OptimizationOutput
+    optstate = OptimizationState(form)
 
     if algo.relax_integrality
         relax_integrality!(form)
@@ -32,19 +29,27 @@ function run!(algo::SolveLpForm, form::Formulation, input::SolveLpFormInput)::Op
 
     optimizer_result = optimize!(form)
 
-    setfeasibilitystatus!(algoresult, getfeasibilitystatus(optimizer_result))    
-    setterminationstatus!(algoresult, getterminationstatus(optimizer_result))   
+    setfeasibilitystatus!(optstate, getfeasibilitystatus(optimizer_result))    
+    setterminationstatus!(optstate, getterminationstatus(optimizer_result))   
 
     lp_primal_sol = getbestprimalsol(optimizer_result)
     if lp_primal_sol !== nothing
-        add_lp_primal_sol!(algoresult, lp_primal_sol)
-        add_lp_dual_sol!(algoresult, getbestdualsol(optimizer_result))
-        # here we suppose that there are DW subproblems and thus the value of the LP solution
-        # is not a valid dual bound, so the dual bound is not updated -> we should suppose nothing
+        add_lp_primal_sol!(optstate, lp_primal_sol)
         if isinteger(lp_primal_sol) && !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
-            add_ip_primal_sol!(algoresult, lp_primal_sol)
+            add_ip_primal_sol!(optstate, lp_primal_sol)
         end
     end
 
-    return OptimizationOutput(algoresult)
+    if algo.get_dual_solution
+        lp_dual_sol = getbestdualsol(optimizer_result)
+        if lp_dual_sol !== nothing
+            if algo.set_dual_bound
+                update_lp_dual_sol!(optstate, lp_dual_sol)
+            else
+                set_lp_dual_sol!(optstate, lp_dual_sol)
+            end
+        end
+    end
+
+    return OptimizationOutput(optstate)
 end

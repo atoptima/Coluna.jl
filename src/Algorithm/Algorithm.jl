@@ -26,7 +26,7 @@ import .MathProg: getfeasibilitystatus, getterminationstatus, setfeasibilitystat
     setterminationstatus!, isfeasible, get_ip_primal_bound, get_ip_dual_bound, 
     get_lp_primal_bound, get_lp_dual_bound, update_ip_primal_bound!, update_ip_dual_bound!, 
     update_lp_primal_bound!, update_lp_dual_bound!, set_ip_primal_bound!, 
-    set_ip_dual_bound!, set_lp_primal_bound!, set_lp_dual_bound!, ip_gap
+    set_ip_dual_bound!, set_lp_primal_bound!, set_lp_dual_bound!, ip_gap, lp_gap
 
 # Import to define run! method of algorithms
 import .ColunaBase: run!
@@ -38,18 +38,16 @@ include("utilities/record.jl")
 # Abstract algorithm
 include("interface.jl")
 
-# Here include slave algorithms used by conquer algorithms
+# Slave algorithms used by conquer algorithms
 include("solveipform.jl")
 include("solvelpform.jl")
 include("colgen.jl")
 include("benders.jl")
 include("preprocessing.jl")
 
-# Here include conquer algorithms
+# Algorithms and structures used by the tree search algorithm
+include("node.jl") 
 include("conquer.jl")
-
-include("node.jl") # TODO : break interdependance between node & Algorithm #224 & rm file
-
 include("divide.jl")
 
 # Here include divide algorithms

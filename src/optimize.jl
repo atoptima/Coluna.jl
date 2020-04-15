@@ -61,16 +61,16 @@ function optimize!(prob::MathProg.Problem, annotations::MathProg.Annotations, pa
     relax_integrality!(prob.re_formulation.master) # TODO : remove
 
     TO.@timeit _to "Coluna" begin
-        opt_result = optimize!(
+        optstate = optimize!(
             prob.re_formulation, params.solver, init_pb, init_db
         )
     end
     println(_to)
     TO.reset_timer!(_to)
     @logmsg LogLevel(1) "Terminated"
-    @logmsg LogLevel(1) string("Primal bound: ", get_ip_primal_bound(opt_result))
-    @logmsg LogLevel(1) string("Dual bound: ", get_ip_dual_bound(opt_result))
-    return opt_result
+    @logmsg LogLevel(1) string("Primal bound: ", get_ip_primal_bound(optstate))
+    @logmsg LogLevel(1) string("Dual bound: ", get_ip_dual_bound(optstate))
+    return optstate
 end
 
 """
@@ -89,31 +89,39 @@ function optimize!(
     end
 
     master = getmaster(reform)
-    init_result = OptimizationState(
+    initstate = OptimizationState(
         master,
         ip_primal_bound = initial_primal_bound,
         ip_dual_bound = initial_dual_bound,
         lp_dual_bound = initial_dual_bound
     )
 
-    output = run!(algorithm, reform, Algorithm.NewOptimizationInput(init_result))
-    opt_result = Algorithm.getresult(output)
+    output = run!(algorithm, reform, Algorithm.OptimizationInput(initstate))
+    algstate = Algorithm.getoptstate(output)
     
-    result = OptimizationState(
+    # we copy optimisation state as we want to project the solution to the compact space
+    outstate = OptimizationState(
         master, 
-        feasibility_status = getfeasibilitystatus(opt_result),
-        termination_status = getterminationstatus(opt_result),
-        ip_primal_bound = get_ip_primal_bound(opt_result),
-        ip_dual_bound = get_ip_dual_bound(opt_result),
-        lp_primal_bound = get_lp_primal_bound(opt_result),
-        lp_dual_bound = get_lp_dual_bound(opt_result)
+        feasibility_status = getfeasibilitystatus(algstate),
+        termination_status = getterminationstatus(algstate),
+        ip_primal_bound = get_ip_primal_bound(algstate),
+        ip_dual_bound = get_ip_dual_bound(algstate),
+        lp_primal_bound = get_lp_primal_bound(algstate),
+        lp_dual_bound = get_lp_dual_bound(algstate)
     )
 
-    ip_primal_sols = get_ip_primal_sols(opt_result)
+    ip_primal_sols = get_ip_primal_sols(algstate)
     if ip_primal_sols !== nothing  
         for sol in ip_primal_sols
-            add_ip_primal_sol!(result, proj_cols_on_rep(sol, master))
+            add_ip_primal_sol!(outstate, proj_cols_on_rep(sol, master))
         end
     end
-    return result
+
+    # lp_primal_sol may also be of interest, for example when solving the relaxation
+    lp_primal_sol = get_best_lp_primal_sol(algstate)
+    if lp_primal_sol !== nothing  
+        add_lp_primal_sol!(outstate, proj_cols_on_rep(lp_primal_sol, master))
+    end
+
+    return outstate
 end

@@ -64,45 +64,75 @@ function apply_branch!(f::Reformulation, b::Branch)
 end
 
 ####################################################################
+#                      ConquerRecord
+####################################################################
+
+"""
+    ConquerRecord
+
+    Record of a conquer algorithm used by the tree search algorithm.
+    Contain ReformulationRecord and records for all storages used by 
+    reformulation algorithms.
+"""
+# TO DO : add records for storages and record id
+struct ConquerRecord <: AbstractRecord 
+    # id::Int64
+    reformrecord::ReformulationRecord
+    # storagerecords::Dict{Tuple{AbstractFormulation, Type{<:AbstractStorage}}, AbstractRecord}    
+end
+
+function record!(reform::Reformulation)::ConquerRecord
+    @logmsg LogLevel(0) "Recording reformulation state."
+    reformrecord = ReformulationRecord()
+    add_to_recorded!(reform, reformrecord)
+    return ConquerRecord(reformrecord)
+end
+
+prepare!(reform::Reformulation, ::Nothing) = nothing
+
+function prepare!(reform::Reformulation, record::ConquerRecord)
+    @logmsg LogLevel(0) "Preparing reformulation according to node record"
+    @logmsg LogLevel(0) "Preparing reformulation master"
+    prepare!(getmaster(reform), record.reformrecord)
+    for (spuid, spform) in get_dw_pricing_sps(reform)
+        @logmsg LogLevel(0) string("Resetting sp ", spuid, " state.")
+        prepare!(spform, record.reformrecord)
+    end
+    return
+end
+
+####################################################################
 #                      Node
 ####################################################################
 
-# TO DO : LP primal solution (relaxation solution) should be moved
-# from incumbents directly to Node
-mutable struct Node #<: AbstractNode
+mutable struct Node 
     tree_order::Int
     istreated::Bool
     depth::Int
     parent::Union{Nothing, Node}
-    #children::Vector{Node}
-    incumbent_result::OptimizationState
+    optstate::OptimizationState
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
-    #algorithm_results::Dict{AbstractAlgorithm,AbstractAlgorithmResult}
     conquerrecord::Union{Nothing, ConquerRecord}
     dividerecord::Union{Nothing, AbstractRecord}
     conquerwasrun::Bool
-    infeasible::Bool
-    #status::FormulationStatus
 end
 
-function RootNode(incumbresult::OptimizationState, skipconquer::Bool)
+function RootNode(form::AbstractFormulation, treestate::OptimizationState, skipconquer::Bool)
+    nodestate = CopyBoundsAndStatusesFromOptState(form, treestate, false)
     return Node(
-        -1, false, 0, nothing, incumbresult, nothing,
-        "", nothing, nothing, skipconquer, false
+        -1, false, 0, nothing, nodestate, nothing,
+        "", nothing, nothing, skipconquer
     )
 end
 
-function Node(parent::Node, branch::Branch, branchdescription::String)
+function Node(form::AbstractFormulation, parent::Node, branch::Branch, branchdescription::String)
     depth = getdepth(parent) + 1
-    inc_res = deepcopy(getincumbentresult(parent))
-    # Resetting lp primals because the lp can get worse during the algorithms,
-    # thus not being updated in the node and breaking the branching
-    inc_res.lp_primal_sols = nothing
+    nodestate = CopyBoundsAndStatusesFromOptState(form, getoptstate(parent), false)
     
     return Node(
-        -1, false, depth, parent, inc_res, branch, branchdescription, 
-        parent.conquerrecord, parent.dividerecord, false, false
+        -1, false, depth, parent, nodestate, branch, branchdescription, 
+        parent.conquerrecord, parent.dividerecord, false
     )
 end
 
@@ -110,10 +140,9 @@ end
 # used in strong branching
 function Node(parent::Node, child::Node)
     depth = getdepth(parent) + 1
-    inc_res = deepcopy(getincumbentresult(child))
     return Node(
-        -1, false, depth, parent, inc_res, nothing, child.branchdescription,
-        child.conquerrecord, child.dividerecord, false, false
+        -1, false, depth, parent, getoptstate(child), nothing, 
+        child.branchdescription, child.conquerrecord, child.dividerecord, false
     )
 end
 
@@ -122,9 +151,8 @@ set_tree_order!(n::Node, tree_order::Int) = n.tree_order = tree_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
-getincumbents(n::Node) = n.incumbent_result.incumbents
-getincumbentresult(n::Node) = n.incumbent_result
 getbranch(n::Node) = n.branch
+getoptstate(n::Node) = n.optstate
 addchild!(n::Node, child::Node) = push!(n.children, child)
 settreated!(n::Node) = n.istreated = true
 istreated(n::Node) = n.istreated
@@ -133,79 +161,8 @@ getinfeasible(n::Node) = n.infesible
 setinfeasible(n::Node, status::Bool) = n.infeasible = status
 
 function to_be_pruned(node::Node)
-    node.infeasible && return true
-    incres = getincumbentresult(node)
-    bounds_ratio = get_ip_primal_bound(incres) / get_ip_dual_bound(incres)
-    return isapprox(bounds_ratio, 1) || ip_gap(incres) < 0
-end
-
-function to_be_pruned(node::Node, ip_primal_bound::PrimalBound)
-    node.infeasible && return true
-    incres = getincumbentresult(node)
-    bounds_ratio = ip_primal_bound / get_ip_dual_bound(incres)
-    return isapprox(bounds_ratio, 1) || ip_gap(incres) < 0
-end
-
-# returns the optimization part of the output of the conquer algorithm 
-function apply_conquer_alg_to_node!(
-    node::Node, algo::AbstractConquerAlgorithm, 
-    reform::Reformulation, result::OptimizationState
-)::OptimizationOutput
-
-    node_inc_res = getincumbentresult(node)
-
-    # should reset lp bound here ? Maybe in the Node constructor ?
-    update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(result))
-    set_lp_primal_bound!(node_inc_res, PrimalBound(getmaster(reform)))
-    
-    if isverbose(algo)
-        @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(getincumbents(node)))
-        @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(getincumbents(node)))
-    end
-    if (ip_gap(getincumbents(node)) <= 0.0 + 0.00000001)
-        isverbose(algo) && @logmsg LogLevel(-1) string(
-            "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
-        )
-        node.conquerrecord = nothing
-        return OptimizationOutput(getincumbentresult(node))
-    end
-    isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
-
-    prepare!(reform, node.conquerrecord)    
-    node.conquerrecord = nothing
-
-    # TO DO : get rid of Branch 
-    apply_branch!(reform, getbranch(node))
-
-    conqueroutput = run!(
-        algo, reform, ConquerInput(getincumbentresult(node), isrootnode(node))
-    )
-
-    node.conquerwasrun = true
-
-    # update of node incumbents
-    optoutput = getoptoutput(conqueroutput)
-
-    # update of tree search algorithm primal solutions 
-    optoutputres = getresult(optoutput)
-    if nb_ip_primal_sols(optoutputres) > 0
-        for ip_primal_sol in get_ip_primal_sols(optoutputres)
-            add_ip_primal_sol!(result, deepcopy(ip_primal_sol))
-        end    
-    end    
-    !isfeasible(optoutputres) && setinfeasible(node, true)
-    if !to_be_pruned(node) 
-        node.conquerrecord = getrecord(conqueroutput)
-    end
-
-    update_ip_primal_bound!(node_inc_res, get_ip_primal_bound(optoutputres))
-    update_ip_dual_bound!(node_inc_res, get_ip_dual_bound(optoutputres))
-    update_lp_primal_bound!(node_inc_res, get_lp_primal_bound(optoutputres))
-    update_lp_dual_bound!(node_inc_res, get_lp_dual_bound(optoutputres))
-
-    if nb_lp_primal_sols(optoutputres) > 0
-        add_lp_primal_sol!(node_inc_res, get_best_lp_primal_sol(optoutputres))
-        #set_lp_primal_bound!(node_inc_res, get_lp_primal_bound(optoutputres))
-    end
-    return optoutput
+    nodestate = getoptstate(node)
+    isinfeasible(nodestate) && return true
+    bounds_ratio = get_ip_primal_bound(nodestate) / get_ip_dual_bound(nodestate)
+    return isapprox(bounds_ratio, 1) || ip_gap(nodestate) < 0
 end

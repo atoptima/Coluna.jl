@@ -54,24 +54,8 @@ function regenerate_children!(group::BranchingGroup, reform::Reformulation, pare
     return
 end
 
-# function update_father_dual_bound!(group::BranchingGroup, parent::Node)
-#     isempty(group.children) && return
-
-#     worst_dual_bound = get_lp_dual_bound(getincumbents(group.children[1]))
-#     for (node_index, node) in enumerate(group.children)
-#         node_index == 1 && continue
-#         node_dual_bound = get_lp_dual_bound(getincumbents(node))
-#         if isbetter(worst_dual_bound, node_dual_bound)
-#             worst_dual_bound = node_dual_bound
-#         end
-#     end
-
-#     update_ip_dual_bound!(getincumbents(parent), worst_dual_bound)
-#     update_lp_dual_bound!(getincumbents(parent), worst_dual_bound)
-#     return
-# end
-
-function compute_product_score!(group::BranchingGroup, parent_inc::ObjValues)
+function compute_product_score!(group::BranchingGroup, parent_optstate::OptimizationState)
+    parent_inc = getincumbents(parent_optstate)
     # TO DO : we need to mesure the gap to the cut-off value
     parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
     parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
@@ -80,7 +64,7 @@ function compute_product_score!(group::BranchingGroup, parent_inc::ObjValues)
     all_branches_above_delta::Bool = true
     deltas = Vector{Float64}()
     for node in group.children
-        node_delta = diff(get_lp_primal_bound(getincumbents(node)), parent_lp_dual_bound)
+        node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < parent_delta
             all_branches_above_delta = false
         end
@@ -134,7 +118,8 @@ function number_of_leaves(gap::Float64, deltas::Vector{Float64})
     return mid
 end
 
-function compute_tree_depth_score!(group::BranchingGroup, parent_inc::ObjValues)
+function compute_tree_depth_score!(group::BranchingGroup, parent_optstate::OptimizationState)
+    parent_inc = getincumbents(parent_optstate)
     score::Float64 = 0.0
     
     # TO DO : we need to mesure the gap to the cut-off value
@@ -144,7 +129,7 @@ function compute_tree_depth_score!(group::BranchingGroup, parent_inc::ObjValues)
     deltas = Vector{Float64}()
     nb_zero_deltas::Int64 = 0
     for node in group.children
-        node_delta = diff(get_lp_primal_bound(getincumbents(node)), parent_lp_dual_bound)
+        node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < 1e-6 # TO DO : use tolerance here
             nb_zero_deltas += 1
         end
@@ -182,7 +167,7 @@ function print_bounds_and_score(group::BranchingGroup, phase_index::Int64, max_d
     print(repeat(" ", lengthdiff), " : [")
     for (node_index, node) in enumerate(group.children)
         node_index > 1 && print(",")            
-        @printf "%10.4f" getvalue(get_lp_primal_bound(getincumbents(node)))
+        @printf "%10.4f" getvalue(get_lp_primal_bound(getoptstate(node)))
     end
     @printf "], score = %10.4f\n" group.score
     return

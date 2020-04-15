@@ -47,12 +47,8 @@ struct NoBranching <: AbstractDivideAlgorithm
 end
 
 function run!(algo::NoBranching, reform::Reformulation, input::DivideInput)::DivideOutput
-    parent = getparent(input)
-    parent_incumb = getincumbents(parent)
-    result = OptimizationState(getmaster(reform))
-    return DivideOutput([], result)
+    return DivideOutput([], OptimizationState(getmaster(reform)))
 end
-
 
 """
     StrongBranching
@@ -88,10 +84,24 @@ function getslavealgorithms!(
     end
 end
 
+function exploits_primal_solutions(algo::StrongBranching)
+    for phase in algo.phases
+        exploits_primal_solutions(phase.conquer_algo) && return true
+    end
+    return false
+end
+
 function perform_strong_branching_with_phases!(
-    algo::StrongBranching, reform::Reformulation, parent::Node, 
-    groups::Vector{BranchingGroup}, result::OptimizationState
-)
+    algo::StrongBranching, reform::Reformulation, input::DivideInput, 
+    groups::Vector{BranchingGroup}
+)::OptimizationState
+
+    parent = getparent(input)
+    exploitsprimalsolutions::Bool = exploits_primal_solutions(algo)    
+    sbstate = CopyBoundsAndStatusesFromOptState(
+        getmaster(reform), getoptstate(input), exploitsprimalsolutions
+    )
+
     for (phase_index, current_phase) in enumerate(algo.phases)
         nb_candidates_for_next_phase::Int64 = 1        
         if phase_index < length(algo.phases)
@@ -124,7 +134,7 @@ function perform_strong_branching_with_phases!(
             end
                         
             if phase_index > 1
-                sort!(group.children, by =  x -> get_lp_primal_bound(getincumbents(x)))
+                sort!(group.children, by = x -> get_lp_primal_bound(getoptstate(x)))
             end
             
             pruned_nodes_indices = Vector{Int64}()            
@@ -132,15 +142,17 @@ function perform_strong_branching_with_phases!(
                 if isverbose(current_phase.conquer_algo)
                     print(
                         "**** SB phase ", phase_index, " evaluation of candidate ", 
-                        group_index, " (branch ", node_index, node.branchdescription
+                        group_index, " (branch ", node_index, " : ", node.branchdescription
                     )
-                    @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getincumbents(node)))
+                    @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getoptstate(node)))
                 end
 
-                optoutput = apply_conquer_alg_to_node!(
-                    node, current_phase.conquer_algo, reform, result
-                )        
+                update_ip_primal!(getoptstate(node), sbstate, exploitsprimalsolutions)
 
+                apply_conquer_alg_to_node!(node, current_phase.conquer_algo, reform)        
+
+                update_all_ip_primal_solutions!(sbstate, getoptstate(node))
+                    
                 if to_be_pruned(node) 
                     if isverbose(current_phase.conquer_algo)
                         println("Branch is conquered!")
@@ -148,9 +160,6 @@ function perform_strong_branching_with_phases!(
                     push!(pruned_nodes_indices, node_index)
                 end
             end
-
-            # TO CHECK : Should we do this???
-            #update_father_dual_bound!(group, parent)
 
             deleteat!(group.children, pruned_nodes_indices)
 
@@ -164,10 +173,10 @@ function perform_strong_branching_with_phases!(
 
             if phase_index < length(algo.phases) 
                 # not the last phase, thus we compute the product score
-                compute_product_score!(group, getincumbents(parent))
+                compute_product_score!(group, getoptstate(parent))
             else    
                 # the last phase, thus we compute the tree size score
-                compute_tree_depth_score!(group, getincumbents(parent))
+                compute_tree_depth_score!(group, getoptstate(parent))
             end
             print_bounds_and_score(group, phase_index, max_descr_length)
         end
@@ -180,18 +189,16 @@ function perform_strong_branching_with_phases!(
 
         resize!(groups, nb_candidates_for_next_phase)
     end
-    return
+    return sbstate
 end
 
 function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput)::DivideOutput
     parent = getparent(input)
-    parent_incumb_res = getincumbentresult(parent)
-    result = OptimizationState(getmaster(reform))
-    set_ip_primal_bound!(result, input.ip_primal_bound)
-    set_ip_dual_bound!(result, get_ip_dual_bound(parent_incumb_res))
+    optstate = getoptstate(parent)
+
     if isempty(algo.rules)
         @logmsg LogLevel(1) "No branching rule is defined. No children will be generated."
-        return DivideOutput([], result)
+        return DivideOutput(Vector{Node}())
     end
 
     kept_branch_groups = Vector{BranchingGroup}()
@@ -204,16 +211,16 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
     master = getmaster(reform)
     original_solution = PrimalSolution(getmaster(reform))
     extended_solution = PrimalSolution(getmaster(reform))
-    if nb_lp_primal_sols(parent_incumb_res) > 0
+    if nb_lp_primal_sols(optstate) > 0
         if projection_is_possible(master)
-            extended_solution = get_best_lp_primal_sol(parent_incumb_res)
+            extended_solution = get_best_lp_primal_sol(optstate)
             original_solution = proj_cols_on_rep(extended_solution, master)
         else
-            original_solution = get_best_lp_primal_sol(parent_incumb_res)
+            original_solution = get_best_lp_primal_sol(optstate)
         end
     else
-        @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
-        return DivideOutput(Vector{Node}(), result)
+        @logmsg LogLevel(1) "Warning: no LP solution is passed to the branching algorithm. No children will be generated."
+        return DivideOutput(Vector{Node}())
     end
 
     # phase 0 of branching : we ask branching rules to generate branching candidates
@@ -270,15 +277,16 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
 
     if isempty(kept_branch_groups)
         @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
-        return DivideOutput(Vector{Node}(), result)
+        return DivideOutput(Vector{Node}(), optstate)
     end
 
+    #in the case of simple branching, it remains to generate the children
     if isempty(algo.phases) 
-        #in the case of simple branching, it remains to generate the children
         generate_children!(kept_branch_groups[1], reform, parent)
-    else
-        perform_strong_branching_with_phases!(algo, reform, parent, kept_branch_groups, result)
+        return DivideOutput(kept_branch_groups[1].children, OptimizationState(getmaster(reform)))
     end
 
-    return DivideOutput(kept_branch_groups[1].children, result)
+    sbstate = perform_strong_branching_with_phases!(algo, reform, input, kept_branch_groups)
+
+    return DivideOutput(kept_branch_groups[1].children, sbstate)
 end
