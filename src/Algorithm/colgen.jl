@@ -291,9 +291,110 @@ function computereducedcosts(reform::Reformulation, redcostsvec::ReducedCostsVec
             end
             k > pma_end && break
         end
+        #setcurcost!(redcostsvec.form[i], varid, redcostsvec.perenecosts[i] + sign * term)
         redcosts[i] += sign * term
     end
     return redcosts
+end
+
+function computereducedcosts2(reform::Reformulation, redcostsvec::ReducedCostsVector, dualsol::DualSolution)
+    redcosts = deepcopy(redcostsvec.perenecosts)
+    master = getmaster(reform)
+    sign = getobjsense(master) == MinSense ? -1 : 1
+    matrix = getcoefmatrix(master)
+
+    crm = matrix.rows_major
+
+    constr_key_pos::Int = 1
+    next_constr_key_pos::Int = 2
+
+    row_start = 0
+    row_end = 0
+    row_pos = 0
+
+    terms = Dict{VarId, Float64}(id => 0.0 for id in redcostsvec.varids)
+
+    # for varid in redcostsvec.varids
+    #     varid2 = getid(getvar(getmaster(reform), varid))
+    #     println(getduty(varid2))
+    # end
+
+    for dual_pos in 1:length(dualsol.sol.array)
+        entry = dualsol.sol.array[dual_pos]
+        if entry !== nothing
+            constrid, val = entry
+            #println("\e[31m constraint $constrid with name = $(getname(getmaster(reform), constrid)) & val = $val \e[00m")
+            while constr_key_pos <= length(crm.col_keys) && crm.col_keys[constr_key_pos] != constrid
+                constr_key_pos += 1
+            end
+            (constr_key_pos > length(crm.col_keys)) && break
+            next_constr_key_pos = constr_key_pos + 1
+            while next_constr_key_pos <= length(crm.col_keys) && crm.col_keys[next_constr_key_pos] === nothing
+                next_constr_key_pos += 1
+            end
+
+            row_start = crm.pcsc.semaphores[constr_key_pos] + 1
+            row_end = length(crm.pcsc.pma.array)
+            if next_constr_key_pos <= length(crm.col_keys)
+                row_end = crm.pcsc.semaphores[next_constr_key_pos] - 1
+            end
+            #println("\t row_start = $row_start")
+            #println("\t row_end = $row_end")
+            for row_pos in row_start:row_end
+                entry = crm.pcsc.pma.array[row_pos]
+                if entry !== nothing
+                    row_varid, coeff = entry
+                    #println(getduty(row_varid))
+                    if getduty(row_varid) <= AbstractMasterRepDwSpVar || getduty(row_varid) <= DwSpSetupVar
+                        #println("\t\t variable $(getname(getmaster(reform), row_varid)) has coeff $coeff.")
+                        terms[row_varid] = get(terms, row_varid, 0.0) + val * coeff
+                    end
+                end
+            end
+            constr_key_pos = next_constr_key_pos
+        end
+    end
+
+    for (i, varid) in enumerate(redcostsvec.varids)
+        redcosts[i] += sign * terms[varid]
+    end
+
+    return redcosts
+end
+
+function computereducedcosts3(reform::Reformulation, redcostsvec::ReducedCostsVector, dualsol::DualSolution)
+    #redcosts = deepcopy(redcostsvec.perenecosts)
+    master = getmaster(reform)
+    sign = getobjsense(master) == MinSense ? -1 : 1
+    matrix = getcoefmatrix(master)
+
+    cmm = matrix.cols_major
+
+    term::Float64 = 0.0
+
+    sum = 0.0
+    for k in 1:length(cmm.pcsc.pma.array)
+        entry = cmm.pcsc.pma.array[k]
+        if entry !== nothing
+            ccm_constrid, coeff = entry 
+            sum += coeff
+        end
+    end
+
+    #@show length(dualsol.sol.array)
+    
+    #for (i, varid) in enumerate(redcostsvec.varids)
+    #h = 0
+    for l in 1:length(dualsol.sol.array)
+        entry = dualsol.sol.array[l]
+        if entry !== nothing
+            ccm_constrid, coeff = entry
+            sum += coeff
+            #h += 1
+        end
+    end
+    #@show h
+    #end
 end
 
 function solve_sps_to_gencols!(
@@ -310,7 +411,7 @@ function solve_sps_to_gencols!(
     sp_dual_bound_contribs = Dict{FormId, Float64}()
 
     # update reduced costs
-    redcosts = computereducedcosts(reform, redcostsvec, dual_sol)
+    redcosts = computereducedcosts2(reform, redcostsvec, dual_sol)
 
     for i in 1:length(redcosts)
         setcurcost!(redcostsvec.form[i], redcostsvec.varids[i], redcosts[i])
