@@ -3,6 +3,7 @@ module Algorithm
 import DataStructures
 import MathOptInterface
 import TimerOutputs
+import DynamicSparseArrays
 
 using ..Coluna
 using ..ColunaBase
