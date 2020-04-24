@@ -200,7 +200,7 @@ function instantiate_orig_vars!(
     vars = annotations.vars_per_ann[sp_ann]
     masterform = spform.parent_formulation
     for (id, var) in vars
-        # An original variable annoted in a subproblem is a DwSpPricingVar
+        # An original variable annotated in a subproblem is a DwSpPricingVar
         clonevar!(origform, spform, spform, var, DwSpPricingVar, is_explicit = true)
         clonevar!(origform, masterform, spform, var, MasterRepPricingVar,
                   is_explicit = false)#, members = getcoefmatrix(origform)[:,id])
