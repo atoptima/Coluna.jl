@@ -133,7 +133,6 @@ function solve_sp_to_gencol!(
     
     recorded_solution_ids = Vector{VarId}()
     sp_solution_ids_to_activate = Vector{VarId}()
-
     sp_is_feasible = true
 
     #dual_bound_contrib = 0 # Not used
@@ -240,7 +239,7 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
                 entry = crm.pcsc.pma.array[row_pos]
                 if entry !== nothing
                     row_varid, coeff = entry
-                    if getduty(row_varid) <= AbstractMasterRepDwSpVar || getduty(row_varid) <= DwSpSetupVar
+                    if getduty(row_varid) <= AbstractMasterRepDwSpVar
                         terms[row_varid] = get(terms, row_varid, 0.0) + val * coeff
                     end
                 end
