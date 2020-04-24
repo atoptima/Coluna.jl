@@ -1,46 +1,6 @@
 function variable_unit_tests()
-    var_data_getters_and_setters_tests()
     moi_var_record_getters_and_setters_tests()
     variable_getters_and_setters_tests()
-    return
-end
-
-function var_data_getters_and_setters_tests()
-
-    form = createformulation()
- 
-     v_data = ClF.VarData(
-         ; cost = 13.0, lb = -10.0, ub = 100.0, kind = ClF.Continuous,
-         sense = ClF.Free, is_active = false, is_explicit = false
-     )
-     v = ClF.Variable(
-        ClF.Id{ClF.Variable}(ClF.MasterPureVar, 23, 10), "fake_var";
-        var_data = v_data
-    )
-
-    ClF._addvar!(form, v)
-
-    @test ClF.getcurcost(form, v) == 13.0
-    # @test ClF.getlb(form, v_data) == -10.0
-    # @test ClF.getub(form, v_data) == 100.0
-
-    # ClF.setcost!(form, v_data, -113.0)
-    # ClF.setlb!(form, v_data, -113.0)
-    # ClF.setub!(form, v_data, -113.0)
-
-    # @test ClF.getcost(form, v_data) == -113.0
-    # @test ClF.getlb(form, v_data) == -113.0
-    # @test ClF.getub(form, v_data) == -113.0
-
-    # ClF.setkind!(form, v_data, ClF.Binary)
-    # @test ClF.getkind(form, v_data) == ClF.Binary
-    # @test ClF.getlb(form, v_data) == 0.0
-    # @test ClF.getub(form, v_data) == -113.0
-
-    # ClF.setkind!(form, v_data, ClF.Integ)
-    # @test ClF.getkind(form, v_data) == ClF.Integ
-    # @test ClF.getlb(form, v_data) == 0.0
-    # @test ClF.getub(form, v_data) == -113.0
     return
 end
 
@@ -95,12 +55,5 @@ function variable_getters_and_setters_tests()
 
     ClF.reset!(form, v)
     @test ClF.getperenecost(form, v) == ClF.getcurcost(form, v) == 13.0
-    #@test v.perene_data.lb == v.cur_data.lb == -10.0
-    #@test v.perene_data.ub == v.cur_data.ub == 100.0
-    #@test v.perene_data.kind == v.cur_data.kind == ClF.Continuous
-    #@test v.perene_data.sense == v.cur_data.sense == ClF.Free
-    #@test v.perene_data.inc_val == v.cur_data.inc_val == -1.0
-    #@test v.perene_data.is_explicit == v.cur_data.is_explicit == false
-    #@test v.perene_data.is_active == v.cur_data.is_active == false
     return
 end

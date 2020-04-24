@@ -82,7 +82,7 @@ struct ConquerRecord <: AbstractRecord
 end
 
 function record!(reform::Reformulation)::ConquerRecord
-    @logmsg LogLevel(0) "Recording reformulation state."
+    @logmsg LogLevel(-1) "Recording reformulation state."
     reformrecord = ReformulationRecord()
     add_to_recorded!(reform, reformrecord)
     return ConquerRecord(reformrecord)
@@ -91,11 +91,11 @@ end
 prepare!(reform::Reformulation, ::Nothing) = nothing
 
 function prepare!(reform::Reformulation, record::ConquerRecord)
-    @logmsg LogLevel(0) "Preparing reformulation according to node record"
-    @logmsg LogLevel(0) "Preparing reformulation master"
+    @logmsg LogLevel(-1) "Preparing reformulation according to node record"
+    @logmsg LogLevel(-1) "Preparing reformulation master"
     prepare!(getmaster(reform), record.reformrecord)
     for (spuid, spform) in get_dw_pricing_sps(reform)
-        @logmsg LogLevel(0) string("Resetting sp ", spuid, " state.")
+        @logmsg LogLevel(-1) string("Resetting sp ", spuid, " state.")
         prepare!(spform, record.reformrecord)
     end
     return
