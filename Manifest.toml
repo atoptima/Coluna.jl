@@ -21,6 +21,12 @@ git-tree-sha1 = "d29a71d873a4bc2375c10d50b0bc14db6649effe"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 version = "1.2.0"
 
+[[CPLEX]]
+deps = ["Libdl", "LinearAlgebra", "MathOptInterface", "MathProgBase", "SparseArrays"]
+git-tree-sha1 = "f8dac98fbff2f7d7fe58fa1fcdbefaaaf29a1f59"
+uuid = "a076750e-1247-5638-91d2-ce28b192dca0"
+version = "0.6.5"
+
 [[Calculus]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
@@ -38,6 +44,14 @@ deps = ["BinaryProvider", "Libdl", "TranscodingStreams"]
 git-tree-sha1 = "05916673a2627dd91b4969ff8ba6941bc85a960e"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
 version = "0.6.0"
+
+[[ColunaDemos]]
+deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
+git-tree-sha1 = "fa2954a1170d38684d9ea7d64c58c461c77748b4"
+repo-rev = "master"
+repo-url = "git@github.com:atoptima/ColunaDemos.jl.git"
+uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
+version = "0.1.0"
 
 [[CommonSubexpressions]]
 deps = ["Test"]
@@ -60,6 +74,10 @@ version = "0.17.10"
 [[Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
+
+[[DelimitedFiles]]
+deps = ["Mmap"]
+uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffResults]]
 deps = ["StaticArrays"]
@@ -125,6 +143,7 @@ uuid = "4076af6c-e467-56ae-b986-b466b2749572"
 version = "0.21.1"
 
 [[LibGit2]]
+deps = ["Printf"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
@@ -147,6 +166,12 @@ git-tree-sha1 = "f0d60e42d8b64dd1b511e2dc13e0b72ba1dfc9cf"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 version = "0.9.12"
 
+[[MathProgBase]]
+deps = ["LinearAlgebra", "SparseArrays"]
+git-tree-sha1 = "9abbe463a1e9fc507f12a69e7f29346c2cdc472c"
+uuid = "fdba3010-5040-5b88-9595-932c9decdf73"
+version = "0.7.8"
+
 [[MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "Random", "Sockets"]
 git-tree-sha1 = "a9e2221f06b42f56052f43ad7edecb01d0ef5ab4"
@@ -155,9 +180,9 @@ version = "1.0.1"
 
 [[MbedTLS_jll]]
 deps = ["Libdl", "Pkg"]
-git-tree-sha1 = "066a4467008745eed36dad973ceb66405785a621"
+git-tree-sha1 = "c83f5a1d038f034ad0549f9ee4d5fac3fb429e33"
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
-version = "2.16.0+1"
+version = "2.16.0+2"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
@@ -192,7 +217,7 @@ uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "0.3.12"
 
 [[Pkg]]
-deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Test", "UUIDs"]
+deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[Primes]]
