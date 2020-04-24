@@ -3,7 +3,6 @@ module ColunaBase
 using DynamicSparseArrays
 
 import Base
-import Primes
 import Printf
 
 # interface.jl

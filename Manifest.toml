@@ -21,12 +21,6 @@ git-tree-sha1 = "d29a71d873a4bc2375c10d50b0bc14db6649effe"
 uuid = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 version = "1.2.0"
 
-[[CPLEX]]
-deps = ["Libdl", "LinearAlgebra", "MathOptInterface", "MathProgBase", "SparseArrays"]
-git-tree-sha1 = "f8dac98fbff2f7d7fe58fa1fcdbefaaaf29a1f59"
-uuid = "a076750e-1247-5638-91d2-ce28b192dca0"
-version = "0.6.5"
-
 [[Calculus]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
@@ -166,12 +160,6 @@ git-tree-sha1 = "f0d60e42d8b64dd1b511e2dc13e0b72ba1dfc9cf"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 version = "0.9.12"
 
-[[MathProgBase]]
-deps = ["LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "9abbe463a1e9fc507f12a69e7f29346c2cdc472c"
-uuid = "fdba3010-5040-5b88-9595-932c9decdf73"
-version = "0.7.8"
-
 [[MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "Random", "Sockets"]
 git-tree-sha1 = "a9e2221f06b42f56052f43ad7edecb01d0ef5ab4"
@@ -219,12 +207,6 @@ version = "0.3.12"
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-
-[[Primes]]
-deps = ["Test"]
-git-tree-sha1 = "ff1a2323cb468ec5f201838fcbe3c232266b1f95"
-uuid = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
-version = "0.4.0"
 
 [[Printf]]
 deps = ["Unicode"]
