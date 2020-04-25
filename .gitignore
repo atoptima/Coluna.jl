@@ -5,6 +5,6 @@ docs/site/
 *.jl.mem
 *~
 *TAGS
-updateEtags.sh
 *.lp
 .vscode
+*.toml
