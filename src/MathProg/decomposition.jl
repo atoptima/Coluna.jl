@@ -160,7 +160,7 @@ function create_side_vars_constrs!(
         setupvars = filter(v -> getduty(v.first) == DwSpSetupVar, getvars(spform))
         @assert length(setupvars) == 1
         setupvar = collect(values(setupvars))[1]
-        clonevar!(origform, masterform, spform, setupvar, MasterRepPricingSetupVar, is_explicit = false)
+        setuprepvar = clonevar!(origform, masterform, spform, setupvar, MasterRepPricingSetupVar, is_explicit = false)
         # create convexity constraint
         lb_mult = Float64(BD.getlowermultiplicity(ann))
         name = string("sp_lb_", spuid)
@@ -169,7 +169,7 @@ function create_side_vars_constrs!(
             rhs = lb_mult, kind = Core, sense = Greater, inc_val = 100.0
         )
         masterform.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
-        coefmatrix[getid(lb_conv_constr), getid(setupvar)] = 1.0
+        coefmatrix[getid(lb_conv_constr), getid(setuprepvar)] = 1.0
 
         ub_mult =  Float64(BD.getuppermultiplicity(ann))
         name = string("sp_ub_", spuid)
@@ -178,7 +178,7 @@ function create_side_vars_constrs!(
             kind = Core, sense = Less, inc_val = 100.0
         )
         masterform.parent_formulation.dw_pricing_sp_ub[spuid] = getid(ub_conv_constr)  
-        coefmatrix[getid(ub_conv_constr), getid(setupvar)] = 1.0
+        coefmatrix[getid(ub_conv_constr), getid(setuprepvar)] = 1.0
     end
     return
 end
@@ -200,8 +200,8 @@ function instantiate_orig_vars!(
     vars = annotations.vars_per_ann[sp_ann]
     masterform = spform.parent_formulation
     for (id, var) in vars
-        # An original variable annoted in a subproblem is a DwSpPureVar
-        clonevar!(origform, spform, spform, var, DwSpPricingVar, is_explicit =  true)
+        # An original variable annotated in a subproblem is a DwSpPricingVar
+        clonevar!(origform, spform, spform, var, DwSpPricingVar, is_explicit = true)
         clonevar!(origform, masterform, spform, var, MasterRepPricingVar,
                   is_explicit = false)#, members = getcoefmatrix(origform)[:,id])
     end

@@ -121,7 +121,6 @@ function setvar!(form::Formulation,
     return var
 end
 
-
 "Adds `Variable` `var` to `Formulation` `form`."
 function _addvar!(form::Formulation, var::Variable)
     _addvar!(form.manager, var)
@@ -133,9 +132,7 @@ function _addvar!(form::Formulation, var::Variable)
 
 end
 
-function _addprimalsol!(
-    form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64
-)
+function _addprimalsol!(form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64)
     for (var_id, var_val) in sol
         var = form.manager.vars[var_id]
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
@@ -146,10 +143,7 @@ function _addprimalsol!(
     return sol_id
 end
 
-function setprimalsol!(
-    form::Formulation,
-    new_primal_sol::PrimalSolution
-)::Tuple{Bool,VarId}
+function setprimalsol!(form::Formulation, new_primal_sol::PrimalSolution)::Tuple{Bool,VarId}
     primal_sols = getprimalsolmatrix(form)
     primal_sol_costs = getprimalsolcosts(form)
     
@@ -162,8 +156,7 @@ function setprimalsol!(
     # look for an identical column
     for (cur_sol_id, cur_cost) in primal_sol_costs
         cur_primal_sol = primal_sols[:, cur_sol_id]
-        if isapprox(new_cost, cur_cost) &&
-                getsol(new_primal_sol) == cur_primal_sol
+        if isapprox(new_cost, cur_cost) && getsol(new_primal_sol) == cur_primal_sol
             return (false, cur_sol_id)
         end
     end
@@ -174,12 +167,7 @@ function setprimalsol!(
     return (true, new_sol_id)
 end
 
-function _adddualsol!(
-    form::Formulation,
-    dualsol::DualSolution,
-    dualsol_id::ConstrId
-    )
-    
+function _adddualsol!(form::Formulation, dualsol::DualSolution, dualsol_id::ConstrId)
     rhs = 0.0
     for (constrid, constrval) in dualsol
         rhs += getperenerhs(form, constrid) * constrval 
@@ -188,14 +176,10 @@ function _adddualsol!(
         end
     end
     form.manager.dual_sol_rhss[dualsol_id] = rhs
-    
     return dualsol_id
 end
 
-function setdualsol!(
-    form::Formulation,
-    new_dual_sol::DualSolution
-)::Tuple{Bool,ConstrId}
+function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,ConstrId}
     ### check if dualsol exists  take place here along the coeff update
     dual_sols = getdualsolmatrix(form)
     dual_sol_rhss = getdualsolrhss(form)

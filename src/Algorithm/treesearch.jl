@@ -194,7 +194,7 @@ function prepare_and_run_divide_algorithm!(
 
     update_all_ip_primal_solutions!(treestate, getoptstate(output))
 
-    @logmsg LogLevel(0) string("Updating tree.")
+    @logmsg LogLevel(-1) string("Updating tree.")
 
     isempty(getchildren(output)) && return
 

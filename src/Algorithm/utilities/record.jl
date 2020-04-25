@@ -62,10 +62,10 @@ end
 FormulationStatus() = FormulationStatus(true, false)
 
 function add_to_recorded!(reform::Reformulation, record::ReformulationRecord)
-    @logmsg LogLevel(0) "Recording master info."
+    @logmsg LogLevel(-1) "Recording master info."
     add_to_recorded!(getmaster(reform), record)
     for (spuid, spform) in get_dw_pricing_sps(reform)
-        @logmsg LogLevel(0) string("Recording sp ", spuid, " info.")
+        @logmsg LogLevel(-1) string("Recording sp ", spuid, " info.")
         add_to_recorded!(spform, record)
     end
     return
