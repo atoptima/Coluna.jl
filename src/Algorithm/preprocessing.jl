@@ -48,7 +48,7 @@ isinfeasible(output::PreprocessingOutput) = output.infeasible
 # end
 
 function run!(algo::PreprocessAlgorithm, reformulation)::PreprocessingOutput
-    @logmsg LogLevel(0) "Run preprocessing"
+    @logmsg LogLevel(-1) "Run preprocessing"
 
     alg_data = PreprocessData(reformulation)
     master = getmaster(alg_data.reformulation)
@@ -70,6 +70,7 @@ function run!(algo::PreprocessAlgorithm, reformulation)::PreprocessingOutput
     if !infeasible
         forbid_infeasible_columns!(alg_data)
     end
+    @logmsg LogLevel(0) "Preprocessing done."
     return PreprocessingOutput(infeasible)
 end
 
