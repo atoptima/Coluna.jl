@@ -73,9 +73,9 @@ isverbose(strategy::BendersConquer) = true
 
 function getslavealgorithms!(
     algo::BendersConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
 )
-    push!(slaves, (reform, typeof(algo.benders)))
+    push!(slaves, (reform, algo.benders))
     getslavealgorithms!(algo.benders, reform, slaves)
 end
 
@@ -105,18 +105,18 @@ isverbose(algo::ColGenConquer) = algo.colgen.log_print_frequency > 0
 
 function getslavealgorithms!(
     algo::ColGenConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
 )
-    push!(slaves, (reform, typeof(algo.colgen)))
+    push!(slaves, (reform, algo.colgen))
     getslavealgorithms!(algo.colgen, reform, slaves)
 
     if (algo.run_mastipheur)
-        push!(slaves, (reform, typeof(algo.mastipheur)))
+        push!(slaves, (reform, algo.mastipheur))
         getslavealgorithms!(algo.mastipheur, reform, slaves)
     end 
 
     if (algo.run_preprocessing)
-        push!(slaves, (reform, typeof(algo.preprocess)))
+        push!(slaves, (reform, algo.preprocess))
         getslavealgorithms!(algo.preprocess, reform, slaves)
     end 
 
@@ -156,9 +156,9 @@ end
 
 function getslavealgorithms!(
     algo::RestrMasterLPConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
 )
-    push!(slaves, (reform, typeof(algo.masterlpalgo)))
+    push!(slaves, (reform, algo.masterlpalgo))
     getslavealgorithms!(algo.masterlpalgo, reform, slaves)
 end
 

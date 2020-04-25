@@ -72,14 +72,14 @@ end
 
 function getslavealgorithms!(
     algo::StrongBranching, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
 )
     for phase in algo.phases
-        push!(slaves, (reform, typeof(phase.conquer_algo)))
+        push!(slaves, (reform, phase.conquer_algo))
         getslavealgorithms!(phase.conquer_algo, reform, slaves)
     end
     for prioritised_rule in algo.rules
-        push!(slaves, (reform, typeof(prioritised_rule.rule)))
+        push!(slaves, (reform, prioritised_rule.rule))
         getslavealgorithms!(prioritised_rule.rule, reform, slaves)
     end
 end

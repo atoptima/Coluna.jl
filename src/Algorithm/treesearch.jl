@@ -51,6 +51,7 @@ mutable struct TreeSearchRuntimeData
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
+    storages_usage::StoragesUsageDict
 end
 
 Base.isempty(data::TreeSearchRuntimeData) = isempty(data.primary_tree) && isempty(data.secondary_tree)
@@ -77,6 +78,20 @@ end
 get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
 getoptstate(data::TreeSearchRuntimeData) = data.optstate
 
+function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
+    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
+    reform = getreform(rfdata)
+    treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
+    storages_usage = StoragesUsageDict()
+    get_all_storages_dict(algo.conqueralg, reform, storages_usage) 
+    tsdata = TreeSearchRuntimeData(
+        SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
+        treestate, exploitsprimalsols, getobjsense(reform), storages_usage
+    )
+    push!(tsdata, RootNode(rfdata, treestate, algo.skiprootnodeconquer))
+    return tsdata
+end
+
 """
     TreeSearchAlgorithm
 
@@ -97,11 +112,11 @@ end
 
 function getslavealgorithms!(
     algo::TreeSearchAlgorithm, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
 )
-    push!(slaves, (reform, typeof(algo.conqueralg)))
+    push!(slaves, (reform, algo.conqueralg))
     getslavealgorithms!(algo.conqueralg, reform, slaves)
-    push!(slaves, (reform, typeof(algo.dividealg)))
+    push!(slaves, (reform, algo.dividealg))
     getslavealgorithms!(algo.dividealg, reform, slaves)
 end
 
@@ -154,7 +169,7 @@ function prepare_and_run_conquer_algorithm!(
     update_all_ip_primal_solutions!(treestate, nodestate)
     
     if algo.storelpsolution && isrootnode(node) && nb_lp_primal_sols(nodestate) > 0
-        set_lp_primal_sol!(treestate, deepcopy(get_best_lp_primal_sol(nodestate))) 
+        set_lp_primal_sol!(treestate, get_best_lp_primal_sol(nodestate)) 
     end 
 end
 
@@ -241,34 +256,22 @@ function determine_statuses(data::TreeSearchRuntimeData)
     end
 end    
 
-function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)
-    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
-    treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
-    data = TreeSearchRuntimeData(
-        SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
-        treestate, exploitsprimalsols, getobjsense(reform)
-    )
-    push!(data, RootNode(getmaster(reform), treestate, algo.skiprootnodeconquer))
-    return data
-end
+function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
+    tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
-function run!(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
+    while (!isempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes)
+        node = popnode!(tsdata)
     
-    data = TreeSearchRuntimeData(algo, reform, input)
+        prepare_and_run_conquer_algorithm!(algo, tsdata, rfdata, node)      
 
-    while (!isempty(data) && get_tree_order(data) <= algo.maxnumnodes)
-        node = popnode!(data)
-    
-        prepare_and_run_conquer_algorithm!(algo, data, reform, node)      
-
-        prepare_and_run_divide_algorithm!(algo, data, reform, node)
+        prepare_and_run_divide_algorithm!(algo, tsdata, rfdata, node)
         
-        updatedualbound!(data)
+        updatedualbound!(tsdata)
         
         # we delete solutions from the node optimization state, as they are not needed anymore
         clear_solutions!(getoptstate(node))
     end
 
-    determine_statuses(data)
-    return OptimizationOutput(getoptstate(data))
+    determine_statuses(tsdata)
+    return OptimizationOutput(getoptstate(tsdata))
 end

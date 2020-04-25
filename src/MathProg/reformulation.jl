@@ -5,7 +5,6 @@ mutable struct Reformulation <: AbstractFormulation
     benders_sep_subprs::Dict{FormId, AbstractModel}
     dw_pricing_sp_lb::Dict{FormId, Id} # Attribute has ambiguous name
     dw_pricing_sp_ub::Dict{FormId, Id}
-    storages::Dict{Type{<:AbstractStorage}, AbstractStorage}
 end
 
 """
@@ -22,11 +21,8 @@ function Reformulation(prob::AbstractProblem)
                          Dict{FormId, AbstractModel}(),
                          Dict{FormId, AbstractModel}(),
                          Dict{FormId, Int}(),
-                         Dict{FormId, Int}(),
-                         Dict{Type{<:AbstractStorage}, AbstractStorage}())
+                         Dict{FormId, Int}())
 end
-
-getstoragedict(form::Reformulation)::StorageDict = form.storages
 
 getmaster(r::Reformulation) = r.master
 setmaster!(r::Reformulation, f) = r.master = f

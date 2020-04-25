@@ -113,26 +113,26 @@ mutable struct Node
     optstate::OptimizationState
     branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
-    conquerrecord::Union{Nothing, ConquerRecord}
-    dividerecord::Union{Nothing, AbstractRecord}
+    conquerstateids::StorageStatesVector
+    dividestateids::StorageStatesVector
     conquerwasrun::Bool
 end
 
 function RootNode(form::AbstractFormulation, treestate::OptimizationState, skipconquer::Bool)
     nodestate = CopyBoundsAndStatusesFromOptState(form, treestate, false)
     return Node(
-        -1, false, 0, nothing, nodestate, nothing,
-        "", nothing, nothing, skipconquer
+        -1, false, 0, nothing, nodestate, nothing, "", 
+        StorageStatesVector(), StorageStatesVector(), skipconquer
     )
 end
 
-function Node(form::AbstractFormulation, parent::Node, branch::Branch, branchdescription::String)
+function Node(form::AbstractFormulation, parent::Node, branch::Branch, branchdescription::String, copystates::Bool)
     depth = getdepth(parent) + 1
     nodestate = CopyBoundsAndStatusesFromOptState(form, getoptstate(parent), false)
     
     return Node(
         -1, false, depth, parent, nodestate, branch, branchdescription, 
-        parent.conquerrecord, parent.dividerecord, false
+        copystates ? copy_states(parent.stateids) : parent.stateids, StorageStatesVector(), false
     )
 end
 
@@ -142,7 +142,7 @@ function Node(parent::Node, child::Node)
     depth = getdepth(parent) + 1
     return Node(
         -1, false, depth, parent, getoptstate(child), nothing, 
-        child.branchdescription, child.conquerrecord, child.dividerecord, false
+        child.branchdescription, child.conquerstateids, child.dividestateids, false
     )
 end
 

@@ -80,13 +80,6 @@ function optimize!(
     reform::MathProg.Reformulation, algorithm::Algorithm.AbstractOptimizationAlgorithm,
     initial_primal_bound, initial_dual_bound
 )
-    slaves = Vector{Tuple{AbstractFormulation, Type{<:ColunaBase.AbstractAlgorithm}}}()
-    push!(slaves,(reform, typeof(algorithm)))
-    Algorithm.getslavealgorithms!(algorithm, reform, slaves)
-
-    for (form, algotype) in slaves
-        MathProg.initstorage(form, Algorithm.getstoragetype(algotype))
-    end
 
     master = getmaster(reform)
     initstate = OptimizationState(
@@ -96,7 +89,10 @@ function optimize!(
         lp_dual_bound = initial_dual_bound
     )
 
-    output = run!(algorithm, reform, Algorithm.OptimizationInput(initstate))
+    #this will initialize all the storages used by the algorithm and its slave algorithms    
+    reformdata = Algorithm.ReformData(reform, algorithm)
+
+    output = run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)
     
     # we copy optimisation state as we want to project the solution to the compact space

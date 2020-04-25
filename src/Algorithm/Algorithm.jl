@@ -9,9 +9,6 @@ using ..Coluna
 using ..ColunaBase
 using ..MathProg
 
-# TO be deleted ???
-import .MathProg: AbstractStorage, EmptyStorage, getstorage, getvalue
-
 using Logging
 using Printf
 
@@ -34,6 +31,9 @@ import .ColunaBase: run!
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
 include("utilities/record.jl")
+
+include("storage.jl")
+include("data.jl")
 
 # Abstract algorithm
 include("interface.jl")
