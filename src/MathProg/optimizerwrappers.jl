@@ -283,7 +283,6 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         c = getconstr(f, c_id)
         v = getvar(f, v_id)
         @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(f, c), ",", getname(f, v), ") = ", coeff)
-        # @logmsg LogLevel(1) string("Setting matrix coefficient: (", getname(c), ",", getname(v), ") = ", coeff)
         update_constr_member_in_optimizer!(optimizer, c, v, coeff)
     end
     _reset_buffer!(f)

@@ -441,7 +441,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
 
         if ip_gap(cg_optstate) < algo.optimality_tol
             setterminationstatus!(cg_optstate, OPTIMAL) 
-            @logmsg LogLevel(1) "Dual bound reached primal bound."
+            @logmsg LogLevel(0) "Dual bound reached primal bound."
             return 
         end
         if data.phase == 1 && ph_one_infeasible_db(dual_bound)
@@ -450,11 +450,11 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
             set_lp_dual_bound!(cg_optstate, DualBound(reform, db))
             set_lp_primal_bound!(cg_optstate, PrimalBound(reform, pb))
             setfeasibilitystatus!(cg_optstate, INFEASIBLE) 
-            @logmsg LogLevel(1) "Phase one determines infeasibility."
+            @logmsg LogLevel(0) "Phase one determines infeasibility."
             return 
         end
         if nb_new_col == 0 || lp_gap(cg_optstate) < algo.optimality_tol
-            @logmsg LogLevel(1) "Column Generation Algorithm has converged."
+            @logmsg LogLevel(0) "Column Generation Algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL) 
             return 
         end
