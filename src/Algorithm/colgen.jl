@@ -173,7 +173,7 @@ function solve_sp_to_gencol!(
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-    ipform = SolveIpForm(deactivate_artificial_vars = false, enforce_integrality = false, log_level = 2)
+    ipform = SolveIpForm(deactivate_artificial_vars = false, enforce_integrality = false, log_level = 1)
     TO.@timeit Coluna._to "Pricing subproblem" begin
         output = run!(ipform, spform, OptimizationInput(OptimizationState(spform)))
     end
