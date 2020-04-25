@@ -197,7 +197,7 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
     optstate = getoptstate(parent)
 
     if isempty(algo.rules)
-        @logmsg LogLevel(1) "No branching rule is defined. No children will be generated."
+        @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
         return DivideOutput(Vector{Node}())
     end
 
@@ -219,7 +219,7 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
             original_solution = get_best_lp_primal_sol(optstate)
         end
     else
-        @logmsg LogLevel(1) "Warning: no LP solution is passed to the branching algorithm. No children will be generated."
+        @logmsg LogLevel(0) "Warning: no LP solution is passed to the branching algorithm. No children will be generated."
         return DivideOutput(Vector{Node}())
     end
 
@@ -276,7 +276,7 @@ function run!(algo::StrongBranching, reform::Reformulation, input::DivideInput):
     end
 
     if isempty(kept_branch_groups)
-        @logmsg LogLevel(1) "No branching candidates found. No children will be generated."
+        @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
         return DivideOutput(Vector{Node}(), optstate)
     end
 
