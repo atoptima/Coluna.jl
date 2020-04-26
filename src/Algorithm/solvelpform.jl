@@ -7,7 +7,7 @@ Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm
     get_dual_solution = false
     relax_integrality = false
     set_dual_bound = false
-    set_basis = true
+    warm_start = false
     log_level = 0
 end
 
@@ -28,8 +28,8 @@ function run!(algo::SolveLpForm, form::Formulation, input::OptimizationInput)::O
         relax_integrality!(form)
     end
 
-    if algo.set_basis && nb_lp_primal_sols(optstate) > 0
-        setbasis!(form, getoptimizer(form), get_best_lp_primal_sol(optstate))
+    if algo.warm_start && nb_lp_primal_sols(optstate) > 0
+        setwarmstart!(form, getoptimizer(form), get_best_lp_primal_sol(optstate))
     end
 
     optimizer_result = optimize!(form)

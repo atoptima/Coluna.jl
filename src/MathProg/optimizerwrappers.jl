@@ -188,7 +188,7 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     return result
 end
 
-function setbasis!(form::Formulation, optimizer::MoiOptimizer, sol::PrimalSolution)
+function setwarmstart!(form::Formulation, optimizer::MoiOptimizer, sol::PrimalSolution)
     for (varid, val) in sol
         moirec = getmoirecord(getvar(form, varid))
         moi_index = getindex(moirec)
