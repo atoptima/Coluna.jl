@@ -12,7 +12,7 @@ abstract type AbstractBranchingCandidate end
 
 getdescription(candidate::AbstractBranchingCandidate) = ""
 generate_children!(
-    candidate::AbstractBranchingCandidate, lhs::Float64, reform::Reformulation, 
+    candidate::AbstractBranchingCandidate, lhs::Float64, data::ReformData, 
     node::Node
 ) = nothing
 
@@ -31,7 +31,9 @@ mutable struct BranchingGroup
     score::Float64
 end
 
-function BranchingGroup(candidate::AbstractBranchingCandidate, local_id::Int64, lhs::Float64)
+function BranchingGroup(
+    candidate::AbstractBranchingCandidate, local_id::Int64, lhs::Float64
+)
     return BranchingGroup(candidate, local_id, lhs, false, Vector{Node}(), false, typemin(Float64))
 end
 
@@ -40,12 +42,12 @@ setconquered!(group::BranchingGroup) = group.isconquered = true
 get_lhs_distance_to_integer(group::BranchingGroup) = 
     min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)    
 
-function generate_children!(group::BranchingGroup, reform::Reformulation, parent::Node)
-    group.children = generate_children(group.candidate, group.lhs, reform, parent)
+function generate_children!(group::BranchingGroup, data::ReformData, parent::Node)
+    group.children = generate_children(group.candidate, group.lhs, data, parent)
     return
 end
 
-function regenerate_children!(group::BranchingGroup, reform::Reformulation, parent::Node)
+function regenerate_children!(group::BranchingGroup, parent::Node)
     new_children = Vector{Node}()
     for child in group.children
         push!(new_children, Node(parent, child))

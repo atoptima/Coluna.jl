@@ -20,9 +20,9 @@ getnode(input::ConquerInput) = input.node
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 
-function run!(algo::AbstractConquerAlgorithm, reform::Reformulation, input::ConquerInput)::ConquerOutput
+function run!(algo::AbstractConquerAlgorithm, data::ReformData, input::ConquerInput)::ConquerOutput
     algotype = typeof(algo)
-    error("Method run! which takes Reformulation and Incumbents as parameters and returns AbstractConquerOutput 
+    error("Method run! which takes  as parameters and returns AbstractConquerOutput 
            is not implemented for algorithm $algotype.")
 end    
 
@@ -34,7 +34,7 @@ exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
-    node::Node, algo::AbstractConquerAlgorithm, reform::Reformulation
+    node::Node, algo::AbstractConquerAlgorithm, data::ReformData
 )  
     nodestate = getoptstate(node)
     if isverbose(algo)
@@ -45,18 +45,15 @@ function apply_conquer_alg_to_node!(
         isverbose(algo) && @logmsg LogLevel(-1) string(
             "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
         )
-        node.conquerrecord = nothing
+        # node.conquerrecord = nothing
         return 
     end
     isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-    prepare!(reform, node.conquerrecord)    
-    node.conquerrecord = nothing
+    # # TO DO : get rid of Branch 
+    # apply_branch!(getreform(data), getbranch(node))
 
-    # TO DO : get rid of Branch 
-    apply_branch!(reform, getbranch(node))
-
-    run!(algo, reform, ConquerInput(node))
+    run!(algo, data, ConquerInput(node))
     node.conquerwasrun = true
 end
 

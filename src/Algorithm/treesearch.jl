@@ -51,7 +51,7 @@ mutable struct TreeSearchRuntimeData
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
-    storages_usage::StoragesUsageDict
+    node_storages_usage::StoragesUsageDict
 end
 
 Base.isempty(data::TreeSearchRuntimeData) = isempty(data.primary_tree) && isempty(data.secondary_tree)
@@ -82,13 +82,18 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
     reform = getreform(rfdata)
     treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
-    storages_usage = StoragesUsageDict()
-    get_all_storages_dict(algo.conqueralg, reform, storages_usage) 
+
+    # we skip divide and conquer slave algorithms (except algo.conqueralg and algo.dividealg) 
+    # as these algorithms will not be executed in nodes created by this tree search algorithm
+    node_storages_usage = StoragesUsageDict()
+    get_all_storages_dict(algo.conqueralg, reform, node_storages_usage, true) 
+    get_all_storages_dict(algo.dividealg, reform, node_storages_usage, true) 
+
     tsdata = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
-        treestate, exploitsprimalsols, getobjsense(reform), storages_usage
+        treestate, exploitsprimalsols, getobjsense(reform), node_storages_usage
     )
-    push!(tsdata, RootNode(rfdata, treestate, algo.skiprootnodeconquer))
+    push!(tsdata, RootNode(getreform(rfdata), treestate, algo.skiprootnodeconquer, store_states!(rfdata)))
     return tsdata
 end
 
@@ -147,24 +152,24 @@ function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
     return
 end
 
-function prepare_and_run_conquer_algorithm!(
-    algo::TreeSearchAlgorithm, data::TreeSearchRuntimeData,
-    reform::Reformulation, node::Node
+function run_conquer_algorithm!(
+    algo::TreeSearchAlgorithm, tsdata::TreeSearchRuntimeData,
+    rfdata::ReformData, node::Node
 )
     if (!node.conquerwasrun)
-        set_tree_order!(node, data.tree_order)
-        data.tree_order += 1
+        set_tree_order!(node, tsdata.tree_order)
+        tsdata.tree_order += 1
     end
     
-    print_node_info_before_conquer(data, node)
+    print_node_info_before_conquer(tsdata, node)
 
     node.conquerwasrun && return
 
-    treestate = getoptstate(data)
+    treestate = getoptstate(tsdata)
     nodestate = getoptstate(node)
-    update_ip_primal!(nodestate, treestate, data.exploitsprimalsolutions)
+    update_ip_primal!(nodestate, treestate, tsdata.exploitsprimalsolutions)
 
-    apply_conquer_alg_to_node!(node, algo.conqueralg, reform)        
+    apply_conquer_alg_to_node!(node, algo.conqueralg, rfdata)        
 
     update_all_ip_primal_solutions!(treestate, nodestate)
     
@@ -176,37 +181,38 @@ end
 function update_tree!(data::TreeSearchRuntimeData, output::DivideOutput)
 end
 
-function prepare_and_run_divide_algorithm!(
-    algo::TreeSearchAlgorithm, data::TreeSearchRuntimeData, 
-    reform::Reformulation, node::Node
+function run_divide_algorithm!(
+    algo::TreeSearchAlgorithm, tsdata::TreeSearchRuntimeData, 
+    rfdata::ReformData, node::Node
 )
     if to_be_pruned(node)
         println("Node is already conquered. No children will be generated")
         return
     end        
 
-    storage = getstorage(reform, getstoragetype(typeof(algo)))
-    prepare!(storage, node.dividerecord)
-    node.dividerecord = nothing
+    # storage = getstorage(reform, getstoragetype(typeof(algo)))
+    # prepare!(storage, node.dividerecord)
+    # node.dividerecord = nothing
 
-    treestate = getoptstate(data)
-    output = run!(algo.dividealg, reform, DivideInput(node, treestate))
+    treestate = getoptstate(tsdata)
+    output = run!(algo.dividealg, rfdata, DivideInput(node, treestate))
 
     update_all_ip_primal_solutions!(treestate, getoptstate(output))
 
     @logmsg LogLevel(-1) string("Updating tree.")
 
-    isempty(getchildren(output)) && return
+    children = getchildren(output)
+    isempty(children) && return
 
     print("Child nodes generated :")
 
-    for child in getchildren(output)
+    for child in children
         if (child.conquerwasrun)
-            set_tree_order!(child, data.tree_order)
-            data.tree_order += 1
+            set_tree_order!(child, tsdata.tree_order)
+            tsdata.tree_order += 1
             print(" N° ", get_tree_order(child) ," ")
         end
-        push!(data, child)
+        push!(tsdata, child)
     end
     println()
     return
@@ -261,10 +267,13 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
 
     while (!isempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes)
         node = popnode!(tsdata)
-    
-        prepare_and_run_conquer_algorithm!(algo, tsdata, rfdata, node)      
 
-        prepare_and_run_divide_algorithm!(algo, tsdata, rfdata, node)
+        restore_states!(node.stateids, tsdata.node_storages_usage)
+        # restore_node_states!(node, getreform(rfdata), tsdata.node_storages_usage)
+    
+        run_conquer_algorithm!(algo, tsdata, rfdata, node)      
+
+        run_divide_algorithm!(algo, tsdata, rfdata, node)
         
         updatedualbound!(tsdata)
         

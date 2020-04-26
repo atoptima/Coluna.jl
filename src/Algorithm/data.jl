@@ -11,7 +11,7 @@ getstoragedict(data::AbstractData) = nothing
 getmodel(data::AbstractData) = nothing 
 init_storage!(data::AbstractData, model::AbstractModel, StorageType::Type{<:StorageType}) = false
 get_storage(data::AbstractData, model::AbstractModel, StorageType::Type{<:StorageType}) = nothing
-store_states!(data::AbstractData, class::StorageClass, states::StorageStatesVector) = nothing
+store_states!(data::AbstractData, states::StorageStatesVector) = nothing
 
 """
     EmptyData
@@ -57,13 +57,11 @@ function get_storage(data::ModelData, model::AbstractModel, StorageType::Type{<:
     return nothing
 end
 
-function store_states!(data::ModelData, class::StorageClass, states::StorageStatesVector)
+function store_states!(data::ModelData, states::StorageStatesVector)
     storagedict = getstoragedict(data)
     for (StorageType, storage) in storagedict
-        if get_storage_class(storage) == class
-            stateid = storestate!(storage)
-            push!(states, (storage, stateid))
-        end
+        stateid = storestate!(storage)
+        push!(states, (storage, stateid))
     end
 end
 
@@ -119,7 +117,7 @@ function ReformData(reform::Reformulation, algo::AbstractOptimizationAlgorithm)
     data = ReformData(reform)
 
     storages = StoragesUsageDict()
-    get_all_storages_dict(algo, reform, storages) 
+    get_all_storages_dict(algo, reform, storages, false) 
 
     for ((model, StorageType), mode) in storages
         if init_storage!(data, model, StorageType) == false
@@ -174,23 +172,23 @@ function get_storage(data::ReformData, model::AbstractModel, StorageType::Type{<
     return nothing
 end
 
-function store_states!(data::ReformData, class::StorageClass, states::StorageStatesVector)
+function store_states!(data::ReformData, states::StorageStatesVector)
     storagedict = getstoragedict(data)
     for (StorageType, storage) in storagedict
-        if get_storage_class(storage) == class
-            stateid = storestate!(storage)
-            push!(states, (storage, stateid))
-        end
+        stateid = storestate!(storage)
+        push!(states, (storage, stateid))
     end
-    store_states!(getmasterdata, class, states)
-    # for the moment, we suppose that storages of the divide class cannot be associated
-    # to subproblems
-    if class == CONQUER_STORAGE_CLASS
-        for (formid, sp_data) in get_dw_pricing_datas(data)
-            store_states!(getmasterdata, class, sp_data)
-        end
-        for (formid, sp_data) in get_benders_sep_datas(data)
-            store_states!(getmasterdata, class, sp_data)
-        end 
+    store_states!(getmasterdata, states)
+    for (formid, sp_data) in get_dw_pricing_datas(data)
+        store_states!(getmasterdata, sp_data)
     end
+    for (formid, sp_data) in get_benders_sep_datas(data)
+        store_states!(getmasterdata, sp_data)
+    end 
+end
+
+function store_states!(data::ReformData)
+    states = StorageStatesVector()
+    store_states!(data, states)
+    return states
 end

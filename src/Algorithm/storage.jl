@@ -1,5 +1,5 @@
 @enum(StorageAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
-@enum(StorageClass, CONQUER_STORAGE_CLASS, DIVIDE_STORAGE_CLASS, UNKNOWN_STORAGE_CLASS)
+#@enum(StorageClass, CONQUER_STORAGE_CLASS, DIVIDE_STORAGE_CLASS, UNKNOWN_STORAGE_CLASS)
 
 """
     AbstractStorageState
@@ -86,7 +86,7 @@ const StorageStatesVector = Vector{Tuple{AbstractStorage, StateId}}
     Functions for storages which should be redefined for every storage type
 """
 
-get_storage_class(storage::AbstractStorage)::StorageClass = UNKNOWN_STORAGE_CLASS
+#get_storage_class(storage::AbstractStorage)::StorageClass = UNKNOWN_STORAGE_CLASS
 
 function getmodel(storage::AbstractStorage)::AbstractModel 
     stype = typeof(storage)
@@ -182,6 +182,25 @@ end
 
 """
 
+function restore_states!(states::StorageStatesVector, usage::StoragesUsageDict)
+    for (storage, stateid) in states
+        mode = get(usage, (getmodel(storage), typeof(storage)), NOT_USED)
+        restorestate!(storage, stateid, mode)
+    end    
+    empty!(states) # vector of states should be emptied 
+end
+
+remove_states!(states::StorageStatesVector) = restore_states!(states, StoragesUsageDict())
+
+function copy_states(states::StorageStatesVector)::StorageStatesVector
+    statescopy = StorageStatesVector()
+    for (storage, stateid) in states
+        push!(statescopy, (storage, stateid))
+        increaseparticipation!(storage, stateid)
+    end
+    return statescopy
+end
+
 function storestate!(storage::AbstractStorage{SS})::StateId where {SS <: AbstractStorageState}
     state = get_current_state(storage)
     increaseparticipation!(state)
@@ -222,27 +241,10 @@ function restorestate!(
     end
 end
  
-function restore_states!(states::StorageStatesVector, usage::StoragesUsageDict)
-    for (storage, stateid) in states
-        mode = get(usage, (getmodel(storage), typeof(storage)), NOT_USED)
-        restorestate!(storage, stateid, mode)
-    end
-end
-
-remove_states!(states::StorageStatesVector) = restore_states!(states, StoragesUsageDict())
-
-function copy_states(states::StorageStatesVector)::StorageStatesVector
-    statescopy = StorageStatesVector()
-    for (storage, stateid) in states
-        push!(statescopy, (storage, stateid))
-        increaseparticipation!(storage, stateid)
-    end
-    return statescopy
-end
-
 """
     IMPORTANT!
 
     Every stored or copied state should be either restored or removed so that it's 
     participation is correctly computed and memory correctly controlled
 """
+

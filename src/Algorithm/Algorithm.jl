@@ -34,6 +34,7 @@ include("utilities/record.jl")
 
 include("storage.jl")
 include("data.jl")
+include("formstorages.jl")
 
 # Abstract algorithm
 include("interface.jl")
