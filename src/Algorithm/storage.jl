@@ -94,39 +94,43 @@ EmptyStorageState(model::AbstractModel, storage::AbstractStorage) = nothing
 
 restorefromstate!(::AbstractModel, ::AbstractStorage, ::EmptyStorageState) = nothing
 
-const FullStorageType = Tuple{Type{<:AbstractStorage}, Type{<:AbstractStorageState}}
+const StorageTypePair = Pair{DataType, DataType}
 
-const StoragesUsageDict = Dict{AbstractModel, Set{FullStorageType}}
+const StoragesUsageDict = Dict{AbstractModel, Set{StorageTypePair}}
 
-const StoragesToRestoreDict = Dict{Tuple{AbstractModel, FullStorageType}, StorageAccessMode}
+const StoragesToRestoreDict = Dict{Tuple{AbstractModel, StorageTypePair}, StorageAccessMode}
 
 
 """
-    function add!(::StoragesUsageDict, ::AbstractModel, ::FullStorageType)
+    function add_storage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair)
 
     This is an auxiliary function to be used inside algorithm function
     get_storages_to_restore(::AbstractAlgorithm, ::AbstractModel, ::StoragesUsageDict)    
 """
-function add!(dict::StoragesUsageDict, model::AbstractModel, type::FullStorageType)
+function add_storage!(
+    dict::StoragesUsageDict, model::AbstractModel, pair::StorageTypePair
+)
     if !haskey(dict, model)
-        dict[model] = Set{FullStorageType}()
+        dict[model] = Set{StorageTypePair}()
     end
-    push!(dict[model], type)
+    push!(dict[model], pair)
 end
 
 """
-    function add!(::StoragesToRestoreDict, ::AbstractModel, ::FullStorageType, ::StorageAccessMode)
+    function add_storage!(::StoragesToRestoreDict, ::AbstractModel, ::StorageTypePair, ::StorageAccessMode)
 
     This is an auxiliary function to be used inside algorithm function
     get_storages_to_restore!(::AbstractAlgorithm, ::AbstractModel, ::::StoragesToRestoreDict)    
 """
-function add!(dict::StoragesToRestoreDict, model::AbstractModel, type::FullStorageType, mode::StorageAccessMode)
-    current_mode = get(dict, (model, type), NOT_USED) 
+function add_storage!(
+    dict::StoragesToRestoreDict, model::AbstractModel, pair::StorageTypePair, mode::StorageAccessMode
+)
+    current_mode = get(dict, (model, pair), NOT_USED) 
     if current_mode == NOT_USED && mode != NOT_USED
-        dict[(model, type)] = mode
+        dict[(model, pair)] = mode
     else
         if mode == READ_AND_WRITE && current_mode == READ_ONLY
-            dict[(model, type)] = READ_AND_WRITE
+            dict[(model, pair)] = READ_AND_WRITE
         end    
     end
 end
@@ -148,7 +152,7 @@ mutable struct StorageStateContainer{SS<:AbstractStorageState}
 end
 
 StorageStateContainer{SS}(stateid::StateId, participation::Int) where {SS<:AbstractStorageState} =
-    StorageStateContainer{SS}(stateid, true, participation, nothing)
+    StorageStateContainer{SS}(stateid, participation, nothing)
 
 getid(ssc::StorageStateContainer) = ssc.id
 isempty(ssc::StorageStateContainer) = ssc.state === nothing
@@ -195,7 +199,7 @@ end
 
 const StorageStatesVector = Vector{Tuple{StorageContainer, StateId}}
 
-const StorageDict = Dict{FullStorageType, StorageContainer}
+const StorageDict = Dict{StorageTypePair, StorageContainer}
 
 function StorageContainer{M,S,SS}(model::M) where {M,S,SS}
     return StorageContainer{M,S,SS}(
@@ -281,7 +285,7 @@ function restorestate!(
         decreaseparticipation!(statecont)
         if getparticipation(statecont) < 0
             error(string("Participation is below zero for state with id $stateid of ", getnicename(storagecont)))
-        return
+        end
         if mode == READ_AND_WRITE 
             save_to_statesdict!(storagecont, statecont)
             statecont = StorageStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)

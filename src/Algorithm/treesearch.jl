@@ -6,15 +6,15 @@
 """
 abstract type AbstractTreeExploreStrategy end
 
-getvalue(strategy::AbstractTreeExploreStrategy, node::Node) = 0
+getnodevalue(strategy::AbstractTreeExploreStrategy, node::Node) = 0
 
 # Depth-first strategy
 struct DepthFirstStrategy <: AbstractTreeExploreStrategy end
-getvalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
+getnodevalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
 
 # Best dual bound strategy
 struct BestDualBoundStrategy <: AbstractTreeExploreStrategy end
-getvalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(getincumbents(n))
+getnodevalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(getincumbents(n))
 
 
 """
@@ -30,9 +30,9 @@ SearchTree(strategy::AbstractTreeExploreStrategy) = SearchTree(
 )
 
 getnodes(tree::SearchTree) = tree.nodes
-Base.isempty(tree::SearchTree) = isempty(tree.nodes)
+isempty(tree::SearchTree) = DS.isempty(tree.nodes)
 
-push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getvalue(tree.strategy, node))
+push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getnodevalue(tree.strategy, node))
 popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
 nb_open_nodes(tree::SearchTree) = length(tree.nodes)
 
@@ -51,10 +51,10 @@ mutable struct TreeSearchRuntimeData
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
-    node_storages_usage::StoragesUsageDict
+    node_storages_to_restore::StoragesToRestoreDict
 end
 
-Base.isempty(data::TreeSearchRuntimeData) = isempty(data.primary_tree) && isempty(data.secondary_tree)
+isempty(data::TreeSearchRuntimeData) = isempty(data.primary_tree) && isempty(data.secondary_tree)
 primary_tree_is_full(data::TreeSearchRuntimeData) = nb_open_nodes(data.primary_tree) >= data.max_primary_tree_size
 
 function push!(data::TreeSearchRuntimeData, node::Node) 
@@ -77,25 +77,6 @@ function nb_open_nodes(data::TreeSearchRuntimeData)
 end
 get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
 getoptstate(data::TreeSearchRuntimeData) = data.optstate
-
-function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
-    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
-    reform = getreform(rfdata)
-    treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
-
-    # we skip divide and conquer slave algorithms (except algo.conqueralg and algo.dividealg) 
-    # as these algorithms will not be executed in nodes created by this tree search algorithm
-    node_storages_usage = StoragesUsageDict()
-    get_storages_usage!(algo.conqueralg, reform, node_storages_usage) 
-    get_storages_usage!(algo.dividealg, reform, node_storages_usage) 
-
-    tsdata = TreeSearchRuntimeData(
-        SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
-        treestate, exploitsprimalsols, getobjsense(reform), node_storages_usage
-    )
-    push!(tsdata, RootNode(getreform(rfdata), treestate, algo.skiprootnodeconquer, store_states!(rfdata)))
-    return tsdata
-end
 
 """
     TreeSearchAlgorithm
@@ -123,7 +104,7 @@ function get_storages_usage!(
 end
 
 function get_storages_to_restore!(
-    algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+    algo::TreeSearchAlgorithm, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
 )
     # tree search algorithm restores itself storages for the conquer and divide algorithm 
     # on every node, so we do not require anything here
@@ -148,7 +129,6 @@ function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
     @printf " global bounds : [ %.4f , %.4f ]," db pb
     @printf " time = %.2f sec.\n" Coluna._elapsed_solve_time()
 
-    branch = getbranch(node)
     if node.branchdescription != ""
         println("**** Branching constraint: ", node.branchdescription)
     end
@@ -266,13 +246,31 @@ function determine_statuses(data::TreeSearchRuntimeData)
     end
 end    
 
+function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
+    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
+    reform = getreform(rfdata)
+    treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
+
+    node_storages_to_restore = StoragesToRestoreDict()
+    get_storages_to_restore!(algo.conqueralg, reform, node_storages_to_restore) 
+    get_storages_to_restore!(algo.dividealg, reform, node_storages_to_restore) 
+
+    tsdata = TreeSearchRuntimeData(
+        SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
+        treestate, exploitsprimalsols, getobjsense(reform), node_storages_to_restore
+    )
+    push!(tsdata, RootNode(getreform(rfdata), treestate, store_states!(rfdata), algo.skiprootnodeconquer, ))
+    return tsdata
+end
+
+
 function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
     while (!isempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes)
         node = popnode!(tsdata)
 
-        restore_states!(node.stateids, tsdata.node_storages_usage)
+        restore_states!(node.stateids, tsdata.node_storages_to_restore)
     
         run_conquer_algorithm!(algo, tsdata, rfdata, node)      
 

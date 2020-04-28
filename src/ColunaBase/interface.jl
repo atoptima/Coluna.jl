@@ -1,4 +1,5 @@
 abstract type AbstractModel end
+
 abstract type AbstractProblem end
 
 abstract type AbstractSense end

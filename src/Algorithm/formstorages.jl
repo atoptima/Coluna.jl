@@ -97,7 +97,7 @@ function restorefromstate!(
     end
 end
 
-BranchingConstrsStorage = (EmptyStorage, BranchingConstrsState)
+const BranchingConstrsStorage = (EmptyStorage => BranchingConstrsState)
 
 """
     MasterColumnsStorage
@@ -148,4 +148,4 @@ function restorefromstate!(
     end
 end
 
-MasterColumnsStorage = (EmptyStorage, MasterColumnsState)
+const MasterColumnsStorage = (EmptyStorage => MasterColumnsState)

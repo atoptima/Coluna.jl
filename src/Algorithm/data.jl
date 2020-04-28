@@ -1,3 +1,5 @@
+getuid(model::AbstractModel) = 0
+
 """
     AbstractData
 
@@ -17,40 +19,19 @@ function getnicename(data::AbstractData)
     return string("data associated to model of type $(typeof(model)) with id $(getuid(model))")
 end
 
-function get_storage(data::AbstractData, FullType::FullStorageType)
+function get_storage(data::AbstractData, pair::StorageTypePair)
     storagedict = getstoragedict(data)
-    storagecont = get(storagedict, FullType, nothing)
+    storagecont = get(storagedict, pair, nothing)
     if storagecont === nothing
-        error(string("No storage of type $FullType in $(getnicename(data))"))                        
+        error(string("No storage for pair $pair in $(getnicename(data))"))                        
     end
     return getstorage(storagecont)
 end
 
-function reserve_for_writing!(data::AbstractData, FullType::FullStorageType)
-    storagecont = get_storage(data, FullType)
+function reserve_for_writing!(data::AbstractData, pair::StorageTypePair)
+    storagecont = get_storage(data, pair)
     if storagecont !== nothing
         reserve_for_writing!(storagecont)
-    end
-end
-
-# this function initializes all the storages
-function initialize_storages(data::AbstractData, algo::AbstractOptimizationAlgorithm)
-    storages_usage = StoragesUsageDict()
-    datamodel = getmodel(data)
-    get_storages_usage!(algo, datamodel, storages_usage) 
-
-    for (model, type_set) in storages_usage
-        ModelType = typeof(model)
-        storagedict = get_model_storage_dict(data, model)
-        if storagedict === nothing
-            error(string("Model of type $(typeof(model)) with id $(getuid(model)) ",
-                         "is not contained in $(getnicename(data))")                        
-            )   
-        for FullStorageType in type_set
-            (StorageType, StorageStateType) = FullStorageType
-            storagedict[FullStorageType] = 
-                StorageContainer{ModelType, StorageType, StorageStateType}(model)
-        end
     end
 end
 
@@ -140,7 +121,7 @@ function ReformData(reform::Reformulation)
     )
 end    
 
-function get_model_storage_dict(data::ModelData, model::AbstractModel)
+function get_model_storage_dict(data::ReformData, model::AbstractModel)
     if model == getmodel(data) 
         return getstoragedict(data)
     elseif model == getmodel(getmasterdata(data))

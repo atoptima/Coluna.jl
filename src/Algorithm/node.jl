@@ -152,7 +152,6 @@ set_tree_order!(n::Node, tree_order::Int) = n.tree_order = tree_order
 getdepth(n::Node) = n.depth
 getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
-getbranch(n::Node) = n.branch
 getoptstate(n::Node) = n.optstate
 addchild!(n::Node, child::Node) = push!(n.children, child)
 settreated!(n::Node) = n.istreated = true

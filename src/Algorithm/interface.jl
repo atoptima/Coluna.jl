@@ -37,6 +37,9 @@ end
     get_storages_usage(::AbstractAlgorithm, ::AbstractModel)
 
     Every algorithm should communicate all storages it and its slave algorithms use.
+    
+    Function add_storage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair)
+    should be used to add elements to the dictionary
 """
 
 get_storages_usage!(algo::AbstractAlgorithm, model::AbstractModel, storages_usage::StoragesUsageDict) = nothing
@@ -47,9 +50,8 @@ get_storages_usage!(algo::AbstractAlgorithm, model::AbstractModel, storages_usag
     Every algorithm should also communicate which storages should be restored before running the algorithm, 
     and also the access mode for each such storage (read only or read-and-write)
     
-    Function add!(::StoragesToRestoreDict, ::AbstractModel, ::FullStorageType, ::StorageAccessMode)
+    Function add_storage!(::StoragesToRestoreDict, ::AbstractModel, ::StorageTypePair, ::StorageAccessMode)
     should be used to add elements to the dictionary
-
 """
 
 get_storages_to_restore!(algo::AbstractAlgorithm, model::AbstractModel, storages_to_restore::StoragesToRestoreDict) = nothing
@@ -130,3 +132,25 @@ getoptstate(output::OptimizationOutput)::OptimizationState = output.optstate
 abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
+
+# this function initializes all the storages
+function initialize_storages(data::AbstractData, algo::AbstractOptimizationAlgorithm)
+    storages_usage = StoragesUsageDict()
+    datamodel = getmodel(data)
+    get_storages_usage!(algo, datamodel, storages_usage) 
+
+    for (model, type_pair_set) in storages_usage
+        ModelType = typeof(model)
+        storagedict = get_model_storage_dict(data, model)
+        if storagedict === nothing
+            error(string("Model of type $(typeof(model)) with id $(getuid(model)) ",
+                         "is not contained in $(getnicename(data))")                        
+            )
+        end   
+        for type_pair in type_pair_set
+            (StorageType, StorageStateType) = type_pair
+            storagedict[type_pair] = 
+                StorageContainer{ModelType, StorageType, StorageStateType}(model)
+        end
+    end
+end

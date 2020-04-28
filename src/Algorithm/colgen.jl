@@ -9,18 +9,16 @@ end
 function get_storages_usage!(
     algo::ColumnGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    master = getmaster(reform)
-    masterstoragedict = storages_usage[master]
-    push!(masterstoragedict, BranchingConstrsStorage)
-    push!(masterstoragedict, MasterColumnsStorage)
+    add_storage!(storages_usage, getmaster(reform), BranchingConstrsStorage)
+    add_storage!(storages_usage, getmaster(reform), MasterColumnsStorage)
 end
 
 function get_storages_to_restore!(
     algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
 ) 
     master = getmaster(reform)
-    add!(storages_to_restore, master, BranchingConstrsStorage, READ_ONLY)
-    add!(storages_to_restore, master, MasterColumnsStorage, READ_AND_WRITE)
+    add_storage!(storages_to_restore, master, BranchingConstrsStorage, READ_ONLY)
+    add_storage!(storages_to_restore, master, MasterColumnsStorage, READ_AND_WRITE)
 end
 
 
@@ -191,7 +189,7 @@ function solve_sp_to_gencol!(
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-    ipform = SolveIpForm(deactivate_artificial_vars = false, enforce_integrality = false, log_level = 1)
+    ipform = SolveIpForm(deactivate_artificial_vars = false, enforce_integrality = false, log_level = 2)
     TO.@timeit Coluna._to "Pricing subproblem" begin
         output = run!(ipform, spform, OptimizationInput(OptimizationState(spform)))
     end

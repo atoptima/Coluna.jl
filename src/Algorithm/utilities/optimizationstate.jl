@@ -1,3 +1,6 @@
+getvalue(sol::Solution) = ColunaBase.getvalue(sol)
+getvalue(bnd::Bound) = ColunaBase.getvalue(bnd)
+
 mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
@@ -234,7 +237,7 @@ function update!(dest_state::OptimizationState, orig_state::OptimizationState)
     update_lp_dual_bound!(dest_state, get_lp_dual_bound(orig_state))
     set_lp_primal_bound!(dest_state, get_lp_primal_bound(orig_state))
     if nb_lp_primal_sols(orig_state) > 0
-        set_lp_primal_sol!(dest_state, deepcopy(get_best_lp_primal_sol(orig_state)))
+        set_lp_primal_sol!(dest_state, get_best_lp_primal_sol(orig_state))
     end        
 end
 

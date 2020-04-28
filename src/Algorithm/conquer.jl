@@ -20,10 +20,11 @@ getnode(input::ConquerInput) = input.node
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 
-function run!(algo::AbstractConquerAlgorithm, data::ReformData, input::ConquerInput)::ConquerOutput
+function run!(algo::AbstractConquerAlgorithm, data::ReformData, input::ConquerInput)
     algotype = typeof(algo)
-    error("Method run! which takes  as parameters and returns AbstractConquerOutput 
-           is not implemented for algorithm $algotype.")
+    error(string("Method run! which takes as parameters ReformData and ConquerInput ", 
+                 "is not implemented for algorithm $algotype.")
+    )
 end    
 
 # this function is needed in strong branching (to have a better screen logging)
@@ -124,7 +125,7 @@ function get_storages_usage!(
 end
 
 function get_storages_to_restore!(
-    algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+    algo::ColGenConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
 ) 
     get_storages_to_restore!(algo.colgen, reform, storages_to_restore)
     algo.run_mastipheur && 
@@ -133,10 +134,11 @@ function get_storages_to_restore!(
         get_storages_to_restore!(algo.preprocess, reform, storages_to_restore)
 end
 
-function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)
+function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
 
     node = getnode(input)
     nodestate = getoptstate(node)
+    reform = getreform(data)
     if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform))
         setfeasibilitystatus!(nodestate, INFEASIBLE)
         return 
@@ -168,18 +170,13 @@ end
 function get_storages_usage!(
     algo::RestrMasterLPConquer, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    master = getmaster(reform)
-    masterstoragedict = storages_usage[master]
-    push!(masterstoragedict, BranchingConstrsStorage)
-    push!(masterstoragedict, MasterColumnsStorage)
+    get_storages_usage!(algo.masterlpalgo, getmaster(reform), storages_usage)
 end
 
 function get_storages_to_restore!(
     algo::RestrMasterLPConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
 ) 
-    master = getmaster(reform)
-    add!(storages_to_restore, master, BranchingConstrsStorage, READ_ONLY)
-    add!(storages_to_restore, master, MasterColumnsStorage, READ_ONLY)
+    get_storages_to_restore!(algo.masterlpalgo, getmaster(reform), storages_to_restore)
 end
 
 function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)

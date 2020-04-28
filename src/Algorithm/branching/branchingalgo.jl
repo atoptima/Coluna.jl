@@ -73,7 +73,7 @@ end
 function get_storages_usage!(
     algo::StrongBranching, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    add!(storages_usage, getmaster(reform), BranchingConstrsStorage)
+    add_storage!(storages_usage, getmaster(reform), BranchingConstrsStorage)
     for phase in algo.phases
         get_storages_usage!(phase.conquer_algo, reform, storages_usage)
     end

@@ -13,15 +13,15 @@ end
 function get_storages_usage!(
     algo::SolveLpForm, form::Formulation, storages_usage::StoragesUsageDict
 )
-    add!(storages_usage, form, BranchingConstrsStorage)
-    add!(storages_usage, form, MasterColumnsStorage)
+    add_storage!(storages_usage, form, BranchingConstrsStorage)
+    add_storage!(storages_usage, form, MasterColumnsStorage)
 end
 
 function get_storages_to_restore!(
     algo::SolveLpForm, form::Formulation, storages_to_restore::StoragesToRestoreDict
 ) 
-    add!(storages_to_restore, form, BranchingConstrsStorage, READ_ONLY)
-    add!(
+    add_storage!(storages_to_restore, form, BranchingConstrsStorage, READ_ONLY)
+    add_storage!(
         storages_to_restore, form, MasterColumnsStorage, 
         algo.relax_integrality ? READ_AND_WRITE : READ_ONLY
     )

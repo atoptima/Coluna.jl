@@ -25,9 +25,6 @@ import .MathProg: getfeasibilitystatus, getterminationstatus, setfeasibilitystat
     update_lp_primal_bound!, update_lp_dual_bound!, set_ip_primal_bound!, 
     set_ip_dual_bound!, set_lp_primal_bound!, set_lp_dual_bound!, ip_gap, lp_gap
 
-# Import to define run! method of algorithms
-import .ColunaBase: run!
-
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
 include("utilities/record.jl")

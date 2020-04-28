@@ -7,8 +7,7 @@ import Printf
 
 # interface.jl
 export AbstractModel, AbstractProblem, AbstractSense, AbstractMinSense, AbstractMaxSense,
-    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, AbstractAlgorithm, AbstractInput, 
-    AbstractOutput, run!           
+    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
