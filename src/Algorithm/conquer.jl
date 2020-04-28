@@ -66,6 +66,19 @@ Base.@kwdef struct BendersConquer <: AbstractConquerAlgorithm
     benders::BendersCutGeneration = BendersCutGeneration()
 end
 
+function get_storages_usage!(
+    algo::BendersConquer, reform::Reformulation, storages_usage::StoragesUsageDict
+)
+    get_storages_usage!(algo.benders, reform, storages_usage)
+end
+
+function get_storages_to_restore!(
+    algo::BendersConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    get_storages_to_restore!(algo.benders, reform, storages_to_restore)
+end
+
+
 isverbose(strategy::BendersConquer) = true
 
 function getslavealgorithms!(
@@ -100,23 +113,24 @@ end
 
 isverbose(algo::ColGenConquer) = algo.colgen.log_print_frequency > 0
 
-function getslavealgorithms!(
-    algo::ColGenConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
+
+function get_storages_usage!(
+    algo::ColGenConquer, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    push!(slaves, (reform, algo.colgen))
-    getslavealgorithms!(algo.colgen, reform, slaves)
+    #ColGenConquer itself does not access to any storage, so we just ask its slave algorithms
+    get_storages_usage!(algo.colgen, reform, storages_usage)
+    algo.run_mastipheur && get_storages_usage!(algo.mastipheur, getmaster(reform), storages_usage)
+    algo.run_preprocessing && get_storages_usage!(algo.preprocess, reform, storages_usage)
+end
 
-    if (algo.run_mastipheur)
-        push!(slaves, (reform, algo.mastipheur))
-        getslavealgorithms!(algo.mastipheur, reform, slaves)
-    end 
-
-    if (algo.run_preprocessing)
-        push!(slaves, (reform, algo.preprocess))
-        getslavealgorithms!(algo.preprocess, reform, slaves)
-    end 
-
+function get_storages_to_restore!(
+    algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    get_storages_to_restore!(algo.colgen, reform, storages_to_restore)
+    algo.run_mastipheur && 
+        get_storages_to_restore!(algo.mastipheur, getmaster(reform), storages_to_restore)
+    algo.run_preprocessing && 
+        get_storages_to_restore!(algo.preprocess, reform, storages_to_restore)
 end
 
 function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)
@@ -132,7 +146,6 @@ function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)
     update!(nodestate, getoptstate(colgen_output))
 
     if (!to_be_pruned(node))
-        node.conquerrecord = record!(reform)
         if algo.run_mastipheur 
             heur_output = run!(
                 algo.mastipheur, getmaster(reform), OptimizationInput(nodestate)
@@ -151,12 +164,21 @@ Base.@kwdef struct RestrMasterLPConquer <: AbstractConquerAlgorithm
     masterlpalgo::SolveLpForm = SolveLpForm()
 end
 
-function getslavealgorithms!(
-    algo::RestrMasterLPConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
+function get_storages_usage!(
+    algo::RestrMasterLPConquer, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    push!(slaves, (reform, algo.masterlpalgo))
-    getslavealgorithms!(algo.masterlpalgo, reform, slaves)
+    master = getmaster(reform)
+    masterstoragedict = storages_usage[master]
+    push!(masterstoragedict, BranchingConstrsStorage)
+    push!(masterstoragedict, MasterColumnsStorage)
+end
+
+function get_storages_to_restore!(
+    algo::RestrMasterLPConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    master = getmaster(reform)
+    add!(storages_to_restore, master, BranchingConstrsStorage, READ_ONLY)
+    add!(storages_to_restore, master, MasterColumnsStorage, READ_ONLY)
 end
 
 function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)
@@ -164,6 +186,5 @@ function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerI
     nodestate = getoptstate(node)
     output = run!(algo.masterlpalgo, getmaster(reform), OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
-    node.conquerrecord = record!(reform)
 end
 

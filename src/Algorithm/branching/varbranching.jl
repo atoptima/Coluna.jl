@@ -23,12 +23,10 @@ function generate_children(
 
     # we save the current storages state to restore after adding the first branching constraint
     stateids = store_states!(data)
-    copystateids = copy_states(stateids)
-    storages_usage = StoragesUsageDict((master, BranchConstrStorage) => READ_AND_WRITE, 
-                                       (master, BasisStorage) => READ_AND_WRITE)
 
     #adding the first branching constraints
-    restore_states!(stateids, storages_usage)
+    reserve_for_writing!(getmasterdata(data), master, BranchConstrStorage)
+    reserve_for_writing!(getmasterdata(data), master, BasisStorage)
     setconstr!(
         master, string("branch_geq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
         sense = Greater, rhs = ceil(lhs), 
@@ -38,6 +36,8 @@ function generate_children(
     child1 = Node(master, parent, child1description, store_states!(data))
 
     #adding the second branching constraints
+    storages_usage = StoragesUsageDict((master, BranchConstrStorage) => READ_AND_WRITE, 
+                                       (master, BasisStorage) => READ_AND_WRITE)
     restore_states!(stateids, storages_usage)
     setconstr!(
         master, string("branch_leq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 

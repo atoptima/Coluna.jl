@@ -90,9 +90,10 @@ function optimize!(
     )
 
     #this will initialize all the storages used by the algorithm and its slave algorithms    
-    reformdata = Algorithm.ReformData(reform, algorithm)
+    reformdata = Algorithm.ReformData(reform)
+    Algorithm.initialize_storages(reformdata, algorithm)
 
-    output = run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
+    output = Algorithm.run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)
     
     # we copy optimisation state as we want to project the solution to the compact space

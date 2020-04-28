@@ -7,11 +7,53 @@
 
 abstract type AbstractData end
 
-getstoragedict(data::AbstractData) = nothing
-getmodel(data::AbstractData) = nothing 
-init_storage!(data::AbstractData, model::AbstractModel, StorageType::Type{<:StorageType}) = false
-get_storage(data::AbstractData, model::AbstractModel, StorageType::Type{<:StorageType}) = nothing
-store_states!(data::AbstractData, states::StorageStatesVector) = nothing
+getstoragedict(::AbstractData) = nothing
+getmodel(::AbstractData) = nothing 
+get_model_storage_dict(::AbstractData, ::AbstractModel) = nothing
+store_states!(::AbstractData, ::StorageStatesVector) = nothing
+
+function getnicename(data::AbstractData) 
+    model = getmodel(data)
+    return string("data associated to model of type $(typeof(model)) with id $(getuid(model))")
+end
+
+function get_storage(data::AbstractData, FullType::FullStorageType)
+    storagedict = getstoragedict(data)
+    storagecont = get(storagedict, FullType, nothing)
+    if storagecont === nothing
+        error(string("No storage of type $FullType in $(getnicename(data))"))                        
+    end
+    return getstorage(storagecont)
+end
+
+function reserve_for_writing!(data::AbstractData, FullType::FullStorageType)
+    storagecont = get_storage(data, FullType)
+    if storagecont !== nothing
+        reserve_for_writing!(storagecont)
+    end
+end
+
+# this function initializes all the storages
+function initialize_storages(data::AbstractData, algo::AbstractOptimizationAlgorithm)
+    storages_usage = StoragesUsageDict()
+    datamodel = getmodel(data)
+    get_storages_usage!(algo, datamodel, storages_usage) 
+
+    for (model, type_set) in storages_usage
+        ModelType = typeof(model)
+        storagedict = get_model_storage_dict(data, model)
+        if storagedict === nothing
+            error(string("Model of type $(typeof(model)) with id $(getuid(model)) ",
+                         "is not contained in $(getnicename(data))")                        
+            )   
+        for FullStorageType in type_set
+            (StorageType, StorageStateType) = FullStorageType
+            storagedict[FullStorageType] = 
+                StorageContainer{ModelType, StorageType, StorageStateType}(model)
+        end
+    end
+end
+
 
 """
     EmptyData
@@ -38,30 +80,16 @@ getmodel(data::ModelData) = data.model
 get_dw_pricing_datas(data::ModelData) = Dict{FormId, AbstractData}() 
 get_benders_sep_datas(data::ModelData) = Dict{FormId, AbstractData}() 
 
-function init_storage!(data::ModelData, model::AbstractModel, StorageType::Type{<:StorageType})::Bool
-    if model == getmodel(data)
-        storagedict = getstoragedict(data)
-        if !haskey(storagedict, StorageType)
-            storagedict[StorageType] = StorageType(model)
-        end
-        return true 
-    end
-    return false
-end
-
-function get_storage(data::ModelData, model::AbstractModel, StorageType::Type{<:StorageType})
-    if model == getmodel(data)
-        storagedict = getstoragedict(data)
-        return get(storagedict, StorageType, nothing)
-    end
+function get_model_storage_dict(data::ModelData, model::AbstractModel)
+    model == getmodel(data) && return getstoragedict(data)
     return nothing
 end
 
 function store_states!(data::ModelData, states::StorageStatesVector)
     storagedict = getstoragedict(data)
-    for (StorageType, storage) in storagedict
-        stateid = storestate!(storage)
-        push!(states, (storage, stateid))
+    for (FullType, storagecont) in storagedict
+        stateid = storestate!(storagecont)
+        push!(states, (storagecont, stateid))
     end
 end
 
@@ -112,61 +140,17 @@ function ReformData(reform::Reformulation)
     )
 end    
 
-# this constructor initializes all the storages
-function ReformData(reform::Reformulation, algo::AbstractOptimizationAlgorithm)
-    data = ReformData(reform)
-
-    storages = StoragesUsageDict()
-    get_all_storages_dict(algo, reform, storages, false) 
-
-    for ((model, StorageType), mode) in storages
-        if init_storage!(data, model, StorageType) == false
-            error("Model $model does not exist in reformulation $reform.")    
-        end
-    end
-
-    return data
-end
-
-function init_storage!(data::ReformData, model::AbstractModel, StorageType::Type{<:StorageType})::Bool
-    if model == getreform(data)
-        storagedict = getstoragedict(data)
-        if !haskey(storagedict, StorageType)
-            storagedict[StorageType] = StorageType(model)
-        end
-        return true 
+function get_model_storage_dict(data::ModelData, model::AbstractModel)
+    if model == getmodel(data) 
+        return getstoragedict(data)
     elseif model == getmodel(getmasterdata(data))
-        storagedict = getstoragedict(getmasterdata(data))
-        if !haskey(storagedict, StorageType)
-            storagedict[StorageType] = StorageType(model)
-        end
-        return true 
+        return getstoragedict(getmasterdata(data))
     else
         for (formid, sp_data) in get_dw_pricing_datas(data)
-            init_storage!(sp_data, model, StorageType) && return true
+            model = getmodel(sp_data) && getstoragedict(sp_data)
         end
         for (formid, sp_data) in get_benders_sep_datas(data)
-            init_storage!(sp_data, model, StorageType) && return true
-        end
-    end
-    return false
-end
-
-function get_storage(data::ReformData, model::AbstractModel, StorageType::Type{<:StorageType})
-    if model == getreform(data)
-        storagedict = getstoragedict(data)
-        return get(storagedict, StorageType, nothing)
-    elseif model == getmodel(getmasterdata(data))
-        storagedict = getstoragedict(getmasterdata(data))
-        return get(storagedict, StorageType, nothing)
-    else
-        for (formid, sp_data) in get_dw_pricing_datas(data)
-            storage = get_storage(sp_data, model, StorageType) 
-            storage !== nothing && return storage
-        end
-        for (formid, sp_data) in get_benders_sep_datas(data)
-            storage = get_storage(sp_data, model, StorageType) 
-            storage !== nothing && return storage
+            model = getmodel(sp_data) && getstoragedict(sp_data)
         end
     end
     return nothing
@@ -174,16 +158,16 @@ end
 
 function store_states!(data::ReformData, states::StorageStatesVector)
     storagedict = getstoragedict(data)
-    for (StorageType, storage) in storagedict
-        stateid = storestate!(storage)
-        push!(states, (storage, stateid))
+    for (FullType, storagecont) in storagedict
+        stateid = storestate!(storagecont)
+        push!(states, (storagecont, stateid))
     end
-    store_states!(getmasterdata, states)
+    store_states!(getmasterdata(data), states)
     for (formid, sp_data) in get_dw_pricing_datas(data)
-        store_states!(getmasterdata, sp_data)
+        store_states!(sp_data, states)
     end
     for (formid, sp_data) in get_benders_sep_datas(data)
-        store_states!(getmasterdata, sp_data)
+        store_states!(sp_data, states)
     end 
 end
 

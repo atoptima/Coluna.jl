@@ -86,8 +86,8 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
     # we skip divide and conquer slave algorithms (except algo.conqueralg and algo.dividealg) 
     # as these algorithms will not be executed in nodes created by this tree search algorithm
     node_storages_usage = StoragesUsageDict()
-    get_all_storages_dict(algo.conqueralg, reform, node_storages_usage, true) 
-    get_all_storages_dict(algo.dividealg, reform, node_storages_usage, true) 
+    get_storages_usage!(algo.conqueralg, reform, node_storages_usage) 
+    get_storages_usage!(algo.dividealg, reform, node_storages_usage) 
 
     tsdata = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
@@ -115,14 +115,18 @@ Base.@kwdef struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     storelpsolution = false 
 end
 
-function getslavealgorithms!(
-    algo::TreeSearchAlgorithm, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
+function get_storages_usage!(
+    algo::TreeSearchAlgorithm, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    push!(slaves, (reform, algo.conqueralg))
-    getslavealgorithms!(algo.conqueralg, reform, slaves)
-    push!(slaves, (reform, algo.dividealg))
-    getslavealgorithms!(algo.dividealg, reform, slaves)
+    get_storages_usage!(algo.conqueralg, reform, storages_usage)
+    get_storages_usage!(algo.dividealg, reform, storages_usage)
+end
+
+function get_storages_to_restore!(
+    algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+)
+    # tree search algorithm restores itself storages for the conquer and divide algorithm 
+    # on every node, so we do not require anything here
 end
 
 
@@ -269,7 +273,6 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
         node = popnode!(tsdata)
 
         restore_states!(node.stateids, tsdata.node_storages_usage)
-        # restore_node_states!(node, getreform(rfdata), tsdata.node_storages_usage)
     
         run_conquer_algorithm!(algo, tsdata, rfdata, node)      
 

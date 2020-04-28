@@ -6,6 +6,24 @@ Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     redcost_tol::Float64 = 1e-5
 end
 
+function get_storages_usage!(
+    algo::ColumnGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
+)
+    master = getmaster(reform)
+    masterstoragedict = storages_usage[master]
+    push!(masterstoragedict, BranchingConstrsStorage)
+    push!(masterstoragedict, MasterColumnsStorage)
+end
+
+function get_storages_to_restore!(
+    algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    master = getmaster(reform)
+    add!(storages_to_restore, master, BranchingConstrsStorage, READ_ONLY)
+    add!(storages_to_restore, master, MasterColumnsStorage, READ_AND_WRITE)
+end
+
+
 # Data stored while algorithm is running
 mutable struct ColGenRuntimeData
     optstate::OptimizationState

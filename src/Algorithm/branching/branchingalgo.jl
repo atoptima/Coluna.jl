@@ -70,18 +70,22 @@ function SimpleBranching()::AbstractDivideAlgorithm
     return algo
 end
 
-function getslavealgorithms!(
-    algo::StrongBranching, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
+function get_storages_usage!(
+    algo::StrongBranching, reform::Reformulation, storages_usage::StoragesUsageDict
 )
+    add!(storages_usage, getmaster(reform), BranchingConstrsStorage)
     for phase in algo.phases
-        push!(slaves, (reform, phase.conquer_algo))
-        getslavealgorithms!(phase.conquer_algo, reform, slaves)
+        get_storages_usage!(phase.conquer_algo, reform, storages_usage)
     end
     for prioritised_rule in algo.rules
-        push!(slaves, (reform, prioritised_rule.rule))
-        getslavealgorithms!(prioritised_rule.rule, reform, slaves)
+        get_storages_usage!(prioritised_rule.rule, reform, storages_usage)
     end
+end
+
+function get_storages_to_restore!(
+    algo::StrongBranching, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+)
+    # branching restores all storages itself so we do not require anything here
 end
 
 function exploits_primal_solutions(algo::StrongBranching)
@@ -113,7 +117,7 @@ function perform_strong_branching_with_phases!(
         end        
 
         storages_usage = StoragesUsageDict()
-        get_all_storages_dict(current_phase.conquer_algo, getreform(data), storages_usage, true)     
+        get_storages_usage!(current_phase.conquer_algo, getreform(data), storages_usage)     
 
         #TO DO : we need to define a print level parameter
         println("**** Strong branching phase ", phase_index, " is started *****");

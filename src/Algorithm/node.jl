@@ -167,12 +167,3 @@ function to_be_pruned(node::Node)
     bounds_ratio = get_ip_primal_bound(nodestate) / get_ip_dual_bound(nodestate)
     return isapprox(bounds_ratio, 1) || ip_gap(nodestate) < 0
 end
-
-# function restore_node_states!(node::Node, reform::Reformulation, usage::StoragesUsageDict)
-#     copy_usage = copy(usage)
-#     if getbranch(node) !== nothing
-#         copy_usage[(getmaster(reform), BranchingConstrStorage)] = READ_AND_WRITE
-#     end
-#     restore_states!(node.stateids, copy_usage)
-
-# end

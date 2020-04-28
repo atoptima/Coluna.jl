@@ -11,6 +11,22 @@ Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
     log_level = 1
 end
 
+function get_storages_usage!(
+    algo::SolveIpForm, form::Formulation, storages_usage::StoragesUsageDict
+)
+    push!(storages_usage[form], BranchingConstrsStorage)
+    push!(storages_usage[form], MasterColumnsStorage)
+end
+
+function get_storages_to_restore!(
+    algo::SolveIpForm, form::Formulation, storages_to_restore::StoragesToRestoreDict
+) 
+    add!(storages_to_restore, form, BranchingConstrsStorage, READ_ONLY)
+    add!(
+        storages_to_restore, form, MasterColumnsStorage,
+        algo.enforce_integrality ? READ_AND_WRITE : READ_ONLY
+    )
+end
 
 # TO DO : create an Algorithm Logger
 # function Logging.shouldlog(logger::ConsoleLogger, level, _module, group, id)
