@@ -147,6 +147,7 @@ function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)
 
     if (!to_be_pruned(node))
         if algo.run_mastipheur 
+            @logmsg LogLevel(0) "Run IP restricted master heuristic."
             heur_output = run!(
                 algo.mastipheur, getmaster(reform), OptimizationInput(nodestate)
             )

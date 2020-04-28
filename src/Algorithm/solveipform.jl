@@ -8,14 +8,14 @@ Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
     time_limit::Int = 600
     deactivate_artificial_vars = true
     enforce_integrality = true
-    log_level = 1
+    log_level = 0
 end
 
 function get_storages_usage!(
     algo::SolveIpForm, form::Formulation, storages_usage::StoragesUsageDict
 )
-    push!(storages_usage[form], BranchingConstrsStorage)
-    push!(storages_usage[form], MasterColumnsStorage)
+    add!(storages_usage, form, BranchingConstrsStorage)
+    add!(storages_usage, form, MasterColumnsStorage)
 end
 
 function get_storages_to_restore!(
@@ -59,18 +59,18 @@ function run!(algo::SolveIpForm, form::Formulation, input::OptimizationInput)::O
     bestprimalsol = getbestprimalsol(optimizer_result)
     if bestprimalsol !== nothing
         add_ip_primal_sol!(optstate, bestprimalsol) 
-
-        @logmsg LogLevel(-1) string(
-            "Found primal solution of ", 
-            @sprintf "%.4f" getvalue(get_ip_primal_bound(optstate))
-        )
+        if algo.log_level == 0
+            @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(optstate))
+        end
         @logmsg LogLevel(-3) get_best_ip_primal_sol(optstate)
     else
-        @logmsg LogLevel(-1) string(
-            "No primal solution found. Termination status is ", 
-            getterminationstatus(optstate), ". Feasibility status is ",
-            getfeasibilitystatus(optstate), "."
-        )
+        if algo.log_level == 0
+            println(
+                "No primal solution found. Termination status is ", 
+                getterminationstatus(optstate), ". Feasibility status is ",
+                getfeasibilitystatus(optstate), "."
+            )
+        end
     end
     return OptimizationOutput(optstate)
 end

@@ -7,7 +7,7 @@ Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm
     get_dual_solution = false
     relax_integrality = false
     set_dual_bound = false
-    log_level = 1
+    log_level = 0
 end
 
 function get_storages_usage!(
