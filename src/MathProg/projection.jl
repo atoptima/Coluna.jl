@@ -14,7 +14,8 @@ function proj_cols_on_rep(sol::PrimalSolution, master::Formulation{DwMaster})
             col = getprimalsolmatrix(spform)[:, varid]
             for (repid, repval) in col
                 if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar
-                    push!(projected_sol_vars, repid)
+                    mastrepid = getid(getvar(master, repid))
+                    push!(projected_sol_vars, mastrepid)
                     push!(projected_sol_vals, repval * val)
                 end
             end
