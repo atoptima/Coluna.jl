@@ -1,7 +1,7 @@
 #using Revise # to comment when merging to the master branch
 using Coluna
 
-using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
+using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition, Gurobi
 using Random
 
 import MathOptInterface, MathOptInterface.Utilities
@@ -49,4 +49,3 @@ end
     close(rd_out)
     redirect_stdout(backup_stdout)
 end
-
