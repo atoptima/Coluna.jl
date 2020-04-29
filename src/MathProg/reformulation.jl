@@ -47,3 +47,10 @@ function find_owner_formulation(reform::Reformulation, vc::AbstractVarConstr)
     end
    @error(string("VC ", vc.name, " does not belong to any problem in reformulation"))
 end
+
+function Base.show(io::IO, reform::Reformulation)
+    compact = get(io, :compact, false)
+    if compact
+        print(io, "Reformulation")
+    end
+end

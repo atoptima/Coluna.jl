@@ -407,6 +407,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
             "(feasibility status = " , status, ") during phase != 1.")
             setfeasibilitystatus!(cg_optstate, status) 
+            @show masterform
             return
         end
 

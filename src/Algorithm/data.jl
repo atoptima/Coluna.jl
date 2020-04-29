@@ -19,22 +19,20 @@ function getnicename(data::AbstractData)
     return string("data associated to model of type $(typeof(model)) with id $(getuid(model))")
 end
 
-function get_storage(data::AbstractData, pair::StorageTypePair)
+function get_storage_container(data::AbstractData, pair::StorageTypePair)
     storagedict = getstoragedict(data)
     storagecont = get(storagedict, pair, nothing)
     if storagecont === nothing
         error(string("No storage for pair $pair in $(getnicename(data))"))                        
     end
-    return getstorage(storagecont)
+    return storagecont
 end
 
-function reserve_for_writing!(data::AbstractData, pair::StorageTypePair)
-    storagecont = get_storage(data, pair)
-    if storagecont !== nothing
-        reserve_for_writing!(storagecont)
-    end
-end
+getstorage(data::AbstractData, pair::StorageTypePair) = 
+    getstorage(get_storage_container(data, pair))
 
+reserve_for_writing!(data::AbstractData, pair::StorageTypePair) =
+    reserve_for_writing!(get_storage_container(data, pair))   
 
 """
     EmptyData
@@ -70,7 +68,7 @@ function store_states!(data::ModelData, states::StorageStatesVector)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
         stateid = storestate!(storagecont)
-        push!(states, (storagecont, stateid))
+        push!(states, storagecont => stateid)
     end
 end
 

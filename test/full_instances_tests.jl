@@ -9,15 +9,20 @@ end
 function mytest()
     data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
-    branching = ClA.StrongBranching()
-    push!(branching.phases, ClA.OnlyRestrictedMasterBranchingPhase(5))
-    push!(branching.phases, ClA.ExactBranchingPhase(1))
-    push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
+    # branching = ClA.StrongBranching()
+    # push!(branching.phases, ClA.OnlyRestrictedMasterBranchingPhase(5))
+    # push!(branching.phases, ClA.ExactBranchingPhase(1))
+    # push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
+
+    branching = ClA.SimpleBranching()
 
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer, 
         "params" => CL.Params(
-            solver = ClA.TreeSearchAlgorithm(dividealg = branching, maxnumnodes = 20)
+            solver = ClA.TreeSearchAlgorithm(
+                conqueralg = ClA.ColGenConquer(run_mastipheur = false), 
+                dividealg = branching, maxnumnodes = 20
+            )                
         ),
         "default_optimizer" => GLPK.Optimizer
     )

@@ -445,7 +445,7 @@ function optimize!(form::Formulation)
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
     res = optimize!(form, getoptimizer(form))
-    @logmsg LogLevel(-2) "Optimization finished with result:" print(form, res)
+    @logmsg LogLevel(-3) "Optimization finished with result:" print(form, res)
     return res
 end
 
@@ -518,10 +518,16 @@ function _show_variables(io::IO, form::Formulation)
     end
 end
 
-function Base.show(io::IO, form::Formulation)
-    println(io, "Formulation id = ", getuid(form))
-    _show_obj_fun(io, form)
-    _show_constraints(io, form)
-    _show_variables(io, form)
+function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormDuty}
+    compact = get(io, :compact, false)
+    if compact
+        dutystring = remove_until_last_point(string(Duty))
+        print(io, "form. ", dutystring, " with id=", getuid(form))
+    else
+        println(io, "Formulation id = ", getuid(form))
+        _show_obj_fun(io, form)
+        _show_constraints(io, form)
+        _show_variables(io, form)
+    end
     return
 end

@@ -59,9 +59,17 @@ mutable struct BranchingConstrsState <: AbstractStorageState
     constrs::Dict{ConstrId, ConstrState}
 end
 
+function Base.show(io::IO, state::BranchingConstrsState)
+    print(io, "[")
+    for (id, constr) in state.constrs
+        print(io, " ", MathProg.getuid(id))
+    end
+    print(io, "]")
+end
+
 function BranchingConstrsState(form::Formulation, storage::EmptyStorage)
     @logmsg LogLevel(-2) "Storing branching constraints"
-    state = BranchingConstrState(Dict{ConstrId, ConstrState}())
+    state = BranchingConstrsState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterBranchingConstr && 
            iscuractive(form, constr) && iscurexplicit(form, constr)
@@ -82,14 +90,14 @@ function restorefromstate!(
             @logmsg LogLevel(-4) "Checking " getname(form, constr)
             if haskey(state.constrs, id) 
                 if !iscuractive(form, constr) 
-                    @logmsg LogLevel(-4) "Activating"
+                    @logmsg LogLevel(-2) string("Activating constraint", getname(form, constr))
                     activate!(form, constr)
                 end
                 @logmsg LogLevel(-4) "Updating data"
                 apply_data!(form, constr, state.constrs[id])
             else
                 if iscuractive(form, constr) 
-                    @logmsg LogLevel(-4) "Deactivating"
+                    @logmsg LogLevel(-2) string("Deactivating constraint", getname(form, constr))
                     deactivate!(form, id)
                 end
             end    
@@ -110,6 +118,14 @@ mutable struct MasterColumnsState <: AbstractStorageState
     cols::Dict{VarId, VarState}
 end
 
+function Base.show(io::IO, state::MasterColumnsState)
+    print(io, "[")
+    for (id, val) in state.cols
+        print(io, " ", MathProg.getuid(id))
+    end
+    print(io, "]")
+end
+
 function MasterColumnsState(form::Formulation, storage::EmptyStorage)
     @logmsg LogLevel(-2) "Storing master columns"
     state = MasterColumnsState(Dict{VarId, ConstrState}())
@@ -117,7 +133,7 @@ function MasterColumnsState(form::Formulation, storage::EmptyStorage)
         if getduty(id) <= MasterCol && 
            iscuractive(form, var) && iscurexplicit(form, var)
             
-            varstate = VarState(getcurrhs(form, var))
+            varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
             state.cols[id] = varstate
         end
     end

@@ -30,7 +30,7 @@ SearchTree(strategy::AbstractTreeExploreStrategy) = SearchTree(
 )
 
 getnodes(tree::SearchTree) = tree.nodes
-isempty(tree::SearchTree) = DS.isempty(tree.nodes)
+treeisempty(tree::SearchTree) = DS.isempty(tree.nodes)
 
 push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getnodevalue(tree.strategy, node))
 popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
@@ -54,7 +54,7 @@ mutable struct TreeSearchRuntimeData
     node_storages_to_restore::StoragesToRestoreDict
 end
 
-isempty(data::TreeSearchRuntimeData) = isempty(data.primary_tree) && isempty(data.secondary_tree)
+treeisempty(data::TreeSearchRuntimeData) = treeisempty(data.primary_tree) && treeisempty(data.secondary_tree)
 primary_tree_is_full(data::TreeSearchRuntimeData) = nb_open_nodes(data.primary_tree) >= data.max_primary_tree_size
 
 function push!(data::TreeSearchRuntimeData, node::Node) 
@@ -66,7 +66,7 @@ function push!(data::TreeSearchRuntimeData, node::Node)
 end
 
 function popnode!(data::TreeSearchRuntimeData)::Node
-    if isempty(data.secondary_tree)
+    if treeisempty(data.secondary_tree)
         return popnode!(data.primary_tree)
     end
     return popnode!(data.secondary_tree)
@@ -174,10 +174,6 @@ function run_divide_algorithm!(
         return
     end        
 
-    # storage = getstorage(reform, getstoragetype(typeof(algo)))
-    # prepare!(storage, node.dividerecord)
-    # node.dividerecord = nothing
-
     treestate = getoptstate(tsdata)
     output = run!(algo.dividealg, rfdata, DivideInput(node, treestate))
 
@@ -188,17 +184,20 @@ function run_divide_algorithm!(
     children = getchildren(output)
     isempty(children) && return
 
-    print("Child nodes generated :")
-
+    first_child_with_runconquer = true
     for child in children
         if (child.conquerwasrun)
             set_tree_order!(child, tsdata.tree_order)
             tsdata.tree_order += 1
+            if first_child_with_runconquer
+                print("Child nodes generated :")
+                first_child_with_runconquer = false
+            end    
             print(" N° ", get_tree_order(child) ," ")
         end
         push!(tsdata, child)
     end
-    println()
+    !first_child_with_runconquer && println()
     return
 end
 
@@ -226,7 +225,7 @@ end
 
 # TODO : make it better
 function determine_statuses(data::TreeSearchRuntimeData)
-    fully_explored = isempty(data)
+    fully_explored = treeisempty(data)
     treestate = getoptstate(data)
     found_sols = (nb_ip_primal_sols(treestate) > 0)
     gap_is_zero = (get_ip_primal_bound(treestate) / get_ip_dual_bound(treestate) ≈ 1.0)
@@ -259,7 +258,8 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
         treestate, exploitsprimalsols, getobjsense(reform), node_storages_to_restore
     )
-    push!(tsdata, RootNode(getreform(rfdata), treestate, store_states!(rfdata), algo.skiprootnodeconquer, ))
+    master = getmaster(getreform(rfdata))
+    push!(tsdata, RootNode(master, treestate, store_states!(rfdata), algo.skiprootnodeconquer))
     return tsdata
 end
 
@@ -267,7 +267,7 @@ end
 function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
-    while (!isempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes)
+    while (!treeisempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes)
         node = popnode!(tsdata)
 
         restore_states!(node.stateids, tsdata.node_storages_to_restore)

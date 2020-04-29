@@ -268,7 +268,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
         min_priority = priority
 
         # generate candidates
-        output = run!(rule, reform, BranchingRuleInput(
+        output = run!(rule, data, BranchingRuleInput(
             original_solution, true, nb_candidates_needed, algo.selection_criterion, local_id
         ))
         nb_candidates_found += length(output.groups)
@@ -276,7 +276,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
         local_id = output.local_id
 
         if projection_is_possible(master)
-            output = run!(rule, reform, BranchingRuleInput(
+            output = run!(rule, data, BranchingRuleInput(
                 extended_solution, false, nb_candidates_needed, algo.selection_criterion, local_id
             ))   
             nb_candidates_found += length(output.groups)
