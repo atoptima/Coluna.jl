@@ -1,40 +1,32 @@
 function full_instances_tests()
     generalized_assignment_tests()
     capacitated_lot_sizing_tests()
-    lot_sizing_tests()
+    #lot_sizing_tests()
     #facility_location_tests()
     cutting_stock_tests()
 end
 
 function mytest()
-    data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
-
-    # branching = ClA.StrongBranching()
-    # push!(branching.phases, ClA.OnlyRestrictedMasterBranchingPhase(5))
-    # push!(branching.phases, ClA.ExactBranchingPhase(1))
-    # push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
-
-    branching = ClA.SimpleBranching()
+    data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer, 
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
-                conqueralg = ClA.ColGenConquer(run_mastipheur = false), 
-                dividealg = branching, maxnumnodes = 20
-            )                
+                conqueralg = ClA.ColGenConquer(
+                    colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
+                )
+            )
         ),
         "default_optimizer" => GLPK.Optimizer
     )
 
-    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    BD.objectiveprimalbound!(model, 2000.0)
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-    JuMP.optimize!(model)
-
-    @test JuMP.objective_value(model) ≈ 1553.0
-    @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+    JuMP.optimize!(problem)
+    @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
+    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL # Problem with final dual bound ?
+    @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 end
 
 function generalized_assignment_tests()

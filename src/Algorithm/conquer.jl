@@ -150,10 +150,12 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
     if (!to_be_pruned(node))
         if algo.run_mastipheur 
             @logmsg LogLevel(0) "Run IP restricted master heuristic."
-            heur_output = run!(
-                algo.mastipheur, getmaster(reform), OptimizationInput(nodestate)
-            )
-            update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
+            TO.@timeit Coluna._to "RestMasterHeur" begin
+                heur_output = run!(
+                    algo.mastipheur, getmaster(reform), OptimizationInput(nodestate)
+                )
+                update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
+            end
         end
     end 
 

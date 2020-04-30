@@ -31,6 +31,8 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
     form = getmodel(data)
     optstate = OptimizationState(form)
 
+    TO.@timeit Coluna._to "SolveLpForm" begin
+
     if algo.relax_integrality
         relax_integrality!(form)
     end
@@ -59,5 +61,6 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         end
     end
 
+    end 
     return OptimizationOutput(optstate)
 end

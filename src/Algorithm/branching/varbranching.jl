@@ -35,21 +35,25 @@ function generate_children(
     end 
 
     #reserve_for_writing!(getmasterdata(data), BasisStorage) # not yet implemented
+    TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
         master, string("branch_geq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
         sense = Greater, rhs = ceil(lhs), 
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
+    end
     child1description = candidate.description * ">=" * string(ceil(lhs))                               
     child1 = Node(master, parent, child1description, store_states!(data))
 
     #adding the second branching constraints
     restore_states!(stateids, storages_to_restore)
+    TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
         master, string("branch_leq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
         sense = Less, rhs = floor(lhs), 
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
+    end
     child2description = candidate.description * "<=" * string(floor(lhs))                               
     child2 = Node(master, parent, child2description, store_states!(data))
 

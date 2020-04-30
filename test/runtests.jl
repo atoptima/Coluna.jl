@@ -7,7 +7,7 @@ using Random
 import MathOptInterface, MathOptInterface.Utilities
 
 using Base.CoreLogging, Logging
-global_logger(ConsoleLogger(stderr, LogLevel(-2)))
+#global_logger(ConsoleLogger(stderr, LogLevel(-2)))
 
 global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
@@ -28,7 +28,8 @@ include("pricing_callback_tests.jl")
 rng = MersenneTwister(1234123)
 
 mytest()
-# unit_tests()
+
+#unit_tests()
 
 # @testset "Full instances " begin
 #     full_instances_tests()
