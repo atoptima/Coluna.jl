@@ -95,7 +95,9 @@ function optimize!(
 
     output = Algorithm.run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)
-    
+
+    Algorithm.check_storage_states_participation(reformdata)
+
     # we copy optimisation state as we want to project the solution to the compact space
     outstate = OptimizationState(
         master, 

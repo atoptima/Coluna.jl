@@ -144,7 +144,7 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
         return 
     end
 
-    colgen_output = run!(algo.colgen, reform, OptimizationInput(nodestate))
+    colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
     if (!to_be_pruned(node))
@@ -179,10 +179,10 @@ function get_storages_to_restore!(
     get_storages_to_restore!(algo.masterlpalgo, getmaster(reform), storages_to_restore)
 end
 
-function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)
+function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
     node = getnode(input)
     nodestate = getoptstate(node)
-    output = run!(algo.masterlpalgo, getmaster(reform), OptimizationInput(nodestate))
+    output = run!(algo.masterlpalgo, getmasterdata(data), OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
 end
 

@@ -27,7 +27,8 @@ function get_storages_to_restore!(
     )
 end
 
-function run!(algo::SolveLpForm, form::Formulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
+    form = getmodel(data)
     optstate = OptimizationState(form)
 
     if algo.relax_integrality

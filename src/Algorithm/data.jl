@@ -13,6 +13,7 @@ getstoragedict(::AbstractData) = nothing
 getmodel(::AbstractData) = nothing 
 get_model_storage_dict(::AbstractData, ::AbstractModel) = nothing
 store_states!(::AbstractData, ::StorageStatesVector) = nothing
+check_storage_states_participation(::AbstractData) = nothing
 
 function getnicename(data::AbstractData) 
     model = getmodel(data)
@@ -31,8 +32,11 @@ end
 getstorage(data::AbstractData, pair::StorageTypePair) = 
     getstorage(get_storage_container(data, pair))
 
-reserve_for_writing!(data::AbstractData, pair::StorageTypePair) =
-    reserve_for_writing!(get_storage_container(data, pair))   
+function reserve_for_writing!(data::AbstractData, pair::StorageTypePair) 
+    TO.@timeit Coluna._to "Reserve for writing" begin
+        reserve_for_writing!(get_storage_container(data, pair))   
+    end
+end    
 
 """
     EmptyData
@@ -56,8 +60,6 @@ ModelData(::Nothing) = EmptyData()
 
 getstoragedict(data::ModelData) = data.storagedict
 getmodel(data::ModelData) = data.model
-get_dw_pricing_datas(data::ModelData) = Dict{FormId, AbstractData}() 
-get_benders_sep_datas(data::ModelData) = Dict{FormId, AbstractData}() 
 
 function get_model_storage_dict(data::ModelData, model::AbstractModel)
     model == getmodel(data) && return getstoragedict(data)
@@ -69,6 +71,13 @@ function store_states!(data::ModelData, states::StorageStatesVector)
     for (FullType, storagecont) in storagedict
         stateid = storestate!(storagecont)
         push!(states, storagecont => stateid)
+    end
+end
+
+function check_storage_states_participation(data::ModelData)
+    storagedict = getstoragedict(data)
+    for (FullType, storagecont) in storagedict
+        check_storage_states_participation(storagecont)
     end
 end
 
@@ -151,7 +160,23 @@ function store_states!(data::ReformData, states::StorageStatesVector)
 end
 
 function store_states!(data::ReformData)
-    states = StorageStatesVector()
-    store_states!(data, states)
+    TO.@timeit Coluna._to "Store states" begin
+        states = StorageStatesVector()
+       store_states!(data, states)
+    end       
     return states
+end
+
+function check_storage_states_participation(data::ReformData)
+    storagedict = getstoragedict(data)
+    for (FullType, storagecont) in storagedict
+        check_storage_states_participation(storagecont)
+    end
+    check_storage_states_participation(getmasterdata(data))
+    for (formid, sp_data) in get_dw_pricing_datas(data)
+        check_storage_states_participation(sp_data)
+    end
+    for (formid, sp_data) in get_benders_sep_datas(data)
+        check_storage_states_participation(sp_data)
+    end 
 end

@@ -11,7 +11,8 @@ end
 getdescription(candidate::VarBranchingCandidate) = candidate.description
 
 function generate_children(
-    candidate::VarBranchingCandidate, lhs::Float64, data::ReformData, parent::Node
+    candidate::VarBranchingCandidate, lhs::Float64, data::ReformData, 
+    parent::Node, stateids::StorageStatesVector, first_restore_states::Bool
 )
     master = getmaster(getreform(data))
     var = getvar(master, candidate.varid)
@@ -21,13 +22,18 @@ function generate_children(
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    # we save the current storages state to restore after adding the first branching constraint
-    stateids = store_states!(data)
-
-    @show stateids
+    storages_to_restore = StoragesToRestoreDict(
+        (master, BranchingConstrsStorage) => READ_AND_WRITE
+        #(master, BasisStorage) => READ_AND_WRITE) # not yet implemented
+    )
 
     #adding the first branching constraints
-    reserve_for_writing!(getmasterdata(data), BranchingConstrsStorage)
+    if first_restore_states
+        restore_states!(copy_states(stateids), storages_to_restore)
+    else
+        reserve_for_writing!(getmasterdata(data), BranchingConstrsStorage)
+    end 
+
     #reserve_for_writing!(getmasterdata(data), BasisStorage) # not yet implemented
     setconstr!(
         master, string("branch_geq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
@@ -37,13 +43,7 @@ function generate_children(
     child1description = candidate.description * ">=" * string(ceil(lhs))                               
     child1 = Node(master, parent, child1description, store_states!(data))
 
-    @show child1.stateids
-
     #adding the second branching constraints
-    storages_to_restore = StoragesToRestoreDict(
-        (master, BranchingConstrsStorage) => READ_AND_WRITE
-        #(master, BasisStorage) => READ_AND_WRITE) # not yet implemented
-    )
     restore_states!(stateids, storages_to_restore)
     setconstr!(
         master, string("branch_leq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
@@ -52,8 +52,6 @@ function generate_children(
     )
     child2description = candidate.description * "<=" * string(floor(lhs))                               
     child2 = Node(master, parent, child2description, store_states!(data))
-
-    @show child2.stateids
 
     return [child1, child2]
 end
@@ -67,6 +65,12 @@ end
     in order to be able to give different priorities to different groups of variables
 """
 Base.@kwdef struct VarBranchingRule <: AbstractBranchingRule 
+end
+
+function get_storages_usage!(
+    rule::VarBranchingRule, reform::Reformulation, storages_usage::StoragesUsageDict
+)
+    add_storage!(storages_usage, getmaster(reform), BranchingConstrsStorage)
 end
 
 function run!(

@@ -236,6 +236,12 @@ end
 function setcurstate!(
     storagecont::StorageContainer{M,S,SS}, statecont::StorageStateContainer{SS}
 ) where {M,S,SS} 
+    # we delete the current state container from the dictionary if necessary
+    curstatecont = getcurstatecont(storagecont)
+    if !stateisempty(curstatecont) && getparticipation(curstatecont) == 0
+        delete!(getstatesdict(storagecont), getid(curstatecont))
+        @logmsg LogLevel(-2) string("Removed state with id ", getid(curstatecont), " for ", storagecont)
+    end
     storagecont.curstatecont = statecont
     if getmaxstateid(storagecont) < getid(statecont) 
         storagecont.maxstateid = getid(statecont)
@@ -249,7 +255,7 @@ function increaseparticipation!(storagecont::StorageContainer, stateid::StateId)
     else
         statesdict = getstatesdict(storagecont)
         if !haskey(statesdict, stateid) 
-            error(string("State with id $stateid does not exist for ", show(storagecont)))
+            error(string("State with id $stateid does not exist for ", storagecont))
         end
         increaseparticipation!(statesdict[stateid])
     end
@@ -258,14 +264,12 @@ end
 function retrieve_from_statesdict(storagecont::StorageContainer, stateid::StateId)
     statesdict = getstatesdict(storagecont)
     if !haskey(statesdict, stateid)
-        error(string("State with id $stateid does not exist for ", show(storagecont)))
+        error(string("State with id $stateid does not exist for ", storagecont))
     end
     statecont = statesdict[stateid]
     decreaseparticipation!(statecont)
-    if getparticipation(statecont) == 0
-        delete!(statesdict, stateid)
-    elseif getparticipation(statecont) < 0
-        error(string("Participation is below zero for state with id $stateid of ", show(storagecont)))
+    if getparticipation(statecont) < 0
+        error(string("Participation is below zero for state with id $stateid of ", storagecont))
     end
     return statecont
 end
@@ -310,7 +314,12 @@ function restorestate!(
 
     statecont = retrieve_from_statesdict(storagecont, stateid)
 
-    if mode != NOT_USED # otherwise we do nothing, so the state will be deleted if its participation is zero
+    if mode == NOT_USED
+        if !stateisempty(statecont) && getparticipation(statecont) == 0
+            delete!(getstatesdict(storagecont), getid(statecont))
+            @logmsg LogLevel(-2) string("Removed state with id ", getid(statecont), " for ", storagecont)
+        end
+    else 
         restorefromstate!(getmodel(storagecont), getstorage(storagecont), getstate(statecont))
         @logmsg LogLevel(-2) string("Restored state with id ", getid(statecont), " for ", storagecont)
         if mode == READ_AND_WRITE 
@@ -332,13 +341,15 @@ function reserve_for_writing!(storagecont::StorageContainer{M,S,SS}) where {M,S,
 end
 
 function restore_states!(ssvector::StorageStatesVector, storages_to_restore::StoragesToRestoreDict)
-    for (storagecont, stateid) in ssvector
-        mode = get(
-            storages_to_restore, 
-            (getmodel(storagecont), gettypepair(storagecont)), 
-            NOT_USED
-        )
-        restorestate!(storagecont, stateid, mode)
+    TO.@timeit Coluna._to "Restore states" begin
+        for (storagecont, stateid) in ssvector
+            mode = get(
+                storages_to_restore, 
+                (getmodel(storagecont), gettypepair(storagecont)), 
+                NOT_USED
+            )
+            restorestate!(storagecont, stateid, mode)
+        end
     end    
     empty!(ssvector) # vector of states should be emptied 
 end
@@ -348,21 +359,24 @@ remove_states!(states::StorageStatesVector) = restore_states!(states, StoragesTo
 function copy_states(states::StorageStatesVector)::StorageStatesVector
     statescopy = StorageStatesVector()
     for (storagecont, stateid) in states
-        push!(statescopy, (storagecont, stateid))
+        push!(statescopy, storagecont => stateid)
         increaseparticipation!(storagecont, stateid)
     end
     return statescopy
 end
 
-# function Base.show(io::IO, states::StorageStatesVector)
-#     for (storagecont, stateid) in states
-#         print(
-#             io, "(", typeof(getmodel(storagecont)), 
-#             " id=", getuid(getmodel(storagecont)), 
-#             ",", gettypepair(storagecont), ") =>", stateid, "  "
-#         )
-#     end 
-# end
+function check_storage_states_participation(storagecont::StorageContainer)
+    curstatecont = getcurstatecont(storagecont)
+    if getparticipation(curstatecont) > 0
+        @warn string("Positive participation of state ", curstatecont)
+    end
+    statesdict = getstatesdict(storagecont)
+    for (stateid, statecont) in statesdict
+        if getparticipation(statecont) > 0
+            @warn string("Positive participation of state ", statecont)
+        end
+    end
+end
 
 """
     IMPORTANT!

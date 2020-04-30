@@ -267,16 +267,17 @@ end
 function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
-    while (!treeisempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes)
+    while !treeisempty(tsdata) 
         node = popnode!(tsdata)
 
-        restore_states!(node.stateids, tsdata.node_storages_to_restore)
-    
-        run_conquer_algorithm!(algo, tsdata, rfdata, node)      
-
-        run_divide_algorithm!(algo, tsdata, rfdata, node)
-        
-        updatedualbound!(tsdata)
+        if get_tree_order(tsdata) <= algo.maxnumnodes
+            restore_states!(node.stateids, tsdata.node_storages_to_restore)
+            run_conquer_algorithm!(algo, tsdata, rfdata, node)      
+            run_divide_algorithm!(algo, tsdata, rfdata, node)           
+            updatedualbound!(tsdata)
+        else
+            remove_states!(node.stateids)
+        end
         
         # we delete solutions from the node optimization state, as they are not needed anymore
         clear_solutions!(getoptstate(node))

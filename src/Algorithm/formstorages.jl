@@ -111,7 +111,7 @@ const BranchingConstrsStorage = (EmptyStorage => BranchingConstrsState)
     MasterColumnsStorage
 
     Storage for branching constraints of a formulation. 
-    Consists of EmptyStorage and BranchingConstrState.    
+    Consists of EmptyStorage and MasterColumnsState.    
 """
 
 mutable struct MasterColumnsState <: AbstractStorageState
@@ -147,13 +147,13 @@ function restorefromstate!(
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && iscurexplicit(form, var)
             @logmsg LogLevel(-4) "Checking " getname(form, var)
-            if haskey(state.constrs, id) 
+            if haskey(state.cols, id) 
                 if !iscuractive(form, var) 
                     @logmsg LogLevel(-4) "Activating"
                     activate!(form, var)
                 end
                 @logmsg LogLevel(-4) "Updating data"
-                apply_data!(form, var, state.constrs[id])
+                apply_data!(form, var, state.cols[id])
             else
                 if iscuractive(form, var) 
                     @logmsg LogLevel(-4) "Deactivating"

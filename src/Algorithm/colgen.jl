@@ -56,15 +56,16 @@ end
 
 getoptstate(data::ColGenRuntimeData) = data.optstate
 
-function run!(algo::ColumnGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
-    data = ColGenRuntimeData(algo, reform, getoptstate(input))
-    optstate = getoptstate(data)
+function run!(algo::ColumnGeneration, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput    
+    reform = getreform(rfdata)
+    cgdata = ColGenRuntimeData(algo, reform, getoptstate(input))
+    optstate = getoptstate(cgdata)
 
-    cg_main_loop!(algo, data, reform)
+    cg_main_loop!(algo, cgdata, rfdata)
     masterform = getmaster(reform)
-    if should_do_ph_1(masterform, data)
-        set_ph_one(masterform, data)        
-        cg_main_loop!(algo, data, reform)
+    if should_do_ph_1(masterform, cgdata)
+        set_ph_one(masterform, cgdata)        
+        cg_main_loop!(algo, cgdata, rfdata)
         # TO DO : to implement unsetting phase one !!
         # TO DO : to implement repeating of phase two in the case phase 1 succeded
     end
@@ -363,10 +364,11 @@ end
 ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
 ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
 
-function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::Reformulation)
+function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData)
     nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
+    reform = getreform(rfdata)
     masterform = getmaster(reform)
     sp_lbs = Dict{FormId, Float64}()
     sp_ubs = Dict{FormId, Float64}()
@@ -389,7 +391,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
         end
     end
 
-    cg_optstate = getoptstate(data)
+    cg_optstate = getoptstate(cgdata)
     redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
 
     while true
@@ -397,12 +399,12 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
             rm_input = OptimizationInput(
                 OptimizationState(masterform, ip_primal_bound = get_ip_primal_bound(cg_optstate))
             )
-            rm_output = run!(SolveLpForm(get_dual_solution = true), masterform, rm_input)
+            rm_output = run!(SolveLpForm(get_dual_solution = true), getmasterdata(rfdata), rm_input)
         end
         rm_optstate = getoptstate(rm_output)
         master_val = get_lp_primal_bound(rm_optstate)
 
-        if data.phase != 1 && !isfeasible(rm_optstate)
+        if cgdata.phase != 1 && !isfeasible(rm_optstate)
             status = getfeasibilitystatus(rm_optstate)
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
             "(feasibility status = " , status, ") during phase != 1.")
@@ -438,7 +440,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
             nb_new_col = generatecolumns!(
-                algo, data, reform, redcostsvec, master_val, lp_dual_sol, sp_lbs, sp_ubs
+                algo, cgdata, reform, redcostsvec, master_val, lp_dual_sol, sp_lbs, sp_ubs
             )
         end
 
@@ -461,7 +463,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
             @logmsg LogLevel(0) "Dual bound reached primal bound."
             return 
         end
-        if data.phase == 1 && ph_one_infeasible_db(dual_bound)
+        if cgdata.phase == 1 && ph_one_infeasible_db(dual_bound)
             db = - getvalue(DualBound(reform))
             pb = - getvalue(PrimalBound(reform))
             set_lp_dual_bound!(cg_optstate, DualBound(reform, db))

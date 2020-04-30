@@ -143,7 +143,7 @@ function Node(parent::Node, child::Node)
     depth = getdepth(parent) + 1
     return Node(
         -1, false, depth, parent, getoptstate(child),
-        child.branchdescription, child.storagestateids, false
+        child.branchdescription, child.stateids, false
     )
 end
 
