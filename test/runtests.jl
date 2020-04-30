@@ -2,12 +2,12 @@
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
-using Random
+using Random, Gurobi
 
 import MathOptInterface, MathOptInterface.Utilities
 
 using Base.CoreLogging, Logging
-#global_logger(ConsoleLogger(stderr, LogLevel(0)))
+global_logger(ConsoleLogger(stderr, LogLevel(0)))
 
 global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface

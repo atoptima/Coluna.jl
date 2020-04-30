@@ -192,8 +192,8 @@ function optimize!(form::Formulation, optimizer::MoiOptimizer)
     @logmsg LogLevel(-4) "MOI formulation before synch: "
     @logmsg LogLevel(-4) getoptimizer(form)
     sync_solver!(getoptimizer(form), form)
-    @logmsg LogLevel(-3) "MOI formulation after synch: "
-    @logmsg LogLevel(-3) getoptimizer(form)
+    @logmsg LogLevel(0) "MOI formulation after synch: "
+    @logmsg LogLevel(0) getoptimizer(form)
     nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())
     if nbvars <= 0
         @warn "No variable in the formulation. Coluna does not call the solver."
@@ -303,3 +303,19 @@ function _initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)
 end
 
 _initialize_optimizer!(optimizer, form::Formulation) = return
+
+function Base.print(io::IO, form::AbstractFormulation, moiresult::MoiResult)
+    println(io, "Primal bound =  $(moiresult.primal_bound)")
+    if length(moiresult.primal_sols) > 0
+        for (varid, val) in moiresult.primal_sols[1]
+            println(io, "\t $(getname(form, varid)) = $val")
+        end
+    end
+    println(io, "*******")
+    if length(moiresult.dual_sols) > 0
+        for (constrid, val) in moiresult.dual_sols[1]
+            println(io, "\t $(getname(form, constrid)) = $val")
+        end
+    end  
+    return
+end
