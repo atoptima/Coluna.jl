@@ -531,3 +531,13 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
     end
     return
 end
+
+function write_to_LP_file(form::Formulation, filename::String)
+    optimizer = getoptimizer(form)
+    if isa(optimizer, MoiOptimizer)
+        src = getinner(optimizer)
+        dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)
+        MOI.copy_to(dest, src)
+        MOI.write_to_file(dest, filename)
+    end
+end
