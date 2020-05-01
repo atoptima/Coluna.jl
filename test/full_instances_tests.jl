@@ -19,7 +19,7 @@ function mytest()
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(dividealg = branching, maxnumnodes = 20)
         ),
-        "default_optimizer" => Gurobi.Optimizer
+        "default_optimizer" => GLPK.Optimizer
     )
 
     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -39,7 +39,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -59,7 +59,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -85,7 +85,7 @@ function generalized_assignment_tests()
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(dividealg = branching, maxnumnodes = 300)
             ),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -105,15 +105,13 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer, 
             "params" => CL.Params(
-                global_art_var_cost = 10.0,
-                local_art_var_cost = 1.0,
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColGenConquer(
-                        colgen = ClA.ColumnGeneration(max_nb_iterations = 1500)
+                        colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
                     )
                 )
             ),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -130,7 +128,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
@@ -145,7 +143,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
@@ -160,7 +158,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -175,7 +173,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -212,7 +210,7 @@ function lot_sizing_tests()
             "params" => CL.Params(
                 solver = ClA.BendersCutGeneration()
             ),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
@@ -229,7 +227,7 @@ function capacitated_lot_sizing_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
@@ -248,7 +246,7 @@ function facility_location_tests()
             "params" => CL.Params(
                 solver = ClA.BendersCutGeneration()
             ),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, y, dec = CLD.FacilityLocation.model(data, coluna)
@@ -264,7 +262,7 @@ function cutting_stock_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => Gurobi.Optimizer
+            "default_optimizer" => GLPK.Optimizer
         )
 
         problem, x, y, dec = CLD.CuttingStock.model(data, coluna)

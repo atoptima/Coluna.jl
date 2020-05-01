@@ -2,7 +2,7 @@
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
-using Random, Gurobi
+using Random
 
 import MathOptInterface, MathOptInterface.Utilities
 
