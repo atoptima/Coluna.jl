@@ -9,6 +9,7 @@ end
 # Data stored while algorithm is running
 mutable struct ColGenRuntimeData
     optstate::OptimizationState
+    nb_iterations::Int64
     phase::Int64
 end
 
@@ -16,7 +17,7 @@ function ColGenRuntimeData(
     algo::ColumnGeneration, reform::Reformulation, nodestate::OptimizationState
 )
     optstate = CopyBoundsAndStatusesFromOptState(getmaster(reform), nodestate, false)
-    return ColGenRuntimeData(optstate, 2)
+    return ColGenRuntimeData(optstate, 0, 3)
 end
 
 struct ReducedCostsVector
@@ -33,7 +34,7 @@ function ReducedCostsVector(varids::Vector{VarId}, form::Vector{Formulation})
     permute!(varids, p)
     permute!(form, p)
     for i in 1:len
-        perenecosts[i] = getperenecost(form[i], varids[i])
+        perenecosts[i] = getcurcost(getmaster(form[i]), varids[i])
     end
     return ReducedCostsVector(len, varids, perenecosts, form)
 end
@@ -43,14 +44,18 @@ getoptstate(data::ColGenRuntimeData) = data.optstate
 function run!(algo::ColumnGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
     data = ColGenRuntimeData(algo, reform, getoptstate(input))
     optstate = getoptstate(data)
-
-    cg_main_loop!(algo, data, reform)
     masterform = getmaster(reform)
-    if should_do_ph_1(masterform, data)
-        set_ph_one(masterform, data)        
-        cg_main_loop!(algo, data, reform)
-        # TO DO : to implement unsetting phase one !!
-        # TO DO : to implement repeating of phase two in the case phase 1 succeded
+
+    set_ph3!(masterform, data) # mixed ph1 & ph2
+    stop = cg_main_loop!(algo, data, reform)
+
+    if !stop && should_do_ph_1(masterform, data) 
+        set_ph1!(masterform, data) # pure ph1 (mixed phase infeasible or artifical variables not enough expensive)
+        stop = cg_main_loop!(algo, data, reform)
+        if !stop
+            set_ph2!(masterform, data) # pure ph2
+            cg_main_loop!(algo, data, reform)
+        end
     end
 
     @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getfeasibilitystatus(optstate))
@@ -58,9 +63,7 @@ function run!(algo::ColumnGeneration, reform::Reformulation, input::Optimization
     return OptimizationOutput(optstate)
 end
 
-# Internal methods to the column generation
 function should_do_ph_1(master::Formulation, data::ColGenRuntimeData)
-    ip_gap(getoptstate(data)) <= 0.00001 && return false
     primal_lp_sol = get_lp_primal_sols(getoptstate(data))[1]
     if contains(primal_lp_sol, vid -> isanArtificialDuty(getduty(vid)))
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
@@ -71,12 +74,38 @@ function should_do_ph_1(master::Formulation, data::ColGenRuntimeData)
     end
 end
 
-function set_ph_one(master::Formulation, data::ColGenRuntimeData)
+function set_ph1!(master::Formulation, data::ColGenRuntimeData)
     for (varid, var) in getvars(master)
-        isanArtificialDuty(getduty(varid)) && continue
-        setcurcost!(master, varid, 0.0)
+        if !isanArtificialDuty(getduty(varid))
+            setcurcost!(master, varid, 0.0)
+        end
     end
     data.phase = 1
+    set_lp_dual_bound!(data.optstate, DualBound(master, -Inf))
+    set_ip_dual_bound!(data.optstate, DualBound(master, -Inf))
+    return
+end
+
+function set_ph2!(master::Formulation, data::ColGenRuntimeData)
+    for (varid, var) in getvars(master)
+        if isanArtificialDuty(getduty(varid))
+            deactivate!(master, varid)
+        else
+            setcurcost!(master, varid, getperenecost(master, var))
+        end
+    end
+    data.phase = 2
+end
+
+function set_ph3!(master::Formulation, data::ColGenRuntimeData)
+    for (varid, var) in getvars(master)
+        if isanArtificialDuty(getduty(varid))
+            activate!(master, varid)
+        else
+            setcurcost!(master, varid, getperenecost(master, var))
+        end
+    end
+    data.phase = 3
     return
 end
 
@@ -344,13 +373,13 @@ function generatecolumns!(
     return nb_new_columns
 end
 
-ph_one_infeasible_db(db::DualBound{MinSense}) = getvalue(db) > (0.0 + 1e-5)
-ph_one_infeasible_db(db::DualBound{MaxSense}) = getvalue(db) < (0.0 - 1e-5)
+ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.optimality_tol
+ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.optimality_tol
 
 function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::Reformulation)
-    nb_cg_iterations = 0
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
+    
     masterform = getmaster(reform)
     sp_lbs = Dict{FormId, Float64}()
     sp_ubs = Dict{FormId, Float64}()
@@ -391,7 +420,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
             "(feasibility status = " , status, ") during phase != 1.")
             setfeasibilitystatus!(cg_optstate, status) 
-            return
+            return true
         end
 
         lp_dual_sol = DualSolution(masterform)
@@ -416,7 +445,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
 
         # TODO: cleanup restricted master columns        
 
-        nb_cg_iterations += 1
+        data.nb_iterations += 1
 
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
@@ -428,10 +457,10 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
         if nb_new_col < 0
             @error "Infeasible subproblem."
             setfeasibilitystatus!(cg_optstate, INFEASIBLE) 
-            return 
+            return true
         end
 
-        print_colgen_statistics(cg_optstate, nb_new_col, nb_cg_iterations, rm_time, sp_time)
+        print_colgen_statistics(data, cg_optstate, nb_new_col, rm_time, sp_time)
 
         # TODO: update colgen stabilization
 
@@ -442,41 +471,47 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
         if ip_gap(cg_optstate) < algo.optimality_tol
             setterminationstatus!(cg_optstate, OPTIMAL) 
             @logmsg LogLevel(0) "Dual bound reached primal bound."
-            return 
+            return true
         end
-        if data.phase == 1 && ph_one_infeasible_db(dual_bound)
+        if data.phase == 1 && ph_one_infeasible_db(algo, dual_bound)
             db = - getvalue(DualBound(reform))
             pb = - getvalue(PrimalBound(reform))
             set_lp_dual_bound!(cg_optstate, DualBound(reform, db))
             set_lp_primal_bound!(cg_optstate, PrimalBound(reform, pb))
             setfeasibilitystatus!(cg_optstate, INFEASIBLE) 
             @logmsg LogLevel(0) "Phase one determines infeasibility."
-            return 
+            return true
         end
-        if nb_new_col == 0 || lp_gap(cg_optstate) < algo.optimality_tol
+        if data.phase != 1 nb_new_col == 0 || lp_gap(cg_optstate) < algo.optimality_tol
             @logmsg LogLevel(0) "Column Generation Algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL) 
-            return 
+            return false
         end
-        if nb_cg_iterations > algo.max_nb_iterations
+        if data.nb_iterations > algo.max_nb_iterations
             setterminationstatus!(cg_optstate, OTHER_LIMIT)
             @warn "Maximum number of column generation iteration is reached."
-            return 
+            return true
         end
     end
-    return 
+    return false
 end
 
 function print_colgen_statistics(
-    optstate::OptimizationState, nb_new_col::Int, nb_cg_iterations::Int,
-    mst_time::Float64, sp_time::Float64
+    data::ColGenRuntimeData, optstate::OptimizationState, nb_new_col::Int, mst_time::Float64, sp_time::Float64
 )
     mlp = getvalue(get_lp_primal_bound(optstate))
     db = getvalue(get_lp_dual_bound(optstate))
     pb = getvalue(get_ip_primal_bound(optstate))
+    phase = "  "
+    if data.phase == 1
+        phase = "# "
+    elseif data.phase == 2
+        phase = "##"
+    end
+
     @printf(
-        "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
-        nb_cg_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, db, mlp, pb
+        "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
+        phase, data.nb_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, db, mlp, pb
     )
     return
 end
