@@ -165,9 +165,8 @@ function call_moi_optimize_with_silence(optimizer::MoiOptimizer)
     return
 end
 
-function remove_from_optimizer!(optimizer::MoiOptimizer,
-                                var::Variable)
-    inner = getinner(optimizer)
+function remove_from_optimizer!(form::Formulation, var::Variable)                       
+    inner = getinner(form.optimizer)
     moirecord = getmoirecord(var)
     @assert getindex(moirecord).value != -1
     MOI.delete(inner, getbounds(moirecord))
@@ -179,11 +178,10 @@ function remove_from_optimizer!(optimizer::MoiOptimizer,
     return
 end
 
-function remove_from_optimizer!(optimizer::MoiOptimizer,
-                                constr::Constraint)
+function remove_from_optimizer!(form::Formulation, constr::Constraint)
     moirecord = getmoirecord(constr)
     @assert getindex(moirecord).value != -1
-    MOI.delete(getinner(optimizer), getindex(moirecord))
+    MOI.delete(getinner(form.optimizer), getindex(moirecord))
     setindex!(moirecord, MoiConstrIndex())
     return
 end

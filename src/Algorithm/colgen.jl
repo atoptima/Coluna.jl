@@ -81,8 +81,8 @@ function set_ph1!(master::Formulation, data::ColGenRuntimeData)
         end
     end
     data.phase = 1
-    set_lp_dual_bound!(data.optstate, DualBound(master, -Inf))
-    set_ip_dual_bound!(data.optstate, DualBound(master, -Inf))
+    set_lp_dual_bound!(data.optstate, DualBound(master))
+    set_ip_dual_bound!(data.optstate, DualBound(master))
     return
 end
 
@@ -94,6 +94,8 @@ function set_ph2!(master::Formulation, data::ColGenRuntimeData)
             setcurcost!(master, varid, getperenecost(master, var))
         end
     end
+    set_lp_dual_bound!(data.optstate, DualBound(master))
+    set_ip_dual_bound!(data.optstate, DualBound(master))
     data.phase = 2
 end
 
@@ -114,7 +116,7 @@ function update_pricing_target!(spform::Formulation)
 end
 
 function insert_cols_in_master!(
-    masterform::Formulation, spform::Formulation, sp_solution_ids::Vector{VarId}
+    data::ColGenRuntimeData, masterform::Formulation, spform::Formulation, sp_solution_ids::Vector{VarId}
 ) 
     sp_uid = getuid(spform)
     nb_of_gen_col = 0
@@ -131,6 +133,9 @@ function insert_cols_in_master!(
             masterform, spform, sol_id, name, duty; lb = lb, ub = ub, 
             kind = kind, sense = sense
         )
+        if data.phase == 1
+            setcurcost!(masterform, mc, 0.0)
+        end
         @logmsg LogLevel(-2) string("Generated column : ", name)
     end
 
@@ -294,8 +299,8 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
 end
 
 function solve_sps_to_gencols!(
-    algo::ColumnGeneration, reform::Reformulation, redcostsvec::ReducedCostsVector, dual_sol::DualSolution, 
-    sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
+    algo::ColumnGeneration, data::ColGenRuntimeData, reform::Reformulation, redcostsvec::ReducedCostsVector, 
+    dual_sol::DualSolution, sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 )
     masterform = getmaster(reform)
     nb_new_cols = 0
@@ -325,7 +330,7 @@ function solve_sps_to_gencols!(
     nb_new_cols = 0
     for (spuid, spform) in sps
         dual_bound_contrib += sp_dual_bound_contribs[spuid]
-        nb_new_cols += insert_cols_in_master!(masterform, spform, recorded_sp_solution_ids[spuid])
+        nb_new_cols += insert_cols_in_master!(data, masterform, spform, recorded_sp_solution_ids[spuid])
         for colid in sp_solution_to_activate[spuid]
             activate!(masterform, colid)
             nb_new_cols += 1
@@ -359,7 +364,7 @@ function generatecolumns!(
     cg_optstate = getoptstate(data)
     nb_new_columns = 0
     while true # TODO Replace this condition when starting implement stabilization
-        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(algo, reform, redcostsvec, dual_sol, sp_lbs, sp_ubs)
+        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(algo, data, reform, redcostsvec, dual_sol, sp_lbs, sp_ubs)
         nb_new_columns += nb_new_col
         lagran_bnd = calculate_lagrangian_db(data, master_val, sp_db_contrib)
         update_ip_dual_bound!(cg_optstate, lagran_bnd)
@@ -482,7 +487,7 @@ function cg_main_loop!(algo::ColumnGeneration, data::ColGenRuntimeData, reform::
             @logmsg LogLevel(0) "Phase one determines infeasibility."
             return true
         end
-        if data.phase != 1 nb_new_col == 0 || lp_gap(cg_optstate) < algo.optimality_tol
+        if nb_new_col == 0 || lp_gap(cg_optstate) < algo.optimality_tol
             @logmsg LogLevel(0) "Column Generation Algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL) 
             return false

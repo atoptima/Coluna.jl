@@ -45,6 +45,14 @@ git-tree-sha1 = "ded953804d019afa9a3f98981d99b33e3db7b6da"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
 version = "0.7.0"
 
+[[ColunaDemos]]
+deps = ["BlockDecomposition", "DelimitedFiles", "JuMP"]
+git-tree-sha1 = "c274bb65f034af7ee5d8dbdcbb1acf3cac2fdddf"
+repo-rev = "master"
+repo-url = "git@github.com:atoptima/ColunaDemos.jl.git"
+uuid = "a54e61d4-7723-11e9-2469-af255fcaa246"
+version = "0.1.0"
+
 [[CommonSubexpressions]]
 deps = ["Test"]
 git-tree-sha1 = "efdaf19ab11c7889334ca247ff4c9f7c322817b0"
@@ -66,6 +74,10 @@ version = "0.17.13"
 [[Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
+
+[[DelimitedFiles]]
+deps = ["Mmap"]
+uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffResults]]
 deps = ["StaticArrays"]
@@ -95,6 +107,12 @@ deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random",
 git-tree-sha1 = "869540e4367122fbffaace383a5bdc34d6e5e5ac"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
 version = "0.10.10"
+
+[[Gurobi]]
+deps = ["Libdl", "LinearAlgebra", "MathOptInterface", "MathProgBase", "SparseArrays"]
+git-tree-sha1 = "f89896182922d016590cd8c3438575be5092571f"
+uuid = "2e9cd046-0924-5485-92f1-d5272153d98b"
+version = "0.7.7"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets"]
@@ -153,6 +171,12 @@ deps = ["BenchmarkTools", "CodecBzip2", "CodecZlib", "JSON", "JSONSchema", "Line
 git-tree-sha1 = "27f2ef85879b8f1d144266ab44f076ba0dfbd8a1"
 uuid = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 version = "0.9.13"
+
+[[MathProgBase]]
+deps = ["LinearAlgebra", "SparseArrays"]
+git-tree-sha1 = "9abbe463a1e9fc507f12a69e7f29346c2cdc472c"
+uuid = "fdba3010-5040-5b88-9595-932c9decdf73"
+version = "0.7.8"
 
 [[MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "Random", "Sockets"]

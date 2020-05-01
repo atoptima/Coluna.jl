@@ -409,7 +409,7 @@ function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
     for id in ids
         vc = getelem(form, id)
         @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(form, vc))
-        remove_from_optimizer!(form.optimizer, vc)
+        remove_from_optimizer!(form, vc)
     end
     return
 end
@@ -448,7 +448,7 @@ function optimize!(form::Formulation)
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
     res = optimize!(form, getoptimizer(form))
-    @logmsg LogLevel(-2) "Optimization finished with result:" print(form, res)
+    @logmsg LogLevel(-3) "Optimization finished with result:" print(form, res)
     return res
 end
 
