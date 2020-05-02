@@ -14,7 +14,6 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
-    storages::StorageDict
 end
 
 """
@@ -32,11 +31,9 @@ function Formulation{D}(form_counter::Counter;
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, NoOptimizer(), FormulationManager(),
-        obj_sense, FormulationBuffer(), Dict{Type{<:AbstractStorage}, AbstractStorage}()
+        obj_sense, FormulationBuffer()
     )
 end
-
-getstoragedict(form::Formulation)::StorageDict = form.storages
 
 "Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `form`."
 haskey(form::Formulation, id::Id) = haskey(form.manager, id)
@@ -521,10 +518,26 @@ function _show_variables(io::IO, form::Formulation)
     end
 end
 
-function Base.show(io::IO, form::Formulation)
-    println(io, "Formulation id = ", getuid(form))
-    _show_obj_fun(io, form)
-    _show_constraints(io, form)
-    _show_variables(io, form)
+function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormDuty}
+    compact = get(io, :compact, false)
+    if compact
+        dutystring = remove_until_last_point(string(Duty))
+        print(io, "form. ", dutystring, " with id=", getuid(form))
+    else
+        println(io, "Formulation id = ", getuid(form))
+        _show_obj_fun(io, form)
+        _show_constraints(io, form)
+        _show_variables(io, form)
+    end
     return
+end
+
+function write_to_LP_file(form::Formulation, filename::String)
+    optimizer = getoptimizer(form)
+    if isa(optimizer, MoiOptimizer)
+        src = getinner(optimizer)
+        dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)
+        MOI.copy_to(dest, src)
+        MOI.write_to_file(dest, filename)
+    end
 end

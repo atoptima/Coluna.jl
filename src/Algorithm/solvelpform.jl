@@ -10,18 +10,36 @@ Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm
     log_level = 0
 end
 
-# struct MasterLpRecord <: AbstractAlgorithmResult
-#     incumbents::Incumbents
-#     proven_infeasible::Bool
-# end
+function get_storages_usage!(
+    algo::SolveLpForm, form::Formulation{Duty}, storages_usage::StoragesUsageDict
+) where {Duty<:MathProg.AbstractFormDuty}
+    add_storage!(storages_usage, form, StaticVarConstrStorage)
+    if Duty <: MathProg.AbstractMasterDuty
+        add_storage!(storages_usage, form, MasterColumnsStorage)
+        add_storage!(storages_usage, form, MasterBranchConstrsStorage)
+        add_storage!(storages_usage, form, MasterCutsStorage)
+    end
+end
 
-# function prepare!(algo::MasterLp, form, node)
-#     @logmsg LogLevel(-1) "Prepare MasterLp."
-#     return
-# end
+function get_storages_to_restore!(
+    algo::SolveLpForm, form::Formulation{Duty}, storages_to_restore::StoragesToRestoreDict
+) where {Duty<:MathProg.AbstractFormDuty}
+    # we use storages in the read only mode, as relaxing integrality
+    # is reverted before the end of the algorithm, 
+    # so the state of the formulation remains the same 
+    add_storage!(storages_to_restore, form, StaticVarConstrStorage, READ_ONLY)
+    if Duty <: MathProg.AbstractMasterDuty
+        add_storage!(storages_to_restore, form, MasterColumnsStorage, READ_ONLY)
+        add_storage!(storages_to_restore, form, MasterBranchConstrsStorage, READ_ONLY)
+        add_storage!(storages_to_restore, form, MasterCutsStorage, READ_ONLY)
+    end        
+end
 
-function run!(algo::SolveLpForm, form::Formulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
+    form = getmodel(data)
     optstate = OptimizationState(form)
+
+    TO.@timeit Coluna._to "SolveLpForm" begin
 
     if algo.relax_integrality
         relax_integrality!(form)
@@ -51,5 +69,6 @@ function run!(algo::SolveLpForm, form::Formulation, input::OptimizationInput)::O
         end
     end
 
+    end 
     return OptimizationOutput(optstate)
 end

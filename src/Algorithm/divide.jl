@@ -33,10 +33,9 @@ getoptstate(output::DivideOutput) = output.optstate
 """
 abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 
-function run!(algo::AbstractDivideAlgorithm, reform::Reformulation, input::DivideInput)::DivideOutput
+function run!(algo::AbstractDivideAlgorithm, data::AbstractData, input::DivideInput)::DivideOutput
     algotype = typeof(algo)
-    error("Method run! which takes Reformulation and DivideInput as parameters and returns DivideOutput 
-           is not implemented for algorithm $algotype.")
+    error("Method run! in not defined for divide algorithm $(typeof(algo)), data $(typeof(data)), and input $(typeof(input)).")
 end    
 
 # this function is needed to check whether the best primal solution should be copied to the node optimization state

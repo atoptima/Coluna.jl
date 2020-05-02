@@ -191,7 +191,9 @@ end
 function optimize!(form::Formulation, optimizer::MoiOptimizer)
     @logmsg LogLevel(-4) "MOI formulation before synch: "
     @logmsg LogLevel(-4) getoptimizer(form)
-    sync_solver!(getoptimizer(form), form)
+    TO.@timeit Coluna._to "Sync solver" begin
+        sync_solver!(getoptimizer(form), form)
+    end
     @logmsg LogLevel(-3) "MOI formulation after synch: "
     @logmsg LogLevel(-3) getoptimizer(form)
     nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())
@@ -228,7 +230,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Add constrs
     for constr_id in buffer.constr_buffer.added
         constr = getconstr(f, constr_id)
-        @logmsg LogLevel(-4) string("Adding constraint ", getname(f, constr))
+        @logmsg LogLevel(-2) string("Adding constraint ", getname(f, constr))
         add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && iscurexplicit(f, constr))  
     end
 
@@ -250,16 +252,16 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Update variable kind
     for id in buffer.changed_var_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing kind of variable " getname(f, id)
-        @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, id))
+        @logmsg LogLevel(-3) "Changing kind of variable " getname(f, id)
+        @logmsg LogLevel(-4) string("New kind is ", getcurkind(f, id))
         enforce_kind_in_optimizer!(f, getvar(f,id))
     end
 
     # Update constraint rhs
     for id in buffer.changed_rhs
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing rhs of constraint " getname(f, id)
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(f, id))
+        @logmsg LogLevel(-3) "Changing rhs of constraint " getname(f, id)
+        @logmsg LogLevel(-4) string("New rhs is ", getcurrhs(f, id))
         update_constr_rhs_in_optimizer!(f, getconstr(f, id))
     end
 
