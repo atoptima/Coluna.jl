@@ -31,8 +31,6 @@ include("varconstr.jl") # to rm
 include("manager.jl")
 include("bounds.jl")
 include("solutions.jl")
-include("incumbents.jl") # to rm
-include("optimizationresults.jl")
 include("buffer.jl")
 include("formulation.jl")
 include("new_varconstr.jl") 

@@ -5,7 +5,6 @@
     Data is used by the algorithms. It contains user data, such as models and formulations, 
     as well as computed data stored in storages. 
 """
-
 abstract type AbstractData end
 
 getstoragedict(::AbstractData) = nothing
@@ -40,7 +39,6 @@ end
 """
     EmptyData
 """
-
 struct EmptyData <: AbstractData end
 
 """
@@ -48,7 +46,6 @@ struct EmptyData <: AbstractData end
 
     Data for a single model. 
 """
-
 mutable struct ModelData <: AbstractData
     model::AbstractModel
     storagedict::StorageDict
@@ -85,7 +82,6 @@ end
 
     Data for reformulation. 
 """
-
 mutable struct ReformData <: AbstractData
     reform::Reformulation
     storagedict::StorageDict

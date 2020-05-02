@@ -94,6 +94,8 @@ EmptyStorageState(model::AbstractModel, storage::AbstractStorage) = nothing
 
 restorefromstate!(::AbstractModel, ::AbstractStorage, ::EmptyStorageState) = nothing
 
+# StorageTypePair = Pair{Type{<:AbstractStorage}, Type{<:AbstractStorageState}}.
+# see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
 const StorageTypePair = Pair{DataType, DataType}
 
 const StoragesUsageDict = Dict{AbstractModel, Set{StorageTypePair}}

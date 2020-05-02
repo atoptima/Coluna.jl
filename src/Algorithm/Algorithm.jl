@@ -27,7 +27,6 @@ import .MathProg: getfeasibilitystatus, getterminationstatus, setfeasibilitystat
 
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
-include("utilities/record.jl")
 
 include("storage.jl")
 include("data.jl")
