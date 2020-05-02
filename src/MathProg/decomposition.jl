@@ -4,7 +4,7 @@ function set_glob_art_var(form::Formulation, is_pos::Bool)
     cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
     return setvar!(
         form, name, MasterArtVar; 
-        cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+        cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive 
     )
 end
 
