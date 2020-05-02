@@ -154,7 +154,7 @@ end
 StorageStateContainer{SS}(stateid::StateId, participation::Int) where {SS<:AbstractStorageState} =
     StorageStateContainer{SS}(stateid, participation, nothing)
 
-getid(ssc::StorageStateContainer) = ssc.id
+getstateid(ssc::StorageStateContainer) = ssc.id
 stateisempty(ssc::StorageStateContainer) = ssc.state === nothing
 getparticipation(ssc::StorageStateContainer) = ssc.participation
 getstate(ssc::StorageStateContainer) = ssc.state
@@ -167,7 +167,7 @@ end
 
 function Base.show(io::IO, statecont::StorageStateContainer{SS}) where {SS<:AbstractStorageState}
     print(io, "state ", remove_until_last_point(string(SS)))
-    print(io, " with id=", getid(statecont), " part=", getparticipation(statecont))
+    print(io, " with id=", getstateid(statecont), " part=", getparticipation(statecont))
     if getstate(statecont) === nothing
         print(io, " empty")
     else
@@ -184,7 +184,7 @@ const EmptyStorageStateContainer = StorageStateContainer{EmptyStorageState}
 EmptyStorageStateContainer(stateid::StateId, participation::Int) =
     EmptyStorageStateContainer(1, 0)
 
-getid(essc::EmptyStorageStateContainer) = 1
+getstateid(essc::EmptyStorageStateContainer) = 1
 stateisempty(essc::EmptyStorageStateContainer) = true 
 getparticipation(essc::EmptyStorageStateContainer) = 0
 increaseparticipation!(essc::EmptyStorageStateContainer) = nothing
@@ -239,18 +239,18 @@ function setcurstate!(
     # we delete the current state container from the dictionary if necessary
     curstatecont = getcurstatecont(storagecont)
     if !stateisempty(curstatecont) && getparticipation(curstatecont) == 0
-        delete!(getstatesdict(storagecont), getid(curstatecont))
-        @logmsg LogLevel(-2) string("Removed state with id ", getid(curstatecont), " for ", storagecont)
+        delete!(getstatesdict(storagecont), getstateid(curstatecont))
+        @logmsg LogLevel(-2) string("Removed state with id ", getstateid(curstatecont), " for ", storagecont)
     end
     storagecont.curstatecont = statecont
-    if getmaxstateid(storagecont) < getid(statecont) 
-        storagecont.maxstateid = getid(statecont)
+    if getmaxstateid(storagecont) < getstateid(statecont) 
+        storagecont.maxstateid = getstateid(statecont)
     end
 end
 
 function increaseparticipation!(storagecont::StorageContainer, stateid::StateId)
     statecont = getcurstatecont(storagecont)
-    if (getid(statecont) == stateid)
+    if (getstateid(statecont) == stateid)
         increaseparticipation!(statecont)
     else
         statesdict = getstatesdict(storagecont)
@@ -279,24 +279,24 @@ function save_to_statesdict!(
 ) where {M,S,SS}
     if getparticipation(statecont) > 0 && stateisempty(statecont)
         state = SS(getmodel(storagecont), getstorage(storagecont))
-        @logmsg LogLevel(-2) string("Created state with id ", getid(statecont), " for ", storagecont)
+        @logmsg LogLevel(-2) string("Created state with id ", getstateid(statecont), " for ", storagecont)
         setstate!(statecont, state)
         statesdict = getstatesdict(storagecont)
-        statesdict[getid(statecont)] = statecont
+        statesdict[getstateid(statecont)] = statecont
     end
 end
 
 function storestate!(storagecont::StorageContainer)::StateId 
     statecont = getcurstatecont(storagecont)
     increaseparticipation!(statecont)
-    return getid(statecont)
+    return getstateid(statecont)
 end
 
 function restorestate!(
     storagecont::StorageContainer{M,S,SS}, stateid::StateId, mode::StorageAccessMode
 ) where {M,S,SS}
     statecont = getcurstatecont(storagecont)
-    if getid(statecont) == stateid 
+    if getstateid(statecont) == stateid 
         decreaseparticipation!(statecont)
         if getparticipation(statecont) < 0
             error(string("Participation is below zero for state with id $stateid of ", getnicename(storagecont)))
@@ -316,12 +316,12 @@ function restorestate!(
 
     if mode == NOT_USED
         if !stateisempty(statecont) && getparticipation(statecont) == 0
-            delete!(getstatesdict(storagecont), getid(statecont))
-            @logmsg LogLevel(-2) string("Removed state with id ", getid(statecont), " for ", storagecont)
+            delete!(getstatesdict(storagecont), getstateid(statecont))
+            @logmsg LogLevel(-2) string("Removed state with id ", getstateid(statecont), " for ", storagecont)
         end
     else 
         restorefromstate!(getmodel(storagecont), getstorage(storagecont), getstate(statecont))
-        @logmsg LogLevel(-2) string("Restored state with id ", getid(statecont), " for ", storagecont)
+        @logmsg LogLevel(-2) string("Restored state with id ", getstateid(statecont), " for ", storagecont)
         if mode == READ_AND_WRITE 
             statecont = StorageStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
         end 

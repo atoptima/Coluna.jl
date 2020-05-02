@@ -23,7 +23,7 @@ function generate_children(
     )
 
     storages_to_restore = StoragesToRestoreDict(
-        (master, BranchingConstrsStorage) => READ_AND_WRITE
+        (master, MasterBranchConstrsStorage) => READ_AND_WRITE
         #(master, BasisStorage) => READ_AND_WRITE) # not yet implemented
     )
 
@@ -31,7 +31,7 @@ function generate_children(
     if first_restore_states
         restore_states!(copy_states(stateids), storages_to_restore)
     else
-        reserve_for_writing!(getmasterdata(data), BranchingConstrsStorage)
+        reserve_for_writing!(getmasterdata(data), MasterBranchConstrsStorage)
     end 
 
     #reserve_for_writing!(getmasterdata(data), BasisStorage) # not yet implemented
@@ -74,7 +74,7 @@ end
 function get_storages_usage!(
     rule::VarBranchingRule, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    add_storage!(storages_usage, getmaster(reform), BranchingConstrsStorage)
+    add_storage!(storages_usage, getmaster(reform), MasterBranchConstrsStorage)
 end
 
 function run!(

@@ -1,5 +1,44 @@
 struct PreprocessAlgorithm <: AbstractAlgorithm end
 
+function get_storages_usage!(
+    algo::PreprocessAlgorithm, form::Formulation{Duty}, storages_usage::StoragesUsageDict
+) where {Duty<:MathProg.AbstractFormDuty}
+    add_storage!(storages_usage, form, StaticVarConstrStorage)
+    if Duty <: MathProg.AbstractMasterDuty
+        add_storage!(storages_usage, form, MasterBranchConstrsStorage)
+        add_storage!(storages_usage, form, MasterCutsStorage)
+    end
+end
+
+function get_storages_usage!(
+    algo::PreprocessAlgorithm, reform::Reformulation, storages_usage::StoragesUsageDict
+)
+    get_storages_usage!(algo, getmaster(reform), storages_usage)
+    for (id, spform) in get_dw_pricing_sps(reform)
+        get_storages_usage!(algo, spform, storages_usage)
+    end
+end
+
+function get_storages_to_restore!(
+    algo::PreprocessAlgorithm, form::Formulation{Duty}, storages_to_restore::StoragesToRestoreDict
+) where {Duty<:MathProg.AbstractFormDuty}
+    add_storage!(storages_to_restore, form, StaticVarConstrStorage, READ_AND_WRITE)
+    if Duty <: MathProg.AbstractMasterDuty
+        # do we preprocess cuts and branching constraints?
+        add_storage!(storages_to_restore, form, MasterBranchConstrsStorage, READ_AND_WRITE)
+        add_storage!(storages_to_restore, form, MasterCutsStorage, READ_AND_WRITE)
+    end
+end
+
+function get_storages_to_restore!(
+    algo::PreprocessAlgorithm, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    get_storages_to_restore!(algo, getmaster(reform), storages_to_restore)
+    for (id, spform) in get_dw_pricing_sps(reform)
+        get_storages_to_restore!(algo, spform, storages_to_restore)
+    end
+end
+
 mutable struct PreprocessData
     reformulation::Reformulation # Should handle reformulation & formulation
     constr_in_stack::Dict{ConstrId,Bool}

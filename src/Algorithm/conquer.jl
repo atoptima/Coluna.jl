@@ -90,13 +90,11 @@ function getslavealgorithms!(
     getslavealgorithms!(algo.benders, reform, slaves)
 end
 
-function run!(algo::BendersConquer, reform::Reformulation, input::ConquerInput)
+function run!(algo::BendersConquer, data::ReformData, input::ConquerInput)
     node = getnode(input)
     nodestate = getoptstate(node)
-    output = run!(algo.benders, reform, OptimizationInput(nodestate))
-
+    output = run!(algo.benders, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
-    node.conquerrecord = record!(reform)
     return 
 end
 
@@ -152,7 +150,7 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
             @logmsg LogLevel(0) "Run IP restricted master heuristic."
             TO.@timeit Coluna._to "RestMasterHeur" begin
                 heur_output = run!(
-                    algo.mastipheur, getmaster(reform), OptimizationInput(nodestate)
+                    algo.mastipheur, getmasterdata(data), OptimizationInput(nodestate)
                 )
                 update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
             end

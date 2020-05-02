@@ -191,7 +191,9 @@ end
 function optimize!(form::Formulation, optimizer::MoiOptimizer)
     @logmsg LogLevel(-4) "MOI formulation before synch: "
     @logmsg LogLevel(-4) getoptimizer(form)
-    sync_solver!(getoptimizer(form), form)
+    TO.@timeit Coluna._to "Sync solver" begin
+        sync_solver!(getoptimizer(form), form)
+    end
     @logmsg LogLevel(-3) "MOI formulation after synch: "
     @logmsg LogLevel(-3) getoptimizer(form)
     nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())

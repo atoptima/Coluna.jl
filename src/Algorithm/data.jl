@@ -1,4 +1,3 @@
-getuid(model::AbstractModel) = 0
 
 """
     AbstractData
@@ -135,10 +134,12 @@ function get_model_storage_dict(data::ReformData, model::AbstractModel)
         return getstoragedict(getmasterdata(data))
     else
         for (formid, sp_data) in get_dw_pricing_datas(data)
-            model = getmodel(sp_data) && getstoragedict(sp_data)
+            model = getmodel(sp_data) 
+            return getstoragedict(sp_data)
         end
         for (formid, sp_data) in get_benders_sep_datas(data)
-            model = getmodel(sp_data) && getstoragedict(sp_data)
+            model = getmodel(sp_data) 
+            return getstoragedict(sp_data)
         end
     end
     return nothing

@@ -12,20 +12,29 @@ Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
 end
 
 function get_storages_usage!(
-    algo::SolveIpForm, form::Formulation, storages_usage::StoragesUsageDict
-)
-    add_storage!(storages_usage, form, BranchingConstrsStorage)
-    add_storage!(storages_usage, form, MasterColumnsStorage)
+    algo::SolveIpForm, form::Formulation{Duty}, storages_usage::StoragesUsageDict
+) where {Duty<:MathProg.AbstractFormDuty}
+    add_storage!(storages_usage, form, StaticVarConstrStorage)
+    if Duty <: MathProg.AbstractMasterDuty
+        add_storage!(storages_usage, form, MasterColumnsStorage)
+        add_storage!(storages_usage, form, MasterBranchConstrsStorage)
+        add_storage!(storages_usage, form, MasterCutsStorage)
+    end
 end
 
 function get_storages_to_restore!(
-    algo::SolveIpForm, form::Formulation, storages_to_restore::StoragesToRestoreDict
-) 
-    add_storage!(storages_to_restore, form, BranchingConstrsStorage, READ_ONLY)
-    add_storage!(
-        storages_to_restore, form, MasterColumnsStorage,
-        algo.enforce_integrality ? READ_AND_WRITE : READ_ONLY
-    )
+    algo::SolveIpForm, form::Formulation{Duty}, storages_to_restore::StoragesToRestoreDict
+) where {Duty<:MathProg.AbstractFormDuty}
+    # we use storages in the read only mode, as all modifications 
+    # (deactivating artificial vars and enforcing integrality)
+    # are reverted before the end of the algorithm, 
+    # so the state of the formulation remains the same 
+    add_storage!(storages_to_restore, form, StaticVarConstrStorage, READ_ONLY)
+    if Duty <: MathProg.AbstractMasterDuty
+        add_storage!(storages_to_restore, form, MasterColumnsStorage, READ_ONLY)
+        add_storage!(storages_to_restore, form, MasterBranchConstrsStorage, READ_ONLY)
+        add_storage!(storages_to_restore, form, MasterCutsStorage, READ_ONLY)
+    end        
 end
 
 # TO DO : create an Algorithm Logger
@@ -37,8 +46,9 @@ end
 #     return get(logger.message_limits, id, 1) > 0
 # end
 
-function run!(algo::SolveIpForm, form::Formulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
 
+    form = getmodel(data)
     optstate = OptimizationState(
         form, ip_primal_bound = get_ip_primal_bound(getoptstate(input))
     )
@@ -107,6 +117,5 @@ function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Fo
     return optimize!(form)
 end
 
-function run!(alg::SolveIpForm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
-    return run!(alg, getmaster(reform), input)
-end
+run!(alg::SolveIpForm, rfdata::ReformData, input::OptimizationInput) =
+    run!(alg, getmasterdata(rfdata), input)

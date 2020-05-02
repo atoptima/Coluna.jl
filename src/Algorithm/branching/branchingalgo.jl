@@ -46,8 +46,8 @@ end
 struct NoBranching <: AbstractDivideAlgorithm
 end
 
-function run!(algo::NoBranching, reform::Reformulation, input::DivideInput)::DivideOutput
-    return DivideOutput([], OptimizationState(getmaster(reform)))
+function run!(algo::NoBranching, data::ReformData, input::DivideInput)::DivideOutput
+    return DivideOutput([], OptimizationState(getmodel(getmasterdata(data))))
 end
 
 """

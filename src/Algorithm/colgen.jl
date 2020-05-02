@@ -1,4 +1,10 @@
 Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
+    restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
+    #TODO : pricing problem solver may be different depending on the 
+    #       pricing subproblem
+    pricing_prob_solve_alg = SolveIpForm(deactivate_artificial_vars = false, 
+                                         enforce_integrality = false, 
+                                         log_level = 2)
     max_nb_iterations::Int = 1000
     optimality_tol::Float64 = 1e-5
     log_print_frequency::Int = 1
@@ -9,16 +15,23 @@ end
 function get_storages_usage!(
     algo::ColumnGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    add_storage!(storages_usage, getmaster(reform), BranchingConstrsStorage)
-    add_storage!(storages_usage, getmaster(reform), MasterColumnsStorage)
+    master = getmaster(reform)
+    add_storage!(storages_usage, master, MasterColumnsStorage)
+    get_storages_usage!(algo.restr_master_solve_alg, master, storages_usage)
+    for (id, spform) in get_dw_pricing_sps(reform)
+        get_storages_usage!(algo.pricing_prob_solve_alg, spform, storages_usage)
+    end
 end
 
 function get_storages_to_restore!(
     algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
 ) 
     master = getmaster(reform)
-    add_storage!(storages_to_restore, master, BranchingConstrsStorage, READ_ONLY)
     add_storage!(storages_to_restore, master, MasterColumnsStorage, READ_AND_WRITE)
+    get_storages_to_restore!(algo.restr_master_solve_alg, master, storages_to_restore)
+    for (id, spform) in get_dw_pricing_sps(reform)
+        get_storages_to_restore!(algo.pricing_prob_solve_alg, spform, storages_to_restore)
+    end
 end
 
 
@@ -190,10 +203,11 @@ function compute_pricing_db_contrib(
 end
 
 function solve_sp_to_gencol!(
-    algo::ColumnGeneration, masterform::Formulation, spform::Formulation, dual_sol::DualSolution,
+    algo::ColumnGeneration, masterform::Formulation, spdata::ModelData, dual_sol::DualSolution,
     sp_lb::Float64, sp_ub::Float64
 )::Tuple{Bool,Vector{VarId},Vector{VarId},Float64}
     
+    spform = getmodel(spdata)
     recorded_solution_ids = Vector{VarId}()
     sp_solution_ids_to_activate = Vector{VarId}()
     sp_is_feasible = true
@@ -224,9 +238,8 @@ function solve_sp_to_gencol!(
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-    ipform = SolveIpForm(deactivate_artificial_vars = false, enforce_integrality = false, log_level = 2)
     TO.@timeit Coluna._to "Pricing subproblem" begin
-        output = run!(ipform, spform, OptimizationInput(OptimizationState(spform)))
+        output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
     end
     sp_optstate = getoptstate(output)
 
@@ -316,14 +329,15 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
 end
 
 function solve_sps_to_gencols!(
-    algo::ColumnGeneration, data::ColGenRuntimeData, reform::Reformulation, redcostsvec::ReducedCostsVector, 
+    algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector, 
     dual_sol::DualSolution, sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 )
+    reform = getreform(rfdata)
     masterform = getmaster(reform)
     nb_new_cols = 0
     dual_bound_contrib = DualBound(masterform, 0.0)
     masterform = getmaster(reform)
-    sps = get_dw_pricing_sps(reform)
+    spsdatas = get_dw_pricing_datas(rfdata)
     recorded_sp_solution_ids = Dict{FormId, Vector{VarId}}()
     sp_solution_to_activate = Dict{FormId, Vector{VarId}}()
     sp_dual_bound_contribs = Dict{FormId, Float64}()
@@ -332,22 +346,22 @@ function solve_sps_to_gencols!(
     updatereducedcosts!(reform, redcostsvec, dual_sol)
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    for (spuid, spform) in sps
-        gen_status, new_sp_solution_ids, sp_solution_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
-            algo, masterform, spform, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
+    for (spuid, spdata) in spsdatas
+        gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
+            algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
         )
         if gen_status # else Sp is infeasible: contrib = Inf
-            recorded_sp_solution_ids[spuid] = new_sp_solution_ids
-            sp_solution_to_activate[spuid] = sp_solution_ids_to_activate
+            recorded_sp_solution_ids[spuid] = new_sp_sol_ids
+            sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
         end
         sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
     end
     ### END LOOP TO BE PARALLELIZED
 
     nb_new_cols = 0
-    for (spuid, spform) in sps
+    for (spuid, spdata) in spsdatas
         dual_bound_contrib += sp_dual_bound_contribs[spuid]
-        nb_new_cols += insert_cols_in_master!(data, masterform, spform, recorded_sp_solution_ids[spuid])
+        nb_new_cols += insert_cols_in_master!(cgdata, masterform, getmodel(spdata), recorded_sp_solution_ids[spuid])
         for colid in sp_solution_to_activate[spuid]
             activate!(masterform, colid)
             nb_new_cols += 1
@@ -375,15 +389,15 @@ end
 
 #stopped here
 function generatecolumns!(
-    algo::ColumnGeneration, data::ColGenRuntimeData, reform::Reformulation, redcostsvec::ReducedCostsVector, 
+    algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector, 
     master_val, dual_sol, sp_lbs, sp_ubs
 )
-    cg_optstate = getoptstate(data)
+    cg_optstate = getoptstate(cgdata)
     nb_new_columns = 0
     while true # TODO Replace this condition when starting implement stabilization
-        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(algo, data, reform, redcostsvec, dual_sol, sp_lbs, sp_ubs)
+        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(algo, cgdata, rfdata, redcostsvec, dual_sol, sp_lbs, sp_ubs)
         nb_new_columns += nb_new_col
-        lagran_bnd = calculate_lagrangian_db(data, master_val, sp_db_contrib)
+        lagran_bnd = calculate_lagrangian_db(cgdata, master_val, sp_db_contrib)
         update_ip_dual_bound!(cg_optstate, lagran_bnd)
         update_lp_dual_bound!(cg_optstate, lagran_bnd)
         if nb_new_col < 0
@@ -432,7 +446,7 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
             rm_input = OptimizationInput(
                 OptimizationState(masterform, ip_primal_bound = get_ip_primal_bound(cg_optstate))
             )
-            rm_output = run!(SolveLpForm(get_dual_solution = true), getmasterdata(rfdata), rm_input)
+            rm_output = run!(algo.restr_master_solve_alg, getmasterdata(rfdata), rm_input)
         end
         rm_optstate = getoptstate(rm_output)
         master_val = get_lp_primal_bound(rm_optstate)
@@ -467,12 +481,12 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
 
         # TODO: cleanup restricted master columns        
 
-        data.nb_iterations += 1
+        cgdata.nb_iterations += 1
 
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
             nb_new_col = generatecolumns!(
-                algo, cgdata, reform, redcostsvec, master_val, lp_dual_sol, sp_lbs, sp_ubs
+                algo, cgdata, rfdata, redcostsvec, master_val, lp_dual_sol, sp_lbs, sp_ubs
             )
         end
 
@@ -482,7 +496,7 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
             return true
         end
 
-        print_colgen_statistics(data, cg_optstate, nb_new_col, rm_time, sp_time)
+        print_colgen_statistics(cgdata, cg_optstate, nb_new_col, rm_time, sp_time)
 
         # TODO: update colgen stabilization
 
@@ -509,7 +523,7 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
             setterminationstatus!(cg_optstate, OPTIMAL) 
             return false
         end
-        if data.nb_iterations > algo.max_nb_iterations
+        if cgdata.nb_iterations > algo.max_nb_iterations
             setterminationstatus!(cg_optstate, OTHER_LIMIT)
             @warn "Maximum number of column generation iteration is reached."
             return true
