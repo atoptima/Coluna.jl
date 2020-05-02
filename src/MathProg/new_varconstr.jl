@@ -83,14 +83,15 @@ getcurub(form::Formulation, var::Variable) = getcurub(form, getid(var))
 Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
 according to `new_ub`. Change on `f.optimizer` will be buffered.
 """
-function setcurub!(form::Formulation, varid::VarId, ub::Float64)
+function setcurub!(form::Formulation, var::Variable, ub::Float64)
+    varid = getid(var)
     form.manager.var_datas[varid].ub = ub
-    if iscurexplicit(form, varid) && iscuractive(form, varid)
+    if iscurexplicit(form, varid) && iscuractive(form, var)
         change_bound!(form.buffer, varid)
     end
     return
 end
-setcurub!(form::Formulation, var::Variable, ub::Float64) = setcurub!(form, getid(var), ub)
+setcurub!(form::Formulation, varid::VarId, ub::Float64) = setcurub!(form, getvar(form, varid), ub)
 
 
 # Constraint
