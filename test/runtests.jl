@@ -1,4 +1,4 @@
-using Revise # to comment when merging to the master branch
+#using Revise # to comment when merging to the master branch
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
