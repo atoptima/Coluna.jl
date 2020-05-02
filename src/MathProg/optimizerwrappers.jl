@@ -303,3 +303,19 @@ function _initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)
 end
 
 _initialize_optimizer!(optimizer, form::Formulation) = return
+
+function Base.print(io::IO, form::AbstractFormulation, moiresult::MoiResult)
+    println(io, "Primal bound =  $(moiresult.primal_bound)")
+    if length(moiresult.primal_sols) > 0
+        for (varid, val) in moiresult.primal_sols[1]
+            println(io, "\t $(getname(form, varid)) = $val")
+        end
+    end
+    println(io, "*******")
+    if length(moiresult.dual_sols) > 0
+        for (constrid, val) in moiresult.dual_sols[1]
+            println(io, "\t $(getname(form, constrid)) = $val")
+        end
+    end  
+    return
+end

@@ -7,7 +7,7 @@ using Random
 import MathOptInterface, MathOptInterface.Utilities
 
 using Base.CoreLogging, Logging
-#global_logger(ConsoleLogger(stderr, LogLevel(-2)))
+global_logger(ConsoleLogger(stderr, LogLevel(0)))
 
 global const MOIU = MathOptInterface.Utilities
 global const MOI = MathOptInterface
