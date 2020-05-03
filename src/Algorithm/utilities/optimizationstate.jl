@@ -1,3 +1,6 @@
+getvalue(sol::Solution) = ColunaBase.getvalue(sol)
+getvalue(bnd::Bound) = ColunaBase.getvalue(bnd)
+
 mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     feasibility_status::FeasibilityStatus
@@ -133,7 +136,7 @@ function CopyBoundsAndStatusesFromOptState(
         lp_dual_bound = get_lp_dual_bound(source_state)
     )
     if copy_ip_primal_sol && nb_ip_primal_sols(source_state) > 0
-        set_ip_primal_sol!(deepcopy(get_best_ip_primal_sol(source_state)))
+        set_ip_primal_sol!(get_best_ip_primal_sol(source_state))
     end
     return state
 end
@@ -211,7 +214,7 @@ function update_ip_primal!(
 )
     update_ip_primal_bound!(dest_state, get_ip_primal_bound(orig_state))    
     if set_solution && nb_ip_primal_sols(orig_state) > 0
-        set_ip_primal_sol!(dest_state, deepcopy(get_best_ip_primal_sol(orig_state)))
+        set_ip_primal_sol!(dest_state, get_best_ip_primal_sol(orig_state))
     end
 end
 
@@ -221,7 +224,7 @@ function update_all_ip_primal_solutions!(
     # we do it in reverse order in order not to store the same solution several times
     if nb_ip_primal_sols(orig_state) > 0
         for ip_primal_sol in reverse(get_ip_primal_sols(orig_state))
-            update_ip_primal_sol!(dest_state, deepcopy(ip_primal_sol))
+            update_ip_primal_sol!(dest_state, ip_primal_sol)
         end    
     end    
 end
@@ -234,7 +237,7 @@ function update!(dest_state::OptimizationState, orig_state::OptimizationState)
     update_lp_dual_bound!(dest_state, get_lp_dual_bound(orig_state))
     set_lp_primal_bound!(dest_state, get_lp_primal_bound(orig_state))
     if nb_lp_primal_sols(orig_state) > 0
-        set_lp_primal_sol!(dest_state, deepcopy(get_best_lp_primal_sol(orig_state)))
+        set_lp_primal_sol!(dest_state, get_best_lp_primal_sol(orig_state))
     end        
 end
 

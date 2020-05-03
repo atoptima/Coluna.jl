@@ -187,13 +187,14 @@ function mytest()
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
         "params" => CL.Params(
-            solver = ClA.TreeSearchAlgorithm(dividealg = branching, maxnumnodes = 20)
+            solver = ClA.TreeSearchAlgorithm(dividealg = branching, maxnumnodes = 300)
         ),
         "default_optimizer" => GLPK.Optimizer
     )
 
     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
     BD.objectiveprimalbound!(model, 2000.0)
+    BD.objectivedualbound!(model, 0.0)
 
     JuMP.optimize!(model)
 

@@ -8,9 +8,34 @@ Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
     time_limit::Int = 600
     deactivate_artificial_vars = true
     enforce_integrality = true
-    log_level = 1
+    log_level = 0
 end
 
+function get_storages_usage!(
+    algo::SolveIpForm, form::Formulation{Duty}, storages_usage::StoragesUsageDict
+) where {Duty<:MathProg.AbstractFormDuty}
+    add_storage!(storages_usage, form, StaticVarConstrStorage)
+    if Duty <: MathProg.AbstractMasterDuty
+        add_storage!(storages_usage, form, MasterColumnsStorage)
+        add_storage!(storages_usage, form, MasterBranchConstrsStorage)
+        add_storage!(storages_usage, form, MasterCutsStorage)
+    end
+end
+
+function get_storages_to_restore!(
+    algo::SolveIpForm, form::Formulation{Duty}, storages_to_restore::StoragesToRestoreDict
+) where {Duty<:MathProg.AbstractFormDuty}
+    # we use storages in the read only mode, as all modifications 
+    # (deactivating artificial vars and enforcing integrality)
+    # are reverted before the end of the algorithm, 
+    # so the state of the formulation remains the same 
+    add_storage!(storages_to_restore, form, StaticVarConstrStorage, READ_ONLY)
+    if Duty <: MathProg.AbstractMasterDuty
+        add_storage!(storages_to_restore, form, MasterColumnsStorage, READ_ONLY)
+        add_storage!(storages_to_restore, form, MasterBranchConstrsStorage, READ_ONLY)
+        add_storage!(storages_to_restore, form, MasterCutsStorage, READ_ONLY)
+    end        
+end
 
 # TO DO : create an Algorithm Logger
 # function Logging.shouldlog(logger::ConsoleLogger, level, _module, group, id)
@@ -21,8 +46,9 @@ end
 #     return get(logger.message_limits, id, 1) > 0
 # end
 
-function run!(algo::SolveIpForm, form::Formulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
 
+    form = getmodel(data)
     optstate = OptimizationState(
         form, ip_primal_bound = get_ip_primal_bound(getoptstate(input))
     )
@@ -43,18 +69,18 @@ function run!(algo::SolveIpForm, form::Formulation, input::OptimizationInput)::O
     bestprimalsol = getbestprimalsol(optimizer_result)
     if bestprimalsol !== nothing
         add_ip_primal_sol!(optstate, bestprimalsol) 
-
-        @logmsg LogLevel(-1) string(
-            "Found primal solution of ", 
-            @sprintf "%.4f" getvalue(get_ip_primal_bound(optstate))
-        )
+        if algo.log_level == 0
+            @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(optstate))
+        end
         @logmsg LogLevel(-3) get_best_ip_primal_sol(optstate)
     else
-        @logmsg LogLevel(-1) string(
-            "No primal solution found. Termination status is ", 
-            getterminationstatus(optstate), ". Feasibility status is ",
-            getfeasibilitystatus(optstate), "."
-        )
+        if algo.log_level == 0
+            println(
+                "No primal solution found. Termination status is ", 
+                getterminationstatus(optstate), ". Feasibility status is ",
+                getfeasibilitystatus(optstate), "."
+            )
+        end
     end
     return OptimizationOutput(optstate)
 end
@@ -91,6 +117,5 @@ function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Fo
     return optimize!(form)
 end
 
-function run!(alg::SolveIpForm, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
-    return run!(alg, getmaster(reform), input)
-end
+run!(alg::SolveIpForm, rfdata::ReformData, input::OptimizationInput) =
+    run!(alg, getmasterdata(rfdata), input)

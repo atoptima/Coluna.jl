@@ -8,6 +8,12 @@ function Base.:(<=)(a::T, b::U) where {T<:NestedEnum,U<:NestedEnum}
     return false
 end
 
+const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 
+    103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 
+    229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 
+    367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 
+    503, 509, 521, 523, 541]
+
 # Store the item defined in expr at position i
 function _store!(expr::Symbol, i, names, parent_pos, depths)
     names[i] = expr
@@ -114,7 +120,7 @@ function _assign_values_to_items(expr)
     parent_pos = zeros(Int, len) # Position of the parent.
     depths = zeros(Int, len) # Depth of each item
     values = zeros(UInt32, len) # The value is the multiplication of primes of the item and its ancestors.
-    primes = zeros(Int, len) # We assign a prime to each item.
+    primes = PRIMES[1:len]
 
     name_values = Dict{Union{Symbol, Expr}, Int}() 
     for (i, arg) in enumerate(expr.args)
@@ -124,12 +130,6 @@ function _assign_values_to_items(expr)
     p = sortperm(depths)
     permute!(names, p)
     _update_parent_pos!(parent_pos, p)
-    
-    # Assign small primes to items having small depths
-    for i in 1:len
-        primes[i] = Primes.prime(i)
-    end
-
     _compute_values!(values, parent_pos, primes)
     return names, values
 end

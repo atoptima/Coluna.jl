@@ -14,7 +14,6 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
-    storages::StorageDict
 end
 
 """
@@ -32,11 +31,9 @@ function Formulation{D}(form_counter::Counter;
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, NoOptimizer(), FormulationManager(),
-        obj_sense, FormulationBuffer(), Dict{Type{<:AbstractStorage}, AbstractStorage}()
+        obj_sense, FormulationBuffer()
     )
 end
-
-getstoragedict(form::Formulation)::StorageDict = form.storages
 
 "Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `form`."
 haskey(form::Formulation, id::Id) = haskey(form.manager, id)
@@ -124,7 +121,6 @@ function setvar!(form::Formulation,
     return var
 end
 
-
 "Adds `Variable` `var` to `Formulation` `form`."
 function _addvar!(form::Formulation, var::Variable)
     _addvar!(form.manager, var)
@@ -136,9 +132,7 @@ function _addvar!(form::Formulation, var::Variable)
 
 end
 
-function _addprimalsol!(
-    form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64
-)
+function _addprimalsol!(form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64)
     for (var_id, var_val) in sol
         var = form.manager.vars[var_id]
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
@@ -149,10 +143,7 @@ function _addprimalsol!(
     return sol_id
 end
 
-function setprimalsol!(
-    form::Formulation,
-    new_primal_sol::PrimalSolution
-)::Tuple{Bool,VarId}
+function setprimalsol!(form::Formulation, new_primal_sol::PrimalSolution)::Tuple{Bool,VarId}
     primal_sols = getprimalsolmatrix(form)
     primal_sol_costs = getprimalsolcosts(form)
     
@@ -165,8 +156,7 @@ function setprimalsol!(
     # look for an identical column
     for (cur_sol_id, cur_cost) in primal_sol_costs
         cur_primal_sol = primal_sols[:, cur_sol_id]
-        if isapprox(new_cost, cur_cost) &&
-                getsol(new_primal_sol) == cur_primal_sol
+        if isapprox(new_cost, cur_cost) && getsol(new_primal_sol) == cur_primal_sol
             return (false, cur_sol_id)
         end
     end
@@ -177,12 +167,7 @@ function setprimalsol!(
     return (true, new_sol_id)
 end
 
-function _adddualsol!(
-    form::Formulation,
-    dualsol::DualSolution,
-    dualsol_id::ConstrId
-    )
-    
+function _adddualsol!(form::Formulation, dualsol::DualSolution, dualsol_id::ConstrId)
     rhs = 0.0
     for (constrid, constrval) in dualsol
         rhs += getperenerhs(form, constrid) * constrval 
@@ -191,14 +176,10 @@ function _adddualsol!(
         end
     end
     form.manager.dual_sol_rhss[dualsol_id] = rhs
-    
     return dualsol_id
 end
 
-function setdualsol!(
-    form::Formulation,
-    new_dual_sol::DualSolution
-)::Tuple{Bool,ConstrId}
+function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,ConstrId}
     ### check if dualsol exists  take place here along the coeff update
     dual_sols = getdualsolmatrix(form)
     dual_sol_rhss = getdualsolrhss(form)
@@ -425,7 +406,7 @@ function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
     for id in ids
         vc = getelem(form, id)
         @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(form, vc))
-        remove_from_optimizer!(form.optimizer, vc)
+        remove_from_optimizer!(form, vc)
     end
     return
 end
@@ -464,7 +445,7 @@ function optimize!(form::Formulation)
     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
     @logmsg LogLevel(-3) form
     res = optimize!(form, getoptimizer(form))
-    @logmsg LogLevel(-2) "Optimization finished with result:" print(form, res)
+    @logmsg LogLevel(-3) "Optimization finished with result:" print(form, res)
     return res
 end
 
@@ -537,10 +518,26 @@ function _show_variables(io::IO, form::Formulation)
     end
 end
 
-function Base.show(io::IO, form::Formulation)
-    println(io, "Formulation id = ", getuid(form))
-    _show_obj_fun(io, form)
-    _show_constraints(io, form)
-    _show_variables(io, form)
+function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormDuty}
+    compact = get(io, :compact, false)
+    if compact
+        dutystring = remove_until_last_point(string(Duty))
+        print(io, "form. ", dutystring, " with id=", getuid(form))
+    else
+        println(io, "Formulation id = ", getuid(form))
+        _show_obj_fun(io, form)
+        _show_constraints(io, form)
+        _show_variables(io, form)
+    end
     return
+end
+
+function write_to_LP_file(form::Formulation, filename::String)
+    optimizer = getoptimizer(form)
+    if isa(optimizer, MoiOptimizer)
+        src = getinner(optimizer)
+        dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)
+        MOI.copy_to(dest, src)
+        MOI.write_to_file(dest, filename)
+    end
 end

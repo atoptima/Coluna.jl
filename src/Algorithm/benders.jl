@@ -6,6 +6,32 @@ Base.@kwdef struct BendersCutGeneration <: AbstractOptimizationAlgorithm
     max_nb_iterations::Int = 100
 end
 
+function get_storages_usage!(
+    algo::BendersCutGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
+)
+    master = getmaster(reform)
+    add_storage!(storages_usage, master, StaticVarConstrStorage)
+    add_storage!(storages_usage, master, MasterBranchConstrsStorage)
+    add_storage!(storages_usage, master, MasterColumnsStorage)
+    add_storage!(storages_usage, master, MasterCutsStorage)
+    for (id, spform) in get_benders_sep_sps(reform)
+        add_storage!(storages_usage, spform, StaticVarConstrStorage)
+    end
+end
+
+function get_storages_to_restore!(
+    algo::BendersCutGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    master = getmaster(reform)
+    add_storage!(storages_to_restore, master, StaticVarConstrStorage, READ_AND_WRITE)
+    add_storage!(storages_to_restore, master, MasterCutsStorage, READ_AND_WRITE)
+    add_storage!(storages_to_restore, master, MasterBranchConstrsStorage, READ_ONLY)
+    add_storage!(storages_to_restore, master, MasterColumnsStorage, READ_ONLY)
+    for (id, spform) in get_benders_sep_sps(reform)
+        add_storage!(storages_to_restore, spform, StaticVarConstrStorage)
+    end
+end
+
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState
     spform_phase::Dict{FormId, FormulationPhase}
@@ -31,13 +57,14 @@ end
 
 getoptstate(data::BendersCutGenRuntimeData) = data.optstate
 
-function run!(algo::BendersCutGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
+function run!(algo::BendersCutGeneration, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput    
 
-    data = BendersCutGenRuntimeData(reform, getoptstate(input))
+    reform = getreform(rfdata)
+    bndata = BendersCutGenRuntimeData(reform, getoptstate(input))
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
-    Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
+    Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, bndata, reform)
 
-    return OptimizationOutput(data.optstate)
+    return OptimizationOutput(bndata.optstate)
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
@@ -347,7 +374,6 @@ function solve_sps_to_gencuts!(
     spsol_relaxed_status = Dict{FormId, Bool}()
     insertion_status = Dict{FormId, Bool}()
 
-
     ### BEGIN LOOP TO BE PARALLELIZED
     for (spuid, spform) in sps
         recorded_sp_dual_solution_ids[spuid] = Vector{ConstrId}()
@@ -449,7 +475,6 @@ function bend_cutting_plane_main_loop!(
         algdata.spform_phase_applied[spuid] = true
     end
  
-
     while true # loop on master solution
         nb_new_cuts = 0
         cur_gap = 0.0
@@ -509,7 +534,7 @@ function bend_cutting_plane_main_loop!(
             
             
             if cur_gap < algo.optimality_tol
-                @logmsg LogLevel(1) "Should stop because pb = $primal_bound & db = $dual_bound"
+                @logmsg LogLevel(0) "Should stop because pb = $primal_bound & db = $dual_bound"
                 # TODO : problem with the gap
                  break # loop on separation phases
             end
@@ -521,7 +546,7 @@ function bend_cutting_plane_main_loop!(
             end
             
             if nb_new_cuts > 0
-                @logmsg LogLevel(0) "Cuts have been found."
+                @logmsg LogLevel(-1) "Cuts have been found."
                 break # loop on separation phases
             end
         end # loop on separation phases

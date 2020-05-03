@@ -55,8 +55,8 @@ function optimize!(prob::MathProg.Problem, annotations::MathProg.Annotations, pa
 
     # Coluna ready to start
     _globals_.initial_solve_time = time()
-    @info "Coluna ready to start."
-    @info _params_
+    @logmsg LogLevel(-1) "Coluna ready to start."
+    @logmsg LogLevel(-1) _params_
 
     relax_integrality!(prob.re_formulation.master) # TODO : remove
 
@@ -67,9 +67,9 @@ function optimize!(prob::MathProg.Problem, annotations::MathProg.Annotations, pa
     end
     println(_to)
     TO.reset_timer!(_to)
-    @logmsg LogLevel(1) "Terminated"
-    @logmsg LogLevel(1) string("Primal bound: ", get_ip_primal_bound(optstate))
-    @logmsg LogLevel(1) string("Dual bound: ", get_ip_dual_bound(optstate))
+    @logmsg LogLevel(0) "Terminated"
+    @logmsg LogLevel(0) string("Primal bound: ", get_ip_primal_bound(optstate))
+    @logmsg LogLevel(0) string("Dual bound: ", get_ip_dual_bound(optstate))
     return optstate
 end
 
@@ -80,13 +80,6 @@ function optimize!(
     reform::MathProg.Reformulation, algorithm::Algorithm.AbstractOptimizationAlgorithm,
     initial_primal_bound, initial_dual_bound
 )
-    slaves = Vector{Tuple{AbstractFormulation, Type{<:ColunaBase.AbstractAlgorithm}}}()
-    push!(slaves,(reform, typeof(algorithm)))
-    Algorithm.getslavealgorithms!(algorithm, reform, slaves)
-
-    for (form, algotype) in slaves
-        MathProg.initstorage(form, Algorithm.getstoragetype(algotype))
-    end
 
     master = getmaster(reform)
     initstate = OptimizationState(
@@ -96,9 +89,15 @@ function optimize!(
         lp_dual_bound = initial_dual_bound
     )
 
-    output = run!(algorithm, reform, Algorithm.OptimizationInput(initstate))
+    #this will initialize all the storages used by the algorithm and its slave algorithms    
+    reformdata = Algorithm.ReformData(reform)
+    Algorithm.initialize_storages(reformdata, algorithm)
+
+    output = Algorithm.run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)
-    
+
+    Algorithm.check_storage_states_participation(reformdata)
+
     # we copy optimisation state as we want to project the solution to the compact space
     outstate = OptimizationState(
         master, 

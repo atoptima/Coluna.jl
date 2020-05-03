@@ -21,7 +21,7 @@ Set the current cost of variable `var` with id `id` to `cost` in formulation
 """
 function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
     form.manager.var_datas[varid].cost = cost
-    if iscurexplicit(form, varid) 
+    if iscurexplicit(form, varid) && iscuractive(form, varid)
         change_cost!(form.buffer, varid)
     end
     return
@@ -54,7 +54,7 @@ according to `new_lb`. Change on `f.optimizer` will be buffered.
 """
 function setcurlb!(form::Formulation, varid::VarId, lb::Float64)
     form.manager.var_datas[varid].lb = lb
-    if iscurexplicit(form, varid) 
+    if iscurexplicit(form, varid) && iscuractive(form, varid)
         change_bound!(form.buffer, varid)
     end
     return
@@ -85,7 +85,7 @@ according to `new_ub`. Change on `f.optimizer` will be buffered.
 """
 function setcurub!(form::Formulation, varid::VarId, ub::Float64)
     form.manager.var_datas[varid].ub = ub
-    if iscurexplicit(form, varid) 
+    if iscurexplicit(form, varid) && iscuractive(form, varid)
         change_bound!(form.buffer, varid)
     end
     return
@@ -105,7 +105,7 @@ getcurrhs(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[con
 getcurrhs(form::Formulation, constr::Constraint) = getcurrhs(form, getid(constr))
 function setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) 
     form.manager.constr_datas[constrid].rhs = rhs
-    if iscurexplicit(form, constrid) 
+    if iscurexplicit(form, constrid) && iscuractive(form, constrid)
         change_rhs!(form.buffer, constrid)
     end
     return
@@ -140,7 +140,7 @@ according to `new_kind`. Change on `f.optimizer` will be buffered.
 """
 function setcurkind!(form::Formulation, varid::VarId, kind::VarKind)
     form.manager.var_datas[varid].kind = kind
-    if iscurexplicit(form, varid) 
+    if iscurexplicit(form, varid) && iscuractive(form, varid)
         change_kind!(form.buffer, varid)
     end
     return
@@ -148,7 +148,7 @@ end
 setcurkind!(form::Formulation, var::Variable, kind::VarKind) = setcurkind!(form, getid(var), kind)
 function setcurkind!(form::Formulation, constrid::ConstrId, kind::ConstrKind)
     form.manager.constr_datas[constrid].kind = kind
-    if iscurexplicit(form, constrid) 
+    if iscurexplicit(form, constrid) && iscuractive(form, constrid)
         change_kind!(form.buffer, constrid)
     end
     return
@@ -285,7 +285,7 @@ end
 Deactivate a variable or a constraint in the formulation
 """
 function deactivate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
-    if iscurexplicit(form, varconstrid)
+    if iscurexplicit(form, varconstrid) && iscuractive(form, varconstrid)
         remove!(form.buffer, varconstrid)
     end
     _setiscuractive!(form, varconstrid, false)
