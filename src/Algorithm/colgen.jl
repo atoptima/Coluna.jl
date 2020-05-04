@@ -346,15 +346,17 @@ function solve_sps_to_gencols!(
     updatereducedcosts!(reform, redcostsvec, dual_sol)
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    for (spuid, spdata) in spsdatas
-        gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
-            algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
-        )
-        if gen_status # else Sp is infeasible: contrib = Inf
-            recorded_sp_solution_ids[spuid] = new_sp_sol_ids
-            sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
+    TO.@timeit _to2 "Solve sps" begin
+        for (spuid, spdata) in spsdatas
+            gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
+                algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
+            )
+            if gen_status # else Sp is infeasible: contrib = Inf
+                recorded_sp_solution_ids[spuid] = new_sp_sol_ids
+                sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
+            end
+            sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
         end
-        sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
     end
     ### END LOOP TO BE PARALLELIZED
 

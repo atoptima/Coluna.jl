@@ -3,5 +3,6 @@ Base.@kwdef mutable struct GlobalValues
 end
 
 global const _to = TO.TimerOutput()
+global const _to2 = TO.TimerOutput()
 
 _elapsed_solve_time() = (time() - _globals_.initial_solve_time)
