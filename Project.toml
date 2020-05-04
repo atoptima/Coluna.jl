@@ -4,6 +4,7 @@ authors = ["François Vanderbeck", "Guillaume Marques", "Vitor Nesello", "Ruslan
 version = "0.3.0"
 
 [deps]
+CodecBzip2 = "523fee87-0ab8-5b00-afb7-3ecf72e48cfd"
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 ColunaDemos = "a54e61d4-7723-11e9-2469-af255fcaa246"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
