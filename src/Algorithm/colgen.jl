@@ -346,7 +346,7 @@ function solve_sps_to_gencols!(
     updatereducedcosts!(reform, redcostsvec, dual_sol)
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    TO.@timeit _to2 "Solve sps" begin
+    TO.@timeit Coluna._to2 "Solve sps" begin
         for (spuid, spdata) in spsdatas
             gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
                 algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
