@@ -152,7 +152,7 @@ end
 """
     MoiOptimizer <: AbstractOptimizer
 
-Wrapper that is used when the optimizer of a formulation 
+Wrapper that is used when the optimizer of a formulation
 is an `MOI.AbstractOptimizer`, thus inheriting MOI functionalities.
 """
 struct MoiOptimizer <: AbstractOptimizer
@@ -170,7 +170,7 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
             terminationstatus != MOI.OPTIMIZE_NOT_CALLED
         fill_primal_result!(form, optimizer, result)
         fill_dual_result!(form, optimizer, result)
-        if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1 
+        if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1
             setfeasibilitystatus!(result, FEASIBLE)
             setterminationstatus!(result, convert_status(terminationstatus))
         else
@@ -191,9 +191,9 @@ end
 function optimize!(form::Formulation, optimizer::MoiOptimizer)
     @logmsg LogLevel(-4) "MOI formulation before synch: "
     @logmsg LogLevel(-4) getoptimizer(form)
-    TO.@timeit Coluna._to "Sync solver" begin
+    #TO.@timeit Coluna._to "Sync solver" begin
         sync_solver!(getoptimizer(form), form)
-    end
+    #end
     @logmsg LogLevel(-3) "MOI formulation after synch: "
     @logmsg LogLevel(-3) getoptimizer(form)
     nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())
@@ -231,7 +231,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for constr_id in buffer.constr_buffer.added
         constr = getconstr(f, constr_id)
         @logmsg LogLevel(-2) string("Adding constraint ", getname(f, constr))
-        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && iscurexplicit(f, constr))  
+        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && iscurexplicit(f, constr))
     end
 
     # Update variable costs
@@ -318,6 +318,6 @@ function Base.print(io::IO, form::AbstractFormulation, moiresult::MoiResult)
         for (constrid, val) in moiresult.dual_sols[1]
             println(io, "\t $(getname(form, constrid)) = $val")
         end
-    end  
+    end
     return
 end

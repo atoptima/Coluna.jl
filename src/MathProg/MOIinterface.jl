@@ -133,7 +133,7 @@ function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::F
     constr_id = getid(constr)
 
     inner = getinner(getoptimizer(form))
-    
+
     matrix = getcoefmatrix(form)
     terms = MOI.ScalarAffineTerm{Float64}[]
     for (varid, coeff) in matrix[constr_id, :]
@@ -148,7 +148,7 @@ function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::F
     moi_constr = MOI.add_constraint(
         inner, lhs, moi_set(getcurrhs(form, constr))
     )
-    
+
     moirecord = getmoirecord(constr)
     setindex!(moirecord, moi_constr)
     MOI.set(inner, MOI.ConstraintName(), moi_constr, getname(form, constr))
@@ -156,16 +156,16 @@ function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::F
 end
 
 function call_moi_optimize_with_silence(optimizer::MoiOptimizer)
-    backup_stdout = stdout
-    (rd_out, wr_out) = redirect_stdout()
+    #backup_stdout = stdout
+    #(rd_out, wr_out) = redirect_stdout()
     MOI.optimize!(getinner(optimizer))
-    close(wr_out)
-    close(rd_out)
-    redirect_stdout(backup_stdout)
+    #close(wr_out)
+    #close(rd_out)
+    #redirect_stdout(backup_stdout)
     return
 end
 
-function remove_from_optimizer!(form::Formulation, var::Variable)                       
+function remove_from_optimizer!(form::Formulation, var::Variable)
     inner = getinner(form.optimizer)
     moirecord = getmoirecord(var)
     @assert getindex(moirecord).value != -1
@@ -192,7 +192,7 @@ function _getcolunakind(record::MoiVarRecord)
     return Integ
 end
 
-function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer, 
+function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
                              result::MoiResult{<:Formulation,S},
                              ) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
@@ -233,7 +233,7 @@ function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
         solcost = MOI.get(inner, MOI.ObjectiveValue())
         solconstrs = Vector{ConstrId}()
         solvals = Vector{Float64}()
-        # Getting dual bound is not stable in some solvers. 
+        # Getting dual bound is not stable in some solvers.
         # Getting primal bound instead, which will work for lps
         for (id, constr) in getconstrs(form)
             iscuractive(form, id) && iscurexplicit(form, id) || continue
@@ -243,7 +243,7 @@ function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
             if abs(val) > Coluna._params_.tol
                 @logmsg LogLevel(-4) string("Constr ", constr.name, " = ", val)
                 push!(solconstrs, id)
-                push!(solvals, val)      
+                push!(solvals, val)
             end
         end
         add_dual_sol!(result, DualSolution(form, solconstrs, solvals, solcost))
