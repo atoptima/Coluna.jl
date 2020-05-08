@@ -34,7 +34,7 @@ function gurobi_generalized_assignment_tests()
             [:time]
         )
         algorithmkpis = Coluna.AlgorithmsKpis("play gap", kpis)
-        Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
     @testset "gap - JuMP/MOI modeling" begin
@@ -62,7 +62,7 @@ function gurobi_generalized_assignment_tests()
             [:time]
         )
         algorithmkpis = Coluna.AlgorithmsKpis("gap - JuMP/MOI modeling", kpis)
-        Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
     @testset "gap - strong branching" begin
@@ -98,7 +98,7 @@ function gurobi_generalized_assignment_tests()
             [:time]
         )
         algorithmkpis = Coluna.AlgorithmsKpis("gap - strong branching", kpis)
-        Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
     @testset "gap - ColGen max nb iterations" begin
@@ -130,7 +130,7 @@ function gurobi_generalized_assignment_tests()
             [:time]
         )
         algorithmkpis = Coluna.AlgorithmsKpis("gap - ColGen max nb iterations", kpis)
-        Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
     @testset "gap with penalties - pure master variables" begin
@@ -154,7 +154,7 @@ function gurobi_generalized_assignment_tests()
             [:time]
         )
         algorithmkpis = Coluna.AlgorithmsKpis("gap with penalties - pure master variables", kpis)
-        Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
     @testset "gap with maximisation objective function" begin
@@ -178,7 +178,7 @@ function gurobi_generalized_assignment_tests()
             [:time]
         )
         algorithmkpis = Coluna.AlgorithmsKpis("gap with maximisation objective function", kpis)
-        Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
     @testset "gap with infeasible subproblem" begin
@@ -202,7 +202,7 @@ function gurobi_generalized_assignment_tests()
             [:time]
         )
         algorithmkpis = Coluna.AlgorithmsKpis("gap with infeasible subproblem", kpis)
-        Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
     @testset "play gap" begin
@@ -227,7 +227,7 @@ function gurobi_generalized_assignment_tests()
             [:time]
         )
         algorithmkpis = Coluna.AlgorithmsKpis("play gap", kpis)
-        Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
     @testset "play gap with no solver" begin
@@ -252,9 +252,11 @@ function gurobi_generalized_assignment_tests()
         #     [:time]
         # )
         # algorithmkpis = Coluna.AlgorithmsKpis("play gap with no solver", kpis)
-        # Coluna.save_profiling_file("profilingtest.txt", algorithmkpis)
+        # Coluna.save_profiling_file("profilingtest.json", algorithmkpis)
     end
 
+    @show length(Coluna.colunaruns)
+    @show length(Coluna.solve_sps_runs)
     empty!(Coluna.colunaruns)
     empty!(Coluna.solve_sps_runs)
     return
