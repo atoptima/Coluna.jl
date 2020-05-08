@@ -67,10 +67,10 @@ function optimize!(prob::MathProg.Problem, annotations::MathProg.Annotations, pa
         )
     end
     end
-    #println(_to)
-    #println(_to2)
-    #TO.reset_timer!(_to)
-    #TO.reset_timer!(_to2)
+    println(_to)
+    println(_to2)
+    TO.reset_timer!(_to)
+    TO.reset_timer!(_to2)
     @logmsg LogLevel(0) "Terminated"
     @logmsg LogLevel(0) string("Primal bound: ", get_ip_primal_bound(optstate))
     @logmsg LogLevel(0) string("Dual bound: ", get_ip_dual_bound(optstate))
