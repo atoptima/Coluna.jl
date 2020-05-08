@@ -130,6 +130,12 @@ git-tree-sha1 = "b34d7cef7b337321e97d22242c3c2b91f476748e"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.0"
 
+[[JSON3]]
+deps = ["Dates", "Mmap", "Parsers", "StructTypes", "UUIDs"]
+git-tree-sha1 = "1b3cd867dfe30a6ec2e9ff7077267680c7ad6543"
+uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+version = "1.0.2"
+
 [[JSONSchema]]
 deps = ["BinaryProvider", "HTTP", "JSON"]
 git-tree-sha1 = "b0a7f9328967df5213691d318a03cf70ea8c76b1"
@@ -254,6 +260,12 @@ version = "0.12.3"
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+
+[[StructTypes]]
+deps = ["Dates", "UUIDs"]
+git-tree-sha1 = "1ed04f622a39d2e5a6747c3a70be040c00333933"
+uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
+version = "1.1.0"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]

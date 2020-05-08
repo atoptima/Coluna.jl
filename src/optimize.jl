@@ -60,13 +60,15 @@ function optimize!(prob::MathProg.Problem, annotations::MathProg.Annotations, pa
 
     relax_integrality!(prob.re_formulation.master) # TODO : remove
 
-    TO.@timeit _to "Coluna" begin
-    TO.@timeit _to2 "Coluna 2" begin
+    # TO.@timeit _to "Coluna" begin
+    # TO.@timeit _to2 "Coluna 2" begin
+    kpis = @timed begin
         optstate = optimize!(
             prob.re_formulation, params.solver, init_pb, init_db
         )
     end
-    end
+    push!(Coluna.colunaruns[end].kpis, kpis)
+    #end
     #println(_to)
     #println(_to2)
     #TO.reset_timer!(_to)
