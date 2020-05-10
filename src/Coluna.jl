@@ -47,8 +47,6 @@ include("MOIcallbacks.jl")
 # TODO : put global values here
 include("globals.jl") # Structure that holds values useful in all the procedure
 
-include("profiling.jl")
-
 global const _globals_ = GlobalValues()
 #export _params_, _globals_, _to # to be deleted
 

@@ -346,30 +346,44 @@ function solve_sps_to_gencols!(
     # update reduced costs
     updatereducedcosts!(reform, redcostsvec, dual_sol)
 
-    println("Entrou no colgen vai paralelizar")
-
-
     ### BEGIN LOOP TO BE PARALLELIZED
     #TO.@timeit Coluna._to2 "Solve sps" begin
-    kpis = @timed begin
-        for (spuid, spdata) in spsdatas
-            push!(threadstasks, Threads.@spawn begin
-            gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
-                algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
-            )
-            if gen_status # else Sp is infeasible: contrib = Inf
-                recorded_sp_solution_ids[spuid] = new_sp_sol_ids
-                sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
+    if Main.parallel
+        #TO.@timeit Coluna._to2 "Solve sps" begin
+        kpis = @timed begin
+            for (spuid, spdata) in spsdatas
+                push!(threadstasks, Threads.@spawn begin
+                gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
+                    algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
+                )
+                if gen_status # else Sp is infeasible: contrib = Inf
+                    recorded_sp_solution_ids[spuid] = new_sp_sol_ids
+                    sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
+                end
+                sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
+                end)
+            for task in threadstasks
+                wait(task)
             end
-            sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
-            end)
         end
-        for task in threadstasks
-            wait(task)
+            empty!(threadstasks)
         end
-        empty!(threadstasks)
+        push!(Main.solve_sps_runs[end].kpis, kpis)
+    else
+        kpis = @timed begin
+            for (spuid, spdata) in spsdatas
+                gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
+                    algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
+                )
+                if gen_status # else Sp is infeasible: contrib = Inf
+                    recorded_sp_solution_ids[spuid] = new_sp_sol_ids
+                    sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
+                end
+                sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
+            end
+        end
+        push!(Main.solve_sps_runs[end].kpis, kpis)
     end
-    push!(Coluna.solve_sps_runs[end].kpis, kpis)
     ### END LOOP TO BE PARALLELIZED
 
     nb_new_cols = 0
