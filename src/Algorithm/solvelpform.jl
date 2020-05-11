@@ -7,6 +7,7 @@ Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm
     get_dual_solution = false
     relax_integrality = false
     set_dual_bound = false
+    silent = true
     log_level = 0
 end
 
@@ -35,6 +36,15 @@ function get_storages_to_restore!(
     end        
 end
 
+function optimize_lp_form!(algo::SolveLpForm, optimizer, form::Formulation) # fallback
+    error("Cannot optimize LP formulation with optimizer of type ", typeof(optimizer), ".")
+end
+
+function optimize_lp_form!(algo::SolveLpForm, optimizer::MoiOptimizer, form::Formulation)
+    MOI.set(form.optimizer.inner, MOI.Silent(), algo.silent)
+    return optimize!(form)
+end
+
 function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
     form = getmodel(data)
     optstate = OptimizationState(form)
@@ -45,7 +55,7 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         relax_integrality!(form)
     end
 
-    optimizer_result = optimize!(form)
+    optimizer_result = optimize_lp_form!(algo, getoptimizer(form), form)
 
     setfeasibilitystatus!(optstate, getfeasibilitystatus(optimizer_result))    
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))   
