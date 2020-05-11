@@ -28,7 +28,7 @@ notifications:
 
 script: # the default script is equivalent to the following
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --project=test/ -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/atoptima/ColunaDemos.jl.git")); Pkg.add(PackageSpec(path=pwd()); Pkg.build("Coluna"); Pkg.test("Coluna", coverage=true);'
+  - julia --project=test/ -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/atoptima/ColunaDemos.jl.git")); Pkg.add(PackageSpec(path=pwd())); Pkg.build("Coluna"); Pkg.test("Coluna", coverage=true);'
 
 after_success:
   - julia --project=test -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder());'
