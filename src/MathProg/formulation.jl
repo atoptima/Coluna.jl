@@ -348,8 +348,8 @@ function _addlocalartvar!(form::Formulation, constr::Constraint)
             form, name1, MasterArtVar;
             cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
-        push!(constr.loc_art_var_ids, getid(var1))
-        push!(constr.loc_art_var_ids, getid(var2))
+        push!(constr.art_var_ids, getid(var1))
+        push!(constr.art_var_ids, getid(var2))
         matrix[constrid, getid(var1)] = 1.0
         matrix[constrid, getid(var2)] = -1.0
     else
@@ -358,7 +358,7 @@ function _addlocalartvar!(form::Formulation, constr::Constraint)
             form, name, MasterArtVar;
             cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
         )
-        push!(constr.loc_art_var_ids, getid(var))
+        push!(constr.art_var_ids, getid(var))
         if constrsense == Greater
             matrix[constrid, getid(var)] = 1.0
         elseif constrsense == Less
