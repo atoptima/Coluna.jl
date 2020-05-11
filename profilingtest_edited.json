@@ -1,0 +1,54 @@
+{"play gap":{"Solve Sps":{"time":3.044447229},"Coluna":{"time":17.346713811}}}
+{"gap - JuMP/MOI modeling":{"Solve Sps":{"time":2.173386556},"Coluna":{"time":2.799800741}}}
+{"gap - strong branching":{"Solve Sps":{"time":1.985757201},"Coluna":{"time":4.795813033}}}
+{"gap - ColGen max nb iterations":{"Solve Sps":{"time":0.44922047400000004},"Coluna":{"time":0.660232767}}}
+{"gap with penalties - pure master variables":{"Solve Sps":{"time":1.281692821},"Coluna":{"time":1.49043422}}}
+{"gap with maximisation objective function":{"Solve Sps":{"time":2.078625231},"Coluna":{"time":3.540619239}}}
+{"gap with infeasible subproblem":{"Solve Sps":{"time":0.130448354},"Coluna":{"time":0.213574728}}}
+======
+{"play gap":{"Solve Sps":{"time":0.38686963700000004},"Coluna":{"time":0.708536983}}}
+{"play gap":{"Solve Sps":{"time":0.510884456},"Coluna":{"time":0.749105847}}}
+{"gap - JuMP/MOI modeling":{"Solve Sps":{"time":1.97074227},"Coluna":{"time":2.334301535}}}
+{"gap - strong branching":{"Solve Sps":{"time":2.2557108260000005},"Coluna":{"time":4.852822718}}}
+{"gap - ColGen max nb iterations":{"Solve Sps":{"time":0.5163078879999999},"Coluna":{"time":0.657559691}}}
+{"gap with penalties - pure master variables":{"Solve Sps":{"time":1.2149742060000004},"Coluna":{"time":1.447672625}}}
+{"gap with maximisation objective function":{"Solve Sps":{"time":1.412330666},"Coluna":{"time":1.841028811}}}
+{"gap with infeasible subproblem":{"Solve Sps":{"time":0.060135078},"Coluna":{"time":0.166690884}}}
+======
+{"play gap":{"Solve Sps":{"time":0.407468632},"Coluna":{"time":0.827012087}}}
+{"play gap":{"Solve Sps":{"time":0.23887570499999994},"Coluna":{"time":0.494130604}}}
+{"gap - JuMP/MOI modeling":{"Solve Sps":{"time":2.0431037410000004},"Coluna":{"time":2.613300876}}}
+{"gap - strong branching":{"Solve Sps":{"time":2.796998653},"Coluna":{"time":5.324131588}}}
+{"gap - ColGen max nb iterations":{"Solve Sps":{"time":0.3933904140000001},"Coluna":{"time":0.57460643}}}
+{"gap with penalties - pure master variables":{"Solve Sps":{"time":1.2830281700000001},"Coluna":{"time":1.455691798}}}
+{"gap with maximisation objective function":{"Solve Sps":{"time":1.3639822239999997},"Coluna":{"time":1.67127318}}}
+{"gap with infeasible subproblem":{"Solve Sps":{"time":0.167067403},"Coluna":{"time":0.256553143}}}
+{"play gap":{"Solve Sps":{"time":0.397057033},"Coluna":{"time":0.613345607}}}
+==============================================
+
+{"play gap":{"Solve Sps":{"time":2.5085887590000002},"Coluna":{"time":16.659435014}}}
+{"gap - JuMP/MOI modeling":{"Solve Sps":{"time":4.379193068999999},"Coluna":{"time":5.242628281}}}
+{"gap - strong branching":{"Solve Sps":{"time":1.8617654949999998},"Coluna":{"time":4.251626871}}}
+{"gap - ColGen max nb iterations":{"Solve Sps":{"time":0.264482876},"Coluna":{"time":0.448411784}}}
+{"gap with penalties - pure master variables":{"Solve Sps":{"time":0.558330809},"Coluna":{"time":0.640082201}}}
+{"gap with maximisation objective function":{"Solve Sps":{"time":1.5797499980000003},"Coluna":{"time":3.002994327}}}
+{"gap with infeasible subproblem":{"Solve Sps":{"time":0.066085033},"Coluna":{"time":0.196067803}}}
+======
+{"play gap":{"Solve Sps":{"time":0.229084361},"Coluna":{"time":0.448208854}}}
+{"play gap":{"Solve Sps":{"time":0.279617036},"Coluna":{"time":0.360966212}}}
+{"gap - JuMP/MOI modeling":{"Solve Sps":{"time":1.462741258},"Coluna":{"time":1.854364641}}}
+{"gap - strong branching":{"Solve Sps":{"time":1.419767933},"Coluna":{"time":3.425773066}}}
+{"gap - ColGen max nb iterations":{"Solve Sps":{"time":0.450238071},"Coluna":{"time":0.566017647}}}
+{"gap with penalties - pure master variables":{"Solve Sps":{"time":0.6708951129999999},"Coluna":{"time":0.783197628}}}
+{"gap with maximisation objective function":{"Solve Sps":{"time":0.8887398610000001},"Coluna":{"time":1.125958096}}}
+{"gap with infeasible subproblem":{"Solve Sps":{"time":0.006380909000000001},"Coluna":{"time":0.03277602}}}
+=======
+{"play gap":{"Solve Sps":{"time":0.3830594160000001},"Coluna":{"time":0.604311495}}}
+{"play gap":{"Solve Sps":{"time":0.32318123000000004},"Coluna":{"time":0.502352523}}}
+{"gap - JuMP/MOI modeling":{"Solve Sps":{"time":1.702888985},"Coluna":{"time":2.037543863}}}
+{"gap - strong branching":{"Solve Sps":{"time":1.6002306890000002},"Coluna":{"time":3.527870025}}}
+{"gap - ColGen max nb iterations":{"Solve Sps":{"time":0.19747043499999997},"Coluna":{"time":0.28925275}}}
+{"gap with penalties - pure master variables":{"Solve Sps":{"time":0.7418175760000001},"Coluna":{"time":0.900433654}}}
+{"gap with maximisation objective function":{"Solve Sps":{"time":1.04278168},"Coluna":{"time":1.42204763}}}
+{"gap with infeasible subproblem":{"Solve Sps":{"time":0.15284891},"Coluna":{"time":0.162456299}}}
+{"play gap":{"Solve Sps":{"time":0.40223805200000007},"Coluna":{"time":0.569743252}}}

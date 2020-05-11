@@ -350,9 +350,10 @@ function solve_sps_to_gencols!(
 
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    TO.@timeit Coluna._to2 "Solve sps" begin
+    #TO.@timeit Coluna._to2 "Solve sps" begin
+    kpis = @timed begin
         for (spuid, spdata) in spsdatas
-            push!(threadstasks, Threads.@spawn begin
+            #push!(threadstasks, Threads.@spawn begin
             gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
                 algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
             )
@@ -361,13 +362,14 @@ function solve_sps_to_gencols!(
                 sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
             end
             sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
-            end)
+            #end)
         end
-        for task in threadstasks
-            wait(task)
-        end
-        empty!(threadstasks)
+        #for task in threadstasks
+            #wait(task)
+        #end
+        #empty!(threadstasks)
     end
+    push!(Coluna.solve_sps_runs[end].kpis, kpis)
     ### END LOOP TO BE PARALLELIZED
 
     nb_new_cols = 0
