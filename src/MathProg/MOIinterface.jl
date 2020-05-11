@@ -155,16 +155,6 @@ function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::F
     return
 end
 
-function call_moi_optimize_with_silence(optimizer::MoiOptimizer)
-    backup_stdout = stdout
-    (rd_out, wr_out) = redirect_stdout()
-    MOI.optimize!(getinner(optimizer))
-    close(wr_out)
-    close(rd_out)
-    redirect_stdout(backup_stdout)
-    return
-end
-
 function remove_from_optimizer!(form::Formulation, var::Variable)                       
     inner = getinner(form.optimizer)
     moirecord = getmoirecord(var)
