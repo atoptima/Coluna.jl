@@ -67,7 +67,7 @@ function optimize!(prob::MathProg.Problem, annotations::MathProg.Annotations, pa
             prob.re_formulation, params.solver, init_pb, init_db
         )
     end
-    push!(Coluna.colunaruns[end].kpis, kpis)
+    push!(Main.colunaruns[end].kpis, kpis)
     #end
     #println(_to)
     #println(_to2)

@@ -1,29 +1,32 @@
 import JSON3
 
 mutable struct Runs
-    instance::Union{String,Nothing}
     name::Union{String,Nothing}
+    tags::Vector{String}
     kpis::Union{Vector{Tuple{Any,Float64,Int64,Float64,Base.GC_Diff}},Nothing}
 end
 
 Runs() = Runs(nothing, nothing, Tuple{Any,Float64,Int64,Float64,Base.GC_Diff}[])
-Runs(instance) = Runs(instance, nothing, Tuple{Any,Float64,Int64,Float64,Base.GC_Diff}[])
-Runs(instance, name) = Runs(instance, name, Tuple{Any,Float64,Int64,Float64,Base.GC_Diff}[])
+Runs(name) = Runs(name, nothing, Tuple{Any,Float64,Int64,Float64,Base.GC_Diff}[])
+Runs(name, tags) = Runs(name, tags, Tuple{Any,Float64,Int64,Float64,Base.GC_Diff}[])
 
 mutable struct AlgorithmsKpis
     instance::String
-    kpis::Dict{String,Dict{Symbol,Float64}}
+    kpis::Dict{String,Dict{String,Dict{Symbol,Float64}}}
 end
 
-InstancesKpis = Vector{AlgorithmsKpis}
+AlgorithmsKpis(instance) = AlgorithmsKpis(instance, Dict{String,Dict{String,Dict{Symbol,Float64}}}())
 
 function calculateKpis(runs::Vector{Runs}, kpis::Vector{Symbol})
     symbols = [:val, :time, :bytes, :gctime, :memallocs]
-    kpivalues = Dict()
+    kpivalues = Dict{String,Dict{String,Dict{Symbol,Float64}}}()
     for run in runs
-        kpivalues[run.name] = Dict{Symbol, Float64}()
+        if !(run.tags[1] in keys(kpivalues))
+            kpivalues[run.tags[1]] = Dict{String,Dict{Symbol,Float64}}()
+        end
+        kpivalues[run.tags[1]][run.name] = Dict{Symbol, Float64}()
         for kpi in kpis
-            kpivalues[run.name][kpi] =
+            kpivalues[run.tags[1]][run.name][kpi] =
                 sum([r[findfirst(x -> x == kpi, symbols)] for r in run.kpis])
         end
     end
@@ -37,6 +40,3 @@ function save_profiling_file(filename::String, instance::AlgorithmsKpis)
     write(file,"\n")
     close(file)
 end
-
-global colunaruns = Runs[]
-global solve_sps_runs = Runs[]
