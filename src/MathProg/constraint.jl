@@ -49,22 +49,20 @@ setindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
 Representation of a constraint in Coluna.
 """
-
 struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
     perene_data::ConstrData
     moirecord::MoiConstrRecord
+    art_var_ids::Vector{VarId}
 end
+
 const ConstrId = Id{Constraint}
 
-function Constraint(id::ConstrId,
-                    name::String;
-                    constr_data = ConstrData(),
-                    moi_index::MoiConstrIndex = MoiConstrIndex())
-    return Constraint(
-        id, name, constr_data, 
-        MoiConstrRecord(index = moi_index)
-    )
+function Constraint(
+    id::ConstrId, name::String;
+    constr_data = ConstrData(), moi_index::MoiConstrIndex = MoiConstrIndex()
+)
+    return Constraint(id, name, constr_data, MoiConstrRecord(index = moi_index), VarId[])
 end
 
