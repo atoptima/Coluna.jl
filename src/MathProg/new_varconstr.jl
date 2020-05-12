@@ -259,7 +259,7 @@ end
 
 "Activate a variable in the formulation"
 function activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
-    if iscurexplicit(form, varconstrid)
+    if iscurexplicit(form, varconstrid) && !iscuractive(form, varconstrid)
         add!(form.buffer, varconstrid)
     end
     _setiscuractive!(form, varconstrid, true)

@@ -201,7 +201,7 @@ function optimize!(form::Formulation, optimizer::MoiOptimizer)
         @warn "No variable in the formulation. Coluna does not call the solver."
         return retrieve_result(form, optimizer)
     end
-    call_moi_optimize_with_silence(form.optimizer)
+    MOI.optimize!(getinner(form.optimizer))
     status = MOI.get(form.optimizer.inner, MOI.TerminationStatus())
     @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
     return retrieve_result(form, optimizer)

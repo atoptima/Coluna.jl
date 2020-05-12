@@ -366,7 +366,7 @@ function generalized_assignment_tests()
         try
             JuMP.optimize!(problem)
         catch e
-            @test repr(e) == "ErrorException(\"Function `optimize!` is not defined for object of type Coluna.MathProg.NoOptimizer\")"
+            @test repr(e) == "ErrorException(\"Cannot optimize LP formulation with optimizer of type Coluna.MathProg.NoOptimizer.\")"
         end
     end
     return
