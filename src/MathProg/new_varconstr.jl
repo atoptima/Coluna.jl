@@ -269,12 +269,12 @@ activate!(form::Formulation, varconstr::AbstractVarConstr) = activate!(form, get
 
 function activate!(form::Formulation, f::Function)
     for (varid, _) in getvars(form)
-        if iscuractive(form, varid) && f(varid)
+        if !iscuractive(form, varid) && f(varid)
             activate!(form, varid)
         end
     end
     for (constrid, _) in getconstrs(form)
-        if iscuractive(form, constrid) && f(constrid)
+        if !iscuractive(form, constrid) && f(constrid)
             activate!(form, constrid)
         end
     end
