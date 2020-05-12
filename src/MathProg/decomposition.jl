@@ -8,41 +8,6 @@ function set_glob_art_var(form::Formulation, is_pos::Bool)
     )
 end
 
-function create_local_art_vars!(masterform::Formulation)
-    matrix = getcoefmatrix(masterform)
-    cost = Cl._params_.local_art_var_cost
-    cost *= getobjsense(masterform) == MinSense ? 1.0 : -1.0
-    for (constrid, constr) in getconstrs(masterform)
-        constrname = getname(masterform, constr)
-        if getcursense(masterform, constr) == Equal 
-            name1 = string("local_art_of_", constrname, "1")
-            name2 = string("local_art_of_", constrname, "2")
-            var1 = setvar!(
-                masterform, name1, MasterArtVar;
-                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-            )
-            var2 = setvar!(
-                masterform, name1, MasterArtVar;
-                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-            )
-            matrix[constrid, getid(var1)] = 1.0
-            matrix[constrid, getid(var2)] = -1.0
-        else
-            name = string("local_art_of_", constrname)
-            var = setvar!(
-                masterform, name, MasterArtVar;
-                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-            )
-            if getcursense(masterform, constr) == Greater
-                matrix[constrid, getid(var)] = 1.0
-            elseif getcursense(masterform, constr) == Less
-                matrix[constrid, getid(var)] = -1.0
-            end
-        end
-    end
-    return
-end
-
 function create_global_art_vars!(masterform::Formulation)
     global_pos = set_glob_art_var(masterform, true)
     global_neg = set_glob_art_var(masterform, false)
@@ -144,7 +109,9 @@ function instantiate_orig_constrs!(
     !haskey(annotations.constrs_per_ann, mast_ann) && return
     constrs = annotations.constrs_per_ann[mast_ann]
     for (id, constr) in constrs
-        cloneconstr!(origform, masterform, masterform, constr, MasterMixedConstr) # TODO distinguish Pure versus Mixed
+        cloneconstr!(
+            origform, masterform, masterform, constr, MasterMixedConstr, loc_art_var = true
+        ) # TODO distinguish Pure versus Mixed
     end
     return
 end
@@ -166,7 +133,7 @@ function create_side_vars_constrs!(
         name = string("sp_lb_", spuid)
         lb_conv_constr = setconstr!(
             masterform, name, MasterConvexityConstr; 
-            rhs = lb_mult, kind = Core, sense = Greater, inc_val = 100.0
+            rhs = lb_mult, kind = Core, sense = Greater, inc_val = 100.0, loc_art_var = true
         )
         masterform.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
         coefmatrix[getid(lb_conv_constr), getid(setuprepvar)] = 1.0
@@ -175,7 +142,7 @@ function create_side_vars_constrs!(
         name = string("sp_ub_", spuid)
         ub_conv_constr = setconstr!(
             masterform, name, MasterConvexityConstr; rhs = ub_mult, 
-            kind = Core, sense = Less, inc_val = 100.0
+            kind = Core, sense = Less, inc_val = 100.0, loc_art_var = true
         )
         masterform.parent_formulation.dw_pricing_sp_ub[spuid] = getid(ub_conv_constr)  
         coefmatrix[getid(ub_conv_constr), getid(setuprepvar)] = 1.0
@@ -185,7 +152,6 @@ end
 
 function create_artificial_vars!(masterform::Formulation{DwMaster})
     create_global_art_vars!(masterform)
-    create_local_art_vars!(masterform)
     return
 end
 

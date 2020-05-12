@@ -291,40 +291,81 @@ function setcut_from_sp_dualsol!(
             end
         end
     end 
-    _addconstr!(masterform, benders_cut)
+    _addconstr!(masterform.manager, benders_cut)
+    if iscurexplicit(masterform, benders_cut)
+        add!(masterform.buffer, getid(benders_cut))
+    end
     return benders_cut
 end
 
 "Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
-function setconstr!(form::Formulation,
-                    name::String,
-                    duty::Duty{Constraint};
-                    rhs::Float64 = 0.0,
-                    kind::ConstrKind = Core,
-                    sense::ConstrSense = Greater,
-                    inc_val::Float64 = 0.0,
-                    is_active::Bool = true,
-                    is_explicit::Bool = true,
-                    moi_index::MoiConstrIndex = MoiConstrIndex(),
-                    members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
-                    id = generateconstrid(duty, form))
+function setconstr!(
+    form::Formulation,
+    name::String,
+    duty::Duty{Constraint};
+    rhs::Float64 = 0.0,
+    kind::ConstrKind = Core,
+    sense::ConstrSense = Greater,
+    inc_val::Float64 = 0.0,
+    is_active::Bool = true,
+    is_explicit::Bool = true,
+    moi_index::MoiConstrIndex = MoiConstrIndex(),
+    members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
+    loc_art_var = false,
+    id = generateconstrid(duty, form)
+)
     if getduty(id) != duty
         id = ConstrId(duty, id)
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index)
     members !== nothing && _setmembers!(form, constr, members)
-    _addconstr!(form, constr)
-    return constr
-end
-
-"Adds `Constraint` `constr` to `Formulation` `form`."
-function _addconstr!(form::Formulation, constr::Constraint)
     _addconstr!(form.manager, constr)
+    if loc_art_var
+        _addlocalartvar!(form, constr)
+    end
     if iscurexplicit(form, constr)
         add!(form.buffer, getid(constr))
     end
-    return 
+    return constr
+end
+
+function _addlocalartvar!(form::Formulation, constr::Constraint)
+    matrix = getcoefmatrix(form)
+    cost = Cl._params_.local_art_var_cost
+    cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
+    constrid = getid(constr)
+    constrname = getname(form, constr)
+    constrsense = getperenesense(form, constr)
+    if constrsense == Equal 
+        name1 = string("local_art_of_", constrname, "1")
+        name2 = string("local_art_of_", constrname, "2")
+        var1 = setvar!(
+            form, name1, MasterArtVar;
+            cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+        )
+        var2 = setvar!(
+            form, name1, MasterArtVar;
+            cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+        )
+        push!(constr.art_var_ids, getid(var1))
+        push!(constr.art_var_ids, getid(var2))
+        matrix[constrid, getid(var1)] = 1.0
+        matrix[constrid, getid(var2)] = -1.0
+    else
+        name = string("local_art_of_", constrname)
+        var = setvar!(
+            form, name, MasterArtVar;
+            cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+        )
+        push!(constr.art_var_ids, getid(var))
+        if constrsense == Greater
+            matrix[constrid, getid(var)] = 1.0
+        elseif constrsense == Less
+            matrix[constrid, getid(var)] = -1.0
+        end
+    end
+    return
 end
 
 function enforce_integrality!(form::Formulation)
