@@ -1,9 +1,9 @@
 Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
-    #TODO : pricing problem solver may be different depending on the 
+    #TODO : pricing problem solver may be different depending on the
     #       pricing subproblem
-    pricing_prob_solve_alg = SolveIpForm(deactivate_artificial_vars = false, 
-                                         enforce_integrality = false, 
+    pricing_prob_solve_alg = SolveIpForm(deactivate_artificial_vars = false,
+                                         enforce_integrality = false,
                                          log_level = 2)
     max_nb_iterations::Int = 1000
     optimality_tol::Float64 = 1e-5
@@ -25,7 +25,7 @@ end
 
 function get_storages_to_restore!(
     algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-) 
+)
     master = getmaster(reform)
     add_storage!(storages_to_restore, master, MasterColumnsStorage, READ_AND_WRITE)
     get_storages_to_restore!(algo.restr_master_solve_alg, master, storages_to_restore)
@@ -70,7 +70,7 @@ end
 
 getoptstate(data::ColGenRuntimeData) = data.optstate
 
-function run!(algo::ColumnGeneration, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput    
+function run!(algo::ColumnGeneration, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
     reform = getreform(rfdata)
     cgdata = ColGenRuntimeData(algo, reform, getoptstate(input))
     optstate = getoptstate(cgdata)
@@ -80,7 +80,7 @@ function run!(algo::ColumnGeneration, rfdata::ReformData, input::OptimizationInp
     stop = cg_main_loop!(algo, cgdata, rfdata)
 
     if !stop && should_do_ph_1(masterform, cgdata)
-        set_ph1!(masterform, cgdata)        
+        set_ph1!(masterform, cgdata)
         stop = cg_main_loop!(algo, cgdata, rfdata)
         if !stop
             set_ph2!(masterform, cgdata) # pure ph2
@@ -147,20 +147,20 @@ end
 
 function insert_cols_in_master!(
     data::ColGenRuntimeData, masterform::Formulation, spform::Formulation, sp_solution_ids::Vector{VarId}
-) 
+)
     sp_uid = getuid(spform)
     nb_of_gen_col = 0
 
     for sol_id in sp_solution_ids
         nb_of_gen_col += 1
-        name = string("MC_", getsortuid(sol_id)) 
+        name = string("MC_", getsortuid(sol_id))
         lb = 0.0
         ub = Inf
         kind = Continuous
         duty = MasterCol
         sense = Positive
         mc = setcol_from_sp_primalsol!(
-            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, 
+            masterform, spform, sol_id, name, duty; lb = lb, ub = ub,
             kind = kind, sense = sense
         )
         if data.phase == 1
@@ -184,7 +184,7 @@ function contrib_improves_mlp(algo::ColumnGeneration, sp_primal_bound::PrimalBou
     return sp_primal_bound < 0.0 - algo.redcost_tol
 end
 
-function contrib_improves_mlp(algo::ColumnGeneration, sp_primal_bound::PrimalBound{MaxSense}) 
+function contrib_improves_mlp(algo::ColumnGeneration, sp_primal_bound::PrimalBound{MaxSense})
     return sp_primal_bound > 0.0 + algo.redcost_tol
 end
 
@@ -206,7 +206,7 @@ function solve_sp_to_gencol!(
     algo::ColumnGeneration, masterform::Formulation, spdata::ModelData, dual_sol::DualSolution,
     sp_lb::Float64, sp_ub::Float64
 )::Tuple{Bool,Vector{VarId},Vector{VarId},Float64}
-    
+
     spform = getmodel(spdata)
     recorded_solution_ids = Vector{VarId}()
     sp_solution_ids_to_activate = Vector{VarId}()
@@ -246,7 +246,7 @@ function solve_sp_to_gencol!(
     pricing_db_contrib = compute_pricing_db_contrib(algo, spform, get_ip_primal_bound(sp_optstate), sp_lb, sp_ub)
 
     if !isfeasible(sp_optstate)
-        sp_is_feasible = false 
+        sp_is_feasible = false
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
         return sp_is_feasible, recorded_solution_ids, PrimalBound(spform)
     end
@@ -329,7 +329,7 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
 end
 
 function solve_sps_to_gencols!(
-    algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector, 
+    algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector,
     dual_sol::DualSolution, sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 )
     reform = getreform(rfdata)
@@ -346,6 +346,7 @@ function solve_sps_to_gencols!(
     updatereducedcosts!(reform, redcostsvec, dual_sol)
 
     ### BEGIN LOOP TO BE PARALLELIZED
+    TO.@timeit Coluna._to "Sps solver" begin
     for (spuid, spdata) in spsdatas
         gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
             algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
@@ -355,6 +356,7 @@ function solve_sps_to_gencols!(
             sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
         end
         sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
+    end
     end
     ### END LOOP TO BE PARALLELIZED
 
@@ -366,7 +368,7 @@ function solve_sps_to_gencols!(
             activate!(masterform, colid)
             nb_new_cols += 1
         end
-    end    
+    end
     return (nb_new_cols, dual_bound_contrib)
 end
 
@@ -389,7 +391,7 @@ end
 
 #stopped here
 function generatecolumns!(
-    algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector, 
+    algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector,
     master_val, dual_sol, sp_lbs, sp_ubs
 )
     cg_optstate = getoptstate(cgdata)
@@ -455,7 +457,7 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
             status = getfeasibilitystatus(rm_optstate)
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
             "(feasibility status = " , status, ") during phase != 1.")
-            setfeasibilitystatus!(cg_optstate, status) 
+            setfeasibilitystatus!(cg_optstate, status)
             return true
         end
 
@@ -466,9 +468,9 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
             @error string("Solver returned that the LP restricted master is feasible but ",
             "did not return a dual solution. ",
             "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
-        end 
+        end
 
-        if nb_lp_primal_sols(rm_optstate) > 0 
+        if nb_lp_primal_sols(rm_optstate) > 0
             set_lp_primal_sol!(cg_optstate, get_best_lp_primal_sol(rm_optstate))
             set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate))
         else
@@ -479,7 +481,7 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
 
         update_all_ip_primal_solutions!(cg_optstate, rm_optstate)
 
-        # TODO: cleanup restricted master columns        
+        # TODO: cleanup restricted master columns
 
         cgdata.nb_iterations += 1
 
@@ -492,7 +494,7 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
 
         if nb_new_col < 0
             @error "Infeasible subproblem."
-            setfeasibilitystatus!(cg_optstate, INFEASIBLE) 
+            setfeasibilitystatus!(cg_optstate, INFEASIBLE)
             return true
         end
 
@@ -501,11 +503,11 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
         # TODO: update colgen stabilization
 
         dual_bound = get_ip_dual_bound(cg_optstate)
-        primal_bound = get_lp_primal_bound(cg_optstate)     
+        primal_bound = get_lp_primal_bound(cg_optstate)
         ip_primal_bound = get_ip_primal_bound(cg_optstate)
 
         if ip_gap(cg_optstate) < algo.optimality_tol
-            setterminationstatus!(cg_optstate, OPTIMAL) 
+            setterminationstatus!(cg_optstate, OPTIMAL)
             @logmsg LogLevel(0) "Dual bound reached primal bound."
             return true
         end
@@ -514,13 +516,13 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
             pb = - getvalue(PrimalBound(reform))
             set_lp_dual_bound!(cg_optstate, DualBound(reform, db))
             set_lp_primal_bound!(cg_optstate, PrimalBound(reform, pb))
-            setfeasibilitystatus!(cg_optstate, INFEASIBLE) 
+            setfeasibilitystatus!(cg_optstate, INFEASIBLE)
             @logmsg LogLevel(0) "Phase one determines infeasibility."
             return true
         end
         if nb_new_col == 0 || lp_gap(cg_optstate) < algo.optimality_tol
             @logmsg LogLevel(0) "Column Generation Algorithm has converged."
-            setterminationstatus!(cg_optstate, OPTIMAL) 
+            setterminationstatus!(cg_optstate, OPTIMAL)
             return false
         end
         if cgdata.nb_iterations > algo.max_nb_iterations
@@ -545,9 +547,9 @@ function print_colgen_statistics(
         phase = "##"
     end
 
-    @printf(
-        "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
-        phase, data.nb_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, db, mlp, pb
-    )
+    #@printf(
+        #"%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
+        #phase, data.nb_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, db, mlp, pb
+    #)
     return
 end
