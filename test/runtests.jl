@@ -27,20 +27,21 @@ include("pricing_callback_tests.jl")
 
 rng = MersenneTwister(1234123)
 
-unit_tests()
+#unit_tests()
 
 @testset "Full instances " begin
     full_instances_tests()
 end
 
-@testset "Preprocessing " begin
-    preprocessing_tests()
-end
+#@testset "Preprocessing " begin
+#    preprocessing_tests()
+#end
 
-@testset "pricing callback" begin
-    pricing_callback_tests()
-end
+#@testset "pricing callback" begin
+#    pricing_callback_tests()
+#end
 
+#=
 @testset "Base.show functions " begin
     backup_stdout = stdout
     (rd_out, wr_out) = redirect_stdout()
@@ -49,4 +50,4 @@ end
     close(rd_out)
     redirect_stdout(backup_stdout)
 end
-
+=#
