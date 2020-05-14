@@ -9,15 +9,14 @@ function clonevar!(
     lb::Float64 = getperenlb(originform, var),
     ub::Float64 = getperenub(originform, var),
     kind::VarKind = getperenkind(originform, var),
-    sense::VarSense = getperensense(originform, var),
     inc_val::Float64 = getperenincval(originform, var),
     is_active::Bool = isperenactive(originform, var),
-    is_explicit::Bool = isperenexplicit(originform, var),
+    is_explicit::Bool = isexplicit(originform, var),
     members::Union{ConstrMembership,Nothing} = nothing
 )
     return setvar!(
         destform, name, duty; 
-        cost = cost, lb = lb, ub = ub, kind = kind, sense = sense, 
+        cost = cost, lb = lb, ub = ub, kind = kind,
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit, 
         members = members,
         id = Id{Variable}(duty, getid(var), getuid(assignedform))
@@ -36,7 +35,7 @@ function cloneconstr!(
     sense::ConstrSense = getperensense(originform, constr),
     inc_val::Float64 = getperenincval(originform, constr),
     is_active::Bool = isperenactive(originform, constr),
-    is_explicit::Bool = isperenexplicit(originform, constr),
+    is_explicit::Bool = isexplicit(originform, constr),
     members::Union{VarMembership,Nothing}  = nothing,
     loc_art_var = false
 )

@@ -1,9 +1,7 @@
 const DynSparseVector{I} = DynamicSparseArrays.PackedMemoryArray{I, Float64} 
 
 const VarDict = Dict{VarId, Variable}
-const VarDataDict = Dict{VarId, VarData}
 const ConstrDict = Dict{ConstrId, Constraint}
-const ConstrDataDict = Dict{ConstrId, ConstrData}
 const VarMembership = Dict{VarId,Float64}
 const ConstrMembership = Dict{ConstrId,Float64}
 const ConstrConstrMatrix = MembersMatrix{ConstrId,ConstrId,Float64}
@@ -16,8 +14,6 @@ DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
 struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
-    var_datas::VarDataDict
-    constr_datas::ConstrDataDict
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables 
@@ -32,8 +28,6 @@ function FormulationManager()
     return FormulationManager(
         vars,
         constrs,
-        VarDataDict(),
-        ConstrDataDict(),
         ConstrVarMatrix(),
         VarVarMatrix(),
         VarVarMatrix(),
@@ -49,14 +43,12 @@ haskey(m::FormulationManager, id::Id{Constraint}) = haskey(m.constrs, id)
 function _addvar!(m::FormulationManager, var::Variable)
     haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))
     m.vars[var.id] = var
-    m.var_datas[var.id] = VarData(var.peren_data)
     return 
 end
 
 function _addconstr!(m::FormulationManager, constr::Constraint)
     haskey(m.constrs, constr.id) && error(string("Constraint of id ", constr.id, " exists"))
     m.constrs[constr.id] = constr
-    m.constr_datas[constr.id] = ConstrData(constr.peren_data)
     return 
 end
 

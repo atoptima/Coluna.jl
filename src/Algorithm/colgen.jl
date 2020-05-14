@@ -158,10 +158,8 @@ function insert_cols_in_master!(
         ub = Inf
         kind = Continuous
         duty = MasterCol
-        sense = Positive
         mc = setcol_from_sp_primalsol!(
-            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, 
-            kind = kind, sense = sense
+            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, kind = kind
         )
         if data.phase == 1
             setcurcost!(masterform, mc, 0.0)

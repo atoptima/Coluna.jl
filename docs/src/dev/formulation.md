@@ -7,7 +7,9 @@ end
 
 # Formulation
 
-## Variable
+## Attributes of variables and constraints
+
+*Performance note* : use a variable or a constraint rather than its id.
 
 ```@docs
 getperencost
@@ -19,19 +21,9 @@ setcurlb!
 getperenub
 getcurub
 setcurub!
-```
-
-## Constraint
-
-```@docs
 getperenrhs
 getcurrhs
 setcurrhs!
-```
-
-## Attributes Variable and constraint
-
-```@docs
 getperenkind
 getcurkind
 setcurkind!
@@ -45,7 +37,7 @@ isperenactive
 iscuractive
 activate!
 deactivate!
-isperenexplicit
-iscurexplicit
+isexplicit
+getname
 ```
 

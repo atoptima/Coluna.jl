@@ -5,7 +5,6 @@ mutable struct VarData <: AbstractVcData
     lb::Float64
     ub::Float64
     kind::VarKind
-    sense::VarSense
     inc_val::Float64
     is_active::Bool
     is_explicit::Bool
@@ -32,29 +31,16 @@ end
 Information that defines a state of a variable.
 """
 function VarData(
-    ;cost::Float64 = 0.0,
-    lb::Float64 = 0.0,
-    ub::Float64 = Inf,
-    kind::VarKind = Continuous,
-    sense::VarSense = Positive,
-    inc_val::Float64 = -1.0,
-    is_active::Bool = true,
-    is_explicit::Bool = true
+    ;cost::Float64 = 0.0, lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous,
+    inc_val::Float64 = -1.0, is_active::Bool = true, is_explicit::Bool = true
 )
-    vc = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
+    vc = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
     _set_bounds_acc_kind!(vc, kind)
     return vc
 end
 
 VarData(vd::VarData) = VarData(
-    vd.cost,
-    vd.lb,
-    vd.ub,
-    vd.kind,
-    vd.sense,
-    vd.inc_val,
-    vd.is_active,
-    vd.is_explicit
+    vd.cost, vd.lb, vd.ub, vd.kind, vd.inc_val, vd.is_active, vd.is_explicit
 )
 
 """
@@ -87,7 +73,8 @@ Representation of a variable in Coluna.
 struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
-    peren_data::VarData
+    perendata::VarData
+    curdata::VarData
     moirecord::MoiVarRecord
 end
 
@@ -95,12 +82,11 @@ const VarId = Id{Variable}
 
 getid(var::Variable) = var.id
 
-function Variable(id::VarId,
-                  name::String;
-                  var_data = VarData(),
-                  moi_index::MoiVarIndex = MoiVarIndex())
+function Variable(
+    id::VarId, name::String; var_data = VarData(), moi_index::MoiVarIndex = MoiVarIndex()
+)
     return Variable(
-        id, name, var_data,  
+        id, name, var_data, VarData(var_data),
         MoiVarRecord(index = moi_index)
     )
 end

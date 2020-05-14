@@ -97,7 +97,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperenub, getcurub, setcurub!, getperenrhs, getcurrhs, setcurrhs!, getperensense,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval, 
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isperenexplicit, iscurexplicit, setiscurexplicit!, getname, reset!, getreducedcost
+    isperenexplicit, isexplicit, setisexplicit!, getname, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
 # Note : we should export only get methods for MoiResult (the solution is built in MathProg)

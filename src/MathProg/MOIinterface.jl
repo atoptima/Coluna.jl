@@ -194,7 +194,7 @@ function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
         solvars = Vector{VarId}()
         solvals = Vector{Float64}()
         for (id, var) in getvars(form)
-            iscuractive(form, id) && iscurexplicit(form, id) || continue
+            iscuractive(form, id) && isexplicit(form, id) || continue
             moirec = getmoirecord(var)
             moi_index = getindex(moirec)
             kind = _getcolunakind(moirec)
@@ -226,7 +226,7 @@ function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
         # Getting dual bound is not stable in some solvers. 
         # Getting primal bound instead, which will work for lps
         for (id, constr) in getconstrs(form)
-            iscuractive(form, id) && iscurexplicit(form, id) || continue
+            iscuractive(form, id) && isexplicit(form, id) || continue
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
             val = round(val, digits = Coluna._params_.tol_digits)
@@ -262,7 +262,7 @@ function _getreducedcost(form::Formulation, optimizer::MoiOptimizer, var::Variab
         """
         return nothing
     end
-    if !iscuractive(form, var) || !iscurexplicit(form, var)
+    if !iscuractive(form, var) || !isexplicit(form, var)
         varname = getname(form, var)
         @warn """
             Cannot retrieve reduced cost of variable $varname because the variable must be active and explicit.

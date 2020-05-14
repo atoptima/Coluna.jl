@@ -90,20 +90,21 @@ set_matrix_coeff!(
 ) = set_matrix_coeff!(form.buffer, varid, constrid, new_coeff)
 
 "Creates a `Variable` according to the parameters passed and adds it to `Formulation` `form`."
-function setvar!(form::Formulation,
-                 name::String,
-                 duty::Duty{Variable};
-                 cost::Float64 = 0.0,
-                 lb::Float64 = 0.0,
-                 ub::Float64 = Inf,
-                 kind::VarKind = Continuous,
-                 sense::VarSense = Positive,
-                 inc_val::Float64 = 0.0,
-                 is_active::Bool = true,
-                 is_explicit::Bool = true,
-                 moi_index::MoiVarIndex = MoiVarIndex(),
-                 members::Union{ConstrMembership,Nothing} = nothing,
-                 id = generatevarid(duty, form))
+function setvar!(
+    form::Formulation,
+    name::String,
+    duty::Duty{Variable};
+    cost::Float64 = 0.0,
+    lb::Float64 = 0.0,
+    ub::Float64 = Inf,
+    kind::VarKind = Continuous,
+    inc_val::Float64 = 0.0,
+    is_active::Bool = true,
+    is_explicit::Bool = true,
+    moi_index::MoiVarIndex = MoiVarIndex(),
+    members::Union{ConstrMembership,Nothing} = nothing,
+    id = generatevarid(duty, form)
+)
     if kind == Binary
         lb = (lb < 0.0) ? 0.0 : lb
         ub = (ub > 1.0) ? 1.0 : ub
@@ -111,7 +112,7 @@ function setvar!(form::Formulation,
     if getduty(id) != duty
         id = VarId(duty, id)
     end
-    v_data = VarData(cost, lb, ub, kind, sense, inc_val, is_active, is_explicit)
+    v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
     var = Variable(id, name; var_data = v_data, moi_index = moi_index)
     if haskey(form.manager.vars, getid(var))
         error(string("Variable of id ", getid(var), " exists"))
@@ -124,17 +125,15 @@ end
 "Adds `Variable` `var` to `Formulation` `form`."
 function _addvar!(form::Formulation, var::Variable)
     _addvar!(form.manager, var)
-    
-    if iscurexplicit(form, var) 
+    if isexplicit(form, var) 
         add!(form.buffer, getid(var))
     end
     return 
-
 end
 
 function _addprimalsol!(form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64)
     for (var_id, var_val) in sol
-        var = form.manager.vars[var_id]
+        var = getvar(form, var_id)
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
             form.manager.primal_sols[var_id, sol_id] = var_val
         end
@@ -217,14 +216,12 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
 end
 
 function setcol_from_sp_primalsol!(
-    masterform::Formulation, spform::Formulation, sol_id::VarId,
-    name::String, duty::Duty{Variable}; lb::Float64 = 0.0,
-    ub::Float64 = Inf, kind::VarKind = Continuous, sense::VarSense = Positive, 
+    masterform::Formulation, spform::Formulation, sol_id::VarId, name::String, 
+    duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous, 
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
 ) 
     cost = getprimalsolcosts(spform)[sol_id]
-
     master_coef_matrix = getcoefmatrix(masterform)
     sp_sol = getprimalsolmatrix(spform)[:,sol_id]
     members = ConstrMembership()
@@ -242,7 +239,6 @@ function setcol_from_sp_primalsol!(
         lb = lb,
         ub = ub,
         kind = kind,
-        sense = sense,
         inc_val = inc_val,
         is_active = is_active,
         is_explicit = is_explicit,
@@ -292,7 +288,7 @@ function setcut_from_sp_dualsol!(
         end
     end 
     _addconstr!(masterform.manager, benders_cut)
-    if iscurexplicit(masterform, benders_cut)
+    if isexplicit(masterform, benders_cut)
         add!(masterform.buffer, getid(benders_cut))
     end
     return benders_cut
@@ -324,7 +320,7 @@ function setconstr!(
     if loc_art_var
         _addlocalartvar!(form, constr)
     end
-    if iscurexplicit(form, constr)
+    if isexplicit(form, constr)
         add!(form.buffer, getid(constr))
     end
     return constr
@@ -341,12 +337,10 @@ function _addlocalartvar!(form::Formulation, constr::Constraint)
         name1 = string("local_art_of_", constrname, "1")
         name2 = string("local_art_of_", constrname, "2")
         var1 = setvar!(
-            form, name1, MasterArtVar;
-            cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+            form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         var2 = setvar!(
-            form, name1, MasterArtVar;
-            cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+            form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         push!(constr.art_var_ids, getid(var1))
         push!(constr.art_var_ids, getid(var2))
@@ -355,8 +349,7 @@ function _addlocalartvar!(form::Formulation, constr::Constraint)
     else
         name = string("local_art_of_", constrname)
         var = setvar!(
-            form, name, MasterArtVar;
-            cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
+            form, name, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         push!(constr.art_var_ids, getid(var))
         if constrsense == Greater
@@ -372,7 +365,7 @@ function enforce_integrality!(form::Formulation)
     @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(form))
     for (varid, var) in getvars(form)
         !iscuractive(form, varid) && continue
-        !iscurexplicit(form, varid) && continue
+        !isexplicit(form, varid) && continue
         getcurkind(form, varid) == Integ && continue
         getcurkind(form, varid) == Binary && continue
         if getduty(varid) <= MasterCol || getperenkind(form, varid) != Continuous
@@ -387,7 +380,7 @@ function relax_integrality!(form::Formulation) # TODO remove : should be in Algo
     @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(form))
     for (varid, var) in getvars(form)
         !iscuractive(form, varid) && continue
-        !iscurexplicit(form, varid) && continue
+        !isexplicit(form, varid) && continue
         getcurkind(form, var) == Continuous && continue
         @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to continuous")
         setcurkind!(form, varid, Continuous)
@@ -499,7 +492,7 @@ end
 
 function _show_obj_fun(io::IO, form::Formulation)
     print(io, getobjsense(form), " ")
-    vars = filter(v -> iscurexplicit(form, v.first), getvars(form))
+    vars = filter(v -> isexplicit(form, v.first), getvars(form))
     ids = sort!(collect(keys(vars)), by = getsortuid)
     for id in ids
         name = getname(form, vars[id])
@@ -526,7 +519,7 @@ function _show_constraint(io::IO, form::Formulation, constrid::ConstrId)
         op = ">="
     end
     print(io, " ", op, " ", getcurrhs(form, constr))
-    println(io, " (", getduty(constrid), constrid, " | ", iscurexplicit(form, constr) ,")")
+    println(io, " (", getduty(constrid), constrid, " | ", isexplicit(form, constr) ,")")
     return
 end
 
@@ -547,7 +540,7 @@ function _show_variable(io::IO, form::Formulation, var::Variable)
     ub = getcurub(form, var)
     t = getcurkind(form, var)
     d = getduty(getid(var))
-    e = iscurexplicit(form, var)
+    e = isexplicit(form, var)
     println(io, lb, " <= ", name, " <= ", ub, " (", t, " | ", d , " | ", e, ")")
 end
 

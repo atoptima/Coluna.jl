@@ -29,7 +29,7 @@ function variable_getters_and_setters_tests()
     
     v_data = ClF.VarData(
         ; cost = 13.0, lb = -10.0, ub = 100.0, kind = ClF.Continuous,
-        sense = ClF.Free, is_active = false, is_explicit = false
+        is_active = false, is_explicit = false
     )
 
     v = ClF.Variable(
