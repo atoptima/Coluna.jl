@@ -150,7 +150,7 @@ function setprimalsol!(form::Formulation, new_primal_sol::PrimalSolution)::Tuple
     # compute original cost of the column
     new_cost = 0.0
     for (var_id, var_val) in new_primal_sol
-        new_cost += getperenecost(form, var_id) * var_val
+        new_cost += getperencost(form, var_id) * var_val
     end
 
     # look for an identical column
@@ -170,7 +170,7 @@ end
 function _adddualsol!(form::Formulation, dualsol::DualSolution, dualsol_id::ConstrId)
     rhs = 0.0
     for (constrid, constrval) in dualsol
-        rhs += getperenerhs(form, constrid) * constrval 
+        rhs += getperenrhs(form, constrid) * constrval 
         if getduty(constrid) <= AbstractBendSpMasterConstr
             form.manager.dual_sols[constrid, dualsol_id] = constrval
         end
@@ -336,7 +336,7 @@ function _addlocalartvar!(form::Formulation, constr::Constraint)
     cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
     constrid = getid(constr)
     constrname = getname(form, constr)
-    constrsense = getperenesense(form, constr)
+    constrsense = getperensense(form, constr)
     if constrsense == Equal 
         name1 = string("local_art_of_", constrname, "1")
         name2 = string("local_art_of_", constrname, "2")
@@ -375,7 +375,7 @@ function enforce_integrality!(form::Formulation)
         !iscurexplicit(form, varid) && continue
         getcurkind(form, varid) == Integ && continue
         getcurkind(form, varid) == Binary && continue
-        if getduty(varid) <= MasterCol || getperenekind(form, varid) != Continuous
+        if getduty(varid) <= MasterCol || getperenkind(form, varid) != Continuous
             @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to Integer")
             setcurkind!(form, varid, Integ)
         end
@@ -453,12 +453,12 @@ function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
 end
 
 function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64}) 
-    val = sum(getperenecost(form, varid) * value for (varid, value) in sol_vec)
+    val = sum(getperencost(form, varid) * value for (varid, value) in sol_vec)
     return val
 end
 
 function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)
-    redcost = getperenecost(form, varid)
+    redcost = getperencost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
     sign = 1
     if getobjsense(form) == MinSense
@@ -472,7 +472,7 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
 end
 
 function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution)
-    constrrhs = getperenerhs(form,constrid)
+    constrrhs = getperenrhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol
         coeff = coefficient_matrix[constrid, varid]

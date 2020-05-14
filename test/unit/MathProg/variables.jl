@@ -15,12 +15,12 @@ function getset_variables()
         sense = ClF.Positive, kind = ClF.Integ, inc_val = 4.0
     )
 
-    @test ClF.getperenecost(form, var) == 2.0
-    @test ClF.getperenelb(form, var) == -1.0
-    @test ClF.getpereneub(form, var) == 1.0
-    @test ClF.getperenesense(form, var) == ClF.Positive
-    @test ClF.getperenekind(form, var) == ClF.Integ
-    @test ClF.getpereneincval(form, var) == 4.0
+    @test ClF.getperencost(form, var) == 2.0
+    @test ClF.getperenlb(form, var) == -1.0
+    @test ClF.getperenub(form, var) == 1.0
+    @test ClF.getperensense(form, var) == ClF.Positive
+    @test ClF.getperenkind(form, var) == ClF.Integ
+    @test ClF.getperenincval(form, var) == 4.0
 
     @test ClF.getcurcost(form, var) == 2.0
     @test ClF.getcurlb(form, var) == -1.0

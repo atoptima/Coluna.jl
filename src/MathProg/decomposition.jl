@@ -264,8 +264,8 @@ function create_side_vars_constrs!(
         setvar!(
             masterform, name, MasterBendSecondStageCostVar; 
             cost = 1.0,
-            lb = getperenelb(spform, nu_var), 
-            ub = getpereneub(spform, nu_var), 
+            lb = getperenlb(spform, nu_var), 
+            ub = getperenub(spform, nu_var), 
             kind = Continuous, 
             sense = Free, 
             is_explicit = true, 
@@ -350,7 +350,7 @@ function create_side_vars_constrs!(
     for (varid, var) in getvars(spform)
         getduty(varid) == BendSpSepVar || continue
         orig_var = getvar(origform, varid)
-        cost =  getperenecost(origform, orig_var)
+        cost =  getperencost(origform, orig_var)
         if cost > 0.00001 
             global_costprofit_ub += cost * getcurub(origform, orig_var)
             global_costprofit_lb += cost * getcurlb(origform, orig_var)
@@ -391,7 +391,7 @@ function create_side_vars_constrs!(
 
         for (varid, var) in getvars(spform)
             getduty(varid) == BendSpSepVar || continue
-            sp_coef[getid(cost), varid] = - getperenecost(origform, varid)         
+            sp_coef[getid(cost), varid] = - getperencost(origform, varid)         
         end
     end
     return

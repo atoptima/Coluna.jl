@@ -10,13 +10,13 @@ end
 ## Variable
 
 ```@docs
-getperenecost
+getperencost
 getcurcost
 setcurcost!
-getperenelb
+getperenlb
 getcurlb
 setcurlb!
-getpereneub
+getperenub
 getcurub
 setcurub!
 ```
@@ -24,28 +24,28 @@ setcurub!
 ## Constraint
 
 ```@docs
-getperenerhs
+getperenrhs
 getcurrhs
 setcurrhs!
 ```
 
-## Variable and constraint
+## Attributes Variable and constraint
 
 ```@docs
-getperenekind
+getperenkind
 getcurkind
 setcurkind!
-getperenesense
+getperensense
 getcursense
 setcursense!
-getpereneincval
+getperenincval
 getcurincval
 setcurincval!
-ispereneactive
+isperenactive
 iscuractive
 activate!
 deactivate!
-ispereneexplicit
+isperenexplicit
 iscurexplicit
 ```
 

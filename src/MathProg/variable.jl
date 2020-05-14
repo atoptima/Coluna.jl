@@ -87,7 +87,7 @@ Representation of a variable in Coluna.
 struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
-    perene_data::VarData
+    peren_data::VarData
     moirecord::MoiVarRecord
 end
 

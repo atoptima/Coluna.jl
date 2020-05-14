@@ -26,7 +26,7 @@ end
 
 function Base.isinteger(sol::Solution)
     for (vc_id, val) in sol
-        #if getperenekind(sol.model, vc_id) != Continuous
+        #if getperenkind(sol.model, vc_id) != Continuous
             !isinteger(val) && return false
         #end
     end

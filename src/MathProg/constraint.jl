@@ -52,7 +52,7 @@ Representation of a constraint in Coluna.
 struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
-    perene_data::ConstrData
+    peren_data::ConstrData
     moirecord::MoiConstrRecord
     art_var_ids::Vector{VarId}
 end

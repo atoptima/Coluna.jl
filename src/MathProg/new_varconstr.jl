@@ -1,15 +1,15 @@
 # Variables
 ## Cost
 """
-    getperenecost(formulation, variable)
-    getperenecost(formulation, varid)
+    getperencost(formulation, variable)
+    getperencost(formulation, varid)
 
 Return the cost as defined by the user of a variable in a formulation.
 
 *Performance note* : use a variable rather than its id.
 """
-getperenecost(form::Formulation, varid::VarId) = getperenecost(form, getvar(form, varid))
-getperenecost(form::Formulation, var::Variable) = var.perene_data.cost
+getperencost(form::Formulation, varid::VarId) = getperencost(form, getvar(form, varid))
+getperencost(form::Formulation, var::Variable) = var.peren_data.cost
 
 """
     getcurcost(formulation, variable)
@@ -45,15 +45,15 @@ end
 
 ## Lower bound
 """
-    getperenelb(formulation, varid)
-    getperenelb(formulation, var)
+    getperenlb(formulation, varid)
+    getperenlb(formulation, var)
 
 Return the lower bound as defined by the user of a variable in a formulation.
 
 *Performance note* : use a variable rather than its id.
 """
-getperenelb(form::Formulation, varid::VarId) = getperenelb(form, getvar(form, varid))
-getperenelb(form::Formulation, var::Variable) = var.perene_data.lb
+getperenlb(form::Formulation, varid::VarId) = getperenlb(form, getvar(form, varid))
+getperenlb(form::Formulation, var::Variable) = var.peren_data.lb
 
 """
     getcurlb(formulation, varid)
@@ -87,15 +87,15 @@ setcurlb!(form::Formulation, varid::VarId, lb::Float64) =  setcurlb!(form, getva
 
 ## Upper bound
 """
-    getpereneub(formulation, varid)
-    getpereneub(formulation, var)
+    getperenub(formulation, varid)
+    getperenub(formulation, var)
 
 Return the upper bound as defined by the user of a variable in a formulation.
 
 *Performance note* : use the variable rather than its id.
 """
-getpereneub(form::Formulation, varid::VarId) = getpereneub(form, getvar(form, varid))
-getpereneub(form::Formulation, var::Variable) = var.perene_data.ub
+getperenub(form::Formulation, varid::VarId) = getperenub(form, getvar(form, varid))
+getperenub(form::Formulation, var::Variable) = var.peren_data.ub
 
 """
     getcurub(formulation, varid)
@@ -131,15 +131,15 @@ setcurub!(form::Formulation, varid::VarId, ub::Float64) = setcurub!(form, getvar
 # Constraint
 ## rhs
 """
-    getperenerhs(formulation, constraint)
-    getperenerhs(formulation, constrid)
+    getperenrhs(formulation, constraint)
+    getperenrhs(formulation, constrid)
 
 Return the right-hand side as defined by the user of a constraint in a formulation.
 
 *Performance note* : use a constraint rather than its id.
 """
-getperenerhs(form::Formulation, constr::Constraint) = constr.perene_data.rhs
-getperenerhs(form::Formulation, constrid::ConstrId) = getperenerhs(form, getconstr(form, constrid))
+getperenrhs(form::Formulation, constr::Constraint) = constr.peren_data.rhs
+getperenrhs(form::Formulation, constrid::ConstrId) = getperenrhs(form, getconstr(form, constrid))
 
 """
     getcurrhs(formulation, constraint)
@@ -174,8 +174,8 @@ setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setcurrhs!(for
 # Variable & Constraints
 ## kind
 """
-    getperenekind(formulation, varconstr)
-    getperenekind(formulation, varconstrid)
+    getperenkind(formulation, varconstr)
+    getperenkind(formulation, varconstrid)
 
 Return the kind as defined by the user of a variable or a constraint in a formulation.
 
@@ -188,10 +188,10 @@ Kinds of a constraint (`enum ConstrKind`) are :
 
 *Performance note* : use a variable or a constraint rather than its id.
 """
-getperenekind(form::Formulation, varid::VarId) = getperenekind(form, getvar(form, varid))
-getperenekind(form::Formulation, var::Variable) = var.perene_data.kind
-getperenekind(form::Formulation, constrid::ConstrId) = getperenekind(form, getconstr(form, constrid))
-getperenekind(form::Formulation, constr::Constraint) = constr.perene_data.kind
+getperenkind(form::Formulation, varid::VarId) = getperenkind(form, getvar(form, varid))
+getperenkind(form::Formulation, var::Variable) = var.peren_data.kind
+getperenkind(form::Formulation, constrid::ConstrId) = getperenkind(form, getconstr(form, constrid))
+getperenkind(form::Formulation, constr::Constraint) = constr.peren_data.kind
 
 """
     getcurkind(formulation, varconstr)
@@ -234,8 +234,8 @@ setcurkind!(form::Formulation, constr::Constraint, kind::ConstrKind) = setcurkin
 
 ## sense
 """
-    getperenesense(formulation, varconstr)
-    getperenesense(formulation, varconstrid)
+    getperensense(formulation, varconstr)
+    getperensense(formulation, varconstrid)
 
 Return the sense as defined by the user of a variable or a constraint in a formulation.
 
@@ -244,10 +244,10 @@ Senses or a constraint are (`enum ConstrSense`) `Greater`, `Less`, and `Equal`.
 
 *Performance note* : use a variable or a constraint rather than its id.
 """
-getperenesense(form::Formulation, varid::VarId) = getperenesense(form, getvar(form, varid))
-getperenesense(form::Formulation, var::Variable) = var.perene_data.sense
-getperenesense(form::Formulation, constrid::ConstrId) = getperenesense(form, getconstr(form, constrid))
-getperenesense(form::Formulation, constr::Constraint) = constr.perene_data.sense
+getperensense(form::Formulation, varid::VarId) = getperensense(form, getvar(form, varid))
+getperensense(form::Formulation, var::Variable) = var.peren_data.sense
+getperensense(form::Formulation, constrid::ConstrId) = getperensense(form, getconstr(form, constrid))
+getperensense(form::Formulation, constr::Constraint) = constr.peren_data.sense
 
 """
     getcursense(formulation, varconstr)
@@ -285,16 +285,16 @@ setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense) = setcur
 
 ## inc_val
 """
-    getpereneincval(formulation, varconstrid)
-    getpereneincval(formulation, varconstr)
+    getperenincval(formulation, varconstrid)
+    getperenincval(formulation, varconstr)
 
 Return the incumbent value as defined by the user of a variable or a constraint in a formulation. 
 The incumbent value is ?
 """
-getpereneincval(form::Formulation, varid::VarId) = getpereneincval(form, getvar(form, varid))
-getpereneincval(form::Formulation, var::Variable) = var.perene_data.inc_val
-getpereneincval(form::Formulation, constrid::ConstrId) = getpereneincval(form, getconstr(form, constr))
-getpereneincval(form::Formulation, constr::Constraint) = constr.perene_data.inc_val
+getperenincval(form::Formulation, varid::VarId) = getperenincval(form, getvar(form, varid))
+getperenincval(form::Formulation, var::Variable) = var.peren_data.inc_val
+getperenincval(form::Formulation, constrid::ConstrId) = getperenincval(form, getconstr(form, constr))
+getperenincval(form::Formulation, constr::Constraint) = constr.peren_data.inc_val
 
 """
     getcurincval(formulation, varconstrid)
@@ -331,8 +331,8 @@ setcurincval!(form::Formulation, constr::Constraint, inc_val::Real) = setcurincv
 
 ## active
 """
-    ispereneactive(formulation, varconstrid)
-    ispereneactive(formulation, varconstr)
+    isperenactive(formulation, varconstrid)
+    isperenactive(formulation, varconstr)
 
 Return `true` if the variable or the constraint is active in the formulation; `false` otherwise.
 A variable (or a constraint) is active if it is used in the formulation. You can fake the 
@@ -341,10 +341,10 @@ to reactivate it later.
 
 *Performance note* : use a variable or a constraint rather than its id.
 """
-ispereneactive(form::Formulation, varid::VarId) = ispereneactive(form, getvar(form, varid))
-ispereneactive(form::Formulation, var::Variable) = var.perene_data.is_active
-ispereneactive(form::Formulation, constrid::ConstrId) = ispereneactive(form, getconstr(form, constrid))
-ispereneactive(form::Formulation, constr::Constraint) = constr.perene_data.is_active
+isperenactive(form::Formulation, varid::VarId) = isperenactive(form, getvar(form, varid))
+isperenactive(form::Formulation, var::Variable) = var.peren_data.is_active
+isperenactive(form::Formulation, constrid::ConstrId) = isperenactive(form, getconstr(form, constrid))
+isperenactive(form::Formulation, constr::Constraint) = constr.peren_data.is_active
 
 """
     iscuractive(formulation, varconstrid)
@@ -451,10 +451,10 @@ end
 """
 todo
 """
-ispereneexplicit(form::Formulation, varid::VarId) = getperenisexplicit(form, getvar(form, varid))
-ispereneexplicit(form::Formulation, var::Variable) = var.perene_data.is_explicit
-ispereneexplicit(form::Formulation, constrid::ConstrId) = ispereneexplicit(form, getconstr(form, constr))
-ispereneexplicit(form::Formulation, constr::Constraint) = constr.perene_data.is_explicit
+isperenexplicit(form::Formulation, varid::VarId) = getperenisexplicit(form, getvar(form, varid))
+isperenexplicit(form::Formulation, var::Variable) = var.peren_data.is_explicit
+isperenexplicit(form::Formulation, constrid::ConstrId) = isperenexplicit(form, getconstr(form, constr))
+isperenexplicit(form::Formulation, constr::Constraint) = constr.peren_data.is_explicit
 
 """
 todo
@@ -500,38 +500,38 @@ getname(form::Formulation, constr::Constraint) = constr.name
 doc todo
 """
 function reset!(form::Formulation, var::Variable)
-    setcurcost!(form, var, getperenecost(form, var))
-    setcurlb!(form, var, getperenelb(form, var))
-    setcurub!(form, var, getpereneub(form, var))
-    setcurkind!(form, var, getperenekind(form, var))
-    setcursense!(form, var, getperenesense(form, var))
-    setcurincval!(form, var, getpereneincval(form, var))
+    setcurcost!(form, var, getperencost(form, var))
+    setcurlb!(form, var, getperenlb(form, var))
+    setcurub!(form, var, getperenub(form, var))
+    setcurkind!(form, var, getperenkind(form, var))
+    setcursense!(form, var, getperensense(form, var))
+    setcurincval!(form, var, getperenincval(form, var))
 
-    if ispereneactive(form, var)
+    if isperenactive(form, var)
         activate!(form, var)
     else
         deactivate!(form, var)
     end
 
-    setiscurexplicit!(form, var, ispereneexplicit(form, var))
+    setiscurexplicit!(form, var, isperenexplicit(form, var))
     return
 end
 reset!(form::Formulation, varid::VarId)  = reset!(form, getvar(form, varid)) 
 
 
 function reset!(form::Formulation, constr::Constraint)
-    setcurrhs!(form, constr, getperenerhs(form, constr))
-    setcurkind!(form, constr, getperenekind(form, constr))
-    setcursense!(form, constr, getperenesense(form, constr))
-    setcurincval!(form, constr , getpereneincval(form, constr))
+    setcurrhs!(form, constr, getperenrhs(form, constr))
+    setcurkind!(form, constr, getperenkind(form, constr))
+    setcursense!(form, constr, getperensense(form, constr))
+    setcurincval!(form, constr , getperenincval(form, constr))
     
-    if ispereneactive(form, constr)
+    if isperenactive(form, constr)
         activate!(form, constr)
     else
         deactivate!(form, constr)
     end
 
-    setiscurexplicit!(form, constr, ispereneexplicit(form, constr))
+    setiscurexplicit!(form, constr, isperenexplicit(form, constr))
     return
 end
 
