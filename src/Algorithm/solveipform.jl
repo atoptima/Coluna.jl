@@ -8,6 +8,7 @@ Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
     time_limit::Int = 600
     deactivate_artificial_vars = true
     enforce_integrality = true
+    silent = true
     log_level = 0
 end
 
@@ -92,6 +93,7 @@ check_if_optimizer_supports_ip(optimizer::UserOptimizer) = true
 
 function optimize_ip_form!(algo::SolveIpForm, optimizer::MoiOptimizer, form::Formulation)
     MOI.set(optimizer.inner, MOI.TimeLimitSec(), algo.time_limit)
+    MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
     # No way to enforce upper bound through MOI. 
     # Add a constraint c'x <= UB in form ?
 
