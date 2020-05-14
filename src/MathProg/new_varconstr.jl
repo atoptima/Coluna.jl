@@ -27,17 +27,20 @@ getcurcost(form::Formulation, var::Variable) = getcurcost(form, getid(var))
 Set the current cost of variable in the formulation.
 If the variable is active and explicit, this change is buffered before application to the 
 subsolver.
+
+*Performance note* : use a variable rather than its id.
 """
-function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
+function setcurcost!(form::Formulation, var::Variable, cost::Float64)
+    varid = getid(var)
     form.manager.var_datas[varid].cost = cost
-    if iscurexplicit(form, varid) && iscuractive(form, varid)
+    if iscurexplicit(form, var) && iscuractive(form, var)
         change_cost!(form.buffer, varid)
     end
     return
 end
 
-function setcurcost!(form::Formulation, var::Variable, cost::Float64)
-    return setcurcost!(form, getid(var), cost)
+function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
+    return setcurcost!(form, getvar(form, varid), cost)
 end
 
 ## Lower bound
@@ -68,15 +71,18 @@ getcurlb(form::Formulation, var::Variable) = getcurlb(form, getid(var))
 Set the current lower bound of a variable in a formulation.
 If the variable is active and explicit, change is buffered before application to the
 subsolver.
+
+*Performance note* : use a variable rather than its id.
 """
-function setcurlb!(form::Formulation, varid::VarId, lb::Float64)
+function setcurlb!(form::Formulation, var::Variable, lb::Float64)
+    varid = getid(var)
     form.manager.var_datas[varid].lb = lb
-    if iscurexplicit(form, varid) && iscuractive(form, varid)
+    if iscurexplicit(form, var) && iscuractive(form, var)
         change_bound!(form.buffer, varid)
     end
     return
 end
-setcurlb!(form::Formulation, var::Variable, lb::Float64) =  setcurlb!(form, getid(var), lb)
+setcurlb!(form::Formulation, varid::VarId, lb::Float64) =  setcurlb!(form, getvar(form, varid), lb)
 
 
 ## Upper bound
@@ -108,15 +114,18 @@ getcurub(form::Formulation, var::Variable) = getcurub(form, getid(var))
 Set the current upper bound of a variable in a formulation.
 If the variable is active and explicit, change is buffered before application to the
 subsolver.
+
+*Performance note* : use a variable rather than its id.
 """
-function setcurub!(form::Formulation, varid::VarId, ub::Float64)
+function setcurub!(form::Formulation, var::Variable, ub::Float64)
+    varid = getid(var)
     form.manager.var_datas[varid].ub = ub
-    if iscurexplicit(form, varid) && iscuractive(form, varid)
+    if iscurexplicit(form, var) && iscuractive(form, var)
         change_bound!(form.buffer, varid)
     end
     return
 end
-setcurub!(form::Formulation, var::Variable, ub::Float64) = setcurub!(form, getid(var), ub)
+setcurub!(form::Formulation, varid::VarId, ub::Float64) = setcurub!(form, getvar(form, varid), ub)
 
 
 # Constraint
@@ -148,15 +157,18 @@ getcurrhs(form::Formulation, constr::Constraint) = getcurrhs(form, getid(constr)
 Set the current right-hand side of a constraint in a formulation. 
 If the constraint is active and explicit, this change is buffered before application to the
 subsolver.
+
+*Performance note* : use a constraint rather than its id.
 """
-function setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) 
+function setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64) 
+    constrid = getid(constr)
     form.manager.constr_datas[constrid].rhs = rhs
-    if iscurexplicit(form, constrid) && iscuractive(form, constrid)
+    if iscurexplicit(form, constr) && iscuractive(form, constr)
         change_rhs!(form.buffer, constrid)
     end
     return
 end
-setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64) = setcurrhs!(form, getid(constr), rhs)
+setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setcurrhs!(form, getconstr(form, constrid), rhs)
 
 
 # Variable & Constraints
@@ -222,7 +234,15 @@ setcurkind!(form::Formulation, constr::Constraint, kind::ConstrKind) = setcurkin
 
 ## sense
 """
-todo
+    getperenesense(formulation, varconstr)
+    getperenesense(formulation, varconstrid)
+
+Return the sense as defined by the user of a variable or a constraint in a formulation.
+
+Senses or a variable are (`enum VarSense`)  `Positive`, `Negative`, and `Free`.
+Senses or a constraint are (`enum ConstrSense`) `Greater`, `Less`, and `Equal`.
+
+*Performance note* : use a variable or a constraint rather than its id.
 """
 getperenesense(form::Formulation, varid::VarId) = getperenesense(form, getvar(form, varid))
 getperenesense(form::Formulation, var::Variable) = var.perene_data.sense
@@ -230,7 +250,10 @@ getperenesense(form::Formulation, constrid::ConstrId) = getperenesense(form, get
 getperenesense(form::Formulation, constr::Constraint) = constr.perene_data.sense
 
 """
-todo
+    getcursense(formulation, varconstr)
+    getcursense(formulation, varconstrid)
+
+Return the current sense of a variable or a constraint in a formulation.
 """
 getcursense(form::Formulation, varid::VarId) = form.manager.var_datas[varid].sense
 getcursense(form::Formulation, var::Variable) = getcursense(form, getid(var))
@@ -238,7 +261,10 @@ getcursense(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[c
 getcursense(form::Formulation, constr::Constraint) = getcursense(form, getid(constr))
 
 """
-todo
+    setcursense!(formulation, constr, sense::ConstrSense)
+    setcursense!(formulation, constrid, sense::ConstrSense)
+
+Set the current sense of a constraint in a formulation.
 """
 function setcursense!(form::Formulation, varid::VarId, sense::VarSense)
     form.manager.var_datas[varid].sense = sense
@@ -259,7 +285,11 @@ setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense) = setcur
 
 ## inc_val
 """
-todo
+    getpereneincval(formulation, varconstrid)
+    getpereneincval(formulation, varconstr)
+
+Return the incumbent value as defined by the user of a variable or a constraint in a formulation. 
+The incumbent value is ?
 """
 getpereneincval(form::Formulation, varid::VarId) = getpereneincval(form, getvar(form, varid))
 getpereneincval(form::Formulation, var::Variable) = var.perene_data.inc_val
@@ -267,7 +297,10 @@ getpereneincval(form::Formulation, constrid::ConstrId) = getpereneincval(form, g
 getpereneincval(form::Formulation, constr::Constraint) = constr.perene_data.inc_val
 
 """
-todo
+    getcurincval(formulation, varconstrid)
+    getcurincval(formulation, varconstr)
+
+Return the current incumbent value of a variable or a constraint in a formulation.
 """
 getcurincval(form::Formulation, varid::VarId) = form.manager.var_datas[varid].inc_val
 getcurincval(form::Formulation, var::Variable) = getcurincval(form, getid(var))
@@ -275,28 +308,38 @@ getcurincval(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[
 getcurincval(form::Formulation, constr::Constraint) = getcurincval(form, getid(constr))
 
 """
-todo
+    setcurincval!(formulation, varconstrid, value::Real)
+
+Set the current incumbent value of a variable or a constraint in a formulation.
 """
 function setcurincval!(form::Formulation, varid::VarId, inc_val::Real)
     form.manager.var_datas[varid].inc_val = inc_val
-    if iscurexplicit(form, varid) 
-        #change_inc_val!(form.buffer, getvar(form, varid))
-    end
+    # if iscurexplicit(form, varid) 
+    #     #change_inc_val!(form.buffer, getvar(form, varid))
+    # end
     return
 end
 setcurincval!(form::Formulation, var::Variable, inc_val::Real) = setcurincval!(form, getid(var), inc_val)
 function setcurincval!(form::Formulation, constrid::ConstrId, inc_val::Real)
     form.manager.constr_datas[constrid].inc_val = inc_val
-    if iscurexplicit(form, constrid) 
-        #change_inc_val!(form.buffer, getconstr(form, constrid))
-    end
+    # if iscurexplicit(form, constrid) 
+    #     #change_inc_val!(form.buffer, getconstr(form, constrid))
+    # end
     return
 end
 setcurincval!(form::Formulation, constr::Constraint, inc_val::Real) = setcurincval!(form, getid(constr), inc_val)
 
 ## active
 """
-todo
+    ispereneactive(formulation, varconstrid)
+    ispereneactive(formulation, varconstr)
+
+Return `true` if the variable or the constraint is active in the formulation; `false` otherwise.
+A variable (or a constraint) is active if it is used in the formulation. You can fake the 
+deletion of the variable by deativate it. This allows you to keep the variable if you want 
+to reactivate it later.
+
+*Performance note* : use a variable or a constraint rather than its id.
 """
 ispereneactive(form::Formulation, varid::VarId) = ispereneactive(form, getvar(form, varid))
 ispereneactive(form::Formulation, var::Variable) = var.perene_data.is_active
@@ -304,7 +347,10 @@ ispereneactive(form::Formulation, constrid::ConstrId) = ispereneactive(form, get
 ispereneactive(form::Formulation, constr::Constraint) = constr.perene_data.is_active
 
 """
-todo
+    iscuractive(formulation, varconstrid)
+    iscuractive(formulation, varconstr)
+
+Return `true` if the variable or the constraint is currently active; `false` otherwise.
 """
 iscuractive(form::Formulation, varid::VarId) = form.manager.var_datas[varid].is_active
 iscuractive(form::Formulation, var::Variable) = iscuractive(form, getid(var))
@@ -321,7 +367,6 @@ function _setiscuractive!(form::Formulation, constrid::ConstrId, is_active::Bool
     return
 end
 
-
 function _activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
     if iscurexplicit(form, varconstrid) && !iscuractive(form, varconstrid)
         add!(form.buffer, varconstrid)
@@ -330,9 +375,14 @@ function _activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractV
     return
 end
 
-"Activate a variable or a constraint in the formulation"
+"""
+    activate!(formulation, varconstrid)
+    activate!(formulation, varconstr)
+
+Activate a variable or a constraint in a formulation.
+"""
 function activate!(form::Formulation, constrid::ConstrId)
-    _activate!(form::Formulation, constrid)
+    _activate!(form, constrid)
     constr = getconstr(form, constrid)
     for varid in constr.art_var_ids
         _activate!(form, varid)
@@ -366,7 +416,10 @@ function _deactivate!(form::Formulation, varconstrid::Id{VC}) where {VC<:Abstrac
 end
 
 """
-Deactivate a variable or a constraint in the formulation
+    deactivate!(formulation, varconstrid)
+    deactivate!(formulation, varconstr)
+
+Deactivate a variable or a constraint in a formulation
 """
 function deactivate!(form::Formulation, constrid::ConstrId)
     _deactivate!(form, constrid)

@@ -35,5 +35,17 @@ setcurrhs!
 getperenekind
 getcurkind
 setcurkind!
+getperenesense
+getcursense
+setcursense!
+getpereneincval
+getcurincval
+setcurincval!
+ispereneactive
+iscuractive
+activate!
+deactivate!
+ispereneexplicit
+iscurexplicit
 ```
 
