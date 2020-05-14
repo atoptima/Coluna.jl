@@ -1,23 +1,32 @@
 # Variables
 ## Cost
 """
-doc todo
+    getperenecost(formulation, variable)
+    getperenecost(formulation, varid)
+
+Return the cost as defined by the user of a variable in a formulation.
+
+*Performance note* : use a variable rather than its id.
 """
 getperenecost(form::Formulation, varid::VarId) = getperenecost(form, getvar(form, varid))
 getperenecost(form::Formulation, var::Variable) = var.perene_data.cost
 
 """
-doc todo
+    getcurcost(formulation, variable)
+    getcurcost(formulation, varid)
+
+Return the current cost of the variable in the formulation.
 """
 getcurcost(form::Formulation, varid::VarId) = form.manager.var_datas[varid].cost
 getcurcost(form::Formulation, var::Variable) = getcurcost(form, getid(var))
 
 """
-    setcurcost!(form::Formulation, id::Id{Variable}, cost::Float64)
-    setcurcost!(form::Formulation, var::Variable, cost::Float64)
+    setcurcost!(formulation, varid, cost::Float64)
+    setcurcost!(formulation, variable, cost::Float64)
 
-Set the current cost of variable `var` with id `id` to `cost` in formulation
-`form`.
+Set the current cost of variable in the formulation.
+If the variable is active and explicit, this change is buffered before application to the 
+subsolver.
 """
 function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
     form.manager.var_datas[varid].cost = cost
@@ -33,24 +42,32 @@ end
 
 ## Lower bound
 """
-doc todo
+    getperenelb(formulation, varid)
+    getperenelb(formulation, var)
+
+Return the lower bound as defined by the user of a variable in a formulation.
+
+*Performance note* : use a variable rather than its id.
 """
 getperenelb(form::Formulation, varid::VarId) = getperenelb(form, getvar(form, varid))
 getperenelb(form::Formulation, var::Variable) = var.perene_data.lb
 
 """
-doc todo
+    getcurlb(formulation, varid)
+    getcurlb(formulation, var)
+
+Return the current lower bound of a variable in a formulation.
 """
-#getcurlb(form::Formulation, varid::VarId) = form.manager.var_lbs[getuid(varid)]
-getcurlb(form::Formulation, varid::VarId) = form.manager.var_datas[varid].lb #get(form.manager.var_lbs, varid, 0.0)
+getcurlb(form::Formulation, varid::VarId) = form.manager.var_datas[varid].lb
 getcurlb(form::Formulation, var::Variable) = getcurlb(form, getid(var))
 
 """
-    setcurlb!(form::Formulation, id::Id{Variable}, lb::Float64)
-    setcurlb!(form::Formulation, var::Variable, lb::Float64)
+    setcurlb!(formulation, varid, lb::Float64)
+    setcurlb!(formulation, var, lb::Float64)
 
-Sets `v.cur_data.lb` as well as the bounds constraint of `v` in `f.optimizer`
-according to `new_lb`. Change on `f.optimizer` will be buffered.
+Set the current lower bound of a variable in a formulation.
+If the variable is active and explicit, change is buffered before application to the
+subsolver.
 """
 function setcurlb!(form::Formulation, varid::VarId, lb::Float64)
     form.manager.var_datas[varid].lb = lb
@@ -64,46 +81,74 @@ setcurlb!(form::Formulation, var::Variable, lb::Float64) =  setcurlb!(form, geti
 
 ## Upper bound
 """
-doc todo
+    getpereneub(formulation, varid)
+    getpereneub(formulation, var)
+
+Return the upper bound as defined by the user of a variable in a formulation.
+
+*Performance note* : use the variable rather than its id.
 """
 getpereneub(form::Formulation, varid::VarId) = getpereneub(form, getvar(form, varid))
 getpereneub(form::Formulation, var::Variable) = var.perene_data.ub
 
 """
-doc todo
+    getcurub(formulation, varid)
+    getcurub(formulation, var)
+
+Return the current upper bound of a variable in a formulation.
 """
 #getcurub(form::Formulation, varid::VarId) = form.manager.var_ubs[getuid(varid)]
 getcurub(form::Formulation, varid::VarId) = form.manager.var_datas[varid].ub #get(form.manager.var_ubs, varid, Inf)
 getcurub(form::Formulation, var::Variable) = getcurub(form, getid(var))
 
 """
-    setcurub!(form::Formulation, id::Id{Variable}, ub::Float64)
-    setcurub!(form::Formulation, var::Variable, ub::Float64)
+    setcurub!(formulation, varid, ub::Float64)
+    setcurub!(formulation, var, ub::Float64)
 
-Sets `v.cur_data.ub` as well as the bounds constraint of `v` in `f.optimizer`
-according to `new_ub`. Change on `f.optimizer` will be buffered.
+Set the current upper bound of a variable in a formulation.
+If the variable is active and explicit, change is buffered before application to the
+subsolver.
 """
-function setcurub!(form::Formulation, var::Variable, ub::Float64)
-    varid = getid(var)
+function setcurub!(form::Formulation, varid::VarId, ub::Float64)
     form.manager.var_datas[varid].ub = ub
-    if iscurexplicit(form, varid) && iscuractive(form, var)
+    if iscurexplicit(form, varid) && iscuractive(form, varid)
         change_bound!(form.buffer, varid)
     end
     return
 end
-setcurub!(form::Formulation, varid::VarId, ub::Float64) = setcurub!(form, getvar(form, varid), ub)
+setcurub!(form::Formulation, var::Variable, ub::Float64) = setcurub!(form, getid(var), ub)
 
 
 # Constraint
 ## rhs
+"""
+    getperenerhs(formulation, constraint)
+    getperenerhs(formulation, constrid)
+
+Return the right-hand side as defined by the user of a constraint in a formulation.
+
+*Performance note* : use a constraint rather than its id.
+"""
 getperenerhs(form::Formulation, constr::Constraint) = constr.perene_data.rhs
 getperenerhs(form::Formulation, constrid::ConstrId) = getperenerhs(form, getconstr(form, constrid))
-setperenerhs!(form::Formulation, constr::Constraint, rhs::Float64) = constr.perene_data.rhs = rhs
-setperenerhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setperenerhs!(form, getconstr(form, constrid), rhs)
 
-# Current
+"""
+    getcurrhs(formulation, constraint)
+    getcurrhs(formulation, constrid)
+
+Return the current right-hand side of a constraint in a formulation.
+"""
 getcurrhs(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[constrid].rhs
 getcurrhs(form::Formulation, constr::Constraint) = getcurrhs(form, getid(constr))
+
+"""
+    setcurrhs(formulation, constraint, rhs::Float64)
+    setcurrhs(formulation, constrid, rhs::Float64)
+
+Set the current right-hand side of a constraint in a formulation. 
+If the constraint is active and explicit, this change is buffered before application to the
+subsolver.
+"""
 function setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) 
     form.manager.constr_datas[constrid].rhs = rhs
     if iscurexplicit(form, constrid) && iscuractive(form, constrid)
@@ -117,7 +162,19 @@ setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64) = setcurrhs!(for
 # Variable & Constraints
 ## kind
 """
-todo
+    getperenekind(formulation, varconstr)
+    getperenekind(formulation, varconstrid)
+
+Return the kind as defined by the user of a variable or a constraint in a formulation.
+
+Kinds of variable (`enum VarKind`) are `Continuous`, `Binary`, or `Integ`.
+    
+Kinds of a constraint (`enum ConstrKind`) are : 
+ - `Core` when the constraint structures the problem
+ - `Facultative` when the constraint does not structure the problem
+ - `SubSystem` (to do)
+
+*Performance note* : use a variable or a constraint rather than its id.
 """
 getperenekind(form::Formulation, varid::VarId) = getperenekind(form, getvar(form, varid))
 getperenekind(form::Formulation, var::Variable) = var.perene_data.kind
@@ -125,7 +182,10 @@ getperenekind(form::Formulation, constrid::ConstrId) = getperenekind(form, getco
 getperenekind(form::Formulation, constr::Constraint) = constr.perene_data.kind
 
 """
-todo
+    getcurkind(formulation, varconstr)
+    getcurkind(formulation, varconstrid)
+
+Return the current kind of a variable or a constraint in a formulation.
 """
 getcurkind(form::Formulation, varid::VarId) = form.manager.var_datas[varid].kind
 getcurkind(form::Formulation, var::Variable) = getcurkind(form, getid(var))
@@ -133,11 +193,14 @@ getcurkind(form::Formulation, constrid::ConstrId) = form.manager.constr_datas[co
 getcurkind(form::Formulation, constr::Constraint) = getcurkind(form, getid(constr))
 
 """
-    setcurkind!(f::Formulation, v::Variable, kind::VarKind)
-    setcurkind!(f::Formulation, c::Constraint, kind::ConstrKind)
+    setcurkind!(formulation, variable, kind::VarKind)
+    setcurkind!(formulation, varid, kind::VarKind)
+    setcurkind!(formulation, constraint, kind::ConstrKind)
+    setcurkind!(formulation, constrid, kind::ConstrKind)
 
-Sets `v.cur_data.kind` as well as the kind constraint of `v` in `f.optimizer`
-according to `new_kind`. Change on `f.optimizer` will be buffered.
+Set the current kind of a variable or a constraint in a formulation.
+If the variable or the constraint is active and explicit, this change is buffered before
+application to the subsolver
 """
 function setcurkind!(form::Formulation, varid::VarId, kind::VarKind)
     form.manager.var_datas[varid].kind = kind
