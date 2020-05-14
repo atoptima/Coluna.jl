@@ -36,7 +36,7 @@ J = 1:nb_jobs
 # JuMP model
 @variable(model, x[m in M, j in J], Bin)
 @constraint(model, cov[j in J], sum(x[m,j] for m in M) == 1)
-@objective(model, Min, sum(c[j,m]*x[m,j] for m in M, j in J))
+@objective(model, Min, sum(c[m,j]*x[m,j] for m in M, j in J))
 @dantzig_wolfe_decomposition(model, dwdec, M)
 ```
 
@@ -74,11 +74,11 @@ function my_pricing_callback(cbdata)
 
     # Create the solution (send only variables with non-zero values)
     sol_vars = [x[cur_machine, j] for j in jobs_assigned_to_cur_machine]
-    sol_vals = [1 for j in jobs_assigned_to_cur_machine]
-    sol_cost = sum(redcosts[j] for j in jobs_assigned_to_cur_machine)
+    sol_vals = [1.0 for j in jobs_assigned_to_cur_machine]
+    sol_cost = sum(red_costs[j] for j in jobs_assigned_to_cur_machine)
 
     # Submit the solution to the subproblem to Coluna
-    MOI.submit!(model, BD.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
+    MOI.submit(model, BD.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
     return
 end
 ```

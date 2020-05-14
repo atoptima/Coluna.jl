@@ -155,16 +155,6 @@ function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::F
     return
 end
 
-function call_moi_optimize_with_silence(optimizer::MoiOptimizer)
-    backup_stdout = stdout
-    (rd_out, wr_out) = redirect_stdout()
-    MOI.optimize!(getinner(optimizer))
-    close(wr_out)
-    close(rd_out)
-    redirect_stdout(backup_stdout)
-    return
-end
-
 function remove_from_optimizer!(form::Formulation, var::Variable)                       
     inner = getinner(form.optimizer)
     moirecord = getmoirecord(var)
@@ -251,6 +241,41 @@ function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
     @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return
 end
+
+function _getreducedcost(form::Formulation, optimizer, var::Variable)
+    varname = getname(form, var)
+    opt = typeof(optimizer)
+    @warn """
+        Cannot retrieve reduced cost of variable $varname from formulation solved with optimizer of type $opt. 
+        Method returns nothing.
+    """
+    return nothing
+end
+
+function _getreducedcost(form::Formulation, optimizer::MoiOptimizer, var::Variable)
+    sign = getobjsense(form) == MinSense ? 1.0 : -1.0
+    inner = getinner(optimizer)
+    if MOI.get(inner, MOI.ResultCount()) < 1
+        @warn """
+            No dual solution stored in the optimizer of formulation. Cannot retrieve reduced costs.
+            Method returns nothing.
+        """
+        return nothing
+    end
+    if !iscuractive(form, var) || !iscurexplicit(form, var)
+        varname = getname(form, var)
+        @warn """
+            Cannot retrieve reduced cost of variable $varname because the variable must be active and explicit.
+            Method returns nothing.
+        """
+        return nothing
+    end
+    bounds_interval_idx = getbounds(getmoirecord(var))
+    dualval = MOI.get(inner, MOI.ConstraintDual(1), bounds_interval_idx)
+    return sign * dualval
+end
+getreducedcost(form::Formulation, var::Variable) = _getreducedcost(form, getoptimizer(form), var)
+getreducedcost(form::Formulation, varid::VarId) = _getreducedcost(form, getoptimizer(form), getvar(form, varid))
 
 function _show_function(io::IO, moi_model::MOI.ModelLike,
                         func::MOI.ScalarAffineFunction)

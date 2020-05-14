@@ -258,40 +258,63 @@ function _setiscuractive!(form::Formulation, constrid::ConstrId, is_active::Bool
     return
 end
 
-"Activate a variable in the formulation"
-function activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
-    if iscurexplicit(form, varconstrid)
+
+function _activate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
+    if iscurexplicit(form, varconstrid) && !iscuractive(form, varconstrid)
         add!(form.buffer, varconstrid)
     end
     _setiscuractive!(form, varconstrid, true)
     return
 end
+
+"Activate a variable or a constraint in the formulation"
+function activate!(form::Formulation, constrid::ConstrId)
+    _activate!(form::Formulation, constrid)
+    constr = getconstr(form, constrid)
+    for varid in constr.art_var_ids
+        _activate!(form, varid)
+    end
+    return
+end
+
+activate!(form::Formulation, varid::VarId) = _activate!(form, varid)
 activate!(form::Formulation, varconstr::AbstractVarConstr) = activate!(form, getid(varconstr))
 
 function activate!(form::Formulation, f::Function)
     for (varid, _) in getvars(form)
-        if iscuractive(form, varid) && f(varid)
+        if !iscuractive(form, varid) && f(varid)
             activate!(form, varid)
         end
     end
     for (constrid, _) in getconstrs(form)
-        if iscuractive(form, constrid) && f(constrid)
+        if !iscuractive(form, constrid) && f(constrid)
             activate!(form, constrid)
         end
     end
     return
 end
 
-"""
-Deactivate a variable or a constraint in the formulation
-"""
-function deactivate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
+function _deactivate!(form::Formulation, varconstrid::Id{VC}) where {VC<:AbstractVarConstr}
     if iscurexplicit(form, varconstrid) && iscuractive(form, varconstrid)
         remove!(form.buffer, varconstrid)
     end
     _setiscuractive!(form, varconstrid, false)
     return
 end
+
+"""
+Deactivate a variable or a constraint in the formulation
+"""
+function deactivate!(form::Formulation, constrid::ConstrId)
+    _deactivate!(form, constrid)
+    constr = getconstr(form, constrid)
+    for varid in constr.art_var_ids
+        _deactivate!(form, varid)
+    end
+    return
+end
+
+deactivate!(form::Formulation, varid::VarId) = _deactivate!(form, varid)
 deactivate!(form::Formulation, varconstr::AbstractVarConstr) = deactivate!(form, getid(varconstr))
 
 function deactivate!(form::Formulation, f::Function)
