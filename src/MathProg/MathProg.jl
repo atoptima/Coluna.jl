@@ -27,13 +27,12 @@ include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
 include("duties.jl")
-include("varconstr.jl") # to rm
 include("manager.jl")
 include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
 include("formulation.jl")
-include("new_varconstr.jl") 
+include("varconstr.jl") 
 include("optimizerwrappers.jl")
 include("clone.jl")
 include("reformulation.jl")
@@ -97,7 +96,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperenub, getcurub, setcurub!, getperenrhs, getcurrhs, setcurrhs!, getperensense,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval, 
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isperenexplicit, isexplicit, setisexplicit!, getname, reset!, getreducedcost
+    isexplicit, getname, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
 # Note : we should export only get methods for MoiResult (the solution is built in MathProg)
