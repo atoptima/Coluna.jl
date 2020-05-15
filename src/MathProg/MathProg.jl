@@ -27,13 +27,12 @@ include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
 include("duties.jl")
-include("varconstr.jl") # to rm
 include("manager.jl")
 include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
 include("formulation.jl")
-include("new_varconstr.jl") 
+include("varconstr.jl") 
 include("optimizerwrappers.jl")
 include("clone.jl")
 include("reformulation.jl")
@@ -93,11 +92,11 @@ export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresenta
 
 # Types and methods related to variables and constraints
 export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership, 
-    getperenecost, getcurcost, setcurcost!, getperenelb, getcurlb, setcurlb!, 
-    getpereneub, getcurub, setcurub!, getperenerhs, getcurrhs, setcurrhs!, getperenesense,
-    getcursense, setcursense!, getperenekind, getcurkind, setcurkind!, getpereneincval, 
-    getcurincval, setcurincval!, ispereneactive, iscuractive, activate!, deactivate!,
-    ispereneexplicit, iscurexplicit, setiscurexplicit!, getname, reset!, getreducedcost
+    getperencost, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!, 
+    getperenub, getcurub, setcurub!, getperenrhs, getcurrhs, setcurrhs!, getperensense,
+    getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval, 
+    getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
+    isexplicit, getname, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
 # Note : we should export only get methods for MoiResult (the solution is built in MathProg)

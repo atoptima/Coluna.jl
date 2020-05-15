@@ -3,8 +3,8 @@ function set_glob_art_var(form::Formulation, is_pos::Bool)
     cost = Cl._params_.global_art_var_cost
     cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
     return setvar!(
-        form, name, MasterArtVar; 
-        cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive 
+        form, name, MasterArtVar;
+        cost = cost, lb = 0.0, ub = Inf, kind = Continuous
     )
 end
 
@@ -195,8 +195,8 @@ function create_side_vars_constrs!(
 )
     name = "PricingSetupVar_sp_$(getuid(spform))"
     setvar!(
-        spform, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, 
-        kind = Integ, sense = Positive, is_explicit = true
+        spform, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, kind = Integ,
+        is_explicit = true
     ) 
     return
 end
@@ -264,10 +264,9 @@ function create_side_vars_constrs!(
         setvar!(
             masterform, name, MasterBendSecondStageCostVar; 
             cost = 1.0,
-            lb = getperenelb(spform, nu_var), 
-            ub = getpereneub(spform, nu_var), 
-            kind = Continuous, 
-            sense = Free, 
+            lb = getperenlb(spform, nu_var), 
+            ub = getperenub(spform, nu_var), 
+            kind = Continuous,
             is_explicit = true, 
             id = Id{Variable}(MasterBendSecondStageCostVar, getid(nu_var), getuid(masterform))
         )                                 
@@ -298,13 +297,12 @@ function instantiate_orig_vars!(
             if duty == MasterBendFirstStageVar
                 name = "μ[$(split(getname(origform, var), "[")[end])"
                 mu = setvar!(
-                    spform, name, BendSpSlackFirstStageVar; 
-                    cost = getcurcost(origform, var), 
-                    lb = getcurlb(origform, var), 
-                    ub = getcurub(origform, var), 
-                    kind = Continuous, 
-                    sense = getcursense(origform, var), 
-                    is_explicit = true, 
+                    spform, name, BendSpSlackFirstStageVar;
+                    cost = getcurcost(origform, var),
+                    lb = getcurlb(origform, var),
+                    ub = getcurub(origform, var),
+                    kind = Continuous,
+                    is_explicit = true,
                     id = Id{Variable}(BendSpSlackFirstStageVar, id, getuid(masterform))
                 )
             end
@@ -350,7 +348,7 @@ function create_side_vars_constrs!(
     for (varid, var) in getvars(spform)
         getduty(varid) == BendSpSepVar || continue
         orig_var = getvar(origform, varid)
-        cost =  getperenecost(origform, orig_var)
+        cost =  getperencost(origform, orig_var)
         if cost > 0.00001 
             global_costprofit_ub += cost * getcurub(origform, orig_var)
             global_costprofit_lb += cost * getcurlb(origform, orig_var)
@@ -369,12 +367,11 @@ function create_side_vars_constrs!(
         sp_id = getuid(spform)
         # Cost constraint
         nu = setvar!(
-            spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar; 
+            spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar;
             cost = 1.0,
-            lb = - global_costprofit_lb, 
-            ub = global_costprofit_ub, 
-            kind = Continuous, 
-            sense = Free, 
+            lb = - global_costprofit_lb,
+            ub = global_costprofit_ub,
+            kind = Continuous,
             is_explicit = true
         )
         setcurlb!(spform, nu, 0.0)                                          
@@ -391,7 +388,7 @@ function create_side_vars_constrs!(
 
         for (varid, var) in getvars(spform)
             getduty(varid) == BendSpSepVar || continue
-            sp_coef[getid(cost), varid] = - getperenecost(origform, varid)         
+            sp_coef[getid(cost), varid] = - getperencost(origform, varid)         
         end
     end
     return

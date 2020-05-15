@@ -29,7 +29,7 @@ function variable_getters_and_setters_tests()
     
     v_data = ClF.VarData(
         ; cost = 13.0, lb = -10.0, ub = 100.0, kind = ClF.Continuous,
-        sense = ClF.Free, is_active = false, is_explicit = false
+        is_active = false, is_explicit = false
     )
 
     v = ClF.Variable(
@@ -38,9 +38,9 @@ function variable_getters_and_setters_tests()
     )
 
     ClF._addvar!(form, v)
-    @test ClF.getperenecost(form, v) == ClF.getcurcost(form, v) == 13.0
-    @test ClF.getperenelb(form, v) == ClF.getcurlb(form, v) == -10.0
-    @test ClF.getpereneub(form, v) == ClF.getcurub(form, v) == 100.0
+    @test ClF.getperencost(form, v) == ClF.getcurcost(form, v) == 13.0
+    @test ClF.getperenlb(form, v) == ClF.getcurlb(form, v) == -10.0
+    @test ClF.getperenub(form, v) == ClF.getcurub(form, v) == 100.0
 
     ClF.setcurcost!(form, v, -134.0)
     ClF.setcurlb!(form, v, -2001.9)
@@ -49,11 +49,11 @@ function variable_getters_and_setters_tests()
     @test ClF.getcurcost(form, v) == -134.0
     @test ClF.getcurlb(form, v) == -2001.9
     @test ClF.getcurub(form, v) == 2387.0
-    @test ClF.getperenecost(form, v) == 13.0
-    @test ClF.getperenelb(form, v) == -10.0
-    @test ClF.getpereneub(form, v) == 100.0
+    @test ClF.getperencost(form, v) == 13.0
+    @test ClF.getperenlb(form, v) == -10.0
+    @test ClF.getperenub(form, v) == 100.0
 
     ClF.reset!(form, v)
-    @test ClF.getperenecost(form, v) == ClF.getcurcost(form, v) == 13.0
+    @test ClF.getperencost(form, v) == ClF.getcurcost(form, v) == 13.0
     return
 end

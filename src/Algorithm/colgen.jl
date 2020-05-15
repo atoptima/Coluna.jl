@@ -52,20 +52,20 @@ end
 struct ReducedCostsVector
     length::Int
     varids::Vector{VarId}
-    perenecosts::Vector{Float64}
+    perencosts::Vector{Float64}
     form::Vector{Formulation}
 end
 
 function ReducedCostsVector(varids::Vector{VarId}, form::Vector{Formulation})
     len = length(varids)
-    perenecosts = zeros(Float64, len)
+    perencosts = zeros(Float64, len)
     p = sortperm(varids)
     permute!(varids, p)
     permute!(form, p)
     for i in 1:len
-        perenecosts[i] = getcurcost(getmaster(form[i]), varids[i])
+        perencosts[i] = getcurcost(getmaster(form[i]), varids[i])
     end
-    return ReducedCostsVector(len, varids, perenecosts, form)
+    return ReducedCostsVector(len, varids, perencosts, form)
 end
 
 getoptstate(data::ColGenRuntimeData) = data.optstate
@@ -121,7 +121,7 @@ function set_ph2!(master::Formulation, data::ColGenRuntimeData)
         if isanArtificialDuty(getduty(varid))
             deactivate!(master, varid)
         else
-            setcurcost!(master, varid, getperenecost(master, var))
+            setcurcost!(master, varid, getperencost(master, var))
         end
     end
     set_lp_dual_bound!(data.optstate, DualBound(master))
@@ -134,7 +134,7 @@ function set_ph3!(master::Formulation, data::ColGenRuntimeData)
         if isanArtificialDuty(getduty(varid))
             activate!(master, varid)
         else
-            setcurcost!(master, varid, getperenecost(master, var))
+            setcurcost!(master, varid, getperencost(master, var))
         end
     end
     data.phase = 3
@@ -158,10 +158,8 @@ function insert_cols_in_master!(
         ub = Inf
         kind = Continuous
         duty = MasterCol
-        sense = Positive
         mc = setcol_from_sp_primalsol!(
-            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, 
-            kind = kind, sense = sense
+            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, kind = kind
         )
         if data.phase == 1
             setcurcost!(masterform, mc, 0.0)
@@ -274,7 +272,7 @@ end
 
 
 function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVector, dualsol::DualSolution)
-    redcosts = deepcopy(redcostsvec.perenecosts)
+    redcosts = deepcopy(redcostsvec.perencosts)
     master = getmaster(reform)
     sign = getobjsense(master) == MinSense ? -1 : 1
     matrix = getcoefmatrix(master)

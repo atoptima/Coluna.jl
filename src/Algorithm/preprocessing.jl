@@ -182,7 +182,7 @@ function fix_local_partial_solution!(alg_data::PreprocessData)
     for (varid, val) in sp_vars_vals 
         for (constrid, coef) in master_coef_matrix[:,varid]
             iscuractive(master, constrid) || continue
-            iscurexplicit(master, constrid) || continue
+            isexplicit(master, constrid) || continue
             setrhs!(master, constrid, getcurrhs(master, constrid) - val * coef)
             push!(constrs_with_modified_rhs, getconstr(master, constrid))
         end
@@ -239,7 +239,7 @@ function initconstraints!(
     master_coef_matrix = getcoefmatrix(master)
     for (constrid, constr) in getconstrs(master)
         iscuractive(master, constrid) || continue
-        iscurexplicit(master, constrid) || continue
+        isexplicit(master, constrid) || continue
         getduty(constrid) == MasterConvexityConstr || continue
         initconstraint!(alg_data, constr, master)
         push!(constrs_to_stack, (constr, master))   
@@ -249,7 +249,7 @@ function initconstraints!(
     for (spuid, spform) in get_dw_pricing_sps(alg_data.reformulation)
         for (constrid, constr) in getconstrs(spform)
             iscuractive(spform, constrid) || continue
-            iscurexplicit(spform, constrid) || continue
+            isexplicit(spform, constrid) || continue
             initconstraint!(alg_data, constr, spform)
             push!(constrs_to_stack, (constr, spform))
         end
@@ -450,7 +450,7 @@ function update_lower_bound!(
         coef_matrix = getcoefmatrix(form)
         for (constrid, coef) in coef_matrix[:, varid]
             iscuractive(form, constrid) || continue
-            iscurexplicit(form, constrid) || continue
+            isexplicit(form, constrid) || continue
             status = false
             if coef < 0 
                 status = update_min_slack!(
@@ -521,7 +521,7 @@ function update_upper_bound!(
         coef_matrix = getcoefmatrix(form)
         for (constrid, coef) in coef_matrix[:, varid]
             iscuractive(form, constrid) || continue
-            iscurexplicit(form, constrid) || continue
+            isexplicit(form, constrid) || continue
             status = false
             if coef > 0 
                 status = update_min_slack!(

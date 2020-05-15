@@ -87,7 +87,7 @@ function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation)
             setcurcost!(spform, var, 0.0)
             setcurub!(spform, var, 0.0)
         else
-            setcurcost!(spform, var, getperenecost(spform, var))
+            setcurcost!(spform, var, getperencost(spform, var))
         end
     end
     return
@@ -96,7 +96,7 @@ end
 function update_benders_sp_slackvar_cost_for_hyb_ph!(spform::Formulation)
     for (varid, var) in getvars(spform)
         iscuractive(spform, varid) || continue
-        setcurcost!(spform, var, getperenecost(spform, var))
+        setcurcost!(spform, var, getperencost(spform, var))
         # TODO if previous phase is  a pure phase 2, reset current ub
     end
     return
@@ -120,7 +120,7 @@ function update_benders_sp_problem!(
         iscuractive(spform, varid) || continue
         getduty(varid) <= BendSpSlackFirstStageVar || continue
         haskey(master_primal_sol, varid) || continue
-        setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
+        setcurub!(spform, var, getperenub(spform, var) - master_primal_sol[varid])
     end
 
     if algo.option_use_reduced_cost
@@ -574,7 +574,7 @@ function bend_cutting_plane_main_loop!(
         # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
         sol_integer = true
         for (varid, val) in master_primal_sol
-            if getperenekind(masterform, varid) != Continuous
+            if getperenkind(masterform, varid) != Continuous
                 round_down_val = Float64(val, RoundDown)
                 round_up_val = Float64(val, RoundUp)
                 
