@@ -167,7 +167,8 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     if terminationstatus != MOI.INFEASIBLE &&
             terminationstatus != MOI.DUAL_INFEASIBLE &&
             terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
-            terminationstatus != MOI.OPTIMIZE_NOT_CALLED
+            terminationstatus != MOI.OPTIMIZE_NOT_CALLED &&
+            terminationstatus != MOI.TIME_LIMIT
         fill_primal_result!(form, optimizer, result)
         fill_dual_result!(form, optimizer, result)
         if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1
@@ -201,7 +202,7 @@ function optimize!(form::Formulation, optimizer::MoiOptimizer)
         @warn "No variable in the formulation. Coluna does not call the solver."
         return retrieve_result(form, optimizer)
     end
-    call_moi_optimize_with_silence(form.optimizer)
+    MOI.optimize!(getinner(form.optimizer))
     status = MOI.get(form.optimizer.inner, MOI.TerminationStatus())
     @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
     return retrieve_result(form, optimizer)
@@ -231,7 +232,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for constr_id in buffer.constr_buffer.added
         constr = getconstr(f, constr_id)
         @logmsg LogLevel(-2) string("Adding constraint ", getname(f, constr))
-        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && iscurexplicit(f, constr))
+        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && isexplicit(f, constr))
     end
 
     # Update variable costs
@@ -271,7 +272,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for id in buffer.var_buffer.added
         for (constrid, coeff) in  matrix[:,id]
             iscuractive(f, constrid) || continue
-            iscurexplicit(f, constrid) || continue
+            isexplicit(f, constrid) || continue
             constrid ∉ buffer.constr_buffer.added || continue
             c = getconstr(f, constrid)
             update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)

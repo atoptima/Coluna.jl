@@ -72,7 +72,7 @@ function MasterBranchConstrsStorageState(form::Formulation, storage::EmptyStorag
     state = MasterBranchConstrsStorageState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterBranchingConstr && 
-           iscuractive(form, constr) && iscurexplicit(form, constr)
+           iscuractive(form, constr) && isexplicit(form, constr)
             
             constrstate = ConstrState(getcurrhs(form, constr))
             state.constrs[id] = constrstate
@@ -86,7 +86,7 @@ function restorefromstate!(
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
-        if getduty(id) <= AbstractMasterBranchingConstr && iscurexplicit(form, constr)
+        if getduty(id) <= AbstractMasterBranchingConstr && isexplicit(form, constr)
             @logmsg LogLevel(-4) "Checking " getname(form, constr)
             if haskey(state.constrs, id) 
                 if !iscuractive(form, constr) 
@@ -131,7 +131,7 @@ function MasterColumnsState(form::Formulation, storage::EmptyStorage)
     state = MasterColumnsState(Dict{VarId, ConstrState}())
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && 
-           iscuractive(form, var) && iscurexplicit(form, var)
+           iscuractive(form, var) && isexplicit(form, var)
             
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
             state.cols[id] = varstate
@@ -145,7 +145,7 @@ function restorefromstate!(
 )
     @logmsg LogLevel(-2) "Restoring master columns"
     for (id, var) in getvars(form)
-        if getduty(id) <= MasterCol && iscurexplicit(form, var)
+        if getduty(id) <= MasterCol && isexplicit(form, var)
             @logmsg LogLevel(-4) "Checking " getname(form, var)
             if haskey(state.cols, id) 
                 if !iscuractive(form, var) 
@@ -190,7 +190,7 @@ function MasterCutsState(form::Formulation, storage::EmptyStorage)
     state = BranchingConstrsState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterCutConstr && 
-           iscuractive(form, constr) && iscurexplicit(form, constr)
+           iscuractive(form, constr) && isexplicit(form, constr)
             
             constrstate = ConstrState(getcurrhs(form, constr))
             state.cuts[id] = constrstate
@@ -204,7 +204,7 @@ function restorefromstate!(
 )
     @logmsg LogLevel(-2) "Storing master cuts"
     for (id, constr) in getconstrs(form)
-        if getduty(id) <= AbstractMasterCutConstr && iscurexplicit(form, constr)
+        if getduty(id) <= AbstractMasterCutConstr && isexplicit(form, constr)
             @logmsg LogLevel(-4) "Checking " getname(form, constr)
             if haskey(state.cuts, id) 
                 if !iscuractive(form, constr) 
@@ -257,7 +257,7 @@ function StaticVarConstrStorageState(form::Formulation, storage::EmptyStorage)
     for (id, constr) in getconstrs(form)
         if !(getduty(id) <= AbstractMasterCutConstr) && 
            !(getduty(id) <= AbstractMasterBranchingConstr) &&
-           iscuractive(form, constr) && iscurexplicit(form, constr)
+           iscuractive(form, constr) && isexplicit(form, constr)
             
             constrstate = ConstrState(getcurrhs(form, constr))
             state.constrs[id] = constrstate
@@ -265,7 +265,7 @@ function StaticVarConstrStorageState(form::Formulation, storage::EmptyStorage)
     end
     for (id, var) in getvars(form)
         if !(getduty(id) <= MasterCol) && 
-           iscuractive(form, var) && iscurexplicit(form, var)
+           iscuractive(form, var) && isexplicit(form, var)
             
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
             state.vars[id] = varstate
@@ -280,7 +280,7 @@ function restorefromstate!(
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
         if !(getduty(id) <= AbstractMasterCutConstr) && 
-           !(getduty(id) <= AbstractMasterBranchingConstr) && iscurexplicit(form, constr)
+           !(getduty(id) <= AbstractMasterBranchingConstr) && isexplicit(form, constr)
             @logmsg LogLevel(-4) "Checking " getname(form, constr)
             if haskey(state.constrs, id) 
                 if !iscuractive(form, constr) 
@@ -298,7 +298,7 @@ function restorefromstate!(
         end
     end
     for (id, var) in getvars(form)
-        if !(getduty(id) <= MasterCol) && iscurexplicit(form, var)
+        if !(getduty(id) <= MasterCol) && isexplicit(form, var)
             @logmsg LogLevel(-4) "Checking " getname(form, var)
             if haskey(state.vars, id) 
                 if !iscuractive(form, var) 

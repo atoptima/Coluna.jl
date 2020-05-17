@@ -14,7 +14,7 @@ function MOI.submit(
 
     # setup variable
     setup_var_id = [id for (id,v) in Iterators.filter(
-        v -> (iscuractive(form, v.first) && iscurexplicit(form, v.first) && getduty(v.first) <= DwSpSetupVar),
+        v -> (iscuractive(form, v.first) && isexplicit(form, v.first) && getduty(v.first) <= DwSpSetupVar),
         getvars(form)
     )][1]
     push!(colunavarids, setup_var_id)

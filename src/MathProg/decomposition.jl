@@ -3,44 +3,9 @@ function set_glob_art_var(form::Formulation, is_pos::Bool)
     cost = Cl._params_.global_art_var_cost
     cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
     return setvar!(
-        form, name, MasterArtVar; 
-        cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive 
+        form, name, MasterArtVar;
+        cost = cost, lb = 0.0, ub = Inf, kind = Continuous
     )
-end
-
-function create_local_art_vars!(masterform::Formulation)
-    matrix = getcoefmatrix(masterform)
-    cost = Cl._params_.local_art_var_cost
-    cost *= getobjsense(masterform) == MinSense ? 1.0 : -1.0
-    for (constrid, constr) in getconstrs(masterform)
-        constrname = getname(masterform, constr)
-        if getcursense(masterform, constr) == Equal 
-            name1 = string("local_art_of_", constrname, "1")
-            name2 = string("local_art_of_", constrname, "2")
-            var1 = setvar!(
-                masterform, name1, MasterArtVar;
-                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-            )
-            var2 = setvar!(
-                masterform, name1, MasterArtVar;
-                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-            )
-            matrix[constrid, getid(var1)] = 1.0
-            matrix[constrid, getid(var2)] = -1.0
-        else
-            name = string("local_art_of_", constrname)
-            var = setvar!(
-                masterform, name, MasterArtVar;
-                cost = cost, lb = 0.0, ub = Inf, kind = Continuous, sense = Positive
-            )
-            if getcursense(masterform, constr) == Greater
-                matrix[constrid, getid(var)] = 1.0
-            elseif getcursense(masterform, constr) == Less
-                matrix[constrid, getid(var)] = -1.0
-            end
-        end
-    end
-    return
 end
 
 function create_global_art_vars!(masterform::Formulation)
@@ -144,7 +109,9 @@ function instantiate_orig_constrs!(
     !haskey(annotations.constrs_per_ann, mast_ann) && return
     constrs = annotations.constrs_per_ann[mast_ann]
     for (id, constr) in constrs
-        cloneconstr!(origform, masterform, masterform, constr, MasterMixedConstr) # TODO distinguish Pure versus Mixed
+        cloneconstr!(
+            origform, masterform, masterform, constr, MasterMixedConstr, loc_art_var = true
+        ) # TODO distinguish Pure versus Mixed
     end
     return
 end
@@ -166,7 +133,7 @@ function create_side_vars_constrs!(
         name = string("sp_lb_", spuid)
         lb_conv_constr = setconstr!(
             masterform, name, MasterConvexityConstr; 
-            rhs = lb_mult, kind = Core, sense = Greater, inc_val = 100.0
+            rhs = lb_mult, kind = Core, sense = Greater, inc_val = 100.0, loc_art_var = true
         )
         masterform.parent_formulation.dw_pricing_sp_lb[spuid] = getid(lb_conv_constr)
         coefmatrix[getid(lb_conv_constr), getid(setuprepvar)] = 1.0
@@ -175,7 +142,7 @@ function create_side_vars_constrs!(
         name = string("sp_ub_", spuid)
         ub_conv_constr = setconstr!(
             masterform, name, MasterConvexityConstr; rhs = ub_mult, 
-            kind = Core, sense = Less, inc_val = 100.0
+            kind = Core, sense = Less, inc_val = 100.0, loc_art_var = true
         )
         masterform.parent_formulation.dw_pricing_sp_ub[spuid] = getid(ub_conv_constr)  
         coefmatrix[getid(ub_conv_constr), getid(setuprepvar)] = 1.0
@@ -185,7 +152,6 @@ end
 
 function create_artificial_vars!(masterform::Formulation{DwMaster})
     create_global_art_vars!(masterform)
-    create_local_art_vars!(masterform)
     return
 end
 
@@ -229,8 +195,8 @@ function create_side_vars_constrs!(
 )
     name = "PricingSetupVar_sp_$(getuid(spform))"
     setvar!(
-        spform, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, 
-        kind = Integ, sense = Positive, is_explicit = true
+        spform, name, DwSpSetupVar; cost = 0.0, lb = 1.0, ub = 1.0, kind = Integ,
+        is_explicit = true
     ) 
     return
 end
@@ -298,10 +264,9 @@ function create_side_vars_constrs!(
         setvar!(
             masterform, name, MasterBendSecondStageCostVar; 
             cost = 1.0,
-            lb = getperenelb(spform, nu_var), 
-            ub = getpereneub(spform, nu_var), 
-            kind = Continuous, 
-            sense = Free, 
+            lb = getperenlb(spform, nu_var), 
+            ub = getperenub(spform, nu_var), 
+            kind = Continuous,
             is_explicit = true, 
             id = Id{Variable}(MasterBendSecondStageCostVar, getid(nu_var), getuid(masterform))
         )                                 
@@ -332,13 +297,12 @@ function instantiate_orig_vars!(
             if duty == MasterBendFirstStageVar
                 name = "μ[$(split(getname(origform, var), "[")[end])"
                 mu = setvar!(
-                    spform, name, BendSpSlackFirstStageVar; 
-                    cost = getcurcost(origform, var), 
-                    lb = getcurlb(origform, var), 
-                    ub = getcurub(origform, var), 
-                    kind = Continuous, 
-                    sense = getcursense(origform, var), 
-                    is_explicit = true, 
+                    spform, name, BendSpSlackFirstStageVar;
+                    cost = getcurcost(origform, var),
+                    lb = getcurlb(origform, var),
+                    ub = getcurub(origform, var),
+                    kind = Continuous,
+                    is_explicit = true,
                     id = Id{Variable}(BendSpSlackFirstStageVar, id, getuid(masterform))
                 )
             end
@@ -384,7 +348,7 @@ function create_side_vars_constrs!(
     for (varid, var) in getvars(spform)
         getduty(varid) == BendSpSepVar || continue
         orig_var = getvar(origform, varid)
-        cost =  getperenecost(origform, orig_var)
+        cost =  getperencost(origform, orig_var)
         if cost > 0.00001 
             global_costprofit_ub += cost * getcurub(origform, orig_var)
             global_costprofit_lb += cost * getcurlb(origform, orig_var)
@@ -403,12 +367,11 @@ function create_side_vars_constrs!(
         sp_id = getuid(spform)
         # Cost constraint
         nu = setvar!(
-            spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar; 
+            spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar;
             cost = 1.0,
-            lb = - global_costprofit_lb, 
-            ub = global_costprofit_ub, 
-            kind = Continuous, 
-            sense = Free, 
+            lb = - global_costprofit_lb,
+            ub = global_costprofit_ub,
+            kind = Continuous,
             is_explicit = true
         )
         setcurlb!(spform, nu, 0.0)                                          
@@ -425,7 +388,7 @@ function create_side_vars_constrs!(
 
         for (varid, var) in getvars(spform)
             getduty(varid) == BendSpSepVar || continue
-            sp_coef[getid(cost), varid] = - getperenecost(origform, varid)         
+            sp_coef[getid(cost), varid] = - getperencost(origform, varid)         
         end
     end
     return

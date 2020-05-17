@@ -36,7 +36,7 @@ getobjsense(r::Reformulation) = getobjsense(r.master)
 function vc_belongs_to_formulation(form::Formulation, vc::AbstractVarConstr)
     !haskey(form, getid(vc)) && return false
     vc_in_formulation = getelem(form, getid(vc))
-    iscurexplicit(form, vc_in_formulation) && return true
+    isexplicit(form, vc_in_formulation) && return true
     return false
 end
 
