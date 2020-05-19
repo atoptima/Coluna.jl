@@ -236,9 +236,7 @@ function solve_sp_to_gencol!(
 
     # Solve sub-problem and insert generated columns in master
     # @logmsg LogLevel(-3) "optimizing pricing prob"
-    TO.@timeit Coluna._to "Pricing subproblem" begin
-        output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
-    end
+    output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
     sp_optstate = getoptstate(output)
 
     pricing_db_contrib = compute_pricing_db_contrib(algo, spform, get_ip_primal_bound(sp_optstate), sp_lb, sp_ub)
