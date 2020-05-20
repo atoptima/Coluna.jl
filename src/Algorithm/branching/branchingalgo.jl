@@ -10,17 +10,13 @@ struct BranchingPhase
     conquer_algo::AbstractConquerAlgorithm
 end
 
-function ExactBranchingPhase(candidates_num::Int64)     
-    return BranchingPhase(
-        candidates_num, ColGenConquer(
-            colgen = ColumnGeneration(max_nb_iterations = typemax(Int64))
-        )
-    )
-end
+# function ExactBranchingPhase(candidates_num::Int64; conqueralg = ColGenConquer())     
+#     return BranchingPhase(candidates_num, conqueralg)
+# end
 
-function OnlyRestrictedMasterBranchingPhase(candidates_num::Int64)
-    return BranchingPhase(candidates_num, RestrMasterLPConquer()) 
-end    
+# function OnlyRestrictedMasterBranchingPhase(candidates_num::Int64)
+#     return BranchingPhase(candidates_num, RestrMasterLPConquer()) 
+# end    
 
 """
     PrioritisedBranchingRule
