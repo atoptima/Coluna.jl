@@ -5,11 +5,13 @@ Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     pricing_prob_solve_alg = SolveIpForm(deactivate_artificial_vars = false, 
                                          enforce_integrality = false, 
                                          log_level = 2)
-    max_nb_iterations::Int = 1000
+    max_nb_iterations::Int64 = 1000
     optimality_tol::Float64 = 1e-5
-    log_print_frequency::Int = 1
+    log_print_frequency::Int64 = 1
     store_all_ip_primal_sols::Bool = false
     redcost_tol::Float64 = 1e-5
+    cleanup_threshold::Int64 = 10000
+    cleanup_ratio::Float64 = 0.66
 end
 
 function get_storages_usage!(
@@ -407,6 +409,51 @@ function generatecolumns!(
     return nb_new_columns
 end
 
+can_be_in_basis(algo::ColumnGeneration, ::Type{MinSense}, redcost::Float64) =
+    redcost < 0 + algo.redcost_tol
+
+can_be_in_basis(algo::ColumnGeneration, ::Type{MaxSense}, redcost::Float64) =
+    redcost > 0 - algo.redcost_tol
+
+function cleanup_columns(algo::ColumnGeneration, nb_iterations::Int64, data::ReformData)
+
+    # we do columns clean up only on every 10th iteration in order not to spend 
+    # the time retrieving the reduced costs
+    # TO DO : master cleanup should be done on every iteration, for this we need
+    # to quickly check the number of active master columns
+    nb_iterations % 10 != 0 && return
+
+    cols_with_redcost = Vector{Pair{Variable, Float64}}()
+    master = getmodel(getmasterdata(data))
+    for (id, var) in getvars(master)
+        if getduty(id) <= MasterCol && iscuractive(master, var) && isexplicit(master, var)
+            push!(cols_with_redcost, var => getreducedcost(master, var))            
+        end
+    end
+
+    num_active_cols = length(cols_with_redcost)
+    num_active_cols < algo.cleanup_threshold && return
+
+    # sort active master columns by reduced cost
+    reverse_order = getobjsense(master) == MinSense ? true : false
+    sort!(cols_with_redcost, by = x -> x.second, rev=reverse_order)
+
+    num_cols_to_keep = floor(Int64, num_active_cols * algo.cleanup_ratio)
+    
+    resize!(cols_with_redcost, num_active_cols - num_cols_to_keep)
+
+    num_cols_removed::Int64 = 0
+    for (var, redcost) in cols_with_redcost
+        # we can remove column only if we are sure is it not in the basis
+        # TO DO : we need to get the basis from the LP solver to have this verification
+        if !can_be_in_basis(algo, getobjsense(master), redcost) 
+            deactivate!(master, var)    
+            num_cols_removed += 1
+        end
+    end
+    @logmsg LogLevel(0) "Cleaned up $num_cols_removed master columns"
+end        
+
 ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.optimality_tol
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.optimality_tol
 
@@ -477,7 +524,9 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
 
         update_all_ip_primal_solutions!(cg_optstate, rm_optstate)
 
-        # TODO: cleanup restricted master columns        
+        TO.@timeit Coluna._to "Cleanup columns" begin
+            cleanup_columns(algo, cgdata.nb_iterations, rfdata)        
+        end
 
         cgdata.nb_iterations += 1
 
