@@ -10,8 +10,8 @@ function mytest()
     data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
     branching = ClA.StrongBranching()
-    push!(branching.phases, ClA.OnlyRestrictedMasterBranchingPhase(5))
-    push!(branching.phases, ClA.ExactBranchingPhase(1))
+    push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
+    push!(branching.phases, ClA.BranchingPhase(1, ClA.ColGenConquer()))
     push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
 
     coluna = JuMP.optimizer_with_attributes(
