@@ -62,6 +62,6 @@ Note that the application of the style guide is a work in progress.
 
 ## Acknowledgements
 
-**Atoptima**, **Mathematical Optimization Society (MOS)**, **University of Bordeaux**, and **Inria**
+**Atoptima**, **Mathematical Optimization Society (MOS)**, **Région Nouvelle-Aquitaine**, **University of Bordeaux**, and **Inria**
 
 
