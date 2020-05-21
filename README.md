@@ -74,7 +74,7 @@ who make Coluna possible.
 
 ## Acknowledgments
 
-The plateform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/)
+The plateform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/) and [**Région Nouvelle-Aquitaine**](https://www.nouvelle-aquitaine.fr/)
 
 [**Atoptima**](https://atoptima.com/)
 
