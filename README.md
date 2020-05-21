@@ -46,7 +46,7 @@ active development.
 - ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but it may be not performant:
   - Branch-and-price-and-cut algorithm
   - Benders decomposition
-- ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, fundations have been laid:
+- ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, foundations have been laid:
   - Nested/Recursive decomposition
   - Cuts generation
   - Stabilisation and other convergence speed-up methods
@@ -74,7 +74,7 @@ who make Coluna possible.
 
 ## Acknowledgments
 
-The plateform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/) and [**Région Nouvelle-Aquitaine**](https://www.nouvelle-aquitaine.fr/)
+The platform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/) and [**Région Nouvelle-Aquitaine**](https://www.nouvelle-aquitaine.fr/)
 
 [**Atoptima**](https://atoptima.com/)
 
