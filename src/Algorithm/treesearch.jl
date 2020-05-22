@@ -79,10 +79,17 @@ get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
 getoptstate(data::TreeSearchRuntimeData) = data.optstate
 
 """
-    TreeSearchAlgorithm
+    Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg::AbstractConquerAlgorithm = ColGenConquer(),
+        dividealg::AbstractDivideAlgorithm = SimpleBranching(),
+        explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy(),
+        maxnumnodes::Int = 100000,
+        opennodeslimit::Int = 100
+    )
 
-    This algorithm uses search tree to do optimization. At each node in the tree, we apply
-    conquer algorithm to improve the bounds and divide algorithm to generate child nodes.
+This algorithm uses search tree to do optimization. At each node in the tree, it applies
+`conqueralg` to improve the bounds, `dividealg` to generate child nodes, and `explorestrategy`
+to select the next node to treat.
 """
 Base.@kwdef struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     conqueralg::AbstractConquerAlgorithm = ColGenConquer()

@@ -14,6 +14,7 @@ makedocs(
             "Callbacks"   => "user/callbacks.md"
         ],
         "Reference" => Any[
+            "Algorithms" => "dev/algorithms.md",
             "Formulation" => "dev/formulation.md"
         ]
     ]

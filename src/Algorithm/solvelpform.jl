@@ -1,7 +1,12 @@
 """
-    SolveLpForm
+    Coluna.Algorithm.SolveLpForm(
+        get_dual_solution = false,
+        relax_integrality = false,
+        set_dual_bound = false,
+        silent = true
+    )
 
-todo
+Solve a linear program.
 """
 Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm 
     get_dual_solution = false

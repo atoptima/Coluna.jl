@@ -102,6 +102,19 @@ end
 #                      ColGenConquer
 ####################################################################
 
+"""
+    Coluna.Algorithm.ColGenConquer(
+        colgen::ColumnGeneration = ColumnGeneration()
+        mastipheur::SolveIpForm = SolveIpForm()
+        preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
+        run_mastipheur::Bool = true
+        run_preprocessing::Bool = false
+    )
+
+Column-generation based algorithm to find primal and dual bounds for a 
+problem decomposed using Dantzig-Wolfe paradigm. It applies `colgen` for the column 
+generation phase, `masteripheur` to optimize the integer restricted master.
+"""
 Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm 
     colgen::ColumnGeneration = ColumnGeneration()
     mastipheur::SolveIpForm = SolveIpForm()
