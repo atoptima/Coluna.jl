@@ -10,6 +10,7 @@ Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     log_print_frequency::Int = 1
     store_all_ip_primal_sols::Bool = false
     redcost_tol::Float64 = 1e-5
+    solve_subproblems_parallel::Bool = false
 end
 
 function get_storages_usage!(
@@ -343,7 +344,7 @@ function solve_sps_to_gencols!(
     updatereducedcosts!(reform, redcostsvec, dual_sol)
 
     ### BEGIN LOOP TO BE PARALLELIZED
-    if Coluna.parallel
+    if algo.solve_subproblems_parallel
         spuids = collect(keys(spsdatas))
         Threads.@threads for key in 1:length(spuids)
             spuid = spuids[key]

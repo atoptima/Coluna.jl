@@ -3,6 +3,5 @@ Base.@kwdef mutable struct GlobalValues
 end
 
 global const _to = TO.TimerOutput()
-global const parallel = true
 
 _elapsed_solve_time() = (time() - _globals_.initial_solve_time)
