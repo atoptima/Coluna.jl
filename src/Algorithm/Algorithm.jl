@@ -38,6 +38,7 @@ include("interface.jl")
 # Slave algorithms used by conquer algorithms
 include("solveipform.jl")
 include("solvelpform.jl")
+include("colgenstabilization.jl")
 include("colgen.jl")
 include("benders.jl")
 include("preprocessing.jl")

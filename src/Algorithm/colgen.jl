@@ -1,34 +1,3 @@
-############# Stabilization storage ###########################
-
-mutable struct ColGenStabStorage <: AbstractStorage
-    basealpha::Float64
-    curalpha::Float64
-    stabcenter::Union{Nothing, DualSolution{Formulation}}
-end
-
-ColGenStabStorage(master::Formulation) = 
-    ColGenStabStorage(0.5, 0.0, nothing)
-
-mutable struct ColGenStabStorageState <: AbstractStorageState
-    alpha::Float64
-    stabcenter::Union{Nothing, DualSolution{Formulation}}
-end
-
-function ColGenStabStorageState(master::Formulation, storage::ColGenStabStorage)
-    return ColGenStabStorageState(storage.basealpha, storage.stabcenter)
-end
-
-function restorefromstate!(
-    master::Formulation, storage::ColGenStabStorage, state::ColGenStabStorageState
-)
-    storage.basealpha = state.alpha
-    storage.stabcenter = state.stabcenter
-end
-
-const ColGenStabilizationStorage = (ColGenStabStorage => ColGenStabStorageState)
-
-#################################################################
-
 Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
     #TODO : pricing problem solver may be different depending on the 
@@ -46,12 +15,14 @@ Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     smoothing_stabilization::Float64 = 0.9 # should be in [0, 1]
 end
 
+stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
+
 function get_storages_usage!(
     algo::ColumnGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
 )
     master = getmaster(reform)
     add_storage!(storages_usage, master, MasterColumnsStorage)
-    if !iszero(algo.smoothing_stabilization)
+    if stabilization_is_used(algo)
         add_storage!(storages_usage, master, ColGenStabilizationStorage)
     end
    
@@ -66,7 +37,7 @@ function get_storages_to_restore!(
 ) 
     master = getmaster(reform)
     add_storage!(storages_to_restore, master, MasterColumnsStorage, READ_AND_WRITE)
-    if !iszero(algo.smoothing_stabilization)
+    if stabilization_is_used(algo)
         add_storage!(storages_to_restore, master, ColGenStabilizationStorage, READ_AND_WRITE)
     end
 
@@ -99,8 +70,7 @@ function run!(algo::ColumnGeneration, data::ReformData, input::OptimizationInput
     reform = getreform(data)
     master = getmaster(reform)
     optstate = CopyBoundsAndStatusesFromOptState(master, getoptstate(input), false)
-    @show optstate
-
+    
     set_ph3!(master) # mixed ph1 & ph2
     stop = cg_main_loop!(algo, 3, optstate, data)
 
@@ -507,6 +477,9 @@ function cg_main_loop!(
     redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
     iteration = 0
 
+    stabstorage = stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStorage) 
+                                              : ColGenStabStorage()
+
     while true
         rm_time = @elapsed begin
             rm_input = OptimizationInput(
@@ -550,6 +523,8 @@ function cg_main_loop!(
         end
 
         iteration += 1
+
+        smooth_dual_sol = init_stab_after_rm_solve!(stabstorage, algo.smoothing_stabilization, lp_dual_sol)
 
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin

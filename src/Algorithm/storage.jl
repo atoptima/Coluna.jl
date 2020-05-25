@@ -67,19 +67,6 @@ restorefromstate!(model::AbstractModel, storage::AbstractStorage, state::Abstrac
         "storage type $(typeof(storage)), and storage state type $(typeof(state))"
     ))    
 
-"""
-    EmptyStorage
-
-    Empty storage is used to implicitely keep the data which is changed
-    inside the model (for example, dynamic variables and constraints
-    of a formulaiton) in order to store it to the storage state and 
-    restore it afterwards. 
-"""
-
-struct EmptyStorage <: AbstractStorage end
-
-EmptyStorage(model::AbstractModel) = EmptyStorage()
-
 
 """
     EmptyStorageState
