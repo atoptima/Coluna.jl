@@ -39,7 +39,9 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+                branchingtreefile = "playgap.dot"
+            )),
             "default_optimizer" => GLPK.Optimizer
         )
 

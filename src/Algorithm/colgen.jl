@@ -1,3 +1,24 @@
+"""
+    Coluna.Algorithm.ColumnGeneration(
+        restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
+        pricing_prob_solve_alg = SolveIpForm(
+            deactivate_artificial_vars = false, 
+            enforce_integrality = false, 
+            log_level = 2
+        ),
+        max_nb_iterations::Int = 1000
+        optimality_tol::Float64 = 1e-5
+        log_print_frequency::Int = 1
+        store_all_ip_primal_sols::Bool = false
+        redcost_tol::Float = 1e-5
+        cleanup_threshold::Int = 10000
+        cleanup_ratio::Float = 0.66
+    )
+
+Column generation algorithm. It applies `restr_master_solve_alg` to solve the linear 
+restricted master and `pricing_prob_solve_alg` to solve the subproblems.
+ 
+"""
 Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
     #TODO : pricing problem solver may be different depending on the 
