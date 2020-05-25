@@ -84,7 +84,8 @@ getoptstate(data::TreeSearchRuntimeData) = data.optstate
         dividealg::AbstractDivideAlgorithm = SimpleBranching(),
         explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy(),
         maxnumnodes::Int = 100000,
-        opennodeslimit::Int = 100
+        opennodeslimit::Int = 100,
+        branchingtreefile = nothing
     )
 
 This algorithm uses search tree to do optimization. At each node in the tree, it applies
@@ -97,6 +98,7 @@ Base.@kwdef struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy()
     maxnumnodes::Int64 = 100000 
     opennodeslimit::Int64 = 100 
+    branchingtreefile::Union{Nothing, String} = nothing
     skiprootnodeconquer = false # true for diving heuristics
     rootpriority = 0
     nontrootpriority = 0
@@ -116,7 +118,6 @@ function get_storages_to_restore!(
     # tree search algorithm restores itself storages for the conquer and divide algorithm 
     # on every node, so we do not require anything here
 end
-
 
 function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
     println("***************************************************************************************")
@@ -140,6 +141,41 @@ function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
         println("**** Branching constraint: ", node.branchdescription)
     end
     println("***************************************************************************************")
+    return
+end
+
+function init_branching_tree_file(algo::TreeSearchAlgorithm)
+    if algo.branchingtreefile !== nothing
+        open(algo.branchingtreefile) do file
+            println(file, "## dot -Tpdf thisfile > thisfile.pdf \n")
+            println(file, "digraph Branching_Tree {")
+            println(file, "\tedge[fontname = \"Courier\", fontsize = 10];")
+        end
+    end
+    return
+end
+
+function print_node_in_branching_tree_file(algo::TreeSearchAlgorithm, data::TreeSearchRuntimeData, node)
+    if algo.branchingtreefile !== nothing
+        pb = getvalue(get_ip_primal_bound(getoptstate(data)))
+        db = getvalue(get_ip_dual_bound(getoptstate(node)))
+        open(algo.branchingtreefile) do file
+            npar = get_tree_order(getparent(node))
+            ncur = get_tree_order(node)
+            time = Coluna._elapsed_solve_time()
+            @printf file "\tn%i [label= \"N_%i (%.0f s) \n[%.4f , %.4f]\"];" ncur ncur time db pb
+            @printf file "\tn%i -> n%i [label= \"%s\"];" npar ncur node.branchdescription
+        end
+    end
+    return
+end
+
+function finish_branching_tree_file(algo::TreeSearchAlgorithm)
+    if algo.branchingtreefile !== nothing
+        open(algo.branchingtreefile) do file
+            println(file, "}")
+        end
+    end
     return
 end
 
@@ -167,6 +203,9 @@ function run_conquer_algorithm!(
     if algo.storelpsolution && isrootnode(node) && nb_lp_primal_sols(nodestate) > 0
         set_lp_primal_sol!(treestate, get_best_lp_primal_sol(nodestate)) 
     end 
+
+    print_node_in_branching_tree(algo, tsdata, node)
+    return
 end
 
 function update_tree!(data::TreeSearchRuntimeData, output::DivideOutput)
@@ -209,7 +248,6 @@ function run_divide_algorithm!(
 end
 
 function updatedualbound!(data::TreeSearchRuntimeData)
-
     treestate = getoptstate(data)
     bound_value = getvalue(get_ip_primal_bound(treestate))
     worst_bound = DualBound{data.Sense}(bound_value)  
@@ -274,6 +312,7 @@ end
 function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
+    init_branching_tree_file(algo)
     while !treeisempty(tsdata) 
         node = popnode!(tsdata)
 
@@ -289,6 +328,7 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
         # we delete solutions from the node optimization state, as they are not needed anymore
         clear_solutions!(getoptstate(node))
     end
+    finish_branching_tree_file(algo)
 
     determine_statuses(tsdata)
     return OptimizationOutput(getoptstate(tsdata))
