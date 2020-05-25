@@ -329,7 +329,6 @@ function solve_sps_to_gencols!(
     algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector,
     dual_sol::DualSolution, sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 )
-    threadstasks = Task[]
     reform = getreform(rfdata)
     masterform = getmaster(reform)
     nb_new_cols = 0
