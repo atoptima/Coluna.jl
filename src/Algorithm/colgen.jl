@@ -34,7 +34,7 @@ Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
     solve_subproblems_parallel::Bool = false
     cleanup_threshold::Int64 = 10000
     cleanup_ratio::Float64 = 0.66
-    smoothing_stabilization::Float64 = 0.9 # should be in [0, 1]
+    smoothing_stabilization::Float64 = 0.0 # should be in [0, 1]
 end
 
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
@@ -164,8 +164,9 @@ function insert_cols_in_master!(
 ) 
     sp_uid = getuid(spform)
     nb_of_gen_col = 0
+    best_col = nothing
 
-    for sol_id in sp_solution_ids
+    for (i, sol_id) in enumerate(sp_solution_ids)
         nb_of_gen_col += 1
         name = string("MC_", getsortuid(sol_id))
         lb = 0.0
@@ -174,14 +175,15 @@ function insert_cols_in_master!(
         duty = MasterCol
         mc = setcol_from_sp_primalsol!(
             masterform, spform, sol_id, name, duty; lb = lb, ub = ub, kind = kind
-        )
+        )        
         if phase == 1
             setcurcost!(masterform, mc, 0.0)
         end
+        i == 1 && best_col = mc
         @logmsg LogLevel(-2) string("Generated column : ", name)
     end
 
-    return nb_of_gen_col
+    return (nb_of_gen_col, best_col)
 end
 
 function contrib_improves_mlp(algo::ColumnGeneration, ::Type{MinSense}, sp_primal_bound::Float64)
@@ -351,6 +353,7 @@ function solve_sps_to_gencols!(
     recorded_sp_solution_ids = Dict{FormId, Vector{VarId}}()
     sp_solution_to_activate = Dict{FormId, Vector{VarId}}()
     sp_dual_bound_contribs = Dict{FormId, Float64}()
+    best_cols_ids_and_bounds = Vector{Tuple{VarId, Float64, Float64}}()
 
     # update reduced costs
     updatereducedcosts!(reform, redcostsvec, dual_sol)
@@ -387,13 +390,25 @@ function solve_sps_to_gencols!(
     nb_new_cols = 0
     for (spuid, spdata) in spsdatas
         dual_bound_contrib += sp_dual_bound_contribs[spuid]
-        nb_new_cols += insert_cols_in_master!(phase, masterform, getmodel(spdata), recorded_sp_solution_ids[spuid])
+        nb_of_gen_cols, best_col = insert_cols_in_master!(
+            phase, masterform, getmodel(spdata), recorded_sp_solution_ids[spuid]
+        )
+        nb_new_cols += nb_of_gen_cols
+        if algo.smoothing_stabilization == 1.0
+            push!(best_cols_ids_and_bounds, (getid(best_col), sp_lbs[spuid], sp_ubs[spuid]))
+        end
         for colid in sp_solution_to_activate[spuid]
             activate!(masterform, colid)
             nb_new_cols += 1
         end
     end
-    return (nb_new_cols, dual_bound_contrib)
+
+    if algo.smoothing_stabilization == 1 && length(best_cols_ids_and_bounds) < length(get_dw_pricing_datas(data))
+        @error string("Solutions to all pricing subproblems should be available in order ",
+                      " to used automatic dual price smoothing")
+    end
+
+    return (nb_new_cols, dual_bound_contrib, best_sp_solution_ids)
 end
 
 function compute_master_db_contrib(
@@ -414,25 +429,25 @@ function calculate_lagrangian_db(
 end
 
 #stopped here
-function generatecolumns!(
-    algo::ColumnGeneration, optstate::OptimizationState, phase::Int64, data::ReformData, 
-    redcostsvec::ReducedCostsVector, master_val, dual_sol, sp_lbs, sp_ubs
-)
-    nb_new_columns = 0
-    while true # TODO Replace this condition when starting implement stabilization
-        nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(algo, phase, data, redcostsvec, dual_sol, sp_lbs, sp_ubs)
-        nb_new_columns += nb_new_col
-        lagran_bnd = calculate_lagrangian_db(master_val, sp_db_contrib)
-        update_ip_dual_bound!(optstate, lagran_bnd)
-        update_lp_dual_bound!(optstate, lagran_bnd)
-        if nb_new_col < 0
-            # subproblem infeasibility leads to master infeasibility
-            return -1
-        end
-        break # TODO : rm
-    end
-    return nb_new_columns
-end
+# function generatecolumns!(
+#     algo::ColumnGeneration, optstate::OptimizationState, phase::Int64, data::ReformData, 
+#     redcostsvec::ReducedCostsVector, master_val, dual_sol, sp_lbs, sp_ubs
+# )
+#     nb_new_columns = 0
+#     while true # TODO Replace this condition when starting implement stabilization
+#         nb_new_col, sp_db_contrib =  solve_sps_to_gencols!(algo, phase, data, redcostsvec, dual_sol, sp_lbs, sp_ubs)
+#         nb_new_columns += nb_new_col
+#         lagran_bnd = calculate_lagrangian_db(master_val, sp_db_contrib)
+#         update_ip_dual_bound!(optstate, lagran_bnd)
+#         update_lp_dual_bound!(optstate, lagran_bnd)
+#         if nb_new_col < 0
+#             # subproblem infeasibility leads to master infeasibility
+#             return -1
+#         end
+#         break # TODO : rm
+#     end
+#     return nb_new_columns
+# end
 
 can_be_in_basis(algo::ColumnGeneration, ::Type{MinSense}, redcost::Float64) =
     redcost < 0 + algo.redcost_tol
@@ -513,8 +528,7 @@ function cg_main_loop!(
     redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
     iteration = 0
 
-    stabstorage = stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStorage) 
-                                              : ColGenStabStorage()
+    stabstorage = stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStorage) : ColGenStabStorage()
 
     while true
         rm_time = @elapsed begin
@@ -562,22 +576,35 @@ function cg_main_loop!(
 
         smooth_dual_sol = init_stab_after_rm_solve!(stabstorage, algo.smoothing_stabilization, lp_dual_sol)
 
-        # generate new columns by solving the subproblems
-        sp_time = @elapsed begin
-            nb_new_col = generatecolumns!(
-                algo, cg_optstate, phase, data, redcostsvec, master_val, lp_dual_sol, sp_lbs, sp_ubs
+        nb_new_columns = 0
+        sp_time = 0
+        while true
+            sp_time += @elapsed begin
+                nb_new_col, sp_db_contrib, best_cols_ids_and_bounds =  solve_sps_to_gencols!(
+                    algo, phase, data, redcostsvec, smooth_dual_sol, sp_lbs, sp_ubs
+                )
+            end
+            nb_new_columns += nb_new_col
+            
+            lagran_bnd = calculate_lagrangian_db(master_val, sp_db_contrib)
+            update_ip_dual_bound!(cg_optstate, lagran_bnd)
+            update_lp_dual_bound!(cg_optstate, lagran_bnd)
+            if nb_new_col < 0
+                @error "Infeasible subproblem."
+                setfeasibilitystatus!(cg_optstate, INFEASIBLE)
+                return true
+            end
+
+            smooth_dual_sol = update_stab_after_gencols!(
+                stabstorage, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol, best_cols_ids_and_bounds
             )
-        end
 
-        if nb_new_col < 0
-            @error "Infeasible subproblem."
-            setfeasibilitystatus!(cg_optstate, INFEASIBLE)
-            return true
-        end
+            smooth_dual_sol === nothing && break
+        end    
+    
+        print_colgen_statistics(phase, iteration, stabstorage.curalpha, cg_optstate, nb_new_columns, rm_time, sp_time)
 
-        print_colgen_statistics(phase, iteration, cg_optstate, nb_new_col, rm_time, sp_time)
-
-        # TODO: update colgen stabilization
+        update_stab_after_colgen_iteration!(stabstorage)
 
         dual_bound = get_ip_dual_bound(cg_optstate)
         primal_bound = get_lp_primal_bound(cg_optstate)
@@ -597,7 +624,7 @@ function cg_main_loop!(
             @logmsg LogLevel(0) "Phase one determines infeasibility."
             return true
         end
-        if nb_new_col == 0 || lp_gap(cg_optstate) < algo.optimality_tol
+        if nb_new_columns == 0 || lp_gap(cg_optstate) < algo.optimality_tol
             @logmsg LogLevel(0) "Column Generation Algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL)
             return false
@@ -612,7 +639,7 @@ function cg_main_loop!(
 end
 
 function print_colgen_statistics(
-    phase::Int64, iteration::Int64, optstate::OptimizationState, nb_new_col::Int, mst_time::Float64, sp_time::Float64
+    phase::Int64, iteration::Int64, smoothalpha::Float64, optstate::OptimizationState, nb_new_col::Int, mst_time::Float64, sp_time::Float64
 )
     mlp = getvalue(get_lp_primal_bound(optstate))
     db = getvalue(get_lp_dual_bound(optstate))
@@ -625,8 +652,8 @@ function print_colgen_statistics(
     end
 
     @printf(
-        "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
-        phase_string, iteration, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, db, mlp, pb
+        "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <al=%5.2f> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
+        phase_string, iteration, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, smoothalpha, db, mlp, pb
     )
     return
 end
