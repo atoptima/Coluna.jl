@@ -39,7 +39,9 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+                branchingtreefile = "playgap.dot"
+            )),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -76,15 +78,23 @@ function generalized_assignment_tests()
     @testset "gap - strong branching" begin
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
+        conquer_with_small_cleanup_treshold = ClA.ColGenConquer(
+            colgen = ClA.ColumnGeneration(cleanup_threshold = 150)
+        )
+
         branching = ClA.StrongBranching()
-        push!(branching.phases, ClA.OnlyRestrictedMasterBranchingPhase(5))
-        push!(branching.phases, ClA.ExactBranchingPhase(1))
+        push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
+        push!(branching.phases, ClA.BranchingPhase(1, conquer_with_small_cleanup_treshold))
         push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
-    
+
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer, 
             "params" => CL.Params(
-                solver = ClA.TreeSearchAlgorithm(dividealg = branching, maxnumnodes = 300)
+                solver = ClA.TreeSearchAlgorithm(
+                    conqueralg = conquer_with_small_cleanup_treshold,
+                    dividealg = branching, 
+                    maxnumnodes = 300
+                )
             ),
             "default_optimizer" => GLPK.Optimizer
         )

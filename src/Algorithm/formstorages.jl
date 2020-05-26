@@ -98,7 +98,7 @@ function restorefromstate!(
             else
                 if iscuractive(form, constr) 
                     @logmsg LogLevel(-2) string("Deactivating branching constraint", getname(form, constr))
-                    deactivate!(form, id)
+                    deactivate!(form, constr)
                 end
             end    
         end
@@ -157,7 +157,7 @@ function restorefromstate!(
             else
                 if iscuractive(form, var) 
                     @logmsg LogLevel(-4) string("Deactivating column", getname(form, var))
-                    deactivate!(form, id)
+                    deactivate!(form, var)
                 end
             end    
         end
@@ -216,7 +216,7 @@ function restorefromstate!(
             else
                 if iscuractive(form, constr) 
                     @logmsg LogLevel(-4) string("Deactivating cut", getname(form, constr))
-                    deactivate!(form, id)
+                    deactivate!(form, constr)
                 end
             end    
         end
@@ -292,7 +292,7 @@ function restorefromstate!(
             else
                 if iscuractive(form, constr) 
                     @logmsg LogLevel(-2) string("Deactivating constraint", getname(form, constr))
-                    deactivate!(form, id)
+                    deactivate!(form, constr)
                 end
             end    
         end
@@ -310,7 +310,7 @@ function restorefromstate!(
             else
                 if iscuractive(form, var) 
                     @logmsg LogLevel(-4) string("Deactivating variable", getname(form, var))
-                    deactivate!(form, id)
+                    deactivate!(form, var)
                 end
             end    
         end

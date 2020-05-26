@@ -1,8 +1,13 @@
 """
-    SolveIpForm
+    Coluna.Algorithm.SolveIpForm(
+        time_limit::Int = 600,
+        deactivate_artificial_vars = true,
+        enforce_integrality = true,
+        silent = true,
+        log_level = 0
+    )
 
-todo
-Solve ip formulation
+Solve a mixed integer linear program.
 """
 Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
     time_limit::Int = 600
