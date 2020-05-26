@@ -88,7 +88,6 @@ function ReducedCostsVector(varids::Vector{VarId}, form::Vector{Formulation})
     return ReducedCostsVector(len, varids, perencosts, form)
 end
 
-<<<<<<< HEAD
 function run!(algo::ColumnGeneration, data::ReformData, input::OptimizationInput)::OptimizationOutput    
     reform = getreform(data)
     master = getmaster(reform)
@@ -100,22 +99,6 @@ function run!(algo::ColumnGeneration, data::ReformData, input::OptimizationInput
     if !stop && should_do_ph_1(optstate)
         set_ph1!(master, optstate)        
         stop = cg_main_loop!(algo, 1, optstate, data)
-=======
-getoptstate(data::ColGenRuntimeData) = data.optstate
-
-function run!(algo::ColumnGeneration, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
-    reform = getreform(rfdata)
-    cgdata = ColGenRuntimeData(algo, reform, getoptstate(input))
-    optstate = getoptstate(cgdata)
-    masterform = getmaster(reform)
-
-    set_ph3!(masterform, cgdata) # mixed ph1 & ph2
-    stop = cg_main_loop!(algo, cgdata, rfdata)
-
-    if !stop && should_do_ph_1(masterform, cgdata)
-        set_ph1!(masterform, cgdata)
-        stop = cg_main_loop!(algo, cgdata, rfdata)
->>>>>>> 0ad2c75b79946c097c3348e9f565be1be9282052
         if !stop
             set_ph2!(master, optstate) # pure ph2
             cg_main_loop!(algo, 2, optstate, data)
@@ -177,13 +160,8 @@ function update_pricing_target!(spform::Formulation)
 end
 
 function insert_cols_in_master!(
-<<<<<<< HEAD
     phase::Int64, masterform::Formulation, spform::Formulation, sp_solution_ids::Vector{VarId}
 ) 
-=======
-    data::ColGenRuntimeData, masterform::Formulation, spform::Formulation, sp_solution_ids::Vector{VarId}
-)
->>>>>>> 0ad2c75b79946c097c3348e9f565be1be9282052
     sp_uid = getuid(spform)
     nb_of_gen_col = 0
 
@@ -361,11 +339,7 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
 end
 
 function solve_sps_to_gencols!(
-<<<<<<< HEAD
     algo::ColumnGeneration, phase::Int64, data::ReformData, redcostsvec::ReducedCostsVector, 
-=======
-    algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector,
->>>>>>> 0ad2c75b79946c097c3348e9f565be1be9282052
     dual_sol::DualSolution, sp_lbs::Dict{FormId, Float64}, sp_ubs::Dict{FormId, Float64}
 )
     reform = getreform(data)
@@ -441,13 +415,8 @@ end
 
 #stopped here
 function generatecolumns!(
-<<<<<<< HEAD
     algo::ColumnGeneration, optstate::OptimizationState, phase::Int64, data::ReformData, 
     redcostsvec::ReducedCostsVector, master_val, dual_sol, sp_lbs, sp_ubs
-=======
-    algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata::ReformData, redcostsvec::ReducedCostsVector,
-    master_val, dual_sol, sp_lbs, sp_ubs
->>>>>>> 0ad2c75b79946c097c3348e9f565be1be9282052
 )
     nb_new_columns = 0
     while true # TODO Replace this condition when starting implement stabilization
@@ -589,14 +558,9 @@ function cg_main_loop!(
             cleanup_columns(algo, iteration, data)        
         end
 
-<<<<<<< HEAD
         iteration += 1
 
         smooth_dual_sol = init_stab_after_rm_solve!(stabstorage, algo.smoothing_stabilization, lp_dual_sol)
-=======
-
-        cgdata.nb_iterations += 1
->>>>>>> 0ad2c75b79946c097c3348e9f565be1be9282052
 
         # generate new columns by solving the subproblems
         sp_time = @elapsed begin
