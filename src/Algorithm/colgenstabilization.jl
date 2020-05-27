@@ -1,38 +1,47 @@
-############# Stabilization storage and state ###########################
-
 mutable struct ColGenStabStorage <: AbstractStorage
-    basealpha::Float64
-    curalpha::Float64
-    nb_misprices::Int64
-    stabcenter::Union{Nothing, DualSolution{Formulation{MathProg.DwMaster}}}
-    newstabcenter::Union{Nothing, DualSolution{Formulation{MathProg.DwMaster}}}
+    basealpha::Float64 # "global" alpha parameter
+    curalpha::Float64 # alpha parameter during the current misprice sequence
+    nb_misprices::Int64 # number of misprices during the current misprice sequence
+    pseudo_dual_bound::DualBound # pseudo dual bound, may be non-valid, f.e. when the pricing problem solved heuristically
+    valid_dual_bound::DualBound # valid dual bound
+    stabcenter::Union{Nothing, DualSolution} # current stability center, correspond to cur_dual_bound
+    newstabcenter::Union{Nothing, DualSolution} # to keep temporarily stab. center after update
+    basestabcenter::Union{Nothing, DualSolution} # stability center, corresponding to valid_dual_bound
 end
 
-ColGenStabStorage(master::Formulation) = ColGenStabStorage(0.5, 0.0, 0, nothing, nothing)
-ColGenStabStorage() = ColGenStabStorage(0.0, 0.0, 0, nothing, nothing)
+function ColGenStabStorage(master::Formulation) 
+    return ColGenStabStorage(
+        0.5, 0.0, 0, DualBound(master), DualBound(master), nothing, nothing, nothing
+    )
+end
 
 smoothing_is_active(storage::ColGenStabStorage) = iszero(storage.curalpha)
 
 mutable struct ColGenStabStorageState <: AbstractStorageState
     alpha::Float64
-    stabcenter::Union{Nothing, DualSolution{Formulation}}
+    dualbound::DualBound
+    stabcenter::Union{Nothing, DualSolution}
 end
 
 function ColGenStabStorageState(master::Formulation, storage::ColGenStabStorage)
-    return ColGenStabStorageState(storage.basealpha, storage.stabcenter)
+    alpha = storage.basealpha < 0.5 ? 0.5 : storage.basealpha
+    return ColGenStabStorageState(alpha, storage.valid_dual_bound, storage.basestabcenter)
 end
 
 function restorefromstate!(
     master::Formulation, storage::ColGenStabStorage, state::ColGenStabStorageState
 )
     storage.basealpha = state.alpha
-    storage.stabcenter = state.stabcenter
+    storage.valid_dual_bound = state.dualbound
+    storage.basestabcenter = state.stabcenter
 end
 
 const ColGenStabilizationStorage = (ColGenStabStorage => ColGenStabStorageState)
 
-############## Stabilization functions ##########
-
+function init_stab_before_colgen_loop!(storage::ColGenStabStorage)
+    storage.stabcenter = storage.basestabcenter
+    storage.pseudo_dual_bound = storage.valid_dual_bound
+end
 
 function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolution, f::Function)
     form = out_dual_sol.model
@@ -86,7 +95,21 @@ function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolu
     return (constrids, constrvals)
 end
 
-function init_stab_after_rm_solve!(storage::ColGenStabStorage, smoothparam::Float64, lp_dual_sol::DualSolution)
+function linear_combination(in_dual_sol::DualSolution, out_dual_sol::DualSolution, coeff::Float64)
+    constrids, constrvals = componentwisefunction(
+        in_dual_sol, out_dual_sol, 
+        (x, y) -> coeff * x + (1.0 - coeff) * y
+    )
+
+    form = in_dual_sol.model
+    bound = 0.0
+    for (i, constrid) in enumerate(constrids)
+        bound += constrvals[i] * getcurrhs(form, constrid) 
+    end
+    return DualSolution(form, constrids, constrvals, bound)
+end
+
+function update_stab_after_rm_solve!(storage::ColGenStabStorage, smoothparam::Float64, lp_dual_sol::DualSolution)
     storage.curalpha = 0.0
     storage.nb_misprices = 0
 
@@ -99,34 +122,31 @@ function init_stab_after_rm_solve!(storage::ColGenStabStorage, smoothparam::Floa
     storage.curalpha = smoothparam == 1.0 ? storage.basealpha : smoothparam
     storage.curalpha = 0.5
 
-    constrids, constrvals = componentwisefunction(
-        storage.stabcenter, lp_dual_sol, 
-        (x, y) -> storage.curalpha * x + (1.0 - storage.curalpha) * y
-    )
+    return linear_combination(storage.stabcenter, lp_dual_sol, storage.curalpha)
+end
 
-    form = lp_dual_sol.model
-    bound = 0.0
-    for (i, constrid) in enumerate(constrids)
-        bound += constrvals[i] * getcurrhs(form, constrid) 
+function norm(dualsol::DualSolution)
+    product_sum = 0.0
+    for (constrid, val) in dualsol
+        product_sum += val * val
     end
-    return DualSolution(form, constrids, constrvals, bound)
+    return sqrt(product_sum)
 end
 
 function update_alpha_automatically!(
-    storage::ColGenStabStorage, lp_dual_sol::DualSolution{M}, 
-    smooth_dual_sol::DualSolution{M}, best_cols_ids_and_bounds::Vector{VarId, Float64, Float64}
+    storage::ColGenStabStorage, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
+    smooth_dual_sol::DualSolution{M}, combined_sp_solution::PrimalSolution{M}
 ) where {M}    
-    # first we calculate the IN-SEP direction
+
+    master = lp_dual_sol.model 
+
+    # first we calculate the in-sep direction
     constrids, constrvals = componentwisefunction(smooth_dual_sol, storage.stabcenter, -)
-    in_sep_norm = 0.0
-    for val in constrvals
-        in_sep_norm += val * val
-    end
-    in_sep_norm = sqrt(in_sep_norm)
+    in_sep_direction = DualSolution(master, constrids, constrvals, 0.0)
+    in_sep_dir_norm = norm(in_sep_direction)
 
     # we initialize the subgradient with the right-hand-side of all master constraints
     # except the convexity constraints
-    master = lp_dual_sol.model 
     constrids = Vector{ConstrId}()
     constrrhs = Vector{Float64}() 
     for (constrid, constr) in getconstrs(master)
@@ -137,20 +157,49 @@ function update_alpha_automatically!(
         end 
     end
     subgradient = DualSolution(master, constrids, constrrhs, 0.0)
+    
+    # we calculate the subgradient at the sep point
+    # using the best master columns just generated
+    master_coef_matrix = getcoefmatrix(master)
+    members = ConstrMembership()
+    for (varid, value) in combined_sp_solution
+        for (constrid, var_coeff) in master_coef_matrix[:,varid]
+            if !(getduty(constrid) <= MasterConvexityConstr) 
+                subgradient[constrid] = subgradient[constrid] - var_coeff * value
+            end
+        end
+    end
+    subgradient_norm = norm(subgradient)
+
+    # we now calculate the angle between the in-sep direction and the subgradient 
+    constrids, constrvals = componentwisefunction(in_sep_direction, subgradient, *)
+    angle = sum(constrvals) / (in_sep_dir_norm * subgradient_norm)
+
+    # we modify the alpha parameter based on the calculated angle
+    if nb_new_col == 0 || angle > 1e-12 
+        storage.basealpha -= 0.1
+    elseif angle < -1e-12 && storage.basealpha < 0.999
+        storage.basealpha += (1.0 - storage.basealpha) * 0.1
+    end    
 end
 
 function update_stab_after_gencols!(
     storage::ColGenStabStorage, smoothparam::Float64, nb_new_col::Int64, 
     lp_dual_sol::DualSolution{M}, smooth_dual_sol::DualSolution{M}, 
-    best_cols_ids_and_bounds::Vector{VarId, Float64, Float64}
+    combined_sp_solution::PrimalSolution{M}
 ) where {M}
-    smoothing_is_active(storage) && return nothing
+
+    iszero(smoothparam) && return nothing
 
     if smoothparam == 1.0 && storage.nb_misprices == 0
-        update_alpha_automatically!(storage, lp_dual_sol, smooth_dual_sol, best_cols_ids_and_bounds)
+        update_alpha_automatically!(
+            storage, nb_new_col, lp_dual_sol, smooth_dual_sol, combined_sp_solution
+        )
     end
 
-    nb_new_col > 0 && return nothing
+    if nb_new_col > 0 || !smoothing_is_active(storage)
+        return nothing
+    end
 
     if smoothparam < 0
         storage.curalpha = 1.0 - (storage.nb_misprices + 1) * (1 - smoothparam)
@@ -160,11 +209,26 @@ function update_stab_after_gencols!(
 
     storage.nb_misprices += 1
 
-    if storage.nb_misprices > 10 || storage.curalpha < 0.0
+    if storage.nb_misprices > 10 || storage.curalpha <= 0.0
         storage.curalpha = 0.0
+        return lp_dual_sol
     end
 
-    return linear_combination(lp_dual_sol, storage.stabcenter, storage.curalpha)
+    return linear_combination(storage.stabcenter, lp_dual_sol, storage.curalpha)
+end
+
+function update_stability_center!(
+    storage::ColGenStabStorage, dual_sol::DualSolution, 
+    valid_lagr_bound::DualBound, pseudo_lagr_bound::DualBound 
+)
+    if isbetter(valid_lagr_bound, storage.valid_dual_bound)
+        storage.basestabcenter = dual_sol
+        storage.valid_dual_bound = valid_lagr_bound
+    end
+    if isbetter(pseudo_lagr_bound, storage.pseudo_dual_bound)
+        storage.newstabcenter = dual_sol
+        storage.pseudo_dual_bound = pseudo_lagr_bound
+    end
 end
 
 function update_stab_after_colgen_iteration!(storage::ColGenStabStorage)
