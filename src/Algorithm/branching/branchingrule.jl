@@ -32,6 +32,7 @@ struct BranchingRuleInput <: AbstractInput
     max_nb_candidates::Int64
     criterion::SelectionCriterion
     local_id::Int64
+    int_tol::Float64
 end
 
 """
