@@ -290,7 +290,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
             nb_candidates_kept = 0 # nb candidates with non-zero distance
             i = 1
             sort!(kept_branch_groups, rev = true, by = x -> get_lhs_distance_to_integer(x))
-            while nb_candidates_kept < nb_candidates_needed
+            while i <= length(kept_branch_groups) && nb_candidates_kept < nb_candidates_needed
                 if abs(get_lhs_distance_to_integer(kept_branch_groups[i])) <= algo.int_tol
                     break
                 end
