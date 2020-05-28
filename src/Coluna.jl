@@ -5,6 +5,7 @@ import MathOptInterface
 import MathOptInterface.Utilities
 import Distributed
 import TimerOutputs
+import Base.Threads
 
 using Logging
 using Printf
