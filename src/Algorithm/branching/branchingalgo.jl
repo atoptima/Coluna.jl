@@ -57,6 +57,7 @@ Base.@kwdef struct StrongBranching <: AbstractDivideAlgorithm
     phases::Vector{BranchingPhase} = []
     rules::Vector{PrioritisedBranchingRule} = []
     selection_criterion::SelectionCriterion = MostFractionalCriterion
+    int_tol = 1e-6
 end
 
 # default parameterisation corresponds to simple branching (no strong branching phases)
@@ -282,13 +283,22 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
         end
 
         # sort branching candidates according to the selection criterion and remove excess ones
+        nb_candidates_kept = nb_candidates_needed
         if algo.selection_criterion == FirstFoundCriterion
             sort!(kept_branch_groups, by = x -> x.local_id)
-        elseif algo.selection_criterion == MostFractionalCriterion    
+        elseif algo.selection_criterion == MostFractionalCriterion
+            nb_candidates_kept = 0 # nb candidates with non-zero distance
+            i = 1
             sort!(kept_branch_groups, rev = true, by = x -> get_lhs_distance_to_integer(x))
+            while nb_candidates_kept < nb_candidates_needed
+                if abs(get_lhs_distance_to_integer(kept_branch_groups[i])) <= algo.int_tol
+                    break
+                end
+                nb_candidates_kept += 1
+            end
         end
-        if length(kept_branch_groups) > nb_candidates_needed
-            resize!(kept_branch_groups, nb_candidates_needed)
+        if length(kept_branch_groups) > nb_candidates_kept
+            resize!(kept_branch_groups, nb_candidates_kept)
         end
     end
 
