@@ -226,8 +226,7 @@ function register_original_formulation!(
     min_sense = (sense == MOI.MIN_SENSE)
     register_objective_sense!(orig_form, min_sense)
 
-    ucc = MOI.get(src, MOI.UserCutCallback())
-    @show ucc
+    register_callback!(orig_form, src, MOI.UserCutCallback())
 
     ipb = MOI.get(src, BD.ObjectivePrimalBound())
     idb = MOI.get(src, BD.ObjectiveDualBound())

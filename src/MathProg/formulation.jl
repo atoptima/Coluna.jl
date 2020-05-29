@@ -326,6 +326,16 @@ function setconstr!(
     return constr
 end
 
+function set_robust_constr_generator!(
+    form::Formulation,
+    kind::ConstrKind,
+    alg::Function
+)
+    constrgen = RobustConstraintsGenerator(0, kind, alg)
+    push!(form.manager.robust_constraint_generators, constrgen)
+    return nothing
+end
+
 function _addlocalartvar!(form::Formulation, constr::Constraint)
     matrix = getcoefmatrix(form)
     cost = Cl._params_.local_art_var_cost

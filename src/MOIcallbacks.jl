@@ -67,8 +67,18 @@ end
 #  Robust Constraints Callback                                                             #
 ############################################################################################
 
-function MOI.set(model::Optimizer, ::MOI.UserCutCallback, cb::Function)
-    println("\e[31m add user cut callback")
+function register_callback!(form::Formulation, src::MOI.ModelLike, attr::MOI.AbstractCallback)
+    try
+        sep = MOI.get(src, attr)
+        _register_callback!(form, attr, sep)
+    catch KeyError
+    end
     return
 end
-MOI.supports(::Optimizer, ::MOI.UserCutCallback) = false
+
+function _register_callback!(form::Formulation, attr::MOI.UserCutCallback, sep::Function)
+    set_robust_constr_generator!(form, Facultative, sep)
+    return
+end
+
+MOI.supports(::Optimizer, ::MOI.UserCutCallback) = true # TODO useless ?
