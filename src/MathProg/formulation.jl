@@ -118,7 +118,7 @@ function setvar!(
         error(string("Variable of id ", getid(var), " exists"))
     end
     _addvar!(form, var)
-    members != nothing && _setmembers!(form, var, members)
+    members !== nothing && _setmembers!(form, var, members)
     return var
 end
 
@@ -332,9 +332,11 @@ function set_robust_constr_generator!(
     alg::Function
 )
     constrgen = RobustConstraintsGenerator(0, kind, alg)
-    push!(form.manager.robust_constraint_generators, constrgen)
+    push!(form.manager.robust_constr_generators, constrgen)
     return nothing
 end
+
+get_robust_constr_generators(form::Formulation) = form.manager.robust_constr_generators
 
 function _addlocalartvar!(form::Formulation, constr::Constraint)
     matrix = getcoefmatrix(form)

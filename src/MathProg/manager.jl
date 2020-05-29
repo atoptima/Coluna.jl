@@ -20,7 +20,7 @@ struct FormulationManager
     primal_sol_costs::DynSparseVector{VarId} # primal solutions with varid map to their cost
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
     dual_sol_rhss::DynSparseVector{ConstrId} # dual solutions with constrid map to their rhs
-    robust_constraint_generators::Vector{RobustConstraintsGenerator}
+    robust_constr_generators::Vector{RobustConstraintsGenerator}
 end
 
 function FormulationManager()

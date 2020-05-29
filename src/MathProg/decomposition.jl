@@ -78,8 +78,6 @@ function instantiatesp!(
 end
 
 # Master of Dantzig-Wolfe decomposition
-
-
 function instantiate_orig_vars!(
     masterform::Formulation{DwMaster},
     origform::Formulation, 
@@ -112,6 +110,10 @@ function instantiate_orig_constrs!(
         cloneconstr!(
             origform, masterform, masterform, constr, MasterMixedConstr, loc_art_var = true
         ) # TODO distinguish Pure versus Mixed
+    end
+    # Cut generation callbacks
+    for constrgen in get_robust_constr_generators(origform)
+        set_robust_constr_generator!(masterform, constrgen.kind, constrgen.separation_alg)
     end
     return
 end

@@ -35,9 +35,12 @@ include("formstorages.jl")
 # Abstract algorithm
 include("interface.jl")
 
+# Basic algorithms
+include("basic/solveipform.jl")
+include("basic/solvelpform.jl")
+include("basic/cutcallback.jl")
+
 # Slave algorithms used by conquer algorithms
-include("solveipform.jl")
-include("solvelpform.jl")
 include("colgen.jl")
 include("benders.jl")
 include("preprocessing.jl")

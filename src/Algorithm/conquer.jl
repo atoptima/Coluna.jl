@@ -119,6 +119,7 @@ Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm
     colgen::ColumnGeneration = ColumnGeneration()
     mastipheur::SolveIpForm = SolveIpForm()
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
+    nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
 end
@@ -154,18 +155,25 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
         return 
     end
 
-    colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
-    update!(nodestate, getoptstate(colgen_output))
+    tightening_rounds = 0
+    tightening_phase = true
 
-    if !to_be_pruned(node)
-        if algo.run_mastipheur 
-            @logmsg LogLevel(0) "Run IP restricted master heuristic."
-            TO.@timeit Coluna._to "RestMasterHeur" begin
-                heur_output = run!(
-                    algo.mastipheur, getmasterdata(data), OptimizationInput(nodestate)
-                )
-                update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
-            end
+    while tightening_phase && !to_be_pruned(node)
+        colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
+        update!(nodestate, getoptstate(colgen_output))
+
+        cutcb_output = run!(CutCallbacks(), getmasterdata(data), CutCallbacksInput())
+        tightening_rounds += 1
+        tightening_phase = false
+    end
+
+    if !to_be_pruned(node) && algo.run_mastipheur 
+        @logmsg LogLevel(0) "Run IP restricted master heuristic."
+        TO.@timeit Coluna._to "RestMasterHeur" begin
+            heur_output = run!(
+                algo.mastipheur, getmasterdata(data), OptimizationInput(nodestate)
+            )
+            update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         end
     end 
     return
