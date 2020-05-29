@@ -159,32 +159,6 @@ function update_pricing_target!(spform::Formulation)
     # println("pricing target will only be needed after automating convexity constraints")
 end
 
-function insert_cols_in_master!(
-    phase::Int64, masterform::Formulation, spform::Formulation, spinfo::SubprobInfo
-) 
-    sp_uid = getuid(spform)
-    nb_of_gen_col = 0
-
-    for (i, sol_id) in enumerate(spinfo.recorded_sol_ids)
-        nb_of_gen_col += 1
-        name = string("MC_", getsortuid(sol_id))
-        lb = 0.0
-        ub = Inf
-        kind = Continuous
-        duty = MasterCol
-        mc = setcol_from_sp_primalsol!(
-            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, kind = kind
-        )        
-        if phase == 1
-            setcurcost!(masterform, mc, 0.0)
-        end
-        i == 1 && spinfo.bestcol_id = mc
-        @logmsg LogLevel(-2) string("Generated column : ", name)
-    end
-
-    return nb_of_gen_col
-end
-
 mutable struct SubprobInfo
     lb_constr_id::ConstrId
     ub_constr_id::ConstrId
@@ -203,8 +177,8 @@ function SubprobInfo(reform::Reformulation, spformid::FormId)
     master = getmaster(reform)
     lb_constr_id = reform.dw_pricing_sp_lb[spformid]
     ub_constr_id = reform.dw_pricing_sp_lb[spformid]    
-    lb = getcurrhs(lb_constr_id)
-    ub = getcurrhs(ub_constr_id)
+    lb = getcurrhs(master, lb_constr_id)
+    ub = getcurrhs(master, ub_constr_id)
     return SubprobInfo(
         lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, 0.0, 0.0, Vector{VarId}(), Vector{VarId}()
     )
@@ -230,6 +204,34 @@ set_bestcol_id!(info::SubprobInfo, varid::VarId) = info.bestcol_id = varid
 add_recorded_sol_id!(info::SubprobInfo, varid::VarId) = push!(info.recorded_sol_ids, varid)
 
 add_sol_id_to_activate!(info::SubprobInfo, varid::VarId) = push!(info.sol_ids_to_activate, varid)
+
+function insert_cols_in_master!(
+    phase::Int64, masterform::Formulation, spform::Formulation, spinfo::SubprobInfo
+) 
+    sp_uid = getuid(spform)
+    nb_of_gen_col = 0
+
+    for (i, sol_id) in enumerate(spinfo.recorded_sol_ids)
+        nb_of_gen_col += 1
+        name = string("MC_", getsortuid(sol_id))
+        lb = 0.0
+        ub = Inf
+        kind = Continuous
+        duty = MasterCol
+        mc = setcol_from_sp_primalsol!(
+            masterform, spform, sol_id, name, duty; lb = lb, ub = ub, kind = kind
+        )        
+        if phase == 1
+            setcurcost!(masterform, mc, 0.0)
+        end
+        if i == 1 
+            spinfo.bestcol_id = sol_id
+        end
+        @logmsg LogLevel(-2) string("Generated column : ", name)
+    end
+
+    return nb_of_gen_col
+end
 
 function contrib_improves_mlp(algo::ColumnGeneration, bound::Bound{S, MinSense}) where {S}
     return bound < 0.0 - algo.redcost_tol
@@ -301,7 +303,7 @@ function solve_sp_to_gencol!(
     # @logmsg LogLevel(-3) "optimizing pricing prob"
     output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
     sp_optstate = getoptstate(output)
-    compute_db_contributions!(algo, spinfo, get_ip_dual_bound(sp_optstate), get_ip_dual_bound(sp_optstate))
+    compute_db_contributions!(algo, spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate))
 
     !isfeasible(sp_optstate) && return false
 
@@ -511,30 +513,33 @@ end
 ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.optimality_tol
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.optimality_tol
 
-function compute_master_db_contrib(
-    restricted_master_sol_value::PrimalBound{S}
-) where {S}
-    # TODO: will change with stabilization
-    return DualBound{S}(restricted_master_sol_value)
-end
+# function compute_master_db_contrib(
+#     restricted_master_sol_value::PrimalBound{S}
+# ) where {S}
+#     # TODO: will change with stabilization
+#     return DualBound{S}(restricted_master_sol_value)
+# end
 
-function calculate_lagrangian_db(
-    restricted_master_sol_value::PrimalBound{S},
-    pricing_sp_dual_bound_contrib::DualBound{S}
-) where {S}
-    lagran_bnd = DualBound{S}(0.0)
-    lagran_bnd += compute_master_db_contrib(restricted_master_sol_value)
-    lagran_bnd += pricing_sp_dual_bound_contrib
-    return lagran_bnd
-end
+# function calculate_lagrangian_db(
+#     restricted_master_sol_value::PrimalBound{S},
+#     pricing_sp_dual_bound_contrib::DualBound{S}
+# ) where {S}
+#     lagran_bnd = DualBound{S}(0.0)
+#     lagran_bnd += compute_master_db_contrib(restricted_master_sol_value)
+#     lagran_bnd += pricing_sp_dual_bound_contrib
+#     return lagran_bnd
+# end
 
 function update_lagrangian_dual_bound!(
-    stabstorage::ColGenStabStorage, optstate::OptimizationState, dualsol::DualSolution, spinfos::Dict{FormId, SubprobInfo}
-)
+    algo::ColumnGeneration, stabstorage::ColGenStabStorage, optstate::OptimizationState{F, S}, 
+    dualsol::DualSolution, spinfos::Dict{FormId, SubprobInfo}
+) where {F, S}
     valid_lagr_bound = DualBound{S}(0.0)
     valid_lagr_bound += dualsol.bound # master contribution
     pseudo_lagr_bound = DualBound{S}(0.0)
     pseudo_lagr_bound += dualsol.bound # master contribution
+
+    @show dualsol.bound
 
     for (spuid, spinfo) in spinfos
         valid_lagr_bound += spinfo.valid_dual_bound_contrib
@@ -544,7 +549,9 @@ function update_lagrangian_dual_bound!(
     update_ip_dual_bound!(optstate, valid_lagr_bound)
     update_lp_dual_bound!(optstate, valid_lagr_bound)
 
-    update_stability_center!(stabstorage, dualsol, valid_lagr_bound, pseudo_lagr_bound)
+    if stabilization_is_used(algo)
+        update_stability_center!(stabstorage, dualsol, valid_lagr_bound, pseudo_lagr_bound)
+    end
 end
 
 function combined_sp_solution(master::Formulation, spinfos::Dict{FormId, SubprobInfo})
@@ -558,6 +565,12 @@ function combined_sp_solution(master::Formulation, spinfos::Dict{FormId, Subprob
     end
     
     return PrimalSolution(master, varids, values, 0.0)
+end
+
+function remove_convexity_constraints!(dualsol::DualSolution)
+    #stopped here
+    for (constrid, val) in dualsol
+    end
 end
 
 function cg_main_loop!(
@@ -622,6 +635,7 @@ function cg_main_loop!(
             clear_before_colgen_iteration!(spinfos[spid])
             set_dual_values!(spinfos[spid], lp_dual_sol)
         end
+        remove_convexity_constraints!(lp_dual_sol)
 
         if nb_lp_primal_sols(rm_optstate) > 0
             set_lp_primal_sol!(cg_optstate, get_best_lp_primal_sol(rm_optstate))
@@ -657,7 +671,7 @@ function cg_main_loop!(
 
             nb_new_columns += nb_new_col
 
-            update_lagrangian_dual_bound!(stabstorage, cg_optstate, smooth_dual_sol, spinfos)
+            update_lagrangian_dual_bound!(algo, stabstorage, cg_optstate, smooth_dual_sol, spinfos)
 
             smooth_dual_sol = update_stab_after_gencols!(
                 stabstorage, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol, 

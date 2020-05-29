@@ -89,7 +89,7 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
             )
         end
     end
-    algo.get_dual_bound & set_ip_dual_bound!(optstate, getdualbound(optimizer_result))
+    algo.get_dual_bound && set_ip_dual_bound!(optstate, getdualbound(optimizer_result))
     return OptimizationOutput(optstate)
 end
 

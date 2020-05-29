@@ -117,7 +117,7 @@ generation phase, `masteripheur` to optimize the integer restricted master.
 """
 Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm 
     colgen::ColumnGeneration = ColumnGeneration()
-    mastipheur::SolveIpForm = SolveIpForm(update_dual_bound = false)
+    mastipheur::SolveIpForm = SolveIpForm(get_dual_bound = false)
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false

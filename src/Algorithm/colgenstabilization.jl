@@ -110,6 +110,8 @@ function linear_combination(in_dual_sol::DualSolution, out_dual_sol::DualSolutio
 end
 
 function update_stab_after_rm_solve!(storage::ColGenStabStorage, smoothparam::Float64, lp_dual_sol::DualSolution)
+    iszero(smoothparam) && return lp_dual_sol
+
     storage.curalpha = 0.0
     storage.nb_misprices = 0
 
