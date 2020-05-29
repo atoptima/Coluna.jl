@@ -302,17 +302,6 @@ function cvrp_tests()
 
         problem, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
 
-        E = CLD.CapacitatedVehicleRouting.instance_edges(data)
-
-        function my_callback_function(cb_data)
-            println("\e[31m this is the callback function \e[00m")
-            x_vals = [callback_value(cb_data, x[1, e]) for e in E]
-            @show x_vals
-            con = @build_constraint(x[1, (1,2)] <= floor(x_vals[1]))
-            MOI.submit(problem, MOI.UserCut(cb_data), con)
-        end
-
-        MOI.set(problem, MOI.UserCutCallback(), my_callback_function)
         JuMP.optimize!(problem)
     end
     return

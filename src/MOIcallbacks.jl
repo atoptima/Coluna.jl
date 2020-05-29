@@ -95,18 +95,33 @@ function MOI.submit(
     set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
 )
     form = cb.callback_data.form
+    rhs = convert_moi_rhs_to_coluna(set)
+    sense = convert_moi_sense_to_coluna(set)
+    lhs = 0.0
     members = Dict{VarId, Float64}()
     for term in func.terms
-        varid = _get_orig_varid(model, term.variable_index)
+        varid = _get_orig_varid_in_form(model, form, term.variable_index)
         members[varid] = term.coefficient
+        lhs += term.coefficient * get(cb.callback_data.proj_sol_dict, varid, 0.0)
     end
+
     constr = setconstr!(
-        form, "", CutConstr;
-        rhs = convert_moi_rhs_to_coluna(set),
+        form, "", MasterPureConstr;
+        rhs = rhs,
         kind = Facultative,
-        sense = convert_moi_sense_to_coluna(set),
-        members = members
+        sense = sense,
+        members = members,
+        loc_art_var = true
     )
+
+    gap = lhs - rhs
+    if sense == Less
+        push!(cb.callback_data.viol_vals, max(0.0, gap))
+    elseif sense == Greater
+        push!(cb.callback_data.viol_vals, -min(0.0, gap))
+    else
+        push!(cb.callback_data.viol_vals, abs(gap))
+    end
     return getid(constr)
 end
 

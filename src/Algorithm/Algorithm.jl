@@ -11,6 +11,7 @@ using ..MathProg
 
 using Logging
 using Printf
+using Statistics
 
 const TO = TimerOutputs
 const DS = DataStructures
