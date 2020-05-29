@@ -1,11 +1,11 @@
 using LightGraphs
 
 function full_instances_tests()
-    generalized_assignment_tests()
-    capacitated_lot_sizing_tests()
-    lot_sizing_tests()
+    #generalized_assignment_tests()
+    #capacitated_lot_sizing_tests()
+    #lot_sizing_tests()
     #facility_location_tests()
-    cutting_stock_tests()
+    #cutting_stock_tests()
     cvrp_tests()
 end
 
@@ -301,6 +301,19 @@ function cvrp_tests()
         )
 
         problem, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
+
+        function my_callback_function(cb_data)
+            println("\e[31m this is the callback function \e[00m")
+            x_val = callback_value(cb_data, x)
+            con = @build_constraint(x <= floor(x_val))
+            MOI.submit(model, MOI.UserCut(cb_data), con)
+        end
+        println("\e[32m set problem \e[00m")
+        @show typeof(problem)
+        @show backend(problem)
+        MOI.set(problem, MOI.UserCutCallback(), my_callback_function)
+        @show backend(problem)
+        
         JuMP.optimize!(problem)
     end
     return

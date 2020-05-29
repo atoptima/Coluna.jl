@@ -27,11 +27,13 @@ include("pricing_callback_tests.jl")
 
 rng = MersenneTwister(1234123)
 
-unit_tests()
+#unit_tests()
 
 @testset "Full instances " begin
     full_instances_tests()
 end
+
+exit()
 
 @testset "Preprocessing " begin
     preprocessing_tests()

@@ -41,8 +41,8 @@ end
 function Optimizer()
     prob = Problem()
     return Optimizer(
-        prob, MOIU.IndexMap(), Params(), Annotations(),
-        Dict{MOI.VariableIndex,VarId}(), nothing
+        prob, MOIU.IndexMap(), Params(), Annotations(), Dict{MOI.VariableIndex,VarId}(), 
+        nothing
     )
 end
 
@@ -225,6 +225,9 @@ function register_original_formulation!(
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
     register_objective_sense!(orig_form, min_sense)
+
+    ucc = MOI.get(src, MOI.UserCutCallback())
+    @show ucc
 
     ipb = MOI.get(src, BD.ObjectivePrimalBound())
     idb = MOI.get(src, BD.ObjectiveDualBound())

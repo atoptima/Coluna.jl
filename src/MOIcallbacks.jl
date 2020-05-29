@@ -1,3 +1,7 @@
+############################################################################################
+#  Pricing Callback                                                                        #
+############################################################################################
+
 function MOI.submit(
     model::Optimizer,
     cb::BD.PricingSolution{MathProg.PricingCallbackData},
@@ -58,3 +62,13 @@ function MOI.get(
     form = pvub.callback_data.form
     return getcurub(form, _get_orig_varid(model, x))
 end
+
+############################################################################################
+#  Robust Constraints Callback                                                             #
+############################################################################################
+
+function MOI.set(model::Optimizer, ::MOI.UserCutCallback, cb::Function)
+    println("\e[31m add user cut callback")
+    return
+end
+MOI.supports(::Optimizer, ::MOI.UserCutCallback) = false
