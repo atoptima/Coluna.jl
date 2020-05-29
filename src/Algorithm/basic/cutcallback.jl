@@ -40,8 +40,7 @@ function run!(algo::CutCallbacks, data::ModelData, input::CutCallbacksInput)
                 constrgen.separation_alg(context)
             end
         end
-
-        #add_robust_cuts!
+        
     end
 
 

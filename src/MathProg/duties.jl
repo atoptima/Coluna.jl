@@ -42,6 +42,7 @@ end
             AbstractMasterAddedConstr <= AbstractMasterConstr
                 MasterConvexityConstr <= AbstractMasterAddedConstr
                 MasterSecondStageCostConstr <= AbstractMasterAddedConstr
+                CutConstr <= AbstractMasterAddedConstr
             AbstractMasterImplicitConstr <= AbstractMasterConstr
                 AbstractMasterRepBendSpConstr <= AbstractMasterImplicitConstr
                     MasterRepBendSpSecondStageCostConstr <= AbstractMasterRepBendSpConstr

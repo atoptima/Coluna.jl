@@ -89,5 +89,25 @@ function MOI.get(
     return get(cvp.callback_data.proj_sol_dict, _get_orig_varid(model, x), 0.0)
 end
 
+function MOI.submit(
+    model::Optimizer, cb::MOI.UserCut{Algorithm.RobustCutCallbackContext},
+    func::MOI.ScalarAffineFunction{Float64},
+    set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
+)
+    form = cb.callback_data.form
+    members = Dict{VarId, Float64}()
+    for term in func.terms
+        varid = _get_orig_varid(model, term.variable_index)
+        members[varid] = term.coefficient
+    end
+    constr = setconstr!(
+        form, "", CutConstr;
+        rhs = convert_moi_rhs_to_coluna(set),
+        kind = Facultative,
+        sense = convert_moi_sense_to_coluna(set),
+        members = members
+    )
+    return getid(constr)
+end
 
 MOI.supports(::Optimizer, ::MOI.UserCutCallback) = true
