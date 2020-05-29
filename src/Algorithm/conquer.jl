@@ -162,9 +162,16 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
         colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
         update!(nodestate, getoptstate(colgen_output))
 
-        cutcb_output = run!(CutCallbacks(), getmasterdata(data), CutCallbacksInput())
-        tightening_rounds += 1
-        tightening_phase = false
+        sol = get_best_lp_primal_sol(getoptstate(colgen_output))
+        if sol !== nothing
+            cutcb_input = CutCallbacksInput(sol)
+            cutcb_output = run!(CutCallbacks(), getmasterdata(data), cutcb_input)
+            tightening_rounds += 1
+            tightening_phase = false
+        else
+            @warn "Skip cut generation because no best primal solution."
+            tightening_phase = false
+        end
     end
 
     if !to_be_pruned(node) && algo.run_mastipheur 

@@ -81,4 +81,13 @@ function _register_callback!(form::Formulation, attr::MOI.UserCutCallback, sep::
     return
 end
 
-MOI.supports(::Optimizer, ::MOI.UserCutCallback) = true # TODO useless ?
+function MOI.get(
+    model::Optimizer, cvp::MOI.CallbackVariablePrimal{Algorithm.RobustCutCallbackContext},
+    x::MOI.VariableIndex
+)
+    form = cvp.callback_data.form
+    return get(cvp.callback_data.proj_sol_dict, _get_orig_varid(model, x), 0.0)
+end
+
+
+MOI.supports(::Optimizer, ::MOI.UserCutCallback) = true
