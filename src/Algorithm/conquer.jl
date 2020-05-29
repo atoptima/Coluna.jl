@@ -146,7 +146,6 @@ function get_storages_to_restore!(
 end
 
 function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
-
     node = getnode(input)
     nodestate = getoptstate(node)
     reform = getreform(data)
@@ -158,7 +157,7 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
     colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
-    if (!to_be_pruned(node))
+    if !to_be_pruned(node)
         if algo.run_mastipheur 
             @logmsg LogLevel(0) "Run IP restricted master heuristic."
             TO.@timeit Coluna._to "RestMasterHeur" begin
@@ -169,7 +168,7 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
             end
         end
     end 
-
+    return
 end
 
 ####################################################################

@@ -110,6 +110,7 @@ function get_storages_usage!(
 )
     get_storages_usage!(algo.conqueralg, reform, storages_usage)
     get_storages_usage!(algo.dividealg, reform, storages_usage)
+    return
 end
 
 function get_storages_to_restore!(
@@ -189,7 +190,7 @@ function run_conquer_algorithm!(
         set_tree_order!(node, tsdata.tree_order)
         tsdata.tree_order += 1
     end
-    
+
     print_node_info_before_conquer(tsdata, node)
 
     node.conquerwasrun && return
@@ -205,8 +206,6 @@ function run_conquer_algorithm!(
     if algo.storelpsolution && isrootnode(node) && nb_lp_primal_sols(nodestate) > 0
         set_lp_primal_sol!(treestate, get_best_lp_primal_sol(nodestate)) 
     end 
-
-    print_node_in_branching_tree_file(algo, tsdata, node)
     return
 end
 
@@ -266,7 +265,6 @@ function updatedualbound!(data::TreeSearchRuntimeData)
         end
     end
     set_ip_dual_bound!(treestate, worst_bound)
-
     return
 end
 
@@ -290,7 +288,8 @@ function determine_statuses(data::TreeSearchRuntimeData)
     elseif !gap_is_zero
         setterminationstatus!(treestate, OTHER_LIMIT)
     end
-end    
+    return
+end
 
 function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
@@ -310,7 +309,6 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
     return tsdata
 end
 
-
 function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
@@ -320,7 +318,8 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
 
         if get_tree_order(tsdata) <= algo.maxnumnodes
             restore_states!(node.stateids, tsdata.node_storages_to_restore)
-            run_conquer_algorithm!(algo, tsdata, rfdata, node)      
+            run_conquer_algorithm!(algo, tsdata, rfdata, node)
+            print_node_in_branching_tree_file(algo, tsdata, node)
             run_divide_algorithm!(algo, tsdata, rfdata, node)           
             updatedualbound!(tsdata)
         else

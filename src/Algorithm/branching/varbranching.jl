@@ -38,7 +38,7 @@ function generate_children(
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
         master, string("branch_geq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
-        sense = Greater, rhs = ceil(lhs), 
+        sense = Greater, rhs = ceil(lhs), loc_art_var = true,
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     end
@@ -50,7 +50,7 @@ function generate_children(
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
         master, string("branch_leq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
-        sense = Less, rhs = floor(lhs), 
+        sense = Less, rhs = floor(lhs), loc_art_var = true,
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     end
@@ -89,7 +89,7 @@ function run!(
     for (var_id, val) in input.solution
         # Do not consider continuous variables as branching candidates
         getperenkind(master, var_id) == Continuous && continue
-        if !isinteger(val)
+        if !isinteger(val, input.int_tol)
             #description string is just the variable name
             candidate = VarBranchingCandidate(getname(master, var_id), var_id)
             local_id += 1 
