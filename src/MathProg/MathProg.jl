@@ -15,8 +15,6 @@ using DynamicSparseArrays
 using Logging
 using Printf
 
-using GLPK
-
 global const BD = BlockDecomposition
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
