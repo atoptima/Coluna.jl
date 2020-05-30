@@ -288,7 +288,6 @@ end
 
 function cvrp_tests()
     @testset "play cvrp" begin
-        # Optimal value 784
         data = CLD.CapacitatedVehicleRouting.data("A-n32-k5.vrp")
 
         coluna = JuMP.optimizer_with_attributes(
