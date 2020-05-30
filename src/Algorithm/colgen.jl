@@ -280,6 +280,7 @@ function solve_sp_to_gencol!(
                 elseif !insertion_status && !iscuractive(masterform, col_id)
                     push!(sp_solution_ids_to_activate, col_id)
                 else
+                    #push!(recorded_solution_ids, col_id)
                     msg = """
                     Column already exists as $(getname(masterform, col_id)) and is already active.
                     """

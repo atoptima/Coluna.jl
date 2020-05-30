@@ -171,6 +171,8 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
             break
         end
 
+        set_ip_dual_bound!(nodestate, DualBound(reform))
+        set_lp_dual_bound!(nodestate, DualBound(reform))
         colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
         update!(nodestate, getoptstate(colgen_output))
 

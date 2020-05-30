@@ -431,7 +431,7 @@ function _setmembers!(form::Formulation, constr::Constraint, members::VarMembers
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in getprimalsolmatrix(spform)[varid,:]
                 @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
-                coef_matrix[constrid, col_id] = col_coeff * var_coeff
+                coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
         end
     end

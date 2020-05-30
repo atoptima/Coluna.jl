@@ -106,9 +106,9 @@ function MOI.submit(
     end
 
     constr = setconstr!(
-        form, "", MasterPureConstr;
+        form, "", MasterMixedConstr;
         rhs = rhs,
-        kind = Facultative,
+        kind = MathProg.Core,
         sense = sense,
         members = members,
         loc_art_var = true

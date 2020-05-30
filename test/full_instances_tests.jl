@@ -1,11 +1,11 @@
 using LightGraphs
 
 function full_instances_tests()
-    #generalized_assignment_tests()
-    #capacitated_lot_sizing_tests()
-    #lot_sizing_tests()
+    generalized_assignment_tests()
+    capacitated_lot_sizing_tests()
+    lot_sizing_tests()
     #facility_location_tests()
-    #cutting_stock_tests()
+    cutting_stock_tests()
     cvrp_tests()
 end
 
@@ -300,9 +300,9 @@ function cvrp_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
-
-        JuMP.optimize!(problem)
+        model, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
+        BD.objectiveprimalbound!(model, 784.0)
+        JuMP.optimize!(model)
     end
     return
 end

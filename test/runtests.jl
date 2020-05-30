@@ -33,8 +33,6 @@ unit_tests()
     full_instances_tests()
 end
 
-exit()
-
 @testset "Preprocessing " begin
     preprocessing_tests()
 end
