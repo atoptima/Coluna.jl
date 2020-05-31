@@ -55,7 +55,7 @@ function run!(algo::CutCallbacks, data::ModelData, input::CutCallbacksInput)
         @printf "Robust cut separation callback adds %i new cuts\n" nb_new_cuts
         if nb_new_cuts > 0
             @printf(
-                "avg. viol. = %.2f, max. viol. = %.2f, zero. viol. = %i.\n",
+                "avg. viol. = %.2f, max. viol. = %.2f, zero viol. = %i.\n",
                 mean(context.viol_vals), maximum(context.viol_vals), zeroviols
             )
         end

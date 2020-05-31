@@ -156,9 +156,8 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
     end
 
     nb_tightening_rounds = 0
-
     colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
-        update!(nodestate, getoptstate(colgen_output))
+    update!(nodestate, getoptstate(colgen_output))
 
     while !to_be_pruned(node) && nb_tightening_rounds < algo.max_nb_cut_rounds
         sol = get_best_lp_primal_sol(getoptstate(colgen_output))
