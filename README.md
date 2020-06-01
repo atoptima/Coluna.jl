@@ -43,6 +43,7 @@ active development.
   - Dantzig-Wolfe decomposition 
   - Column generation algorithm
   - Pricing callback
+  - Robust cut callback
 - ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but it may be not performant:
   - Branch-and-price-and-cut algorithm
   - Benders decomposition
@@ -74,7 +75,7 @@ who make Coluna possible.
 
 ## Acknowledgments
 
-The platform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/) and [**Région Nouvelle-Aquitaine**](https://www.nouvelle-aquitaine.fr/)
+The platform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/) and [**Région Nouvelle-Aquitaine**](https://www.nouvelle-aquitaine.fr/).
 
 [**Atoptima**](https://atoptima.com/)
 

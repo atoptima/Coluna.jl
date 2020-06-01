@@ -118,7 +118,7 @@ function setvar!(
         error(string("Variable of id ", getid(var), " exists"))
     end
     _addvar!(form, var)
-    members != nothing && _setmembers!(form, var, members)
+    members !== nothing && _setmembers!(form, var, members)
     return var
 end
 
@@ -326,6 +326,18 @@ function setconstr!(
     return constr
 end
 
+function set_robust_constr_generator!(
+    form::Formulation,
+    kind::ConstrKind,
+    alg::Function
+)
+    constrgen = RobustConstraintsGenerator(0, kind, alg)
+    push!(form.manager.robust_constr_generators, constrgen)
+    return nothing
+end
+
+get_robust_constr_generators(form::Formulation) = form.manager.robust_constr_generators
+
 function _addlocalartvar!(form::Formulation, constr::Constraint)
     matrix = getcoefmatrix(form)
     cost = Cl._params_.local_art_var_cost
@@ -419,7 +431,7 @@ function _setmembers!(form::Formulation, constr::Constraint, members::VarMembers
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in getprimalsolmatrix(spform)[varid,:]
                 @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
-                coef_matrix[constrid, col_id] = col_coeff * var_coeff
+                coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
         end
     end

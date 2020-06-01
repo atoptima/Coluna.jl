@@ -67,3 +67,8 @@ function Constraint(
     )
 end
 
+mutable struct RobustConstraintsGenerator
+    nb_generated::Int
+    kind::ConstrKind
+    separation_alg::Function
+end

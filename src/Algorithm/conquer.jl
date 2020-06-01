@@ -119,6 +119,7 @@ Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm
     colgen::ColumnGeneration = ColumnGeneration()
     mastipheur::SolveIpForm = SolveIpForm()
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
+    max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
 end
@@ -154,18 +155,36 @@ function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
         return 
     end
 
+    nb_tightening_rounds = 0
     colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
-    if !to_be_pruned(node)
-        if algo.run_mastipheur 
-            @logmsg LogLevel(0) "Run IP restricted master heuristic."
-            TO.@timeit Coluna._to "RestMasterHeur" begin
-                heur_output = run!(
-                    algo.mastipheur, getmasterdata(data), OptimizationInput(nodestate)
-                )
-                update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
-            end
+    while !to_be_pruned(node) && nb_tightening_rounds < algo.max_nb_cut_rounds
+        sol = get_best_lp_primal_sol(getoptstate(colgen_output))
+        if sol !== nothing
+            cutcb_input = CutCallbacksInput(sol)
+            cutcb_output = run!(CutCallbacks(), getmasterdata(data), cutcb_input)
+            cutcb_output.nb_cuts_added == 0 && break
+        else
+            @warn "Skip cut generation because no best primal solution."
+            break
+        end
+
+        set_ip_dual_bound!(nodestate, DualBound(reform))
+        set_lp_dual_bound!(nodestate, DualBound(reform))
+        colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
+        update!(nodestate, getoptstate(colgen_output))
+
+        nb_tightening_rounds += 1
+    end
+
+    if !to_be_pruned(node) && algo.run_mastipheur 
+        @logmsg LogLevel(0) "Run IP restricted master heuristic."
+        TO.@timeit Coluna._to "RestMasterHeur" begin
+            heur_output = run!(
+                algo.mastipheur, getmasterdata(data), OptimizationInput(nodestate)
+            )
+            update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         end
     end 
     return

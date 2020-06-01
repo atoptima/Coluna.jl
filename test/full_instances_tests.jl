@@ -288,7 +288,6 @@ end
 
 function cvrp_tests()
     @testset "play cvrp" begin
-        # Optimal value 784
         data = CLD.CapacitatedVehicleRouting.data("A-n32-k5.vrp")
 
         coluna = JuMP.optimizer_with_attributes(
@@ -300,8 +299,9 @@ function cvrp_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
-        JuMP.optimize!(problem)
+        model, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
+        BD.objectiveprimalbound!(model, 784.0)
+        JuMP.optimize!(model)
     end
     return
 end
