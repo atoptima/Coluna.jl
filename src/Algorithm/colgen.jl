@@ -550,8 +550,14 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
         end
 
         if nb_lp_primal_sols(rm_optstate) > 0
-            set_lp_primal_sol!(cg_optstate, get_best_lp_primal_sol(rm_optstate))
+            rm_sol = get_best_lp_primal_sol(rm_optstate)
+            set_lp_primal_sol!(cg_optstate, rm_sol)
             set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate))
+
+            proj_sol = proj_cols_on_rep(rm_sol, masterform)
+            if isinteger(proj_sol) && !contains(proj_sol, varid -> isanArtificialDuty(getduty(varid)))
+                update_ip_primal_sol!(rm_optstate, rm_sol)
+            end
         else
             @error string("Solver returned that the LP restricted master is feasible but ",
             "did not return a primal solution. ",
@@ -561,9 +567,8 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
         update_all_ip_primal_solutions!(cg_optstate, rm_optstate)
 
         TO.@timeit Coluna._to "Cleanup columns" begin
-            cleanup_columns(algo, cgdata.nb_iterations, rfdata)        
+            cleanup_columns(algo, cgdata.nb_iterations, rfdata)   
         end
-
 
         cgdata.nb_iterations += 1
 
@@ -591,16 +596,6 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
         if ip_gap(cg_optstate) < algo.optimality_tol
             setterminationstatus!(cg_optstate, OPTIMAL)
             @logmsg LogLevel(0) "Dual bound reached primal bound."
-
-            for (id, val) in get_best_lp_primal_sol(rm_optstate)
-                println("\t", getname(masterform, id), "= ", val)
-            end
-            println("*******")
-            proj_sol = proj_cols_on_rep(get_best_lp_primal_sol(rm_optstate), masterform)
-            for (id, val) in proj_sol
-                println("\t", getname(masterform, id), "= ", val)
-            end
-
             return true
         end
         if cgdata.phase == 1 && ph_one_infeasible_db(algo, dual_bound)

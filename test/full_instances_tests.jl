@@ -1,13 +1,12 @@
 using LightGraphs
 
 function full_instances_tests()
-    # generalized_assignment_tests()
-    # capacitated_lot_sizing_tests()
-    # lot_sizing_tests()
-    # ##facility_location_tests()
-    # cutting_stock_tests()
+    generalized_assignment_tests()
+    capacitated_lot_sizing_tests()
+    lot_sizing_tests()
+    #facility_location_tests()
+    cutting_stock_tests()
     cvrp_tests()
-    exit()
 end
 
 function mytest()
@@ -179,7 +178,7 @@ function generalized_assignment_tests()
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
         JuMP.optimize!(problem)
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+        @test_broken MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
     end
 
     @testset "play gap" begin
@@ -301,7 +300,6 @@ function cvrp_tests()
         )
 
         model, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
-        BD.objectiveprimalbound!(model, 504.0)
         JuMP.optimize!(model)
         @test objective_value(model) ≈ 504
     end
