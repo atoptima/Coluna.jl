@@ -85,6 +85,7 @@ export AbstractFormulation, Reformulation, Formulation, getmaster, getreformulat
        getdualsolrhss,
        setvar!, setconstr!,
        setprimalsol!, setdualsol!,
+       set_robust_constr_generator!, get_robust_constr_generators,
        setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
 
 # Methods related to duties
