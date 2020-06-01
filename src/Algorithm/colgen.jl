@@ -194,11 +194,6 @@ function clear_before_colgen_iteration!(info::SubprobInfo)
     empty!(info.sol_ids_to_activate)
 end
 
-function set_dual_values!(info::SubprobInfo, dualsol::DualSolution)
-    info.lb_dual = dualsol[info.lb_constr_id]    
-    info.ub_dual = dualsol[info.ub_constr_id]    
-end
-
 set_bestcol_id!(info::SubprobInfo, varid::VarId) = info.bestcol_id = varid
 
 add_recorded_sol_id!(info::SubprobInfo, varid::VarId) = push!(info.recorded_sol_ids, varid)
@@ -567,9 +562,12 @@ function combined_sp_solution(master::Formulation, spinfos::Dict{FormId, Subprob
     return PrimalSolution(master, varids, values, 0.0)
 end
 
-function remove_convexity_constraints!(dualsol::DualSolution)
-    #stopped here
-    for (constrid, val) in dualsol
+function move_convexity_constrs_dual_values!(dualsol::DualSolution, spinfos::Dict{FormId, SubprobInfo})
+    for (spuid, spinfo) in spinfos
+        spinfo.lb_dual = dualsol[spinfo.lb_constr_id]    
+        spinfo.ub_dual = dualsol[spinfo.ub_constr_id]    
+        dualsol[spinfo.lb_constr_id] = zero(0.0)
+        dualsol[spinfo.ub_constr_id] = zero(0.0)
     end
 end
 
@@ -630,12 +628,7 @@ function cg_main_loop!(
             "did not return a dual solution. ",
             "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
         end
-
-        for (spid, spform) in get_dw_pricing_sps(reform)
-            clear_before_colgen_iteration!(spinfos[spid])
-            set_dual_values!(spinfos[spid], lp_dual_sol)
-        end
-        remove_convexity_constraints!(lp_dual_sol)
+        move_convexity_constrs_dual_values!(lp_dual_sol, spinfos)
 
         if nb_lp_primal_sols(rm_optstate) > 0
             set_lp_primal_sol!(cg_optstate, get_best_lp_primal_sol(rm_optstate))
