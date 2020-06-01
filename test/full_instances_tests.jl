@@ -1,11 +1,11 @@
 using LightGraphs
 
 function full_instances_tests()
-    generalized_assignment_tests()
-    capacitated_lot_sizing_tests()
-    lot_sizing_tests()
-    #facility_location_tests()
-    cutting_stock_tests()
+    #generalized_assignment_tests()
+    #capacitated_lot_sizing_tests()
+    #lot_sizing_tests()
+    ##facility_location_tests()
+    #cutting_stock_tests()
     cvrp_tests()
 end
 
@@ -293,7 +293,7 @@ function cvrp_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-                maxnumnodes = 100,
+                maxnumnodes = 1,
                 branchingtreefile = "cvrp.dot"
             )),
             "default_optimizer" => GLPK.Optimizer
@@ -302,6 +302,8 @@ function cvrp_tests()
         model, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
         BD.objectiveprimalbound!(model, 784.0)
         JuMP.optimize!(model)
+        @test 752.9677 - 1e-4 <= objective_bound(model) <= 752.9677 + 1e-4 
+        # only solving the root node  --  TODO : improve this test.
     end
     return
 end
