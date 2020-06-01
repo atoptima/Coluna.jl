@@ -591,6 +591,16 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
         if ip_gap(cg_optstate) < algo.optimality_tol
             setterminationstatus!(cg_optstate, OPTIMAL)
             @logmsg LogLevel(0) "Dual bound reached primal bound."
+
+            for (id, val) in get_best_lp_primal_sol(rm_optstate)
+                println("\t", getname(masterform, id), "= ", val)
+            end
+            println("*******")
+            proj_sol = proj_cols_on_rep(get_best_lp_primal_sol(rm_optstate), masterform)
+            for (id, val) in proj_sol
+                println("\t", getname(masterform, id), "= ", val)
+            end
+
             return true
         end
         if cgdata.phase == 1 && ph_one_infeasible_db(algo, dual_bound)
