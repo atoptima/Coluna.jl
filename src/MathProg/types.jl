@@ -73,7 +73,7 @@ end
 @exported_enum FormulationPhase HybridPhase PurePhase1 PurePhase2
 @exported_enum VarSense Positive Negative Free
 @exported_enum VarKind Continuous Binary Integ
-@exported_enum ConstrKind Core Facultative SubSystem
+@exported_enum ConstrKind Essential Facultative SubSystem
 @exported_enum ConstrSense Greater Less Equal
 @exported_enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
 @exported_enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition

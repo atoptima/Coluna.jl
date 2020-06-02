@@ -164,7 +164,7 @@ Return the kind as defined by the user of a variable or a constraint in a formul
 Kinds of variable (`enum VarKind`) are `Continuous`, `Binary`, or `Integ`.
     
 Kinds of a constraint (`enum ConstrKind`) are : 
- - `Core` when the constraint structures the problem
+ - `Essential` when the constraint structures the problem
  - `Facultative` when the constraint does not structure the problem
  - `SubSystem` (to do)
 

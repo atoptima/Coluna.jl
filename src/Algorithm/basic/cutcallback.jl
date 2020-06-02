@@ -38,7 +38,7 @@ function run!(algo::CutCallbacks, data::ModelData, input::CutCallbacksInput)
         for constrgen in robust_generators
             if constrgen.kind == Facultative && algo.call_robust_facultative
                 constrgen.separation_alg(context)
-            elseif constrgen.kind == Core && algo.call_robust_core
+            elseif constrgen.kind == Essential && algo.call_robust_core
                 constrgen.separation_alg(context)
             end
         end
