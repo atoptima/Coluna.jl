@@ -550,8 +550,15 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
         end
 
         if nb_lp_primal_sols(rm_optstate) > 0
-            set_lp_primal_sol!(cg_optstate, get_best_lp_primal_sol(rm_optstate))
+            rm_sol = get_best_lp_primal_sol(rm_optstate)
+            set_lp_primal_sol!(cg_optstate, rm_sol)
             set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate))
+
+            if !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
+                if isinteger(proj_cols_on_rep(rm_sol, masterform))
+                    update_ip_primal_sol!(rm_optstate, rm_sol)
+                end
+            end
         else
             @error string("Solver returned that the LP restricted master is feasible but ",
             "did not return a primal solution. ",
@@ -561,9 +568,8 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
         update_all_ip_primal_solutions!(cg_optstate, rm_optstate)
 
         TO.@timeit Coluna._to "Cleanup columns" begin
-            cleanup_columns(algo, cgdata.nb_iterations, rfdata)        
+            cleanup_columns(algo, cgdata.nb_iterations, rfdata)   
         end
-
 
         cgdata.nb_iterations += 1
 
