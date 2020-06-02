@@ -554,9 +554,10 @@ function cg_main_loop!(algo::ColumnGeneration, cgdata::ColGenRuntimeData, rfdata
             set_lp_primal_sol!(cg_optstate, rm_sol)
             set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate))
 
-            proj_sol = proj_cols_on_rep(rm_sol, masterform)
-            if isinteger(proj_sol) && !contains(proj_sol, varid -> isanArtificialDuty(getduty(varid)))
-                update_ip_primal_sol!(rm_optstate, rm_sol)
+            if !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
+                if isinteger(proj_cols_on_rep(rm_sol, masterform))
+                    update_ip_primal_sol!(rm_optstate, rm_sol)
+                end
             end
         else
             @error string("Solver returned that the LP restricted master is feasible but ",
