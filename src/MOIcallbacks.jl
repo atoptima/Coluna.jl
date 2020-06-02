@@ -108,7 +108,7 @@ function MOI.submit(
     constr = setconstr!(
         form, "", MasterMixedConstr;
         rhs = rhs,
-        kind = MathProg.Core,
+        kind = Essential,
         sense = sense,
         members = members,
         loc_art_var = true
