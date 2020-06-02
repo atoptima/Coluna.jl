@@ -205,7 +205,7 @@ function insert_cuts_in_master!(
     for dual_sol_id in sp_dualsol_ids
         nb_of_gen_cuts += 1
         name = string("BC_", getsortuid(dual_sol_id))
-        kind = MathProg.Core
+        kind = Essential
         duty = MasterBendCutConstr
         bc = setcut_from_sp_dualsol!(
             masterform,

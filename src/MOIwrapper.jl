@@ -167,7 +167,7 @@ function create_origconstr!(
 )
     constr = setconstr!(form, name, OriginalConstr;
                     rhs = convert_moi_rhs_to_coluna(set),
-                    kind = MathProg.Core,
+                    kind = Essential,
                     sense = convert_moi_sense_to_coluna(set),
                     inc_val = 10.0) #TODO set inc_val in model
     constrid = getid(constr)
