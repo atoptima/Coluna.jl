@@ -8,3 +8,5 @@ docs/site/
 *.lp
 .vscode
 *.toml
+Manifest.toml
+test/Manifest.toml

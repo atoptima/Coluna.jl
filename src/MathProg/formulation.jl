@@ -255,7 +255,7 @@ function setcut_from_sp_dualsol!(
     dual_sol_id::ConstrId,
     name::String,
     duty::Duty{Constraint};
-    kind::ConstrKind = Core,
+    kind::ConstrKind = Essential,
     sense::ConstrSense = Greater,
     inc_val::Float64 = -1.0, 
     is_active::Bool = true,
@@ -265,7 +265,7 @@ function setcut_from_sp_dualsol!(
     rhs = getdualsolrhss(spform)[dual_sol_id]
     benders_cut_id = Id{Constraint}(duty, dual_sol_id) 
     benders_cut_data = ConstrData(
-        rhs, Core, sense, inc_val, is_active, is_explicit
+        rhs, Essential, sense, inc_val, is_active, is_explicit
     )
     benders_cut = Constraint(
         benders_cut_id, name;
@@ -300,7 +300,7 @@ function setconstr!(
     name::String,
     duty::Duty{Constraint};
     rhs::Float64 = 0.0,
-    kind::ConstrKind = Core,
+    kind::ConstrKind = Essential,
     sense::ConstrSense = Greater,
     inc_val::Float64 = 0.0,
     is_active::Bool = true,
