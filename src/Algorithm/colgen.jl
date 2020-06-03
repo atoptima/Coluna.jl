@@ -228,29 +228,22 @@ function insert_cols_in_master!(
     return nb_of_gen_col
 end
 
-function contrib_improves_mlp(algo::ColumnGeneration, bound::Bound{S, MinSense}) where {S}
-    return bound < 0.0 - algo.redcost_tol
-end
-
-function contrib_improves_mlp(algo::ColumnGeneration, bound::Bound{S, MaxSense}) where {S}
-    return bound > 0.0 + algo.redcost_tol
-end
-
-function compute_dual_bound_contrib(algo::ColumnGeneration, info::SubprobInfo, bound::Bound)
-    contrib = bound
-    if contrib_improves_mlp(algo, bound)
-        contrib += (bound + info.ub_dual) * info.ub + info.lb_dual * info.lb
-    else
-        contrib += (bound + info.lb_dual) * info.lb + info.ub_dual * info.ub
-    end
-    return contrib
+function compute_db_contributions!(
+    info::SubprobInfo, dualbound::DualBound{MaxSense}, primalbound::PrimalBound{MaxSense}
+) 
+    value = getvalue(dualbound)
+    info.valid_dual_bound_contrib = value <= 0 ? value * info.lb : value * info.ub
+    value = getvalue(primalbound)
+    info.pseudo_dual_bound_contrib = value <= 0 ? value * info.lb : value * info.ub
 end
 
 function compute_db_contributions!(
-    algo::ColumnGeneration, info::SubprobInfo, dualbound::DualBound, primalbound::PrimalBound
+    info::SubprobInfo, dualbound::DualBound{MinSense}, primalbound::PrimalBound{MinSense}
 )
-    info.valid_dual_bound_contrib = compute_dual_bound_contrib(algo, info, dualbound)
-    info.pseudo_dual_bound_contrib = compute_dual_bound_contrib(algo, info, primalbound)
+    value = getvalue(dualbound)
+    info.valid_dual_bound_contrib = value >= 0 ? value * info.lb : value * info.ub
+    value = getvalue(primalbound)
+    info.pseudo_dual_bound_contrib = value >= 0 ? value * info.lb : value * info.ub
 end
 
 function improving_red_cost(algo::ColumnGeneration, info::SubprobInfo, ::Type{MinSense}, sp_sol_value::Float64)
@@ -261,9 +254,32 @@ function improving_red_cost(algo::ColumnGeneration, info::SubprobInfo, ::Type{Ma
     return sp_sol_value - info.ub_dual - info.lb_dual > 0.0 + algo.redcost_tol
 end
 
+function compute_red_cost(master::Formulation, info::SubprobInfo, spsol::PrimalSolution, lp_dual_sol::DualSolution)
+    master_coef_matrix = getcoefmatrix(master)
+    red_cost::Float64 = 0.0
+    for (varid, value) in spsol
+        for (constrid, var_coeff) in master_coef_matrix[:,varid]
+            red_cost += value * var_coeff * lp_dual_sol[constrid]
+        end 
+    end
+    red_cost += info.lb * info.lb_dual + info.ub + info.lb_dual
+    return red_cost
+end
+
+function improving_red_cost(
+    algo::ColumnGeneration, master::Formulation, info::SubprobInfo, spsol::PrimalSolution, lp_dual_sol::DualSolution, ::Type{MinSense}
+)
+    return compute_red_cost(master, info, spsol, lp_dual_sol) < 0.0 - algo.redcost_tol
+end
+
+function improving_red_cost(
+    algo::ColumnGeneration, master::Formulation, info::SubprobInfo, spsol::PrimalSolution, lp_dual_sol::DualSolution, ::Type{MaxSense}
+)
+    return compute_red_cost(master, info, spsol, lp_dual_sol) > 0.0 + algo.redcost_tol
+end
+
 function solve_sp_to_gencol!(
-    algo::ColumnGeneration, masterform::Formulation, spdata::ModelData, dualsol::DualSolution,
-    spinfo::SubprobInfo
+    algo::ColumnGeneration, masterform::Formulation, spdata::ModelData, dualsol::DualSolution, spinfo::SubprobInfo
 )
 
     spform = getmodel(spdata)
@@ -298,13 +314,13 @@ function solve_sp_to_gencol!(
     # @logmsg LogLevel(-3) "optimizing pricing prob"
     output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
     sp_optstate = getoptstate(output)
-    compute_db_contributions!(algo, spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate))
+    compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate))
 
     !isfeasible(sp_optstate) && return false
 
     if nb_ip_primal_sols(sp_optstate) > 0
         for sol in get_ip_primal_sols(sp_optstate)
-            if improving_red_cost(algo, spinfo, getobjsense(spform), getvalue(sol)) # has negative reduced cost
+            if improving_red_cost(algo, masterform, spinfo, sol, dualsol, getobjsense(masterform))
                 insertion_status, col_id = setprimalsol!(spform, sol)
                 if insertion_status
                     add_recorded_sol_id!(spinfo::SubprobInfo, col_id)
@@ -381,7 +397,7 @@ end
 
 function solve_sps_to_gencols!(
     algo::ColumnGeneration, phase::Int64, data::ReformData, redcostsvec::ReducedCostsVector, 
-    dualsol::DualSolution, spinfos::Dict{FormId, SubprobInfo}
+    lp_dual_sol::DualSolution, smooth_dual_sol::DualSolution, spinfos::Dict{FormId, SubprobInfo}
 )
     reform = getreform(data)
     masterform = getmaster(reform)
@@ -393,7 +409,7 @@ function solve_sps_to_gencols!(
     # sp_dual_bound_contribs = Dict{FormId, Float64}()
 
     # update reduced costs
-    updatereducedcosts!(reform, redcostsvec, dualsol)
+    updatereducedcosts!(reform, redcostsvec, smooth_dual_sol)
 
     ### BEGIN LOOP TO BE PARALLELIZED
     if algo.solve_subproblems_parallel
@@ -401,7 +417,9 @@ function solve_sps_to_gencols!(
         Threads.@threads for key in 1:length(spuids)
             spuid = spuids[key]
             spdata = spsdatas[spuid]
-            gen_status  = solve_sp_to_gencol!(algo, masterform, spdata, dualsol, spinfos[spuid])
+            gen_status  = solve_sp_to_gencol!(
+                algo, masterform, spdata, lp_dual_sol, spinfos[spuid]
+            )
             # if gen_status # else Sp is infeasible: contrib = Inf
             #     recorded_sp_solution_ids[spuid] = new_sp_sol_ids
             #     sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
@@ -410,7 +428,9 @@ function solve_sps_to_gencols!(
         end
     else
         for (spuid, spdata) in spsdatas
-            gen_status = solve_sp_to_gencol!(algo, masterform, spdata, dualsol, spinfos[spuid])
+            gen_status = solve_sp_to_gencol!(
+                algo, masterform, spdata, lp_dual_sol, spinfos[spuid]
+            )
             # if gen_status # else Sp is infeasible: contrib = Inf
             #     recorded_sp_solution_ids[spuid] = new_sp_sol_ids
             #     sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
@@ -568,6 +588,8 @@ function move_convexity_constrs_dual_values!(dualsol::DualSolution, spinfos::Dic
         spinfo.ub_dual = dualsol[spinfo.ub_constr_id]    
         dualsol[spinfo.lb_constr_id] = zero(0.0)
         dualsol[spinfo.ub_constr_id] = zero(0.0)
+        dualsol.bound -= spinfo.lb * spinfo.lb_dual
+        dualsol.bound -= spinfo.ub * spinfo.ub_dual
     end
 end
 
@@ -649,25 +671,18 @@ function cg_main_loop!(
         update_all_ip_primal_solutions!(cg_optstate, rm_optstate)
 
         TO.@timeit Coluna._to "Cleanup columns" begin
-<<<<<<< HEAD
             cleanup_columns(algo, iteration, data)        
         end
 
         iteration += 1
 
         smooth_dual_sol = update_stab_after_rm_solve!(stabstorage, algo.smoothing_stabilization, lp_dual_sol)
-=======
-            cleanup_columns(algo, cgdata.nb_iterations, rfdata)   
-        end
-
-        cgdata.nb_iterations += 1
->>>>>>> master
 
         nb_new_columns = 0
         sp_time = 0
         while true
             sp_time += @elapsed begin
-                nb_new_col =  solve_sps_to_gencols!(algo, phase, data, redcostsvec, smooth_dual_sol, spinfos)
+                nb_new_col =  solve_sps_to_gencols!(algo, phase, data, redcostsvec, lp_dual_sol, smooth_dual_sol, spinfos)
             end
 
             if nb_new_col < 0
