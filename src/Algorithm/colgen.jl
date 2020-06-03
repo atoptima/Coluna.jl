@@ -268,7 +268,7 @@ function solve_sp_to_gencol!(
     if !isfeasible(sp_optstate)
         sp_is_feasible = false
         # @logmsg LogLevel(-3) "pricing prob is infeasible"
-        return sp_is_feasible, recorded_solution_ids, PrimalBound(spform)
+        return sp_is_feasible, recorded_solution_ids, sp_solution_ids_to_activate, PrimalBound(spform)
     end
 
     if nb_ip_primal_sols(sp_optstate) > 0
@@ -361,6 +361,7 @@ function solve_sps_to_gencols!(
     recorded_sp_solution_ids = Dict{FormId, Vector{VarId}}()
     sp_solution_to_activate = Dict{FormId, Vector{VarId}}()
     sp_dual_bound_contribs = Dict{FormId, Float64}()
+    gen_statuses = Dict{FormId, Bool}()
 
     # update reduced costs
     updatereducedcosts!(reform, redcostsvec, dual_sol)
@@ -374,6 +375,7 @@ function solve_sps_to_gencols!(
             gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
                 algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
             )
+            gen_statuses[spuid] = gen_status
             if gen_status # else Sp is infeasible: contrib = Inf
                 recorded_sp_solution_ids[spuid] = new_sp_sol_ids
                 sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
@@ -385,6 +387,7 @@ function solve_sps_to_gencols!(
             gen_status, new_sp_sol_ids, sp_sol_ids_to_activate, sp_dual_contrib = solve_sp_to_gencol!(
                 algo, masterform, spdata, dual_sol, sp_lbs[spuid], sp_ubs[spuid]
             )
+            gen_statuses[spuid] = gen_status
             if gen_status # else Sp is infeasible: contrib = Inf
                 recorded_sp_solution_ids[spuid] = new_sp_sol_ids
                 sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
@@ -393,6 +396,12 @@ function solve_sps_to_gencols!(
         end
     end
     ### END LOOP TO BE PARALLELIZED
+
+    for (spuid, status) in gen_statuses
+        if !status
+            return -1, DualBound(masterform)
+        end
+    end
 
     nb_new_cols = 0
     for (spuid, spdata) in spsdatas
@@ -403,7 +412,7 @@ function solve_sps_to_gencols!(
             nb_new_cols += 1
         end
     end
-    return (nb_new_cols, dual_bound_contrib)
+    return nb_new_cols, dual_bound_contrib
 end
 
 function compute_master_db_contrib(

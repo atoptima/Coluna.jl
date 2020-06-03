@@ -166,8 +166,23 @@ function generalized_assignment_tests()
         @test abs(JuMP.objective_value(problem) - 580.0) <= 0.00001
     end
 
+    @testset "gap with infeasible master" begin
+        data = CLD.GeneralizedAssignment.data("master_infeas.txt")
+
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer, 
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "default_optimizer" => GLPK.Optimizer
+        )
+
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+        JuMP.optimize!(problem)
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+    end
+
     @testset "gap with infeasible subproblem" begin
-        data = CLD.GeneralizedAssignment.data("root_infeas.txt")
+        data = CLD.GeneralizedAssignment.data("sp_infeas.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer, 
