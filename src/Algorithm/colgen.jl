@@ -171,6 +171,7 @@ mutable struct SubprobInfo
     pseudo_dual_bound_contrib::Float64
     recorded_sol_ids::Vector{VarId}
     sol_ids_to_activate::Vector{VarId}
+    isfeasible::Bool
 end
 
 function SubprobInfo(reform::Reformulation, spformid::FormId)
@@ -180,7 +181,7 @@ function SubprobInfo(reform::Reformulation, spformid::FormId)
     lb = getcurrhs(master, lb_constr_id)
     ub = getcurrhs(master, ub_constr_id)
     return SubprobInfo(
-        lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, 0.0, 0.0, Vector{VarId}(), Vector{VarId}()
+        lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, 0.0, 0.0, Vector{VarId}(), Vector{VarId}(), true
     )
 end
 
@@ -190,6 +191,7 @@ function clear_before_colgen_iteration!(info::SubprobInfo)
     info.bestcol_id = nothing
     info.valid_dual_bound_contrib = 0.0
     info.pseudo_dual_bound_contrib = 0.0
+    info.isfeasible = true
     empty!(info.recorded_sol_ids)
     empty!(info.sol_ids_to_activate)
 end
@@ -316,9 +318,9 @@ function solve_sp_to_gencol!(
     sp_optstate = getoptstate(output)
     compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate))
 
-    !isfeasible(sp_optstate) && return false
+    spinfo.isfeasible = isfeasible(sp_optstate)
 
-    if nb_ip_primal_sols(sp_optstate) > 0
+    if spinfo.isfeasible && nb_ip_primal_sols(sp_optstate) > 0
         for sol in get_ip_primal_sols(sp_optstate)
             if improving_red_cost(algo, masterform, spinfo, sol, dualsol, getobjsense(masterform))
                 insertion_status, col_id = setprimalsol!(spform, sol)
@@ -335,8 +337,6 @@ function solve_sp_to_gencol!(
             end
         end
     end
-
-    return true
 end
 
 
@@ -417,28 +417,18 @@ function solve_sps_to_gencols!(
         Threads.@threads for key in 1:length(spuids)
             spuid = spuids[key]
             spdata = spsdatas[spuid]
-            gen_status  = solve_sp_to_gencol!(
-                algo, masterform, spdata, lp_dual_sol, spinfos[spuid]
-            )
-            # if gen_status # else Sp is infeasible: contrib = Inf
-            #     recorded_sp_solution_ids[spuid] = new_sp_sol_ids
-            #     sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
-            # end
-            # sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
+            solve_sp_to_gencol!(algo, masterform, spdata, lp_dual_sol, spinfos[spuid])
         end
     else
         for (spuid, spdata) in spsdatas
-            gen_status = solve_sp_to_gencol!(
-                algo, masterform, spdata, lp_dual_sol, spinfos[spuid]
-            )
-            # if gen_status # else Sp is infeasible: contrib = Inf
-            #     recorded_sp_solution_ids[spuid] = new_sp_sol_ids
-            #     sp_solution_to_activate[spuid] = sp_sol_ids_to_activate
-            # end
-            # sp_dual_bound_contribs[spuid] = sp_dual_contrib #float(contrib)
+            solve_sp_to_gencol!(algo, masterform, spdata, lp_dual_sol, spinfos[spuid])
         end
     end
     ### END LOOP TO BE PARALLELIZED
+
+    for info in spinfos
+        !info.isfeasible && return -1
+    end
 
     nb_new_cols = 0
     for (spuid, spdata) in spsdatas
