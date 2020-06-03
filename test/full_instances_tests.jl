@@ -37,134 +37,134 @@ function mytest()
 end
 
 function generalized_assignment_tests()
-    # @testset "play gap" begin
-    #     data = CLD.GeneralizedAssignment.data("play2.txt")
+    @testset "play gap" begin
+        data = CLD.GeneralizedAssignment.data("play2.txt")
 
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         Coluna.Optimizer, 
-    #         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-    #             branchingtreefile = "playgap.dot"
-    #         )),
-    #         "default_optimizer" => GLPK.Optimizer
-    #     )
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer, 
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+                branchingtreefile = "playgap.dot"
+            )),
+            "default_optimizer" => GLPK.Optimizer
+        )
 
-    #     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    #     BD.objectiveprimalbound!(model, 100.0)
-    #     BD.objectivedualbound!(model, 0.0)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 100.0)
+        BD.objectivedualbound!(model, 0.0)
 
-    #     JuMP.optimize!(model)
+        JuMP.optimize!(model)
 
-    #     @test JuMP.objective_value(model) ≈ 75.0
-    #     @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
-    # end
+        @test JuMP.objective_value(model) ≈ 75.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+    end
 
-    # @testset "gap - JuMP/MOI modeling" begin
-    #     data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    @testset "gap - JuMP/MOI modeling" begin
+        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         Coluna.Optimizer, 
-    #         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-    #         "default_optimizer" => GLPK.Optimizer
-    #     )
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer, 
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "default_optimizer" => GLPK.Optimizer
+        )
 
-    #     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    #     BD.objectiveprimalbound!(model, 500.0)
-    #     BD.objectivedualbound!(model, 0.0)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 500.0)
+        BD.objectivedualbound!(model, 0.0)
 
-    #     JuMP.optimize!(model)
-    #     @test JuMP.objective_value(model) ≈ 438.0
-    #     @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
-    # end
+        JuMP.optimize!(model)
+        @test JuMP.objective_value(model) ≈ 438.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+    end
 
-    # @testset "gap - strong branching" begin
-    #     data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
+    @testset "gap - strong branching" begin
+        data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
-    #     conquer_with_small_cleanup_treshold = ClA.ColGenConquer(
-    #         colgen = ClA.ColumnGeneration(cleanup_threshold = 150)
-    #     )
+        conquer_with_small_cleanup_treshold = ClA.ColGenConquer(
+            colgen = ClA.ColumnGeneration(cleanup_threshold = 150)
+        )
 
-    #     branching = ClA.StrongBranching()
-    #     push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
-    #     push!(branching.phases, ClA.BranchingPhase(1, conquer_with_small_cleanup_treshold))
-    #     push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
+        branching = ClA.StrongBranching()
+        push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
+        push!(branching.phases, ClA.BranchingPhase(1, conquer_with_small_cleanup_treshold))
+        push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
 
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         CL.Optimizer, 
-    #         "params" => CL.Params(
-    #             solver = ClA.TreeSearchAlgorithm(
-    #                 conqueralg = conquer_with_small_cleanup_treshold,
-    #                 dividealg = branching, 
-    #                 maxnumnodes = 300
-    #             )
-    #         ),
-    #         "default_optimizer" => GLPK.Optimizer
-    #     )
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer, 
+            "params" => CL.Params(
+                solver = ClA.TreeSearchAlgorithm(
+                    conqueralg = conquer_with_small_cleanup_treshold,
+                    dividealg = branching, 
+                    maxnumnodes = 300
+                )
+            ),
+            "default_optimizer" => GLPK.Optimizer
+        )
 
-    #     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    #     BD.objectiveprimalbound!(model, 2000.0)
-    #     BD.objectivedualbound!(model, 0.0)
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 2000.0)
+        BD.objectivedualbound!(model, 0.0)
 
-    #     JuMP.optimize!(model)
+        JuMP.optimize!(model)
 
-    #     @test JuMP.objective_value(model) ≈ 1553.0
-    #     @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
-    # end
+        @test JuMP.objective_value(model) ≈ 1553.0
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+    end
 
-    # @testset "gap - ColGen max nb iterations" begin
-    #     data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    @testset "gap - ColGen max nb iterations" begin
+        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         CL.Optimizer, 
-    #         "params" => CL.Params(
-    #             solver = ClA.TreeSearchAlgorithm(
-    #                 conqueralg = ClA.ColGenConquer(
-    #                     colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
-    #                 )
-    #             )
-    #         ),
-    #         "default_optimizer" => GLPK.Optimizer
-    #     )
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer, 
+            "params" => CL.Params(
+                solver = ClA.TreeSearchAlgorithm(
+                    conqueralg = ClA.ColGenConquer(
+                        colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
+                    )
+                )
+            ),
+            "default_optimizer" => GLPK.Optimizer
+        )
 
-    #     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
 
-    #     JuMP.optimize!(problem)
-    #     @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
-    #     @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL # Problem with final dual bound ?
-    #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
-    # end
+        JuMP.optimize!(problem)
+        @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL # Problem with final dual bound ?
+        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+    end
 
-    # @testset "gap with penalties - pure master variables" begin
-    #     data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    @testset "gap with penalties - pure master variables" begin
+        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         Coluna.Optimizer, 
-    #         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-    #         "default_optimizer" => GLPK.Optimizer
-    #     )
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer, 
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "default_optimizer" => GLPK.Optimizer
+        )
 
-    #     problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
-    #     JuMP.optimize!(problem)
-    #     @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    #     @test abs(JuMP.objective_value(problem) - 416.4) <= 0.00001
-    # end
+        problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
+        JuMP.optimize!(problem)
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test abs(JuMP.objective_value(problem) - 416.4) <= 0.00001
+    end
 
-    # @testset "gap with maximisation objective function" begin
-    #     data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    @testset "gap with maximisation objective function" begin
+        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         Coluna.Optimizer, 
-    #         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-    #         "default_optimizer" => GLPK.Optimizer
-    #     )
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer, 
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "default_optimizer" => GLPK.Optimizer
+        )
 
-    #     problem, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
-    #     JuMP.optimize!(problem)
-    #     @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    #     @test abs(JuMP.objective_value(problem) - 580.0) <= 0.00001
-    # end
+        problem, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
+        JuMP.optimize!(problem)
+        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test abs(JuMP.objective_value(problem) - 580.0) <= 0.00001
+    end
 
     @testset "gap with infeasible master" begin
         data = CLD.GeneralizedAssignment.data("master_infeas.txt")
@@ -195,7 +195,6 @@ function generalized_assignment_tests()
         JuMP.optimize!(problem)
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
     end
-    exit()
 
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
