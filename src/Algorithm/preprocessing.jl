@@ -59,9 +59,9 @@ function PreprocessData(reform::Reformulation)
     master = getmaster(reform)
     for (spuid, spform) in get_dw_pricing_sps(reform)
         cur_sp_bounds[spuid] = (
-            getcurrhs(master, reform.dw_pricing_sp_lb[spuid]), 
-            getcurrhs(master, reform.dw_pricing_sp_ub[spuid])
-            )
+            getcurrhs(master, get_dw_pricing_sp_lb_constrid(reform, spuid)), 
+            getcurrhs(master, get_dw_pricing_sp_ub_constrid(reform, spuid))
+        )
     end
     return PreprocessData(
         reform, Dict{ConstrId,Bool}(),

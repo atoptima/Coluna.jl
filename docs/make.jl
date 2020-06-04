@@ -15,7 +15,8 @@ makedocs(
         ],
         "Reference" => Any[
             "Algorithms" => "dev/algorithms.md",
-            "Formulation" => "dev/formulation.md"
+            "Formulation" => "dev/formulation.md",
+            "Reformulation" => "dev/reformulation.md"
         ]
     ]
 )
