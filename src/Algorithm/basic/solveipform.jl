@@ -13,6 +13,7 @@ Base.@kwdef struct SolveIpForm <: AbstractOptimizationAlgorithm
     time_limit::Int = 600
     deactivate_artificial_vars = true
     enforce_integrality = true
+    get_dual_bound = true
     silent = true
     log_level = 0
 end
@@ -87,6 +88,10 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
                 getfeasibilitystatus(optstate), "."
             )
         end
+    end
+    if algo.get_dual_bound && getterminationstatus(optimizer_result) == OPTIMAL 
+        # TO DO : dual bound should be set in optimizer_result 
+        set_ip_dual_bound!(optstate, DualBound(form, getvalue(getprimalbound(optimizer_result))))
     end
     return OptimizationOutput(optstate)
 end

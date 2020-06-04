@@ -215,7 +215,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
 
     if isempty(algo.rules)
         @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
-        return DivideOutput(Vector{Node}())
+        return DivideOutput(Vector{Node}(), optstate)
     end
 
     kept_branch_groups = Vector{BranchingGroup}()
@@ -238,7 +238,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
         end
     else
         @logmsg LogLevel(0) "Warning: no LP solution is passed to the branching algorithm. No children will be generated."
-        return DivideOutput(Vector{Node}())
+        return DivideOutput(Vector{Node}(), optstate)
     end
 
     # phase 0 of branching : we ask branching rules to generate branching candidates

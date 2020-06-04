@@ -27,6 +27,7 @@ include("pricing_callback_tests.jl")
 
 rng = MersenneTwister(1234123)
 
+#mytest()
 unit_tests()
 
 @testset "Full instances " begin

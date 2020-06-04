@@ -49,6 +49,19 @@ function apply_data!(form::Formulation, constr::Constraint, constr_state::Constr
 end
 
 """
+    FormulationStorage
+
+    Formulation storage is empty and it is used to implicitely keep 
+    the data which is changed inside the model 
+    (for example, dynamic variables and constraints of a formulaiton) 
+    in order to store it to the storage state and restore it afterwards. 
+"""
+
+struct FormulationStorage <: AbstractStorage end
+
+FormulationStorage(form::Formulation) = FormulationStorage()
+
+"""
     MasterBranchConstrsStorage
 
     Storage for master branching constraints. 
@@ -67,7 +80,7 @@ function Base.show(io::IO, state::MasterBranchConstrsStorageState)
     print(io, "]")
 end
 
-function MasterBranchConstrsStorageState(form::Formulation, storage::EmptyStorage)
+function MasterBranchConstrsStorageState(form::Formulation, storage::FormulationStorage)
     @logmsg LogLevel(-2) "Storing branching constraints"
     state = MasterBranchConstrsStorageState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -82,7 +95,7 @@ function MasterBranchConstrsStorageState(form::Formulation, storage::EmptyStorag
 end
 
 function restorefromstate!(
-    form::Formulation, storage::EmptyStorage, state::MasterBranchConstrsStorageState
+    form::Formulation, storage::FormulationStorage, state::MasterBranchConstrsStorageState
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -105,7 +118,7 @@ function restorefromstate!(
     end
 end
 
-const MasterBranchConstrsStorage = (EmptyStorage => MasterBranchConstrsStorageState)
+const MasterBranchConstrsStorage = (FormulationStorage => MasterBranchConstrsStorageState)
 
 """
     MasterColumnsStorage
@@ -126,7 +139,7 @@ function Base.show(io::IO, state::MasterColumnsState)
     print(io, "]")
 end
 
-function MasterColumnsState(form::Formulation, storage::EmptyStorage)
+function MasterColumnsState(form::Formulation, storage::FormulationStorage)
     @logmsg LogLevel(-2) "Storing master columns"
     state = MasterColumnsState(Dict{VarId, ConstrState}())
     for (id, var) in getvars(form)
@@ -141,7 +154,7 @@ function MasterColumnsState(form::Formulation, storage::EmptyStorage)
 end
 
 function restorefromstate!(
-    form::Formulation, storage::EmptyStorage, state::MasterColumnsState
+    form::Formulation, storage::FormulationStorage, state::MasterColumnsState
 )
     @logmsg LogLevel(-2) "Restoring master columns"
     for (id, var) in getvars(form)
@@ -164,7 +177,7 @@ function restorefromstate!(
     end
 end
 
-const MasterColumnsStorage = (EmptyStorage => MasterColumnsState)
+const MasterColumnsStorage = (FormulationStorage => MasterColumnsState)
 
 """
     MasterCutsStorage
@@ -185,7 +198,7 @@ function Base.show(io::IO, state::MasterCutsState)
     print(io, "]")
 end
 
-function MasterCutsState(form::Formulation, storage::EmptyStorage)
+function MasterCutsState(form::Formulation, storage::FormulationStorage)
     @logmsg LogLevel(-2) "Storing master cuts"
     state = BranchingConstrsState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -200,7 +213,7 @@ function MasterCutsState(form::Formulation, storage::EmptyStorage)
 end
 
 function restorefromstate!(
-    form::Formulation, storage::EmptyStorage, state::MasterCutsState
+    form::Formulation, storage::FormulationStorage, state::MasterCutsState
 )
     @logmsg LogLevel(-2) "Storing master cuts"
     for (id, constr) in getconstrs(form)
@@ -223,7 +236,7 @@ function restorefromstate!(
     end
 end
 
-const MasterCutsStorage = (EmptyStorage => MasterCutsState)
+const MasterCutsStorage = (FormulationStorage => MasterCutsState)
 
 """
     StaticVarConstrStorage
@@ -251,7 +264,7 @@ function Base.show(io::IO, state::StaticVarConstrStorageState)
     print(io, "]")
 end
 
-function StaticVarConstrStorageState(form::Formulation, storage::EmptyStorage)
+function StaticVarConstrStorageState(form::Formulation, storage::FormulationStorage)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
     state = BranchingConstrsState(Dict{ConstrId, ConstrState}(), Dict{ConstrId, VarState}())
     for (id, constr) in getconstrs(form)
@@ -275,7 +288,7 @@ function StaticVarConstrStorageState(form::Formulation, storage::EmptyStorage)
 end
 
 function restorefromstate!(
-    form::Formulation, storage::EmptyStorage, state::StaticVarConstrStorageState
+    form::Formulation, storage::FormulationStorage, state::StaticVarConstrStorageState
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
@@ -317,4 +330,4 @@ function restorefromstate!(
     end
 end
 
-const StaticVarConstrStorage = (EmptyStorage => StaticVarConstrStorageState)
+const StaticVarConstrStorage = (FormulationStorage => StaticVarConstrStorageState)

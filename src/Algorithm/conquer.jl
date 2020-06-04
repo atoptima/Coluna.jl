@@ -51,9 +51,6 @@ function apply_conquer_alg_to_node!(
     end
     isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-    # # TO DO : get rid of Branch 
-    # apply_branch!(getreform(data), getbranch(node))
-
     run!(algo, data, ConquerInput(node))
     node.conquerwasrun = true
 end
@@ -117,7 +114,7 @@ generation phase, `masteripheur` to optimize the integer restricted master.
 """
 Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm 
     colgen::ColumnGeneration = ColumnGeneration()
-    mastipheur::SolveIpForm = SolveIpForm()
+    mastipheur::SolveIpForm = SolveIpForm(get_dual_bound = false)
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_mastipheur::Bool = true
