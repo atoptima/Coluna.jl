@@ -181,12 +181,11 @@ end
 
 function SubprobInfo(reform::Reformulation, spformid::FormId)
     master = getmaster(reform)
-    lb_constr_id = reform.dw_pricing_sp_lb[spformid]
-    ub_constr_id = reform.dw_pricing_sp_ub[spformid]    
-    lb = getcurrhs(master, lb_constr_id)
-    ub = getcurrhs(master, ub_constr_id)    
+    lb = getcurrhs(master, get_dw_pricing_sp_lb_constrid(reform, spuid))
+    ub = getcurrhs(master, get_dw_pricing_sp_ub_constrid(reform, spuid))    
     return SubprobInfo(
-        lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, 0.0, 0.0, Vector{VarId}(), Vector{VarId}(), true
+        lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, 0.0, 0.0, 
+        Vector{VarId}(), Vector{VarId}(), true
     )
 end
 
