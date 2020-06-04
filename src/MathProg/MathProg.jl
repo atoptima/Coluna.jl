@@ -63,9 +63,7 @@ export no_optimizer_builder, set_original_formulation!,
        computereducedrhs, 
        unsafe_getbestprimalsol,
         find_owner_formulation,
-        get_dw_pricing_sps, 
        getsortuid,
-       get_benders_sep_sps,
        contains, setprimalbound!
 
 # Below this line, clean up has been done :
@@ -75,18 +73,16 @@ export reformulate!, optimize!
 export Problem, set_initial_dual_bound!, set_initial_primal_bound!,
        get_initial_dual_bound, get_initial_primal_bound
 
+# Methods related to Reformulation
+export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw_pricing_sps,
+    get_benders_sep_sps, get_dw_pricing_sp_ub_constrid, get_dw_pricing_sp_lb_constrid
+
 # Methods related to formulations
-export AbstractFormulation, Reformulation, Formulation, getmaster, getreformulation,
-       getvar, getvars, getconstr, getconstrs, getelem,
-       getcoefmatrix,
-       getprimalsolmatrix,
-       getprimalsolcosts,
-       getdualsolmatrix,
-       getdualsolrhss,
-       setvar!, setconstr!,
-       setprimalsol!, setdualsol!,
-       set_robust_constr_generator!, get_robust_constr_generators,
-       setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
+export AbstractFormulation, Formulation, getreformulation, getvar, getvars, getconstr,
+    getconstrs, getelem, getcoefmatrix, getprimalsolmatrix, getprimalsolcosts,
+    getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setprimalsol!, setdualsol!,
+    set_robust_constr_generator!, get_robust_constr_generators,
+    setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
 
 # Methods related to duties
 export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
