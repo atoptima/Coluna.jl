@@ -34,6 +34,7 @@ function restorefromstate!(
     storage.basealpha = state.alpha
     storage.valid_dual_bound = state.dualbound
     storage.basestabcenter = state.stabcenter
+    return
 end
 
 const ColGenStabilizationStorage = (ColGenStabStorage => ColGenStabStorageState)
@@ -41,6 +42,7 @@ const ColGenStabilizationStorage = (ColGenStabStorage => ColGenStabStorageState)
 function init_stab_before_colgen_loop!(storage::ColGenStabStorage)
     storage.stabcenter = storage.basestabcenter
     storage.pseudo_dual_bound = storage.valid_dual_bound
+    return
 end
 
 function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolution, f::Function)
@@ -182,7 +184,8 @@ function update_alpha_automatically!(
         storage.basealpha -= 0.1
     elseif angle < -1e-12 && storage.basealpha < 0.999
         storage.basealpha += (1.0 - storage.basealpha) * 0.1
-    end    
+    end   
+    return 
 end
 
 function update_stab_after_gencols!(
@@ -231,6 +234,7 @@ function update_stability_center!(
         storage.newstabcenter = dual_sol
         storage.pseudo_dual_bound = pseudo_lagr_bound
     end
+    return
 end
 
 function update_stab_after_colgen_iteration!(storage::ColGenStabStorage)
@@ -239,4 +243,5 @@ function update_stab_after_colgen_iteration!(storage::ColGenStabStorage)
     end
     storage.curalpha = 0.0 
     storage.newstabcenter = nothing
+    return
 end
