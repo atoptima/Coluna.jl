@@ -12,16 +12,30 @@ end
 function mytest()
     data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
+    conquer_with_stabilization = ClA.ColGenConquer(
+        colgen = ClA.ColumnGeneration(optimality_tol = 1e-6, smoothing_stabilization = 1.0)
+    )
+
+    branching = ClA.SimpleBranching()
+    # branching = ClA.StrongBranching()
+    # push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
+    # push!(branching.phases, ClA.BranchingPhase(1, conquer_with_stabilization))
+    # push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
+
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer, 
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+            maxnumnodes = 1000,            
+            conqueralg = conquer_with_stabilization,
+            dividealg = branching
+        )),
         "default_optimizer" => GLPK.Optimizer
     )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
-    JuMP.optimize!(problem)
-    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
-    @test abs(JuMP.objective_value(problem) - 580.0) <= 0.00001
+    model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
+
+    JuMP.optimize!(model)
+
 end
 
 function generalized_assignment_tests()

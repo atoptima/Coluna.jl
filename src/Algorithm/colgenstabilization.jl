@@ -15,7 +15,10 @@ function ColGenStabStorage(master::Formulation)
     )
 end
 
-smoothing_is_active(storage::ColGenStabStorage) = iszero(storage.curalpha)
+smoothing_is_active(storage::ColGenStabStorage) = !iszero(storage.curalpha)
+
+subgradient_is_needed(storage::ColGenStabStorage, smoothparam::Float64) =  
+    smoothparam == 1.0 && storage.nb_misprices == 0
 
 mutable struct ColGenStabStorageState <: AbstractStorageState
     alpha::Float64
@@ -52,6 +55,7 @@ function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolu
     value::Float64 = 0.0
     out_next = iterate(out_dual_sol)
     in_next = iterate(in_dual_sol)
+    number = 0
     while out_next !== nothing || in_next !== nothing
         if out_next !== nothing 
             ((out_constrid, out_val), out_state) = out_next
@@ -63,11 +67,9 @@ function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolu
                     push!(constrvals, value)
                     in_next = iterate(in_dual_sol, in_state)
                 elseif out_constrid < in_constrid    
-                    if !(getduty(out_constrid) <= MasterConvexityConstr)    
-                        value = f(0.0, out_val)
-                        push!(constrids, out_constrid)
-                        push!(constrvals, value)
-                    end
+                    value = f(0.0, out_val)
+                    push!(constrids, out_constrid)
+                    push!(constrvals, value)
                     out_next = iterate(out_dual_sol, out_state)    
                 else
                     push!(constrids, out_constrid)
@@ -77,11 +79,9 @@ function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolu
                     out_next = iterate(out_dual_sol, out_state)    
                 end
             else
-                if !(getduty(out_constrid) <= MasterConvexityConstr)    
-                    value = f(0.0, out_val)
-                    push!(constrids, out_constrid)
-                    push!(constrvals, value)
-                end
+                value = f(0.0, out_val)
+                push!(constrids, out_constrid)
+                push!(constrvals, value)
                 out_next = iterate(out_dual_sol, out_state)    
             end
         else    
@@ -89,11 +89,9 @@ function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolu
             value = f(in_val, 0.0)
             push!(constrids, in_constrid)
             push!(constrvals, value)
-            # bound += smoothed_value * getcurrhs(form, in_constrid) 
             in_next = iterate(in_dual_sol, in_state)
         end
     end
-
     return (constrids, constrvals)
 end
 
@@ -124,7 +122,6 @@ function update_stab_after_rm_solve!(storage::ColGenStabStorage, smoothparam::Fl
     end
 
     storage.curalpha = smoothparam == 1.0 ? storage.basealpha : smoothparam
-    storage.curalpha = 0.5
 
     return linear_combination(storage.stabcenter, lp_dual_sol, storage.curalpha)
 end
@@ -139,7 +136,7 @@ end
 
 function update_alpha_automatically!(
     storage::ColGenStabStorage, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
-    smooth_dual_sol::DualSolution{M}, combined_sp_solution::PrimalSolution{M}
+    smooth_dual_sol::DualSolution{M}, sp_sol_contrib_in_subgrad::DualSolution{M}
 ) where {M}    
 
     master = lp_dual_sol.model 
@@ -163,15 +160,8 @@ function update_alpha_automatically!(
     subgradient = DualSolution(master, constrids, constrrhs, 0.0)
     
     # we calculate the subgradient at the sep point
-    # using the best master columns just generated
-    master_coef_matrix = getcoefmatrix(master)
-    members = ConstrMembership()
-    for (varid, value) in combined_sp_solution
-        for (constrid, var_coeff) in master_coef_matrix[:,varid]
-            if !(getduty(constrid) <= MasterConvexityConstr) 
-                subgradient[constrid] = subgradient[constrid] - var_coeff * value
-            end
-        end
+    for (constrid, value) in sp_sol_contrib_in_subgrad
+        subgradient[constrid] = subgradient[constrid] - value
     end
     subgradient_norm = norm(subgradient)
 
@@ -191,16 +181,18 @@ end
 function update_stab_after_gencols!(
     storage::ColGenStabStorage, smoothparam::Float64, nb_new_col::Int64, 
     lp_dual_sol::DualSolution{M}, smooth_dual_sol::DualSolution{M}, 
-    combined_sp_solution::PrimalSolution{M}
+    sp_sol_contrib_in_subgrad::DualSolution{M}
 ) where {M}
 
     iszero(smoothparam) && return nothing
 
     if smoothparam == 1.0 && storage.nb_misprices == 0
         update_alpha_automatically!(
-            storage, nb_new_col, lp_dual_sol, smooth_dual_sol, combined_sp_solution
+            storage, nb_new_col, lp_dual_sol, smooth_dual_sol, sp_sol_contrib_in_subgrad
         )
     end
+
+    #@show nb_new_col storage.curalpha
 
     if nb_new_col > 0 || !smoothing_is_active(storage)
         return nothing
