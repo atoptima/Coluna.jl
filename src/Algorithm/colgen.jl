@@ -299,13 +299,14 @@ function solve_sp_to_gencol!(
     end    
     sp_optstate = getoptstate(output)
 
-    compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate))
+    sp_sol_value = get_ip_primal_bound(sp_optstate)
+    compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), sp_sol_value)
 
     spinfo.isfeasible = isfeasible(sp_optstate)
 
     sense = getobjsense(masterform)
 
-    if spinfo.isfeasible && nb_ip_primal_sols(sp_optstate) > 0
+    if spinfo.isfeasible && nb_ip_primal_sols(sp_optstate) > 0        
         spinfo.bestsol = get_best_ip_primal_sol(sp_optstate)
         for sol in get_ip_primal_sols(sp_optstate)
             if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
@@ -484,7 +485,7 @@ ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opti
 
 function update_lagrangian_dual_bound!(
     stabstorage::ColGenStabStorage, optstate::OptimizationState{F, S}, algo::ColumnGeneration, 
-    master::Formulation, puremastervars::Vector{VarId}, dualsol::DualSolution, 
+    master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution, 
     spinfos::Dict{FormId, SubprobInfo}
 ) where {F, S}
 
@@ -495,17 +496,15 @@ function update_lagrangian_dual_bound!(
     # is already included in the value of the dual solution
     if smoothing_is_active(stabstorage)
         master_coef_matrix = getcoefmatrix(master)
-        for varid in puremastervars
+        for (varid, mult) in puremastervars
             redcost = getcurcost(master, varid)
             for (constrid, var_coeff) in master_coef_matrix[:,varid]
                 redcost -= var_coeff * dualsol[constrid]
             end 
             #println("pure var $(getname(master, varid)) red cost = $redcost")
-            if improving_red_cost(redcost, algo, sense)
-                puremastvars_contrib += redcost * getcurub(master, varid)
-            else
-                puremastvars_contrib += redcost * getcurlb(master, varid)
-            end 
+            mult = improving_red_cost(redcost, algo, sense) ? 
+                getcurub(master, varid) : getcurlb(master, varid)
+            puremastvars_contrib += redcost * mult
         end
     end
 
@@ -532,21 +531,30 @@ function update_lagrangian_dual_bound!(
     return
 end
 
-function compute_sp_sol_contibution_in_subgradient(
+function compute_subgradient_contibution(
     algo::ColumnGeneration, stabstorage::ColGenStabStorage, master::Formulation, 
-    spinfos::Dict{FormId, SubprobInfo}
+    puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId, SubprobInfo}
 )
     contribution = DualSolution(master)
+    sense = getobjsense(master)
 
     if subgradient_is_needed(stabstorage, algo.smoothing_stabilization)
         master_coef_matrix = getcoefmatrix(master)
+
+        for (varid, mult) in puremastervars
+            for (constrid, var_coeff) in master_coef_matrix[:,varid]
+                contribution[constrid] += var_coeff * mult
+            end 
+        end
+
         for (spuid, spinfo) in spinfos
             iszero(spinfo.ub) && continue
-            
+            #mult = improving_red_cost(spinfo.bestsol.bound, algo, sense) ? spinfo.ub : spinfo.lb
+            mult = spinfo.ub
             for (sp_var_id, sp_var_val) in spinfo.bestsol
                 for (master_constrid, sp_var_coef) in master_coef_matrix[:,sp_var_id]
                     if !(getduty(master_constrid) <= MasterConvexityConstr)    
-                        contribution[master_constrid] += sp_var_coef * sp_var_val * spinfo.ub
+                        contribution[master_constrid] += sp_var_coef * sp_var_val * mult
                     end 
                 end
             end
@@ -581,11 +589,11 @@ function move_convexity_constrs_dual_values!(
 end
 
 function get_pure_master_vars(master::Formulation)
-    puremastervars = Vector{VarId}()
+    puremastervars = Vector{Pair{VarId,Float64}}()
     for (varid, var) in getvars(master)
         if isanOriginalRepresentatives(getduty(varid)) && 
             iscuractive(master, var) && isexplicit(master, var)
-            push!(puremastervars, varid)            
+            push!(puremastervars, varid => 0.0)            
         end
     end
     return puremastervars
@@ -729,7 +737,7 @@ function cg_main_loop!(
                 TO.@timeit Coluna._to "Smoothing update" begin
                     smooth_dual_sol = update_stab_after_gencols!(
                         stabstorage, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol, 
-                        compute_sp_sol_contibution_in_subgradient(algo, stabstorage, masterform, spinfos)
+                        compute_subgradient_contibution(algo, stabstorage, masterform, pure_master_vars, spinfos)
                     )
                 end
                 smooth_dual_sol === nothing && break

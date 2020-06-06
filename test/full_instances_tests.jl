@@ -10,10 +10,11 @@ function full_instances_tests()
 end
 
 function mytest()
-    data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    #data = CLD.GeneralizedAssignment.data("mediumgapcuts1.txt")
+    data = CLD.GeneralizedAssignment.data("gapC-5-100.txt")
 
     conquer_with_stabilization = ClA.ColGenConquer(
-        colgen = ClA.ColumnGeneration(optimality_tol = 1e-6, smoothing_stabilization = 1.0)
+        colgen = ClA.ColumnGeneration(optimality_tol = 1e-6, smoothing_stabilization = 0.0)
     )
 
     branching = ClA.SimpleBranching()
@@ -25,14 +26,15 @@ function mytest()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer, 
         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-            maxnumnodes = 1000,            
+            maxnumnodes = 1,            
             conqueralg = conquer_with_stabilization,
             dividealg = branching
         )),
         "default_optimizer" => GLPK.Optimizer
     )
 
-    model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
+    #model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
+    model, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
 
     JuMP.optimize!(model)
 
