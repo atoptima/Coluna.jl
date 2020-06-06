@@ -13,53 +13,32 @@ struct Dual <: Coluna.AbstractDualSpace end
 struct MinSense <: Coluna.AbstractMinSense end
 struct MaxSense <: Coluna.AbstractMaxSense end
 
-abstract type AbstractDuty end
+#
+# Duties for variables and constraints
+#
+"""
+    Duty{Variable}
 
+Duties of a variable are tree-structured values wrapped in `Duty{Variable}` instances. 
+Leaves are concret duties of a variable, intermediate nodes are duties representing 
+families of duties, and the root node is a `Duty{Variable}` with value `1`.
+
+    Duty{Constraint}
+
+It works like `Duty{Variable}`.
+
+# Examples
+
+If a duty `Duty1` inherits from `Duty2`, then 
+
+```jldoctest
+julia> Duty1 <= Duty2
+true
+````
+"""
 struct Duty{VC <: AbstractVarConstr} <: NestedEnum
     value::UInt
 end
-
-abstract type AbstractFormDuty end
-# First level of duties
-abstract type AbstractMasterDuty <: AbstractFormDuty end
-abstract type AbstractSpDuty <: AbstractFormDuty end
-
-# Concrete duties for Formulation
-"Formulation provided by the user."
-struct Original <: AbstractFormDuty end
-
-"Master of formulation decomposed using Dantzig-Wolfe."
-struct DwMaster <: AbstractMasterDuty end
-
-"Master of formulation decomposed using Benders."
-struct BendersMaster <: AbstractMasterDuty end
-
-"A pricing subproblem of formulation decomposed using Dantzig-Wolfe."
-struct DwSp <: AbstractSpDuty end
-
-"A Benders subproblem of formulation decomposed using Benders."
-struct BendersSp <: AbstractSpDuty end
-
-#BendSpRepFirstStageVar <= AbstractBendSpRepMastVar
-#BendSpRepSecondStageCostVar <= AbstractBendSpRepMastVar
-
-#BendersSpVar <= Duty{Variable}
-#BlockGenSpVar <= Duty{Variable}
-#MastRepBlockSpVar <= Duty{Variable}
-
-# Types of algorithm
-
-abstract type AbstractAlg end
-
-# TODO : See with Ruslan for algorithm types tree
-
-# abstract type AbstractNodeAlg <: AbstractAlg end
-# abstract type AbstractSetupNodeAlg <: AbstractNodeAlg end
-# abstract type AbstractPreprocessNodeAlg <: AbstractNodeAlg end
-# abstract type AbstractEvalNodeAlg <: AbstractNodeAlg end
-# abstract type AbstractRecordInfoNodeAlg <: AbstractNodeAlg end
-# abstract type AbstractPrimalHeurNodeAlg <: AbstractNodeAlg end
-# abstract type AbstractGenChildrenNodeAlg <: AbstractNodeAlg end
 
 # Source : https://discourse.julialang.org/t/export-enum/5396
 macro exported_enum(name, args...)
@@ -70,13 +49,15 @@ macro exported_enum(name, args...)
         end)
 end
 
-@exported_enum FormulationPhase HybridPhase PurePhase1 PurePhase2
 @exported_enum VarSense Positive Negative Free
 @exported_enum VarKind Continuous Binary Integ
 @exported_enum ConstrKind Essential Facultative SubSystem
 @exported_enum ConstrSense Greater Less Equal
-@exported_enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit
-@exported_enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition
+
+# TODO remove following exported_enum
+@exported_enum FormulationPhase HybridPhase PurePhase1 PurePhase2 # TODO : remove from Benders
+#@exported_enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit # Not used
+#@exported_enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition # Not used
 
 const FormId = Int
 

@@ -8,7 +8,7 @@ The more classical callbacks in a branch-and-price solver are:
     solution is optimum or produce an entering variable with negative reduced cost
 - Separation callback that takes over the procedure to determine whether the current master
     LP solution is feasible or produce a valid problem constraint that is violated
-- Branching callback that take over the procedure to determine whether the current master 
+- Branching callback that takes over the procedure to determine whether the current master 
     LP solution is integer or produce a valid branching disjunctive constraint that rules out 
     the current fractional solution.
 
@@ -91,3 +91,12 @@ master = BD.getmaster(dwdec)
 subproblems = BD.getsubproblems(dwdec)
 BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback)
 ```
+
+## Separation callbacks
+
+Separation callbacks let you define how to separate cuts or constraints.
+
+### Robust facultative cuts
+
+This callback allows you to add cuts to the master problem. 
+[Example in the JuMP documentation](http://www.juliaopt.org/JuMP.jl/stable/callbacks/#User-cuts-1).
