@@ -136,7 +136,7 @@ end
 
 function update_alpha_automatically!(
     storage::ColGenStabStorage, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
-    smooth_dual_sol::DualSolution{M}, sp_sol_contrib_in_subgrad::DualSolution{M}
+    smooth_dual_sol::DualSolution{M}, subgradient_contribution::DualSolution{M}
 ) where {M}    
 
     master = lp_dual_sol.model 
@@ -160,7 +160,7 @@ function update_alpha_automatically!(
     subgradient = DualSolution(master, constrids, constrrhs, 0.0)
     
     # we calculate the subgradient at the sep point
-    for (constrid, value) in sp_sol_contrib_in_subgrad
+    for (constrid, value) in subgradient_contribution
         subgradient[constrid] = subgradient[constrid] - value
     end
     subgradient_norm = norm(subgradient)
@@ -168,6 +168,9 @@ function update_alpha_automatically!(
     # we now calculate the angle between the in-sep direction and the subgradient 
     constrids, constrvals = componentwisefunction(in_sep_direction, subgradient, *)
     angle = sum(constrvals) / (in_sep_dir_norm * subgradient_norm)
+    if getobjsense(master) == MaxSense
+        angle = -angle
+    end
 
     # we modify the alpha parameter based on the calculated angle
     if nb_new_col == 0 || angle > 1e-12 
@@ -181,18 +184,16 @@ end
 function update_stab_after_gencols!(
     storage::ColGenStabStorage, smoothparam::Float64, nb_new_col::Int64, 
     lp_dual_sol::DualSolution{M}, smooth_dual_sol::DualSolution{M}, 
-    sp_sol_contrib_in_subgrad::DualSolution{M}
+    subgradient_contribution::DualSolution{M}
 ) where {M}
 
     iszero(smoothparam) && return nothing
 
     if smoothparam == 1.0 && storage.nb_misprices == 0
         update_alpha_automatically!(
-            storage, nb_new_col, lp_dual_sol, smooth_dual_sol, sp_sol_contrib_in_subgrad
+            storage, nb_new_col, lp_dual_sol, smooth_dual_sol, subgradient_contribution
         )
     end
-
-    #@show nb_new_col storage.curalpha
 
     if nb_new_col > 0 || !smoothing_is_active(storage)
         return nothing

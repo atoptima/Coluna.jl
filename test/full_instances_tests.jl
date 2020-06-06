@@ -10,34 +10,27 @@ function full_instances_tests()
 end
 
 function mytest()
-    #data = CLD.GeneralizedAssignment.data("mediumgapcuts1.txt")
     data = CLD.GeneralizedAssignment.data("gapC-5-100.txt")
 
-    conquer_with_stabilization = ClA.ColGenConquer(
-        colgen = ClA.ColumnGeneration(optimality_tol = 1e-6, smoothing_stabilization = 0.0)
-    )
-
-    branching = ClA.SimpleBranching()
-    # branching = ClA.StrongBranching()
-    # push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
-    # push!(branching.phases, ClA.BranchingPhase(1, conquer_with_stabilization))
-    # push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
-
     coluna = JuMP.optimizer_with_attributes(
-        Coluna.Optimizer, 
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-            maxnumnodes = 1,            
-            conqueralg = conquer_with_stabilization,
-            dividealg = branching
-        )),
+        CL.Optimizer, 
+        "params" => CL.Params(
+            solver = ClA.TreeSearchAlgorithm(
+                conqueralg = ClA.ColGenConquer(
+                    colgen = ClA.ColumnGeneration(smoothing_stabilization = 1.0)
+                ),
+                maxnumnodes = 300
+            )
+        ),
         "default_optimizer" => GLPK.Optimizer
     )
 
-    #model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
-    model, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
+    model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
 
     JuMP.optimize!(model)
 
+    @test JuMP.objective_value(model) ≈ 3520.1
+    @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
 end
 
 function generalized_assignment_tests()
@@ -86,7 +79,7 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
         conquer_with_small_cleanup_threshold = ClA.ColGenConquer(
-            colgen = ClA.ColumnGeneration(cleanup_threshold = 150)
+            colgen = ClA.ColumnGeneration(cleanup_threshold = 150, smoothing_stabilization = 1.0)
         )
 
         branching = ClA.StrongBranching()
@@ -198,6 +191,52 @@ function generalized_assignment_tests()
 
         JuMP.optimize!(problem)
         @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+    end
+
+    @testset "gap with all phases in col.gen" begin
+        data = CLD.GeneralizedAssignment.data("mediumgapcuts1.txt")
+        for m in data.machines
+            data.capacity[m] = floor(Int, data.capacity[m] * 0.5)
+        end
+
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer, 
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+                conqueralg = ClA.ColGenConquer(
+                    colgen = ClA.ColumnGeneration(optimality_tol = 1e-6, smoothing_stabilization = 0.5)
+                )
+            )),
+            "default_optimizer" => GLPK.Optimizer
+        )
+
+        problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalty(data, coluna)
+
+        JuMP.optimize!(problem)
+        @test abs(JuMP.objective_value(problem) - 31895.0) <= 0.00001
+    end
+
+    @testset "gap with max. obj., pure mast. vars., and stabilization" begin
+        data = CLD.GeneralizedAssignment.data("gapC-5-100.txt")
+
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer, 
+            "params" => CL.Params(
+                solver = ClA.TreeSearchAlgorithm(
+                    conqueralg = ClA.ColGenConquer(
+                        colgen = ClA.ColumnGeneration(smoothing_stabilization = 1.0)
+                    ),
+                    maxnumnodes = 300
+                )
+            ),
+            "default_optimizer" => GLPK.Optimizer
+        )
+
+        model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
+
+        JuMP.optimize!(model)
+
+        @test JuMP.objective_value(model) ≈ 3520.1
+        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
     end
 
     @testset "play gap" begin

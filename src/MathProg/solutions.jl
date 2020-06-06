@@ -64,3 +64,11 @@ function Base.show(io::IO, solution::DualSolution{M}) where {M}
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
+
+function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
+    println(io, "Primal solution")
+    for (varid, value) in solution
+        println(io, "| ", getname(solution.model, varid), " = ", value)
+    end
+    Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
+end

@@ -145,6 +145,7 @@ function set_ph2!(master::Formulation, optstate::OptimizationState)
     end
     set_lp_dual_bound!(optstate, DualBound(master))
     set_ip_dual_bound!(optstate, DualBound(master))
+    set_lp_primal_bound!(optstate, PrimalBound(master))
     return
 end
 
@@ -261,17 +262,12 @@ function compute_red_cost(
             red_cost += getcurcost(master, varid) * value
             for (constrid, var_coeff) in master_coef_matrix[:,varid]
                 red_cost -= value * var_coeff * lp_dual_sol[constrid]
-                #red_cost += getobjsense(master) == MinSense ? - red_cost_contrib : red_cost_contrib
             end 
         end
     else
         red_cost = getvalue(spsol)    
     end
-    #println("red cost before conv. = $red_cost (", getvalue(spsol), ")")    
     red_cost -= (spinfo.lb * spinfo.lb_dual + spinfo.ub * spinfo.ub_dual)
-    # conv_constrs_contrib = spinfo.lb * spinfo.lb_dual + spinfo.ub * spinfo.ub_dual
-    # red_cost += getobjsense(master) == MinSense ? -conv_constrs_contrib : conv_constrs_contrib
-    #println("red cost = $red_cost")
     return red_cost
 end
 
@@ -501,7 +497,6 @@ function update_lagrangian_dual_bound!(
             for (constrid, var_coeff) in master_coef_matrix[:,varid]
                 redcost -= var_coeff * dualsol[constrid]
             end 
-            #println("pure var $(getname(master, varid)) red cost = $redcost")
             mult = improving_red_cost(redcost, algo, sense) ? 
                 getcurub(master, varid) : getcurlb(master, varid)
             puremastvars_contrib += redcost * mult
@@ -509,14 +504,10 @@ function update_lagrangian_dual_bound!(
     end
 
     valid_lagr_bound = DualBound{S}(puremastvars_contrib + dualsol.bound)
-    #println("Master contrib = $valid_lagr_bound")
     for (spuid, spinfo) in spinfos
         valid_lagr_bound += spinfo.valid_dual_bound_contrib
-        # println("Sp $spuid with contrib = $(spinfo.valid_dual_bound_contrib) and duals ",
-        #       "[$(spinfo.lb_dual),$(spinfo.ub_dual)]")
     end
 
-    # @show valid_lagr_bound
 
     update_ip_dual_bound!(optstate, valid_lagr_bound)
     update_lp_dual_bound!(optstate, valid_lagr_bound)
@@ -549,8 +540,7 @@ function compute_subgradient_contibution(
 
         for (spuid, spinfo) in spinfos
             iszero(spinfo.ub) && continue
-            #mult = improving_red_cost(spinfo.bestsol.bound, algo, sense) ? spinfo.ub : spinfo.lb
-            mult = spinfo.ub
+            mult = improving_red_cost(spinfo.bestsol.bound, algo, sense) ? spinfo.ub : spinfo.lb
             for (sp_var_id, sp_var_val) in spinfo.bestsol
                 for (master_constrid, sp_var_coef) in master_coef_matrix[:,sp_var_id]
                     if !(getduty(master_constrid) <= MasterConvexityConstr)    
@@ -672,7 +662,6 @@ function cg_main_loop!(
             # this is needed due to convention that MOI uses for signs of duals in the maximization case
             change_values_sign!(lp_dual_sol)
         end
-        #@show lp_dual_sol
         lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
 
         TO.@timeit Coluna._to "Getting primal solution" begin
@@ -681,9 +670,9 @@ function cg_main_loop!(
             set_lp_primal_sol!(cg_optstate, rm_sol)
             set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate))
 
-            if !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
+            if phase != 1 && !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
                 if isinteger(proj_cols_on_rep(rm_sol, masterform))
-                    update_ip_primal_sol!(rm_optstate, rm_sol)
+                    update_ip_primal_sol!(cg_optstate, rm_sol)
                 end
             end
         else
@@ -692,8 +681,6 @@ function cg_main_loop!(
             "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
         end
         end
-
-        update_all_ip_primal_solutions!(cg_optstate, rm_optstate)
 
         TO.@timeit Coluna._to "Cleanup columns" begin
             cleanup_columns(algo, iteration, data)        
@@ -709,8 +696,6 @@ function cg_main_loop!(
         sp_time = 0
         while true
 
-            #@show smooth_dual_sol
-
             TO.@timeit Coluna._to "Generate columns" begin
                 sp_time += @elapsed begin
                     nb_new_col = solve_sps_to_gencols!(spinfos, algo, phase, data, redcostsvec, lp_dual_sol, smooth_dual_sol)
@@ -725,8 +710,6 @@ function cg_main_loop!(
 
             nb_new_columns += nb_new_col
             
-            #@show smooth_dual_sol
-
             TO.@timeit Coluna._to "Update Lagrangian bound" begin
                 update_lagrangian_dual_bound!(
                     stabstorage, cg_optstate, algo, masterform, pure_master_vars, smooth_dual_sol, spinfos
