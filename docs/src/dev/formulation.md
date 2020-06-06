@@ -7,6 +7,48 @@ end
 
 # Formulation
 
+```@docs
+Formulation
+```
+
+## Duties of formulations
+
+```@docs
+Original
+DwMaster
+BendersMaster
+DwSp
+BendersSp
+```
+
+## Attributes of formulations
+
+```@docs
+haskey
+getvar
+getconstr
+getvars
+getconstrs
+```
+
+## Variables
+
+```@docs
+setvar!
+```
+
+## Constraints
+
+```@docs
+setconstr!
+```
+
+## Duties of variables and constraints
+
+```@docs
+Duty
+```
+
 ## Attributes of variables and constraints
 
 *Performance note* : use a variable or a constraint rather than its id.
