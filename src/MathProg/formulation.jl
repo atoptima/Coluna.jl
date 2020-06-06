@@ -1,10 +1,3 @@
-"""
-    Formulation{Duty<:AbstractFormDuty}
-
-Representation of a formulation which is typically solved by either a MILP or a dynamic program solver.
-
-Such solver must be interfaced with MOI and its pointer is stored in the field `optimizer`.
-"""
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
     var_counter::Counter
@@ -17,12 +10,16 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
 end
 
 """
-    Formulation{D}(form_counter::Counter,
-                    parent_formulation = nothing,
-                    obj_sense::Type{<:Coluna.AbstractSense} = MinSense
-                    ) where {D<:AbstractFormDuty}
+`Formulation` stores a mixed-integer linear program.
 
-Constructs a `Formulation` of duty `D` for which the objective sense is `obj_sense`.
+    Formulation{Duty}(
+        form_counter::Counter;
+        parent_formulation = nothing,
+        obj_sense::Type{<:Coluna.AbstractSense} = MinSense
+    ) where {Duty<:AbstractFormDuty}
+
+Construct a `Formulation` of duty `Duty` with objective sense `obj_sense` and parent formulation
+`parent_formulation`.
 """
 function Formulation{D}(form_counter::Counter;
                         parent_formulation = nothing,
@@ -35,19 +32,39 @@ function Formulation{D}(form_counter::Counter;
     )
 end
 
-"Returns true iff a `Variable` of `Id` `id` was already added to `Formulation` `form`."
-haskey(form::Formulation, id::Id) = haskey(form.manager, id)
+"""
+    haskey(formulation, id) -> Bool
 
-"Returns the `Variable` whose `Id` is `id` if such variable is in `Formulation` `form`."
+Return `true` if `formulation` has a variable or a constraint with given `id`.
+"""
+haskey(formulation::Formulation, id::Id) = haskey(formulation.manager, id)
+
+"""
+    getvar(formulation, varid) -> Variable
+
+Return the variable with given `varid` that belongs to `formulation`.
+"""
 getvar(form::Formulation, id::VarId) = getvar(form.manager, id)
 
-"Returns the `Constraint` whose `Id` is `id` if such constraint is in `Formulation` `form`."
+"""
+    getconstr(formulation, constrid) -> Constraint
+
+Return the constraint with given `constrid` that belongs to `formulation`.
+"""
 getconstr(form::Formulation, id::ConstrId) = getconstr(form.manager, id)
 
-"Returns all the variables in `Formulation` `form`."
+"""
+    getvars(formulation) -> Dict{VarId, Variable}
+
+Return all variables in `formulation`.
+"""
 getvars(form::Formulation) = getvars(form.manager)
 
-"Returns all the constraints in `Formulation` `form`."
+"""
+    getconstrs(formulation) -> Dict{ConstrId, Constraint}
+
+Return all constraints in `formulation`.
+"""
 getconstrs(form::Formulation) = getconstrs(form.manager)
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
@@ -57,7 +74,6 @@ getprimalsolcosts(form::Formulation) = getprimalsolcosts(form.manager)
 getdualsolmatrix(form::Formulation) = getdualsolmatrix(form.manager)
 getdualsolrhss(form::Formulation) = getdualsolrhss(form.manager)
 #getexpressionmatrix(form::Formulation) = getexpressionmatrix(form.manager) # Not used for now
-
 
 "Returns the `uid` of `Formulation` `form`."
 getuid(form::Formulation) = form.uid
@@ -89,7 +105,24 @@ set_matrix_coeff!(
     form::Formulation, varid::VarId, constrid::ConstrId, new_coeff::Float64
 ) = set_matrix_coeff!(form.buffer, varid, constrid, new_coeff)
 
-"Creates a `Variable` according to the parameters passed and adds it to `Formulation` `form`."
+"""
+    setvar!(
+        formulation::Formulation, name::String, duty::Duty{Variable};
+        cost::Float64 = 0.0,
+        lb::Float64 = 0.0,
+        ub::Float64 = Inf,
+        kind::VarKind = Continuous,
+        inc_val::Float64 = 0.0,
+        is_active::Bool = true,
+        is_explicit::Bool = true,
+        moi_index::MoiVarIndex = MoiVarIndex(),
+        members = nothing,
+        id = generatevarid(duty, form)
+    )
+
+Create a new variable in a formulation with given name and duties.
+Other arguments are facultative.
+"""
 function setvar!(
     form::Formulation,
     name::String,
@@ -122,7 +155,6 @@ function setvar!(
     return var
 end
 
-"Adds `Variable` `var` to `Formulation` `form`."
 function _addvar!(form::Formulation, var::Variable)
     _addvar!(form.manager, var)
     if isexplicit(form, var) 
@@ -294,7 +326,24 @@ function setcut_from_sp_dualsol!(
     return benders_cut
 end
 
-"Creates a `Constraint` according to the parameters passed and adds it to `Formulation` `form`."
+"""
+    setconstr!(
+        form::Formulation, name::String, duty::Duty{Constraint};
+        rhs::Float64 = 0.0,
+        kind::ConstrKind = Essential,
+        sense::ConstrSense = Greater,
+        inc_val::Float64 = 0.0,
+        is_active::Bool = true,
+        is_explicit::Bool = true,
+        moi_index::MoiConstrIndex = MoiConstrIndex(),
+        members = nothing,
+        loc_art_var = false,
+        id = generateconstrid(duty, form)
+    )
+
+Create a new constraint in a formulation with given name and duties.
+Other arguments are facultative.
+"""
 function setconstr!(
     form::Formulation,
     name::String,

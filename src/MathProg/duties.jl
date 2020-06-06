@@ -1,4 +1,28 @@
-## Duties :
+#
+# Duties for a Formulation
+#
+abstract type AbstractFormDuty end
+abstract type AbstractMasterDuty <: AbstractFormDuty end
+abstract type AbstractSpDuty <: AbstractFormDuty end
+
+"Formulation provided by the user."
+struct Original <: AbstractFormDuty end
+
+"Master of a formulation decomposed using Dantzig-Wolfe."
+struct DwMaster <: AbstractMasterDuty end
+
+"Master of a formulation decomposed using Benders."
+struct BendersMaster <: AbstractMasterDuty end
+
+"A pricing subproblem of a formulation decomposed using Dantzig-Wolfe."
+struct DwSp <: AbstractSpDuty end
+
+"A Benders subproblem of a formulation decomposed using Benders."
+struct BendersSp <: AbstractSpDuty end
+
+#
+# Duties tree for a Variable
+#
 @exported_nestedenum begin
     Duty{Variable}
         AbstractOriginalVar <= Duty{Variable}
@@ -31,6 +55,9 @@
         UndefinedVarDuty <= Duty{Variable}
 end
 
+#
+# Duties tree for a Constraint
+#
 @exported_nestedenum begin
     Duty{Constraint}
         AbstractOriginalConstr <= Duty{Constraint}
@@ -64,6 +91,9 @@ end
         UndefinedConstrDuty <= Duty{Constraint}
 end
 
+#
+# Methods to get extra information about duties
+#
 function isaStaticDuty(duty::NestedEnum)
     return duty <= OriginalVar ||
     duty <= OriginalExpression ||
