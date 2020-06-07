@@ -283,39 +283,38 @@ function solve_sp_to_gencol!(
     spinfo::SubprobInfo, algo::ColumnGeneration, masterform::Formulation, spdata::ModelData, 
     dualsol::DualSolution 
 )
-
     spform = getmodel(spdata)
-
-    # Compute target
-    update_pricing_target!(spform)
 
     # Solve sub-problem and insert generated columns in master
     TO.@timeit Coluna._to "Solve pricing problem" begin
+        # Compute target
+        update_pricing_target!(spform)
+
         output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
+        sp_optstate = getoptstate(output)
+        spinfo.isfeasible = isfeasible(sp_optstate)
+        sp_sol_value = get_ip_primal_bound(sp_optstate)
+
+        compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), sp_sol_value)
     end    
-    sp_optstate = getoptstate(output)
 
-    sp_sol_value = get_ip_primal_bound(sp_optstate)
-    compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), sp_sol_value)
-
-    spinfo.isfeasible = isfeasible(sp_optstate)
-
-    sense = getobjsense(masterform)
-
-    if spinfo.isfeasible && nb_ip_primal_sols(sp_optstate) > 0        
-        spinfo.bestsol = get_best_ip_primal_sol(sp_optstate)
-        for sol in get_ip_primal_sols(sp_optstate)
-            if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
-                insertion_status, col_id = setprimalsol!(spform, sol)
-                if insertion_status
-                    push!(spinfo.recorded_sol_ids, col_id)
-                elseif !insertion_status && !iscuractive(masterform, col_id)
-                    push!(spinfo.sol_ids_to_activate, col_id)
-                else
-                    msg = """
-                    Column already exists as $(getname(masterform, col_id)) and is already active.
-                    """
-                    @warn string(msg)
+    TO.@timeit Coluna._to "Generating columns" begin
+        sense = getobjsense(masterform)
+        if spinfo.isfeasible && nb_ip_primal_sols(sp_optstate) > 0        
+            spinfo.bestsol = get_best_ip_primal_sol(sp_optstate)
+            for sol in get_ip_primal_sols(sp_optstate)
+                if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
+                    insertion_status, col_id = setprimalsol!(spform, sol)
+                    if insertion_status
+                        push!(spinfo.recorded_sol_ids, col_id)
+                    elseif !insertion_status && !iscuractive(masterform, col_id)
+                        push!(spinfo.sol_ids_to_activate, col_id)
+                    else
+                        msg = """
+                        Column already exists as $(getname(masterform, col_id)) and is already active.
+                        """
+                        @warn string(msg)
+                    end
                 end
             end
         end
@@ -412,18 +411,20 @@ function solve_sps_to_gencols!(
         !spinfo.isfeasible && return -1
     end
 
-    nb_new_cols = 0
-    for (spuid, spdata) in spsdatas
-        spinfo = spinfos[spuid]
-        nb_of_gen_cols = insert_cols_in_master!(masterform, spinfo, phase, getmodel(spdata))
-        nb_new_cols += nb_of_gen_cols
-        for colid in spinfo.sol_ids_to_activate
-            activate!(masterform, colid)
-            nb_new_cols += 1
-        end
-        if algo.smoothing_stabilization == 1 && !iszero(spinfo.ub) && spinfo.bestsol === nothing
-            @error string("Solutions to all pricing subproblems should be available in order ",
-                          " to used automatic dual price smoothing")
+    TO.@timeit Coluna._to "Inserting columns" begin
+        nb_new_cols = 0
+        for (spuid, spdata) in spsdatas
+            spinfo = spinfos[spuid]
+            nb_of_gen_cols = insert_cols_in_master!(masterform, spinfo, phase, getmodel(spdata))
+            nb_new_cols += nb_of_gen_cols
+            for colid in spinfo.sol_ids_to_activate
+                activate!(masterform, colid)
+                nb_new_cols += 1
+            end
+            if algo.smoothing_stabilization == 1 && !iszero(spinfo.ub) && spinfo.bestsol === nothing
+                @error string("Solutions to all pricing subproblems should be available in order ",
+                              " to used automatic dual price smoothing")
+            end
         end
     end
 
@@ -594,6 +595,7 @@ function change_values_sign!(dualsol::DualSolution)
     for (constrid, value) in dualsol
         dualsol[constrid] = -value
     end
+    return
 end
 
 function cg_main_loop!(
@@ -696,11 +698,9 @@ function cg_main_loop!(
         sp_time = 0
         while true
 
-            TO.@timeit Coluna._to "Generate columns" begin
-                sp_time += @elapsed begin
-                    nb_new_col = solve_sps_to_gencols!(spinfos, algo, phase, data, redcostsvec, lp_dual_sol, smooth_dual_sol)
-                end
-            end    
+            sp_time += @elapsed begin
+                nb_new_col = solve_sps_to_gencols!(spinfos, algo, phase, data, redcostsvec, lp_dual_sol, smooth_dual_sol)
+            end
 
             if nb_new_col < 0
                 @error "Infeasible subproblem."

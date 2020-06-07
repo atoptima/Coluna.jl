@@ -55,7 +55,6 @@ function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolu
     value::Float64 = 0.0
     out_next = iterate(out_dual_sol)
     in_next = iterate(in_dual_sol)
-    number = 0
     while out_next !== nothing || in_next !== nothing
         if out_next !== nothing 
             ((out_constrid, out_val), out_state) = out_next
