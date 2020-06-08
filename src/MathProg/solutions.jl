@@ -56,3 +56,19 @@ function Base.print(io::IO, form::AbstractFormulation, sol::Solution)
     end
     return
 end
+
+function Base.show(io::IO, solution::DualSolution{M}) where {M}
+    println(io, "Dual solution")
+    for (constrid, value) in solution
+        println(io, "| ", getname(solution.model, constrid), " = ", value)
+    end
+    Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
+end
+
+function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
+    println(io, "Primal solution")
+    for (varid, value) in solution
+        println(io, "| ", getname(solution.model, varid), " = ", value)
+    end
+    Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
+end

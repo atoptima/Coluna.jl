@@ -9,6 +9,7 @@
 Solve a linear program.
 """
 Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm 
+    get_ip_primal_solution = false
     get_dual_solution = false
     relax_integrality = false
     set_dual_bound = false
@@ -68,7 +69,8 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
     lp_primal_sol = getbestprimalsol(optimizer_result)
     if lp_primal_sol !== nothing
         add_lp_primal_sol!(optstate, lp_primal_sol)
-        if isinteger(lp_primal_sol) && !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
+        if algo.get_ip_primal_solution && isinteger(lp_primal_sol) && 
+            !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
             add_ip_primal_sol!(optstate, lp_primal_sol)
         end
     end
