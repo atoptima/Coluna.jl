@@ -285,40 +285,36 @@ function solve_sp_to_gencol!(
 )
     spform = getmodel(spdata)
 
-    # Solve sub-problem and insert generated columns in master
-    TO.@timeit Coluna._to "Solve pricing problem" begin
-        # Compute target
-        update_pricing_target!(spform)
+    # Compute target
+    update_pricing_target!(spform)
 
-        output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
-        sp_optstate = getoptstate(output)
-        spinfo.isfeasible = isfeasible(sp_optstate)
-        sp_sol_value = get_ip_primal_bound(sp_optstate)
+    output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
+    sp_optstate = getoptstate(output)
+    spinfo.isfeasible = isfeasible(sp_optstate)
+    sp_sol_value = get_ip_primal_bound(sp_optstate)
 
-        compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), sp_sol_value)
-    end    
+    compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), sp_sol_value)
 
-    TO.@timeit Coluna._to "Generating columns" begin
-        sense = getobjsense(masterform)
-        if spinfo.isfeasible && nb_ip_primal_sols(sp_optstate) > 0        
-            spinfo.bestsol = get_best_ip_primal_sol(sp_optstate)
-            for sol in get_ip_primal_sols(sp_optstate)
-                if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
-                    insertion_status, col_id = setprimalsol!(spform, sol)
-                    if insertion_status
-                        push!(spinfo.recorded_sol_ids, col_id)
-                    elseif !insertion_status && !iscuractive(masterform, col_id)
-                        push!(spinfo.sol_ids_to_activate, col_id)
-                    else
-                        msg = """
-                        Column already exists as $(getname(masterform, col_id)) and is already active.
-                        """
-                        @warn string(msg)
-                    end
+    sense = getobjsense(masterform)
+    if spinfo.isfeasible && nb_ip_primal_sols(sp_optstate) > 0        
+        spinfo.bestsol = get_best_ip_primal_sol(sp_optstate)
+        for sol in get_ip_primal_sols(sp_optstate)
+            if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
+                insertion_status, col_id = setprimalsol!(spform, sol)
+                if insertion_status
+                    push!(spinfo.recorded_sol_ids, col_id)
+                elseif !insertion_status && !iscuractive(masterform, col_id)
+                    push!(spinfo.sol_ids_to_activate, col_id)
+                else
+                    msg = """
+                    Column already exists as $(getname(masterform, col_id)) and is already active.
+                    """
+                    @warn string(msg)
                 end
             end
         end
     end
+    
     return
 end
 
