@@ -268,7 +268,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # First check if should update members of just-added vars
     matrix = getcoefmatrix(f)
     for id in buffer.var_buffer.added
-        for (constrid, coeff) in  matrix[:,id]
+        for (constrid, coeff) in @view matrix[:,id]
             iscuractive(f, constrid) || continue
             isexplicit(f, constrid) || continue
             constrid ∉ buffer.constr_buffer.added || continue

@@ -157,10 +157,10 @@ end
 
 function _addvar!(form::Formulation, var::Variable)
     _addvar!(form.manager, var)
-    if isexplicit(form, var) 
+    if isexplicit(form, var)
         add!(form.buffer, getid(var))
     end
-    return 
+    return
 end
 
 function _addprimalsol!(form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64)
@@ -177,7 +177,7 @@ end
 function setprimalsol!(form::Formulation, new_primal_sol::PrimalSolution)::Tuple{Bool,VarId}
     primal_sols = getprimalsolmatrix(form)
     primal_sol_costs = getprimalsolcosts(form)
-    
+
     # compute original cost of the column
     new_cost = 0.0
     for (var_id, var_val) in new_primal_sol
@@ -201,7 +201,7 @@ end
 function _adddualsol!(form::Formulation, dualsol::DualSolution, dualsol_id::ConstrId)
     rhs = 0.0
     for (constrid, constrval) in dualsol
-        rhs += getperenrhs(form, constrid) * constrval 
+        rhs += getperenrhs(form, constrid) * constrval
         if getduty(constrid) <= AbstractBendSpMasterConstr
             form.manager.dual_sols[constrid, dualsol_id] = constrval
         end
@@ -214,7 +214,7 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
     ### check if dualsol exists  take place here along the coeff update
     dual_sols = getdualsolmatrix(form)
     dual_sol_rhss = getdualsolrhss(form)
-    
+
     for (cur_sol_id, cur_rhs) in dual_sol_rhss
         factor = 1.0
         if getvalue(new_dual_sol) != cur_rhs
@@ -237,10 +237,10 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
                 break
             end
         end
-        
+
         is_identical && return (false, cur_sol_id)
     end
-    
+
     ### else not identical to any existing dual sol
     new_dual_sol_id = generateconstrid(BendSpDualSol, form)
     _adddualsol!(form, new_dual_sol, new_dual_sol_id)
@@ -248,11 +248,11 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
 end
 
 function setcol_from_sp_primalsol!(
-    masterform::Formulation, spform::Formulation, sol_id::VarId, name::String, 
-    duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous, 
+    masterform::Formulation, spform::Formulation, sol_id::VarId, name::String,
+    duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous,
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex()
-) 
+)
     cost = getprimalsolcosts(spform)[sol_id]
     master_coef_matrix = getcoefmatrix(masterform)
     sp_sol = getprimalsolmatrix(spform)[:,sol_id]
@@ -289,19 +289,19 @@ function setcut_from_sp_dualsol!(
     duty::Duty{Constraint};
     kind::ConstrKind = Essential,
     sense::ConstrSense = Greater,
-    inc_val::Float64 = -1.0, 
+    inc_val::Float64 = -1.0,
     is_active::Bool = true,
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
-) 
+)
     rhs = getdualsolrhss(spform)[dual_sol_id]
-    benders_cut_id = Id{Constraint}(duty, dual_sol_id) 
+    benders_cut_id = Id{Constraint}(duty, dual_sol_id)
     benders_cut_data = ConstrData(
         rhs, Essential, sense, inc_val, is_active, is_explicit
     )
     benders_cut = Constraint(
         benders_cut_id, name;
-        constr_data = benders_cut_data, 
+        constr_data = benders_cut_data,
         moi_index = moi_index
     )
     master_coef_matrix = getcoefmatrix(masterform)
@@ -311,14 +311,14 @@ function setcut_from_sp_dualsol!(
     for (ds_constrid, ds_constr_val) in sp_dual_sol
         ds_constr = getconstr(spform, ds_constrid)
         if getduty(ds_constrid) <= AbstractBendSpMasterConstr
-            for (master_var_id, sp_constr_coef) in sp_coef_matrix[ds_constrid,:]
+            for (master_var_id, sp_constr_coef) in @view sp_coef_matrix[ds_constrid,:]
                 var = getvar(spform, master_var_id)
                 if getduty(master_var_id) <= AbstractBendSpSlackMastVar
                     master_coef_matrix[benders_cut_id, master_var_id] += ds_constr_val * sp_constr_coef
                 end
             end
         end
-    end 
+    end
     _addconstr!(masterform.manager, benders_cut)
     if isexplicit(masterform, benders_cut)
         add!(masterform.buffer, getid(benders_cut))
@@ -394,7 +394,7 @@ function _addlocalartvar!(form::Formulation, constr::Constraint)
     constrid = getid(constr)
     constrname = getname(form, constr)
     constrsense = getperensense(form, constr)
-    if constrsense == Equal 
+    if constrsense == Equal
         name1 = string("local_art_of_", constrname, "1")
         name2 = string("local_art_of_", constrname, "2")
         var1 = setvar!(
@@ -474,11 +474,11 @@ function _setmembers!(form::Formulation, constr::Constraint, members::VarMembers
         coef_matrix[constrid, varid] = var_coeff
         @logmsg LogLevel(-4) string("Adding variable ", getname(form, var), " with coeff ", var_coeff)
 
-        if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar          
+        if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(varid)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
-            for (col_id, col_coeff) in getprimalsolmatrix(spform)[varid,:]
+            for (col_id, col_coeff) in @view getprimalsolmatrix(spform)[varid,:]
                 @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
                 coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
@@ -506,7 +506,7 @@ function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
     return
 end
 
-function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64}) 
+function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64})
     val = sum(getperencost(form, varid) * value for (varid, value) in sol_vec)
     return val
 end
@@ -558,7 +558,7 @@ function _show_obj_fun(io::IO, form::Formulation)
     for id in ids
         name = getname(form, vars[id])
         cost = getcurcost(form, id)
-        op = (cost < 0.0) ? "-" : "+" 
+        op = (cost < 0.0) ? "-" : "+"
         print(io, op, " ", abs(cost), " ", name, " ")
     end
     println(io, " ")
