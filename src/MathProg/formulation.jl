@@ -311,7 +311,7 @@ function setcut_from_sp_dualsol!(
     for (ds_constrid, ds_constr_val) in sp_dual_sol
         ds_constr = getconstr(spform, ds_constrid)
         if getduty(ds_constrid) <= AbstractBendSpMasterConstr
-            for (master_var_id, sp_constr_coef) in sp_coef_matrix[ds_constrid,:]
+            for (master_var_id, sp_constr_coef) in @view sp_coef_matrix[ds_constrid,:]
                 var = getvar(spform, master_var_id)
                 if getduty(master_var_id) <= AbstractBendSpSlackMastVar
                     master_coef_matrix[benders_cut_id, master_var_id] += ds_constr_val * sp_constr_coef
@@ -478,7 +478,7 @@ function _setmembers!(form::Formulation, constr::Constraint, members::VarMembers
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(varid)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
-            for (col_id, col_coeff) in getprimalsolmatrix(spform)[varid,:]
+            for (col_id, col_coeff) in @view getprimalsolmatrix(spform)[varid,:]
                 @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
                 coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
