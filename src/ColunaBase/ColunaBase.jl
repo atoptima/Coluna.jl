@@ -15,12 +15,8 @@ export NestedEnum, @nestedenum, @exported_nestedenum
 # solsandbounds.jl
 export Bound, Solution, getvalue, isbetter, diff, gap, printbounds, getsol, remove_until_last_point
 
-# members.jl
-export MembersMatrix
-
 include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
-include("members.jl")
 
 end

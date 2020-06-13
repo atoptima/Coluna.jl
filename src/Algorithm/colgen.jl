@@ -324,7 +324,7 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
     # sign = getobjsense(master) == MinSense ? -1 : 1
     matrix = getcoefmatrix(master)
 
-    crm = matrix.rows_major
+    crm = matrix.rowmajor
 
     constr_key_pos::Int = 1
     next_constr_key_pos::Int = 2
