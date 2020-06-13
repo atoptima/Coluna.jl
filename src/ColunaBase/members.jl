@@ -20,3 +20,11 @@ function Base.getindex(m::MembersMatrix, row_id, col_id)
     # TODO : check number of rows & cols
     return m.cols_major[row_id, col_id]
 end
+
+function Base.view(m::MembersMatrix, row_id, ::Colon)
+    return view(m.rows_major, :, row_id)
+end
+
+function Base.view(m::MembersMatrix, ::Colon, col_id)
+    return view(m.cols_major, :, col_id)
+end
