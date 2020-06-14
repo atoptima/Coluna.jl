@@ -11,22 +11,52 @@ end
 getdescription(candidate::VarBranchingCandidate) = candidate.description
 
 function generate_children(
-    candidate::VarBranchingCandidate, lhs::Float64, reform::Reformulation, parent::Node
+    candidate::VarBranchingCandidate, lhs::Float64, data::ReformData, 
+    parent::Node, stateids::StorageStatesVector, first_restore_states::Bool
 )
-    var = getvar(reform.master, candidate.varid)
+    master = getmaster(getreform(data))
+    var = getvar(master, candidate.varid)
 
     @logmsg LogLevel(-1) string(
-        "Chosen branching variable : ",
-        getname(getmaster(reform), candidate.varid), ". With value ", 
-        lhs, "."
+        "Chosen branching variable : ", 
+        getname(master, candidate.varid), " with value ", lhs, "."
     )
 
+    storages_to_restore = StoragesToRestoreDict(
+        (master, MasterBranchConstrsStorage) => READ_AND_WRITE
+        #(master, BasisStorage) => READ_AND_WRITE) # not yet implemented
+    )
+
+    #adding the first branching constraints
+    if first_restore_states
+        restore_states!(copy_states(stateids), storages_to_restore)
+    else
+        reserve_for_writing!(getmasterdata(data), MasterBranchConstrsStorage)
+    end 
+
+    #reserve_for_writing!(getmasterdata(data), BasisStorage) # not yet implemented
+    TO.@timeit Coluna._to "Add branching constraint" begin
+    setconstr!(
+        master, string("branch_geq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
+        sense = Greater, rhs = ceil(lhs), loc_art_var = true,
+        members = Dict{VarId,Float64}(candidate.varid => 1.0)
+    )
+    end
     child1description = candidate.description * ">=" * string(ceil(lhs))                               
-    child1 = Node(getmaster(reform), parent, Branch(var, ceil(lhs), Greater, 
-                  getdepth(parent)), child1description)
+    child1 = Node(master, parent, child1description, store_states!(data))
+
+    #adding the second branching constraints
+    restore_states!(stateids, storages_to_restore)
+    TO.@timeit Coluna._to "Add branching constraint" begin
+    setconstr!(
+        master, string("branch_leq_", getdepth(parent)), MasterBranchOnOrigVarConstr; 
+        sense = Less, rhs = floor(lhs), loc_art_var = true,
+        members = Dict{VarId,Float64}(candidate.varid => 1.0)
+    )
+    end
     child2description = candidate.description * "<=" * string(floor(lhs))                               
-    child2 = Node(getmaster(reform), parent, Branch(var, floor(lhs), Less, 
-                  getdepth(parent)), child2description)
+    child2 = Node(master, parent, child2description, store_states!(data))
+
     return [child1, child2]
 end
 
@@ -41,19 +71,25 @@ end
 Base.@kwdef struct VarBranchingRule <: AbstractBranchingRule 
 end
 
+function get_storages_usage!(
+    rule::VarBranchingRule, reform::Reformulation, storages_usage::StoragesUsageDict
+)
+    add_storage!(storages_usage, getmaster(reform), MasterBranchConstrsStorage)
+end
+
 function run!(
-    rule::VarBranchingRule, reform::Reformulation, input::BranchingRuleInput
+    rule::VarBranchingRule, data::ReformData, input::BranchingRuleInput
 )::BranchingRuleOutput    
     # variable branching works only for the original solution
     !input.isoriginalsol && return BranchingRuleOutput(input.local_id, Vector{BranchingGroup}())
 
-    master = getmaster(reform)
+    master = getmaster(getreform(data))
     groups = Vector{BranchingGroup}()
     local_id = input.local_id
     for (var_id, val) in input.solution
         # Do not consider continuous variables as branching candidates
-        getperenekind(master, var_id) == Continuous && continue
-        if !isinteger(val)
+        getperenkind(master, var_id) == Continuous && continue
+        if !isinteger(val, input.int_tol)
             #description string is just the variable name
             candidate = VarBranchingCandidate(getname(master, var_id), var_id)
             local_id += 1 

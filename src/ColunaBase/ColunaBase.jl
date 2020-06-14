@@ -7,21 +7,16 @@ import Printf
 
 # interface.jl
 export AbstractModel, AbstractProblem, AbstractSense, AbstractMinSense, AbstractMaxSense,
-    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, AbstractAlgorithm, AbstractInput, 
-    AbstractOutput, run!           
+    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
 
 # solsandbounds.jl
-export Bound, Solution, getvalue, isbetter, diff, gap, printbounds, getsol
-
-# members.jl
-export MembersMatrix
+export Bound, Solution, getvalue, isbetter, diff, gap, printbounds, getsol, remove_until_last_point
 
 include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
-include("members.jl")
 
 end

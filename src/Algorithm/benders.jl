@@ -6,6 +6,32 @@ Base.@kwdef struct BendersCutGeneration <: AbstractOptimizationAlgorithm
     max_nb_iterations::Int = 100
 end
 
+function get_storages_usage!(
+    algo::BendersCutGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
+)
+    master = getmaster(reform)
+    add_storage!(storages_usage, master, StaticVarConstrStorage)
+    add_storage!(storages_usage, master, MasterBranchConstrsStorage)
+    add_storage!(storages_usage, master, MasterColumnsStorage)
+    add_storage!(storages_usage, master, MasterCutsStorage)
+    for (id, spform) in get_benders_sep_sps(reform)
+        add_storage!(storages_usage, spform, StaticVarConstrStorage)
+    end
+end
+
+function get_storages_to_restore!(
+    algo::BendersCutGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    master = getmaster(reform)
+    add_storage!(storages_to_restore, master, StaticVarConstrStorage, READ_AND_WRITE)
+    add_storage!(storages_to_restore, master, MasterCutsStorage, READ_AND_WRITE)
+    add_storage!(storages_to_restore, master, MasterBranchConstrsStorage, READ_ONLY)
+    add_storage!(storages_to_restore, master, MasterColumnsStorage, READ_ONLY)
+    for (id, spform) in get_benders_sep_sps(reform)
+        add_storage!(storages_to_restore, spform, StaticVarConstrStorage)
+    end
+end
+
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState
     spform_phase::Dict{FormId, FormulationPhase}
@@ -31,13 +57,14 @@ end
 
 getoptstate(data::BendersCutGenRuntimeData) = data.optstate
 
-function run!(algo::BendersCutGeneration, reform::Reformulation, input::OptimizationInput)::OptimizationOutput    
+function run!(algo::BendersCutGeneration, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput    
 
-    data = BendersCutGenRuntimeData(reform, getoptstate(input))
+    reform = getreform(rfdata)
+    bndata = BendersCutGenRuntimeData(reform, getoptstate(input))
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
-    Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, data, reform)
+    Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, bndata, reform)
 
-    return OptimizationOutput(data.optstate)
+    return OptimizationOutput(bndata.optstate)
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
@@ -60,7 +87,7 @@ function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation)
             setcurcost!(spform, var, 0.0)
             setcurub!(spform, var, 0.0)
         else
-            setcurcost!(spform, var, getperenecost(spform, var))
+            setcurcost!(spform, var, getperencost(spform, var))
         end
     end
     return
@@ -69,7 +96,7 @@ end
 function update_benders_sp_slackvar_cost_for_hyb_ph!(spform::Formulation)
     for (varid, var) in getvars(spform)
         iscuractive(spform, varid) || continue
-        setcurcost!(spform, var, getperenecost(spform, var))
+        setcurcost!(spform, var, getperencost(spform, var))
         # TODO if previous phase is  a pure phase 2, reset current ub
     end
     return
@@ -93,7 +120,7 @@ function update_benders_sp_problem!(
         iscuractive(spform, varid) || continue
         getduty(varid) <= BendSpSlackFirstStageVar || continue
         haskey(master_primal_sol, varid) || continue
-        setcurub!(spform, var, getpereneub(spform, var) - master_primal_sol[varid])
+        setcurub!(spform, var, getperenub(spform, var) - master_primal_sol[varid])
     end
 
     if algo.option_use_reduced_cost
@@ -178,7 +205,7 @@ function insert_cuts_in_master!(
     for dual_sol_id in sp_dualsol_ids
         nb_of_gen_cuts += 1
         name = string("BC_", getsortuid(dual_sol_id))
-        kind = MathProg.Core
+        kind = Essential
         duty = MasterBendCutConstr
         bc = setcut_from_sp_dualsol!(
             masterform,
@@ -347,7 +374,6 @@ function solve_sps_to_gencuts!(
     spsol_relaxed_status = Dict{FormId, Bool}()
     insertion_status = Dict{FormId, Bool}()
 
-
     ### BEGIN LOOP TO BE PARALLELIZED
     for (spuid, spform) in sps
         recorded_sp_dual_solution_ids[spuid] = Vector{ConstrId}()
@@ -449,7 +475,6 @@ function bend_cutting_plane_main_loop!(
         algdata.spform_phase_applied[spuid] = true
     end
  
-
     while true # loop on master solution
         nb_new_cuts = 0
         cur_gap = 0.0
@@ -549,7 +574,7 @@ function bend_cutting_plane_main_loop!(
         # TODO : replace with isinteger(master_primal_sol)  # ISSUE 179
         sol_integer = true
         for (varid, val) in master_primal_sol
-            if getperenekind(masterform, varid) != Continuous
+            if getperenkind(masterform, varid) != Continuous
                 round_down_val = Float64(val, RoundDown)
                 round_up_val = Float64(val, RoundUp)
                 

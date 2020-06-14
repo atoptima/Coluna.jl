@@ -9,62 +9,63 @@
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
 
-Coluna is a branch-and-price-and-cut framework written in Julia. 
-The user introduces an original MIP that models his problem using the 
-[JuMP](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension 
-[BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl) that offers a syntax 
-to specify the problem decomposition. Then, Coluna reformulates the original MIP and 
-optimizes the reformulation using the algorithms chosen by the user. 
+Coluna is a branch-and-price-and-cut framework written in Julia.
+The user introduces an original MIP that models his problem using the
+[JuMP](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
+[BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl) that offers a syntax
+to specify the problem decomposition. Then, Coluna reformulates the original MIP and
+optimizes the reformulation using the algorithms chosen by the user.
 Coluna aims to be very modular and tweakable so that any user can define the behavior of
-his customized branch-and-price-and-cut algorithm. 
+his customized branch-and-price-and-cut algorithm.
 
 ## Installation
 
-Coluna is package for Julia 1.0+
+Coluna is a [Julia Language](https://julialang.org/) package.
 
-You can install Coluna through the Julia package manager: 
+You can install Coluna through the Julia package manager.
+Open Julia's interactive session (REPL) and type:
 
 ```
    ] add Coluna
 ```
 
-See the [documentation](https://atoptima.github.io/Coluna.jl/stable) for examples.
-
-If you are working with the development version, you may want to check the [dev documentation](https://atoptima.github.io/Coluna.jl/latest).
+The documentation is under construction.
+You can browse the [stable documentation](https://atoptima.github.io/Coluna.jl/stable) for an introductory example
+or the [dev documentation](https://atoptima.github.io/Coluna.jl/latest) if you are working with the master version of Coluna.
 
 ## Features
 
-We aim to integrate to Coluna the state-of-the-art techniques used for 
+We aim to integrate to Coluna the state-of-the-art techniques used for
 branch-and-cut-and-price algorithms. We look for beta users as Coluna is under
-active development. 
+active development.
 
 - ![Stable](https://img.shields.io/badge/-stable-brightgreen) No stable feature at the moment
 - ![Beta](https://img.shields.io/badge/-beta-green) Features that work but you may have some bugs:
-  - Dantzig-Wolfe decomposition 
-  - Column generation algorithm
-  - Pricing callback
-- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but it may be not performant:
-  - Branch-and-price-and-cut algorithm
-  - Benders decomposition
-- ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, fundations have been laid:
-  - Nested/Recursive decomposition
   - Cuts generation
-  - Stabilisation and other convergence speed-up methods
-  - Strong-branching 
-  - Parallelisation of the Branch-and-Bound Tree Search 
-  - Cleaning up of large scale formulations 
+  - Column generation algorithm
+  - Dantzig-Wolfe decomposition
+  - Pricing callback
+  - Robust cut callback
+  - Stabilization
+  - Strong-branching
+- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but it may be not performant:
+  - Benders decomposition
+  - Branch-and-price-and-cut algorithm
+  - Clean up of large scale formulations
+- ![Dev](https://img.shields.io/badge/-dev-orange) Features in development, foundations have been laid:
+  - Nested/Recursive decomposition
+  - Parallelisation of the Branch-and-Bound Tree Search
 - ![Future](https://img.shields.io/badge/-future-red) Future features:
   - Mixed Dantzig-Benders decomposition
   - Preprocessing specific to reformulated problems
 
 ## Contributing
 
-Contributors are first and foremost users of the framework. If you encounter a
-bug or something unexpected happens while using Coluna, please open an issue via
-the GitHub issues tracker or chat with us on the 
-[discord](https://discord.gg/cg77wFW) dedicated to Coluna.
+Contributions are welcomed !
 
-You can suggest new features or ways to improve the package.
+If you encounter a bug or something unexpected happens while using Coluna,
+please open an issue via the GitHub issues tracker or chat with us on the
+[discord](https://discord.gg/cg77wFW) dedicated to Coluna.
 
 You can also suggest and add new models in [ColunaDemos](https://github.com/atoptima/ColunaDemos.jl)
 for tests and benchmarks.
@@ -74,10 +75,15 @@ who make Coluna possible.
 
 ## Acknowledgments
 
-The plateform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/)
+The platform development has received an important support grant from the international scientific society [**Mathematical Optimization Society (MOS)**](http://www.mathopt.org/) and [**Région Nouvelle-Aquitaine**](https://www.nouvelle-aquitaine.fr/).
 
 [**Atoptima**](https://atoptima.com/)
 
 [**University of Bordeaux**](https://www.u-bordeaux.fr/)
 
 [**Inria**](https://www.inria.fr/fr)
+
+## Related packages
+
+- [BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl) is a JuMP extension to model decomposition.
+- [DynamicSparseArrays](https://github.com/atoptima/DynamicSparseArrays.jl) provides data structures based on packed-memory array for dynamic sparse matrices.

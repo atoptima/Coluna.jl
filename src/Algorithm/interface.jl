@@ -1,23 +1,58 @@
+"""
+    AbstractInput
+
+Input of an algorithm.     
+"""
+abstract type AbstractInput end 
+
 struct EmptyInput <: AbstractInput end
 
 """
-    getstoragetype(AlgorithmType)::StorageType
+    AbstractOutput
 
-    Every algorithm should communicate its storage type. By default, the storage is empty.    
+Output of an algorithm.     
 """
-getstoragetype(algotype::Type{<:AbstractAlgorithm})::Type{<:AbstractStorage} = EmptyStorage
+abstract type AbstractOutput end 
 
 """
-    getslavealgorithms!(Algorithm, Formulation, Vector{Tuple{Formulation, AlgorithmType})
+    AbstractAlgorithm
 
-    Every algorithm should communicate its slave algorithms together with formulations 
-    to which they are applied    
+    An algorithm is a procedure with a known interface (input and output) applied to a data.
+    An algorithm can use storages inside the data to keep its computed data.
+    The algorithm itself contains only its parameters. 
 """
-getslavealgorithms!(
-    algo::AbstractAlgorithm, form::AbstractFormulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}) = nothing
+abstract type AbstractAlgorithm end
 
-run!(algo::AbstractAlgorithm, form::AbstractFormulation, input::EmptyInput) = run!(algo, form) # good idea ?
+"""
+    run!(algo::AbstractAlgorithm, model::AbstractModel, input::AbstractInput)::AbstractOutput
+
+    Runs the algorithm. The storage of the algorithm can be obtained by asking
+    the formulation. Returns algorithm's output.    
+"""
+function run!(algo::AbstractAlgorithm, data::AbstractData, input::AbstractInput)::AbstractOutput
+    error("run! not defined for algorithm $(typeof(algo)), data $(typeof(data)), and input $(typeof(input)).")
+end
+
+"""
+    get_storages_usage(::AbstractAlgorithm, ::AbstractModel)
+
+    Every algorithm should communicate all storages it and its slave algorithms use.
+    
+    Function add_storage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair)
+    should be used to add elements to the dictionary
+"""
+get_storages_usage!(algo::AbstractAlgorithm, model::AbstractModel, storages_usage::StoragesUsageDict) = nothing
+
+"""
+    get_storages_to_restore(algo::AbstractAlgorithm, model::AbstractModel)
+
+    Every algorithm should also communicate which storages should be restored before running the algorithm, 
+    and also the access mode for each such storage (read only or read-and-write)
+    
+    Function add_storage!(::StoragesToRestoreDict, ::AbstractModel, ::StorageTypePair, ::StorageAccessMode)
+    should be used to add elements to the dictionary
+"""
+get_storages_to_restore!(algo::AbstractAlgorithm, model::AbstractModel, storages_to_restore::StoragesToRestoreDict) = nothing
 
 """
     OptimizationInput
@@ -29,7 +64,6 @@ struct OptimizationInput{F,S} <: AbstractInput
 end
 
 getoptstate(input::OptimizationInput) =  input.optstate
-
 
 """
     OptimizationOutput
@@ -43,7 +77,6 @@ end
 
 getoptstate(output::OptimizationOutput)::OptimizationState = output.optstate
 
-
 """
     AbstractOptimizationAlgorithm
 
@@ -55,3 +88,25 @@ getoptstate(output::OptimizationOutput)::OptimizationState = output.optstate
 abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
+
+# this function initializes all the storages
+function initialize_storages(data::AbstractData, algo::AbstractOptimizationAlgorithm)
+    storages_usage = StoragesUsageDict()
+    datamodel = getmodel(data)
+    get_storages_usage!(algo, datamodel, storages_usage) 
+
+    for (model, type_pair_set) in storages_usage
+        ModelType = typeof(model)
+        storagedict = get_model_storage_dict(data, model)
+        if storagedict === nothing
+            error(string("Model of type $(typeof(model)) with id $(getuid(model)) ",
+                         "is not contained in $(getnicename(data))")                        
+            )
+        end   
+        for type_pair in type_pair_set
+            (StorageType, StorageStateType) = type_pair
+            storagedict[type_pair] = 
+                StorageContainer{ModelType, StorageType, StorageStateType}(model)
+        end
+    end
+end

@@ -32,6 +32,7 @@ struct BranchingRuleInput <: AbstractInput
     max_nb_candidates::Int64
     criterion::SelectionCriterion
     local_id::Int64
+    int_tol::Float64
 end
 
 """
@@ -61,9 +62,8 @@ getgroups(output::BranchingRuleOutput) = output.groups
 abstract type AbstractBranchingRule <: AbstractAlgorithm end
 
 function run!(
-    rule::AbstractBranchingRule, reform::Reformulation, input::BranchingRuleInput
+    rule::AbstractBranchingRule, data::AbstractData, input::BranchingRuleInput
 )::BranchingRuleOutput
     algotype = typeof(rule)
-    error("Method run! which takes formulation and BranchingRuleInput as input 
-        and returns BranchingRuleOutput is not implemented for algorithm $algotype.")
+    error("Method run! in not defined for branching rule $(typeof(rule)), data $(typeof(data)), and input $(typeof(input)).")
 end

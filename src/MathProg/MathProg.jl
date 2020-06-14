@@ -27,15 +27,12 @@ include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
 include("duties.jl")
-include("varconstr.jl") # to rm
 include("manager.jl")
 include("bounds.jl")
 include("solutions.jl")
-include("incumbents.jl") # to rm
-include("optimizationresults.jl")
 include("buffer.jl")
 include("formulation.jl")
-include("new_varconstr.jl") 
+include("varconstr.jl") 
 include("optimizerwrappers.jl")
 include("clone.jl")
 include("reformulation.jl")
@@ -66,9 +63,7 @@ export no_optimizer_builder, set_original_formulation!,
        computereducedrhs, 
        unsafe_getbestprimalsol,
         find_owner_formulation,
-        get_dw_pricing_sps, 
        getsortuid,
-       get_benders_sep_sps,
        contains, setprimalbound!
 
 # Below this line, clean up has been done :
@@ -78,28 +73,27 @@ export reformulate!, optimize!
 export Problem, set_initial_dual_bound!, set_initial_primal_bound!,
        get_initial_dual_bound, get_initial_primal_bound
 
+# Methods related to Reformulation
+export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw_pricing_sps,
+    get_benders_sep_sps, get_dw_pricing_sp_ub_constrid, get_dw_pricing_sp_lb_constrid
+
 # Methods related to formulations
-export AbstractFormulation, Reformulation, Formulation, getmaster, getreformulation,
-       getvar, getvars, getconstr, getconstrs, getelem,
-       getcoefmatrix,
-       getprimalsolmatrix,
-       getprimalsolcosts,
-       getdualsolmatrix,
-       getdualsolrhss,
-       setvar!, setconstr!,
-       setprimalsol!, setdualsol!,
-       setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
+export AbstractFormulation, Formulation, getreformulation, getvar, getvars, getconstr,
+    getconstrs, getelem, getcoefmatrix, getprimalsolmatrix, getprimalsolcosts,
+    getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setprimalsol!, setdualsol!,
+    set_robust_constr_generator!, get_robust_constr_generators,
+    setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
 
 # Methods related to duties
 export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
 
 # Types and methods related to variables and constraints
 export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership, 
-    getperenecost, getcurcost, setcurcost!, getperenelb, getcurlb, setcurlb!, 
-    getpereneub, getcurub, setcurub!, getperenerhs, getcurrhs, setcurrhs!, getperenesense,
-    getcursense, setcursense!, getperenekind, getcurkind, setcurkind!, getpereneincval, 
-    getcurincval, setcurincval!, ispereneactive, iscuractive, activate!, deactivate!,
-    ispereneexplicit, iscurexplicit, setiscurexplicit!, getname, reset!
+    getperencost, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!, 
+    getperenub, getcurub, setcurub!, getperenrhs, getcurrhs, setcurrhs!, getperensense,
+    getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval, 
+    getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
+    isexplicit, getname, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
 # Note : we should export only get methods for MoiResult (the solution is built in MathProg)

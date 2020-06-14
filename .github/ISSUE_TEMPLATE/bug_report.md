@@ -8,10 +8,10 @@ assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+A clear and concise description of the bug.
 
 **To Reproduce**
-Give us a link to your model and instance.
+Give us a link to your model and instance (a Julia project with the Manifest file for example).
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.

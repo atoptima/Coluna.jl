@@ -20,10 +20,11 @@ getnode(input::ConquerInput) = input.node
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 
-function run!(algo::AbstractConquerAlgorithm, reform::Reformulation, input::ConquerInput)::ConquerOutput
+function run!(algo::AbstractConquerAlgorithm, data::ReformData, input::ConquerInput)
     algotype = typeof(algo)
-    error("Method run! which takes Reformulation and Incumbents as parameters and returns AbstractConquerOutput 
-           is not implemented for algorithm $algotype.")
+    error(string("Method run! which takes as parameters ReformData and ConquerInput ", 
+                 "is not implemented for algorithm $algotype.")
+    )
 end    
 
 # this function is needed in strong branching (to have a better screen logging)
@@ -34,7 +35,7 @@ exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
-    node::Node, algo::AbstractConquerAlgorithm, reform::Reformulation
+    node::Node, algo::AbstractConquerAlgorithm, data::ReformData
 )  
     nodestate = getoptstate(node)
     if isverbose(algo)
@@ -45,18 +46,12 @@ function apply_conquer_alg_to_node!(
         isverbose(algo) && @logmsg LogLevel(-1) string(
             "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
         )
-        node.conquerrecord = nothing
+        # node.conquerrecord = nothing
         return 
     end
     isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-    prepare!(reform, node.conquerrecord)    
-    node.conquerrecord = nothing
-
-    # TO DO : get rid of Branch 
-    apply_branch!(reform, getbranch(node))
-
-    run!(algo, reform, ConquerInput(node))
+    run!(algo, data, ConquerInput(node))
     node.conquerwasrun = true
 end
 
@@ -69,23 +64,34 @@ Base.@kwdef struct BendersConquer <: AbstractConquerAlgorithm
     benders::BendersCutGeneration = BendersCutGeneration()
 end
 
+function get_storages_usage!(
+    algo::BendersConquer, reform::Reformulation, storages_usage::StoragesUsageDict
+)
+    get_storages_usage!(algo.benders, reform, storages_usage)
+end
+
+function get_storages_to_restore!(
+    algo::BendersConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    get_storages_to_restore!(algo.benders, reform, storages_to_restore)
+end
+
+
 isverbose(strategy::BendersConquer) = true
 
 function getslavealgorithms!(
     algo::BendersConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
 )
-    push!(slaves, (reform, typeof(algo.benders)))
+    push!(slaves, (reform, algo.benders))
     getslavealgorithms!(algo.benders, reform, slaves)
 end
 
-function run!(algo::BendersConquer, reform::Reformulation, input::ConquerInput)
+function run!(algo::BendersConquer, data::ReformData, input::ConquerInput)
     node = getnode(input)
     nodestate = getoptstate(node)
-    output = run!(algo.benders, reform, OptimizationInput(nodestate))
-
+    output = run!(algo.benders, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
-    node.conquerrecord = record!(reform)
     return 
 end
 
@@ -93,58 +99,92 @@ end
 #                      ColGenConquer
 ####################################################################
 
+"""
+    Coluna.Algorithm.ColGenConquer(
+        colgen::ColumnGeneration = ColumnGeneration()
+        mastipheur::SolveIpForm = SolveIpForm()
+        preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
+        run_mastipheur::Bool = true
+        run_preprocessing::Bool = false
+    )
+
+Column-generation based algorithm to find primal and dual bounds for a 
+problem decomposed using Dantzig-Wolfe paradigm. It applies `colgen` for the column 
+generation phase, `masteripheur` to optimize the integer restricted master.
+"""
 Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm 
     colgen::ColumnGeneration = ColumnGeneration()
-    mastipheur::SolveIpForm = SolveIpForm()
+    mastipheur::SolveIpForm = SolveIpForm(get_dual_bound = false)
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
+    max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
 end
 
 isverbose(algo::ColGenConquer) = algo.colgen.log_print_frequency > 0
 
-function getslavealgorithms!(
-    algo::ColGenConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+
+function get_storages_usage!(
+    algo::ColGenConquer, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    push!(slaves, (reform, typeof(algo.colgen)))
-    getslavealgorithms!(algo.colgen, reform, slaves)
-
-    if (algo.run_mastipheur)
-        push!(slaves, (reform, typeof(algo.mastipheur)))
-        getslavealgorithms!(algo.mastipheur, reform, slaves)
-    end 
-
-    if (algo.run_preprocessing)
-        push!(slaves, (reform, typeof(algo.preprocess)))
-        getslavealgorithms!(algo.preprocess, reform, slaves)
-    end 
-
+    #ColGenConquer itself does not access to any storage, so we just ask its slave algorithms
+    get_storages_usage!(algo.colgen, reform, storages_usage)
+    algo.run_mastipheur && get_storages_usage!(algo.mastipheur, getmaster(reform), storages_usage)
+    algo.run_preprocessing && get_storages_usage!(algo.preprocess, reform, storages_usage)
 end
 
-function run!(algo::ColGenConquer, reform::Reformulation, input::ConquerInput)
+function get_storages_to_restore!(
+    algo::ColGenConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    get_storages_to_restore!(algo.colgen, reform, storages_to_restore)
+    algo.run_mastipheur && 
+        get_storages_to_restore!(algo.mastipheur, getmaster(reform), storages_to_restore)
+    algo.run_preprocessing && 
+        get_storages_to_restore!(algo.preprocess, reform, storages_to_restore)
+end
 
+function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
     node = getnode(input)
     nodestate = getoptstate(node)
+    reform = getreform(data)
     if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform))
         setfeasibilitystatus!(nodestate, INFEASIBLE)
         return 
     end
 
-    colgen_output = run!(algo.colgen, reform, OptimizationInput(nodestate))
+    nb_tightening_rounds = 0
+    colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
-    if (!to_be_pruned(node))
-        node.conquerrecord = record!(reform)
-        if algo.run_mastipheur 
-            @logmsg LogLevel(0) "Run IP restricted master heuristic."
+    while !to_be_pruned(node) && nb_tightening_rounds < algo.max_nb_cut_rounds
+        sol = get_best_lp_primal_sol(getoptstate(colgen_output))
+        if sol !== nothing
+            cutcb_input = CutCallbacksInput(sol)
+            cutcb_output = run!(CutCallbacks(), getmasterdata(data), cutcb_input)
+            cutcb_output.nb_cuts_added == 0 && break
+        else
+            @warn "Skip cut generation because no best primal solution."
+            break
+        end
+
+        set_ip_dual_bound!(nodestate, DualBound(reform))
+        set_lp_dual_bound!(nodestate, DualBound(reform))
+        colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
+        update!(nodestate, getoptstate(colgen_output))
+
+        nb_tightening_rounds += 1
+    end
+
+    if !to_be_pruned(node) && algo.run_mastipheur 
+        @logmsg LogLevel(0) "Run IP restricted master heuristic."
+        TO.@timeit Coluna._to "RestMasterHeur" begin
             heur_output = run!(
-                algo.mastipheur, getmaster(reform), OptimizationInput(nodestate)
+                algo.mastipheur, getmasterdata(data), OptimizationInput(nodestate)
             )
             update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         end
     end 
-
+    return
 end
 
 ####################################################################
@@ -155,19 +195,22 @@ Base.@kwdef struct RestrMasterLPConquer <: AbstractConquerAlgorithm
     masterlpalgo::SolveLpForm = SolveLpForm()
 end
 
-function getslavealgorithms!(
-    algo::RestrMasterLPConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, Type{<:AbstractAlgorithm}}}
+function get_storages_usage!(
+    algo::RestrMasterLPConquer, reform::Reformulation, storages_usage::StoragesUsageDict
 )
-    push!(slaves, (reform, typeof(algo.masterlpalgo)))
-    getslavealgorithms!(algo.masterlpalgo, reform, slaves)
+    get_storages_usage!(algo.masterlpalgo, getmaster(reform), storages_usage)
 end
 
-function run!(algo::RestrMasterLPConquer, reform::Reformulation, input::ConquerInput)
+function get_storages_to_restore!(
+    algo::RestrMasterLPConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+) 
+    get_storages_to_restore!(algo.masterlpalgo, getmaster(reform), storages_to_restore)
+end
+
+function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
     node = getnode(input)
     nodestate = getoptstate(node)
-    output = run!(algo.masterlpalgo, getmaster(reform), OptimizationInput(nodestate))
+    output = run!(algo.masterlpalgo, getmasterdata(data), OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
-    node.conquerrecord = record!(reform)
 end
 

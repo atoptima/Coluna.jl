@@ -41,8 +41,8 @@ end
 function Optimizer()
     prob = Problem()
     return Optimizer(
-        prob, MOIU.IndexMap(), Params(), Annotations(),
-        Dict{MOI.VariableIndex,VarId}(), nothing
+        prob, MOIU.IndexMap(), Params(), Annotations(), Dict{MOI.VariableIndex,VarId}(), 
+        nothing
     )
 end
 
@@ -167,7 +167,7 @@ function create_origconstr!(
 )
     constr = setconstr!(form, name, OriginalConstr;
                     rhs = convert_moi_rhs_to_coluna(set),
-                    kind = MathProg.Core,
+                    kind = Essential,
                     sense = convert_moi_sense_to_coluna(set),
                     inc_val = 10.0) #TODO set inc_val in model
     constrid = getid(constr)
@@ -225,6 +225,8 @@ function register_original_formulation!(
     sense = MOI.get(src, MOI.ObjectiveSense())
     min_sense = (sense == MOI.MIN_SENSE)
     register_objective_sense!(orig_form, min_sense)
+
+    register_callback!(orig_form, src, MOI.UserCutCallback())
 
     ipb = MOI.get(src, BD.ObjectivePrimalBound())
     idb = MOI.get(src, BD.ObjectiveDualBound())

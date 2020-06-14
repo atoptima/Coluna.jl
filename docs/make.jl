@@ -9,8 +9,15 @@ makedocs(
     ),
     pages = Any[
         "Introduction"   => "index.md",
-        "Getting started"   => "user/start.md",
-        "Callbacks"   => "user/callbacks.md"
+        "Manual" => Any[
+            "Getting started"   => "user/start.md",
+            "Callbacks"   => "user/callbacks.md"
+        ],
+        "Reference" => Any[
+            "Algorithms" => "dev/algorithms.md",
+            "Formulation" => "dev/formulation.md",
+            "Reformulation" => "dev/reformulation.md"
+        ]
     ]
 )
 

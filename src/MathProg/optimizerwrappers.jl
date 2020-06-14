@@ -152,7 +152,7 @@ end
 """
     MoiOptimizer <: AbstractOptimizer
 
-Wrapper that is used when the optimizer of a formulation 
+Wrapper that is used when the optimizer of a formulation
 is an `MOI.AbstractOptimizer`, thus inheriting MOI functionalities.
 """
 struct MoiOptimizer <: AbstractOptimizer
@@ -167,10 +167,11 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
     if terminationstatus != MOI.INFEASIBLE &&
             terminationstatus != MOI.DUAL_INFEASIBLE &&
             terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
-            terminationstatus != MOI.OPTIMIZE_NOT_CALLED
+            terminationstatus != MOI.OPTIMIZE_NOT_CALLED &&
+            terminationstatus != MOI.TIME_LIMIT
         fill_primal_result!(form, optimizer, result)
         fill_dual_result!(form, optimizer, result)
-        if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1 
+        if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1
             setfeasibilitystatus!(result, FEASIBLE)
             setterminationstatus!(result, convert_status(terminationstatus))
         else
@@ -224,7 +225,7 @@ function optimize!(form::Formulation, optimizer::MoiOptimizer)
         @warn "No variable in the formulation. Coluna does not call the solver."
         return retrieve_result(form, optimizer)
     end
-    call_moi_optimize_with_silence(form.optimizer)
+    MOI.optimize!(getinner(form.optimizer))
     status = MOI.get(form.optimizer.inner, MOI.TerminationStatus())
     @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
     return retrieve_result(form, optimizer)
@@ -253,8 +254,8 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Add constrs
     for constr_id in buffer.constr_buffer.added
         constr = getconstr(f, constr_id)
-        @logmsg LogLevel(-4) string("Adding constraint ", getname(f, constr))
-        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && iscurexplicit(f, constr))  
+        @logmsg LogLevel(-2) string("Adding constraint ", getname(f, constr))
+        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && isexplicit(f, constr))
     end
 
     # Update variable costs
@@ -275,16 +276,16 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Update variable kind
     for id in buffer.changed_var_kind
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing kind of variable " getname(f, id)
-        @logmsg LogLevel(-3) string("New kind is ", getcurkind(f, id))
+        @logmsg LogLevel(-3) "Changing kind of variable " getname(f, id)
+        @logmsg LogLevel(-4) string("New kind is ", getcurkind(f, id))
         enforce_kind_in_optimizer!(f, getvar(f,id))
     end
 
     # Update constraint rhs
     for id in buffer.changed_rhs
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
-        @logmsg LogLevel(-2) "Changing rhs of constraint " getname(f, id)
-        @logmsg LogLevel(-3) string("New rhs is ", getcurrhs(f, id))
+        @logmsg LogLevel(-3) "Changing rhs of constraint " getname(f, id)
+        @logmsg LogLevel(-4) string("New rhs is ", getcurrhs(f, id))
         update_constr_rhs_in_optimizer!(f, getconstr(f, id))
     end
 
@@ -292,9 +293,9 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # First check if should update members of just-added vars
     matrix = getcoefmatrix(f)
     for id in buffer.var_buffer.added
-        for (constrid, coeff) in  matrix[:,id]
+        for (constrid, coeff) in @view matrix[:,id]
             iscuractive(f, constrid) || continue
-            iscurexplicit(f, constrid) || continue
+            isexplicit(f, constrid) || continue
             constrid ∉ buffer.constr_buffer.added || continue
             c = getconstr(f, constrid)
             update_constr_member_in_optimizer!(optimizer, c, getvar(f, id), coeff)
@@ -328,3 +329,19 @@ function _initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)
 end
 
 _initialize_optimizer!(optimizer, form::Formulation) = return
+
+function Base.print(io::IO, form::AbstractFormulation, moiresult::MoiResult)
+    println(io, "Primal bound =  $(moiresult.primal_bound)")
+    if length(moiresult.primal_sols) > 0
+        for (varid, val) in moiresult.primal_sols[1]
+            println(io, "\t $(getname(form, varid)) = $val")
+        end
+    end
+    println(io, "*******")
+    if length(moiresult.dual_sols) > 0
+        for (constrid, val) in moiresult.dual_sols[1]
+            println(io, "\t $(getname(form, constrid)) = $val")
+        end
+    end
+    return
+end

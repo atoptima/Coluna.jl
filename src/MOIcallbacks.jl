@@ -1,3 +1,7 @@
+############################################################################################
+#  Pricing Callback                                                                        #
+############################################################################################
+
 function MOI.submit(
     model::Optimizer,
     cb::BD.PricingSolution{MathProg.PricingCallbackData},
@@ -14,7 +18,7 @@ function MOI.submit(
 
     # setup variable
     setup_var_id = [id for (id,v) in Iterators.filter(
-        v -> (iscuractive(form, v.first) && iscurexplicit(form, v.first) && getduty(v.first) <= DwSpSetupVar),
+        v -> (iscuractive(form, v.first) && isexplicit(form, v.first) && getduty(v.first) <= DwSpSetupVar),
         getvars(form)
     )][1]
     push!(colunavarids, setup_var_id)
@@ -58,3 +62,67 @@ function MOI.get(
     form = pvub.callback_data.form
     return getcurub(form, _get_orig_varid(model, x))
 end
+
+############################################################################################
+#  Robust Constraints Callback                                                             #
+############################################################################################
+
+function register_callback!(form::Formulation, src::MOI.ModelLike, attr::MOI.AbstractCallback)
+    try
+        sep = MOI.get(src, attr)
+        _register_callback!(form, attr, sep)
+    catch KeyError
+    end
+    return
+end
+
+function _register_callback!(form::Formulation, attr::MOI.UserCutCallback, sep::Function)
+    set_robust_constr_generator!(form, Facultative, sep)
+    return
+end
+
+function MOI.get(
+    model::Optimizer, cvp::MOI.CallbackVariablePrimal{Algorithm.RobustCutCallbackContext},
+    x::MOI.VariableIndex
+)
+    form = cvp.callback_data.form
+    return get(cvp.callback_data.proj_sol_dict, _get_orig_varid(model, x), 0.0)
+end
+
+function MOI.submit(
+    model::Optimizer, cb::MOI.UserCut{Algorithm.RobustCutCallbackContext},
+    func::MOI.ScalarAffineFunction{Float64},
+    set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
+)
+    form = cb.callback_data.form
+    rhs = convert_moi_rhs_to_coluna(set)
+    sense = convert_moi_sense_to_coluna(set)
+    lhs = 0.0
+    members = Dict{VarId, Float64}()
+    for term in func.terms
+        varid = _get_orig_varid_in_form(model, form, term.variable_index)
+        members[varid] = term.coefficient
+        lhs += term.coefficient * get(cb.callback_data.proj_sol_dict, varid, 0.0)
+    end
+
+    constr = setconstr!(
+        form, "", MasterMixedConstr;
+        rhs = rhs,
+        kind = Essential,
+        sense = sense,
+        members = members,
+        loc_art_var = true
+    )
+
+    gap = lhs - rhs
+    if sense == Less
+        push!(cb.callback_data.viol_vals, max(0.0, gap))
+    elseif sense == Greater
+        push!(cb.callback_data.viol_vals, -min(0.0, gap))
+    else
+        push!(cb.callback_data.viol_vals, abs(gap))
+    end
+    return getid(constr)
+end
+
+MOI.supports(::Optimizer, ::MOI.UserCutCallback) = true
