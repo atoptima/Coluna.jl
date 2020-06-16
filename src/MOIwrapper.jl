@@ -41,7 +41,7 @@ end
 function Optimizer()
     prob = Problem()
     return Optimizer(
-        prob, MOIU.IndexMap(), Params(), Annotations(), Dict{MOI.VariableIndex,VarId}(), 
+        prob, MOIU.IndexMap(), Params(), Annotations(), Dict{MOI.VariableIndex,VarId}(),
         nothing
     )
 end
@@ -72,7 +72,7 @@ function MOI.optimize!(optimizer::Optimizer)
     return
 end
 
-function MOI.supports_constraint(optimizer::Optimizer, 
+function MOI.supports_constraint(optimizer::Optimizer,
         ::Type{<: SupportedConstrFunc}, ::Type{<: SupportedConstrSets})
     return true
 end
@@ -82,7 +82,7 @@ function MOI.supports_constraint(optimizer::Optimizer,
     return true
 end
 
-function MOI.supports(optimizer::Optimizer, 
+function MOI.supports(optimizer::Optimizer,
         ::MOI.ObjectiveFunction{<: SupportedObjFunc})
     return true
 end
@@ -132,7 +132,7 @@ function get_var_kinds_and_bounds(src::MOI.ModelLike)
 end
 
 function create_origvars!(
-    form::Formulation, dest::Optimizer, src::MOI.ModelLike, 
+    form::Formulation, dest::Optimizer, src::MOI.ModelLike,
     costs::Dict{Int,Float64}, kinds::Dict{Int, VarKind},
     lbs::Dict{Int, Float64}, ubs::Dict{Int, Float64}, copy_names::Bool,
     moi_uid_to_coluna_id::Dict{Int,VarId}
@@ -144,14 +144,14 @@ function create_origvars!(
             name = string("var_", moi_index.value)
         end
         var = setvar!(
-            form, name, OriginalVar; 
+            form, name, OriginalVar;
             cost = get(costs, moi_index.value, 0.0),
             kind = get(kinds, moi_index.value, Continuous),
             lb = get(lbs, moi_index.value, -Inf),
             ub = get(ubs, moi_index.value, Inf)
         )
         varid = getid(var)
-        moi_index_in_coluna = deepcopy(moi_index) 
+        moi_index_in_coluna = deepcopy(moi_index)
         dest.moi_index_to_coluna_uid[moi_index] = moi_index_in_coluna
         moi_uid_to_coluna_id[moi_index.value] = varid
         annotation = MOI.get(src, BD.VariableDecomposition(), moi_index)
@@ -204,13 +204,12 @@ function create_origconstrs!(
             end
         end
     end
-    return 
+    return
 end
 
 function register_original_formulation!(
     dest::Optimizer, src::MOI.ModelLike, copy_names::Bool
 )
-    copy_names = true
     problem = dest.inner
     orig_form = Formulation{Original}(problem.form_counter)
     set_original_formulation!(problem, orig_form)
@@ -237,7 +236,8 @@ function register_original_formulation!(
     return
 end
 
-function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; copy_names=true)
+function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; kwargs...)
+    copy_names = get(kwargs, :copy_names, false)
     register_original_formulation!(dest, src, copy_names)
     @debug "\e[1;34m Original formulation \e[00m" dest.inner.original_formulation
     return dest.moi_index_to_coluna_uid
@@ -290,8 +290,8 @@ function MOI.get(optimizer::Optimizer, object::MOI.TerminationStatus)
     getfeasibilitystatus(result) == INFEASIBLE && return MOI.INFEASIBLE
     getfeasibilitystatus(result) == UNKNOWN_FEASIBILITY && return MOI.OTHER_LIMIT
     error(string(
-        "Could not determine MOI status. Coluna termination : ", 
-        getterminationstatus(result), ". Coluna feasibility : ", 
+        "Could not determine MOI status. Coluna termination : ",
+        getterminationstatus(result), ". Coluna feasibility : ",
         getfeasibilitystatus(result)
     ))
     return

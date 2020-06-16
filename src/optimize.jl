@@ -1,7 +1,7 @@
 function _welcome_message()
     welcome = """
     Coluna
-    Version 0.3 - https://github.com/atoptima/Coluna.jl
+    Version 0.3.1 - https://github.com/atoptima/Coluna.jl
     """
     print(welcome)
 end
@@ -89,7 +89,7 @@ function optimize!(
         lp_dual_bound = initial_dual_bound
     )
 
-    #this will initialize all the storages used by the algorithm and its slave algorithms    
+    #this will initialize all the storages used by the algorithm and its slave algorithms
     reformdata = Algorithm.ReformData(reform)
     Algorithm.initialize_storages(reformdata, algorithm)
 
@@ -100,7 +100,7 @@ function optimize!(
 
     # we copy optimisation state as we want to project the solution to the compact space
     outstate = OptimizationState(
-        master, 
+        master,
         feasibility_status = getfeasibilitystatus(algstate),
         termination_status = getterminationstatus(algstate),
         ip_primal_bound = get_ip_primal_bound(algstate),
@@ -110,7 +110,7 @@ function optimize!(
     )
 
     ip_primal_sols = get_ip_primal_sols(algstate)
-    if ip_primal_sols !== nothing  
+    if ip_primal_sols !== nothing
         for sol in ip_primal_sols
             add_ip_primal_sol!(outstate, proj_cols_on_rep(sol, master))
         end
@@ -118,7 +118,7 @@ function optimize!(
 
     # lp_primal_sol may also be of interest, for example when solving the relaxation
     lp_primal_sol = get_best_lp_primal_sol(algstate)
-    if lp_primal_sol !== nothing  
+    if lp_primal_sol !== nothing
         add_lp_primal_sol!(outstate, proj_cols_on_rep(lp_primal_sol, master))
     end
 
