@@ -464,8 +464,8 @@ function reformulate!(prob::Problem, annotations::Annotations)
     buildformulations!(prob, annotations, reform, reform, root)
 
     # @show reform.master
-    # for sp in reform.dw_pricing_subprs
-    #     @show sp
+    # for (id, sp) in reform.dw_pricing_subprs
+    #      @show sp
     # end
     return
 end

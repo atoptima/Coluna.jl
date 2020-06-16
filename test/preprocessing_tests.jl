@@ -29,7 +29,7 @@ end
 function play_gap_with_preprocessing_tests()
     data = CLD.GeneralizedAssignment.data("play2.txt")
     coluna = JuMP.optimizer_with_attributes(
-        CL.Optimizer, 
+        CL.Optimizer,
         "default_optimizer" => GLPK.Optimizer,
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
@@ -41,7 +41,7 @@ function play_gap_with_preprocessing_tests()
     problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
     JuMP.optimize!(problem)
     @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-    @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test JuMP.termination_status(problem) == MOI.OPTIMAL
     @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
 end
 
@@ -74,7 +74,7 @@ function test_random_gap_instance()
     data = gen_random_small_gap_instance()
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
-        "default_optimizer" => GLPK.Optimizer, 
+        "default_optimizer" => GLPK.Optimizer,
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColGenConquer(run_preprocessing = true),
@@ -83,7 +83,7 @@ function test_random_gap_instance()
         )
     )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna, false)
     # Adding a random branching constraint
     br_j = Random.rand(data.jobs)
     br_m = Random.rand(data.machines)
@@ -91,9 +91,9 @@ function test_random_gap_instance()
     apply_random_branching_constraint!(problem, x, br_m, br_j, leq)
     JuMP.optimize!(problem)
 
-    if MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+    if JuMP.termination_status(problem) == MOI.INFEASIBLE
         coluna = JuMP.optimizer_with_attributes(
-            CL.Optimizer, 
+            CL.Optimizer,
             "default_optimizer" => GLPK.Optimizer,
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
@@ -104,7 +104,7 @@ function test_random_gap_instance()
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
         apply_random_branching_constraint!(problem, x, br_m, br_j, leq)
         JuMP.optimize!(problem)
-        @test MOI.get(problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+        @test JuMP.termination_status(problem) == MOI.INFEASIBLE
         return (false, 0)
     else
         nb_prep_vars = 0
@@ -132,10 +132,11 @@ function test_random_gap_instance()
                         )
                     )
                 )
-                modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna)
+                modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna, false)
                 apply_random_branching_constraint!(modified_problem, x, br_m, br_j, leq)
                 JuMP.optimize!(modified_problem)
-                @test MOI.get(modified_problem.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+
+                @test JuMP.termination_status(problem) == MOI.INFEASIBLE
                 nb_prep_vars += 1
             end
         end

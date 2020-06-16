@@ -64,12 +64,12 @@ function pricing_callback_tests()
 
         master = BD.getmaster(dec)
         subproblems = BD.getsubproblems(dec)
-        
+
         BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback)
 
         JuMP.optimize!(model)
         @test JuMP.objective_value(model) ≈ 75.0
-        @test MOI.get(model.moi_backend.optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        @test JuMP.termination_status(model) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 

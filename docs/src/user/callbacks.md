@@ -28,7 +28,7 @@ i.e. an algorithm better than solving the subproblem with a MIP solver.
 Let us see an example with the generalized assignment problem for which the JuMP model takes the form:
 
 ```julia
-model = BlockModel(optimizer, bridge_constraints = false)
+model = BlockModel(optimizer)
 
 @axis(M, 1:nb_machines)
 J = 1:nb_jobs
