@@ -20,7 +20,7 @@ Column generation algorithm. It applies `restr_master_solve_alg` to solve the li
 restricted master and `pricing_prob_solve_alg` to solve the subproblems.
 
 """
-Base.@kwdef struct ColumnGeneration <: AbstractOptimizationAlgorithm
+@with_kw struct ColumnGeneration <: AbstractOptimizationAlgorithm
     restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
     #TODO : pricing problem solver may be different depending on the
     #       pricing subproblem

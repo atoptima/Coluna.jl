@@ -1,4 +1,4 @@
-Base.@kwdef struct BendersCutGeneration <: AbstractOptimizationAlgorithm
+@with_kw struct BendersCutGeneration <: AbstractOptimizationAlgorithm
     option_use_reduced_cost::Bool = false
     option_increase_cost_in_hybrid_phase::Bool = false
     feasibility_tol::Float64 = 1e-5

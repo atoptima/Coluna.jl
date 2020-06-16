@@ -60,7 +60,7 @@ end
 #                      BendersConquer
 ####################################################################
 
-Base.@kwdef struct BendersConquer <: AbstractConquerAlgorithm 
+@with_kw struct BendersConquer <: AbstractConquerAlgorithm 
     benders::BendersCutGeneration = BendersCutGeneration()
 end
 
@@ -112,7 +112,7 @@ Column-generation based algorithm to find primal and dual bounds for a
 problem decomposed using Dantzig-Wolfe paradigm. It applies `colgen` for the column 
 generation phase, `masteripheur` to optimize the integer restricted master.
 """
-Base.@kwdef struct ColGenConquer <: AbstractConquerAlgorithm 
+@with_kw struct ColGenConquer <: AbstractConquerAlgorithm 
     colgen::ColumnGeneration = ColumnGeneration()
     mastipheur::SolveIpForm = SolveIpForm(get_dual_bound = false)
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
@@ -191,7 +191,7 @@ end
 #                      RestrMasterLPConquer
 ####################################################################
 
-Base.@kwdef struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
+@with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
     masterlpalgo::SolveLpForm = SolveLpForm()
 end
 

@@ -7,8 +7,7 @@ import Distributed
 import TimerOutputs
 import Base.Threads
 
-using Logging
-using Printf
+using Logging, Parameters, Printf
 
 global const BD = BlockDecomposition
 global const MOI = MathOptInterface
