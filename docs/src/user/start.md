@@ -1,22 +1,22 @@
-# Quick start 
+# Quick start
 
 This quick start guide introduces the main features of Coluna through the example of the
 Generalized Assignement Problem.
 
-## Problem 
+## Problem
 
 Consider a set of machines `M = 1:nb_machines` and a set of jobs `J = 1:nb_jobs`.
-A machine $m$ has a resource capacity $Q_m$ . 
+A machine $m$ has a resource capacity $Q_m$ .
 A job $j$ assigned to a machine $m$ has a cost $c_{mj}$ and consumes $w_{mj}$ resource units
-of the machine $m$. 
-The goal is to minimize the sum of job costs while assigning each job to a machine and not 
+of the machine $m$.
+The goal is to minimize the sum of job costs while assigning each job to a machine and not
 exceeding the capacity of each machine.
 
 Let $x_{mj}$ equal to one if job $j$ is assigned to machine $m$; $0$ otherwise.
 The problem has the original formulation:
 
 ```math
-\begin{alignedat}{4} 
+\begin{alignedat}{4}
 \text{[GAP]} \equiv \min \mathrlap{\sum_{m \in M} c_{mj} x_{mj}}  \\
 \text{s.t.} && \sum_{m \in M} x_{mj} &= 1  \quad& j \in J \\
 && \sum_{j \in J} w_{mj} x_{mj} &\leq Q_m  \quad  \quad& m \in M  \\
@@ -36,7 +36,7 @@ Q = [1020 1460 1530 1190]
 ```
 
 This model has a block structure : each knapsack constraint defines
-an independent block and the set-partitionning constraints couple these independent 
+an independent block and the set-partitionning constraints couple these independent
 blocks. By applying the Dantzig-Wolfe reformulation, each knapsack constraint forms
 a tractable subproblem and the set-partitionning constraints are handled in a master problem.
 
@@ -44,7 +44,7 @@ To introduce the model, you need to load packages JuMP and BlockDecomposition. T
 the problem, you need Coluna and a Julia package that provides a MIP solver such as GLPK.
 
 ```julia
-using JuMP, BlockDecomposition, Coluna, GLPK 
+using JuMP, BlockDecomposition, Coluna, GLPK
 ```
 
 Next you instantiate the solver and define the algorithm that you use to optimize the problem.
@@ -60,9 +60,9 @@ coluna = optimizer_with_attributes(
 )
 ```
 
-In BlockDecomposition, an axis is the index set of subproblems. 
+In BlockDecomposition, an axis is the index set of subproblems.
 Let `M` be the index set of machines; it defines an axis along which we can implement the
-desired decomposition. In this example, the axis `M` defines one knapsack subproblem for 
+desired decomposition. In this example, the axis `M` defines one knapsack subproblem for
 each machine.
 
 Jobs are not involved in the decomposition, you thus define the set `J` of jobs as a classic
@@ -73,11 +73,10 @@ range.
 J = 1:nb_jobs
 ```
 
-The model takes the form (argument `bridge_constraints = false` is mandatory because of a 
-bug in our interface):
+The model takes the form :
 
 ```julia
-model = BlockModel(coluna, bridge_constraints = false)
+model = BlockModel(coluna)
 @variable(model, x[m in M, j in J], Bin)
 @constraint(model, cov[j in J], sum(x[m, j] for m in M) >= 1)
 @constraint(model, knp[m in M], sum(w[m, j] * x[m, j] for j in J) <= Q[m])
@@ -99,14 +98,14 @@ master = getmaster(decomposition)
 subproblems = getsubproblems(decomposition)
 ```
 
-The multiplicity of a subproblem is the number of times that the same independent block 
-shaped by the subproblem appears in the model. This multiplicy also specifies the number of 
-solutions to the subproblem that can appear in the solution to the original problem. 
+The multiplicity of a subproblem is the number of times that the same independent block
+shaped by the subproblem appears in the model. This multiplicy also specifies the number of
+solutions to the subproblem that can appear in the solution to the original problem.
 
-In this GAP instance, the upper multiplicity is $1$ because every subproblem is different, 
+In this GAP instance, the upper multiplicity is $1$ because every subproblem is different,
 *i.e.*, every machine is different and used at most once.
 
-The lower multiplicity is $0$ because a machine may stay unused. 
+The lower multiplicity is $0$ because a machine may stay unused.
 The multiplicity specifications take the form:
 
 ```julia
