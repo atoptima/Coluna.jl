@@ -1,7 +1,7 @@
 """
 todo
 """
-Base.@kwdef struct CutCallbacks <: AbstractAlgorithm
+@with_kw struct CutCallbacks <: AbstractAlgorithm
     call_robust_facultative = true
     call_robust_core = true
     #call_nonrobust_facultative = false
@@ -60,6 +60,6 @@ function run!(algo::CutCallbacks, data::ModelData, input::CutCallbacksInput)
             )
         end
     end
-    
+
     return CutCallbacksOutput(nb_cuts)
 end

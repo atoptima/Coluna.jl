@@ -8,7 +8,7 @@
 
 Solve a linear program.
 """
-Base.@kwdef struct SolveLpForm <: AbstractOptimizationAlgorithm 
+@with_kw struct SolveLpForm <: AbstractOptimizationAlgorithm 
     get_ip_primal_solution = false
     get_dual_solution = false
     relax_integrality = false

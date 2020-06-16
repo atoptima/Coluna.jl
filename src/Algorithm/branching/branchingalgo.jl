@@ -53,7 +53,7 @@ end
     Contains branching phases and branching rules.
     Should be populated by branching rules before execution.
 """
-Base.@kwdef struct StrongBranching <: AbstractDivideAlgorithm
+@with_kw struct StrongBranching <: AbstractDivideAlgorithm
     phases::Vector{BranchingPhase} = []
     rules::Vector{PrioritisedBranchingRule} = []
     selection_criterion::SelectionCriterion = MostFractionalCriterion

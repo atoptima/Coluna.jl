@@ -92,7 +92,7 @@ This algorithm uses search tree to do optimization. At each node in the tree, it
 `conqueralg` to improve the bounds, `dividealg` to generate child nodes, and `explorestrategy`
 to select the next node to treat.
 """
-Base.@kwdef struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
+@with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     conqueralg::AbstractConquerAlgorithm = ColGenConquer()
     dividealg::AbstractDivideAlgorithm = SimpleBranching()
     explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy()
