@@ -6,14 +6,11 @@ import MathOptInterface
 import TimerOutputs
 
 import ..Coluna # for NestedEnum (types.jl:210)
-using ..Coluna: iterate # to be deleted
 using ..ColunaBase
 
 import Base: haskey, length, iterate, diff
 
-using DynamicSparseArrays
-using Logging
-using Printf
+using DynamicSparseArrays, Logging, Printf
 
 global const BD = BlockDecomposition
 global const MOI = MathOptInterface
@@ -32,7 +29,7 @@ include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
 include("formulation.jl")
-include("varconstr.jl") 
+include("varconstr.jl")
 include("optimizerwrappers.jl")
 include("clone.jl")
 include("reformulation.jl")
@@ -53,14 +50,14 @@ export no_optimizer_builder, set_original_formulation!,
        getid, store!, getuid,
        register_objective_sense!, nbprimalsols, getdualbound,
        getprimalbound,
-       enforce_integrality!, relax_integrality!, 
+       enforce_integrality!, relax_integrality!,
        getobjsense, getoptimizer, getbestprimalsol,
        add_primal_sol!, setdualbound!,
        getprimalsols, getdualsols,
        computereducedcost,
        update!,
-       convert_status, getduty, getbestdualsol, 
-       computereducedrhs, 
+       convert_status, getduty, getbestdualsol,
+       computereducedrhs,
        unsafe_getbestprimalsol,
         find_owner_formulation,
        getsortuid,
@@ -88,22 +85,22 @@ export AbstractFormulation, Formulation, getreformulation, getvar, getvars, getc
 export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
 
 # Types and methods related to variables and constraints
-export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership, 
-    getperencost, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!, 
+export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
+    getperencost, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!,
     getperenub, getcurub, setcurub!, getperenrhs, getcurrhs, setcurrhs!, getperensense,
-    getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval, 
+    getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
     isexplicit, getname, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
 # Note : we should export only get methods for MoiResult (the solution is built in MathProg)
 export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues, TerminationStatus,
-    FeasibilityStatus, MoiResult, OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, 
+    FeasibilityStatus, MoiResult, OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT,
     EMPTY_RESULT, NOT_YET_DETERMINED, INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE,
-    getterminationstatus, getfeasibilitystatus, setterminationstatus!, 
+    getterminationstatus, getfeasibilitystatus, setterminationstatus!,
     setfeasibilitystatus!, isfeasible, get_ip_primal_bound, get_lp_primal_bound,
     get_ip_dual_bound, get_lp_dual_bound, update_ip_primal_bound!, update_lp_primal_bound!,
-    update_ip_dual_bound!, update_lp_dual_bound!, set_ip_primal_bound!, 
+    update_ip_dual_bound!, update_lp_dual_bound!, set_ip_primal_bound!,
     set_lp_primal_bound!, set_ip_dual_bound!, set_lp_dual_bound!, ip_gap
 
 # methods related to projections

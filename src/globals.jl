@@ -1,4 +1,4 @@
-Base.@kwdef mutable struct GlobalValues
+@with_kw mutable struct GlobalValues
     initial_solve_time::Float64 = 0.0
 end
 
