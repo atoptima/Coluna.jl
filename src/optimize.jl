@@ -39,7 +39,7 @@ end
 """
 Starting point of the solver.
 """
-function optimize!(prob::MathProg.Problem, annotations::MathProg.Annotations, params::Params)
+function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Params)
     _welcome_message()
 
     # Adjust parameters

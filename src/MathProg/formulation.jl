@@ -21,10 +21,11 @@ end
 Construct a `Formulation` of duty `Duty` with objective sense `obj_sense` and parent formulation
 `parent_formulation`.
 """
-function Formulation{D}(form_counter::Counter;
-                        parent_formulation = nothing,
-                        obj_sense::Type{<:Coluna.AbstractSense} = MinSense
-                        ) where {D<:AbstractFormDuty}
+function Formulation{D}(
+    form_counter::Counter;
+    parent_formulation = nothing,
+    obj_sense::Type{<:Coluna.AbstractSense} = MinSense
+) where {D<:AbstractFormDuty}
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(),
         parent_formulation, NoOptimizer(), FormulationManager(),
@@ -487,7 +488,7 @@ function _setmembers!(form::Formulation, constr::Constraint, members::VarMembers
     return
 end
 
-function register_objective_sense!(form::Formulation, min::Bool)
+function set_objective_sense!(form::Formulation, min::Bool)
     if min
         form.obj_sense = MinSense
     else

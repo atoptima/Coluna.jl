@@ -38,11 +38,13 @@ using .MathProg
 include("Algorithm/Algorithm.jl")
 using .Algorithm
 
+include("annotations.jl")
 include("optimize.jl")
 
 # Wrapper functions
 include("MOIwrapper.jl")
 include("MOIcallbacks.jl")
+include("decomposition.jl")
 
 # TODO : put global values here
 include("globals.jl") # Structure that holds values useful in all the procedure

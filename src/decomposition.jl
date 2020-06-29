@@ -1,6 +1,6 @@
 function set_glob_art_var(form::Formulation, is_pos::Bool)
     name = string("global_", (is_pos ? "pos" : "neg"), "_art_var")
-    cost = Cl._params_.global_art_var_cost
+    cost = _params_.global_art_var_cost
     cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
     return setvar!(
         form, name, MasterArtVar;
@@ -460,12 +460,13 @@ function reformulate!(prob::Problem, annotations::Annotations)
     root = BD.getroot(decomposition_tree)
     # Create reformulation
     reform = Reformulation()
-    set_re_formulation!(prob, reform)
+    set_reformulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
-
-    # @show reform.master
-    # for (id, sp) in reform.dw_pricing_subprs
-    #      @show sp
-    # end
+    @show get_original_formulation(prob)
+    println("---------")
+    @show reform.master
+    for (id, sp) in reform.dw_pricing_subprs
+        @show sp
+    end
     return
 end
