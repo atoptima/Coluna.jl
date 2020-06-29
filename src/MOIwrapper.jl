@@ -31,7 +31,7 @@ function Optimizer()
     )
 end
 
-MOI.Utilities.supports_default_copy_to(::Optimizer, ::Bool) = true
+MOI.Utilities.supports_default_copy_to(::Coluna.Optimizer, ::Bool) = true
 MOI.supports(::Optimizer, ::MOI.VariableName, ::Type{MOI.VariableIndex}) = true
 MOI.supports(::Optimizer, ::MOI.ConstraintName, ::Type{<:MOI.ConstraintIndex}) = true
 MOI.supports_constraint(::Optimizer, ::Type{<:SupportedConstrFunc}, ::Type{<:SupportedConstrSets}) = true
@@ -77,18 +77,16 @@ function MOI.optimize!(optimizer::Optimizer)
     return
 end
 
-
 function register_original_formulation!(
     dest::Optimizer, src::MOI.ModelLike, copy_names::Bool
 )
-
-
     #register_callback!(orig_form, src, MOI.UserCutCallback())
     return
 end
 
 function MOI.copy_to(dest::Coluna.Optimizer, src::MOI.ModelLike; kwargs...)
     @show kwargs
+    error("Stack")
     return MOI.Utilities.automatic_copy_to(dest, src; kwargs...)
 end
 
