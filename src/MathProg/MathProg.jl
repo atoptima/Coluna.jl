@@ -110,10 +110,4 @@ export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues, Terminat
 # methods related to projections
 export projection_is_possible, proj_cols_on_rep
 
-# convert methods
-export convert_coluna_sense_to_moi,
-       convert_moi_sense_to_coluna,
-       convert_moi_rhs_to_coluna,
-       convert_moi_kind_to_coluna
-
 end
