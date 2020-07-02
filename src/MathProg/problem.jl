@@ -17,7 +17,7 @@ end
 Constructs an empty `Problem`.
 """
 function Problem()
-    counter = Counter()
+    counter = Counter(-1)
     original_formulation = Formulation{Original}(counter)
     return Problem(
         nothing, nothing, original_formulation, nothing, counter,

@@ -462,11 +462,11 @@ function reformulate!(prob::Problem, annotations::Annotations)
     reform = Reformulation()
     set_reformulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
-    @show get_original_formulation(prob)
-    println("---------")
-    @show reform.master
-    for (id, sp) in reform.dw_pricing_subprs
-        @show sp
-    end
+    # @show get_original_formulation(prob)
+    # println("---------")
+    # @show reform.master
+    # for (id, sp) in reform.dw_pricing_subprs
+    #     @show sp
+    # end
     return
 end

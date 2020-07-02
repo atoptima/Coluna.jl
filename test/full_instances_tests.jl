@@ -100,6 +100,9 @@ function generalized_assignment_tests()
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+        println(model)
+
         BD.objectiveprimalbound!(model, 2000.0)
         BD.objectivedualbound!(model, 0.0)
 
