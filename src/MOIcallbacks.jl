@@ -23,6 +23,7 @@ function MOI.submit(
     solval = cost
 
     colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]
+    
     # setup variable
     setup_var_id = [id for (id,v) in Iterators.filter(
         v -> (iscuractive(form, v.first) && isexplicit(form, v.first) && getduty(v.first) <= DwSpSetupVar),
