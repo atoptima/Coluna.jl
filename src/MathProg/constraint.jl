@@ -46,7 +46,7 @@ setindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
 Representation of a constraint in Coluna.
 """
-struct Constraint <: AbstractVarConstr
+mutable struct Constraint <: AbstractVarConstr
     id::Id{Constraint}
     name::String
     perendata::ConstrData

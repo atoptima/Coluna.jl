@@ -1,7 +1,15 @@
 ############################################################################################
+# Set callbacks
+############################################################################################
+function MOI.set(model::Coluna.Optimizer, attr::MOI.UserCutCallback, callback_function)
+    orig_form = get_original_formulation(model.inner)
+    _register_callback!(orig_form, attr, callback_function)
+    return
+end
+
+############################################################################################
 #  Pricing Callback                                                                        #
 ############################################################################################
-
 function MOI.submit(
     model::Optimizer,
     cb::BD.PricingSolution{MathProg.PricingCallbackData},
@@ -9,13 +17,13 @@ function MOI.submit(
     variables::Vector{MOI.VariableIndex},
     values::Vector{Float64}
 )
-    form = cb.callback_data.form 
+    form = cb.callback_data.form
     S = getobjsense(form)
     result = MoiResult(form)
     solval = cost
 
     colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]
-
+    
     # setup variable
     setup_var_id = [id for (id,v) in Iterators.filter(
         v -> (iscuractive(form, v.first) && isexplicit(form, v.first) && getduty(v.first) <= DwSpSetupVar),
@@ -66,16 +74,6 @@ end
 ############################################################################################
 #  Robust Constraints Callback                                                             #
 ############################################################################################
-
-function register_callback!(form::Formulation, src::MOI.ModelLike, attr::MOI.AbstractCallback)
-    try
-        sep = MOI.get(src, attr)
-        _register_callback!(form, attr, sep)
-    catch KeyError
-    end
-    return
-end
-
 function _register_callback!(form::Formulation, attr::MOI.UserCutCallback, sep::Function)
     set_robust_constr_generator!(form, Facultative, sep)
     return
@@ -95,8 +93,8 @@ function MOI.submit(
     set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
 )
     form = cb.callback_data.form
-    rhs = convert_moi_rhs_to_coluna(set)
-    sense = convert_moi_sense_to_coluna(set)
+    rhs = MathProg.convert_moi_rhs_to_coluna(set)
+    sense = MathProg.convert_moi_sense_to_coluna(set)
     lhs = 0.0
     members = Dict{VarId, Float64}()
     for term in func.terms

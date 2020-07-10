@@ -6,7 +6,7 @@ function show_functions_tests()
         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
     )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna, false)
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna, true)
     JuMP.optimize!(problem)
-    @test_nowarn Base.show(problem.moi_backend.optimizer.inner.re_formulation.master.optimizer)
+    @test_nowarn Base.show(problem.moi_backend.inner.re_formulation.master.optimizer)
 end

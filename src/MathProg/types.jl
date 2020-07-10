@@ -98,10 +98,19 @@ convert_moi_kind_to_coluna(::MOI.ZeroOne) = Binary
 convert_moi_kind_to_coluna(::MOI.Integer) = Integ
 
 function convert_coluna_sense_to_moi(constr_set::ConstrSense)
-    constr_set == Less && return MOI.LessThan
-    constr_set == Greater && return MOI.GreaterThan
-    return MOI.EqualTo
+    constr_set == Less && return MOI.LessThan{Float64}
+    constr_set == Greater && return MOI.GreaterThan{Float64}
+    @assert constr_set == Equal
+    return MOI.EqualTo{Float64}
 end
+
+function convert_coluna_kind_to_moi(var_kind::VarKind)
+    var_kind == Binary && return MOI.ZeroOne
+    var_kind == Integ && return MOI.Integer
+    @assert var_kind == Continuous
+    return nothing
+end
+
 ############################################################################
 
 """

@@ -15,8 +15,8 @@ function types_builders_and_helpers_tests()
     @test ClF.convert_moi_rhs_to_coluna(MOI.EqualTo{Float64}(-12.3)) == -12.3
     @test ClF.convert_moi_kind_to_coluna(MOI.ZeroOne()) == ClF.Binary
     @test ClF.convert_moi_kind_to_coluna(MOI.Integer()) == ClF.Integ
-    @test ClF.convert_coluna_sense_to_moi(ClF.Less) == MOI.LessThan
-    @test ClF.convert_coluna_sense_to_moi(ClF.Greater) == MOI.GreaterThan
-    @test ClF.convert_coluna_sense_to_moi(ClF.Equal) == MOI.EqualTo
+    @test ClF.convert_coluna_sense_to_moi(ClF.Less) == MOI.LessThan{Float64}
+    @test ClF.convert_coluna_sense_to_moi(ClF.Greater) == MOI.GreaterThan{Float64}
+    @test ClF.convert_coluna_sense_to_moi(ClF.Equal) == MOI.EqualTo{Float64}
     return
 end

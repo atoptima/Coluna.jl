@@ -35,7 +35,6 @@ include("clone.jl")
 include("reformulation.jl")
 include("projection.jl")
 include("problem.jl")
-include("decomposition.jl")
 include("MOIinterface.jl")
 
 # TODO : clean up
@@ -43,12 +42,12 @@ include("MOIinterface.jl")
 export  MaxSense, MinSense, MoiOptimizer,
          Id, ConstrSense, VarSense,
         FormId, FormulationPhase, Annotations,
-       Original, Counter, UserOptimizer, MoiObjective
+        Counter, UserOptimizer, MoiObjective
 
 # Methods
 export no_optimizer_builder, set_original_formulation!,
-       getid, store!, getuid,
-       register_objective_sense!, nbprimalsols, getdualbound,
+       getid, getuid,
+       nbprimalsols, getdualbound,
        getprimalbound,
        enforce_integrality!, relax_integrality!,
        getobjsense, getoptimizer, getbestprimalsol,
@@ -61,10 +60,10 @@ export no_optimizer_builder, set_original_formulation!,
        unsafe_getbestprimalsol,
         find_owner_formulation,
        getsortuid,
-       contains, setprimalbound!
+       contains, setprimalbound!, get_original_formulation
 
 # Below this line, clean up has been done :
-export reformulate!, optimize!
+export optimize!
 
 # Methods related to Problem
 export Problem, set_initial_dual_bound!, set_initial_primal_bound!,
@@ -72,14 +71,19 @@ export Problem, set_initial_dual_bound!, set_initial_primal_bound!,
 
 # Methods related to Reformulation
 export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw_pricing_sps,
-    get_benders_sep_sps, get_dw_pricing_sp_ub_constrid, get_dw_pricing_sp_lb_constrid
+    set_reformulation!, get_benders_sep_sps, get_dw_pricing_sp_ub_constrid,
+    get_dw_pricing_sp_lb_constrid, setmaster!
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, getreformulation, getvar, getvars, getconstr,
     getconstrs, getelem, getcoefmatrix, getprimalsolmatrix, getprimalsolcosts,
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setprimalsol!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
-    setcol_from_sp_primalsol!, setcut_from_sp_dualsol! # TODO : merge with setvar! & setconstr!
+    setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
+    set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!
+
+# Duties of formulations
+export Original, DwMaster, BendersMaster, DwSp, BendersSp
 
 # Methods related to duties
 export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
@@ -105,11 +109,5 @@ export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues, Terminat
 
 # methods related to projections
 export projection_is_possible, proj_cols_on_rep
-
-# convert methods
-export convert_coluna_sense_to_moi,
-       convert_moi_sense_to_coluna,
-       convert_moi_rhs_to_coluna,
-       convert_moi_kind_to_coluna
 
 end

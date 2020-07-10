@@ -28,6 +28,7 @@ end
 
 function play_gap_with_preprocessing_tests()
     data = CLD.GeneralizedAssignment.data("play2.txt")
+
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
         "default_optimizer" => GLPK.Optimizer,
@@ -38,7 +39,7 @@ function play_gap_with_preprocessing_tests()
         )
     )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna, true)
     JuMP.optimize!(problem)
     @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
     @test JuMP.termination_status(problem) == MOI.OPTIMAL
@@ -83,7 +84,7 @@ function test_random_gap_instance()
         )
     )
 
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna, false)
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna, true)
     # Adding a random branching constraint
     br_j = Random.rand(data.jobs)
     br_m = Random.rand(data.machines)
@@ -101,16 +102,16 @@ function test_random_gap_instance()
                 )
             )
         )
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna, true)
         apply_random_branching_constraint!(problem, x, br_m, br_j, leq)
         JuMP.optimize!(problem)
         @test JuMP.termination_status(problem) == MOI.INFEASIBLE
         return (false, 0)
     else
         nb_prep_vars = 0
-        coluna_optimizer = problem.moi_backend.optimizer
+        coluna_optimizer = problem.moi_backend
         master = CL.getmaster(coluna_optimizer.inner.re_formulation)
-        for (moi_index, varid) in coluna_optimizer.varmap
+        for (moi_index, varid) in coluna_optimizer.varids
             var = CL.getvar(master, varid)
             if CL.getcurlb(master, var) == CL.getcurub(master, var)
                 var_name = CL.getname(master, var)
@@ -132,7 +133,7 @@ function test_random_gap_instance()
                         )
                     )
                 )
-                modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna, false)
+                modified_problem, x, dec = CLD.GeneralizedAssignment.model(modified_data, coluna, true)
                 apply_random_branching_constraint!(modified_problem, x, br_m, br_j, leq)
                 JuMP.optimize!(modified_problem)
 

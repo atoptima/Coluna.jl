@@ -70,7 +70,7 @@ setkind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
 
 Representation of a variable in Coluna.
 """
-struct Variable <: AbstractVarConstr
+mutable struct Variable <: AbstractVarConstr
     id::Id{Variable}
     name::String
     perendata::VarData
