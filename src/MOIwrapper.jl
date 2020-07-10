@@ -284,7 +284,6 @@ function MOI.get(
 )
     orig_form = get_original_formulation(model.inner)
     lb = getperenlb(orig_form, model.vars[MOI.VariableIndex(index.value)])
-    ub = getperenub(orig_form, model.vars[MOI.VariableIndex(index.value)])
     return MOI.GreaterThan(lb)
 end
 
@@ -293,7 +292,6 @@ function MOI.get(
     index::MOI.ConstraintIndex{MOI.SingleVariable, MOI.LessThan{Float64}}
 )
     orig_form = get_original_formulation(model.inner)
-    lb = getperenlb(orig_form, model.vars[MOI.VariableIndex(index.value)])
     ub = getperenub(orig_form, model.vars[MOI.VariableIndex(index.value)])
     return MOI.LessThan(ub)
 end
@@ -348,7 +346,7 @@ function MOI.set(
     model::Coluna.Optimizer, ::MOI.VariableName, varid::MOI.VariableIndex, name::String
 )
     var = model.vars[varid]
-    # set perene name
+    # TODO : rm set perene name
     var.name = name
     return
 end
@@ -376,7 +374,7 @@ function MOI.set(
     model::Coluna.Optimizer, ::MOI.ConstraintName, constrid::MOI.ConstraintIndex, name::String
 )
     constr = model.constrs[constrid]
-    # set perene name
+    # TODO : rm set perene name
     constr.name = name
     return
 end
@@ -421,7 +419,7 @@ function MOI.set(
     for term in func.terms
         var = model.vars[term.variable_index]
         cost = term.coefficient
-        # set peren cost 
+        # TODO : rm set peren cost
         var.perendata.cost = cost
         var.curdata.cost = cost
     end
@@ -435,7 +433,7 @@ function MOI.set(
 )
     model.objective_type = SINGLE_VARIABLE
     var = model.vars[func.variable]
-    # set perene cost
+    # TODO : rm set perene cost
     var.perendata.cost = 1.0
     var.curdata.cost = 1.0
     return
