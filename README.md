@@ -11,7 +11,7 @@
 
 Coluna is a branch-and-price-and-cut framework written in Julia.
 The user introduces an original MIP that models his problem using the
-[JuMP](https://github.com/JuliaOpt/JuMP.jl) modeling language and our specific extension
+[JuMP](https://github.com/jump-dev/JuMP.jl) modeling language and our specific extension
 [BlockDecomposition](https://github.com/atoptima/BlockDecomposition.jl) that offers a syntax
 to specify the problem decomposition. Then, Coluna reformulates the original MIP and
 optimizes the reformulation using the algorithms chosen by the user.

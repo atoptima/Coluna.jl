@@ -3,7 +3,7 @@
 Coluna is a framework written in Julia to implement a decomposition approach to optimize 
 block structured mixed-integer programs (MIP). 
 
-Coluna relies on the tools of the JuliaOpt community at both ends of the problem treatment. 
+Coluna relies on the tools of the JuMP-dev community at both ends of the problem treatment.
 It uses the JuMP modeling language up front and MathOptInterface (MOI) to delegate master 
 and subproblems to MIP solvers. 
 
@@ -25,7 +25,7 @@ Coluna offers a "black-box" implementation of the branch-and-cut-and-price algor
     It relies on underlying MOI optimizers to handle master and subproblems. 
     However, the user can define its own optimizer using pricing callbacks.
 5. A branching scheme that preserves the pricing problem structure is offered by default; 
-    it runs based on priorities and directives specified by the user on the original variables; 
+    it runs based on priorities and directives specified by the user on the original variables;
     default primal heuristics and preprocessing features are under developments.
 
 
@@ -34,7 +34,7 @@ Coluna offers a "black-box" implementation of the branch-and-cut-and-price algor
 Coluna is a package for [Julia 1.0+](https://docs.julialang.org/en/v1/manual/documentation/index.html)
 
 It requires JuMP to model the problem, BlockDecomposition to define the decomposition,
-and a [MIP solver supported by MathOptInterface](http://www.juliaopt.org/JuMP.jl/stable/installation/#Getting-Solvers-1) to optimize the master and the subproblems. 
+and a [MIP solver supported by MathOptInterface](https://jump.dev/JuMP.jl/stable/installation/#Getting-Solvers-1) to optimize the master and the subproblems.
 
 You can install Coluna and its dependencies through the package manager of Julia by entering :
 
