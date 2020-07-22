@@ -99,4 +99,4 @@ Separation callbacks let you define how to separate cuts or constraints.
 ### Robust facultative cuts
 
 This callback allows you to add cuts to the master problem. 
-[Example in the JuMP documentation](http://www.juliaopt.org/JuMP.jl/stable/callbacks/#User-cuts-1).
+[Example in the JuMP documentation](https://jump.dev/JuMP.jl/stable/callbacks/#User-cuts-1).
