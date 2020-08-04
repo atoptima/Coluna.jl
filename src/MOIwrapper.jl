@@ -30,6 +30,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     constrs::Dict{MOI.ConstraintIndex, Constraint}
     result::Union{Nothing,OptimizationState}
 
+    nb_nodes_treated::Union{Nothing, Int}
+    time_elapsed::Union{Nothing, Float64}
+
     function Optimizer()
         model = new()
         model.inner = Problem()
@@ -39,6 +42,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}() # TODO : check if necessary to have two dicts for variables
         model.moi_varids = Dict{VarId, MOI.VariableIndex}()
         model.constrs = Dict{MOI.ConstraintIndex, Constraint}()
+
+        model.nb_nodes_treated = nothing
+        model.time_elapsed = nothing
         return model
     end
 end
@@ -79,9 +85,15 @@ function _get_orig_varid_in_form(
 end
 
 function MOI.optimize!(optimizer::Optimizer)
-    optimizer.result = optimize!(
+    # optimizer.result = optimize!(
+    #     optimizer.inner, optimizer.annotations, optimizer.params
+    # )
+    result, nodes_treated, time_elapsed = optimize!(
         optimizer.inner, optimizer.annotations, optimizer.params
     )
+    optimizer.result = result
+    optimizer.nb_nodes_treated = nodes_treated
+    optimizer.time_elapsed = time_elapsed
     return
 end
 
@@ -537,3 +549,11 @@ function MOI.get(optimizer::Optimizer, object::MOI.TerminationStatus)
     ))
     return
 end
+
+# #####################################
+# ### Get benchmarks of algorithms ####
+# #####################################
+
+#MOI.get(optimizer::Optimizer, ::MOI.NodeCount) = get_benchmark_from_algo(optimizer.params.solver, ::Algorithm.NodeCount)
+MOI.get(optimizer::Optimizer, ::MOI.NodeCount) = optimizer.nb_nodes_treated
+MOI.get(optimizer::Optimizer, ::MOI.SolveTime) = optimizer.time_elapsed

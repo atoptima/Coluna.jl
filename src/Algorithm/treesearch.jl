@@ -57,7 +57,7 @@ end
 treeisempty(data::TreeSearchRuntimeData) = treeisempty(data.primary_tree) && treeisempty(data.secondary_tree)
 primary_tree_is_full(data::TreeSearchRuntimeData) = nb_open_nodes(data.primary_tree) >= data.max_primary_tree_size
 
-function push!(data::TreeSearchRuntimeData, node::Node) 
+function push!(data::TreeSearchRuntimeData, node::Node)
     if primary_tree_is_full(data) 
         push!(data.secondary_tree, node)
     else           
@@ -125,7 +125,7 @@ function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
     if isrootnode(node)
         println("**** BaB tree root node")
     else
-        println("**** BaB tree node N° ", get_tree_order(node), 
+        println("**** BaB tree node N° ", get_tree_order(node),
                 ", parent N° ", get_tree_order(getparent(node)),
                 ", depth ", getdepth(node),
                 ", ", nb_open_nodes(data) + 1, " open nodes")
@@ -309,11 +309,11 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
     return tsdata
 end
 
-function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
+function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)#::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
     init_branching_tree_file(algo)
-    while !treeisempty(tsdata) 
+    while !treeisempty(tsdata)
         node = popnode!(tsdata)
 
         if get_tree_order(tsdata) <= algo.maxnumnodes
@@ -332,5 +332,5 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
     finish_branching_tree_file(algo)
 
     determine_statuses(tsdata)
-    return OptimizationOutput(getoptstate(tsdata))
+    return OptimizationOutput(getoptstate(tsdata)), get_tree_order(tsdata)
 end

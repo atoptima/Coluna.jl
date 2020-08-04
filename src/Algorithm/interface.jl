@@ -110,3 +110,12 @@ function initialize_storages(data::AbstractData, algo::AbstractOptimizationAlgor
         end
     end
 end
+
+# Interface to get benchmarks from algorithms (or only the top algorithm) (TODO)
+# abstract type AbstractBenchmark end
+
+# struct NodeCount <: AbstractBenchmark end
+
+# function get_benchmark_from_algo(::A, ::B) where {A <: AbstractAlgorithm, B <: AbstractBenchmark}
+#     return error("Algorithm $A cannot return benchmark $B.")
+# end

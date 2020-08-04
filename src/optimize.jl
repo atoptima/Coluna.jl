@@ -54,23 +54,25 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     reformulate!(prob, annotations)
 
     # Coluna ready to start
-    _globals_.initial_solve_time = time()
     @logmsg LogLevel(-1) "Coluna ready to start."
     @logmsg LogLevel(-1) _params_
 
+    _globals_.initial_solve_time = time()
     relax_integrality!(prob.re_formulation.master) # TODO : remove
 
     TO.@timeit _to "Coluna" begin
-        optstate = optimize!(
+        optstate, nb_nodes_treated = optimize!(
             prob.re_formulation, params.solver, init_pb, init_db
         )
     end
+    time_elapsed = (time() - _globals_.initial_solve_time) # TODO
+
     println(_to)
     TO.reset_timer!(_to)
     @logmsg LogLevel(0) "Terminated"
     @logmsg LogLevel(0) string("Primal bound: ", get_ip_primal_bound(optstate))
     @logmsg LogLevel(0) string("Dual bound: ", get_ip_dual_bound(optstate))
-    return optstate
+    return optstate, nb_nodes_treated, time_elapsed # TODO : rm nb_nodes_treated & time_elapsed
 end
 
 """
@@ -93,7 +95,12 @@ function optimize!(
     reformdata = Algorithm.ReformData(reform)
     Algorithm.initialize_storages(reformdata, algorithm)
 
-    output = Algorithm.run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
+    tmp_output = Algorithm.run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
+    output =  tmp_output
+    nb_nodes_treated = 0
+    if !(typeof(tmp_output) <: Coluna.Algorithm.OptimizationOutput)
+        output, nb_nodes_treated = tmp_output
+    end
     algstate = Algorithm.getoptstate(output)
 
     Algorithm.check_storage_states_participation(reformdata)
@@ -122,5 +129,5 @@ function optimize!(
         add_lp_primal_sol!(outstate, proj_cols_on_rep(lp_primal_sol, master))
     end
 
-    return outstate
+    return outstate, nb_nodes_treated
 end

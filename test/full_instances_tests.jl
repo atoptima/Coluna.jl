@@ -110,6 +110,10 @@ function generalized_assignment_tests()
 
         @test JuMP.objective_value(model) ≈ 1553.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
+
+        @show MOI.get(model, MOI.NodeCount())
+        @show MOI.get(model, MOI.SolveTime())
+
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
