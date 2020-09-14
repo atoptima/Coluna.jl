@@ -35,7 +35,7 @@
 """
     AbstractInput
 
-Input of an algorithm.     
+    Input of an algorithm.     
 """
 abstract type AbstractInput end 
 
@@ -56,24 +56,11 @@ abstract type AbstractAlgorithm end
 
 ismanager(algo::AbstractAlgorithm) = false
 
-# """
-#     get_storages_usage(::AbstractAlgorithm, ::AbstractModel)
-
-#     Every algorithm should communicate all storages it and its slave algorithms use.
-    
-#     Function add_storage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair)
-#     should be used to add elements to the dictionary
-# """
-# get_storages_usage!(algo::AbstractAlgorithm, model::AbstractModel, storages_usage::StoragesUsageDict) = nothing
-
 """
     get_slave_algorithms(::AbstractAlgorithm, ::AbstractModel)::Vector{Tuple{AbstractAlgorithm, AbstractModel}}
 
     Every algorithm should communicate its slave algorithms and the model to which 
     each slave algorithm is applied. 
-    
-    Function add_storage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair)
-    should be used to add elements to the dictionary
 """
 get_slave_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
@@ -83,9 +70,6 @@ get_slave_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgor
     Every algorithm should communicate the storages it uses (so that these storages 
     are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
     in order to restore storages before running a worker algorithm.
-    
-    Function add_storage!(::StoragesToRestoreDict, ::AbstractModel, ::StorageTypePair, ::StorageAccessMode)
-    should be used to add elements to the dictionary
 """
 get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
 
@@ -113,8 +97,8 @@ getoptstate(input::OptimizationInput) =  input.optstate
 """
     OptimizationOutput
 
-Contain OptimizationState, PrimalSolution (solution to relaxation), and 
-DualBound (dual bound value)
+    Contain OptimizationState, PrimalSolution (solution to relaxation), and 
+    DualBound (dual bound value)
 """
 struct OptimizationOutput{F,S} <: AbstractOutput
     optstate::OptimizationState{F,S}    
@@ -148,33 +132,36 @@ function collect_storages_to_restore!(
 
     slave_algos = get_slave_algorithms(algo, model)
     for (slavealgo, slavemodel) in slave_algos
-        !ismanager(slavealgo) && collect_storages_usage!(global_storages_usage, slavealgo, slavemodel)
+        !ismanager(slavealgo) && collect_storages_to_restore!(global_storages_usage, slavealgo, slavemodel)
     end
 end
 
-# this function collects storages usage for an algorithm and all its slave algorithms
-# this function is used only the function initialize_storages() below
-function collect_storages_usage!(
-    global_storages_usage::StoragesUsageDict, algo::AbstractAlgorithm, model::AbstractModel
+# this function collects storages to create for an algorithm and all its slave algorithms
+# this function is used only the function initialize_storages!() below
+function collect_storages_to_create!(
+    storages_to_create::Dict{AbstractModel,Set{StorageTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
 )
-    local_storages_usage = get_storages_usage(algo, model)
-    for (stor_model, stor_pair, stor_usage) in local_storages_usage
-        add_storage_pair_usage!(global_storages_usage, stor_model, stor_pair, stor_usage)
+    storages_usage = get_storages_usage(algo, model)
+    for (stor_model, stor_pair, stor_usage) in storages_usage
+        if !haskey(storages_to_create, stor_model)
+            storages_to_create[stor_model] = Set{StorageTypePair}()
+        end
+        push!(storages_to_create[stor_model], stor_pair)
     end
 
     slave_algos = get_slave_algorithms(algo, model)
     for (slavealgo, slavemodel) in slave_algos
-        collect_storages_usage!(global_storages_usage, slavealgo, slavemodel)
+        collect_storages_to_create!(storages_to_create, slavealgo, slavemodel)
     end
 end
 
 # this function initializes all the storages
-function initialize_storages(data::AbstractData, algo::AbstractOptimizationAlgorithm)
-    storages_usage = StoragesUsageDict()
-    datamodel = getmodel(data)
-    collect_storages_usage!(storages_usage, algo, datamodel) 
+function initialize_storages!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
+    storages_to_create = Dict{AbstractModel,Set{StorageTypePair}}()
+    collect_storages_to_create!(storages_to_create, algo, getmodel(data)) 
 
-    for (model, type_pair_set) in storages_usage
+    for (model, type_pair_set) in storages_to_create        
+        #println(IOContext(stdout, :compact => true), model, " ", type_pair_set)
         ModelType = typeof(model)
         storagedict = get_model_storage_dict(data, model)
         if storagedict === nothing

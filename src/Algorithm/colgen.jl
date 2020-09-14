@@ -41,53 +41,23 @@ end
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
 function get_slave_algorithms(algo::ColumnGeneration, reform::Reformulation) 
-    slave_algs = Tuple{AbsractAlgorithm, AbstractModel}[]
-    push(slave_algs, (algo.restr_master_solve_alg, getmaster(reform)))
+    slave_algs = Tuple{AbstractAlgorithm, AbstractModel}[]
+    push!(slave_algs, (algo.restr_master_solve_alg, getmaster(reform)))
     for (id, spform) in get_dw_pricing_sps(reform)
-        push(slave_algs, (algo.pricing_prob_solve_alg, spform))
+        push!(slave_algs, (algo.pricing_prob_solve_alg, spform))
     end
     return slave_algs
 end 
+
 function get_storages_usage(algo::ColumnGeneration, reform::Reformulation) 
     storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
-    push!(storages_usage, (reform, MasterColumnsStoragePair, READ_AND_WRITE))
+    master = getmaster(reform)
+    push!(storages_usage, (master, MasterColumnsStoragePair, READ_AND_WRITE))
     if stabilization_is_used(algo)
-        push!(storages_usage, (reform,ColGenStabilizationStoragePair, READ_AND_WRITE))
+        push!(storages_usage, (master, ColGenStabilizationStoragePair, READ_AND_WRITE))
     end
     return storages_usage
 end
-
-# function get_storages_usage!(
-#     algo::ColumnGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
-# )
-#     master = getmaster(reform)
-#     add_storage!(storages_usage, master, MasterColumnsStoragePair)
-#     if stabilization_is_used(algo)
-#         add_storage!(storages_usage, master, ColGenStabilizationStoragePair)
-#     end
-
-#     get_storages_usage!(algo.restr_master_solve_alg, master, storages_usage)
-#     for (id, spform) in get_dw_pricing_sps(reform)
-#         get_storages_usage!(algo.pricing_prob_solve_alg, spform, storages_usage)
-#     end
-#     return
-# end
-
-# function get_storages_to_restore!(
-#     algo::ColumnGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
-# )
-#     master = getmaster(reform)
-#     add_storage!(storages_usage, master, MasterColumnsStoragePair, READ_AND_WRITE)
-#     if stabilization_is_used(algo)
-#         add_storage!(storages_usage, master, ColGenStabilizationStoragePair, READ_AND_WRITE)
-#     end
-
-#     get_storages_to_restore!(algo.restr_master_solve_alg, master, storages_usage)
-#     for (id, spform) in get_dw_pricing_sps(reform)
-#         get_storages_to_restore!(algo.pricing_prob_solve_alg, spform, storages_usage)
-#     end
-#     return
-# end
 
 struct ReducedCostsVector
     length::Int
@@ -639,8 +609,8 @@ function cg_main_loop!(
     redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
     iteration = 0
 
-    stabstorage = stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStoragePair) 
-                                              : ColGenStabilizationStorage(masterform)
+    stabstorage = (stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStoragePair) 
+                                               : ColGenStabilizationStorage(masterform) )
 
     init_stab_before_colgen_loop!(stabstorage)
 

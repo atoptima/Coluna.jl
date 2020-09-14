@@ -56,7 +56,7 @@ include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
 
-include("diving.jl")
+#include("diving.jl")
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.

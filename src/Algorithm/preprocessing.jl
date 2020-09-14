@@ -64,46 +64,6 @@ function get_storages_usage(algo::PreprocessAlgorithm, reform::Reformulation)
     return storages_usage
 end
 
-# function get_storages_usage!(
-#     algo::PreprocessAlgorithm, form::Formulation{Duty}, storages_usage::StoragesUsageDict
-# ) where {Duty<:MathProg.AbstractFormDuty}
-#     add_storage!(storages_usage, form, StaticVarConstrStoragePair)
-#     if Duty <: MathProg.AbstractMasterDuty
-#         add_storage!(storages_usage, form, MasterBranchConstrsStoragePair)
-#         add_storage!(storages_usage, form, MasterCutsStoragePair)
-#     end
-# end
-
-# function get_storages_usage!(
-#     algo::PreprocessAlgorithm, reform::Reformulation, storages_usage::StoragesUsageDict
-# )
-#     get_storages_usage!(algo, getmaster(reform), storages_usage)
-#     for (id, spform) in get_dw_pricing_sps(reform)
-#         get_storages_usage!(algo, spform, storages_usage)
-#     end
-# end
-
-# function get_storages_to_restore!(
-#     algo::PreprocessAlgorithm, form::Formulation{Duty}, storages_to_restore::StoragesToRestoreDict
-# ) where {Duty<:MathProg.AbstractFormDuty}
-#     add_storage!(storages_to_restore, form, StaticVarConstrStoragePair, READ_AND_WRITE)
-#     if Duty <: MathProg.AbstractMasterDuty
-#         # do we preprocess cuts and branching constraints?
-#         add_storage!(storages_to_restore, form, PreprocessingStoragePair, READ_AND_WRITE)
-#         add_storage!(storages_to_restore, form, MasterBranchConstrsStoragePair, READ_AND_WRITE)
-#         add_storage!(storages_to_restore, form, MasterCutsStoragePair, READ_AND_WRITE)
-#     end
-# end
-
-# function get_storages_to_restore!(
-#     algo::PreprocessAlgorithm, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-# ) 
-#     get_storages_to_restore!(algo, getmaster(reform), storages_to_restore)
-#     for (id, spform) in get_dw_pricing_sps(reform)
-#         get_storages_to_restore!(algo, spform, storages_to_restore)
-#     end
-# end
-
 # TO DO : all these data should be moved to PreprocessingStorage
 mutable struct PreprocessData
     reformulation::Reformulation # Should handle reformulation & formulation

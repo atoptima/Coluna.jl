@@ -20,24 +20,11 @@ function get_storages_usage(algo::BendersCutGeneration, reform::Reformulation)
     push!(storages_usage, (master, MasterBranchConstrsStoragePair, READ_ONLY))
     push!(storages_usage, (master, MasterColumnsStoragePair, READ_ONLY))
     for (id, spform) in get_benders_sep_sps(reform)
-        add_storage!(storages_usage, spform, StaticVarConstrStoragePair, READ_ONLY)
+        push!(storages_usage, (spform, StaticVarConstrStoragePair, READ_ONLY))
     end
 
     return storages_usage
 end
-
-# function get_storages_usage!(
-#     algo::BendersCutGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
-# ) 
-#     master = getmaster(reform)
-#     add_storage!(storages_usage, master, StaticVarConstrStoragePair, READ_AND_WRITE)
-#     add_storage!(storages_usage, master, MasterCutsStoragePair, READ_AND_WRITE)
-#     add_storage!(storages_usage, master, MasterBranchConstrsStoragePair, READ_ONLY)
-#     add_storage!(storages_usage, master, MasterColumnsStoragePair, READ_ONLY)
-#     for (id, spform) in get_benders_sep_sps(reform)
-#         add_storage!(storages_usage, spform, StaticVarConstrStoragePair, READ_ONLY)
-#     end
-# end
 
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState

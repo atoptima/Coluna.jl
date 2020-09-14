@@ -20,7 +20,9 @@ end
 
 # SolveIpForm does not have slave algorithms, therefore get_slave_algorithms() is not defined
 
-function get_storages_usage(algo::SolveIpForm, form::Formulation{Duty}) 
+function get_storages_usage(
+    algo::SolveIpForm, form::Formulation{Duty}
+) where {Duty<:MathProg.AbstractFormDuty}
     # we use storages in the read only mode, as all modifications
     # (deactivating artificial vars and enforcing integrality)
     # are reverted before the end of the algorithm,
@@ -34,37 +36,6 @@ function get_storages_usage(algo::SolveIpForm, form::Formulation{Duty})
     end
     return storages_usage
 end
-
-# function get_storages_usage!(
-#     algo::SolveIpForm, form::Formulation{Duty}, storages_usage::StoragesUsageDict
-# ) where {Duty<:MathProg.AbstractFormDuty}
-#     add_storage!(storages_usage, form, StaticVarConstrStoragePair)
-#     if Duty <: MathProg.AbstractMasterDuty
-#         add_storage!(storages_usage, form, MasterColumnsStoragePair)
-#         add_storage!(storages_usage, form, MasterBranchConstrsStoragePair)
-#         add_storage!(storages_usage, form, MasterCutsStoragePair)
-#     end
-# end
-
-# function get_storages_to_restore!(
-#     algo::SolveIpForm, form::Formulation{Duty}, storages_to_restore::StoragesToRestoreDict
-# ) where {Duty<:MathProg.AbstractFormDuty}
-#     add_storage!(storages_to_restore, form, StaticVarConstrStoragePair, READ_ONLY)
-#     if Duty <: MathProg.AbstractMasterDuty
-#         add_storage!(storages_to_restore, form, MasterColumnsStoragePair, READ_ONLY)
-#         add_storage!(storages_to_restore, form, MasterBranchConstrsStoragePair, READ_ONLY)
-#         add_storage!(storages_to_restore, form, MasterCutsStoragePair, READ_ONLY)
-#     end
-# end
-
-# TO DO : create an Algorithm Logger
-# function Logging.shouldlog(logger::ConsoleLogger, level, _module, group, id)
-#     println("*******")
-#     @show level _module group id
-#     println("log = ", get(logger.message_limits, id, 1))
-#     println("******")
-#     return get(logger.message_limits, id, 1) > 0
-# end
 
 function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
 

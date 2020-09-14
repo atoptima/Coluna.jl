@@ -51,7 +51,7 @@ mutable struct TreeSearchRuntimeData
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
-    conquer_storages_to_restore::StoragesToRestoreDict
+    conquer_storages_to_restore::StoragesUsageDict
 end
 
 treeisempty(data::TreeSearchRuntimeData) = treeisempty(data.primary_tree) && treeisempty(data.secondary_tree)
@@ -105,7 +105,7 @@ to select the next node to treat.
     storelpsolution = false 
 end
 
-#TreeSearchAlgorithm is a manager algorithm (menagers storing and restoring storages)
+#TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storages)
 ismanager(algo::TreeSearchAlgorithm) = true
 
 # TreeSearchAlgorithm does not use any storage itself, 
@@ -307,7 +307,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
     reform = getreform(rfdata)
     treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
 
-    conquer_storages_to_restore = StoragesToRestoreDict()
+    conquer_storages_to_restore = StoragesUsageDict()
     collect_storages_to_restore!(conquer_storages_to_restore, algo.conqueralg, reform) 
     # divide algorithms are always manager algorithms, so we do not need to restore storages for them
 
@@ -332,9 +332,8 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
             print_node_in_branching_tree_file(algo, tsdata, node)
             run_divide_algorithm!(algo, tsdata, rfdata, node)           
             updatedualbound!(tsdata)
-        else
-            remove_states!(node.stateids)
         end
+        remove_states!(node.stateids)
         
         # we delete solutions from the node optimization state, as they are not needed anymore
         clear_solutions!(getoptstate(node))

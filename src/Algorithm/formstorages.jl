@@ -105,6 +105,8 @@ function restorefromstate!(
                 if !iscuractive(form, constr) 
                     @logmsg LogLevel(-2) string("Activating branching constraint", getname(form, constr))
                     activate!(form, constr)
+                else    
+                    @logmsg LogLevel(-2) string("Leaving branching constraint", getname(form, constr))
                 end
                 @logmsg LogLevel(-4) "Updating data"
                 apply_data!(form, constr, state.constrs[id])

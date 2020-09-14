@@ -11,8 +11,7 @@ end
 getdescription(candidate::VarBranchingCandidate) = candidate.description
 
 function generate_children(
-    candidate::VarBranchingCandidate, lhs::Float64, data::ReformData,
-    parent::Node, stateids::StorageStatesVector, first_restore_states::Bool
+    candidate::VarBranchingCandidate, lhs::Float64, data::ReformData, parent::Node
 )
     master = getmaster(getreform(data))
     var = getvar(master, candidate.varid)
@@ -22,22 +21,18 @@ function generate_children(
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    storages_to_restore = StoragesToRestoreDict(
+    storages_to_restore = StoragesUsageDict(
         (master, MasterBranchConstrsStoragePair) => READ_AND_WRITE
         #(master, BasisStorage) => READ_AND_WRITE) # not yet implemented
     )
 
     #adding the first branching constraints
-    if first_restore_states
-        restore_states!(copy_states(stateids), storages_to_restore)
-    else
-        reserve_for_writing!(getmasterdata(data), MasterBranchConstrsStoragePair)
-    end
-
-    #reserve_for_writing!(getmasterdata(data), BasisStorage) # not yet implemented
+    restore_states!(copy_states(parent.stateids), storages_to_restore)    
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
-        master, string("branch_geq_", getdepth(parent)), MasterBranchOnOrigVarConstr;
+        master, string(
+            "branch_geq_", getdepth(parent), "_", getname(master,candidate.varid)
+        ), MasterBranchOnOrigVarConstr;
         sense = Greater, rhs = ceil(lhs), loc_art_var = true,
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
@@ -46,10 +41,12 @@ function generate_children(
     child1 = Node(master, parent, child1description, store_states!(data))
 
     #adding the second branching constraints
-    restore_states!(stateids, storages_to_restore)
+    restore_states!(copy_states(parent.stateids), storages_to_restore)
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
-        master, string("branch_leq_", getdepth(parent)), MasterBranchOnOrigVarConstr;
+        master, string(
+            "branch_leq_", getdepth(parent), "_", getname(master,candidate.varid)
+        ), MasterBranchOnOrigVarConstr;
         sense = Less, rhs = floor(lhs), loc_art_var = true,
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )

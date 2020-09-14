@@ -91,7 +91,7 @@ function optimize!(
 
     #this will initialize all the storages used by the algorithm and its slave algorithms
     reformdata = Algorithm.ReformData(reform)
-    Algorithm.initialize_storages(reformdata, algorithm)
+    Algorithm.initialize_storages!(reformdata, algorithm)
 
     output = Algorithm.run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)

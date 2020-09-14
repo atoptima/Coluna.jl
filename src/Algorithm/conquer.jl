@@ -14,7 +14,7 @@ end
 
 getnode(input::ConquerInput) = input.node
 
-restore_states!(input::ConquerInput) = restore_states!(node.stateids, node.storages_to_restore) 
+restore_states!(input::ConquerInput) = restore_states!(input.node.stateids, input.storages_to_restore) 
 
 """
     AbstractConquerAlgorithm
@@ -53,13 +53,14 @@ function apply_conquer_alg_to_node!(
         isverbose(algo) && @logmsg LogLevel(-1) string(
             "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
         )
-        # node.conquerrecord = nothing
-        return 
-    end
-    isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
+    else    
+        isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-    run!(algo, data, ConquerInput(node, storages_to_restore))
+        run!(algo, data, ConquerInput(node, storages_to_restore))
+        store_states!(data, node.stateids)
+    end
     node.conquerwasrun = true
+    return
 end
 
 
@@ -79,26 +80,6 @@ isverbose(strategy::BendersConquer) = true
 function get_slave_algorithms(algo::BendersConquer, reform::Reformulation) 
     return [(algo.benders, reform)]
 end
-
-# function get_storages_usage!(
-#     algo::BendersConquer, reform::Reformulation, storages_usage::StoragesUsageDict
-# )
-#     get_storages_usage!(algo.benders, reform, storages_usage)
-# end
-
-# function get_storages_to_restore!(
-#     algo::BendersConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-# ) 
-#     get_storages_to_restore!(algo.benders, reform, storages_to_restore)
-# end
-
-# function getslavealgorithms!(
-#     algo::BendersConquer, reform::Reformulation, 
-#     slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
-# )
-#     push!(slaves, (reform, algo.benders))
-#     getslavealgorithms!(algo.benders, reform, slaves)
-# end
 
 function run!(algo::BendersConquer, data::ReformData, input::ConquerInput)
     restore_states!(input)
@@ -151,25 +132,6 @@ function get_slave_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     algo.run_preprocessing && push!(slave_algos, (algo.preprocess, reform))
     return slave_algos
 end
-
-# function get_storages_usage!(
-#     algo::ColGenConquer, reform::Reformulation, storages_usage::StoragesUsageDict
-# )
-#     #ColGenConquer itself does not access to any storage, so we just ask its slave algorithms
-#     get_storages_usage!(algo.colgen, reform, storages_usage)
-#     algo.run_mastipheur && get_storages_usage!(algo.mastipheur, getmaster(reform), storages_usage)
-#     algo.run_preprocessing && get_storages_usage!(algo.preprocess, reform, storages_usage)
-# end
-
-# function get_storages_to_restore!(
-#     algo::ColGenConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-# ) 
-#     get_storages_to_restore!(algo.colgen, reform, storages_to_restore)
-#     algo.run_mastipheur && 
-#         get_storages_to_restore!(algo.mastipheur, getmaster(reform), storages_to_restore)
-#     algo.run_preprocessing && 
-#         get_storages_to_restore!(algo.preprocess, reform, storages_to_restore)
-# end
 
 function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     restore_states!(input)
