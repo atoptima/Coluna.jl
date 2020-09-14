@@ -13,22 +13,15 @@
 
     Algorithms are divided into two types : "manager algorithms" and "worker algorithms". 
     Worker algorithms just continue the calculation. They do not store and restore storages 
-    as they suppose it is done by their master algorithms (the only exception is when they have 
-    slave manager algorithms, see below). Manager algorithms may divide the calculation
-    flow into parts. Therefore, they store and restore storages to make sure that their 
-    slave worker algorithms have storages prepared.
+    as they suppose it is done by their master algorithms. Manager algorithms may divide 
+    the calculation flow into parts. Therefore, they store and restore storages to make sure 
+    that their slave worker algorithms have storages prepared. 
+    A worker algorithm cannot have slave manager algorithms. 
 
     Examples of manager algorithms : TreeSearchAlgorithm (which covers both BCP algorithm and 
-    diving algorithm), strong branching, branching rule algorithms (which create child nodes). 
-    Examples of worker algorithm : conquer algorithms, column generation, SolveIpForm, 
+    diving algorithm), conquer algorithms, strong branching, branching rule algorithms 
+    (which create child nodes). Examples of worker algorithms : column generation, SolveIpForm, 
     SolveLpForm, cut separation, pricing algorithms, etc.
-
-    If an algorithm A has a slave manager algorithm M, A should store the current storage states 
-    before calling M and restore storages used by A after calling M. This is not needed if A does 
-    not use any storages after calling M. In this case, if A is a worker algorithm, it should 
-    receive in input the information about the storages it uses in order to i) restore only used storages, 
-    ii) not to recalculate each time which storages are used. An example here is a conquer algorithm A 
-    which uses diving algorithm M.
 
 """
 

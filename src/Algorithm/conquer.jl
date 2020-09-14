@@ -27,6 +27,9 @@ restore_states!(input::ConquerInput) = restore_states!(input.node.stateids, inpu
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 
+# conquer algorithms are always manager algorithms (they manage storing and restoring storages)
+ismanager(algo::AbstractConquerAlgorithm) = true
+
 function run!(algo::AbstractConquerAlgorithm, data::ReformData, input::ConquerInput)
     algotype = typeof(algo)
     error(string("Method run! which takes as parameters ReformData and ConquerInput ", 
