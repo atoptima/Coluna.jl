@@ -33,6 +33,9 @@ getoptstate(output::DivideOutput) = output.optstate
 """
 abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 
+# divide algorithms are always manager algorithms (they manage storing and restoring storages)
+ismanager(algo::AbstractDivideAlgorithm) = true
+
 function run!(algo::AbstractDivideAlgorithm, data::AbstractData, input::DivideInput)::DivideOutput
     algotype = typeof(algo)
     error("Method run! in not defined for divide algorithm $(typeof(algo)), data $(typeof(data)), and input $(typeof(input)).")

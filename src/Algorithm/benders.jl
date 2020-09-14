@@ -6,31 +6,38 @@
     max_nb_iterations::Int = 100
 end
 
-function get_storages_usage!(
-    algo::BendersCutGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
-)
+# TO DO : BendersCutGeneration does not have yet the slave algorithms
+# it should have at least the algorithm to solve the master LP and the algorithms
+# to solve the subproblems
+
+function get_storages_usage(algo::BendersCutGeneration, reform::Reformulation) 
+    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
     master = getmaster(reform)
-    add_storage!(storages_usage, master, StaticVarConstrStorage)
-    add_storage!(storages_usage, master, MasterBranchConstrsStorage)
-    add_storage!(storages_usage, master, MasterColumnsStorage)
-    add_storage!(storages_usage, master, MasterCutsStorage)
+    push!(storages_usage, (master, MasterCutsStoragePair, READ_AND_WRITE))
+
+    #everything else should be communicated by the slave algorithms 
+    push!(storages_usage, (master, StaticVarConstrStoragePair, READ_ONLY))
+    push!(storages_usage, (master, MasterBranchConstrsStoragePair, READ_ONLY))
+    push!(storages_usage, (master, MasterColumnsStoragePair, READ_ONLY))
     for (id, spform) in get_benders_sep_sps(reform)
-        add_storage!(storages_usage, spform, StaticVarConstrStorage)
+        add_storage!(storages_usage, spform, StaticVarConstrStoragePair, READ_ONLY)
     end
+
+    return storages_usage
 end
 
-function get_storages_to_restore!(
-    algo::BendersCutGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-) 
-    master = getmaster(reform)
-    add_storage!(storages_to_restore, master, StaticVarConstrStorage, READ_AND_WRITE)
-    add_storage!(storages_to_restore, master, MasterCutsStorage, READ_AND_WRITE)
-    add_storage!(storages_to_restore, master, MasterBranchConstrsStorage, READ_ONLY)
-    add_storage!(storages_to_restore, master, MasterColumnsStorage, READ_ONLY)
-    for (id, spform) in get_benders_sep_sps(reform)
-        add_storage!(storages_to_restore, spform, StaticVarConstrStorage)
-    end
-end
+# function get_storages_usage!(
+#     algo::BendersCutGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
+# ) 
+#     master = getmaster(reform)
+#     add_storage!(storages_usage, master, StaticVarConstrStoragePair, READ_AND_WRITE)
+#     add_storage!(storages_usage, master, MasterCutsStoragePair, READ_AND_WRITE)
+#     add_storage!(storages_usage, master, MasterBranchConstrsStoragePair, READ_ONLY)
+#     add_storage!(storages_usage, master, MasterColumnsStoragePair, READ_ONLY)
+#     for (id, spform) in get_benders_sep_sps(reform)
+#         add_storage!(storages_usage, spform, StaticVarConstrStoragePair, READ_ONLY)
+#     end
+# end
 
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState
@@ -493,7 +500,7 @@ function bend_cutting_plane_main_loop!(
         master_dual_sol = getbestdualsol(optresult)
         master_primal_sol = getbestprimalsol(optresult)
 
-        if !isfeasible(optresult) || master_primal_sol == nothing || master_dual_sol == nothing
+        if !isfeasible(optresult) || master_primal_sol === nothing || master_dual_sol === nothing
             error("Benders algorithm:  the relaxed master LP is infeasible or unboundedhas no solution.")
             setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
             return 

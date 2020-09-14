@@ -34,7 +34,7 @@ function play_gap_with_preprocessing_tests()
         "default_optimizer" => GLPK.Optimizer,
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
-                conqueralg = ClA.ColGenConquer(run_preprocessing = true)
+                conqueralg = ClA.ColCutGenConquer(run_preprocessing = true)
             )
         )
     )
@@ -78,7 +78,7 @@ function test_random_gap_instance()
         "default_optimizer" => GLPK.Optimizer,
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
-                conqueralg = ClA.ColGenConquer(run_preprocessing = true),
+                conqueralg = ClA.ColCutGenConquer(run_preprocessing = true),
                 dividealg = ClA.NoBranching()
             )
         )
@@ -98,7 +98,7 @@ function test_random_gap_instance()
             "default_optimizer" => GLPK.Optimizer,
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
-                    conqueralg = ClA.ColGenConquer(run_preprocessing = false)
+                    conqueralg = ClA.ColCutGenConquer(run_preprocessing = false)
                 )
             )
         )
@@ -129,7 +129,7 @@ function test_random_gap_instance()
                     "default_optimizer" => GLPK.Optimizer,
                     "params" => CL.Params(
                         solver = ClA.TreeSearchAlgorithm(
-                            conqueralg = ClA.ColGenConquer(run_preprocessing = false)
+                            conqueralg = ClA.ColCutGenConquer(run_preprocessing = false)
                         )
                     )
                 )

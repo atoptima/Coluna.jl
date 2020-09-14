@@ -10,7 +10,7 @@ struct BranchingPhase
     conquer_algo::AbstractConquerAlgorithm
 end
 
-# function ExactBranchingPhase(candidates_num::Int64; conqueralg = ColGenConquer())     
+# function ExactBranchingPhase(candidates_num::Int64; conqueralg = ColCutGenConquer())     
 #     return BranchingPhase(candidates_num, conqueralg)
 # end
 
@@ -67,22 +67,37 @@ function SimpleBranching()::AbstractDivideAlgorithm
     return algo
 end
 
-function get_storages_usage!(
-    algo::StrongBranching, reform::Reformulation, storages_usage::StoragesUsageDict
-)
+# StrongBranching does not use any storage itself, 
+# therefore get_storages_usage() is not defined for it
+
+function get_slave_algorithms(algo::StrongBranching, reform::Reformulation) 
+    slave_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
     for phase in algo.phases
-        get_storages_usage!(phase.conquer_algo, reform, storages_usage)
+        push!(slave_algos, (phase.conquer_algo, reform))
     end
     for prioritised_rule in algo.rules
-        get_storages_usage!(prioritised_rule.rule, reform, storages_usage)
+        push!(slave_algos, (prioritised_rule.rule, reform))
     end
-end
 
-function get_storages_to_restore!(
-    algo::StrongBranching, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-)
-    # branching restores all storages itself so we do not require anything here
-end
+    return slave_algos
+end 
+
+# function get_storages_usage!(
+#     algo::StrongBranching, reform::Reformulation, storages_usage::StoragesUsageDict
+# )
+#     for phase in algo.phases
+#         get_storages_usage!(phase.conquer_algo, reform, storages_usage)
+#     end
+#     for prioritised_rule in algo.rules
+#         get_storages_usage!(prioritised_rule.rule, reform, storages_usage)
+#     end
+# end
+
+# function get_storages_to_restore!(
+#     algo::StrongBranching, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+# )
+#     # branching restores all storages itself so we do not require anything here
+# end
 
 function exploits_primal_solutions(algo::StrongBranching)
     for phase in algo.phases
@@ -154,9 +169,7 @@ function perform_strong_branching_with_phases!(
 
                 update_ip_primal!(getoptstate(node), sbstate, exploitsprimalsolutions)
 
-                restore_states!(node.stateids, storages_to_restore) 
-
-                apply_conquer_alg_to_node!(node, current_phase.conquer_algo, data)        
+                apply_conquer_alg_to_node!(node, current_phase.conquer_algo, data, storages_to_restore)        
 
                 update_all_ip_primal_solutions!(sbstate, getoptstate(node))
                     

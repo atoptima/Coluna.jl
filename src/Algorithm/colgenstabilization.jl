@@ -1,4 +1,4 @@
-mutable struct ColGenStabStorage <: AbstractStorage
+mutable struct ColGenStabilizationStorage <: AbstractStorage
     basealpha::Float64 # "global" alpha parameter
     curalpha::Float64 # alpha parameter during the current misprice sequence
     nb_misprices::Int64 # number of misprices during the current misprice sequence
@@ -9,15 +9,15 @@ mutable struct ColGenStabStorage <: AbstractStorage
     basestabcenter::Union{Nothing, DualSolution} # stability center, corresponding to valid_dual_bound
 end
 
-function ColGenStabStorage(master::Formulation) 
-    return ColGenStabStorage(
+function ColGenStabilizationStorage(master::Formulation) 
+    return ColGenStabilizationStorage(
         0.5, 0.0, 0, DualBound(master), DualBound(master), nothing, nothing, nothing
     )
 end
 
-smoothing_is_active(storage::ColGenStabStorage) = !iszero(storage.curalpha)
+smoothing_is_active(storage::ColGenStabilizationStorage) = !iszero(storage.curalpha)
 
-subgradient_is_needed(storage::ColGenStabStorage, smoothparam::Float64) =  
+subgradient_is_needed(storage::ColGenStabilizationStorage, smoothparam::Float64) =  
     smoothparam == 1.0 && storage.nb_misprices == 0
 
 mutable struct ColGenStabStorageState <: AbstractStorageState
@@ -26,13 +26,13 @@ mutable struct ColGenStabStorageState <: AbstractStorageState
     stabcenter::Union{Nothing, DualSolution}
 end
 
-function ColGenStabStorageState(master::Formulation, storage::ColGenStabStorage)
+function ColGenStabStorageState(master::Formulation, storage::ColGenStabilizationStorage)
     alpha = storage.basealpha < 0.5 ? 0.5 : storage.basealpha
     return ColGenStabStorageState(alpha, storage.valid_dual_bound, storage.basestabcenter)
 end
 
 function restorefromstate!(
-    master::Formulation, storage::ColGenStabStorage, state::ColGenStabStorageState
+    master::Formulation, storage::ColGenStabilizationStorage, state::ColGenStabStorageState
 )
     storage.basealpha = state.alpha
     storage.valid_dual_bound = state.dualbound
@@ -40,9 +40,9 @@ function restorefromstate!(
     return
 end
 
-const ColGenStabilizationStorage = (ColGenStabStorage => ColGenStabStorageState)
+const ColGenStabilizationStoragePair = (ColGenStabilizationStorage => ColGenStabStorageState)
 
-function init_stab_before_colgen_loop!(storage::ColGenStabStorage)
+function init_stab_before_colgen_loop!(storage::ColGenStabilizationStorage)
     storage.stabcenter = storage.basestabcenter
     storage.pseudo_dual_bound = storage.valid_dual_bound
     return
@@ -108,7 +108,9 @@ function linear_combination(in_dual_sol::DualSolution, out_dual_sol::DualSolutio
     return DualSolution(form, constrids, constrvals, bound)
 end
 
-function update_stab_after_rm_solve!(storage::ColGenStabStorage, smoothparam::Float64, lp_dual_sol::DualSolution)
+function update_stab_after_rm_solve!(
+    storage::ColGenStabilizationStorage, smoothparam::Float64, lp_dual_sol::DualSolution
+)
     iszero(smoothparam) && return lp_dual_sol
 
     storage.curalpha = 0.0
@@ -134,7 +136,7 @@ function norm(dualsol::DualSolution)
 end
 
 function update_alpha_automatically!(
-    storage::ColGenStabStorage, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
+    storage::ColGenStabilizationStorage, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
     smooth_dual_sol::DualSolution{M}, subgradient_contribution::DualSolution{M}
 ) where {M}    
 
@@ -181,7 +183,7 @@ function update_alpha_automatically!(
 end
 
 function update_stab_after_gencols!(
-    storage::ColGenStabStorage, smoothparam::Float64, nb_new_col::Int64, 
+    storage::ColGenStabilizationStorage, smoothparam::Float64, nb_new_col::Int64, 
     lp_dual_sol::DualSolution{M}, smooth_dual_sol::DualSolution{M}, 
     subgradient_contribution::DualSolution{M}
 ) where {M}
@@ -215,7 +217,7 @@ function update_stab_after_gencols!(
 end
 
 function update_stability_center!(
-    storage::ColGenStabStorage, dual_sol::DualSolution, 
+    storage::ColGenStabilizationStorage, dual_sol::DualSolution, 
     valid_lagr_bound::DualBound, pseudo_lagr_bound::DualBound 
 )
     if isbetter(valid_lagr_bound, storage.valid_dual_bound)
@@ -229,7 +231,7 @@ function update_stability_center!(
     return
 end
 
-function update_stab_after_colgen_iteration!(storage::ColGenStabStorage)
+function update_stab_after_colgen_iteration!(storage::ColGenStabilizationStorage)
     if storage.newstabcenter !== nothing
         storage.stabcenter = storage.newstabcenter
     end

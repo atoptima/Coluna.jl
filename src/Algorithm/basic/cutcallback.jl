@@ -24,6 +24,16 @@ struct RobustCutCallbackContext
     viol_vals::Vector{Float64}
 end
 
+# CutCallbacks does not have slave algorithms, therefore get_slave_algorithms() is not defined
+
+function get_storages_usage(algo::CutCallbacks, form::Formulation) 
+    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
+    if Duty <: MathProg.AbstractMasterDuty
+        push!(storages_usage, (form, MasterCutsStoragePair, READ_AND_WRITE))
+    end
+    return storages_usage
+end
+
 function run!(algo::CutCallbacks, data::ModelData, input::CutCallbacksInput)
     form = getmodel(data)
     nb_cuts = 0

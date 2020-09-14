@@ -2,7 +2,8 @@
 """
     AbstractData
 
-    Data is used by the algorithms. It contains user data, such as models and formulations, 
+    Data is used to keep information between different runs of an algorithm or between 
+    runs of different algorithms. Data contains user data, such as models and formulations, 
     as well as computed data stored in storages. 
 """
 abstract type AbstractData end

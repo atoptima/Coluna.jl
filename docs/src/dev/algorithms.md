@@ -12,7 +12,7 @@ TreeSearchAlgorithm
 ```
 
 ```@docs
-ColGenConquer
+ColCutGenConquer
 ```
 
 ```@docs

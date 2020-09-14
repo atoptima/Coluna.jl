@@ -9,30 +9,6 @@ function full_instances_tests()
     cvrp_tests()
 end
 
-function mytest()
-    data = CLD.GeneralizedAssignment.data("gapC-5-100.txt")
-
-    coluna = JuMP.optimizer_with_attributes(
-        CL.Optimizer,
-        "params" => CL.Params(
-            solver = ClA.TreeSearchAlgorithm(
-                conqueralg = ClA.ColGenConquer(
-                    colgen = ClA.ColumnGeneration(smoothing_stabilization = 1.0)
-                ),
-                maxnumnodes = 300
-            )
-        ),
-        "default_optimizer" => GLPK.Optimizer
-    )
-
-    model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
-
-    JuMP.optimize!(model)
-
-    @test JuMP.objective_value(model) ≈ 3520.1
-    @test JuMP.termination_status(model) == MOI.OPTIMAL
-end
-
 function generalized_assignment_tests()
     @testset "play gap" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
@@ -78,7 +54,7 @@ function generalized_assignment_tests()
     @testset "gap - strong branching" begin
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
-        conquer_with_small_cleanup_threshold = ClA.ColGenConquer(
+        conquer_with_small_cleanup_threshold = ClA.ColCutGenConquer(
             colgen = ClA.ColumnGeneration(cleanup_threshold = 150, smoothing_stabilization = 1.0)
         )
 
@@ -120,7 +96,7 @@ function generalized_assignment_tests()
             CL.Optimizer,
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
-                    conqueralg = ClA.ColGenConquer(
+                    conqueralg = ClA.ColCutGenConquer(
                         colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
                     )
                 )
@@ -205,7 +181,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-                conqueralg = ClA.ColGenConquer(
+                conqueralg = ClA.ColCutGenConquer(
                     colgen = ClA.ColumnGeneration(optimality_tol = 1e-6, smoothing_stabilization = 0.5)
                 )
             )),
@@ -225,7 +201,7 @@ function generalized_assignment_tests()
             CL.Optimizer,
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
-                    conqueralg = ClA.ColGenConquer(
+                    conqueralg = ClA.ColCutGenConquer(
                         colgen = ClA.ColumnGeneration(smoothing_stabilization = 1.0)
                     ),
                     maxnumnodes = 300
