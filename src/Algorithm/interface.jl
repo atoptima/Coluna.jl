@@ -116,8 +116,6 @@ exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 function collect_storages_to_restore!(
     global_storages_usage::StoragesUsageDict, algo::AbstractAlgorithm, model::AbstractModel
 )
-    ismanager(algo) && return
-
     local_storages_usage = get_storages_usage(algo, model)
     for (stor_model, stor_pair, stor_usage) in local_storages_usage
         add_storage_pair_usage!(global_storages_usage, stor_model, stor_pair, stor_usage)
