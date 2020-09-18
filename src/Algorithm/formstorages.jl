@@ -345,31 +345,34 @@ const StaticVarConstrStoragePair = (FormulationStorage => StaticVarConstrStorage
 # issues to see : 1) PrimalSolution is parametric; 2) we need a solution concatenation functionality
 
 mutable struct PartialSolutionStorage <: AbstractStorage
-    sol::Dict{VarId, Float64}
-    value::Float64
+    solution::Dict{VarId, Float64}
+end
+
+function add_to_solution!(storage::PartialSolutionStorage, varid::VarId, value::Float64)
+    cur_value = get(storage.solution, varid, 0.0)
+    storage.solution[varid] = cur_value + value
+    return
 end
 
 function PartialSolutionStorage(form::Formulation) 
-    return PartialSolutionStorage(Dict{VarId, Float64}(), 0.0)
+    return PartialSolutionStorage(Dict{VarId, Float64}())
 end
 
 # the storage state is the same as the storage here
 mutable struct PartialSolutionStorageState <: AbstractStorageState
-    sol::Dict{VarId, Float64}
-    value::Float64
+    solution::Dict{VarId, Float64}
 end
 
 function PartialSolutionStorageState(form::Formulation, storage::PartialSolutionStorage)
     @logmsg LogLevel(-2) "Storing partial solution"
-    return PartialSolutionStorageState(copy(storage.sol), storage.value)
+    return PartialSolutionStorageState(copy(storage.solution))
 end
 
 function restorefromstate!(
     form::Formulation, storage::PartialSolutionStorage, state::PartialSolutionStorageState
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
-    storage.sol = copy(state.sol)
-    storage.value = copy(state.value)
+    storage.solution = copy(state.solution)
 end
 
 const PartialSolutionStoragePair = (PartialSolutionStorage => StaticVarConstrStorageState)

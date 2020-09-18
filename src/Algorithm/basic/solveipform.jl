@@ -37,6 +37,9 @@ function get_storages_usage(
     return storages_usage
 end
 
+get_storages_usage(algo::SolveIpForm, reform::Reformulation) =
+    get_storages_usage(algo, getmaster(reform))
+
 function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
 
     form = getmodel(data)
@@ -79,6 +82,9 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
     end
     return OptimizationOutput(optstate)
 end
+
+run!(algo::SolveIpForm, data::ReformData, input::OptimizationInput) = 
+    run!(algo, getmasterdata(data), input)
 
 function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
     return MOI.supports_constraint(optimizer.inner, MOI.SingleVariable, MOI.Integer)

@@ -10,6 +10,12 @@ mutable struct PreprocessingStorage <: AbstractStorage
     localpartialsol::Dict{VarId, Float64}
 end
 
+function add_to_localpartialsol!(storage::PreprocessingStorage, varid::VarId, value::Float64)
+    cur_value = get(storage.localpartialsol, varid, 0.0)
+    storage.localpartialsol[varid] = cur_value + value
+    return
+end
+
 function PreprocessingStorage(form::Formulation) 
     return PreprocessingStorage(Dict{VarId, Float64}())
 end
