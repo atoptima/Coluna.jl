@@ -37,7 +37,7 @@ include("basic/solveipform.jl")
 include("basic/solvelpform.jl")
 include("basic/cutcallback.jl")
 
-# Slave algorithms used by conquer algorithms
+# Child algorithms used by conquer algorithms
 include("colgenstabilization.jl")
 include("colgen.jl")
 include("benders.jl")
@@ -56,6 +56,8 @@ include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
 
+#include("diving.jl")
+
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.
 # Other Coluna's submodules should be independent to Algorithm
@@ -69,7 +71,7 @@ export OptimizationState, getterminationstatus, getfeasibilitystatus, settermina
     add_lp_dual_sol!, set_ip_primal_sol!, set_lp_primal_sol!, set_lp_dual_sol!
 
 # Algorithm's types
-export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColGenConquer, ColumnGeneration,
+export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
        BendersConquer, BendersCutGeneration, SolveIpForm, SolveLpForm, ExactBranchingPhase,
        OnlyRestrictedMasterBranchingPhase
 

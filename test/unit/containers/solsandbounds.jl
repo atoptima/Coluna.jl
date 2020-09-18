@@ -194,7 +194,7 @@ end
 function test_solution_iterations(solution::Coluna.ColunaBase.Solution, dict::Dict)
     prev_decision = nothing
     for (decision, value) in solution
-        if prev_decision != nothing
+        if prev_decision !== nothing
             @test prev_decision < decision
         end
         @test solution[decision] == dict[decision]

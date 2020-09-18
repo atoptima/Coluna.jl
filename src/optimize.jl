@@ -89,9 +89,9 @@ function optimize!(
         lp_dual_bound = initial_dual_bound
     )
 
-    #this will initialize all the storages used by the algorithm and its slave algorithms
+    #this will initialize all the storages used by the algorithm and its child algorithms
     reformdata = Algorithm.ReformData(reform)
-    Algorithm.initialize_storages(reformdata, algorithm)
+    Algorithm.initialize_storages!(reformdata, algorithm)
 
     output = Algorithm.run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)

@@ -10,7 +10,7 @@ struct BranchingPhase
     conquer_algo::AbstractConquerAlgorithm
 end
 
-# function ExactBranchingPhase(candidates_num::Int64; conqueralg = ColGenConquer())     
+# function ExactBranchingPhase(candidates_num::Int64; conqueralg = ColCutGenConquer())     
 #     return BranchingPhase(candidates_num, conqueralg)
 # end
 
@@ -67,22 +67,20 @@ function SimpleBranching()::AbstractDivideAlgorithm
     return algo
 end
 
-function get_storages_usage!(
-    algo::StrongBranching, reform::Reformulation, storages_usage::StoragesUsageDict
-)
+# StrongBranching does not use any storage itself, 
+# therefore get_storages_usage() is not defined for it
+
+function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 
+    child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
     for phase in algo.phases
-        get_storages_usage!(phase.conquer_algo, reform, storages_usage)
+        push!(child_algos, (phase.conquer_algo, reform))
     end
     for prioritised_rule in algo.rules
-        get_storages_usage!(prioritised_rule.rule, reform, storages_usage)
+        push!(child_algos, (prioritised_rule.rule, reform))
     end
-end
 
-function get_storages_to_restore!(
-    algo::StrongBranching, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-)
-    # branching restores all storages itself so we do not require anything here
-end
+    return child_algos
+end 
 
 function exploits_primal_solutions(algo::StrongBranching)
     for phase in algo.phases
@@ -92,8 +90,7 @@ function exploits_primal_solutions(algo::StrongBranching)
 end
 
 function perform_strong_branching_with_phases!(
-    algo::StrongBranching, data::ReformData, input::DivideInput, 
-    groups::Vector{BranchingGroup}
+    algo::StrongBranching, data::ReformData, input::DivideInput, groups::Vector{BranchingGroup}
 )::OptimizationState
 
     parent = getparent(input)
@@ -103,7 +100,6 @@ function perform_strong_branching_with_phases!(
         master, getoptstate(input), exploitsprimalsolutions
     )
 
-    stateids = store_states!(data)
     for (phase_index, current_phase) in enumerate(algo.phases)
         nb_candidates_for_next_phase::Int64 = 1        
         if phase_index < length(algo.phases)
@@ -113,8 +109,10 @@ function perform_strong_branching_with_phases!(
             end
         end        
 
-        storages_to_restore = StoragesToRestoreDict()
-        get_storages_to_restore!(current_phase.conquer_algo, getreform(data), storages_to_restore)     
+        conquer_storages_to_restore = StoragesUsageDict()
+        collect_storages_to_restore!(
+            conquer_storages_to_restore, current_phase.conquer_algo, getreform(data)
+        ) 
 
         #TO DO : we need to define a print level parameter
         println("**** Strong branching phase ", phase_index, " is started *****");
@@ -133,7 +131,7 @@ function perform_strong_branching_with_phases!(
             #TO DO: verify if time limit is reached
 
             if phase_index == 1                
-                generate_children!(group, data, parent, copy_states(stateids), true)                
+                generate_children!(group, data, parent)                
             else    
                 regenerate_children!(group, parent)
             end
@@ -154,9 +152,9 @@ function perform_strong_branching_with_phases!(
 
                 update_ip_primal!(getoptstate(node), sbstate, exploitsprimalsolutions)
 
-                restore_states!(node.stateids, storages_to_restore) 
-
-                apply_conquer_alg_to_node!(node, current_phase.conquer_algo, data)        
+                apply_conquer_alg_to_node!(
+                    node, current_phase.conquer_algo, data, conquer_storages_to_restore
+                )        
 
                 update_all_ip_primal_solutions!(sbstate, getoptstate(node))
                     
@@ -165,8 +163,7 @@ function perform_strong_branching_with_phases!(
                         println("Branch is conquered!")
                     end
                     push!(pruned_nodes_indices, node_index)
-                else
-                    store_states!(data, node.stateids)    
+                    remove_states!(node.stateids)
                 end
             end
 
@@ -196,7 +193,7 @@ function perform_strong_branching_with_phases!(
             nb_candidates_for_next_phase == 1 
         end
 
-        # before deleting branching groups wich are not kept for the next phase
+        # before deleting branching groups which are not kept for the next phase
         # we need to remove storage states kept in these nodes
         for group_index = nb_candidates_for_next_phase + 1 : length(groups) 
             for (node_index, node) in enumerate(groups[group_index].children)
@@ -205,7 +202,6 @@ function perform_strong_branching_with_phases!(
         end
         resize!(groups, nb_candidates_for_next_phase)
     end
-    remove_states!(stateids)
     return sbstate
 end
 
@@ -302,7 +298,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
 
     #in the case of simple branching, it remains to generate the children
     if isempty(algo.phases) 
-        generate_children!(kept_branch_groups[1], data, parent, store_states!(data), false)
+        generate_children!(kept_branch_groups[1], data, parent)
         return DivideOutput(kept_branch_groups[1].children, OptimizationState(getmaster(reform)))
     end
 

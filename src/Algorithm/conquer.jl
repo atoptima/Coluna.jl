@@ -3,22 +3,32 @@
     ConquerInput
 
     Input of a conquer algorithm used by the tree search algorithm.
-    Contains the node in the search tree.
+    Contains the node in the search tree and the collection of storages to restore 
+    before running the conquer algorithm. This collection of storages is passed
+    in the input so that it is not obtained each time the conquer algorithm runs. 
 """
 struct ConquerInput <: AbstractInput 
     node::Node    
+    storages_to_restore::StoragesUsageDict
 end
 
 getnode(input::ConquerInput) = input.node
 
+restore_states!(input::ConquerInput) = restore_states!(input.node.stateids, input.storages_to_restore) 
 
 """
     AbstractConquerAlgorithm
 
     This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
     For the moment, a conquer algorithm can be run only on reformulation.     
+    A conquer algorithm should restore states of storages using function restore_states!(::ConquerInput)
+        - each time it runs in the beginning
+        - each time after calling a child manager algorithm
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
+
+# conquer algorithms are always manager algorithms (they manage storing and restoring storages)
+ismanager(algo::AbstractConquerAlgorithm) = true
 
 function run!(algo::AbstractConquerAlgorithm, data::ReformData, input::ConquerInput)
     algotype = typeof(algo)
@@ -35,7 +45,7 @@ exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
-    node::Node, algo::AbstractConquerAlgorithm, data::ReformData
+    node::Node, algo::AbstractConquerAlgorithm, data::ReformData, storages_to_restore::StoragesUsageDict
 )  
     nodestate = getoptstate(node)
     if isverbose(algo)
@@ -46,13 +56,14 @@ function apply_conquer_alg_to_node!(
         isverbose(algo) && @logmsg LogLevel(-1) string(
             "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
         )
-        # node.conquerrecord = nothing
-        return 
-    end
-    isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
+    else    
+        isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-    run!(algo, data, ConquerInput(node))
+        run!(algo, data, ConquerInput(node, storages_to_restore))
+        store_states!(data, node.stateids)
+    end
     node.conquerwasrun = true
+    return
 end
 
 
@@ -64,31 +75,18 @@ end
     benders::BendersCutGeneration = BendersCutGeneration()
 end
 
-function get_storages_usage!(
-    algo::BendersConquer, reform::Reformulation, storages_usage::StoragesUsageDict
-)
-    get_storages_usage!(algo.benders, reform, storages_usage)
-end
-
-function get_storages_to_restore!(
-    algo::BendersConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-) 
-    get_storages_to_restore!(algo.benders, reform, storages_to_restore)
-end
-
-
 isverbose(strategy::BendersConquer) = true
 
-function getslavealgorithms!(
-    algo::BendersConquer, reform::Reformulation, 
-    slaves::Vector{Tuple{AbstractFormulation, AbstractAlgorithm}}
-)
-    push!(slaves, (reform, algo.benders))
-    getslavealgorithms!(algo.benders, reform, slaves)
+# BendersConquer does not use any storage for the moment, it just calls 
+# BendersCutSeparation algorithm, therefore get_storages_usage() is not defined for it
+
+function get_child_algorithms(algo::BendersConquer, reform::Reformulation) 
+    return [(algo.benders, reform)]
 end
 
 function run!(algo::BendersConquer, data::ReformData, input::ConquerInput)
-    node = getnode(input)
+    restore_states!(input)
+    node = getnode(input)    
     nodestate = getoptstate(node)
     output = run!(algo.benders, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
@@ -96,58 +94,54 @@ function run!(algo::BendersConquer, data::ReformData, input::ConquerInput)
 end
 
 ####################################################################
-#                      ColGenConquer
+#                      ColCutGenConquer
 ####################################################################
 
 """
-    Coluna.Algorithm.ColGenConquer(
+    Coluna.Algorithm.ColCutGenConquer(
         colgen::ColumnGeneration = ColumnGeneration()
+        cutgen::CutCallbacks = CutCallbacks()
         mastipheur::SolveIpForm = SolveIpForm()
         preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
         run_mastipheur::Bool = true
         run_preprocessing::Bool = false
     )
 
-Column-generation based algorithm to find primal and dual bounds for a 
-problem decomposed using Dantzig-Wolfe paradigm. It applies `colgen` for the column 
-generation phase, `masteripheur` to optimize the integer restricted master.
+    Column-and-cut-generation based algorithm to find primal and dual bounds for a 
+    problem decomposed using Dantzig-Wolfe paradigm. It applies `colgen` for the column 
+    generation phase, `cutgen` for the cut generation phase, and `masteripheur` 
+to optimize the integer restricted master.
 """
-@with_kw struct ColGenConquer <: AbstractConquerAlgorithm 
+@with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     colgen::ColumnGeneration = ColumnGeneration()
     mastipheur::SolveIpForm = SolveIpForm(get_dual_bound = false)
     preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
+    cutgen::CutCallbacks = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
 end
 
-isverbose(algo::ColGenConquer) = algo.colgen.log_print_frequency > 0
+isverbose(algo::ColCutGenConquer) = algo.colgen.log_print_frequency > 0
 
+# ColCutGenConquer does not use any storage for the moment, therefore 
+# get_storages_usage() is not defined for it
 
-function get_storages_usage!(
-    algo::ColGenConquer, reform::Reformulation, storages_usage::StoragesUsageDict
-)
-    #ColGenConquer itself does not access to any storage, so we just ask its slave algorithms
-    get_storages_usage!(algo.colgen, reform, storages_usage)
-    algo.run_mastipheur && get_storages_usage!(algo.mastipheur, getmaster(reform), storages_usage)
-    algo.run_preprocessing && get_storages_usage!(algo.preprocess, reform, storages_usage)
+function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
+    child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
+    push!(child_algos, (algo.colgen, reform))
+    push!(child_algos, (algo.cutgen, getmaster(reform)))
+    algo.run_mastipheur && push!(child_algos, (algo.mastipheur, getmaster(reform)))
+    algo.run_preprocessing && push!(child_algos, (algo.preprocess, reform))
+    return child_algos
 end
 
-function get_storages_to_restore!(
-    algo::ColGenConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-) 
-    get_storages_to_restore!(algo.colgen, reform, storages_to_restore)
-    algo.run_mastipheur && 
-        get_storages_to_restore!(algo.mastipheur, getmaster(reform), storages_to_restore)
-    algo.run_preprocessing && 
-        get_storages_to_restore!(algo.preprocess, reform, storages_to_restore)
-end
-
-function run!(algo::ColGenConquer, data::ReformData, input::ConquerInput)
+function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
+    restore_states!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
     reform = getreform(data)
-    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform))
+    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, data, EmptyInput()))
         setfeasibilitystatus!(nodestate, INFEASIBLE)
         return 
     end
@@ -195,19 +189,26 @@ end
     masterlpalgo::SolveLpForm = SolveLpForm()
 end
 
-function get_storages_usage!(
-    algo::RestrMasterLPConquer, reform::Reformulation, storages_usage::StoragesUsageDict
-)
-    get_storages_usage!(algo.masterlpalgo, getmaster(reform), storages_usage)
+# RestrMasterLPConquer does not use any storage, therefore get_storages_usage() is not defined for it
+
+function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation) 
+    return [(algo.masterlpalgo, getmaster(reform))]
 end
 
-function get_storages_to_restore!(
-    algo::RestrMasterLPConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-) 
-    get_storages_to_restore!(algo.masterlpalgo, getmaster(reform), storages_to_restore)
-end
+# function get_storages_usage!(
+#     algo::RestrMasterLPConquer, reform::Reformulation, storages_usage::StoragesUsageDict
+# )
+#     get_storages_usage!(algo.masterlpalgo, getmaster(reform), storages_usage)
+# end
+
+# function get_storages_to_restore!(
+#     algo::RestrMasterLPConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+# ) 
+#     get_storages_to_restore!(algo.masterlpalgo, getmaster(reform), storages_to_restore)
+# end
 
 function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
+    restore_states!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
     output = run!(algo.masterlpalgo, getmasterdata(data), OptimizationInput(nodestate))

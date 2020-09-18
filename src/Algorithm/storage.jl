@@ -4,33 +4,34 @@
     About storages
     --------------
 
-    Storages are used to keep computed data between different runs 
-    of an algorithm or between runs of different algorithms.
+    Storages keep user data (a model) and computed data between different runs 
+    of an algorithm or between runs of different algorithms. 
+    Models are storages themselves. Each storage is associated with a
+    model. Thus a storage adds computed data to a model.  
 
-    Computed data may be contained in a storage itself or in a 
-    model (for example formulation) to which the storage is associated. 
+    Storage states are useful to store states of storages at some point 
+    of the calculation flow so that we can later return to this point and 
+    restore the storages. For example, the calculation flow may return to
+    some saved node in the search tree.
 
-    If the data is contained in the associated model, 
-    then the storage itself is empty (see EmptyStorage below).
-
-    A storage has the functionality to store its current data to a state, 
-    and restore its date from a state. This is useful when the algorithm
-    flow should return to some previous state (for example, to return to
-    some saved node in the search tree). Thus every storage is also 
-    associates to some storage state type.  
-
-    Every algorithm should comminicate:
-    - which storages it uses, so that they can be initialized before 
-      running the global algorithm; 
-    - for which storages the correct state should be restored before 
-      the algorithm is run, and the access mode for these storages
-      (ready only or read-and-write). 
-
-    Every such storage is determined by the model, storage type, and 
-    storage state type. For every model there may be only one storage
-    for each couple (storage type, storage state type).      
+    Some storages can have different parts which are stored in different 
+    storage states. Thus, we operate with triples (model, storage, storage state).
+    For every model there may be only one storage for each couple 
+    (storage type, storage state type). 
+    
+    To store all storages of a data, we use functions 
+    "store_states!(::AbstractData)::StorageStatesVector" or
+    "copy_states(::StorageStatesVector)::StorageStatesVector"
+  
+    Every stored state should be removed or restored using functions 
+    "restore_states!(::StorageStatesVector,::StoragesUsageDict)" 
+    and "remove_states!(::StorageStatesVector)"
+  
+    After storing current states, if we write to some storage, we should restore 
+    it for writing using "restore_states!(...)" 
+    After storing current states, if we read from a storage, 
+    no particular precautions should be taken.   
 """
-
 
 """
     AbstractStorage 
@@ -85,34 +86,16 @@ restorefromstate!(::AbstractModel, ::AbstractStorage, ::EmptyStorageState) = not
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
 const StorageTypePair = Pair{DataType, DataType}
 
-const StoragesUsageDict = Dict{AbstractModel, Set{StorageTypePair}}
-
-const StoragesToRestoreDict = Dict{Tuple{AbstractModel, StorageTypePair}, StorageAccessMode}
+const StoragesUsageDict = Dict{Tuple{AbstractModel, StorageTypePair}, StorageAccessMode}
 
 
 """
-    function add_storage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair)
+    function add_storage_pair_usage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair, ::StorageAccessMode)
 
-    This is an auxiliary function to be used inside algorithm function
-    get_storages_to_restore(::AbstractAlgorithm, ::AbstractModel, ::StoragesUsageDict)    
+    An auxiliary function to be used when adding storage usage to a StorageUsageDict
 """
-function add_storage!(
-    dict::StoragesUsageDict, model::AbstractModel, pair::StorageTypePair
-)
-    if !haskey(dict, model)
-        dict[model] = Set{StorageTypePair}()
-    end
-    push!(dict[model], pair)
-end
-
-"""
-    function add_storage!(::StoragesToRestoreDict, ::AbstractModel, ::StorageTypePair, ::StorageAccessMode)
-
-    This is an auxiliary function to be used inside algorithm function
-    get_storages_to_restore!(::AbstractAlgorithm, ::AbstractModel, ::::StoragesToRestoreDict)    
-"""
-function add_storage!(
-    dict::StoragesToRestoreDict, model::AbstractModel, pair::StorageTypePair, mode::StorageAccessMode
+function add_storage_pair_usage!(
+    dict::StoragesUsageDict, model::AbstractModel, pair::StorageTypePair, mode::StorageAccessMode
 )
     current_mode = get(dict, (model, pair), NOT_USED) 
     if current_mode == NOT_USED && mode != NOT_USED
@@ -322,14 +305,18 @@ end
     Storage functions used by Coluna
 """
 
-function reserve_for_writing!(storagecont::StorageContainer{M,S,SS}) where {M,S,SS}
-    statecont = getcurstatecont(storagecont)
-    save_to_statesdict!(storagecont, statecont)
-    statecont = StorageStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
-    setcurstate!(storagecont, statecont)
-end
+# this is a "lighter" alternative to restore_states!() function below
+# not used for the moment as it has impact on the code readability
+# we keep this function for while for the case when function restore_states!()
+# happens to be a bottleneck
+# function reserve_for_writing!(storagecont::StorageContainer{M,S,SS}) where {M,S,SS}
+#     statecont = getcurstatecont(storagecont)
+#     save_to_statesdict!(storagecont, statecont)
+#     statecont = StorageStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
+#     setcurstate!(storagecont, statecont)
+# end
 
-function restore_states!(ssvector::StorageStatesVector, storages_to_restore::StoragesToRestoreDict)
+function restore_states!(ssvector::StorageStatesVector, storages_to_restore::StoragesUsageDict)
     TO.@timeit Coluna._to "Restore states" begin
         for (storagecont, stateid) in ssvector
             mode = get(
@@ -343,7 +330,7 @@ function restore_states!(ssvector::StorageStatesVector, storages_to_restore::Sto
     empty!(ssvector) # vector of states should be emptied 
 end
 
-remove_states!(states::StorageStatesVector) = restore_states!(states, StoragesToRestoreDict())
+remove_states!(states::StorageStatesVector) = restore_states!(states, StoragesUsageDict())
 
 function copy_states(states::StorageStatesVector)::StorageStatesVector
     statescopy = StorageStatesVector()
@@ -373,9 +360,5 @@ end
     Every stored or copied state should be either restored or removed so that it's 
     participation is correctly computed and memory correctly controlled
 """
-
-# const StorageUsageTuple = Tuple{AbstractModel, Type{<:AbstractStorage}, StorageAccessMode}
-
-# const StorageWriteUsageVector = Vector{Tuple{AbstractModel, Type{<:AbstractStorage}}} 
 
 

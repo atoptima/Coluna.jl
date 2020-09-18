@@ -17,29 +17,22 @@ Solve a linear program.
     log_level = 0
 end
 
-function get_storages_usage!(
-    algo::SolveLpForm, form::Formulation{Duty}, storages_usage::StoragesUsageDict
-) where {Duty<:MathProg.AbstractFormDuty}
-    add_storage!(storages_usage, form, StaticVarConstrStorage)
-    if Duty <: MathProg.AbstractMasterDuty
-        add_storage!(storages_usage, form, MasterColumnsStorage)
-        add_storage!(storages_usage, form, MasterBranchConstrsStorage)
-        add_storage!(storages_usage, form, MasterCutsStorage)
-    end
-end
+# SolveLpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
-function get_storages_to_restore!(
-    algo::SolveLpForm, form::Formulation{Duty}, storages_to_restore::StoragesToRestoreDict
+function get_storages_usage(
+    algo::SolveLpForm, form::Formulation{Duty}
 ) where {Duty<:MathProg.AbstractFormDuty}
     # we use storages in the read only mode, as relaxing integrality
     # is reverted before the end of the algorithm, 
     # so the state of the formulation remains the same 
-    add_storage!(storages_to_restore, form, StaticVarConstrStorage, READ_ONLY)
+    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
+    push!(storages_usage, (form, StaticVarConstrStoragePair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        add_storage!(storages_to_restore, form, MasterColumnsStorage, READ_ONLY)
-        add_storage!(storages_to_restore, form, MasterBranchConstrsStorage, READ_ONLY)
-        add_storage!(storages_to_restore, form, MasterCutsStorage, READ_ONLY)
-    end        
+        push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
+        push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
+        push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
+    end
+    return storages_usage
 end
 
 function optimize_lp_form!(algo::SolveLpForm, optimizer, form::Formulation) # fallback

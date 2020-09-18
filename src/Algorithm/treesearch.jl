@@ -51,7 +51,7 @@ mutable struct TreeSearchRuntimeData
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
-    node_storages_to_restore::StoragesToRestoreDict
+    conquer_storages_to_restore::StoragesUsageDict
 end
 
 treeisempty(data::TreeSearchRuntimeData) = treeisempty(data.primary_tree) && treeisempty(data.secondary_tree)
@@ -80,7 +80,7 @@ getoptstate(data::TreeSearchRuntimeData) = data.optstate
 
 """
     Coluna.Algorithm.TreeSearchAlgorithm(
-        conqueralg::AbstractConquerAlgorithm = ColGenConquer(),
+        conqueralg::AbstractConquerAlgorithm = ColCutGenConquer(),
         dividealg::AbstractDivideAlgorithm = SimpleBranching(),
         explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy(),
         maxnumnodes::Int = 100000,
@@ -93,7 +93,7 @@ This algorithm uses search tree to do optimization. At each node in the tree, it
 to select the next node to treat.
 """
 @with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
-    conqueralg::AbstractConquerAlgorithm = ColGenConquer()
+    conqueralg::AbstractConquerAlgorithm = ColCutGenConquer()
     dividealg::AbstractDivideAlgorithm = SimpleBranching()
     explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy()
     maxnumnodes::Int64 = 100000 
@@ -105,20 +105,31 @@ to select the next node to treat.
     storelpsolution = false 
 end
 
-function get_storages_usage!(
-    algo::TreeSearchAlgorithm, reform::Reformulation, storages_usage::StoragesUsageDict
-)
-    get_storages_usage!(algo.conqueralg, reform, storages_usage)
-    get_storages_usage!(algo.dividealg, reform, storages_usage)
-    return
-end
+#TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storages)
+ismanager(algo::TreeSearchAlgorithm) = true
 
-function get_storages_to_restore!(
-    algo::TreeSearchAlgorithm, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-)
-    # tree search algorithm restores itself storages for the conquer and divide algorithm 
-    # on every node, so we do not require anything here
-end
+# TreeSearchAlgorithm does not use any storage itself, 
+# therefore get_storages_usage() is not defined for it
+
+function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation) 
+    return [(algo.conqueralg, reform), (algo.dividealg, reform)]
+end 
+
+
+# function get_storages_usage!(
+#     algo::TreeSearchAlgorithm, reform::Reformulation, storages_usage::StoragesUsageDict
+# )
+#     get_storages_usage!(algo.conqueralg, reform, storages_usage)
+#     get_storages_usage!(algo.dividealg, reform, storages_usage)
+#     return
+# end
+
+# function get_storages_to_restore!(
+#     algo::TreeSearchAlgorithm, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+# )
+#     # tree search algorithm restores itself storages for the conquer and divide algorithm 
+#     # on every node, so we do not require anything here
+# end
 
 function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
     println("***************************************************************************************")
@@ -199,7 +210,7 @@ function run_conquer_algorithm!(
     nodestate = getoptstate(node)
     update_ip_primal!(nodestate, treestate, tsdata.exploitsprimalsolutions)
 
-    apply_conquer_alg_to_node!(node, algo.conqueralg, rfdata)        
+    apply_conquer_alg_to_node!(node, algo.conqueralg, rfdata, tsdata.conquer_storages_to_restore)        
 
     update_all_ip_primal_solutions!(treestate, nodestate)
     
@@ -296,13 +307,13 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
     reform = getreform(rfdata)
     treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
 
-    node_storages_to_restore = StoragesToRestoreDict()
-    get_storages_to_restore!(algo.conqueralg, reform, node_storages_to_restore) 
-    get_storages_to_restore!(algo.dividealg, reform, node_storages_to_restore) 
+    conquer_storages_to_restore = StoragesUsageDict()
+    collect_storages_to_restore!(conquer_storages_to_restore, algo.conqueralg, reform) 
+    # divide algorithms are always manager algorithms, so we do not need to restore storages for them
 
     tsdata = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
-        treestate, exploitsprimalsols, getobjsense(reform), node_storages_to_restore
+        treestate, exploitsprimalsols, getobjsense(reform), conquer_storages_to_restore
     )
     master = getmaster(getreform(rfdata))
     push!(tsdata, RootNode(master, treestate, store_states!(rfdata), algo.skiprootnodeconquer))
@@ -317,14 +328,12 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
         node = popnode!(tsdata)
 
         if get_tree_order(tsdata) <= algo.maxnumnodes
-            restore_states!(node.stateids, tsdata.node_storages_to_restore)
             run_conquer_algorithm!(algo, tsdata, rfdata, node)
             print_node_in_branching_tree_file(algo, tsdata, node)
             run_divide_algorithm!(algo, tsdata, rfdata, node)           
             updatedualbound!(tsdata)
-        else
-            remove_states!(node.stateids)
         end
+        remove_states!(node.stateids)
         
         # we delete solutions from the node optimization state, as they are not needed anymore
         clear_solutions!(getoptstate(node))

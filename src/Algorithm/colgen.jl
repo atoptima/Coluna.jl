@@ -40,36 +40,23 @@ end
 
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
-function get_storages_usage!(
-    algo::ColumnGeneration, reform::Reformulation, storages_usage::StoragesUsageDict
-)
-    master = getmaster(reform)
-    add_storage!(storages_usage, master, MasterColumnsStorage)
-    if stabilization_is_used(algo)
-        add_storage!(storages_usage, master, ColGenStabilizationStorage)
-    end
-
-    get_storages_usage!(algo.restr_master_solve_alg, master, storages_usage)
+function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
+    child_algs = Tuple{AbstractAlgorithm, AbstractModel}[]
+    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
     for (id, spform) in get_dw_pricing_sps(reform)
-        get_storages_usage!(algo.pricing_prob_solve_alg, spform, storages_usage)
+        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
     end
-    return
-end
+    return child_algs
+end 
 
-function get_storages_to_restore!(
-    algo::ColumnGeneration, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-)
+function get_storages_usage(algo::ColumnGeneration, reform::Reformulation) 
+    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
     master = getmaster(reform)
-    add_storage!(storages_to_restore, master, MasterColumnsStorage, READ_AND_WRITE)
+    push!(storages_usage, (master, MasterColumnsStoragePair, READ_AND_WRITE))
     if stabilization_is_used(algo)
-        add_storage!(storages_to_restore, master, ColGenStabilizationStorage, READ_AND_WRITE)
+        push!(storages_usage, (master, ColGenStabilizationStoragePair, READ_AND_WRITE))
     end
-
-    get_storages_to_restore!(algo.restr_master_solve_alg, master, storages_to_restore)
-    for (id, spform) in get_dw_pricing_sps(reform)
-        get_storages_to_restore!(algo.pricing_prob_solve_alg, spform, storages_to_restore)
-    end
-    return
+    return storages_usage
 end
 
 struct ReducedCostsVector
@@ -477,7 +464,7 @@ ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.optima
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.optimality_tol
 
 function update_lagrangian_dual_bound!(
-    stabstorage::ColGenStabStorage, optstate::OptimizationState{F, S}, algo::ColumnGeneration,
+    stabstorage::ColGenStabilizationStorage, optstate::OptimizationState{F, S}, algo::ColumnGeneration,
     master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
     spinfos::Dict{FormId, SubprobInfo}
 ) where {F, S}
@@ -520,7 +507,7 @@ function update_lagrangian_dual_bound!(
 end
 
 function compute_subgradient_contibution(
-    algo::ColumnGeneration, stabstorage::ColGenStabStorage, master::Formulation,
+    algo::ColumnGeneration, stabstorage::ColGenStabilizationStorage, master::Formulation,
     puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId, SubprobInfo}
 )
     contribution = DualSolution(master)
@@ -622,7 +609,8 @@ function cg_main_loop!(
     redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
     iteration = 0
 
-    stabstorage = stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStorage) : ColGenStabStorage(masterform)
+    stabstorage = (stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStoragePair) 
+                                               : ColGenStabilizationStorage(masterform) )
 
     init_stab_before_colgen_loop!(stabstorage)
 

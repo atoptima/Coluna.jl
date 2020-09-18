@@ -62,10 +62,10 @@ struct FormulationStorage <: AbstractStorage end
 FormulationStorage(form::Formulation) = FormulationStorage()
 
 """
-    MasterBranchConstrsStorage
+    MasterBranchConstrsStoragePair
 
-    Storage for master branching constraints. 
-    Consists of EmptyStorage and MasterBranchConstrsStorageState.    
+    Storage pair for master branching constraints. 
+    Consists of FormulationStorage and MasterBranchConstrsStorageState.    
 """
 
 mutable struct MasterBranchConstrsStorageState <: AbstractStorageState
@@ -105,6 +105,8 @@ function restorefromstate!(
                 if !iscuractive(form, constr) 
                     @logmsg LogLevel(-2) string("Activating branching constraint", getname(form, constr))
                     activate!(form, constr)
+                else    
+                    @logmsg LogLevel(-2) string("Leaving branching constraint", getname(form, constr))
                 end
                 @logmsg LogLevel(-4) "Updating data"
                 apply_data!(form, constr, state.constrs[id])
@@ -118,12 +120,12 @@ function restorefromstate!(
     end
 end
 
-const MasterBranchConstrsStorage = (FormulationStorage => MasterBranchConstrsStorageState)
+const MasterBranchConstrsStoragePair = (FormulationStorage => MasterBranchConstrsStorageState)
 
 """
-    MasterColumnsStorage
+    MasterColumnsStoragePair
 
-    Storage for branching constraints of a formulation. 
+    Storage pair for branching constraints of a formulation. 
     Consists of EmptyStorage and MasterColumnsState.    
 """
 
@@ -177,12 +179,12 @@ function restorefromstate!(
     end
 end
 
-const MasterColumnsStorage = (FormulationStorage => MasterColumnsState)
+const MasterColumnsStoragePair = (FormulationStorage => MasterColumnsState)
 
 """
-    MasterCutsStorage
+    MasterCutsStoragePair
 
-    Storage for cutting planes of a formulation. 
+    Storage pair for cutting planes of a formulation. 
     Consists of EmptyStorage and MasterCutsState.    
 """
 
@@ -236,18 +238,18 @@ function restorefromstate!(
     end
 end
 
-const MasterCutsStorage = (FormulationStorage => MasterCutsState)
+const MasterCutsStoragePair = (FormulationStorage => MasterCutsState)
 
 """
-    StaticVarConstrStorage
+    StaticVarConstrStoragePair
 
-    Storage for static variables and constraints of a formulation.
+    Storage pair for static variables and constraints of a formulation.
     Consists of EmptyStorage and StaticVarConstrStorageState.    
 """
 
 mutable struct StaticVarConstrStorageState <: AbstractStorageState
     constrs::Dict{ConstrId, ConstrState}
-    vars::Dict{ConstrId, ConstrState}
+    vars::Dict{VarId, VarState}
 end
 
 #TO DO: we need to keep here only the difference with the initial data
@@ -330,4 +332,44 @@ function restorefromstate!(
     end
 end
 
-const StaticVarConstrStorage = (FormulationStorage => StaticVarConstrStorageState)
+const StaticVarConstrStoragePair = (FormulationStorage => StaticVarConstrStorageState)
+
+"""
+    PartialSolutionStoragePair
+
+    Storage pair for partial solution of a formulation.
+    Consists of PartialSolutionStorage and PartialSolutionStorageState.    
+"""
+
+# TO DO : to replace dictionaries by PrimalSolution
+# issues to see : 1) PrimalSolution is parametric; 2) we need a solution concatenation functionality
+
+mutable struct PartialSolutionStorage <: AbstractStorage
+    sol::Dict{VarId, Float64}
+    value::Float64
+end
+
+function PartialSolutionStorage(form::Formulation) 
+    return PartialSolutionStorage(Dict{VarId, Float64}(), 0.0)
+end
+
+# the storage state is the same as the storage here
+mutable struct PartialSolutionStorageState <: AbstractStorageState
+    sol::Dict{VarId, Float64}
+    value::Float64
+end
+
+function PartialSolutionStorageState(form::Formulation, storage::PartialSolutionStorage)
+    @logmsg LogLevel(-2) "Storing partial solution"
+    return PartialSolutionStorageState(copy(storage.sol), storage.value)
+end
+
+function restorefromstate!(
+    form::Formulation, storage::PartialSolutionStorage, state::PartialSolutionStorageState
+)
+    @logmsg LogLevel(-2) "Restoring partial solution"
+    storage.sol = copy(state.sol)
+    storage.value = copy(state.value)
+end
+
+const PartialSolutionStoragePair = (PartialSolutionStorage => StaticVarConstrStorageState)

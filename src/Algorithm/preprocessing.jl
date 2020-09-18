@@ -1,44 +1,70 @@
-struct PreprocessAlgorithm <: AbstractAlgorithm end
 
-function get_storages_usage!(
-    algo::PreprocessAlgorithm, form::Formulation{Duty}, storages_usage::StoragesUsageDict
-) where {Duty<:MathProg.AbstractFormDuty}
-    add_storage!(storages_usage, form, StaticVarConstrStorage)
-    if Duty <: MathProg.AbstractMasterDuty
-        add_storage!(storages_usage, form, MasterBranchConstrsStorage)
-        add_storage!(storages_usage, form, MasterCutsStorage)
-    end
+"""
+    PreprocessingStoragePair
+
+    Storage pair for preprocessing information
+    Consists of PreprocessingStorage and PreprocessingStorageState.    
+"""
+
+mutable struct PreprocessingStorage <: AbstractStorage
+    localpartialsol::Dict{VarId, Float64}
 end
 
-function get_storages_usage!(
-    algo::PreprocessAlgorithm, reform::Reformulation, storages_usage::StoragesUsageDict
+function PreprocessingStorage(form::Formulation) 
+    return PreprocessingStorage(Dict{VarId, Float64}())
+end
+
+mutable struct PreprocessingStorageState <: AbstractStorageState
+    localpartialsol::Dict{VarId, Float64}
+end
+
+function PreprocessingStorageState(form::Formulation, storage::PreprocessingStorage)
+    return PreprocessingStorageState(copy(storage.localpartialsol))
+end
+
+function restorefromstate!(
+    form::Formulation, storage::PreprocessingStorage, state::PreprocessingStorageState
 )
-    get_storages_usage!(algo, getmaster(reform), storages_usage)
-    for (id, spform) in get_dw_pricing_sps(reform)
-        get_storages_usage!(algo, spform, storages_usage)
-    end
+    storage.localpartialsol = copy(state.localpartialsol)
 end
 
-function get_storages_to_restore!(
-    algo::PreprocessAlgorithm, form::Formulation{Duty}, storages_to_restore::StoragesToRestoreDict
-) where {Duty<:MathProg.AbstractFormDuty}
-    add_storage!(storages_to_restore, form, StaticVarConstrStorage, READ_AND_WRITE)
-    if Duty <: MathProg.AbstractMasterDuty
-        # do we preprocess cuts and branching constraints?
-        add_storage!(storages_to_restore, form, MasterBranchConstrsStorage, READ_AND_WRITE)
-        add_storage!(storages_to_restore, form, MasterCutsStorage, READ_AND_WRITE)
-    end
+const PreprocessingStoragePair = (PreprocessingStorage => PreprocessingStorageState)
+
+
+"""
+    PreprocessingAlgorithm
+
+"""
+
+@with_kw struct PreprocessAlgorithm <: AbstractAlgorithm 
+    preprocess_subproblems::Bool = true # TO DO : this paramter is not yet implemented
 end
 
-function get_storages_to_restore!(
-    algo::PreprocessAlgorithm, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-) 
-    get_storages_to_restore!(algo, getmaster(reform), storages_to_restore)
-    for (id, spform) in get_dw_pricing_sps(reform)
-        get_storages_to_restore!(algo, spform, storages_to_restore)
-    end
+# PreprocessAlgorithm does not have child algorithms, therefore get_child_algorithms() is not defined
+
+function get_storages_usage(algo::PreprocessAlgorithm, form::Formulation) 
+    return [(form, StaticVarConstrStoragePair, READ_AND_WRITE), 
+            (form, PreprocessingStoragePair, READ_AND_WRITE)]
 end
 
+function get_storages_usage(algo::PreprocessAlgorithm, reform::Reformulation) 
+    master = getmaster(reform)
+    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[]     
+    push!(storages_usage, (master, StaticVarConstrStoragePair, READ_AND_WRITE))
+    push!(storages_usage, (master, PreprocessingStoragePair, READ_AND_WRITE))
+    push!(storages_usage, (master, MasterBranchConstrsStoragePair, READ_AND_WRITE))
+    push!(storages_usage, (master, MasterCutsStoragePair, READ_AND_WRITE))
+
+    if algo.preprocess_subproblems
+        push!(storages_usage, (master, MasterColumnsStoragePair, READ_AND_WRITE))
+        for (id, spform) in get_dw_pricing_sps(reform)
+            push!(storages_usage, (spform, StaticVarConstrStoragePair, READ_AND_WRITE))
+        end
+    end
+    return storages_usage
+end
+
+# TO DO : all these data should be moved to PreprocessingStorage
 mutable struct PreprocessData
     reformulation::Reformulation # Should handle reformulation & formulation
     constr_in_stack::Dict{ConstrId,Bool}
@@ -54,7 +80,17 @@ mutable struct PreprocessData
     printing::Bool
 end
 
-function PreprocessData(reform::Reformulation)
+function PreprocessData(rfdata::ReformData)
+
+    reform = getreform(rfdata)
+    masterdata = getmasterdata(rfdata)
+    master = getmodel(masterdata)
+
+    storage = getstorage(masterdata, PreprocessingStoragePair) 
+
+    local_partial_sol = [(varid, value) for (varid, value) in storage.localpartialsol]
+    empty!(storage.localpartialsol)
+    
     cur_sp_bounds = Dict{FormId,Tuple{Int,Int}}()
     master = getmaster(reform)
     for (spuid, spform) in get_dw_pricing_sps(reform)
@@ -67,7 +103,7 @@ function PreprocessData(reform::Reformulation)
         reform, Dict{ConstrId,Bool}(),
         DS.Stack{Tuple{Constraint, Formulation}}(), Dict{ConstrId,Float64}(),
         Dict{ConstrId,Float64}(), Dict{ConstrId,Int}(), Dict{ConstrId,Int}(), 
-        Constraint[], Variable[], cur_sp_bounds, Tuple{Variable,Int}[], false
+        Constraint[], Variable[], cur_sp_bounds, local_partial_sol, false
     )
 end
 
@@ -77,19 +113,10 @@ end
 
 isinfeasible(output::PreprocessingOutput) = output.infeasible
 
-# struct PreprocessRecord <: AbstractAlgorithmResult
-#     proven_infeasible::Bool
-# end
-
-# function prepare!(algo::Preprocess, reformulation)
-#     @logmsg LogLevel(0) "Prepare preprocessing"
-#     return
-# end
-
-function run!(algo::PreprocessAlgorithm, reformulation)::PreprocessingOutput
+function run!(algo::PreprocessAlgorithm, rfdata::ReformData, input::EmptyInput)::PreprocessingOutput
     @logmsg LogLevel(-1) "Run preprocessing"
 
-    alg_data = PreprocessData(reformulation)
+    alg_data = PreprocessData(rfdata)
     master = getmaster(alg_data.reformulation)
 
     (vars_with_modified_bounds,

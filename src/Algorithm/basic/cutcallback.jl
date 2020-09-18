@@ -24,6 +24,12 @@ struct RobustCutCallbackContext
     viol_vals::Vector{Float64}
 end
 
+# CutCallbacks does not have child algorithms, therefore get_child_algorithms() is not defined
+
+function get_storages_usage(algo::CutCallbacks, form::Formulation{MathProg.AbstractMasterDuty}) 
+    return [(form, MasterCutsStoragePair, READ_AND_WRITE)]
+end
+
 function run!(algo::CutCallbacks, data::ModelData, input::CutCallbacksInput)
     form = getmodel(data)
     nb_cuts = 0
