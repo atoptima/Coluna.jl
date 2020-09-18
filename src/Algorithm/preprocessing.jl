@@ -40,7 +40,7 @@ const PreprocessingStoragePair = (PreprocessingStorage => PreprocessingStorageSt
     preprocess_subproblems::Bool = true # TO DO : this paramter is not yet implemented
 end
 
-# PreprocessAlgorithm does not have slave algorithms, therefore get_slave_algorithms() is not defined
+# PreprocessAlgorithm does not have child algorithms, therefore get_child_algorithms() is not defined
 
 function get_storages_usage(algo::PreprocessAlgorithm, form::Formulation) 
     return [(form, StaticVarConstrStoragePair, READ_AND_WRITE), 

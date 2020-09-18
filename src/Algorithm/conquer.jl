@@ -23,7 +23,7 @@ restore_states!(input::ConquerInput) = restore_states!(input.node.stateids, inpu
     For the moment, a conquer algorithm can be run only on reformulation.     
     A conquer algorithm should restore states of storages using function restore_states!(::ConquerInput)
         - each time it runs in the beginning
-        - each time after calling a slave manager algorithm
+        - each time after calling a child manager algorithm
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 
@@ -80,7 +80,7 @@ isverbose(strategy::BendersConquer) = true
 # BendersConquer does not use any storage for the moment, it just calls 
 # BendersCutSeparation algorithm, therefore get_storages_usage() is not defined for it
 
-function get_slave_algorithms(algo::BendersConquer, reform::Reformulation) 
+function get_child_algorithms(algo::BendersConquer, reform::Reformulation) 
     return [(algo.benders, reform)]
 end
 
@@ -127,13 +127,13 @@ isverbose(algo::ColCutGenConquer) = algo.colgen.log_print_frequency > 0
 # ColCutGenConquer does not use any storage for the moment, therefore 
 # get_storages_usage() is not defined for it
 
-function get_slave_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
-    slave_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
-    push!(slave_algos, (algo.colgen, reform))
-    push!(slave_algos, (algo.cutgen, getmaster(reform)))
-    algo.run_mastipheur && push!(slave_algos, (algo.mastipheur, getmaster(reform)))
-    algo.run_preprocessing && push!(slave_algos, (algo.preprocess, reform))
-    return slave_algos
+function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
+    child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
+    push!(child_algos, (algo.colgen, reform))
+    push!(child_algos, (algo.cutgen, getmaster(reform)))
+    algo.run_mastipheur && push!(child_algos, (algo.mastipheur, getmaster(reform)))
+    algo.run_preprocessing && push!(child_algos, (algo.preprocess, reform))
+    return child_algos
 end
 
 function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
@@ -191,7 +191,7 @@ end
 
 # RestrMasterLPConquer does not use any storage, therefore get_storages_usage() is not defined for it
 
-function get_slave_algorithms(algo::RestrMasterLPConquer, reform::Reformulation) 
+function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation) 
     return [(algo.masterlpalgo, getmaster(reform))]
 end
 

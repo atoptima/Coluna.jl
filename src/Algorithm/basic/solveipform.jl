@@ -18,7 +18,7 @@ Solve a mixed integer linear program.
     log_level = 0
 end
 
-# SolveIpForm does not have slave algorithms, therefore get_slave_algorithms() is not defined
+# SolveIpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
 function get_storages_usage(
     algo::SolveIpForm, form::Formulation{Duty}

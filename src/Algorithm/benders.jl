@@ -6,7 +6,7 @@
     max_nb_iterations::Int = 100
 end
 
-# TO DO : BendersCutGeneration does not have yet the slave algorithms
+# TO DO : BendersCutGeneration does not have yet the child algorithms
 # it should have at least the algorithm to solve the master LP and the algorithms
 # to solve the subproblems
 
@@ -15,7 +15,7 @@ function get_storages_usage(algo::BendersCutGeneration, reform::Reformulation)
     master = getmaster(reform)
     push!(storages_usage, (master, MasterCutsStoragePair, READ_AND_WRITE))
 
-    #everything else should be communicated by the slave algorithms 
+    # TO DO : everything else should be communicated by the child algorithms 
     push!(storages_usage, (master, StaticVarConstrStoragePair, READ_ONLY))
     push!(storages_usage, (master, MasterBranchConstrsStoragePair, READ_ONLY))
     push!(storages_usage, (master, MasterColumnsStoragePair, READ_ONLY))

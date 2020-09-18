@@ -70,16 +70,16 @@ end
 # StrongBranching does not use any storage itself, 
 # therefore get_storages_usage() is not defined for it
 
-function get_slave_algorithms(algo::StrongBranching, reform::Reformulation) 
-    slave_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
+function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 
+    child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
     for phase in algo.phases
-        push!(slave_algos, (phase.conquer_algo, reform))
+        push!(child_algos, (phase.conquer_algo, reform))
     end
     for prioritised_rule in algo.rules
-        push!(slave_algos, (prioritised_rule.rule, reform))
+        push!(child_algos, (prioritised_rule.rule, reform))
     end
 
-    return slave_algos
+    return child_algos
 end 
 
 function exploits_primal_solutions(algo::StrongBranching)

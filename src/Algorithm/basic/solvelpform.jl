@@ -17,7 +17,7 @@ Solve a linear program.
     log_level = 0
 end
 
-# SolveLpForm does not have slave algorithms, therefore get_slave_algorithms() is not defined
+# SolveLpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
 function get_storages_usage(
     algo::SolveLpForm, form::Formulation{Duty}

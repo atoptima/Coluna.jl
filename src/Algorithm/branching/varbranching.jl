@@ -68,7 +68,7 @@ end
 struct VarBranchingRule <: AbstractBranchingRule
 end
 
-# VarBranchingRule does not have slave algorithms
+# VarBranchingRule does not have child algorithms
 
 function get_storages_usage(algo::VarBranchingRule, reform::Reformulation) 
     return [(getmaster(reform), MasterBranchConstrsStoragePair, READ_AND_WRITE)] 

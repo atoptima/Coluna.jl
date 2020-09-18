@@ -111,7 +111,7 @@ ismanager(algo::TreeSearchAlgorithm) = true
 # TreeSearchAlgorithm does not use any storage itself, 
 # therefore get_storages_usage() is not defined for it
 
-function get_slave_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation) 
+function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation) 
     return [(algo.conqueralg, reform), (algo.dividealg, reform)]
 end 
 

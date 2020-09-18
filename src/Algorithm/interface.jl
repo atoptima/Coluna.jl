@@ -7,7 +7,7 @@
     runs of the algorithm or between runs of different algorithms.
     The algorithm itself contains only its parameters. 
 
-    Parameters of an algorithm may contain its slave algorithms which used by it. Therefore, 
+    Parameters of an algorithm may contain its child algorithms which used by it. Therefore, 
     the algoirthm tree is formed, in which the root is the algorithm called to solver the model 
     (root algorithm should be an optimization algorithm, see below). 
 
@@ -15,8 +15,8 @@
     Worker algorithms just continue the calculation. They do not store and restore storages 
     as they suppose it is done by their master algorithms. Manager algorithms may divide 
     the calculation flow into parts. Therefore, they store and restore storages to make sure 
-    that their slave worker algorithms have storages prepared. 
-    A worker algorithm cannot have slave manager algorithms. 
+    that their child worker algorithms have storages prepared. 
+    A worker algorithm cannot have child manager algorithms. 
 
     Examples of manager algorithms : TreeSearchAlgorithm (which covers both BCP algorithm and 
     diving algorithm), conquer algorithms, strong branching, branching rule algorithms 
@@ -50,12 +50,12 @@ abstract type AbstractAlgorithm end
 ismanager(algo::AbstractAlgorithm) = false
 
 """
-    get_slave_algorithms(::AbstractAlgorithm, ::AbstractModel)::Vector{Tuple{AbstractAlgorithm, AbstractModel}}
+    get_child_algorithms(::AbstractAlgorithm, ::AbstractModel)::Vector{Tuple{AbstractAlgorithm, AbstractModel}}
 
-    Every algorithm should communicate its slave algorithms and the model to which 
-    each slave algorithm is applied. 
+    Every algorithm should communicate its child algorithms and the model to which 
+    each child algorithm is applied. 
 """
-get_slave_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
+get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
     get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, StorageTypePair, StorageAccessMode}}
@@ -111,8 +111,8 @@ abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 
-# this function collects storages to restore for an algorithm and all its slave worker algorithms,
-# slave manager algorithms are skipped, as their restore storages themselves
+# this function collects storages to restore for an algorithm and all its child worker algorithms,
+# child manager algorithms are skipped, as their restore storages themselves
 function collect_storages_to_restore!(
     global_storages_usage::StoragesUsageDict, algo::AbstractAlgorithm, model::AbstractModel
 )
@@ -121,13 +121,13 @@ function collect_storages_to_restore!(
         add_storage_pair_usage!(global_storages_usage, stor_model, stor_pair, stor_usage)
     end
 
-    slave_algos = get_slave_algorithms(algo, model)
-    for (slavealgo, slavemodel) in slave_algos
-        !ismanager(slavealgo) && collect_storages_to_restore!(global_storages_usage, slavealgo, slavemodel)
+    child_algos = get_child_algorithms(algo, model)
+    for (childalgo, childmodel) in child_algos
+        !ismanager(childalgo) && collect_storages_to_restore!(global_storages_usage, childalgo, childmodel)
     end
 end
 
-# this function collects storages to create for an algorithm and all its slave algorithms
+# this function collects storages to create for an algorithm and all its child algorithms
 # this function is used only the function initialize_storages!() below
 function collect_storages_to_create!(
     storages_to_create::Dict{AbstractModel,Set{StorageTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
@@ -140,9 +140,9 @@ function collect_storages_to_create!(
         push!(storages_to_create[stor_model], stor_pair)
     end
 
-    slave_algos = get_slave_algorithms(algo, model)
-    for (slavealgo, slavemodel) in slave_algos
-        collect_storages_to_create!(storages_to_create, slavealgo, slavemodel)
+    child_algos = get_child_algorithms(algo, model)
+    for (childalgo, childmodel) in child_algos
+        collect_storages_to_create!(storages_to_create, childalgo, childmodel)
     end
 end
 

@@ -37,7 +37,7 @@ include("basic/solveipform.jl")
 include("basic/solvelpform.jl")
 include("basic/cutcallback.jl")
 
-# Slave algorithms used by conquer algorithms
+# Child algorithms used by conquer algorithms
 include("colgenstabilization.jl")
 include("colgen.jl")
 include("benders.jl")

@@ -40,13 +40,13 @@ end
 
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
-function get_slave_algorithms(algo::ColumnGeneration, reform::Reformulation) 
-    slave_algs = Tuple{AbstractAlgorithm, AbstractModel}[]
-    push!(slave_algs, (algo.restr_master_solve_alg, getmaster(reform)))
+function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
+    child_algs = Tuple{AbstractAlgorithm, AbstractModel}[]
+    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
     for (id, spform) in get_dw_pricing_sps(reform)
-        push!(slave_algs, (algo.pricing_prob_solve_alg, spform))
+        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
     end
-    return slave_algs
+    return child_algs
 end 
 
 function get_storages_usage(algo::ColumnGeneration, reform::Reformulation) 
