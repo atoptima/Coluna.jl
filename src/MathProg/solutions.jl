@@ -35,14 +35,14 @@ end
 
 isfractional(sol::Solution) = !Base.isinteger(sol)
 
-function Base.contains(sol::PrimalSolution, f::Function)
+function contains(sol::PrimalSolution, f::Function)
     for (varid, val) in sol
         f(varid) && return true
     end
     return false
 end
 
-function Base.contains(sol::DualSolution, f::Function)
+function contains(sol::DualSolution, f::Function)
     for (constrid, val) in sol
         f(constrid) && return true
     end

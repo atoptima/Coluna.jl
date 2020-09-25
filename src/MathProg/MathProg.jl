@@ -12,6 +12,11 @@ import Base: haskey, length, iterate, diff
 
 using DynamicSparseArrays, Logging, Printf
 
+if VERSION >= v"1.5"
+    import Base: contains
+end
+
+
 global const BD = BlockDecomposition
 global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
