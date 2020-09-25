@@ -99,10 +99,10 @@ end
 
 """
     Coluna.Algorithm.ColCutGenConquer(
-        colgen::ColumnGeneration = ColumnGeneration()
-        cutgen::CutCallbacks = CutCallbacks()
-        mastipheur::SolveIpForm = SolveIpForm()
-        preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
+        colgen = ColumnGeneration()
+        cutgen = CutCallbacks()
+        mastipheur = SolveIpForm()
+        preprocess = PreprocessAlgorithm()
         run_mastipheur::Bool = true
         run_preprocessing::Bool = false
     )
@@ -113,10 +113,10 @@ end
 to optimize the integer restricted master.
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
-    colgen::ColumnGeneration = ColumnGeneration()
-    mastipheur::SolveIpForm = SolveIpForm(get_dual_bound = false)
-    preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
-    cutgen::CutCallbacks = CutCallbacks()
+    colgen = ColumnGeneration()
+    cutgen = CutCallbacks()
+    mastipheur = SolveIpForm(get_dual_bound = false)
+    preprocess = PreprocessAlgorithm()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
