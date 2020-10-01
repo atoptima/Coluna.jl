@@ -497,10 +497,6 @@ function MOI.get(model::Coluna.Optimizer, ::MOI.NumberOfVariables)
     return length(getvars(orig_form))
 end
 
-function MOI.get(model::Coluna.Optimizer, ::MOI.NumberOfConstraints)
-    return 0 # TODO but time consuming
-end
-
 # ######################
 # ### Get functions ####
 # ######################
