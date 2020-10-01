@@ -30,6 +30,14 @@ function generalized_assignment_tests()
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+        @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
+
+        println("\e[31m ******* \e[00m")
+        @show model
+        println("\e[31m ******* \e[00m")
+        println(model)
+        println("\e[31m *** \e[00m")
+        exit()
     end
 
     @testset "gap - JuMP/MOI modeling" begin
