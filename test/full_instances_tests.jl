@@ -22,8 +22,8 @@ function generalized_assignment_tests()
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-        BD.objectiveprimalbound!(model, 100.0)
-        BD.objectivedualbound!(model, 0.0)
+        BD.objectiveprimalbound!(model, 100)
+        BD.objectivedualbound!(model, 0)
 
         JuMP.optimize!(model)
 
