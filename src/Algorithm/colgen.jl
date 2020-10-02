@@ -38,8 +38,6 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
     smoothing_stabilization::Float64 = 0.0 # should be in [0, 1]
 end
 
-# to continuer here: we need to support the partial solution in the column generation
-
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
 function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
@@ -55,6 +53,7 @@ function get_storages_usage(algo::ColumnGeneration, reform::Reformulation)
     storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
     master = getmaster(reform)
     push!(storages_usage, (master, MasterColumnsStoragePair, READ_AND_WRITE))
+    push!(storages_usage, (master, PartialSolutionStoragePair, READ_ONLY))
     if stabilization_is_used(algo)
         push!(storages_usage, (master, ColGenStabilizationStoragePair, READ_AND_WRITE))
     end
@@ -613,6 +612,11 @@ function cg_main_loop!(
 
     stabstorage = (stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStoragePair) 
                                                : ColGenStabilizationStorage(masterform) )
+
+    partsolstrorage = getstorage(getmasterdata(data), PartialSolutionStoragePair)
+    partial_solution = get_primal_solution(partsolstorage, masterform)
+
+    #stopped here
 
     init_stab_before_colgen_loop!(stabstorage)
 

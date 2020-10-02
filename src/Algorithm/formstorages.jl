@@ -354,6 +354,17 @@ function add_to_solution!(storage::PartialSolutionStorage, varid::VarId, value::
     return
 end
 
+function get_primal_solution(storage::PartialSolutionStorage, form::Formulation)
+    varids = collect(keys(storage.solution))
+    vals = collect(values(storage.solution))
+    solcost = 0.0
+    for (varid, value) in storage.solution
+        solcost += getcurcost(form, varid) * value
+    end
+    return PrimalSolution(varids, vals, solcost)
+end    
+
+
 function PartialSolutionStorage(form::Formulation) 
     return PartialSolutionStorage(Dict{VarId, Float64}())
 end
