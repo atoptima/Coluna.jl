@@ -1,4 +1,32 @@
-@enum(TerminationStatus, OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, EMPTY_RESULT, NOT_YET_DETERMINED)
+"""
+    TerminationStatus
+
+Theses statuses are the possible reasons why the solver stopped the optimization. 
+When a subsolver is called through MOI, the
+MOI [`TerminationStatusCode`](https://jump.dev/MathOptInterface.jl/stable/apireference/#MathOptInterface.TerminationStatusCode)
+is translated into a Coluna `TerminationStatus`.
+
+Description of the termination statuses: 
+- `OPTIMAL` : the algorithm found a global optimal solution given the optimality tolerance.
+- `TIME_LIMIT` : the algorithm stopped because of the time limit
+- `NODE_LIMIT` : the branch-and-bound based algorithm stopped due to the node limit
+- `OTHER_LIMIT` : the algorithm stopped because of a limit that is neither the time limit 
+nor the node limit
+- `EMPTY_RESULT` : the algorithm finished but there is no result (if the problem is infeasible for example)
+
+If the algorithm has not been called, the default value of the termination status should be:
+- `UNKNOWN_TERMINATION`
+
+If the subsolver called through MOI returns a 
+`TerminationStatusCode` that is not `MOI.OPTIMAL`, `MOI.TIME_LIMIT`, `MOI.NODE_LIMIT`, or 
+`MOI.OTHER_LIMIT`:
+- `UNDEFINED` : should not be used by a Coluna algorithm
+"""
+@enum(TerminationStatus, OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, EMPTY_RESULT, UNKNOWN_TERMINATION, UNDEFINED)
+
+"""
+    FeasibilityStatus
+"""
 @enum(FeasibilityStatus, FEASIBLE, INFEASIBLE, UNKNOWN_FEASIBILITY)
 
 function convert_status(moi_status::MOI.TerminationStatusCode)
@@ -6,7 +34,7 @@ function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
     moi_status == MOI.NODE_LIMIT && return NODE_LIMIT
     moi_status == MOI.OTHER_LIMIT && return OTHER_LIMIT
-    return NOT_YET_DETERMINED
+    return UNDEFINED
 end
 
 function convert_status(coluna_status::TerminationStatus)
@@ -32,7 +60,7 @@ end
 function MoiResult(model::M) where {M<:AbstractModel}
     S = getobjsense(model)
     return MoiResult{M,S}(
-        NOT_YET_DETERMINED, UNKNOWN_FEASIBILITY, PrimalBound(model),
+        UNKNOWN_TERMINATION, UNKNOWN_FEASIBILITY, PrimalBound(model),
         DualBound(model),
         PrimalSolution{M}[], DualSolution{M}[]
     )

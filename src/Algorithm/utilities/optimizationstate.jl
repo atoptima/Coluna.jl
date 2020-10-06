@@ -39,7 +39,7 @@ end
 
 """
     OptimizationState(
-        form; feasibility_status = UNKNOWN_FEASIBILITY, termination_status = NOT_YET_DETERMINED,
+        form; feasibility_status = UNKNOWN_FEASIBILITY, termination_status = UNKNOWN_TERMINATION,
         ip_primal_bound = nothing, ip_dual_bound = nothing, lp_primal_bound = nothing, lp_dual_bound = nothing,
         max_length_ip_primal_sols = 1, max_length_lp_dual_sols = 1, max_length_lp_dual_sols = 1,
         insert_function_ip_primal_sols = bestbound, insert_function_lp_primal_sols = bestbound, 
@@ -62,7 +62,7 @@ best bound.
 function OptimizationState(
     form::F;
     feasibility_status::FeasibilityStatus = UNKNOWN_FEASIBILITY,
-    termination_status::TerminationStatus = NOT_YET_DETERMINED,
+    termination_status::TerminationStatus = UNKNOWN_TERMINATION,
     ip_primal_bound = nothing,
     ip_dual_bound = nothing,
     lp_primal_bound = nothing,
