@@ -475,12 +475,12 @@ function bend_cutting_plane_main_loop!(
         
         optresult, master_time = solve_relaxed_master!(masterform)
 
-        if getfeasibilitystatus(optresult) == INFEASIBLE
+        if getsolutionstatus(optresult) == INFEASIBLE_SOL
             db = - getvalue(DualBound(masterform))
             pb = - getvalue(PrimalBound(masterform))
             set_lp_dual_bound!(bnd_optstate, DualBound(masterform, db))
             set_lp_primal_bound!(bnd_optstate, PrimalBound(masterform, pb))
-            setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
+            setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
             return 
         end
            
@@ -489,7 +489,7 @@ function bend_cutting_plane_main_loop!(
 
         if !isfeasible(optresult) || master_primal_sol === nothing || master_dual_sol === nothing
             error("Benders algorithm:  the relaxed master LP is infeasible or unboundedhas no solution.")
-            setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
+            setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
             return 
         end
 
@@ -513,7 +513,7 @@ function bend_cutting_plane_main_loop!(
 
             if nb_new_cuts < 0
                 #@error "infeasible subproblem."
-                setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
+                setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
                 return
             end
 
@@ -535,7 +535,7 @@ function bend_cutting_plane_main_loop!(
             
             if nb_bc_iterations >= algo.max_nb_iterations
                 @warn "Maximum number of cut generation iteration is reached."
-                setfeasibilitystatus!(bnd_optstate, INFEASIBLE)
+                setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
                 break # loop on separation phases
             end
             

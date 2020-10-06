@@ -103,10 +103,11 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
 # Types & methods related to solutions & bounds
 # Note : we should export only get methods for MoiResult (the solution is built in MathProg)
 export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues, TerminationStatus,
-    FeasibilityStatus, MoiResult, OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT,
-    EMPTY_RESULT, UNKNOWN_TERMINATION, UNDEFINED, INFEASIBLE, UNKNOWN_FEASIBILITY, FEASIBLE,
-    getterminationstatus, getfeasibilitystatus, setterminationstatus!,
-    setfeasibilitystatus!, isfeasible, get_ip_primal_bound, get_lp_primal_bound,
+    SolutionStatus, MoiResult, OPTIMAL, INFEASIBLE, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT,
+    UNKNOWN_TERMINATION_STATUS, UNCOVERED_TERMINATION_STATUS, FEASIBLE_SOL, INFEASIBLE_SOL, 
+    EMPTY_SOL, UNKNOWN_SOLUTION_STATUS, UNCOVERED_SOLUTION_STATUS,
+    getterminationstatus, getsolutionstatus, setterminationstatus!,
+    setsolutionstatus!, isfeasible, get_ip_primal_bound, get_lp_primal_bound,
     get_ip_dual_bound, get_lp_dual_bound, update_ip_primal_bound!, update_lp_primal_bound!,
     update_ip_dual_bound!, update_lp_dual_bound!, set_ip_primal_bound!,
     set_lp_primal_bound!, set_ip_dual_bound!, set_lp_dual_bound!, ip_gap

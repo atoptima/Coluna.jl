@@ -533,14 +533,5 @@ function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, refs::Vector{MOI.Va
 end
 
 function MOI.get(optimizer::Optimizer, object::MOI.TerminationStatus)
-    result = optimizer.result
-    isfeasible(result) && return MathProg.convert_status(getterminationstatus(result))
-    getfeasibilitystatus(result) == INFEASIBLE && return MOI.INFEASIBLE
-    getfeasibilitystatus(result) == UNKNOWN_FEASIBILITY && return MOI.OTHER_LIMIT
-    error(string(
-        "Could not determine MOI status. Coluna termination : ",
-        getterminationstatus(result), ". Coluna feasibility : ",
-        getfeasibilitystatus(result)
-    ))
-    return
+    return MathProg.convert_status(getterminationstatus(optimizer.result))
 end

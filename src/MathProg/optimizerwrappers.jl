@@ -8,37 +8,47 @@ is translated into a Coluna `TerminationStatus`.
 
 Description of the termination statuses: 
 - `OPTIMAL` : the algorithm found a global optimal solution given the optimality tolerance.
+- `INFEASIBLE` : the algorithm proved infeasibility
 - `TIME_LIMIT` : the algorithm stopped because of the time limit
 - `NODE_LIMIT` : the branch-and-bound based algorithm stopped due to the node limit
 - `OTHER_LIMIT` : the algorithm stopped because of a limit that is neither the time limit 
 nor the node limit
-- `EMPTY_RESULT` : the algorithm finished but there is no result (if the problem is infeasible for example)
 
 If the algorithm has not been called, the default value of the termination status should be:
-- `UNKNOWN_TERMINATION`
+- `UNKNOWN_TERMINATION_STATUS`
 
 If the subsolver called through MOI returns a 
-`TerminationStatusCode` that is not `MOI.OPTIMAL`, `MOI.TIME_LIMIT`, `MOI.NODE_LIMIT`, or 
+`TerminationStatusCode` that is not `MOI.OPTIMAL`, `MOI.INFEASIBLE`, `MOI.TIME_LIMIT`, `MOI.NODE_LIMIT`, or 
 `MOI.OTHER_LIMIT`:
-- `UNDEFINED` : should not be used by a Coluna algorithm
+- `UNCOVERED_TERMINATION_STATUS` : should not be used by a Coluna algorithm
 """
-@enum(TerminationStatus, OPTIMAL, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, EMPTY_RESULT, UNKNOWN_TERMINATION, UNDEFINED)
+@enum(
+    TerminationStatus, OPTIMAL, INFEASIBLE, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, 
+    UNKNOWN_TERMINATION_STATUS, UNCOVERED_TERMINATION_STATUS
+)
 
 """
-    FeasibilityStatus
+    SolutionStatus
+
+todo
 """
-@enum(FeasibilityStatus, FEASIBLE, INFEASIBLE, UNKNOWN_FEASIBILITY)
+@enum(
+    SolutionStatus, FEASIBLE_SOL, INFEASIBLE_SOL, EMPTY_SOL, UNKNOWN_SOLUTION_STATUS,
+    UNCOVERED_SOLUTION_STATUS
+)
 
 function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMAL && return OPTIMAL
+    moi_status == MOI.INFEASIBLE && return INFEASIBLE
     moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
     moi_status == MOI.NODE_LIMIT && return NODE_LIMIT
     moi_status == MOI.OTHER_LIMIT && return OTHER_LIMIT
-    return UNDEFINED
+    return UNCOVERED_TERMINATION_STATUS
 end
 
 function convert_status(coluna_status::TerminationStatus)
     coluna_status == OPTIMAL && return MOI.OPTIMAL
+    coluna_status == INFEASIBLE && return MOI.INFEASIBLE
     coluna_status == TIME_LIMIT && return MOI.TIME_LIMIT
     coluna_status == NODE_LIMIT && return MOI.NODE_LIMIT
     coluna_status == OTHER_LIMIT && return MOI.OTHER_LIMIT
@@ -50,7 +60,7 @@ end
 ### a solver through MOI). Will be removed very soon
 mutable struct MoiResult{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
-    feasibility_status::FeasibilityStatus
+    solution_status::SolutionStatus
     primal_bound::PrimalBound{S}
     dual_bound::DualBound{S}
     primal_sols::Vector{PrimalSolution{F}}
@@ -60,19 +70,19 @@ end
 function MoiResult(model::M) where {M<:AbstractModel}
     S = getobjsense(model)
     return MoiResult{M,S}(
-        UNKNOWN_TERMINATION, UNKNOWN_FEASIBILITY, PrimalBound(model),
+        UNKNOWN_TERMINATION_STATUS, UNKNOWN_SOLUTION_STATUS, PrimalBound(model),
         DualBound(model),
         PrimalSolution{M}[], DualSolution{M}[]
     )
 end
 
 function MoiResult(
-    model::M, ts::TerminationStatus, fs::FeasibilityStatus; pb = nothing,
+    model::M, ts::TerminationStatus, ss::SolutionStatus; pb = nothing,
     db = nothing, primal_sols = nothing, dual_sols = nothing
 ) where {M<:AbstractModel}
     S = getobjsense(model)
     return OptimizationState{M,S}(
-        ts, fs,
+        ts, ss,
         pb === nothing ? PrimalBound(model) : pb,
         db === nothing ? DualBound(model) : db,
         primal_sols === nothing ? PrimalSolution{M}[] : primal_sols,
@@ -81,8 +91,8 @@ function MoiResult(
 end
 
 getterminationstatus(res::MoiResult) = res.termination_status
-getfeasibilitystatus(res::MoiResult) = res.feasibility_status
-isfeasible(res::MoiResult) = res.feasibility_status == FEASIBLE
+getsolutionstatus(res::MoiResult) = res.solution_status
+isfeasible(res::MoiResult) = res.solution_status == FEASIBLE_SOL
 getprimalbound(res::MoiResult) = res.primal_bound
 getdualbound(res::MoiResult) = res.dual_bound
 getprimalsols(res::MoiResult) = res.primal_sols
@@ -100,7 +110,7 @@ getbestdualsol(res::MoiResult) = get(res.dual_sols, 1, nothing)
 setprimalbound!(res::MoiResult, b::PrimalBound) = res.primal_bound = b
 setdualbound!(res::MoiResult, b::DualBound) = res.dual_bound = b
 setterminationstatus!(res::MoiResult, status::TerminationStatus) = res.termination_status = status
-setfeasibilitystatus!(res::MoiResult, status::FeasibilityStatus) = res.feasibility_status = status
+setsolutionstatus!(res::MoiResult, status::SolutionStatus) = res.solution_status = status
 result_gap(res::MoiResult) = gap(getprimalbound(res), getdualbound(res))
 
 function add_primal_sol!(res::MoiResult{M,S}, solution::PrimalSolution{M}) where {M,S}
@@ -128,15 +138,15 @@ function determine_statuses(res::MoiResult, fully_explored::Bool)
     found_sols = length(getprimalsols(res)) >= 1
     # We assume that gap cannot be zero if no solution was found
     gap_is_zero && @assert found_sols
-    found_sols && setfeasibilitystatus!(res, FEASIBLE)
+    found_sols && setsolutionstatus!(res, FEASIBLE_SOL)
     gap_is_zero && setterminationstatus!(res, OPTIMAL)
     if !found_sols # Implies that gap is not zero
-        setterminationstatus!(res, EMPTY_RESULT)
+        setsolutionstatus!(res, EMPTY_SOL)
         # Determine if we can prove that is was infeasible
         if fully_explored
-            setfeasibilitystatus!(res, INFEASIBLE)
+            setterminationstatus!(res, INFEASIBLE)
         else
-            setfeasibilitystatus!(res, UNKNOWN_FEASIBILITY)
+            setterminationstatus!(res, UNCOVERED_TERMINATION_STATUS)
         end
     elseif !gap_is_zero
         setterminationstatus!(res, OTHER_LIMIT)
@@ -200,7 +210,7 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
         fill_primal_result!(form, optimizer, result)
         fill_dual_result!(form, optimizer, result)
         if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1
-            setfeasibilitystatus!(result, FEASIBLE)
+            setsolutionstatus!(result, FEASIBLE_SOL)
             setterminationstatus!(result, convert_status(terminationstatus))
         else
             msg = """
@@ -211,8 +221,8 @@ function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
         end
     else
         @warn "Solver has no result to show."
-        setfeasibilitystatus!(result, INFEASIBLE)
-        setterminationstatus!(result, EMPTY_RESULT)
+        setsolutionstatus!(result, EMPTY_SOL)
+        setterminationstatus!(result, INFEASIBLE)
     end
     return result
 end

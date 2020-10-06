@@ -54,7 +54,7 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
 
     optimizer_result = optimize_ip_form!(algo, getoptimizer(form), form)
 
-    setfeasibilitystatus!(optstate, getfeasibilitystatus(optimizer_result))
+    setsolutionstatus!(optstate, getsolutionstatus(optimizer_result))
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))
 
     bestprimalsol = getbestprimalsol(optimizer_result)
@@ -68,8 +68,8 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
         if algo.log_level == 0
             println(
                 "No primal solution found. Termination status is ",
-                getterminationstatus(optstate), ". Feasibility status is ",
-                getfeasibilitystatus(optstate), "."
+                getterminationstatus(optstate), ". Solution status is ",
+                getsolutionstatus(optstate), "."
             )
         end
     end

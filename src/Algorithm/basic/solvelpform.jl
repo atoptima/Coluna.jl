@@ -56,7 +56,7 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
 
     optimizer_result = optimize_lp_form!(algo, getoptimizer(form), form)
 
-    setfeasibilitystatus!(optstate, getfeasibilitystatus(optimizer_result))    
+    setsolutionstatus!(optstate, getsolutionstatus(optimizer_result))    
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))   
 
     lp_primal_sol = getbestprimalsol(optimizer_result)

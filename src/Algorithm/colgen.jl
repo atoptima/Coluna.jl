@@ -95,7 +95,7 @@ function run!(algo::ColumnGeneration, data::ReformData, input::OptimizationInput
         end
     end
 
-    @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getfeasibilitystatus(optstate))
+    @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getsolutionstatus(optstate))
 
     return OptimizationOutput(optstate)
 end
@@ -629,10 +629,10 @@ function cg_main_loop!(
         master_val = get_lp_primal_bound(rm_optstate)
 
         if phase != 1 && !isfeasible(rm_optstate)
-            status = getfeasibilitystatus(rm_optstate)
+            status = getsolutionstatus(rm_optstate)
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
             "(feasibility status = " , status, ") during phase != 1.")
-            setfeasibilitystatus!(cg_optstate, status)
+            setsolutionstatus!(cg_optstate, status)
             return true
         end
 
@@ -688,7 +688,8 @@ function cg_main_loop!(
 
             if nb_new_col < 0
                 @error "Infeasible subproblem."
-                setfeasibilitystatus!(cg_optstate, INFEASIBLE)
+                setterminationstatus!(cg_optstate, INFEASIBLE)
+                setsolutionstatus!(cg_optstate, EMPTY_SOL)
                 return true
             end
 
@@ -731,7 +732,7 @@ function cg_main_loop!(
             pb = - getvalue(PrimalBound(reform))
             set_lp_dual_bound!(cg_optstate, DualBound(reform, db))
             set_lp_primal_bound!(cg_optstate, PrimalBound(reform, pb))
-            setfeasibilitystatus!(cg_optstate, INFEASIBLE)
+            setterminationstatus!(cg_optstate, INFEASIBLE)
             @logmsg LogLevel(0) "Phase one determines infeasibility."
             return true
         end

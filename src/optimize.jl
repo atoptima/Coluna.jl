@@ -101,7 +101,7 @@ function optimize!(
     # we copy optimisation state as we want to project the solution to the compact space
     outstate = OptimizationState(
         master,
-        feasibility_status = getfeasibilitystatus(algstate),
+        solution_status = getsolutionstatus(algstate),
         termination_status = getterminationstatus(algstate),
         ip_primal_bound = get_ip_primal_bound(algstate),
         ip_dual_bound = get_ip_dual_bound(algstate),
