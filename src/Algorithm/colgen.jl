@@ -82,7 +82,7 @@ end
 function run!(algo::ColumnGeneration, data::ReformData, input::OptimizationInput)::OptimizationOutput
     reform = getreform(data)
     master = getmaster(reform)
-    optstate = CopyBoundsAndStatusesFromOptState(master, getoptstate(input), false)
+    optstate = CopyBoundsAndStatusesFromOptState(master, getoptstate(input), false, false)
 
     set_ph3!(master) # mixed ph1 & ph2
     stop = cg_main_loop!(algo, 3, optstate, data)
@@ -613,7 +613,7 @@ function cg_main_loop!(
     stabstorage = (stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStoragePair) 
                                                : ColGenStabilizationStorage(masterform) )
 
-    partsolstrorage = getstorage(getmasterdata(data), PartialSolutionStoragePair)
+    partsolstorage = getstorage(getmasterdata(data), PartialSolutionStoragePair)
     partial_solution = get_primal_solution(partsolstorage, masterform)
 
     #stopped here

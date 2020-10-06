@@ -118,10 +118,10 @@ end
 
 """
     Coluna.Algorithm.ColCutGenConquer(
-        colgen::ColumnGeneration = ColumnGeneration()
-        cutgen::CutCallbacks = CutCallbacks()
+        colgen::AbstractOptimizationAlgorithm = ColumnGeneration()
         primal_heuristics::Vector{ParameterisedHeuristic} = [DefaultRestrictedMasterHeuristic()]
-        preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
+        preprocess = PreprocessAlgorithm()
+        cutgen = CutCallbacks()
         run_preprocessing::Bool = false
     )
 
@@ -131,10 +131,10 @@ end
     heuristics to more efficiently find feasible solutions.
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
-    colgen::ColumnGeneration = ColumnGeneration()
+    colgen::AbstractOptimizationAlgorithm = ColumnGeneration()
     primal_heuristics::Vector{ParameterisedHeuristic} = [DefaultRestrictedMasterHeuristic()]
-    preprocess::PreprocessAlgorithm = PreprocessAlgorithm()
-    cutgen::CutCallbacks = CutCallbacks()
+    preprocess = PreprocessAlgorithm()
+    cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_preprocessing::Bool = false
 end
@@ -149,8 +149,8 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     push!(child_algos, (algo.colgen, reform))
     push!(child_algos, (algo.cutgen, getmaster(reform)))
     algo.run_preprocessing && push!(child_algos, (algo.preprocess, reform))
-    for heuristic in primal_heuristics
-        push!(child_algos, (algo.mastipheur, reform))
+    for heuristic in algo.primal_heuristics
+        push!(child_algos, (heuristic.algorithm, reform))
     end
     return child_algos
 end
@@ -188,12 +188,13 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
         nb_tightening_rounds += 1
     end
 
-    heuristics_to_run = Vector{Tuple{AbstractOptimizationAlgorithm, String, Float64}}[]
-    for heuristic in primal_heuristics
-        if heuristic.max_depth <= getdepth(node) &&
+    heuristics_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
+    for heuristic in algo.primal_heuristics
+        #TO DO : get_tree_order of nodes in strong branching is always -1
+        if getdepth(node) <= heuristic.max_depth && 
             mod(get_tree_order(node) - 1, heuristic.frequency) == 0
             push!(heuristics_to_run, (
-                heuristic.algorithm, 
+                heuristic.algorithm, heuristic.name,
                 isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
             ))
         end
@@ -204,12 +205,10 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
         to_be_pruned(node) && break
 
         @logmsg LogLevel(0) string("Running ", name, " heuristic")
-        TO.@timeit Coluna._to "PrimalHeuristics" begin
-            ismanager(heur_algorithm) && stateids = store_states!(data)
-            heur_output = run!(heur_algorithm, data, OptimizationInput(nodestate))
-            update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
-            ismanager(heur_algorithm) && restore_states!(statids, input.storages_to_restore)
-        end
+        ismanager(heur_algorithm) && (stateids = store_states!(data))
+        heur_output = run!(heur_algorithm, data, OptimizationInput(nodestate))
+        update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
+        ismanager(heur_algorithm) && restore_states!(stateids, input.storages_to_restore)
     end 
     return
 end
@@ -227,18 +226,6 @@ end
 function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation) 
     return [(algo.masterlpalgo, getmaster(reform))]
 end
-
-# function get_storages_usage!(
-#     algo::RestrMasterLPConquer, reform::Reformulation, storages_usage::StoragesUsageDict
-# )
-#     get_storages_usage!(algo.masterlpalgo, getmaster(reform), storages_usage)
-# end
-
-# function get_storages_to_restore!(
-#     algo::RestrMasterLPConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-# ) 
-#     get_storages_to_restore!(algo.masterlpalgo, getmaster(reform), storages_to_restore)
-# end
 
 function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
     restore_states!(input)

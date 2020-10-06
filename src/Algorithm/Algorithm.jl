@@ -56,7 +56,7 @@ include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
 
-#include("diving.jl")
+include("diving.jl")
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.
@@ -72,7 +72,6 @@ export OptimizationState, getterminationstatus, getfeasibilitystatus, settermina
 
 # Algorithm's types
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
-       BendersConquer, BendersCutGeneration, SolveIpForm, SolveLpForm, ExactBranchingPhase,
-       OnlyRestrictedMasterBranchingPhase
-
+       BendersConquer, BendersCutGeneration, SolveIpForm, SolveLpForm, RestrMasterLPConquer, 
+       DefaultRestrictedMasterHeuristic, VarBranchingRule
 end

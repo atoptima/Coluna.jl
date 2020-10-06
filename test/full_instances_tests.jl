@@ -22,14 +22,16 @@ function generalized_assignment_tests()
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-        BD.objectiveprimalbound!(model, 100.0)
-        BD.objectivedualbound!(model, 0.0)
+        BD.objectiveprimalbound!(model, 100)
+        BD.objectivedualbound!(model, 0)
 
         JuMP.optimize!(model)
 
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+        @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
+        @test MOI.get(model, MOI.SolverName()) == "Coluna"
     end
 
     @testset "gap - JuMP/MOI modeling" begin

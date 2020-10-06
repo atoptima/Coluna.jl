@@ -118,6 +118,3 @@ end
 function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Formulation)
     return optimize!(form)
 end
-
-run!(alg::SolveIpForm, rfdata::ReformData, input::OptimizationInput) =
-    run!(alg, getmasterdata(rfdata), input)

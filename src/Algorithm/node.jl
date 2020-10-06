@@ -15,11 +15,12 @@ mutable struct Node
 end
 
 function RootNode(
-    form::AbstractFormulation, treestate::OptimizationState, storagestateids::StorageStatesVector, skipconquer::Bool
+    form::AbstractFormulation, optstate::OptimizationState, storagestateids::StorageStatesVector, skipconquer::Bool
 )
-    nodestate = CopyBoundsAndStatusesFromOptState(form, treestate, false)
+    nodestate = CopyBoundsAndStatusesFromOptState(form, optstate, false, skipconquer)
+    tree_order = skipconquer ? 1 : -1
     return Node(
-        -1, false, 0, nothing, nodestate, "", storagestateids, skipconquer
+        tree_order, false, 0, nothing, nodestate, "", storagestateids, skipconquer
     )
 end
 
@@ -27,7 +28,7 @@ function Node(
     form::AbstractFormulation, parent::Node, branchdescription::String, storagestateids::StorageStatesVector
 )
     depth = getdepth(parent) + 1
-    nodestate = CopyBoundsAndStatusesFromOptState(form, getoptstate(parent), false)
+    nodestate = CopyBoundsAndStatusesFromOptState(form, getoptstate(parent), false, false)
     
     return Node(
         -1, false, depth, parent, nodestate, branchdescription, storagestateids, false

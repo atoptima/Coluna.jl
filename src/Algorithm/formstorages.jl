@@ -361,7 +361,7 @@ function get_primal_solution(storage::PartialSolutionStorage, form::Formulation)
     for (varid, value) in storage.solution
         solcost += getcurcost(form, varid) * value
     end
-    return PrimalSolution(varids, vals, solcost)
+    return PrimalSolution(form, varids, vals, solcost)
 end    
 
 
@@ -386,4 +386,4 @@ function restorefromstate!(
     storage.solution = copy(state.solution)
 end
 
-const PartialSolutionStoragePair = (PartialSolutionStorage => StaticVarConstrStorageState)
+const PartialSolutionStoragePair = (PartialSolutionStorage => PartialSolutionStorageState)

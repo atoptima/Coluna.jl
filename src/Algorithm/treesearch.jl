@@ -100,8 +100,6 @@ to select the next node to treat.
     opennodeslimit::Int64 = 100 
     branchingtreefile::Union{Nothing, String} = nothing
     skiprootnodeconquer = false # true for diving heuristics
-    rootpriority = 0
-    nontrootpriority = 0
     storelpsolution = false 
 end
 
@@ -305,7 +303,9 @@ end
 function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
     reform = getreform(rfdata)
-    treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
+    treestate = CopyBoundsAndStatusesFromOptState(
+        getmaster(reform), getoptstate(input), exploitsprimalsols, false
+    )
 
     conquer_storages_to_restore = StoragesUsageDict()
     collect_storages_to_restore!(conquer_storages_to_restore, algo.conqueralg, reform) 
@@ -316,7 +316,8 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
         treestate, exploitsprimalsols, getobjsense(reform), conquer_storages_to_restore
     )
     master = getmaster(getreform(rfdata))
-    push!(tsdata, RootNode(master, treestate, store_states!(rfdata), algo.skiprootnodeconquer))
+    rootnode = RootNode(master, getoptstate(input), store_states!(rfdata), algo.skiprootnodeconquer)
+    push!(tsdata, rootnode)
     return tsdata
 end
 

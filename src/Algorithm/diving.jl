@@ -40,8 +40,14 @@ end
     comp_tol::Float64 = 1e-6
 end
 
-#stopped here: define here the constructor for the standard diving heuristic with conquer algorithm parameter
-# and other optional parameters (tolerance, LDS parameters, fix integer part)
+# TO DO : add optional parameters (tolerance, LDS parameters, fix integer part)
+DefaultDivingHeuristic(conquer::AbstractConquerAlgorithm) = 
+    ParameterisedHeuristic(
+        TreeSearchAlgorithm(
+            conqueralg = conquer, dividealg = DiveAlgorithm(), skiprootnodeconquer = true, maxnumnodes = 5
+        ),
+        1.0, 1.0, 1, 1000, "Pure diving"
+    )    
 
 # DiveAlgorithm does not have child algorithms, therefore get_child_algorithms() is not defined
 
@@ -49,14 +55,14 @@ function get_storages_usage(algo::DiveAlgorithm, reform::Reformulation)
     master = getmaster(reform)
     storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[]     
     push!(storages_usage, (master, PreprocessingStoragePair, READ_AND_WRITE))
-    push!(storages_usage, (master, PartialSolutionStorage, READ_AND_WRITE))
+    push!(storages_usage, (master, PartialSolutionStoragePair, READ_AND_WRITE))
     if require_asses_to_formulation(algo.rounding_criteria)
         push!(storages_usage, (master, MasterColumnsStoragePair, READ_ONLY))
     end
     return storages_usage
 end
 
-function solution_to_string(form:Formulation, dict::Dict{VarId, Float64})
+function solution_to_string(form::Formulation, dict::Dict{VarId, Float64})
     str = string()
     put_comma = false
     for (varid, val) in dict
@@ -69,7 +75,7 @@ end
 struct RoundingCandidate
     dive_algorithm::DiveAlgorithm
     form::Formulation
-    varid::varId
+    varid::VarId
     value::Float64
     isroundup::Bool
     rnd_value::Float64
@@ -138,7 +144,7 @@ end
 function better_candidate(first_cand::RoundingCandidate, second_cand::RoundingCandidate)
     criteria = first_cand.dive_algorithm.rounding_criteria
     for criterion in criteria 
-        result = compare_candidates_with_criterion(first_cand, second_cand, criterion)
+        result = compare_candidates(first_cand, second_cand, criterion)
         if result == 1
             return true
         elseif result == -1
@@ -151,13 +157,13 @@ end
 function run!(algo::DiveAlgorithm, data::ReformData, input::DivideInput)::DivideOutput
     parent = getparent(input)
     masterdata = getmasterdata(data)
-    master = getmaster(masterdata)
+    master = getmodel(masterdata)
     optstate = getoptstate(parent)
     solution = get_best_lp_primal_sol(optstate)
 
     storages_to_restore = StoragesUsageDict(
         (master, PreprocessingStoragePair) => READ_AND_WRITE,
-        (master, PartialSolutionStorage) => READ_AND_WRITE
+        (master, PartialSolutionStoragePair) => READ_AND_WRITE
     )
     if require_asses_to_formulation(algo.rounding_criteria)
         push!(storages_to_restore, (master, MasterColumnsStoragePair) => READ_ONLY)
@@ -165,7 +171,7 @@ function run!(algo::DiveAlgorithm, data::ReformData, input::DivideInput)::Divide
 
     restore_states!(copy_states(parent.stateids), storages_to_restore)    
     preprocess_storage = getstorage(masterdata, PreprocessingStoragePair)
-    partsol_storage = getstorage(masterdata, PartialSolutionStorage)
+    partsol_storage = getstorage(masterdata, PartialSolutionStoragePair)
 
     if algo.fix_integer_part_before_rounding
         fixed_solution_is_empty = true
@@ -193,10 +199,14 @@ function run!(algo::DiveAlgorithm, data::ReformData, input::DivideInput)::Divide
         rnd_up_value = round(val - algo.int_tol, RoundUp)
         rnd_down_value = round(val + algo.int_tol, RoundDown)
         if rnd_up_value > algo.int_tol 
-            push!(candidates, RoundingCandidate(algo.rounding_criteria, master, var_id, value, true, rnd_up_value))
+            push!(candidates, RoundingCandidate(
+                algo, master, var_id, rnd_up_value, true, rnd_up_value
+            ))  
         end
         if rnd_down_value > algo.int_tol 
-            push!(candidates, RoundingCandidate(algo.rounding_criteria, master, var_id, value, false, rnd_down_value))
+            push!(candidates, RoundingCandidate(
+                algo, master, var_id, rnd_down_value, false, rnd_down_value
+            ))
         end
     end
     sort!(candidates, lt=better_candidate)

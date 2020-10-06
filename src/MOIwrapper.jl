@@ -78,6 +78,8 @@ function _get_orig_varid_in_form(
     return getid(getvar(form, origid))
 end
 
+MOI.get(optimizer::Coluna.Optimizer, ::MOI.SolverName) = "Coluna"
+
 function MOI.optimize!(optimizer::Optimizer)
     optimizer.result = optimize!(
         optimizer.inner, optimizer.annotations, optimizer.params
@@ -488,6 +490,11 @@ end
 
 function MOI.empty!(optimizer::Optimizer)
     optimizer.inner.re_formulation = nothing
+end
+
+function MOI.get(model::Coluna.Optimizer, ::MOI.NumberOfVariables)
+    orig_form = get_original_formulation(model.inner)
+    return length(getvars(orig_form))
 end
 
 # ######################

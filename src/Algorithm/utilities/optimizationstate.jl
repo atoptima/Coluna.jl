@@ -124,7 +124,8 @@ end
 getform(state::OptimizationState{F,S}) where {F, S} = F
 
 function CopyBoundsAndStatusesFromOptState(
-    form::AbstractFormulation, source_state::OptimizationState, copy_ip_primal_sol::Bool
+    form::AbstractFormulation, source_state::OptimizationState, 
+    copy_ip_primal_sol::Bool, copy_lp_primal_sol::Bool
 )
     state = OptimizationState(
         form,
@@ -136,7 +137,10 @@ function CopyBoundsAndStatusesFromOptState(
         lp_dual_bound = get_lp_dual_bound(source_state)
     )
     if copy_ip_primal_sol && nb_ip_primal_sols(source_state) > 0
-        set_ip_primal_sol!(get_best_ip_primal_sol(source_state))
+        set_ip_primal_sol!(state, get_best_ip_primal_sol(source_state))
+    end
+    if copy_lp_primal_sol && nb_lp_primal_sols(source_state) > 0
+        set_lp_primal_sol!(state, get_best_lp_primal_sol(source_state))
     end
     return state
 end
