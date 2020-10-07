@@ -480,6 +480,7 @@ function bend_cutting_plane_main_loop!(
             pb = - getvalue(PrimalBound(masterform))
             set_lp_dual_bound!(bnd_optstate, DualBound(masterform, db))
             set_lp_primal_bound!(bnd_optstate, PrimalBound(masterform, pb))
+            setterminationstatus!(bnd_optstate, INFEASIBLE)
             setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
             return 
         end
@@ -489,7 +490,8 @@ function bend_cutting_plane_main_loop!(
 
         if !isfeasible(optresult) || master_primal_sol === nothing || master_dual_sol === nothing
             error("Benders algorithm:  the relaxed master LP is infeasible or unboundedhas no solution.")
-            setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
+            setterminationstatus!(bnd_optstate, INFEASIBLE)
+            setsolutionstatus!(bnd_optstate, EMPTY_SOL)
             return 
         end
 
@@ -513,7 +515,8 @@ function bend_cutting_plane_main_loop!(
 
             if nb_new_cuts < 0
                 #@error "infeasible subproblem."
-                setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
+                setsolutionstatus!(bnd_optstate, EMPTY_SOL)
+                setterminationstatus!(bnd_optstate, INFEASIBLE)
                 return
             end
 
@@ -526,7 +529,6 @@ function bend_cutting_plane_main_loop!(
                 bnd_optstate, nb_new_cuts, nb_bc_iterations, master_time, sp_time
             )
             
-            
             if cur_gap < algo.optimality_tol
                 @logmsg LogLevel(0) "Should stop because pb = $primal_bound & db = $dual_bound"
                 # TODO : problem with the gap
@@ -536,6 +538,7 @@ function bend_cutting_plane_main_loop!(
             if nb_bc_iterations >= algo.max_nb_iterations
                 @warn "Maximum number of cut generation iteration is reached."
                 setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
+                setterminationstatus!(bnd_optstate, OTHER_LIMIT)
                 break # loop on separation phases
             end
             
