@@ -18,7 +18,8 @@ export Bound, Solution, getvalue, isbetter, diff, gap, printbounds, getsol, remo
 # Statuses
 export TerminationStatus, SolutionStatus, MoiResult, OPTIMAL, INFEASIBLE, TIME_LIMIT, 
     NODE_LIMIT, OTHER_LIMIT, UNKNOWN_TERMINATION_STATUS, UNCOVERED_TERMINATION_STATUS, 
-    FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_SOLUTION_STATUS, UNCOVERED_SOLUTION_STATUS
+    FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, UNKNOWN_SOLUTION_STATUS, 
+    UNCOVERED_SOLUTION_STATUS
 
 include("interface.jl")
 include("nestedenum.jl")

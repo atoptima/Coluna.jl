@@ -336,7 +336,6 @@ end
 function Base.print(io::IO, form::AbstractFormulation, optstate::OptimizationState)
     println(io, "┌ Optimization state ")
     println(io, "│ Termination status: ", optstate.termination_status)
-    println(io, "│ Solution status: ", optstate.solution_status)
     println(io, "| Incumbents: ", optstate.incumbents)
     n = nb_ip_primal_sols(optstate)
     println(io, "| IP Primal solutions (",n,")")

@@ -160,7 +160,7 @@ If the subsolver called through MOI returns a
 todo
 """
 @enum(
-    SolutionStatus, FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_SOLUTION_STATUS,
+    SolutionStatus, FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, UNKNOWN_SOLUTION_STATUS,
     UNCOVERED_SOLUTION_STATUS
 )
 
