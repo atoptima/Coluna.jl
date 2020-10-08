@@ -3,7 +3,6 @@ getvalue(bnd::Bound) = ColunaBase.getvalue(bnd)
 
 mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
-    solution_status::SolutionStatus
     incumbents::ObjValues{S}
     max_length_ip_primal_sols::Int
     max_length_lp_primal_sols::Int
@@ -40,7 +39,6 @@ end
 """
     OptimizationState(
         form; 
-        solution_status = UNKNOWN_SOLUTION_STATUS, 
         termination_status = UNKNOWN_TERMINATION_STATUS,
         ip_primal_bound = nothing, 
         ip_dual_bound = nothing, 
@@ -55,7 +53,7 @@ end
         )
 
 A convenient structure to maintain and return solutions and bounds of a formulation `form` during an
-optimization process. The feasibility and termination statuses are considered as
+optimization process. The termination statuses is considered as
 unknown by default. You can define the initial incumbent bounds using `ip_primal_bound`,
 `ip_dual_bound`, `lp_primal_bound`, and `lp_primal_bound` keyword arguments. Incumbent
 bounds are set to infinite (according to formulation objective sense) by default.
@@ -69,7 +67,6 @@ best bound.
 """
 function OptimizationState(
     form::F;
-    solution_status::SolutionStatus = UNKNOWN_SOLUTION_STATUS,
     termination_status::TerminationStatus = UNKNOWN_TERMINATION_STATUS,
     ip_primal_bound = nothing,
     ip_dual_bound = nothing,
@@ -92,7 +89,6 @@ function OptimizationState(
     S = getobjsense(form)
     state = OptimizationState{F,S}(
         termination_status, 
-        solution_status, 
         incumbents,
         max_length_ip_primal_sols,
         max_length_lp_primal_sols,
@@ -110,7 +106,6 @@ function OptimizationState(
 )
     newor = OptimizationState(
         form,
-        solution_status = getsolutionstatus(or),
         termination_status = getterminationstatus(or),
         ip_primal_bound = get_ip_primal_bound(or),
         ip_dual_bound = get_ip_dual_bound(or),
@@ -136,7 +131,6 @@ function CopyBoundsAndStatusesFromOptState(
 )
     state = OptimizationState(
         form,
-        solution_status = getsolutionstatus(source_state),
         termination_status = getterminationstatus(source_state),
         ip_primal_bound = get_ip_primal_bound(source_state),
         lp_primal_bound = PrimalBound(form),
@@ -150,13 +144,13 @@ function CopyBoundsAndStatusesFromOptState(
 end
 
 getterminationstatus(state::OptimizationState) = state.termination_status
-getsolutionstatus(state::OptimizationState) = state.solution_status
+#getsolutionstatus(state::OptimizationState) = state.solution_status
 
 setterminationstatus!(state::OptimizationState, status::TerminationStatus) = state.termination_status = status
-setsolutionstatus!(state::OptimizationState, status::SolutionStatus) = state.solution_status = status
+#setsolutionstatus!(state::OptimizationState, status::SolutionStatus) = state.solution_status = status
 
-isfeasible(state::OptimizationState) = state.solution_status == FEASIBLE_SOL
-isinfeasible(state::OptimizationState) = state.solution_status == INFEASIBLE_SOL
+#isfeasible(state::OptimizationState) = state.solution_status == FEASIBLE_SOL
+#isinfeasible(state::OptimizationState) = state.solution_status == INFEASIBLE_SOL
 
 getincumbents(state::OptimizationState) = state.incumbents
 
@@ -238,7 +232,6 @@ function update_all_ip_primal_solutions!(
 end
 
 function update!(dest_state::OptimizationState, orig_state::OptimizationState)
-    setsolutionstatus!(dest_state, getsolutionstatus(orig_state))
     setterminationstatus!(dest_state, getterminationstatus(orig_state))
     update_all_ip_primal_solutions!(dest_state, orig_state)
     update_ip_dual_bound!(dest_state, get_ip_dual_bound(orig_state))

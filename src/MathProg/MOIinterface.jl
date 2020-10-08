@@ -182,9 +182,9 @@ function _getcolunakind(record::MoiVarRecord)
     return Integ
 end
 
-function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer, 
-                             result::MoiResult{<:Formulation,S},
-                             ) where {S<:Coluna.AbstractSense}
+function fill_primal_result!(
+    form::Formulation, optimizer::MoiOptimizer, result::MoiResult{<:Formulation,S}
+) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
@@ -206,15 +206,15 @@ function fill_primal_result!(form::Formulation, optimizer::MoiOptimizer,
                 push!(solvals, val)
             end
         end
-        add_primal_sol!(result, PrimalSolution(form, solvars, solvals, solcost))
+        add_primal_sol!(result, PrimalSolution(form, solvars, solvals, solcost, FEASIBLE_SOL))
     end
     @logmsg LogLevel(-2) string("Primal bound is ", getprimalbound(result))
     return
 end
 
-function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
-                           result::MoiResult{<:Formulation,S}
-                           ) where {S<:Coluna.AbstractSense}
+function fill_dual_result!(
+    form::Formulation, optimizer::MoiOptimizer, result::MoiResult{<:Formulation,S}
+) where {S<:Coluna.AbstractSense}
     inner = getinner(optimizer)
     for res_idx in 1:MOI.get(inner, MOI.ResultCount())
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
@@ -236,7 +236,7 @@ function fill_dual_result!(form::Formulation, optimizer::MoiOptimizer,
                 push!(solvals, val)      
             end
         end
-        add_dual_sol!(result, DualSolution(form, solconstrs, solvals, solcost))
+        add_dual_sol!(result, DualSolution(form, solconstrs, solvals, solcost, FEASIBLE_SOL))
     end
     @logmsg LogLevel(-2) string("Dual bound is ", getdualbound(result))
     return

@@ -285,10 +285,8 @@ function determine_statuses(data::TreeSearchRuntimeData)
     treestate = getoptstate(data)
     found_sols = (nb_ip_primal_sols(treestate) > 0)
     gap_is_zero = (get_ip_primal_bound(treestate) / get_ip_dual_bound(treestate) ≈ 1.0)
-    found_sols && setsolutionstatus!(treestate, FEASIBLE_SOL)
     gap_is_zero && setterminationstatus!(treestate, OPTIMAL)
     if !found_sols # Implies that gap is not zero
-        setsolutionstatus!(treestate, EMPTY_SOL)
         # Determine if we can prove that is was infeasible
         if fully_explored
             setterminationstatus!(treestate, INFEASIBLE)

@@ -273,7 +273,7 @@ function solve_sp_to_gencut!(
             optresult = optimize!(spform)
         end
 
-        if !isfeasible(optresult) # if status != MOI.OPTIMAL
+        if getterminationstatus(optresult) == INFEASIBLE # if status != MOI.OPTIMAL
             sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
             bd = PrimalBound(spform) 
@@ -475,24 +475,22 @@ function bend_cutting_plane_main_loop!(
         
         optresult, master_time = solve_relaxed_master!(masterform)
 
-        if getsolutionstatus(optresult) == INFEASIBLE_SOL
+        if getterminationstatus(optresult) == INFEASIBLE
             db = - getvalue(DualBound(masterform))
             pb = - getvalue(PrimalBound(masterform))
             set_lp_dual_bound!(bnd_optstate, DualBound(masterform, db))
             set_lp_primal_bound!(bnd_optstate, PrimalBound(masterform, pb))
             setterminationstatus!(bnd_optstate, INFEASIBLE)
-            setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
             return 
         end
-           
+        
         master_dual_sol = getbestdualsol(optresult)
         master_primal_sol = getbestprimalsol(optresult)
 
-        if !isfeasible(optresult) || master_primal_sol === nothing || master_dual_sol === nothing
-            error("Benders algorithm:  the relaxed master LP is infeasible or unboundedhas no solution.")
+        if getterminationstatus(optresult) == INFEASIBLE || master_primal_sol === nothing || master_dual_sol === nothing
+            error("Benders algorithm:  the relaxed master LP is infeasible or unbounded has no solution.")
             setterminationstatus!(bnd_optstate, INFEASIBLE)
-            setsolutionstatus!(bnd_optstate, EMPTY_SOL)
-            return 
+            return
         end
 
         update_lp_dual_sol!(bnd_optstate, master_dual_sol)
@@ -515,7 +513,6 @@ function bend_cutting_plane_main_loop!(
 
             if nb_new_cuts < 0
                 #@error "infeasible subproblem."
-                setsolutionstatus!(bnd_optstate, EMPTY_SOL)
                 setterminationstatus!(bnd_optstate, INFEASIBLE)
                 return
             end
@@ -537,7 +534,6 @@ function bend_cutting_plane_main_loop!(
             
             if nb_bc_iterations >= algo.max_nb_iterations
                 @warn "Maximum number of cut generation iteration is reached."
-                setsolutionstatus!(bnd_optstate, INFEASIBLE_SOL)
                 setterminationstatus!(bnd_optstate, OTHER_LIMIT)
                 break # loop on separation phases
             end
