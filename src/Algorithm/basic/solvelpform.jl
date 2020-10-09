@@ -28,6 +28,7 @@ function get_storages_usage(
     storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
     push!(storages_usage, (form, StaticVarConstrStoragePair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
+        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
@@ -54,17 +55,25 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         relax_integrality!(form)
     end
 
-    optimizer_result = optimize_lp_form!(algo, getoptimizer(form), form)
+    if isa(form, Formulation{MathProg.AbstractMasterDuty})
+        partsolstorage = getstorage(data, PartialSolutionStoragePair)
+        partial_solution = get_primal_solution(partsolstorage, masterform)
+    else    
+        partial_solution = PrimalSolution(form)
+    end
 
-    setfeasibilitystatus!(optstate, getfeasibilitystatus(optimizer_result))    
+    optimizer_result = optimize_lp_form!(algo, getoptimizer(form), form)
+ 
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))   
 
     lp_primal_sol = getbestprimalsol(optimizer_result)
     if lp_primal_sol !== nothing
         add_lp_primal_sol!(optstate, lp_primal_sol)
+        set_lp_primal_bound!(optstate, get_lp_primal_bound(optstate) + getvalue(partial_solution))
         if algo.get_ip_primal_solution && isinteger(lp_primal_sol) && 
             !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
-            add_ip_primal_sol!(optstate, lp_primal_sol)
+            complete_sol = concatenate_sols(lp_primal_sol, partial_solution)            
+            add_ip_primal_sol!(optstate, complete_sol)
         end
     end
 
@@ -73,6 +82,7 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         if lp_dual_sol !== nothing
             if algo.set_dual_bound
                 update_lp_dual_sol!(optstate, lp_dual_sol)
+                set_lp_dual_bound!(optstate, get_lp_dual_bound(optstate) + getvalue(partial_solution))
             else
                 set_lp_dual_sol!(optstate, lp_dual_sol)
             end

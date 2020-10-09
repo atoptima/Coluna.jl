@@ -161,7 +161,7 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     nodestate = getoptstate(node)
     reform = getreform(data)
     if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, data, EmptyInput()))
-        setfeasibilitystatus!(nodestate, INFEASIBLE)
+        setterminationstatus!(nodestate, INFEASIBLE)
         return 
     end
 

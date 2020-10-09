@@ -355,7 +355,7 @@ function get_primal_solution(storage::PartialSolutionStorage, form::Formulation)
     for (varid, value) in storage.solution
         solcost += getcurcost(form, varid) * value
     end
-    return PrimalSolution(form, varids, vals, solcost)
+    return PrimalSolution(form, varids, vals, solcost, UNKNOWN_FEASIBILITY)
 end    
 
 

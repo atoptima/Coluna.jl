@@ -9,9 +9,9 @@ function PrimalSolution(form::M) where {M}
 end
 
 function PrimalSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
+    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus
 ) where {M<:AbstractFormulation,De,Va}
-    return Solution{M,De,Va}(form, decisions, vals, val)
+    return Solution{M,De,Va}(form, decisions, vals, val, status)
 end
 
 function DualSolution(form::M) where {M}
@@ -19,9 +19,9 @@ function DualSolution(form::M) where {M}
 end
 
 function DualSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
+    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus
 ) where {M<:AbstractFormulation,De,Va}
-    return Solution{M,De,Va}(form, decisions, vals, val)
+    return Solution{M,De,Va}(form, decisions, vals, val, status)
 end
 
 function Base.isinteger(sol::Solution)
@@ -62,7 +62,9 @@ function concatenate_sols(sola::PrimalSolution{M}, solb::PrimalSolution{M}) wher
         push!(ids, varid)
         push!(vals, value)
     end
-    return Solution{M,VarId,Float64}(sola.model, ids, vals, getvalue(sola) + getvalue(solb))
+    return Solution{M,VarId,Float64}(
+        sola.model, ids, vals, getvalue(sola) + getvalue(solb), sola.status
+    )
 end
 
 function Base.print(io::IO, form::AbstractFormulation, sol::Solution)

@@ -26,7 +26,7 @@ function get_local_primal_solution(storage::PreprocessingStorage, form::Formulat
     for (varid, value) in storage.localpartialsol
         solcost += getcurcost(form, varid) * value
     end
-    return PrimalSolution(form, varids, vals, solcost)
+    return PrimalSolution(form, varids, vals, solcost, UNKNOWN_FEASIBILITY)
 end    
 
 function PreprocessingStorage(form::Formulation) 

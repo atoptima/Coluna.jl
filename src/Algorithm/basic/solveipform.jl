@@ -30,6 +30,7 @@ function get_storages_usage(
     storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
     push!(storages_usage, (form, StaticVarConstrStoragePair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
+        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
@@ -51,34 +52,41 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
-        setterminationstatus!(optstate, EMPTY_RESULT)
+        setterminationstatus!(optstate, UNKNOWN_TERMINATION_STATUS)
         return OptimizationOutput(optstate)
     end
 
     optimizer_result = optimize_ip_form!(algo, getoptimizer(form), form)
 
-    setfeasibilitystatus!(optstate, getfeasibilitystatus(optimizer_result))
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))
 
-    bestprimalsol = getbestprimalsol(optimizer_result)
+    if isa(form, Formulation{MathProg.AbstractMasterDuty})
+        partsolstorage = getstorage(data, PartialSolutionStoragePair)
+        partial_solution = get_primal_solution(partsolstorage, masterform)
+    else    
+        partial_solution = PrimalSolution(form)
+    end
+                                                      
+    bestprimalsol = getbestprimalsol(optimizer_result)    
     if bestprimalsol !== nothing
-        add_ip_primal_sol!(optstate, bestprimalsol)
+        completesol = concatenate_sols(bestprimalsol, partial_solution)            
+        add_ip_primal_sol!(optstate, completesol)
         if algo.log_level == 0
-            @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(optstate))
+            @printf "Found primal solution of %.4f \n" get_best_ip_primal_sol(optstate)
         end
         @logmsg LogLevel(-3) get_best_ip_primal_sol(optstate)
     else
         if algo.log_level == 0
             println(
                 "No primal solution found. Termination status is ",
-                getterminationstatus(optstate), ". Feasibility status is ",
-                getfeasibilitystatus(optstate), "."
+                getterminationstatus(optstate), ". "
             )
         end
     end
     if algo.get_dual_bound && getterminationstatus(optimizer_result) == OPTIMAL
         # TO DO : dual bound should be set in optimizer_result
-        set_ip_dual_bound!(optstate, DualBound(form, getvalue(getprimalbound(optimizer_result))))
+        dual_bound = getvalue(getprimalbound(optimizer_result)) + getvalue(partial_solution)
+        set_ip_dual_bound!(optstate, DualBound(form, dual_bound))
     end
     return OptimizationOutput(optstate)
 end

@@ -165,6 +165,7 @@ function run!(algo::DiveAlgorithm, data::ReformData, input::DivideInput)::Divide
     master = getmodel(masterdata)
     optstate = getoptstate(parent)
     solution = get_best_lp_primal_sol(optstate)
+    @show solution
 
     storages_to_restore = StoragesUsageDict(
         (master, PreprocessingStoragePair) => READ_AND_WRITE,
@@ -205,16 +206,20 @@ function run!(algo::DiveAlgorithm, data::ReformData, input::DivideInput)::Divide
         rnd_down_value = round(val + algo.int_tol, RoundDown)
         if rnd_up_value > algo.int_tol 
             push!(candidates, RoundingCandidate(
-                algo, master, var_id, rnd_up_value, true, rnd_up_value
+                algo, master, var_id, val, true, rnd_up_value
             ))  
         end
         if rnd_down_value > algo.int_tol 
             push!(candidates, RoundingCandidate(
-                algo, master, var_id, rnd_down_value, false, rnd_down_value
+                algo, master, var_id, val, false, rnd_down_value
             ))
         end
     end
     sort!(candidates, lt=better_candidate)
+    println()
+    # for cand in candidates
+    #     println("Candidate ", getname(master, cand.varid), " with value ", cand.value, " round ", cand.isroundup ? "up" : "down")
+    # end
 
     best_cand = candidates[begin]
     add_to_localpartialsol!(preprocess_storage, best_cand.varid, best_cand.rnd_value)
