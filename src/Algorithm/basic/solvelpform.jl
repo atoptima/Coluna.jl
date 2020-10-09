@@ -66,7 +66,7 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
 
     if algo.consider_partial_solution
         partsolstorage = getstorage(data, PartialSolutionStoragePair)
-        partial_solution = get_primal_solution(partsolstorage, masterform)
+        partial_solution = get_primal_solution(partsolstorage, form)
     else    
         partial_solution = EmptyPrimalSolution(form)
     end

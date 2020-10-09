@@ -641,7 +641,7 @@ function update_upper_bound!(
             new_lb_in_sp = (
             getcurlb(master, clone_in_master) - (max(sp_ub, 1) - 1) * getcurub(form, varid)
             )
-            if update_lower_bound!(alg_data, var, form, new_lb_in_sp)
+            if update_lower_bound!(algo, alg_data, var, form, new_lb_in_sp)
                 return true
             end
         end

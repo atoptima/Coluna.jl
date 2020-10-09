@@ -97,7 +97,7 @@ function perform_strong_branching_with_phases!(
     master = getmaster(getreform(data))
     exploitsprimalsolutions::Bool = exploits_primal_solutions(algo)    
     sbstate = CopyBoundsAndStatusesFromOptState(
-        master, getoptstate(input), exploitsprimalsolutions
+        master, getoptstate(input), exploitsprimalsolutions, false
     )
 
     for (phase_index, current_phase) in enumerate(algo.phases)
