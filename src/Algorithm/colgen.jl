@@ -95,7 +95,7 @@ function run!(algo::ColumnGeneration, data::ReformData, input::OptimizationInput
         end
     end
 
-    @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getfeasibilitystatus(optstate))
+    @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getterminationstatus(optstate))
 
     return OptimizationOutput(optstate)
 end
@@ -277,31 +277,33 @@ function solve_sp_to_gencol!(
 
     output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
     sp_optstate = getoptstate(output)
-    spinfo.isfeasible = isfeasible(sp_optstate)
     sp_sol_value = get_ip_primal_bound(sp_optstate)
 
     compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), sp_sol_value)
 
     sense = getobjsense(masterform)
-    if spinfo.isfeasible && nb_ip_primal_sols(sp_optstate) > 0
-        spinfo.bestsol = get_best_ip_primal_sol(sp_optstate)
-        for sol in get_ip_primal_sols(sp_optstate)
-            if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
-                insertion_status, col_id = setprimalsol!(spform, sol)
-                if insertion_status
-                    push!(spinfo.recorded_sol_ids, col_id)
-                elseif !insertion_status && !iscuractive(masterform, col_id)
-                    push!(spinfo.sol_ids_to_activate, col_id)
-                else
-                    msg = """
-                    Column already exists as $(getname(masterform, col_id)) and is already active.
-                    """
-                    @warn string(msg)
+    if nb_ip_primal_sols(sp_optstate) > 0
+        bestsol = get_best_ip_primal_sol(sp_optstate)
+        if bestsol.status == FEASIBLE_SOL
+            spinfo.bestsol = bestsol
+            spinfo.isfeasible = true
+            for sol in get_ip_primal_sols(sp_optstate)
+                if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
+                    insertion_status, col_id = setprimalsol!(spform, sol)
+                    if insertion_status
+                        push!(spinfo.recorded_sol_ids, col_id)
+                    elseif !insertion_status && !iscuractive(masterform, col_id)
+                        push!(spinfo.sol_ids_to_activate, col_id)
+                    else
+                        msg = """
+                        Column already exists as $(getname(masterform, col_id)) and is already active.
+                        """
+                        @warn string(msg)
+                    end
                 end
             end
         end
     end
-
     return
 end
 
@@ -559,7 +561,7 @@ function move_convexity_constrs_dual_values!(
             push!(values, value)
         end
     end
-    return DualSolution(dualsol.model, constrids, values, newbound)
+    return DualSolution(dualsol.model, constrids, values, newbound, FEASIBLE_SOL)
 end
 
 function get_pure_master_vars(master::Formulation)
@@ -628,11 +630,10 @@ function cg_main_loop!(
         rm_optstate = getoptstate(rm_output)
         master_val = get_lp_primal_bound(rm_optstate)
 
-        if phase != 1 && !isfeasible(rm_optstate)
-            status = getfeasibilitystatus(rm_optstate)
+        if phase != 1 && getterminationstatus(rm_optstate) == INFEASIBLE
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
             "(feasibility status = " , status, ") during phase != 1.")
-            setfeasibilitystatus!(cg_optstate, status)
+            setterminationstatus!(cg_optstate, INFEASIBLE)
             return true
         end
 
@@ -688,7 +689,7 @@ function cg_main_loop!(
 
             if nb_new_col < 0
                 @error "Infeasible subproblem."
-                setfeasibilitystatus!(cg_optstate, INFEASIBLE)
+                setterminationstatus!(cg_optstate, INFEASIBLE)
                 return true
             end
 
@@ -731,7 +732,7 @@ function cg_main_loop!(
             pb = - getvalue(PrimalBound(reform))
             set_lp_dual_bound!(cg_optstate, DualBound(reform, db))
             set_lp_primal_bound!(cg_optstate, PrimalBound(reform, pb))
-            setfeasibilitystatus!(cg_optstate, INFEASIBLE)
+            setterminationstatus!(cg_optstate, INFEASIBLE)
             @logmsg LogLevel(0) "Phase one determines infeasibility."
             return true
         end

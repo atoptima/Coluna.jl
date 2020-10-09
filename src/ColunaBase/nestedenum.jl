@@ -99,7 +99,7 @@ function _build_print_expression(names, values)
     push!(print_expr.args, :(Base.print(io::IO, obj::$(root_name)))) #signature
 
     # build the if list in reverse order
-    prev_cond = :(print(io, "UNKOWN_DUTY"))
+    prev_cond = :(print(io, "UNKNOWN_DUTY"))
     for i in length(names):-1:2
         head = (i == 2) ? :if : :elseif
         msg = string(names[i])

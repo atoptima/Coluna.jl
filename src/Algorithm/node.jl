@@ -59,7 +59,7 @@ setinfeasible(n::Node, status::Bool) = n.infeasible = status
 
 function to_be_pruned(node::Node)
     nodestate = getoptstate(node)
-    isinfeasible(nodestate) && return true
+    getterminationstatus(nodestate) == INFEASIBLE && return true
     bounds_ratio = get_ip_primal_bound(nodestate) / get_ip_dual_bound(nodestate)
     return isapprox(bounds_ratio, 1) || ip_gap(nodestate) < 0
 end

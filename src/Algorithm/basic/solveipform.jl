@@ -48,13 +48,12 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
-        setterminationstatus!(optstate, EMPTY_RESULT)
+        setterminationstatus!(optstate, UNKNOWN_TERMINATION_STATUS)
         return OptimizationOutput(optstate)
     end
 
     optimizer_result = optimize_ip_form!(algo, getoptimizer(form), form)
 
-    setfeasibilitystatus!(optstate, getfeasibilitystatus(optimizer_result))
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))
 
     bestprimalsol = getbestprimalsol(optimizer_result)
@@ -68,8 +67,7 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
         if algo.log_level == 0
             println(
                 "No primal solution found. Termination status is ",
-                getterminationstatus(optstate), ". Feasibility status is ",
-                getfeasibilitystatus(optstate), "."
+                getterminationstatus(optstate), ". "
             )
         end
     end

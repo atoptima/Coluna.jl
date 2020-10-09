@@ -9,9 +9,9 @@ function PrimalSolution(form::M) where {M}
 end
 
 function PrimalSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
+    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus
 ) where {M<:AbstractFormulation,De,Va}
-    return Solution{M,De,Va}(form, decisions, vals, val)
+    return Solution{M,De,Va}(form, decisions, vals, val, status)
 end
 
 function DualSolution(form::M) where {M}
@@ -19,9 +19,9 @@ function DualSolution(form::M) where {M}
 end
 
 function DualSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64
+    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus
 ) where {M<:AbstractFormulation,De,Va}
-    return Solution{M,De,Va}(form, decisions, vals, val)
+    return Solution{M,De,Va}(form, decisions, vals, val, status)
 end
 
 function Base.isinteger(sol::Solution)
