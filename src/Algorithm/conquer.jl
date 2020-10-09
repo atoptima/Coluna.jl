@@ -218,7 +218,7 @@ end
 ####################################################################
 
 @with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
-    masterlpalgo::SolveLpForm = SolveLpForm()
+    masterlpalgo::SolveLpForm = SolveLpFormInRestrMasterLPConquer()
 end
 
 # RestrMasterLPConquer does not use any storage, therefore get_storages_usage() is not defined for it

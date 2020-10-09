@@ -227,7 +227,6 @@ function fix_local_partial_solution!(algo::PreprocessAlgorithm, alg_data::Prepro
     constrs_with_modified_rhs = Constraint[]
 
     original_solution = proj_cols_on_rep(alg_data.local_partial_sol, master)
-    @show original_solution
 
     # Updating rhs of master constraints
     for (varid, val) in original_solution

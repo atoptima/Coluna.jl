@@ -21,7 +21,7 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
 
 """
 @with_kw struct ColumnGeneration <: AbstractOptimizationAlgorithm
-    restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
+    restr_master_solve_alg = SolveRestrMasterInColGen()
     #TODO : pricing problem solver may be different depending on the
     #       pricing subproblem
     pricing_prob_solve_alg = SolveIpForm(deactivate_artificial_vars = false,

@@ -18,7 +18,7 @@ function RootNode(
     form::AbstractFormulation, optstate::OptimizationState, storagestateids::StorageStatesVector, skipconquer::Bool
 )
     nodestate = CopyBoundsAndStatusesFromOptState(form, optstate, false, skipconquer)
-    tree_order = skipconquer ? 1 : -1
+    tree_order = skipconquer ? 0 : -1
     return Node(
         tree_order, false, 0, nothing, nodestate, "", storagestateids, skipconquer
     )

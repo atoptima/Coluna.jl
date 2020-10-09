@@ -60,11 +60,11 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
 
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))
 
-    if isa(form, Formulation{MathProg.AbstractMasterDuty})
+    if isa(form, Formulation{MathProg.DwMaster})
         partsolstorage = getstorage(data, PartialSolutionStoragePair)
-        partial_solution = get_primal_solution(partsolstorage, masterform)
+        partial_solution = get_primal_solution(partsolstorage, form)
     else    
-        partial_solution = PrimalSolution(form)
+        partial_solution = EmptyPrimalSolution(form)
     end
                                                       
     bestprimalsol = getbestprimalsol(optimizer_result)    
@@ -72,7 +72,7 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
         completesol = concatenate_sols(bestprimalsol, partial_solution)            
         add_ip_primal_sol!(optstate, completesol)
         if algo.log_level == 0
-            @printf "Found primal solution of %.4f \n" get_best_ip_primal_sol(optstate)
+            @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(optstate))
         end
         @logmsg LogLevel(-3) get_best_ip_primal_sol(optstate)
     else

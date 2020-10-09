@@ -9,13 +9,20 @@
 Solve a linear program.
 """
 @with_kw struct SolveLpForm <: AbstractOptimizationAlgorithm 
-    get_ip_primal_solution = false
+    update_ip_primal_solution = false
+    consider_partial_solution = false
     get_dual_solution = false
     relax_integrality = false
     set_dual_bound = false
     silent = true
     log_level = 0
 end
+
+SolveRestrMasterInColGen() =
+    SolveLpForm(get_dual_solution = true)
+
+SolveLpFormInRestrMasterLPConquer() =
+    SolveLpForm(update_ip_primal_solution = true, consider_partial_solution = true)
 
 # SolveLpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
@@ -28,10 +35,12 @@ function get_storages_usage(
     storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
     push!(storages_usage, (form, StaticVarConstrStoragePair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
+    end
+    if algo.consider_partial_solution
+        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
     end
     return storages_usage
 end
@@ -55,11 +64,11 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         relax_integrality!(form)
     end
 
-    if isa(form, Formulation{MathProg.AbstractMasterDuty})
+    if algo.consider_partial_solution
         partsolstorage = getstorage(data, PartialSolutionStoragePair)
         partial_solution = get_primal_solution(partsolstorage, masterform)
     else    
-        partial_solution = PrimalSolution(form)
+        partial_solution = EmptyPrimalSolution(form)
     end
 
     optimizer_result = optimize_lp_form!(algo, getoptimizer(form), form)
@@ -70,7 +79,7 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
     if lp_primal_sol !== nothing
         add_lp_primal_sol!(optstate, lp_primal_sol)
         set_lp_primal_bound!(optstate, get_lp_primal_bound(optstate) + getvalue(partial_solution))
-        if algo.get_ip_primal_solution && isinteger(lp_primal_sol) && 
+        if algo.update_ip_primal_solution && isinteger(lp_primal_sol) && 
             !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
             complete_sol = concatenate_sols(lp_primal_sol, partial_solution)            
             add_ip_primal_sol!(optstate, complete_sol)

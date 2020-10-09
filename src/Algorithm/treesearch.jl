@@ -100,7 +100,8 @@ to select the next node to treat.
     opennodeslimit::Int64 = 100 
     branchingtreefile::Union{Nothing, String} = nothing
     skiprootnodeconquer = false # true for diving heuristics
-    storelpsolution = false 
+    storelpsolution = false
+    print_node_info = true
 end
 
 #TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storages)
@@ -200,7 +201,7 @@ function run_conquer_algorithm!(
         tsdata.tree_order += 1
     end
 
-    print_node_info_before_conquer(tsdata, node)
+    algo.print_node_info && print_node_info_before_conquer(tsdata, node)
 
     node.conquerwasrun && return
 

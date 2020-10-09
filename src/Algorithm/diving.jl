@@ -45,11 +45,14 @@ DefaultDivingHeuristic() = ParameterisedHeuristic(
     TreeSearchAlgorithm(
         conqueralg = ColCutGenConquer(
             run_preprocessing = true,
-            preprocess = PreprocessAlgorithm(preprocess_subproblems = false, printing = false)
+            preprocess = PreprocessAlgorithm(preprocess_subproblems = false, printing = false),
+            colgen = ColumnGeneration(smoothing_stabilization = 1.0),
+            primal_heuristics = []
         ), 
         dividealg = DiveAlgorithm(), 
         skiprootnodeconquer = true, 
-        maxnumnodes = 5
+        maxnumnodes = 5,
+        print_node_info = false
     ),
     1.0, 1.0, 1, 1000, "Pure diving"
 )    
@@ -165,7 +168,6 @@ function run!(algo::DiveAlgorithm, data::ReformData, input::DivideInput)::Divide
     master = getmodel(masterdata)
     optstate = getoptstate(parent)
     solution = get_best_lp_primal_sol(optstate)
-    @show solution
 
     storages_to_restore = StoragesUsageDict(
         (master, PreprocessingStoragePair) => READ_AND_WRITE,
@@ -216,10 +218,6 @@ function run!(algo::DiveAlgorithm, data::ReformData, input::DivideInput)::Divide
         end
     end
     sort!(candidates, lt=better_candidate)
-    println()
-    # for cand in candidates
-    #     println("Candidate ", getname(master, cand.varid), " with value ", cand.value, " round ", cand.isroundup ? "up" : "down")
-    # end
 
     best_cand = candidates[begin]
     add_to_localpartialsol!(preprocess_storage, best_cand.varid, best_cand.rnd_value)

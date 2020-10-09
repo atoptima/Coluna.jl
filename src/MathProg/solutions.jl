@@ -14,6 +14,10 @@ function PrimalSolution(
     return Solution{M,De,Va}(form, decisions, vals, val, status)
 end
 
+function EmptyPrimalSolution(form::M) where {M}
+    return Solution{M,VarId,Float64}(form, VarId[], Float64[], 0.0, UNKNOWN_FEASIBILITY)
+end
+
 function DualSolution(form::M) where {M}
     return Solution{M,ConstrId,Float64}(form)
 end
