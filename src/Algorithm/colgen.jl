@@ -467,12 +467,12 @@ ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opti
 function update_lagrangian_dual_bound!(
     stabstorage::ColGenStabilizationStorage, optstate::OptimizationState{F, S}, algo::ColumnGeneration,
     master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
-    spinfos::Dict{FormId, SubprobInfo}
+    partialsol::PrimalSolution, spinfos::Dict{FormId, SubprobInfo}
 ) where {F, S}
 
     sense = getobjsense(master)
 
-    puremastvars_contrib::Float64 = 0.0
+    puremastvars_contrib::Float64 = getvalue(partialsol)
     # if smoothing is not active the pure master variables contribution
     # is already included in the value of the dual solution
     if smoothing_is_active(stabstorage)
@@ -549,8 +549,6 @@ function move_convexity_constrs_dual_values!(
         dualsol[spinfo.lb_constr_id] = zero(0.0)
         dualsol[spinfo.ub_constr_id] = zero(0.0)
         newbound -= (spinfo.lb_dual * spinfo.lb + spinfo.ub_dual * spinfo.ub)
-        # sp_bounds_contrib = spinfo.lb_dual * spinfo.lb + spinfo.ub_dual * spinfo.ub
-        # newbound += getobjsense(form) == MinSense ? - sp_bounds_contrib : sp_bounds_contrib
     end
     constrids = Vector{ConstrId}()
     values = Vector{Float64}()
@@ -616,8 +614,6 @@ function cg_main_loop!(
     partsolstorage = getstorage(getmasterdata(data), PartialSolutionStoragePair)
     partial_solution = get_primal_solution(partsolstorage, masterform)
 
-    #stopped here
-
     init_stab_before_colgen_loop!(stabstorage)
 
     while true
@@ -656,15 +652,23 @@ function cg_main_loop!(
         end
         lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
 
+        # if iteration == 0 
+        #     @show masterform
+        # end
+
         TO.@timeit Coluna._to "Getting primal solution" begin
         if nb_lp_primal_sols(rm_optstate) > 0
-            rm_sol = get_best_lp_primal_sol(rm_optstate)
-            set_lp_primal_sol!(cg_optstate, rm_sol)
-            set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate))
+            rm_complete_sol = concatenate_sols(get_best_lp_primal_sol(rm_optstate), partial_solution)            
+            # if iteration <= 1
+            #     @show proj_cols_on_rep(get_best_lp_primal_sol(rm_optstate), masterform)
+            #     @show partial_solution get_best_lp_primal_sol(rm_optstate) rm_complete_sol 
+            # end
+            set_lp_primal_sol!(cg_optstate, rm_complete_sol)
+            set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate) + getvalue(partial_solution))
 
-            if phase != 1 && !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
-                if isinteger(proj_cols_on_rep(rm_sol, masterform))
-                    update_ip_primal_sol!(cg_optstate, rm_sol)
+            if phase != 1 && !contains(rm_complete_sol, varid -> isanArtificialDuty(getduty(varid)))
+                if isinteger(proj_cols_on_rep(rm_complete_sol, masterform))
+                    update_ip_primal_sol!(cg_optstate, rm_complete_sol)
                 end
             end
         else
@@ -702,7 +706,8 @@ function cg_main_loop!(
 
             TO.@timeit Coluna._to "Update Lagrangian bound" begin
                 update_lagrangian_dual_bound!(
-                    stabstorage, cg_optstate, algo, masterform, pure_master_vars, smooth_dual_sol, spinfos
+                    stabstorage, cg_optstate, algo, masterform, pure_master_vars, 
+                    smooth_dual_sol, partial_solution, spinfos
                 )
             end
 
@@ -729,6 +734,8 @@ function cg_main_loop!(
 
         if ip_gap(cg_optstate) < algo.optimality_tol
             setterminationstatus!(cg_optstate, OPTIMAL)
+            @show get_best_lp_primal_sol(cg_optstate)
+            @show proj_cols_on_rep(get_best_lp_primal_sol(cg_optstate), masterform)
             @logmsg LogLevel(0) "Dual bound reached primal bound."
             return true
         end
@@ -742,6 +749,8 @@ function cg_main_loop!(
             return true
         end
         if nb_new_columns == 0 || lp_gap(cg_optstate) < algo.optimality_tol
+            @show get_best_lp_primal_sol(cg_optstate)
+            @show proj_cols_on_rep(get_best_lp_primal_sol(cg_optstate), masterform)
             @logmsg LogLevel(0) "Column Generation Algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL)
             return false
@@ -752,6 +761,7 @@ function cg_main_loop!(
             return true
         end
     end
+
     return false
 end
 

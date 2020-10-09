@@ -62,9 +62,10 @@ export no_optimizer_builder, set_original_formulation!,
        convert_status, getduty, getbestdualsol,
        computereducedrhs,
        unsafe_getbestprimalsol,
-        find_owner_formulation,
+       find_owner_formulation,
        getsortuid,
-       contains, setprimalbound!, get_original_formulation
+       contains, setprimalbound!, get_original_formulation,
+       concatenate_sols, getoriginformuid
 
 # Below this line, clean up has been done :
 export optimize!

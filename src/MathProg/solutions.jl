@@ -49,6 +49,22 @@ function contains(sol::DualSolution, f::Function)
     return false
 end
 
+function concatenate_sols(sola::PrimalSolution{M}, solb::PrimalSolution{M}) where {M}
+    length(solb) == 0 && return sola
+
+    ids = Vector{VarId}()
+    vals = Vector{Float64}()
+    for (varid, value) in sola
+        push!(ids, varid)
+        push!(vals, value)
+    end
+    for (varid, value) in solb
+        push!(ids, varid)
+        push!(vals, value)
+    end
+    return Solution{M,VarId,Float64}(sola.model, ids, vals, getvalue(sola) + getvalue(solb))
+end
+
 function Base.print(io::IO, form::AbstractFormulation, sol::Solution)
     println(io, "Solution")
     for (id, val) in sol

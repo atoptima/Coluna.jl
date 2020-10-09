@@ -41,13 +41,18 @@ end
 end
 
 # TO DO : add optional parameters (tolerance, LDS parameters, fix integer part)
-DefaultDivingHeuristic(conquer::AbstractConquerAlgorithm) = 
-    ParameterisedHeuristic(
-        TreeSearchAlgorithm(
-            conqueralg = conquer, dividealg = DiveAlgorithm(), skiprootnodeconquer = true, maxnumnodes = 5
-        ),
-        1.0, 1.0, 1, 1000, "Pure diving"
-    )    
+DefaultDivingHeuristic() = ParameterisedHeuristic(
+    TreeSearchAlgorithm(
+        conqueralg = ColCutGenConquer(
+            run_preprocessing = true,
+            preprocess = PreprocessAlgorithm(preprocess_subproblems = false, printing = false)
+        ), 
+        dividealg = DiveAlgorithm(), 
+        skiprootnodeconquer = true, 
+        maxnumnodes = 5
+    ),
+    1.0, 1.0, 1, 1000, "Pure diving"
+)    
 
 # DiveAlgorithm does not have child algorithms, therefore get_child_algorithms() is not defined
 
