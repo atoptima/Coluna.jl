@@ -57,8 +57,8 @@ function Coluna.Algorithm.run!(
         preprocess_storage = getstorage(masterdata, PreprocessingStoragePair)
         partsol_storage = getstorage(masterdata, PartialSolutionStoragePair)
     
-        add_to_localpartialsol!(preprocess_storage, first(var_vals[begin]), 1.0)
-        add_to_solution!(partsol_storage, first(var_vals[begin]), 1.0)
+        add_to_localpartialsol!(preprocess_storage, first(var_vals[1]), 1.0)
+        add_to_solution!(partsol_storage, first(var_vals[1]), 1.0)
 
         prp_output = run!(algo.preprocess, data, EmptyInput())
         isinfeasible(prp_output) && break

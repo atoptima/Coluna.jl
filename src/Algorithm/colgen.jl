@@ -653,28 +653,10 @@ function cg_main_loop!(
         end
         lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
         
-        # column_found = false
-        # for (varid, val) in getvars(masterform)
-        #     if getname(masterform, varid) == "MC_2000011"
-        #         column_found = true
-        #         spinfo = spinfos[getoriginformuid(varid)]
-        #         spsol = getspsol(masterform, varid)                
-        #         @show spsol
-        #         println(
-        #             "Reduced cost of ", getname(masterform, varid), " is ",
-        #             compute_red_cost(algo, masterform, spinfo, spsol, lp_dual_sol)
-        #         )
-        #     end
-        # end
-
         TO.@timeit Coluna._to "Getting primal solution" begin
         if nb_lp_primal_sols(rm_optstate) > 0
             rm_sol = get_best_lp_primal_sol(rm_optstate)
     
-            # if iteration <= 1
-            #     @show proj_cols_on_rep(get_best_lp_primal_sol(rm_optstate), masterform)
-            #     @show partial_solution get_best_lp_primal_sol(rm_optstate) rm_complete_sol 
-            # end
             set_lp_primal_sol!(cg_optstate, rm_sol)
             set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate) + getvalue(partial_solution))
 
@@ -747,8 +729,6 @@ function cg_main_loop!(
 
         if ip_gap(cg_optstate) < algo.optimality_tol
             setterminationstatus!(cg_optstate, OPTIMAL)
-            # @show get_best_lp_primal_sol(cg_optstate)
-            # @show proj_cols_on_rep(get_best_lp_primal_sol(cg_optstate), masterform)
             @logmsg LogLevel(0) "Dual bound reached primal bound."
             return true
         end
@@ -762,8 +742,6 @@ function cg_main_loop!(
             return true
         end
         if nb_new_columns == 0 || lp_gap(cg_optstate) < algo.optimality_tol
-            # @show get_best_lp_primal_sol(cg_optstate)
-            # @show proj_cols_on_rep(get_best_lp_primal_sol(cg_optstate), masterform)
             @logmsg LogLevel(0) "Column Generation Algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL)
             return false
