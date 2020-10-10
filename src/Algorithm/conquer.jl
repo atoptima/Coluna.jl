@@ -52,11 +52,11 @@ function apply_conquer_alg_to_node!(
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(nodestate))
         @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
     end
-    if (ip_gap(nodestate) <= 0.0 + 0.00000001)
+    if ip_gap_closed(nodestate)
         isverbose(algo) && @logmsg LogLevel(-1) string(
-            "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
+            "IP Gap is closed: ", ip_gap(getincumbents(node)), ". Abort treatment."
         )
-    else    
+    else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
         run!(algo, data, ConquerInput(node, storages_to_restore))

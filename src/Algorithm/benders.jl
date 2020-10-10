@@ -2,7 +2,7 @@
     option_use_reduced_cost::Bool = false
     option_increase_cost_in_hybrid_phase::Bool = false
     feasibility_tol::Float64 = 1e-5
-    optimality_tol::Float64 = 1e-5
+    optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     max_nb_iterations::Int = 100
 end
 

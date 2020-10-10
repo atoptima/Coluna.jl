@@ -25,7 +25,6 @@ function Bound{Space,Sense}() where {Space<:AbstractSpace,Sense<:AbstractSense}
     return Bound{Space,Sense}(val)
 end
 
-
 getvalue(b::Bound) = b.value
 Base.float(b::Bound) = b.value
 
@@ -38,7 +37,6 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MinSense} = b
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MaxSense} = b1.value > b2.value
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.value > b2.value
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
-
 
 """
     diff 
@@ -121,9 +119,9 @@ Base.:<(b1::B, b2::B) where {B<:Bound} = b1.value < b2.value
 Base.:(<=)(b1::B, b2::B) where {B<:Bound} = b1.value <= b2.value
 Base.:(>=)(b1::B, b2::B) where {B<:Bound} = b1.value >= b2.value
 Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value
-Base.isapprox(b1::B, b2::B) where {B<:Bound} = isapprox(b1.value, b2.value)
-Base.isapprox(b::B, val::Number) where {B<:Bound} = isapprox(b.value, val)
-Base.isapprox(val::Number, b::B) where {B<:Bound} = isapprox(b.value, val)
+Base.isapprox(b1::B, b2::B) where {B<:Bound} = isapprox(b1.value, b2.value) # TODO : rm ?
+Base.isapprox(b::B, val::Number) where {B<:Bound} = isapprox(b.value, val) # TODO : rm ?
+Base.isapprox(val::Number, b::B) where {B<:Bound} = isapprox(b.value, val) # TODO : rm ?
 
 """
     TerminationStatus

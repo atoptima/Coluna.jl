@@ -102,7 +102,8 @@ to select the next node to treat.
     skiprootnodeconquer = false # true for diving heuristics
     rootpriority = 0
     nontrootpriority = 0
-    storelpsolution = false 
+    storelpsolution = false
+    optimality_tol = Coluna.DEF_OPTIMALITY_ATOL
 end
 
 #TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storages)
@@ -218,9 +219,6 @@ function run_conquer_algorithm!(
         set_lp_primal_sol!(treestate, get_best_lp_primal_sol(nodestate)) 
     end 
     return
-end
-
-function update_tree!(data::TreeSearchRuntimeData, output::DivideOutput)
 end
 
 function run_divide_algorithm!(
