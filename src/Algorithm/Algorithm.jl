@@ -67,8 +67,8 @@ export getterminationstatus, getfeasibilitystatus, setterminationstatus!,
     get_best_lp_primal_sol, get_best_lp_dual_sol, update_ip_primal_sol!,
     update_lp_primal_sol!, update_lp_dual_sol!, add_ip_primal_sol!, add_lp_primal_sol!,
     add_lp_dual_sol!, set_ip_primal_sol!, set_lp_primal_sol!, set_lp_dual_sol!,
-    update_all_ip_primal_solutions!, getreform, getmasterdata, getoptstate,
-    run!, isinfeasible
+    get_ip_dual_bound, set_ip_dual_bound!, update_all_ip_primal_solutions!, getreform,
+    getmasterdata, getoptstate, run!, isinfeasible
     
 # Algorithm's types
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
