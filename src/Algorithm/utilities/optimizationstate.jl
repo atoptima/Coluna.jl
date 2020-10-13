@@ -101,33 +101,34 @@ function OptimizationState(
     return state
 end
 
-function OptimizationState(
-    form::AbstractFormulation, or::OptimizationState
-)
-    newor = OptimizationState(
-        form,
-        termination_status = getterminationstatus(or),
-        ip_primal_bound = get_ip_primal_bound(or),
-        ip_dual_bound = get_ip_dual_bound(or),
-        lp_primal_bound = get_lp_primal_bound(or),
-        lp_dual_bound = get_lp_dual_bound(or)
-    )
-    if or.ip_primal_sols !== nothing
-        newor.ip_primal_sols = copy(or.ip_primal_sols)
-    end
-    if or.lp_primal_sols !== nothing
-        newor.lp_primal_sols = copy(or.lp_primal_sols)
-    end
-    if or.lp_primal_sols !== nothing
-        newor.lp_dual_sols = copy(or.lp_primal_sols)
-    end
-    return newor
-end
+# function OptimizationState(
+#     form::AbstractFormulation, or::OptimizationState
+# )
+#     newor = OptimizationState(
+#         form,
+#         termination_status = getterminationstatus(or),
+#         ip_primal_bound = get_ip_primal_bound(or),
+#         ip_dual_bound = get_ip_dual_bound(or),
+#         lp_primal_bound = get_lp_primal_bound(or),
+#         lp_dual_bound = get_lp_dual_bound(or)
+#     )
+#     if or.ip_primal_sols !== nothing
+#         newor.ip_primal_sols = copy(or.ip_primal_sols)
+#     end
+#     if or.lp_primal_sols !== nothing
+#         newor.lp_primal_sols = copy(or.lp_primal_sols)
+#     end
+#     if or.lp_primal_sols !== nothing
+#         newor.lp_dual_sols = copy(or.lp_primal_sols)
+#     end
+#     return newor
+# end
 
 getform(state::OptimizationState{F,S}) where {F, S} = F
 
-function CopyBoundsAndStatusesFromOptState(
-    form::AbstractFormulation, source_state::OptimizationState, copy_ip_primal_sol::Bool
+function OptimizationState(
+    form::AbstractFormulation, source_state::OptimizationState, 
+    copy_ip_primal_sol::Bool, copy_lp_primal_sol::Bool
 )
     state = OptimizationState(
         form,
@@ -138,7 +139,10 @@ function CopyBoundsAndStatusesFromOptState(
         lp_dual_bound = get_lp_dual_bound(source_state)
     )
     if copy_ip_primal_sol && nb_ip_primal_sols(source_state) > 0
-        set_ip_primal_sol!(get_best_ip_primal_sol(source_state))
+        set_ip_primal_sol!(state, copy(get_best_ip_primal_sol(source_state)))
+    end
+    if copy_lp_primal_sol && nb_lp_primal_sols(source_state) > 0
+        set_lp_primal_sol!(state, copy(get_best_lp_primal_sol(source_state)))
     end
     return state
 end

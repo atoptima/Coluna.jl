@@ -14,6 +14,10 @@ function PrimalSolution(
     return Solution{M,De,Va}(form, decisions, vals, val, status)
 end
 
+function EmptyPrimalSolution(form::M) where {M}
+    return Solution{M,VarId,Float64}(form, VarId[], Float64[], 0.0, UNKNOWN_FEASIBILITY)
+end
+
 function DualSolution(form::M) where {M}
     return Solution{M,ConstrId,Float64}(form)
 end
@@ -47,6 +51,24 @@ function contains(sol::DualSolution, f::Function)
         f(constrid) && return true
     end
     return false
+end
+
+function concatenate_sols(sola::PrimalSolution{M}, solb::PrimalSolution{M}) where {M}
+    length(solb) == 0 && return sola
+
+    ids = Vector{VarId}()
+    vals = Vector{Float64}()
+    for (varid, value) in sola
+        push!(ids, varid)
+        push!(vals, value)
+    end
+    for (varid, value) in solb
+        push!(ids, varid)
+        push!(vals, value)
+    end
+    return Solution{M,VarId,Float64}(
+        sola.model, ids, vals, getvalue(sola) + getvalue(solb), sola.status
+    )
 end
 
 function Base.print(io::IO, form::AbstractFormulation, sol::Solution)

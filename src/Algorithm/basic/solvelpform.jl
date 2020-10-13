@@ -9,7 +9,8 @@
 Solve a linear program.
 """
 @with_kw struct SolveLpForm <: AbstractOptimizationAlgorithm 
-    get_ip_primal_solution = false
+    update_ip_primal_solution = false
+    consider_partial_solution = false
     get_dual_solution = false
     relax_integrality = false
     set_dual_bound = false
@@ -31,6 +32,9 @@ function get_storages_usage(
         push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
+    end
+    if algo.consider_partial_solution
+        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
     end
     return storages_usage
 end
@@ -54,6 +58,13 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         relax_integrality!(form)
     end
 
+    if algo.consider_partial_solution
+        partsolstorage = getstorage(data, PartialSolutionStoragePair)
+        partial_solution = get_primal_solution(partsolstorage, form)
+    else    
+        partial_solution = EmptyPrimalSolution(form)
+    end
+
     optimizer_result = optimize_lp_form!(algo, getoptimizer(form), form)
  
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))   
@@ -61,9 +72,11 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
     lp_primal_sol = getbestprimalsol(optimizer_result)
     if lp_primal_sol !== nothing
         add_lp_primal_sol!(optstate, lp_primal_sol)
-        if algo.get_ip_primal_solution && isinteger(lp_primal_sol) && 
+        set_lp_primal_bound!(optstate, get_lp_primal_bound(optstate) + getvalue(partial_solution))
+        if algo.update_ip_primal_solution && isinteger(lp_primal_sol) && 
             !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
-            add_ip_primal_sol!(optstate, lp_primal_sol)
+            complete_sol = concatenate_sols(lp_primal_sol, partial_solution)            
+            add_ip_primal_sol!(optstate, complete_sol)
         end
     end
 
@@ -72,6 +85,7 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         if lp_dual_sol !== nothing
             if algo.set_dual_bound
                 update_lp_dual_sol!(optstate, lp_dual_sol)
+                set_lp_dual_bound!(optstate, get_lp_dual_bound(optstate) + getvalue(partial_solution))
             else
                 set_lp_dual_sol!(optstate, lp_dual_sol)
             end

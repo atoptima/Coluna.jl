@@ -66,6 +66,24 @@ function apply_conquer_alg_to_node!(
     return
 end
 
+####################################################################
+#                      ParameterisedHeuristic
+####################################################################
+
+RestrictedMasterIPHeuristic() = SolveIpForm(get_dual_bound = false)
+
+struct ParameterisedHeuristic
+    algorithm::AbstractOptimizationAlgorithm
+    root_priority::Float64
+    nonroot_priority::Float64
+    frequency::Integer
+    max_depth::Integer
+    name::String 
+end
+
+DefaultRestrictedMasterHeuristic() = 
+    ParameterisedHeuristic(RestrictedMasterIPHeuristic(), 1.0, 1.0, 1, 1000, "Restricted Master IP")
+
 
 ####################################################################
 #                      BendersConquer
@@ -93,32 +111,31 @@ function run!(algo::BendersConquer, data::ReformData, input::ConquerInput)
     return 
 end
 
+
 ####################################################################
 #                      ColCutGenConquer
 ####################################################################
 
 """
     Coluna.Algorithm.ColCutGenConquer(
-        colgen = ColumnGeneration()
-        cutgen = CutCallbacks()
-        mastipheur = SolveIpForm()
+        colgen::AbstractOptimizationAlgorithm = ColumnGeneration()
+        primal_heuristics::Vector{ParameterisedHeuristic} = [DefaultRestrictedMasterHeuristic()]
         preprocess = PreprocessAlgorithm()
-        run_mastipheur::Bool = true
+        cutgen = CutCallbacks()
         run_preprocessing::Bool = false
     )
 
     Column-and-cut-generation based algorithm to find primal and dual bounds for a 
     problem decomposed using Dantzig-Wolfe paradigm. It applies `colgen` for the column 
-    generation phase, `cutgen` for the cut generation phase, and `masteripheur` 
-to optimize the integer restricted master.
+    generation phase, `cutgen` for the cut generation phase, and it can apply several primal
+    heuristics to more efficiently find feasible solutions.
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
-    colgen = ColumnGeneration()
-    cutgen = CutCallbacks()
-    mastipheur = SolveIpForm(get_dual_bound = false)
+    colgen::AbstractOptimizationAlgorithm = ColumnGeneration()
+    primal_heuristics::Vector{ParameterisedHeuristic} = [DefaultRestrictedMasterHeuristic()]
     preprocess = PreprocessAlgorithm()
+    cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
-    run_mastipheur::Bool = true
     run_preprocessing::Bool = false
 end
 
@@ -131,8 +148,10 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
     push!(child_algos, (algo.colgen, reform))
     push!(child_algos, (algo.cutgen, getmaster(reform)))
-    algo.run_mastipheur && push!(child_algos, (algo.mastipheur, getmaster(reform)))
     algo.run_preprocessing && push!(child_algos, (algo.preprocess, reform))
+    for heuristic in algo.primal_heuristics
+        push!(child_algos, (heuristic.algorithm, reform))
+    end
     return child_algos
 end
 
@@ -169,14 +188,27 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
         nb_tightening_rounds += 1
     end
 
-    if !to_be_pruned(node) && algo.run_mastipheur 
-        @logmsg LogLevel(0) "Run IP restricted master heuristic."
-        TO.@timeit Coluna._to "RestMasterHeur" begin
-            heur_output = run!(
-                algo.mastipheur, getmasterdata(data), OptimizationInput(nodestate)
-            )
-            update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
+    heuristics_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
+    for heuristic in algo.primal_heuristics
+        #TO DO : get_tree_order of nodes in strong branching is always -1
+        if getdepth(node) <= heuristic.max_depth && 
+            mod(get_tree_order(node) - 1, heuristic.frequency) == 0
+            push!(heuristics_to_run, (
+                heuristic.algorithm, heuristic.name,
+                isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
+            ))
         end
+    end
+    sort!(heuristics_to_run, by = x -> last(x), rev=true)
+
+    for (heur_algorithm, name, priority) in heuristics_to_run
+        to_be_pruned(node) && break
+
+        @logmsg LogLevel(0) string("Running ", name, " heuristic")
+        ismanager(heur_algorithm) && (stateids = store_states!(data))
+        heur_output = run!(heur_algorithm, data, OptimizationInput(nodestate))
+        update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
+        ismanager(heur_algorithm) && restore_states!(stateids, input.storages_to_restore)
     end 
     return
 end
@@ -186,7 +218,9 @@ end
 ####################################################################
 
 @with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
-    masterlpalgo::SolveLpForm = SolveLpForm()
+    masterlpalgo::SolveLpForm = SolveLpForm(
+        update_ip_primal_solution = true, consider_partial_solution = true
+        )
 end
 
 # RestrMasterLPConquer does not use any storage, therefore get_storages_usage() is not defined for it
@@ -194,18 +228,6 @@ end
 function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation) 
     return [(algo.masterlpalgo, getmaster(reform))]
 end
-
-# function get_storages_usage!(
-#     algo::RestrMasterLPConquer, reform::Reformulation, storages_usage::StoragesUsageDict
-# )
-#     get_storages_usage!(algo.masterlpalgo, getmaster(reform), storages_usage)
-# end
-
-# function get_storages_to_restore!(
-#     algo::RestrMasterLPConquer, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
-# ) 
-#     get_storages_to_restore!(algo.masterlpalgo, getmaster(reform), storages_to_restore)
-# end
 
 function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
     restore_states!(input)

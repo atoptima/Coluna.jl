@@ -30,12 +30,16 @@ function get_storages_usage(
     storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
     push!(storages_usage, (form, StaticVarConstrStoragePair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
+        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
         push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
     end
     return storages_usage
 end
+
+get_storages_usage(algo::SolveIpForm, reform::Reformulation) =
+    get_storages_usage(algo, getmaster(reform))
 
 function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
 
@@ -56,9 +60,17 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
 
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))
 
-    bestprimalsol = getbestprimalsol(optimizer_result)
+    if isa(form, Formulation{MathProg.DwMaster})
+        partsolstorage = getstorage(data, PartialSolutionStoragePair)
+        partial_solution = get_primal_solution(partsolstorage, form)
+    else    
+        partial_solution = EmptyPrimalSolution(form)
+    end
+                                                      
+    bestprimalsol = getbestprimalsol(optimizer_result)    
     if bestprimalsol !== nothing
-        add_ip_primal_sol!(optstate, bestprimalsol)
+        completesol = concatenate_sols(bestprimalsol, partial_solution)            
+        add_ip_primal_sol!(optstate, completesol)
         if algo.log_level == 0
             @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(optstate))
         end
@@ -73,10 +85,14 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
     end
     if algo.get_dual_bound && getterminationstatus(optimizer_result) == OPTIMAL
         # TO DO : dual bound should be set in optimizer_result
-        set_ip_dual_bound!(optstate, DualBound(form, getvalue(getprimalbound(optimizer_result))))
+        dual_bound = getvalue(getprimalbound(optimizer_result)) + getvalue(partial_solution)
+        set_ip_dual_bound!(optstate, DualBound(form, dual_bound))
     end
     return OptimizationOutput(optstate)
 end
+
+run!(algo::SolveIpForm, data::ReformData, input::OptimizationInput) = 
+    run!(algo, getmasterdata(data), input)
 
 function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
     return MOI.supports_constraint(optimizer.inner, MOI.SingleVariable, MOI.Integer)
@@ -110,6 +126,3 @@ end
 function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Formulation)
     return optimize!(form)
 end
-
-run!(alg::SolveIpForm, rfdata::ReformData, input::OptimizationInput) =
-    run!(alg, getmasterdata(rfdata), input)

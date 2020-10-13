@@ -62,9 +62,10 @@ export no_optimizer_builder, set_original_formulation!,
        convert_status, getduty, getbestdualsol,
        computereducedrhs,
        unsafe_getbestprimalsol,
-        find_owner_formulation,
+       find_owner_formulation,
        getsortuid,
-       contains, setprimalbound!, get_original_formulation
+       contains, setprimalbound!, get_original_formulation,
+       concatenate_sols, getoriginformuid, getspsol
 
 # Below this line, clean up has been done :
 export optimize!
@@ -102,7 +103,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
 
 # Types & methods related to solutions & bounds
 # Note : we should export only get methods for MoiResult (the solution is built in MathProg)
-export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues, MoiResult,
+export PrimalBound, DualBound, PrimalSolution, EmptyPrimalSolution, DualSolution, ObjValues, MoiResult,
     getterminationstatus, setterminationstatus!,
     get_ip_primal_bound, get_lp_primal_bound,
     get_ip_dual_bound, get_lp_dual_bound, update_ip_primal_bound!, update_lp_primal_bound!,

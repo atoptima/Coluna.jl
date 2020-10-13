@@ -25,9 +25,9 @@ end
 """
 
 struct PrioritisedBranchingRule
+    rule::AbstractBranchingRule
     root_priority::Float64
     nonroot_priority::Float64
-    rule::AbstractBranchingRule
 end
 
 function getpriority(rule::PrioritisedBranchingRule, isroot::Bool)::Float64
@@ -63,7 +63,7 @@ end
 # default parameterisation corresponds to simple branching (no strong branching phases)
 function SimpleBranching()::AbstractDivideAlgorithm
     algo = StrongBranching()
-    push!(algo.rules, PrioritisedBranchingRule(1.0, 1.0, VarBranchingRule()))
+    push!(algo.rules, PrioritisedBranchingRule(VarBranchingRule(), 1.0, 1.0))
     return algo
 end
 
@@ -96,8 +96,8 @@ function perform_strong_branching_with_phases!(
     parent = getparent(input)
     master = getmaster(getreform(data))
     exploitsprimalsolutions::Bool = exploits_primal_solutions(algo)    
-    sbstate = CopyBoundsAndStatusesFromOptState(
-        master, getoptstate(input), exploitsprimalsolutions
+    sbstate = OptimizationState(
+        master, getoptstate(input), exploitsprimalsolutions, false
     )
 
     for (phase_index, current_phase) in enumerate(algo.phases)
