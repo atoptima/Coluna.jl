@@ -44,26 +44,29 @@ isverbose(algo::AbstractConquerAlgorithm) = false
 exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
 # returns the optimization part of the output of the conquer algorithm 
+# return true if the node will be pruned, false otherwise.
 function apply_conquer_alg_to_node!(
     node::Node, algo::AbstractConquerAlgorithm, data::ReformData, storages_to_restore::StoragesUsageDict
 )  
+    node_to_prune = false
     nodestate = getoptstate(node)
     if isverbose(algo)
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(nodestate))
         @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
     end
-    if ip_gap_closed(nodestate)
-        isverbose(algo) && @logmsg LogLevel(-1) string(
-            "IP Gap is closed: ", ip_gap(getincumbents(node)), ". Abort treatment."
-        )
+    if ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+        @warn "IP Gap is closed: $(ip_gap(getincumbents(node.optstate))). Abort treatment."
+        node_to_prune = true
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
-
-        run!(algo, data, ConquerInput(node, storages_to_restore))
+        conquerstate = run!(algo, data, ConquerInput(node, storages_to_restore))
+        if getterminationstatus(conquerstate) == OPTIMAL
+            node_to_prune = true
+        end
         store_states!(data, node.stateids)
     end
     node.conquerwasrun = true
-    return
+    return node_to_prude
 end
 
 
@@ -120,6 +123,8 @@ to optimize the integer restricted master.
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
+    opt_atol::Float64 = colgen.opt_atol # WARNING : should not me modified
+    opt_rtol::Float64 = colgen.opt_rtol # WARNING : should not me modified
 end
 
 isverbose(algo::ColCutGenConquer) = algo.colgen.log_print_frequency > 0
@@ -139,7 +144,10 @@ end
 function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     restore_states!(input)
     node = getnode(input)
-    nodestate = getoptstate(node)
+    #nodestate = getoptstate(node)
+
+    conquerstate = CopyBoundsAndStatusesFromOptState(data.reform, )
+
     reform = getreform(data)
     if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, data, EmptyInput()))
         setterminationstatus!(nodestate, INFEASIBLE)
@@ -150,7 +158,10 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
-    while !to_be_pruned(node) && nb_tightening_rounds < algo.max_nb_cut_rounds
+    subproblem_pruned = getterminationstatus(nodestate) == INFEASIBLE ||
+        ip_gap_closed(nodestate, atol = algo.colgen.opt_atol, rtol = algo.colgen.opt_rtol)
+
+    while !subproblem_pruned && nb_tightening_rounds < algo.max_nb_cut_rounds
         sol = get_best_lp_primal_sol(getoptstate(colgen_output))
         if sol !== nothing
             cutcb_input = CutCallbacksInput(sol)
@@ -166,10 +177,13 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
         colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
         update!(nodestate, getoptstate(colgen_output))
 
+        subproblem_pruned = getterminationstatus(nodestate) == INFEASIBLE ||
+            ip_gap_closed(nodestate, atol = algo.colgen.opt_atol, rtol = algo.colgen.opt_rtol)
+
         nb_tightening_rounds += 1
     end
 
-    if !to_be_pruned(node) && algo.run_mastipheur 
+    if !subproblem_pruned && algo.run_mastipheur 
         @logmsg LogLevel(0) "Run IP restricted master heuristic."
         TO.@timeit Coluna._to "RestMasterHeur" begin
             heur_output = run!(
@@ -177,7 +191,16 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
             )
             update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         end
-    end 
+        subproblem_pruned = ip_gap_closed(
+            nodestate, atol = algo.colgen.opt_atol, rtol = algo.colgen.opt_rtol
+        )
+    end
+
+    if subproblem_pruned
+        #setterminationstatus!(conquerstate, OPTIMAL)
+    else
+        #setterminationstatus!(nodestate, OTHER_LIMIT)
+    end
     return
 end
 
@@ -213,5 +236,10 @@ function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
     nodestate = getoptstate(node)
     output = run!(algo.masterlpalgo, getmasterdata(data), OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
+    if ip_gap_closed(output)
+        setterminationstatus!(output, OPTIMAL)
+    else
+        setterminationstatus!(output, OTHER_LIMIT)
+    end
 end
 

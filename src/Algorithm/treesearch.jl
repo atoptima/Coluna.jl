@@ -103,7 +103,6 @@ to select the next node to treat.
     rootpriority = 0
     nontrootpriority = 0
     storelpsolution = false
-    optimality_tol = Coluna.DEF_OPTIMALITY_ATOL
 end
 
 #TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storages)
@@ -225,11 +224,6 @@ function run_divide_algorithm!(
     algo::TreeSearchAlgorithm, tsdata::TreeSearchRuntimeData, 
     rfdata::ReformData, node::Node
 )
-    if to_be_pruned(node)
-        println("Node is already conquered. No children will be generated")
-        return
-    end        
-
     treestate = getoptstate(tsdata)
     output = run!(algo.dividealg, rfdata, DivideInput(node, treestate))
 
@@ -325,7 +319,13 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
         if get_tree_order(tsdata) <= algo.maxnumnodes
             run_conquer_algorithm!(algo, tsdata, rfdata, node)
             print_node_in_branching_tree_file(algo, tsdata, node)
-            run_divide_algorithm!(algo, tsdata, rfdata, node)           
+
+            if ip_gap_closed(getoptstate(tsdata)) # TODO tolerance of the TreeSearch
+                println("Node is already conquered. No children will be generated")
+            else
+                run_divide_algorithm!(algo, tsdata, rfdata, node)
+            end
+
             updatedualbound!(tsdata)
         end
         remove_states!(node.stateids)

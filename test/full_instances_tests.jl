@@ -182,7 +182,7 @@ function generalized_assignment_tests()
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    colgen = ClA.ColumnGeneration(opt_rtol = 1e-6, smoothing_stabilization = 0.5)
+                    colgen = ClA.ColumnGeneration(opt_rtol = 1e-4, smoothing_stabilization = 0.5)
                 )
             )),
             "default_optimizer" => GLPK.Optimizer
