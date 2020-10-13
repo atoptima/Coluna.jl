@@ -301,7 +301,7 @@ end
 function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
     reform = getreform(rfdata)
-    treestate = CopyBoundsAndStatusesFromOptState(
+    treestate = OptimizationState(
         getmaster(reform), getoptstate(input), exploitsprimalsols, false
     )
 

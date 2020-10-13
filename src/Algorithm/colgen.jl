@@ -21,7 +21,7 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
 
 """
 @with_kw struct ColumnGeneration <: AbstractOptimizationAlgorithm
-    restr_master_solve_alg = SolveRestrMasterInColGen()
+    restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
     #TODO : pricing problem solver may be different depending on the
     #       pricing subproblem
     pricing_prob_solve_alg = SolveIpForm(deactivate_artificial_vars = false,
@@ -82,7 +82,7 @@ end
 function run!(algo::ColumnGeneration, data::ReformData, input::OptimizationInput)::OptimizationOutput
     reform = getreform(data)
     master = getmaster(reform)
-    optstate = CopyBoundsAndStatusesFromOptState(master, getoptstate(input), false, false)
+    optstate = OptimizationState(master, getoptstate(input), false, false)
 
     set_ph3!(master) # mixed ph1 & ph2
     stop = cg_main_loop!(algo, 3, optstate, data)
@@ -299,7 +299,7 @@ function solve_sp_to_gencol!(
                         push!(spinfo.sol_ids_to_activate, col_id)
                     else
                         msg = """
-                            Column already exists as $(getname(masterform, col_id)) and is already active.
+                        Column already exists as $(getname(masterform, col_id)) and is already active.
                         """
                         @warn string(msg)
                     end

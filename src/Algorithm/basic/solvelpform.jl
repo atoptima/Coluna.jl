@@ -18,12 +18,6 @@ Solve a linear program.
     log_level = 0
 end
 
-SolveRestrMasterInColGen() =
-    SolveLpForm(get_dual_solution = true)
-
-SolveLpFormInRestrMasterLPConquer() =
-    SolveLpForm(update_ip_primal_solution = true, consider_partial_solution = true)
-
 # SolveLpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
 function get_storages_usage(

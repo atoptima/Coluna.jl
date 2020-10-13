@@ -638,23 +638,23 @@ function write_to_LP_file(form::Formulation, filename::String)
     end
 end
 
-function getspsol(master::Formulation{DwMaster}, col_id::VarId)
-    !(getduty(col_id) <= MasterCol) && return
+# function getspsol(master::Formulation{DwMaster}, col_id::VarId)
+#     !(getduty(col_id) <= MasterCol) && return
 
-    spvars = Vector{VarId}()
-    spvals = Vector{Float64}()
-    cost = 0.0
+#     spvars = Vector{VarId}()
+#     spvals = Vector{Float64}()
+#     cost = 0.0
 
-    spuid = getoriginformuid(col_id)
-    spform = get_dw_pricing_sps(master.parent_formulation)[spuid]
-    for (repid, repval) in @view getprimalsolmatrix(spform)[:, col_id]
-        if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar
-            mastrepid = getid(getvar(master, repid))
-            push!(spvars, mastrepid)
-            push!(spvals, repval)
-            cost += getcurcost(master, mastrepid)
-        end
-    end
+#     spuid = getoriginformuid(col_id)
+#     spform = get_dw_pricing_sps(master.parent_formulation)[spuid]
+#     for (repid, repval) in @view getprimalsolmatrix(spform)[:, col_id]
+#         if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar
+#             mastrepid = getid(getvar(master, repid))
+#             push!(spvars, mastrepid)
+#             push!(spvals, repval)
+#             cost += getcurcost(master, mastrepid)
+#         end
+#     end
 
-    return PrimalSolution(spform, spvars, spvals, cost, FEASIBLE_SOL)
-end
+#     return PrimalSolution(spform, spvars, spvals, cost, FEASIBLE_SOL)
+# end
