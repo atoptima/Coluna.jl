@@ -44,29 +44,26 @@ isverbose(algo::AbstractConquerAlgorithm) = false
 exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
 # returns the optimization part of the output of the conquer algorithm 
-# return true if the node will be pruned, false otherwise.
 function apply_conquer_alg_to_node!(
     node::Node, algo::AbstractConquerAlgorithm, data::ReformData, storages_to_restore::StoragesUsageDict
 )  
-    node_to_prune = false
     nodestate = getoptstate(node)
     if isverbose(algo)
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(nodestate))
         @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
     end
-    if ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
-        @warn "IP Gap is closed: $(ip_gap(getincumbents(node.optstate))). Abort treatment."
-        node_to_prune = true
+    if ip_gap_closed(nodestate,)
+        isverbose(algo) && @logmsg LogLevel(-1) string(
+            "IP Gap is closed: ", ip_gap(getincumbents(node)), ". Abort treatment."
+        )
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
-        conquerstate = run!(algo, data, ConquerInput(node, storages_to_restore))
-        if getterminationstatus(conquerstate) == OPTIMAL
-            node_to_prune = true
-        end
+
+        run!(algo, data, ConquerInput(node, storages_to_restore))
         store_states!(data, node.stateids)
     end
     node.conquerwasrun = true
-    return node_to_prude
+    return
 end
 
 
@@ -123,8 +120,8 @@ to optimize the integer restricted master.
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_mastipheur::Bool = true
     run_preprocessing::Bool = false
-    opt_atol::Float64 = colgen.opt_atol # WARNING : should not me modified
-    opt_rtol::Float64 = colgen.opt_rtol # WARNING : should not me modified
+    opt_atol::Float64 = colgen.opt_atol
+    opt_rtol::Float64 = colgen.opt_rtol
 end
 
 isverbose(algo::ColCutGenConquer) = algo.colgen.log_print_frequency > 0
@@ -144,10 +141,7 @@ end
 function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     restore_states!(input)
     node = getnode(input)
-    #nodestate = getoptstate(node)
-
-    conquerstate = CopyBoundsAndStatusesFromOptState(data.reform, )
-
+    nodestate = getoptstate(node)
     reform = getreform(data)
     if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, data, EmptyInput()))
         setterminationstatus!(nodestate, INFEASIBLE)
@@ -197,9 +191,9 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     end
 
     if subproblem_pruned
-        #setterminationstatus!(conquerstate, OPTIMAL)
+        setterminationstatus!(nodestate, OPTIMAL)
     else
-        #setterminationstatus!(nodestate, OTHER_LIMIT)
+        setterminationstatus!(nodestate, OTHER_LIMIT)
     end
     return
 end
@@ -235,11 +229,12 @@ function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
     node = getnode(input)
     nodestate = getoptstate(node)
     output = run!(algo.masterlpalgo, getmasterdata(data), OptimizationInput(nodestate))
-    update!(nodestate, getoptstate(output))
-    if ip_gap_closed(output)
-        setterminationstatus!(output, OPTIMAL)
+    masterlp_state =  getoptstate(output)
+    update!(nodestate, masterlp_state)
+    if ip_gap_closed(masterlp_state)
+        setterminationstatus!(nodestate, OPTIMAL)
     else
-        setterminationstatus!(output, OTHER_LIMIT)
+        setterminationstatus!(nodestate, OTHER_LIMIT)
     end
 end
 

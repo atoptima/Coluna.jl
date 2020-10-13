@@ -320,7 +320,7 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
             run_conquer_algorithm!(algo, tsdata, rfdata, node)
             print_node_in_branching_tree_file(algo, tsdata, node)
 
-            if ip_gap_closed(getoptstate(tsdata)) # TODO tolerance of the TreeSearch
+            if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(getoptstate(tsdata)) # TODO tolerance of the TreeSearch
                 println("Node is already conquered. No children will be generated")
             else
                 run_divide_algorithm!(algo, tsdata, rfdata, node)
