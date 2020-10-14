@@ -23,7 +23,7 @@ function Coluna.Algorithm.get_storages_usage(
     algo::ConsecutiveColGen, reform::Reformulation
     ) 
     master = Coluna.MathProg.getmaster(reform)
-    return [(master, Coluna.Algorithm.PreprocessingStoragePair, Coluna.Algorithm.READ_AND_WRITE),
+    return [(reform, Coluna.Algorithm.PreprocessingStoragePair, Coluna.Algorithm.READ_AND_WRITE),
             (master, Coluna.Algorithm.PartialSolutionStoragePair, Coluna.Algorithm.READ_AND_WRITE)]
 end
 
