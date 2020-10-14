@@ -16,6 +16,32 @@ getnodevalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
 struct BestDualBoundStrategy <: AbstractTreeExploreStrategy end
 getnodevalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(getincumbents(n))
 
+"""
+    Coluna.Algorithm.TreeSearchAlgorithm(
+        conqueralg::AbstractConquerAlgorithm = ColCutGenConquer(),
+        dividealg::AbstractDivideAlgorithm = SimpleBranching(),
+        explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy(),
+        maxnumnodes::Int = 100000,
+        opennodeslimit::Int = 100,
+        branchingtreefile = nothing
+    )
+
+This algorithm uses search tree to do optimization. At each node in the tree, it applies
+`conqueralg` to improve the bounds, `dividealg` to generate child nodes, and `explorestrategy`
+to select the next node to treat.
+"""
+@with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
+    conqueralg::AbstractConquerAlgorithm = ColCutGenConquer()
+    dividealg::AbstractDivideAlgorithm = SimpleBranching()
+    explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy()
+    maxnumnodes::Int64 = 100000 
+    opennodeslimit::Int64 = 100 
+    branchingtreefile::Union{Nothing, String} = nothing
+    skiprootnodeconquer = false # true for diving heuristics
+    rootpriority = 0
+    nontrootpriority = 0
+    storelpsolution = false
+end
 
 """
     SearchTree
@@ -54,6 +80,26 @@ mutable struct TreeSearchRuntimeData
     conquer_storages_to_restore::StoragesUsageDict
 end
 
+function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
+    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
+    reform = getreform(rfdata)
+    treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
+
+    conquer_storages_to_restore = StoragesUsageDict()
+    collect_storages_to_restore!(conquer_storages_to_restore, algo.conqueralg, reform) 
+    # divide algorithms are always manager algorithms, so we do not need to restore storages for them
+
+    Sense = getobjsense(reform)
+
+    tsdata = TreeSearchRuntimeData(
+        SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()),
+        1, treestate, exploitsprimalsols, Sense, conquer_storages_to_restore
+    )
+    master = getmaster(getreform(rfdata))
+    push!(tsdata, RootNode(master, treestate, store_states!(rfdata), algo.skiprootnodeconquer))
+    return tsdata
+end
+
 treeisempty(data::TreeSearchRuntimeData) = treeisempty(data.primary_tree) && treeisempty(data.secondary_tree)
 primary_tree_is_full(data::TreeSearchRuntimeData) = nb_open_nodes(data.primary_tree) >= data.max_primary_tree_size
 
@@ -77,33 +123,6 @@ function nb_open_nodes(data::TreeSearchRuntimeData)
 end
 get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
 getoptstate(data::TreeSearchRuntimeData) = data.optstate
-
-"""
-    Coluna.Algorithm.TreeSearchAlgorithm(
-        conqueralg::AbstractConquerAlgorithm = ColCutGenConquer(),
-        dividealg::AbstractDivideAlgorithm = SimpleBranching(),
-        explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy(),
-        maxnumnodes::Int = 100000,
-        opennodeslimit::Int = 100,
-        branchingtreefile = nothing
-    )
-
-This algorithm uses search tree to do optimization. At each node in the tree, it applies
-`conqueralg` to improve the bounds, `dividealg` to generate child nodes, and `explorestrategy`
-to select the next node to treat.
-"""
-@with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
-    conqueralg::AbstractConquerAlgorithm = ColCutGenConquer()
-    dividealg::AbstractDivideAlgorithm = SimpleBranching()
-    explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy()
-    maxnumnodes::Int64 = 100000 
-    opennodeslimit::Int64 = 100 
-    branchingtreefile::Union{Nothing, String} = nothing
-    skiprootnodeconquer = false # true for diving heuristics
-    rootpriority = 0
-    nontrootpriority = 0
-    storelpsolution = false
-end
 
 #TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storages)
 ismanager(algo::TreeSearchAlgorithm) = true
@@ -271,63 +290,25 @@ function updatedualbound!(data::TreeSearchRuntimeData)
     return
 end
 
-# TODO : make it better
-function determine_statuses(data::TreeSearchRuntimeData)
-    fully_explored = treeisempty(data)
-    treestate = getoptstate(data)
-    found_sols = (nb_ip_primal_sols(treestate) > 0)
-    gap_is_zero = (get_ip_primal_bound(treestate) / get_ip_dual_bound(treestate) ≈ 1.0)
-    gap_is_zero && setterminationstatus!(treestate, OPTIMAL)
-    if !found_sols # Implies that gap is not zero
-        # Determine if we can prove that is was infeasible
-        if fully_explored
-            setterminationstatus!(treestate, INFEASIBLE)
-        else
-            setterminationstatus!(treestate, UNCOVERED_TERMINATION_STATUS)
-        end
-    elseif !gap_is_zero
-        setterminationstatus!(treestate, OTHER_LIMIT)
-    end
-    return
-end
-
-function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
-    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
-    reform = getreform(rfdata)
-    treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
-
-    conquer_storages_to_restore = StoragesUsageDict()
-    collect_storages_to_restore!(conquer_storages_to_restore, algo.conqueralg, reform) 
-    # divide algorithms are always manager algorithms, so we do not need to restore storages for them
-
-    tsdata = TreeSearchRuntimeData(
-        SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()), 1,
-        treestate, exploitsprimalsols, getobjsense(reform), conquer_storages_to_restore
-    )
-    master = getmaster(getreform(rfdata))
-    push!(tsdata, RootNode(master, treestate, store_states!(rfdata), algo.skiprootnodeconquer))
-    return tsdata
-end
-
 function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
     init_branching_tree_file(algo)
-    while !treeisempty(tsdata) 
+    while !treeisempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes
         node = popnode!(tsdata)
 
-        if get_tree_order(tsdata) <= algo.maxnumnodes
-            run_conquer_algorithm!(algo, tsdata, rfdata, node)
-            print_node_in_branching_tree_file(algo, tsdata, node)
-
-            if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(getoptstate(tsdata)) # TODO tolerance of the TreeSearch
-                println("Node is already conquered. No children will be generated")
-            else
-                run_divide_algorithm!(algo, tsdata, rfdata, node)
-            end
-
-            updatedualbound!(tsdata)
+        # run_conquer_algorithm! updates primal solution the tree search optstate and the 
+        # dual bound of the optstate only at the root node.
+        run_conquer_algorithm!(algo, tsdata, rfdata, node)
+       
+        if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(node.optstate) # TODO tolerance of the TreeSearch
+            println("Node is already conquered. No children will be generated.")
+        else
+            run_divide_algorithm!(algo, tsdata, rfdata, node)
         end
+
+        updatedualbound!(tsdata)
+
         remove_states!(node.stateids)
         
         # we delete solutions from the node optimization state, as they are not needed anymore
@@ -335,6 +316,26 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
     end
     finish_branching_tree_file(algo)
 
-    determine_statuses(tsdata)
-    return OptimizationOutput(getoptstate(tsdata))
+    if treeisempty(tsdata) # it means that the BB tree has been fully explored
+        if nb_ip_primal_sols(tsdata.optstate) >= 1
+            if ip_gap_closed(tsdata.optstate) # TODO : add TreeSearch opt tolerances
+                setterminationstatus!(tsdata.optstate, OPTIMAL)
+            else
+                setterminationstatus!(tsdata.optstate, OTHER_LIMIT)
+            end
+        else
+            setterminationstatus!(tsdata.optstate, INFEASIBLE)
+        end
+    else
+        setterminationstatus!(tsdata.optstate, OTHER_LIMIT)
+    end
+
+    # Clear untreated nodes
+    while !treeisempty(tsdata)
+        node = popnode!(tsdata)
+        remove_states!(node.stateids)
+        clear_solutions!(node.opt_state)
+    end
+
+    return OptimizationOutput(tsdata.optstate)
 end

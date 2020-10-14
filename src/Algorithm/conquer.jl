@@ -52,10 +52,8 @@ function apply_conquer_alg_to_node!(
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(nodestate))
         @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
     end
-    if ip_gap_closed(nodestate,)
-        isverbose(algo) && @logmsg LogLevel(-1) string(
-            "IP Gap is closed: ", ip_gap(getincumbents(node)), ". Abort treatment."
-        )
+    if ip_gap_closed(nodestate)
+        @warn "IP Gap is closed: $(ip_gap(getincumbents(node))). Abort treatment."
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
@@ -236,5 +234,6 @@ function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
     else
         setterminationstatus!(nodestate, OTHER_LIMIT)
     end
+    return
 end
 

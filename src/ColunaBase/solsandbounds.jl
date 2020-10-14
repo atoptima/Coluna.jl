@@ -123,6 +123,11 @@ Base.isapprox(b1::B, b2::B) where {B<:Bound} = isapprox(b1.value, b2.value) # TO
 Base.isapprox(b::B, val::Number) where {B<:Bound} = isapprox(b.value, val) # TODO : rm ?
 Base.isapprox(val::Number, b::B) where {B<:Bound} = isapprox(b.value, val) # TODO : rm ?
 
+extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Primal,Se<:MinSense} = minimum(bounds)
+extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Dual,Se<:MinSense} = maximum(bounds)
+extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Primal,Se<:MaxSense} = maximum(bounds)
+extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Dual,Se<:MaxSense} = minimum(bounds)
+
 """
     TerminationStatus
 
