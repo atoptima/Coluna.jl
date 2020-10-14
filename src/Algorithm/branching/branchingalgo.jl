@@ -233,7 +233,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
             original_solution = get_best_lp_primal_sol(optstate)
         end
     else
-        @logmsg LogLevel(0) "Warning: no LP solution is passed to the branching algorithm. No children will be generated."
+        @warn "no LP solution is passed to the branching algorithm. No children will be generated."
         return DivideOutput(Vector{Node}(), optstate)
     end
 

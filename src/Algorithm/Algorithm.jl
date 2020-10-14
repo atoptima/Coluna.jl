@@ -20,7 +20,7 @@ import ..MathProg: getterminationstatus,
     setterminationstatus!, get_ip_primal_bound, get_ip_dual_bound,
     get_lp_primal_bound, get_lp_dual_bound, update_ip_primal_bound!, update_ip_dual_bound!,
     update_lp_primal_bound!, update_lp_dual_bound!, set_ip_primal_bound!,
-    set_ip_dual_bound!, set_lp_primal_bound!, set_lp_dual_bound!, ip_gap, lp_gap
+    set_ip_dual_bound!, set_lp_primal_bound!, set_lp_dual_bound!, ip_gap, lp_gap, ip_gap_closed, lp_gap_closed
 
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
