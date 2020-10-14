@@ -176,6 +176,9 @@ set_lp_dual_bound!(state::OptimizationState, val) = set_lp_dual_bound!(state.inc
 ip_gap(state::OptimizationState) = ip_gap(state.incumbents)
 lp_gap(state::OptimizationState) = lp_gap(state.incumbents)
 
+ip_gap_closed(state::OptimizationState; kw...) = ip_gap_closed(state.incumbents; kw...)
+lp_gap_closed(state::OptimizationState; kw...) = lp_gap_closed(state.incumbents; kw...)
+
 function nb_ip_primal_sols(state::OptimizationState)
     return state.ip_primal_sols === nothing ? 0 : length(state.ip_primal_sols)
 end
