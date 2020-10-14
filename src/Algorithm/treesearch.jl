@@ -69,7 +69,7 @@ nb_open_nodes(tree::SearchTree) = length(tree.nodes)
     Data used by the tree search algorithm while running.
     Destroyed after each run.     
 """
-mutable struct TreeSearchRuntimeData
+mutable struct TreeSearchRuntimeData{Sense}
     primary_tree::SearchTree
     max_primary_tree_size::Int64
     secondary_tree::SearchTree
@@ -78,6 +78,7 @@ mutable struct TreeSearchRuntimeData
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
     conquer_storages_to_restore::StoragesUsageDict
+    worst_db_of_pruned_node::DualBound{Sense}
 end
 
 function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
@@ -91,9 +92,10 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
 
     Sense = getobjsense(reform)
 
-    tsdata = TreeSearchRuntimeData(
+    tsdata = TreeSearchRuntimeData{Sense}(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()),
-        1, treestate, exploitsprimalsols, Sense, conquer_storages_to_restore
+        1, treestate, exploitsprimalsols, Sense, conquer_storages_to_restore,
+        -DualBound{Sense}()
     )
     master = getmaster(getreform(rfdata))
     push!(tsdata, RootNode(master, treestate, store_states!(rfdata), algo.skiprootnodeconquer))
@@ -286,6 +288,9 @@ function updatedualbound!(data::TreeSearchRuntimeData)
             worst_bound = db
         end
     end
+    if isbetter(worst_bound, data.worst_db_of_pruned_node)
+        worst_bound = data.worst_db_of_pruned_node
+    end
     set_ip_dual_bound!(treestate, worst_bound)
     return
 end
@@ -303,6 +308,10 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
        
         if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(node.optstate) # TODO tolerance of the TreeSearch
             println("Node is already conquered. No children will be generated.")
+            db = get_ip_dual_bound(node.optstate)
+            if isbetter(tsdata.worst_db_of_pruned_node, db)
+                tsdata.worst_db_of_pruned_node = db
+            end
         else
             run_divide_algorithm!(algo, tsdata, rfdata, node)
         end
@@ -310,7 +319,6 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
         updatedualbound!(tsdata)
 
         remove_states!(node.stateids)
-        
         # we delete solutions from the node optimization state, as they are not needed anymore
         clear_solutions!(getoptstate(node))
     end
