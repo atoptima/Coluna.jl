@@ -8,7 +8,7 @@ end
 
 @with_kw struct ConsecutiveColGen <: AbstractOptimizationAlgorithm
     colgen = ColumnGeneration(smoothing_stabilization = 1.0)
-    preprocess = PreprocessAlgorithm(preprocess_subproblems = false)
+    preprocess = PreprocessAlgorithm(preprocess_subproblems = true, printing = true)
     rm_heur = RestrictedMasterIPHeuristic()
     num_calls_to_col_gen = 3  
 end
