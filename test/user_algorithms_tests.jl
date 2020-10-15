@@ -54,7 +54,7 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_storage = getstorage(masterdata, PreprocessingStoragePair)
+        preprocess_storage = getstorage(data, PreprocessingStoragePair)
         partsol_storage = getstorage(masterdata, PartialSolutionStoragePair)
     
         add_to_localpartialsol!(preprocess_storage, first(var_vals[1]), 1.0)
