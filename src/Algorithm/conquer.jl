@@ -52,11 +52,9 @@ function apply_conquer_alg_to_node!(
         @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(nodestate))
         @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
     end
-    if (ip_gap(nodestate) <= 0.0 + 0.00000001)
-        isverbose(algo) && @logmsg LogLevel(-1) string(
-            "IP Gap is non-positive: ", ip_gap(getincumbents(node)), ". Abort treatment."
-        )
-    else    
+    if ip_gap_closed(nodestate)
+        @info "IP Gap is closed: $(ip_gap(getincumbents(node))). Abort treatment."
+    else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
         run!(algo, data, ConquerInput(node, storages_to_restore))
@@ -137,6 +135,8 @@ end
     cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     run_preprocessing::Bool = false
+    opt_atol::Float64 = colgen.opt_atol # TODO : force this value in an init() method
+    opt_rtol::Float64 = colgen.opt_rtol # TODO : force this value in an init() method
 end
 
 isverbose(algo::ColCutGenConquer) = algo.colgen.log_print_frequency > 0
@@ -169,7 +169,10 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
-    while !to_be_pruned(node) && nb_tightening_rounds < algo.max_nb_cut_rounds
+    node_pruned = getterminationstatus(nodestate) == INFEASIBLE ||
+        ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+
+    while !node_pruned && nb_tightening_rounds < algo.max_nb_cut_rounds
         sol = get_best_lp_primal_sol(getoptstate(colgen_output))
         if sol !== nothing
             cutcb_input = CutCallbacksInput(sol)
@@ -184,6 +187,9 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
         set_lp_dual_bound!(nodestate, DualBound(reform))
         colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
         update!(nodestate, getoptstate(colgen_output))
+
+        node_pruned = getterminationstatus(nodestate) == INFEASIBLE ||
+            ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
 
         nb_tightening_rounds += 1
     end
@@ -202,14 +208,22 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     sort!(heuristics_to_run, by = x -> last(x), rev=true)
 
     for (heur_algorithm, name, priority) in heuristics_to_run
-        to_be_pruned(node) && break
+        node_pruned && break
 
-        @logmsg LogLevel(0) string("Running ", name, " heuristic")
+        @info "Running $name heuristic"
         ismanager(heur_algorithm) && (stateids = store_states!(data))
         heur_output = run!(heur_algorithm, data, OptimizationInput(nodestate))
         update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         ismanager(heur_algorithm) && restore_states!(stateids, input.storages_to_restore)
+
+        node_pruned = ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
     end 
+
+    if node_pruned
+        setterminationstatus!(nodestate, OPTIMAL)
+    else
+        setterminationstatus!(nodestate, OTHER_LIMIT)
+    end
     return
 end
 
@@ -234,6 +248,13 @@ function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
     node = getnode(input)
     nodestate = getoptstate(node)
     output = run!(algo.masterlpalgo, getmasterdata(data), OptimizationInput(nodestate))
-    update!(nodestate, getoptstate(output))
+    masterlp_state =  getoptstate(output)
+    update!(nodestate, masterlp_state)
+    if ip_gap_closed(masterlp_state)
+        setterminationstatus!(nodestate, OPTIMAL)
+    else
+        setterminationstatus!(nodestate, OTHER_LIMIT)
+    end
+    return
 end
 

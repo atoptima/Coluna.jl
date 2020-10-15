@@ -14,6 +14,11 @@ global const MOI = MathOptInterface
 global const MOIU = MathOptInterface.Utilities
 global const TO = TimerOutputs
 
+### Default parameters values
+global const DEF_OPTIMALITY_ATOL = 1e-5
+global const DEF_OPTIMALITY_RTOL = 1e-9
+###
+
 # submodules
 export ColunaBase, MathProg, Algorithm
 

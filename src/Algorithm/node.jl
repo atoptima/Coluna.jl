@@ -58,9 +58,9 @@ isrootnode(n::Node) = n.tree_order == 1
 getinfeasible(n::Node) = n.infesible
 setinfeasible(n::Node, status::Bool) = n.infeasible = status
 
+# TODO remove
 function to_be_pruned(node::Node)
     nodestate = getoptstate(node)
     getterminationstatus(nodestate) == INFEASIBLE && return true
-    bounds_ratio = get_ip_primal_bound(nodestate) / get_ip_dual_bound(nodestate)
-    return isapprox(bounds_ratio, 1) || ip_gap(nodestate) < 0
+    return ip_gap_closed(nodestate)
 end
