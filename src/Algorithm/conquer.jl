@@ -213,7 +213,7 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
             ) 
         node_pruned && break
 
-        @logmsg LogLevel(0) string("Running ", name, " heuristic")
+        @info "Running $name heuristic"
         ismanager(heur_algorithm) && (stateids = store_states!(data))
         heur_output = run!(heur_algorithm, data, OptimizationInput(nodestate))
         update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))

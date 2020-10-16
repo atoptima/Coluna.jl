@@ -246,6 +246,7 @@ function change_sp_upper_bound!(
         if update_global_var_bounds
             for (varid, var) in getvars(spform)
                 update_bounds_of_master_representative!(algo, storage, varid, spform)
+
             end
         end
     end 
@@ -344,6 +345,7 @@ function fix_local_partial_solution!(
             setcurrhs!(form, constrid, getcurrhs(form, constrid) - val * coef)
             update_min_slack!(algo, storage, constrid, form, false, - val * coef)
             update_max_slack!(algo, storage, constrid, form, false, - val * coef)
+
         end
     end
 
@@ -733,6 +735,7 @@ function strengthen_var_bounds_in_constr!(
             return false
         end
     end
+
     if getduty(constrid) <= AbstractMasterConstr
         var_filter = (varid -> isanOriginalRepresentatives(getduty(varid)))
     else
@@ -798,6 +801,7 @@ function propagation!(algo::PreprocessAlgorithm, storage::PreprocessingStorage)
         #     )
         # end
         if strengthen_var_bounds_in_constr!(algo, storage, constrid, form)
+
             return true
         end
     end
