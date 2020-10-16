@@ -208,6 +208,9 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     sort!(heuristics_to_run, by = x -> last(x), rev=true)
 
     for (heur_algorithm, name, priority) in heuristics_to_run
+        node_pruned = ip_gap_closed(
+            nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol
+            ) 
         node_pruned && break
 
         @info "Running $name heuristic"
@@ -215,8 +218,6 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
         heur_output = run!(heur_algorithm, data, OptimizationInput(nodestate))
         update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         ismanager(heur_algorithm) && restore_states!(stateids, input.storages_to_restore)
-
-        node_pruned = ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
     end 
 
     if node_pruned

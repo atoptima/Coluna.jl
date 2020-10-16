@@ -61,7 +61,6 @@ push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getnodevalue
 popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
 nb_open_nodes(tree::SearchTree) = length(tree.nodes)
 
-
 """
     TreeSearchRuntimeData
 
@@ -86,6 +85,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
     treestate = OptimizationState(
         getmaster(reform), getoptstate(input), exploitsprimalsols, false
     )
+
     conquer_storages_to_restore = StoragesUsageDict()
     collect_storages_to_restore!(conquer_storages_to_restore, algo.conqueralg, reform) 
     # divide algorithms are always manager algorithms, so we do not need to restore storages for them
@@ -98,8 +98,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
         -DualBound{Sense}()
     )
     master = getmaster(getreform(rfdata))
-    rootnode = RootNode(master, getoptstate(input), store_states!(rfdata), algo.skiprootnodeconquer)
-    push!(tsdata, rootnode)
+    push!(tsdata, RootNode(master, getoptstate(input), store_states!(rfdata), algo.skiprootnodeconquer))
     return tsdata
 end
 

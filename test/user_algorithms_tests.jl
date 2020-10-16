@@ -8,7 +8,7 @@ end
 
 @with_kw struct ConsecutiveColGen <: AbstractOptimizationAlgorithm
     colgen = ColumnGeneration(smoothing_stabilization = 1.0)
-    preprocess = PreprocessAlgorithm(preprocess_subproblems = false)
+    preprocess = PreprocessAlgorithm(preprocess_subproblems = true, printing = true)
     rm_heur = RestrictedMasterIPHeuristic()
     num_calls_to_col_gen = 3  
 end
@@ -23,7 +23,7 @@ function Coluna.Algorithm.get_storages_usage(
     algo::ConsecutiveColGen, reform::Reformulation
     ) 
     master = Coluna.MathProg.getmaster(reform)
-    return [(master, Coluna.Algorithm.PreprocessingStoragePair, Coluna.Algorithm.READ_AND_WRITE),
+    return [(reform, Coluna.Algorithm.PreprocessingStoragePair, Coluna.Algorithm.READ_AND_WRITE),
             (master, Coluna.Algorithm.PartialSolutionStoragePair, Coluna.Algorithm.READ_AND_WRITE)]
 end
 
@@ -54,7 +54,7 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_storage = getstorage(masterdata, PreprocessingStoragePair)
+        preprocess_storage = getstorage(data, PreprocessingStoragePair)
         partsol_storage = getstorage(masterdata, PartialSolutionStoragePair)
     
         add_to_localpartialsol!(preprocess_storage, first(var_vals[1]), 1.0)

@@ -38,9 +38,9 @@ end
     user_algorithms_tests()
 end
 
-@testset "Preprocessing " begin
-    preprocessing_tests()
-end
+# @testset "Preprocessing " begin
+#     preprocessing_tests()
+# end
 
 @testset "pricing callback" begin
     pricing_callback_tests()
