@@ -6,6 +6,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     optimizer::AbstractOptimizer
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
+    robust_constr_generators::Vector{RobustConstraintsGenerator}
     buffer::FormulationBuffer
 end
 
@@ -27,9 +28,8 @@ function Formulation{D}(
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense
 ) where {D<:AbstractFormDuty}
     return Formulation{D}(
-        getnewuid(form_counter), Counter(), Counter(),
-        parent_formulation, NoOptimizer(), FormulationManager(),
-        obj_sense, FormulationBuffer()
+        getnewuid(form_counter), Counter(), Counter(), parent_formulation, NoOptimizer(), 
+        FormulationManager(), obj_sense,  RobustConstraintsGenerator[], FormulationBuffer()
     )
 end
 
@@ -38,43 +38,44 @@ end
 
 Return `true` if `formulation` has a variable or a constraint with given `id`.
 """
-haskey(formulation::Formulation, id::Id) = haskey(formulation.manager, id)
+haskey(form::Formulation, id::VarId) = haskey(form.manager.vars, id)
+haskey(form::Formulation, id::ConstrId) = haskey(form.manager.constrs, id)
 
 """
     getvar(formulation, varid) -> Variable
 
 Return the variable with given `varid` that belongs to `formulation`.
 """
-getvar(form::Formulation, id::VarId) = getvar(form.manager, id)
+getvar(form::Formulation, id::VarId) = get(form.manager.vars, id, nothing)
 
 """
     getconstr(formulation, constrid) -> Constraint
 
 Return the constraint with given `constrid` that belongs to `formulation`.
 """
-getconstr(form::Formulation, id::ConstrId) = getconstr(form.manager, id)
+getconstr(form::Formulation, id::ConstrId) = get(form.manager.constrs, id, nothing)
 
 """
     getvars(formulation) -> Dict{VarId, Variable}
 
 Return all variables in `formulation`.
 """
-getvars(form::Formulation) = getvars(form.manager)
+getvars(form::Formulation) = form.manager.vars
 
 """
     getconstrs(formulation) -> Dict{ConstrId, Constraint}
 
 Return all constraints in `formulation`.
 """
-getconstrs(form::Formulation) = getconstrs(form.manager)
+getconstrs(form::Formulation) = form.manager.constrs
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
-getcoefmatrix(form::Formulation) = getcoefmatrix(form.manager)
-getprimalsolmatrix(form::Formulation) = getprimalsolmatrix(form.manager)
-getprimalsolcosts(form::Formulation) = getprimalsolcosts(form.manager)
-getdualsolmatrix(form::Formulation) = getdualsolmatrix(form.manager)
-getdualsolrhss(form::Formulation) = getdualsolrhss(form.manager)
-#getexpressionmatrix(form::Formulation) = getexpressionmatrix(form.manager) # Not used for now
+getcoefmatrix(form::Formulation) = form.manager.coefficients
+getprimalsolmatrix(form::Formulation) = form.manager.primal_sols
+getprimalsolcosts(form::Formulation) = form.manager.primal_sol_costs
+getdualsolmatrix(form::Formulation) = form.manager.dual_sols
+getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
+
 
 "Returns the `uid` of `Formulation` `form`."
 getuid(form::Formulation) = form.uid
@@ -382,11 +383,11 @@ function set_robust_constr_generator!(
     alg::Function
 )
     constrgen = RobustConstraintsGenerator(0, kind, alg)
-    push!(form.manager.robust_constr_generators, constrgen)
+    push!(form.robust_constr_generators, constrgen)
     return nothing
 end
 
-get_robust_constr_generators(form::Formulation) = form.manager.robust_constr_generators
+get_robust_constr_generators(form::Formulation) = form.robust_constr_generators
 
 function _addlocalartvar!(form::Formulation, constr::Constraint)
     matrix = getcoefmatrix(form)
