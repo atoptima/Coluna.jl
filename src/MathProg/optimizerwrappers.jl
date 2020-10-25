@@ -34,9 +34,13 @@ mutable struct UserOptimizer <: AbstractOptimizer
     user_oracle::Function
 end
 
-mutable struct PricingCallbackData
+struct PricingCallbackData
     form::Formulation
-    result#::Union{Nothing, OptimizationState}
+    primal_solutions::Vector{PrimalSolution}
+end
+
+function PricingCallbackData(form::F) where {F<:Formulation} 
+    return PricingCallbackData(form, PrimalSolution{F}[])
 end
 
 """
@@ -134,11 +138,6 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     _reset_buffer!(f)
     return
 end
-
-# Fallbacks
-optimize!(f::Formulation, ::S) where {S<:AbstractOptimizer} = error(
-    string("Function `optimize!` is not defined for object of type ", S)
-)
 
 # Initialization of optimizers
 function _initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)

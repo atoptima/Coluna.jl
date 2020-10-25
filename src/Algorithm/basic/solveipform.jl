@@ -169,5 +169,17 @@ function optimize_ip_form!(algo::SolveIpForm, optimizer::MoiOptimizer, form::For
 end
 
 function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Formulation)
-    return optimize!(form)
+    @logmsg LogLevel(-2) "Calling user-defined optimization function."
+    result = OptimizationState(form)
+    cbdata = MathProg.PricingCallbackData(form)
+    optimizer.user_oracle(cbdata)
+    if length(cbdata.primal_solutions) > 0
+        setterminationstatus!(result, OPTIMAL)
+        for primal_sol in cbdata.primal_solutions
+            add_ip_primal_sol!(result, primal_sol)
+        end
+    else
+        setterminationstatus!(result, INFEASIBLE) # TODO : what if no solution found ?
+    end
+    return result
 end
