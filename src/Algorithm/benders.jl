@@ -167,7 +167,7 @@ end
 
 function record_solutions!(
     algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, spform::Formulation,
-    spresult::MoiResult
+    spresult::OptimizationState
 )::Vector{ConstrId}
 
     recorded_dual_solution_ids = Vector{ConstrId}()
@@ -218,9 +218,9 @@ function insert_cuts_in_master!(
 end
 
 function compute_benders_sp_lagrangian_bound_contrib(
-    algdata::BendersCutGenRuntimeData, spform::Formulation, spsol::MoiResult
+    algdata::BendersCutGenRuntimeData, spform::Formulation, spsol
 )
-    dualsol = getbestdualsol(spsol)
+    dualsol = get_best_lp_dual_sol(spsol)
     contrib = getvalue(dualsol)
     return contrib
 end
@@ -282,7 +282,7 @@ function solve_sp_to_gencut!(
 
         benders_sp_lagrangian_bound_contrib = compute_benders_sp_lagrangian_bound_contrib(algdata, spform, optresult)
 
-        primalsol = getbestprimalsol(optresult)
+        primalsol = get_best_lp_primal_sol(optresult)
         spsol_relaxed = contains(primalsol, varid -> getduty(varid) == BendSpSlackFirstStageVar)
 
         benders_sp_primal_bound_contrib = 0.0
@@ -299,7 +299,7 @@ function solve_sp_to_gencut!(
             end
         end
         
-        if - algo.feasibility_tol <= getprimalbound(optresult) <= algo.feasibility_tol
+        if - algo.feasibility_tol <= get_lp_primal_bound(optresult) <= algo.feasibility_tol
         # no cuts are generated since there is no violation 
             if spsol_relaxed
                 if algdata.spform_phase[spform_uid] == PurePhase2
@@ -484,8 +484,8 @@ function bend_cutting_plane_main_loop!(
             return 
         end
         
-        master_dual_sol = getbestdualsol(optresult)
-        master_primal_sol = getbestprimalsol(optresult)
+        master_dual_sol = get_best_lp_dual_sol(optresult)
+        master_primal_sol = get_best_lp_primal_sol(optresult)
 
         if getterminationstatus(optresult) == INFEASIBLE || master_primal_sol === nothing || master_dual_sol === nothing
             error("Benders algorithm:  the relaxed master LP is infeasible or unbounded has no solution.")

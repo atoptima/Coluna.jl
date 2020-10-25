@@ -538,13 +538,13 @@ function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalso
 end
 
 "Calls optimization routine for `Formulation` `form`."
-function optimize!(form::Formulation)
-    @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
-    @logmsg LogLevel(-3) form
-    res = optimize!(form, getoptimizer(form))
-    @logmsg LogLevel(-3) "Optimization finished with result:" print(form, res)
-    return res
-end
+# function optimize!(form::Formulation)
+#     @logmsg LogLevel(-1) string("Optimizing formulation ", getuid(form))
+#     @logmsg LogLevel(-3) form
+#     res = optimize!(form, getoptimizer(form))
+#     @logmsg LogLevel(-3) "Optimization finished with result:" print(form, res)
+#     return res
+# end
 
 function initialize_optimizer!(form::Formulation, builder::Function)
     opt = builder()

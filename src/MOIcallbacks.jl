@@ -19,7 +19,7 @@ function MOI.submit(
 )
     form = cb.callback_data.form
     S = getobjsense(form)
-    result = MoiResult(form)
+    result = OptimizationState(form)
     solval = cost
 
     colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]
@@ -35,8 +35,8 @@ function MOI.submit(
 
     add_primal_sol!(result, PrimalSolution(form, colunavarids, values, solval, FEASIBLE_SOL))
     setterminationstatus!(result, OPTIMAL)
-    cb.callback_data.result = result
-    return
+    #cb.callback_data.result = result
+    return result
 end
 
 function MOI.get(model::Optimizer, spid::BD.PricingSubproblemId{MathProg.PricingCallbackData})

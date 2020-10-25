@@ -11,13 +11,11 @@ const SupportedConstrFunc = Union{MOI.ScalarAffineFunction{Float64}}
 const SupportedConstrSets = Union{MOI.EqualTo{Float64}, MOI.GreaterThan{Float64},
     MOI.LessThan{Float64}}
 
-
 @enum(
     ObjectiveType,
     SINGLE_VARIABLE,
     SCALAR_AFFINE
 )
-
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Problem
     objective_type::ObjectiveType

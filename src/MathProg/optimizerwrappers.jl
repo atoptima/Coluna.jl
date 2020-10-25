@@ -16,105 +16,6 @@ function convert_status(coluna_status::TerminationStatus)
     return MOI.OTHER_LIMIT
 end
 
-### START : TO BE DELETED
-#### Old Optimization Result (usefull only to return the result of the call to
-### a solver through MOI). Will be removed very soon
-mutable struct MoiResult{F<:AbstractFormulation,S<:Coluna.AbstractSense}
-    termination_status::TerminationStatus
-    primal_bound::PrimalBound{S}
-    dual_bound::DualBound{S}
-    primal_sols::Vector{PrimalSolution{F}}
-    dual_sols::Vector{DualSolution{F}}
-end
-
-function MoiResult(model::M) where {M<:AbstractModel}
-    S = getobjsense(model)
-    return MoiResult{M,S}(
-        UNKNOWN_TERMINATION_STATUS, PrimalBound(model), DualBound(model),
-        PrimalSolution{M}[], DualSolution{M}[]
-    )
-end
-
-function MoiResult(
-    model::M, ts::TerminationStatus; pb = nothing,
-    db = nothing, primal_sols = nothing, dual_sols = nothing
-) where {M<:AbstractModel}
-    S = getobjsense(model)
-    return OptimizationState{M,S}(
-        ts,
-        pb === nothing ? PrimalBound(model) : pb,
-        db === nothing ? DualBound(model) : db,
-        primal_sols === nothing ? PrimalSolution{M}[] : primal_sols,
-        dual_sols === nothing ? DualSolution{M}[] : dual_sols
-    )
-end
-
-getterminationstatus(res::MoiResult) = res.termination_status
-#getsolutionstatus(res::MoiResult) = res.solution_status
-#isfeasible(res::MoiResult) = res.solution_status == FEASIBLE_SOL
-getprimalbound(res::MoiResult) = res.primal_bound
-getdualbound(res::MoiResult) = res.dual_bound
-getprimalsols(res::MoiResult) = res.primal_sols
-getdualsols(res::MoiResult) = res.dual_sols
-nbprimalsols(res::MoiResult) = length(res.primal_sols)
-nbdualsols(res::MoiResult) = length(res.dual_sols)
-
-# For documentation : Only unsafe methods must be used to retrieve best
-# solutions in the core of Coluna.
-unsafe_getbestprimalsol(res::MoiResult) = res.primal_sols[1]
-unsafe_getbestdualsol(res::MoiResult) = res.dual_sols[1]
-getbestprimalsol(res::MoiResult) = get(res.primal_sols, 1, nothing)
-getbestdualsol(res::MoiResult) = get(res.dual_sols, 1, nothing)
-
-setprimalbound!(res::MoiResult, b::PrimalBound) = res.primal_bound = b
-setdualbound!(res::MoiResult, b::DualBound) = res.dual_bound = b
-setterminationstatus!(res::MoiResult, status::TerminationStatus) = res.termination_status = status
-#setsolutionstatus!(res::MoiResult, status::SolutionStatus) = res.solution_status = status
-result_gap(res::MoiResult) = gap(getprimalbound(res), getdualbound(res))
-
-function add_primal_sol!(res::MoiResult{M,S}, solution::PrimalSolution{M}) where {M,S}
-    push!(res.primal_sols, solution)
-    pb = PrimalBound{S}(getvalue(solution))
-    if isbetter(pb, getprimalbound(res))
-        setprimalbound!(res, pb)
-    end
-    sort!(res.primal_sols; by = x->valueinminsense(PrimalBound{S}(getvalue(x))))
-    return
-end
-
-function add_dual_sol!(res::MoiResult{M,S}, solution::DualSolution{M}) where {M,S}
-    push!(res.dual_sols, solution)
-    db = DualBound{S}(getvalue(solution))
-    if isbetter(db, getdualbound(res))
-        setdualbound!(res, db)
-    end
-    #sort!(res.dual_sols; by = x->valueinminsense(DualBound{S}(getvalue(x)))))
-    return
-end
-
-function determine_statuses(res::MoiResult, fully_explored::Bool)
-    gap_is_zero = result_gap(res) <= 0.00001
-    found_sols = length(getprimalsols(res)) >= 1
-    # We assume that gap cannot be zero if no solution was found
-    gap_is_zero && @assert found_sols
-    #found_sols && setsolutionstatus!(res, FEASIBLE_SOL)
-    gap_is_zero && setterminationstatus!(res, OPTIMAL)
-    if !found_sols # Implies that gap is not zero
-        # Determine if we can prove that is was infeasible
-        if fully_explored
-            setterminationstatus!(res, INFEASIBLE)
-        else
-            setterminationstatus!(res, UNCOVERED_TERMINATION_STATUS)
-        end
-    elseif !gap_is_zero
-        setterminationstatus!(res, OTHER_LIMIT)
-    end
-    return
-end
-
-### END : TO BE DELETED
-
-
 """
     NoOptimizer <: AbstractOptimizer
 
@@ -135,14 +36,7 @@ end
 
 mutable struct PricingCallbackData
     form::Formulation
-    result::Union{Nothing, MoiResult}
-end
-
-function optimize!(form::Formulation, optimizer::UserOptimizer)
-    @logmsg LogLevel(-2) "Calling user-defined optimization function."
-    cbdata = PricingCallbackData(form, nothing)
-    optimizer.user_oracle(cbdata)
-    return cbdata.result
+    result#::Union{Nothing, OptimizationState}
 end
 
 """
@@ -156,49 +50,6 @@ struct MoiOptimizer <: AbstractOptimizer
 end
 
 getinner(optimizer::MoiOptimizer) = optimizer.inner
-
-function retrieve_result(form::Formulation, optimizer::MoiOptimizer)
-    result = MoiResult(form)
-    terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
-    if terminationstatus != MOI.INFEASIBLE &&
-            terminationstatus != MOI.DUAL_INFEASIBLE &&
-            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
-            terminationstatus != MOI.OPTIMIZE_NOT_CALLED &&
-            terminationstatus != MOI.TIME_LIMIT
-        fill_primal_result!(form, optimizer, result)
-        fill_dual_result!(form, optimizer, result)
-        if MOI.get(getinner(optimizer), MOI.ResultCount()) >= 1
-            setterminationstatus!(result, convert_status(terminationstatus))
-        else
-            msg = """
-            Termination status = $(terminationstatus) but no results.
-            Please, open an issue at https://github.com/atoptima/Coluna.jl/issues
-            """
-            error(msg)
-        end
-    else
-        @warn "Solver has no result to show."
-        setterminationstatus!(result, INFEASIBLE)
-    end
-    return result
-end
-
-function optimize!(form::Formulation, optimizer::MoiOptimizer)
-    @logmsg LogLevel(-4) "MOI formulation before synch: "
-    @logmsg LogLevel(-4) getoptimizer(form)
-    sync_solver!(getoptimizer(form), form)
-    @logmsg LogLevel(-3) "MOI formulation after synch: "
-    @logmsg LogLevel(-3) getoptimizer(form)
-    nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())
-    if nbvars <= 0
-        @warn "No variable in the formulation. Coluna does not call the solver."
-        return retrieve_result(form, optimizer)
-    end
-    MOI.optimize!(getinner(form.optimizer))
-    status = MOI.get(form.optimizer.inner, MOI.TerminationStatus())
-    @logmsg LogLevel(-2) string("Optimization finished with status: ", status)
-    return retrieve_result(form, optimizer)
-end
 
 function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))
@@ -299,18 +150,3 @@ end
 
 _initialize_optimizer!(optimizer, form::Formulation) = return
 
-function Base.print(io::IO, form::AbstractFormulation, moiresult::MoiResult)
-    println(io, "Primal bound =  $(moiresult.primal_bound)")
-    if length(moiresult.primal_sols) > 0
-        for (varid, val) in moiresult.primal_sols[1]
-            println(io, "\t $(getname(form, varid)) = $val")
-        end
-    end
-    println(io, "*******")
-    if length(moiresult.dual_sols) > 0
-        for (constrid, val) in moiresult.dual_sols[1]
-            println(io, "\t $(getname(form, constrid)) = $val")
-        end
-    end
-    return
-end
