@@ -270,7 +270,8 @@ function solve_sp_to_gencut!(
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing benders_sp prob"
         TO.@timeit Coluna._to "Bender Sep SubProblem" begin
-            optresult = optimize!(spform)
+            # optresult = optimize!(spform)
+            optresult = run!(SolveLpForm(), ModelData(spform), OptimizationInput(OptimizationState(spfrom)))
         end
 
         if getterminationstatus(optresult) == INFEASIBLE # if status != MOI.OPTIMAL
@@ -422,7 +423,7 @@ end
 
 function solve_relaxed_master!(master::Formulation)
     elapsed_time = @elapsed begin
-        optresult = TO.@timeit Coluna._to "relaxed master" optimize!(master)
+        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(), ModelData(master), OptimizationInput(OptimizationState(master)))
     end
     return optresult, elapsed_time
 end
@@ -473,7 +474,8 @@ function bend_cutting_plane_main_loop!(
         nb_new_cuts = 0
         cur_gap = 0.0
         
-        optresult, master_time = solve_relaxed_master!(masterform)
+        optoutput, master_time = solve_relaxed_master!(masterform)
+        optresult = getoptstate(optoutput)
 
         if getterminationstatus(optresult) == INFEASIBLE
             db = - getvalue(DualBound(masterform))

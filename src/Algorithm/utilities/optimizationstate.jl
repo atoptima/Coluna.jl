@@ -28,14 +28,6 @@ function bestbound(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {So
     return
 end
 
-function pushfirst(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
-    pushfirst!(solutions, new_sol)
-    if length(solutions) > max_len
-        pop!(solutions)
-    end
-    return
-end
-
 """
     OptimizationState(
         form; 
