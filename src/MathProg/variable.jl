@@ -50,19 +50,14 @@ Structure to hold the pointers to the MOI representation of a Coluna Variable.
 """
 mutable struct MoiVarRecord
     index::MoiVarIndex
-    bounds::MoiVarBound
     kind::MoiVarKind
 end
 
-MoiVarRecord(;index::MoiVarIndex = MoiVarIndex()) = MoiVarRecord(
-    index, MoiVarBound(), MoiVarKind()
-)
+MoiVarRecord(;index::MoiVarIndex = MoiVarIndex()) = MoiVarRecord(index, MoiVarKind())
 getindex(record::MoiVarRecord) = record.index
-getbounds(record::MoiVarRecord) = record.bounds
 getkind(record::MoiVarRecord) = record.kind
 
 setindex!(record::MoiVarRecord, index::MoiVarIndex) = record.index = index
-setbounds!(record::MoiVarRecord, bounds::MoiVarBound) = record.bounds = bounds
 setkind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
 
 """

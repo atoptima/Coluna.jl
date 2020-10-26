@@ -78,9 +78,6 @@ MoiConstrIndex() = MOI.ConstraintIndex{
 const MoiVarIndex = MOI.VariableIndex
 MoiVarIndex() = MOI.VariableIndex(-1)
 
-# Bounds on variables
-const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
-
 # Variable kinds
 const MoiInteger = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}
 const MoiBinary = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}

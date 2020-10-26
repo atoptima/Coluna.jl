@@ -99,7 +99,8 @@ function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
         moi_bounds = getbounds(moirecord)
         if moi_bounds.value != -1
             MOI.delete(inner, moi_bounds)
-            setbounds!(moirecord, MoiVarBound(-1))
+            error("errA")
+            #setbounds!(moirecord, MoiVarBound(-1))
         end
     end
     moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
@@ -155,7 +156,8 @@ function remove_from_optimizer!(form::Formulation, var::Variable)
     moirecord = getmoirecord(var)
     @assert getindex(moirecord).value != -1
     MOI.delete(inner, getbounds(moirecord))
-    setbounds!(moirecord, MoiVarBound())
+    #setbounds!(moirecord, MoiVarBound())
+    error("errB")
     getkind(moirecord).value != -1 && MOI.delete(inner, getkind(moirecord))
     setkind!(moirecord, MoiVarKind())
     MOI.delete(inner, getindex(moirecord))
@@ -254,6 +256,8 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         solconstrs = Vector{ConstrId}()
         solvals = Vector{Float64}()
         for (id, constr) in getconstrs(form)
+            moi_index = getindex(getmoirecord(constr))
+            println("\e[32m id = $id , moi_id = $moi_index, $(iscuractive(form, id) && isexplicit(form, id)) \e[00m")
             iscuractive(form, id) && isexplicit(form, id) || continue
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
