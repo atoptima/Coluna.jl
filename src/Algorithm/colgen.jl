@@ -227,9 +227,6 @@ function compute_db_contributions!(
     spinfo.valid_dual_bound_contrib = value <= 0 ? value * spinfo.lb : value * spinfo.ub
     value = getvalue(primalbound)
     spinfo.pseudo_dual_bound_contrib = value <= 0 ? value * spinfo.lb : value * spinfo.ub
-    println("******")
-    @show spinfo.valid_dual_bound_contrib
-    @show spinfo.pseudo_dual_bound_contrib
     return
 end
 
@@ -240,9 +237,6 @@ function compute_db_contributions!(
     spinfo.valid_dual_bound_contrib = value >= 0 ? value * spinfo.lb : value * spinfo.ub
     value = getvalue(primalbound)
     spinfo.pseudo_dual_bound_contrib = value >= 0 ? value * spinfo.lb : value * spinfo.ub
-    println("******")
-    @show spinfo.valid_dual_bound_contrib
-    @show spinfo.pseudo_dual_bound_contrib
     return
 end
 
@@ -638,7 +632,6 @@ function cg_main_loop!(
             rm_output = run!(algo.restr_master_solve_alg, getmasterdata(data), rm_input)
         end
         rm_optstate = getoptstate(rm_output)
-        println("\e[31m cost of dual = $(getvalue(get_best_lp_dual_sol(rm_optstate))) \e[00m")
 
         if phase != 1 && getterminationstatus(rm_optstate) == INFEASIBLE
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
@@ -670,7 +663,6 @@ function cg_main_loop!(
 
             if phase != 1 && !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
                 if isinteger(proj_cols_on_rep(rm_sol, masterform))
-                    @show 
                     rm_complete_sol = concatenate_sols(rm_sol, partial_solution)            
                     update_ip_primal_sol!(cg_optstate, rm_complete_sol)
                 end

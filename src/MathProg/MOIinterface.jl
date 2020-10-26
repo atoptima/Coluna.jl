@@ -99,8 +99,7 @@ function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
         moi_bounds = getbounds(moirecord)
         if moi_bounds.value != -1
             MOI.delete(inner, moi_bounds)
-            error("errA")
-            #setbounds!(moirecord, MoiVarBound(-1))
+            setbounds!(moirecord, MoiVarBound(-1))
         end
     end
     moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
@@ -156,8 +155,7 @@ function remove_from_optimizer!(form::Formulation, var::Variable)
     moirecord = getmoirecord(var)
     @assert getindex(moirecord).value != -1
     MOI.delete(inner, getbounds(moirecord))
-    #setbounds!(moirecord, MoiVarBound())
-    error("errB")
+    setbounds!(moirecord, MoiVarBound())
     getkind(moirecord).value != -1 && MOI.delete(inner, getkind(moirecord))
     setkind!(moirecord, MoiVarKind())
     MOI.delete(inner, getindex(moirecord))
@@ -255,9 +253,8 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         solcost = 0.0 # TODO : constant in the objective function ?
         solconstrs = Vector{ConstrId}()
         solvals = Vector{Float64}()
+        # Get dual value of constraints
         for (id, constr) in getconstrs(form)
-            moi_index = getindex(getmoirecord(constr))
-            println("\e[32m id = $id , moi_id = $moi_index, $(iscuractive(form, id) && isexplicit(form, id)) \e[00m")
             iscuractive(form, id) && isexplicit(form, id) || continue
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
@@ -269,6 +266,20 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 push!(solvals, val)      
             end
         end
+        # Get reduced cost of variables
+        for (id, var) in getvars(form)
+            iscuractive(form, id) && isexplicit(form, id) || continue
+            moi_bounds_index = getbounds(getmoirecord(var))
+            basis_status = MOI.get(inner, MOI.ConstraintBasisStatus(res_idx), moi_bounds_index)
+            val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_bounds_index)
+            if basis_status == MOI.NONBASIC_AT_LOWER
+                solcost += val * getcurlb(form, id)
+            elseif basis_status == MOI.NONBASIC_AT_UPPER
+                solcost += val * getcurub(form, id)
+            end
+            # TODO : store reduced cost of the variable in the dual constraint ?
+        end
+
         sense = getobjsense(form) == MaxSense ? -1.0 : 1.0
         push!(solutions, DualSolution(form, solconstrs, solvals, sense * solcost, FEASIBLE_SOL))
     end

@@ -60,7 +60,6 @@ end
 #
 @exported_nestedenum begin
     Duty{Constraint}
-        BoundConstr <= Duty{Constraint}
         AbstractOriginalConstr <= Duty{Constraint}
             OriginalConstr <= AbstractOriginalConstr
         AbstractMasterConstr <= Duty{Constraint}
