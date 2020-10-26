@@ -54,7 +54,6 @@ export no_optimizer_builder, set_original_formulation!,
        enforce_integrality!, relax_integrality!,
        getobjsense, getoptimizer,
        setdualbound!,
-       getprimalsols, getdualsols,
        computereducedcost,
        update!,
        convert_status, getduty,
@@ -66,7 +65,6 @@ export no_optimizer_builder, set_original_formulation!,
        get_primal_solutions, get_dual_solutions
 
 # Below this line, clean up has been done :
-export optimize!
 
 # Methods related to Problem
 export Problem, set_initial_dual_bound!, set_initial_primal_bound!,

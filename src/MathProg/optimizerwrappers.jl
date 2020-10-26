@@ -28,7 +28,7 @@ no_optimizer_builder(args...) = NoOptimizer()
 """
     UserOptimizer <: AbstractOptimizer
 
-Wrapper that is used when the `optimize!(f::Formulation)` function should call an user-defined callback.
+TODO
 """
 mutable struct UserOptimizer <: AbstractOptimizer
     user_oracle::Function

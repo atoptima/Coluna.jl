@@ -172,10 +172,7 @@ function record_solutions!(
 
     recorded_dual_solution_ids = Vector{ConstrId}()
 
-    #primal_sols = getprimalsols(spresult)
-    dual_sols = getdualsols(spresult)
-
-    for dual_sol in dual_sols
+    for dual_sol in get_lp_dual_sols(spresult)
         if getvalue(dual_sol) > algo.feasibility_tol 
             (insertion_status, dual_sol_id) = setdualsol!(spform, dual_sol)
             if insertion_status
@@ -270,10 +267,10 @@ function solve_sp_to_gencut!(
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing benders_sp prob"
         TO.@timeit Coluna._to "Bender Sep SubProblem" begin
-            # optresult = optimize!(spform)
-            optresult = run!(SolveLpForm(), ModelData(spform), OptimizationInput(OptimizationState(spfrom)))
+            optstate = run!(SolveLpForm(get_dual_solution = true), ModelData(spform), OptimizationInput(OptimizationState(spform)))
         end
 
+        optresult = getoptstate(optstate)
         if getterminationstatus(optresult) == INFEASIBLE # if status != MOI.OPTIMAL
             sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
@@ -423,7 +420,7 @@ end
 
 function solve_relaxed_master!(master::Formulation)
     elapsed_time = @elapsed begin
-        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(), ModelData(master), OptimizationInput(OptimizationState(master)))
+        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(get_dual_solution = true), ModelData(master), OptimizationInput(OptimizationState(master)))
     end
     return optresult, elapsed_time
 end
