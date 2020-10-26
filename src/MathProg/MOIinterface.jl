@@ -215,7 +215,7 @@ getreducedcost(form::Formulation, varid::VarId) = _getreducedcost(form, getoptim
 function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)
     nb_primal_sols = MOI.get(inner, MOI.ResultCount())
-    solutions = Vector{PrimalSolution{F}}(undef, nb_primal_sols)
+    solutions = PrimalSolution{F}[]
     for res_idx in 1:nb_primal_sols
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
@@ -237,7 +237,7 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
                 push!(solvals, val)
             end
         end
-        solutions[res_idx] = PrimalSolution(form, solvars, solvals, solcost, FEASIBLE_SOL)
+        push!(solutions, PrimalSolution(form, solvars, solvals, solcost, FEASIBLE_SOL))
     end
     return solutions
 end
@@ -245,7 +245,7 @@ end
 function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)
     nb_dual_sols = MOI.get(inner, MOI.ResultCount())
-    solutions = Vector{DualSolution{F}}(undef, nb_dual_sols)
+    solutions = DualSolution{F}[]
     for res_idx in 1:nb_dual_sols
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
@@ -265,7 +265,8 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 push!(solvals, val)      
             end
         end
-        solutions[res_idx] = DualSolution(form, solconstrs, solvals, solcost, FEASIBLE_SOL)
+        sense = getobjsense(form) == MaxSense ? -1.0 : 1.0
+        push!(solutions, DualSolution(form, solconstrs, solvals, sense * solcost, FEASIBLE_SOL))
     end
     return solutions
 end

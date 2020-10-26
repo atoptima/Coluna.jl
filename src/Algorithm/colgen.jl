@@ -381,6 +381,8 @@ function solve_sps_to_gencols!(
         updatereducedcosts!(reform, redcostsvec, smooth_dual_sol)
     end
 
+    println("\e[31m lp_dual_sol_cost = $(getvalue(lp_dual_sol)) \e[00m")
+
     ### BEGIN LOOP TO BE PARALLELIZED
     if algo.solve_subproblems_parallel
         spuids = collect(keys(spsdatas))

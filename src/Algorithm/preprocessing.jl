@@ -279,7 +279,6 @@ function update_bounds_of_master_representative!(
         getcurub(spform, varid) * storage.cur_sp_upper_bounds[spuid]
     )
     if update_upper_bound!(algo, storage, getvar(master, varid), master, new_global_ub)
-        @show "I am here" stor
         return true
     end 
     return false

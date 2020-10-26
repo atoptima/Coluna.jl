@@ -88,7 +88,6 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
         end
     end
     if algo.get_dual_bound && getterminationstatus(optimizer_result) == OPTIMAL
-        # TO DO : dual bound should be set in optimizer_result
         dual_bound = getvalue(get_ip_primal_bound(optimizer_result)) + getvalue(partial_solution)
         set_ip_dual_bound!(optstate, DualBound(form, dual_bound))
     end
