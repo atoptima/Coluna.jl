@@ -45,7 +45,17 @@ end
 
 function optimize_lp_form!(algo::SolveLpForm, optimizer::MoiOptimizer, form::Formulation)
     MOI.set(form.optimizer.inner, MOI.Silent(), algo.silent)
-    return optimize!(form)
+    result = OptimizationState(form)
+    sols_found =  optimize_with_moi!(optimizer, form, result)
+    if sols_found
+        for primal_sol in get_primal_solutions(form, optimizer)
+            add_lp_primal_sol!(result, primal_sol)
+        end
+        for dual_sol in get_dual_solutions(form, optimizer)
+            add_lp_dual_sol!(result, dual_sol)
+        end
+    end
+    return result
 end
 
 function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
@@ -69,7 +79,7 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
  
     setterminationstatus!(optstate, getterminationstatus(optimizer_result))   
 
-    lp_primal_sol = getbestprimalsol(optimizer_result)
+    lp_primal_sol = get_best_lp_primal_sol(optimizer_result)
     if lp_primal_sol !== nothing
         add_lp_primal_sol!(optstate, lp_primal_sol)
         set_lp_primal_bound!(optstate, get_lp_primal_bound(optstate) + getvalue(partial_solution))
@@ -81,7 +91,7 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
     end
 
     if algo.get_dual_solution
-        lp_dual_sol = getbestdualsol(optimizer_result)
+        lp_dual_sol = get_best_lp_dual_sol(optimizer_result)
         if lp_dual_sol !== nothing
             if algo.set_dual_bound
                 update_lp_dual_sol!(optstate, lp_dual_sol)

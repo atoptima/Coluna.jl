@@ -53,7 +53,7 @@ function apply_conquer_alg_to_node!(
         @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
     end
     if ip_gap_closed(nodestate)
-        @info "IP Gap is closed: $(ip_gap(getincumbents(node))). Abort treatment."
+        @info "IP Gap is closed: $(ip_gap(getincumbents(nodestate))). Abort treatment."
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 

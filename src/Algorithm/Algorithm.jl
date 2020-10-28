@@ -16,7 +16,7 @@ const MOI = MathOptInterface
 import Base: push!
 
 # Import to extend methods to OptimizationState
-import ..MathProg: getterminationstatus, setterminationstatus!, 
+import ..MathProg:
     get_ip_primal_bound, get_ip_dual_bound,
     get_lp_primal_bound, get_lp_dual_bound, update_ip_primal_bound!, update_ip_dual_bound!,
     update_lp_primal_bound!, update_lp_dual_bound!, set_ip_primal_bound!,
