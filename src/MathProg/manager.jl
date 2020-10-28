@@ -20,6 +20,7 @@ struct FormulationManager
     primal_sol_costs::DynSparseVector{VarId} # primal solutions with varid map to their cost
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
     dual_sol_rhss::DynSparseVector{ConstrId} # dual solutions with constrid map to their rhs
+    robust_constr_generators::Vector{RobustConstraintsGenerator}
 end
 
 function FormulationManager()
@@ -33,7 +34,8 @@ function FormulationManager()
         dynamicsparse(VarId, VarId, Float64),
         dynamicsparsevec(VarId[], Float64[]),
         dynamicsparse(ConstrId, ConstrId, Float64),
-        dynamicsparsevec(ConstrId[], Float64[])
+        dynamicsparsevec(ConstrId[], Float64[]),
+        RobustConstraintsGenerator[]
     )
 end
 

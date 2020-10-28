@@ -220,7 +220,7 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
-        solcost = 0.0 # TODO : constant in the objective function (e.g. partial solution fixed) ?
+        solcost = 0.0 # TODO : constant in the objective function ?
         solvars = Vector{VarId}()
         solvals = Vector{Float64}()
         for (id, var) in getvars(form)

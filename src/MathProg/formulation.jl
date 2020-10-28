@@ -6,7 +6,6 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     optimizer::AbstractOptimizer
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
-    robust_constr_generators::Vector{RobustConstraintsGenerator}
     buffer::FormulationBuffer
 end
 
@@ -29,7 +28,7 @@ function Formulation{D}(
 ) where {D<:AbstractFormDuty}
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(), parent_formulation, NoOptimizer(), 
-        FormulationManager(), obj_sense,  RobustConstraintsGenerator[], FormulationBuffer()
+        FormulationManager(), obj_sense, FormulationBuffer()
     )
 end
 
@@ -377,17 +376,13 @@ function setconstr!(
     return constr
 end
 
-function set_robust_constr_generator!(
-    form::Formulation,
-    kind::ConstrKind,
-    alg::Function
-)
+function set_robust_constr_generator!(form::Formulation, kind::ConstrKind, alg::Function)
     constrgen = RobustConstraintsGenerator(0, kind, alg)
-    push!(form.robust_constr_generators, constrgen)
-    return nothing
+    push!(form.manager.robust_constr_generators, constrgen)
+    return
 end
 
-get_robust_constr_generators(form::Formulation) = form.robust_constr_generators
+get_robust_constr_generators(form::Formulation) = form.manager.robust_constr_generators
 
 function _addlocalartvar!(form::Formulation, constr::Constraint)
     matrix = getcoefmatrix(form)
