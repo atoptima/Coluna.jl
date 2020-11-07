@@ -342,7 +342,7 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
     while !treeisempty(tsdata)
         node = popnode!(tsdata)
         remove_states!(node.stateids)
-        clear_solutions!(node.opt_state)
+        clear_solutions!(node.optstate)
     end
 
     return OptimizationOutput(tsdata.optstate)
