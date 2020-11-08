@@ -48,7 +48,8 @@ check_if_optimizer_supports_ip(optimizer::UserOptimizer) = true
     
 function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
     form = getmodel(data)
-    optstate = OptimizationState(
+
+    result = OptimizationState(
         form, ip_primal_bound = get_ip_primal_bound(getoptstate(input))
     )
 
@@ -56,42 +57,44 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
-        setterminationstatus!(optstate, UNKNOWN_TERMINATION_STATUS)
-        return OptimizationOutput(optstate)
+        setterminationstatus!(result, UNKNOWN_TERMINATION_STATUS)
+        return OptimizationOutput(result)
     end
 
-    optimizer_result = optimize_ip_form!(algo, getoptimizer(form), form)
+    optimize_ip_form!(algo, getoptimizer(form), form, result)
 
-    setterminationstatus!(optstate, getterminationstatus(optimizer_result))
-
+    partial_sol = nothing
+    partial_sol_value = 0.0
     if isa(form, Formulation{MathProg.DwMaster})
         partsolstorage = getstorage(data, PartialSolutionStoragePair)
-        partial_solution = get_primal_solution(partsolstorage, form)
-    else    
-        partial_solution = EmptyPrimalSolution(form)
+        partial_sol = get_primal_solution(partsolstorage, form)
+        partial_sol_value = getvalue(partial_sol)
     end
-                                                      
-    bestprimalsol = get_best_ip_primal_sol(optimizer_result)    
+                                          
+    bestprimalsol = get_best_ip_primal_sol(result)    
     if bestprimalsol !== nothing
-        completesol = concatenate_sols(bestprimalsol, partial_solution)            
-        add_ip_primal_sol!(optstate, completesol)
-        if algo.log_level == 0
-            @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(optstate))
+        if partial_sol !== nothing
+            add_ip_primal_sol!(result, cat(partial_sol, bestprimalsol))
+        else
+            add_ip_primal_sol!(result, bestprimalsol)
         end
-        @logmsg LogLevel(-3) get_best_ip_primal_sol(optstate)
+        if algo.log_level == 0
+            @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(result))
+        end
+        @logmsg LogLevel(-3) get_best_ip_primal_sol(result)
     else
         if algo.log_level == 0
             println(
                 "No primal solution found. Termination status is ",
-                getterminationstatus(optstate), ". "
+                getterminationstatus(result), ". "
             )
         end
     end
-    if algo.get_dual_bound && getterminationstatus(optimizer_result) == OPTIMAL
-        dual_bound = getvalue(get_ip_primal_bound(optimizer_result)) + getvalue(partial_solution)
-        set_ip_dual_bound!(optstate, DualBound(form, dual_bound))
+    if algo.get_dual_bound && getterminationstatus(result) == OPTIMAL
+        dual_bound = getvalue(get_ip_primal_bound(result)) + partial_sol_value
+        set_ip_dual_bound!(result, DualBound(form, dual_bound))
     end
-    return OptimizationOutput(optstate)
+    return OptimizationOutput(result)
 end
 
 run!(algo::SolveIpForm, data::ReformData, input::OptimizationInput) = 
@@ -137,7 +140,9 @@ function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::
     return termination_status!(result, optimizer, form)
 end
 
-function optimize_ip_form!(algo::SolveIpForm, optimizer::MoiOptimizer, form::Formulation)
+function optimize_ip_form!(
+    algo::SolveIpForm, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
+)
     MOI.set(optimizer.inner, MOI.TimeLimitSec(), algo.time_limit)
     MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
     # No way to enforce upper bound or lower bound through MOI.
@@ -150,7 +155,6 @@ function optimize_ip_form!(algo::SolveIpForm, optimizer::MoiOptimizer, form::For
         enforce_integrality!(form)
     end
 
-    result = OptimizationState(form)
     sols_found = optimize_with_moi!(optimizer, form, result)
     if sols_found
         for primal_sol in get_primal_solutions(form, optimizer)
@@ -164,14 +168,18 @@ function optimize_ip_form!(algo::SolveIpForm, optimizer::MoiOptimizer, form::For
     if algo.deactivate_artificial_vars
         activate!(form, vcid -> isanArtificialDuty(getduty(vcid)))
     end
-    return result
+    return
 end
 
-function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Formulation)
+function optimize_ip_form!(
+    algo::SolveIpForm, optimizer::UserOptimizer, form::Formulation,
+    result::OptimizationState
+)
     @logmsg LogLevel(-2) "Calling user-defined optimization function."
-    result = OptimizationState(form)
+
     cbdata = MathProg.PricingCallbackData(form)
     optimizer.user_oracle(cbdata)
+
     if length(cbdata.primal_solutions) > 0
         setterminationstatus!(result, OPTIMAL)
         for primal_sol in cbdata.primal_solutions
@@ -180,5 +188,5 @@ function optimize_ip_form!(algo::SolveIpForm, optimizer::UserOptimizer, form::Fo
     else
         setterminationstatus!(result, INFEASIBLE) # TODO : what if no solution found ?
     end
-    return result
+    return
 end

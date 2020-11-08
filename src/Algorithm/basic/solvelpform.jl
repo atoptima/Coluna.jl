@@ -68,11 +68,12 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         relax_integrality!(form)
     end
 
+    partial_sol = nothing
+    partial_sol_val = 0.0
     if algo.consider_partial_solution
         partsolstorage = getstorage(data, PartialSolutionStoragePair)
-        partial_solution = get_primal_solution(partsolstorage, form)
-    else    
-        partial_solution = EmptyPrimalSolution(form)
+        partial_sol = get_primal_solution(partsolstorage, form)
+        partial_sol_val = getvalue(partial_sol)
     end
 
     optimizer_result = optimize_lp_form!(algo, getoptimizer(form), form)
@@ -82,11 +83,14 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
     lp_primal_sol = get_best_lp_primal_sol(optimizer_result)
     if lp_primal_sol !== nothing
         add_lp_primal_sol!(optstate, lp_primal_sol)
-        set_lp_primal_bound!(optstate, get_lp_primal_bound(optstate) + getvalue(partial_solution))
+        set_lp_primal_bound!(optstate, get_lp_primal_bound(optstate) + partial_sol_val)
         if algo.update_ip_primal_solution && isinteger(lp_primal_sol) && 
             !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
-            complete_sol = concatenate_sols(lp_primal_sol, partial_solution)            
-            add_ip_primal_sol!(optstate, complete_sol)
+            if partial_sol !== nothing
+                add_ip_primal_sol!(optstate, cat(lp_primal_sol, partial_sol))
+            else
+                add_ip_primal_sol!(optstate, lp_primal_sol)
+            end
         end
     end
 
@@ -95,13 +99,13 @@ function run!(algo::SolveLpForm, data::ModelData, input::OptimizationInput)::Opt
         if lp_dual_sol !== nothing
             if algo.set_dual_bound
                 update_lp_dual_sol!(optstate, lp_dual_sol)
-                set_lp_dual_bound!(optstate, get_lp_dual_bound(optstate) + getvalue(partial_solution))
+                set_lp_dual_bound!(optstate, get_lp_dual_bound(optstate) + partial_sol_val)
             else
                 set_lp_dual_sol!(optstate, lp_dual_sol)
             end
         end
     end
 
-    end 
+    end # @timeit
     return OptimizationOutput(optstate)
 end

@@ -511,19 +511,21 @@ function update_lagrangian_dual_bound!(
     return
 end
 
-function compute_subgradient_contibution(
+function compute_subgradient_contribution(
     algo::ColumnGeneration, stabstorage::ColGenStabilizationStorage, master::Formulation,
     puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId, SubprobInfo}
 )
-    contribution = DualSolution(master)
     sense = getobjsense(master)
+    constrids = ConstrId[]
+    constrvals = Float64[]
 
     if subgradient_is_needed(stabstorage, algo.smoothing_stabilization)
         master_coef_matrix = getcoefmatrix(master)
 
         for (varid, mult) in puremastervars
             for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
-                contribution[constrid] += var_coeff * mult
+                push!(constrids, constrid)
+                push!(constrvals, var_coeff * mult)
             end
         end
 
@@ -533,14 +535,15 @@ function compute_subgradient_contibution(
             for (sp_var_id, sp_var_val) in spinfo.bestsol
                 for (master_constrid, sp_var_coef) in @view master_coef_matrix[:,sp_var_id]
                     if !(getduty(master_constrid) <= MasterConvexityConstr)
-                        contribution[master_constrid] += sp_var_coef * sp_var_val * mult
+                        push!(constrids, master_constrid)
+                        push!(constrvals, sp_var_coef * sp_var_val * mult)
                     end
                 end
             end
         end
     end
 
-    return contribution
+    return DualSolution(master, constrids, constrvals, 0.0, UNKNOWN_SOLUTION_STATUS)
 end
 
 function move_convexity_constrs_dual_values!(
@@ -640,11 +643,11 @@ function cg_main_loop!(
             return true
         end
 
-        lp_dual_sol = DualSolution(masterform)
+        lp_dual_sol = nothing
         if nb_lp_dual_sols(rm_optstate) > 0
             lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
         else
-            @error string("Solver returned that the LP restricted master is feasible but ",
+            error("Solver returned that the LP restricted master is feasible but ",
             "did not return a dual solution. ",
             "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
         end
@@ -662,9 +665,8 @@ function cg_main_loop!(
             set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate) + getvalue(partial_solution))
 
             if phase != 1 && !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
-                if isinteger(proj_cols_on_rep(rm_sol, masterform))
-                    rm_complete_sol = concatenate_sols(rm_sol, partial_solution)            
-                    update_ip_primal_sol!(cg_optstate, rm_complete_sol)
+                if isinteger(proj_cols_on_rep(rm_sol, masterform))       
+                    update_ip_primal_sol!(cg_optstate, cat(rm_sol, partial_solution))
                 end
             end
         else
@@ -672,7 +674,7 @@ function cg_main_loop!(
             "did not return a primal solution. ",
             "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
         end
-        end
+        end # @timeit
 
         TO.@timeit Coluna._to "Cleanup columns" begin
             cleanup_columns(algo, iteration, data)
@@ -711,7 +713,7 @@ function cg_main_loop!(
                 TO.@timeit Coluna._to "Smoothing update" begin
                     smooth_dual_sol = update_stab_after_gencols!(
                         stabstorage, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol,
-                        compute_subgradient_contibution(algo, stabstorage, masterform, pure_master_vars, spinfos)
+                        compute_subgradient_contribution(algo, stabstorage, masterform, pure_master_vars, spinfos)
                     )
                 end
                 smooth_dual_sol === nothing && break

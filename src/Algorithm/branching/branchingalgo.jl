@@ -223,8 +223,8 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
     # we obtain the original and extended solutions
     reform = getreform(data)
     master = getmaster(reform)
-    original_solution = PrimalSolution(getmaster(reform))
-    extended_solution = PrimalSolution(getmaster(reform))
+    original_solution = nothing
+    extended_solution = nothing
     if nb_lp_primal_sols(optstate) > 0
         if projection_is_possible(master)
             extended_solution = get_best_lp_primal_sol(optstate)
@@ -270,7 +270,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
         append!(kept_branch_groups, output.groups)
         local_id = output.local_id
 
-        if projection_is_possible(master)
+        if projection_is_possible(master) && extended_solution !== nothing
             output = run!(rule, data, BranchingRuleInput(
                 extended_solution, false, nb_candidates_needed, algo.selection_criterion, 
                 local_id, algo.int_tol
