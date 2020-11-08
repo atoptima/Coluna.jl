@@ -7,6 +7,7 @@ makedocs(
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
     ),
+    strict = true,
     pages = Any[
         "Introduction"   => "index.md",
         "Manual" => Any[
@@ -22,6 +23,5 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/atoptima/Coluna.jl.git",
-    target = "build",
+    repo = "github.com/atoptima/Coluna.jl.git"
 )

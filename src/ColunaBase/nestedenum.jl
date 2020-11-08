@@ -143,23 +143,32 @@ Create a `NestedEnum` subtype such as :
 
 # Example
 
-```jldoctest
-    @nestedenum begin 
-        Root
-        ChildA <= Root
-            GrandChildA1 <= ChildA
-            GrandChildA2 <= ChildA
-        ChildB <= Root
-        ChildC <= Root
-    end
+```jldoctest nestedexample
+julia > Coluna.ColunaBase.@nestedenum begin 
+    TypeOfItem
+    ItemA <= TypeOfItem
+        ChildA1 <= ItemA
+            GrandChildA11 <= ChildA1
+            GrandChildA12 <= ChildA1
+        ChildA2 <= ItemA
+    ItemB <= TypeOfItem
+    ItemC <= TypeOfItem
+end
 ```
 
-Create a nested enumeration with name `Root` and items `ChildA`, 
-`GrandChildA1`, `GrandChildA2`, `ChildB`, and `ChildC`.
+Create a nested enumeration with items `ItemA`, `ChildA1`, `ChildA2`, `GrandChildA11`, 
+`GrandChildA12`, `ItemB`, and `ItemC` of type `TypeOfItem`.
 The operator `<=` indicates the parent of the item.
-In this example, `Root` is parent of `ChildA`, `ChildB`, and `ChildC`;
-`Root` is grand-parent of `GrandChildA1` and `GrandChildA2`;
-`ChildA` is parent of `GrandChildA1` and `GrandChildA2`.
+
+```jldoctest nestedexample
+julia> GrandChildA11 <= ItemA
+true
+```
+
+```jldoctest nestedexample
+julia> GrandChildA11 <= ItemC
+false
+```
 """
 macro nestedenum(expr)
     return _nestedenum(expr, false)
