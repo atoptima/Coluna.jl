@@ -144,7 +144,7 @@ Create a `NestedEnum` subtype such as :
 # Example
 
 ```jldoctest nestedexample
-julia > Coluna.ColunaBase.@nestedenum begin 
+julia> Coluna.ColunaBase.@nestedenum begin 
     TypeOfItem
     ItemA <= TypeOfItem
         ChildA1 <= ItemA
