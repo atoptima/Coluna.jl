@@ -250,9 +250,18 @@ by the method defined in `insert_function_ip_primal_sols` field of `Optimization
 If the maximum length of the list is reached, the solution located at the end of the list
 is removed.
 """
-function update_ip_primal_sol! end
-function update_lp_primal_sol! end
-function update_lp_dual_sol! end
+function update_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+    state.max_length_ip_primal_sols == 0 && return
+
+    if state.ip_primal_sols === nothing
+        state.ip_primal_sols = PrimalSolution{F}[]
+    end 
+    b = PrimalBound{S}(getvalue(sol))
+    if update_ip_primal_bound!(state.incumbents, b)
+        state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
+    end
+    return
+end
 
 """
     add_ip_primal_sol!(optstate, sol)
@@ -260,9 +269,17 @@ function update_lp_dual_sol! end
 Add the solution `sol` in the solutions list of `opstate` and update the incumbent bound if 
 the solution is better.
 """
-function add_ip_primal_sol! end
-function add_lp_primal_sol! end
-function add_lp_dual_sol! end
+function add_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+    state.max_length_ip_primal_sols == 0 && return
+    
+    if state.ip_primal_sols === nothing
+        state.ip_primal_sols = PrimalSolution{F}[]
+    end
+    state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
+    b = PrimalBound{S}(getvalue(sol))
+    update_ip_primal_bound!(state.incumbents, b)
+    return
+end
 
 """
     set_ip_primal_sol!(optstate, sol)
@@ -270,66 +287,86 @@ function add_lp_dual_sol! end
 Add the solution `sol` in the solutions list of `optstate`. The incumbent bound is not 
 updated even if the value of the solution is better.
 """
-function set_ip_primal_sol! end
-function set_lp_primal_sol! end
-function set_lp_dual_sol! end
-
-# Macro to generate all methods update/add/set_ip/lp_primal/dual_sol!
-macro gen_new_sol_method(expr)
-    action_kw, sol_field, space_type = expr.args
-
-    method_name = Symbol(string(action_kw,"_",sol_field,"_sol!"))
-    max_len = Expr(:call, :getfield, :state, :(Symbol($(string("max_length_",sol_field,"_sols")))))
-    bound_type = Expr(:curly, Symbol(string(space_type,"Bound")), :S)
-    bound = Expr(:call, bound_type, :(getvalue(sol)))
-    update_func = Symbol(string("update_",sol_field,"_bound!"))
-    sol_type = Expr(:curly, Symbol(string(space_type,"Solution")), :F)
-    insert_method_name = Expr(:call, :getfield, :state, :(Symbol($(string("insert_function_",sol_field,"_sols")))))
-    field = Expr(:call, :getfield, :state, :(Symbol($(string(sol_field,"_sols")))))
-
-    body = Expr(:call, insert_method_name, field, max_len, :sol)
-    call_to_update = Expr(:call, update_func, :(state.incumbents), :b)
-    define_array = Expr(:call, :setfield!, :state, :(Symbol($(string(sol_field,"_sols")))) , Expr(:ref, sol_type))
-
-    if action_kw == :update
-        body = quote
-            b = $bound
-            is_inc_sol = $call_to_update
-            if is_inc_sol
-                $body
-            end
-        end
-    elseif action_kw == :add
-        body = quote
-            $body
-            b = $bound
-            $call_to_update
-        end
+function set_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+    state.max_length_ip_primal_sols == 0 && return
+    
+    if state.ip_primal_sols === nothing
+        state.ip_primal_sols = PrimalSolution{F}[]
     end
-    code = quote
-        function $method_name(state::OptimizationState{F,S}, sol::$(sol_type)) where {F,S}
-            $max_len == 0 && return
-            if $field === nothing
-                $define_array
-            end
-            $(body)
-            return
-        end
-    end
-    return esc(code)
+    state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
+    return
 end
 
-@gen_new_sol_method update, ip_primal, Primal
-@gen_new_sol_method add, ip_primal, Primal
-@gen_new_sol_method set, ip_primal, Primal
+function update_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+    state.max_length_lp_primal_sols == 0 && return
 
-@gen_new_sol_method update, lp_primal, Primal
-@gen_new_sol_method add, lp_primal, Primal
-@gen_new_sol_method set, lp_primal, Primal
+    if state.lp_primal_sols === nothing
+        state.lp_primal_sols = PrimalSolution{F}[]
+    end
+    b = PrimalBound{S}(getvalue(sol))
+    if update_lp_primal_bound!(state.incumbents, b)
+        state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
+    end
+    return
+end
 
-@gen_new_sol_method update, lp_dual, Dual
-@gen_new_sol_method add, lp_dual, Dual
-@gen_new_sol_method set, lp_dual, Dual
+function add_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+    state.max_length_lp_primal_sols == 0 && return
+    
+    if state.lp_primal_sols === nothing
+        state.lp_primal_sols = PrimalSolution{F}[]
+    end
+    
+    state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
+    b = PrimalBound{S}(getvalue(sol))
+    update_lp_primal_bound!(state.incumbents, b)
+    return
+end
+
+function set_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+    state.max_length_lp_primal_sols == 0 && return
+
+    if state.lp_primal_sols === nothing
+        state.lp_primal_sols = PrimalSolution{F}[]
+    end
+    state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
+    return
+end
+
+function update_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
+    state.max_length_lp_dual_sols == 0 && return
+
+    if state.lp_dual_sols === nothing
+        state.lp_dual_sols = DualSolution{F}[]
+    end
+    b = DualBound{S}(getvalue(sol))
+    if update_lp_dual_bound!(state.incumbents, b)
+        state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
+    end
+    return
+end
+
+function add_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
+    state.max_length_lp_dual_sols == 0 && return
+
+    if state.lp_dual_sols === nothing
+        state.lp_dual_sols = DualSolution{F}[]
+    end
+    state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
+    b = DualBound{S}(getvalue(sol))
+    update_lp_dual_bound!(state.incumbents, b)
+    return
+end
+
+function set_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
+    state.max_length_lp_dual_sols == 0 && return
+
+    if state.lp_dual_sols === nothing
+        state.lp_dual_sols = DualSolution{F}[]
+    end
+    state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
+    return
+end
 
 
 function Base.print(io::IO, form::AbstractFormulation, optstate::OptimizationState)
