@@ -154,6 +154,7 @@ julia> Coluna.ColunaBase.@nestedenum begin
     ItemB <= TypeOfItem
     ItemC <= TypeOfItem
 end
+#output
 ```
 
 Create a nested enumeration with items `ItemA`, `ChildA1`, `ChildA2`, `GrandChildA11`, 
