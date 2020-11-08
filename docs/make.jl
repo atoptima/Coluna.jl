@@ -23,5 +23,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/atoptima/Coluna.jl.git"
+    repo = "github.com/atoptima/Coluna.jl.git",
+    julia = "build"
 )

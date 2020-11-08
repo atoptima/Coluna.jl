@@ -134,7 +134,6 @@ function _assign_values_to_items(expr)
     return names, values
 end
 
-
 """
 
     @nestedenum block_expression
@@ -142,6 +141,12 @@ end
 Create a `NestedEnum` subtype such as :
 
 # Example
+
+```@meta
+DocTestSetup = quote
+    using Coluna
+end
+```
 
 ```jldoctest nestedexample
 Coluna.ColunaBase.@nestedenum begin 
@@ -171,6 +176,10 @@ true
 ```jldoctest nestedexample
 julia> GrandChildA11 <= ItemC
 false
+```
+
+```@meta
+DocTestSetup = nothing
 ```
 """
 macro nestedenum(expr)
