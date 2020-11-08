@@ -51,10 +51,10 @@ end
 function Base.cat(sols::Solution{M, I, Float64}...) where {M,I}
     _assert_same_model(sols) || error("Cannot concatenate solutions not attached to the same model.")
 
-    ids = VarId[]
+    ids = I[]
     vals = Float64[]
-    for sol in sols, (varid, value) in sol
-        push!(ids, varid)
+    for sol in sols, (id, value) in sol
+        push!(ids, id)
         push!(vals, value)
     end
 
