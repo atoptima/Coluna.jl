@@ -61,7 +61,7 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
         return OptimizationOutput(result)
     end
 
-    optimize_ip_form!(algo, getoptimizer(form), form, result)
+    primal_sols = optimize_ip_form!(algo, getoptimizer(form), form, result)
 
     partial_sol = nothing
     partial_sol_value = 0.0
@@ -70,9 +70,12 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
         partial_sol = get_primal_solution(partsolstorage, form)
         partial_sol_value = getvalue(partial_sol)
     end
-                                          
-    bestprimalsol = get_best_ip_primal_sol(result)    
-    if bestprimalsol !== nothing
+    
+    if length(primal_sols) > 0
+        coeff = getobjsense(form) == MinSense ? 1.0 : -1.0
+        bestprimalsol_pos = argmin(coeff * getvalue.(primal_sols))
+        bestprimalsol = primal_sols[bestprimalsol_pos]
+
         if partial_sol !== nothing
             add_ip_primal_sol!(result, cat(partial_sol, bestprimalsol))
         else
@@ -100,10 +103,7 @@ end
 run!(algo::SolveIpForm, data::ReformData, input::OptimizationInput) = 
     run!(algo, getmasterdata(data), input)
 
-# Return true if solutions to retrieve
-function termination_status!(
-    result::OptimizationState, optimizer::MoiOptimizer, form::Formulation
-)
+function termination_status!(result::OptimizationState, optimizer::MoiOptimizer)
     terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
     if terminationstatus != MOI.INFEASIBLE &&
             terminationstatus != MOI.DUAL_INFEASIBLE &&
@@ -120,15 +120,13 @@ function termination_status!(
             """
             error(msg)
         end
-        return true
     else
         @warn "Solver has no result to show."
         setterminationstatus!(result, INFEASIBLE)
     end
-    return false
+    return
 end
 
-# Return true if solution to retrieve
 function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::OptimizationState)
     sync_solver!(optimizer, form)
     nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())
@@ -137,7 +135,7 @@ function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::
     else
         MOI.optimize!(getinner(optimizer))
     end
-    return termination_status!(result, optimizer, form)
+    return
 end
 
 function optimize_ip_form!(
@@ -155,12 +153,9 @@ function optimize_ip_form!(
         enforce_integrality!(form)
     end
 
-    sols_found = optimize_with_moi!(optimizer, form, result)
-    if sols_found
-        for primal_sol in get_primal_solutions(form, optimizer)
-            add_ip_primal_sol!(result, primal_sol)
-        end
-    end
+    optimize_with_moi!(optimizer, form, result)
+    termination_status!(result, optimizer)
+    primal_sols = get_primal_solutions(form, optimizer)
 
     if algo.enforce_integrality
         relax_integrality!(form)
@@ -168,12 +163,11 @@ function optimize_ip_form!(
     if algo.deactivate_artificial_vars
         activate!(form, vcid -> isanArtificialDuty(getduty(vcid)))
     end
-    return
+    return primal_sols
 end
 
 function optimize_ip_form!(
-    algo::SolveIpForm, optimizer::UserOptimizer, form::Formulation,
-    result::OptimizationState
+    ::SolveIpForm, optimizer::UserOptimizer, form::Formulation, result::OptimizationState
 )
     @logmsg LogLevel(-2) "Calling user-defined optimization function."
 
@@ -182,11 +176,8 @@ function optimize_ip_form!(
 
     if length(cbdata.primal_solutions) > 0
         setterminationstatus!(result, OPTIMAL)
-        for primal_sol in cbdata.primal_solutions
-            add_ip_primal_sol!(result, primal_sol)
-        end
     else
         setterminationstatus!(result, INFEASIBLE) # TODO : what if no solution found ?
     end
-    return
+    return cbdata.primal_solutions
 end

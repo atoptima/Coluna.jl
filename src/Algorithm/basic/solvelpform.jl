@@ -46,11 +46,11 @@ end
 function optimize_lp_form!(algo::SolveLpForm, optimizer::MoiOptimizer, form::Formulation)
     MOI.set(form.optimizer.inner, MOI.Silent(), algo.silent)
     result = OptimizationState(form)
-    sols_found =  optimize_with_moi!(optimizer, form, result)
-    if sols_found
-        for primal_sol in get_primal_solutions(form, optimizer)
-            add_lp_primal_sol!(result, primal_sol)
-        end
+    optimize_with_moi!(optimizer, form, result)
+    for primal_sol in get_primal_solutions(form, optimizer)
+        add_lp_primal_sol!(result, primal_sol)
+    end
+    if algo.get_dual_solution
         for dual_sol in get_dual_solutions(form, optimizer)
             add_lp_dual_sol!(result, dual_sol)
         end
