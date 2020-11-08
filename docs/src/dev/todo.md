@@ -54,3 +54,7 @@ Coluna.Algorithm.ReformData
 Coluna.Algorithm.ModelData
 ```
 
+```@meta
+CurrentModule = nothing
+DocTestSetup = nothing
+```
