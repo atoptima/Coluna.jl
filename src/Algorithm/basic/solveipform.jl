@@ -135,6 +135,7 @@ function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::
     else
         MOI.optimize!(getinner(optimizer))
     end
+    termination_status!(result, optimizer)
     return
 end
 
@@ -154,7 +155,6 @@ function optimize_ip_form!(
     end
 
     optimize_with_moi!(optimizer, form, result)
-    termination_status!(result, optimizer)
     primal_sols = get_primal_solutions(form, optimizer)
 
     if algo.enforce_integrality
