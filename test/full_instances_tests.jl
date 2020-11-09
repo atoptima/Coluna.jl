@@ -63,7 +63,7 @@ function generalized_assignment_tests()
         branching = ClA.StrongBranching()
         push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
         push!(branching.phases, ClA.BranchingPhase(1, conquer_with_small_cleanup_threshold))
-        push!(branching.rules, ClA.PrioritisedBranchingRule(1.0, 1.0, ClA.VarBranchingRule()))
+        push!(branching.rules, ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 1.0, 1.0))
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,

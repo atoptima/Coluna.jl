@@ -38,9 +38,8 @@ to select the next node to treat.
     opennodeslimit::Int64 = 100 
     branchingtreefile::Union{Nothing, String} = nothing
     skiprootnodeconquer = false # true for diving heuristics
-    rootpriority = 0
-    nontrootpriority = 0
     storelpsolution = false
+    print_node_info = true
 end
 
 """
@@ -61,7 +60,6 @@ treeisempty(tree::SearchTree) = DS.isempty(tree.nodes)
 push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getnodevalue(tree.strategy, node))
 popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
 nb_open_nodes(tree::SearchTree) = length(tree.nodes)
-
 
 """
     TreeSearchRuntimeData
@@ -84,7 +82,9 @@ end
 function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)
     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
     reform = getreform(rfdata)
-    treestate = CopyBoundsAndStatusesFromOptState(getmaster(reform), getoptstate(input), exploitsprimalsols)
+    treestate = OptimizationState(
+        getmaster(reform), getoptstate(input), exploitsprimalsols, false
+    )
 
     conquer_storages_to_restore = StoragesUsageDict()
     collect_storages_to_restore!(conquer_storages_to_restore, algo.conqueralg, reform) 
@@ -98,7 +98,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
         -DualBound{Sense}()
     )
     master = getmaster(getreform(rfdata))
-    push!(tsdata, RootNode(master, treestate, store_states!(rfdata), algo.skiprootnodeconquer))
+    push!(tsdata, RootNode(master, getoptstate(input), store_states!(rfdata), algo.skiprootnodeconquer))
     return tsdata
 end
 
@@ -223,7 +223,7 @@ function run_conquer_algorithm!(
         tsdata.tree_order += 1
     end
 
-    print_node_info_before_conquer(tsdata, node)
+    algo.print_node_info && print_node_info_before_conquer(tsdata, node)
 
     node.conquerwasrun && return
 
@@ -342,7 +342,7 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
     while !treeisempty(tsdata)
         node = popnode!(tsdata)
         remove_states!(node.stateids)
-        clear_solutions!(node.opt_state)
+        clear_solutions!(node.optstate)
     end
 
     return OptimizationOutput(tsdata.optstate)
