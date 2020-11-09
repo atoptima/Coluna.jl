@@ -28,7 +28,7 @@ export Parameters, DefaultOptimizer
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
-    push!, filter, diff
+    push!, filter, diff, hcat
 
 include("interface.jl")
 include("parameters.jl")

@@ -61,7 +61,7 @@ export no_optimizer_builder, set_original_formulation!,
        find_owner_formulation,
        getsortuid,
        contains, setprimalbound!, get_original_formulation,
-       concatenate_sols, getoriginformuid, getspsol, sync_solver!, getinner,
+       getoriginformuid, getspsol, sync_solver!, getinner,
        get_primal_solutions, get_dual_solutions
 
 # Below this line, clean up has been done :
@@ -98,7 +98,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     isexplicit, getname, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
-export PrimalBound, DualBound, PrimalSolution, EmptyPrimalSolution, DualSolution, ObjValues,
+export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues,
     get_ip_primal_bound, get_lp_primal_bound,
     get_ip_dual_bound, get_lp_dual_bound, update_ip_primal_bound!, update_lp_primal_bound!,
     update_ip_dual_bound!, update_lp_dual_bound!, set_ip_primal_bound!,

@@ -4,22 +4,10 @@
 const PrimalSolution{M} = Solution{M, VarId, Float64}
 const DualSolution{M} = Solution{M, ConstrId, Float64}
 
-function PrimalSolution(form::M) where {M}
-    return Solution{M,VarId,Float64}(form)
-end
-
 function PrimalSolution(
     form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus
 ) where {M<:AbstractFormulation,De,Va}
     return Solution{M,De,Va}(form, decisions, vals, val, status)
-end
-
-function EmptyPrimalSolution(form::M) where {M}
-    return Solution{M,VarId,Float64}(form, VarId[], Float64[], 0.0, UNKNOWN_FEASIBILITY)
-end
-
-function DualSolution(form::M) where {M}
-    return Solution{M,ConstrId,Float64}(form)
 end
 
 function DualSolution(
@@ -53,21 +41,25 @@ function contains(sol::DualSolution, f::Function)
     return false
 end
 
-function concatenate_sols(sola::PrimalSolution{M}, solb::PrimalSolution{M}) where {M}
-    length(solb) == 0 && return sola
+function _assert_same_model(sols::NTuple{N, Solution{M, I, Float64}}) where {N,M,I}
+    for i in 2:length(sols)
+        sols[i-1].model != sols[i].model && return false
+    end
+    return true
+end
 
-    ids = Vector{VarId}()
-    vals = Vector{Float64}()
-    for (varid, value) in sola
-        push!(ids, varid)
+function Base.cat(sols::Solution{M, I, Float64}...) where {M,I}
+    _assert_same_model(sols) || error("Cannot concatenate solutions not attached to the same model.")
+
+    ids = I[]
+    vals = Float64[]
+    for sol in sols, (id, value) in sol
+        push!(ids, id)
         push!(vals, value)
     end
-    for (varid, value) in solb
-        push!(ids, varid)
-        push!(vals, value)
-    end
-    return Solution{M,VarId,Float64}(
-        sola.model, ids, vals, getvalue(sola) + getvalue(solb), sola.status
+
+    return Solution{M,I,Float64}(
+        sols[1].model, ids, vals, sum(getvalue.(sols)), sols[1].status
     )
 end
 

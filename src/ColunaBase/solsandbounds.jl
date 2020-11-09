@@ -179,14 +179,8 @@ end
 """
     Solution
 
-Should be used like a dict
-doc todo
+doc todo. Solution is immutable.
 """
-function Solution{Mo,De,Va}(model::Mo) where {Mo<:AbstractModel,De,Va}
-    sol = DynamicSparseArrays.dynamicsparsevec(De[], Va[])
-    return Solution(model, NaN, UNKNOWN_SOLUTION_STATUS, sol)
-end
-
 function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, vals::Vector{Va}, value::Float64, status::SolutionStatus) where {Mo<:AbstractModel,De,Va}
     sol = DynamicSparseArrays.dynamicsparsevec(decisions, vals)
     return Solution(model, value, status, sol)
