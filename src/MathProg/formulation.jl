@@ -148,9 +148,6 @@ function setvar!(
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
     var = Variable(id, name; var_data = v_data, moi_index = moi_index)
-    if haskey(form.manager.vars, getid(var))
-        error(string("Variable of id ", getid(var), " exists"))
-    end
     _addvar!(form, var)
     members !== nothing && _setmembers!(form, var, members)
     return var

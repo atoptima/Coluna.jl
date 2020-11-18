@@ -8,7 +8,7 @@
     force_copy_names::Bool = false
     solver = nothing
     max_nb_processes::Int = 100
-    max_nb_formulations::Int = 100
+    max_nb_formulations::Int = 500
 end
 
 update_field!(f_v::Tuple{Symbol,Any}) = setfield!(_params_, f_v[1], f_v[2])
