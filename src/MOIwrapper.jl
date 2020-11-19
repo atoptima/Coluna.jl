@@ -511,6 +511,10 @@ function MOI.get(optimizer::Optimizer, ::MOI.ObjectiveValue)
     return getvalue(get_ip_primal_bound(optimizer.result))
 end
 
+function MOI.get(optimizer::Optimizer, ::MOI.RelativeGap)
+    return ip_gap(optimizer.result)
+end
+
 function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, ref::MOI.VariableIndex)
     id = getid(optimizer.vars[ref]) # This gets a coluna Id{Variable}
     best_primal_sol = get_best_ip_primal_sol(optimizer.result)
