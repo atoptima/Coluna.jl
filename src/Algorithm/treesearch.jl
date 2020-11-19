@@ -190,6 +190,7 @@ end
 
 function print_node_in_branching_tree_file(algo::TreeSearchAlgorithm, data::TreeSearchRuntimeData, node)
     if algo.branchingtreefile !== nothing
+        println("\e[31m print in branching tree file\e[00m")
         pb = getvalue(get_ip_primal_bound(getoptstate(data)))
         db = getvalue(get_ip_dual_bound(getoptstate(node)))
         open(algo.branchingtreefile, "a") do file
@@ -305,7 +306,8 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
         # run_conquer_algorithm! updates primal solution the tree search optstate and the 
         # dual bound of the optstate only at the root node.
         run_conquer_algorithm!(algo, tsdata, rfdata, node)
-       
+        print_node_in_branching_tree_file(algo, tsdata, node)
+        
         if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(node.optstate) # TODO tolerance of the TreeSearch
             println("Node is already conquered. No children will be generated.")
             db = get_ip_dual_bound(node.optstate)

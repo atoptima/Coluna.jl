@@ -19,7 +19,7 @@ end
 function Base.isinteger(sol::Solution)
     for (vc_id, val) in sol
         #if getperenkind(sol.model, vc_id) != Continuous
-            !isinteger(val) && return false
+            abs(round(val) - val) <= 1e-5 || return false
         #end
     end
     return true
