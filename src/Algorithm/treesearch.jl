@@ -23,7 +23,8 @@ getnodevalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(getincumb
         explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy(),
         maxnumnodes::Int = 100000,
         opennodeslimit::Int = 100,
-        gap_limit::Float64 = DEF_OPTIMALITY_RTOL,
+        opt_atol::Float64 = DEF_OPTIMALITY_ATOL,
+        opt_rtol::Float64 = DEF_OPTIMALITY_RTOL,
         branchingtreefile = nothing
     )
 
@@ -34,7 +35,8 @@ to select the next node to treat.
 Parameters : 
 - `maxnumnodes` : maximum number of nodes explored by the algorithm
 - `opennodeslimit` : maximum number of nodes waiting to be explored.
-- `gap_limit` : gap limit to stop the algorithm
+- `opt_atol` : optimality absolute tolerance
+- `opt_rtol` : optimality relative tolerance
 
 Options :
 - `branchingtreefile` : name of the file in which the algorithm writes an overview of the
@@ -46,7 +48,8 @@ branching tree
     explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy()
     maxnumnodes::Int64 = 100000 
     opennodeslimit::Int64 = 100 
-    gap_limit::Float64 = Coluna.DEF_OPTIMALITY_RTOL
+    opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
+    opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
     branchingtreefile::Union{Nothing, String} = nothing
     skiprootnodeconquer = false # true for diving heuristics
     storelpsolution = false
@@ -242,7 +245,7 @@ function run_conquer_algorithm!(
     nodestate = getoptstate(node)
     update_ip_primal!(nodestate, treestate, tsdata.exploitsprimalsolutions)
 
-    apply_conquer_alg_to_node!(node, algo.conqueralg, rfdata, tsdata.conquer_storages_to_restore, algo.gap_limit)        
+    apply_conquer_alg_to_node!(node, algo.conqueralg, rfdata, tsdata.conquer_storages_to_restore, algo.opt_rtol, algo.opt_atol)        
 
     update_all_ip_primal_solutions!(treestate, nodestate)
     
@@ -317,7 +320,7 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
         # dual bound of the optstate only at the root node.
         run_conquer_algorithm!(algo, tsdata, rfdata, node)
        
-        if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(node.optstate, rtol = algo.gap_limit)
+        if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)
             println("Node is already conquered. No children will be generated.")
             db = get_ip_dual_bound(node.optstate)
             if isbetter(tsdata.worst_db_of_pruned_node, db)
@@ -337,7 +340,7 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
 
     if treeisempty(tsdata) # it means that the BB tree has been fully explored
         if nb_ip_primal_sols(tsdata.optstate) >= 1
-            if ip_gap_closed(tsdata.optstate) # TODO : add TreeSearch opt tolerances ?
+            if ip_gap_closed(tsdata.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)
                 setterminationstatus!(tsdata.optstate, OPTIMAL)
             else
                 setterminationstatus!(tsdata.optstate, OTHER_LIMIT)
