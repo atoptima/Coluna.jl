@@ -40,13 +40,23 @@ function FormulationManager()
 end
 
 function _addvar!(m::FormulationManager, var::Variable)
-    haskey(m.vars, var.id) && error(string("Variable of id ", var.id, " exists"))
+    if haskey(m.vars, var.id)
+        error(string(
+            "Variable of id ", var.id, " exists. Its name is ", m.vars[var.id].name,
+            " and you want to add a variable named ", var.name, "."
+        ))
+    end
     m.vars[var.id] = var
     return
 end
 
 function _addconstr!(m::FormulationManager, constr::Constraint)
-    haskey(m.constrs, constr.id) && error(string("Constraint of id ", constr.id, " exists"))
+    if haskey(m.constrs, constr.id)
+        error(string(
+            "Constraint of id ", constr.id, " exists. Its name is ", m.constrs[constr.id].name,
+            " and you want to add a constraint named ", constr.name, "."
+        ))
+    end
     m.constrs[constr.id] = constr
     return
 end

@@ -319,6 +319,7 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
         # run_conquer_algorithm! updates primal solution the tree search optstate and the 
         # dual bound of the optstate only at the root node.
         run_conquer_algorithm!(algo, tsdata, rfdata, node)
+        print_node_in_branching_tree_file(algo, tsdata, node)
        
         if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)
             println("Node is already conquered. No children will be generated.")
