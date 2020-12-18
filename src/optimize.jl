@@ -73,9 +73,6 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     return optstate
 end
 
-"""
-Solve a reformulation
-"""
 function optimize!(
     reform::MathProg.Reformulation, algorithm::Algorithm.AbstractOptimizationAlgorithm,
     initial_primal_bound, initial_dual_bound
@@ -122,4 +119,17 @@ function optimize!(
     end
 
     return outstate
+end
+
+"""
+Fallback if no solver provided by the user.
+"""
+function optimize!(
+    ::MathProg.Reformulation, ::Nothing,
+    ::Real, ::Real
+)
+    error("""
+        No solver to optimize the reformulation. You should provide a solver through Coluna parameters. 
+        Please, check the starting guide of Coluna.
+    """)
 end
