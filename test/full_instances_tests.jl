@@ -1,41 +1,50 @@
-using LightGraphs
+using LightGraphs, ParallelExp, Gurobi
 
 function full_instances_tests()
     generalized_assignment_tests()
-    capacitated_lot_sizing_tests()
-    lot_sizing_tests()
+    #capacitated_lot_sizing_tests()
+    #lot_sizing_tests()
     #facility_location_tests()
-    cutting_stock_tests()
-    cvrp_tests()
+    #cutting_stock_tests()
+    #cvrp_tests()
 end
 
 function generalized_assignment_tests()
-    @testset "play gap" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+    # @testset "play gap" begin
+    #     data = CLD.GeneralizedAssignment.data("play2.txt")
 
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-                branchingtreefile = "playgap.dot"
-            )),
-            "default_optimizer" => GLPK.Optimizer
-        )
+    #     coluna = JuMP.optimizer_with_attributes(
+    #         Coluna.Optimizer,
+    #         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+    #             branchingtreefile = "playgap.dot"
+    #         )),
+    #         "default_optimizer" => GLPK.Optimizer
+    #     )
 
-        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-        BD.objectiveprimalbound!(model, 100)
-        BD.objectivedualbound!(model, 0)
+    #     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    #     BD.objectiveprimalbound!(model, 100)
+    #     BD.objectivedualbound!(model, 0)
 
-        JuMP.optimize!(model)
+    #     JuMP.optimize!(model)
 
-        @test JuMP.objective_value(model) ≈ 75.0
-        @test JuMP.termination_status(model) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
-        @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
-        @test MOI.get(model, MOI.SolverName()) == "Coluna"
-    end
+    #     @test JuMP.objective_value(model) ≈ 75.0
+    #     @test JuMP.termination_status(model) == MOI.OPTIMAL
+    #     @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+    #     @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
+    #     @test MOI.get(model, MOI.SolverName()) == "Coluna"
+    # end
+
+    println("HVRP...")
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+        "default_optimizer" => Gurobi.Optimizer
+    )
+    ParallelExp.hvrp_algorithm("../Brandao/brandaoN2hd.txt", 2233.90, coluna)
+    exit()
 
     @testset "gap - JuMP/MOI modeling" begin
-        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+        data = CLD.GeneralizedAssignment.data("gapC-40-400.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -52,6 +61,8 @@ function generalized_assignment_tests()
         @test JuMP.termination_status(model) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
+
+    exit()
     
     @testset "gap - strong branching" begin
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")

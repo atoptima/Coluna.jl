@@ -26,7 +26,7 @@ end
 function FormulationManager()
     vars = VarDict()
     constrs = ConstrDict()
-    return FormulationManager(
+    manager = FormulationManager(
         vars,
         constrs,
         dynamicsparse(ConstrId, VarId, Float64),
@@ -37,6 +37,10 @@ function FormulationManager()
         dynamicsparsevec(ConstrId[], Float64[]),
         RobustConstraintsGenerator[]
     )
+    #closefillmode!(manager.expressions)
+    #closefillmode!(manager.primal_sols)
+    #closefillmode!(manager.dual_sols)
+    return manager
 end
 
 function _addvar!(m::FormulationManager, var::Variable)
