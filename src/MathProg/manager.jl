@@ -30,16 +30,13 @@ function FormulationManager()
         vars,
         constrs,
         dynamicsparse(ConstrId, VarId, Float64),
-        dynamicsparse(VarId, VarId, Float64),
-        dynamicsparse(VarId, VarId, Float64),
+        dynamicsparse(VarId, VarId, Float64; fill_mode = false),
+        dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         dynamicsparsevec(VarId[], Float64[]),
-        dynamicsparse(ConstrId, ConstrId, Float64),
+        dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
         dynamicsparsevec(ConstrId[], Float64[]),
         RobustConstraintsGenerator[]
     )
-    #closefillmode!(manager.expressions)
-    #closefillmode!(manager.primal_sols)
-    #closefillmode!(manager.dual_sols)
     return manager
 end
 

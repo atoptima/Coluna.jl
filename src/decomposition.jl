@@ -451,7 +451,6 @@ function buildformulations!(
     origform = get_original_formulation(prob)
     assign_orig_vars_constrs!(spform, origform, annotations, ann)
     create_side_vars_constrs!(spform, origform, annotations)
-    #closefillmode!(getcoefmatrix(spform))
     initialize_optimizer!(spform, getoptbuilder(prob, ann))
     return
 end
@@ -474,11 +473,14 @@ function reformulate!(prob::Problem, annotations::Annotations)
         closefillmode!(getcoefmatrix(sp))
     end
 
-    # @show get_original_formulation(prob)
-    # println("---------")
-    # @show reform.master
-    # for (id, sp) in reform.dw_pricing_subprs
-    #     @show sp
-    # end
+    println("*****------------*****")
+    @show get_original_formulation(prob)
+    println("---------")
+    @show reform.master
+    for (id, sp) in reform.dw_pricing_subprs
+        println("*****")
+        @show sp
+    end
+    println("*****------------*****")
     return
 end

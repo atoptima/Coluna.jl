@@ -47,15 +47,14 @@ function cloneconstr!(
     )
 end
 
-function clonecoeffs!(originform::Formulation,
-                      destform::Formulation)
+function clonecoeffs!(originform::Formulation, destform::Formulation)
     dest_matrix = getcoefmatrix(destform)
     orig_matrix = getcoefmatrix(originform)
     for (cid, constr) in getconstrs(destform)
         if haskey(originform, cid)
             row = @view orig_matrix[cid, :]
             for (vid, val) in row
-                if haskey(originform, vid) && val != 0
+                if haskey(destform, vid) && val != 0
                     dest_matrix[cid, vid] = val
                 end
             end
