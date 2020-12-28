@@ -1,4 +1,4 @@
-using LightGraphs, ParallelExp, Gurobi
+using LightGraphs
 
 function full_instances_tests()
     generalized_assignment_tests()

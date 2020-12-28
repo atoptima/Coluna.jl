@@ -433,6 +433,7 @@ function buildformulations!(
     assign_orig_vars_constrs!(masterform, origform, annotations, ann)
     create_side_vars_constrs!(masterform, origform, annotations)
     create_artificial_vars!(masterform)
+    closefillmode!(getcoefmatrix(masterform))
     initialize_optimizer!(masterform, getoptbuilder(prob, ann))
     initialize_optimizer!(origform, getoptbuilder(prob, ann))
     return
@@ -451,6 +452,7 @@ function buildformulations!(
     origform = get_original_formulation(prob)
     assign_orig_vars_constrs!(spform, origform, annotations, ann)
     create_side_vars_constrs!(spform, origform, annotations)
+    closefillmode!(getcoefmatrix(spform))
     initialize_optimizer!(spform, getoptbuilder(prob, ann))
     return
 end
@@ -463,15 +465,6 @@ function reformulate!(prob::Problem, annotations::Annotations)
     reform = Reformulation()
     set_reformulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
-
-    closefillmode!(getcoefmatrix(getmaster(reform)))
-    for (id, sp) in get_dw_pricing_sps(reform)
-        closefillmode!(getcoefmatrix(sp))
-    end
-
-    for (id, sp) in get_benders_sep_sps(reform)
-        closefillmode!(getcoefmatrix(sp))
-    end
 
     println("*****------------*****")
     @show get_original_formulation(prob)

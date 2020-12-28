@@ -9,7 +9,6 @@ import Base.Threads
 
 using DynamicSparseArrays
 using Logging, Parameters, Printf
-using StatProfilerHTML
 
 global const BD = BlockDecomposition
 global const MOI = MathOptInterface

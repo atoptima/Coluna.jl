@@ -282,6 +282,11 @@ function solve_sp_to_gencol!(
     sp_optstate = getoptstate(output)
     sp_sol_value = get_ip_primal_bound(sp_optstate)
 
+    filename = "sp$(rand(1:1000000)).txt"
+    @show filename
+    @show spform.optimizer
+    #Coluna.MathProg.write_to_LP_file(spform, filename)
+
     compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), sp_sol_value)
 
     sense = getobjsense(masterform)
@@ -361,7 +366,7 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
     end
 
     for (i, varid) in enumerate(redcostsvec.varids)
-        # setcurcost!(redcostsvec.form[i], varid, redcosts[i] + sign * terms[varid])
+        println("   >>>> $(getname(redcostsvec.form[i], varid)) = $(redcosts[i] - terms[varid])")
         setcurcost!(redcostsvec.form[i], varid, redcosts[i] - terms[varid])
     end
     return redcosts
@@ -380,6 +385,11 @@ function solve_sps_to_gencols!(
     TO.@timeit Coluna._to "Update reduced costs" begin
         updatereducedcosts!(reform, redcostsvec, smooth_dual_sol)
     end
+
+    filename = "master$(rand(1:1000000)).txt"
+    @show filename
+    @show masterform.optimizer
+    #Coluna.MathProg.write_to_LP_file(masterform, filename)
 
     ### BEGIN LOOP TO BE PARALLELIZED
     if algo.solve_subproblems_parallel
