@@ -1,0 +1,18 @@
+## dot -Tpdf thisfile > thisfile.pdf 
+
+digraph Branching_Tree {
+	edge[fontname = "Courier", fontsize = 10];
+	n1 [label= "N_1 (5 s) \n[473.3913 , Inf]"];
+	n2 [label= "N_2 (6 s) \n[502.2955 , Inf]"];
+	n1 -> n2 [label= "v>=1.0"];
+	n3 [label= "N_3 (6 s) \n[504.0000 , 504.0000]"];
+	n2 -> n3 [label= "v>=1.0"];
+	n4 [label= "N_4 (6 s) \n[504.5797 , 504.0000]"];
+	n2 -> n4 [label= "v<=0.0"];
+	n5 [label= "N_5 (7 s) \n[502.5000 , 504.0000]"];
+	n1 -> n5 [label= "v<=0.0"];
+	n6 [label= "N_6 (7 s) \n[504.1269 , 504.0000]"];
+	n5 -> n6 [label= "v>=1.0"];
+	n7 [label= "N_7 (7 s) \n[508.9000 , 504.0000]"];
+	n5 -> n7 [label= "v<=0.0"];
+}

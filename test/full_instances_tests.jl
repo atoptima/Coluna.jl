@@ -4,7 +4,7 @@ function full_instances_tests()
     generalized_assignment_tests()
     capacitated_lot_sizing_tests()
     lot_sizing_tests()
-    facility_location_tests()
+    #facility_location_tests()
     cutting_stock_tests()
     cvrp_tests()
 end
@@ -52,8 +52,6 @@ function generalized_assignment_tests()
         @test JuMP.termination_status(model) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
-
-    exit()
     
     @testset "gap - strong branching" begin
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")

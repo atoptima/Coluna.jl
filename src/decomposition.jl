@@ -466,14 +466,14 @@ function reformulate!(prob::Problem, annotations::Annotations)
     set_reformulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
 
-    println("*****------------*****")
-    @show get_original_formulation(prob)
-    println("---------")
-    @show reform.master
-    for (id, sp) in reform.dw_pricing_subprs
-        println("*****")
-        @show sp
-    end
-    println("*****------------*****")
+    # println("*****------------*****")
+    # @show get_original_formulation(prob)
+    # println("---------")
+    # @show reform.master
+    # for (id, sp) in reform.dw_pricing_subprs
+    #     println("*****")
+    #     @show sp
+    # end
+    # println("*****------------*****")
     return
 end

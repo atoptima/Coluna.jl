@@ -51,9 +51,7 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     _set_global_params(params)
 
     # Apply decomposition
-    println("begin reformulation")
-    @time reformulate!(prob, annotations)
-    println("end reformulation")
+    reformulate!(prob, annotations)
     
     # Coluna ready to start
     _globals_.initial_solve_time = time()
