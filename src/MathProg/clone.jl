@@ -55,7 +55,7 @@ function clonecoeffs!(originform::Formulation, destform::Formulation)
             row = @view orig_matrix[cid, :]
             for (vid, val) in row
                 if haskey(destform, vid) && val != 0
-                    dest_matrix[cid, vid] = val
+                    dest_matrix[cid, getid(getvar(destform, vid))] = val
                 end
             end
         end
