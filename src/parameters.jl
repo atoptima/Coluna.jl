@@ -1,9 +1,21 @@
+"""
+    Coluna.Params(
+        "solver" => GLPK.Optimizer,
+        "global_art_var_cost" => 10e6,
+        "local_art_var_cost" => 10e4
+    )
+
+Parameters of Coluna :
+- `solver` is the underlying MILP solver used to optimize the restricted master problem
+  and the subproblems
+- `global_art_var_cost` is the cost of the global artificial variables in the master
+- `local_art_var_cost` is the cost of the local artificial variables in the master
+"""
 @with_kw mutable struct Params
     tol::Float64 = 1e-8 # if - ϵ_tol < val < ϵ_tol, we consider val = 0
     tol_digits::Int = 8 # because round(val, digits = n) where n is from 1e-n
     global_art_var_cost::Union{Float64, Nothing} = nothing
     local_art_var_cost::Union{Float64, Nothing} = nothing
-    force_copy_names::Bool = false
     solver = nothing
     max_nb_processes::Int = 100
     max_nb_formulations::Int = 200
