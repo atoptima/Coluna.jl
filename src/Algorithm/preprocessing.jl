@@ -332,7 +332,7 @@ function fix_local_partial_solution!(
     coef_matrix = getcoefmatrix(form)
     # Updating rhs of master constraints
     for (varid, val) in solution
-        for (constrid, coef) in coef_matrix[:,varid]
+        for (constrid, coef) in @view coef_matrix[:,varid]
             iscuractive(form, constrid) || continue
             isexplicit(form, constrid) || continue
             getduty(constrid) != MasterConvexityConstr || continue
@@ -424,7 +424,7 @@ function compute_min_slack!(
         var_filter = (varid -> (getduty(varid) == DwSpPricingVar))
     end
     coef_matrix = getcoefmatrix(form)
-    for (varid, coef) in coef_matrix[constrid,:]
+    for (varid, coef) in @view coef_matrix[constrid,:]
         var_filter(varid) || continue
         if coef > 0
             cur_ub = getcurub(form, varid)
@@ -459,7 +459,7 @@ function compute_max_slack!(
         var_filter = (varid -> (getduty(varid) == DwSpPricingVar))
     end
     coef_matrix = getcoefmatrix(form)
-    for (varid, coef) in coef_matrix[constrid,:]
+    for (varid, coef) in @view coef_matrix[constrid,:]
         !var_filter(varid) || continue
         if coef > 0
             cur_lb = getcurlb(form, varid)
@@ -578,7 +578,7 @@ function update_lower_bound!(
 
     diff = cur_lb == -Inf ? -new_lb : cur_lb - new_lb
     coef_matrix = getcoefmatrix(form)
-    for (constrid, coef) in coef_matrix[:, varid]
+    for (constrid, coef) in @view coef_matrix[:, varid]
         iscuractive(form, constrid) || continue
         isexplicit(form, constrid) || continue
         getduty(constrid) != MasterConvexityConstr || continue
@@ -660,7 +660,7 @@ function update_upper_bound!(
 
     diff = cur_ub == Inf ? -new_ub : cur_ub - new_ub
     coef_matrix = getcoefmatrix(form)
-    for (constrid, coef) in coef_matrix[:, varid]
+    for (constrid, coef) in @view coef_matrix[:, varid]
         iscuractive(form, constrid) || continue
         isexplicit(form, constrid) || continue
         getduty(constrid) != MasterConvexityConstr || continue
@@ -741,7 +741,7 @@ function strengthen_var_bounds_in_constr!(
         var_filter = (varid -> (getduty(varid) == DwSpPricingVar))
     end
     coef_matrix = getcoefmatrix(form)
-    for (varid, coef) in coef_matrix[constrid,:]
+    for (varid, coef) in @view coef_matrix[constrid,:]
         var_filter(varid) || continue
 
         if coef > 0 && getcursense(form, constrid) == Less
