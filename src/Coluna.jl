@@ -7,6 +7,7 @@ import Distributed
 import TimerOutputs
 import Base.Threads
 
+using DynamicSparseArrays
 using Logging, Parameters, Printf
 
 global const BD = BlockDecomposition
