@@ -131,7 +131,7 @@ function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::F
     
     matrix = getcoefmatrix(form)
     terms = MOI.ScalarAffineTerm{Float64}[]
-    for (varid, coeff) in matrix[constr_id, :]
+    for (varid, coeff) in @view matrix[constr_id, :]
         if var_checker(form, varid)
             moi_id = getindex(getmoirecord(getvar(form, varid)))
             push!(terms, MOI.ScalarAffineTerm{Float64}(coeff, moi_id))
