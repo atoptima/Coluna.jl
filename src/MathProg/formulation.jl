@@ -257,7 +257,7 @@ function setcol_from_sp_primalsol!(
     members = ConstrMembership()
 
     for (sp_var_id, sp_var_val) in sp_sol
-        for (master_constrid, sp_var_coef) in master_coef_matrix[:,sp_var_id]
+        for (master_constrid, sp_var_coef) in @view master_coef_matrix[:,sp_var_id]
             val = get(members, master_constrid, 0.0)
             members[master_constrid] = val + sp_var_val * sp_var_coef
         end

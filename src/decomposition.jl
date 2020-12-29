@@ -433,6 +433,7 @@ function buildformulations!(
     assign_orig_vars_constrs!(masterform, origform, annotations, ann)
     create_side_vars_constrs!(masterform, origform, annotations)
     create_artificial_vars!(masterform)
+    closefillmode!(getcoefmatrix(masterform))
     initialize_optimizer!(masterform, getoptbuilder(prob, ann))
     initialize_optimizer!(origform, getoptbuilder(prob, ann))
     return
@@ -451,22 +452,28 @@ function buildformulations!(
     origform = get_original_formulation(prob)
     assign_orig_vars_constrs!(spform, origform, annotations, ann)
     create_side_vars_constrs!(spform, origform, annotations)
+    closefillmode!(getcoefmatrix(spform))
     initialize_optimizer!(spform, getoptbuilder(prob, ann))
     return
 end
 
 function reformulate!(prob::Problem, annotations::Annotations)
+    closefillmode!(getcoefmatrix(prob.original_formulation))
     decomposition_tree = annotations.tree
     root = BD.getroot(decomposition_tree)
     # Create reformulation
     reform = Reformulation()
     set_reformulation!(prob, reform)
     buildformulations!(prob, annotations, reform, reform, root)
+
+    # println("*****------------*****")
     # @show get_original_formulation(prob)
     # println("---------")
     # @show reform.master
     # for (id, sp) in reform.dw_pricing_subprs
+    #     println("*****")
     #     @show sp
     # end
+    # println("*****------------*****")
     return
 end

@@ -361,7 +361,6 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
     end
 
     for (i, varid) in enumerate(redcostsvec.varids)
-        # setcurcost!(redcostsvec.form[i], varid, redcosts[i] + sign * terms[varid])
         setcurcost!(redcostsvec.form[i], varid, redcosts[i] - terms[varid])
     end
     return redcosts

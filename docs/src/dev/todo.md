@@ -8,6 +8,7 @@ end
 # References to classify
 
 ```@docs
+Coluna.Params
 Coluna.Algorithm.OptimizationInput
 Coluna.Algorithm.OptimizationOutput
 Coluna.ColunaBase.gap
