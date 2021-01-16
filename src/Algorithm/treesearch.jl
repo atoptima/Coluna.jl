@@ -210,7 +210,11 @@ function print_node_in_branching_tree_file(algo::TreeSearchAlgorithm, data::Tree
         open(algo.branchingtreefile, "a") do file
             ncur = get_tree_order(node)
             time = Coluna._elapsed_solve_time()
-            @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
+            if ip_gap_closed(getoptstate(node))
+                @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\nPRUNED\"];" ncur ncur time
+            else
+                @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
+            end
             if !isrootnode(node)
                 npar = get_tree_order(getparent(node))
                 @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.branchdescription
