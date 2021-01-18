@@ -206,7 +206,7 @@ function print_node_in_branching_tree_file(algo::TreeSearchAlgorithm, data::Tree
     if algo.branchingtreefile !== nothing
         pb = getvalue(get_ip_primal_bound(getoptstate(data)))
         db = getvalue(get_ip_dual_bound(getoptstate(node)))
-        write(algo.branchingtreefile, read(algo.branchingtreefile, String)[1:end-1])
+        write(algo.branchingtreefile, chop(read(algo.branchingtreefile, String)))
         open(algo.branchingtreefile, "a") do file
             ncur = get_tree_order(node)
             time = Coluna._elapsed_solve_time()
@@ -228,7 +228,7 @@ end
 
 function finish_branching_tree_file(algo::TreeSearchAlgorithm)
     if algo.branchingtreefile !== nothing
-        write(algo.branchingtreefile, read(algo.branchingtreefile, String)[1:end-1])
+        write(algo.branchingtreefile, chop(read(algo.branchingtreefile, String)))
         open(algo.branchingtreefile, "a") do file
             println(file, "}")
         end
