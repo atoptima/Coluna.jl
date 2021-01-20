@@ -140,9 +140,8 @@ function perform_strong_branching_with_phases!(
                 sort!(group.children, by = x -> get_lp_primal_bound(getoptstate(x)))
             end
             
-            # Temporarily avoiding the removal of pruned nodes at this point to let them
-            # appear in the branching tree file (any better idea?)
-            #pruned_nodes_indices = Vector{Int64}()            
+            # Here, we avoid the removal of pruned nodes at this point to let them
+            # appear in the branching tree file            
             for (node_index, node) in enumerate(group.children)
                 if isverbose(current_phase.conquer_algo)
                     print(
@@ -164,20 +163,8 @@ function perform_strong_branching_with_phases!(
                     if isverbose(current_phase.conquer_algo)
                         println("Branch is conquered!")
                     end
-                    #push!(pruned_nodes_indices, node_index)
-                    #remove_states!(node.stateids)
                 end
             end
-
-            #deleteat!(group.children, pruned_nodes_indices)
-
-            #if isempty(group.children)
-            #    setconquered!(group)
-            #    if isverbose(current_phase.conquer_algo)
-            #        println("SB phase ", phase_index, " candidate ", group_index, " is conquered !")
-            #    end    
-            #    break
-            #end
 
             if phase_index < length(algo.phases) 
                 # not the last phase, thus we compute the product score

@@ -206,8 +206,13 @@ function print_node_in_branching_tree_file(algo::TreeSearchAlgorithm, data::Tree
     if algo.branchingtreefile !== nothing
         pb = getvalue(get_ip_primal_bound(getoptstate(data)))
         db = getvalue(get_ip_dual_bound(getoptstate(node)))
-        write(algo.branchingtreefile, chop(read(algo.branchingtreefile, String)))
-        open(algo.branchingtreefile, "a") do file
+        open(algo.branchingtreefile, "r+") do file
+            # rewind the closing brace character
+            seekend(file)
+            pos = position(file)
+            seek(file, pos - 1)
+
+            # start writing over this character
             ncur = get_tree_order(node)
             time = Coluna._elapsed_solve_time()
             if ip_gap_closed(getoptstate(node))
@@ -228,9 +233,14 @@ end
 
 function finish_branching_tree_file(algo::TreeSearchAlgorithm)
     if algo.branchingtreefile !== nothing
-        write(algo.branchingtreefile, chop(read(algo.branchingtreefile, String)))
-        open(algo.branchingtreefile, "a") do file
-            println(file, "}")
+        open(algo.branchingtreefile, "r+") do file
+            # rewind the closing brace character
+            seekend(file)
+            pos = position(file)
+            seek(file, pos - 1)
+
+            # just move the closing brace to the next line
+            println(file, "\n}")
         end
     end
     return
