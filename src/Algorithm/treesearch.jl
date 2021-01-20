@@ -196,7 +196,7 @@ function init_branching_tree_file(algo::TreeSearchAlgorithm)
         open(algo.branchingtreefile, "w") do file
             println(file, "## dot -Tpdf thisfile > thisfile.pdf \n")
             println(file, "digraph Branching_Tree {")
-            println(file, "\tedge[fontname = \"Courier\", fontsize = 10];")
+            print(file, "\tedge[fontname = \"Courier\", fontsize = 10];}")
         end
     end
     return
@@ -206,13 +206,25 @@ function print_node_in_branching_tree_file(algo::TreeSearchAlgorithm, data::Tree
     if algo.branchingtreefile !== nothing
         pb = getvalue(get_ip_primal_bound(getoptstate(data)))
         db = getvalue(get_ip_dual_bound(getoptstate(node)))
-        open(algo.branchingtreefile, "a") do file
+        open(algo.branchingtreefile, "r+") do file
+            # rewind the closing brace character
+            seekend(file)
+            pos = position(file)
+            seek(file, pos - 1)
+
+            # start writing over this character
             ncur = get_tree_order(node)
             time = Coluna._elapsed_solve_time()
-            @printf file "\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];\n" ncur ncur time db pb
+            if ip_gap_closed(getoptstate(node))
+                @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\nPRUNED\"];" ncur ncur time
+            else
+                @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
+            end
             if !isrootnode(node)
                 npar = get_tree_order(getparent(node))
-                @printf file "\tn%i -> n%i [label= \"%s\"];\n" npar ncur node.branchdescription
+                @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.branchdescription
+            else
+                print(file, "}")
             end
         end
     end
@@ -221,8 +233,14 @@ end
 
 function finish_branching_tree_file(algo::TreeSearchAlgorithm)
     if algo.branchingtreefile !== nothing
-        open(algo.branchingtreefile, "a") do file
-            println(file, "}")
+        open(algo.branchingtreefile, "r+") do file
+            # rewind the closing brace character
+            seekend(file)
+            pos = position(file)
+            seek(file, pos - 1)
+
+            # just move the closing brace to the next line
+            println(file, "\n}")
         end
     end
     return
