@@ -1,10 +1,8 @@
 # Coluna.jl
 
 [![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://atoptima.github.io/Coluna.jl/stable)
-[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://atoptima.github.io/Coluna.jl/latest)
-[![Build Status](https://travis-ci.org/atoptima/Coluna.jl.svg?branch=master)](https://travis-ci.org/atoptima/Coluna.jl)
+![CI](https://github.com/atoptima/Coluna.jl/workflows/CI/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/atoptima/Coluna.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/atoptima/Coluna.jl)
-[![Discord](https://img.shields.io/discord/651851215264808971?logo=discord)](https://discord.gg/cg77wFW)
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
@@ -64,14 +62,16 @@ active development.
 Contributions are welcomed !
 
 If you encounter a bug or something unexpected happens while using Coluna,
-please open an issue via the GitHub issues tracker or chat with us on the
-[discord](https://discord.gg/cg77wFW) dedicated to Coluna.
-
-You can also suggest and add new models in [ColunaDemos](https://github.com/atoptima/ColunaDemos.jl)
-for tests and benchmarks.
+please open an issue via the GitHub issues tracker.
 
 See the list of [contributors](https://github.com/atoptima/Coluna.jl/graphs/contributors)
 who make Coluna possible.
+
+
+## Premium support
+
+Using Coluna for your business ?
+[Contact us](https://atoptima.com/contact/?sup) to get tailored and qualified support.
 
 ## Acknowledgments
 
