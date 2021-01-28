@@ -19,6 +19,7 @@ end
         "number_threads", # TODO : support of MOI.NumberOfThreads()
         "solve_qcp_edge_cases", # Quadratic constraints not supported
         "delete_nonnegative_variables", # variable deletion not supported
+        "delete_variable", # variable deletion not supported
         "delete_variables", # variable deletion not supported
         "variablenames", # Coluna retrieves the name of the variable
         "silent", # TODO : support of MOI.Silent()
