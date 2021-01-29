@@ -16,14 +16,14 @@ using a decomposition approach.
 
 Construct an empty `Reformulation`.
  """
-function Reformulation()
-    return Reformulation(nothing,
-                         nothing,
-                         Dict{FormId, AbstractModel}(),
-                         Dict{FormId, AbstractModel}(),
-                         Dict{FormId, ConstrId}(),
-                         Dict{FormId, ConstrId}())
-end
+Reformulation() = Reformulation(
+    nothing,
+    nothing,
+    Dict{FormId, AbstractModel}(),
+    Dict{FormId, AbstractModel}(),
+    Dict{FormId, ConstrId}(),
+    Dict{FormId, ConstrId}()
+)
 
 """
     getobjsense(reformulation)
