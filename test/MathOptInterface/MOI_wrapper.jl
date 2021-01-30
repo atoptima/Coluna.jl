@@ -1,6 +1,9 @@
 # Testing guidelines for MOI : https://jump.dev/MathOptInterface.jl/v0.9.14/apimanual/#Testing-guideline-1
 
 const OPTIMIZER = Coluna.Optimizer()
+MOI.set(OPTIMIZER, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm()))
+MOI.set(OPTIMIZER, MOI.RawParameter("default_optimizer"), GLPK.Optimizer)
+
 const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6)
 
 
@@ -25,7 +28,9 @@ end
         "silent", # TODO : support of MOI.Silent()
         "time_limit_sec", # TODO : support of MOI.TimeLimitSec()
         "delete_soc_variables", # soc variables not supported
-        "solve_qp_edge_cases" # Quadratic objective not supported
+        "solve_qp_edge_cases", # Quadratic objective not supported
+        "solve_affine_deletion_edge_cases", # VectorAffineFunction not supported
+        "solve_affine_interval", # ScalarAffineFunction`-in-`Interval` not supported
     ])
 end
 
