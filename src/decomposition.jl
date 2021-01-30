@@ -467,6 +467,7 @@ function reformulate!(prob::Problem, annotations::Annotations)
         set_reformulation!(prob, reform)
         buildformulations!(prob, annotations, reform, reform, root)
     else
+        @show prob.original_formulation
         initialize_optimizer!(
             prob.original_formulation,
             prob.default_optimizer_builder

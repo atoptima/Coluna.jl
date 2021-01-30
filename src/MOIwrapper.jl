@@ -27,12 +27,14 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     moi_varids::Dict{VarId, MOI.VariableIndex}
     names_to_vars::Dict{String, MOI.VariableIndex}
     constrs::Dict{MOI.ConstraintIndex, Constraint}
-    constrs_on_single_var::Dict{MOI.ConstraintIndex, String}
+    constrs_on_single_var_to_vars::Dict{MOI.ConstraintIndex, VarId}
+    constrs_on_single_var_to_names::Dict{MOI.ConstraintIndex, String}
     names_to_constrs::Dict{String, MOI.ConstraintIndex}
     result::Union{Nothing,OptimizationState}
     default_optimizer_builder::Union{Nothing, Function}
 
     feasibility_sense::Bool # Coluna supports only Max or Min.
+
 
     function Optimizer()
         model = new()
@@ -44,7 +46,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.moi_varids = Dict{VarId, MOI.VariableIndex}()
         model.names_to_vars = Dict{String, MOI.VariableIndex}()
         model.constrs = Dict{MOI.ConstraintIndex, Union{Constraint, Nothing}}()
-        model.constrs_on_single_var = Dict{MOI.ConstraintIndex, String}()
+        model.constrs_on_single_var_to_vars = Dict{MOI.ConstraintIndex, VarId}()
+        model.constrs_on_single_var_to_names = Dict{MOI.ConstraintIndex, String}()
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
         model.default_optimizer_builder = nothing
         model.feasibility_sense = false
@@ -131,42 +134,42 @@ function _constraint_on_variable!(var::Variable, ::MOI.ZeroOne)
     # set perene data
     var.perendata.kind = Binary
     var.curdata.kind = Binary
-    var.perendata.lb = 0.0
-    var.curdata.lb = 0.0
-    var.perendata.ub = 1.0
-    var.curdata.ub = 1.0
+    var.perendata.lb = max(0.0, var.perendata.lb)
+    var.curdata.lb = max(0.0, var.curdata.lb)
+    var.perendata.ub = min(1.0, var.perendata.ub)
+    var.curdata.ub = min(1.0, var.curdata.ub)
     return
 end
 
 function _constraint_on_variable!(var::Variable, set::MOI.GreaterThan{Float64})
     # set perene data
-    var.perendata.lb = set.lower
-    var.curdata.lb = set.lower
+    var.perendata.lb = max(set.lower, var.perendata.lb)
+    var.curdata.lb = max(set.lower, var.perendata.lb)
     return
 end
 
 function _constraint_on_variable!(var::Variable, set::MOI.LessThan{Float64})
     # set perene data
-    var.perendata.ub = set.upper
-    var.curdata.ub = set.upper
+    var.perendata.ub = min(set.upper, var.perendata.ub)
+    var.curdata.ub = min(set.upper, var.curdata.ub)
     return
 end
 
 function _constraint_on_variable!(var::Variable, set::MOI.EqualTo{Float64})
     # set perene data
-    var.perendata.lb = set.value
-    var.curdata.lb = set.value
-    var.perendata.ub = set.value
-    var.curdata.ub = set.value
+    var.perendata.lb = max(set.value, var.perendata.lb)
+    var.curdata.lb = max(set.value, var.curdata.lb)
+    var.perendata.ub = min(set.value, var.perendata.ub)
+    var.curdata.ub = min(set.value, var.curdata.ub)
     return
 end
 
 function _constraint_on_variable!(var::Variable, set::MOI.Interval{Float64})
     # set perene data
-    var.perendata.lb = set.lower
-    var.curdata.lb = set.lower
-    var.perendata.ub = set.upper
-    var.curdata.ub = set.upper
+    var.perendata.lb = max(set.lower, var.perendata.lb)
+    var.curdata.lb = max(set.lower, var.curdata.lb)
+    var.perendata.ub = min(set.upper, var.perendata.ub)
+    var.curdata.ub = min(set.upper, var.curdata.ub)
     return
 end
 
@@ -177,7 +180,8 @@ function MOI.add_constraint(
     var = model.vars[func.variable]
     _constraint_on_variable!(var, set)
     constrid = MOI.ConstraintIndex{MOI.SingleVariable, S}(func.variable.value)
-    model.constrs_on_single_var[constrid] = ""
+    model.constrs_on_single_var_to_names[constrid] = ""
+    model.constrs_on_single_var_to_vars[constrid] = getid(var)
     return constrid
 end
 
@@ -222,9 +226,11 @@ function _moi_bounds_type(lb, ub)
 end
 
 function MOI.get(
-    model::Coluna.Optimizer, ::Type{MOI.ConstraintIndex{F,S}}, name::String
+    model::Coluna.Optimizer, C::Type{MOI.ConstraintIndex{F,S}}, name::String
 ) where {F,S}
-    return get(model.names_to_constrs, name, nothing)
+    index = get(model.names_to_constrs, name, nothing)
+    typeof(index) == C && return index
+    return nothing
 end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfConstraints)
@@ -420,7 +426,7 @@ function MOI.set(
     model::Coluna.Optimizer, ::MOI.ConstraintName, constrid::MOI.ConstraintIndex{F,S}, name::String
 ) where {F<:MOI.SingleVariable,S}
     MOI.throw_if_not_valid(model, constrid)
-    model.constrs_on_single_var[constrid] = name
+    model.constrs_on_single_var_to_names[constrid] = name
     model.names_to_constrs[name] = constrid
     return
 end
@@ -571,7 +577,7 @@ end
 function MOI.is_valid(
     optimizer::Optimizer, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.SingleVariable,S}
-    return haskey(optimizer.constrs_on_single_var, index)
+    return haskey(optimizer.constrs_on_single_var_to_names, index)
 end
 
 function MOI.is_valid(
@@ -637,4 +643,34 @@ end
 
 function MOI.get(optimizer::Optimizer, ::MOI.ResultCount)
     return nb_ip_primal_sols(optimizer.result)
+end
+
+function MOI.get(
+    optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex{F,S}
+) where {F<:MOI.SingleVariable,S}
+    varid = get(optimizer.constrs_on_single_var_to_vars, index, nothing)
+    if varid === nothing
+        @warn "Could not find constraint with id $(index)."
+        return NaN
+    end
+    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
+    return get(best_primal_sol, varid, 0.0)
+end
+
+function MOI.get(optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex)
+    constrid = get(optimizer.constrs, index, nothing)
+    if constrid === nothing
+        @warn "Could not find constraint with id $(index)."
+        return NaN
+    end
+    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
+    return constraint_primal(best_primal_sol, getid(constrid))
+end
+
+function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
+    return 0.0
+end
+
+function MOI.get(optimizer::Optimizer, ::MOI.SolveTime)
+    return 0.0
 end

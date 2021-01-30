@@ -529,6 +529,14 @@ function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalso
     return constrrhs
 end
 
+function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)
+    val = 0.0
+    for (varid, coeff) in @view getcoefmatrix(primalsol.model)[constrid, :]
+        val += coeff * primalsol[varid]
+    end
+    return val
+end
+
 function initialize_optimizer!(form::Formulation, builder::Function)
     opt = builder()
     form.optimizer = opt
