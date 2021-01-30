@@ -361,6 +361,10 @@ function MOI.get(
     return MOI.Integer()
 end
 
+function MOI.get(model::Coluna.Optimizer, ::Type{MOI.ConstraintIndex}, name::String)
+    return get(model.names_to_constrs, name, nothing)
+end
+
 ############################################################################################
 # Attributes of variables
 ############################################################################################
@@ -615,11 +619,22 @@ function MOI.get(optimizer::Optimizer, ::MOI.TerminationStatus)
     return convert_status(getterminationstatus(optimizer.result))
 end
 
-function MOI.get(optimizer::Optimizer, s::MOI.PrimalStatus)
+function MOI.get(optimizer::Optimizer, ::MOI.PrimalStatus)
     primal_sol = get_best_ip_primal_sol(optimizer.result)
+    primal_sol === nothing && return MOI.NO_SOLUTION
     return convert_status(getstatus(primal_sol))
+end
+
+function MOI.get(optimizer::Optimizer, ::MOI.DualStatus)    
+    dual_sol = get_best_lp_dual_sol(optimizer.result)
+    dual_sol === nothing && return MOI.NO_SOLUTION
+    return convert_status(getstatus(dual_sol))
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.RawStatusString)
     return string(getterminationstatus(optimizer.result))
+end
+
+function MOI.get(optimizer::Optimizer, ::MOI.ResultCount)
+    return nb_ip_primal_sols(optimizer.result)
 end

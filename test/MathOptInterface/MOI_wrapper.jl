@@ -35,6 +35,7 @@ end
         "update_dimension_nonnegative_variables", # VectorAffineFunction not supported
         "solve_farkas_interval_upper", # ScalarAffineFunction`-in-`Interval` not supported
         "solve_farkas_interval_lower", # ScalarAffineFunction`-in-`Interval` not supported
+        "solve_result_index", # Quadratic objective not supported
     ])
 end
 
@@ -44,12 +45,9 @@ end
     ])
 end
 
-
 # @testset "Modification" begin
 #     MOIT.modificationtest(OPTIMIZER, CONFIG)
 # end
-
-
 
 
 const OPTIMIZER_CONSTRUCTOR = MOI.OptimizerWithAttributes(Coluna.Optimizer)#, MOI.Silent() => true) # MOI.Silent not supported
