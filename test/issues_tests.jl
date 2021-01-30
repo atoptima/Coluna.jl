@@ -1,7 +1,9 @@
 
 function test_issues_fixed()
-    # Issue 425
-    @testset "#425" begin
+    # Issue #425
+    # When the user does not provide decomposition, Coluna should optimize the
+    # original formulation.
+    @testset "Issue #425" begin
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.SolveIpForm()),
