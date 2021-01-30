@@ -1,21 +1,3 @@
-function convert_status(moi_status::MOI.TerminationStatusCode)
-    moi_status == MOI.OPTIMAL && return OPTIMAL
-    moi_status == MOI.INFEASIBLE && return INFEASIBLE
-    moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
-    moi_status == MOI.NODE_LIMIT && return NODE_LIMIT
-    moi_status == MOI.OTHER_LIMIT && return OTHER_LIMIT
-    return UNCOVERED_TERMINATION_STATUS
-end
-
-function convert_status(coluna_status::TerminationStatus)
-    coluna_status == OPTIMAL && return MOI.OPTIMAL
-    coluna_status == INFEASIBLE && return MOI.INFEASIBLE
-    coluna_status == TIME_LIMIT && return MOI.TIME_LIMIT
-    coluna_status == NODE_LIMIT && return MOI.NODE_LIMIT
-    coluna_status == OTHER_LIMIT && return MOI.OTHER_LIMIT
-    return MOI.OTHER_LIMIT
-end
-
 """
     NoOptimizer <: AbstractOptimizer
 

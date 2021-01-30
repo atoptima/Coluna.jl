@@ -596,6 +596,11 @@ function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, refs::Vector{MOI.Va
     return [get(best_primal_sol, getid(optimizer.vars[ref]), 0.0) for ref in refs]
 end
 
-function MOI.get(optimizer::Optimizer, object::MOI.TerminationStatus)
-    return MathProg.convert_status(getterminationstatus(optimizer.result))
+function MOI.get(optimizer::Optimizer, ::MOI.TerminationStatus)
+    return convert_status(getterminationstatus(optimizer.result))
+end
+
+function MOI.get(optimizer::Optimizer, s::MOI.PrimalStatus)
+    primal_sol = get_best_ip_primal_sol(optimizer.result)
+    return convert_status(getstatus(primal_sol))
 end

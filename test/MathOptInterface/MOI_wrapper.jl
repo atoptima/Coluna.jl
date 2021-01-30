@@ -31,16 +31,23 @@ end
         "solve_qp_edge_cases", # Quadratic objective not supported
         "solve_affine_deletion_edge_cases", # VectorAffineFunction not supported
         "solve_affine_interval", # ScalarAffineFunction`-in-`Interval` not supported
+        "solve_duplicate_terms_vector_affine", # VectorAffineFunction not supported
+        "update_dimension_nonnegative_variables", # VectorAffineFunction not supported
+        "solve_farkas_interval_upper", # ScalarAffineFunction`-in-`Interval` not supported
+        "solve_farkas_interval_lower", # ScalarAffineFunction`-in-`Interval` not supported
     ])
 end
+
+@testset "Continuous Linear" begin
+    MOIT.contlineartest(OPTIMIZER, CONFIG, [
+        "partial_start" # VariablePrimalStart not supported
+    ])
+end
+
 
 # @testset "Modification" begin
 #     MOIT.modificationtest(OPTIMIZER, CONFIG)
 # end
-
-@testset "Continuous Linear" begin
-    MOIT.contlineartest(OPTIMIZER, CONFIG)
-end
 
 
 

@@ -140,13 +140,7 @@ function OptimizationState(
 end
 
 getterminationstatus(state::OptimizationState) = state.termination_status
-#getsolutionstatus(state::OptimizationState) = state.solution_status
-
 setterminationstatus!(state::OptimizationState, status::TerminationStatus) = state.termination_status = status
-#setsolutionstatus!(state::OptimizationState, status::SolutionStatus) = state.solution_status = status
-
-#isfeasible(state::OptimizationState) = state.solution_status == FEASIBLE_SOL
-#isinfeasible(state::OptimizationState) = state.solution_status == INFEASIBLE_SOL
 
 getincumbents(state::OptimizationState) = state.incumbents
 
