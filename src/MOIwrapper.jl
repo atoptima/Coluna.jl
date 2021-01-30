@@ -27,6 +27,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     moi_varids::Dict{VarId, MOI.VariableIndex}
     constrs::Dict{MOI.ConstraintIndex, Constraint}
     result::Union{Nothing,OptimizationState}
+    default_optimizer_builder::Union{Nothing, Function}
 
     function Optimizer()
         model = new()
@@ -37,6 +38,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}() # TODO : check if necessary to have two dicts for variables
         model.moi_varids = Dict{VarId, MOI.VariableIndex}()
         model.constrs = Dict{MOI.ConstraintIndex, Constraint}()
+        model.default_optimizer_builder = nothing
         return model
     end
 end
@@ -54,7 +56,8 @@ function MOI.set(model::Optimizer, param::MOI.RawParameter, val)
         model.params = val
     elseif param.name == "default_optimizer"
         optimizer_builder = () -> MoiOptimizer(val())
-        model.inner.default_optimizer_builder = optimizer_builder
+        model.default_optimizer_builder = optimizer_builder
+        set_default_optimizer_builder!(model.inner, optimizer_builder)
     else
         @warn("Unknown parameter $(param.name).")
     end
@@ -486,8 +489,17 @@ function MOI.set(model::Coluna.Optimizer, ::BD.ObjectivePrimalBound, pb)
     return
 end
 
-function MOI.empty!(optimizer::Optimizer)
-    optimizer.inner.re_formulation = nothing
+function MOI.empty!(model::Coluna.Optimizer)
+    model.inner = Problem()
+    model.annotations = Annotations()
+    model.vars = CleverDicts.CleverDict{MOI.VariableIndex, Variable}()
+    model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}()
+    model.moi_varids = Dict{VarId, MOI.VariableIndex}()
+    model.constrs = Dict{MOI.ConstraintIndex, Constraint}()
+    if model.default_optimizer_builder !== nothing
+        set_default_optimizer_builder!(model.inner, model.default_optimizer_builder)
+    end
+    return
 end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.NumberOfVariables)
