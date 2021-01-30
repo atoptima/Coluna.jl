@@ -23,7 +23,7 @@ const ClA = Coluna.Algorithm
 
 include("unit/unit_tests.jl")
 include("MathOptInterface/MOI_wrapper.jl")
-
+# include("issues_tests.jl")
 # include("show_functions_tests.jl")
 # include("full_instances_tests.jl")
 # include("user_algorithms_tests.jl")
