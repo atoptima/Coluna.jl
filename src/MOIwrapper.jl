@@ -32,6 +32,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     result::Union{Nothing,OptimizationState}
     default_optimizer_builder::Union{Nothing, Function}
 
+    feasibility_sense::Bool # Coluna supports only Max or Min.
+
     function Optimizer()
         model = new()
         model.inner = Problem()
@@ -45,6 +47,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.constrs_on_single_var = Dict{MOI.ConstraintIndex, String}()
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
         model.default_optimizer_builder = nothing
+        model.feasibility_sense = false
         return model
     end
 end
@@ -55,6 +58,9 @@ MOI.supports(::Optimizer, ::MOI.ConstraintName, ::Type{<:MOI.ConstraintIndex}) =
 MOI.supports_constraint(::Optimizer, ::Type{<:SupportedConstrFunc}, ::Type{<:SupportedConstrSets}) = true
 MOI.supports_constraint(::Optimizer, ::Type{MOI.SingleVariable}, ::Type{<: SupportedVarSets}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{<:SupportedObjFunc}) = true
+MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
+MOI.supports(::Optimizer, ::MOI.ConstraintPrimalStart) = false
+MOI.supports(::Optimizer, ::MOI.ConstraintDualStart) = false
 
 # Parameters
 function MOI.set(model::Optimizer, param::MOI.RawParameter, val)
@@ -430,15 +436,24 @@ end
 ############################################################################################
 function MOI.set(model::Coluna.Optimizer, ::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
     orig_form = get_original_formulation(model.inner)
-    min_sense = (sense == MOI.MIN_SENSE)
-    set_objective_sense!(orig_form, min_sense)
+    if sense == MOI.MIN_SENSE
+        model.feasibility_sense = false
+        set_objective_sense!(orig_form, true) # Min
+    elseif sense == MOI.MAX_SENSE
+        model.feasibility_sense = false
+        set_objective_sense!(orig_form, false) # Max
+    else
+        model.feasibility_sense = true
+        set_objective_sense!(orig_form, true) # Min
+    end
     return
 end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.ObjectiveSense)
     sense = getobjsense(get_original_formulation(model.inner))
-    sense == MinSense && return MOI.MIN_SENSE
-    return MOI.MAX_SENSE
+    model.feasibility_sense && return MOI.FEASIBILITY_SENSE
+    sense == MaxSense && return MOI.MAX_SENSE
+    return MOI.MIN_SENSE
 end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.ObjectiveFunctionType)
