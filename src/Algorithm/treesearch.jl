@@ -330,6 +330,8 @@ end
 function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
+    relax_integrality!(getmaster(getreform(rfdata)))
+
     init_branching_tree_file(algo)
     while !treeisempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes
         node = popnode!(tsdata)

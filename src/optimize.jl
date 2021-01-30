@@ -58,11 +58,9 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     @logmsg LogLevel(-1) "Coluna ready to start."
     @logmsg LogLevel(-1) _params_
 
-    relax_integrality!(prob.re_formulation.master) # TODO : remove
-
     TO.@timeit _to "Coluna" begin
         optstate = optimize!(
-            prob.re_formulation, params.solver, init_pb, init_db
+            get_optimization_target(prob), params.solver, init_pb, init_db
         )
     end
     println(_to)
@@ -121,15 +119,34 @@ function optimize!(
     return outstate
 end
 
+function optimize!(
+    form::MathProg.Formulation, algorithm::Algorithm.AbstractOptimizationAlgorithm,
+    initial_primal_bound, initial_dual_bound
+)
+    initstate = OptimizationState(
+        form,
+        ip_primal_bound = initial_primal_bound,
+        ip_dual_bound = initial_dual_bound,
+        lp_dual_bound = initial_dual_bound
+    )
+    modeldata = Algorithm.ModelData(form)
+    output = Algorithm.run!(algorithm, modeldata, Algorithm.OptimizationInput(initstate))
+    return Algorithm.getoptstate(output)
+end
+
 """
 Fallback if no solver provided by the user.
 """
-function optimize!(
-    ::MathProg.Reformulation, ::Nothing,
-    ::Real, ::Real
-)
+function optimize!(::MathProg.Reformulation, ::Nothing, ::Real, ::Real)
     error("""
         No solver to optimize the reformulation. You should provide a solver through Coluna parameters. 
+        Please, check the starting guide of Coluna.
+    """)
+end
+
+function optimize!(::MathProg.Formulation, ::Nothing, ::Real, ::Real)
+    error("""
+        No solver to optimize the formulation. You should provide a solver through Coluna parameters. 
         Please, check the starting guide of Coluna.
     """)
 end

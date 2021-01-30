@@ -1,7 +1,3 @@
-"""
-    Problem
-
-"""
 mutable struct Problem <: AbstractProblem
     initial_primal_bound::Union{Nothing, Float64}
     initial_dual_bound::Union{Nothing, Float64}
@@ -56,4 +52,16 @@ function get_initial_dual_bound(p::Problem)
         return DualBound{S}(p.initial_dual_bound)
     end
     return DualBound{S}()
+end
+
+"""
+If the original formulation is not reformulated, it means that the user did not
+provide a way to decompose the model. In such a case, Coluna will call the
+subsolver to optimize the original formulation.
+"""
+function get_optimization_target(p::Problem)
+    if p.re_formulation === nothing
+        return p.original_formulation
+    end
+    return p.re_formulation
 end

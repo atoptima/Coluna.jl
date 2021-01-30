@@ -460,11 +460,18 @@ end
 function reformulate!(prob::Problem, annotations::Annotations)
     closefillmode!(getcoefmatrix(prob.original_formulation))
     decomposition_tree = annotations.tree
-    root = BD.getroot(decomposition_tree)
-    # Create reformulation
-    reform = Reformulation()
-    set_reformulation!(prob, reform)
-    buildformulations!(prob, annotations, reform, reform, root)
+    if decomposition_tree !== nothing
+        root = BD.getroot(decomposition_tree)
+        # Create reformulation
+        reform = Reformulation()
+        set_reformulation!(prob, reform)
+        buildformulations!(prob, annotations, reform, reform, root)
+    else
+        initialize_optimizer!(
+            prob.original_formulation,
+            prob.default_optimizer_builder
+        )
+    end
 
     # println("*****------------*****")
     # @show get_original_formulation(prob)

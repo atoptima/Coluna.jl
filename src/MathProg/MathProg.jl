@@ -68,7 +68,7 @@ export no_optimizer_builder, set_original_formulation!,
 
 # Methods related to Problem
 export Problem, set_initial_dual_bound!, set_initial_primal_bound!,
-       get_initial_dual_bound, get_initial_primal_bound
+       get_initial_dual_bound, get_initial_primal_bound, get_optimization_target
 
 # Methods related to Reformulation
 export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw_pricing_sps,
