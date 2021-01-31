@@ -667,10 +667,10 @@ function MOI.get(optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.Constr
     return constraint_primal(best_primal_sol, getid(constrid))
 end
 
-function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
-    return 0.0
-end
+# function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
+#     return 0.0
+# end
 
-function MOI.get(optimizer::Optimizer, ::MOI.SolveTime)
-    return 0.0
-end
+# function MOI.get(optimizer::Optimizer, ::MOI.SolveTime)
+#     return 0.0
+# end

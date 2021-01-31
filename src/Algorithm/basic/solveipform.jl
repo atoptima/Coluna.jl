@@ -134,12 +134,6 @@ function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::
     if nbvars <= 0
         @warn "No variable in the formulation. Coluna does not call the solver."
     else
-        # println("\e[31m **** \e[00")
-        # io = IOBuffer()
-        # dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_MPS)
-        # MOI.copy_to(dest, getinner(optimizer))
-        # write(io, dest)
-        # println("\e[31m **** \e[00m")
         MOI.optimize!(getinner(optimizer))
     end
     termination_status!(result, optimizer)
