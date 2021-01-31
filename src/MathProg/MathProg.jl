@@ -82,7 +82,8 @@ export AbstractFormulation, Formulation, getreformulation, getvar, getvars, getc
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setprimalsol!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
-    set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!
+    set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
+    getobjconst, setobjconst!
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp
