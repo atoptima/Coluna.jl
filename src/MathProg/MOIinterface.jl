@@ -24,7 +24,7 @@ function update_bounds_in_optimizer!(form::Formulation, var::Variable)
     moi_kind = getkind(moi_record)
     moi_bounds = getbounds(moi_record)
     moi_index = getindex(moi_record)
-    if (getcurkind(form, var) == Binary && moi_index.value != -1)
+    if getcurkind(form, var) == Binary && moi_index.value != -1
         MOI.delete(inner, moi_kind)
         setkind!(moi_record, MOI.add_constraint(
             inner, MOI.SingleVariable(moi_index), MOI.Integer()
@@ -94,18 +94,12 @@ function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
         MOI.delete(inner, moi_kind)
         setkind!(moirecord, MoiVarKind())
     end
-    kind == Continuous && return # Continuous is translated as no constraint in MOI
-    if kind == Binary # If binary and has tighter bounds, set as integer (?)
-        moi_bounds = getbounds(moirecord)
-        if moi_bounds.value != -1
-            MOI.delete(inner, moi_bounds)
-            setbounds!(moirecord, MoiVarBound(-1))
-        end
+    if kind != Continuous # Continuous is translated as no constraint in MOI
+        moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
+        setkind!(moirecord, MOI.add_constraint(
+            inner, MOI.SingleVariable(getindex(moirecord)), moi_set
+        ))
     end
-    moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
-    setkind!(moirecord, MOI.add_constraint(
-        inner, MOI.SingleVariable(getindex(moirecord)), moi_set
-    ))
     return
 end
 
@@ -117,9 +111,7 @@ function add_to_optimizer!(form::Formulation, var::Variable)
     setindex!(moirecord, moi_index)
     update_cost_in_optimizer!(form, var)
     enforce_kind_in_optimizer!(form, var)
-    if getcurkind(form, var) != Binary
-        enforce_bounds_in_optimizer!(form, var)
-    end
+    enforce_bounds_in_optimizer!(form, var)
     MOI.set(inner, MOI.VariableName(), moi_index, getname(form, var))
     return
 end

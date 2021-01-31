@@ -3,22 +3,26 @@ using Coluna
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
 using Random
 
-import MathOptInterface, MathOptInterface.Utilities
+using MathOptInterface, MathOptInterface.Utilities
 
 using Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(0)))
 
-global const MOIU = MathOptInterface.Utilities
-global const MOI = MathOptInterface
-global const CL = Coluna
-global const CLD = ColunaDemos
-global const BD = BlockDecomposition
+const MOI = MathOptInterface
+const MOIU = MOI.Utilities
+const MOIT = MOI.Test
+const MOIB = MOI.Bridges
 
-global const ClF = Coluna.MathProg # Must be deleted
-global const ClMP = Coluna.MathProg
-global const ClA = Coluna.Algorithm
+const CL = Coluna
+const CLD = ColunaDemos
+const BD = BlockDecomposition
+
+const ClF = Coluna.MathProg # Must be deleted
+const ClMP = Coluna.MathProg
+const ClA = Coluna.Algorithm
 
 include("unit/unit_tests.jl")
+include("MathOptInterface/MOI_wrapper.jl")
 include("issues_tests.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
@@ -28,7 +32,6 @@ include("pricing_callback_tests.jl")
 
 rng = MersenneTwister(1234123)
 
-#mytest()
 unit_tests()
 
 @testset "Full instances " begin

@@ -161,12 +161,50 @@ If the subsolver called through MOI returns a
 """
     SolutionStatus
 
-todo
+Description of the solution statuses:
+- `FEASIBLE_SOL` : the solution is feasible
+- `INFEASIBLE_SOL` : the solution is not feasible
+
+If there is no solution or if we don't have information about the solution, the 
+solution status should be :
+- `UNKWNOW_SOLUTION_STATUS`
+
 """
 @enum(
-    SolutionStatus, FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, UNKNOWN_SOLUTION_STATUS,
-    UNCOVERED_SOLUTION_STATUS
+    SolutionStatus, FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, 
+    UNKNOWN_SOLUTION_STATUS, UNCOVERED_SOLUTION_STATUS
 )
+
+function convert_status(moi_status::MOI.TerminationStatusCode)
+    moi_status == MOI.OPTIMAL && return OPTIMAL
+    moi_status == MOI.INFEASIBLE && return INFEASIBLE
+    moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
+    moi_status == MOI.NODE_LIMIT && return NODE_LIMIT
+    moi_status == MOI.OTHER_LIMIT && return OTHER_LIMIT
+    return UNCOVERED_TERMINATION_STATUS
+end
+
+function convert_status(coluna_status::TerminationStatus)
+    coluna_status == OPTIMAL && return MOI.OPTIMAL
+    coluna_status == INFEASIBLE && return MOI.INFEASIBLE
+    coluna_status == TIME_LIMIT && return MOI.TIME_LIMIT
+    coluna_status == NODE_LIMIT && return MOI.NODE_LIMIT
+    coluna_status == OTHER_LIMIT && return MOI.OTHER_LIMIT
+    return MOI.OTHER_LIMIT
+end
+
+function convert_status(moi_status::MOI.ResultStatusCode)
+    moi_status == MOI.NO_SOLUTION && return UNKNOWN_SOLUTION_STATUS
+    moi_status == MOI.FEASIBLE_POINT && return FEASIBLE_SOL
+    moi_status == MOI.INFEASIBLE_POINT && return INFEASIBLE_SOL
+    return UNCOVERED_SOLUTION_STATUS
+end
+
+function convert_status(coluna_status::SolutionStatus)
+    coluna_status == FEASIBLE_SOL && return MOI.FEASIBLE_POINT
+    coluna_status == INFEASIBLE_SOL && return MOI.INFEASIBLE_POINT
+    return MOI.OTHER_RESULT_STATUS
+end
 
 # Solution
 struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Value}
@@ -188,6 +226,7 @@ end
 
 getsol(s::Solution) = s.sol
 getvalue(s::Solution) = float(s.bound)
+getstatus(s::Solution) = s.status
 
 Base.iterate(s::Solution) = iterate(s.sol)
 Base.iterate(s::Solution, state) = iterate(s.sol, state)

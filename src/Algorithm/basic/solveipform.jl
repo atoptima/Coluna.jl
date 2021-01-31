@@ -109,6 +109,7 @@ function termination_status!(result::OptimizationState, optimizer::MoiOptimizer)
             terminationstatus != MOI.DUAL_INFEASIBLE &&
             terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
             terminationstatus != MOI.OPTIMIZE_NOT_CALLED &&
+            terminationstatus != MOI.INVALID_MODEL &&
             terminationstatus != MOI.TIME_LIMIT
 
         setterminationstatus!(result, convert_status(terminationstatus))
