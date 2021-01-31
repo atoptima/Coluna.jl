@@ -83,8 +83,6 @@ const LP_TESTS = [
     "solve_affine_lessthan"
 ]
 
-MathOptInterface.Test.solve_zero_one_with_bounds_2
-
 @testset "Unit Basic/MIP" begin
     MOI.set(OPTIMIZER, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm()))
     MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, LP_TESTS, MIP_TESTS))
