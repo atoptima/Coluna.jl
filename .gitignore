@@ -10,3 +10,5 @@ docs/site/
 *.toml
 Manifest.toml
 test/Manifest.toml
+*.dot
+*DS_Store
