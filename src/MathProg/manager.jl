@@ -11,9 +11,10 @@ const VarVarMatrix = DynamicSparseArrays.DynamicSparseMatrix{VarId,VarId,Float64
 # Define the semaphore of the dynamic sparse matrix using MathProg.Id as index
 DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
 
-struct FormulationManager
+mutable struct FormulationManager
     vars::VarDict
     constrs::ConstrDict
+    objective_constant::Float64
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables
@@ -29,6 +30,7 @@ function FormulationManager()
     return FormulationManager(
         vars,
         constrs,
+        0.0,
         dynamicsparse(ConstrId, VarId, Float64),
         dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         dynamicsparse(VarId, VarId, Float64; fill_mode = false),

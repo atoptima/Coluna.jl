@@ -1,21 +1,19 @@
 const CleverDicts = MOI.Utilities.CleverDicts
 
-const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float64},
-    MOI.SingleVariable}
+const SupportedObjFunc = Union{MOI.ScalarAffineFunction{Float64}, MOI.SingleVariable}
 
-const SupportedVarSets = Union{MOI.ZeroOne, MOI.Integer, MOI.LessThan{Float64},
-    MOI.EqualTo{Float64}, MOI.GreaterThan{Float64}}
+const SupportedVarSets = Union{
+    MOI.ZeroOne, MOI.Integer, MOI.LessThan{Float64}, MOI.EqualTo{Float64}, 
+    MOI.GreaterThan{Float64}
+}
 
 const SupportedConstrFunc = Union{MOI.ScalarAffineFunction{Float64}}
 
-const SupportedConstrSets = Union{MOI.EqualTo{Float64}, MOI.GreaterThan{Float64},
-    MOI.LessThan{Float64}}
+const SupportedConstrSets = Union{
+    MOI.EqualTo{Float64}, MOI.GreaterThan{Float64}, MOI.LessThan{Float64}
+}
 
-@enum(
-    ObjectiveType,
-    SINGLE_VARIABLE,
-    SCALAR_AFFINE
-)
+@enum(ObjectiveType, SINGLE_VARIABLE, SCALAR_AFFINE)
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Problem
     objective_type::ObjectiveType
@@ -485,7 +483,10 @@ function MOI.set(
         var.perendata.cost = cost
         var.curdata.cost = cost
     end
-    # TODO : missing constant
+    if func.constant != 0
+        orig_form = get_original_formulation(model.inner)
+        setobjconst!(orig_form, func.constant)
+    end
     return
 end
 
@@ -512,8 +513,7 @@ function MOI.get(
         iszero(cost) && continue
         push!(terms, MOI.ScalarAffineTerm(cost, id))
     end
-    # TODO : missing constant
-    return MOI.ScalarAffineFunction(terms, 0.0)
+    return MOI.ScalarAffineFunction(terms, getobjconst(orig_form))
 end
 
 function MOI.get(

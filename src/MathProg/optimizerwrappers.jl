@@ -70,6 +70,12 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         update_cost_in_optimizer!(f, getvar(f, id))
     end
 
+    # Update objective constant
+    if buffer.changed_obj_const
+        update_obj_const_in_optimizer!(f)
+        buffer.changed_obj_const = false
+    end
+
     # Update variable bounds
     for id in buffer.changed_bound
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue

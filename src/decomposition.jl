@@ -35,6 +35,7 @@ function instantiatemaster!(
         parent_formulation = reform,
         obj_sense = getobjsense(get_original_formulation(prob))
     )
+    setobjconst!(form, getobjconst(get_original_formulation(prob)))
     setmaster!(reform, form)
     return form
 end

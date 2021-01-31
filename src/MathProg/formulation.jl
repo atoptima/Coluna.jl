@@ -68,6 +68,13 @@ Return all constraints in `formulation`.
 """
 getconstrs(form::Formulation) = form.manager.constrs
 
+getobjconst(form::Formulation) = form.manager.objective_constant
+function setobjconst!(form::Formulation, val::Float64)
+    form.manager.objective_constant = val
+    form.buffer.changed_obj_const = true
+    return
+end
+
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(form::Formulation) = form.manager.coefficients
 getprimalsolmatrix(form::Formulation) = form.manager.primal_sols

@@ -46,6 +46,7 @@ The concerned modificatios are:
 8. Coefficient in the matrix is modified (reset)
 """
 mutable struct FormulationBuffer
+    changed_obj_const::Bool
     changed_cost::Set{Id{Variable}}
     changed_bound::Set{Id{Variable}}
     changed_var_kind::Set{Id{Variable}}
@@ -62,7 +63,7 @@ end
 Constructs an empty `FormulationBuffer`.
 """
 FormulationBuffer() = FormulationBuffer(
-    Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
+    false, Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
     Set{Id{Constraint}}(), Set{Id{Constraint}}(), VarConstrBuffer{Variable}(),
     VarConstrBuffer{Constraint}(),
     Dict{Pair{Id{Constraint},Id{Variable}},Float64}()

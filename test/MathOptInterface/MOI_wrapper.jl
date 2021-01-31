@@ -36,8 +36,7 @@ const UNSUPPORTED_TESTS = [
     "silent", # TODO : support of MOI.Silent()
     "time_limit_sec", # TODO : support of MOI.TimeLimitSec()
     "solve_time", # TODO : support of MOI.SolveTime()
-    "solve_twice", # TODO : fix 
-    "solve_objbound_edge_cases", # TODO : fix (MIP)
+    "solve_twice" # TODO : fix 
 ]
 
 MathOptInterface.Test.getconstraint
@@ -56,7 +55,8 @@ const MIP_TESTS = [
     "solve_zero_one_with_bounds_1",
     "solve_zero_one_with_bounds_2",
     "solve_zero_one_with_bounds_3",
-    "solve_integer_edge_cases"
+    "solve_integer_edge_cases",
+    "solve_objbound_edge_cases"
 ]
 
 const LP_TESTS = [
@@ -83,8 +83,6 @@ const LP_TESTS = [
     "solve_affine_lessthan"
 ]
 
-MathOptInterface.Test.solve_zero_one_with_bounds_2
-
 @testset "Unit Basic/MIP" begin
     MOI.set(OPTIMIZER, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm()))
     MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, LP_TESTS, MIP_TESTS))
@@ -93,8 +91,8 @@ end
 
 # @testset "Integer Linear" begin
 #     MOIT.intlineartest(OPTIMIZER, CONFIG, [
-#         "indicator1", "indicator2", "indicator3", "indicator4",
-#         "semiconttest", "semiinttest",
+#         "indicator1", "indicator2", "indicator3", "indicator4", # indicator constraints not supported
+#         "semiconttest", "semiinttest", # semi integer vars not supported
 #         "int2" # SOS1 & SOS2 not supported
 #     ])
 # end
