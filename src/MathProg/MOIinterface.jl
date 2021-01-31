@@ -53,6 +53,15 @@ function update_cost_in_optimizer!(form::Formulation, var::Variable)
     return
 end
 
+function update_obj_const_in_optimizer!(form::Formulation)
+    optimizer = getoptimizer(form)
+    MOI.modify(
+        getinner(optimizer), MoiObjective(), 
+        MOI.ScalarConstantChange{Float64}(getobjconst(form))
+    )
+    return
+end
+
 function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
                                             c::Constraint, v::Variable,
                                             coeff::Float64)
@@ -212,7 +221,7 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
-        solcost = 0.0 # TODO : constant in the objective function ?
+        solcost = getobjconst(form)
         solvars = Vector{VarId}()
         solvals = Vector{Float64}()
         for (id, var) in getvars(form)
@@ -242,7 +251,7 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
-        solcost = 0.0 # TODO : constant in the objective function ?
+        solcost = getobjconst(form)
         solconstrs = Vector{ConstrId}()
         solvals = Vector{Float64}()
         # Get dual value of constraints
