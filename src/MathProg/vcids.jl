@@ -21,8 +21,8 @@ end
 
 function _create_hash(uid::Int, origin_form_uid::FormId, proc_uid::Int)
     return (
-        uid * Cl._params_.max_nb_formulations * Cl._params_.max_nb_processes
-        + origin_form_uid * Cl._params_.max_nb_processes
+        uid * MAX_NB_FORMULATIONS * MAX_NB_PROCESSES
+        + origin_form_uid * MAX_NB_PROCESSES
         + proc_uid
     )
 end

@@ -51,14 +51,12 @@ end
 
 getoptstate(data::BendersCutGenRuntimeData) = data.optstate
 
-function run!(algo::BendersCutGeneration, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput    
-
+function run!(algo::BendersCutGeneration, env::Env, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput    
     reform = getreform(rfdata)
     relax_integrality!(getmaster(reform))
     bndata = BendersCutGenRuntimeData(reform, getoptstate(input))
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
-    Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, bndata, reform)
-
+    Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
     return OptimizationOutput(bndata.optstate)
 end
 
@@ -224,7 +222,7 @@ function compute_benders_sp_lagrangian_bound_contrib(
 end
 
 function solve_sp_to_gencut!(
-    algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData,
+    algo::BendersCutGeneration, env::Env, algdata::BendersCutGenRuntimeData,
     masterform::Formulation, spform::Formulation,
     master_primal_sol::PrimalSolution, master_dual_sol::DualSolution,
     up_to_phase::FormulationPhase
@@ -268,7 +266,7 @@ function solve_sp_to_gencut!(
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing benders_sp prob"
         TO.@timeit Coluna._to "Bender Sep SubProblem" begin
-            optstate = run!(SolveLpForm(get_dual_solution = true), ModelData(spform), OptimizationInput(OptimizationState(spform)))
+            optstate = run!(SolveLpForm(get_dual_solution = true), env, ModelData(spform), OptimizationInput(OptimizationState(spform)))
         end
 
         optresult = getoptstate(optstate)
@@ -350,7 +348,7 @@ end
         
 
 function solve_sps_to_gencuts!(
-    algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, 
+    algo::BendersCutGeneration, env::Env, algdata::BendersCutGenRuntimeData, 
     reform::Reformulation,  master_primalsol::PrimalSolution, 
     master_dualsol::DualSolution, up_to_phase::FormulationPhase
 )
@@ -371,7 +369,7 @@ function solve_sps_to_gencuts!(
     for (spuid, spform) in sps
         recorded_sp_dual_solution_ids[spuid] = Vector{ConstrId}()
         gen_status, spsol_relaxed, recorded_dual_solution_ids, benders_sp_primal_bound_contrib, benders_sp_lagrangian_bound_contrib = solve_sp_to_gencut!(
-            algo, algdata, masterform, spform,
+            algo, env, algdata, masterform, spform,
             master_primalsol, master_dualsol,
             up_to_phase
         )
@@ -419,15 +417,15 @@ function update_lagrangian_pb!(algdata::BendersCutGenRuntimeData, reform::Reform
     return lagran_bnd
 end
 
-function solve_relaxed_master!(master::Formulation)
+function solve_relaxed_master!(master::Formulation, env::Env)
     elapsed_time = @elapsed begin
-        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(get_dual_solution = true), ModelData(master), OptimizationInput(OptimizationState(master)))
+        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(get_dual_solution = true), env, ModelData(master), OptimizationInput(OptimizationState(master)))
     end
     return optresult, elapsed_time
 end
 
 function generatecuts!(
-    algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, reform::Reformulation,
+    algo::BendersCutGeneration, env::Env, algdata::BendersCutGenRuntimeData, reform::Reformulation,
     master_primal_sol::PrimalSolution, master_dual_sol::DualSolution, phase::FormulationPhase
 )::Tuple{Int, Bool, PrimalBound}
     masterform = getmaster(reform)
@@ -437,7 +435,7 @@ function generatecuts!(
     ## TODO stabilization : move the following code inside a loop
     nb_new_cuts, spsols_relaxed, pb_correction, sp_pb_contrib =
         solve_sps_to_gencuts!(
-            algo, algdata, reform, master_primal_sol, filtered_dual_sol, phase
+            algo, env, algdata, reform, master_primal_sol, filtered_dual_sol, phase
         )
     update_lagrangian_pb!(algdata, reform, master_dual_sol, sp_pb_contrib)
     if nb_new_cuts < 0
@@ -453,7 +451,7 @@ function generatecuts!(
 end
 
 function bend_cutting_plane_main_loop!(
-    algo::BendersCutGeneration, algdata::BendersCutGenRuntimeData, reform::Reformulation
+    algo::BendersCutGeneration, env::Env, algdata::BendersCutGenRuntimeData, reform::Reformulation
 )
 
     nb_bc_iterations = 0
@@ -472,7 +470,7 @@ function bend_cutting_plane_main_loop!(
         nb_new_cuts = 0
         cur_gap = 0.0
         
-        optoutput, master_time = solve_relaxed_master!(masterform)
+        optoutput, master_time = solve_relaxed_master!(masterform, env)
         optresult = getoptstate(optoutput)
 
         if getterminationstatus(optresult) == INFEASIBLE
@@ -507,7 +505,7 @@ function bend_cutting_plane_main_loop!(
             sp_time = @elapsed begin
                 nb_new_cuts, one_spsol_is_a_relaxed_sol, primal_bound  =
                     generatecuts!(
-                        algo, algdata, reform, master_primal_sol, master_dual_sol, up_to_phase
+                        algo, env, algdata, reform, master_primal_sol, master_dual_sol, up_to_phase
                     )
             end
 
@@ -523,7 +521,7 @@ function bend_cutting_plane_main_loop!(
             cur_gap = gap(primal_bound, dual_bound)
             
             print_benders_statistics(
-                bnd_optstate, nb_new_cuts, nb_bc_iterations, master_time, sp_time
+                env, bnd_optstate, nb_new_cuts, nb_bc_iterations, master_time, sp_time
             )
             
             if cur_gap < algo.optimality_tol
@@ -585,7 +583,7 @@ function bend_cutting_plane_main_loop!(
 end
 
 function print_benders_statistics(
-    optstate::OptimizationState, nb_new_cut::Int,
+    env::Env, optstate::OptimizationState, nb_new_cut::Int,
     nb_bc_iterations::Int, mst_time::Float64, sp_time::Float64
 )
     mlp = getvalue(get_lp_dual_bound(optstate))
@@ -593,7 +591,7 @@ function print_benders_statistics(
     pb = getvalue(get_ip_primal_bound(optstate))
     @printf(
             "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <DB=%10.4f> <mlp=%10.4f> <PB=%10.4f>\n",
-            nb_bc_iterations, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_cut, db, mlp, pb
+            nb_bc_iterations, elapsed_optim_time(env), mst_time, sp_time, nb_new_cut, db, mlp, pb
     )
 end
 

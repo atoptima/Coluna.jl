@@ -11,7 +11,7 @@ end
 getdescription(candidate::VarBranchingCandidate) = candidate.description
 
 function generate_children(
-    candidate::VarBranchingCandidate, lhs::Float64, data::ReformData, parent::Node
+    candidate::VarBranchingCandidate, lhs::Float64, env::Env, data::ReformData, parent::Node
 )
     master = getmaster(getreform(data))
     var = getvar(master, candidate.varid)
@@ -33,7 +33,7 @@ function generate_children(
         master, string(
             "branch_geq_", getdepth(parent), "_", getname(master,candidate.varid)
         ), MasterBranchOnOrigVarConstr;
-        sense = Greater, rhs = ceil(lhs), loc_art_var = true,
+        sense = Greater, rhs = ceil(lhs), loc_art_var_abs_cost = env.params.local_art_var_cost,
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     end
@@ -47,7 +47,8 @@ function generate_children(
         master, string(
             "branch_leq_", getdepth(parent), "_", getname(master,candidate.varid)
         ), MasterBranchOnOrigVarConstr;
-        sense = Less, rhs = floor(lhs), loc_art_var = true,
+        sense = Less, rhs = floor(lhs), 
+        loc_art_var_abs_cost = env.params.local_art_var_cost,
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     end
@@ -75,7 +76,7 @@ function get_storages_usage(algo::VarBranchingRule, reform::Reformulation)
 end
 
 function run!(
-    rule::VarBranchingRule, data::ReformData, input::BranchingRuleInput
+    rule::VarBranchingRule, env::Env, data::ReformData, input::BranchingRuleInput
 )::BranchingRuleOutput
     # variable branching works only for the original solution
     !input.isoriginalsol && return BranchingRuleOutput(input.local_id, Vector{BranchingGroup}())

@@ -28,7 +28,7 @@ function Coluna.Algorithm.get_storages_usage(
 end
 
 function Coluna.Algorithm.run!(
-    algo::ConsecutiveColGen, data::ReformData, input::OptimizationInput
+    algo::ConsecutiveColGen, env::Env, data::ReformData, input::OptimizationInput
     )
     reform = getreform(data)
     master = ClMP.getmaster(reform)
@@ -39,7 +39,7 @@ function Coluna.Algorithm.run!(
 
     while cg_run_number <= algo.num_calls_to_col_gen 
 
-        cg_output = run!(algo.colgen, data, OptimizationInput(optstate))
+        cg_output = run!(algo.colgen, env, data, OptimizationInput(optstate))
         cg_optstate = getoptstate(cg_output)
         update_all_ip_primal_solutions!(optstate, cg_optstate)
 
@@ -60,13 +60,13 @@ function Coluna.Algorithm.run!(
         add_to_localpartialsol!(preprocess_storage, first(var_vals[1]), 1.0)
         add_to_solution!(partsol_storage, first(var_vals[1]), 1.0)
 
-        prp_output = run!(algo.preprocess, data, EmptyInput())
+        prp_output = run!(algo.preprocess, env, data, EmptyInput())
         isinfeasible(prp_output) && break
     
         cg_run_number += 1
     end
 
-    heur_output = run!(algo.rm_heur, data, OptimizationInput(optstate))
+    heur_output = run!(algo.rm_heur, env, data, OptimizationInput(optstate))
     update_all_ip_primal_solutions!(optstate, getoptstate(heur_output))
 
     return OptimizationOutput(optstate)

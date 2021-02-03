@@ -342,7 +342,7 @@ end
         is_explicit::Bool = true,
         moi_index::MoiConstrIndex = MoiConstrIndex(),
         members = nothing,
-        loc_art_var = false,
+        loc_art_var_abs_cost = 0.0,
         id = generateconstrid(duty, form)
     )
 
@@ -361,7 +361,7 @@ function setconstr!(
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex(),
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
-    loc_art_var = false,
+    loc_art_var_abs_cost::Float64 = 0.0,
     id = generateconstrid(duty, form)
 )
     if getduty(id) != duty
@@ -371,8 +371,8 @@ function setconstr!(
     constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index)
     members !== nothing && _setmembers!(form, constr, members)
     _addconstr!(form.manager, constr)
-    if loc_art_var
-        _addlocalartvar!(form, constr)
+    if loc_art_var_abs_cost != 0.0
+        _addlocalartvar!(form, constr, loc_art_var_abs_cost)
     end
     if isexplicit(form, constr)
         add!(form.buffer, getid(constr))
@@ -388,10 +388,9 @@ end
 
 get_robust_constr_generators(form::Formulation) = form.manager.robust_constr_generators
 
-function _addlocalartvar!(form::Formulation, constr::Constraint)
+function _addlocalartvar!(form::Formulation, constr::Constraint, abs_cost::Float64)
     matrix = getcoefmatrix(form)
-    cost = Cl._params_.local_art_var_cost
-    cost *= getobjsense(form) == MinSense ? 1.0 : -1.0
+    cost = (getobjsense(form) == MinSense ? 1.0 : -1.0) * abs_cost
     constrid = getid(constr)
     constrname = getname(form, constr)
     constrsense = getperensense(form, constr)

@@ -48,23 +48,22 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     init_db = get_initial_dual_bound(prob)
     _adjust_params(params, init_pb)
 
-    _set_global_params(params)
+    env = Env(params)
 
     # Apply decomposition
-    reformulate!(prob, annotations)
+    reformulate!(prob, annotations, env)
     
     # Coluna ready to start
-    _globals_.initial_solve_time = time()
+    set_optim_start_time!(env)
     @logmsg LogLevel(-1) "Coluna ready to start."
-    @logmsg LogLevel(-1) _params_
+    @logmsg LogLevel(-1) env.params
 
     TO.@timeit _to "Coluna" begin
-        optstate = optimize!(
-            get_optimization_target(prob), params.solver, init_pb, init_db
-        )
+        optstate = optimize!(get_optimization_target(prob), env, init_pb, init_db)
     end
     println(_to)
     TO.reset_timer!(_to)
+
     @logmsg LogLevel(0) "Terminated"
     @logmsg LogLevel(0) string("Primal bound: ", get_ip_primal_bound(optstate))
     @logmsg LogLevel(0) string("Dual bound: ", get_ip_dual_bound(optstate))
@@ -72,10 +71,8 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
 end
 
 function optimize!(
-    reform::MathProg.Reformulation, algorithm::Algorithm.AbstractOptimizationAlgorithm,
-    initial_primal_bound, initial_dual_bound
+    reform::MathProg.Reformulation, env::Env, initial_primal_bound, initial_dual_bound
 )
-
     master = getmaster(reform)
     initstate = OptimizationState(
         master,
@@ -84,11 +81,13 @@ function optimize!(
         lp_dual_bound = initial_dual_bound
     )
 
+    algorithm = env.params.solver
+
     #this will initialize all the storages used by the algorithm and its child algorithms
     reformdata = Algorithm.ReformData(reform)
     Algorithm.initialize_storages!(reformdata, algorithm)
 
-    output = Algorithm.run!(algorithm, reformdata, Algorithm.OptimizationInput(initstate))
+    output = Algorithm.run!(algorithm, env, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)
 
     Algorithm.check_storage_states_participation(reformdata)
@@ -120,8 +119,7 @@ function optimize!(
 end
 
 function optimize!(
-    form::MathProg.Formulation, algorithm::Algorithm.AbstractOptimizationAlgorithm,
-    initial_primal_bound, initial_dual_bound
+    form::MathProg.Formulation, env::Env, initial_primal_bound, initial_dual_bound
 )
     initstate = OptimizationState(
         form,
@@ -130,7 +128,8 @@ function optimize!(
         lp_dual_bound = initial_dual_bound
     )
     modeldata = Algorithm.ModelData(form)
-    output = Algorithm.run!(algorithm, modeldata, Algorithm.OptimizationInput(initstate))
+    algorithm = env.params.solver
+    output = Algorithm.run!(algorithm, env, modeldata, Algorithm.OptimizationInput(initstate))
     return Algorithm.getoptstate(output)
 end
 

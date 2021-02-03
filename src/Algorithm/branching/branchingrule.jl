@@ -49,7 +49,7 @@ abstract type AbstractBranchingRule <: AbstractAlgorithm end
 ismanager(algo::AbstractBranchingRule) = true
 
 function run!(
-    rule::AbstractBranchingRule, data::AbstractData, input::BranchingRuleInput
+    rule::AbstractBranchingRule, env::Env, data::AbstractData, input::BranchingRuleInput
 )::BranchingRuleOutput
     algotype = typeof(rule)
     error("Method run! in not defined for branching rule $(typeof(rule)), data $(typeof(data)), and input $(typeof(input)).")
