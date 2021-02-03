@@ -104,7 +104,7 @@ function instantiate_orig_constrs!(
     origform::Formulation{Original},
     env::Env,
     annotations::Annotations,
-    mast_ann,
+    mast_ann
 )
     !haskey(annotations.constrs_per_ann, mast_ann) && return
     constrs = annotations.constrs_per_ann[mast_ann]
@@ -433,7 +433,7 @@ end
 
 function buildformulations!(
     prob::Problem, reform::Reformulation, env::Env, annotations::Annotations, parent,
-    node::BD.Root,
+    node::BD.Root
 )
     ann = BD.annotation(node)
     form_type = BD.getformulation(ann)

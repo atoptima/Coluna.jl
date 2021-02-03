@@ -22,7 +22,6 @@ function get_storages_usage(algo::BendersCutGeneration, reform::Reformulation)
     for (id, spform) in get_benders_sep_sps(reform)
         push!(storages_usage, (spform, StaticVarConstrStoragePair, READ_ONLY))
     end
-
     return storages_usage
 end
 
@@ -51,7 +50,9 @@ end
 
 getoptstate(data::BendersCutGenRuntimeData) = data.optstate
 
-function run!(algo::BendersCutGeneration, env::Env, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput    
+function run!(
+    algo::BendersCutGeneration, env::Env, rfdata::ReformData, input::OptimizationInput
+)::OptimizationOutput
     reform = getreform(rfdata)
     relax_integrality!(getmaster(reform))
     bndata = BendersCutGenRuntimeData(reform, getoptstate(input))
@@ -125,7 +126,6 @@ function update_benders_sp_problem!(
             setcurcost!(spform, var, rc)
         end
     end
-
     return false
 end
 
