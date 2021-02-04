@@ -80,20 +80,20 @@ function ReducedCostsVector(varids::Vector{VarId}, form::Vector{Formulation})
     return ReducedCostsVector(len, varids, perencosts, form)
 end
 
-function run!(algo::ColumnGeneration, data::ReformData, input::OptimizationInput)::OptimizationOutput
+function run!(algo::ColumnGeneration, env::Env, data::ReformData, input::OptimizationInput)::OptimizationOutput
     reform = getreform(data)
     master = getmaster(reform)
     optstate = OptimizationState(master, getoptstate(input), false, false)
 
     set_ph3!(master) # mixed ph1 & ph2
-    stop = cg_main_loop!(algo, 3, optstate, data)
+    stop = cg_main_loop!(algo, env, 3, optstate, data)
 
     if !stop && should_do_ph_1(optstate)
         set_ph1!(master, optstate)
-        stop = cg_main_loop!(algo, 1, optstate, data)
+        stop = cg_main_loop!(algo, env, 1, optstate, data)
         if !stop
             set_ph2!(master, optstate) # pure ph2
-            cg_main_loop!(algo, 2, optstate, data)
+            cg_main_loop!(algo, env, 2, optstate, data)
         end
     end
 
@@ -270,15 +270,15 @@ function improving_red_cost(redcost::Float64, algo::ColumnGeneration, ::Type{Max
 end
 
 function solve_sp_to_gencol!(
-    spinfo::SubprobInfo, algo::ColumnGeneration, masterform::Formulation, spdata::ModelData,
-    dualsol::DualSolution
+    spinfo::SubprobInfo, algo::ColumnGeneration, env::Env, masterform::Formulation, 
+    spdata::ModelData, dualsol::DualSolution
 )
     spform = getmodel(spdata)
 
     # Compute target
     update_pricing_target!(spform)
 
-    output = run!(algo.pricing_prob_solve_alg, spdata, OptimizationInput(OptimizationState(spform)))
+    output = run!(algo.pricing_prob_solve_alg, env, spdata, OptimizationInput(OptimizationState(spform)))
     sp_optstate = getoptstate(output)
     sp_sol_value = get_ip_primal_bound(sp_optstate)
 
@@ -367,8 +367,9 @@ function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVec
 end
 
 function solve_sps_to_gencols!(
-    spinfos::Dict{FormId, SubprobInfo}, algo::ColumnGeneration, phase::Int64, data::ReformData,
-    redcostsvec::ReducedCostsVector, lp_dual_sol::DualSolution, smooth_dual_sol::DualSolution,
+    spinfos::Dict{FormId, SubprobInfo}, algo::ColumnGeneration, env::Env, phase::Int64, 
+    data::ReformData, redcostsvec::ReducedCostsVector, lp_dual_sol::DualSolution, 
+    smooth_dual_sol::DualSolution,
 )
     reform = getreform(data)
     masterform = getmaster(reform)
@@ -386,11 +387,11 @@ function solve_sps_to_gencols!(
         Threads.@threads for key in 1:length(spuids)
             spuid = spuids[key]
             spdata = spsdatas[spuid]
-            solve_sp_to_gencol!(spinfos[spuid], algo, masterform, spdata, lp_dual_sol)
+            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spdata, lp_dual_sol)
         end
     else
         for (spuid, spdata) in spsdatas
-            solve_sp_to_gencol!(spinfos[spuid], algo, masterform, spdata, lp_dual_sol)
+            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spdata, lp_dual_sol)
         end
     end
     ### END LOOP TO BE PARALLELIZED
@@ -587,7 +588,8 @@ function change_values_sign!(dualsol::DualSolution)
 end
 
 function cg_main_loop!(
-    algo::ColumnGeneration, phase::Int, cg_optstate::OptimizationState, data::ReformData
+    algo::ColumnGeneration, env::Env, phase::Int, cg_optstate::OptimizationState, 
+    data::ReformData
 )
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
@@ -631,7 +633,7 @@ function cg_main_loop!(
             rm_input = OptimizationInput(
                 OptimizationState(masterform, ip_primal_bound = get_ip_primal_bound(cg_optstate))
             )
-            rm_output = run!(algo.restr_master_solve_alg, getmasterdata(data), rm_input)
+            rm_output = run!(algo.restr_master_solve_alg, env, getmasterdata(data), rm_input)
         end
         rm_optstate = getoptstate(rm_output)
 
@@ -688,9 +690,11 @@ function cg_main_loop!(
         nb_new_columns = 0
         sp_time = 0
         while true
-
             sp_time += @elapsed begin
-                nb_new_col = solve_sps_to_gencols!(spinfos, algo, phase, data, redcostsvec, lp_dual_sol, smooth_dual_sol)
+                nb_new_col = solve_sps_to_gencols!(
+                    spinfos, algo, env, phase, data, redcostsvec, lp_dual_sol, 
+                    smooth_dual_sol
+                )
             end
 
             if nb_new_col < 0
@@ -721,7 +725,10 @@ function cg_main_loop!(
             end
         end
 
-        print_colgen_statistics(phase, iteration, stabstorage.curalpha, cg_optstate, nb_new_columns, rm_time, sp_time)
+        print_colgen_statistics(
+            env, phase, iteration, stabstorage.curalpha, cg_optstate, nb_new_columns, 
+            rm_time, sp_time
+        )
 
         update_stab_after_colgen_iteration!(stabstorage)
 
@@ -764,7 +771,8 @@ function cg_main_loop!(
 end
 
 function print_colgen_statistics(
-    phase::Int64, iteration::Int64, smoothalpha::Float64, optstate::OptimizationState, nb_new_col::Int, mst_time::Float64, sp_time::Float64
+    env::Env, phase::Int64, iteration::Int64, smoothalpha::Float64, 
+    optstate::OptimizationState, nb_new_col::Int, mst_time::Float64, sp_time::Float64
 )
     mlp = getvalue(get_lp_primal_bound(optstate))
     db = getvalue(get_lp_dual_bound(optstate))
@@ -778,7 +786,7 @@ function print_colgen_statistics(
 
     @printf(
         "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <al=%5.2f> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
-        phase_string, iteration, Coluna._elapsed_solve_time(), mst_time, sp_time, nb_new_col, smoothalpha, db, mlp, pb
+        phase_string, iteration, elapsed_optim_time(env), mst_time, sp_time, nb_new_col, smoothalpha, db, mlp, pb
     )
     return
 end

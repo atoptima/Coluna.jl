@@ -183,7 +183,7 @@ function get_storages_usage(algo::PreprocessAlgorithm, reform::Reformulation)
     return storages_usage
 end
 
-function run!(algo::PreprocessAlgorithm, data::ReformData, input::EmptyInput)::PreprocessingOutput
+function run!(algo::PreprocessAlgorithm, env::Env, data::ReformData, input::EmptyInput)::PreprocessingOutput
     @logmsg LogLevel(-1) "Run preprocessing"
 
     storage = getstorage(data, PreprocessingStoragePair)

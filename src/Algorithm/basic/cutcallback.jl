@@ -19,6 +19,7 @@ end
 
 struct RobustCutCallbackContext
     form::Formulation
+    env::Env
     proj_sol::PrimalSolution # ordered non zero but O(log^2(n)) lookup time
     proj_sol_dict::Dict{VarId, Float64} # O(1) lookup time
     viol_vals::Vector{Float64}
@@ -30,7 +31,7 @@ function get_storages_usage(algo::CutCallbacks, form::Formulation{MathProg.Abstr
     return [(form, MasterCutsStoragePair, READ_AND_WRITE)]
 end
 
-function run!(algo::CutCallbacks, data::ModelData, input::CutCallbacksInput)
+function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacksInput)
     form = getmodel(data)
     nb_cuts = 0
     robust_generators = get_robust_constr_generators(form)
@@ -39,7 +40,7 @@ function run!(algo::CutCallbacks, data::ModelData, input::CutCallbacksInput)
 
         projsol1 = proj_cols_on_rep(input.primalsol, form)
         projsol2 = Dict{VarId, Float64}(varid => val for (varid, val) in projsol1)
-        context = RobustCutCallbackContext(form, projsol1, projsol2, Float64[])
+        context = RobustCutCallbackContext(form, env, projsol1, projsol2, Float64[])
 
         for constrgen in robust_generators
             if constrgen.kind == Facultative && algo.call_robust_facultative

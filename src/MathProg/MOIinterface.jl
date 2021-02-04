@@ -231,8 +231,8 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
             kind = _getcolunakind(moirec)
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
             solcost += val * getcurcost(form, id)
-            val = round(val, digits = Coluna._params_.tol_digits)
-            if abs(val) > Coluna._params_.tol
+            val = round(val, digits = Coluna.TOL_DIGITS)
+            if abs(val) > Coluna.TOL
                 @logmsg LogLevel(-4) string("Var ", var.name , " = ", val)
                 push!(solvars, id)
                 push!(solvals, val)
@@ -260,8 +260,8 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
             moi_index = getindex(getmoirecord(constr))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
             solcost += val * getcurrhs(form, id)
-            val = round(val, digits = Coluna._params_.tol_digits)
-            if abs(val) > Coluna._params_.tol
+            val = round(val, digits = Coluna.TOL_DIGITS)
+            if abs(val) > Coluna.TOL
                 @logmsg LogLevel(-4) string("Constr ", constr.name, " = ", val)
                 push!(solconstrs, id)
                 push!(solvals, val)      
@@ -375,6 +375,6 @@ function _show_optimizer(io::IO, optimizer::MOI.ModelLike)
     return
 end
 
-_show_optimizer(io::IO, optimizer::MOIU.CachingOptimizer) = _show_optimizer(io, optimizer.model_cache)
+_show_optimizer(io::IO, optimizer::MOI.Utilities.CachingOptimizer) = _show_optimizer(io, optimizer.model_cache)
 
 Base.show(io::IO, optimizer::MoiOptimizer) = _show_optimizer(io, getinner(optimizer))

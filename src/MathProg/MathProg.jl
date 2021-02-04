@@ -16,11 +16,12 @@ if VERSION >= v"1.5"
     import Base: contains
 end
 
-global const BD = BlockDecomposition
-global const MOI = MathOptInterface
-global const MOIU = MathOptInterface.Utilities
-global const TO = TimerOutputs
-const Cl = Coluna
+const BD = BlockDecomposition
+const MOI = MathOptInterface
+const TO = TimerOutputs
+
+const MAX_NB_FORMULATIONS = 200
+const MAX_NB_PROCESSES = 100
 
 include("counters.jl")
 include("types.jl")

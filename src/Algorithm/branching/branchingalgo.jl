@@ -42,7 +42,7 @@ end
 struct NoBranching <: AbstractDivideAlgorithm
 end
 
-function run!(algo::NoBranching, data::ReformData, input::DivideInput)::DivideOutput
+function run!(algo::NoBranching, env::Env, data::ReformData, input::DivideInput)::DivideOutput
     return DivideOutput([], OptimizationState(getmodel(getmasterdata(data))))
 end
 
@@ -90,7 +90,7 @@ function exploits_primal_solutions(algo::StrongBranching)
 end
 
 function perform_strong_branching_with_phases!(
-    algo::StrongBranching, data::ReformData, input::DivideInput, groups::Vector{BranchingGroup}
+    algo::StrongBranching, env::Env, data::ReformData, input::DivideInput, groups::Vector{BranchingGroup}
 )::OptimizationState
 
     parent = getparent(input)
@@ -131,7 +131,7 @@ function perform_strong_branching_with_phases!(
             #TO DO: verify if time limit is reached
 
             if phase_index == 1                
-                generate_children!(group, data, parent)                
+                generate_children!(group, env, data, parent)                
             else    
                 regenerate_children!(group, parent)
             end
@@ -154,7 +154,7 @@ function perform_strong_branching_with_phases!(
                 update_ip_primal!(getoptstate(node), sbstate, exploitsprimalsolutions)
 
                 apply_conquer_alg_to_node!(
-                    node, current_phase.conquer_algo, data, conquer_storages_to_restore
+                    node, current_phase.conquer_algo, env, data, conquer_storages_to_restore
                 )        
 
                 update_all_ip_primal_solutions!(sbstate, getoptstate(node))
@@ -194,7 +194,7 @@ function perform_strong_branching_with_phases!(
     return sbstate
 end
 
-function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::DivideOutput
+function run!(algo::StrongBranching, env::Env, data::ReformData, input::DivideInput)::DivideOutput
     parent = getparent(input)
     optstate = getoptstate(parent)
 
@@ -251,7 +251,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
         min_priority = priority
 
         # generate candidates
-        output = run!(rule, data, BranchingRuleInput(
+        output = run!(rule, env, data, BranchingRuleInput(
             original_solution, true, nb_candidates_needed, algo.selection_criterion, 
             local_id, algo.int_tol
         ))
@@ -260,7 +260,7 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
         local_id = output.local_id
 
         if projection_is_possible(master) && extended_solution !== nothing
-            output = run!(rule, data, BranchingRuleInput(
+            output = run!(rule, env, data, BranchingRuleInput(
                 extended_solution, false, nb_candidates_needed, algo.selection_criterion, 
                 local_id, algo.int_tol
             ))   
@@ -287,11 +287,11 @@ function run!(algo::StrongBranching, data::ReformData, input::DivideInput)::Divi
 
     #in the case of simple branching, it remains to generate the children
     if isempty(algo.phases) 
-        generate_children!(kept_branch_groups[1], data, parent)
+        generate_children!(kept_branch_groups[1], env, data, parent)
         return DivideOutput(kept_branch_groups[1].children, OptimizationState(getmaster(reform)))
     end
 
-    sbstate = perform_strong_branching_with_phases!(algo, data, input, kept_branch_groups)
+    sbstate = perform_strong_branching_with_phases!(algo, env, data, input, kept_branch_groups)
 
     return DivideOutput(kept_branch_groups[1].children, sbstate)
 end

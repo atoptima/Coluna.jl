@@ -166,7 +166,7 @@ end
 #     # on every node, so we do not require anything here
 # end
 
-function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
+function print_node_info_before_conquer(data::TreeSearchRuntimeData, env::Env, node::Node)
     println("***************************************************************************************")
     if isrootnode(node)
         println("**** BaB tree root node")
@@ -182,7 +182,7 @@ function print_node_info_before_conquer(data::TreeSearchRuntimeData, node::Node)
     node_db = getvalue(get_ip_dual_bound(getoptstate(node)))
     @printf "**** Local DB = %.4f," node_db
     @printf " global bounds : [ %.4f , %.4f ]," db pb
-    @printf " time = %.2f sec.\n" Coluna._elapsed_solve_time()
+    @printf " time = %.2f sec.\n" elapsed_optim_time(env)
 
     if node.branchdescription != ""
         println("**** Branching constraint: ", node.branchdescription)
@@ -202,7 +202,9 @@ function init_branching_tree_file(algo::TreeSearchAlgorithm)
     return
 end
 
-function print_node_in_branching_tree_file(algo::TreeSearchAlgorithm, data::TreeSearchRuntimeData, node)
+function print_node_in_branching_tree_file(
+    algo::TreeSearchAlgorithm, env::Env, data::TreeSearchRuntimeData, node
+)
     if algo.branchingtreefile !== nothing
         pb = getvalue(get_ip_primal_bound(getoptstate(data)))
         db = getvalue(get_ip_dual_bound(getoptstate(node)))
@@ -214,7 +216,7 @@ function print_node_in_branching_tree_file(algo::TreeSearchAlgorithm, data::Tree
 
             # start writing over this character
             ncur = get_tree_order(node)
-            time = Coluna._elapsed_solve_time()
+            time = elapsed_optim_time(env)
             if ip_gap_closed(getoptstate(node))
                 @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\nPRUNED\"];" ncur ncur time
             else
@@ -247,7 +249,7 @@ function finish_branching_tree_file(algo::TreeSearchAlgorithm)
 end
 
 function run_conquer_algorithm!(
-    algo::TreeSearchAlgorithm, tsdata::TreeSearchRuntimeData,
+    algo::TreeSearchAlgorithm, env::Env, tsdata::TreeSearchRuntimeData,
     rfdata::ReformData, node::Node
 )
     if (!node.conquerwasrun)
@@ -255,7 +257,7 @@ function run_conquer_algorithm!(
         tsdata.tree_order += 1
     end
 
-    algo.print_node_info && print_node_info_before_conquer(tsdata, node)
+    algo.print_node_info && print_node_info_before_conquer(tsdata, env, node)
 
     node.conquerwasrun && return
 
@@ -263,7 +265,10 @@ function run_conquer_algorithm!(
     nodestate = getoptstate(node)
     update_ip_primal!(nodestate, treestate, tsdata.exploitsprimalsolutions)
 
-    apply_conquer_alg_to_node!(node, algo.conqueralg, rfdata, tsdata.conquer_storages_to_restore, algo.opt_rtol, algo.opt_atol)        
+    apply_conquer_alg_to_node!(
+        node, algo.conqueralg, env, rfdata, tsdata.conquer_storages_to_restore, 
+        algo.opt_rtol, algo.opt_atol
+    )        
 
     update_all_ip_primal_solutions!(treestate, nodestate)
     
@@ -274,11 +279,11 @@ function run_conquer_algorithm!(
 end
 
 function run_divide_algorithm!(
-    algo::TreeSearchAlgorithm, tsdata::TreeSearchRuntimeData, 
+    algo::TreeSearchAlgorithm, env::Env, tsdata::TreeSearchRuntimeData, 
     rfdata::ReformData, node::Node
 )
     treestate = getoptstate(tsdata)
-    output = run!(algo.dividealg, rfdata, DivideInput(node, treestate))
+    output = run!(algo.dividealg, env, rfdata, DivideInput(node, treestate))
 
     update_all_ip_primal_solutions!(treestate, getoptstate(output))
 
@@ -327,7 +332,9 @@ function updatedualbound!(data::TreeSearchRuntimeData)
     return
 end
 
-function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::OptimizationInput)::OptimizationOutput
+function run!(
+    algo::TreeSearchAlgorithm, env::Env, rfdata::ReformData, input::OptimizationInput
+)::OptimizationOutput
     tsdata = TreeSearchRuntimeData(algo, rfdata, input)
 
     relax_integrality!(getmaster(getreform(rfdata)))
@@ -338,8 +345,8 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
 
         # run_conquer_algorithm! updates primal solution the tree search optstate and the 
         # dual bound of the optstate only at the root node.
-        run_conquer_algorithm!(algo, tsdata, rfdata, node)
-        print_node_in_branching_tree_file(algo, tsdata, node)
+        run_conquer_algorithm!(algo, env, tsdata, rfdata, node)
+        print_node_in_branching_tree_file(algo, env, tsdata, node)
        
         if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)
             println("Node is already conquered. No children will be generated.")
@@ -348,7 +355,7 @@ function run!(algo::TreeSearchAlgorithm, rfdata::ReformData, input::Optimization
                 tsdata.worst_db_of_pruned_node = db
             end
         else
-            run_divide_algorithm!(algo, tsdata, rfdata, node)
+            run_divide_algorithm!(algo, env, tsdata, rfdata, node)
         end
 
         updatedualbound!(tsdata)

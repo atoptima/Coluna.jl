@@ -46,7 +46,7 @@ function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
 end
 check_if_optimizer_supports_ip(optimizer::UserOptimizer) = true
     
-function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::OptimizationOutput
+function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationInput)::OptimizationOutput
     form = getmodel(data)
 
     result = OptimizationState(
@@ -100,8 +100,8 @@ function run!(algo::SolveIpForm, data::ModelData, input::OptimizationInput)::Opt
     return OptimizationOutput(result)
 end
 
-run!(algo::SolveIpForm, data::ReformData, input::OptimizationInput) = 
-    run!(algo, getmasterdata(data), input)
+run!(algo::SolveIpForm, env::Env, data::ReformData, input::OptimizationInput) = 
+    run!(algo, env, getmasterdata(data), input)
 
 function termination_status!(result::OptimizationState, optimizer::MoiOptimizer)
     terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())

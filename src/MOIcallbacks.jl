@@ -105,7 +105,7 @@ function MOI.submit(
         kind = Essential,
         sense = sense,
         members = members,
-        loc_art_var = true
+        loc_art_var_abs_cost = cb.callback_data.env.params.local_art_var_cost
     )
 
     gap = lhs - rhs

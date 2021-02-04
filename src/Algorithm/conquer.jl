@@ -30,7 +30,7 @@ abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 # conquer algorithms are always manager algorithms (they manage storing and restoring storages)
 ismanager(algo::AbstractConquerAlgorithm) = true
 
-function run!(algo::AbstractConquerAlgorithm, data::ReformData, input::ConquerInput)
+function run!(algo::AbstractConquerAlgorithm, env::Env, data::ReformData, input::ConquerInput)
     algotype = typeof(algo)
     error(string("Method run! which takes as parameters ReformData and ConquerInput ", 
                  "is not implemented for algorithm $algotype.")
@@ -45,8 +45,9 @@ exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
-    node::Node, algo::AbstractConquerAlgorithm, data::ReformData, storages_to_restore::StoragesUsageDict,
-    opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
+    node::Node, algo::AbstractConquerAlgorithm, env::Env, data::ReformData, 
+    storages_to_restore::StoragesUsageDict, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
+    opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
 )
     nodestate = getoptstate(node)
     if isverbose(algo)
@@ -58,7 +59,7 @@ function apply_conquer_alg_to_node!(
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-        run!(algo, data, ConquerInput(node, storages_to_restore))
+        run!(algo, env, data, ConquerInput(node, storages_to_restore))
         store_states!(data, node.stateids)
     end
     node.conquerwasrun = true
@@ -101,11 +102,11 @@ function get_child_algorithms(algo::BendersConquer, reform::Reformulation)
     return [(algo.benders, reform)]
 end
 
-function run!(algo::BendersConquer, data::ReformData, input::ConquerInput)
+function run!(algo::BendersConquer, env::Env, data::ReformData, input::ConquerInput)
     restore_states!(input)
     node = getnode(input)    
     nodestate = getoptstate(node)
-    output = run!(algo.benders, data, OptimizationInput(nodestate))
+    output = run!(algo.benders, env, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
     return 
 end
@@ -156,7 +157,7 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     return child_algos
 end
 
-function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
+function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::ConquerInput)
     restore_states!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
@@ -167,7 +168,7 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
     end
 
     nb_tightening_rounds = 0
-    colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
+    colgen_output = run!(algo.colgen, env, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
     node_pruned = getterminationstatus(nodestate) == INFEASIBLE ||
@@ -177,7 +178,7 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
         sol = get_best_lp_primal_sol(getoptstate(colgen_output))
         if sol !== nothing
             cutcb_input = CutCallbacksInput(sol)
-            cutcb_output = run!(CutCallbacks(), getmasterdata(data), cutcb_input)
+            cutcb_output = run!(CutCallbacks(), env, getmasterdata(data), cutcb_input)
             cutcb_output.nb_cuts_added == 0 && break
         else
             @warn "Skip cut generation because no best primal solution."
@@ -186,7 +187,7 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
 
         set_ip_dual_bound!(nodestate, DualBound(reform))
         set_lp_dual_bound!(nodestate, DualBound(reform))
-        colgen_output = run!(algo.colgen, data, OptimizationInput(nodestate))
+        colgen_output = run!(algo.colgen, env, data, OptimizationInput(nodestate))
         update!(nodestate, getoptstate(colgen_output))
 
         node_pruned = getterminationstatus(nodestate) == INFEASIBLE ||
@@ -216,7 +217,7 @@ function run!(algo::ColCutGenConquer, data::ReformData, input::ConquerInput)
 
         @info "Running $name heuristic"
         ismanager(heur_algorithm) && (stateids = store_states!(data))
-        heur_output = run!(heur_algorithm, data, OptimizationInput(nodestate))
+        heur_output = run!(heur_algorithm, env, data, OptimizationInput(nodestate))
         update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         ismanager(heur_algorithm) && restore_states!(stateids, input.storages_to_restore)
     end 
@@ -245,11 +246,11 @@ function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation)
     return [(algo.masterlpalgo, getmaster(reform))]
 end
 
-function run!(algo::RestrMasterLPConquer, data::ReformData, input::ConquerInput)
+function run!(algo::RestrMasterLPConquer, env::Env, data::ReformData, input::ConquerInput)
     restore_states!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
-    output = run!(algo.masterlpalgo, getmasterdata(data), OptimizationInput(nodestate))
+    output = run!(algo.masterlpalgo, env, getmasterdata(data), OptimizationInput(nodestate))
     masterlp_state =  getoptstate(output)
     update!(nodestate, masterlp_state)
     if ip_gap_closed(masterlp_state)
