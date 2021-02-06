@@ -21,6 +21,40 @@ const TOL = 1e-8 # if - ϵ_tol < val < ϵ_tol, we consider val = 0
 const TOL_DIGITS = 8 # because round(val, digits = n) where n is from 1e-n
 ###
 
+### Debugging tools
+global debug_count = 0
+function inc_debug_count()
+    global debug_count += 1
+    return
+end
+function debug_stack()
+    for l in stacktrace()
+        println(l)
+    end
+end
+macro debug()
+    return esc(:(
+        cont = false;
+        while !cont
+            print("\njulia> ");
+            cmd = readline();
+            if cmd == ""
+                cont = true;
+            else
+                try
+                    eval(Meta.parse(cmd));
+                catch err
+                    println(err);
+                end
+            end
+        end
+    ))
+end
+###
+
+# submodules
+export ColunaBase, MathProg, Algorithm
+
 const _to = TO.TimerOutput()
 
 export Algorithm, ColunaBase, MathProg, Env, DefaultOptimizer, Parameters,

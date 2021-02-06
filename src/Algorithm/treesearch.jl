@@ -218,7 +218,7 @@ function print_node_in_branching_tree_file(
             ncur = get_tree_order(node)
             time = elapsed_optim_time(env)
             if ip_gap_closed(getoptstate(node))
-                @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\nPRUNED\"];" ncur ncur time
+                @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
             else
                 @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
             end

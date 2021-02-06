@@ -100,7 +100,7 @@ function MOI.submit(
     end
 
     constr = setconstr!(
-        form, "", MasterMixedConstr;
+        form, "", MasterBendCutConstr; #TODO: Create a specific type for user cuts
         rhs = rhs,
         kind = Essential,
         sense = sense,

@@ -90,6 +90,13 @@ const StorageTypePair = Pair{DataType, DataType}
 #         be restored for writing (all other storages are restored anyway but just for reading)
 const StoragesUsageDict = Dict{Tuple{AbstractModel, StorageTypePair}, StorageAccessMode}
 
+function Base.show(io::IO, stoUsaDict::StoragesUsageDict)
+    print(io, "storage usage dict [")
+    for usage in stoUsaDict
+        print(io, " (", typeof(usage[1][1]), ", ", usage[1][2], ") => ", usage[2])
+    end
+    print(io, " ]")
+end
 
 """
     function add_storage_pair_usage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair, ::StorageAccessMode)
