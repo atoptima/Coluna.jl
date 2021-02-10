@@ -47,12 +47,7 @@ function optimize_lp_form!(
     algo::SolveLpForm, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
 )
     MOI.set(form.optimizer.inner, MOI.Silent(), algo.silent)
-    # MOI.set(form.optimizer.inner, MOI.RawParameter("Method"), 2)
     optimize_with_moi!(optimizer, form, result)
-    #Coluna.inc_lp_file_count()
-    #lpfile = "coluna_master$(Coluna.lp_file_count).lp"
-    #println("Writing LP file $lpfile")
-    #Gurobi.GRBwrite(form.optimizer.inner, lpfile)
     return
 end
 
