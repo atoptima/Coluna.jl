@@ -179,7 +179,7 @@ function perform_strong_branching_with_phases!(
         sort!(groups, rev = true, by = x -> (x.isconquered, x.score))
 
         if groups[1].isconquered
-            nb_candidates_for_next_phase == 1 
+            nb_candidates_for_next_phase = 1 
         end
 
         # before deleting branching groups which are not kept for the next phase

@@ -75,6 +75,7 @@ end
                     MasterRepBendSpTechnologicalConstr <= AbstractMasterRepBendSpConstr
             AbstractMasterCutConstr <= AbstractMasterConstr
                 MasterBendCutConstr <= AbstractMasterCutConstr
+                MasterUserCutConstr <= AbstractMasterCutConstr
             AbstractMasterBranchingConstr <= AbstractMasterConstr
             MasterBranchOnOrigVarConstr <= AbstractMasterBranchingConstr
         AbstractDwSpConstr <= Duty{Constraint}

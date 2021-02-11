@@ -21,6 +21,9 @@ const TOL = 1e-8 # if - ϵ_tol < val < ϵ_tol, we consider val = 0
 const TOL_DIGITS = 8 # because round(val, digits = n) where n is from 1e-n
 ###
 
+# submodules
+export ColunaBase, MathProg, Algorithm
+
 const _to = TO.TimerOutput()
 
 export Algorithm, ColunaBase, MathProg, Env, DefaultOptimizer, Parameters,

@@ -100,7 +100,7 @@ function MOI.submit(
     end
 
     constr = setconstr!(
-        form, "", MasterMixedConstr;
+        form, "", MasterUserCutConstr;
         rhs = rhs,
         kind = Essential,
         sense = sense,
