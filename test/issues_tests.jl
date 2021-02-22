@@ -73,6 +73,33 @@ function decomposition_with_constant_in_objective()
     @test objective_value(model) ≈ 307.5 + 2
 end
 
+# Issue #424
+# Expected behaviors when trying to solve an empty model
+function solve_empty_model()
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna, direct_model = true)
+    optimize!(model)
+    @test JuMP.objective_value(model) == Inf
+
+    coluna = optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(
+            solver = Coluna.Algorithm.TreeSearchAlgorithm()
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna)
+    try
+        optimize!(model)
+    catch e
+        @test repr(e) == "ErrorException(\"Cannot apply run! for arguments Coluna.Algorithm.TreeSearchAlgorithm, Coluna.Algorithm.ModelData, Coluna.Algorithm.OptimizationInput{Coluna.MathProg.Formulation{Coluna.MathProg.Original},Coluna.MathProg.MinSense}.\")"
+    end
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -84,6 +111,10 @@ function test_issues_fixed()
 
     @testset "decomposition_with_constant_in_objective" begin
         decomposition_with_constant_in_objective()
+    end
+
+    @testset "solve_empty_model" begin
+        solve_empty_model()
     end
 end
 
