@@ -7,6 +7,12 @@ function MOI.set(model::Coluna.Optimizer, attr::MOI.UserCutCallback, callback_fu
     return
 end
 
+function MOI.set(model::Coluna.Optimizer, attr::MOI.LazyConstraintCallback, callback_function)
+    orig_form = get_original_formulation(model.inner)
+    _register_callback!(orig_form, attr, callback_function)
+    return
+end
+
 ############################################################################################
 #  Pricing Callback                                                                        #
 ############################################################################################
@@ -75,6 +81,11 @@ function _register_callback!(form::Formulation, attr::MOI.UserCutCallback, sep::
     return
 end
 
+function _register_callback!(form::Formulation, attr::MOI.LazyConstraintCallback, sep::Function)
+    set_robust_constr_generator!(form, Essential, sep)
+    return
+end
+
 function MOI.get(
     model::Optimizer, cvp::MOI.CallbackVariablePrimal{Algorithm.RobustCutCallbackContext},
     x::MOI.VariableIndex
@@ -84,7 +95,8 @@ function MOI.get(
 end
 
 function MOI.submit(
-    model::Optimizer, cb::MOI.UserCut{Algorithm.RobustCutCallbackContext},
+    model::Optimizer, 
+    cb::Union{MOI.UserCut{Algorithm.RobustCutCallbackContext}, MOI.LazyConstraint{Algorithm.RobustCutCallbackContext}},
     func::MOI.ScalarAffineFunction{Float64},
     set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
 )
@@ -102,7 +114,7 @@ function MOI.submit(
     constr = setconstr!(
         form, "", MasterUserCutConstr;
         rhs = rhs,
-        kind = Essential,
+        kind = cb.callback_data.constrkind,
         sense = sense,
         members = members,
         loc_art_var_abs_cost = cb.callback_data.env.params.local_art_var_cost
@@ -120,3 +132,4 @@ function MOI.submit(
 end
 
 MOI.supports(::Optimizer, ::MOI.UserCutCallback) = true
+MOI.supports(::Optimizer, ::MOI.LazyConstraintCallback) = true

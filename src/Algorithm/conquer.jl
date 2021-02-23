@@ -171,15 +171,21 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
     colgen_output = run!(algo.colgen, env, data, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
-    node_pruned = getterminationstatus(nodestate) == INFEASIBLE ||
+    node_pruned_by_colgen = getterminationstatus(nodestate) == INFEASIBLE ||
         ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+
+    node_pruned = false
 
     while !node_pruned && nb_tightening_rounds < algo.max_nb_cut_rounds
         sol = get_best_lp_primal_sol(getoptstate(colgen_output))
         if sol !== nothing
             cutcb_input = CutCallbacksInput(sol)
             cutcb_output = run!(CutCallbacks(), env, getmasterdata(data), cutcb_input)
-            cutcb_output.nb_cuts_added == 0 && break
+            if cutcb_output.nb_cuts_added == 0
+                node_pruned = node_pruned_by_colgen
+                # need to delete the best primal solution
+                break
+            end
         else
             @warn "Skip cut generation because no best primal solution."
             break
@@ -220,7 +226,7 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
         heur_output = run!(heur_algorithm, env, data, OptimizationInput(nodestate))
         update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
         ismanager(heur_algorithm) && restore_states!(stateids, input.storages_to_restore)
-    end 
+    end
 
     if node_pruned
         setterminationstatus!(nodestate, OPTIMAL)
