@@ -74,16 +74,29 @@ function decomposition_with_constant_in_objective()
 end
 
 # Issue #424
-# Expected behaviors when trying to solve an empty model
+# - If you try to solve an empty model with Coluna using a SolveIpForm or SolveLpForm
+#   as top solver, the objective value will be 0.
+# - If you try to solve an empty model using TreeSearchAlgorithm, then Coluna will
+#   throw an error because since there is no decomposition, there is no reformulation
+#   and TreeSearchAlgorithm must be run on a reformulation.
 function solve_empty_model()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => CL.Params(solver = ClA.SolveIpForm()),
         "default_optimizer" => GLPK.Optimizer
     )
-    model = BlockModel(coluna, direct_model = true)
+    model = BlockModel(coluna)
     optimize!(model)
-    @test JuMP.objective_value(model) == Inf
+    @test JuMP.objective_value(model) == 0
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.SolveLpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna)
+    optimize!(model)
+    @test JuMP.objective_value(model) == 0
 
     coluna = optimizer_with_attributes(
         Coluna.Optimizer,
@@ -93,11 +106,7 @@ function solve_empty_model()
         "default_optimizer" => GLPK.Optimizer
     )
     model = BlockModel(coluna)
-    try
-        optimize!(model)
-    catch e
-        @test repr(e) == "ErrorException(\"Cannot apply run! for arguments Coluna.Algorithm.TreeSearchAlgorithm, Coluna.Algorithm.ModelData, Coluna.Algorithm.OptimizationInput{Coluna.MathProg.Formulation{Coluna.MathProg.Original},Coluna.MathProg.MinSense}.\")"
-    end
+    @test_throws ErrorException optimize!(model)
 end
 
 function test_issues_fixed()
