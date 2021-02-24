@@ -73,7 +73,7 @@ get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{Abstra
     Returns algorithm's output.    
 """
 function run!(algo::AbstractAlgorithm, env::Env, data::AbstractData, input::AbstractInput)::AbstractOutput
-    error("run! not defined for algorithm $(typeof(algo)), data $(typeof(data)), and input $(typeof(input)).")
+    error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(data)), $(typeof(input)).")
 end
 
 """

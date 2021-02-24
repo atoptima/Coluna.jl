@@ -132,10 +132,9 @@ function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::
     sync_solver!(optimizer, form)
     nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())
     if nbvars <= 0
-        @warn "No variable in the formulation. Coluna does not call the solver."
-    else
-        MOI.optimize!(getinner(optimizer))
+        @warn "No variable in the formulation."
     end
+    MOI.optimize!(getinner(optimizer))
     termination_status!(result, optimizer)
     return
 end
