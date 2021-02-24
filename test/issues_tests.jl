@@ -91,7 +91,7 @@ function solve_empty_model()
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.SolveLpForm()),
+        "params" => CL.Params(solver = ClA.SolveLpForm(update_ip_primal_solution = true)),
         "default_optimizer" => GLPK.Optimizer
     )
     model = BlockModel(coluna)
