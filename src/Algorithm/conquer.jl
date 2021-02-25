@@ -187,7 +187,9 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
             elseif cutcb_output.nb_essential_cuts_added > 0
                 # we don't leave the loop while there are essential cuts separated 
                 node_pruned = false
-                nb_tightening_rounds = 0
+            else # only facultative cut generated
+                node_pruned = node_pruned_by_colgen
+                nb_tightening_rounds += 1
             end
         else
             @warn "Skip cut generation because no best primal solution."
@@ -201,8 +203,6 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
 
         node_pruned_by_colgen = getterminationstatus(nodestate) == INFEASIBLE ||
             ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
-
-        nb_tightening_rounds += 1
     end
 
     heuristics_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
