@@ -61,13 +61,16 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     TO.@timeit _to "Coluna" begin
         optstate = optimize!(get_optimization_target(prob), env, init_pb, init_db)
     end
+
+    env.kpis.elapsed_optimization_time = elapsed_optim_time(env)
+
     println(_to)
     TO.reset_timer!(_to)
 
     @logmsg LogLevel(0) "Terminated"
     @logmsg LogLevel(0) string("Primal bound: ", get_ip_primal_bound(optstate))
     @logmsg LogLevel(0) string("Dual bound: ", get_ip_dual_bound(optstate))
-    return optstate
+    return optstate, env.kpis
 end
 
 function optimize!(

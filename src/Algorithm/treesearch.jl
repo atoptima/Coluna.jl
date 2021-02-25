@@ -387,5 +387,7 @@ function run!(
         clear_solutions!(node.optstate)
     end
 
+    env.kpis.node_count = get_tree_order(tsdata)
+
     return OptimizationOutput(tsdata.optstate)
 end
