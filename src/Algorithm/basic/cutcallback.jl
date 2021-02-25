@@ -15,8 +15,9 @@ end
 
 struct CutCallbacksOutput
     nb_cuts_added::Int
+    nb_essential_cuts_added::Int
+    nb_facultative_cuts_added::Int
 end
-
 struct RobustCutCallbackContext
     form::Formulation
     env::Env
@@ -36,7 +37,8 @@ end
 function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacksInput)
     form = getmodel(data)
     robust_generators = get_robust_constr_generators(form)
-    nb_cuts = 0
+    nb_ess_cuts = 0
+    nb_fac_cuts = 0
     if length(robust_generators) > 0 && (algo.call_robust_facultative || algo.call_robust_essential)
         !projection_is_possible(form) && error("Cannot do projection on original variables. Open an issue.")
 
@@ -45,6 +47,7 @@ function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacks
         viol_vals = Float64[]
 
         for constrgen in robust_generators
+            cur_viol_vals = Float64[]
             if constrgen.kind == Facultative && !algo.call_robust_facultative
                 continue
             end
@@ -52,12 +55,19 @@ function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacks
                 continue
             end
             context = RobustCutCallbackContext(
-                form, env, constrgen.kind, projsol1, projsol2, viol_vals
+                form, env, constrgen.kind, projsol1, projsol2, cur_viol_vals
             )
             constrgen.separation_alg(context)
+            if constrgen.kind == Facultative
+                nb_fac_cuts += length(cur_viol_vals)
+            else
+                nb_ess_cuts += length(cur_viol_vals)
+            end
+            for v in cur_viol_vals
+                push!(viol_vals, v)
+            end
         end
 
-        nb_cuts += length(viol_vals)
         zeroviols = 0
         for v in viol_vals
             if v < algo.tol
@@ -65,8 +75,9 @@ function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacks
             end
         end
 
-        @printf "Robust cut separation callback adds %i new cuts\n" nb_cuts
-        if nb_cuts > 0
+        @printf "Robust cut separation callback adds %i new essential cuts " nb_ess_cuts
+        @printf "and %i new facultative cuts." nb_fac_cuts
+        if nb_fac_cuts + nb_ess_cuts > 0
             @printf(
                 "avg. viol. = %.2f, max. viol. = %.2f, zero viol. = %i.\n",
                 mean(viol_vals), maximum(viol_vals), zeroviols
@@ -74,5 +85,5 @@ function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacks
         end
     end
 
-    return CutCallbacksOutput(nb_cuts)
+    return CutCallbacksOutput(nb_ess_cuts + nb_fac_cuts, nb_ess_cuts, nb_fac_cuts)
 end

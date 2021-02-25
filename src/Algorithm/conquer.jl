@@ -183,8 +183,11 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
             cutcb_output = run!(CutCallbacks(), env, getmasterdata(data), cutcb_input)
             if cutcb_output.nb_cuts_added == 0
                 node_pruned = node_pruned_by_colgen
-                # need to delete the best primal solution
                 break
+            elseif cutcb_output.nb_essential_cuts_added > 0
+                # we don't leave the loop while there are essential cuts separated 
+                node_pruned = false
+                nb_tightening_rounds = 0
             end
         else
             @warn "Skip cut generation because no best primal solution."
@@ -196,7 +199,7 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
         colgen_output = run!(algo.colgen, env, data, OptimizationInput(nodestate))
         update!(nodestate, getoptstate(colgen_output))
 
-        node_pruned = getterminationstatus(nodestate) == INFEASIBLE ||
+        node_pruned_by_colgen = getterminationstatus(nodestate) == INFEASIBLE ||
             ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
 
         nb_tightening_rounds += 1
@@ -224,7 +227,17 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
         @info "Running $name heuristic"
         ismanager(heur_algorithm) && (stateids = store_states!(data))
         heur_output = run!(heur_algorithm, env, data, OptimizationInput(nodestate))
-        update_all_ip_primal_solutions!(nodestate, getoptstate(heur_output))
+        ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
+        if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
+            # we start with worst solution to add all improving solutions
+            for sol in sort(ip_primal_sols, rev = getobjsense(reform) == MinSense)
+                cutgen = CutCallbacks(call_robust_facultative = false)
+                cutcb_output = run!(cutgen, env, getmasterdata(data), CutCallbacksInput(sol))
+                if cutcb_output.nb_cuts_added == 0
+                    update_ip_primal_sol!(nodestate, sol)
+                end
+            end
+        end
         ismanager(heur_algorithm) && restore_states!(stateids, input.storages_to_restore)
     end
 
