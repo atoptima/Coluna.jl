@@ -76,7 +76,7 @@ function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacks
         end
 
         @printf "Robust cut separation callback adds %i new essential cuts " nb_ess_cuts
-        @printf "and %i new facultative cuts." nb_fac_cuts
+        @printf "and %i new facultative cuts.\n" nb_fac_cuts
         if nb_fac_cuts + nb_ess_cuts > 0
             @printf(
                 "avg. viol. = %.2f, max. viol. = %.2f, zero viol. = %i.\n",
