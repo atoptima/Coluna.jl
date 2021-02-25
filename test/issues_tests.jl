@@ -73,6 +73,42 @@ function decomposition_with_constant_in_objective()
     @test objective_value(model) ≈ 307.5 + 2
 end
 
+# Issue #424
+# - If you try to solve an empty model with Coluna using a SolveIpForm or SolveLpForm
+#   as top solver, the objective value will be 0.
+# - If you try to solve an empty model using TreeSearchAlgorithm, then Coluna will
+#   throw an error because since there is no decomposition, there is no reformulation
+#   and TreeSearchAlgorithm must be run on a reformulation.
+function solve_empty_model()
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna)
+    optimize!(model)
+    @test JuMP.objective_value(model) == 0
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.SolveLpForm(update_ip_primal_solution = true)),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna)
+    optimize!(model)
+    @test JuMP.objective_value(model) == 0
+
+    coluna = optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(
+            solver = Coluna.Algorithm.TreeSearchAlgorithm()
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna)
+    @test_throws ErrorException optimize!(model)
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -84,6 +120,10 @@ function test_issues_fixed()
 
     @testset "decomposition_with_constant_in_objective" begin
         decomposition_with_constant_in_objective()
+    end
+
+    @testset "solve_empty_model" begin
+        solve_empty_model()
     end
 end
 
