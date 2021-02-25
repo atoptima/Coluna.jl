@@ -3,7 +3,7 @@ todo
 """
 @with_kw struct CutCallbacks <: AbstractAlgorithm
     call_robust_facultative = true
-    call_robust_core = true
+    call_robust_essential = true
     #call_nonrobust_facultative = false
     #call_nonrobust_core = false
     tol = 1e-6
@@ -37,7 +37,7 @@ function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacks
     form = getmodel(data)
     robust_generators = get_robust_constr_generators(form)
     nb_cuts = 0
-    if length(robust_generators) > 0 && (algo.call_robust_facultative || algo.call_robust_core)
+    if length(robust_generators) > 0 && (algo.call_robust_facultative || algo.call_robust_essential)
         !projection_is_possible(form) && error("Cannot do projection on original variables. Open an issue.")
 
         projsol1 = proj_cols_on_rep(input.primalsol, form)
@@ -48,7 +48,7 @@ function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacks
             if constrgen.kind == Facultative && !algo.call_robust_facultative
                 continue
             end
-            if constrgen.kind == Essential && !algo.call_robust_core
+            if constrgen.kind == Essential && !algo.call_robust_essential
                 continue
             end
             context = RobustCutCallbackContext(

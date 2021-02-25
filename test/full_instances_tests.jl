@@ -250,6 +250,9 @@ function generalized_assignment_tests()
         end
     end
 
+    # We solve the GAP but only one set-partionning constraint (for job 1) is
+    # put in the formulation before starting optimization.
+    # Other set-partionning constraints are added in the essential cut callback.
     @testset "play gap with lazy cuts" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
@@ -278,12 +281,9 @@ function generalized_assignment_tests()
         cur_j = 1
         # Lazy cut callback (add covering constraints on jobs on the fly)
         function my_callback_function(cb_data)
-            println("\e[31m my callback function \e[00m")
-
             for j in 1:cur_j 
-                @test sum(callback_value(cb_data, x[m,j]) for m in M) == 1
+                @test sum(callback_value(cb_data, x[m,j]) for m in M) ≈ 1
             end
-
             if cur_j < length(data.jobs)
                 cur_j += 1
                 con = @build_constraint(sum(x[m,cur_j] for m in M) == 1)
