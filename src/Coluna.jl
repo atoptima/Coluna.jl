@@ -45,7 +45,7 @@ mutable struct Env
     params::Params
     kpis::Kpis
 end
-Env(params::Params) = Env(now(), nothing, params, Kpis(missing, missing))
+Env(params::Params) = Env(now(), nothing, params, Kpis(nothing, nothing))
 set_optim_start_time!(env::Env) = env.optim_starting_time = now()
 elapsed_optim_time(env::Env) = Dates.toms(now() - env.optim_starting_time) / Dates.toms(Second(1))
 Base.isinteger(x::Float64, tol::Float64) = abs(round(x) - x) < tol

@@ -387,7 +387,7 @@ function run!(
         clear_solutions!(node.optstate)
     end
 
-    env.kpis.node_count = get_tree_order(tsdata)
+    env.kpis.node_count = get_tree_order(tsdata) - 1 # TODO : check why we need to remove 1
 
     return OptimizationOutput(tsdata.optstate)
 end
