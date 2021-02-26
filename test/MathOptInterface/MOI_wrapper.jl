@@ -10,6 +10,29 @@ const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6)
     @test MOI.get(OPTIMIZER, MOI.SolverName()) == "Coluna"
 end
 
+@testset "Kpis" begin
+    data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+
+    coluna = JuMP.optimizer_with_attributes(
+        CL.Optimizer,
+        "params" => CL.Params(
+            solver = ClA.TreeSearchAlgorithm(
+                conqueralg = ClA.ColCutGenConquer(
+                    colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
+                ), maxnumnodes = 4
+            )
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+    JuMP.optimize!(problem)
+
+    @test MOI.get(problem, MOI.NodeCount()) == 4
+    @test isa(MOI.get(problem, MOI.SolveTime()), Float64)
+end
+
 @testset "supports_default_copy_to" begin
     @test MOIU.supports_default_copy_to(OPTIMIZER, false)
     # Use `@test !...` if names are not supported
