@@ -6,6 +6,7 @@
             enforce_integrality = false,
             log_level = 2
         ),
+        essential_cut_gen_alg = CutCallbacks(call_robust_facultative = false)
         max_nb_iterations::Int = 1000
         log_print_frequency::Int = 1
         store_all_ip_primal_sols::Bool = false
@@ -24,9 +25,12 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
     restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
     #TODO : pricing problem solver may be different depending on the
     #       pricing subproblem
-    pricing_prob_solve_alg = SolveIpForm(deactivate_artificial_vars = false,
-                                         enforce_integrality = false,
-                                         log_level = 2)
+    pricing_prob_solve_alg = SolveIpForm(
+        deactivate_artificial_vars = false,
+        enforce_integrality = false,
+        log_level = 2
+    )
+    essential_cut_gen_alg = CutCallbacks(call_robust_facultative = false)
     max_nb_iterations::Int64 = 1000
     log_print_frequency::Int64 = 1
     store_all_ip_primal_sols::Bool = false
@@ -44,6 +48,7 @@ stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabiliza
 function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
     child_algs = Tuple{AbstractAlgorithm, AbstractModel}[]
     push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
+    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
     for (id, spform) in get_dw_pricing_sps(reform)
         push!(child_algs, (algo.pricing_prob_solve_alg, spform))
     end
@@ -593,6 +598,11 @@ function change_values_sign!(dualsol::DualSolution)
     return
 end
 
+# cg_main_loop! returns Tuple{Bool, Bool} :
+# - first one is equal to true when colgen algorithm must stop.
+# - second one is equal to true when colgen algorithm must restart. 
+#   If col gen was at phase 3, it will restart at phase 3. 
+#   If it was as phase 1 or 2, it will restart at phase 1.
 function cg_main_loop!(
     algo::ColumnGeneration, env::Env, phase::Int, cg_optstate::OptimizationState, 
     data::ReformData
@@ -676,10 +686,11 @@ function cg_main_loop!(
                 proj_sol = proj_cols_on_rep(rm_sol, masterform)
                 if isinteger(proj_sol) && isbetter(lp_bound, get_ip_primal_bound(cg_optstate))
                     # Essential cut generation mandatory when colgen finds a feasible solution
-                    cutgen = CutCallbacks(call_robust_facultative = false)
                     new_primal_sol = cat(rm_sol, partial_solution)
                     cutcb_input = CutCallbacksInput(new_primal_sol)
-                    cutcb_output = run!(cutgen, env, getmasterdata(data), cutcb_input)
+                    cutcb_output = run!(
+                        algo.essential_cut_gen_alg, env, getmasterdata(data), cutcb_input
+                    )
                     if cutcb_output.nb_cuts_added == 0
                         update_ip_primal_sol!(cg_optstate, new_primal_sol)
                     else
