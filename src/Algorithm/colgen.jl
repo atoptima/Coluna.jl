@@ -6,6 +6,7 @@
             enforce_integrality = false,
             log_level = 2
         ),
+        essential_cut_gen_alg = CutCallbacks(call_robust_facultative = false)
         max_nb_iterations::Int = 1000
         log_print_frequency::Int = 1
         store_all_ip_primal_sols::Bool = false
@@ -24,9 +25,12 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
     restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
     #TODO : pricing problem solver may be different depending on the
     #       pricing subproblem
-    pricing_prob_solve_alg = SolveIpForm(deactivate_artificial_vars = false,
-                                         enforce_integrality = false,
-                                         log_level = 2)
+    pricing_prob_solve_alg = SolveIpForm(
+        deactivate_artificial_vars = false,
+        enforce_integrality = false,
+        log_level = 2
+    )
+    essential_cut_gen_alg = CutCallbacks(call_robust_facultative = false)
     max_nb_iterations::Int64 = 1000
     log_print_frequency::Int64 = 1
     store_all_ip_primal_sols::Bool = false
@@ -44,6 +48,7 @@ stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabiliza
 function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
     child_algs = Tuple{AbstractAlgorithm, AbstractModel}[]
     push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
+    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
     for (id, spform) in get_dw_pricing_sps(reform)
         push!(child_algs, (algo.pricing_prob_solve_alg, spform))
     end
@@ -85,15 +90,21 @@ function run!(algo::ColumnGeneration, env::Env, data::ReformData, input::Optimiz
     master = getmaster(reform)
     optstate = OptimizationState(master, getoptstate(input), false, false)
 
-    set_ph3!(master) # mixed ph1 & ph2
-    stop = cg_main_loop!(algo, env, 3, optstate, data)
+    restart = true
+    stop = false
+    while restart && !stop
+        set_ph3!(master) # mixed ph1 & ph2
+        stop, restart = cg_main_loop!(algo, env, 3, optstate, data)
+    end
 
-    if !stop && should_do_ph_1(optstate)
+    restart = true
+    while should_do_ph_1(optstate) && restart && !stop
         set_ph1!(master, optstate)
-        stop = cg_main_loop!(algo, env, 1, optstate, data)
+        stop, restart = cg_main_loop!(algo, env, 1, optstate, data)
+        restart && break
         if !stop
             set_ph2!(master, optstate) # pure ph2
-            cg_main_loop!(algo, env, 2, optstate, data)
+            stop, restart = cg_main_loop!(algo, env, 2, optstate, data)
         end
     end
 
@@ -587,6 +598,11 @@ function change_values_sign!(dualsol::DualSolution)
     return
 end
 
+# cg_main_loop! returns Tuple{Bool, Bool} :
+# - first one is equal to true when colgen algorithm must stop.
+# - second one is equal to true when colgen algorithm must restart. 
+#   If col gen was at phase 3, it will restart at phase 3. 
+#   If it was as phase 1 or 2, it will restart at phase 1.
 function cg_main_loop!(
     algo::ColumnGeneration, env::Env, phase::Int, cg_optstate::OptimizationState, 
     data::ReformData
@@ -641,7 +657,7 @@ function cg_main_loop!(
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
             "(termination status = INFEASIBLE) during phase != 1.")
             setterminationstatus!(cg_optstate, INFEASIBLE)
-            return true
+            return true, false
         end
 
         lp_dual_sol = nothing
@@ -661,13 +677,26 @@ function cg_main_loop!(
         TO.@timeit Coluna._to "Getting primal solution" begin
         if nb_lp_primal_sols(rm_optstate) > 0
             rm_sol = get_best_lp_primal_sol(rm_optstate)
-    
+            
             set_lp_primal_sol!(cg_optstate, rm_sol)
-            set_lp_primal_bound!(cg_optstate, get_lp_primal_bound(rm_optstate) + getvalue(partial_solution))
+            lp_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)
+            set_lp_primal_bound!(cg_optstate, lp_bound)
 
             if phase != 1 && !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
-                if isinteger(proj_cols_on_rep(rm_sol, masterform))       
-                    update_ip_primal_sol!(cg_optstate, cat(rm_sol, partial_solution))
+                proj_sol = proj_cols_on_rep(rm_sol, masterform)
+                if isinteger(proj_sol) && isbetter(lp_bound, get_ip_primal_bound(cg_optstate))
+                    # Essential cut generation mandatory when colgen finds a feasible solution
+                    new_primal_sol = cat(rm_sol, partial_solution)
+                    cutcb_input = CutCallbacksInput(new_primal_sol)
+                    cutcb_output = run!(
+                        algo.essential_cut_gen_alg, env, getmasterdata(data), cutcb_input
+                    )
+                    if cutcb_output.nb_cuts_added == 0
+                        update_ip_primal_sol!(cg_optstate, new_primal_sol)
+                    else
+                        # because the new cuts may make the master infeasible
+                        return false, true
+                    end
                 end
             end
         else
@@ -700,7 +729,7 @@ function cg_main_loop!(
             if nb_new_col < 0
                 @error "Infeasible subproblem."
                 setterminationstatus!(cg_optstate, INFEASIBLE)
-                return true
+                return true, false
             end
 
             nb_new_columns += nb_new_col
@@ -739,7 +768,7 @@ function cg_main_loop!(
         if ip_gap_closed(cg_optstate, atol = algo.opt_atol, rtol = algo.opt_rtol)
             setterminationstatus!(cg_optstate, OPTIMAL)
             @logmsg LogLevel(0) "Dual bound reached primal bound."
-            return true
+            return true, false
         end
         if phase == 1 && ph_one_infeasible_db(algo, dual_bound)
             db = - getvalue(DualBound(reform))
@@ -748,26 +777,26 @@ function cg_main_loop!(
             set_lp_primal_bound!(cg_optstate, PrimalBound(reform, pb))
             setterminationstatus!(cg_optstate, INFEASIBLE)
             @logmsg LogLevel(0) "Phase one determines infeasibility."
-            return true
+            return true, false
         end
         if lp_gap_closed(cg_optstate, atol = algo.opt_atol, rtol = algo.opt_rtol)
             @logmsg LogLevel(0) "Column generation algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL)
-            return false
+            return false, false
         end
         if nb_new_columns == 0
             @logmsg LogLevel(0) "No new column generated by the pricing problems."
             setterminationstatus!(cg_optstate, OTHER_LIMIT)
-            return false
+            return false, false
         end
         if iteration > algo.max_nb_iterations
             setterminationstatus!(cg_optstate, OTHER_LIMIT)
             @warn "Maximum number of column generation iteration is reached."
-            return true
+            return true, false
         end
     end
 
-    return false
+    return false, false
 end
 
 function print_colgen_statistics(
