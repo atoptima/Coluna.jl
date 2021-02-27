@@ -33,6 +33,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
 
     feasibility_sense::Bool # Coluna supports only Max or Min.
 
+    kpis::Union{Nothing, Kpis}
+
 
     function Optimizer()
         model = new()
@@ -49,6 +51,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
         model.default_optimizer_builder = nothing
         model.feasibility_sense = false
+        model.kpis = nothing
         return model
     end
 end
@@ -95,7 +98,7 @@ end
 MOI.get(optimizer::Coluna.Optimizer, ::MOI.SolverName) = "Coluna"
 
 function MOI.optimize!(optimizer::Optimizer)
-    optimizer.result = optimize!(
+    optimizer.result, optimizer.kpis = optimize!(
         optimizer.inner, optimizer.annotations, optimizer.params
     )
     return
@@ -666,6 +669,9 @@ function MOI.get(optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.Constr
     best_primal_sol = get_best_ip_primal_sol(optimizer.result)
     return constraint_primal(best_primal_sol, getid(constrid))
 end
+
+MOI.get(optimizer::Optimizer, ::MOI.NodeCount) = optimizer.kpis.node_count
+MOI.get(optimizer::Optimizer, ::MOI.SolveTime) = optimizer.kpis.elapsed_optimization_time
 
 # function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
 #     return 0.0

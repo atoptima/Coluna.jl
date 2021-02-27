@@ -29,6 +29,8 @@ const _to = TO.TimerOutput()
 export Algorithm, ColunaBase, MathProg, Env, DefaultOptimizer, Parameters,
     elapsed_optim_time
 
+include("kpis.jl")
+
 include("parameters.jl")
 
 include("ColunaBase/ColunaBase.jl")
@@ -41,8 +43,9 @@ mutable struct Env
     env_starting_time::DateTime
     optim_starting_time::Union{Nothing, DateTime}
     params::Params
+    kpis::Kpis
 end
-Env(params::Params) = Env(now(), nothing, params)
+Env(params::Params) = Env(now(), nothing, params, Kpis(nothing, nothing))
 set_optim_start_time!(env::Env) = env.optim_starting_time = now()
 elapsed_optim_time(env::Env) = Dates.toms(now() - env.optim_starting_time) / Dates.toms(Second(1))
 Base.isinteger(x::Float64, tol::Float64) = abs(round(x) - x) < tol
