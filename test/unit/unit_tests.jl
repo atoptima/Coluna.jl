@@ -1,6 +1,7 @@
 include("containers/nestedenum.jl")
 include("containers/solsandbounds.jl")
 
+include("MathProg/formulations.jl")
 include("MathProg/types.jl")
 include("MathProg/variables.jl")
 
@@ -17,6 +18,7 @@ function unit_tests()
 
     @testset "MathProg submodule" begin
         @testset "types.jl" begin
+            max_nb_form_unit()
             types_unit_tests()
             variables_unit_tests()
         end
