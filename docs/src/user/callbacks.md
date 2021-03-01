@@ -5,14 +5,14 @@ algorithm.
 The more classical callbacks in a branch-and-price solver are:
 
 - Pricing callback that takes over the procedure to determine whether the current master LP 
-    solution is optimum or produce an entering variable with negative reduced cost
+    solution is optimum or produces an entering variable with negative reduced cost
 - Separation callback that takes over the procedure to determine whether the current master
-    LP solution is feasible or produce a valid problem constraint that is violated
+    LP solution is feasible or produces a valid problem constraint that is violated
 - Branching callback that takes over the procedure to determine whether the current master 
-    LP solution is integer or produce a valid branching disjunctive constraint that rules out 
+    LP solution is integer or produces a valid branching disjunctive constraint that rules out 
     the current fractional solution.
 
-In this page, we use following aliases : 
+On this page, we use the following aliases : 
 ```julia
 const BD = BlockDecomposition
 const MOI = MathOptInterface
@@ -22,7 +22,7 @@ const MOI = MathOptInterface
 
 The pricing callback let you define how to solve the subproblems of a Dantzig-Wolfe 
 decomposition to generate a new entering column in the master program. 
-This callback is usefull when you know an efficient algorithm to solve the subproblems, 
+This callback is useful when you know an efficient algorithm to solve the subproblems, 
 i.e. an algorithm better than solving the subproblem with a MIP solver.
 
 Let us see an example with the generalized assignment problem for which the JuMP model takes the form:
@@ -40,10 +40,10 @@ J = 1:nb_jobs
 @dantzig_wolfe_decomposition(model, dwdec, M)
 ```
 
-where as you can see, we omitted the knapsack constraints. 
+where, as you can see, we omitted the knapsack constraints. 
 These constraints are implicitly defined by the algorithm called in the pricing callback.
 
-Assume we have the following method that solves efficienlty a knapsack problem:
+Assume we have the following method that solves efficiently a knapsack problem:
 
 ```julia
 solve_knp(job_costs, lb_jobs, ub_jobs, capacity)
