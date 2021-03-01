@@ -96,7 +96,7 @@ BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback)
 
 Separation callbacks let you define how to separate cuts or constraints.
 
-### Robust facultative cuts
+### Robust facultative & essential cuts (user cut & lazy constraint)
 
 This callback allows you to add cuts to the master problem. 
 [Example in the JuMP documentation](https://jump.dev/JuMP.jl/stable/callbacks/#User-cuts-1).
