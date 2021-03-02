@@ -26,6 +26,9 @@ function Formulation{D}(
     parent_formulation = nothing,
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense
 ) where {D<:AbstractFormDuty}
+    if form_counter.value >= MAX_NB_FORMULATIONS
+        error("Maximum number of formulations reached.")
+    end
     return Formulation{D}(
         getnewuid(form_counter), Counter(), Counter(), parent_formulation, NoOptimizer(), 
         FormulationManager(), obj_sense, FormulationBuffer()
