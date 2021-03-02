@@ -43,7 +43,10 @@ end
 
 function _addvar!(m::FormulationManager, var::Variable)
     if haskey(m.vars, var.id)
-        error("Maximum number of formulations reached.")
+        error(string(
+            "Variable of id ", var.id, " exists. Its name is ", m.vars[var.id].name,
+            " and you want to add a variable named ", var.name, "."
+        ))
     end
     m.vars[var.id] = var
     return
