@@ -1,7 +1,7 @@
 # Quick start
 
 This quick start guide introduces the main features of Coluna through the example of the
-Generalized Assignement Problem.
+Generalized Assignment Problem.
 
 ## Problem
 
@@ -35,10 +35,10 @@ w = [61 70 57 82 51 74 98 64 86 80 69 79 60 76 78 71 50 99 92 83 53 91 68 61 63 
 Q = [1020 1460 1530 1190]
 ```
 
-This model has a block structure : each knapsack constraint defines
-an independent block and the set-partitionning constraints couple these independent
+This model has a block structure: each knapsack constraint defines
+an independent block and the set-partitioning constraints couple these independent
 blocks. By applying the Dantzig-Wolfe reformulation, each knapsack constraint forms
-a tractable subproblem and the set-partitionning constraints are handled in a master problem.
+a tractable subproblem and the set-partitioning constraints are handled in a master problem.
 
 To introduce the model, you need to load packages JuMP and BlockDecomposition. To optimize
 the problem, you need Coluna and a Julia package that provides a MIP solver such as GLPK.
@@ -47,7 +47,7 @@ the problem, you need Coluna and a Julia package that provides a MIP solver such
 using JuMP, BlockDecomposition, Coluna, GLPK
 ```
 
-Next you instantiate the solver and define the algorithm that you use to optimize the problem.
+Next, you instantiate the solver and define the algorithm that you use to optimize the problem.
 In this case, the algorithm is a "simple" branch-and-cut-and-price provided by Coluna.
 
 ```julia
