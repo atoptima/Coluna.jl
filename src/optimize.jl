@@ -50,6 +50,10 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
 
     env = Env(params)
 
+    if getcoefmatrix(prob.original_formulation).fillmode
+        closefillmode!(getcoefmatrix(prob.original_formulation))
+    end
+
     # Apply decomposition
     reformulate!(prob, annotations, env)
     

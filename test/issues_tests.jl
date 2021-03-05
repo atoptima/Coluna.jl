@@ -109,6 +109,27 @@ function solve_empty_model()
     @test_throws ErrorException optimize!(model)
 end
 
+function optimize_twice()
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna)
+    @variable(model, x)
+    @constraint(model, x <= 1)
+    @objective(model, Max, x)
+    @test optimize!(model) == optimize!(model)
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna, direct_model = true)
+    @test optimize!(model) == optimize!(model)
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -124,6 +145,10 @@ function test_issues_fixed()
 
     @testset "solve_empty_model" begin
         solve_empty_model()
+    end
+    
+    @testset "optimize_twice()" begin
+        optimize_twice()
     end
 end
 
