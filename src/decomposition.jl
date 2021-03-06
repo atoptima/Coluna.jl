@@ -472,6 +472,9 @@ function buildformulations!(
 end
 
 function reformulate!(prob::Problem, annotations::Annotations, env::Env)
+    if getcoefmatrix(prob.original_formulation).fillmode
+        closefillmode!(getcoefmatrix(prob.original_formulation))
+    end
     decomposition_tree = annotations.tree
     if decomposition_tree !== nothing
         root = BD.getroot(decomposition_tree)

@@ -121,12 +121,28 @@ function optimize_twice()
     @objective(model, Max, x)
     @test optimize!(model) == optimize!(model)
 
-    coluna = JuMP.optimizer_with_attributes(
+    model = BlockModel(coluna, direct_model = true)
+    @variable(model, x)
+    @constraint(model, x <= 1)
+    @objective(model, Max, x)
+    @test optimize!(model) == optimize!(model)
+
+    coluna = optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "params" => Coluna.Params(
+            solver = Coluna.Algorithm.TreeSearchAlgorithm()
+        ),
         "default_optimizer" => GLPK.Optimizer
     )
+    @axis(M, 1:20)
+    model = BlockModel(coluna)
+    @variable(model, x[m in M], Bin)
+    @dantzig_wolfe_decomposition(model, decomposition, M)
+    @test optimize!(model) == optimize!(model)
+
     model = BlockModel(coluna, direct_model = true)
+    @variable(model, x[m in M], Bin)
+    @dantzig_wolfe_decomposition(model, decomposition, M)
     @test optimize!(model) == optimize!(model)
 end
 
