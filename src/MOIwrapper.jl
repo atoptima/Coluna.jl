@@ -71,7 +71,7 @@ function MOI.set(model::Optimizer, param::MOI.RawParameter, val)
     if param.name == "params"
         model.params = val
     elseif param.name == "default_optimizer"
-        optimizer_builder = () -> MoiOptimizer(val())
+        optimizer_builder = () -> MoiOptimizer(MOI._instantiate_and_check(val))
         model.default_optimizer_builder = optimizer_builder
         set_default_optimizer_builder!(model.inner, optimizer_builder)
     else
