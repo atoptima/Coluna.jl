@@ -42,6 +42,9 @@ Starting point of the solver.
 function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Params)
     _welcome_message()
 
+    buffer_reset = prob.original_formulation.buffer
+    ann_pf_reset = annotations.ann_per_form
+
     # Adjust parameters
     ## Retrieve initial bounds on the objective given by the user
     init_pb = get_initial_primal_bound(prob)
@@ -63,6 +66,8 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     end
 
     env.kpis.elapsed_optimization_time = elapsed_optim_time(env)
+    prob.original_formulation.buffer = buffer_reset
+    annotations.ann_per_form = ann_pf_reset
 
     println(_to)
     TO.reset_timer!(_to)
