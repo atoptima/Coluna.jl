@@ -14,7 +14,7 @@ getnodevalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
 
 # Best dual bound strategy
 struct BestDualBoundStrategy <: AbstractTreeExploreStrategy end
-getnodevalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(getincumbents(n))
+getnodevalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
 
 """
     Coluna.Algorithm.TreeSearchAlgorithm(

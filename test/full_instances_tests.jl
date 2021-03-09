@@ -295,6 +295,26 @@ function generalized_assignment_tests()
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
+
+    @testset "play gap with best dual bound" begin
+        data = CLD.GeneralizedAssignment.data("play2.txt")
+
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer,
+            "params" => CL.Params(
+                solver = Coluna.Algorithm.TreeSearchAlgorithm(
+                    explorestrategy = Coluna.Algorithm.BestDualBoundStrategy()
+                )
+            ),
+            "default_optimizer" => GLPK.Optimizer
+        )
+
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+        optimize!(model)
+        @test JuMP.objective_value(model) ≈ 75.0
+        @test JuMP.termination_status(model) == MOI.OPTIMAL
+    end
     return
 end
 
