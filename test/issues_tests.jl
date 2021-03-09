@@ -109,6 +109,68 @@ function solve_empty_model()
     @test_throws ErrorException optimize!(model)
 end
 
+function optimize_twice()
+    # no reformulation + direct model
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna, direct_model = true)
+    @variable(model, x)
+    @constraint(model, x <= 1)
+    @objective(model, Max, x)
+    optimize!(model)
+    @test JuMP.objective_value(model) == 1
+    optimize!(model)
+    @test JuMP.objective_value(model) == 1
+
+    # no reformulation + no direct model
+    model = BlockModel(coluna)
+    @variable(model, x)
+    @constraint(model, x <= 1)
+    @objective(model, Max, x)
+    optimize!(model)
+    @test JuMP.objective_value(model) == 1
+    optimize!(model)
+    @test JuMP.objective_value(model) == 1
+
+    # reformulation + direct model
+    data = CLD.GeneralizedAssignment.data("play2.txt")
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+            branchingtreefile = "playgap.dot"
+        )),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    BD.objectiveprimalbound!(model, 100)
+    BD.objectivedualbound!(model, 0)
+    optimize!(model)
+    @test JuMP.objective_value(model) ≈ 75.0
+    optimize!(model)
+    @test JuMP.objective_value(model) ≈ 75.0
+
+    # # reformulation + no direct model (`CLD.GeneralizedAssignment.model(data, coluna, false)` threw
+    # #                                  "MethodError: no method matching Model(; direct_model=false)")
+    # model = BlockModel(coluna)
+    # @axis(M, data.machines)
+    # @variable(model, x[m in M, j in data.jobs], Bin)
+    # @constraint(model, cov[j in data.jobs], sum(x[m,j] for m in M) >= 1)
+    # @constraint(model, knp[m in M], sum(data.weight[j,m]*x[m,j] for j in data.jobs) <= data.capacity[m])
+    # @objective(model, Min, sum(data.cost[j,m]*x[m,j] for m in M, j in data.jobs))
+    # @dantzig_wolfe_decomposition(model, dec, M)
+    # subproblems = BlockDecomposition.getsubproblems(dec)
+    # specify!.(subproblems, lower_multiplicity = 0)
+    # BD.objectiveprimalbound!(model, 100)
+    # BD.objectivedualbound!(model, 0)
+    # optimize!(model)
+    # @test JuMP.objective_value(model) ≈ 75.0
+    # optimize!(model)
+    # @test JuMP.objective_value(model) ≈ 75.0
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -124,6 +186,10 @@ function test_issues_fixed()
 
     @testset "solve_empty_model" begin
         solve_empty_model()
+    end
+    
+    @testset "optimize_twice()" begin
+        optimize_twice()
     end
 end
 
