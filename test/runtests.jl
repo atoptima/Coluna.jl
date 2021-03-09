@@ -29,6 +29,7 @@ include("full_instances_tests.jl")
 include("user_algorithms_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
+include("optimizer_with_attributes_test.jl")
 
 rng = MersenneTwister(1234123)
 
@@ -57,4 +58,8 @@ end
     close(wr_out)
     close(rd_out)
     redirect_stdout(backup_stdout)
+end
+
+@testset "Optimizer with Attributes" begin
+    optimizer_with_attributes_test()
 end
