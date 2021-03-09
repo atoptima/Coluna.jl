@@ -30,6 +30,7 @@ include("user_algorithms_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
 include("optimizer_with_attributes_test.jl")
+include("subproblem_solvers_tests.jl")
 
 rng = MersenneTwister(1234123)
 
@@ -62,4 +63,8 @@ end
 
 @testset "Optimizer with Attributes" begin
     optimizer_with_attributes_test()
+end
+
+@testset "Subproblem Solvers" begin
+    subproblem_solvers_test()
 end
