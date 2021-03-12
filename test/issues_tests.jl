@@ -139,9 +139,7 @@ function optimize_twice()
     data = CLD.GeneralizedAssignment.data("play2.txt")
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-            branchingtreefile = "playgap.dot"
-        )),
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
         "default_optimizer" => GLPK.Optimizer
     )
     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -171,6 +169,20 @@ function optimize_twice()
     # @test JuMP.objective_value(model) ≈ 75.0
 end
 
+function column_generation_solver()
+    data = CLD.GeneralizedAssignment.data("play2.txt")
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(solver = ClA.ColumnGeneration()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    BD.objectiveprimalbound!(model, 100)
+    BD.objectivedualbound!(model, 0)
+    optimize!(model)
+    @test JuMP.objective_value(model) ≈ 75.0
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -188,8 +200,12 @@ function test_issues_fixed()
         solve_empty_model()
     end
     
-    @testset "optimize_twice()" begin
+    @testset "optimize_twice" begin
         optimize_twice()
+    end
+
+    @testset "column_generation_solver" begin
+        column_generation_solver()
     end
 end
 
