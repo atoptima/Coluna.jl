@@ -54,7 +54,6 @@ function run!(
     algo::BendersCutGeneration, env::Env, rfdata::ReformData, input::OptimizationInput
 )::OptimizationOutput
     reform = getreform(rfdata)
-    relax_integrality!(getmaster(reform))
     bndata = BendersCutGenRuntimeData(reform, getoptstate(input))
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
