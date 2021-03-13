@@ -173,14 +173,26 @@ function column_generation_solver()
     data = CLD.GeneralizedAssignment.data("play2.txt")
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+            maxnumnodes = 1,
+        )),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    treesearch, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    BD.objectiveprimalbound!(treesearch, 100)
+    BD.objectivedualbound!(treesearch, 0)
+    optimize!(treesearch)
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
         "params" => Coluna.Params(solver = ClA.ColumnGeneration()),
         "default_optimizer" => GLPK.Optimizer
     )
-    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    BD.objectiveprimalbound!(model, 100)
-    BD.objectivedualbound!(model, 0)
-    optimize!(model)
-    @test JuMP.objective_value(model) ≈ 75.0
+    colgen, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    BD.objectiveprimalbound!(colgen, 100)
+    BD.objectivedualbound!(colgen, 0)
+    optimize!(colgen)
+    @test JuMP.objective_value(treesearch) == JuMP.objective_value(colgen)
 end
 
 function test_issues_fixed()
