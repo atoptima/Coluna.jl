@@ -31,6 +31,7 @@ include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
 include("optimizer_with_attributes_test.jl")
 include("subproblem_solvers_tests.jl")
+include("test_branching_file.jl")
 
 rng = MersenneTwister(1234123)
 
@@ -67,4 +68,8 @@ end
 
 @testset "Subproblem Solvers" begin
     subproblem_solvers_test()
+end
+
+@testset "Branching File" begin
+    branching_file_completion()
 end
