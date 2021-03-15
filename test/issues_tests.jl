@@ -179,8 +179,6 @@ function column_generation_solver()
         "default_optimizer" => GLPK.Optimizer
     )
     treesearch, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    BD.objectiveprimalbound!(treesearch, 100)
-    BD.objectivedualbound!(treesearch, 0)
     optimize!(treesearch)
 
     coluna = JuMP.optimizer_with_attributes(
@@ -189,10 +187,9 @@ function column_generation_solver()
         "default_optimizer" => GLPK.Optimizer
     )
     colgen, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-    BD.objectiveprimalbound!(colgen, 100)
-    BD.objectivedualbound!(colgen, 0)
     optimize!(colgen)
-    @test JuMP.objective_value(treesearch) == JuMP.objective_value(colgen)
+    
+    @test MOI.get(treesearch, MOI.ObjectiveBound()) == MOI.get(colgen, MOI.ObjectiveBound())
 end
 
 function test_issues_fixed()
