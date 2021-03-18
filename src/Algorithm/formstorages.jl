@@ -54,7 +54,7 @@ end
     Formulation storage is empty and it is used to implicitely keep 
     the data which is changed inside the model 
     (for example, dynamic variables and constraints of a formulaiton) 
-    in order to store it to the storage state and restore it afterwards. 
+    in order to store it to the record state and restore it afterwards. 
 """
 
 struct FormulationStorage <: AbstractStorage end
@@ -363,7 +363,7 @@ function PartialSolutionStorage(form::Formulation)
     return PartialSolutionStorage(Dict{VarId, Float64}())
 end
 
-# the storage state is the same as the storage here
+# the record state is the same as the storage here
 mutable struct PartialSolutionRecordState <: AbstractRecordState
     solution::Dict{VarId, Float64}
 end

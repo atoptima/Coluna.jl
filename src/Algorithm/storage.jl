@@ -9,15 +9,15 @@
     Models are storages themselves. Each storage is associated with a
     model. Thus a storage adds computed data to a model.  
 
-    Storage states are useful to store states of storages at some point 
+    Record states are useful to store states of storages at some point 
     of the calculation flow so that we can later return to this point and 
     restore the storages. For example, the calculation flow may return to
     some saved node in the search tree.
 
     Some storages can have different parts which are stored in different 
-    storage states. Thus, we operate with triples (model, storage, storage state).
+    record states. Thus, we operate with triples (model, storage, record state).
     For every model there may be only one storage for each couple 
-    (storage type, storage state type). 
+    (storage type, record state type). 
     
     To store all storages of a data, we use functions 
     "store_states!(::AbstractData)::RecordStatesVector" or
@@ -46,34 +46,34 @@ abstract type AbstractStorage end
 
 """
     AbstractRecordState
-    
-    For each storage state, a constructor should be defined which
-    takes a model and a storage as parameters. This constructor
-    is called during storing a storage. 
-    
-"""
 
+A record state is the particular condition that a record is in at a specific time
+of the execution of Coluna.
+    
+For each record state, a constructor should be defined which
+takes a model and a storage as parameters. This constructor
+is called during storing a storage. 
+"""
 abstract type AbstractRecordState end
 
 """
-    function restorefromstate!(model, storage, storage state)
-    
-    Should be defined for every triple (model type, storage type, storage state type)
-    used by an algorithm.     
-"""
+    restorefromstate!(model, storage, record_state)
 
+This method should be defined for every triple (model type, storage type, record state type)
+used by an algorithm.     
+"""
 restorefromstate!(model::AbstractModel, storage::AbstractStorage, state::AbstractRecordState) =
     error(string(
-        "Method restorefromstate!() is not defined for model type $(typeof(model)), ",
-        "storage type $(typeof(storage)), and storage state type $(typeof(state))"
+        "restorefromstate! not defined for model type $(typeof(model)), ",
+        "storage type $(typeof(storage)), and record state type $(typeof(state))"
     ))    
 
 
 """
     EmptyRecordState
 
-    If a storage is not changed after initialization, then 
-    the empty storage state should be used with it.
+If a storage is not changed after initialization, then 
+the empty record state should be used with it.
 """
 
 struct EmptyRecordState <: AbstractRecordState end
@@ -119,9 +119,9 @@ end
 """
     RecordStateContainer
 
-    This container keeps additional storage state information needed for 
-    keeping the number of times the state has been stored. When 
-    this number drops to zero, the state can be deleted. 
+This container keeps additional record state information needed for 
+keeping the number of times the state has been stored. When 
+this number drops to zero, the state can be deleted. 
 """
 
 const StateId = Int
