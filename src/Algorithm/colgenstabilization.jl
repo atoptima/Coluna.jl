@@ -20,19 +20,19 @@ smoothing_is_active(storage::ColGenStabilizationStorage) = !iszero(storage.cural
 subgradient_is_needed(storage::ColGenStabilizationStorage, smoothparam::Float64) =  
     smoothparam == 1.0 && storage.nb_misprices == 0
 
-mutable struct ColGenStabStorageState <: AbstractStorageState
+mutable struct ColGenStabRecordState <: AbstractRecordState
     alpha::Float64
     dualbound::DualBound
     stabcenter::Union{Nothing, DualSolution}
 end
 
-function ColGenStabStorageState(master::Formulation, storage::ColGenStabilizationStorage)
+function ColGenStabRecordState(master::Formulation, storage::ColGenStabilizationStorage)
     alpha = storage.basealpha < 0.5 ? 0.5 : storage.basealpha
-    return ColGenStabStorageState(alpha, storage.valid_dual_bound, storage.basestabcenter)
+    return ColGenStabRecordState(alpha, storage.valid_dual_bound, storage.basestabcenter)
 end
 
 function restorefromstate!(
-    master::Formulation, storage::ColGenStabilizationStorage, state::ColGenStabStorageState
+    master::Formulation, storage::ColGenStabilizationStorage, state::ColGenStabRecordState
 )
     storage.basealpha = state.alpha
     storage.valid_dual_bound = state.dualbound
@@ -40,7 +40,7 @@ function restorefromstate!(
     return
 end
 
-const ColGenStabilizationStoragePair = (ColGenStabilizationStorage => ColGenStabStorageState)
+const ColGenStabilizationStoragePair = (ColGenStabilizationStorage => ColGenStabRecordState)
 
 function init_stab_before_colgen_loop!(storage::ColGenStabilizationStorage)
     storage.stabcenter = storage.basestabcenter

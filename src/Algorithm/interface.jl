@@ -161,9 +161,9 @@ function initialize_storages!(data::AbstractData, algo::AbstractOptimizationAlgo
             )
         end   
         for type_pair in type_pair_set
-            (StorageType, StorageStateType) = type_pair
+            (StorageType, RecordStateType) = type_pair
             storagedict[type_pair] = 
-                StorageContainer{ModelType, StorageType, StorageStateType}(model)
+                StorageContainer{ModelType, StorageType, RecordStateType}(model)
         end
     end
 end

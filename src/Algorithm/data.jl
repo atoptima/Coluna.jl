@@ -11,7 +11,7 @@ abstract type AbstractData end
 getstoragedict(::AbstractData) = nothing
 getmodel(::AbstractData) = nothing 
 get_model_storage_dict(::AbstractData, ::AbstractModel) = nothing
-store_states!(::AbstractData, ::StorageStatesVector) = nothing
+store_states!(::AbstractData, ::RecordStatesVector) = nothing
 check_storage_states_participation(::AbstractData) = nothing
 
 function getnicename(data::AbstractData) 
@@ -63,7 +63,7 @@ function get_model_storage_dict(data::ModelData, model::AbstractModel)
     return nothing
 end
 
-function store_states!(data::ModelData, states::StorageStatesVector)
+function store_states!(data::ModelData, states::RecordStatesVector)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
         stateid = storestate!(storagecont)
@@ -142,7 +142,7 @@ function get_model_storage_dict(data::ReformData, model::AbstractModel)
     return nothing
 end
 
-function store_states!(data::ReformData, states::StorageStatesVector)
+function store_states!(data::ReformData, states::RecordStatesVector)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
         stateid = storestate!(storagecont)
@@ -159,7 +159,7 @@ end
 
 function store_states!(data::ReformData)
     TO.@timeit Coluna._to "Store states" begin
-        states = StorageStatesVector()
+        states = RecordStatesVector()
        store_states!(data, states)
     end       
     return states

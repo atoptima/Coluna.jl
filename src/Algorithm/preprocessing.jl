@@ -98,12 +98,12 @@ function add_to_stack!(
 end
 
 """
-    PreprocessingStorageState
+    PreprocessingRecordState
 
     Stores the global part of preprocessing storage
 """
 
-mutable struct PreprocessingStorageState <: AbstractStorageState
+mutable struct PreprocessingRecordState <: AbstractRecordState
     cur_min_slack::Dict{ConstrId,Float64}
     cur_max_slack::Dict{ConstrId,Float64}
     nb_inf_sources_for_min_slack::Dict{ConstrId,Int}
@@ -114,8 +114,8 @@ mutable struct PreprocessingStorageState <: AbstractStorageState
     local_partial_sol::Dict{VarId, Float64}
 end
 
-function PreprocessingStorageState(reform::Reformulation, storage::PreprocessingStorage)
-    return PreprocessingStorageState(
+function PreprocessingRecordState(reform::Reformulation, storage::PreprocessingStorage)
+    return PreprocessingRecordState(
         copy(storage.cur_min_slack), copy(storage.cur_max_slack), 
         copy(storage.nb_inf_sources_for_min_slack),
         copy(storage.nb_inf_sources_for_max_slack),
@@ -124,7 +124,7 @@ function PreprocessingStorageState(reform::Reformulation, storage::Preprocessing
 end
 
 function restorefromstate!(
-    form::Reformulation, storage::PreprocessingStorage, state::PreprocessingStorageState
+    form::Reformulation, storage::PreprocessingStorage, state::PreprocessingRecordState
 )
     storage.cur_min_slack = copy(state.cur_min_slack)
     storage.cur_max_slack = copy(state.cur_max_slack)
@@ -136,7 +136,7 @@ function restorefromstate!(
     storage.local_partial_sol = copy(state.local_partial_sol)
 end
 
-const PreprocessingStoragePair = (PreprocessingStorage => PreprocessingStorageState)
+const PreprocessingStoragePair = (PreprocessingStorage => PreprocessingRecordState)
 
 
 """
