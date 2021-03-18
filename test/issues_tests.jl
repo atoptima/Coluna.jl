@@ -192,6 +192,48 @@ function column_generation_solver()
     @test MOI.get(treesearch, MOI.ObjectiveBound()) ≈ MOI.get(colgen, MOI.ObjectiveBound())
 end
 
+function branching_file_completion()
+    function get_number_of_nodes_in_branching_tree_file(filename::String)
+        filepath = string(@__DIR__ , "/", filename)
+        
+        existing_nodes = Set()
+        
+        open(filepath) do file
+            for line in eachline(file)
+                for pieceofdata in split(line)
+                    regex_match = match(r"n\d+", pieceofdata)
+                    if regex_match != nothing
+                        regex_match = regex_match.match
+                        push!(existing_nodes, parse(Int, regex_match[2:length(regex_match)]))
+                    end
+                end
+            end
+        end
+        return length(existing_nodes)
+    end
+    
+                 
+    data = CLD.GeneralizedAssignment.data("play2.txt")
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+            branchingtreefile = "playgap.dot"
+        )),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    BD.objectiveprimalbound!(model, 100)
+    BD.objectivedualbound!(model, 0)
+
+    JuMP.optimize!(model)
+
+    @test MOI.get(model, MOI.NodeCount()) == get_number_of_nodes_in_branching_tree_file("playgap.dot")
+    @test JuMP.objective_value(model) ≈ 75.0
+    @test JuMP.termination_status(model) == MOI.OPTIMAL
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -213,8 +255,12 @@ function test_issues_fixed()
         optimize_twice()
     end
 
+
     @testset "column_generation_solver" begin
         column_generation_solver()
+    end
+    @testset "branching_file_completion" begin
+        branching_file_completion()
     end
 end
 
