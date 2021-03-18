@@ -3,7 +3,7 @@
     ----------------
 
     An algorithm is a procedure with a known interface (input and output) applied to a data.
-    An algorithm can use storages inside the data to keep its computed data between different
+    An algorithm can use records inside the data to keep its computed data between different
     runs of the algorithm or between runs of different algorithms.
     The algorithm itself contains only its parameters. 
 
@@ -12,10 +12,10 @@
     (root algorithm should be an optimization algorithm, see below). 
 
     Algorithms are divided into two types : "manager algorithms" and "worker algorithms". 
-    Worker algorithms just continue the calculation. They do not store and restore storages 
+    Worker algorithms just continue the calculation. They do not store and restore records 
     as they suppose it is done by their master algorithms. Manager algorithms may divide 
-    the calculation flow into parts. Therefore, they store and restore storages to make sure 
-    that their child worker algorithms have storages prepared. 
+    the calculation flow into parts. Therefore, they store and restore records to make sure 
+    that their child worker algorithms have records prepared. 
     A worker algorithm cannot have child manager algorithms. 
 
     Examples of manager algorithms : TreeSearchAlgorithm (which covers both BCP algorithm and 
@@ -58,18 +58,18 @@ ismanager(algo::AbstractAlgorithm) = false
 get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
-    get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, RecordTypePair, RecordAccessMode}}
+    get_records_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, RecordTypePair, RecordAccessMode}}
 
-    Every algorithm should communicate the storages it uses (so that these storages 
+    Every algorithm should communicate the records it uses (so that these records 
     are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
-    in order to restore storages before running a worker algorithm.
+    in order to restore records before running a worker algorithm.
 """
-get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+get_records_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
 
 """
     run!(algo::AbstractAlgorithm, model::AbstractData, input::AbstractInput)::AbstractOutput
 
-    Runs the algorithm. The storage of the algorithm can be obtained from the data
+    Runs the algorithm. The record of the algorithm can be obtained from the data
     Returns algorithm's output.    
 """
 function run!(algo::AbstractAlgorithm, env::Env, data::AbstractData, input::AbstractInput)::AbstractOutput
@@ -111,47 +111,47 @@ abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 
-# this function collects storages to restore for an algorithm and all its child worker algorithms,
-# child manager algorithms are skipped, as their restore storages themselves
-function collect_storages_to_restore!(
-    global_storages_usage::RecordsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
+# this function collects records to restore for an algorithm and all its child worker algorithms,
+# child manager algorithms are skipped, as their restore records themselves
+function collect_records_to_restore!(
+    global_records_usage::RecordsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
 )
-    local_storages_usage = get_storages_usage(algo, model)
-    for (stor_model, stor_pair, stor_usage) in local_storages_usage
-        add_storage_pair_usage!(global_storages_usage, stor_model, stor_pair, stor_usage)
+    local_records_usage = get_records_usage(algo, model)
+    for (rec_model, rec_pair, rec_usage) in local_records_usage
+        add_record_pair_usage!(global_records_usage, rec_model, rec_pair, rec_usage)
     end
 
     child_algos = get_child_algorithms(algo, model)
     for (childalgo, childmodel) in child_algos
-        !ismanager(childalgo) && collect_storages_to_restore!(global_storages_usage, childalgo, childmodel)
+        !ismanager(childalgo) && collect_records_to_restore!(global_records_usage, childalgo, childmodel)
     end
 end
 
-# this function collects storages to create for an algorithm and all its child algorithms
-# this function is used only the function initialize_storages!() below
-function collect_storages_to_create!(
-    storages_to_create::Dict{AbstractModel,Set{RecordTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
+# this function collects records to create for an algorithm and all its child algorithms
+# this function is used only the function initialize_records!() below
+function collect_records_to_create!(
+    records_to_create::Dict{AbstractModel,Set{RecordTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
 )
-    storages_usage = get_storages_usage(algo, model)
-    for (stor_model, stor_pair, stor_usage) in storages_usage
-        if !haskey(storages_to_create, stor_model)
-            storages_to_create[stor_model] = Set{RecordTypePair}()
+    records_usage = get_records_usage(algo, model)
+    for (rec_model, rec_pair, rec_usage) in records_usage
+        if !haskey(records_to_create, rec_model)
+            records_to_create[rec_model] = Set{RecordTypePair}()
         end
-        push!(storages_to_create[stor_model], stor_pair)
+        push!(records_to_create[rec_model], rec_pair)
     end
 
     child_algos = get_child_algorithms(algo, model)
     for (childalgo, childmodel) in child_algos
-        collect_storages_to_create!(storages_to_create, childalgo, childmodel)
+        collect_records_to_create!(records_to_create, childalgo, childmodel)
     end
 end
 
-# this function initializes all the storages
-function initialize_storages!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
-    storages_to_create = Dict{AbstractModel,Set{RecordTypePair}}()
-    collect_storages_to_create!(storages_to_create, algo, getmodel(data)) 
+# this function initializes all the records
+function initialize_records!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
+    records_to_create = Dict{AbstractModel,Set{RecordTypePair}}()
+    collect_records_to_create!(records_to_create, algo, getmodel(data)) 
 
-    for (model, type_pair_set) in storages_to_create        
+    for (model, type_pair_set) in records_to_create        
         #println(IOContext(stdout, :compact => true), model, " ", type_pair_set)
         ModelType = typeof(model)
         storagedict = get_model_storage_dict(data, model)

@@ -81,6 +81,6 @@ export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, Col
 export PartialSolutionRecordPair, PreprocessingRecordPair       
 
 # Record functions 
-export getstorage, add_to_solution!, add_to_localpartialsol!
+export getrecord, add_to_solution!, add_to_localpartialsol!
 
 end

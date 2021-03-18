@@ -20,26 +20,26 @@ end
 
 # SolveIpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
-function get_storages_usage(
+function get_records_usage(
     algo::SolveIpForm, form::Formulation{Duty}
 ) where {Duty<:MathProg.AbstractFormDuty}
-    # we use storages in the read only mode, as all modifications
+    # we use records in the read only mode, as all modifications
     # (deactivating artificial vars and enforcing integrality)
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same
-    storages_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
-    push!(storages_usage, (form, StaticVarConstrRecordPair, READ_ONLY))
+    records_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+    push!(records_usage, (form, StaticVarConstrRecordPair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(storages_usage, (form, PartialSolutionRecordPair, READ_ONLY))
-        push!(storages_usage, (form, MasterColumnsRecordPair, READ_ONLY))
-        push!(storages_usage, (form, MasterBranchConstrsRecordPair, READ_ONLY))
-        push!(storages_usage, (form, MasterCutsRecordPair, READ_ONLY))
+        push!(records_usage, (form, PartialSolutionRecordPair, READ_ONLY))
+        push!(records_usage, (form, MasterColumnsRecordPair, READ_ONLY))
+        push!(records_usage, (form, MasterBranchConstrsRecordPair, READ_ONLY))
+        push!(records_usage, (form, MasterCutsRecordPair, READ_ONLY))
     end
-    return storages_usage
+    return records_usage
 end
 
-get_storages_usage(algo::SolveIpForm, reform::Reformulation) =
-    get_storages_usage(algo, getmaster(reform))
+get_records_usage(algo::SolveIpForm, reform::Reformulation) =
+    get_records_usage(algo, getmaster(reform))
 
 function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
     return MOI.supports_constraint(optimizer.inner, MOI.SingleVariable, MOI.Integer)
@@ -66,8 +66,8 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_value = 0.0
     if isa(form, Formulation{MathProg.DwMaster})
-        partsolstorage = getstorage(data, PartialSolutionRecordPair)
-        partial_sol = get_primal_solution(partsolstorage, form)
+        partsolrecord = getrecord(data, PartialSolutionRecordPair)
+        partial_sol = get_primal_solution(partsolrecord, form)
         partial_sol_value = getvalue(partial_sol)
     end
     

@@ -120,9 +120,9 @@ end
     (model of a problem). A problem may have different formulations. 
     We may rename "formulation" to "model" after.
     Different algorithms may be applied to a formulation.
-    A formulation should contain a dictionary of storages
-    used by algorithms. A formulation contains one storage 
-    per storage type used by algorithms.    
+    A formulation should contain a dictionary of records
+    used by algorithms. A formulation contains one record 
+    per record type used by algorithms.    
 """
 abstract type AbstractFormulation <: AbstractModel end
 

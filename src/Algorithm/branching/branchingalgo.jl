@@ -67,8 +67,8 @@ function SimpleBranching()::AbstractDivideAlgorithm
     return algo
 end
 
-# StrongBranching does not use any storage itself, 
-# therefore get_storages_usage() is not defined for it
+# StrongBranching does not use any record itself, 
+# therefore get_records_usage() is not defined for it
 
 function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 
     child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
@@ -109,9 +109,9 @@ function perform_strong_branching_with_phases!(
             end
         end        
 
-        conquer_storages_to_restore = RecordsUsageDict()
-        collect_storages_to_restore!(
-            conquer_storages_to_restore, current_phase.conquer_algo, getreform(data)
+        conquer_records_to_restore = RecordsUsageDict()
+        collect_records_to_restore!(
+            conquer_records_to_restore, current_phase.conquer_algo, getreform(data)
         ) 
 
         #TO DO : we need to define a print level parameter
@@ -154,7 +154,7 @@ function perform_strong_branching_with_phases!(
                 update_ip_primal!(getoptstate(node), sbstate, exploitsprimalsolutions)
 
                 apply_conquer_alg_to_node!(
-                    node, current_phase.conquer_algo, env, data, conquer_storages_to_restore
+                    node, current_phase.conquer_algo, env, data, conquer_records_to_restore
                 )        
 
                 update_all_ip_primal_solutions!(sbstate, getoptstate(node))
@@ -183,7 +183,7 @@ function perform_strong_branching_with_phases!(
         end
 
         # before deleting branching groups which are not kept for the next phase
-        # we need to remove storage states kept in these nodes
+        # we need to remove record states kept in these nodes
         for group_index = nb_candidates_for_next_phase + 1 : length(groups) 
             for (node_index, node) in enumerate(groups[group_index].children)
                 remove_states!(node.stateids)

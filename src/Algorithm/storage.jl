@@ -1,25 +1,25 @@
 @enum(RecordAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
 
 """
-    About storages
+    About records
     --------------
 
     Records keep user data (a model) and computed data between different runs 
     of an algorithm or between runs of different algorithms. 
-    Models are storages themselves. Each storage is associated with a
-    model. Thus a storage adds computed data to a model.  
+    Models are records themselves. Each record is associated with a
+    model. Thus a record adds computed data to a model.  
 
-    Record states are useful to store states of storages at some point 
+    Record states are useful to store states of records at some point 
     of the calculation flow so that we can later return to this point and 
-    restore the storages. For example, the calculation flow may return to
+    restore the records. For example, the calculation flow may return to
     some saved node in the search tree.
 
-    Some storages can have different parts which are stored in different 
-    record states. Thus, we operate with triples (model, storage, record state).
-    For every model there may be only one storage for each couple 
-    (storage type, record state type). 
+    Some records can have different parts which are stored in different 
+    record states. Thus, we operate with triples (model, record, record state).
+    For every model there may be only one record for each couple 
+    (record type, record state type). 
     
-    To store all storages of a data, we use functions 
+    To store all records of a data, we use functions 
     "store_states!(::AbstractData)::RecordStatesVector" or
     "copy_states(::RecordStatesVector)::RecordStatesVector"
   
@@ -27,16 +27,18 @@
     "restore_states!(::RecordStatesVector,::RecordsUsageDict)" 
     and "remove_states!(::RecordStatesVector)"
   
-    After storing current states, if we write to some storage, we should restore 
+    After storing current states, if we write to some record, we should restore 
     it for writing using "restore_states!(...)" 
-    After storing current states, if we read from a storage, 
+    After storing current states, if we read from a record, 
     no particular precautions should be taken.   
 """
 
 """
     AbstractRecord 
 
-For every storage a constructor should be defined which
+A record contains information about a model or the execution of an algorithm.
+
+For every record a constructor should be defined which
 takes a model as a parameter. This constructor is 
 called when the formulation is completely known so the data
 can be safely computed.
@@ -50,34 +52,34 @@ A record state is the particular condition that a record is in at a specific tim
 of the execution of Coluna.
     
 For each record state, a constructor should be defined which
-takes a model and a storage as parameters. This constructor
-is called during storing a storage. 
+takes a model and a record as parameters. This constructor
+is called during storing a record. 
 """
 abstract type AbstractRecordState end
 
 """
-    restorefromstate!(model, storage, record_state)
+    restorefromstate!(model, record, record_state)
 
-This method should be defined for every triple (model type, storage type, record state type)
+This method should be defined for every triple (model type, record type, record state type)
 used by an algorithm.     
 """
-restorefromstate!(model::AbstractModel, storage::AbstractRecord, state::AbstractRecordState) =
+restorefromstate!(model::AbstractModel, record::AbstractRecord, state::AbstractRecordState) =
     error(string(
         "restorefromstate! not defined for model type $(typeof(model)), ",
-        "storage type $(typeof(storage)), and record state type $(typeof(state))"
+        "record type $(typeof(record)), and record state type $(typeof(state))"
     ))    
 
 
 """
     EmptyRecordState
 
-If a storage is not changed after initialization, then 
+If a record is not changed after initialization, then 
 the empty record state should be used with it.
 """
 
 struct EmptyRecordState <: AbstractRecordState end
 
-EmptyRecordState(model::AbstractModel, storage::AbstractRecord) = nothing
+EmptyRecordState(model::AbstractModel, record::AbstractRecord) = nothing
 
 restorefromstate!(::AbstractModel, ::AbstractRecord, ::EmptyRecordState) = nothing
 
@@ -85,12 +87,12 @@ restorefromstate!(::AbstractModel, ::AbstractRecord, ::EmptyRecordState) = nothi
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
 const RecordTypePair = Pair{DataType, DataType}
 
-# TO DO : replace with the set of RecordTypePair, should only contain storages which should 
-#         be restored for writing (all other storages are restored anyway but just for reading)
+# TO DO : replace with the set of RecordTypePair, should only contain records which should 
+#         be restored for writing (all other records are restored anyway but just for reading)
 const RecordsUsageDict = Dict{Tuple{AbstractModel, RecordTypePair}, RecordAccessMode}
 
 function Base.show(io::IO, usagedict::RecordsUsageDict)
-    print(io, "storage usage dict [")
+    print(io, "record usage dict [")
     for usage in usagedict
         print(io, " (", typeof(usage[1][1]), ", ", usage[1][2], ") => ", usage[2])
     end
@@ -98,11 +100,11 @@ function Base.show(io::IO, usagedict::RecordsUsageDict)
 end
 
 """
-    function add_storage_pair_usage!(::RecordsUsageDict, ::AbstractModel, ::RecordTypePair, ::RecordAccessMode)
+    add_record_pair_usage!(::RecordsUsageDict, ::AbstractModel, ::RecordTypePair, ::RecordAccessMode)
 
-    An auxiliary function to be used when adding storage usage to a RecordUsageDict
+An auxiliary function to be used when adding record usage to a RecordUsageDict
 """
-function add_storage_pair_usage!(
+function add_record_pair_usage!(
     dict::RecordsUsageDict, model::AbstractModel, pair::RecordTypePair, mode::RecordAccessMode
 )
     current_mode = get(dict, (model, pair), NOT_USED) 
@@ -173,7 +175,7 @@ decreaseparticipation!(essc::EmptyRecordStateContainer) = nothing
 """
     StorageContainer
 
-This container keeps storages and all states which have been 
+This container keeps records and all states which have been 
 stored. It implements storing and restoring states in an 
 efficient way. 
 """
@@ -182,7 +184,7 @@ mutable struct StorageContainer{M<:AbstractModel, S<:AbstractRecord, SS<:Abstrac
     model::M
     curstatecont::RecordStateContainer{SS}
     maxstateid::StateId
-    storage::S
+    record::S
     typepair::RecordTypePair
     statesdict::Dict{StateId, RecordStateContainer{SS}}
 end 
@@ -202,11 +204,11 @@ getmodel(sc::StorageContainer) = sc.model
 getcurstatecont(sc::StorageContainer) = sc.curstatecont
 getmaxstateid(sc::StorageContainer) = sc.maxstateid
 getstatesdict(sc::StorageContainer) = sc.statesdict
-getstorage(sc::StorageContainer) = sc.storage
+getrecord(sc::StorageContainer) = sc.record
 gettypepair(sc::StorageContainer) = sc.typepair
 
 function Base.show(io::IO, storagecont::StorageContainer)
-    print(io, "storage (")
+    print(io, "record (")
     print(IOContext(io, :compact => true), getmodel(storagecont))
     (RecordType, RecordStateType) = gettypepair(storagecont)    
     print(io, ", ", remove_until_last_point(string(RecordType)))    
@@ -258,7 +260,7 @@ function save_to_statesdict!(
     storagecont::StorageContainer{M,S,SS}, statecont::RecordStateContainer{SS}
 ) where {M,S,SS}
     if getparticipation(statecont) > 0 && stateisempty(statecont)
-        state = SS(getmodel(storagecont), getstorage(storagecont))
+        state = SS(getmodel(storagecont), getrecord(storagecont))
         @logmsg LogLevel(-2) string("Created state with id ", getstateid(statecont), " for ", storagecont)
         setstate!(statecont, state)
         statesdict = getstatesdict(storagecont)
@@ -300,7 +302,7 @@ function restorestate!(
             @logmsg LogLevel(-2) string("Removed state with id ", getstateid(statecont), " for ", storagecont)
         end
     else 
-        restorefromstate!(getmodel(storagecont), getstorage(storagecont), getstate(statecont))
+        restorefromstate!(getmodel(storagecont), getrecord(storagecont), getstate(statecont))
         @logmsg LogLevel(-2) string("Restored state with id ", getstateid(statecont), " for ", storagecont)
         if mode == READ_AND_WRITE 
             statecont = RecordStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
@@ -324,11 +326,11 @@ end
 #     setcurstate!(storagecont, statecont)
 # end
 
-function restore_states!(ssvector::RecordStatesVector, storages_to_restore::RecordsUsageDict)
+function restore_states!(ssvector::RecordStatesVector, records_to_restore::RecordsUsageDict)
     TO.@timeit Coluna._to "Restore/remove states" begin
         for (storagecont, stateid) in ssvector
             mode = get(
-                storages_to_restore, 
+                records_to_restore, 
                 (getmodel(storagecont), gettypepair(storagecont)), 
                 READ_ONLY
             )
@@ -356,7 +358,7 @@ function copy_states(states::RecordStatesVector)::RecordStatesVector
     return statescopy
 end
 
-function check_storage_states_participation(storagecont::StorageContainer)
+function check_record_states_participation(storagecont::StorageContainer)
     curstatecont = getcurstatecont(storagecont)
     if getparticipation(curstatecont) > 0
         @warn string("Positive participation of state ", curstatecont)

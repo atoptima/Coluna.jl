@@ -23,7 +23,7 @@ end
     BranchingRuleOutput
 
     Input of a branching rule (branching separation algorithm)
-    Contains current incumbents, infeasibility status, and the record of its storage.
+    Contains current incumbents, infeasibility status, and the record of its record.
 """
 struct BranchingRuleOutput <: AbstractOutput 
     local_id::Int64
@@ -45,7 +45,7 @@ getgroups(output::BranchingRuleOutput) = output.groups
 """
 abstract type AbstractBranchingRule <: AbstractAlgorithm end
 
-# branching rules are always manager algorithms (they manage storing and restoring storages)
+# branching rules are always manager algorithms (they manage storing and restoring records)
 ismanager(algo::AbstractBranchingRule) = true
 
 function run!(

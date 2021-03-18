@@ -4,7 +4,7 @@
 
     Data is used to keep information between different runs of an algorithm or between 
     runs of different algorithms. Data contains user data, such as models and formulations, 
-    as well as computed data stored in storages. 
+    as well as computed data stored in records. 
 """
 abstract type AbstractData end
 
@@ -12,7 +12,7 @@ getstoragedict(::AbstractData) = nothing
 getmodel(::AbstractData) = nothing 
 get_model_storage_dict(::AbstractData, ::AbstractModel) = nothing
 store_states!(::AbstractData, ::RecordStatesVector) = nothing
-check_storage_states_participation(::AbstractData) = nothing
+check_record_states_participation(::AbstractData) = nothing
 
 function getnicename(data::AbstractData) 
     model = getmodel(data)
@@ -23,13 +23,13 @@ function get_storage_container(data::AbstractData, pair::RecordTypePair)
     storagedict = getstoragedict(data)
     storagecont = get(storagedict, pair, nothing)
     if storagecont === nothing
-        error(string("No storage for pair $pair in $(getnicename(data))"))                        
+        error(string("No record for pair $pair in $(getnicename(data))"))                        
     end
     return storagecont
 end
 
-getstorage(data::AbstractData, pair::RecordTypePair) = 
-    getstorage(get_storage_container(data, pair))
+getrecord(data::AbstractData, pair::RecordTypePair) = 
+    getrecord(get_storage_container(data, pair))
 
 function reserve_for_writing!(data::AbstractData, pair::RecordTypePair) 
     TO.@timeit Coluna._to "Reserve for writing" begin
@@ -71,10 +71,10 @@ function store_states!(data::ModelData, states::RecordStatesVector)
     end
 end
 
-function check_storage_states_participation(data::ModelData)
+function check_record_states_participation(data::ModelData)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        check_storage_states_participation(storagecont)
+        check_record_states_participation(storagecont)
     end
 end
 
@@ -165,16 +165,16 @@ function store_states!(data::ReformData)
     return states
 end
 
-function check_storage_states_participation(data::ReformData)
+function check_record_states_participation(data::ReformData)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        check_storage_states_participation(storagecont)
+        check_record_states_participation(storagecont)
     end
-    check_storage_states_participation(getmasterdata(data))
+    check_record_states_participation(getmasterdata(data))
     for (formid, sp_data) in get_dw_pricing_datas(data)
-        check_storage_states_participation(sp_data)
+        check_record_states_participation(sp_data)
     end
     for (formid, sp_data) in get_benders_sep_datas(data)
-        check_storage_states_participation(sp_data)
+        check_record_states_participation(sp_data)
     end 
 end

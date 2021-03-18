@@ -55,15 +55,15 @@ function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
     return child_algs
 end 
 
-function get_storages_usage(algo::ColumnGeneration, reform::Reformulation) 
-    storages_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+function get_records_usage(algo::ColumnGeneration, reform::Reformulation) 
+    records_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
     master = getmaster(reform)
-    push!(storages_usage, (master, MasterColumnsRecordPair, READ_AND_WRITE))
-    push!(storages_usage, (master, PartialSolutionRecordPair, READ_ONLY))
+    push!(records_usage, (master, MasterColumnsRecordPair, READ_AND_WRITE))
+    push!(records_usage, (master, PartialSolutionRecordPair, READ_ONLY))
     if stabilization_is_used(algo)
-        push!(storages_usage, (master, ColGenStabilizationRecordPair, READ_AND_WRITE))
+        push!(records_usage, (master, ColGenStabilizationRecordPair, READ_AND_WRITE))
     end
-    return storages_usage
+    return records_usage
 end
 
 struct ReducedCostsVector
@@ -481,7 +481,7 @@ ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.opt_at
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opt_atol
 
 function update_lagrangian_dual_bound!(
-    stabstorage::ColGenStabilizationRecord, optstate::OptimizationState{F, S}, algo::ColumnGeneration,
+    stabrecord::ColGenStabilizationRecord, optstate::OptimizationState{F, S}, algo::ColumnGeneration,
     master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
     partialsol::PrimalSolution, spinfos::Dict{FormId, SubprobInfo}
 ) where {F, S}
@@ -491,7 +491,7 @@ function update_lagrangian_dual_bound!(
     puremastvars_contrib::Float64 = getvalue(partialsol)
     # if smoothing is not active the pure master variables contribution
     # is already included in the value of the dual solution
-    if smoothing_is_active(stabstorage)
+    if smoothing_is_active(stabrecord)
         master_coef_matrix = getcoefmatrix(master)
         for (varid, mult) in puremastervars
             redcost = getcurcost(master, varid)
@@ -517,20 +517,20 @@ function update_lagrangian_dual_bound!(
         for (spuid, spinfo) in spinfos
             pseudo_lagr_bound += spinfo.pseudo_dual_bound_contrib
         end
-        update_stability_center!(stabstorage, dualsol, valid_lagr_bound, pseudo_lagr_bound)
+        update_stability_center!(stabrecord, dualsol, valid_lagr_bound, pseudo_lagr_bound)
     end
     return
 end
 
 function compute_subgradient_contribution(
-    algo::ColumnGeneration, stabstorage::ColGenStabilizationRecord, master::Formulation,
+    algo::ColumnGeneration, stabrecord::ColGenStabilizationRecord, master::Formulation,
     puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId, SubprobInfo}
 )
     sense = getobjsense(master)
     constrids = ConstrId[]
     constrvals = Float64[]
 
-    if subgradient_is_needed(stabstorage, algo.smoothing_stabilization)
+    if subgradient_is_needed(stabrecord, algo.smoothing_stabilization)
         master_coef_matrix = getcoefmatrix(master)
 
         for (varid, mult) in puremastervars
@@ -632,13 +632,13 @@ function cg_main_loop!(
     redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
     iteration = 0
 
-    stabstorage = (stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationRecordPair) 
+    stabrecord = (stabilization_is_used(algo) ? getrecord(getmasterdata(data), ColGenStabilizationRecordPair) 
                                                : ColGenStabilizationRecord(masterform) )
 
-    partsolstorage = getstorage(getmasterdata(data), PartialSolutionRecordPair)
-    partial_solution = get_primal_solution(partsolstorage, masterform)
+    partsolrecord = getrecord(getmasterdata(data), PartialSolutionRecordPair)
+    partial_solution = get_primal_solution(partsolrecord, masterform)
 
-    init_stab_before_colgen_loop!(stabstorage)
+    init_stab_before_colgen_loop!(stabrecord)
 
     while true
         for (spuid, spinfo) in spinfos
@@ -713,7 +713,7 @@ function cg_main_loop!(
         iteration += 1
 
         TO.@timeit Coluna._to "Smoothing update" begin
-            smooth_dual_sol = update_stab_after_rm_solve!(stabstorage, algo.smoothing_stabilization, lp_dual_sol)
+            smooth_dual_sol = update_stab_after_rm_solve!(stabrecord, algo.smoothing_stabilization, lp_dual_sol)
         end
 
         nb_new_columns = 0
@@ -736,7 +736,7 @@ function cg_main_loop!(
 
             TO.@timeit Coluna._to "Update Lagrangian bound" begin
                 update_lagrangian_dual_bound!(
-                    stabstorage, cg_optstate, algo, masterform, pure_master_vars, 
+                    stabrecord, cg_optstate, algo, masterform, pure_master_vars, 
                     smooth_dual_sol, partial_solution, spinfos
                 )
             end
@@ -744,8 +744,8 @@ function cg_main_loop!(
             if stabilization_is_used(algo)
                 TO.@timeit Coluna._to "Smoothing update" begin
                     smooth_dual_sol = update_stab_after_gencols!(
-                        stabstorage, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol,
-                        compute_subgradient_contribution(algo, stabstorage, masterform, pure_master_vars, spinfos)
+                        stabrecord, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol,
+                        compute_subgradient_contribution(algo, stabrecord, masterform, pure_master_vars, spinfos)
                     )
                 end
                 smooth_dual_sol === nothing && break
@@ -755,11 +755,11 @@ function cg_main_loop!(
         end
 
         print_colgen_statistics(
-            env, phase, iteration, stabstorage.curalpha, cg_optstate, nb_new_columns, 
+            env, phase, iteration, stabrecord.curalpha, cg_optstate, nb_new_columns, 
             rm_time, sp_time
         )
 
-        update_stab_after_colgen_iteration!(stabstorage)
+        update_stab_after_colgen_iteration!(stabrecord)
 
         dual_bound = get_ip_dual_bound(cg_optstate)
         primal_bound = get_lp_primal_bound(cg_optstate)
