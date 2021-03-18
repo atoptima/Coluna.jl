@@ -65,14 +65,14 @@ FormulationStorage(form::Formulation) = FormulationStorage()
     MasterBranchConstrsStoragePair
 
     Storage pair for master branching constraints. 
-    Consists of FormulationStorage and MasterBranchConstrsStorageState.    
+    Consists of FormulationStorage and MasterBranchConstrsRecordState.    
 """
 
-mutable struct MasterBranchConstrsStorageState <: AbstractStorageState
+mutable struct MasterBranchConstrsRecordState <: AbstractRecordState
     constrs::Dict{ConstrId, ConstrState}
 end
 
-function Base.show(io::IO, state::MasterBranchConstrsStorageState)
+function Base.show(io::IO, state::MasterBranchConstrsRecordState)
     print(io, "[")
     for (id, constr) in state.constrs
         print(io, " ", MathProg.getuid(id))
@@ -80,9 +80,9 @@ function Base.show(io::IO, state::MasterBranchConstrsStorageState)
     print(io, "]")
 end
 
-function MasterBranchConstrsStorageState(form::Formulation, storage::FormulationStorage)
+function MasterBranchConstrsRecordState(form::Formulation, storage::FormulationStorage)
     @logmsg LogLevel(-2) "Storing branching constraints"
-    state = MasterBranchConstrsStorageState(Dict{ConstrId, ConstrState}())
+    state = MasterBranchConstrsRecordState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterBranchingConstr && 
            iscuractive(form, constr) && isexplicit(form, constr)
@@ -95,7 +95,7 @@ function MasterBranchConstrsStorageState(form::Formulation, storage::Formulation
 end
 
 function restorefromstate!(
-    form::Formulation, storage::FormulationStorage, state::MasterBranchConstrsStorageState
+    form::Formulation, storage::FormulationStorage, state::MasterBranchConstrsRecordState
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -120,7 +120,7 @@ function restorefromstate!(
     end
 end
 
-const MasterBranchConstrsStoragePair = (FormulationStorage => MasterBranchConstrsStorageState)
+const MasterBranchConstrsStoragePair = (FormulationStorage => MasterBranchConstrsRecordState)
 
 """
     MasterColumnsStoragePair
@@ -129,7 +129,7 @@ const MasterBranchConstrsStoragePair = (FormulationStorage => MasterBranchConstr
     Consists of EmptyStorage and MasterColumnsState.    
 """
 
-mutable struct MasterColumnsState <: AbstractStorageState
+mutable struct MasterColumnsState <: AbstractRecordState
     cols::Dict{VarId, VarState}
 end
 
@@ -188,7 +188,7 @@ const MasterColumnsStoragePair = (FormulationStorage => MasterColumnsState)
     Consists of EmptyStorage and MasterCutsState.    
 """
 
-mutable struct MasterCutsState <: AbstractStorageState
+mutable struct MasterCutsState <: AbstractRecordState
     cuts::Dict{ConstrId, ConstrState}
 end
 
@@ -244,17 +244,17 @@ const MasterCutsStoragePair = (FormulationStorage => MasterCutsState)
     StaticVarConstrStoragePair
 
     Storage pair for static variables and constraints of a formulation.
-    Consists of EmptyStorage and StaticVarConstrStorageState.    
+    Consists of EmptyStorage and StaticVarConstrRecordState.    
 """
 
-mutable struct StaticVarConstrStorageState <: AbstractStorageState
+mutable struct StaticVarConstrRecordState <: AbstractRecordState
     constrs::Dict{ConstrId, ConstrState}
     vars::Dict{VarId, VarState}
 end
 
 #TO DO: we need to keep here only the difference with the initial data
 
-function Base.show(io::IO, state::StaticVarConstrStorageState)
+function Base.show(io::IO, state::StaticVarConstrRecordState)
     print(io, "[vars:")
     for (id, var) in state.vars
         print(io, " ", MathProg.getuid(id))
@@ -266,9 +266,9 @@ function Base.show(io::IO, state::StaticVarConstrStorageState)
     print(io, "]")
 end
 
-function StaticVarConstrStorageState(form::Formulation, storage::FormulationStorage)
+function StaticVarConstrRecordState(form::Formulation, storage::FormulationStorage)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
-    state = StaticVarConstrStorageState(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
+    state = StaticVarConstrRecordState(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
     for (id, constr) in getconstrs(form)
         if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr)            
             constrstate = ConstrState(getcurrhs(form, constr))
@@ -285,7 +285,7 @@ function StaticVarConstrStorageState(form::Formulation, storage::FormulationStor
 end
 
 function restorefromstate!(
-    form::Formulation, storage::FormulationStorage, state::StaticVarConstrStorageState
+    form::Formulation, storage::FormulationStorage, state::StaticVarConstrRecordState
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
@@ -326,13 +326,13 @@ function restorefromstate!(
     end
 end
 
-const StaticVarConstrStoragePair = (FormulationStorage => StaticVarConstrStorageState)
+const StaticVarConstrStoragePair = (FormulationStorage => StaticVarConstrRecordState)
 
 """
     PartialSolutionStoragePair
 
     Storage pair for partial solution of a formulation.
-    Consists of PartialSolutionStorage and PartialSolutionStorageState.    
+    Consists of PartialSolutionStorage and PartialSolutionRecordState.    
 """
 
 # TO DO : to replace dictionaries by PrimalSolution
@@ -364,20 +364,20 @@ function PartialSolutionStorage(form::Formulation)
 end
 
 # the storage state is the same as the storage here
-mutable struct PartialSolutionStorageState <: AbstractStorageState
+mutable struct PartialSolutionRecordState <: AbstractRecordState
     solution::Dict{VarId, Float64}
 end
 
-function PartialSolutionStorageState(form::Formulation, storage::PartialSolutionStorage)
+function PartialSolutionRecordState(form::Formulation, storage::PartialSolutionStorage)
     @logmsg LogLevel(-2) "Storing partial solution"
-    return PartialSolutionStorageState(copy(storage.solution))
+    return PartialSolutionRecordState(copy(storage.solution))
 end
 
 function restorefromstate!(
-    form::Formulation, storage::PartialSolutionStorage, state::PartialSolutionStorageState
+    form::Formulation, storage::PartialSolutionStorage, state::PartialSolutionRecordState
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
     storage.solution = copy(state.solution)
 end
 
-const PartialSolutionStoragePair = (PartialSolutionStorage => PartialSolutionStorageState)
+const PartialSolutionStoragePair = (PartialSolutionStorage => PartialSolutionRecordState)

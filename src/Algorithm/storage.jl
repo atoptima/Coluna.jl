@@ -20,12 +20,12 @@
     (storage type, storage state type). 
     
     To store all storages of a data, we use functions 
-    "store_states!(::AbstractData)::StorageStatesVector" or
-    "copy_states(::StorageStatesVector)::StorageStatesVector"
+    "store_states!(::AbstractData)::RecordStatesVector" or
+    "copy_states(::RecordStatesVector)::RecordStatesVector"
   
     Every stored state should be removed or restored using functions 
-    "restore_states!(::StorageStatesVector,::StoragesUsageDict)" 
-    and "remove_states!(::StorageStatesVector)"
+    "restore_states!(::RecordStatesVector,::StoragesUsageDict)" 
+    and "remove_states!(::RecordStatesVector)"
   
     After storing current states, if we write to some storage, we should restore 
     it for writing using "restore_states!(...)" 
@@ -45,7 +45,7 @@
 abstract type AbstractStorage end
 
 """
-    AbstractStorageState
+    AbstractRecordState
     
     For each storage state, a constructor should be defined which
     takes a model and a storage as parameters. This constructor
@@ -53,7 +53,7 @@ abstract type AbstractStorage end
     
 """
 
-abstract type AbstractStorageState end
+abstract type AbstractRecordState end
 
 """
     function restorefromstate!(model, storage, storage state)
@@ -62,7 +62,7 @@ abstract type AbstractStorageState end
     used by an algorithm.     
 """
 
-restorefromstate!(model::AbstractModel, storage::AbstractStorage, state::AbstractStorageState) =
+restorefromstate!(model::AbstractModel, storage::AbstractStorage, state::AbstractRecordState) =
     error(string(
         "Method restorefromstate!() is not defined for model type $(typeof(model)), ",
         "storage type $(typeof(storage)), and storage state type $(typeof(state))"
@@ -70,19 +70,19 @@ restorefromstate!(model::AbstractModel, storage::AbstractStorage, state::Abstrac
 
 
 """
-    EmptyStorageState
+    EmptyRecordState
 
     If a storage is not changed after initialization, then 
     the empty storage state should be used with it.
 """
 
-struct EmptyStorageState <: AbstractStorageState end
+struct EmptyRecordState <: AbstractRecordState end
 
-EmptyStorageState(model::AbstractModel, storage::AbstractStorage) = nothing
+EmptyRecordState(model::AbstractModel, storage::AbstractStorage) = nothing
 
-restorefromstate!(::AbstractModel, ::AbstractStorage, ::EmptyStorageState) = nothing
+restorefromstate!(::AbstractModel, ::AbstractStorage, ::EmptyRecordState) = nothing
 
-# StorageTypePair = Pair{Type{<:AbstractStorage}, Type{<:AbstractStorageState}}.
+# StorageTypePair = Pair{Type{<:AbstractStorage}, Type{<:AbstractRecordState}}.
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
 const StorageTypePair = Pair{DataType, DataType}
 
@@ -117,7 +117,7 @@ function add_storage_pair_usage!(
 end
 
 """
-    StorageStateContainer
+    RecordStateContainer
 
     This container keeps additional storage state information needed for 
     keeping the number of times the state has been stored. When 
@@ -126,27 +126,27 @@ end
 
 const StateId = Int
 
-mutable struct StorageStateContainer{SS<:AbstractStorageState}
+mutable struct RecordStateContainer{SS<:AbstractRecordState}
     id::StateId
     participation::Int
     state::Union{Nothing, SS}
 end
 
-StorageStateContainer{SS}(stateid::StateId, participation::Int) where {SS<:AbstractStorageState} =
-    StorageStateContainer{SS}(stateid, participation, nothing)
+RecordStateContainer{SS}(stateid::StateId, participation::Int) where {SS<:AbstractRecordState} =
+    RecordStateContainer{SS}(stateid, participation, nothing)
 
-getstateid(ssc::StorageStateContainer) = ssc.id
-stateisempty(ssc::StorageStateContainer) = ssc.state === nothing
-getparticipation(ssc::StorageStateContainer) = ssc.participation
-getstate(ssc::StorageStateContainer) = ssc.state
-increaseparticipation!(ssc::StorageStateContainer) = ssc.participation += 1
-decreaseparticipation!(ssc::StorageStateContainer) = ssc.participation -= 1
+getstateid(ssc::RecordStateContainer) = ssc.id
+stateisempty(ssc::RecordStateContainer) = ssc.state === nothing
+getparticipation(ssc::RecordStateContainer) = ssc.participation
+getstate(ssc::RecordStateContainer) = ssc.state
+increaseparticipation!(ssc::RecordStateContainer) = ssc.participation += 1
+decreaseparticipation!(ssc::RecordStateContainer) = ssc.participation -= 1
 
-function setstate!(ssc::StorageStateContainer{SS}, state_to_set::SS) where {SS<:AbstractStorageState}
+function setstate!(ssc::RecordStateContainer{SS}, state_to_set::SS) where {SS<:AbstractRecordState}
     ssc.state = state_to_set
 end
 
-function Base.show(io::IO, statecont::StorageStateContainer{SS}) where {SS<:AbstractStorageState}
+function Base.show(io::IO, statecont::RecordStateContainer{SS}) where {SS<:AbstractRecordState}
     print(io, "state ", remove_until_last_point(string(SS)))
     print(io, " with id=", getstateid(statecont), " part=", getparticipation(statecont))
     if getstate(statecont) === nothing
@@ -157,19 +157,19 @@ function Base.show(io::IO, statecont::StorageStateContainer{SS}) where {SS<:Abst
 end
 
 """
-    EmptyStorageStateContainer
+    EmptyRecordStateContainer
 """
 
-const EmptyStorageStateContainer = StorageStateContainer{EmptyStorageState}
+const EmptyRecordStateContainer = RecordStateContainer{EmptyRecordState}
 
-EmptyStorageStateContainer(stateid::StateId, participation::Int) =
-    EmptyStorageStateContainer(1, 0)
+EmptyRecordStateContainer(stateid::StateId, participation::Int) =
+    EmptyRecordStateContainer(1, 0)
 
-getstateid(essc::EmptyStorageStateContainer) = 1
-stateisempty(essc::EmptyStorageStateContainer) = true 
-getparticipation(essc::EmptyStorageStateContainer) = 0
-increaseparticipation!(essc::EmptyStorageStateContainer) = nothing
-decreaseparticipation!(essc::EmptyStorageStateContainer) = nothing
+getstateid(essc::EmptyRecordStateContainer) = 1
+stateisempty(essc::EmptyRecordStateContainer) = true 
+getparticipation(essc::EmptyRecordStateContainer) = 0
+increaseparticipation!(essc::EmptyRecordStateContainer) = nothing
+decreaseparticipation!(essc::EmptyRecordStateContainer) = nothing
 
 """
     StorageContainer
@@ -179,23 +179,23 @@ decreaseparticipation!(essc::EmptyStorageStateContainer) = nothing
     efficient way. 
 """
 
-mutable struct StorageContainer{M<:AbstractModel, S<:AbstractStorage, SS<:AbstractStorageState}
+mutable struct StorageContainer{M<:AbstractModel, S<:AbstractStorage, SS<:AbstractRecordState}
     model::M
-    curstatecont::StorageStateContainer{SS}
+    curstatecont::RecordStateContainer{SS}
     maxstateid::StateId
     storage::S
     typepair::StorageTypePair
-    statesdict::Dict{StateId, StorageStateContainer{SS}}
+    statesdict::Dict{StateId, RecordStateContainer{SS}}
 end 
 
-const StorageStatesVector = Vector{Pair{StorageContainer, StateId}}
+const RecordStatesVector = Vector{Pair{StorageContainer, StateId}}
 
 const StorageDict = Dict{StorageTypePair, StorageContainer}
 
 function StorageContainer{M,S,SS}(model::M) where {M,S,SS}
     return StorageContainer{M,S,SS}(
-        model, StorageStateContainer{SS}(1, 0), 1, S(model), 
-        S => SS, Dict{StateId, StorageStateContainer{SS}}()
+        model, RecordStateContainer{SS}(1, 0), 1, S(model), 
+        S => SS, Dict{StateId, RecordStateContainer{SS}}()
     )
 end    
 
@@ -209,13 +209,13 @@ gettypepair(sc::StorageContainer) = sc.typepair
 function Base.show(io::IO, storagecont::StorageContainer)
     print(io, "storage (")
     print(IOContext(io, :compact => true), getmodel(storagecont))
-    (StorageType, StorageStateType) = gettypepair(storagecont)    
+    (StorageType, RecordStateType) = gettypepair(storagecont)    
     print(io, ", ", remove_until_last_point(string(StorageType)))    
-    print(io, ", ", remove_until_last_point(string(StorageStateType)), ")")        
+    print(io, ", ", remove_until_last_point(string(RecordStateType)), ")")        
 end
 
 function setcurstate!(
-    storagecont::StorageContainer{M,S,SS}, statecont::StorageStateContainer{SS}
+    storagecont::StorageContainer{M,S,SS}, statecont::RecordStateContainer{SS}
 ) where {M,S,SS} 
     # we delete the current state container from the dictionary if necessary
     curstatecont = getcurstatecont(storagecont)
@@ -256,7 +256,7 @@ function retrieve_from_statesdict(storagecont::StorageContainer, stateid::StateI
 end
 
 function save_to_statesdict!(
-    storagecont::StorageContainer{M,S,SS}, statecont::StorageStateContainer{SS}
+    storagecont::StorageContainer{M,S,SS}, statecont::RecordStateContainer{SS}
 ) where {M,S,SS}
     if getparticipation(statecont) > 0 && stateisempty(statecont)
         state = SS(getmodel(storagecont), getstorage(storagecont))
@@ -284,7 +284,7 @@ function restorestate!(
         end
         if mode == READ_AND_WRITE 
             save_to_statesdict!(storagecont, statecont)
-            statecont = StorageStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
+            statecont = RecordStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
             setcurstate!(storagecont, statecont)
         end
         return
@@ -304,7 +304,7 @@ function restorestate!(
         restorefromstate!(getmodel(storagecont), getstorage(storagecont), getstate(statecont))
         @logmsg LogLevel(-2) string("Restored state with id ", getstateid(statecont), " for ", storagecont)
         if mode == READ_AND_WRITE 
-            statecont = StorageStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
+            statecont = RecordStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
         end 
         setcurstate!(storagecont, statecont)
     end
@@ -321,11 +321,11 @@ end
 # function reserve_for_writing!(storagecont::StorageContainer{M,S,SS}) where {M,S,SS}
 #     statecont = getcurstatecont(storagecont)
 #     save_to_statesdict!(storagecont, statecont)
-#     statecont = StorageStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
+#     statecont = RecordStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)
 #     setcurstate!(storagecont, statecont)
 # end
 
-function restore_states!(ssvector::StorageStatesVector, storages_to_restore::StoragesUsageDict)
+function restore_states!(ssvector::RecordStatesVector, storages_to_restore::StoragesUsageDict)
     TO.@timeit Coluna._to "Restore/remove states" begin
         for (storagecont, stateid) in ssvector
             mode = get(
@@ -339,7 +339,7 @@ function restore_states!(ssvector::StorageStatesVector, storages_to_restore::Sto
     empty!(ssvector) # vector of states should be emptied 
 end
 
-function remove_states!(ssvector::StorageStatesVector)
+function remove_states!(ssvector::RecordStatesVector)
     TO.@timeit Coluna._to "Restore/remove states" begin
         for (storagecont, stateid) in ssvector
             restorestate!(storagecont, stateid, NOT_USED)
@@ -348,8 +348,8 @@ function remove_states!(ssvector::StorageStatesVector)
     empty!(ssvector) # vector of states should be emptied 
 end
 
-function copy_states(states::StorageStatesVector)::StorageStatesVector
-    statescopy = StorageStatesVector()
+function copy_states(states::RecordStatesVector)::RecordStatesVector
+    statescopy = RecordStatesVector()
     for (storagecont, stateid) in states
         push!(statescopy, storagecont => stateid)
         increaseparticipation!(storagecont, stateid)
