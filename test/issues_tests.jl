@@ -139,9 +139,7 @@ function optimize_twice()
     data = CLD.GeneralizedAssignment.data("play2.txt")
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-            branchingtreefile = "playgap.dot"
-        )),
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
         "default_optimizer" => GLPK.Optimizer
     )
     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -213,6 +211,17 @@ function branching_file_completion()
     @test JuMP.termination_status(model) == MOI.OPTIMAL
 end
 
+function show_model()
+    data = CLD.GeneralizedAssignment.data("play2.txt")
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    @test occursin("A JuMP Model", repr(model))
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -230,12 +239,16 @@ function test_issues_fixed()
         solve_empty_model()
     end
     
-    @testset "optimize_twice()" begin
+    @testset "optimize_twice" begin
         optimize_twice()
     end
 
     @testset "branching_file_completion" begin
         branching_file_completion()
+    end
+
+    @testset "show_model" begin
+        show_model()
     end
 end
 
