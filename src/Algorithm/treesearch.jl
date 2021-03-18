@@ -102,7 +102,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
 
     conquer_units_to_restore = UnitsUsageDict()
     collect_units_to_restore!(conquer_units_to_restore, algo.conqueralg, reform) 
-    # divide algorithms are always manager algorithms, so we do not need to restore records for them
+    # divide algorithms are always manager algorithms, so we do not need to restore storage units for them
 
     Sense = getobjsense(reform)
 
@@ -140,7 +140,7 @@ end
 get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
 getoptstate(data::TreeSearchRuntimeData) = data.optstate
 
-#TreeSearchAlgorithm is a manager algorithm (manages storing and restoring records)
+#TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storage units)
 ismanager(algo::TreeSearchAlgorithm) = true
 
 # TreeSearchAlgorithm does not use any record itself, 
@@ -160,9 +160,9 @@ end
 # end
 
 # function get_units_to_restore!(
-#     algo::TreeSearchAlgorithm, reform::Reformulation, units_to_restore::RecordsToRestoreDict
+#     algo::TreeSearchAlgorithm, reform::Reformulation, units_to_restore::UnitsToRestoreDict
 # )
-#     # tree search algorithm restores itself records for the conquer and divide algorithm 
+#     # tree search algorithm restores itself storage units for the conquer and divide algorithm 
 #     # on every node, so we do not require anything here
 # end
 

@@ -92,7 +92,7 @@ const UnitTypePair = Pair{DataType, DataType}
 const UnitsUsageDict = Dict{Tuple{AbstractModel, UnitTypePair}, UnitAccessMode}
 
 function Base.show(io::IO, usagedict::UnitsUsageDict)
-    print(io, "record usage dict [")
+    print(io, "storage units usage dict [")
     for usage in usagedict
         print(io, " (", typeof(usage[1][1]), ", ", usage[1][2], ") => ", usage[2])
     end
@@ -184,7 +184,7 @@ mutable struct StorageContainer{M<:AbstractModel, S<:AbstractStorageUnit, SS<:Ab
     model::M
     curstatecont::RecordStateContainer{SS}
     maxstateid::StateId
-    record::S
+    storage_unit::S
     typepair::UnitTypePair
     statesdict::Dict{StateId, RecordStateContainer{SS}}
 end 
@@ -204,7 +204,7 @@ getmodel(sc::StorageContainer) = sc.model
 getcurstatecont(sc::StorageContainer) = sc.curstatecont
 getmaxstateid(sc::StorageContainer) = sc.maxstateid
 getstatesdict(sc::StorageContainer) = sc.statesdict
-getunit(sc::StorageContainer) = sc.record
+getunit(sc::StorageContainer) = sc.storage_unit
 gettypepair(sc::StorageContainer) = sc.typepair
 
 function Base.show(io::IO, storagecont::StorageContainer)
@@ -312,7 +312,7 @@ function restorestate!(
 end
 
 """
-    Record functions used by Coluna
+    Storage unit functions used by Coluna
 """
 
 # this is a "lighter" alternative to restore_states!() function below

@@ -91,9 +91,9 @@ function optimize!(
 
     algorithm = env.params.solver
 
-    #this will initialize all the records used by the algorithm and its child algorithms
+    #this will initialize all the units used by the algorithm and its child algorithms
     reformdata = Algorithm.ReformData(reform)
-    Algorithm.initialize_records!(reformdata, algorithm)
+    Algorithm.initialize_units!(reformdata, algorithm)
 
     output = Algorithm.run!(algorithm, env, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)

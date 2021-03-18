@@ -54,11 +54,11 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_record = getunit(data, PreprocessingUnitPair)
-        partsol_record = getunit(masterdata, PartialSolutionUnitPair)
+        preprocess_unit = getunit(data, PreprocessingUnitPair)
+        partsol_unit = getunit(masterdata, PartialSolutionUnitPair)
     
-        add_to_localpartialsol!(preprocess_record, first(var_vals[1]), 1.0)
-        add_to_solution!(partsol_record, first(var_vals[1]), 1.0)
+        add_to_localpartialsol!(preprocess_unit, first(var_vals[1]), 1.0)
+        add_to_solution!(partsol_unit, first(var_vals[1]), 1.0)
 
         prp_output = run!(algo.preprocess, env, data, EmptyInput())
         isinfeasible(prp_output) && break

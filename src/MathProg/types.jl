@@ -116,13 +116,13 @@ end
 """
     AbstractFormulation
 
-    Formulation is a mathematical representation of a problem 
-    (model of a problem). A problem may have different formulations. 
-    We may rename "formulation" to "model" after.
-    Different algorithms may be applied to a formulation.
-    A formulation should contain a dictionary of records
-    used by algorithms. A formulation contains one record 
-    per record type used by algorithms.    
+Formulation is a mathematical representation of a problem 
+(model of a problem). A problem may have different formulations. 
+We may rename "formulation" to "model" after.
+Different algorithms may be applied to a formulation.
+A formulation should contain a dictionary of storage units
+used by algorithms. A formulation contains one storage unit 
+per storage unit type used by algorithms.    
 """
 abstract type AbstractFormulation <: AbstractModel end
 
