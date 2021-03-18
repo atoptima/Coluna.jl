@@ -1,14 +1,14 @@
 
 """
-    PreprocessingStorage
+    PreprocessingRecord
 
-    Storage for preprocessing. Contains global data: slacks of constraints,
+    Record for preprocessing. Contains global data: slacks of constraints,
     subproblem bounds, new constraints the local partial solution to preprocess.
     Contains also local data : stack of constraints to preprecess, as well as the
     vectors of preprocessed constraints and variables.  
 """
 
-mutable struct PreprocessingStorage <: AbstractStorage
+mutable struct PreprocessingRecord <: AbstractRecord
     # global data 
     cur_min_slack::Dict{ConstrId,Float64}
     cur_max_slack::Dict{ConstrId,Float64}
@@ -26,7 +26,7 @@ mutable struct PreprocessingStorage <: AbstractStorage
     sp_vars_with_changed_bounds::Set{Tuple{VarId,Formulation}}
 end
 
-function PreprocessingStorage(reform::Reformulation) 
+function PreprocessingRecord(reform::Reformulation) 
     constraints = Tuple{ConstrId,Formulation}[]
 
     # Master constraints
@@ -56,7 +56,7 @@ function PreprocessingStorage(reform::Reformulation)
             getcurrhs(master, get_dw_pricing_sp_ub_constrid(reform, spuid))
     end
 
-    return PreprocessingStorage(
+    return PreprocessingRecord(
         Dict{ConstrId,Float64}(), Dict{ConstrId,Float64}(), 
         Dict{ConstrId,Int}(), Dict{ConstrId,Int}(), cur_sp_lower_bounds,
         cur_sp_upper_bounds, constraints, Dict{VarId, Float64}(), 
@@ -64,20 +64,20 @@ function PreprocessingStorage(reform::Reformulation)
         Set{Tuple{ConstrId,Formulation}}(), Set{Tuple{VarId, Formulation}}())
 end
 
-function empty_local_data!(storage::PreprocessingStorage)
+function empty_local_data!(storage::PreprocessingRecord)
     empty!(storage.stack)
     empty!(storage.constrs_in_stack)
     empty!(storage.preprocessed_constrs)
     empty!(storage.sp_vars_with_changed_bounds)
 end
 
-function add_to_localpartialsol!(storage::PreprocessingStorage, varid::VarId, value::Float64)
+function add_to_localpartialsol!(storage::PreprocessingRecord, varid::VarId, value::Float64)
     cur_value = get(storage.local_partial_sol, varid, 0.0)
     storage.local_partial_sol[varid] = cur_value + value
     return
 end
 
-function get_local_primal_solution(storage::PreprocessingStorage, form::Formulation)
+function get_local_primal_solution(storage::PreprocessingRecord, form::Formulation)
     varids = collect(keys(storage.local_partial_sol))
     vals = collect(values(storage.local_partial_sol))
     solcost = 0.0
@@ -88,7 +88,7 @@ function get_local_primal_solution(storage::PreprocessingStorage, form::Formulat
 end    
 
 function add_to_stack!(
-    storage::PreprocessingStorage, constrid::ConstrId, form::Formulation
+    storage::PreprocessingRecord, constrid::ConstrId, form::Formulation
 )
     if constrid ∉ storage.constrs_in_stack  
         push!(storage.constrs_in_stack, constrid)
@@ -114,7 +114,7 @@ mutable struct PreprocessingRecordState <: AbstractRecordState
     local_partial_sol::Dict{VarId, Float64}
 end
 
-function PreprocessingRecordState(reform::Reformulation, storage::PreprocessingStorage)
+function PreprocessingRecordState(reform::Reformulation, storage::PreprocessingRecord)
     return PreprocessingRecordState(
         copy(storage.cur_min_slack), copy(storage.cur_max_slack), 
         copy(storage.nb_inf_sources_for_min_slack),
@@ -124,7 +124,7 @@ function PreprocessingRecordState(reform::Reformulation, storage::PreprocessingS
 end
 
 function restorefromstate!(
-    form::Reformulation, storage::PreprocessingStorage, state::PreprocessingRecordState
+    form::Reformulation, storage::PreprocessingRecord, state::PreprocessingRecordState
 )
     storage.cur_min_slack = copy(state.cur_min_slack)
     storage.cur_max_slack = copy(state.cur_max_slack)
@@ -136,7 +136,7 @@ function restorefromstate!(
     storage.local_partial_sol = copy(state.local_partial_sol)
 end
 
-const PreprocessingStoragePair = (PreprocessingStorage => PreprocessingRecordState)
+const PreprocessingRecordPair = (PreprocessingRecord => PreprocessingRecordState)
 
 
 """
@@ -161,23 +161,23 @@ isinfeasible(output::PreprocessingOutput) = output.infeasible
 end
 
 function get_storages_usage(algo::PreprocessAlgorithm, form::Formulation) 
-    return [(form, StaticVarConstrStoragePair, READ_AND_WRITE), 
-            (form, PreprocessingStoragePair, READ_AND_WRITE)]
+    return [(form, StaticVarConstrRecordPair, READ_AND_WRITE), 
+            (form, PreprocessingRecordPair, READ_AND_WRITE)]
 end
 
 function get_storages_usage(algo::PreprocessAlgorithm, reform::Reformulation) 
-    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[]     
-    push!(storages_usage, (reform, PreprocessingStoragePair, READ_AND_WRITE))
+    storages_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[]     
+    push!(storages_usage, (reform, PreprocessingRecordPair, READ_AND_WRITE))
 
     master = getmaster(reform)
-    push!(storages_usage, (master, StaticVarConstrStoragePair, READ_AND_WRITE))
-    push!(storages_usage, (master, MasterBranchConstrsStoragePair, READ_AND_WRITE))
-    push!(storages_usage, (master, MasterCutsStoragePair, READ_AND_WRITE))
+    push!(storages_usage, (master, StaticVarConstrRecordPair, READ_AND_WRITE))
+    push!(storages_usage, (master, MasterBranchConstrsRecordPair, READ_AND_WRITE))
+    push!(storages_usage, (master, MasterCutsRecordPair, READ_AND_WRITE))
 
     if algo.preprocess_subproblems
-        push!(storages_usage, (master, MasterColumnsStoragePair, READ_AND_WRITE))
+        push!(storages_usage, (master, MasterColumnsRecordPair, READ_AND_WRITE))
         for (id, spform) in get_dw_pricing_sps(reform)
-            push!(storages_usage, (spform, StaticVarConstrStoragePair, READ_AND_WRITE))
+            push!(storages_usage, (spform, StaticVarConstrRecordPair, READ_AND_WRITE))
         end
     end
     return storages_usage
@@ -186,7 +186,7 @@ end
 function run!(algo::PreprocessAlgorithm, env::Env, data::ReformData, input::EmptyInput)::PreprocessingOutput
     @logmsg LogLevel(-1) "Run preprocessing"
 
-    storage = getstorage(data, PreprocessingStoragePair)
+    storage = getstorage(data, PreprocessingRecordPair)
     
     infeasible = init_new_constraints!(algo, storage) 
 
@@ -207,7 +207,7 @@ function run!(algo::PreprocessAlgorithm, env::Env, data::ReformData, input::Empt
 end
 
 function change_sp_lower_bound!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, spform::Formulation{DwSp}, newbound::Int
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, spform::Formulation{DwSp}, newbound::Int
     )
     spuid = getuid(spform)
     curbound = storage.cur_sp_lower_bounds[spuid]
@@ -226,7 +226,7 @@ function change_sp_lower_bound!(
 end
 
 function change_sp_upper_bound!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, spform::Formulation{DwSp}, newbound::Int;
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, spform::Formulation{DwSp}, newbound::Int;
     update_global_var_bounds::Bool = false
     )
     @assert newbound >= 0
@@ -253,7 +253,7 @@ function change_sp_upper_bound!(
 end
 
 function update_bounds_of_master_representative!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, varid::VarId, spform::Formulation{DwSp};
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, varid::VarId, spform::Formulation{DwSp};
     value_to_substract::Float64 = 0.0
     )
     iscuractive(spform, varid) || return false
@@ -285,7 +285,7 @@ function update_bounds_of_master_representative!(
 end
 
 function change_subprob_bounds!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, master::Formulation{DwMaster},
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, master::Formulation{DwMaster},
     original_solution::PrimalSolution
     )
 
@@ -319,7 +319,7 @@ function change_subprob_bounds!(
 end
 
 function fix_local_partial_solution!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, form::Formulation
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, form::Formulation
     )
     isempty(storage.local_partial_sol) && return false
 
@@ -359,7 +359,7 @@ function fix_local_partial_solution!(
     return infeasible 
 end
 
-function init_new_constraints!(algo::PreprocessAlgorithm, storage::PreprocessingStorage)
+function init_new_constraints!(algo::PreprocessAlgorithm, storage::PreprocessingRecord)
 
     for (constrid, form) in storage.new_constrs
         iscuractive(form, constrid) || continue
@@ -381,7 +381,7 @@ function init_new_constraints!(algo::PreprocessAlgorithm, storage::Preprocessing
 end
 
 function check_min_slack!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, constrid::ConstrId, form::Formulation{Duty}
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, constrid::ConstrId, form::Formulation{Duty}
     ) where {Duty}
     slack = storage.cur_min_slack[constrid]
     if getcursense(form, constrid) != Less && slack > 0.0001
@@ -398,7 +398,7 @@ function check_min_slack!(
 end
 
 function check_max_slack!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, constrid::ConstrId, form::Formulation{Duty}
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, constrid::ConstrId, form::Formulation{Duty}
     ) where {Duty}
     slack = storage.cur_max_slack[constrid]
     if getcursense(form, constrid) != Greater && slack < -0.0001
@@ -415,7 +415,7 @@ function check_max_slack!(
 end
 
 function compute_min_slack!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, constrid::ConstrId, form::Formulation
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, constrid::ConstrId, form::Formulation
     )
     slack = getcurrhs(form, constrid)
     if getduty(constrid) <= AbstractMasterConstr
@@ -450,7 +450,7 @@ function compute_min_slack!(
 end
 
 function compute_max_slack!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, constrid::ConstrId, form::Formulation
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, constrid::ConstrId, form::Formulation
     )
     slack = getcurrhs(form, constrid)
     if getduty(constrid) <= AbstractMasterConstr
@@ -485,7 +485,7 @@ function compute_max_slack!(
 end
 
 function update_max_slack!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, constrid::ConstrId, 
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, constrid::ConstrId, 
     form::Formulation, var_was_inf_source::Bool, delta::Float64
     )
 
@@ -517,7 +517,7 @@ function update_max_slack!(
 end
 
 function update_min_slack!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, constrid::ConstrId, 
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, constrid::ConstrId, 
     form::Formulation, var_was_inf_source::Bool, delta::Float64
     )
     algo.printing && println(
@@ -548,7 +548,7 @@ function update_min_slack!(
 end
 
 function update_lower_bound!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, var::Variable, 
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, var::Variable, 
     form::Formulation{Duty}, new_lb::Float64; check_monotonicity::Bool = true
     ) where {Duty}
     varid = getid(var)
@@ -631,7 +631,7 @@ function update_lower_bound!(
 end
 
 function update_upper_bound!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, var::Variable, 
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, var::Variable, 
     form::Formulation{Duty}, new_ub::Float64
     ) where {Duty}
     varid = getid(var)
@@ -727,7 +727,7 @@ function compute_new_bound(
 end
 
 function strengthen_var_bounds_in_constr!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, constrid::ConstrId, form::Formulation{Duty}
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, constrid::ConstrId, form::Formulation{Duty}
     ) where {Duty}
     if Duty == DwSp
         if !algo.preprocess_subproblems || storage.cur_sp_upper_bounds[getuid(form)] == 0
@@ -786,7 +786,7 @@ function strengthen_var_bounds_in_constr!(
     return false
 end
 
-function propagation!(algo::PreprocessAlgorithm, storage::PreprocessingStorage)
+function propagation!(algo::PreprocessAlgorithm, storage::PreprocessingRecord)
     while !isempty(storage.stack)
         (constrid, form) = pop!(storage.stack)
         delete!(storage.constrs_in_stack, constrid)
@@ -812,7 +812,7 @@ end
 # and we need to quickly access columns generated by a subproblem (to access them
 # if a lower bound of sp variables becomes larger than zero)
 function forbid_infeasible_columns!(
-    algo::PreprocessAlgorithm, storage::PreprocessingStorage, master::Formulation{DwMaster}
+    algo::PreprocessAlgorithm, storage::PreprocessingRecord, master::Formulation{DwMaster}
     )
     num_deactivated_columns = 0
     for (col_id, col) in getvars(master)
@@ -843,7 +843,7 @@ function forbid_infeasible_columns!(
     return
 end
 
-function remove_preprocessed_constraints(algo::PreprocessAlgorithm, storage::PreprocessingStorage)
+function remove_preprocessed_constraints(algo::PreprocessAlgorithm, storage::PreprocessingRecord)
 
     num_deactivated_constraints = 0
     for (constrid, form) in storage.preprocessed_constrs

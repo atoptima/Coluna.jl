@@ -89,7 +89,7 @@ mutable struct TreeSearchRuntimeData{Sense}
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
-    conquer_storages_to_restore::StoragesUsageDict
+    conquer_storages_to_restore::RecordsUsageDict
     worst_db_of_pruned_node::DualBound{Sense}
 end
 
@@ -100,7 +100,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
         getmaster(reform), getoptstate(input), exploitsprimalsols, false
     )
 
-    conquer_storages_to_restore = StoragesUsageDict()
+    conquer_storages_to_restore = RecordsUsageDict()
     collect_storages_to_restore!(conquer_storages_to_restore, algo.conqueralg, reform) 
     # divide algorithms are always manager algorithms, so we do not need to restore storages for them
 
@@ -152,7 +152,7 @@ end
 
 
 # function get_storages_usage!(
-#     algo::TreeSearchAlgorithm, reform::Reformulation, storages_usage::StoragesUsageDict
+#     algo::TreeSearchAlgorithm, reform::Reformulation, storages_usage::RecordsUsageDict
 # )
 #     get_storages_usage!(algo.conqueralg, reform, storages_usage)
 #     get_storages_usage!(algo.dividealg, reform, storages_usage)
@@ -160,7 +160,7 @@ end
 # end
 
 # function get_storages_to_restore!(
-#     algo::TreeSearchAlgorithm, reform::Reformulation, storages_to_restore::StoragesToRestoreDict
+#     algo::TreeSearchAlgorithm, reform::Reformulation, storages_to_restore::RecordsToRestoreDict
 # )
 #     # tree search algorithm restores itself storages for the conquer and divide algorithm 
 #     # on every node, so we do not require anything here

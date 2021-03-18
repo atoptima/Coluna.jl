@@ -58,13 +58,13 @@ ismanager(algo::AbstractAlgorithm) = false
 get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
-    get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, RecordTypePair, StorageAccessMode}}
+    get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, RecordTypePair, RecordAccessMode}}
 
     Every algorithm should communicate the storages it uses (so that these storages 
     are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
     in order to restore storages before running a worker algorithm.
 """
-get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
+get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
 
 """
     run!(algo::AbstractAlgorithm, model::AbstractData, input::AbstractInput)::AbstractOutput
@@ -114,7 +114,7 @@ exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 # this function collects storages to restore for an algorithm and all its child worker algorithms,
 # child manager algorithms are skipped, as their restore storages themselves
 function collect_storages_to_restore!(
-    global_storages_usage::StoragesUsageDict, algo::AbstractAlgorithm, model::AbstractModel
+    global_storages_usage::RecordsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
 )
     local_storages_usage = get_storages_usage(algo, model)
     for (stor_model, stor_pair, stor_usage) in local_storages_usage
@@ -130,12 +130,12 @@ end
 # this function collects storages to create for an algorithm and all its child algorithms
 # this function is used only the function initialize_storages!() below
 function collect_storages_to_create!(
-    storages_to_create::Dict{AbstractModel,Set{StorageTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
+    storages_to_create::Dict{AbstractModel,Set{RecordTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
 )
     storages_usage = get_storages_usage(algo, model)
     for (stor_model, stor_pair, stor_usage) in storages_usage
         if !haskey(storages_to_create, stor_model)
-            storages_to_create[stor_model] = Set{StorageTypePair}()
+            storages_to_create[stor_model] = Set{RecordTypePair}()
         end
         push!(storages_to_create[stor_model], stor_pair)
     end
@@ -148,7 +148,7 @@ end
 
 # this function initializes all the storages
 function initialize_storages!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
-    storages_to_create = Dict{AbstractModel,Set{StorageTypePair}}()
+    storages_to_create = Dict{AbstractModel,Set{RecordTypePair}}()
     collect_storages_to_create!(storages_to_create, algo, getmodel(data)) 
 
     for (model, type_pair_set) in storages_to_create        
@@ -161,9 +161,9 @@ function initialize_storages!(data::AbstractData, algo::AbstractOptimizationAlgo
             )
         end   
         for type_pair in type_pair_set
-            (StorageType, RecordStateType) = type_pair
+            (RecordType, RecordStateType) = type_pair
             storagedict[type_pair] = 
-                StorageContainer{ModelType, StorageType, RecordStateType}(model)
+                StorageContainer{ModelType, RecordType, RecordStateType}(model)
         end
     end
 end

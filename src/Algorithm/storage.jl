@@ -1,10 +1,10 @@
-@enum(StorageAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
+@enum(RecordAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
 
 """
     About storages
     --------------
 
-    Storages keep user data (a model) and computed data between different runs 
+    Records keep user data (a model) and computed data between different runs 
     of an algorithm or between runs of different algorithms. 
     Models are storages themselves. Each storage is associated with a
     model. Thus a storage adds computed data to a model.  
@@ -24,7 +24,7 @@
     "copy_states(::RecordStatesVector)::RecordStatesVector"
   
     Every stored state should be removed or restored using functions 
-    "restore_states!(::RecordStatesVector,::StoragesUsageDict)" 
+    "restore_states!(::RecordStatesVector,::RecordsUsageDict)" 
     and "remove_states!(::RecordStatesVector)"
   
     After storing current states, if we write to some storage, we should restore 
@@ -34,15 +34,14 @@
 """
 
 """
-    AbstractStorage 
+    AbstractRecord 
 
-    For every storage a constructor should be defined which
-    takes a model as a parameter. This constructor is 
-    called when the formulation is completely known so the data
-    can be safely computed.
+For every storage a constructor should be defined which
+takes a model as a parameter. This constructor is 
+called when the formulation is completely known so the data
+can be safely computed.
 """
-
-abstract type AbstractStorage end
+abstract type AbstractRecord end
 
 """
     AbstractRecordState
@@ -62,7 +61,7 @@ abstract type AbstractRecordState end
 This method should be defined for every triple (model type, storage type, record state type)
 used by an algorithm.     
 """
-restorefromstate!(model::AbstractModel, storage::AbstractStorage, state::AbstractRecordState) =
+restorefromstate!(model::AbstractModel, storage::AbstractRecord, state::AbstractRecordState) =
     error(string(
         "restorefromstate! not defined for model type $(typeof(model)), ",
         "storage type $(typeof(storage)), and record state type $(typeof(state))"
@@ -78,19 +77,19 @@ the empty record state should be used with it.
 
 struct EmptyRecordState <: AbstractRecordState end
 
-EmptyRecordState(model::AbstractModel, storage::AbstractStorage) = nothing
+EmptyRecordState(model::AbstractModel, storage::AbstractRecord) = nothing
 
-restorefromstate!(::AbstractModel, ::AbstractStorage, ::EmptyRecordState) = nothing
+restorefromstate!(::AbstractModel, ::AbstractRecord, ::EmptyRecordState) = nothing
 
-# StorageTypePair = Pair{Type{<:AbstractStorage}, Type{<:AbstractRecordState}}.
+# RecordTypePair = Pair{Type{<:AbstractRecord}, Type{<:AbstractRecordState}}.
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
-const StorageTypePair = Pair{DataType, DataType}
+const RecordTypePair = Pair{DataType, DataType}
 
-# TO DO : replace with the set of StorageTypePair, should only contain storages which should 
+# TO DO : replace with the set of RecordTypePair, should only contain storages which should 
 #         be restored for writing (all other storages are restored anyway but just for reading)
-const StoragesUsageDict = Dict{Tuple{AbstractModel, StorageTypePair}, StorageAccessMode}
+const RecordsUsageDict = Dict{Tuple{AbstractModel, RecordTypePair}, RecordAccessMode}
 
-function Base.show(io::IO, usagedict::StoragesUsageDict)
+function Base.show(io::IO, usagedict::RecordsUsageDict)
     print(io, "storage usage dict [")
     for usage in usagedict
         print(io, " (", typeof(usage[1][1]), ", ", usage[1][2], ") => ", usage[2])
@@ -99,12 +98,12 @@ function Base.show(io::IO, usagedict::StoragesUsageDict)
 end
 
 """
-    function add_storage_pair_usage!(::StoragesUsageDict, ::AbstractModel, ::StorageTypePair, ::StorageAccessMode)
+    function add_storage_pair_usage!(::RecordsUsageDict, ::AbstractModel, ::RecordTypePair, ::RecordAccessMode)
 
-    An auxiliary function to be used when adding storage usage to a StorageUsageDict
+    An auxiliary function to be used when adding storage usage to a RecordUsageDict
 """
 function add_storage_pair_usage!(
-    dict::StoragesUsageDict, model::AbstractModel, pair::StorageTypePair, mode::StorageAccessMode
+    dict::RecordsUsageDict, model::AbstractModel, pair::RecordTypePair, mode::RecordAccessMode
 )
     current_mode = get(dict, (model, pair), NOT_USED) 
     if current_mode == NOT_USED && mode != NOT_USED
@@ -174,9 +173,9 @@ decreaseparticipation!(essc::EmptyRecordStateContainer) = nothing
 """
     StorageContainer
 
-    This container keeps storages and all states which have been 
-    stored. It implements storing and restoring states in an 
-    efficient way. 
+This container keeps storages and all states which have been 
+stored. It implements storing and restoring states in an 
+efficient way. 
 """
 
 mutable struct StorageContainer{M<:AbstractModel, S<:AbstractStorage, SS<:AbstractRecordState}
@@ -184,13 +183,13 @@ mutable struct StorageContainer{M<:AbstractModel, S<:AbstractStorage, SS<:Abstra
     curstatecont::RecordStateContainer{SS}
     maxstateid::StateId
     storage::S
-    typepair::StorageTypePair
+    typepair::RecordTypePair
     statesdict::Dict{StateId, RecordStateContainer{SS}}
 end 
 
 const RecordStatesVector = Vector{Pair{StorageContainer, StateId}}
 
-const StorageDict = Dict{StorageTypePair, StorageContainer}
+const StorageDict = Dict{RecordTypePair, StorageContainer}
 
 function StorageContainer{M,S,SS}(model::M) where {M,S,SS}
     return StorageContainer{M,S,SS}(
@@ -209,8 +208,8 @@ gettypepair(sc::StorageContainer) = sc.typepair
 function Base.show(io::IO, storagecont::StorageContainer)
     print(io, "storage (")
     print(IOContext(io, :compact => true), getmodel(storagecont))
-    (StorageType, RecordStateType) = gettypepair(storagecont)    
-    print(io, ", ", remove_until_last_point(string(StorageType)))    
+    (RecordType, RecordStateType) = gettypepair(storagecont)    
+    print(io, ", ", remove_until_last_point(string(RecordType)))    
     print(io, ", ", remove_until_last_point(string(RecordStateType)), ")")        
 end
 
@@ -274,7 +273,7 @@ function storestate!(storagecont::StorageContainer)::StateId
 end
 
 function restorestate!(
-    storagecont::StorageContainer{M,S,SS}, stateid::StateId, mode::StorageAccessMode
+    storagecont::StorageContainer{M,S,SS}, stateid::StateId, mode::RecordAccessMode
 ) where {M,S,SS}
     statecont = getcurstatecont(storagecont)
     if getstateid(statecont) == stateid 
@@ -311,7 +310,7 @@ function restorestate!(
 end
 
 """
-    Storage functions used by Coluna
+    Record functions used by Coluna
 """
 
 # this is a "lighter" alternative to restore_states!() function below
@@ -325,7 +324,7 @@ end
 #     setcurstate!(storagecont, statecont)
 # end
 
-function restore_states!(ssvector::RecordStatesVector, storages_to_restore::StoragesUsageDict)
+function restore_states!(ssvector::RecordStatesVector, storages_to_restore::RecordsUsageDict)
     TO.@timeit Coluna._to "Restore/remove states" begin
         for (storagecont, stateid) in ssvector
             mode = get(
