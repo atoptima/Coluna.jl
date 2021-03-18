@@ -178,7 +178,7 @@ stored. It implements storing and restoring states in an
 efficient way. 
 """
 
-mutable struct StorageContainer{M<:AbstractModel, S<:AbstractStorage, SS<:AbstractRecordState}
+mutable struct StorageContainer{M<:AbstractModel, S<:AbstractRecord, SS<:AbstractRecordState}
     model::M
     curstatecont::RecordStateContainer{SS}
     maxstateid::StateId
