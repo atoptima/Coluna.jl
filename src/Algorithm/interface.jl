@@ -52,25 +52,25 @@ ismanager(algo::AbstractAlgorithm) = false
 """
     get_child_algorithms(::AbstractAlgorithm, ::AbstractModel)::Vector{Tuple{AbstractAlgorithm, AbstractModel}}
 
-    Every algorithm should communicate its child algorithms and the model to which 
-    each child algorithm is applied. 
+Every algorithm should communicate its child algorithms and the model to which 
+each child algorithm is applied. 
 """
 get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
     get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, UnitTypePair, UnitAccessMode}}
 
-    Every algorithm should communicate the records it uses (so that these records 
-    are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
-    in order to restore records before running a worker algorithm.
+Every algorithm should communicate the storage units it uses (so that these units 
+are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
+in order to restore units before running a worker algorithm.
 """
 get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
 
 """
     run!(algo::AbstractAlgorithm, model::AbstractData, input::AbstractInput)::AbstractOutput
 
-    Runs the algorithm. The record of the algorithm can be obtained from the data
-    Returns algorithm's output.    
+Runs the algorithm. The storage unit of the algorithm can be obtained from the data
+Returns algorithm's output.    
 """
 function run!(algo::AbstractAlgorithm, env::Env, data::AbstractData, input::AbstractInput)::AbstractOutput
     error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(data)), $(typeof(input)).")
@@ -111,14 +111,14 @@ abstract type AbstractOptimizationAlgorithm <: AbstractAlgorithm end
 
 exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 
-# this function collects records to restore for an algorithm and all its child worker algorithms,
-# child manager algorithms are skipped, as their restore records themselves
+# this function collects storage units to restore for an algorithm and all its child worker algorithms,
+# child manager algorithms are skipped, as their restore units themselves
 function collect_units_to_restore!(
     global_units_usage::UnitsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
 )
     local_units_usage = get_units_usage(algo, model)
     for (unit_model, unit_pair, unit_usage) in local_units_usage
-        add_record_pair_usage!(global_units_usage, unit_model, unit_pair, unit_usage)
+        add_unit_pair_usage!(global_units_usage, unit_model, unit_pair, unit_usage)
     end
 
     child_algos = get_child_algorithms(algo, model)
@@ -127,7 +127,7 @@ function collect_units_to_restore!(
     end
 end
 
-# this function collects records to create for an algorithm and all its child algorithms
+# this function collects units to create for an algorithm and all its child algorithms
 # this function is used only the function initialize_units! below
 function collect_units_to_create!(
     units_to_create::Dict{AbstractModel,Set{UnitTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
@@ -146,7 +146,7 @@ function collect_units_to_create!(
     end
 end
 
-# this function initializes all the records
+# this function initializes all the storage units
 function initialize_units!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
     units_to_create = Dict{AbstractModel,Set{UnitTypePair}}()
     collect_units_to_create!(units_to_create, algo, getmodel(data)) 
@@ -161,9 +161,9 @@ function initialize_units!(data::AbstractData, algo::AbstractOptimizationAlgorit
             )
         end   
         for type_pair in type_pair_set
-            (RecordType, RecordStateType) = type_pair
+            (StorageUnitType, RecordStateType) = type_pair
             storagedict[type_pair] = 
-                StorageContainer{ModelType, RecordType, RecordStateType}(model)
+                StorageContainer{ModelType, StorageUnitType, RecordStateType}(model)
         end
     end
 end

@@ -8,7 +8,7 @@
     vectors of preprocessed constraints and variables.  
 """
 
-mutable struct PreprocessingUnit <: AbstractUnit
+mutable struct PreprocessingUnit <: AbstractStorageUnit
     # global data 
     cur_min_slack::Dict{ConstrId,Float64}
     cur_max_slack::Dict{ConstrId,Float64}

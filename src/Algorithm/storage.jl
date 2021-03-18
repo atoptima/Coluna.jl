@@ -1,25 +1,25 @@
 @enum(UnitAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
 
 """
-    About records
-    --------------
+    About storage units
+    -------------------
 
-    Records keep user data (a model) and computed data between different runs 
+    Storage units keep user data (a model) and computed data between different runs 
     of an algorithm or between runs of different algorithms. 
-    Models are records themselves. Each record is associated with a
-    model. Thus a record adds computed data to a model.  
+    Models are storage units themselves. Each unit is associated with a
+    model. Thus a unit adds computed data to a model.  
 
-    Record states are useful to store states of records at some point 
+    Record states are useful to store states of units at some point 
     of the calculation flow so that we can later return to this point and 
-    restore the records. For example, the calculation flow may return to
+    restore the units. For example, the calculation flow may return to
     some saved node in the search tree.
 
-    Some records can have different parts which are stored in different 
-    record states. Thus, we operate with triples (model, record, record state).
-    For every model there may be only one record for each couple 
-    (record type, record state type). 
+    Some units can have different parts which are stored in different 
+    record states. Thus, we operate with triples (model, unit, record state).
+    For every model there may be only one unit for each couple 
+    (unit type, record state type). 
     
-    To store all records of a data, we use functions 
+    To store all units of a data, we use functions 
     "store_states!(::AbstractData)::RecordStatesVector" or
     "copy_states(::RecordStatesVector)::RecordStatesVector"
   
@@ -27,43 +27,43 @@
     "restore_states!(::RecordStatesVector,::UnitsUsageDict)" 
     and "remove_states!(::RecordStatesVector)"
   
-    After storing current states, if we write to some record, we should restore 
+    After storing current states, if we write to some unit, we should restore 
     it for writing using "restore_states!(...)" 
-    After storing current states, if we read from a record, 
+    After storing current states, if we read from a unit, 
     no particular precautions should be taken.   
 """
 
 """
-    AbstractUnit 
+    AbstractStorageUnit 
 
-A record contains information about a model or the execution of an algorithm.
+A storage unit contains information about a model or the execution of an algorithm.
 
-For every record a constructor should be defined which
+For every unit a constructor should be defined which
 takes a model as a parameter. This constructor is 
 called when the formulation is completely known so the data
 can be safely computed.
 """
-abstract type AbstractUnit end
+abstract type AbstractStorageUnit end
 
 """
     AbstractRecordState
 
-A record state is the particular condition that a record is in at a specific time
+A record state is the particular condition that a storage unit is in at a specific time
 of the execution of Coluna.
     
 For each record state, a constructor should be defined which
-takes a model and a record as parameters. This constructor
-is called during storing a record. 
+takes a model and a unit as parameters. This constructor
+is called during storing a unit. 
 """
 abstract type AbstractRecordState end
 
 """
-    restorefromstate!(model, record, record_state)
+    restorefromstate!(model, unit, record_state)
 
-This method should be defined for every triple (model type, record type, record state type)
+This method should be defined for every triple (model type, unit type, record state type)
 used by an algorithm.     
 """
-restorefromstate!(model::AbstractModel, record::AbstractUnit, state::AbstractRecordState) =
+restorefromstate!(model::AbstractModel, record::AbstractStorageUnit, state::AbstractRecordState) =
     error(string(
         "restorefromstate! not defined for model type $(typeof(model)), ",
         "record type $(typeof(record)), and record state type $(typeof(state))"
@@ -73,17 +73,17 @@ restorefromstate!(model::AbstractModel, record::AbstractUnit, state::AbstractRec
 """
     EmptyRecordState
 
-If a record is not changed after initialization, then 
+If a unit is not changed after initialization, then 
 the empty record state should be used with it.
 """
 
 struct EmptyRecordState <: AbstractRecordState end
 
-EmptyRecordState(model::AbstractModel, record::AbstractUnit) = nothing
+EmptyRecordState(model::AbstractModel, record::AbstractStorageUnit) = nothing
 
-restorefromstate!(::AbstractModel, ::AbstractUnit, ::EmptyRecordState) = nothing
+restorefromstate!(::AbstractModel, ::AbstractStorageUnit, ::EmptyRecordState) = nothing
 
-# UnitTypePair = Pair{Type{<:AbstractUnit}, Type{<:AbstractRecordState}}.
+# UnitTypePair = Pair{Type{<:AbstractStorageUnit}, Type{<:AbstractRecordState}}.
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
 const UnitTypePair = Pair{DataType, DataType}
 
@@ -100,11 +100,11 @@ function Base.show(io::IO, usagedict::UnitsUsageDict)
 end
 
 """
-    add_record_pair_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitTypePair, ::UnitAccessMode)
+    add_unit_pair_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitTypePair, ::UnitAccessMode)
 
-An auxiliary function to be used when adding record usage to a RecordUsageDict
+An auxiliary function to be used when adding unit usage to a UnitUsageDict
 """
-function add_record_pair_usage!(
+function add_unit_pair_usage!(
     dict::UnitsUsageDict, model::AbstractModel, pair::UnitTypePair, mode::UnitAccessMode
 )
     current_mode = get(dict, (model, pair), NOT_USED) 
@@ -175,12 +175,12 @@ decreaseparticipation!(essc::EmptyRecordStateContainer) = nothing
 """
     StorageContainer
 
-This container keeps records and all states which have been 
-stored. It implements storing and restoring states in an 
+This container keeps storage units and all states which have been 
+stored. It implements storing and restoring states of units in an 
 efficient way. 
 """
 
-mutable struct StorageContainer{M<:AbstractModel, S<:AbstractUnit, SS<:AbstractRecordState}
+mutable struct StorageContainer{M<:AbstractModel, S<:AbstractStorageUnit, SS<:AbstractRecordState}
     model::M
     curstatecont::RecordStateContainer{SS}
     maxstateid::StateId
@@ -208,10 +208,10 @@ getunit(sc::StorageContainer) = sc.record
 gettypepair(sc::StorageContainer) = sc.typepair
 
 function Base.show(io::IO, storagecont::StorageContainer)
-    print(io, "record (")
+    print(io, "unit (")
     print(IOContext(io, :compact => true), getmodel(storagecont))
-    (RecordType, RecordStateType) = gettypepair(storagecont)    
-    print(io, ", ", remove_until_last_point(string(RecordType)))    
+    (StorageUnitType, RecordStateType) = gettypepair(storagecont)    
+    print(io, ", ", remove_until_last_point(string(StorageUnitType)))    
     print(io, ", ", remove_until_last_point(string(RecordStateType)), ")")        
 end
 

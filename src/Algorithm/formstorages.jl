@@ -57,7 +57,7 @@ end
     in order to store it to the record state and restore it afterwards. 
 """
 
-struct FormulationUnit <: AbstractUnit end
+struct FormulationUnit <: AbstractStorageUnit end
 
 FormulationUnit(form::Formulation) = FormulationUnit()
 
@@ -125,8 +125,8 @@ const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecor
 """
     MasterColumnsUnitPair
 
-    Record pair for branching constraints of a formulation. 
-    Consists of EmptyRecord and MasterColumnsState.    
+    Unit pair for branching constraints of a formulation. 
+    Consists of EmptyUnit and MasterColumnsState.    
 """
 
 mutable struct MasterColumnsState <: AbstractRecordState
@@ -184,8 +184,8 @@ const MasterColumnsUnitPair = (FormulationUnit => MasterColumnsState)
 """
     MasterCutsUnitPair
 
-    Record pair for cutting planes of a formulation. 
-    Consists of EmptyRecord and MasterCutsState.    
+    Unit pair for cutting planes of a formulation. 
+    Consists of EmptyUnit and MasterCutsState.    
 """
 
 mutable struct MasterCutsState <: AbstractRecordState
@@ -243,8 +243,8 @@ const MasterCutsUnitPair = (FormulationUnit => MasterCutsState)
 """
     StaticVarConstrUnitPair
 
-    Record pair for static variables and constraints of a formulation.
-    Consists of EmptyRecord and StaticVarConstrRecordState.    
+    Unit pair for static variables and constraints of a formulation.
+    Consists of EmptyUnit and StaticVarConstrRecordState.    
 """
 
 mutable struct StaticVarConstrRecordState <: AbstractRecordState
@@ -331,14 +331,14 @@ const StaticVarConstrUnitPair = (FormulationUnit => StaticVarConstrRecordState)
 """
     PartialSolutionUnitPair
 
-    Record pair for partial solution of a formulation.
+    Unit pair for partial solution of a formulation.
     Consists of PartialSolutionUnit and PartialSolutionUnitState.    
 """
 
 # TO DO : to replace dictionaries by PrimalSolution
 # issues to see : 1) PrimalSolution is parametric; 2) we need a solution concatenation functionality
 
-mutable struct PartialSolutionUnit <: AbstractUnit
+mutable struct PartialSolutionUnit <: AbstractStorageUnit
     solution::Dict{VarId, Float64}
 end
 
