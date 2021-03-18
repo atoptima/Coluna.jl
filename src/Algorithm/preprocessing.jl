@@ -100,7 +100,7 @@ end
 """
     PreprocessingRecordState
 
-    Stores the global part of preprocessing record
+    Stores the global part of preprocessing unit
 """
 
 mutable struct PreprocessingRecordState <: AbstractRecordState
@@ -166,7 +166,7 @@ function get_units_usage(algo::PreprocessAlgorithm, form::Formulation)
 end
 
 function get_units_usage(algo::PreprocessAlgorithm, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[]     
+    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[]     
     push!(units_usage, (reform, PreprocessingUnitPair, READ_AND_WRITE))
 
     master = getmaster(reform)
@@ -186,22 +186,22 @@ end
 function run!(algo::PreprocessAlgorithm, env::Env, data::ReformData, input::EmptyInput)::PreprocessingOutput
     @logmsg LogLevel(-1) "Run preprocessing"
 
-    record = getrecord(data, PreprocessingUnitPair)
+    unit = getunit(data, PreprocessingUnitPair)
     
-    infeasible = init_new_constraints!(algo, record) 
+    infeasible = init_new_constraints!(algo, unit) 
 
     master = getmodel(getmasterdata(data))
-    !infeasible && (infeasible = fix_local_partial_solution!(algo, record, master))
+    !infeasible && (infeasible = fix_local_partial_solution!(algo, unit, master))
 
-    !infeasible && (infeasible = propagation!(algo, record))
+    !infeasible && (infeasible = propagation!(algo, unit))
 
-    !infeasible && algo.preprocess_subproblems && forbid_infeasible_columns!(algo, record, master)
+    !infeasible && algo.preprocess_subproblems && forbid_infeasible_columns!(algo, unit, master)
 
-    !infeasible && remove_preprocessed_constraints(algo, record)
+    !infeasible && remove_preprocessed_constraints(algo, unit)
 
     @logmsg LogLevel(0) (infeasible ? "Preprocessing determined infeasibility" 
                                     : "Preprocessing done.")
-    empty_local_data!(record)
+    empty_local_data!(unit)
 
     return PreprocessingOutput(infeasible)
 end
@@ -245,7 +245,7 @@ function change_sp_upper_bound!(
 
         if update_global_var_bounds
             for (varid, var) in getvars(spform)
-                update_bounds_of_master_representative!(algo, record, varid, spform)
+                update_bounds_of_master_representative!(algo, unit, varid, spform)
 
             end
         end
@@ -269,7 +269,7 @@ function update_bounds_of_master_representative!(
         getcurlb(spform, varid) * unit.cur_sp_lower_bounds[spuid]
     )
     if update_lower_bound!(
-        algo, record, getvar(master, varid), master, new_global_lb, 
+        algo, unit, getvar(master, varid), master, new_global_lb, 
         check_monotonicity = false) # this is to impose the bound change 
         return true
     end
@@ -278,7 +278,7 @@ function update_bounds_of_master_representative!(
         getcurub(master, varid) - value_to_substract,
         getcurub(spform, varid) * unit.cur_sp_upper_bounds[spuid]
     )
-    if update_upper_bound!(algo, record, getvar(master, varid), master, new_global_ub)
+    if update_upper_bound!(algo, unit, getvar(master, varid), master, new_global_ub)
         return true
     end 
     return false
@@ -297,10 +297,10 @@ function change_subprob_bounds!(
         spform = get_dw_pricing_sps(reformulation)[spuid]
 
         new_lower_bound = max(unit.cur_sp_lower_bounds[spuid] - Int64(col_val), 0)
-        change_sp_lower_bound!(algo, record, spform, new_lower_bound)
+        change_sp_lower_bound!(algo, unit, spform, new_lower_bound)
 
         new_upper_bound = unit.cur_sp_upper_bounds[spuid] - Int64(col_val)
-        change_sp_upper_bound!(algo, record, spform, new_upper_bound)
+        change_sp_upper_bound!(algo, unit, spform, new_upper_bound)
 
         push!(sps_with_modified_bounds, spform)
     end
@@ -309,7 +309,7 @@ function change_subprob_bounds!(
     for spform in sps_with_modified_bounds
         for (varid, var) in getvars(spform)
             if update_bounds_of_master_representative!(
-                algo, record, varid, spform, value_to_substract = original_solution[varid]
+                algo, unit, varid, spform, value_to_substract = original_solution[varid]
                 )
                 return true
             end
@@ -323,7 +323,7 @@ function fix_local_partial_solution!(
     )
     isempty(unit.local_partial_sol) && return false
 
-    solution = get_local_primal_solution(record, form)
+    solution = get_local_primal_solution(unit, form)
     if isa(form, Formulation{DwMaster}) 
         solution = proj_cols_on_rep(solution, form)
     end
@@ -342,14 +342,14 @@ function fix_local_partial_solution!(
                 getcurrhs(form, constrid) - val * coef
             )
             setcurrhs!(form, constrid, getcurrhs(form, constrid) - val * coef)
-            update_min_slack!(algo, record, constrid, form, false, - val * coef)
-            update_max_slack!(algo, record, constrid, form, false, - val * coef)
+            update_min_slack!(algo, unit, constrid, form, false, - val * coef)
+            update_max_slack!(algo, unit, constrid, form, false, - val * coef)
 
         end
     end
 
     if isa(form, Formulation{DwMaster}) 
-        infeasible = change_subprob_bounds!(algo, record, form, solution)
+        infeasible = change_subprob_bounds!(algo, unit, form, solution)
     else    
         infeasible = false
     end
@@ -369,8 +369,8 @@ function init_new_constraints!(algo::PreprocessAlgorithm, unit::PreprocessingUni
 
         unit.nb_inf_sources_for_min_slack[constrid] = 0
         unit.nb_inf_sources_for_max_slack[constrid] = 0
-        compute_min_slack!(algo, record, constrid, form) && return true
-        compute_max_slack!(algo, record, constrid, form) && return true
+        compute_min_slack!(algo, unit, constrid, form) && return true
+        compute_max_slack!(algo, unit, constrid, form) && return true
     
         push!(unit.constrs_in_stack, constrid)
         push!(unit.stack, (constrid, form))
@@ -388,7 +388,7 @@ function check_min_slack!(
         if Duty == DwSp && unit.cur_sp_lower_bounds[getuid(form)] == 0
             # the subproblem becomes infeasible, but, as its lower bound is zero
             # this does not result in infeasibility of the master
-            change_sp_upper_bound!(algo, record, form, 0, update_global_var_bounds = true)
+            change_sp_upper_bound!(algo, unit, form, 0, update_global_var_bounds = true)
             return false
         else
             return true
@@ -405,7 +405,7 @@ function check_max_slack!(
         if Duty == DwSp && unit.cur_sp_lower_bounds[getuid(form)] == 0
             # the subproblem becomes infeasible, but, as its lower bound is zero
             # this does not result in infeasibility of the master
-            change_sp_upper_bound!(algo, record, form, 0, update_global_var_bounds = true)
+            change_sp_upper_bound!(algo, unit, form, 0, update_global_var_bounds = true)
             return false
         else
             return true
@@ -446,7 +446,7 @@ function compute_min_slack!(
         "Min slack for constr ", getname(form, constrid), " is initialized to ", slack
     )
     unit.cur_min_slack[constrid] = slack
-    return check_min_slack!(algo, record, constrid, form)
+    return check_min_slack!(algo, unit, constrid, form)
 end
 
 function compute_max_slack!(
@@ -481,7 +481,7 @@ function compute_max_slack!(
         "Max slack for constr ", getname(form, constrid), " is initialized to ", slack
     )
     unit.cur_max_slack[constrid] = slack
-    return check_max_slack!(algo, record, constrid, form)
+    return check_max_slack!(algo, unit, constrid, form)
 end
 
 function update_max_slack!(
@@ -501,7 +501,7 @@ function update_max_slack!(
     nb_inf_sources = unit.nb_inf_sources_for_max_slack[constrid]
     sense = getcursense(form, constrid)
     if nb_inf_sources == 0
-        if check_max_slack!(algo, record, constrid, form)
+        if check_max_slack!(algo, unit, constrid, form)
             return true
         elseif (sense == Greater) && unit.cur_max_slack[constrid] <= -0.0001
             if (constrid,form) ∉ unit.preprocessed_constrs
@@ -511,7 +511,7 @@ function update_max_slack!(
         end
     end
     if nb_inf_sources <= 1 && sense != Greater
-        add_to_stack!(record, constrid, form)
+        add_to_stack!(unit, constrid, form)
     end
     return false
 end
@@ -532,7 +532,7 @@ function update_min_slack!(
     nb_inf_sources = unit.nb_inf_sources_for_min_slack[constrid]
     sense = getcursense(form, constrid)
     if nb_inf_sources == 0
-        if check_min_slack!(algo, record, constrid, form)
+        if check_min_slack!(algo, unit, constrid, form)
             return true
         elseif (sense == Less) && unit.cur_min_slack[constrid] >= 0.0001
             if (constrid,form) ∉ unit.preprocessed_constrs
@@ -542,7 +542,7 @@ function update_min_slack!(
         end
     end
     if nb_inf_sources <= 1 && sense != Less
-        add_to_stack!(record, constrid, form)
+        add_to_stack!(unit, constrid, form)
     end
     return false
 end
@@ -569,7 +569,7 @@ function update_lower_bound!(
 
     if new_lb > cur_ub 
         if Duty == DwSp && unit.cur_sp_upper_bounds[getuid(form)] == 0
-            change_sp_upper_bound!(algo, record, form, 0, update_global_var_bounds = true)
+            change_sp_upper_bound!(algo, unit, form, 0, update_global_var_bounds = true)
             return false
         else    
             return true
@@ -585,11 +585,11 @@ function update_lower_bound!(
         infeasible = false
         if coef < 0 
             infeasible = update_min_slack!(
-                algo, record, constrid, form, cur_lb == -Inf, diff * coef
+                algo, unit, constrid, form, cur_lb == -Inf, diff * coef
             )
         else
             infeasible = update_max_slack!(
-                algo, record, constrid, form, cur_lb == -Inf , diff * coef
+                algo, unit, constrid, form, cur_lb == -Inf , diff * coef
             )
         end
         infeasible && return true
@@ -605,7 +605,7 @@ function update_lower_bound!(
         subprob = find_owner_formulation(form.parent_formulation, var)
         cur_sp_ub = unit.cur_sp_upper_bounds[getuid(subprob)]
         if update_lower_bound!(
-                algo, record, getvar(subprob, varid), subprob,
+                algo, unit, getvar(subprob, varid), subprob,
                 getcurlb(form, varid) - (max(cur_sp_ub, 1) - 1) * getcurub(subprob, varid)
             )
             return true
@@ -615,14 +615,14 @@ function update_lower_bound!(
         cur_sp_lb = unit.cur_sp_lower_bounds[getuid(form)]
         mastervar = getvar(master, varid)
         if update_lower_bound!(
-                algo, record, mastervar, master, getcurlb(form, varid) * cur_sp_lb
+                algo, unit, mastervar, master, getcurlb(form, varid) * cur_sp_lb
             )
             return true
         end
         new_ub_in_sp = (
             getcurub(master, varid) - (max(cur_sp_lb, 1) - 1) * getcurlb(form, varid)
         )
-        if update_upper_bound!(algo, record, mastervar, form, new_ub_in_sp)
+        if update_upper_bound!(algo, unit, mastervar, form, new_ub_in_sp)
             return true
         end
     end
@@ -651,7 +651,7 @@ function update_upper_bound!(
 
     if new_ub < cur_lb 
         if Duty == DwSp && unit.cur_sp_upper_bounds[getuid(form)] == 0
-            change_sp_upper_bound!(algo, record, form, 0, update_global_var_bounds = true)
+            change_sp_upper_bound!(algo, unit, form, 0, update_global_var_bounds = true)
             return false
         else    
             return true
@@ -667,11 +667,11 @@ function update_upper_bound!(
         infeasible = false
         if coef > 0 
             infeasible = update_min_slack!(
-                algo, record, constrid, form, cur_ub == Inf , diff * coef
+                algo, unit, constrid, form, cur_ub == Inf , diff * coef
             )
         else
             infeasible = update_max_slack!(
-                algo, record, constrid, form, cur_ub == Inf , diff * coef
+                algo, unit, constrid, form, cur_ub == Inf , diff * coef
             )
         end
         infeasible && return true
@@ -687,7 +687,7 @@ function update_upper_bound!(
         subprob = find_owner_formulation(form.parent_formulation, var)
         cur_sp_lb = unit.cur_sp_lower_bounds[getuid(subprob)]
         if update_upper_bound!(
-            algo, record, getvar(subprob, varid), subprob,
+            algo, unit, getvar(subprob, varid), subprob,
             getcurub(form, varid) - (max(cur_sp_lb, 1) - 1) * getcurlb(subprob, varid)
             )
             return true
@@ -697,14 +697,14 @@ function update_upper_bound!(
         cur_sp_ub = unit.cur_sp_upper_bounds[getuid(form)]
         clone_var_in_master = getvar(master, varid)
         if update_upper_bound!(
-            algo, record, clone_var_in_master, master, getcurub(form, varid) * cur_sp_ub
+            algo, unit, clone_var_in_master, master, getcurub(form, varid) * cur_sp_ub
             )
             return true
         end
         new_lb_in_sp = (
             getcurlb(master, varid) - (max(cur_sp_ub, 1) - 1) * getcurub(form, varid)
             )
-        if update_lower_bound!(algo, record, clone_var_in_master, master, new_lb_in_sp)
+        if update_lower_bound!(algo, unit, clone_var_in_master, master, new_lb_in_sp)
             return true
         end
     end
@@ -776,9 +776,9 @@ function strengthen_var_bounds_in_constr!(
             end
             infeasible = false
             if new_bound_is_upper
-                infeasible = update_upper_bound!(algo, record, getvar(form, varid), form, new_bound)
+                infeasible = update_upper_bound!(algo, unit, getvar(form, varid), form, new_bound)
             else
-                infeasible = update_lower_bound!(algo, record, getvar(form, varid), form, new_bound)
+                infeasible = update_lower_bound!(algo, unit, getvar(form, varid), form, new_bound)
             end
             infeasible && return true
         end
@@ -799,7 +799,7 @@ function propagation!(algo::PreprocessAlgorithm, unit::PreprocessingUnit)
         #         alg_data.cur_min_slack[getid(constr)]
         #     )
         # end
-        if strengthen_var_bounds_in_constr!(algo, record, constrid, form)
+        if strengthen_var_bounds_in_constr!(algo, unit, constrid, form)
 
             return true
         end

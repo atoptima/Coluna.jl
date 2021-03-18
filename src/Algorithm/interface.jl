@@ -3,7 +3,7 @@
     ----------------
 
     An algorithm is a procedure with a known interface (input and output) applied to a data.
-    An algorithm can use records inside the data to keep its computed data between different
+    An algorithm can use storage units inside the data to keep its computed data between different
     runs of the algorithm or between runs of different algorithms.
     The algorithm itself contains only its parameters. 
 
@@ -12,10 +12,10 @@
     (root algorithm should be an optimization algorithm, see below). 
 
     Algorithms are divided into two types : "manager algorithms" and "worker algorithms". 
-    Worker algorithms just continue the calculation. They do not store and restore records 
+    Worker algorithms just continue the calculation. They do not store and restore units 
     as they suppose it is done by their master algorithms. Manager algorithms may divide 
-    the calculation flow into parts. Therefore, they store and restore records to make sure 
-    that their child worker algorithms have records prepared. 
+    the calculation flow into parts. Therefore, they store and restore units to make sure 
+    that their child worker algorithms have units prepared. 
     A worker algorithm cannot have child manager algorithms. 
 
     Examples of manager algorithms : TreeSearchAlgorithm (which covers both BCP algorithm and 
@@ -58,13 +58,13 @@ ismanager(algo::AbstractAlgorithm) = false
 get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
-    get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, RecordTypePair, RecordAccessMode}}
+    get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, UnitTypePair, UnitAccessMode}}
 
     Every algorithm should communicate the records it uses (so that these records 
     are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
     in order to restore records before running a worker algorithm.
 """
-get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
 
 """
     run!(algo::AbstractAlgorithm, model::AbstractData, input::AbstractInput)::AbstractOutput
@@ -117,8 +117,8 @@ function collect_units_to_restore!(
     global_units_usage::UnitsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
 )
     local_units_usage = get_units_usage(algo, model)
-    for (rec_model, rec_pair, rec_usage) in local_units_usage
-        add_record_pair_usage!(global_units_usage, rec_model, rec_pair, rec_usage)
+    for (unit_model, unit_pair, unit_usage) in local_units_usage
+        add_record_pair_usage!(global_units_usage, unit_model, unit_pair, unit_usage)
     end
 
     child_algos = get_child_algorithms(algo, model)
@@ -128,30 +128,30 @@ function collect_units_to_restore!(
 end
 
 # this function collects records to create for an algorithm and all its child algorithms
-# this function is used only the function initialize_records!() below
-function collect_records_to_create!(
-    records_to_create::Dict{AbstractModel,Set{RecordTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
+# this function is used only the function initialize_units! below
+function collect_units_to_create!(
+    units_to_create::Dict{AbstractModel,Set{UnitTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
 )
     units_usage = get_units_usage(algo, model)
-    for (rec_model, rec_pair, rec_usage) in units_usage
-        if !haskey(records_to_create, rec_model)
-            records_to_create[rec_model] = Set{RecordTypePair}()
+    for (unit_model, unit_pair, unit_usage) in units_usage
+        if !haskey(units_to_create, unit_model)
+            units_to_create[unit_model] = Set{UnitTypePair}()
         end
-        push!(records_to_create[rec_model], rec_pair)
+        push!(units_to_create[unit_model], unit_pair)
     end
 
     child_algos = get_child_algorithms(algo, model)
     for (childalgo, childmodel) in child_algos
-        collect_records_to_create!(records_to_create, childalgo, childmodel)
+        collect_units_to_create!(units_to_create, childalgo, childmodel)
     end
 end
 
 # this function initializes all the records
-function initialize_records!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
-    records_to_create = Dict{AbstractModel,Set{RecordTypePair}}()
-    collect_records_to_create!(records_to_create, algo, getmodel(data)) 
+function initialize_units!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
+    units_to_create = Dict{AbstractModel,Set{UnitTypePair}}()
+    collect_units_to_create!(units_to_create, algo, getmodel(data)) 
 
-    for (model, type_pair_set) in records_to_create        
+    for (model, type_pair_set) in units_to_create        
         #println(IOContext(stdout, :compact => true), model, " ", type_pair_set)
         ModelType = typeof(model)
         storagedict = get_model_storage_dict(data, model)

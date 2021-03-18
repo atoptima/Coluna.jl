@@ -2,8 +2,8 @@
     ConquerInput
 
     Input of a conquer algorithm used by the tree search algorithm.
-    Contains the node in the search tree and the collection of records to restore 
-    before running the conquer algorithm. This collection of records is passed
+    Contains the node in the search tree and the collection of units to restore 
+    before running the conquer algorithm. This collection of units is passed
     in the input so that it is not obtained each time the conquer algorithm runs. 
 """
 struct ConquerInput <: AbstractInput 
@@ -20,13 +20,13 @@ restore_states!(input::ConquerInput) = restore_states!(input.node.stateids, inpu
 
     This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
     For the moment, a conquer algorithm can be run only on reformulation.     
-    A conquer algorithm should restore states of records using function restore_states!(::ConquerInput)
+    A conquer algorithm should restore states of units using function restore_states!(::ConquerInput)
         - each time it runs in the beginning
         - each time after calling a child manager algorithm
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 
-# conquer algorithms are always manager algorithms (they manage storing and restoring records)
+# conquer algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractConquerAlgorithm) = true
 
 function run!(algo::AbstractConquerAlgorithm, env::Env, data::ReformData, input::ConquerInput)
@@ -94,7 +94,7 @@ end
 
 isverbose(strategy::BendersConquer) = true
 
-# BendersConquer does not use any record for the moment, it just calls 
+# BendersConquer does not use any unit for the moment, it just calls 
 # BendersCutSeparation algorithm, therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::BendersConquer, reform::Reformulation) 
@@ -142,7 +142,7 @@ end
 
 isverbose(algo::ColCutGenConquer) = algo.colgen.log_print_frequency > 0
 
-# ColCutGenConquer does not use any record for the moment, therefore 
+# ColCutGenConquer does not use any unit for the moment, therefore 
 # get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
@@ -258,7 +258,7 @@ end
         )
 end
 
-# RestrMasterLPConquer does not use any record, therefore get_units_usage() is not defined for it
+# RestrMasterLPConquer does not use any unit, therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation) 
     return [(algo.masterlpalgo, getmaster(reform))]

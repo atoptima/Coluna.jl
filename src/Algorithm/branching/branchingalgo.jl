@@ -67,7 +67,7 @@ function SimpleBranching()::AbstractDivideAlgorithm
     return algo
 end
 
-# StrongBranching does not use any record itself, 
+# StrongBranching does not use any unit itself, 
 # therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 
@@ -183,7 +183,7 @@ function perform_strong_branching_with_phases!(
         end
 
         # before deleting branching groups which are not kept for the next phase
-        # we need to remove record states kept in these nodes
+        # we need to remove record kept in these nodes
         for group_index = nb_candidates_for_next_phase + 1 : length(groups) 
             for (node_index, node) in enumerate(groups[group_index].children)
                 remove_states!(node.stateids)

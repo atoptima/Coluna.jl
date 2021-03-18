@@ -1,4 +1,4 @@
-@enum(RecordAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
+@enum(UnitAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
 
 """
     About records
@@ -83,13 +83,13 @@ EmptyRecordState(model::AbstractModel, record::AbstractUnit) = nothing
 
 restorefromstate!(::AbstractModel, ::AbstractUnit, ::EmptyRecordState) = nothing
 
-# RecordTypePair = Pair{Type{<:AbstractUnit}, Type{<:AbstractRecordState}}.
+# UnitTypePair = Pair{Type{<:AbstractUnit}, Type{<:AbstractRecordState}}.
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
-const RecordTypePair = Pair{DataType, DataType}
+const UnitTypePair = Pair{DataType, DataType}
 
-# TO DO : replace with the set of RecordTypePair, should only contain records which should 
+# TO DO : replace with the set of UnitTypePair, should only contain records which should 
 #         be restored for writing (all other records are restored anyway but just for reading)
-const UnitsUsageDict = Dict{Tuple{AbstractModel, RecordTypePair}, RecordAccessMode}
+const UnitsUsageDict = Dict{Tuple{AbstractModel, UnitTypePair}, UnitAccessMode}
 
 function Base.show(io::IO, usagedict::UnitsUsageDict)
     print(io, "record usage dict [")
@@ -100,12 +100,12 @@ function Base.show(io::IO, usagedict::UnitsUsageDict)
 end
 
 """
-    add_record_pair_usage!(::UnitsUsageDict, ::AbstractModel, ::RecordTypePair, ::RecordAccessMode)
+    add_record_pair_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitTypePair, ::UnitAccessMode)
 
 An auxiliary function to be used when adding record usage to a RecordUsageDict
 """
 function add_record_pair_usage!(
-    dict::UnitsUsageDict, model::AbstractModel, pair::RecordTypePair, mode::RecordAccessMode
+    dict::UnitsUsageDict, model::AbstractModel, pair::UnitTypePair, mode::UnitAccessMode
 )
     current_mode = get(dict, (model, pair), NOT_USED) 
     if current_mode == NOT_USED && mode != NOT_USED
@@ -185,13 +185,13 @@ mutable struct StorageContainer{M<:AbstractModel, S<:AbstractUnit, SS<:AbstractR
     curstatecont::RecordStateContainer{SS}
     maxstateid::StateId
     record::S
-    typepair::RecordTypePair
+    typepair::UnitTypePair
     statesdict::Dict{StateId, RecordStateContainer{SS}}
 end 
 
 const RecordStatesVector = Vector{Pair{StorageContainer, StateId}}
 
-const StorageDict = Dict{RecordTypePair, StorageContainer}
+const StorageDict = Dict{UnitTypePair, StorageContainer}
 
 function StorageContainer{M,S,SS}(model::M) where {M,S,SS}
     return StorageContainer{M,S,SS}(
@@ -204,7 +204,7 @@ getmodel(sc::StorageContainer) = sc.model
 getcurstatecont(sc::StorageContainer) = sc.curstatecont
 getmaxstateid(sc::StorageContainer) = sc.maxstateid
 getstatesdict(sc::StorageContainer) = sc.statesdict
-getrecord(sc::StorageContainer) = sc.record
+getunit(sc::StorageContainer) = sc.record
 gettypepair(sc::StorageContainer) = sc.typepair
 
 function Base.show(io::IO, storagecont::StorageContainer)
@@ -260,7 +260,7 @@ function save_to_statesdict!(
     storagecont::StorageContainer{M,S,SS}, statecont::RecordStateContainer{SS}
 ) where {M,S,SS}
     if getparticipation(statecont) > 0 && stateisempty(statecont)
-        state = SS(getmodel(storagecont), getrecord(storagecont))
+        state = SS(getmodel(storagecont), getunit(storagecont))
         @logmsg LogLevel(-2) string("Created state with id ", getstateid(statecont), " for ", storagecont)
         setstate!(statecont, state)
         statesdict = getstatesdict(storagecont)
@@ -275,7 +275,7 @@ function storestate!(storagecont::StorageContainer)::StateId
 end
 
 function restorestate!(
-    storagecont::StorageContainer{M,S,SS}, stateid::StateId, mode::RecordAccessMode
+    storagecont::StorageContainer{M,S,SS}, stateid::StateId, mode::UnitAccessMode
 ) where {M,S,SS}
     statecont = getcurstatecont(storagecont)
     if getstateid(statecont) == stateid 
@@ -302,7 +302,7 @@ function restorestate!(
             @logmsg LogLevel(-2) string("Removed state with id ", getstateid(statecont), " for ", storagecont)
         end
     else 
-        restorefromstate!(getmodel(storagecont), getrecord(storagecont), getstate(statecont))
+        restorefromstate!(getmodel(storagecont), getunit(storagecont), getstate(statecont))
         @logmsg LogLevel(-2) string("Restored state with id ", getstateid(statecont), " for ", storagecont)
         if mode == READ_AND_WRITE 
             statecont = RecordStateContainer{SS}(getmaxstateid(storagecont) + 1, 0)

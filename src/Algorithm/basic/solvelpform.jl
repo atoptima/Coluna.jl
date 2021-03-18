@@ -23,10 +23,10 @@ end
 function get_units_usage(
     algo::SolveLpForm, form::Formulation{Duty}
 ) where {Duty<:MathProg.AbstractFormDuty}
-    # we use records in the read only mode, as relaxing integrality
+    # we use units in the read only mode, as relaxing integrality
     # is reverted before the end of the algorithm, 
     # so the state of the formulation remains the same 
-    units_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
     push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
         push!(units_usage, (form, MasterColumnsUnitPair, READ_ONLY))
@@ -64,7 +64,7 @@ function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_val = 0.0
     if algo.consider_partial_solution
-        partsolunit = getrecord(data, PartialSolutionUnitPair)
+        partsolunit = getunit(data, PartialSolutionUnitPair)
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_val = getvalue(partial_sol)
     end

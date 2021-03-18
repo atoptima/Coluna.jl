@@ -1,7 +1,7 @@
 """
     VarState
 
-    Used in formulation records
+    Used in formulation units
 """
 
 struct VarState
@@ -31,7 +31,7 @@ end
 """
     ConstrState
 
-    Used in formulation records
+    Used in formulation units
 """
 
 struct ConstrState
@@ -51,7 +51,7 @@ end
 """
     FormulationUnit
 
-    Formulation record is empty and it is used to implicitely keep 
+    Formulation unit is empty and it is used to implicitely keep 
     the data which is changed inside the model 
     (for example, dynamic variables and constraints of a formulaiton) 
     in order to store it to the record state and restore it afterwards. 
@@ -64,7 +64,7 @@ FormulationUnit(form::Formulation) = FormulationUnit()
 """
     MasterBranchConstrsUnitPair
 
-    Record pair for master branching constraints. 
+    Unit pair for master branching constraints. 
     Consists of FormulationUnit and MasterBranchConstrsRecordState.    
 """
 
@@ -80,7 +80,7 @@ function Base.show(io::IO, state::MasterBranchConstrsRecordState)
     print(io, "]")
 end
 
-function MasterBranchConstrsRecordState(form::Formulation, record::FormulationUnit)
+function MasterBranchConstrsRecordState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
     state = MasterBranchConstrsRecordState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -95,7 +95,7 @@ function MasterBranchConstrsRecordState(form::Formulation, record::FormulationUn
 end
 
 function restorefromstate!(
-    form::Formulation, record::FormulationUnit, state::MasterBranchConstrsRecordState
+    form::Formulation, unit::FormulationUnit, state::MasterBranchConstrsRecordState
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -141,7 +141,7 @@ function Base.show(io::IO, state::MasterColumnsState)
     print(io, "]")
 end
 
-function MasterColumnsState(form::Formulation, record::FormulationUnit)
+function MasterColumnsState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing master columns"
     state = MasterColumnsState(Dict{VarId, ConstrState}())
     for (id, var) in getvars(form)
@@ -156,7 +156,7 @@ function MasterColumnsState(form::Formulation, record::FormulationUnit)
 end
 
 function restorefromstate!(
-    form::Formulation, record::FormulationUnit, state::MasterColumnsState
+    form::Formulation, unit::FormulationUnit, state::MasterColumnsState
 )
     @logmsg LogLevel(-2) "Restoring master columns"
     for (id, var) in getvars(form)
@@ -200,7 +200,7 @@ function Base.show(io::IO, state::MasterCutsState)
     print(io, "]")
 end
 
-function MasterCutsState(form::Formulation, record::FormulationUnit)
+function MasterCutsState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing master cuts"
     state = MasterCutsState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -215,7 +215,7 @@ function MasterCutsState(form::Formulation, record::FormulationUnit)
 end
 
 function restorefromstate!(
-    form::Formulation, record::FormulationUnit, state::MasterCutsState
+    form::Formulation, unit::FormulationUnit, state::MasterCutsState
 )
     @logmsg LogLevel(-2) "Storing master cuts"
     for (id, constr) in getconstrs(form)
@@ -266,7 +266,7 @@ function Base.show(io::IO, state::StaticVarConstrRecordState)
     print(io, "]")
 end
 
-function StaticVarConstrRecordState(form::Formulation, record::FormulationUnit)
+function StaticVarConstrRecordState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
     state = StaticVarConstrRecordState(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
     for (id, constr) in getconstrs(form)
@@ -285,7 +285,7 @@ function StaticVarConstrRecordState(form::Formulation, record::FormulationUnit)
 end
 
 function restorefromstate!(
-    form::Formulation, record::FormulationUnit, state::StaticVarConstrRecordState
+    form::Formulation, unit::FormulationUnit, state::StaticVarConstrRecordState
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
@@ -342,17 +342,17 @@ mutable struct PartialSolutionUnit <: AbstractUnit
     solution::Dict{VarId, Float64}
 end
 
-function add_to_solution!(record::PartialSolutionUnit, varid::VarId, value::Float64)
-    cur_value = get(record.solution, varid, 0.0)
-    record.solution[varid] = cur_value + value
+function add_to_solution!(unit::PartialSolutionUnit, varid::VarId, value::Float64)
+    cur_value = get(unit.solution, varid, 0.0)
+    unit.solution[varid] = cur_value + value
     return
 end
 
-function get_primal_solution(record::PartialSolutionUnit, form::Formulation)
-    varids = collect(keys(record.solution))
-    vals = collect(values(record.solution))
+function get_primal_solution(unit::PartialSolutionUnit, form::Formulation)
+    varids = collect(keys(unit.solution))
+    vals = collect(values(unit.solution))
     solcost = 0.0
-    for (varid, value) in record.solution
+    for (varid, value) in unit.solution
         solcost += getcurcost(form, varid) * value
     end
     return PrimalSolution(form, varids, vals, solcost, UNKNOWN_FEASIBILITY)
@@ -368,16 +368,16 @@ mutable struct PartialSolutionUnitState <: AbstractRecordState
     solution::Dict{VarId, Float64}
 end
 
-function PartialSolutionUnitState(form::Formulation, record::PartialSolutionUnit)
+function PartialSolutionUnitState(form::Formulation, unit::PartialSolutionUnit)
     @logmsg LogLevel(-2) "Storing partial solution"
-    return PartialSolutionUnitState(copy(record.solution))
+    return PartialSolutionUnitState(copy(unit.solution))
 end
 
 function restorefromstate!(
-    form::Formulation, record::PartialSolutionUnit, state::PartialSolutionUnitState
+    form::Formulation, unit::PartialSolutionUnit, state::PartialSolutionUnitState
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
-    record.solution = copy(state.solution)
+    unit.solution = copy(state.solution)
 end
 
 const PartialSolutionUnitPair = (PartialSolutionUnit => PartialSolutionUnitState)

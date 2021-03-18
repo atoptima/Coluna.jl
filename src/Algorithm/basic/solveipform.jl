@@ -27,7 +27,7 @@ function get_units_usage(
     # (deactivating artificial vars and enforcing integrality)
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same
-    units_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
     push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
         push!(units_usage, (form, PartialSolutionUnitPair, READ_ONLY))
@@ -66,7 +66,7 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_value = 0.0
     if isa(form, Formulation{MathProg.DwMaster})
-        partsolunit = getrecord(data, PartialSolutionUnitPair)
+        partsolunit = getunit(data, PartialSolutionUnitPair)
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_value = getvalue(partial_sol)
     end

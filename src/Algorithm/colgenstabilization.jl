@@ -15,10 +15,10 @@ function ColGenStabilizationUnit(master::Formulation)
     )
 end
 
-smoothing_is_active(record::ColGenStabilizationUnit) = !iszero(record.curalpha)
+smoothing_is_active(unit::ColGenStabilizationUnit) = !iszero(unit.curalpha)
 
-subgradient_is_needed(record::ColGenStabilizationUnit, smoothparam::Float64) =
-    smoothparam == 1.0 && record.nb_misprices == 0
+subgradient_is_needed(unit::ColGenStabilizationUnit, smoothparam::Float64) =
+    smoothparam == 1.0 && unit.nb_misprices == 0
 
 mutable struct ColGenStabRecordState <: AbstractRecordState
     alpha::Float64
@@ -26,25 +26,25 @@ mutable struct ColGenStabRecordState <: AbstractRecordState
     stabcenter::Union{Nothing,DualSolution}
 end
 
-function ColGenStabRecordState(master::Formulation, record::ColGenStabilizationUnit)
-    alpha = record.basealpha < 0.5 ? 0.5 : record.basealpha
-    return ColGenStabRecordState(alpha, record.valid_dual_bound, record.basestabcenter)
+function ColGenStabRecordState(master::Formulation, unit::ColGenStabilizationUnit)
+    alpha = unit.basealpha < 0.5 ? 0.5 : unit.basealpha
+    return ColGenStabRecordState(alpha, unit.valid_dual_bound, unit.basestabcenter)
 end
 
 function restorefromstate!(
-    master::Formulation, record::ColGenStabilizationUnit, state::ColGenStabRecordState
+    master::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecordState
 )
-    record.basealpha = state.alpha
-    record.valid_dual_bound = state.dualbound
-    record.basestabcenter = state.stabcenter
+    unit.basealpha = state.alpha
+    unit.valid_dual_bound = state.dualbound
+    unit.basestabcenter = state.stabcenter
     return
 end
 
 const ColGenStabilizationUnitPair = (ColGenStabilizationUnit => ColGenStabRecordState)
 
-function init_stab_before_colgen_loop!(record::ColGenStabilizationUnit)
-    record.stabcenter = record.basestabcenter
-    record.pseudo_dual_bound = record.valid_dual_bound
+function init_stab_before_colgen_loop!(unit::ColGenStabilizationUnit)
+    unit.stabcenter = unit.basestabcenter
+    unit.pseudo_dual_bound = unit.valid_dual_bound
     return
 end
 
@@ -109,22 +109,22 @@ function linear_combination(in_dual_sol::DualSolution, out_dual_sol::DualSolutio
 end
 
 function update_stab_after_rm_solve!(
-    record::ColGenStabilizationUnit, smoothparam::Float64, lp_dual_sol::DualSolution
+    unit::ColGenStabilizationUnit, smoothparam::Float64, lp_dual_sol::DualSolution
 )
     iszero(smoothparam) && return lp_dual_sol
 
-    record.curalpha = 0.0
-    record.nb_misprices = 0
+    unit.curalpha = 0.0
+    unit.nb_misprices = 0
 
-    if record.stabcenter === nothing
+    if unit.stabcenter === nothing
         # cannot do smoothing, just return the current dual solution
-        record.stabcenter = lp_dual_sol
+        unit.stabcenter = lp_dual_sol
         return lp_dual_sol
     end
 
-    record.curalpha = smoothparam == 1.0 ? record.basealpha : smoothparam
+    unit.curalpha = smoothparam == 1.0 ? unit.basealpha : smoothparam
 
-    return linear_combination(record.stabcenter, lp_dual_sol, record.curalpha)
+    return linear_combination(unit.stabcenter, lp_dual_sol, unit.curalpha)
     end
 
 function norm(dualsol::DualSolution)
@@ -136,14 +136,14 @@ function norm(dualsol::DualSolution)
 end
 
 function update_alpha_automatically!(
-    record::ColGenStabilizationUnit, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
+    unit::ColGenStabilizationUnit, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
     smooth_dual_sol::DualSolution{M}, subgradient_contribution::DualSolution{M}
 ) where {M}    
 
     master = lp_dual_sol.model 
 
     # first we calculate the in-sep direction
-    constrids, constrvals = componentwisefunction(smooth_dual_sol, record.stabcenter, -)
+    constrids, constrvals = componentwisefunction(smooth_dual_sol, unit.stabcenter, -)
     in_sep_direction = DualSolution(master, constrids, constrvals, 0.0, UNKNOWN_FEASIBILITY)
     in_sep_dir_norm = norm(in_sep_direction)
 
@@ -175,67 +175,67 @@ function update_alpha_automatically!(
 
     # we modify the alpha parameter based on the calculated angle
     if nb_new_col == 0 || angle > 1e-12 
-        record.basealpha -= 0.1
-    elseif angle < -1e-12 && record.basealpha < 0.999
-        record.basealpha += (1.0 - record.basealpha) * 0.1
+        unit.basealpha -= 0.1
+    elseif angle < -1e-12 && unit.basealpha < 0.999
+        unit.basealpha += (1.0 - unit.basealpha) * 0.1
     end   
     return 
 end
 
 function update_stab_after_gencols!(
-    record::ColGenStabilizationUnit, smoothparam::Float64, nb_new_col::Int64, 
+    unit::ColGenStabilizationUnit, smoothparam::Float64, nb_new_col::Int64, 
     lp_dual_sol::DualSolution{M}, smooth_dual_sol::DualSolution{M}, 
     subgradient_contribution::DualSolution{M}
 ) where {M}
 
     iszero(smoothparam) && return nothing
 
-    if smoothparam == 1.0 && record.nb_misprices == 0
+    if smoothparam == 1.0 && unit.nb_misprices == 0
         update_alpha_automatically!(
-            record, nb_new_col, lp_dual_sol, smooth_dual_sol, subgradient_contribution
+            unit, nb_new_col, lp_dual_sol, smooth_dual_sol, subgradient_contribution
         )
     end
 
-    if nb_new_col > 0 || !smoothing_is_active(record)
+    if nb_new_col > 0 || !smoothing_is_active(unit)
         return nothing
     end
 
     if smoothparam < 0
-        record.curalpha = 1.0 - (record.nb_misprices + 1) * (1 - smoothparam)
+        unit.curalpha = 1.0 - (unit.nb_misprices + 1) * (1 - smoothparam)
     else
-        record.curalpha = 1.0 - (1.0 - record.curalpha) * 2
+        unit.curalpha = 1.0 - (1.0 - unit.curalpha) * 2
     end
 
-    record.nb_misprices += 1
+    unit.nb_misprices += 1
 
-    if record.nb_misprices > 10 || record.curalpha <= 0.0
-        record.curalpha = 0.0
+    if unit.nb_misprices > 10 || unit.curalpha <= 0.0
+        unit.curalpha = 0.0
         return lp_dual_sol
     end
 
-    return linear_combination(record.stabcenter, lp_dual_sol, record.curalpha)
+    return linear_combination(unit.stabcenter, lp_dual_sol, unit.curalpha)
 end
 
 function update_stability_center!(
-    record::ColGenStabilizationUnit, dual_sol::DualSolution, 
+    unit::ColGenStabilizationUnit, dual_sol::DualSolution, 
     valid_lagr_bound::DualBound, pseudo_lagr_bound::DualBound 
 )
-    if isbetter(valid_lagr_bound, record.valid_dual_bound)
-        record.basestabcenter = dual_sol
-        record.valid_dual_bound = valid_lagr_bound
+    if isbetter(valid_lagr_bound, unit.valid_dual_bound)
+        unit.basestabcenter = dual_sol
+        unit.valid_dual_bound = valid_lagr_bound
     end
-    if isbetter(pseudo_lagr_bound, record.pseudo_dual_bound)
-        record.newstabcenter = dual_sol
-        record.pseudo_dual_bound = pseudo_lagr_bound
+    if isbetter(pseudo_lagr_bound, unit.pseudo_dual_bound)
+        unit.newstabcenter = dual_sol
+        unit.pseudo_dual_bound = pseudo_lagr_bound
     end
     return
 end
 
-function update_stab_after_colgen_iteration!(record::ColGenStabilizationUnit)
-    if record.newstabcenter !== nothing
-        record.stabcenter = record.newstabcenter
+function update_stab_after_colgen_iteration!(unit::ColGenStabilizationUnit)
+    if unit.newstabcenter !== nothing
+        unit.stabcenter = unit.newstabcenter
     end
-    record.curalpha = 0.0 
-    record.newstabcenter = nothing
+    unit.curalpha = 0.0 
+    unit.newstabcenter = nothing
     return
 end

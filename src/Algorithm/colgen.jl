@@ -56,7 +56,7 @@ function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
 end 
 
 function get_units_usage(algo::ColumnGeneration, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
     master = getmaster(reform)
     push!(units_usage, (master, MasterColumnsUnitPair, READ_AND_WRITE))
     push!(units_usage, (master, PartialSolutionUnitPair, READ_ONLY))
@@ -632,10 +632,10 @@ function cg_main_loop!(
     redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
     iteration = 0
 
-    stabunit = (stabilization_is_used(algo) ? getrecord(getmasterdata(data), ColGenStabilizationUnitPair) 
+    stabunit = (stabilization_is_used(algo) ? getunit(getmasterdata(data), ColGenStabilizationUnitPair) 
                                                : ColGenStabilizationUnit(masterform) )
 
-    partsolunit = getrecord(getmasterdata(data), PartialSolutionUnitPair)
+    partsolunit = getunit(getmasterdata(data), PartialSolutionUnitPair)
     partial_solution = get_primal_solution(partsolunit, masterform)
 
     init_stab_before_colgen_loop!(stabunit)
