@@ -139,9 +139,7 @@ function optimize_twice()
     data = CLD.GeneralizedAssignment.data("play2.txt")
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-            branchingtreefile = "playgap.dot"
-        )),
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
         "default_optimizer" => GLPK.Optimizer
     )
     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -169,6 +167,29 @@ function optimize_twice()
     # @test JuMP.objective_value(model) ≈ 75.0
     # optimize!(model)
     # @test JuMP.objective_value(model) ≈ 75.0
+end
+
+function column_generation_solver()
+    data = CLD.GeneralizedAssignment.data("play2.txt")
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+            maxnumnodes = 1,
+        )),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    treesearch, x, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
+    optimize!(treesearch)
+
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(solver = ClA.ColumnGeneration()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    colgen, x, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
+    optimize!(colgen)
+    
+    @test MOI.get(treesearch, MOI.ObjectiveBound()) ≈ MOI.get(colgen, MOI.ObjectiveBound())
 end
 
 function branching_file_completion()
@@ -230,10 +251,14 @@ function test_issues_fixed()
         solve_empty_model()
     end
     
-    @testset "optimize_twice()" begin
+    @testset "optimize_twice" begin
         optimize_twice()
     end
 
+
+    @testset "column_generation_solver" begin
+        column_generation_solver()
+    end
     @testset "branching_file_completion" begin
         branching_file_completion()
     end

@@ -481,6 +481,7 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         reform = Reformulation()
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
+        relax_integrality!(getmaster(reform))
     else
         initialize_optimizer!(
             prob.original_formulation,
