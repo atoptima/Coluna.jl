@@ -21,9 +21,9 @@ function generate_children(
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    storages_to_restore = StoragesUsageDict(
-        (master, MasterBranchConstrsStoragePair) => READ_AND_WRITE
-        #(master, BasisStorage) => READ_AND_WRITE) # not yet implemented
+    storages_to_restore = RecordsUsageDict(
+        (master, MasterBranchConstrsRecordPair) => READ_AND_WRITE
+        #(master, BasisRecord) => READ_AND_WRITE) # not yet implemented
     )
 
     #adding the first branching constraints
@@ -72,7 +72,7 @@ end
 # VarBranchingRule does not have child algorithms
 
 function get_storages_usage(algo::VarBranchingRule, reform::Reformulation) 
-    return [(getmaster(reform), MasterBranchConstrsStoragePair, READ_AND_WRITE)] 
+    return [(getmaster(reform), MasterBranchConstrsRecordPair, READ_AND_WRITE)] 
 end
 
 function run!(

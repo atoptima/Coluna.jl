@@ -27,13 +27,13 @@ function get_storages_usage(
     # (deactivating artificial vars and enforcing integrality)
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same
-    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
-    push!(storages_usage, (form, StaticVarConstrStoragePair, READ_ONLY))
+    storages_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+    push!(storages_usage, (form, StaticVarConstrRecordPair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
-        push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
-        push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
-        push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
+        push!(storages_usage, (form, PartialSolutionRecordPair, READ_ONLY))
+        push!(storages_usage, (form, MasterColumnsRecordPair, READ_ONLY))
+        push!(storages_usage, (form, MasterBranchConstrsRecordPair, READ_ONLY))
+        push!(storages_usage, (form, MasterCutsRecordPair, READ_ONLY))
     end
     return storages_usage
 end
@@ -66,7 +66,7 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_value = 0.0
     if isa(form, Formulation{MathProg.DwMaster})
-        partsolstorage = getstorage(data, PartialSolutionStoragePair)
+        partsolstorage = getstorage(data, PartialSolutionRecordPair)
         partial_sol = get_primal_solution(partsolstorage, form)
         partial_sol_value = getvalue(partial_sol)
     end

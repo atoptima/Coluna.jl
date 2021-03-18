@@ -23,8 +23,8 @@ function Coluna.Algorithm.get_storages_usage(
     algo::ConsecutiveColGen, reform::Reformulation
     ) 
     master = Coluna.MathProg.getmaster(reform)
-    return [(reform, Coluna.Algorithm.PreprocessingStoragePair, Coluna.Algorithm.READ_AND_WRITE),
-            (master, Coluna.Algorithm.PartialSolutionStoragePair, Coluna.Algorithm.READ_AND_WRITE)]
+    return [(reform, Coluna.Algorithm.PreprocessingRecordPair, Coluna.Algorithm.READ_AND_WRITE),
+            (master, Coluna.Algorithm.PartialSolutionRecordPair, Coluna.Algorithm.READ_AND_WRITE)]
 end
 
 function Coluna.Algorithm.run!(
@@ -54,8 +54,8 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_storage = getstorage(data, PreprocessingStoragePair)
-        partsol_storage = getstorage(masterdata, PartialSolutionStoragePair)
+        preprocess_storage = getstorage(data, PreprocessingRecordPair)
+        partsol_storage = getstorage(masterdata, PartialSolutionRecordPair)
     
         add_to_localpartialsol!(preprocess_storage, first(var_vals[1]), 1.0)
         add_to_solution!(partsol_storage, first(var_vals[1]), 1.0)

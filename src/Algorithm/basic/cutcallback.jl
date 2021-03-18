@@ -31,7 +31,7 @@ end
 
 function get_storages_usage(algo::CutCallbacks, form::Formulation{Duty}
     ) where {Duty<:MathProg.AbstractFormDuty} 
-    return [(form, MasterCutsStoragePair, READ_AND_WRITE)]
+    return [(form, MasterCutsRecordPair, READ_AND_WRITE)]
 end
 
 function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacksInput)

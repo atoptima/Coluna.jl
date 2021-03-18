@@ -109,7 +109,7 @@ function perform_strong_branching_with_phases!(
             end
         end        
 
-        conquer_storages_to_restore = StoragesUsageDict()
+        conquer_storages_to_restore = RecordsUsageDict()
         collect_storages_to_restore!(
             conquer_storages_to_restore, current_phase.conquer_algo, getreform(data)
         ) 
