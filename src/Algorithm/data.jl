@@ -19,7 +19,7 @@ function getnicename(data::AbstractData)
     return string("data associated to model of type $(typeof(model)) with id $(getuid(model))")
 end
 
-function get_storage_container(data::AbstractData, pair::StorageTypePair)
+function get_storage_container(data::AbstractData, pair::RecordTypePair)
     storagedict = getstoragedict(data)
     storagecont = get(storagedict, pair, nothing)
     if storagecont === nothing
@@ -28,10 +28,10 @@ function get_storage_container(data::AbstractData, pair::StorageTypePair)
     return storagecont
 end
 
-getstorage(data::AbstractData, pair::StorageTypePair) = 
+getstorage(data::AbstractData, pair::RecordTypePair) = 
     getstorage(get_storage_container(data, pair))
 
-function reserve_for_writing!(data::AbstractData, pair::StorageTypePair) 
+function reserve_for_writing!(data::AbstractData, pair::RecordTypePair) 
     TO.@timeit Coluna._to "Reserve for writing" begin
         reserve_for_writing!(get_storage_container(data, pair))   
     end

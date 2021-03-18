@@ -9,7 +9,7 @@
 """
 struct ConquerInput <: AbstractInput 
     node::Node    
-    storages_to_restore::StoragesUsageDict
+    storages_to_restore::RecordsUsageDict
 end
 
 getnode(input::ConquerInput) = input.node
@@ -46,7 +46,7 @@ exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
     node::Node, algo::AbstractConquerAlgorithm, env::Env, data::ReformData, 
-    storages_to_restore::StoragesUsageDict, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
+    storages_to_restore::RecordsUsageDict, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
 )
     nodestate = getoptstate(node)

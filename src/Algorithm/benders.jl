@@ -11,16 +11,16 @@ end
 # to solve the subproblems
 
 function get_storages_usage(algo::BendersCutGeneration, reform::Reformulation) 
-    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
+    storages_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
     master = getmaster(reform)
-    push!(storages_usage, (master, MasterCutsStoragePair, READ_AND_WRITE))
+    push!(storages_usage, (master, MasterCutsRecordPair, READ_AND_WRITE))
 
     # TO DO : everything else should be communicated by the child algorithms 
-    push!(storages_usage, (master, StaticVarConstrStoragePair, READ_ONLY))
-    push!(storages_usage, (master, MasterBranchConstrsStoragePair, READ_ONLY))
-    push!(storages_usage, (master, MasterColumnsStoragePair, READ_ONLY))
+    push!(storages_usage, (master, StaticVarConstrRecordPair, READ_ONLY))
+    push!(storages_usage, (master, MasterBranchConstrsRecordPair, READ_ONLY))
+    push!(storages_usage, (master, MasterColumnsRecordPair, READ_ONLY))
     for (id, spform) in get_benders_sep_sps(reform)
-        push!(storages_usage, (spform, StaticVarConstrStoragePair, READ_ONLY))
+        push!(storages_usage, (spform, StaticVarConstrRecordPair, READ_ONLY))
     end
     return storages_usage
 end

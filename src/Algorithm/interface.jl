@@ -58,7 +58,7 @@ ismanager(algo::AbstractAlgorithm) = false
 get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
-    get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, StorageTypePair, StorageAccessMode}}
+    get_storages_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, RecordTypePair, StorageAccessMode}}
 
     Every algorithm should communicate the storages it uses (so that these storages 
     are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 

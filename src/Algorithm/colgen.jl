@@ -56,12 +56,12 @@ function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
 end 
 
 function get_storages_usage(algo::ColumnGeneration, reform::Reformulation) 
-    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
+    storages_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
     master = getmaster(reform)
-    push!(storages_usage, (master, MasterColumnsStoragePair, READ_AND_WRITE))
-    push!(storages_usage, (master, PartialSolutionStoragePair, READ_ONLY))
+    push!(storages_usage, (master, MasterColumnsRecordPair, READ_AND_WRITE))
+    push!(storages_usage, (master, PartialSolutionRecordPair, READ_ONLY))
     if stabilization_is_used(algo)
-        push!(storages_usage, (master, ColGenStabilizationStoragePair, READ_AND_WRITE))
+        push!(storages_usage, (master, ColGenStabilizationRecordPair, READ_AND_WRITE))
     end
     return storages_usage
 end
@@ -481,7 +481,7 @@ ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.opt_at
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opt_atol
 
 function update_lagrangian_dual_bound!(
-    stabstorage::ColGenStabilizationStorage, optstate::OptimizationState{F, S}, algo::ColumnGeneration,
+    stabstorage::ColGenStabilizationRecord, optstate::OptimizationState{F, S}, algo::ColumnGeneration,
     master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
     partialsol::PrimalSolution, spinfos::Dict{FormId, SubprobInfo}
 ) where {F, S}
@@ -523,7 +523,7 @@ function update_lagrangian_dual_bound!(
 end
 
 function compute_subgradient_contribution(
-    algo::ColumnGeneration, stabstorage::ColGenStabilizationStorage, master::Formulation,
+    algo::ColumnGeneration, stabstorage::ColGenStabilizationRecord, master::Formulation,
     puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId, SubprobInfo}
 )
     sense = getobjsense(master)
@@ -632,10 +632,10 @@ function cg_main_loop!(
     redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
     iteration = 0
 
-    stabstorage = (stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationStoragePair) 
-                                               : ColGenStabilizationStorage(masterform) )
+    stabstorage = (stabilization_is_used(algo) ? getstorage(getmasterdata(data), ColGenStabilizationRecordPair) 
+                                               : ColGenStabilizationRecord(masterform) )
 
-    partsolstorage = getstorage(getmasterdata(data), PartialSolutionStoragePair)
+    partsolstorage = getstorage(getmasterdata(data), PartialSolutionRecordPair)
     partial_solution = get_primal_solution(partsolstorage, masterform)
 
     init_stab_before_colgen_loop!(stabstorage)
