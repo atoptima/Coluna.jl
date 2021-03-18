@@ -68,7 +68,7 @@ function SimpleBranching()::AbstractDivideAlgorithm
 end
 
 # StrongBranching does not use any record itself, 
-# therefore get_records_usage() is not defined for it
+# therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 
     child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
@@ -109,9 +109,9 @@ function perform_strong_branching_with_phases!(
             end
         end        
 
-        conquer_records_to_restore = RecordsUsageDict()
-        collect_records_to_restore!(
-            conquer_records_to_restore, current_phase.conquer_algo, getreform(data)
+        conquer_units_to_restore = UnitsUsageDict()
+        collect_units_to_restore!(
+            conquer_units_to_restore, current_phase.conquer_algo, getreform(data)
         ) 
 
         #TO DO : we need to define a print level parameter
@@ -154,7 +154,7 @@ function perform_strong_branching_with_phases!(
                 update_ip_primal!(getoptstate(node), sbstate, exploitsprimalsolutions)
 
                 apply_conquer_alg_to_node!(
-                    node, current_phase.conquer_algo, env, data, conquer_records_to_restore
+                    node, current_phase.conquer_algo, env, data, conquer_units_to_restore
                 )        
 
                 update_all_ip_primal_solutions!(sbstate, getoptstate(node))

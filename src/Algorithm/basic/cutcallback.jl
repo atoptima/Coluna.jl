@@ -29,9 +29,9 @@ end
 
 # CutCallbacks does not have child algorithms, therefore get_child_algorithms() is not defined
 
-function get_records_usage(algo::CutCallbacks, form::Formulation{Duty}
+function get_units_usage(algo::CutCallbacks, form::Formulation{Duty}
     ) where {Duty<:MathProg.AbstractFormDuty} 
-    return [(form, MasterCutsRecordPair, READ_AND_WRITE)]
+    return [(form, MasterCutsUnitPair, READ_AND_WRITE)]
 end
 
 function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacksInput)

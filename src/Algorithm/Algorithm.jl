@@ -78,9 +78,9 @@ export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, Col
        EmptyInput       
 
 # Records 
-export PartialSolutionRecordPair, PreprocessingRecordPair       
+export PartialSolutionUnitPair, PreprocessingUnitPair       
 
 # Record functions 
-export getrecord, add_to_solution!, add_to_localpartialsol!
+export getunit, add_to_solution!, add_to_localpartialsol!
 
 end

@@ -49,7 +49,7 @@ function apply_data!(form::Formulation, constr::Constraint, constr_state::Constr
 end
 
 """
-    FormulationRecord
+    FormulationUnit
 
     Formulation record is empty and it is used to implicitely keep 
     the data which is changed inside the model 
@@ -57,15 +57,15 @@ end
     in order to store it to the record state and restore it afterwards. 
 """
 
-struct FormulationRecord <: AbstractRecord end
+struct FormulationUnit <: AbstractUnit end
 
-FormulationRecord(form::Formulation) = FormulationRecord()
+FormulationUnit(form::Formulation) = FormulationUnit()
 
 """
-    MasterBranchConstrsRecordPair
+    MasterBranchConstrsUnitPair
 
     Record pair for master branching constraints. 
-    Consists of FormulationRecord and MasterBranchConstrsRecordState.    
+    Consists of FormulationUnit and MasterBranchConstrsRecordState.    
 """
 
 mutable struct MasterBranchConstrsRecordState <: AbstractRecordState
@@ -80,7 +80,7 @@ function Base.show(io::IO, state::MasterBranchConstrsRecordState)
     print(io, "]")
 end
 
-function MasterBranchConstrsRecordState(form::Formulation, record::FormulationRecord)
+function MasterBranchConstrsRecordState(form::Formulation, record::FormulationUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
     state = MasterBranchConstrsRecordState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -95,7 +95,7 @@ function MasterBranchConstrsRecordState(form::Formulation, record::FormulationRe
 end
 
 function restorefromstate!(
-    form::Formulation, record::FormulationRecord, state::MasterBranchConstrsRecordState
+    form::Formulation, record::FormulationUnit, state::MasterBranchConstrsRecordState
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -120,10 +120,10 @@ function restorefromstate!(
     end
 end
 
-const MasterBranchConstrsRecordPair = (FormulationRecord => MasterBranchConstrsRecordState)
+const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecordState)
 
 """
-    MasterColumnsRecordPair
+    MasterColumnsUnitPair
 
     Record pair for branching constraints of a formulation. 
     Consists of EmptyRecord and MasterColumnsState.    
@@ -141,7 +141,7 @@ function Base.show(io::IO, state::MasterColumnsState)
     print(io, "]")
 end
 
-function MasterColumnsState(form::Formulation, record::FormulationRecord)
+function MasterColumnsState(form::Formulation, record::FormulationUnit)
     @logmsg LogLevel(-2) "Storing master columns"
     state = MasterColumnsState(Dict{VarId, ConstrState}())
     for (id, var) in getvars(form)
@@ -156,7 +156,7 @@ function MasterColumnsState(form::Formulation, record::FormulationRecord)
 end
 
 function restorefromstate!(
-    form::Formulation, record::FormulationRecord, state::MasterColumnsState
+    form::Formulation, record::FormulationUnit, state::MasterColumnsState
 )
     @logmsg LogLevel(-2) "Restoring master columns"
     for (id, var) in getvars(form)
@@ -179,10 +179,10 @@ function restorefromstate!(
     end
 end
 
-const MasterColumnsRecordPair = (FormulationRecord => MasterColumnsState)
+const MasterColumnsUnitPair = (FormulationUnit => MasterColumnsState)
 
 """
-    MasterCutsRecordPair
+    MasterCutsUnitPair
 
     Record pair for cutting planes of a formulation. 
     Consists of EmptyRecord and MasterCutsState.    
@@ -200,7 +200,7 @@ function Base.show(io::IO, state::MasterCutsState)
     print(io, "]")
 end
 
-function MasterCutsState(form::Formulation, record::FormulationRecord)
+function MasterCutsState(form::Formulation, record::FormulationUnit)
     @logmsg LogLevel(-2) "Storing master cuts"
     state = MasterCutsState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -215,7 +215,7 @@ function MasterCutsState(form::Formulation, record::FormulationRecord)
 end
 
 function restorefromstate!(
-    form::Formulation, record::FormulationRecord, state::MasterCutsState
+    form::Formulation, record::FormulationUnit, state::MasterCutsState
 )
     @logmsg LogLevel(-2) "Storing master cuts"
     for (id, constr) in getconstrs(form)
@@ -238,10 +238,10 @@ function restorefromstate!(
     end
 end
 
-const MasterCutsRecordPair = (FormulationRecord => MasterCutsState)
+const MasterCutsUnitPair = (FormulationUnit => MasterCutsState)
 
 """
-    StaticVarConstrRecordPair
+    StaticVarConstrUnitPair
 
     Record pair for static variables and constraints of a formulation.
     Consists of EmptyRecord and StaticVarConstrRecordState.    
@@ -266,7 +266,7 @@ function Base.show(io::IO, state::StaticVarConstrRecordState)
     print(io, "]")
 end
 
-function StaticVarConstrRecordState(form::Formulation, record::FormulationRecord)
+function StaticVarConstrRecordState(form::Formulation, record::FormulationUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
     state = StaticVarConstrRecordState(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
     for (id, constr) in getconstrs(form)
@@ -285,7 +285,7 @@ function StaticVarConstrRecordState(form::Formulation, record::FormulationRecord
 end
 
 function restorefromstate!(
-    form::Formulation, record::FormulationRecord, state::StaticVarConstrRecordState
+    form::Formulation, record::FormulationUnit, state::StaticVarConstrRecordState
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
@@ -326,29 +326,29 @@ function restorefromstate!(
     end
 end
 
-const StaticVarConstrRecordPair = (FormulationRecord => StaticVarConstrRecordState)
+const StaticVarConstrUnitPair = (FormulationUnit => StaticVarConstrRecordState)
 
 """
-    PartialSolutionRecordPair
+    PartialSolutionUnitPair
 
     Record pair for partial solution of a formulation.
-    Consists of PartialSolutionRecord and PartialSolutionRecordState.    
+    Consists of PartialSolutionUnit and PartialSolutionUnitState.    
 """
 
 # TO DO : to replace dictionaries by PrimalSolution
 # issues to see : 1) PrimalSolution is parametric; 2) we need a solution concatenation functionality
 
-mutable struct PartialSolutionRecord <: AbstractRecord
+mutable struct PartialSolutionUnit <: AbstractUnit
     solution::Dict{VarId, Float64}
 end
 
-function add_to_solution!(record::PartialSolutionRecord, varid::VarId, value::Float64)
+function add_to_solution!(record::PartialSolutionUnit, varid::VarId, value::Float64)
     cur_value = get(record.solution, varid, 0.0)
     record.solution[varid] = cur_value + value
     return
 end
 
-function get_primal_solution(record::PartialSolutionRecord, form::Formulation)
+function get_primal_solution(record::PartialSolutionUnit, form::Formulation)
     varids = collect(keys(record.solution))
     vals = collect(values(record.solution))
     solcost = 0.0
@@ -359,25 +359,25 @@ function get_primal_solution(record::PartialSolutionRecord, form::Formulation)
 end    
 
 
-function PartialSolutionRecord(form::Formulation) 
-    return PartialSolutionRecord(Dict{VarId, Float64}())
+function PartialSolutionUnit(form::Formulation) 
+    return PartialSolutionUnit(Dict{VarId, Float64}())
 end
 
 # the record state is the same as the record here
-mutable struct PartialSolutionRecordState <: AbstractRecordState
+mutable struct PartialSolutionUnitState <: AbstractRecordState
     solution::Dict{VarId, Float64}
 end
 
-function PartialSolutionRecordState(form::Formulation, record::PartialSolutionRecord)
+function PartialSolutionUnitState(form::Formulation, record::PartialSolutionUnit)
     @logmsg LogLevel(-2) "Storing partial solution"
-    return PartialSolutionRecordState(copy(record.solution))
+    return PartialSolutionUnitState(copy(record.solution))
 end
 
 function restorefromstate!(
-    form::Formulation, record::PartialSolutionRecord, state::PartialSolutionRecordState
+    form::Formulation, record::PartialSolutionUnit, state::PartialSolutionUnitState
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
     record.solution = copy(state.solution)
 end
 
-const PartialSolutionRecordPair = (PartialSolutionRecord => PartialSolutionRecordState)
+const PartialSolutionUnitPair = (PartialSolutionUnit => PartialSolutionUnitState)

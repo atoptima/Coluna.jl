@@ -24,7 +24,7 @@
     "copy_states(::RecordStatesVector)::RecordStatesVector"
   
     Every stored state should be removed or restored using functions 
-    "restore_states!(::RecordStatesVector,::RecordsUsageDict)" 
+    "restore_states!(::RecordStatesVector,::UnitsUsageDict)" 
     and "remove_states!(::RecordStatesVector)"
   
     After storing current states, if we write to some record, we should restore 
@@ -34,7 +34,7 @@
 """
 
 """
-    AbstractRecord 
+    AbstractUnit 
 
 A record contains information about a model or the execution of an algorithm.
 
@@ -43,7 +43,7 @@ takes a model as a parameter. This constructor is
 called when the formulation is completely known so the data
 can be safely computed.
 """
-abstract type AbstractRecord end
+abstract type AbstractUnit end
 
 """
     AbstractRecordState
@@ -63,7 +63,7 @@ abstract type AbstractRecordState end
 This method should be defined for every triple (model type, record type, record state type)
 used by an algorithm.     
 """
-restorefromstate!(model::AbstractModel, record::AbstractRecord, state::AbstractRecordState) =
+restorefromstate!(model::AbstractModel, record::AbstractUnit, state::AbstractRecordState) =
     error(string(
         "restorefromstate! not defined for model type $(typeof(model)), ",
         "record type $(typeof(record)), and record state type $(typeof(state))"
@@ -79,19 +79,19 @@ the empty record state should be used with it.
 
 struct EmptyRecordState <: AbstractRecordState end
 
-EmptyRecordState(model::AbstractModel, record::AbstractRecord) = nothing
+EmptyRecordState(model::AbstractModel, record::AbstractUnit) = nothing
 
-restorefromstate!(::AbstractModel, ::AbstractRecord, ::EmptyRecordState) = nothing
+restorefromstate!(::AbstractModel, ::AbstractUnit, ::EmptyRecordState) = nothing
 
-# RecordTypePair = Pair{Type{<:AbstractRecord}, Type{<:AbstractRecordState}}.
+# RecordTypePair = Pair{Type{<:AbstractUnit}, Type{<:AbstractRecordState}}.
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
 const RecordTypePair = Pair{DataType, DataType}
 
 # TO DO : replace with the set of RecordTypePair, should only contain records which should 
 #         be restored for writing (all other records are restored anyway but just for reading)
-const RecordsUsageDict = Dict{Tuple{AbstractModel, RecordTypePair}, RecordAccessMode}
+const UnitsUsageDict = Dict{Tuple{AbstractModel, RecordTypePair}, RecordAccessMode}
 
-function Base.show(io::IO, usagedict::RecordsUsageDict)
+function Base.show(io::IO, usagedict::UnitsUsageDict)
     print(io, "record usage dict [")
     for usage in usagedict
         print(io, " (", typeof(usage[1][1]), ", ", usage[1][2], ") => ", usage[2])
@@ -100,12 +100,12 @@ function Base.show(io::IO, usagedict::RecordsUsageDict)
 end
 
 """
-    add_record_pair_usage!(::RecordsUsageDict, ::AbstractModel, ::RecordTypePair, ::RecordAccessMode)
+    add_record_pair_usage!(::UnitsUsageDict, ::AbstractModel, ::RecordTypePair, ::RecordAccessMode)
 
 An auxiliary function to be used when adding record usage to a RecordUsageDict
 """
 function add_record_pair_usage!(
-    dict::RecordsUsageDict, model::AbstractModel, pair::RecordTypePair, mode::RecordAccessMode
+    dict::UnitsUsageDict, model::AbstractModel, pair::RecordTypePair, mode::RecordAccessMode
 )
     current_mode = get(dict, (model, pair), NOT_USED) 
     if current_mode == NOT_USED && mode != NOT_USED
@@ -180,7 +180,7 @@ stored. It implements storing and restoring states in an
 efficient way. 
 """
 
-mutable struct StorageContainer{M<:AbstractModel, S<:AbstractRecord, SS<:AbstractRecordState}
+mutable struct StorageContainer{M<:AbstractModel, S<:AbstractUnit, SS<:AbstractRecordState}
     model::M
     curstatecont::RecordStateContainer{SS}
     maxstateid::StateId
@@ -326,11 +326,11 @@ end
 #     setcurstate!(storagecont, statecont)
 # end
 
-function restore_states!(ssvector::RecordStatesVector, records_to_restore::RecordsUsageDict)
+function restore_states!(ssvector::RecordStatesVector, units_to_restore::UnitsUsageDict)
     TO.@timeit Coluna._to "Restore/remove states" begin
         for (storagecont, stateid) in ssvector
             mode = get(
-                records_to_restore, 
+                units_to_restore, 
                 (getmodel(storagecont), gettypepair(storagecont)), 
                 READ_ONLY
             )

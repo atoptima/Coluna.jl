@@ -20,23 +20,23 @@ end
 
 # SolveLpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
-function get_records_usage(
+function get_units_usage(
     algo::SolveLpForm, form::Formulation{Duty}
 ) where {Duty<:MathProg.AbstractFormDuty}
     # we use records in the read only mode, as relaxing integrality
     # is reverted before the end of the algorithm, 
     # so the state of the formulation remains the same 
-    records_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
-    push!(records_usage, (form, StaticVarConstrRecordPair, READ_ONLY))
+    units_usage = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+    push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(records_usage, (form, MasterColumnsRecordPair, READ_ONLY))
-        push!(records_usage, (form, MasterBranchConstrsRecordPair, READ_ONLY))
-        push!(records_usage, (form, MasterCutsRecordPair, READ_ONLY))
+        push!(units_usage, (form, MasterColumnsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterBranchConstrsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterCutsUnitPair, READ_ONLY))
     end
     if algo.consider_partial_solution
-        push!(records_usage, (form, PartialSolutionRecordPair, READ_ONLY))
+        push!(units_usage, (form, PartialSolutionUnitPair, READ_ONLY))
     end
-    return records_usage
+    return units_usage
 end
 
 function optimize_lp_form!(::SolveLpForm, optimizer, ::Formulation, ::OptimizationState) # fallback
@@ -64,8 +64,8 @@ function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_val = 0.0
     if algo.consider_partial_solution
-        partsolrecord = getrecord(data, PartialSolutionRecordPair)
-        partial_sol = get_primal_solution(partsolrecord, form)
+        partsolunit = getrecord(data, PartialSolutionUnitPair)
+        partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_val = getvalue(partial_sol)
     end
 

@@ -8,12 +8,12 @@
 """
 struct ConquerInput <: AbstractInput 
     node::Node    
-    records_to_restore::RecordsUsageDict
+    units_to_restore::UnitsUsageDict
 end
 
 getnode(input::ConquerInput) = input.node
 
-restore_states!(input::ConquerInput) = restore_states!(input.node.stateids, input.records_to_restore) 
+restore_states!(input::ConquerInput) = restore_states!(input.node.stateids, input.units_to_restore) 
 
 """
     AbstractConquerAlgorithm
@@ -45,7 +45,7 @@ exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
     node::Node, algo::AbstractConquerAlgorithm, env::Env, data::ReformData, 
-    records_to_restore::RecordsUsageDict, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
+    units_to_restore::UnitsUsageDict, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
 )
     nodestate = getoptstate(node)
@@ -58,7 +58,7 @@ function apply_conquer_alg_to_node!(
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-        run!(algo, env, data, ConquerInput(node, records_to_restore))
+        run!(algo, env, data, ConquerInput(node, units_to_restore))
         store_states!(data, node.stateids)
     end
     node.conquerwasrun = true
@@ -95,7 +95,7 @@ end
 isverbose(strategy::BendersConquer) = true
 
 # BendersConquer does not use any record for the moment, it just calls 
-# BendersCutSeparation algorithm, therefore get_records_usage() is not defined for it
+# BendersCutSeparation algorithm, therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::BendersConquer, reform::Reformulation) 
     return [(algo.benders, reform)]
@@ -143,7 +143,7 @@ end
 isverbose(algo::ColCutGenConquer) = algo.colgen.log_print_frequency > 0
 
 # ColCutGenConquer does not use any record for the moment, therefore 
-# get_records_usage() is not defined for it
+# get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
     child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
@@ -237,7 +237,7 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
                 end
             end
         end
-        ismanager(heur_algorithm) && restore_states!(stateids, input.records_to_restore)
+        ismanager(heur_algorithm) && restore_states!(stateids, input.units_to_restore)
     end
 
     if node_pruned
@@ -258,7 +258,7 @@ end
         )
 end
 
-# RestrMasterLPConquer does not use any record, therefore get_records_usage() is not defined for it
+# RestrMasterLPConquer does not use any record, therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation) 
     return [(algo.masterlpalgo, getmaster(reform))]

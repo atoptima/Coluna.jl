@@ -58,13 +58,13 @@ ismanager(algo::AbstractAlgorithm) = false
 get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
-    get_records_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, RecordTypePair, RecordAccessMode}}
+    get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, RecordTypePair, RecordAccessMode}}
 
     Every algorithm should communicate the records it uses (so that these records 
     are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
     in order to restore records before running a worker algorithm.
 """
-get_records_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
+get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, RecordTypePair, RecordAccessMode}[] 
 
 """
     run!(algo::AbstractAlgorithm, model::AbstractData, input::AbstractInput)::AbstractOutput
@@ -113,17 +113,17 @@ exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 
 # this function collects records to restore for an algorithm and all its child worker algorithms,
 # child manager algorithms are skipped, as their restore records themselves
-function collect_records_to_restore!(
-    global_records_usage::RecordsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
+function collect_units_to_restore!(
+    global_units_usage::UnitsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
 )
-    local_records_usage = get_records_usage(algo, model)
-    for (rec_model, rec_pair, rec_usage) in local_records_usage
-        add_record_pair_usage!(global_records_usage, rec_model, rec_pair, rec_usage)
+    local_units_usage = get_units_usage(algo, model)
+    for (rec_model, rec_pair, rec_usage) in local_units_usage
+        add_record_pair_usage!(global_units_usage, rec_model, rec_pair, rec_usage)
     end
 
     child_algos = get_child_algorithms(algo, model)
     for (childalgo, childmodel) in child_algos
-        !ismanager(childalgo) && collect_records_to_restore!(global_records_usage, childalgo, childmodel)
+        !ismanager(childalgo) && collect_units_to_restore!(global_units_usage, childalgo, childmodel)
     end
 end
 
@@ -132,8 +132,8 @@ end
 function collect_records_to_create!(
     records_to_create::Dict{AbstractModel,Set{RecordTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
 )
-    records_usage = get_records_usage(algo, model)
-    for (rec_model, rec_pair, rec_usage) in records_usage
+    units_usage = get_units_usage(algo, model)
+    for (rec_model, rec_pair, rec_usage) in units_usage
         if !haskey(records_to_create, rec_model)
             records_to_create[rec_model] = Set{RecordTypePair}()
         end

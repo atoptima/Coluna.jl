@@ -19,12 +19,12 @@ function Coluna.Algorithm.get_child_algorithms(
     return [(algo.colgen, reform), (algo.preprocess, reform), (algo.rm_heur, reform)]
 end 
 
-function Coluna.Algorithm.get_records_usage(
+function Coluna.Algorithm.get_units_usage(
     algo::ConsecutiveColGen, reform::Reformulation
     ) 
     master = Coluna.MathProg.getmaster(reform)
-    return [(reform, Coluna.Algorithm.PreprocessingRecordPair, Coluna.Algorithm.READ_AND_WRITE),
-            (master, Coluna.Algorithm.PartialSolutionRecordPair, Coluna.Algorithm.READ_AND_WRITE)]
+    return [(reform, Coluna.Algorithm.PreprocessingUnitPair, Coluna.Algorithm.READ_AND_WRITE),
+            (master, Coluna.Algorithm.PartialSolutionUnitPair, Coluna.Algorithm.READ_AND_WRITE)]
 end
 
 function Coluna.Algorithm.run!(
@@ -54,8 +54,8 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_record = getrecord(data, PreprocessingRecordPair)
-        partsol_record = getrecord(masterdata, PartialSolutionRecordPair)
+        preprocess_record = getrecord(data, PreprocessingUnitPair)
+        partsol_record = getrecord(masterdata, PartialSolutionUnitPair)
     
         add_to_localpartialsol!(preprocess_record, first(var_vals[1]), 1.0)
         add_to_solution!(partsol_record, first(var_vals[1]), 1.0)

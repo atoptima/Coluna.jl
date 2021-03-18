@@ -1,4 +1,4 @@
-mutable struct ColGenStabilizationRecord <: AbstractRecord
+mutable struct ColGenStabilizationUnit <: AbstractUnit
     basealpha::Float64 # "global" alpha parameter
     curalpha::Float64 # alpha parameter during the current misprice sequence
     nb_misprices::Int64 # number of misprices during the current misprice sequence
@@ -9,15 +9,15 @@ mutable struct ColGenStabilizationRecord <: AbstractRecord
     basestabcenter::Union{Nothing,DualSolution} # stability center, corresponding to valid_dual_bound
 end
 
-function ColGenStabilizationRecord(master::Formulation)
-    return ColGenStabilizationRecord(
+function ColGenStabilizationUnit(master::Formulation)
+    return ColGenStabilizationUnit(
         0.5, 0.0, 0, DualBound(master), DualBound(master), nothing, nothing, nothing
     )
 end
 
-smoothing_is_active(record::ColGenStabilizationRecord) = !iszero(record.curalpha)
+smoothing_is_active(record::ColGenStabilizationUnit) = !iszero(record.curalpha)
 
-subgradient_is_needed(record::ColGenStabilizationRecord, smoothparam::Float64) =
+subgradient_is_needed(record::ColGenStabilizationUnit, smoothparam::Float64) =
     smoothparam == 1.0 && record.nb_misprices == 0
 
 mutable struct ColGenStabRecordState <: AbstractRecordState
@@ -26,13 +26,13 @@ mutable struct ColGenStabRecordState <: AbstractRecordState
     stabcenter::Union{Nothing,DualSolution}
 end
 
-function ColGenStabRecordState(master::Formulation, record::ColGenStabilizationRecord)
+function ColGenStabRecordState(master::Formulation, record::ColGenStabilizationUnit)
     alpha = record.basealpha < 0.5 ? 0.5 : record.basealpha
     return ColGenStabRecordState(alpha, record.valid_dual_bound, record.basestabcenter)
 end
 
 function restorefromstate!(
-    master::Formulation, record::ColGenStabilizationRecord, state::ColGenStabRecordState
+    master::Formulation, record::ColGenStabilizationUnit, state::ColGenStabRecordState
 )
     record.basealpha = state.alpha
     record.valid_dual_bound = state.dualbound
@@ -40,9 +40,9 @@ function restorefromstate!(
     return
 end
 
-const ColGenStabilizationRecordPair = (ColGenStabilizationRecord => ColGenStabRecordState)
+const ColGenStabilizationUnitPair = (ColGenStabilizationUnit => ColGenStabRecordState)
 
-function init_stab_before_colgen_loop!(record::ColGenStabilizationRecord)
+function init_stab_before_colgen_loop!(record::ColGenStabilizationUnit)
     record.stabcenter = record.basestabcenter
     record.pseudo_dual_bound = record.valid_dual_bound
     return
@@ -109,7 +109,7 @@ function linear_combination(in_dual_sol::DualSolution, out_dual_sol::DualSolutio
 end
 
 function update_stab_after_rm_solve!(
-    record::ColGenStabilizationRecord, smoothparam::Float64, lp_dual_sol::DualSolution
+    record::ColGenStabilizationUnit, smoothparam::Float64, lp_dual_sol::DualSolution
 )
     iszero(smoothparam) && return lp_dual_sol
 
@@ -136,7 +136,7 @@ function norm(dualsol::DualSolution)
 end
 
 function update_alpha_automatically!(
-    record::ColGenStabilizationRecord, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
+    record::ColGenStabilizationUnit, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
     smooth_dual_sol::DualSolution{M}, subgradient_contribution::DualSolution{M}
 ) where {M}    
 
@@ -183,7 +183,7 @@ function update_alpha_automatically!(
 end
 
 function update_stab_after_gencols!(
-    record::ColGenStabilizationRecord, smoothparam::Float64, nb_new_col::Int64, 
+    record::ColGenStabilizationUnit, smoothparam::Float64, nb_new_col::Int64, 
     lp_dual_sol::DualSolution{M}, smooth_dual_sol::DualSolution{M}, 
     subgradient_contribution::DualSolution{M}
 ) where {M}
@@ -217,7 +217,7 @@ function update_stab_after_gencols!(
 end
 
 function update_stability_center!(
-    record::ColGenStabilizationRecord, dual_sol::DualSolution, 
+    record::ColGenStabilizationUnit, dual_sol::DualSolution, 
     valid_lagr_bound::DualBound, pseudo_lagr_bound::DualBound 
 )
     if isbetter(valid_lagr_bound, record.valid_dual_bound)
@@ -231,7 +231,7 @@ function update_stability_center!(
     return
 end
 
-function update_stab_after_colgen_iteration!(record::ColGenStabilizationRecord)
+function update_stab_after_colgen_iteration!(record::ColGenStabilizationUnit)
     if record.newstabcenter !== nothing
         record.stabcenter = record.newstabcenter
     end

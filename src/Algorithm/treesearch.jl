@@ -89,7 +89,7 @@ mutable struct TreeSearchRuntimeData{Sense}
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
-    conquer_records_to_restore::RecordsUsageDict
+    conquer_units_to_restore::UnitsUsageDict
     worst_db_of_pruned_node::DualBound{Sense}
 end
 
@@ -100,15 +100,15 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
         getmaster(reform), getoptstate(input), exploitsprimalsols, false
     )
 
-    conquer_records_to_restore = RecordsUsageDict()
-    collect_records_to_restore!(conquer_records_to_restore, algo.conqueralg, reform) 
+    conquer_units_to_restore = UnitsUsageDict()
+    collect_units_to_restore!(conquer_units_to_restore, algo.conqueralg, reform) 
     # divide algorithms are always manager algorithms, so we do not need to restore records for them
 
     Sense = getobjsense(reform)
 
     tsdata = TreeSearchRuntimeData{Sense}(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()),
-        1, treestate, exploitsprimalsols, Sense, conquer_records_to_restore,
+        1, treestate, exploitsprimalsols, Sense, conquer_units_to_restore,
         -DualBound{Sense}()
     )
     master = getmaster(getreform(rfdata))
@@ -144,23 +144,23 @@ getoptstate(data::TreeSearchRuntimeData) = data.optstate
 ismanager(algo::TreeSearchAlgorithm) = true
 
 # TreeSearchAlgorithm does not use any record itself, 
-# therefore get_records_usage() is not defined for it
+# therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation) 
     return [(algo.conqueralg, reform), (algo.dividealg, reform)]
 end 
 
 
-# function get_records_usage!(
-#     algo::TreeSearchAlgorithm, reform::Reformulation, records_usage::RecordsUsageDict
+# function get_units_usage!(
+#     algo::TreeSearchAlgorithm, reform::Reformulation, units_usage::UnitsUsageDict
 # )
-#     get_records_usage!(algo.conqueralg, reform, records_usage)
-#     get_records_usage!(algo.dividealg, reform, records_usage)
+#     get_units_usage!(algo.conqueralg, reform, units_usage)
+#     get_units_usage!(algo.dividealg, reform, units_usage)
 #     return
 # end
 
-# function get_records_to_restore!(
-#     algo::TreeSearchAlgorithm, reform::Reformulation, records_to_restore::RecordsToRestoreDict
+# function get_units_to_restore!(
+#     algo::TreeSearchAlgorithm, reform::Reformulation, units_to_restore::RecordsToRestoreDict
 # )
 #     # tree search algorithm restores itself records for the conquer and divide algorithm 
 #     # on every node, so we do not require anything here
@@ -266,7 +266,7 @@ function run_conquer_algorithm!(
     update_ip_primal!(nodestate, treestate, tsdata.exploitsprimalsolutions)
 
     apply_conquer_alg_to_node!(
-        node, algo.conqueralg, env, rfdata, tsdata.conquer_records_to_restore, 
+        node, algo.conqueralg, env, rfdata, tsdata.conquer_units_to_restore, 
         algo.opt_rtol, algo.opt_atol
     )        
 

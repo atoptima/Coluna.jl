@@ -21,13 +21,13 @@ function generate_children(
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    records_to_restore = RecordsUsageDict(
-        (master, MasterBranchConstrsRecordPair) => READ_AND_WRITE
-        #(master, BasisRecord) => READ_AND_WRITE) # not yet implemented
+    units_to_restore = UnitsUsageDict(
+        (master, MasterBranchConstrsUnitPair) => READ_AND_WRITE
+        #(master, BasisUnit) => READ_AND_WRITE) # not yet implemented
     )
 
     #adding the first branching constraints
-    restore_states!(copy_states(parent.stateids), records_to_restore)    
+    restore_states!(copy_states(parent.stateids), units_to_restore)    
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
         master, string(
@@ -41,7 +41,7 @@ function generate_children(
     child1 = Node(master, parent, child1description, store_states!(data))
 
     #adding the second branching constraints
-    restore_states!(copy_states(parent.stateids), records_to_restore)
+    restore_states!(copy_states(parent.stateids), units_to_restore)
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
         master, string(
@@ -71,8 +71,8 @@ end
 
 # VarBranchingRule does not have child algorithms
 
-function get_records_usage(algo::VarBranchingRule, reform::Reformulation) 
-    return [(getmaster(reform), MasterBranchConstrsRecordPair, READ_AND_WRITE)] 
+function get_units_usage(algo::VarBranchingRule, reform::Reformulation) 
+    return [(getmaster(reform), MasterBranchConstrsUnitPair, READ_AND_WRITE)] 
 end
 
 function run!(
