@@ -569,6 +569,10 @@ function MOI.get(model::Coluna.Optimizer, ::MOI.NumberOfVariables)
     return length(getvars(orig_form))
 end
 
+function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F, S}) where {F, S}
+    return length(MOI.get(model, MOI.ListOfConstraintIndices{F, S}()))
+end
+
 # ######################
 # ### Get functions ####
 # ######################
