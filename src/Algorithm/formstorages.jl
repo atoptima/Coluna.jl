@@ -1,9 +1,8 @@
 """
     VarState
 
-    Used in formulation storages
+Used in formulation records
 """
-
 struct VarState
     cost::Float64
     lb::Float64
@@ -31,9 +30,8 @@ end
 """
     ConstrState
 
-    Used in formulation storages
+Used in formulation records
 """
-
 struct ConstrState
     rhs::Float64
 end
@@ -49,30 +47,30 @@ function apply_data!(form::Formulation, constr::Constraint, constr_state::Constr
 end
 
 """
-    FormulationStorage
+    FormulationUnit
 
-    Formulation storage is empty and it is used to implicitely keep 
+    Formulation unit is empty and it is used to implicitely keep 
     the data which is changed inside the model 
     (for example, dynamic variables and constraints of a formulaiton) 
-    in order to store it to the storage state and restore it afterwards. 
+    in order to store it to the record state and restore it afterwards. 
 """
 
-struct FormulationStorage <: AbstractStorage end
+struct FormulationUnit <: AbstractStorageUnit end
 
-FormulationStorage(form::Formulation) = FormulationStorage()
+FormulationUnit(form::Formulation) = FormulationUnit()
 
 """
-    MasterBranchConstrsStoragePair
+    MasterBranchConstrsUnitPair
 
-    Storage pair for master branching constraints. 
-    Consists of FormulationStorage and MasterBranchConstrsStorageState.    
+    Unit pair for master branching constraints. 
+    Consists of FormulationUnit and MasterBranchConstrsRecordState.    
 """
 
-mutable struct MasterBranchConstrsStorageState <: AbstractStorageState
+mutable struct MasterBranchConstrsRecordState <: AbstractRecordState
     constrs::Dict{ConstrId, ConstrState}
 end
 
-function Base.show(io::IO, state::MasterBranchConstrsStorageState)
+function Base.show(io::IO, state::MasterBranchConstrsRecordState)
     print(io, "[")
     for (id, constr) in state.constrs
         print(io, " ", MathProg.getuid(id))
@@ -80,9 +78,9 @@ function Base.show(io::IO, state::MasterBranchConstrsStorageState)
     print(io, "]")
 end
 
-function MasterBranchConstrsStorageState(form::Formulation, storage::FormulationStorage)
+function MasterBranchConstrsRecordState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
-    state = MasterBranchConstrsStorageState(Dict{ConstrId, ConstrState}())
+    state = MasterBranchConstrsRecordState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterBranchingConstr && 
            iscuractive(form, constr) && isexplicit(form, constr)
@@ -95,7 +93,7 @@ function MasterBranchConstrsStorageState(form::Formulation, storage::Formulation
 end
 
 function restorefromstate!(
-    form::Formulation, storage::FormulationStorage, state::MasterBranchConstrsStorageState
+    form::Formulation, unit::FormulationUnit, state::MasterBranchConstrsRecordState
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -120,16 +118,16 @@ function restorefromstate!(
     end
 end
 
-const MasterBranchConstrsStoragePair = (FormulationStorage => MasterBranchConstrsStorageState)
+const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecordState)
 
 """
-    MasterColumnsStoragePair
+    MasterColumnsUnitPair
 
-    Storage pair for branching constraints of a formulation. 
-    Consists of EmptyStorage and MasterColumnsState.    
+    Unit pair for branching constraints of a formulation. 
+    Consists of FormulationUnit and MasterColumnsState.    
 """
 
-mutable struct MasterColumnsState <: AbstractStorageState
+mutable struct MasterColumnsState <: AbstractRecordState
     cols::Dict{VarId, VarState}
 end
 
@@ -141,7 +139,7 @@ function Base.show(io::IO, state::MasterColumnsState)
     print(io, "]")
 end
 
-function MasterColumnsState(form::Formulation, storage::FormulationStorage)
+function MasterColumnsState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing master columns"
     state = MasterColumnsState(Dict{VarId, ConstrState}())
     for (id, var) in getvars(form)
@@ -156,7 +154,7 @@ function MasterColumnsState(form::Formulation, storage::FormulationStorage)
 end
 
 function restorefromstate!(
-    form::Formulation, storage::FormulationStorage, state::MasterColumnsState
+    form::Formulation, unit::FormulationUnit, state::MasterColumnsState
 )
     @logmsg LogLevel(-2) "Restoring master columns"
     for (id, var) in getvars(form)
@@ -179,16 +177,16 @@ function restorefromstate!(
     end
 end
 
-const MasterColumnsStoragePair = (FormulationStorage => MasterColumnsState)
+const MasterColumnsUnitPair = (FormulationUnit => MasterColumnsState)
 
 """
-    MasterCutsStoragePair
+    MasterCutsUnitPair
 
-    Storage pair for cutting planes of a formulation. 
-    Consists of EmptyStorage and MasterCutsState.    
+    Unit pair for cutting planes of a formulation. 
+    Consists of FormulationUnit and MasterCutsState.    
 """
 
-mutable struct MasterCutsState <: AbstractStorageState
+mutable struct MasterCutsState <: AbstractRecordState
     cuts::Dict{ConstrId, ConstrState}
 end
 
@@ -200,7 +198,7 @@ function Base.show(io::IO, state::MasterCutsState)
     print(io, "]")
 end
 
-function MasterCutsState(form::Formulation, storage::FormulationStorage)
+function MasterCutsState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing master cuts"
     state = MasterCutsState(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -215,7 +213,7 @@ function MasterCutsState(form::Formulation, storage::FormulationStorage)
 end
 
 function restorefromstate!(
-    form::Formulation, storage::FormulationStorage, state::MasterCutsState
+    form::Formulation, unit::FormulationUnit, state::MasterCutsState
 )
     @logmsg LogLevel(-2) "Storing master cuts"
     for (id, constr) in getconstrs(form)
@@ -238,23 +236,23 @@ function restorefromstate!(
     end
 end
 
-const MasterCutsStoragePair = (FormulationStorage => MasterCutsState)
+const MasterCutsUnitPair = (FormulationUnit => MasterCutsState)
 
 """
-    StaticVarConstrStoragePair
+    StaticVarConstrUnitPair
 
-    Storage pair for static variables and constraints of a formulation.
-    Consists of EmptyStorage and StaticVarConstrStorageState.    
+    Unit pair for static variables and constraints of a formulation.
+    Consists of FormulationUnit and StaticVarConstrRecordState.    
 """
 
-mutable struct StaticVarConstrStorageState <: AbstractStorageState
+mutable struct StaticVarConstrRecordState <: AbstractRecordState
     constrs::Dict{ConstrId, ConstrState}
     vars::Dict{VarId, VarState}
 end
 
 #TO DO: we need to keep here only the difference with the initial data
 
-function Base.show(io::IO, state::StaticVarConstrStorageState)
+function Base.show(io::IO, state::StaticVarConstrRecordState)
     print(io, "[vars:")
     for (id, var) in state.vars
         print(io, " ", MathProg.getuid(id))
@@ -266,9 +264,9 @@ function Base.show(io::IO, state::StaticVarConstrStorageState)
     print(io, "]")
 end
 
-function StaticVarConstrStorageState(form::Formulation, storage::FormulationStorage)
+function StaticVarConstrRecordState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
-    state = StaticVarConstrStorageState(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
+    state = StaticVarConstrRecordState(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
     for (id, constr) in getconstrs(form)
         if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr)            
             constrstate = ConstrState(getcurrhs(form, constr))
@@ -285,7 +283,7 @@ function StaticVarConstrStorageState(form::Formulation, storage::FormulationStor
 end
 
 function restorefromstate!(
-    form::Formulation, storage::FormulationStorage, state::StaticVarConstrStorageState
+    form::Formulation, unit::FormulationUnit, state::StaticVarConstrRecordState
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
@@ -326,58 +324,58 @@ function restorefromstate!(
     end
 end
 
-const StaticVarConstrStoragePair = (FormulationStorage => StaticVarConstrStorageState)
+const StaticVarConstrUnitPair = (FormulationUnit => StaticVarConstrRecordState)
 
 """
-    PartialSolutionStoragePair
+    PartialSolutionUnitPair
 
-    Storage pair for partial solution of a formulation.
-    Consists of PartialSolutionStorage and PartialSolutionStorageState.    
+    Unit pair for partial solution of a formulation.
+    Consists of PartialSolutionUnit and PartialSolutionUnitState.    
 """
 
 # TO DO : to replace dictionaries by PrimalSolution
 # issues to see : 1) PrimalSolution is parametric; 2) we need a solution concatenation functionality
 
-mutable struct PartialSolutionStorage <: AbstractStorage
+mutable struct PartialSolutionUnit <: AbstractStorageUnit
     solution::Dict{VarId, Float64}
 end
 
-function add_to_solution!(storage::PartialSolutionStorage, varid::VarId, value::Float64)
-    cur_value = get(storage.solution, varid, 0.0)
-    storage.solution[varid] = cur_value + value
+function add_to_solution!(unit::PartialSolutionUnit, varid::VarId, value::Float64)
+    cur_value = get(unit.solution, varid, 0.0)
+    unit.solution[varid] = cur_value + value
     return
 end
 
-function get_primal_solution(storage::PartialSolutionStorage, form::Formulation)
-    varids = collect(keys(storage.solution))
-    vals = collect(values(storage.solution))
+function get_primal_solution(unit::PartialSolutionUnit, form::Formulation)
+    varids = collect(keys(unit.solution))
+    vals = collect(values(unit.solution))
     solcost = 0.0
-    for (varid, value) in storage.solution
+    for (varid, value) in unit.solution
         solcost += getcurcost(form, varid) * value
     end
     return PrimalSolution(form, varids, vals, solcost, UNKNOWN_FEASIBILITY)
 end    
 
 
-function PartialSolutionStorage(form::Formulation) 
-    return PartialSolutionStorage(Dict{VarId, Float64}())
+function PartialSolutionUnit(form::Formulation) 
+    return PartialSolutionUnit(Dict{VarId, Float64}())
 end
 
-# the storage state is the same as the storage here
-mutable struct PartialSolutionStorageState <: AbstractStorageState
+# the record state is the same as the record here
+mutable struct PartialSolutionUnitState <: AbstractRecordState
     solution::Dict{VarId, Float64}
 end
 
-function PartialSolutionStorageState(form::Formulation, storage::PartialSolutionStorage)
+function PartialSolutionUnitState(form::Formulation, unit::PartialSolutionUnit)
     @logmsg LogLevel(-2) "Storing partial solution"
-    return PartialSolutionStorageState(copy(storage.solution))
+    return PartialSolutionUnitState(copy(unit.solution))
 end
 
 function restorefromstate!(
-    form::Formulation, storage::PartialSolutionStorage, state::PartialSolutionStorageState
+    form::Formulation, unit::PartialSolutionUnit, state::PartialSolutionUnitState
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
-    storage.solution = copy(state.solution)
+    unit.solution = copy(state.solution)
 end
 
-const PartialSolutionStoragePair = (PartialSolutionStorage => PartialSolutionStorageState)
+const PartialSolutionUnitPair = (PartialSolutionUnit => PartialSolutionUnitState)
