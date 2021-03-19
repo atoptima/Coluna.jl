@@ -93,7 +93,7 @@ function optimize!(
 
     #this will initialize all the units used by the algorithm and its child algorithms
     reformdata = Algorithm.ReformData(reform)
-    Algorithm.initialize_units!(reformdata, algorithm)
+    Algorithm.initialize_storage_units!(reformdata, algorithm)
 
     output = Algorithm.run!(algorithm, env, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)

@@ -2,7 +2,7 @@
 """
     PreprocessingUnit
 
-    Record for preprocessing. Contains global data: slacks of constraints,
+    Storage unit for preprocessing. Contains global data: slacks of constraints,
     subproblem bounds, new constraints the local partial solution to preprocess.
     Contains also local data : stack of constraints to preprecess, as well as the
     vectors of preprocessed constraints and variables.  

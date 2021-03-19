@@ -23,7 +23,7 @@ end
 function get_units_usage(
     algo::SolveIpForm, form::Formulation{Duty}
 ) where {Duty<:MathProg.AbstractFormDuty}
-    # we use records in the read only mode, as all modifications
+    # we use storage units in the read only mode, as all modifications
     # (deactivating artificial vars and enforcing integrality)
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same

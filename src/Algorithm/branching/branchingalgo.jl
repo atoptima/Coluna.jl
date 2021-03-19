@@ -67,7 +67,7 @@ function SimpleBranching()::AbstractDivideAlgorithm
     return algo
 end
 
-# StrongBranching does not use any unit itself, 
+# StrongBranching does not use any storage unit itself, 
 # therefore get_units_usage() is not defined for it
 
 function get_child_algorithms(algo::StrongBranching, reform::Reformulation) 

@@ -128,7 +128,7 @@ function collect_units_to_restore!(
 end
 
 # this function collects units to create for an algorithm and all its child algorithms
-# this function is used only the function initialize_units! below
+# this function is used only the function initialize_storage_units! below
 function collect_units_to_create!(
     units_to_create::Dict{AbstractModel,Set{UnitTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
 )
@@ -147,7 +147,7 @@ function collect_units_to_create!(
 end
 
 # this function initializes all the storage units
-function initialize_units!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
+function initialize_storage_units!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
     units_to_create = Dict{AbstractModel,Set{UnitTypePair}}()
     collect_units_to_create!(units_to_create, algo, getmodel(data)) 
 

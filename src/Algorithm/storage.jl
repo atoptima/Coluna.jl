@@ -63,23 +63,23 @@ abstract type AbstractRecordState end
 This method should be defined for every triple (model type, unit type, record state type)
 used by an algorithm.     
 """
-restorefromstate!(model::AbstractModel, record::AbstractStorageUnit, state::AbstractRecordState) =
+restorefromstate!(model::AbstractModel, unit::AbstractStorageUnit, state::AbstractRecordState) =
     error(string(
         "restorefromstate! not defined for model type $(typeof(model)), ",
-        "record type $(typeof(record)), and record state type $(typeof(state))"
+        "unit type $(typeof(unit)), and record state type $(typeof(state))"
     ))    
 
 
 """
     EmptyRecordState
 
-If a unit is not changed after initialization, then 
+If a storage unit is not changed after initialization, then 
 the empty record state should be used with it.
 """
 
 struct EmptyRecordState <: AbstractRecordState end
 
-EmptyRecordState(model::AbstractModel, record::AbstractStorageUnit) = nothing
+EmptyRecordState(model::AbstractModel, unit::AbstractStorageUnit) = nothing
 
 restorefromstate!(::AbstractModel, ::AbstractStorageUnit, ::EmptyRecordState) = nothing
 

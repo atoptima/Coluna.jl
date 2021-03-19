@@ -1,9 +1,8 @@
 """
     VarState
 
-    Used in formulation units
+Used in formulation records
 """
-
 struct VarState
     cost::Float64
     lb::Float64
@@ -31,9 +30,8 @@ end
 """
     ConstrState
 
-    Used in formulation units
+Used in formulation records
 """
-
 struct ConstrState
     rhs::Float64
 end
@@ -126,7 +124,7 @@ const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecor
     MasterColumnsUnitPair
 
     Unit pair for branching constraints of a formulation. 
-    Consists of EmptyUnit and MasterColumnsState.    
+    Consists of FormulationUnit and MasterColumnsState.    
 """
 
 mutable struct MasterColumnsState <: AbstractRecordState
@@ -185,7 +183,7 @@ const MasterColumnsUnitPair = (FormulationUnit => MasterColumnsState)
     MasterCutsUnitPair
 
     Unit pair for cutting planes of a formulation. 
-    Consists of EmptyUnit and MasterCutsState.    
+    Consists of FormulationUnit and MasterCutsState.    
 """
 
 mutable struct MasterCutsState <: AbstractRecordState
@@ -244,7 +242,7 @@ const MasterCutsUnitPair = (FormulationUnit => MasterCutsState)
     StaticVarConstrUnitPair
 
     Unit pair for static variables and constraints of a formulation.
-    Consists of EmptyUnit and StaticVarConstrRecordState.    
+    Consists of FormulationUnit and StaticVarConstrRecordState.    
 """
 
 mutable struct StaticVarConstrRecordState <: AbstractRecordState

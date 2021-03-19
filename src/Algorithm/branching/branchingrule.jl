@@ -45,7 +45,7 @@ getgroups(output::BranchingRuleOutput) = output.groups
 """
 abstract type AbstractBranchingRule <: AbstractAlgorithm end
 
-# branching rules are always manager algorithms (they manage storing and restoring units)
+# branching rules are always manager algorithms (they manage storing and restoring storage units)
 ismanager(algo::AbstractBranchingRule) = true
 
 function run!(

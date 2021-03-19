@@ -148,23 +148,7 @@ ismanager(algo::TreeSearchAlgorithm) = true
 
 function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation) 
     return [(algo.conqueralg, reform), (algo.dividealg, reform)]
-end 
-
-
-# function get_units_usage!(
-#     algo::TreeSearchAlgorithm, reform::Reformulation, units_usage::UnitsUsageDict
-# )
-#     get_units_usage!(algo.conqueralg, reform, units_usage)
-#     get_units_usage!(algo.dividealg, reform, units_usage)
-#     return
-# end
-
-# function get_units_to_restore!(
-#     algo::TreeSearchAlgorithm, reform::Reformulation, units_to_restore::UnitsToRestoreDict
-# )
-#     # tree search algorithm restores itself storage units for the conquer and divide algorithm 
-#     # on every node, so we do not require anything here
-# end
+end
 
 function print_node_info_before_conquer(data::TreeSearchRuntimeData, env::Env, node::Node)
     println("***************************************************************************************")

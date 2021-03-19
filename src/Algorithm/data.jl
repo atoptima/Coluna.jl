@@ -23,7 +23,7 @@ function get_storage_container(data::AbstractData, pair::UnitTypePair)
     storagedict = getstoragedict(data)
     storagecont = get(storagedict, pair, nothing)
     if storagecont === nothing
-        error(string("No record for pair $pair in $(getnicename(data))"))                        
+        error(string("No storage unit for pair $pair in $(getnicename(data))"))                        
     end
     return storagecont
 end
