@@ -186,7 +186,7 @@ function perform_strong_branching_with_phases!(
         # we need to remove record kept in these nodes
         for group_index = nb_candidates_for_next_phase + 1 : length(groups) 
             for (node_index, node) in enumerate(groups[group_index].children)
-                remove_states!(node.stateids)
+                remove_records!(node.recordids)
             end
         end
         resize!(groups, nb_candidates_for_next_phase)

@@ -1,4 +1,4 @@
-mutable struct ColGenStabilizationUnit <: AbstractStorageUnit
+mutable struct ColGenStabilizationUnit <: AbstractUnit
     basealpha::Float64 # "global" alpha parameter
     curalpha::Float64 # alpha parameter during the current misprice sequence
     nb_misprices::Int64 # number of misprices during the current misprice sequence
@@ -20,19 +20,19 @@ smoothing_is_active(unit::ColGenStabilizationUnit) = !iszero(unit.curalpha)
 subgradient_is_needed(unit::ColGenStabilizationUnit, smoothparam::Float64) =
     smoothparam == 1.0 && unit.nb_misprices == 0
 
-mutable struct ColGenStabRecordState <: AbstractRecordState
+mutable struct ColGenStabRecord <: AbstractRecord
     alpha::Float64
     dualbound::DualBound
     stabcenter::Union{Nothing,DualSolution}
 end
 
-function ColGenStabRecordState(master::Formulation, unit::ColGenStabilizationUnit)
+function ColGenStabRecord(master::Formulation, unit::ColGenStabilizationUnit)
     alpha = unit.basealpha < 0.5 ? 0.5 : unit.basealpha
-    return ColGenStabRecordState(alpha, unit.valid_dual_bound, unit.basestabcenter)
+    return ColGenStabRecord(alpha, unit.valid_dual_bound, unit.basestabcenter)
 end
 
-function restorefromstate!(
-    master::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecordState
+function restore_from_record!(
+    master::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecord
 )
     unit.basealpha = state.alpha
     unit.valid_dual_bound = state.dualbound
@@ -40,7 +40,7 @@ function restorefromstate!(
     return
 end
 
-const ColGenStabilizationUnitPair = (ColGenStabilizationUnit => ColGenStabRecordState)
+const ColGenStabilizationUnitPair = (ColGenStabilizationUnit => ColGenStabRecord)
 
 function init_stab_before_colgen_loop!(unit::ColGenStabilizationUnit)
     unit.stabcenter = unit.basestabcenter

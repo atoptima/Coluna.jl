@@ -10,28 +10,28 @@ mutable struct Node
     optstate::OptimizationState
     #branch::Union{Nothing, Branch} # branch::Id{Constraint}
     branchdescription::String
-    stateids::RecordStatesVector
+    recordids::RecordsVector
     conquerwasrun::Bool
 end
 
 function RootNode(
-    form::AbstractFormulation, optstate::OptimizationState, recordstateids::RecordStatesVector, skipconquer::Bool
+    form::AbstractFormulation, optstate::OptimizationState, recordrecordids::RecordsVector, skipconquer::Bool
 )
     nodestate = OptimizationState(form, optstate, false, skipconquer)
     tree_order = skipconquer ? 0 : -1
     return Node(
-        tree_order, false, 0, nothing, nodestate, "", recordstateids, skipconquer
+        tree_order, false, 0, nothing, nodestate, "", recordrecordids, skipconquer
     )
 end
 
 function Node(
-    form::AbstractFormulation, parent::Node, branchdescription::String, recordstateids::RecordStatesVector
+    form::AbstractFormulation, parent::Node, branchdescription::String, recordrecordids::RecordsVector
 )
     depth = getdepth(parent) + 1
     nodestate = OptimizationState(form, getoptstate(parent), false, false)
     
     return Node(
-        -1, false, depth, parent, nodestate, branchdescription, recordstateids, false
+        -1, false, depth, parent, nodestate, branchdescription, recordrecordids, false
     )
 end
 
@@ -41,7 +41,7 @@ function Node(parent::Node, child::Node)
     depth = getdepth(parent) + 1
     return Node(
         -1, false, depth, parent, getoptstate(child),
-        child.branchdescription, child.stateids, false
+        child.branchdescription, child.recordids, false
     )
 end
 

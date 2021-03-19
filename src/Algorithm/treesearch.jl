@@ -112,7 +112,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, rfdata::ReformData, in
         -DualBound{Sense}()
     )
     master = getmaster(getreform(rfdata))
-    push!(tsdata, RootNode(master, getoptstate(input), store_states!(rfdata), algo.skiprootnodeconquer))
+    push!(tsdata, RootNode(master, getoptstate(input), store_records!(rfdata), algo.skiprootnodeconquer))
     return tsdata
 end
 
@@ -342,7 +342,7 @@ function run!(
 
         updatedualbound!(tsdata)
 
-        remove_states!(node.stateids)
+        remove_records!(node.recordids)
         # we delete solutions from the node optimization state, as they are not needed anymore
         clear_solutions!(getoptstate(node))
     end
@@ -365,7 +365,7 @@ function run!(
     # Clear untreated nodes
     while !treeisempty(tsdata)
         node = popnode!(tsdata)
-        remove_states!(node.stateids)
+        remove_records!(node.recordids)
         clear_solutions!(node.optstate)
     end
 

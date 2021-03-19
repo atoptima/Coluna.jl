@@ -13,14 +13,14 @@ end
 
 getnode(input::ConquerInput) = input.node
 
-restore_states!(input::ConquerInput) = restore_states!(input.node.stateids, input.units_to_restore) 
+restore_records!(input::ConquerInput) = restore_records!(input.node.recordids, input.units_to_restore) 
 
 """
     AbstractConquerAlgorithm
 
     This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
     For the moment, a conquer algorithm can be run only on reformulation.     
-    A conquer algorithm should restore states of units using function restore_states!(::ConquerInput)
+    A conquer algorithm should restore states of storage units using function restore_records!(::ConquerInput)
         - each time it runs in the beginning
         - each time after calling a child manager algorithm
 """
@@ -59,7 +59,7 @@ function apply_conquer_alg_to_node!(
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
         run!(algo, env, data, ConquerInput(node, units_to_restore))
-        store_states!(data, node.stateids)
+        store_records!(data, node.recordids)
     end
     node.conquerwasrun = true
     return
@@ -102,7 +102,7 @@ function get_child_algorithms(algo::BendersConquer, reform::Reformulation)
 end
 
 function run!(algo::BendersConquer, env::Env, data::ReformData, input::ConquerInput)
-    restore_states!(input)
+    restore_records!(input)
     node = getnode(input)    
     nodestate = getoptstate(node)
     output = run!(algo.benders, env, data, OptimizationInput(nodestate))
@@ -157,7 +157,7 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
 end
 
 function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::ConquerInput)
-    restore_states!(input)
+    restore_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
     reform = getreform(data)
@@ -224,7 +224,7 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
         node_pruned && break
 
         @info "Running $name heuristic"
-        ismanager(heur_algorithm) && (stateids = store_states!(data))
+        ismanager(heur_algorithm) && (recordids = store_records!(data))
         heur_output = run!(heur_algorithm, env, data, OptimizationInput(nodestate))
         ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
         if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
@@ -237,7 +237,7 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
                 end
             end
         end
-        ismanager(heur_algorithm) && restore_states!(stateids, input.units_to_restore)
+        ismanager(heur_algorithm) && restore_records!(recordids, input.units_to_restore)
     end
 
     if node_pruned
@@ -265,7 +265,7 @@ function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation)
 end
 
 function run!(algo::RestrMasterLPConquer, env::Env, data::ReformData, input::ConquerInput)
-    restore_states!(input)
+    restore_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
     output = run!(algo.masterlpalgo, env, getmasterdata(data), OptimizationInput(nodestate))

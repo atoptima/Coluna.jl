@@ -52,7 +52,7 @@ end
     Formulation unit is empty and it is used to implicitely keep 
     the data which is changed inside the model 
     (for example, dynamic variables and constraints of a formulaiton) 
-    in order to store it to the record state and restore it afterwards. 
+    in order to store it to the record and restore it afterwards. 
 """
 
 struct FormulationUnit <: AbstractStorageUnit end
@@ -63,14 +63,14 @@ FormulationUnit(form::Formulation) = FormulationUnit()
     MasterBranchConstrsUnitPair
 
     Unit pair for master branching constraints. 
-    Consists of FormulationUnit and MasterBranchConstrsRecordState.    
+    Consists of FormulationUnit and MasterBranchConstrsRecord.    
 """
 
-mutable struct MasterBranchConstrsRecordState <: AbstractRecordState
+mutable struct MasterBranchConstrsRecord <: AbstractRecord
     constrs::Dict{ConstrId, ConstrState}
 end
 
-function Base.show(io::IO, state::MasterBranchConstrsRecordState)
+function Base.show(io::IO, state::MasterBranchConstrsRecord)
     print(io, "[")
     for (id, constr) in state.constrs
         print(io, " ", MathProg.getuid(id))
@@ -78,9 +78,9 @@ function Base.show(io::IO, state::MasterBranchConstrsRecordState)
     print(io, "]")
 end
 
-function MasterBranchConstrsRecordState(form::Formulation, unit::FormulationUnit)
+function MasterBranchConstrsRecord(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
-    state = MasterBranchConstrsRecordState(Dict{ConstrId, ConstrState}())
+    state = MasterBranchConstrsRecord(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterBranchingConstr && 
            iscuractive(form, constr) && isexplicit(form, constr)
@@ -92,8 +92,8 @@ function MasterBranchConstrsRecordState(form::Formulation, unit::FormulationUnit
     return state
 end
 
-function restorefromstate!(
-    form::Formulation, unit::FormulationUnit, state::MasterBranchConstrsRecordState
+function restore_from_record!(
+    form::Formulation, unit::FormulationUnit, state::MasterBranchConstrsRecord
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -118,7 +118,7 @@ function restorefromstate!(
     end
 end
 
-const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecordState)
+const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecord)
 
 """
     MasterColumnsUnitPair
@@ -127,7 +127,7 @@ const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecor
     Consists of FormulationUnit and MasterColumnsState.    
 """
 
-mutable struct MasterColumnsState <: AbstractRecordState
+mutable struct MasterColumnsState <: AbstractRecord
     cols::Dict{VarId, VarState}
 end
 
@@ -153,7 +153,7 @@ function MasterColumnsState(form::Formulation, unit::FormulationUnit)
     return state
 end
 
-function restorefromstate!(
+function restore_from_record!(
     form::Formulation, unit::FormulationUnit, state::MasterColumnsState
 )
     @logmsg LogLevel(-2) "Restoring master columns"
@@ -186,7 +186,7 @@ const MasterColumnsUnitPair = (FormulationUnit => MasterColumnsState)
     Consists of FormulationUnit and MasterCutsState.    
 """
 
-mutable struct MasterCutsState <: AbstractRecordState
+mutable struct MasterCutsState <: AbstractRecord
     cuts::Dict{ConstrId, ConstrState}
 end
 
@@ -212,7 +212,7 @@ function MasterCutsState(form::Formulation, unit::FormulationUnit)
     return state
 end
 
-function restorefromstate!(
+function restore_from_record!(
     form::Formulation, unit::FormulationUnit, state::MasterCutsState
 )
     @logmsg LogLevel(-2) "Storing master cuts"
@@ -242,17 +242,17 @@ const MasterCutsUnitPair = (FormulationUnit => MasterCutsState)
     StaticVarConstrUnitPair
 
     Unit pair for static variables and constraints of a formulation.
-    Consists of FormulationUnit and StaticVarConstrRecordState.    
+    Consists of FormulationUnit and StaticVarConstrRecord.    
 """
 
-mutable struct StaticVarConstrRecordState <: AbstractRecordState
+mutable struct StaticVarConstrRecord <: AbstractRecord
     constrs::Dict{ConstrId, ConstrState}
     vars::Dict{VarId, VarState}
 end
 
 #TO DO: we need to keep here only the difference with the initial data
 
-function Base.show(io::IO, state::StaticVarConstrRecordState)
+function Base.show(io::IO, state::StaticVarConstrRecord)
     print(io, "[vars:")
     for (id, var) in state.vars
         print(io, " ", MathProg.getuid(id))
@@ -264,9 +264,9 @@ function Base.show(io::IO, state::StaticVarConstrRecordState)
     print(io, "]")
 end
 
-function StaticVarConstrRecordState(form::Formulation, unit::FormulationUnit)
+function StaticVarConstrRecord(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
-    state = StaticVarConstrRecordState(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
+    state = StaticVarConstrRecord(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
     for (id, constr) in getconstrs(form)
         if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr)            
             constrstate = ConstrState(getcurrhs(form, constr))
@@ -282,8 +282,8 @@ function StaticVarConstrRecordState(form::Formulation, unit::FormulationUnit)
     return state
 end
 
-function restorefromstate!(
-    form::Formulation, unit::FormulationUnit, state::StaticVarConstrRecordState
+function restore_from_record!(
+    form::Formulation, unit::FormulationUnit, state::StaticVarConstrRecord
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
@@ -324,7 +324,7 @@ function restorefromstate!(
     end
 end
 
-const StaticVarConstrUnitPair = (FormulationUnit => StaticVarConstrRecordState)
+const StaticVarConstrUnitPair = (FormulationUnit => StaticVarConstrRecord)
 
 """
     PartialSolutionUnitPair
@@ -361,8 +361,8 @@ function PartialSolutionUnit(form::Formulation)
     return PartialSolutionUnit(Dict{VarId, Float64}())
 end
 
-# the record state is the same as the record here
-mutable struct PartialSolutionUnitState <: AbstractRecordState
+# the record is the same as the record here
+mutable struct PartialSolutionUnitState <: AbstractRecord
     solution::Dict{VarId, Float64}
 end
 
@@ -371,7 +371,7 @@ function PartialSolutionUnitState(form::Formulation, unit::PartialSolutionUnit)
     return PartialSolutionUnitState(copy(unit.solution))
 end
 
-function restorefromstate!(
+function restore_from_record!(
     form::Formulation, unit::PartialSolutionUnit, state::PartialSolutionUnitState
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
