@@ -33,7 +33,7 @@ getoptstate(output::DivideOutput) = output.optstate
 """
 abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 
-# divide algorithms are always manager algorithms (they manage storing and restoring storages)
+# divide algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractDivideAlgorithm) = true
 
 function run!(algo::AbstractDivideAlgorithm, env::Env, data::AbstractData, input::DivideInput)::DivideOutput

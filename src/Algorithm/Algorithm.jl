@@ -77,10 +77,10 @@ export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, Col
        OptimizationInput, OptimizationOutput, OptimizationState, ModelData, ReformData,
        EmptyInput       
 
-# Storages 
-export PartialSolutionStoragePair, PreprocessingStoragePair       
+# Units 
+export PartialSolutionUnitPair, PreprocessingUnitPair       
 
-# Storage functions 
-export getstorage, add_to_solution!, add_to_localpartialsol!
+# Unit functions 
+export getunit, add_to_solution!, add_to_localpartialsol!
 
 end

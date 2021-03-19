@@ -20,23 +20,23 @@ end
 
 # SolveLpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
-function get_storages_usage(
+function get_units_usage(
     algo::SolveLpForm, form::Formulation{Duty}
 ) where {Duty<:MathProg.AbstractFormDuty}
-    # we use storages in the read only mode, as relaxing integrality
+    # we use units in the read only mode, as relaxing integrality
     # is reverted before the end of the algorithm, 
     # so the state of the formulation remains the same 
-    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
-    push!(storages_usage, (form, StaticVarConstrStoragePair, READ_ONLY))
+    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
+    push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
-        push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
-        push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
+        push!(units_usage, (form, MasterColumnsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterBranchConstrsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterCutsUnitPair, READ_ONLY))
     end
     if algo.consider_partial_solution
-        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
+        push!(units_usage, (form, PartialSolutionUnitPair, READ_ONLY))
     end
-    return storages_usage
+    return units_usage
 end
 
 function optimize_lp_form!(::SolveLpForm, optimizer, ::Formulation, ::OptimizationState) # fallback
@@ -64,8 +64,8 @@ function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_val = 0.0
     if algo.consider_partial_solution
-        partsolstorage = getstorage(data, PartialSolutionStoragePair)
-        partial_sol = get_primal_solution(partsolstorage, form)
+        partsolunit = getunit(data, PartialSolutionUnitPair)
+        partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_val = getvalue(partial_sol)
     end
 

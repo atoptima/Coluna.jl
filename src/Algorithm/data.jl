@@ -4,7 +4,7 @@
 
     Data is used to keep information between different runs of an algorithm or between 
     runs of different algorithms. Data contains user data, such as models and formulations, 
-    as well as computed data stored in storages. 
+    as well as computed data stored in units. 
 """
 abstract type AbstractData end
 
@@ -12,30 +12,30 @@ getstoragedict(::AbstractData) = nothing
 getmodel(::AbstractData) = nothing 
 get_model_storage_dict(::AbstractData, ::AbstractModel) = nothing
 store_states!(::AbstractData, ::RecordStatesVector) = nothing
-check_storage_states_participation(::AbstractData) = nothing
+check_record_states_participation(::AbstractData) = nothing
 
 function getnicename(data::AbstractData) 
     model = getmodel(data)
     return string("data associated to model of type $(typeof(model)) with id $(getuid(model))")
 end
 
-function get_storage_container(data::AbstractData, pair::StorageTypePair)
+function get_storage_container(data::AbstractData, pair::UnitTypePair)
     storagedict = getstoragedict(data)
     storagecont = get(storagedict, pair, nothing)
     if storagecont === nothing
-        error(string("No storage for pair $pair in $(getnicename(data))"))                        
+        error(string("No storage unit for pair $pair in $(getnicename(data))"))                        
     end
     return storagecont
 end
 
-getstorage(data::AbstractData, pair::StorageTypePair) = 
-    getstorage(get_storage_container(data, pair))
+getunit(data::AbstractData, pair::UnitTypePair) = 
+    getunit(get_storage_container(data, pair))
 
-function reserve_for_writing!(data::AbstractData, pair::StorageTypePair) 
+function reserve_for_writing!(data::AbstractData, pair::UnitTypePair) 
     TO.@timeit Coluna._to "Reserve for writing" begin
         reserve_for_writing!(get_storage_container(data, pair))   
     end
-end    
+end
 
 """
     EmptyData
@@ -71,10 +71,10 @@ function store_states!(data::ModelData, states::RecordStatesVector)
     end
 end
 
-function check_storage_states_participation(data::ModelData)
+function check_record_states_participation(data::ModelData)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        check_storage_states_participation(storagecont)
+        check_record_states_participation(storagecont)
     end
 end
 
@@ -165,16 +165,16 @@ function store_states!(data::ReformData)
     return states
 end
 
-function check_storage_states_participation(data::ReformData)
+function check_record_states_participation(data::ReformData)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        check_storage_states_participation(storagecont)
+        check_record_states_participation(storagecont)
     end
-    check_storage_states_participation(getmasterdata(data))
+    check_record_states_participation(getmasterdata(data))
     for (formid, sp_data) in get_dw_pricing_datas(data)
-        check_storage_states_participation(sp_data)
+        check_record_states_participation(sp_data)
     end
     for (formid, sp_data) in get_benders_sep_datas(data)
-        check_storage_states_participation(sp_data)
+        check_record_states_participation(sp_data)
     end 
 end

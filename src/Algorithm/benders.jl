@@ -10,19 +10,19 @@ end
 # it should have at least the algorithm to solve the master LP and the algorithms
 # to solve the subproblems
 
-function get_storages_usage(algo::BendersCutGeneration, reform::Reformulation) 
-    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
+function get_units_usage(algo::BendersCutGeneration, reform::Reformulation) 
+    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
     master = getmaster(reform)
-    push!(storages_usage, (master, MasterCutsStoragePair, READ_AND_WRITE))
+    push!(units_usage, (master, MasterCutsUnitPair, READ_AND_WRITE))
 
     # TO DO : everything else should be communicated by the child algorithms 
-    push!(storages_usage, (master, StaticVarConstrStoragePair, READ_ONLY))
-    push!(storages_usage, (master, MasterBranchConstrsStoragePair, READ_ONLY))
-    push!(storages_usage, (master, MasterColumnsStoragePair, READ_ONLY))
+    push!(units_usage, (master, StaticVarConstrUnitPair, READ_ONLY))
+    push!(units_usage, (master, MasterBranchConstrsUnitPair, READ_ONLY))
+    push!(units_usage, (master, MasterColumnsUnitPair, READ_ONLY))
     for (id, spform) in get_benders_sep_sps(reform)
-        push!(storages_usage, (spform, StaticVarConstrStoragePair, READ_ONLY))
+        push!(units_usage, (spform, StaticVarConstrUnitPair, READ_ONLY))
     end
-    return storages_usage
+    return units_usage
 end
 
 mutable struct BendersCutGenRuntimeData

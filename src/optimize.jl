@@ -91,14 +91,14 @@ function optimize!(
 
     algorithm = env.params.solver
 
-    #this will initialize all the storages used by the algorithm and its child algorithms
+    #this will initialize all the units used by the algorithm and its child algorithms
     reformdata = Algorithm.ReformData(reform)
-    Algorithm.initialize_storages!(reformdata, algorithm)
+    Algorithm.initialize_storage_units!(reformdata, algorithm)
 
     output = Algorithm.run!(algorithm, env, reformdata, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)
 
-    Algorithm.check_storage_states_participation(reformdata)
+    Algorithm.check_record_states_participation(reformdata)
 
     # we copy optimisation state as we want to project the solution to the compact space
     outstate = OptimizationState(

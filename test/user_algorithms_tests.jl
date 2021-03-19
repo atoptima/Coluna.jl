@@ -19,12 +19,12 @@ function Coluna.Algorithm.get_child_algorithms(
     return [(algo.colgen, reform), (algo.preprocess, reform), (algo.rm_heur, reform)]
 end 
 
-function Coluna.Algorithm.get_storages_usage(
+function Coluna.Algorithm.get_units_usage(
     algo::ConsecutiveColGen, reform::Reformulation
     ) 
     master = Coluna.MathProg.getmaster(reform)
-    return [(reform, Coluna.Algorithm.PreprocessingStoragePair, Coluna.Algorithm.READ_AND_WRITE),
-            (master, Coluna.Algorithm.PartialSolutionStoragePair, Coluna.Algorithm.READ_AND_WRITE)]
+    return [(reform, Coluna.Algorithm.PreprocessingUnitPair, Coluna.Algorithm.READ_AND_WRITE),
+            (master, Coluna.Algorithm.PartialSolutionUnitPair, Coluna.Algorithm.READ_AND_WRITE)]
 end
 
 function Coluna.Algorithm.run!(
@@ -54,11 +54,11 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_storage = getstorage(data, PreprocessingStoragePair)
-        partsol_storage = getstorage(masterdata, PartialSolutionStoragePair)
+        preprocess_unit = getunit(data, PreprocessingUnitPair)
+        partsol_unit = getunit(masterdata, PartialSolutionUnitPair)
     
-        add_to_localpartialsol!(preprocess_storage, first(var_vals[1]), 1.0)
-        add_to_solution!(partsol_storage, first(var_vals[1]), 1.0)
+        add_to_localpartialsol!(preprocess_unit, first(var_vals[1]), 1.0)
+        add_to_solution!(partsol_unit, first(var_vals[1]), 1.0)
 
         prp_output = run!(algo.preprocess, env, data, EmptyInput())
         isinfeasible(prp_output) && break

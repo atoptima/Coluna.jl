@@ -20,26 +20,26 @@ end
 
 # SolveIpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
-function get_storages_usage(
+function get_units_usage(
     algo::SolveIpForm, form::Formulation{Duty}
 ) where {Duty<:MathProg.AbstractFormDuty}
-    # we use storages in the read only mode, as all modifications
+    # we use storage units in the read only mode, as all modifications
     # (deactivating artificial vars and enforcing integrality)
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same
-    storages_usage = Tuple{AbstractModel, StorageTypePair, StorageAccessMode}[] 
-    push!(storages_usage, (form, StaticVarConstrStoragePair, READ_ONLY))
+    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
+    push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(storages_usage, (form, PartialSolutionStoragePair, READ_ONLY))
-        push!(storages_usage, (form, MasterColumnsStoragePair, READ_ONLY))
-        push!(storages_usage, (form, MasterBranchConstrsStoragePair, READ_ONLY))
-        push!(storages_usage, (form, MasterCutsStoragePair, READ_ONLY))
+        push!(units_usage, (form, PartialSolutionUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterColumnsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterBranchConstrsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterCutsUnitPair, READ_ONLY))
     end
-    return storages_usage
+    return units_usage
 end
 
-get_storages_usage(algo::SolveIpForm, reform::Reformulation) =
-    get_storages_usage(algo, getmaster(reform))
+get_units_usage(algo::SolveIpForm, reform::Reformulation) =
+    get_units_usage(algo, getmaster(reform))
 
 function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
     return MOI.supports_constraint(optimizer.inner, MOI.SingleVariable, MOI.Integer)
@@ -66,8 +66,8 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_value = 0.0
     if isa(form, Formulation{MathProg.DwMaster})
-        partsolstorage = getstorage(data, PartialSolutionStoragePair)
-        partial_sol = get_primal_solution(partsolstorage, form)
+        partsolunit = getunit(data, PartialSolutionUnitPair)
+        partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_value = getvalue(partial_sol)
     end
     

@@ -15,23 +15,23 @@ mutable struct Node
 end
 
 function RootNode(
-    form::AbstractFormulation, optstate::OptimizationState, storagestateids::RecordStatesVector, skipconquer::Bool
+    form::AbstractFormulation, optstate::OptimizationState, recordstateids::RecordStatesVector, skipconquer::Bool
 )
     nodestate = OptimizationState(form, optstate, false, skipconquer)
     tree_order = skipconquer ? 0 : -1
     return Node(
-        tree_order, false, 0, nothing, nodestate, "", storagestateids, skipconquer
+        tree_order, false, 0, nothing, nodestate, "", recordstateids, skipconquer
     )
 end
 
 function Node(
-    form::AbstractFormulation, parent::Node, branchdescription::String, storagestateids::RecordStatesVector
+    form::AbstractFormulation, parent::Node, branchdescription::String, recordstateids::RecordStatesVector
 )
     depth = getdepth(parent) + 1
     nodestate = OptimizationState(form, getoptstate(parent), false, false)
     
     return Node(
-        -1, false, depth, parent, nodestate, branchdescription, storagestateids, false
+        -1, false, depth, parent, nodestate, branchdescription, recordstateids, false
     )
 end
 
