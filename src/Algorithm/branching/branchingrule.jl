@@ -7,8 +7,8 @@
 """
     BranchingRuleInput
 
-    Input of a branching rule (branching separation algorithm)
-    Contains current solution, max number of candidates and local candidate id.
+Input of a branching rule (branching separation algorithm)
+Contains current solution, max number of candidates and local candidate id.
 """
 struct BranchingRuleInput <: AbstractInput 
     solution::PrimalSolution 
@@ -22,8 +22,8 @@ end
 """
     BranchingRuleOutput
 
-    Input of a branching rule (branching separation algorithm)
-    Contains current incumbents, infeasibility status, and the record of its unit.
+Output of a branching rule (branching separation algorithm)
+It contains the branching candidates generated and the updated local id value
 """
 struct BranchingRuleOutput <: AbstractOutput 
     local_id::Int64

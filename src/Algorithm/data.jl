@@ -142,27 +142,27 @@ function get_model_storage_dict(data::ReformData, model::AbstractModel)
     return nothing
 end
 
-function store_records!(data::ReformData, states::RecordsVector)
+function store_records!(data::ReformData, records::RecordsVector)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        stateid = store_record!(storagecont)
-        push!(states, (storagecont, stateid))
+        recordid = store_record!(storagecont)
+        push!(records, (storagecont, recordid))
     end
-    store_records!(getmasterdata(data), states)
+    store_records!(getmasterdata(data), records)
     for (formid, sp_data) in get_dw_pricing_datas(data)
-        store_records!(sp_data, states)
+        store_records!(sp_data, records)
     end
     for (formid, sp_data) in get_benders_sep_datas(data)
-        store_records!(sp_data, states)
+        store_records!(sp_data, records)
     end 
 end
 
 function store_records!(data::ReformData)
-    TO.@timeit Coluna._to "Store states" begin
-        states = RecordsVector()
-       store_records!(data, states)
+    TO.@timeit Coluna._to "Store records" begin
+        records = RecordsVector()
+       store_records!(data, records)
     end       
-    return states
+    return records
 end
 
 function check_records_participation(data::ReformData)

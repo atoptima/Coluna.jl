@@ -1,10 +1,10 @@
 """
     ConquerInput
 
-    Input of a conquer algorithm used by the tree search algorithm.
-    Contains the node in the search tree and the collection of units to restore 
-    before running the conquer algorithm. This collection of units is passed
-    in the input so that it is not obtained each time the conquer algorithm runs. 
+Input of a conquer algorithm used by the tree search algorithm.
+Contains the node in the search tree and the collection of units to restore 
+before running the conquer algorithm. This collection of units is passed
+in the input so that it is not obtained each time the conquer algorithm runs. 
 """
 struct ConquerInput <: AbstractInput 
     node::Node    
@@ -18,11 +18,11 @@ restore_records!(input::ConquerInput) = restore_records!(input.node.recordids, i
 """
     AbstractConquerAlgorithm
 
-    This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
-    For the moment, a conquer algorithm can be run only on reformulation.     
-    A conquer algorithm should restore states of storage units using function restore_records!(::ConquerInput)
-        - each time it runs in the beginning
-        - each time after calling a child manager algorithm
+This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
+For the moment, a conquer algorithm can be run only on reformulation.     
+A conquer algorithm should restore records of storage units using `restore_records!(::ConquerInput)``
+    - each time it runs in the beginning
+    - each time after calling a child manager algorithm
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 
