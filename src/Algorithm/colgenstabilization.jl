@@ -1,4 +1,4 @@
-mutable struct ColGenStabilizationUnit <: AbstractUnit
+mutable struct ColGenStabilizationUnit <: AbstractStorageUnit
     basealpha::Float64 # "global" alpha parameter
     curalpha::Float64 # alpha parameter during the current misprice sequence
     nb_misprices::Int64 # number of misprices during the current misprice sequence
