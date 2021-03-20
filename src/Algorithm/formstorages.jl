@@ -70,9 +70,9 @@ mutable struct MasterBranchConstrsRecord <: AbstractRecord
     constrs::Dict{ConstrId, ConstrState}
 end
 
-function Base.show(io::IO, state::MasterBranchConstrsRecord)
+function Base.show(io::IO, record::MasterBranchConstrsRecord)
     print(io, "[")
-    for (id, constr) in state.constrs
+    for (id, constr) in record.constrs
         print(io, " ", MathProg.getuid(id))
     end
     print(io, "]")
@@ -80,7 +80,7 @@ end
 
 function MasterBranchConstrsRecord(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
-    state = MasterBranchConstrsRecord(Dict{ConstrId, ConstrState}())
+    record = MasterBranchConstrsRecord(Dict{ConstrId, ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterBranchingConstr && 
            iscuractive(form, constr) && isexplicit(form, constr)
@@ -93,13 +93,13 @@ function MasterBranchConstrsRecord(form::Formulation, unit::FormulationUnit)
 end
 
 function restore_from_record!(
-    form::Formulation, unit::FormulationUnit, state::MasterBranchConstrsRecord
+    form::Formulation, unit::FormulationUnit, record::MasterBranchConstrsRecord
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterBranchingConstr && isexplicit(form, constr)
             @logmsg LogLevel(-4) "Checking " getname(form, constr)
-            if haskey(state.constrs, id) 
+            if haskey(record.constrs, id) 
                 if !iscuractive(form, constr) 
                     @logmsg LogLevel(-2) string("Activating branching constraint", getname(form, constr))
                     activate!(form, constr)
@@ -107,7 +107,7 @@ function restore_from_record!(
                     @logmsg LogLevel(-2) string("Leaving branching constraint", getname(form, constr))
                 end
                 @logmsg LogLevel(-4) "Updating data"
-                apply_data!(form, constr, state.constrs[id])
+                apply_data!(form, constr, record.constrs[id])
             else
                 if iscuractive(form, constr) 
                     @logmsg LogLevel(-2) string("Deactivating branching constraint", getname(form, constr))
@@ -252,13 +252,13 @@ end
 
 #TO DO: we need to keep here only the difference with the initial data
 
-function Base.show(io::IO, state::StaticVarConstrRecord)
+function Base.show(io::IO, record::StaticVarConstrRecord)
     print(io, "[vars:")
-    for (id, var) in state.vars
+    for (id, var) in record.vars
         print(io, " ", MathProg.getuid(id))
     end
     print(io, ", constrs:")
-    for (id, constr) in state.constrs
+    for (id, constr) in record.constrs
         print(io, " ", MathProg.getuid(id))
     end
     print(io, "]")
@@ -266,36 +266,36 @@ end
 
 function StaticVarConstrRecord(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
-    state = StaticVarConstrRecord(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
+    record = StaticVarConstrRecord(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
     for (id, constr) in getconstrs(form)
         if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr)            
             constrstate = ConstrState(getcurrhs(form, constr))
-            state.constrs[id] = constrstate
+            record.constrs[id] = constrstate
         end
     end
     for (id, var) in getvars(form)
         if isaStaticDuty(getduty(id)) && iscuractive(form, var) && isexplicit(form, var)            
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
-            state.vars[id] = varstate
+            record.vars[id] = varstate
         end
     end
-    return state
+    return record
 end
 
 function restore_from_record!(
-    form::Formulation, unit::FormulationUnit, state::StaticVarConstrRecord
+    form::Formulation, unit::FormulationUnit, record::StaticVarConstrRecord
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
         if isaStaticDuty(getduty(id)) && isexplicit(form, constr)
             @logmsg LogLevel(-4) "Checking " getname(form, constr)
-            if haskey(state.constrs, id) 
+            if haskey(record.constrs, id) 
                 if !iscuractive(form, constr) 
                     @logmsg LogLevel(-2) string("Activating constraint", getname(form, constr))
                     activate!(form, constr)
                 end
                 @logmsg LogLevel(-4) "Updating data"
-                apply_data!(form, constr, state.constrs[id])
+                apply_data!(form, constr, record.constrs[id])
             else
                 if iscuractive(form, constr) 
                     @logmsg LogLevel(-2) string("Deactivating constraint", getname(form, constr))
@@ -307,13 +307,13 @@ function restore_from_record!(
     for (id, var) in getvars(form)
         if isaStaticDuty(getduty(id)) && isexplicit(form, var)
             @logmsg LogLevel(-4) "Checking " getname(form, var)
-            if haskey(state.vars, id) 
+            if haskey(record.vars, id) 
                 if !iscuractive(form, var) 
                     @logmsg LogLevel(-4) string("Activating variable", getname(form, var))
                     activate!(form, var)
                 end
                 @logmsg LogLevel(-4) "Updating data"
-                apply_data!(form, var, state.vars[id])
+                apply_data!(form, var, record.vars[id])
             else
                 if iscuractive(form, var) 
                     @logmsg LogLevel(-4) string("Deactivating variable", getname(form, var))
@@ -330,7 +330,7 @@ const StaticVarConstrUnitPair = (FormulationUnit => StaticVarConstrRecord)
     PartialSolutionUnitPair
 
     Unit pair for partial solution of a formulation.
-    Consists of PartialSolutionUnit and PartialSolutionUnitState.    
+    Consists of PartialSolutionUnit and PartialSolutionRecord.    
 """
 
 # TO DO : to replace dictionaries by PrimalSolution
@@ -362,20 +362,20 @@ function PartialSolutionUnit(form::Formulation)
 end
 
 # the record is the same as the record here
-mutable struct PartialSolutionUnitState <: AbstractRecord
+mutable struct PartialSolutionRecord <: AbstractRecord
     solution::Dict{VarId, Float64}
 end
 
-function PartialSolutionUnitState(form::Formulation, unit::PartialSolutionUnit)
+function PartialSolutionRecord(form::Formulation, unit::PartialSolutionUnit)
     @logmsg LogLevel(-2) "Storing partial solution"
-    return PartialSolutionUnitState(copy(unit.solution))
+    return PartialSolutionRecord(copy(unit.solution))
 end
 
 function restore_from_record!(
-    form::Formulation, unit::PartialSolutionUnit, state::PartialSolutionUnitState
+    form::Formulation, unit::PartialSolutionUnit, record::PartialSolutionRecord
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
-    unit.solution = copy(state.solution)
+    unit.solution = copy(record.solution)
 end
 
-const PartialSolutionUnitPair = (PartialSolutionUnit => PartialSolutionUnitState)
+const PartialSolutionUnitPair = (PartialSolutionUnit => PartialSolutionRecord)

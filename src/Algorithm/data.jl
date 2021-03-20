@@ -92,7 +92,7 @@ mutable struct ReformData <: AbstractData
 end
 
 getstoragedict(data::ReformData) = data.storagedict
-getmodel(data::ReformData) = data.reform 
+getmodel(data::ReformData) = data.reform
 getreform(data::ReformData) = data.reform
 getmasterdata(data::ReformData) = data.masterdata
 get_dw_pricing_datas(data::ReformData) = data.dw_pricing_datas
@@ -107,7 +107,7 @@ function ReformData(reform::Reformulation)
         else
             dw_pricing_datas[spuid] = ModelData(spform)
         end
-    end    
+    end 
 
     benders_sep_datas = Dict{FormId, AbstractData}()
     sps = get_benders_sep_sps(reform)
@@ -117,12 +117,12 @@ function ReformData(reform::Reformulation)
         else
             benders_sep_datas[spuid] = ModelData(spform)
         end
-    end  
+    end
 
     return ReformData(
         reform, StorageDict(), ModelData(getmaster(reform)), dw_pricing_datas, benders_sep_datas
     )
-end    
+end 
 
 function get_model_storage_dict(data::ReformData, model::AbstractModel)
     if model == getmodel(data) 
