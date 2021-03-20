@@ -298,7 +298,7 @@ function solve_sp_to_gencol!(
     sense = getobjsense(masterform)
     if nb_ip_primal_sols(sp_optstate) > 0
         bestsol = get_best_ip_primal_sol(sp_optstate)
-        #@show bestsol compute_red_cost(algo, masterform, spinfo, bestsol, dualsol)
+
         if bestsol.status == FEASIBLE_SOL
             spinfo.bestsol = bestsol
             spinfo.isfeasible = true
@@ -307,8 +307,10 @@ function solve_sp_to_gencol!(
                     insertion_status, col_id = setprimalsol!(spform, sol)
                     if insertion_status
                         push!(spinfo.recorded_sol_ids, col_id)
-                    elseif !insertion_status && !iscuractive(masterform, col_id)
+                    elseif !insertion_status && haskey(masterform, col_id) && !iscuractive(masterform, col_id)
                         push!(spinfo.sol_ids_to_activate, col_id)
+                    elseif !insertion_status && !haskey(masterform, col_id)
+                        @warn "The pricing problem generated the column with id $(col_id) twice."
                     else
                         msg = """
                         Column already exists as $(getname(masterform, col_id)) and is already active.

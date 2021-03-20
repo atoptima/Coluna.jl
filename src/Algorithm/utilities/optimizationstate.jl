@@ -15,16 +15,15 @@ mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     lp_dual_sols::Union{Nothing, Vector{DualSolution{F}}}
 end
 
-_sort!(sols::Vector{PrimalSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(PrimalBound(x.model, x.value)))
-_sort!(sols::Vector{DualSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(DualBound(x.model, x.value)))
+_sort!(sols::Vector{PrimalSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(PrimalBound(x.model, x.bound)))
+_sort!(sols::Vector{DualSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(DualBound(x.model, x.bound)))
 
 function bestbound(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
-    if length(solutions) < max_len
-        push!(solutions, new_sol)
-    else
-        solutions[end] = new_sol
-    end
+    push!(solutions, new_sol)
     _sort!(solutions, MathProg.valueinminsense)
+    while length(solutions) > max_len
+        pop!(solutions)
+    end
     return
 end
 
@@ -260,7 +259,8 @@ end
 """
     add_ip_primal_sol!(optstate, sol)
 
-Add the solution `sol` in the solutions list of `opstate` and update the incumbent bound if 
+Add the solution `sol` at the end of the solution list of `opstate`, sort the solution list,
+remove the worst solution if the solution list size is exceded, and update the incumbent bound if 
 the solution is better.
 """
 function add_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}

@@ -4,6 +4,7 @@
         deactivate_artificial_vars = true,
         enforce_integrality = true,
         silent = true,
+        max_nb_ip_primal_sols = 50,
         log_level = 0
     )
 
@@ -15,6 +16,7 @@ Solve a mixed integer linear program.
     enforce_integrality = true
     get_dual_bound = true
     silent = true
+    max_nb_ip_primal_sols = 50
     log_level = 0
 end
 
@@ -50,7 +52,9 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     form = getmodel(data)
 
     result = OptimizationState(
-        form, ip_primal_bound = get_ip_primal_bound(getoptstate(input))
+        form, 
+        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
     ip_supported = check_if_optimizer_supports_ip(getoptimizer(form))
@@ -97,6 +101,7 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
         dual_bound = getvalue(get_ip_primal_bound(result)) + partial_sol_value
         set_ip_dual_bound!(result, DualBound(form, dual_bound))
     end
+
     return OptimizationOutput(result)
 end
 
