@@ -67,7 +67,7 @@ FormulationUnit(form::Formulation) = FormulationUnit()
 """
 
 mutable struct MasterBranchConstrsRecord <: AbstractRecord
-    constrs::Dict{ConstrId, ConstrState}
+    constrs::Dict{ConstrId,ConstrState}
 end
 
 function Base.show(io::IO, record::MasterBranchConstrsRecord)
@@ -80,16 +80,16 @@ end
 
 function MasterBranchConstrsRecord(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
-    record = MasterBranchConstrsRecord(Dict{ConstrId, ConstrState}())
+    record = MasterBranchConstrsRecord(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterBranchingConstr && 
            iscuractive(form, constr) && isexplicit(form, constr)
             
             constrstate = ConstrState(getcurrhs(form, constr))
-            state.constrs[id] = constrstate
+            record.constrs[id] = constrstate
         end
     end
-    return state
+    return record
 end
 
 function restore_from_record!(
@@ -128,7 +128,7 @@ const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecor
 """
 
 mutable struct MasterColumnsState <: AbstractRecord
-    cols::Dict{VarId, VarState}
+    cols::Dict{VarId,VarState}
 end
 
 function Base.show(io::IO, state::MasterColumnsState)
@@ -141,7 +141,7 @@ end
 
 function MasterColumnsState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing master columns"
-    state = MasterColumnsState(Dict{VarId, ConstrState}())
+    state = MasterColumnsState(Dict{VarId,ConstrState}())
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && 
            iscuractive(form, var) && isexplicit(form, var)
@@ -187,7 +187,7 @@ const MasterColumnsUnitPair = (FormulationUnit => MasterColumnsState)
 """
 
 mutable struct MasterCutsState <: AbstractRecord
-    cuts::Dict{ConstrId, ConstrState}
+    cuts::Dict{ConstrId,ConstrState}
 end
 
 function Base.show(io::IO, state::MasterCutsState)
@@ -200,7 +200,7 @@ end
 
 function MasterCutsState(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) "Storing master cuts"
-    state = MasterCutsState(Dict{ConstrId, ConstrState}())
+    state = MasterCutsState(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterCutConstr && 
            iscuractive(form, constr) && isexplicit(form, constr)
@@ -246,11 +246,11 @@ const MasterCutsUnitPair = (FormulationUnit => MasterCutsState)
 """
 
 mutable struct StaticVarConstrRecord <: AbstractRecord
-    constrs::Dict{ConstrId, ConstrState}
-    vars::Dict{VarId, VarState}
+    constrs::Dict{ConstrId,ConstrState}
+    vars::Dict{VarId,VarState}
 end
 
-#TO DO: we need to keep here only the difference with the initial data
+# TO DO: we need to keep here only the difference with the initial data
 
 function Base.show(io::IO, record::StaticVarConstrRecord)
     print(io, "[vars:")
@@ -266,7 +266,7 @@ end
 
 function StaticVarConstrRecord(form::Formulation, unit::FormulationUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
-    record = StaticVarConstrRecord(Dict{ConstrId, ConstrState}(), Dict{VarId, VarState}())
+    record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,VarState}())
     for (id, constr) in getconstrs(form)
         if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr)            
             constrstate = ConstrState(getcurrhs(form, constr))
@@ -337,7 +337,7 @@ const StaticVarConstrUnitPair = (FormulationUnit => StaticVarConstrRecord)
 # issues to see : 1) PrimalSolution is parametric; 2) we need a solution concatenation functionality
 
 mutable struct PartialSolutionUnit <: AbstractStorageUnit
-    solution::Dict{VarId, Float64}
+    solution::Dict{VarId,Float64}
 end
 
 function add_to_solution!(unit::PartialSolutionUnit, varid::VarId, value::Float64)
@@ -358,12 +358,12 @@ end
 
 
 function PartialSolutionUnit(form::Formulation) 
-    return PartialSolutionUnit(Dict{VarId, Float64}())
+    return PartialSolutionUnit(Dict{VarId,Float64}())
 end
 
 # the record is the same as the record here
 mutable struct PartialSolutionRecord <: AbstractRecord
-    solution::Dict{VarId, Float64}
+    solution::Dict{VarId,Float64}
 end
 
 function PartialSolutionRecord(form::Formulation, unit::PartialSolutionUnit)
