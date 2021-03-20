@@ -98,12 +98,12 @@ function add_to_stack!(
 end
 
 """
-    PreprocessingRecordState
+    PreprocessingRecord
 
     Stores the global part of preprocessing unit
 """
 
-mutable struct PreprocessingRecordState <: AbstractRecordState
+mutable struct PreprocessingRecord <: AbstractRecord
     cur_min_slack::Dict{ConstrId,Float64}
     cur_max_slack::Dict{ConstrId,Float64}
     nb_inf_sources_for_min_slack::Dict{ConstrId,Int}
@@ -114,8 +114,8 @@ mutable struct PreprocessingRecordState <: AbstractRecordState
     local_partial_sol::Dict{VarId, Float64}
 end
 
-function PreprocessingRecordState(reform::Reformulation, unit::PreprocessingUnit)
-    return PreprocessingRecordState(
+function PreprocessingRecord(reform::Reformulation, unit::PreprocessingUnit)
+    return PreprocessingRecord(
         copy(unit.cur_min_slack), copy(unit.cur_max_slack), 
         copy(unit.nb_inf_sources_for_min_slack),
         copy(unit.nb_inf_sources_for_max_slack),
@@ -123,8 +123,8 @@ function PreprocessingRecordState(reform::Reformulation, unit::PreprocessingUnit
         copy(unit.new_constrs), copy(unit.local_partial_sol))
 end
 
-function restorefromstate!(
-    form::Reformulation, unit::PreprocessingUnit, state::PreprocessingRecordState
+function restore_from_record!(
+    form::Reformulation, unit::PreprocessingUnit, state::PreprocessingRecord
 )
     unit.cur_min_slack = copy(state.cur_min_slack)
     unit.cur_max_slack = copy(state.cur_max_slack)
@@ -136,7 +136,7 @@ function restorefromstate!(
     unit.local_partial_sol = copy(state.local_partial_sol)
 end
 
-const PreprocessingUnitPair = (PreprocessingUnit => PreprocessingRecordState)
+const PreprocessingUnitPair = (PreprocessingUnit => PreprocessingRecord)
 
 
 """

@@ -11,8 +11,8 @@ abstract type AbstractData end
 getstoragedict(::AbstractData) = nothing
 getmodel(::AbstractData) = nothing 
 get_model_storage_dict(::AbstractData, ::AbstractModel) = nothing
-store_states!(::AbstractData, ::RecordStatesVector) = nothing
-check_record_states_participation(::AbstractData) = nothing
+store_records!(::AbstractData, ::RecordsVector) = nothing
+check_records_participation(::AbstractData) = nothing
 
 function getnicename(data::AbstractData) 
     model = getmodel(data)
@@ -63,18 +63,18 @@ function get_model_storage_dict(data::ModelData, model::AbstractModel)
     return nothing
 end
 
-function store_states!(data::ModelData, states::RecordStatesVector)
+function store_records!(data::ModelData, records::RecordsVector)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        stateid = storestate!(storagecont)
-        push!(states, storagecont => stateid)
+        recordid = store_record!(storagecont)
+        push!(records, storagecont => recordid)
     end
 end
 
-function check_record_states_participation(data::ModelData)
+function check_records_participation(data::ModelData)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        check_record_states_participation(storagecont)
+        check_records_participation(storagecont)
     end
 end
 
@@ -92,7 +92,7 @@ mutable struct ReformData <: AbstractData
 end
 
 getstoragedict(data::ReformData) = data.storagedict
-getmodel(data::ReformData) = data.reform 
+getmodel(data::ReformData) = data.reform
 getreform(data::ReformData) = data.reform
 getmasterdata(data::ReformData) = data.masterdata
 get_dw_pricing_datas(data::ReformData) = data.dw_pricing_datas
@@ -107,7 +107,7 @@ function ReformData(reform::Reformulation)
         else
             dw_pricing_datas[spuid] = ModelData(spform)
         end
-    end    
+    end 
 
     benders_sep_datas = Dict{FormId, AbstractData}()
     sps = get_benders_sep_sps(reform)
@@ -117,12 +117,12 @@ function ReformData(reform::Reformulation)
         else
             benders_sep_datas[spuid] = ModelData(spform)
         end
-    end  
+    end
 
     return ReformData(
         reform, StorageDict(), ModelData(getmaster(reform)), dw_pricing_datas, benders_sep_datas
     )
-end    
+end 
 
 function get_model_storage_dict(data::ReformData, model::AbstractModel)
     if model == getmodel(data) 
@@ -142,39 +142,39 @@ function get_model_storage_dict(data::ReformData, model::AbstractModel)
     return nothing
 end
 
-function store_states!(data::ReformData, states::RecordStatesVector)
+function store_records!(data::ReformData, records::RecordsVector)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        stateid = storestate!(storagecont)
-        push!(states, (storagecont, stateid))
+        recordid = store_record!(storagecont)
+        push!(records, (storagecont, recordid))
     end
-    store_states!(getmasterdata(data), states)
+    store_records!(getmasterdata(data), records)
     for (formid, sp_data) in get_dw_pricing_datas(data)
-        store_states!(sp_data, states)
+        store_records!(sp_data, records)
     end
     for (formid, sp_data) in get_benders_sep_datas(data)
-        store_states!(sp_data, states)
+        store_records!(sp_data, records)
     end 
 end
 
-function store_states!(data::ReformData)
-    TO.@timeit Coluna._to "Store states" begin
-        states = RecordStatesVector()
-       store_states!(data, states)
+function store_records!(data::ReformData)
+    TO.@timeit Coluna._to "Store records" begin
+        records = RecordsVector()
+       store_records!(data, records)
     end       
-    return states
+    return records
 end
 
-function check_record_states_participation(data::ReformData)
+function check_records_participation(data::ReformData)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
-        check_record_states_participation(storagecont)
+        check_records_participation(storagecont)
     end
-    check_record_states_participation(getmasterdata(data))
+    check_records_participation(getmasterdata(data))
     for (formid, sp_data) in get_dw_pricing_datas(data)
-        check_record_states_participation(sp_data)
+        check_records_participation(sp_data)
     end
     for (formid, sp_data) in get_benders_sep_datas(data)
-        check_record_states_participation(sp_data)
+        check_records_participation(sp_data)
     end 
 end

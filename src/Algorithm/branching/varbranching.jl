@@ -27,7 +27,7 @@ function generate_children(
     )
 
     #adding the first branching constraints
-    restore_states!(copy_states(parent.stateids), units_to_restore)    
+    restore_from_records!(copy_records(parent.recordids), units_to_restore)    
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
         master, string(
@@ -38,10 +38,10 @@ function generate_children(
     )
     end
     child1description = candidate.description * ">=" * string(ceil(lhs))
-    child1 = Node(master, parent, child1description, store_states!(data))
+    child1 = Node(master, parent, child1description, store_records!(data))
 
     #adding the second branching constraints
-    restore_states!(copy_states(parent.stateids), units_to_restore)
+    restore_from_records!(copy_records(parent.recordids), units_to_restore)
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
         master, string(
@@ -53,7 +53,7 @@ function generate_children(
     )
     end
     child2description = candidate.description * "<=" * string(floor(lhs))
-    child2 = Node(master, parent, child2description, store_states!(data))
+    child2 = Node(master, parent, child2description, store_records!(data))
 
     return [child1, child2]
 end
