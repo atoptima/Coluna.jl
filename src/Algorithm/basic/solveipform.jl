@@ -72,14 +72,14 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     end
     
     if length(primal_sols) > 0
-        coeff = getobjsense(form) == MinSense ? 1.0 : -1.0
-        bestprimalsol_pos = argmin(coeff * getvalue.(primal_sols))
-        bestprimalsol = primal_sols[bestprimalsol_pos]
-
         if partial_sol !== nothing
-            add_ip_primal_sol!(result, cat(partial_sol, bestprimalsol))
+            for primal_sol in primal_sols
+                add_ip_primal_sol!(result, cat(partial_sol, primal_sol))
+            end
         else
-            add_ip_primal_sol!(result, bestprimalsol)
+            for primal_sol in primal_sols
+                add_ip_primal_sol!(result, primal_sol)
+            end
         end
         if algo.log_level == 0
             @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(result))
