@@ -4,11 +4,11 @@
 function solve_with_no_decomposition()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "params" => CL.Params(solver=ClA.SolveIpForm()),
         "default_optimizer" => GLPK.Optimizer
     )
 
-    model = BlockModel(coluna, direct_model = true)
+    model = BlockModel(coluna, direct_model=true)
     @variable(model, x)
     @constraint(model, x <= 1)
     @objective(model, Max, x)
@@ -22,11 +22,11 @@ end
 function test_model_empty()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "params" => CL.Params(solver=ClA.SolveIpForm()),
         "default_optimizer" => GLPK.Optimizer
     )
 
-    model = BlockModel(coluna, direct_model = true)
+    model = BlockModel(coluna, direct_model=true)
     @variable(model, x)
     @constraint(model, x <= 1)
     @objective(model, Max, x)
@@ -55,7 +55,7 @@ function decomposition_with_constant_in_objective()
     coluna = optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => Coluna.Params(
-            solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
+            solver=Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
         ),
         "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
     )
@@ -82,7 +82,7 @@ end
 function solve_empty_model()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "params" => CL.Params(solver=ClA.SolveIpForm()),
         "default_optimizer" => GLPK.Optimizer
     )
     model = BlockModel(coluna)
@@ -91,7 +91,7 @@ function solve_empty_model()
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.SolveLpForm(update_ip_primal_solution = true)),
+        "params" => CL.Params(solver=ClA.SolveLpForm(update_ip_primal_solution=true)),
         "default_optimizer" => GLPK.Optimizer
     )
     model = BlockModel(coluna)
@@ -101,7 +101,7 @@ function solve_empty_model()
     coluna = optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => Coluna.Params(
-            solver = Coluna.Algorithm.TreeSearchAlgorithm()
+            solver=Coluna.Algorithm.TreeSearchAlgorithm()
         ),
         "default_optimizer" => GLPK.Optimizer
     )
@@ -113,10 +113,10 @@ function optimize_twice()
     # no reformulation + direct model
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.SolveIpForm()),
+        "params" => CL.Params(solver=ClA.SolveIpForm()),
         "default_optimizer" => GLPK.Optimizer
     )
-    model = BlockModel(coluna, direct_model = true)
+    model = BlockModel(coluna, direct_model=true)
     @variable(model, x)
     @constraint(model, x <= 1)
     @objective(model, Max, x)
@@ -139,7 +139,7 @@ function optimize_twice()
     data = CLD.GeneralizedAssignment.data("play2.txt")
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+        "params" => CL.Params(solver=ClA.TreeSearchAlgorithm()),
         "default_optimizer" => GLPK.Optimizer
     )
     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -150,31 +150,31 @@ function optimize_twice()
     optimize!(model)
     @test JuMP.objective_value(model) ≈ 75.0
 
-    # # reformulation + no direct model (`CLD.GeneralizedAssignment.model(data, coluna, false)` threw
-    # #                                  "MethodError: no method matching Model(; direct_model=false)")
-    # model = BlockModel(coluna)
-    # @axis(M, data.machines)
-    # @variable(model, x[m in M, j in data.jobs], Bin)
-    # @constraint(model, cov[j in data.jobs], sum(x[m,j] for m in M) >= 1)
-    # @constraint(model, knp[m in M], sum(data.weight[j,m]*x[m,j] for j in data.jobs) <= data.capacity[m])
-    # @objective(model, Min, sum(data.cost[j,m]*x[m,j] for m in M, j in data.jobs))
-    # @dantzig_wolfe_decomposition(model, dec, M)
-    # subproblems = BlockDecomposition.getsubproblems(dec)
-    # specify!.(subproblems, lower_multiplicity = 0)
-    # BD.objectiveprimalbound!(model, 100)
-    # BD.objectivedualbound!(model, 0)
-    # optimize!(model)
-    # @test JuMP.objective_value(model) ≈ 75.0
-    # optimize!(model)
-    # @test JuMP.objective_value(model) ≈ 75.0
+    # reformulation + no direct model (`CLD.GeneralizedAssignment.model(data, coluna, false)` threw
+    #                                  "MethodError: no method matching Model(; direct_model=false)")
+    model = BlockModel(coluna)
+    @axis(M, data.machines)
+    @variable(model, x[m in M, j in data.jobs], Bin)
+    @constraint(model, cov[j in data.jobs], sum(x[m,j] for m in M) >= 1)
+    @constraint(model, knp[m in M], sum(data.weight[j,m] * x[m,j] for j in data.jobs) <= data.capacity[m])
+    @objective(model, Min, sum(data.cost[j,m] * x[m,j] for m in M, j in data.jobs))
+    @dantzig_wolfe_decomposition(model, dec, M)
+    subproblems = BlockDecomposition.getsubproblems(dec)
+    specify!.(subproblems, lower_multiplicity=0)
+    BD.objectiveprimalbound!(model, 100)
+    BD.objectivedualbound!(model, 0)
+    optimize!(model)
+    @test JuMP.objective_value(model) ≈ 75.0
+    optimize!(model)
+    @test JuMP.objective_value(model) ≈ 75.0
 end
 
 function column_generation_solver()
     data = CLD.GeneralizedAssignment.data("play2.txt")
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-            maxnumnodes = 1,
+        "params" => CL.Params(solver=ClA.TreeSearchAlgorithm(
+            maxnumnodes=1,
         )),
         "default_optimizer" => GLPK.Optimizer
     )
@@ -183,7 +183,7 @@ function column_generation_solver()
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => Coluna.Params(solver = ClA.ColumnGeneration()),
+        "params" => Coluna.Params(solver=ClA.ColumnGeneration()),
         "default_optimizer" => GLPK.Optimizer
     )
     colgen, x, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
@@ -194,7 +194,7 @@ end
 
 function branching_file_completion()
     function get_number_of_nodes_in_branching_tree_file(filename::String)
-        filepath = string(@__DIR__ , "/", filename)
+        filepath = string(@__DIR__, "/", filename)
         
         existing_nodes = Set()
         
@@ -217,8 +217,8 @@ function branching_file_completion()
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-            branchingtreefile = "playgap.dot"
+        "params" => CL.Params(solver=ClA.TreeSearchAlgorithm(
+            branchingtreefile="playgap.dot"
         )),
         "default_optimizer" => GLPK.Optimizer
     )
@@ -255,10 +255,10 @@ function test_issues_fixed()
         optimize_twice()
     end
 
-
     @testset "column_generation_solver" begin
         column_generation_solver()
     end
+    
     @testset "branching_file_completion" begin
         branching_file_completion()
     end
