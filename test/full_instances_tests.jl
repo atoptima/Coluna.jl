@@ -282,6 +282,7 @@ function generalized_assignment_tests()
         # Lazy cut callback (add covering constraints on jobs on the fly)
         function my_callback_function(cb_data)
             for j in 1:cur_j 
+                println("\e[35m j = $j \e[00m")
                 @test sum(callback_value(cb_data, x[m,j]) for m in M) ≈ 1
             end
             if cur_j < length(data.jobs)

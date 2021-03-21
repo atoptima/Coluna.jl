@@ -680,7 +680,7 @@ function cg_main_loop!(
         if nb_lp_primal_sols(rm_optstate) > 0
             rm_sol = get_best_lp_primal_sol(rm_optstate)
             
-            set_lp_primal_sol!(cg_optstate, rm_sol)
+            unshift_lp_primal_sol!(cg_optstate, rm_sol)
             lp_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)
             set_lp_primal_bound!(cg_optstate, lp_bound)
 

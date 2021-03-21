@@ -257,7 +257,7 @@ function run_conquer_algorithm!(
     update_all_ip_primal_solutions!(treestate, nodestate)
     
     if algo.storelpsolution && isrootnode(node) && nb_lp_primal_sols(nodestate) > 0
-        set_lp_primal_sol!(treestate, get_best_lp_primal_sol(nodestate)) 
+        unshift_lp_primal_sol!(treestate, get_best_lp_primal_sol(nodestate)) 
     end 
     return
 end

@@ -49,7 +49,7 @@ Coluna.MathProg.update_lp_primal_bound!
 Coluna.MathProg.Variable
 Coluna.MathProg.MoiOptimizer
 Coluna.ColunaBase.Bound
-Coluna.Algorithm.set_ip_primal_sol!
+Coluna.Algorithm.unshift_ip_primal_sol!
 Coluna.MathProg.get_ip_dual_bound
 Coluna.Algorithm.ReformData
 Coluna.Algorithm.ModelData
