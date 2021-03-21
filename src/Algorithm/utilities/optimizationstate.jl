@@ -27,11 +27,9 @@ function bestbound!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {S
     return
 end
 
-function unshift!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
-    pushfirst!(solutions, new_sol)
-    while length(solutions) > max_len
-        pop!(solutions)
-    end
+function set!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
+    empty!(solutions)
+    push!(solutions, new_sol)
     return
 end
 
@@ -138,10 +136,10 @@ function OptimizationState(
         lp_dual_bound = get_lp_dual_bound(source_state)
     )
     if copy_ip_primal_sol && nb_ip_primal_sols(source_state) > 0
-        unshift_ip_primal_sol!(state, copy(get_best_ip_primal_sol(source_state)))
+        set_ip_primal_sol!(state, copy(get_best_ip_primal_sol(source_state)))
     end
     if copy_lp_primal_sol && nb_lp_primal_sols(source_state) > 0
-        unshift_lp_primal_sol!(state, copy(get_best_lp_primal_sol(source_state)))
+        set_lp_primal_sol!(state, copy(get_best_lp_primal_sol(source_state)))
     end
     return state
 end
@@ -216,7 +214,7 @@ function update_ip_primal!(
 )
     update_ip_primal_bound!(dest_state, get_ip_primal_bound(orig_state))    
     if set_solution && nb_ip_primal_sols(orig_state) > 0
-        unshift_ip_primal_sol!(dest_state, get_best_ip_primal_sol(orig_state))
+        set_ip_primal_sol!(dest_state, get_best_ip_primal_sol(orig_state))
     end
 end
 
@@ -238,7 +236,7 @@ function update!(dest_state::OptimizationState, orig_state::OptimizationState)
     update_lp_dual_bound!(dest_state, get_lp_dual_bound(orig_state))
     set_lp_primal_bound!(dest_state, get_lp_primal_bound(orig_state))
     if nb_lp_primal_sols(orig_state) > 0
-        unshift_lp_primal_sol!(dest_state, get_best_lp_primal_sol(orig_state))
+        set_lp_primal_sol!(dest_state, get_best_lp_primal_sol(orig_state))
     end        
 end
 
@@ -284,19 +282,18 @@ function add_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{
 end
 
 """
-    unshift_ip_primal_sol!(optstate, sol)
+    set_ip_primal_sol!(optstate, sol)
 
-Add the solution `sol` at the beginning of the solutions list of `optstate`. 
+Empties the list of solutions and add solution `sol` in the list.
 The incumbent bound is not updated even if the value of the solution is better.
-The list of solutions is not sorted.
 """
-function unshift_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+function set_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_ip_primal_sols == 0 && return
     
     if state.ip_primal_sols === nothing
         state.ip_primal_sols = PrimalSolution{F}[]
     end
-    unshift!(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
+    set!(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     return
 end
 
@@ -326,13 +323,13 @@ function add_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{
     return
 end
 
-function unshift_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
+function set_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_lp_primal_sols == 0 && return
 
     if state.lp_primal_sols === nothing
         state.lp_primal_sols = PrimalSolution{F}[]
     end
-    unshift!(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
+    set!(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     return
 end
 
@@ -361,13 +358,13 @@ function add_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) 
     return
 end
 
-function unshift_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
+function set_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
     state.max_length_lp_dual_sols == 0 && return
 
     if state.lp_dual_sols === nothing
         state.lp_dual_sols = DualSolution{F}[]
     end
-    unshift!(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
+    set!(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     return
 end
 

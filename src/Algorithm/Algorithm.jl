@@ -66,7 +66,7 @@ export getterminationstatus, setterminationstatus!,
     get_ip_primal_sols, get_lp_primal_sols, get_lp_dual_sols, get_best_ip_primal_sol,
     get_best_lp_primal_sol, get_best_lp_dual_sol, update_ip_primal_sol!,
     update_lp_primal_sol!, update_lp_dual_sol!, add_ip_primal_sol!, add_lp_primal_sol!,
-    add_lp_dual_sol!, unshift_ip_primal_sol!, unshift_lp_primal_sol!, unshift_lp_dual_sol!,
+    add_lp_dual_sol!, set_ip_primal_sol!, set_lp_primal_sol!, set_lp_dual_sol!,
     get_ip_dual_bound, set_ip_dual_bound!, update_all_ip_primal_solutions!, getreform,
     getmasterdata, getoptstate, run!, isinfeasible
     

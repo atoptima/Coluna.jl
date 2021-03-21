@@ -80,7 +80,7 @@ function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationI
         if length(dual_sols) > 0
             lp_dual_sol_pos = argmax(coeff * getvalue.(dual_sols))
             lp_dual_sol = dual_sols[lp_dual_sol_pos]
-            unshift_lp_dual_sol!(result, lp_dual_sol)
+            set_lp_dual_sol!(result, lp_dual_sol)
             if algo.set_dual_bound
                 db = DualBound(form, getvalue(lp_dual_sol) + partial_sol_val)
                 set_lp_dual_bound!(result, db)
