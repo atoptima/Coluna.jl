@@ -327,54 +327,11 @@ end
 function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVector, dualsol::DualSolution)
     redcosts = deepcopy(redcostsvec.perencosts)
     master = getmaster(reform)
-    # sign = getobjsense(master) == MinSense ? -1 : 1
-    matrix = getcoefmatrix(master)
 
-    crm = matrix.rowmajor
-
-    constr_key_pos::Int = 1
-    next_constr_key_pos::Int = 2
-
-    row_start = 0
-    row_end = 0
-    row_pos = 0
-
-    terms = Dict{VarId, Float64}(id => 0.0 for id in redcostsvec.varids)
-
-    for dual_pos in 1:length(dualsol.sol.array)
-        entry = dualsol.sol.array[dual_pos]
-        if entry !== nothing
-            constrid, val = entry
-            while constr_key_pos <= length(crm.col_keys) && crm.col_keys[constr_key_pos] != constrid
-                constr_key_pos += 1
-            end
-            (constr_key_pos > length(crm.col_keys)) && break
-            next_constr_key_pos = constr_key_pos + 1
-            while next_constr_key_pos <= length(crm.col_keys) && crm.col_keys[next_constr_key_pos] === nothing
-                next_constr_key_pos += 1
-            end
-
-            row_start = crm.pcsc.semaphores[constr_key_pos] + 1
-            row_end = length(crm.pcsc.pma.array)
-            if next_constr_key_pos <= length(crm.col_keys)
-                row_end = crm.pcsc.semaphores[next_constr_key_pos] - 1
-            end
-
-            for row_pos in row_start:row_end
-                entry = crm.pcsc.pma.array[row_pos]
-                if entry !== nothing
-                    row_varid, coeff = entry
-                    if getduty(row_varid) <= AbstractMasterRepDwSpVar
-                        terms[row_varid] = get(terms, row_varid, 0.0) + val * coeff
-                    end
-                end
-            end
-            constr_key_pos = next_constr_key_pos
-        end
-    end
+    result = transpose(getcoefmatrix(master)) * getsol(dualsol)
 
     for (i, varid) in enumerate(redcostsvec.varids)
-        setcurcost!(redcostsvec.form[i], varid, redcosts[i] - terms[varid])
+        setcurcost!(redcostsvec.form[i], varid, redcosts[i] - get(result, varid, 0.0))
     end
     return redcosts
 end
