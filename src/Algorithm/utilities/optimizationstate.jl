@@ -15,16 +15,21 @@ mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     lp_dual_sols::Union{Nothing, Vector{DualSolution{F}}}
 end
 
-_sort!(sols::Vector{PrimalSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(PrimalBound(x.model, x.value)))
-_sort!(sols::Vector{DualSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(DualBound(x.model, x.value)))
+_sort!(sols::Vector{PrimalSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(PrimalBound(x.model, x.bound)))
+_sort!(sols::Vector{DualSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(DualBound(x.model, x.bound)))
 
-function bestbound(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
-    if length(solutions) < max_len
-        push!(solutions, new_sol)
-    else
-        solutions[end] = new_sol
-    end
+function bestbound!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
+    push!(solutions, new_sol)
     _sort!(solutions, MathProg.valueinminsense)
+    while length(solutions) > max_len
+        pop!(solutions)
+    end
+    return
+end
+
+function set!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
+    empty!(solutions)
+    push!(solutions, new_sol)
     return
 end
 
@@ -39,9 +44,9 @@ end
         max_length_ip_primal_sols = 1, 
         max_length_lp_dual_sols = 1, 
         max_length_lp_dual_sols = 1,
-        insert_function_ip_primal_sols = bestbound, 
-        insert_function_lp_primal_sols = bestbound, 
-        insert_function_lp_dual_sols = bestbound
+        insert_function_ip_primal_sols = bestbound!, 
+        insert_function_lp_primal_sols = bestbound!, 
+        insert_function_lp_dual_sols = bestbound!
         )
 
 A convenient structure to maintain and return solutions and bounds of a formulation `form` during an
@@ -67,9 +72,9 @@ function OptimizationState(
     max_length_ip_primal_sols = 1,
     max_length_lp_primal_sols = 1,
     max_length_lp_dual_sols = 1,
-    insert_function_ip_primal_sols = bestbound,
-    insert_function_lp_primal_sols = bestbound,
-    insert_function_lp_dual_sols = bestbound
+    insert_function_ip_primal_sols = bestbound!,
+    insert_function_lp_primal_sols = bestbound!,
+    insert_function_lp_dual_sols = bestbound!
 ) where {F <: AbstractFormulation}
     incumbents = ObjValues(
         form;
@@ -260,7 +265,8 @@ end
 """
     add_ip_primal_sol!(optstate, sol)
 
-Add the solution `sol` in the solutions list of `opstate` and update the incumbent bound if 
+Add the solution `sol` at the end of the solution list of `opstate`, sort the solution list,
+remove the worst solution if the solution list size is exceded, and update the incumbent bound if 
 the solution is better.
 """
 function add_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
@@ -278,8 +284,8 @@ end
 """
     set_ip_primal_sol!(optstate, sol)
 
-Add the solution `sol` in the solutions list of `optstate`. The incumbent bound is not 
-updated even if the value of the solution is better.
+Empties the list of solutions and add solution `sol` in the list.
+The incumbent bound is not updated even if the value of the solution is better.
 """
 function set_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_ip_primal_sols == 0 && return
@@ -287,7 +293,7 @@ function set_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{
     if state.ip_primal_sols === nothing
         state.ip_primal_sols = PrimalSolution{F}[]
     end
-    state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
+    set!(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     return
 end
 
@@ -323,7 +329,7 @@ function set_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{
     if state.lp_primal_sols === nothing
         state.lp_primal_sols = PrimalSolution{F}[]
     end
-    state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
+    set!(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     return
 end
 
@@ -358,7 +364,7 @@ function set_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) 
     if state.lp_dual_sols === nothing
         state.lp_dual_sols = DualSolution{F}[]
     end
-    state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
+    set!(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     return
 end
 

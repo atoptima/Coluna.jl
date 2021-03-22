@@ -4,6 +4,7 @@
         deactivate_artificial_vars = true,
         enforce_integrality = true,
         silent = true,
+        max_nb_ip_primal_sols = 50,
         log_level = 0
     )
 
@@ -15,6 +16,7 @@ Solve a mixed integer linear program.
     enforce_integrality = true
     get_dual_bound = true
     silent = true
+    max_nb_ip_primal_sols = 50
     log_level = 0
 end
 
@@ -50,7 +52,9 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     form = getmodel(data)
 
     result = OptimizationState(
-        form, ip_primal_bound = get_ip_primal_bound(getoptstate(input))
+        form, 
+        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
     ip_supported = check_if_optimizer_supports_ip(getoptimizer(form))
@@ -72,14 +76,14 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     end
     
     if length(primal_sols) > 0
-        coeff = getobjsense(form) == MinSense ? 1.0 : -1.0
-        bestprimalsol_pos = argmin(coeff * getvalue.(primal_sols))
-        bestprimalsol = primal_sols[bestprimalsol_pos]
-
         if partial_sol !== nothing
-            add_ip_primal_sol!(result, cat(partial_sol, bestprimalsol))
+            for primal_sol in primal_sols
+                add_ip_primal_sol!(result, cat(partial_sol, primal_sol))
+            end
         else
-            add_ip_primal_sol!(result, bestprimalsol)
+            for primal_sol in primal_sols
+                add_ip_primal_sol!(result, primal_sol)
+            end
         end
         if algo.log_level == 0
             @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(result))
@@ -97,6 +101,7 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
         dual_bound = getvalue(get_ip_primal_bound(result)) + partial_sol_value
         set_ip_dual_bound!(result, DualBound(form, dual_bound))
     end
+
     return OptimizationOutput(result)
 end
 
