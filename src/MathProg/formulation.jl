@@ -18,7 +18,7 @@ end
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
     ) where {Duty<:AbstractFormDuty}
 
-Construct a `Formulation` of duty `Duty` with objective sense `obj_sense` and parent formulation
+Construct a `Formulation` of duty `Duty` with `form_counter` as the counter of formulations in a `Problem`, objective sense `obj_sense` and parent formulation
 `parent_formulation`.
 """
 function Formulation{D}(
