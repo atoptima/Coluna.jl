@@ -7,28 +7,28 @@ function bound_unit()
     @testset "Bound" begin
         pb = Coluna.ColunaBase.Bound{Primal,MinSense}()
         @test pb == Inf
-        @test getvalue(pb) == Inf
+        @test Coluna.ColunaBase.getvalue(pb) == Inf
         
         pb = Coluna.ColunaBase.Bound{Primal,MaxSense}()
         @test pb == -Inf
-        @test getvalue(pb) == -Inf
+        @test Coluna.ColunaBase.getvalue(pb) == -Inf
         
         db = Coluna.ColunaBase.Bound{Dual,MinSense}()
         @test db == -Inf
-        @test getvalue(db) == -Inf
+        @test Coluna.ColunaBase.getvalue(db) == -Inf
         
         db = Coluna.ColunaBase.Bound{Dual,MaxSense}()
         @test db == Inf
-        @test getvalue(db) == Inf
+        @test Coluna.ColunaBase.getvalue(db) == Inf
         
         pb = Coluna.ColunaBase.Bound{Primal,MinSense}(100)
         @test pb == 100
-        @test getvalue(pb) == 100
+        @test Coluna.ColunaBase.getvalue(pb) == 100
         @test typeof(float(db)) <: Float64
 
         db = Coluna.ColunaBase.Bound{Dual,MinSense}(-π)
         @test db == -π
-        @test getvalue(db) == -π
+        @test Coluna.ColunaBase.getvalue(db) == -π
     end
 
     @testset "isbetter" begin
