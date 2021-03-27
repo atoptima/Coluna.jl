@@ -7,21 +7,28 @@ function bound_unit()
     @testset "Bound" begin
         pb = Coluna.ColunaBase.Bound{Primal,MinSense}()
         @test pb == Inf
+        @test getvalue(pb) == Inf
         
         pb = Coluna.ColunaBase.Bound{Primal,MaxSense}()
         @test pb == -Inf
-
+        @test getvalue(pb) == -Inf
+        
         db = Coluna.ColunaBase.Bound{Dual,MinSense}()
         @test db == -Inf
-
+        @test getvalue(db) == -Inf
+        
         db = Coluna.ColunaBase.Bound{Dual,MaxSense}()
         @test db == Inf
-
+        @test getvalue(db) == Inf
+        
         pb = Coluna.ColunaBase.Bound{Primal,MinSense}(100)
         @test pb == 100
+        @test getvalue(pb) == 100
+        @test typeof(float(db)) <: Float64
 
         db = Coluna.ColunaBase.Bound{Dual,MinSense}(-π)
         @test db == -π
+        @test getvalue(db) == -π
     end
 
     @testset "isbetter" begin
@@ -117,12 +124,12 @@ function bound_unit()
         # In minimisation sense
         pb1 = Coluna.ColunaBase.Bound{Primal, MinSense}(100)
         db1 = Coluna.ColunaBase.Bound{Dual, MinSense}(-100)
-        # TODO
+        Coluna.ColunaBase.printbounds(db1, pb1)
 
         # In maximisation sense
         pb2 = Coluna.ColunaBase.Bound{Primal, MaxSense}(-100)
         db2 = Coluna.ColunaBase.Bound{Dual, MaxSense}(100)
-        # TODO
+        Coluna.ColunaBase.printbounds(db2, pb2)
     end
 
     @testset "show" begin
@@ -132,13 +139,35 @@ function bound_unit()
 
     @testset "Promotions & conversions" begin
         pb = Coluna.ColunaBase.Bound{Primal,MaxSense}(4.0)
+        db = Coluna.ColunaBase.Bound{Dual,MaxSense}(2.0)
         @test eltype(promote(pb, 1)) == typeof(pb)
         @test eltype(promote(pb, 2.0)) == typeof(pb)
         @test eltype(promote(pb, π)) == typeof(pb)
         @test eltype(promote(pb, 1, 2.0, π)) == typeof(pb)
-
+        @test eltype(promote(pb, db)) == Float64
+        
         @test typeof(pb + 1) == typeof(pb) # check that promotion works
 
+        @test convert(Float64, pb) == pb.value
+        @test convert(Integer, pb) == pb.value
+        @test convert(Irrational, pb) == pb.value
+        # @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, 4.0) = pb
+        # @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, 4) = pb
+        # @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, π) = Coluna.ColunaBase.Bound{Primal, MaxSense}(π)
+        
+        pb_min_1 = Coluna.ColunaBase.Bound{Primal,MaxSense}(3.0)
+        pb_plus_1 = Coluna.ColunaBase.Bound{Primal,MaxSense}(5.0)
+
+        @test -pb == Coluna.ColunaBase.Bound{Primal,MaxSense}(-4.0)
+        @test pb + pb == 8
+        @test pb - pb == 0
+        @test pb * pb == 16
+        @test pb / pb == 1
+        @test pb == pb
+        @test pb < pb_plus_1
+        @test pb <= pb
+        @test pb >= pb
+        @test pb_plus_1 > pb
         @test pb < 5
         @test pb > 3
         @test pb <= 4
@@ -207,6 +236,37 @@ end
 struct FakeModel <: Coluna.ColunaBase.AbstractModel end
 
 function solution_unit()
+    @testset "MOI Termination Status" begin
+        @test Coluna.ColunaBase.convert_status(MOI.OPTIMAL) == Coluna.ColunaBase.OPTIMAL
+        @test Coluna.ColunaBase.convert_status(MOI.INFEASIBLE) == Coluna.ColunaBase.INFEASIBLE
+        @test Coluna.ColunaBase.convert_status(MOI.TIME_LIMIT) == Coluna.ColunaBase.TIME_LIMIT
+        @test Coluna.ColunaBase.convert_status(MOI.NODE_LIMIT) == Coluna.ColunaBase.NODE_LIMIT
+        @test Coluna.ColunaBase.convert_status(MOI.OTHER_LIMIT) == Coluna.ColunaBase.OTHER_LIMIT
+        #uncovered?
+    end
+
+    @testset "Coluna Termination Status" begin
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.OPTIMAL) == MOI.OPTIMAL
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.INFEASIBLE) == MOI.INFEASIBLE
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.TIME_LIMIT) == MOI.TIME_LIMIT
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.NODE_LIMIT) == MOI.NODE_LIMIT
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.OTHER_LIMIT) == MOI.OTHER_LIMIT
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.UNCOVERED_TERMINATION_STATUS) == MOI.OTHER_LIMIT
+    end
+
+    @testset "MOI Result Status Code" begin
+        @test Coluna.ColunaBase.convert_status(MOI.NO_SOLUTION) == Coluna.ColunaBase.UNKNOWN_SOLUTION_STATUS
+        @test Coluna.ColunaBase.convert_status(MOI.FEASIBLE_POINT) == Coluna.ColunaBase.FEASIBLE_SOL
+        @test Coluna.ColunaBase.convert_status(MOI.INFEASIBLE_POINT) == Coluna.ColunaBase.INFEASIBLE_SOL
+        #uncovered?
+    end
+
+    @testset "Coluna Solution Status" begin
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.FEASIBLE_SOL) == MOI.FEASIBLE_POINT
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.INFEASIBLE_SOL) == MOI.INFEASIBLE_POINT
+        @test Coluna.ColunaBase.convert_status(Coluna.ColunaBase.UNCOVERED_SOLUTION_STATUS) == MOI.OTHER_RESULT_STATUS
+    end
+
     Primal = Coluna.AbstractPrimalSpace
     Dual = Coluna.AbstractDualSpace
     MinSense = Coluna.AbstractMinSense
