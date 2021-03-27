@@ -54,7 +54,9 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     env = Env(params)
 
     # Apply decomposition
-    reformulate!(prob, annotations, env)
+    if(prob.re_formulation == nothing)
+        reformulate!(prob, annotations, env)
+    end
     
     # Coluna ready to start
     set_optim_start_time!(env)

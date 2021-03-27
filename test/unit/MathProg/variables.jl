@@ -3,13 +3,8 @@ function variables_unit_tests()
     return
 end
 
-function createformulation()
-    counter = ClF.Counter()
-    return ClF.Formulation{ClF.Original}(counter)
-end
-
 function getset_variables()
-    form = createformulation()
+    form = Formulation{Original}()
     var = ClF.setvar!(
         form, "var1", ClF.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
         kind = ClF.Integ, inc_val = 4.0

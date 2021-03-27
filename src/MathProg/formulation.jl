@@ -12,28 +12,41 @@ end
 """
 `Formulation` stores a mixed-integer linear program.
 
-    Formulation{Duty}(
-        form_counter::Counter;
+    create_formulation!(
+        env::Coluna.Env,
+        duty::Type{<:AbstractFormDuty};
         parent_formulation = nothing,
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
-    ) where {Duty<:AbstractFormDuty}
+    )
 
-Construct a `Formulation` of duty `Duty` with `form_counter` as the counter of formulations in a `Problem`, objective sense `obj_sense` and parent formulation
-`parent_formulation`.
+Construct a `Formulation` of duty `duty` in the environment `env`, with
+parent formulation `parent_formulation` and objective sense `obj_sense`.
 """
-function Formulation{D}(
-    form_counter::Counter;
+function create_formulation!(
+    env::Coluna.Env,
+    duty::Type{<:AbstractFormDuty};
     parent_formulation = nothing,
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense
-) where {D<:AbstractFormDuty}
-    if form_counter.value >= MAX_NB_FORMULATIONS
+)
+    if env.form_counter >= MAX_NB_FORMULATIONS
         error("Maximum number of formulations reached.")
     end
-    return Formulation{D}(
-        getnewuid(form_counter), Counter(), Counter(), parent_formulation, NoOptimizer(), 
+    return Formulation{duty}(
+        getnewuid(env), Counter(), Counter(), parent_formulation, NoOptimizer(), 
         FormulationManager(), obj_sense, FormulationBuffer()
     )
 end
+
+""" 
+    Formulation{Original}()
+
+Construct a `Formulation` of duty `Original`, when there is no environment.
+"""
+Formulation{Original}() = Formulation{Original}(
+    0, Counter(), Counter(),
+    nothing, NoOptimizer(), FormulationManager(),
+    MinSense, FormulationBuffer()
+)
 
 """
     haskey(formulation, id) -> Bool
@@ -85,6 +98,8 @@ getprimalsolcosts(form::Formulation) = form.manager.primal_sol_costs
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
 
+"Generates a new `uid` to a formulation in `Env` env."
+getnewuid(env::Coluna.Env) = env.form_counter += 1
 
 "Returns the `uid` of `Formulation` `form`."
 getuid(form::Formulation) = form.uid
