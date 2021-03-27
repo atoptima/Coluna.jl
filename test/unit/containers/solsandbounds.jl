@@ -242,7 +242,7 @@ function solution_unit()
         @test Coluna.ColunaBase.convert_status(MOI.TIME_LIMIT) == Coluna.ColunaBase.TIME_LIMIT
         @test Coluna.ColunaBase.convert_status(MOI.NODE_LIMIT) == Coluna.ColunaBase.NODE_LIMIT
         @test Coluna.ColunaBase.convert_status(MOI.OTHER_LIMIT) == Coluna.ColunaBase.OTHER_LIMIT
-        #uncovered?
+        @test Coluna.ColunaBase.convert_status(MOI.MEMORY_LIMIT) == Coluna.ColunaBase.UNCOVERED_TERMINATION_STATUS
     end
 
     @testset "Coluna Termination Status" begin
@@ -258,7 +258,7 @@ function solution_unit()
         @test Coluna.ColunaBase.convert_status(MOI.NO_SOLUTION) == Coluna.ColunaBase.UNKNOWN_SOLUTION_STATUS
         @test Coluna.ColunaBase.convert_status(MOI.FEASIBLE_POINT) == Coluna.ColunaBase.FEASIBLE_SOL
         @test Coluna.ColunaBase.convert_status(MOI.INFEASIBLE_POINT) == Coluna.ColunaBase.INFEASIBLE_SOL
-        #uncovered?
+        @test Coluna.ColunaBase.convert_status(MOI.NEARLY_FEASIBLE_POINT) == Coluna.ColunaBase.UNCOVERED_SOLUTION_STATUS 
     end
 
     @testset "Coluna Solution Status" begin
@@ -280,7 +280,6 @@ function solution_unit()
     primal_sol = Solution(model, soldecs, solvals, 12.3, Coluna.ColunaBase.FEASIBLE_SOL)
     test_solution_iterations(primal_sol, dict_sol)
     @test Coluna.ColunaBase.getvalue(primal_sol) == 12.3
-    #Coluna.ColunaBase.setvalue!(primal_sol, 123.4)
-    #@test Coluna.ColunaBase.getvalue(primal_sol) == 123.4
+    @test Coluna.ColunaBase.getstatus(primal_sol) == Coluna.ColunaBase.FEASIBLE_SOL
     return
 end
