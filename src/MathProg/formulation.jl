@@ -19,8 +19,8 @@ end
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
     )
 
-Construct a `Formulation` of duty `duty` in the environment `env`, with
-parent formulation `parent_formulation` and objective sense `obj_sense`.
+    Create a new formulation in the Coluna's environment `env` with duty `duty`,
+    parent formulation `parent_formulation`, and objective sense `obj_sense`.
 """
 function create_formulation!(
     env::Coluna.Env,
@@ -32,7 +32,7 @@ function create_formulation!(
         error("Maximum number of formulations reached.")
     end
     return Formulation{duty}(
-        getnewuid(env), Counter(), Counter(), parent_formulation, NoOptimizer(), 
+        env.form_counter += 1, Counter(), Counter(), parent_formulation, NoOptimizer(), 
         FormulationManager(), obj_sense, FormulationBuffer()
     )
 end
@@ -97,9 +97,6 @@ getprimalsolmatrix(form::Formulation) = form.manager.primal_sols
 getprimalsolcosts(form::Formulation) = form.manager.primal_sol_costs
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
-
-"Generates a new `uid` to a formulation in `Env` env."
-getnewuid(env::Coluna.Env) = env.form_counter += 1
 
 "Returns the `uid` of `Formulation` `form`."
 getuid(form::Formulation) = form.uid

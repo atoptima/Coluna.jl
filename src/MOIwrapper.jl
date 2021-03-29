@@ -17,7 +17,6 @@ const SupportedConstrSets = Union{
 mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Problem
     objective_type::ObjectiveType
-    params::Params
     annotations::Annotations
     #varmap::Dict{MOI.VariableIndex,VarId} # For the user to get VariablePrimal
     vars::CleverDicts.CleverDict{MOI.VariableIndex, Variable}
@@ -32,14 +31,13 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     default_optimizer_builder::Union{Nothing, Function}
 
     feasibility_sense::Bool # Coluna supports only Max or Min.
-
-    kpis::Union{Nothing, Kpis}
+    
+    env::Env
 
 
     function Optimizer()
         model = new()
         model.inner = Problem()
-        model.params = Params()
         model.annotations = Annotations()
         model.vars = CleverDicts.CleverDict{MOI.VariableIndex, Variable}()
         model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}() # TODO : check if necessary to have two dicts for variables
@@ -51,7 +49,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
         model.default_optimizer_builder = nothing
         model.feasibility_sense = false
-        model.kpis = nothing
+        model.env = Env(Params())
         return model
     end
 end
@@ -69,7 +67,7 @@ MOI.supports(::Optimizer, ::MOI.ConstraintDualStart) = false
 # Parameters
 function MOI.set(model::Optimizer, param::MOI.RawParameter, val)
     if param.name == "params"
-        model.params = val
+        model.env.params = val
     elseif param.name == "default_optimizer"
         optimizer_builder = () -> MoiOptimizer(MOI._instantiate_and_check(val))
         model.default_optimizer_builder = optimizer_builder
@@ -98,8 +96,8 @@ end
 MOI.get(optimizer::Coluna.Optimizer, ::MOI.SolverName) = "Coluna"
 
 function MOI.optimize!(optimizer::Optimizer)
-    optimizer.result, optimizer.kpis = optimize!(
-        optimizer.inner, optimizer.annotations, optimizer.params
+    optimizer.result = optimize!(
+        optimizer.env, optimizer.inner, optimizer.annotations
     )
     return
 end
@@ -674,8 +672,8 @@ function MOI.get(optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.Constr
     return constraint_primal(best_primal_sol, getid(constrid))
 end
 
-MOI.get(optimizer::Optimizer, ::MOI.NodeCount) = optimizer.kpis.node_count
-MOI.get(optimizer::Optimizer, ::MOI.SolveTime) = optimizer.kpis.elapsed_optimization_time
+MOI.get(optimizer::Optimizer, ::MOI.NodeCount) = optimizer.env.kpis.node_count
+MOI.get(optimizer::Optimizer, ::MOI.SolveTime) = optimizer.env.kpis.elapsed_optimization_time
 
 # function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
 #     return 0.0
