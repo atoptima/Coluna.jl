@@ -11,8 +11,8 @@ end
 
 Constructs an empty `Problem`.
 """
-function Problem()
-    original_formulation = Formulation{Original}()
+function Problem(env::Coluna.Env)
+    original_formulation = create_formulation!(env, Original)
     return Problem(
         nothing, nothing, original_formulation, nothing,
         no_optimizer_builder

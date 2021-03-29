@@ -4,7 +4,7 @@ function variables_unit_tests()
 end
 
 function getset_variables()
-    form = Formulation{Original}()
+    form = create_formulation!(Env(Coluna.Params()), Original)
     var = ClF.setvar!(
         form, "var1", ClF.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
         kind = ClF.Integ, inc_val = 4.0

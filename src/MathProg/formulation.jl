@@ -37,17 +37,6 @@ function create_formulation!(
     )
 end
 
-""" 
-    Formulation{Original}()
-
-Construct a `Formulation` of duty `Original`, when there is no environment.
-"""
-Formulation{Original}() = Formulation{Original}(
-    0, Counter(), Counter(),
-    nothing, NoOptimizer(), FormulationManager(),
-    MinSense, FormulationBuffer()
-)
-
 """
     haskey(formulation, id) -> Bool
 

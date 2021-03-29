@@ -15,6 +15,7 @@ const SupportedConstrSets = Union{
 
 @enum(ObjectiveType, SINGLE_VARIABLE, SCALAR_AFFINE)
 mutable struct Optimizer <: MOI.AbstractOptimizer
+    env::Env
     inner::Problem
     objective_type::ObjectiveType
     annotations::Annotations
@@ -31,13 +32,12 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     default_optimizer_builder::Union{Nothing, Function}
 
     feasibility_sense::Bool # Coluna supports only Max or Min.
-    
-    env::Env
 
 
     function Optimizer()
         model = new()
-        model.inner = Problem()
+        model.env = Env(Params())
+        model.inner = Problem(model.env)
         model.annotations = Annotations()
         model.vars = CleverDicts.CleverDict{MOI.VariableIndex, Variable}()
         model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}() # TODO : check if necessary to have two dicts for variables
@@ -49,7 +49,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
         model.default_optimizer_builder = nothing
         model.feasibility_sense = false
-        model.env = Env(Params())
         return model
     end
 end
@@ -550,7 +549,7 @@ function MOI.set(model::Coluna.Optimizer, ::BD.ObjectivePrimalBound, pb)
 end
 
 function MOI.empty!(model::Coluna.Optimizer)
-    model.inner = Problem()
+    model.inner = Problem(model.env)
     model.annotations = Annotations()
     model.vars = CleverDicts.CleverDict{MOI.VariableIndex, Variable}()
     model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}()
