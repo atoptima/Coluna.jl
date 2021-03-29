@@ -27,11 +27,12 @@ function create_global_art_vars!(masterform::Formulation, env::Env)
 end
 
 function instantiatemaster!(
-    prob::Problem, reform::Reformulation, ::Type{BD.Master},
+    env::Env, prob::Problem, reform::Reformulation, ::Type{BD.Master},
     ::Type{BD.DantzigWolfe}
 )
-    form = Formulation{DwMaster}(
-        prob.form_counter;
+    form = create_formulation!(
+        env,
+        MathProg.DwMaster;
         parent_formulation = reform,
         obj_sense = getobjsense(get_original_formulation(prob))
     )
@@ -41,10 +42,11 @@ function instantiatemaster!(
 end
 
 function instantiatemaster!(
-    prob::Problem, reform::Reformulation, ::Type{BD.Master}, ::Type{BD.Benders}
+    env::Env, prob::Problem, reform::Reformulation, ::Type{BD.Master}, ::Type{BD.Benders}
 )
-    masterform = Formulation{BendersMaster}(
-        prob.form_counter;
+    masterform = create_formulation!(
+        env,
+        MathProg.BendersMaster;
         parent_formulation = reform,
         obj_sense = getobjsense(get_original_formulation(prob))
     )
@@ -53,11 +55,12 @@ function instantiatemaster!(
 end
 
 function instantiatesp!(
-    prob::Problem, reform::Reformulation, masterform::Formulation{DwMaster},
+    env::Env, reform::Reformulation, masterform::Formulation{DwMaster},
     ::Type{BD.DwPricingSp}, ::Type{BD.DantzigWolfe}
 )
-    spform = Formulation{DwSp}(
-        prob.form_counter;
+    spform = create_formulation!(
+        env,
+        MathProg.DwSp;
         parent_formulation = masterform,
         obj_sense = getobjsense(masterform)
     )
@@ -66,11 +69,12 @@ function instantiatesp!(
 end
 
 function instantiatesp!(
-    prob::Problem, reform::Reformulation, masterform::Formulation{BendersMaster},
+    env::Env, reform::Reformulation, masterform::Formulation{BendersMaster},
     ::Type{BD.BendersSepSp}, ::Type{BD.Benders}
 )
-    spform = Formulation{BendersSp}(
-        prob.form_counter;
+    spform = create_formulation!(
+        env,
+        MathProg.BendersSp;
         parent_formulation = masterform,
         obj_sense = getobjsense(masterform)
     )
@@ -438,7 +442,7 @@ function buildformulations!(
     ann = BD.annotation(node)
     form_type = BD.getformulation(ann)
     dec_type = BD.getdecomposition(ann)
-    masterform = instantiatemaster!(prob, reform, form_type, dec_type)
+    masterform = instantiatemaster!(env, prob, reform, form_type, dec_type)
     store!(annotations, masterform, ann)
     origform = get_original_formulation(prob)
      for (id, child) in BD.subproblems(node)
@@ -461,7 +465,7 @@ function buildformulations!(
     form_type = BD.getformulation(ann)
     dec_type = BD.getdecomposition(ann)
     masterform = getmaster(reform)
-    spform = instantiatesp!(prob, reform, masterform, form_type, dec_type)
+    spform = instantiatesp!(env, reform, masterform, form_type, dec_type)
     store!(annotations, spform, ann)
     origform = get_original_formulation(prob)
     assign_orig_vars_constrs!(spform, origform, env, annotations, ann)

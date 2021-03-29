@@ -3,7 +3,6 @@ mutable struct Problem <: AbstractProblem
     initial_dual_bound::Union{Nothing, Float64}
     original_formulation::Formulation
     re_formulation::Union{Nothing, Reformulation}
-    form_counter::Counter # 0 is for original form
     default_optimizer_builder::Function
 end
 
@@ -12,11 +11,10 @@ end
 
 Constructs an empty `Problem`.
 """
-function Problem()
-    counter = Counter(-1)
-    original_formulation = Formulation{Original}(counter)
+function Problem(env::Coluna.Env)
+    original_formulation = create_formulation!(env, Original)
     return Problem(
-        nothing, nothing, original_formulation, nothing, counter,
+        nothing, nothing, original_formulation, nothing,
         no_optimizer_builder
     )
 end

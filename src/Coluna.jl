@@ -36,19 +36,20 @@ include("parameters.jl")
 include("ColunaBase/ColunaBase.jl")
 using .ColunaBase
 
-include("MathProg/MathProg.jl")
-using .MathProg
-
 mutable struct Env
     env_starting_time::DateTime
     optim_starting_time::Union{Nothing, DateTime}
     params::Params
     kpis::Kpis
+    form_counter::Int # 0 is for original form
 end
-Env(params::Params) = Env(now(), nothing, params, Kpis(nothing, nothing))
+Env(params::Params) = Env(now(), nothing, params, Kpis(nothing, nothing), 0)
 set_optim_start_time!(env::Env) = env.optim_starting_time = now()
 elapsed_optim_time(env::Env) = Dates.toms(now() - env.optim_starting_time) / Dates.toms(Second(1))
 Base.isinteger(x::Float64, tol::Float64) = abs(round(x) - x) < tol
+
+include("MathProg/MathProg.jl")
+using .MathProg
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm
