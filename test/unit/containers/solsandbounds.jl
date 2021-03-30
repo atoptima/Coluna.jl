@@ -145,10 +145,6 @@ function bound_unit()
         @test eltype(promote(pb, π)) == typeof(pb)
         @test eltype(promote(pb, 1, 2.0, π)) == typeof(pb)
         @test eltype(promote(pb, db)) == Float64
-        @test promote_type(eltype(pb), Integer) == typeof(pb)
-        @test promote_type(eltype(pb), Float64) == typeof(pb)
-        @test promote_type(eltype(pb), Irrational) == typeof(pb)
-        @test promote_type(eltype(pb), eltype(db)) == Float64
         @test promote_rule(eltype(pb), Integer) == typeof(pb)
         @test promote_rule(eltype(pb), Float64) == typeof(pb)
         @test promote_rule(eltype(pb), Irrational) == typeof(pb)
@@ -289,6 +285,20 @@ function solution_unit()
     test_solution_iterations(primal_sol, dict_sol)
     @test Coluna.ColunaBase.getvalue(primal_sol) == 12.3
     @test Coluna.ColunaBase.getstatus(primal_sol) == Coluna.ColunaBase.FEASIBLE_SOL
+    
+    dict_sol = Dict(1 => 2.0, 2 => 3.0, 3 => 4.0)
+    soldecs = [1,2,3]
+    solvals = [2.0,3.0,4.0]
+
+    primal_sol = Solution(model, soldecs, solvals, 0.0, Coluna.ColunaBase.FEASIBLE_SOL)
+    
+    @test iterate(primal_sol) == iterate(primal_sol.sol)
+    ((_,_), state) = iterate(primal_sol)
+    @test iterate(primal_sol, state) == iterate(primal_sol.sol, state)
+    @test length(primal_sol) == 3
+    @test primal_sol[1] == 2.0
+    primal_sol[1] = 5.0 # change the value
+    @test primal_sol[1] == 5.0
 
     return
 end
