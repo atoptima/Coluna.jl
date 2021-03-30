@@ -145,15 +145,23 @@ function bound_unit()
         @test eltype(promote(pb, π)) == typeof(pb)
         @test eltype(promote(pb, 1, 2.0, π)) == typeof(pb)
         @test eltype(promote(pb, db)) == Float64
-        
+        @test promote_type(eltype(pb), Integer) == typeof(pb)
+        @test promote_type(eltype(pb), Float64) == typeof(pb)
+        @test promote_type(eltype(pb), Irrational) == typeof(pb)
+        @test promote_type(eltype(pb), eltype(db)) == Float64
+        @test promote_rule(eltype(pb), Integer) == typeof(pb)
+        @test promote_rule(eltype(pb), Float64) == typeof(pb)
+        @test promote_rule(eltype(pb), Irrational) == typeof(pb)
+        @test promote_rule(eltype(pb), eltype(db)) == Float64
+
         @test typeof(pb + 1) == typeof(pb) # check that promotion works
 
         @test convert(Float64, pb) == pb.value
         @test convert(Integer, pb) == pb.value
         @test convert(Irrational, pb) == pb.value
-        # @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, 4.0) = pb
-        # @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, 4) = pb
-        # @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, π) = Coluna.ColunaBase.Bound{Primal, MaxSense}(π)
+        @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, 4.0) == Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}(4.0)
+        @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, 4) == Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}(4)
+        @test convert(Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}, π) == Coluna.ColunaBase.Bound{Coluna.AbstractPrimalSpace, Coluna.AbstractMaxSense}(π)
         
         pb_min_1 = Coluna.ColunaBase.Bound{Primal,MaxSense}(3.0)
         pb_plus_1 = Coluna.ColunaBase.Bound{Primal,MaxSense}(5.0)
@@ -281,5 +289,6 @@ function solution_unit()
     test_solution_iterations(primal_sol, dict_sol)
     @test Coluna.ColunaBase.getvalue(primal_sol) == 12.3
     @test Coluna.ColunaBase.getstatus(primal_sol) == Coluna.ColunaBase.FEASIBLE_SOL
+
     return
 end
