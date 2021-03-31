@@ -5,7 +5,6 @@ include("MathProg/formulations.jl")
 include("MathProg/types.jl")
 include("MathProg/variables.jl")
 
-include("counters.jl")
 include("variable.jl")
 include("constraint.jl")
 
@@ -22,10 +21,6 @@ function unit_tests()
             types_unit_tests()
             variables_unit_tests()
         end
-    end
-
-    @testset "counters.jl" begin
-        counters_unit_tests()
     end
 
     @testset "variable.jl" begin

@@ -23,7 +23,6 @@ const TO = TimerOutputs
 const MAX_NB_FORMULATIONS = 200
 const MAX_NB_PROCESSES = 100
 
-include("counters.jl")
 include("types.jl")
 include("vcids.jl")
 include("variable.jl")
