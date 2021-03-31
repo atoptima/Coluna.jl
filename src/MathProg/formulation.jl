@@ -1,7 +1,7 @@
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
-    var_counter::Counter
-    constr_counter::Counter
+    var_counter::Int
+    constr_counter::Int
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     optimizer::AbstractOptimizer
     manager::FormulationManager
@@ -32,7 +32,7 @@ function create_formulation!(
         error("Maximum number of formulations reached.")
     end
     return Formulation{duty}(
-        env.form_counter += 1, Counter(), Counter(), parent_formulation, NoOptimizer(), 
+        env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
         FormulationManager(), obj_sense, FormulationBuffer()
     )
 end
@@ -99,8 +99,8 @@ getoptimizer(form::Formulation) = form.optimizer
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, getnewuid(form.var_counter), getuid(form))
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, getnewuid(form.constr_counter), getuid(form))
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form))
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form))
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
