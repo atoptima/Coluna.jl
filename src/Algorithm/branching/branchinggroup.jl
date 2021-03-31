@@ -103,41 +103,44 @@ function number_of_leaves(gap::Float64, deltas::Vector{Float64})
     mid::Float64 = 0.0
     for iteration = 1:100
         mid = (inf + sup) / 2.0
-        if (sup - inf < sup / 1000000)
+        if sup - inf < sup / 1000000
             break
         end    
         exp::Float64 = 0.0
         for delta in deltas
-          exp += mid ^ (-delta / gap)
+            exp += mid^(-delta / gap)
         end
-        if (exp < 1.0)
-          sup = mid
+        if exp < 1.0
+            sup = mid
         else
-          inf = mid
+            inf = mid
         end
-        if (mid > 0.999e20)
-          return -1
+        if mid > 0.999e20
+            return -1
         end
     end
     return mid
 end
 
-function compute_tree_depth_score!(group::BranchingGroup, parent_optstate::OptimizationState)
+function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationState)
+    if length(group.children) == 0
+        return 0.0
+    end
+
     parent_inc = getincumbents(parent_optstate)
-    score::Float64 = 0.0
     
     # TO DO : we need to mesure the gap to the cut-off value
     parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
     parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
 
-    deltas = Vector{Float64}()
-    nb_zero_deltas::Int64 = 0
-    for node in group.children
+    deltas = zeros(Float64, length(group.children))
+    nb_zero_deltas = 0
+    for (i, node) in enumerate(group.children)
         node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < 1e-6 # TO DO : use tolerance here
             nb_zero_deltas += 1
         end
-        push!(deltas, min(parent_delta, node_delta))
+        deltas[i] = min(parent_delta, node_delta)
     end
 
     max_delta = maximum(deltas)
@@ -145,23 +148,20 @@ function compute_tree_depth_score!(group::BranchingGroup, parent_optstate::Optim
         parent_delta = max_delta * 30
     end
 
-    if isempty(deltas)
-        score = 0.0
-    elseif nb_zero_deltas == length(deltas)
+    score = 0.0
+    if nb_zero_deltas == length(deltas)
         score = -Inf
     elseif length(deltas) == 1
-        score = - parent_delta / deltas[1] 
+        score = -parent_delta / deltas[1] 
     else
         numleaves = number_of_leaves(parent_delta, deltas)
         if numleaves < 0
-            score = - Inf
+            score = -Inf
         else
-            score = - log(numleaves) / log(length(deltas))
+            score = -log(numleaves) / log(length(deltas))
         end
     end
-
-    group.score = score
-    return
+    return score
 end
 
 function print_bounds_and_score(group::BranchingGroup, phase_index::Int64, max_description_length::Int64)
