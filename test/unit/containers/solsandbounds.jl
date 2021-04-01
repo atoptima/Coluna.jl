@@ -134,7 +134,11 @@ function bound_unit()
 
     @testset "show" begin
         pb = Coluna.ColunaBase.Bound{Primal,MaxSense}(4)
-        @test repr(pb) == "4.0"
+        io = IOBuffer()
+        
+        show(io, pb)
+
+        @test String(take!(io)) == "4.0" 
     end
 
     @testset "Promotions & conversions" begin
@@ -298,7 +302,11 @@ function solution_unit()
     @test length(primal_sol) == 3
     @test primal_sol[1] == 2.0
     primal_sol[1] = 5.0 # change the value
-    @test primal_sol[1] == 5.0
+    @test primal_sol[1] == 5.
+    
+    io = IOBuffer()
+    show(io, primal_sol)
 
+    @test String(take!(io)) == "Solution\n| 1 = 5.0\n| 2 = 3.0\n| 3 = 4.0\n└ value = 0.00 \n"
     return
 end
