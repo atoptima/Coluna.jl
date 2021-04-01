@@ -86,12 +86,12 @@ end
 
 doc todo
 """
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MinSense}
-    Printf.@printf "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
+function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MinSense}
+    Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
 end
 
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MaxSense}
-    Printf.@printf "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
+function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MaxSense}
+    Printf.@printf io "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
 end
 
 function Base.show(io::IO, b::Bound)

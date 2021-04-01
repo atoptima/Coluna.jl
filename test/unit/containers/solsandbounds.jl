@@ -124,12 +124,16 @@ function bound_unit()
         # In minimisation sense
         pb1 = Coluna.ColunaBase.Bound{Primal, MinSense}(100)
         db1 = Coluna.ColunaBase.Bound{Dual, MinSense}(-100)
-        Coluna.ColunaBase.printbounds(db1, pb1)
+        io = IOBuffer()
+        Coluna.ColunaBase.printbounds(db1, pb1, io)
+        @test String(take!(io)) == "[ -100.0000 , 100.0000 ]"
 
         # In maximisation sense
         pb2 = Coluna.ColunaBase.Bound{Primal, MaxSense}(-100)
         db2 = Coluna.ColunaBase.Bound{Dual, MaxSense}(100)
-        Coluna.ColunaBase.printbounds(db2, pb2)
+        io = IOBuffer()
+        Coluna.ColunaBase.printbounds(db2, pb2, io)
+        @test String(take!(io)) == "[ -100.0000 , 100.0000 ]"
     end
 
     @testset "show" begin
