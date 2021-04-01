@@ -58,15 +58,14 @@ function regenerate_children!(group::BranchingGroup, parent::Node)
     return
 end
 
-function compute_product_score!(group::BranchingGroup, parent_optstate::OptimizationState)
+function product_score(group::BranchingGroup, parent_optstate::OptimizationState)
     parent_inc = getincumbents(parent_optstate)
     # TO DO : we need to mesure the gap to the cut-off value
     parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
     parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
 
-    score::Float64 = 1.0
-    all_branches_above_delta::Bool = true
-    deltas = Vector{Float64}()
+    all_branches_above_delta = true
+    deltas = zeros(Float64, length(group.children))
     for node in group.children
         node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < parent_delta
@@ -75,6 +74,7 @@ function compute_product_score!(group::BranchingGroup, parent_optstate::Optimiza
         push!(deltas, node_delta)
     end
 
+    score = 1.0
     if isempty(deltas)
         score = parent_delta * parent_delta
     elseif length(deltas) == 1
@@ -89,12 +89,11 @@ function compute_product_score!(group::BranchingGroup, parent_optstate::Optimiza
             if (delta_index <= 2)
                 score *= node_delta
             else
-                score *= (node_delta / parent_delta)
+                score *= node_delta / parent_delta
             end
         end
     end
-    group.score = score
-    return
+    return score
 end
 
 function number_of_leaves(gap::Float64, deltas::Vector{Float64})    

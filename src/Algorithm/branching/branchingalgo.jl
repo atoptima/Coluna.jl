@@ -168,7 +168,7 @@ function perform_strong_branching_with_phases!(
 
             if phase_index < length(algo.phases) 
                 # not the last phase, thus we compute the product score
-                compute_product_score!(group, getoptstate(parent))
+                group.score = product_score(group, getoptstate(parent))
             else
                 # the last phase, thus we compute the tree size score
                 group.score = tree_depth_score(group, getoptstate(parent))
