@@ -1,7 +1,7 @@
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
-    var_counter::Counter
-    constr_counter::Counter
+    var_counter::Int
+    constr_counter::Int
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     optimizer::AbstractOptimizer
     manager::FormulationManager
@@ -12,25 +12,27 @@ end
 """
 `Formulation` stores a mixed-integer linear program.
 
-    Formulation{Duty}(
-        form_counter::Counter;
+    create_formulation!(
+        env::Coluna.Env,
+        duty::Type{<:AbstractFormDuty};
         parent_formulation = nothing,
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
-    ) where {Duty<:AbstractFormDuty}
+    )
 
-Construct a `Formulation` of duty `Duty` with objective sense `obj_sense` and parent formulation
-`parent_formulation`.
+    Create a new formulation in the Coluna's environment `env` with duty `duty`,
+    parent formulation `parent_formulation`, and objective sense `obj_sense`.
 """
-function Formulation{D}(
-    form_counter::Counter;
+function create_formulation!(
+    env::Coluna.Env,
+    duty::Type{<:AbstractFormDuty};
     parent_formulation = nothing,
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense
-) where {D<:AbstractFormDuty}
-    if form_counter.value >= MAX_NB_FORMULATIONS
+)
+    if env.form_counter >= MAX_NB_FORMULATIONS
         error("Maximum number of formulations reached.")
     end
-    return Formulation{D}(
-        getnewuid(form_counter), Counter(), Counter(), parent_formulation, NoOptimizer(), 
+    return Formulation{duty}(
+        env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
         FormulationManager(), obj_sense, FormulationBuffer()
     )
 end
@@ -85,7 +87,6 @@ getprimalsolcosts(form::Formulation) = form.manager.primal_sol_costs
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
 
-
 "Returns the `uid` of `Formulation` `form`."
 getuid(form::Formulation) = form.uid
 
@@ -98,8 +99,8 @@ getoptimizer(form::Formulation) = form.optimizer
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, getnewuid(form.var_counter), getuid(form))
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, getnewuid(form.constr_counter), getuid(form))
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form))
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form))
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
