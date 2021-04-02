@@ -16,9 +16,9 @@ _defaultboundvalue(::Type{<:Dual}, ::Type{<:MinSense}) = -Inf
 _defaultboundvalue(::Type{<:Dual}, ::Type{<:MaxSense}) = Inf
 
 """
-    Bound{Space, Sense}
+    Bound{Space,Sense}()
 
-doc todo
+Create a default bound for a problem with objective sense `Sense<:AbstractSense` in `Space<:AbstractSpace`.  
 """
 function Bound{Space,Sense}() where {Space<:AbstractSpace,Sense<:AbstractSense}
     val = _defaultboundvalue(Space, Sense)
@@ -29,9 +29,10 @@ getvalue(b::Bound) = b.value
 Base.float(b::Bound) = b.value
 
 """
-    isbetter
+    isbetter(b1, b2)
 
-doc todo
+Returns true if bound b1 is better than bound b2.
+The function take into account the type of the bounds(Primal or Dual) and the Sense (MinSense or MaxSense).
 """
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MinSense} = b1.value < b2.value
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MaxSense} = b1.value > b2.value
@@ -82,9 +83,11 @@ function gap(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
 end
 
 """
-    printbounds
+    function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MinSense}
+    
+    Prints the lower and upper bound of the Dual and Lower bound in MinSense.
 
-doc todo
+    Can receive io::IO as an input, to eventually output the print to a file or buffer.
 """
 function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MinSense}
     Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
@@ -167,6 +170,9 @@ solution status should be :
     UNKNOWN_SOLUTION_STATUS, UNCOVERED_SOLUTION_STATUS
 )
 
+"""
+    todo : same docstring for four methods
+"""
 function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMAL && return OPTIMAL
     moi_status == MOI.INFEASIBLE && return INFEASIBLE
@@ -207,17 +213,61 @@ struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Va
 end
 
 """
-    Solution
+    Solution(
+        model::AbstractModel,
+        decisions::Vector,
+        vals::Vector,
+        value::Float64,
+        status::SolutionStatus
+    )
 
-doc todo. Solution is immutable.
+Create a solution to the Model
+
+Other arguments are: 
+- `decisions`
+- `values`
+- `solution_values` is the value of the solution.
+- `status` is the solution status.
 """
 function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, vals::Vector{Va}, value::Float64, status::SolutionStatus) where {Mo<:AbstractModel,De,Va}
     sol = DynamicSparseArrays.dynamicsparsevec(decisions, vals)
     return Solution(model, value, status, sol)
 end
 
+"""
+    getsol(
+        s::Solution
+    )
+Parameters:
+- `s` is an instance of Solution.
+
+Return:
+- return a dynamic sparse vector that contains the solution.
+"""
 getsol(s::Solution) = s.sol
+
+"""
+    getvalue(
+        s::Solution
+    )
+Parameters:
+- `s` is an instance of Solution.
+
+Return:
+- getvalue will return the Solution's bound float value.
+"""
 getvalue(s::Solution) = float(s.bound)
+
+"""
+    Coluna.ColunaBase.getstatus(
+        s::Solution
+    )
+Parameters of Coluna.ColunaBase.getsol:
+- `s` is an instance of the Solution Struct.
+
+Return:
+- getstatus will return the Solution's status
+"""
 getstatus(s::Solution) = s.status
 
 Base.iterate(s::Solution) = iterate(s.sol)
