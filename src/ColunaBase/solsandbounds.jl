@@ -86,12 +86,12 @@ end
 
 doc todo
 """
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MinSense}
-    Printf.@printf "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
+function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MinSense}
+    Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
 end
 
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MaxSense}
-    Printf.@printf "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
+function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MaxSense}
+    Printf.@printf io "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
 end
 
 function Base.show(io::IO, b::Bound)
@@ -120,14 +120,6 @@ Base.:<(b1::B, b2::B) where {B<:Bound} = b1.value < b2.value
 Base.:(<=)(b1::B, b2::B) where {B<:Bound} = b1.value <= b2.value
 Base.:(>=)(b1::B, b2::B) where {B<:Bound} = b1.value >= b2.value
 Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value
-Base.isapprox(b1::B, b2::B) where {B<:Bound} = isapprox(b1.value, b2.value) # TODO : rm ?
-Base.isapprox(b::B, val::Number) where {B<:Bound} = isapprox(b.value, val) # TODO : rm ?
-Base.isapprox(val::Number, b::B) where {B<:Bound} = isapprox(b.value, val) # TODO : rm ?
-
-#extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Primal,Se<:MinSense} = minimum(bounds) # TODO : use worst or best instead ?
-#extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Dual,Se<:MinSense} = maximum(bounds)
-#extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Primal,Se<:MaxSense} = maximum(bounds)
-#extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Dual,Se<:MaxSense} = minimum(bounds)
 
 """
     TerminationStatus
@@ -231,21 +223,9 @@ getstatus(s::Solution) = s.status
 Base.iterate(s::Solution) = iterate(s.sol)
 Base.iterate(s::Solution, state) = iterate(s.sol, state)
 Base.length(s::Solution) = length(s.sol)
-Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id] # TODO
+Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id] # TODO : REMOVE
+Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.sol, id)
 Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
-
-# todo: move in DynamicSparseArrays or avoid using filter ?
-function Base.filter(f::Function, pma::DynamicSparseArrays.PackedMemoryArray{K,T,P}) where {K,T,P}
-    ids = Vector{K}()
-    vals = Vector{T}()
-    for e in pma
-        if f(e)
-            push!(ids, e[1])
-            push!(vals, e[2])
-        end
-    end
-    return DynamicSparseArrays.dynamicsparsevec(ids, vals)
-end
 
 function Base.filter(f::Function, s::S) where {S <: Solution}
     return S(s.model, s.bound, s.status, filter(f, s.sol))
@@ -258,5 +238,5 @@ function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
-
+# Todo : revise method
 Base.copy(s::S) where {S<:Solution} = S(s.bound, copy(s.sol))
