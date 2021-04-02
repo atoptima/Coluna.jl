@@ -73,13 +73,22 @@ FormulationBuffer() = FormulationBuffer(
 add!(b::FormulationBuffer, varid::VarId) = add!(b.var_buffer, varid)
 add!(b::FormulationBuffer, constrid::ConstrId) = add!(b.constr_buffer, constrid)
 
-remove!(buffer::FormulationBuffer, varid::VarId) = remove!(
-    buffer.var_buffer, varid
-)
+function remove!(buffer::FormulationBuffer, varid::VarId)
+    remove!(buffer.var_buffer, varid)
+    delete!(buffer.changed_cost, varid)
+    delete!(buffer.changed_bound, varid)
+    delete!(buffer.changed_var_kind, varid)
+    # delete!(buffer.reset_coeffs, Pair(Any, varid))
+    return
+end
 
-remove!(buffer::FormulationBuffer, constrid::ConstrId) = remove!(
-    buffer.constr_buffer, constrid
-)
+function remove!(buffer::FormulationBuffer, constrid::ConstrId)
+    remove!(buffer.constr_buffer, constrid)
+    delete!(buffer.changed_constr_kind, constrid)
+    delete!(buffer.changed_rhs, constrid)
+    # delete!(buffer.reset_coeffs, Pair(constrid, Any))
+    return
+end
 
 function change_rhs!(buffer::FormulationBuffer, constrid::ConstrId)
     push!(buffer.changed_rhs, constrid)
