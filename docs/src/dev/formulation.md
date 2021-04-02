@@ -7,10 +7,6 @@ end
 
 # Formulation
 
-```@docs
-Formulation
-```
-
 ## Duties of formulations
 
 ```@docs

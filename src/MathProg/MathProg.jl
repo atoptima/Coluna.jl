@@ -23,7 +23,6 @@ const TO = TimerOutputs
 const MAX_NB_FORMULATIONS = 200
 const MAX_NB_PROCESSES = 100
 
-include("counters.jl")
 include("types.jl")
 include("vcids.jl")
 include("variable.jl")
@@ -78,8 +77,8 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
     get_dw_pricing_sp_lb_constrid, setmaster!
 
 # Methods related to formulations
-export AbstractFormulation, Formulation, getreformulation, getvar, getvars, getconstr,
-    getconstrs, getelem, getcoefmatrix, getprimalsolmatrix, getprimalsolcosts,
+export AbstractFormulation, Formulation, create_formulation!, getreformulation, getvar, getvars,
+    getconstr, getconstrs, getelem, getcoefmatrix, getprimalsolmatrix, getprimalsolcosts,
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setprimalsol!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
