@@ -227,20 +227,6 @@ Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id] # 
 Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.sol, id)
 Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
 
-# todo: move in DynamicSparseArrays or avoid using filter ?
-# todo: move method to DSA, and do the testing
-function Base.filter(f::Function, pma::DynamicSparseArrays.PackedMemoryArray{K,T,P}) where {K,T,P}
-    ids = Vector{K}()
-    vals = Vector{T}()
-    for e in pma
-        if f(e)
-            push!(ids, e[1])
-            push!(vals, e[2])
-        end
-    end
-    return DynamicSparseArrays.dynamicsparsevec(ids, vals)
-end
-# todo : delete this method
 function Base.filter(f::Function, s::S) where {S <: Solution}
     return S(s.model, s.bound, s.status, filter(f, s.sol))
 end
