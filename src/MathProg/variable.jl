@@ -77,6 +77,7 @@ mutable struct Variable <: AbstractVarConstr
     perendata::VarData
     curdata::VarData
     moirecord::MoiVarRecord
+    custom_data::Any
 end
 
 const VarId = Id{Variable}
@@ -84,10 +85,11 @@ const VarId = Id{Variable}
 getid(var::Variable) = var.id
 
 function Variable(
-    id::VarId, name::String; var_data = VarData(), moi_index::MoiVarIndex = MoiVarIndex()
+    id::VarId, name::String; var_data = VarData(), moi_index::MoiVarIndex = MoiVarIndex(),
+    custom_data = nothing
 )
     return Variable(
         id, name, var_data, VarData(var_data),
-        MoiVarRecord(index = moi_index)
+        MoiVarRecord(index = moi_index), custom_data
     )
 end

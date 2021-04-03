@@ -99,8 +99,8 @@ getoptimizer(form::Formulation) = form.optimizer
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form))
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form))
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1)
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -148,6 +148,7 @@ function setvar!(
     is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex(),
     members::Union{ConstrMembership,Nothing} = nothing,
+    custom_data = nothing,
     id = generatevarid(duty, form)
 )
     if kind == Binary
@@ -155,10 +156,13 @@ function setvar!(
         ub = (ub > 1.0) ? 1.0 : ub
     end
     if getduty(id) != duty
-        id = VarId(duty, id)
+        id = VarId(duty, id, -1)
+    end
+    if custom_data !== nothing
+        id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
-    var = Variable(id, name; var_data = v_data, moi_index = moi_index)
+    var = Variable(id, name; var_data = v_data, moi_index = moi_index, custom_data = custom_data)
     _addvar!(form, var)
     members !== nothing && _setmembers!(form, var, members)
     return var
@@ -366,13 +370,17 @@ function setconstr!(
     moi_index::MoiConstrIndex = MoiConstrIndex(),
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
+    custom_data = nothing,
     id = generateconstrid(duty, form)
 )
     if getduty(id) != duty
-        id = ConstrId(duty, id)
+        id = ConstrId(duty, id, -1)
+    end
+    if custom_data !== nothing
+        id = ConstrId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
-    constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index)
+    constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index, custom_data = custom_data)
     members !== nothing && _setmembers!(form, constr, members)
     _addconstr!(form.manager, constr)
     if loc_art_var_abs_cost != 0.0
@@ -638,6 +646,16 @@ function write_to_LP_file(form::Formulation, filename::String)
         MOI.copy_to(dest, src)
         MOI.write_to_file(dest, filename)
     end
+end
+
+function addcustomvars!(form::Formulation, type::DataType)
+    form.manager.custom_families_id[type] = length(form.manager)
+    return
+end
+
+function addcustomconstrs!(form::Formulation, type::DataType)
+    form.manager.custom_families_id[type] = length(form.manager)
+    return
 end
 
 # function getspsol(master::Formulation{DwMaster}, col_id::VarId)

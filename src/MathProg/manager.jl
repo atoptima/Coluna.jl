@@ -22,6 +22,7 @@ mutable struct FormulationManager
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
     dual_sol_rhss::DynSparseVector{ConstrId} # dual solutions with constrid map to their rhs
     robust_constr_generators::Vector{RobustConstraintsGenerator}
+    custom_families_id::Dict{DataType,Int}
 end
 
 function FormulationManager()
@@ -37,7 +38,8 @@ function FormulationManager()
         dynamicsparsevec(VarId[], Float64[]),
         dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
         dynamicsparsevec(ConstrId[], Float64[]),
-        RobustConstraintsGenerator[]
+        RobustConstraintsGenerator[],
+        Dict{DataType, Int}()
     )
 end
 
