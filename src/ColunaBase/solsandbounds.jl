@@ -40,7 +40,7 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
 
 """
-    diff 
+    diff
 
 distance to reach the dual bound from the primal bound;
 non-positive if dual bound reached.
@@ -83,11 +83,15 @@ function gap(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
 end
 
 """
-    function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MinSense}
+    printbounds(
+        db,
+        pb,
+        io
+    )
     
-    Prints the lower and upper bound of the Dual and Lower bound in MinSense.
+Prints the lower and upper bound taking into account the objective sense `Sense<:AbstractSense`.
 
-    Can receive io::IO as an input, to eventually output the print to a file or buffer.
+Can receive io::IO as an input, to eventually output the print to a file or buffer.
 """
 function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MinSense}
     Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
@@ -171,7 +175,10 @@ solution status should be :
 )
 
 """
-    todo : same docstring for four methods
+    convert_status
+
+Convert the termination status, i.e., `MOI.TerminationStatus` , `TerminationStatus`, to one another.
+The function also does the same thing regarding `MOI.ResultStatusCode` and `SolutionStatus`.
 """
 function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMAL && return OPTIMAL
@@ -216,22 +223,22 @@ end
     Solution(
         model::AbstractModel,
         decisions::Vector,
-        vals::Vector,
-        value::Float64,
+        values::Vector,
+        solution_values::Float64,
         status::SolutionStatus
     )
 
 Create a solution to the Model
 
 Other arguments are: 
-- `decisions`
-- `values`
-- `solution_values` is the value of the solution.
+- `decisions` is a Vector with the index of each decision.
+- `values` is a Vector with the values for each decision.
+- `solution_value` is the value of the solution.
 - `status` is the solution status.
 """
-function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, vals::Vector{Va}, value::Float64, status::SolutionStatus) where {Mo<:AbstractModel,De,Va}
-    sol = DynamicSparseArrays.dynamicsparsevec(decisions, vals)
-    return Solution(model, value, status, sol)
+function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, status::SolutionStatus) where {Mo<:AbstractModel,De,Va}
+    sol = DynamicSparseArrays.dynamicsparsevec(decisions, values)
+    return Solution(model, solution_value, status, sol)
 end
 
 """
