@@ -128,7 +128,7 @@ set_matrix_coeff!(
         is_active::Bool = true,
         is_explicit::Bool = true,
         moi_index::MoiVarIndex = MoiVarIndex(),
-        members = nothing,
+        members::Union{ConstrMembership, Nothing} = nothing,
         id = generatevarid(duty, form)
     )
 
