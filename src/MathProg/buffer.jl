@@ -50,7 +50,6 @@ mutable struct FormulationBuffer
     changed_cost::Set{Id{Variable}}
     changed_bound::Set{Id{Variable}}
     changed_var_kind::Set{Id{Variable}}
-    changed_constr_kind::Set{Id{Constraint}}
     changed_rhs::Set{Id{Constraint}}
     var_buffer::VarConstrBuffer{Variable}
     constr_buffer::VarConstrBuffer{Constraint}
@@ -64,8 +63,7 @@ Constructs an empty `FormulationBuffer`.
 """
 FormulationBuffer() = FormulationBuffer(
     false, Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
-    Set{Id{Constraint}}(), Set{Id{Constraint}}(), VarConstrBuffer{Variable}(),
-    VarConstrBuffer{Constraint}(),
+    Set{Id{Constraint}}(), VarConstrBuffer{Variable}(), VarConstrBuffer{Constraint}(),
     Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
     # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()
 )
@@ -87,18 +85,12 @@ end
 # we propagate them if the constraint is active and explicit
 function remove!(buffer::FormulationBuffer, constrid::ConstrId)
     remove!(buffer.constr_buffer, constrid)
-    delete!(buffer.changed_constr_kind, constrid)
     delete!(buffer.changed_rhs, constrid)
     return
 end
 
 function change_rhs!(buffer::FormulationBuffer, constrid::ConstrId)
     push!(buffer.changed_rhs, constrid)
-    return
-end
-
-function change_kind!(buffer::FormulationBuffer, constrid::ConstrId)
-    push!(buffer.changed_constr_kind, constrid)
     return
 end
 
