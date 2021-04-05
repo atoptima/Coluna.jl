@@ -32,7 +32,7 @@ Base.float(b::Bound) = b.value
     isbetter(b1, b2)
 
 Returns true if bound b1 is better than bound b2.
-The function take into account the type of the bounds(Primal or Dual) and the Sense (MinSense or MaxSense).
+The function take into account the space (primal or dual) and the objective sense (min, max) of the bounds.
 """
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MinSense} = b1.value < b2.value
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MaxSense} = b1.value > b2.value
