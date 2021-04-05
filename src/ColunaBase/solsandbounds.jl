@@ -243,14 +243,9 @@ Return the dynamic sparse vector that describes `solution`.
 getsol(s::Solution) = s.sol
 
 """
-    getvalue(
-        s::Solution
-    )
-Parameters:
-- `s` is an instance of Solution.
+    getvalue(solution) -> Float64
 
-Return:
-- getvalue will return the Solution's bound float value.
+Return the value of `solution`.
 """
 getvalue(s::Solution) = float(s.bound)
 
