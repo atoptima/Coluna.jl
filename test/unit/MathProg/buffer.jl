@@ -45,13 +45,13 @@ function buffer_tests()
     ClMP.sync_solver!(getoptimizer(form), form)
     @test ClMP.iscuractive(form, constr) == false
     
-    # # `set_matrix_coeff!` TO DO
-    # ClMP.reset!(form, var)
-    # ClMP.reset!(form, constr)
-    # ClMP.set_matrix_coeff!(form, getid(var), getid(constr), 2.0)
-    # ClMP.deactivate!(form, var)
-    # ClMP.deactivate!(form, constr)
-    # ClMP.sync_solver!(getoptimizer(form), form)
-    # @test ClMP.iscuractive(form, var) == false
-    # @test ClMP.iscuractive(form, constr) == false
+    # `set_matrix_coeff!`
+    ClMP.reset!(form, var)
+    ClMP.reset!(form, constr)
+    ClMP.set_matrix_coeff!(form, getid(var), getid(constr), 2.0)
+    ClMP.deactivate!(form, var)
+    ClMP.deactivate!(form, constr)
+    ClMP.sync_solver!(getoptimizer(form), form)
+    @test ClMP.iscuractive(form, var) == false
+    @test ClMP.iscuractive(form, constr) == false
 end

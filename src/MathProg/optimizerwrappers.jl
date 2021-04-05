@@ -118,6 +118,8 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     for ((c_id, v_id), coeff) in buffer.reset_coeffs
         # Ignore modifications involving vc's that were removed
         (c_id in buffer.constr_buffer.removed || v_id in buffer.var_buffer.removed) && continue
+        iscuractive(f, c_id)&&iscuractive(f, v_id) || continue
+        isexplicit(f, c_id)&&isexplicit(f, v_id) || continue
         c = getconstr(f, c_id)
         v = getvar(f, v_id)
         @logmsg LogLevel(-2) string("Setting matrix coefficient: (", getname(f, c), ",", getname(f, v), ") = ", coeff)
