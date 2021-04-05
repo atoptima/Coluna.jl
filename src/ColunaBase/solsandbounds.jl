@@ -83,13 +83,9 @@ function gap(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
 end
 
 """
-    printbounds(
-        db,
-        pb,
-        io
-    )
+    printbounds(db, pb [, io])
     
-Prints the lower and upper bound taking into account the objective sense `Sense<:AbstractSense`.
+Prints the lower and upper bound according to the objective sense.
 
 Can receive io::IO as an input, to eventually output the print to a file or buffer.
 """
