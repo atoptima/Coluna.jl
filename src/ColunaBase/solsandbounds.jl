@@ -250,14 +250,9 @@ Return the value of `solution`.
 getvalue(s::Solution) = float(s.bound)
 
 """
-    Coluna.ColunaBase.getstatus(
-        s::Solution
-    )
-Parameters of Coluna.ColunaBase.getsol:
-- `s` is an instance of the Solution Struct.
+    getstatus(solution) -> SolutionStatus
 
-Return:
-- getstatus will return the Solution's status
+Return the solution status of `solution`.
 """
 getstatus(s::Solution) = s.status
 
