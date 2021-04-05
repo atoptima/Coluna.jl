@@ -171,10 +171,13 @@ solution status should be :
 )
 
 """
-    convert_status
+    convert_status(status::MOI.TerminationStatusCode) -> Coluna.TerminationStatus
+    convert_status(status::Coluna.TerminationStatus) -> MOI.TerminationStatusCode
+    convert_status(status::MOI.ResultStatusCode) -> Coluna.SolutionStatus
+    convert_status(status::Coluna.SolutionStatus) -> MOI.ResultStatusCode
 
-Convert the termination status, i.e., `MOI.TerminationStatus` , `TerminationStatus`, to one another.
-The function also does the same thing regarding `MOI.ResultStatusCode` and `SolutionStatus`.
+Convert a termination or solution `status` of a given type to the corresponding status in another type.
+This method is used to communicate between Coluna and MathOptInterface.
 """
 function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMAL && return OPTIMAL
