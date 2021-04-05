@@ -40,6 +40,10 @@ Coluna.MathProg.update_ip_dual_bound!
 Coluna.MathProg.ip_gap_closed
 Coluna.Algorithm.add_ip_primal_sol!
 Coluna.ColunaBase.@nestedenum
+Coluna.ColunaBase.getvalue
+Coluna.ColunaBase.getsol
+Coluna.ColunaBase.convert_status
+Coluna.ColunaBase.getstatus
 Coluna.MathProg.lp_gap
 Coluna.MathProg.reset!
 Coluna.MathProg.ip_gap
