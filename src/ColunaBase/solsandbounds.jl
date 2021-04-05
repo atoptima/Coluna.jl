@@ -236,14 +236,9 @@ function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, values::Vector{Va}
 end
 
 """
-    getsol(
-        s::Solution
-    )
-Parameters:
-- `s` is an instance of Solution.
-
-Return:
-- return a dynamic sparse vector that contains the solution.
+    getsol(solution)
+    
+Return the dynamic sparse vector that describes `solution`.
 """
 getsol(s::Solution) = s.sol
 
