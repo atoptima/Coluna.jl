@@ -224,11 +224,9 @@ end
         status::SolutionStatus
     )
 
-Create a solution to the Model
-
-Other arguments are: 
-- `decisions` is a Vector with the index of each decision.
-- `values` is a Vector with the values for each decision.
+Create a solution to the `model`. Other arguments are: 
+- `decisions` is a vector with the index of each decision.
+- `values` is a vector with the values for each decision.
 - `solution_value` is the value of the solution.
 - `status` is the solution status.
 """
