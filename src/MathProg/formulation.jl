@@ -124,25 +124,21 @@ set_matrix_coeff!(
         lb = 0.0,
         ub = Inf,
         kind = Continuous,
-        inc_val = 0.0,
         is_active = true,
         is_explicit = true,
-        moi_index = MoiVarIndex(),
         members = nothing,
-        id = generatevarid(duty, form)
     )
 
-Create a new variable in a formulation with given name and duties.
-Other arguments are facultative:
- - `cost`: cost, the value the variable assumes
- - `lb`: lower bound
- - `ub`: upper bound
- - `kind`: kind, which can be `Continuous`, `Binary` or `Integ`
- - `is_active`: `true` if the variable is used in the formulation, `false` to fake its deletion
- - `is_explicit`: `false` if the variable can be represented as the linear combination of explicit ones
- - `moi_index`: index of the MOI representation of a Coluna Variable
- - `members`: variable coefficient at each constraint
- - `id`: id, identifies the variable
+Create a new variable that has name `name` and duty `duty` in the formulation `formulation`.
+
+Following keyword arguments allow the user to set additional information about the new variable :
+ - `cost`: cost of the variable in the objective function
+ - `lb`: lower bound of the variable
+ - `ub`: upper bound of the variable
+ - `kind`: kind which can be `Continuous`, `Binary` or `Integ`
+ - `is_active`: `true` if the variable is used in the formulation, `false` otherwise
+ - `is_explicit`: `true` if the variable takes part to the formulation, `false` otherwise (e.g. a variable used as a shortcut for calculation purposes)
+ - `members`: a dictionary `Dict{ConstrId, Float64}` that contains the coefficients of the new variable in the constraints of the formulation (default coefficient is 0).
 """
 function setvar!(
     form::Formulation,
@@ -346,30 +342,25 @@ end
 
 """
     setconstr!(
-        form, name, duty;
+        formulation, name, duty;
         rhs = 0.0,
         kind = Essential,
         sense = Greater,
-        inc_val = 0.0,
         is_active = true,
         is_explicit = true,
-        moi_index = MoiConstrIndex(),
         members = nothing,
         loc_art_var_abs_cost = 0.0,
-        id = generateconstrid(duty, form)
     )
 
-Create a new constraint in a formulation with given name and duties.
-Other arguments are facultative:
- - `rhs`: right-hand side
- - `kind`: kind, which can be `Essential`, `Facultative` or `SubSystem`
- - `sense`: sense, which can be `Greater`, `Less` or `Equal`
- - `is_active`: `true` if the constraint is used in the formulation, `false` to fake its deletion
+Create a new constraint that has name `name` and duty `duty` in the formulation `formulation`.
+Following keyword arguments allow the user to set additional information about the new constraint :
+ - `rhs`: right-hand side of the constraint
+ - `kind`: kind which can be `Essential` or `Facultative`
+ - `sense`: sense which can be `Greater`, `Less`, or `Equal`
+ - `is_active`: `true` if the constraint is used in the formulation, `false` otherwise
  - `is_explicit`: `true` if the constraint structures the formulation, `false` otherwise
- - `moi_index`: index of the MOI representation of a Coluna Constraint
- - `members`: coefficient of each variable in the constraint
- - `loc_art_var_abs_cost`: cost of the local artificial variables
- - `id`: id, identifies the constraint
+ - `members`:  a dictionary `Dict{VarId, Float64}` that contains the coefficients of the variables of the formulation in the new constraint (default coefficient is 0).
+ - `loc_art_var_abs_cost`: absolute cost of the artificial variables of the constraint
 """
 function setconstr!(
     form::Formulation,
