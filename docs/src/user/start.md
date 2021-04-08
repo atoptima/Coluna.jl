@@ -17,7 +17,7 @@ The problem has the original formulation:
 
 ```math
 \begin{alignedat}{4}
-\text{[GAP]} \equiv \min \mathrlap{\sum_{m \in M} c_{mj} x_{mj}}  \\
+\text{[GAP]} \equiv \min \mathrlap{\sum_{m \in M}\sum_{j \in J} c_{mj} x_{mj}}  \\
 \text{s.t.} && \sum_{m \in M} x_{mj} &= 1  \quad& j \in J \\
 && \sum_{j \in J} w_{mj} x_{mj} &\leq Q_m  \quad  \quad& m \in M  \\
 && x_{mj}  &\in \{0,1\}  &m \in M,\; j \in J

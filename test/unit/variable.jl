@@ -25,7 +25,7 @@ function moi_var_record_getters_and_setters_tests()
 end
 
 function variable_getters_and_setters_tests()
-    form = createformulation()
+    form = create_formulation!(Env(Coluna.Params()), Original)
     
     v_data = ClF.VarData(
         ; cost = 13.0, lb = -10.0, ub = 100.0, kind = ClF.Continuous,

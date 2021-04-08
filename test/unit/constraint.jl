@@ -15,7 +15,7 @@ end
 
 function constraint_getters_and_setters_tests()
     
-    form = createformulation()
+    form = create_formulation!(Env(Coluna.Params()), Original)
     
     c = ClF.setconstr!(form, "fake_constr", ClF.MasterBranchOnOrigVarConstr,
     rhs = -13.0, kind = ClF.Facultative, sense = ClF.Equal,
