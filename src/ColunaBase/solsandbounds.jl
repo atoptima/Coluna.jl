@@ -16,9 +16,9 @@ _defaultboundvalue(::Type{<:Dual}, ::Type{<:MinSense}) = -Inf
 _defaultboundvalue(::Type{<:Dual}, ::Type{<:MaxSense}) = Inf
 
 """
-    Bound{Space, Sense}
+    Bound{Space,Sense}()
 
-doc todo
+Create a default bound for a problem with objective sense `Sense<:AbstractSense` in `Space<:AbstractSpace`.  
 """
 function Bound{Space,Sense}() where {Space<:AbstractSpace,Sense<:AbstractSense}
     val = _defaultboundvalue(Space, Sense)
@@ -29,9 +29,10 @@ getvalue(b::Bound) = b.value
 Base.float(b::Bound) = b.value
 
 """
-    isbetter
+    isbetter(b1, b2)
 
-doc todo
+Returns true if bound b1 is better than bound b2.
+The function take into account the space (primal or dual) and the objective sense (min, max) of the bounds.
 """
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MinSense} = b1.value < b2.value
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Primal,Se<:MaxSense} = b1.value > b2.value
@@ -39,10 +40,10 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
 
 """
-    diff 
+    diff(b1, b2)
 
-distance to reach the dual bound from the primal bound;
-non-positive if dual bound reached.
+Distance between a primal bound and a dual bound that have the same objective sense.
+Distance is non-positive if dual bound reached primal bound.
 """
 function Base.diff(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
     return pb.value - db.value
@@ -82,16 +83,18 @@ function gap(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
 end
 
 """
-    printbounds
+    printbounds(db, pb [, io])
+    
+Prints the lower and upper bound according to the objective sense.
 
-doc todo
+Can receive io::IO as an input, to eventually output the print to a file or buffer.
 """
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MinSense}
-    Printf.@printf "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
+function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MinSense}
+    Printf.@printf io "[ %.4f , %.4f ]" getvalue(db) getvalue(pb)
 end
 
-function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}) where {S<:MaxSense}
-    Printf.@printf "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
+function printbounds(db::Bound{<:Dual,S}, pb::Bound{<:Primal,S}, io::IO=Base.stdout) where {S<:MaxSense}
+    Printf.@printf io "[ %.4f , %.4f ]" getvalue(pb) getvalue(db)
 end
 
 function Base.show(io::IO, b::Bound)
@@ -120,14 +123,6 @@ Base.:<(b1::B, b2::B) where {B<:Bound} = b1.value < b2.value
 Base.:(<=)(b1::B, b2::B) where {B<:Bound} = b1.value <= b2.value
 Base.:(>=)(b1::B, b2::B) where {B<:Bound} = b1.value >= b2.value
 Base.:>(b1::B, b2::B) where {B<:Bound} = b1.value > b2.value
-Base.isapprox(b1::B, b2::B) where {B<:Bound} = isapprox(b1.value, b2.value) # TODO : rm ?
-Base.isapprox(b::B, val::Number) where {B<:Bound} = isapprox(b.value, val) # TODO : rm ?
-Base.isapprox(val::Number, b::B) where {B<:Bound} = isapprox(b.value, val) # TODO : rm ?
-
-#extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Primal,Se<:MinSense} = minimum(bounds) # TODO : use worst or best instead ?
-#extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Dual,Se<:MinSense} = maximum(bounds)
-#extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Primal,Se<:MaxSense} = maximum(bounds)
-#extremum(bounds::Vector{Bound{Sp,Se}}) where {Sp<:Dual,Se<:MaxSense} = minimum(bounds)
 
 """
     TerminationStatus
@@ -175,6 +170,15 @@ solution status should be :
     UNKNOWN_SOLUTION_STATUS, UNCOVERED_SOLUTION_STATUS
 )
 
+"""
+    convert_status(status::MOI.TerminationStatusCode) -> Coluna.TerminationStatus
+    convert_status(status::Coluna.TerminationStatus) -> MOI.TerminationStatusCode
+    convert_status(status::MOI.ResultStatusCode) -> Coluna.SolutionStatus
+    convert_status(status::Coluna.SolutionStatus) -> MOI.ResultStatusCode
+
+Convert a termination or solution `status` of a given type to the corresponding status in another type.
+This method is used to communicate between Coluna and MathOptInterface.
+"""
 function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMAL && return OPTIMAL
     moi_status == MOI.INFEASIBLE && return INFEASIBLE
@@ -215,37 +219,52 @@ struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Va
 end
 
 """
-    Solution
+    Solution(
+        model::AbstractModel,
+        decisions::Vector,
+        values::Vector,
+        solution_values::Float64,
+        status::SolutionStatus
+    )
 
-doc todo. Solution is immutable.
+Create a solution to the `model`. Other arguments are: 
+- `decisions` is a vector with the index of each decision.
+- `values` is a vector with the values for each decision.
+- `solution_value` is the value of the solution.
+- `status` is the solution status.
 """
-function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, vals::Vector{Va}, value::Float64, status::SolutionStatus) where {Mo<:AbstractModel,De,Va}
-    sol = DynamicSparseArrays.dynamicsparsevec(decisions, vals)
-    return Solution(model, value, status, sol)
+function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, status::SolutionStatus) where {Mo<:AbstractModel,De,Va}
+    sol = DynamicSparseArrays.dynamicsparsevec(decisions, values)
+    return Solution(model, solution_value, status, sol)
 end
 
+"""
+    getsol(solution)
+    
+Return the dynamic sparse vector that describes `solution`.
+"""
 getsol(s::Solution) = s.sol
+
+"""
+    getvalue(solution) -> Float64
+
+Return the value of `solution`.
+"""
 getvalue(s::Solution) = float(s.bound)
+
+"""
+    getstatus(solution) -> SolutionStatus
+
+Return the solution status of `solution`.
+"""
 getstatus(s::Solution) = s.status
 
 Base.iterate(s::Solution) = iterate(s.sol)
 Base.iterate(s::Solution, state) = iterate(s.sol, state)
 Base.length(s::Solution) = length(s.sol)
-Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id] # TODO
+Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id] # TODO : REMOVE
+Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.sol, id)
 Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
-
-# todo: move in DynamicSparseArrays or avoid using filter ?
-function Base.filter(f::Function, pma::DynamicSparseArrays.PackedMemoryArray{K,T,P}) where {K,T,P}
-    ids = Vector{K}()
-    vals = Vector{T}()
-    for e in pma
-        if f(e)
-            push!(ids, e[1])
-            push!(vals, e[2])
-        end
-    end
-    return DynamicSparseArrays.dynamicsparsevec(ids, vals)
-end
 
 function Base.filter(f::Function, s::S) where {S <: Solution}
     return S(s.model, s.bound, s.status, filter(f, s.sol))
@@ -258,5 +277,5 @@ function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
-
+# Todo : revise method
 Base.copy(s::S) where {S<:Solution} = S(s.bound, copy(s.sol))

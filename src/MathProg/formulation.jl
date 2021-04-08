@@ -1,7 +1,7 @@
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
-    var_counter::Counter
-    constr_counter::Counter
+    var_counter::Int
+    constr_counter::Int
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     optimizer::AbstractOptimizer
     manager::FormulationManager
@@ -12,25 +12,27 @@ end
 """
 `Formulation` stores a mixed-integer linear program.
 
-    Formulation{Duty}(
-        form_counter::Counter;
+    create_formulation!(
+        env::Coluna.Env,
+        duty::Type{<:AbstractFormDuty};
         parent_formulation = nothing,
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
-    ) where {Duty<:AbstractFormDuty}
+    )
 
-Construct a `Formulation` of duty `Duty` with objective sense `obj_sense` and parent formulation
-`parent_formulation`.
+    Create a new formulation in the Coluna's environment `env` with duty `duty`,
+    parent formulation `parent_formulation`, and objective sense `obj_sense`.
 """
-function Formulation{D}(
-    form_counter::Counter;
+function create_formulation!(
+    env::Coluna.Env,
+    duty::Type{<:AbstractFormDuty};
     parent_formulation = nothing,
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense
-) where {D<:AbstractFormDuty}
-    if form_counter.value >= MAX_NB_FORMULATIONS
+)
+    if env.form_counter >= MAX_NB_FORMULATIONS
         error("Maximum number of formulations reached.")
     end
-    return Formulation{D}(
-        getnewuid(form_counter), Counter(), Counter(), parent_formulation, NoOptimizer(), 
+    return Formulation{duty}(
+        env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
         FormulationManager(), obj_sense, FormulationBuffer()
     )
 end
@@ -85,7 +87,6 @@ getprimalsolcosts(form::Formulation) = form.manager.primal_sol_costs
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
 
-
 "Returns the `uid` of `Formulation` `form`."
 getuid(form::Formulation) = form.uid
 
@@ -98,8 +99,8 @@ getoptimizer(form::Formulation) = form.optimizer
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, getnewuid(form.var_counter), getuid(form))
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, getnewuid(form.constr_counter), getuid(form))
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form))
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form))
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -118,21 +119,26 @@ set_matrix_coeff!(
 
 """
     setvar!(
-        formulation::Formulation, name::String, duty::Duty{Variable};
-        cost::Float64 = 0.0,
-        lb::Float64 = 0.0,
-        ub::Float64 = Inf,
-        kind::VarKind = Continuous,
-        inc_val::Float64 = 0.0,
-        is_active::Bool = true,
-        is_explicit::Bool = true,
-        moi_index::MoiVarIndex = MoiVarIndex(),
+        formulation, name, duty;
+        cost = 0.0,
+        lb = 0.0,
+        ub = Inf,
+        kind = Continuous,
+        is_active = true,
+        is_explicit = true,
         members = nothing,
-        id = generatevarid(duty, form)
     )
 
-Create a new variable in a formulation with given name and duties.
-Other arguments are facultative.
+Create a new variable that has name `name` and duty `duty` in the formulation `formulation`.
+
+Following keyword arguments allow the user to set additional information about the new variable :
+ - `cost`: cost of the variable in the objective function
+ - `lb`: lower bound of the variable
+ - `ub`: upper bound of the variable
+ - `kind`: kind which can be `Continuous`, `Binary` or `Integ`
+ - `is_active`: `true` if the variable is used in the formulation, `false` otherwise
+ - `is_explicit`: `true` if the variable takes part to the formulation, `false` otherwise (e.g. a variable used as a shortcut for calculation purposes)
+ - `members`: a dictionary `Dict{ConstrId, Float64}` that contains the coefficients of the new variable in the constraints of the formulation (default coefficient is 0).
 """
 function setvar!(
     form::Formulation,
@@ -336,21 +342,25 @@ end
 
 """
     setconstr!(
-        form::Formulation, name::String, duty::Duty{Constraint};
-        rhs::Float64 = 0.0,
-        kind::ConstrKind = Essential,
-        sense::ConstrSense = Greater,
-        inc_val::Float64 = 0.0,
-        is_active::Bool = true,
-        is_explicit::Bool = true,
-        moi_index::MoiConstrIndex = MoiConstrIndex(),
+        formulation, name, duty;
+        rhs = 0.0,
+        kind = Essential,
+        sense = Greater,
+        is_active = true,
+        is_explicit = true,
         members = nothing,
         loc_art_var_abs_cost = 0.0,
-        id = generateconstrid(duty, form)
     )
 
-Create a new constraint in a formulation with given name and duties.
-Other arguments are facultative.
+Create a new constraint that has name `name` and duty `duty` in the formulation `formulation`.
+Following keyword arguments allow the user to set additional information about the new constraint :
+ - `rhs`: right-hand side of the constraint
+ - `kind`: kind which can be `Essential` or `Facultative`
+ - `sense`: sense which can be `Greater`, `Less`, or `Equal`
+ - `is_active`: `true` if the constraint is used in the formulation, `false` otherwise
+ - `is_explicit`: `true` if the constraint structures the formulation, `false` otherwise
+ - `members`:  a dictionary `Dict{VarId, Float64}` that contains the coefficients of the variables of the formulation in the new constraint (default coefficient is 0).
+ - `loc_art_var_abs_cost`: absolute cost of the artificial variables of the constraint
 """
 function setconstr!(
     form::Formulation,

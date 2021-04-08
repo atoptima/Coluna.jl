@@ -1,7 +1,7 @@
 function _welcome_message()
     welcome = """
     Coluna
-    Version 0.3.6 | 2021-03-03 | https://github.com/atoptima/Coluna.jl
+    Version 0.3.7 | 2021-03-29 | https://github.com/atoptima/Coluna.jl
     """
     print(welcome)
 end
@@ -39,7 +39,7 @@ end
 """
 Starting point of the solver.
 """
-function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Params)
+function optimize!(env::Env, prob::MathProg.Problem, annotations::Annotations)
     _welcome_message()
 
     buffer_reset = prob.original_formulation.buffer
@@ -49,9 +49,7 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     ## Retrieve initial bounds on the objective given by the user
     init_pb = get_initial_primal_bound(prob)
     init_db = get_initial_dual_bound(prob)
-    _adjust_params(params, init_pb)
-
-    env = Env(params)
+    _adjust_params(env.params, init_pb)
 
     # Apply decomposition
     reformulate!(prob, annotations, env)
@@ -75,7 +73,7 @@ function optimize!(prob::MathProg.Problem, annotations::Annotations, params::Par
     @logmsg LogLevel(0) "Terminated"
     @logmsg LogLevel(0) string("Primal bound: ", get_ip_primal_bound(optstate))
     @logmsg LogLevel(0) string("Dual bound: ", get_ip_dual_bound(optstate))
-    return optstate, env.kpis
+    return optstate
 end
 
 function optimize!(
