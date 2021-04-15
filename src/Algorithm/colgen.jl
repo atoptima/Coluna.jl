@@ -66,23 +66,50 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     return units_usage
 end
 
-struct ReducedCostsVector
+struct ReducedCostsCalculationHelper
     length::Int
-    varids::Vector{VarId}
+    dwspvarids::Vector{VarId}
     perencosts::Vector{Float64}
-    form::Vector{Formulation}
+    dwspforms::Vector{Formulation}
+    dwsprep_coefmatrix::MathProg.ConstrVarMatrix
 end
 
-function ReducedCostsVector(varids::Vector{VarId}, form::Vector{Formulation})
-    len = length(varids)
-    perencosts = zeros(Float64, len)
-    p = sortperm(varids)
-    permute!(varids, p)
-    permute!(form, p)
-    for i in 1:len
-        perencosts[i] = getcurcost(getmaster(form[i]), varids[i])
+# Pre compute information to speed-up calculation of reduced costs of original variables
+# in the master of a given reformulation.
+function ReducedCostsCalculationHelper(reform::Reformulation)
+    dwspvarids = VarId[]
+    dwspforms = Formulation[]
+
+    for (spid, spform) in get_dw_pricing_sps(reform)
+        for (varid, var) in getvars(spform)
+            if iscuractive(spform, varid) && getduty(varid) <= AbstractDwSpVar
+                push!(dwspvarids, varid)
+                push!(dwspforms, spform)
+            end
+        end
     end
-    return ReducedCostsVector(len, varids, perencosts, form)
+
+    len = length(dwspvarids)
+    perencosts = zeros(Float64, len)
+
+    master = getmaster(reform)
+    for i in 1:len
+        perencosts[i] = getcurcost(master, dwspvarids[i])
+    end
+
+    master_coefmatrix = getcoefmatrix(master)
+    dwsprep_coefmatrix = dynamicsparse(ConstrId, VarId, Float64)
+    for (constrid, constr) in getconstrs(master)
+        for (varid, coeff) in @view master_coefmatrix[constrid, :]
+            if getduty(varid) <= AbstractMasterRepDwSpVar
+                dwsprep_coefmatrix[constrid, varid] = coeff
+            end
+        end
+    end
+    closefillmode!(dwsprep_coefmatrix)
+    return ReducedCostsCalculationHelper(
+        len, dwspvarids, perencosts, dwspforms, dwsprep_coefmatrix
+    )
 end
 
 function run!(algo::ColumnGeneration, env::Env, data::ReformData, input::OptimizationInput)::OptimizationOutput
@@ -321,64 +348,23 @@ function solve_sp_to_gencol!(
     return
 end
 
-function updatereducedcosts!(reform::Reformulation, redcostsvec::ReducedCostsVector, dualsol::DualSolution)
-    redcosts = deepcopy(redcostsvec.perencosts)
+function updatereducedcosts!(
+    reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, dualsol::DualSolution
+)
+    redcosts = deepcopy(redcostshelper.perencosts)
     master = getmaster(reform)
-    # sign = getobjsense(master) == MinSense ? -1 : 1
-    matrix = getcoefmatrix(master)
 
-    crm = matrix.rowmajor
+    result = transpose(redcostshelper.dwsprep_coefmatrix) * getsol(dualsol)
 
-    constr_key_pos::Int = 1
-    next_constr_key_pos::Int = 2
-
-    row_start = 0
-    row_end = 0
-    row_pos = 0
-
-    terms = Dict{VarId,Float64}(id => 0.0 for id in redcostsvec.varids)
-
-    for dual_pos in 1:length(dualsol.sol.array)
-        entry = dualsol.sol.array[dual_pos]
-        if entry !== nothing
-            constrid, val = entry
-            while constr_key_pos <= length(crm.col_keys) && crm.col_keys[constr_key_pos] != constrid
-                constr_key_pos += 1
-            end
-            (constr_key_pos > length(crm.col_keys)) && break
-            next_constr_key_pos = constr_key_pos + 1
-            while next_constr_key_pos <= length(crm.col_keys) && crm.col_keys[next_constr_key_pos] === nothing
-                next_constr_key_pos += 1
-            end
-
-            row_start = crm.pcsc.semaphores[constr_key_pos] + 1
-            row_end = length(crm.pcsc.pma.array)
-            if next_constr_key_pos <= length(crm.col_keys)
-                row_end = crm.pcsc.semaphores[next_constr_key_pos] - 1
-            end
-
-            for row_pos in row_start:row_end
-                entry = crm.pcsc.pma.array[row_pos]
-                if entry !== nothing
-                    row_varid, coeff = entry
-                    if getduty(row_varid) <= AbstractMasterRepDwSpVar
-                        terms[row_varid] = get(terms, row_varid, 0.0) + val * coeff
-                    end
-                end
-            end
-            constr_key_pos = next_constr_key_pos
-        end
-    end
-
-    for (i, varid) in enumerate(redcostsvec.varids)
-        setcurcost!(redcostsvec.form[i], varid, redcosts[i] - terms[varid])
+    for (i, varid) in enumerate(redcostshelper.dwspvarids)
+        setcurcost!(redcostshelper.dwspforms[i], varid, redcosts[i] - get(result, varid, 0.0))
     end
     return redcosts
 end
 
 function solve_sps_to_gencols!(
     spinfos::Dict{FormId,SubprobInfo}, algo::ColumnGeneration, env::Env, phase::Int64, 
-    data::ReformData, redcostsvec::ReducedCostsVector, lp_dual_sol::DualSolution, 
+    data::ReformData, redcostshelper::ReducedCostsCalculationHelper, lp_dual_sol::DualSolution, 
     smooth_dual_sol::DualSolution,
 )
     reform = getreform(data)
@@ -388,7 +374,7 @@ function solve_sps_to_gencols!(
 
     # update reduced costs
     TO.@timeit Coluna._to "Update reduced costs" begin
-        updatereducedcosts!(reform, redcostsvec, smooth_dual_sol)
+        updatereducedcosts!(reform, redcostshelper, smooth_dual_sol)
     end
 
     ### BEGIN LOOP TO BE PARALLELIZED
@@ -613,22 +599,13 @@ function cg_main_loop!(
     spinfos = Dict{FormId,SubprobInfo}()
 
     # collect multiplicity current bounds for each sp
-    dwspvars = Vector{VarId}()
-    dwspforms = Vector{Formulation}()
     pure_master_vars = get_pure_master_vars(masterform)
 
     for (spid, spform) in get_dw_pricing_sps(reform)
         spinfos[spid] = SubprobInfo(reform, spid)
-
-        for (varid, var) in getvars(spform)
-            if iscuractive(spform, varid) && getduty(varid) <= AbstractDwSpVar
-                push!(dwspvars, varid)
-                push!(dwspforms, spform)
-            end
-        end
     end
 
-    redcostsvec = ReducedCostsVector(dwspvars, dwspforms)
+    redcostshelper = ReducedCostsCalculationHelper(reform)
     iteration = 0
     essential_cuts_separated = false
 
@@ -673,11 +650,11 @@ function cg_main_loop!(
             change_values_sign!(lp_dual_sol)
         end
         lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
-        
+
         TO.@timeit Coluna._to "Getting primal solution" begin
         if nb_lp_primal_sols(rm_optstate) > 0
             rm_sol = get_best_lp_primal_sol(rm_optstate)
-            
+
             set_lp_primal_sol!(cg_optstate, rm_sol)
             lp_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)
             set_lp_primal_bound!(cg_optstate, lp_bound)
@@ -723,7 +700,7 @@ function cg_main_loop!(
         while true
             sp_time += @elapsed begin
                 nb_new_col = solve_sps_to_gencols!(
-                    spinfos, algo, env, phase, data, redcostsvec, lp_dual_sol, 
+                    spinfos, algo, env, phase, data, redcostshelper, lp_dual_sol, 
                     smooth_dual_sol
                 )
             end
