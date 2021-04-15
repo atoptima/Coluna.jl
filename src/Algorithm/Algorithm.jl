@@ -3,11 +3,10 @@ module Algorithm
 import DataStructures
 import MathOptInterface
 import TimerOutputs
-import DynamicSparseArrays
 
 using ..Coluna, ..ColunaBase, ..MathProg
 
-using Logging, Parameters, Printf, Statistics
+using DynamicSparseArrays, Logging, Parameters, Printf, Statistics
 
 const TO = TimerOutputs
 const DS = DataStructures
