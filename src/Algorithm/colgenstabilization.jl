@@ -31,7 +31,7 @@ function ColGenStabRecord(master::Formulation, unit::ColGenStabilizationUnit)
     return ColGenStabRecord(alpha, unit.valid_dual_bound, unit.basestabcenter)
 end
 
-function restore_from_record!(
+function ColunaBase.restore_from_record!(
     master::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecord
 )
     unit.basealpha = state.alpha

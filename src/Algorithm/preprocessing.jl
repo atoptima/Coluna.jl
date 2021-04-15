@@ -123,7 +123,7 @@ function PreprocessingRecord(reform::Reformulation, unit::PreprocessingUnit)
         copy(unit.new_constrs), copy(unit.local_partial_sol))
 end
 
-function restore_from_record!(
+function ColunaBase.restore_from_record!(
     form::Reformulation, unit::PreprocessingUnit, state::PreprocessingRecord
 )
     unit.cur_min_slack = copy(state.cur_min_slack)

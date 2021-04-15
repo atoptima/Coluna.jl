@@ -12,7 +12,7 @@ getstoragedict(::AbstractData) = nothing
 getmodel(::AbstractData) = nothing 
 get_model_storage_dict(::AbstractData, ::AbstractModel) = nothing
 store_records!(::AbstractData, ::RecordsVector) = nothing
-check_records_participation(::AbstractData) = nothing
+ColunaBase.check_records_participation(::AbstractData) = nothing
 
 function getnicename(data::AbstractData) 
     model = getmodel(data)
@@ -28,7 +28,7 @@ function get_storage_container(data::AbstractData, pair::UnitTypePair)
     return storagecont
 end
 
-getunit(data::AbstractData, pair::UnitTypePair) = 
+ColunaBase.getunit(data::AbstractData, pair::UnitTypePair) = 
     getunit(get_storage_container(data, pair))
 
 function reserve_for_writing!(data::AbstractData, pair::UnitTypePair) 
@@ -71,7 +71,7 @@ function store_records!(data::ModelData, records::RecordsVector)
     end
 end
 
-function check_records_participation(data::ModelData)
+function ColunaBase.check_records_participation(data::ModelData)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
         check_records_participation(storagecont)
@@ -165,7 +165,7 @@ function store_records!(data::ReformData)
     return records
 end
 
-function check_records_participation(data::ReformData)
+function ColunaBase.check_records_participation(data::ReformData)
     storagedict = getstoragedict(data)
     for (FullType, storagecont) in storagedict
         check_records_participation(storagecont)
