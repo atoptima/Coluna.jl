@@ -491,7 +491,7 @@ function update_lagrangian_dual_bound!(
     
     valid_lagr_bound = DualBound{S}(puremastvars_contrib + dualsol.bound)
     for (spuid, spinfo) in spinfos
-    valid_lagr_bound += spinfo.valid_dual_bound_contrib
+        valid_lagr_bound += spinfo.valid_dual_bound_contrib
     end
 
     update_ip_dual_bound!(optstate, valid_lagr_bound)
@@ -500,7 +500,7 @@ function update_lagrangian_dual_bound!(
     if stabilization_is_used(algo)
         pseudo_lagr_bound = DualBound{S}(puremastvars_contrib + dualsol.bound)
         for (spuid, spinfo) in spinfos
-pseudo_lagr_bound += spinfo.pseudo_dual_bound_contrib
+            pseudo_lagr_bound += spinfo.pseudo_dual_bound_contrib
         end
         update_stability_center!(stabunit, dualsol, valid_lagr_bound, pseudo_lagr_bound)
     end
@@ -675,6 +675,7 @@ function cg_main_loop!(
                         if phase == 2 # because the new cuts may make the master infeasible
                             return false, true
                         end
+                        redcostshelper = ReducedCostsCalculationHelper(reform)
                     end
                 end
             end
@@ -775,7 +776,6 @@ function cg_main_loop!(
         end
         essential_cuts_separated = false
     end
-
     return false, false
 end
 
