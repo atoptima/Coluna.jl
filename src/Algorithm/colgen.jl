@@ -291,7 +291,6 @@ function compute_red_cost(
     else
         red_cost = getvalue(spsol)
     end
-    # red_cost -= (spinfo.lb * spinfo.lb_dual + spinfo.ub * spinfo.ub_dual)
     red_cost -= spinfo.lb_dual + spinfo.ub_dual
     return red_cost
 end
