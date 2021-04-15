@@ -91,9 +91,6 @@ function ReducedCostsCalculationHelper(reform::Reformulation)
 
     len = length(dwspvarids)
     perencosts = zeros(Float64, len)
-    p = sortperm(dwspvarids)
-    permute!(dwspvarids, p)
-    permute!(dwspforms, p)
 
     master = getmaster(reform)
     for i in 1:len
