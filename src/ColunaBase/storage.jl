@@ -118,7 +118,7 @@ function add_unit_pair_usage!(
 end
 
 """
-    RecordContainer
+    RecordWrapper
 
 This container keeps additional record information needed for 
 keeping the number of times the state has been stored. When 
@@ -127,27 +127,27 @@ this number drops to zero, the state can be deleted.
 
 const RecordId = Int
 
-mutable struct RecordContainer{SS <: AbstractRecord}
+mutable struct RecordWrapper{SS <: AbstractRecord}
     id::RecordId
     participation::Int
     state::Union{Nothing,SS}
 end
 
-RecordContainer{SS}(recordid::RecordId, participation::Int) where {SS <: AbstractRecord} =
-    RecordContainer{SS}(recordid, participation, nothing)
+RecordWrapper{SS}(recordid::RecordId, participation::Int) where {SS <: AbstractRecord} =
+    RecordWrapper{SS}(recordid, participation, nothing)
 
-getrecordid(ssc::RecordContainer) = ssc.id
-stateisempty(ssc::RecordContainer) = ssc.state === nothing
-getparticipation(ssc::RecordContainer) = ssc.participation
-getstate(ssc::RecordContainer) = ssc.state
-increaseparticipation!(ssc::RecordContainer) = ssc.participation += 1
-decreaseparticipation!(ssc::RecordContainer) = ssc.participation -= 1
+getrecordid(ssc::RecordWrapper) = ssc.id
+stateisempty(ssc::RecordWrapper) = ssc.state === nothing
+getparticipation(ssc::RecordWrapper) = ssc.participation
+getstate(ssc::RecordWrapper) = ssc.state
+increaseparticipation!(ssc::RecordWrapper) = ssc.participation += 1
+decreaseparticipation!(ssc::RecordWrapper) = ssc.participation -= 1
 
-function setstate!(ssc::RecordContainer{SS}, state_to_set::SS) where {SS <: AbstractRecord}
+function setstate!(ssc::RecordWrapper{SS}, state_to_set::SS) where {SS <: AbstractRecord}
     ssc.state = state_to_set
 end
 
-function Base.show(io::IO, recordcont::RecordContainer{SS}) where {SS <: AbstractRecord}
+function Base.show(io::IO, recordcont::RecordWrapper{SS}) where {SS <: AbstractRecord}
     print(io, "state ", remove_until_last_point(string(SS)))
     print(io, " with id=", getrecordid(recordcont), " part=", getparticipation(recordcont))
     if getstate(recordcont) === nothing
@@ -158,19 +158,19 @@ function Base.show(io::IO, recordcont::RecordContainer{SS}) where {SS <: Abstrac
 end
 
 """
-    EmptyRecordContainer
+    EmptyRecordWrapper
 """
 
-const EmptyRecordContainer = RecordContainer{EmptyRecord}
+const EmptyRecordWrapper = RecordWrapper{EmptyRecord}
 
-EmptyRecordContainer(recordid::RecordId, participation::Int) =
-    EmptyRecordContainer(1, 0)
+EmptyRecordWrapper(recordid::RecordId, participation::Int) =
+    EmptyRecordWrapper(1, 0)
 
-getrecordid(essc::EmptyRecordContainer) = 1
-stateisempty(essc::EmptyRecordContainer) = true 
-getparticipation(essc::EmptyRecordContainer) = 0
-increaseparticipation!(essc::EmptyRecordContainer) = nothing
-decreaseparticipation!(essc::EmptyRecordContainer) = nothing
+getrecordid(essc::EmptyRecordWrapper) = 1
+stateisempty(essc::EmptyRecordWrapper) = true 
+getparticipation(essc::EmptyRecordWrapper) = 0
+increaseparticipation!(essc::EmptyRecordWrapper) = nothing
+decreaseparticipation!(essc::EmptyRecordWrapper) = nothing
 
 """
     Storage
@@ -182,11 +182,11 @@ efficient way.
 
 mutable struct Storage{M <: AbstractModel,S <: AbstractStorageUnit,SS <: AbstractRecord}
     model::M
-    currecordcont::RecordContainer{SS}
+    currecordcont::RecordWrapper{SS}
     maxrecordid::RecordId
     storage_unit::S
     typepair::UnitTypePair
-    recordsdict::Dict{RecordId,RecordContainer{SS}}
+    recordsdict::Dict{RecordId,RecordWrapper{SS}}
 end 
 
 const RecordsVector = Vector{Pair{Storage,RecordId}}
@@ -195,8 +195,8 @@ const StorageDict = Dict{UnitTypePair,Storage}
 
 function Storage{M,S,SS}(model::M) where {M,S,SS}
     return Storage{M,S,SS}(
-        model, RecordContainer{SS}(1, 0), 1, S(model), 
-        S => SS, Dict{RecordId,RecordContainer{SS}}()
+        model, RecordWrapper{SS}(1, 0), 1, S(model), 
+        S => SS, Dict{RecordId,RecordWrapper{SS}}()
     )
 end    
 
@@ -216,7 +216,7 @@ function Base.show(io::IO, storagecont::Storage)
 end
 
 function setcurstate!(
-    storagecont::Storage{M,S,SS}, recordcont::RecordContainer{SS}
+    storagecont::Storage{M,S,SS}, recordcont::RecordWrapper{SS}
 ) where {M,S,SS} 
     # we delete the current state container from the dictionary if necessary
     currecordcont = getcurrecordcont(storagecont)
@@ -257,7 +257,7 @@ function retrieve_from_recordsdict(storagecont::Storage, recordid::RecordId)
 end
 
 function save_to_recordsdict!(
-    storagecont::Storage{M,S,SS}, recordcont::RecordContainer{SS}
+    storagecont::Storage{M,S,SS}, recordcont::RecordWrapper{SS}
 ) where {M,S,SS}
     if getparticipation(recordcont) > 0 && stateisempty(recordcont)
         state = SS(getmodel(storagecont), getunit(storagecont))
@@ -285,7 +285,7 @@ function restore_from_record!(
         end
         if mode == READ_AND_WRITE 
             save_to_recordsdict!(storagecont, recordcont)
-            recordcont = RecordContainer{SS}(getmaxrecordid(storagecont) + 1, 0)
+            recordcont = RecordWrapper{SS}(getmaxrecordid(storagecont) + 1, 0)
             setcurstate!(storagecont, recordcont)
         end
         return
@@ -305,7 +305,7 @@ function restore_from_record!(
         restore_from_record!(getmodel(storagecont), getunit(storagecont), getstate(recordcont))
         #@logmsg LogLevel(-2) string("Restored state with id ", getrecordid(recordcont), " for ", storagecont)
         if mode == READ_AND_WRITE 
-            recordcont = RecordContainer{SS}(getmaxrecordid(storagecont) + 1, 0)
+            recordcont = RecordWrapper{SS}(getmaxrecordid(storagecont) + 1, 0)
         end 
         setcurstate!(storagecont, recordcont)
     end
@@ -336,7 +336,7 @@ end
 # function reserve_for_writing!(storagecont::Storage{M,S,SS}) where {M,S,SS}
 #     recordcont = getcurrecordcont(storagecont)
 #     save_to_recordsdict!(storagecont, recordcont)
-#     recordcont = RecordContainer{SS}(getmaxrecordid(storagecont) + 1, 0)
+#     recordcont = RecordWrapper{SS}(getmaxrecordid(storagecont) + 1, 0)
 #     setcurstate!(storagecont, recordcont)
 # end
 
