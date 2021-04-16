@@ -1,36 +1,36 @@
 @enum(UnitAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
 
 """
-    About storage units
-    -------------------
+About storage units
+-------------------
 
-    Storage units keep user data (a model) and computed data between different runs 
-    of an algorithm or between runs of different algorithms. 
-    Models are storage units themselves. Each unit is associated with a
-    model. Thus a unit adds computed data to a model.  
+Storage units keep user data (a model) and computed data between different runs 
+of an algorithm or between runs of different algorithms. 
+Models are storage units themselves. Each unit is associated with a
+model. Thus a unit adds computed data to a model.  
 
-    Records are useful to store states of storage units at some point 
-    of the calculation flow so that we can later return to this point and 
-    restore the units. For example, the calculation flow may return to
-    some saved node in the search tree.
+Records are useful to store states of storage units at some point 
+of the calculation flow so that we can later return to this point and 
+restore the units. For example, the calculation flow may return to
+some saved node in the search tree.
 
-    Some units can have different parts which are stored in different 
-    records. Thus, we operate with triples (model, unit, record).
-    For every model there may be only one unit for each couple 
-    (unit type, record type). 
-    
-    To store all storage units of a data, we use functions 
-    "store_records!(::AbstractData)::RecordsVector" or
-    "copy_records(::RecordsVector)::RecordsVector"
-  
-    Every stored record should be removed or restored using functions 
-    "restore_from_records!(::RecordsVector,::UnitsUsageDict)" 
-    and "remove_records!(::RecordsVector)"
-  
-    After recording current states, if we write to some storage unit, we should restore 
-    it for writing using "restore_from_records!(...)" 
-    After recording current states, if we read from a storage unit, 
-    no particular precautions should be taken.   
+Some units can have different parts which are stored in different 
+records. Thus, we operate with triples (model, unit, record).
+For every model there may be only one unit for each couple 
+(unit type, record type). 
+
+To store all storage units of a data, we use functions 
+"store_records!(::AbstractData)::RecordsVector" or
+"copy_records(::RecordsVector)::RecordsVector"
+
+Every stored record should be removed or restored using functions 
+"restore_from_records!(::RecordsVector,::UnitsUsageDict)" 
+and "remove_records!(::RecordsVector)"
+
+After recording current states, if we write to some storage unit, we should restore 
+it for writing using "restore_from_records!(...)" 
+After recording current states, if we read from a storage unit, 
+no particular precautions should be taken.   
 """
 
 """
@@ -85,11 +85,11 @@ restore_from_record!(::AbstractModel, ::AbstractStorageUnit, ::EmptyRecord) = no
 
 # UnitTypePair = Pair{Type{<:AbstractStorageUnit}, Type{<:AbstractRecord}}.
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
-const UnitTypePair = Pair{DataType, DataType}
+const UnitTypePair = Pair{DataType,DataType}
 
 # TO DO : replace with the set of UnitTypePair, should only contain records which should 
 #         be restored for writing (all other records are restored anyway but just for reading)
-const UnitsUsageDict = Dict{Tuple{AbstractModel, UnitTypePair}, UnitAccessMode}
+const UnitsUsageDict = Dict{Tuple{AbstractModel,UnitTypePair},UnitAccessMode}
 
 function Base.show(io::IO, usagedict::UnitsUsageDict)
     print(io, "storage units usage dict [")
@@ -127,13 +127,13 @@ this number drops to zero, the state can be deleted.
 
 const RecordId = Int
 
-mutable struct RecordContainer{SS<:AbstractRecord}
+mutable struct RecordContainer{SS <: AbstractRecord}
     id::RecordId
     participation::Int
-    state::Union{Nothing, SS}
+    state::Union{Nothing,SS}
 end
 
-RecordContainer{SS}(recordid::RecordId, participation::Int) where {SS<:AbstractRecord} =
+RecordContainer{SS}(recordid::RecordId, participation::Int) where {SS <: AbstractRecord} =
     RecordContainer{SS}(recordid, participation, nothing)
 
 getrecordid(ssc::RecordContainer) = ssc.id
@@ -143,11 +143,11 @@ getstate(ssc::RecordContainer) = ssc.state
 increaseparticipation!(ssc::RecordContainer) = ssc.participation += 1
 decreaseparticipation!(ssc::RecordContainer) = ssc.participation -= 1
 
-function setstate!(ssc::RecordContainer{SS}, state_to_set::SS) where {SS<:AbstractRecord}
+function setstate!(ssc::RecordContainer{SS}, state_to_set::SS) where {SS <: AbstractRecord}
     ssc.state = state_to_set
 end
 
-function Base.show(io::IO, recordcont::RecordContainer{SS}) where {SS<:AbstractRecord}
+function Base.show(io::IO, recordcont::RecordContainer{SS}) where {SS <: AbstractRecord}
     print(io, "state ", remove_until_last_point(string(SS)))
     print(io, " with id=", getrecordid(recordcont), " part=", getparticipation(recordcont))
     if getstate(recordcont) === nothing
@@ -180,23 +180,23 @@ stored. It implements storing and restoring records of units in an
 efficient way. 
 """
 
-mutable struct Storage{M<:AbstractModel, S<:AbstractStorageUnit, SS<:AbstractRecord}
+mutable struct Storage{M <: AbstractModel,S <: AbstractStorageUnit,SS <: AbstractRecord}
     model::M
     currecordcont::RecordContainer{SS}
     maxrecordid::RecordId
     storage_unit::S
     typepair::UnitTypePair
-    recordsdict::Dict{RecordId, RecordContainer{SS}}
+    recordsdict::Dict{RecordId,RecordContainer{SS}}
 end 
 
-const RecordsVector = Vector{Pair{Storage, RecordId}}
+const RecordsVector = Vector{Pair{Storage,RecordId}}
 
-const StorageDict = Dict{UnitTypePair, Storage}
+const StorageDict = Dict{UnitTypePair,Storage}
 
 function Storage{M,S,SS}(model::M) where {M,S,SS}
     return Storage{M,S,SS}(
         model, RecordContainer{SS}(1, 0), 1, S(model), 
-        S => SS, Dict{RecordId, RecordContainer{SS}}()
+        S => SS, Dict{RecordId,RecordContainer{SS}}()
     )
 end    
 
@@ -222,7 +222,7 @@ function setcurstate!(
     currecordcont = getcurrecordcont(storagecont)
     if !stateisempty(currecordcont) && getparticipation(currecordcont) == 0
         delete!(getrecordsdict(storagecont), getrecordid(currecordcont))
-        @logmsg LogLevel(-2) string("Removed state with id ", getrecordid(currecordcont), " for ", storagecont)
+        #@logmsg LogLevel(-2) string("Removed state with id ", getrecordid(currecordcont), " for ", storagecont)
     end
     storagecont.currecordcont = recordcont
     if getmaxrecordid(storagecont) < getrecordid(recordcont) 
@@ -261,7 +261,7 @@ function save_to_recordsdict!(
 ) where {M,S,SS}
     if getparticipation(recordcont) > 0 && stateisempty(recordcont)
         state = SS(getmodel(storagecont), getunit(storagecont))
-        @logmsg LogLevel(-2) string("Created state with id ", getrecordid(recordcont), " for ", storagecont)
+        #@logmsg LogLevel(-2) string("Created state with id ", getrecordid(recordcont), " for ", storagecont)
         setstate!(recordcont, state)
         recordsdict = getrecordsdict(storagecont)
         recordsdict[getrecordid(recordcont)] = recordcont
@@ -293,23 +293,37 @@ function restore_from_record!(
         # we save current state to dictionary if necessary
         save_to_recordsdict!(storagecont, recordcont)
     end
-
+    
     recordcont = retrieve_from_recordsdict(storagecont, recordid)
-
+    
     if mode == NOT_USED
         if !stateisempty(recordcont) && getparticipation(recordcont) == 0
             delete!(getrecordsdict(storagecont), getrecordid(recordcont))
-            @logmsg LogLevel(-2) string("Removed state with id ", getrecordid(recordcont), " for ", storagecont)
+            #@logmsg LogLevel(-2) string("Removed state with id ", getrecordid(recordcont), " for ", storagecont)
         end
     else 
         restore_from_record!(getmodel(storagecont), getunit(storagecont), getstate(recordcont))
-        @logmsg LogLevel(-2) string("Restored state with id ", getrecordid(recordcont), " for ", storagecont)
+        #@logmsg LogLevel(-2) string("Restored state with id ", getrecordid(recordcont), " for ", storagecont)
         if mode == READ_AND_WRITE 
             recordcont = RecordContainer{SS}(getmaxrecordid(storagecont) + 1, 0)
         end 
         setcurstate!(storagecont, recordcont)
     end
 end
+
+function check_records_participation(storagecont::Storage)
+    currecordcont = getcurrecordcont(storagecont)
+    if getparticipation(currecordcont) > 0
+        @warn string("Positive participation of state ", currecordcont)
+    end
+    recordsdict = getrecordsdict(storagecont)
+    for (recordid, recordcont) in recordsdict
+        if getparticipation(recordcont) > 0
+            @warn string("Positive participation of state ", recordcont)
+        end
+    end
+end
+
 
 """
     Storage unit functions used by Coluna
@@ -358,18 +372,8 @@ function copy_records(records::RecordsVector)::RecordsVector
     return recordscopy
 end
 
-function check_records_participation(storagecont::Storage)
-    currecordcont = getcurrecordcont(storagecont)
-    if getparticipation(currecordcont) > 0
-        @warn string("Positive participation of state ", currecordcont)
-    end
-    recordsdict = getrecordsdict(storagecont)
-    for (recordid, recordcont) in recordsdict
-        if getparticipation(recordcont) > 0
-            @warn string("Positive participation of state ", recordcont)
-        end
-    end
-end
+# store_records is missing.
+
 
 """
     IMPORTANT!

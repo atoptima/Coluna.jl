@@ -24,7 +24,6 @@ import ..MathProg:
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
 
-include("storage.jl")
 include("data.jl")
 include("formstorages.jl")
 

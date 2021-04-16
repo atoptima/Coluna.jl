@@ -92,7 +92,7 @@ function MasterBranchConstrsRecord(form::Formulation, unit::FormulationUnit)
     return record
 end
 
-function restore_from_record!(
+function ColunaBase.restore_from_record!(
     form::Formulation, unit::FormulationUnit, record::MasterBranchConstrsRecord
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
@@ -153,7 +153,7 @@ function MasterColumnsState(form::Formulation, unit::FormulationUnit)
     return state
 end
 
-function restore_from_record!(
+function ColunaBase.restore_from_record!(
     form::Formulation, unit::FormulationUnit, state::MasterColumnsState
 )
     @logmsg LogLevel(-2) "Restoring master columns"
@@ -212,7 +212,7 @@ function MasterCutsState(form::Formulation, unit::FormulationUnit)
     return state
 end
 
-function restore_from_record!(
+function ColunaBase.restore_from_record!(
     form::Formulation, unit::FormulationUnit, state::MasterCutsState
 )
     @logmsg LogLevel(-2) "Storing master cuts"
@@ -282,7 +282,7 @@ function StaticVarConstrRecord(form::Formulation, unit::FormulationUnit)
     return record
 end
 
-function restore_from_record!(
+function ColunaBase.restore_from_record!(
     form::Formulation, unit::FormulationUnit, record::StaticVarConstrRecord
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
@@ -371,7 +371,7 @@ function PartialSolutionRecord(form::Formulation, unit::PartialSolutionUnit)
     return PartialSolutionRecord(copy(unit.solution))
 end
 
-function restore_from_record!(
+function ColunaBase.restore_from_record!(
     form::Formulation, unit::PartialSolutionUnit, record::PartialSolutionRecord
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
