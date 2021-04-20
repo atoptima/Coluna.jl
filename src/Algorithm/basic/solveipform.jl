@@ -68,7 +68,7 @@ function run!(algo::SolveIpForm, env::Env, form::Formulation, input::Optimizatio
     partial_sol = nothing
     partial_sol_value = 0.0
     if isa(form, Formulation{MathProg.DwMaster})
-        partsolunit = getunit(data, PartialSolutionUnitPair)
+        partsolunit = getunit(form, PartialSolutionUnitPair)
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_value = getvalue(partial_sol)
     end

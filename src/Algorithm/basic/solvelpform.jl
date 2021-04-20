@@ -52,7 +52,6 @@ function optimize_lp_form!(
 end
 
 function run!(algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
-    form = getmodel(data)
     result = OptimizationState(form)
 
     TO.@timeit Coluna._to "SolveLpForm" begin
@@ -64,7 +63,7 @@ function run!(algo::SolveLpForm, env::Env, form::Formulation, input::Optimizatio
     partial_sol = nothing
     partial_sol_val = 0.0
     if algo.consider_partial_solution
-        partsolunit = getunit(data, PartialSolutionUnitPair)
+        partsolunit = getunit(form, PartialSolutionUnitPair)
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_val = getvalue(partial_sol)
     end

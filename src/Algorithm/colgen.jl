@@ -365,7 +365,7 @@ function solve_sps_to_gencols!(
 )
     masterform = getmaster(reform)
     nb_new_cols = 0
-    spsdatas = get_dw_pricing_datas(data)
+    spsforms = get_dw_pricing_sps(reform)
 
     # update reduced costs
     TO.@timeit Coluna._to "Update reduced costs" begin
@@ -374,15 +374,15 @@ function solve_sps_to_gencols!(
 
     ### BEGIN LOOP TO BE PARALLELIZED
     if algo.solve_subproblems_parallel
-        spuids = collect(keys(spsdatas))
+        spuids = collect(keys(spsforms))
         Threads.@threads for key in 1:length(spuids)
             spuid = spuids[key]
-            spdata = spsdatas[spuid]
-            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spdata, lp_dual_sol)
+            spform = spsforms[spuid]
+            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spform, lp_dual_sol)
         end
     else
-        for (spuid, spdata) in spsdatas
-            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spdata, lp_dual_sol)
+        for (spuid, spform) in spsforms
+            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spform, lp_dual_sol)
         end
     end
     ### END LOOP TO BE PARALLELIZED
@@ -393,9 +393,9 @@ function solve_sps_to_gencols!(
 
     TO.@timeit Coluna._to "Inserting columns" begin
         nb_new_cols = 0
-        for (spuid, spdata) in spsdatas
+        for (spuid, spform) in spsforms
             spinfo = spinfos[spuid]
-            nb_of_gen_cols = insert_cols_in_master!(masterform, spinfo, phase, getmodel(spdata))
+            nb_of_gen_cols = insert_cols_in_master!(masterform, spinfo, phase, spform)
             nb_new_cols += nb_of_gen_cols
             for colid in spinfo.sol_ids_to_activate
                 activate!(masterform, colid)
@@ -680,7 +680,7 @@ function cg_main_loop!(
         end # @timeit
 
         TO.@timeit Coluna._to "Cleanup columns" begin
-            cleanup_columns(algo, iteration, data)
+            cleanup_columns(algo, iteration, masterform)
         end
 
         iteration += 1
@@ -694,7 +694,7 @@ function cg_main_loop!(
         while true
             sp_time += @elapsed begin
                 nb_new_col = solve_sps_to_gencols!(
-                    spinfos, algo, env, phase, data, redcostshelper, lp_dual_sol, 
+                    spinfos, algo, env, phase, reform, redcostshelper, lp_dual_sol, 
                     smooth_dual_sol
                 )
             end

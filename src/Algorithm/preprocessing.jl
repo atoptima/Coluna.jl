@@ -190,7 +190,7 @@ function run!(algo::PreprocessAlgorithm, env::Env, reform::Reformulation, input:
     
     infeasible = init_new_constraints!(algo, unit) 
 
-    master = getmodel(getmasterdata(data))
+    master = getmaster(reform)
     !infeasible && (infeasible = fix_local_partial_solution!(algo, unit, master))
 
     !infeasible && (infeasible = propagation!(algo, unit))

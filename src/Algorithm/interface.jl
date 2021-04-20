@@ -67,13 +67,13 @@ in order to restore units before running a worker algorithm.
 get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
 
 """
-    run!(algo::AbstractAlgorithm, model::AbstractData, input::AbstractInput)::AbstractOutput
+    run!(algo::AbstractAlgorithm, model::AbstractModel, input::AbstractInput)::AbstractOutput
 
 Runs the algorithm. The storage unit of the algorithm can be obtained from the data
 Returns algorithm's output.    
 """
-function run!(algo::AbstractAlgorithm, env::Env, data::AbstractData, input::AbstractInput)::AbstractOutput
-    error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(data)), $(typeof(input)).")
+function run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input::AbstractInput)::AbstractOutput
+    error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(model)), $(typeof(input)).")
 end
 
 """
@@ -147,19 +147,19 @@ function collect_units_to_create!(
 end
 
 # this function initializes all the storage units
-function initialize_storage_units!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
+function initialize_storage_units!(reform::Reformulation, algo::AbstractOptimizationAlgorithm)
     units_to_create = Dict{AbstractModel,Set{UnitTypePair}}()
-    collect_units_to_create!(units_to_create, algo, getmodel(data)) 
+    collect_units_to_create!(units_to_create, algo, reform) 
 
     for (model, type_pair_set) in units_to_create        
         #println(IOContext(stdout, :compact => true), model, " ", type_pair_set)
         ModelType = typeof(model)
-        storagedict = get_model_storage_dict(data, model)
+        storagedict = model.storagedict
         if storagedict === nothing
             error(string("Model of type $(typeof(model)) with id $(getuid(model)) ",
                          "is not contained in $(getnicename(data))")                        
             )
-        end   
+        end
         for type_pair in type_pair_set
             (StorageUnitType, RecordType) = type_pair
             storagedict[type_pair] = 
