@@ -7,6 +7,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
+    storagedict::StorageDict
 end
 
 """
@@ -33,7 +34,7 @@ function create_formulation!(
     end
     return Formulation{duty}(
         env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
-        FormulationManager(), obj_sense, FormulationBuffer()
+        FormulationManager(), obj_sense, FormulationBuffer(), StorageDict()
     )
 end
 
@@ -105,6 +106,8 @@ generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, for
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_formulation
+
+getstoragedict(form::Formulation) = form.storagedict
 
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 

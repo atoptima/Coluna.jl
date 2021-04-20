@@ -72,7 +72,7 @@ export getterminationstatus, setterminationstatus!,
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
        BendersConquer, BendersCutGeneration, SolveIpForm, SolveLpForm, ExactBranchingPhase,
        OnlyRestrictedMasterBranchingPhase, PreprocessAlgorithm, RestrictedMasterIPHeuristic,
-       OptimizationInput, OptimizationOutput, OptimizationState, ModelData, ReformData,
+       OptimizationInput, OptimizationOutput, OptimizationState,
        EmptyInput       
 
 # Units 

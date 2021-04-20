@@ -183,10 +183,10 @@ function get_units_usage(algo::PreprocessAlgorithm, reform::Reformulation)
     return units_usage
 end
 
-function run!(algo::PreprocessAlgorithm, env::Env, data::ReformData, input::EmptyInput)::PreprocessingOutput
+function run!(algo::PreprocessAlgorithm, env::Env, reform::Reformulation, input::EmptyInput)::PreprocessingOutput
     @logmsg LogLevel(-1) "Run preprocessing"
 
-    unit = getunit(data, PreprocessingUnitPair)
+    unit = getunit(reform, PreprocessingUnitPair)
     
     infeasible = init_new_constraints!(algo, unit) 
 

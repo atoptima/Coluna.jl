@@ -51,7 +51,7 @@ function optimize_lp_form!(
     return
 end
 
-function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationInput)::OptimizationOutput
+function run!(algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
     form = getmodel(data)
     result = OptimizationState(form)
 
