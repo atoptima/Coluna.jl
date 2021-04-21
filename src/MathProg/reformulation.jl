@@ -6,7 +6,7 @@ mutable struct Reformulation <: AbstractFormulation
     benders_sep_subprs::Dict{FormId, AbstractModel}
     dw_pricing_sp_lb::Dict{FormId, ConstrId}
     dw_pricing_sp_ub::Dict{FormId, ConstrId}
-    storagedict::StorageDict
+    storagedict::Storage
 end
 
 """
@@ -24,7 +24,7 @@ Reformulation() = Reformulation(
     Dict{FormId, AbstractModel}(),
     Dict{FormId, ConstrId}(),
     Dict{FormId, ConstrId}(),
-    StorageDict()
+    Storage()
 )
 
 """

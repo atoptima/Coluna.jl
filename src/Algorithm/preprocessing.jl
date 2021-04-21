@@ -186,7 +186,7 @@ end
 function run!(algo::PreprocessAlgorithm, env::Env, reform::Reformulation, input::EmptyInput)::PreprocessingOutput
     @logmsg LogLevel(-1) "Run preprocessing"
 
-    unit = getunit(reform, PreprocessingUnitPair)
+    unit = getstorageunit(reform, PreprocessingUnitPair)
     
     infeasible = init_new_constraints!(algo, unit) 
 

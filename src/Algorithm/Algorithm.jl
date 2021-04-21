@@ -79,6 +79,6 @@ export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, Col
 export PartialSolutionUnitPair, PreprocessingUnitPair       
 
 # Unit functions 
-export getunit, add_to_solution!, add_to_localpartialsol!
+export getstorageunit, add_to_solution!, add_to_localpartialsol!
 
 end

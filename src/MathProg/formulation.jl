@@ -7,7 +7,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
-    storagedict::StorageDict
+    storagedict::Storage
 end
 
 """
@@ -34,7 +34,7 @@ function create_formulation!(
     end
     return Formulation{duty}(
         env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
-        FormulationManager(), obj_sense, FormulationBuffer(), StorageDict()
+        FormulationManager(), obj_sense, FormulationBuffer(), Storage()
     )
 end
 

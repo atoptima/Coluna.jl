@@ -602,10 +602,10 @@ function cg_main_loop!(
     iteration = 0
     essential_cuts_separated = false
 
-    stabunit = (stabilization_is_used(algo) ? getunit(masterform, ColGenStabilizationUnitPair) 
+    stabunit = (stabilization_is_used(algo) ? getstorageunit(masterform, ColGenStabilizationUnitPair) 
                                                : ColGenStabilizationUnit(masterform) )
 
-    partsolunit = getunit(masterform, PartialSolutionUnitPair)
+    partsolunit = getstorageunit(masterform, PartialSolutionUnitPair)
     partial_solution = get_primal_solution(partsolunit, masterform)
 
     init_stab_before_colgen_loop!(stabunit)

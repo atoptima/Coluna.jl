@@ -193,11 +193,11 @@ mutable struct StorageUnitWrapper{M <: AbstractModel,SU <: AbstractStorageUnit,R
     recordsdict::Dict{RecordId,RecordWrapper{R}}
 end
 
-getunit(s::StorageUnitWrapper) = s.storage_unit # needed by Algorithms
+getstorageunit(s::StorageUnitWrapper) = s.storage_unit # needed by Algorithms
 
 const RecordsVector = Vector{Pair{StorageUnitWrapper,RecordId}}
 
-const StorageDict = Dict{UnitTypePair,StorageUnitWrapper}
+const Storage = Dict{UnitTypePair,StorageUnitWrapper}
 
 function StorageUnitWrapper{M,SU,R}(model::M) where {M,SU,R}
     return StorageUnitWrapper{M,SU,R}(
