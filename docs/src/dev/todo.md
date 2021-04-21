@@ -55,8 +55,6 @@ Coluna.MathProg.MoiOptimizer
 Coluna.ColunaBase.Bound
 Coluna.Algorithm.set_ip_primal_sol!
 Coluna.MathProg.get_ip_dual_bound
-Coluna.Algorithm.ReformData
-Coluna.Algorithm.ModelData
 Coluna.MathProg.get_optimization_target
 Coluna.MathProg.create_formulation!
 ```

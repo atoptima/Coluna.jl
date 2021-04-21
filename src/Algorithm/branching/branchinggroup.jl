@@ -12,7 +12,7 @@ abstract type AbstractBranchingCandidate end
 
 getdescription(candidate::AbstractBranchingCandidate) = ""
 generate_children!(
-    candidate::AbstractBranchingCandidate, lhs::Float64, env::Env, data::ReformData, 
+    candidate::AbstractBranchingCandidate, lhs::Float64, env::Env, reform::Reformulation, 
     node::Node
 ) = nothing
 
@@ -43,9 +43,9 @@ get_lhs_distance_to_integer(group::BranchingGroup) =
     min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)    
 
 function generate_children!(
-    group::BranchingGroup, env::Env, data::ReformData, parent::Node
+    group::BranchingGroup, env::Env, reform::Reformulation, parent::Node
 )
-    group.children = generate_children(group.candidate, group.lhs, env, data, parent)
+    group.children = generate_children(group.candidate, group.lhs, env, reform, parent)
     return
 end
 

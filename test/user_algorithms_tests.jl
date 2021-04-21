@@ -15,31 +15,29 @@ end
 
 function Coluna.Algorithm.get_child_algorithms(
     algo::ConsecutiveColGen, reform::Reformulation
-    )
+)
     return [(algo.colgen, reform), (algo.preprocess, reform), (algo.rm_heur, reform)]
 end 
 
 function Coluna.Algorithm.get_units_usage(
     algo::ConsecutiveColGen, reform::Reformulation
-    ) 
+) 
     master = Coluna.MathProg.getmaster(reform)
     return [(reform, Coluna.Algorithm.PreprocessingUnitPair, Coluna.Algorithm.READ_AND_WRITE),
             (master, Coluna.Algorithm.PartialSolutionUnitPair, Coluna.Algorithm.READ_AND_WRITE)]
 end
 
 function Coluna.Algorithm.run!(
-    algo::ConsecutiveColGen, env::Env, data::ReformData, input::OptimizationInput
-    )
-    reform = getreform(data)
-    master = ClMP.getmaster(reform)
-    masterdata = getmasterdata(data)
+    algo::ConsecutiveColGen, env::Env, reform::Reformulation, input::OptimizationInput
+)
+    master = Coluna.MathProg.getmaster(reform)
     optstate = getoptstate(input)
 
     cg_run_number = 1
 
     while cg_run_number <= algo.num_calls_to_col_gen 
 
-        cg_output = run!(algo.colgen, env, data, OptimizationInput(optstate))
+        cg_output = run!(algo.colgen, env, reform, OptimizationInput(optstate))
         cg_optstate = getoptstate(cg_output)
         update_all_ip_primal_solutions!(optstate, cg_optstate)
 
@@ -54,26 +52,25 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_unit = getunit(data, PreprocessingUnitPair)
-        partsol_unit = getunit(masterdata, PartialSolutionUnitPair)
+        preprocess_unit = getstorageunit(reform, PreprocessingUnitPair)
+        partsol_unit = getstorageunit(master, PartialSolutionUnitPair)
     
         add_to_localpartialsol!(preprocess_unit, first(var_vals[1]), 1.0)
         add_to_solution!(partsol_unit, first(var_vals[1]), 1.0)
 
-        prp_output = run!(algo.preprocess, env, data, EmptyInput())
+        prp_output = run!(algo.preprocess, env, reform, EmptyInput())
         isinfeasible(prp_output) && break
     
         cg_run_number += 1
     end
 
-    heur_output = run!(algo.rm_heur, env, data, OptimizationInput(optstate))
+    heur_output = run!(algo.rm_heur, env, reform, OptimizationInput(optstate))
     update_all_ip_primal_solutions!(optstate, getoptstate(heur_output))
 
     return OptimizationOutput(optstate)
 end
 
 function conseq_colgen_test()
-    
     data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
     coluna = JuMP.optimizer_with_attributes(

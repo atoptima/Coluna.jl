@@ -51,9 +51,8 @@ end
 getoptstate(data::BendersCutGenRuntimeData) = data.optstate
 
 function run!(
-    algo::BendersCutGeneration, env::Env, rfdata::ReformData, input::OptimizationInput
+    algo::BendersCutGeneration, env::Env, reform::Reformulation, input::OptimizationInput
 )::OptimizationOutput
-    reform = getreform(rfdata)
     bndata = BendersCutGenRuntimeData(reform, getoptstate(input))
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
@@ -265,7 +264,7 @@ function solve_sp_to_gencut!(
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing benders_sp prob"
         TO.@timeit Coluna._to "Bender Sep SubProblem" begin
-            optstate = run!(SolveLpForm(get_dual_solution = true), env, ModelData(spform), OptimizationInput(OptimizationState(spform)))
+            optstate = run!(SolveLpForm(get_dual_solution = true), env, spform, OptimizationInput(OptimizationState(spform)))
         end
 
         optresult = getoptstate(optstate)
@@ -418,7 +417,7 @@ end
 
 function solve_relaxed_master!(master::Formulation, env::Env)
     elapsed_time = @elapsed begin
-        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(get_dual_solution = true), env, ModelData(master), OptimizationInput(OptimizationState(master)))
+        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(get_dual_solution = true), env, master, OptimizationInput(OptimizationState(master)))
     end
     return optresult, elapsed_time
 end

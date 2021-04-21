@@ -29,9 +29,9 @@ abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 # conquer algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractConquerAlgorithm) = true
 
-function run!(algo::AbstractConquerAlgorithm, env::Env, data::ReformData, input::ConquerInput)
+function run!(algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, input::ConquerInput)
     algotype = typeof(algo)
-    error(string("Method run! which takes as parameters ReformData and ConquerInput ", 
+    error(string("Method run! which takes as parameters Reformulation and ConquerInput ", 
                  "is not implemented for algorithm $algotype.")
     )
 end  
@@ -44,7 +44,7 @@ exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
-    node::Node, algo::AbstractConquerAlgorithm, env::Env, data::ReformData, 
+    node::Node, algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, 
     units_to_restore::UnitsUsageDict, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
 )
@@ -58,8 +58,8 @@ function apply_conquer_alg_to_node!(
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-        run!(algo, env, data, ConquerInput(node, units_to_restore))
-        store_records!(data, node.recordids)
+        run!(algo, env, reform, ConquerInput(node, units_to_restore))
+        store_records!(reform, node.recordids)
     end
     node.conquerwasrun = true
     return
@@ -101,11 +101,11 @@ function get_child_algorithms(algo::BendersConquer, reform::Reformulation)
     return [(algo.benders, reform)]
 end
 
-function run!(algo::BendersConquer, env::Env, data::ReformData, input::ConquerInput)
+function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::ConquerInput)
     restore_from_records!(input)
     node = getnode(input)    
     nodestate = getoptstate(node)
-    output = run!(algo.benders, env, data, OptimizationInput(nodestate))
+    output = run!(algo.benders, env, reform, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(output))
     return 
 end
@@ -156,18 +156,17 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     return child_algos
 end
 
-function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::ConquerInput)
+function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::ConquerInput)
     restore_from_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
-    reform = getreform(data)
-    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, data, EmptyInput()))
+    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform, EmptyInput()))
         setterminationstatus!(nodestate, INFEASIBLE)
         return 
     end
 
     nb_tightening_rounds = 0
-    colgen_output = run!(algo.colgen, env, data, OptimizationInput(nodestate))
+    colgen_output = run!(algo.colgen, env, reform, OptimizationInput(nodestate))
     update!(nodestate, getoptstate(colgen_output))
 
     node_pruned_by_colgen = getterminationstatus(nodestate) == INFEASIBLE ||
@@ -179,7 +178,7 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
         sol = get_best_lp_primal_sol(getoptstate(colgen_output))
         if sol !== nothing
             cutcb_input = CutCallbacksInput(sol)
-            cutcb_output = run!(CutCallbacks(), env, getmasterdata(data), cutcb_input)
+            cutcb_output = run!(CutCallbacks(), env, getmaster(reform), cutcb_input)
             if cutcb_output.nb_cuts_added == 0
                 node_pruned = node_pruned_by_colgen
                 break
@@ -197,7 +196,7 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
 
         set_ip_dual_bound!(nodestate, DualBound(reform))
         set_lp_dual_bound!(nodestate, DualBound(reform))
-        colgen_output = run!(algo.colgen, env, data, OptimizationInput(nodestate))
+        colgen_output = run!(algo.colgen, env, reform, OptimizationInput(nodestate))
         update!(nodestate, getoptstate(colgen_output))
 
         node_pruned_by_colgen = getterminationstatus(nodestate) == INFEASIBLE ||
@@ -224,14 +223,14 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
         node_pruned && break
 
         @info "Running $name heuristic"
-        ismanager(heur_algorithm) && (recordids = store_records!(data))
-        heur_output = run!(heur_algorithm, env, data, OptimizationInput(nodestate))
+        ismanager(heur_algorithm) && (recordids = store_records!(reform))
+        heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
         ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
         if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
             # we start with worst solution to add all improving solutions
             for sol in sort(ip_primal_sols, rev = getobjsense(reform) == MinSense)
                 cutgen = CutCallbacks(call_robust_facultative = false)
-                cutcb_output = run!(cutgen, env, getmasterdata(data), CutCallbacksInput(sol))
+                cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
                 if cutcb_output.nb_cuts_added == 0
                     update_ip_primal_sol!(nodestate, sol)
                 end
@@ -264,11 +263,11 @@ function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation)
     return [(algo.masterlpalgo, getmaster(reform))]
 end
 
-function run!(algo::RestrMasterLPConquer, env::Env, data::ReformData, input::ConquerInput)
+function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::ConquerInput)
     restore_from_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
-    output = run!(algo.masterlpalgo, env, getmasterdata(data), OptimizationInput(nodestate))
+    output = run!(algo.masterlpalgo, env, getmaster(reform), OptimizationInput(nodestate))
     masterlp_state =  getoptstate(output)
     update!(nodestate, masterlp_state)
     if ip_gap_closed(masterlp_state)

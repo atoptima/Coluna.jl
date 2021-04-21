@@ -112,23 +112,22 @@ function ReducedCostsCalculationHelper(reform::Reformulation)
     )
 end
 
-function run!(algo::ColumnGeneration, env::Env, data::ReformData, input::OptimizationInput)::OptimizationOutput
-    reform = getreform(data)
+function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
     master = getmaster(reform)
     optstate = OptimizationState(master, getoptstate(input), false, false)
 
     stop = false
 
     set_ph3!(master) # mixed ph1 & ph2
-    stop, _ = cg_main_loop!(algo, env, 3, optstate, data)
+    stop, _ = cg_main_loop!(algo, env, 3, optstate, reform)
 
     restart = true
     while should_do_ph_1(optstate) && restart && !stop
         set_ph1!(master, optstate)
-        stop, _ = cg_main_loop!(algo, env, 1, optstate, data)
+        stop, _ = cg_main_loop!(algo, env, 1, optstate, reform)
         if !stop
             set_ph2!(master, optstate) # pure ph2
-            stop, restart = cg_main_loop!(algo, env, 2, optstate, data)
+            stop, restart = cg_main_loop!(algo, env, 2, optstate, reform)
         end
     end
 
@@ -305,14 +304,12 @@ end
 
 function solve_sp_to_gencol!(
     spinfo::SubprobInfo, algo::ColumnGeneration, env::Env, masterform::Formulation, 
-    spdata::ModelData, dualsol::DualSolution
+    spform::Formulation, dualsol::DualSolution
 )
-    spform = getmodel(spdata)
-
     # Compute target
     update_pricing_target!(spform)
 
-    output = run!(algo.pricing_prob_solve_alg, env, spdata, OptimizationInput(OptimizationState(spform)))
+    output = run!(algo.pricing_prob_solve_alg, env, spform, OptimizationInput(OptimizationState(spform)))
     sp_optstate = getoptstate(output)
     sp_sol_value = get_ip_primal_bound(sp_optstate)
 
@@ -363,13 +360,12 @@ end
 
 function solve_sps_to_gencols!(
     spinfos::Dict{FormId,SubprobInfo}, algo::ColumnGeneration, env::Env, phase::Int64, 
-    data::ReformData, redcostshelper::ReducedCostsCalculationHelper, lp_dual_sol::DualSolution, 
+    reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, lp_dual_sol::DualSolution, 
     smooth_dual_sol::DualSolution,
 )
-    reform = getreform(data)
     masterform = getmaster(reform)
     nb_new_cols = 0
-    spsdatas = get_dw_pricing_datas(data)
+    spsforms = get_dw_pricing_sps(reform)
 
     # update reduced costs
     TO.@timeit Coluna._to "Update reduced costs" begin
@@ -378,15 +374,15 @@ function solve_sps_to_gencols!(
 
     ### BEGIN LOOP TO BE PARALLELIZED
     if algo.solve_subproblems_parallel
-        spuids = collect(keys(spsdatas))
+        spuids = collect(keys(spsforms))
         Threads.@threads for key in 1:length(spuids)
             spuid = spuids[key]
-            spdata = spsdatas[spuid]
-            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spdata, lp_dual_sol)
+            spform = spsforms[spuid]
+            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spform, lp_dual_sol)
         end
     else
-        for (spuid, spdata) in spsdatas
-            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spdata, lp_dual_sol)
+        for (spuid, spform) in spsforms
+            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spform, lp_dual_sol)
         end
     end
     ### END LOOP TO BE PARALLELIZED
@@ -397,9 +393,9 @@ function solve_sps_to_gencols!(
 
     TO.@timeit Coluna._to "Inserting columns" begin
         nb_new_cols = 0
-        for (spuid, spdata) in spsdatas
+        for (spuid, spform) in spsforms
             spinfo = spinfos[spuid]
-            nb_of_gen_cols = insert_cols_in_master!(masterform, spinfo, phase, getmodel(spdata))
+            nb_of_gen_cols = insert_cols_in_master!(masterform, spinfo, phase, spform)
             nb_new_cols += nb_of_gen_cols
             for colid in spinfo.sol_ids_to_activate
                 activate!(masterform, colid)
@@ -421,7 +417,7 @@ can_be_in_basis(algo::ColumnGeneration, ::Type{MinSense}, redcost::Float64) =
 can_be_in_basis(algo::ColumnGeneration, ::Type{MaxSense}, redcost::Float64) =
     redcost > 0 - algo.redcost_tol
 
-function cleanup_columns(algo::ColumnGeneration, iteration::Int64, data::ReformData)
+function cleanup_columns(algo::ColumnGeneration, iteration::Int64, master::Formulation)
 
     # we do columns clean up only on every 10th iteration in order not to spend
     # the time retrieving the reduced costs
@@ -430,7 +426,6 @@ function cleanup_columns(algo::ColumnGeneration, iteration::Int64, data::ReformD
     iteration % 10 != 0 && return
 
     cols_with_redcost = Vector{Pair{Variable,Float64}}()
-    master = getmodel(getmasterdata(data))
     for (id, var) in getvars(master)
         if getduty(id) <= MasterCol && iscuractive(master, var) && isexplicit(master, var)
             push!(cols_with_redcost, var => getreducedcost(master, var))
@@ -589,11 +584,10 @@ end
 #   If it was as phase 1 or 2, it will restart at phase 1.
 function cg_main_loop!(
     algo::ColumnGeneration, env::Env, phase::Int, cg_optstate::OptimizationState, 
-    data::ReformData
+    reform::Reformulation
 )
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
-    reform = getreform(data)
     masterform = getmaster(reform)
     spinfos = Dict{FormId,SubprobInfo}()
 
@@ -608,10 +602,10 @@ function cg_main_loop!(
     iteration = 0
     essential_cuts_separated = false
 
-    stabunit = (stabilization_is_used(algo) ? getunit(getmasterdata(data), ColGenStabilizationUnitPair) 
+    stabunit = (stabilization_is_used(algo) ? getstorageunit(masterform, ColGenStabilizationUnitPair) 
                                                : ColGenStabilizationUnit(masterform) )
 
-    partsolunit = getunit(getmasterdata(data), PartialSolutionUnitPair)
+    partsolunit = getstorageunit(masterform, PartialSolutionUnitPair)
     partial_solution = get_primal_solution(partsolunit, masterform)
 
     init_stab_before_colgen_loop!(stabunit)
@@ -625,7 +619,7 @@ function cg_main_loop!(
             rm_input = OptimizationInput(
                 OptimizationState(masterform, ip_primal_bound=get_ip_primal_bound(cg_optstate))
             )
-            rm_output = run!(algo.restr_master_solve_alg, env, getmasterdata(data), rm_input)
+            rm_output = run!(algo.restr_master_solve_alg, env, masterform, rm_input)
         end
         rm_optstate = getoptstate(rm_output)
 
@@ -665,7 +659,7 @@ function cg_main_loop!(
                     new_primal_sol = cat(rm_sol, partial_solution)
                     cutcb_input = CutCallbacksInput(new_primal_sol)
                     cutcb_output = run!(
-                        algo.essential_cut_gen_alg, env, getmasterdata(data), cutcb_input
+                        algo.essential_cut_gen_alg, env, masterform, cutcb_input
                     )
                     if cutcb_output.nb_cuts_added == 0
                         update_ip_primal_sol!(cg_optstate, new_primal_sol)
@@ -686,7 +680,7 @@ function cg_main_loop!(
         end # @timeit
 
         TO.@timeit Coluna._to "Cleanup columns" begin
-            cleanup_columns(algo, iteration, data)
+            cleanup_columns(algo, iteration, masterform)
         end
 
         iteration += 1
@@ -700,7 +694,7 @@ function cg_main_loop!(
         while true
             sp_time += @elapsed begin
                 nb_new_col = solve_sps_to_gencols!(
-                    spinfos, algo, env, phase, data, redcostshelper, lp_dual_sol, 
+                    spinfos, algo, env, phase, reform, redcostshelper, lp_dual_sol, 
                     smooth_dual_sol
                 )
             end

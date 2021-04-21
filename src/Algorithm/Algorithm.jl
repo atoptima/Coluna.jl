@@ -66,19 +66,19 @@ export getterminationstatus, setterminationstatus!,
     update_lp_primal_sol!, update_lp_dual_sol!, add_ip_primal_sol!, add_lp_primal_sol!,
     add_lp_dual_sol!, set_ip_primal_sol!, set_lp_primal_sol!, set_lp_dual_sol!,
     get_ip_dual_bound, set_ip_dual_bound!, update_all_ip_primal_solutions!, getreform,
-    getmasterdata, getoptstate, run!, isinfeasible
+    getoptstate, run!, isinfeasible
     
 # Algorithm's types
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
        BendersConquer, BendersCutGeneration, SolveIpForm, SolveLpForm, ExactBranchingPhase,
        OnlyRestrictedMasterBranchingPhase, PreprocessAlgorithm, RestrictedMasterIPHeuristic,
-       OptimizationInput, OptimizationOutput, OptimizationState, ModelData, ReformData,
+       OptimizationInput, OptimizationOutput, OptimizationState,
        EmptyInput       
 
 # Units 
 export PartialSolutionUnitPair, PreprocessingUnitPair       
 
 # Unit functions 
-export getunit, add_to_solution!, add_to_localpartialsol!
+export getstorageunit, add_to_solution!, add_to_localpartialsol!
 
 end
