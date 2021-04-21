@@ -163,7 +163,7 @@ function initialize_storage_units!(data::AbstractData, algo::AbstractOptimizatio
         for type_pair in type_pair_set
             (StorageUnitType, RecordType) = type_pair
             storagedict[type_pair] = 
-                Storage{ModelType, StorageUnitType, RecordType}(model)
+                StorageUnitWrapper{ModelType, StorageUnitType, RecordType}(model)
         end
     end
 end

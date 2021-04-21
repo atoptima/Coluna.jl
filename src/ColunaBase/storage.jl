@@ -9,7 +9,7 @@ of an algorithm or between runs of different algorithms.
 Models are storage units themselves. Each unit is associated with a
 model. Thus a unit adds computed data to a model.  
 
-Records are useful to store states of storage units at some point 
+Records are useful to store records of storage units at some point 
 of the calculation flow so that we can later return to this point and 
 restore the units. For example, the calculation flow may return to
 some saved node in the search tree.
@@ -27,9 +27,9 @@ Every stored record should be removed or restored using functions
 "restore_from_records!(::RecordsVector,::UnitsUsageDict)" 
 and "remove_records!(::RecordsVector)"
 
-After recording current states, if we write to some storage unit, we should restore 
+After recording current records, if we write to some storage unit, we should restore 
 it for writing using "restore_from_records!(...)" 
-After recording current states, if we read from a storage unit, 
+After recording current records, if we read from a storage unit, 
 no particular precautions should be taken.   
 """
 
@@ -58,15 +58,15 @@ is called during storing a unit.
 abstract type AbstractRecord end
 
 """
-    restore_from_record!(model, unit, record_state)
+    restore_from_record!(model, unit, record)
 
 This method should be defined for every triple (model type, unit type, record type)
 used by an algorithm.     
 """
-restore_from_record!(model::AbstractModel, unit::AbstractStorageUnit, state::AbstractRecord) =
+restore_from_record!(model::AbstractModel, unit::AbstractStorageUnit, record::AbstractRecord) =
     error(string(
         "restore_from_record! not defined for model type $(typeof(model)), ",
-        "unit type $(typeof(unit)), and record type $(typeof(state))"
+        "unit type $(typeof(unit)), and record type $(typeof(record))"
     ))    
 
 
@@ -118,208 +118,196 @@ function add_unit_pair_usage!(
 end
 
 """
-    RecordContainer
+    RecordWrapper
 
-This container keeps additional record information needed for 
-keeping the number of times the state has been stored. When 
-this number drops to zero, the state can be deleted. 
+It wraps and contains additional information about a record.
+The participation is equal to the number of times the record has been stored.
+When the participation drops to zero, the record can be deleted. 
 """
 
 const RecordId = Int
 
-mutable struct RecordContainer{SS <: AbstractRecord}
+mutable struct RecordWrapper{R <: AbstractRecord}
     id::RecordId
     participation::Int
-    state::Union{Nothing,SS}
+    record::Union{R,Nothing}
 end
 
-RecordContainer{SS}(recordid::RecordId, participation::Int) where {SS <: AbstractRecord} =
-    RecordContainer{SS}(recordid, participation, nothing)
+RecordWrapper{R}(recordid::RecordId, participation::Int) where {R <: AbstractRecord} =
+    RecordWrapper{R}(recordid, participation, nothing)
 
-getrecordid(ssc::RecordContainer) = ssc.id
-stateisempty(ssc::RecordContainer) = ssc.state === nothing
-getparticipation(ssc::RecordContainer) = ssc.participation
-getstate(ssc::RecordContainer) = ssc.state
-increaseparticipation!(ssc::RecordContainer) = ssc.participation += 1
-decreaseparticipation!(ssc::RecordContainer) = ssc.participation -= 1
+getrecordid(rw::RecordWrapper) = rw.id
+recordisempty(rw::RecordWrapper) = rw.record === nothing
+getparticipation(rw::RecordWrapper) = rw.participation
+getrecord(rw::RecordWrapper) = rw.record
+increaseparticipation!(rw::RecordWrapper) = rw.participation += 1
+decreaseparticipation!(rw::RecordWrapper) = rw.participation -= 1
 
-function setstate!(ssc::RecordContainer{SS}, state_to_set::SS) where {SS <: AbstractRecord}
-    ssc.state = state_to_set
+function setrecord!(rw::RecordWrapper{R}, record_to_set::R) where {R <: AbstractRecord}
+    rw.record = record_to_set
 end
 
-function Base.show(io::IO, recordcont::RecordContainer{SS}) where {SS <: AbstractRecord}
-    print(io, "state ", remove_until_last_point(string(SS)))
-    print(io, " with id=", getrecordid(recordcont), " part=", getparticipation(recordcont))
-    if getstate(recordcont) === nothing
+function Base.show(io::IO, rw::RecordWrapper{R}) where {R <: AbstractRecord}
+    print(io, "record ", remove_until_last_point(string(R)))
+    print(io, " with id=", getrecordid(rw), " part=", getparticipation(rw))
+    if getrecord(rw) === nothing
         print(io, " empty")
     else
-        print(io, " ", getstate(recordcont))
+        print(io, " ", getrecord(rw))
     end
 end
 
 """
-    EmptyRecordContainer
+    EmptyRecordWrapper
 """
 
-const EmptyRecordContainer = RecordContainer{EmptyRecord}
+const EmptyRecordWrapper = RecordWrapper{EmptyRecord}
 
-EmptyRecordContainer(recordid::RecordId, participation::Int) =
-    EmptyRecordContainer(1, 0)
+EmptyRecordWrapper(recordid::RecordId, participation::Int) =
+    EmptyRecordWrapper(1, 0)
 
-getrecordid(essc::EmptyRecordContainer) = 1
-stateisempty(essc::EmptyRecordContainer) = true 
-getparticipation(essc::EmptyRecordContainer) = 0
-increaseparticipation!(essc::EmptyRecordContainer) = nothing
-decreaseparticipation!(essc::EmptyRecordContainer) = nothing
+getrecordid(erw::EmptyRecordWrapper) = 1
+recordisempty(erw::EmptyRecordWrapper) = true 
+getparticipation(erw::EmptyRecordWrapper) = 0
+increaseparticipation!(erw::EmptyRecordWrapper) = nothing
+decreaseparticipation!(erw::EmptyRecordWrapper) = nothing
 
 """
-    Storage
+    StorageUnitWrapper
 
 This container keeps a storage unit and all records which have been 
 stored. It implements storing and restoring records of units in an 
 efficient way. 
 """
 
-mutable struct Storage{M <: AbstractModel,S <: AbstractStorageUnit,SS <: AbstractRecord}
+mutable struct StorageUnitWrapper{M <: AbstractModel,SU <: AbstractStorageUnit,R <: AbstractRecord}
     model::M
-    currecordcont::RecordContainer{SS}
+    cur_record::RecordWrapper{R}
     maxrecordid::RecordId
-    storage_unit::S
+    storage_unit::SU
     typepair::UnitTypePair
-    recordsdict::Dict{RecordId,RecordContainer{SS}}
-end 
+    recordsdict::Dict{RecordId,RecordWrapper{R}}
+end
 
-const RecordsVector = Vector{Pair{Storage,RecordId}}
+getunit(s::StorageUnitWrapper) = s.storage_unit # needed by Algorithms
 
-const StorageDict = Dict{UnitTypePair,Storage}
+const RecordsVector = Vector{Pair{StorageUnitWrapper,RecordId}}
 
-function Storage{M,S,SS}(model::M) where {M,S,SS}
-    return Storage{M,S,SS}(
-        model, RecordContainer{SS}(1, 0), 1, S(model), 
-        S => SS, Dict{RecordId,RecordContainer{SS}}()
+const StorageDict = Dict{UnitTypePair,StorageUnitWrapper}
+
+function StorageUnitWrapper{M,SU,R}(model::M) where {M,SU,R}
+    return StorageUnitWrapper{M,SU,R}(
+        model, RecordWrapper{R}(1, 0), 1, SU(model), 
+        SU => R, Dict{RecordId,RecordWrapper{R}}()
     )
 end    
 
-getmodel(sc::Storage) = sc.model
-getcurrecordcont(sc::Storage) = sc.currecordcont
-getmaxrecordid(sc::Storage) = sc.maxrecordid
-getrecordsdict(sc::Storage) = sc.recordsdict
-getunit(sc::Storage) = sc.storage_unit
-gettypepair(sc::Storage) = sc.typepair
-
-function Base.show(io::IO, storagecont::Storage)
+function Base.show(io::IO, storage::StorageUnitWrapper)
     print(io, "unit (")
-    print(IOContext(io, :compact => true), getmodel(storagecont))
-    (StorageUnitType, RecordType) = gettypepair(storagecont)    
+    print(IOContext(io, :compact => true), storage.model)
+    (StorageUnitType, RecordType) = storage.typepair    
     print(io, ", ", remove_until_last_point(string(StorageUnitType)))    
     print(io, ", ", remove_until_last_point(string(RecordType)), ")")        
 end
 
-function setcurstate!(
-    storagecont::Storage{M,S,SS}, recordcont::RecordContainer{SS}
-) where {M,S,SS} 
-    # we delete the current state container from the dictionary if necessary
-    currecordcont = getcurrecordcont(storagecont)
-    if !stateisempty(currecordcont) && getparticipation(currecordcont) == 0
-        delete!(getrecordsdict(storagecont), getrecordid(currecordcont))
-        #@logmsg LogLevel(-2) string("Removed state with id ", getrecordid(currecordcont), " for ", storagecont)
+function setcurrecord!(
+    storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
+) where {M,SU,R} 
+    # we delete the current record container from the dictionary if necessary
+    if !recordisempty(storage.cur_record) && getparticipation(storage.cur_record) == 0
+        delete!(storage.recordsdict, getrecordid(storage.cur_record))
+        # @logmsg LogLevel(-2) string("Removed record with id ", getrecordid(currecord), " for ", storage)
     end
-    storagecont.currecordcont = recordcont
-    if getmaxrecordid(storagecont) < getrecordid(recordcont) 
-        storagecont.maxrecordid = getrecordid(recordcont)
+    storage.cur_record = record
+    if storage.maxrecordid < getrecordid(record) 
+        storage.maxrecordid = getrecordid(record)
     end
 end
 
-function increaseparticipation!(storagecont::Storage, recordid::RecordId)
-    recordcont = getcurrecordcont(storagecont)
-    if (getrecordid(recordcont) == recordid)
-        increaseparticipation!(recordcont)
+function increaseparticipation!(storage::StorageUnitWrapper, recordid::RecordId)
+    record = storage.cur_record
+    if getrecordid(record) == recordid
+        increaseparticipation!(record)
     else
-        recordsdict = getrecordsdict(storagecont)
-        if !haskey(recordsdict, recordid) 
-            error(string("State with id $recordid does not exist for ", storagecont))
+        if !haskey(storage.recordsdict, recordid) 
+            error(string("State with id $recordid does not exist for ", storage))
         end
-        increaseparticipation!(recordsdict[recordid])
+        increaseparticipation!(storage.recordsdict[recordid])
     end
 end
 
-function retrieve_from_recordsdict(storagecont::Storage, recordid::RecordId)
-    recordsdict = getrecordsdict(storagecont)
-    if !haskey(recordsdict, recordid)
-        error(string("State with id $recordid does not exist for ", storagecont))
+function retrieve_from_recordsdict(storage::StorageUnitWrapper, recordid::RecordId)
+    if !haskey(storage.recordsdict, recordid)
+        error(string("State with id $recordid does not exist for ", storage))
     end
-    recordcont = recordsdict[recordid]
-    decreaseparticipation!(recordcont)
-    if getparticipation(recordcont) < 0
-        error(string("Participation is below zero for state with id $recordid of ", storagecont))
+    record = storage.recordsdict[recordid]
+    decreaseparticipation!(record)
+    if getparticipation(record) < 0
+        error(string("Participation is below zero for record with id $recordid of ", storage))
     end
-    return recordcont
+    return record
 end
 
 function save_to_recordsdict!(
-    storagecont::Storage{M,S,SS}, recordcont::RecordContainer{SS}
-) where {M,S,SS}
-    if getparticipation(recordcont) > 0 && stateisempty(recordcont)
-        state = SS(getmodel(storagecont), getunit(storagecont))
-        #@logmsg LogLevel(-2) string("Created state with id ", getrecordid(recordcont), " for ", storagecont)
-        setstate!(recordcont, state)
-        recordsdict = getrecordsdict(storagecont)
-        recordsdict[getrecordid(recordcont)] = recordcont
+    storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
+) where {M,SU,R}
+    if getparticipation(record) > 0 && recordisempty(record)
+        record_content = R(storage.model, storage.storage_unit)
+        # @logmsg LogLevel(-2) string("Created record with id ", getrecordid(record), " for ", storage)
+        setrecord!(record, record_content)
+        storage.recordsdict[getrecordid(record)] = record
     end
 end
 
-function store_record!(storagecont::Storage)::RecordId 
-    recordcont = getcurrecordcont(storagecont)
-    increaseparticipation!(recordcont)
-    return getrecordid(recordcont)
+function store_record!(storage::StorageUnitWrapper)::RecordId 
+    increaseparticipation!(storage.cur_record)
+    return getrecordid(storage.cur_record)
 end
 
 function restore_from_record!(
-    storagecont::Storage{M,S,SS}, recordid::RecordId, mode::UnitAccessMode
-) where {M,S,SS}
-    recordcont = getcurrecordcont(storagecont)
-    if getrecordid(recordcont) == recordid 
-        decreaseparticipation!(recordcont)
-        if getparticipation(recordcont) < 0
-            error(string("Participation is below zero for state with id $recordid of ", getnicename(storagecont)))
+    storage::StorageUnitWrapper{M,SU,R}, recordid::RecordId, mode::UnitAccessMode
+) where {M,SU,R}
+    record = storage.cur_record
+    if getrecordid(record) == recordid 
+        decreaseparticipation!(record)
+        if getparticipation(record) < 0
+            error(string("Participation is below zero for record with id $recordid of ", getnicename(storage)))
         end
         if mode == READ_AND_WRITE 
-            save_to_recordsdict!(storagecont, recordcont)
-            recordcont = RecordContainer{SS}(getmaxrecordid(storagecont) + 1, 0)
-            setcurstate!(storagecont, recordcont)
+            save_to_recordsdict!(storage, record)
+            record = RecordWrapper{R}(storage.maxrecordid + 1, 0)
+            setcurrecord!(storage, record)
         end
         return
     elseif mode != NOT_USED
-        # we save current state to dictionary if necessary
-        save_to_recordsdict!(storagecont, recordcont)
+        # we save current record to dictionary if necessary
+        save_to_recordsdict!(storage, record)
     end
     
-    recordcont = retrieve_from_recordsdict(storagecont, recordid)
+    record = retrieve_from_recordsdict(storage, recordid)
     
     if mode == NOT_USED
-        if !stateisempty(recordcont) && getparticipation(recordcont) == 0
-            delete!(getrecordsdict(storagecont), getrecordid(recordcont))
-            #@logmsg LogLevel(-2) string("Removed state with id ", getrecordid(recordcont), " for ", storagecont)
+        if !recordisempty(record) && getparticipation(record) == 0
+            delete!(storage.recordsdict, getrecordid(record))
+            # @logmsg LogLevel(-2) string("Removed record with id ", getrecordid(record), " for ", storage)
         end
     else 
-        restore_from_record!(getmodel(storagecont), getunit(storagecont), getstate(recordcont))
-        #@logmsg LogLevel(-2) string("Restored state with id ", getrecordid(recordcont), " for ", storagecont)
+        restore_from_record!(storage.model, storage.storage_unit, getrecord(record))
+        # @logmsg LogLevel(-2) string("Restored record with id ", getrecordid(record), " for ", storage)
         if mode == READ_AND_WRITE 
-            recordcont = RecordContainer{SS}(getmaxrecordid(storagecont) + 1, 0)
+            record = RecordWrapper{R}(storage.maxrecordid + 1, 0)
         end 
-        setcurstate!(storagecont, recordcont)
+        setcurrecord!(storage, record)
     end
 end
 
-function check_records_participation(storagecont::Storage)
-    currecordcont = getcurrecordcont(storagecont)
-    if getparticipation(currecordcont) > 0
-        @warn string("Positive participation of state ", currecordcont)
+function check_records_participation(storage::StorageUnitWrapper)
+    if getparticipation(storage.cur_record) > 0
+        @warn string("Positive participation of record ", storage.cur_record)
     end
-    recordsdict = getrecordsdict(storagecont)
-    for (recordid, recordcont) in recordsdict
-        if getparticipation(recordcont) > 0
-            @warn string("Positive participation of state ", recordcont)
+    for (recordid, record) in storage.recordsdict
+        if getparticipation(record) > 0
+            @warn string("Positive participation of record ", record)
         end
     end
 end
@@ -333,22 +321,21 @@ end
 # not used for the moment as it has impact on the code readability
 # we keep this function for a while for the case when `restore_from_records!`
 # happens to be a bottleneck
-# function reserve_for_writing!(storagecont::Storage{M,S,SS}) where {M,S,SS}
-#     recordcont = getcurrecordcont(storagecont)
-#     save_to_recordsdict!(storagecont, recordcont)
-#     recordcont = RecordContainer{SS}(getmaxrecordid(storagecont) + 1, 0)
-#     setcurstate!(storagecont, recordcont)
+# function reserve_for_writing!(storage::StorageUnitWrapper{M,SU,R}) where {M,SU,R}
+#     save_to_recordsdict!(storage, storage.cur_record)
+#     storage.cur_record = RecordWrapper{R}(storage.maxrecordid + 1, 0)
+#     setcurrecord!(storage, storage.cur_record)
 # end
 
 function restore_from_records!(units_to_restore::UnitsUsageDict, records::RecordsVector)
     TO.@timeit Coluna._to "Restore/remove records" begin
-        for (storagecont, recordid) in records
+        for (storage, recordid) in records
             mode = get(
                 units_to_restore, 
-                (getmodel(storagecont), gettypepair(storagecont)), 
+                (storage.model, storage.typepair), 
                 READ_ONLY
             )
-            restore_from_record!(storagecont, recordid, mode)
+            restore_from_record!(storage, recordid, mode)
         end
     end    
     empty!(records) # vector of records should be emptied 
@@ -356,8 +343,8 @@ end
 
 function remove_records!(records::RecordsVector)
     TO.@timeit Coluna._to "Restore/remove records" begin
-        for (storagecont, recordid) in records
-            restore_from_record!(storagecont, recordid, NOT_USED)
+        for (storage, recordid) in records
+            restore_from_record!(storage, recordid, NOT_USED)
         end
     end
     empty!(records) # vector of records should be emptied 
@@ -365,9 +352,9 @@ end
 
 function copy_records(records::RecordsVector)::RecordsVector
     recordscopy = RecordsVector()
-    for (storagecont, recordid) in records
-        push!(recordscopy, storagecont => recordid)
-        increaseparticipation!(storagecont, recordid)
+    for (storage, recordid) in records
+        push!(recordscopy, storage => recordid)
+        increaseparticipation!(storage, recordid)
     end
     return recordscopy
 end
@@ -378,7 +365,7 @@ end
 """
     IMPORTANT!
 
-    Every stored or copied state should be either restored or removed so that it's 
+    Every stored or copied record should be either restored or removed so that it's 
     participation is correctly computed and memory correctly controlled
 """
 
