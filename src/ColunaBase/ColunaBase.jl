@@ -29,7 +29,7 @@ export TerminationStatus, SolutionStatus, OPTIMAL, INFEASIBLE, TIME_LIMIT,
 
 # Storages (TODO : clean)
 export RecordsVector, UnitTypePair, StorageDict, AbstractStorageUnit, AbstractRecord,
-    UnitsUsageDict, UnitAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED, Storage,
+    UnitsUsageDict, UnitAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED, StorageUnitWrapper,
     add_unit_pair_usage!, store_record!, restore_from_records!, getunit, copy_records,
     restore_from_record!, remove_records!, check_records_participation
 
