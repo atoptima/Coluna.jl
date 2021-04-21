@@ -58,11 +58,7 @@ is called during storing a unit.
 abstract type AbstractRecord end
 
 """
-<<<<<<< HEAD
-    restore_from_record!(model, unit, record_record)
-=======
     restore_from_record!(model, unit, record)
->>>>>>> release-0.4.0
 
 This method should be defined for every triple (model type, unit type, record type)
 used by an algorithm.     
