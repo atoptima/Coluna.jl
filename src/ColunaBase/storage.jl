@@ -58,7 +58,11 @@ is called during storing a unit.
 abstract type AbstractRecord end
 
 """
+<<<<<<< HEAD
     restore_from_record!(model, unit, record_record)
+=======
+    restore_from_record!(model, unit, record)
+>>>>>>> release-0.4.0
 
 This method should be defined for every triple (model type, unit type, record type)
 used by an algorithm.     
@@ -173,14 +177,14 @@ increaseparticipation!(erw::EmptyRecordWrapper) = nothing
 decreaseparticipation!(erw::EmptyRecordWrapper) = nothing
 
 """
-    Storage
+    StorageUnitWrapper
 
 This container keeps a storage unit and all records which have been 
 stored. It implements storing and restoring records of units in an 
 efficient way. 
 """
 
-mutable struct Storage{M <: AbstractModel,SU <: AbstractStorageUnit,R <: AbstractRecord}
+mutable struct StorageUnitWrapper{M <: AbstractModel,SU <: AbstractStorageUnit,R <: AbstractRecord}
     model::M
     cur_record::RecordWrapper{R}
     maxrecordid::RecordId
@@ -189,20 +193,20 @@ mutable struct Storage{M <: AbstractModel,SU <: AbstractStorageUnit,R <: Abstrac
     recordsdict::Dict{RecordId,RecordWrapper{R}}
 end
 
-getunit(s::Storage) = s.storage_unit # needed by Algorithms
+getunit(s::StorageUnitWrapper) = s.storage_unit # needed by Algorithms
 
-const RecordsVector = Vector{Pair{Storage,RecordId}}
+const RecordsVector = Vector{Pair{StorageUnitWrapper,RecordId}}
 
-const StorageDict = Dict{UnitTypePair,Storage}
+const StorageDict = Dict{UnitTypePair,StorageUnitWrapper}
 
-function Storage{M,SU,R}(model::M) where {M,SU,R}
-    return Storage{M,SU,R}(
+function StorageUnitWrapper{M,SU,R}(model::M) where {M,SU,R}
+    return StorageUnitWrapper{M,SU,R}(
         model, RecordWrapper{R}(1, 0), 1, SU(model), 
         SU => R, Dict{RecordId,RecordWrapper{R}}()
     )
 end    
 
-function Base.show(io::IO, storage::Storage)
+function Base.show(io::IO, storage::StorageUnitWrapper)
     print(io, "unit (")
     print(IOContext(io, :compact => true), storage.model)
     (StorageUnitType, RecordType) = storage.typepair    
@@ -211,7 +215,7 @@ function Base.show(io::IO, storage::Storage)
 end
 
 function setcurrecord!(
-    storage::Storage{M,SU,R}, record::RecordWrapper{R}
+    storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
 ) where {M,SU,R} 
     # we delete the current record container from the dictionary if necessary
     if !recordisempty(storage.cur_record) && getparticipation(storage.cur_record) == 0
@@ -224,7 +228,7 @@ function setcurrecord!(
     end
 end
 
-function increaseparticipation!(storage::Storage, recordid::RecordId)
+function increaseparticipation!(storage::StorageUnitWrapper, recordid::RecordId)
     record = storage.cur_record
     if getrecordid(record) == recordid
         increaseparticipation!(record)
@@ -236,7 +240,7 @@ function increaseparticipation!(storage::Storage, recordid::RecordId)
     end
 end
 
-function retrieve_from_recordsdict(storage::Storage, recordid::RecordId)
+function retrieve_from_recordsdict(storage::StorageUnitWrapper, recordid::RecordId)
     if !haskey(storage.recordsdict, recordid)
         error(string("State with id $recordid does not exist for ", storage))
     end
@@ -249,7 +253,7 @@ function retrieve_from_recordsdict(storage::Storage, recordid::RecordId)
 end
 
 function save_to_recordsdict!(
-    storage::Storage{M,SU,R}, record::RecordWrapper{R}
+    storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
 ) where {M,SU,R}
     if getparticipation(record) > 0 && recordisempty(record)
         record_content = R(storage.model, storage.storage_unit)
@@ -259,13 +263,13 @@ function save_to_recordsdict!(
     end
 end
 
-function store_record!(storage::Storage)::RecordId 
+function store_record!(storage::StorageUnitWrapper)::RecordId 
     increaseparticipation!(storage.cur_record)
     return getrecordid(storage.cur_record)
 end
 
 function restore_from_record!(
-    storage::Storage{M,SU,R}, recordid::RecordId, mode::UnitAccessMode
+    storage::StorageUnitWrapper{M,SU,R}, recordid::RecordId, mode::UnitAccessMode
 ) where {M,SU,R}
     record = storage.cur_record
     if getrecordid(record) == recordid 
@@ -301,7 +305,7 @@ function restore_from_record!(
     end
 end
 
-function check_records_participation(storage::Storage)
+function check_records_participation(storage::StorageUnitWrapper)
     if getparticipation(storage.cur_record) > 0
         @warn string("Positive participation of record ", storage.cur_record)
     end
@@ -321,7 +325,7 @@ end
 # not used for the moment as it has impact on the code readability
 # we keep this function for a while for the case when `restore_from_records!`
 # happens to be a bottleneck
-# function reserve_for_writing!(storage::Storage{M,SU,R}) where {M,SU,R}
+# function reserve_for_writing!(storage::StorageUnitWrapper{M,SU,R}) where {M,SU,R}
 #     save_to_recordsdict!(storage, storage.cur_record)
 #     storage.cur_record = RecordWrapper{R}(storage.maxrecordid + 1, 0)
 #     setcurrecord!(storage, storage.cur_record)
