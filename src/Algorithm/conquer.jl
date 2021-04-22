@@ -13,7 +13,7 @@ end
 
 getnode(input::ConquerInput) = input.node
 
-restore_from_records!(input::ConquerInput) = restore_from_records!(input.node.recordids, input.units_to_restore) 
+restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.recordids) 
 
 """
     AbstractConquerAlgorithm
@@ -237,7 +237,7 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
                 end
             end
         end
-        ismanager(heur_algorithm) && restore_from_records!(recordids, input.units_to_restore)
+        ismanager(heur_algorithm) && restore_from_records!(input.units_to_restore, recordids)
     end
 
     if node_pruned
