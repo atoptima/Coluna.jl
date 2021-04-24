@@ -117,11 +117,11 @@ function run!(algo::ColumnGeneration, env::Env, data::ReformData, input::Optimiz
     master = getmaster(reform)
     optstate = OptimizationState(master, getoptstate(input), false, false)
 
-    stop = false
-
     set_ph3!(master) # mixed ph1 & ph2
-    stop, _ = cg_main_loop!(algo, env, 3, optstate, data)
+    # we ignore stop because we need to check if the final LP solution has artificial vars
+    _, _ = cg_main_loop!(algo, env, 3, optstate, data)
 
+    stop = false
     restart = true
     while should_do_ph_1(optstate) && restart && !stop
         set_ph1!(master, optstate)
@@ -133,7 +133,6 @@ function run!(algo::ColumnGeneration, env::Env, data::ReformData, input::Optimiz
     end
 
     @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getterminationstatus(optstate))
-
     return OptimizationOutput(optstate)
 end
 
@@ -143,7 +142,6 @@ function should_do_ph_1(optstate::OptimizationState)
         @logmsg LogLevel(-2) "Artificial variables in lp solution, need to do phase one"
         return true
     end
-
     @logmsg LogLevel(-2) "No artificial variables in lp solution, will not proceed to do phase one"
     return false
 end
@@ -744,11 +742,6 @@ function cg_main_loop!(
         primal_bound = get_lp_primal_bound(cg_optstate)
         ip_primal_bound = get_ip_primal_bound(cg_optstate)
 
-        if ip_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol)
-            setterminationstatus!(cg_optstate, OPTIMAL)
-            @logmsg LogLevel(0) "Dual bound reached primal bound."
-            return true, false
-        end
         if phase == 1 && ph_one_infeasible_db(algo, dual_bound)
             db = - getvalue(DualBound(reform))
             pb = - getvalue(PrimalBound(reform))
@@ -756,6 +749,11 @@ function cg_main_loop!(
             set_lp_primal_bound!(cg_optstate, PrimalBound(reform, pb))
             setterminationstatus!(cg_optstate, INFEASIBLE)
             @logmsg LogLevel(0) "Phase one determines infeasibility."
+            return true, false
+        end
+        if ip_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol)
+            setterminationstatus!(cg_optstate, OPTIMAL)
+            @logmsg LogLevel(0) "Dual bound reached primal bound."
             return true, false
         end
         if lp_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol) && !essential_cuts_separated
