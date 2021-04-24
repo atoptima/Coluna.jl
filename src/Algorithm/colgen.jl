@@ -56,12 +56,12 @@ function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
 end 
 
 function get_units_usage(algo::ColumnGeneration, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel,UnitTypePair,UnitAccessMode}[] 
+    units_usage = Tuple{AbstractModel,UnitType,UnitAccessMode}[] 
     master = getmaster(reform)
-    push!(units_usage, (master, MasterColumnsUnitPair, READ_AND_WRITE))
-    push!(units_usage, (master, PartialSolutionUnitPair, READ_ONLY))
+    push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
+    push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
     if stabilization_is_used(algo)
-        push!(units_usage, (master, ColGenStabilizationUnitPair, READ_AND_WRITE))
+        push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
     end
     return units_usage
 end
@@ -602,10 +602,10 @@ function cg_main_loop!(
     iteration = 0
     essential_cuts_separated = false
 
-    stabunit = (stabilization_is_used(algo) ? getstorageunit(masterform, ColGenStabilizationUnitPair) 
+    stabunit = (stabilization_is_used(algo) ? getstorageunit(masterform, ColGenStabilizationUnit) 
                                                : ColGenStabilizationUnit(masterform) )
 
-    partsolunit = getstorageunit(masterform, PartialSolutionUnitPair)
+    partsolunit = getstorageunit(masterform, PartialSolutionUnit)
     partial_solution = get_primal_solution(partsolunit, masterform)
 
     init_stab_before_colgen_loop!(stabunit)

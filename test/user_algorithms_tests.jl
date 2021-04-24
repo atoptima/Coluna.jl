@@ -23,8 +23,8 @@ function Coluna.Algorithm.get_units_usage(
     algo::ConsecutiveColGen, reform::Reformulation
 ) 
     master = Coluna.MathProg.getmaster(reform)
-    return [(reform, Coluna.Algorithm.PreprocessingUnitPair, Coluna.Algorithm.READ_AND_WRITE),
-            (master, Coluna.Algorithm.PartialSolutionUnitPair, Coluna.Algorithm.READ_AND_WRITE)]
+    return [(reform, Coluna.Algorithm.PreprocessingUnit, Coluna.Algorithm.READ_AND_WRITE),
+            (master, Coluna.Algorithm.PartialSolutionUnit, Coluna.Algorithm.READ_AND_WRITE)]
 end
 
 function Coluna.Algorithm.run!(
@@ -52,8 +52,8 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_unit = getstorageunit(reform, PreprocessingUnitPair)
-        partsol_unit = getstorageunit(master, PartialSolutionUnitPair)
+        preprocess_unit = getstorageunit(reform, PreprocessingUnit)
+        partsol_unit = getstorageunit(master, PartialSolutionUnit)
     
         add_to_localpartialsol!(preprocess_unit, first(var_vals[1]), 1.0)
         add_to_solution!(partsol_unit, first(var_vals[1]), 1.0)

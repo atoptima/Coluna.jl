@@ -31,7 +31,7 @@ end
 
 function get_units_usage(algo::CutCallbacks, form::Formulation{Duty}
     ) where {Duty<:MathProg.AbstractFormDuty} 
-    return [(form, MasterCutsUnitPair, READ_AND_WRITE)]
+    return [(form, MasterCutsUnit, READ_AND_WRITE)]
 end
 
 function run!(algo::CutCallbacks, env::Env, form::Formulation, input::CutCallbacksInput)

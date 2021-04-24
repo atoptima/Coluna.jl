@@ -26,15 +26,15 @@ function get_units_usage(
     # we use units in the read only mode, as relaxing integrality
     # is reverted before the end of the algorithm, 
     # so the state of the formulation remains the same 
-    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
-    push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
+    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[] 
+    push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(units_usage, (form, MasterColumnsUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterBranchConstrsUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterCutsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
+        push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))
+        push!(units_usage, (form, MasterCutsUnit, READ_ONLY))
     end
     if algo.consider_partial_solution
-        push!(units_usage, (form, PartialSolutionUnitPair, READ_ONLY))
+        push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
     end
     return units_usage
 end
@@ -63,7 +63,7 @@ function run!(algo::SolveLpForm, env::Env, form::Formulation, input::Optimizatio
     partial_sol = nothing
     partial_sol_val = 0.0
     if algo.consider_partial_solution
-        partsolunit = getstorageunit(form, PartialSolutionUnitPair)
+        partsolunit = getstorageunit(form, PartialSolutionUnit)
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_val = getvalue(partial_sol)
     end

@@ -45,6 +45,9 @@ can be safely computed.
 """
 abstract type AbstractStorageUnit end
 
+# this is the type of record associated to the storage unit
+record_type(::Type{<:AbstractStorageUnit}) = error("error")
+
 """
     AbstractRecord
 
@@ -83,13 +86,13 @@ EmptyRecord(model::AbstractModel, unit::AbstractStorageUnit) = nothing
 
 restore_from_record!(::AbstractModel, ::AbstractStorageUnit, ::EmptyRecord) = nothing
 
-# UnitTypePair = Pair{Type{<:AbstractStorageUnit}, Type{<:AbstractRecord}}.
+# UnitType = Pair{Type{<:AbstractStorageUnit}, Type{<:AbstractRecord}}.
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
-const UnitTypePair = Pair{DataType,DataType}
+const UnitType = DataType #Type{<:AbstractStorageUnit}
 
-# TO DO : replace with the set of UnitTypePair, should only contain records which should 
+# TO DO : replace with the set of UnitType, should only contain records which should 
 #         be restored for writing (all other records are restored anyway but just for reading)
-const UnitsUsageDict = Dict{Tuple{AbstractModel,UnitTypePair},UnitAccessMode}
+const UnitsUsageDict = Dict{Tuple{AbstractModel,UnitType},UnitAccessMode}
 
 function Base.show(io::IO, usagedict::UnitsUsageDict)
     print(io, "storage units usage dict [")
@@ -100,12 +103,12 @@ function Base.show(io::IO, usagedict::UnitsUsageDict)
 end
 
 """
-    add_unit_pair_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitTypePair, ::UnitAccessMode)
+    add_unit_pair_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitType, ::UnitAccessMode)
 
 An auxiliary function to be used when adding unit usage to a UnitUsageDict
 """
 function add_unit_pair_usage!(
-    dict::UnitsUsageDict, model::AbstractModel, pair::UnitTypePair, mode::UnitAccessMode
+    dict::UnitsUsageDict, model::AbstractModel, pair::UnitType, mode::UnitAccessMode
 )
     current_mode = get(dict, (model, pair), NOT_USED) 
     if current_mode == NOT_USED && mode != NOT_USED
@@ -185,7 +188,7 @@ mutable struct StorageUnitWrapper{M <: AbstractModel,SU <: AbstractStorageUnit,R
     cur_record::RecordWrapper{R}
     maxrecordid::RecordId
     storage_unit::SU
-    typepair::UnitTypePair
+    typepair::UnitType
     recordsdict::Dict{RecordId,RecordWrapper{R}}
 end
 
@@ -193,12 +196,22 @@ getstorageunit(s::StorageUnitWrapper) = s.storage_unit # needed by Algorithms
 
 const RecordsVector = Vector{Pair{StorageUnitWrapper,RecordId}}
 
-const Storage = Dict{UnitTypePair,StorageUnitWrapper}
+struct Storage
+    units::Dict{UnitType, StorageUnitWrapper}
+    #units::Dict{AbstractStorageUnit, StorageUnitWrapper}
+end
+
+function Storage()
+    return Storage(
+        Dict{UnitType, StorageUnitWrapper}()
+        #Dict{AbstractStorageUnit, StorageUnitWrapper}()
+    )
+end
 
 function StorageUnitWrapper{M,SU,R}(model::M) where {M,SU,R}
     return StorageUnitWrapper{M,SU,R}(
         model, RecordWrapper{R}(1, 0), 1, SU(model), 
-        SU => R, Dict{RecordId,RecordWrapper{R}}()
+        SU, Dict{RecordId,RecordWrapper{R}}()
     )
 end    
 

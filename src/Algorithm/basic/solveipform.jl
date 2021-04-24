@@ -29,13 +29,13 @@ function get_units_usage(
     # (deactivating artificial vars and enforcing integrality)
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same
-    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
-    push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
+    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[] 
+    push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(units_usage, (form, PartialSolutionUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterColumnsUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterBranchConstrsUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterCutsUnitPair, READ_ONLY))
+        push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
+        push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
+        push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))
+        push!(units_usage, (form, MasterCutsUnit, READ_ONLY))
     end
     return units_usage
 end
@@ -68,7 +68,7 @@ function run!(algo::SolveIpForm, env::Env, form::Formulation, input::Optimizatio
     partial_sol = nothing
     partial_sol_value = 0.0
     if isa(form, Formulation{MathProg.DwMaster})
-        partsolunit = getstorageunit(form, PartialSolutionUnitPair)
+        partsolunit = getstorageunit(form, PartialSolutionUnit)
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_value = getvalue(partial_sol)
     end
