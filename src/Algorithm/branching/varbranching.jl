@@ -22,7 +22,7 @@ function generate_children(
     )
 
     units_to_restore = UnitsUsageDict(
-        (master, MasterBranchConstrsUnitPair) => READ_AND_WRITE
+        (master, MasterBranchConstrsUnit) => READ_AND_WRITE
         #(master, BasisUnit) => READ_AND_WRITE) # not yet implemented
     )
 
@@ -72,7 +72,7 @@ end
 # VarBranchingRule does not have child algorithms
 
 function get_units_usage(algo::VarBranchingRule, reform::Reformulation) 
-    return [(getmaster(reform), MasterBranchConstrsUnitPair, READ_AND_WRITE)] 
+    return [(getmaster(reform), MasterBranchConstrsUnit, READ_AND_WRITE)] 
 end
 
 function run!(

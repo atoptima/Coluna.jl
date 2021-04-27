@@ -1,13 +1,13 @@
 
 function ColunaBase.getstorageunit(form::AbstractModel, pair)
-    storagecont = get(form.storagedict, pair, nothing)
+    storagecont = get(form.storage.units, pair, nothing)
     storagecont === nothing && error("No storage unit for pair $pair in $(typeof(form)) with id $(getuid(form)).")
     return storagecont.storage_unit
 end
 
 function store_records!(form::Formulation, records::RecordsVector)
-    storagedict = form.storagedict
-    for (FullType, storagecont) in storagedict
+    storagedict = form.storage.units
+    for (_, storagecont) in storagedict
         recordid = store_record!(storagecont)
         push!(records, storagecont => recordid)
     end
@@ -15,8 +15,8 @@ function store_records!(form::Formulation, records::RecordsVector)
 end
 
 function store_records!(reform::Reformulation, records::RecordsVector)
-    storagedict = reform.storagedict
-    for (FullType, storagecont) in storagedict
+    storagedict = reform.storage.units
+    for (_, storagecont) in storagedict
         recordid = store_record!(storagecont)
         push!(records, (storagecont, recordid))
     end
@@ -39,15 +39,15 @@ function store_records!(reform::Reformulation)
 end
 
 function ColunaBase.check_records_participation(form::Formulation)
-    storagedict = form.storagedict
-    for (FullType, storagecont) in storagedict
+    storagedict = form.storage.units
+    for (_, storagecont) in storagedict
         check_records_participation(storagecont)
     end
 end
 
 function ColunaBase.check_records_participation(reform::Reformulation)
-    storagedict = reform.storagedict
-    for (FullType, storagecont) in storagedict
+    storagedict = reform.storage.units
+    for (_, storagecont) in storagedict
         check_records_participation(storagecont)
     end
     check_records_participation(getmaster(reform))

@@ -136,7 +136,7 @@ function ColunaBase.restore_from_record!(
     unit.local_partial_sol = copy(state.local_partial_sol)
 end
 
-const PreprocessingUnitPair = (PreprocessingUnit => PreprocessingRecord)
+ColunaBase.record_type(::Type{PreprocessingUnit}) = PreprocessingRecord
 
 
 """
@@ -161,23 +161,23 @@ isinfeasible(output::PreprocessingOutput) = output.infeasible
 end
 
 function get_units_usage(algo::PreprocessAlgorithm, form::Formulation) 
-    return [(form, StaticVarConstrUnitPair, READ_AND_WRITE), 
-            (form, PreprocessingUnitPair, READ_AND_WRITE)]
+    return [(form, StaticVarConstrUnit, READ_AND_WRITE), 
+            (form, PreprocessingUnit, READ_AND_WRITE)]
 end
 
 function get_units_usage(algo::PreprocessAlgorithm, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[]     
-    push!(units_usage, (reform, PreprocessingUnitPair, READ_AND_WRITE))
+    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[]     
+    push!(units_usage, (reform, PreprocessingUnit, READ_AND_WRITE))
 
     master = getmaster(reform)
-    push!(units_usage, (master, StaticVarConstrUnitPair, READ_AND_WRITE))
-    push!(units_usage, (master, MasterBranchConstrsUnitPair, READ_AND_WRITE))
-    push!(units_usage, (master, MasterCutsUnitPair, READ_AND_WRITE))
+    push!(units_usage, (master, StaticVarConstrUnit, READ_AND_WRITE))
+    push!(units_usage, (master, MasterBranchConstrsUnit, READ_AND_WRITE))
+    push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE))
 
     if algo.preprocess_subproblems
-        push!(units_usage, (master, MasterColumnsUnitPair, READ_AND_WRITE))
+        push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
         for (id, spform) in get_dw_pricing_sps(reform)
-            push!(units_usage, (spform, StaticVarConstrUnitPair, READ_AND_WRITE))
+            push!(units_usage, (spform, StaticVarConstrUnit, READ_AND_WRITE))
         end
     end
     return units_usage
@@ -186,7 +186,7 @@ end
 function run!(algo::PreprocessAlgorithm, env::Env, reform::Reformulation, input::EmptyInput)::PreprocessingOutput
     @logmsg LogLevel(-1) "Run preprocessing"
 
-    unit = getstorageunit(reform, PreprocessingUnitPair)
+    unit = getstorageunit(reform, PreprocessingUnit)
     
     infeasible = init_new_constraints!(algo, unit) 
 

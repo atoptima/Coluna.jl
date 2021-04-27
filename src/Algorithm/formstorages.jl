@@ -46,25 +46,16 @@ function apply_data!(form::Formulation, constr::Constraint, constr_state::Constr
     return
 end
 
-"""
-    FormulationUnit
-
-    Formulation unit is empty and it is used to implicitely keep 
-    the data which is changed inside the model 
-    (for example, dynamic variables and constraints of a formulaiton) 
-    in order to store it to the record and restore it afterwards. 
-"""
-
-struct FormulationUnit <: AbstractStorageUnit end
-
-FormulationUnit(form::Formulation) = FormulationUnit()
 
 """
-    MasterBranchConstrsUnitPair
+    MasterBranchConstrsUnit
 
-    Unit pair for master branching constraints. 
-    Consists of FormulationUnit and MasterBranchConstrsRecord.    
+Unit for master branching constraints. 
+Can be restored using MasterBranchConstrsRecord.    
 """
+struct MasterBranchConstrsUnit <: AbstractStorageUnit end
+
+MasterBranchConstrsUnit(::Formulation) = MasterBranchConstrsUnit()
 
 mutable struct MasterBranchConstrsRecord <: AbstractRecord
     constrs::Dict{ConstrId,ConstrState}
@@ -78,7 +69,7 @@ function Base.show(io::IO, record::MasterBranchConstrsRecord)
     print(io, "]")
 end
 
-function MasterBranchConstrsRecord(form::Formulation, unit::FormulationUnit)
+function MasterBranchConstrsRecord(form::Formulation, unit::MasterBranchConstrsUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
     record = MasterBranchConstrsRecord(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -93,7 +84,7 @@ function MasterBranchConstrsRecord(form::Formulation, unit::FormulationUnit)
 end
 
 function ColunaBase.restore_from_record!(
-    form::Formulation, unit::FormulationUnit, record::MasterBranchConstrsRecord
+    form::Formulation, unit::MasterBranchConstrsUnit, record::MasterBranchConstrsRecord
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -118,20 +109,22 @@ function ColunaBase.restore_from_record!(
     end
 end
 
-const MasterBranchConstrsUnitPair = (FormulationUnit => MasterBranchConstrsRecord)
+ColunaBase.record_type(::Type{MasterBranchConstrsUnit}) = MasterBranchConstrsRecord
 
 """
-    MasterColumnsUnitPair
+    MasterColumnsUnit
 
-    Unit pair for branching constraints of a formulation. 
-    Consists of FormulationUnit and MasterColumnsState.    
+Unit for branching constraints of a formulation. 
+Can be restored using a MasterColumnsRecord.    
 """
+struct MasterColumnsUnit <: AbstractStorageUnit end
 
-mutable struct MasterColumnsState <: AbstractRecord
+MasterColumnsUnit(::Formulation) = MasterColumnsUnit()
+mutable struct MasterColumnsRecord <: AbstractRecord
     cols::Dict{VarId,VarState}
 end
 
-function Base.show(io::IO, state::MasterColumnsState)
+function Base.show(io::IO, state::MasterColumnsRecord)
     print(io, "[")
     for (id, val) in state.cols
         print(io, " ", MathProg.getuid(id))
@@ -139,9 +132,9 @@ function Base.show(io::IO, state::MasterColumnsState)
     print(io, "]")
 end
 
-function MasterColumnsState(form::Formulation, unit::FormulationUnit)
+function MasterColumnsRecord(form::Formulation, unit::MasterColumnsUnit)
     @logmsg LogLevel(-2) "Storing master columns"
-    state = MasterColumnsState(Dict{VarId,ConstrState}())
+    state = MasterColumnsRecord(Dict{VarId,ConstrState}())
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && 
            iscuractive(form, var) && isexplicit(form, var)
@@ -154,7 +147,7 @@ function MasterColumnsState(form::Formulation, unit::FormulationUnit)
 end
 
 function ColunaBase.restore_from_record!(
-    form::Formulation, unit::FormulationUnit, state::MasterColumnsState
+    form::Formulation, unit::MasterColumnsUnit, state::MasterColumnsRecord
 )
     @logmsg LogLevel(-2) "Restoring master columns"
     for (id, var) in getvars(form)
@@ -177,20 +170,23 @@ function ColunaBase.restore_from_record!(
     end
 end
 
-const MasterColumnsUnitPair = (FormulationUnit => MasterColumnsState)
+ColunaBase.record_type(::Type{MasterColumnsUnit}) = MasterColumnsRecord
 
 """
-    MasterCutsUnitPair
+    MasterCutsUnit
 
-    Unit pair for cutting planes of a formulation. 
-    Consists of FormulationUnit and MasterCutsState.    
+Unit for cutting planes of a formulation. 
+Can be restored using a MasterCutsRecord.    
 """
+struct MasterCutsUnit <: AbstractStorageUnit end
 
-mutable struct MasterCutsState <: AbstractRecord
+MasterCutsUnit(::Formulation) = MasterCutsUnit()
+
+mutable struct MasterCutsRecord <: AbstractRecord
     cuts::Dict{ConstrId,ConstrState}
 end
 
-function Base.show(io::IO, state::MasterCutsState)
+function Base.show(io::IO, state::MasterCutsRecord)
     print(io, "[")
     for (id, constr) in state.cuts
         print(io, " ", MathProg.getuid(id))
@@ -198,9 +194,9 @@ function Base.show(io::IO, state::MasterCutsState)
     print(io, "]")
 end
 
-function MasterCutsState(form::Formulation, unit::FormulationUnit)
+function MasterCutsRecord(form::Formulation, unit::MasterCutsUnit)
     @logmsg LogLevel(-2) "Storing master cuts"
-    state = MasterCutsState(Dict{ConstrId,ConstrState}())
+    state = MasterCutsRecord(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterCutConstr && 
            iscuractive(form, constr) && isexplicit(form, constr)
@@ -213,7 +209,7 @@ function MasterCutsState(form::Formulation, unit::FormulationUnit)
 end
 
 function ColunaBase.restore_from_record!(
-    form::Formulation, unit::FormulationUnit, state::MasterCutsState
+    form::Formulation, unit::MasterCutsUnit, state::MasterCutsRecord
 )
     @logmsg LogLevel(-2) "Storing master cuts"
     for (id, constr) in getconstrs(form)
@@ -236,14 +232,18 @@ function ColunaBase.restore_from_record!(
     end
 end
 
-const MasterCutsUnitPair = (FormulationUnit => MasterCutsState)
+ColunaBase.record_type(::Type{MasterCutsUnit}) = MasterCutsRecord
 
 """
-    StaticVarConstrUnitPair
+    StaticVarConstrUnit
 
-    Unit pair for static variables and constraints of a formulation.
-    Consists of FormulationUnit and StaticVarConstrRecord.    
+Unit for static variables and constraints of a formulation.
+Can be restored using a StaticVarConstrRecord.    
 """
+
+struct StaticVarConstrUnit <: AbstractStorageUnit end
+
+StaticVarConstrUnit(::Formulation) = StaticVarConstrUnit()
 
 mutable struct StaticVarConstrRecord <: AbstractRecord
     constrs::Dict{ConstrId,ConstrState}
@@ -264,7 +264,7 @@ function Base.show(io::IO, record::StaticVarConstrRecord)
     print(io, "]")
 end
 
-function StaticVarConstrRecord(form::Formulation, unit::FormulationUnit)
+function StaticVarConstrRecord(form::Formulation, unit::StaticVarConstrUnit)
     @logmsg LogLevel(-2) string("Storing static vars and consts")
     record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,VarState}())
     for (id, constr) in getconstrs(form)
@@ -283,7 +283,7 @@ function StaticVarConstrRecord(form::Formulation, unit::FormulationUnit)
 end
 
 function ColunaBase.restore_from_record!(
-    form::Formulation, unit::FormulationUnit, record::StaticVarConstrRecord
+    form::Formulation, unit::StaticVarConstrUnit, record::StaticVarConstrRecord
 )
     @logmsg LogLevel(-2) "Restoring static vars and consts"
     for (id, constr) in getconstrs(form)
@@ -324,13 +324,13 @@ function ColunaBase.restore_from_record!(
     end
 end
 
-const StaticVarConstrUnitPair = (FormulationUnit => StaticVarConstrRecord)
+ColunaBase.record_type(::Type{StaticVarConstrUnit}) = StaticVarConstrRecord
 
 """
-    PartialSolutionUnitPair
+    PartialSolutionUnit
 
-    Unit pair for partial solution of a formulation.
-    Consists of PartialSolutionUnit and PartialSolutionRecord.    
+Unit for partial solution of a formulation.
+Can be restored using a PartialSolutionRecord.    
 """
 
 # TO DO : to replace dictionaries by PrimalSolution
@@ -378,4 +378,4 @@ function ColunaBase.restore_from_record!(
     unit.solution = copy(record.solution)
 end
 
-const PartialSolutionUnitPair = (PartialSolutionUnit => PartialSolutionRecord)
+ColunaBase.record_type(::Type{PartialSolutionUnit}) = PartialSolutionRecord

@@ -7,7 +7,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
-    storagedict::Storage
+    storage::Storage
 end
 
 """
@@ -107,7 +107,7 @@ getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_formulation
 
-getstoragedict(form::Formulation) = form.storagedict
+getstoragedict(form::Formulation) = form.storage.units
 
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 

@@ -40,7 +40,7 @@ function ColunaBase.restore_from_record!(
     return
 end
 
-const ColGenStabilizationUnitPair = (ColGenStabilizationUnit => ColGenStabRecord)
+ColunaBase.record_type(::Type{ColGenStabilizationUnit}) = ColGenStabRecord
 
 function init_stab_before_colgen_loop!(unit::ColGenStabilizationUnit)
     unit.stabcenter = unit.basestabcenter
