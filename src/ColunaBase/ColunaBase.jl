@@ -30,7 +30,7 @@ export TerminationStatus, SolutionStatus, OPTIMAL, INFEASIBLE, TIME_LIMIT,
 # Storages (TODO : clean)
 export RecordsVector, UnitType, Storage, AbstractStorageUnit, AbstractRecord,
     UnitsUsageDict, UnitAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED, StorageUnitWrapper,
-    add_unit_pair_usage!, store_record!, restore_from_records!, getstorageunit, copy_records,
+    add_unit_usage!, store_record!, restore_from_records!, getstorageunit, copy_records,
     restore_from_record!, remove_records!, check_records_participation, record_type
 
 include("interface.jl")

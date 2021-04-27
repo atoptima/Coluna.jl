@@ -7,7 +7,7 @@ end
 
 function store_records!(form::Formulation, records::RecordsVector)
     storagedict = form.storage.units
-    for (FullType, storagecont) in storagedict
+    for (_, storagecont) in storagedict
         recordid = store_record!(storagecont)
         push!(records, storagecont => recordid)
     end
@@ -16,7 +16,7 @@ end
 
 function store_records!(reform::Reformulation, records::RecordsVector)
     storagedict = reform.storage.units
-    for (FullType, storagecont) in storagedict
+    for (_, storagecont) in storagedict
         recordid = store_record!(storagecont)
         push!(records, (storagecont, recordid))
     end
@@ -40,14 +40,14 @@ end
 
 function ColunaBase.check_records_participation(form::Formulation)
     storagedict = form.storage.units
-    for (FullType, storagecont) in storagedict
+    for (_, storagecont) in storagedict
         check_records_participation(storagecont)
     end
 end
 
 function ColunaBase.check_records_participation(reform::Reformulation)
     storagedict = reform.storage.units
-    for (FullType, storagecont) in storagedict
+    for (_, storagecont) in storagedict
         check_records_participation(storagecont)
     end
     check_records_participation(getmaster(reform))

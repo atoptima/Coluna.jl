@@ -118,7 +118,7 @@ function collect_units_to_restore!(
 )
     local_units_usage = get_units_usage(algo, model)
     for (unit_model, unit_pair, unit_usage) in local_units_usage
-        add_unit_pair_usage!(global_units_usage, unit_model, unit_pair, unit_usage)
+        add_unit_usage!(global_units_usage, unit_model, unit_pair, unit_usage)
     end
 
     child_algos = get_child_algorithms(algo, model)

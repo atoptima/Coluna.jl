@@ -46,7 +46,8 @@ can be safely computed.
 abstract type AbstractStorageUnit end
 
 # this is the type of record associated to the storage unit
-record_type(::Type{<:AbstractStorageUnit}) = error("error")
+record_type(::Type{SU}) where {SU<:AbstractStorageUnit} = 
+    error("Type of record contained by storage unit $(SU) not defined.")
 
 """
     AbstractRecord
@@ -103,11 +104,11 @@ function Base.show(io::IO, usagedict::UnitsUsageDict)
 end
 
 """
-    add_unit_pair_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitType, ::UnitAccessMode)
+    add_unit_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitType, ::UnitAccessMode)
 
 An auxiliary function to be used when adding unit usage to a UnitUsageDict
 """
-function add_unit_pair_usage!(
+function add_unit_usage!(
     dict::UnitsUsageDict, model::AbstractModel, pair::UnitType, mode::UnitAccessMode
 )
     current_mode = get(dict, (model, pair), NOT_USED) 
