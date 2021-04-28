@@ -108,7 +108,7 @@ function perform_strong_branching_with_phases!(
             end
         end        
 
-        conquer_units_to_restore = UnitsUsageDict()
+        conquer_units_to_restore = UnitsAccess()
         collect_units_to_restore!(
             conquer_units_to_restore, current_phase.conquer_algo, reform
         ) 

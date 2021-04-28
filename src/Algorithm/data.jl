@@ -1,8 +1,12 @@
 
-function ColunaBase.getstorageunit(form::AbstractModel, pair)
-    storagecont = get(form.storage.units, pair, nothing)
-    storagecont === nothing && error("No storage unit for pair $pair in $(typeof(form)) with id $(getuid(form)).")
-    return storagecont.storage_unit
+function ColunaBase.getstorageunit(form::AbstractModel, SU::Type{<:AbstractStorageUnit})
+    return getstoragewrapper(form, SU).storage_unit
+end
+
+function getstoragewrapper(form::AbstractModel, SU::Type{<:AbstractStorageUnit})
+    storagecont = get(form.storage.units, SU, nothing)
+    storagecont === nothing && error("No storage unit of type $SU in $(typeof(form)) with id $(getuid(form)).")
+    return storagecont
 end
 
 function store_records!(form::Formulation, records::RecordsVector)

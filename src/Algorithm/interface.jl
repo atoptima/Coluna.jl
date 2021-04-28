@@ -114,11 +114,12 @@ exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 # this function collects storage units to restore for an algorithm and all its child worker algorithms,
 # child manager algorithms are skipped, as their restore units themselves
 function collect_units_to_restore!(
-    global_units_usage::UnitsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
+    global_units_usage::UnitsAccess, algo::AbstractAlgorithm, model::AbstractModel
 )
     local_units_usage = get_units_usage(algo, model)
-    for (unit_model, unit_pair, unit_usage) in local_units_usage
-        add_unit_usage!(global_units_usage, unit_model, unit_pair, unit_usage)
+    for (unit_model, unit_type, unit_usage) in local_units_usage
+        storage = getstoragewrapper(unit_model, unit_type)
+        set_unit_access!(global_units_usage, storage, unit_usage)
     end
 
     child_algos = get_child_algorithms(algo, model)

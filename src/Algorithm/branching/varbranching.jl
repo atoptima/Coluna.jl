@@ -21,9 +21,14 @@ function generate_children(
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    units_to_restore = UnitsUsageDict(
-        (master, MasterBranchConstrsUnit) => READ_AND_WRITE
+    units_to_restore = UnitsAccess(
+        #(master, MasterBranchConstrsUnit) => READ_AND_WRITE
         #(master, BasisUnit) => READ_AND_WRITE) # not yet implemented
+    )
+    set_unit_access!(
+        units_to_restore,
+        getstoragewrapper(master, MasterBranchConstrsUnit),
+        READ_AND_WRITE
     )
 
     #adding the first branching constraints

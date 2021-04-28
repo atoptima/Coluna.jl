@@ -1,4 +1,4 @@
-@enum(UnitAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED)
+@enum(UnitAccessMode, NOT_USED, READ_ONLY, READ_AND_WRITE)
 
 """
 About storage units
@@ -74,18 +74,18 @@ restore_from_record!(model::AbstractModel, unit::AbstractStorageUnit, record::Ab
     ))    
 
 
-"""
-    EmptyRecord
+# """
+#     EmptyRecord
 
-If a storage unit is not changed after initialization, then 
-the empty record should be used with it.
-"""
+# If a storage unit is not changed after initialization, then 
+# the empty record should be used with it.
+# """
 
-struct EmptyRecord <: AbstractRecord end
+# struct EmptyRecord <: AbstractRecord end
 
-EmptyRecord(model::AbstractModel, unit::AbstractStorageUnit) = nothing
+# EmptyRecord(model::AbstractModel, unit::AbstractStorageUnit) = nothing
 
-restore_from_record!(::AbstractModel, ::AbstractStorageUnit, ::EmptyRecord) = nothing
+# restore_from_record!(::AbstractModel, ::AbstractStorageUnit, ::EmptyRecord) = nothing
 
 # UnitType = Pair{Type{<:AbstractStorageUnit}, Type{<:AbstractRecord}}.
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
@@ -93,33 +93,34 @@ const UnitType = DataType #Type{<:AbstractStorageUnit}
 
 # TO DO : replace with the set of UnitType, should only contain records which should 
 #         be restored for writing (all other records are restored anyway but just for reading)
-const UnitsUsageDict = Dict{Tuple{AbstractModel,UnitType},UnitAccessMode}
+#const UnitsUsageDict = Dict{Tuple{AbstractModel,UnitType},UnitAccessMode}
 
-function Base.show(io::IO, usagedict::UnitsUsageDict)
-    print(io, "storage units usage dict [")
-    for usage in usagedict
-        print(io, " (", typeof(usage[1][1]), ", ", usage[1][2], ") => ", usage[2])
-    end
-    print(io, " ]")
-end
+# TODO :
+# function Base.show(io::IO, usagedict::UnitsUsageDict)
+#     print(io, "storage units usage dict [")
+#     for usage in usagedict
+#         print(io, " (", typeof(usage[1][1]), ", ", usage[1][2], ") => ", usage[2])
+#     end
+#     print(io, " ]")
+# end
 
-"""
-    add_unit_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitType, ::UnitAccessMode)
+# """
+#     add_unit_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitType, ::UnitAccessMode)
 
-An auxiliary function to be used when adding unit usage to a UnitUsageDict
-"""
-function add_unit_usage!(
-    dict::UnitsUsageDict, model::AbstractModel, pair::UnitType, mode::UnitAccessMode
-)
-    current_mode = get(dict, (model, pair), NOT_USED) 
-    if current_mode == NOT_USED && mode != NOT_USED
-        dict[(model, pair)] = mode
-    else
-        if mode == READ_AND_WRITE && current_mode == READ_ONLY
-            dict[(model, pair)] = READ_AND_WRITE
-        end    
-    end
-end
+# An auxiliary function to be used when adding unit usage to a UnitUsageDict
+# """
+# function add_unit_usage!(
+#     dict::UnitsUsageDict, model::AbstractModel, pair::UnitType, mode::UnitAccessMode
+# )
+#     current_mode = get(dict, (model, pair), NOT_USED) 
+#     if current_mode == NOT_USED && mode != NOT_USED
+#         dict[(model, pair)] = mode
+#     else
+#         if mode == READ_AND_WRITE && current_mode == READ_ONLY
+#             dict[(model, pair)] = READ_AND_WRITE
+#         end    
+#     end
+# end
 
 """
     RecordWrapper
@@ -161,20 +162,20 @@ function Base.show(io::IO, rw::RecordWrapper{R}) where {R <: AbstractRecord}
     end
 end
 
-"""
-    EmptyRecordWrapper
-"""
+# """
+#     EmptyRecordWrapper
+# """
 
-const EmptyRecordWrapper = RecordWrapper{EmptyRecord}
+# const EmptyRecordWrapper = RecordWrapper{EmptyRecord}
 
-EmptyRecordWrapper(recordid::RecordId, participation::Int) =
-    EmptyRecordWrapper(1, 0)
+# EmptyRecordWrapper(recordid::RecordId, participation::Int) =
+#     EmptyRecordWrapper(1, 0)
 
-getrecordid(erw::EmptyRecordWrapper) = 1
-recordisempty(erw::EmptyRecordWrapper) = true 
-getparticipation(erw::EmptyRecordWrapper) = 0
-increaseparticipation!(erw::EmptyRecordWrapper) = nothing
-decreaseparticipation!(erw::EmptyRecordWrapper) = nothing
+# getrecordid(erw::EmptyRecordWrapper) = 1
+# recordisempty(erw::EmptyRecordWrapper) = true 
+# getparticipation(erw::EmptyRecordWrapper) = 0
+# increaseparticipation!(erw::EmptyRecordWrapper) = nothing
+# decreaseparticipation!(erw::EmptyRecordWrapper) = nothing
 
 """
     StorageUnitWrapper
@@ -216,12 +217,14 @@ function StorageUnitWrapper{M,SU,R}(model::M) where {M,SU,R}
     )
 end    
 
+# TODO
 function Base.show(io::IO, storage::StorageUnitWrapper)
-    print(io, "unit (")
-    print(IOContext(io, :compact => true), storage.model)
-    (StorageUnitType, RecordType) = storage.typepair    
-    print(io, ", ", remove_until_last_point(string(StorageUnitType)))    
-    print(io, ", ", remove_until_last_point(string(RecordType)), ")")        
+    println(io, "todo.")
+    # print(io, "unit (")
+    # print(IOContext(io, :compact => true), storage.model)
+    # (StorageUnitType, RecordType) = storage.typepair    
+    # print(io, ", ", remove_until_last_point(string(StorageUnitType)))    
+    # print(io, ", ", remove_until_last_point(string(RecordType)), ")")        
 end
 
 function setcurrecord!(
@@ -327,6 +330,37 @@ function check_records_participation(storage::StorageUnitWrapper)
 end
 
 
+
+
+#######
+
+
+"""
+    UnitsUsage
+
+Stores the access mode to the storage units.
+"""
+struct UnitsAccess
+    usages::Dict{StorageUnitWrapper,UnitAccessMode}
+end
+UnitsAccess() = UnitsAccess(Dict{StorageUnitWrapper,UnitAccessMode}())
+
+"""
+    set_unit_access!(units_usage, storage_unit, access_mode)
+
+Set the access mode to a storage unit.
+"""
+function set_unit_access!(usages::UnitsAccess, unit::StorageUnitWrapper, mode::UnitAccessMode)
+    current_mode = get(usages.usages, unit, NOT_USED)
+    new_mode = max(current_mode, mode)
+    usages.usages[unit] = new_mode
+    return new_mode
+end
+
+function Base.get(usages::UnitsAccess, unit::StorageUnitWrapper, default_value::UnitAccessMode)
+    return get(usages.usages, unit, default_value)
+end
+
 """
     Storage unit functions used by Coluna
 """
@@ -341,18 +375,27 @@ end
 #     setcurrecord!(storage, storage.cur_record)
 # end
 
-function restore_from_records!(units_to_restore::UnitsUsageDict, records::RecordsVector)
-    TO.@timeit Coluna._to "Restore/remove records" begin
-        for (storage, recordid) in records
-            mode = get(
-                units_to_restore, 
-                (storage.model, storage.typepair), 
-                READ_ONLY
-            )
-            restore_from_record!(storage, recordid, mode)
-        end
-    end    
-    empty!(records) # vector of records should be emptied 
+# function restore_from_records!(units_to_restore::UnitsUsageDict, records::RecordsVector)
+#     TO.@timeit Coluna._to "Restore/remove records" begin
+#         for (storage, recordid) in records
+#             mode = get(
+#                 units_to_restore, 
+#                 (storage.model, storage.typepair), 
+#                 READ_ONLY
+#             )
+#             restore_from_record!(storage, recordid, mode)
+#         end
+#     end    
+#     empty!(records) # vector of records should be emptied 
+# end
+
+function restore_from_records!(units_to_restore::UnitsAccess, records::RecordsVector)
+    for (storage, recordid) in records
+        mode = get(units_to_restore, storage, READ_ONLY)
+        restore_from_record!(storage, recordid, mode)
+    end
+    empty!(records)
+    return
 end
 
 function remove_records!(records::RecordsVector)
@@ -382,5 +425,3 @@ end
     Every stored or copied record should be either restored or removed so that it's 
     participation is correctly computed and memory correctly controlled
 """
-
-
