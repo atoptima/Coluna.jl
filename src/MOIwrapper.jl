@@ -212,6 +212,14 @@ function MOI.get(model::Coluna.Optimizer, ::Type{MOI.VariableIndex}, name::Strin
     return get(model.names_to_vars, name, nothing)
 end
 
+function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfVariableIndices)
+    indices = []
+    for (key,value) in model.moi_varids
+        push!(indices, value)
+    end
+    return indices
+end
+
 ############################################################################################
 # Get constraints
 ############################################################################################
@@ -568,6 +576,10 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F, S}) where {F, S}
     return length(MOI.get(model, MOI.ListOfConstraintIndices{F, S}()))
+end
+
+function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfModelAttributesSet)
+    return [model.annotations.tree, model.inner.initial_dual_bound, model.inner.initial_primal_bound]
 end
 
 # ######################
