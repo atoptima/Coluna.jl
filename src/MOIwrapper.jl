@@ -213,11 +213,19 @@ function MOI.get(model::Coluna.Optimizer, ::Type{MOI.VariableIndex}, name::Strin
 end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfVariableIndices)
-    indices = []
+    indices = Vector{MathOptInterface.VariableIndex}()
     for (key,value) in model.moi_varids
         push!(indices, value)
     end
-    return indices
+    return sort!(indices)
+end
+
+function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
+    attr = Vector{MOI.AbstractVariableAttribute}()
+    for (name, index) in model.names_to_vars
+        push!(attr, name)
+    end
+    return attr
 end
 
 ############################################################################################
@@ -579,7 +587,7 @@ function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F, S}) where {F, S}
 end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfModelAttributesSet)
-    return [model.annotations.tree, model.inner.initial_dual_bound, model.inner.initial_primal_bound]
+    return [MOI.get(model, MOI.ObjectiveFunctionType()), MOI.get(model, MOI.ObjectiveSense())]
 end
 
 # ######################
