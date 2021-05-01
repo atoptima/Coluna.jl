@@ -174,7 +174,7 @@ function optimize_ip_form!(
 )
     @logmsg LogLevel(-2) "Calling user-defined optimization function."
 
-    cbdata = MathProg.PricingCallbackData(form)
+    cbdata = MathProg.PricingCallbackData(form, optimizer.phase)
     optimizer.user_oracle(cbdata)
 
     if length(cbdata.primal_solutions) > 0

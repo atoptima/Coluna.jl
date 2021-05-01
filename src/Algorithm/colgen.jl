@@ -39,6 +39,8 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
     cleanup_threshold::Int64 = 10000
     cleanup_ratio::Float64 = 0.66
     smoothing_stabilization::Float64 = 0.0 # should be in [0, 1]
+    initial_pricing_phase::Int = 0 # == 0 : exact, > 0 : heuristic (the smaller, the more exhaustive)
+    final_pricing_phase::Int = 0   # > 0: heuristic conquer
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
 end
@@ -117,17 +119,18 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
     optstate = OptimizationState(master, getoptstate(input), false, false)
 
     stop = false
+    pricing_phase = algo.initial_pricing_phase
 
     set_ph3!(master) # mixed ph1 & ph2
-    stop, _ = cg_main_loop!(algo, env, 3, optstate, reform)
+    stop, _, pricing_phase = cg_main_loop!(algo, env, 3, pricing_phase, optstate, reform)
 
     restart = true
     while should_do_ph_1(optstate) && restart && !stop
         set_ph1!(master, optstate)
-        stop, _ = cg_main_loop!(algo, env, 1, optstate, reform)
+        stop, _, pricing_phase = cg_main_loop!(algo, env, 1, pricing_phase, optstate, reform)
         if !stop
             set_ph2!(master, optstate) # pure ph2
-            stop, restart = cg_main_loop!(algo, env, 2, optstate, reform)
+            stop, restart, pricing_phase = cg_main_loop!(algo, env, 2, pricing_phase, optstate, reform)
         end
     end
 
@@ -304,11 +307,12 @@ end
 
 function solve_sp_to_gencol!(
     spinfo::SubprobInfo, algo::ColumnGeneration, env::Env, masterform::Formulation, 
-    spform::Formulation, dualsol::DualSolution
+    spform::Formulation, dualsol::DualSolution, pricing_phase::Int
 )
     # Compute target
     update_pricing_target!(spform)
 
+    setphase!(spform.optimizer, pricing_phase)
     output = run!(algo.pricing_prob_solve_alg, env, spform, OptimizationInput(OptimizationState(spform)))
     sp_optstate = getoptstate(output)
     sp_sol_value = get_ip_primal_bound(sp_optstate)
@@ -361,7 +365,7 @@ end
 function solve_sps_to_gencols!(
     spinfos::Dict{FormId,SubprobInfo}, algo::ColumnGeneration, env::Env, phase::Int64, 
     reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, lp_dual_sol::DualSolution, 
-    smooth_dual_sol::DualSolution,
+    smooth_dual_sol::DualSolution, pricing_phase::Int
 )
     masterform = getmaster(reform)
     nb_new_cols = 0
@@ -378,11 +382,11 @@ function solve_sps_to_gencols!(
         Threads.@threads for key in 1:length(spuids)
             spuid = spuids[key]
             spform = spsforms[spuid]
-            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spform, lp_dual_sol)
+            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spform, lp_dual_sol, pricing_phase)
         end
     else
         for (spuid, spform) in spsforms
-            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spform, lp_dual_sol)
+            solve_sp_to_gencol!(spinfos[spuid], algo, env, masterform, spform, lp_dual_sol, pricing_phase)
         end
     end
     ### END LOOP TO BE PARALLELIZED
@@ -462,7 +466,7 @@ ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opt_
 function update_lagrangian_dual_bound!(
     stabunit::ColGenStabilizationUnit, optstate::OptimizationState{F,S}, algo::ColumnGeneration,
     master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
-    partialsol::PrimalSolution, spinfos::Dict{FormId,SubprobInfo}
+    partialsol::PrimalSolution, spinfos::Dict{FormId,SubprobInfo}, pricing_phase::Int
 ) where {F,S}
 
     sense = getobjsense(master)
@@ -486,6 +490,14 @@ function update_lagrangian_dual_bound!(
     valid_lagr_bound = DualBound{S}(puremastvars_contrib + dualsol.bound)
     for (spuid, spinfo) in spinfos
         valid_lagr_bound += spinfo.valid_dual_bound_contrib
+    end
+
+    # if princing was solved heuristically, there is no valid dual bound
+    if pricing_phase > 0
+        if !stabilization_is_used(algo)
+            stabunit.pseudo_dual_bound = valid_lagr_bound # only for printing
+        end
+        valid_lagr_bound = DualBound(master)
     end
 
     update_ip_dual_bound!(optstate, valid_lagr_bound)
@@ -577,14 +589,15 @@ function change_values_sign!(dualsol::DualSolution)
     return
 end
 
-# cg_main_loop! returns Tuple{Bool, Bool} :
+# cg_main_loop! returns Tuple{Bool, Bool, Int} :
 # - first one is equal to true when colgen algorithm must stop.
 # - second one is equal to true when colgen algorithm must restart. 
 #   If col gen was at phase 3, it will restart at phase 3. 
 #   If it was as phase 1 or 2, it will restart at phase 1.
+# - third one is the updated heuristic phase
 function cg_main_loop!(
-    algo::ColumnGeneration, env::Env, phase::Int, cg_optstate::OptimizationState, 
-    reform::Reformulation
+    algo::ColumnGeneration, env::Env, phase::Int, pricing_phase::Int,
+    cg_optstate::OptimizationState, reform::Reformulation
 )
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
@@ -627,7 +640,7 @@ function cg_main_loop!(
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
             "(termination status = INFEASIBLE) during phase != 1.")
             setterminationstatus!(cg_optstate, INFEASIBLE)
-            return true, false
+            return true, false, pricing_phase
         end
 
         lp_dual_sol = nothing
@@ -666,7 +679,7 @@ function cg_main_loop!(
                     else
                         essential_cuts_separated = true
                         if phase == 2 # because the new cuts may make the master infeasible
-                            return false, true
+                            return false, true, pricing_phase
                         end
                         redcostshelper = ReducedCostsCalculationHelper(reform)
                     end
@@ -695,14 +708,14 @@ function cg_main_loop!(
             sp_time += @elapsed begin
                 nb_new_col = solve_sps_to_gencols!(
                     spinfos, algo, env, phase, reform, redcostshelper, lp_dual_sol, 
-                    smooth_dual_sol
+                    smooth_dual_sol, pricing_phase
                 )
             end
 
             if nb_new_col < 0
                 @error "Infeasible subproblem."
                 setterminationstatus!(cg_optstate, INFEASIBLE)
-                return true, false
+                return true, false, pricing_phase
             end
 
             nb_new_columns += nb_new_col
@@ -710,7 +723,7 @@ function cg_main_loop!(
             TO.@timeit Coluna._to "Update Lagrangian bound" begin
                 update_lagrangian_dual_bound!(
                     stabunit, cg_optstate, algo, masterform, pure_master_vars, 
-                    smooth_dual_sol, partial_solution, spinfos
+                    smooth_dual_sol, partial_solution, spinfos, pricing_phase
                 )
             end
 
@@ -728,8 +741,8 @@ function cg_main_loop!(
         end
 
         print_colgen_statistics(
-            env, phase, iteration, stabunit.curalpha, cg_optstate, nb_new_columns, 
-            rm_time, sp_time
+            env, phase, pricing_phase, iteration, stabunit.curalpha, cg_optstate, nb_new_columns, 
+            rm_time, sp_time, stabunit.pseudo_dual_bound
         )
 
         update_stab_after_colgen_iteration!(stabunit)
@@ -738,10 +751,11 @@ function cg_main_loop!(
         primal_bound = get_lp_primal_bound(cg_optstate)
         ip_primal_bound = get_ip_primal_bound(cg_optstate)
 
-        if ip_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol)
+        if pricing_phase == algo.final_pricing_phase &&
+                ip_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol)
             setterminationstatus!(cg_optstate, OPTIMAL)
             @logmsg LogLevel(0) "Dual bound reached primal bound."
-            return true, false
+            return true, false, pricing_phase
         end
         if phase == 1 && ph_one_infeasible_db(algo, dual_bound)
             db = - getvalue(DualBound(reform))
@@ -750,34 +764,48 @@ function cg_main_loop!(
             set_lp_primal_bound!(cg_optstate, PrimalBound(reform, pb))
             setterminationstatus!(cg_optstate, INFEASIBLE)
             @logmsg LogLevel(0) "Phase one determines infeasibility."
-            return true, false
+            return true, false, pricing_phase
         end
-        if lp_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol) && !essential_cuts_separated
+        if pricing_phase == algo.final_pricing_phase &&
+                lp_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol) &&
+                !essential_cuts_separated
             @logmsg LogLevel(0) "Column generation algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL)
-            return false, false
+            return false, false, pricing_phase
         end
-        if nb_new_columns == 0 && !essential_cuts_separated
+        if pricing_phase == algo.final_pricing_phase && nb_new_columns == 0 && !essential_cuts_separated
             @logmsg LogLevel(0) "No new column generated by the pricing problems."
             setterminationstatus!(cg_optstate, OTHER_LIMIT)
-            return false, false
+            return false, false, pricing_phase
         end
         if iteration > algo.max_nb_iterations
             setterminationstatus!(cg_optstate, OTHER_LIMIT)
             @warn "Maximum number of column generation iteration is reached."
-            return true, false
+            return true, false, pricing_phase
+        end
+        stop_pricing_phase = (nb_new_columns == 0) || lp_gap_closed(
+            ObjValues(
+                reform, lp_primal_bound = get_lp_primal_bound(cg_optstate),
+                lp_dual_bound = stabunit.pseudo_dual_bound
+            ),
+            atol=algo.opt_atol, rtol=algo.opt_rtol
+        )
+        if pricing_phase > algo.final_pricing_phase && stop_pricing_phase && !essential_cuts_separated
+            stabunit.pseudo_dual_bound = DualBound(reform)
+            pricing_phase -= 1
         end
         essential_cuts_separated = false
     end
-    return false, false
+    return false, false, pricing_phase
 end
 
 function print_colgen_statistics(
-    env::Env, phase::Int64, iteration::Int64, smoothalpha::Float64, 
-    optstate::OptimizationState, nb_new_col::Int, mst_time::Float64, sp_time::Float64
+    env::Env, phase::Int64, pricing_phase::Int64, iteration::Int64, smoothalpha::Float64, 
+    optstate::OptimizationState, nb_new_col::Int, mst_time::Float64, sp_time::Float64,
+    pseudo_lagr_bound::DualBound
 )
     mlp = getvalue(get_lp_primal_bound(optstate))
-    db = getvalue(get_lp_dual_bound(optstate))
+    db = getvalue((pricing_phase == 0) ? get_lp_dual_bound(optstate) : pseudo_lagr_bound)
     pb = getvalue(get_ip_primal_bound(optstate))
     phase_string = "  "
     if phase == 1
@@ -787,8 +815,9 @@ function print_colgen_statistics(
     end
 
     @printf(
-        "%s<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <al=%5.2f> <DB=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
-        phase_string, iteration, elapsed_optim_time(env), mst_time, sp_time, nb_new_col, smoothalpha, db, mlp, pb
+        "%s<it=%3i> <pp=%2i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cols=%2i> <al=%5.2f> <%s=%10.4f> <mlp=%10.4f> <PB=%.4f>\n",
+        phase_string, iteration, pricing_phase, elapsed_optim_time(env), mst_time, sp_time, nb_new_col, smoothalpha,
+        (pricing_phase == 0) ? "DB" : "pdb", db, mlp, pb
     )
     return
 end

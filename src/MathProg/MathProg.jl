@@ -61,7 +61,7 @@ export no_optimizer_builder, set_original_formulation!,
        find_owner_formulation,
        getsortuid,
        contains, setprimalbound!, get_original_formulation,
-       getoriginformuid, getspsol, sync_solver!, getinner,
+       getoriginformuid, getspsol, sync_solver!, getinner, setphase!,
        get_primal_solutions, get_dual_solutions, constraint_primal
 
 # Below this line, clean up has been done :

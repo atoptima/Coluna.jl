@@ -14,15 +14,22 @@ TODO
 """
 mutable struct UserOptimizer <: AbstractOptimizer
     user_oracle::Function
+    phase::Int
+end
+
+function setphase!(opt::UserOptimizer, ph::Int)
+    opt.phase = ph
+    return
 end
 
 struct PricingCallbackData
     form::Formulation
+    phase::Int
     primal_solutions::Vector{PrimalSolution}
 end
 
-function PricingCallbackData(form::F) where {F<:Formulation} 
-    return PricingCallbackData(form, PrimalSolution{F}[])
+function PricingCallbackData(form::F, phase::Int) where {F<:Formulation} 
+    return PricingCallbackData(form, phase, PrimalSolution{F}[])
 end
 
 """
@@ -36,6 +43,10 @@ struct MoiOptimizer <: AbstractOptimizer
 end
 
 getinner(optimizer::MoiOptimizer) = optimizer.inner
+
+function setphase!(opt::MoiOptimizer, ph::Int)
+    return
+end
 
 function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     @logmsg LogLevel(-1) string("Synching formulation ", getuid(f))

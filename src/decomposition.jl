@@ -427,7 +427,7 @@ end
 
 function getoptbuilder(prob::Problem, ann::BD.Annotation)
     if BD.getpricingoracle(ann) !== nothing
-        return () -> UserOptimizer(BD.getpricingoracle(ann))
+        return () -> UserOptimizer(BD.getpricingoracle(ann), 0) # exact phase
     end
     if BD.getoptimizerbuilder(ann) !== nothing
         return () -> MoiOptimizer(BD.getoptimizerbuilder(ann))
