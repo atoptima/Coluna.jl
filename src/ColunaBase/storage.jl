@@ -184,7 +184,6 @@ This container keeps a storage unit and all records which have been
 stored. It implements storing and restoring records of units in an 
 efficient way. 
 """
-
 mutable struct StorageUnitWrapper{M <: AbstractModel,SU <: AbstractStorageUnit,R <: AbstractRecord}
     model::M
     cur_record::RecordWrapper{R}
@@ -330,10 +329,7 @@ function check_records_participation(storage::StorageUnitWrapper)
 end
 
 
-
-
 #######
-
 
 """
     UnitsUsage
