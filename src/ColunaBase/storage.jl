@@ -1,4 +1,4 @@
-@enum(UnitAccessMode, NOT_USED, READ_ONLY, READ_AND_WRITE)
+@enum(UnitPermission, NOT_USED, READ_ONLY, READ_AND_WRITE)
 
 """
 About storage units
@@ -93,7 +93,7 @@ const UnitType = DataType #Type{<:AbstractStorageUnit}
 
 # TO DO : replace with the set of UnitType, should only contain records which should 
 #         be restored for writing (all other records are restored anyway but just for reading)
-#const UnitsUsageDict = Dict{Tuple{AbstractModel,UnitType},UnitAccessMode}
+#const UnitsUsageDict = Dict{Tuple{AbstractModel,UnitType},UnitPermission}
 
 # TODO :
 # function Base.show(io::IO, usagedict::UnitsUsageDict)
@@ -104,23 +104,6 @@ const UnitType = DataType #Type{<:AbstractStorageUnit}
 #     print(io, " ]")
 # end
 
-# """
-#     add_unit_usage!(::UnitsUsageDict, ::AbstractModel, ::UnitType, ::UnitAccessMode)
-
-# An auxiliary function to be used when adding unit usage to a UnitUsageDict
-# """
-# function add_unit_usage!(
-#     dict::UnitsUsageDict, model::AbstractModel, pair::UnitType, mode::UnitAccessMode
-# )
-#     current_mode = get(dict, (model, pair), NOT_USED) 
-#     if current_mode == NOT_USED && mode != NOT_USED
-#         dict[(model, pair)] = mode
-#     else
-#         if mode == READ_AND_WRITE && current_mode == READ_ONLY
-#             dict[(model, pair)] = READ_AND_WRITE
-#         end    
-#     end
-# end
 
 """
     RecordWrapper
@@ -193,38 +176,29 @@ mutable struct StorageUnitWrapper{M <: AbstractModel,SU <: AbstractStorageUnit,R
     recordsdict::Dict{RecordId,RecordWrapper{R}}
 end
 
-getstorageunit(s::StorageUnitWrapper) = s.storage_unit # needed by Algorithms
-
-const RecordsVector = Vector{Pair{StorageUnitWrapper,RecordId}}
-
-struct Storage
-    units::Dict{UnitType, StorageUnitWrapper}
-    #units::Dict{AbstractStorageUnit, StorageUnitWrapper}
-end
-
-function Storage()
-    return Storage(
-        Dict{UnitType, StorageUnitWrapper}()
-        #Dict{AbstractStorageUnit, StorageUnitWrapper}()
-    )
-end
-
 function StorageUnitWrapper{M,SU,R}(model::M) where {M,SU,R}
     return StorageUnitWrapper{M,SU,R}(
         model, RecordWrapper{R}(1, 0), 1, SU(model), 
         SU, Dict{RecordId,RecordWrapper{R}}()
     )
-end    
+end
+
+const RecordsVector = Vector{Pair{StorageUnitWrapper,RecordId}}
+struct Storage
+    units::Dict{UnitType, StorageUnitWrapper}
+end
+
+Storage() = Storage(Dict{UnitType, StorageUnitWrapper}())
 
 # TODO
-function Base.show(io::IO, storage::StorageUnitWrapper)
-    println(io, "todo.")
-    # print(io, "unit (")
-    # print(IOContext(io, :compact => true), storage.model)
-    # (StorageUnitType, RecordType) = storage.typepair    
-    # print(io, ", ", remove_until_last_point(string(StorageUnitType)))    
-    # print(io, ", ", remove_until_last_point(string(RecordType)), ")")        
-end
+# function Base.show(io::IO, storage::StorageUnitWrapper)
+#     println(io, "todo.")
+#     # print(io, "unit (")
+#     # print(IOContext(io, :compact => true), storage.model)
+#     # (StorageUnitType, RecordType) = storage.typepair    
+#     # print(io, ", ", remove_until_last_point(string(StorageUnitType)))    
+#     # print(io, ", ", remove_until_last_point(string(RecordType)), ")")        
+# end
 
 function setcurrecord!(
     storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
@@ -232,7 +206,6 @@ function setcurrecord!(
     # we delete the current record container from the dictionary if necessary
     if !recordisempty(storage.cur_record) && getparticipation(storage.cur_record) == 0
         delete!(storage.recordsdict, getrecordid(storage.cur_record))
-        # @logmsg LogLevel(-2) string("Removed record with id ", getrecordid(currecord), " for ", storage)
     end
     storage.cur_record = record
     if storage.maxrecordid < getrecordid(record) 
@@ -281,7 +254,7 @@ function store_record!(storage::StorageUnitWrapper)::RecordId
 end
 
 function restore_from_record!(
-    storage::StorageUnitWrapper{M,SU,R}, recordid::RecordId, mode::UnitAccessMode
+    storage::StorageUnitWrapper{M,SU,R}, recordid::RecordId, mode::UnitPermission
 ) where {M,SU,R}
     record = storage.cur_record
     if getrecordid(record) == recordid 
@@ -328,33 +301,39 @@ function check_records_participation(storage::StorageUnitWrapper)
     end
 end
 
-
 #######
 
 """
-    UnitsUsage
+    UnitsUsage()
 
-Stores the access mode to the storage units.
+Stores the access rights to some storage units.
 """
-struct UnitsAccess
-    usages::Dict{StorageUnitWrapper,UnitAccessMode}
+struct UnitsUsage
+    permissions::Dict{StorageUnitWrapper,UnitPermission}
 end
-UnitsAccess() = UnitsAccess(Dict{StorageUnitWrapper,UnitAccessMode}())
+
+UnitsUsage() = UnitsUsage(Dict{StorageUnitWrapper,UnitPermission}())
 
 """
-    set_unit_access!(units_usage, storage_unit, access_mode)
+    set_permission!(units_usage, storage_unit, access_right)
 
-Set the access mode to a storage unit.
+Set the permission to a storage unit.
 """
-function set_unit_access!(usages::UnitsAccess, unit::StorageUnitWrapper, mode::UnitAccessMode)
-    current_mode = get(usages.usages, unit, NOT_USED)
+function set_permission!(usages::UnitsUsage, unit::StorageUnitWrapper, mode::UnitPermission)
+    current_mode = get(usages.permissions, unit, NOT_USED)
     new_mode = max(current_mode, mode)
-    usages.usages[unit] = new_mode
+    usages.permissions[unit] = new_mode
     return new_mode
 end
 
-function Base.get(usages::UnitsAccess, unit::StorageUnitWrapper, default_value::UnitAccessMode)
-    return get(usages.usages, unit, default_value)
+"""
+    get_permission(units_usage, storage_unit, default)
+
+Return the permission to a storage unit or `default` if the storage unit has
+no permission entered in `units_usage`.
+"""
+function get_permission(usages::UnitsUsage, unit::StorageUnitWrapper, default)
+    return get(usages.permissions, unit, default)
 end
 
 """
@@ -371,23 +350,9 @@ end
 #     setcurrecord!(storage, storage.cur_record)
 # end
 
-# function restore_from_records!(units_to_restore::UnitsUsageDict, records::RecordsVector)
-#     TO.@timeit Coluna._to "Restore/remove records" begin
-#         for (storage, recordid) in records
-#             mode = get(
-#                 units_to_restore, 
-#                 (storage.model, storage.typepair), 
-#                 READ_ONLY
-#             )
-#             restore_from_record!(storage, recordid, mode)
-#         end
-#     end    
-#     empty!(records) # vector of records should be emptied 
-# end
-
-function restore_from_records!(units_to_restore::UnitsAccess, records::RecordsVector)
+function restore_from_records!(units_to_restore::UnitsUsage, records::RecordsVector)
     for (storage, recordid) in records
-        mode = get(units_to_restore, storage, READ_ONLY)
+        mode = get_permission(units_to_restore, storage, READ_ONLY)
         restore_from_record!(storage, recordid, mode)
     end
     empty!(records)
@@ -421,3 +386,16 @@ end
     Every stored or copied record should be either restored or removed so that it's 
     participation is correctly computed and memory correctly controlled
 """
+
+
+#####
+
+function getstorageunit(m::AbstractModel, SU::Type{<:AbstractStorageUnit})
+    return getstoragewrapper(m, SU).storage_unit
+end
+
+function getstoragewrapper(m::AbstractModel, SU::Type{<:AbstractStorageUnit})
+    storagecont = get(getstorage(m).units, SU, nothing)
+    storagecont === nothing && error("No storage unit of type $SU in $(typeof(m)) with id $(getuid(m)).")
+    return storagecont
+end

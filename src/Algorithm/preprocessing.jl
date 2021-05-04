@@ -166,7 +166,7 @@ function get_units_usage(algo::PreprocessAlgorithm, form::Formulation)
 end
 
 function get_units_usage(algo::PreprocessAlgorithm, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[]     
+    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[]     
     push!(units_usage, (reform, PreprocessingUnit, READ_AND_WRITE))
 
     master = getmaster(reform)

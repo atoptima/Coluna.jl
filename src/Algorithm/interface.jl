@@ -58,13 +58,13 @@ each child algorithm is applied.
 get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
-    get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, UnitType, UnitAccessMode}}
+    get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, UnitType, UnitPermission}}
 
 Every algorithm should communicate the storage units it uses (so that these units 
 are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
 in order to restore units before running a worker algorithm.
 """
-get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitType, UnitAccessMode}[] 
+get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitType, UnitPermission}[] 
 
 """
     run!(algo::AbstractAlgorithm, model::AbstractModel, input::AbstractInput)::AbstractOutput
@@ -114,12 +114,12 @@ exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 # this function collects storage units to restore for an algorithm and all its child worker algorithms,
 # child manager algorithms are skipped, as their restore units themselves
 function collect_units_to_restore!(
-    global_units_usage::UnitsAccess, algo::AbstractAlgorithm, model::AbstractModel
+    global_units_usage::UnitsUsage, algo::AbstractAlgorithm, model::AbstractModel
 )
     local_units_usage = get_units_usage(algo, model)
     for (unit_model, unit_type, unit_usage) in local_units_usage
         storage = getstoragewrapper(unit_model, unit_type)
-        set_unit_access!(global_units_usage, storage, unit_usage)
+        set_permission!(global_units_usage, storage, unit_usage)
     end
 
     child_algos = get_child_algorithms(algo, model)

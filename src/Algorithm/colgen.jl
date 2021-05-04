@@ -56,7 +56,7 @@ function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
 end 
 
 function get_units_usage(algo::ColumnGeneration, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel,UnitType,UnitAccessMode}[] 
+    units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
     master = getmaster(reform)
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
     push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))

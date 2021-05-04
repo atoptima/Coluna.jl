@@ -29,7 +29,7 @@ function get_units_usage(
     # (deactivating artificial vars and enforcing integrality)
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same
-    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[] 
+    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
     push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
         push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))

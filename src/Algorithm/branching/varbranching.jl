@@ -21,11 +21,11 @@ function generate_children(
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    units_to_restore = UnitsAccess(
+    units_to_restore = UnitsUsage(
         #(master, MasterBranchConstrsUnit) => READ_AND_WRITE
         #(master, BasisUnit) => READ_AND_WRITE) # not yet implemented
     )
-    set_unit_access!(
+    set_permission!(
         units_to_restore,
         getstoragewrapper(master, MasterBranchConstrsUnit),
         READ_AND_WRITE
