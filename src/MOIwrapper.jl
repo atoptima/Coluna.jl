@@ -220,14 +220,6 @@ function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfVariableIndices)
     return sort!(indices)
 end
 
-function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
-    attr = Vector{MOI.AbstractVariableAttribute}()
-    for (name, index) in model.names_to_vars
-        push!(attr, name)
-    end
-    return attr
-end
-
 ############################################################################################
 # Get constraints
 ############################################################################################
@@ -411,6 +403,10 @@ function MOI.get(model::Coluna.Optimizer, ::MOI.VariableName, index::MOI.Variabl
     return getname(orig_form, model.vars[index])
 end
 
+function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
+    return MOI.AbstractVariableAttribute[MOI.VariableName()]
+end
+
 ############################################################################################
 # Attributes of constraints
 ############################################################################################
@@ -453,6 +449,10 @@ function MOI.get(model::Coluna.Optimizer, ::MOI.ConstraintName, constrid::MOI.Co
         return getname(orig_form, constr)
     end
     return ""
+end
+
+function MOI.get(model::Optimizer, ::MOI.ListOfConstraintAttributesSet)
+    return MOI.AbstractConstraintAttribute[MOI.ConstraintName()]
 end
 
 ############################################################################################
@@ -586,8 +586,13 @@ function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F, S}) where {F, S}
     return length(MOI.get(model, MOI.ListOfConstraintIndices{F, S}()))
 end
 
-function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfModelAttributesSet)
-    return [MOI.get(model, MOI.ObjectiveFunctionType()), MOI.get(model, MOI.ObjectiveSense())]
+function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
+    attributes = Any[MOI.ObjectiveSense()]
+    typ = MOI.get(model, MOI.ObjectiveFunctionType())
+    if typ !== nothing
+        push!(attributes, MOI.ObjectiveFunction{typ}())
+    end
+    return attributes
 end
 
 # ######################
