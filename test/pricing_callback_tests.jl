@@ -89,7 +89,10 @@ function pricing_callback_test(;two_pricing_phases::Bool)
     BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback)
 
     JuMP.optimize!(model)
-    @test nb_exact_calls == (two_pricing_phases ? 18 : 38)
+    # here, the number of calls may change due to numerical precision depending on the Julia
+    # version. The values below are secure values that ensure that heristic pricing reduces
+    # the number of exact pricing executions.
+    @test (two_pricing_phases ? nb_exact_calls <= 25 : nb_exact_calls >= 30)
     @test JuMP.objective_value(model) ≈ 75.0
     @test JuMP.termination_status(model) == MOI.OPTIMAL
     @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
