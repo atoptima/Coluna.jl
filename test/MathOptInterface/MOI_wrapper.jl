@@ -39,6 +39,30 @@ end
     @test MOIU.supports_default_copy_to(OPTIMIZER, true)
 end
 
+@testset "write_to_file" begin
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver=ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna, direct_model=true)
+    @variable(model, x)
+    @constraint(model, x <= 1)
+    @objective(model, Max, x)
+    optimize!(model)
+
+    dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_MPS)
+    MOI.copy_to(dest, model)
+    MOI.write_to_file(dest, "model.mps")
+
+    filedata = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_MPS)
+    MOI.read_from_file(filedata, "model.mps")
+
+    model2 = BlockModel(coluna, direct_model=true)
+    MOI.copy_to(model2, filedata)
+    @test model == model2
+end
+
 const UNSUPPORTED_TESTS = [
     "solve_qcp_edge_cases", # Quadratic constraints not supported
     "delete_nonnegative_variables", # variable deletion not supported
