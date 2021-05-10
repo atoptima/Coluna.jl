@@ -39,6 +39,23 @@ end
     @test MOIU.supports_default_copy_to(OPTIMIZER, true)
 end
 
+@testset "branching_priority" begin
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver=ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna, direct_model=true)
+    @variable(model, x)
+    @constraint(model, x <= 1)
+    @objective(model, Max, x)
+    optimize!(model)
+    
+    for (moi_index, varid) in backend(model).varids
+        @test MOI.get(backend(model), Coluna.VarBranchingPriority(), moi_index) == 1
+    end
+end
+
 const UNSUPPORTED_TESTS = [
     "solve_qcp_edge_cases", # Quadratic constraints not supported
     "delete_nonnegative_variables", # variable deletion not supported
