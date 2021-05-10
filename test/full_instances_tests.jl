@@ -57,7 +57,7 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
         conquer_with_small_cleanup_threshold = ClA.ColCutGenConquer(
-            colgen = ClA.ColumnGeneration(cleanup_threshold = 150, smoothing_stabilization = 1.0)
+            stages = [ClA.ColumnGeneration(cleanup_threshold = 150, smoothing_stabilization = 1.0)]
         )
 
         branching = ClA.StrongBranching()
@@ -97,7 +97,7 @@ function generalized_assignment_tests()
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(
-                        colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
+                        stages = [ClA.ColumnGeneration(max_nb_iterations = 8)]
                     )
                 )
             ),
@@ -182,7 +182,7 @@ function generalized_assignment_tests()
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    colgen = ClA.ColumnGeneration(opt_rtol = 1e-4, smoothing_stabilization = 0.5)
+                    stages = [ClA.ColumnGeneration(opt_rtol = 1e-4, smoothing_stabilization = 0.5)]
                 )
             )),
             "default_optimizer" => GLPK.Optimizer
@@ -202,7 +202,7 @@ function generalized_assignment_tests()
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(
-                        colgen = ClA.ColumnGeneration(smoothing_stabilization = 1.0)
+                        stages = [ClA.ColumnGeneration(smoothing_stabilization = 1.0)]
                     ),
                     maxnumnodes = 300
                 )

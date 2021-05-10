@@ -18,11 +18,12 @@ end
 
 struct PricingCallbackData
     form::Formulation
+    stagenumber::Int
     primal_solutions::Vector{PrimalSolution}
 end
 
-function PricingCallbackData(form::F) where {F<:Formulation} 
-    return PricingCallbackData(form, PrimalSolution{F}[])
+function PricingCallbackData(form::F, stagenumber::Int) where {F<:Formulation} 
+    return PricingCallbackData(form, stagenumber, PrimalSolution{F}[])
 end
 
 """
@@ -130,11 +131,11 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
 end
 
 # Initialization of optimizers
-function _initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)
+function _initialize_moioptimizer!(optimizer::MoiOptimizer, form::Formulation)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
-    MOI.set(form.optimizer.inner, MoiObjective(), f)
-    set_obj_sense!(form.optimizer, getobjsense(form))
+    MOI.set(form.moioptimizer.inner, MoiObjective(), f)
+    set_obj_sense!(form.moioptimizer, getobjsense(form))
     return
 end
 
-_initialize_optimizer!(optimizer, form::Formulation) = return
+_initialize_moioptimizer!(optimizer, form::Formulation) = return

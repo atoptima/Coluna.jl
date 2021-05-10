@@ -1,12 +1,9 @@
 """
     Coluna.Algorithm.ColumnGeneration(
         restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
-        pricing_prob_solve_alg = SolveIpForm(
-            deactivate_artificial_vars = false,
-            enforce_integrality = false,
-            log_level = 2
-        ),
+        pricing_prob_solve_alg = PricingAlgorithm(),
         essential_cut_gen_alg = CutCallbacks(call_robust_facultative = false)
+        run_only_phase3::Bool = false
         max_nb_iterations::Int = 1000
         log_print_frequency::Int = 1
         store_all_ip_primal_sols::Bool = false
@@ -25,12 +22,9 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
     restr_master_solve_alg = SolveLpForm(get_dual_solution=true)
     # TODO : pricing problem solver may be different depending on the
     #       pricing subproblem
-    pricing_prob_solve_alg = SolveIpForm(
-        deactivate_artificial_vars=false,
-        enforce_integrality=false,
-        log_level=2
-    )
+    pricing_prob_solve_alg = PricingAlgorithm()
     essential_cut_gen_alg = CutCallbacks(call_robust_facultative=false)
+    run_only_phase3::Bool = false
     max_nb_iterations::Int64 = 1000
     log_print_frequency::Int64 = 1
     store_all_ip_primal_sols::Bool = false
@@ -121,13 +115,15 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
     set_ph3!(master) # mixed ph1 & ph2
     stop, _ = cg_main_loop!(algo, env, 3, optstate, reform)
 
-    restart = true
-    while should_do_ph_1(optstate) && restart && !stop
-        set_ph1!(master, optstate)
-        stop, _ = cg_main_loop!(algo, env, 1, optstate, reform)
-        if !stop
-            set_ph2!(master, optstate) # pure ph2
-            stop, restart = cg_main_loop!(algo, env, 2, optstate, reform)
+    if !algo.run_only_phase3
+        restart = true
+        while should_do_ph_1(optstate) && restart && !stop
+            set_ph1!(master, optstate)
+            stop, _ = cg_main_loop!(algo, env, 1, optstate, reform)
+            if !stop
+                set_ph2!(master, optstate) # pure ph2
+                stop, restart = cg_main_loop!(algo, env, 2, optstate, reform)
+            end
         end
     end
 

@@ -18,7 +18,7 @@ end
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
+                    stages = [ClA.ColumnGeneration(max_nb_iterations = 8)]
                 ), maxnumnodes = 4
             )
         ),

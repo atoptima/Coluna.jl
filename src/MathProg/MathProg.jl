@@ -46,13 +46,13 @@ include("MOIinterface.jl")
 export  MaxSense, MinSense, MoiOptimizer,
         Id, ConstrSense, VarSense,
         FormId, FormulationPhase, Annotations,
-        Counter, UserOptimizer, MoiObjective
+        Counter, UserOptimizer, NoOptimizer, MoiObjective
 
 # Methods
 export no_optimizer_builder, set_original_formulation!,
        getid, getuid,
        enforce_integrality!, relax_integrality!,
-       getobjsense, getoptimizer,
+       getobjsense, getmoioptimizer, getuseroptimizer,
        setdualbound!,
        computereducedcost,
        update!,
@@ -82,8 +82,8 @@ export AbstractFormulation, Formulation, create_formulation!, getreformulation, 
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setprimalsol!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
-    set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
-    getobjconst, setobjconst!
+    set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_moioptimizer!,
+    initialize_useroptimizer!, getobjconst, setobjconst!
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp

@@ -46,7 +46,8 @@ get_units_usage(algo::SolveIpForm, reform::Reformulation) =
 function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
     return MOI.supports_constraint(optimizer.inner, MOI.SingleVariable, MOI.Integer)
 end
-check_if_optimizer_supports_ip(optimizer::UserOptimizer) = true
+check_if_optimizer_supports_ip(optimizer::UserOptimizer) = false
+check_if_optimizer_supports_ip(optimizer::NoOptimizer) = false
     
 function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
     result = OptimizationState(
@@ -55,7 +56,7 @@ function run!(algo::SolveIpForm, env::Env, form::Formulation, input::Optimizatio
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
-    ip_supported = check_if_optimizer_supports_ip(getoptimizer(form))
+    ip_supported = check_if_optimizer_supports_ip(getmoioptimizer(form))
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
@@ -63,7 +64,7 @@ function run!(algo::SolveIpForm, env::Env, form::Formulation, input::Optimizatio
         return OptimizationOutput(result)
     end
 
-    primal_sols = optimize_ip_form!(algo, getoptimizer(form), form, result)
+    primal_sols = optimize_ip_form!(algo, getmoioptimizer(form), form, result)
 
     partial_sol = nothing
     partial_sol_value = 0.0
@@ -133,7 +134,7 @@ end
 
 function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::OptimizationState)
     sync_solver!(optimizer, form)
-    nbvars = MOI.get(form.optimizer.inner, MOI.NumberOfVariables())
+    nbvars = MOI.get(form.moioptimizer.inner, MOI.NumberOfVariables())
     if nbvars <= 0
         @warn "No variable in the formulation."
     end
@@ -167,20 +168,4 @@ function optimize_ip_form!(
         activate!(form, vcid -> isanArtificialDuty(getduty(vcid)))
     end
     return primal_sols
-end
-
-function optimize_ip_form!(
-    ::SolveIpForm, optimizer::UserOptimizer, form::Formulation, result::OptimizationState
-)
-    @logmsg LogLevel(-2) "Calling user-defined optimization function."
-
-    cbdata = MathProg.PricingCallbackData(form)
-    optimizer.user_oracle(cbdata)
-
-    if length(cbdata.primal_solutions) > 0
-        setterminationstatus!(result, OPTIMAL)
-    else
-        setterminationstatus!(result, INFEASIBLE) # TODO : what if no solution found ?
-    end
-    return cbdata.primal_solutions
 end
