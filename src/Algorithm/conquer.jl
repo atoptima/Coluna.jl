@@ -204,46 +204,48 @@ function run!(algo::ColCutGenConquer, env::Env, data::ReformData, input::Conquer
             ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
     end
 
-    heuristics_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
-    for heuristic in algo.primal_heuristics
-        #TO DO : get_tree_order of nodes in strong branching is always -1
-        if getdepth(node) <= heuristic.max_depth && 
-            mod(get_tree_order(node) - 1, heuristic.frequency) == 0
-            push!(heuristics_to_run, (
-                heuristic.algorithm, heuristic.name,
-                isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
-            ))
-        end
-    end
-    sort!(heuristics_to_run, by = x -> last(x), rev=true)
-
-    for (heur_algorithm, name, priority) in heuristics_to_run
-        node_pruned = ip_gap_closed(
-            nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol
-            ) 
-        node_pruned && break
-
-        @info "Running $name heuristic"
-        ismanager(heur_algorithm) && (recordids = store_records!(data))
-        heur_output = run!(heur_algorithm, env, data, OptimizationInput(nodestate))
-        ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
-        if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
-            # we start with worst solution to add all improving solutions
-            for sol in sort(ip_primal_sols, rev = getobjsense(reform) == MinSense)
-                cutgen = CutCallbacks(call_robust_facultative = false)
-                cutcb_output = run!(cutgen, env, getmasterdata(data), CutCallbacksInput(sol))
-                if cutcb_output.nb_cuts_added == 0
-                    update_ip_primal_sol!(nodestate, sol)
-                end
+    if !node_pruned
+        heuristics_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
+        for heuristic in algo.primal_heuristics
+            #TO DO : get_tree_order of nodes in strong branching is always -1
+            if getdepth(node) <= heuristic.max_depth && 
+                mod(get_tree_order(node) - 1, heuristic.frequency) == 0
+                push!(heuristics_to_run, (
+                    heuristic.algorithm, heuristic.name,
+                    isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
+                ))
             end
         end
-        ismanager(heur_algorithm) && restore_from_records!(input.units_to_restore, recordids)
-    end
+        sort!(heuristics_to_run, by = x -> last(x), rev=true)
 
-    if node_pruned
-        setterminationstatus!(nodestate, OPTIMAL)
-    else
-        setterminationstatus!(nodestate, OTHER_LIMIT)
+        for (heur_algorithm, name, priority) in heuristics_to_run
+            node_pruned = ip_gap_closed(
+                nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol
+                ) 
+            node_pruned && break
+
+            @info "Running $name heuristic"
+            ismanager(heur_algorithm) && (recordids = store_records!(data))
+            heur_output = run!(heur_algorithm, env, data, OptimizationInput(nodestate))
+            ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
+            if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
+                # we start with worst solution to add all improving solutions
+                for sol in sort(ip_primal_sols, rev = getobjsense(reform) == MinSense)
+                    cutgen = CutCallbacks(call_robust_facultative = false)
+                    cutcb_output = run!(cutgen, env, getmasterdata(data), CutCallbacksInput(sol))
+                    if cutcb_output.nb_cuts_added == 0
+                        update_ip_primal_sol!(nodestate, sol)
+                    end
+                end
+            end
+            ismanager(heur_algorithm) && restore_from_records!(input.units_to_restore, recordids)
+        end
+
+        if node_pruned
+            setterminationstatus!(nodestate, OPTIMAL)
+        else
+            setterminationstatus!(nodestate, OTHER_LIMIT)
+        end
     end
     return
 end

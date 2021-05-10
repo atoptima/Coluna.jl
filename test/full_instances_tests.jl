@@ -157,6 +157,22 @@ function generalized_assignment_tests()
         @test JuMP.termination_status(problem) == MOI.INFEASIBLE
     end
 
+    # Issue 520 : https://github.com/atoptima/Coluna.jl/issues/520
+    @testset "gap with infeasible master 2" begin
+        data = CLD.GeneralizedAssignment.data("master_infeas2.txt")
+
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer,
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "default_optimizer" => GLPK.Optimizer
+        )
+
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+        JuMP.optimize!(problem)
+        @test JuMP.termination_status(problem) == MOI.INFEASIBLE
+    end
+
     @testset "gap with infeasible subproblem" begin
         data = CLD.GeneralizedAssignment.data("sp_infeas.txt")
 
