@@ -51,9 +51,20 @@ end
     @objective(model, Max, x)
     optimize!(model)
     
-    for (moi_index, varid) in backend(model).varids
-        @test MOI.get(backend(model), Coluna.VarBranchingPriority(), moi_index) == 1
-    end
+    @test MOI.get(backend(model), Coluna.VarBranchingPriority(), x.index) == 1
+    MOI.set(backend(model), Coluna.VarBranchingPriority(), x.index, 2)
+    @test MOI.get(backend(model), Coluna.VarBranchingPriority(), x.index) == 2
+    
+    model2 = BlockModel(coluna)
+    @variable(model2, x)
+    @constraint(model2, x <= 1)
+    @objective(model2, Max, x)
+    optimize!(model2)
+    
+    backendmodel2 = model2.moi_backend.optimizer.model
+    @test MOI.get(backendmodel2, Coluna.VarBranchingPriority(), x.index) == 1
+    MOI.set(backendmodel2, Coluna.VarBranchingPriority(), x.index, 2)
+    @test MOI.get(backendmodel2, Coluna.VarBranchingPriority(), x.index) == 2
 end
 
 const UNSUPPORTED_TESTS = [
