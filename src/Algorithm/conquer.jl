@@ -182,25 +182,16 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
             if length(algo.stages) > 1 
                 @logmsg LogLevel(0) "Column generation stage $stage is started"
             end
+
             colgen_output = run!(colgen, env, reform, OptimizationInput(nodestate))
-    
-            if stage == 1 # if exact stage
-                update!(nodestate, getoptstate(colgen_output))
-            else 
-                # after a heuristic, we update only primal solutions
-                # no dual bounds are updated as col.gen. dual bounds are not valid here 
-                # the status is updated only if a time limit is reached
-                colgen_state = getoptstate(colgen_output)
-                update_all_ip_primal_solutions!(nodestate, colgen_state)
-                if nb_lp_primal_sols(colgen_state) > 0
-                    set_lp_primal_sol!(nodestate, get_best_lp_primal_sol(colgen_state))
-                end        
-                status = getterminationstatus(getoptstate(colgen_output))
-                status == TIME_LIMIT && setterminationstatus!(nodestate, status)
+            update!(nodestate, getoptstate(colgen_output))
+
+            if getterminationstatus(nodestate) == INFEASIBLE ||
+               getterminationstatus(nodestate) == TIME_LIMIT ||
+               ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+                stop_conquer = true
+                break
             end
-            stop_conquer = getterminationstatus(nodestate) == INFEASIBLE ||
-                           getterminationstatus(nodestate) == TIME_LIMIT ||
-                           ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
         end
     
         cuts_were_added = false
