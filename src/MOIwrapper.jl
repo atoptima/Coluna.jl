@@ -63,8 +63,6 @@ MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 MOI.supports(::Optimizer, ::MOI.ConstraintPrimalStart) = false
 MOI.supports(::Optimizer, ::MOI.ConstraintDualStart) = false
 
-struct VarBranchingPriority <: MOI.AbstractVariableAttribute end
-
 # Parameters
 function MOI.set(model::Optimizer, param::MOI.RawParameter, val)
     if param.name == "params"
@@ -393,7 +391,7 @@ function MOI.set(
 end
 
 function MOI.set(
-    model::Coluna.Optimizer, ::Coluna.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
+    model::Coluna.Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
 )
     var = model.vars[varid]
     var.branching_priority = branching_priority
@@ -405,7 +403,7 @@ function MOI.get(model::Coluna.Optimizer, ::MOI.VariableName, index::MOI.Variabl
     return getname(orig_form, model.vars[index])
 end
 
-function MOI.get(model::Coluna.Optimizer, ::Coluna.VarBranchingPriority, varid::MOI.VariableIndex)
+function MOI.get(model::Coluna.Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex)
     var = model.vars[varid]
     return var.branching_priority
 end

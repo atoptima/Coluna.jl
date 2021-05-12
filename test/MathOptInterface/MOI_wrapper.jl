@@ -51,9 +51,9 @@ end
     @objective(model, Max, x)
     optimize!(model)
     
-    @test MOI.get(backend(model), Coluna.VarBranchingPriority(), x.index) == 1
-    MOI.set(backend(model), Coluna.VarBranchingPriority(), x.index, 2)
-    @test MOI.get(backend(model), Coluna.VarBranchingPriority(), x.index) == 2
+    @test BlockDecomposition.branchingpriority(model, x) == 1
+    BlockDecomposition.branchingpriority!(model, x, 2)
+    @test BlockDecomposition.branchingpriority(model, x) == 2
     
     model2 = BlockModel(coluna)
     @variable(model2, x)
@@ -61,10 +61,9 @@ end
     @objective(model2, Max, x)
     optimize!(model2)
     
-    backendmodel2 = model2.moi_backend.optimizer.model
-    @test MOI.get(backendmodel2, Coluna.VarBranchingPriority(), x.index) == 1
-    MOI.set(backendmodel2, Coluna.VarBranchingPriority(), x.index, 2)
-    @test MOI.get(backendmodel2, Coluna.VarBranchingPriority(), x.index) == 2
+    # `direct_model = false` does not set branching_priority automatically
+    BlockDecomposition.branchingpriority!(model2, x, 2)
+    @test BlockDecomposition.branchingpriority(model2, x) == 2
 end
 
 const UNSUPPORTED_TESTS = [
