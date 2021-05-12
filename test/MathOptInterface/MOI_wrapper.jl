@@ -47,9 +47,6 @@ end
     )
     model = BlockModel(coluna, direct_model=true)
     @variable(model, x)
-    @constraint(model, x <= 1)
-    @objective(model, Max, x)
-    optimize!(model)
     
     @test BlockDecomposition.branchingpriority(model, x) == 1
     BlockDecomposition.branchingpriority!(model, x, 2)
@@ -57,9 +54,6 @@ end
     
     model2 = BlockModel(coluna)
     @variable(model2, x)
-    @constraint(model2, x <= 1)
-    @objective(model2, Max, x)
-    optimize!(model2)
     
     # `direct_model = false` does not set branching_priority automatically
     BlockDecomposition.branchingpriority!(model2, x, 2)
