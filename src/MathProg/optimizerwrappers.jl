@@ -18,12 +18,12 @@ end
 
 struct PricingCallbackData
     form::Formulation
-    stagenumber::Int
+    stage::Int
     primal_solutions::Vector{PrimalSolution}
 end
 
-function PricingCallbackData(form::F, stagenumber::Int) where {F<:Formulation} 
-    return PricingCallbackData(form, stagenumber, PrimalSolution{F}[])
+function PricingCallbackData(form::F, stage::Int) where {F<:Formulation} 
+    return PricingCallbackData(form, stage, PrimalSolution{F}[])
 end
 
 """

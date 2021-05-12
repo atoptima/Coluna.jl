@@ -569,13 +569,6 @@ function initialize_moioptimizer!(form::Formulation, builder::Function)
     return
 end
 
-function initialize_useroptimizer!(form::Formulation, builder::Function)
-    opt = builder()
-    form.useroptimizer = opt
-    return
-end
-
-
 function _show_obj_fun(io::IO, form::Formulation)
     print(io, getobjsense(form), " ")
     vars = filter(v -> isexplicit(form, v.first), getvars(form))

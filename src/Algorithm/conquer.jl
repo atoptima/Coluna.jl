@@ -118,7 +118,6 @@ end
 """
     Coluna.Algorithm.ColCutGenConquer(
         stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-        minstagenumber::Int = 1
         primal_heuristics::Vector{ParameterisedHeuristic} = [DefaultRestrictedMasterHeuristic()]
         preprocess = PreprocessAlgorithm()
         cutgen = CutCallbacks()
@@ -133,7 +132,6 @@ end
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-    minstagenumber::Int = 1
     primal_heuristics::Vector{ParameterisedHeuristic} = [DefaultRestrictedMasterHeuristic()]
     preprocess = PreprocessAlgorithm()
     cutgen = CutCallbacks()
@@ -180,17 +178,14 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
     run_colgen = true
     while !stop_conquer && run_colgen
 
-        for (stagenumber, colgen) in Iterators.reverse(enumerate(algo.stages))
+        for (stage, colgen) in Iterators.reverse(enumerate(algo.stages))
             if length(algo.stages) > 1 
-                @logmsg LogLevel(0) "Column generation stage $stagenumber is started"
+                @logmsg LogLevel(0) "Column generation stage $stage is started"
             end
             colgen_output = run!(colgen, env, reform, OptimizationInput(nodestate))
     
-            if stagenumber == 1 # if exact stage
+            if stage == 1 # if exact stage
                 update!(nodestate, getoptstate(colgen_output))
-                stop_conquer = getterminationstatus(nodestate) == INFEASIBLE ||
-                               getterminationstatus(nodestate) == TIME_LIMIT ||
-                               ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
             else 
                 # after a heuristic, we update only primal solutions
                 # no dual bounds are updated as col.gen. dual bounds are not valid here 
@@ -202,17 +197,15 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                 end        
                 status = getterminationstatus(getoptstate(colgen_output))
                 status == TIME_LIMIT && setterminationstatus!(nodestate, status)
-                stop_conquer = getterminationstatus(nodestate) == TIME_LIMIT ||
-                               ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
             end
-            stagenumber == algo.minstagenumber && break    
+            stop_conquer = getterminationstatus(nodestate) == INFEASIBLE ||
+                           getterminationstatus(nodestate) == TIME_LIMIT ||
+                           ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
         end
     
         cuts_were_added = false
         sol = get_best_lp_primal_sol(nodestate)
-        if sol === nothing 
-            @warn "Column generation did not produce an LP primal solution."
-        else
+        if sol !== nothing 
             if !stop_conquer && nb_cut_rounds < algo.max_nb_cut_rounds
                 cutcb_input = CutCallbacksInput(sol)
                 cutcb_output = run!(CutCallbacks(), env, getmaster(reform), cutcb_input)
@@ -223,6 +216,8 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                     cuts_were_added = true
                 end
             end
+        else
+            @warn "Column generation did not produce an LP primal solution."
         end
         if !cuts_were_added 
             run_colgen = false
@@ -245,7 +240,9 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
     
         for (heur_algorithm, name, priority) in heuristics_to_run    
             @info "Running $name heuristic"
-            ismanager(heur_algorithm) && (recordids = store_records!(reform))
+            if ismanager(heur_algorithm) 
+                recordids = store_records!(reform)
+            end                
             heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
             status = getterminationstatus(getoptstate(heur_output))
             status == TIME_LIMIT && setterminationstatus!(nodestate, status)
@@ -261,11 +258,14 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                     end
                 end
             end
-            ismanager(heur_algorithm) && ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+            if ismanager(heur_algorithm) 
+                ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+            end
 
-            stop_conquer = getterminationstatus(nodestate) == TIME_LIMIT ||
-                           ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol) 
-            stop_conquer && break
+            if getterminationstatus(nodestate) == TIME_LIMIT ||
+               ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+               break
+            end   
         end
     end
 

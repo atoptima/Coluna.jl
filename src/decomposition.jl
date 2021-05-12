@@ -476,7 +476,11 @@ function buildformulations!(
     create_side_vars_constrs!(spform, origform, env, annotations)
     closefillmode!(getcoefmatrix(spform))
     initialize_moioptimizer!(spform, getmoioptbuilder(prob, ann))
-    initialize_useroptimizer!(spform, getuseroptbuilder(prob, ann))
+
+    if BD.getpricingoracle(ann) !== nothing
+        spform.useroptimizer = UserOptimizer(BD.getpricingoracle(ann))
+    end
+
     return
 end
 

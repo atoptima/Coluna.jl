@@ -10,13 +10,12 @@ function pricing_callback_tests()
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(
                         stages = [ClA.ColumnGeneration(
-                                    pricing_prob_solve_alg = ClA.PricingAlgorithm(
-                                        dispatch=1, callbackalg = PricingCallback(stagenumber=1) 
+                                    pricing_prob_solve_alg = ClA.DefaultPricing(
+                                        dispatch=1, callbackalg = PricingCallback(stage=1) 
                                     )),
                                   ClA.ColumnGeneration(
-                                    run_only_phase3 = true,
-                                    pricing_prob_solve_alg = ClA.PricingAlgorithm(
-                                        dispatch=1, callbackalg = PricingCallback(stagenumber=2) 
+                                    pricing_prob_solve_alg = ClA.DefaultPricing(
+                                        dispatch=1, callbackalg = PricingCallback(stage=2) 
                                     ))
                                  ]
                     )
@@ -57,7 +56,7 @@ function pricing_callback_tests()
                 JuMP.fix(lb_y[j], BD.callback_lb(cbdata, x[machine_id, j]), force = true)
                 JuMP.fix(ub_y[j], BD.callback_ub(cbdata, x[machine_id, j]), force = true)
             end
-            JuMP.fix(max_card, (cbdata.stagenumber == 1) ? length(data.jobs) : 3, force = true)
+            JuMP.fix(max_card, (cbdata.stage == 1) ? length(data.jobs) : 3, force = true)
             ## Objective function
             @objective(sp, Min, sum(red_costs[j]*y[j] for j in data.jobs))
 
