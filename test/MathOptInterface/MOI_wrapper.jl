@@ -60,7 +60,10 @@ end
 
     model2 = BlockModel(coluna, direct_model=true)
     MOI.copy_to(model2, filedata)
-    @test model == model2
+    optimize!(model2)
+
+    # the model is always written as a minimization problem
+    @test JuMP.objective_value(model) == -JuMP.objective_value(model2)
 end
 
 const UNSUPPORTED_TESTS = [
