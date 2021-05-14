@@ -212,6 +212,14 @@ function MOI.get(model::Coluna.Optimizer, ::Type{MOI.VariableIndex}, name::Strin
     return get(model.names_to_vars, name, nothing)
 end
 
+function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfVariableIndices)
+    indices = Vector{MathOptInterface.VariableIndex}()
+    for (key,value) in model.moi_varids
+        push!(indices, value)
+    end
+    return sort!(indices)
+end
+
 ############################################################################################
 # Get constraints
 ############################################################################################
@@ -395,6 +403,10 @@ function MOI.get(model::Coluna.Optimizer, ::MOI.VariableName, index::MOI.Variabl
     return getname(orig_form, model.vars[index])
 end
 
+function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
+    return MOI.AbstractVariableAttribute[MOI.VariableName()]
+end
+
 ############################################################################################
 # Attributes of constraints
 ############################################################################################
@@ -437,6 +449,10 @@ function MOI.get(model::Coluna.Optimizer, ::MOI.ConstraintName, constrid::MOI.Co
         return getname(orig_form, constr)
     end
     return ""
+end
+
+function MOI.get(model::Optimizer, ::MOI.ListOfConstraintAttributesSet)
+    return MOI.AbstractConstraintAttribute[MOI.ConstraintName()]
 end
 
 ############################################################################################
@@ -568,6 +584,15 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F, S}) where {F, S}
     return length(MOI.get(model, MOI.ListOfConstraintIndices{F, S}()))
+end
+
+function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
+    attributes = Any[MOI.ObjectiveSense()]
+    typ = MOI.get(model, MOI.ObjectiveFunctionType())
+    if typ !== nothing
+        push!(attributes, MOI.ObjectiveFunction{typ}())
+    end
+    return attributes
 end
 
 # ######################
