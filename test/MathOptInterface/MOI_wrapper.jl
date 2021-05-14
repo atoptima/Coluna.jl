@@ -55,7 +55,7 @@ end
     model2 = BlockModel(coluna)
     @variable(model2, x)
     
-    # `direct_model = false` does not set branching_priority automatically
+    @test BlockDecomposition.branchingpriority(model2, x) == 1
     BlockDecomposition.branchingpriority!(model2, x, 2)
     @test BlockDecomposition.branchingpriority(model2, x) == 2
 end
