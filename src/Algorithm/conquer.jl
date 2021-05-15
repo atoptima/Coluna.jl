@@ -126,9 +126,10 @@ end
 
     Column-and-cut-generation based algorithm to find primal and dual bounds for a 
     problem decomposed using Dantzig-Wolfe paradigm. It applies `stages` of the column generation 
-    algorithm (for example, the exact stage and the heuristic stage), `cutgen` for the cut 
-    generation phase, and it can apply several primal
-    heuristics to more efficiently find feasible solutions.
+    algorithm. Stages are called in the reverse order of vector `stages`. So usually, first stage
+    is the one with exact pricing, and other stages use heuristic pricing (the higher is stage, 
+    the faster is the heuristic). It applies `cutgen` for the cut generation phase. It can apply 
+    several primal heuristics to more efficiently find feasible solutions.
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]

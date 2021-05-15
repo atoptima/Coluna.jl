@@ -432,13 +432,6 @@ function getmoioptbuilder(prob::Problem, ann::BD.Annotation)
     return prob.default_optimizer_builder
 end
 
-function getuseroptbuilder(prob::Problem, ann::BD.Annotation)
-    if BD.getpricingoracle(ann) !== nothing
-        return () -> UserOptimizer(BD.getpricingoracle(ann))
-    end
-    return prob.default_optimizer_builder
-end
-
 function buildformulations!(
     prob::Problem, reform::Reformulation, env::Env, annotations::Annotations, parent,
     node::BD.Root
