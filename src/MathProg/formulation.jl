@@ -159,7 +159,8 @@ function setvar!(
     is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex(),
     members::Union{ConstrMembership,Nothing} = nothing,
-    id = generatevarid(duty, form)
+    id = generatevarid(duty, form),
+    branching_priority::Float64 = 1.0
 )
     if kind == Binary
         lb = (lb < 0.0) ? 0.0 : lb
@@ -169,7 +170,7 @@ function setvar!(
         id = VarId(duty, id)
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
-    var = Variable(id, name; var_data = v_data, moi_index = moi_index)
+    var = Variable(id, name; var_data = v_data, moi_index = moi_index, branching_priority = branching_priority)
     _addvar!(form, var)
     members !== nothing && _setmembers!(form, var, members)
     return var

@@ -124,12 +124,12 @@ end
         run_preprocessing::Bool = false
     )
 
-    Column-and-cut-generation based algorithm to find primal and dual bounds for a 
-    problem decomposed using Dantzig-Wolfe paradigm. It applies `stages` of the column generation 
-    algorithm. Stages are called in the reverse order of vector `stages`. So usually, first stage
-    is the one with exact pricing, and other stages use heuristic pricing (the higher is stage, 
-    the faster is the heuristic). It applies `cutgen` for the cut generation phase. It can apply 
-    several primal heuristics to more efficiently find feasible solutions.
+Column-and-cut-generation based algorithm to find primal and dual bounds for a 
+problem decomposed using Dantzig-Wolfe paradigm. It applies `stages` of the column generation 
+algorithm. Stages are called in the reverse order of vector `stages`. So usually, first stage
+is the one with exact pricing, and other stages use heuristic pricing (the higher is stage, 
+the faster is the heuristic). It applies `cutgen` for the cut generation phase. It can apply 
+several primal heuristics to more efficiently find feasible solutions.
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
@@ -230,14 +230,20 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
         end
         sort!(heuristics_to_run, by = x -> last(x), rev=true)
     
-        for (heur_algorithm, name, priority) in heuristics_to_run    
+        for (heur_algorithm, name, priority) in heuristics_to_run
+            if ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol) 
+                break
+            end
+
             @info "Running $name heuristic"
             if ismanager(heur_algorithm) 
                 recordids = store_records!(reform)
-            end                
+            end   
+
             heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
             status = getterminationstatus(getoptstate(heur_output))
             status == TIME_LIMIT && setterminationstatus!(nodestate, status)
+
             ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
             if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                 # we start with worst solution to add all improving solutions
@@ -276,7 +282,7 @@ end
 @with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
     masterlpalgo::SolveLpForm = SolveLpForm(
         update_ip_primal_solution = true, consider_partial_solution = true
-        )
+    )
 end
 
 # RestrMasterLPConquer does not use any unit, therefore get_units_usage() is not defined for it
