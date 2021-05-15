@@ -12,13 +12,14 @@ function clonevar!(
     inc_val::Float64 = getperenincval(originform, var),
     is_active::Bool = isperenactive(originform, var),
     is_explicit::Bool = isexplicit(originform, var),
+    branching_priority::Float64 = getbranchingpriority(originform, var),
     members::Union{ConstrMembership,Nothing} = nothing
 )
     return setvar!(
         destform, name, duty; 
         cost = cost, lb = lb, ub = ub, kind = kind,
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit, 
-        members = members,
+        branching_priority = branching_priority, members = members, 
         id = Id{Variable}(duty, getid(var), getuid(assignedform))
     )
 end

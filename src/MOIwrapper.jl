@@ -402,7 +402,7 @@ function MOI.set(
     model::Coluna.Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
 )
     var = model.vars[varid]
-    var.branching_priority = branching_priority
+    var.branching_priority = Float64(branching_priority)
     return
 end
 

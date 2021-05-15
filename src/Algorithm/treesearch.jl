@@ -243,11 +243,14 @@ function run_conquer_algorithm!(
 
     algo.print_node_info && print_node_info_before_conquer(tsdata, env, node)
 
-    node.conquerwasrun && return
-
     treestate = getoptstate(tsdata)
     nodestate = getoptstate(node)
     update_ip_primal!(nodestate, treestate, tsdata.exploitsprimalsolutions)
+
+    # in the case the conquer was already run (in strong branching),
+    # we still need to update the node IP primal bound before exiting 
+    # (to possibly avoid branching)
+    node.conquerwasrun && return
 
     apply_conquer_alg_to_node!(
         node, algo.conqueralg, env, rfdata, tsdata.conquer_units_to_restore, 
