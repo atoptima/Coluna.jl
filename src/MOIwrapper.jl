@@ -398,9 +398,22 @@ function MOI.set(
     return
 end
 
+function MOI.set(
+    model::Coluna.Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
+)
+    var = model.vars[varid]
+    var.branching_priority = branching_priority
+    return
+end
+
 function MOI.get(model::Coluna.Optimizer, ::MOI.VariableName, index::MOI.VariableIndex)
     orig_form = get_original_formulation(model.inner)
     return getname(orig_form, model.vars[index])
+end
+
+function MOI.get(model::Coluna.Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex)
+    var = model.vars[varid]
+    return var.branching_priority
 end
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
