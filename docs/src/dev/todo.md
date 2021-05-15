@@ -35,7 +35,7 @@ Base.diff
 Coluna.MathProg.update_ip_primal_bound!
 Coluna.Algorithm.OptimizationState
 Coluna.MathProg.update_lp_dual_bound!
-Coluna.MathProg.getoptimizer
+Coluna.MathProg.getmoioptimizer
 Coluna.MathProg.update_ip_dual_bound!
 Coluna.MathProg.ip_gap_closed
 Coluna.Algorithm.add_ip_primal_sol!

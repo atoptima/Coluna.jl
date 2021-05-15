@@ -3,7 +3,8 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     var_counter::Int
     constr_counter::Int
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
-    optimizer::AbstractOptimizer
+    moioptimizer::AbstractOptimizer
+    useroptimizer::AbstractOptimizer 
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
@@ -34,7 +35,8 @@ function create_formulation!(
     end
     return Formulation{duty}(
         env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
-        FormulationManager(), obj_sense, FormulationBuffer(), Storage()
+        NoOptimizer(), FormulationManager(), obj_sense, FormulationBuffer(), 
+        Storage()
     )
 end
 
@@ -95,7 +97,8 @@ getuid(form::Formulation) = form.uid
 getobjsense(form::Formulation) = form.obj_sense
 
 "Returns the `AbstractOptimizer` of `Formulation` `form`."
-getoptimizer(form::Formulation) = form.optimizer
+getmoioptimizer(form::Formulation) = form.moioptimizer
+getuseroptimizer(form::Formulation) = form.useroptimizer
 
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
@@ -114,7 +117,7 @@ _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 """
     set_matrix_coeff!(form::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
-Buffers the matrix modification in `form.buffer` to be sent to `form.optimizer` right before next call to optimize!.
+Buffers the matrix modification in `form.buffer` to be sent to `form.moioptimizer` right before next call to optimize!.
 """
 set_matrix_coeff!(
     form::Formulation, varid::VarId, constrid::ConstrId, new_coeff::Float64
@@ -559,10 +562,10 @@ function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)
     return val
 end
 
-function initialize_optimizer!(form::Formulation, builder::Function)
+function initialize_moioptimizer!(form::Formulation, builder::Function)
     opt = builder()
-    form.optimizer = opt
-    _initialize_optimizer!(opt, form)
+    form.moioptimizer = opt
+    _initialize_moioptimizer!(opt, form)
     return
 end
 
@@ -643,7 +646,7 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
 end
 
 function write_to_LP_file(form::Formulation, filename::String)
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     if isa(optimizer, MoiOptimizer)
         src = getinner(optimizer)
         dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)

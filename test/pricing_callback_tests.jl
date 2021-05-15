@@ -1,16 +1,32 @@
 function pricing_callback_tests()
 
-    @testset "GAP with ad-hoc pricing callback " begin
+    @testset "GAP with ad-hoc pricing callback and stages" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
             "default_optimizer" => GLPK.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
+            "params" => CL.Params(
+                solver = ClA.TreeSearchAlgorithm(
+                    conqueralg = ClA.ColCutGenConquer(
+                        stages = [ClA.ColumnGeneration(
+                                    pricing_prob_solve_alg = ClA.DefaultPricing(
+                                        dispatch=1, pricing_callback = PricingCallback(stage=1) 
+                                    )),
+                                  ClA.ColumnGeneration(
+                                    pricing_prob_solve_alg = ClA.DefaultPricing(
+                                        dispatch=1, pricing_callback = PricingCallback(stage=2) 
+                                    ))
+                                 ]
+                    )
+                )
+            )
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
 
+        # Subproblem models are created once and for all
+        # One model for each machine
         # Subproblem models are created once and for all
         # One model for each machine
         sp_models = Dict{Int, Any}()
@@ -19,16 +35,18 @@ function pricing_callback_tests()
             @variable(sp, y[j in data.jobs], Bin)
             @variable(sp, lb_y[j in data.jobs] >= 0)
             @variable(sp, ub_y[j in data.jobs] >= 0)
+            @variable(sp, max_card >= 0) # this sets the maximum solution cardinality for heuristic pricing
+            @constraint(sp, card, sum(y[j] for j in data.jobs) <= max_card)
             @constraint(sp, knp, sum(data.weight[j,m]*y[j] for j in data.jobs) <= data.capacity[m])
             @constraint(sp, lbs[j in data.jobs], y[j] + lb_y[j] >= 0)
             @constraint(sp, ubs[j in data.jobs], y[j] - ub_y[j] <= 0)
-            sp_models[m] = (sp, y, lb_y, ub_y)
+            sp_models[m] = (sp, y, lb_y, ub_y, max_card)
         end
 
         function my_pricing_callback(cbdata)
             machine_id = BD.callback_spid(cbdata, model)
 
-            sp, y, lb_y, ub_y = sp_models[machine_id]
+            sp, y, lb_y, ub_y, max_card = sp_models[machine_id]
 
             red_costs = [BD.callback_reduced_cost(cbdata, x[machine_id, j]) for j in data.jobs]
 
@@ -38,6 +56,7 @@ function pricing_callback_tests()
                 JuMP.fix(lb_y[j], BD.callback_lb(cbdata, x[machine_id, j]), force = true)
                 JuMP.fix(ub_y[j], BD.callback_ub(cbdata, x[machine_id, j]), force = true)
             end
+            JuMP.fix(max_card, (cbdata.stage == 1) ? length(data.jobs) : 3, force = true)
             ## Objective function
             @objective(sp, Min, sum(red_costs[j]*y[j] for j in data.jobs))
 

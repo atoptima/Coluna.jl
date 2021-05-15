@@ -425,10 +425,7 @@ function assign_orig_vars_constrs!(
     clonecoeffs!(origform, destform)
 end
 
-function getoptbuilder(prob::Problem, ann::BD.Annotation)
-    if BD.getpricingoracle(ann) !== nothing
-        return () -> UserOptimizer(BD.getpricingoracle(ann))
-    end
+function getmoioptbuilder(prob::Problem, ann::BD.Annotation)
     if BD.getoptimizerbuilder(ann) !== nothing
         return () -> MoiOptimizer(BD.getoptimizerbuilder(ann))
     end
@@ -452,8 +449,8 @@ function buildformulations!(
     create_side_vars_constrs!(masterform, origform, env, annotations)
     create_artificial_vars!(masterform, env)
     closefillmode!(getcoefmatrix(masterform))
-    initialize_optimizer!(masterform, getoptbuilder(prob, ann))
-    initialize_optimizer!(origform, getoptbuilder(prob, ann))
+    initialize_moioptimizer!(masterform, getmoioptbuilder(prob, ann))
+    initialize_moioptimizer!(origform, getmoioptbuilder(prob, ann))
     return
 end
 
@@ -471,7 +468,12 @@ function buildformulations!(
     assign_orig_vars_constrs!(spform, origform, env, annotations, ann)
     create_side_vars_constrs!(spform, origform, env, annotations)
     closefillmode!(getcoefmatrix(spform))
-    initialize_optimizer!(spform, getoptbuilder(prob, ann))
+    initialize_moioptimizer!(spform, getmoioptbuilder(prob, ann))
+
+    if BD.getpricingoracle(ann) !== nothing
+        spform.useroptimizer = UserOptimizer(BD.getpricingoracle(ann))
+    end
+
     return
 end
 
@@ -487,7 +489,7 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         buildformulations!(prob, reform, env, annotations, reform, root)
         relax_integrality!(getmaster(reform))
     else
-        initialize_optimizer!(
+        initialize_moioptimizer!(
             prob.original_formulation,
             prob.default_optimizer_builder
         )
