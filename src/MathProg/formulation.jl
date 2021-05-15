@@ -154,7 +154,7 @@ function setvar!(
     moi_index::MoiVarIndex = MoiVarIndex(),
     members::Union{ConstrMembership,Nothing} = nothing,
     id = generatevarid(duty, form),
-    branching_priority::Int = 1
+    branching_priority::Float64 = 1.0
 )
     if kind == Binary
         lb = (lb < 0.0) ? 0.0 : lb

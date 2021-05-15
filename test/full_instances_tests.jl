@@ -60,10 +60,12 @@ function generalized_assignment_tests()
             colgen = ClA.ColumnGeneration(cleanup_threshold = 150, smoothing_stabilization = 1.0)
         )
 
-        branching = ClA.StrongBranching()
-        push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
-        push!(branching.phases, ClA.BranchingPhase(1, conquer_with_small_cleanup_threshold))
-        push!(branching.rules, ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 1.0, 1.0))
+        branching = ClA.StrongBranching(
+            phases = [ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()),
+                      ClA.BranchingPhase(1, conquer_with_small_cleanup_threshold)],
+            rules = [ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 2.0, 2.0),
+                     ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 1.0, 1.0)]
+        )
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -78,6 +80,13 @@ function generalized_assignment_tests()
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+        # we increase the branching priority of variables which assign jobs to the first two machines
+        for machine in 1:2
+            for job in data.jobs
+                BD.branchingpriority!(model, x[machine,job], 2)
+            end
+        end  
 
         BD.objectiveprimalbound!(model, 2000.0)
         BD.objectivedualbound!(model, 0.0)
