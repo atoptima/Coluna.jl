@@ -43,7 +43,9 @@ function pricing_callback_tests()
             sp_models[m] = (sp, y, lb_y, ub_y, max_card)
         end
 
+        nb_exact_calls = 0
         function my_pricing_callback(cbdata)
+            # (cbdata.stage == 2) && return
             machine_id = BD.callback_spid(cbdata, model)
 
             sp, y, lb_y, ub_y, max_card = sp_models[machine_id]
@@ -57,6 +59,7 @@ function pricing_callback_tests()
                 JuMP.fix(ub_y[j], BD.callback_ub(cbdata, x[machine_id, j]), force = true)
             end
             JuMP.fix(max_card, (cbdata.stage == 1) ? length(data.jobs) : 3, force = true)
+            nb_exact_calls += (cbdata.stage == 1) ? 1 : 0
             ## Objective function
             @objective(sp, Min, sum(red_costs[j]*y[j] for j in data.jobs))
 
@@ -87,6 +90,10 @@ function pricing_callback_tests()
         BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback)
 
         JuMP.optimize!(model)
+        @test nb_exact_calls < 30   # WARNING: this test is necessary to properly test stage 2.
+                                    # Disabling stage 2 (uncommenting line 48) generates 40 exact
+                                    # calls, against 18 when it is enabled. These numbers may change
+                                    # a little bit with versions due to numerical errors.
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
