@@ -97,7 +97,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperenub, getcurub, setcurub!, getperenrhs, getcurrhs, setcurrhs!, getperensense,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, reset!, getreducedcost
+    isexplicit, getname, getbranchingpriority, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
 export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues,
