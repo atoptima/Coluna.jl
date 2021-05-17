@@ -36,9 +36,9 @@ abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 # divide algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractDivideAlgorithm) = true
 
-function run!(algo::AbstractDivideAlgorithm, env::Env, data::AbstractData, input::DivideInput)::DivideOutput
+function run!(algo::AbstractDivideAlgorithm, env::Env, model::AbstractModel, input::DivideInput)::DivideOutput
     algotype = typeof(algo)
-    error("Method run! in not defined for divide algorithm $(typeof(algo)), data $(typeof(data)), and input $(typeof(input)).")
+    error("Method run! in not defined for divide algorithm $(typeof(algo)), model $(typeof(model)), and input $(typeof(input)).")
 end    
 
 # this function is needed to check whether the best primal solution should be copied to the node optimization state

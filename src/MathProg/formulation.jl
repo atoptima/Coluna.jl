@@ -3,10 +3,12 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     var_counter::Int
     constr_counter::Int
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
-    optimizer::AbstractOptimizer
+    moioptimizer::AbstractOptimizer
+    useroptimizer::AbstractOptimizer 
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
+    storage::Storage
 end
 
 """
@@ -33,7 +35,8 @@ function create_formulation!(
     end
     return Formulation{duty}(
         env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
-        FormulationManager(), obj_sense, FormulationBuffer()
+        NoOptimizer(), FormulationManager(), obj_sense, FormulationBuffer(), 
+        Storage()
     )
 end
 
@@ -94,7 +97,8 @@ getuid(form::Formulation) = form.uid
 getobjsense(form::Formulation) = form.obj_sense
 
 "Returns the `AbstractOptimizer` of `Formulation` `form`."
-getoptimizer(form::Formulation) = form.optimizer
+getmoioptimizer(form::Formulation) = form.moioptimizer
+getuseroptimizer(form::Formulation) = form.useroptimizer
 
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
@@ -106,12 +110,14 @@ getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_formulation
 
+getstoragedict(form::Formulation) = form.storage.units
+
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
 """
     set_matrix_coeff!(form::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
-Buffers the matrix modification in `form.buffer` to be sent to `form.optimizer` right before next call to optimize!.
+Buffers the matrix modification in `form.buffer` to be sent to `form.moioptimizer` right before next call to optimize!.
 """
 set_matrix_coeff!(
     form::Formulation, varid::VarId, constrid::ConstrId, new_coeff::Float64
@@ -154,7 +160,8 @@ function setvar!(
     moi_index::MoiVarIndex = MoiVarIndex(),
     members::Union{ConstrMembership,Nothing} = nothing,
     custom_data = nothing,
-    id = generatevarid(duty, form)
+    id = generatevarid(duty, form),
+    branching_priority::Float64 = 1.0
 )
     if kind == Binary
         lb = (lb < 0.0) ? 0.0 : lb
@@ -167,7 +174,13 @@ function setvar!(
         id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
-    var = Variable(id, name; var_data = v_data, moi_index = moi_index, custom_data = custom_data)
+    var = Variable(
+        id, name;
+        var_data = v_data,
+        moi_index = moi_index,
+        custom_data = custom_data,
+        branching_priority = branching_priority
+    )
     _addvar!(form, var)
     members !== nothing && _setmembers!(form, var, members)
     return var
@@ -564,10 +577,10 @@ function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)
     return val
 end
 
-function initialize_optimizer!(form::Formulation, builder::Function)
+function initialize_moioptimizer!(form::Formulation, builder::Function)
     opt = builder()
-    form.optimizer = opt
-    _initialize_optimizer!(opt, form)
+    form.moioptimizer = opt
+    _initialize_moioptimizer!(opt, form)
     return
 end
 
@@ -648,7 +661,7 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
 end
 
 function write_to_LP_file(form::Formulation, filename::String)
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     if isa(optimizer, MoiOptimizer)
         src = getinner(optimizer)
         dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)

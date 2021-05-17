@@ -1,5 +1,6 @@
 [deps]
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
+Coluna = "88b4ec78-b192-11e8-04aa-4d367dd96a64"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 
 [compat]

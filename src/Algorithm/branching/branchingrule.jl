@@ -17,6 +17,7 @@ struct BranchingRuleInput <: AbstractInput
     criterion::SelectionCriterion
     local_id::Int64
     int_tol::Float64
+    minimum_priority::Float64
 end
 
 """
@@ -49,8 +50,8 @@ abstract type AbstractBranchingRule <: AbstractAlgorithm end
 ismanager(algo::AbstractBranchingRule) = true
 
 function run!(
-    rule::AbstractBranchingRule, env::Env, data::AbstractData, input::BranchingRuleInput
+    rule::AbstractBranchingRule, env::Env, model::AbstractModel, input::BranchingRuleInput
 )::BranchingRuleOutput
     algotype = typeof(rule)
-    error("Method run! in not defined for branching rule $(typeof(rule)), data $(typeof(data)), and input $(typeof(input)).")
+    error("Method run! in not defined for branching rule $(typeof(rule)), model $(typeof(model)), and input $(typeof(input)).")
 end

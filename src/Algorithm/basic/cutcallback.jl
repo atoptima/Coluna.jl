@@ -31,11 +31,10 @@ end
 
 function get_units_usage(algo::CutCallbacks, form::Formulation{Duty}
     ) where {Duty<:MathProg.AbstractFormDuty} 
-    return [(form, MasterCutsUnitPair, READ_AND_WRITE)]
+    return [(form, MasterCutsUnit, READ_AND_WRITE)]
 end
 
-function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacksInput)
-    form = getmodel(data)
+function run!(algo::CutCallbacks, env::Env, form::Formulation, input::CutCallbacksInput)
     robust_generators = get_robust_constr_generators(form)
     nb_ess_cuts = 0
     nb_fac_cuts = 0

@@ -18,7 +18,7 @@ function set_obj_sense!(optimizer::MoiOptimizer, ::Type{<:MinSense})
 end
 
 function update_bounds_in_optimizer!(form::Formulation, var::Variable)
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     inner = getinner(optimizer)
     moi_record = getmoirecord(var)
     moi_kind = getkind(moi_record)
@@ -43,7 +43,7 @@ function update_bounds_in_optimizer!(form::Formulation, var::Variable)
 end
 
 function update_cost_in_optimizer!(form::Formulation, var::Variable)
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     cost = getcurcost(form, var)
     moi_index = getindex(getmoirecord(var))
     MOI.modify(
@@ -54,7 +54,7 @@ function update_cost_in_optimizer!(form::Formulation, var::Variable)
 end
 
 function update_obj_const_in_optimizer!(form::Formulation)
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     MOI.modify(
         getinner(optimizer), MoiObjective(), 
         MOI.ScalarConstantChange{Float64}(getobjconst(form))
@@ -75,7 +75,7 @@ function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
 end
 
 function update_constr_rhs_in_optimizer!(form::Formulation, constr::Constraint)
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     moi_c_index = getindex(getmoirecord(constr))
     rhs = getcurrhs(form, constr)
     sense = getcursense(form, constr)
@@ -84,7 +84,7 @@ function update_constr_rhs_in_optimizer!(form::Formulation, constr::Constraint)
 end
 
 function enforce_bounds_in_optimizer!(form::Formulation, var::Variable)
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     moirecord = getmoirecord(var)
     moi_bounds = MOI.add_constraint(
         getinner(optimizer), MOI.SingleVariable(getindex(moirecord)),
@@ -95,7 +95,7 @@ function enforce_bounds_in_optimizer!(form::Formulation, var::Variable)
 end
 
 function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
-    inner = getinner(getoptimizer(form))
+    inner = getinner(getmoioptimizer(form))
     kind = getcurkind(form, v)
     moirecord = getmoirecord(v)
     moi_kind = getkind(moirecord)
@@ -113,7 +113,7 @@ function enforce_kind_in_optimizer!(form::Formulation, v::Variable)
 end
 
 function add_to_optimizer!(form::Formulation, var::Variable)
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     inner = getinner(optimizer)
     moirecord = getmoirecord(var)
     moi_index = MOI.add_variable(inner)
@@ -128,7 +128,7 @@ end
 function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::Function)
     constr_id = getid(constr)
 
-    inner = getinner(getoptimizer(form))
+    inner = getinner(getmoioptimizer(form))
     
     matrix = getcoefmatrix(form)
     terms = MOI.ScalarAffineTerm{Float64}[]
@@ -152,7 +152,7 @@ function add_to_optimizer!(form::Formulation, constr::Constraint, var_checker::F
 end
 
 function remove_from_optimizer!(form::Formulation, var::Variable)                       
-    inner = getinner(form.optimizer)
+    inner = getinner(form.moioptimizer)
     moirecord = getmoirecord(var)
     @assert getindex(moirecord).value != -1
     MOI.delete(inner, getbounds(moirecord))
@@ -167,7 +167,7 @@ end
 function remove_from_optimizer!(form::Formulation, constr::Constraint)
     moirecord = getmoirecord(constr)
     @assert getindex(moirecord).value != -1
-    MOI.delete(getinner(form.optimizer), getindex(moirecord))
+    MOI.delete(getinner(form.moioptimizer), getindex(moirecord))
     setindex!(moirecord, MoiConstrIndex())
     return
 end
@@ -210,8 +210,8 @@ function _getreducedcost(form::Formulation, optimizer::MoiOptimizer, var::Variab
     dualval = MOI.get(inner, MOI.ConstraintDual(1), bounds_interval_idx)
     return sign * dualval
 end
-getreducedcost(form::Formulation, var::Variable) = _getreducedcost(form, getoptimizer(form), var)
-getreducedcost(form::Formulation, varid::VarId) = _getreducedcost(form, getoptimizer(form), getvar(form, varid))
+getreducedcost(form::Formulation, var::Variable) = _getreducedcost(form, getmoioptimizer(form), var)
+getreducedcost(form::Formulation, varid::VarId) = _getreducedcost(form, getmoioptimizer(form), getvar(form, varid))
 
 function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)

@@ -18,7 +18,7 @@ end
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
+                    stages = [ClA.ColumnGeneration(max_nb_iterations = 8)]
                 ), maxnumnodes = 4
             )
         ),
@@ -37,6 +37,55 @@ end
     @test MOIU.supports_default_copy_to(OPTIMIZER, false)
     # Use `@test !...` if names are not supported
     @test MOIU.supports_default_copy_to(OPTIMIZER, true)
+end
+
+@testset "branching_priority" begin
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver=ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna, direct_model=true)
+    @variable(model, x)
+    
+    @test BlockDecomposition.branchingpriority(model, x) == 1
+    BlockDecomposition.branchingpriority!(model, x, 2)
+    @test BlockDecomposition.branchingpriority(model, x) == 2
+    
+    model2 = BlockModel(coluna)
+    @variable(model2, x)
+    
+    @test BlockDecomposition.branchingpriority(model2, x) == 1
+    BlockDecomposition.branchingpriority!(model2, x, 2)
+    @test BlockDecomposition.branchingpriority(model2, x) == 2
+end
+
+@testset "write_to_file" begin
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver=ClA.SolveIpForm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+    model = BlockModel(coluna, direct_model=true)
+    @variable(model, x)
+    
+    @constraint(model, x <= 1)
+    @objective(model, Max, x)
+    optimize!(model)
+
+    dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_MPS)
+    MOI.copy_to(dest, model)
+    MOI.write_to_file(dest, "model.mps")
+
+    filedata = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_MPS)
+    MOI.read_from_file(filedata, "model.mps")
+
+    model2 = BlockModel(coluna, direct_model=true)
+    MOI.copy_to(model2, filedata)
+    optimize!(model2)
+
+    # the model is always written as a minimization problem
+    @test JuMP.objective_value(model) == -JuMP.objective_value(model2)
 end
 
 const UNSUPPORTED_TESTS = [

@@ -57,13 +57,15 @@ function generalized_assignment_tests()
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
         conquer_with_small_cleanup_threshold = ClA.ColCutGenConquer(
-            colgen = ClA.ColumnGeneration(cleanup_threshold = 150, smoothing_stabilization = 1.0)
+            stages = [ClA.ColumnGeneration(cleanup_threshold = 150, smoothing_stabilization = 1.0)]
         )
 
-        branching = ClA.StrongBranching()
-        push!(branching.phases, ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()))
-        push!(branching.phases, ClA.BranchingPhase(1, conquer_with_small_cleanup_threshold))
-        push!(branching.rules, ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 1.0, 1.0))
+        branching = ClA.StrongBranching(
+            phases = [ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()),
+                      ClA.BranchingPhase(1, conquer_with_small_cleanup_threshold)],
+            rules = [ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 2.0, 2.0),
+                     ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 1.0, 1.0)]
+        )
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -78,6 +80,13 @@ function generalized_assignment_tests()
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+        # we increase the branching priority of variables which assign jobs to the first two machines
+        for machine in 1:2
+            for job in data.jobs
+                BD.branchingpriority!(model, x[machine,job], 2)
+            end
+        end  
 
         BD.objectiveprimalbound!(model, 2000.0)
         BD.objectivedualbound!(model, 0.0)
@@ -97,7 +106,7 @@ function generalized_assignment_tests()
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(
-                        colgen = ClA.ColumnGeneration(max_nb_iterations = 8)
+                        stages = [ClA.ColumnGeneration(max_nb_iterations = 8)]
                     )
                 )
             ),
@@ -157,6 +166,22 @@ function generalized_assignment_tests()
         @test JuMP.termination_status(problem) == MOI.INFEASIBLE
     end
 
+    # Issue 520 : https://github.com/atoptima/Coluna.jl/issues/520
+    @testset "gap with infeasible master 2" begin
+        data = CLD.GeneralizedAssignment.data("master_infeas2.txt")
+
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer,
+            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "default_optimizer" => GLPK.Optimizer
+        )
+
+        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+
+        JuMP.optimize!(problem)
+        @test JuMP.termination_status(problem) == MOI.INFEASIBLE
+    end
+
     @testset "gap with infeasible subproblem" begin
         data = CLD.GeneralizedAssignment.data("sp_infeas.txt")
 
@@ -182,7 +207,7 @@ function generalized_assignment_tests()
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(
-                    colgen = ClA.ColumnGeneration(opt_rtol = 1e-4, smoothing_stabilization = 0.5)
+                    stages = [ClA.ColumnGeneration(opt_rtol = 1e-4, smoothing_stabilization = 0.5)]
                 )
             )),
             "default_optimizer" => GLPK.Optimizer
@@ -202,7 +227,7 @@ function generalized_assignment_tests()
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(
-                        colgen = ClA.ColumnGeneration(smoothing_stabilization = 1.0)
+                        stages = [ClA.ColumnGeneration(smoothing_stabilization = 1.0)]
                     ),
                     maxnumnodes = 300
                 )

@@ -26,15 +26,15 @@ function get_units_usage(
     # we use units in the read only mode, as relaxing integrality
     # is reverted before the end of the algorithm, 
     # so the state of the formulation remains the same 
-    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
-    push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
+    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[] 
+    push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(units_usage, (form, MasterColumnsUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterBranchConstrsUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterCutsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
+        push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))
+        push!(units_usage, (form, MasterCutsUnit, READ_ONLY))
     end
     if algo.consider_partial_solution
-        push!(units_usage, (form, PartialSolutionUnitPair, READ_ONLY))
+        push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
     end
     return units_usage
 end
@@ -46,13 +46,12 @@ end
 function optimize_lp_form!(
     algo::SolveLpForm, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
 )
-    MOI.set(form.optimizer.inner, MOI.Silent(), algo.silent)
+    MOI.set(form.moioptimizer.inner, MOI.Silent(), algo.silent)
     optimize_with_moi!(optimizer, form, result)
     return
 end
 
-function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationInput)::OptimizationOutput
-    form = getmodel(data)
+function run!(algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
     result = OptimizationState(form)
 
     TO.@timeit Coluna._to "SolveLpForm" begin
@@ -64,12 +63,12 @@ function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_val = 0.0
     if algo.consider_partial_solution
-        partsolunit = getunit(data, PartialSolutionUnitPair)
+        partsolunit = getstorageunit(form, PartialSolutionUnit)
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_val = getvalue(partial_sol)
     end
 
-    optimizer = getoptimizer(form)
+    optimizer = getmoioptimizer(form)
     optimize_lp_form!(algo, optimizer, form, result)
     primal_sols = get_primal_solutions(form, optimizer)
 

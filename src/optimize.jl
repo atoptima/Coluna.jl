@@ -1,7 +1,7 @@
 function _welcome_message()
     welcome = """
     Coluna
-    Version 0.3.8 | 2021-04-15 | https://github.com/atoptima/Coluna.jl
+    Version dev-0.4.0 | 2021-MM-DD | https://github.com/atoptima/Coluna.jl
     """
     print(welcome)
 end
@@ -90,13 +90,12 @@ function optimize!(
     algorithm = env.params.solver
 
     #this will initialize all the units used by the algorithm and its child algorithms
-    reformdata = Algorithm.ReformData(reform)
-    Algorithm.initialize_storage_units!(reformdata, algorithm)
+    Algorithm.initialize_storage_units!(reform, algorithm)
 
-    output = Algorithm.run!(algorithm, env, reformdata, Algorithm.OptimizationInput(initstate))
+    output = Algorithm.run!(algorithm, env, reform, Algorithm.OptimizationInput(initstate))
     algstate = Algorithm.getoptstate(output)
 
-    Algorithm.check_records_participation(reformdata)
+    check_records_participation(reform)
 
     # we copy optimisation state as we want to project the solution to the compact space
     outstate = OptimizationState(
@@ -133,9 +132,8 @@ function optimize!(
         ip_dual_bound = initial_dual_bound,
         lp_dual_bound = initial_dual_bound
     )
-    modeldata = Algorithm.ModelData(form)
     algorithm = env.params.solver
-    output = Algorithm.run!(algorithm, env, modeldata, Algorithm.OptimizationInput(initstate))
+    output = Algorithm.run!(algorithm, env, form, Algorithm.OptimizationInput(initstate))
     return Algorithm.getoptstate(output)
 end
 

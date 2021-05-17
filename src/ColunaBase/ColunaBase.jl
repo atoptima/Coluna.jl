@@ -1,8 +1,11 @@
 module ColunaBase
 
-using DynamicSparseArrays, MathOptInterface
+using ..Coluna
+
+using DynamicSparseArrays, MathOptInterface, TimerOutputs
 
 const MOI = MathOptInterface
+const TO = TimerOutputs
 
 import Base
 import Printf
@@ -24,8 +27,15 @@ export TerminationStatus, SolutionStatus, OPTIMAL, INFEASIBLE, TIME_LIMIT,
     FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, UNKNOWN_SOLUTION_STATUS, 
     UNCOVERED_SOLUTION_STATUS, convert_status
 
+# Storages (TODO : clean)
+export RecordsVector, UnitType, Storage, AbstractStorageUnit, AbstractRecord,
+    UnitsUsageDict, UnitAccessMode, READ_AND_WRITE, READ_ONLY, NOT_USED, StorageUnitWrapper,
+    add_unit_usage!, store_record!, restore_from_records!, getstorageunit, copy_records,
+    restore_from_record!, remove_records!, check_records_participation, record_type
+
 include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
+include("storage.jl")
 
 end
