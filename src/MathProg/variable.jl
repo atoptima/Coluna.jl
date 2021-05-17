@@ -90,7 +90,7 @@ function Variable(
     custom_data = nothing, branching_priority = 1.0
 )
     return Variable(
-        id, name, var_data, VarData(var_data), branching_priority
+        id, name, var_data, VarData(var_data), branching_priority,
         MoiVarRecord(index = moi_index), custom_data
     )
 end

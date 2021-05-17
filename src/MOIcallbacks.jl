@@ -21,7 +21,8 @@ function MOI.submit(
     cb::BD.PricingSolution{MathProg.PricingCallbackData},
     cost::Float64,
     variables::Vector{MOI.VariableIndex},
-    values::Vector{Float64}
+    values::Vector{Float64},
+    custom_data = nothing
 )
     form = cb.callback_data.form
     S = getobjsense(form)
@@ -37,7 +38,7 @@ function MOI.submit(
     push!(values, 1.0)
     solval += getcurcost(form, setup_var_id)
 
-    sol = PrimalSolution(form, colunavarids, values, solval, FEASIBLE_SOL)
+    sol = PrimalSolution(form, colunavarids, values, solval, FEASIBLE_SOL, custom_data)
     push!(cb.callback_data.primal_solutions, sol)
     return
 end
