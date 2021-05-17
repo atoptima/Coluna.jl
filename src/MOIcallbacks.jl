@@ -99,7 +99,8 @@ function MOI.submit(
     model::Optimizer, 
     cb::Union{MOI.UserCut{Algorithm.RobustCutCallbackContext}, MOI.LazyConstraint{Algorithm.RobustCutCallbackContext}},
     func::MOI.ScalarAffineFunction{Float64},
-    set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
+    set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}},
+    custom_data = nothing
 )
     form = cb.callback_data.form
     rhs = MathProg.convert_moi_rhs_to_coluna(set)
@@ -118,7 +119,8 @@ function MOI.submit(
         kind = cb.callback_data.constrkind,
         sense = sense,
         members = members,
-        loc_art_var_abs_cost = cb.callback_data.env.params.local_art_var_cost
+        loc_art_var_abs_cost = cb.callback_data.env.params.local_art_var_cost,
+        custom_data = custom_data
     )
 
     gap = lhs - rhs
