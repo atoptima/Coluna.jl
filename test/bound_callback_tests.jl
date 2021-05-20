@@ -1,3 +1,5 @@
+# Test retrieval of variable bounds from pricing solver.
+# Test breaks because branching constraints are not updated to variable bounds yet.
 function bound_callback_tests()
     data = CLD.GeneralizedAssignment.data("play2.txt")
 
