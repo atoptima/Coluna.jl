@@ -1,4 +1,7 @@
 # Test retrieval of variable bounds from pricing solver.
+# We optimize the formulation with a branch-and-price and set the node limit to 2.
+# We know the branching constraint (deterministic behavior) applied at the second node (x[1, 1] >= 1)
+# We retrieve the current bounds of x[1, 1] in the pricing callback and we check that the last lower bound retrieved (so in the second node) is 1.
 # Test breaks because branching constraints are not updated to variable bounds yet.
 function bound_callback_tests()
     data = CLD.GeneralizedAssignment.data("play2.txt")
