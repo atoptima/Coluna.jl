@@ -29,6 +29,7 @@ include("full_instances_tests.jl")
 include("user_algorithms_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
+include("bound_callback_tests.jl")
 include("optimizer_with_attributes_test.jl")
 include("subproblem_solvers_tests.jl")
 
@@ -50,6 +51,10 @@ end
 
 @testset "pricing callback" begin
     pricing_callback_tests()
+end
+
+@testset "bound callback" begin
+    bound_callback_tests()
 end
 
 @testset "Base.show functions " begin
