@@ -53,7 +53,7 @@ end
 
 function run!(
     algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput, 
-    solver_id::Int = 1
+    optimizer_id::Int = 1
 )::OptimizationOutput
     result = OptimizationState(form)
 
@@ -71,7 +71,7 @@ function run!(
         partial_sol_val = getvalue(partial_sol)
     end
 
-    optimizer = getoptimizer(form, solver_id)
+    optimizer = getoptimizer(form, optimizer_id)
     optimize_lp_form!(algo, optimizer, form, result)
     primal_sols = get_primal_solutions(form, optimizer)
 

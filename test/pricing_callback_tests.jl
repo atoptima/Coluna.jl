@@ -11,11 +11,11 @@ function pricing_callback_tests()
                     conqueralg = ClA.ColCutGenConquer(
                         stages = [ClA.ColumnGeneration(
                                     pricing_prob_solve_alg = ClA.DefaultPricing(
-                                        solver_id=2, pricing_callback = PricingCallback(stage=1) 
+                                        optimizer_id=2, pricing_callback = PricingCallback(stage=1) 
                                     )),
                                   ClA.ColumnGeneration(
                                     pricing_prob_solve_alg = ClA.DefaultPricing(
-                                        solver_id=2, pricing_callback = PricingCallback(stage=2) 
+                                        optimizer_id=2, pricing_callback = PricingCallback(stage=2) 
                                     ))
                                  ]
                     )

@@ -19,7 +19,7 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
 """
 @with_kw struct ColumnGeneration <: AbstractOptimizationAlgorithm
     restr_master_solve_alg = SolveLpForm(get_dual_solution=true)
-    restr_master_solver_id = 1
+    restr_master_optimizer_id = 1
     # TODO : pricing problem solver may be different depending on the
     #       pricing subproblem
     pricing_prob_solve_alg = DefaultPricing()
@@ -419,7 +419,7 @@ function cleanup_columns(algo::ColumnGeneration, iteration::Int64, master::Formu
     iteration % 10 != 0 && return
 
     cols_with_redcost = Vector{Pair{Variable,Float64}}()
-    optimizer = getoptimizer(master, algo.restr_master_solver_id)
+    optimizer = getoptimizer(master, algo.restr_master_optimizer_id)
     for (id, var) in getvars(master)
         if getduty(id) <= MasterCol && iscuractive(master, var) && isexplicit(master, var)
             push!(cols_with_redcost, var => getreducedcost(master, optimizer, var))
@@ -613,7 +613,7 @@ function cg_main_loop!(
             rm_input = OptimizationInput(
                 OptimizationState(masterform, ip_primal_bound=get_ip_primal_bound(cg_optstate))
             )
-            rm_output = run!(algo.restr_master_solve_alg, env, masterform, rm_input, algo.restr_master_solver_id)
+            rm_output = run!(algo.restr_master_solve_alg, env, masterform, rm_input, algo.restr_master_optimizer_id)
         end
         rm_optstate = getoptstate(rm_output)
 

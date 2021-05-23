@@ -15,7 +15,7 @@ end
 
 function run!(
     algo::PricingCallback, env::Env, spform::Formulation{DwSp}, input::OptimizationInput, 
-    solver_id::Int = 1
+    optimizer_id::Int = 1
 )::OptimizationOutput
     result = OptimizationState(
         spform, 
@@ -25,7 +25,7 @@ function run!(
 
     @logmsg LogLevel(-2) "Calling user-defined optimization function."
 
-    optimizer = getoptimizer(spform, solver_id)
+    optimizer = getoptimizer(spform, optimizer_id)
     cbdata = MathProg.PricingCallbackData(spform, algo.stage)
     optimizer.user_oracle(cbdata)
 
