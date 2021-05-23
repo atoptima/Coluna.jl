@@ -1,25 +1,26 @@
 @with_kw struct DefaultPricing <: AbstractOptimizationAlgorithm
     pricing_callback::PricingCallback = PricingCallback()
     solve_ip_form::SolveIpForm = SolveIpForm(deactivate_artificial_vars=false, enforce_integrality=false, log_level=2)
-    dispatch::Int = 0 # 0 - automatic, 1 - impose pricing callback, 2 - impose pricing by MIP 
+    solver_id::Int = 1
 end
+
+_child_algorithm(algo::DefaultPricing, ::MoiOptimizer) = algo.solve_ip_form
+_child_algorithm(algo::DefaultPricing, ::UserOptimizer) = algo.pricing_callback
+_child_algorithm(::DefaultPricing, ::NoOptimizer) = nothing
 
 function get_child_algorithms(algo::DefaultPricing, spform::Formulation{DwSp}) 
     child_algs = Tuple{AbstractAlgorithm,AbstractModel}[]
-    algo.dispatch != 2 && push!(child_algs, (algo.pricing_callback, spform))
-    algo.dispatch != 1 && push!(child_algs, (algo.solve_ip_form, spform))
+    opt = getoptimizer(spform, algo.solver_id)
+    if _child_algorithm(algo, opt) !== nothing
+        push!(child_algs, (_child_algorithm(algo, opt), spform))
+    end
     return child_algs
-end 
+end
 
 function run!(algo::DefaultPricing, env::Env, spform::Formulation{DwSp}, input::OptimizationInput)::OptimizationOutput
-
-    if algo.dispatch == 1 && !isa(getuseroptimizer(spform), UserOptimizer)
-        @error string("Pricing callback is imposed but not defined")
-    end 
-
-    if algo.dispatch != 2 && isa(getuseroptimizer(spform), UserOptimizer)
-        return run!(algo.pricing_callback, env, spform, input)
+    opt = getoptimizer(spform, algo.solver_id)
+    if _child_algorithm(algo, opt) !== nothing
+        return run!(_child_algorithm(algo, opt), env, spform, input, algo.solver_id)
     end
-
-    return run!(algo.solve_ip_form, env, spform, input)
+    return error("Cannot optimize LP formulation with optimizer of type $(typeof(opt)).")
 end

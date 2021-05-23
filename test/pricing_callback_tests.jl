@@ -11,11 +11,11 @@ function pricing_callback_tests()
                     conqueralg = ClA.ColCutGenConquer(
                         stages = [ClA.ColumnGeneration(
                                     pricing_prob_solve_alg = ClA.DefaultPricing(
-                                        dispatch=1, pricing_callback = PricingCallback(stage=1) 
+                                        solver_id=2, pricing_callback = PricingCallback(stage=1) 
                                     )),
                                   ClA.ColumnGeneration(
                                     pricing_prob_solve_alg = ClA.DefaultPricing(
-                                        dispatch=1, pricing_callback = PricingCallback(stage=2) 
+                                        solver_id=2, pricing_callback = PricingCallback(stage=2) 
                                     ))
                                  ]
                     )
@@ -87,7 +87,7 @@ function pricing_callback_tests()
         master = BD.getmaster(dec)
         subproblems = BD.getsubproblems(dec)
 
-        BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback)
+        BD.specify!.(subproblems, lower_multiplicity = 0, solver = [GLPK.Optimizer, my_pricing_callback])
 
         JuMP.optimize!(model)
         @test nb_exact_calls < 30   # WARNING: this test is necessary to properly test stage 2.

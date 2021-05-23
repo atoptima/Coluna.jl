@@ -77,7 +77,7 @@ struct ParameterisedHeuristic
     nonroot_priority::Float64
     frequency::Integer
     max_depth::Integer
-    name::String 
+    name::String
 end
 
 DefaultRestrictedMasterHeuristic() = 

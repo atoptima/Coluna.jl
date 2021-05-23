@@ -46,12 +46,15 @@ end
 function optimize_lp_form!(
     algo::SolveLpForm, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
 )
-    MOI.set(form.moioptimizer.inner, MOI.Silent(), algo.silent)
+    MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
     optimize_with_moi!(optimizer, form, result)
     return
 end
 
-function run!(algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
+function run!(
+    algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput, 
+    solver_id::Int = 1
+)::OptimizationOutput
     result = OptimizationState(form)
 
     TO.@timeit Coluna._to "SolveLpForm" begin
@@ -68,7 +71,7 @@ function run!(algo::SolveLpForm, env::Env, form::Formulation, input::Optimizatio
         partial_sol_val = getvalue(partial_sol)
     end
 
-    optimizer = getmoioptimizer(form)
+    optimizer = getoptimizer(form, solver_id)
     optimize_lp_form!(algo, optimizer, form, result)
     primal_sols = get_primal_solutions(form, optimizer)
 

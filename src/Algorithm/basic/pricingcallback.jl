@@ -13,7 +13,10 @@ function get_units_usage(algo::PricingCallback, spform::Formulation{DwSp})
     return units_usage
 end
 
-function run!(algo::PricingCallback, env::Env, spform::Formulation{DwSp}, input::OptimizationInput)::OptimizationOutput
+function run!(
+    algo::PricingCallback, env::Env, spform::Formulation{DwSp}, input::OptimizationInput, 
+    solver_id::Int = 1
+)::OptimizationOutput
     result = OptimizationState(
         spform, 
         ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
@@ -22,7 +25,7 @@ function run!(algo::PricingCallback, env::Env, spform::Formulation{DwSp}, input:
 
     @logmsg LogLevel(-2) "Calling user-defined optimization function."
 
-    optimizer = getuseroptimizer(spform)
+    optimizer = getoptimizer(spform, solver_id)
     cbdata = MathProg.PricingCallbackData(spform, algo.stage)
     optimizer.user_oracle(cbdata)
 

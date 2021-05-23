@@ -48,15 +48,18 @@ function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
 end
 check_if_optimizer_supports_ip(optimizer::UserOptimizer) = false
 check_if_optimizer_supports_ip(optimizer::NoOptimizer) = false
-    
-function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
+
+function run!(
+    algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationInput, 
+    solver_id::Int = 1
+)::OptimizationOutput
     result = OptimizationState(
         form, 
         ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
-    ip_supported = check_if_optimizer_supports_ip(getmoioptimizer(form))
+    ip_supported = check_if_optimizer_supports_ip(getoptimizer(form, solver_id))
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
@@ -64,7 +67,7 @@ function run!(algo::SolveIpForm, env::Env, form::Formulation, input::Optimizatio
         return OptimizationOutput(result)
     end
 
-    primal_sols = optimize_ip_form!(algo, getmoioptimizer(form), form, result)
+    primal_sols = optimize_ip_form!(algo, getoptimizer(form, solver_id), form, result)
 
     partial_sol = nothing
     partial_sol_value = 0.0
@@ -134,7 +137,7 @@ end
 
 function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::OptimizationState)
     sync_solver!(optimizer, form)
-    nbvars = MOI.get(form.moioptimizer.inner, MOI.NumberOfVariables())
+    nbvars = MOI.get(optimizer.inner, MOI.NumberOfVariables())
     if nbvars <= 0
         @warn "No variable in the formulation."
     end
