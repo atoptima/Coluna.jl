@@ -133,7 +133,7 @@ MOI [`TerminationStatusCode`](https://jump.dev/MathOptInterface.jl/stable/apiref
 is translated into a Coluna `TerminationStatus`.
 
 Description of the termination statuses: 
-- `OPTIMAL` : the algorithm found a global optimal solution given the optimality tolerance.
+- `OPTIMAL` : the algorithm found a global optimal solution given the optimality tolerance
 - `INFEASIBLE` : the algorithm proved infeasibility
 - `TIME_LIMIT` : the algorithm stopped because of the time limit
 - `NODE_LIMIT` : the branch-and-bound based algorithm stopped due to the node limit
@@ -141,7 +141,7 @@ Description of the termination statuses:
 nor the node limit
 
 If the algorithm has not been called, the default value of the termination status should be:
-- `UNKNOWN_TERMINATION_STATUS`
+- `OPTIMIZE_NOT_CALLED`
 
 If the subsolver called through MOI returns a 
 `TerminationStatusCode` that is not `MOI.OPTIMAL`, `MOI.INFEASIBLE`, `MOI.TIME_LIMIT`, `MOI.NODE_LIMIT`, or 
@@ -149,7 +149,7 @@ If the subsolver called through MOI returns a
 - `UNCOVERED_TERMINATION_STATUS` : should not be used by a Coluna algorithm
 """
 @enum(
-    TerminationStatus, OPTIMAL, INFEASIBLE, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, 
+    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, 
     UNKNOWN_TERMINATION_STATUS, UNCOVERED_TERMINATION_STATUS
 )
 
@@ -162,7 +162,7 @@ Description of the solution statuses:
 
 If there is no solution or if we don't have information about the solution, the 
 solution status should be :
-- `UNKWNOW_SOLUTION_STATUS`
+- `UNKNOWN_SOLUTION_STATUS`
 
 """
 @enum(
@@ -180,6 +180,7 @@ Convert a termination or solution `status` of a given type to the corresponding 
 This method is used to communicate between Coluna and MathOptInterface.
 """
 function convert_status(moi_status::MOI.TerminationStatusCode)
+    moi_status == MOI.OPTIMIZE_NOT_CALLED && return OPTIMIZE_NOT_CALLED
     moi_status == MOI.OPTIMAL && return OPTIMAL
     moi_status == MOI.INFEASIBLE && return INFEASIBLE
     moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
@@ -189,6 +190,7 @@ function convert_status(moi_status::MOI.TerminationStatusCode)
 end
 
 function convert_status(coluna_status::TerminationStatus)
+    coluna_status == OPTIMIZE_NOT_CALLED && return MOI.OPTIMIZE_NOT_CALLED
     coluna_status == OPTIMAL && return MOI.OPTIMAL
     coluna_status == INFEASIBLE && return MOI.INFEASIBLE
     coluna_status == TIME_LIMIT && return MOI.TIME_LIMIT
