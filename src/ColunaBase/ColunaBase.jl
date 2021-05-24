@@ -19,8 +19,8 @@ export Bound, Solution, getvalue, isbetter, diff, gap, printbounds, getsol,
     getstatus, remove_until_last_point
 
 # Statuses
-export TerminationStatus, SolutionStatus, OPTIMAL, INFEASIBLE, TIME_LIMIT, 
-    NODE_LIMIT, OTHER_LIMIT, UNKNOWN_TERMINATION_STATUS, UNCOVERED_TERMINATION_STATUS, 
+export TerminationStatus, SolutionStatus, OPTIMIZE_NOT_CALLED, OPTIMAL,
+    INFEASIBLE, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS, 
     FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, UNKNOWN_SOLUTION_STATUS, 
     UNCOVERED_SOLUTION_STATUS, convert_status
 
