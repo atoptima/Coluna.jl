@@ -144,13 +144,13 @@ If the algorithm has not been called, the default value of the termination statu
 - `OPTIMIZE_NOT_CALLED`
 
 If the subsolver called through MOI returns a 
-`TerminationStatusCode` that is not `MOI.OPTIMAL`, `MOI.INFEASIBLE`, `MOI.TIME_LIMIT`, `MOI.NODE_LIMIT`, or 
-`MOI.OTHER_LIMIT`:
+`TerminationStatusCode` that is not `MOI.OPTIMIZE_NOT_CALLED`, `MOI.OPTIMAL`, `MOI.INFEASIBLE`,
+`MOI.TIME_LIMIT`, `MOI.NODE_LIMIT`, or `MOI.OTHER_LIMIT`:
 - `UNCOVERED_TERMINATION_STATUS` : should not be used by a Coluna algorithm
 """
 @enum(
-    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, 
-    UNKNOWN_TERMINATION_STATUS, UNCOVERED_TERMINATION_STATUS
+    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE,
+    TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS
 )
 
 """

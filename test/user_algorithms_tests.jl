@@ -69,6 +69,8 @@ function Coluna.Algorithm.run!(
     heur_output = run!(algo.rm_heur, env, data, OptimizationInput(optstate))
     update_all_ip_primal_solutions!(optstate, getoptstate(heur_output))
 
+    setterminationstatus!(optstate, getterminationstatus(getoptstate(heur_output)))
+
     return OptimizationOutput(optstate)
 end
 

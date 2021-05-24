@@ -61,7 +61,6 @@ function run!(algo::SolveIpForm, env::Env, data::ModelData, input::OptimizationI
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
-        setterminationstatus!(result, UNKNOWN_TERMINATION_STATUS)
         return OptimizationOutput(result)
     end
 

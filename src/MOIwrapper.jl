@@ -47,10 +47,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.constrs_on_single_var_to_vars = Dict{MOI.ConstraintIndex, VarId}()
         model.constrs_on_single_var_to_names = Dict{MOI.ConstraintIndex, String}()
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
-        model.result = OptimizationState(
-            get_optimization_target(model.inner),
-            termination_status = OPTIMIZE_NOT_CALLED
-        )
+        model.result = OptimizationState(get_optimization_target(model.inner))
         model.default_optimizer_builder = nothing
         model.feasibility_sense = false
         return model
@@ -591,7 +588,7 @@ function MOI.empty!(model::Coluna.Optimizer)
     if model.default_optimizer_builder !== nothing
         set_default_optimizer_builder!(model.inner, model.default_optimizer_builder)
     end
-    setterminationstatus!(model.result, OPTIMIZE_NOT_CALLED)
+    model.result = OptimizationState(get_optimization_target(model.inner))
     return
 end
 
