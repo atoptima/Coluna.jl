@@ -141,12 +141,9 @@ function initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)
 end
 
 initialize_optimizer!(optimizer, form::Formulation) = return
-
-
 function write_to_LP_file(form::Formulation, optimizer::MoiOptimizer, filename::String)
     src = getinner(optimizer)
     dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)
     MOI.copy_to(dest, src)
     MOI.write_to_file(dest, filename)
 end
-
