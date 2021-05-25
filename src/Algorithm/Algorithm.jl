@@ -36,7 +36,6 @@ include("basic/solveipform.jl")
 include("basic/cutcallback.jl")
 
 # Child algorithms used by conquer algorithms
-include("pricing.jl")
 include("colgenstabilization.jl")
 include("colgen.jl")
 include("benders.jl")
