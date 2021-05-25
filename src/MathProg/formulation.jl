@@ -182,7 +182,7 @@ function setvar!(
         branching_priority = branching_priority
     )
     _addvar!(form, var)
-    members !== nothing && _setmembers!(form, var, members)
+    _setmembers!(form, var, members)
     return var
 end
 
@@ -403,7 +403,8 @@ function setconstr!(
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index, custom_data = custom_data)
-    members !== nothing && _setmembers!(form, constr, members)
+
+    _setmembers!(form, constr, members)
     _addconstr!(form.manager, constr)
     if loc_art_var_abs_cost != 0.0
         _addlocalartvar!(form, constr, loc_art_var_abs_cost)
@@ -483,7 +484,8 @@ function relax_integrality!(form::Formulation) # TODO remove : should be in Algo
     return
 end
 
-function _setmembers!(form::Formulation, var::Variable, members::ConstrMembership)
+_setrobustmembers!(::Formulation, ::Variable, ::Nothing) = nothing
+function _setrobustmembers!(form::Formulation, var::Variable, members::ConstrMembership)
     coef_matrix = getcoefmatrix(form)
     varid = getid(var)
     for (constrid, constr_coeff) in members
@@ -492,31 +494,64 @@ function _setmembers!(form::Formulation, var::Variable, members::ConstrMembershi
     return
 end
 
-function _setmembers!(form::Formulation, constr::Constraint, members::VarMembership)
+_setrobustmembers!(::Formulation, ::Constraint, ::Nothing) = nothing
+function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarMembership)
     # Compute row vector from the recorded subproblem solution
     # This adds the column to the convexity constraints automatically
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
-    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(form, constr))
     coef_matrix = getcoefmatrix(form)
     constrid = getid(constr)
-    @logmsg LogLevel(-4) "Members are : ", members
 
     for (varid, var_coeff) in members
         # Add coef for its own variables
-        var = getvar(form, varid)
         coef_matrix[constrid, varid] = var_coeff
-        @logmsg LogLevel(-4) string("Adding variable ", getname(form, var), " with coeff ", var_coeff)
 
         if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(varid)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in @view getprimalsolmatrix(spform)[varid,:]
-                @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
                 coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
         end
+    end
+    return
+end
+
+# interface ==> move ?
+function computecoeff(::Variable, var_custom_data, ::Constraint, constr_custom_data)
+    error("computecoeff not defined for variable with $(typeof(var_custom_data)) & constraint with $(typeof(constr_custom_data)).")
+end
+
+function _computenonrobustmembers(form::Formulation, var::Variable)
+    for (constrid, constr) in getconstrs(form) # TODO : improve because we loop over all constraints
+        if constrid.custom_family_id !== -1
+            coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
+            if coeff !== 0
+                coef_matrix[constrid, getid(var)] = coeff
+            end
+        end
+    end
+    return
+end
+
+function _computenonrobustmembers(form::Formulation, constr::Constraint)
+    for (varid, var) in getvars(form) # TODO : improve because we loop over all variables
+        if varid.custom_family_id !== -1
+            coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
+            if coeff !== 0
+                coef_matrix[getid(constr), varid] = coeff
+            end
+        end
+    end
+    return
+end
+
+function _setmembers!(form::Formulation, varconstr, members)
+    _setrobustmembers!(form, varconstr, members)
+    if getid(varconstr).custom_family_id !== -1
+        _computenonrobustmembers!(form, varconstr)
     end
     return
 end
