@@ -39,6 +39,42 @@ function get_units_usage(
     return units_usage
 end
 
+function termination_status!(result::OptimizationState, optimizer::MoiOptimizer)
+    terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
+    if terminationstatus != MOI.INFEASIBLE &&
+            terminationstatus != MOI.DUAL_INFEASIBLE &&
+            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
+            terminationstatus != MOI.OPTIMIZE_NOT_CALLED &&
+            terminationstatus != MOI.INVALID_MODEL &&
+            terminationstatus != MOI.TIME_LIMIT
+
+        setterminationstatus!(result, convert_status(terminationstatus))
+
+        if MOI.get(getinner(optimizer), MOI.ResultCount()) <= 0
+            msg = """
+            Termination status = $(terminationstatus) but no results.
+            Please, open an issue at https://github.com/atoptima/Coluna.jl/issues
+            """
+            error(msg)
+        end
+    else
+        @warn "Solver has no result to show."
+        setterminationstatus!(result, INFEASIBLE)
+    end
+    return
+end
+
+function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::OptimizationState)
+    sync_solver!(optimizer, form)
+    nbvars = MOI.get(optimizer.inner, MOI.NumberOfVariables())
+    if nbvars <= 0
+        @warn "No variable in the formulation."
+    end
+    MOI.optimize!(getinner(optimizer))
+    termination_status!(result, optimizer)
+    return
+end
+
 function optimize_lp_form!(::SolveLpForm, optimizer, ::Formulation, ::OptimizationState) # fallback
     error("Cannot optimize LP formulation with optimizer of type ", typeof(optimizer), ".")
 end

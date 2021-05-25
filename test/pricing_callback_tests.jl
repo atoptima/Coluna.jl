@@ -10,12 +10,12 @@ function pricing_callback_tests()
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(
                         stages = [ClA.ColumnGeneration(
-                                    pricing_prob_solve_alg = ClA.DefaultPricing(
-                                        optimizer_id=2, pricing_callback = PricingCallback(stage=1) 
+                                    pricing_prob_solve_alg = ClA.SolveIpForm(
+                                        optimizer_id=2, user_params = ClA.UserOptimize(stage=1) 
                                     )),
                                   ClA.ColumnGeneration(
-                                    pricing_prob_solve_alg = ClA.DefaultPricing(
-                                        optimizer_id=2, pricing_callback = PricingCallback(stage=2) 
+                                    pricing_prob_solve_alg = ClA.SolveIpForm(
+                                        optimizer_id=2, user_params = ClA.UserOptimize(stage=2) 
                                     ))
                                  ]
                     )

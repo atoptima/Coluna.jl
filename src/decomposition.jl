@@ -430,7 +430,6 @@ _optimizerbuilder(opt::MOI.AbstractOptimizer) = () -> MoiOptimizer(opt)
 
 function getoptimizerbuilders(prob::Problem, ann::BD.Annotation)
     optimizers = BD.getoptimizerbuilders(ann)
-
     if length(optimizers) > 0
         return map(o -> _optimizerbuilder(o), optimizers)
     end

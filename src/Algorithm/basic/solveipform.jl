@@ -1,29 +1,114 @@
+################################################################################
+# Parameters for each type of optimizer
+################################################################################
 """
-    Coluna.Algorithm.SolveIpForm(
-        time_limit::Int = 600,
-        deactivate_artificial_vars = true,
-        enforce_integrality = true,
-        silent = true,
-        max_nb_ip_primal_sols = 50,
-        log_level = 0
+    MoiOptimize(
+        time_limit = 600
+        deactivate_artificial_vars = false
+        enforce_integrality = false
+        get_dual_bound = true
     )
 
-Solve a mixed integer linear program.
+User parameters for an optimizer that calls a subsolver through MathOptInterface.
+"""
+@with_kw struct MoiOptimize
+    time_limit::Int = 600
+    deactivate_artificial_vars::Bool = true
+    enforce_integrality::Bool = true
+    get_dual_bound::Bool = true
+    max_nb_ip_primal_sols::Int = 50
+    log_level::Int = -1
+    silent::Bool = true
+end
+
+"""
+    UserOptimize(
+        stage = 1
+        max_nb_ip_primal_sols = 50
+    )
+
+User parameters for an optimizer that calls a callback to solve the problem.
+"""
+@with_kw struct UserOptimize
+    stage::Int = 1
+    max_nb_ip_primal_sols::Int = 50
+end
+
+"""
+    CustomOptimize()
+
+User parameters for an optimizer that calls a custom solver to solve a custom model.
+"""
+struct CustomOptimize end
+
+################################################################################
+# Algorithm
+################################################################################
+"""
+    Coluna.Algorithm.SolveIpForm(
+        optimizer_id = 1
+        moi_params = MoiOptimize()
+        user_params = UserOptimize()
+        custom_params = CustomOptimize()
+    )
+
+Solve an optimization problem. It can call a :
+- subsolver through MathOptInterface to optimize a mixed integer program
+- pricing callback defined by the user
+- custom optimizer to solve a custom model
+
+The algorithms calls optimizer with id `optimizer_id`.
+The user can specify different optimizers using the method `BlockDecomposition.specify!`.
+In that case `optimizer_id` is the position of the optimizer in the array of optimizers
+passed to `specify!`.
+By default, the algorihm uses the first optimizer or the default optimizer if no
+optimizer has been specified.
+
+Depending on the type of the optimizer chosen, the algorithm will use one the 
+three configurations : `moi_params`, `user_params`, or `custom_params`.
 """
 @with_kw struct SolveIpForm <: AbstractOptimizationAlgorithm
-    time_limit::Int = 600
-    deactivate_artificial_vars = true
-    enforce_integrality = true
-    get_dual_bound = true
-    silent = true
-    max_nb_ip_primal_sols = 50
-    log_level = 0
+    optimizer_id::Int = 1
+    moi_params::MoiOptimize = MoiOptimize()
+    user_params::UserOptimize = UserOptimize()
+    custom_params::CustomOptimize = CustomOptimize()
 end
 
 # SolveIpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
+# Dispatch on the type of the optimizer to return the parameters
+_optimizer_params(algo::SolveIpForm, ::MoiOptimizer) = algo.moi_params
+_optimizer_params(algo::SolveIpForm, ::UserOptimizer) = algo.user_params
+# TODO : custom optimizer
+_optimizer_params(::SolveIpForm, ::NoOptimizer) = nothing
+
+function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
+    opt = getoptimizer(form, algo.optimizer_id)
+    params = _optimizer_params(algo, opt)
+    if params !== nothing
+        return run!(params, env, form, input; optimizer_id = algo.optimizer_id)
+    end
+    return error("Cannot optimize formulation with optimizer of type $(typeof(opt)).")
+end
+
+run!(algo::SolveIpForm, env::Env, reform::Reformulation, input::OptimizationInput) = 
+    run!(algo, env, getmaster(reform), input)
+
+################################################################################
+# Get units usage (depends on the type of the optimizer)
+################################################################################
+function get_units_usage(algo::SolveIpForm, form::Formulation)
+    opt = getoptimizer(form, algo.optimizer_id)
+    params = _optimizer_params(algo, opt)
+    if params !== nothing
+        return get_units_usage(params, form)
+    end
+    return error("Cannot get units usage of optimizer of type $(typeof(opt)).")
+end
+
+# get_units_usage of MoiOptimize
 function get_units_usage(
-    algo::SolveIpForm, form::Formulation{Duty}
+    ::MoiOptimize, form::Formulation{Duty}
 ) where {Duty<:MathProg.AbstractFormDuty}
     # we use storage units in the read only mode, as all modifications
     # (deactivating artificial vars and enforcing integrality)
@@ -40,8 +125,21 @@ function get_units_usage(
     return units_usage
 end
 
-get_units_usage(algo::SolveIpForm, reform::Reformulation) =
+get_units_usage(algo::SolveIpForm, reform::Reformulation) = 
     get_units_usage(algo, getmaster(reform))
+
+# get_units_usage of UserOptimize
+function get_units_usage(::UserOptimize, spform::Formulation{DwSp}) 
+    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[] 
+    push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
+    return units_usage
+end
+
+# TODO : get_units_usage of CustomOptimize
+
+################################################################################
+# run! methods (depends on the type of the optimizer)
+################################################################################
 
 function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
     return MOI.supports_constraint(optimizer.inner, MOI.SingleVariable, MOI.Integer)
@@ -49,8 +147,9 @@ end
 check_if_optimizer_supports_ip(optimizer::UserOptimizer) = false
 check_if_optimizer_supports_ip(optimizer::NoOptimizer) = false
 
+# run! of MoiOptimize
 function run!(
-    algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationInput, 
+    algo::MoiOptimize, ::Env, form::Formulation, input::OptimizationInput; 
     optimizer_id::Int = 1
 )::OptimizationOutput
     result = OptimizationState(
@@ -76,7 +175,7 @@ function run!(
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_value = getvalue(partial_sol)
     end
-    
+
     if length(primal_sols) > 0
         if partial_sol !== nothing
             for primal_sol in primal_sols
@@ -107,47 +206,8 @@ function run!(
     return OptimizationOutput(result)
 end
 
-run!(algo::SolveIpForm, env::Env, reform::Reformulation, input::OptimizationInput) = 
-    run!(algo, env, getmaster(reform), input)
-
-function termination_status!(result::OptimizationState, optimizer::MoiOptimizer)
-    terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
-    if terminationstatus != MOI.INFEASIBLE &&
-            terminationstatus != MOI.DUAL_INFEASIBLE &&
-            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
-            terminationstatus != MOI.OPTIMIZE_NOT_CALLED &&
-            terminationstatus != MOI.INVALID_MODEL &&
-            terminationstatus != MOI.TIME_LIMIT
-
-        setterminationstatus!(result, convert_status(terminationstatus))
-
-        if MOI.get(getinner(optimizer), MOI.ResultCount()) <= 0
-            msg = """
-            Termination status = $(terminationstatus) but no results.
-            Please, open an issue at https://github.com/atoptima/Coluna.jl/issues
-            """
-            error(msg)
-        end
-    else
-        @warn "Solver has no result to show."
-        setterminationstatus!(result, INFEASIBLE)
-    end
-    return
-end
-
-function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::OptimizationState)
-    sync_solver!(optimizer, form)
-    nbvars = MOI.get(optimizer.inner, MOI.NumberOfVariables())
-    if nbvars <= 0
-        @warn "No variable in the formulation."
-    end
-    MOI.optimize!(getinner(optimizer))
-    termination_status!(result, optimizer)
-    return
-end
-
 function optimize_ip_form!(
-    algo::SolveIpForm, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
+    algo::MoiOptimize, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
 )
     MOI.set(optimizer.inner, MOI.TimeLimitSec(), algo.time_limit)
     MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
@@ -172,3 +232,42 @@ function optimize_ip_form!(
     end
     return primal_sols
 end
+
+# run! of UserOptimize
+function run!(
+    algo::UserOptimize, ::Env, spform::Formulation{DwSp}, input::OptimizationInput;
+    optimizer_id::Int = 1
+)::OptimizationOutput
+    result = OptimizationState(
+        spform, 
+        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
+    )
+
+    optimizer = getoptimizer(spform, optimizer_id)
+    cbdata = MathProg.PricingCallbackData(spform, algo.stage)
+    optimizer.user_oracle(cbdata)
+
+    if length(cbdata.primal_solutions) > 0
+        for primal_sol in cbdata.primal_solutions
+            add_ip_primal_sol!(result, primal_sol)
+        end
+
+        if algo.stage == 1 # stage 1 is exact by convention
+            dual_bound = getvalue(get_ip_primal_bound(result))
+            set_ip_dual_bound!(result, DualBound(spform, dual_bound))
+            setterminationstatus!(result, OPTIMAL) 
+        else    
+            setterminationstatus!(result, OTHER_LIMIT) 
+        end
+    else
+        if algo.stage == 1    
+            setterminationstatus!(result, INFEASIBLE) 
+        else
+            setterminationstatus!(result, OTHER_LIMIT) 
+        end 
+    end
+    return OptimizationOutput(result)
+end
+
+# TODO : run! of CustomOptimize
