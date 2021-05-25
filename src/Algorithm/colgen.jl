@@ -1,7 +1,12 @@
 """
     Coluna.Algorithm.ColumnGeneration(
         restr_master_solve_alg = SolveLpForm(get_dual_solution = true)
-        pricing_prob_solve_alg = SolveIpForm(),
+        pricing_prob_solve_alg = SolveIpForm(
+            moi_params = MoiOptimize(
+                deactivate_artificial_vars = false,
+                enforce_integrality = false
+            )
+        )
         essential_cut_gen_alg = CutCallbacks(call_robust_facultative = false)
         max_nb_iterations::Int = 1000
         log_print_frequency::Int = 1
@@ -22,7 +27,12 @@ restricted master and `pricing_prob_solve_alg` to solve the subproblems.
     restr_master_optimizer_id = 1
     # TODO : pricing problem solver may be different depending on the
     #       pricing subproblem
-    pricing_prob_solve_alg = SolveIpForm()
+    pricing_prob_solve_alg = SolveIpForm(
+        moi_params = MoiOptimize(
+            deactivate_artificial_vars = false,
+            enforce_integrality = false
+        )
+    )
     essential_cut_gen_alg = CutCallbacks(call_robust_facultative=false)
     max_nb_iterations::Int64 = 1000
     log_print_frequency::Int64 = 1

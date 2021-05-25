@@ -17,7 +17,7 @@ User parameters for an optimizer that calls a subsolver through MathOptInterface
     enforce_integrality::Bool = true
     get_dual_bound::Bool = true
     max_nb_ip_primal_sols::Int = 50
-    log_level::Int = -1
+    log_level::Int = 2
     silent::Bool = true
 end
 
