@@ -196,12 +196,14 @@ end
 
 function _addprimalsol!(form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64)
     for (var_id, var_val) in sol
-        var = getvar(form, var_id)
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
             form.manager.primal_sols[var_id, sol_id] = var_val
         end
     end
     form.manager.primal_sol_costs[sol_id] = cost
+    if sol.custom_data !== nothing
+        form.manager.primal_sols_custom_data[sol_id] = sol.custom_data
+    end
     return sol_id
 end
 
@@ -282,7 +284,7 @@ function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId, name::String,
     duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous,
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
-    moi_index::MoiVarIndex = MoiVarIndex()
+    moi_index::MoiVarIndex = MoiVarIndex(), custom_data = nothing
 )
     cost = getprimalsolcosts(spform)[sol_id]
     master_coef_matrix = getcoefmatrix(masterform)
@@ -307,7 +309,8 @@ function setcol_from_sp_primalsol!(
         is_explicit = is_explicit,
         moi_index = moi_index,
         members = members,
-        id = sol_id
+        id = sol_id,
+        custom_data = get(spform.manager.primal_sols_custom_data, sol_id, nothing)
     )
     return mast_col
 end
