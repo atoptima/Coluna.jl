@@ -77,14 +77,14 @@ end
 # SolveIpForm does not have child algorithms, therefore get_child_algorithms() is not defined
 
 # Dispatch on the type of the optimizer to return the parameters
-_optimizer_params(algo::SolveIpForm, ::MoiOptimizer) = algo.moi_params
-_optimizer_params(algo::SolveIpForm, ::UserOptimizer) = algo.user_params
-# TODO : custom optimizer
-_optimizer_params(::SolveIpForm, ::NoOptimizer) = nothing
+_optimizer_params(::Formulation, algo::SolveIpForm, ::MoiOptimizer) = algo.moi_params
+_optimizer_params(::Formulation, algo::SolveIpForm, ::UserOptimizer) = algo.user_params
+_optimizer_params(form::Formulation, algo::SolveIpForm, ::CustomOptimizer) = getinner(getoptimizer(form, algo.optimizer_id))
+_optimizer_params(::Formulation, ::SolveIpForm, ::NoOptimizer) = nothing
 
 function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
     opt = getoptimizer(form, algo.optimizer_id)
-    params = _optimizer_params(algo, opt)
+    params = _optimizer_params(form, algo, opt)
     if params !== nothing
         return run!(params, env, form, input; optimizer_id = algo.optimizer_id)
     end
@@ -99,7 +99,7 @@ run!(algo::SolveIpForm, env::Env, reform::Reformulation, input::OptimizationInpu
 ################################################################################
 function get_units_usage(algo::SolveIpForm, form::Formulation)
     opt = getoptimizer(form, algo.optimizer_id)
-    params = _optimizer_params(algo, opt)
+    params = _optimizer_params(form, algo, opt)
     if params !== nothing
         return get_units_usage(params, form)
     end
@@ -135,7 +135,8 @@ function get_units_usage(::UserOptimize, spform::Formulation{DwSp})
     return units_usage
 end
 
-# TODO : get_units_usage of CustomOptimize
+# no get_units_usage of CustomOptimize because it directly calls the
+# get_units_usage of the custom optimizer
 
 ################################################################################
 # run! methods (depends on the type of the optimizer)
@@ -270,4 +271,5 @@ function run!(
     return OptimizationOutput(result)
 end
 
-# TODO : run! of CustomOptimize
+# No run! method for CustomOptimize because it directly calls the run! method
+# of the custom optimizer

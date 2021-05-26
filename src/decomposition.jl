@@ -427,6 +427,7 @@ end
 
 _optimizerbuilder(opt::Function) = () -> UserOptimizer(opt)
 _optimizerbuilder(opt::MOI.AbstractOptimizer) = () -> MoiOptimizer(opt)
+_optimizerbuilder(opt::BD.AbstractCustomOptimizer) = () -> CustomOptimizer(opt)
 
 function getoptimizerbuilders(prob::Problem, ann::BD.Annotation)
     optimizers = BD.getoptimizerbuilders(ann)

@@ -1,8 +1,7 @@
-# In this test, we use the Martinelli's knapsack lib to test the interface 
-# to custom models/solvers : https://github.com/rafaelmartinelli/KnapsackLib.jl
+# In this test, we use the Martinelli's knapsack solver pkg ( https://github.com/rafaelmartinelli/KnapsackLib.jl)
+# to test the interface of custom models/solvers.
 
 #using KnapsackLib
-
 mutable struct KnapsackLibModel <: Coluna.MathProg.AbstractFormulation
     nbitems::Int
     costs::Vector{Float64}
@@ -15,9 +14,24 @@ setweight!(model::KnapsackLibModel, j::Int, w) = model.weights[j] = w
 setcost!(model::KnapsackLibModel, j::Int, c) = model.costs[j] = c
 
 mutable struct KnapsackLibOptimizer <: BlockDecomposition.AbstractCustomOptimizer
-
+    model::KnapsackLibModel
 end
 
+function Coluna.Algorithm.get_units_usage(opt::KnapsackLibOptimizer, form) # form is Coluna Formulation
+    println("\e[41m get units usage \e[00m")
+    units_usage = Tuple{AbstractModel, Coluna.ColunaBase.UnitType, Coluna.ColunaBase.UnitAccessMode}[]
+    # TODO : the abstract model is KnapsackLibModel (opt.model)
+    return units_usage
+end
+
+function Coluna.Algorithm.run!(opt::KnapsackLibOptimizer, ::Coluna.Env, ::Coluna.MathProg.Formulation, input::Coluna.Algorithm.OptimizationInput; kw...)
+    @show opt.model
+    error("run! method of custom optimizer reached !")
+end
+
+################################################################################
+# User model
+################################################################################
 function knpcustommodel()
     @testset "knapsack custom model" begin
         data = CLD.GeneralizedAssignment.data("play2.txt")
@@ -47,7 +61,8 @@ function knpcustommodel()
                 setweight!(knp_model, j, data.weight[j,m])
                 setcost!(knp_model, j, data.cost[j,m])
             end
-            specify!(sp[m], solver = KnapsackLibOptimizer) ##model = knp_model)
+            knp_optimizer = KnapsackLibOptimizer(knp_model)
+            specify!(sp[m], solver = knp_optimizer) ##model = knp_model)
         end
 
         optimize!(model)

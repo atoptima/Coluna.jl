@@ -147,3 +147,12 @@ function write_to_LP_file(form::Formulation, optimizer::MoiOptimizer, filename::
     MOI.copy_to(dest, src)
     MOI.write_to_file(dest, filename)
 end
+
+"""
+    CustomOptimizer <: AbstractOptimizer
+"""
+struct CustomOptimizer <: AbstractOptimizer
+    inner::BD.AbstractCustomOptimizer
+end
+
+getinner(optimizer::CustomOptimizer) = optimizer.inner
