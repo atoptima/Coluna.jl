@@ -1,12 +1,13 @@
 # In this test, we use the Martinelli's knapsack solver pkg ( https://github.com/rafaelmartinelli/KnapsackLib.jl)
 # to test the interface of custom models/solvers.
 
-#using KnapsackLib
+using KnapsackLib
 mutable struct KnapsackLibModel <: Coluna.MathProg.AbstractFormulation
     nbitems::Int
     costs::Vector{Float64}
     weights::Vector{Float64}
     capacity::Float64
+    #map::Dict{VarId,Float64}
 end
 KnapsackLibModel(nbitems) = KnapsackLibModel(nbitems, zeros(Float64, nbitems), zeros(Float64, nbitems), 0.0)
 setcapacity!(model::KnapsackLibModel, cap) = model.capacity = cap
@@ -24,9 +25,32 @@ function Coluna.Algorithm.get_units_usage(opt::KnapsackLibOptimizer, form) # for
     return units_usage
 end
 
-function Coluna.Algorithm.run!(opt::KnapsackLibOptimizer, ::Coluna.Env, ::Coluna.MathProg.Formulation, input::Coluna.Algorithm.OptimizationInput; kw...)
-    @show opt.model
+function _rfl(val::Float64)::Integer
+    rf_val = Integer(floor(val + val * 1e-10 + 1e-6))
+    rf_val += rf_val < val - 1 + 1e-6 ? 1 : 0
+    return rf_val
+end
+
+function _scale_to_int(vals...)
+    max_val = maximum(vals)
+    scaling_factor = typemax(Int) / (length(vals) + 1) / max_val
+    return map(x -> _rfl(scaling_factor * x), vals)
+end
+
+function Coluna.Algorithm.run!(
+    opt::KnapsackLibOptimizer, ::Coluna.Env, ::Coluna.MathProg.Formulation,
+    input::Coluna.Algorithm.OptimizationInput; kw...
+)
+    ws = _scale_to_int(opt.model.capacity, opt.model.weights...)
+    cs = _scale_to_int(opt.model.costs...)
+    items = [KnapItem(w,c) for (w,c) in zip(ws[2:end], cs)]
+    data = KnapData(ws[1], items)
+    _, selected = solveKnapExpCore(data)
+    optimal = sum(opt.model.costs[j] for j in selected)
+    @show optimal
+    @show selected
     error("run! method of custom optimizer reached !")
+    return
 end
 
 ################################################################################
