@@ -45,35 +45,37 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
 
     # Remove constrs
     @logmsg LogLevel(-2) string("Removing constraints")
-    remove_from_optimizer!(buffer.constr_buffer.removed, f)
+    remove_from_optimizer!(f, optimizer, buffer.constr_buffer.removed)
 
     # Remove vars
     @logmsg LogLevel(-2) string("Removing variables")
-    remove_from_optimizer!(buffer.var_buffer.removed, f)
+    remove_from_optimizer!(f, optimizer, buffer.var_buffer.removed)
 
     # Add vars
     for id in buffer.var_buffer.added
         v = getvar(f, id)
         @logmsg LogLevel(-4) string("Adding variable ", getname(f, v))
-        add_to_optimizer!(f, v)
+        add_to_optimizer!(f, optimizer, v)
     end
 
     # Add constrs
     for constr_id in buffer.constr_buffer.added
         constr = getconstr(f, constr_id)
         @logmsg LogLevel(-2) string("Adding constraint ", getname(f, constr))
-        add_to_optimizer!(f, constr, (f, constr) -> iscuractive(f, constr) && isexplicit(f, constr))
+        add_to_optimizer!(
+            f, optimizer, constr, (f, constr) -> iscuractive(f, constr) && isexplicit(f, constr)
+        )
     end
 
     # Update variable costs
     for id in buffer.changed_cost
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        update_cost_in_optimizer!(f, getvar(f, id))
+        update_cost_in_optimizer!(f, optimizer, getvar(f, id))
     end
 
     # Update objective constant
     if buffer.changed_obj_const
-        update_obj_const_in_optimizer!(f)
+        update_obj_const_in_optimizer!(f, optimizer)
         buffer.changed_obj_const = false
     end
 
@@ -83,7 +85,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         @logmsg LogLevel(-4) "Changing bounds of variable " getname(f, id)
         @logmsg LogLevel(-5) string("New lower bound is ", getcurlb(f, id))
         @logmsg LogLevel(-5) string("New upper bound is ", getcurub(f, id))
-        update_bounds_in_optimizer!(f, getvar(f, id))
+        update_bounds_in_optimizer!(f, optimizer, getvar(f, id))
     end
 
     # Update variable kind
@@ -91,7 +93,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         @logmsg LogLevel(-3) "Changing kind of variable " getname(f, id)
         @logmsg LogLevel(-4) string("New kind is ", getcurkind(f, id))
-        enforce_kind_in_optimizer!(f, getvar(f,id))
+        enforce_kind_in_optimizer!(f, optimizer, getvar(f,id))
     end
 
     # Update constraint rhs
@@ -99,7 +101,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         (id in buffer.constr_buffer.added || id in buffer.constr_buffer.removed) && continue
         @logmsg LogLevel(-3) "Changing rhs of constraint " getname(f, id)
         @logmsg LogLevel(-4) string("New rhs is ", getcurrhs(f, id))
-        update_constr_rhs_in_optimizer!(f, getconstr(f, id))
+        update_constr_rhs_in_optimizer!(f, optimizer, getconstr(f, id))
     end
 
     # Update matrix
@@ -131,11 +133,17 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
 end
 
 # Initialization of optimizers
-function _initialize_moioptimizer!(optimizer::MoiOptimizer, form::Formulation)
+function initialize_optimizer!(optimizer::MoiOptimizer, form::Formulation)
     f = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm{Float64}[], 0.0)
-    MOI.set(form.moioptimizer.inner, MoiObjective(), f)
-    set_obj_sense!(form.moioptimizer, getobjsense(form))
+    MOI.set(optimizer.inner, MoiObjective(), f)
+    set_obj_sense!(optimizer, getobjsense(form))
     return
 end
 
-_initialize_moioptimizer!(optimizer, form::Formulation) = return
+initialize_optimizer!(optimizer, form::Formulation) = return
+function write_to_LP_file(form::Formulation, optimizer::MoiOptimizer, filename::String)
+    src = getinner(optimizer)
+    dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)
+    MOI.copy_to(dest, src)
+    MOI.write_to_file(dest, filename)
+end

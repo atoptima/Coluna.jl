@@ -52,7 +52,7 @@ export  MaxSense, MinSense, MoiOptimizer,
 export no_optimizer_builder, set_original_formulation!,
        getid, getuid,
        enforce_integrality!, relax_integrality!,
-       getobjsense, getmoioptimizer, getuseroptimizer,
+       getobjsense, getoptimizer, getoptimizers,
        setdualbound!,
        computereducedcost,
        update!,
@@ -82,8 +82,8 @@ export AbstractFormulation, Formulation, create_formulation!, getreformulation, 
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setprimalsol!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
-    set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_moioptimizer!,
-    getobjconst, setobjconst!
+    set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
+    push_optimizer!, getobjconst, setobjconst!
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp

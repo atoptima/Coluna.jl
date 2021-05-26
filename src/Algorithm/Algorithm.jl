@@ -31,13 +31,11 @@ include("formstorages.jl")
 include("interface.jl")
 
 # Basic algorithms
-include("basic/solveipform.jl")
 include("basic/solvelpform.jl")
+include("basic/solveipform.jl")
 include("basic/cutcallback.jl")
-include("basic/pricingcallback.jl")
 
 # Child algorithms used by conquer algorithms
-include("pricing.jl")
 include("colgenstabilization.jl")
 include("colgen.jl")
 include("benders.jl")
@@ -72,7 +70,7 @@ export getterminationstatus, setterminationstatus!,
     
 # Algorithm's types
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
-       DefaultPricing, PricingCallback, BendersConquer, BendersCutGeneration, SolveIpForm, 
+       BendersConquer, BendersCutGeneration, SolveIpForm, MoiOptimize, UserOptimizer, 
        SolveLpForm, ExactBranchingPhase, OnlyRestrictedMasterBranchingPhase, PreprocessAlgorithm, 
        RestrictedMasterIPHeuristic, OptimizationInput, OptimizationOutput, OptimizationState,
        EmptyInput       
