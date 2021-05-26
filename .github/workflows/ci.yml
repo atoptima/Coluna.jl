@@ -26,7 +26,7 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - run: julia --project=@. -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/atoptima/ColunaDemos.jl.git")); Pkg.add(PackageSpec(url="https://github.com/atoptima/BlockDecomposition.jl.git"))'
+      - run: julia --project=@. -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/atoptima/ColunaDemos.jl.git"));'
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
