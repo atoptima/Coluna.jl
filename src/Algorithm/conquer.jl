@@ -69,7 +69,7 @@ end
 #                      ParameterisedHeuristic
 ####################################################################
 
-RestrictedMasterIPHeuristic() = SolveIpForm(get_dual_bound = false)
+RestrictedMasterIPHeuristic() = SolveIpForm(moi_params = MoiOptimize(get_dual_bound = false))
 
 struct ParameterisedHeuristic
     algorithm::AbstractOptimizationAlgorithm
@@ -77,7 +77,7 @@ struct ParameterisedHeuristic
     nonroot_priority::Float64
     frequency::Integer
     max_depth::Integer
-    name::String 
+    name::String
 end
 
 DefaultRestrictedMasterHeuristic() = 
