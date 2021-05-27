@@ -7,12 +7,22 @@ mutable struct KnapsackLibModel <: Coluna.MathProg.AbstractFormulation
     costs::Vector{Float64}
     weights::Vector{Float64}
     capacity::Float64
-    #map::Dict{VarId,Float64}
+    varids::Vector{Coluna.MathProg.VarId}
+    map::Dict{Coluna.MathProg.VarId,Float64}
 end
-KnapsackLibModel(nbitems) = KnapsackLibModel(nbitems, zeros(Float64, nbitems), zeros(Float64, nbitems), 0.0)
+KnapsackLibModel(nbitems) = KnapsackLibModel(
+    nbitems, zeros(Float64, nbitems), zeros(Float64, nbitems), 0.0,
+    Vector{Coluna.MathProg.VarId}[], Dict{Coluna.MathProg.VarId,Float64}()
+)
 setcapacity!(model::KnapsackLibModel, cap) = model.capacity = cap
 setweight!(model::KnapsackLibModel, j::Int, w) = model.weights[j] = w
 setcost!(model::KnapsackLibModel, j::Int, c) = model.costs[j] = c
+pushvarid!(model::KnapsackLibModel, x::VariableRef) = push!(
+    model.varids, x.model.moi_backend.varids[x.index]
+)
+map!(model::KnapsackLibModel, j::Int) = push!(
+    model.map, model.varids[j] => 1.0
+)
 
 mutable struct KnapsackLibOptimizer <: BlockDecomposition.AbstractCustomOptimizer
     model::KnapsackLibModel
@@ -49,6 +59,10 @@ function Coluna.Algorithm.run!(
     optimal = sum(opt.model.costs[j] for j in selected)
     @show optimal
     @show selected
+    for j in selected
+        map!(opt.model, j)
+    end
+    @show opt.model.map
     error("run! method of custom optimizer reached !")
     return
 end
@@ -84,6 +98,7 @@ function knpcustommodel()
             for j in data.jobs
                 setweight!(knp_model, j, data.weight[j,m])
                 setcost!(knp_model, j, data.cost[j,m])
+                pushvarid!(knp_model, x[m,j])
             end
             knp_optimizer = KnapsackLibOptimizer(knp_model)
             specify!(sp[m], solver = knp_optimizer) ##model = knp_model)
