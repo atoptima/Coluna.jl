@@ -7,23 +7,28 @@ mutable struct KnapsackLibModel <: Coluna.MathProg.AbstractFormulation
     costs::Vector{Float64}
     weights::Vector{Float64}
     capacity::Float64
-    varids::Vector{Coluna.MathProg.VarId}
-    map::Dict{Coluna.MathProg.VarId,Float64}
+    job_to_jumpvar::Dict{Int, JuMP.VariableRef}
+    #varids::Vector{Coluna.MathProg.VarId}
+    #map::Dict{Coluna.MathProg.VarId,Float64}
 end
 KnapsackLibModel(nbitems) = KnapsackLibModel(
     nbitems, zeros(Float64, nbitems), zeros(Float64, nbitems), 0.0,
-    Vector{Coluna.MathProg.VarId}[], Dict{Coluna.MathProg.VarId,Float64}()
+    Dict{Int, JuMP.VariableRef}()
 )
 setcapacity!(model::KnapsackLibModel, cap) = model.capacity = cap
 setweight!(model::KnapsackLibModel, j::Int, w) = model.weights[j] = w
 setcost!(model::KnapsackLibModel, j::Int, c) = model.costs[j] = c
-pushvarid!(model::KnapsackLibModel, x::VariableRef) = push!(
-    model.varids, x.model.moi_backend.varids[x.index]
-)
-map!(model::KnapsackLibModel, j::Int) = push!(
-    model.map, model.varids[j] => 1.0
-)
+map!(model::KnapsackLibModel, j::Int, x::JuMP.VariableRef) = model.job_to_jumpvar[j] = x
 
+coluna_backend(model::MOI.Utilities.CachingOptimizer) = coluna_backend(model.optimizer)
+coluna_backend(b::MOI.Bridges.AbstractBridgeOptimizer) = coluna_backend(b.model)
+coluna_backend(model) = model
+
+function get_coluna_varid(model::KnapsackLibModel, form, j::Int)
+    jumpvar = model.job_to_jumpvar[j]
+    opt = coluna_backend(backend(jumpvar.model))
+    return Coluna._get_orig_varid_in_form(opt, form, jumpvar.index)
+end
 mutable struct KnapsackLibOptimizer <: BlockDecomposition.AbstractCustomOptimizer
     model::KnapsackLibModel
 end
@@ -48,7 +53,7 @@ function _scale_to_int(vals...)
 end
 
 function Coluna.Algorithm.run!(
-    opt::KnapsackLibOptimizer, ::Coluna.Env, ::Coluna.MathProg.Formulation,
+    opt::KnapsackLibOptimizer, ::Coluna.Env, form::Coluna.MathProg.Formulation,
     input::Coluna.Algorithm.OptimizationInput; kw...
 )
     ws = _scale_to_int(opt.model.capacity, opt.model.weights...)
@@ -60,9 +65,9 @@ function Coluna.Algorithm.run!(
     @show optimal
     @show selected
     for j in selected
-        map!(opt.model, j)
+        @show Coluna.MathProg.getname(form, get_coluna_varid(opt.model, form, j))
     end
-    @show opt.model.map
+
     error("run! method of custom optimizer reached !")
     return
 end
@@ -98,7 +103,7 @@ function knpcustommodel()
             for j in data.jobs
                 setweight!(knp_model, j, data.weight[j,m])
                 setcost!(knp_model, j, data.cost[j,m])
-                pushvarid!(knp_model, x[m,j])
+                map!(knp_model, j, x[m,j])
             end
             knp_optimizer = KnapsackLibOptimizer(knp_model)
             specify!(sp[m], solver = knp_optimizer) ##model = knp_model)
