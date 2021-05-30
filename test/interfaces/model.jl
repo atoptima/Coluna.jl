@@ -53,7 +53,7 @@ function _scale_to_int(vals...)
 end
 
 function Coluna.Algorithm.run!(
-    opt::KnapsackLibOptimizer, ::Coluna.Env, form::Coluna.MathProg.Formulation,
+    opt::KnapsackLibOptimizer, env::Coluna.Env, form::Coluna.MathProg.Formulation,
     input::Coluna.Algorithm.OptimizationInput; kw...
 )
     ws = _scale_to_int(opt.model.capacity, opt.model.weights...)
@@ -62,6 +62,9 @@ function Coluna.Algorithm.run!(
     data = KnapData(ws[1], items)
     _, selected = solveKnapExpCore(data)
     optimal = sum(opt.model.costs[j] for j in selected)
+
+    @show env.varids
+
     @show optimal
     @show selected
     for j in selected

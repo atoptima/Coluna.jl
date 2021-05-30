@@ -21,7 +21,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     annotations::Annotations
     #varmap::Dict{MOI.VariableIndex,VarId} # For the user to get VariablePrimal
     vars::CleverDicts.CleverDict{MOI.VariableIndex, Variable}
-    varids::CleverDicts.CleverDict{MOI.VariableIndex, VarId}
+    #varids::CleverDicts.CleverDict{MOI.VariableIndex, VarId}
     moi_varids::Dict{VarId, MOI.VariableIndex}
     names_to_vars::Dict{String, MOI.VariableIndex}
     constrs::Dict{MOI.ConstraintIndex, Constraint}
@@ -33,14 +33,13 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
 
     feasibility_sense::Bool # Coluna supports only Max or Min.
 
-
     function Optimizer()
         model = new()
         model.env = Env(Params())
         model.inner = Problem(model.env)
         model.annotations = Annotations()
         model.vars = CleverDicts.CleverDict{MOI.VariableIndex, Variable}()
-        model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}() # TODO : check if necessary to have two dicts for variables
+        #model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}() # TODO : check if necessary to have two dicts for variables
         model.moi_varids = Dict{VarId, MOI.VariableIndex}()
         model.names_to_vars = Dict{String, MOI.VariableIndex}()
         model.constrs = Dict{MOI.ConstraintIndex, Union{Constraint, Nothing}}()
@@ -79,7 +78,7 @@ end
 
 function _get_orig_varid(optimizer::Optimizer, x::MOI.VariableIndex)
     if haskey(optimizer.vars, x)
-        return optimizer.varids[x]
+        return optimizer.env.varids[x]
     end
     throw(MOI.InvalidIndex(x))
     return origid
@@ -113,7 +112,7 @@ function MOI.add_variable(model::Coluna.Optimizer)
     var = setvar!(orig_form, "v", OriginalVar)
     index = CleverDicts.add_item(model.vars, var)
     model.moi_varids[getid(var)] = index
-    index2 = CleverDicts.add_item(model.varids, getid(var))
+    index2 = CleverDicts.add_item(model.env.varids, getid(var))
     @assert index == index2
     return index
 end
@@ -581,7 +580,7 @@ function MOI.empty!(model::Coluna.Optimizer)
     model.inner = Problem(model.env)
     model.annotations = Annotations()
     model.vars = CleverDicts.CleverDict{MOI.VariableIndex, Variable}()
-    model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}()
+    model.env.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}()
     model.moi_varids = Dict{VarId, MOI.VariableIndex}()
     model.constrs = Dict{MOI.ConstraintIndex, Constraint}()
     if model.default_optimizer_builder !== nothing

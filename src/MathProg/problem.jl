@@ -7,11 +7,11 @@ mutable struct Problem <: AbstractProblem
 end
 
 """
-    Problem()
+    Problem(env)
 
 Constructs an empty `Problem`.
 """
-function Problem(env::Coluna.Env)
+function Problem(env)
     original_formulation = create_formulation!(env, Original)
     return Problem(
         nothing, nothing, original_formulation, nothing,
