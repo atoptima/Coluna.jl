@@ -52,28 +52,51 @@ function _scale_to_int(vals...)
     return map(x -> _rfl(scaling_factor * x), vals)
 end
 
+_getvarid(model::KnapsackLibModel, form, env::Env, j::Int) = Coluna.MathProg.getid(Coluna.MathProg.getvar(form, env.varids[model.job_to_jumpvar[j].index]))
+
 function Coluna.Algorithm.run!(
     opt::KnapsackLibOptimizer, env::Coluna.Env, form::Coluna.MathProg.Formulation,
     input::Coluna.Algorithm.OptimizationInput; kw...
 )
+    costs = [Coluna.MathProg.getcurcost(form, _getvarid(opt.model, form, env, j)) for j in 1:length(opt.model.costs)]
     ws = _scale_to_int(opt.model.capacity, opt.model.weights...)
-    cs = _scale_to_int(opt.model.costs...)
+    cs = _scale_to_int(costs...)
     items = [KnapItem(w,c) for (w,c) in zip(ws[2:end], cs)]
     data = KnapData(ws[1], items)
     _, selected = solveKnapExpCore(data)
-    optimal = sum(opt.model.costs[j] for j in selected)
 
-    @show env.varids
+    # setup variable (issue https://github.com/atoptima/Coluna.jl/issues/283)
+    setup_var_id = [id for (id,v) in Iterators.filter(
+        v -> (
+            Coluna.MathProg.iscuractive(form, v.first) && 
+            Coluna.MathProg.isexplicit(form, v.first) && 
+            Coluna.MathProg.getduty(v.first) <= Coluna.DwSpSetupVar
+        ),
+        Coluna.MathProg.getvars(form)
+    )][1]
 
-    @show optimal
-    @show selected
+    cost = sum(opt.model.costs[j] for j in selected) + Coluna.MathProg.getcurcost(form, setup_var_id)
+
+    varids = Coluna.MathProg.VarId[]
+    varvals = Float64[]
+
     for j in selected
-        @show Coluna.MathProg.getname(form, get_coluna_varid(opt.model, form, j))
+        push!(varids, _getvarid(opt.model, form, env, j))
+        push!(varvals, 1)
     end
 
-    error("run! method of custom optimizer reached !")
-    return
+    push!(varids, setup_var_id)
+    push!(varvals, 1)
+
+    sol = Coluna.MathProg.PrimalSolution(form, varids, varvals, cost, Coluna.MathProg.FEASIBLE_SOL)
+
+    result = Coluna.Algorithm.OptimizationState(form; termination_status = Coluna.MathProg.OPTIMAL)
+    Coluna.Algorithm.add_ip_primal_sol!(result, sol)
+    dual_bound = Coluna.getvalue(Coluna.Algorithm.get_ip_primal_bound(result))
+    Coluna.Algorithm.set_ip_dual_bound!(result, Coluna.DualBound(form, dual_bound))
+    return Coluna.Algorithm.OptimizationOutput(result)
 end
+
 
 ################################################################################
 # User model
