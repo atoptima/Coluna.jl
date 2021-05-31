@@ -242,11 +242,14 @@ function run_conquer_algorithm!(
 
     algo.print_node_info && print_node_info_before_conquer(tsdata, env, node)
 
-    node.conquerwasrun && return
-
     treestate = getoptstate(tsdata)
     nodestate = getoptstate(node)
     update_ip_primal!(nodestate, treestate, tsdata.exploitsprimalsolutions)
+
+    # in the case the conquer was already run (in strong branching),
+    # we still need to update the node IP primal bound before exiting 
+    # (to possibly avoid branching)
+    node.conquerwasrun && return
 
     apply_conquer_alg_to_node!(
         node, algo.conqueralg, env, reform, tsdata.conquer_units_to_restore, 
@@ -328,14 +331,16 @@ function run!(
         # dual bound of the optstate only at the root node.
         run_conquer_algorithm!(algo, env, tsdata, reform, node)
         print_node_in_branching_tree_file(algo, env, tsdata, node)
-       
-        if getterminationstatus(node.optstate) == OPTIMAL || ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)
+               
+        nodestatus = getterminationstatus(node.optstate)
+        if nodestatus == OPTIMAL || nodestatus == INFEASIBLE ||
+           ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)             
             println("Node is already conquered. No children will be generated.")
             db = get_ip_dual_bound(node.optstate)
             if isbetter(tsdata.worst_db_of_pruned_node, db)
                 tsdata.worst_db_of_pruned_node = db
             end
-        else
+        elseif nodestatus != TIME_LIMIT
             run_divide_algorithm!(algo, env, tsdata, reform, node)
         end
 
@@ -344,6 +349,11 @@ function run!(
         remove_records!(node.recordids)
         # we delete solutions from the node optimization state, as they are not needed anymore
         clear_solutions!(getoptstate(node))
+
+        if nodestatus == TIME_LIMIT
+            println("Time limit is reached. Tree search is interrupted")
+            break
+        end
     end
     finish_branching_tree_file(algo)
 

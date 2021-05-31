@@ -92,6 +92,7 @@ function run!(
     for (var_id, val) in input.solution
         # Do not consider continuous variables as branching candidates
         getperenkind(master, var_id) == Continuous && continue
+        getbranchingpriority(master, var_id) < input.minimum_priority && continue
         if !isinteger(val, input.int_tol)
             #description string is just the variable name
             candidate = VarBranchingCandidate(getname(master, var_id), var_id)

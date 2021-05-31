@@ -66,12 +66,12 @@ function product_score(group::BranchingGroup, parent_optstate::OptimizationState
 
     all_branches_above_delta = true
     deltas = zeros(Float64, length(group.children))
-    for node in group.children
+    for (i, node) in enumerate(group.children)
         node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < parent_delta
             all_branches_above_delta = false
         end
-        push!(deltas, node_delta)
+        deltas[i] = node_delta
     end
 
     score = 1.0

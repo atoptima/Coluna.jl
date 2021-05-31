@@ -251,7 +251,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
         # generate candidates
         output = run!(rule, env, reform, BranchingRuleInput(
             original_solution, true, nb_candidates_needed, algo.selection_criterion, 
-            local_id, algo.int_tol
+            local_id, algo.int_tol, min_priority
         ))
         nb_candidates_found += length(output.groups)
         append!(kept_branch_groups, output.groups)
@@ -260,7 +260,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
         if projection_is_possible(master) && extended_solution !== nothing
             output = run!(rule, env, reform, BranchingRuleInput(
                 extended_solution, false, nb_candidates_needed, algo.selection_criterion, 
-                local_id, algo.int_tol
+                local_id, algo.int_tol, min_priority
             ))   
             nb_candidates_found += length(output.groups)
             append!(kept_branch_groups, output.groups)

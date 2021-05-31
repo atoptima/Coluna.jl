@@ -124,8 +124,16 @@ function update_stab_after_rm_solve!(
 
     unit.curalpha = smoothparam == 1.0 ? unit.basealpha : smoothparam
 
-    return linear_combination(unit.stabcenter, lp_dual_sol, unit.curalpha)
+    if !smoothing_is_active(unit)
+        # in this case Lagrangian bound calculation is simplified in col.gen.
+        # (we use the fact that the contribution of pure master variables 
+        #  is included in the value of the LP dual solution)
+        # thus, LP dual solution should be retured, as linear_combination() 
+        # does not include pure master variables contribution to the bound
+        return lp_dual_sol
     end
+    return linear_combination(unit.stabcenter, lp_dual_sol, unit.curalpha)
+end
 
 function norm(dualsol::DualSolution)
     product_sum = 0.0
@@ -175,7 +183,7 @@ function update_alpha_automatically!(
 
     # we modify the alpha parameter based on the calculated angle
     if nb_new_col == 0 || angle > 1e-12 
-        unit.basealpha -= 0.1
+        unit.basealpha = max(0.0, unit.basealpha - 0.1)
     elseif angle < -1e-12 && unit.basealpha < 0.999
         unit.basealpha += (1.0 - unit.basealpha) * 0.1
     end   
@@ -210,6 +218,7 @@ function update_stab_after_gencols!(
 
     if unit.nb_misprices > 10 || unit.curalpha <= 0.0
         unit.curalpha = 0.0
+        # stabilization is deactivated, thus we need to return the original LP dual solution
         return lp_dual_sol
     end
 

@@ -31,8 +31,8 @@ include("formstorages.jl")
 include("interface.jl")
 
 # Basic algorithms
-include("basic/solveipform.jl")
 include("basic/solvelpform.jl")
+include("basic/solveipform.jl")
 include("basic/cutcallback.jl")
 
 # Child algorithms used by conquer algorithms
@@ -70,9 +70,9 @@ export getterminationstatus, setterminationstatus!,
     
 # Algorithm's types
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
-       BendersConquer, BendersCutGeneration, SolveIpForm, SolveLpForm, ExactBranchingPhase,
-       OnlyRestrictedMasterBranchingPhase, PreprocessAlgorithm, RestrictedMasterIPHeuristic,
-       OptimizationInput, OptimizationOutput, OptimizationState,
+       BendersConquer, BendersCutGeneration, SolveIpForm, MoiOptimize, UserOptimizer, 
+       SolveLpForm, ExactBranchingPhase, OnlyRestrictedMasterBranchingPhase, PreprocessAlgorithm, 
+       RestrictedMasterIPHeuristic, OptimizationInput, OptimizationOutput, OptimizationState,
        EmptyInput       
 
 # Units 

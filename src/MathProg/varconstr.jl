@@ -438,6 +438,16 @@ getname(form::Formulation, var::Variable) = var.name
 getname(form::Formulation, constrid::ConstrId) = getconstr(form, constrid).name
 getname(form::Formulation, constr::Constraint) = constr.name
 
+## branching_priority
+"""
+    getbranchingpriority(formulation, var)
+    getbranchingpriority(formulation, varid)
+
+Return the branching priority of a variable
+"""
+getbranchingpriority(form::Formulation, varid::VarId) = getvar(form, varid).branching_priority
+getbranchingpriority(form::Formulation, var::Variable) = var.branching_priority
+
 # Reset
 """
     reset!(form, var)

@@ -17,6 +17,7 @@ struct BranchingRuleInput <: AbstractInput
     criterion::SelectionCriterion
     local_id::Int64
     int_tol::Float64
+    minimum_priority::Float64
 end
 
 """

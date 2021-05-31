@@ -77,6 +77,7 @@ activate!
 deactivate!
 isexplicit
 getname
+getbranchingpriority
 ```
 
 ```@meta

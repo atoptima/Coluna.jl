@@ -425,14 +425,15 @@ function assign_orig_vars_constrs!(
     clonecoeffs!(origform, destform)
 end
 
-function getoptbuilder(prob::Problem, ann::BD.Annotation)
-    if BD.getpricingoracle(ann) !== nothing
-        return () -> UserOptimizer(BD.getpricingoracle(ann))
+_optimizerbuilder(opt::Function) = () -> UserOptimizer(opt)
+_optimizerbuilder(opt::MOI.AbstractOptimizer) = () -> MoiOptimizer(opt)
+
+function getoptimizerbuilders(prob::Problem, ann::BD.Annotation)
+    optimizers = BD.getoptimizerbuilders(ann)
+    if length(optimizers) > 0
+        return map(o -> _optimizerbuilder(o), optimizers)
     end
-    if BD.getoptimizerbuilder(ann) !== nothing
-        return () -> MoiOptimizer(BD.getoptimizerbuilder(ann))
-    end
-    return prob.default_optimizer_builder
+    return [prob.default_optimizer_builder]
 end
 
 function buildformulations!(
@@ -452,8 +453,8 @@ function buildformulations!(
     create_side_vars_constrs!(masterform, origform, env, annotations)
     create_artificial_vars!(masterform, env)
     closefillmode!(getcoefmatrix(masterform))
-    initialize_optimizer!(masterform, getoptbuilder(prob, ann))
-    initialize_optimizer!(origform, getoptbuilder(prob, ann))
+    push_optimizer!.(Ref(masterform), getoptimizerbuilders(prob, ann))
+    push_optimizer!.(Ref(origform), getoptimizerbuilders(prob, ann))
     return
 end
 
@@ -471,7 +472,7 @@ function buildformulations!(
     assign_orig_vars_constrs!(spform, origform, env, annotations, ann)
     create_side_vars_constrs!(spform, origform, env, annotations)
     closefillmode!(getcoefmatrix(spform))
-    initialize_optimizer!(spform, getoptbuilder(prob, ann))
+    push_optimizer!.(Ref(spform), getoptimizerbuilders(prob, ann))
     return
 end
 
@@ -487,7 +488,7 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         buildformulations!(prob, reform, env, annotations, reform, root)
         relax_integrality!(getmaster(reform))
     else
-        initialize_optimizer!(
+        push_optimizer!(
             prob.original_formulation,
             prob.default_optimizer_builder
         )
