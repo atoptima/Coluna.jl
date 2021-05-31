@@ -188,7 +188,7 @@ function run!(algo::PreprocessAlgorithm, env::Env, reform::Reformulation, input:
 
     unit = getstorageunit(reform, PreprocessingUnit)
     
-    infeasible = init_new_constraints!(algo, unit) 
+    infeasible = init_new_constraints!(algo, unit)
 
     master = getmaster(reform)
     !infeasible && (infeasible = fix_local_partial_solution!(algo, unit, master))

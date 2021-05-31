@@ -13,7 +13,7 @@ end
 
 getnode(input::ConquerInput) = input.node
 
-ColunaBase.restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.recordids) 
+ColunaBase.restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.recordids)
 
 """
     AbstractConquerAlgorithm
@@ -34,7 +34,7 @@ function run!(algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, i
     error(string("Method run! which takes as parameters Reformulation and ConquerInput ", 
                  "is not implemented for algorithm $algotype.")
     )
-end  
+end
 
 # this function is needed in strong branching (to have a better screen logging)
 isverbose(algo::AbstractConquerAlgorithm) = false

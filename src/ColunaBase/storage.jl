@@ -213,18 +213,22 @@ function setcurrecord!(
     end
 end
 
-function increaseparticipation!(storage::StorageUnitWrapper, recordid::RecordId)
-    record = storage.cur_record
-    if getrecordid(record) == recordid
-        increaseparticipation!(record)
+function _increaseparticipation!(storage::StorageUnitWrapper, recordid::RecordId)
+    record = if getrecordid(storage.cur_record) === recordid
+        storage.cur_record
     else
-        if !haskey(storage.recordsdict, recordid) 
-            error(string("State with id $recordid does not exist for ", storage))
-        end
-        increaseparticipation!(storage.recordsdict[recordid])
+        get(storage.recordsdict, recordid, nothing)
     end
+
+    if record === nothing
+        error(string("Record with id $recordid does not exist for ", storage))
+    end
+
+    increaseparticipation!(record)
+    return
 end
 
+# TODO : review
 function retrieve_from_recordsdict(storage::StorageUnitWrapper, recordid::RecordId)
     if !haskey(storage.recordsdict, recordid)
         error(string("State with id $recordid does not exist for ", storage))
@@ -237,6 +241,7 @@ function retrieve_from_recordsdict(storage::StorageUnitWrapper, recordid::Record
     return record
 end
 
+# TODO : review / refactor
 function save_to_recordsdict!(
     storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
 ) where {M,SU,R}
@@ -248,11 +253,13 @@ function save_to_recordsdict!(
     end
 end
 
+# TODO : refactor
 function store_record!(storage::StorageUnitWrapper)::RecordId 
     increaseparticipation!(storage.cur_record)
     return getrecordid(storage.cur_record)
 end
 
+# TODO: refactor
 function restore_from_record!(
     storage::StorageUnitWrapper{M,SU,R}, recordid::RecordId, mode::UnitPermission
 ) where {M,SU,R}
@@ -294,7 +301,7 @@ function check_records_participation(storage::StorageUnitWrapper)
     if getparticipation(storage.cur_record) > 0
         @warn string("Positive participation of record ", storage.cur_record)
     end
-    for (recordid, record) in storage.recordsdict
+    for (_, record) in storage.recordsdict
         if getparticipation(record) > 0
             @warn string("Positive participation of record ", record)
         end
@@ -372,7 +379,7 @@ function copy_records(records::RecordsVector)::RecordsVector
     recordscopy = RecordsVector()
     for (storage, recordid) in records
         push!(recordscopy, storage => recordid)
-        increaseparticipation!(storage, recordid)
+        _increaseparticipation!(storage, recordid)
     end
     return recordscopy
 end

@@ -130,7 +130,7 @@ get_units_usage(algo::SolveIpForm, reform::Reformulation) =
 
 # get_units_usage of UserOptimize
 function get_units_usage(::UserOptimize, spform::Formulation{DwSp}) 
-    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[] 
+    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
     push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
     return units_usage
 end
