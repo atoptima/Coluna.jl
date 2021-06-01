@@ -1,10 +1,3 @@
-
-function ColunaBase.getstorageunit(form::AbstractModel, pair)
-    storagecont = get(form.storage.units, pair, nothing)
-    storagecont === nothing && error("No storage unit for pair $pair in $(typeof(form)) with id $(getuid(form)).")
-    return storagecont.storage_unit
-end
-
 function store_records!(form::Formulation, records::RecordsVector)
     storagedict = form.storage.units
     for (_, storagecont) in storagedict

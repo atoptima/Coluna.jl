@@ -8,12 +8,12 @@ in the input so that it is not obtained each time the conquer algorithm runs.
 """
 struct ConquerInput <: AbstractInput 
     node::Node    
-    units_to_restore::UnitsUsageDict
+    units_to_restore::UnitsUsage
 end
 
 getnode(input::ConquerInput) = input.node
 
-ColunaBase.restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.recordids) 
+ColunaBase.restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.recordids)
 
 """
     AbstractConquerAlgorithm
@@ -34,7 +34,7 @@ function run!(algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, i
     error(string("Method run! which takes as parameters Reformulation and ConquerInput ", 
                  "is not implemented for algorithm $algotype.")
     )
-end  
+end
 
 # this function is needed in strong branching (to have a better screen logging)
 isverbose(algo::AbstractConquerAlgorithm) = false
@@ -45,7 +45,7 @@ exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 # returns the optimization part of the output of the conquer algorithm 
 function apply_conquer_alg_to_node!(
     node::Node, algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, 
-    units_to_restore::UnitsUsageDict, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
+    units_to_restore::UnitsUsage, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
 )
     nodestate = getoptstate(node)

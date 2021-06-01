@@ -89,7 +89,7 @@ mutable struct TreeSearchRuntimeData{Sense}
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
     Sense::Type{<:Coluna.AbstractSense}
-    conquer_units_to_restore::UnitsUsageDict
+    conquer_units_to_restore::UnitsUsage
     worst_db_of_pruned_node::DualBound{Sense}
 end
 
@@ -99,7 +99,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation,
         getmaster(reform), getoptstate(input), exploitsprimalsols, false
     )
 
-    conquer_units_to_restore = UnitsUsageDict()
+    conquer_units_to_restore = UnitsUsage()
     collect_units_to_restore!(conquer_units_to_restore, algo.conqueralg, reform) 
     # divide algorithms are always manager algorithms, so we do not need to restore storage units for them
 

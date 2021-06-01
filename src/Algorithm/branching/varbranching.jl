@@ -14,16 +14,17 @@ function generate_children(
     candidate::VarBranchingCandidate, lhs::Float64, env::Env, reform::Reformulation, parent::Node
 )
     master = getmaster(reform)
-    var = getvar(master, candidate.varid)
 
     @logmsg LogLevel(-1) string(
         "Chosen branching variable : ",
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    units_to_restore = UnitsUsageDict(
-        (master, MasterBranchConstrsUnit) => READ_AND_WRITE
-        #(master, BasisUnit) => READ_AND_WRITE) # not yet implemented
+    units_to_restore = UnitsUsage()
+    set_permission!(
+        units_to_restore,
+        getstoragewrapper(master, MasterBranchConstrsUnit),
+        READ_AND_WRITE
     )
 
     #adding the first branching constraints

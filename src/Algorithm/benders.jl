@@ -11,7 +11,7 @@ end
 # to solve the subproblems
 
 function get_units_usage(algo::BendersCutGeneration, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[] 
+    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
     master = getmaster(reform)
     push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE))
 

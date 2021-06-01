@@ -106,12 +106,12 @@ function perform_strong_branching_with_phases!(
             if length(groups) <= nb_candidates_for_next_phase 
                 continue
             end
-        end        
+        end
 
-        conquer_units_to_restore = UnitsUsageDict()
+        conquer_units_to_restore = UnitsUsage()
         collect_units_to_restore!(
             conquer_units_to_restore, current_phase.conquer_algo, reform
-        ) 
+        )
 
         #TO DO : we need to define a print level parameter
         println("**** Strong branching phase ", phase_index, " is started *****");
@@ -124,11 +124,9 @@ function perform_strong_branching_with_phases!(
                 max_descr_length = length(description)
             end
         end
-
-        a_candidate_is_conquered::Bool = false    
+ 
         for (group_index,group) in enumerate(groups)
             #TO DO: verify if time limit is reached
-
             if phase_index == 1                
                 generate_children!(group, env, reform, parent)                
             else    

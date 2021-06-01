@@ -39,6 +39,12 @@ function create_formulation!(
     )
 end
 
+# methods of the AbstractModel interface
+
+ColunaBase.getstorage(form::Formulation) = form.storage
+
+# methods specific to Formulation
+
 """
     haskey(formulation, id) -> Bool
 
