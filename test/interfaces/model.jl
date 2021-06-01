@@ -47,7 +47,7 @@ function _rfl(val::Float64)::Integer
 end
 
 function _scale_to_int(vals...)
-    max_val = maximum(vals)
+    max_val = maximum(abs.(vals))
     scaling_factor = typemax(Int) / (length(vals) + 1) / max_val
     return map(x -> _rfl(scaling_factor * x), vals)
 end
@@ -58,7 +58,7 @@ function Coluna.Algorithm.run!(
     opt::KnapsackLibOptimizer, env::Coluna.Env, form::Coluna.MathProg.Formulation,
     input::Coluna.Algorithm.OptimizationInput; kw...
 )
-    costs = [Coluna.MathProg.getcurcost(form, _getvarid(opt.model, form, env, j)) for j in 1:length(opt.model.costs)]
+    costs = -[Coluna.MathProg.getcurcost(form, _getvarid(opt.model, form, env, j)) for j in 1:length(opt.model.costs)]
     ws = _scale_to_int(opt.model.capacity, opt.model.weights...)
     cs = _scale_to_int(costs...)
     items = [KnapItem(w,c) for (w,c) in zip(ws[2:end], cs)]
