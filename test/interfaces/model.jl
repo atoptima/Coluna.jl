@@ -40,16 +40,8 @@ function Coluna.Algorithm.get_units_usage(opt::KnapsackLibOptimizer, form) # for
     return units_usage
 end
 
-function _rfl(val::Float64)::Integer
-    rf_val = Integer(floor(val + val * 1e-10 + 1e-6))
-    rf_val += rf_val < val - 1 + 1e-6 ? 1 : 0
-    return rf_val
-end
-
 function _scale_to_int(vals...)
-    max_val = maximum(abs.(vals))
-    scaling_factor = typemax(Int) / (length(vals) + 1) / max_val
-    return map(x -> _rfl(scaling_factor * x), vals)
+    return map(x -> Integer(round(10000x)), vals)
 end
 
 _getvarid(model::KnapsackLibModel, form, env::Env, j::Int) = Coluna.MathProg.getid(Coluna.MathProg.getvar(form, env.varids[model.job_to_jumpvar[j].index]))
@@ -75,7 +67,7 @@ function Coluna.Algorithm.run!(
         Coluna.MathProg.getvars(form)
     )][1]
 
-    cost = sum(opt.model.costs[j] for j in selected) + Coluna.MathProg.getcurcost(form, setup_var_id)
+    cost = sum(-costs[j] for j in selected) + Coluna.MathProg.getcurcost(form, setup_var_id)
 
     varids = Coluna.MathProg.VarId[]
     varvals = Float64[]
@@ -136,8 +128,9 @@ function knpcustommodel()
         end
 
         optimize!(model)
+
+        @test JuMP.objective_value(model) ≈ 75.0
     end
-    exit()
 end
 
 knpcustommodel()
