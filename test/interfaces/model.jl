@@ -24,11 +24,6 @@ coluna_backend(model::MOI.Utilities.CachingOptimizer) = coluna_backend(model.opt
 coluna_backend(b::MOI.Bridges.AbstractBridgeOptimizer) = coluna_backend(b.model)
 coluna_backend(model) = model
 
-function get_coluna_varid(model::KnapsackLibModel, form, j::Int)
-    jumpvar = model.job_to_jumpvar[j]
-    opt = coluna_backend(backend(jumpvar.model))
-    return Coluna._get_orig_varid_in_form(opt, form, jumpvar.index)
-end
 mutable struct KnapsackLibOptimizer <: BlockDecomposition.AbstractCustomOptimizer
     model::KnapsackLibModel
 end
