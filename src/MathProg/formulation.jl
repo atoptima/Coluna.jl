@@ -104,6 +104,9 @@ getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
 generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1)
+generatevarid(
+    duty::Duty{Variable}, form::Formulation, custom_family_id::Int
+) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id)
 generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
@@ -226,7 +229,10 @@ function setprimalsol!(form::Formulation, new_primal_sol::PrimalSolution)::Tuple
     end
 
     # no identical column, we insert a new column
-    new_sol_id = generatevarid(DwSpPrimalSol, form)
+    custom_family_id = get(
+        form.parent_formulation.manager.custom_families_id, typeof(new_primal_sol.custom_data), -1
+    )
+    new_sol_id = generatevarid(DwSpPrimalSol, form, custom_family_id)
     _addprimalsol!(form, new_sol_id, new_primal_sol, new_cost)
     return (true, new_sol_id)
 end
@@ -402,7 +408,9 @@ function setconstr!(
         id = ConstrId(duty, id, -1)
     end
     if custom_data !== nothing
-        id = ConstrId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
+        id = ConstrId(
+            duty, id, custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
+        )
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
     constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index, custom_data = custom_data)
@@ -528,6 +536,7 @@ function computecoeff(::Variable, var_custom_data, ::Constraint, constr_custom_d
 end
 
 function _computenonrobustmembers(form::Formulation, var::Variable)
+    coef_matrix = getcoefmatrix(form)
     for (constrid, constr) in getconstrs(form) # TODO : improve because we loop over all constraints
         if constrid.custom_family_id !== -1
             coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
@@ -540,6 +549,7 @@ function _computenonrobustmembers(form::Formulation, var::Variable)
 end
 
 function _computenonrobustmembers(form::Formulation, constr::Constraint)
+    coef_matrix = getcoefmatrix(form)
     for (varid, var) in getvars(form) # TODO : improve because we loop over all variables
         if varid.custom_family_id !== -1
             coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
@@ -554,7 +564,7 @@ end
 function _setmembers!(form::Formulation, varconstr, members)
     _setrobustmembers!(form, varconstr, members)
     if getid(varconstr).custom_family_id !== -1
-        _computenonrobustmembers!(form, varconstr)
+        _computenonrobustmembers(form, varconstr)
     end
     return
 end
@@ -709,12 +719,14 @@ function write_to_LP_file(form::Formulation, filename::String)
 end
 
 function addcustomvars!(form::Formulation, type::DataType)
-    form.manager.custom_families_id[type] = length(form.manager)
+    haskey(form.manager.custom_families_id, type) && return
+    form.manager.custom_families_id[type] = length(form.manager.custom_families_id)
     return
 end
 
 function addcustomconstrs!(form::Formulation, type::DataType)
-    form.manager.custom_families_id[type] = length(form.manager)
+    haskey(form.manager.custom_families_id, type) && return
+    form.manager.custom_families_id[type] = length(form.manager.custom_families_id)
     return
 end
 

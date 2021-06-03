@@ -52,8 +52,8 @@ function Id{VC}(duty::Duty{VC}, id::Id{VC}, assigned_form_uid_in_reformulation::
     Id{VC}(duty, id.uid, id.origin_form_uid, assigned_form_uid_in_reformulation, id.proc_uid, id.custom_family_id, id._hash)
 end
 
-function Id{VC}(duty::Duty{VC}, id::Id{VC}) where {VC}
-    Id{VC}(duty, id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, id.custom_family_id, id._hash)
+function Id{VC}(duty::Duty{VC}, id::Id{VC}; custom_family_id::Int = id.custom_family_id) where {VC}
+    Id{VC}(duty, id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, custom_family_id, id._hash)
 end
 
 Base.hash(a::Id, h::UInt) = hash(a._hash, h)
