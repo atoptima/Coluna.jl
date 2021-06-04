@@ -3,13 +3,13 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     var_counter::Int
     constr_counter::Int
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
-    moioptimizer::AbstractOptimizer
-    useroptimizer::AbstractOptimizer 
+    optimizers::Vector{AbstractOptimizer}
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
     storage::Storage
 end
+
 
 """
 `Formulation` stores a mixed-integer linear program.
@@ -21,8 +21,8 @@ end
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
     )
 
-    Create a new formulation in the Coluna's environment `env` with duty `duty`,
-    parent formulation `parent_formulation`, and objective sense `obj_sense`.
+Create a new formulation in the Coluna's environment `env` with duty `duty`,
+parent formulation `parent_formulation`, and objective sense `obj_sense`.
 """
 function create_formulation!(
     env::Coluna.Env,
@@ -34,11 +34,16 @@ function create_formulation!(
         error("Maximum number of formulations reached.")
     end
     return Formulation{duty}(
-        env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
-        NoOptimizer(), FormulationManager(), obj_sense, FormulationBuffer(), 
-        Storage()
+        env.form_counter += 1, 0, 0, parent_formulation, AbstractOptimizer[], 
+        FormulationManager(), obj_sense, FormulationBuffer(), Storage()
     )
 end
+
+# methods of the AbstractModel interface
+
+ColunaBase.getstorage(form::Formulation) = form.storage
+
+# methods specific to Formulation
 
 """
     haskey(formulation, id) -> Bool
@@ -97,8 +102,13 @@ getuid(form::Formulation) = form.uid
 getobjsense(form::Formulation) = form.obj_sense
 
 "Returns the `AbstractOptimizer` of `Formulation` `form`."
-getmoioptimizer(form::Formulation) = form.moioptimizer
-getuseroptimizer(form::Formulation) = form.useroptimizer
+function getoptimizer(form::Formulation, id::Int)
+    if id <= 0 && id > length(form.optimizers)
+        return NoOptimizer()
+    end
+    return form.optimizers[id]
+end
+getoptimizers(form::Formulation) = form.optimizers
 
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
@@ -120,7 +130,7 @@ _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 """
     set_matrix_coeff!(form::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
-Buffers the matrix modification in `form.buffer` to be sent to `form.moioptimizer` right before next call to optimize!.
+Buffers the matrix modification in `form.buffer` to be sent to the optimizers right before next call to optimize!.
 """
 set_matrix_coeff!(
     form::Formulation, varid::VarId, constrid::ConstrId, new_coeff::Float64
@@ -578,16 +588,6 @@ function set_objective_sense!(form::Formulation, min::Bool)
     return
 end
 
-function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
-    T <: AbstractVarConstr}
-    for id in ids
-        vc = getelem(form, id)
-        @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(form, vc))
-        remove_from_optimizer!(form, vc)
-    end
-    return
-end
-
 function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64})
     val = sum(getperencost(form, varid) * value for (varid, value) in sol_vec)
     return val
@@ -625,10 +625,10 @@ function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)
     return val
 end
 
-function initialize_moioptimizer!(form::Formulation, builder::Function)
+function push_optimizer!(form::Formulation, builder::Function)
     opt = builder()
-    form.moioptimizer = opt
-    _initialize_moioptimizer!(opt, form)
+    push!(form.optimizers, opt)
+    initialize_optimizer!(opt, form)
     return
 end
 
@@ -706,16 +706,6 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
         _show_variables(io, form)
     end
     return
-end
-
-function write_to_LP_file(form::Formulation, filename::String)
-    optimizer = getmoioptimizer(form)
-    if isa(optimizer, MoiOptimizer)
-        src = getinner(optimizer)
-        dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)
-        MOI.copy_to(dest, src)
-        MOI.write_to_file(dest, filename)
-    end
 end
 
 function addcustomvars!(form::Formulation, type::DataType)

@@ -52,8 +52,8 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_unit = getstorageunit(reform, PreprocessingUnit)
-        partsol_unit = getstorageunit(master, PartialSolutionUnit)
+        preprocess_unit = Coluna.ColunaBase.getstorageunit(reform, PreprocessingUnit)
+        partsol_unit = Coluna.ColunaBase.getstorageunit(master, PartialSolutionUnit)
     
         add_to_localpartialsol!(preprocess_unit, first(var_vals[1]), 1.0)
         add_to_solution!(partsol_unit, first(var_vals[1]), 1.0)

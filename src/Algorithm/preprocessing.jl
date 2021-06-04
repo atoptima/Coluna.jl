@@ -166,7 +166,7 @@ function get_units_usage(algo::PreprocessAlgorithm, form::Formulation)
 end
 
 function get_units_usage(algo::PreprocessAlgorithm, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel, UnitType, UnitAccessMode}[]     
+    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[]     
     push!(units_usage, (reform, PreprocessingUnit, READ_AND_WRITE))
 
     master = getmaster(reform)
@@ -188,7 +188,7 @@ function run!(algo::PreprocessAlgorithm, env::Env, reform::Reformulation, input:
 
     unit = getstorageunit(reform, PreprocessingUnit)
     
-    infeasible = init_new_constraints!(algo, unit) 
+    infeasible = init_new_constraints!(algo, unit)
 
     master = getmaster(reform)
     !infeasible && (infeasible = fix_local_partial_solution!(algo, unit, master))

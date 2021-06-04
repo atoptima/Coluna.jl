@@ -27,6 +27,12 @@ Reformulation() = Reformulation(
     Storage()
 )
 
+# methods of the AbstractModel interface
+
+ColunaBase.getstorage(reform::Reformulation) = reform.storage
+
+# methods specific to Formulation
+
 """
     getobjsense(reformulation)
 
