@@ -60,8 +60,8 @@ function custom_var_cuts_test()
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(
                         stages = [ClA.ColumnGeneration(
-                                    pricing_prob_solve_alg = ClA.DefaultPricing(
-                                        dispatch=1, pricing_callback = PricingCallback(stage=1) 
+                                    pricing_prob_solve_alg = ClA.SolveIpForm(
+                                        optimizer_id = 1
                                     ))
                                  ]
                     ),
