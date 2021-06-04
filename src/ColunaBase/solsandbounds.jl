@@ -216,6 +216,7 @@ struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Va
     bound::Float64
     status::SolutionStatus
     sol::DynamicSparseArrays.PackedMemoryArray{Decision,Value}
+    custom_data
 end
 
 """
@@ -224,7 +225,8 @@ end
         decisions::Vector,
         values::Vector,
         solution_values::Float64,
-        status::SolutionStatus
+        status::SolutionStatus,
+        [custom_data]
     )
 
 Create a solution to the `model`. Other arguments are: 
@@ -233,9 +235,12 @@ Create a solution to the `model`. Other arguments are:
 - `solution_value` is the value of the solution.
 - `status` is the solution status.
 """
-function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, status::SolutionStatus) where {Mo<:AbstractModel,De,Va}
+function Solution{Mo,De,Va}(
+    model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, 
+    status::SolutionStatus, custom_data = nothing
+) where {Mo<:AbstractModel,De,Va}
     sol = DynamicSparseArrays.dynamicsparsevec(decisions, values)
-    return Solution(model, solution_value, status, sol)
+    return Solution(model, solution_value, status, sol, custom_data)
 end
 
 """
@@ -267,7 +272,7 @@ Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.
 Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
 
 function Base.filter(f::Function, s::S) where {S <: Solution}
-    return S(s.model, s.bound, s.status, filter(f, s.sol))
+    return S(s.model, s.bound, s.status, filter(f, s.sol), s.custom_data)
 end
 
 function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}

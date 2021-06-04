@@ -375,6 +375,14 @@ function solve_sps_to_gencols!(
         updatereducedcosts!(reform, redcostshelper, smooth_dual_sol)
     end
 
+    # udate the incumbent values of constraints
+    for (_, constr) in getconstrs(masterform)
+        constr.curdata.inc_val = 0.0
+    end
+    for (constrid, val) in smooth_dual_sol
+        getconstr(masterform, constrid).curdata.inc_val = val
+    end
+
     ### BEGIN LOOP TO BE PARALLELIZED
     if algo.solve_subproblems_parallel
         spuids = collect(keys(spsforms))

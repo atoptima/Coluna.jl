@@ -113,8 +113,11 @@ getoptimizers(form::Formulation) = form.optimizers
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form))
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form))
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1)
+generatevarid(
+    duty::Duty{Variable}, form::Formulation, custom_family_id::Int
+) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id)
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -169,6 +172,7 @@ function setvar!(
     is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex(),
     members::Union{ConstrMembership,Nothing} = nothing,
+    custom_data = nothing,
     id = generatevarid(duty, form),
     branching_priority::Float64 = 1.0
 )
@@ -177,12 +181,21 @@ function setvar!(
         ub = (ub > 1.0) ? 1.0 : ub
     end
     if getduty(id) != duty
-        id = VarId(duty, id)
+        id = VarId(duty, id, -1)
+    end
+    if custom_data !== nothing
+        id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
-    var = Variable(id, name; var_data = v_data, moi_index = moi_index, branching_priority = branching_priority)
+    var = Variable(
+        id, name;
+        var_data = v_data,
+        moi_index = moi_index,
+        custom_data = custom_data,
+        branching_priority = branching_priority
+    )
     _addvar!(form, var)
-    members !== nothing && _setmembers!(form, var, members)
+    _setmembers!(form, var, members)
     return var
 end
 
@@ -196,12 +209,14 @@ end
 
 function _addprimalsol!(form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64)
     for (var_id, var_val) in sol
-        var = getvar(form, var_id)
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
             form.manager.primal_sols[var_id, sol_id] = var_val
         end
     end
     form.manager.primal_sol_costs[sol_id] = cost
+    if sol.custom_data !== nothing
+        form.manager.primal_sols_custom_data[sol_id] = sol.custom_data
+    end
     return sol_id
 end
 
@@ -224,7 +239,10 @@ function setprimalsol!(form::Formulation, new_primal_sol::PrimalSolution)::Tuple
     end
 
     # no identical column, we insert a new column
-    new_sol_id = generatevarid(DwSpPrimalSol, form)
+    custom_family_id = get(
+        form.parent_formulation.manager.custom_families_id, typeof(new_primal_sol.custom_data), -1
+    )
+    new_sol_id = generatevarid(DwSpPrimalSol, form, custom_family_id)
     _addprimalsol!(form, new_sol_id, new_primal_sol, new_cost)
     return (true, new_sol_id)
 end
@@ -282,7 +300,7 @@ function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId, name::String,
     duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous,
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
-    moi_index::MoiVarIndex = MoiVarIndex()
+    moi_index::MoiVarIndex = MoiVarIndex(), custom_data = nothing
 )
     cost = getprimalsolcosts(spform)[sol_id]
     master_coef_matrix = getcoefmatrix(masterform)
@@ -307,7 +325,8 @@ function setcol_from_sp_primalsol!(
         is_explicit = is_explicit,
         moi_index = moi_index,
         members = members,
-        id = sol_id
+        id = sol_id,
+        custom_data = get(spform.manager.primal_sols_custom_data, sol_id, nothing)
     )
     return mast_col
 end
@@ -392,14 +411,21 @@ function setconstr!(
     moi_index::MoiConstrIndex = MoiConstrIndex(),
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
+    custom_data = nothing,
     id = generateconstrid(duty, form)
 )
     if getduty(id) != duty
-        id = ConstrId(duty, id)
+        id = ConstrId(duty, id, -1)
+    end
+    if custom_data !== nothing
+        id = ConstrId(
+            duty, id, custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
+        )
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
-    constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index)
-    members !== nothing && _setmembers!(form, constr, members)
+    constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index, custom_data = custom_data)
+
+    _setmembers!(form, constr, members)
     _addconstr!(form.manager, constr)
     if loc_art_var_abs_cost != 0.0
         _addlocalartvar!(form, constr, loc_art_var_abs_cost)
@@ -479,7 +505,8 @@ function relax_integrality!(form::Formulation) # TODO remove : should be in Algo
     return
 end
 
-function _setmembers!(form::Formulation, var::Variable, members::ConstrMembership)
+_setrobustmembers!(::Formulation, ::Variable, ::Nothing) = nothing
+function _setrobustmembers!(form::Formulation, var::Variable, members::ConstrMembership)
     coef_matrix = getcoefmatrix(form)
     varid = getid(var)
     for (constrid, constr_coeff) in members
@@ -488,31 +515,66 @@ function _setmembers!(form::Formulation, var::Variable, members::ConstrMembershi
     return
 end
 
-function _setmembers!(form::Formulation, constr::Constraint, members::VarMembership)
+_setrobustmembers!(::Formulation, ::Constraint, ::Nothing) = nothing
+function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarMembership)
     # Compute row vector from the recorded subproblem solution
     # This adds the column to the convexity constraints automatically
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
-    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(form, constr))
     coef_matrix = getcoefmatrix(form)
     constrid = getid(constr)
-    @logmsg LogLevel(-4) "Members are : ", members
 
     for (varid, var_coeff) in members
         # Add coef for its own variables
-        var = getvar(form, varid)
         coef_matrix[constrid, varid] = var_coeff
-        @logmsg LogLevel(-4) string("Adding variable ", getname(form, var), " with coeff ", var_coeff)
 
         if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(varid)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in @view getprimalsolmatrix(spform)[varid,:]
-                @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
                 coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
         end
+    end
+    return
+end
+
+# interface ==> move ?
+function computecoeff(::Variable, var_custom_data, ::Constraint, constr_custom_data)
+    error("computecoeff not defined for variable with $(typeof(var_custom_data)) & constraint with $(typeof(constr_custom_data)).")
+end
+
+function _computenonrobustmembers(form::Formulation, var::Variable)
+    coef_matrix = getcoefmatrix(form)
+    for (constrid, constr) in getconstrs(form) # TODO : improve because we loop over all constraints
+        if constrid.custom_family_id !== -1
+            coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
+            if coeff !== 0
+                coef_matrix[constrid, getid(var)] = coeff
+            end
+        end
+    end
+    return
+end
+
+function _computenonrobustmembers(form::Formulation, constr::Constraint)
+    coef_matrix = getcoefmatrix(form)
+    for (varid, var) in getvars(form) # TODO : improve because we loop over all variables
+        if varid.custom_family_id !== -1
+            coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
+            if coeff !== 0
+                coef_matrix[getid(constr), varid] = coeff
+            end
+        end
+    end
+    return
+end
+
+function _setmembers!(form::Formulation, varconstr, members)
+    _setrobustmembers!(form, varconstr, members)
+    if getid(varconstr).custom_family_id !== -1
+        _computenonrobustmembers(form, varconstr)
     end
     return
 end
@@ -643,6 +705,18 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
         _show_constraints(io, form)
         _show_variables(io, form)
     end
+    return
+end
+
+function addcustomvars!(form::Formulation, type::DataType)
+    haskey(form.manager.custom_families_id, type) && return
+    form.manager.custom_families_id[type] = length(form.manager.custom_families_id)
+    return
+end
+
+function addcustomconstrs!(form::Formulation, type::DataType)
+    haskey(form.manager.custom_families_id, type) && return
+    form.manager.custom_families_id[type] = length(form.manager.custom_families_id)
     return
 end
 
