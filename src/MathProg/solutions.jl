@@ -5,15 +5,17 @@ const PrimalSolution{M} = Solution{M, VarId, Float64}
 const DualSolution{M} = Solution{M, ConstrId, Float64}
 
 function PrimalSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus
+    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus,
+    custom_data = nothing
 ) where {M<:AbstractFormulation,De,Va}
-    return Solution{M,De,Va}(form, decisions, vals, val, status)
+    return Solution{M,De,Va}(form, decisions, vals, val, status, custom_data)
 end
 
 function DualSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus
+    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus,
+    custom_data = nothing
 ) where {M<:AbstractFormulation,De,Va}
-    return Solution{M,De,Va}(form, decisions, vals, val, status)
+    return Solution{M,De,Va}(form, decisions, vals, val, status, custom_data)
 end
 
 function Base.isinteger(sol::Solution)

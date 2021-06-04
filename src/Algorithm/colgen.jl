@@ -59,7 +59,7 @@ function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation)
 end
 
 function get_units_usage(algo::ColumnGeneration, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel,UnitType,UnitAccessMode}[] 
+    units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
     master = getmaster(reform)
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
     push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
@@ -373,6 +373,14 @@ function solve_sps_to_gencols!(
     # update reduced costs
     TO.@timeit Coluna._to "Update reduced costs" begin
         updatereducedcosts!(reform, redcostshelper, smooth_dual_sol)
+    end
+
+    # udate the incumbent values of constraints
+    for (_, constr) in getconstrs(masterform)
+        constr.curdata.inc_val = 0.0
+    end
+    for (constrid, val) in smooth_dual_sol
+        getconstr(masterform, constrid).curdata.inc_val = val
     end
 
     ### BEGIN LOOP TO BE PARALLELIZED
