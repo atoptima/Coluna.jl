@@ -172,7 +172,7 @@ function setvar!(
     is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex(),
     members::Union{ConstrMembership,Nothing} = nothing,
-    custom_data = nothing,
+    custom_data::Union{Nothing, ColunaBase.AbstractCustomData} = nothing,
     id = generatevarid(duty, form),
     branching_priority::Float64 = 1.0
 )
@@ -300,7 +300,7 @@ function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId, name::String,
     duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous,
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
-    moi_index::MoiVarIndex = MoiVarIndex(), custom_data = nothing
+    moi_index::MoiVarIndex = MoiVarIndex(), custom_data::Union{Nothing, ColunaBase.AbstractCustomData} = nothing
 )
     cost = getprimalsolcosts(spform)[sol_id]
     master_coef_matrix = getcoefmatrix(masterform)
@@ -411,7 +411,7 @@ function setconstr!(
     moi_index::MoiConstrIndex = MoiConstrIndex(),
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
-    custom_data = nothing,
+    custom_data::Union{Nothing, ColunaBase.AbstractCustomData} = nothing,
     id = generateconstrid(duty, form)
 )
     if getduty(id) != duty
