@@ -152,34 +152,6 @@ function setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64)
 end
 setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setcurrhs!(form, getconstr(form, constrid), rhs)
 
-## inc_val
-"""
-    getperenincval(formulation, constraint)
-    getperenincval(formulation, constrid)
-
-Return the incumbent value as defined by the user of a constraint in a formulation. 
-"""
-getperenincval(::Formulation, constr::Constraint) = constr.perendata.inc_val
-getperenincval(form::Formulation, constrid::ConstrId) = getperenincval(form, getconstr(form, constrid))
-
-"""
-    setcurincval!(formulation, constraint, inc_val::Float64)
-    setcurincval!(formulation, constrid, inc_val::Float64)
-
-Set the current incumbent value of a constraint in a formulation. 
-"""
-setcurincval!(::Formulation, constr::Constraint, inc_val::Float64) = constr.curdata.inc_val = inc_val
-setcurincval!(form::Formulation, constrid::ConstrId, inc_val::Float64) = setcurincval!(form, getconstr(form, constrid), inc_val)
-
-"""
-    getcurincval(formulation, constraint)
-    getcurincval(formulation, constrid)
-
-Return the current incumbent value of a constraint in a formulation. 
-"""
-getcurincval(::Formulation, constr::Constraint) = constr.curdata.inc_val
-getcurincval(form::Formulation, constrid::ConstrId) = getcurincval(form, getconstr(form, constrid))
-
 # Variable & Constraints
 ## kind
 """
@@ -291,7 +263,8 @@ end
     getperenincval(formulation, varconstr)
 
 Return the incumbent value as defined by the user of a variable or a constraint in a formulation. 
-The incumbent value is ?
+For a variable, the incumbent value is ?
+For a constraint, it is the dual value associated to the constraint.
 """
 getperenincval(form::Formulation, varid::VarId) = getperenincval(form, getvar(form, varid))
 getperenincval(form::Formulation, var::Variable) = var.perendata.inc_val
