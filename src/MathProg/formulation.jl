@@ -25,7 +25,7 @@ Create a new formulation in the Coluna's environment `env` with duty `duty`,
 parent formulation `parent_formulation`, and objective sense `obj_sense`.
 """
 function create_formulation!(
-    env::Coluna.Env,
+    env,
     duty::Type{<:AbstractFormDuty};
     parent_formulation = nothing,
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense

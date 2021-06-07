@@ -43,10 +43,10 @@ include("MOIinterface.jl")
 
 # TODO : clean up
 # Types
-export  MaxSense, MinSense, MoiOptimizer,
+export  MaxSense, MinSense,
         Id, ConstrSense, VarSense,
         FormId, FormulationPhase, Annotations,
-        Counter, UserOptimizer, NoOptimizer, MoiObjective
+        Counter, MoiObjective
 
 # Methods
 export no_optimizer_builder, set_original_formulation!,
@@ -109,5 +109,8 @@ export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues,
 
 # Methods related to projections
 export projection_is_possible, proj_cols_on_rep
+
+# Optimizers of formulations
+export MoiOptimizer, CustomOptimizer, UserOptimizer, NoOptimizer
 
 end
