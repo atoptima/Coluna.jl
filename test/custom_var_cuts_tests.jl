@@ -12,11 +12,11 @@ given by length(s). The custom cut used to cut the fractional solution is
                 sum(λ_s for s in sols if length(s) >= 2) <= 1.0
 where sols is the set of possible combinations of items in a bin.
 =#
-struct MyCustomVarData <: AbstractCustomData
+struct MyCustomVarData <: ColunaBase.AbstractCustomData
     nb_items::Int
 end
 
-struct MyCustomCutData <: AbstractCustomData
+struct MyCustomCutData <: ColunaBase.AbstractCustomData
     min_items::Int
 end
 

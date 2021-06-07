@@ -154,15 +154,6 @@ setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setcurrhs!(for
 
 ## inc_val
 """
-    setperenincval!(formulation, constraint, inc_val::Float64)
-    setperenincval!(formulation, constrid, inc_val::Float64)
-
-Set the incumbent value as defined by the user of a constraint in a formulation. 
-"""
-setperenincval!(::Formulation, constr::Constraint, inc_val::Float64) = constr.perendata.inc_val = inc_val
-setperenincval!(form::Formulation, constrid::ConstrId, inc_val::Float64) = setperenincval!(form, getconstr(form, constrid), inc_val)
-
-"""
     getperenincval(formulation, constraint)
     getperenincval(formulation, constrid)
 

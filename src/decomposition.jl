@@ -38,8 +38,8 @@ function instantiatemaster!(
     )
     setobjconst!(form, getobjconst(get_original_formulation(prob)))
     setmaster!(reform, form)
-    Coluna.MathProg.addcustomvars!(reform, ColunaBase.AbstractCustomData)
-    Coluna.MathProg.addcustomconstrs!(reform, ColunaBase.AbstractCustomData)
+    Coluna.MathProg.addcustomvars!(reform.master, ColunaBase.AbstractCustomData)
+    Coluna.MathProg.addcustomconstrs!(reform.master, ColunaBase.AbstractCustomData)
     return form
 end
 
@@ -53,8 +53,8 @@ function instantiatemaster!(
         obj_sense = getobjsense(get_original_formulation(prob))
     )
     setmaster!(reform, masterform)
-    Coluna.MathProg.addcustomvars!(reform, ColunaBase.AbstractCustomData)
-    Coluna.MathProg.addcustomconstrs!(reform, ColunaBase.AbstractCustomData)
+    Coluna.MathProg.addcustomvars!(reform.master, ColunaBase.AbstractCustomData)
+    Coluna.MathProg.addcustomconstrs!(reform.master, ColunaBase.AbstractCustomData)
     return masterform
 end
 
