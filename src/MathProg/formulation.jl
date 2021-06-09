@@ -184,6 +184,8 @@ function setvar!(
         id = VarId(duty, id, -1)
     end
     if custom_data !== nothing
+        haskey(form.manager.custom_families_id, typeof(custom_data)) || 
+            addcustomvars!(form, typeof(custom_data))
         id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
@@ -418,6 +420,8 @@ function setconstr!(
         id = ConstrId(duty, id, -1)
     end
     if custom_data !== nothing
+        haskey(form.manager.custom_families_id, typeof(custom_data)) ||
+            addcustomconstrs!(form, typeof(custom_data))
         id = ConstrId(
             duty, id, custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
         )

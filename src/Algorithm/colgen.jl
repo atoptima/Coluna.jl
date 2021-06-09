@@ -377,10 +377,10 @@ function solve_sps_to_gencols!(
 
     # update the incumbent values of constraints
     for (_, constr) in getconstrs(masterform)
-        MathProg.setcurincval!(masterform, constr, 0.0)
+        setcurincval!(masterform, constr, 0.0)
     end
     for (constrid, val) in smooth_dual_sol
-        MathProg.setcurincval!(masterform, constrid, val)
+        setcurincval!(masterform, constrid, val)
     end
 
     ### BEGIN LOOP TO BE PARALLELIZED

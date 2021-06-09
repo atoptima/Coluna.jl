@@ -81,9 +81,12 @@ function custom_var_cuts_test()
 
             # Get the dual values of the custom cuts
             custduals = Tuple{Int, Float64}[]
-            for (form, constr) in getconstrs(cbdata.form.parent_formulation)
+            for (_, constr) in getconstrs(cbdata.form.parent_formulation)
                 if typeof(constr.custom_data) == MyCustomCutData
-                    push!(custduals, (constr.custom_data.min_items, MathProg.getcurincval(form, constr)))
+                    push!(custduals, (
+                        constr.custom_data.min_items,
+                        MathProg.getcurincval(cbdata.form.parent_formulation, constr)
+                    ))
                 end
             end
 
