@@ -73,6 +73,8 @@ function custom_var_cuts_test()
         model, x, y, dec = build_toy_model(coluna)
 
         function my_pricing_callback(cbdata)
+            addcustomvars!(cbdata.form.parent_formulation, MyCustomVarData)
+            
             # Get the reduced costs of the original variables
             I = [1, 2, 3]
             b = BD.callback_spid(cbdata, model)
@@ -85,7 +87,7 @@ function custom_var_cuts_test()
                 if typeof(constr.custom_data) == MyCustomCutData
                     push!(custduals, (
                         constr.custom_data.min_items,
-                        MathProg.getcurincval(cbdata.form.parent_formulation, constr)
+                        getcurincval(cbdata.form.parent_formulation, constr)
                     ))
                 end
             end
@@ -130,6 +132,8 @@ function custom_var_cuts_test()
         )
 
         function custom_cut_sep(cbdata)
+            addcustomconstrs!(cbdata.form, MyCustomCutData)
+
             # compute the constraint violation
             viol = -1.0
             for (varid, varval) in cbdata.orig_sol
@@ -156,5 +160,5 @@ function custom_var_cuts_test()
         @show JuMP.objective_value(model)
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
-
+    
 end
