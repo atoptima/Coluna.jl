@@ -12,11 +12,11 @@ given by length(s). The custom cut used to cut the fractional solution is
                 sum(λ_s for s in sols if length(s) >= 2) <= 1.0
 where sols is the set of possible combinations of items in a bin.
 =#
-struct MyCustomVarData
+struct MyCustomVarData <: ColunaBase.AbstractCustomData
     nb_items::Int
 end
 
-struct MyCustomCutData
+struct MyCustomCutData <: ColunaBase.AbstractCustomData
     min_items::Int
 end
 
@@ -72,15 +72,9 @@ function custom_var_cuts_test()
 
         model, x, y, dec = build_toy_model(coluna)
 
-        custom_var_is_added = false
-        custom_cut_is_added = false
-
         function my_pricing_callback(cbdata)
-            if !custom_var_is_added
-                Coluna.MathProg.addcustomvars!(cbdata.form.parent_formulation, MyCustomVarData)
-                custom_var_is_added = true
-            end
-
+            addcustomvars!(cbdata.form.parent_formulation, MyCustomVarData)
+            
             # Get the reduced costs of the original variables
             I = [1, 2, 3]
             b = BD.callback_spid(cbdata, model)
@@ -91,7 +85,10 @@ function custom_var_cuts_test()
             custduals = Tuple{Int, Float64}[]
             for (_, constr) in getconstrs(cbdata.form.parent_formulation)
                 if typeof(constr.custom_data) == MyCustomCutData
-                    push!(custduals, (constr.custom_data.min_items, constr.curdata.inc_val))
+                    push!(custduals, (
+                        constr.custom_data.min_items,
+                        getcurincval(cbdata.form.parent_formulation, constr)
+                    ))
                 end
             end
 
@@ -135,10 +132,7 @@ function custom_var_cuts_test()
         )
 
         function custom_cut_sep(cbdata)
-            if !custom_cut_is_added
-                Coluna.MathProg.addcustomconstrs!(cbdata.form, MyCustomCutData)
-                custom_cut_is_added = true
-            end
+            addcustomconstrs!(cbdata.form, MyCustomCutData)
 
             # compute the constraint violation
             viol = -1.0
@@ -166,5 +160,5 @@ function custom_var_cuts_test()
         @show JuMP.objective_value(model)
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
-
+    
 end
