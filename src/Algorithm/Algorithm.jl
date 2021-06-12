@@ -70,10 +70,12 @@ export getterminationstatus, setterminationstatus!,
     
 # Algorithm's types
 export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
-       BendersConquer, BendersCutGeneration, SolveIpForm, MoiOptimize, UserOptimizer, 
+       BendersConquer, BendersCutGeneration, SolveIpForm, RestrictedMasterHeuristic,
        SolveLpForm, ExactBranchingPhase, OnlyRestrictedMasterBranchingPhase, PreprocessAlgorithm, 
-       RestrictedMasterIPHeuristic, OptimizationInput, OptimizationOutput, OptimizationState,
-       EmptyInput       
+       OptimizationInput, OptimizationOutput, OptimizationState, EmptyInput
+
+# Types of optimizers
+export MoiOptimize, UserOptimizer
 
 # Units 
 export PartialSolutionUnit, PreprocessingUnit
