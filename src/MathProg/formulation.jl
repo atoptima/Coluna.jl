@@ -8,34 +8,37 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
     storage::Storage
+    duty_data::Duty
 end
-
 
 """
 `Formulation` stores a mixed-integer linear program.
 
     create_formulation!(
         env::Coluna.Env,
-        duty::Type{<:AbstractFormDuty};
+        duty::AbstractFormDuty;
         parent_formulation = nothing,
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
     )
 
-Create a new formulation in the Coluna's environment `env` with duty `duty`,
-parent formulation `parent_formulation`, and objective sense `obj_sense`.
+Create a new formulation in the Coluna's environment `env`.
+Arguments are `duty` that contains specific information related to the duty of
+the formulation, `parent_formulation` that is the parent formulation (master for a subproblem, 
+reformulation for a master, `nothing` by default), and `obj_sense` the sense of the objective 
+function (`MinSense` or `MaxSense`).
 """
 function create_formulation!(
     env,
-    duty::Type{<:AbstractFormDuty};
+    duty::AbstractFormDuty;
     parent_formulation = nothing,
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense
 )
     if env.form_counter >= MAX_NB_FORMULATIONS
         error("Maximum number of formulations reached.")
     end
-    return Formulation{duty}(
+    return Formulation(
         env.form_counter += 1, 0, 0, parent_formulation, AbstractOptimizer[], 
-        FormulationManager(), obj_sense, FormulationBuffer(), Storage()
+        FormulationManager(), obj_sense, FormulationBuffer(), Storage(), duty
     )
 end
 

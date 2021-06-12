@@ -12,7 +12,7 @@ end
 Constructs an empty `Problem`.
 """
 function Problem(env)
-    original_formulation = create_formulation!(env, Original)
+    original_formulation = create_formulation!(env, Original())
     return Problem(
         nothing, nothing, original_formulation, nothing,
         no_optimizer_builder
