@@ -30,7 +30,7 @@ end
 
 function Coluna.Algorithm.get_units_usage(opt::KnapsackLibOptimizer, form) # form is Coluna Formulation
     println("\e[41m get units usage \e[00m")
-    units_usage = Tuple{AbstractModel, Coluna.ColunaBase.UnitType, Coluna.ColunaBase.UnitAccessMode}[]
+    units_usage = Tuple{AbstractModel, Coluna.ColunaBase.UnitType, Coluna.ColunaBase.UnitPermission}[]
     # TODO : the abstract model is KnapsackLibModel (opt.model)
     return units_usage
 end
@@ -52,15 +52,7 @@ function Coluna.Algorithm.run!(
     data = KnapData(ws[1], items)
     _, selected = solveKnapExpCore(data)
 
-    # setup variable (issue https://github.com/atoptima/Coluna.jl/issues/283)
-    setup_var_id = [id for (id,v) in Iterators.filter(
-        v -> (
-            Coluna.MathProg.iscuractive(form, v.first) && 
-            Coluna.MathProg.isexplicit(form, v.first) && 
-            Coluna.MathProg.getduty(v.first) <= Coluna.DwSpSetupVar
-        ),
-        Coluna.MathProg.getvars(form)
-    )][1]
+    setup_var_id = form.duty_data.setup_var
 
     cost = sum(-costs[j] for j in selected) + Coluna.MathProg.getcurcost(form, setup_var_id)
 

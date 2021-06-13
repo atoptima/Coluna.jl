@@ -25,15 +25,11 @@ function MOI.submit(
     custom_data::Union{Nothing, AbstractCustomData} = nothing
 )
     form = cb.callback_data.form
-    S = getobjsense(form)
     solval = cost
     colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]
 
     # setup variable
-    setup_var_id = [id for (id,v) in Iterators.filter(
-        v -> (iscuractive(form, v.first) && isexplicit(form, v.first) && getduty(v.first) <= DwSpSetupVar),
-        getvars(form)
-    )][1]
+    setup_var_id = form.duty_data.setup_var
     push!(colunavarids, setup_var_id)
     push!(values, 1.0)
     solval += getcurcost(form, setup_var_id)
