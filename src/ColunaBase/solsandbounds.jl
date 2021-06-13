@@ -40,7 +40,8 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
 
 """
-    diff(b1, b2)
+    diff(pb, db)
+    diff(db, pb)
 
 Distance between a primal bound and a dual bound that have the same objective sense.
 Distance is non-positive if dual bound reached primal bound.
@@ -62,9 +63,10 @@ function Base.diff(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
 end
 
 """
-    gap
+    gap(pb, db)
+    gap(db, pb)
 
-relative gap. Gap is non-positive if pb reached db
+Return relative gap. Gap is non-positive if pb reached db.
 """
 function gap(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
     return diff(pb, db) / abs(db.value)

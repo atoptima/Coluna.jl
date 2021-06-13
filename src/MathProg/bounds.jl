@@ -1,12 +1,20 @@
 const PrimalBound{S} = Bound{Primal, S}
 const DualBound{S} = Bound{Dual, S}
 
+"""
+    PrimalBound(formulation)
+    PrimalBound(formulation, value)
+    PrimalBound(formualtion, pb)
+
+Create a new primal bound for the formulation `formulation`.
+The value of the primal bound is infinity if you do not specify any initial value.
+"""
 function PrimalBound(form::AbstractFormulation)
     Se = getobjsense(form)
     return Bound{Primal,Se}()
 end
 
-function PrimalBound(form::AbstractFormulation, val::Float64)
+function PrimalBound(form::AbstractFormulation, val)
     Se = getobjsense(form)
     return Bound{Primal,Se}(val)
 end
@@ -23,12 +31,20 @@ function PrimalBound(form::AbstractFormulation, pb::PrimalBound{S}) where {S}
     return Bound{Primal,Se}(getvalue(pb))
 end
 
+"""
+    DualBound(formulation)
+    DualBound(formulation, value)
+    DualBound(formulation, db)
+
+Create a new dual bound for the formulation `formulation`.
+The value of the dual bound is infinity if you do not specify any initial value.
+"""
 function DualBound(form::AbstractFormulation)
     Se = getobjsense(form)
     return Bound{Dual,Se}()
 end
 
-function DualBound(form::AbstractFormulation, val::Float64)
+function DualBound(form::AbstractFormulation, val)
     Se = getobjsense(form)
     return Bound{Dual,Se}(val)
 end
@@ -58,11 +74,7 @@ mutable struct ObjValues{S}
     ip_dual_bound::DualBound{S}
 end
 
-"""
-    ObjValues(form)
-
-todo
-"""
+"A convenient structure to maintain and return incumbent bounds."
 function ObjValues(
     form::M; 
     ip_primal_bound = nothing,
@@ -75,58 +87,37 @@ function ObjValues(
         PrimalBound(form), DualBound(form), PrimalBound(form), DualBound(form)
     )
     if ip_primal_bound !== nothing
-        set_ip_primal_bound!(ov, PrimalBound(form, ip_primal_bound))
+        ov.ip_primal_bound = PrimalBound(form, ip_primal_bound)
     end
     if ip_dual_bound !== nothing
-        set_ip_dual_bound!(ov, DualBound(ip_dual_bound))
+        ov.ip_dual_bound = DualBound(form, ip_dual_bound)
     end
     if lp_primal_bound !== nothing
-        set_lp_primal_bound!(ov, PrimalBound(lp_primal_bound))
+        ov.lp_primal_bound = PrimalBound(form, lp_primal_bound)
     end
     if lp_dual_bound !== nothing
-        set_lp_dual_bound!(ov, DualBound(lp_dual_bound))
+        ov.lp_dual_bound = DualBound(form, lp_dual_bound)
     end
     return ov
 end
 
-## Getters bounds
-"Return the best primal bound of the mixed-integer program."
-get_ip_primal_bound(ov::ObjValues) = ov.ip_primal_bound
-
-"Return the best dual bound of the mixed-integer program."
-get_ip_dual_bound(ov::ObjValues) = ov.ip_dual_bound
-
-"Return the best primal bound of the linear program."
-get_lp_primal_bound(ov::ObjValues) = ov.lp_primal_bound
-
-"Return the best dual bound of the linear program."
-get_lp_dual_bound(ov::ObjValues) = ov.lp_dual_bound
-
 ## Gaps
-"""
-Return the gap between the best primal and dual bounds of the integer program.
-Should not be used to check convergence
-"""
-ip_gap(ov::ObjValues) = gap(get_ip_primal_bound(ov), get_ip_dual_bound(ov))
+_ip_gap(ov::ObjValues) = gap(ov.ip_primal_bound, ov.ip_dual_bound)
+_lp_gap(ov::ObjValues) = gap(ov.lp_primal_bound, ov.lp_dual_bound)
 
-"Return the gap between the best primal and dual bounds of the linear program."
-lp_gap(ov::ObjValues) = gap(get_lp_primal_bound(ov), get_lp_dual_bound(ov))
-
-"Return true if the gap between the best primal and dual bounds of the integer program is closed given optimality tolerances."
-function ip_gap_closed(
+function _ip_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return (ip_gap(ov) <= 0) || _gap_closed(
-        get_ip_primal_bound(ov).value, get_ip_dual_bound(ov).value, atol = atol, rtol = rtol
+    return (_ip_gap(ov) <= 0) || _gap_closed(
+        ov.ip_primal_bound.value, ov.ip_dual_bound.value, atol = atol, rtol = rtol
     )
 end
 
-"Return true if the gap between the best primal and dual bounds of the linear program is closed given optimality tolerances."
-function lp_gap_closed(
+function _lp_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return (lp_gap(ov) <= 0) || _gap_closed(
-        get_lp_primal_bound(ov).value, get_lp_dual_bound(ov).value, atol = atol, rtol = rtol
+    return (_lp_gap(ov) <= 0) || _gap_closed(
+       ov.lp_primal_bound.value, ov.lp_dual_bound.value, atol = atol, rtol = rtol
     )
 end
 
@@ -137,86 +128,35 @@ function _gap_closed(
     return (x == y) || (isfinite(x) && isfinite(y) && norm(x - y) <= max(atol, rtol*min(norm(x), norm(y))))
 end
 
-function set_lp_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
-    ov.lp_primal_bound = b
-    return
-end
-
-function set_lp_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
-    ov.lp_dual_bound = b
-    return
-end
-
-function set_ip_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
-    ov.ip_primal_bound = b
-    return
-end
-
-function set_ip_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
-    ov.ip_dual_bound = b
-    return
-end
-
-"""
-Update the primal bound of the linear program if the new one is better than the
-current one according to the objective sense.
-"""
-function update_lp_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
-    if isbetter(b, get_lp_primal_bound(ov))
+## Bound updates
+function _update_lp_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
+    if isbetter(b, ov.lp_primal_bound)
         ov.lp_primal_bound = b
         return true
     end
     return false
 end
 
-"""
-Update the dual bound of the linear program if the new one is better than the 
-current one according to the objective sense.
-"""
-function update_lp_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
-    if isbetter(b, get_lp_dual_bound(ov))
+function _update_lp_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
+    if isbetter(b, ov.lp_dual_bound)
         ov.lp_dual_bound = b
         return true
     end
     return false
 end
 
-"""
-Update the primal bound of the mixed-integer program if the new one is better
-than the current one according to the objective sense.
-"""
-function update_ip_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
-    if isbetter(b, get_ip_primal_bound(ov))
+function _update_ip_primal_bound!(ov::ObjValues{S}, b::PrimalBound{S}) where {S}
+    if isbetter(b, ov.ip_primal_bound)
         ov.ip_primal_bound = b
         return true
     end
     return false
 end
 
-"""
-Update the dual bound of the mixed-integer program if the new one is better than
-the current one according to the objective sense.
-"""
-function update_ip_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
-    if isbetter(b, get_ip_dual_bound(ov))
+function _update_ip_dual_bound!(ov::ObjValues{S}, b::DualBound{S}) where {S}
+    if isbetter(b, ov.ip_dual_bound)
         ov.ip_dual_bound = b
         return true
     end
     return false
-end
-
-function update!(dest::ObjValues{S}, src::ObjValues{S}) where {S}
-    update_ip_dual_bound!(dest, get_ip_dual_bound(src))
-    update_ip_primal_bound!(dest, get_ip_primal_bound(src))
-    update_lp_dual_bound!(dest, get_lp_dual_bound(src))
-    update_lp_primal_bound!(dest, get_lp_primal_bound(src))
-    return
-end
-
-function Base.show(io::IO, ov::ObjValues{S}) where {S}
-    println(io, "ObjValues{", S, "}:")
-    println(io, "ip_primal_bound : ", ov.ip_primal_bound)
-    println(io, "ip_dual_bound : ", ov.ip_dual_bound)
-    println(io, "lp_primal_bound : ", ov.lp_primal_bound)
-    println(io, "lp_dual_bound : ", ov.lp_dual_bound)
 end

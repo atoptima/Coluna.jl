@@ -100,12 +100,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     isexplicit, getname, getbranchingpriority, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
-export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues,
-    get_ip_primal_bound, get_lp_primal_bound,
-    get_ip_dual_bound, get_lp_dual_bound, update_ip_primal_bound!, update_lp_primal_bound!,
-    update_ip_dual_bound!, update_lp_dual_bound!, set_ip_primal_bound!,
-    set_lp_primal_bound!, set_ip_dual_bound!, set_lp_dual_bound!, ip_gap, lp_gap, ip_gap_closed, 
-    lp_gap_closed
+export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues
 
 # Methods related to projections
 export projection_is_possible, proj_cols_on_rep

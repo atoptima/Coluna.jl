@@ -244,7 +244,12 @@ function run_conquer_algorithm!(
 
     treestate = getoptstate(tsdata)
     nodestate = getoptstate(node)
-    update_ip_primal!(nodestate, treestate, tsdata.exploitsprimalsolutions)
+
+    update_ip_primal_bound!(nodestate, get_ip_primal_bound(treestate))
+    best_ip_primal_sol = get_best_ip_primal_sol(nodestate)
+    if tsdata.exploitsprimalsolutions && best_ip_primal_sol !== nothing
+        set_ip_primal_sol!(treestate, best_ip_primal_sol)
+    end
 
     # in the case the conquer was already run (in strong branching),
     # we still need to update the node IP primal bound before exiting 

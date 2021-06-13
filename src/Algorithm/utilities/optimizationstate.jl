@@ -137,60 +137,109 @@ end
 getterminationstatus(state::OptimizationState) = state.termination_status
 setterminationstatus!(state::OptimizationState, status::TerminationStatus) = state.termination_status = status
 
-getincumbents(state::OptimizationState) = state.incumbents
 
-get_ip_primal_bound(state::OptimizationState) = get_ip_primal_bound(state.incumbents)
-get_lp_primal_bound(state::OptimizationState) = get_lp_primal_bound(state.incumbents)
-get_ip_dual_bound(state::OptimizationState) = get_ip_dual_bound(state.incumbents)
-get_lp_dual_bound(state::OptimizationState) = get_lp_dual_bound(state.incumbents)
+"Return the best IP primal bound."
+get_ip_primal_bound(state::OptimizationState) = state.incumbents.ip_primal_bound
 
-update_ip_primal_bound!(state::OptimizationState, val) = update_ip_primal_bound!(state.incumbents, val)
-update_ip_dual_bound!(state::OptimizationState, val) = update_ip_dual_bound!(state.incumbents, val)
-update_lp_primal_bound!(state::OptimizationState, val) = update_lp_primal_bound!(state.incumbents, val)
-update_lp_dual_bound!(state::OptimizationState, val) = update_lp_dual_bound!(state.incumbents, val)
+"Return the best LP primal bound."
+get_lp_primal_bound(state::OptimizationState) = state.incumbents.lp_primal_bound
 
-set_ip_primal_bound!(state::OptimizationState, val) = set_ip_primal_bound!(state.incumbents, val)
-set_lp_primal_bound!(state::OptimizationState, val) = set_lp_primal_bound!(state.incumbents, val)
-set_ip_dual_bound!(state::OptimizationState, val) = set_ip_dual_bound!(state.incumbents, val)
-set_lp_dual_bound!(state::OptimizationState, val) = set_lp_dual_bound!(state.incumbents, val)
+"Return the best IP dual bound."
+get_ip_dual_bound(state::OptimizationState) = state.incumbents.ip_dual_bound
 
-ip_gap(state::OptimizationState) = ip_gap(state.incumbents)
-lp_gap(state::OptimizationState) = lp_gap(state.incumbents)
+"Return the best LP dual bound."
+get_lp_dual_bound(state::OptimizationState) = state.incumbents.lp_dual_bound
 
-ip_gap_closed(state::OptimizationState; kw...) = ip_gap_closed(state.incumbents; kw...)
-lp_gap_closed(state::OptimizationState; kw...) = lp_gap_closed(state.incumbents; kw...)
+"""
+Update the primal bound of the mixed-integer program if the new one is better
+than the current one according to the objective sense.
+"""
+update_ip_primal_bound!(state::OptimizationState, bound) = MathProg._update_ip_primal_bound!(state.incumbents, bound)
 
+"""
+Update the dual bound of the mixed-integer program if the new one is better than
+the current one according to the objective sense.
+"""
+update_ip_dual_bound!(state::OptimizationState, bound) = MathProg._update_ip_dual_bound!(state.incumbents, bound)
+
+"""
+Update the primal bound of the linear program if the new one is better than the
+current one according to the objective sense.
+"""
+update_lp_primal_bound!(state::OptimizationState, bound) = MathProg._update_lp_primal_bound!(state.incumbents, bound)
+
+"""
+Update the dual bound of the linear program if the new one is better than the 
+current one according to the objective sense.
+"""
+update_lp_dual_bound!(state::OptimizationState, bound) = MathProg._update_lp_dual_bound!(state.incumbents, bound)
+
+"Set the best IP primal bound."
+set_ip_primal_bound!(state::OptimizationState, bound) = state.incumbents.ip_primal_bound = bound
+
+"Set the best LP primal bound."
+set_lp_primal_bound!(state::OptimizationState, bound) = state.incumbents.lp_primal_bound = bound
+
+"Set the best IP dual bound."
+set_ip_dual_bound!(state::OptimizationState, bound) = state.incumbents.ip_dual_bound = bound
+
+"Set the best LP dual bound."
+set_lp_dual_bound!(state::OptimizationState, bound) = state.incumbents.lp_dual_bound = bound
+
+"""
+Return the gap between the best primal and dual bounds of the integer program.
+Should not be used to check convergence
+"""
+ip_gap(state::OptimizationState) = MathProg._ip_gap(state.incumbents)
+
+"Return the gap between the best primal and dual bounds of the linear program."
+lp_gap(state::OptimizationState) = MathProg._lp_gap(state.incumbents)
+
+"""
+    ip_gap_closed(optstate; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL)
+
+Return true if the gap between the best primal and dual bounds of the integer program is closed
+given optimality tolerances.
+"""
+ip_gap_closed(state::OptimizationState; kw...) = MathProg._ip_gap_closed(state.incumbents; kw...)
+
+"""
+    lp_gap_closed(optstate; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL)
+
+Return true if the gap between the best primal and dual bounds of the linear program is closed 
+given optimality tolerances.
+"""
+lp_gap_closed(state::OptimizationState; kw...) = MathProg._lp_gap_closed(state.incumbents; kw...)
+
+"Return all IP primal solutions."
 get_ip_primal_sols(state::OptimizationState) = state.ip_primal_sols
 
+
+"Return the best IP primal solution if it exists; `nothing` otherwise."
 function get_best_ip_primal_sol(state::OptimizationState)
     length(state.ip_primal_sols) == 0 && return nothing
     return state.ip_primal_sols[1]
 end
 
+"Return all LP primal solutions."
 get_lp_primal_sols(state::OptimizationState) = state.lp_primal_sols
 
+"Return the best LP primal solution if it exists; `nothing` otherwise."
 function get_best_lp_primal_sol(state::OptimizationState)
     length(state.lp_primal_sols) == 0 && return nothing
     return state.lp_primal_sols[1]
 end
 
+"Return all LP dual solutions."
 get_lp_dual_sols(state::OptimizationState) = state.lp_dual_sols
 
+"Return the best LP dual solution if it exists; `nothing` otherwise."
 function get_best_lp_dual_sol(state::OptimizationState)
     length(state.lp_dual_sols) == 0 && return nothing
     return state.lp_dual_sols[1]
 end
 
-function update_ip_primal!(
-    dest_state::OptimizationState, orig_state::OptimizationState, set_solution::Bool
-)
-    update_ip_primal_bound!(dest_state, get_ip_primal_bound(orig_state))
-    best_ip_primal_sol = get_best_ip_primal_sol(orig_state)
-    if set_solution && best_ip_primal_sol !== nothing
-        set_ip_primal_sol!(dest_state, best_ip_primal_sol)
-    end
-end
-
+# TODO : refactoring ?
 function update!(dest_state::OptimizationState, orig_state::OptimizationState)
     setterminationstatus!(dest_state, getterminationstatus(orig_state))
     add_ip_primal_sols!(dest_state, get_ip_primal_sols(orig_state)...)
@@ -220,7 +269,7 @@ Similar methods :
 function update_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_ip_primal_sols == 0 && return
     b = PrimalBound{S}(getvalue(sol))
-    if update_ip_primal_bound!(state.incumbents, b)
+    if update_ip_primal_bound!(state, b)
         state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     end
     return
@@ -243,7 +292,7 @@ function add_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{
     state.max_length_ip_primal_sols == 0 && return
     state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     b = PrimalBound{S}(getvalue(sol))
-    update_ip_primal_bound!(state.incumbents, b)
+    update_ip_primal_bound!(state, b)
     return
 end
 
@@ -287,7 +336,7 @@ empty_ip_primal_sols!(state::OptimizationState) = empty!(state.ip_primal_sols)
 function update_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_lp_primal_sols == 0 && return
     b = PrimalBound{S}(getvalue(sol))
-    if update_lp_primal_bound!(state.incumbents, b)
+    if update_lp_primal_bound!(state, b)
         state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     end
     return
@@ -298,7 +347,7 @@ function add_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{
     state.max_length_lp_primal_sols == 0 && return
     state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     b = PrimalBound{S}(getvalue(sol))
-    update_lp_primal_bound!(state.incumbents, b)
+    update_lp_primal_bound!(state, b)
     return
 end
 
@@ -316,7 +365,7 @@ empty_lp_primal_sols!(state::OptimizationState) = empty!(state.lp_primal_sols)
 function update_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
     state.max_length_lp_dual_sols == 0 && return
     b = DualBound{S}(getvalue(sol))
-    if update_lp_dual_bound!(state.incumbents, b)
+    if update_lp_dual_bound!(state, b)
         state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     end
     return
@@ -327,7 +376,7 @@ function add_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) 
     state.max_length_lp_dual_sols == 0 && return
     state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     b = DualBound{S}(getvalue(sol))
-    update_lp_dual_bound!(state.incumbents, b)
+    update_lp_dual_bound!(state, b)
     return
 end
 

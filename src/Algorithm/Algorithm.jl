@@ -14,13 +14,6 @@ const MOI = MathOptInterface
 
 import Base: push!
 
-# Import to extend methods to OptimizationState
-import ..MathProg:
-    get_ip_primal_bound, get_ip_dual_bound,
-    get_lp_primal_bound, get_lp_dual_bound, update_ip_primal_bound!, update_ip_dual_bound!,
-    update_lp_primal_bound!, update_lp_dual_bound!, set_ip_primal_bound!,
-    set_ip_dual_bound!, set_lp_primal_bound!, set_lp_dual_bound!, ip_gap, lp_gap, ip_gap_closed, lp_gap_closed
-
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
 
@@ -62,10 +55,12 @@ include("treesearch.jl")
 export getterminationstatus, setterminationstatus!,
     get_ip_primal_sols, get_lp_primal_sols, get_lp_dual_sols, get_best_ip_primal_sol,
     get_best_lp_primal_sol, get_best_lp_dual_sol, update_ip_primal_sol!,
-    update_lp_primal_sol!, update_lp_dual_sol!, add_ip_primal_sol!, add_lp_primal_sol!,
-    add_lp_dual_sol!, set_ip_primal_sol!, set_lp_primal_sol!, set_lp_dual_sol!,
+    update_lp_primal_sol!, update_lp_dual_sol!, add_ip_primal_sol!, add_ip_primal_sols!,
+    add_lp_primal_sol!, add_lp_dual_sol!, set_ip_primal_sol!, set_lp_primal_sol!, set_lp_dual_sol!,
     empty_ip_primal_sols!, empty_lp_primal_sols!, empty_lp_dual_sols!,
-    get_ip_dual_bound, set_ip_dual_bound!, getreform,
+    get_ip_primal_bound, get_lp_primal_bound, get_lp_dual_bound, get_ip_dual_bound, 
+    set_ip_primal_bound!, set_lp_primal_bound!, set_lp_dual_bound!, set_ip_dual_bound!,
+    update_ip_primal_bound!, update_lp_primal_bound!, update_lp_dual_bound!, update_ip_dual_bound!,
     getoptstate, run!, isinfeasible
     
 # Algorithm's types

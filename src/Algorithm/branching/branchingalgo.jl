@@ -148,13 +148,19 @@ function perform_strong_branching_with_phases!(
                     @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getoptstate(node)))
                 end
 
-                update_ip_primal!(getoptstate(node), sbstate, exploitsprimalsolutions)
+                nodestate = getoptstate(node)
+
+                update_ip_primal_bound!(nodestate, get_ip_primal_bound(sbstate))
+                best_ip_primal_sol = get_best_ip_primal_sol(sbstate)
+                if exploitsprimalsolutions && best_ip_primal_sol !== nothing
+                    set_ip_primal_sol!(nodestate, best_ip_primal_sol)
+                end                
 
                 apply_conquer_alg_to_node!(
                     node, current_phase.conquer_algo, env, reform, conquer_units_to_restore
                 )        
 
-                add_ip_primal_sols!(sbstate, get_ip_primal_sols(getoptstate(node))...)
+                add_ip_primal_sols!(sbstate, get_ip_primal_sols(nodestate)...)
                     
                 if to_be_pruned(node) 
                     if isverbose(current_phase.conquer_algo)
