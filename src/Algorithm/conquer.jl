@@ -81,8 +81,7 @@ end
 """
     Coluna.Algorithm.RestrictedMasterHeuristic()
 
-Enforce integrality of master column variables and then solve the restricted master with 
-the optimizer attached to the master formulation.
+This algorithm enforces integrality of column variables in the master formulation and then solves the master formulation with its optimizer.
 """
 RestrictedMasterHeuristic() = 
     ParameterisedHeuristic(
