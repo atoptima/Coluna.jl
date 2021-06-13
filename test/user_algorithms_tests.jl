@@ -39,7 +39,7 @@ function Coluna.Algorithm.run!(
 
         cg_output = run!(algo.colgen, env, reform, OptimizationInput(optstate))
         cg_optstate = getoptstate(cg_output)
-        update_all_ip_primal_solutions!(optstate, cg_optstate)
+        add_ip_primal_sols!(optstate, get_ip_primal_sols(cg_optstate)...)
 
         primal_sol = get_best_lp_primal_sol(cg_optstate)
 
@@ -65,7 +65,7 @@ function Coluna.Algorithm.run!(
     end
 
     heur_output = run!(algo.rm_heur, env, reform, OptimizationInput(optstate))
-    update_all_ip_primal_solutions!(optstate, getoptstate(heur_output))
+    add_ip_primal_sols!(optstate, get_ip_primal_sols(getoptstate(heur_output))...)
 
     return OptimizationOutput(optstate)
 end

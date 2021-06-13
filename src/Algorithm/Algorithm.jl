@@ -60,12 +60,12 @@ include("treesearch.jl")
 
 # Utilities
 export getterminationstatus, setterminationstatus!,
-    nb_ip_primal_sols, nb_lp_primal_sols, nb_lp_dual_sols,
     get_ip_primal_sols, get_lp_primal_sols, get_lp_dual_sols, get_best_ip_primal_sol,
     get_best_lp_primal_sol, get_best_lp_dual_sol, update_ip_primal_sol!,
     update_lp_primal_sol!, update_lp_dual_sol!, add_ip_primal_sol!, add_lp_primal_sol!,
     add_lp_dual_sol!, set_ip_primal_sol!, set_lp_primal_sol!, set_lp_dual_sol!,
-    get_ip_dual_bound, set_ip_dual_bound!, update_all_ip_primal_solutions!, getreform,
+    empty_ip_primal_sols!, empty_lp_primal_sols!, empty_lp_dual_sols!,
+    get_ip_dual_bound, set_ip_dual_bound!, getreform,
     getoptstate, run!, isinfeasible
     
 # Algorithm's types

@@ -154,7 +154,7 @@ function perform_strong_branching_with_phases!(
                     node, current_phase.conquer_algo, env, reform, conquer_units_to_restore
                 )        
 
-                update_all_ip_primal_solutions!(sbstate, getoptstate(node))
+                add_ip_primal_sols!(sbstate, get_ip_primal_sols(getoptstate(node))...)
                     
                 if to_be_pruned(node) 
                     if isverbose(current_phase.conquer_algo)
@@ -209,10 +209,9 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
     # we obtain the original and extended solutions
     master = getmaster(reform)
     original_solution = nothing
-    extended_solution = nothing
-    if nb_lp_primal_sols(optstate) > 0
+    extended_solution = get_best_lp_primal_sol(optstate)
+    if extended_solution !== nothing
         if projection_is_possible(master)
-            extended_solution = get_best_lp_primal_sol(optstate)
             original_solution = proj_cols_on_rep(extended_solution, master)
         else
             original_solution = get_best_lp_primal_sol(optstate)

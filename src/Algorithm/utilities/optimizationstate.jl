@@ -10,9 +10,9 @@ mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     insert_function_ip_primal_sols::Function
     insert_function_lp_primal_sols::Function
     insert_function_lp_dual_sols::Function
-    ip_primal_sols::Union{Nothing, Vector{PrimalSolution{F}}}
-    lp_primal_sols::Union{Nothing, Vector{PrimalSolution{F}}}
-    lp_dual_sols::Union{Nothing, Vector{DualSolution{F}}}
+    ip_primal_sols::Vector{PrimalSolution{F}}
+    lp_primal_sols::Vector{PrimalSolution{F}}
+    lp_dual_sols::Vector{DualSolution{F}}
 end
 
 _sort!(sols::Vector{PrimalSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(PrimalBound(x.model, x.bound)))
@@ -27,7 +27,7 @@ function bestbound!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {S
     return
 end
 
-function set!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
+function set!(solutions::Vector{Sol}, ::Int, new_sol::Sol) where {Sol<:Solution}
     empty!(solutions)
     push!(solutions, new_sol)
     return
@@ -47,10 +47,10 @@ end
         insert_function_ip_primal_sols = bestbound!, 
         insert_function_lp_primal_sols = bestbound!, 
         insert_function_lp_dual_sols = bestbound!
-        )
+    )
 
 A convenient structure to maintain and return solutions and bounds of a formulation `form` during an
-optimization process. The termination statuses is considered as
+optimization process. The termination status is considered as
 unknown by default. You can define the initial incumbent bounds using `ip_primal_bound`,
 `ip_dual_bound`, `lp_primal_bound`, and `lp_primal_bound` keyword arguments. Incumbent
 bounds are set to infinite (according to formulation objective sense) by default.
@@ -61,6 +61,16 @@ size of the lists. Keywords `insert_function_ip_primal_sols`, `insert_function_l
 and `insert_function_lp_dual_sols` let you provide a function to define the way
 you want to insert a new solution in each list. By default, lists are sorted by
 best bound.
+
+You can also create an `OptimizationState` from another one : 
+
+    OptimizationState(
+        form, source_state, copy_ip_primal_sol, copy_lp_primal_sol
+    )
+
+It copies the termination status, all the bounds of `source_state`.
+If copies the best IP primal solution when `copy_ip_primal_sol` equals `true` and
+the best LP primal solution when `copy_lp_primal_sol` equals `true`.
 """
 function OptimizationState(
     form::F;
@@ -93,35 +103,10 @@ function OptimizationState(
         insert_function_ip_primal_sols,
         insert_function_lp_primal_sols,
         insert_function_lp_dual_sols,
-        nothing, nothing, nothing
+        PrimalSolution{F}[], PrimalSolution{F}[], DualSolution{F}[]
     )
     return state
 end
-
-# function OptimizationState(
-#     form::AbstractFormulation, or::OptimizationState
-# )
-#     newor = OptimizationState(
-#         form,
-#         termination_status = getterminationstatus(or),
-#         ip_primal_bound = get_ip_primal_bound(or),
-#         ip_dual_bound = get_ip_dual_bound(or),
-#         lp_primal_bound = get_lp_primal_bound(or),
-#         lp_dual_bound = get_lp_dual_bound(or)
-#     )
-#     if or.ip_primal_sols !== nothing
-#         newor.ip_primal_sols = copy(or.ip_primal_sols)
-#     end
-#     if or.lp_primal_sols !== nothing
-#         newor.lp_primal_sols = copy(or.lp_primal_sols)
-#     end
-#     if or.lp_primal_sols !== nothing
-#         newor.lp_dual_sols = copy(or.lp_primal_sols)
-#     end
-#     return newor
-# end
-
-getform(state::OptimizationState{F,S}) where {F, S} = F
 
 function OptimizationState(
     form::AbstractFormulation, source_state::OptimizationState, 
@@ -135,12 +120,17 @@ function OptimizationState(
         ip_dual_bound = get_ip_dual_bound(source_state),
         lp_dual_bound = get_lp_dual_bound(source_state)
     )
-    if copy_ip_primal_sol && nb_ip_primal_sols(source_state) > 0
-        set_ip_primal_sol!(state, copy(get_best_ip_primal_sol(source_state)))
+
+    best_ip_primal_sol = get_best_ip_primal_sol(source_state)
+    if copy_ip_primal_sol && best_ip_primal_sol !== nothing
+        set_ip_primal_sol!(state, copy(best_ip_primal_sol))
     end
-    if copy_lp_primal_sol && nb_lp_primal_sols(source_state) > 0
-        set_lp_primal_sol!(state, copy(get_best_lp_primal_sol(source_state)))
+
+    best_lp_primal_sol = get_best_lp_primal_sol(source_state)
+    if copy_lp_primal_sol && best_lp_primal_sol !== nothing
+        set_lp_primal_sol!(state, copy(best_lp_primal_sol))
     end
+
     return state
 end
 
@@ -170,73 +160,46 @@ lp_gap(state::OptimizationState) = lp_gap(state.incumbents)
 ip_gap_closed(state::OptimizationState; kw...) = ip_gap_closed(state.incumbents; kw...)
 lp_gap_closed(state::OptimizationState; kw...) = lp_gap_closed(state.incumbents; kw...)
 
-function nb_ip_primal_sols(state::OptimizationState)
-    return state.ip_primal_sols === nothing ? 0 : length(state.ip_primal_sols)
-end
-
-function nb_lp_primal_sols(state::OptimizationState)
-    return state.lp_primal_sols === nothing ? 0 : length(state.lp_primal_sols)
-end
-
-function nb_lp_dual_sols(state::OptimizationState)
-    return state.lp_dual_sols === nothing ? 0 : length(state.lp_dual_sols)
-end
-
 get_ip_primal_sols(state::OptimizationState) = state.ip_primal_sols
 
 function get_best_ip_primal_sol(state::OptimizationState)
-    nb_ip_primal_sols(state) == 0 && return nothing
-    return get_ip_primal_sols(state)[1]
+    length(state.ip_primal_sols) == 0 && return nothing
+    return state.ip_primal_sols[1]
 end
 
 get_lp_primal_sols(state::OptimizationState) = state.lp_primal_sols
 
 function get_best_lp_primal_sol(state::OptimizationState)
-    nb_lp_primal_sols(state) == 0 && return nothing
-    return get_lp_primal_sols(state)[1]
+    length(state.lp_primal_sols) == 0 && return nothing
+    return state.lp_primal_sols[1]
 end
 
 get_lp_dual_sols(state::OptimizationState) = state.lp_dual_sols
 
 function get_best_lp_dual_sol(state::OptimizationState)
-    nb_lp_dual_sols(state) == 0 && return nothing
-    return get_lp_dual_sols(state)[1]
-end
-
-function clear_solutions!(state::OptimizationState)
-    state.lp_primal_sols = nothing
-    state.ip_primal_sols = nothing
-    state.lp_dual_sols = nothing
+    length(state.lp_dual_sols) == 0 && return nothing
+    return state.lp_dual_sols[1]
 end
 
 function update_ip_primal!(
     dest_state::OptimizationState, orig_state::OptimizationState, set_solution::Bool
 )
-    update_ip_primal_bound!(dest_state, get_ip_primal_bound(orig_state))    
-    if set_solution && nb_ip_primal_sols(orig_state) > 0
-        set_ip_primal_sol!(dest_state, get_best_ip_primal_sol(orig_state))
+    update_ip_primal_bound!(dest_state, get_ip_primal_bound(orig_state))
+    best_ip_primal_sol = get_best_ip_primal_sol(orig_state)
+    if set_solution && best_ip_primal_sol !== nothing
+        set_ip_primal_sol!(dest_state, best_ip_primal_sol)
     end
-end
-
-function update_all_ip_primal_solutions!(
-    dest_state::OptimizationState, orig_state::OptimizationState
-)
-    # we do it in reverse order in order not to store the same solution several times
-    if nb_ip_primal_sols(orig_state) > 0
-        for ip_primal_sol in reverse(get_ip_primal_sols(orig_state))
-            update_ip_primal_sol!(dest_state, ip_primal_sol)
-        end    
-    end    
 end
 
 function update!(dest_state::OptimizationState, orig_state::OptimizationState)
     setterminationstatus!(dest_state, getterminationstatus(orig_state))
-    update_all_ip_primal_solutions!(dest_state, orig_state)
+    add_ip_primal_sols!(dest_state, get_ip_primal_sols(orig_state)...)
     update_ip_dual_bound!(dest_state, get_ip_dual_bound(orig_state))
     update_lp_dual_bound!(dest_state, get_lp_dual_bound(orig_state))
     set_lp_primal_bound!(dest_state, get_lp_primal_bound(orig_state))
-    if nb_lp_primal_sols(orig_state) > 0
-        set_lp_primal_sol!(dest_state, get_best_lp_primal_sol(orig_state))
+    best_lp_primal_sol = get_best_lp_primal_sol(orig_state) 
+    if best_lp_primal_sol !== nothing
+        set_lp_primal_sol!(dest_state, best_lp_primal_sol)
     end        
 end
 
@@ -248,13 +211,14 @@ value of the solution is better than the incumbent. The solution is inserted in 
 by the method defined in `insert_function_ip_primal_sols` field of `OptimizationState`.
 If the maximum length of the list is reached, the solution located at the end of the list
 is removed.
+
+Similar methods : 
+
+    update_lp_primal_sol!(optstate, sol)
+    update_lp_dual_sol!(optstate, sol)
 """
 function update_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_ip_primal_sols == 0 && return
-
-    if state.ip_primal_sols === nothing
-        state.ip_primal_sols = PrimalSolution{F}[]
-    end 
     b = PrimalBound{S}(getvalue(sol))
     if update_ip_primal_bound!(state.incumbents, b)
         state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
@@ -264,20 +228,29 @@ end
 
 """
     add_ip_primal_sol!(optstate, sol)
+    add_ip_primal_sols!(optstate, sols...)
 
 Add the solution `sol` at the end of the solution list of `opstate`, sort the solution list,
 remove the worst solution if the solution list size is exceded, and update the incumbent bound if 
 the solution is better.
+
+Similar methods :
+
+    add_lp_primal_sol!(optstate, sol)
+    add_lp_dual_sol!(optstate, sol)
 """
 function add_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_ip_primal_sols == 0 && return
-    
-    if state.ip_primal_sols === nothing
-        state.ip_primal_sols = PrimalSolution{F}[]
-    end
     state.insert_function_ip_primal_sols(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     b = PrimalBound{S}(getvalue(sol))
     update_ip_primal_bound!(state.incumbents, b)
+    return
+end
+
+function add_ip_primal_sols!(state::OptimizationState, sols...)
+    for sol in sols
+        add_ip_primal_sol!(state, sol)
+    end
     return
 end
 
@@ -286,23 +259,33 @@ end
 
 Empties the list of solutions and add solution `sol` in the list.
 The incumbent bound is not updated even if the value of the solution is better.
+
+Similar methods :
+
+    set_lp_primal_sol!(optstate, sol)
+    set_lp_dual_sol!(optstate, sol)
 """
 function set_ip_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_ip_primal_sols == 0 && return
-    
-    if state.ip_primal_sols === nothing
-        state.ip_primal_sols = PrimalSolution{F}[]
-    end
     set!(state.ip_primal_sols, state.max_length_ip_primal_sols, sol)
     return
 end
 
+"""
+    empty_ip_primal_sols!(optstate)
+
+Remove all IP primal solutions from `optstate`.
+
+Similar methods :
+
+    empty_lp_primal_sols!(optstate)
+    empty_lp_dual_sols!(optstate)
+"""
+empty_ip_primal_sols!(state::OptimizationState) = empty!(state.ip_primal_sols)
+
+"Similar to [`update_ip_primal_sol!`](@ref)."
 function update_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_lp_primal_sols == 0 && return
-
-    if state.lp_primal_sols === nothing
-        state.lp_primal_sols = PrimalSolution{F}[]
-    end
     b = PrimalBound{S}(getvalue(sol))
     if update_lp_primal_bound!(state.incumbents, b)
         state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
@@ -310,35 +293,28 @@ function update_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSoluti
     return
 end
 
+"Similar to [`add_ip_primal_sol!`](@ref)."
 function add_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_lp_primal_sols == 0 && return
-    
-    if state.lp_primal_sols === nothing
-        state.lp_primal_sols = PrimalSolution{F}[]
-    end
-    
     state.insert_function_lp_primal_sols(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     b = PrimalBound{S}(getvalue(sol))
     update_lp_primal_bound!(state.incumbents, b)
     return
 end
 
+"Similar to [`set_ip_primal_sol!`](@ref)."
 function set_lp_primal_sol!(state::OptimizationState{F, S}, sol::PrimalSolution{F}) where {F, S}
     state.max_length_lp_primal_sols == 0 && return
-
-    if state.lp_primal_sols === nothing
-        state.lp_primal_sols = PrimalSolution{F}[]
-    end
     set!(state.lp_primal_sols, state.max_length_lp_primal_sols, sol)
     return
 end
 
+"Similar to [`empty_ip_primal_sols!`](@ref)."
+empty_lp_primal_sols!(state::OptimizationState) = empty!(state.lp_primal_sols)
+
+"Similar to [`update_ip_primal_sol!`](@ref)."
 function update_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
     state.max_length_lp_dual_sols == 0 && return
-
-    if state.lp_dual_sols === nothing
-        state.lp_dual_sols = DualSolution{F}[]
-    end
     b = DualBound{S}(getvalue(sol))
     if update_lp_dual_bound!(state.incumbents, b)
         state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
@@ -346,48 +322,44 @@ function update_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F
     return
 end
 
+"Similar to [`add_ip_primal_sol!`](@ref)."
 function add_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
     state.max_length_lp_dual_sols == 0 && return
-
-    if state.lp_dual_sols === nothing
-        state.lp_dual_sols = DualSolution{F}[]
-    end
     state.insert_function_lp_dual_sols(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     b = DualBound{S}(getvalue(sol))
     update_lp_dual_bound!(state.incumbents, b)
     return
 end
 
+"Similar to [`set_ip_primal_sol!`](@ref)."
 function set_lp_dual_sol!(state::OptimizationState{F, S}, sol::DualSolution{F}) where {F, S}
     state.max_length_lp_dual_sols == 0 && return
-
-    if state.lp_dual_sols === nothing
-        state.lp_dual_sols = DualSolution{F}[]
-    end
     set!(state.lp_dual_sols, state.max_length_lp_dual_sols, sol)
     return
 end
 
+"Similar to [`empty_ip_primal_sols!`](@ref)."
+empty_lp_dual_sols!(state::OptimizationState) = empty!(state.lp_dual_sols)
 
 function Base.print(io::IO, form::AbstractFormulation, optstate::OptimizationState)
     println(io, "┌ Optimization state ")
     println(io, "│ Termination status: ", optstate.termination_status)
     println(io, "| Incumbents: ", optstate.incumbents)
-    n = nb_ip_primal_sols(optstate)
+    n = length(optstate.ip_primal_sols)
     println(io, "| IP Primal solutions (",n,")")
     if n > 0
         for sol in optstate.ip_primal_sols
             print(io, form, sol)
         end
     end
-    n = nb_lp_primal_sols(optstate)
+    n = length(optstate.lp_primal_sols)
     println(io, "| LP Primal solutions (",n,"):")
     if n > 0
         for sol in optstate.lp_primal_sols
             print(io, form, sol)
         end
     end
-    n = nb_lp_dual_sols(optstate)
+    n = length(optstate.lp_dual_sols)
     println(io, "| LP Dual solutions (",n,"):")
     if n > 0
         for sol in optstate.lp_dual_sols

@@ -42,8 +42,9 @@ end
 
 function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
     optstate = OptimizationState(getmaster(form))
-    if nb_ip_primal_sols(init_optstate) > 0
-        add_ip_primal_sol!(optstate, get_best_ip_primal_sol(init_optstate))
+    best_ip_primal_sol = get_best_ip_primal_sol(init_optstate)
+    if best_ip_primal_sol !== nothing
+        add_ip_primal_sol!(optstate, best_ip_primal_sol)
     end
     return BendersCutGenRuntimeData(optstate, Dict{FormId, FormulationPhase}(), Dict{FormId, Bool}())#0.0, true)
 end

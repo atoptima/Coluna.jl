@@ -256,10 +256,11 @@ function run_conquer_algorithm!(
         algo.opt_rtol, algo.opt_atol
     )        
 
-    update_all_ip_primal_solutions!(treestate, nodestate)
+    add_ip_primal_sols!(treestate, get_ip_primal_sols(nodestate)...)
     
-    if algo.storelpsolution && isrootnode(node) && nb_lp_primal_sols(nodestate) > 0
-        set_lp_primal_sol!(treestate, get_best_lp_primal_sol(nodestate)) 
+    best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
+    if algo.storelpsolution && isrootnode(node) && best_lp_primal_sol !== nothing
+        set_lp_primal_sol!(treestate, best_lp_primal_sol) 
     end 
     return
 end
@@ -271,7 +272,7 @@ function run_divide_algorithm!(
     treestate = getoptstate(tsdata)
     output = run!(algo.dividealg, env, reform, DivideInput(node, treestate))
 
-    update_all_ip_primal_solutions!(treestate, getoptstate(output))
+    add_ip_primal_sols!(treestate, get_ip_primal_sols(getoptstate(output))...)
 
     @logmsg LogLevel(-1) string("Updating tree.")
 
@@ -348,7 +349,10 @@ function run!(
 
         remove_records!(node.recordids)
         # we delete solutions from the node optimization state, as they are not needed anymore
-        clear_solutions!(getoptstate(node))
+        nodestate = getoptstate(node)
+        empty_ip_primal_sols!(nodestate)
+        empty_lp_primal_sols!(nodestate)
+        empty_lp_dual_sols!(nodestate)
 
         if nodestatus == TIME_LIMIT
             println("Time limit is reached. Tree search is interrupted")
@@ -358,7 +362,7 @@ function run!(
     finish_branching_tree_file(algo)
 
     if treeisempty(tsdata) # it means that the BB tree has been fully explored
-        if nb_ip_primal_sols(tsdata.optstate) >= 1
+        if length(get_ip_primal_sols(tsdata.optstate)) >= 1
             if ip_gap_closed(tsdata.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)
                 setterminationstatus!(tsdata.optstate, OPTIMAL)
             else
@@ -375,7 +379,6 @@ function run!(
     while !treeisempty(tsdata)
         node = popnode!(tsdata)
         remove_records!(node.recordids)
-        clear_solutions!(node.optstate)
     end
 
     env.kpis.node_count = get_tree_order(tsdata) - 1 # TODO : check why we need to remove 1
