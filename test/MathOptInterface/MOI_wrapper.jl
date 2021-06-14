@@ -48,16 +48,16 @@ end
     model = BlockModel(coluna, direct_model=true)
     @variable(model, x)
     
-    @test BlockDecomposition.branchingpriority(model, x) == 1
-    BlockDecomposition.branchingpriority!(model, x, 2)
-    @test BlockDecomposition.branchingpriority(model, x) == 2
+    @test BlockDecomposition.branchingpriority(x) == 1
+    BlockDecomposition.branchingpriority!(x, 2)
+    @test BlockDecomposition.branchingpriority(x) == 2
     
     model2 = BlockModel(coluna)
     @variable(model2, x)
     
-    @test BlockDecomposition.branchingpriority(model2, x) == 1
-    BlockDecomposition.branchingpriority!(model2, x, 2)
-    @test BlockDecomposition.branchingpriority(model2, x) == 2
+    @test BlockDecomposition.branchingpriority(x) == 1
+    BlockDecomposition.branchingpriority!(x, 2)
+    @test BlockDecomposition.branchingpriority(x) == 2
 end
 
 @testset "write_to_file" begin

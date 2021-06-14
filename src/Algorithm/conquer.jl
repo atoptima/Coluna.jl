@@ -54,7 +54,7 @@ function apply_conquer_alg_to_node!(
         @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
     end
     if ip_gap_closed(nodestate, rtol = opt_rtol, atol = opt_atol)
-        @info "IP Gap is closed: $(ip_gap(getincumbents(nodestate))). Abort treatment."
+        @info "IP Gap is closed: $(ip_gap(nodestate)). Abort treatment."
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
@@ -69,6 +69,13 @@ end
 #                      ParameterisedHeuristic
 ####################################################################
 
+"""
+    Coluna.Algorithm.RestrictedMasterHeuristic()
+
+This algorithm enforces integrality of column variables in the master formulation and then solves the master formulation with its optimizer.
+"""
+RestrictedMasterIPHeuristic() = SolveIpForm(moi_params = MoiOptimize(get_dual_bound = false))
+
 struct ParameterisedHeuristic
     algorithm::AbstractOptimizationAlgorithm
     root_priority::Float64
@@ -78,14 +85,9 @@ struct ParameterisedHeuristic
     name::String
 end
 
-"""
-    Coluna.Algorithm.RestrictedMasterHeuristic()
-
-This algorithm enforces integrality of column variables in the master formulation and then solves the master formulation with its optimizer.
-"""
-RestrictedMasterHeuristic() = 
+ParamRestrictedMasterHeuristic() = 
     ParameterisedHeuristic(
-        SolveIpForm(moi_params = MoiOptimize(get_dual_bound = false)), 
+        RestrictedMasterIPHeuristic(), 
         1.0, 1.0, 1, 1000, "Restricted Master IP"
     )
 
@@ -124,7 +126,7 @@ end
 """
     Coluna.Algorithm.ColCutGenConquer(
         stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-        primal_heuristics::Vector{ParameterisedHeuristic} = [RestrictedMasterHeuristic()]
+        primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
         preprocess = PreprocessAlgorithm()
         cutgen = CutCallbacks()
         run_preprocessing::Bool = false
@@ -139,7 +141,7 @@ several primal heuristics to more efficiently find feasible solutions.
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-    primal_heuristics::Vector{ParameterisedHeuristic} = [RestrictedMasterHeuristic()]
+    primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
     preprocess = PreprocessAlgorithm()
     cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?

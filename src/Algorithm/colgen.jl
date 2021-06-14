@@ -319,27 +319,24 @@ function solve_sp_to_gencol!(
     compute_db_contributions!(spinfo, get_ip_dual_bound(sp_optstate), sp_sol_value)
 
     sense = getobjsense(masterform)
-    if nb_ip_primal_sols(sp_optstate) > 0
-        bestsol = get_best_ip_primal_sol(sp_optstate)
-
-        if bestsol.status == FEASIBLE_SOL
-            spinfo.bestsol = bestsol
-            spinfo.isfeasible = true
-            for sol in get_ip_primal_sols(sp_optstate)
-                if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
-                    insertion_status, col_id = setprimalsol!(spform, sol)
-                    if insertion_status
-                        push!(spinfo.recorded_sol_ids, col_id)
-                    elseif !insertion_status && haskey(masterform, col_id) && !iscuractive(masterform, col_id)
-                        push!(spinfo.sol_ids_to_activate, col_id)
-                    elseif !insertion_status && !haskey(masterform, col_id)
-                        @warn "The pricing problem generated the column with id $(col_id) twice."
-                    else
-                        msg = """
-                        Column already exists as $(getname(masterform, col_id)) and is already active.
-                        """
-                        @warn string(msg)
-                    end
+    bestsol = get_best_ip_primal_sol(sp_optstate)
+    if bestsol !== nothing && bestsol.status == FEASIBLE_SOL
+        spinfo.bestsol = bestsol
+        spinfo.isfeasible = true
+        for sol in get_ip_primal_sols(sp_optstate)
+            if improving_red_cost(compute_red_cost(algo, masterform, spinfo, sol, dualsol), algo, sense)
+                insertion_status, col_id = setprimalsol!(spform, sol)
+                if insertion_status
+                    push!(spinfo.recorded_sol_ids, col_id)
+                elseif !insertion_status && haskey(masterform, col_id) && !iscuractive(masterform, col_id)
+                    push!(spinfo.sol_ids_to_activate, col_id)
+                elseif !insertion_status && !haskey(masterform, col_id)
+                    @warn "The pricing problem generated the column with id $(col_id) twice."
+                else
+                    msg = """
+                    Column already exists as $(getname(masterform, col_id)) and is already active.
+                    """
+                    @warn string(msg)
                 end
             end
         end
@@ -351,7 +348,6 @@ function updatereducedcosts!(
     reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, dualsol::DualSolution
 )
     redcosts = deepcopy(redcostshelper.perencosts)
-    master = getmaster(reform)
 
     result = transpose(redcostshelper.dwsprep_coefmatrix) * getsol(dualsol)
 
@@ -642,10 +638,8 @@ function cg_main_loop!(
             return true, false
         end
 
-        lp_dual_sol = nothing
-        if nb_lp_dual_sols(rm_optstate) > 0
-            lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
-        else
+        lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
+        if lp_dual_sol === nothing
             error("Solver returned that the LP restricted master is feasible but ",
             "did not return a dual solution. ",
             "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
@@ -657,9 +651,8 @@ function cg_main_loop!(
         lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
 
         TO.@timeit Coluna._to "Getting primal solution" begin
-        if nb_lp_primal_sols(rm_optstate) > 0
-            rm_sol = get_best_lp_primal_sol(rm_optstate)
-
+        rm_sol = get_best_lp_primal_sol(rm_optstate)
+        if rm_sol !== nothing
             set_lp_primal_sol!(cg_optstate, rm_sol)
             lp_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)
             set_lp_primal_bound!(cg_optstate, lp_bound)

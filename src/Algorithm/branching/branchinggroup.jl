@@ -59,10 +59,9 @@ function regenerate_children!(group::BranchingGroup, parent::Node)
 end
 
 function product_score(group::BranchingGroup, parent_optstate::OptimizationState)
-    parent_inc = getincumbents(parent_optstate)
     # TO DO : we need to mesure the gap to the cut-off value
-    parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
-    parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
+    parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
+    parent_delta = diff(get_ip_primal_bound(parent_optstate), parent_lp_dual_bound)
 
     all_branches_above_delta = true
     deltas = zeros(Float64, length(group.children))
@@ -126,11 +125,9 @@ function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationSt
         return 0.0
     end
 
-    parent_inc = getincumbents(parent_optstate)
-    
     # TO DO : we need to mesure the gap to the cut-off value
-    parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
-    parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
+    parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
+    parent_delta = diff(get_ip_primal_bound(parent_optstate), parent_lp_dual_bound)
 
     deltas = zeros(Float64, length(group.children))
     nb_zero_deltas = 0

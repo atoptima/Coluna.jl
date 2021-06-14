@@ -84,7 +84,7 @@ function generalized_assignment_tests()
         # we increase the branching priority of variables which assign jobs to the first two machines
         for machine in 1:2
             for job in data.jobs
-                BD.branchingpriority!(model, x[machine,job], 2)
+                BD.branchingpriority!(x[machine,job], 2)
             end
         end  
 

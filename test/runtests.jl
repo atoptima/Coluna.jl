@@ -1,3 +1,4 @@
+using Base.CoreLogging: Error
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition

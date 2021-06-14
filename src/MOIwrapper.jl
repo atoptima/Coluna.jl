@@ -683,7 +683,7 @@ function MOI.get(optimizer::Optimizer, ::MOI.RawStatusString)
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.ResultCount)
-    return nb_ip_primal_sols(optimizer.result)
+    return length(get_ip_primal_sols(optimizer.result))
 end
 
 function MOI.get(
