@@ -12,7 +12,7 @@ abstract type AbstractBranchingCandidate end
 
 getdescription(candidate::AbstractBranchingCandidate) = ""
 generate_children!(
-    candidate::AbstractBranchingCandidate, lhs::Float64, env::Env, data::ReformData, 
+    candidate::AbstractBranchingCandidate, lhs::Float64, env::Env, reform::Reformulation, 
     node::Node
 ) = nothing
 
@@ -43,9 +43,9 @@ get_lhs_distance_to_integer(group::BranchingGroup) =
     min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)    
 
 function generate_children!(
-    group::BranchingGroup, env::Env, data::ReformData, parent::Node
+    group::BranchingGroup, env::Env, reform::Reformulation, parent::Node
 )
-    group.children = generate_children(group.candidate, group.lhs, env, data, parent)
+    group.children = generate_children(group.candidate, group.lhs, env, reform, parent)
     return
 end
 
@@ -59,10 +59,9 @@ function regenerate_children!(group::BranchingGroup, parent::Node)
 end
 
 function product_score(group::BranchingGroup, parent_optstate::OptimizationState)
-    parent_inc = getincumbents(parent_optstate)
     # TO DO : we need to mesure the gap to the cut-off value
-    parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
-    parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
+    parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
+    parent_delta = diff(get_ip_primal_bound(parent_optstate), parent_lp_dual_bound)
 
     all_branches_above_delta = true
     deltas = zeros(Float64, length(group.children))
@@ -126,11 +125,9 @@ function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationSt
         return 0.0
     end
 
-    parent_inc = getincumbents(parent_optstate)
-    
     # TO DO : we need to mesure the gap to the cut-off value
-    parent_lp_dual_bound = get_lp_dual_bound(parent_inc)
-    parent_delta = diff(get_ip_primal_bound(parent_inc), parent_lp_dual_bound)
+    parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
+    parent_delta = diff(get_ip_primal_bound(parent_optstate), parent_lp_dual_bound)
 
     deltas = zeros(Float64, length(group.children))
     nb_zero_deltas = 0

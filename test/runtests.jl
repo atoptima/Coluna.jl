@@ -1,3 +1,4 @@
+using Base.CoreLogging: Error
 using Coluna
 
 using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
@@ -23,14 +24,17 @@ const ClA = Coluna.Algorithm
 
 include("unit/unit_tests.jl")
 include("MathOptInterface/MOI_wrapper.jl")
+include("interfaces/model.jl")
 include("issues_tests.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
 include("user_algorithms_tests.jl")
 include("preprocessing_tests.jl")
 include("pricing_callback_tests.jl")
+include("bound_callback_tests.jl")
 include("optimizer_with_attributes_test.jl")
 include("subproblem_solvers_tests.jl")
+include("custom_var_cuts_tests.jl")
 
 rng = MersenneTwister(1234123)
 
@@ -52,6 +56,10 @@ end
     pricing_callback_tests()
 end
 
+@testset "bound callback" begin
+    bound_callback_tests()
+end
+
 @testset "Base.show functions " begin
     backup_stdout = stdout
     (rd_out, wr_out) = redirect_stdout()
@@ -67,4 +75,8 @@ end
 
 @testset "Subproblem Solvers" begin
     subproblem_solvers_test()
+end
+
+@testset "Custom Variables and Cuts" begin
+    custom_var_cuts_test()
 end

@@ -26,17 +26,53 @@ function get_units_usage(
     # we use units in the read only mode, as relaxing integrality
     # is reverted before the end of the algorithm, 
     # so the state of the formulation remains the same 
-    units_usage = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
-    push!(units_usage, (form, StaticVarConstrUnitPair, READ_ONLY))
+    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
+    push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
-        push!(units_usage, (form, MasterColumnsUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterBranchConstrsUnitPair, READ_ONLY))
-        push!(units_usage, (form, MasterCutsUnitPair, READ_ONLY))
+        push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
+        push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))
+        push!(units_usage, (form, MasterCutsUnit, READ_ONLY))
     end
     if algo.consider_partial_solution
-        push!(units_usage, (form, PartialSolutionUnitPair, READ_ONLY))
+        push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
     end
     return units_usage
+end
+
+function termination_status!(result::OptimizationState, optimizer::MoiOptimizer)
+    terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
+    if terminationstatus != MOI.INFEASIBLE &&
+            terminationstatus != MOI.DUAL_INFEASIBLE &&
+            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
+            terminationstatus != MOI.OPTIMIZE_NOT_CALLED &&
+            terminationstatus != MOI.INVALID_MODEL &&
+            terminationstatus != MOI.TIME_LIMIT
+
+        setterminationstatus!(result, convert_status(terminationstatus))
+
+        if MOI.get(getinner(optimizer), MOI.ResultCount()) <= 0
+            msg = """
+            Termination status = $(terminationstatus) but no results.
+            Please, open an issue at https://github.com/atoptima/Coluna.jl/issues
+            """
+            error(msg)
+        end
+    else
+        @warn "Solver has no result to show."
+        setterminationstatus!(result, INFEASIBLE)
+    end
+    return
+end
+
+function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::OptimizationState)
+    sync_solver!(optimizer, form)
+    nbvars = MOI.get(optimizer.inner, MOI.NumberOfVariables())
+    if nbvars <= 0
+        @warn "No variable in the formulation."
+    end
+    MOI.optimize!(getinner(optimizer))
+    termination_status!(result, optimizer)
+    return
 end
 
 function optimize_lp_form!(::SolveLpForm, optimizer, ::Formulation, ::OptimizationState) # fallback
@@ -46,13 +82,15 @@ end
 function optimize_lp_form!(
     algo::SolveLpForm, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
 )
-    MOI.set(form.optimizer.inner, MOI.Silent(), algo.silent)
+    MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
     optimize_with_moi!(optimizer, form, result)
     return
 end
 
-function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationInput)::OptimizationOutput
-    form = getmodel(data)
+function run!(
+    algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput, 
+    optimizer_id::Int = 1
+)::OptimizationOutput
     result = OptimizationState(form)
 
     TO.@timeit Coluna._to "SolveLpForm" begin
@@ -64,12 +102,12 @@ function run!(algo::SolveLpForm, env::Env, data::ModelData, input::OptimizationI
     partial_sol = nothing
     partial_sol_val = 0.0
     if algo.consider_partial_solution
-        partsolunit = getunit(data, PartialSolutionUnitPair)
+        partsolunit = getstorageunit(form, PartialSolutionUnit)
         partial_sol = get_primal_solution(partsolunit, form)
         partial_sol_val = getvalue(partial_sol)
     end
 
-    optimizer = getoptimizer(form)
+    optimizer = getoptimizer(form, optimizer_id)
     optimize_lp_form!(algo, optimizer, form, result)
     primal_sols = get_primal_solutions(form, optimizer)
 

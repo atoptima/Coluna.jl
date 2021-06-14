@@ -18,10 +18,12 @@ mutable struct FormulationManager
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     expressions::VarVarMatrix # cols = variables, rows = expressions
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables
+    primal_sols_custom_data::Dict{VarId, AbstractCustomData}
     primal_sol_costs::DynSparseVector{VarId} # primal solutions with varid map to their cost
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
     dual_sol_rhss::DynSparseVector{ConstrId} # dual solutions with constrid map to their rhs
     robust_constr_generators::Vector{RobustConstraintsGenerator}
+    custom_families_id::Dict{DataType,Int}
 end
 
 function FormulationManager()
@@ -34,10 +36,12 @@ function FormulationManager()
         dynamicsparse(ConstrId, VarId, Float64),
         dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         dynamicsparse(VarId, VarId, Float64; fill_mode = false),
+        Dict{VarId,Any}(),
         dynamicsparsevec(VarId[], Float64[]),
         dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
         dynamicsparsevec(ConstrId[], Float64[]),
-        RobustConstraintsGenerator[]
+        RobustConstraintsGenerator[],
+        Dict{DataType, Int}()
     )
 end
 

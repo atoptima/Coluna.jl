@@ -5,9 +5,12 @@ MaxSense = Coluna.AbstractMaxSense
 
 CB = Coluna.ColunaBase
 
-function bound_unit()
+struct FakeModel <: CB.AbstractModel end
 
+function bound_unit()
     @testset "Bound" begin
+        # Make sure that Coluna initializes bounds to infinity.
+        # Check that initial value of the bound is correct.
         pb = CB.Bound{Primal,MinSense}()
         @test pb == Inf
         @test CB.getvalue(pb) == Inf
@@ -245,8 +248,6 @@ function test_solution_iterations(solution::CB.Solution, dict::Dict)
     return
 end
 
-struct FakeModel <: CB.AbstractModel end
-
 function solution_unit()
     @testset "MOI Termination Status" begin
         @test CB.convert_status(MOI.OPTIMAL) == CB.OPTIMAL
@@ -279,30 +280,32 @@ function solution_unit()
         @test CB.convert_status(CB.UNCOVERED_SOLUTION_STATUS) == MOI.OTHER_RESULT_STATUS
     end
 
-    model = FakeModel()
+    @testset "Solution" begin
+        model = FakeModel()
 
-    Solution = CB.Solution{FakeModel,Int,Float64}
+        Solution = CB.Solution{FakeModel,Int,Float64}
 
-    dict_sol, soldecs, solvals = fake_solution_factory(100)
-    primal_sol = Solution(model, soldecs, solvals, 12.3, CB.FEASIBLE_SOL)
-    test_solution_iterations(primal_sol, dict_sol)
-    @test CB.getvalue(primal_sol) == 12.3
-    @test CB.getstatus(primal_sol) == CB.FEASIBLE_SOL
-    
-    dict_sol = Dict(1 => 2.0, 2 => 3.0, 3 => 4.0)
-    primal_sol = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 0.0, Coluna.ColunaBase.FEASIBLE_SOL)
-    
-    @test iterate(primal_sol) == iterate(primal_sol.sol)
-    _, state = iterate(primal_sol)
-    @test iterate(primal_sol, state) == iterate(primal_sol.sol, state)
-    @test length(primal_sol) == 3
-    @test primal_sol[1] == 2.0
-    primal_sol[1] = 5.0 # change the value
-    @test primal_sol[1] == 5.0
-    
-    io = IOBuffer()
-    show(io, primal_sol)
+        dict_sol, soldecs, solvals = fake_solution_factory(100)
+        primal_sol = Solution(model, soldecs, solvals, 12.3, CB.FEASIBLE_SOL)
+        test_solution_iterations(primal_sol, dict_sol)
+        @test CB.getvalue(primal_sol) == 12.3
+        @test CB.getstatus(primal_sol) == CB.FEASIBLE_SOL
+        
+        dict_sol = Dict(1 => 2.0, 2 => 3.0, 3 => 4.0)
+        primal_sol = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 0.0, Coluna.ColunaBase.FEASIBLE_SOL)
+        
+        @test iterate(primal_sol) == iterate(primal_sol.sol)
+        _, state = iterate(primal_sol)
+        @test iterate(primal_sol, state) == iterate(primal_sol.sol, state)
+        @test length(primal_sol) == 3
+        @test primal_sol[1] == 2.0
+        primal_sol[1] = 5.0 # change the value
+        @test primal_sol[1] == 5.0
+        
+        io = IOBuffer()
+        show(io, primal_sol)
 
-    @test String(take!(io)) == "Solution\n| 1 = 5.0\n| 2 = 3.0\n| 3 = 4.0\n└ value = 0.00 \n"
+        @test String(take!(io)) == "Solution\n| 1 = 5.0\n| 2 = 3.0\n| 3 = 4.0\n└ value = 0.00 \n"
+    end
     return
 end

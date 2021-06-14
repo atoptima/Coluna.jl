@@ -78,6 +78,7 @@ mutable struct Variable <: AbstractVarConstr
     curdata::VarData
     branching_priority::Float64
     moirecord::MoiVarRecord
+    custom_data::Union{Nothing, AbstractCustomData}
 end
 
 const VarId = Id{Variable}
@@ -85,11 +86,11 @@ const VarId = Id{Variable}
 getid(var::Variable) = var.id
 
 function Variable(
-    id::VarId, name::String; var_data = VarData(), branching_priority::Float64 = 1.0,
-    moi_index::MoiVarIndex = MoiVarIndex()
+    id::VarId, name::String; var_data = VarData(), moi_index::MoiVarIndex = MoiVarIndex(),
+    custom_data::Union{Nothing, AbstractCustomData} = nothing, branching_priority = 1.0
 )
     return Variable(
         id, name, var_data, VarData(var_data), branching_priority,
-        MoiVarRecord(index = moi_index)
+        MoiVarRecord(index = moi_index), custom_data
     )
 end

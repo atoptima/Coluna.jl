@@ -11,19 +11,20 @@ end
 getdescription(candidate::VarBranchingCandidate) = candidate.description
 
 function generate_children(
-    candidate::VarBranchingCandidate, lhs::Float64, env::Env, data::ReformData, parent::Node
+    candidate::VarBranchingCandidate, lhs::Float64, env::Env, reform::Reformulation, parent::Node
 )
-    master = getmaster(getreform(data))
-    var = getvar(master, candidate.varid)
+    master = getmaster(reform)
 
     @logmsg LogLevel(-1) string(
         "Chosen branching variable : ",
         getname(master, candidate.varid), " with value ", lhs, "."
     )
 
-    units_to_restore = UnitsUsageDict(
-        (master, MasterBranchConstrsUnitPair) => READ_AND_WRITE
-        #(master, BasisUnit) => READ_AND_WRITE) # not yet implemented
+    units_to_restore = UnitsUsage()
+    set_permission!(
+        units_to_restore,
+        getstoragewrapper(master, MasterBranchConstrsUnit),
+        READ_AND_WRITE
     )
 
     #adding the first branching constraints
@@ -38,7 +39,7 @@ function generate_children(
     )
     end
     child1description = candidate.description * ">=" * string(ceil(lhs))
-    child1 = Node(master, parent, child1description, store_records!(data))
+    child1 = Node(master, parent, child1description, store_records!(reform))
 
     #adding the second branching constraints
     restore_from_records!(units_to_restore, copy_records(parent.recordids))
@@ -53,7 +54,7 @@ function generate_children(
     )
     end
     child2description = candidate.description * "<=" * string(floor(lhs))
-    child2 = Node(master, parent, child2description, store_records!(data))
+    child2 = Node(master, parent, child2description, store_records!(reform))
 
     return [child1, child2]
 end
@@ -72,16 +73,16 @@ end
 # VarBranchingRule does not have child algorithms
 
 function get_units_usage(algo::VarBranchingRule, reform::Reformulation) 
-    return [(getmaster(reform), MasterBranchConstrsUnitPair, READ_AND_WRITE)] 
+    return [(getmaster(reform), MasterBranchConstrsUnit, READ_AND_WRITE)] 
 end
 
 function run!(
-    rule::VarBranchingRule, env::Env, data::ReformData, input::BranchingRuleInput
+    rule::VarBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput
 )::BranchingRuleOutput
     # variable branching works only for the original solution
     !input.isoriginalsol && return BranchingRuleOutput(input.local_id, Vector{BranchingGroup}())
 
-    master = getmaster(getreform(data))
+    master = getmaster(reform)
     groups = Vector{BranchingGroup}()
     local_id = input.local_id
     for (var_id, val) in input.solution

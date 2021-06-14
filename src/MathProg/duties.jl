@@ -15,7 +15,11 @@ struct DwMaster <: AbstractMasterDuty end
 struct BendersMaster <: AbstractMasterDuty end
 
 "A pricing subproblem of a formulation decomposed using Dantzig-Wolfe."
-struct DwSp <: AbstractSpDuty end
+mutable struct DwSp <: AbstractSpDuty 
+    setup_var::Union{VarId, Nothing}
+    lower_multiplicity::Int
+    upper_multiplicity::Int
+end
 
 "A Benders subproblem of a formulation decomposed using Benders."
 struct BendersSp <: AbstractSpDuty end
@@ -27,7 +31,7 @@ struct BendersSp <: AbstractSpDuty end
     Duty{Variable}
         AbstractOriginalVar <= Duty{Variable}
             OriginalVar <= AbstractOriginalVar
-            OriginalExpression <= AbstractOriginalVar
+            #OriginalExpression <= AbstractOriginalVar
         AbstractMasterVar <= Duty{Variable}
             AbstractOriginMasterVar <= AbstractMasterVar
                 MasterPureVar <= AbstractOriginMasterVar
@@ -52,7 +56,6 @@ struct BendersSp <: AbstractSpDuty end
             BendSpSepVar <= AbstractBendSpVar
             BendSpPureVar <= AbstractBendSpVar
             BendSpPrimalSol <= AbstractBendSpVar
-        UndefinedVarDuty <= Duty{Variable}
 end
 
 #
@@ -68,28 +71,27 @@ end
                 MasterMixedConstr <= AbstractMasterOriginConstr
             AbstractMasterAddedConstr <= AbstractMasterConstr
                 MasterConvexityConstr <= AbstractMasterAddedConstr
-                MasterSecondStageCostConstr <= AbstractMasterAddedConstr
-            AbstractMasterImplicitConstr <= AbstractMasterConstr
-                AbstractMasterRepBendSpConstr <= AbstractMasterImplicitConstr
-                    MasterRepBendSpSecondStageCostConstr <= AbstractMasterRepBendSpConstr
-                    MasterRepBendSpTechnologicalConstr <= AbstractMasterRepBendSpConstr
+                #MasterSecondStageCostConstr <= AbstractMasterAddedConstr
+            #AbstractMasterImplicitConstr <= AbstractMasterConstr
+                #AbstractMasterRepBendSpConstr <= AbstractMasterImplicitConstr
+                    #MasterRepBendSpSecondStageCostConstr <= AbstractMasterRepBendSpConstr
+                    #MasterRepBendSpTechnologicalConstr <= AbstractMasterRepBendSpConstr
             AbstractMasterCutConstr <= AbstractMasterConstr
                 MasterBendCutConstr <= AbstractMasterCutConstr
                 MasterUserCutConstr <= AbstractMasterCutConstr
             AbstractMasterBranchingConstr <= AbstractMasterConstr
-            MasterBranchOnOrigVarConstr <= AbstractMasterBranchingConstr
+                MasterBranchOnOrigVarConstr <= AbstractMasterBranchingConstr
         AbstractDwSpConstr <= Duty{Constraint}
             DwSpPureConstr <= AbstractDwSpConstr
-            DwSpDualSol <= AbstractDwSpConstr
-            DwSpRepMastBranchConstr <= AbstractDwSpConstr
-        AbstractBendSpPureConstr <= Duty{Constraint}
+            # <= AbstractDwSpConstr
+            #DwSpRepMastBranchConstr <= AbstractDwSpConstr
+        #AbstractBendSpPureConstr <= Duty{Constraint}
         AbstractBendSpConstr <= Duty{Constraint}
             AbstractBendSpMasterConstr <= AbstractBendSpConstr
                 BendSpSecondStageCostConstr <= AbstractBendSpMasterConstr
                 BendSpTechnologicalConstr <= AbstractBendSpMasterConstr
             BendSpPureConstr <= AbstractBendSpConstr
             BendSpDualSol <= AbstractBendSpConstr
-        UndefinedConstrDuty <= Duty{Constraint}
 end
 
 #
@@ -97,7 +99,7 @@ end
 #
 function isaStaticDuty(duty::NestedEnum)
     return duty <= OriginalVar ||
-    duty <= OriginalExpression ||
+    #duty <= OriginalExpression ||
     duty <= MasterPureVar ||
     duty <= MasterArtVar ||
     duty <= MasterBendSecondStageCostVar ||
@@ -117,7 +119,7 @@ function isaStaticDuty(duty::NestedEnum)
     duty <= MasterPureConstr ||
     duty <= MasterMixedConstr ||
     duty <= MasterConvexityConstr ||
-    duty <= MasterSecondStageCostConstr ||
+    #duty <= MasterSecondStageCostConstr ||
     duty <= DwSpPureConstr ||
     duty <= BendSpPureConstr ||
     duty <= BendSpDualSol ||
@@ -130,9 +132,9 @@ function isaDynamicDuty(duty::NestedEnum)
     duty <= MasterCol ||
     duty <= MasterBranchOnOrigVarConstr ||
     duty <= MasterBendCutConstr ||
-    duty <= MasterBranchOnOrigVarConstr ||
-    duty <= DwSpRepMastBranchConstr ||
-    duty <= DwSpRepMastBranchConstr
+    duty <= MasterBranchOnOrigVarConstr
+    #duty <= DwSpRepMastBranchConstr ||
+    #duty <= DwSpRepMastBranchConstr
 end
 
 function isanOriginalRepresentatives(duty::NestedEnum)

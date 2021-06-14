@@ -3,10 +3,12 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     var_counter::Int
     constr_counter::Int
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
-    optimizer::AbstractOptimizer
+    optimizers::Vector{AbstractOptimizer}
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
+    storage::Storage
+    duty_data::Duty
 end
 
 """
@@ -14,28 +16,37 @@ end
 
     create_formulation!(
         env::Coluna.Env,
-        duty::Type{<:AbstractFormDuty};
+        duty::AbstractFormDuty;
         parent_formulation = nothing,
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
     )
 
-    Create a new formulation in the Coluna's environment `env` with duty `duty`,
-    parent formulation `parent_formulation`, and objective sense `obj_sense`.
+Create a new formulation in the Coluna's environment `env`.
+Arguments are `duty` that contains specific information related to the duty of
+the formulation, `parent_formulation` that is the parent formulation (master for a subproblem, 
+reformulation for a master, `nothing` by default), and `obj_sense` the sense of the objective 
+function (`MinSense` or `MaxSense`).
 """
 function create_formulation!(
-    env::Coluna.Env,
-    duty::Type{<:AbstractFormDuty};
+    env,
+    duty::AbstractFormDuty;
     parent_formulation = nothing,
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense
 )
     if env.form_counter >= MAX_NB_FORMULATIONS
         error("Maximum number of formulations reached.")
     end
-    return Formulation{duty}(
-        env.form_counter += 1, 0, 0, parent_formulation, NoOptimizer(), 
-        FormulationManager(), obj_sense, FormulationBuffer()
+    return Formulation(
+        env.form_counter += 1, 0, 0, parent_formulation, AbstractOptimizer[], 
+        FormulationManager(), obj_sense, FormulationBuffer(), Storage(), duty
     )
 end
+
+# methods of the AbstractModel interface
+
+ColunaBase.getstorage(form::Formulation) = form.storage
+
+# methods specific to Formulation
 
 """
     haskey(formulation, id) -> Bool
@@ -94,24 +105,35 @@ getuid(form::Formulation) = form.uid
 getobjsense(form::Formulation) = form.obj_sense
 
 "Returns the `AbstractOptimizer` of `Formulation` `form`."
-getoptimizer(form::Formulation) = form.optimizer
+function getoptimizer(form::Formulation, id::Int)
+    if id <= 0 && id > length(form.optimizers)
+        return NoOptimizer()
+    end
+    return form.optimizers[id]
+end
+getoptimizers(form::Formulation) = form.optimizers
 
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form))
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form))
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1)
+generatevarid(
+    duty::Duty{Variable}, form::Formulation, custom_family_id::Int
+) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id)
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_formulation
+
+getstoragedict(form::Formulation) = form.storage.units
 
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
 """
     set_matrix_coeff!(form::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
 
-Buffers the matrix modification in `form.buffer` to be sent to `form.optimizer` right before next call to optimize!.
+Buffers the matrix modification in `form.buffer` to be sent to the optimizers right before next call to optimize!.
 """
 set_matrix_coeff!(
     form::Formulation, varid::VarId, constrid::ConstrId, new_coeff::Float64
@@ -153,6 +175,7 @@ function setvar!(
     is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex(),
     members::Union{ConstrMembership,Nothing} = nothing,
+    custom_data::Union{Nothing, AbstractCustomData} = nothing,
     id = generatevarid(duty, form),
     branching_priority::Float64 = 1.0
 )
@@ -161,12 +184,21 @@ function setvar!(
         ub = (ub > 1.0) ? 1.0 : ub
     end
     if getduty(id) != duty
-        id = VarId(duty, id)
+        id = VarId(duty, id, -1)
+    end
+    if custom_data !== nothing
+        id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
-    var = Variable(id, name; var_data = v_data, moi_index = moi_index, branching_priority = branching_priority)
+    var = Variable(
+        id, name;
+        var_data = v_data,
+        moi_index = moi_index,
+        custom_data = custom_data,
+        branching_priority = branching_priority
+    )
     _addvar!(form, var)
-    members !== nothing && _setmembers!(form, var, members)
+    _setmembers!(form, var, members)
     return var
 end
 
@@ -180,12 +212,14 @@ end
 
 function _addprimalsol!(form::Formulation, sol_id::VarId, sol::PrimalSolution, cost::Float64)
     for (var_id, var_val) in sol
-        var = getvar(form, var_id)
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
             form.manager.primal_sols[var_id, sol_id] = var_val
         end
     end
     form.manager.primal_sol_costs[sol_id] = cost
+    if sol.custom_data !== nothing
+        form.manager.primal_sols_custom_data[sol_id] = sol.custom_data
+    end
     return sol_id
 end
 
@@ -208,7 +242,10 @@ function setprimalsol!(form::Formulation, new_primal_sol::PrimalSolution)::Tuple
     end
 
     # no identical column, we insert a new column
-    new_sol_id = generatevarid(DwSpPrimalSol, form)
+    custom_family_id = get(
+        form.parent_formulation.manager.custom_families_id, typeof(new_primal_sol.custom_data), -1
+    )
+    new_sol_id = generatevarid(DwSpPrimalSol, form, custom_family_id)
     _addprimalsol!(form, new_sol_id, new_primal_sol, new_cost)
     return (true, new_sol_id)
 end
@@ -266,7 +303,7 @@ function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId, name::String,
     duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous,
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
-    moi_index::MoiVarIndex = MoiVarIndex()
+    moi_index::MoiVarIndex = MoiVarIndex(), custom_data::Union{Nothing, AbstractCustomData} = nothing
 )
     cost = getprimalsolcosts(spform)[sol_id]
     master_coef_matrix = getcoefmatrix(masterform)
@@ -291,7 +328,8 @@ function setcol_from_sp_primalsol!(
         is_explicit = is_explicit,
         moi_index = moi_index,
         members = members,
-        id = sol_id
+        id = sol_id,
+        custom_data = get(spform.manager.primal_sols_custom_data, sol_id, nothing)
     )
     return mast_col
 end
@@ -376,14 +414,21 @@ function setconstr!(
     moi_index::MoiConstrIndex = MoiConstrIndex(),
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
+    custom_data::Union{Nothing, AbstractCustomData} = nothing,
     id = generateconstrid(duty, form)
 )
     if getduty(id) != duty
-        id = ConstrId(duty, id)
+        id = ConstrId(duty, id, -1)
+    end
+    if custom_data !== nothing
+        id = ConstrId(
+            duty, id, custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
+        )
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
-    constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index)
-    members !== nothing && _setmembers!(form, constr, members)
+    constr = Constraint(id, name; constr_data = c_data, moi_index = moi_index, custom_data = custom_data)
+
+    _setmembers!(form, constr, members)
     _addconstr!(form.manager, constr)
     if loc_art_var_abs_cost != 0.0
         _addlocalartvar!(form, constr, loc_art_var_abs_cost)
@@ -463,7 +508,8 @@ function relax_integrality!(form::Formulation) # TODO remove : should be in Algo
     return
 end
 
-function _setmembers!(form::Formulation, var::Variable, members::ConstrMembership)
+_setrobustmembers!(::Formulation, ::Variable, ::Nothing) = nothing
+function _setrobustmembers!(form::Formulation, var::Variable, members::ConstrMembership)
     coef_matrix = getcoefmatrix(form)
     varid = getid(var)
     for (constrid, constr_coeff) in members
@@ -472,31 +518,66 @@ function _setmembers!(form::Formulation, var::Variable, members::ConstrMembershi
     return
 end
 
-function _setmembers!(form::Formulation, constr::Constraint, members::VarMembership)
+_setrobustmembers!(::Formulation, ::Constraint, ::Nothing) = nothing
+function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarMembership)
     # Compute row vector from the recorded subproblem solution
     # This adds the column to the convexity constraints automatically
     # since the setup variable is in the sp solution and it has a
     # a coefficient of 1.0 in the convexity constraints
-    @logmsg LogLevel(-2) string("Setting members of constraint ", getname(form, constr))
     coef_matrix = getcoefmatrix(form)
     constrid = getid(constr)
-    @logmsg LogLevel(-4) "Members are : ", members
 
     for (varid, var_coeff) in members
         # Add coef for its own variables
-        var = getvar(form, varid)
         coef_matrix[constrid, varid] = var_coeff
-        @logmsg LogLevel(-4) string("Adding variable ", getname(form, var), " with coeff ", var_coeff)
 
         if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(varid)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
             for (col_id, col_coeff) in @view getprimalsolmatrix(spform)[varid,:]
-                @logmsg LogLevel(-4) string("Adding column ", getname(form, col_id), " with coeff ", col_coeff * var_coeff)
                 coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
         end
+    end
+    return
+end
+
+# interface ==> move ?
+function computecoeff(::Variable, var_custom_data, ::Constraint, constr_custom_data)
+    error("computecoeff not defined for variable with $(typeof(var_custom_data)) & constraint with $(typeof(constr_custom_data)).")
+end
+
+function _computenonrobustmembers(form::Formulation, var::Variable)
+    coef_matrix = getcoefmatrix(form)
+    for (constrid, constr) in getconstrs(form) # TODO : improve because we loop over all constraints
+        if constrid.custom_family_id !== -1
+            coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
+            if coeff !== 0
+                coef_matrix[constrid, getid(var)] = coeff
+            end
+        end
+    end
+    return
+end
+
+function _computenonrobustmembers(form::Formulation, constr::Constraint)
+    coef_matrix = getcoefmatrix(form)
+    for (varid, var) in getvars(form) # TODO : improve because we loop over all variables
+        if varid.custom_family_id !== -1
+            coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
+            if coeff !== 0
+                coef_matrix[getid(constr), varid] = coeff
+            end
+        end
+    end
+    return
+end
+
+function _setmembers!(form::Formulation, varconstr, members)
+    _setrobustmembers!(form, varconstr, members)
+    if getid(varconstr).custom_family_id !== -1
+        _computenonrobustmembers(form, varconstr)
     end
     return
 end
@@ -506,16 +587,6 @@ function set_objective_sense!(form::Formulation, min::Bool)
         form.obj_sense = MinSense
     else
         form.obj_sense = MaxSense
-    end
-    return
-end
-
-function remove_from_optimizer!(ids::Set{Id{T}}, form::Formulation) where {
-    T <: AbstractVarConstr}
-    for id in ids
-        vc = getelem(form, id)
-        @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(form, vc))
-        remove_from_optimizer!(form, vc)
     end
     return
 end
@@ -557,10 +628,10 @@ function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)
     return val
 end
 
-function initialize_optimizer!(form::Formulation, builder::Function)
+function push_optimizer!(form::Formulation, builder::Function)
     opt = builder()
-    form.optimizer = opt
-    _initialize_optimizer!(opt, form)
+    push!(form.optimizers, opt)
+    initialize_optimizer!(opt, form)
     return
 end
 
@@ -640,14 +711,16 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
     return
 end
 
-function write_to_LP_file(form::Formulation, filename::String)
-    optimizer = getoptimizer(form)
-    if isa(optimizer, MoiOptimizer)
-        src = getinner(optimizer)
-        dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_LP)
-        MOI.copy_to(dest, src)
-        MOI.write_to_file(dest, filename)
-    end
+function addcustomvars!(form::Formulation, type::DataType)
+    haskey(form.manager.custom_families_id, type) && return
+    form.manager.custom_families_id[type] = length(form.manager.custom_families_id)
+    return
+end
+
+function addcustomconstrs!(form::Formulation, type::DataType)
+    haskey(form.manager.custom_families_id, type) && return
+    form.manager.custom_families_id[type] = length(form.manager.custom_families_id)
+    return
 end
 
 # function getspsol(master::Formulation{DwMaster}, col_id::VarId)

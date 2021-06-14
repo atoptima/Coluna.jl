@@ -152,7 +152,6 @@ function setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64)
 end
 setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setcurrhs!(form, getconstr(form, constrid), rhs)
 
-
 # Variable & Constraints
 ## kind
 """
@@ -264,7 +263,8 @@ end
     getperenincval(formulation, varconstr)
 
 Return the incumbent value as defined by the user of a variable or a constraint in a formulation. 
-The incumbent value is ?
+The incumbent value is the primal value associated to a variable or the dual value associated to
+a constraint.
 """
 getperenincval(form::Formulation, varid::VarId) = getperenincval(form, getvar(form, varid))
 getperenincval(form::Formulation, var::Variable) = var.perendata.inc_val

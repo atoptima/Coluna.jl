@@ -43,16 +43,16 @@ include("MOIinterface.jl")
 
 # TODO : clean up
 # Types
-export  MaxSense, MinSense, MoiOptimizer,
+export  MaxSense, MinSense,
         Id, ConstrSense, VarSense,
         FormId, FormulationPhase, Annotations,
-        Counter, UserOptimizer, MoiObjective
+        Counter, MoiObjective
 
 # Methods
 export no_optimizer_builder, set_original_formulation!,
        getid, getuid,
        enforce_integrality!, relax_integrality!,
-       getobjsense, getoptimizer,
+       getobjsense, getoptimizer, getoptimizers,
        setdualbound!,
        computereducedcost,
        update!,
@@ -83,7 +83,7 @@ export AbstractFormulation, Formulation, create_formulation!, getreformulation, 
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
-    getobjconst, setobjconst!
+    push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp
@@ -100,14 +100,12 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     isexplicit, getname, getbranchingpriority, reset!, getreducedcost
 
 # Types & methods related to solutions & bounds
-export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues,
-    get_ip_primal_bound, get_lp_primal_bound,
-    get_ip_dual_bound, get_lp_dual_bound, update_ip_primal_bound!, update_lp_primal_bound!,
-    update_ip_dual_bound!, update_lp_dual_bound!, set_ip_primal_bound!,
-    set_lp_primal_bound!, set_ip_dual_bound!, set_lp_dual_bound!, ip_gap, lp_gap, ip_gap_closed, 
-    lp_gap_closed
+export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues
 
 # Methods related to projections
 export projection_is_possible, proj_cols_on_rep
+
+# Optimizers of formulations
+export MoiOptimizer, CustomOptimizer, UserOptimizer, NoOptimizer
 
 end

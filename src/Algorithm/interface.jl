@@ -58,22 +58,22 @@ each child algorithm is applied.
 get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
-    get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, UnitTypePair, UnitAccessMode}}
+    get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, UnitType, UnitPermission}}
 
 Every algorithm should communicate the storage units it uses (so that these units 
 are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
 in order to restore units before running a worker algorithm.
 """
-get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitTypePair, UnitAccessMode}[] 
+get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitType, UnitPermission}[] 
 
 """
-    run!(algo::AbstractAlgorithm, model::AbstractData, input::AbstractInput)::AbstractOutput
+    run!(algo::AbstractAlgorithm, model::AbstractModel, input::AbstractInput)::AbstractOutput
 
 Runs the algorithm. The storage unit of the algorithm can be obtained from the data
 Returns algorithm's output.    
 """
-function run!(algo::AbstractAlgorithm, env::Env, data::AbstractData, input::AbstractInput)::AbstractOutput
-    error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(data)), $(typeof(input)).")
+function run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input::AbstractInput)::AbstractOutput
+    error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(model)), $(typeof(input)).")
 end
 
 """
@@ -114,11 +114,12 @@ exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 # this function collects storage units to restore for an algorithm and all its child worker algorithms,
 # child manager algorithms are skipped, as their restore units themselves
 function collect_units_to_restore!(
-    global_units_usage::UnitsUsageDict, algo::AbstractAlgorithm, model::AbstractModel
+    global_units_usage::UnitsUsage, algo::AbstractAlgorithm, model::AbstractModel
 )
     local_units_usage = get_units_usage(algo, model)
-    for (unit_model, unit_pair, unit_usage) in local_units_usage
-        add_unit_pair_usage!(global_units_usage, unit_model, unit_pair, unit_usage)
+    for (unit_model, unit_type, unit_usage) in local_units_usage
+        storage = getstoragewrapper(unit_model, unit_type)
+        set_permission!(global_units_usage, storage, unit_usage)
     end
 
     child_algos = get_child_algorithms(algo, model)
@@ -130,12 +131,12 @@ end
 # this function collects units to create for an algorithm and all its child algorithms
 # this function is used only the function initialize_storage_units! below
 function collect_units_to_create!(
-    units_to_create::Dict{AbstractModel,Set{UnitTypePair}}, algo::AbstractAlgorithm, model::AbstractModel
+    units_to_create::Dict{AbstractModel,Set{UnitType}}, algo::AbstractAlgorithm, model::AbstractModel
 )
     units_usage = get_units_usage(algo, model)
     for (unit_model, unit_pair, unit_usage) in units_usage
         if !haskey(units_to_create, unit_model)
-            units_to_create[unit_model] = Set{UnitTypePair}()
+            units_to_create[unit_model] = Set{UnitType}()
         end
         push!(units_to_create[unit_model], unit_pair)
     end
@@ -147,23 +148,23 @@ function collect_units_to_create!(
 end
 
 # this function initializes all the storage units
-function initialize_storage_units!(data::AbstractData, algo::AbstractOptimizationAlgorithm)
-    units_to_create = Dict{AbstractModel,Set{UnitTypePair}}()
-    collect_units_to_create!(units_to_create, algo, getmodel(data)) 
+function initialize_storage_units!(reform::Reformulation, algo::AbstractOptimizationAlgorithm)
+    units_to_create = Dict{AbstractModel,Set{UnitType}}()
+    collect_units_to_create!(units_to_create, algo, reform) 
 
-    for (model, type_pair_set) in units_to_create        
-        #println(IOContext(stdout, :compact => true), model, " ", type_pair_set)
+    for (model, types_of_storage_unit) in units_to_create        
         ModelType = typeof(model)
-        storagedict = get_model_storage_dict(data, model)
+        storagedict = model.storage.units
         if storagedict === nothing
             error(string("Model of type $(typeof(model)) with id $(getuid(model)) ",
                          "is not contained in $(getnicename(data))")                        
             )
-        end   
-        for type_pair in type_pair_set
-            (StorageUnitType, RecordType) = type_pair
-            storagedict[type_pair] = 
-                Storage{ModelType, StorageUnitType, RecordType}(model)
+        end
+
+        for storage_unit_type in types_of_storage_unit
+            storagedict[storage_unit_type] = StorageUnitWrapper{
+                ModelType, storage_unit_type, record_type(storage_unit_type)
+            }(model)
         end
     end
 end

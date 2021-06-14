@@ -21,23 +21,20 @@ function MOI.submit(
     cb::BD.PricingSolution{MathProg.PricingCallbackData},
     cost::Float64,
     variables::Vector{MOI.VariableIndex},
-    values::Vector{Float64}
+    values::Vector{Float64},
+    custom_data::Union{Nothing, AbstractCustomData} = nothing
 )
     form = cb.callback_data.form
-    S = getobjsense(form)
     solval = cost
     colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]
 
     # setup variable
-    setup_var_id = [id for (id,v) in Iterators.filter(
-        v -> (iscuractive(form, v.first) && isexplicit(form, v.first) && getduty(v.first) <= DwSpSetupVar),
-        getvars(form)
-    )][1]
+    setup_var_id = form.duty_data.setup_var
     push!(colunavarids, setup_var_id)
     push!(values, 1.0)
     solval += getcurcost(form, setup_var_id)
 
-    sol = PrimalSolution(form, colunavarids, values, solval, FEASIBLE_SOL)
+    sol = PrimalSolution(form, colunavarids, values, solval, FEASIBLE_SOL, custom_data)
     push!(cb.callback_data.primal_solutions, sol)
     return
 end
@@ -98,7 +95,8 @@ function MOI.submit(
     model::Optimizer, 
     cb::Union{MOI.UserCut{Algorithm.RobustCutCallbackContext}, MOI.LazyConstraint{Algorithm.RobustCutCallbackContext}},
     func::MOI.ScalarAffineFunction{Float64},
-    set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
+    set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}},
+    custom_data::Union{Nothing, AbstractCustomData} = nothing
 )
     form = cb.callback_data.form
     rhs = MathProg.convert_moi_rhs_to_coluna(set)
@@ -117,7 +115,8 @@ function MOI.submit(
         kind = cb.callback_data.constrkind,
         sense = sense,
         members = members,
-        loc_art_var_abs_cost = cb.callback_data.env.params.local_art_var_cost
+        loc_art_var_abs_cost = cb.callback_data.env.params.local_art_var_cost,
+        custom_data = custom_data
     )
 
     gap = lhs - rhs

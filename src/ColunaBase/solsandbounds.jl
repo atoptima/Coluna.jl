@@ -40,7 +40,8 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
 
 """
-    diff(b1, b2)
+    diff(pb, db)
+    diff(db, pb)
 
 Distance between a primal bound and a dual bound that have the same objective sense.
 Distance is non-positive if dual bound reached primal bound.
@@ -62,9 +63,10 @@ function Base.diff(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
 end
 
 """
-    gap
+    gap(pb, db)
+    gap(db, pb)
 
-relative gap. Gap is non-positive if pb reached db
+Return relative gap. Gap is non-positive if pb reached db.
 """
 function gap(pb::Bound{<:Primal,<:MinSense}, db::Bound{<:Dual,<:MinSense})
     return diff(pb, db) / abs(db.value)
@@ -212,12 +214,15 @@ function convert_status(coluna_status::SolutionStatus)
     return MOI.OTHER_RESULT_STATUS
 end
 
+abstract type AbstractCustomData end
+
 # Solution
 struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Value}
     model::Model
     bound::Float64
     status::SolutionStatus
     sol::DynamicSparseArrays.PackedMemoryArray{Decision,Value}
+    custom_data::Union{Nothing, AbstractCustomData}
 end
 
 """
@@ -226,7 +231,8 @@ end
         decisions::Vector,
         values::Vector,
         solution_values::Float64,
-        status::SolutionStatus
+        status::SolutionStatus,
+        [custom_data]::Union{Nothing, AbstractCustomData}
     )
 
 Create a solution to the `model`. Other arguments are: 
@@ -235,9 +241,12 @@ Create a solution to the `model`. Other arguments are:
 - `solution_value` is the value of the solution.
 - `status` is the solution status.
 """
-function Solution{Mo,De,Va}(model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, status::SolutionStatus) where {Mo<:AbstractModel,De,Va}
+function Solution{Mo,De,Va}(
+    model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, 
+    status::SolutionStatus, custom_data::Union{Nothing, AbstractCustomData} = nothing
+) where {Mo<:AbstractModel,De,Va}
     sol = DynamicSparseArrays.dynamicsparsevec(decisions, values)
-    return Solution(model, solution_value, status, sol)
+    return Solution(model, solution_value, status, sol, custom_data)
 end
 
 """
@@ -269,7 +278,7 @@ Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.
 Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
 
 function Base.filter(f::Function, s::S) where {S <: Solution}
-    return S(s.model, s.bound, s.status, filter(f, s.sol))
+    return S(s.model, s.bound, s.status, filter(f, s.sol), s.custom_data)
 end
 
 function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}

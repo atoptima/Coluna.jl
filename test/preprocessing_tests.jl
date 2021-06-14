@@ -111,7 +111,7 @@ function test_random_gap_instance()
         nb_prep_vars = 0
         coluna_optimizer = problem.moi_backend
         master = CL.getmaster(coluna_optimizer.inner.re_formulation)
-        for (moi_index, varid) in coluna_optimizer.varids
+        for (moi_index, varid) in coluna_optimizer.env.varids
             var = CL.getvar(master, varid)
             if CL.getcurlb(master, var) == CL.getcurub(master, var)
                 var_name = CL.getname(master, var)

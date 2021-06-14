@@ -25,17 +25,17 @@ struct RobustCutCallbackContext
     proj_sol::PrimalSolution # ordered non zero but O(log^2(n)) lookup time
     proj_sol_dict::Dict{VarId, Float64} # O(1) lookup time
     viol_vals::Vector{Float64}
+    orig_sol::PrimalSolution
 end
 
 # CutCallbacks does not have child algorithms, therefore get_child_algorithms() is not defined
 
 function get_units_usage(algo::CutCallbacks, form::Formulation{Duty}
     ) where {Duty<:MathProg.AbstractFormDuty} 
-    return [(form, MasterCutsUnitPair, READ_AND_WRITE)]
+    return [(form, MasterCutsUnit, READ_AND_WRITE)]
 end
 
-function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacksInput)
-    form = getmodel(data)
+function run!(algo::CutCallbacks, env::Env, form::Formulation, input::CutCallbacksInput)
     robust_generators = get_robust_constr_generators(form)
     nb_ess_cuts = 0
     nb_fac_cuts = 0
@@ -55,7 +55,7 @@ function run!(algo::CutCallbacks, env::Env, data::ModelData, input::CutCallbacks
                 continue
             end
             context = RobustCutCallbackContext(
-                form, env, constrgen.kind, projsol1, projsol2, cur_viol_vals
+                form, env, constrgen.kind, projsol1, projsol2, cur_viol_vals, input.primalsol
             )
             constrgen.separation_alg(context)
             if constrgen.kind == Facultative
