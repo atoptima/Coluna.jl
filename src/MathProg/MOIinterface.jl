@@ -101,7 +101,9 @@ function enforce_kind_in_optimizer!(
     moirecord = getmoirecord(v)
     moi_kind = getkind(moirecord)
     if moi_kind.value != -1
-        MOI.delete(inner, moi_kind)
+        if MOI.is_valid(inner, moi_kind)
+            MOI.delete(inner, moi_kind)
+        end
         setkind!(moirecord, MoiVarKind())
     end
     if kind != Continuous # Continuous is translated as no constraint in MOI

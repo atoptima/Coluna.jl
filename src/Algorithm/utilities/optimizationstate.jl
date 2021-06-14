@@ -36,7 +36,7 @@ end
 """
     OptimizationState(
         form; 
-        termination_status = UNKNOWN_TERMINATION_STATUS,
+        termination_status = OPTIMIZE_NOT_CALLED,
         ip_primal_bound = nothing, 
         ip_dual_bound = nothing, 
         lp_primal_bound = nothing, 
@@ -49,9 +49,9 @@ end
         insert_function_lp_dual_sols = bestbound!
     )
 
-A convenient structure to maintain and return solutions and bounds of a formulation `form` during an
-optimization process. The termination status is considered as
-unknown by default. You can define the initial incumbent bounds using `ip_primal_bound`,
+A convenient structure to maintain and return solutions and bounds of a formulation
+`form` during an optimization process. The termination status is `OPTIMIZE_NOT_CALLED`
+by default. You can define the initial incumbent bounds using `ip_primal_bound`,
 `ip_dual_bound`, `lp_primal_bound`, and `lp_primal_bound` keyword arguments. Incumbent
 bounds are set to infinite (according to formulation objective sense) by default.
 You can store three types of solutions `ip_primal_sols`, `lp_primal_sols`, and `lp_dual_sols`.
@@ -74,7 +74,7 @@ the best LP primal solution when `copy_lp_primal_sol` equals `true`.
 """
 function OptimizationState(
     form::F;
-    termination_status::TerminationStatus = UNKNOWN_TERMINATION_STATUS,
+    termination_status::TerminationStatus = OPTIMIZE_NOT_CALLED,
     ip_primal_bound = nothing,
     ip_dual_bound = nothing,
     lp_primal_bound = nothing,
