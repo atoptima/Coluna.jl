@@ -64,6 +64,7 @@ function Coluna.Algorithm.run!(
     varvals = Float64[]
 
     for j in selected
+        costs[j] == 0 && continue
         push!(varids, _getvarid(opt.model, form, env, j))
         push!(varvals, 1)
     end
