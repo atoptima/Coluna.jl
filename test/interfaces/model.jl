@@ -20,10 +20,6 @@ setweight!(model::KnapsackLibModel, j::Int, w) = model.weights[j] = w
 setcost!(model::KnapsackLibModel, j::Int, c) = model.costs[j] = c
 map!(model::KnapsackLibModel, j::Int, x::JuMP.VariableRef) = model.job_to_jumpvar[j] = x
 
-coluna_backend(model::MOI.Utilities.CachingOptimizer) = coluna_backend(model.optimizer)
-coluna_backend(b::MOI.Bridges.AbstractBridgeOptimizer) = coluna_backend(b.model)
-coluna_backend(model) = model
-
 mutable struct KnapsackLibOptimizer <: BlockDecomposition.AbstractCustomOptimizer
     model::KnapsackLibModel
 end
@@ -33,6 +29,15 @@ function Coluna.Algorithm.get_units_usage(opt::KnapsackLibOptimizer, form) # for
     units_usage = Tuple{AbstractModel, Coluna.ColunaBase.UnitType, Coluna.ColunaBase.UnitPermission}[]
     # TODO : the abstract model is KnapsackLibModel (opt.model)
     return units_usage
+end
+
+function _fixed_costs(model::KnapsackLibModel, form, env::Env)
+    costs = Float64[]
+    for j in 1:length(model.costs)
+        cost = Coluna.MathProg.getcurcost(form, _getvarid(model, form, env, j))
+        push!(costs, cost < 0 ? -cost : 0)
+    end
+    return costs
 end
 
 function _scale_to_int(vals...)
@@ -45,7 +50,7 @@ function Coluna.Algorithm.run!(
     opt::KnapsackLibOptimizer, env::Coluna.Env, form::Coluna.MathProg.Formulation,
     input::Coluna.Algorithm.OptimizationInput; kw...
 )
-    costs = -[Coluna.MathProg.getcurcost(form, _getvarid(opt.model, form, env, j)) for j in 1:length(opt.model.costs)]
+    costs = _fixed_costs(opt.model, form, env)
     ws = _scale_to_int(opt.model.capacity, opt.model.weights...)
     cs = _scale_to_int(costs...)
     items = [KnapItem(w,c) for (w,c) in zip(ws[2:end], cs)]
@@ -60,8 +65,10 @@ function Coluna.Algorithm.run!(
     varvals = Float64[]
 
     for j in selected
-        push!(varids, _getvarid(opt.model, form, env, j))
-        push!(varvals, 1)
+        if costs[j] > 0
+            push!(varids, _getvarid(opt.model, form, env, j))
+            push!(varvals, 1)
+        end
     end
 
     push!(varids, setup_var_id)
