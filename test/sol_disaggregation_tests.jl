@@ -2,6 +2,9 @@ coluna_backend(model::MOI.Utilities.CachingOptimizer) = coluna_backend(model.opt
 coluna_backend(b::MOI.Bridges.AbstractBridgeOptimizer) = coluna_backend(b.model)
 coluna_backend(model) = model
 
+getsolutions(model::JuMP.Model, k) = MOI.get(coluna_backend(backend(model)), BD.SpInfos())[k].columns_infos # remove
+value(info::Coluna.ColumnInfo, x::JuMP.VariableRef) = Coluna.value(info, x.index) # remove
+
 function sol_disaggregation_tests()
     I = 1:20
     @axis(BinsType, [1])
@@ -34,18 +37,21 @@ function sol_disaggregation_tests()
     JuMP.optimize!(model)
 
     for k in BinsType
-        bins = Coluna.getsolutions(coluna_backend(backend(model)), k)
+        bins = getsolutions(model, k)
+        sum_lambda_val = 0
         x_vals = zeros(BD.length(I))
         for bin in bins
             @show lambda_val = Coluna.value(bin) # value of the master column variable
+            sum_lambda_val += lambda_val
             for i in I
-                x_val = Coluna.value(bin, x[k, i].index) # coefficient of original var x[k, i] in the column bin
+                x_val = value(bin, x[k, i]) # coefficient of original var x[k, i] in the column bin
                 if x_val != 0
                     x_vals[i] += x_val
                     @show x[k, i]
                 end
             end
         end
+        @test sum_lambda_val == JuMP.objective_value(model)
         for i in I
             @test x_vals[i] == JuMP.value(x[k, i])
         end

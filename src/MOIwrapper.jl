@@ -591,6 +591,36 @@ function MOI.empty!(model::Coluna.Optimizer)
     return
 end
 
+mutable struct ColumnInfo <: BD.AbstractColumnInfo
+    optimizer::Coluna.Optimizer
+    column_var_id::VarId
+    column_val::Float64
+end
+
+function MOI.get(model::Coluna.Optimizer, ::BD.SpInfos)
+    ip_primal_sols = model.result[2].ip_primal_sols
+    sp_infos = Vector{BD.SpInfo}()
+    for k in 1:length(model.result[2].ip_primal_sols)
+        sp_info = BD.SpInfo(Vector{ColumnInfo}())
+        for (varid, val) in ip_primal_sols[k]
+            getduty(varid) <= MasterCol && push!(
+                sp_info.columns_infos, ColumnInfo(model, varid, val)
+            )
+        end
+        push!(sp_infos, sp_info)
+    end
+    return sp_infos
+end
+
+value(info::ColumnInfo) = info.column_val
+
+function value(info::ColumnInfo, index::MOI.VariableIndex)
+    varid = info.optimizer.env.varids[index]
+    origin_form_uid = getoriginformuid(info.column_var_id)
+    spform = get_dw_pricing_sps(info.optimizer.inner.re_formulation)[origin_form_uid]
+    return info.column_val * getprimalsolmatrix(spform)[varid, info.column_var_id]
+end
+
 function MOI.get(model::Coluna.Optimizer, ::MOI.NumberOfVariables)
     orig_form = get_original_formulation(model.inner)
     return length(getvars(orig_form))

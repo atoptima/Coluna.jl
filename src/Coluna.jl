@@ -66,6 +66,4 @@ include("MOIwrapper.jl")
 include("MOIcallbacks.jl")
 include("decomposition.jl")
 
-include("soldisaggregation.jl")
-
 end # module
