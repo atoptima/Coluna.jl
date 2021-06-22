@@ -1,5 +1,3 @@
-value(info::Coluna.ColumnInfo, x::JuMP.VariableRef) = Coluna.value(info, x.index) # remove
-
 function sol_disaggregation_tests()
     I = 1:20
     @axis(BinsType, [1])
@@ -36,10 +34,10 @@ function sol_disaggregation_tests()
         sum_lambda_val = 0
         x_vals = zeros(BD.length(I))
         for bin in bins
-            @show lambda_val = Coluna.value(bin) # value of the master column variable
+            @show lambda_val = BD.value(bin) # value of the master column variable
             sum_lambda_val += lambda_val
             for i in I
-                x_val = value(bin, x[k, i]) # coefficient of original var x[k, i] in the column bin
+                x_val = BD.value(bin, x[k, i]) # coefficient of original var x[k, i] in the column bin
                 if x_val != 0
                     x_vals[i] += x_val
                     @show x[k, i]

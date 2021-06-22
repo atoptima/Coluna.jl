@@ -623,9 +623,9 @@ function MOI.get(model::Coluna.Optimizer, ::BD.SpsInfo)
     return model.sps_info
 end
 
-value(info::ColumnInfo) = info.column_val
+BD.value(info::ColumnInfo) = info.column_val
 
-function value(info::ColumnInfo, index::MOI.VariableIndex)
+function BD.value(info::ColumnInfo, index::MOI.VariableIndex)
     varid = info.optimizer.env.varids[index]
     origin_form_uid = getoriginformuid(info.column_var_id)
     spform = get_dw_pricing_sps(info.optimizer.inner.re_formulation)[origin_form_uid]
