@@ -28,7 +28,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     constrs_on_single_var_to_vars::Dict{MOI.ConstraintIndex, VarId}
     constrs_on_single_var_to_names::Dict{MOI.ConstraintIndex, String}
     names_to_constrs::Dict{String, MOI.ConstraintIndex}
-    result::Vector{OptimizationState}
+    result::OptimizationState
+    disagg_result::Union{Nothing, OptimizationState}
+    sps_info::Vector{BD.SpInfo}
     default_optimizer_builder::Union{Nothing, Function}
 
     feasibility_sense::Bool # Coluna supports only Max or Min.
@@ -46,7 +48,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.constrs_on_single_var_to_vars = Dict{MOI.ConstraintIndex, VarId}()
         model.constrs_on_single_var_to_names = Dict{MOI.ConstraintIndex, String}()
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
-        model.result = [OptimizationState(get_optimization_target(model.inner))]
+        model.result = OptimizationState(get_optimization_target(model.inner))
+        model.disagg_result = nothing
+        model.sps_info = BD.SpInfo[]
         model.default_optimizer_builder = nothing
         model.feasibility_sense = false
         return model
@@ -95,9 +99,10 @@ end
 MOI.get(optimizer::Coluna.Optimizer, ::MOI.SolverName) = "Coluna"
 
 function MOI.optimize!(optimizer::Optimizer)
-    optimizer.result = optimize!(
+    optimizer.result, optimizer.disagg_result = optimize!(
         optimizer.env, optimizer.inner, optimizer.annotations
     )
+    optimizer.disagg_result !== nothing && MOI.set(optimizer, BD.SpsInfo(), BD.SpInfo[])
     return
 end
 
@@ -587,7 +592,9 @@ function MOI.empty!(model::Coluna.Optimizer)
     if model.default_optimizer_builder !== nothing
         set_default_optimizer_builder!(model.inner, model.default_optimizer_builder)
     end
-    model.result = [OptimizationState(get_optimization_target(model.inner))]
+    model.result = OptimizationState(get_optimization_target(model.inner))
+    model.disagg_result = nothing
+    model.sps_info = BD.SpInfo[]
     return
 end
 
@@ -597,19 +604,23 @@ mutable struct ColumnInfo <: BD.AbstractColumnInfo
     column_val::Float64
 end
 
-function MOI.get(model::Coluna.Optimizer, ::BD.SpInfos)
-    ip_primal_sols = model.result[2].ip_primal_sols
-    sp_infos = Vector{BD.SpInfo}()
-    for k in 1:length(model.result[2].ip_primal_sols)
+function MOI.set(model::Coluna.Optimizer, ::BD.SpsInfo, sps_info::Vector{BD.SpInfo})
+    ip_primal_sols = model.disagg_result.ip_primal_sols
+    for k in 1:length(model.disagg_result.ip_primal_sols)
         sp_info = BD.SpInfo(Vector{ColumnInfo}())
         for (varid, val) in ip_primal_sols[k]
             getduty(varid) <= MasterCol && push!(
-                sp_info.columns_infos, ColumnInfo(model, varid, val)
+                sp_info.columns_info, ColumnInfo(model, varid, val)
             )
         end
-        push!(sp_infos, sp_info)
+        push!(sps_info, sp_info)
     end
-    return sp_infos
+    model.sps_info = sps_info
+    return
+end
+
+function MOI.get(model::Coluna.Optimizer, ::BD.SpsInfo)
+    return model.sps_info
 end
 
 value(info::ColumnInfo) = info.column_val
@@ -664,20 +675,20 @@ function MOI.is_valid(optimizer::Optimizer, index::MOI.VariableIndex)
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.ObjectiveBound)
-    return getvalue(get_ip_dual_bound(optimizer.result[1]))
+    return getvalue(get_ip_dual_bound(optimizer.result))
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.ObjectiveValue)
-    return getvalue(get_ip_primal_bound(optimizer.result[1]))
+    return getvalue(get_ip_primal_bound(optimizer.result))
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.RelativeGap)
-    return ip_gap(optimizer.result[1])
+    return ip_gap(optimizer.result)
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, ref::MOI.VariableIndex)
     id = getid(optimizer.vars[ref]) # This gets a coluna Id{Variable}
-    best_primal_sol = get_best_ip_primal_sol(optimizer.result[1])
+    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
     if best_primal_sol === nothing
         @warn "Coluna did not find a primal feasible solution."
         return NaN
@@ -686,7 +697,7 @@ function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, ref::MOI.VariableIn
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, refs::Vector{MOI.VariableIndex})
-    best_primal_sol = get_best_ip_primal_sol(optimizer.result[1])
+    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
     if best_primal_sol === nothing
         @warn "Coluna did not find a primal feasible solution."
         return [NaN for ref in refs]
@@ -695,27 +706,27 @@ function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, refs::Vector{MOI.Va
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.TerminationStatus)
-    return convert_status(getterminationstatus(optimizer.result[1]))
+    return convert_status(getterminationstatus(optimizer.result))
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.PrimalStatus)
-    primal_sol = get_best_ip_primal_sol(optimizer.result[1])
+    primal_sol = get_best_ip_primal_sol(optimizer.result)
     primal_sol === nothing && return MOI.NO_SOLUTION
     return convert_status(getstatus(primal_sol))
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.DualStatus)    
-    dual_sol = get_best_lp_dual_sol(optimizer.result[1])
+    dual_sol = get_best_lp_dual_sol(optimizer.result)
     dual_sol === nothing && return MOI.NO_SOLUTION
     return convert_status(getstatus(dual_sol))
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.RawStatusString)
-    return string(getterminationstatus(optimizer.result[1]))
+    return string(getterminationstatus(optimizer.result))
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.ResultCount)
-    return length(get_ip_primal_sols(optimizer.result[1]))
+    return length(get_ip_primal_sols(optimizer.result))
 end
 
 function MOI.get(
@@ -726,7 +737,7 @@ function MOI.get(
         @warn "Could not find constraint with id $(index)."
         return NaN
     end
-    best_primal_sol = get_best_ip_primal_sol(optimizer.result[1])
+    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
     return get(best_primal_sol, varid, 0.0)
 end
 
@@ -736,7 +747,7 @@ function MOI.get(optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.Constr
         @warn "Could not find constraint with id $(index)."
         return NaN
     end
-    best_primal_sol = get_best_ip_primal_sol(optimizer.result[1])
+    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
     return constraint_primal(best_primal_sol, getid(constrid))
 end
 

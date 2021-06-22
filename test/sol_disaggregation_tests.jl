@@ -1,8 +1,3 @@
-coluna_backend(model::MOI.Utilities.CachingOptimizer) = coluna_backend(model.optimizer)
-coluna_backend(b::MOI.Bridges.AbstractBridgeOptimizer) = coluna_backend(b.model)
-coluna_backend(model) = model
-
-getsolutions(model::JuMP.Model, k) = MOI.get(coluna_backend(backend(model)), BD.SpInfos())[k].columns_infos # remove
 value(info::Coluna.ColumnInfo, x::JuMP.VariableRef) = Coluna.value(info, x.index) # remove
 
 function sol_disaggregation_tests()
@@ -37,7 +32,7 @@ function sol_disaggregation_tests()
     JuMP.optimize!(model)
 
     for k in BinsType
-        bins = getsolutions(model, k)
+        bins = BD.getsolutions(model, k)
         sum_lambda_val = 0
         x_vals = zeros(BD.length(I))
         for bin in bins

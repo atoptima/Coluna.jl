@@ -120,7 +120,7 @@ function optimize!(
         add_lp_primal_sol!(outstate, proj_cols_on_rep(lp_primal_sol, master))
     end
 
-    return [outstate, algstate]
+    return outstate, algstate
 end
 
 function optimize!(
@@ -134,7 +134,7 @@ function optimize!(
     )
     algorithm = env.params.solver
     output = Algorithm.run!(algorithm, env, form, Algorithm.OptimizationInput(initstate))
-    return [Algorithm.getoptstate(output)]
+    return Algorithm.getoptstate(output), nothing
 end
 
 """
