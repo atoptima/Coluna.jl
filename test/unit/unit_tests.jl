@@ -9,6 +9,7 @@ include("MathProg/bounds.jl")
 
 include("variable.jl")
 include("constraint.jl")
+include("optimizationstate.jl")
 
 function unit_tests()
     @testset "ColunaBase submodule" begin
@@ -33,5 +34,9 @@ function unit_tests()
         constraint_unit_tests()
     end
 
+    @testset "optimizationstate.jl" begin
+        optstate_unit_tests()
+    end
+    
     return
 end
