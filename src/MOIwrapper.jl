@@ -30,7 +30,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     names_to_constrs::Dict{String, MOI.ConstraintIndex}
     result::OptimizationState
     disagg_result::Union{Nothing, OptimizationState}
-    sps_info::Vector{BD.SpInfo}
     default_optimizer_builder::Union{Nothing, Function}
 
     feasibility_sense::Bool # Coluna supports only Max or Min.
@@ -50,7 +49,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
         model.result = OptimizationState(get_optimization_target(model.inner))
         model.disagg_result = nothing
-        model.sps_info = BD.SpInfo[]
         model.default_optimizer_builder = nothing
         model.feasibility_sense = false
         return model
@@ -102,7 +100,6 @@ function MOI.optimize!(optimizer::Optimizer)
     optimizer.result, optimizer.disagg_result = optimize!(
         optimizer.env, optimizer.inner, optimizer.annotations
     )
-    optimizer.disagg_result !== nothing && MOI.set(optimizer, BD.SpsInfo(), BD.SpInfo[])
     return
 end
 
@@ -594,7 +591,6 @@ function MOI.empty!(model::Coluna.Optimizer)
     end
     model.result = OptimizationState(get_optimization_target(model.inner))
     model.disagg_result = nothing
-    model.sps_info = BD.SpInfo[]
     return
 end
 
@@ -604,23 +600,15 @@ mutable struct ColumnInfo <: BD.AbstractColumnInfo
     column_val::Float64
 end
 
-function MOI.set(model::Coluna.Optimizer, ::BD.SpsInfo, sps_info::Vector{BD.SpInfo})
-    ip_primal_sols = model.disagg_result.ip_primal_sols
-    for k in 1:length(model.disagg_result.ip_primal_sols)
-        sp_info = BD.SpInfo(Vector{ColumnInfo}())
-        for (varid, val) in ip_primal_sols[k]
-            getduty(varid) <= MasterCol && push!(
-                sp_info.columns_info, ColumnInfo(model, varid, val)
-            )
+function BD.getsolutions(model::Coluna.Optimizer, k)
+    ip_primal_sol = model.disagg_result.ip_primal_sols[k]
+    sp_columns_info = Vector{ColumnInfo}()
+    for (varid, val) in ip_primal_sol
+        if getduty(varid) <= MasterCol
+            push!(sp_columns_info, ColumnInfo(model, varid, val))
         end
-        push!(sps_info, sp_info)
     end
-    model.sps_info = sps_info
-    return
-end
-
-function MOI.get(model::Coluna.Optimizer, ::BD.SpsInfo)
-    return model.sps_info
+    return sp_columns_info
 end
 
 BD.value(info::ColumnInfo) = info.column_val
