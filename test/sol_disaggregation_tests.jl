@@ -1,15 +1,13 @@
 function sol_disaggregation_tests()
-    I = 1:20
+    I = 1:3
     @axis(BinsType, [1])
 
-    w = [10, 15, 27, 9, 12, 5, 17, 33, 4, 9, 34, 41, 26, 27, 16, 11, 19, 17, 19, 11]
-    Q = 50
+    w = [2, 5, 7]
+    Q = 8
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => Coluna.Params(solver = Coluna.Algorithm.TreeSearchAlgorithm(
-            branchingtreefile = "playgap.dot"
-        )),
+        "params" => Coluna.Params(solver = ColumnGeneration()),
         "default_optimizer" => GLPK.Optimizer
     )
 
@@ -25,28 +23,17 @@ function sol_disaggregation_tests()
 
     @dantzig_wolfe_decomposition(model, dec, BinsType)
     subproblems = BlockDecomposition.getsubproblems(dec)
-    specify!.(subproblems, lower_multiplicity = 0, upper_multiplicity = BD.length(I)) # we use at most 20 bins
+    specify!.(subproblems, lower_multiplicity = 0, upper_multiplicity = BD.length(I)) # we use at most 3 bins
 
     JuMP.optimize!(model)
 
     for k in BinsType
         bins = BD.getsolutions(model, k)
-        sum_lambda_val = 0
-        x_vals = zeros(BD.length(I))
         for bin in bins
-            @show lambda_val = BD.value(bin) # value of the master column variable
-            sum_lambda_val += lambda_val
-            for i in I
-                x_val = BD.value(bin, x[k, i]) # coefficient of original var x[k, i] in the column bin
-                if x_val != 0
-                    x_vals[i] += x_val
-                    @show x[k, i]
-                end
-            end
-        end
-        @test sum_lambda_val == JuMP.objective_value(model)
-        for i in I
-            @test x_vals[i] == JuMP.value(x[k, i])
+            @test BD.value(bin) == 1.0 # value of the master column variable
+            @test BD.value(bin, x[k, 1]) == BD.value(bin, x[k, 2]) # x[1,1] and x[1,2] in the same bin
+            @test BD.value(bin, x[k, 1]) != BD.value(bin, x[k, 3]) # only x[1,3] in its bin
+            @test BD.value(bin, x[k, 2]) != BD.value(bin, x[k, 3]) # only x[1,3] in its bin
         end
     end
 end
