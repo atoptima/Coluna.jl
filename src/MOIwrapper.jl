@@ -29,6 +29,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     constrs_on_single_var_to_names::Dict{MOI.ConstraintIndex, String}
     names_to_constrs::Dict{String, MOI.ConstraintIndex}
     result::OptimizationState
+    disagg_result::Union{Nothing, OptimizationState}
     default_optimizer_builder::Union{Nothing, Function}
 
     feasibility_sense::Bool # Coluna supports only Max or Min.
@@ -47,6 +48,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.constrs_on_single_var_to_names = Dict{MOI.ConstraintIndex, String}()
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
         model.result = OptimizationState(get_optimization_target(model.inner))
+        model.disagg_result = nothing
         model.default_optimizer_builder = nothing
         model.feasibility_sense = false
         return model
@@ -95,7 +97,7 @@ end
 MOI.get(optimizer::Coluna.Optimizer, ::MOI.SolverName) = "Coluna"
 
 function MOI.optimize!(optimizer::Optimizer)
-    optimizer.result = optimize!(
+    optimizer.result, optimizer.disagg_result = optimize!(
         optimizer.env, optimizer.inner, optimizer.annotations
     )
     return
@@ -588,7 +590,34 @@ function MOI.empty!(model::Coluna.Optimizer)
         set_default_optimizer_builder!(model.inner, model.default_optimizer_builder)
     end
     model.result = OptimizationState(get_optimization_target(model.inner))
+    model.disagg_result = nothing
     return
+end
+
+mutable struct ColumnInfo <: BD.AbstractColumnInfo
+    optimizer::Coluna.Optimizer
+    column_var_id::VarId
+    column_val::Float64
+end
+
+function BD.getsolutions(model::Coluna.Optimizer, k)
+    ip_primal_sol = model.disagg_result.ip_primal_sols[k]
+    sp_columns_info = Vector{ColumnInfo}()
+    for (varid, val) in ip_primal_sol
+        if getduty(varid) <= MasterCol
+            push!(sp_columns_info, ColumnInfo(model, varid, val))
+        end
+    end
+    return sp_columns_info
+end
+
+BD.value(info::ColumnInfo) = info.column_val
+
+function BD.value(info::ColumnInfo, index::MOI.VariableIndex)
+    varid = info.optimizer.env.varids[index]
+    origin_form_uid = getoriginformuid(info.column_var_id)
+    spform = get_dw_pricing_sps(info.optimizer.inner.re_formulation)[origin_form_uid]
+    return info.column_val * getprimalsolmatrix(spform)[varid, info.column_var_id]
 end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.NumberOfVariables)
