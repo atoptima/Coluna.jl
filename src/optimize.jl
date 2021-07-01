@@ -60,7 +60,7 @@ function optimize!(env::Env, prob::MathProg.Problem, annotations::Annotations)
     @logmsg LogLevel(-1) env.params
 
     TO.@timeit _to "Coluna" begin
-        optstate = optimize!(get_optimization_target(prob), env, init_pb, init_db)
+        outstate, algstate = optimize!(get_optimization_target(prob), env, init_pb, init_db)
     end
 
     env.kpis.elapsed_optimization_time = elapsed_optim_time(env)
@@ -71,9 +71,9 @@ function optimize!(env::Env, prob::MathProg.Problem, annotations::Annotations)
     TO.reset_timer!(_to)
 
     @logmsg LogLevel(0) "Terminated"
-    @logmsg LogLevel(0) string("Primal bound: ", get_ip_primal_bound(optstate))
-    @logmsg LogLevel(0) string("Dual bound: ", get_ip_dual_bound(optstate))
-    return optstate
+    @logmsg LogLevel(0) string("Primal bound: ", get_ip_primal_bound(outstate))
+    @logmsg LogLevel(0) string("Dual bound: ", get_ip_dual_bound(outstate))
+    return outstate, algstate
 end
 
 function optimize!(
@@ -120,7 +120,7 @@ function optimize!(
         add_lp_primal_sol!(outstate, proj_cols_on_rep(lp_primal_sol, master))
     end
 
-    return outstate
+    return outstate, algstate
 end
 
 function optimize!(
@@ -134,7 +134,7 @@ function optimize!(
     )
     algorithm = env.params.solver
     output = Algorithm.run!(algorithm, env, form, Algorithm.OptimizationInput(initstate))
-    return Algorithm.getoptstate(output)
+    return Algorithm.getoptstate(output), nothing
 end
 
 """
