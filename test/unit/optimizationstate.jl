@@ -22,7 +22,7 @@ function update_sol_tests()
     update_ip_primal_sol!(state, primalsol)
     # check that `primalsol` is added to `state.ip_primal_sols`
     @test length(get_ip_primal_sols(state)) == 1
-    @test isequal(get_ip_primal_sols(state)[1], primalsol)
+    @test get_ip_primal_sols(state)[1] == primalsol
     # check that incumbent bound is updated
     @test get_ip_primal_bound(state) == 2.0
     update_ip_primal_sol!(state, PrimalSolution(
@@ -30,14 +30,14 @@ function update_sol_tests()
     ))
     # check that solution worse than `primalsol` is NOT added to `state.ip_primal_sols`
     @test length(get_ip_primal_sols(state)) == 1
-    @test isequal(get_ip_primal_sols(state)[1], primalsol)
+    @test get_ip_primal_sols(state)[1] == primalsol
     ###
 
     ### lp primal
     update_lp_primal_sol!(state, primalsol)
     # check that `primalsol` is added to `state.lp_primal_sols`
     @test length(get_lp_primal_sols(state)) == 1
-    @test isequal(get_lp_primal_sols(state)[1], primalsol)
+    @test get_lp_primal_sols(state)[1] == primalsol
     # check that incumbent bound is updated
     @test get_lp_primal_bound(state) == 2.0
     update_lp_primal_sol!(
@@ -45,14 +45,14 @@ function update_sol_tests()
     ))
     # check that solution worse than `primalsol` is NOT added to `state.lp_primal_sols`
     @test length(get_lp_primal_sols(state)) == 1
-    @test isequal(get_lp_primal_sols(state)[1], primalsol)
+    @test get_lp_primal_sols(state)[1] == primalsol
     ###
 
     ### lp dual
     update_lp_dual_sol!(state, dualsol)
     # check that `dualsol` is added to `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1
-    @test isequal(get_lp_dual_sols(state)[1], dualsol)
+    @test get_lp_dual_sols(state)[1] == dualsol
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 1.0
     update_lp_dual_sol!(state, DualSolution(
@@ -60,7 +60,7 @@ function update_sol_tests()
     ))
     # check that solution worse than `dualsol` is NOT added to `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1
-    @test isequal(get_lp_dual_sols(state)[1], dualsol)
+    @test get_lp_dual_sols(state)[1] == dualsol
     ###
 
     ############################################################################################
@@ -82,7 +82,7 @@ function update_sol_tests()
     update_ip_primal_sol!(state, primalsol)
     # check that `primalsol` is added to `state.ip_primal_sols`
     @test length(get_ip_primal_sols(state)) == 1
-    @test isequal(get_ip_primal_sols(state)[1], primalsol)
+    @test get_ip_primal_sols(state)[1] == primalsol
     # check that incumbent bound is updated
     @test get_ip_primal_bound(state) == 1.0
     update_ip_primal_sol!(state, PrimalSolution(
@@ -90,14 +90,14 @@ function update_sol_tests()
     ))
     # check that solution worse than `primalsol` is NOT added to `state.ip_primal_sols`
     @test length(get_ip_primal_sols(state)) == 1
-    @test isequal(get_ip_primal_sols(state)[1], primalsol)
+    @test get_ip_primal_sols(state)[1] == primalsol
     ###
 
     ### lp primal
     update_lp_primal_sol!(state, primalsol)
     # check that `primalsol` is added to `state.lp_primal_sols`
     @test length(get_lp_primal_sols(state)) == 1
-    @test isequal(get_lp_primal_sols(state)[1], primalsol)
+    @test get_lp_primal_sols(state)[1] == primalsol
     # check that incumbent bound is updated
     @test get_lp_primal_bound(state) == 1.0
     update_lp_primal_sol!(
@@ -105,14 +105,14 @@ function update_sol_tests()
     ))
     # check that solution worse than `primalsol` is NOT added to `state.lp_primal_sols`
     @test length(get_lp_primal_sols(state)) == 1
-    @test isequal(get_lp_primal_sols(state)[1], primalsol)
+    @test get_lp_primal_sols(state)[1] == primalsol
     ###
 
     ### lp dual
     update_lp_dual_sol!(state, dualsol)
     # check that `dualsol` is added to `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1
-    @test isequal(get_lp_dual_sols(state)[1], dualsol)
+    @test get_lp_dual_sols(state)[1] == dualsol
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 2.0
     update_lp_dual_sol!(state, DualSolution(
@@ -120,7 +120,7 @@ function update_sol_tests()
     ))
     # check that solution worse than `dualsol` is NOT added to `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1
-    @test isequal(get_lp_dual_sols(state)[1], dualsol)
+    @test get_lp_dual_sols(state)[1] == dualsol
     ###
 end
 
@@ -143,7 +143,7 @@ function add_sol_tests()
     )
     # check that `primalsol` is added to `state.ip_primal_sols` and worst solution is removed
     @test length(get_ip_primal_sols(state)) == 1
-    @test isequal(get_ip_primal_sols(state)[1], primalsol)
+    @test get_ip_primal_sols(state)[1] == primalsol
     # check that incumbent bound is updated
     @test get_ip_primal_bound(state) == 2.0
     ###
@@ -157,7 +157,7 @@ function add_sol_tests()
     add_lp_primal_sol!(state, primalsol)
     # check that `primalsol` is added to `state.lp_primal_sols` and worst solution is removed
     @test length(get_lp_primal_sols(state)) == 1
-    @test isequal(get_lp_primal_sols(state)[1], primalsol)
+    @test get_lp_primal_sols(state)[1] == primalsol
     # check that incumbent bound is updated
     @test get_lp_primal_bound(state) == 2.0
     ###
@@ -171,7 +171,7 @@ function add_sol_tests()
     add_lp_dual_sol!(state, dualsol)
     # check that `dualsol` is added to `state.lp_dual_sols` and worst solution is removed
     @test length(get_lp_dual_sols(state)) == 1
-    @test isequal(get_lp_dual_sols(state)[1], dualsol)
+    @test get_lp_dual_sols(state)[1] == dualsol
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 1.0
     ###
@@ -196,7 +196,7 @@ function add_sol_tests()
     )
     # check that `primalsol` is added to `state.ip_primal_sols` and worst solution is removed
     @test length(get_ip_primal_sols(state)) == 1
-    @test isequal(get_ip_primal_sols(state)[1], primalsol)
+    @test get_ip_primal_sols(state)[1] == primalsol
     # check that incumbent bound is updated
     @test get_ip_primal_bound(state) == 1.0
     ###
@@ -210,7 +210,7 @@ function add_sol_tests()
     add_lp_primal_sol!(state, primalsol)
     # check that `primalsol` is added to `state.lp_primal_sols` and worst solution is removed
     @test length(get_lp_primal_sols(state)) == 1
-    @test isequal(get_lp_primal_sols(state)[1], primalsol)
+    @test get_lp_primal_sols(state)[1] == primalsol
     # check that incumbent bound is updated
     @test get_lp_primal_bound(state) == 1.0
     ###
@@ -224,7 +224,7 @@ function add_sol_tests()
     add_lp_dual_sol!(state, dualsol)
     # check that `dualsol` is added to `state.lp_dual_sols` and worst solution is removed
     @test length(get_lp_dual_sols(state)) == 1
-    @test isequal(get_lp_dual_sols(state)[1], dualsol)
+    @test get_lp_dual_sols(state)[1] == dualsol
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 2.0
     ###
@@ -250,7 +250,7 @@ function set_sol_tests()
     set_ip_primal_sol!(state, primalsol)
     # check that only the solution which was set last is in `state.ip_primal_sols`
     @test length(get_ip_primal_sols(state)) == 1
-    @test isequal(get_ip_primal_sols(state)[1], primalsol)
+    @test get_ip_primal_sols(state)[1] == primalsol
     # check that incumbent bound is NOT updated
     @test get_ip_primal_bound(state) == 3.0
     ###
@@ -262,7 +262,7 @@ function set_sol_tests()
     set_lp_primal_sol!(state, primalsol)
     # check that only the solution which was set last is in `state.lp_primal_sols`
     @test length(get_lp_primal_sols(state)) == 1
-    @test isequal(get_lp_primal_sols(state)[1], primalsol)
+    @test get_lp_primal_sols(state)[1] == primalsol
     # check that incumbent bound is NOT updated
     @test get_lp_primal_bound(state) == 3.0
     ###
@@ -274,7 +274,7 @@ function set_sol_tests()
     set_lp_dual_sol!(state, dualsol)
     # check that only the solution which was set last is in `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1
-    @test isequal(get_lp_dual_sols(state)[1], dualsol)
+    @test get_lp_dual_sols(state)[1] == dualsol
     # check that incumbent bound is NOT updated
     @test get_lp_dual_bound(state) == -1.0
     ###
@@ -300,7 +300,7 @@ function set_sol_tests()
     set_ip_primal_sol!(state, primalsol)
     # check that only the solution which was set last is in `state.ip_primal_sols`
     @test length(get_ip_primal_sols(state)) == 1
-    @test isequal(get_ip_primal_sols(state)[1], primalsol)
+    @test get_ip_primal_sols(state)[1] == primalsol
     # check that incumbent bound is NOT updated
     @test get_ip_primal_bound(state) == -1.0
     ###
@@ -312,7 +312,7 @@ function set_sol_tests()
     set_lp_primal_sol!(state, primalsol)
     # check that only the solution which was set last is in `state.lp_primal_sols`
     @test length(get_lp_primal_sols(state)) == 1
-    @test isequal(get_lp_primal_sols(state)[1], primalsol)
+    @test get_lp_primal_sols(state)[1] == primalsol
     # check that incumbent bound is NOT updated
     @test get_lp_primal_bound(state) == -1.0
     ###
@@ -324,7 +324,7 @@ function set_sol_tests()
     set_lp_dual_sol!(state, dualsol)
     # check that only the solution which was set last is in `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1
-    @test isequal(get_lp_dual_sols(state)[1], dualsol)
+    @test get_lp_dual_sols(state)[1] == dualsol
     # check that incumbent bound is NOT updated
     @test get_lp_dual_bound(state) == 3.0
     ###

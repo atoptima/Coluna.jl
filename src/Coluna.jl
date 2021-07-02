@@ -3,7 +3,7 @@ module Coluna
 # Base functions for which we define more methods in Coluna
 import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
     getkey, delete!, setindex!, haskey, copy, promote_rule, convert, isinteger,
-    push!, filter, diff, hcat
+    push!, filter, diff, hcat, in
 
 import BlockDecomposition, MathOptInterface, TimerOutputs
 

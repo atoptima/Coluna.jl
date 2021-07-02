@@ -281,6 +281,14 @@ function Base.filter(f::Function, s::S) where {S <: Solution}
     return S(s.model, s.bound, s.status, filter(f, s.sol), s.custom_data)
 end
 
+function Base.in(p::Tuple{De,Va}, a::Solution{Mo,De,Va}, valcmp=(==)) where {Mo,De,Va}
+    v = get(a, p[1], Base.secret_table_token)
+    if v !== Base.secret_table_token
+        return valcmp(v, p[2])
+    end
+    return false
+end
+
 function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
     println(io, "Solution")
     for (decision, value) in solution
