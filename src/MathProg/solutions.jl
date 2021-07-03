@@ -20,14 +20,12 @@ end
 
 function Base.isinteger(sol::Solution)
     for (vc_id, val) in sol
-        #if getperenkind(sol.model, vc_id) != Continuous
-            abs(round(val) - val) <= 1e-5 || return false
-        #end
+        if getperenkind(sol.model, vc_id) !== Continuous && abs(round(val) - val) > 1e-5
+            return false
+        end
     end
     return true
 end
-
-isfractional(sol::Solution) = !Base.isinteger(sol)
 
 function contains(sol::PrimalSolution, f::Function)
     for (varid, val) in sol

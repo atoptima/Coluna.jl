@@ -235,7 +235,6 @@ set_bestcol_id!(spinfo::SubprobInfo, varid::VarId) = spinfo.bestcol_id = varid
 function insert_cols_in_master!(
     masterform::Formulation, spinfo::SubprobInfo, phase::Int64, spform::Formulation,
 )
-    sp_uid = getuid(spform)
     nb_of_gen_col = 0
 
     for sol_id in spinfo.recorded_sol_ids
@@ -243,11 +242,8 @@ function insert_cols_in_master!(
         name = string("MC_", getsortuid(sol_id))
         lb = 0.0
         ub = Inf
-        kind = Continuous
         duty = MasterCol
-        mc = setcol_from_sp_primalsol!(
-            masterform, spform, sol_id, name, duty; lb=lb, ub=ub, kind=kind
-        )
+        mc = setcol_from_sp_primalsol!(masterform, spform, sol_id, name, duty; lb=lb, ub=ub)
         if phase == 1
             setcurcost!(masterform, mc, 0.0)
         end

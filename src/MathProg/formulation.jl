@@ -301,7 +301,7 @@ end
 
 function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId, name::String,
-    duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous,
+    duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf,
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex(), custom_data::Union{Nothing, AbstractCustomData} = nothing
 )
@@ -322,7 +322,7 @@ function setcol_from_sp_primalsol!(
         cost = cost,
         lb = lb,
         ub = ub,
-        kind = kind,
+        kind = spform.duty_data.column_var_kind,
         inc_val = inc_val,
         is_active = is_active,
         is_explicit = is_explicit,
@@ -331,6 +331,9 @@ function setcol_from_sp_primalsol!(
         id = sol_id,
         custom_data = get(spform.manager.primal_sols_custom_data, sol_id, nothing)
     )
+
+    setcurkind!(masterform, mast_col, Continuous)
+
     return mast_col
 end
 
@@ -481,29 +484,36 @@ function _addlocalartvar!(form::Formulation, constr::Constraint, abs_cost::Float
     return
 end
 
+"""
+    enforce_integrality!(formulation)
+
+Set the current kind of each active & explicit variable of the formulation to its perennial kind.
+"""
 function enforce_integrality!(form::Formulation)
-    @logmsg LogLevel(-1) string("Enforcing integrality of formulation ", getuid(form))
-    for (varid, var) in getvars(form)
-        !iscuractive(form, varid) && continue
-        !isexplicit(form, varid) && continue
-        getcurkind(form, varid) == Integ && continue
-        getcurkind(form, varid) == Binary && continue
-        if getduty(varid) <= MasterCol || getperenkind(form, varid) != Continuous
-            @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to Integer")
-            setcurkind!(form, varid, Integ)
+    for (_, var) in getvars(form)
+        enforce = iscuractive(form, var) && isexplicit(form, var)
+        enforce &= getcurkind(form, var) === Continuous
+        enforce &= getperenkind(form, var) !== Continuous
+        if enforce
+            setcurkind!(form, var, getperenkind(form, var))
         end
     end
     return
 end
 
-function relax_integrality!(form::Formulation) # TODO remove : should be in Algorithm
-    @logmsg LogLevel(-1) string("Relaxing integrality of formulation ", getuid(form))
-    for (varid, var) in getvars(form)
-        !iscuractive(form, varid) && continue
-        !isexplicit(form, varid) && continue
-        getcurkind(form, var) == Continuous && continue
-        @logmsg LogLevel(-3) string("Setting kind of var ", getname(form, var), " to continuous")
-        setcurkind!(form, varid, Continuous)
+"""
+    relax_integrality!(formulation)
+
+Set the current kind of each active & explicit integer or binary variable of the formulation
+to continuous.
+"""
+function relax_integrality!(form::Formulation)
+    for (_, var) in getvars(form)
+        relax = iscuractive(form, var) && isexplicit(form, var)
+        relax &= getcurkind(form, var) !== Continuous
+        if relax
+            setcurkind!(form, var, Continuous)
+        end
     end
     return
 end

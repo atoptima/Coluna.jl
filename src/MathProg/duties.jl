@@ -19,6 +19,7 @@ mutable struct DwSp <: AbstractSpDuty
     setup_var::Union{VarId, Nothing}
     lower_multiplicity::Int
     upper_multiplicity::Int
+    column_var_kind::VarKind
 end
 
 "A Benders subproblem of a formulation decomposed using Benders."
