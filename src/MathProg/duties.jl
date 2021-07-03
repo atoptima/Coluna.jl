@@ -48,14 +48,14 @@ struct BendersSp <: AbstractSpDuty end
         AbstractDwSpVar <= Duty{Variable}
             DwSpPricingVar <= AbstractDwSpVar
             DwSpSetupVar <= AbstractDwSpVar
-            DwSpPureVar <= AbstractDwSpVar
+            #DwSpPureVar <= AbstractDwSpVar
             DwSpPrimalSol <= AbstractDwSpVar
         AbstractBendSpVar <= Duty{Variable}
             AbstractBendSpSlackMastVar <= AbstractBendSpVar
                 BendSpSlackFirstStageVar <= AbstractBendSpSlackMastVar
                 BendSpSlackSecondStageCostVar <= AbstractBendSpSlackMastVar
             BendSpSepVar <= AbstractBendSpVar
-            BendSpPureVar <= AbstractBendSpVar
+            #BendSpPureVar <= AbstractBendSpVar
             BendSpPrimalSol <= AbstractBendSpVar
 end
 
@@ -109,11 +109,11 @@ function isaStaticDuty(duty::NestedEnum)
     duty <= MasterRepPricingSetupVar ||
     duty <= DwSpPricingVar ||
     duty <= DwSpSetupVar ||
-    duty <= DwSpPureVar ||
+    #duty <= DwSpPureVar ||
     duty <= DwSpPrimalSol ||
     duty <= DwSpDualSol ||
     duty <= BendSpSepVar ||
-    duty <= BendSpPureVar ||
+    #duty <= BendSpPureVar ||
     duty <= BendSpSlackFirstStageVar  ||
     duty <= BendSpSlackSecondStageCostVar ||
     duty <= OriginalConstr ||
