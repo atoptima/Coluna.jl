@@ -73,7 +73,6 @@ struct ReducedCostsCalculationHelper
     length::Int
     dwspvarids::Vector{VarId}
     perencosts::Vector{Float64}
-    dwspforms::Vector{Formulation}
     dwsprep_coefmatrix::MathProg.ConstrVarMatrix
 end
 
@@ -81,23 +80,14 @@ end
 # in the master of a given reformulation.
 function ReducedCostsCalculationHelper(reform::Reformulation)
     dwspvarids = VarId[]
-    dwspforms = Formulation[]
-
-    for (spid, spform) in get_dw_pricing_sps(reform)
-        for (varid, var) in getvars(spform)
-            if iscuractive(spform, varid) && getduty(varid) <= AbstractDwSpVar
-                push!(dwspvarids, varid)
-                push!(dwspforms, spform)
-            end
-        end
-    end
-
-    len = length(dwspvarids)
-    perencosts = zeros(Float64, len)
+    perencosts = Float64[]
 
     master = getmaster(reform)
-    for i in 1:len
-        perencosts[i] = getcurcost(master, dwspvarids[i])
+    for (varid, _) in getvars(master)
+        if iscuractive(master, varid) && getduty(varid) <= AbstractMasterRepDwSpVar
+            push!(dwspvarids, varid)
+            push!(perencosts, getcurcost(master, varid))
+        end
     end
 
     master_coefmatrix = getcoefmatrix(master)
@@ -111,7 +101,7 @@ function ReducedCostsCalculationHelper(reform::Reformulation)
     end
     closefillmode!(dwsprep_coefmatrix)
     return ReducedCostsCalculationHelper(
-        len, dwspvarids, perencosts, dwspforms, dwsprep_coefmatrix
+        length(dwspvarids), dwspvarids, perencosts, dwsprep_coefmatrix
     )
 end
 
@@ -281,7 +271,7 @@ function compute_red_cost(
     if stabilization_is_used(algo)
         master_coef_matrix = getcoefmatrix(master)
         for (varid, value) in spsol
-            red_cost += getcurcost(master, varid) * value
+            red_cost += getperencost(master, varid) * value # check
             for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
                 red_cost -= value * var_coeff * lp_dual_sol[constrid]
             end
@@ -348,9 +338,17 @@ function updatereducedcosts!(
     result = transpose(redcostshelper.dwsprep_coefmatrix) * getsol(dualsol)
 
     for (i, varid) in enumerate(redcostshelper.dwspvarids)
-        setcurcost!(redcostshelper.dwspforms[i], varid, redcosts[i] - get(result, varid, 0.0))
+        setcurcost!(getmaster(reform), varid, redcosts[i] - get(result, varid, 0.0))
     end
     return redcosts
+end
+
+function update_sps_reduced_costs!(reform::Reformulation)
+    for (_, spform) in get_dw_pricing_sps(reform)
+        for (varid, _) in getvars(spform)
+            setcurcost!(spform, varid, getcurcost(getmaster(reform), varid))
+        end
+    end
 end
 
 function solve_sps_to_gencols!(
@@ -365,6 +363,7 @@ function solve_sps_to_gencols!(
     # update reduced costs
     TO.@timeit Coluna._to "Update reduced costs" begin
         updatereducedcosts!(reform, redcostshelper, smooth_dual_sol)
+        update_sps_reduced_costs!(reform)
     end
 
     # update the incumbent values of constraints
@@ -571,6 +570,15 @@ function get_pure_master_vars(master::Formulation)
         end
     end
     return puremastervars
+end
+
+function getrepvars(master::Formulation, spformid::FormId)
+    repvars = Dict{VarId, Variable}()
+    spform = get_dw_pricing_sps(master.parent_formulation)[spformid]
+    for (id, _) in getvars(spform)
+        repvars[id] = getvar(master, id)
+    end
+    return repvars
 end
 
 function change_values_sign!(dualsol::DualSolution)
