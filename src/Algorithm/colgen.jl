@@ -271,7 +271,7 @@ function compute_red_cost(
     if stabilization_is_used(algo)
         master_coef_matrix = getcoefmatrix(master)
         for (varid, value) in spsol
-            red_cost += getperencost(master, varid) * value # check
+            red_cost += getcurcost(master, varid) * value
             for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
                 red_cost -= value * var_coeff * lp_dual_sol[constrid]
             end
@@ -331,23 +331,15 @@ function solve_sp_to_gencol!(
 end
 
 function updatereducedcosts!(
-    reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, dualsol::DualSolution
+    reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
 )
-    redcosts = deepcopy(redcostshelper.perencosts)
-
-    result = transpose(redcostshelper.dwsprep_coefmatrix) * getsol(dualsol)
-
+    redcosts = Dict{VarId,Float64}()
+    result = transpose(redcostshelper.dwsprep_coefmatrix) * getsol(masterdualsol)
     for (i, varid) in enumerate(redcostshelper.dwspvarids)
-        setcurcost!(getmaster(reform), varid, redcosts[i] - get(result, varid, 0.0))
+        redcosts[varid] = redcostshelper.perencosts[i] - get(result, varid, 0.0)
     end
-    return redcosts
-end
-
-function update_sps_reduced_costs!(reform::Reformulation)
     for (_, spform) in get_dw_pricing_sps(reform)
-        for (varid, _) in getvars(spform)
-            setcurcost!(spform, varid, getcurcost(getmaster(reform), varid))
-        end
+        updatemodel!(spform, redcosts, masterdualsol)
     end
 end
 
@@ -363,7 +355,6 @@ function solve_sps_to_gencols!(
     # update reduced costs
     TO.@timeit Coluna._to "Update reduced costs" begin
         updatereducedcosts!(reform, redcostshelper, smooth_dual_sol)
-        update_sps_reduced_costs!(reform)
     end
 
     # update the incumbent values of constraints
@@ -572,14 +563,14 @@ function get_pure_master_vars(master::Formulation)
     return puremastervars
 end
 
-function getrepvars(master::Formulation, spformid::FormId)
-    repvars = Dict{VarId, Variable}()
-    spform = get_dw_pricing_sps(master.parent_formulation)[spformid]
-    for (id, _) in getvars(spform)
-        repvars[id] = getvar(master, id)
-    end
-    return repvars
-end
+# function getrepvars(master::Formulation, spformid::FormId)
+#     repvars = Dict{VarId, Variable}()
+#     spform = get_dw_pricing_sps(master.parent_formulation)[spformid]
+#     for (id, _) in getvars(spform)
+#         repvars[id] = getvar(master, id)
+#     end
+#     return repvars
+# end
 
 function change_values_sign!(dualsol::DualSolution)
     # note that the bound value remains the same
