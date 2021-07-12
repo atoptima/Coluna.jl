@@ -330,6 +330,20 @@ function solve_sp_to_gencol!(
     return
 end
 
+function updatemodel!(
+    form::Formulation, repr_vars_red_costs::Dict{VarId, Float64}, ::DualSolution
+)
+    for (varid, _) in getvars(form)
+        setcurcost!(form, varid, get(repr_vars_red_costs, varid, 0.0))
+    end
+end
+
+function updatemodel!(
+    model::AbstractModel, ::Dict{VarId, Float64}, ::DualSolution
+)
+    error("updatemodel!() not defined for model of type $(typeof(model)).")
+end
+
 function updatereducedcosts!(
     reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
 )
@@ -562,15 +576,6 @@ function get_pure_master_vars(master::Formulation)
     end
     return puremastervars
 end
-
-# function getrepvars(master::Formulation, spformid::FormId)
-#     repvars = Dict{VarId, Variable}()
-#     spform = get_dw_pricing_sps(master.parent_formulation)[spformid]
-#     for (id, _) in getvars(spform)
-#         repvars[id] = getvar(master, id)
-#     end
-#     return repvars
-# end
 
 function change_values_sign!(dualsol::DualSolution)
     # note that the bound value remains the same

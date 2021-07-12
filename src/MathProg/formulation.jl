@@ -733,21 +733,6 @@ function addcustomconstrs!(form::Formulation, type::DataType)
     return
 end
 
-function updatemodel!(
-    form::Formulation, repr_vars_red_costs::Dict{VarId, Float64}, ::DualSolution
-)
-    for (varid, _) in getvars(form)
-        setcurcost!(form, varid, get(repr_vars_red_costs, varid, 0.0))
-    end
-end
-
-# interface ==> move? VarId defined in MathProg
-function updatemodel!(
-    model::AbstractModel, ::Dict{VarId, Float64}, ::DualSolution
-)
-    error("updatemodel!() not defined for model of type $(typeof(model)).")
-end
-
 # function getspsol(master::Formulation{DwMaster}, col_id::VarId)
 #     !(getduty(col_id) <= MasterCol) && return
 
