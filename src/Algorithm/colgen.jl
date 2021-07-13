@@ -355,6 +355,7 @@ function updatereducedcosts!(
     for (_, spform) in get_dw_pricing_sps(reform)
         updatemodel!(spform, redcosts, masterdualsol)
     end
+    return
 end
 
 function solve_sps_to_gencols!(
