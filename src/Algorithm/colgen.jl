@@ -73,7 +73,7 @@ struct ReducedCostsCalculationHelper
     length::Int
     dwspvarids::Vector{VarId}
     perencosts::Vector{Float64}
-    dwsprep_coefmatrix::MathProg.ConstrVarMatrix
+    dwsprep_coefmatrix::DynamicSparseArrays.Transposed{MathProg.ConstrVarMatrix}
 end
 
 # Pre compute information to speed-up calculation of reduced costs of original variables
@@ -101,7 +101,7 @@ function ReducedCostsCalculationHelper(reform::Reformulation)
     end
     closefillmode!(dwsprep_coefmatrix)
     return ReducedCostsCalculationHelper(
-        length(dwspvarids), dwspvarids, perencosts, dwsprep_coefmatrix
+        length(dwspvarids), dwspvarids, perencosts, transpose(dwsprep_coefmatrix)
     )
 end
 
@@ -348,7 +348,7 @@ function updatereducedcosts!(
     reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
 )
     redcosts = Dict{VarId,Float64}()
-    result = transpose(redcostshelper.dwsprep_coefmatrix) * getsol(masterdualsol)
+    result = redcostshelper.dwsprep_coefmatrix * getsol(masterdualsol)
     for (i, varid) in enumerate(redcostshelper.dwspvarids)
         redcosts[varid] = redcostshelper.perencosts[i] - get(result, varid, 0.0)
     end
