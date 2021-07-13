@@ -336,6 +336,7 @@ function updatemodel!(
     for (varid, _) in getvars(form)
         setcurcost!(form, varid, get(repr_vars_red_costs, varid, 0.0))
     end
+    return
 end
 
 function updatemodel!(
