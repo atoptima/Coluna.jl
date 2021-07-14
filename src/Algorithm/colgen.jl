@@ -330,6 +330,7 @@ function solve_sp_to_gencol!(
     return
 end
 
+# this method must be redefined if subproblem is a custom model
 function updatemodel!(
     form::Formulation, repr_vars_red_costs::Dict{VarId, Float64}, ::DualSolution
 )
@@ -337,12 +338,6 @@ function updatemodel!(
         setcurcost!(form, varid, get(repr_vars_red_costs, varid, 0.0))
     end
     return
-end
-
-function updatemodel!(
-    model::AbstractModel, ::Dict{VarId, Float64}, ::DualSolution
-)
-    error("updatemodel!() not defined for model of type $(typeof(model)).")
 end
 
 function updatereducedcosts!(
