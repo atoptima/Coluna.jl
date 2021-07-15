@@ -27,6 +27,9 @@ function Base.isinteger(sol::Solution)
     return true
 end
 
+Base.isless(s1::PrimalSolution, s2::PrimalSolution) = !isbetter(PrimalBound(s1.model, s1.bound), PrimalBound(s2.model, s2.bound))
+Base.isless(s1::DualSolution, s2::DualSolution) = !isbetter(DualBound(s1.model, s1.bound), DualBound(s2.model, s2.bound))
+
 function contains(sol::PrimalSolution, f::Function)
     for (varid, val) in sol
         f(varid) && return true

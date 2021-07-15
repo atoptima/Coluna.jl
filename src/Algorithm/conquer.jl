@@ -255,7 +255,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
             ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
             if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                 # we start with worst solution to add all improving solutions
-                for sol in sort(ip_primal_sols, rev = getobjsense(reform) == MinSense)
+                for sol in sort(ip_primal_sols)
                     cutgen = CutCallbacks(call_robust_facultative = false)
                     # TO DO : Heuristics should ensure themselves that the returned solution is feasible
                     cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
