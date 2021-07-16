@@ -61,11 +61,6 @@ function DualBound(form::AbstractFormulation, db::DualBound{S}) where {S}
     return Bound{Dual,Se}(getvalue(db))
 end
 
-valueinminsense(b::PrimalBound{MinSense}) = b.value
-valueinminsense(b::DualBound{MinSense}) = b.value
-valueinminsense(b::PrimalBound{MaxSense}) = -b.value
-valueinminsense(b::DualBound{MaxSense}) = -b.value
-
 # ObjValues
 mutable struct ObjValues{S}
     lp_primal_bound::PrimalBound{S}

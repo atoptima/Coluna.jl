@@ -15,12 +15,9 @@ mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     lp_dual_sols::Vector{DualSolution{F}}
 end
 
-_sort!(sols::Vector{PrimalSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(PrimalBound(x.model, x.bound)))
-_sort!(sols::Vector{DualSolution{F}}, f::Function) where {F} = sort!(sols, by = x -> f(DualBound(x.model, x.bound)), rev = true)
-
 function bestbound!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
     push!(solutions, new_sol)
-    _sort!(solutions, MathProg.valueinminsense)
+    sort!(solutions, rev = true)
     while length(solutions) > max_len
         pop!(solutions)
     end

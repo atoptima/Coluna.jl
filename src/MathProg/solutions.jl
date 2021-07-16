@@ -27,6 +27,16 @@ function Base.isinteger(sol::Solution)
     return true
 end
 
+function Base.isless(s1::PrimalSolution, s2::PrimalSolution)
+    getobjsense(s1.model) == MinSense && return s1.bound > s2.bound
+    return s1.bound < s2.bound
+end
+
+function Base.isless(s1::DualSolution, s2::DualSolution)
+    getobjsense(s1.model) == MinSense && return s1.bound < s2.bound
+    return s1.bound > s2.bound
+end
+
 function contains(sol::PrimalSolution, f::Function)
     for (varid, val) in sol
         f(varid) && return true
