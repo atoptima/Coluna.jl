@@ -214,15 +214,13 @@ function convert_status(coluna_status::SolutionStatus)
     return MOI.OTHER_RESULT_STATUS
 end
 
-abstract type AbstractCustomData end
-
 # Solution
 struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Value}
     model::Model
     bound::Float64
     status::SolutionStatus
     sol::DynamicSparseArrays.PackedMemoryArray{Decision,Value}
-    custom_data::Union{Nothing, AbstractCustomData}
+    custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData}
 end
 
 """
@@ -232,7 +230,7 @@ end
         values::Vector,
         solution_values::Float64,
         status::SolutionStatus,
-        [custom_data]::Union{Nothing, AbstractCustomData}
+        [custom_data]::Union{Nothing, BlockDecomposition.AbstractCustomData}
     )
 
 Create a solution to the `model`. Other arguments are: 
@@ -243,7 +241,7 @@ Create a solution to the `model`. Other arguments are:
 """
 function Solution{Mo,De,Va}(
     model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, 
-    status::SolutionStatus, custom_data::Union{Nothing, AbstractCustomData} = nothing
+    status::SolutionStatus, custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData} = nothing
 ) where {Mo<:AbstractModel,De,Va}
     sol = DynamicSparseArrays.dynamicsparsevec(decisions, values)
     return Solution(model, solution_value, status, sol, custom_data)
