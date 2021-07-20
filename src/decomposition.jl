@@ -492,18 +492,61 @@ function buildformulations!(
     return
 end
 
+# Error messages for `check_annotations`.
+_err_check_annotations(id::VarId) = error("""
+A variable (id = $id) is not annotated.
+Make sure you do not use anonymous variables (variable with no name declared in JuMP macro variable).
+Otherwise, open an issue at https://github.com/atoptima/Coluna.jl/issues
+""")
+
+_err_check_annotations(id::ConstrId) = error("""
+A constraint (id = $id) is not annotated.
+Make sure you do not use anonymous constraints (constraint with no name declared in JuMP macro variable).
+Otherwise, open an issue at https://github.com/atoptima/Coluna.jl/issues
+""")
+
+"""
+Make sure that all variables and constraints of the original formulation are
+annotated. Otherwise, it returns an error.
+"""
+function check_annotations(prob::Problem, annotations::Annotations)
+    origform = get_original_formulation(prob)
+
+    for (varid, _) in getvars(origform)
+        if !haskey(annotations.ann_per_var, varid)
+            return _err_check_annotations(varid)
+        end
+    end
+
+    for (constrid, _) in getconstrs(origform)
+        if !haskey(annotations.ann_per_constr, constrid)
+            return _err_check_annotations(constrid)
+        end
+    end
+    return true
+end
+
+"""
+Reformulate the original formulation of prob according to the annotations.
+The environment maintains formulation ids.
+"""
 function reformulate!(prob::Problem, annotations::Annotations, env::Env)
+    # Once the original formulation built, we close the "fill mode" of the
+    # coefficient matrix which is a super fast writing mode compared to the default
+    # writing mode of the dynamic sparse matrix.
     if getcoefmatrix(prob.original_formulation).fillmode
         closefillmode!(getcoefmatrix(prob.original_formulation))
     end
+
     decomposition_tree = annotations.tree
     if decomposition_tree !== nothing
+        check_annotations(prob, annotations)
         root = BD.getroot(decomposition_tree)
         reform = Reformulation()
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
         relax_integrality!(getmaster(reform))
-    else
+    else # No decomposition provided by BlockDecomposition
         push_optimizer!(
             prob.original_formulation,
             prob.default_optimizer_builder
