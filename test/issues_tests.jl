@@ -306,6 +306,49 @@ function continuous_vars_in_sp()
     return
 end
 
+# issue https://github.com/atoptima/Coluna.jl/issues/553
+function unsupported_anonym_constrs_vars()
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver=ClA.TreeSearchAlgorithm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    function anonymous_var_model!(m)
+        y = @variable(m, binary = true)
+        @variable(m, 0 <= x[D] <= 1)
+        @constraint(m, sp[d in D], x[d] <= 0.85)
+        @objective(m, Min, sum(x) + y)
+        @dantzig_wolfe_decomposition(m, dec, D)
+    end
+
+    function anonymous_constr_model!(m)
+        @variable(m, 0 <= x[D] <= 1)
+        sp = @constraint(m, [d in D], x[d] <= 0.85)
+        @objective(m, Min, sum(x))
+        @dantzig_wolfe_decomposition(m, dec, D)
+    end
+
+    @axis(D, 1:5)
+    m = BlockModel(coluna, direct_model=true)
+    anonymous_var_model!(m)
+    @test_throws ErrorException optimize!(m)
+
+    m = BlockModel(coluna)
+    anonymous_var_model!(m)
+    # The variable is annotated in the master.
+    # @test_throws ErrorException optimize!(m)
+
+    m = BlockModel(coluna, direct_model=true)
+    anonymous_constr_model!(m)
+    @test_throws ErrorException optimize!(m)
+
+    m = BlockModel(coluna)
+    anonymous_constr_model!(m)
+    @test_throws ErrorException optimize!(m)
+    return
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -337,6 +380,10 @@ function test_issues_fixed()
 
     @testset "continuous_vars_in_sp" begin
         continuous_vars_in_sp()
+    end
+
+    @testset "unsupported_anonym_constrs_vars" begin
+        unsupported_anonym_constrs_vars()
     end
 end
 
