@@ -1,22 +1,27 @@
-using Documenter, Coluna
+using Documenter, Coluna, Literate, BlockDecomposition
+
+TUTORIAL = joinpath(@__DIR__, "src", "start", "start.jl")
+OUTPUT = joinpath(@__DIR__, "src", "start")
+
+Literate.markdown(TUTORIAL, OUTPUT, documenter = true)
 
 makedocs(
     modules = [Coluna],
     checkdocs = :exports,
     sitename = "Coluna User Guide",
-    format = Documenter.HTML(),
-    strict = true,
+    authors = "Atoptima & contributors",
+    format = Documenter.HTML(
+        prettyurls = get(ENV, "CI", nothing) == "true",
+        collapselevel = 1
+    ),
+    strict = false,
     pages = Any[
         "Introduction"   => "index.md",
+        "Getting started"   => joinpath("start", "start.md"),
         "Manual" => Any[
-            "Getting started"   => "user/start.md",
-            "Callbacks"   => "user/callbacks.md"
-        ],
-        "Reference" => Any[
-            "Algorithms" => "dev/algorithms.md",
-            "Formulation" => "dev/formulation.md",
-            "Reformulation" => "dev/reformulation.md",
-            "TODO" => "dev/todo.md"
+            "Decomposition" => joinpath("man", "decomposition.md"),
+            "Algorithms" => joinpath("man", "algorithm.md"),
+            "Callbacks"   => joinpath("man", "callbacks.md")
         ]
     ]
 )
