@@ -88,6 +88,36 @@ end
     @test JuMP.objective_value(model) == -JuMP.objective_value(model2)
 end
 
+@testset "SplitIntervalBridge" begin
+    nb_machines = 1
+    nb_jobs = 1
+    b = [1.0]
+    w = [1.0]
+    Q = [2]
+
+    coluna = optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(
+            solver=Coluna.Algorithm.TreeSearchAlgorithm()
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    @axis(M, 1:nb_machines)
+    J = 1:nb_jobs
+
+    model = BlockModel(coluna)
+    @variable(model, x[m in M, j in J])
+    @constraint(model, mult[j in J], 0 <= sum(x[m,j] for m in M) <= 2)
+    @constraint(model, cap[m in M], sum(w[j]*x[m,j] for j in J) <= Q[m])
+    @objective(model, Max, sum(b[m,j]*x[m,j] for m in M, j in J))
+
+    @dantzig_wolfe_decomposition(model, decomposition, M)
+
+    optimize!(model)
+    @test JuMP.objective_value(model) == 2.0
+end
+
 const UNSUPPORTED_TESTS = [
     "solve_qcp_edge_cases", # Quadratic constraints not supported
     "delete_nonnegative_variables", # variable deletion not supported

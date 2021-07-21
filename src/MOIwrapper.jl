@@ -437,6 +437,15 @@ function MOI.set(
 end
 
 function MOI.set(
+    model::MOI.Bridges.LazyBridgeOptimizer{Coluna.Optimizer}, ::BD.ConstraintDecomposition,
+    bridge::MOI.Bridges.Constraint.SplitIntervalBridge, annotation::BD.Annotation
+)
+    MOI.set(model.model, BD.ConstraintDecomposition(), bridge.lower, annotation)
+    MOI.set(model.model, BD.ConstraintDecomposition(), bridge.upper, annotation)
+    return
+end
+
+function MOI.set(
     model::Coluna.Optimizer, ::MOI.ConstraintName, constrid::MOI.ConstraintIndex{F,S}, name::String
 ) where {F<:MOI.ScalarAffineFunction,S}
     MOI.throw_if_not_valid(model, constrid)
