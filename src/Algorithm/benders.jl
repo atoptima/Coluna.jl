@@ -265,10 +265,21 @@ function solve_sp_to_gencut!(
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing benders_sp prob"
         TO.@timeit Coluna._to "Bender Sep SubProblem" begin
-            optstate = run!(SolveLpForm(get_dual_solution = true), env, spform, OptimizationInput(OptimizationState(spform)))
+            optstate = run!(
+                SolveLpForm(get_dual_solution = true, relax_integrality = true), 
+                env, spform, OptimizationInput(OptimizationState(spform))
+            )
         end
 
         optresult = getoptstate(optstate)
+        @show optresult
+        println("-----")
+        @show get_best_lp_dual_sol(optresult)
+        println("-----")
+        @show get_best_lp_primal_sol(optresult)
+        @show get_best_ip_primal_sol(optresult)
+        println("-----")
+
         if getterminationstatus(optresult) == INFEASIBLE # if status != MOI.OPTIMAL
             sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
@@ -418,7 +429,12 @@ end
 
 function solve_relaxed_master!(master::Formulation, env::Env)
     elapsed_time = @elapsed begin
-        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(get_dual_solution = true), env, master, OptimizationInput(OptimizationState(master)))
+        optresult = TO.@timeit Coluna._to "relaxed master" begin
+            run!(
+                SolveLpForm(get_dual_solution = true, relax_integrality = true),
+                env, master, OptimizationInput(OptimizationState(master))
+            )
+        end
     end
     return optresult, elapsed_time
 end

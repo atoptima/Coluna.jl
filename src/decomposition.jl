@@ -383,16 +383,16 @@ function create_side_vars_constrs!(
         getduty(varid) == BendSpSepVar || continue
         orig_var = getvar(origform, varid)
         cost =  getperencost(origform, orig_var)
-        if cost > 0.00001
+        if cost > 0
             global_costprofit_ub += cost * getcurub(origform, orig_var)
             global_costprofit_lb += cost * getcurlb(origform, orig_var)
-        elseif cost < - 0.00001
+        elseif cost < 0
             global_costprofit_ub += cost * getcurlb(origform, orig_var)
             global_costprofit_lb += cost * getcurub(origform, orig_var)
         end
     end
 
-    if global_costprofit_ub > 0.00001  || global_costprofit_lb < - 0.00001
+    if global_costprofit_ub > 0 || global_costprofit_lb < 0
         sp_has_second_stage_cost = true
     end
 
@@ -403,7 +403,7 @@ function create_side_vars_constrs!(
         nu = setvar!(
             spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar;
             cost = 1.0,
-            lb = - global_costprofit_lb,
+            lb = global_costprofit_lb,
             ub = global_costprofit_ub,
             kind = Continuous,
             is_explicit = true
@@ -545,6 +545,16 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         reform = Reformulation()
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
+
+        @show prob.original_formulation
+        @show getmaster(reform)
+
+        println("********")
+
+        for (spid, sp) in reform.benders_sep_subprs
+            @show sp
+            println("\e[31m ******** \e[00m")
+        end
         relax_integrality!(getmaster(reform))
     else # No decomposition provided by BlockDecomposition
         push_optimizer!(

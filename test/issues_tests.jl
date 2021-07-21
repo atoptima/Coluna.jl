@@ -202,7 +202,7 @@ function branching_file_completion()
             for line in eachline(file)
                 for pieceofdata in split(line)
                     regex_match = match(r"n\d+", pieceofdata)
-                    if regex_match != nothing
+                    if regex_match !== nothing
                         regex_match = regex_match.match
                         push!(existing_nodes, parse(Int, regex_match[2:length(regex_match)]))
                     end
@@ -349,6 +349,32 @@ function unsupported_anonym_constrs_vars()
     return
 end
 
+# issue https://github.com/atoptima/Coluna.jl/issues/554
+function simple_benders()
+    coluna = optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(
+            solver = Coluna.Algorithm.BendersCutGeneration()
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    model = BlockModel(coluna, direct_model=true)
+
+    @axis(S, 1:2)
+
+    @variable(model, d, Bin)
+    @variable(model, x[i in S], Bin)
+    @constraint(model, con1, x[S[1]] <= d)
+    @constraint(model, con2, x[S[2]] <= 1-d)
+    @objective(model, Min, -sum(x))
+
+    @benders_decomposition(model, decomposition, S)
+
+    optimize!(model)
+    @test objective_value(model) == -1.0
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -384,6 +410,10 @@ function test_issues_fixed()
 
     @testset "unsupported_anonym_constrs_vars" begin
         unsupported_anonym_constrs_vars()
+    end
+
+    @testset "simple benders decomposition" begin
+        simple_benders()
     end
 end
 
