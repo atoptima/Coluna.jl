@@ -742,9 +742,11 @@ end
 MOI.get(optimizer::Optimizer, ::MOI.NodeCount) = optimizer.env.kpis.node_count
 MOI.get(optimizer::Optimizer, ::MOI.SolveTime) = optimizer.env.kpis.elapsed_optimization_time
 
-# function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
-#     return 0.0
-# end
+function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
+    dualsols = get_lp_dual_sols(optimizer.result)
+    1 <= index.value <= length(dualsols) && return getvalue(dualsols[index.value])
+    return 0.0
+end
 
 # function MOI.get(optimizer::Optimizer, ::MOI.SolveTime)
 #     return 0.0

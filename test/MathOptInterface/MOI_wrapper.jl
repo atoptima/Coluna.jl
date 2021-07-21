@@ -3,7 +3,7 @@
 const OPTIMIZER = Coluna.Optimizer()
 MOI.set(OPTIMIZER, MOI.RawParameter("default_optimizer"), GLPK.Optimizer)
 
-const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6)
+const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6, infeas_certificates = false)
 
 
 @testset "SolverName" begin
@@ -106,9 +106,7 @@ const UNSUPPORTED_TESTS = [
     "get_objective_function", # Quandratic objective not supported
     "number_threads", # TODO : support of MOI.NumberOfThreads()
     "silent", # TODO : support of MOI.Silent()
-    "time_limit_sec", # TODO : support of MOI.TimeLimitSec()
-    "solve_time", # TODO : support of MOI.SolveTime()
-    "solve_twice" # TODO : fix 
+    "time_limit_sec" # TODO : support of MOI.TimeLimitSec()
 ]
 
 MathOptInterface.Test.getconstraint
@@ -175,8 +173,10 @@ MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm(
 end
 
 # @testset "Unit LP" begin
-#     MOI.set(OPTIMIZER, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveLpForm()))
-#     MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC))
+#     MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveLpForm(
+#         update_ip_primal_solution=true, get_dual_solution=true
+#     )))
+#     MOIT.unittest(BRIDGED, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC))
 # end
 
 # @testset "Continuous Linear" begin
