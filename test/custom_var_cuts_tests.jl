@@ -12,11 +12,11 @@ given by length(s). The custom cut used to cut the fractional solution is
                 sum(λ_s for s in sols if length(s) >= 2) <= 1.0
 where sols is the set of possible combinations of items in a bin.
 =#
-struct MyCustomVarData <: ColunaBase.AbstractCustomData
+struct MyCustomVarData <: BD.AbstractCustomData
     nb_items::Int
 end
 
-struct MyCustomCutData <: ColunaBase.AbstractCustomData
+struct MyCustomCutData <: BD.AbstractCustomData
     min_items::Int
 end
 
@@ -25,15 +25,6 @@ function Coluna.MathProg.computecoeff(
     ::Constraint, constr_custom_data::MyCustomCutData
 )
     return (var_custom_data.nb_items >= constr_custom_data.min_items) ? 1.0 : 0.0
-end
-MathOptInterface.Utilities.map_indices(
-    variable_map::MathOptInterface.Utilities.IndexMap, x::MyCustomVarData
-) = x
-MathOptInterface.Utilities.map_indices(
-    variable_map::MathOptInterface.Utilities.IndexMap, x::MyCustomCutData
-) = x
-function MOI.submit(model::Model, cb::MOI.UserCut, con::ScalarConstraint, custom_data::MyCustomCutData)
-    return MOI.submit(JuMP.backend(model), cb, JuMP.moi_function(con.func), con.set, custom_data)
 end
 
 function custom_var_cuts_test()
@@ -71,10 +62,10 @@ function custom_var_cuts_test()
         )
 
         model, x, y, dec = build_toy_model(coluna)
+        BD.customvars!(model, MyCustomVarData)
+        BD.customconstrs!(model, MyCustomCutData)
 
         function my_pricing_callback(cbdata)
-            addcustomvars!(cbdata.form.parent_formulation, MyCustomVarData)
-            
             # Get the reduced costs of the original variables
             I = [1, 2, 3]
             b = BD.callback_spid(cbdata, model)
@@ -132,8 +123,6 @@ function custom_var_cuts_test()
         )
 
         function custom_cut_sep(cbdata)
-            addcustomconstrs!(cbdata.form, MyCustomCutData)
-
             # compute the constraint violation
             viol = -1.0
             for (varid, varval) in cbdata.orig_sol

@@ -46,10 +46,12 @@ mutable struct Env
     kpis::Kpis
     form_counter::Int # 0 is for original form
     varids::MOI.Utilities.CleverDicts.CleverDict{MOI.VariableIndex, MathProg.VarId}
+    custom_families_id::Dict{DataType, Int}
 end
 Env(params::Params) = Env(
     now(), nothing, params, Kpis(nothing, nothing), 0,
-    MOI.Utilities.CleverDicts.CleverDict{MOI.VariableIndex, MathProg.VarId}()
+    MOI.Utilities.CleverDicts.CleverDict{MOI.VariableIndex, MathProg.VarId}(),
+    Dict{DataType, Int}()
 )
 set_optim_start_time!(env::Env) = env.optim_starting_time = now()
 elapsed_optim_time(env::Env) = Dates.toms(now() - env.optim_starting_time) / Dates.toms(Second(1))

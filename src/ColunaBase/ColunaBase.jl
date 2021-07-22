@@ -7,12 +7,13 @@ using DynamicSparseArrays, MathOptInterface, TimerOutputs
 const MOI = MathOptInterface
 const TO = TimerOutputs
 
+import BlockDecomposition
 import Base
 import Printf
 
 # interface.jl
 export AbstractModel, AbstractProblem, AbstractSense, AbstractMinSense, AbstractMaxSense,
-    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, AbstractCustomData, getstorage
+    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, getstorage
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
