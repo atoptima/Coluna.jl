@@ -426,6 +426,15 @@ end
 # Attributes of constraints
 ############################################################################################
 function MOI.set(
+    model::MOI.Bridges.LazyBridgeOptimizer{Coluna.Optimizer}, attr::MOI.AbstractConstraintAttribute,
+    bridge::MOI.Bridges.Constraint.SplitIntervalBridge, value
+)
+    MOI.set(model.model, attr, bridge.lower, value)
+    MOI.set(model.model, attr, bridge.upper, value)
+    return
+end
+
+function MOI.set(
     model::Coluna.Optimizer, ::BD.ConstraintDecomposition, constrid::MOI.ConstraintIndex,
     annotation::BD.Annotation
 )
