@@ -89,12 +89,6 @@ end
 end
 
 @testset "SplitIntervalBridge" begin
-    nb_machines = 1
-    nb_jobs = 1
-    b = [1.0]
-    w = [1.0]
-    Q = [2]
-
     coluna = optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => Coluna.Params(
@@ -103,14 +97,13 @@ end
         "default_optimizer" => GLPK.Optimizer
     )
 
-    @axis(M, 1:nb_machines)
-    J = 1:nb_jobs
+    @axis(M, 1:1)
+    J = 1:1
 
     model = BlockModel(coluna)
     @variable(model, x[m in M, j in J])
-    @constraint(model, mult[j in J], 0 <= sum(x[m,j] for m in M) <= 2)
-    @constraint(model, cap[m in M], sum(w[j]*x[m,j] for j in J) <= Q[m])
-    @objective(model, Max, sum(b[m,j]*x[m,j] for m in M, j in J))
+    @constraint(model, mult[m in M], 1 <= sum(x[m,j] for j in J) <= 2)
+    @objective(model, Max, sum(x[m,j] for m in M, j in J))
 
     @dantzig_wolfe_decomposition(model, decomposition, M)
 
