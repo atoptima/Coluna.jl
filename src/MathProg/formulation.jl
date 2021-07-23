@@ -345,7 +345,7 @@ function setcut_from_sp_dualsol!(
     name::String,
     duty::Duty{Constraint};
     kind::ConstrKind = Essential,
-    sense::ConstrSense = Greater,
+    sense::ConstrSense = Less, # Benders bug
     inc_val::Float64 = -1.0,
     is_active::Bool = true,
     is_explicit::Bool = true,
@@ -380,6 +380,9 @@ function setcut_from_sp_dualsol!(
     if isexplicit(masterform, benders_cut)
         add!(masterform.buffer, getid(benders_cut))
     end
+    println("\e[1;45m ~~~~~~~~~~~~~ \e[00m")
+    @show masterform
+    println("\e[1;45m ~~~~~~~~~~~~~ \e[00m")
     return benders_cut
 end
 
@@ -607,6 +610,7 @@ function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, 
     return val
 end
 
+# TODO : remove (unefficient & specific to an algorithm)
 function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)
     redcost = getperencost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
@@ -621,6 +625,7 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
     return redcost
 end
 
+# TODO : remove (unefficient & specific to Benders)
 function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution)
     constrrhs = getperenrhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)

@@ -61,10 +61,11 @@ function run!(
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
+    slack_cost = getobjsense(spform) === MinSense ? 1.0 : -1.0
     for (varid, var) in getvars(spform)
         iscuractive(spform, varid) || continue
         if getduty(varid) == BendSpSlackFirstStageVar
-            setcurcost!(spform, var, 1.0)
+            setcurcost!(spform, var, slack_cost)
         else
             setcurcost!(spform, var, 0.0)
         end
@@ -310,7 +311,7 @@ function solve_sp_to_gencut!(
         # no cuts are generated since there is no violation 
             if spsol_relaxed
                 if algdata.spform_phase[spform_uid] == PurePhase2
-                    error("In PurePhase2, art var were not supposed to be in sp forlumation ")
+                    error("In PurePhase2, art var were not supposed to be in sp formulation ")
                 end
                 if algdata.spform_phase[spform_uid] == PurePhase1
                     error("In PurePhase1, if art var were in sol, the objective should be strictly positive.")
@@ -337,7 +338,6 @@ function solve_sp_to_gencut!(
                     continue
                 end             
             end
-            
         else # a cut can be generated since there is a violation
             recorded_dual_solution_ids = record_solutions!(algo, algdata, spform, optresult)
             if spsol_relaxed && algo.option_increase_cost_in_hybrid_phase

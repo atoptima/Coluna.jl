@@ -111,10 +111,16 @@ function run!(
     optimize_lp_form!(algo, optimizer, form, result)
     primal_sols = get_primal_solutions(form, optimizer)
 
+    println("*******")
+    @show form
+    println("*******")
+
     coeff = getobjsense(form) == MinSense ? 1.0 : -1.0
 
     if algo.get_dual_solution
         dual_sols = get_dual_solutions(form, optimizer)
+        println("\e[45m *** \e[00m")
+        @show dual_sols
         if length(dual_sols) > 0
             lp_dual_sol_pos = argmax(coeff * getvalue.(dual_sols))
             lp_dual_sol = dual_sols[lp_dual_sol_pos]

@@ -327,7 +327,7 @@ function instantiate_orig_vars!(
         for (id, var) in vars
             duty, _ = _dutyexpofbendmastvar(var, annotations, origform)
             if duty == MasterBendFirstStageVar
-                name = "μ[$(split(getname(origform, var), "[")[end])"
+                name = string("μ[", split(getname(origform, var), "[")[end], "]")
                 setvar!(
                     spform, name, BendSpSlackFirstStageVar;
                     cost = getcurcost(origform, var),
@@ -402,7 +402,7 @@ function create_side_vars_constrs!(
         # Cost constraint
         nu = setvar!(
             spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar;
-            cost = 1.0,
+            cost = getobjsense(spform) == MinSense ? 1.0 : -1.0,
             lb = global_costprofit_lb,
             ub = global_costprofit_ub,
             kind = Continuous,
@@ -415,7 +415,7 @@ function create_side_vars_constrs!(
             spform, "cost[$sp_id]", BendSpSecondStageCostConstr;
             rhs = 0.0,
             kind = Essential,
-            sense = Greater,
+            sense = getobjsense(spform) == MinSense ? Greater : Less,
             is_explicit = true
         )
         sp_coef[getid(cost), getid(nu)] = 1.0
