@@ -259,10 +259,8 @@ end
 function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)
     nb_dual_sols = MOI.get(inner, MOI.ResultCount())
-    println("\e[45m nb_dual_sols : $nb_dual_sols \e[00m")
     solutions = DualSolution{F}[]
     for res_idx in 1:nb_dual_sols
-        @show  MOI.get(inner, MOI.DualStatus(res_idx))
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
@@ -277,7 +275,6 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
             solcost += val * getcurrhs(form, id)
             val = round(val, digits = Coluna.TOL_DIGITS)
             if abs(val) > Coluna.TOL
-                @show string("Constr ", constr.name, " = ", val)
                 push!(solconstrs, id)
                 push!(solvals, val)      
             end

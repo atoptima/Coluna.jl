@@ -363,58 +363,58 @@ function simple_benders()
 
     @axis(S, 1:2)
 
-    @variable(model, d, Bin)
-    @variable(model, x[i in S], Bin)
-    @constraint(model, con1, x[S[1]] <= d)
-    @constraint(model, con2, x[S[2]] <= 1-d)
-    @objective(model, Min, -sum(x))
+    @variable(model, x, Bin)
+    @variable(model, y[i in S], Bin)
+    @constraint(model, purefirststage, x <= 1)
+    @constraint(model, tech1[S[1]], y[S[1]] <= x)
+    @constraint(model, tech2[S[2]], y[S[2]] <= 1-x)
+    @constraint(model, puresecondstage[s in S], y[s] <= 1)
+    @objective(model, Max, sum(y))
 
     @benders_decomposition(model, decomposition, S)
 
     optimize!(model)
-    @test objective_value(model) == -1.0
+    @test objective_value(model) == 1.0
 end
 
 function test_issues_fixed()
-    @testset "no_decomposition" begin
-        solve_with_no_decomposition()
-    end
+    # @testset "no_decomposition" begin
+    #     solve_with_no_decomposition()
+    # end
 
-    @testset "moi_empty" begin
-        test_model_empty()
-    end
+    # @testset "moi_empty" begin
+    #     test_model_empty()
+    # end
 
-    @testset "decomposition_with_constant_in_objective" begin
-        decomposition_with_constant_in_objective()
-    end
+    # @testset "decomposition_with_constant_in_objective" begin
+    #     decomposition_with_constant_in_objective()
+    # end
 
-    @testset "solve_empty_model" begin
-        solve_empty_model()
-    end
+    # @testset "solve_empty_model" begin
+    #     solve_empty_model()
+    # end
     
-    @testset "optimize_twice" begin
-        optimize_twice()
-    end
+    # @testset "optimize_twice" begin
+    #     optimize_twice()
+    # end
 
-    @testset "column_generation_solver" begin
-        column_generation_solver()
-    end
+    # @testset "column_generation_solver" begin
+    #     column_generation_solver()
+    # end
     
-    @testset "branching_file_completion" begin
-        branching_file_completion()
-    end
+    # @testset "branching_file_completion" begin
+    #     branching_file_completion()
+    # end
 
-    @testset "continuous_vars_in_sp" begin
-        continuous_vars_in_sp()
-    end
+    # @testset "continuous_vars_in_sp" begin
+    #     continuous_vars_in_sp()
+    # end
 
-    @testset "unsupported_anonym_constrs_vars" begin
-        unsupported_anonym_constrs_vars()
-    end
+    # @testset "unsupported_anonym_constrs_vars" begin
+    #     unsupported_anonym_constrs_vars()
+    # end
 
     @testset "simple benders decomposition" begin
         simple_benders()
     end
 end
-
-test_issues_fixed()

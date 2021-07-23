@@ -345,7 +345,7 @@ function setcut_from_sp_dualsol!(
     name::String,
     duty::Duty{Constraint};
     kind::ConstrKind = Essential,
-    sense::ConstrSense = Less, # Benders bug
+    sense::ConstrSense = Less,
     inc_val::Float64 = -1.0,
     is_active::Bool = true,
     is_explicit::Bool = true,
@@ -365,13 +365,15 @@ function setcut_from_sp_dualsol!(
     sp_coef_matrix = getcoefmatrix(spform)
     sp_dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
 
+    sc = getobjsense(masterform) === MinSense ? 1.0 : -1.0
+
     for (ds_constrid, ds_constr_val) in sp_dual_sol
         ds_constr = getconstr(spform, ds_constrid)
         if getduty(ds_constrid) <= AbstractBendSpMasterConstr
             for (master_var_id, sp_constr_coef) in @view sp_coef_matrix[ds_constrid,:]
                 var = getvar(spform, master_var_id)
                 if getduty(master_var_id) <= AbstractBendSpSlackMastVar
-                    master_coef_matrix[benders_cut_id, master_var_id] += ds_constr_val * sp_constr_coef
+                    master_coef_matrix[benders_cut_id, master_var_id] += sc * ds_constr_val * sp_constr_coef
                 end
             end
         end
@@ -380,9 +382,6 @@ function setcut_from_sp_dualsol!(
     if isexplicit(masterform, benders_cut)
         add!(masterform.buffer, getid(benders_cut))
     end
-    println("\e[1;45m ~~~~~~~~~~~~~ \e[00m")
-    @show masterform
-    println("\e[1;45m ~~~~~~~~~~~~~ \e[00m")
     return benders_cut
 end
 

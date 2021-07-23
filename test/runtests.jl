@@ -22,9 +22,9 @@ const ClF = Coluna.MathProg # Must be deleted
 const ClMP = Coluna.MathProg
 const ClA = Coluna.Algorithm
 
-include("unit/unit_tests.jl")
-include("MathOptInterface/MOI_wrapper.jl")
-include("interfaces/model.jl")
+#include("unit/unit_tests.jl")
+#include("MathOptInterface/MOI_wrapper.jl")
+#include("interfaces/model.jl")
 include("issues_tests.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
@@ -39,49 +39,50 @@ include("sol_disaggregation_tests.jl")
 
 rng = MersenneTwister(1234123)
 
-unit_tests()
+#unit_tests()
+test_issues_fixed()
 
-@testset "Full instances " begin
-    full_instances_tests()
-end
-
-@testset "User algorithms" begin
-    user_algorithms_tests()
-end
-
-# @testset "Preprocessing " begin
-#     preprocessing_tests()
+# @testset "Full instances " begin
+#     full_instances_tests()
 # end
 
-@testset "pricing callback" begin
-    pricing_callback_tests()
-end
+# @testset "User algorithms" begin
+#     user_algorithms_tests()
+# end
 
-@testset "bound callback" begin
-    bound_callback_tests()
-end
+# # @testset "Preprocessing " begin
+# #     preprocessing_tests()
+# # end
 
-@testset "Base.show functions " begin
-    backup_stdout = stdout
-    (rd_out, wr_out) = redirect_stdout()
-    show_functions_tests()
-    close(wr_out)
-    close(rd_out)
-    redirect_stdout(backup_stdout)
-end
+# @testset "pricing callback" begin
+#     pricing_callback_tests()
+# end
 
-@testset "Optimizer with Attributes" begin
-    optimizer_with_attributes_test()
-end
+# @testset "bound callback" begin
+#     bound_callback_tests()
+# end
 
-@testset "Subproblem Solvers" begin
-    subproblem_solvers_test()
-end
+# @testset "Base.show functions " begin
+#     backup_stdout = stdout
+#     (rd_out, wr_out) = redirect_stdout()
+#     show_functions_tests()
+#     close(wr_out)
+#     close(rd_out)
+#     redirect_stdout(backup_stdout)
+# end
 
-@testset "Custom Variables and Cuts" begin
-    custom_var_cuts_test()
-end
+# @testset "Optimizer with Attributes" begin
+#     optimizer_with_attributes_test()
+# end
 
-@testset "Solution Disaggregation" begin
-    sol_disaggregation_tests()
-end
+# @testset "Subproblem Solvers" begin
+#     subproblem_solvers_test()
+# end
+
+# @testset "Custom Variables and Cuts" begin
+#     custom_var_cuts_test()
+# end
+
+# @testset "Solution Disaggregation" begin
+#     sol_disaggregation_tests()
+# end

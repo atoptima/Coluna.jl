@@ -119,8 +119,6 @@ function run!(
 
     if algo.get_dual_solution
         dual_sols = get_dual_solutions(form, optimizer)
-        println("\e[45m *** \e[00m")
-        @show dual_sols
         if length(dual_sols) > 0
             lp_dual_sol_pos = argmax(coeff * getvalue.(dual_sols))
             lp_dual_sol = dual_sols[lp_dual_sol_pos]
