@@ -189,12 +189,8 @@ end
 function insert_cuts_in_master!(
     masterform::Formulation, spform::Formulation, sp_dualsol_ids::Vector{ConstrId},
 )
-    sp_uid = getuid(spform)
     nb_of_gen_cuts = 0
     sense = getobjsense(masterform) == MinSense ? Greater : Less
-
-    println("\e[45 INSERT CUTS LOOP \e[00m")
-    @show sp_dualsol_ids
 
     for dual_sol_id in sp_dualsol_ids
         nb_of_gen_cuts += 1
@@ -211,7 +207,7 @@ function insert_cuts_in_master!(
             sense = sense
         )
         
-        @logmsg LogLevel(0) string("Generated cut : ", name)
+        @logmsg LogLevel(-2) string("Generated cut : ", name)
     end
 
     return nb_of_gen_cuts
@@ -277,13 +273,6 @@ function solve_sp_to_gencut!(
         end
 
         optresult = getoptstate(optstate)
-        println("-----")
-        println("-----")
-        @show get_best_lp_dual_sol(optresult)
-        println("-----")
-        @show get_best_lp_primal_sol(optresult)
-        println("-----")
-        println("-----")
 
         if getterminationstatus(optresult) == INFEASIBLE # if status != MOI.OPTIMAL
             sp_is_feasible = false 
@@ -310,8 +299,7 @@ function solve_sp_to_gencut!(
                 end
             end
         end
-        
-        println("\e[45m $(get_lp_primal_bound(optresult)) \e[00m")
+
         if - algo.feasibility_tol <= get_lp_primal_bound(optresult) <= algo.feasibility_tol
         # no cuts are generated since there is no violation 
             if spsol_relaxed
@@ -344,7 +332,6 @@ function solve_sp_to_gencut!(
                 end             
             end
         else # a cut can be generated since there is a violation
-            println("\e[34m record solution \e[00m")
             recorded_dual_solution_ids = record_solutions!(algo, algdata, spform, optresult)
             if spsol_relaxed && algo.option_increase_cost_in_hybrid_phase
                 #check algdata.spform_phase[spform_uid] == HybridPhase
@@ -390,7 +377,6 @@ function solve_sps_to_gencuts!(
             up_to_phase
         )
         if gen_status # else Sp is infeasible: contrib = Inf
-            println("\e[1;43m  gen_status = $gen_status & recorded_dual_solution_ids = $recorded_dual_solution_ids \e[00m")
             recorded_sp_dual_solution_ids[spuid] = recorded_dual_solution_ids
         end        
         sp_pb_corrections[spuid] = benders_sp_primal_bound_contrib
@@ -406,7 +392,6 @@ function solve_sps_to_gencuts!(
         spsols_relaxed |= spsol_relaxed_status[spuid]
         total_pb_correction += sp_pb_corrections[spuid] 
         total_pb_contrib += sp_pb_contribs[spuid]
-        println(">>>> going to insert cuts")
         nb_new_cuts += insert_cuts_in_master!(masterform, spform, recorded_sp_dual_solution_ids[spuid])
     end
     
@@ -443,14 +428,6 @@ function solve_relaxed_master!(master::Formulation, env::Env)
                 env, master, OptimizationInput(OptimizationState(master))
             )
         end
-        optresult = getoptstate(optstate)
-            println("\e[43m-----\e[00m")
-            println("-----")
-            @show get_best_lp_dual_sol(optresult)
-            println("-----")
-            @show get_best_lp_primal_sol(optresult)
-            println("-----")
-            println("\e[43m-----\e[00m")
     end
     return optstate, elapsed_time
 end
@@ -621,7 +598,7 @@ function print_benders_statistics(
     db = getvalue(get_ip_dual_bound(optstate))
     pb = getvalue(get_ip_primal_bound(optstate))
     @printf(
-            "\e[45m<it=%3i>\e[00m <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <DB=%10.4f> <mlp=%10.4f> <PB=%10.4f>\n",
+            "<it=%3i> <et=%5.2f> <mst=%5.2f> <sp=%5.2f> <cuts=%i> <DB=%10.4f> <mlp=%10.4f> <PB=%10.4f>\n",
             nb_bc_iterations, elapsed_optim_time(env), mst_time, sp_time, nb_new_cut, db, mlp, pb
     )
 end

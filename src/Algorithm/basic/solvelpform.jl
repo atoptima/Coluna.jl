@@ -1,3 +1,5 @@
+using GLPK 
+
 """
     Coluna.Algorithm.SolveLpForm(
         get_dual_solution = false,
@@ -110,10 +112,6 @@ function run!(
     optimizer = getoptimizer(form, optimizer_id)
     optimize_lp_form!(algo, optimizer, form, result)
     primal_sols = get_primal_solutions(form, optimizer)
-
-    println("*******")
-    @show form
-    println("*******")
 
     coeff = getobjsense(form) == MinSense ? 1.0 : -1.0
 

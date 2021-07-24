@@ -314,30 +314,10 @@ function instantiate_orig_vars!(
     annotations::Annotations,
     sp_ann
 )
-    masterform = getmaster(spform)
     if haskey(annotations.vars_per_ann, sp_ann)
         vars = annotations.vars_per_ann[sp_ann]
         for (_, var) in vars
             clonevar!(origform, spform, spform, var, BendSpSepVar, cost = 0.0)
-        end
-    end
-    mast_ann = get(annotations, masterform)
-    if haskey(annotations.vars_per_ann, mast_ann)
-        vars = annotations.vars_per_ann[mast_ann]
-        for (id, var) in vars
-            duty, _ = _dutyexpofbendmastvar(var, annotations, origform)
-            if duty == MasterBendFirstStageVar
-                name = string("μ[", split(getname(origform, var), "[")[end], "]")
-                setvar!(
-                    spform, name, BendSpSlackFirstStageVar;
-                    cost = getcurcost(origform, var),
-                    lb = getcurlb(origform, var),
-                    ub = getcurub(origform, var),
-                    kind = Continuous,
-                    is_explicit = true,
-                    id = Id{Variable}(BendSpSlackFirstStageVar, id, getuid(masterform))
-                )
-            end
         end
     end
     return
@@ -374,8 +354,53 @@ function create_side_vars_constrs!(
     spform::Formulation{BendersSp},
     origform::Formulation{Original},
     ::Env,
-    ::Annotations
+    annotations::Annotations
 )
+    spcoef = getcoefmatrix(spform)
+    origcoef = getcoefmatrix(origform)
+
+    # 1st level slack variables
+    masterform = getmaster(spform)
+    mast_ann = get(annotations, masterform)
+    if haskey(annotations.vars_per_ann, mast_ann)
+        vars = annotations.vars_per_ann[mast_ann]
+        for (varid, var) in vars
+            duty, _ = _dutyexpofbendmastvar(var, annotations, origform)
+            if duty == MasterBendFirstStageVar
+                name = string("μ⁺[", split(getname(origform, var), "[")[end], "]")
+                slack_pos = setvar!(
+                    spform, name, BendSpSlackFirstStageVar;
+                    cost = getcurcost(origform, var),
+                    lb = getcurlb(origform, var),
+                    ub = getcurub(origform, var),
+                    kind = Continuous,
+                    is_explicit = true
+                )
+
+                name = string("μ⁻[", split(getname(origform, var), "[")[end], "]")
+                slack_neg = setvar!(
+                    spform, name, BendSpSlackFirstStageVar;
+                    cost = -getcurcost(origform, var),
+                    lb = getcurlb(origform, var),
+                    ub = getcurub(origform, var),
+                    kind = Continuous,
+                    is_explicit = true
+                )
+
+                spform.duty_data.slack_to_first_stage[getid(slack_pos)] = varid
+                spform.duty_data.slack_to_first_stage[getid(slack_neg)] = varid
+
+                for (constrid, coeff) in @view origcoef[:, varid]
+                    spconstr = getconstr(spform, constrid)
+                    if spconstr !== nothing
+                        spcoef[getid(spconstr), getid(slack_pos)] = coeff
+                        spcoef[getid(spconstr), getid(slack_neg)] = -coeff
+                    end
+                end
+            end
+        end
+    end
+
     sp_has_second_stage_cost = false
     global_costprofit_ub = 0.0
     global_costprofit_lb = 0.0
@@ -397,7 +422,6 @@ function create_side_vars_constrs!(
     end
 
     if sp_has_second_stage_cost
-        sp_coef = getcoefmatrix(spform)
         sp_id = getuid(spform)
         # Cost constraint
         nu = setvar!(
@@ -418,11 +442,11 @@ function create_side_vars_constrs!(
             sense = getobjsense(spform) == MinSense ? Greater : Less,
             is_explicit = true
         )
-        sp_coef[getid(cost), getid(nu)] = 1.0
+        spcoef[getid(cost), getid(nu)] = 1.0
 
         for (varid, _) in getvars(spform)
             getduty(varid) == BendSpSepVar || continue
-            sp_coef[getid(cost), varid] = - getperencost(origform, varid)
+            spcoef[getid(cost), varid] = - getperencost(origform, varid)
         end
     end
     return
@@ -545,16 +569,6 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         reform = Reformulation()
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
-
-        @show prob.original_formulation
-        @show getmaster(reform)
-
-        println("********")
-
-        for (spid, sp) in reform.benders_sep_subprs
-            @show sp
-            println("\e[31m ******** \e[00m")
-        end
         relax_integrality!(getmaster(reform))
     else # No decomposition provided by BlockDecomposition
         push_optimizer!(

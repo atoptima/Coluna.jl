@@ -23,7 +23,11 @@ mutable struct DwSp <: AbstractSpDuty
 end
 
 "A Benders subproblem of a formulation decomposed using Benders."
-struct BendersSp <: AbstractSpDuty end
+struct BendersSp <: AbstractSpDuty 
+    slack_to_first_stage::Dict{VarId, VarId}
+end
+
+BendersSp() = BendersSp(Dict{VarId, VarId}())
 
 #
 # Duties tree for a Variable
