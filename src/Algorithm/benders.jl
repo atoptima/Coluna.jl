@@ -479,6 +479,9 @@ function bend_cutting_plane_main_loop!(
         cur_gap = 0.0
         
         optoutput, master_time = solve_relaxed_master!(masterform, env)
+        println("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~")
+        println(" ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~")
+        @show masterform
         optresult = getoptstate(optoutput)
 
         if getterminationstatus(optresult) == INFEASIBLE
@@ -487,6 +490,7 @@ function bend_cutting_plane_main_loop!(
             set_lp_dual_bound!(bnd_optstate, DualBound(masterform, db))
             set_lp_primal_bound!(bnd_optstate, PrimalBound(masterform, pb))
             setterminationstatus!(bnd_optstate, INFEASIBLE)
+            println("\e[42m end A \e[00m")
             return 
         end
         
@@ -496,6 +500,7 @@ function bend_cutting_plane_main_loop!(
         if getterminationstatus(optresult) == INFEASIBLE || master_primal_sol === nothing || master_dual_sol === nothing
             error("Benders algorithm:  the relaxed master LP is infeasible or unbounded has no solution.")
             setterminationstatus!(bnd_optstate, INFEASIBLE)
+            println("\e[42m end B \e[00m")
             return
         end
 
@@ -520,6 +525,7 @@ function bend_cutting_plane_main_loop!(
             if nb_new_cuts < 0
                 #@error "infeasible subproblem."
                 setterminationstatus!(bnd_optstate, INFEASIBLE)
+                println("\e[42m end C \e[00m")
                 return
             end
 
@@ -587,6 +593,7 @@ function bend_cutting_plane_main_loop!(
             update_ip_primal_sol!(bnd_optstate, master_primal_sol)
         end
     end
+    println("\e[42m end D \e[00m")
     return 
 end
 
