@@ -66,7 +66,7 @@ function apply_conquer_alg_to_node!(
 end
 
 ####################################################################
-#                      ParameterisedHeuristic
+#                      ParameterisedOptimization
 ####################################################################
 
 """
@@ -76,19 +76,20 @@ This algorithm enforces integrality of column variables in the master formulatio
 """
 RestrictedMasterIPHeuristic() = SolveIpForm(moi_params = MoiOptimize(get_dual_bound = false))
 
-struct ParameterisedHeuristic
+struct ParameterisedOptimization
     algorithm::AbstractOptimizationAlgorithm
     root_priority::Float64
     nonroot_priority::Float64
     frequency::Integer
     max_depth::Integer
     name::String
+    canconquer::Bool
 end
 
 ParamRestrictedMasterHeuristic() = 
-    ParameterisedHeuristic(
+    ParameterisedOptimization(
         RestrictedMasterIPHeuristic(), 
-        1.0, 1.0, 1, 1000, "Restricted Master IP"
+        1.0, 1.0, 1, 1000, "Restricted Master IP Heuristic", false
     )
 
 
@@ -126,7 +127,7 @@ end
 """
     Coluna.Algorithm.ColCutGenConquer(
         stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-        primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
+        param_optimizers::Vector{ParameterisedOptimization} = [ParamRestrictedMasterHeuristic()]
         preprocess = PreprocessAlgorithm()
         cutgen = CutCallbacks()
         run_preprocessing::Bool = false
@@ -141,7 +142,7 @@ several primal heuristics to more efficiently find feasible solutions.
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-    primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
+    param_optimizers::Vector{ParameterisedOptimization} = [ParamRestrictedMasterHeuristic()]
     preprocess = PreprocessAlgorithm()
     cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
@@ -167,8 +168,8 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     end
     push!(child_algos, (algo.cutgen, getmaster(reform)))
     algo.run_preprocessing && push!(child_algos, (algo.preprocess, reform))
-    for heuristic in algo.primal_heuristics
-        push!(child_algos, (heuristic.algorithm, reform))
+    for paramopt in algo.param_optimizers
+        push!(child_algos, (paramopt.algorithm, reform))
     end
     return child_algos
 end
@@ -177,7 +178,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
     restore_from_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
-    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform, EmptyInput()))
+    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, env, reform, EmptyInput()))
         setterminationstatus!(nodestate, INFEASIBLE)
         return 
     end
@@ -225,32 +226,36 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
     end
 
     if !stop_conquer
-        heuristics_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
-        for heuristic in algo.primal_heuristics
+        paramopt_to_run = Tuple{AbstractOptimizationAlgorithm, String, Bool, Float64}[]
+        for paramopt in algo.param_optimizers
             #TO DO : get_tree_order of nodes in strong branching is always -1
-            if getdepth(node) <= heuristic.max_depth && 
-                mod(get_tree_order(node) - 1, heuristic.frequency) == 0
-                push!(heuristics_to_run, (
-                    heuristic.algorithm, heuristic.name,
-                    isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
+            if getdepth(node) <= paramopt.max_depth && 
+                mod(get_tree_order(node) - 1, paramopt.frequency) == 0
+                push!(paramopt_to_run, (
+                    paramopt.algorithm, paramopt.name, paramopt.canconquer,
+                    isrootnode(node) ? paramopt.root_priority : paramopt.nonroot_priority
                 ))
             end
         end
-        sort!(heuristics_to_run, by = x -> last(x), rev=true)
+        sort!(paramopt_to_run, by = x -> last(x), rev=true)
     
-        for (heur_algorithm, name, priority) in heuristics_to_run
+        for (paramopt_algorithm, name, canconquer, _) in paramopt_to_run
             if ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol) 
                 break
             end
 
-            @info "Running $name heuristic"
-            if ismanager(heur_algorithm) 
+            @info "Running $name optimizer"
+            if ismanager(paramopt_algorithm) 
                 recordids = store_records!(reform)
             end   
 
-            heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
+            heur_output = run!(paramopt_algorithm, env, reform, OptimizationInput(nodestate))
             status = getterminationstatus(getoptstate(heur_output))
             status == TIME_LIMIT && setterminationstatus!(nodestate, status)
+            if status == OPTIMAL && canconquer
+                setterminationstatus!(nodestate, status)
+                break
+            end
 
             ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
             if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
@@ -264,7 +269,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                     end
                 end
             end
-            if ismanager(heur_algorithm) 
+            if ismanager(paramopt_algorithm) 
                 ColunaBase.restore_from_records!(input.units_to_restore, recordids)
             end
 
