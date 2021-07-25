@@ -1,5 +1,3 @@
-using GLPK 
-
 """
     Coluna.Algorithm.SolveLpForm(
         get_dual_solution = false,
