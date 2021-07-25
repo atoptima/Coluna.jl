@@ -369,18 +369,19 @@ function create_side_vars_constrs!(
             if duty == MasterBendFirstStageVar
                 name = string("μ⁺[", split(getname(origform, var), "[")[end], "]")
                 slack_pos = setvar!(
-                    spform, name, BendSpSlackFirstStageVar;
+                    spform, name, BendSpPosSlackFirstStageVar;
                     cost = getcurcost(origform, var),
                     lb = getcurlb(origform, var),
                     ub = getcurub(origform, var),
                     kind = Continuous,
-                    is_explicit = true
+                    is_explicit = true,
+                    id = Id{Variable}(BendSpPosSlackFirstStageVar, varid, getuid(masterform))
                 )
 
                 name = string("μ⁻[", split(getname(origform, var), "[")[end], "]")
                 slack_neg = setvar!(
-                    spform, name, BendSpSlackFirstStageVar;
-                    cost = -getcurcost(origform, var),
+                    spform, name, BendSpNegSlackFirstStageVar;
+                    cost = getcurcost(origform, var),
                     lb = getcurlb(origform, var),
                     ub = getcurub(origform, var),
                     kind = Continuous,
@@ -424,16 +425,16 @@ function create_side_vars_constrs!(
     if sp_has_second_stage_cost
         sp_id = getuid(spform)
         # Cost constraint
-        nu = setvar!(
-            spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar;
+        nu_pos = setvar!(
+            spform, "ν⁺[$sp_id]", BendSpSlackSecondStageCostVar;
             cost = getobjsense(spform) == MinSense ? 1.0 : -1.0,
             lb = global_costprofit_lb,
             ub = global_costprofit_ub,
             kind = Continuous,
             is_explicit = true
         )
-        setcurlb!(spform, nu, 0.0)
-        setcurub!(spform, nu, Inf)
+        setcurlb!(spform, nu_pos, 0.0)
+        setcurub!(spform, nu_pos, Inf)
 
         cost = setconstr!(
             spform, "cost[$sp_id]", BendSpSecondStageCostConstr;
@@ -442,7 +443,7 @@ function create_side_vars_constrs!(
             sense = getobjsense(spform) == MinSense ? Greater : Less,
             is_explicit = true
         )
-        spcoef[getid(cost), getid(nu)] = 1.0
+        spcoef[getid(cost), getid(nu_pos)] = 1.0
 
         for (varid, _) in getvars(spform)
             getduty(varid) == BendSpSepVar || continue

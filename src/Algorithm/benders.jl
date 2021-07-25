@@ -24,20 +24,12 @@ function get_units_usage(algo::BendersCutGeneration, reform::Reformulation)
     end
     return units_usage
 end
-
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState
     spform_phase::Dict{FormId, FormulationPhase}
     spform_phase_applied::Dict{FormId, Bool}
     #slack_cost_increase::Float64
     #slack_cost_increase_applied::Bool
-end
-
-function all_sp_in_phase2(algdata::BendersCutGenRuntimeData)
-    for (key, phase) in algdata.spform_phase
-        phase != PurePhase2 && return false
-    end
-    return true
 end
 
 function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
@@ -64,8 +56,9 @@ function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
     slack_cost = getobjsense(spform) === MinSense ? 1.0 : -1.0
     for (varid, var) in getvars(spform)
         iscuractive(spform, varid) || continue
-        if getduty(varid) == BendSpSlackFirstStageVar
+        if getduty(varid) <= BendSpSlackFirstStageVar
             setcurcost!(spform, var, slack_cost)
+            setcurub!(spform, var, getperenub(spform, var))
         else
             setcurcost!(spform, var, 0.0)
         end
@@ -77,7 +70,7 @@ end
 function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation) 
     for (varid, var) in getvars(spform)
         iscuractive(spform, varid) || continue
-        if getduty(varid) == BendSpSlackFirstStageVar
+        if getduty(varid) <= BendSpSlackFirstStageVar
             setcurcost!(spform, var, 0.0)
             setcurub!(spform, var, 0.0)
         else
@@ -284,7 +277,7 @@ function solve_sp_to_gencut!(
         benders_sp_lagrangian_bound_contrib = compute_benders_sp_lagrangian_bound_contrib(algdata, spform, optresult)
 
         primalsol = get_best_lp_primal_sol(optresult)
-        spsol_relaxed = contains(primalsol, varid -> getduty(varid) == BendSpSlackFirstStageVar)
+        spsol_relaxed = contains(primalsol, varid -> getduty(varid) <= BendSpSlackFirstStageVar)
 
         benders_sp_primal_bound_contrib = 0.0
         # compute benders_sp_primal_bound_contrib which stands for the sum of nu var,
@@ -479,18 +472,14 @@ function bend_cutting_plane_main_loop!(
         cur_gap = 0.0
         
         optoutput, master_time = solve_relaxed_master!(masterform, env)
-        println("~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~")
-        println(" ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~")
-        @show masterform
-        optresult = getoptstate(optoutput)
 
+        optresult = getoptstate(optoutput)
         if getterminationstatus(optresult) == INFEASIBLE
             db = - getvalue(DualBound(masterform))
             pb = - getvalue(PrimalBound(masterform))
             set_lp_dual_bound!(bnd_optstate, DualBound(masterform, db))
             set_lp_primal_bound!(bnd_optstate, PrimalBound(masterform, pb))
             setterminationstatus!(bnd_optstate, INFEASIBLE)
-            println("\e[42m end A \e[00m")
             return 
         end
         
@@ -500,7 +489,6 @@ function bend_cutting_plane_main_loop!(
         if getterminationstatus(optresult) == INFEASIBLE || master_primal_sol === nothing || master_dual_sol === nothing
             error("Benders algorithm:  the relaxed master LP is infeasible or unbounded has no solution.")
             setterminationstatus!(bnd_optstate, INFEASIBLE)
-            println("\e[42m end B \e[00m")
             return
         end
 
@@ -525,7 +513,6 @@ function bend_cutting_plane_main_loop!(
             if nb_new_cuts < 0
                 #@error "infeasible subproblem."
                 setterminationstatus!(bnd_optstate, INFEASIBLE)
-                println("\e[42m end C \e[00m")
                 return
             end
 
@@ -593,7 +580,6 @@ function bend_cutting_plane_main_loop!(
             update_ip_primal_sol!(bnd_optstate, master_primal_sol)
         end
     end
-    println("\e[42m end D \e[00m")
     return 
 end
 

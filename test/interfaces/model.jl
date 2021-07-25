@@ -25,7 +25,6 @@ mutable struct KnapsackLibOptimizer <: BlockDecomposition.AbstractCustomOptimize
 end
 
 function Coluna.Algorithm.get_units_usage(opt::KnapsackLibOptimizer, form) # form is Coluna Formulation
-    println("\e[41m get units usage \e[00m")
     units_usage = Tuple{AbstractModel, Coluna.ColunaBase.UnitType, Coluna.ColunaBase.UnitPermission}[]
     # TODO : the abstract model is KnapsackLibModel (opt.model)
     return units_usage

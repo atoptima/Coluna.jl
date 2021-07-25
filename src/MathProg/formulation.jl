@@ -351,7 +351,9 @@ function setcut_from_sp_dualsol!(
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
 )
-    rhs = getdualsolrhss(spform)[dual_sol_id]
+    objc = getobjsense(masterform) === MinSense ? 1.0 : -1.0
+
+    rhs = objc * getdualsolrhss(spform)[dual_sol_id]
     benders_cut_id = Id{Constraint}(duty, dual_sol_id)
     benders_cut_data = ConstrData(
         rhs, Essential, sense, inc_val, is_active, is_explicit
@@ -366,26 +368,26 @@ function setcut_from_sp_dualsol!(
     master_coef_matrix = getcoefmatrix(masterform)
     sp_coef_matrix = getcoefmatrix(spform)
     sp_dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
-    sc = getobjsense(masterform) === MinSense ? 1.0 : -1.0
 
     for (constr_id, constr_val) in sp_dual_sol
         if getduty(constr_id) <= AbstractBendSpMasterConstr
             for (var_id, coef) in @view sp_coef_matrix[constr_id,:]
                 master_var_id = nothing
-                if getduty(var_id) <= BendSpSlackFirstStageVar
-                    master_var_id = get(spform.duty_data.slack_to_first_stage, var_id, nothing)
-                    if master_var_id === nothing
+                if getduty(var_id) <= BendSpPosSlackFirstStageVar
+                    orig_var_id = get(spform.duty_data.slack_to_first_stage, var_id, nothing)
+                    if orig_var_id === nothing
                         error("""
                             A subproblem first level slack variable is not mapped to a first level variable. 
                             Please open an issue at https://github.com/atoptima/Coluna.jl/issues.
                         """)
                     end
+                    master_var_id = getid(getvar(masterform, orig_var_id))
                 elseif getduty(var_id) <= BendSpSlackSecondStageCostVar
                     master_var_id = var_id # identity
                 end
 
                 if master_var_id !== nothing
-                    master_coef_matrix[benders_cut_id, master_var_id] += sc * constr_val * coef
+                    master_coef_matrix[benders_cut_id, master_var_id] += objc * constr_val * coef
                 end
             end
         end
@@ -480,7 +482,7 @@ function _addlocalartvar!(form::Formulation, constr::Constraint, abs_cost::Float
             form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         var2 = setvar!(
-            form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
+            form, name2, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         push!(constr.art_var_ids, getid(var1))
         push!(constr.art_var_ids, getid(var2))
@@ -639,7 +641,7 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
 end
 
 # TODO : remove (unefficient & specific to Benders)
-function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution)
+function computereducedrhs(form::Formulation{BendersSp}, constrid::Id{Constraint}, primalsol::PrimalSolution)
     constrrhs = getperenrhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol

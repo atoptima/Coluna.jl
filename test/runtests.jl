@@ -22,9 +22,9 @@ const ClF = Coluna.MathProg # Must be deleted
 const ClMP = Coluna.MathProg
 const ClA = Coluna.Algorithm
 
-#include("unit/unit_tests.jl")
-#include("MathOptInterface/MOI_wrapper.jl")
-##include("interfaces/model.jl")
+include("unit/unit_tests.jl")
+include("MathOptInterface/MOI_wrapper.jl")
+include("interfaces/model.jl")
 include("issues_tests.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
@@ -39,7 +39,7 @@ include("sol_disaggregation_tests.jl")
 
 rng = MersenneTwister(1234123)
 
-#unit_tests()
+unit_tests()
 test_issues_fixed()
 
 @testset "Full instances " begin
