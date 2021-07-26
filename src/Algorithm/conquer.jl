@@ -252,12 +252,27 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
             heur_output = run!(paramopt_algorithm, env, reform, OptimizationInput(nodestate))
             status = getterminationstatus(getoptstate(heur_output))
             status == TIME_LIMIT && setterminationstatus!(nodestate, status)
-            if status == OPTIMAL && canconquer
+            ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
+
+            # if the node has been conquered by the parameterized optimizer
+            if (status in (OPTIMAL, INFEASIBLE)) && canconquer
+                # set the ip solutions found without checking the cuts and finish
+                best_primal_bound = PrimalBound(reform)
+                if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
+                    for sol in sort(ip_primal_sols)
+                        update_ip_primal_sol!(nodestate, sol)
+                        primal_bound = PrimalBound(reform, getvalue(sol))
+                        if isbetter(primal_bound, best_primal_bound)
+                            best_primal_bound = primal_bound
+                        end
+                    end
+                end
+                dual_bound = DualBound(reform, getvalue(best_primal_bound))
+                update_ip_dual_bound!(nodestate, dual_bound)
                 setterminationstatus!(nodestate, status)
                 break
             end
 
-            ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
             if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                 # we start with worst solution to add all improving solutions
                 for sol in sort(ip_primal_sols)

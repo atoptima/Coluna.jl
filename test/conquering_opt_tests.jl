@@ -5,14 +5,19 @@ end
 function ClA.run!(
     algo::EnumerativeOptimizer, env::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationInput
 )::ClA.OptimizationOutput
-    master = ClMP.getmaster(reform)
+    masterform = ClMP.getmaster(reform)
     _, spform = first(ClMP.get_dw_pricing_sps(reform))
     cbdata = ClMP.PricingCallbackData(spform, 1)
-    algo.optimizer(cbdata)
-    return ClA.OptimizationOutput(ClA.OptimizationState(
-        master,
-        termination_status = CL.OTHER_LIMIT
-    ))
+    isopt, primal_sol = algo.optimizer(masterform, cbdata)
+    result = ClA.OptimizationState(
+        masterform, 
+        ip_primal_bound = ClA.get_ip_primal_bound(ClA.getoptstate(input)),
+        termination_status = isopt ? CL.OPTIMAL : CL.OTHER_LIMIT
+    )
+    if primal_sol !== nothing
+        ClA.add_ip_primal_sol!(result, primal_sol)
+    end
+    return ClA.OptimizationOutput(result)
 end
 
 function conquering_opt_tests()
@@ -27,12 +32,12 @@ function conquering_opt_tests()
         @objective(toy, Min, sum(y[b] for b in B))
         @dantzig_wolfe_decomposition(toy, dec, B)
 
-        return toy, x, y, dec
+        return toy, x, y, dec, B
     end
 
     @testset "Optimization algorithms that may conquer a node" begin
 
-        call_enumerative_optimizer(cbdata) = enumerative_optimizer(cbdata)
+        call_enumerative_optimizer(masterform, cbdata) = enumerative_optimizer(masterform, cbdata)
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -57,7 +62,7 @@ function conquering_opt_tests()
             )
         )
 
-        model, x, y, dec = build_toy_model(coluna)
+        model, x, y, dec, B = build_toy_model(coluna)
 
         function enumerative_pricing(cbdata)
             # Get the reduced costs of the original variables
@@ -101,7 +106,7 @@ function conquering_opt_tests()
             solver = enumerative_pricing
         )
 
-        function enumerative_optimizer(cbdata)
+        function enumerative_optimizer(masterform, cbdata)
             # Get the reduced costs of the original variables
             I = [1, 2, 3]
             b = BlockDecomposition.callback_spid(cbdata, model)
@@ -110,21 +115,42 @@ function conquering_opt_tests()
             @test (rc_y, rc_x) == (1.0, [-0.5, -0.5, -0.5])
 
             # Add the columns that are possibly missing for the solution [[1], [2,3]] in the master problem
+            # [1]
             opt = JuMP.backend(model).optimizer.model
             vars = [y[b], x[b, 1]]
             varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
             sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-            sol_1_id = ClMP.setprimalsol!(cbdata.form, sol)
+            _, sol_id = ClMP.setprimalsol!(cbdata.form, sol)
+            mc_1 = ClMP.setcol_from_sp_primalsol!(
+                masterform, cbdata.form, sol_id, string("MC_", ClA.getsortuid(sol_id)), ClMP.MasterCol
+            )
+            # [2, 3]
             vars = [y[b], x[b, 2], x[b, 3]]
             varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
             sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-            sol_2_3_id = ClMP.setprimalsol!(cbdata.form, sol)
-            return
+            _, sol_id = ClMP.setprimalsol!(cbdata.form, sol)
+            mc_2_3 = ClMP.setcol_from_sp_primalsol!(
+                masterform, cbdata.form, sol_id, string("MC_", ClA.getsortuid(sol_id)), ClMP.MasterCol
+            )
+
+            # add the solution to the master problem
+            varids = [ClMP.getid(mc_1), ClMP.getid(mc_2_3)]
+            primal_sol = ClMP.PrimalSolution(masterform, varids, [1.0, 1.0], 2.0, CL.FEASIBLE_SOL)
+            return true, primal_sol
         end
 
         JuMP.optimize!(model)
         @show JuMP.objective_value(model)
         @test JuMP.termination_status(model) == MOI.OPTIMAL
+        for b in B
+            sets = BD.getsolutions(model, b)
+            for s in sets
+                @test BD.value(s) == 1.0 # value of the master column variable
+                @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 2]) # only x[1,1] in its set
+                @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 3]) # only x[1,1] in its set
+                @test BD.value(s, x[b, 2]) == BD.value(s, x[b, 3]) # x[1,2] and x[1,3] in the same set
+            end
+        end
     end
 
 end
