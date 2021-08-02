@@ -742,9 +742,21 @@ end
 MOI.get(optimizer::Optimizer, ::MOI.NodeCount) = optimizer.env.kpis.node_count
 MOI.get(optimizer::Optimizer, ::MOI.SolveTime) = optimizer.env.kpis.elapsed_optimization_time
 
-function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
+function MOI.get(
+    optimizer::Optimizer, attr::MOI.ConstraintDual, 
+    index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}}
+)
     dualsols = get_lp_dual_sols(optimizer.result)
-    1 <= index.value <= length(dualsols) && return getvalue(dualsols[index.value])
+    if 1 <= attr.N <= length(dualsols)
+        return get(dualsols[attr.N], getid(optimizer.constrs[index]), 0.0)
+    end
+    return error("Invalid result index.")
+end
+
+# fix
+function MOI.get(
+    optimizer::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
+) where {F<:MOI.SingleVariable,S}
     return 0.0
 end
 
