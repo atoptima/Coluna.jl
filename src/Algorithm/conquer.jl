@@ -91,7 +91,6 @@ ParamRestrictedMasterHeuristic() =
         1.0, 1.0, 1, 1000, "Restricted Master IP"
     )
 
-
 ####################################################################
 #                      BendersConquer
 ####################################################################
@@ -118,26 +117,34 @@ function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::Conq
     return 
 end
 
-
 ####################################################################
 #                      ColCutGenConquer
 ####################################################################
 
 """
     Coluna.Algorithm.ColCutGenConquer(
-        stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-        primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
-        preprocess = PreprocessAlgorithm()
-        cutgen = CutCallbacks()
-        run_preprocessing::Bool = false
+        stages = ColumnGeneration[ColumnGeneration()],
+        primal_heuristics = ParameterisedHeuristic[ParamRestrictedMasterHeuristic()],
+        cutgen = CutCallbacks(),
+        max_nb_cut_rounds = 3
     )
 
 Column-and-cut-generation based algorithm to find primal and dual bounds for a 
-problem decomposed using Dantzig-Wolfe paradigm. It applies `stages` of the column generation 
-algorithm. Stages are called in the reverse order of vector `stages`. So usually, first stage
-is the one with exact pricing, and other stages use heuristic pricing (the higher is stage, 
-the faster is the heuristic). It applies `cutgen` for the cut generation phase. It can apply 
-several primal heuristics to more efficiently find feasible solutions.
+problem decomposed using Dantzig-Wolfe paradigm.
+
+This algorithm applies a set of column generation algorithms whose definitions are
+stored in `stages`. These algorithms are called in the reverse order of vector `stages`.
+So usually, the first stage is the one with exact pricing, and other stages use heuristic pricing (the higher is the position of the stage, 
+the faster is the heuristic). 
+
+This algorithm also applies `cutgen` for the cut generation phase.
+It can apply several primal heuristics stored in `primal_heuristics` to more efficiently find feasible solutions.
+
+Parameters :
+- `stages`: column generation algorithms from the exact one to the most heuristic one
+- `primal_heuristics`: heuristics to find a feasible solution
+- `cutgen`: cut generation algorithm
+- `max_nb_cut_rounds` : number of cut generation done by the algorithm
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
