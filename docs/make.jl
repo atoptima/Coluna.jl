@@ -1,9 +1,13 @@
 using Documenter, Coluna, Literate, BlockDecomposition
 
-TUTORIAL = joinpath(@__DIR__, "src", "start", "start.jl")
-OUTPUT = joinpath(@__DIR__, "src", "start")
+TUTORIAL_GAP = joinpath(@__DIR__, "src", "start", "start.jl")
+TUTORIAL_CALLBACKS = joinpath(@__DIR__, "src", "man", "callbacks.jl")
 
-Literate.markdown(TUTORIAL, OUTPUT, documenter = true)
+OUTPUT_GAP = joinpath(@__DIR__, "src", "start")
+OUTPUT_CALLBACKS = joinpath(@__DIR__, "src", "man")
+
+Literate.markdown(TUTORIAL_GAP, OUTPUT_GAP, documenter=true)
+Literate.markdown(TUTORIAL_CALLBACKS, OUTPUT_CALLBACKS, documenter=true)
 
 makedocs(
     modules = [Coluna],
