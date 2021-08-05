@@ -5,7 +5,7 @@
 # The more classical callbacks in a branch-and-price solver are:
 
 # - Pricing callback that takes over the procedure to determine whether the current master LP 
-#     solution is optimum or produces an entering variable with negative reduced cost
+#     solution is optimum or produces an entering variable with negative reduced cost by solving subproblems
 # - Separation callback that takes over the procedure to determine whether the current master
 #     LP solution is feasible or produces a valid problem constraint that is violated
 # - Branching callback that takes over the procedure to determine whether the current master 
