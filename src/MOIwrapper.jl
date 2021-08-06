@@ -301,6 +301,8 @@ function MOI.get(
     orig_form = get_original_formulation(model.inner)
     constrid = getid(model.constrs[index])
     terms = MOI.ScalarAffineTerm{Float64}[]
+    coefmatrix = getcoefmatrix(orig_form)
+    coefmatrix.fillmode && closefillmode!(coefmatrix)
     for (varid, coeff) in @view getcoefmatrix(orig_form)[constrid, :]
         push!(terms, MOI.ScalarAffineTerm(coeff, model.moi_varids[varid]))
     end

@@ -220,11 +220,8 @@ end
     MOIT.contlineartest(BRIDGED, CONFIG, vcat(
         CONSTRAINTDUAL_SINGLEVAR, MODIFY_DELETE, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
             "partial_start", # VariablePrimalStart not supported
-            ### BUGS ###
-            "linear1", # redundant zero coefficients in objective function, that should catch solvers that don't handle duplicate coefficients correctly
-                       # get(model, MOI.ConstraintFunction(), c2) -> View of a row not available in fill mode (Open an issue at https://github.com/atoptima/DynamicSparseArrays.jl if you need it).
-            "linear6", # get(model, MOI.ConstraintFunction(), c2) -> View of a row not available in fill mode (Open an issue at https://github.com/atoptima/DynamicSparseArrays.jl if you need it).
-            "linear10" # optimize twice changing sense from max to min
+            "linear1", # require duplicate terms support
+            "linear10" # BUG: optimize twice changing sense from max to min fails
         ]
     ))
 end
