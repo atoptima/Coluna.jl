@@ -671,6 +671,10 @@ function MOI.get(optimizer::Optimizer, ::MOI.ObjectiveValue)
     return getvalue(get_ip_primal_bound(optimizer.result))
 end
 
+function MOI.get(optimizer::Optimizer, ::MOI.DualObjectiveValue)
+    return getvalue(get_lp_dual_bound(optimizer.result))
+end
+
 function MOI.get(optimizer::Optimizer, ::MOI.RelativeGap)
     return ip_gap(optimizer.result)
 end

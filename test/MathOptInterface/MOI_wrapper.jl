@@ -106,7 +106,10 @@ const UNSUPPORTED_TESTS = [
     "get_objective_function", # Quandratic objective not supported
     "number_threads", # TODO : support of MOI.NumberOfThreads()
     "silent", # TODO : support of MOI.Silent()
-    "time_limit_sec" # TODO : support of MOI.TimeLimitSec()
+    "time_limit_sec", # TODO : support of MOI.TimeLimitSec()
+    "solve_unbounded_model", # default lower bound 0
+    "solve_duplicate_terms_obj", # duplicate terms not supported
+    "solve_duplicate_terms_scalar_affine" # duplicate terms not supported
 ]
 
 MathOptInterface.Test.getconstraint
@@ -153,6 +156,40 @@ const LP_TESTS = [
     "solve_affine_lessthan"
 ]
 
+const CONSTRAINTDUAL_SINGLEVAR = [
+    "solve_with_lowerbound",
+    "solve_singlevariable_obj",
+    "solve_constant_obj",
+    "solve_single_variable_dual_max",
+    "solve_single_variable_dual_min",
+    "solve_duplicate_terms_obj",
+    "solve_blank_obj",
+    "solve_with_upperbound",
+    "linear1",
+    "linear2",
+    "linear10b",
+    "linear14"
+]
+
+const MODIFY_DELETE = [
+    "linear1", # modify
+    "linear5", # modify
+    "linear11", # delete
+    "linear14" # delete
+]
+
+const UNCOVERED_TERMINATION_STATUS = [
+    "linear8b", # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
+    "linear8c" # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
+]
+
+const SET_CONSTRAINTSET = [
+    # could modify a constraint
+    "linear4",
+    "linear6",
+    "linear7"
+]
+
 @testset "Unit Basic/MIP" begin
     MOI.set(OPTIMIZER, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm()))
     MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, LP_TESTS, MIP_TESTS))
@@ -172,15 +209,22 @@ MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm(
     ])
 end
 
-# @testset "Unit LP" begin
-#     MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveLpForm(
-#         update_ip_primal_solution=true, get_dual_solution=true
-#     )))
-#     MOIT.unittest(BRIDGED, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC))
-# end
+@testset "Unit LP" begin
+    MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveLpForm(
+        update_ip_primal_solution=true, get_dual_solution=true, set_dual_bound=true
+    )))
+    MOIT.unittest(BRIDGED, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC, CONSTRAINTDUAL_SINGLEVAR))
+end
 
-# @testset "Continuous Linear" begin
-#     MOIT.contlineartest(OPTIMIZER, CONFIG, [
-#         "partial_start" # VariablePrimalStart not supported
-#     ])
-# end
+@testset "Continuous Linear" begin
+    MOIT.contlineartest(BRIDGED, CONFIG, vcat(
+        CONSTRAINTDUAL_SINGLEVAR, MODIFY_DELETE, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
+            "partial_start", # VariablePrimalStart not supported
+            ### BUGS ###
+            "linear1", # redundant zero coefficients in objective function, that should catch solvers that don't handle duplicate coefficients correctly
+                       # get(model, MOI.ConstraintFunction(), c2) -> View of a row not available in fill mode (Open an issue at https://github.com/atoptima/DynamicSparseArrays.jl if you need it).
+            "linear6", # get(model, MOI.ConstraintFunction(), c2) -> View of a row not available in fill mode (Open an issue at https://github.com/atoptima/DynamicSparseArrays.jl if you need it).
+            "linear10" # optimize twice changing sense from max to min
+        ]
+    ))
+end
