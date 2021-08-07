@@ -6,7 +6,7 @@ OUTPUT = joinpath(@__DIR__, "src", "start")
 Literate.markdown(TUTORIAL, OUTPUT, documenter = true)
 
 makedocs(
-    modules = [Coluna],
+    modules = [Coluna, BlockDecomposition],
     checkdocs = :exports,
     sitename = "Coluna User Guide",
     authors = "Atoptima & contributors",
