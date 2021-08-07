@@ -10,7 +10,7 @@ Literate.markdown(TUTORIAL_GAP, OUTPUT_GAP, documenter=true)
 Literate.markdown(TUTORIAL_CALLBACKS, OUTPUT_CALLBACKS, documenter=true)
 
 makedocs(
-    modules = [Coluna],
+    modules = [Coluna, BlockDecomposition],
     checkdocs = :exports,
     sitename = "Coluna User Guide",
     authors = "Atoptima & contributors",

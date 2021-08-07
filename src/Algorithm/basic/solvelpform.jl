@@ -2,18 +2,30 @@
     Coluna.Algorithm.SolveLpForm(
         get_dual_solution = false,
         relax_integrality = false,
-        set_dual_bound = false,
+        get_dual_bound = false,
         silent = true
     )
 
-Solve a linear program.
+Solve a linear program stored in a formulation using its first optimizer.
+This algorithm works only if the optimizer is interfaced with MathOptInterface.
+
+You can define the optimizer using the `default_optimizer` attribute of Coluna or
+with the method `specify!` from BlockDecomposition
+
+Parameters:
+- `get_dual_solution`: retrieve the dual solution and store it in the ouput if equals `true`
+- `relax_integrality`: relax integer variables of the formulation before optimization if equals `true`
+- `get_dual_bound`: store the dual objective value in the output if equals `true`
+- `silent`: set `MOI.Silent()` to its value
+
+Undocumented parameters are alpha.
 """
 @with_kw struct SolveLpForm <: AbstractOptimizationAlgorithm 
     update_ip_primal_solution = false
     consider_partial_solution = false
     get_dual_solution = false
     relax_integrality = false
-    set_dual_bound = false
+    get_dual_bound = false
     silent = true
     log_level = 0
 end
@@ -119,7 +131,7 @@ function run!(
             lp_dual_sol_pos = argmax(coeff * getvalue.(dual_sols))
             lp_dual_sol = dual_sols[lp_dual_sol_pos]
             set_lp_dual_sol!(result, lp_dual_sol)
-            if algo.set_dual_bound
+            if algo.get_dual_bound
                 db = DualBound(form, getvalue(lp_dual_sol) + partial_sol_val)
                 set_lp_dual_bound!(result, db)
             end

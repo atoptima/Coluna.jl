@@ -58,17 +58,21 @@ All these information are stored in the `ext` field of the JuMP model.
 ### References
 
 ```@meta
-DocTestSetup = quote using BlockDecomposition end
+CurrentModule = BlockDecomposition
+DocTestSetup = quote
+    using BlockDecomposition
+end
 ```
 
 ```@docs
-BlockDecomposition.annotation
-BlockDecomposition.@axis
-BlockDecomposition.@bender_decomposition
-BlockDecomposition.@dantzig_wolfe_decomposition
+@axis
+@benders_decomposition
+@dantzig_wolfe_decomposition
+annotation
 ```
 
 ```@meta
+CurrentModule = nothing
 DocTestSetup = nothing
 ```
 
