@@ -7,6 +7,7 @@ end
 # Algorithms
 
 TODO : Description of how algorithms work.
+
 ## References
 
 ```@docs
@@ -19,6 +20,23 @@ ColCutGenConquer
 
 ```@docs
 ColumnGeneration
+```
+
+## Basic algorithms
+
+### Optimize a linear program
+
+```@docs
+SolveLpForm
+```
+
+### Optimize an mixed-integer program / solve a combinatorial problem
+
+```@docs
+SolveIpForm
+MoiOptimize
+UserOptimize
+CustomOptimize
 ```
 
 ```@meta
