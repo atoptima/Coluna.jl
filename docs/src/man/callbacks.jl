@@ -133,7 +133,7 @@ getobjectivevalue(model)
 # ## Facultative & essential cuts (user cut & lazy constraint)
 
 # This callback allows you to add cuts to the master problem.
-# The cuts must be expressed using the original variables.
+# The cuts must be expressed in terms of the original variables.
 # Then, Coluna expresses them over the master variables.
 # You can find an example of [essential cut separation](https://jump.dev/JuMP.jl/stable/tutorials/Mixed-integer%20linear%20programs/callbacks/#Lazy-constraints)
 # and [facultative cut separation](https://jump.dev/JuMP.jl/stable/tutorials/Mixed-integer%20linear%20programs/callbacks/#User-cut) 
