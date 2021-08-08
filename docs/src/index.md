@@ -1,5 +1,9 @@
 # Introduction
 
+!!! warning
+    Some features are undocumented because they are not yet considered stable.
+
+
 Coluna is a framework written in Julia to implement a decomposition approach to optimize 
 block-structured mixed-integer programs (MIP). 
 
