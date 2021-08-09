@@ -216,10 +216,10 @@ end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.ListOfVariableIndices)
     indices = Vector{MathOptInterface.VariableIndex}()
-    for (key,value) in model.moi_varids
+    for (_, value) in model.moi_varids
         push!(indices, value)
     end
-    return sort!(indices)
+    return sort!(indices, by = x -> x.value)
 end
 
 ############################################################################################
@@ -286,11 +286,10 @@ end
 function MOI.get(
     model::Coluna.Optimizer, ::MOI.ListOfConstraintIndices{F, S}
 ) where {F<:MOI.SingleVariable, S}
-    orig_form = get_original_formulation(model.inner)
     indices = MOI.ConstraintIndex{F,S}[]
-    for (id, var) in model.vars
-        if S == MathProg.convert_coluna_kind_to_moi(getperenkind(orig_form, var))
-            push!(indices, MOI.ConstraintIndex{F,S}(id.value))
+    for (id, _) in model.constrs_on_single_var_to_vars
+        if S == typeof(MOI.get(model, MOI.ConstraintSet(), id))
+            push!(indices, id)
         end
     end
     return sort!(indices, by = x -> x.value)
@@ -302,8 +301,10 @@ function MOI.get(
     orig_form = get_original_formulation(model.inner)
     constrid = getid(model.constrs[index])
     terms = MOI.ScalarAffineTerm{Float64}[]
-    for (varid, coeff) in @view getcoefmatrix(orig_form)[constrid, :]
-        push!(terms, MOI.ScalarAffineTerm(coeff, model.moi_varids[varid]))
+    coefmatrix = getcoefmatrix(orig_form)
+    coefmatrix.fillmode && closefillmode!(coefmatrix)
+    for (varid, coef) in @view coefmatrix[constrid, :]
+        push!(terms, MOI.ScalarAffineTerm(coef, model.moi_varids[varid]))
     end
     return MOI.ScalarAffineFunction(terms, 0.0)
 end
@@ -619,6 +620,8 @@ function MOI.empty!(model::Coluna.Optimizer)
     model.env.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}()
     model.moi_varids = Dict{VarId, MOI.VariableIndex}()
     model.constrs = Dict{MOI.ConstraintIndex, Constraint}()
+    model.constrs_on_single_var_to_vars = Dict{MOI.ConstraintIndex, VarId}()
+    model.constrs_on_single_var_to_names = Dict{MOI.ConstraintIndex, String}()
     if model.default_optimizer_builder !== nothing
         set_default_optimizer_builder!(model.inner, model.default_optimizer_builder)
     end
@@ -703,18 +706,21 @@ function MOI.get(optimizer::Optimizer, ::MOI.ObjectiveValue)
     return getvalue(get_ip_primal_bound(optimizer.result))
 end
 
+function MOI.get(optimizer::Optimizer, ::MOI.DualObjectiveValue)
+    return getvalue(get_lp_dual_bound(optimizer.result))
+end
+
 function MOI.get(optimizer::Optimizer, ::MOI.RelativeGap)
     return ip_gap(optimizer.result)
 end
 
-function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, ref::MOI.VariableIndex)
+function MOI.get(optimizer::Optimizer, attr::MOI.VariablePrimal, ref::MOI.VariableIndex)
     id = getid(optimizer.vars[ref]) # This gets a coluna Id{Variable}
-    best_primal_sol = get_best_ip_primal_sol(optimizer.result)
-    if best_primal_sol === nothing
-        @warn "Coluna did not find a primal feasible solution."
-        return NaN
+    primalsols = get_ip_primal_sols(optimizer.result)
+    if 1 <= attr.N <= length(primalsols)
+        return get(primalsols[attr.N], id, 0.0)
     end
-    return get(best_primal_sol, id, 0.0)
+    return error("Invalid result index.")
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.VariablePrimal, refs::Vector{MOI.VariableIndex})
@@ -775,7 +781,20 @@ end
 MOI.get(optimizer::Optimizer, ::MOI.NodeCount) = optimizer.env.kpis.node_count
 MOI.get(optimizer::Optimizer, ::MOI.SolveTime) = optimizer.env.kpis.elapsed_optimization_time
 
-# function MOI.get(optimizer::Optimizer, ::MOI.ConstraintDual, index::MOI.ConstraintIndex)
+function MOI.get(
+    optimizer::Optimizer, attr::MOI.ConstraintDual, 
+    index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}}
+)
+    dualsols = get_lp_dual_sols(optimizer.result)
+    if 1 <= attr.N <= length(dualsols)
+        return get(dualsols[attr.N], getid(optimizer.constrs[index]), 0.0)
+    end
+    return error("Invalid result index.")
+end
+
+# function MOI.get(
+#     optimizer::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
+# ) where {F<:MOI.SingleVariable,S}
 #     return 0.0
 # end
 
