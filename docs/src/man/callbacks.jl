@@ -12,7 +12,9 @@
 #     LP solution is integer or produces a valid branching disjunctive constraint that rules out 
 #     the current fractional solution.
 
-# On this page, we use the following aliases : 
+# !!! note
+#     You can't change the original formulation in a callback because Coluna does not propagate the
+#     changes into the reformulation and does not check if solutions found are still feasible.
 
 # ## Pricing callback
 
