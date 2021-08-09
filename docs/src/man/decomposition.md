@@ -36,7 +36,7 @@ The multiplicity of the subproblems is defined in the convexity constraints.
 Lower and upper multiplicity are $1$ by default.
 
 At the beginning of the column generation algorithm, the master formulation does
-not have any master columns. Consequently, the master can be infeasible. 
+not have any master columns. Therefore, the master may be infeasible. 
 To prevent this, Coluna adds a local artifical variable specific to each constraint of the master and a global artificial variable.
 Costs of articial and global artificial variables can be defined in [Coluna.Params](@ref).
 
@@ -44,7 +44,7 @@ Subproblems take the following form (here, it's the first subproblem) :
 
 ![Subproblem n°1 formulation](../static/dw_sp.svg)
 
-where the $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorithm.
+where $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorithm.
 
 ## Benders (alpha)
 
