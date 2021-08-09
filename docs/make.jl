@@ -24,7 +24,7 @@ makedocs(
         "Getting started"   => joinpath("start", "start.md"),
         "Manual" => Any[
             "Decomposition" => joinpath("man", "decomposition.md"),
-            "Configuration" => joinpath("man", "configuration.md"),
+            "Configuration" => joinpath("man", "config.md"),
             "Algorithms" => joinpath("man", "algorithm.md"),
             "Callbacks"   => joinpath("man", "callbacks.md")
         ]
