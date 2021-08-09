@@ -427,6 +427,15 @@ end
 # Attributes of constraints
 ############################################################################################
 function MOI.set(
+    model::MOI.Bridges.LazyBridgeOptimizer{Coluna.Optimizer}, attr::MOI.AbstractConstraintAttribute,
+    bridge::MOI.Bridges.Constraint.SplitIntervalBridge, value
+)
+    MOI.set(model.model, attr, bridge.lower, value)
+    MOI.set(model.model, attr, bridge.upper, value)
+    return
+end
+
+function MOI.set(
     model::Coluna.Optimizer, ::BD.ConstraintDecomposition, constrid::MOI.ConstraintIndex,
     annotation::BD.Annotation
 )
@@ -577,6 +586,30 @@ end
 
 function MOI.set(model::Coluna.Optimizer, ::BD.ObjectivePrimalBound, pb)
     set_initial_primal_bound!(model.inner, pb)
+    return
+end
+
+function _customdata!(model::Coluna.Optimizer, type::DataType)
+    haskey(model.env.custom_families_id, type) && return
+    model.env.custom_families_id[type] = length(model.env.custom_families_id)
+    return
+end
+
+function MOI.set(
+    model::Coluna.Optimizer, ::BD.CustomVars, customvars::Vector{DataType}
+)
+    for customvar in customvars
+        _customdata!(model, customvar)
+    end
+    return
+end
+
+function MOI.set(
+    model::Coluna.Optimizer, ::BD.CustomConstrs, customconstrs::Vector{DataType}
+)
+    for customconstr in customconstrs
+        _customdata!(model, customconstr)
+    end
     return
 end
 

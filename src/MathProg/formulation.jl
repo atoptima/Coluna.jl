@@ -38,7 +38,8 @@ function create_formulation!(
     end
     return Formulation(
         env.form_counter += 1, 0, 0, parent_formulation, AbstractOptimizer[], 
-        FormulationManager(), obj_sense, FormulationBuffer(), Storage(), duty
+        FormulationManager(custom_families_id = env.custom_families_id), obj_sense,
+        FormulationBuffer(), Storage(), duty
     )
 end
 
@@ -175,7 +176,7 @@ function setvar!(
     is_explicit::Bool = true,
     moi_index::MoiVarIndex = MoiVarIndex(),
     members::Union{ConstrMembership,Nothing} = nothing,
-    custom_data::Union{Nothing, AbstractCustomData} = nothing,
+    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
     id = generatevarid(duty, form),
     branching_priority::Float64 = 1.0
 )
@@ -303,7 +304,7 @@ function setcol_from_sp_primalsol!(
     masterform::Formulation, spform::Formulation, sol_id::VarId, name::String,
     duty::Duty{Variable}; lb::Float64 = 0.0, ub::Float64 = Inf,
     inc_val::Float64 = 0.0, is_active::Bool = true, is_explicit::Bool = true,
-    moi_index::MoiVarIndex = MoiVarIndex(), custom_data::Union{Nothing, AbstractCustomData} = nothing
+    moi_index::MoiVarIndex = MoiVarIndex(), custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
 )
     cost = getprimalsolcosts(spform)[sol_id]
     master_coef_matrix = getcoefmatrix(masterform)
@@ -338,8 +339,8 @@ function setcol_from_sp_primalsol!(
 end
 
 function setcut_from_sp_dualsol!(
-    masterform::Formulation,
-    spform::Formulation,
+    masterform::Formulation{BendersMaster},
+    spform::Formulation{BendersSp},
     dual_sol_id::ConstrId,
     name::String,
     duty::Duty{Constraint};
@@ -350,32 +351,50 @@ function setcut_from_sp_dualsol!(
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
 )
-    rhs = getdualsolrhss(spform)[dual_sol_id]
+    objc = getobjsense(masterform) === MinSense ? 1.0 : -1.0
+
+    rhs = objc * getdualsolrhss(spform)[dual_sol_id]
     benders_cut_id = Id{Constraint}(duty, dual_sol_id)
     benders_cut_data = ConstrData(
         rhs, Essential, sense, inc_val, is_active, is_explicit
     )
+
     benders_cut = Constraint(
         benders_cut_id, name;
         constr_data = benders_cut_data,
         moi_index = moi_index
     )
+
     master_coef_matrix = getcoefmatrix(masterform)
     sp_coef_matrix = getcoefmatrix(spform)
     sp_dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
 
-    for (ds_constrid, ds_constr_val) in sp_dual_sol
-        ds_constr = getconstr(spform, ds_constrid)
-        if getduty(ds_constrid) <= AbstractBendSpMasterConstr
-            for (master_var_id, sp_constr_coef) in @view sp_coef_matrix[ds_constrid,:]
-                var = getvar(spform, master_var_id)
-                if getduty(master_var_id) <= AbstractBendSpSlackMastVar
-                    master_coef_matrix[benders_cut_id, master_var_id] += ds_constr_val * sp_constr_coef
+    for (constr_id, constr_val) in sp_dual_sol
+        if getduty(constr_id) <= AbstractBendSpMasterConstr
+            for (var_id, coef) in @view sp_coef_matrix[constr_id,:]
+                master_var_id = nothing
+                if getduty(var_id) <= BendSpPosSlackFirstStageVar
+                    orig_var_id = get(spform.duty_data.slack_to_first_stage, var_id, nothing)
+                    if orig_var_id === nothing
+                        error("""
+                            A subproblem first level slack variable is not mapped to a first level variable. 
+                            Please open an issue at https://github.com/atoptima/Coluna.jl/issues.
+                        """)
+                    end
+                    master_var_id = getid(getvar(masterform, orig_var_id))
+                elseif getduty(var_id) <= BendSpSlackSecondStageCostVar
+                    master_var_id = var_id # identity
+                end
+
+                if master_var_id !== nothing
+                    master_coef_matrix[benders_cut_id, master_var_id] += objc * constr_val * coef
                 end
             end
         end
     end
+
     _addconstr!(masterform.manager, benders_cut)
+
     if isexplicit(masterform, benders_cut)
         add!(masterform.buffer, getid(benders_cut))
     end
@@ -417,7 +436,7 @@ function setconstr!(
     moi_index::MoiConstrIndex = MoiConstrIndex(),
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
-    custom_data::Union{Nothing, AbstractCustomData} = nothing,
+    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
     id = generateconstrid(duty, form)
 )
     if getduty(id) != duty
@@ -463,7 +482,7 @@ function _addlocalartvar!(form::Formulation, constr::Constraint, abs_cost::Float
             form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         var2 = setvar!(
-            form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
+            form, name2, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         push!(constr.art_var_ids, getid(var1))
         push!(constr.art_var_ids, getid(var2))
@@ -606,6 +625,7 @@ function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, 
     return val
 end
 
+# TODO : remove (unefficient & specific to an algorithm)
 function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)
     redcost = getperencost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
@@ -620,7 +640,8 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
     return redcost
 end
 
-function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution)
+# TODO : remove (unefficient & specific to Benders)
+function computereducedrhs(form::Formulation{BendersSp}, constrid::Id{Constraint}, primalsol::PrimalSolution)
     constrrhs = getperenrhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol
@@ -718,18 +739,6 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
         _show_constraints(io, form)
         _show_variables(io, form)
     end
-    return
-end
-
-function addcustomvars!(form::Formulation, type::DataType)
-    haskey(form.manager.custom_families_id, type) && return
-    form.manager.custom_families_id[type] = length(form.manager.custom_families_id)
-    return
-end
-
-function addcustomconstrs!(form::Formulation, type::DataType)
-    haskey(form.manager.custom_families_id, type) && return
-    form.manager.custom_families_id[type] = length(form.manager.custom_families_id)
     return
 end
 

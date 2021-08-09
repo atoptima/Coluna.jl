@@ -22,7 +22,7 @@ function MOI.submit(
     cost::Float64,
     variables::Vector{MOI.VariableIndex},
     values::Vector{Float64},
-    custom_data::Union{Nothing, AbstractCustomData} = nothing
+    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
 )
     form = cb.callback_data.form
     solval = cost
@@ -96,7 +96,7 @@ function MOI.submit(
     cb::Union{MOI.UserCut{Algorithm.RobustCutCallbackContext}, MOI.LazyConstraint{Algorithm.RobustCutCallbackContext}},
     func::MOI.ScalarAffineFunction{Float64},
     set::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}},
-    custom_data::Union{Nothing, AbstractCustomData} = nothing
+    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
 )
     form = cb.callback_data.form
     rhs = MathProg.convert_moi_rhs_to_coluna(set)
