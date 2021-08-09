@@ -23,7 +23,8 @@ two vectors $x_1$ and $x_2$ :
 
 ![Original formulation](../static/dw_origform.svg)
 
-Coluna reformulates the formulation into the following master problem :
+When you apply a Dantzig-Wofe decomposition to this formulation, 
+Coluna reformulates it into the following master problem :
 
 ![Master formulation](../static/dw_master.svg)
 
@@ -34,13 +35,18 @@ in terms of the original variables.
 The multiplicity of the subproblems is defined in the convexity constraints.
 Lower and upper multiplicity are $1$ by default.
 
+At the beginning of the column generation algorithm, the master formulation does
+not have any master columns. Therefore, the master may be infeasible. 
+To prevent this, Coluna adds a local artifical variable specific to each constraint of the master and a global artificial variable.
+Costs of articial and global artificial variables can be defined in [Coluna.Params](@ref).
+
 Subproblems take the following form (here, it's the first subproblem) :
 
 ![Subproblem n°1 formulation](../static/dw_sp.svg)
 
-where the $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorihm.
+where $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorithm.
 
-## Benders
+## Benders (alpha)
 
 Let's consider the following coefficient matrix that has a block diagonal structure
 in gray and some linking variables in blue :
@@ -144,7 +150,6 @@ We can then optimize
 
 ```@example identical
 optimize!(model);
-nothing #hide
 ```
 
 and retrieve the disagreggated solution
