@@ -108,8 +108,8 @@ const UNSUPPORTED_TESTS = [
     "silent", # TODO : support of MOI.Silent()
     "time_limit_sec", # TODO : support of MOI.TimeLimitSec()
     "solve_unbounded_model", # default lower bound 0
-    "solve_duplicate_terms_obj", # duplicate terms not supported
-    "solve_duplicate_terms_scalar_affine" # duplicate terms not supported
+    "solve_duplicate_terms_obj", # TODO: support duplicate terms
+    "solve_duplicate_terms_scalar_affine" # TODO: support duplicate terms
 ]
 
 MathOptInterface.Test.getconstraint
@@ -172,6 +172,7 @@ const CONSTRAINTDUAL_SINGLEVAR = [
 ]
 
 const MODIFY_DELETE = [
+    # BUG
     "linear1", # modify
     "linear5", # modify
     "linear11", # delete
@@ -184,7 +185,7 @@ const UNCOVERED_TERMINATION_STATUS = [
 ]
 
 const SET_CONSTRAINTSET = [
-    # could modify a constraint
+    # BUG
     "linear4",
     "linear6",
     "linear7"
@@ -220,7 +221,7 @@ end
     MOIT.contlineartest(BRIDGED, CONFIG, vcat(
         CONSTRAINTDUAL_SINGLEVAR, MODIFY_DELETE, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
             "partial_start", # VariablePrimalStart not supported
-            "linear1", # require duplicate terms support
+            "linear1", # TODO: support duplicate terms
             "linear10" # BUG: optimize twice changing sense from max to min fails
         ]
     ))
