@@ -464,7 +464,7 @@ function _addlocalartvar!(form::Formulation, constr::Constraint, abs_cost::Float
             form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         var2 = setvar!(
-            form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
+            form, name2, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         push!(constr.art_var_ids, getid(var1))
         push!(constr.art_var_ids, getid(var2))
