@@ -24,20 +24,12 @@ function get_units_usage(algo::BendersCutGeneration, reform::Reformulation)
     end
     return units_usage
 end
-
 mutable struct BendersCutGenRuntimeData
     optstate::OptimizationState
     spform_phase::Dict{FormId, FormulationPhase}
     spform_phase_applied::Dict{FormId, Bool}
     #slack_cost_increase::Float64
     #slack_cost_increase_applied::Bool
-end
-
-function all_sp_in_phase2(algdata::BendersCutGenRuntimeData)
-    for (key, phase) in algdata.spform_phase
-        phase != PurePhase2 && return false
-    end
-    return true
 end
 
 function BendersCutGenRuntimeData(form::Reformulation, init_optstate::OptimizationState)
@@ -61,10 +53,12 @@ function run!(
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
+    slack_cost = getobjsense(spform) === MinSense ? 1.0 : -1.0
     for (varid, var) in getvars(spform)
         iscuractive(spform, varid) || continue
-        if getduty(varid) == BendSpSlackFirstStageVar
-            setcurcost!(spform, var, 1.0)
+        if getduty(varid) <= BendSpSlackFirstStageVar
+            setcurcost!(spform, var, slack_cost)
+            setcurub!(spform, var, getperenub(spform, var))
         else
             setcurcost!(spform, var, 0.0)
         end
@@ -76,7 +70,7 @@ end
 function update_benders_sp_slackvar_cost_for_ph2!(spform::Formulation) 
     for (varid, var) in getvars(spform)
         iscuractive(spform, varid) || continue
-        if getduty(varid) == BendSpSlackFirstStageVar
+        if getduty(varid) <= BendSpSlackFirstStageVar
             setcurcost!(spform, var, 0.0)
             setcurub!(spform, var, 0.0)
         else
@@ -169,9 +163,10 @@ function record_solutions!(
 )::Vector{ConstrId}
 
     recorded_dual_solution_ids = Vector{ConstrId}()
+    sense = getobjsense(spform) === MinSense ? 1.0 : -1.0
 
     for dual_sol in get_lp_dual_sols(spresult)
-        if getvalue(dual_sol) > algo.feasibility_tol 
+        if sense * getvalue(dual_sol) > algo.feasibility_tol 
             (insertion_status, dual_sol_id) = setdualsol!(spform, dual_sol)
             if insertion_status
                 push!(recorded_dual_solution_ids, dual_sol_id)
@@ -187,9 +182,8 @@ end
 function insert_cuts_in_master!(
     masterform::Formulation, spform::Formulation, sp_dualsol_ids::Vector{ConstrId},
 )
-    sp_uid = getuid(spform)
     nb_of_gen_cuts = 0
-    sense = (getobjsense(masterform) == MinSense ? Greater : Less)
+    sense = getobjsense(masterform) == MinSense ? Greater : Less
 
     for dual_sol_id in sp_dualsol_ids
         nb_of_gen_cuts += 1
@@ -265,10 +259,14 @@ function solve_sp_to_gencut!(
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing benders_sp prob"
         TO.@timeit Coluna._to "Bender Sep SubProblem" begin
-            optstate = run!(SolveLpForm(get_dual_solution = true), env, spform, OptimizationInput(OptimizationState(spform)))
+            optstate = run!(
+                SolveLpForm(get_dual_solution = true, relax_integrality = true), 
+                env, spform, OptimizationInput(OptimizationState(spform))
+            )
         end
 
         optresult = getoptstate(optstate)
+
         if getterminationstatus(optresult) == INFEASIBLE # if status != MOI.OPTIMAL
             sp_is_feasible = false 
             # @logmsg LogLevel(-3) "benders_sp prob is infeasible"
@@ -279,7 +277,7 @@ function solve_sp_to_gencut!(
         benders_sp_lagrangian_bound_contrib = compute_benders_sp_lagrangian_bound_contrib(algdata, spform, optresult)
 
         primalsol = get_best_lp_primal_sol(optresult)
-        spsol_relaxed = contains(primalsol, varid -> getduty(varid) == BendSpSlackFirstStageVar)
+        spsol_relaxed = contains(primalsol, varid -> getduty(varid) <= BendSpSlackFirstStageVar)
 
         benders_sp_primal_bound_contrib = 0.0
         # compute benders_sp_primal_bound_contrib which stands for the sum of nu var,
@@ -294,12 +292,12 @@ function solve_sp_to_gencut!(
                 end
             end
         end
-        
+
         if - algo.feasibility_tol <= get_lp_primal_bound(optresult) <= algo.feasibility_tol
         # no cuts are generated since there is no violation 
             if spsol_relaxed
                 if algdata.spform_phase[spform_uid] == PurePhase2
-                    error("In PurePhase2, art var were not supposed to be in sp forlumation ")
+                    error("In PurePhase2, art var were not supposed to be in sp formulation ")
                 end
                 if algdata.spform_phase[spform_uid] == PurePhase1
                     error("In PurePhase1, if art var were in sol, the objective should be strictly positive.")
@@ -326,7 +324,6 @@ function solve_sp_to_gencut!(
                     continue
                 end             
             end
-            
         else # a cut can be generated since there is a violation
             recorded_dual_solution_ids = record_solutions!(algo, algdata, spform, optresult)
             if spsol_relaxed && algo.option_increase_cost_in_hybrid_phase
@@ -418,9 +415,14 @@ end
 
 function solve_relaxed_master!(master::Formulation, env::Env)
     elapsed_time = @elapsed begin
-        optresult = TO.@timeit Coluna._to "relaxed master" run!(SolveLpForm(get_dual_solution = true), env, master, OptimizationInput(OptimizationState(master)))
+        optstate = TO.@timeit Coluna._to "relaxed master" begin
+            run!(
+                SolveLpForm(get_dual_solution = true, relax_integrality = true),
+                env, master, OptimizationInput(OptimizationState(master))
+            )
+        end
     end
-    return optresult, elapsed_time
+    return optstate, elapsed_time
 end
 
 function generatecuts!(
@@ -470,8 +472,8 @@ function bend_cutting_plane_main_loop!(
         cur_gap = 0.0
         
         optoutput, master_time = solve_relaxed_master!(masterform, env)
-        optresult = getoptstate(optoutput)
 
+        optresult = getoptstate(optoutput)
         if getterminationstatus(optresult) == INFEASIBLE
             db = - getvalue(DualBound(masterform))
             pb = - getvalue(PrimalBound(masterform))

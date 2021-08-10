@@ -314,30 +314,10 @@ function instantiate_orig_vars!(
     annotations::Annotations,
     sp_ann
 )
-    masterform = getmaster(spform)
     if haskey(annotations.vars_per_ann, sp_ann)
         vars = annotations.vars_per_ann[sp_ann]
         for (_, var) in vars
             clonevar!(origform, spform, spform, var, BendSpSepVar, cost = 0.0)
-        end
-    end
-    mast_ann = get(annotations, masterform)
-    if haskey(annotations.vars_per_ann, mast_ann)
-        vars = annotations.vars_per_ann[mast_ann]
-        for (id, var) in vars
-            duty, _ = _dutyexpofbendmastvar(var, annotations, origform)
-            if duty == MasterBendFirstStageVar
-                name = "μ[$(split(getname(origform, var), "[")[end])"
-                setvar!(
-                    spform, name, BendSpSlackFirstStageVar;
-                    cost = getcurcost(origform, var),
-                    lb = getcurlb(origform, var),
-                    ub = getcurub(origform, var),
-                    kind = Continuous,
-                    is_explicit = true,
-                    id = Id{Variable}(BendSpSlackFirstStageVar, id, getuid(masterform))
-                )
-            end
         end
     end
     return
@@ -374,8 +354,54 @@ function create_side_vars_constrs!(
     spform::Formulation{BendersSp},
     origform::Formulation{Original},
     ::Env,
-    ::Annotations
+    annotations::Annotations
 )
+    spcoef = getcoefmatrix(spform)
+    origcoef = getcoefmatrix(origform)
+
+    # 1st level slack variables
+    masterform = getmaster(spform)
+    mast_ann = get(annotations, masterform)
+    if haskey(annotations.vars_per_ann, mast_ann)
+        vars = annotations.vars_per_ann[mast_ann]
+        for (varid, var) in vars
+            duty, _ = _dutyexpofbendmastvar(var, annotations, origform)
+            if duty == MasterBendFirstStageVar
+                name = string("μ⁺[", split(getname(origform, var), "[")[end], "]")
+                slack_pos = setvar!(
+                    spform, name, BendSpPosSlackFirstStageVar;
+                    cost = getcurcost(origform, var),
+                    lb = getcurlb(origform, var),
+                    ub = getcurub(origform, var),
+                    kind = Continuous,
+                    is_explicit = true,
+                    id = Id{Variable}(BendSpPosSlackFirstStageVar, varid, getuid(masterform))
+                )
+
+                name = string("μ⁻[", split(getname(origform, var), "[")[end], "]")
+                slack_neg = setvar!(
+                    spform, name, BendSpNegSlackFirstStageVar;
+                    cost = getcurcost(origform, var),
+                    lb = getcurlb(origform, var),
+                    ub = getcurub(origform, var),
+                    kind = Continuous,
+                    is_explicit = true
+                )
+
+                spform.duty_data.slack_to_first_stage[getid(slack_pos)] = varid
+                spform.duty_data.slack_to_first_stage[getid(slack_neg)] = varid
+
+                for (constrid, coeff) in @view origcoef[:, varid]
+                    spconstr = getconstr(spform, constrid)
+                    if spconstr !== nothing
+                        spcoef[getid(spconstr), getid(slack_pos)] = coeff
+                        spcoef[getid(spconstr), getid(slack_neg)] = -coeff
+                    end
+                end
+            end
+        end
+    end
+
     sp_has_second_stage_cost = false
     global_costprofit_ub = 0.0
     global_costprofit_lb = 0.0
@@ -383,46 +409,45 @@ function create_side_vars_constrs!(
         getduty(varid) == BendSpSepVar || continue
         orig_var = getvar(origform, varid)
         cost =  getperencost(origform, orig_var)
-        if cost > 0.00001
+        if cost > 0
             global_costprofit_ub += cost * getcurub(origform, orig_var)
             global_costprofit_lb += cost * getcurlb(origform, orig_var)
-        elseif cost < - 0.00001
+        elseif cost < 0
             global_costprofit_ub += cost * getcurlb(origform, orig_var)
             global_costprofit_lb += cost * getcurub(origform, orig_var)
         end
     end
 
-    if global_costprofit_ub > 0.00001  || global_costprofit_lb < - 0.00001
+    if global_costprofit_ub > 0 || global_costprofit_lb < 0
         sp_has_second_stage_cost = true
     end
 
     if sp_has_second_stage_cost
-        sp_coef = getcoefmatrix(spform)
         sp_id = getuid(spform)
         # Cost constraint
-        nu = setvar!(
-            spform, "ν[$sp_id]", BendSpSlackSecondStageCostVar;
-            cost = 1.0,
-            lb = - global_costprofit_lb,
+        nu_pos = setvar!(
+            spform, "ν⁺[$sp_id]", BendSpSlackSecondStageCostVar;
+            cost = getobjsense(spform) == MinSense ? 1.0 : -1.0,
+            lb = global_costprofit_lb,
             ub = global_costprofit_ub,
             kind = Continuous,
             is_explicit = true
         )
-        setcurlb!(spform, nu, 0.0)
-        setcurub!(spform, nu, Inf)
+        setcurlb!(spform, nu_pos, 0.0)
+        setcurub!(spform, nu_pos, Inf)
 
         cost = setconstr!(
             spform, "cost[$sp_id]", BendSpSecondStageCostConstr;
             rhs = 0.0,
             kind = Essential,
-            sense = Greater,
+            sense = getobjsense(spform) == MinSense ? Greater : Less,
             is_explicit = true
         )
-        sp_coef[getid(cost), getid(nu)] = 1.0
+        spcoef[getid(cost), getid(nu_pos)] = 1.0
 
         for (varid, _) in getvars(spform)
             getduty(varid) == BendSpSepVar || continue
-            sp_coef[getid(cost), varid] = - getperencost(origform, varid)
+            spcoef[getid(cost), varid] = - getperencost(origform, varid)
         end
     end
     return
@@ -492,18 +517,61 @@ function buildformulations!(
     return
 end
 
+# Error messages for `check_annotations`.
+_err_check_annotations(id::VarId) = error("""
+A variable (id = $id) is not annotated.
+Make sure you do not use anonymous variables (variable with no name declared in JuMP macro variable).
+Otherwise, open an issue at https://github.com/atoptima/Coluna.jl/issues
+""")
+
+_err_check_annotations(id::ConstrId) = error("""
+A constraint (id = $id) is not annotated.
+Make sure you do not use anonymous constraints (constraint with no name declared in JuMP macro variable).
+Otherwise, open an issue at https://github.com/atoptima/Coluna.jl/issues
+""")
+
+"""
+Make sure that all variables and constraints of the original formulation are
+annotated. Otherwise, it returns an error.
+"""
+function check_annotations(prob::Problem, annotations::Annotations)
+    origform = get_original_formulation(prob)
+
+    for (varid, _) in getvars(origform)
+        if !haskey(annotations.ann_per_var, varid)
+            return _err_check_annotations(varid)
+        end
+    end
+
+    for (constrid, _) in getconstrs(origform)
+        if !haskey(annotations.ann_per_constr, constrid)
+            return _err_check_annotations(constrid)
+        end
+    end
+    return true
+end
+
+"""
+Reformulate the original formulation of prob according to the annotations.
+The environment maintains formulation ids.
+"""
 function reformulate!(prob::Problem, annotations::Annotations, env::Env)
+    # Once the original formulation built, we close the "fill mode" of the
+    # coefficient matrix which is a super fast writing mode compared to the default
+    # writing mode of the dynamic sparse matrix.
     if getcoefmatrix(prob.original_formulation).fillmode
         closefillmode!(getcoefmatrix(prob.original_formulation))
     end
+
     decomposition_tree = annotations.tree
     if decomposition_tree !== nothing
+        check_annotations(prob, annotations)
         root = BD.getroot(decomposition_tree)
         reform = Reformulation()
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
         relax_integrality!(getmaster(reform))
-    else
+    else # No decomposition provided by BlockDecomposition
         push_optimizer!(
             prob.original_formulation,
             prob.default_optimizer_builder
