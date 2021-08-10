@@ -235,7 +235,7 @@ end
 
 @testset "Unit LP" begin
     MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveLpForm(
-        update_ip_primal_solution=true, get_dual_solution=true, set_dual_bound=true
+        update_ip_primal_solution=true, get_dual_solution=true, get_dual_bound=true
     )))
     MOIT.unittest(BRIDGED, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC, CONSTRAINTDUAL_SINGLEVAR))
 end
