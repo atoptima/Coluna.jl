@@ -4,8 +4,11 @@ DocTestSetup = quote
     using Coluna.Algorithm
 end
 ```
-
 # Algorithms
+
+TODO : Description of how algorithms work.
+
+## References
 
 ```@docs
 TreeSearchAlgorithm
@@ -17,8 +20,23 @@ ColCutGenConquer
 
 ```@docs
 ColumnGeneration
-SolveIpForm
+```
+
+## Basic algorithms
+
+### Optimize a linear program
+
+```@docs
 SolveLpForm
+```
+
+### Optimize an mixed-integer program / solve a combinatorial problem
+
+```@docs
+SolveIpForm
+MoiOptimize
+UserOptimize
+CustomOptimize
 ```
 
 ```@meta

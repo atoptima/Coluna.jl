@@ -1,5 +1,9 @@
 # Introduction
 
+!!! warning
+    Some features are undocumented because they are not yet considered stable.
+
+
 Coluna is a framework written in Julia to implement a decomposition approach to optimize 
 block-structured mixed-integer programs (MIP). 
 
@@ -49,7 +53,9 @@ Once the suggestion is approved, you can open a Pull Request (PR) with the imple
 
 Before requesting the review, make sure that your code follows the style guide and passes tests.
 
-Do not forget to update the docstrings and the tests when necessary. It is very important to keep clear the goal of the PR to make the review fast. So we might close a PR that fixes two unrelated issues or more. 
+Do not forget to update the docstrings and the tests when necessary. 
+It is very important to keep clear the goal of the PR to make the review fast. 
+So we might close a PR that fixes two unrelated issues or more. 
 
 Coluna style follows the [blue style guide](https://github.com/invenia/BlueStyle) for Julia amended by the following instruction on naming :
 
@@ -58,6 +64,10 @@ Coluna style follows the [blue style guide](https://github.com/invenia/BlueStyle
 > - `snake_case` otherwise
 
 Note that the application of the style guide is a work in progress.
+
+## Extra dependances
+
+- CPLEX.jl >= 0.7.0 (cf [issue 446](https://github.com/atoptima/Coluna.jl/issues/446))
 
 ## Acknowledgements
 

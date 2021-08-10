@@ -28,19 +28,19 @@ getnodevalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstat
         branchingtreefile = nothing
     )
 
-This algorithm uses search tree to do optimization. At each node in the tree, it applies
-`conqueralg` to improve the bounds, `dividealg` to generate child nodes, and `explorestrategy`
+This algorithm is a branch and bound that uses a search tree to optimize the reformulation.
+At each node in the tree, it applies `conqueralg` to improve the bounds, 
+`dividealg` to generate child nodes, and `explorestrategy`
 to select the next node to treat.
 
 Parameters : 
 - `maxnumnodes` : maximum number of nodes explored by the algorithm
-- `opennodeslimit` : maximum number of nodes waiting to be explored.
-- `opt_atol` : optimality absolute tolerance
-- `opt_rtol` : optimality relative tolerance
+- `opennodeslimit` : maximum number of nodes waiting to be explored
+- `opt_atol` : optimality absolute tolerance (alpha)
+- `opt_rtol` : optimality relative tolerance (alpha)
 
 Options :
-- `branchingtreefile` : name of the file in which the algorithm writes an overview of the
-branching tree 
+- `branchingtreefile` : name of the file in which the algorithm writes an overview of the branching tree
 """
 @with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     conqueralg::AbstractConquerAlgorithm = ColCutGenConquer()
@@ -76,10 +76,7 @@ popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
 nb_open_nodes(tree::SearchTree) = length(tree.nodes)
 
 """
-    TreeSearchRuntimeData
-
-    Data used by the tree search algorithm while running.
-    Destroyed after each run.     
+Data used by the tree search algorithm while running. Destroyed after each run.     
 """
 mutable struct TreeSearchRuntimeData{Sense}
     primary_tree::SearchTree
