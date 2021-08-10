@@ -40,6 +40,7 @@ include("sol_disaggregation_tests.jl")
 rng = MersenneTwister(1234123)
 
 unit_tests()
+test_issues_fixed()
 
 @testset "Full instances " begin
     full_instances_tests()

@@ -202,7 +202,7 @@ function branching_file_completion()
             for line in eachline(file)
                 for pieceofdata in split(line)
                     regex_match = match(r"n\d+", pieceofdata)
-                    if regex_match != nothing
+                    if regex_match !== nothing
                         regex_match = regex_match.match
                         push!(existing_nodes, parse(Int, regex_match[2:length(regex_match)]))
                     end
@@ -306,6 +306,104 @@ function continuous_vars_in_sp()
     return
 end
 
+# issue https://github.com/atoptima/Coluna.jl/issues/553
+function unsupported_anonym_constrs_vars()
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver=ClA.TreeSearchAlgorithm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    function anonymous_var_model!(m)
+        y = @variable(m, binary = true)
+        @variable(m, 0 <= x[D] <= 1)
+        @constraint(m, sp[d in D], x[d] <= 0.85)
+        @objective(m, Min, sum(x) + y)
+        @dantzig_wolfe_decomposition(m, dec, D)
+    end
+
+    function anonymous_constr_model!(m)
+        @variable(m, 0 <= x[D] <= 1)
+        sp = @constraint(m, [d in D], x[d] <= 0.85)
+        @objective(m, Min, sum(x))
+        @dantzig_wolfe_decomposition(m, dec, D)
+    end
+
+    @axis(D, 1:5)
+    m = BlockModel(coluna, direct_model=true)
+    anonymous_var_model!(m)
+    @test_throws ErrorException optimize!(m)
+
+    m = BlockModel(coluna)
+    anonymous_var_model!(m)
+    # The variable is annotated in the master.
+    # @test_throws ErrorException optimize!(m)
+
+    m = BlockModel(coluna, direct_model=true)
+    anonymous_constr_model!(m)
+    @test_throws ErrorException optimize!(m)
+
+    m = BlockModel(coluna)
+    anonymous_constr_model!(m)
+    @test_throws ErrorException optimize!(m)
+    return
+end
+
+# issue https://github.com/atoptima/Coluna.jl/issues/554
+function simple_benders()
+    # Test in Min sense
+    coluna = optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(
+            solver = Coluna.Algorithm.BendersCutGeneration()
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    model = BlockModel(coluna, direct_model=true)
+
+    @axis(S, 1:2)
+
+    @variable(model, x, Bin)
+    @variable(model, y[i in S], Bin)
+    @constraint(model, purefirststage, x <= 1)
+    @constraint(model, tech1[S[1]], y[S[1]] <= x)
+    @constraint(model, tech2[S[2]], y[S[2]] <= 1-x)
+    @constraint(model, puresecondstage[s in S], y[s] <= 1)
+    @objective(model, Min, -sum(y))
+
+    @benders_decomposition(model, decomposition, S)
+
+    optimize!(model)
+    @test objective_value(model) == -1.0
+
+    # Test in Max sense
+    coluna = optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(
+            solver = Coluna.Algorithm.BendersCutGeneration()
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    model = BlockModel(coluna, direct_model=true)
+
+    @axis(S, 1:2)
+
+    @variable(model, x, Bin)
+    @variable(model, y[i in S], Bin)
+    @constraint(model, purefirststage, x <= 1)
+    @constraint(model, tech1[S[1]], y[S[1]] <= x)
+    @constraint(model, tech2[S[2]], y[S[2]] <= 1-x)
+    @constraint(model, puresecondstage[s in S], y[s] <= 1)
+    @objective(model, Max, +sum(y))
+
+    @benders_decomposition(model, decomposition, S)
+
+    optimize!(model)
+    @test objective_value(model) == 1.0
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -338,6 +436,12 @@ function test_issues_fixed()
     @testset "continuous_vars_in_sp" begin
         continuous_vars_in_sp()
     end
-end
 
-test_issues_fixed()
+    @testset "unsupported_anonym_constrs_vars" begin
+        unsupported_anonym_constrs_vars()
+    end
+
+    @testset "simple benders decomposition" begin
+        simple_benders()
+    end
+end
