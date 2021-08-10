@@ -20,8 +20,8 @@ const BD = BlockDecomposition
 const MOI = MathOptInterface
 const TO = TimerOutputs
 
-const MAX_NB_FORMULATIONS = 200
-const MAX_NB_PROCESSES = 100
+const MAX_NB_FORMULATIONS = typemax(Int8)
+const MAX_NB_PROCESSES = typemax(Int8)
 
 include("types.jl")
 include("vcids.jl")
