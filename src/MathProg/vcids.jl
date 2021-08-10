@@ -12,7 +12,7 @@ For a origin jump var/constr the origin_form_uid is the jump model while the ass
 """
 struct Id{VC <: AbstractVarConstr}
     duty::Duty{VC}
-    uid::Int
+    uid::Int32
     origin_form_uid::FormId
     assigned_form_uid_in_reformulation::FormId
     proc_uid::Int8
