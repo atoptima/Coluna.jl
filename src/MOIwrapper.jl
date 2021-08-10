@@ -635,11 +635,13 @@ mutable struct ColumnInfo <: BD.AbstractColumnInfo
 end
 
 function BD.getsolutions(model::Coluna.Optimizer, k)
-    ip_primal_sol = model.disagg_result.ip_primal_sols[k]
+    ip_primal_sol = get_best_ip_primal_sol(model.disagg_result)
     sp_columns_info = Vector{ColumnInfo}()
     for (varid, val) in ip_primal_sol
         if getduty(varid) <= MasterCol
-            push!(sp_columns_info, ColumnInfo(model, varid, val))
+            if  model.annotations.ann_per_form[getoriginformuid(varid)].axis_index_value == k
+                push!(sp_columns_info, ColumnInfo(model, varid, val))
+            end
         end
     end
     return sp_columns_info
