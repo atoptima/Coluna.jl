@@ -580,9 +580,9 @@ end
 function _computenonrobustmembers(form::Formulation, var::Variable)
     coef_matrix = getcoefmatrix(form)
     for (constrid, constr) in getconstrs(form) # TODO : improve because we loop over all constraints
-        if constrid.custom_family_id !== -1
+        if constrid.custom_family_id != -1
             coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
-            if coeff !== 0
+            if coeff != 0
                 coef_matrix[constrid, getid(var)] = coeff
             end
         end
@@ -593,9 +593,9 @@ end
 function _computenonrobustmembers(form::Formulation, constr::Constraint)
     coef_matrix = getcoefmatrix(form)
     for (varid, var) in getvars(form) # TODO : improve because we loop over all variables
-        if varid.custom_family_id !== -1
+        if varid.custom_family_id != -1
             coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
-            if coeff !== 0
+            if coeff != 0
                 coef_matrix[getid(constr), varid] = coeff
             end
         end
@@ -605,7 +605,7 @@ end
 
 function _setmembers!(form::Formulation, varconstr, members)
     _setrobustmembers!(form, varconstr, members)
-    if getid(varconstr).custom_family_id !== -1
+    if getid(varconstr).custom_family_id != -1
         _computenonrobustmembers(form, varconstr)
     end
     return

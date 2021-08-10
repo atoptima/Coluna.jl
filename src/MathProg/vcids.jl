@@ -12,15 +12,15 @@ For a origin jump var/constr the origin_form_uid is the jump model while the ass
 """
 struct Id{VC <: AbstractVarConstr}
     duty::Duty{VC}
-    uid::Int
+    uid::Int32
     origin_form_uid::FormId
     assigned_form_uid_in_reformulation::FormId
-    proc_uid::Int
-    custom_family_id::Int
+    proc_uid::Int8
+    custom_family_id::Int8
     _hash::Int
 end
 
-function _create_hash(uid::Int, origin_form_uid::FormId, proc_uid::Int)
+function _create_hash(uid, origin_form_uid, proc_uid)
     return (
         uid * MAX_NB_FORMULATIONS * MAX_NB_PROCESSES
         + origin_form_uid * MAX_NB_PROCESSES
@@ -28,31 +28,26 @@ function _create_hash(uid::Int, origin_form_uid::FormId, proc_uid::Int)
     )
 end
 
-"""
-    Id{VC}(uid::Int, form_uid::Int) where {VC<:AbstractVarConstr}
-
-Constructs an `Id` of type `VC` with `uid` = uid and `form_uid` = form_uid.
-"""
-function Id{VC}(duty::Duty{VC}, uid::Int, origin_form_uid::FormId, assigned_form_uid::FormId, custom_family_id::Int) where {VC}
+function Id{VC}(duty::Duty{VC}, uid, origin_form_uid, assigned_form_uid, custom_family_id) where {VC}
     proc_uid = Distributed.myid()
     Id{VC}(duty, uid, origin_form_uid, assigned_form_uid, proc_uid, custom_family_id, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
-function Id{VC}(duty::Duty{VC}, uid::Int, origin_form_uid::FormId) where {VC}
+function Id{VC}(duty::Duty{VC}, uid, origin_form_uid) where {VC}
     proc_uid = Distributed.myid()
     Id{VC}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, -1, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
-function Id{VC}(duty::Duty{VC}, uid::Int, origin_form_uid::FormId, custom_family_id::Int) where {VC}
+function Id{VC}(duty::Duty{VC}, uid, origin_form_uid, custom_family_id) where {VC}
     proc_uid = Distributed.myid()
     Id{VC}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, custom_family_id, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
-function Id{VC}(duty::Duty{VC}, id::Id{VC}, assigned_form_uid_in_reformulation::FormId) where {VC}
+function Id{VC}(duty::Duty{VC}, id::Id{VC}, assigned_form_uid_in_reformulation) where {VC}
     Id{VC}(duty, id.uid, id.origin_form_uid, assigned_form_uid_in_reformulation, id.proc_uid, id.custom_family_id, id._hash)
 end
 
-function Id{VC}(duty::Duty{VC}, id::Id{VC}; custom_family_id::Int = id.custom_family_id) where {VC}
+function Id{VC}(duty::Duty{VC}, id::Id{VC}; custom_family_id = id.custom_family_id) where {VC}
     Id{VC}(duty, id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, custom_family_id, id._hash)
 end
 
@@ -69,12 +64,12 @@ Base.:(==)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash == b._hash
 Base.:(>)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash > b._hash
 Base.:(>=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash >= b._hash
 
-getuid(id::Id)::Int = id.uid
+getuid(id::Id) = id.uid
 getduty(vcid::Id{VC}) where {VC} = vcid.duty
-getoriginformuid(id::Id)::FormId = id.origin_form_uid
-getassignedformuid(id::Id)::FormId = id.assigned_form_uid_in_reformulation
-getprocuid(id::Id)::Int = id.proc_uid
-getsortuid(id::Id)::Int = getuid(id) + 1000000 * getoriginformuid(id)
+getoriginformuid(id::Id) = id.origin_form_uid
+getassignedformuid(id::Id) = id.assigned_form_uid_in_reformulation
+getprocuid(id::Id) = id.proc_uid
+getsortuid(id::Id) = getuid(id) + 1000000 * getoriginformuid(id)
 
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, T, "#",
