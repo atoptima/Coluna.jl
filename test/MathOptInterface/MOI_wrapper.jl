@@ -245,7 +245,6 @@ end
         CONSTRAINTDUAL_SINGLEVAR, MODIFY_DELETE, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
             "partial_start", # VariablePrimalStart not supported
             "linear1", # TODO: support duplicate terms
-            "linear10" # BUG: optimize twice changing sense from max to min fails
         ]
     ))
 end
