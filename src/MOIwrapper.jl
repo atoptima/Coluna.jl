@@ -519,8 +519,8 @@ function MOI.set(
         var = model.vars[term.variable_index]
         cost = term.coefficient
         # TODO : rm set peren cost
-        var.perendata.cost = cost
-        var.curdata.cost = cost
+        var.perendata.cost += cost
+        var.curdata.cost += cost
     end
     if func.constant != 0
         orig_form = get_original_formulation(model.inner)
@@ -549,8 +549,9 @@ function MOI.get(
     terms = MOI.ScalarAffineTerm{Float64}[]
     for (id, var) in model.vars
         cost = getperencost(orig_form, var)
-        iszero(cost) && continue
-        push!(terms, MOI.ScalarAffineTerm(cost, id))
+        if !iszero(cost)
+            push!(terms, MOI.ScalarAffineTerm(cost, id))
+        end
     end
     return MOI.ScalarAffineFunction(terms, getobjconst(orig_form))
 end
