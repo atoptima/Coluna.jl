@@ -208,6 +208,48 @@ function MOI.add_constraint(
 end
 
 ############################################################################################
+# Delete and modify constraint
+############################################################################################
+function MOI.delete(
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}}
+)
+    constrid = getid(model.constrs[ci])
+    orig_form = model.inner.original_formulation
+    coefmatrix = getcoefmatrix(orig_form)
+    varids = VarId[]
+    for (varid, _) in @view coefmatrix[constrid, :]
+        push!(varids, varid)
+    end
+    for varid in varids
+        coefmatrix[constrid, varid] = 0.0
+    end
+    delete!(orig_form.buffer.constr_buffer.added, constrid)
+    delete!(orig_form.manager.constrs, constrid)
+    delete!(model.constrs, ci)
+    return
+end
+
+function MOI.modify(
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}},
+    change::MOI.ScalarConstantChange{Float64}
+)
+    constr = model.constrs[ci]
+    constr.perendata.rhs = change.new_constant
+    constr.curdata.rhs = change.new_constant
+    return
+end
+
+function MOI.modify(
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}},
+    change::MOI.ScalarCoefficientChange{Float64}
+)
+    varid = getid(model.vars[change.variable])
+    constrid = getid(model.constrs[ci])
+    getcoefmatrix(model.inner.original_formulation)[constrid, varid] = change.new_coefficient
+    return
+end
+
+############################################################################################
 # Get variables
 ############################################################################################
 function MOI.get(model::Coluna.Optimizer, ::Type{MOI.VariableIndex}, name::String)
