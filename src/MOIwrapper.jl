@@ -529,16 +529,20 @@ function MOI.set(
     model::Coluna.Optimizer, ::MOI.ObjectiveFunction{F}, func::F
 ) where {F<:MOI.ScalarAffineFunction{Float64}}
     model.objective_type = SCALAR_AFFINE
+    origform = get_original_formulation(model.inner)
+
+    for (_, var) in model.vars
+        setperencost!(origform, var, 0.0)
+    end
+
     for term in func.terms
         var = model.vars[term.variable_index]
-        cost = term.coefficient
-        # TODO : rm set peren cost
-        var.perendata.cost += cost
-        var.curdata.cost += cost
+        cost = term.coefficient + getperencost(origform, var)
+        setperencost!(origform, var, cost)
     end
+
     if func.constant != 0
-        orig_form = get_original_formulation(model.inner)
-        setobjconst!(orig_form, func.constant)
+        setobjconst!(origform, func.constant)
     end
     return
 end

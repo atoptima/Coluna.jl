@@ -22,6 +22,12 @@ Return the current cost of the variable in the formulation.
 getcurcost(form::Formulation, varid::VarId) = getcurcost(form, getvar(form, varid))
 getcurcost(form::Formulation, var::Variable) = var.curdata.cost
 
+function setperencost!(form::Formulation, var::Variable, cost)
+    var.perendata.cost = cost
+    return setcurcost!(form, var, cost)
+end
+setperencost!(form::Formulation, varid::VarId, cost) = setperencost!(form, getvar(form, varid), cost)
+
 """
     setcurcost!(formulation, varid, cost::Float64)
     setcurcost!(formulation, variable, cost::Float64)

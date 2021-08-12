@@ -70,6 +70,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     end
 
     # Update variable costs
+    # TODO: Pass a new objective function if too many changes
     for id in buffer.changed_cost
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         update_cost_in_optimizer!(f, optimizer, getvar(f, id))

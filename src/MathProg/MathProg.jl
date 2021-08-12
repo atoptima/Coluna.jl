@@ -93,7 +93,7 @@ export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresenta
 
 # Types and methods related to variables and constraints
 export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
-    getperencost, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!,
+    getperencost, setperencost!, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
