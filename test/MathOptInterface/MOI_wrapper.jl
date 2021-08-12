@@ -131,8 +131,6 @@ const UNSUPPORTED_TESTS = [
     "silent", # TODO : support of MOI.Silent()
     "time_limit_sec", # TODO : support of MOI.TimeLimitSec()
     "solve_unbounded_model", # default lower bound 0
-    #"solve_duplicate_terms_obj", # TODO: support duplicate terms
-    "solve_duplicate_terms_scalar_affine" # TODO: support duplicate terms
 ]
 
 MathOptInterface.Test.getconstraint

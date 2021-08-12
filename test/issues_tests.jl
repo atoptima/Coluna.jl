@@ -404,22 +404,6 @@ function simple_benders()
     @test objective_value(model) == 1.0
 end
 
-function duplicated_terms()
-    coluna = JuMP.optimizer_with_attributes(
-        Coluna.Optimizer,
-        "params" => CL.Params(solver=ClA.SolveIpForm()),
-        "default_optimizer" => GLPK.Optimizer
-    )
-
-    model = BlockModel(coluna, direct_model=true)
-    @variable(model, x)
-    @variable(model, y)
-    @constraint(model, x + x + y + y <= 1)
-    @objective(model, Max, x + x + y + y)
-    optimize!(model)
-    @test objective_value(model) ≈ 1
-end
-
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -459,9 +443,5 @@ function test_issues_fixed()
 
     @testset "simple benders decomposition" begin
         simple_benders()
-    end
-
-    @testset "duplicated terms" begin
-        duplicated_terms()
     end
 end

@@ -192,7 +192,7 @@ function MOI.add_constraint(
     members = Dict{VarId, Float64}()
     for term in func.terms
         var = model.vars[term.variable_index]
-        members[getid(var)] = term.coefficient
+        members[getid(var)] = get(members, getid(var), 0.0) + term.coefficient
     end
     constr = setconstr!(
         orig_form, "c", OriginalConstr;
