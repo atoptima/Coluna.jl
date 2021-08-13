@@ -113,9 +113,7 @@ end
 
 const UNSUPPORTED_TESTS = [
     "solve_qcp_edge_cases", # Quadratic constraints not supported
-    "delete_nonnegative_variables", # variable deletion not supported
-    "delete_variable", # variable deletion not supported
-    "delete_variables", # variable deletion not supported
+    "delete_nonnegative_variables", # `VectorOfVariables`-in-`Nonnegatives` not supported 
     "variablenames", # Coluna retrieves the name of the variable
     "delete_soc_variables", # soc variables not supported
     "solve_qp_edge_cases", # Quadratic objective not supported
@@ -192,12 +190,10 @@ const CONSTRAINTDUAL_SINGLEVAR = [
     "linear14"
 ]
 
-const MODIFY_DELETE = [
-    # BUG
-    "linear1", # modify
-    "linear5", # modify
-    "linear11", # delete
-    "linear14" # delete
+const DELETE_SINGLEVAR_CONSTR = [
+    # BUG: issue #583
+    "linear5",
+    "linear14"
 ]
 
 const UNCOVERED_TERMINATION_STATUS = [
@@ -240,7 +236,7 @@ end
 
 @testset "Continuous Linear" begin
     MOIT.contlineartest(BRIDGED, CONFIG, vcat(
-        CONSTRAINTDUAL_SINGLEVAR, MODIFY_DELETE, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
+        CONSTRAINTDUAL_SINGLEVAR, DELETE_SINGLEVAR_CONSTR, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
             "partial_start" # VariablePrimalStart not supported
         ]
     ))

@@ -453,6 +453,35 @@ function deactivate!(form::Formulation, f::Function)
     return
 end
 
+## delete
+"""
+    delete!(formulation, varconstrid)
+    delete!(formulation, varconstr)
+
+Delete a variable or a constraint from a formulation.
+"""
+function Base.delete!(form::Formulation, varid::VarId)
+    delete!(form.manager.vars, varid)
+    delete!(form.buffer.var_buffer.added, varid)
+    return
+end
+Base.delete!(form::Formulation, var::Variable) = delete!(form, getid(var))
+
+function Base.delete!(form::Formulation, constrid::ConstrId)
+    coefmatrix = getcoefmatrix(form)
+    varids = VarId[]
+    for (varid, _) in @view coefmatrix[constrid, :]
+        push!(varids, varid)
+    end
+    for varid in varids
+        coefmatrix[constrid, varid] = 0.0
+    end
+    delete!(form.buffer.constr_buffer.added, constrid)
+    delete!(form.manager.constrs, constrid)
+    return
+end
+Base.delete!(form::Formulation, constr::Constraint) = delete!(form, getid(constr))
+
 ## explicit
 """
     isexplicit(formulation, varconstr)

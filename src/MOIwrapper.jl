@@ -210,6 +210,74 @@ function MOI.add_constraint(
 end
 
 ############################################################################################
+# Delete and modify variable
+############################################################################################
+function MOI.delete(model::Coluna.Optimizer, vi::MOI.VariableIndex)
+    MOI.modify(model, MoiObjective(), MOI.ScalarCoefficientChange(vi, 0.0))
+    for (ci, _) in model.constrs_on_single_var_to_vars
+        if ci.value == vi.value
+            MOI.delete(model, ci)
+            break
+        end
+    end
+    for (ci, _) in model.constrs
+        MOI.modify(model, ci, MOI.ScalarCoefficientChange(vi, 0.0))
+    end
+    varid = getid(model.vars[vi])
+    delete!(get_original_formulation(model.inner), varid)
+    delete!(model.moi_varids, varid)
+    delete!(model.vars, vi)
+    delete!(model.env.varids, vi)
+    return
+end
+
+function MOI.modify(
+    model::Coluna.Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}},
+    change::MathOptInterface.ScalarCoefficientChange{Float64}
+)
+    setperencost!(
+        get_original_formulation(model.inner), model.vars[change.variable], change.new_coefficient
+    )
+    return
+end
+
+############################################################################################
+# Delete and modify constraint
+############################################################################################
+# issue #583
+# function MOI.delete(
+#     model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S}
+# ) where {F<:MOI.SingleVariable,S}
+#     return
+# end
+
+function MOI.delete(
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S}
+) where {F<:MOI.ScalarAffineFunction{Float64},S}
+    delete!(get_original_formulation(model.inner), getid(model.constrs[ci]))
+    delete!(model.constrs, ci)
+    return
+end
+
+function MOI.modify(
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S},
+    change::MOI.ScalarConstantChange{Float64}
+) where {F<:MOI.ScalarAffineFunction{Float64},S}
+    setperenrhs!(get_original_formulation(model.inner), model.constrs[ci], change.new_constant)
+    return
+end
+
+function MOI.modify(
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S},
+    change::MOI.ScalarCoefficientChange{Float64}
+) where {F<:MOI.ScalarAffineFunction{Float64},S}
+    varid = getid(model.vars[change.variable])
+    constrid = getid(model.constrs[ci])
+    getcoefmatrix(get_original_formulation(model.inner))[constrid, varid] = change.new_coefficient
+    return
+end
+
+############################################################################################
 # Get variables
 ############################################################################################
 function MOI.get(model::Coluna.Optimizer, ::Type{MOI.VariableIndex}, name::String)
