@@ -1,7 +1,8 @@
 """
     NoOptimizer <: AbstractOptimizer
 
-Wrapper to indicate that no optimizer is assigned to a `Formulation`
+Wrapper when no optimizer is assigned to a formulation.
+Basic algorithms that call an optimizer to optimize a formulation won't work.
 """
 struct NoOptimizer <: AbstractOptimizer end
 
@@ -10,7 +11,8 @@ no_optimizer_builder(args...) = NoOptimizer()
 """
     UserOptimizer <: AbstractOptimizer
 
-TODO
+Wrap a julia function that acts like the optimizer of a formulation.
+It is for example the function used as a pricing callback.
 """
 mutable struct UserOptimizer <: AbstractOptimizer
     user_oracle::Function
@@ -68,6 +70,7 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     end
 
     # Update variable costs
+    # TODO: Pass a new objective function if too many changes
     for id in buffer.changed_cost
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
         update_cost_in_optimizer!(f, optimizer, getvar(f, id))
@@ -77,6 +80,12 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     if buffer.changed_obj_const
         update_obj_const_in_optimizer!(f, optimizer)
         buffer.changed_obj_const = false
+    end
+
+    # Update objective sense
+    if buffer.changed_obj_sense
+        set_obj_sense!(optimizer, getobjsense(f))
+        buffer.changed_obj_sense = false
     end
 
     # Update variable bounds
@@ -150,6 +159,8 @@ end
 
 """
     CustomOptimizer <: AbstractOptimizer
+
+Undocumented because alpha.
 """
 struct CustomOptimizer <: AbstractOptimizer
     inner::BD.AbstractCustomOptimizer
