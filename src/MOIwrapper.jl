@@ -224,9 +224,7 @@ function MOI.delete(model::Coluna.Optimizer, vi::MOI.VariableIndex)
         MOI.modify(model, ci, MOI.ScalarCoefficientChange(vi, 0.0))
     end
     varid = getid(model.vars[vi])
-    orig_form = model.inner.original_formulation
-    delete!(orig_form.manager.vars, varid)
-    delete!(orig_form.buffer.var_buffer.added, varid)
+    delete!(get_original_formulation(model.inner), varid)
     delete!(model.moi_varids, varid)
     delete!(model.vars, vi)
     delete!(model.env.varids, vi)
@@ -237,9 +235,9 @@ function MOI.modify(
     model::Coluna.Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}},
     change::MathOptInterface.ScalarCoefficientChange{Float64}
 )
-    var = model.vars[change.variable]
-    var.perendata.cost = change.new_coefficient
-    var.curdata.cost = change.new_coefficient
+    setperencost!(
+        get_original_formulation(model.inner), model.vars[change.variable], change.new_coefficient
+    )
     return
 end
 
@@ -257,7 +255,7 @@ function MOI.delete(
     model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.ScalarAffineFunction{Float64},S}
     constrid = getid(model.constrs[ci])
-    orig_form = model.inner.original_formulation
+    orig_form = get_original_formulation(model.inner)
     coefmatrix = getcoefmatrix(orig_form)
     varids = VarId[]
     for (varid, _) in @view coefmatrix[constrid, :]
@@ -266,8 +264,7 @@ function MOI.delete(
     for varid in varids
         coefmatrix[constrid, varid] = 0.0
     end
-    delete!(orig_form.buffer.constr_buffer.added, constrid)
-    delete!(orig_form.manager.constrs, constrid)
+    delete!(orig_form, constrid)
     delete!(model.constrs, ci)
     return
 end
@@ -276,9 +273,7 @@ function MOI.modify(
     model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S},
     change::MOI.ScalarConstantChange{Float64}
 ) where {F<:MOI.ScalarAffineFunction{Float64},S}
-    constr = model.constrs[ci]
-    constr.perendata.rhs = change.new_constant
-    constr.curdata.rhs = change.new_constant
+    setperenrhs!(get_original_formulation(model.inner), model.constrs[ci], change.new_constant)
     return
 end
 
@@ -288,7 +283,7 @@ function MOI.modify(
 ) where {F<:MOI.ScalarAffineFunction{Float64},S}
     varid = getid(model.vars[change.variable])
     constrid = getid(model.constrs[ci])
-    getcoefmatrix(model.inner.original_formulation)[constrid, varid] = change.new_coefficient
+    getcoefmatrix(get_original_formulation(model.inner))[constrid, varid] = change.new_coefficient
     return
 end
 
