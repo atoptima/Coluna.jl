@@ -64,6 +64,8 @@ MOI.supports(::Optimizer, ::MOI.ObjectiveFunction{<:SupportedObjFunc}) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 MOI.supports(::Optimizer, ::MOI.ConstraintPrimalStart) = false
 MOI.supports(::Optimizer, ::MOI.ConstraintDualStart) = false
+MOI.supports(::Optimizer, ::BlockDecomposition.ConstraintDecomposition) = true
+MOI.supports(::Optimizer, ::BlockDecomposition.VariableDecomposition) = true
 
 # Parameters
 function MOI.set(model::Optimizer, param::MOI.RawParameter, val)
@@ -192,7 +194,7 @@ function MOI.add_constraint(
     members = Dict{VarId, Float64}()
     for term in func.terms
         var = model.vars[term.variable_index]
-        members[getid(var)] = term.coefficient
+        members[getid(var)] = get(members, getid(var), 0.0) + term.coefficient
     end
     constr = setconstr!(
         orig_form, "c", OriginalConstr;
@@ -507,8 +509,9 @@ end
 ############################################################################################
 # Attributes of constraints
 ############################################################################################
+# TODO move into BlockDecomposition.
 function MOI.set(
-    model::MOI.Bridges.LazyBridgeOptimizer{Coluna.Optimizer}, attr::MOI.AbstractConstraintAttribute,
+    model::MOI.ModelLike, attr::BlockDecomposition.ConstraintDecomposition,
     bridge::MOI.Bridges.Constraint.SplitIntervalBridge, value
 )
     MOI.set(model.model, attr, bridge.lower, value)
@@ -544,6 +547,17 @@ function MOI.set(
     MOI.throw_if_not_valid(model, constrid)
     model.constrs_on_single_var_to_names[constrid] = name
     model.names_to_constrs[name] = constrid
+    return
+end
+
+function MOI.set(
+    model::Coluna.Optimizer, ::MOI.ConstraintSet, constrid::MOI.ConstraintIndex{F,S}, set::S
+) where {F,S<:SupportedConstrSets}
+    MOI.throw_if_not_valid(model, constrid)
+    origform = get_original_formulation(model.inner)
+    constr = model.constrs[constrid]
+    setperenrhs!(origform, constr, MathProg.convert_moi_rhs_to_coluna(set))
+    setperensense!(origform, constr, MathProg.convert_moi_sense_to_coluna(set))
     return
 end
 
@@ -598,16 +612,20 @@ function MOI.set(
     model::Coluna.Optimizer, ::MOI.ObjectiveFunction{F}, func::F
 ) where {F<:MOI.ScalarAffineFunction{Float64}}
     model.objective_type = SCALAR_AFFINE
+    origform = get_original_formulation(model.inner)
+
+    for (_, var) in model.vars
+        setperencost!(origform, var, 0.0)
+    end
+
     for term in func.terms
         var = model.vars[term.variable_index]
-        cost = term.coefficient
-        # TODO : rm set peren cost
-        var.perendata.cost = cost
-        var.curdata.cost = cost
+        cost = term.coefficient + getperencost(origform, var)
+        setperencost!(origform, var, cost)
     end
+
     if func.constant != 0
-        orig_form = get_original_formulation(model.inner)
-        setobjconst!(orig_form, func.constant)
+        setobjconst!(origform, func.constant)
     end
     return
 end
@@ -632,8 +650,9 @@ function MOI.get(
     terms = MOI.ScalarAffineTerm{Float64}[]
     for (id, var) in model.vars
         cost = getperencost(orig_form, var)
-        iszero(cost) && continue
-        push!(terms, MOI.ScalarAffineTerm(cost, id))
+        if !iszero(cost)
+            push!(terms, MOI.ScalarAffineTerm(cost, id))
+        end
     end
     return MOI.ScalarAffineFunction(terms, getobjconst(orig_form))
 end

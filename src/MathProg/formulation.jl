@@ -12,7 +12,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
 end
 
 """
-`Formulation` stores a mixed-integer linear program.
+A `Formulation` stores a mixed-integer linear program.
 
     create_formulation!(
         env::Coluna.Env,
@@ -617,6 +617,7 @@ function set_objective_sense!(form::Formulation, min::Bool)
     else
         form.obj_sense = MaxSense
     end
+    form.buffer.changed_obj_sense = true
     return
 end
 
