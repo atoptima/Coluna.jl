@@ -236,7 +236,7 @@ end
 
 @testset "Continuous Linear" begin
     MOIT.contlineartest(BRIDGED, CONFIG, vcat(
-        CONSTRAINTDUAL_SINGLEVAR, MODIFY_DELETE, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
+        CONSTRAINTDUAL_SINGLEVAR, DELETE_SINGLEVAR_CONSTR, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
             "partial_start" # VariablePrimalStart not supported
         ]
     ))
