@@ -247,6 +247,10 @@ function update!(dest_state::OptimizationState, orig_state::OptimizationState)
     if best_lp_primal_sol !== nothing
         set_lp_primal_sol!(dest_state, best_lp_primal_sol)
     end        
+    best_lp_dual_sol = get_best_lp_dual_sol(orig_state) 
+    if best_lp_dual_sol !== nothing
+        set_lp_dual_sol!(dest_state, best_lp_dual_sol)
+    end        
 end
 
 """
