@@ -254,17 +254,7 @@ end
 function MOI.delete(
     model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.ScalarAffineFunction{Float64},S}
-    constrid = getid(model.constrs[ci])
-    orig_form = get_original_formulation(model.inner)
-    coefmatrix = getcoefmatrix(orig_form)
-    varids = VarId[]
-    for (varid, _) in @view coefmatrix[constrid, :]
-        push!(varids, varid)
-    end
-    for varid in varids
-        coefmatrix[constrid, varid] = 0.0
-    end
-    delete!(orig_form, constrid)
+    delete!(get_original_formulation(model.inner), getid(model.constrs[ci]))
     delete!(model.constrs, ci)
     return
 end
