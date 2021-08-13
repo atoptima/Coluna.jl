@@ -208,11 +208,52 @@ function MOI.add_constraint(
 end
 
 ############################################################################################
+# Delete and modify variable
+############################################################################################
+function MOI.delete(model::Coluna.Optimizer, vi::MOI.VariableIndex)
+    MOI.modify(model, MoiObjective(), MOI.ScalarCoefficientChange(vi, 0.0))
+    for (ci, _) in model.constrs_on_single_var_to_vars
+        if ci.value == vi.value
+            MOI.delete(model, ci)
+            break
+        end
+    end
+    for (ci, _) in model.constrs
+        MOI.modify(model, ci, MOI.ScalarCoefficientChange(vi, 0.0))
+    end
+    varid = getid(model.vars[vi])
+    orig_form = model.inner.original_formulation
+    delete!(orig_form.manager.vars, varid)
+    delete!(orig_form.buffer.var_buffer.added, varid)
+    delete!(model.moi_varids, varid)
+    delete!(model.vars, vi)
+    delete!(model.env.varids, vi)
+    return
+end
+
+function MOI.modify(
+    model::Coluna.Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}},
+    change::MathOptInterface.ScalarCoefficientChange{Float64}
+)
+    var = model.vars[change.variable]
+    var.perendata.cost = change.new_coefficient
+    var.curdata.cost = change.new_coefficient
+    return
+end
+
+############################################################################################
 # Delete and modify constraint
 ############################################################################################
+# issue #583
+# function MOI.delete(
+#     model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S}
+# ) where {F<:MOI.SingleVariable,S}
+#     return
+# end
+
 function MOI.delete(
-    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}}
-)
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S}
+) where {F<:MOI.ScalarAffineFunction{Float64},S}
     constrid = getid(model.constrs[ci])
     orig_form = model.inner.original_formulation
     coefmatrix = getcoefmatrix(orig_form)
@@ -230,9 +271,9 @@ function MOI.delete(
 end
 
 function MOI.modify(
-    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}},
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S},
     change::MOI.ScalarConstantChange{Float64}
-)
+) where {F<:MOI.ScalarAffineFunction{Float64},S}
     constr = model.constrs[ci]
     constr.perendata.rhs = change.new_constant
     constr.curdata.rhs = change.new_constant
@@ -240,9 +281,9 @@ function MOI.modify(
 end
 
 function MOI.modify(
-    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}},
+    model::Coluna.Optimizer, ci::MOI.ConstraintIndex{F,S},
     change::MOI.ScalarCoefficientChange{Float64}
-)
+) where {F<:MOI.ScalarAffineFunction{Float64},S}
     varid = getid(model.vars[change.variable])
     constrid = getid(model.constrs[ci])
     getcoefmatrix(model.inner.original_formulation)[constrid, varid] = change.new_coefficient
