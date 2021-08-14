@@ -1,7 +1,5 @@
 const DynSparseVector{I} = DynamicSparseArrays.PackedMemoryArray{I, Float64}
 
-const VarDict = Dict{VarId, Variable}
-const ConstrDict = Dict{ConstrId, Constraint}
 const VarMembership = Dict{VarId, Float64}
 const ConstrMembership = Dict{ConstrId, Float64}
 const ConstrConstrMatrix = DynamicSparseArrays.DynamicSparseMatrix{ConstrId,ConstrId,Float64}
@@ -12,11 +10,12 @@ const VarVarMatrix = DynamicSparseArrays.DynamicSparseMatrix{VarId,VarId,Float64
 DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
 
 mutable struct FormulationManager
-    vars::VarDict
-    constrs::ConstrDict
+    vars::Dict{VarId, Variable}
+    constrs::Dict{ConstrId, Constraint}
+    var_bound_constrs::Dict{ConstrId, SingleVarConstraint} # ids of the constraint of type : single variable >= bound
     objective_constant::Float64
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
-    expressions::VarVarMatrix # cols = variables, rows = expressions
+    # expressions::VarVarMatrix # cols = variables, rows = expressions (not implemented yet)
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables
     primal_sols_custom_data::Dict{VarId, BD.AbstractCustomData}
     primal_sol_costs::DynSparseVector{VarId} # primal solutions with varid map to their cost
@@ -27,14 +26,15 @@ mutable struct FormulationManager
 end
 
 function FormulationManager(; custom_families_id = Dict{BD.AbstractCustomData,Int}())
-    vars = VarDict()
-    constrs = ConstrDict()
+    vars = Dict{VarId, Variable}()
+    constrs = Dict{ConstrId, Constraint}()
     return FormulationManager(
         vars,
         constrs,
+        Dict{ConstrId, SingleVarConstraint}(),
         0.0,
         dynamicsparse(ConstrId, VarId, Float64),
-        dynamicsparse(VarId, VarId, Float64; fill_mode = false),
+        #dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         Dict{VarId,Any}(),
         dynamicsparsevec(VarId[], Float64[]),

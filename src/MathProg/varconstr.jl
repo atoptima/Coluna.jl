@@ -210,6 +210,19 @@ getcurkind(form::Formulation, varid::VarId) = getcurkind(form, getvar(form, vari
 getcurkind(form::Formulation, var::Variable) = var.curdata.kind
 
 """
+    setperenkind!(formulation, variable, kind)
+    setperenkind!(formulation, varid, kind)
+
+Set the perennial kind of a variable in a formulation.
+This change is then propagated to the current kind of the variable.
+"""
+function setperenkind!(form::Formulation, var::Variable, kind::VarKind)
+    var.perendata.kind = kind
+    return setcurkind!(form, var, kind)
+end
+setperenkind!(form::Formulation, varid::VarId, kind::VarKind) = setperenkind!(form, getvar(form, varid), kind)
+
+"""
     setcurkind!(formulation, variable, kind::VarKind)
     setcurkind!(formulation, varid, kind::VarKind)
 
@@ -462,13 +475,13 @@ Delete a variable or a constraint from a formulation.
 """
 function Base.delete!(form::Formulation, varid::VarId)
     delete!(form.manager.vars, varid)
-    delete!(form.buffer.var_buffer.added, varid)
+    remove!(form.buffer, varid)
     return
 end
 Base.delete!(form::Formulation, var::Variable) = delete!(form, getid(var))
 
 function Base.delete!(form::Formulation, constrid::ConstrId)
-    delete!(form.buffer.constr_buffer.added, constrid)
+    remove!(form.buffer, constrid)
     delete!(form.manager.constrs, constrid)
 end
 Base.delete!(form::Formulation, constr::Constraint) = delete!(form, getid(constr))

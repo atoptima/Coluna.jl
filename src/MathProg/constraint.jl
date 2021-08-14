@@ -69,6 +69,25 @@ function Constraint(
     )
 end
 
+mutable struct SingleVarConstraint <: AbstractVarConstr
+    id::Id{Constraint}
+    name::String
+    varid::VarId
+    perendata::ConstrData
+    curdata::ConstrData
+    moirecord::MoiConstrRecord
+end
+
+function SingleVarConstraint(
+    id::ConstrId, varid::VarId, name::String;
+    constr_data = ConstrData(), moi_index::MoiConstrIndex = MoiConstrIndex(),
+)
+    return SingleVarConstraint(
+        id, name, varid, constr_data, ConstrData(constr_data), 
+        MoiConstrRecord(index = moi_index)
+    )
+end
+
 mutable struct RobustConstraintsGenerator
     nb_generated::Int
     kind::ConstrKind

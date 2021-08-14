@@ -92,12 +92,12 @@ export Original, DwMaster, BendersMaster, DwSp, BendersSp
 export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
 
 # Types and methods related to variables and constraints
-export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
+export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership, SingleVarConstraint,
     getperencost, setperencost!, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, getbranchingpriority, reset!, getreducedcost
+    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, setsinglevarconstr!
 
 # Types & methods related to solutions & bounds
 export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues

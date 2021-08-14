@@ -144,7 +144,7 @@ set_matrix_coeff!(
     setvar!(
         formulation, name, duty;
         cost = 0.0,
-        lb = 0.0,
+        lb = -Inf,
         ub = Inf,
         kind = Continuous,
         is_active = true,
@@ -168,7 +168,7 @@ function setvar!(
     name::String,
     duty::Duty{Variable};
     cost::Float64 = 0.0,
-    lb::Float64 = 0.0,
+    lb::Float64 = -Inf,
     ub::Float64 = Inf,
     kind::VarKind = Continuous,
     inc_val::Float64 = 0.0,
@@ -461,6 +461,33 @@ function setconstr!(
     return constr
 end
 
+"""
+TODO
+
+This constraint is never explicit because it's used to compute bounds stored in the variable
+"""
+function setsinglevarconstr!(
+    form::Formulation,
+    name::String,
+    varid::VarId,
+    duty::Duty{Constraint};
+    rhs::Float64 = 0.0,
+    kind::ConstrKind = Essential,
+    sense::ConstrSense = Greater,
+    inc_val::Float64 = 0.0,
+    is_active::Bool = true,
+    moi_index::MoiConstrIndex = MoiConstrIndex(),
+    id = generateconstrid(duty, form)
+)
+    if getduty(id) != duty
+        id = ConstrId(duty, id, -1)
+    end
+    c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, true)
+    constr = SingleVarConstraint(id, varid, name; constr_data = c_data, moi_index = moi_index)
+    form.manager.var_bound_constrs[id] = constr
+    return constr
+end
+
 function set_robust_constr_generator!(form::Formulation, kind::ConstrKind, alg::Function)
     constrgen = RobustConstraintsGenerator(0, kind, alg)
     push!(form.manager.robust_constr_generators, constrgen)
@@ -666,6 +693,55 @@ function push_optimizer!(form::Formulation, builder::Function)
     initialize_optimizer!(opt, form)
     return
 end
+
+############################################################################################
+# Bounds propagation
+############################################################################################
+# if a new single var constraint has been added, we should call this method
+
+function _update_var_cur_lb!(form::Formulation, var::Variable, lb)
+    cur_lb = getcurlb(form, var)
+    if cur_lb < lb
+        setcurlb!(form, var, lb)
+    end
+    return
+end
+
+function _update_var_cur_ub!(form::Formulation, var::Variable, ub)
+    cur_ub = getcurub(form, var)
+    if cur_ub > ub
+        setcurub!(form, var, ub)
+    end
+    return
+end
+
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Greater}, rhs)
+    _update_var_cur_lb!(form, var, rhs)
+    return
+end
+
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Less}, rhs)
+    _update_var_cur_ub!(form, var, rhs)
+    return
+end
+
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs)
+    _update_var_cur_lb!(form, var, rhs)
+    _update_var_cur_ub!(form, var, rhs)
+    return
+end
+
+function bounds_propagation!(form::Formulation)
+    for (_, constr) in form.manager.var_bound_constrs
+        var = getvar(form, constr.varid)
+        _update_bounds!(form, var, Val(constr.curdata.sense), constr.curdata.rhs)
+    end
+    return
+end
+
+############################################################################################
+# Methods to show a formulation
+############################################################################################
 
 function _show_obj_fun(io::IO, form::Formulation)
     print(io, getobjsense(form), " ")

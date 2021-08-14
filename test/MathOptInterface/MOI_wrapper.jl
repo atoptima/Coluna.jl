@@ -190,22 +190,12 @@ const CONSTRAINTDUAL_SINGLEVAR = [
     "linear14"
 ]
 
-const DELETE_SINGLEVAR_CONSTR = [
-    # BUG: issue #583
-    "linear5",
-    "linear14"
-]
-
 const UNCOVERED_TERMINATION_STATUS = [
     "linear8b", # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
     "linear8c" # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
 ]
 
 const SET_CONSTRAINTSET = [
-    # BUG
-    "linear4",
-    "linear6",
-    "linear7"
 ]
 
 @testset "Unit Basic/MIP" begin
@@ -236,7 +226,7 @@ end
 
 @testset "Continuous Linear" begin
     MOIT.contlineartest(BRIDGED, CONFIG, vcat(
-        CONSTRAINTDUAL_SINGLEVAR, DELETE_SINGLEVAR_CONSTR, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
+        CONSTRAINTDUAL_SINGLEVAR, UNCOVERED_TERMINATION_STATUS, [
             "partial_start" # VariablePrimalStart not supported
         ]
     ))
