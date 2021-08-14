@@ -5,7 +5,6 @@ MOI.set(OPTIMIZER, MOI.RawParameter("default_optimizer"), GLPK.Optimizer)
 
 const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6, infeas_certificates = false)
 
-
 @testset "SolverName" begin
     @test MOI.get(OPTIMIZER, MOI.SolverName()) == "Coluna"
 end

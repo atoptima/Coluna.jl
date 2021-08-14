@@ -83,6 +83,7 @@ function instantiatesp!(
 end
 
 # Master of Dantzig-Wolfe decomposition
+# We clone the variables and the single variable constraints at the same time
 function instantiate_orig_vars!(
     masterform::Formulation{DwMaster},
     origform::Formulation,
@@ -92,10 +93,8 @@ function instantiate_orig_vars!(
     vars_per_ann = annotations.vars_per_ann
     for (ann, vars) in vars_per_ann
         formtype = BD.getformulation(ann)
-        dectype = BD.getdecomposition(ann)
         if formtype <: BD.Master
-            for (id, var) in vars
-                #duty, explicit = _varexpduty(DwMaster, formtype, dectype)
+            for (_, var) in vars
                 clonevar!(origform, masterform, masterform, var, MasterPureVar, is_explicit = true)
             end
         end

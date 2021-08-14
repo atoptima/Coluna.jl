@@ -294,13 +294,13 @@ function MOI.delete(
     origform = get_original_formulation(model.inner)
     constrs = model.constrs_on_single_var[ci]
     if constrs.lower !== nothing
-        delete!(origform.manager.var_bound_constrs, getid(constrs.lower))
+        delete!(origform.manager.single_var_constrs, getid(constrs.lower))
     end
     if constrs.upper !== nothing
-        delete!(origform.manager.var_bound_constrs, getid(constrs.upper))
+        delete!(origform.manager.single_var_constrs, getid(constrs.upper))
     end
     if constrs.eq !== nothing
-        delete!(origform.manager.var_bound_constrs, getid(constrs.eq))
+        delete!(origform.manager.single_var_constrs, getid(constrs.eq))
     end
     delete!(model.constrs_on_single_var, ci)
     return

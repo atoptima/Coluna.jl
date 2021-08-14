@@ -21,7 +21,7 @@ A `Formulation` stores a mixed-integer linear program.
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
     )
 
-Create a new formulation in the Coluna's environment `env`.
+Creates a new formulation in the Coluna's environment `env`.
 Arguments are `duty` that contains specific information related to the duty of
 the formulation, `parent_formulation` that is the parent formulation (master for a subproblem, 
 reformulation for a master, `nothing` by default), and `obj_sense` the sense of the objective 
@@ -52,40 +52,59 @@ ColunaBase.getstorage(form::Formulation) = form.storage
 """
     haskey(formulation, id) -> Bool
 
-Return `true` if `formulation` has a variable or a constraint with given `id`.
+Returns `true` if `formulation` has a variable or a constraint with given `id`.
 """
 haskey(form::Formulation, id::VarId) = haskey(form.manager.vars, id)
-haskey(form::Formulation, id::ConstrId) = haskey(form.manager.constrs, id)
+haskey(form::Formulation, id::ConstrId) = haskey(form.manager.constrs, id) || haskey(form.manager.single_var_constrs, id)
 
 """
     getvar(formulation, varid) -> Variable
 
-Return the variable with given `varid` that belongs to `formulation`.
+Returns the variable with given `varid` that belongs to `formulation`.
 """
 getvar(form::Formulation, id::VarId) = get(form.manager.vars, id, nothing)
 
 """
     getconstr(formulation, constrid) -> Constraint
 
-Return the constraint with given `constrid` that belongs to `formulation`.
+Returns the constraint with given `constrid` that belongs to `formulation`.
 """
 getconstr(form::Formulation, id::ConstrId) = get(form.manager.constrs, id, nothing)
 
 """
+    getsinglevarconstr(formulation, constrid) -> Constraint
+
+Returns the single variable constraint with given `constrid` that belongs to `formulation`.
+"""
+getsinglevarconstr(form::Formulation, id::ConstrId) = get(form.manager.single_var_constrs, id, nothing)
+
+"""
     getvars(formulation) -> Dict{VarId, Variable}
 
-Return all variables in `formulation`.
+Returns all variables in `formulation`.
 """
 getvars(form::Formulation) = form.manager.vars
 
 """
     getconstrs(formulation) -> Dict{ConstrId, Constraint}
 
-Return all constraints in `formulation`.
+Returns all constraints in `formulation`.
 """
 getconstrs(form::Formulation) = form.manager.constrs
 
+"""
+    getsinglevarconstrs(formulation) -> Dict{ConstrId, SingleVarConstraint}
+
+Returns all single variable constraints in `formulation`.
+"""
+getsinglevarconstr(form::Formulation) = form.manager.single_var_constrs
+
+
+
+"Returns objective constant of the formulation."
 getobjconst(form::Formulation) = form.manager.objective_constant
+
+"Sets objective constant of the formulation."
 function setobjconst!(form::Formulation, val::Float64)
     form.manager.objective_constant = val
     form.buffer.changed_obj_const = true
@@ -94,25 +113,29 @@ end
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(form::Formulation) = form.manager.coefficients
+
 getprimalsolmatrix(form::Formulation) = form.manager.primal_sols
 getprimalsolcosts(form::Formulation) = form.manager.primal_sol_costs
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
 
-"Returns the `uid` of `Formulation` `form`."
+"Returns the `uid` of a formulation."
 getuid(form::Formulation) = form.uid
 
-"Returns the objective function sense of `Formulation` `form`."
+"Returns the objective function sense of a formulation."
 getobjsense(form::Formulation) = form.obj_sense
 
-"Returns the `AbstractOptimizer` of `Formulation` `form`."
-function getoptimizer(form::Formulation, id::Int)
-    if id <= 0 && id > length(form.optimizers)
+"Returns the optimizer of a formulation at a given position."
+function getoptimizer(form::Formulation, pos::Int)
+    if pos <= 0 && pos > length(form.optimizers)
         return NoOptimizer()
     end
-    return form.optimizers[id]
+    return form.optimizers[pos]
 end
+
+"Returns all the optimizers of a formulation."
 getoptimizers(form::Formulation) = form.optimizers
+
 
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
@@ -484,7 +507,7 @@ function setsinglevarconstr!(
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, true)
     constr = SingleVarConstraint(id, varid, name; constr_data = c_data, moi_index = moi_index)
-    form.manager.var_bound_constrs[id] = constr
+    _addconstr!(form.manager, constr)
     return constr
 end
 
@@ -732,7 +755,7 @@ function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs)
 end
 
 function bounds_propagation!(form::Formulation)
-    for (_, constr) in form.manager.var_bound_constrs
+    for (_, constr) in form.manager.single_var_constrs
         var = getvar(form, constr.varid)
         _update_bounds!(form, var, Val(constr.curdata.sense), constr.curdata.rhs)
     end
