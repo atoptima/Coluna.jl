@@ -468,23 +468,41 @@ end
 
 ## delete
 """
-    delete!(formulation, varconstrid)
     delete!(formulation, varconstr)
+    delete!(formulation, varconstrid)
 
 Delete a variable or a constraint from a formulation.
 """
-function Base.delete!(form::Formulation, varid::VarId)
+function Base.delete!(form::Formulation, var::Variable)
+    varid = getid(var)
     delete!(form.manager.vars, varid)
     remove!(form.buffer, varid)
     return
 end
-Base.delete!(form::Formulation, var::Variable) = delete!(form, getid(var))
+Base.delete!(form::Formulation, id::VarId) = delete!(form, getvar(form, id))
 
-function Base.delete!(form::Formulation, constrid::ConstrId)
-    remove!(form.buffer, constrid)
+function Base.delete!(form::Formulation, constr::Constraint)
+    constrid = getid(constr)
+    coefmatrix = getcoefmatrix(form)
+    varids = VarId[]
+    for (varid, _) in @view coefmatrix[constrid, :]
+        push!(varids, varid)
+    end
+    for varid in varids
+        coefmatrix[constrid, varid] = 0.0
+    end
     delete!(form.manager.constrs, constrid)
+    remove!(form.buffer, constrid)
+    return
 end
-Base.delete!(form::Formulation, constr::Constraint) = delete!(form, getid(constr))
+
+function Base.delete!(form::Formulation, constr::SingleVarConstraint)
+    constrid = getid(constr)
+    delete!(form.manager.single_var_constrs[constr.varid], constrid)
+    return
+end
+
+Base.delete!(form::Formulation, id::ConstrId) = delete!(form, getconstr(form, id))
 
 ## explicit
 """

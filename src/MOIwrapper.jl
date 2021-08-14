@@ -294,13 +294,13 @@ function MOI.delete(
     origform = get_original_formulation(model.inner)
     constrs = model.constrs_on_single_var[ci]
     if constrs.lower !== nothing
-        delete!(origform.manager.single_var_constrs, getid(constrs.lower))
+        delete!(origform, getid(constrs.lower))
     end
     if constrs.upper !== nothing
-        delete!(origform.manager.single_var_constrs, getid(constrs.upper))
+        delete!(origform, getid(constrs.upper))
     end
     if constrs.eq !== nothing
-        delete!(origform.manager.single_var_constrs, getid(constrs.eq))
+        delete!(origform, getid(constrs.eq))
     end
     delete!(model.constrs_on_single_var, ci)
     return
@@ -321,6 +321,9 @@ function MOI.delete(
         coefmatrix[constrid, varid] = 0.0
     end
     delete!(orig_form, constrid)
+# =======
+#     delete!(get_original_formulation(model.inner), getid(model.constrs[ci]))
+# >>>>>>> master
     delete!(model.constrs, ci)
     return
 end
