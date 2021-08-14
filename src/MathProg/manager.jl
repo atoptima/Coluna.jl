@@ -67,14 +67,14 @@ function _addconstr!(m::FormulationManager, constr::Constraint)
     return
 end
 
-function _addsinglevarconstr!(m::FormulationManager, constr::SingleVarConstraint)
+function _addconstr!(m::FormulationManager, constr::SingleVarConstraint)
     if !haskey(m.single_var_constrs, constr.varid)
         m.single_var_constrs[constr.varid] = Dict{ConstrId, SingleVarConstraint}()
     end
     if haskey(m.single_var_constrs[constr.varid], constr.id)
         name = m.single_var_constrs[constr.varid][constr.id].name
         error(string(
-            "Constraint of id ", constr.id, "exists. Its name is ", name;
+            "Constraint of id ", constr.id, "exists. Its name is ", name,
             " and you want to add a constraint named ", constr.name, "."
         ))
     end
