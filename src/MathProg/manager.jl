@@ -12,7 +12,8 @@ DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
 mutable struct FormulationManager
     vars::Dict{VarId, Variable}
     constrs::Dict{ConstrId, Constraint}
-    single_var_constrs::Dict{VarId, Dict{ConstrId, SingleVarConstraint}} # ids of the constraint of type : single variable >= bound
+    single_var_constrs::Dict{ConstrId, SingleVarConstraint}
+    single_var_constrs_per_var::Dict{VarId, Dict{ConstrId, SingleVarConstraint}} # ids of the constraint of type : single variable >= bound
     objective_constant::Float64
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     # expressions::VarVarMatrix # cols = variables, rows = expressions (not implemented yet)
@@ -31,6 +32,7 @@ function FormulationManager(; custom_families_id = Dict{BD.AbstractCustomData,In
     return FormulationManager(
         vars,
         constrs,
+        Dict{ConstrId, SingleVarConstraint}(),
         Dict{VarId, Dict{ConstrId, SingleVarConstraint}}(),
         0.0,
         dynamicsparse(ConstrId, VarId, Float64),
@@ -68,17 +70,18 @@ function _addconstr!(m::FormulationManager, constr::Constraint)
 end
 
 function _addconstr!(m::FormulationManager, constr::SingleVarConstraint)
-    if !haskey(m.single_var_constrs, constr.varid)
-        m.single_var_constrs[constr.varid] = Dict{ConstrId, SingleVarConstraint}()
+    if !haskey(m.single_var_constrs_per_var, constr.varid)
+        m.single_var_constrs_per_var[constr.varid] = Dict{ConstrId, SingleVarConstraint}()
     end
-    if haskey(m.single_var_constrs[constr.varid], constr.id)
-        name = m.single_var_constrs[constr.varid][constr.id].name
+    if haskey(m.single_var_constrs_per_var[constr.varid], constr.id)
+        name = m.single_var_constrs_per_var[constr.varid][constr.id].name
         error(string(
             "Constraint of id ", constr.id, "exists. Its name is ", name,
             " and you want to add a constraint named ", constr.name, "."
         ))
     end
-    m.single_var_constrs[constr.varid][constr.id] = constr
+    m.single_var_constrs[constr.id] = constr
+    m.single_var_constrs_per_var[constr.varid][constr.id] = constr
     return
 end
 

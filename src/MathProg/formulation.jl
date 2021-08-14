@@ -96,10 +96,13 @@ getconstrs(form::Formulation) = form.manager.constrs
     getsinglevarconstrs(formulation) -> Dict{ConstrId, SingleVarConstraint}
 
 Returns all single variable constraints in `formulation`.
+
+    getsinglevarconstrs(formulation, varid) -> Dict{ConstrId, SingleVarConstr} or nothing
+
+Return all single variable constraints of a formulation that applies to a given variable.
 """
-getsinglevarconstr(form::Formulation) = form.manager.single_var_constrs
-
-
+getsinglevarconstrs(form::Formulation) = form.manager.single_var_constrs
+getsinglevarconstrs(form::Formulation, varid::VarId) = get(form.manager.single_var_constrs_per_var, varid, Dict{ConstrId, SingleVarConstraint}()) 
 
 "Returns objective constant of the formulation."
 getobjconst(form::Formulation) = form.manager.objective_constant
@@ -810,6 +813,29 @@ function _show_constraints(io::IO , form::Formulation)
     return
 end
 
+function _show_singlevarconstraint(io::IO, form::Formulation, constr::SingleVarConstraint)
+    print(io, "| ", getname(form, constr.varid))
+    op = "<="
+    if getcursense(form, constr) == Equal
+        op = "=="
+    elseif getcursense(form, constr) == Greater
+        op = ">="
+    end
+    println(io, " ", op, " ", getcurrhs(form, constr))
+    return
+end
+
+function _show_singlevarconstraints(io::IO, form::Formulation)
+    println("----------------------------------")
+    for (varid, _) in getvars(form)
+        for (_, constr) in getsinglevarconstrs(form, varid)
+            _show_singlevarconstraint(io, form, constr)
+        end
+    end
+    println("----------------------------------")
+    return
+end
+
 function _show_variable(io::IO, form::Formulation, var::Variable)
     name = getname(form, var)
     lb = getcurlb(form, var)
@@ -838,6 +864,7 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
         _show_obj_fun(io, form)
         _show_constraints(io, form)
         _show_variables(io, form)
+        _show_singlevarconstraints(io, form)
     end
     return
 end

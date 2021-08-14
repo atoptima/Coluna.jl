@@ -138,6 +138,7 @@ Return the right-hand side as defined by the user of a constraint in a formulati
 """
 getperenrhs(form::Formulation, constrid::ConstrId) = getperenrhs(form, getconstr(form, constrid))
 getperenrhs(form::Formulation, constr::Constraint) = constr.perendata.rhs
+getperenrhs(form::Formulation, constr::SingleVarConstraint) = constr.perendata.rhs
 
 """
     getcurrhs(formulation, constraint)
@@ -147,6 +148,7 @@ Return the current right-hand side of a constraint in a formulation.
 """
 getcurrhs(form::Formulation, constrid::ConstrId) = getcurrhs(form, getconstr(form, constrid))
 getcurrhs(form::Formulation, constr::Constraint) = constr.curdata.rhs
+getcurrhs(form::Formulation, constr::SingleVarConstraint) = constr.curdata.rhs
 
 """
     setperenrhs!(formulation, constr, rhs)
@@ -199,6 +201,7 @@ getperenkind(form::Formulation, varid::VarId) = getperenkind(form, getvar(form, 
 getperenkind(form::Formulation, var::Variable) = var.perendata.kind
 getperenkind(form::Formulation, constrid::ConstrId) = getperenkind(form, getconstr(form, constrid))
 getperenkind(form::Formulation, constr::Constraint) = constr.perendata.kind
+getperenkind(form::Formulation, constr::SingleVarConstraint) = constr.perendata.kind
 
 """
     getcurkind(formulation, variable)
@@ -239,7 +242,6 @@ function setcurkind!(form::Formulation, var::Variable, kind::VarKind)
 end
 setcurkind!(form::Formulation, varid::VarId, kind::VarKind) = setcurkind!(form, getvar(form, varid), kind) 
 
-
 ## sense
 function _senseofvar(lb::Float64, ub::Float64)
     lb >= 0 && return Positive
@@ -262,6 +264,7 @@ getperensense(form::Formulation, varid::VarId) = getperensense(form, getvar(form
 getperensense(form::Formulation, var::Variable) = _senseofvar(getperenlb(form, var), getperenub(form, var))
 getperensense(form::Formulation, constrid::ConstrId) = getperensense(form, getconstr(form, constrid))
 getperensense(form::Formulation, constr::Constraint) = constr.perendata.sense
+getperensense(form::Formulation, constr::SingleVarConstraint) = constr.perendata.sense
 
 """
     getcursense(formulation, varconstr)
@@ -274,6 +277,7 @@ getcursense(form::Formulation, varid::VarId) = getcursense(form, getconstr(form,
 getcursense(form::Formulation, var::Variable) = _senseofvar(getcurlb(form, var), getcurub(form, var))
 getcursense(form::Formulation, constrid::ConstrId) = getcursense(form, getconstr(form, constrid))
 getcursense(form::Formulation, constr::Constraint) = constr.curdata.sense
+getcursense(form::Formulation, constr::SingleVarConstraint) = constr.curdata.sense
 
 """
     setperensense!(form, constr, sense)
@@ -322,6 +326,7 @@ getperenincval(form::Formulation, varid::VarId) = getperenincval(form, getvar(fo
 getperenincval(form::Formulation, var::Variable) = var.perendata.inc_val
 getperenincval(form::Formulation, constrid::ConstrId) = getperenincval(form, getconstr(form, constrid))
 getperenincval(form::Formulation, constr::Constraint) = constr.perendata.inc_val
+getperenincval(form::Formulation, constr::SingleVarConstraint) = constr.perendata.inc_val
 
 """
     getcurincval(formulation, varconstrid)
@@ -333,6 +338,7 @@ getcurincval(form::Formulation, varid::VarId) = getcurincval(form, getvar(form, 
 getcurincval(form::Formulation, var::Variable) = var.curdata.inc_val
 getcurincval(form::Formulation, constrid::ConstrId) = getcurincval(form, getconstr(form, constrid))
 getcurincval(form::Formulation, constr::Constraint) = constr.curdata.inc_val
+getcurincval(form::Formulation, constr::SingleVarConstraint) = constr.curdata.inc_val
 
 """
     setcurincval!(formulation, varconstrid, value::Real)
@@ -498,11 +504,18 @@ end
 
 function Base.delete!(form::Formulation, constr::SingleVarConstraint)
     constrid = getid(constr)
-    delete!(form.manager.single_var_constrs[constr.varid], constrid)
+    delete!(form.manager.single_var_constrs, constrid)
+    delete!(form.manager.single_var_constrs_per_var[constr.varid], constrid)
     return
 end
 
-Base.delete!(form::Formulation, id::ConstrId) = delete!(form, getconstr(form, id))
+function Base.delete!(form::Formulation, id::ConstrId) 
+    constr = getconstr(form, id)
+    if constr === nothing
+        return delete!(form, getsinglevarconstr(form, id))
+    end
+    return delete!(form, constr)
+end
 
 ## explicit
 """

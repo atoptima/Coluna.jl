@@ -258,7 +258,7 @@ function continuous_vars_in_sp()
     function solve_flow_model(f1_integer, coluna)
         @axis(M, 1:1)
         model = BlockDecomposition.BlockModel(coluna, direct_model=true)
-        @variable(model, f[1:3, m in M])
+        @variable(model, f[1:3, m in M] >= 0)
         if f1_integer
             JuMP.set_integer(f[1, 1])
         end

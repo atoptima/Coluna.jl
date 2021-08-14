@@ -96,6 +96,9 @@ function instantiate_orig_vars!(
         if formtype <: BD.Master
             for (_, var) in vars
                 clonevar!(origform, masterform, masterform, var, MasterPureVar, is_explicit = true)
+                for (_, constr) in getsinglevarconstrs(origform, getid(var))
+                    clonesinglevarconstr!(origform, masterform, masterform, constr, MasterPureConstr)
+                end
             end
         end
     end
@@ -111,7 +114,7 @@ function instantiate_orig_constrs!(
 )
     !haskey(annotations.constrs_per_ann, mast_ann) && return
     constrs = annotations.constrs_per_ann[mast_ann]
-    for (id, constr) in constrs
+    for (_, constr) in constrs
         cloneconstr!(
             origform, masterform, masterform, constr, MasterMixedConstr, 
             loc_art_var_abs_cost = env.params.local_art_var_cost
@@ -194,11 +197,14 @@ function instantiate_orig_vars!(
     !haskey(annotations.vars_per_ann, sp_ann) && return
     vars = annotations.vars_per_ann[sp_ann]
     masterform = spform.parent_formulation
-    for (id, var) in vars
+    for (varid, var) in vars
         # An original variable annotated in a subproblem is a DwSpPricingVar
         clonevar!(origform, spform, spform, var, DwSpPricingVar, is_explicit = true)
-        clonevar!(origform, masterform, spform, var, MasterRepPricingVar,
-                  is_explicit = false)#, members = getcoefmatrix(origform)[:,id])
+        for (_, constr) in getsinglevarconstrs(origform, varid)
+            clonesinglevarconstr!(origform, spform, spform, constr, DwSpPureConstr)
+        end
+
+        clonevar!(origform, masterform, spform, var, MasterRepPricingVar, is_explicit = false)
     end
     return
 end
@@ -256,8 +262,11 @@ function instantiate_orig_vars!(
 )
     !haskey(annotations.vars_per_ann, mast_ann) && return
     vars = annotations.vars_per_ann[mast_ann]
-    for (_, var) in vars
-        clonevar!(origform, masterform,  masterform, var, MasterPureVar, is_explicit = true)
+    for (varid, var) in vars
+        clonevar!(origform, masterform, masterform, var, MasterPureVar, is_explicit = true)
+        for (_, constr) in getsinglevarconstrs(origform, varid)
+            clonesinglevarconstr!(origform, masterform, masterform, constr, MasterPureConstr)
+        end
     end
     return
 end
@@ -315,8 +324,11 @@ function instantiate_orig_vars!(
 )
     if haskey(annotations.vars_per_ann, sp_ann)
         vars = annotations.vars_per_ann[sp_ann]
-        for (_, var) in vars
+        for (varid, var) in vars
             clonevar!(origform, spform, spform, var, BendSpSepVar, cost = 0.0)
+            for (_, constr) in getsinglevarconstrs(origform, varid)
+                clonesinglevarconstr!(origform, spform, spform, constr, BendSpPureConstr)
+            end
         end
     end
     return
@@ -558,9 +570,13 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
     # Once the original formulation built, we close the "fill mode" of the
     # coefficient matrix which is a super fast writing mode compared to the default
     # writing mode of the dynamic sparse matrix.
-    if getcoefmatrix(prob.original_formulation).fillmode
-        closefillmode!(getcoefmatrix(prob.original_formulation))
+    origform = get_original_formulation(prob)
+    if getcoefmatrix(origform).fillmode
+        closefillmode!(getcoefmatrix(origform))
     end
+
+    # Update the bounds of the original formulation before reformulating
+    MathProg.bounds_propagation!(origform)
 
     decomposition_tree = annotations.tree
     if decomposition_tree !== nothing
