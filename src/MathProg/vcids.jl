@@ -17,6 +17,7 @@ struct Id{VC <: AbstractVarConstr}
     assigned_form_uid_in_reformulation::FormId
     proc_uid::Int8
     custom_family_id::Int8
+    flag::Bool # TODO
     _hash::Int
 end
 
@@ -28,27 +29,27 @@ function _create_hash(uid, origin_form_uid, proc_uid)
     )
 end
 
-function Id{VC}(duty::Duty{VC}, uid, origin_form_uid, assigned_form_uid, custom_family_id) where {VC}
+function Id{VC}(duty::Duty{VC}, uid, origin_form_uid, assigned_form_uid, custom_family_id, flag) where {VC}
     proc_uid = Distributed.myid()
-    Id{VC}(duty, uid, origin_form_uid, assigned_form_uid, proc_uid, custom_family_id, _create_hash(uid, origin_form_uid, proc_uid))
+    Id{VC}(duty, uid, origin_form_uid, assigned_form_uid, proc_uid, custom_family_id, flag, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
-function Id{VC}(duty::Duty{VC}, uid, origin_form_uid) where {VC}
+function Id{VC}(duty::Duty{VC}, uid, origin_form_uid, flag) where {VC}
     proc_uid = Distributed.myid()
-    Id{VC}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, -1, _create_hash(uid, origin_form_uid, proc_uid))
+    Id{VC}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, -1, flag, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
-function Id{VC}(duty::Duty{VC}, uid, origin_form_uid, custom_family_id) where {VC}
+function Id{VC}(duty::Duty{VC}, uid, origin_form_uid, custom_family_id, flag) where {VC}
     proc_uid = Distributed.myid()
-    Id{VC}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, custom_family_id, _create_hash(uid, origin_form_uid, proc_uid))
+    Id{VC}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, custom_family_id, flag, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
-function Id{VC}(duty::Duty{VC}, id::Id{VC}, assigned_form_uid_in_reformulation) where {VC}
-    Id{VC}(duty, id.uid, id.origin_form_uid, assigned_form_uid_in_reformulation, id.proc_uid, id.custom_family_id, id._hash)
+function Id{VC}(duty::Duty{VC}, id::Id{VC}, assigned_form_uid_in_reformulation, flag) where {VC}
+    Id{VC}(duty, id.uid, id.origin_form_uid, assigned_form_uid_in_reformulation, id.proc_uid, id.custom_family_id, flag, id._hash)
 end
 
-function Id{VC}(duty::Duty{VC}, id::Id{VC}; custom_family_id = id.custom_family_id) where {VC}
-    Id{VC}(duty, id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, custom_family_id, id._hash)
+function Id{VC}(duty::Duty{VC}, id::Id{VC}; custom_family_id = id.custom_family_id, flag) where {VC}
+    Id{VC}(duty, id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, custom_family_id, flag, id._hash)
 end
 
 Base.hash(a::Id, h::UInt) = hash(a._hash, h)
@@ -56,7 +57,7 @@ Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = Base.isequal(a._hash, b._hash)
 Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
 Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
 Base.isless(a::Id{VC}, b::Id{VC}) where {VC} = Base.isless(a._hash, b._hash)
-Base.zero(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), -1, -1, -1, -1, -1, -1)
+Base.zero(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), -1, -1, -1, -1, -1, false, -1)
 
 Base.:(<)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash < b._hash
 Base.:(<=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash <= b._hash

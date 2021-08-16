@@ -215,12 +215,13 @@ function convert_status(coluna_status::SolutionStatus)
 end
 
 # Solution
-struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Value}
+struct Solution{Model<:AbstractModel,Decision,Value,T} <: AbstractDict{Decision,Value}
     model::Model
     bound::Float64
     status::SolutionStatus
     sol::DynamicSparseArrays.PackedMemoryArray{Decision,Value}
     custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData}
+    supp_data::T
 end
 
 """
@@ -239,12 +240,13 @@ Create a solution to the `model`. Other arguments are:
 - `solution_value` is the value of the solution.
 - `status` is the solution status.
 """
-function Solution{Mo,De,Va}(
+function Solution{Mo,De,Va,T}(
     model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, 
-    status::SolutionStatus, custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData} = nothing
-) where {Mo<:AbstractModel,De,Va}
+    status::SolutionStatus, custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData},
+    supp_data::T
+) where {Mo<:AbstractModel,De,Va,T}
     sol = DynamicSparseArrays.dynamicsparsevec(decisions, values)
-    return Solution(model, solution_value, status, sol, custom_data)
+    return Solution(model, solution_value, status, sol, custom_data, supp_data)
 end
 
 """
@@ -271,15 +273,15 @@ getstatus(s::Solution) = s.status
 Base.iterate(s::Solution) = iterate(s.sol)
 Base.iterate(s::Solution, state) = iterate(s.sol, state)
 Base.length(s::Solution) = length(s.sol)
-Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id] # TODO : REMOVE
-Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.sol, id)
-Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
+Base.get(s::Solution{Mo,De,Va,T}, id::De, default) where {Mo,De,Va,T} = s.sol[id] # TODO : REMOVE
+Base.getindex(s::Solution{Mo,De,Va,T}, id::De) where {Mo,De,Va,T} = Base.getindex(s.sol, id)
+Base.setindex!(s::Solution{Mo,De,Va,T}, val::Va, id::De) where {Mo,De,Va,T} = s.sol[id] = val
 
 function Base.filter(f::Function, s::S) where {S <: Solution}
-    return S(s.model, s.bound, s.status, filter(f, s.sol), s.custom_data)
+    return S(s.model, s.bound, s.status, filter(f, s.sol), s.custom_data, s.supp_data)
 end
 
-function Base.in(p::Tuple{De,Va}, a::Solution{Mo,De,Va}, valcmp=(==)) where {Mo,De,Va}
+function Base.in(p::Tuple{De,Va}, a::Solution{Mo,De,Va,T}, valcmp=(==)) where {Mo,De,Va,T}
     v = get(a, p[1], Base.secret_table_token)
     if v !== Base.secret_table_token
         return valcmp(v, p[2])
@@ -287,7 +289,7 @@ function Base.in(p::Tuple{De,Va}, a::Solution{Mo,De,Va}, valcmp=(==)) where {Mo,
     return false
 end
 
-function Base.show(io::IO, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
+function Base.show(io::IO, solution::Solution{Mo,De,Va,T}) where {Mo,De,Va,T}
     println(io, "Solution")
     for (decision, value) in solution
         println(io, "| ", decision, " = ", value)

@@ -17,6 +17,7 @@ const SupportedConstrSets = Union{
 
 # Helper for SingleVariable constraints
 struct BoundConstraints
+    varid::VarId
     lower::Union{Nothing,SingleVarConstraint}
     upper::Union{Nothing,SingleVarConstraint}
     eq::Union{Nothing,SingleVarConstraint}
@@ -156,7 +157,7 @@ function _constraint_on_variable!(
     optimizer, form::Formulation, constrid, var::Variable, ::MOI.Integer
 )
     setperenkind!(form, var, Integ)
-    optimizer.constrs_on_single_var[constrid] = BoundConstraints(nothing, nothing, nothing)
+    optimizer.constrs_on_single_var[constrid] = BoundConstraints(getid(var), nothing, nothing, nothing)
     return
 end
 
@@ -170,7 +171,7 @@ function _constraint_on_variable!(
     constr2 = setsinglevarconstr!(
         form, "ub", getid(var), OriginalConstr; sense = Less, rhs = 1.0
     )
-    optimizer.constrs_on_single_var[constrid] = BoundConstraints(constr1, constr2, nothing)
+    optimizer.constrs_on_single_var[constrid] = BoundConstraints(getid(var), constr1, constr2, nothing)
     return
 end
 
@@ -180,7 +181,7 @@ function _constraint_on_variable!(
     constr = setsinglevarconstr!(
         form, "lb", getid(var), OriginalConstr; sense = Greater, rhs = set.lower
     )
-    optimizer.constrs_on_single_var[constrid] = BoundConstraints(constr, nothing, nothing)
+    optimizer.constrs_on_single_var[constrid] = BoundConstraints(getid(var), constr, nothing, nothing)
     return
 end
 
@@ -190,7 +191,7 @@ function _constraint_on_variable!(
     constr = setsinglevarconstr!(
         form, "ub", getid(var), OriginalConstr; sense = Less, rhs = set.upper
     )
-    optimizer.constrs_on_single_var[constrid] = BoundConstraints(nothing, constr, nothing)
+    optimizer.constrs_on_single_var[constrid] = BoundConstraints(getid(var), nothing, constr, nothing)
     return
 end
 
@@ -200,7 +201,7 @@ function _constraint_on_variable!(
     constr = setsinglevarconstr!(
         form, "eq", getid(var), OriginalConstr; sense = Equal, rhs = set.value
     )
-    optimizer.constrs_on_single_var[constrid] = BoundConstraint(nothing, nothing, constr)
+    optimizer.constrs_on_single_var[constrid] = BoundConstraint(getid(var), nothing, nothing, constr)
     return
 end
 
@@ -213,7 +214,7 @@ function _constraint_on_variable!(
     constr2 = setsinglevarconstr!(
         form, "ub", getid(var), OriginalConstr; sense = Less, rhs = set.upper
     )
-    optimizer.constrs_on_single_var[constrid] = BoundConstraints(constr1, constr2, nothing)
+    optimizer.constrs_on_single_var[constrid] = BoundConstraints(geid(var), constr1, constr2, nothing)
     return
 end
 
@@ -928,16 +929,18 @@ end
 function MOI.get(
     optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.SingleVariable,S}
-    varid = get(optimizer.constrs_on_single_var, index, nothing)
-    if varid === nothing
+    MOI.throw_if_not_valid(optimizer, index)
+    bounds = get(optimizer.constrs_on_single_var, index, nothing)
+    if bounds === nothing
         @warn "Could not find constraint with id $(index)."
         return NaN
     end
     best_primal_sol = get_best_ip_primal_sol(optimizer.result)
-    return get(best_primal_sol, varid, 0.0)
+    return get(best_primal_sol, bounds.varid, 0.0)
 end
 
 function MOI.get(optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex)
+    MOI.throw_if_not_valid(optimizer, index)
     constrid = get(optimizer.constrs, index, nothing)
     if constrid === nothing
         @warn "Could not find constraint with id $(index)."
@@ -954,6 +957,7 @@ function MOI.get(
     optimizer::Optimizer, attr::MOI.ConstraintDual, 
     index::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}}
 )
+    MOI.throw_if_not_valid(optimizer, index)
     dualsols = get_lp_dual_sols(optimizer.result)
     if 1 <= attr.N <= length(dualsols)
         return get(dualsols[attr.N], getid(optimizer.constrs[index]), 0.0)
@@ -961,12 +965,40 @@ function MOI.get(
     return error("Invalid result index.")
 end
 
-# function MOI.get(
-#     optimizer::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
-# ) where {F<:MOI.SingleVariable,S}
-#     return 0.0
-# end
+function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.GreaterThan})
+    value, activebound = get(dualsol.supp_data, bc.varid, (0.0, MathProg.LOWER))
+    if value != 0.0 && activebound != MathProg.LOWER
+        return 0.0
+    end
+    return value
+end
 
-# function MOI.get(optimizer::Optimizer, ::MOI.SolveTime)
-#     return 0.0
-# end
+function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.LessThan})
+    value, activebound = get(dualsol.supp_data, bc.varid, (0.0, MathProg.UPPER))
+    if value != 0.0 && activebound != MathProg.UPPER
+        return 0.0
+    end
+    return value
+end
+
+function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.EqualTo})
+    value, _ = get(dualsol.supp_data, bc.varid, (0.0, MathProg.LOWER))
+    return value
+end
+
+function _singlevarconstrdualval(bc, dualsol, ::Type{S}) where {S}
+    @warn "single var constr dual not implemented for $S."
+    return 0.0
+end
+
+function MOI.get(
+    optimizer::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
+) where {F<:MOI.SingleVariable,S}
+    MOI.throw_if_not_valid(optimizer, index)
+    dualsols = get_lp_dual_sols(optimizer.result)
+    if 1 <= attr.N <= length(dualsols)
+        single_var_constrs = optimizer.constrs_on_single_var[index]
+        return _singlevarconstrdualval(single_var_constrs, dualsols[attr.N], S)
+    end
+    return error("Invalid result index.")
+end

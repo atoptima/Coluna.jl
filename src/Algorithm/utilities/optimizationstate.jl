@@ -1,6 +1,3 @@
-getvalue(sol::Solution) = ColunaBase.getvalue(sol)
-getvalue(bnd::Bound) = ColunaBase.getvalue(bnd)
-
 mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     incumbents::ObjValues{S}

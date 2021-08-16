@@ -130,7 +130,6 @@ const UNSUPPORTED_TESTS = [
     "solve_unbounded_model", # default lower bound 0
 ]
 
-MathOptInterface.Test.getconstraint
 const BASIC = [
     "add_variable",
     "solver_name",
@@ -174,27 +173,17 @@ const LP_TESTS = [
     "solve_affine_lessthan"
 ]
 
-const CONSTRAINTDUAL_SINGLEVAR = [
-    "solve_with_lowerbound",
-    "solve_singlevariable_obj",
-    "solve_constant_obj",
-    "solve_single_variable_dual_max",
-    "solve_single_variable_dual_min",
-    "solve_duplicate_terms_obj",
-    "solve_blank_obj",
-    "solve_with_upperbound",
-    "linear1",
-    "linear2",
-    "linear10b",
-    "linear14"
+const CONSTRAINTDUAL_SINGLEVAR = String[
+    "solve_single_variable_dual_max", # TODO bug
+    "solve_single_variable_dual_min", # TODO bug
+    "linear14", # TODO bug
+    "linear1", # TODO bug
+    "linear10" # TODO bug
 ]
 
 const UNCOVERED_TERMINATION_STATUS = [
     "linear8b", # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
     "linear8c" # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
-]
-
-const SET_CONSTRAINTSET = [
 ]
 
 @testset "Unit Basic/MIP" begin

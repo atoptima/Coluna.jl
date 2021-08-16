@@ -1,21 +1,22 @@
 # new structures for solutions
 
 # Constructors for Primal & Dual Solutions
-const PrimalSolution{M} = Solution{M, VarId, Float64}
-const DualSolution{M} = Solution{M, ConstrId, Float64}
+const PrimalSolution{M} = Solution{M, VarId, Float64, Nothing}
+
+@enum ActiveBound LOWER UPPER
+const DualSolution{M} = Solution{M, ConstrId, Float64, Dict{VarId, Tuple{Float64, ActiveBound}}}
 
 function PrimalSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus,
-    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
-) where {M<:AbstractFormulation,De,Va}
-    return Solution{M,De,Va}(form, decisions, vals, val, status, custom_data)
+    form::M, decisions, vals, cost, status, custom_data = nothing
+) where {M<:AbstractFormulation}
+    return PrimalSolution{M}(form, decisions, vals, cost, status, custom_data, nothing)
 end
 
 function DualSolution(
-    form::M, decisions::Vector{De}, vals::Vector{Va}, val::Float64, status::SolutionStatus,
-    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
-) where {M<:AbstractFormulation,De,Va}
-    return Solution{M,De,Va}(form, decisions, vals, val, status, custom_data)
+    form::M, decisions, vals, cost, status, custom_data = nothing;
+    var_red_costs = Dict{VarId, Tuple{Float64, ActiveBound}}(),
+) where {M<:AbstractFormulation}
+    return DualSolution{M}(form, decisions, vals, cost, status, custom_data, var_red_costs)
 end
 
 function Base.isinteger(sol::Solution)
@@ -51,14 +52,14 @@ function contains(sol::DualSolution, f::Function)
     return false
 end
 
-function _assert_same_model(sols::NTuple{N, Solution{M, I, Float64}}) where {N,M,I}
+function _assert_same_model(sols::NTuple{N, Solution{M, I, Float64,T}}) where {N,M,I,T}
     for i in 2:length(sols)
         sols[i-1].model != sols[i].model && return false
     end
     return true
 end
 
-function Base.cat(sols::Solution{M, I, Float64}...) where {M,I}
+function Base.cat(sols::Solution{M, I, Float64, T}...) where {M,I,T}
     _assert_same_model(sols) || error("Cannot concatenate solutions not attached to the same model.")
 
     ids = I[]
@@ -68,8 +69,8 @@ function Base.cat(sols::Solution{M, I, Float64}...) where {M,I}
         push!(vals, value)
     end
 
-    return Solution{M,I,Float64}(
-        sols[1].model, ids, vals, sum(getvalue.(sols)), sols[1].status
+    return Solution{M,I,Float64,T}(
+        sols[1].model, ids, vals, sum(getvalue.(sols)), sols[1].status, nothing, T()
     )
 end
 

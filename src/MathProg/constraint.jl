@@ -75,17 +75,12 @@ mutable struct SingleVarConstraint <: AbstractVarConstr
     varid::VarId
     perendata::ConstrData
     curdata::ConstrData
-    moirecord::MoiConstrRecord
 end
 
 function SingleVarConstraint(
-    id::ConstrId, varid::VarId, name::String;
-    constr_data = ConstrData(), moi_index::MoiConstrIndex = MoiConstrIndex(),
+    id::ConstrId, varid::VarId, name::String; constr_data = ConstrData()
 )
-    return SingleVarConstraint(
-        id, name, varid, constr_data, ConstrData(constr_data), 
-        MoiConstrRecord(index = moi_index)
-    )
+    return SingleVarConstraint(id, name, varid, constr_data, ConstrData(constr_data))
 end
 
 mutable struct RobustConstraintsGenerator

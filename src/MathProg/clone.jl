@@ -21,7 +21,7 @@ function clonevar!(
         cost = cost, lb = lb, ub = ub, kind = kind,
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit, 
         branching_priority = branching_priority, members = members, 
-        id = Id{Variable}(duty, getid(var), getuid(assignedform))
+        id = Id{Variable}(duty, getid(var), getuid(assignedform), false)
     )
 end
 
@@ -46,7 +46,7 @@ function cloneconstr!(
         rhs = rhs, kind = kind, sense = sense, inc_val = inc_val,
         is_active = is_active, is_explicit = is_explicit, members = members,
         loc_art_var_abs_cost = loc_art_var_abs_cost, 
-        id = Id{Constraint}(duty, getid(constr), getuid(assignedform))
+        id = Id{Constraint}(duty, getid(constr), getuid(assignedform), false)
     )
 end
  
@@ -68,7 +68,7 @@ function clonesinglevarconstr!(
         destform, name, constr.varid, duty;
         rhs = rhs, kind = kind, sense = sense, inc_val = inc_val,
         is_active = is_active,
-        id = Id{Constraint}(duty, getid(constr), getuid(assignedform))
+        id = Id{Constraint}(duty, getid(constr), getuid(assignedform), true)
     )
 end
 

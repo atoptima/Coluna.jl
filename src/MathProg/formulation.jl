@@ -143,11 +143,11 @@ getoptimizers(form::Formulation) = form.optimizers
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1)
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1, false)
 generatevarid(
     duty::Duty{Variable}, form::Formulation, custom_family_id::Int
-) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id)
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
+) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id, false)
+generateconstrid(duty::Duty{Constraint}, form::Formulation, flag::Bool) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1, flag)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -211,10 +211,10 @@ function setvar!(
         ub = (ub > 1.0) ? 1.0 : ub
     end
     if getduty(id) != duty
-        id = VarId(duty, id, -1)
+        id = VarId(duty, id, -1, false)
     end
     if custom_data !== nothing
-        id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
+        id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)], false)
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
     var = Variable(
@@ -321,7 +321,7 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
     end
 
     ### else not identical to any existing dual sol
-    new_dual_sol_id = generateconstrid(BendSpDualSol, form)
+    new_dual_sol_id = generateconstrid(BendSpDualSol, form, false)
     _adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
@@ -463,14 +463,15 @@ function setconstr!(
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
     custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
-    id = generateconstrid(duty, form)
+    id = generateconstrid(duty, form, false)
 )
     if getduty(id) != duty
-        id = ConstrId(duty, id, -1)
+        id = ConstrId(duty, id, -1, false)
     end
     if custom_data !== nothing
         id = ConstrId(
-            duty, id, custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
+            duty, id, false, 
+            custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
         )
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
@@ -502,14 +503,10 @@ function setsinglevarconstr!(
     sense::ConstrSense = Greater,
     inc_val::Float64 = 0.0,
     is_active::Bool = true,
-    moi_index::MoiConstrIndex = MoiConstrIndex(),
-    id = generateconstrid(duty, form)
+    id = generateconstrid(duty, form, true)
 )
-    if getduty(id) != duty
-        id = ConstrId(duty, id, -1)
-    end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, true)
-    constr = SingleVarConstraint(id, varid, name; constr_data = c_data, moi_index = moi_index)
+    constr = SingleVarConstraint(id, varid, name; constr_data = c_data)
     _addconstr!(form.manager, constr)
     return constr
 end
@@ -725,42 +722,50 @@ end
 ############################################################################################
 # if a new single var constraint has been added, we should call this method
 
-function _update_var_cur_lb!(form::Formulation, var::Variable, lb)
+function _update_var_cur_lb!(form::Formulation, var::Variable, lb, constrid)
     cur_lb = getcurlb(form, var)
     if cur_lb < lb
         setcurlb!(form, var, lb)
+        var.moirecord.lower_bound = constrid
+        return true
     end
-    return
+    return false
 end
 
-function _update_var_cur_ub!(form::Formulation, var::Variable, ub)
+function _update_var_cur_ub!(form::Formulation, var::Variable, ub, constrid)
     cur_ub = getcurub(form, var)
     if cur_ub > ub
         setcurub!(form, var, ub)
+        var.moirecord.upper_bound = constrid
+        return true
     end
+    return false
+end
+
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Greater}, rhs, constrid)
+    _update_var_cur_lb!(form, var, rhs, constrid)
     return
 end
 
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Greater}, rhs)
-    _update_var_cur_lb!(form, var, rhs)
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Less}, rhs, constrid)
+    _update_var_cur_ub!(form, var, rhs, constrid)
     return
 end
 
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Less}, rhs)
-    _update_var_cur_ub!(form, var, rhs)
-    return
-end
-
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs)
-    _update_var_cur_lb!(form, var, rhs)
-    _update_var_cur_ub!(form, var, rhs)
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs, constrid)
+    update_lb = _update_var_cur_lb!(form, var, rhs, constrid)
+    update_ub = _update_var_cur_ub!(form, var, rhs, constrid)
+    if !update_lb || !update_ub
+        error("Bounds propagation determines infeasibility.")
+    end
     return
 end
 
 function bounds_propagation!(form::Formulation)
-    for (_, constr) in form.manager.single_var_constrs
+    for (constrid, constr) in form.manager.single_var_constrs
         var = getvar(form, constr.varid)
-        _update_bounds!(form, var, Val(constr.curdata.sense), constr.curdata.rhs)
+        rhs = getcurrhs(form, constr)
+        _update_bounds!(form, var, Val(constr.curdata.sense), rhs, constrid)
     end
     return
 end
