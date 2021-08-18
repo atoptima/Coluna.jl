@@ -1,9 +1,9 @@
-CL.@with_kw struct EnumerativeOptimizer <: ClA.AbstractOptimizationAlgorithm
+CL.@with_kw struct EnumerativeFinalizer <: ClA.AbstractOptimizationAlgorithm
     optimizer::Function
 end
 
 function ClA.run!(
-    algo::EnumerativeOptimizer, env::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationInput
+    algo::EnumerativeFinalizer, env::CL.Env, reform::ClMP.Reformulation, input::ClA.OptimizationInput
 )::ClA.OptimizationOutput
     masterform = ClMP.getmaster(reform)
     _, spform = first(ClMP.get_dw_pricing_sps(reform))
@@ -20,7 +20,7 @@ function ClA.run!(
     return ClA.OptimizationOutput(result)
 end
 
-function conquering_opt_tests()
+function node_finalizer_tests()
 
     function build_toy_model(optimizer)
         toy = BlockModel(optimizer)
@@ -37,7 +37,7 @@ function conquering_opt_tests()
 
     @testset "Optimization algorithms that may conquer a node" begin
 
-        call_enumerative_optimizer(masterform, cbdata) = enumerative_optimizer(masterform, cbdata)
+        call_enumerative_finalizer(masterform, cbdata) = enumerative_finalizer(masterform, cbdata)
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -50,12 +50,11 @@ function conquering_opt_tests()
                                         optimizer_id = 1
                                     ))
                                  ],
-                        param_optimizers = [
-                            ClA.ParameterisedOptimization(
-                                EnumerativeOptimizer(optimizer = call_enumerative_optimizer), 
-                                1.0, 1.0, 1, 1000, "Enumerative", true # can conquer the node
-                            )
-                        ]
+                        primal_heuristics = [],
+                        node_finalizer = ClA.ParameterisedNodeFinalizer(
+                                EnumerativeFinalizer(optimizer = call_enumerative_finalizer), 
+                                1, 0, "Enumerative"
+                        )
                     ),
                     maxnumnodes = 1
                 )
@@ -106,7 +105,7 @@ function conquering_opt_tests()
             solver = enumerative_pricing
         )
 
-        function enumerative_optimizer(masterform, cbdata)
+        function enumerative_finalizer(masterform, cbdata)
             # Get the reduced costs of the original variables
             I = [1, 2, 3]
             b = BlockDecomposition.callback_spid(cbdata, model)
@@ -154,5 +153,3 @@ function conquering_opt_tests()
     end
 
 end
-
-conquering_opt_tests()

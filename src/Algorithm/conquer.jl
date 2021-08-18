@@ -66,7 +66,7 @@ function apply_conquer_alg_to_node!(
 end
 
 ####################################################################
-#                      ParameterisedOptimization
+#                      ParameterisedHeuristic
 ####################################################################
 
 """
@@ -76,22 +76,31 @@ This algorithm enforces integrality of column variables in the master formulatio
 """
 RestrictedMasterIPHeuristic() = SolveIpForm(moi_params = MoiOptimize(get_dual_bound = false))
 
-struct ParameterisedOptimization
+struct ParameterisedHeuristic
     algorithm::AbstractOptimizationAlgorithm
     root_priority::Float64
     nonroot_priority::Float64
     frequency::Integer
     max_depth::Integer
     name::String
-    canconquer::Bool
 end
 
 ParamRestrictedMasterHeuristic() = 
-    ParameterisedOptimization(
+    ParameterisedHeuristic(
         RestrictedMasterIPHeuristic(), 
-        1.0, 1.0, 1, 1000, "Restricted Master IP Heuristic", false
+        1.0, 1.0, 1, 1000, "Restricted Master IP"
     )
 
+####################################################################
+#                      ParameterisedNodeFinalizer
+####################################################################
+
+struct ParameterisedNodeFinalizer
+    algorithm::AbstractOptimizationAlgorithm
+    frequency::Integer
+    min_depth::Integer
+    name::String
+end
 
 ####################################################################
 #                      BendersConquer
@@ -127,7 +136,8 @@ end
 """
     Coluna.Algorithm.ColCutGenConquer(
         stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-        param_optimizers::Vector{ParameterisedOptimization} = [ParamRestrictedMasterHeuristic()]
+        primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
+        node_finalizer::Union{Nothing, ParameterisedNodeFinalizer} = nothing
         preprocess = PreprocessAlgorithm()
         cutgen = CutCallbacks()
         run_preprocessing::Bool = false
@@ -138,11 +148,13 @@ problem decomposed using Dantzig-Wolfe paradigm. It applies `stages` of the colu
 algorithm. Stages are called in the reverse order of vector `stages`. So usually, first stage
 is the one with exact pricing, and other stages use heuristic pricing (the higher is stage, 
 the faster is the heuristic). It applies `cutgen` for the cut generation phase. It can apply 
-several primal heuristics to more efficiently find feasible solutions.
+several primal heuristics to more efficiently find feasible solutions, and a "node finalizer"
+algorithm to try to conquer the node if the gap is still unclosed.
 """
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
-    param_optimizers::Vector{ParameterisedOptimization} = [ParamRestrictedMasterHeuristic()]
+    primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
+    node_finalizer::Union{Nothing, ParameterisedNodeFinalizer} = nothing
     preprocess = PreprocessAlgorithm()
     cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
@@ -168,8 +180,8 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     end
     push!(child_algos, (algo.cutgen, getmaster(reform)))
     algo.run_preprocessing && push!(child_algos, (algo.preprocess, reform))
-    for paramopt in algo.param_optimizers
-        push!(child_algos, (paramopt.algorithm, reform))
+    for heuristic in algo.primal_heuristics
+        push!(child_algos, (heuristic.algorithm, reform))
     end
     return child_algos
 end
@@ -226,36 +238,77 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
     end
 
     if !stop_conquer
-        paramopt_to_run = Tuple{AbstractOptimizationAlgorithm, String, Bool, Float64}[]
-        for paramopt in algo.param_optimizers
+        heuristic_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
+        for heuristic in algo.primal_heuristics
             #TO DO : get_tree_order of nodes in strong branching is always -1
-            if getdepth(node) <= paramopt.max_depth && 
-                mod(get_tree_order(node) - 1, paramopt.frequency) == 0
-                push!(paramopt_to_run, (
-                    paramopt.algorithm, paramopt.name, paramopt.canconquer,
-                    isrootnode(node) ? paramopt.root_priority : paramopt.nonroot_priority
+            if getdepth(node) <= heuristic.max_depth && 
+                mod(get_tree_order(node) - 1, heuristic.frequency) == 0
+                push!(heuristic_to_run, (
+                    heuristic.algorithm, heuristic.name,
+                    isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
                 ))
             end
         end
-        sort!(paramopt_to_run, by = x -> last(x), rev=true)
+        sort!(heuristic_to_run, by = x -> last(x), rev=true)
     
-        for (paramopt_algorithm, name, canconquer, _) in paramopt_to_run
+        for (heur_algorithm, name, _) in heuristic_to_run
             if ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol) 
                 break
             end
 
-            @info "Running $name optimizer"
-            if ismanager(paramopt_algorithm) 
+            @info "Running $name heuristic"
+            if ismanager(heur_algorithm) 
                 recordids = store_records!(reform)
             end   
 
-            heur_output = run!(paramopt_algorithm, env, reform, OptimizationInput(nodestate))
+            heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
             status = getterminationstatus(getoptstate(heur_output))
             status == TIME_LIMIT && setterminationstatus!(nodestate, status)
             ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
+            if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
+                # we start with worst solution to add all improving solutions
+                for sol in sort(ip_primal_sols)
+                    cutgen = CutCallbacks(call_robust_facultative = false)
+                    # TO DO : Heuristics should ensure themselves that the returned solution is feasible
+                    cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
+                    if cutcb_output.nb_cuts_added == 0
+                        update_ip_primal_sol!(nodestate, sol)
+                    end
+                end
+            end
+            if ismanager(heur_algorithm) 
+                ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+            end
 
-            # if the node has been conquered by the parameterized optimizer
-            if (status in (OPTIMAL, INFEASIBLE)) && canconquer
+            if getterminationstatus(nodestate) == TIME_LIMIT ||
+               ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+               break
+            end   
+        end
+
+        # if the gap is still unclosed, try to run the node finalizer if any
+        if getterminationstatus(nodestate) != TIME_LIMIT &&
+            !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol) &&
+            algo.node_finalizer !== nothing &&
+            getdepth(node) >= algo.node_finalizer.min_depth && 
+            mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
+
+            # get the algorithm info
+            nodefinalizer = algo.node_finalizer.algorithm
+            name = algo.node_finalizer.name
+
+            @info "Running $name node finalizer"
+            if ismanager(nodefinalizer) 
+                recordids = store_records!(reform)
+            end   
+
+            nf_output = run!(nodefinalizer, env, reform, OptimizationInput(nodestate))
+            status = getterminationstatus(getoptstate(nf_output))
+            status == TIME_LIMIT && setterminationstatus!(nodestate, status)
+            ip_primal_sols = get_ip_primal_sols(getoptstate(nf_output))
+
+            # if the node has been conquered by the node finalizer
+            if (status in (OPTIMAL, INFEASIBLE))
                 # set the ip solutions found without checking the cuts and finish
                 best_primal_bound = PrimalBound(reform)
                 if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
@@ -270,28 +323,22 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                 dual_bound = DualBound(reform, getvalue(best_primal_bound))
                 update_ip_dual_bound!(nodestate, dual_bound)
                 setterminationstatus!(nodestate, status)
-                break
-            end
-
-            if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
-                # we start with worst solution to add all improving solutions
-                for sol in sort(ip_primal_sols)
-                    cutgen = CutCallbacks(call_robust_facultative = false)
-                    # TO DO : Heuristics should ensure themselves that the returned solution is feasible
-                    cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
-                    if cutcb_output.nb_cuts_added == 0
-                        update_ip_primal_sol!(nodestate, sol)
+            else
+                if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
+                    # we start with worst solution to add all improving solutions
+                    for sol in sort(ip_primal_sols)
+                        cutgen = CutCallbacks(call_robust_facultative = false)
+                        # TO DO : Node finalizer should ensure itselves that the returned solution is feasible
+                        cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
+                        if cutcb_output.nb_cuts_added == 0
+                            update_ip_primal_sol!(nodestate, sol)
+                        end
                     end
                 end
+                if ismanager(nodefinalizer) 
+                    ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+                end
             end
-            if ismanager(paramopt_algorithm) 
-                ColunaBase.restore_from_records!(input.units_to_restore, recordids)
-            end
-
-            if getterminationstatus(nodestate) == TIME_LIMIT ||
-               ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
-               break
-            end   
         end
     end
 
