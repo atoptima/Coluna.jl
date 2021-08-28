@@ -23,6 +23,19 @@ getcurcost(form::Formulation, varid::VarId) = getcurcost(form, getvar(form, vari
 getcurcost(form::Formulation, var::Variable) = var.curdata.cost
 
 """
+    setperencost!(formulation, variable, cost)
+    setperencost!(formulation, varid, cost)
+
+Set the perennial cost of a variable and then propagate change to the current cost of the
+variable.
+"""
+function setperencost!(form::Formulation, var::Variable, cost)
+    var.perendata.cost = cost
+    return setcurcost!(form, var, cost)
+end
+setperencost!(form::Formulation, varid::VarId, cost) = setperencost!(form, getvar(form, varid), cost)
+
+"""
     setcurcost!(formulation, varid, cost::Float64)
     setcurcost!(formulation, variable, cost::Float64)
 
@@ -136,6 +149,19 @@ getcurrhs(form::Formulation, constrid::ConstrId) = getcurrhs(form, getconstr(for
 getcurrhs(form::Formulation, constr::Constraint) = constr.curdata.rhs
 
 """
+    setperenrhs!(formulation, constr, rhs)
+    setperenrhs!(formulation, constrid, rhs)
+
+Set the perennial rhs of a constraint in a formulation.
+Change is propagated to the current rhs of the constraint.
+"""
+function setperenrhs!(form::Formulation, constr::Constraint, rhs)
+    constr.perendata.rhs = rhs
+    return setcurrhs!(form, constr, rhs)
+end
+setperenrhs!(form::Formulation, constrid::ConstrId, rhs) = setperenrhs!(form, getconstr(form, constrid), rhs)
+
+"""
     setcurrhs(formulation, constraint, rhs::Float64)
     setcurrhs(formulation, constrid, rhs::Float64)
 
@@ -237,6 +263,19 @@ getcursense(form::Formulation, constrid::ConstrId) = getcursense(form, getconstr
 getcursense(form::Formulation, constr::Constraint) = constr.curdata.sense
 
 """
+    setperensense!(form, constr, sense)
+    setperensense!(form, constrid, sense)
+
+Set the perennial sense of a constraint in a formulation.
+Change is propagated to the current sense of the constraint.
+"""
+function setperensense!(form::Formulation, constr::Constraint, sense::ConstrSense)
+    constr.perendata.sense = sense
+    return setcursense!(form, constr, sense)
+end
+setperensense!(form::Formulation, constrid::ConstrId, sense::ConstrSense) = setperensense!(form, getconstr(form, constrid), sense)
+
+"""
     setcursense!(formulation, constr, sense::ConstrSense)
     setcursense!(formulation, constrid, sense::ConstrSense)
 
@@ -247,9 +286,9 @@ bounds.
 """
 function setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense)
     constr.curdata.sense = sense
-    #if isexplicit(form, constr) 
-        #change_sense!(form.buffer, getvar(form, varid))
-    #end
+    if isexplicit(form, constr) 
+        change_rhs!(form.buffer, getid(constr)) # it's sense & rhs
+    end
     return
 end
 
@@ -413,6 +452,35 @@ function deactivate!(form::Formulation, f::Function)
     end
     return
 end
+
+## delete
+"""
+    delete!(formulation, varconstrid)
+    delete!(formulation, varconstr)
+
+Delete a variable or a constraint from a formulation.
+"""
+function Base.delete!(form::Formulation, varid::VarId)
+    delete!(form.manager.vars, varid)
+    delete!(form.buffer.var_buffer.added, varid)
+    return
+end
+Base.delete!(form::Formulation, var::Variable) = delete!(form, getid(var))
+
+function Base.delete!(form::Formulation, constrid::ConstrId)
+    coefmatrix = getcoefmatrix(form)
+    varids = VarId[]
+    for (varid, _) in @view coefmatrix[constrid, :]
+        push!(varids, varid)
+    end
+    for varid in varids
+        coefmatrix[constrid, varid] = 0.0
+    end
+    delete!(form.buffer.constr_buffer.added, constrid)
+    delete!(form.manager.constrs, constrid)
+    return
+end
+Base.delete!(form::Formulation, constr::Constraint) = delete!(form, getid(constr))
 
 ## explicit
 """

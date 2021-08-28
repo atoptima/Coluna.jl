@@ -1,71 +1,55 @@
 """
-    VarConstrBuffer{T<:AbstractVarConstr}
-
-A `VarConstrBuffer{T}` stores the ids of the entities to be added and removed from the formulation where it belongs.
+A `VarConstrBuffer{T}` stores the ids of the entities of type `T` that will be 
+added and removed from a formulation.
 """
 mutable struct VarConstrBuffer{T<:AbstractVarConstr}
     added::Set{Id{T}}
     removed::Set{Id{T}}
 end
 
-"""
-    VarConstrBuffer{T}() where {T<:AbstractVarConstr}
-
-Constructs an empty `VarConstrBuffer{T}` for entities of type `T`.
-"""
 VarConstrBuffer{T}() where {T<:AbstractVarConstr} = VarConstrBuffer{T}(Set{T}(), Set{T}())
 
 function add!(buffer::VarConstrBuffer{VC}, id::Id{VC}) where {VC<:AbstractVarConstr}
-    !(id in buffer.removed) && push!(buffer.added, id)
-    delete!(buffer.removed, id)
+    if id ∉ buffer.removed
+        push!(buffer.added, id)
+    else
+        delete!(buffer.removed, id)
+    end
     return
 end
 
 function remove!(buffer::VarConstrBuffer{VC}, id::Id{VC}) where {VC<:AbstractVarConstr}
-    !(id in buffer.added) && push!(buffer.removed, id)
-    delete!(buffer.added, id)
+    if id ∉ buffer.added
+        push!(buffer.removed, id)
+    else
+        delete!(buffer.added, id)
+    end
     return
 end
 
 """
-    FormulationBuffer()
-
-A `FormulationBuffer` stores all changes done to a `Formulation` `f` since last call to `sync_solver!`.
+A `FormulationBuffer` stores all changes done to a formulation since last call to `sync_solver!`.
 When function `sync_solver!` is called, the optimizer is synched with all changes in FormulationBuffer
 
-When `f` is modified, such modification should not be passed directly to its optimizer, but instead should be passed to `f.buffer`.
-
-The concerned modificatios are:
-1. Cost change in a variable
-2. Bound change in a variable
-3. Right-hand side change in a Constraint
-4. Variable is removed
-5. Variable is added
-6. Constraint is removed
-7. Constraint is added
-8. Coefficient in the matrix is modified (reset)
+**Warning** : You should not pass formulation changes straight to its optimizer.
+Changes must be always buffered.
 """
 mutable struct FormulationBuffer
-    changed_obj_const::Bool
-    changed_cost::Set{Id{Variable}}
-    changed_bound::Set{Id{Variable}}
-    changed_var_kind::Set{Id{Variable}}
-    changed_rhs::Set{Id{Constraint}}
-    var_buffer::VarConstrBuffer{Variable}
-    constr_buffer::VarConstrBuffer{Constraint}
-    reset_coeffs::Dict{Pair{Id{Constraint},Id{Variable}},Float64}
-    #reset_partial_sols::Dict{Pair{Id{Variable},Id{Variable}},Float64}
+    changed_obj_sense::Bool # sense of the objective function
+    changed_obj_const::Bool # constant in the objective function
+    changed_cost::Set{VarId} # cost of a variable
+    changed_bound::Set{VarId} # bound of a variable
+    changed_var_kind::Set{VarId} # kind of a variable
+    changed_rhs::Set{ConstrId} # rhs and sense of a constraint
+    var_buffer::VarConstrBuffer{Variable} # variable added or removed
+    constr_buffer::VarConstrBuffer{Constraint} # constraint added or removed
+    reset_coeffs::Dict{Pair{ConstrId,VarId},Float64} # coefficient of the matrix changed
 end
-"""
-    FormulationBuffer()
 
-Constructs an empty `FormulationBuffer`.
-"""
 FormulationBuffer() = FormulationBuffer(
-    false, Set{Id{Variable}}(), Set{Id{Variable}}(), Set{Id{Variable}}(),
-    Set{Id{Constraint}}(), VarConstrBuffer{Variable}(), VarConstrBuffer{Constraint}(),
-    Dict{Pair{Id{Constraint},Id{Variable}},Float64}()
-    # , Dict{Pair{Id{Variable},Id{Variable}},Float64}()
+    false, false, Set{VarId}(), Set{VarId}(), Set{VarId}(), Set{ConstrId}(),
+    VarConstrBuffer{Variable}(), VarConstrBuffer{Constraint}(),
+    Dict{Pair{ConstrId,VarId},Float64}()
 )
 
 add!(b::FormulationBuffer, varid::VarId) = add!(b.var_buffer, varid)
@@ -109,7 +93,9 @@ function change_kind!(buffer::FormulationBuffer, varid::VarId)
     return
 end
 
-function set_matrix_coeff!(buffer::FormulationBuffer, varid::VarId,
-                           constrid::ConstrId, new_coeff::Float64)
+function set_matrix_coeff!(
+    buffer::FormulationBuffer, varid::VarId, constrid::ConstrId, new_coeff::Float64
+)
     buffer.reset_coeffs[Pair(constrid, varid)] = new_coeff
+    return
 end

@@ -9,7 +9,13 @@
         get_dual_bound = true
     )
 
-User parameters for an optimizer that calls a subsolver through MathOptInterface.
+Configuration for an optimizer that calls a subsolver through MathOptInterface.
+
+Parameters:
+- `time_limit`: in seconds
+- `deactivate_artificial_vars`: deactivate all artificial variables of the formulation if equals `true`
+- `enforce_integrality`: enforce integer variables that are relaxed if equals `true`
+- `get_dual_bound`: store the dual objective value in the output if equals `true`
 """
 @with_kw struct MoiOptimize
     time_limit::Int = 600
@@ -27,7 +33,12 @@ end
         max_nb_ip_primal_sols = 50
     )
 
-User parameters for an optimizer that calls a callback to solve the problem.
+Configuration for an optimizer that calls a pricing callback to solve the problem.
+
+Parameters:
+- `max_nb_ip_primal_sols`: maximum number of solutions returned by the callback kept
+
+Undocumented parameters are alpha.
 """
 @with_kw struct UserOptimize
     stage::Int = 1
@@ -37,7 +48,7 @@ end
 """
     CustomOptimize()
 
-User parameters for an optimizer that calls a custom solver to solve a custom model.
+Configuration for an optimizer that calls a custom solver to solve a custom model.
 """
 struct CustomOptimize end
 
@@ -52,20 +63,30 @@ struct CustomOptimize end
         custom_params = CustomOptimize()
     )
 
-Solve an optimization problem. It can call a :
-- subsolver through MathOptInterface to optimize a mixed integer program
+Solve an optimization problem. This algorithm can call different type of optimizers :
+- subsolver interfaced with MathOptInterface to optimize a mixed integer program
 - pricing callback defined by the user
 - custom optimizer to solve a custom model
 
-The algorithms calls optimizer with id `optimizer_id`.
-The user can specify different optimizers using the method `BlockDecomposition.specify!`.
-In that case `optimizer_id` is the position of the optimizer in the array of optimizers
-passed to `specify!`.
+You can specify an optimizer using the `default_optimizer` attribute of Coluna or
+with the method `specify!` from BlockDecomposition.
+If you want to define several optimizers for a given subproblem, you must use `specify!`:
+
+    specify!(subproblem, optimizers = [optimizer1, optimizer2, optimizer3])
+
+Value of `optimizer_id` is the position of the optimizer you want to use.
+For example, if `optimizer_id` is equal to 2, the algorithm will use `optimizer2`.
+
 By default, the algorihm uses the first optimizer or the default optimizer if no
-optimizer has been specified.
+optimizer has been specified through `specify!`.
 
 Depending on the type of the optimizer chosen, the algorithm will use one the 
-three configurations : `moi_params`, `user_params`, or `custom_params`.
+three configurations : 
+- `moi_params` for subsolver interfaced with MathOptInterface
+- `user_params` for pricing callbacks
+- `custom_params` for custom solvers
+
+Custom solver is undocumented because alpha.
 """
 @with_kw struct SolveIpForm <: AbstractOptimizationAlgorithm
     optimizer_id::Int = 1

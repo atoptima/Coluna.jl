@@ -8,7 +8,7 @@ import TimerOutputs
 import ..Coluna # for NestedEnum (types.jl:210)
 using ..ColunaBase
 
-import Base: haskey, length, iterate, diff
+import Base: haskey, length, iterate, diff, delete!
 
 using DynamicSparseArrays, Logging, Printf
 
@@ -20,8 +20,8 @@ const BD = BlockDecomposition
 const MOI = MathOptInterface
 const TO = TimerOutputs
 
-const MAX_NB_FORMULATIONS = 200
-const MAX_NB_PROCESSES = 100
+const MAX_NB_FORMULATIONS = typemax(Int8)
+const MAX_NB_PROCESSES = typemax(Int8)
 
 include("types.jl")
 include("vcids.jl")
@@ -93,8 +93,8 @@ export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresenta
 
 # Types and methods related to variables and constraints
 export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
-    getperencost, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!,
-    getperenub, getcurub, setcurub!, getperenrhs, getcurrhs, setcurrhs!, getperensense,
+    getperencost, setperencost!, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!,
+    getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
     isexplicit, getname, getbranchingpriority, reset!, getreducedcost

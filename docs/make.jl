@@ -1,22 +1,32 @@
-using Documenter, Coluna
+using Documenter, Coluna, Literate, BlockDecomposition
+
+TUTORIAL_GAP = joinpath(@__DIR__, "src", "start", "start.jl")
+TUTORIAL_CALLBACKS = joinpath(@__DIR__, "src", "man", "callbacks.jl")
+
+OUTPUT_GAP = joinpath(@__DIR__, "src", "start")
+OUTPUT_CALLBACKS = joinpath(@__DIR__, "src", "man")
+
+Literate.markdown(TUTORIAL_GAP, OUTPUT_GAP, documenter=true)
+Literate.markdown(TUTORIAL_CALLBACKS, OUTPUT_CALLBACKS, documenter=true)
 
 makedocs(
-    modules = [Coluna],
+    modules = [Coluna, BlockDecomposition],
     checkdocs = :exports,
     sitename = "Coluna User Guide",
-    format = Documenter.HTML(),
-    strict = true,
+    authors = "Atoptima & contributors",
+    format = Documenter.HTML(
+        prettyurls = get(ENV, "CI", nothing) == "true",
+        collapselevel = 1
+    ),
+    strict = false,
     pages = Any[
         "Introduction"   => "index.md",
+        "Getting started"   => joinpath("start", "start.md"),
         "Manual" => Any[
-            "Getting started"   => "user/start.md",
-            "Callbacks"   => "user/callbacks.md"
-        ],
-        "Reference" => Any[
-            "Algorithms" => "dev/algorithms.md",
-            "Formulation" => "dev/formulation.md",
-            "Reformulation" => "dev/reformulation.md",
-            "TODO" => "dev/todo.md"
+            "Decomposition" => joinpath("man", "decomposition.md"),
+            "Configuration" => joinpath("man", "config.md"),
+            "Algorithms" => joinpath("man", "algorithm.md"),
+            "Callbacks"   => joinpath("man", "callbacks.md")
         ]
     ]
 )

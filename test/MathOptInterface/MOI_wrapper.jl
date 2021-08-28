@@ -3,7 +3,7 @@
 const OPTIMIZER = Coluna.Optimizer()
 MOI.set(OPTIMIZER, MOI.RawParameter("default_optimizer"), GLPK.Optimizer)
 
-const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6)
+const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6, infeas_certificates = false)
 
 
 @testset "SolverName" begin
@@ -88,11 +88,32 @@ end
     @test JuMP.objective_value(model) == -JuMP.objective_value(model2)
 end
 
+@testset "SplitIntervalBridge" begin
+    coluna = optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(
+            solver=Coluna.Algorithm.TreeSearchAlgorithm()
+        ),
+        "default_optimizer" => GLPK.Optimizer
+    )
+
+    @axis(M, 1:1)
+    J = 1:1
+
+    model = BlockModel(coluna)
+    @variable(model, x[m in M, j in J])
+    @constraint(model, mult[m in M], 1 <= sum(x[m,j] for j in J) <= 2)
+    @objective(model, Max, sum(x[m,j] for m in M, j in J))
+
+    @dantzig_wolfe_decomposition(model, decomposition, M)
+
+    optimize!(model)
+    @test JuMP.objective_value(model) == 2.0
+end
+
 const UNSUPPORTED_TESTS = [
     "solve_qcp_edge_cases", # Quadratic constraints not supported
-    "delete_nonnegative_variables", # variable deletion not supported
-    "delete_variable", # variable deletion not supported
-    "delete_variables", # variable deletion not supported
+    "delete_nonnegative_variables", # `VectorOfVariables`-in-`Nonnegatives` not supported 
     "variablenames", # Coluna retrieves the name of the variable
     "delete_soc_variables", # soc variables not supported
     "solve_qp_edge_cases", # Quadratic objective not supported
@@ -107,8 +128,7 @@ const UNSUPPORTED_TESTS = [
     "number_threads", # TODO : support of MOI.NumberOfThreads()
     "silent", # TODO : support of MOI.Silent()
     "time_limit_sec", # TODO : support of MOI.TimeLimitSec()
-    "solve_time", # TODO : support of MOI.SolveTime()
-    "solve_twice" # TODO : fix 
+    "solve_unbounded_model", # default lower bound 0
 ]
 
 MathOptInterface.Test.getconstraint
@@ -155,6 +175,39 @@ const LP_TESTS = [
     "solve_affine_lessthan"
 ]
 
+const CONSTRAINTDUAL_SINGLEVAR = [
+    "solve_with_lowerbound",
+    "solve_singlevariable_obj",
+    "solve_constant_obj",
+    "solve_single_variable_dual_max",
+    "solve_single_variable_dual_min",
+    "solve_duplicate_terms_obj",
+    "solve_blank_obj",
+    "solve_with_upperbound",
+    "linear1",
+    "linear2",
+    "linear10b",
+    "linear14"
+]
+
+const DELETE_SINGLEVAR_CONSTR = [
+    # BUG: issue #583
+    "linear5",
+    "linear14"
+]
+
+const UNCOVERED_TERMINATION_STATUS = [
+    "linear8b", # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
+    "linear8c" # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
+]
+
+const SET_CONSTRAINTSET = [
+    # BUG
+    "linear4",
+    "linear6",
+    "linear7"
+]
+
 @testset "Unit Basic/MIP" begin
     MOI.set(OPTIMIZER, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm()))
     MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, LP_TESTS, MIP_TESTS))
@@ -174,13 +227,17 @@ MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm(
     ])
 end
 
-# @testset "Unit LP" begin
-#     MOI.set(OPTIMIZER, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveLpForm()))
-#     MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC))
-# end
+@testset "Unit LP" begin
+    MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveLpForm(
+        update_ip_primal_solution=true, get_dual_solution=true, get_dual_bound=true
+    )))
+    MOIT.unittest(BRIDGED, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC, CONSTRAINTDUAL_SINGLEVAR))
+end
 
-# @testset "Continuous Linear" begin
-#     MOIT.contlineartest(OPTIMIZER, CONFIG, [
-#         "partial_start" # VariablePrimalStart not supported
-#     ])
-# end
+@testset "Continuous Linear" begin
+    MOIT.contlineartest(BRIDGED, CONFIG, vcat(
+        CONSTRAINTDUAL_SINGLEVAR, DELETE_SINGLEVAR_CONSTR, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
+            "partial_start" # VariablePrimalStart not supported
+        ]
+    ))
+end

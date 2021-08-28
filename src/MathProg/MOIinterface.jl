@@ -275,7 +275,6 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
             solcost += val * getcurrhs(form, id)
             val = round(val, digits = Coluna.TOL_DIGITS)
             if abs(val) > Coluna.TOL
-                @logmsg LogLevel(-4) string("Constr ", constr.name, " = ", val)
                 push!(solconstrs, id)
                 push!(solvals, val)      
             end

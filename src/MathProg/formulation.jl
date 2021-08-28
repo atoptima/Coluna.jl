@@ -12,7 +12,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
 end
 
 """
-`Formulation` stores a mixed-integer linear program.
+A `Formulation` stores a mixed-integer linear program.
 
     create_formulation!(
         env::Coluna.Env,
@@ -339,8 +339,8 @@ function setcol_from_sp_primalsol!(
 end
 
 function setcut_from_sp_dualsol!(
-    masterform::Formulation,
-    spform::Formulation,
+    masterform::Formulation{BendersMaster},
+    spform::Formulation{BendersSp},
     dual_sol_id::ConstrId,
     name::String,
     duty::Duty{Constraint};
@@ -351,32 +351,50 @@ function setcut_from_sp_dualsol!(
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
 )
-    rhs = getdualsolrhss(spform)[dual_sol_id]
+    objc = getobjsense(masterform) === MinSense ? 1.0 : -1.0
+
+    rhs = objc * getdualsolrhss(spform)[dual_sol_id]
     benders_cut_id = Id{Constraint}(duty, dual_sol_id)
     benders_cut_data = ConstrData(
         rhs, Essential, sense, inc_val, is_active, is_explicit
     )
+
     benders_cut = Constraint(
         benders_cut_id, name;
         constr_data = benders_cut_data,
         moi_index = moi_index
     )
+
     master_coef_matrix = getcoefmatrix(masterform)
     sp_coef_matrix = getcoefmatrix(spform)
     sp_dual_sol = getdualsolmatrix(spform)[:,dual_sol_id]
 
-    for (ds_constrid, ds_constr_val) in sp_dual_sol
-        ds_constr = getconstr(spform, ds_constrid)
-        if getduty(ds_constrid) <= AbstractBendSpMasterConstr
-            for (master_var_id, sp_constr_coef) in @view sp_coef_matrix[ds_constrid,:]
-                var = getvar(spform, master_var_id)
-                if getduty(master_var_id) <= AbstractBendSpSlackMastVar
-                    master_coef_matrix[benders_cut_id, master_var_id] += ds_constr_val * sp_constr_coef
+    for (constr_id, constr_val) in sp_dual_sol
+        if getduty(constr_id) <= AbstractBendSpMasterConstr
+            for (var_id, coef) in @view sp_coef_matrix[constr_id,:]
+                master_var_id = nothing
+                if getduty(var_id) <= BendSpPosSlackFirstStageVar
+                    orig_var_id = get(spform.duty_data.slack_to_first_stage, var_id, nothing)
+                    if orig_var_id === nothing
+                        error("""
+                            A subproblem first level slack variable is not mapped to a first level variable. 
+                            Please open an issue at https://github.com/atoptima/Coluna.jl/issues.
+                        """)
+                    end
+                    master_var_id = getid(getvar(masterform, orig_var_id))
+                elseif getduty(var_id) <= BendSpSlackSecondStageCostVar
+                    master_var_id = var_id # identity
+                end
+
+                if master_var_id !== nothing
+                    master_coef_matrix[benders_cut_id, master_var_id] += objc * constr_val * coef
                 end
             end
         end
     end
+
     _addconstr!(masterform.manager, benders_cut)
+
     if isexplicit(masterform, benders_cut)
         add!(masterform.buffer, getid(benders_cut))
     end
@@ -464,7 +482,7 @@ function _addlocalartvar!(form::Formulation, constr::Constraint, abs_cost::Float
             form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         var2 = setvar!(
-            form, name1, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
+            form, name2, MasterArtVar; cost = cost, lb = 0.0, ub = Inf, kind = Continuous
         )
         push!(constr.art_var_ids, getid(var1))
         push!(constr.art_var_ids, getid(var2))
@@ -562,9 +580,9 @@ end
 function _computenonrobustmembers(form::Formulation, var::Variable)
     coef_matrix = getcoefmatrix(form)
     for (constrid, constr) in getconstrs(form) # TODO : improve because we loop over all constraints
-        if constrid.custom_family_id !== -1
+        if constrid.custom_family_id != -1
             coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
-            if coeff !== 0
+            if coeff != 0
                 coef_matrix[constrid, getid(var)] = coeff
             end
         end
@@ -575,9 +593,9 @@ end
 function _computenonrobustmembers(form::Formulation, constr::Constraint)
     coef_matrix = getcoefmatrix(form)
     for (varid, var) in getvars(form) # TODO : improve because we loop over all variables
-        if varid.custom_family_id !== -1
+        if varid.custom_family_id != -1
             coeff = computecoeff(var, var.custom_data, constr, constr.custom_data)
-            if coeff !== 0
+            if coeff != 0
                 coef_matrix[getid(constr), varid] = coeff
             end
         end
@@ -587,7 +605,7 @@ end
 
 function _setmembers!(form::Formulation, varconstr, members)
     _setrobustmembers!(form, varconstr, members)
-    if getid(varconstr).custom_family_id !== -1
+    if getid(varconstr).custom_family_id != -1
         _computenonrobustmembers(form, varconstr)
     end
     return
@@ -599,6 +617,7 @@ function set_objective_sense!(form::Formulation, min::Bool)
     else
         form.obj_sense = MaxSense
     end
+    form.buffer.changed_obj_sense = true
     return
 end
 
@@ -607,6 +626,7 @@ function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, 
     return val
 end
 
+# TODO : remove (unefficient & specific to an algorithm)
 function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)
     redcost = getperencost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
@@ -621,7 +641,8 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
     return redcost
 end
 
-function computereducedrhs(form::Formulation, constrid::Id{Constraint}, primalsol::PrimalSolution)
+# TODO : remove (unefficient & specific to Benders)
+function computereducedrhs(form::Formulation{BendersSp}, constrid::Id{Constraint}, primalsol::PrimalSolution)
     constrrhs = getperenrhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol
