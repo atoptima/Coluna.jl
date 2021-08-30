@@ -14,7 +14,7 @@ This is the point where you may want to decompose your formulation.
 
 Coluna is a framework not a solver.
 It provides algorithms to try column generation on your problem very easily.
-Then, you can devise your own branch-cut-and-price algorithm on top of Coluna's algorithms 
+Then, you can devise your own branch-cut-and-price algorithm on top of Coluna's algorithms.
 to scale up and hopefully beats the commercial solver.
 
 To start customizing Coluna for your own problem, 
