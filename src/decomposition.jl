@@ -253,7 +253,6 @@ function _dutyexpofbendmastvar(
 end
 
 # Master of Benders decomposition
-
 function instantiate_orig_vars!(
     masterform::Formulation{BendersMaster},
     origform::Formulation{Original},
@@ -308,7 +307,7 @@ function create_side_vars_constrs!(
             ub = getperenub(spform, nu_var),
             kind = Continuous,
             is_explicit = true,
-            id = Id{Variable}(MasterBendSecondStageCostVar, getid(nu_var), getuid(masterform))
+            id = Id{Variable}(MasterBendSecondStageCostVar, getid(nu_var), getuid(masterform), false)
         )
     end
     return
@@ -386,7 +385,7 @@ function create_side_vars_constrs!(
                     ub = getcurub(origform, var),
                     kind = Continuous,
                     is_explicit = true,
-                    id = Id{Variable}(BendSpPosSlackFirstStageVar, varid, getuid(masterform))
+                    id = Id{Variable}(BendSpPosSlackFirstStageVar, varid, getuid(masterform), false)
                 )
 
                 name = string("μ⁻[", split(getname(origform, var), "[")[end], "]")

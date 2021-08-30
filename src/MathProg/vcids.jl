@@ -48,7 +48,7 @@ function Id{VC}(duty::Duty{VC}, id::Id{VC}, assigned_form_uid_in_reformulation, 
     Id{VC}(duty, id.uid, id.origin_form_uid, assigned_form_uid_in_reformulation, id.proc_uid, id.custom_family_id, flag, id._hash)
 end
 
-function Id{VC}(duty::Duty{VC}, id::Id{VC}; custom_family_id = id.custom_family_id, flag) where {VC}
+function Id{VC}(duty::Duty{VC}, id::Id{VC}; custom_family_id = id.custom_family_id, flag = false) where {VC}
     Id{VC}(duty, id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, custom_family_id, flag, id._hash)
 end
 
