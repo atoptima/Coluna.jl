@@ -318,6 +318,7 @@ function updatedualbound!(data::TreeSearchRuntimeData)
         worst_bound = data.worst_db_of_pruned_node
     end
     set_ip_dual_bound!(treestate, worst_bound)
+    set_lp_dual_bound!(treestate, worst_bound)
     return
 end
 

@@ -228,7 +228,6 @@ end
 getreducedcost(form::Formulation, optimizer::MoiOptimizer, varid::VarId) = getreducedcost(form, optimizer, getvar(form, varid))
 
 function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
-    #println("\e[1;32m ************* \e[00m")
     inner = getinner(optimizer)
     nb_primal_sols = MOI.get(inner, MOI.ResultCount())
     solutions = PrimalSolution{F}[]
@@ -236,32 +235,30 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
+
         solcost = getobjconst(form)
-        solvars = Vector{VarId}()
-        solvals = Vector{Float64}()
+        solvars = VarId[]
+        solvals = Float64[]
+
+        # Get primal values of variables
         for (id, var) in getvars(form)
             iscuractive(form, id) && isexplicit(form, id) || continue
             moirec = getmoirecord(var)
             moi_index = getindex(moirec)
-            #kind = _getcolunakind(moirec)
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
             solcost += val * getcurcost(form, id)
             val = round(val, digits = Coluna.TOL_DIGITS)
             if abs(val) > Coluna.TOL
-                #@logmsg LogLevel(0) string("Var ", var.name , " = ", val)
                 push!(solvars, id)
                 push!(solvals, val)
             end
         end
-        #println(" > primal_cost = $solcost --- ( MOI: $(MOI.get(inner, MOI.ObjectiveValue(res_idx))))")
         push!(solutions, PrimalSolution(form, solvars, solvals, solcost, FEASIBLE_SOL))
     end
-    # println("\e[1;32m ************* \e[00m")
     return solutions
 end
 
 function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
-    #println("\e[1;45m ********* \e[00m")
     inner = getinner(optimizer)
     nb_dual_sols = MOI.get(inner, MOI.ResultCount())
     solutions = DualSolution{F}[]
@@ -306,8 +303,9 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 end
             end
         end
-        solcost = MOI.get(inner, MOI.DualObjectiveValue(res_idx))
-        push!(solutions, DualSolution(form, solconstrs, solvals, solcost, FEASIBLE_SOL; var_red_costs = var_red_costs))
+        push!(solutions, DualSolution(
+            form, solconstrs, solvals, solcost, FEASIBLE_SOL; var_red_costs = var_red_costs
+        ))
     end
     return solutions
 end

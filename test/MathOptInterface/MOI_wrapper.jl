@@ -87,28 +87,28 @@ end
     @test JuMP.objective_value(model) == -JuMP.objective_value(model2)
 end
 
-@testset "SplitIntervalBridge" begin
-    coluna = optimizer_with_attributes(
-        Coluna.Optimizer,
-        "params" => Coluna.Params(
-            solver=Coluna.Algorithm.TreeSearchAlgorithm()
-        ),
-        "default_optimizer" => GLPK.Optimizer
-    )
+# @testset "SplitIntervalBridge" begin
+#     coluna = optimizer_with_attributes(
+#         Coluna.Optimizer,
+#         "params" => Coluna.Params(
+#             solver=Coluna.Algorithm.TreeSearchAlgorithm()
+#         ),
+#         "default_optimizer" => GLPK.Optimizer
+#     )
 
-    @axis(M, 1:1)
-    J = 1:1
+#     @axis(M, 1:1)
+#     J = 1:1
 
-    model = BlockModel(coluna)
-    @variable(model, x[m in M, j in J])
-    @constraint(model, mult[m in M], 1 <= sum(x[m,j] for j in J) <= 2)
-    @objective(model, Max, sum(x[m,j] for m in M, j in J))
+#     model = BlockModel(coluna)
+#     @variable(model, x[m in M, j in J])
+#     @constraint(model, mult[m in M], 1 <= sum(x[m,j] for j in J) <= 2)
+#     @objective(model, Max, sum(x[m,j] for m in M, j in J))
 
-    @dantzig_wolfe_decomposition(model, decomposition, M)
+#     @dantzig_wolfe_decomposition(model, decomposition, M)
 
-    optimize!(model)
-    @test JuMP.objective_value(model) == 2.0
-end
+#     optimize!(model)
+#     @test JuMP.objective_value(model) == 2.0
+# end
 
 const UNSUPPORTED_TESTS = [
     "solve_qcp_edge_cases", # Quadratic constraints not supported
