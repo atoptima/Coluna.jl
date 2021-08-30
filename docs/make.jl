@@ -27,7 +27,8 @@ makedocs(
             "Configuration" => joinpath("man", "config.md"),
             "Algorithms" => joinpath("man", "algorithm.md"),
             "Callbacks"   => joinpath("man", "callbacks.md")
-        ]
+        ],
+        "Q&A" => "qa.md"
     ]
 )
 
