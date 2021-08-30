@@ -9,7 +9,7 @@ They can run a very efficient presolve step to simplify the formulation,
 automatically apply lots of valid inequalities (such as MIR or cover cuts), 
 choose good branching strategies, or also run heuristics.
 However, when your formulation reaches a certain size,
-commercial solvers may run for hours without finding anything
+commercial solvers may run for hours without finding anything.
 This is the point where you may want to decompose your formulation.
 
 Coluna is a framework not a solver.
