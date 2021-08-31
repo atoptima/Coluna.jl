@@ -307,7 +307,7 @@ function create_side_vars_constrs!(
             ub = getperenub(spform, nu_var),
             kind = Continuous,
             is_explicit = true,
-            id = Id{Variable}(MasterBendSecondStageCostVar, getid(nu_var), getuid(masterform), false)
+            id = VarId(MasterBendSecondStageCostVar, getid(nu_var), getuid(masterform))
         )
     end
     return
@@ -385,7 +385,7 @@ function create_side_vars_constrs!(
                     ub = getcurub(origform, var),
                     kind = Continuous,
                     is_explicit = true,
-                    id = Id{Variable}(BendSpPosSlackFirstStageVar, varid, getuid(masterform), false)
+                    id = VarId(BendSpPosSlackFirstStageVar, varid, getuid(masterform))
                 )
 
                 name = string("μ⁻[", split(getname(origform, var), "[")[end], "]")

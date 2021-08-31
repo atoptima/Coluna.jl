@@ -4,6 +4,7 @@ const VarMembership = Dict{VarId, Float64}
 const ConstrMembership = Dict{ConstrId, Float64}
 const ConstrConstrMatrix = DynamicSparseArrays.DynamicSparseMatrix{ConstrId,ConstrId,Float64}
 const ConstrVarMatrix = DynamicSparseArrays.DynamicSparseMatrix{ConstrId,VarId,Float64}
+const VarConstrDualSolMatrix = DynamicSparseArrays.DynamicSparseMatrix{VarId,ConstrId,Tuple{Float64,ActiveBound}}
 const VarVarMatrix = DynamicSparseArrays.DynamicSparseMatrix{VarId,VarId,Float64}
 
 # Define the semaphore of the dynamic sparse matrix using MathProg.Id as index
@@ -21,6 +22,7 @@ mutable struct FormulationManager
     primal_sols_custom_data::Dict{VarId, BD.AbstractCustomData}
     primal_sol_costs::DynSparseVector{VarId} # primal solutions with varid map to their cost
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
+    dual_sols_varbounds::VarConstrDualSolMatrix # cols = dual solutions with constrid, rows = variables
     dual_sol_rhss::DynSparseVector{ConstrId} # dual solutions with constrid map to their rhs
     robust_constr_generators::Vector{RobustConstraintsGenerator}
     custom_families_id::Dict{DataType,Int}
@@ -41,6 +43,7 @@ function FormulationManager(; custom_families_id = Dict{BD.AbstractCustomData,In
         Dict{VarId,Any}(),
         dynamicsparsevec(VarId[], Float64[]),
         dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
+        dynamicsparse(VarId, ConstrId, Tuple{Float64, ActiveBound}; fill_mode = false),
         dynamicsparsevec(ConstrId[], Float64[]),
         RobustConstraintsGenerator[],
         custom_families_id

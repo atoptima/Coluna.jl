@@ -178,7 +178,6 @@ const CONSTRAINTDUAL_SINGLEVAR = String[
     "solve_single_variable_dual_min", # TODO bug
     "linear14", # TODO bug
     "linear1", # TODO bug
-    "linear10" # TODO bug
 ]
 
 const UNCOVERED_TERMINATION_STATUS = [

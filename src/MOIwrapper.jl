@@ -885,7 +885,7 @@ function MOI.get(optimizer::Optimizer, ::MOI.RelativeGap)
 end
 
 function MOI.get(optimizer::Optimizer, attr::MOI.VariablePrimal, ref::MOI.VariableIndex)
-    id = getid(optimizer.vars[ref]) # This gets a coluna Id{Variable}
+    id = getid(optimizer.vars[ref]) # This gets a coluna VarId
     primalsols = get_ip_primal_sols(optimizer.result)
     if 1 <= attr.N <= length(primalsols)
         return get(primalsols[attr.N], id, 0.0)

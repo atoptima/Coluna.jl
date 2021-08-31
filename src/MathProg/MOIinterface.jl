@@ -258,20 +258,25 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
     return solutions
 end
 
+# Retrieve dual solutions stored in the optimizer of a formulation
+# It works only if the optimizer is wrapped with MathOptInterface.
 function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)
     nb_dual_sols = MOI.get(inner, MOI.ResultCount())
     solutions = DualSolution{F}[]
+
     for res_idx in 1:nb_dual_sols
+        # We retrieve only feasible dual solutions
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
 
+        # Cost of the dual solution
         solcost = getobjconst(form)
-        solconstrs = ConstrId[]
-        solvals = Float64[]
 
         # Get dual value of constraints
+        solconstrs = ConstrId[]
+        solvals = Float64[]
         for (id, constr) in getconstrs(form)
             moi_index = getindex(getmoirecord(constr))
             MOI.is_valid(inner, moi_index) || continue
@@ -284,13 +289,16 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
             end
         end
 
-        # Get reduced cost of variables
+        # Get dual value & active bound of variables
         var_red_costs = Dict{VarId, Tuple{Float64,ActiveBound}}()
         for (varid, var) in getvars(form)
             moi_bounds_index = getbounds(getmoirecord(var))
             MOI.is_valid(inner, moi_bounds_index) || continue
             basis_status = MOI.get(inner, MOI.ConstraintBasisStatus(res_idx), moi_bounds_index)
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_bounds_index)
+
+            # Variables with non-zero dual values have at least one active bound.
+            # Otherwise, we print a warning message.
             if basis_status == MOI.NONBASIC_AT_LOWER
                 solcost += val * getcurlb(form, varid)
                 if abs(val) > Coluna.TOL
@@ -301,10 +309,17 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 if abs(val) > Coluna.TOL
                     var_red_costs[varid] = (val, UPPER)
                 end
+            elseif abs(val) > Coluna.TOL
+                @warn """
+                    Basis status of a variable that has a non-zero dual value is not treated.
+                    Basis status is $basis_status & dual value is $val.
+                """
             end
         end
+
+        sense = getobjsense(form) == MinSense ? 1.0 : -1.0
         push!(solutions, DualSolution(
-            form, solconstrs, solvals, solcost, FEASIBLE_SOL; var_red_costs = var_red_costs
+            form, solconstrs, solvals, sense*solcost, FEASIBLE_SOL; var_red_costs = var_red_costs
         ))
     end
     return solutions

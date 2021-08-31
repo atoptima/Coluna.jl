@@ -70,7 +70,7 @@ function Constraint(
 end
 
 mutable struct SingleVarConstraint <: AbstractVarConstr
-    id::Id{Constraint}
+    id::ConstrId
     name::String
     varid::VarId
     perendata::ConstrData

@@ -148,13 +148,7 @@ function custom_var_cuts_test()
         MOI.set(model, MOI.UserCutCallback(), custom_cut_sep)
 
         JuMP.optimize!(model)
-        @show JuMP.objective_value(model)
         @test JuMP.termination_status(model) == MOI.OPTIMAL
-
-        dual_sol = Coluna.get_best_lp_dual_sol(JuMP.unsafe_backend(model).result)
-        for id in cut_ids
-            @show dual_sol[id]
-        end
     end
     
 end

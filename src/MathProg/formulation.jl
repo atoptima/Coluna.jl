@@ -143,11 +143,11 @@ getoptimizers(form::Formulation) = form.optimizers
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1, false)
+generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1)
 generatevarid(
     duty::Duty{Variable}, form::Formulation, custom_family_id::Int
-) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id, false)
-generateconstrid(duty::Duty{Constraint}, form::Formulation, flag::Bool) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1, flag)
+) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id)
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -158,7 +158,7 @@ getstoragedict(form::Formulation) = form.storage.units
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
 """
-    set_matrix_coeff!(form::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
+    set_matrix_coeff!(form::Formulation, v_id::VarId, c_id::ConstrId, new_coeff::Float64)
 
 Buffers the matrix modification in `form.buffer` to be sent to the optimizers right before next call to optimize!.
 """
@@ -211,10 +211,10 @@ function setvar!(
         ub = (ub > 1.0) ? 1.0 : ub
     end
     if getduty(id) != duty
-        id = VarId(duty, id, -1, false)
+        id = VarId(duty, id, -1)
     end
     if custom_data !== nothing
-        id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)], false)
+        id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
     end
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
     var = Variable(
@@ -285,6 +285,14 @@ function _adddualsol!(form::Formulation, dualsol::DualSolution, dualsol_id::Cons
             form.manager.dual_sols[constrid, dualsol_id] = constrval
         end
     end
+    for (varid, varval) in dualsol.supp_data
+        redcost, activebound = varval
+        bound = activebound == LOWER ? getcurlb(form, varid) : getcurub(form, varid)
+        rhs += bound * redcost
+        if getduty(varid) <= AbstractBendSpMasterConstr
+            form.manager.dual_sols_varbounds[varid, dualsol_id] = varval
+        end
+    end
     form.manager.dual_sol_rhss[dualsol_id] = rhs
     return dualsol_id
 end
@@ -292,6 +300,7 @@ end
 function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,ConstrId}
     ### check if dualsol exists  take place here along the coeff update
     dual_sols = getdualsolmatrix(form)
+    dual_sols_varbounds = form.manager.dual_sols_varbounds
     dual_sol_rhss = getdualsolrhss(form)
 
     for (cur_sol_id, cur_rhs) in dual_sol_rhss
@@ -302,7 +311,7 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
 
         # TODO : implement broadcasting for PMA in DynamicSparseArrays
         is_identical = true
-        cur_dual_sol = dual_sols[cur_sol_id, :]
+        cur_dual_sol = @view dual_sols[:,cur_sol_id]
         for (constr_id, constr_val) in cur_dual_sol
             if factor * getsol(new_dual_sol)[constr_id] != constr_val
                 is_identical = false
@@ -310,8 +319,9 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
             end
         end
 
-        for (constr_id, constr_val) in getsol(new_dual_sol)
-            if factor * constr_val != cur_dual_sol[constr_id]
+        cur_dual_sol_varbounds = @view dual_sols_varbounds[:,cur_sol_id]
+        for (var_id, var_val) in cur_dual_sol_varbounds
+            if factor * new_dual_sol.supp_data[var_id][1] != var_val[1] || new_dual_sol.supp_data[var_id][2] != var_val[2]
                 is_identical = false
                 break
             end
@@ -321,7 +331,7 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
     end
 
     ### else not identical to any existing dual sol
-    new_dual_sol_id = generateconstrid(BendSpDualSol, form, false)
+    new_dual_sol_id = generateconstrid(BendSpDualSol, form)
     _adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
@@ -380,7 +390,7 @@ function setcut_from_sp_dualsol!(
     objc = getobjsense(masterform) === MinSense ? 1.0 : -1.0
 
     rhs = objc * getdualsolrhss(spform)[dual_sol_id]
-    benders_cut_id = Id{Constraint}(duty, dual_sol_id)
+    benders_cut_id = ConstrId(duty, dual_sol_id)
     benders_cut_data = ConstrData(
         rhs, Essential, sense, inc_val, is_active, is_explicit
     )
@@ -418,6 +428,14 @@ function setcut_from_sp_dualsol!(
             end
         end
     end
+
+    # sp_dual_sol = spform.manager.dual_sols_varbounds[:,dual_sol_id]
+    # for (var_id, var_val) in sp_dual_sol
+    #     var_val, active_bound = var_val
+    #     if getduty(var_id) <= AbstractBendSpVar
+    #         orig_var_id
+    #     end
+    # end
 
     _addconstr!(masterform.manager, benders_cut)
 
@@ -463,14 +481,14 @@ function setconstr!(
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
     custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
-    id = generateconstrid(duty, form, false)
+    id = generateconstrid(duty, form)
 )
     if getduty(id) != duty
-        id = ConstrId(duty, id, -1, false)
+        id = ConstrId(duty, id, -1)
     end
     if custom_data !== nothing
         id = ConstrId(
-            duty, id, false, 
+            duty, id, 
             custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
         )
     end
@@ -503,7 +521,7 @@ function setsinglevarconstr!(
     sense::ConstrSense = Greater,
     inc_val::Float64 = 0.0,
     is_active::Bool = true,
-    id = generateconstrid(duty, form, true)
+    id = generateconstrid(duty, form)
 )
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, true)
     constr = SingleVarConstraint(id, varid, name; constr_data = c_data)
@@ -671,13 +689,13 @@ function set_objective_sense!(form::Formulation, min::Bool)
     return
 end
 
-function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64})
+function computesolvalue(form::Formulation, sol_vec::AbstractDict{VarId, Float64})
     val = sum(getperencost(form, varid) * value for (varid, value) in sol_vec)
     return val
 end
 
 # TODO : remove (unefficient & specific to an algorithm)
-function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)
+function computereducedcost(form::Formulation, varid::VarId, dualsol::DualSolution)
     redcost = getperencost(form, varid)
     coefficient_matrix = getcoefmatrix(form)
     sign = 1
@@ -692,7 +710,7 @@ function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::Dua
 end
 
 # TODO : remove (unefficient & specific to Benders)
-function computereducedrhs(form::Formulation{BendersSp}, constrid::Id{Constraint}, primalsol::PrimalSolution)
+function computereducedrhs(form::Formulation{BendersSp}, constrid::ConstrId, primalsol::PrimalSolution)
     constrrhs = getperenrhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol
