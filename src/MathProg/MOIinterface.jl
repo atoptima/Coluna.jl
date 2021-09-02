@@ -291,6 +291,9 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
 
         # Get dual value & active bound of variables
         var_red_costs = Dict{VarId, Tuple{Float64,ActiveBound}}()
+        varids = VarId[]
+        varvals = Float64[]
+        activebounds = ActiveBound[]
         for (varid, var) in getvars(form)
             moi_bounds_index = getbounds(getmoirecord(var))
             MOI.is_valid(inner, moi_bounds_index) || continue
@@ -302,12 +305,16 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
             if basis_status == MOI.NONBASIC_AT_LOWER
                 solcost += val * getcurlb(form, varid)
                 if abs(val) > Coluna.TOL
-                    var_red_costs[varid] = (val, LOWER)
+                    push!(varids, varid)
+                    push!(varvals, val)
+                    push!(activebounds, LOWER)
                 end
             elseif basis_status == MOI.NONBASIC_AT_UPPER
                 solcost += val * getcurub(form, varid)
                 if abs(val) > Coluna.TOL
-                    var_red_costs[varid] = (val, UPPER)
+                    push!(varids, varid)
+                    push!(varvals, val)
+                    push!(activebounds, UPPER)
                 end
             elseif abs(val) > Coluna.TOL
                 @warn """
@@ -319,7 +326,8 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
 
         sense = getobjsense(form) == MinSense ? 1.0 : -1.0
         push!(solutions, DualSolution(
-            form, solconstrs, solvals, sense*solcost, FEASIBLE_SOL; var_red_costs = var_red_costs
+            form, solconstrs, solvals, varids, varvals, activebounds, sense*solcost, 
+            FEASIBLE_SOL
         ))
     end
     return solutions

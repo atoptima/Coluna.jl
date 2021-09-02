@@ -263,7 +263,7 @@ function setprimalsol!(form::Formulation, new_primal_sol::PrimalSolution)::Tuple
     # look for an identical column
     for (cur_sol_id, cur_cost) in primal_sol_costs
         cur_primal_sol = primal_sols[:, cur_sol_id]
-        if isapprox(new_cost, cur_cost) && getsol(new_primal_sol) == cur_primal_sol
+        if isapprox(new_cost, cur_cost) && new_primal_sol == cur_primal_sol
             return (false, cur_sol_id)
         end
     end
@@ -313,7 +313,7 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
         is_identical = true
         cur_dual_sol = @view dual_sols[:,cur_sol_id]
         for (constr_id, constr_val) in cur_dual_sol
-            if factor * getsol(new_dual_sol)[constr_id] != constr_val
+            if factor * new_dual_sol.solution.sol[constr_id] != constr_val
                 is_identical = false
                 break
             end

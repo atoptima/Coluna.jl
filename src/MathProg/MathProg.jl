@@ -100,7 +100,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership, S
     isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, setsinglevarconstr!
 
 # Types & methods related to solutions & bounds
-export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues
+export PrimalBound, DualBound, AbstractSolution, PrimalSolution, DualSolution, ActiveBound, ObjValues
 
 # Methods related to projections
 export projection_is_possible, proj_cols_on_rep

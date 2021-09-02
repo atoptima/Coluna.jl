@@ -343,7 +343,7 @@ function solve_sp_to_gencol!(
 
     sense = getobjsense(masterform)
     bestsol = get_best_ip_primal_sol(sp_optstate)
-    if bestsol !== nothing && bestsol.status == FEASIBLE_SOL
+    if bestsol !== nothing && getstatus(bestsol) == FEASIBLE_SOL
         spinfo.bestsol = bestsol
         spinfo.isfeasible = true
         for sol in get_ip_primal_sols(sp_optstate)
@@ -381,7 +381,7 @@ function updatereducedcosts!(
     reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
 )
     redcosts = Dict{VarId,Float64}()
-    result = redcostshelper.dwsprep_coefmatrix * getsol(masterdualsol)
+    result = redcostshelper.dwsprep_coefmatrix * masterdualsol.solution.sol
     for (i, varid) in enumerate(redcostshelper.dwspvarids)
         redcosts[varid] = redcostshelper.perencosts[i] - get(result, varid, 0.0)
     end
@@ -525,7 +525,7 @@ function update_lagrangian_dual_bound!(
         end
     end
     
-    valid_lagr_bound = DualBound{S}(puremastvars_contrib + dualsol.bound)
+    valid_lagr_bound = DualBound{S}(puremastvars_contrib + getbound(dualsol))
     for (spuid, spinfo) in spinfos
         valid_lagr_bound += spinfo.valid_dual_bound_contrib
     end
@@ -534,7 +534,7 @@ function update_lagrangian_dual_bound!(
     update_lp_dual_bound!(optstate, valid_lagr_bound)
 
     if stabilization_is_used(algo)
-        pseudo_lagr_bound = DualBound{S}(puremastvars_contrib + dualsol.bound)
+        pseudo_lagr_bound = DualBound{S}(puremastvars_contrib + getbound(dualsol))
         for (spuid, spinfo) in spinfos
             pseudo_lagr_bound += spinfo.pseudo_dual_bound_contrib
         end
@@ -561,9 +561,9 @@ function compute_subgradient_contribution(
             end
         end
 
-        for (spuid, spinfo) in spinfos
+        for (_, spinfo) in spinfos
             iszero(spinfo.ub) && continue
-            mult = improving_red_cost(spinfo.bestsol.bound, algo, sense) ? spinfo.ub : spinfo.lb
+            mult = improving_red_cost(getbound(spinfo.bestsol), algo, sense) ? spinfo.ub : spinfo.lb
             for (sp_var_id, sp_var_val) in spinfo.bestsol
                 for (master_constrid, sp_var_coef) in @view master_coef_matrix[:,sp_var_id]
                     if !(getduty(master_constrid) <= MasterConvexityConstr)
@@ -575,13 +575,16 @@ function compute_subgradient_contribution(
         end
     end
 
-    return DualSolution(master, constrids, constrvals, 0.0, UNKNOWN_SOLUTION_STATUS)
+    return DualSolution(
+        master, constrids, constrvals, VarId[], Float64[], ActiveBound[], 0.0, 
+        UNKNOWN_SOLUTION_STATUS
+    )
 end
 
 function move_convexity_constrs_dual_values!(
     spinfos::Dict{FormId,SubprobInfo}, dualsol::DualSolution
 )
-    newbound = dualsol.bound
+    newbound = getbound(dualsol)
     for (spuid, spinfo) in spinfos
         spinfo.lb_dual = dualsol[spinfo.lb_constr_id]
         spinfo.ub_dual = dualsol[spinfo.ub_constr_id]
@@ -597,7 +600,10 @@ function move_convexity_constrs_dual_values!(
             push!(values, value)
         end
     end
-    return DualSolution(dualsol.model, constrids, values, newbound, FEASIBLE_SOL)
+    return DualSolution(
+        getmodel(dualsol), constrids, values, VarId[], Float64[], ActiveBound[], newbound, 
+        FEASIBLE_SOL
+    )
 end
 
 function get_pure_master_vars(master::Formulation)
