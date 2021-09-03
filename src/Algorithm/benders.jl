@@ -109,7 +109,7 @@ function update_benders_sp_problem!(
         setcurub!(spform, var, getperenub(spform, var) - master_primal_sol[varid])
     end
 
-    # TODO : refactor this option (it was untested)
+    # TODO : it was untested
     # if algo.option_use_reduced_cost
     #     for (varid, var) in getvars(spform)
     #         iscuractive(spform, varid) || continue

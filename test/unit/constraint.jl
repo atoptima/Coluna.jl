@@ -45,8 +45,8 @@ function constraint_getters_and_setters_tests()
     @test ClF.getperenrhs(form,cid) == -2.0
 
     @test ClF.getcursense(form,cid) == ClF.Equal
-    ClF.setcursense!(form, cid, ClF.Lower)
-    @test ClF.getcursense(form,cid) == ClF.Lower
+    ClF.setcursense!(form, cid, ClF.Less)
+    @test ClF.getcursense(form,cid) == ClF.Less
     @test ClF.getperensense(form,cid) == ClF.Equal
 
     @test ClF.getname(form,cid) == "fake_single_var_constr"
