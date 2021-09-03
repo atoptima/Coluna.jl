@@ -699,21 +699,6 @@ function set_objective_sense!(form::Formulation, min::Bool)
     return
 end
 
-# TODO : remove (unefficient & specific to an algorithm)
-function computereducedcost(form::Formulation, varid::VarId, dualsol::DualSolution)
-    redcost = getperencost(form, varid)
-    coefficient_matrix = getcoefmatrix(form)
-    sign = 1
-    if getobjsense(form) == MinSense
-        sign = -1
-    end
-    for (constrid, dual_val) in dualsol
-        coeff = coefficient_matrix[constrid, varid]
-        redcost += sign * dual_val * coeff
-    end
-    return redcost
-end
-
 # TODO : remove (unefficient & specific to Benders)
 function computereducedrhs(form::Formulation{BendersSp}, constrid::ConstrId, primalsol::PrimalSolution)
     constrrhs = getperenrhs(form,constrid)
@@ -743,7 +728,6 @@ end
 ############################################################################################
 # Bounds propagation
 ############################################################################################
-# if a new single var constraint has been added, we should call this method
 
 function _update_var_cur_lb!(form::Formulation, var::Variable, lb, constrid)
     cur_lb = getcurlb(form, var)
@@ -784,6 +768,8 @@ function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs, co
     return
 end
 
+# If some new single var constraints have been added to a formulation, Coluna
+# should call this method.
 function bounds_propagation!(form::Formulation)
     for (constrid, constr) in form.manager.single_var_constrs
         var = getvar(form, constr.varid)
@@ -854,13 +840,11 @@ function _show_singlevarconstraint(io::IO, form::Formulation, constr::SingleVarC
 end
 
 function _show_singlevarconstraints(io::IO, form::Formulation)
-    println("----------------------------------")
     for (varid, _) in getvars(form)
         for (_, constr) in getsinglevarconstrs(form, varid)
             _show_singlevarconstraint(io, form, constr)
         end
     end
-    println("----------------------------------")
     return
 end
 

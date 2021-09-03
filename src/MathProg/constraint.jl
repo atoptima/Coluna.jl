@@ -1,7 +1,6 @@
 """
-    ConstrData
-
-Information that defines a state of a constraint. These are the fields of a constraint that might change during the solution procedure.
+Information that defines a state of a constraint. 
+These data might change during the optimisation procedure.
 """
 mutable struct ConstrData <: AbstractVcData
     rhs::Float64
@@ -38,11 +37,18 @@ getindex(record::MoiConstrRecord) = record.index
 setindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
 """
+There are 2 types of constraints in Coluna (i.e. Constraint & SingleVarConstraint).
+Both of them inherits from AbstractConstraint because their setters and getters
+are quite similar.
+"""
+abstract type AbstractConstraint <: AbstractVarConstr end
+
+"""
 Representation of a constraint in Coluna.
 Coefficients of variables involved in the constraints are stored in the coefficient matrix.
 If the constraint involves only one variable, you should use a `SingleVarConstraint`.
 """
-mutable struct Constraint <: AbstractVarConstr
+mutable struct Constraint <: AbstractConstraint
     id::Id{Constraint,:usual}
     name::String
     perendata::ConstrData
@@ -54,6 +60,7 @@ end
 
 const ConstrId = Id{Constraint,:usual}
 
+# Internal use only, see `MathProg.setconstr!` to create a constraint.
 function Constraint(
     id::ConstrId, name::String;
     constr_data = ConstrData(), moi_index::MoiConstrIndex = MoiConstrIndex(),
@@ -67,9 +74,12 @@ end
 
 """
 Representation of a single variable constraint in Coluna : lb <= 1*var <= ub.
-For performance reasons, Coluna does not store these constraints in the coefficient matrix.
+For performance reasons, Coluna does not store these constraints in the coefficient matrix
+and they are never pushed in the subsolver of a formulation.
+Coluna takes into account those constraints only during the bound propagation operation
+which updates the current upper and lower bounds of the variable.
 """
-mutable struct SingleVarConstraint <: AbstractVarConstr
+mutable struct SingleVarConstraint <: AbstractConstraint
     id::Id{Constraint,:single}
     name::String
     varid::VarId
@@ -79,6 +89,7 @@ end
 
 const SingleVarConstrId = Id{Constraint,:single}
 
+# Internal use only, see `MathProg.setsinglevarconstr!` to create a single var constraint.
 function SingleVarConstraint(
     id::SingleVarConstrId, varid::VarId, name::String; constr_data = ConstrData()
 )

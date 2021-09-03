@@ -60,9 +60,9 @@ function update_obj_const_in_optimizer!(form::Formulation, optimizer::MoiOptimiz
     return
 end
 
-function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
-                                            c::Constraint, v::Variable,
-                                            coeff::Float64)
+function update_constr_member_in_optimizer!(
+    optimizer::MoiOptimizer, c::Constraint, v::Variable, coeff::Float64
+)
     moi_c_index = getindex(getmoirecord(c))
     moi_v_index = getindex(getmoirecord(v))
     MOI.modify(
@@ -156,9 +156,7 @@ end
 
 function remove_from_optimizer!(form::Formulation, optimizer::MoiOptimizer, ids::Set{I}) where {I<:Id}
     for id in ids
-        vc = getelem(form, id)
-        @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(form, vc))
-        remove_from_optimizer!(form, optimizer, vc)
+        remove_from_optimizer!(form, optimizer, getelem(form, id))
     end
     return
 end

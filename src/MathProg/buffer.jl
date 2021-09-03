@@ -67,7 +67,7 @@ function remove!(buffer::FormulationBuffer, varid::VarId)
 end
 
 # Since there is no efficient way to remove changes done to the coefficient matrix,
-# we propagate them if the constraint is active and explicit
+# we propagate them if and only if the constraint is active and explicit
 function remove!(buffer::FormulationBuffer, constrid::ConstrId)
     remove!(buffer.constr_buffer, constrid)
     delete!(buffer.changed_rhs, constrid)

@@ -11,7 +11,7 @@ getoriginformuid(vc::AbstractVarConstr) = getoriginformuid(getid(vc))
 Return the cost as defined by the user of a variable in a formulation.
 """
 getperencost(form::Formulation, varid::VarId) = getperencost(form, getvar(form, varid))
-getperencost(form::Formulation, var::Variable) = var.perendata.cost
+getperencost(::Formulation, var::Variable) = var.perendata.cost
 
 """
     getcurcost(formulation, variable)
@@ -20,7 +20,7 @@ getperencost(form::Formulation, var::Variable) = var.perendata.cost
 Return the current cost of the variable in the formulation.
 """
 getcurcost(form::Formulation, varid::VarId) = getcurcost(form, getvar(form, varid))
-getcurcost(form::Formulation, var::Variable) = var.curdata.cost
+getcurcost(::Formulation, var::Variable) = var.curdata.cost
 
 """
     setperencost!(formulation, variable, cost)
@@ -63,7 +63,7 @@ end
 Return the lower bound as defined by the user of a variable in a formulation.
 """
 getperenlb(form::Formulation, varid::VarId) = getperenlb(form, getvar(form, varid))
-getperenlb(form::Formulation, var::Variable) = var.perendata.lb
+getperenlb(::Formulation, var::Variable) = var.perendata.lb
 
 """
     getcurlb(formulation, varid)
@@ -72,7 +72,7 @@ getperenlb(form::Formulation, var::Variable) = var.perendata.lb
 Return the current lower bound of a variable in a formulation.
 """
 getcurlb(form::Formulation, varid::VarId) = getcurlb(form, getvar(form, varid))
-getcurlb(form::Formulation, var::Variable) = var.curdata.lb
+getcurlb(::Formulation, var::Variable) = var.curdata.lb
 
 """
     setcurlb!(formulation, varid, lb::Float64)
@@ -99,7 +99,7 @@ setcurlb!(form::Formulation, varid::VarId, lb::Float64) =  setcurlb!(form, getva
 Return the upper bound as defined by the user of a variable in a formulation.
 """
 getperenub(form::Formulation, varid::VarId) = getperenub(form, getvar(form, varid))
-getperenub(form::Formulation, var::Variable) = var.perendata.ub
+getperenub(::Formulation, var::Variable) = var.perendata.ub
 
 """
     getcurub(formulation, varid)
@@ -108,7 +108,7 @@ getperenub(form::Formulation, var::Variable) = var.perendata.ub
 Return the current upper bound of a variable in a formulation.
 """
 getcurub(form::Formulation, varid::VarId) = getcurub(form, getvar(form, varid))
-getcurub(form::Formulation, var::Variable) = var.curdata.ub
+getcurub(::Formulation, var::Variable) = var.curdata.ub
 
 """
     setcurub!(formulation, varid, ub::Float64)
@@ -137,8 +137,8 @@ setcurub!(form::Formulation, varid::VarId, ub::Float64) = setcurub!(form, getvar
 Return the right-hand side as defined by the user of a constraint in a formulation.
 """
 getperenrhs(form::Formulation, constrid::ConstrId) = getperenrhs(form, getconstr(form, constrid))
-getperenrhs(form::Formulation, constr::Constraint) = constr.perendata.rhs
-getperenrhs(form::Formulation, constr::SingleVarConstraint) = constr.perendata.rhs
+getperenrhs(form::Formulation, constrid::SingleVarConstrId) = getperenrhs(form, getconstr(form, constrid))
+getperenrhs(::Formulation, constr::AbstractConstraint) = constr.perendata.rhs
 
 """
     getcurrhs(formulation, constraint)
@@ -147,8 +147,8 @@ getperenrhs(form::Formulation, constr::SingleVarConstraint) = constr.perendata.r
 Return the current right-hand side of a constraint in a formulation.
 """
 getcurrhs(form::Formulation, constrid::ConstrId) = getcurrhs(form, getconstr(form, constrid))
-getcurrhs(form::Formulation, constr::Constraint) = constr.curdata.rhs
-getcurrhs(form::Formulation, constr::SingleVarConstraint) = constr.curdata.rhs
+getcurrhs(form::Formulation, constrid::SingleVarConstrId) = getcurrhs(form, getconstr(form, constrid))
+getcurrhs(form::Formulation, constr::AbstractConstraint) = constr.curdata.rhs
 
 """
     setperenrhs!(formulation, constr, rhs)
@@ -157,11 +157,15 @@ getcurrhs(form::Formulation, constr::SingleVarConstraint) = constr.curdata.rhs
 Set the perennial rhs of a constraint in a formulation.
 Change is propagated to the current rhs of the constraint.
 """
-function setperenrhs!(form::Formulation, constr::Constraint, rhs)
+function setperenrhs!(form::Formulation, constr::AbstractConstraint, rhs)
     constr.perendata.rhs = rhs
     return setcurrhs!(form, constr, rhs)
 end
-setperenrhs!(form::Formulation, constrid::ConstrId, rhs) = setperenrhs!(form, getconstr(form, constrid), rhs)
+setperenrhs!(form::Formulation, constrid::ConstrId, rhs) =
+    setperenrhs!(form, getconstr(form, constrid), rhs)
+
+setperenrhs!(form::Formulation, constrid::SingleVarConstrId, rhs) =
+    setperenrhs!(form, getconstr(form, constrid), rhs)
 
 """
     setcurrhs(formulation, constraint, rhs::Float64)
@@ -170,6 +174,9 @@ setperenrhs!(form::Formulation, constrid::ConstrId, rhs) = setperenrhs!(form, ge
 Set the current right-hand side of a constraint in a formulation. 
 If the constraint is active and explicit, this change is buffered before application to the
 subsolver.
+
+**Warning** : if you change the rhs of a single variable constraint, make sure that you
+perform bound propagation before calling the subsolver of the formulation.
 """
 function setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64) 
     constr.curdata.rhs = rhs
@@ -178,7 +185,15 @@ function setcurrhs!(form::Formulation, constr::Constraint, rhs::Float64)
     end
     return
 end
-setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = setcurrhs!(form, getconstr(form, constrid), rhs)
+
+setcurrhs!(form::Formulation, constrid::ConstrId, rhs::Float64) = 
+    setcurrhs!(form, getconstr(form, constrid), rhs)
+
+setcurrhs!(form::Formulation, constr::SingleVarConstraint, rhs::Float64) =
+    constr.curdata.rhs = rhs
+
+setcurrhs!(form::Formulation, constrid::SingleVarConstrId, rhs::Float64) = 
+    setcurrhs!(form, getconstr(form, constrid), rhs)
 
 # Variable & Constraints
 ## kind
@@ -201,6 +216,7 @@ getperenkind(form::Formulation, varid::VarId) = getperenkind(form, getvar(form, 
 getperenkind(form::Formulation, var::Variable) = var.perendata.kind
 getperenkind(form::Formulation, constrid::ConstrId) = getperenkind(form, getconstr(form, constrid))
 getperenkind(form::Formulation, constr::Constraint) = constr.perendata.kind
+getperenkind(form::Formulation, constrid::SingleVarConstrId) = getperenkind(form, getconstr(form, constrid))
 getperenkind(form::Formulation, constr::SingleVarConstraint) = constr.perendata.kind
 
 """
@@ -263,8 +279,8 @@ The perennial sense of a variable depends on its perennial bounds.
 getperensense(form::Formulation, varid::VarId) = getperensense(form, getvar(form, varid))
 getperensense(form::Formulation, var::Variable) = _senseofvar(getperenlb(form, var), getperenub(form, var))
 getperensense(form::Formulation, constrid::ConstrId) = getperensense(form, getconstr(form, constrid))
-getperensense(form::Formulation, constr::Constraint) = constr.perendata.sense
-getperensense(form::Formulation, constr::SingleVarConstraint) = constr.perendata.sense
+getperensense(form::Formulation, constrid::SingleVarConstrId) = getperensense(form, getconstr(form, constrid))
+getperensense(::Formulation, constr::AbstractConstraint) = constr.perendata.sense
 
 """
     getcursense(formulation, varconstr)
@@ -276,8 +292,8 @@ The current sense of a variable depends on its current bounds.
 getcursense(form::Formulation, varid::VarId) = getcursense(form, getconstr(form, varid))
 getcursense(form::Formulation, var::Variable) = _senseofvar(getcurlb(form, var), getcurub(form, var))
 getcursense(form::Formulation, constrid::ConstrId) = getcursense(form, getconstr(form, constrid))
-getcursense(form::Formulation, constr::Constraint) = constr.curdata.sense
-getcursense(form::Formulation, constr::SingleVarConstraint) = constr.curdata.sense
+getcursense(form::Formulation, constrid::SingleVarConstrId) = getcursense(form, getconstr(form, constrid))
+getcursense(::Formulation, constr::AbstractConstraint) = constr.curdata.sense
 
 """
     setperensense!(form, constr, sense)
@@ -300,6 +316,9 @@ Set the current sense of a constraint in a formulation.
 
 This method is not applicable to variables because the sense of a variable depends on its
 bounds.
+
+**Warning** : if you set the sense of a single var constraint, make sure you perform bound
+propagation before calling the subsolver of the formulation.
 """
 function setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense)
     constr.curdata.sense = sense
@@ -309,9 +328,14 @@ function setcursense!(form::Formulation, constr::Constraint, sense::ConstrSense)
     return
 end
 
-function setcursense!(form::Formulation, constrid::ConstrId, sense::ConstrSense)
-    return setcursense!(form, getconstr(form, constrid), sense)
-end
+setcursense!(form::Formulation, constrid::ConstrId, sense::ConstrSense) =
+    setcursense!(form, getconstr(form, constrid), sense)
+
+setcursense!(::Formulation, constr::SingleVarConstraint, sense::ConstrSense) = 
+    constr.curdata.sense = sense
+
+setcursense!(form::Formulation, constrid::SingleVarConstrId, sense::ConstrSense) =
+    setcursense!(form, getconstr(form, constrid), sense)
 
 ## inc_val
 """
@@ -323,10 +347,10 @@ The incumbent value is the primal value associated to a variable or the dual val
 a constraint.
 """
 getperenincval(form::Formulation, varid::VarId) = getperenincval(form, getvar(form, varid))
-getperenincval(form::Formulation, var::Variable) = var.perendata.inc_val
+getperenincval(::Formulation, var::Variable) = var.perendata.inc_val
 getperenincval(form::Formulation, constrid::ConstrId) = getperenincval(form, getconstr(form, constrid))
-getperenincval(form::Formulation, constr::Constraint) = constr.perendata.inc_val
-getperenincval(form::Formulation, constr::SingleVarConstraint) = constr.perendata.inc_val
+getperenincval(form::Formulation, constrid::SingleVarConstrId) = getperenincval(form, getconstr(form, constrid))
+getperenincval(::Formulation, constr::AbstractConstraint) = constr.perendata.inc_val
 
 """
     getcurincval(formulation, varconstrid)
@@ -335,26 +359,27 @@ getperenincval(form::Formulation, constr::SingleVarConstraint) = constr.perendat
 Return the current incumbent value of a variable or a constraint in a formulation.
 """
 getcurincval(form::Formulation, varid::VarId) = getcurincval(form, getvar(form, varid))
-getcurincval(form::Formulation, var::Variable) = var.curdata.inc_val
+getcurincval(::Formulation, var::Variable) = var.curdata.inc_val
 getcurincval(form::Formulation, constrid::ConstrId) = getcurincval(form, getconstr(form, constrid))
-getcurincval(form::Formulation, constr::Constraint) = constr.curdata.inc_val
-getcurincval(form::Formulation, constr::SingleVarConstraint) = constr.curdata.inc_val
+getcurincval(form::Formulation, constrid::SingleVarConstrId) = getcurincval(form, getconstr(form, constrid))
+getcurincval(::Formulation, constr::AbstractConstraint) = constr.curdata.inc_val
 
 """
     setcurincval!(formulation, varconstrid, value::Real)
 
 Set the current incumbent value of a variable or a constraint in a formulation.
 """
-function setcurincval!(form::Formulation, var::Variable, inc_val::Real)
+setcurincval!(::Formulation, var::Variable, inc_val::Real) =
     var.curdata.inc_val = inc_val
-    return
-end
-setcurincval!(form::Formulation, varid::VarId, inc_val::Real) = setcurincval!(form, getvar(form, varid), inc_val)
-function setcurincval!(form::Formulation, constr::Constraint, inc_val::Real)
+
+setcurincval!(form::Formulation, varid::VarId, inc_val) = 
+    setcurincval!(form, getvar(form, varid), inc_val)
+
+setcurincval!(::Formulation, constr::AbstractConstraint, inc_val::Real) =
     constr.curdata.inc_val = inc_val
-    return
-end
-setcurincval!(form::Formulation, constrid::ConstrId, inc_val::Real) = setcurincval!(form, getconstr(form, constrid), inc_val)
+
+setcurincval!(form::Formulation, constrid::ConstrId, inc_val) = 
+    setcurincval!(form, getconstr(form, constrid), inc_val)
 
 ## active
 """
@@ -367,9 +392,10 @@ deletion of the variable by deativate it. This allows you to keep the variable i
 to reactivate it later.
 """
 isperenactive(form::Formulation, varid::VarId) = isperenactive(form, getvar(form, varid))
-isperenactive(form::Formulation, var::Variable) = var.perendata.is_active
+isperenactive(::Formulation, var::Variable) = var.perendata.is_active
 isperenactive(form::Formulation, constrid::ConstrId) = isperenactive(form, getconstr(form, constrid))
-isperenactive(form::Formulation, constr::Constraint) = constr.perendata.is_active
+isperenactive(form::Formulation, constrid::SingleVarConstrId) = isperenactive(form, getconstr(form, constrid))
+isperenactive(::Formulation, constr::AbstractConstraint) = constr.perendata.is_active
 
 """
     iscuractive(formulation, varconstrid)
@@ -378,10 +404,12 @@ isperenactive(form::Formulation, constr::Constraint) = constr.perendata.is_activ
 Return `true` if the variable or the constraint is currently active; `false` otherwise.
 """
 iscuractive(form::Formulation, varid::VarId) = iscuractive(form, getvar(form, varid))
-iscuractive(form::Formulation, var::Variable) = var.curdata.is_active
+iscuractive(::Formulation, var::Variable) = var.curdata.is_active
 iscuractive(form::Formulation, constrid::ConstrId) = iscuractive(form, getconstr(form, constrid))
-iscuractive(form::Formulation, constr::Constraint) = constr.curdata.is_active
+iscuractive(form::Formulation, constrid::SingleVarConstrId) = iscuractive(form, getconstr(form, constrid))
+iscuractive(::Formulation, constr::AbstractConstraint) = constr.curdata.is_active
 
+## activate!
 function _activate!(form::Formulation, varconstr::AbstractVarConstr)
     if isexplicit(form, varconstr) && !iscuractive(form, varconstr)
         add!(form.buffer, getid(varconstr))
@@ -429,6 +457,7 @@ function activate!(form::Formulation, f::Function)
     return
 end
 
+## deactivate!
 function _deactivate!(form::Formulation, varconstr::AbstractVarConstr)
     if isexplicit(form, varconstr) && iscuractive(form, varconstr)
         remove!(form.buffer, getid(varconstr))
@@ -522,6 +551,8 @@ isexplicit(form::Formulation, varid::VarId) = isexplicit(form, getvar(form, vari
 isexplicit(::Formulation, var::Variable) = var.perendata.is_explicit
 isexplicit(form::Formulation, constrid::ConstrId) = isexplicit(form, getconstr(form, constrid))
 isexplicit(::Formulation, constr::Constraint) = constr.perendata.is_explicit
+isexplicit(::Formulation, ::SingleVarConstrId) = true
+isexplicit(::Formulation, ::SingleVarConstraint) = true
 
 ## name
 """
@@ -533,7 +564,8 @@ Return the name of a variable or a constraint in a formulation.
 getname(form::Formulation, varid::VarId) = getvar(form, varid).name
 getname(::Formulation, var::Variable) = var.name
 getname(form::Formulation, constrid::ConstrId) = getconstr(form, constrid).name
-getname(::Formulation, constr::Constraint) = constr.name
+getname(form::Formulation, constrid::SingleVarConstrId) = getconstr(form, constrid).name
+getname(::Formulation, constr::AbstractConstraint) = constr.name
 
 ## branching_priority
 """
@@ -545,7 +577,7 @@ Return the branching priority of a variable
 getbranchingpriority(form::Formulation, varid::VarId) = getvar(form, varid).branching_priority
 getbranchingpriority(::Formulation, var::Variable) = var.branching_priority
 
-# Reset
+# Reset (this method is used only in tests... I don't if we should keep it)
 """
     reset!(form, var)
     reset!(form, varid)
