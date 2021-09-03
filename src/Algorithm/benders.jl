@@ -1,5 +1,4 @@
 @with_kw struct BendersCutGeneration <: AbstractOptimizationAlgorithm
-    option_use_reduced_cost::Bool = false
     option_increase_cost_in_hybrid_phase::Bool = false
     feasibility_tol::Float64 = 1e-5
     optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
@@ -110,15 +109,16 @@ function update_benders_sp_problem!(
         setcurub!(spform, var, getperenub(spform, var) - master_primal_sol[varid])
     end
 
-    if algo.option_use_reduced_cost
-        for (varid, var) in getvars(spform)
-            iscuractive(spform, varid) || continue
-            getduty(varid) <= BendSpSlackFirstStageVar || continue
-            cost = getcurcost(spform, var)
-            rc = computereducedcost(masterform, varid, master_dual_sol)
-            setcurcost!(spform, var, rc)
-        end
-    end
+    # TODO : refactor this option (it was untested)
+    # if algo.option_use_reduced_cost
+    #     for (varid, var) in getvars(spform)
+    #         iscuractive(spform, varid) || continue
+    #         getduty(varid) <= BendSpSlackFirstStageVar || continue
+    #         cost = getcurcost(spform, var)
+    #         rc = computereducedcost(masterform, varid, master_dual_sol)
+    #         setcurcost!(spform, var, rc)
+    #     end
+    # end
     return false
 end
 

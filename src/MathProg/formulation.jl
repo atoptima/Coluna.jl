@@ -699,11 +699,6 @@ function set_objective_sense!(form::Formulation, min::Bool)
     return
 end
 
-function computesolvalue(form::Formulation, sol_vec::AbstractDict{VarId, Float64})
-    val = sum(getperencost(form, varid) * value for (varid, value) in sol_vec)
-    return val
-end
-
 # TODO : remove (unefficient & specific to an algorithm)
 function computereducedcost(form::Formulation, varid::VarId, dualsol::DualSolution)
     redcost = getperencost(form, varid)

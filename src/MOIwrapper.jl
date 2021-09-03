@@ -420,7 +420,7 @@ function MOI.get(
 ) where {F<:MOI.SingleVariable, S}
     indices = MOI.ConstraintIndex{F,S}[]
     for (id, _) in model.constrs_on_single_var
-        if S === typeof(MOI.get(model, MOI.ConstraintSet(), id))
+        if S == typeof(MOI.get(model, MOI.ConstraintSet(), id))
             push!(indices, id)
         end
     end

@@ -24,16 +24,6 @@ _create_hash(uid, origin_form_uid, proc_uid) =
     uid * MAX_NB_FORMULATIONS * MAX_NB_PROCESSES + 
     origin_form_uid * MAX_NB_PROCESSES + proc_uid
 
-function Id{VC,F}(duty::Duty{VC}, uid, origin_form_uid, assigned_form_uid, custom_family_id) where {VC,F}
-    proc_uid = Distributed.myid()
-    Id{VC,F}(duty, uid, origin_form_uid, assigned_form_uid, proc_uid, custom_family_id, _create_hash(uid, origin_form_uid, proc_uid))
-end
-
-function Id{VC,F}(duty::Duty{VC}, uid, origin_form_uid) where {VC,F}
-    proc_uid = Distributed.myid()
-    Id{VC,F}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, -1, _create_hash(uid, origin_form_uid, proc_uid))
-end
-
 function Id{VC,F}(duty::Duty{VC}, uid, origin_form_uid, custom_family_id) where {VC,F}
     proc_uid = Distributed.myid()
     Id{VC,F}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, custom_family_id, _create_hash(uid, origin_form_uid, proc_uid))
