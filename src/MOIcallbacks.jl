@@ -34,7 +34,10 @@ function MOI.submit(
     push!(values, 1.0)
     solval += getcurcost(form, setup_var_id)
 
-    sol = PrimalSolution(form, colunavarids, values, solval, FEASIBLE_SOL, custom_data)
+    sol = PrimalSolution(
+        form, colunavarids, values, solval, FEASIBLE_SOL; 
+        custom_data = custom_data
+    )
     push!(cb.callback_data.primal_solutions, sol)
     return
 end

@@ -283,16 +283,16 @@ function solution_unit()
     @testset "Solution" begin
         model = FakeModel()
 
-        Solution = CB.Solution{FakeModel,Int,Float64,Nothing}
+        Solution = CB.Solution{FakeModel,Int,Float64}
 
         dict_sol, soldecs, solvals = fake_solution_factory(100)
-        primal_sol = Solution(model, soldecs, solvals, 12.3, CB.FEASIBLE_SOL, nothing, nothing)
+        primal_sol = Solution(model, soldecs, solvals, 12.3, CB.FEASIBLE_SOL)
         test_solution_iterations(primal_sol, dict_sol)
         @test CB.getvalue(primal_sol) == 12.3
         @test CB.getstatus(primal_sol) == CB.FEASIBLE_SOL
         
         dict_sol = Dict(1 => 2.0, 2 => 3.0, 3 => 4.0)
-        primal_sol = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 0.0, Coluna.ColunaBase.FEASIBLE_SOL, nothing, nothing)
+        primal_sol = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 0.0, Coluna.ColunaBase.FEASIBLE_SOL)
         
         @test iterate(primal_sol) == iterate(primal_sol.sol)
         _, state = iterate(primal_sol)

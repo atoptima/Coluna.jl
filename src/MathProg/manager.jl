@@ -10,14 +10,17 @@ const VarVarMatrix = DynamicSparseArrays.DynamicSparseMatrix{VarId,VarId,Float64
 # Define the semaphore of the dynamic sparse matrix using MathProg.Id as index
 DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
 
+# The formulation manager is an internal data structure that contains & manager
+# all the elements which constitute a MILP formulation: variables, constraints,
+# objective constant (costs stored in variables), coefficient matrix, 
+# cut generators (that contain cut callbacks)...
 mutable struct FormulationManager
     vars::Dict{VarId, Variable}
     constrs::Dict{ConstrId, Constraint}
-    single_var_constrs::Dict{ConstrId, SingleVarConstraint}
-    single_var_constrs_per_var::Dict{VarId, Dict{ConstrId, SingleVarConstraint}} # ids of the constraint of type : single variable >= bound
+    single_var_constrs::Dict{SingleVarConstrId, SingleVarConstraint}
+    single_var_constrs_per_var::Dict{VarId, Dict{SingleVarConstrId, SingleVarConstraint}} # ids of the constraint of type : single variable >= bound
     objective_constant::Float64
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
-    # expressions::VarVarMatrix # cols = variables, rows = expressions (not implemented yet)
     primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables
     primal_sols_custom_data::Dict{VarId, BD.AbstractCustomData}
     primal_sol_costs::DynSparseVector{VarId} # primal solutions with varid map to their cost
@@ -34,11 +37,10 @@ function FormulationManager(; custom_families_id = Dict{BD.AbstractCustomData,In
     return FormulationManager(
         vars,
         constrs,
-        Dict{ConstrId, SingleVarConstraint}(),
-        Dict{VarId, Dict{ConstrId, SingleVarConstraint}}(),
+        Dict{SingleVarConstrId, SingleVarConstraint}(),
+        Dict{VarId, Dict{SingleVarConstrId, SingleVarConstraint}}(),
         0.0,
         dynamicsparse(ConstrId, VarId, Float64),
-        #dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         dynamicsparse(VarId, VarId, Float64; fill_mode = false),
         Dict{VarId,Any}(),
         dynamicsparsevec(VarId[], Float64[]),
@@ -50,6 +52,7 @@ function FormulationManager(; custom_families_id = Dict{BD.AbstractCustomData,In
     )
 end
 
+# Internal method to store a Variable in the formulation manager.
 function _addvar!(m::FormulationManager, var::Variable)
     if haskey(m.vars, var.id)
         error(string(
@@ -61,6 +64,8 @@ function _addvar!(m::FormulationManager, var::Variable)
     return
 end
 
+# Internal methods to store a Constraint or a SingleVarConstraint in the 
+# formulation manager.
 function _addconstr!(m::FormulationManager, constr::Constraint)
     if haskey(m.constrs, constr.id)
         error(string(

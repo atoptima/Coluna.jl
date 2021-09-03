@@ -501,6 +501,7 @@ function Base.delete!(form::Formulation, constr::Constraint)
     remove!(form.buffer, constrid)
     return
 end
+Base.delete!(form::Formulation, id::ConstrId) = delete!(form, getconstr(form, id))
 
 function Base.delete!(form::Formulation, constr::SingleVarConstraint)
     constrid = getid(constr)
@@ -508,14 +509,7 @@ function Base.delete!(form::Formulation, constr::SingleVarConstraint)
     delete!(form.manager.single_var_constrs_per_var[constr.varid], constrid)
     return
 end
-
-function Base.delete!(form::Formulation, id::ConstrId) 
-    constr = getconstr(form, id)
-    if constr === nothing
-        return delete!(form, getsinglevarconstr(form, id))
-    end
-    return delete!(form, constr)
-end
+Base.delete!(form::Formulation, id::SingleVarConstrId) = delete!(form, getconstr(form, id))
 
 ## explicit
 """
@@ -525,9 +519,9 @@ end
 Return `true` if a variable or a constraint is explicit in a formulation; `false` otherwise.
 """
 isexplicit(form::Formulation, varid::VarId) = isexplicit(form, getvar(form, varid))
-isexplicit(form::Formulation, var::Variable) = var.perendata.is_explicit
+isexplicit(::Formulation, var::Variable) = var.perendata.is_explicit
 isexplicit(form::Formulation, constrid::ConstrId) = isexplicit(form, getconstr(form, constrid))
-isexplicit(form::Formulation, constr::Constraint) = constr.perendata.is_explicit
+isexplicit(::Formulation, constr::Constraint) = constr.perendata.is_explicit
 
 ## name
 """
@@ -537,9 +531,9 @@ isexplicit(form::Formulation, constr::Constraint) = constr.perendata.is_explicit
 Return the name of a variable or a constraint in a formulation.
 """
 getname(form::Formulation, varid::VarId) = getvar(form, varid).name
-getname(form::Formulation, var::Variable) = var.name
+getname(::Formulation, var::Variable) = var.name
 getname(form::Formulation, constrid::ConstrId) = getconstr(form, constrid).name
-getname(form::Formulation, constr::Constraint) = constr.name
+getname(::Formulation, constr::Constraint) = constr.name
 
 ## branching_priority
 """
@@ -549,7 +543,7 @@ getname(form::Formulation, constr::Constraint) = constr.name
 Return the branching priority of a variable
 """
 getbranchingpriority(form::Formulation, varid::VarId) = getvar(form, varid).branching_priority
-getbranchingpriority(form::Formulation, var::Variable) = var.branching_priority
+getbranchingpriority(::Formulation, var::Variable) = var.branching_priority
 
 # Reset
 """

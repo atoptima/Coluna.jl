@@ -62,7 +62,8 @@ Create a dual solution to the formulation `form` of cost `cost` and status `stat
 The first representation of the dual solution is mandatory.
 It contains `constrids` the set of ids of the constraints and `constrvals` the values
 of the constraints (`constrvals[i]` is dual value of `constrids[i]`). 
-It also contains `varvals[i]` the dual values of the bound constraint `varactivebounds[i]` of the variables `varids`.
+It also contains `varvals[i]` the dual values of the bound constraint `varactivebounds[i]` of the variables `varids`
+(also known as the reduced cost).
 
 The user can also attach to the dual solution a customized representation 
 `custom_data`.
@@ -81,6 +82,8 @@ function DualSolution(
     return DualSolution{M}(sol, var_redcosts, custom_data)
 end
 
+get_var_redcosts(s::DualSolution) = s.var_redcosts
+
 # Redefine methods from ColunaBase to access the formulation, the value, the
 # status of a Solution, and other specific information
 ColunaBase.getmodel(s::AbstractSolution) = getmodel(s.solution)
@@ -88,6 +91,7 @@ ColunaBase.getvalue(s::AbstractSolution) = getvalue(s.solution)
 ColunaBase.getbound(s::AbstractSolution) = getbound(s.solution)
 ColunaBase.getstatus(s::AbstractSolution) = getstatus(s.solution)
 Base.length(s::AbstractSolution) = length(s.solution)
+Base.get(s::AbstractSolution, id, default) = Base.get(s.solution, id, default)
 Base.getindex(s::AbstractSolution, id) = Base.getindex(s.solution, id)
 Base.setindex!(s::AbstractSolution, val, id) = Base.setindex!(s.solution, val, id)
 
@@ -188,4 +192,15 @@ function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
         println(io, "| ", getname(getmodel(solution), varid), " = ", value)
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
+end
+
+# Following methods are needed by Benders
+# TODO : check if we can remove them during refactoring of Benders
+# not performant
+Base.haskey(s::AbstractSolution, key) = haskey(s.solution, key)
+# we can't filter the constraints, the variables, and the custom data.
+function Base.filter(f::Function, s::DualSolution)
+    return DualSolution(
+        filter(f, s.solution), s.var_redcosts, s.custom_data
+    )
 end

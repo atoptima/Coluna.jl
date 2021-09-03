@@ -1,6 +1,4 @@
-#
 # Duties for a Formulation
-#
 abstract type AbstractFormDuty end
 abstract type AbstractMasterDuty <: AbstractFormDuty end
 abstract type AbstractSpDuty <: AbstractFormDuty end
@@ -29,9 +27,7 @@ end
 
 BendersSp() = BendersSp(Dict{VarId, VarId}())
 
-#
 # Duties tree for a Variable
-#
 @exported_nestedenum begin
     Duty{Variable}
         AbstractOriginalVar <= Duty{Variable}
@@ -65,9 +61,7 @@ BendersSp() = BendersSp(Dict{VarId, VarId}())
             BendSpPrimalSol <= AbstractBendSpVar
 end
 
-#
 # Duties tree for a Constraint
-#
 @exported_nestedenum begin
     Duty{Constraint}
         AbstractOriginalConstr <= Duty{Constraint}
@@ -101,9 +95,7 @@ end
             BendSpDualSol <= AbstractBendSpConstr
 end
 
-#
 # Methods to get extra information about duties
-#
 function isaStaticDuty(duty::NestedEnum)
     return duty <= OriginalVar ||
     #duty <= OriginalExpression ||

@@ -68,7 +68,7 @@ function clonesinglevarconstr!(
         destform, name, constr.varid, duty;
         rhs = rhs, kind = kind, sense = sense, inc_val = inc_val,
         is_active = is_active,
-        id = ConstrId(duty, getid(constr), getuid(assignedform))
+        id = SingleVarConstrId(duty, getid(constr), getuid(assignedform))
     )
 end
 

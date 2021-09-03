@@ -27,11 +27,7 @@ ConstrData(cd::ConstrData) = ConstrData(
     cd.rhs, cd.kind, cd.sense, cd.inc_val, cd.is_active, cd.is_explicit
 )
 
-"""
-    MoiConstrRecord
-
-Structure to hold the pointers to the MOI representation of a Coluna Constraint.
-"""
+"Structure to hold the pointers to the MOI representation of a Coluna Constraint."
 mutable struct MoiConstrRecord
     index::MoiConstrIndex
 end
@@ -42,12 +38,12 @@ getindex(record::MoiConstrRecord) = record.index
 setindex!(record::MoiConstrRecord, index::MoiConstrIndex) = record.index = index
 
 """
-    Constraint
-
 Representation of a constraint in Coluna.
+Coefficients of variables involved in the constraints are stored in the coefficient matrix.
+If the constraint involves only one variable, you should use a `SingleVarConstraint`.
 """
 mutable struct Constraint <: AbstractVarConstr
-    id::Id{Constraint}
+    id::Id{Constraint,:usual}
     name::String
     perendata::ConstrData
     curdata::ConstrData
@@ -56,7 +52,7 @@ mutable struct Constraint <: AbstractVarConstr
     custom_data::Union{Nothing, BD.AbstractCustomData}
 end
 
-const ConstrId = Id{Constraint}
+const ConstrId = Id{Constraint,:usual}
 
 function Constraint(
     id::ConstrId, name::String;
@@ -69,20 +65,29 @@ function Constraint(
     )
 end
 
+"""
+Representation of a single variable constraint in Coluna : lb <= 1*var <= ub.
+For performance reasons, Coluna does not store these constraints in the coefficient matrix.
+"""
 mutable struct SingleVarConstraint <: AbstractVarConstr
-    id::ConstrId
+    id::Id{Constraint,:single}
     name::String
     varid::VarId
     perendata::ConstrData
     curdata::ConstrData
 end
 
+const SingleVarConstrId = Id{Constraint,:single}
+
 function SingleVarConstraint(
-    id::ConstrId, varid::VarId, name::String; constr_data = ConstrData()
+    id::SingleVarConstrId, varid::VarId, name::String; constr_data = ConstrData()
 )
     return SingleVarConstraint(id, name, varid, constr_data, ConstrData(constr_data))
 end
 
+"""
+Constraints generator (cut callback).
+"""
 mutable struct RobustConstraintsGenerator
     nb_generated::Int
     kind::ConstrKind

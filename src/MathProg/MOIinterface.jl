@@ -154,8 +154,7 @@ function add_to_optimizer!(
     return
 end
 
-function remove_from_optimizer!(form::Formulation, optimizer::MoiOptimizer, ids::Set{Id{T}}) where {
-    T <: AbstractVarConstr}
+function remove_from_optimizer!(form::Formulation, optimizer::MoiOptimizer, ids::Set{I}) where {I<:Id}
     for id in ids
         vc = getelem(form, id)
         @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(form, vc))

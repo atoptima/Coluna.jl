@@ -56,7 +56,7 @@ function update_sol_tests()
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 1.0
     update_lp_dual_sol!(state, DualSolution(
-        form, [getid(constr)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY
+        form, [getid(constr)], [0.0], VarId[], Float64[], ActiveBound[], 0.0, CB.UNKNOWN_FEASIBILITY
     ))
     # check that solution worse than `dualsol` is NOT added to `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1

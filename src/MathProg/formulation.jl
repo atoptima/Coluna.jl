@@ -66,17 +66,12 @@ getvar(form::Formulation, id::VarId) = get(form.manager.vars, id, nothing)
 
 """
     getconstr(formulation, constrid) -> Constraint
+    getconstr(formulation, singlevarconstrid) -> Constraint
 
 Returns the constraint with given `constrid` that belongs to `formulation`.
 """
 getconstr(form::Formulation, id::ConstrId) = get(form.manager.constrs, id, nothing)
-
-"""
-    getsinglevarconstr(formulation, constrid) -> Constraint
-
-Returns the single variable constraint with given `constrid` that belongs to `formulation`.
-"""
-getsinglevarconstr(form::Formulation, id::ConstrId) = get(form.manager.single_var_constrs, id, nothing)
+getconstr(form::Formulation, id::SingleVarConstrId) = get(form.manager.single_var_constrs, id, nothing)
 
 """
     getvars(formulation) -> Dict{VarId, Variable}
@@ -97,12 +92,14 @@ getconstrs(form::Formulation) = form.manager.constrs
 
 Returns all single variable constraints in `formulation`.
 
-    getsinglevarconstrs(formulation, varid) -> Dict{ConstrId, SingleVarConstr} or nothing
+    getsinglevarconstrs(formulation, varid) -> Dict{ConstrId, SingleVarConstraint} or nothing
 
 Return all single variable constraints of a formulation that applies to a given variable.
 """
 getsinglevarconstrs(form::Formulation) = form.manager.single_var_constrs
-getsinglevarconstrs(form::Formulation, varid::VarId) = get(form.manager.single_var_constrs_per_var, varid, Dict{ConstrId, SingleVarConstraint}()) 
+getsinglevarconstrs(form::Formulation, varid::VarId) = get(
+    form.manager.single_var_constrs_per_var, varid, Dict{ConstrId, SingleVarConstraint}()
+) 
 
 "Returns objective constant of the formulation."
 getobjconst(form::Formulation) = form.manager.objective_constant
@@ -139,15 +136,28 @@ end
 "Returns all the optimizers of a formulation."
 getoptimizers(form::Formulation) = form.optimizers
 
+"""
+    getelem(form, varid) -> Variable
+    getelem(form, constrid) -> Constraint
+    getelem(form, singlevarconstrid) -> SingleVarConstraint
 
+Return the element of formulation `form` that has a given id.
+"""
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
+getelem(form::Formulation, id::SingleVarConstrId) = getconstr(form, id)
 
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1)
-generatevarid(
-    duty::Duty{Variable}, form::Formulation, custom_family_id::Int
-) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id)
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
+generatevarid(duty::Duty{Variable}, form::Formulation) = 
+    VarId(duty, form.var_counter += 1, getuid(form), -1)
+
+generatevarid(duty::Duty{Variable}, form::Formulation, custom_family_id::Int) =
+    VarId(duty, form.var_counter += 1, getuid(form), custom_family_id)
+
+generateconstrid(duty::Duty{Constraint}, form::Formulation) = 
+    ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
+
+generatesinglevarconstrid(duty::Duty{Constraint}, form::Formulation) = 
+    SingleVarConstrId(duty, form.constr_counter += 1, getuid(form), -1)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -285,7 +295,7 @@ function _adddualsol!(form::Formulation, dualsol::DualSolution, dualsol_id::Cons
             form.manager.dual_sols[constrid, dualsol_id] = constrval
         end
     end
-    for (varid, varval) in dualsol.supp_data
+    for (varid, varval) in get_var_redcosts(dualsol)
         redcost, activebound = varval
         bound = activebound == LOWER ? getcurlb(form, varid) : getcurub(form, varid)
         rhs += bound * redcost
@@ -321,7 +331,7 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
 
         cur_dual_sol_varbounds = @view dual_sols_varbounds[:,cur_sol_id]
         for (var_id, var_val) in cur_dual_sol_varbounds
-            if factor * new_dual_sol.supp_data[var_id][1] != var_val[1] || new_dual_sol.supp_data[var_id][2] != var_val[2]
+            if factor * get_var_redcosts(new_dual_sol)[var_id][1] != var_val[1] || get_var_redcosts(new_dual_sol)[var_id][2] != var_val[2]
                 is_identical = false
                 break
             end
@@ -521,7 +531,7 @@ function setsinglevarconstr!(
     sense::ConstrSense = Greater,
     inc_val::Float64 = 0.0,
     is_active::Bool = true,
-    id = generateconstrid(duty, form)
+    id = generatesinglevarconstrid(duty, form)
 )
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, true)
     constr = SingleVarConstraint(id, varid, name; constr_data = c_data)
@@ -722,7 +732,7 @@ end
 
 function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)
     val = 0.0
-    for (varid, coeff) in @view getcoefmatrix(primalsol.model)[constrid, :]
+    for (varid, coeff) in @view getcoefmatrix(getmodel(primalsol))[constrid, :]
         val += coeff * primalsol[varid]
     end
     return val

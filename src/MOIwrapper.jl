@@ -23,7 +23,7 @@ struct BoundConstraints
     eq::Union{Nothing,SingleVarConstraint}
 end
 
-setname!(bc, set_type, name) = nothing
+setname!(bc, set_type, name) = nothing # Fallback
 setname!(bc, ::Type{<:MOI.ZeroOne}, name) = bc.lower.name = bc.upper.name = name
 setname!(bc, ::Type{<:MOI.GreaterThan}, name) = bc.lower.name = name
 setname!(bc, ::Type{<:MOI.LessThan}, name) = bc.upper.name = name
@@ -45,15 +45,11 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     inner::Problem
     objective_type::ObjectiveType
     annotations::Annotations
-    #varmap::Dict{MOI.VariableIndex,VarId} # For the user to get VariablePrimal
     vars::CleverDicts.CleverDict{MOI.VariableIndex, Variable}
-    #varids::CleverDicts.CleverDict{MOI.VariableIndex, VarId}
     moi_varids::Dict{VarId, MOI.VariableIndex}
     names_to_vars::Dict{String, MOI.VariableIndex}
     constrs::Dict{MOI.ConstraintIndex, Constraint}
     constrs_on_single_var::Dict{MOI.ConstraintIndex, BoundConstraints}
-    # constrs_on_single_var_to_vars::Dict{MOI.ConstraintIndex, VarId}
-    # constrs_on_single_var_to_names::Dict{MOI.ConstraintIndex, String}
     names_to_constrs::Dict{String, MOI.ConstraintIndex}
     result::OptimizationState
     disagg_result::Union{Nothing, OptimizationState}
@@ -67,13 +63,10 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.inner = Problem(model.env)
         model.annotations = Annotations()
         model.vars = CleverDicts.CleverDict{MOI.VariableIndex, Variable}()
-        #model.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}() # TODO : check if necessary to have two dicts for variables
         model.moi_varids = Dict{VarId, MOI.VariableIndex}()
         model.names_to_vars = Dict{String, MOI.VariableIndex}()
         model.constrs = Dict{MOI.ConstraintIndex, Constraint}()
         model.constrs_on_single_var = Dict{MOI.ConstraintIndex, BoundConstraints}()
-        # model.constrs_on_single_var_to_vars = Dict{MOI.ConstraintIndex, VarId}()
-        # model.constrs_on_single_var_to_names = Dict{MOI.ConstraintIndex, String}()
         model.names_to_constrs = Dict{String, MOI.ConstraintIndex}()
         model.result = OptimizationState(get_optimization_target(model.inner))
         model.disagg_result = nothing
@@ -322,9 +315,6 @@ function MOI.delete(
         coefmatrix[constrid, varid] = 0.0
     end
     delete!(orig_form, constrid)
-# =======
-#     delete!(get_original_formulation(model.inner), getid(model.constrs[ci]))
-# >>>>>>> master
     delete!(model.constrs, ci)
     return
 end
@@ -966,7 +956,7 @@ function MOI.get(
 end
 
 function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.GreaterThan})
-    value, activebound = get(dualsol.supp_data, bc.varid, (0.0, MathProg.LOWER))
+    value, activebound = get(get_var_redcosts(dualsol), bc.varid, (0.0, MathProg.LOWER))
     if value != 0.0 && activebound != MathProg.LOWER
         return 0.0
     end
@@ -974,7 +964,7 @@ function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.GreaterThan})
 end
 
 function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.LessThan})
-    value, activebound = get(dualsol.supp_data, bc.varid, (0.0, MathProg.UPPER))
+    value, activebound = get(get_var_redcosts(dualsol), bc.varid, (0.0, MathProg.UPPER))
     if value != 0.0 && activebound != MathProg.UPPER
         return 0.0
     end
@@ -982,7 +972,7 @@ function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.LessThan})
 end
 
 function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.EqualTo})
-    value, _ = get(dualsol.supp_data, bc.varid, (0.0, MathProg.LOWER))
+    value, _ = get(get_var_redcosts(dualsol), bc.varid, (0.0, MathProg.LOWER))
     return value
 end
 

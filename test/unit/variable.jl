@@ -33,7 +33,7 @@ function variable_getters_and_setters_tests()
     )
 
     v = ClF.Variable(
-        ClF.Id{ClF.Variable}(ClF.MasterPureVar, 23, 10, false), "fake_var";
+        ClF.VarId(ClF.MasterPureVar, 23, 10, false), "fake_var";
         var_data = v_data
     )
 
