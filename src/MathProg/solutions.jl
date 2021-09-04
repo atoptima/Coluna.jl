@@ -119,29 +119,28 @@ function Base.isless(s1::DualSolution, s2::DualSolution)
     return s1.solution.bound > s2.solution.bound
 end
 
-function contains(sol::PrimalSolution, f::Function)
-    for (varid, _) in sol
-        f(varid) && return true
+function contains(sol::AbstractSolution, f::Function)
+    for (elemid, _) in sol
+        f(elemid) && return true
     end
     return false
 end
 
-function contains(sol::DualSolution, f::Function)
-    for (constrid, _) in sol
-        f(constrid) && return true
-    end
-    return false
-end
-
-function _assert_same_model(sols::NTuple{N, S}) where {N,S<:AbstractSolution}
+function _sols_from_same_model(sols::NTuple{N, S}) where {N,S<:AbstractSolution}
     for i in 2:length(sols)
         getmodel(sols[i-1]) != getmodel(sols[i]) && return false
     end
     return true
 end
 
+# Method `cat` is not implemented for a set of DualSolutions because @guimarqu don't know 
+# how to concatenate var red cost of a variable if both bounds are active in different 
+# solutions and because we don't need it for now.
 function Base.cat(sols::PrimalSolution...)
-    _assert_same_model(sols) || error("Cannot concatenate solutions not attached to the same model.")
+    if !_sols_from_same_model(sols)
+        error("Cannot concatenate solutions not attached to the same model.")
+    end
+
     ids = VarId[]
     vals = Float64[]
     for sol in sols, (id, value) in sol
@@ -150,23 +149,6 @@ function Base.cat(sols::PrimalSolution...)
     end
     return PrimalSolution(
         getmodel(sols[1]), ids, vals, sum(getvalue.(sols)), getstatus(sols[1])
-    )
-end
-
-function Base.cat(sols::DualSolution...)
-    _assert_same_model(sols) || error("Cannot concatenate solutions not attached to the same model.")
-    ids = ConstrId[]
-    vals = Float64[]
-    for sol in sols, (id, value) in sol
-        push!(ids, id)
-        push!(vals, value)
-    end
-
-    # TODO : varids, varvals, activebounds
-
-    return DualSolution(
-        getmodel(sols[1]), ids, VarId[], Float64[], ActiveBound[], vals, 
-        sum(getvalue.(sols)), getstatus(sols[1])
     )
 end
 
