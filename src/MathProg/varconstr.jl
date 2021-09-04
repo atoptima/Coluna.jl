@@ -213,11 +213,10 @@ Kinds of a constraint (`enum ConstrKind`) are :
 The kind of a constraint cannot change.
 """
 getperenkind(form::Formulation, varid::VarId) = getperenkind(form, getvar(form, varid))
-getperenkind(form::Formulation, var::Variable) = var.perendata.kind
+getperenkind(::Formulation, var::Variable) = var.perendata.kind
 getperenkind(form::Formulation, constrid::ConstrId) = getperenkind(form, getconstr(form, constrid))
-getperenkind(form::Formulation, constr::Constraint) = constr.perendata.kind
 getperenkind(form::Formulation, constrid::SingleVarConstrId) = getperenkind(form, getconstr(form, constrid))
-getperenkind(form::Formulation, constr::SingleVarConstraint) = constr.perendata.kind
+getperenkind(::Formulation, constr::AbstractConstraint) = constr.perendata.kind
 
 """
     getcurkind(formulation, variable)
@@ -226,7 +225,7 @@ getperenkind(form::Formulation, constr::SingleVarConstraint) = constr.perendata.
 Return the current kind of a variable in a formulation.
 """
 getcurkind(form::Formulation, varid::VarId) = getcurkind(form, getvar(form, varid))
-getcurkind(form::Formulation, var::Variable) = var.curdata.kind
+getcurkind(::Formulation, var::Variable) = var.curdata.kind
 
 """
     setperenkind!(formulation, variable, kind)
