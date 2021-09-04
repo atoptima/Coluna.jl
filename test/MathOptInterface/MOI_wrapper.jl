@@ -110,42 +110,42 @@ end
     @test JuMP.objective_value(model) == 2.0
 end
 
-@testset "Multiple single variable constraints" begin
-    coluna = optimizer_with_attributes(
-        Coluna.Optimizer,
-        "params" => Coluna.Params(
-            solver=Coluna.Algorithm.TreeSearchAlgorithm()
-        ),
-        "default_optimizer" => GLPK.Optimizer
-    )
+# @testset "Multiple single variable constraints" begin
+#     coluna = optimizer_with_attributes(
+#         Coluna.Optimizer,
+#         "params" => Coluna.Params(
+#             solver=Coluna.Algorithm.TreeSearchAlgorithm()
+#         ),
+#         "default_optimizer" => GLPK.Optimizer
+#     )
 
-    @axis(M, 1:1)
-    J = 1:1
+#     @axis(M, 1:1)
+#     J = 1:1
 
-    model = BlockModel(coluna)
-    @variable(model, x[m in M, j in J])
-    @constraint(model, c1[m in M], 1 <= x[m,1] <= 2)
-    @constraint(model, c2[m in M], x[m,1] >= 1.2)
-    @constraint(model, c3[m in M], x[m,1] <= 1.8)
-    @constraint(model, c4[m in M], x[m,1] <= 1.7)
-    @constraint(model, c5[m in M], x[m,1] == 1.6)
-    @objective(model, Max, sum(x[m,j] for m in M, j in J))
+#     model = BlockModel(coluna)
+#     @variable(model, x[m in M, j in J])
+#     @constraint(model, c1[m in M], 1 <= x[m,1] <= 2)
+#     @constraint(model, c2[m in M], x[m,1] >= 1.2)
+#     @constraint(model, c3[m in M], x[m,1] <= 1.8)
+#     @constraint(model, c4[m in M], x[m,1] <= 1.7)
+#     @constraint(model, c5[m in M], x[m,1] == 1.6)
+#     @objective(model, Max, sum(x[m,j] for m in M, j in J))
 
-    @dantzig_wolfe_decomposition(model, decomposition, M)
+#     @dantzig_wolfe_decomposition(model, decomposition, M)
 
-    optimize!(model)
-    @test JuMP.objective_value(model) == 1.6
+#     optimize!(model)
+#     @test JuMP.objective_value(model) == 1.6
 
-    delete(model, c5[M[1]])
-    unregister(model, :c5)
-    optimize!(model)
-    @test JuMP.objective_value(model) == 1.7
+#     delete(model, c5[M[1]])
+#     unregister(model, :c5)
+#     optimize!(model)
+#     @test JuMP.objective_value(model) == 1.7
 
-    delete(model, c4[M[1]])
-    unregister(model, :c4)
-    optimize!(model)
-    @test JuMP.objective_value(model) == 1.8
-end
+#     delete(model, c4[M[1]])
+#     unregister(model, :c4)
+#     optimize!(model)
+#     @test JuMP.objective_value(model) == 1.8
+# end
 
 const UNSUPPORTED_TESTS = [
     "solve_qcp_edge_cases", # Quadratic constraints not supported
