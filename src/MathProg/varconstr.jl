@@ -1,6 +1,19 @@
+
+# There are two levels of data for each element of a formulation (i.e. variables and 
+# constraints).
+# The first level is called "peren" (for perennial). It contains data that won't change for
+# almost all the optimisation (e.g. the original cost of a variable, the original sense of 
+# constraint...). Coluna provides methods to set these data because it can ease the setup
+# of a formulation. Algorithm designers are free to use these method at their own risk.
+# The second level is called "cur" (for current). It describes the current state of each
+# element of the formulation.
+
 getid(vc::AbstractVarConstr) = vc.id
-getmoirecord(vc::AbstractVarConstr) = vc.moirecord
 getoriginformuid(vc::AbstractVarConstr) = getoriginformuid(getid(vc))
+
+# no moi record for a single variable constraint
+getmoirecord(vc::Variable) = vc.moirecord
+getmoirecord(vc::Constraint) = vc.moirecord
 
 # Variables
 ## Cost
@@ -288,7 +301,7 @@ getperensense(::Formulation, constr::AbstractConstraint) = constr.perendata.sens
 Return the current sense of a variable or a constraint in a formulation.
 The current sense of a variable depends on its current bounds.
 """
-getcursense(form::Formulation, varid::VarId) = getcursense(form, getconstr(form, varid))
+getcursense(form::Formulation, varid::VarId) = getcursense(form, getvar(form, varid))
 getcursense(form::Formulation, var::Variable) = _senseofvar(getcurlb(form, var), getcurub(form, var))
 getcursense(form::Formulation, constrid::ConstrId) = getcursense(form, getconstr(form, constrid))
 getcursense(form::Formulation, constrid::SingleVarConstrId) = getcursense(form, getconstr(form, constrid))
@@ -300,12 +313,20 @@ getcursense(::Formulation, constr::AbstractConstraint) = constr.curdata.sense
 
 Set the perennial sense of a constraint in a formulation.
 Change is propagated to the current sense of the constraint.
+
+**Warning** : if you set the sense of a single var constraint, make sure you perform bound
+propagation before calling the subsolver of the formulation.
 """
-function setperensense!(form::Formulation, constr::Constraint, sense::ConstrSense)
+function setperensense!(form::Formulation, constr::AbstractConstraint, sense::ConstrSense)
     constr.perendata.sense = sense
     return setcursense!(form, constr, sense)
 end
-setperensense!(form::Formulation, constrid::ConstrId, sense::ConstrSense) = setperensense!(form, getconstr(form, constrid), sense)
+
+setperensense!(form::Formulation, constrid::ConstrId, sense::ConstrSense) =
+    setperensense!(form, getconstr(form, constrid), sense)
+
+setperensense!(form::Formulation, constrid::SingleVarConstrId, sense::ConstrSense) =
+    setperensense!(form, getconstr(form, constrid), sense)
 
 """
     setcursense!(formulation, constr, sense::ConstrSense)
@@ -576,7 +597,7 @@ Return the branching priority of a variable
 getbranchingpriority(form::Formulation, varid::VarId) = getvar(form, varid).branching_priority
 getbranchingpriority(::Formulation, var::Variable) = var.branching_priority
 
-# Reset (this method is used only in tests... I don't if we should keep it)
+# Reset (this method is used only in tests... @guimarqu doesn't know if we should keep it)
 """
     reset!(form, var)
     reset!(form, varid)

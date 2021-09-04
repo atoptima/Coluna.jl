@@ -577,6 +577,8 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
     # Update the bounds of the original formulation before reformulating
     MathProg.bounds_propagation!(origform)
 
+    @show origform
+
     decomposition_tree = annotations.tree
     if decomposition_tree !== nothing
         check_annotations(prob, annotations)
@@ -585,6 +587,13 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
         relax_integrality!(getmaster(reform))
+        println("\e[1;45m ********** \e[00m")
+        @show getmaster(reform)
+        for (spid, sp) in get_dw_pricing_sps(reform)
+            println("\e[1;45m ********** \e[00m")
+            @show sp
+        end
+        println("\e[1;45m ********** \e[00m")
     else # No decomposition provided by BlockDecomposition
         push_optimizer!(
             prob.original_formulation,
