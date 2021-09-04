@@ -88,6 +88,7 @@ mutable struct TreeSearchRuntimeData{Sense}
     Sense::Type{<:Coluna.AbstractSense}
     conquer_units_to_restore::UnitsUsage
     worst_db_of_pruned_node::DualBound{Sense}
+    worst_dual_sol_of_pruned_node::Union{Nothing,DualSolution}
 end
 
 function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)
@@ -105,7 +106,7 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation,
     tsdata = TreeSearchRuntimeData{Sense}(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()),
         1, treestate, exploitsprimalsols, Sense, conquer_units_to_restore,
-        -DualBound{Sense}()
+        -DualBound{Sense}(), nothing
     )
     master = getmaster(reform)
     push!(tsdata, RootNode(master, getoptstate(input), store_records!(reform), algo.skiprootnodeconquer))
@@ -263,7 +264,12 @@ function run_conquer_algorithm!(
     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
     if algo.storelpsolution && isrootnode(node) && best_lp_primal_sol !== nothing
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
-    end 
+    end
+
+    best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
+    if best_lp_dual_sol !== nothing
+        set_lp_dual_sol!(treestate, best_lp_dual_sol)
+    end
     return
 end
 
@@ -301,23 +307,32 @@ end
 function updatedualbound!(data::TreeSearchRuntimeData)
     treestate = getoptstate(data)
     bound_value = getvalue(get_ip_primal_bound(treestate))
-    worst_bound = DualBound{data.Sense}(bound_value)  
-    for (node, priority) in getnodes(data.primary_tree)
+    worst_bound = DualBound{data.Sense}(bound_value)
+    worst_sol = get_best_lp_dual_sol(treestate)
+    for (node, _) in getnodes(data.primary_tree)
         db = get_ip_dual_bound(getoptstate(node))
+        sol = get_best_lp_dual_sol(getoptstate(node))
         if isbetter(worst_bound, db)
             worst_bound = db
+            worst_sol = sol
         end
     end
-    for (node, priority) in getnodes(data.secondary_tree)
+    for (node, _) in getnodes(data.secondary_tree)
         db = get_ip_dual_bound(getoptstate(node))
+        sol = get_best_lp_dual_sol(getoptstate(sol))
         if isbetter(worst_bound, db)
             worst_bound = db
+            worst_sol = sol
         end
     end
     if isbetter(worst_bound, data.worst_db_of_pruned_node)
         worst_bound = data.worst_db_of_pruned_node
+        worst_sol = data.worst_dual_sol_of_pruned_node
     end
     set_ip_dual_bound!(treestate, worst_bound)
+    if worst_sol !== nothing
+        set_lp_dual_sol!(treestate, worst_sol)
+    end
     return
 end
 
@@ -342,6 +357,7 @@ function run!(
             db = get_ip_dual_bound(node.optstate)
             if isbetter(tsdata.worst_db_of_pruned_node, db)
                 tsdata.worst_db_of_pruned_node = db
+                tsdata.worst_dual_sol_of_pruned_node = get_best_lp_dual_sol(node.optstate)
             end
         elseif nodestatus != TIME_LIMIT
             run_divide_algorithm!(algo, env, tsdata, reform, node)

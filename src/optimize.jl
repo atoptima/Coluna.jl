@@ -43,7 +43,7 @@ function optimize!(env::Env, prob::MathProg.Problem, annotations::Annotations)
 
     # Apply decomposition
     reformulate!(prob, annotations, env)
-    
+
     # Coluna ready to start
     set_optim_start_time!(env)
     @logmsg LogLevel(-1) "Coluna ready to start."
@@ -79,7 +79,7 @@ function optimize!(
 
     algorithm = env.params.solver
 
-    #this will initialize all the units used by the algorithm and its child algorithms
+    # initialize all the units used by the algorithm and its child algorithms
     Algorithm.initialize_storage_units!(reform, algorithm)
 
     output = Algorithm.run!(algorithm, env, reform, Algorithm.OptimizationInput(initstate))
@@ -108,6 +108,13 @@ function optimize!(
     lp_primal_sol = get_best_lp_primal_sol(algstate)
     if lp_primal_sol !== nothing
         add_lp_primal_sol!(outstate, proj_cols_on_rep(lp_primal_sol, master))
+    end
+
+    # lp_dual_sol to retrieve, for instance, the dual value of generated cuts
+    # TODO: how to project the master dual solution on the original formulation ?
+    lp_dual_sol = get_best_lp_dual_sol(algstate)
+    if lp_dual_sol !== nothing
+        add_lp_dual_sol!(outstate, lp_dual_sol)
     end
 
     return outstate, algstate
