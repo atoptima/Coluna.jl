@@ -23,7 +23,7 @@ end
 function node_finalizer_tests()
 
     function build_toy_model(optimizer)
-        toy = BlockModel(optimizer)
+        toy = BlockModel(optimizer, direct_model = true)
         I = [1, 2, 3]
         @axis(B, [1])
         @variable(toy, y[b in B] >= 0, Int)
@@ -115,22 +115,32 @@ function node_finalizer_tests()
 
             # Add the columns that are possibly missing for the solution [[1], [2,3]] in the master problem
             # [1]
-            opt = JuMP.backend(model).optimizer.model
+            opt = JuMP.backend(model)
             vars = [y[b], x[b, 1]]
             varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
-            sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-            _, sol_id = ClMP.setprimalsol!(cbdata.form, sol)
-            mc_1 = ClMP.setcol_from_sp_primalsol!(
-                masterform, cbdata.form, sol_id, string("MC_", ClA.getsortuid(sol_id)), ClMP.MasterCol
-            )
+            push!(varids, cbdata.form.duty_data.setup_var)
+            sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
+            var_was_inserted, sol_id = ClMP.setprimalsol!(cbdata.form, sol)
+            if var_was_inserted
+                mc_1 = ClMP.setcol_from_sp_primalsol!(
+                    masterform, cbdata.form, sol_id, string("MC_", ClA.getsortuid(sol_id)), ClMP.MasterCol
+                )
+            else
+                mc_1 = ClMP.getvar(masterform, sol_id)
+            end
             # [2, 3]
             vars = [y[b], x[b, 2], x[b, 3]]
             varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
-            sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-            _, sol_id = ClMP.setprimalsol!(cbdata.form, sol)
-            mc_2_3 = ClMP.setcol_from_sp_primalsol!(
-                masterform, cbdata.form, sol_id, string("MC_", ClA.getsortuid(sol_id)), ClMP.MasterCol
-            )
+            push!(varids, cbdata.form.duty_data.setup_var)
+            sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
+            var_was_inserted, sol_id = ClMP.setprimalsol!(cbdata.form, sol)
+            if var_was_inserted
+                mc_2_3 = ClMP.setcol_from_sp_primalsol!(
+                    masterform, cbdata.form, sol_id, string("MC_", ClA.getsortuid(sol_id)), ClMP.MasterCol
+                )
+            else
+                mc_2_3 = ClMP.getvar(masterform, sol_id)
+            end
 
             # add the solution to the master problem
             varids = [ClMP.getid(mc_1), ClMP.getid(mc_2_3)]
