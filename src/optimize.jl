@@ -111,7 +111,6 @@ function optimize!(
     end
 
     # lp_dual_sol to retrieve, for instance, the dual value of generated cuts
-    # TODO: how to project the master dual solution on the original formulation ?
     lp_dual_sol = get_best_lp_dual_sol(algstate)
     if lp_dual_sol !== nothing
         add_lp_dual_sol!(outstate, lp_dual_sol)
