@@ -326,9 +326,10 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                         end
                     end
                 end
-                dual_bound = DualBound(reform, getvalue(best_primal_bound))
+
+                # make sure that the gap is closed for the current node
+                dual_bound = DualBound(reform, getvalue(get_ip_primal_bound(nodestate)))
                 update_ip_dual_bound!(nodestate, dual_bound)
-                setterminationstatus!(nodestate, status)
             else
                 if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                     # we start with worst solution to add all improving solutions
