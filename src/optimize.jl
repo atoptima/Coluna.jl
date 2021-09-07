@@ -116,6 +116,10 @@ function optimize!(
         add_lp_dual_sol!(outstate, lp_dual_sol)
     end
 
+    # It returns two optimisation states.
+    # The first one contains the solutions projected on the original formulation.
+    # The second one contains the solutions to the master formulation so the user can
+    # retrieve the disagreggated solution.
     return outstate, algstate
 end
 
