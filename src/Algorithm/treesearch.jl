@@ -260,14 +260,15 @@ function run_conquer_algorithm!(
     )        
 
     add_ip_primal_sols!(treestate, get_ip_primal_sols(nodestate)...)
-    
+
+    # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node
     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
     if algo.storelpsolution && isrootnode(node) && best_lp_primal_sol !== nothing
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
     end
 
     best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
-    if best_lp_dual_sol !== nothing
+    if isrootnode(node) && best_lp_dual_sol !== nothing
         set_lp_dual_sol!(treestate, best_lp_dual_sol)
     end
     return
@@ -289,7 +290,7 @@ function run_divide_algorithm!(
 
     first_child_with_runconquer = true
     for child in children
-        if (child.conquerwasrun)
+        if child.conquerwasrun
             set_tree_order!(child, tsdata.tree_order)
             tsdata.tree_order += 1
             if first_child_with_runconquer
@@ -357,15 +358,6 @@ function run!(
         end
 
         updatedualbound!(tsdata)
-
-        # TreeSearchAlgorithm returns the dual solution found at the root node
-        # of the branching tree.
-        if get_tree_order(tsdata) == 1
-            sol = get_best_lp_dual_sol(node.optstate)
-            if sol !== nothing
-                set_lp_dual_sol!(tsdata.optstate, sol)
-            end
-        end
 
         remove_records!(node.recordids)
         # we delete solutions from the node optimization state, as they are not needed anymore
