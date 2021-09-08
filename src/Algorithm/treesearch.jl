@@ -75,19 +75,15 @@ push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getnodevalue
 popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
 nb_open_nodes(tree::SearchTree) = length(tree.nodes)
 
-"""
-Data used by the tree search algorithm while running. Destroyed after each run.     
-"""
-mutable struct TreeSearchRuntimeData{Sense}
+"Data used by the tree search algorithm while running. Destroyed after each run."
+mutable struct TreeSearchRuntimeData
     primary_tree::SearchTree
     max_primary_tree_size::Int64
     secondary_tree::SearchTree
     tree_order::Int64
     optstate::OptimizationState
     exploitsprimalsolutions::Bool
-    Sense::Type{<:Coluna.AbstractSense}
     conquer_units_to_restore::UnitsUsage
-    worst_db_of_pruned_node::DualBound{Sense}
 end
 
 function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)
@@ -100,12 +96,9 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation,
     collect_units_to_restore!(conquer_units_to_restore, algo.conqueralg, reform) 
     # divide algorithms are always manager algorithms, so we do not need to restore storage units for them
 
-    Sense = getobjsense(reform)
-
-    tsdata = TreeSearchRuntimeData{Sense}(
+    tsdata = TreeSearchRuntimeData(
         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()),
-        1, treestate, exploitsprimalsols, Sense, conquer_units_to_restore,
-        -DualBound{Sense}()
+        1, treestate, exploitsprimalsols, conquer_units_to_restore
     )
     master = getmaster(reform)
     push!(tsdata, RootNode(master, getoptstate(input), store_records!(reform), algo.skiprootnodeconquer))
@@ -133,6 +126,7 @@ end
 function nb_open_nodes(data::TreeSearchRuntimeData)
     return nb_open_nodes(data.primary_tree) + nb_open_nodes(data.secondary_tree)
 end
+
 get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
 getoptstate(data::TreeSearchRuntimeData) = data.optstate
 
@@ -259,11 +253,17 @@ function run_conquer_algorithm!(
     )        
 
     add_ip_primal_sols!(treestate, get_ip_primal_sols(nodestate)...)
-    
+
+    # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node
     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
     if algo.storelpsolution && isrootnode(node) && best_lp_primal_sol !== nothing
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
-    end 
+    end
+
+    best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
+    if isrootnode(node) && best_lp_dual_sol !== nothing
+        set_lp_dual_sol!(treestate, best_lp_dual_sol)
+    end
     return
 end
 
@@ -283,7 +283,7 @@ function run_divide_algorithm!(
 
     first_child_with_runconquer = true
     for child in children
-        if (child.conquerwasrun)
+        if child.conquerwasrun
             set_tree_order!(child, tsdata.tree_order)
             tsdata.tree_order += 1
             if first_child_with_runconquer
@@ -298,25 +298,23 @@ function run_divide_algorithm!(
     return
 end
 
-function updatedualbound!(data::TreeSearchRuntimeData)
+function updatedualbound!(data::TreeSearchRuntimeData, reform::Reformulation)
     treestate = getoptstate(data)
-    bound_value = getvalue(get_ip_primal_bound(treestate))
-    worst_bound = DualBound{data.Sense}(bound_value)  
-    for (node, priority) in getnodes(data.primary_tree)
+    worst_bound = DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
+    for (node, _) in getnodes(data.primary_tree)
         db = get_ip_dual_bound(getoptstate(node))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
-    for (node, priority) in getnodes(data.secondary_tree)
+
+    for (node, _) in getnodes(data.secondary_tree)
         db = get_ip_dual_bound(getoptstate(node))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
-    if isbetter(worst_bound, data.worst_db_of_pruned_node)
-        worst_bound = data.worst_db_of_pruned_node
-    end
+
     set_ip_dual_bound!(treestate, worst_bound)
     return
 end
@@ -334,20 +332,16 @@ function run!(
         # dual bound of the optstate only at the root node.
         run_conquer_algorithm!(algo, env, tsdata, reform, node)
         print_node_in_branching_tree_file(algo, env, tsdata, node)
-               
+
         nodestatus = getterminationstatus(node.optstate)
         if nodestatus == OPTIMAL || nodestatus == INFEASIBLE ||
            ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)             
             println("Node is already conquered. No children will be generated.")
-            db = get_ip_dual_bound(node.optstate)
-            if isbetter(tsdata.worst_db_of_pruned_node, db)
-                tsdata.worst_db_of_pruned_node = db
-            end
         elseif nodestatus != TIME_LIMIT
             run_divide_algorithm!(algo, env, tsdata, reform, node)
         end
 
-        updatedualbound!(tsdata)
+        updatedualbound!(tsdata, reform)
 
         remove_records!(node.recordids)
         # we delete solutions from the node optimization state, as they are not needed anymore
