@@ -4,8 +4,6 @@ todo
 @with_kw struct CutCallbacks <: AbstractAlgorithm
     call_robust_facultative = true
     call_robust_essential = true
-    #call_nonrobust_facultative = false
-    #call_nonrobust_core = false
     tol = 1e-6
 end
 

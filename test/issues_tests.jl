@@ -404,6 +404,53 @@ function simple_benders()
     @test objective_value(model) == 1.0
 end
 
+# See https://github.com/atoptima/Coluna.jl/issues/591
+function get_dual_of_generated_cuts()
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => Coluna.Params(
+            solver=Coluna.Algorithm.TreeSearchAlgorithm(),
+        ),
+        "default_optimizer" => GLPK.Optimizer 
+    );
+
+    model = BlockModel(coluna, direct_model=true)
+
+    @axis(I, 1:7)
+
+    @variable(model, 0<= x[i in I] <= 1) # subproblem variables & constraints
+    @variable(model, y[1:2] >= 0) # master
+    @variable(model, u >=0) # master
+
+    @constraint(model, xCon, sum(x[i] for i = I) <= 1)
+    @constraint(model, yCon, sum(y[i] for i = 1:2) == 1)
+    @constraint(model, initCon1, u >= 0.9*y[1] + y[2] - x[1] - x[2] - x[3])
+    @constraint(model, initCon2, u >= y[1] + y[2] - x[7])
+
+    @objective(model, Min, u)
+
+    callback_called = false
+    constrid = nothing
+    function my_callback_function(cbdata)
+        if !callback_called
+            con = @build_constraint(u >= y[1] + 0.9*y[2] - x[5] - x[6])
+            constrid = MOI.submit(model, MOI.LazyConstraint(cbdata), con)
+            callback_called = true
+        end
+        return
+    end
+
+    MOI.set(model, MOI.LazyConstraintCallback(), my_callback_function)
+
+    @dantzig_wolfe_decomposition(model, dec, I)
+
+    optimize!(model)
+
+    @test objective_value(model) ≈ 0.63333333
+    @test MOI.get(JuMP.unsafe_backend(model), MOI.ConstraintDual(), constrid) ≈ 0.33333333
+    return
+end
+
 function test_issues_fixed()
     @testset "no_decomposition" begin
         solve_with_no_decomposition()
@@ -443,5 +490,9 @@ function test_issues_fixed()
 
     @testset "simple benders decomposition" begin
         simple_benders()
+    end
+
+    @testset "dual of generated cuts" begin
+        get_dual_of_generated_cuts()
     end
 end

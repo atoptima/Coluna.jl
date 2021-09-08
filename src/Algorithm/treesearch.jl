@@ -126,6 +126,7 @@ end
 function nb_open_nodes(data::TreeSearchRuntimeData)
     return nb_open_nodes(data.primary_tree) + nb_open_nodes(data.secondary_tree)
 end
+
 get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
 getoptstate(data::TreeSearchRuntimeData) = data.optstate
 
@@ -252,11 +253,17 @@ function run_conquer_algorithm!(
     )        
 
     add_ip_primal_sols!(treestate, get_ip_primal_sols(nodestate)...)
-    
+
+    # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node
     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
     if algo.storelpsolution && isrootnode(node) && best_lp_primal_sol !== nothing
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
-    end 
+    end
+
+    best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
+    if isrootnode(node) && best_lp_dual_sol !== nothing
+        set_lp_dual_sol!(treestate, best_lp_dual_sol)
+    end
     return
 end
 
@@ -276,7 +283,7 @@ function run_divide_algorithm!(
 
     first_child_with_runconquer = true
     for child in children
-        if (child.conquerwasrun)
+        if child.conquerwasrun
             set_tree_order!(child, tsdata.tree_order)
             tsdata.tree_order += 1
             if first_child_with_runconquer
@@ -294,18 +301,24 @@ end
 function updatedualbound!(data::TreeSearchRuntimeData, reform::Reformulation)
     treestate = getoptstate(data)
     worst_bound = DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
-    for (node, priority) in getnodes(data.primary_tree)
+    for (node, _) in getnodes(data.primary_tree)
         db = get_ip_dual_bound(getoptstate(node))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
-    for (node, priority) in getnodes(data.secondary_tree)
+
+    for (node, _) in getnodes(data.secondary_tree)
         db = get_ip_dual_bound(getoptstate(node))
         if isbetter(worst_bound, db)
             worst_bound = db
         end
     end
+
+    if isbetter(worst_bound, data.worst_db_of_pruned_node)
+        worst_bound = data.worst_db_of_pruned_node
+    end
+
     set_ip_dual_bound!(treestate, worst_bound)
     return
 end
@@ -323,7 +336,7 @@ function run!(
         # dual bound of the optstate only at the root node.
         run_conquer_algorithm!(algo, env, tsdata, reform, node)
         print_node_in_branching_tree_file(algo, env, tsdata, node)
-               
+
         nodestatus = getterminationstatus(node.optstate)
         if nodestatus == OPTIMAL || nodestatus == INFEASIBLE ||
            ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)             
