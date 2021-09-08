@@ -879,6 +879,18 @@ function MOI.get(
     return error("Invalid result index.")
 end
 
+# Useful method to retrieve dual values of generated cuts because they don't 
+# have MOI.ConstraintIndex
+function MOI.get(
+    optimizer::Optimizer, attr::MOI.ConstraintDual, constrid::ConstrId
+)
+    dualsols = get_lp_dual_sols(optimizer.result)
+    if 1 <= attr.N <= length(dualsols)
+        return get(dualsols[attr.N], constrid, 0.0)
+    end
+    return error("Invalid result index.")
+end
+
 # function MOI.get(
 #     optimizer::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
 # ) where {F<:MOI.SingleVariable,S}

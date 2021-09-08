@@ -243,10 +243,17 @@ function update!(dest_state::OptimizationState, orig_state::OptimizationState)
     update_ip_dual_bound!(dest_state, get_ip_dual_bound(orig_state))
     update_lp_dual_bound!(dest_state, get_lp_dual_bound(orig_state))
     set_lp_primal_bound!(dest_state, get_lp_primal_bound(orig_state))
+
     best_lp_primal_sol = get_best_lp_primal_sol(orig_state) 
     if best_lp_primal_sol !== nothing
         set_lp_primal_sol!(dest_state, best_lp_primal_sol)
-    end        
+    end     
+
+    best_lp_dual_sol = get_best_lp_dual_sol(orig_state)
+    if best_lp_dual_sol !== nothing
+        set_lp_dual_sol!(dest_state, best_lp_dual_sol)
+    end
+    return
 end
 
 """
