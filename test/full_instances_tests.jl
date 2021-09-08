@@ -98,6 +98,31 @@ function generalized_assignment_tests()
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
+
+    @testset "gap - node limit" begin
+        data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
+
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer,
+            "params" => CL.Params(
+                solver = ClA.TreeSearchAlgorithm(
+                    maxnumnodes = 5
+                )
+            ),
+            "default_optimizer" => GLPK.Optimizer
+        )
+
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 2000.0)
+        BD.objectivedualbound!(model, 0.0)
+
+        JuMP.optimize!(model)
+
+        @test JuMP.objective_bound(model) ≈ 1547.3889
+        @test JuMP.termination_status(model) == MathOptInterface.OTHER_LIMIT
+        return
+    end
+
     @testset "gap - ColGen max nb iterations" begin
         data = CLD.GeneralizedAssignment.data("smallgap3.txt")
 
