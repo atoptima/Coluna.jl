@@ -59,7 +59,7 @@ end
 #@exported_enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit # Not used
 #@exported_enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition # Not used
 
-const FormId = Int8
+const FormId = Int16
 
 ############################################################################
 ######################## MathOptInterface shortcuts ########################
