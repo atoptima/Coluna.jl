@@ -73,12 +73,12 @@ end
 ############################################################################################
 #  Robust Constraints Callback                                                             #
 ############################################################################################
-function _register_callback!(form::Formulation, attr::MOI.UserCutCallback, sep::Function)
+function _register_callback!(form::Formulation, ::MOI.UserCutCallback, sep::Function)
     set_robust_constr_generator!(form, Facultative, sep)
     return
 end
 
-function _register_callback!(form::Formulation, attr::MOI.LazyConstraintCallback, sep::Function)
+function _register_callback!(form::Formulation, ::MOI.LazyConstraintCallback, sep::Function)
     set_robust_constr_generator!(form, Essential, sep)
     return
 end
