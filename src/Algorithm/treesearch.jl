@@ -315,10 +315,6 @@ function updatedualbound!(data::TreeSearchRuntimeData, reform::Reformulation)
         end
     end
 
-    if isbetter(worst_bound, data.worst_db_of_pruned_node)
-        worst_bound = data.worst_db_of_pruned_node
-    end
-
     set_ip_dual_bound!(treestate, worst_bound)
     return
 end
