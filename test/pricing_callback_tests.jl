@@ -8,7 +8,7 @@ function pricing_callback_tests()
             "default_optimizer" => GLPK.Optimizer,
             "params" => CL.Params(
                 solver = ClA.BranchCutAndPriceAlgorithm(
-                    colgen_pricing_solvers = [2, 2]
+                    colgen_stages_pricing_solvers = [2, 2]
                 )
             )
         )
