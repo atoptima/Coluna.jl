@@ -5,7 +5,7 @@ function subproblem_solvers_test()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-                conqueralg = ClA.ColCutGenConquer(max_nb_cut_rounds = 1000)
+                conqueralg = ClA.BranchCutAndPriceAlgorithm(max_nb_cut_rounds = 1000)
             )),
             "default_optimizer" => GLPK.Optimizer
         )
