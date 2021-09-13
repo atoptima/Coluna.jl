@@ -63,7 +63,7 @@ function generalized_assignment_tests()
                     maxnumnodes = 300,
                     colgen_stabilization = 1.0,
                     colgen_cleanup_threshold = 150,
-                    branching_priorities = [1.0, 2.0],
+                    branching_priorities = [2.0, 1.0],
                     stbranch_phases_num_candidates = [5, 1]
                 )
             ),
