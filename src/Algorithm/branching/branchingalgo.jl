@@ -104,7 +104,7 @@ function perform_strong_branching_with_phases!(
         nb_candidates_for_next_phase::Int64 = 1        
         if phase_index < length(algo.phases)
             nb_candidates_for_next_phase = algo.phases[phase_index + 1].max_nb_candidates
-            if length(groups) <= nb_candidates_for_next_phase 
+            if phase_index > 1 && length(groups) <= nb_candidates_for_next_phase 
                 continue
             end
         end
