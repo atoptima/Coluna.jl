@@ -45,93 +45,7 @@ getsubproblems(dec_on_types)</code></pre><pre class="documenter-example-output">
  Subproblem formulation for T = 1 contains :	 0.0 &lt;= multiplicity &lt;= 3.0
 
  Subproblem formulation for T = 2 contains :	 0.0 &lt;= multiplicity &lt;= 2.0
-</code></pre><p>We see that subproblem for machine type 1 has upper multiplicity equals to 3, and second subproblem for machine type 2 has upper multiplicity equals to 2. It means that we can use at most 3 machines of type 1 and at most 2 machines of type 2.</p><p>We can then optimize</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
-Version 0.3.10 | 2021-09-07 | https://github.com/atoptima/Coluna.jl
-***************************************************************************************
-**** BaB tree root node
-**** Local DB = -Inf, global bounds : [ -Inf , Inf ], time = 0.02 sec.
-***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 1.52&gt; &lt;mst= 0.00&gt; &lt;sp= 1.51&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=70057.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=60118.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  4&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=50079.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  5&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  6&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  7&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  8&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
-  &lt;it=  9&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -126.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
-  &lt;it= 10&gt; &lt;et= 1.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
-[ Info: Column generation algorithm has converged.
-[ Info: Running Restricted Master IP heuristic
-***************************************************************************************
-**** BaB tree node N° 2, parent N° 1, depth 1, 2 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 2.52 sec.
-**** Branching constraint: v&gt;=1.0
-***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 2.57&gt; &lt;mst= 0.05&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
-[ Info: Column generation algorithm has converged.
-[ Info: Running Restricted Master IP heuristic
-***************************************************************************************
-**** BaB tree node N° 3, parent N° 2, depth 2, 3 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 2.58 sec.
-**** Branching constraint: PricingSetupVar_sp_4&gt;=2.0
-***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 2.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
-  &lt;it=  2&gt; &lt;et= 2.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
-[ Info: Column generation algorithm has converged.
-[ Info: Running Restricted Master IP heuristic
-***************************************************************************************
-**** BaB tree node N° 4, parent N° 3, depth 3, 4 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 2.58 sec.
-**** Branching constraint: v&gt;=1.0
-***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 2.58&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
-[ Info: Column generation algorithm has converged.
-[ Info: Running Restricted Master IP heuristic
-Node is already conquered. No children will be generated.
-***************************************************************************************
-**** BaB tree node N° 5, parent N° 3, depth 3, 3 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 2.58 sec.
-**** Branching constraint: v&lt;=0.0
-***************************************************************************************
-[ Info: IP Gap is closed: 0.0. Abort treatment.
-Node is already conquered. No children will be generated.
-***************************************************************************************
-**** BaB tree node N° 6, parent N° 2, depth 2, 2 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 2.59 sec.
-**** Branching constraint: PricingSetupVar_sp_4&lt;=1.0
-***************************************************************************************
-[ Info: IP Gap is closed: 0.0. Abort treatment.
-Node is already conquered. No children will be generated.
-***************************************************************************************
-**** BaB tree node N° 7, parent N° 1, depth 1, 1 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 2.59 sec.
-**** Branching constraint: v&lt;=0.0
-***************************************************************************************
-[ Info: IP Gap is closed: 0.0. Abort treatment.
-Node is already conquered. No children will be generated.
- ──────────────────────────────────────────────────────────────────────────────
-                                       Time                   Allocations
-                               ──────────────────────   ───────────────────────
-       Tot / % measured:            42.5s / 6.09%            858MiB / 7.55%
-
- Section               ncalls     time   %tot     avg     alloc   %tot      avg
- ──────────────────────────────────────────────────────────────────────────────
- Coluna                     1    2.59s   100%   2.59s   64.8MiB  100%   64.8MiB
-   Add branching co...      6    142ms  5.48%  23.6ms   4.62MiB  7.13%   789KiB
-   SolveLpForm             14   55.5ms  2.15%  3.97ms   2.29MiB  3.54%   168KiB
-   Inserting columns       14    531μs  0.02%  37.9μs    110KiB  0.17%  7.84KiB
-   Update reduced c...     14    265μs  0.01%  18.9μs    177KiB  0.27%  12.6KiB
-   Getting primal s...     14    234μs  0.01%  16.7μs   50.5KiB  0.08%  3.60KiB
-   Store records            7    119μs  0.00%  17.0μs   3.61KiB  0.01%     528B
-   Cleanup columns         14   96.8μs  0.00%  6.91μs   10.6KiB  0.02%     778B
-   Restore/remove r...      7   65.8μs  0.00%  9.40μs     0.00B  0.00%    0.00B
-   Update Lagrangia...     14   20.2μs  0.00%  1.44μs   1.75KiB  0.00%     128B
-   Smoothing update        14   14.2μs  0.00%  1.01μs      896B  0.00%    64.0B
- ──────────────────────────────────────────────────────────────────────────────
-[ Info: Terminated
-[ Info: Primal bound: 154.0
-[ Info: Dual bound: 154.0</code></pre><p>and retrieve the disagreggated solution</p><pre><code class="language-julia hljs">for t in T
+</code></pre><p>We see that subproblem for machine type 1 has upper multiplicity equals to 3, and second subproblem for machine type 2 has upper multiplicity equals to 2. It means that we can use at most 3 machines of type 1 and at most 2 machines of type 2.</p><p>We can then optimize</p><pre><code class="language- hljs">optimize!(model);</code></pre><p>and retrieve the disagreggated solution</p><pre><code class="language- hljs">for t in T
     assignment_patterns = BD.getsolutions(model, t);
     for pattern in assignment_patterns
         nb_times_pattern_used = BD.value(pattern);
@@ -143,11 +57,7 @@ Node is already conquered. No children will be generated.
         end
         println(&quot;Pattern of machine type $t used $nb_times_pattern_used times : $jobs_in_pattern&quot;);
     end
-end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Pattern of machine type 1 used 1.0 times : Any[8, 9]
-Pattern of machine type 1 used 1.0 times : Any[1, 2]
-Pattern of machine type 1 used 1.0 times : Any[4, 5]
-Pattern of machine type 2 used 1.0 times : Any[3, 7, 10]
-Pattern of machine type 2 used 1.0 times : Any[6]</code></pre><h1 id="BlockDecomposition"><a class="docs-heading-anchor" href="#BlockDecomposition">BlockDecomposition</a><a id="BlockDecomposition-1"></a><a class="docs-heading-anchor-permalink" href="#BlockDecomposition" title="Permalink"></a></h1><p>The index-set of the subproblems is declared through an <a href="#BlockDecomposition.@axis"><code>BlockDecomposition.@axis</code></a>.  It returns an array. Each value of the array is a subproblem index wrapped into a <code>BlockDecomposition.AxisId</code>. Each time BlockDecomposition finds an <code>AxisId</code> in the indices of a variable and a constraint, it knows to which subproblem the variable or the constraint belongs.</p><p>BlockDecomposition allows the user to perform two types of decomposition using <a href="#BlockDecomposition.@dantzig_wolfe_decomposition"><code>BlockDecomposition.@dantzig_wolfe_decomposition</code></a> and <a href="#BlockDecomposition.@benders_decomposition"><code>BlockDecomposition.@benders_decomposition</code></a>.</p><p>The macro creates a decomposition tree where the root is the master and the depth is the number of nested decomposition. A classic Dantzig-Wolfe or Benders decomposition produces a decomposition tree of depth 1. At the moment, nested decomposition is not supported.</p><p>You can get the subproblem membership of all variables and constraints using the method <a href="#BlockDecomposition.annotation"><code>BlockDecomposition.annotation</code></a>.</p><p>BlockDecomposition does not change the JuMP model. It decorates the model with additional information. All these information are stored in the <code>ext</code> field of the JuMP model.</p><h1 id="References"><a class="docs-heading-anchor" href="#References">References</a><a id="References-1"></a><a class="docs-heading-anchor-permalink" href="#References" title="Permalink"></a></h1><article class="docstring"><header><a class="docstring-binding" id="BlockDecomposition.BlockModel" href="#BlockDecomposition.BlockModel"><code>BlockDecomposition.BlockModel</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">BlockModel(optimizer [, direct_model = false])</code></pre><p>Return a JuMP model which BlockDecomposition will decompose using instructions given by the user.</p><p>If you define <code>direct_model = true</code>, the method creates the model with <code>JuMP.direct_model</code>, otherwise it uses <code>JuMP.Model</code>.</p></div></section></article><p>These are the methods to decompose a JuMP model :</p><article class="docstring"><header><a class="docstring-binding" id="BlockDecomposition.@axis" href="#BlockDecomposition.@axis"><code>BlockDecomposition.@axis</code></a> — <span class="docstring-category">Macro</span></header><section><div><pre><code class="language-julia hljs">@axis(name, collection)</code></pre><p>Declare <code>collection</code> as an index-set of subproblems.  You can access the axis using the variable <code>name</code>.</p><p><strong>Examples</strong></p><p>Consider a formulation that has a decomposition which gives raise to 5 subproblems. Let {1,2,3,4,5} be the index-set of the subproblems.</p><p>To perform this decomposition with BlockDecomposition, we must declare an axis that contains the index-set of the subproblems :</p><pre><code class="language-julia-repl hljs">julia&gt; L = 1:5
+end</code></pre><h1 id="BlockDecomposition"><a class="docs-heading-anchor" href="#BlockDecomposition">BlockDecomposition</a><a id="BlockDecomposition-1"></a><a class="docs-heading-anchor-permalink" href="#BlockDecomposition" title="Permalink"></a></h1><p>The index-set of the subproblems is declared through an <a href="#BlockDecomposition.@axis"><code>BlockDecomposition.@axis</code></a>.  It returns an array. Each value of the array is a subproblem index wrapped into a <code>BlockDecomposition.AxisId</code>. Each time BlockDecomposition finds an <code>AxisId</code> in the indices of a variable and a constraint, it knows to which subproblem the variable or the constraint belongs.</p><p>BlockDecomposition allows the user to perform two types of decomposition using <a href="#BlockDecomposition.@dantzig_wolfe_decomposition"><code>BlockDecomposition.@dantzig_wolfe_decomposition</code></a> and <a href="#BlockDecomposition.@benders_decomposition"><code>BlockDecomposition.@benders_decomposition</code></a>.</p><p>The macro creates a decomposition tree where the root is the master and the depth is the number of nested decomposition. A classic Dantzig-Wolfe or Benders decomposition produces a decomposition tree of depth 1. At the moment, nested decomposition is not supported.</p><p>You can get the subproblem membership of all variables and constraints using the method <a href="#BlockDecomposition.annotation"><code>BlockDecomposition.annotation</code></a>.</p><p>BlockDecomposition does not change the JuMP model. It decorates the model with additional information. All these information are stored in the <code>ext</code> field of the JuMP model.</p><h1 id="References"><a class="docs-heading-anchor" href="#References">References</a><a id="References-1"></a><a class="docs-heading-anchor-permalink" href="#References" title="Permalink"></a></h1><article class="docstring"><header><a class="docstring-binding" id="BlockDecomposition.BlockModel" href="#BlockDecomposition.BlockModel"><code>BlockDecomposition.BlockModel</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">BlockModel(optimizer [, direct_model = false])</code></pre><p>Return a JuMP model which BlockDecomposition will decompose using instructions given by the user.</p><p>If you define <code>direct_model = true</code>, the method creates the model with <code>JuMP.direct_model</code>, otherwise it uses <code>JuMP.Model</code>.</p></div></section></article><p>These are the methods to decompose a JuMP model :</p><article class="docstring"><header><a class="docstring-binding" id="BlockDecomposition.@axis" href="#BlockDecomposition.@axis"><code>BlockDecomposition.@axis</code></a> — <span class="docstring-category">Macro</span></header><section><div><pre><code class="language-julia hljs">@axis(name, collection)</code></pre><p>Declare <code>collection</code> as an index-set of subproblems.  You can access the axis using the variable <code>name</code>.</p><p><strong>Examples</strong></p><p>Consider a formulation that has a decomposition which gives raise to 5 subproblems. Let {1,2,3,4,5} be the index-set of the subproblems.</p><p>To perform this decomposition with BlockDecomposition, we must declare an axis that contains the index-set of the subproblems :</p><pre><code class="language-julia-repl hljs">julia&gt; L = 1:5
 1:5
 
 julia&gt; @axis(K, L)
@@ -164,4 +74,4 @@ BlockDecomposition.AxisId{:K, Int64}</code></pre><p>The elements of the axis are
     upper_multiplicity = 1,
     solver = nothing
 )</code></pre><p>Method that allows the user to specify additional property of the subproblems.</p><p>The multiplicity of <code>subproblem</code> is the number of times that the same independant block shaped by the subproblem in the coefficient matrix appears in the model. It is equivalent to the number of solutions to the subproblem that can appear in the solution  of the original problem.</p><p>The solver of the subproblem is the way the subproblem will be optimized. It can be either a function (pricing callback), an optimizer of MathOptInterface  (e.g. <code>Gurobi.Optimizer</code>, <code>CPLEX.Optimizer</code>, <code>Glpk.Optimizer</code>... with attributes),  or <code>nothing</code>. In the latter case, the solver will use a default optimizer that  should be defined in the parameters of the main solver.</p><p><strong>Advanced usage</strong> :  The user can use several solvers to optimize a subproblem : </p><pre><code class="nohighlight hljs">specify!(subproblem, solver = [Gurobi.Optimizer, my_callback, my_second_callback])</code></pre><p>Coluna always uses the first solver by default. Be cautious because changes are always buffered to all solvers. So you may degrade performances if you use a lot of solvers.</p></div></section></article><p>This method help you to check your decomposition :</p><article class="docstring"><header><a class="docstring-binding" id="BlockDecomposition.annotation" href="#BlockDecomposition.annotation"><code>BlockDecomposition.annotation</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">annotation(node)</code></pre><p>Return the annotation that describes the master/subproblem of a given node of the decomposition tree.</p><pre><code class="nohighlight hljs">annotation(model, variable)
-annotation(model, constraint)</code></pre><p>Return the subproblem to which a variable or a constraint belongs.</p></div></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../start/start/">« Getting started</a><a class="docs-footer-nextpage" href="../config/">Configuration »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.6 on <span class="colophon-date" title="Friday 17 September 2021 20:49">Friday 17 September 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+annotation(model, constraint)</code></pre><p>Return the subproblem to which a variable or a constraint belongs.</p></div></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../start/start/">« Getting started</a><a class="docs-footer-nextpage" href="../config/">Configuration »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.7 on <span class="colophon-date" title="Tuesday 28 September 2021 22:24">Tuesday 28 September 2021</span>. Using Julia version 1.6.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
