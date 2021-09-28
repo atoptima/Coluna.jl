@@ -740,7 +740,7 @@ function BD.value(info::ColumnInfo, index::MOI.VariableIndex)
     varid = info.optimizer.env.varids[index]
     origin_form_uid = getoriginformuid(info.column_var_id)
     spform = get_dw_pricing_sps(info.optimizer.inner.re_formulation)[origin_form_uid]
-    return info.column_val * getprimalsolmatrix(spform)[varid, info.column_var_id]
+    return getprimalsolmatrix(spform)[varid, info.column_var_id]
 end
 
 function MOI.get(model::Coluna.Optimizer, ::MOI.NumberOfVariables)
