@@ -1,29 +1,19 @@
 """
-    BranchingPhase
+    BranchingPhase(max_nb_candidates, conquer_algo)
 
-    A phase in strong branching. Containts the maximum number of candidates
-    to evaluate and the conquer algorithm which does evaluation.
+Define a phase in strong branching. It contains the maximum number of candidates
+to evaluate and the conquer algorithm which does evaluation.
 """
-
 struct BranchingPhase
     max_nb_candidates::Int64
     conquer_algo::AbstractConquerAlgorithm
 end
 
-# function ExactBranchingPhase(candidates_num::Int64; conqueralg = ColCutGenConquer())     
-#     return BranchingPhase(candidates_num, conqueralg)
-# end
-
-# function OnlyRestrictedMasterBranchingPhase(candidates_num::Int64)
-#     return BranchingPhase(candidates_num, RestrMasterLPConquer()) 
-# end    
-
 """
     PrioritisedBranchingRule
 
-    A branching rule with root and non-root priorities. 
+A branching rule with root and non-root priorities. 
 """
-
 struct PrioritisedBranchingRule
     rule::AbstractBranchingRule
     root_priority::Float64
@@ -34,36 +24,57 @@ function getpriority(rule::PrioritisedBranchingRule, isroot::Bool)::Float64
     return isroot ? rule.root_priority : rule.nonroot_priority
 end
 
+############################################################################################
+# NoBranching
+############################################################################################
+
 """
     NoBranching
 
-    The empty divide algorithm
+Divide algorithm that does not branch. It does not generate any child.
 """
-struct NoBranching <: AbstractDivideAlgorithm
-end
+struct NoBranching <: AbstractDivideAlgorithm end
 
-function run!(algo::NoBranching, env::Env, reform::Reformulation, input::DivideInput)::DivideOutput
+function run!(::NoBranching, ::Env, reform::Reformulation, ::DivideInput)::DivideOutput
     return DivideOutput([], OptimizationState(getmaster(reform)))
 end
+
+############################################################################################
+# StrongBranching
+############################################################################################
 
 """
     StrongBranching
 
-    The algorithm to perform (strong) branching in a tree search algorithm
-    Contains branching phases and branching rules.
-    Should be populated by branching rules before execution.
+The algorithm that performs a (multi-phase) (strong) branching in a tree search algorithm.
+
+Strong branching is a procedure that heuristically selects a branching constraint that
+potentially gives the best progress of the dual bound. The procedure selects a collection 
+of branching candidates based on their branching rule and their score.
+Then, the procedure evaluates the progress of the dual bound in both branches of each branching
+candidate by solving both potential children using a conquer algorithm.
+The candidate that has the largest product of dual bound improvements in the branches 
+is chosen to be the branching constraint.
+
+When the dual bound improvement produced by the branching constraint is difficult to compute
+(e.g. time-consuming in the context of column generation), one can let the branching algorithm
+quickly estimate the dual bound improvement of each candidate and retain the most promising
+branching candidates. This is called a **phase**. The goal is to first evaluate a large number
+of candidates with a very fast conquer algorithm and retain a certain number of promising ones. 
+Then, over the phases, it evaluates the improvement with a more precise conquer algorithm and
+restrict the number of retained candidates until only one is left.
 """
 @with_kw struct StrongBranching <: AbstractDivideAlgorithm
     phases::Vector{BranchingPhase} = []
     rules::Vector{PrioritisedBranchingRule} = []
-    selection_criterion::SelectionCriterion = MostFractionalCriterion
+    selection_criterion::AbstractSelectionCriterion = MostFractionalCriterion()
     int_tol = 1e-6
 end
 
 # default parameterisation corresponds to simple branching (no strong branching phases)
 function SimpleBranching()::AbstractDivideAlgorithm
     algo = StrongBranching()
-    push!(algo.rules, PrioritisedBranchingRule(VarBranchingRule(), 1.0, 1.0))
+    push!(algo.rules, PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0))
     return algo
 end
 
@@ -270,15 +281,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
             local_id = output.local_id
         end
 
-        # sort branching candidates according to the selection criterion and remove excess ones
-        if algo.selection_criterion == FirstFoundCriterion
-            sort!(kept_branch_groups, by = x -> x.local_id)
-        elseif algo.selection_criterion == MostFractionalCriterion
-            sort!(kept_branch_groups, rev = true, by = x -> get_lhs_distance_to_integer(x))
-        end
-        if length(kept_branch_groups) > nb_candidates_needed
-            resize!(kept_branch_groups, nb_candidates_needed)
-        end
+        sort_select_candidates!(kept_branch_groups, algo.selection_criterion, nb_candidates_needed)
     end
 
     if isempty(kept_branch_groups)
