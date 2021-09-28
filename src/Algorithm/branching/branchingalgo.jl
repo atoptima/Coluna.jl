@@ -214,14 +214,8 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
 
     if isempty(algo.rules)
         @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
-        return DivideOutput(Vector{Node}(), optstate)
+        return DivideOutput(Node[], optstate)
     end
-
-    kept_branch_groups = Vector{BranchingGroup}()
-    parent_is_root::Bool = getdepth(parent) == 0
-
-    # first we sort branching rules by their root/non-root priority (depending on the node depth)
-    sort!(algo.rules, rev = true, by = x -> getpriority(x, parent_is_root))
 
     # we obtain the original and extended solutions
     master = getmaster(reform)
@@ -235,67 +229,82 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
         end
     else
         @warn "no LP solution is passed to the branching algorithm. No children will be generated."
-        return DivideOutput(Vector{Node}(), optstate)
+        return DivideOutput(Node[], optstate)
     end
 
-    # phase 0 of branching : we ask branching rules to generate branching candidates
-    # we stop when   
-    # - at least one candidate was generated, and its priority rounded down is stricly greater 
+    kept_branch_groups = BranchingGroup[]
+    parent_is_root = getdepth(parent) == 0
+
+    # we sort branching rules by their root/non-root priority (depending on the node depth)
+    sort!(algo.rules, rev = true, by = x -> getpriority(x, parent_is_root))
+
+    # phase 0 of branching : branching rules generates the branching candidates
+    # Generation stops when :
+    # 1. at least one candidate was generated, and its priority rounded down is stricly greater 
     #   than priorities of not yet considered branching rules
-    # - all needed candidates were generated and their smallest priority is strictly greater
+    # 2. all needed candidates were generated and their smallest priority is strictly greater
     #   than priorities of not yet considered branching rules
-    nb_candidates_needed::Int64 = 1;
+
+    max_nb_candidates = 1
     if !isempty(algo.phases)
-        nb_candidates_needed = algo.phases[1].max_nb_candidates
-    end    
-    local_id::Int64 = 0
-    min_priority::Float64 = getpriority(algo.rules[1], parent_is_root)
+        max_nb_candidates = algo.phases[1].max_nb_candidates
+    end
+
+    local_id = 0
+    candidate_priority = getpriority(algo.rules[1], parent_is_root)
+
     for prioritised_rule in algo.rules
         rule = prioritised_rule.rule
-        # decide whether to stop generating candidates or not
-        priority::Float64 = getpriority(prioritised_rule, parent_is_root) 
-        nb_candidates_found::Int64 = length(kept_branch_groups)
-        if priority < floor(min_priority) && nb_candidates_found > 0
-            break
-        elseif priority < min_priority && nb_candidates_found >= nb_candidates_needed
+
+        # priority of the branching rule not considered yet
+        priority = getpriority(prioritised_rule, parent_is_root) 
+    
+        nb_candidates_found = length(kept_branch_groups)
+
+        stop_gen_condition_1 = (nb_candidates_found > 0 && priority < floor(candidate_priority))
+        stop_gen_condition_2 = (nb_candidates_found >= max_nb_candidates && priority < candidate_priority)
+        if stop_gen_condition_1 || stop_gen_condition_2
             break
         end
-        min_priority = priority
+
+        # update candidate priority (because we are going to consider a new branching rule)
+        candidate_priority = priority
 
         # generate candidates
-        output = run!(rule, env, reform, BranchingRuleInput(
-            original_solution, true, nb_candidates_needed, algo.selection_criterion, 
-            local_id, algo.int_tol, min_priority
-        ))
-        nb_candidates_found += length(output.groups)
+        output = run!(
+            rule, env, reform, BranchingRuleInput(
+                original_solution, true, max_nb_candidates, algo.selection_criterion, 
+                local_id, algo.int_tol, candidate_priority
+            )
+        )
         append!(kept_branch_groups, output.groups)
         local_id = output.local_id
 
         if projection_is_possible(master) && extended_solution !== nothing
-            output = run!(rule, env, reform, BranchingRuleInput(
-                extended_solution, false, nb_candidates_needed, algo.selection_criterion, 
-                local_id, algo.int_tol, min_priority
-            ))   
-            nb_candidates_found += length(output.groups)
+            output = run!(
+                rule, env, reform, BranchingRuleInput(
+                    extended_solution, false, max_nb_candidates, algo.selection_criterion, 
+                    local_id, algo.int_tol, candidate_priority
+                )
+            )
             append!(kept_branch_groups, output.groups)
             local_id = output.local_id
         end
 
-        sort_select_candidates!(kept_branch_groups, algo.selection_criterion, nb_candidates_needed)
+        sort_select_candidates!(kept_branch_groups, algo.selection_criterion, max_nb_candidates)
     end
 
     if isempty(kept_branch_groups)
         @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
-        return DivideOutput(Vector{Node}(), optstate)
+        return DivideOutput(Node[], optstate)
     end
 
-    #in the case of simple branching, it remains to generate the children
+    # in the case of simple branching, it remains to generate the children
     if isempty(algo.phases) 
         generate_children!(kept_branch_groups[1], env, reform, parent)
         return DivideOutput(kept_branch_groups[1].children, OptimizationState(getmaster(reform)))
     end
 
     sbstate = perform_strong_branching_with_phases!(algo, env, reform, input, kept_branch_groups)
-
     return DivideOutput(kept_branch_groups[1].children, sbstate)
 end
