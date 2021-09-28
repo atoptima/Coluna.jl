@@ -293,12 +293,13 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
         end
 
         # if the gap is still unclosed, try to run the node finalizer if any
-        if getterminationstatus(nodestate) != TIME_LIMIT &&
-            !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol) &&
-            algo.node_finalizer !== nothing &&
-            getdepth(node) >= algo.node_finalizer.min_depth && 
-            mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
+        run_node_finalizer = algo.node_finalizer !== nothing
+        run_node_finalizer &= getterminationstatus(nodestate) != TIME_LIMIT
+        run_node_finalizer &= !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+        run_node_finalizer &= getdepth(node) >= algo.node_finalizer.min_depth
+        run_node_finalizer &= mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
 
+        if run_node_finalizer
             # get the algorithm info
             nodefinalizer = algo.node_finalizer.algorithm
             name = algo.node_finalizer.name
@@ -314,16 +315,11 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
             ip_primal_sols = get_ip_primal_sols(getoptstate(nf_output))
 
             # if the node has been conquered by the node finalizer
-            if (status in (OPTIMAL, INFEASIBLE))
+            if status in (OPTIMAL, INFEASIBLE)
                 # set the ip solutions found without checking the cuts and finish
-                best_primal_bound = PrimalBound(reform)
                 if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                     for sol in sort(ip_primal_sols)
                         update_ip_primal_sol!(nodestate, sol)
-                        primal_bound = PrimalBound(reform, getvalue(sol))
-                        if isbetter(primal_bound, best_primal_bound)
-                            best_primal_bound = primal_bound
-                        end
                     end
                 end
 
