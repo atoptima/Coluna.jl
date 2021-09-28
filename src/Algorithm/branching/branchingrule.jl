@@ -6,7 +6,7 @@
 Supertype of selection criteria of branching candidates.
 
 A selection criterion provides a way to keep only the most promising branching
-candidates. To create a new selection critera, one needs to create a subtype of
+candidates. To create a new selection criterion, one needs to create a subtype of
 `AbstractSelectionCriterion` and implements the method `sort_select_candidates!`.
 """
 abstract type AbstractSelectionCriterion end

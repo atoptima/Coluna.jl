@@ -62,12 +62,15 @@ export getterminationstatus, setterminationstatus!,
     set_ip_primal_bound!, set_lp_primal_bound!, set_lp_dual_bound!, set_ip_dual_bound!,
     update_ip_primal_bound!, update_lp_primal_bound!, update_lp_dual_bound!, update_ip_dual_bound!,
     getoptstate, run!, isinfeasible
-    
+
+# Algorithms
+export TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration, BendersConquer, BendersCutGeneration, SolveIpForm, RestrictedMasterIPHeuristic,
+    SolveLpForm, PreprocessAlgorithm, NoBranching, SimpleBranching, StrongBranching, AbstractSelectionCriterion,
+    FirstFoundCriterion, MostFractionalCriterion, SingleVarBranchingRule
+
 # Algorithm's types
-export AbstractOptimizationAlgorithm, TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration,
-       BendersConquer, BendersCutGeneration, SolveIpForm, RestrictedMasterIPHeuristic,
-       SolveLpForm, ExactBranchingPhase, OnlyRestrictedMasterBranchingPhase, PreprocessAlgorithm, 
-       OptimizationInput, OptimizationOutput, OptimizationState, EmptyInput
+export AbstractOptimizationAlgorithm, OptimizationInput, OptimizationOutput, 
+    OptimizationState, EmptyInput
 
 # Types of optimizers
 export MoiOptimize, UserOptimizer
