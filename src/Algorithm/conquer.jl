@@ -297,7 +297,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
         run_node_finalizer = run_node_finalizer && getterminationstatus(nodestate) != TIME_LIMIT
         run_node_finalizer =
             run_node_finalizer && !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
-        run_node_finalizer = run_node_finalizer ? getdepth(node) >= algo.node_finalizer.min_depth : false
+        run_node_finalizer = run_node_finalizer && getdepth(node) >= algo.node_finalizer.min_depth
         run_node_finalizer =
             run_node_finalizer && mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
 
