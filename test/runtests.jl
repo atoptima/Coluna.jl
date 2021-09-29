@@ -89,5 +89,7 @@ end
 end
 
 @testset "Node Finalizer" begin
-    node_finalizer_tests()
+    node_finalizer_tests(false) # exact node finalizer
+
+    node_finalizer_tests(true)  # heuristic node finalizer
 end

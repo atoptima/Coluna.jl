@@ -1,3 +1,11 @@
+# This file implements a toy bin packing model for Node Finalizer. It solves an instance with
+# three items where any two of them fits into a bin but the three together do not. Pricing is
+# solved by inspection onn the set of six possible solutions (three singletons and three pairs)
+# which gives a fractional solution at the root node. Then node finalizer function
+# "enumerative_finalizer" is called to find the optimal solution still at the root node and
+# avoid branching (which would fail because maxnumnodes is set to 1).
+# If "heuristic_finalizer" is true, then it allows branching and assumes that the solution found
+# is not necessarily optimal. 
 CL.@with_kw struct EnumerativeFinalizer <: ClA.AbstractOptimizationAlgorithm
     optimizer::Function
 end
@@ -20,7 +28,7 @@ function ClA.run!(
     return ClA.OptimizationOutput(result)
 end
 
-function node_finalizer_tests()
+function node_finalizer_tests(heuristic_finalizer)
 
     function build_toy_model(optimizer)
         toy = BlockModel(optimizer, direct_model = true)
@@ -56,7 +64,7 @@ function node_finalizer_tests()
                                 1, 0, "Enumerative"
                         )
                     ),
-                    maxnumnodes = 1
+                    maxnumnodes = heuristic_finalizer ? 10000 : 1
                 )
             )
         )
@@ -145,7 +153,7 @@ function node_finalizer_tests()
             # add the solution to the master problem
             varids = [ClMP.getid(mc_1), ClMP.getid(mc_2_3)]
             primal_sol = ClMP.PrimalSolution(masterform, varids, [1.0, 1.0], 2.0, CL.FEASIBLE_SOL)
-            return true, primal_sol
+            return !heuristic_finalizer, primal_sol
         end
 
         JuMP.optimize!(model)

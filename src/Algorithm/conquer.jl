@@ -294,10 +294,12 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
 
         # if the gap is still unclosed, try to run the node finalizer if any
         run_node_finalizer = algo.node_finalizer !== nothing
-        run_node_finalizer &= getterminationstatus(nodestate) != TIME_LIMIT
-        run_node_finalizer &= !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
-        run_node_finalizer &= getdepth(node) >= algo.node_finalizer.min_depth
-        run_node_finalizer &= mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
+        run_node_finalizer = run_node_finalizer && getterminationstatus(nodestate) != TIME_LIMIT
+        run_node_finalizer =
+            run_node_finalizer && !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+        run_node_finalizer = run_node_finalizer && getdepth(node) >= algo.node_finalizer.min_depth
+        run_node_finalizer =
+            run_node_finalizer && mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
 
         if run_node_finalizer
             # get the algorithm info
