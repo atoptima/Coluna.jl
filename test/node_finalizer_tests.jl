@@ -59,7 +59,7 @@ function node_finalizer_tests(heuristic_finalizer)
                                     ))
                                  ],
                         primal_heuristics = [],
-                        node_finalizer = ClA.ParameterisedNodeFinalizer(
+                        node_finalizer = ClA.NodeFinalizer(
                                 EnumerativeFinalizer(optimizer = call_enumerative_finalizer), 
                                 1, 0, "Enumerative"
                         )

@@ -92,10 +92,10 @@ ParamRestrictedMasterHeuristic() =
     )
 
 ####################################################################
-#                      ParameterisedNodeFinalizer
+#                      NodeFinalizer
 ####################################################################
 
-struct ParameterisedNodeFinalizer
+struct NodeFinalizer
     algorithm::AbstractOptimizationAlgorithm
     frequency::Integer
     min_depth::Integer
@@ -160,7 +160,7 @@ Parameters :
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
     primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
-    node_finalizer::Union{Nothing, ParameterisedNodeFinalizer} = nothing
+    node_finalizer::Union{Nothing, NodeFinalizer} = nothing
     preprocess = PreprocessAlgorithm()
     cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
