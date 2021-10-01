@@ -11,10 +11,9 @@
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
         colgen_stages_pricing_solvers::Vector{Int} = [1],
-        stbranch_phases_num_candidates::Int = [],
-        stbranch_intrmphase_colgen_stages::Vector{Int} = [1],
-        stbranch_intrmphase_pricing_solvers::Vector{Int} = [1],
-        stbranch_intrmphase_colgen_maxiters::Vector{Int} = [100])
+        stbranch_phases_num_candidates::Vector{Int} = Vector{Int}(),
+        stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}}
+    )
 
 Coluna.Algorithm.BranchCutAndPriceAlgorithm is an alias for a simplified parameterisation 
 of the branch-cut-and-price algorithm.
