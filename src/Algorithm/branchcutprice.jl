@@ -122,7 +122,7 @@ function BranchCutAndPriceAlgorithm(;
                 for tuple in stbranch_intrmphase_stages
                     colgen = ColumnGeneration(
                         pricing_prob_solve_alg = SolveIpForm(
-                            optimizer_id = tuple.solver,
+                            optimizer_id = tuple.solverid,
                             user_params = UserOptimize(stage = tuple.userstage), 
                             moi_params = MoiOptimize(
                                 deactivate_artificial_vars = false,
