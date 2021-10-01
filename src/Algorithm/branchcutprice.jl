@@ -11,7 +11,6 @@
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
         colgen_stages_pricing_solvers::Vector{Int} = [1],
-        branching_priorities::Vector{Float64} = [1.0],
         stbranch_phases_num_candidates::Int = [],
         stbranch_intrmphase_colgen_stages::Vector{Int} = [1],
         stbranch_intrmphase_pricing_solvers::Vector{Int} = [1],
@@ -37,14 +36,6 @@ Parameters :
                                     the number of column generation stages is equal to the length of this vector,
                                     column generation stages are executed in the reverse order,
                                     the first stage should be exact to ensure the optimality of the BCP algorithm
-- `branching_priorities` : vector of different branching priorities (in decreasing order) set for the variables of the model,
-                           branching priorities for variables can be set using `BlockDecomposition.branchingpriority!()`,
-                           branching candidates are generated in the decreasing order of branching priority
-                           if no branching candidates are found for a larger branching priority, the next lower branching priority is considered,
-                           in strong branching, branching candidates of the next lower priority are considered if
-                           - no branching candidates of a larger priority are generated
-                           - the maximum number of candidates for the first phase of strong branching is not yet reached
-                             and the next lower priority is not less than the rounded down value of an already generated branching candidate
 - `stbranch_phases_num_candidates` : maximum number of candidates for each strong branching phase, 
                                      strong branching is activated if this vector is not empty,
                                      the number of phases in strong branching is equal to min{3, length(stbranch_phases_num_candidates)},
@@ -54,15 +45,10 @@ Parameters :
                                      or the number of column generation iterations is limited, this is parameterised with the three
                                      next parameters, cut separation is not called in the intermediate strong branching phase, 
                                      if the lenth of this vector > 3, then all values except first, second, and last ones are ignored
-- `stbranch_intrmphase_colgen_stages` : the number of column generation stages in the intemediate phase of strong branching 
-                                        is equal to the length of this vector, the values of this vector determine the `stage`
-                                        parameter passed to the pricing callback on every stage,
-                                        as before column generation stages are executed in the reverse order
-- `stbranch_intrmphase_pricing_solvers` : sets the solver id for every column generation stage in the intermediate phase of strong branching,
-                                          the length of this vector should be equal to length(stbranch_intrmphase_colgen_stages)
-- `stbranch_intrmphase_colgen_maxiters` : sets the maximum number of column generation iterations for every stage 
-                                          in the intemediate phase of strong branching,
-                                          the length of this vector should be equal to length(stbranch_intrmphase_colgen_stages)
+- `stbranch_intrmphase_stages` : the size of this vector is the number of column generation stages in the intemediate phase of strong branching 
+                                 each element of the vector is the named triple (userstage, solver, maxiters). "userstage" is the 
+                                 value of "stage" parameter passed to the pricing callback on this stage, "solverid" is the solver id on this stage, 
+                                 and "maxiters" is the maximum number of column generation iterations on this stage
 """
 
 
@@ -79,11 +65,8 @@ function BranchCutAndPriceAlgorithm(;
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
         colgen_stages_pricing_solvers::Vector{Int64} = [1],
-        branching_priorities::Vector{Float64} = [1.0],
-        stbranch_phases_num_candidates = Vector{Int64}(),
-        stbranch_intrmphase_colgen_stages::Vector{Int64} = [1],
-        stbranch_intrmphase_pricing_solvers::Vector{Int64} = [1],
-        stbranch_intrmphase_colgen_maxiters::Vector{Int64} = [100]
+        stbranch_phases_num_candidates::Vector{Int64} = Vector{Int64}(),
+        stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}} = [(userstage=1, solverid=1, maxiters=100)]
 )
     heuristics::Vector{ParameterisedHeuristic} = []
     if restmastipheur_timelimit > 0
@@ -127,15 +110,7 @@ function BranchCutAndPriceAlgorithm(;
     )
 
     branching = NoBranching()
-    branching_rules::Vector{PrioritisedBranchingRule} = []
-    if !isempty(branching_priorities)
-        sorted_branching_priorities = sort(branching_priorities; rev=true)
-        for priority in sorted_branching_priorities
-            push!(branching_rules, PrioritisedBranchingRule(VarBranchingRule(), priority, priority))
-        end
-    else
-        push!(branching_rules, PrioritisedBranchingRule(VarBranchingRule(), 1.0, 1.0))
-    end
+    branching_rules::Vector{PrioritisedBranchingRule} = [PrioritisedBranchingRule(VarBranchingRule(), 1.0, 1.0)]
 
     if !isempty(stbranch_phases_num_candidates)
         branching_phases::Vector{BranchingPhase} = []
@@ -145,11 +120,11 @@ function BranchCutAndPriceAlgorithm(;
             )    
             if length(stbranch_phases_num_candidates) >= 3
                 intrmphase_stages::Vector{ColumnGeneration} = []
-                for (stage_index, stage_number) in enumerate(stbranch_intrmphase_colgen_stages)
+                for tuple in stbranch_intrmphase_stages
                     colgen = ColumnGeneration(
                         pricing_prob_solve_alg = SolveIpForm(
-                            optimizer_id = stbranch_intrmphase_pricing_solvers[stage_index],
-                            user_params = UserOptimize(stage = stage_number), 
+                            optimizer_id = tuple.solver,
+                            user_params = UserOptimize(stage = tuple.userstage), 
                             moi_params = MoiOptimize(
                                 deactivate_artificial_vars = false,
                                 enforce_integrality = false
@@ -157,7 +132,7 @@ function BranchCutAndPriceAlgorithm(;
                         ),
                         smoothing_stabilization = colgen_stabilization,
                         cleanup_threshold = colgen_cleanup_threshold,
-                        max_nb_iterations = stbranch_intrmphase_colgen_maxiters[stage_index],
+                        max_nb_iterations = tuple.maxiters,
                         opt_atol = opt_atol,
                         opt_rtol = opt_rtol
                     )
