@@ -584,8 +584,6 @@ function move_convexity_constrs_dual_values!(
     for (spuid, spinfo) in spinfos
         spinfo.lb_dual = dualsol[spinfo.lb_constr_id]
         spinfo.ub_dual = dualsol[spinfo.ub_constr_id]
-        dualsol[spinfo.lb_constr_id] = zero(0.0)
-        dualsol[spinfo.ub_constr_id] = zero(0.0)
         newbound -= (spinfo.lb_dual * spinfo.lb + spinfo.ub_dual * spinfo.ub)
     end
     constrids = Vector{ConstrId}()
@@ -680,6 +678,9 @@ function cg_main_loop!(
         if getobjsense(masterform) == MaxSense
             # this is needed due to convention that MOI uses for signs of duals in the maximization case
             change_values_sign!(lp_dual_sol)
+        end
+        if lp_dual_sol !== nothing
+            set_lp_dual_sol!(cg_optstate, lp_dual_sol)
         end
         lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
 
