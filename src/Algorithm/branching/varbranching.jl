@@ -85,18 +85,17 @@ function run!(
     master = getmaster(reform)
     groups = Vector{BranchingGroup}()
     local_id = input.local_id
-    selected_vars = Vector{Pair{VarId, Float64}}()
+    selected_vars = Pair{VarId, Float64}[]
     max_priority = -Inf
     for (var_id, val) in input.solution
         # Do not consider continuous variables as branching candidates
         getperenkind(master, var_id) == Continuous && continue
-        #getbranchingpriority(master, var_id) < input.minimum_priority && continue
         if !isinteger(val, input.int_tol)
             brpriority = getbranchingpriority(master, var_id)
-            if (brpriority > max_priority)
+            if brpriority > max_priority
                 max_priority = brpriority
                 selected_vars = [(var_id, val)]
-            elseif (brpriority == max_priority)
+            elseif brpriority == max_priority
                 push!(selected_vars, (var_id, val))
             end
         end

@@ -11,11 +11,11 @@
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
         colgen_stages_pricing_solvers::Vector{Int} = [1],
-        stbranch_phases_num_candidates::Vector{Int} = Vector{Int}(),
+        stbranch_phases_num_candidates::Vector{Int} = Int[],
         stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}}
     )
 
-Coluna.Algorithm.BranchCutAndPriceAlgorithm is an alias for a simplified parameterisation 
+Alias for a simplified parameterisation 
 of the branch-cut-and-price algorithm.
 
 Parameters : 
@@ -64,10 +64,10 @@ function BranchCutAndPriceAlgorithm(;
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
         colgen_stages_pricing_solvers::Vector{Int64} = [1],
-        stbranch_phases_num_candidates::Vector{Int64} = Vector{Int64}(),
+        stbranch_phases_num_candidates::Vector{Int64} = Int[],
         stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}} = [(userstage=1, solverid=1, maxiters=100)]
 )
-    heuristics::Vector{ParameterisedHeuristic} = []
+    heuristics = ParameterisedHeuristic[]
     if restmastipheur_timelimit > 0
         heuristic = ParameterisedHeuristic(
             SolveIpForm(moi_params = MoiOptimize(
@@ -80,7 +80,7 @@ function BranchCutAndPriceAlgorithm(;
         push!(heuristics, heuristic)
     end
 
-    colgen_stages::Vector{ColumnGeneration} = []
+    colgen_stages = ColumnGeneration[]
 
     for (stage, solver_id) in enumerate(colgen_stages_pricing_solvers)
         colgen = ColumnGeneration(
@@ -109,16 +109,16 @@ function BranchCutAndPriceAlgorithm(;
     )
 
     branching = NoBranching()
-    branching_rules::Vector{PrioritisedBranchingRule} = [PrioritisedBranchingRule(VarBranchingRule(), 1.0, 1.0)]
+    branching_rules = PrioritisedBranchingRule[PrioritisedBranchingRule(VarBranchingRule(), 1.0, 1.0)]
 
     if !isempty(stbranch_phases_num_candidates)
-        branching_phases::Vector{BranchingPhase} = []
+        branching_phases = BranchingPhase[]
         if length(stbranch_phases_num_candidates) >= 2
             push!(branching_phases, 
                 BranchingPhase(first(stbranch_phases_num_candidates), RestrMasterLPConquer())
             )    
             if length(stbranch_phases_num_candidates) >= 3
-                intrmphase_stages::Vector{ColumnGeneration} = []
+                intrmphase_stages = ColumnGeneration[]
                 for tuple in stbranch_intrmphase_stages
                     colgen = ColumnGeneration(
                         pricing_prob_solve_alg = SolveIpForm(
