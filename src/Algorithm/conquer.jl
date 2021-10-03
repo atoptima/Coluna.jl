@@ -92,6 +92,17 @@ ParamRestrictedMasterHeuristic() =
     )
 
 ####################################################################
+#                      NodeFinalizer
+####################################################################
+
+struct NodeFinalizer
+    algorithm::AbstractOptimizationAlgorithm
+    frequency::Integer
+    min_depth::Integer
+    name::String
+end
+
+####################################################################
 #                      BendersConquer
 ####################################################################
 
@@ -149,6 +160,7 @@ Parameters :
 @with_kw struct ColCutGenConquer <: AbstractConquerAlgorithm 
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
     primal_heuristics::Vector{ParameterisedHeuristic} = [ParamRestrictedMasterHeuristic()]
+    node_finalizer::Union{Nothing, NodeFinalizer} = nothing
     preprocess = PreprocessAlgorithm()
     cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
@@ -184,7 +196,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
     restore_from_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
-    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, reform, EmptyInput()))
+    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, env, reform, EmptyInput()))
         setterminationstatus!(nodestate, INFEASIBLE)
         return 
     end
@@ -245,7 +257,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
         end
         sort!(heuristics_to_run, by = x -> last(x), rev=true)
     
-        for (heur_algorithm, name, priority) in heuristics_to_run
+        for (heur_algorithm, name, _) in heuristics_to_run
             if ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol) 
                 break
             end
@@ -258,7 +270,6 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
             heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
             status = getterminationstatus(getoptstate(heur_output))
             status == TIME_LIMIT && setterminationstatus!(nodestate, status)
-
             ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
             if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                 # we start with worst solution to add all improving solutions
@@ -279,6 +290,60 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
                break
             end   
+        end
+
+        # if the gap is still unclosed, try to run the node finalizer if any
+        run_node_finalizer = (algo.node_finalizer !== nothing)
+        run_node_finalizer = run_node_finalizer && getterminationstatus(nodestate) != TIME_LIMIT
+        run_node_finalizer =
+            run_node_finalizer && !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+        run_node_finalizer = run_node_finalizer && getdepth(node) >= algo.node_finalizer.min_depth
+        run_node_finalizer =
+            run_node_finalizer && mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
+
+        if run_node_finalizer
+            # get the algorithm info
+            nodefinalizer = algo.node_finalizer.algorithm
+            name = algo.node_finalizer.name
+
+            @info "Running $name node finalizer"
+            if ismanager(nodefinalizer) 
+                recordids = store_records!(reform)
+            end   
+
+            nf_output = run!(nodefinalizer, env, reform, OptimizationInput(nodestate))
+            status = getterminationstatus(getoptstate(nf_output))
+            status == TIME_LIMIT && setterminationstatus!(nodestate, status)
+            ip_primal_sols = get_ip_primal_sols(getoptstate(nf_output))
+
+            # if the node has been conquered by the node finalizer
+            if status in (OPTIMAL, INFEASIBLE)
+                # set the ip solutions found without checking the cuts and finish
+                if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
+                    for sol in sort(ip_primal_sols)
+                        update_ip_primal_sol!(nodestate, sol)
+                    end
+                end
+
+                # make sure that the gap is closed for the current node
+                dual_bound = DualBound(reform, getvalue(get_ip_primal_bound(nodestate)))
+                update_ip_dual_bound!(nodestate, dual_bound)
+            else
+                if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
+                    # we start with worst solution to add all improving solutions
+                    for sol in sort(ip_primal_sols)
+                        cutgen = CutCallbacks(call_robust_facultative = false)
+                        # TO DO : Node finalizer should ensure itselves that the returned solution is feasible
+                        cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
+                        if cutcb_output.nb_cuts_added == 0
+                            update_ip_primal_sol!(nodestate, sol)
+                        end
+                    end
+                end
+                if ismanager(nodefinalizer) 
+                    ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+                end
+            end
         end
     end
 
