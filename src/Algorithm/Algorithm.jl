@@ -46,6 +46,7 @@ include("branching/varbranching.jl")
 include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
+include("branchcutprice.jl")
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.

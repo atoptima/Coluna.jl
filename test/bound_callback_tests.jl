@@ -9,7 +9,7 @@ function bound_callback_tests()
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
         "default_optimizer" => GLPK.Optimizer,
-        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(maxnumnodes = 2))
+        "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(maxnumnodes = 2))
     )
 
     model, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
