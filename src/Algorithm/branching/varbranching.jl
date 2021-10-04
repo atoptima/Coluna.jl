@@ -100,20 +100,15 @@ function run!(
         return BranchingRuleOutput(local_id, BranchingGroup[])
     end
 
-    selected_vars = Pair{VarId, Float64}[]
+    groups = BranchingGroup[]
     for (var_id, val) in input.solution
         getperenkind(master, var_id) == Continuous && continue
         if !isinteger(val, input.int_tol) && getbranchingpriority(master, var_id) == max_priority
-            push!(selected_vars, Pair{VarId, Float64}(var_id, val))
+            #description string is just the variable name
+            candidate = VarBranchingCandidate(getname(master, var_id), var_id)
+            local_id += 1
+            push!(groups, BranchingGroup(candidate, local_id, val))
         end
-    end
-
-    groups = BranchingGroup[]
-    for (var_id, val) in selected_vars
-        #description string is just the variable name
-        candidate = VarBranchingCandidate(getname(master, var_id), var_id)
-        local_id += 1
-        push!(groups, BranchingGroup(candidate, local_id, val))
     end
 
     if input.criterion == FirstFoundCriterion
