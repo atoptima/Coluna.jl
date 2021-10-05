@@ -13,3 +13,7 @@ function max_nb_form_unit()
     @test_throws ErrorException("Maximum number of formulations reached.") optimize!(model)
     return
 end
+
+function dw_sp_primalsol_pool()
+    
+end

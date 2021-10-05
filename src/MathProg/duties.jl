@@ -1,6 +1,9 @@
-#
+############################################################################################
 # Duties for a Formulation
-#
+############################################################################################
+# These contain data specific to a type of formulation.
+# For example, the pool of primal solution generated from a Dantzig-Wolfe subproblem.
+
 abstract type AbstractFormDuty end
 abstract type AbstractMasterDuty <: AbstractFormDuty end
 abstract type AbstractSpDuty <: AbstractFormDuty end
@@ -14,24 +17,41 @@ struct DwMaster <: AbstractMasterDuty end
 "Master of a formulation decomposed using Benders."
 struct BendersMaster <: AbstractMasterDuty end
 
-"A pricing subproblem of a formulation decomposed using Dantzig-Wolfe."
 mutable struct DwSp <: AbstractSpDuty 
     setup_var::Union{VarId, Nothing}
     lower_multiplicity::Int
     upper_multiplicity::Int
     column_var_kind::VarKind
+
+    # Pool of solutions to the Dantzig-Wolfe subproblem.
+    ## Coluna representation of solutions (filtered by `_sol_repr_for_pool`).
+    primalsols_pool::Dictionary{VarId, Dictionary{VarId,Float64}}
+    ## Perennial cost of solutions
+    costs_primalsols_pool::Dictionary{VarId, Float64}
+    ## Custom representation of solutions
+    custom_primalsols_pool::Dictionary{VarId, BD.AbstractCustomData}
 end
 
-"A Benders subproblem of a formulation decomposed using Benders."
+"A pricing subproblem of a formulation decomposed using Dantzig-Wolfe."
+function DwSp(setup_var, lower_multiplicity, upper_multiplicity, column_var_kind)
+    return DwSp(
+        setup_var, lower_multiplicity, upper_multiplicity, column_var_kind,
+        Dictionary{VarId, Dictionary{VarId,Float64}}(),
+        Dictionary{VarId, Float64}(),
+        Dictionary{VarId, BD.AbstractCustomData}()
+    )
+end
+
 struct BendersSp <: AbstractSpDuty 
     slack_to_first_stage::Dict{VarId, VarId}
 end
 
+"A Benders subproblem of a formulation decomposed using Benders."
 BendersSp() = BendersSp(Dict{VarId, VarId}())
 
-#
+############################################################################################
 # Duties tree for a Variable
-#
+############################################################################################
 @exported_nestedenum begin
     Duty{Variable}
         AbstractOriginalVar <= Duty{Variable}
@@ -65,9 +85,9 @@ BendersSp() = BendersSp(Dict{VarId, VarId}())
             BendSpPrimalSol <= AbstractBendSpVar
 end
 
-#
+############################################################################################
 # Duties tree for a Constraint
-#
+############################################################################################
 @exported_nestedenum begin
     Duty{Constraint}
         AbstractOriginalConstr <= Duty{Constraint}
@@ -101,9 +121,9 @@ end
             BendSpDualSol <= AbstractBendSpConstr
 end
 
-#
+############################################################################################
 # Methods to get extra information about duties
-#
+############################################################################################
 function isaStaticDuty(duty::NestedEnum)
     return duty <= OriginalVar ||
     #duty <= OriginalExpression ||
