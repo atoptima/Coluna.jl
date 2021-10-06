@@ -1,5 +1,5 @@
 """
-    Id{VC <: AbstractVarConstr}
+    Id{VC <: AbstractVarConstr} as VarId or ConstrId
 
 Coluna identifier of a `Variable` or a `Constraint`.
 
@@ -28,11 +28,29 @@ function _create_hash(uid, origin_form_uid, proc_uid)
     )
 end
 
+# TODO : clean id constructors (keep only 2 of them : a basic one & one with optional values)
 function Id{VC}(duty::Duty{VC}, uid, origin_form_uid, assigned_form_uid, custom_family_id) where {VC}
     proc_uid = Distributed.myid()
     Id{VC}(duty, uid, origin_form_uid, assigned_form_uid, proc_uid, custom_family_id, _create_hash(uid, origin_form_uid, proc_uid))
 end
 
+function Id{VC}(
+    orig_id::Id{VC};
+    duty::Union{Nothing, Duty{VC}} = nothing,
+    origin_form_uid::Union{Nothing, FormId} = nothing,
+    custom_family_id::Union{Nothing, Int8} = nothing
+) where {VC}
+    duty = duty === nothing ? orig_id.duty : duty
+    origin_form_uid = origin_form_uid === nothing ? orig_id.origin_form_uid : origin_form_uid
+    custom_family_id = custom_family_id === nothing ? orig_id.custom_family_id : custom_family_id
+    return Id{VC}(
+        duty, orig_id.uid, origin_form_uid, orig_id.assigned_form_uid_in_reformulation, 
+        orig_id.proc_uid, custom_family_id, 
+        _create_hash(orig_id.uid, origin_form_uid, orig_id.proc_uid)
+    )
+end
+
+# TODO : clean below this line 
 function Id{VC}(duty::Duty{VC}, uid, origin_form_uid) where {VC}
     proc_uid = Distributed.myid()
     Id{VC}(duty, uid, origin_form_uid, origin_form_uid, proc_uid, -1, _create_hash(uid, origin_form_uid, proc_uid))
@@ -50,6 +68,7 @@ end
 function Id{VC}(duty::Duty{VC}, id::Id{VC}; custom_family_id = id.custom_family_id) where {VC}
     Id{VC}(duty, id.uid, id.origin_form_uid, id.assigned_form_uid_in_reformulation, id.proc_uid, custom_family_id, id._hash)
 end
+# end TODO
 
 Base.hash(a::Id, h::UInt) = hash(a._hash, h)
 Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = Base.isequal(a._hash, b._hash)

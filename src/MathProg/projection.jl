@@ -11,7 +11,8 @@ function proj_cols_on_rep(sol::PrimalSolution, master::Formulation{DwMaster})
         elseif duty <= MasterCol
             origin_form_uid = getoriginformuid(varid)
             spform = get_dw_pricing_sps(master.parent_formulation)[origin_form_uid]
-            for (repid, repval) in @view getprimalsolmatrix(spform)[:, varid]
+
+            for (repid, repval) in @view getprimalsolpool(spform)[varid,:]
                 if getduty(repid) <= DwSpPricingVar || getduty(repid) <= DwSpSetupVar
                     mastrepid = getid(getvar(master, repid))
                     push!(projected_sol_vars, mastrepid)

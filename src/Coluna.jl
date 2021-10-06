@@ -22,12 +22,10 @@ const TOL_DIGITS = 8 # because round(val, digits = n) where n is from 1e-n
 ###
 
 # submodules
-export ColunaBase, MathProg, Algorithm
-
-const _to = TO.TimerOutput()
-
 export Algorithm, ColunaBase, MathProg, Env, DefaultOptimizer, Parameters,
     elapsed_optim_time
+
+const _to = TO.TimerOutput()
 
 include("kpis.jl")
 

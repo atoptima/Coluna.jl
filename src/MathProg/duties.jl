@@ -25,20 +25,21 @@ mutable struct DwSp <: AbstractSpDuty
 
     # Pool of solutions to the Dantzig-Wolfe subproblem.
     ## Coluna representation of solutions (filtered by `_sol_repr_for_pool`).
-    primalsols_pool::Dictionary{VarId, Dictionary{VarId,Float64}}
+    ## [colid, varid] = value
+    primalsols_pool::VarVarMatrix
     ## Perennial cost of solutions
-    costs_primalsols_pool::Dictionary{VarId, Float64}
+    costs_primalsols_pool::Dict{VarId, Float64}
     ## Custom representation of solutions
-    custom_primalsols_pool::Dictionary{VarId, BD.AbstractCustomData}
+    custom_primalsols_pool::Dict{VarId, BD.AbstractCustomData}
 end
 
 "A pricing subproblem of a formulation decomposed using Dantzig-Wolfe."
 function DwSp(setup_var, lower_multiplicity, upper_multiplicity, column_var_kind)
     return DwSp(
         setup_var, lower_multiplicity, upper_multiplicity, column_var_kind,
-        Dictionary{VarId, Dictionary{VarId,Float64}}(),
-        Dictionary{VarId, Float64}(),
-        Dictionary{VarId, BD.AbstractCustomData}()
+        dynamicsparse(VarId, VarId, Float64; fill_mode = false),
+        Dict{VarId, Float64}(),
+        Dict{VarId, BD.AbstractCustomData}()
     )
 end
 

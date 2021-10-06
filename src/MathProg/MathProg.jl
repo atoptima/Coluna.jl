@@ -10,7 +10,7 @@ using ..ColunaBase
 
 import Base: haskey, length, iterate, diff, delete!
 
-using Dictionaries, DynamicSparseArrays, Logging, Printf
+using DynamicSparseArrays, Logging, Printf
 
 if VERSION >= v"1.5"
     import Base: contains
@@ -27,8 +27,8 @@ include("types.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
-include("duties.jl")
 include("manager.jl")
+include("duties.jl")
 include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
@@ -78,13 +78,13 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, create_formulation!, getreformulation, getvar, getvars,
-    getconstr, getconstrs, getelem, getcoefmatrix, getprimalsolmatrix, getprimalsolcosts,
+    getconstr, getconstrs, getelem, getcoefmatrix, getprimalsolpool, getprimalsolcosts,
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
     push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!,
-    insertcolumn!
+    insert_column!
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp

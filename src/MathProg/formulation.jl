@@ -94,8 +94,7 @@ end
 
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(form::Formulation) = form.manager.coefficients
-getprimalsolmatrix(form::Formulation) = form.manager.primal_sols
-getprimalsolcosts(form::Formulation) = form.manager.primal_sol_costs
+
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
 
@@ -179,20 +178,26 @@ function setvar!(
     custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
     id = generatevarid(duty, form),
     branching_priority::Float64 = 1.0,
-    id_as_name_suffix = false
+    id_as_name_suffix = false,
+    origin::Union{Nothing,Formulation} = nothing
 )
     if kind == Binary
         lb = (lb < 0.0) ? 0.0 : lb
         ub = (ub > 1.0) ? 1.0 : ub
     end
 
-    if getduty(id) != duty
-        id = VarId(duty, id, -1)
+    origin_form_uid = origin !== nothing ? FormId(getuid(origin)) : nothing
+
+    custom_family_id = if custom_data !== nothing
+        Int8(form.manager.custom_families_id[typeof(custom_data)])
+    else
+        nothing
     end
 
-    if custom_data !== nothing
-        id = VarId(duty, id, form.manager.custom_families_id[typeof(custom_data)])
-    end
+    id = VarId(
+        id; duty = duty, origin_form_uid = origin_form_uid, 
+        custom_family_id = custom_family_id
+    )
 
     if id_as_name_suffix
         name = string(name, "_", getuid(id))
@@ -210,7 +215,6 @@ function setvar!(
 
     _addvar!(form, var)
     _setmembers!(form, var, members)
-
     return var
 end
 
@@ -223,22 +227,30 @@ function _addvar!(form::Formulation, var::Variable)
 end
 
 ############################################################################################
-# Pool of solutions
-# We consider that the pool is of type Dictionary of Dictionary.
+# Methods specific to a Formulation with DwSp duty
 ############################################################################################
 
-# Returns nothing if there is no identical solutions in pool; the id of the 
+getprimalsolpool(form::Formulation{DwSp}) = form.duty_data.primalsols_pool
+
+
+############################################################################################
+# Pool of solutions
+# We consider that the pool is a dynamic sparse matrix.
+############################################################################################
+
+# Returns nothing if there is no identical solutions in pool; the id of the
 # identical solution otherwise.
-function _get_same_sol_in_pool(
-    pool_sols::Dictionary{K1, Dictionary{K2,V}}, pool_costs::Dictionary{K1,V},
-    sol::Dictionary{K2,V}, sol_cost::V
-) where {K1,K2,V}
-    for (existing_sol_id, existing_sol) in pool_sols
-        if isapprox(pool_costs[existing_sol_id], sol_cost) && existing_sol .== sol
-            return existing_sol_id
+function _get_same_sol_in_pool(pool_sols, pool_costs, sol, sol_cost)
+    for (existing_sol_id, existing_sol_cost) in pool_costs
+        if isapprox(existing_sol_cost, sol_cost)
+            # TODO: implement comparison between view & dynamicsparsevec
+            existing_sol = pool_sols[existing_sol_id,:]
+            if existing_sol == sol
+                return existing_sol_id
+            end
         end
+        return nothing
     end
-    return nothing
 end
 
 # We only keep variables that have certain duty in the representation of the 
@@ -246,14 +258,14 @@ end
 # filter may change depending on the duty of the formulation.
 function _sol_repr_for_pool(primal_sol::PrimalSolution, ::DwSp)
     var_ids = VarId[]
-    values = Float64[]
+    vals = Float64[]
     for (var_id, val) in primal_sol
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
             push!(var_ids, var_id)
-            push!(values, val)
+            push!(vals, val)
         end
     end
-    return Dictionary(var_ids, values)
+    return var_ids, vals
 end
 
 ############################################################################################
@@ -274,7 +286,7 @@ function _col_members(col, master_coef_matrix)
 end
 
 """
-    insertcolumn!(master_form, primal_sol, name)
+    insert_column!(master_form, primal_sol, name)
 
 Inserts the primal solution `primal_sol` to a Dantzig-Wolfe subproblem into the
 master as a column.
@@ -284,7 +296,7 @@ Returns a tuple `(insertion_status, var_id)` where :
   and in the master formulation
 - `var_id` is the id of the column variable in the master formulation.
 """
-function insertcolumn!(
+function insert_column!(
     master_form::Formulation{DwMaster}, primal_sol::PrimalSolution, name::String;
     lb::Float64 = 0.0,
     ub::Float64 = Inf,
@@ -301,22 +313,17 @@ function insertcolumn!(
         new_col_peren_cost += getperencost(spform, var_id) * var_val
     end
 
-    pool = spform.duty_data.primalsols_pool
+    pool = getprimalsolpool(spform)
     costs_pool = spform.duty_data.costs_primalsols_pool
     custom_pool = spform.duty_data.custom_primalsols_pool
 
-    ## TODO : remove after merge of 590
-    dict_col = Dict{VarId,Float64}(k => v for (k,v) in getsol(primal_sol))
-    tmp_primal_col = Dictionary(dict_col)
-    ## end TODO
-
     # Check if the column is already in the pool.
-    col_id = _get_same_sol_in_pool(pool, costs_pool, tmp_primal_col, new_col_peren_cost)
+    col_id = _get_same_sol_in_pool(pool, costs_pool, getsol(primal_sol), new_col_peren_cost)
 
     # If the column is already in the pool, it means that it is already in the
     # master formulation, so we return the id of the column and don't insert it
     # a second time.
-    col_id !== nothing && return (false, col_id)
+    col_id !== nothing && return false, col_id
 
     # Compute coefficient members of the column in the matrix.
     members = _col_members(primal_sol, getcoefmatrix(master_form))
@@ -334,19 +341,26 @@ function insertcolumn!(
         moi_index = MoiVarIndex(),
         members = members,
         custom_data = primal_sol.custom_data,
-        id_as_name_suffix = true
+        id_as_name_suffix = true,
+        origin = spform
     )
+    setcurkind!(master_form, col, Continuous)
 
     # Store the solution in the pool if asked.
-    col_id = VarId(DwSpPrimalSol, getid(col))
     if store_in_sp_pool
-        insert!(pool, col_id, _sol_repr_for_pool(primal_sol, spform.duty_data))
-        insert!(costs_pool, col_id, new_col_peren_cost)
+        col_id = VarId(DwSpPrimalSol, getid(col))
+        var_ids, vals = _sol_repr_for_pool(primal_sol, spform.duty_data)
+        #addrow!(pool, col_id, var_ids, vals)
+        for i in 1:length(var_ids)
+            pool[col_id, var_ids[i]] = vals[i]
+        end
+
+        costs_pool[col_id] = new_col_peren_cost
         if primal_sol.custom_data !== nothing
-            insert!(custom_pool, col_id, sol.custom_data)
+            custom_pool[col_id] = sol.custom_data
         end
     end
-    return (true, getid(col))
+    return true, getid(col)
 end
 
 ############################################################################################
@@ -626,7 +640,7 @@ function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarM
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(varid)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
-            for (col_id, col_coeff) in @view getprimalsolmatrix(spform)[varid,:]
+            for (col_id, col_coeff) in @view getprimalsolpool(spform)[:,varid]
                 coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
         end

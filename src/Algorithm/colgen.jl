@@ -364,7 +364,7 @@ function insert_columns!(
         for sol in get_ip_primal_sols(sp_optstate)
             red_cost = compute_red_cost(algo, masterform, spinfo, sol, dualsol)
             if improving_red_cost(red_cost, algo, getobjsense(masterform))
-                insertion_status, col_id = insertcolumn!(masterform, sol, "MC")
+                insertion_status, col_id = insert_column!(masterform, sol, "MC")
 
                 if !insertion_status && haskey(masterform, col_id) && !iscuractive(masterform, col_id)
                     # Column already generated but inactive (only possible case when
