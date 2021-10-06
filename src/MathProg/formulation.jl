@@ -247,18 +247,14 @@ end
 function _sol_repr_for_pool(primal_sol::PrimalSolution, ::DwSp)
     var_ids = VarId[]
     values = Float64[]
-
     for (var_id, val) in primal_sol
         if getduty(var_id) <= DwSpSetupVar || getduty(var_id) <= DwSpPricingVar
             push!(var_ids, var_id)
             push!(values, val)
         end
     end
-
     return Dictionary(var_ids, values)
 end
-
-
 
 ############################################################################################
 # Insertion of a column in the master

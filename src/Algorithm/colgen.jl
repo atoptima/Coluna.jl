@@ -346,7 +346,7 @@ end
 
 function insert_columns!(
     masterform::Formulation, sp_optstate::OptimizationState,
-    spinfo::SubprobInfo, algo::ColumnGeneration, dualsol::DualSolution
+    spinfo::SubprobInfo, algo::ColumnGeneration, dualsol::DualSolution, phase::Int
 )
     nb_cols_generated = 0
 
@@ -377,9 +377,13 @@ function insert_columns!(
                     The column is in the master ? $(haskey(masterform, col_id)).
                     The column is active ? $(iscuractive(masterform, col_id)).
                     ======
-                    Please open an issue at https://github.com/atoptima/Coluna.jl/issues.
+                    Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
                     """
                     error(string(msg))
+                end
+
+                if phase == 1
+                    setcurcost!(masterform, col_id, 0.0)
                 end
                 nb_cols_generated += 1
             end
@@ -455,7 +459,9 @@ function solve_sps_to_gencols!(
         spinfo = spinfos[spuid]
         # end
 
-        nb_new_cols += insert_columns!(masterform, sp_optstate, spinfo, algo, lp_dual_sol)
+        nb_new_cols += insert_columns!(
+            masterform, sp_optstate, spinfo, algo, lp_dual_sol, phase
+        )
 
         # If a subproblem is infeasible, then the original formulation is
         # infeasible. Therefore we can stop the column generation.
@@ -667,7 +673,7 @@ function cg_main_loop!(
     init_stab_before_colgen_loop!(stabunit)
 
     while true
-        for (spuid, spinfo) in spinfos
+        for (_, spinfo) in spinfos
             clear_before_colgen_iteration!(spinfo)
         end
 
@@ -688,9 +694,16 @@ function cg_main_loop!(
 
         lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
         if lp_dual_sol === nothing
-            error("Solver returned that the LP restricted master is feasible but ",
-            "did not return a dual solution. ",
-            "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
+            err_msg = """
+            Something unexpected happened when retrieving the dual solution to the LP restricted master.
+            ======
+            Phase : $phase
+            Termination status of the solver after optimizing the master (should be OPTIMAL) : $(getterminationstatus(rm_optstate))
+            Number of dual solutions (should be at least 1) : $(length(get_lp_dual_sols(rm_optstate)))
+            ======
+            Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
+            """
+            error(err_msg)
         end
         if getobjsense(masterform) == MaxSense
             # this is needed due to convention that MOI uses for signs of duals in the maximization case
