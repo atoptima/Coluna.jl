@@ -248,27 +248,6 @@ end
 
 set_bestcol_id!(spinfo::SubprobInfo, varid::VarId) = spinfo.bestcol_id = varid
 
-# function insert_cols_in_master!(
-#     masterform::Formulation, spinfo::SubprobInfo, phase::Int64, spform::Formulation,
-# )
-#     nb_of_gen_col = 0
-
-#     for sol_id in spinfo.recorded_sol_ids
-#         nb_of_gen_col += 1
-#         name = string("MC_", getsortuid(sol_id))
-#         lb = 0.0
-#         ub = Inf
-#         duty = MasterCol
-#         mc = setcol_from_sp_primalsol!(masterform, spform, sol_id, name, duty; lb=lb, ub=ub)
-#         if phase == 1
-#             setcurcost!(masterform, mc, 0.0)
-#         end
-#         @logmsg LogLevel(-2) string("Generated column : ", name)
-#     end
-
-#     return nb_of_gen_col
-# end
-
 function compute_db_contributions!(
     spinfo::SubprobInfo, dualbound::DualBound{MaxSense}, primalbound::PrimalBound{MaxSense}
 )
