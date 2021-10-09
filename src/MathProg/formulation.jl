@@ -350,14 +350,10 @@ function insert_column!(
     if store_in_sp_pool
         col_id = VarId(DwSpPrimalSol, getid(col))
         var_ids, vals = _sol_repr_for_pool(primal_sol, spform.duty_data)
-        #addrow!(pool, col_id, var_ids, vals)
-        for i in 1:length(var_ids)
-            pool[col_id, var_ids[i]] = vals[i]
-        end
-
+        addrow!(pool, col_id, var_ids, vals)
         costs_pool[col_id] = new_col_peren_cost
         if primal_sol.custom_data !== nothing
-            custom_pool[col_id] = sol.custom_data
+            custom_pool[col_id] = primal_sol.custom_data
         end
     end
     return true, getid(col)

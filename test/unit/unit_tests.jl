@@ -24,6 +24,7 @@ function unit_tests()
         types_unit_tests()
         variables_unit_tests()
         mathprog_bounds()
+        dw_sp_primalsol_pool()
     end
 
     @testset "variable.jl" begin

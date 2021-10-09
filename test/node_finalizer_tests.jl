@@ -128,27 +128,16 @@ function node_finalizer_tests(heuristic_finalizer)
             varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
             push!(varids, cbdata.form.duty_data.setup_var)
             sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-            var_was_inserted, sol_id = ClMP.setprimalsol!(cbdata.form, sol)
-            if var_was_inserted
-                mc_1 = ClMP.setcol_from_sp_primalsol!(
-                    masterform, cbdata.form, sol_id, string("MC_", ClA.getsortuid(sol_id)), ClMP.MasterCol
-                )
-            else
-                mc_1 = ClMP.getvar(masterform, sol_id)
-            end
+            _, col_id = ClMP.insert_column!(masterform, sol, "MC")
+            mc_1 = ClMP.getvar(masterform, col_id)
+
             # [2, 3]
             vars = [y[b], x[b, 2], x[b, 3]]
             varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
             push!(varids, cbdata.form.duty_data.setup_var)
             sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-            var_was_inserted, sol_id = ClMP.setprimalsol!(cbdata.form, sol)
-            if var_was_inserted
-                mc_2_3 = ClMP.setcol_from_sp_primalsol!(
-                    masterform, cbdata.form, sol_id, string("MC_", ClA.getsortuid(sol_id)), ClMP.MasterCol
-                )
-            else
-                mc_2_3 = ClMP.getvar(masterform, sol_id)
-            end
+            _, col_id = ClMP.insert_column!(masterform, sol, "MC")
+            mc_2_3 =  ClMP.getvar(masterform, col_id)
 
             # add the solution to the master problem
             varids = [ClMP.getid(mc_1), ClMP.getid(mc_2_3)]

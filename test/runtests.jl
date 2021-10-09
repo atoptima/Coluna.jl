@@ -19,9 +19,6 @@ const ClA = Coluna.Algorithm
 
 
 include("unit/unit_tests.jl")
-
-dw_sp_primalsol_pool()
-
 include("MathOptInterface/MOI_wrapper.jl")
 include("interfaces/model.jl")
 include("issues_tests.jl")

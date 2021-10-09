@@ -15,7 +15,7 @@ function dw_sp_primalsol_pool()
     sol2_vals = [2.0, 2.0, 3.0]
     sol2_repr = dynamicsparsevec(sol2_ids, sol2_vals)
     sol2_cost = 2.0
-    
+
     addrow!(pool_sols, sol1_id, sol1_ids, sol1_vals)
     pool_costs[sol1_id] = sol1_cost
 
