@@ -103,7 +103,7 @@ _lp_gap(ov::ObjValues) = gap(ov.lp_primal_bound, ov.lp_dual_bound)
 function _ip_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return (_ip_gap(ov) <= 0) || _gap_closed(
+    return _ip_gap(ov) <= 0 || _gap_closed(
         ov.ip_primal_bound.value, ov.ip_dual_bound.value, atol = atol, rtol = rtol
     )
 end
@@ -111,7 +111,7 @@ end
 function _lp_gap_closed(
     ov::ObjValues; atol = Coluna.DEF_OPTIMALITY_ATOL, rtol = Coluna.DEF_OPTIMALITY_RTOL
 )
-    return (_lp_gap(ov) <= 0) || _gap_closed(
+    return _lp_gap(ov) <= 0 || _gap_closed(
        ov.lp_primal_bound.value, ov.lp_dual_bound.value, atol = atol, rtol = rtol
     )
 end
@@ -120,7 +120,7 @@ function _gap_closed(
     x::Number, y::Number; atol::Real = 0, rtol::Real = atol > 0 ? 0 : √eps, 
     norm::Function = abs
 ) 
-    return (x == y) || (isfinite(x) && isfinite(y) && norm(x - y) <= max(atol, rtol*min(norm(x), norm(y))))
+    return x == y || (isfinite(x) && isfinite(y) && norm(x - y) <= max(atol, rtol*min(norm(x), norm(y))))
 end
 
 ## Bound updates

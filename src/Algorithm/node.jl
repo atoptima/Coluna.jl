@@ -8,7 +8,7 @@ mutable struct Node
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
-    #branch::Union{Nothing, Branch} # branch::Id{Constraint}
+    #branch::Union{Nothing, Branch} # branch::ConstrId
     branchdescription::String
     recordids::RecordsVector
     conquerwasrun::Bool

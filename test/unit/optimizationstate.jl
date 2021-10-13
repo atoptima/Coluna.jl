@@ -16,7 +16,7 @@ function update_sol_tests()
         max_length_lp_primal_sols = 2.0, max_length_lp_dual_sols = 2.0
     )
     primalsol = PrimalSolution(form, [getid(var)], [2.0], 2.0, CB.UNKNOWN_FEASIBILITY)
-    dualsol = DualSolution(form, [getid(constr)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY)
+    dualsol = DualSolution(form, [getid(constr)], [1.0], VarId[], Float64[], ActiveBound[], 1.0, CB.UNKNOWN_FEASIBILITY)
 
     ### ip primal
     update_ip_primal_sol!(state, primalsol)
@@ -56,7 +56,7 @@ function update_sol_tests()
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 1.0
     update_lp_dual_sol!(state, DualSolution(
-        form, [getid(constr)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY
+        form, [getid(constr)], [0.0], VarId[], Float64[], ActiveBound[], 0.0, CB.UNKNOWN_FEASIBILITY
     ))
     # check that solution worse than `dualsol` is NOT added to `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1
@@ -76,7 +76,7 @@ function update_sol_tests()
         max_length_lp_primal_sols = 2.0, max_length_lp_dual_sols = 2.0
     )
     primalsol = PrimalSolution(form, [getid(var)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY)
-    dualsol = DualSolution(form, [getid(constr)], [2.0], 2.0, CB.UNKNOWN_FEASIBILITY)
+    dualsol = DualSolution(form, [getid(constr)], [2.0], VarId[], Float64[], ActiveBound[], 2.0, CB.UNKNOWN_FEASIBILITY)
 
     ### ip primal
     update_ip_primal_sol!(state, primalsol)
@@ -116,7 +116,7 @@ function update_sol_tests()
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 2.0
     update_lp_dual_sol!(state, DualSolution(
-        form, [getid(constr)], [3.0], 3.0, CB.UNKNOWN_FEASIBILITY
+        form, [getid(constr)], [3.0], VarId[], Float64[], ActiveBound[], 3.0, CB.UNKNOWN_FEASIBILITY
     ))
     # check that solution worse than `dualsol` is NOT added to `state.lp_dual_sols`
     @test length(get_lp_dual_sols(state)) == 1
@@ -133,7 +133,7 @@ function add_sol_tests()
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
     state = OptimizationState(form)
     primalsol = PrimalSolution(form, [getid(var)], [2.0], 2.0, CB.UNKNOWN_FEASIBILITY)
-    dualsol = DualSolution(form, [getid(constr)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY)
+    dualsol = DualSolution(form, [getid(constr)], [1.0], VarId[], Float64[], ActiveBound[], 1.0, CB.UNKNOWN_FEASIBILITY)
 
     ### ip primal
     add_ip_primal_sols!(
@@ -164,7 +164,7 @@ function add_sol_tests()
 
     ### lp dual
     add_lp_dual_sol!(state, DualSolution(
-        form, [getid(constr)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY
+        form, [getid(constr)], [0.0], VarId[], Float64[], ActiveBound[], 0.0, CB.UNKNOWN_FEASIBILITY
     ))
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 0.0
@@ -186,7 +186,7 @@ function add_sol_tests()
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
     state = OptimizationState(form)
     primalsol = PrimalSolution(form, [getid(var)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY)
-    dualsol = DualSolution(form, [getid(constr)], [2.0], 2.0, CB.UNKNOWN_FEASIBILITY)
+    dualsol = DualSolution(form, [getid(constr)], [2.0], VarId[], Float64[], ActiveBound[], 2.0, CB.UNKNOWN_FEASIBILITY)
 
     ### ip primal
     add_ip_primal_sols!(
@@ -217,7 +217,7 @@ function add_sol_tests()
 
     ### lp dual
     add_lp_dual_sol!(state, DualSolution(
-        form, [getid(constr)], [3.0], 3.0, CB.UNKNOWN_FEASIBILITY
+        form, [getid(constr)], [3.0], VarId[], Float64[], ActiveBound[], 3.0, CB.UNKNOWN_FEASIBILITY
     ))
     # check that incumbent bound is updated
     @test get_lp_dual_bound(state) == 3.0
@@ -241,7 +241,7 @@ function set_sol_tests()
         form, ip_primal_bound = 3.0, lp_primal_bound = 3.0, lp_dual_bound = -1.0
     )
     primalsol = PrimalSolution(form, [getid(var)], [2.0], 2.0, CB.UNKNOWN_FEASIBILITY)
-    dualsol = DualSolution(form, [getid(constr)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY)
+    dualsol = DualSolution(form, [getid(constr)], [0.0], VarId[], Float64[], ActiveBound[], 0.0, CB.UNKNOWN_FEASIBILITY)
 
     ### ip primal
     set_ip_primal_sol!(state, PrimalSolution(
@@ -269,7 +269,7 @@ function set_sol_tests()
 
     ### lp dual
     set_lp_dual_sol!(state, DualSolution(
-        form, [getid(constr)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY
+        form, [getid(constr)], [1.0], VarId[], Float64[], ActiveBound[], 1.0, CB.UNKNOWN_FEASIBILITY
     ))
     set_lp_dual_sol!(state, dualsol)
     # check that only the solution which was set last is in `state.lp_dual_sols`
@@ -291,7 +291,7 @@ function set_sol_tests()
         form, ip_primal_bound = -1.0, lp_primal_bound = -1.0, lp_dual_bound = 3.0
     )
     primalsol = PrimalSolution(form, [getid(var)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY)
-    dualsol = DualSolution(form, [getid(constr)], [2.0], 2.0, CB.UNKNOWN_FEASIBILITY)
+    dualsol = DualSolution(form, [getid(constr)], [2.0], VarId[], Float64[], ActiveBound[], 2.0, CB.UNKNOWN_FEASIBILITY)
 
     ### ip primal
     set_ip_primal_sol!(state, PrimalSolution(
@@ -319,7 +319,7 @@ function set_sol_tests()
 
     ### lp dual
     set_lp_dual_sol!(state, DualSolution(
-        form, [getid(constr)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY
+        form, [getid(constr)], [1.0], VarId[], Float64[], ActiveBound[], 1.0, CB.UNKNOWN_FEASIBILITY
     ))
     set_lp_dual_sol!(state, dualsol)
     # check that only the solution which was set last is in `state.lp_dual_sols`

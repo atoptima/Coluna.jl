@@ -214,23 +214,24 @@ function convert_status(coluna_status::SolutionStatus)
     return MOI.OTHER_RESULT_STATUS
 end
 
-# Solution
+# Basic structure of a solution
 struct Solution{Model<:AbstractModel,Decision,Value} <: AbstractDict{Decision,Value}
     model::Model
     bound::Float64
     status::SolutionStatus
     sol::DynamicSparseArrays.PackedMemoryArray{Decision,Value}
-    custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData}
 end
 
 """
+Solution is an internal data structure of Coluna and should not be used in
+algorithms. See `MathProg.PrimalSolution` & `MathProg.DualSolution` instead.
+
     Solution(
         model::AbstractModel,
         decisions::Vector,
         values::Vector,
-        solution_values::Float64,
-        status::SolutionStatus,
-        [custom_data]::Union{Nothing, BlockDecomposition.AbstractCustomData}
+        solution_value::Float64,
+        status::SolutionStatus
     )
 
 Create a solution to the `model`. Other arguments are: 
@@ -241,42 +242,34 @@ Create a solution to the `model`. Other arguments are:
 """
 function Solution{Mo,De,Va}(
     model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, 
-    status::SolutionStatus, custom_data::Union{Nothing, BlockDecomposition.AbstractCustomData} = nothing
-) where {Mo<:AbstractModel,De,Va}
+    status::SolutionStatus
+) where {Mo<:AbstractModel,De,Va,T}
     sol = DynamicSparseArrays.dynamicsparsevec(decisions, values)
-    return Solution(model, solution_value, status, sol, custom_data)
+    return Solution(model, solution_value, status, sol)
 end
 
-"""
-    getsol(solution)
-    
-Return the dynamic sparse vector that describes `solution`.
-"""
-getsol(s::Solution) = s.sol
+"Return the model of a solution."
+getmodel(s::Solution) = s.model
 
-"""
-    getvalue(solution) -> Float64
+"Return the value (as a Bound) of `solution`"
+getbound(s::Solution) = s.bound
 
-Return the value of `solution`.
-"""
+"Return the value of `solution`."
 getvalue(s::Solution) = float(s.bound)
 
-"""
-    getstatus(solution) -> SolutionStatus
-
-Return the solution status of `solution`.
-"""
+"Return the solution status of `solution`."
 getstatus(s::Solution) = s.status
 
 Base.iterate(s::Solution) = iterate(s.sol)
 Base.iterate(s::Solution, state) = iterate(s.sol, state)
 Base.length(s::Solution) = length(s.sol)
-Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id] # TODO : REMOVE
+Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id]
 Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.sol, id)
 Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
 
+# TODO : remove when refactoring Benders
 function Base.filter(f::Function, s::S) where {S <: Solution}
-    return S(s.model, s.bound, s.status, filter(f, s.sol), s.custom_data)
+    return S(s.model, s.bound, s.status, filter(f, s.sol))
 end
 
 function Base.in(p::Tuple{De,Va}, a::Solution{Mo,De,Va}, valcmp=(==)) where {Mo,De,Va}

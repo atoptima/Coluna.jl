@@ -49,7 +49,7 @@ function init_stab_before_colgen_loop!(unit::ColGenStabilizationUnit)
 end
 
 function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolution, f::Function)
-    form = out_dual_sol.model
+    form = getmodel(out_dual_sol)
     constrids = Vector{ConstrId}()
     constrvals = Vector{Float64}()
     value::Float64 = 0.0
@@ -100,12 +100,15 @@ function linear_combination(in_dual_sol::DualSolution, out_dual_sol::DualSolutio
         (x, y) -> coeff * x + (1.0 - coeff) * y
     )
 
-    form = in_dual_sol.model
+    form = getmodel(in_dual_sol)
     bound = 0.0
     for (i, constrid) in enumerate(constrids)
         bound += constrvals[i] * getcurrhs(form, constrid) 
     end
-    return DualSolution(form, constrids, constrvals, bound, UNKNOWN_FEASIBILITY)
+    return DualSolution(
+        form, constrids, constrvals, VarId[], Float64[], ActiveBound[], bound, 
+        UNKNOWN_FEASIBILITY
+    )
 end
 
 function update_stab_after_rm_solve!(
@@ -148,11 +151,14 @@ function update_alpha_automatically!(
     smooth_dual_sol::DualSolution{M}, subgradient_contribution::DualSolution{M}
 ) where {M}    
 
-    master = lp_dual_sol.model 
+    master = getmodel(lp_dual_sol)
 
     # first we calculate the in-sep direction
     constrids, constrvals = componentwisefunction(smooth_dual_sol, unit.stabcenter, -)
-    in_sep_direction = DualSolution(master, constrids, constrvals, 0.0, UNKNOWN_FEASIBILITY)
+    in_sep_direction = DualSolution(
+        master, constrids, constrvals, VarId[], Float64[], ActiveBound[], 0.0, 
+        UNKNOWN_FEASIBILITY
+    )
     in_sep_dir_norm = norm(in_sep_direction)
 
     # we initialize the subgradient with the right-hand-side of all master constraints
@@ -166,7 +172,10 @@ function update_alpha_automatically!(
             push!(constrrhs, getcurrhs(master, constrid))
         end 
     end
-    subgradient = DualSolution(master, constrids, constrrhs, 0.0, UNKNOWN_FEASIBILITY)
+    subgradient = DualSolution(
+        master, constrids, constrrhs, VarId[], Float64[], ActiveBound[], 0.0, 
+        UNKNOWN_FEASIBILITY
+    )
     
     # we calculate the subgradient at the sep point
     for (constrid, value) in subgradient_contribution

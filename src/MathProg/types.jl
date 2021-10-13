@@ -1,8 +1,4 @@
 abstract type AbstractVarConstr end
-abstract type AbstractVarConstrId end
-abstract type AbstractState end
-abstract type AstractMoiDef end
-abstract type AbstractMembership end
 abstract type AbstractVcData end
 abstract type AbstractOptimizer end
 
@@ -13,9 +9,7 @@ struct Dual <: Coluna.AbstractDualSpace end
 struct MinSense <: Coluna.AbstractMinSense end
 struct MaxSense <: Coluna.AbstractMaxSense end
 
-#
 # Duties for variables and constraints
-#
 """
     Duty{Variable}
 
@@ -34,7 +28,7 @@ If a duty `Duty1` inherits from `Duty2`, then
 ```jldoctest
 julia> Duty1 <= Duty2
 true
-````
+```
 """
 struct Duty{VC <: AbstractVarConstr} <: NestedEnum
     value::UInt
@@ -56,8 +50,6 @@ end
 
 # TODO remove following exported_enum
 @exported_enum FormulationPhase HybridPhase PurePhase1 PurePhase2 # TODO : remove from Benders
-#@exported_enum VcSelectionCriteria Static Dynamic Delayed Artificial Implicit Explicit # Not used
-#@exported_enum SolutionMethod DirectMip DantzigWolfeDecomposition BendersDecomposition # Not used
 
 const FormId = Int16
 
