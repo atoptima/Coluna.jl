@@ -12,7 +12,7 @@ Q = [1020 1460 1530 1190];</code></pre><p>with the following Coluna configuratio
         solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
     ),
     &quot;default_optimizer&quot; =&gt; GLPK.Optimizer # GLPK for the master &amp; the subproblems
-);</code></pre><p>for which the JuMP model takes the form:</p><pre><code class="language- hljs">model = BlockModel(coluna);
+);</code></pre><p>for which the JuMP model takes the form:</p><pre><code class="language-julia hljs">model = BlockModel(coluna);
 
 @axis(M, 1:nb_machines);
 J = 1:nb_jobs;
@@ -20,8 +20,7 @@ J = 1:nb_jobs;
 @variable(model, x[m in M, j in J], Bin);
 @constraint(model, cov[j in J], sum(x[m,j] for m in M) == 1);
 @objective(model, Min, sum(c[m,j]*x[m,j] for m in M, j in J));
-@dantzig_wolfe_decomposition(model, dwdec, M);
-nothing #hide</code></pre><p>where, as you can see, we omitted the knapsack constraints. These constraints are implicitly defined by the algorithm called in the pricing callback.</p><p>Let&#39;s use the knapsack algorithms from the unregistered package <a href="https://github.com/rafaelmartinelli/KnapsackLib.jl">KnapsackLib</a> to solve the knapsack subproblems.</p><pre><code class="language-julia hljs">using KnapsackLib;</code></pre><p>The pricing callback is a function. It takes as argument <code>cbdata</code> which is a data structure that allows the user to interact with Coluna within the pricing callback.</p><pre><code class="language-julia hljs">function my_pricing_callback(cbdata)
+@dantzig_wolfe_decomposition(model, dwdec, M);</code></pre><p>where, as you can see, we omitted the knapsack constraints. These constraints are implicitly defined by the algorithm called in the pricing callback.</p><p>Let&#39;s use the knapsack algorithms from the unregistered package <a href="https://github.com/rafaelmartinelli/KnapsackLib.jl">KnapsackLib</a> to solve the knapsack subproblems.</p><pre><code class="language-julia hljs">using KnapsackLib;</code></pre><p>The pricing callback is a function. It takes as argument <code>cbdata</code> which is a data structure that allows the user to interact with Coluna within the pricing callback.</p><pre><code class="language-julia hljs">function my_pricing_callback(cbdata)
     # Retrieve the index of the subproblem (it will be one of the values in M)
     cur_machine = BD.callback_spid(cbdata, model)
 
@@ -60,7 +59,138 @@ nothing #hide</code></pre><p>where, as you can see, we omitted the knapsack cons
     # Submit the solution to the subproblem to Coluna
     MOI.submit(model, BD.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
     return
-end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">my_pricing_callback (generic function with 1 method)</code></pre><p>The pricing callback is provided to Coluna using the keyword <code>solver</code> in the method <code>specify!</code>.</p><pre><code class="language- hljs">subproblems = BD.getsubproblems(dwdec);
-BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback);
-nothing #hide</code></pre><p>You can then optimize :</p><pre><code class="language- hljs">optimize!(model);
-nothing #hide</code></pre><p>and retrieve information you need as usual :</p><pre><code class="language- hljs">getobjectivevalue(model)</code></pre><h1 id="Separation-callbacks"><a class="docs-heading-anchor" href="#Separation-callbacks">Separation callbacks</a><a id="Separation-callbacks-1"></a><a class="docs-heading-anchor-permalink" href="#Separation-callbacks" title="Permalink"></a></h1><p>Separation callbacks let you define how to separate cuts or constraints.</p><h2 id="Facultative-and-essential-cuts-(user-cut-and-lazy-constraint)"><a class="docs-heading-anchor" href="#Facultative-and-essential-cuts-(user-cut-and-lazy-constraint)">Facultative &amp; essential cuts (user cut &amp; lazy constraint)</a><a id="Facultative-and-essential-cuts-(user-cut-and-lazy-constraint)-1"></a><a class="docs-heading-anchor-permalink" href="#Facultative-and-essential-cuts-(user-cut-and-lazy-constraint)" title="Permalink"></a></h2><p>This callback allows you to add cuts to the master problem. The cuts must be expressed in terms of the original variables. Then, Coluna expresses them over the master variables. You can find an example of <a href="https://jump.dev/JuMP.jl/stable/tutorials/Mixed-integer%20linear%20programs/callbacks/#Lazy-constraints">essential cut separation</a> and <a href="https://jump.dev/JuMP.jl/stable/tutorials/Mixed-integer%20linear%20programs/callbacks/#User-cut">facultative cut separation</a> in the JuMP documentation.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../algorithm/">« Algorithms</a><a class="docs-footer-nextpage" href="../../qa/">Q&amp;A »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Saturday 4 September 2021 14:30">Saturday 4 September 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">my_pricing_callback (generic function with 1 method)</code></pre><p>The pricing callback is provided to Coluna using the keyword <code>solver</code> in the method <code>specify!</code>.</p><pre><code class="language-julia hljs">subproblems = BD.getsubproblems(dwdec);
+BD.specify!.(subproblems, lower_multiplicity = 0, solver = my_pricing_callback);</code></pre><p>You can then optimize :</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
+Version 0.3.11 | 2021-10-09 | https://github.com/atoptima/Coluna.jl
+***************************************************************************************
+**** BaB tree root node
+**** Local DB = -Inf, global bounds : [ -Inf , Inf ], time = 7.91 sec.
+***************************************************************************************
+  &lt;it=  1&gt; &lt;et=28.46&gt; &lt;mst= 4.38&gt; &lt;sp= 4.98&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-299372.2000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  2&gt; &lt;et=29.43&gt; &lt;mst= 0.23&gt; &lt;sp= 0.13&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-299372.2000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  3&gt; &lt;et=29.43&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-190116.3000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  4&gt; &lt;et=29.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp=63773.9333&gt; &lt;PB=Inf&gt;
+  &lt;it=  5&gt; &lt;et=29.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp=34420.5600&gt; &lt;PB=Inf&gt;
+  &lt;it=  6&gt; &lt;et=29.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp=20481.7000&gt; &lt;PB=Inf&gt;
+  &lt;it=  7&gt; &lt;et=29.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp=16154.2585&gt; &lt;PB=Inf&gt;
+  &lt;it=  8&gt; &lt;et=29.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 7400.6476&gt; &lt;PB=Inf&gt;
+  &lt;it=  9&gt; &lt;et=29.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 5308.2222&gt; &lt;PB=Inf&gt;
+  &lt;it= 10&gt; &lt;et=29.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 3972.8298&gt; &lt;PB=Inf&gt;
+  &lt;it= 11&gt; &lt;et=29.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 3340.4907&gt; &lt;PB=Inf&gt;
+  &lt;it= 12&gt; &lt;et=29.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 1915.6035&gt; &lt;PB=Inf&gt;
+  &lt;it= 13&gt; &lt;et=29.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 1605.2077&gt; &lt;PB=Inf&gt;
+  &lt;it= 14&gt; &lt;et=29.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 1375.9573&gt; &lt;PB=Inf&gt;
+  &lt;it= 15&gt; &lt;et=29.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 1297.6263&gt; &lt;PB=Inf&gt;
+  &lt;it= 16&gt; &lt;et=29.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp= 1196.4436&gt; &lt;PB=Inf&gt;
+  &lt;it= 17&gt; &lt;et=29.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp=  857.5398&gt; &lt;PB=Inf&gt;
+  &lt;it= 18&gt; &lt;et=29.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp=  748.4932&gt; &lt;PB=Inf&gt;
+  &lt;it= 19&gt; &lt;et=29.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-136658.9667&gt; &lt;mlp=  559.8707&gt; &lt;PB=Inf&gt;
+  &lt;it= 20&gt; &lt;et=29.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=-114967.1947&gt; &lt;mlp=  485.6203&gt; &lt;PB=Inf&gt;
+  &lt;it= 21&gt; &lt;et=29.62&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB= -651.1592&gt; &lt;mlp=  461.1656&gt; &lt;PB=Inf&gt;
+  &lt;it= 22&gt; &lt;et=29.62&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   99.3319&gt; &lt;mlp=  461.0317&gt; &lt;PB=Inf&gt;
+  &lt;it= 23&gt; &lt;et=29.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   99.3319&gt; &lt;mlp=  459.0613&gt; &lt;PB=Inf&gt;
+  &lt;it= 24&gt; &lt;et=29.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=   99.3319&gt; &lt;mlp=  456.4099&gt; &lt;PB=Inf&gt;
+  &lt;it= 25&gt; &lt;et=29.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   99.3319&gt; &lt;mlp=  452.0415&gt; &lt;PB=Inf&gt;
+  &lt;it= 26&gt; &lt;et=29.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=   99.3319&gt; &lt;mlp=  446.8545&gt; &lt;PB=Inf&gt;
+  &lt;it= 27&gt; &lt;et=29.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  119.2710&gt; &lt;mlp=  439.9726&gt; &lt;PB=Inf&gt;
+  &lt;it= 28&gt; &lt;et=29.64&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  119.2710&gt; &lt;mlp=  437.9088&gt; &lt;PB=Inf&gt;
+  &lt;it= 29&gt; &lt;et=29.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  119.2710&gt; &lt;mlp=  428.0976&gt; &lt;PB=Inf&gt;
+  &lt;it= 30&gt; &lt;et=29.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  188.4265&gt; &lt;mlp=  425.4524&gt; &lt;PB=Inf&gt;
+  &lt;it= 31&gt; &lt;et=29.65&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  188.4265&gt; &lt;mlp=  419.0107&gt; &lt;PB=Inf&gt;
+  &lt;it= 32&gt; &lt;et=29.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  188.4265&gt; &lt;mlp=  416.6041&gt; &lt;PB=Inf&gt;
+  &lt;it= 33&gt; &lt;et=29.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  200.3877&gt; &lt;mlp=  409.6698&gt; &lt;PB=Inf&gt;
+  &lt;it= 34&gt; &lt;et=29.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  200.3877&gt; &lt;mlp=  403.9687&gt; &lt;PB=Inf&gt;
+  &lt;it= 35&gt; &lt;et=29.66&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  200.3877&gt; &lt;mlp=  397.6178&gt; &lt;PB=Inf&gt;
+  &lt;it= 36&gt; &lt;et=29.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  200.3877&gt; &lt;mlp=  393.8941&gt; &lt;PB=Inf&gt;
+  &lt;it= 37&gt; &lt;et=29.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  216.3273&gt; &lt;mlp=  389.8955&gt; &lt;PB=Inf&gt;
+  &lt;it= 38&gt; &lt;et=29.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  216.3273&gt; &lt;mlp=  387.8733&gt; &lt;PB=Inf&gt;
+  &lt;it= 39&gt; &lt;et=29.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  216.3273&gt; &lt;mlp=  386.6080&gt; &lt;PB=Inf&gt;
+  &lt;it= 40&gt; &lt;et=29.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  216.3273&gt; &lt;mlp=  385.1797&gt; &lt;PB=Inf&gt;
+  &lt;it= 41&gt; &lt;et=29.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  216.3273&gt; &lt;mlp=  383.6798&gt; &lt;PB=Inf&gt;
+  &lt;it= 42&gt; &lt;et=29.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  221.6530&gt; &lt;mlp=  383.2378&gt; &lt;PB=Inf&gt;
+  &lt;it= 43&gt; &lt;et=29.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  221.6530&gt; &lt;mlp=  377.8114&gt; &lt;PB=Inf&gt;
+  &lt;it= 44&gt; &lt;et=29.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  221.6530&gt; &lt;mlp=  373.8293&gt; &lt;PB=Inf&gt;
+  &lt;it= 45&gt; &lt;et=29.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  221.6530&gt; &lt;mlp=  369.2128&gt; &lt;PB=Inf&gt;
+  &lt;it= 46&gt; &lt;et=29.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  221.6530&gt; &lt;mlp=  366.8404&gt; &lt;PB=Inf&gt;
+  &lt;it= 47&gt; &lt;et=29.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.02&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  221.6530&gt; &lt;mlp=  365.6140&gt; &lt;PB=Inf&gt;
+  &lt;it= 48&gt; &lt;et=29.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  221.6530&gt; &lt;mlp=  363.7035&gt; &lt;PB=Inf&gt;
+  &lt;it= 49&gt; &lt;et=29.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  247.2107&gt; &lt;mlp=  361.5668&gt; &lt;PB=Inf&gt;
+  &lt;it= 50&gt; &lt;et=29.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  247.2107&gt; &lt;mlp=  356.5468&gt; &lt;PB=Inf&gt;
+  &lt;it= 51&gt; &lt;et=29.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  247.2107&gt; &lt;mlp=  354.2835&gt; &lt;PB=Inf&gt;
+  &lt;it= 52&gt; &lt;et=29.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  247.2107&gt; &lt;mlp=  352.4589&gt; &lt;PB=Inf&gt;
+  &lt;it= 53&gt; &lt;et=29.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  247.2107&gt; &lt;mlp=  350.4109&gt; &lt;PB=Inf&gt;
+  &lt;it= 54&gt; &lt;et=29.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  263.2396&gt; &lt;mlp=  348.5835&gt; &lt;PB=Inf&gt;
+  &lt;it= 55&gt; &lt;et=29.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  263.2396&gt; &lt;mlp=  347.6858&gt; &lt;PB=Inf&gt;
+  &lt;it= 56&gt; &lt;et=29.74&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  263.2396&gt; &lt;mlp=  345.4534&gt; &lt;PB=Inf&gt;
+  &lt;it= 57&gt; &lt;et=29.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  269.0012&gt; &lt;mlp=  343.2717&gt; &lt;PB=Inf&gt;
+  &lt;it= 58&gt; &lt;et=29.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  281.0323&gt; &lt;mlp=  341.8640&gt; &lt;PB=Inf&gt;
+  &lt;it= 59&gt; &lt;et=29.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  281.0323&gt; &lt;mlp=  338.6347&gt; &lt;PB=Inf&gt;
+  &lt;it= 60&gt; &lt;et=29.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  281.0323&gt; &lt;mlp=  335.5271&gt; &lt;PB=Inf&gt;
+  &lt;it= 61&gt; &lt;et=29.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  281.0323&gt; &lt;mlp=  331.4105&gt; &lt;PB=Inf&gt;
+  &lt;it= 62&gt; &lt;et=29.76&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  281.0323&gt; &lt;mlp=  329.4535&gt; &lt;PB=Inf&gt;
+  &lt;it= 63&gt; &lt;et=29.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  281.0323&gt; &lt;mlp=  328.5136&gt; &lt;PB=Inf&gt;
+  &lt;it= 64&gt; &lt;et=29.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  281.0323&gt; &lt;mlp=  327.6649&gt; &lt;PB=Inf&gt;
+  &lt;it= 65&gt; &lt;et=29.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  282.3459&gt; &lt;mlp=  326.7873&gt; &lt;PB=Inf&gt;
+  &lt;it= 66&gt; &lt;et=29.77&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  282.3459&gt; &lt;mlp=  325.8948&gt; &lt;PB=Inf&gt;
+  &lt;it= 67&gt; &lt;et=29.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  282.3459&gt; &lt;mlp=  325.1029&gt; &lt;PB=Inf&gt;
+  &lt;it= 68&gt; &lt;et=29.78&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  282.3459&gt; &lt;mlp=  324.3678&gt; &lt;PB=Inf&gt;
+  &lt;it= 69&gt; &lt;et=29.79&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  282.3459&gt; &lt;mlp=  324.0137&gt; &lt;PB=Inf&gt;
+  &lt;it= 70&gt; &lt;et=29.79&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  282.3459&gt; &lt;mlp=  321.9425&gt; &lt;PB=Inf&gt;
+  &lt;it= 71&gt; &lt;et=29.79&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  282.3459&gt; &lt;mlp=  321.6230&gt; &lt;PB=Inf&gt;
+  &lt;it= 72&gt; &lt;et=29.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  282.3459&gt; &lt;mlp=  321.5505&gt; &lt;PB=Inf&gt;
+  &lt;it= 73&gt; &lt;et=29.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  284.4602&gt; &lt;mlp=  321.3728&gt; &lt;PB=Inf&gt;
+  &lt;it= 74&gt; &lt;et=29.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  284.4602&gt; &lt;mlp=  318.6227&gt; &lt;PB=Inf&gt;
+  &lt;it= 75&gt; &lt;et=29.81&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  284.4602&gt; &lt;mlp=  317.6262&gt; &lt;PB=Inf&gt;
+  &lt;it= 76&gt; &lt;et=29.81&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  284.4602&gt; &lt;mlp=  317.5618&gt; &lt;PB=Inf&gt;
+  &lt;it= 77&gt; &lt;et=29.81&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  284.4602&gt; &lt;mlp=  317.0049&gt; &lt;PB=Inf&gt;
+  &lt;it= 78&gt; &lt;et=29.82&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  284.4602&gt; &lt;mlp=  316.6643&gt; &lt;PB=Inf&gt;
+  &lt;it= 79&gt; &lt;et=29.82&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  290.4015&gt; &lt;mlp=  316.4127&gt; &lt;PB=Inf&gt;
+  &lt;it= 80&gt; &lt;et=29.82&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  293.5310&gt; &lt;mlp=  316.3928&gt; &lt;PB=Inf&gt;
+  &lt;it= 81&gt; &lt;et=29.85&gt; &lt;mst= 0.00&gt; &lt;sp= 0.02&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  295.9609&gt; &lt;mlp=  316.2565&gt; &lt;PB=Inf&gt;
+  &lt;it= 82&gt; &lt;et=29.85&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  316.2565&gt; &lt;PB=Inf&gt;
+  &lt;it= 83&gt; &lt;et=29.85&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  315.8000&gt; &lt;PB=Inf&gt;
+  &lt;it= 84&gt; &lt;et=29.86&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  313.7877&gt; &lt;PB=Inf&gt;
+  &lt;it= 85&gt; &lt;et=29.86&gt; &lt;mst= 0.01&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  311.4667&gt; &lt;PB=Inf&gt;
+  &lt;it= 86&gt; &lt;et=29.87&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  311.4667&gt; &lt;PB=Inf&gt;
+  &lt;it= 87&gt; &lt;et=29.87&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  311.4667&gt; &lt;PB=Inf&gt;
+  &lt;it= 88&gt; &lt;et=29.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  311.4667&gt; &lt;PB=Inf&gt;
+  &lt;it= 89&gt; &lt;et=29.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  311.4667&gt; &lt;PB=Inf&gt;
+  &lt;it= 90&gt; &lt;et=29.88&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  311.4667&gt; &lt;PB=Inf&gt;
+  &lt;it= 91&gt; &lt;et=29.89&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  311.3500&gt; &lt;PB=Inf&gt;
+  &lt;it= 92&gt; &lt;et=30.13&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it= 93&gt; &lt;et=30.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it= 94&gt; &lt;et=30.14&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it= 95&gt; &lt;et=30.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it= 96&gt; &lt;et=30.15&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it= 97&gt; &lt;et=30.16&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it= 98&gt; &lt;et=30.16&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  303.0957&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it= 99&gt; &lt;et=30.16&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  305.6000&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it=100&gt; &lt;et=30.17&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  305.8500&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it=101&gt; &lt;et=30.17&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  305.8500&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it=102&gt; &lt;et=30.17&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  306.4000&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it=103&gt; &lt;et=30.17&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  306.4000&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it=104&gt; &lt;et=30.18&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  306.4000&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+  &lt;it=105&gt; &lt;et=30.18&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  307.5000&gt; &lt;mlp=  307.5000&gt; &lt;PB=307.5000&gt;
+[ Info: Dual bound reached primal bound.
+Node is already conquered. No children will be generated.
+ ──────────────────────────────────────────────────────────────────────────────
+                                       Time                   Allocations
+                               ──────────────────────   ───────────────────────
+       Tot / % measured:             114s / 27.5%           7.17GiB / 27.9%
+
+ Section               ncalls     time   %tot     avg     alloc   %tot      avg
+ ──────────────────────────────────────────────────────────────────────────────
+ Coluna                     1    31.2s   100%   31.2s   2.00GiB  100%   2.00GiB
+   SolveLpForm            105    3.55s  11.4%  33.8ms    101MiB  4.96%  0.97MiB
+   Inserting columns      105    755ms  2.42%  7.19ms   24.1MiB  1.18%   235KiB
+   Getting primal s...    105    463ms  1.48%  4.41ms   12.3MiB  0.60%   120KiB
+   Cleanup columns        105    442ms  1.42%  4.21ms   13.1MiB  0.64%   127KiB
+   Store records            1    248ms  0.79%   248ms   5.36MiB  0.26%  5.36MiB
+   Update Lagrangia...    105    156ms  0.50%  1.48ms   3.05MiB  0.15%  29.8KiB
+   Update reduced c...    105    139ms  0.44%  1.32ms   7.10MiB  0.35%  69.2KiB
+   Smoothing update       105   29.4ms  0.09%   280μs   4.16MiB  0.20%  40.5KiB
+   Restore/remove r...      1   28.0μs  0.00%  28.0μs     0.00B  0.00%    0.00B
+ ──────────────────────────────────────────────────────────────────────────────
+[ Info: Terminated
+[ Info: Primal bound: 307.5
+[ Info: Dual bound: 307.5</code></pre><p>and retrieve information you need as usual :</p><pre><code class="language-julia hljs">getobjectivevalue(model)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">307.5</code></pre><h1 id="Separation-callbacks"><a class="docs-heading-anchor" href="#Separation-callbacks">Separation callbacks</a><a id="Separation-callbacks-1"></a><a class="docs-heading-anchor-permalink" href="#Separation-callbacks" title="Permalink"></a></h1><p>Separation callbacks let you define how to separate cuts or constraints.</p><h2 id="Facultative-and-essential-cuts-(user-cut-and-lazy-constraint)"><a class="docs-heading-anchor" href="#Facultative-and-essential-cuts-(user-cut-and-lazy-constraint)">Facultative &amp; essential cuts (user cut &amp; lazy constraint)</a><a id="Facultative-and-essential-cuts-(user-cut-and-lazy-constraint)-1"></a><a class="docs-heading-anchor-permalink" href="#Facultative-and-essential-cuts-(user-cut-and-lazy-constraint)" title="Permalink"></a></h2><p>This callback allows you to add cuts to the master problem. The cuts must be expressed in terms of the original variables. Then, Coluna expresses them over the master variables. You can find an example of <a href="https://jump.dev/JuMP.jl/stable/tutorials/Mixed-integer%20linear%20programs/callbacks/#Lazy-constraints">essential cut separation</a> and <a href="https://jump.dev/JuMP.jl/stable/tutorials/Mixed-integer%20linear%20programs/callbacks/#User-cut">facultative cut separation</a> in the JuMP documentation.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../algorithm/">« Algorithms</a><a class="docs-footer-nextpage" href="../../qa/">Q&amp;A »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.7 on <span class="colophon-date" title="Wednesday 13 October 2021 10:24">Wednesday 13 October 2021</span>. Using Julia version 1.6.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
