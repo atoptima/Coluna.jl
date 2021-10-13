@@ -36,6 +36,7 @@ include("optimizer_with_attributes_test.jl")
 include("subproblem_solvers_tests.jl")
 include("custom_var_cuts_tests.jl")
 include("sol_disaggregation_tests.jl")
+include("node_finalizer_tests.jl")
 
 rng = MersenneTwister(1234123)
 
@@ -85,4 +86,10 @@ end
 
 @testset "Solution Disaggregation" begin
     sol_disaggregation_tests()
+end
+
+@testset "Node Finalizer" begin
+    node_finalizer_tests(false) # exact node finalizer
+
+    node_finalizer_tests(true)  # heuristic node finalizer
 end

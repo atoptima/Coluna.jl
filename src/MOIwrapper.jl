@@ -813,7 +813,7 @@ function BD.value(info::ColumnInfo, index::MOI.VariableIndex)
     varid = info.optimizer.env.varids[index]
     origin_form_uid = getoriginformuid(info.column_var_id)
     spform = get_dw_pricing_sps(info.optimizer.inner.re_formulation)[origin_form_uid]
-    return info.column_val * getprimalsolmatrix(spform)[varid, info.column_var_id]
+    return getprimalsolmatrix(spform)[varid, info.column_var_id]
 end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfVariables)
@@ -976,11 +976,6 @@ function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.EqualTo})
     return value
 end
 
-function _singlevarconstrdualval(bc, dualsol, ::Type{S}) where {S}
-    @warn "single var constr dual not implemented for $S."
-    return 0.0
-end
-
 function MOI.get(
     optimizer::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.SingleVariable,S}
@@ -989,6 +984,18 @@ function MOI.get(
     if 1 <= attr.N <= length(dualsols)
         single_var_constrs = optimizer.constrs_on_single_var[index]
         return _singlevarconstrdualval(single_var_constrs, dualsols[attr.N], S)
+    end
+    return error("Invalid result index.")
+end
+
+# Useful method to retrieve dual values of generated cuts because they don't 
+# have MOI.ConstraintIndex
+function MOI.get(
+    optimizer::Optimizer, attr::MOI.ConstraintDual, constrid::ConstrId
+)
+    dualsols = get_lp_dual_sols(optimizer.result)
+    if 1 <= attr.N <= length(dualsols)
+        return get(dualsols[attr.N], constrid, 0.0)
     end
     return error("Invalid result index.")
 end

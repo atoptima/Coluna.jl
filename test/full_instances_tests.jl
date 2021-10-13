@@ -15,7 +15,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
                 branchingtreefile = "playgap.dot"
             )),
             "default_optimizer" => GLPK.Optimizer
@@ -39,7 +39,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -56,24 +56,15 @@ function generalized_assignment_tests()
     @testset "gap - strong branching" begin
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
-        conquer_with_small_cleanup_threshold = ClA.ColCutGenConquer(
-            stages = [ClA.ColumnGeneration(cleanup_threshold = 150, smoothing_stabilization = 1.0)]
-        )
-
-        branching = ClA.StrongBranching(
-            phases = [ClA.BranchingPhase(5, ClA.RestrMasterLPConquer()),
-                      ClA.BranchingPhase(1, conquer_with_small_cleanup_threshold)],
-            rules = [ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 2.0, 2.0),
-                     ClA.PrioritisedBranchingRule(ClA.VarBranchingRule(), 1.0, 1.0)]
-        )
-
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
             "params" => CL.Params(
-                solver = ClA.TreeSearchAlgorithm(
-                    conqueralg = conquer_with_small_cleanup_threshold,
-                    dividealg = branching,
-                    maxnumnodes = 300
+                solver = ClA.BranchCutAndPriceAlgorithm(
+                    maxnumnodes = 300,
+                    colgen_stabilization = 1.0,
+                    colgen_cleanup_threshold = 150,
+                    stbranch_phases_num_candidates = [10, 3, 1],
+                    stbranch_intrmphase_stages = [(userstage=1, solverid=1, maxiters=2)]
                 )
             ),
             "default_optimizer" => GLPK.Optimizer
@@ -96,6 +87,31 @@ function generalized_assignment_tests()
         @test JuMP.objective_value(model) ≈ 1553.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+    end
+
+
+    @testset "gap - node limit" begin
+        data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
+
+        coluna = JuMP.optimizer_with_attributes(
+            CL.Optimizer,
+            "params" => CL.Params(
+                solver = ClA.BranchCutAndPriceAlgorithm(
+                    maxnumnodes = 5
+                )
+            ),
+            "default_optimizer" => GLPK.Optimizer
+        )
+
+        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        BD.objectiveprimalbound!(model, 2000.0)
+        BD.objectivedualbound!(model, 0.0)
+
+        JuMP.optimize!(model)
+
+        @test JuMP.objective_bound(model) ≈ 1547.3889
+        @test JuMP.termination_status(model) == MathOptInterface.OTHER_LIMIT
+        return
     end
 
     @testset "gap - ColGen max nb iterations" begin
@@ -126,7 +142,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -141,7 +157,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -156,7 +172,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -172,7 +188,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -187,7 +203,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -225,10 +241,8 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
             "params" => CL.Params(
-                solver = ClA.TreeSearchAlgorithm(
-                    conqueralg = ClA.ColCutGenConquer(
-                        stages = [ClA.ColumnGeneration(smoothing_stabilization = 1.0)]
-                    ),
+                solver = ClA.BranchCutAndPriceAlgorithm(
+                    colgen_stabilization = 1.0,
                     maxnumnodes = 300
                 )
             ),
@@ -248,7 +262,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -264,7 +278,7 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm())
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -283,8 +297,8 @@ function generalized_assignment_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
-                conqueralg = ClA.ColCutGenConquer(max_nb_cut_rounds = 1000)
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
+                max_nb_cut_rounds = 1000
             )),
             "default_optimizer" => GLPK.Optimizer
         )
@@ -368,7 +382,7 @@ function capacitated_lot_sizing_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -403,7 +417,7 @@ function cutting_stock_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
             "default_optimizer" => GLPK.Optimizer
         )
 
@@ -420,7 +434,7 @@ function cvrp_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
                 maxnumnodes = 10000,
                 branchingtreefile = "cvrp.dot"
             )),

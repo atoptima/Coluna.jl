@@ -99,11 +99,12 @@ function perform_strong_branching_with_phases!(
         getmaster(reform), getoptstate(input), exploitsprimalsolutions, false
     )
 
+    children_generated = false
     for (phase_index, current_phase) in enumerate(algo.phases)
         nb_candidates_for_next_phase::Int64 = 1        
         if phase_index < length(algo.phases)
             nb_candidates_for_next_phase = algo.phases[phase_index + 1].max_nb_candidates
-            if length(groups) <= nb_candidates_for_next_phase 
+            if phase_index > 1 && length(groups) <= nb_candidates_for_next_phase 
                 continue
             end
         end
@@ -127,7 +128,7 @@ function perform_strong_branching_with_phases!(
  
         for (group_index,group) in enumerate(groups)
             #TO DO: verify if time limit is reached
-            if phase_index == 1                
+            if !children_generated
                 generate_children!(group, env, reform, parent)                
             else    
                 regenerate_children!(group, parent)
@@ -178,6 +179,7 @@ function perform_strong_branching_with_phases!(
             end
             print_bounds_and_score(group, phase_index, max_descr_length)
         end
+        children_generated = true
 
         sort!(groups, rev = true, by = x -> (x.isconquered, x.score))
 

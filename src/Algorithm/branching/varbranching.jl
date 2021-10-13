@@ -83,13 +83,27 @@ function run!(
     !input.isoriginalsol && return BranchingRuleOutput(input.local_id, Vector{BranchingGroup}())
 
     master = getmaster(reform)
-    groups = Vector{BranchingGroup}()
     local_id = input.local_id
+    max_priority = -Inf
     for (var_id, val) in input.solution
         # Do not consider continuous variables as branching candidates
         getperenkind(master, var_id) == Continuous && continue
-        getbranchingpriority(master, var_id) < input.minimum_priority && continue
         if !isinteger(val, input.int_tol)
+            brpriority = getbranchingpriority(master, var_id)
+            if max_priority < brpriority
+                max_priority = brpriority
+            end
+        end
+    end
+
+    if max_priority == -Inf    
+        return BranchingRuleOutput(local_id, BranchingGroup[])
+    end
+
+    groups = BranchingGroup[]
+    for (var_id, val) in input.solution
+        getperenkind(master, var_id) == Continuous && continue
+        if !isinteger(val, input.int_tol) && getbranchingpriority(master, var_id) == max_priority
             #description string is just the variable name
             candidate = VarBranchingCandidate(getname(master, var_id), var_id)
             local_id += 1

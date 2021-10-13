@@ -57,7 +57,6 @@ Here are their meanings :
 - `DB` is the dual bound of the master LP at the current iteration
 - `mlp` is the objective value of the master LP at the current iteration
 - `PB` is the objective value of the best primal solution found by Coluna at the current iteration
-
 """
 @with_kw struct ColumnGeneration <: AbstractOptimizationAlgorithm
     restr_master_solve_alg = SolveLpForm(get_dual_solution=true)
@@ -588,8 +587,6 @@ function move_convexity_constrs_dual_values!(
     for (spuid, spinfo) in spinfos
         spinfo.lb_dual = dualsol[spinfo.lb_constr_id]
         spinfo.ub_dual = dualsol[spinfo.ub_constr_id]
-        dualsol[spinfo.lb_constr_id] = zero(0.0)
-        dualsol[spinfo.ub_constr_id] = zero(0.0)
         newbound -= (spinfo.lb_dual * spinfo.lb + spinfo.ub_dual * spinfo.ub)
     end
     constrids = Vector{ConstrId}()
@@ -688,6 +685,9 @@ function cg_main_loop!(
             # this is needed due to convention that MOI uses for signs of duals in the maximization case
             change_values_sign!(lp_dual_sol)
         end
+        if lp_dual_sol !== nothing
+            set_lp_dual_sol!(cg_optstate, lp_dual_sol)
+        end
         lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
 
         TO.@timeit Coluna._to "Getting primal solution" begin
@@ -696,6 +696,11 @@ function cg_main_loop!(
             set_lp_primal_sol!(cg_optstate, rm_sol)
             lp_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)
             set_lp_primal_bound!(cg_optstate, lp_bound)
+
+            dual_rm_sol = get_best_lp_dual_sol(rm_optstate)
+            if dual_rm_sol !== nothing
+                set_lp_dual_sol!(cg_optstate, dual_rm_sol)
+            end
 
             if phase != 1 && !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
                 proj_sol = proj_cols_on_rep(rm_sol, masterform)
@@ -780,8 +785,6 @@ function cg_main_loop!(
         update_stab_after_colgen_iteration!(stabunit)
 
         dual_bound = get_ip_dual_bound(cg_optstate)
-        primal_bound = get_lp_primal_bound(cg_optstate)
-        ip_primal_bound = get_ip_primal_bound(cg_optstate)
 
         if ip_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol)
             setterminationstatus!(cg_optstate, OPTIMAL)
@@ -800,6 +803,7 @@ function cg_main_loop!(
         if lp_gap_closed(cg_optstate, atol=algo.opt_atol, rtol=algo.opt_rtol) && !essential_cuts_separated
             @logmsg LogLevel(0) "Column generation algorithm has converged."
             setterminationstatus!(cg_optstate, OPTIMAL)
+            set_lp_dual_sol!(cg_optstate, get_best_lp_dual_sol(cg_optstate))
             return false, false
         end
         if nb_new_columns == 0 && !essential_cuts_separated

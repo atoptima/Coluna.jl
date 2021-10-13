@@ -51,7 +51,7 @@ end
 # TODO remove following exported_enum
 @exported_enum FormulationPhase HybridPhase PurePhase1 PurePhase2 # TODO : remove from Benders
 
-const FormId = Int8
+const FormId = Int16
 
 ############################################################################
 ######################## MathOptInterface shortcuts ########################

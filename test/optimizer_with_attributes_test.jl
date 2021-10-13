@@ -7,7 +7,7 @@ function optimizer_with_attributes_test()
         println(GLPK.Optimizer)
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm(
+            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
                 branchingtreefile = "playgap.dot"
             )),
             "default_optimizer" => JuMP.optimizer_with_attributes(GLPK.Optimizer, "tm_lim" => 60 * 1_100, "msg_lev" => GLPK.GLP_MSG_OFF)
