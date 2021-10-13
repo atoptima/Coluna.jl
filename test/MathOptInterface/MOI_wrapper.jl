@@ -5,7 +5,6 @@ MOI.set(OPTIMIZER, MOI.RawParameter("default_optimizer"), GLPK.Optimizer)
 
 const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6, infeas_certificates = false)
 
-
 @testset "SolverName" begin
     @test MOI.get(OPTIMIZER, MOI.SolverName()) == "Coluna"
 end
@@ -111,6 +110,43 @@ end
     @test JuMP.objective_value(model) == 2.0
 end
 
+# @testset "Multiple single variable constraints" begin
+#     coluna = optimizer_with_attributes(
+#         Coluna.Optimizer,
+#         "params" => Coluna.Params(
+#             solver=Coluna.Algorithm.TreeSearchAlgorithm()
+#         ),
+#         "default_optimizer" => GLPK.Optimizer
+#     )
+
+#     @axis(M, 1:1)
+#     J = 1:1
+
+#     model = BlockModel(coluna)
+#     @variable(model, x[m in M, j in J])
+#     @constraint(model, c1[m in M], 1 <= x[m,1] <= 2)
+#     @constraint(model, c2[m in M], x[m,1] >= 1.2)
+#     @constraint(model, c3[m in M], x[m,1] <= 1.8)
+#     @constraint(model, c4[m in M], x[m,1] <= 1.7)
+#     @constraint(model, c5[m in M], x[m,1] == 1.6)
+#     @objective(model, Max, sum(x[m,j] for m in M, j in J))
+
+#     @dantzig_wolfe_decomposition(model, decomposition, M)
+
+#     optimize!(model)
+#     @test JuMP.objective_value(model) == 1.6
+
+#     delete(model, c5[M[1]])
+#     unregister(model, :c5)
+#     optimize!(model)
+#     @test JuMP.objective_value(model) == 1.7
+
+#     delete(model, c4[M[1]])
+#     unregister(model, :c4)
+#     optimize!(model)
+#     @test JuMP.objective_value(model) == 1.8
+# end
+
 const UNSUPPORTED_TESTS = [
     "solve_qcp_edge_cases", # Quadratic constraints not supported
     "delete_nonnegative_variables", # `VectorOfVariables`-in-`Nonnegatives` not supported 
@@ -131,7 +167,6 @@ const UNSUPPORTED_TESTS = [
     "solve_unbounded_model", # default lower bound 0
 ]
 
-MathOptInterface.Test.getconstraint
 const BASIC = [
     "add_variable",
     "solver_name",
@@ -175,37 +210,16 @@ const LP_TESTS = [
     "solve_affine_lessthan"
 ]
 
-const CONSTRAINTDUAL_SINGLEVAR = [
-    "solve_with_lowerbound",
-    "solve_singlevariable_obj",
-    "solve_constant_obj",
-    "solve_single_variable_dual_max",
-    "solve_single_variable_dual_min",
-    "solve_duplicate_terms_obj",
-    "solve_blank_obj",
-    "solve_with_upperbound",
-    "linear1",
-    "linear2",
-    "linear10b",
-    "linear14"
-]
-
-const DELETE_SINGLEVAR_CONSTR = [
-    # BUG: issue #583
-    "linear5",
-    "linear14"
+const CONSTRAINTDUAL_SINGLEVAR = String[
+    "solve_single_variable_dual_max", # TODO bug
+    "solve_single_variable_dual_min", # TODO bug
+    "linear14", # TODO bug
+    "linear1", # TODO bug
 ]
 
 const UNCOVERED_TERMINATION_STATUS = [
     "linear8b", # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
     "linear8c" # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
-]
-
-const SET_CONSTRAINTSET = [
-    # BUG
-    "linear4",
-    "linear6",
-    "linear7"
 ]
 
 @testset "Unit Basic/MIP" begin
@@ -236,7 +250,7 @@ end
 
 @testset "Continuous Linear" begin
     MOIT.contlineartest(BRIDGED, CONFIG, vcat(
-        CONSTRAINTDUAL_SINGLEVAR, DELETE_SINGLEVAR_CONSTR, UNCOVERED_TERMINATION_STATUS, SET_CONSTRAINTSET, [
+        CONSTRAINTDUAL_SINGLEVAR, UNCOVERED_TERMINATION_STATUS, [
             "partial_start" # VariablePrimalStart not supported
         ]
     ))

@@ -39,6 +39,7 @@ function update_bounds_in_optimizer!(form::Formulation, optimizer::MoiOptimizer,
             MOI.Interval(getcurlb(form, var), getcurub(form, var))
         ))
     end
+    return
 end
 
 function update_cost_in_optimizer!(form::Formulation, optimizer::MoiOptimizer, var::Variable)
@@ -59,9 +60,9 @@ function update_obj_const_in_optimizer!(form::Formulation, optimizer::MoiOptimiz
     return
 end
 
-function update_constr_member_in_optimizer!(optimizer::MoiOptimizer,
-                                            c::Constraint, v::Variable,
-                                            coeff::Float64)
+function update_constr_member_in_optimizer!(
+    optimizer::MoiOptimizer, c::Constraint, v::Variable, coeff::Float64
+)
     moi_c_index = getindex(getmoirecord(c))
     moi_v_index = getindex(getmoirecord(v))
     MOI.modify(
@@ -153,12 +154,9 @@ function add_to_optimizer!(
     return
 end
 
-function remove_from_optimizer!(form::Formulation, optimizer::MoiOptimizer, ids::Set{Id{T}}) where {
-    T <: AbstractVarConstr}
+function remove_from_optimizer!(form::Formulation, optimizer::MoiOptimizer, ids::Set{I}) where {I<:Id}
     for id in ids
-        vc = getelem(form, id)
-        @logmsg LogLevel(-3) string("Removing varconstr of name ", getname(form, vc))
-        remove_from_optimizer!(form, optimizer, vc)
+        remove_from_optimizer!(form, optimizer, getelem(form, id))
     end
     return
 end
@@ -199,7 +197,7 @@ function _getreducedcost(form::Formulation, optimizer, var::Variable)
         Cannot retrieve reduced cost of variable $varname from formulation solved with optimizer of type $opt. 
         Method returns nothing.
     """
-    return nothing
+    return
 end
 
 function getreducedcost(form::Formulation, optimizer::MoiOptimizer, var::Variable)
@@ -210,7 +208,7 @@ function getreducedcost(form::Formulation, optimizer::MoiOptimizer, var::Variabl
             No dual solution stored in the optimizer of formulation. Cannot retrieve reduced costs.
             Method returns nothing.
         """
-        return nothing
+        return
     end
     if !iscuractive(form, var) || !isexplicit(form, var)
         varname = getname(form, var)
@@ -218,7 +216,7 @@ function getreducedcost(form::Formulation, optimizer::MoiOptimizer, var::Variabl
             Cannot retrieve reduced cost of variable $varname because the variable must be active and explicit.
             Method returns nothing.
         """
-        return nothing
+        return
     end
     bounds_interval_idx = getbounds(getmoirecord(var))
     dualval = MOI.get(inner, MOI.ConstraintDual(1), bounds_interval_idx)
@@ -234,19 +232,20 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
         if MOI.get(inner, MOI.PrimalStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
+
         solcost = getobjconst(form)
-        solvars = Vector{VarId}()
-        solvals = Vector{Float64}()
+        solvars = VarId[]
+        solvals = Float64[]
+
+        # Get primal values of variables
         for (id, var) in getvars(form)
             iscuractive(form, id) && isexplicit(form, id) || continue
             moirec = getmoirecord(var)
             moi_index = getindex(moirec)
-            kind = _getcolunakind(moirec)
             val = MOI.get(inner, MOI.VariablePrimal(res_idx), moi_index)
             solcost += val * getcurcost(form, id)
             val = round(val, digits = Coluna.TOL_DIGITS)
             if abs(val) > Coluna.TOL
-                @logmsg LogLevel(-4) string("Var ", var.name , " = ", val)
                 push!(solvars, id)
                 push!(solvals, val)
             end
@@ -256,21 +255,28 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
     return solutions
 end
 
+# Retrieve dual solutions stored in the optimizer of a formulation
+# It works only if the optimizer is wrapped with MathOptInterface.
 function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)
     nb_dual_sols = MOI.get(inner, MOI.ResultCount())
     solutions = DualSolution{F}[]
+
     for res_idx in 1:nb_dual_sols
+        # We retrieve only feasible dual solutions
         if MOI.get(inner, MOI.DualStatus(res_idx)) != MOI.FEASIBLE_POINT
             continue
         end
+
+        # Cost of the dual solution
         solcost = getobjconst(form)
-        solconstrs = Vector{ConstrId}()
-        solvals = Vector{Float64}()
+
         # Get dual value of constraints
+        solconstrs = ConstrId[]
+        solvals = Float64[]
         for (id, constr) in getconstrs(form)
-            iscuractive(form, id) && isexplicit(form, id) || continue
             moi_index = getindex(getmoirecord(constr))
+            MOI.is_valid(inner, moi_index) || continue
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_index)
             solcost += val * getcurrhs(form, id)
             val = round(val, digits = Coluna.TOL_DIGITS)
@@ -279,22 +285,47 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 push!(solvals, val)      
             end
         end
-        # Get reduced cost of variables
-        for (id, var) in getvars(form)
-            iscuractive(form, id) && isexplicit(form, id) || continue
+
+        # Get dual value & active bound of variables
+        var_red_costs = Dict{VarId, Tuple{Float64,ActiveBound}}()
+        varids = VarId[]
+        varvals = Float64[]
+        activebounds = ActiveBound[]
+        for (varid, var) in getvars(form)
             moi_bounds_index = getbounds(getmoirecord(var))
+            MOI.is_valid(inner, moi_bounds_index) || continue
             basis_status = MOI.get(inner, MOI.ConstraintBasisStatus(res_idx), moi_bounds_index)
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_bounds_index)
+
+            # Variables with non-zero dual values have at least one active bound.
+            # Otherwise, we print a warning message.
             if basis_status == MOI.NONBASIC_AT_LOWER
-                solcost += val * getcurlb(form, id)
+                solcost += val * getcurlb(form, varid)
+                if abs(val) > Coluna.TOL
+                    push!(varids, varid)
+                    push!(varvals, val)
+                    push!(activebounds, LOWER)
+                end
             elseif basis_status == MOI.NONBASIC_AT_UPPER
-                solcost += val * getcurub(form, id)
+                solcost += val * getcurub(form, varid)
+                if abs(val) > Coluna.TOL
+                    push!(varids, varid)
+                    push!(varvals, val)
+                    push!(activebounds, UPPER)
+                end
+            elseif abs(val) > Coluna.TOL
+                @warn """
+                    Basis status of a variable that has a non-zero dual value is not treated.
+                    Basis status is $basis_status & dual value is $val.
+                """
             end
-            # TODO : store reduced cost of the variable in the dual constraint ?
         end
 
-        sense = getobjsense(form) == MaxSense ? -1.0 : 1.0
-        push!(solutions, DualSolution(form, solconstrs, solvals, sense * solcost, FEASIBLE_SOL))
+        sense = getobjsense(form) == MinSense ? 1.0 : -1.0
+        push!(solutions, DualSolution(
+            form, solconstrs, solvals, varids, varvals, activebounds, sense*solcost, 
+            FEASIBLE_SOL
+        ))
     end
     return solutions
 end

@@ -74,7 +74,7 @@ function custom_var_cuts_test()
 
             # Get the dual values of the custom cuts
             custduals = Tuple{Int, Float64}[]
-            for (_, constr) in getconstrs(cbdata.form.parent_formulation)
+            for (_, constr) in Coluna.MathProg.getconstrs(cbdata.form.parent_formulation)
                 if typeof(constr.custom_data) == MyCustomCutData
                     push!(custduals, (
                         constr.custom_data.min_items,
@@ -122,6 +122,7 @@ function custom_var_cuts_test()
             solver = my_pricing_callback
         )
 
+        cut_ids = []
         function custom_cut_sep(cbdata)
             # compute the constraint violation
             viol = -1.0
@@ -136,17 +137,17 @@ function custom_var_cuts_test()
 
             # add the cut (at most one variable with 2 or more of the 3 items) if violated
             if viol > 0.001
-                MOI.submit(
+                cut_id = MOI.submit(
                     model, MOI.UserCut(cbdata),
                     JuMP.ScalarConstraint(JuMP.AffExpr(0.0), MOI.LessThan(1.0)), MyCustomCutData(2)
                 )
+                push!(cut_ids, cut_id)
             end
             return
         end
         MOI.set(model, MOI.UserCutCallback(), custom_cut_sep)
 
         JuMP.optimize!(model)
-        @show JuMP.objective_value(model)
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
     

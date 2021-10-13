@@ -94,14 +94,33 @@ function run!(
     end
 
     master = getmaster(reform)
-    groups = BranchingGroup[]
     local_id = input.local_id
+    max_priority = -Inf
     for (var_id, val) in input.solution
-        create_branch_grp = getperenkind(master, var_id) != Continuous
-        create_branch_grp &= getbranchingpriority(master, var_id) >= input.minimum_priority
-        create_branch_grp &= abs(round(val) - val) > input.int_tol
-        if create_branch_grp
-            candidate = SingleVarBranchingCandidate(getname(master, var_id), var_id)
+        continuous_var = getperenkind(master, var_id) == Continuous
+        int_val = isinteger(val, input.int_tol)
+        # Do not consider continuous variables as branching candidates
+        # and variables with integer value in the current solution.
+        if !continuous_var && !int_val
+            brpriority = getbranchingpriority(master, var_id)
+            if max_priority < brpriority
+                max_priority = brpriority
+            end
+        end
+    end
+
+    if max_priority == -Inf    
+        return BranchingRuleOutput(local_id, BranchingGroup[])
+    end
+
+    groups = BranchingGroup[]
+    for (var_id, val) in input.solution
+        continuous_var = getperenkind(master, var_id) == Continuous
+        int_val = isinteger(val, input.int_tol)
+        br_priority = getbranchingpriority(master, var_id)
+        if !continuous_var && !int_val && br_priority == max_priority
+            # Description string of the candidate is the variable name
+            candidate = VarBranchingCandidate(getname(master, var_id), var_id)
             local_id += 1
             push!(groups, BranchingGroup(candidate, local_id, val))
         end

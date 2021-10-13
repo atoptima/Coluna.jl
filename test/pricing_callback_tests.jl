@@ -7,18 +7,8 @@ function pricing_callback_tests()
             CL.Optimizer,
             "default_optimizer" => GLPK.Optimizer,
             "params" => CL.Params(
-                solver = ClA.TreeSearchAlgorithm(
-                    conqueralg = ClA.ColCutGenConquer(
-                        stages = [ClA.ColumnGeneration(
-                                    pricing_prob_solve_alg = ClA.SolveIpForm(
-                                        optimizer_id=2, user_params = ClA.UserOptimize(stage=1) 
-                                    )),
-                                  ClA.ColumnGeneration(
-                                    pricing_prob_solve_alg = ClA.SolveIpForm(
-                                        optimizer_id=2, user_params = ClA.UserOptimize(stage=2) 
-                                    ))
-                                 ]
-                    )
+                solver = ClA.BranchCutAndPriceAlgorithm(
+                    colgen_stages_pricing_solvers = [2, 2]
                 )
             )
         )

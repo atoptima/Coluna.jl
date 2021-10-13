@@ -1,7 +1,7 @@
 function _welcome_message()
     welcome = """
     Coluna
-    Version 0.3.10 | 2021-09-07 | https://github.com/atoptima/Coluna.jl
+    Version 0.3.11 | 2021-10-09 | https://github.com/atoptima/Coluna.jl
     """
     print(welcome)
 end
@@ -69,6 +69,7 @@ end
 function optimize!(
     reform::MathProg.Reformulation, env::Env, initial_primal_bound, initial_dual_bound
 )
+    MathProg.bounds_propagation!(reform)
     master = getmaster(reform)
     initstate = OptimizationState(
         master,
@@ -126,6 +127,7 @@ end
 function optimize!(
     form::MathProg.Formulation, env::Env, initial_primal_bound, initial_dual_bound
 )
+    MathProg.bounds_propagation!(form)
     initstate = OptimizationState(
         form,
         ip_primal_bound = initial_primal_bound,
