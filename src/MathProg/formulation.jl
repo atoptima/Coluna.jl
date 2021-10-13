@@ -768,7 +768,7 @@ function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs, co
     return
 end
 
-# If some new single var constraints have been added to a formulation, Coluna
+# If new single var constraints have been added to a formulation, Coluna
 # should call this method.
 function bounds_propagation!(form::Formulation)
     for (constrid, constr) in form.manager.single_var_constrs

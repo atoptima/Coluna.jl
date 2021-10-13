@@ -72,7 +72,7 @@ restrict the number of retained candidates until only one is left.
 end
 
 # default parameterisation corresponds to simple branching (no strong branching phases)
-function SimpleBranching()::AbstractDivideAlgorithm
+function SimpleBranching()
     algo = StrongBranching()
     push!(algo.rules, PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0))
     return algo
@@ -136,7 +136,7 @@ function perform_strong_branching_with_phases!(
                 max_descr_length = length(description)
             end
         end
- 
+
         for (group_index,group) in enumerate(groups)
             #TO DO: verify if time limit is reached
             if !children_generated
