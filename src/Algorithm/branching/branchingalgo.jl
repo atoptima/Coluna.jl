@@ -31,7 +31,7 @@ end
 """
     NoBranching
 
-Divide algorithm that does not branch. It does not generate any child.
+Divide algorithm that does nothing. It does not generate any child.
 """
 struct NoBranching <: AbstractDivideAlgorithm end
 
@@ -110,7 +110,6 @@ function perform_strong_branching_with_phases!(
         getmaster(reform), getoptstate(input), exploitsprimalsolutions, false
     )
 
-    children_generated = false
     for (phase_index, current_phase) in enumerate(algo.phases)
         nb_candidates_for_next_phase::Int64 = 1        
         if phase_index < length(algo.phases)
@@ -139,7 +138,7 @@ function perform_strong_branching_with_phases!(
 
         for (group_index,group) in enumerate(groups)
             #TO DO: verify if time limit is reached
-            if !children_generated
+            if phase_index == 1
                 generate_children!(group, env, reform, parent)                
             else    
                 regenerate_children!(group, parent)
@@ -190,7 +189,6 @@ function perform_strong_branching_with_phases!(
             end
             print_bounds_and_score(group, phase_index, max_descr_length)
         end
-        children_generated = true
 
         sort!(groups, rev = true, by = x -> (x.isconquered, x.score))
 
@@ -293,7 +291,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
             local_id = output.local_id
         end
 
-        sort_select_candidates!(kept_branch_groups, algo.selection_criterion, max_nb_candidates)
+        select_candidates!(kept_branch_groups, algo.selection_criterion, max_nb_candidates)
     end
 
     if isempty(kept_branch_groups)

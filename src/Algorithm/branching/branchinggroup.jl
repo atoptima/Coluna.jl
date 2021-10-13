@@ -3,8 +3,6 @@
 ############################################################################################
 
 """
-    AbstractBranchingCandidate
-
 A branching candidate is a data structure that contain all information needed to generate
 children of a node.
 """
@@ -32,8 +30,6 @@ generate_children!(
 ############################################################################################
 
 """
-    BranchingGroup
-
 A branching group is the union of a branching candidate and additional information that are
 computed during the execution of the branching algorithm (TODO : which one ?).
 """
