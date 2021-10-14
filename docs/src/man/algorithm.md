@@ -8,11 +8,13 @@ end
 
 TODO : Description of how algorithms work.
 
-## References
+## Tree search algorithm (branch-and-bound)
 
 ```@docs
 TreeSearchAlgorithm
 ```
+
+## Conquer algorithm
 
 ```@docs
 ColCutGenConquer
@@ -42,4 +44,25 @@ CustomOptimize
 ```@meta
 CurrentModule = nothing
 DocTestSetup = nothing
+```
+
+## Divide algorithms
+
+```@docs
+NoBranching
+SimpleBranching
+StrongBranching
+```
+### Selection criteria
+
+```@docs
+AbstractSelectionCriterion
+FirstFoundCriterion
+MostFractionalCriterion
+```
+
+### Branching rules
+
+```@docs
+SingleVarBranchingRule
 ```

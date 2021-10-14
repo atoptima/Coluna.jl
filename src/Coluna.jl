@@ -55,7 +55,6 @@ Env(params::Params) = Env(
 )
 set_optim_start_time!(env::Env) = env.optim_starting_time = now()
 elapsed_optim_time(env::Env) = Dates.toms(now() - env.optim_starting_time) / Dates.toms(Second(1))
-Base.isinteger(x::Float64, tol::Float64) = abs(round(x) - x) < tol
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm
