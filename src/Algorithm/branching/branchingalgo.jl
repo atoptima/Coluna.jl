@@ -313,10 +313,6 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
         return DivideOutput(kept_branch_groups[1].children, OptimizationState(getmaster(reform)))
     end
 
-    println("\e[1;35m ****** \e[00m")
-    @show map(i -> isassigned(kept_branch_groups, i), 1:length(kept_branch_groups))
-    println("\e[1;35m ****** \e[00m")
-
     sbstate = perform_strong_branching_with_phases!(algo, env, reform, input, kept_branch_groups)
     return DivideOutput(kept_branch_groups[1].children, sbstate)
 end
