@@ -105,18 +105,26 @@ function perform_strong_branching_with_phases!(
 )::OptimizationState
 
     parent = getparent(input)
-    exploitsprimalsolutions::Bool = exploits_primal_solutions(algo)    
+    exploitsprimalsolutions::Bool = exploits_primal_solutions(algo)
     sbstate = OptimizationState(
         getmaster(reform), getoptstate(input), exploitsprimalsolutions, false
     )
 
     for (phase_index, current_phase) in enumerate(algo.phases)
-        nb_candidates_for_next_phase::Int64 = 1        
+        nb_candidates_for_next_phase = 1
+
+        # If at the current phase, we have less candidates than the number of candidates
+        # we want to evaluate at the next phase, we skip the current phase.
+        # We always execute phase 1 because it is the phase in which we generate the 
+        # children for each branching candidate.
         if phase_index < length(algo.phases)
             nb_candidates_for_next_phase = algo.phases[phase_index + 1].max_nb_candidates
             if phase_index > 1 && length(groups) <= nb_candidates_for_next_phase 
                 continue
             end
+            # In phase 1, we make sure that the number of candidates for the next phase is 
+            # at least equal to the number of initial candidates
+            nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(groups))
         end
 
         conquer_units_to_restore = UnitsUsage()
