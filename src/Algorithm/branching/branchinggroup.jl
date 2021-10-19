@@ -1,31 +1,42 @@
-"""
-    AbstractBranchingCandidate
+############################################################################################
+# Branching Candidates
+############################################################################################
 
-    A branching candidate should contain all information needed to generate node's children    
-    Branching candiates are also used to store the branching history. 
-    History of a branching candidate is a collection of statistic records for every time this branching
-        candidate was used to generate children nodes 
-    Every branching candidate should contain a description, i.e. a string which serves for printing purposed,
-    and also to detect the same branching candidates    
+"""
+A branching candidate is a data structure that contain all information needed to generate
+children of a node.
 """
 abstract type AbstractBranchingCandidate end
 
-getdescription(candidate::AbstractBranchingCandidate) = ""
-generate_children!(
-    candidate::AbstractBranchingCandidate, lhs::Float64, env::Env, reform::Reformulation, 
-    node::Node
-) = nothing
+"""
+    getdescription(branching_candidate)
+
+Returns a string which serves to print the branching rule in the logs.
+"""
+getdescription(candidate::AbstractBranchingCandidate) = 
+    error("getdescription not defined for branching candidates of type $(typeof(candidate)).")
 
 """
-    BranchingGroup
+    generate_children!(branching_candidate, lhs, env, reform, node)
 
-    Contains a branching candidate together with additional "local" information needed during current branching
+This method generates the children of a node described by `branching_candidate`.
+"""
+generate_children!(
+    candidate::AbstractBranchingCandidate, ::Float64, ::Env, ::Reformulation, ::Node
+) = error("generate_children not defined for branching candidates of type $(typeof(candidate)).")
+
+############################################################################################
+# Branching Group
+############################################################################################
+
+"""
+A branching group is the union of a branching candidate and additional information that are
+computed during the execution of the branching algorithm (TODO : which one ?).
 """
 mutable struct BranchingGroup
-    candidate::AbstractBranchingCandidate
+    candidate::AbstractBranchingCandidate # the left-hand side in general.
     local_id::Int64
     lhs::Float64
-    fromhistory::Bool
     children::Vector{Node}
     isconquered::Bool
     score::Float64
@@ -34,13 +45,11 @@ end
 function BranchingGroup(
     candidate::AbstractBranchingCandidate, local_id::Int64, lhs::Float64
 )
-    return BranchingGroup(candidate, local_id, lhs, false, Vector{Node}(), false, typemin(Float64))
+    return BranchingGroup(candidate, local_id, lhs, Node[], false, typemin(Float64))
 end
 
-setconquered!(group::BranchingGroup) = group.isconquered = true
-
 get_lhs_distance_to_integer(group::BranchingGroup) = 
-    min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)    
+    min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)
 
 function generate_children!(
     group::BranchingGroup, env::Env, reform::Reformulation, parent::Node
@@ -49,8 +58,10 @@ function generate_children!(
     return
 end
 
+# TODO : it does not look like a regeneration but more like a new vector where we
+# reassign children
 function regenerate_children!(group::BranchingGroup, parent::Node)
-    new_children = Vector{Node}()
+    new_children = Node[]
     for child in group.children
         push!(new_children, Node(parent, child))
     end
@@ -58,6 +69,7 @@ function regenerate_children!(group::BranchingGroup, parent::Node)
     return
 end
 
+# TODO : this method needs code documentation & context
 function product_score(group::BranchingGroup, parent_optstate::OptimizationState)
     # TO DO : we need to mesure the gap to the cut-off value
     parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
@@ -95,11 +107,12 @@ function product_score(group::BranchingGroup, parent_optstate::OptimizationState
     return score
 end
 
+# TODO : this method needs code documentation & context
 function number_of_leaves(gap::Float64, deltas::Vector{Float64})    
     inf::Float64 = 0.0
     sup::Float64 = 1e20
     mid::Float64 = 0.0
-    for iteration = 1:100
+    for _ in 1:100
         mid = (inf + sup) / 2.0
         if sup - inf < sup / 1000000
             break
@@ -120,6 +133,7 @@ function number_of_leaves(gap::Float64, deltas::Vector{Float64})
     return mid
 end
 
+# TODO : this method needs code documentation & context
 function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationState)
     if length(group.children) == 0
         return 0.0

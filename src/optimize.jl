@@ -69,6 +69,7 @@ end
 function optimize!(
     reform::MathProg.Reformulation, env::Env, initial_primal_bound, initial_dual_bound
 )
+    MathProg.bounds_propagation!(reform)
     master = getmaster(reform)
     initstate = OptimizationState(
         master,
@@ -126,6 +127,7 @@ end
 function optimize!(
     form::MathProg.Formulation, env::Env, initial_primal_bound, initial_dual_bound
 )
+    MathProg.bounds_propagation!(form)
     initstate = OptimizationState(
         form,
         ip_primal_bound = initial_primal_bound,

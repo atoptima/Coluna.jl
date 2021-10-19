@@ -1,6 +1,3 @@
-getvalue(sol::Solution) = ColunaBase.getvalue(sol)
-getvalue(bnd::Bound) = ColunaBase.getvalue(bnd)
-
 mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     termination_status::TerminationStatus
     incumbents::ObjValues{S}
@@ -15,7 +12,7 @@ mutable struct OptimizationState{F<:AbstractFormulation,S<:Coluna.AbstractSense}
     lp_dual_sols::Vector{DualSolution{F}}
 end
 
-function bestbound!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:Solution}
+function bestbound!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {Sol<:AbstractSolution}
     push!(solutions, new_sol)
     sort!(solutions, rev = true)
     while length(solutions) > max_len
@@ -24,7 +21,7 @@ function bestbound!(solutions::Vector{Sol}, max_len::Int, new_sol::Sol) where {S
     return
 end
 
-function set!(solutions::Vector{Sol}, ::Int, new_sol::Sol) where {Sol<:Solution}
+function set!(solutions::Vector{Sol}, ::Int, new_sol::Sol) where {Sol<:AbstractSolution}
     empty!(solutions)
     push!(solutions, new_sol)
     return

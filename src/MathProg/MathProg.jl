@@ -27,11 +27,11 @@ include("types.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
-include("manager.jl")
-include("duties.jl")
 include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
+include("manager.jl")
+include("duties.jl")
 include("formulation.jl")
 include("varconstr.jl")
 include("optimizerwrappers.jl")
@@ -53,8 +53,6 @@ export no_optimizer_builder, set_original_formulation!,
        getid, getuid,
        enforce_integrality!, relax_integrality!,
        getobjsense, getoptimizer, getoptimizers,
-       setdualbound!,
-       computereducedcost,
        update!,
        getduty,
        computereducedrhs,
@@ -83,8 +81,8 @@ export AbstractFormulation, Formulation, create_formulation!, getreformulation, 
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
-    push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!,
-    insert_column!
+    push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!, 
+    clonesinglevarconstr!, getsinglevarconstrs, getsinglevarconstr, insert_column!
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp
@@ -93,15 +91,16 @@ export Original, DwMaster, BendersMaster, DwSp, BendersSp
 export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
 
 # Types and methods related to variables and constraints
-export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
+export Variable, Constraint, VarId, ConstrId, SingleVarConstrId, VarMembership, ConstrMembership, SingleVarConstraint,
     getperencost, setperencost!, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, getbranchingpriority, reset!, getreducedcost
+    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, setsinglevarconstr!
 
 # Types & methods related to solutions & bounds
-export PrimalBound, DualBound, PrimalSolution, DualSolution, ObjValues
+export PrimalBound, DualBound, AbstractSolution, PrimalSolution, DualSolution, ActiveBound, ObjValues,
+       get_var_redcosts
 
 # Methods related to projections
 export projection_is_possible, proj_cols_on_rep

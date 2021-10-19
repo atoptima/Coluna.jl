@@ -1,15 +1,15 @@
 """
-A `VarConstrBuffer{T}` stores the ids of the entities of type `T` that will be 
-added and removed from a formulation.
+A `VarConstrBuffer{I}` stores the ids of type `I` of the variables, constraints or 
+single variable constraints that will be added and removed from a formulation.
 """
-mutable struct VarConstrBuffer{T<:AbstractVarConstr}
-    added::Set{Id{T}}
-    removed::Set{Id{T}}
+mutable struct VarConstrBuffer{I<:Id}
+    added::Set{I}
+    removed::Set{I}
 end
 
-VarConstrBuffer{T}() where {T<:AbstractVarConstr} = VarConstrBuffer{T}(Set{T}(), Set{T}())
+VarConstrBuffer{I}() where {I<:Id} = VarConstrBuffer{I}(Set{I}(), Set{I}())
 
-function add!(buffer::VarConstrBuffer{VC}, id::Id{VC}) where {VC<:AbstractVarConstr}
+function add!(buffer::VarConstrBuffer{I}, id::I) where {I<:Id}
     if id ∉ buffer.removed
         push!(buffer.added, id)
     else
@@ -18,7 +18,7 @@ function add!(buffer::VarConstrBuffer{VC}, id::Id{VC}) where {VC<:AbstractVarCon
     return
 end
 
-function remove!(buffer::VarConstrBuffer{VC}, id::Id{VC}) where {VC<:AbstractVarConstr}
+function remove!(buffer::VarConstrBuffer{I}, id::I) where {I<:Id}
     if id ∉ buffer.added
         push!(buffer.removed, id)
     else
@@ -41,15 +41,16 @@ mutable struct FormulationBuffer
     changed_bound::Set{VarId} # bound of a variable
     changed_var_kind::Set{VarId} # kind of a variable
     changed_rhs::Set{ConstrId} # rhs and sense of a constraint
-    var_buffer::VarConstrBuffer{Variable} # variable added or removed
-    constr_buffer::VarConstrBuffer{Constraint} # constraint added or removed
+    var_buffer::VarConstrBuffer{VarId} # variable added or removed
+    constr_buffer::VarConstrBuffer{ConstrId} # constraint added or removed
+    singlevarconstr_buffer::VarConstrBuffer{SingleVarConstrId} # single var constraint added or removed
     reset_coeffs::Dict{Pair{ConstrId,VarId},Float64} # coefficient of the matrix changed
 end
 
 FormulationBuffer() = FormulationBuffer(
     false, false, Set{VarId}(), Set{VarId}(), Set{VarId}(), Set{ConstrId}(),
-    VarConstrBuffer{Variable}(), VarConstrBuffer{Constraint}(),
-    Dict{Pair{ConstrId,VarId},Float64}()
+    VarConstrBuffer{VarId}(), VarConstrBuffer{ConstrId}(), 
+    VarConstrBuffer{SingleVarConstrId}(), Dict{Pair{ConstrId,VarId},Float64}()
 )
 
 add!(b::FormulationBuffer, varid::VarId) = add!(b.var_buffer, varid)
@@ -66,7 +67,7 @@ function remove!(buffer::FormulationBuffer, varid::VarId)
 end
 
 # Since there is no efficient way to remove changes done to the coefficient matrix,
-# we propagate them if the constraint is active and explicit
+# we propagate them if and only if the constraint is active and explicit
 function remove!(buffer::FormulationBuffer, constrid::ConstrId)
     remove!(buffer.constr_buffer, constrid)
     delete!(buffer.changed_rhs, constrid)

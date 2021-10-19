@@ -51,11 +51,13 @@ Structure to hold the pointers to the MOI representation of a Coluna Variable.
 mutable struct MoiVarRecord
     index::MoiVarIndex
     bounds::MoiVarBound
+    lower_bound::Union{Nothing,Id{<:AbstractVarConstr}}
+    upper_bound::Union{Nothing,Id{<:AbstractVarConstr}}
     kind::MoiVarKind
 end
 
 function MoiVarRecord(;index::MoiVarIndex = MoiVarIndex())
-    return MoiVarRecord(index, MoiVarBound(), MoiVarKind())
+    return MoiVarRecord(index, MoiVarBound(), nothing, nothing, MoiVarKind())
 end
 
 getindex(record::MoiVarRecord) = record.index
@@ -72,7 +74,7 @@ setkind!(record::MoiVarRecord, kind::MoiVarKind) = record.kind = kind
 Representation of a variable in Coluna.
 """
 mutable struct Variable <: AbstractVarConstr
-    id::Id{Variable}
+    id::Id{Variable,:usual}
     name::String
     perendata::VarData
     curdata::VarData
@@ -81,7 +83,7 @@ mutable struct Variable <: AbstractVarConstr
     custom_data::Union{Nothing, BD.AbstractCustomData}
 end
 
-const VarId = Id{Variable}
+const VarId = Id{Variable,:usual}
 
 getid(var::Variable) = var.id
 

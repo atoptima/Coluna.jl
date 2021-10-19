@@ -1,17 +1,24 @@
-"""
-    VarBranchingCandidate
+############################################################################################
+# SingleVarBranchingCandidate
+############################################################################################
 
-    Contains a variable on which we branch
 """
-struct VarBranchingCandidate <: AbstractBranchingCandidate
-    description::String
+    SingleVarBranchingCandidate
+
+It is an implementation of AbstractBranchingCandidate.
+This is the type of branching candidates produced by the branching rule 
+`SingleVarBranchingRule`.
+"""
+struct SingleVarBranchingCandidate <: AbstractBranchingCandidate
+    varname::String
     varid::VarId
 end
 
-getdescription(candidate::VarBranchingCandidate) = candidate.description
+getdescription(candidate::SingleVarBranchingCandidate) = candidate.varname
 
 function generate_children(
-    candidate::VarBranchingCandidate, lhs::Float64, env::Env, reform::Reformulation, parent::Node
+    candidate::SingleVarBranchingCandidate, lhs::Float64, env::Env, reform::Reformulation, 
+    parent::Node
 )
     master = getmaster(reform)
 
@@ -27,7 +34,7 @@ function generate_children(
         READ_AND_WRITE
     )
 
-    #adding the first branching constraints
+    # adding the first branching constraints
     restore_from_records!(units_to_restore, copy_records(parent.recordids))    
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
@@ -38,10 +45,10 @@ function generate_children(
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     end
-    child1description = candidate.description * ">=" * string(ceil(lhs))
+    child1description = candidate.varname * ">=" * string(ceil(lhs))
     child1 = Node(master, parent, child1description, store_records!(reform))
 
-    #adding the second branching constraints
+    # adding the second branching constraints
     restore_from_records!(units_to_restore, copy_records(parent.recordids))
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(
@@ -53,45 +60,51 @@ function generate_children(
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     end
-    child2description = candidate.description * "<=" * string(floor(lhs))
+    child2description = candidate.varname * "<=" * string(floor(lhs))
     child2 = Node(master, parent, child2description, store_records!(reform))
 
     return [child1, child2]
 end
 
+############################################################################################
+# SingleVarBranchingRule
+############################################################################################
+
 """
-    VarBranchingRule
+    SingleVarBranchingRule
 
-    Branching on variables
-    For the moment, we branch on all integer variables
-    In the future, a VarBranchingRule could be defined for a subset of integer variables
-    in order to be able to give different priorities to different groups of variables
+This branching rule allows the divide algorithm to branch on single integer variables.
+For instance, `SingleVarBranchingRule` can produce the branching `x <= 2` and `x >= 3` 
+where `x` is a scalar integer variable.
 """
-struct VarBranchingRule <: AbstractBranchingRule
-end
+struct SingleVarBranchingRule <: AbstractBranchingRule end
 
-# VarBranchingRule does not have child algorithms
+# SingleVarBranchingRule does not have child algorithms
 
-function get_units_usage(algo::VarBranchingRule, reform::Reformulation) 
+function get_units_usage(::SingleVarBranchingRule, reform::Reformulation) 
     return [(getmaster(reform), MasterBranchConstrsUnit, READ_AND_WRITE)] 
 end
 
 function run!(
-    rule::VarBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput
+    ::SingleVarBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput
 )::BranchingRuleOutput
     # variable branching works only for the original solution
-    !input.isoriginalsol && return BranchingRuleOutput(input.local_id, Vector{BranchingGroup}())
+    if !input.isoriginalsol
+        return BranchingRuleOutput(input.local_id, BranchingGroup[])
+    end
 
     master = getmaster(reform)
     local_id = input.local_id
     max_priority = -Inf
     for (var_id, val) in input.solution
+        continuous_var = getperenkind(master, var_id) == Continuous
+        int_val = abs(round(val) - val) < input.int_tol
         # Do not consider continuous variables as branching candidates
-        getperenkind(master, var_id) == Continuous && continue
-        if !isinteger(val, input.int_tol)
-            brpriority = getbranchingpriority(master, var_id)
-            if max_priority < brpriority
-                max_priority = brpriority
+        # and variables with integer value in the current solution.
+        if !continuous_var && !int_val
+            br_priority = getbranchingpriority(master, var_id)
+            if max_priority < br_priority
+                max_priority = br_priority
             end
         end
     end
@@ -102,24 +115,18 @@ function run!(
 
     groups = BranchingGroup[]
     for (var_id, val) in input.solution
-        getperenkind(master, var_id) == Continuous && continue
-        if !isinteger(val, input.int_tol) && getbranchingpriority(master, var_id) == max_priority
-            #description string is just the variable name
-            candidate = VarBranchingCandidate(getname(master, var_id), var_id)
+        continuous_var = getperenkind(master, var_id) == Continuous
+        int_val = abs(round(val) - val) < input.int_tol
+        br_priority = getbranchingpriority(master, var_id)
+        if !continuous_var && !int_val && br_priority == max_priority
+            # Description string of the candidate is the variable name
+            candidate = SingleVarBranchingCandidate(getname(master, var_id), var_id)
             local_id += 1
             push!(groups, BranchingGroup(candidate, local_id, val))
         end
     end
 
-    if input.criterion == FirstFoundCriterion
-        sort!(groups, by = x -> x.local_id)
-    elseif input.criterion == MostFractionalCriterion
-        sort!(groups, rev = true, by = x -> get_lhs_distance_to_integer(x))
-    end
-
-    if length(groups) > input.max_nb_candidates
-        resize!(groups, input.max_nb_candidates)
-    end
+    select_candidates!(groups, input.criterion, input.max_nb_candidates)
 
     return BranchingRuleOutput(local_id, groups)
 end

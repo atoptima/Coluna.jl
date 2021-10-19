@@ -20,9 +20,9 @@ ColunaBase.restore_from_records!(input::ConquerInput) = restore_from_records!(in
 
 This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
 For the moment, a conquer algorithm can be run only on reformulation.     
-A conquer algorithm should restore records of storage units using `restore_from_records!(::ConquerInput)``
-    - each time it runs in the beginning
-    - each time after calling a child manager algorithm
+A conquer algorithm should restore records of storage units using `restore_from_records!(conquer_input)`
+- each time it runs in the beginning
+- each time after calling a child manager algorithm
 """
 abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 

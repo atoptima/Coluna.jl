@@ -89,7 +89,6 @@ function generalized_assignment_tests()
         @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
-
     @testset "gap - node limit" begin
         data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 

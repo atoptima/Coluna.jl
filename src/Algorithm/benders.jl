@@ -1,5 +1,4 @@
 @with_kw struct BendersCutGeneration <: AbstractOptimizationAlgorithm
-    option_use_reduced_cost::Bool = false
     option_increase_cost_in_hybrid_phase::Bool = false
     feasibility_tol::Float64 = 1e-5
     optimality_tol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
@@ -110,15 +109,16 @@ function update_benders_sp_problem!(
         setcurub!(spform, var, getperenub(spform, var) - master_primal_sol[varid])
     end
 
-    if algo.option_use_reduced_cost
-        for (varid, var) in getvars(spform)
-            iscuractive(spform, varid) || continue
-            getduty(varid) <= BendSpSlackFirstStageVar || continue
-            cost = getcurcost(spform, var)
-            rc = computereducedcost(masterform, varid, master_dual_sol)
-            setcurcost!(spform, var, rc)
-        end
-    end
+    # TODO : it was untested
+    # if algo.option_use_reduced_cost
+    #     for (varid, var) in getvars(spform)
+    #         iscuractive(spform, varid) || continue
+    #         getduty(varid) <= BendSpSlackFirstStageVar || continue
+    #         cost = getcurcost(spform, var)
+    #         rc = computereducedcost(masterform, varid, master_dual_sol)
+    #         setcurcost!(spform, var, rc)
+    #     end
+    # end
     return false
 end
 
@@ -190,7 +190,7 @@ function insert_cuts_in_master!(
         name = string("BC_", getsortuid(dual_sol_id))
         kind = Essential
         duty = MasterBendCutConstr
-        bc = setcut_from_sp_dualsol!(
+        setcut_from_sp_dualsol!(
             masterform,
             spform,
             dual_sol_id,
@@ -233,7 +233,6 @@ function solve_sp_to_gencut!(
     benders_sp_primal_bound_contrib = 0.0
     benders_sp_lagrangian_bound_contrib =  0.0
 
-    insertion_status = 0
     spsol_relaxed = false
 
     # Compute target
@@ -363,7 +362,7 @@ function solve_sps_to_gencuts!(
 
     ### BEGIN LOOP TO BE PARALLELIZED
     for (spuid, spform) in sps
-        recorded_sp_dual_solution_ids[spuid] = Vector{ConstrId}()
+        recorded_sp_dual_solution_ids[spuid] = ConstrId[]
         gen_status, spsol_relaxed, recorded_dual_solution_ids, benders_sp_primal_bound_contrib, benders_sp_lagrangian_bound_contrib = solve_sp_to_gencut!(
             algo, env, algdata, masterform, spform,
             master_primalsol, master_dualsol,
@@ -559,7 +558,6 @@ function bend_cutting_plane_main_loop!(
             setterminationstatus!(bnd_optstate, OPTIMAL)
             break # loop on master lp solution          
         end
-        
     end  # loop on master lp solution 
 
     if !one_spsol_is_a_relaxed_sol                

@@ -109,7 +109,7 @@ function BranchCutAndPriceAlgorithm(;
     )
 
     branching = NoBranching()
-    branching_rules = PrioritisedBranchingRule[PrioritisedBranchingRule(VarBranchingRule(), 1.0, 1.0)]
+    branching_rules = PrioritisedBranchingRule[PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
 
     if !isempty(stbranch_phases_num_candidates)
         branching_phases = BranchingPhase[]

@@ -21,7 +21,7 @@ A `Formulation` stores a mixed-integer linear program.
         obj_sense::Type{<:Coluna.AbstractSense} = MinSense
     )
 
-Create a new formulation in the Coluna's environment `env`.
+Creates a new formulation in the Coluna's environment `env`.
 Arguments are `duty` that contains specific information related to the duty of
 the formulation, `parent_formulation` that is the parent formulation (master for a subproblem, 
 reformulation for a master, `nothing` by default), and `obj_sense` the sense of the objective 
@@ -52,40 +52,59 @@ ColunaBase.getstorage(form::Formulation) = form.storage
 """
     haskey(formulation, id) -> Bool
 
-Return `true` if `formulation` has a variable or a constraint with given `id`.
+Returns `true` if `formulation` has a variable or a constraint with given `id`.
 """
 haskey(form::Formulation, id::VarId) = haskey(form.manager.vars, id)
-haskey(form::Formulation, id::ConstrId) = haskey(form.manager.constrs, id)
+haskey(form::Formulation, id::ConstrId) = haskey(form.manager.constrs, id) || haskey(form.manager.single_var_constrs, id)
 
 """
     getvar(formulation, varid) -> Variable
 
-Return the variable with given `varid` that belongs to `formulation`.
+Returns the variable with given `varid` that belongs to `formulation`.
 """
 getvar(form::Formulation, id::VarId) = get(form.manager.vars, id, nothing)
 
 """
     getconstr(formulation, constrid) -> Constraint
+    getconstr(formulation, singlevarconstrid) -> Constraint
 
-Return the constraint with given `constrid` that belongs to `formulation`.
+Returns the constraint with given `constrid` that belongs to `formulation`.
 """
 getconstr(form::Formulation, id::ConstrId) = get(form.manager.constrs, id, nothing)
+getconstr(form::Formulation, id::SingleVarConstrId) = get(form.manager.single_var_constrs, id, nothing)
 
 """
     getvars(formulation) -> Dict{VarId, Variable}
 
-Return all variables in `formulation`.
+Returns all variables in `formulation`.
 """
 getvars(form::Formulation) = form.manager.vars
 
 """
     getconstrs(formulation) -> Dict{ConstrId, Constraint}
 
-Return all constraints in `formulation`.
+Returns all constraints in `formulation`.
 """
 getconstrs(form::Formulation) = form.manager.constrs
 
+"""
+    getsinglevarconstrs(formulation) -> Dict{ConstrId, SingleVarConstraint}
+
+Returns all single variable constraints in `formulation`.
+
+    getsinglevarconstrs(formulation, varid) -> Dict{ConstrId, SingleVarConstraint} or nothing
+
+Return all single variable constraints of a formulation that applies to a given variable.
+"""
+getsinglevarconstrs(form::Formulation) = form.manager.single_var_constrs
+getsinglevarconstrs(form::Formulation, varid::VarId) = get(
+    form.manager.single_var_constrs_per_var, varid, Dict{ConstrId, SingleVarConstraint}()
+) 
+
+"Returns objective constant of the formulation."
 getobjconst(form::Formulation) = form.manager.objective_constant
+
+"Sets objective constant of the formulation."
 function setobjconst!(form::Formulation, val::Float64)
     form.manager.objective_constant = val
     form.buffer.changed_obj_const = true
@@ -98,29 +117,33 @@ getcoefmatrix(form::Formulation) = form.manager.coefficients
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
 
-"Returns the `uid` of `Formulation` `form`."
+"Returns the `uid` of a formulation."
 getuid(form::Formulation) = form.uid
 
-"Returns the objective function sense of `Formulation` `form`."
+"Returns the objective function sense of a formulation."
 getobjsense(form::Formulation) = form.obj_sense
 
-"Returns the `AbstractOptimizer` of `Formulation` `form`."
-function getoptimizer(form::Formulation, id::Int)
-    if id <= 0 && id > length(form.optimizers)
+"Returns the optimizer of a formulation at a given position."
+function getoptimizer(form::Formulation, pos::Int)
+    if pos <= 0 && pos > length(form.optimizers)
         return NoOptimizer()
     end
-    return form.optimizers[id]
+    return form.optimizers[pos]
 end
+
+"Returns all the optimizers of a formulation."
 getoptimizers(form::Formulation) = form.optimizers
 
+"""
+    getelem(form, varid) -> Variable
+    getelem(form, constrid) -> Constraint
+    getelem(form, singlevarconstrid) -> SingleVarConstraint
+
+Return the element of formulation `form` that has a given id.
+"""
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
-
-generatevarid(duty::Duty{Variable}, form::Formulation) = VarId(duty, form.var_counter += 1, getuid(form), -1)
-generatevarid(
-    duty::Duty{Variable}, form::Formulation, custom_family_id::Int
-) = VarId(duty, form.var_counter += 1, getuid(form), custom_family_id)
-generateconstrid(duty::Duty{Constraint}, form::Formulation) = ConstrId(duty, form.constr_counter += 1, getuid(form), -1)
+getelem(form::Formulation, id::SingleVarConstrId) = getconstr(form, id)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -131,7 +154,7 @@ getstoragedict(form::Formulation) = form.storage.units
 _reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
 
 """
-    set_matrix_coeff!(form::Formulation, v_id::Id{Variable}, c_id::Id{Constraint}, new_coeff::Float64)
+    set_matrix_coeff!(form::Formulation, v_id::VarId, c_id::ConstrId, new_coeff::Float64)
 
 Buffers the matrix modification in `form.buffer` to be sent to the optimizers right before next call to optimize!.
 """
@@ -143,7 +166,7 @@ set_matrix_coeff!(
     setvar!(
         formulation, name, duty;
         cost = 0.0,
-        lb = 0.0,
+        lb = -Inf,
         ub = Inf,
         kind = Continuous,
         is_active = true,
@@ -166,24 +189,35 @@ function setvar!(
     form::Formulation,
     name::String,
     duty::Duty{Variable};
+    # Perennial state of the variable
     cost::Float64 = 0.0,
-    lb::Float64 = 0.0,
+    lb::Float64 = -Inf,
     ub::Float64 = Inf,
     kind::VarKind = Continuous,
     inc_val::Float64 = 0.0,
     is_active::Bool = true,
     is_explicit::Bool = true,
-    moi_index::MoiVarIndex = MoiVarIndex(),
-    members::Union{ConstrMembership,Nothing} = nothing,
-    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
-    id = generatevarid(duty, form),
     branching_priority::Float64 = 1.0,
+    # The moi index of the variable contains all the information to change its
+    # state in the formulation stores in the underlying MOI solver.
+    moi_index::MoiVarIndex = MoiVarIndex(),
+    # Coefficient of the variable in the constraints of the `form` formulation.
+    members::Union{ConstrMembership,Nothing} = nothing,
+    # Custom representation of the variable (advanced use).
+    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
+    # Default id of the variable.
+    id = VarId(duty, form.var_counter += 1, getuid(form)),
+    # The formulation from which the variable is generated.
+    origin::Union{Nothing,Formulation} = nothing,
+    # By default, the name of the variable is `name`. However, when you do column
+    # generation, you may want to identify each variable without having to generate
+    # a new name for each variable. If you set this attribute to `true`, the name of 
+    # the variable will be `name_uid`.
     id_as_name_suffix = false,
-    origin::Union{Nothing,Formulation} = nothing
 )
     if kind == Binary
-        lb = (lb < 0.0) ? 0.0 : lb
-        ub = (ub > 1.0) ? 1.0 : ub
+        lb = lb < 0.0 ? 0.0 : lb
+        ub = ub > 1.0 ? 1.0 : ub
     end
 
     origin_form_uid = origin !== nothing ? FormId(getuid(origin)) : nothing
@@ -194,6 +228,8 @@ function setvar!(
         nothing
     end
 
+    # When the keyword arguments of this `Id` constructor are equal to nothing, they
+    # retrieve their values from `id` (see the code of the constructor in vcids.jl).
     id = VarId(
         id; duty = duty, origin_form_uid = origin_form_uid, 
         custom_family_id = custom_family_id
@@ -231,7 +267,6 @@ end
 ############################################################################################
 
 getprimalsolpool(form::Formulation{DwSp}) = form.duty_data.primalsols_pool
-
 
 ############################################################################################
 # Pool of solutions
@@ -305,7 +340,7 @@ function insert_column!(
     is_explicit::Bool = true,
     store_in_sp_pool = true
 )
-    spform = primal_sol.model
+    spform = primal_sol.solution.model
 
     # Compute perennial cost of the column.
     new_col_peren_cost = 0.0
@@ -318,7 +353,7 @@ function insert_column!(
     custom_pool = spform.duty_data.custom_primalsols_pool
 
     # Check if the column is already in the pool.
-    col_id = _get_same_sol_in_pool(pool, costs_pool, getsol(primal_sol), new_col_peren_cost)
+    col_id = _get_same_sol_in_pool(pool, costs_pool, primal_sol.solution.sol, new_col_peren_cost)
 
     # If the column is already in the pool, it means that it is already in the
     # master formulation, so we return the id of the column and don't insert it
@@ -348,7 +383,7 @@ function insert_column!(
 
     # Store the solution in the pool if asked.
     if store_in_sp_pool
-        col_id = VarId(DwSpPrimalSol, getid(col))
+        col_id = VarId(getid(col); duty = DwSpPrimalSol)
         var_ids, vals = _sol_repr_for_pool(primal_sol, spform.duty_data)
         addrow!(pool, col_id, var_ids, vals)
         costs_pool[col_id] = new_col_peren_cost
@@ -369,6 +404,14 @@ function _adddualsol!(form::Formulation, dualsol::DualSolution, dualsol_id::Cons
             form.manager.dual_sols[constrid, dualsol_id] = constrval
         end
     end
+    for (varid, varval) in get_var_redcosts(dualsol)
+        redcost, activebound = varval
+        bound = activebound == LOWER ? getcurlb(form, varid) : getcurub(form, varid)
+        rhs += bound * redcost
+        if getduty(varid) <= AbstractBendSpMasterConstr
+            form.manager.dual_sols_varbounds[varid, dualsol_id] = varval
+        end
+    end
     form.manager.dual_sol_rhss[dualsol_id] = rhs
     return dualsol_id
 end
@@ -376,6 +419,7 @@ end
 function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,ConstrId}
     ### check if dualsol exists  take place here along the coeff update
     dual_sols = getdualsolmatrix(form)
+    dual_sols_varbounds = form.manager.dual_sols_varbounds
     dual_sol_rhss = getdualsolrhss(form)
 
     for (cur_sol_id, cur_rhs) in dual_sol_rhss
@@ -386,16 +430,17 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
 
         # TODO : implement broadcasting for PMA in DynamicSparseArrays
         is_identical = true
-        cur_dual_sol = dual_sols[cur_sol_id, :]
+        cur_dual_sol = @view dual_sols[:,cur_sol_id]
         for (constr_id, constr_val) in cur_dual_sol
-            if factor * getsol(new_dual_sol)[constr_id] != constr_val
+            if factor * new_dual_sol.solution.sol[constr_id] != constr_val
                 is_identical = false
                 break
             end
         end
 
-        for (constr_id, constr_val) in getsol(new_dual_sol)
-            if factor * constr_val != cur_dual_sol[constr_id]
+        cur_dual_sol_varbounds = @view dual_sols_varbounds[:,cur_sol_id]
+        for (var_id, var_val) in cur_dual_sol_varbounds
+            if factor * get_var_redcosts(new_dual_sol)[var_id][1] != var_val[1] || get_var_redcosts(new_dual_sol)[var_id][2] != var_val[2]
                 is_identical = false
                 break
             end
@@ -405,7 +450,7 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
     end
 
     ### else not identical to any existing dual sol
-    new_dual_sol_id = generateconstrid(BendSpDualSol, form)
+    new_dual_sol_id = ConstrId(BendSpDualSol, form.constr_counter += 1, getuid(form))
     _adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
@@ -426,7 +471,7 @@ function setcut_from_sp_dualsol!(
     objc = getobjsense(masterform) === MinSense ? 1.0 : -1.0
 
     rhs = objc * getdualsolrhss(spform)[dual_sol_id]
-    benders_cut_id = Id{Constraint}(duty, dual_sol_id)
+    benders_cut_id = ConstrId(dual_sol_id; duty = duty)
     benders_cut_data = ConstrData(
         rhs, Essential, sense, inc_val, is_active, is_explicit
     )
@@ -464,6 +509,14 @@ function setcut_from_sp_dualsol!(
             end
         end
     end
+
+    # sp_dual_sol = spform.manager.dual_sols_varbounds[:,dual_sol_id]
+    # for (var_id, var_val) in sp_dual_sol
+    #     var_val, active_bound = var_val
+    #     if getduty(var_id) <= AbstractBendSpVar
+    #         orig_var_id
+    #     end
+    # end
 
     _addconstr!(masterform.manager, benders_cut)
 
@@ -509,14 +562,15 @@ function setconstr!(
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
     custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
-    id = generateconstrid(duty, form)
+    id = ConstrId(duty, form.constr_counter += 1, getuid(form))
 )
     if getduty(id) != duty
-        id = ConstrId(duty, id, -1)
+        id = ConstrId(id, duty = duty)
     end
     if custom_data !== nothing
         id = ConstrId(
-            duty, id, custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
+            id, 
+            custom_family_id = form.manager.custom_families_id[typeof(custom_data)]
         )
     end
     c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, is_explicit)
@@ -530,6 +584,29 @@ function setconstr!(
     if isexplicit(form, constr)
         add!(form.buffer, getid(constr))
     end
+    return constr
+end
+
+"""
+TODO
+
+This constraint is never explicit because it's used to compute bounds stored in the variable
+"""
+function setsinglevarconstr!(
+    form::Formulation,
+    name::String,
+    varid::VarId,
+    duty::Duty{Constraint};
+    rhs::Float64 = 0.0,
+    kind::ConstrKind = Essential,
+    sense::ConstrSense = Greater,
+    inc_val::Float64 = 0.0,
+    is_active::Bool = true,
+    id = SingleVarConstrId(duty, form.constr_counter += 1, getuid(form))
+)
+    c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, true)
+    constr = SingleVarConstraint(id, varid, name; constr_data = c_data)
+    _addconstr!(form.manager, constr)
     return constr
 end
 
@@ -693,28 +770,8 @@ function set_objective_sense!(form::Formulation, min::Bool)
     return
 end
 
-function computesolvalue(form::Formulation, sol_vec::AbstractDict{Id{Variable}, Float64})
-    val = sum(getperencost(form, varid) * value for (varid, value) in sol_vec)
-    return val
-end
-
-# TODO : remove (unefficient & specific to an algorithm)
-function computereducedcost(form::Formulation, varid::Id{Variable}, dualsol::DualSolution)
-    redcost = getperencost(form, varid)
-    coefficient_matrix = getcoefmatrix(form)
-    sign = 1
-    if getobjsense(form) == MinSense
-        sign = -1
-    end
-    for (constrid, dual_val) in dualsol
-        coeff = coefficient_matrix[constrid, varid]
-        redcost += sign * dual_val * coeff
-    end
-    return redcost
-end
-
 # TODO : remove (unefficient & specific to Benders)
-function computereducedrhs(form::Formulation{BendersSp}, constrid::Id{Constraint}, primalsol::PrimalSolution)
+function computereducedrhs(form::Formulation{BendersSp}, constrid::ConstrId, primalsol::PrimalSolution)
     constrrhs = getperenrhs(form,constrid)
     coefficient_matrix = getcoefmatrix(form)
     for (varid, primal_val) in primalsol
@@ -726,7 +783,7 @@ end
 
 function constraint_primal(primalsol::PrimalSolution, constrid::ConstrId)
     val = 0.0
-    for (varid, coeff) in @view getcoefmatrix(primalsol.model)[constrid, :]
+    for (varid, coeff) in @view getcoefmatrix(getmodel(primalsol))[constrid, :]
         val += coeff * primalsol[varid]
     end
     return val
@@ -738,6 +795,64 @@ function push_optimizer!(form::Formulation, builder::Function)
     initialize_optimizer!(opt, form)
     return
 end
+
+############################################################################################
+# Bounds propagation
+############################################################################################
+
+function _update_var_cur_lb!(form::Formulation, var::Variable, lb, constrid)
+    cur_lb = getcurlb(form, var)
+    if cur_lb < lb
+        setcurlb!(form, var, lb)
+        var.moirecord.lower_bound = constrid
+        return true
+    end
+    return false
+end
+
+function _update_var_cur_ub!(form::Formulation, var::Variable, ub, constrid)
+    cur_ub = getcurub(form, var)
+    if cur_ub > ub
+        setcurub!(form, var, ub)
+        var.moirecord.upper_bound = constrid
+        return true
+    end
+    return false
+end
+
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Greater}, rhs, constrid)
+    _update_var_cur_lb!(form, var, rhs, constrid)
+    return
+end
+
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Less}, rhs, constrid)
+    _update_var_cur_ub!(form, var, rhs, constrid)
+    return
+end
+
+function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs, constrid)
+    update_lb = _update_var_cur_lb!(form, var, rhs, constrid)
+    update_ub = _update_var_cur_ub!(form, var, rhs, constrid)
+    if !update_lb || !update_ub
+        error("Bounds propagation determines infeasibility.")
+    end
+    return
+end
+
+# If new single var constraints have been added to a formulation, Coluna
+# should call this method.
+function bounds_propagation!(form::Formulation)
+    for (constrid, constr) in form.manager.single_var_constrs
+        var = getvar(form, constr.varid)
+        rhs = getcurrhs(form, constr)
+        _update_bounds!(form, var, Val(constr.curdata.sense), rhs, constrid)
+    end
+    return
+end
+
+############################################################################################
+# Methods to show a formulation
+############################################################################################
 
 function _show_obj_fun(io::IO, form::Formulation)
     print(io, getobjsense(form), " ")
@@ -783,6 +898,27 @@ function _show_constraints(io::IO , form::Formulation)
     return
 end
 
+function _show_singlevarconstraint(io::IO, form::Formulation, constr::SingleVarConstraint)
+    print(io, "| ", getname(form, constr.varid))
+    op = "<="
+    if getcursense(form, constr) == Equal
+        op = "=="
+    elseif getcursense(form, constr) == Greater
+        op = ">="
+    end
+    println(io, " ", op, " ", getcurrhs(form, constr))
+    return
+end
+
+function _show_singlevarconstraints(io::IO, form::Formulation)
+    for (varid, _) in getvars(form)
+        for (_, constr) in getsinglevarconstrs(form, varid)
+            _show_singlevarconstraint(io, form, constr)
+        end
+    end
+    return
+end
+
 function _show_variable(io::IO, form::Formulation, var::Variable)
     name = getname(form, var)
     lb = getcurlb(form, var)
@@ -811,6 +947,7 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
         _show_obj_fun(io, form)
         _show_constraints(io, form)
         _show_variables(io, form)
+        _show_singlevarconstraints(io, form)
     end
     return
 end
