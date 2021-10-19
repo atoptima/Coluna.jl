@@ -284,8 +284,8 @@ function _get_same_sol_in_pool(pool_sols, pool_costs, sol, sol_cost)
                 return existing_sol_id
             end
         end
-        return nothing
     end
+    return nothing
 end
 
 # We only keep variables that have certain duty in the representation of the 

@@ -24,6 +24,13 @@ function dw_sp_primalsol_pool()
 
     a = ClMP._get_same_sol_in_pool(pool_sols, pool_costs, sol1_repr, sol1_cost)
     @test a == sol1_id
+
+    a = ClMP._get_same_sol_in_pool(pool_sols, pool_costs, sol2_repr, sol2_cost)
+    @test a == sol2_id
+
+    a = ClMP._get_same_sol_in_pool(pool_sols, pool_costs, sol2_repr, sol1_cost)
+    @test a === nothing
+    return
 end
 
 function max_nb_form_unit()
