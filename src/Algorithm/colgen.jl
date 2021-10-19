@@ -434,7 +434,7 @@ function solve_sps_to_gencols!(
     for sp_optstate in sp_optstates
         # TODO: refactor
         get_best_ip_primal_sol(sp_optstate) === nothing && continue
-        spuid = getuid(get_best_ip_primal_sol(sp_optstate).model)
+        spuid = getuid(get_best_ip_primal_sol(sp_optstate).solution.model)
         spinfo = spinfos[spuid]
         # end
 

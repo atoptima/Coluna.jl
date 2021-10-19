@@ -16,12 +16,17 @@ function clonevar!(
     branching_priority::Float64 = getbranchingpriority(originform, var),
     members::Union{ConstrMembership,Nothing} = nothing
 )
+    id_of_clone = VarId(
+        getid(var);
+        duty = duty,
+        assigned_form_uid = getuid(assignedform)
+    )
     return setvar!(
         destform, name, duty; 
         cost = cost, lb = lb, ub = ub, kind = kind,
         inc_val = inc_val, is_active = is_active, is_explicit = is_explicit, 
         branching_priority = branching_priority, members = members, 
-        id = VarId(duty, getid(var), getuid(assignedform))
+        id = id_of_clone
     )
 end
 
@@ -41,12 +46,17 @@ function cloneconstr!(
     members::Union{VarMembership,Nothing}  = nothing,
     loc_art_var_abs_cost::Float64 = 0.0
 )
+    id_of_clone = ConstrId(
+        getid(constr);
+        duty = duty,
+        assigned_form_uid = getuid(assignedform)
+    )
     return setconstr!(
         destform, name, duty;
         rhs = rhs, kind = kind, sense = sense, inc_val = inc_val,
         is_active = is_active, is_explicit = is_explicit, members = members,
         loc_art_var_abs_cost = loc_art_var_abs_cost, 
-        id = ConstrId(duty, getid(constr), getuid(assignedform))
+        id = id_of_clone
     )
 end
  
@@ -64,11 +74,16 @@ function clonesinglevarconstr!(
     is_active::Bool = true, #isperenactive(originform, constr),
     is_explicit::Bool = true #isexplicit(originform, constr)
 )
+    id_of_clone = SingleVarConstrId(
+        getid(constr);
+        duty = duty,
+        assigned_form_uid = getuid(assignedform)
+    )
     return setsinglevarconstr!(
         destform, name, constr.varid, duty;
         rhs = rhs, kind = kind, sense = sense, inc_val = inc_val,
         is_active = is_active,
-        id = SingleVarConstrId(duty, getid(constr), getuid(assignedform))
+        id = id_of_clone
     )
 end
 

@@ -1,4 +1,4 @@
-vid(uid) = ClMP.VarId(ClMP.OriginalVar, uid, 1, 1, 1)
+vid(uid) = ClMP.VarId(ClMP.OriginalVar, uid, 1)
 
 function dw_sp_primalsol_pool()
     pool_sols = dynamicsparse(ClMP.VarId, ClMP.VarId, Float64; fill_mode = false)
