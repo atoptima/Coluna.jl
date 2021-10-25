@@ -329,11 +329,6 @@ function insert_columns!(
 )
     nb_cols_generated = 0
 
-    # Optimize the subproblem & get the result
-    compute_db_contributions!(
-        spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate)
-    )
-
     # Insert the primal solutions to the DW subproblem as column into the master
     bestsol = get_best_ip_primal_sol(sp_optstate)
     if bestsol !== nothing && getstatus(bestsol) == FEASIBLE_SOL
@@ -437,6 +432,10 @@ function solve_sps_to_gencols!(
         spuid = getuid(get_best_ip_primal_sol(sp_optstate).solution.model)
         spinfo = spinfos[spuid]
         # end
+
+        compute_db_contributions!(
+            spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate)
+        )
 
         nb_new_cols += insert_columns!(
             masterform, sp_optstate, spinfo, algo, lp_dual_sol, phase
