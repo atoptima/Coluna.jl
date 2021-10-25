@@ -1,12 +1,7 @@
-using Base.CoreLogging: Error
-using Coluna
+using Base.CoreLogging: error
+using DynamicSparseArrays, Coluna
 
-using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition
-using Random
-
-using MathOptInterface, MathOptInterface.Utilities
-
-using Base.CoreLogging, Logging
+using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition, Random, MathOptInterface, MathOptInterface.Utilities, Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(0)))
 
 const MOI = MathOptInterface
@@ -21,6 +16,7 @@ const BD = BlockDecomposition
 const ClF = Coluna.MathProg # Must be deleted
 const ClMP = Coluna.MathProg
 const ClA = Coluna.Algorithm
+
 
 include("unit/unit_tests.jl")
 include("MathOptInterface/MOI_wrapper.jl")

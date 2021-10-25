@@ -300,6 +300,11 @@ function create_side_vars_constrs!(
         )))[1]
 
         name = "η[$(split(getname(spform, nu_var), "[")[end])"
+        nu_id = VarId(
+            getid(nu_var);
+            duty = MasterBendSecondStageCostVar,
+            assigned_form_uid = getuid(masterform)
+        )
         setvar!(
             masterform, name, MasterBendSecondStageCostVar;
             cost = 1.0,
@@ -307,7 +312,7 @@ function create_side_vars_constrs!(
             ub = getperenub(spform, nu_var),
             kind = Continuous,
             is_explicit = true,
-            id = VarId(MasterBendSecondStageCostVar, getid(nu_var), getuid(masterform))
+            id = nu_id
         )
     end
     return
@@ -378,6 +383,11 @@ function create_side_vars_constrs!(
             duty, _ = _dutyexpofbendmastvar(var, annotations, origform)
             if duty == MasterBendFirstStageVar
                 name = string("μ⁺[", split(getname(origform, var), "[")[end], "]")
+                slack_pos_id = VarId(
+                    varid,
+                    duty = BendSpPosSlackFirstStageVar,
+                    assigned_form_uid = getuid(masterform)
+                )
                 slack_pos = setvar!(
                     spform, name, BendSpPosSlackFirstStageVar;
                     cost = getcurcost(origform, var),
@@ -385,7 +395,7 @@ function create_side_vars_constrs!(
                     ub = getcurub(origform, var),
                     kind = Continuous,
                     is_explicit = true,
-                    id = VarId(BendSpPosSlackFirstStageVar, varid, getuid(masterform))
+                    id = slack_pos_id
                 )
 
                 name = string("μ⁻[", split(getname(origform, var), "[")[end], "]")

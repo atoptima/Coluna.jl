@@ -27,11 +27,11 @@ include("types.jl")
 include("vcids.jl")
 include("variable.jl")
 include("constraint.jl")
-include("duties.jl")
 include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
 include("manager.jl")
+include("duties.jl")
 include("formulation.jl")
 include("varconstr.jl")
 include("optimizerwrappers.jl")
@@ -76,12 +76,13 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, create_formulation!, getreformulation, getvar, getvars,
-    getconstr, getconstrs, getelem, getcoefmatrix, getprimalsolmatrix, getprimalsolcosts,
-    getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setprimalsol!, setdualsol!,
+    getconstr, getconstrs, getelem, getcoefmatrix, getprimalsolpool, getprimalsolcosts,
+    getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
-    push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!, clonesinglevarconstr!, getsinglevarconstrs, getsinglevarconstr
+    push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!, 
+    clonesinglevarconstr!, getsinglevarconstrs, getsinglevarconstr, insert_column!
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp

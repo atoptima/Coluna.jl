@@ -21,9 +21,6 @@ mutable struct FormulationManager
     single_var_constrs_per_var::Dict{VarId, Dict{SingleVarConstrId, SingleVarConstraint}} # ids of the constraint of type : single variable >= bound
     objective_constant::Float64
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
-    primal_sols::VarVarMatrix # cols = primal solutions with varid, rows = variables
-    primal_sols_custom_data::Dict{VarId, BD.AbstractCustomData}
-    primal_sol_costs::DynSparseVector{VarId} # primal solutions with varid map to their cost
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
     dual_sols_varbounds::VarConstrDualSolMatrix # cols = dual solutions with constrid, rows = variables
     dual_sol_rhss::DynSparseVector{ConstrId} # dual solutions with constrid map to their rhs
@@ -41,9 +38,6 @@ function FormulationManager(; custom_families_id = Dict{BD.AbstractCustomData,In
         Dict{VarId, Dict{SingleVarConstrId, SingleVarConstraint}}(),
         0.0,
         dynamicsparse(ConstrId, VarId, Float64),
-        dynamicsparse(VarId, VarId, Float64; fill_mode = false),
-        Dict{VarId,Any}(),
-        dynamicsparsevec(VarId[], Float64[]),
         dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
         dynamicsparse(VarId, ConstrId, Tuple{Float64, ActiveBound}; fill_mode = false),
         dynamicsparsevec(ConstrId[], Float64[]),

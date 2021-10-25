@@ -206,7 +206,7 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = CLD.GeneralizedAssignment(data, coluna)
 
         JuMP.optimize!(problem)
         @test JuMP.termination_status(problem) == MOI.INFEASIBLE
