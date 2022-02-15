@@ -19,7 +19,6 @@ const ClA = Coluna.Algorithm
 
 
 include("unit/unit_tests.jl")
-include("MathOptInterface/MOI_wrapper.jl")
 include("interfaces/model.jl")
 include("issues_tests.jl")
 include("show_functions_tests.jl")
@@ -37,6 +36,7 @@ include("node_finalizer_tests.jl")
 rng = MersenneTwister(1234123)
 
 unit_tests()
+
 test_issues_fixed()
 
 @testset "Full instances " begin
@@ -89,3 +89,5 @@ end
 
     node_finalizer_tests(true)  # heuristic node finalizer
 end
+
+include("MathOptInterface/MOI_wrapper.jl")
