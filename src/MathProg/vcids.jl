@@ -22,9 +22,9 @@ end
 
 function _create_hash(uid::Integer, origin_form_uid::Integer, proc_uid::Integer)
     return (
-        uid * MAX_NB_FORMULATIONS * MAX_NB_PROCESSES
-        + origin_form_uid * MAX_NB_PROCESSES
-        + proc_uid
+        Int(uid) * Int(MAX_NB_FORMULATIONS) * Int(MAX_NB_PROCESSES)
+        + Int(origin_form_uid) * Int(MAX_NB_PROCESSES)
+        + Int(proc_uid)
     )
 end
 
