@@ -1,7 +1,7 @@
 function _welcome_message()
     welcome = """
     Coluna
-    Version 0.3.11 | 2021-10-09 | https://github.com/atoptima/Coluna.jl
+    Version 0.3.12 | 2022-02-17 | https://github.com/atoptima/Coluna.jl
     """
     print(welcome)
 end
