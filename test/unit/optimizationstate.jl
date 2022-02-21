@@ -8,7 +8,7 @@ function update_sol_tests()
     ############################################################################################
     # MinSense                                                                                 #
     ############################################################################################
-    form = create_formulation!(Env(Coluna.Params()), Original())
+    form = create_formulation!(Env(Coluna.Params()), ClMP.Original())
     var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
     state = OptimizationState(
@@ -67,7 +67,7 @@ function update_sol_tests()
     # MaxSense                                                                                 #
     ############################################################################################
     form = create_formulation!(
-        Env(Coluna.Params()), Original(), obj_sense = Coluna.MathProg.MaxSense
+        Env(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
     )
     var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
@@ -128,7 +128,7 @@ function add_sol_tests()
     ############################################################################################
     # MinSense                                                                                 #
     ############################################################################################
-    form = create_formulation!(Env(Coluna.Params()), Original())
+    form = create_formulation!(Env(Coluna.Params()), ClMP.Original())
     var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
     state = OptimizationState(form)
@@ -180,7 +180,7 @@ function add_sol_tests()
     # MaxSense                                                                                 #
     ############################################################################################
     form = create_formulation!(
-        Env(Coluna.Params()), Original(), obj_sense = Coluna.MathProg.MaxSense
+        Env(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
     )
     var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
@@ -234,7 +234,7 @@ function set_sol_tests()
     ############################################################################################
     # MinSense                                                                                 #
     ############################################################################################
-    form = create_formulation!(Env(Coluna.Params()), Original())
+    form = create_formulation!(Env(Coluna.Params()), ClMP.Original())
     var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
     state = OptimizationState(
@@ -283,7 +283,7 @@ function set_sol_tests()
     # MaxSense                                                                                 #
     ############################################################################################
     form = create_formulation!(
-        Env(Coluna.Params()), Original(), obj_sense = Coluna.MathProg.MaxSense
+        Env(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
     )
     var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)

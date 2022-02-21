@@ -107,7 +107,7 @@ function MOI.submit(
     lhs = 0.0
     members = Dict{VarId, Float64}()
     for term in func.terms
-        varid = _get_orig_varid_in_form(model, form, term.variable_index)
+        varid = _get_orig_varid_in_form(model, form, term.variable)
         members[varid] = term.coefficient
         lhs += term.coefficient * get(cb.callback_data.proj_sol_dict, varid, 0.0)
     end

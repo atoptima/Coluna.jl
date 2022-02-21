@@ -164,7 +164,7 @@ end
 ################################################################################
 
 function check_if_optimizer_supports_ip(optimizer::MoiOptimizer)
-    return MOI.supports_constraint(optimizer.inner, MOI.SingleVariable, MOI.Integer)
+    return MOI.supports_constraint(optimizer.inner, MOI.VariableIndex, MOI.Integer)
 end
 check_if_optimizer_supports_ip(optimizer::UserOptimizer) = false
 check_if_optimizer_supports_ip(optimizer::NoOptimizer) = false

@@ -5,12 +5,12 @@ end
 
 function moi_constr_record_getters_and_setters_tests()
     c_rec = ClF.MoiConstrRecord(
-        ; index = ClF.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-15)
+        ; index = ClF.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-15)
     )
-    @test ClF.getindex(c_rec) == ClF.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-15)
+    @test ClF.getindex(c_rec) == ClF.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-15)
 
-    ClF.setindex!(c_rec, ClF.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-20))
-    @test ClF.getindex(c_rec) == ClF.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-20)
+    ClF.setindex!(c_rec, ClF.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-20))
+    @test ClF.getindex(c_rec) == ClF.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-20)
 end
 
 function constraint_getters_and_setters_tests()

@@ -26,7 +26,7 @@ function update_bounds_in_optimizer!(form::Formulation, optimizer::MoiOptimizer,
     if getcurkind(form, var) == Binary && moi_index.value != -1
         MOI.delete(inner, moi_kind)
         setkind!(moi_record, MOI.add_constraint(
-            inner, MOI.SingleVariable(moi_index), MOI.Integer()
+            inner, MOI.VariableIndex(moi_index), MOI.Integer()
         ))
     end
     if moi_bounds.value != -1
@@ -35,7 +35,7 @@ function update_bounds_in_optimizer!(form::Formulation, optimizer::MoiOptimizer,
         )
     else
         setbounds!(moi_record, MOI.add_constraint(
-            inner, MOI.SingleVariable(moi_index),
+            inner, MOI.VariableIndex(moi_index),
             MOI.Interval(getcurlb(form, var), getcurub(form, var))
         ))
     end
@@ -87,7 +87,7 @@ function enforce_bounds_in_optimizer!(
 )
     moirecord = getmoirecord(var)
     moi_bounds = MOI.add_constraint(
-        getinner(optimizer), MOI.SingleVariable(getindex(moirecord)),
+        getinner(optimizer), getindex(moirecord),
         MOI.Interval(getcurlb(form, var), getcurub(form, var))
     )
     setbounds!(moirecord, moi_bounds)
@@ -110,7 +110,7 @@ function enforce_kind_in_optimizer!(
     if kind != Continuous # Continuous is translated as no constraint in MOI
         moi_set = (kind == Binary ? MOI.ZeroOne() : MOI.Integer())
         setkind!(moirecord, MOI.add_constraint(
-            inner, MOI.SingleVariable(getindex(moirecord)), moi_set
+            inner, getindex(moirecord), moi_set
         ))
     end
     return
@@ -292,9 +292,10 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         varvals = Float64[]
         activebounds = ActiveBound[]
         for (varid, var) in getvars(form)
+            moi_var_index = getindex(getmoirecord(var))
             moi_bounds_index = getbounds(getmoirecord(var))
-            MOI.is_valid(inner, moi_bounds_index) || continue
-            basis_status = MOI.get(inner, MOI.ConstraintBasisStatus(res_idx), moi_bounds_index)
+            MOI.is_valid(inner, moi_var_index) && MOI.is_valid(inner, moi_bounds_index) || continue
+            basis_status = MOI.get(inner, MOI.VariableBasisStatus(res_idx), getindex(getmoirecord(var)))
             val = MOI.get(inner, MOI.ConstraintDual(res_idx), moi_bounds_index)
 
             # Variables with non-zero dual values have at least one active bound.
@@ -333,7 +334,7 @@ end
 function _show_function(io::IO, moi_model::MOI.ModelLike,
                         func::MOI.ScalarAffineFunction)
     for term in func.terms
-        moi_index = term.variable_index
+        moi_index = term.variable
         coeff = term.coefficient
         name = MOI.get(moi_model, MOI.VariableName(), moi_index)
         if name == ""
@@ -345,7 +346,7 @@ function _show_function(io::IO, moi_model::MOI.ModelLike,
 end
 
 function _show_function(io::IO, moi_model::MOI.ModelLike,
-                        func::MOI.SingleVariable)
+                        func::MOI.VariableIndex)
     moi_index = func.variable
     name = MOI.get(moi_model, MOI.VariableName(), moi_index)
     if name == ""
@@ -387,15 +388,15 @@ function _show_constraint(io::IO, moi_model::MOI.ModelLike,
 end
 
 function _show_constraints(io::IO, moi_model::MOI.ModelLike)
-    for (F, S) in MOI.get(moi_model, MOI.ListOfConstraints())
-        F == MOI.SingleVariable && continue
+    for (F, S) in MOI.get(moi_model, MOI.ListOfConstraintTypesPresent())
+        F == MOI.VariableIndex && continue
         for moi_index in MOI.get(moi_model, MOI.ListOfConstraintIndices{F, S}())
             _show_constraint(io, moi_model, moi_index)
         end
     end
-    for (F, S) in MOI.get(moi_model, MOI.ListOfConstraints())
-        F !== MOI.SingleVariable && continue
-        for moi_index in MOI.get(moi_model, MOI.ListOfConstraintIndices{MOI.SingleVariable,S}())
+    for (F, S) in MOI.get(moi_model, MOI.ListOfConstraintTypesPresent())
+        F !== MOI.VariableIndex && continue
+        for moi_index in MOI.get(moi_model, MOI.ListOfConstraintIndices{MOI.VariableIndex,S}())
             _show_constraint(io, moi_model, moi_index)
         end
     end

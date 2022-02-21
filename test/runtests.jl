@@ -17,10 +17,29 @@ const ClF = Coluna.MathProg # Must be deleted
 const ClMP = Coluna.MathProg
 const ClA = Coluna.Algorithm
 
+rng = MersenneTwister(1234123)
 
+############################################################################################
+# Unit tests
+############################################################################################
 include("unit/unit_tests.jl")
-include("interfaces/model.jl")
+unit_tests()
+
+############################################################################################
+# MOI integration tests
+############################################################################################
+include("MathOptInterface/MOI_wrapper.jl")
+
+############################################################################################
+# Bugfixes tests
+############################################################################################
 include("issues_tests.jl")
+test_issues_fixed()
+
+############################################################################################
+# E2E tests (& other tests)
+############################################################################################
+include("interfaces/model.jl")
 include("show_functions_tests.jl")
 include("full_instances_tests.jl")
 include("user_algorithms_tests.jl")
@@ -33,11 +52,6 @@ include("custom_var_cuts_tests.jl")
 include("sol_disaggregation_tests.jl")
 include("node_finalizer_tests.jl")
 
-rng = MersenneTwister(1234123)
-
-unit_tests()
-
-test_issues_fixed()
 
 @testset "Full instances " begin
     full_instances_tests()
@@ -90,4 +104,3 @@ end
     node_finalizer_tests(true)  # heuristic node finalizer
 end
 
-include("MathOptInterface/MOI_wrapper.jl")

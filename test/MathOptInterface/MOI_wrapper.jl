@@ -1,9 +1,9 @@
 # Testing guidelines for MOI : https://jump.dev/MathOptInterface.jl/v0.9.14/apimanual/#Testing-guideline-1
 
 const OPTIMIZER = Coluna.Optimizer()
-MOI.set(OPTIMIZER, MOI.RawParameter("default_optimizer"), GLPK.Optimizer)
+MOI.set(OPTIMIZER, MOI.RawOptimizerAttribute("default_optimizer"), GLPK.Optimizer)
 
-const CONFIG = MOIT.TestConfig(atol=1e-6, rtol=1e-6, infeas_certificates = false)
+const CONFIG = MOIT.Config(atol=1e-6, rtol=1e-6, infeas_certificates = false)
 
 @testset "SolverName" begin
     @test MOI.get(OPTIMIZER, MOI.SolverName()) == "Coluna"
@@ -29,7 +29,7 @@ end
     JuMP.optimize!(problem)
 
     @test MOI.get(problem, MOI.NodeCount()) == 4
-    @test isa(MOI.get(problem, MOI.SolveTime()), Float64)
+    @test isa(MOI.get(problem, MOI.SolveTimeSec()), Float64)
 end
 
 @testset "supports_default_copy_to" begin
@@ -223,15 +223,15 @@ const UNCOVERED_TERMINATION_STATUS = [
 ]
 
 @testset "Unit Basic/MIP" begin
-    MOI.set(OPTIMIZER, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm()))
+    MOI.set(OPTIMIZER, MOI.RawOptimizerAttribute("params"), CL.Params(solver = ClA.SolveIpForm()))
     MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, LP_TESTS, MIP_TESTS))
     MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, LP_TESTS, BASIC))
 end
 
 const OPTIMIZER_CONSTRUCTOR = MOI.OptimizerWithAttributes(Coluna.Optimizer)#, MOI.Silent() => true) # MOI.Silent not supported
 const BRIDGED = MOI.instantiate(OPTIMIZER_CONSTRUCTOR, with_bridge_type = Float64)
-MOI.set(BRIDGED, MOI.RawParameter("default_optimizer"), GLPK.Optimizer)
-MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm()))
+MOI.set(BRIDGED, MOI.RawOptimizerAttribute("default_optimizer"), GLPK.Optimizer)
+MOI.set(BRIDGED, MOI.RawOptimizerAttribute("params"), CL.Params(solver = ClA.SolveIpForm()))
 
 @testset "Integer Linear" begin
     MOIT.intlineartest(BRIDGED, CONFIG, [
@@ -242,7 +242,7 @@ MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveIpForm(
 end
 
 @testset "Unit LP" begin
-    MOI.set(BRIDGED, MOI.RawParameter("params"), CL.Params(solver = ClA.SolveLpForm(
+    MOI.set(BRIDGED, MOI.RawOptimizerAttribute("params"), CL.Params(solver = ClA.SolveLpForm(
         update_ip_primal_solution=true, get_dual_solution=true, get_dual_bound=true
     )))
     MOIT.unittest(BRIDGED, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC, CONSTRAINTDUAL_SINGLEVAR))

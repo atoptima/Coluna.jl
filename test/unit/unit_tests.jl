@@ -43,6 +43,5 @@ function unit_tests()
     @testset "vcids.jl" begin
         vcids_unit_tests()
     end
-    
     return
 end
