@@ -28,7 +28,8 @@ unit_tests()
 ############################################################################################
 # MOI integration tests
 ############################################################################################
-include("MathOptInterface/MOI_wrapper.jl")
+# TODO: see https://jump.dev/MathOptInterface.jl/stable/release_notes/#Breaking-changes-in-Test
+# include("MathOptInterface/MOI_wrapper.jl")
 
 ############################################################################################
 # Bugfixes tests

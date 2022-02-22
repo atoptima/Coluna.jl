@@ -4,13 +4,13 @@ function variables_unit_tests()
 end
 
 function getset_variables()
-    form = create_formulation!(Env(Coluna.Params()), Original())
+    form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
     var = ClF.setvar!(
         form, "var1", ClF.OriginalVar, cost = 2.0, lb = -1.0, ub = 1.0, 
         kind = ClF.Integ, inc_val = 4.0
     )
 
-    varid = getid(var)
+    varid = ClMP.getid(var)
 
     @test ClF.getperencost(form, varid) == 2.0
     @test ClF.getperenlb(form, varid) == -1.0
