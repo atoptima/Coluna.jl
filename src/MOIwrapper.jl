@@ -75,7 +75,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     end
 end
 
-supports_incremental_interface(::Optimizer, ::Bool) = true
+MOI.supports_incremental_interface(::Optimizer) = true
 MOI.supports(::Optimizer, ::MOI.VariableName, ::Type{MOI.VariableIndex}) = true
 MOI.supports(::Optimizer, ::MOI.ConstraintName, ::Type{<:MOI.ConstraintIndex}) = true
 MOI.supports_constraint(::Optimizer, ::Type{<:SupportedConstrFunc}, ::Type{<:SupportedConstrSets}) = true
@@ -125,8 +125,8 @@ function MOI.optimize!(optimizer::Optimizer)
     return
 end
 
-function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; kwargs...)
-    return MOI.Utilities.default_copy_to(dest, src; kwargs...)
+function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike)
+    return MOI.Utilities.default_copy_to(dest, src)
 end
 
 ############################################################################################
@@ -694,7 +694,7 @@ function MOI.set(
     func::MOI.VariableIndex
 )
     model.objective_type = SINGLE_VARIABLE
-    setperencost!(get_original_formulation(model.inner), model.vars[func.variable], 1.0)
+    setperencost!(get_original_formulation(model.inner), model.vars[func], 1.0)
     return
 end
 
