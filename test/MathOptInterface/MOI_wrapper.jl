@@ -1,257 +1,225 @@
-# Testing guidelines for MOI : https://jump.dev/MathOptInterface.jl/v0.9.14/apimanual/#Testing-guideline-1
 
-const OPTIMIZER = Coluna.Optimizer()
-MOI.set(OPTIMIZER, MOI.RawOptimizerAttribute("default_optimizer"), GLPK.Optimizer)
+# ============================ /test/MOI_wrapper.jl ============================
+module TestColuna
 
-const CONFIG = MOIT.Config(atol=1e-6, rtol=1e-6, infeas_certificates = false)
+import Coluna
+using MathOptInterface
+using Test
+using GLPK
 
-@testset "SolverName" begin
-    @test MOI.get(OPTIMIZER, MOI.SolverName()) == "Coluna"
-end
+const MOI = MathOptInterface
 
-@testset "Kpis" begin
-    data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+const OPTIMIZER = MOI.instantiate(
+    MOI.OptimizerWithAttributes(
+        Coluna.Optimizer, 
+        MOI.RawOptimizerAttribute("default_optimizer") => GLPK.Optimizer
+    ),
+)
 
-    coluna = JuMP.optimizer_with_attributes(
-        CL.Optimizer,
-        "params" => CL.Params(
-            solver = ClA.TreeSearchAlgorithm(
-                conqueralg = ClA.ColCutGenConquer(
-                    stages = [ClA.ColumnGeneration(max_nb_iterations = 8)]
-                ), maxnumnodes = 4
-            )
-        ),
-        "default_optimizer" => GLPK.Optimizer
-    )
-
-    problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-
-    JuMP.optimize!(problem)
-
-    @test MOI.get(problem, MOI.NodeCount()) == 4
-    @test isa(MOI.get(problem, MOI.SolveTimeSec()), Float64)
-end
-
-@testset "supports_default_copy_to" begin
-    @test MOIU.supports_default_copy_to(OPTIMIZER, false)
-    # Use `@test !...` if names are not supported
-    @test MOIU.supports_default_copy_to(OPTIMIZER, true)
-end
-
-@testset "branching_priority" begin
-    coluna = JuMP.optimizer_with_attributes(
+const BRIDGED = MOI.instantiate(
+    MOI.OptimizerWithAttributes(
         Coluna.Optimizer,
-        "params" => CL.Params(solver=ClA.SolveIpForm()),
-        "default_optimizer" => GLPK.Optimizer
+        MOI.RawOptimizerAttribute("default_optimizer") => GLPK.Optimizer
+    ),
+    with_bridge_type = Float64,
+)
+
+# See the docstring of MOI.Test.Config for other arguments.
+const CONFIG = MOI.Test.Config(
+    # Modify tolerances as necessary.
+    atol = 1e-6,
+    rtol = 1e-6,
+    # Use MOI.LOCALLY_SOLVED for local solvers.
+    optimal_status = MOI.OPTIMAL,
+    # Pass attributes or MOI functions to `exclude` to skip tests that
+    # rely on this functionality.
+    exclude = Any[MOI.VariableName, MOI.delete],
+)
+
+"""
+    runtests()
+
+This function runs all functions in the this Module starting with `test_`.
+"""
+function runtests()
+    for name in names(@__MODULE__; all = true)
+        if startswith("$(name)", "test_")
+            @testset "$(name)" begin
+getfield(@__MODULE__, name)()
+            end
+        end
+    end
+end
+
+"""
+    test_runtests()
+
+This function runs all the tests in MathOptInterface.Test.
+
+Pass arguments to `exclude` to skip tests for functionality that is not
+implemented or that your solver doesn't support.
+"""
+function test_runtests()
+    MOI.Test.runtests(
+        BRIDGED,
+        CONFIG,
+        exclude = [
+            "test_attribute_NumberOfThreads",
+            "test_quadratic_",
+            # We have to fix the following tests (or keep them excluded and explain why):
+            "test_add_constrained_variables_vector",
+            "test_attribute_RawStatusString",
+            "test_attribute_SolveTimeSec",
+            "test_attribute_SolverVersion",   
+            "test_basic_ScalarAffineFunction_EqualTo",
+            "test_basic_ScalarAffineFunction_GreaterThan", 
+            "test_basic_ScalarAffineFunction_LessThan",         
+            "test_basic_VariableIndex_EqualTo",
+            "test_basic_VariableIndex_GreaterThan",
+            "test_basic_VariableIndex_Interval",
+            "test_basic_VariableIndex_LessThan",
+            "test_basic_VariableIndex_ZeroOne",
+            "test_basic_VectorOfVariables_Nonnegatives",
+            "test_basic_VectorOfVariables_Nonpositives",
+            "test_basic_VectorOfVariables_Zeros",
+            "test_conic_NormInfinityCone_3",
+            "test_conic_NormInfinityCone_INFEASIBLE",
+            "test_conic_NormInfinityCone_VectorAffineFunction",
+            "test_conic_NormInfinityCone_VectorOfVariables",
+            "test_conic_NormOneCone",
+            "test_conic_NormOneCone_INFEASIBLE",
+            "test_conic_NormOneCone_VectorAffineFunction",
+            "test_conic_NormOneCone_VectorOfVariables",
+            "test_conic_linear_INFEASIBLE",
+            "test_conic_linear_INFEASIBLE_2",
+            "test_conic_linear_VectorAffineFunction",
+            "test_conic_linear_VectorAffineFunction_2",
+            "test_conic_linear_VectorOfVariables",
+            "test_conic_linear_VectorOfVariables_2",
+            "test_constraint_ScalarAffineFunction_EqualTo",
+            "test_constraint_ScalarAffineFunction_GreaterThan",
+            "test_constraint_ScalarAffineFunction_Interval",
+            "test_constraint_ScalarAffineFunction_LessThan",
+            "test_constraint_ScalarAffineFunction_duplicate",
+            "test_constraint_VectorAffineFunction_duplicate",
+            "test_constraint_ZeroOne_bounds",
+            "test_constraint_ZeroOne_bounds_2",
+            "test_constraint_ZeroOne_bounds_3",
+            "test_constraint_get_ConstraintIndex",
+            "test_linear_DUAL_INFEASIBLE",
+            "test_linear_DUAL_INFEASIBLE_2",
+            "test_linear_FEASIBILITY_SENSE",
+            "test_linear_INFEASIBLE",
+            "test_linear_INFEASIBLE_2",
+            "test_linear_Interval_inactive",
+            "test_linear_LessThan_and_GreaterThan",
+            "test_linear_Semicontinuous_integration",
+            "test_linear_Semiinteger_integration",
+            "test_linear_VectorAffineFunction",
+            "test_linear_VectorAffineFunction_empty_row",
+            "test_linear_add_constraints",
+            "test_linear_inactive_bounds",
+            "test_linear_integer_integration",
+            "test_linear_integer_knapsack",
+            "test_linear_integer_solve_twice",
+            "test_linear_integration",
+            "test_linear_integration_2",
+            "test_linear_integration_Interval",
+            "test_linear_integration_delete_variables",
+            "test_linear_integration_modification",
+            "test_linear_modify_GreaterThan_and_LessThan_constraints",
+            "test_linear_transform",
+            "test_model_ListOfConstraintAttributesSet",
+            "test_model_ModelFilter_ListOfConstraintIndices",
+            "test_model_ModelFilter_ListOfConstraintTypesPresent",
+            "test_model_Name_VariableName_ConstraintName",
+            "test_model_ScalarAffineFunction_ConstraintName",
+            "test_model_ScalarFunctionConstantNotZero",
+            "test_model_UpperBoundAlreadySet",
+            "test_model_VariableIndex_ConstraintName",
+            "test_model_VariableName",
+            "test_model_copy_to_UnsupportedAttribute",
+            "test_model_copy_to_UnsupportedConstraint",
+            "test_model_duplicate_ScalarAffineFunction_ConstraintName",
+            "test_model_duplicate_VariableName",
+            "test_model_empty",
+            "test_modification_affine_deletion_edge_cases",
+            "test_modification_coef_scalar_objective",
+            "test_modification_coef_scalaraffine_lessthan",
+            "test_modification_const_scalar_objective",
+            "test_modification_const_vectoraffine_nonpos",
+            "test_modification_delete_variable_with_single_variable_obj",
+            "test_modification_delete_variables_in_a_batch",
+            "test_modification_func_scalaraffine_lessthan",
+            "test_modification_func_vectoraffine_nonneg",
+            "test_modification_multirow_vectoraffine_nonpos",
+            "test_modification_set_scalaraffine_lessthan",
+            "test_modification_set_singlevariable_lessthan",
+            "test_modification_transform_singlevariable_lessthan",
+            "test_nonlinear_Feasibility_internal",
+            "test_objective_FEASIBILITY_SENSE_clears_objective",
+            "test_objective_ObjectiveFunction_VariableIndex",
+            "test_objective_ObjectiveFunction_blank",
+            "test_objective_ObjectiveFunction_constant",
+            "test_objective_ObjectiveFunction_duplicate_terms",
+            "test_objective_get_ObjectiveFunction_ScalarAffineFunction",
+            "test_objective_set_via_modify",
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_EqualTo_lower",
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_EqualTo_upper",
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_GreaterThan",
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_Interval_lower",
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_Interval_upper",
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_LessThan",
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_VariableIndex_LessThan",
+            "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_VariableIndex_LessThan_max",
+            "test_solve_ObjectiveBound_MAX_SENSE_IP",
+            "test_solve_ObjectiveBound_MAX_SENSE_LP",
+            "test_solve_ObjectiveBound_MIN_SENSE_IP",
+            "test_solve_ObjectiveBound_MIN_SENSE_LP",
+            "test_solve_TerminationStatus_DUAL_INFEASIBLE",
+            "test_solve_VariableIndex_ConstraintDual_MAX_SENSE",
+            "test_solve_VariableIndex_ConstraintDual_MIN_SENSE",
+            "test_solve_optimize_twice",
+            "test_solve_result_index",
+            "test_variable_VariableName",
+            "test_variable_delete_Nonnegatives",
+            "test_variable_delete_Nonnegatives_row",
+            "test_variable_get_VariableIndex",
+            "test_variable_solve_Integer_with_lower_bound",
+            "test_variable_solve_Integer_with_upper_bound",
+            "test_variable_solve_ZeroOne_with_0_upper_bound",
+            "test_variable_solve_ZeroOne_with_upper_bound",
+            "test_variable_solve_with_lowerbound",
+            "test_variable_solve_with_upperbound"
+        ],
+        # This argument is useful to prevent tests from failing on future
+        # releases of MOI that add new tests. Don't let this number get too far
+        # behind the current MOI release though! You should periodically check
+        # for new tests in order to fix bugs and implement new features.
+        exclude_tests_after = v"0.10.5",
     )
-    model = BlockModel(coluna, direct_model=true)
-    @variable(model, x)
-    
-    @test BlockDecomposition.branchingpriority(x) == 1
-    BlockDecomposition.branchingpriority!(x, 2)
-    @test BlockDecomposition.branchingpriority(x) == 2
-    
-    model2 = BlockModel(coluna)
-    @variable(model2, x)
-    
-    @test BlockDecomposition.branchingpriority(x) == 1
-    BlockDecomposition.branchingpriority!(x, 2)
-    @test BlockDecomposition.branchingpriority(x) == 2
+    return
 end
 
-@testset "write_to_file" begin
-    coluna = JuMP.optimizer_with_attributes(
-        Coluna.Optimizer,
-        "params" => CL.Params(solver=ClA.SolveIpForm()),
-        "default_optimizer" => GLPK.Optimizer
-    )
-    model = BlockModel(coluna, direct_model=true)
-    @variable(model, x)
-    
-    @constraint(model, x <= 1)
-    @objective(model, Max, x)
-    optimize!(model)
+"""
+    test_SolverName()
 
-    dest = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_MPS)
-    MOI.copy_to(dest, model)
-    MOI.write_to_file(dest, "model.mps")
-
-    filedata = MOI.FileFormats.Model(format = MOI.FileFormats.FORMAT_MPS)
-    MOI.read_from_file(filedata, "model.mps")
-
-    model2 = BlockModel(coluna, direct_model=true)
-    MOI.copy_to(model2, filedata)
-    optimize!(model2)
-
-    # the model is always written as a minimization problem
-    @test JuMP.objective_value(model) == -JuMP.objective_value(model2)
+You can also write new tests for solver-specific functionality. Write each new
+test as a function with a name beginning with `test_`.
+"""
+function test_SolverName()
+    @test MOI.get(Coluna.Optimizer(), MOI.SolverName()) == "Coluna"
+    return
 end
 
-@testset "SplitIntervalBridge" begin
-    coluna = optimizer_with_attributes(
-        Coluna.Optimizer,
-        "params" => Coluna.Params(
-            solver=Coluna.Algorithm.TreeSearchAlgorithm()
-        ),
-        "default_optimizer" => GLPK.Optimizer
-    )
+end # module TestColuna
 
-    @axis(M, 1:1)
-    J = 1:1
+# This line at tne end of the file runs all the tests!
+TestColuna.runtests()
 
-    model = BlockModel(coluna)
-    @variable(model, x[m in M, j in J])
-    @constraint(model, mult[m in M], 1 <= sum(x[m,j] for j in J) <= 2)
-    @objective(model, Max, sum(x[m,j] for m in M, j in J))
 
-    @dantzig_wolfe_decomposition(model, decomposition, M)
+# # Testing guidelines for MOI : https://jump.dev/MathOptInterface.jl/v0.9.14/apimanual/#Testing-guideline-1
 
-    optimize!(model)
-    @test JuMP.objective_value(model) == 2.0
-end
+# const OPTIMIZER = Coluna.Optimizer()
+# MOI.set(OPTIMIZER, MOI.RawOptimizerAttribute("default_optimizer"), GLPK.Optimizer)
 
-# @testset "Multiple single variable constraints" begin
-#     coluna = optimizer_with_attributes(
-#         Coluna.Optimizer,
-#         "params" => Coluna.Params(
-#             solver=Coluna.Algorithm.TreeSearchAlgorithm()
-#         ),
-#         "default_optimizer" => GLPK.Optimizer
-#     )
-
-#     @axis(M, 1:1)
-#     J = 1:1
-
-#     model = BlockModel(coluna)
-#     @variable(model, x[m in M, j in J])
-#     @constraint(model, c1[m in M], 1 <= x[m,1] <= 2)
-#     @constraint(model, c2[m in M], x[m,1] >= 1.2)
-#     @constraint(model, c3[m in M], x[m,1] <= 1.8)
-#     @constraint(model, c4[m in M], x[m,1] <= 1.7)
-#     @constraint(model, c5[m in M], x[m,1] == 1.6)
-#     @objective(model, Max, sum(x[m,j] for m in M, j in J))
-
-#     @dantzig_wolfe_decomposition(model, decomposition, M)
-
-#     optimize!(model)
-#     @test JuMP.objective_value(model) == 1.6
-
-#     delete(model, c5[M[1]])
-#     unregister(model, :c5)
-#     optimize!(model)
-#     @test JuMP.objective_value(model) == 1.7
-
-#     delete(model, c4[M[1]])
-#     unregister(model, :c4)
-#     optimize!(model)
-#     @test JuMP.objective_value(model) == 1.8
-# end
-
-const UNSUPPORTED_TESTS = [
-    "solve_qcp_edge_cases", # Quadratic constraints not supported
-    "delete_nonnegative_variables", # `VectorOfVariables`-in-`Nonnegatives` not supported 
-    "variablenames", # Coluna retrieves the name of the variable
-    "delete_soc_variables", # soc variables not supported
-    "solve_qp_edge_cases", # Quadratic objective not supported
-    "solve_affine_deletion_edge_cases", # VectorAffineFunction not supported
-    "solve_affine_interval", # ScalarAffineFunction`-in-`Interval` not supported
-    "solve_duplicate_terms_vector_affine", # VectorAffineFunction not supported
-    "update_dimension_nonnegative_variables", # VectorAffineFunction not supported
-    "solve_farkas_interval_upper", # ScalarAffineFunction`-in-`Interval` not supported
-    "solve_farkas_interval_lower", # ScalarAffineFunction`-in-`Interval` not supported
-    "solve_result_index", # Quadratic objective not supported
-    "get_objective_function", # Quandratic objective not supported
-    "number_threads", # TODO : support of MOI.NumberOfThreads()
-    "silent", # TODO : support of MOI.Silent()
-    "time_limit_sec", # TODO : support of MOI.TimeLimitSec()
-    "solve_unbounded_model", # default lower bound 0
-]
-
-const BASIC = [
-    "add_variable",
-    "solver_name",
-    "add_variables",
-    "feasibility_sense",
-    "max_sense",
-    "min_sense",
-    "getvariable",
-    "getconstraint"
-]
-
-const MIP_TESTS = [
-    "solve_zero_one_with_bounds_1",
-    "solve_zero_one_with_bounds_2",
-    "solve_zero_one_with_bounds_3",
-    "solve_integer_edge_cases",
-    "solve_objbound_edge_cases"
-]
-
-const LP_TESTS = [
-    "solve_with_lowerbound",
-    "solve_affine_greaterthan",
-    "solve_singlevariable_obj",
-    "solve_unbounded_model",
-    "solve_constant_obj",
-    "solve_single_variable_dual_max",
-    "solve_single_variable_dual_min",
-    "solve_duplicate_terms_obj",
-    "raw_status_string",
-    "solve_affine_equalto",
-    "solve_farkas_lessthan",
-    "solve_farkas_greaterthan",
-    "solve_blank_obj",
-    "solve_with_upperbound",
-    "solve_farkas_variable_lessthan_max",
-    "solve_farkas_variable_lessthan",
-    "solve_farkas_equalto_upper",
-    "solve_farkas_equalto_lower",
-    "solve_farkas_equalto_lower",
-    "solve_duplicate_terms_scalar_affine",
-    "solve_affine_lessthan"
-]
-
-const CONSTRAINTDUAL_SINGLEVAR = String[
-    "solve_single_variable_dual_max", # TODO bug
-    "solve_single_variable_dual_min", # TODO bug
-    "linear14", # TODO bug
-    "linear1", # TODO bug
-]
-
-const UNCOVERED_TERMINATION_STATUS = [
-    "linear8b", # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
-    "linear8c" # DUAL_INFEASIBLE or INFEASIBLE_OR_UNBOUNDED required
-]
-
-@testset "Unit Basic/MIP" begin
-    MOI.set(OPTIMIZER, MOI.RawOptimizerAttribute("params"), CL.Params(solver = ClA.SolveIpForm()))
-    MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, LP_TESTS, MIP_TESTS))
-    MOIT.unittest(OPTIMIZER, CONFIG, vcat(UNSUPPORTED_TESTS, LP_TESTS, BASIC))
-end
-
-const OPTIMIZER_CONSTRUCTOR = MOI.OptimizerWithAttributes(Coluna.Optimizer)#, MOI.Silent() => true) # MOI.Silent not supported
-const BRIDGED = MOI.instantiate(OPTIMIZER_CONSTRUCTOR, with_bridge_type = Float64)
-MOI.set(BRIDGED, MOI.RawOptimizerAttribute("default_optimizer"), GLPK.Optimizer)
-MOI.set(BRIDGED, MOI.RawOptimizerAttribute("params"), CL.Params(solver = ClA.SolveIpForm()))
-
-@testset "Integer Linear" begin
-    MOIT.intlineartest(BRIDGED, CONFIG, [
-        "indicator1", "indicator2", "indicator3", "indicator4", # indicator constraints not supported
-        "semiconttest", "semiinttest", # semi integer vars not supported
-        "int2" # SOS1 & SOS2 not supported
-    ])
-end
-
-@testset "Unit LP" begin
-    MOI.set(BRIDGED, MOI.RawOptimizerAttribute("params"), CL.Params(solver = ClA.SolveLpForm(
-        update_ip_primal_solution=true, get_dual_solution=true, get_dual_bound=true
-    )))
-    MOIT.unittest(BRIDGED, CONFIG, vcat(UNSUPPORTED_TESTS, MIP_TESTS, BASIC, CONSTRAINTDUAL_SINGLEVAR))
-end
-
-@testset "Continuous Linear" begin
-    MOIT.contlineartest(BRIDGED, CONFIG, vcat(
-        CONSTRAINTDUAL_SINGLEVAR, UNCOVERED_TERMINATION_STATUS, [
-            "partial_start" # VariablePrimalStart not supported
-        ]
-    ))
-end
