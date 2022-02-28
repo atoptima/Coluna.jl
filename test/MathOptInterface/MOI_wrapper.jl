@@ -5,21 +5,21 @@ module TestColuna
 import Coluna
 using MathOptInterface
 using Test
-using GLPK
+using HiGHS
 
 const MOI = MathOptInterface
 
 const OPTIMIZER = MOI.instantiate(
     MOI.OptimizerWithAttributes(
         Coluna.Optimizer, 
-        MOI.RawOptimizerAttribute("default_optimizer") => GLPK.Optimizer
+        MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer
     ),
 )
 
 const BRIDGED = MOI.instantiate(
     MOI.OptimizerWithAttributes(
         Coluna.Optimizer,
-        MOI.RawOptimizerAttribute("default_optimizer") => GLPK.Optimizer
+        MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer
     ),
     with_bridge_type = Float64,
 )
@@ -216,10 +216,3 @@ end # module TestColuna
 
 # This line at tne end of the file runs all the tests!
 TestColuna.runtests()
-
-
-# # Testing guidelines for MOI : https://jump.dev/MathOptInterface.jl/v0.9.14/apimanual/#Testing-guideline-1
-
-# const OPTIMIZER = Coluna.Optimizer()
-# MOI.set(OPTIMIZER, MOI.RawOptimizerAttribute("default_optimizer"), GLPK.Optimizer)
-

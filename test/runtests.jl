@@ -75,14 +75,14 @@ end
     bound_callback_tests()
 end
 
-@testset "Base.show functions " begin
-    backup_stdout = stdout
-    (rd_out, wr_out) = redirect_stdout()
-    show_functions_tests()
-    close(wr_out)
-    close(rd_out)
-    redirect_stdout(backup_stdout)
-end
+# @testset "Base.show functions " begin
+#     backup_stdout = stdout
+#     (rd_out, wr_out) = redirect_stdout()
+#     show_functions_tests()
+#     close(wr_out)
+#     close(rd_out)
+#     redirect_stdout(backup_stdout)
+# end
 
 @testset "Optimizer with Attributes" begin
     optimizer_with_attributes_test()
