@@ -39,7 +39,7 @@ function max_nb_form_unit()
         "params" => Coluna.Params(
             solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
         ),
-        "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
+        "default_optimizer" => HiGHS.Optimizer # HiGHS for the master & the subproblems
     )
     @axis(M, 1:typemax(Int16)+1)
     model = BlockModel(coluna)

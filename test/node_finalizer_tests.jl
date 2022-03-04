@@ -49,7 +49,7 @@ function node_finalizer_tests(heuristic_finalizer)
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
-            "default_optimizer" => GLPK.Optimizer,
+            "default_optimizer" => HiGHS.Optimizer,
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(

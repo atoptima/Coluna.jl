@@ -92,7 +92,7 @@ function knpcustommodel()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model = BlockModel(coluna; direct_model = true)

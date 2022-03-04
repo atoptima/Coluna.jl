@@ -3,14 +3,14 @@ function optimizer_with_attributes_test()
         data = CLD.GeneralizedAssignment.data("play2.txt")
 
 
-        println(JuMP.optimizer_with_attributes(GLPK.Optimizer))
-        println(GLPK.Optimizer)
+        println(JuMP.optimizer_with_attributes(HiGHS.Optimizer))
+        println(HiGHS.Optimizer)
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
                 branchingtreefile = "playgap.dot"
             )),
-            "default_optimizer" => JuMP.optimizer_with_attributes(GLPK.Optimizer, "tm_lim" => 60 * 1_100, "msg_lev" => GLPK.GLP_MSG_OFF)
+            "default_optimizer" => JuMP.optimizer_with_attributes(HiGHS.Optimizer, "tm_lim" => 60 * 1_100, "msg_lev" => HiGHS.GLP_MSG_OFF)
         )
         
         println(coluna)

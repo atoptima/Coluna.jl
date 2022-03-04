@@ -8,7 +8,7 @@ function bound_callback_tests()
 
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
-        "default_optimizer" => GLPK.Optimizer,
+        "default_optimizer" => HiGHS.Optimizer,
         "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(maxnumnodes = 2))
     )
 
@@ -20,7 +20,7 @@ function bound_callback_tests()
     # One model for each machine
     sp_models = Dict{Int, Any}()
     for m in data.machines
-        sp = JuMP.Model(GLPK.Optimizer)
+        sp = JuMP.Model(HiGHS.Optimizer)
         @variable(sp, y[j in data.jobs], Bin)
         @variable(sp, lb_y[j in data.jobs] >= 0)
         @variable(sp, ub_y[j in data.jobs] >= 0)

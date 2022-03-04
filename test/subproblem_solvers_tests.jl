@@ -5,14 +5,14 @@ function subproblem_solvers_test()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(max_nb_cut_rounds = 1000)),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
         subproblems = getsubproblems(dec)
 
-        specify!(subproblems[1], lower_multiplicity=0, solver=JuMP.optimizer_with_attributes(GLPK.Optimizer, "tm_lim" => 60 * 1_100, "msg_lev" => GLPK.GLP_MSG_OFF))
-        specify!(subproblems[2], lower_multiplicity=0, solver=JuMP.optimizer_with_attributes(GLPK.Optimizer, "tm_lim" => 60 * 2_200))
+        specify!(subproblems[1], lower_multiplicity=0, solver=JuMP.optimizer_with_attributes(HiGHS.Optimizer, "tm_lim" => 60 * 1_100, "msg_lev" => HiGHS.GLP_MSG_OFF))
+        specify!(subproblems[2], lower_multiplicity=0, solver=JuMP.optimizer_with_attributes(HiGHS.Optimizer, "tm_lim" => 60 * 2_200))
         
         optimize!(model)
         @test JuMP.objective_value(model) ≈ 75.0

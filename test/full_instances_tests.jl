@@ -18,7 +18,7 @@ function generalized_assignment_tests()
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
                 branchingtreefile = "playgap.dot"
             )),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -40,7 +40,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -67,7 +67,7 @@ function generalized_assignment_tests()
                     stbranch_intrmphase_stages = [(userstage=1, solverid=1, maxiters=2)]
                 )
             ),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -99,7 +99,7 @@ function generalized_assignment_tests()
                     maxnumnodes = 5
                 )
             ),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -125,7 +125,7 @@ function generalized_assignment_tests()
                     )
                 )
             ),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -142,7 +142,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
@@ -157,7 +157,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
@@ -172,7 +172,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -188,7 +188,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -203,7 +203,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment(data, coluna)
@@ -225,7 +225,7 @@ function generalized_assignment_tests()
                     stages = [ClA.ColumnGeneration(opt_rtol = 1e-4, smoothing_stabilization = 0.5)]
                 )
             )),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalty(data, coluna)
@@ -245,7 +245,7 @@ function generalized_assignment_tests()
                     maxnumnodes = 300
                 )
             ),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
@@ -262,7 +262,7 @@ function generalized_assignment_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -299,7 +299,7 @@ function generalized_assignment_tests()
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
                 max_nb_cut_rounds = 1000
             )),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model = BlockModel(coluna, direct_model = true)
@@ -344,7 +344,7 @@ function generalized_assignment_tests()
                     explorestrategy = Coluna.Algorithm.BestDualBoundStrategy()
                 )
             ),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
@@ -365,7 +365,7 @@ function lot_sizing_tests()
             "params" => CL.Params(
                 solver = ClA.BendersCutGeneration()
             ),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
@@ -382,7 +382,7 @@ function capacitated_lot_sizing_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
@@ -401,7 +401,7 @@ function facility_location_tests()
             "params" => CL.Params(
                 solver = ClA.BendersCutGeneration()
             ),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, y, dec = CLD.FacilityLocation.model(data, coluna)
@@ -417,7 +417,7 @@ function cutting_stock_tests()
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         problem, x, y, dec = CLD.CuttingStock.model(data, coluna)
@@ -437,7 +437,7 @@ function cvrp_tests()
                 maxnumnodes = 10000,
                 branchingtreefile = "cvrp.dot"
             )),
-            "default_optimizer" => GLPK.Optimizer
+            "default_optimizer" => HiGHS.Optimizer
         )
 
         model, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)

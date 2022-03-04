@@ -42,10 +42,10 @@ Q = [1020 1460 1530 1190];
 # a tractable subproblem and the set-partitioning constraints are handled in a master problem.
 
 # To introduce the model, you need to load packages JuMP and BlockDecomposition. To optimize
-# the problem, you need Coluna and a Julia package that provides a MIP solver such as GLPK.
+# the problem, you need Coluna and a Julia package that provides a MIP solver such as HiGHS.
 
 
-using JuMP, BlockDecomposition, Coluna, GLPK;
+using JuMP, BlockDecomposition, Coluna, HiGHS;
 
 
 # Next, you instantiate the solver and define the algorithm that you use to optimize the problem.
@@ -57,7 +57,7 @@ coluna = optimizer_with_attributes(
     "params" => Coluna.Params(
         solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
     ),
-    "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
+    "default_optimizer" => HiGHS.Optimizer # HiGHS for the master & the subproblems
 );
 
 

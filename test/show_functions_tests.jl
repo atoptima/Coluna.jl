@@ -2,7 +2,7 @@ function show_functions_tests()
     data = CLD.GeneralizedAssignment.data("play2.txt")
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
-        "default_optimizer" => GLPK.Optimizer,
+        "default_optimizer" => HiGHS.Optimizer,
         "params" => CL.Params(solver = ClA.TreeSearchAlgorithm())
     )
 

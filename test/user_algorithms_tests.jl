@@ -78,7 +78,7 @@ function conseq_colgen_test()
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
         "params" => CL.Params(solver = ConsecutiveColGen(num_calls_to_col_gen = 3)),
-        "default_optimizer" => GLPK.Optimizer
+        "default_optimizer" => HiGHS.Optimizer
     )
 
     model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)

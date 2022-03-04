@@ -1,7 +1,7 @@
 using Base.CoreLogging: error
 using DynamicSparseArrays, Coluna
 
-using Test, GLPK, ColunaDemos, JuMP, BlockDecomposition, Random, MathOptInterface, MathOptInterface.Utilities, Base.CoreLogging, Logging
+using Test, HiGHS, ColunaDemos, JuMP, BlockDecomposition, Random, MathOptInterface, MathOptInterface.Utilities, Base.CoreLogging, Logging
 global_logger(ConsoleLogger(stderr, LogLevel(0)))
 
 const MOI = MathOptInterface

@@ -25,7 +25,7 @@
 
 # First, we load the packages and define aliases :
 
-using Coluna, BlockDecomposition, JuMP, MathOptInterface, GLPK;
+using Coluna, BlockDecomposition, JuMP, MathOptInterface, HiGHS;
 const BD = BlockDecomposition;
 const MOI = MathOptInterface;
 
@@ -45,7 +45,7 @@ coluna = optimizer_with_attributes(
     "params" => Coluna.Params(
         solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
     ),
-    "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
+    "default_optimizer" => HiGHS.Optimizer # HiGHS for the master & the subproblems
 );
 
 # for which the JuMP model takes the form:

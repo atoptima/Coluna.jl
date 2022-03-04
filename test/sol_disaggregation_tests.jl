@@ -8,7 +8,7 @@ function sol_disaggregation_tests()
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
         "params" => Coluna.Params(solver = ColumnGeneration()),
-        "default_optimizer" => GLPK.Optimizer
+        "default_optimizer" => HiGHS.Optimizer
     )
 
     model = BlockModel(coluna)

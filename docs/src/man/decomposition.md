@@ -86,14 +86,14 @@ nothing #hide
 Here is the JuMP model to optimize this instance a classic solver : 
 
 ```@example identical
-using JuMP, GLPK;
+using JuMP, HiGHS;
 
 T1 = [1, 2, 3]; # U[1] machines
 T2 = [4, 5]; # U[2] machines
 M = union(T1, T2);
 m2t = [1, 1, 1, 2, 2]; # machine id -> type id
 
-model = Model(GLPK.Optimizer);
+model = Model(HiGHS.Optimizer);
 @variable(model, x[M, J], Bin); # 1 if job j assigned to machine m
 @constraint(model, cov[j in J], sum(x[m,j] for m in M) == 1);
 @constraint(model, knp[m in M], sum(w[m2t[m],j] * x[m,j] for j in J) <= Q[m2t[m]]);
@@ -108,7 +108,7 @@ However, if you want to take advantage of the identical subproblems, you must
 define the formulation as follows : 
 
 ```@example identical
-using BlockDecomposition, Coluna, JuMP, GLPK;
+using BlockDecomposition, Coluna, JuMP, HiGHS;
 const BD = BlockDecomposition
 
 coluna = optimizer_with_attributes(
@@ -116,7 +116,7 @@ coluna = optimizer_with_attributes(
     "params" => Coluna.Params(
         solver = Coluna.Algorithm.TreeSearchAlgorithm() # default BCP
     ),
-    "default_optimizer" => GLPK.Optimizer # GLPK for the master & the subproblems
+    "default_optimizer" => HiGHS.Optimizer # HiGHS for the master & the subproblems
 );
 
 @axis(T, 1:nb_machine_types);

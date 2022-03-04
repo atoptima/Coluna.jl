@@ -31,7 +31,7 @@ function play_gap_with_preprocessing_tests()
 
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
-        "default_optimizer" => GLPK.Optimizer,
+        "default_optimizer" => HiGHS.Optimizer,
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(run_preprocessing = true)
@@ -75,7 +75,7 @@ function test_random_gap_instance()
     data = gen_random_small_gap_instance()
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
-        "default_optimizer" => GLPK.Optimizer,
+        "default_optimizer" => HiGHS.Optimizer,
         "params" => CL.Params(
             solver = ClA.TreeSearchAlgorithm(
                 conqueralg = ClA.ColCutGenConquer(run_preprocessing = true),
@@ -95,7 +95,7 @@ function test_random_gap_instance()
     if JuMP.termination_status(problem) == MOI.INFEASIBLE
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
-            "default_optimizer" => GLPK.Optimizer,
+            "default_optimizer" => HiGHS.Optimizer,
             "params" => CL.Params(
                 solver = ClA.TreeSearchAlgorithm(
                     conqueralg = ClA.ColCutGenConquer(run_preprocessing = false)
@@ -126,7 +126,7 @@ function test_random_gap_instance()
                 end
                 coluna = JuMP.optimizer_with_attributes(
                     CL.Optimizer,
-                    "default_optimizer" => GLPK.Optimizer,
+                    "default_optimizer" => HiGHS.Optimizer,
                     "params" => CL.Params(
                         solver = ClA.TreeSearchAlgorithm(
                             conqueralg = ClA.ColCutGenConquer(run_preprocessing = false)

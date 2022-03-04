@@ -5,7 +5,7 @@ function pricing_callback_tests()
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
-            "default_optimizer" => GLPK.Optimizer,
+            "default_optimizer" => HiGHS.Optimizer,
             "params" => CL.Params(
                 solver = ClA.BranchCutAndPriceAlgorithm(
                     colgen_stages_pricing_solvers = [2, 2]
@@ -21,7 +21,7 @@ function pricing_callback_tests()
         # One model for each machine
         sp_models = Dict{Int, Any}()
         for m in data.machines
-            sp = JuMP.Model(GLPK.Optimizer)
+            sp = JuMP.Model(HiGHS.Optimizer)
             @variable(sp, y[j in data.jobs], Bin)
             @variable(sp, lb_y[j in data.jobs] >= 0)
             @variable(sp, ub_y[j in data.jobs] >= 0)
@@ -77,7 +77,7 @@ function pricing_callback_tests()
         master = BD.getmaster(dec)
         subproblems = BD.getsubproblems(dec)
 
-        BD.specify!.(subproblems, lower_multiplicity = 0, solver = [GLPK.Optimizer, my_pricing_callback])
+        BD.specify!.(subproblems, lower_multiplicity = 0, solver = [HiGHS.Optimizer, my_pricing_callback])
 
         JuMP.optimize!(model)
         @test nb_exact_calls < 30   # WARNING: this test is necessary to properly test stage 2.
