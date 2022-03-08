@@ -10,4 +10,3 @@ MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 [compat]
 Documenter = "~0.27"
 MathOptInterface = "~0.10"
-GLPK = "0.14.4"
