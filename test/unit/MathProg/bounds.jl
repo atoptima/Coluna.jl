@@ -1,4 +1,4 @@
-function mathprog_bounds()
+@testset "MathProg - bound" begin
     env = Coluna.Env(Coluna.Params())
 
     min_form = ClMP.create_formulation!(
@@ -64,5 +64,4 @@ function mathprog_bounds()
         @test obj.lp_primal_bound == 65
         @test obj.lp_dual_bound == 3.2
     end
-    return
 end

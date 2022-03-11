@@ -1,4 +1,4 @@
-function vcids_unit_tests()
+@testset "MathProg - variable and constraint ids" begin
     @testset "_create_hash" begin
         uid = 1
         origin_form_uid = 2

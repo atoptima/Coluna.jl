@@ -1,6 +1,6 @@
 function subproblem_solvers_test()
     @testset "play gap with lazy cuts" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+        data = ClD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -8,7 +8,7 @@ function subproblem_solvers_test()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
         subproblems = getsubproblems(dec)
 
         specify!(subproblems[1], lower_multiplicity=0, solver=JuMP.optimizer_with_attributes(GLPK.Optimizer, "tm_lim" => 60 * 1_100, "msg_lev" => GLPK.GLP_MSG_OFF))
