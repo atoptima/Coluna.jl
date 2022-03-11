@@ -489,7 +489,7 @@ function test_issues_fixed()
     end
 
     @testset "simple benders decomposition" begin
-        simple_benders()
+        #simple_benders()
     end
 
     @testset "dual of generated cuts" begin

@@ -308,33 +308,34 @@ function solution_unit()
         @test String(take!(io)) == "Solution\n| 1 = 5.0\n| 2 = 3.0\n| 3 = 4.0\n└ value = 0.00 \n"
     end
 
+    # TODO: this is not part of ColunaBase unit tests (should be moved in MathProg unit tests)
     @testset "Solution isless" begin
         # MinSense
-        form = create_formulation!(Env(Coluna.Params()), Original())
+        form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
         var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
         constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
         
-        primalsol1 = PrimalSolution(form, [getid(var)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY)
-        primalsol2 = PrimalSolution(form, [getid(var)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY)
+        primalsol1 = ClMP.PrimalSolution(form, [ClMP.getid(var)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY)
+        primalsol2 = ClMP.PrimalSolution(form, [ClMP.getid(var)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY)
         @test isless(primalsol1, primalsol2) # primalsol1 is worse than primalsol2 for min sense
 
-        dualsol1 = DualSolution(form, [getid(constr)], [1.0], VarId[], Float64[], ActiveBound[], 1.0, CB.UNKNOWN_FEASIBILITY)
-        dualsol2 = DualSolution(form, [getid(constr)], [0.0], VarId[], Float64[], ActiveBound[], 0.0, CB.UNKNOWN_FEASIBILITY)
+        dualsol1 = ClMP.DualSolution(form, [ClMP.getid(constr)], [1.0], ClMP.VarId[], Float64[], ClMP.ActiveBound[], 1.0, CB.UNKNOWN_FEASIBILITY)
+        dualsol2 = ClMP.DualSolution(form, [ClMP.getid(constr)], [0.0], ClMP.VarId[], Float64[], ClMP.ActiveBound[], 0.0, CB.UNKNOWN_FEASIBILITY)
         @test isless(dualsol2, dualsol1) # dualsol2 is worse than dualsol1 for min sense
 
         # MaxSense
-        form = create_formulation!(
-            Env(Coluna.Params()), Original(), obj_sense = Coluna.MathProg.MaxSense
+        form = ClMP.create_formulation!(
+            Env(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
         )
         var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
         constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
 
-        primalsol1 = PrimalSolution(form, [getid(var)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY)
-        primalsol2 = PrimalSolution(form, [getid(var)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY)
+        primalsol1 = ClMP.PrimalSolution(form, [ClMP.getid(var)], [1.0], 1.0, CB.UNKNOWN_FEASIBILITY)
+        primalsol2 = ClMP.PrimalSolution(form, [ClMP.getid(var)], [0.0], 0.0, CB.UNKNOWN_FEASIBILITY)
         @test isless(primalsol2, primalsol1) # primalsol2 is worse than primalsol1 for max sense
 
-        dualsol1 = DualSolution(form, [getid(constr)], [1.0], VarId[], Float64[], ActiveBound[], 1.0, CB.UNKNOWN_FEASIBILITY)
-        dualsol2 = DualSolution(form, [getid(constr)], [0.0], VarId[], Float64[], ActiveBound[], 0.0, CB.UNKNOWN_FEASIBILITY)
+        dualsol1 = ClMP.DualSolution(form, [ClMP.getid(constr)], [1.0], ClMP.VarId[], Float64[], ClMP.ActiveBound[], 1.0, CB.UNKNOWN_FEASIBILITY)
+        dualsol2 = ClMP.DualSolution(form, [ClMP.getid(constr)], [0.0], ClMP.VarId[], Float64[], ClMP.ActiveBound[], 0.0, CB.UNKNOWN_FEASIBILITY)
         @test isless(dualsol1, dualsol2) # dualsol1 is worse than dualsol2 for max sense
     end
     return

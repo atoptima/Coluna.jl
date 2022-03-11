@@ -5,25 +5,24 @@ end
 
 function moi_constr_record_getters_and_setters_tests()
     c_rec = ClF.MoiConstrRecord(
-        ; index = ClF.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-15)
+        ; index = ClF.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-15)
     )
-    @test ClF.getindex(c_rec) == ClF.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-15)
+    @test ClF.getindex(c_rec) == ClF.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-15)
 
-    ClF.setindex!(c_rec, ClF.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-20))
-    @test ClF.getindex(c_rec) == ClF.MoiConstrIndex{MOI.SingleVariable,MOI.EqualTo}(-20)
+    ClF.setindex!(c_rec, ClF.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-20))
+    @test ClF.getindex(c_rec) == ClF.MoiConstrIndex{MOI.VariableIndex,MOI.EqualTo}(-20)
 end
 
 function constraint_getters_and_setters_tests()
-    form = create_formulation!(Env(Coluna.Params()), Original())
+    form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
     
     # Constraint
-
     c = ClF.setconstr!(form, "fake_constr", ClF.MasterBranchOnOrigVarConstr,
         rhs = -13.0, kind = ClF.Facultative, sense = ClF.Less,
         inc_val = -12.0, is_active = false, is_explicit = false
     )
 
-    cid = getid(c)
+    cid = ClMP.getid(c)
     
     # rhs
     @test ClF.getcurrhs(form, cid) == -13.0
@@ -55,11 +54,11 @@ function constraint_getters_and_setters_tests()
     v = ClF.setvar!(form, "x", ClF.OriginalVar)
 
     c = ClF.setsinglevarconstr!(
-        form, "fake_single_var_constr", getid(v), ClF.OriginalConstr; rhs = -2.0,
+        form, "fake_single_var_constr", ClMP.getid(v), ClF.OriginalConstr; rhs = -2.0,
         kind = ClF.Essential, sense = ClF.Equal, inc_val = -12.0, is_active = true
     )
 
-    cid = getid(c)
+    cid = ClMP.getid(c)
 
     # rhs
     @test ClF.getcurrhs(form, cid) == -2.0
