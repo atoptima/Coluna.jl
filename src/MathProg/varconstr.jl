@@ -69,6 +69,7 @@ function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
 end
 
 ## Lower bound
+_setperenlb!(::Formulation, var::Variable, lb) = var.perendata.lb = lb
 """
     getperenlb(formulation, varid)
     getperenlb(formulation, var)
@@ -105,6 +106,8 @@ end
 setcurlb!(form::Formulation, varid::VarId, lb::Float64) =  setcurlb!(form, getvar(form, varid), lb)
 
 ## Upper bound
+_setperenub!(::Formulation, var::Variable, ub) = var.perendata.ub = ub
+
 """
     getperenub(formulation, varid)
     getperenub(formulation, var)

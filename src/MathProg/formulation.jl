@@ -797,60 +797,6 @@ function push_optimizer!(form::Formulation, builder::Function)
 end
 
 ############################################################################################
-# Bounds propagation
-############################################################################################
-
-function _update_var_cur_lb!(form::Formulation, var::Variable, lb, constrid)
-    cur_lb = getcurlb(form, var)
-    if cur_lb < lb
-        setcurlb!(form, var, lb)
-        var.moirecord.lower_bound = constrid
-        return true
-    end
-    return false
-end
-
-function _update_var_cur_ub!(form::Formulation, var::Variable, ub, constrid)
-    cur_ub = getcurub(form, var)
-    if cur_ub > ub
-        setcurub!(form, var, ub)
-        var.moirecord.upper_bound = constrid
-        return true
-    end
-    return false
-end
-
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Greater}, rhs, constrid)
-    _update_var_cur_lb!(form, var, rhs, constrid)
-    return
-end
-
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Less}, rhs, constrid)
-    _update_var_cur_ub!(form, var, rhs, constrid)
-    return
-end
-
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs, constrid)
-    update_lb = _update_var_cur_lb!(form, var, rhs, constrid)
-    update_ub = _update_var_cur_ub!(form, var, rhs, constrid)
-    if !update_lb || !update_ub
-        error("Bounds propagation determines infeasibility.")
-    end
-    return
-end
-
-# If new single var constraints have been added to a formulation, Coluna
-# should call this method.
-function bounds_propagation!(form::Formulation)
-    for (constrid, constr) in form.manager.single_var_constrs
-        var = getvar(form, constr.varid)
-        rhs = getcurrhs(form, constr)
-        _update_bounds!(form, var, Val(constr.curdata.sense), rhs, constrid)
-    end
-    return
-end
-
-############################################################################################
 # Methods to show a formulation
 ############################################################################################
 
