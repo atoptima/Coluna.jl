@@ -22,6 +22,7 @@ Parameters:
     deactivate_artificial_vars::Bool = true
     enforce_integrality::Bool = true
     get_dual_bound::Bool = true
+    get_dual_solution::Bool = false # Used in MOI integration tests.
     max_nb_ip_primal_sols::Int = 50
     log_level::Int = 2
     silent::Bool = true
@@ -180,14 +181,15 @@ function run!(
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
-    ip_supported = check_if_optimizer_supports_ip(getoptimizer(form, optimizer_id))
+    optimizer = getoptimizer(form, optimizer_id)
+    ip_supported = check_if_optimizer_supports_ip(optimizer)
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
         return OptimizationOutput(result)
     end
 
-    primal_sols = optimize_ip_form!(algo, getoptimizer(form, optimizer_id), form, result)
+    primal_sols = optimize_ip_form!(algo, optimizer, form, result)
 
     partial_sol = nothing
     partial_sol_value = 0.0
@@ -222,6 +224,15 @@ function run!(
     if algo.get_dual_bound && getterminationstatus(result) == OPTIMAL
         dual_bound = getvalue(get_ip_primal_bound(result)) + partial_sol_value
         set_ip_dual_bound!(result, DualBound(form, dual_bound))
+    end
+    if algo.get_dual_solution && getterminationstatus(result) == OPTIMAL
+        dual_sols = get_dual_solutions(form, optimizer)
+        if length(dual_sols) > 0
+            coeff = getobjsense(form) == MinSense ? 1.0 : -1.0
+            lp_dual_sol_pos = argmax(coeff * getvalue.(dual_sols))
+            lp_dual_sol = dual_sols[lp_dual_sol_pos]
+            set_lp_dual_sol!(result, lp_dual_sol)
+        end
     end
 
     return OptimizationOutput(result)

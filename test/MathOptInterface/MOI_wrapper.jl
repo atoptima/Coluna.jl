@@ -13,7 +13,11 @@ const OPTIMIZER = MOI.instantiate(
     MOI.OptimizerWithAttributes(
         Coluna.Optimizer, 
         MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer,
-        MOI.RawOptimizerAttribute("params") => Coluna.Params(solver = Coluna.Algorithm.SolveIpForm())
+        MOI.RawOptimizerAttribute("params") => Coluna.Params(
+            solver = Coluna.Algorithm.SolveIpForm(
+                moi_params = Coluna.Algorithm.MoiOptimize(get_dual_solution = true)
+            )
+        )
     ),
 )
 
@@ -21,7 +25,11 @@ const BRIDGED = MOI.instantiate(
     MOI.OptimizerWithAttributes(
         Coluna.Optimizer,
         MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer,
-        MOI.RawOptimizerAttribute("params") => Coluna.Params(solver = Coluna.Algorithm.SolveIpForm())
+        MOI.RawOptimizerAttribute("params") => Coluna.Params(
+            solver = Coluna.Algorithm.SolveIpForm(
+                moi_params = Coluna.Algorithm.MoiOptimize(get_dual_solution = true)
+            )
+        )
     ),
     with_bridge_type = Float64,
 )
@@ -66,18 +74,16 @@ function test_runtests()
         BRIDGED,
         CONFIG,
         # include = [
-        #     "test_add_constrained_variables_vector",
-        #     "test_basic_ScalarAffineFunction_EqualTo",
-        #     "test_basic_ScalarAffineFunction_GreaterThan", 
-        #     "test_basic_ScalarAffineFunction_LessThan",         
-        #     "test_basic_VariableIndex_EqualTo",
-        #     "test_basic_VariableIndex_GreaterThan",
-        #     "test_basic_VariableIndex_Interval",
-        #     "test_basic_VariableIndex_LessThan",
-        #     "test_basic_VariableIndex_ZeroOne",
-        #     "test_basic_VectorOfVariables_Nonnegatives",
-        #     "test_basic_VectorOfVariables_Nonpositives",
-        #     "test_basic_VectorOfVariables_Zeros",
+        #     "test_constraint_ScalarAffineFunction_EqualTo",
+        #     "test_constraint_ScalarAffineFunction_GreaterThan",
+        #     "test_constraint_ScalarAffineFunction_Interval",
+        #     "test_constraint_ScalarAffineFunction_LessThan",
+        #     "test_constraint_ScalarAffineFunction_duplicate",
+        #     "test_constraint_VectorAffineFunction_duplicate",
+        #     "test_constraint_ZeroOne_bounds",
+        #     "test_constraint_ZeroOne_bounds_2",
+        #     "test_constraint_ZeroOne_bounds_3",
+        #     "test_constraint_get_ConstraintIndex"
         # ],
         exclude = [
             "test_attribute_NumberOfThreads",
@@ -86,30 +92,7 @@ function test_runtests()
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
             "test_attribute_SolverVersion",   
-            "test_conic_NormInfinityCone_3",
-            "test_conic_NormInfinityCone_INFEASIBLE",
-            "test_conic_NormInfinityCone_VectorAffineFunction",
-            "test_conic_NormInfinityCone_VectorOfVariables",
-            "test_conic_NormOneCone",
-            "test_conic_NormOneCone_INFEASIBLE",
-            "test_conic_NormOneCone_VectorAffineFunction",
-            "test_conic_NormOneCone_VectorOfVariables",
-            "test_conic_linear_INFEASIBLE",
-            "test_conic_linear_INFEASIBLE_2",
-            "test_conic_linear_VectorAffineFunction",
-            "test_conic_linear_VectorAffineFunction_2",
-            "test_conic_linear_VectorOfVariables",
-            "test_conic_linear_VectorOfVariables_2",
-            "test_constraint_ScalarAffineFunction_EqualTo",
-            "test_constraint_ScalarAffineFunction_GreaterThan",
-            "test_constraint_ScalarAffineFunction_Interval",
-            "test_constraint_ScalarAffineFunction_LessThan",
-            "test_constraint_ScalarAffineFunction_duplicate",
-            "test_constraint_VectorAffineFunction_duplicate",
-            "test_constraint_ZeroOne_bounds",
-            "test_constraint_ZeroOne_bounds_2",
-            "test_constraint_ZeroOne_bounds_3",
-            "test_constraint_get_ConstraintIndex",
+            "test_conic_",
             "test_linear_DUAL_INFEASIBLE",
             "test_linear_DUAL_INFEASIBLE_2",
             "test_linear_FEASIBILITY_SENSE",
