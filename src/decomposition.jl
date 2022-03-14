@@ -584,9 +584,6 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         closefillmode!(getcoefmatrix(origform))
     end
 
-    # Update the bounds of the original formulation before reformulating
-    MathProg.bounds_propagation!(origform)
-
     decomposition_tree = annotations.tree
     if decomposition_tree !== nothing
         check_annotations(prob, annotations)

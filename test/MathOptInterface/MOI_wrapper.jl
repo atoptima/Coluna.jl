@@ -12,14 +12,16 @@ const MOI = MathOptInterface
 const OPTIMIZER = MOI.instantiate(
     MOI.OptimizerWithAttributes(
         Coluna.Optimizer, 
-        MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer
+        MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer,
+        MOI.RawOptimizerAttribute("params") => Coluna.Params(solver = Coluna.Algorithm.SolveIpForm())
     ),
 )
 
 const BRIDGED = MOI.instantiate(
     MOI.OptimizerWithAttributes(
         Coluna.Optimizer,
-        MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer
+        MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer,
+        MOI.RawOptimizerAttribute("params") => Coluna.Params(solver = Coluna.Algorithm.SolveIpForm())
     ),
     with_bridge_type = Float64,
 )
@@ -63,25 +65,27 @@ function test_runtests()
     MOI.Test.runtests(
         BRIDGED,
         CONFIG,
+        # include = [
+        #     "test_add_constrained_variables_vector",
+        #     "test_basic_ScalarAffineFunction_EqualTo",
+        #     "test_basic_ScalarAffineFunction_GreaterThan", 
+        #     "test_basic_ScalarAffineFunction_LessThan",         
+        #     "test_basic_VariableIndex_EqualTo",
+        #     "test_basic_VariableIndex_GreaterThan",
+        #     "test_basic_VariableIndex_Interval",
+        #     "test_basic_VariableIndex_LessThan",
+        #     "test_basic_VariableIndex_ZeroOne",
+        #     "test_basic_VectorOfVariables_Nonnegatives",
+        #     "test_basic_VectorOfVariables_Nonpositives",
+        #     "test_basic_VectorOfVariables_Zeros",
+        # ],
         exclude = [
             "test_attribute_NumberOfThreads",
             "test_quadratic_",
             # We have to fix the following tests (or keep them excluded and explain why):
-            "test_add_constrained_variables_vector",
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
             "test_attribute_SolverVersion",   
-            "test_basic_ScalarAffineFunction_EqualTo",
-            "test_basic_ScalarAffineFunction_GreaterThan", 
-            "test_basic_ScalarAffineFunction_LessThan",         
-            "test_basic_VariableIndex_EqualTo",
-            "test_basic_VariableIndex_GreaterThan",
-            "test_basic_VariableIndex_Interval",
-            "test_basic_VariableIndex_LessThan",
-            "test_basic_VariableIndex_ZeroOne",
-            "test_basic_VectorOfVariables_Nonnegatives",
-            "test_basic_VectorOfVariables_Nonpositives",
-            "test_basic_VectorOfVariables_Zeros",
             "test_conic_NormInfinityCone_3",
             "test_conic_NormInfinityCone_INFEASIBLE",
             "test_conic_NormInfinityCone_VectorAffineFunction",
