@@ -1,7 +1,7 @@
 function pricing_callback_tests()
 
     @testset "GAP with ad-hoc pricing callback and stages" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+        data = ClD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -13,7 +13,7 @@ function pricing_callback_tests()
             )
         )
 
-        model, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
+        model, x, dec = ClD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
 
         # Subproblem models are created once and for all
         # One model for each machine
@@ -86,7 +86,7 @@ function pricing_callback_tests()
                                     # a little bit with versions due to numerical errors.
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+        @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
 end

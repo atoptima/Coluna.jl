@@ -25,7 +25,7 @@ mutable struct KnapsackLibOptimizer <: BlockDecomposition.AbstractCustomOptimize
 end
 
 function Coluna.Algorithm.get_units_usage(opt::KnapsackLibOptimizer, form) # form is Coluna Formulation
-    units_usage = Tuple{AbstractModel, Coluna.ColunaBase.UnitType, Coluna.ColunaBase.UnitPermission}[]
+    units_usage = Tuple{AbstractModel, ClB.UnitType, ClB.UnitPermission}[]
     # TODO : the abstract model is KnapsackLibModel (opt.model)
     return units_usage
 end
@@ -88,7 +88,7 @@ end
 ################################################################################
 function knpcustommodel()
     @testset "knapsack custom model" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+        data = ClD.GeneralizedAssignment.data("play2.txt")
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),

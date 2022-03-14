@@ -1,4 +1,4 @@
-Coluna.ColunaBase.@nestedenum begin
+ClB.@nestedenum begin
     VarConstrDuty
     A <= VarConstrDuty
         A1 <= A
@@ -20,7 +20,7 @@ Coluna.ColunaBase.@nestedenum begin
     E <= VarConstrDuty
 end
 
-function nestedenum_unit()
+@testset "ColunaBase - nested enum" begin
     @test <=(A1, A)
     @test A1 <= A
 

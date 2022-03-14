@@ -1,6 +1,6 @@
 function optimizer_with_attributes_test()
     @testset "play gap" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+        data = ClD.GeneralizedAssignment.data("play2.txt")
 
 
         println(JuMP.optimizer_with_attributes(GLPK.Optimizer))
@@ -14,7 +14,7 @@ function optimizer_with_attributes_test()
         )
         
         println(coluna)
-        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
 
         BD.objectiveprimalbound!(model, 100)
         BD.objectivedualbound!(model, 0)
@@ -23,7 +23,7 @@ function optimizer_with_attributes_test()
 
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+        @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
         @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
         @test MOI.get(model, MOI.SolverName()) == "Coluna"
     end
