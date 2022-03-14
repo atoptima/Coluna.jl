@@ -100,19 +100,6 @@ subproblem with id `spid`.
 """
 get_dw_pricing_sp_lb_constrid(r::Reformulation, spid::FormId) = r.dw_pricing_sp_lb[spid]
 
-############################################################################################
-# Bounds propagation
-############################################################################################
-function bounds_propagation!(reform::Reformulation)
-    bounds_propagation!(getmaster(reform))
-    for (_, sp) in get_dw_pricing_sps(reform)
-        bounds_propagation!(sp)
-    end
-    for (_, sp) in get_benders_sep_sps(reform)
-        bounds_propagation!(sp)
-    end
-    return
-end
 
 # Following two functions are temporary, we must store a pointer to the vc
 # being represented by a representative vc
