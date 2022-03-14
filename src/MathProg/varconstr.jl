@@ -69,7 +69,17 @@ function setcurcost!(form::Formulation, varid::VarId, cost::Float64)
 end
 
 ## Lower bound
-_setperenlb!(::Formulation, var::Variable, lb) = var.perendata.lb = lb
+"""
+    setperenlb!(formulation, var, rhs)
+
+Set the perennial lower bound of a variable in a formulation.
+Change is propagated to the current lower bound of the variable.
+"""
+function setperenlb!(form::Formulation, var::Variable, lb)
+    var.perendata.lb = lb
+    return setcurlb!(form, var, lb)
+end
+
 """
     getperenlb(formulation, varid)
     getperenlb(formulation, var)
@@ -106,7 +116,16 @@ end
 setcurlb!(form::Formulation, varid::VarId, lb::Float64) =  setcurlb!(form, getvar(form, varid), lb)
 
 ## Upper bound
-_setperenub!(::Formulation, var::Variable, ub) = var.perendata.ub = ub
+"""
+    setperenub!(formulation, var, rhs)
+
+Set the perennial upper bound of a variable in a formulation.
+Change is propagated to the current upper bound of the variable.
+"""
+function setperenub!(form::Formulation, var::Variable, ub)
+    var.perendata.ub = ub
+    return setcurub!(form, var, ub)
+end
 
 """
     getperenub(formulation, varid)

@@ -203,7 +203,7 @@ function _add_constraint_on_variable!(
     form::Formulation, varinfo::_VarInfo, set::MOI.GreaterThan{Float64}
 )
     _throw_if_existing_lower(varinfo.lb_type, MOI.GreaterThan{Float64}, varinfo.index) 
-    MathProg._setperenlb!(form, varinfo.var, set.lower)
+    MathProg.setperenlb!(form, varinfo.var, set.lower)
     varinfo.lb_type = _GREATER
     return
 end
@@ -212,7 +212,7 @@ function _add_constraint_on_variable!(
     form::Formulation, varinfo::_VarInfo, set::MOI.LessThan{Float64}
 )
     _throw_if_existing_upper(varinfo.ub_type, MOI.LessThan{Float64}, varinfo.index)
-    MathProg._setperenub!(form, varinfo.var, set.upper)
+    MathProg.setperenub!(form, varinfo.var, set.upper)
     varinfo.ub_type = _LESS
     return
 end
@@ -222,8 +222,8 @@ function _add_constraint_on_variable!(
 )
     _throw_if_existing_lower(varinfo.lb_type, MOI.EqualTo{Float64}, varinfo.index) 
     _throw_if_existing_upper(varinfo.ub_type, MOI.EqualTo{Float64}, varinfo.index)
-    MathProg._setperenlb!(form, varinfo.var, set.value)
-    MathProg._setperenub!(form, varinfo.var, set.value)
+    MathProg.setperenlb!(form, varinfo.var, set.value)
+    MathProg.setperenub!(form, varinfo.var, set.value)
     varinfo.lb_type = _EQUAL
     varinfo.ub_type = _EQUAL
     return
@@ -234,8 +234,8 @@ function _add_constraint_on_variable!(
 )
     _throw_if_existing_lower(varinfo.lb_type, MOI.Interval{Float64}, varinfo.index) 
     _throw_if_existing_upper(varinfo.ub_type, MOI.Interval{Float64}, varinfo.index)
-    MathProg._setperenlb!(form, varinfo.var, set.lower)
-    MathProg._setperenub!(form, varinfo.var, set.upper)
+    MathProg.setperenlb!(form, varinfo.var, set.lower)
+    MathProg.setperenub!(form, varinfo.var, set.upper)
     varinfo.lb_type = _INTERVAL
     varinfo.ub_type = _INTERVAL
     return
@@ -296,7 +296,7 @@ function _delete_constraint_on_variable!(
     form::Formulation, varinfo::_VarInfo, ::Type{<:MOI.GreaterThan{Float64}}
 )
     varinfo.lb_type = _NONE
-    MathProg._setperenlb!(form, varinfo.var, -Inf)
+    MathProg.setperenlb!(form, varinfo.var, -Inf)
     return
 end
 
@@ -304,7 +304,7 @@ function _delete_constraint_on_variable!(
     form::Formulation, varinfo::_VarInfo, ::Type{<:MOI.LessThan{Float64}}
 )
     varinfo.ub_type = _NONE
-    MathProg._setperenub!(form, varinfo.var, Inf)
+    MathProg.setperenub!(form, varinfo.var, Inf)
     return
 end
 
@@ -313,8 +313,8 @@ function _delete_constraint_on_variable!(
 )
     varinfo.lb_type = _NONE
     varinfo.ub_type = _NONE
-    MathProg._setperenlb!(form, varinfo.var, -Inf)
-    MathProg._setperenub!(form, varinfo.var, Inf)
+    MathProg.setperenlb!(form, varinfo.var, -Inf)
+    MathProg.setperenub!(form, varinfo.var, Inf)
     return
 end
 
@@ -323,8 +323,8 @@ function _delete_constraint_on_variable!(
 )
     varinfo.lb_type = _NONE
     varinfo.ub_type = _NONE
-    MathProg._setperenlb!(form, varinfo.var, -Inf)
-    MathProg._setperenub!(form, varinfo.var, Inf)
+    MathProg.setperenlb!(form, varinfo.var, -Inf)
+    MathProg.setperenub!(form, varinfo.var, Inf)
     return
 end
 
@@ -989,7 +989,7 @@ function MOI.get(optimizer::Optimizer, ::MOI.PrimalStatus)
     return convert_status(getstatus(primal_sol))
 end
 
-function MOI.get(optimizer::Optimizer, ::MOI.DualStatus)    
+function MOI.get(optimizer::Optimizer, ::MOI.DualStatus) 
     dual_sol = get_best_lp_dual_sol(optimizer.result)
     dual_sol === nothing && return MOI.NO_SOLUTION
     return convert_status(getstatus(dual_sol))
