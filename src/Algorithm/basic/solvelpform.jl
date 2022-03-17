@@ -100,7 +100,7 @@ function optimize_lp_form!(
 end
 
 function run!(
-    algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput, 
+    algo::SolveLpForm, ::Env, form::Formulation, input::OptimizationInput, 
     optimizer_id::Int = 1
 )::OptimizationOutput
     result = OptimizationState(form)

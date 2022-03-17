@@ -220,6 +220,9 @@ function setvar!(
     if id_as_name_suffix
         name = string(name, "_", getuid(id))
     end
+    if isempty(name)
+        name = string("v_", getuid(id))
+    end
 
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
 
@@ -548,6 +551,9 @@ function setconstr!(
 )
     if getduty(id) != duty
         id = ConstrId(id, duty = duty)
+    end
+    if isempty(name)
+        name = string("c_", getuid(id))
     end
     if custom_data !== nothing
         id = ConstrId(

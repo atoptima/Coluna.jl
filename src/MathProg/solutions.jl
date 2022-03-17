@@ -164,6 +164,9 @@ function Base.show(io::IO, solution::DualSolution{M}) where {M}
     for (constrid, value) in solution
         println(io, "| ", getname(getmodel(solution), constrid), " = ", value)
     end
+    for (varid, redcost) in solution.var_redcosts
+        println(io, "| ", getname(getmodel(solution), varid), " = ", redcost[1], " (", redcost[2], ")")
+    end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
 

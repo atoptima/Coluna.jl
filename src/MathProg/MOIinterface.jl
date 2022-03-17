@@ -316,7 +316,7 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 end
             elseif abs(val) > Coluna.TOL
                 @warn """
-                    Basis status of a variable that has a non-zero dual value is not treated.
+                    Basis status of variable $(getname(form, varid)) that has a non-zero dual value is not treated.
                     Basis status is $basis_status & dual value is $val.
                 """
             end
@@ -359,8 +359,8 @@ end
 get_moi_set_info(set::MOI.EqualTo) = ("==", set.value)
 get_moi_set_info(set::MOI.GreaterThan) = (">=", set.lower)
 get_moi_set_info(set::MOI.LessThan) = ("<=", set.upper)
-get_moi_set_info(set::MOI.Integer) = ("is", "Integer")
-get_moi_set_info(set::MOI.ZeroOne) = ("is", "Binary")
+get_moi_set_info(::MOI.Integer) = ("is", "Integer")
+get_moi_set_info(::MOI.ZeroOne) = ("is", "Binary")
 get_moi_set_info(set::MOI.Interval) = (
     "is bounded in", string("[", set.lower, ";", set.upper, "]")
 )
