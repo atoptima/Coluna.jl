@@ -1091,17 +1091,11 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
 end
 
 function MOI.get(
-    optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex{F,S}
+    model::Optimizer, attr::MOI.ConstraintPrimal, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.VariableIndex,S}
-    # MOI.throw_if_not_valid(optimizer, index)
-    # bounds = get(optimizer.constrs_on_single_var, index, nothing)
-    # if bounds === nothing
-    #     @warn "Could not find constraint with id $(index)."
-    #     return NaN
-    # end
-    # best_primal_sol = get_best_ip_primal_sol(optimizer.result)
-    # return get(best_primal_sol, bounds.varid, 0.0)
-    throw(Error("TODO"))
+    # TODO: throw if optimize in progress
+    MOI.check_result_index_bounds(model, attr)
+    return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(index.value))
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex)
@@ -1148,15 +1142,25 @@ function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.EqualTo})
 end
 
 function MOI.get(
-    optimizer::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
+    model::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.VariableIndex,S}
+    # TODO: check if optimization in progress
+    MOI.check_result_index_bounds(model, attr)
+    dualsols = get_lp_dual_sols(model.result)
+    @show dualsols
+    if 1 <= attr.result_index <= length(dualsols)
+        @show dualsols[attr.result_index]
+    end
+    #MOI.get(model, MOI.VariableDual(), MOI.VariableIndex(index.value))
+
+    # TODO: check if optimization in progress
     # MOI.throw_if_not_valid(optimizer, index)
     # dualsols = get_lp_dual_sols(optimizer.result)
     # if 1 <= attr.result_index <= length(dualsols)
     #     single_var_constrs = optimizer.constrs_on_single_var[index]
     #     return _singlevarconstrdualval(single_var_constrs, dualsols[attr.result_index], S)
     # end
-    return error("TODO.")
+    return 0
 end
 
 # Useful method to retrieve dual values of generated cuts because they don't 

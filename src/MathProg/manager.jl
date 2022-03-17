@@ -17,8 +17,6 @@ DynamicSparseArrays.semaphore_key(::Type{I}) where {I <: Id} = zero(I)
 mutable struct FormulationManager
     vars::Dict{VarId, Variable}
     constrs::Dict{ConstrId, Constraint}
-    single_var_constrs::Dict{SingleVarConstrId, SingleVarConstraint}
-    single_var_constrs_per_var::Dict{VarId, Dict{SingleVarConstrId, SingleVarConstraint}} # ids of the constraint of type : single variable >= bound
     objective_constant::Float64
     coefficients::ConstrVarMatrix # rows = constraints, cols = variables
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
@@ -34,8 +32,6 @@ function FormulationManager(; custom_families_id = Dict{BD.AbstractCustomData,In
     return FormulationManager(
         vars,
         constrs,
-        Dict{SingleVarConstrId, SingleVarConstraint}(),
-        Dict{VarId, Dict{SingleVarConstrId, SingleVarConstraint}}(),
         0.0,
         dynamicsparse(ConstrId, VarId, Float64),
         dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
@@ -58,8 +54,7 @@ function _addvar!(m::FormulationManager, var::Variable)
     return
 end
 
-# Internal methods to store a Constraint or a SingleVarConstraint in the 
-# formulation manager.
+# Internal methods to store a Constraint in the formulation manager.
 function _addconstr!(m::FormulationManager, constr::Constraint)
     if haskey(m.constrs, constr.id)
         error(string(
@@ -68,22 +63,6 @@ function _addconstr!(m::FormulationManager, constr::Constraint)
         ))
     end
     m.constrs[constr.id] = constr
-    return
-end
-
-function _addconstr!(m::FormulationManager, constr::SingleVarConstraint)
-    if !haskey(m.single_var_constrs_per_var, constr.varid)
-        m.single_var_constrs_per_var[constr.varid] = Dict{ConstrId, SingleVarConstraint}()
-    end
-    if haskey(m.single_var_constrs_per_var[constr.varid], constr.id)
-        name = m.single_var_constrs_per_var[constr.varid][constr.id].name
-        error(string(
-            "Constraint of id ", constr.id, "exists. Its name is ", name,
-            " and you want to add a constraint named ", constr.name, "."
-        ))
-    end
-    m.single_var_constrs[constr.id] = constr
-    m.single_var_constrs_per_var[constr.varid][constr.id] = constr
     return
 end
 

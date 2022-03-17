@@ -66,12 +66,10 @@ getvar(form::Formulation, id::VarId) = get(form.manager.vars, id, nothing)
 
 """
     getconstr(formulation, constrid) -> Constraint
-    getconstr(formulation, singlevarconstrid) -> Constraint
 
 Returns the constraint with given `constrid` that belongs to `formulation`.
 """
 getconstr(form::Formulation, id::ConstrId) = get(form.manager.constrs, id, nothing)
-getconstr(form::Formulation, id::SingleVarConstrId) = get(form.manager.single_var_constrs, id, nothing)
 
 """
     getvars(formulation) -> Dict{VarId, Variable}
@@ -86,20 +84,6 @@ getvars(form::Formulation) = form.manager.vars
 Returns all constraints in `formulation`.
 """
 getconstrs(form::Formulation) = form.manager.constrs
-
-"""
-    getsinglevarconstrs(formulation) -> Dict{ConstrId, SingleVarConstraint}
-
-Returns all single variable constraints in `formulation`.
-
-    getsinglevarconstrs(formulation, varid) -> Dict{ConstrId, SingleVarConstraint} or nothing
-
-Return all single variable constraints of a formulation that applies to a given variable.
-"""
-getsinglevarconstrs(form::Formulation) = form.manager.single_var_constrs
-getsinglevarconstrs(form::Formulation, varid::VarId) = get(
-    form.manager.single_var_constrs_per_var, varid, Dict{ConstrId, SingleVarConstraint}()
-) 
 
 "Returns objective constant of the formulation."
 getobjconst(form::Formulation) = form.manager.objective_constant
@@ -137,13 +121,11 @@ getoptimizers(form::Formulation) = form.optimizers
 """
     getelem(form, varid) -> Variable
     getelem(form, constrid) -> Constraint
-    getelem(form, singlevarconstrid) -> SingleVarConstraint
 
 Return the element of formulation `form` that has a given id.
 """
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
-getelem(form::Formulation, id::SingleVarConstrId) = getconstr(form, id)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -587,29 +569,6 @@ function setconstr!(
     return constr
 end
 
-"""
-TODO
-
-This constraint is never explicit because it's used to compute bounds stored in the variable
-"""
-function setsinglevarconstr!(
-    form::Formulation,
-    name::String,
-    varid::VarId,
-    duty::Duty{Constraint};
-    rhs::Float64 = 0.0,
-    kind::ConstrKind = Essential,
-    sense::ConstrSense = Greater,
-    inc_val::Float64 = 0.0,
-    is_active::Bool = true,
-    id = SingleVarConstrId(duty, form.constr_counter += 1, getuid(form))
-)
-    c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, true)
-    constr = SingleVarConstraint(id, varid, name; constr_data = c_data)
-    _addconstr!(form.manager, constr)
-    return constr
-end
-
 function set_robust_constr_generator!(form::Formulation, kind::ConstrKind, alg::Function)
     constrgen = RobustConstraintsGenerator(0, kind, alg)
     push!(form.manager.robust_constr_generators, constrgen)
@@ -844,27 +803,6 @@ function _show_constraints(io::IO , form::Formulation)
     return
 end
 
-function _show_singlevarconstraint(io::IO, form::Formulation, constr::SingleVarConstraint)
-    print(io, "| ", getname(form, constr.varid))
-    op = "<="
-    if getcursense(form, constr) == Equal
-        op = "=="
-    elseif getcursense(form, constr) == Greater
-        op = ">="
-    end
-    println(io, " ", op, " ", getcurrhs(form, constr))
-    return
-end
-
-function _show_singlevarconstraints(io::IO, form::Formulation)
-    for (varid, _) in getvars(form)
-        for (_, constr) in getsinglevarconstrs(form, varid)
-            _show_singlevarconstraint(io, form, constr)
-        end
-    end
-    return
-end
-
 function _show_variable(io::IO, form::Formulation, var::Variable)
     name = getname(form, var)
     lb = getcurlb(form, var)
@@ -893,7 +831,6 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
         _show_obj_fun(io, form)
         _show_constraints(io, form)
         _show_variables(io, form)
-        _show_singlevarconstraints(io, form)
     end
     return
 end
