@@ -291,7 +291,6 @@ end
 ############################################################################################
 # Insertion of a column in the master
 ############################################################################################
-
 # Compute all the coefficients of the column in the coefficient matrix of the
 # master formulation.
 function _col_members(col, master_coef_matrix)
@@ -306,15 +305,33 @@ function _col_members(col, master_coef_matrix)
 end
 
 """
+    get_column_from_pool(primal_sol)
+
+Returns the `var_id` of the master column that represents the primal solution `primal_sol` 
+to a Dantzig-Wolfe subproblem if the primal solution exists in the pool of solutions to the
+subproblem; `nothing` otherwise.
+"""
+function get_column_from_pool(primal_sol::PrimalSolution{Formulation{DwSp}})
+    spform = primal_sol.solution.model
+    new_col_peren_cost = mapreduce(
+        ((var_id, var_val),) -> getperencost(spform, var_id) * var_val,
+        +,
+        primal_sol
+    )
+    pool = getprimalsolpool(spform)
+    costs_pool = spform.duty_data.costs_primalsols_pool
+    return _get_same_sol_in_pool(pool, costs_pool, primal_sol.solution.sol, new_col_peren_cost)
+end
+
+"""
     insert_column!(master_form, primal_sol, name)
 
 Inserts the primal solution `primal_sol` to a Dantzig-Wolfe subproblem into the
 master as a column.
 
-Returns a tuple `(insertion_status, var_id)` where :
-- `insertion_status` is `true` if the primal solution was already in the pool 
-  and in the master formulation
-- `var_id` is the id of the column variable in the master formulation.
+Returns `var_id` the id of the column variable in the master formulation.
+
+**Warning**: this methods does not check if the column already exists in the pool.
 """
 function insert_column!(
     master_form::Formulation{DwMaster}, primal_sol::PrimalSolution, name::String;
@@ -328,22 +345,15 @@ function insert_column!(
     spform = primal_sol.solution.model
 
     # Compute perennial cost of the column.
-    new_col_peren_cost = 0.0
-    for (var_id, var_val) in primal_sol
-        new_col_peren_cost += getperencost(spform, var_id) * var_val
-    end
+    new_col_peren_cost = mapreduce(
+        ((var_id, var_val),) -> getperencost(spform, var_id) * var_val,
+        +,
+        primal_sol
+    )
 
     pool = getprimalsolpool(spform)
     costs_pool = spform.duty_data.costs_primalsols_pool
     custom_pool = spform.duty_data.custom_primalsols_pool
-
-    # Check if the column is already in the pool.
-    col_id = _get_same_sol_in_pool(pool, costs_pool, primal_sol.solution.sol, new_col_peren_cost)
-
-    # If the column is already in the pool, it means that it is already in the
-    # master formulation, so we return the id of the column and don't insert it
-    # a second time.
-    col_id !== nothing && return false, col_id
 
     # Compute coefficient members of the column in the matrix.
     members = _col_members(primal_sol, getcoefmatrix(master_form))
@@ -376,7 +386,7 @@ function insert_column!(
             custom_pool[col_id] = primal_sol.custom_data
         end
     end
-    return true, getid(col)
+    return getid(col)
 end
 
 ############################################################################################
