@@ -25,7 +25,9 @@ _ConstrInfo(constr::Constraint) = _ConstrInfo("", nothing, constr)
 mutable struct Optimizer <: MOI.AbstractOptimizer
     env::Env
     inner::Problem
+    is_objective_set::Bool
     objective_type::ObjectiveType
+    objective_sense::Union{Nothing, MOI.OptimizationSense}
     annotations::Annotations
     varinfos::CleverDicts.CleverDict{MOI.VariableIndex, _VarInfo}
     moi_varids::Dict{VarId, MOI.VariableIndex}
@@ -40,13 +42,13 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Same for constraints (the first int is the id).
     names_to_constrs::Dict{String, Tuple{Int, Int}}
 
-    feasibility_sense::Bool # Coluna supports only Max or Min.
-
     function Optimizer()
         model = new()
         model.env = Env(Params())
         model.inner = Problem(model.env)
+        model.is_objective_set = false
         model.objective_type = ZERO
+        model.objective_sense = nothing
         model.annotations = Annotations()
         model.varinfos = CleverDicts.CleverDict{MOI.VariableIndex, _VarInfo}()
         model.moi_varids = Dict{VarId, MOI.VariableIndex}()
@@ -57,8 +59,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
 
         model.names_to_vars = Dict{String, Tuple{MOI.VariableIndex,Int}}()
         model.names_to_constrs = Dict{String, Tuple{Int,Int}}()
-    
-        model.feasibility_sense = false
         return model
     end
 end
@@ -70,7 +70,9 @@ function MOI.empty!(model::Optimizer)
     model.env.varids = CleverDicts.CleverDict{MOI.VariableIndex, VarId}()
 
     model.inner = Problem(model.env)
+    model.is_objective_set = false
     model.objective_type = ZERO
+    model.objective_sense = nothing
     model.annotations = Annotations()
     model.varinfos = CleverDicts.CleverDict{MOI.VariableIndex, _VarInfo}()
     model.moi_varids = Dict{VarId, MOI.VariableIndex}()
@@ -89,7 +91,7 @@ function MOI.is_empty(model::Optimizer)
     reform = model.inner.re_formulation
     origform = model.inner.original_formulation
     return reform === nothing && length(getvars(origform)) == 0 && 
-        length(getconstrs(origform)) == 0
+        length(getconstrs(origform)) == 0 && !model.is_objective_set
 end
 
 ############################################################################################
@@ -408,6 +410,7 @@ function MOI.modify(
     setperencost!(
         get_original_formulation(model.inner), _info(model, change.variable).var, change.new_coefficient
     )
+    model.is_objective_set = true
     return
 end
 
@@ -504,7 +507,7 @@ function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
             push!(constraints, (MOI.VariableIndex, MOI.ZeroOne))
         end
     end
-    for (id, constrinfo) in model.constrinfos
+    for (_, constrinfo) in model.constrinfos
         constr = constrinfo.constr
         constr_sense = MathProg.convert_coluna_sense_to_moi(getperensense(orig_form, constr))
         push!(constraints, (MOI.ScalarAffineFunction{Float64}, constr_sense))
@@ -824,23 +827,25 @@ end
 function MOI.set(model::Optimizer, ::MOI.ObjectiveSense, sense::MOI.OptimizationSense)
     orig_form = get_original_formulation(model.inner)
     if sense == MOI.MIN_SENSE
-        model.feasibility_sense = false
         set_objective_sense!(orig_form, true) # Min
     elseif sense == MOI.MAX_SENSE
-        model.feasibility_sense = false
         set_objective_sense!(orig_form, false) # Max
     else
-        model.feasibility_sense = true
         set_objective_sense!(orig_form, true) # Min
+        # Set the cost of all variables to 0
+        for (_, varinfo) in model.varinfos
+            setperencost!(orig_form, varinfo.var, 0.0)
+        end
     end
+    model.objective_sense = sense
     return
 end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveSense)
-    sense = getobjsense(get_original_formulation(model.inner))
-    model.feasibility_sense && return MOI.FEASIBILITY_SENSE
-    sense == MaxSense && return MOI.MAX_SENSE
-    return MOI.MIN_SENSE
+    if !isnothing(model.objective_sense)
+        return model.objective_sense
+    end
+    return MOI.FEASIBILITY_SENSE
 end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveFunctionType)
@@ -853,9 +858,7 @@ end
 function MOI.set(
     model::Optimizer, ::MOI.ObjectiveFunction{F}, func::F
 ) where {F<:MOI.ScalarAffineFunction{Float64}}
-    model.objective_type = SCALAR_AFFINE
     origform = get_original_formulation(model.inner)
-
     for (_, varinfo) in model.varinfos
         setperencost!(origform, varinfo.var, 0.0)
     end
@@ -866,9 +869,11 @@ function MOI.set(
         setperencost!(origform, var, cost)
     end
 
-    if func.constant != 0
+    if !iszero(func.constant)
         setobjconst!(origform, func.constant)
     end
+    model.objective_type = SCALAR_AFFINE
+    model.is_objective_set = true
     return
 end
 
@@ -876,15 +881,20 @@ function MOI.set(
     model::Optimizer, ::MOI.ObjectiveFunction{MOI.VariableIndex},
     func::MOI.VariableIndex
 )
-    model.objective_type = SINGLE_VARIABLE
     setperencost!(get_original_formulation(model.inner), _info(model, func).var, 1.0)
+    model.objective_type = SINGLE_VARIABLE
+    model.is_objective_set = true
     return
+end
+
+function MOI.get(model::Optimizer, ::MOI.ObjectiveFunction{F}) where {F}
+    obj = MOI.get(model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}())
+    return convert(F, obj)
 end
 
 function MOI.get(
     model::Optimizer, ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}
 )
-    @assert model.objective_type == SCALAR_AFFINE || model.objective_type == ZERO
     orig_form = get_original_formulation(model.inner)
     terms = MOI.ScalarAffineTerm{Float64}[]
     for (id, varinfo) in model.varinfos
@@ -894,20 +904,6 @@ function MOI.get(
         end
     end
     return MOI.ScalarAffineFunction(terms, getobjconst(orig_form))
-end
-
-function MOI.get(
-    model::Optimizer, ::MOI.ObjectiveFunction{MOI.VariableIndex}
-)
-    @assert model.objective_type == SINGLE_VARIABLE
-    orig_form = get_original_formulation(model.inner)
-    for (id, var) in model.varinfos
-        cost = getperencost(orig_form, var)
-        if cost != 0
-            return MOI.VariableIndex(id)
-        end
-    end
-    error("Could not find the variable with cost != 0.")
 end
 
 ############################################################################################
@@ -990,10 +986,13 @@ function MOI.get(model::Optimizer, ::MOI.NumberOfConstraints{F, S}) where {F, S}
 end
 
 function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
-    attributes = Any[MOI.ObjectiveSense()]
-    typ = MOI.get(model, MOI.ObjectiveFunctionType())
-    if typ !== nothing
-        push!(attributes, MOI.ObjectiveFunction{typ}())
+    attributes = MOI.AbstractModelAttribute[]
+    if model.is_objective_set
+        F = MOI.get(model, MOI.ObjectiveFunctionType())
+        push!(attributes, MOI.ObjectiveFunction{F}())
+    end
+    if model.objective_sense !== nothing
+        push!(attributes, MOI.ObjectiveSense())
     end
     return attributes
 end
@@ -1122,7 +1121,7 @@ end
 
 function _singlevarconstrdualval(dualsol, var, ::Type{<:MOI.GreaterThan})
     value, activebound = get(get_var_redcosts(dualsol), getid(var), (0.0, MathProg.LOWER))
-    if value != 0.0 && activebound != MathProg.LOWER
+    if !iszero(value) && activebound != MathProg.LOWER
         return 0.0
     end
     return value
@@ -1130,7 +1129,7 @@ end
 
 function _singlevarconstrdualval(dualsol, var, ::Type{<:MOI.LessThan})
     value, activebound = get(get_var_redcosts(dualsol), getid(var), (0.0, MathProg.UPPER))
-    if value != 0.0 && activebound != MathProg.UPPER
+    if !iszero(value) && activebound != MathProg.UPPER
         return 0.0
     end
     return value
