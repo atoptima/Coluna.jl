@@ -82,7 +82,7 @@ export AbstractFormulation, Formulation, create_formulation!, getreformulation, 
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
     push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!, 
-    insert_column!
+    insert_column!, get_column_from_pool
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp

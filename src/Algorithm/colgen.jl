@@ -17,7 +17,7 @@
     )
 
 Column generation algorithm that can be applied to formulation reformulated using
-Dantzog-Wolfe decomposition. 
+Dantzig-Wolfe decomposition. 
 
 This algorithm first solves the linear relaxation of the master (master LP) using `restr_master_solve_alg`.
 Then, it solves the subproblems by calling `pricing_prob_solve_alg` to get the columns that
@@ -335,32 +335,44 @@ function insert_columns!(
         spinfo.bestsol = bestsol
         spinfo.isfeasible = true
 
+        # First we activate columns that are already in the pool.
+        primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
         for sol in get_ip_primal_sols(sp_optstate)
             red_cost = compute_red_cost(algo, masterform, spinfo, sol, dualsol)
             if improving_red_cost(red_cost, algo, getobjsense(masterform))
-                insertion_status, col_id = insert_column!(masterform, sol, "MC")
-
-                if !insertion_status && haskey(masterform, col_id) && !iscuractive(masterform, col_id)
-                    # Column already generated but inactive (only possible case when
-                    # insertion status is false meaning that the column already exists).
-                    activate!(masterform, col_id)
-                elseif !insertion_status
-                    msg = """
-                    Unexpected variable state during column insertion.
-                    ======
-                    The column is in the master ? $(haskey(masterform, col_id)).
-                    The column is active ? $(iscuractive(masterform, col_id)).
-                    ======
-                    Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
-                    """
-                    error(string(msg))
+                col_id = get_column_from_pool(sol)
+                if !isnothing(col_id)
+                    if haskey(masterform, col_id) && !iscuractive(masterform, col_id)
+                        activate!(masterform, col_id)
+                        if phase == 1
+                            setcurcost!(masterform, col_id, 0.0)
+                        end
+                        nb_cols_generated += 1
+                    else
+                        msg = """
+                        Unexpected variable state during column insertion.
+                        ======
+                        The column is in the master ? $(haskey(masterform, col_id)).
+                        The column is active ? $(iscuractive(masterform, col_id)).
+                        ======
+                        Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
+                        ======
+                        """
+                        error(msg)
+                    end
+                else
+                    push!(primal_sols_to_insert, sol)
                 end
-
-                if phase == 1
-                    setcurcost!(masterform, col_id, 0.0)
-                end
-                nb_cols_generated += 1
             end
+        end
+
+        # Then, we add the new columns (i.e. not in the pool).
+        for sol in primal_sols_to_insert
+            col_id = insert_column!(masterform, sol, "MC")
+            if phase == 1
+                setcurcost!(masterform, col_id, 0.0)
+            end
+            nb_cols_generated += 1
         end
     end
 
