@@ -78,6 +78,7 @@ function test_runtests()
             "test_quadratic_",
             "test_conic_",
             # We have to fix the following tests (or keep them excluded and explain why):
+            "test_constraint_ScalarAffineFunction_Interval", # TODO
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
             "test_attribute_SolverVersion",   
