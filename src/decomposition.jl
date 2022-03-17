@@ -96,9 +96,6 @@ function instantiate_orig_vars!(
         if formtype <: BD.Master
             for (_, var) in vars
                 clonevar!(origform, masterform, masterform, var, MasterPureVar, is_explicit = true)
-                for (_, constr) in getsinglevarconstrs(origform, getid(var))
-                    clonesinglevarconstr!(origform, masterform, masterform, constr, MasterPureConstr)
-                end
             end
         end
     end
@@ -200,10 +197,6 @@ function instantiate_orig_vars!(
     for (varid, var) in vars
         # An original variable annotated in a subproblem is a DwSpPricingVar
         clonevar!(origform, spform, spform, var, DwSpPricingVar, is_explicit = true)
-        for (_, constr) in getsinglevarconstrs(origform, varid)
-            clonesinglevarconstr!(origform, spform, spform, constr, DwSpPureConstr)
-        end
-
         clonevar!(origform, masterform, spform, var, MasterRepPricingVar, is_explicit = false)
     end
     return
@@ -261,11 +254,8 @@ function instantiate_orig_vars!(
 )
     !haskey(annotations.vars_per_ann, mast_ann) && return
     vars = annotations.vars_per_ann[mast_ann]
-    for (varid, var) in vars
+    for (_, var) in vars
         clonevar!(origform, masterform, masterform, var, MasterPureVar, is_explicit = true)
-        for (_, constr) in getsinglevarconstrs(origform, varid)
-            clonesinglevarconstr!(origform, masterform, masterform, constr, MasterPureConstr)
-        end
     end
     return
 end
@@ -328,11 +318,8 @@ function instantiate_orig_vars!(
 )
     if haskey(annotations.vars_per_ann, sp_ann)
         vars = annotations.vars_per_ann[sp_ann]
-        for (varid, var) in vars
+        for (_, var) in vars
             clonevar!(origform, spform, spform, var, BendSpSepVar, cost = 0.0)
-            for (_, constr) in getsinglevarconstrs(origform, varid)
-                clonesinglevarconstr!(origform, spform, spform, constr, BendSpPureConstr)
-            end
         end
     end
     return

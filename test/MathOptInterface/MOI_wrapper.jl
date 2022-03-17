@@ -77,8 +77,8 @@ function test_runtests()
             "test_attribute_NumberOfThreads",
             "test_quadratic_",
             "test_conic_",
-            "test_constraint_ScalarAffineFunction_Interval", # TODO: rm single var constraint from Coluna.
             # We have to fix the following tests (or keep them excluded and explain why):
+            "test_constraint_ScalarAffineFunction_Interval", # TODO
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
             "test_attribute_SolverVersion",   
@@ -142,17 +142,7 @@ function test_runtests()
             "test_solve_VariableIndex_ConstraintDual_MAX_SENSE",
             "test_solve_VariableIndex_ConstraintDual_MIN_SENSE",
             "test_solve_optimize_twice",
-            "test_solve_result_index",
-            "test_variable_VariableName",
-            "test_variable_delete_Nonnegatives",
-            "test_variable_delete_Nonnegatives_row",
-            "test_variable_get_VariableIndex",
-            "test_variable_solve_Integer_with_lower_bound",
-            "test_variable_solve_Integer_with_upper_bound",
-            "test_variable_solve_ZeroOne_with_0_upper_bound",
-            "test_variable_solve_ZeroOne_with_upper_bound",
-            "test_variable_solve_with_lowerbound",
-            "test_variable_solve_with_upperbound"
+            "test_solve_result_index"
         ],
         # This argument is useful to prevent tests from failing on future
         # releases of MOI that add new tests. Don't let this number get too far

@@ -82,7 +82,7 @@ export AbstractFormulation, Formulation, create_formulation!, getreformulation, 
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
     set_objective_sense!, clonevar!, cloneconstr!, clonecoeffs!, initialize_optimizer!,
     push_optimizer!, getobjconst, setobjconst!, addcustomvars!, addcustomconstrs!, 
-    clonesinglevarconstr!, getsinglevarconstrs, getsinglevarconstr, insert_column!
+    insert_column!
 
 # Duties of formulations
 export Original, DwMaster, BendersMaster, DwSp, BendersSp
@@ -91,12 +91,12 @@ export Original, DwMaster, BendersMaster, DwSp, BendersSp
 export isanArtificialDuty, isaStaticDuty, isaDynamicDuty, isanOriginalRepresentatives
 
 # Types and methods related to variables and constraints
-export Variable, Constraint, VarId, ConstrId, SingleVarConstrId, VarMembership, ConstrMembership, SingleVarConstraint,
+export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperencost, setperencost!, getcurcost, setcurcost!, getperenlb, getcurlb, setcurlb!,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, setsinglevarconstr!
+    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!
 
 # Types & methods related to solutions & bounds
 export PrimalBound, DualBound, AbstractSolution, PrimalSolution, DualSolution, ActiveBound, ObjValues,

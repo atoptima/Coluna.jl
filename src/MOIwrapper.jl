@@ -1091,17 +1091,11 @@ function MOI.get(model::Optimizer, ::MOI.ResultCount)
 end
 
 function MOI.get(
-    optimizer::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex{F,S}
+    model::Optimizer, attr::MOI.ConstraintPrimal, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.VariableIndex,S}
-    # MOI.throw_if_not_valid(optimizer, index)
-    # bounds = get(optimizer.constrs_on_single_var, index, nothing)
-    # if bounds === nothing
-    #     @warn "Could not find constraint with id $(index)."
-    #     return NaN
-    # end
-    # best_primal_sol = get_best_ip_primal_sol(optimizer.result)
-    # return get(best_primal_sol, bounds.varid, 0.0)
-    throw(Error("TODO"))
+    # TODO: throw if optimize in progress
+    MOI.check_result_index_bounds(model, attr)
+    return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(index.value))
 end
 
 function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex)
@@ -1126,37 +1120,39 @@ function MOI.get(
     return error("Invalid result index.")
 end
 
-function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.GreaterThan})
-    value, activebound = get(get_var_redcosts(dualsol), bc.varid, (0.0, MathProg.LOWER))
+function _singlevarconstrdualval(dualsol, var, ::Type{<:MOI.GreaterThan})
+    value, activebound = get(get_var_redcosts(dualsol), getid(var), (0.0, MathProg.LOWER))
     if value != 0.0 && activebound != MathProg.LOWER
         return 0.0
     end
     return value
 end
 
-function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.LessThan})
-    value, activebound = get(get_var_redcosts(dualsol), bc.varid, (0.0, MathProg.UPPER))
+function _singlevarconstrdualval(dualsol, var, ::Type{<:MOI.LessThan})
+    value, activebound = get(get_var_redcosts(dualsol), getid(var), (0.0, MathProg.UPPER))
     if value != 0.0 && activebound != MathProg.UPPER
         return 0.0
     end
     return value
 end
 
-function _singlevarconstrdualval(bc, dualsol, ::Type{<:MOI.EqualTo})
-    value, _ = get(get_var_redcosts(dualsol), bc.varid, (0.0, MathProg.LOWER))
+function _singlevarconstrdualval(dualsol, var, ::Type{<:MOI.EqualTo})
+    value, _ = get(get_var_redcosts(dualsol), getid(var), (0.0, MathProg.LOWER))
     return value
 end
 
 function MOI.get(
-    optimizer::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
+    model::Optimizer, attr::MOI.ConstraintDual, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.VariableIndex,S}
-    # MOI.throw_if_not_valid(optimizer, index)
-    # dualsols = get_lp_dual_sols(optimizer.result)
-    # if 1 <= attr.result_index <= length(dualsols)
-    #     single_var_constrs = optimizer.constrs_on_single_var[index]
-    #     return _singlevarconstrdualval(single_var_constrs, dualsols[attr.result_index], S)
-    # end
-    return error("TODO.")
+    # TODO: check if optimization in progress.
+    MOI.check_result_index_bounds(model, attr)
+    dualsols = get_lp_dual_sols(model.result)
+    if 1 <= attr.result_index <= length(dualsols)
+        dualsol = dualsols[attr.result_index]
+        varinfo = _info(model, MOI.VariableIndex(index.value)) 
+        return _singlevarconstrdualval(dualsol, varinfo.var, S)
+    end
+    error("Invalid result index.")
 end
 
 # Useful method to retrieve dual values of generated cuts because they don't 
@@ -1164,6 +1160,8 @@ end
 function MOI.get(
     model::Optimizer, attr::MOI.ConstraintDual, constrid::ConstrId
 )
+    # TODO: check if optimization in progress.
+    MOI.check_result_index_bounds(model, attr)
     dualsols = get_lp_dual_sols(model.result)
     if 1 <= attr.result_index <= length(dualsols)
         return get(dualsols[attr.result_index], constrid, 0.0)

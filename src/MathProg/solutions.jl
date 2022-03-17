@@ -59,13 +59,12 @@ end
     )
 
 Create a dual solution to the formulation `form` of cost `cost` and status `status`.
-The first representation of the dual solution is mandatory.
 It contains `constrids` the set of ids of the constraints and `constrvals` the values
 of the constraints (`constrvals[i]` is dual value of `constrids[i]`). 
 It also contains `varvals[i]` the dual values of the bound constraint `varactivebounds[i]` of the variables `varids`
 (also known as the reduced cost).
 
-The user can also attach to the dual solution a customized representation 
+The user can attach to the dual solution a customized representation 
 `custom_data`.
 """
 function DualSolution(
@@ -164,6 +163,9 @@ function Base.show(io::IO, solution::DualSolution{M}) where {M}
     println(io, "Dual solution")
     for (constrid, value) in solution
         println(io, "| ", getname(getmodel(solution), constrid), " = ", value)
+    end
+    for (varid, redcost) in solution.var_redcosts
+        println(io, "| ", getname(getmodel(solution), varid), " = ", redcost[1], " (", redcost[2], ")")
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
