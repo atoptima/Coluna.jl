@@ -91,9 +91,9 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
     # Update variable bounds
     for id in buffer.changed_bound
         (id in buffer.var_buffer.added || id in buffer.var_buffer.removed) && continue
-        @logmsg LogLevel(-4) "Changing bounds of variable " getname(f, id)
-        @logmsg LogLevel(-5) string("New lower bound is ", getcurlb(f, id))
-        @logmsg LogLevel(-5) string("New upper bound is ", getcurub(f, id))
+        @logmsg LogLevel(0) "Changing bounds of variable " getname(f, id)
+        @logmsg LogLevel(0) string("New lower bound is ", getcurlb(f, id))
+        @logmsg LogLevel(0) string("New upper bound is ", getcurub(f, id))
         update_bounds_in_optimizer!(f, optimizer, getvar(f, id))
     end
 
