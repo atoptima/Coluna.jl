@@ -79,6 +79,7 @@ function test_runtests()
             "test_conic_",
             # We have to fix the following tests (or keep them excluded and explain why):
             "test_constraint_ScalarAffineFunction_Interval", # TODO
+            "test_modification_transform_singlevariable_lessthan", # old and new variable share same id -> problem in buffer...
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
             "test_attribute_SolverVersion",   
@@ -105,19 +106,6 @@ function test_runtests()
             "test_linear_integration_modification",
             "test_linear_modify_GreaterThan_and_LessThan_constraints",
             "test_linear_transform",
-            "test_modification_affine_deletion_edge_cases",
-            "test_modification_coef_scalar_objective",
-            "test_modification_coef_scalaraffine_lessthan",
-            "test_modification_const_scalar_objective",
-            "test_modification_const_vectoraffine_nonpos",
-            "test_modification_delete_variable_with_single_variable_obj",
-            "test_modification_delete_variables_in_a_batch",
-            "test_modification_func_scalaraffine_lessthan",
-            "test_modification_func_vectoraffine_nonneg",
-            "test_modification_multirow_vectoraffine_nonpos",
-            "test_modification_set_scalaraffine_lessthan",
-            "test_modification_set_singlevariable_lessthan",
-            "test_modification_transform_singlevariable_lessthan",
             "test_nonlinear_Feasibility_internal",
             "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_EqualTo_lower",
             "test_solve_DualStatus_INFEASIBILITY_CERTIFICATE_EqualTo_upper",

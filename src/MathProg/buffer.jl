@@ -9,6 +9,10 @@ end
 
 VarConstrBuffer{I}() where {I<:Id} = VarConstrBuffer{I}(Set{I}(), Set{I}())
 
+function Base.isequal(a::VarConstrBuffer{I}, b::VarConstrBuffer{I}) where {I}
+    return isequal(a.added, b.added) && isequal(a.removed, b.removed)
+end
+
 function add!(buffer::VarConstrBuffer{I}, id::I) where {I<:Id}
     if id ∉ buffer.removed
         push!(buffer.added, id)

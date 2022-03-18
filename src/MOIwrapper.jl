@@ -623,17 +623,74 @@ function MOI.get(
 end
 
 function MOI.get(
-    model::Optimizer, ::MOI.ConstraintSet,
+    ::Optimizer, ::MOI.ConstraintSet,
     index::MOI.ConstraintIndex{MOI.VariableIndex, MOI.ZeroOne}
 )
     return MOI.ZeroOne()
 end
 
 function MOI.get(
-    model::Optimizer, ::MOI.ConstraintSet,
+    ::Optimizer, ::MOI.ConstraintSet,
     index::MOI.ConstraintIndex{MOI.VariableIndex, MOI.Integer}
 )
     return MOI.Integer()
+end
+
+############################################################################################
+# Set constraints
+############################################################################################
+function MOI.set(
+    model::Optimizer, ::MOI.ConstraintFunction, constrid::MOI.ConstraintIndex{F,S}, func::F
+) where {F<:SupportedConstrFunc, S<:SupportedConstrSets}
+    MOI.throw_if_not_valid(model, constrid)
+    if !iszero(func.constant)
+        throw(MOI.ScalarFunctionConstantNotZero(func.constant))
+    end
+    constrinfo = _info(model, constrid)
+    id = getid(constrinfo.constr)
+    origform = get_original_formulation(model.inner)
+    coefmatrix = getcoefmatrix(origform)
+    varids = VarId[]
+    for (varid, _) in @view coefmatrix[id, :]
+        push!(varids, varid)
+    end
+    for varid in varids
+        coefmatrix[id, varid] = 0.0
+    end
+    for term in func.terms
+        var = _info(model, term.variable).var
+        coefmatrix[id, getid(var)] += term.coefficient
+    end
+    return
+end
+
+function MOI.set(
+    model::Optimizer, ::MOI.ConstraintSet, constrid::MOI.ConstraintIndex{F,S}, set::S
+) where {F<:SupportedConstrFunc,S<:SupportedConstrSets}
+    MOI.throw_if_not_valid(model, constrid)
+    origform = get_original_formulation(model.inner)
+    constr = _info(model, constrid).constr
+    setperenrhs!(origform, constr, MathProg.convert_moi_rhs_to_coluna(set))
+    setperensense!(origform, constr, MathProg.convert_moi_sense_to_coluna(set))
+    return
+end
+
+function MOI.set(
+    ::Optimizer, ::MOI.ConstraintFunction, ::MOI.ConstraintIndex{F,S}, ::S
+) where {F<:MOI.VariableIndex,S}
+    return throw(MOI.SettingVariableIndexNotAllowed())
+end
+
+function MOI.set(
+    model::Optimizer, ::MOI.ConstraintSet, constrid::MOI.ConstraintIndex{F,S}, set::S
+) where {F<:MOI.VariableIndex, S<:SupportedVarSets}
+    MOI.throw_if_not_valid(model, constrid)
+    (lb, ub) = MathProg.convert_moi_bounds_to_coluna(set)
+    varinfo = _info(model, constrid)
+    origform = get_original_formulation(model.inner)
+    MathProg.setperenlb!(origform, varinfo.var, lb)
+    MathProg.setperenub!(origform, varinfo.var, ub)
+    return
 end
 
 ############################################################################################
@@ -789,27 +846,6 @@ function MOI.set(
 )
     MOI.throw_if_not_valid(model, constrid)
     store!(model.annotations, annotation, _info(model, constrid).constr)
-    return
-end
-
-function MOI.set(
-    model::Coluna.Optimizer, ::MOI.ConstraintSet, constrid::MOI.ConstraintIndex{F,S}, set::S
-) where {F<:SupportedConstrFunc,S<:SupportedConstrSets}
-    MOI.throw_if_not_valid(model, constrid)
-    origform = get_original_formulation(model.inner)
-    constr = _info(model, constrid).constr
-    setperenrhs!(origform, constr, MathProg.convert_moi_rhs_to_coluna(set))
-    setperensense!(origform, constr, MathProg.convert_moi_sense_to_coluna(set))
-    return
-end
-
-function MOI.set(
-    model::Coluna.Optimizer, ::MOI.ConstraintSet, constrid::MOI.ConstraintIndex{F,S}, set::S
-) where {F<:MOI.VariableIndex,S<:SupportedConstrSets}
-    #MOI.throw_if_not_valid(model, constrid)
-    error("TODO A.")
-    #constrs = model.constrs_on_single_var[constrid]
-    #setrhs!(constrs, set)
     return
 end
 
