@@ -78,7 +78,6 @@ end
 
 function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::OptimizationState)
     sync_solver!(optimizer, form)
-    println(optimizer.inner)
     nbvars = MOI.get(optimizer.inner, MOI.NumberOfVariables())
     if nbvars <= 0
         @warn "No variable in the formulation."
