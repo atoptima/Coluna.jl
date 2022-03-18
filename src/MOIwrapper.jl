@@ -563,7 +563,6 @@ function MOI.get(
     for (varid, coef) in @view getcoefmatrix(orig_form)[constrid, :]
         push!(terms, MOI.ScalarAffineTerm(coef, model.moi_varids[varid]))
     end
-    @show terms
     return MOI.ScalarAffineFunction(terms, 0.0)
 end
 
