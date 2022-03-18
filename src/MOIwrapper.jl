@@ -392,8 +392,8 @@ end
 function MOI.delete(model::Optimizer, vi::MOI.VariableIndex)
     MOI.throw_if_not_valid(model, vi)
     MOI.modify(model, MoiObjective(), MOI.ScalarCoefficientChange(vi, 0.0))
-    for (ci, _) in model.constrinfos
-        MOI.modify(model, ci, MOI.ScalarCoefficientChange(vi, 0.0))
+    for (_, constrinfo) in model.constrinfos
+        MOI.modify(model, constrinfo.index, MOI.ScalarCoefficientChange(vi, 0.0))
     end
     varid = getid(_info(model, vi).var)
     delete!(get_original_formulation(model.inner), varid)
@@ -441,7 +441,7 @@ function MOI.delete(
         coefmatrix[constrid, varid] = 0.0
     end
     delete!(orig_form, constrid)
-    delete!(model.constrinfos, ci)
+    delete!(model.constrinfos, ci.value)
     return
 end
 
@@ -522,6 +522,12 @@ function _add_constraint!(
     return
 end
 
+function _add_constraint!(
+    ::Vector{MOI.ConstraintIndex{F,S}}, index::MOI.ConstraintIndex
+) where {F,S}
+    return
+end
+
 function MOI.get(
     model::Optimizer, ::MOI.ListOfConstraintIndices{F, S}
 ) where {F<:MOI.ScalarAffineFunction{Float64}, S}
@@ -557,6 +563,7 @@ end
 function MOI.get(
     model::Optimizer, ::MOI.ConstraintFunction, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.ScalarAffineFunction{Float64}, S}
+    MOI.throw_if_not_valid(model, index)
     orig_form = get_original_formulation(model.inner)
     constrid = getid(_info(model, index).constr)
     terms = MOI.ScalarAffineTerm{Float64}[]
@@ -569,12 +576,14 @@ end
 function MOI.get(
     model::Optimizer, ::MOI.ConstraintFunction, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.VariableIndex, S}
+    MOI.throw_if_not_valid(model, index)
     return MOI.VariableIndex(index.value)
 end
 
 function MOI.get(
     model::Optimizer, ::MOI.ConstraintSet, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.ScalarAffineFunction{Float64},S}
+    MOI.throw_if_not_valid(model, index)
     orig_form = get_original_formulation(model.inner)
     rhs = getperenrhs(orig_form, _info(model, index).constr)
     return S(rhs)
@@ -584,6 +593,7 @@ function MOI.get(
     model::Optimizer, ::MOI.ConstraintSet,
     index::MOI.ConstraintIndex{MOI.VariableIndex, MOI.GreaterThan{Float64}}
 )
+    MOI.throw_if_not_valid(model, index)
     orig_form = get_original_formulation(model.inner)
     lb = getperenlb(orig_form, _info(model, MOI.VariableIndex(index.value)).var)
     return MOI.GreaterThan(lb)
@@ -1172,6 +1182,11 @@ function _singlevarconstrdualval(dualsol, var, ::Type{<:MOI.LessThan})
 end
 
 function _singlevarconstrdualval(dualsol, var, ::Type{<:MOI.EqualTo})
+    value, _ = get(get_var_redcosts(dualsol), getid(var), (0.0, MathProg.LOWER))
+    return value
+end
+
+function _singlevarconstrdualval(dualsol, var, ::Type{<:MOI.Interval})
     value, _ = get(get_var_redcosts(dualsol), getid(var), (0.0, MathProg.LOWER))
     return value
 end

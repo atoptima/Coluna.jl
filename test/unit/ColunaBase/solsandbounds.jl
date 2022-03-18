@@ -213,22 +213,34 @@ const Solution = ClB.Solution{FakeModel,Int,Float64}
     end
 end
 
-@testset "ColunaBase - MOI Termination Status" begin
-    @test ClB.convert_status(MOI.OPTIMAL) == ClB.OPTIMAL
-    @test ClB.convert_status(MOI.INFEASIBLE) == ClB.INFEASIBLE
-    @test ClB.convert_status(MOI.TIME_LIMIT) == ClB.TIME_LIMIT
-    @test ClB.convert_status(MOI.NODE_LIMIT) == ClB.NODE_LIMIT
-    @test ClB.convert_status(MOI.OTHER_LIMIT) == ClB.OTHER_LIMIT
-    @test ClB.convert_status(MOI.MEMORY_LIMIT) == ClB.UNCOVERED_TERMINATION_STATUS
-end
+@testset "ColunaBase - MOI <-> Coluna Termination Status" begin
+    statuses_bijection = [
+        (MOI.OPTIMIZE_NOT_CALLED, ClB.OPTIMIZE_NOT_CALLED),
+        (MOI.OPTIMAL, ClB.OPTIMAL),
+        (MOI.INFEASIBLE, ClB.INFEASIBLE),
+        (MOI.DUAL_INFEASIBLE, ClB.UNBOUNDED),
+        (MOI.INFEASIBLE_OR_UNBOUNDED, ClB.INFEASIBLE_OR_UNBOUNDED),
+        (MOI.TIME_LIMIT, ClB.TIME_LIMIT),
+        (MOI.NODE_LIMIT, ClB.NODE_LIMIT),
+        (MOI.OTHER_LIMIT, ClB.OTHER_LIMIT),
+    ]
 
-@testset "ColunaBase - Coluna Termination Status" begin
-    @test ClB.convert_status(ClB.OPTIMAL) == MOI.OPTIMAL
-    @test ClB.convert_status(ClB.INFEASIBLE) == MOI.INFEASIBLE
-    @test ClB.convert_status(ClB.TIME_LIMIT) == MOI.TIME_LIMIT
-    @test ClB.convert_status(ClB.NODE_LIMIT) == MOI.NODE_LIMIT
-    @test ClB.convert_status(ClB.OTHER_LIMIT) == MOI.OTHER_LIMIT
-    @test ClB.convert_status(ClB.UNCOVERED_TERMINATION_STATUS) == MOI.OTHER_LIMIT
+    statuses_surjection = [
+        (MOI.ALMOST_OPTIMAL, ClB.UNCOVERED_TERMINATION_STATUS),
+        (MOI.SLOW_PROGRESS, ClB.UNCOVERED_TERMINATION_STATUS),
+        (MOI.MEMORY_LIMIT, ClB.UNCOVERED_TERMINATION_STATUS),
+        (MOI.ALMOST_OPTIMAL, ClB.UNCOVERED_TERMINATION_STATUS)
+    ]
+
+    for (moi_status, coluna_status) in statuses_bijection
+        @test ClB.convert_status(moi_status) == coluna_status
+        @test ClB.convert_status(coluna_status) == moi_status
+    end
+
+    for (moi_status, coluna_status) in statuses_surjection
+        @test ClB.convert_status(moi_status) == coluna_status
+        @test ClB.convert_status(coluna_status) == MOI.OTHER_LIMIT
+    end
 end
 
 @testset "ColunaBase - MOI Result Status Code" begin

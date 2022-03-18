@@ -137,6 +137,8 @@ is translated into a Coluna `TerminationStatus`.
 Description of the termination statuses: 
 - `OPTIMAL` : the algorithm found a global optimal solution given the optimality tolerance
 - `INFEASIBLE` : the algorithm proved infeasibility
+- `UNBOUNDED` : the algorithm proved unboundedness
+- `INFEASIBLE_OR_UNBOUNDED` : the algorithm proved infeasibility or unboundedness
 - `TIME_LIMIT` : the algorithm stopped because of the time limit
 - `NODE_LIMIT` : the branch-and-bound based algorithm stopped due to the node limit
 - `OTHER_LIMIT` : the algorithm stopped because of a limit that is neither the time limit 
@@ -145,13 +147,11 @@ nor the node limit
 If the algorithm has not been called, the default value of the termination status should be:
 - `OPTIMIZE_NOT_CALLED`
 
-If the subsolver called through MOI returns a 
-`TerminationStatusCode` that is not `MOI.OPTIMIZE_NOT_CALLED`, `MOI.OPTIMAL`, `MOI.INFEASIBLE`,
-`MOI.TIME_LIMIT`, `MOI.NODE_LIMIT`, or `MOI.OTHER_LIMIT`:
-- `UNCOVERED_TERMINATION_STATUS` : should not be used by a Coluna algorithm
+If the conversion of a `MOI.TerminationStatusCode` returns `UNCOVERED_TERMINATION_STATUS`,
+Coluna should stop because it enters in an undefined behavior.
 """
 @enum(
-    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE,
+    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE, UNBOUNDED, INFEASIBLE_OR_UNBOUNDED,
     TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS
 )
 
@@ -185,6 +185,8 @@ function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMIZE_NOT_CALLED && return OPTIMIZE_NOT_CALLED
     moi_status == MOI.OPTIMAL && return OPTIMAL
     moi_status == MOI.INFEASIBLE && return INFEASIBLE
+    moi_status == MOI.DUAL_INFEASIBLE && return UNBOUNDED
+    moi_status == MOI.INFEASIBLE_OR_UNBOUNDED && return INFEASIBLE_OR_UNBOUNDED
     moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
     moi_status == MOI.NODE_LIMIT && return NODE_LIMIT
     moi_status == MOI.OTHER_LIMIT && return OTHER_LIMIT
@@ -194,7 +196,9 @@ end
 function convert_status(coluna_status::TerminationStatus)
     coluna_status == OPTIMIZE_NOT_CALLED && return MOI.OPTIMIZE_NOT_CALLED
     coluna_status == OPTIMAL && return MOI.OPTIMAL
+    coluna_status == INFEASIBLE_OR_UNBOUNDED && return MOI.INFEASIBLE_OR_UNBOUNDED
     coluna_status == INFEASIBLE && return MOI.INFEASIBLE
+    coluna_status == UNBOUNDED && return MOI.DUAL_INFEASIBLE
     coluna_status == TIME_LIMIT && return MOI.TIME_LIMIT
     coluna_status == NODE_LIMIT && return MOI.NODE_LIMIT
     coluna_status == OTHER_LIMIT && return MOI.OTHER_LIMIT
