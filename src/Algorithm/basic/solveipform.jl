@@ -224,6 +224,7 @@ function run!(
     if algo.get_dual_bound && getterminationstatus(result) == OPTIMAL
         dual_bound = getvalue(get_ip_primal_bound(result)) + partial_sol_value
         set_ip_dual_bound!(result, DualBound(form, dual_bound))
+        set_lp_dual_bound!(result, DualBound(form, dual_bound))
     end
     if algo.get_dual_solution && getterminationstatus(result) == OPTIMAL
         dual_sols = get_dual_solutions(form, optimizer)

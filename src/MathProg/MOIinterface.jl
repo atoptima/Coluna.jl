@@ -287,7 +287,6 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
         end
 
         # Get dual value & active bound of variables
-        var_red_costs = Dict{VarId, Tuple{Float64,ActiveBound}}()
         varids = VarId[]
         varvals = Float64[]
         activebounds = ActiveBound[]
