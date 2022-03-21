@@ -10,21 +10,6 @@ mutable struct VarData <: AbstractVcData
     is_explicit::Bool
 end
 
-function _set_bounds_acc_kind!(vdata::VarData, kind::VarKind)
-    if kind == Binary
-        if vdata.lb < 0
-            vdata.lb = 0
-        end
-        if vdata.ub > 1
-            vdata.ub = 0
-        end
-    elseif kind == Integer
-        vdata.lb = ceil(vdata.lb)
-        vdata.ub = floor(vdata.ub)
-    end
-    return
-end
-
 """
     VarData
 
@@ -35,7 +20,6 @@ function VarData(
     inc_val::Float64 = -1.0, is_active::Bool = true, is_explicit::Bool = true
 )
     vc = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
-    _set_bounds_acc_kind!(vc, kind)
     return vc
 end
 

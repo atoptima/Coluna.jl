@@ -77,6 +77,7 @@ Change is propagated to the current lower bound of the variable.
 """
 function setperenlb!(form::Formulation, var::Variable, lb)
     var.perendata.lb = lb
+    _setperenbounds_wrt_perenkind!(form, var, getperenkind(form, var))
     return setcurlb!(form, var, lb)
 end
 
@@ -111,6 +112,7 @@ function setcurlb!(form::Formulation, var::Variable, lb::Float64)
     if isexplicit(form, var) && iscuractive(form, var)
         change_bound!(form.buffer, getid(var))
     end
+    _setcurbounds_wrt_curkind!(form, var, getcurkind(form, var))
     return
 end
 setcurlb!(form::Formulation, varid::VarId, lb::Float64) =  setcurlb!(form, getvar(form, varid), lb)
@@ -124,6 +126,7 @@ Change is propagated to the current upper bound of the variable.
 """
 function setperenub!(form::Formulation, var::Variable, ub)
     var.perendata.ub = ub
+    _setperenbounds_wrt_perenkind!(form, var, getperenkind(form, var))
     return setcurub!(form, var, ub)
 end
 
@@ -158,6 +161,7 @@ function setcurub!(form::Formulation, var::Variable, ub::Float64)
     if isexplicit(form, var) && iscuractive(form, var)
         change_bound!(form.buffer, getid(var))
     end
+    _setcurbounds_wrt_curkind!(form, var, getcurkind(form, var))
     return
 end
 setcurub!(form::Formulation, varid::VarId, ub::Float64) = setcurub!(form, getvar(form, varid), ub)
@@ -250,6 +254,20 @@ Return the current kind of a variable in a formulation.
 getcurkind(form::Formulation, varid::VarId) = getcurkind(form, getvar(form, varid))
 getcurkind(::Formulation, var::Variable) = var.curdata.kind
 
+function _setperenbounds_wrt_perenkind!(form::Formulation, var::Variable, kind::VarKind)
+    if kind == Binary
+        if getperenlb(form, var) < 0
+            setperenlb!(form, var, 0.0)
+        end
+        if getperenub(form, var) > 1
+            setperenub!(form, var, 1.0)
+        end
+    elseif kind == Integer
+        setperenlb!(form, var, ceil(getperenlb(form, var)))
+        setperenub!(form, var, floor(getperenub(form, var)))
+    end
+end
+
 """
     setperenkind!(formulation, variable, kind)
     setperenkind!(formulation, varid, kind)
@@ -259,9 +277,24 @@ This change is then propagated to the current kind of the variable.
 """
 function setperenkind!(form::Formulation, var::Variable, kind::VarKind)
     var.perendata.kind = kind
+    _setperenbounds_wrt_perenkind!(form, var, kind)
     return setcurkind!(form, var, kind)
 end
 setperenkind!(form::Formulation, varid::VarId, kind::VarKind) = setperenkind!(form, getvar(form, varid), kind)
+
+function _setcurbounds_wrt_curkind!(form::Formulation, var::Variable, kind::VarKind)
+    if kind == Binary
+        if getcurlb(form, var) < 0
+            setcurlb!(form, var, 0.0)
+        end
+        if getcurub(form, var) > 1
+            setcurub!(form, var, 1.0)
+        end
+    elseif kind == Integer
+        setcurlb!(form, var, ceil(getcurlb(form, var)))
+        setcurub!(form, var, floor(getcurub(form, var)))
+    end
+end
 
 """
     setcurkind!(formulation, variable, kind::VarKind)
@@ -273,6 +306,7 @@ application to the subsolver
 """
 function setcurkind!(form::Formulation, var::Variable, kind::VarKind)
     var.curdata.kind = kind
+    _setcurbounds_wrt_curkind!(form, var, kind)
     if isexplicit(form, var) && iscuractive(form, var)
         change_kind!(form.buffer, getid(var))
     end
