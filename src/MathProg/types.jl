@@ -25,7 +25,7 @@ It works like `Duty{Variable}`.
 
 If a duty `Duty1` inherits from `Duty2`, then 
 
-```jldoctest
+```example
 julia> Duty1 <= Duty2
 true
 ```
