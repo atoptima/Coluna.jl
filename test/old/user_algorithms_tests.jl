@@ -72,7 +72,7 @@ function Coluna.Algorithm.run!(
     return OptimizationOutput(optstate)
 end
 
-function conseq_colgen_test()
+@testset "Old - conseq colgen test" begin
     data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
     coluna = JuMP.optimizer_with_attributes(

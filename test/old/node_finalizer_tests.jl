@@ -28,8 +28,8 @@ function ClA.run!(
     return ClA.OptimizationOutput(result)
 end
 
-function node_finalizer_tests(heuristic_finalizer)
 
+function test_node_finalizer(heuristic_finalizer)
     function build_toy_model(optimizer)
         toy = BlockModel(optimizer, direct_model = true)
         I = [1, 2, 3]
@@ -43,120 +43,121 @@ function node_finalizer_tests(heuristic_finalizer)
         return toy, x, y, dec, B
     end
 
-    @testset "Optimization algorithms that may conquer a node" begin
+    call_enumerative_finalizer(masterform, cbdata) = enumerative_finalizer(masterform, cbdata)
 
-        call_enumerative_finalizer(masterform, cbdata) = enumerative_finalizer(masterform, cbdata)
-
-        coluna = JuMP.optimizer_with_attributes(
-            CL.Optimizer,
-            "default_optimizer" => GLPK.Optimizer,
-            "params" => CL.Params(
-                solver = ClA.TreeSearchAlgorithm(
-                    conqueralg = ClA.ColCutGenConquer(
-                        stages = [ClA.ColumnGeneration(
-                                    pricing_prob_solve_alg = ClA.SolveIpForm(
-                                        optimizer_id = 1
-                                    ))
-                                 ],
-                        primal_heuristics = [],
-                        node_finalizer = ClA.NodeFinalizer(
-                                EnumerativeFinalizer(optimizer = call_enumerative_finalizer), 
-                                1, 0, "Enumerative"
-                        )
-                    ),
-                    maxnumnodes = heuristic_finalizer ? 10000 : 1
-                )
+    coluna = JuMP.optimizer_with_attributes(
+        CL.Optimizer,
+        "default_optimizer" => GLPK.Optimizer,
+        "params" => CL.Params(
+            solver = ClA.TreeSearchAlgorithm(
+                conqueralg = ClA.ColCutGenConquer(
+                    stages = [ClA.ColumnGeneration(
+                                pricing_prob_solve_alg = ClA.SolveIpForm(
+                                    optimizer_id = 1
+                                ))
+                                ],
+                    primal_heuristics = [],
+                    node_finalizer = ClA.NodeFinalizer(
+                            EnumerativeFinalizer(optimizer = call_enumerative_finalizer), 
+                            1, 0, "Enumerative"
+                    )
+                ),
+                maxnumnodes = heuristic_finalizer ? 10000 : 1
             )
         )
+    )
 
-        model, x, y, dec, B = build_toy_model(coluna)
+    model, x, y, dec, B = build_toy_model(coluna)
 
-        function enumerative_pricing(cbdata)
-            # Get the reduced costs of the original variables
-            I = [1, 2, 3]
-            b = BlockDecomposition.callback_spid(cbdata, model)
-            rc_y = BD.callback_reduced_cost(cbdata, y[b])
-            rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
+    function enumerative_pricing(cbdata)
+        # Get the reduced costs of the original variables
+        I = [1, 2, 3]
+        b = BlockDecomposition.callback_spid(cbdata, model)
+        rc_y = BD.callback_reduced_cost(cbdata, y[b])
+        rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
 
-            # check all possible solutions
-            sols = [[1], [2], [3], [1, 2], [1, 3], [2, 3]]
-            best_s = Int[]
-            best_rc = Inf
-            for s in sols
-                rc_s = rc_y + sum(rc_x[i] for i in s)
-                if rc_s < best_rc
-                    best_rc = rc_s
-                    best_s = s
-                end
+        # check all possible solutions
+        sols = [[1], [2], [3], [1, 2], [1, 3], [2, 3]]
+        best_s = Int[]
+        best_rc = Inf
+        for s in sols
+            rc_s = rc_y + sum(rc_x[i] for i in s)
+            if rc_s < best_rc
+                best_rc = rc_s
+                best_s = s
             end
+        end
 
-            # build the best one and submit
-            solcost = best_rc 
-            solvars = JuMP.VariableRef[]
-            solvarvals = Float64[]
-            for i in best_s
-                push!(solvars, x[b, i])
-                push!(solvarvals, 1.0)
-            end
-            push!(solvars, y[b])
+        # build the best one and submit
+        solcost = best_rc 
+        solvars = JuMP.VariableRef[]
+        solvarvals = Float64[]
+        for i in best_s
+            push!(solvars, x[b, i])
             push!(solvarvals, 1.0)
-
-            # Submit the solution
-            MOI.submit(
-                model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals
-            )
-            return
         end
-        subproblems = BD.getsubproblems(dec)
-        BD.specify!.(
-            subproblems, lower_multiplicity = 0, upper_multiplicity = 3,
-            solver = enumerative_pricing
+        push!(solvars, y[b])
+        push!(solvarvals, 1.0)
+
+        # Submit the solution
+        MOI.submit(
+            model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals
         )
+        return
+    end
+    subproblems = BD.getsubproblems(dec)
+    BD.specify!.(
+        subproblems, lower_multiplicity = 0, upper_multiplicity = 3,
+        solver = enumerative_pricing
+    )
 
-        function enumerative_finalizer(masterform, cbdata)
-            # Get the reduced costs of the original variables
-            I = [1, 2, 3]
-            b = BlockDecomposition.callback_spid(cbdata, model)
-            rc_y = BD.callback_reduced_cost(cbdata, y[b])
-            rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
-            @test (rc_y, rc_x) == (1.0, [-0.5, -0.5, -0.5])
+    function enumerative_finalizer(masterform, cbdata)
+        # Get the reduced costs of the original variables
+        I = [1, 2, 3]
+        b = BlockDecomposition.callback_spid(cbdata, model)
+        rc_y = BD.callback_reduced_cost(cbdata, y[b])
+        rc_x = [BD.callback_reduced_cost(cbdata, x[b, i]) for i in I]
+        @test (rc_y, rc_x) == (1.0, [-0.5, -0.5, -0.5])
 
-            # Add the columns that are possibly missing for the solution [[1], [2,3]] in the master problem
-            # [1]
-            opt = JuMP.backend(model)
-            vars = [y[b], x[b, 1]]
-            varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
-            push!(varids, cbdata.form.duty_data.setup_var)
-            sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-            _, col_id = ClMP.insert_column!(masterform, sol, "MC")
-            mc_1 = ClMP.getvar(masterform, col_id)
+        # Add the columns that are possibly missing for the solution [[1], [2,3]] in the master problem
+        # [1]
+        opt = JuMP.backend(model)
+        vars = [y[b], x[b, 1]]
+        varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
+        push!(varids, cbdata.form.duty_data.setup_var)
+        sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
+        col_id = ClMP.insert_column!(masterform, sol, "MC")
+        mc_1 = ClMP.getvar(masterform, col_id)
 
-            # [2, 3]
-            vars = [y[b], x[b, 2], x[b, 3]]
-            varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
-            push!(varids, cbdata.form.duty_data.setup_var)
-            sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
-            _, col_id = ClMP.insert_column!(masterform, sol, "MC")
-            mc_2_3 =  ClMP.getvar(masterform, col_id)
+        # [2, 3]
+        vars = [y[b], x[b, 2], x[b, 3]]
+        varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
+        push!(varids, cbdata.form.duty_data.setup_var)
+        sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
+        col_id = ClMP.insert_column!(masterform, sol, "MC")
+        mc_2_3 =  ClMP.getvar(masterform, col_id)
 
-            # add the solution to the master problem
-            varids = [ClMP.getid(mc_1), ClMP.getid(mc_2_3)]
-            primal_sol = ClMP.PrimalSolution(masterform, varids, [1.0, 1.0], 2.0, CL.FEASIBLE_SOL)
-            return !heuristic_finalizer, primal_sol
-        end
-
-        JuMP.optimize!(model)
-        @show JuMP.objective_value(model)
-        @test JuMP.termination_status(model) == MOI.OPTIMAL
-        for b in B
-            sets = BD.getsolutions(model, b)
-            for s in sets
-                @test BD.value(s) == 1.0 # value of the master column variable
-                @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 2]) # only x[1,1] in its set
-                @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 3]) # only x[1,1] in its set
-                @test BD.value(s, x[b, 2]) == BD.value(s, x[b, 3]) # x[1,2] and x[1,3] in the same set
-            end
-        end
+        # add the solution to the master problem
+        varids = [ClMP.getid(mc_1), ClMP.getid(mc_2_3)]
+        primal_sol = ClMP.PrimalSolution(masterform, varids, [1.0, 1.0], 2.0, CL.FEASIBLE_SOL)
+        return !heuristic_finalizer, primal_sol
     end
 
+    JuMP.optimize!(model)
+    @show JuMP.objective_value(model)
+    @test JuMP.termination_status(model) == MOI.OPTIMAL
+    for b in B
+        sets = BD.getsolutions(model, b)
+        for s in sets
+            @test BD.value(s) == 1.0 # value of the master column variable
+            @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 2]) # only x[1,1] in its set
+            @test BD.value(s, x[b, 1]) != BD.value(s, x[b, 3]) # only x[1,1] in its set
+            @test BD.value(s, x[b, 2]) == BD.value(s, x[b, 3]) # x[1,2] and x[1,3] in the same set
+        end
+    end
+end
+
+@testset "Old - node finalizer" begin
+    test_node_finalizer(false) # exact
+    test_node_finalizer(true)  # heuristic
 end

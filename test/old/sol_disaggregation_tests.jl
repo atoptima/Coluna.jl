@@ -1,4 +1,4 @@
-function sol_disaggregation_tests()
+@testset "Old - Disaggregated solution" begin
     I = 1:3
     @axis(BinsType, [1])
 
