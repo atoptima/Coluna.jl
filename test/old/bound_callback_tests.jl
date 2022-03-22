@@ -3,7 +3,7 @@
 # We know the branching constraint (deterministic behavior) applied at the second node (x[1, 1] >= 1)
 # We retrieve the current bounds of x[1, 1] in the pricing callback and we check that the last lower bound retrieved (so in the second node) is 1.
 # Test breaks because branching constraints are not updated to variable bounds yet.
-function bound_callback_tests()
+@testset "Old - bound_callback_tests" begin
     data = ClD.GeneralizedAssignment.data("play2.txt")
 
     coluna = JuMP.optimizer_with_attributes(
