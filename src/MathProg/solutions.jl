@@ -34,6 +34,10 @@ function PrimalSolution(
     return PrimalSolution{M}(sol, custom_data)
 end
 
+function Base.:(==)(a::PrimalSolution, b::PrimalSolution)
+    return a.solution == b.solution && a.custom_data == b.custom_data
+end
+
 # Dual Solution
 
 # Indicate whether the active bound of a variable is the lower or the upper one.
@@ -79,6 +83,11 @@ function DualSolution(
     end
     sol = Solution{M,ConstrId,Float64}(form, constrids, constrvals, cost, status)
     return DualSolution{M}(sol, var_redcosts, custom_data)
+end
+
+function Base.:(==)(a::DualSolution, b::DualSolution)
+    return a.solution == b.solution && a.var_redcosts == b.var_redcosts && 
+        a.custom_data == b.custom_data
 end
 
 get_var_redcosts(s::DualSolution) = s.var_redcosts

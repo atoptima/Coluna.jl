@@ -82,11 +82,11 @@ function BranchCutAndPriceAlgorithm(;
 
     colgen_stages = ColumnGeneration[]
 
-    for (stage, solver_id) in enumerate(colgen_stages_pricing_solvers)
+    for solver_id in colgen_stages_pricing_solvers
         colgen = ColumnGeneration(
             pricing_prob_solve_alg = SolveIpForm(
                 optimizer_id = solver_id,
-                user_params = UserOptimize(stage = stage), 
+                user_params = UserOptimize(), 
                 moi_params = MoiOptimize(
                     deactivate_artificial_vars = false,
                     enforce_integrality = false
@@ -97,7 +97,7 @@ function BranchCutAndPriceAlgorithm(;
             opt_atol = opt_atol,
             opt_rtol = opt_rtol
         )
-        push!(colgen_stages,  colgen)  
+        push!(colgen_stages, colgen)  
     end
 
     conquer = ColCutGenConquer(
@@ -123,7 +123,7 @@ function BranchCutAndPriceAlgorithm(;
                     colgen = ColumnGeneration(
                         pricing_prob_solve_alg = SolveIpForm(
                             optimizer_id = tuple.solverid,
-                            user_params = UserOptimize(stage = tuple.userstage), 
+                            user_params = UserOptimize(), 
                             moi_params = MoiOptimize(
                                 deactivate_artificial_vars = false,
                                 enforce_integrality = false

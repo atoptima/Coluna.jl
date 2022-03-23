@@ -30,7 +30,6 @@ end
 
 """
     UserOptimize(
-        stage = 1
         max_nb_ip_primal_sols = 50
     )
 
@@ -38,11 +37,8 @@ Configuration for an optimizer that calls a pricing callback to solve the proble
 
 Parameters:
 - `max_nb_ip_primal_sols`: maximum number of solutions returned by the callback kept
-
-Undocumented parameters are alpha.
 """
 @with_kw struct UserOptimize
-    stage::Int = 1
     max_nb_ip_primal_sols::Int = 50
 end
 
@@ -278,27 +274,20 @@ function run!(
     )
 
     optimizer = getoptimizer(spform, optimizer_id)
-    cbdata = MathProg.PricingCallbackData(spform, algo.stage)
+    cbdata = MathProg.PricingCallbackData(spform)
     optimizer.user_oracle(cbdata)
+    
+    for primal_sol in cbdata.primal_solutions
+        add_ip_primal_sol!(result, primal_sol)
+    end
+    set_ip_dual_bound!(result, DualBound(spform, cbdata.dual_bound))
 
-    if length(cbdata.primal_solutions) > 0
-        for primal_sol in cbdata.primal_solutions
-            add_ip_primal_sol!(result, primal_sol)
-        end
-
-        if algo.stage == 1 # stage 1 is exact by convention
-            dual_bound = getvalue(get_ip_primal_bound(result))
-            set_ip_dual_bound!(result, DualBound(spform, dual_bound))
-            setterminationstatus!(result, OPTIMAL) 
-        else    
-            setterminationstatus!(result, OTHER_LIMIT) 
-        end
+    if isunbounded(get_ip_dual_bound(result))
+        setterminationstatus!(result, INFEASIBLE_OR_UNBOUNDED)
+    elseif gap(get_ip_primal_bound(result), get_ip_dual_bound(result)) < 1e-4
+        setterminationstatus!(result, OPTIMAL)
     else
-        if algo.stage == 1    
-            setterminationstatus!(result, INFEASIBLE) 
-        else
-            setterminationstatus!(result, OTHER_LIMIT) 
-        end 
+        setterminationstatus!(result, OTHER_LIMIT)
     end
     return OptimizationOutput(result)
 end

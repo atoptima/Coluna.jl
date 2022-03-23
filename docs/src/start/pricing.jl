@@ -83,6 +83,11 @@ function my_pricing_callback(cbdata)
 
     ## Submit the solution to the subproblem to Coluna
     MOI.submit(model, BD.PricingSolution(cbdata), sol_cost, sol_vars, sol_vals)
+    
+    ## Submit the dual bound to the solution of the subproblem
+    ## This bound is used to compute to contribution of the subproblem to the lagrangian
+    ## bound in column generation.
+    MOI.submit(model, BD.PricingDualBound(cbdata), sol_cost) # optimal solution
     return
 end
 

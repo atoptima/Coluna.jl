@@ -160,18 +160,17 @@ function MOI.set(model::Optimizer, param::MOI.RawOptimizerAttribute, val)
     return
 end
 
-function _get_orig_varid(model::Optimizer, x::MOI.VariableIndex)
-    if haskey(model.varinfos, x)
-        return model.env.varids[x]
+function _get_orig_varid(env::Env, x::MOI.VariableIndex)
+    if haskey(env.varids, x)
+        return env.varids[x]
     end
     throw(MOI.InvalidIndex(x))
-    return origid
 end
 
-function _get_orig_varid_in_form(
-    model::Optimizer, form::Formulation, x::MOI.VariableIndex
+function _get_varid_of_origvar_in_form(
+    env::Env, form::Formulation, x::MOI.VariableIndex
 )
-    origid = _get_orig_varid(model, x)
+    origid = _get_orig_varid(env, x)
     return getid(getvar(form, origid))
 end
 

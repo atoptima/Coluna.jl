@@ -18,14 +18,14 @@ mutable struct UserOptimizer <: AbstractOptimizer
     user_oracle::Function
 end
 
-struct PricingCallbackData
+mutable struct PricingCallbackData
     form::Formulation
-    stage::Int
     primal_solutions::Vector{PrimalSolution}
+    dual_bound::Float64
 end
 
-function PricingCallbackData(form::F, stage::Int) where {F<:Formulation} 
-    return PricingCallbackData(form, stage, PrimalSolution{F}[])
+function PricingCallbackData(form::F) where {F<:Formulation} 
+    return PricingCallbackData(form, PrimalSolution{F}[], getvalue(DualBound(form)))
 end
 
 """

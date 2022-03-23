@@ -85,6 +85,17 @@ function gap(db::Bound{<:Dual,<:MaxSense}, pb::Bound{<:Primal,<:MaxSense})
 end
 
 """
+    isunbounded(pb)
+    isunbounded(db)
+
+Return true is the primal bound or the dual bound is unbounded.
+"""
+isunbounded(b::Bound{<:Primal,<:MinSense}) = getvalue(b) == -Inf
+isunbounded(b::Bound{<:Dual,<:MinSense}) = getvalue(b) == Inf
+isunbounded(b::Bound{<:Primal,<:MaxSense}) = getvalue(b) == Inf
+isunbounded(b::Bound{<:Dual,<:MaxSense}) = getvalue(b) == -Inf
+
+"""
     printbounds(db, pb [, io])
     
 Prints the lower and upper bound according to the objective sense.
@@ -270,6 +281,12 @@ Base.length(s::Solution) = length(s.sol)
 Base.get(s::Solution{Mo,De,Va}, id::De, default) where {Mo,De,Va} = s.sol[id]
 Base.getindex(s::Solution{Mo,De,Va}, id::De) where {Mo,De,Va} = Base.getindex(s.sol, id)
 Base.setindex!(s::Solution{Mo,De,Va}, val::Va, id::De) where {Mo,De,Va} = s.sol[id] = val
+
+Base.:(==)(::Solution, ::Solution) = false
+function Base.:(==)(a::S, b::S) where {S<:Solution}
+    return a.model == b.model && a.bound == b.bound && a.status == b.status &&
+            a.sol == b.sol
+end
 
 # TODO : remove when refactoring Benders
 function Base.filter(f::Function, s::S) where {S <: Solution}
