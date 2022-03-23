@@ -21,11 +21,12 @@ end
 mutable struct PricingCallbackData
     form::Formulation
     primal_solutions::Vector{PrimalSolution}
+    nb_times_dual_bound_set::Int
     dual_bound::Float64
 end
 
 function PricingCallbackData(form::F) where {F<:Formulation} 
-    return PricingCallbackData(form, PrimalSolution{F}[], getvalue(DualBound(form)))
+    return PricingCallbackData(form, PrimalSolution{F}[], 0, getvalue(DualBound(form)))
 end
 
 """

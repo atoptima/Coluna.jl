@@ -95,6 +95,18 @@ isunbounded(b::Bound{<:Dual,<:MinSense}) = getvalue(b) == Inf
 isunbounded(b::Bound{<:Primal,<:MaxSense}) = getvalue(b) == Inf
 isunbounded(b::Bound{<:Dual,<:MaxSense}) = getvalue(b) == -Inf
 
+
+"""
+    isinfeasible(pb)
+    isinfeasible(db)
+
+Return true is the primal bound or the dual bound is infeasible.
+"""
+isinfeasible(b::Bound{<:Primal,<:MinSense}) = getvalue(b) == Inf
+isinfeasible(b::Bound{<:Dual,<:MinSense}) = getvalue(b) == -Inf
+isinfeasible(b::Bound{<:Primal,<:MaxSense}) = getvalue(b) == -Inf
+isinfeasible(b::Bound{<:Dual,<:MaxSense}) = getvalue(b) == Inf
+
 """
     printbounds(db, pb [, io])
     
@@ -148,7 +160,7 @@ is translated into a Coluna `TerminationStatus`.
 Description of the termination statuses: 
 - `OPTIMAL` : the algorithm found a global optimal solution given the optimality tolerance
 - `INFEASIBLE` : the algorithm proved infeasibility
-- `UNBOUNDED` : the algorithm proved unboundedness
+- `DUAL_INFEASIBLE` : the algorithm proved unboundedness
 - `INFEASIBLE_OR_UNBOUNDED` : the algorithm proved infeasibility or unboundedness
 - `TIME_LIMIT` : the algorithm stopped because of the time limit
 - `NODE_LIMIT` : the branch-and-bound based algorithm stopped due to the node limit
@@ -162,7 +174,7 @@ If the conversion of a `MOI.TerminationStatusCode` returns `UNCOVERED_TERMINATIO
 Coluna should stop because it enters in an undefined behavior.
 """
 @enum(
-    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE, UNBOUNDED, INFEASIBLE_OR_UNBOUNDED,
+    TerminationStatus, OPTIMIZE_NOT_CALLED, OPTIMAL, INFEASIBLE, DUAL_INFEASIBLE, INFEASIBLE_OR_UNBOUNDED,
     TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS
 )
 
@@ -196,7 +208,7 @@ function convert_status(moi_status::MOI.TerminationStatusCode)
     moi_status == MOI.OPTIMIZE_NOT_CALLED && return OPTIMIZE_NOT_CALLED
     moi_status == MOI.OPTIMAL && return OPTIMAL
     moi_status == MOI.INFEASIBLE && return INFEASIBLE
-    moi_status == MOI.DUAL_INFEASIBLE && return UNBOUNDED
+    moi_status == MOI.DUAL_INFEASIBLE && return DUAL_INFEASIBLE
     moi_status == MOI.INFEASIBLE_OR_UNBOUNDED && return INFEASIBLE_OR_UNBOUNDED
     moi_status == MOI.TIME_LIMIT && return TIME_LIMIT
     moi_status == MOI.NODE_LIMIT && return NODE_LIMIT
@@ -209,7 +221,7 @@ function convert_status(coluna_status::TerminationStatus)
     coluna_status == OPTIMAL && return MOI.OPTIMAL
     coluna_status == INFEASIBLE_OR_UNBOUNDED && return MOI.INFEASIBLE_OR_UNBOUNDED
     coluna_status == INFEASIBLE && return MOI.INFEASIBLE
-    coluna_status == UNBOUNDED && return MOI.DUAL_INFEASIBLE
+    coluna_status == DUAL_INFEASIBLE && return MOI.DUAL_INFEASIBLE
     coluna_status == TIME_LIMIT && return MOI.TIME_LIMIT
     coluna_status == NODE_LIMIT && return MOI.NODE_LIMIT
     coluna_status == OTHER_LIMIT && return MOI.OTHER_LIMIT

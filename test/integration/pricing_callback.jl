@@ -15,16 +15,18 @@
         return env, form, vars, x
     end
 
-    @testset "cb does nothing" begin
+    @testset "cb returns a dual bound" begin
         env, form, vars, x = build_formulation(5)
 
-        function callback(_) end
+        function callback(cbdata)
+            CL._submit_dual_bound(cbdata, 0.5)
+        end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
         output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
         state = ClA.getoptstate(output)
         @test ClA.get_ip_primal_bound(state) == Inf
-        @test ClA.get_ip_dual_bound(state) == -Inf
+        @test ClA.get_ip_dual_bound(state) == 0.5
         @test ClA.getterminationstatus(state) == CL.OTHER_LIMIT
         @test isnothing(get_best_ip_primal_sol(state))
         @test isnothing(ClA.get_best_lp_primal_sol(state))
@@ -90,7 +92,7 @@
         @test isnothing(ClA.get_best_lp_primal_sol(state))
     end
 
-    @testset "cb returns infinite dual bound" begin
+    @testset "cb returns infinite dual bound (infeasible)" begin
         env, form, vars, x = build_formulation(5)
 
         function callback(cbdata)
@@ -103,8 +105,30 @@
         state = ClA.getoptstate(output)
         @test ClA.get_ip_primal_bound(state) == Inf
         @test ClA.get_ip_dual_bound(state) == Inf
-        @test ClA.getterminationstatus(state) == ClB.INFEASIBLE_OR_UNBOUNDED
+        @test ClA.getterminationstatus(state) == ClB.INFEASIBLE
         @test isnothing(get_best_ip_primal_sol(state))
+        @test isnothing(ClA.get_best_lp_primal_sol(state))
+    end
+
+    @testset "cb returns -infinite dual bound (dual infeasible)" begin
+        env, form, vars, x = build_formulation(5)
+
+        function callback(cbdata)
+            cost = -15.0
+            variables = [x[1].index, x[3].index] 
+            values = [1.0, 1.0]
+            custom_data = nothing
+            CL._submit_pricing_solution(env, cbdata, cost, variables, values, custom_data)
+            CL._submit_dual_bound(cbdata, -Inf)
+        end
+        push!(form.optimizers, ClMP.UserOptimizer(callback))
+
+        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
+        state = ClA.getoptstate(output)
+        @test ClA.get_ip_primal_bound(state) == -15.0
+        @test ClA.get_ip_dual_bound(state) == -Inf
+        @test ClA.getterminationstatus(state) == ClB.DUAL_INFEASIBLE
+        @test !isnothing(ClA.get_best_ip_primal_sol(state))
         @test isnothing(ClA.get_best_lp_primal_sol(state))
     end
 
@@ -121,8 +145,7 @@
         end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
-        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        # what should we return ?
+        @test_throws ClA.IncorrectPricingDualBound run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
     end
 
     @testset "cb returns solution but no dual bound" begin
@@ -137,7 +160,18 @@
         end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
-        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        # what should we return ? a warning and consider infinite dual bound ?
+        @test_throws ClA.MissingPricingDualBound run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
+    end
+
+    @testset "cb set dual bound twice" begin
+        env, form, vars, x = build_formulation(5)
+
+        function callback(cbdata)
+            CL._submit_dual_bound(cbdata, 1.0)
+            CL._submit_dual_bound(cbdata, 2.0)
+        end
+        push!(form.optimizers, ClMP.UserOptimizer(callback))
+
+        @test_throws ClA.MultiplePricingDualBounds run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
     end
 end

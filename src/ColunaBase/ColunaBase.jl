@@ -20,11 +20,11 @@ export NestedEnum, @nestedenum, @exported_nestedenum
 
 # solsandbounds.jl
 export Bound, Solution, getvalue, getbound, isbetter, diff, gap, printbounds,
-    getstatus, remove_until_last_point, getmodel, isunbounded
+    getstatus, remove_until_last_point, getmodel, isunbounded, isinfeasible
 
 # Statuses
 export TerminationStatus, SolutionStatus, OPTIMIZE_NOT_CALLED, OPTIMAL,
-    INFEASIBLE, UNBOUNDED, INFEASIBLE_OR_UNBOUNDED, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS, 
+    INFEASIBLE, DUAL_INFEASIBLE, INFEASIBLE_OR_UNBOUNDED, TIME_LIMIT, NODE_LIMIT, OTHER_LIMIT, UNCOVERED_TERMINATION_STATUS, 
     FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, UNKNOWN_SOLUTION_STATUS, 
     UNCOVERED_SOLUTION_STATUS, convert_status
 

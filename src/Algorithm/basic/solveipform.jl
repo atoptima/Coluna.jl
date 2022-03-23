@@ -262,6 +262,39 @@ function optimize_ip_form!(
     return primal_sols
 end
 
+
+# errors for the pricing callback
+"""
+    IncorrectPricingDualBound
+
+Error thrown when transmitting a dual bound larger than the primal bound of the 
+best solution to the pricing subproblem found in a run of the pricing callback.
+"""
+struct IncorrectPricingDualBound{Sense}
+    pb::PrimalBound{Sense}
+    db::DualBound{Sense}
+end
+
+"""
+    MissingPricingDualBound
+
+Error thrown when the pricing callback does not transmit any dual bound.
+Make sure you call `MOI.submit(model, BD.PricingDualBound(cbdata), db)` in your pricing
+callback.
+"""
+struct MissingPricingDualBound end
+
+"""
+    MultiplePricingDualBounds
+
+Error thrown when the pricing transmits multiple dual bound.
+Make sure you call `MOI.submit(model, BD.PricingDualBound(cbdata), db)` only once in your 
+pricing callback.
+"""
+struct MultiplePricingDualBounds 
+    nb_dual_bounds::Int
+end
+
 # run! of UserOptimize
 function run!(
     algo::UserOptimize, ::Env, spform::Formulation{DwSp}, input::OptimizationInput;
@@ -276,16 +309,28 @@ function run!(
     optimizer = getoptimizer(spform, optimizer_id)
     cbdata = MathProg.PricingCallbackData(spform)
     optimizer.user_oracle(cbdata)
-    
+
+    if cbdata.nb_times_dual_bound_set == 0
+        throw(MissingPricingDualBound())
+    elseif cbdata.nb_times_dual_bound_set > 1
+        throw(MultiplePricingDualBounds(cbdata.nb_times_dual_bound_set))
+    end
+
     for primal_sol in cbdata.primal_solutions
         add_ip_primal_sol!(result, primal_sol)
     end
     set_ip_dual_bound!(result, DualBound(spform, cbdata.dual_bound))
 
-    if isunbounded(get_ip_dual_bound(result))
-        setterminationstatus!(result, INFEASIBLE_OR_UNBOUNDED)
-    elseif gap(get_ip_primal_bound(result), get_ip_dual_bound(result)) < 1e-4
+    pb = get_ip_primal_bound(result)
+    db = get_ip_dual_bound(result)
+    if isunbounded(db)
+        setterminationstatus!(result, INFEASIBLE)
+    elseif isinfeasible(db)
+        setterminationstatus!(result, DUAL_INFEASIBLE)
+    elseif abs(gap(pb, db)) <= 1e-4
         setterminationstatus!(result, OPTIMAL)
+    elseif gap(pb, db) < -1e-4
+        throw(IncorrectPricingDualBound(pb, db))
     else
         setterminationstatus!(result, OTHER_LIMIT)
     end

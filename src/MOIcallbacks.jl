@@ -48,7 +48,11 @@ function MOI.submit(
     return _submit_pricing_solution(model.env, cb.callback_data, cost, variables, values, custom_data)
 end
 
-_submit_dual_bound(cbdata, bound) = cbdata.dual_bound = bound
+function _submit_dual_bound(cbdata, bound)
+    cbdata.dual_bound = bound
+    cbdata.nb_times_dual_bound_set += 1
+    return
+end
 
 function MOI.submit(
     ::Optimizer,
