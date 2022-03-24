@@ -112,6 +112,7 @@ end
             model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals,
             MyCustomVarData(length(best_s))
         )
+        MOI.submit(model, BD.PricingDualBound(cbdata), solcost)
         return
     end
     subproblems = BD.getsubproblems(dec)

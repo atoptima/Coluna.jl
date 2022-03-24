@@ -72,6 +72,7 @@
         MOI.submit(
             model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals
         )
+        MOI.submit(model, BD.PricingDualBound(cbdata), solcost)
         return
     end
 
