@@ -3,7 +3,10 @@ const Dual = Coluna.AbstractDualSpace
 const MinSense = Coluna.AbstractMinSense
 const MaxSense = Coluna.AbstractMaxSense
 
-struct FakeModel <: ClB.AbstractModel end
+struct FakeModel <: ClB.AbstractModel 
+    id::Int
+end
+FakeModel() = FakeModel(1)
 
 const Solution = ClB.Solution{FakeModel,Int,Float64}
 
@@ -218,7 +221,7 @@ end
         (MOI.OPTIMIZE_NOT_CALLED, ClB.OPTIMIZE_NOT_CALLED),
         (MOI.OPTIMAL, ClB.OPTIMAL),
         (MOI.INFEASIBLE, ClB.INFEASIBLE),
-        (MOI.DUAL_INFEASIBLE, ClB.UNBOUNDED),
+        (MOI.DUAL_INFEASIBLE, ClB.DUAL_INFEASIBLE),
         (MOI.INFEASIBLE_OR_UNBOUNDED, ClB.INFEASIBLE_OR_UNBOUNDED),
         (MOI.TIME_LIMIT, ClB.TIME_LIMIT),
         (MOI.NODE_LIMIT, ClB.NODE_LIMIT),
@@ -292,27 +295,56 @@ function test_solution_iterations(solution::ClB.Solution, dict::Dict)
 end
 
 @testset "ColunaBase - Solution" begin
-    model = FakeModel()
+    @testset "constructor, iterate, and print" begin
+        model = FakeModel()
 
-    dict_sol, soldecs, solvals = solution_factory(100)
-    primal_sol = Solution(model, soldecs, solvals, 12.3, ClB.FEASIBLE_SOL)
-    test_solution_iterations(primal_sol, dict_sol)
-    @test ClB.getvalue(primal_sol) == 12.3
-    @test ClB.getstatus(primal_sol) == ClB.FEASIBLE_SOL
-    
-    dict_sol = Dict(1 => 2.0, 2 => 3.0, 3 => 4.0)
-    primal_sol = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 0.0, ClB.FEASIBLE_SOL)
-    
-    @test iterate(primal_sol) == iterate(primal_sol.sol)
-    _, state = iterate(primal_sol)
-    @test iterate(primal_sol, state) == iterate(primal_sol.sol, state)
-    @test length(primal_sol) == 3
-    @test primal_sol[1] == 2.0
-    primal_sol[1] = 5.0 # change the value
-    @test primal_sol[1] == 5.0
-    
-    io = IOBuffer()
-    show(io, primal_sol)
+        dict_sol, soldecs, solvals = solution_factory(100)
+        primal_sol = Solution(model, soldecs, solvals, 12.3, ClB.FEASIBLE_SOL)
+        test_solution_iterations(primal_sol, dict_sol)
+        @test ClB.getvalue(primal_sol) == 12.3
+        @test ClB.getstatus(primal_sol) == ClB.FEASIBLE_SOL
+        
+        dict_sol = Dict(1 => 2.0, 2 => 3.0, 3 => 4.0)
+        primal_sol = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 0.0, ClB.FEASIBLE_SOL)
+        
+        @test iterate(primal_sol) == iterate(primal_sol.sol)
+        _, state = iterate(primal_sol)
+        @test iterate(primal_sol, state) == iterate(primal_sol.sol, state)
+        @test length(primal_sol) == 3
+        @test primal_sol[1] == 2.0
+        primal_sol[1] = 5.0 # change the value
+        @test primal_sol[1] == 5.0
+        
+        io = IOBuffer()
+        show(io, primal_sol)
 
-    @test String(take!(io)) == "Solution\n| 1 = 5.0\n| 2 = 3.0\n| 3 = 4.0\n└ value = 0.00 \n"
+        @test String(take!(io)) == "Solution\n| 1 = 5.0\n| 2 = 3.0\n| 3 = 4.0\n└ value = 0.00 \n"
+    end
+
+    @testset "isequal" begin
+        model = FakeModel()
+        model2 = FakeModel(2)
+
+        dict_sol = Dict(1 => 2.0, 2 => 5.0, 3 => 8.0, 9 => 15.0)
+        dict_sol2 = Dict(1 => 2.0, 2 => 5.0, 3 => 7.0, 9 => 15.0) # key 3 has different value
+        dict_sol3 = Dict(1 => 2.0, 2 => 5.0, 3 => 8.0, 9 => 15.0, 10 => 11.0) # new key 10
+        dict_sol4 = Dict(1 => 2.0, 2 => 5.0, 3 => 8.0) # missing key 9
+
+        sol1 = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 12.0, ClB.FEASIBLE_SOL)
+        sol2 = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 12.0, ClB.FEASIBLE_SOL)
+        sol3 = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 15.0, ClB.FEASIBLE_SOL)
+        sol4 = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 12.0, ClB.INFEASIBLE_SOL)
+        sol5 = Solution(model2, collect(keys(dict_sol)), collect(values(dict_sol)), 12.0, ClB.FEASIBLE_SOL)
+        sol6 = Solution(model, collect(keys(dict_sol2)), collect(values(dict_sol2)), 12.0, ClB.FEASIBLE_SOL)
+        sol7 = Solution(model, collect(keys(dict_sol3)), collect(values(dict_sol3)), 12.0, ClB.FEASIBLE_SOL)
+        sol8 = Solution(model, collect(keys(dict_sol4)), collect(values(dict_sol4)), 12.0, ClB.FEASIBLE_SOL)
+        
+        @test sol1 == sol2
+        @test sol1 != sol3 # different cost
+        @test sol1 != sol4 # different solution status
+        @test sol1 != sol5 # different model
+        @test sol1 != sol6 # different solution
+        @test sol1 != sol7
+        @test sol1 != sol8
+    end
 end

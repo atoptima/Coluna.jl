@@ -148,7 +148,7 @@ struct PreprocessingOutput <: AbstractOutput
     infeasible::Bool
 end
 
-isinfeasible(output::PreprocessingOutput) = output.infeasible
+#isinfeasible(output::PreprocessingOutput) = output.infeasible
 
 """
     PreprocessingAlgorithm

@@ -15,7 +15,7 @@ function ClA.run!(
 )::ClA.OptimizationOutput
     masterform = ClMP.getmaster(reform)
     _, spform = first(ClMP.get_dw_pricing_sps(reform))
-    cbdata = ClMP.PricingCallbackData(spform, 1)
+    cbdata = ClMP.PricingCallbackData(spform)
     isopt, primal_sol = algo.optimizer(masterform, cbdata)
     result = ClA.OptimizationState(
         masterform, 
@@ -103,6 +103,7 @@ function test_node_finalizer(heuristic_finalizer)
         MOI.submit(
             model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals
         )
+        MOI.submit(model, BD.PricingDualBound(cbdata), solcost)
         return
     end
     subproblems = BD.getsubproblems(dec)
@@ -123,7 +124,7 @@ function test_node_finalizer(heuristic_finalizer)
         # [1]
         opt = JuMP.backend(model)
         vars = [y[b], x[b, 1]]
-        varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
+        varids = [CL._get_varid_of_origvar_in_form(opt.env, cbdata.form, v) for v in JuMP.index.(vars)]
         push!(varids, cbdata.form.duty_data.setup_var)
         sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
         col_id = ClMP.insert_column!(masterform, sol, "MC")
@@ -131,7 +132,7 @@ function test_node_finalizer(heuristic_finalizer)
 
         # [2, 3]
         vars = [y[b], x[b, 2], x[b, 3]]
-        varids = [CL._get_orig_varid_in_form(opt, cbdata.form, v) for v in JuMP.index.(vars)]
+        varids = [CL._get_varid_of_origvar_in_form(opt.env, cbdata.form, v) for v in JuMP.index.(vars)]
         push!(varids, cbdata.form.duty_data.setup_var)
         sol = ClMP.PrimalSolution(cbdata.form, varids, [1.0, 1.0, 1.0, 1.0], 1.0, CL.FEASIBLE_SOL)
         col_id = ClMP.insert_column!(masterform, sol, "MC")

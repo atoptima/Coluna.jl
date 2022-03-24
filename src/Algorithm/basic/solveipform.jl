@@ -30,7 +30,6 @@ end
 
 """
     UserOptimize(
-        stage = 1
         max_nb_ip_primal_sols = 50
     )
 
@@ -38,11 +37,8 @@ Configuration for an optimizer that calls a pricing callback to solve the proble
 
 Parameters:
 - `max_nb_ip_primal_sols`: maximum number of solutions returned by the callback kept
-
-Undocumented parameters are alpha.
 """
 @with_kw struct UserOptimize
-    stage::Int = 1
     max_nb_ip_primal_sols::Int = 50
 end
 
@@ -266,6 +262,39 @@ function optimize_ip_form!(
     return primal_sols
 end
 
+
+# errors for the pricing callback
+"""
+    IncorrectPricingDualBound
+
+Error thrown when transmitting a dual bound larger than the primal bound of the 
+best solution to the pricing subproblem found in a run of the pricing callback.
+"""
+struct IncorrectPricingDualBound{Sense}
+    pb::PrimalBound{Sense}
+    db::DualBound{Sense}
+end
+
+"""
+    MissingPricingDualBound
+
+Error thrown when the pricing callback does not transmit any dual bound.
+Make sure you call `MOI.submit(model, BD.PricingDualBound(cbdata), db)` in your pricing
+callback.
+"""
+struct MissingPricingDualBound end
+
+"""
+    MultiplePricingDualBounds
+
+Error thrown when the pricing transmits multiple dual bound.
+Make sure you call `MOI.submit(model, BD.PricingDualBound(cbdata), db)` only once in your 
+pricing callback.
+"""
+struct MultiplePricingDualBounds 
+    nb_dual_bounds::Int
+end
+
 # run! of UserOptimize
 function run!(
     algo::UserOptimize, ::Env, spform::Formulation{DwSp}, input::OptimizationInput;
@@ -278,27 +307,32 @@ function run!(
     )
 
     optimizer = getoptimizer(spform, optimizer_id)
-    cbdata = MathProg.PricingCallbackData(spform, algo.stage)
+    cbdata = MathProg.PricingCallbackData(spform)
     optimizer.user_oracle(cbdata)
 
-    if length(cbdata.primal_solutions) > 0
-        for primal_sol in cbdata.primal_solutions
-            add_ip_primal_sol!(result, primal_sol)
-        end
+    if cbdata.nb_times_dual_bound_set == 0
+        throw(MissingPricingDualBound())
+    elseif cbdata.nb_times_dual_bound_set > 1
+        throw(MultiplePricingDualBounds(cbdata.nb_times_dual_bound_set))
+    end
 
-        if algo.stage == 1 # stage 1 is exact by convention
-            dual_bound = getvalue(get_ip_primal_bound(result))
-            set_ip_dual_bound!(result, DualBound(spform, dual_bound))
-            setterminationstatus!(result, OPTIMAL) 
-        else    
-            setterminationstatus!(result, OTHER_LIMIT) 
-        end
+    for primal_sol in cbdata.primal_solutions
+        add_ip_primal_sol!(result, primal_sol)
+    end
+    set_ip_dual_bound!(result, DualBound(spform, cbdata.dual_bound))
+
+    pb = get_ip_primal_bound(result)
+    db = get_ip_dual_bound(result)
+    if isunbounded(db)
+        setterminationstatus!(result, INFEASIBLE)
+    elseif isinfeasible(db)
+        setterminationstatus!(result, DUAL_INFEASIBLE)
+    elseif abs(gap(pb, db)) <= 1e-4
+        setterminationstatus!(result, OPTIMAL)
+    elseif gap(pb, db) < -1e-4
+        throw(IncorrectPricingDualBound(pb, db))
     else
-        if algo.stage == 1    
-            setterminationstatus!(result, INFEASIBLE) 
-        else
-            setterminationstatus!(result, OTHER_LIMIT) 
-        end 
+        setterminationstatus!(result, OTHER_LIMIT)
     end
     return OptimizationOutput(result)
 end

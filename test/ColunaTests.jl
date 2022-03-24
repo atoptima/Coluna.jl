@@ -9,6 +9,7 @@ module ColunaTests
     const MOIU = MOI.Utilities
     const MOIT = MOI.Test
     const MOIB = MOI.Bridges
+    const CleverDicts = MOI.Utilities.CleverDicts
 
     const CL = Coluna
     const ClD = ColunaDemos
@@ -28,6 +29,14 @@ module ColunaTests
         for filename in readdir(dirpath)
             include(joinpath(dirpath, filename))
         end
+    end
+
+    ########################################################################################
+    # Integration tests
+    ########################################################################################
+    dirpath = joinpath(@__DIR__, "integration")
+    for filename in readdir(dirpath)
+        include(joinpath(dirpath, filename))
     end
 
     ########################################################################################

@@ -59,7 +59,8 @@ function Coluna.Algorithm.run!(
         add_to_solution!(partsol_unit, first(var_vals[1]), 1.0)
 
         prp_output = run!(algo.preprocess, env, reform, EmptyInput())
-        isinfeasible(prp_output) && break
+        #isinfeasible(prp_output) && break
+        prp_output.infeasible && break
     
         cg_run_number += 1
     end

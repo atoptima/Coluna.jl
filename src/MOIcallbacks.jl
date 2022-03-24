@@ -16,6 +16,27 @@ end
 ############################################################################################
 #  Pricing Callback                                                                        #
 ############################################################################################
+function _submit_pricing_solution(env, cbdata, cost, variables, values, custom_data)
+    form = cbdata.form
+    solval = cost
+    colunavarids = [_get_varid_of_origvar_in_form(env, form, v) for v in variables]
+
+    # setup variable
+    setup_var_id = form.duty_data.setup_var
+    if setup_var_id !== nothing
+        push!(colunavarids, setup_var_id)
+        push!(values, 1.0)
+        solval += getcurcost(form, setup_var_id)
+    end
+
+    sol = PrimalSolution(
+        form, colunavarids, values, solval, FEASIBLE_SOL; 
+        custom_data = custom_data
+    )
+    push!(cbdata.primal_solutions, sol)
+    return
+end
+
 function MOI.submit(
     model::Optimizer,
     cb::BD.PricingSolution{MathProg.PricingCallbackData},
@@ -24,22 +45,21 @@ function MOI.submit(
     values::Vector{Float64},
     custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
 )
-    form = cb.callback_data.form
-    solval = cost
-    colunavarids = [_get_orig_varid_in_form(model, form, v) for v in variables]
+    return _submit_pricing_solution(model.env, cb.callback_data, cost, variables, values, custom_data)
+end
 
-    # setup variable
-    setup_var_id = form.duty_data.setup_var
-    push!(colunavarids, setup_var_id)
-    push!(values, 1.0)
-    solval += getcurcost(form, setup_var_id)
-
-    sol = PrimalSolution(
-        form, colunavarids, values, solval, FEASIBLE_SOL; 
-        custom_data = custom_data
-    )
-    push!(cb.callback_data.primal_solutions, sol)
+function _submit_dual_bound(cbdata, bound)
+    cbdata.dual_bound = bound
+    cbdata.nb_times_dual_bound_set += 1
     return
+end
+
+function MOI.submit(
+    ::Optimizer,
+    cb::BD.PricingDualBound{MathProg.PricingCallbackData},
+    bound
+)
+    return _submit_dual_bound(cb.callback_data, bound)
 end
 
 function MOI.get(model::Optimizer, spid::BD.PricingSubproblemId{MathProg.PricingCallbackData})
@@ -49,28 +69,40 @@ function MOI.get(model::Optimizer, spid::BD.PricingSubproblemId{MathProg.Pricing
     return axis_index_value
 end
 
+function _get_pricing_var_cost(env::Env, cbdata, x)
+    form = cbdata.form
+    return getcurcost(form, _get_orig_varid(env, x))
+end
+
 function MOI.get(
     model::Optimizer, pvc::BD.PricingVariableCost{MathProg.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = pvc.callback_data.form
-    return getcurcost(form, _get_orig_varid(model, x))
+    return _get_pricing_var_cost(model.env, pvc.callback_data, x)
+end
+
+function _get_pricing_var_lb(env::Env, cbdata, x)
+    form = cbdata.form
+    return  getcurlb(form, _get_orig_varid(env, x))
 end
 
 function MOI.get(
     model::Optimizer, pvlb::BD.PricingVariableLowerBound{MathProg.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = pvlb.callback_data.form
-    return getcurlb(form, _get_orig_varid(model, x))
+    return _get_pricing_var_lb(model.env, pvlb.callback_data, x)
+end
+
+function _get_pricing_var_ub(env::Env, cbdata, x)
+    form = cbdata.form
+    return getcurub(form, _get_orig_varid(env, x))
 end
 
 function MOI.get(
     model::Optimizer, pvub::BD.PricingVariableUpperBound{MathProg.PricingCallbackData}, 
     x::MOI.VariableIndex
 )
-    form = pvub.callback_data.form
-    return getcurub(form, _get_orig_varid(model, x))
+    return _get_pricing_var_ub(model.env, pvub.callback_data, x)
 end
 
 ############################################################################################
@@ -90,8 +122,7 @@ function MOI.get(
     model::Optimizer, cvp::MOI.CallbackVariablePrimal{Algorithm.RobustCutCallbackContext},
     x::MOI.VariableIndex
 )
-    form = cvp.callback_data.form
-    return get(cvp.callback_data.proj_sol_dict, _get_orig_varid(model, x), 0.0)
+    return get(cvp.callback_data.proj_sol_dict, _get_orig_varid(model.env, x), 0.0)
 end
 
 function MOI.submit(
@@ -107,7 +138,7 @@ function MOI.submit(
     lhs = 0.0
     members = Dict{VarId, Float64}()
     for term in func.terms
-        varid = _get_orig_varid_in_form(model, form, term.variable)
+        varid = _get_varid_of_origvar_in_form(model.env, form, term.variable)
         members[varid] = term.coefficient
         lhs += term.coefficient * get(cb.callback_data.proj_sol_dict, varid, 0.0)
     end
