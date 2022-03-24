@@ -1,17 +1,6 @@
-using LightGraphs
-
-function full_instances_tests()
-    generalized_assignment_tests()
-    capacitated_lot_sizing_tests()
-    lot_sizing_tests()
-    # facility_location_tests()
-    cutting_stock_tests()
-    cvrp_tests()
-end
-
-function generalized_assignment_tests()
-    @testset "play gap" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+@testset "Generalized Assignment" begin
+    @testset "toy instance" begin
+        data = ClD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -21,7 +10,7 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
         BD.objectiveprimalbound!(model, 100)
         BD.objectivedualbound!(model, 0)
 
@@ -29,13 +18,13 @@ function generalized_assignment_tests()
 
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+        @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
         @test MOI.get(model, MOI.NumberOfVariables()) == length(x)
         @test MOI.get(model, MOI.SolverName()) == "Coluna"
     end
 
-    @testset "gap - JuMP/MOI modeling" begin
-        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    @testset "small instance" begin
+        data = ClD.GeneralizedAssignment.data("smallgap3.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -43,18 +32,18 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
         BD.objectiveprimalbound!(model, 500.0)
         BD.objectivedualbound!(model, 0.0)
 
         JuMP.optimize!(model)
         @test JuMP.objective_value(model) ≈ 438.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+        @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
     
-    @testset "gap - strong branching" begin
-        data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
+    @testset "strong branching" begin
+        data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -70,7 +59,7 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
 
         # we increase the branching priority of variables which assign jobs to the first two machines
         for machine in 1:2
@@ -86,11 +75,11 @@ function generalized_assignment_tests()
 
         @test JuMP.objective_value(model) ≈ 1553.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, model, x)
+        @test ClD.GeneralizedAssignment.print_and_check_sol(data, model, x)
     end
 
-    @testset "gap - node limit" begin
-        data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
+    @testset "node limit" begin # TODO -> replace by unit test for tree search algorithm
+        data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -102,7 +91,7 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
         BD.objectiveprimalbound!(model, 2000.0)
         BD.objectivedualbound!(model, 0.0)
 
@@ -113,8 +102,8 @@ function generalized_assignment_tests()
         return
     end
 
-    @testset "gap - ColGen max nb iterations" begin
-        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    @testset "ColGen max nb iterations" begin
+        data = ClD.GeneralizedAssignment.data("smallgap3.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -128,16 +117,16 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
 
         JuMP.optimize!(problem)
         @test abs(JuMP.objective_value(problem) - 438.0) <= 0.00001
         @test JuMP.termination_status(problem) == MOI.OPTIMAL # Problem with final dual bound ?
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
+        @test ClD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
     end
 
-    @testset "gap with penalties - pure master variables" begin
-        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    @testset "pure master variables (GAP with penalties)" begin
+        data = ClD.GeneralizedAssignment.data("smallgap3.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -145,14 +134,14 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalties(data, coluna)
+        problem, x, y, dec = ClD.GeneralizedAssignment.model_with_penalties(data, coluna)
         JuMP.optimize!(problem)
         @test JuMP.termination_status(problem) == MOI.OPTIMAL
         @test abs(JuMP.objective_value(problem) - 416.4) <= 0.00001
     end
 
-    @testset "gap with maximisation objective function" begin
-        data = CLD.GeneralizedAssignment.data("smallgap3.txt")
+    @testset "maximisation objective function" begin
+        data = ClD.GeneralizedAssignment.data("smallgap3.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -160,14 +149,14 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model_max(data, coluna)
+        problem, x, dec = ClD.GeneralizedAssignment.model_max(data, coluna)
         JuMP.optimize!(problem)
         @test JuMP.termination_status(problem) == MOI.OPTIMAL
         @test abs(JuMP.objective_value(problem) - 580.0) <= 0.00001
     end
 
-    @testset "gap with infeasible master" begin
-        data = CLD.GeneralizedAssignment.data("master_infeas.txt")
+    @testset "infeasible master" begin
+        data = ClD.GeneralizedAssignment.data("master_infeas.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -175,15 +164,15 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
 
         JuMP.optimize!(problem)
         @test JuMP.termination_status(problem) == MOI.INFEASIBLE
     end
 
     # Issue 520 : https://github.com/atoptima/Coluna.jl/issues/520
-    @testset "gap with infeasible master 2" begin
-        data = CLD.GeneralizedAssignment.data("master_infeas2.txt")
+    @testset "infeasible master 2" begin
+        data = ClD.GeneralizedAssignment.data("master_infeas2.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -191,14 +180,14 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
 
         JuMP.optimize!(problem)
         @test JuMP.termination_status(problem) == MOI.INFEASIBLE
     end
 
-    @testset "gap with infeasible subproblem" begin
-        data = CLD.GeneralizedAssignment.data("sp_infeas.txt")
+    @testset "infeasible subproblem" begin
+        data = ClD.GeneralizedAssignment.data("sp_infeas.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -206,14 +195,14 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment(data, coluna)
+        problem, x, dec = ClD.GeneralizedAssignment(data, coluna)
 
         JuMP.optimize!(problem)
         @test JuMP.termination_status(problem) == MOI.INFEASIBLE
     end
 
-    @testset "gap with all phases in col.gen" begin
-        data = CLD.GeneralizedAssignment.data("mediumgapcuts1.txt")
+    @testset "gap with all phases in col.gen" begin # TODO: replace by unit tests for ColCutGenConquer.
+        data = ClD.GeneralizedAssignment.data("mediumgapcuts1.txt")
         for m in data.machines
             data.capacity[m] = floor(Int, data.capacity[m] * 0.5)
         end
@@ -228,14 +217,14 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        problem, x, y, dec = CLD.GeneralizedAssignment.model_with_penalty(data, coluna)
+        problem, x, y, dec = ClD.GeneralizedAssignment.model_with_penalty(data, coluna)
 
         JuMP.optimize!(problem)
         @test abs(JuMP.objective_value(problem) - 31895.0) <= 0.00001
     end
 
     @testset "gap with max. obj., pure mast. vars., and stabilization" begin
-        data = CLD.GeneralizedAssignment.data("gapC-5-100.txt")
+        data = ClD.GeneralizedAssignment.data("gapC-5-100.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -248,7 +237,7 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        model, x, y, dec = CLD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
+        model, x, y, dec = ClD.GeneralizedAssignment.max_model_with_subcontracts(data, coluna)
 
         JuMP.optimize!(model)
 
@@ -256,31 +245,15 @@ function generalized_assignment_tests()
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
 
-    @testset "play gap" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
-
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
-        )
-
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
-        JuMP.optimize!(problem)
-        @test abs(JuMP.objective_value(problem) - 75.0) <= 0.00001
-        @test JuMP.termination_status(problem) == MOI.OPTIMAL
-        @test CLD.GeneralizedAssignment.print_and_check_sol(data, problem, x)
-    end
-
-    @testset "play gap with no solver" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+    @testset "toy instance with no solver" begin
+        data = ClD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
             "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm())
         )
 
-        problem, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        problem, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
         try
             JuMP.optimize!(problem)
         catch e
@@ -291,8 +264,8 @@ function generalized_assignment_tests()
     # We solve the GAP but only one set-partionning constraint (for job 1) is
     # put in the formulation before starting optimization.
     # Other set-partionning constraints are added in the essential cut callback.
-    @testset "play gap with lazy cuts" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+    @testset "toy instance with lazy cuts" begin
+        data = ClD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             Coluna.Optimizer,
@@ -334,8 +307,8 @@ function generalized_assignment_tests()
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
 
-    @testset "play gap with best dual bound" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
+    @testset "toy instance with best dual bound" begin
+        data = ClD.GeneralizedAssignment.data("play2.txt")
 
         coluna = JuMP.optimizer_with_attributes(
             CL.Optimizer,
@@ -347,102 +320,10 @@ function generalized_assignment_tests()
             "default_optimizer" => GLPK.Optimizer
         )
 
-        model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+        model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
 
         optimize!(model)
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
-    return
-end
-
-function lot_sizing_tests()
-    @testset "play single mode multi items lot sizing" begin
-        data = CLD.SingleModeMultiItemsLotSizing.data("lotSizing-3-20-2.txt")
-
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(
-                solver = ClA.BendersCutGeneration()
-            ),
-            "default_optimizer" => GLPK.Optimizer
-        )
-
-        problem, x, y, dec = CLD.SingleModeMultiItemsLotSizing.model(data, coluna)
-        JuMP.optimize!(problem)
-        @test 600 - 1e-6 <= objective_value(problem) <= 600 + 1e-6
-    end
-    return
-end
-
-function capacitated_lot_sizing_tests()
-    @testset "clsp small instance" begin
-        data = CLD.CapacitatedLotSizing.readData("testSmall")
-
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
-        )
-
-        model, x, y, s, dec = CLD.CapacitatedLotSizing.model(data, coluna)
-        JuMP.optimize!(model)
-
-        @test JuMP.termination_status(model) == MOI.OPTIMAL
-    end
-end
-
-function facility_location_tests()
-    @testset "play facility location test " begin
-        data = CLD.FacilityLocation.data("play.txt")
-
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(
-                solver = ClA.BendersCutGeneration()
-            ),
-            "default_optimizer" => GLPK.Optimizer
-        )
-
-        problem, x, y, dec = CLD.FacilityLocation.model(data, coluna)
-        JuMP.optimize!(problem)
-    end
-    return
-end
-
-function cutting_stock_tests()
-    @testset "play cutting stock" begin
-        data = CLD.CuttingStock.data("randomInstances/inst10-10")
-
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
-        )
-
-        problem, x, y, dec = CLD.CuttingStock.model(data, coluna)
-        JuMP.optimize!(problem)
-        @test 4 - 1e-6 <= objective_value(problem) <= 4 + 1e-6
-    end
-    return
-end
-
-function cvrp_tests()
-    @testset "play cvrp" begin
-        data = CLD.CapacitatedVehicleRouting.data("A-n16-k3.vrp")
-
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(
-                maxnumnodes = 10000,
-                branchingtreefile = "cvrp.dot"
-            )),
-            "default_optimizer" => GLPK.Optimizer
-        )
-
-        model, x, dec = CLD.CapacitatedVehicleRouting.model(data, coluna)
-        JuMP.optimize!(model)
-        @test objective_value(model) ≈ 504
-    end
-    return
 end

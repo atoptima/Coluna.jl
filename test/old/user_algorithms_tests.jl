@@ -52,14 +52,15 @@ function Coluna.Algorithm.run!(
 
         sort!(var_vals, by = x -> last(x), rev = true)
 
-        preprocess_unit = Coluna.ColunaBase.getstorageunit(reform, PreprocessingUnit)
-        partsol_unit = Coluna.ColunaBase.getstorageunit(master, PartialSolutionUnit)
+        preprocess_unit = ClB.getstorageunit(reform, PreprocessingUnit)
+        partsol_unit = ClB.getstorageunit(master, PartialSolutionUnit)
     
         add_to_localpartialsol!(preprocess_unit, first(var_vals[1]), 1.0)
         add_to_solution!(partsol_unit, first(var_vals[1]), 1.0)
 
         prp_output = run!(algo.preprocess, env, reform, EmptyInput())
-        isinfeasible(prp_output) && break
+        #isinfeasible(prp_output) && break
+        prp_output.infeasible && break
     
         cg_run_number += 1
     end
@@ -72,8 +73,8 @@ function Coluna.Algorithm.run!(
     return OptimizationOutput(optstate)
 end
 
-function conseq_colgen_test()
-    data = CLD.GeneralizedAssignment.data("mediumgapcuts3.txt")
+@testset "Old - conseq colgen test" begin
+    data = ClD.GeneralizedAssignment.data("mediumgapcuts3.txt")
 
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
@@ -81,7 +82,7 @@ function conseq_colgen_test()
         "default_optimizer" => GLPK.Optimizer
     )
 
-    model, x, dec = CLD.GeneralizedAssignment.model(data, coluna)
+    model, x, dec = ClD.GeneralizedAssignment.model(data, coluna)
 
     BD.objectiveprimalbound!(model, 2000.0)
     BD.objectivedualbound!(model, 0.0)

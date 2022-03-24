@@ -52,27 +52,19 @@ function get_units_usage(
 end
 
 function termination_status!(result::OptimizationState, optimizer::MoiOptimizer)
-    terminationstatus = MOI.get(getinner(optimizer), MOI.TerminationStatus())
-    if terminationstatus != MOI.INFEASIBLE &&
-            terminationstatus != MOI.DUAL_INFEASIBLE &&
-            terminationstatus != MOI.INFEASIBLE_OR_UNBOUNDED &&
-            terminationstatus != MOI.OPTIMIZE_NOT_CALLED &&
-            terminationstatus != MOI.INVALID_MODEL &&
-            terminationstatus != MOI.TIME_LIMIT
+    termination_status = MOI.get(getinner(optimizer), MOI.TerminationStatus())
+    coluna_termination_status = convert_status(termination_status)
 
-        setterminationstatus!(result, convert_status(terminationstatus))
-
+    if coluna_termination_status == OPTIMAL
         if MOI.get(getinner(optimizer), MOI.ResultCount()) <= 0
             msg = """
-            Termination status = $(terminationstatus) but no results.
+            Termination status = $(termination_status) but no results.
             Please, open an issue at https://github.com/atoptima/Coluna.jl/issues
             """
             error(msg)
         end
-    else
-        @warn "Solver has no result to show."
-        setterminationstatus!(result, INFEASIBLE)
     end
+    setterminationstatus!(result, coluna_termination_status)
     return
 end
 
@@ -100,7 +92,7 @@ function optimize_lp_form!(
 end
 
 function run!(
-    algo::SolveLpForm, env::Env, form::Formulation, input::OptimizationInput, 
+    algo::SolveLpForm, ::Env, form::Formulation, input::OptimizationInput, 
     optimizer_id::Int = 1
 )::OptimizationOutput
     result = OptimizationState(form)

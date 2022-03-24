@@ -46,19 +46,7 @@ Subproblems take the following form (here, it's the first subproblem) :
 
 where $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorithm.
 
-## Benders (alpha)
-
-Let's consider the following coefficient matrix that has a block diagonal structure
-in gray and some linking variables in blue :
-
-![Benders decomposition](../static/bdec.png)
-
-You fix the complicated variables, then you can solve the blocks
-independently.
-
-This decomposition is an alpha feature.
-
-## Identical subproblems (alpha)
+## Dantzig-Wolfe with identical subproblems (alpha)
 
 When some subproblems are identical (same coefficient matrix and rhs), 
 you can avoid solving all of them at each iteration by defining only one subproblem and
@@ -169,6 +157,18 @@ for t in T
     end
 end
 ```
+
+## Benders (alpha)
+
+Let's consider the following coefficient matrix that has a block diagonal structure
+in gray and some linking variables in blue :
+
+![Benders decomposition](../static/bdec.png)
+
+You fix the complicated variables, then you can solve the blocks
+independently.
+
+This decomposition is an alpha feature.
 
 # BlockDecomposition
 

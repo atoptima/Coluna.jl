@@ -25,7 +25,7 @@ mutable struct KnapsackLibOptimizer <: BlockDecomposition.AbstractCustomOptimize
 end
 
 function Coluna.Algorithm.get_units_usage(opt::KnapsackLibOptimizer, form) # form is Coluna Formulation
-    units_usage = Tuple{AbstractModel, Coluna.ColunaBase.UnitType, Coluna.ColunaBase.UnitPermission}[]
+    units_usage = Tuple{AbstractModel, ClB.UnitType, ClB.UnitPermission}[]
     # TODO : the abstract model is KnapsackLibModel (opt.model)
     return units_usage
 end
@@ -86,44 +86,40 @@ end
 ################################################################################
 # User model
 ################################################################################
-function knpcustommodel()
-    @testset "knapsack custom model" begin
-        data = CLD.GeneralizedAssignment.data("play2.txt")
-        coluna = JuMP.optimizer_with_attributes(
-            Coluna.Optimizer,
-            "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
-            "default_optimizer" => GLPK.Optimizer
-        )
+@testset "Old - knapsack custom model" begin
+    data = ClD.GeneralizedAssignment.data("play2.txt")
+    coluna = JuMP.optimizer_with_attributes(
+        Coluna.Optimizer,
+        "params" => CL.Params(solver = ClA.TreeSearchAlgorithm()),
+        "default_optimizer" => GLPK.Optimizer
+    )
 
-        model = BlockModel(coluna; direct_model = true)
-        @axis(M, data.machines)
-        @variable(model, x[m in M, j in data.jobs], Bin)
-        @constraint(model, 
-            sp[j in data.jobs], sum(x[m,j] for m in data.machines) == 1
-        )
-        @objective(model, Min,
-            sum(data.cost[j,m]*x[m,j] for m in M, j in data.jobs)
-        )
+    model = BlockModel(coluna; direct_model = true)
+    @axis(M, data.machines)
+    @variable(model, x[m in M, j in data.jobs], Bin)
+    @constraint(model, 
+        sp[j in data.jobs], sum(x[m,j] for m in data.machines) == 1
+    )
+    @objective(model, Min,
+        sum(data.cost[j,m]*x[m,j] for m in M, j in data.jobs)
+    )
 
-        @dantzig_wolfe_decomposition(model, dec, M)
+    @dantzig_wolfe_decomposition(model, dec, M)
 
-        sp = getsubproblems(dec)
-        for m in M
-            knp_model = KnapsackLibModel(length(data.jobs))
-            setcapacity!(knp_model, data.capacity[m])
-            for j in data.jobs
-                setweight!(knp_model, j, data.weight[j,m])
-                setcost!(knp_model, j, data.cost[j,m])
-                map!(knp_model, j, x[m,j])
-            end
-            knp_optimizer = KnapsackLibOptimizer(knp_model)
-            specify!(sp[m], solver = knp_optimizer) ##model = knp_model)
+    sp = getsubproblems(dec)
+    for m in M
+        knp_model = KnapsackLibModel(length(data.jobs))
+        setcapacity!(knp_model, data.capacity[m])
+        for j in data.jobs
+            setweight!(knp_model, j, data.weight[j,m])
+            setcost!(knp_model, j, data.cost[j,m])
+            map!(knp_model, j, x[m,j])
         end
-
-        optimize!(model)
-
-        @test JuMP.objective_value(model) ≈ 75.0
+        knp_optimizer = KnapsackLibOptimizer(knp_model)
+        specify!(sp[m], solver = knp_optimizer) ##model = knp_model)
     end
-end
 
-knpcustommodel()
+    optimize!(model)
+
+    @test JuMP.objective_value(model) ≈ 75.0
+end

@@ -25,7 +25,7 @@ It works like `Duty{Variable}`.
 
 If a duty `Duty1` inherits from `Duty2`, then 
 
-```jldoctest
+```example
 julia> Duty1 <= Duty2
 true
 ```
@@ -71,11 +71,11 @@ const MoiVarIndex = MOI.VariableIndex
 MoiVarIndex() = MOI.VariableIndex(-1)
 
 # Bounds on variables
-const MoiVarBound = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Interval{Float64}}
+const MoiVarBound = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Interval{Float64}}
 
 # Variable kinds
-const MoiInteger = MOI.ConstraintIndex{MOI.SingleVariable,MOI.Integer}
-const MoiBinary = MOI.ConstraintIndex{MOI.SingleVariable,MOI.ZeroOne}
+const MoiInteger = MOI.ConstraintIndex{MOI.VariableIndex,MOI.Integer}
+const MoiBinary = MOI.ConstraintIndex{MOI.VariableIndex,MOI.ZeroOne}
 const MoiVarKind = Union{MoiInteger,MoiBinary}
 MoiVarKind() = MoiInteger(-1)
 
@@ -83,11 +83,18 @@ MoiVarKind() = MoiInteger(-1)
 convert_moi_sense_to_coluna(::MOI.LessThan{T}) where {T} = Less
 convert_moi_sense_to_coluna(::MOI.GreaterThan{T}) where {T} = Greater
 convert_moi_sense_to_coluna(::MOI.EqualTo{T}) where {T} = Equal
+
 convert_moi_rhs_to_coluna(set::MOI.LessThan{T}) where {T} = set.upper
 convert_moi_rhs_to_coluna(set::MOI.GreaterThan{T}) where {T} = set.lower
 convert_moi_rhs_to_coluna(set::MOI.EqualTo{T}) where {T} = set.value
+
 convert_moi_kind_to_coluna(::MOI.ZeroOne) = Binary
 convert_moi_kind_to_coluna(::MOI.Integer) = Integ
+
+convert_moi_bounds_to_coluna(set::MOI.LessThan{T}) where {T} = (-Inf, set.upper)
+convert_moi_bounds_to_coluna(set::MOI.GreaterThan{T}) where {T} = (set.lower, Inf)
+convert_moi_bounds_to_coluna(set::MOI.EqualTo{T}) where {T} = (set.value, set.value)
+convert_moi_bounds_to_coluna(set::MOI.Interval{T}) where {T} = (set.lower, set.upper)
 
 function convert_coluna_sense_to_moi(constr_set::ConstrSense)
     constr_set == Less && return MOI.LessThan{Float64}

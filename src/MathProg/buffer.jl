@@ -9,6 +9,10 @@ end
 
 VarConstrBuffer{I}() where {I<:Id} = VarConstrBuffer{I}(Set{I}(), Set{I}())
 
+function Base.isequal(a::VarConstrBuffer{I}, b::VarConstrBuffer{I}) where {I}
+    return isequal(a.added, b.added) && isequal(a.removed, b.removed)
+end
+
 function add!(buffer::VarConstrBuffer{I}, id::I) where {I<:Id}
     if id ∉ buffer.removed
         push!(buffer.added, id)
@@ -43,14 +47,13 @@ mutable struct FormulationBuffer
     changed_rhs::Set{ConstrId} # rhs and sense of a constraint
     var_buffer::VarConstrBuffer{VarId} # variable added or removed
     constr_buffer::VarConstrBuffer{ConstrId} # constraint added or removed
-    singlevarconstr_buffer::VarConstrBuffer{SingleVarConstrId} # single var constraint added or removed
     reset_coeffs::Dict{Pair{ConstrId,VarId},Float64} # coefficient of the matrix changed
 end
 
 FormulationBuffer() = FormulationBuffer(
     false, false, Set{VarId}(), Set{VarId}(), Set{VarId}(), Set{ConstrId}(),
     VarConstrBuffer{VarId}(), VarConstrBuffer{ConstrId}(), 
-    VarConstrBuffer{SingleVarConstrId}(), Dict{Pair{ConstrId,VarId},Float64}()
+    Dict{Pair{ConstrId,VarId},Float64}()
 )
 
 add!(b::FormulationBuffer, varid::VarId) = add!(b.var_buffer, varid)
