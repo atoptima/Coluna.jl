@@ -66,12 +66,10 @@ getvar(form::Formulation, id::VarId) = get(form.manager.vars, id, nothing)
 
 """
     getconstr(formulation, constrid) -> Constraint
-    getconstr(formulation, singlevarconstrid) -> Constraint
 
 Returns the constraint with given `constrid` that belongs to `formulation`.
 """
 getconstr(form::Formulation, id::ConstrId) = get(form.manager.constrs, id, nothing)
-getconstr(form::Formulation, id::SingleVarConstrId) = get(form.manager.single_var_constrs, id, nothing)
 
 """
     getvars(formulation) -> Dict{VarId, Variable}
@@ -86,20 +84,6 @@ getvars(form::Formulation) = form.manager.vars
 Returns all constraints in `formulation`.
 """
 getconstrs(form::Formulation) = form.manager.constrs
-
-"""
-    getsinglevarconstrs(formulation) -> Dict{ConstrId, SingleVarConstraint}
-
-Returns all single variable constraints in `formulation`.
-
-    getsinglevarconstrs(formulation, varid) -> Dict{ConstrId, SingleVarConstraint} or nothing
-
-Return all single variable constraints of a formulation that applies to a given variable.
-"""
-getsinglevarconstrs(form::Formulation) = form.manager.single_var_constrs
-getsinglevarconstrs(form::Formulation, varid::VarId) = get(
-    form.manager.single_var_constrs_per_var, varid, Dict{ConstrId, SingleVarConstraint}()
-) 
 
 "Returns objective constant of the formulation."
 getobjconst(form::Formulation) = form.manager.objective_constant
@@ -137,13 +121,11 @@ getoptimizers(form::Formulation) = form.optimizers
 """
     getelem(form, varid) -> Variable
     getelem(form, constrid) -> Constraint
-    getelem(form, singlevarconstrid) -> SingleVarConstraint
 
 Return the element of formulation `form` that has a given id.
 """
 getelem(form::Formulation, id::VarId) = getvar(form, id)
 getelem(form::Formulation, id::ConstrId) = getconstr(form, id)
-getelem(form::Formulation, id::SingleVarConstrId) = getconstr(form, id)
 
 getmaster(form::Formulation{<:AbstractSpDuty}) = form.parent_formulation
 getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulation
@@ -238,6 +220,9 @@ function setvar!(
     if id_as_name_suffix
         name = string(name, "_", getuid(id))
     end
+    if isempty(name)
+        name = string("v_", getuid(id))
+    end
 
     v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
 
@@ -306,7 +291,6 @@ end
 ############################################################################################
 # Insertion of a column in the master
 ############################################################################################
-
 # Compute all the coefficients of the column in the coefficient matrix of the
 # master formulation.
 function _col_members(col, master_coef_matrix)
@@ -321,15 +305,33 @@ function _col_members(col, master_coef_matrix)
 end
 
 """
+    get_column_from_pool(primal_sol)
+
+Returns the `var_id` of the master column that represents the primal solution `primal_sol` 
+to a Dantzig-Wolfe subproblem if the primal solution exists in the pool of solutions to the
+subproblem; `nothing` otherwise.
+"""
+function get_column_from_pool(primal_sol::PrimalSolution{Formulation{DwSp}})
+    spform = primal_sol.solution.model
+    new_col_peren_cost = mapreduce(
+        ((var_id, var_val),) -> getperencost(spform, var_id) * var_val,
+        +,
+        primal_sol
+    )
+    pool = getprimalsolpool(spform)
+    costs_pool = spform.duty_data.costs_primalsols_pool
+    return _get_same_sol_in_pool(pool, costs_pool, primal_sol.solution.sol, new_col_peren_cost)
+end
+
+"""
     insert_column!(master_form, primal_sol, name)
 
 Inserts the primal solution `primal_sol` to a Dantzig-Wolfe subproblem into the
 master as a column.
 
-Returns a tuple `(insertion_status, var_id)` where :
-- `insertion_status` is `true` if the primal solution was already in the pool 
-  and in the master formulation
-- `var_id` is the id of the column variable in the master formulation.
+Returns `var_id` the id of the column variable in the master formulation.
+
+**Warning**: this methods does not check if the column already exists in the pool.
 """
 function insert_column!(
     master_form::Formulation{DwMaster}, primal_sol::PrimalSolution, name::String;
@@ -343,22 +345,15 @@ function insert_column!(
     spform = primal_sol.solution.model
 
     # Compute perennial cost of the column.
-    new_col_peren_cost = 0.0
-    for (var_id, var_val) in primal_sol
-        new_col_peren_cost += getperencost(spform, var_id) * var_val
-    end
+    new_col_peren_cost = mapreduce(
+        ((var_id, var_val),) -> getperencost(spform, var_id) * var_val,
+        +,
+        primal_sol
+    )
 
     pool = getprimalsolpool(spform)
     costs_pool = spform.duty_data.costs_primalsols_pool
     custom_pool = spform.duty_data.custom_primalsols_pool
-
-    # Check if the column is already in the pool.
-    col_id = _get_same_sol_in_pool(pool, costs_pool, primal_sol.solution.sol, new_col_peren_cost)
-
-    # If the column is already in the pool, it means that it is already in the
-    # master formulation, so we return the id of the column and don't insert it
-    # a second time.
-    col_id !== nothing && return false, col_id
 
     # Compute coefficient members of the column in the matrix.
     members = _col_members(primal_sol, getcoefmatrix(master_form))
@@ -391,7 +386,7 @@ function insert_column!(
             custom_pool[col_id] = primal_sol.custom_data
         end
     end
-    return true, getid(col)
+    return getid(col)
 end
 
 ############################################################################################
@@ -567,6 +562,9 @@ function setconstr!(
     if getduty(id) != duty
         id = ConstrId(id, duty = duty)
     end
+    if isempty(name)
+        name = string("c_", getuid(id))
+    end
     if custom_data !== nothing
         id = ConstrId(
             id, 
@@ -584,29 +582,6 @@ function setconstr!(
     if isexplicit(form, constr)
         add!(form.buffer, getid(constr))
     end
-    return constr
-end
-
-"""
-TODO
-
-This constraint is never explicit because it's used to compute bounds stored in the variable
-"""
-function setsinglevarconstr!(
-    form::Formulation,
-    name::String,
-    varid::VarId,
-    duty::Duty{Constraint};
-    rhs::Float64 = 0.0,
-    kind::ConstrKind = Essential,
-    sense::ConstrSense = Greater,
-    inc_val::Float64 = 0.0,
-    is_active::Bool = true,
-    id = SingleVarConstrId(duty, form.constr_counter += 1, getuid(form))
-)
-    c_data = ConstrData(rhs, kind, sense,  inc_val, is_active, true)
-    constr = SingleVarConstraint(id, varid, name; constr_data = c_data)
-    _addconstr!(form.manager, constr)
     return constr
 end
 
@@ -797,60 +772,6 @@ function push_optimizer!(form::Formulation, builder::Function)
 end
 
 ############################################################################################
-# Bounds propagation
-############################################################################################
-
-function _update_var_cur_lb!(form::Formulation, var::Variable, lb, constrid)
-    cur_lb = getcurlb(form, var)
-    if cur_lb < lb
-        setcurlb!(form, var, lb)
-        var.moirecord.lower_bound = constrid
-        return true
-    end
-    return false
-end
-
-function _update_var_cur_ub!(form::Formulation, var::Variable, ub, constrid)
-    cur_ub = getcurub(form, var)
-    if cur_ub > ub
-        setcurub!(form, var, ub)
-        var.moirecord.upper_bound = constrid
-        return true
-    end
-    return false
-end
-
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Greater}, rhs, constrid)
-    _update_var_cur_lb!(form, var, rhs, constrid)
-    return
-end
-
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Less}, rhs, constrid)
-    _update_var_cur_ub!(form, var, rhs, constrid)
-    return
-end
-
-function _update_bounds!(form::Formulation, var::Variable, ::Val{Equal}, rhs, constrid)
-    update_lb = _update_var_cur_lb!(form, var, rhs, constrid)
-    update_ub = _update_var_cur_ub!(form, var, rhs, constrid)
-    if !update_lb || !update_ub
-        error("Bounds propagation determines infeasibility.")
-    end
-    return
-end
-
-# If new single var constraints have been added to a formulation, Coluna
-# should call this method.
-function bounds_propagation!(form::Formulation)
-    for (constrid, constr) in form.manager.single_var_constrs
-        var = getvar(form, constr.varid)
-        rhs = getcurrhs(form, constr)
-        _update_bounds!(form, var, Val(constr.curdata.sense), rhs, constrid)
-    end
-    return
-end
-
-############################################################################################
 # Methods to show a formulation
 ############################################################################################
 
@@ -898,27 +819,6 @@ function _show_constraints(io::IO , form::Formulation)
     return
 end
 
-function _show_singlevarconstraint(io::IO, form::Formulation, constr::SingleVarConstraint)
-    print(io, "| ", getname(form, constr.varid))
-    op = "<="
-    if getcursense(form, constr) == Equal
-        op = "=="
-    elseif getcursense(form, constr) == Greater
-        op = ">="
-    end
-    println(io, " ", op, " ", getcurrhs(form, constr))
-    return
-end
-
-function _show_singlevarconstraints(io::IO, form::Formulation)
-    for (varid, _) in getvars(form)
-        for (_, constr) in getsinglevarconstrs(form, varid)
-            _show_singlevarconstraint(io, form, constr)
-        end
-    end
-    return
-end
-
 function _show_variable(io::IO, form::Formulation, var::Variable)
     name = getname(form, var)
     lb = getcurlb(form, var)
@@ -947,7 +847,6 @@ function Base.show(io::IO, form::Formulation{Duty}) where {Duty <: AbstractFormD
         _show_obj_fun(io, form)
         _show_constraints(io, form)
         _show_variables(io, form)
-        _show_singlevarconstraints(io, form)
     end
     return
 end

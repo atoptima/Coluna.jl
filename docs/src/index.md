@@ -34,7 +34,7 @@ Coluna offers a "black-box" implementation of the branch-and-cut-and-price algor
 
 ## Installation
 
-Coluna is a package for [Julia 1.0+](https://docs.julialang.org/en/v1/manual/documentation/index.html)
+Coluna is a package for [Julia 1.6+](https://docs.julialang.org/en/v1/manual/documentation/index.html).
 
 It requires JuMP to model the problem, BlockDecomposition to define the decomposition,
 and a [MIP solver supported by MathOptInterface](https://jump.dev/JuMP.jl/stable/installation/#Getting-Solvers-1) to optimize the master and the subproblems.
@@ -44,26 +44,6 @@ You can install Coluna and its dependencies through the package manager of Julia
 ```
 ] add Coluna
 ```
-
-## Contributions
-
-We welcome all contributions that help us to improve Coluna. You can suggest ways to enhance the package by opening an issue via the [GitHub issues tracker](https://github.com/atoptima/Coluna.jl/issues)
-
-Once the suggestion is approved, you can open a Pull Request (PR) with the implementation of your suggestion. 
-
-Before requesting the review, make sure that your code follows the style guide and passes tests.
-
-Do not forget to update the docstrings and the tests when necessary. 
-It is very important to keep clear the goal of the PR to make the review fast. 
-So we might close a PR that fixes two unrelated issues or more. 
-
-Coluna style follows the [blue style guide](https://github.com/invenia/BlueStyle) for Julia amended by the following instruction on naming :
-
-> Names of variables and functions are treated equally. Use names that express what the variable/function does. > Either use : 
-> - `lowercasenospace` when the name is composed of three words or less with no ambiguity on words separation.
-> - `snake_case` otherwise
-
-Note that the application of the style guide is a work in progress.
 
 ## Extra dependances
 

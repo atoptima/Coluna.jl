@@ -3,8 +3,8 @@
 # We know the branching constraint (deterministic behavior) applied at the second node (x[1, 1] >= 1)
 # We retrieve the current bounds of x[1, 1] in the pricing callback and we check that the last lower bound retrieved (so in the second node) is 1.
 # Test breaks because branching constraints are not updated to variable bounds yet.
-function bound_callback_tests()
-    data = CLD.GeneralizedAssignment.data("play2.txt")
+@testset "Old - bound_callback_tests" begin
+    data = ClD.GeneralizedAssignment.data("play2.txt")
 
     coluna = JuMP.optimizer_with_attributes(
         CL.Optimizer,
@@ -12,7 +12,7 @@ function bound_callback_tests()
         "params" => CL.Params(solver = ClA.BranchCutAndPriceAlgorithm(maxnumnodes = 2))
     )
 
-    model, x, dec = CLD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
+    model, x, dec = ClD.GeneralizedAssignment.model_without_knp_constraints(data, coluna)
 
     # Subproblem models are created once and for all
     # One model for each machine
@@ -72,6 +72,7 @@ function bound_callback_tests()
         MOI.submit(
             model, BD.PricingSolution(cbdata), solcost, solvars, solvarvals
         )
+        MOI.submit(model, BD.PricingDualBound(cbdata), solcost)
         return
     end
 
