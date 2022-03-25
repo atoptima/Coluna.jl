@@ -858,6 +858,18 @@ function MOI.set(
     return
 end
 
+function MOI.get(model::Optimizer, ::BD.ConstraintDecomposition, index::MOI.ConstraintIndex)
+    MOI.throw_if_not_valid(model, index)
+    constrinfo = _info(model, index)
+    return get(model.annotations.ann_per_constr, getid(constrinfo.constr), nothing)
+end
+
+function MOI.get(model::Optimizer, ::BD.VariableDecomposition, index::MOI.VariableIndex)
+    MOI.throw_if_not_valid(model, index)
+    varinfo = _info(model, index)
+    return get(model.annotations.ann_per_var, getid(varinfo.var), nothing)
+end
+
 function MOI.get(model::Optimizer, ::MOI.ListOfConstraintAttributesSet)
     return MOI.AbstractConstraintAttribute[MOI.ConstraintName()]
 end
