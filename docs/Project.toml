@@ -8,6 +8,6 @@ Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
 MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
 
 [compat]
+BlockDecomposition = "1.6"
 Documenter = "~0.27"
-MathOptInterface = "~0.9"
-GLPK = "0.14"
+MathOptInterface = "~0.10, 1.0"
