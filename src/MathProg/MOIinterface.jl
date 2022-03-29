@@ -156,8 +156,25 @@ end
 
 function remove_from_optimizer!(form::Formulation, optimizer::MoiOptimizer, ids::Set{I}) where {I<:Id}
     for id in ids
-        remove_from_optimizer!(form, optimizer, getelem(form, id))
+        elem = getelem(form, id)
+        if elem !== nothing
+            remove_from_optimizer!(form, optimizer, getelem(form, id))
+        else
+            definitive_deletion_from_optimizer!(form, optimizer, id)
+        end
     end
+    return
+end
+
+function definitive_deletion_from_optimizer!(form::Formulation, optimizer::MoiOptimizer, varid::VarId)
+    var = form.buffer.var_buffer.definitive_deletion[varid]
+    remove_from_optimizer!(form, optimizer, var)
+    return
+end
+
+function definitive_deletion_from_optimizer!(form::Formulation, optimizer::MoiOptimizer, constrid::ConstrId)
+    constr = form.buffer.constr_buffer.definitive_deletion[constrid]
+    remove_from_optimizer!(form, optimizer, constr)
     return
 end
 
@@ -167,7 +184,9 @@ function remove_from_optimizer!(::Formulation, optimizer::MoiOptimizer, var::Var
     @assert getindex(moirecord).value != -1
     MOI.delete(inner, getbounds(moirecord))
     setbounds!(moirecord, MoiVarBound())
-    getkind(moirecord).value != -1 && MOI.delete(inner, getkind(moirecord))
+    if getkind(moirecord).value != -1
+        MOI.delete(inner, getkind(moirecord))
+    end
     setkind!(moirecord, MoiVarKind())
     MOI.delete(inner, getindex(moirecord))
     setindex!(moirecord, MoiVarIndex())
