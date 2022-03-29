@@ -2,7 +2,7 @@ using Coluna, ReTest
 
 include("ColunaTests.jl")
 
-retest(Coluna, ColunaTests)
+#retest(Coluna, ColunaTests)
 
 # Run a specific test:
-# retest(ColunaTests, "Integration - pricing callback")
+retest(ColunaTests, "MOI integration")

@@ -56,6 +56,18 @@ FormulationBuffer() = FormulationBuffer(
     Dict{Pair{ConstrId,VarId},Float64}()
 )
 
+function empty!(buffer::FormulationBuffer)
+    buffer.changed_obj_sense = false
+    buffer.changed_obj_const = false
+    buffer.changed_cost = Set{VarId}()
+    buffer.changed_bound = Set{VarId}()
+    buffer.changed_var_kind = Set{VarId}()
+    buffer.changed_rhs = Set{ConstrId}()
+    buffer.var_buffer = VarConstrBuffer{VarId}()
+    buffer.constr_buffer = VarConstrBuffer{ConstrId}()
+    buffer.reset_coeffs = Dict{Pair{ConstrId,VarId},Float64}()
+end
+
 add!(b::FormulationBuffer, varid::VarId) = add!(b.var_buffer, varid)
 add!(b::FormulationBuffer, constrid::ConstrId) = add!(b.constr_buffer, constrid)
 

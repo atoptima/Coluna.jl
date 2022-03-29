@@ -1,4 +1,6 @@
 const CleverDicts = MOI.Utilities.CleverDicts
+CleverDicts.index_to_key(::Type{Int}, index) = index
+CleverDicts.key_to_index(key::Int) = key
 
 @enum(ObjectiveType, SINGLE_VARIABLE, SCALAR_AFFINE, ZERO)
 
@@ -31,7 +33,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     annotations::Annotations
     varinfos::CleverDicts.CleverDict{MOI.VariableIndex, _VarInfo}
     moi_varids::Dict{VarId, MOI.VariableIndex}
-    constrinfos::Dict{Int, _ConstrInfo} # ScalarAffineFunction{Float64}-in-Set storage.
+    constrinfos::CleverDicts.CleverDict{Int, _ConstrInfo} # ScalarAffineFunction{Float64}-in-Set storage.
     result::OptimizationState
     disagg_result::Union{Nothing, OptimizationState}
     default_optimizer_builder::Union{Nothing, Function}
@@ -52,7 +54,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.annotations = Annotations()
         model.varinfos = CleverDicts.CleverDict{MOI.VariableIndex, _VarInfo}()
         model.moi_varids = Dict{VarId, MOI.VariableIndex}()
-        model.constrinfos = Dict{Int, _ConstrInfo}()
+        model.constrinfos = CleverDicts.CleverDict{Int, _ConstrInfo}()
         model.result = OptimizationState(get_optimization_target(model.inner))
         model.disagg_result = nothing
         model.default_optimizer_builder = nothing
@@ -62,6 +64,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         return model
     end
 end
+
+MOI.get(::Optimizer, ::MOI.SolverVersion) = "0.3.12"
 
 ############################################################################################
 # Empty.
@@ -76,7 +80,7 @@ function MOI.empty!(model::Optimizer)
     model.annotations = Annotations()
     model.varinfos = CleverDicts.CleverDict{MOI.VariableIndex, _VarInfo}()
     model.moi_varids = Dict{VarId, MOI.VariableIndex}()
-    model.constrinfos = Dict{Int, _ConstrInfo}()
+    model.constrinfos = CleverDicts.CleverDict{Int, _ConstrInfo}()
     model.result = OptimizationState(get_optimization_target(model.inner))
     model.disagg_result = nothing
     if model.default_optimizer_builder !== nothing
@@ -325,8 +329,8 @@ function MOI.add_constraint(
         inc_val = 10.0,
         members = members
     )
-    constr_index = length(model.constrinfos) + 1
     constrinfo = _ConstrInfo(constr)
+    constr_index = CleverDicts.add_item(model.constrinfos, constrinfo)
     model.constrinfos[constr_index] = constrinfo
     index = MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S}(constr_index)
     constrinfo.index = index
@@ -419,6 +423,7 @@ end
 function MOI.delete(
     model::Optimizer, ci::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.VariableIndex,S}
+    MOI.throw_if_not_valid(model, ci)
     origform = get_original_formulation(model.inner)
     varinfo = _info(model, ci)
     _delete_constraint_on_variable!(origform, varinfo, S)
@@ -1092,11 +1097,13 @@ function MOI.get(model::Optimizer, ::MOI.ObjectiveBound)
     return getvalue(get_ip_dual_bound(model.result))
 end
 
-function MOI.get(model::Optimizer, ::MOI.ObjectiveValue)
+function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
+    MOI.check_result_index_bounds(model, attr)
     return getvalue(get_ip_primal_bound(model.result))
 end
 
-function MOI.get(model::Optimizer, ::MOI.DualObjectiveValue)
+function MOI.get(model::Optimizer, attr::MOI.DualObjectiveValue)
+    MOI.check_result_index_bounds(model, attr)
     return getvalue(get_lp_dual_bound(model.result))
 end
 
@@ -1105,6 +1112,7 @@ function MOI.get(model::Optimizer, ::MOI.RelativeGap)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.VariablePrimal, ref::MOI.VariableIndex)
+    MOI.check_result_index_bounds(model, attr)
     id = getid(_info(model, ref).var) # This gets a coluna VarId
     primalsols = get_ip_primal_sols(model.result)
     if 1 <= attr.result_index <= length(primalsols)
@@ -1113,7 +1121,8 @@ function MOI.get(model::Optimizer, attr::MOI.VariablePrimal, ref::MOI.VariableIn
     return error("Invalid result index.")
 end
 
-function MOI.get(model::Optimizer, ::MOI.VariablePrimal, refs::Vector{MOI.VariableIndex})
+function MOI.get(model::Optimizer, attr::MOI.VariablePrimal, refs::Vector{MOI.VariableIndex})
+    MOI.check_result_index_bounds(model, attr)
     best_primal_sol = get_best_ip_primal_sol(model.result)
     if best_primal_sol === nothing
         @warn "Coluna did not find a primal feasible solution."
@@ -1126,13 +1135,19 @@ function MOI.get(model::Optimizer, ::MOI.TerminationStatus)
     return convert_status(getterminationstatus(model.result))
 end
 
-function MOI.get(model::Optimizer, ::MOI.PrimalStatus)
+function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
+    if attr.result_index != 1
+        return MOI.NO_SOLUTION
+    end
     primal_sol = get_best_ip_primal_sol(model.result)
     primal_sol === nothing && return MOI.NO_SOLUTION
     return convert_status(getstatus(primal_sol))
 end
 
-function MOI.get(model::Optimizer, ::MOI.DualStatus) 
+function MOI.get(model::Optimizer, attr::MOI.DualStatus)
+    if attr.result_index != 1
+        return MOI.NO_SOLUTION
+    end
     dual_sol = get_best_lp_dual_sol(model.result)
     dual_sol === nothing && return MOI.NO_SOLUTION
     return convert_status(getstatus(dual_sol))
@@ -1149,13 +1164,14 @@ end
 function MOI.get(
     model::Optimizer, attr::MOI.ConstraintPrimal, index::MOI.ConstraintIndex{F,S}
 ) where {F<:MOI.VariableIndex,S}
-    # TODO: throw if optimize in progress
+    # TODO: throw if optimization in progress.
     MOI.check_result_index_bounds(model, attr)
     return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(index.value))
 end
 
-function MOI.get(model::Optimizer, ::MOI.ConstraintPrimal, index::MOI.ConstraintIndex)
-    MOI.throw_if_not_valid(model, index)
+function MOI.get(model::Optimizer, attr::MOI.ConstraintPrimal, index::MOI.ConstraintIndex)
+    # TODO: throw if optimization in progress.
+    MOI.check_result_index_bounds(model, attr)
     constr = _info(model, index).constr
     best_primal_sol = get_best_ip_primal_sol(model.result)
     return constraint_primal(best_primal_sol, getid(constr))

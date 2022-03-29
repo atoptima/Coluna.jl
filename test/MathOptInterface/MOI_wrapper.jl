@@ -79,11 +79,10 @@ function test_runtests()
             "test_conic_",
             "test_nonlinear_",
             # We have to fix the following tests (or keep them excluded and explain why):
-            "test_constraint_ScalarAffineFunction_Interval",
-            "test_modification_transform_singlevariable_lessthan", # old and new variable share same id -> problem in buffer...
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
             "test_attribute_SolverVersion",   
+            # Following tests needs support of variable basis.
             "test_linear_Interval_inactive",
             "test_linear_add_constraints",
             "test_linear_inactive_bounds",
@@ -91,8 +90,6 @@ function test_runtests()
             "test_linear_integration_Interval",
             "test_linear_integration_delete_variables",
             "test_linear_transform",
-            "test_modification_affine_deletion_edge_cases",
-            "test_solve_result_index"
         ],
         # This argument is useful to prevent tests from failing on future
         # releases of MOI that add new tests. Don't let this number get too far

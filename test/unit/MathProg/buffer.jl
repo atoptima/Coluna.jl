@@ -75,7 +75,6 @@ end
         _test_buffer(form.buffer, ClMP.FormulationBuffer()) # empty buffer after sync_solver!        
     end
 
-
     @testset "setcurlb! & deactivate variable" begin
         form, var, constr = model_factory_for_buffer()
         varid = ClMP.getid(var)
@@ -156,9 +155,32 @@ end
         _test_buffer(form.buffer, ClMP.FormulationBuffer()) # empty buffer after sync_solver!        
     end
 
-    @testset "remove and add variable" begin
+    @testset "change objective sense" begin
+        form, var, constr = model_factory_for_buffer()
+        
+        expected_buffer = ClMP.FormulationBuffer()
+        expected_buffer.changed_obj_sense = true
+
+        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+        ClMP.set_objective_sense!(form, false) # maximization
+
+        _test_buffer(form.buffer, expected_buffer)
+        @test ClMP.getobjsense(form) == ClMP.MaxSense
+
+        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+        _test_buffer(form.buffer, ClMP.FormulationBuffer())
+    end
+
+    @testset "set peren lb and ub" begin
         form, var, constr = model_factory_for_buffer()
 
-        # TODO : test_modification_transform_singlevariable_lessthan
+        expected_buffer = ClMP.FormulationBuffer()
+        expected_buffer.changed_bound = Set{VarId}([ClMP.getid(var)])
+
+        ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
+        ClMP.setperenlb!(form, var, 0.0)
+        ClMP.setperenub!(form, var, 1.0)
+
+        _test_buffer(form.buffer, expected_buffer)
     end
 end

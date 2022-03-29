@@ -167,7 +167,9 @@ function remove_from_optimizer!(::Formulation, optimizer::MoiOptimizer, var::Var
     @assert getindex(moirecord).value != -1
     MOI.delete(inner, getbounds(moirecord))
     setbounds!(moirecord, MoiVarBound())
-    getkind(moirecord).value != -1 && MOI.delete(inner, getkind(moirecord))
+    if getkind(moirecord).value != -1
+        MOI.delete(inner, getkind(moirecord))
+    end
     setkind!(moirecord, MoiVarKind())
     MOI.delete(inner, getindex(moirecord))
     setindex!(moirecord, MoiVarIndex())

@@ -133,7 +133,7 @@ getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_f
 
 getstoragedict(form::Formulation) = form.storage.units
 
-_reset_buffer!(form::Formulation) = form.buffer = FormulationBuffer()
+_reset_buffer!(form::Formulation) = empty!(form.buffer)
 
 """
     set_matrix_coeff!(form::Formulation, v_id::VarId, c_id::ConstrId, new_coeff::Float64)
