@@ -559,13 +559,14 @@ Delete a variable or a constraint from a formulation.
 """
 function Base.delete!(form::Formulation, var::Variable)
     varid = getid(var)
+    definitive_deletion!(form.buffer, var)
     delete!(form.manager.vars, varid)
-    remove!(form.buffer, varid)
     return
 end
 Base.delete!(form::Formulation, id::VarId) = delete!(form, getvar(form, id))
 
 function Base.delete!(form::Formulation, constr::Constraint)
+    definitive_deletion!(form.buffer, constr)
     constrid = getid(constr)
     coefmatrix = getcoefmatrix(form)
     varids = VarId[]
@@ -576,7 +577,6 @@ function Base.delete!(form::Formulation, constr::Constraint)
         coefmatrix[constrid, varid] = 0.0
     end
     delete!(form.manager.constrs, constrid)
-    remove!(form.buffer, constrid)
     return
 end
 Base.delete!(form::Formulation, id::ConstrId) = delete!(form, getconstr(form, id))

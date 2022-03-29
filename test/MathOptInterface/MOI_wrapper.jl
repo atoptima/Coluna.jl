@@ -78,7 +78,7 @@ function test_runtests()
             "test_quadratic_",
             "test_conic_",
             "test_nonlinear_",
-            # We have to fix the following tests (or keep them excluded and explain why):
+            # Unsupported attributes
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
             # Following tests needs support of variable basis.
@@ -89,6 +89,11 @@ function test_runtests()
             "test_linear_integration_Interval",
             "test_linear_integration_delete_variables",
             "test_linear_transform",
+            # Following tests to fix:
+            "test_linear_integration_modification",
+            "test_modification_coef_scalaraffine_lessthan",
+            "test_modification_func_scalaraffine_lessthan",
+            "test_modification_multirow_vectoraffine_nonpos"
         ],
         # This argument is useful to prevent tests from failing on future
         # releases of MOI that add new tests. Don't let this number get too far

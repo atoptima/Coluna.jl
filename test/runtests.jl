@@ -5,4 +5,4 @@ include("ColunaTests.jl")
 retest(Coluna, ColunaTests)
 
 # Run a specific test:
-#retest(ColunaTests, "MOI integration")
+#retest(ColunaTests, "MathProg - buffer")

@@ -65,6 +65,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     end
 end
 
+MOI.get(::Optimizer, ::MOI.SolverName) = "Coluna"
 MOI.get(::Optimizer, ::MOI.SolverVersion) = "0.3.12"
 
 ############################################################################################
@@ -177,8 +178,6 @@ function _get_varid_of_origvar_in_form(
     origid = _get_orig_varid(env, x)
     return getid(getvar(form, origid))
 end
-
-MOI.get(model::Optimizer, ::MOI.SolverName) = "Coluna"
 
 function MOI.optimize!(model::Optimizer)
     model.result, model.disagg_result = optimize!(
