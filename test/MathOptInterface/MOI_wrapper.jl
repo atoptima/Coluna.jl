@@ -81,7 +81,6 @@ function test_runtests()
             # We have to fix the following tests (or keep them excluded and explain why):
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
-            "test_attribute_SolverVersion",   
             # Following tests needs support of variable basis.
             "test_linear_Interval_inactive",
             "test_linear_add_constraints",
