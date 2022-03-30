@@ -19,7 +19,7 @@ TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 [compat]
 BlockDecomposition = "1.6"
 DataStructures = "0.17, 0.18"
-DynamicSparseArrays = "0.5.2"
+DynamicSparseArrays = "0.5.3"
 MathOptInterface = "~0.10, 1.0"
 Parameters = "0.12"
 TimerOutputs = "0.5"
