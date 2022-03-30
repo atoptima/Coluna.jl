@@ -36,10 +36,11 @@ function create_formulation!(
     if env.form_counter >= MAX_NB_FORMULATIONS
         error("Maximum number of formulations reached.")
     end
+    buffer = FormulationBuffer{VarId,Variable,ConstrId,Constraint}()
     return Formulation(
         env.form_counter += 1, 0, 0, parent_formulation, AbstractOptimizer[], 
-        FormulationManager(custom_families_id = env.custom_families_id), obj_sense,
-        FormulationBuffer(), Storage(), duty
+        FormulationManager(buffer, custom_families_id = env.custom_families_id), obj_sense,
+        buffer, Storage(), duty
     )
 end
 
@@ -132,17 +133,6 @@ getreformulation(form::Formulation{<:AbstractMasterDuty}) = form.parent_formulat
 getreformulation(form::Formulation{<:AbstractSpDuty}) = getmaster(form).parent_formulation
 
 getstoragedict(form::Formulation) = form.storage.units
-
-_reset_buffer!(form::Formulation) = empty!(form.buffer)
-
-"""
-    set_matrix_coeff!(form::Formulation, v_id::VarId, c_id::ConstrId, new_coeff::Float64)
-
-Buffers the matrix modification in `form.buffer` to be sent to the optimizers right before next call to optimize!.
-"""
-set_matrix_coeff!(
-    form::Formulation, varid::VarId, constrid::ConstrId, new_coeff::Float64
-) = set_matrix_coeff!(form.buffer, varid, constrid, new_coeff)
 
 """
     setvar!(

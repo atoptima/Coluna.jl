@@ -8,13 +8,9 @@ import TimerOutputs
 import ..Coluna # for NestedEnum (types.jl:210)
 using ..ColunaBase
 
-import Base: haskey, length, iterate, diff, delete!
+import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view
 
 using DynamicSparseArrays, Logging, Printf
-
-if VERSION >= v"1.5"
-    import Base: contains
-end
 
 const BD = BlockDecomposition
 const MOI = MathOptInterface

@@ -90,7 +90,6 @@ function test_runtests()
             "test_linear_integration_delete_variables",
             "test_linear_transform",
             # Following tests to fix:
-            "test_linear_integration_modification",
             "test_modification_coef_scalaraffine_lessthan",
             "test_modification_func_scalaraffine_lessthan",
             "test_modification_multirow_vectoraffine_nonpos"
