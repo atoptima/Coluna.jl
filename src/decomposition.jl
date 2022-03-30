@@ -567,7 +567,7 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
     # coefficient matrix which is a super fast writing mode compared to the default
     # writing mode of the dynamic sparse matrix.
     origform = get_original_formulation(prob)
-    if getcoefmatrix(origform).fillmode
+    if getcoefmatrix(origform).matrix.fillmode
         closefillmode!(getcoefmatrix(origform))
     end
 

@@ -109,7 +109,7 @@ struct ReducedCostsCalculationHelper
     length::Int
     dwspvarids::Vector{VarId}
     perencosts::Vector{Float64}
-    dwsprep_coefmatrix::DynamicSparseArrays.Transposed{MathProg.ConstrVarMatrix}
+    dwsprep_coefmatrix::DynamicSparseArrays.Transposed{DynamicSparseArrays.DynamicSparseMatrix{Coluna.MathProg.ConstrId, Coluna.MathProg.VarId, Float64}}
 end
 
 # Precompute information to speed-up calculation of reduced costs of original variables
