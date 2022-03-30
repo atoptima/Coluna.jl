@@ -88,11 +88,7 @@ function test_runtests()
             "test_linear_integration_2",
             "test_linear_integration_Interval",
             "test_linear_integration_delete_variables",
-            "test_linear_transform",
-            # Following tests to fix:
-            "test_modification_coef_scalaraffine_lessthan",
-            "test_modification_func_scalaraffine_lessthan",
-            "test_modification_multirow_vectoraffine_nonpos"
+            "test_linear_transform"
         ],
         # This argument is useful to prevent tests from failing on future
         # releases of MOI that add new tests. Don't let this number get too far
