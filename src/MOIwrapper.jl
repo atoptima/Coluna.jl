@@ -44,6 +44,11 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # Same for constraints (the first int is the id).
     names_to_constrs::Dict{String, Tuple{Int, Int}}
 
+    # Callbacks
+    has_pricing_cb::Bool
+    has_usercut_cb::Bool
+    has_lazyconstraint_cb::Bool
+
     function Optimizer()
         model = new()
         model.env = Env(Params())
@@ -61,6 +66,10 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
 
         model.names_to_vars = Dict{String, Tuple{MOI.VariableIndex,Int}}()
         model.names_to_constrs = Dict{String, Tuple{Int,Int}}()
+
+        model.has_pricing_cb = false
+        model.has_usercut_cb = false
+        model.has_lazyconstraint_cb = false
         return model
     end
 end
@@ -89,6 +98,9 @@ function MOI.empty!(model::Optimizer)
     end
     model.names_to_vars = Dict{String, Tuple{MOI.VariableIndex, Int}}()
     model.names_to_constrs = Dict{String, Tuple{Int, Int}}()
+    model.has_pricing_cb = false
+    model.has_usercut_cb = false
+    model.has_lazyconstraint_cb = false
     return
 end
 
@@ -1054,6 +1066,15 @@ function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
     end
     if model.objective_sense !== nothing
         push!(attributes, MOI.ObjectiveSense())
+    end
+    if model.has_usercut_cb
+        push!(attributes, MOI.UserCutCallback())
+    end
+    if model.has_lazyconstraint_cb
+        push!(attributes, MOI.LazyConstraintCallback())
+    end
+    if model.has_pricing_cb
+        push!(attributes, BD.PricingCallback())
     end
     return attributes
 end

@@ -1,5 +1,6 @@
 docs/build/
 docs/site/
+docs/src/start/*.md
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
