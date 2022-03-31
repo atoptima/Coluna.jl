@@ -1,9 +1,6 @@
-# Coluna 0.3.13 Release notes
+# Coluna 0.4.0 Release notes
 
-## New features
-
-- none
-
+Major update of the MOI wrapper and various bugfixes.
 ## Changes
 
 ### Pricing callback API
@@ -19,13 +16,9 @@ Moreover, it's not possible to retrieve the column generation stage from the cal
 
 ## Dep updates
 
-- BlockDecomposition -> v1.5
-- MOI -> v0.9
+- BlockDecomposition -> v1.7
+- MOI -> 1
 
-
-## Deprecations 
-
-- none
 
 ## Removed
 
