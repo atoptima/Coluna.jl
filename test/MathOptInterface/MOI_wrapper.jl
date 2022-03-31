@@ -82,7 +82,7 @@ function test_runtests()
         # releases of MOI that add new tests. Don't let this number get too far
         # behind the current MOI release though! You should periodically check
         # for new tests in order to fix bugs and implement new features.
-        exclude_tests_after = v"0.10.5",
+        exclude_tests_after = v"1.1.2",
     )
     return
 end
