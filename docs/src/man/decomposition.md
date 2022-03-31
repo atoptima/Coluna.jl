@@ -193,14 +193,21 @@ BlockDecomposition does not change the JuMP model.
 It decorates the model with additional information.
 All these information are stored in the `ext` field of the JuMP model.
 
-# References
-
 ```@meta
 CurrentModule = BlockDecomposition
 DocTestSetup = quote
     using BlockDecomposition
 end
 ```
+
+# Errors and warnings
+
+```@docs
+MasterVarInDwSp
+VarsOfSameDwSpInMaster
+```
+
+# References
 
 ```@docs
 BlockModel
