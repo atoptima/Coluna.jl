@@ -1,6 +1,6 @@
 module ColunaTests
     using Base.CoreLogging: error
-    using DynamicSparseArrays, Coluna
+    using DynamicSparseArrays, Coluna, TOML
 
     using ReTest, GLPK, ColunaDemos, JuMP, BlockDecomposition, Random, MathOptInterface, MathOptInterface.Utilities, Base.CoreLogging, Logging
     global_logger(ConsoleLogger(stderr, LogLevel(0)))
@@ -20,6 +20,14 @@ module ColunaTests
     const ClA = Coluna.Algorithm
 
     rng = MersenneTwister(1234123)
+
+    @testset "Version" begin
+        coluna_ver = Coluna.version()
+        toml_ver = VersionNumber(
+            TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"]
+        )
+        @test coluna_ver == toml_ver   
+    end
 
     ########################################################################################
     # Unit tests

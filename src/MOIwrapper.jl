@@ -66,7 +66,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
 end
 
 MOI.get(::Optimizer, ::MOI.SolverName) = "Coluna"
-MOI.get(::Optimizer, ::MOI.SolverVersion) = "0.3.12"
+MOI.get(::Optimizer, ::MOI.SolverVersion) = string(Coluna.version())
 
 ############################################################################################
 # Empty.
