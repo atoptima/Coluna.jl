@@ -46,66 +46,66 @@ getsubproblems(dec_on_types)</code></pre><pre class="documenter-example-output">
 
  Subproblem formulation for T = 2 contains :	 0.0 &lt;= multiplicity &lt;= 2.0
 </code></pre><p>We see that subproblem for machine type 1 has upper multiplicity equals to 3, and second subproblem for machine type 2 has upper multiplicity equals to 2. It means that we can use at most 3 machines of type 1 and at most 2 machines of type 2.</p><p>We can then optimize</p><pre><code class="language-julia hljs">optimize!(model);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Coluna
-Version 0.3.12 | https://github.com/atoptima/Coluna.jl
+Version 0.4.0 | https://github.com/atoptima/Coluna.jl
 ***************************************************************************************
 **** BaB tree root node
-**** Local DB = -Inf, global bounds : [ -Inf , Inf ], time = 5.95 sec.
+**** Local DB = -Inf, global bounds : [ -Inf , Inf ], time = 5.49 sec.
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et=22.38&gt; &lt;mst= 2.84&gt; &lt;sp= 4.01&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et=23.03&gt; &lt;mst= 0.14&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=70057.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et=23.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=60118.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  4&gt; &lt;et=23.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=50079.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  5&gt; &lt;et=23.21&gt; &lt;mst= 0.00&gt; &lt;sp= 0.18&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  6&gt; &lt;et=23.21&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  7&gt; &lt;et=23.21&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  8&gt; &lt;et=23.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
-  &lt;it=  9&gt; &lt;et=23.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -126.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
-  &lt;it= 10&gt; &lt;et=23.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;it=  1&gt; &lt;et=20.41&gt; &lt;mst= 2.74&gt; &lt;sp= 3.60&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  2&gt; &lt;et=21.06&gt; &lt;mst= 0.13&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=70057.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  3&gt; &lt;et=21.06&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=60118.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  4&gt; &lt;et=21.06&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=50079.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  5&gt; &lt;et=21.23&gt; &lt;mst= 0.00&gt; &lt;sp= 0.17&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  6&gt; &lt;et=21.23&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  7&gt; &lt;et=21.23&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=20145.0000&gt; &lt;PB=Inf&gt;
+  &lt;it=  8&gt; &lt;et=21.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=-19835.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;it=  9&gt; &lt;et=21.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB= -126.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;it= 10&gt; &lt;et=21.63&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
 [ Info: Column generation algorithm has converged.
 [ Info: Running Restricted Master IP heuristic
 ***************************************************************************************
 **** BaB tree node N° 2, parent N° 1, depth 1, 2 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 25.18 sec.
+**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 23.17 sec.
 **** Branching constraint: x[2,10]&gt;=1.0
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et=25.28&gt; &lt;mst= 0.07&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;it=  1&gt; &lt;et=23.26&gt; &lt;mst= 0.06&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
 [ Info: Column generation algorithm has converged.
 [ Info: Running Restricted Master IP heuristic
 ***************************************************************************************
 **** BaB tree node N° 3, parent N° 2, depth 2, 3 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 25.28 sec.
+**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 23.26 sec.
 **** Branching constraint: PricingSetupVar_sp_4&gt;=2.0
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et=25.28&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
-  &lt;it=  2&gt; &lt;et=25.29&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;it=  1&gt; &lt;et=23.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  174.0000&gt; &lt;PB=174.0000&gt;
+  &lt;it=  2&gt; &lt;et=23.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
 [ Info: Column generation algorithm has converged.
 [ Info: Running Restricted Master IP heuristic
 ***************************************************************************************
 **** BaB tree node N° 4, parent N° 3, depth 3, 4 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 25.29 sec.
+**** Local DB = 154.0000, global bounds : [ 154.0000 , 174.0000 ], time = 23.26 sec.
 **** Branching constraint: x[1,9]&gt;=1.0
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et=25.29&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
+  &lt;it=  1&gt; &lt;et=23.26&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  154.0000&gt; &lt;mlp=  154.0000&gt; &lt;PB=174.0000&gt;
 [ Info: Column generation algorithm has converged.
 [ Info: Running Restricted Master IP heuristic
 Node is already conquered. No children will be generated.
 ***************************************************************************************
 **** BaB tree node N° 5, parent N° 3, depth 3, 3 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 25.29 sec.
+**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 23.26 sec.
 **** Branching constraint: x[1,9]&lt;=0.0
 ***************************************************************************************
 [ Info: IP Gap is closed: 0.0. Abort treatment.
 Node is already conquered. No children will be generated.
 ***************************************************************************************
 **** BaB tree node N° 6, parent N° 2, depth 2, 2 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 25.29 sec.
+**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 23.27 sec.
 **** Branching constraint: PricingSetupVar_sp_4&lt;=1.0
 ***************************************************************************************
 [ Info: IP Gap is closed: 0.0. Abort treatment.
 Node is already conquered. No children will be generated.
 ***************************************************************************************
 **** BaB tree node N° 7, parent N° 1, depth 1, 1 open nodes
-**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 25.29 sec.
+**** Local DB = 154.0000, global bounds : [ 154.0000 , 154.0000 ], time = 23.27 sec.
 **** Branching constraint: x[2,10]&lt;=0.0
 ***************************************************************************************
 [ Info: IP Gap is closed: 0.0. Abort treatment.
@@ -113,20 +113,20 @@ Node is already conquered. No children will be generated.
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:             126s /  20.7%           6.00GiB /  26.8%
+       Tot / % measured:             102s /  23.4%           6.01GiB /  26.8%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    26.0s  100.0%   26.0s   1.61GiB  100.0%  1.61GiB
-   SolveLpForm             14    2.01s    7.7%   143ms   39.4MiB    2.4%  2.82MiB
-   Getting primal s...     14    485ms    1.9%  34.6ms   4.50MiB    0.3%   329KiB
-   Cleanup columns         14    347ms    1.3%  24.8ms   11.4MiB    0.7%   833KiB
-   Add branching co...      6    286ms    1.1%  47.7ms   13.1MiB    0.8%  2.18MiB
-   Store records            7    160ms    0.6%  22.9ms   4.98MiB    0.3%   729KiB
-   Update Lagrangia...     14    154ms    0.6%  11.0ms   2.84MiB    0.2%   208KiB
-   Update reduced c...     14    127ms    0.5%  9.10ms   3.92MiB    0.2%   287KiB
-   Smoothing update        14   29.2ms    0.1%  2.09ms   3.85MiB    0.2%   282KiB
-   Restore/remove r...      7    132μs    0.0%  18.8μs     0.00B    0.0%    0.00B
+ Coluna                     1    23.8s  100.0%   23.8s   1.61GiB  100.0%  1.61GiB
+   SolveLpForm             14    1.94s    8.2%   139ms   39.5MiB    2.4%  2.82MiB
+   Add branching co...      6    486ms    2.0%  81.0ms   13.1MiB    0.8%  2.19MiB
+   Getting primal s...     14    460ms    1.9%  32.9ms   4.50MiB    0.3%   329KiB
+   Cleanup columns         14    308ms    1.3%  22.0ms   11.4MiB    0.7%   832KiB
+   Store records            7    149ms    0.6%  21.3ms   4.98MiB    0.3%   729KiB
+   Update Lagrangia...     14    142ms    0.6%  10.1ms   2.84MiB    0.2%   208KiB
+   Update reduced c...     14    122ms    0.5%  8.73ms   3.92MiB    0.2%   287KiB
+   Smoothing update        14   26.7ms    0.1%  1.91ms   3.85MiB    0.2%   282KiB
+   Restore/remove r...      7   59.1μs    0.0%  8.44μs     0.00B    0.0%    0.00B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 154.0
@@ -164,4 +164,4 @@ BlockDecomposition.AxisId{:K, Int64}</code></pre><p>The elements of the axis are
     upper_multiplicity = 1,
     solver = nothing
 )</code></pre><p>Method that allows the user to specify additional property of the subproblems.</p><p>The multiplicity of <code>subproblem</code> is the number of times that the same independant block shaped by the subproblem in the coefficient matrix appears in the model. It is equivalent to the number of solutions to the subproblem that can appear in the solution  of the original problem.</p><p>The solver of the subproblem is the way the subproblem will be optimized. It can be either a function (pricing callback), an optimizer of MathOptInterface  (e.g. <code>Gurobi.Optimizer</code>, <code>CPLEX.Optimizer</code>, <code>Glpk.Optimizer</code>... with attributes),  or <code>nothing</code>. In the latter case, the solver will use a default optimizer that  should be defined in the parameters of the main solver.</p><p><strong>Advanced usage</strong> :  The user can use several solvers to optimize a subproblem : </p><pre><code class="nohighlight hljs">specify!(subproblem, solver = [Gurobi.Optimizer, my_callback, my_second_callback])</code></pre><p>Coluna always uses the first solver by default. Be cautious because changes are always buffered to all solvers. So you may degrade performances if you use a lot of solvers.</p></div></section></article><p>This method help you to check your decomposition :</p><article class="docstring"><header><a class="docstring-binding" id="BlockDecomposition.annotation" href="#BlockDecomposition.annotation"><code>BlockDecomposition.annotation</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">annotation(node)</code></pre><p>Return the annotation that describes the master/subproblem of a given node of the decomposition tree.</p><pre><code class="nohighlight hljs">annotation(model, variable)
-annotation(model, constraint)</code></pre><p>Return the subproblem to which a variable or a constraint belongs.</p></div></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../start/pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../config/">Configuration »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.15 on <span class="colophon-date" title="Thursday 31 March 2022 12:22">Thursday 31 March 2022</span>. Using Julia version 1.7.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+annotation(model, constraint)</code></pre><p>Return the subproblem to which a variable or a constraint belongs.</p></div></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../start/pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../config/">Configuration »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.15 on <span class="colophon-date" title="Thursday 31 March 2022 13:36">Thursday 31 March 2022</span>. Using Julia version 1.7.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
