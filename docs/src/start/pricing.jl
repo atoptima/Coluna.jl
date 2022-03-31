@@ -47,12 +47,12 @@ model = BlockModel(coluna);
 # subproblems:
 
 function solve_knapsack(cost, weight, capacity)
-    model = Model(GLPK.Optimizer)
+    sp_model = Model(GLPK.Optimizer)
     items = 1:length(weight)
-    @variable(model, x[i in items], Bin)
-    @constraint(model, weight' * x <= capacity)
-    @objective(model, Min, cost' * x)
-    optimize!(model)
+    @variable(sp_model, x[i in items], Bin)
+    @constraint(sp_model, weight' * x <= capacity)
+    @objective(sp_model, Min, cost' * x)
+    optimize!(sp_model)
     x_val = value.(x)
     return filter(i -> x_val[i] ≈ 1, collect(items))
 end
@@ -73,7 +73,7 @@ function my_pricing_callback(cbdata)
     ## Retrieve reduced costs of subproblem variables
     red_costs = [BD.callback_reduced_cost(cbdata, x[cur_machine, j]) for j in J]
 
-     ## Run the knapsack algorithm
+    ## Run the knapsack algorithm
     jobs_assigned_to_cur_machine = solve_knapsack(red_costs, w[cur_machine, :], Q[cur_machine])
 
     ## Create the solution (send only variables with non-zero values)
@@ -103,4 +103,4 @@ optimize!(model);
 
 # and retrieve information you need as usual :
 
-getobjectivevalue(model)
+objective_value(model)

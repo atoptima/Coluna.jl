@@ -2,14 +2,22 @@
 # Set callbacks
 ############################################################################################
 function MOI.set(model::Coluna.Optimizer, attr::MOI.UserCutCallback, callback_function)
+    model.has_usercut_cb = true
     orig_form = get_original_formulation(model.inner)
     _register_callback!(orig_form, attr, callback_function)
     return
 end
 
 function MOI.set(model::Coluna.Optimizer, attr::MOI.LazyConstraintCallback, callback_function)
+    model.has_lazyconstraint_cb = true
     orig_form = get_original_formulation(model.inner)
     _register_callback!(orig_form, attr, callback_function)
+    return
+end
+
+function MOI.set(model::Coluna.Optimizer, ::BD.PricingCallback, ::Nothing)
+    model.has_pricing_cb = true
+    # We register the pricing callback through the annotations.
     return
 end
 

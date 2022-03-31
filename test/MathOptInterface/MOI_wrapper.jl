@@ -9,18 +9,6 @@ using HiGHS
 
 const MOI = MathOptInterface
 
-const OPTIMIZER = MOI.instantiate(
-    MOI.OptimizerWithAttributes(
-        Coluna.Optimizer, 
-        MOI.RawOptimizerAttribute("default_optimizer") => HiGHS.Optimizer,
-        MOI.RawOptimizerAttribute("params") => Coluna.Params(
-            solver = Coluna.Algorithm.SolveIpForm(
-                moi_params = Coluna.Algorithm.MoiOptimize(get_dual_solution = true)
-            )
-        )
-    ),
-)
-
 const BRIDGED = MOI.instantiate(
     MOI.OptimizerWithAttributes(
         Coluna.Optimizer,
