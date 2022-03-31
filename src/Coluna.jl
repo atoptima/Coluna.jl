@@ -7,7 +7,7 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
 
 import BlockDecomposition, MathOptInterface, TimerOutputs
 
-using Base.Threads, Dates, Distributed, DynamicSparseArrays, Logging, Parameters, Printf
+using Base.Threads, Dates, Distributed, DynamicSparseArrays, Logging, Parameters, Printf, TOML
 
 const BD = BlockDecomposition
 const MOI = MathOptInterface
@@ -26,6 +26,16 @@ export Algorithm, ColunaBase, MathProg, Env, DefaultOptimizer, Parameters,
     elapsed_optim_time
 
 const _to = TO.TimerOutput()
+
+const _COLUNA_VERSION = Ref{VersionNumber}()
+
+function __init__()
+    # Read Coluna version from Project.toml file
+    coluna_ver = VersionNumber(TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))["version"])
+    _COLUNA_VERSION[] = coluna_ver
+end
+
+version() = _COLUNA_VERSION[]
 
 include("kpis.jl")
 
