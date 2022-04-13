@@ -39,6 +39,7 @@ function optimize!(env::Env, prob::MathProg.Problem, annotations::Annotations)
     ## Retrieve initial bounds on the objective given by the user
     init_pb = get_initial_primal_bound(prob)
     init_db = get_initial_dual_bound(prob)
+    init_cols = prob.initial_columns_callback
     _adjust_params(env.params, init_pb)
 
     # Apply decomposition
@@ -50,7 +51,7 @@ function optimize!(env::Env, prob::MathProg.Problem, annotations::Annotations)
     @logmsg LogLevel(-1) env.params
 
     TO.@timeit _to "Coluna" begin
-        outstate, algstate = optimize!(get_optimization_target(prob), env, init_pb, init_db)
+        outstate, algstate = optimize!(get_optimization_target(prob), env, init_pb, init_db, init_cols)
     end
 
     env.kpis.elapsed_optimization_time = elapsed_optim_time(env)
@@ -67,7 +68,8 @@ function optimize!(env::Env, prob::MathProg.Problem, annotations::Annotations)
 end
 
 function optimize!(
-    reform::MathProg.Reformulation, env::Env, initial_primal_bound, initial_dual_bound
+    reform::MathProg.Reformulation, env::Env, initial_primal_bound, initial_dual_bound,
+    initial_columns
 )
     master = getmaster(reform)
     initstate = OptimizationState(
@@ -78,6 +80,9 @@ function optimize!(
     )
 
     algorithm = env.params.solver
+
+    # retrieve initial columns
+    MathProg.initialize_solution_pools!(reform, initial_columns)
 
     # initialize all the units used by the algorithm and its child algorithms
     Algorithm.initialize_storage_units!(reform, algorithm)

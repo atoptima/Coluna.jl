@@ -21,6 +21,13 @@ function MOI.set(model::Coluna.Optimizer, ::BD.PricingCallback, ::Nothing)
     return
 end
 
+function MOI.set(model::Coluna.Optimizer, ::BD.InitialColumnsCallback, callback_function::Function)
+    model.has_initialcol_cb = true
+    problem = model.inner
+    MathProg._register_initcols_callback!(problem, callback_function)
+    return
+end
+
 ############################################################################################
 #  Pricing Callback                                                                        #
 ############################################################################################
@@ -174,3 +181,30 @@ end
 
 MOI.supports(::Optimizer, ::MOI.UserCutCallback) = true
 MOI.supports(::Optimizer, ::MOI.LazyConstraintCallback) = true
+
+############################################################################################
+#  Initial columns Callback                                                                        #
+############################################################################################
+function _submit_initial_solution(env, cbdata, variables, values, custom_data)
+    form = cbdata.form
+    colunavarids = [_get_varid_of_origvar_in_form(env, form, v) for v in variables]
+    cost = sum(getperencost(form, varid) for varid in colunavarids)
+    return _submit_pricing_solution(env, cbdata, cost, variables, values, custom_data)
+end
+
+function MOI.submit(
+    model::Optimizer,
+    cb::BD.InitialColumn{MathProg.InitialColumnsCallbackData},
+    variables::Vector{MOI.VariableIndex},
+    values::Vector{Float64},
+    custom_data::Union{Nothing, BD.AbstractCustomData} = nothing
+)
+    return _submit_initial_solution(model.env, cb.callback_data, variables, values, custom_data)
+end
+
+function MOI.get(model::Optimizer, spid::BD.PricingSubproblemId{MathProg.InitialColumnsCallbackData})
+    callback_data = spid.callback_data
+    uid = getuid(callback_data.form)
+    axis_index_value = model.annotations.ann_per_form[uid].axis_index_value
+    return axis_index_value
+end

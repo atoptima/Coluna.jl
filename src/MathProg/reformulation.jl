@@ -101,6 +101,14 @@ subproblem with id `spid`.
 get_dw_pricing_sp_lb_constrid(r::Reformulation, spid::FormId) = r.dw_pricing_sp_lb[spid]
 
 
+# Method to initial the solution pools of the subproblems
+function initialize_solution_pools!(reform::Reformulation, initial_columns_callback::Function)
+    for sp in get_dw_pricing_sps(reform)
+        # call the callback
+    end
+    return
+end
+
 # Following two functions are temporary, we must store a pointer to the vc
 # being represented by a representative vc
 function vc_belongs_to_formulation(form::Formulation, vc::AbstractVarConstr)
