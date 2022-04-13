@@ -69,8 +69,8 @@ function my_pricing_callback(cbdata)
     ## Retrieve the index of the subproblem (it will be one of the values in M_axis)
     cur_machine = BD.callback_spid(cbdata, model)
     
-    # Uncomment to see that the pricing callback is called.
-    # println("Pricing callback for machine $(cur_machine).")
+    ## Uncomment to see that the pricing callback is called.
+    ## println("Pricing callback for machine $(cur_machine).")
 
     ## Retrieve reduced costs of subproblem variables
     red_costs = [BD.callback_reduced_cost(cbdata, x[cur_machine, j]) for j in J]
