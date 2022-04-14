@@ -278,6 +278,16 @@ function _sol_repr_for_pool(primal_sol::PrimalSolution, ::DwSp)
     return var_ids, vals
 end
 
+function initialize_solution_pool!(form::Formulation{DwSp}, initial_columns_callback::Function)
+    master = getmaster(form)
+    cbdata = InitialColumnsCallbackData(form, PrimalSolution[])
+    initial_columns_callback(cbdata)
+    for sol in cbdata.primal_solutions
+        insert_column!(master, sol, "iMC")
+    end
+    return
+end
+
 ############################################################################################
 # Insertion of a column in the master
 ############################################################################################

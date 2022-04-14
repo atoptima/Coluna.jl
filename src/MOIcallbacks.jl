@@ -186,9 +186,10 @@ MOI.supports(::Optimizer, ::MOI.LazyConstraintCallback) = true
 #  Initial columns Callback                                                                        #
 ############################################################################################
 function _submit_initial_solution(env, cbdata, variables, values, custom_data)
+    @assert length(variables) == length(values)
     form = cbdata.form
     colunavarids = [_get_varid_of_origvar_in_form(env, form, v) for v in variables]
-    cost = sum(getperencost(form, varid) for varid in colunavarids)
+    cost = sum(value * getperencost(form, varid) for (varid, value) in Iterators.zip(colunavarids, values))
     return _submit_pricing_solution(env, cbdata, cost, variables, values, custom_data)
 end
 

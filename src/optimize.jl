@@ -129,7 +129,7 @@ function optimize!(
 end
 
 function optimize!(
-    form::MathProg.Formulation, env::Env, initial_primal_bound, initial_dual_bound
+    form::MathProg.Formulation, env::Env, initial_primal_bound, initial_dual_bound, _
 )
     initstate = OptimizationState(
         form,
@@ -145,14 +145,14 @@ end
 """
 Fallback if no solver provided by the user.
 """
-function optimize!(::MathProg.Reformulation, ::Nothing, ::Real, ::Real)
+function optimize!(::MathProg.Reformulation, ::Nothing, ::Real, ::Real, _)
     error("""
         No solver to optimize the reformulation. You should provide a solver through Coluna parameters. 
         Please, check the starting guide of Coluna.
     """)
 end
 
-function optimize!(::MathProg.Formulation, ::Nothing, ::Real, ::Real)
+function optimize!(::MathProg.Formulation, ::Nothing, ::Real, ::Real, _)
     error("""
         No solver to optimize the formulation. You should provide a solver through Coluna parameters. 
         Please, check the starting guide of Coluna.
