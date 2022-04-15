@@ -4,6 +4,7 @@ mutable struct Problem <: AbstractProblem
     original_formulation::Formulation
     re_formulation::Union{Nothing, Reformulation}
     default_optimizer_builder::Function
+    initial_columns_callback::Union{Nothing, Function}
 end
 
 """
@@ -15,7 +16,7 @@ function Problem(env)
     original_formulation = create_formulation!(env, Original())
     return Problem(
         nothing, nothing, original_formulation, nothing,
-        no_optimizer_builder
+        no_optimizer_builder, nothing
     )
 end
 
@@ -62,4 +63,9 @@ function get_optimization_target(p::Problem)
         return p.original_formulation
     end
     return p.re_formulation
+end
+
+function _register_initcols_callback!(problem::Problem, callback_function::Function)
+    problem.initial_columns_callback = callback_function
+    return
 end
