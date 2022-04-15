@@ -15,7 +15,6 @@ end
 
 function _test_buffer(current::ClMP.FormulationBuffer, expected::ClMP.FormulationBuffer)
     @test isequal(current.changed_obj_sense, expected.changed_obj_sense)
-    @test isequal(current.changed_obj_const, expected.changed_obj_const)
     @test isequal(current.changed_cost, expected.changed_cost)
     @test isequal(current.changed_bound, expected.changed_bound)
     @test isequal(current.changed_var_kind, expected.changed_var_kind)
@@ -35,7 +34,6 @@ _empty_buffer() = ClMP.FormulationBuffer{ClMP.VarId,ClMP.Variable,ClMP.ConstrId,
         constrid = ClMP.getid(constr)
         expected_buffer = _empty_buffer()
         expected_buffer.changed_obj_sense = false # minimization by default
-        expected_buffer.changed_obj_const = false
         expected_buffer.var_buffer = ClMP.VarConstrBuffer{ClMP.VarId, ClMP.Variable}()
         expected_buffer.var_buffer.added = Set([varid])
         expected_buffer.constr_buffer = ClMP.VarConstrBuffer{ClMP.ConstrId, ClMP.Constraint}()
