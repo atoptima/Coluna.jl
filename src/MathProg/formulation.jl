@@ -92,7 +92,6 @@ getobjconst(form::Formulation) = form.manager.objective_constant
 "Sets objective constant of the formulation."
 function setobjconst!(form::Formulation, val::Float64)
     form.manager.objective_constant = val
-    form.buffer.changed_obj_const = true
     return
 end
 

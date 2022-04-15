@@ -52,14 +52,6 @@ function update_cost_in_optimizer!(form::Formulation, optimizer::MoiOptimizer, v
     return
 end
 
-function update_obj_const_in_optimizer!(form::Formulation, optimizer::MoiOptimizer)
-    MOI.modify(
-        getinner(optimizer), MoiObjective(), 
-        MOI.ScalarConstantChange{Float64}(getobjconst(form))
-    )
-    return
-end
-
 function update_constr_member_in_optimizer!(
     optimizer::MoiOptimizer, c::Constraint, v::Variable, coeff::Float64
 )

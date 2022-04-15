@@ -77,12 +77,6 @@ function sync_solver!(optimizer::MoiOptimizer, f::Formulation)
         update_cost_in_optimizer!(f, optimizer, getvar(f, id))
     end
 
-    # Update objective constant
-    if buffer.changed_obj_const
-        update_obj_const_in_optimizer!(f, optimizer)
-        buffer.changed_obj_const = false
-    end
-
     # Update objective sense
     if buffer.changed_obj_sense
         set_obj_sense!(optimizer, getobjsense(f))
