@@ -354,6 +354,7 @@ function insert_columns!(
                         ======
                         The column is in the master ? $(haskey(masterform, col_id)).
                         The column is active ? $(iscuractive(masterform, col_id)).
+                        Reduced cost of the column: $(red_cost).
                         ======
                         Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
                         ======
