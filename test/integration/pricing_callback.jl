@@ -1,4 +1,5 @@
 @testset "Integration - pricing callback" begin
+    # Formulation with a given nb of variables. No constraint & no cost.
     function build_formulation(nb_variables)
         env = CL.Env(CL.Params())
         form = ClMP.create_formulation!(env, DwSp(nothing, 0, 1, ClMP.Continuous))

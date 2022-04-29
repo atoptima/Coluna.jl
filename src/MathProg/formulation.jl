@@ -92,7 +92,6 @@ getobjconst(form::Formulation) = form.manager.objective_constant
 "Sets objective constant of the formulation."
 function setobjconst!(form::Formulation, val::Float64)
     form.manager.objective_constant = val
-    form.buffer.changed_obj_const = true
     return
 end
 
@@ -276,6 +275,16 @@ function _sol_repr_for_pool(primal_sol::PrimalSolution, ::DwSp)
         end
     end
     return var_ids, vals
+end
+
+function initialize_solution_pool!(form::Formulation{DwSp}, initial_columns_callback::Function)
+    master = getmaster(form)
+    cbdata = InitialColumnsCallbackData(form, PrimalSolution[])
+    initial_columns_callback(cbdata)
+    for sol in cbdata.primal_solutions
+        insert_column!(master, sol, "iMC")
+    end
+    return
 end
 
 ############################################################################################

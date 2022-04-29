@@ -54,7 +54,6 @@ Changes must be always buffered.
 """
 mutable struct FormulationBuffer{Vi,V,Ci,C}
     changed_obj_sense::Bool # sense of the objective function
-    changed_obj_const::Bool # constant in the objective function
     changed_cost::Set{Vi} # cost of a variable
     changed_bound::Set{Vi} # bound of a variable
     changed_var_kind::Set{Vi} # kind of a variable
@@ -65,14 +64,13 @@ mutable struct FormulationBuffer{Vi,V,Ci,C}
 end
 
 FormulationBuffer{Vi,V,Ci,C}() where {Vi,V,Ci,C} = FormulationBuffer(
-    false, false, Set{Vi}(), Set{Vi}(), Set{Vi}(), Set{Ci}(),
+    false, Set{Vi}(), Set{Vi}(), Set{Vi}(), Set{Ci}(),
     VarConstrBuffer{Vi, V}(), VarConstrBuffer{Ci, C}(), 
     Dict{Pair{Ci,Vi},Float64}()
 )
 
 function empty!(buffer::FormulationBuffer{Vi,V,Ci,C}) where {Vi,V,Ci,C}
     buffer.changed_obj_sense = false
-    buffer.changed_obj_const = false
     buffer.changed_cost = Set{Vi}()
     buffer.changed_bound = Set{Vi}()
     buffer.changed_var_kind = Set{Vi}()
