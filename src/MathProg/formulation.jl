@@ -261,6 +261,16 @@ function _get_same_sol_in_pool(pool_sols, pool_costs, sol, sol_cost)
     end
     return nothing
 end
+function _get_same_sol_in_pool(pool_sols, candidate_sol_ids, sol)
+    for existing_sol_id in candidate_sol_ids
+        # TODO: implement comparison between view & dynamicsparsevec
+        existing_sol = pool_sols[existing_sol_id,:]
+        if existing_sol == sol
+            return existing_sol_id
+        end
+    end
+    return nothing
+end
 
 # We only keep variables that have certain duty in the representation of the 
 # solution stored in the pool. The second argument allows us to dispatch because
@@ -312,14 +322,9 @@ subproblem; `nothing` otherwise.
 """
 function get_column_from_pool(primal_sol::PrimalSolution{Formulation{DwSp}})
     spform = primal_sol.solution.model
-    new_col_peren_cost = mapreduce(
-        ((var_id, var_val),) -> getperencost(spform, var_id) * var_val,
-        +,
-        primal_sol
-    )
     pool = getprimalsolpool(spform)
-    costs_pool = spform.duty_data.costs_primalsols_pool
-    return _get_same_sol_in_pool(pool, costs_pool, primal_sol.solution.sol, new_col_peren_cost)
+    cadidate_sol_ids = getcolids(spform.duty_data.primalsols_hashtable, primal_sol)
+    return _get_same_sol_in_pool(pool, cadidate_sol_ids, primal_sol.solution.sol)
 end
 
 """
@@ -351,6 +356,7 @@ function insert_column!(
     )
 
     pool = getprimalsolpool(spform)
+    pool_hashtable = spform.duty_data.primalsols_hashtable
     costs_pool = spform.duty_data.costs_primalsols_pool
     custom_pool = spform.duty_data.custom_primalsols_pool
 
@@ -384,6 +390,7 @@ function insert_column!(
         if primal_sol.custom_data !== nothing
             custom_pool[col_id] = primal_sol.custom_data
         end
+        push!(getcolids(pool_hashtable, primal_sol), col_id)
     end
     return getid(col)
 end

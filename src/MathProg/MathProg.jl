@@ -10,7 +10,7 @@ using ..ColunaBase
 
 import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view
 
-using DynamicSparseArrays, Logging, Printf
+using DynamicSparseArrays, Logging, Printf, RandomNumbers
 
 const BD = BlockDecomposition
 const MOI = MathOptInterface
@@ -27,6 +27,7 @@ include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
 include("manager.jl")
+include("solshashtable.jl")
 include("duties.jl")
 include("formulation.jl")
 include("varconstr.jl")
