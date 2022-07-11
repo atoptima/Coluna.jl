@@ -59,7 +59,7 @@ end
 
 # You can replace the content of the function by any algorithm that solves the knapsack
 # problem (such as algorithms provided by the unregistered package 
-# [KnapsackLib](https://github.com/rafaelmartinelli/KnapsackLib.jl)).
+# [Knapsacks](https://github.com/rafaelmartinelli/Knapsacks.jl)).
 
 # The pricing callback is a function. 
 # It takes as argument `cbdata` which is a data structure
