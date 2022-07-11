@@ -52,7 +52,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
 
     function Optimizer()
         model = new()
-        model.env = Env(Params())
+        model.env = Env{VarId}(Params())
         model.inner = Problem(model.env)
         model.is_objective_set = false
         model.objective_type = ZERO
