@@ -77,8 +77,7 @@ function test_runtests()
             "test_linear_integration_2",
             "test_linear_integration_Interval",
             "test_linear_integration_delete_variables",
-            "test_linear_transform",
-            "test_cpsat_"
+            "test_linear_transform"
         ],
         # This argument is useful to prevent tests from failing on future
         # releases of MOI that add new tests. Don't let this number get too far
