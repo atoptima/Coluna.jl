@@ -49,31 +49,31 @@ initial columns callback 2
 initial columns callback 1
 ***************************************************************************************
 **** BaB tree root node
-**** Local DB = -Inf, global bounds : [ -Inf , Inf ], time = 0.67 sec.
+**** Local DB = -Inf, global bounds : [ -Inf , Inf ], time = 1.03 sec.
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 0.67&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    3.5000&gt; &lt;mlp=    5.2000&gt; &lt;PB=5.2000&gt;
-  &lt;it=  2&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=5.2000&gt;
-  &lt;it=  3&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=    5.0500&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
-  &lt;it=  4&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;it=  1&gt; &lt;et= 1.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    3.5000&gt; &lt;mlp=    5.2000&gt; &lt;PB=5.2000&gt;
+  &lt;it=  2&gt; &lt;et= 1.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=5.2000&gt;
+  &lt;it=  3&gt; &lt;et= 1.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=    5.0500&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;it=  4&gt; &lt;et= 1.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
 [ Info: Dual bound reached primal bound.
 Node is already conquered. No children will be generated.
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            2.53s /  26.7%            250MiB /  30.8%
+       Tot / % measured:            3.86s /  26.8%            250MiB /  30.8%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    676ms  100.0%   676ms   77.1MiB  100.0%  77.1MiB
-   SolveLpForm              4    641μs    0.1%   160μs    194KiB    0.2%  48.5KiB
-   Getting primal s...      4   72.8μs    0.0%  18.2μs   19.9KiB    0.0%  4.98KiB
-   Update reduced c...      4   47.3μs    0.0%  11.8μs   33.9KiB    0.0%  8.48KiB
-   Store records            1   22.8μs    0.0%  22.8μs      464B    0.0%     464B
-   Cleanup columns          4   14.5μs    0.0%  3.62μs   2.48KiB    0.0%     636B
-   Restore/remove r...      1   6.90μs    0.0%  6.90μs     0.00B    0.0%    0.00B
-   Update Lagrangia...      4   4.80μs    0.0%  1.20μs      512B    0.0%     128B
-   Smoothing update         4   2.70μs    0.0%   675ns      320B    0.0%    80.0B
+ Coluna                     1    1.03s  100.0%   1.03s   77.1MiB  100.0%  77.1MiB
+   SolveLpForm              4    983μs    0.1%   246μs    194KiB    0.2%  48.5KiB
+   Getting primal s...      4    138μs    0.0%  34.6μs   19.9KiB    0.0%  4.98KiB
+   Update reduced c...      4   58.6μs    0.0%  14.7μs   33.9KiB    0.0%  8.48KiB
+   Store records            1   34.8μs    0.0%  34.8μs      464B    0.0%     464B
+   Cleanup columns          4   17.5μs    0.0%  4.38μs   2.48KiB    0.0%     636B
+   Update Lagrangia...      4   11.3μs    0.0%  2.83μs      512B    0.0%     128B
+   Restore/remove r...      1   9.30μs    0.0%  9.30μs     0.00B    0.0%    0.00B
+   Smoothing update         4   3.40μs    0.0%   850ns      320B    0.0%    80.0B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 5.1
-[ Info: Dual bound: 5.1</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.20 on <span class="colophon-date" title="Monday 11 July 2022 15:01">Monday 11 July 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+[ Info: Dual bound: 5.1</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.20 on <span class="colophon-date" title="Monday 11 July 2022 15:02">Monday 11 July 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
