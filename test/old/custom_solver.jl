@@ -1,7 +1,7 @@
-# In this test, we use the Martinelli's knapsack solver pkg ( https://github.com/rafaelmartinelli/KnapsackLib.jl)
+# In this test, we use the Martinelli's knapsack solver pkg (https://github.com/rafaelmartinelli/Knapsacks.jl)
 # to test the interface of custom models/solvers.
 
-using KnapsackLib
+using Knapsacks
 mutable struct KnapsackLibModel <: Coluna.MathProg.AbstractFormulation
     nbitems::Int
     costs::Vector{Float64}
@@ -52,9 +52,9 @@ function Coluna.Algorithm.run!(
     costs = _fixed_costs(opt.model, form, env)
     ws = _scale_to_int(opt.model.capacity, opt.model.weights...)
     cs = _scale_to_int(costs...)
-    items = [KnapItem(w,c) for (w,c) in zip(ws[2:end], cs)]
-    data = KnapData(ws[1], items)
-    _, selected = solveKnapExpCore(data)
+
+    data = Knapsack(ws[1], [ws[2:end]...], [cs...])
+    _, selected = solveKnapsack(data)
 
     setup_var_id = form.duty_data.setup_var
 
