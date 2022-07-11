@@ -66,6 +66,7 @@ function test_runtests()
             "test_quadratic_",
             "test_conic_",
             "test_nonlinear_",
+            "test_cpsat_",
             # Unsupported attributes
             "test_attribute_RawStatusString",
             "test_attribute_SolveTimeSec",
