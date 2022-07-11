@@ -1,5 +1,5 @@
 function model_factory_for_buffer()
-    form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
+    form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
     push!(form.optimizers, ClMP.MoiOptimizer(MOI._instantiate_and_check(GLPK.Optimizer)))
     var = ClMP.setvar!(
         form, "var1", ClMP.OriginalVar, cost=2.0, lb=-1.0, ub=1.0, 

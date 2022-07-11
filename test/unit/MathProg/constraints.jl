@@ -1,6 +1,6 @@
 @testset "MathProg - constraint" begin
     @testset "getters and setters" begin
-        form =  ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
+        form =  ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
         constr = ClMP.setconstr!(form, "fake_constr", ClMP.MasterBranchOnOrigVarConstr,
             rhs = -13.0, kind = ClMP.Facultative, sense = ClMP.Less,
             inc_val = -12.0, is_active = false, is_explicit = false

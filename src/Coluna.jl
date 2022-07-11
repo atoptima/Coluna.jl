@@ -7,7 +7,7 @@ import Base: isempty, hash, isequal, length, iterate, getindex, lastindex,
 
 import BlockDecomposition, MathOptInterface, TimerOutputs
 
-using Base.Threads, Dates, Distributed, DynamicSparseArrays, Logging, Parameters, Printf, TOML
+using Base.Threads, Dates, DynamicSparseArrays, Logging, Parameters, Printf, TOML
 
 const BD = BlockDecomposition
 const MOI = MathOptInterface
@@ -38,8 +38,9 @@ end
 version() = _COLUNA_VERSION[]
 
 include("kpis.jl")
-
 include("parameters.jl")
+include("env.jl")
+export Env
 
 include("ColunaBase/ColunaBase.jl")
 using .ColunaBase
@@ -47,22 +48,6 @@ using .ColunaBase
 include("MathProg/MathProg.jl")
 using .MathProg
 
-mutable struct Env
-    env_starting_time::DateTime
-    optim_starting_time::Union{Nothing, DateTime}
-    params::Params
-    kpis::Kpis
-    form_counter::Int # 0 is for original form
-    varids::MOI.Utilities.CleverDicts.CleverDict{MOI.VariableIndex, MathProg.VarId}
-    custom_families_id::Dict{DataType, Int}
-end
-Env(params::Params) = Env(
-    now(), nothing, params, Kpis(nothing, nothing), 0,
-    MOI.Utilities.CleverDicts.CleverDict{MOI.VariableIndex, MathProg.VarId}(),
-    Dict{DataType, Int}()
-)
-set_optim_start_time!(env::Env) = env.optim_starting_time = now()
-elapsed_optim_time(env::Env) = Dates.toms(now() - env.optim_starting_time) / Dates.toms(Second(1))
 
 include("Algorithm/Algorithm.jl")
 using .Algorithm
