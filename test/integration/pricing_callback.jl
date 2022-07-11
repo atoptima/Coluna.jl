@@ -1,7 +1,7 @@
 @testset "Integration - pricing callback" begin
     # Formulation with a given nb of variables. No constraint & no cost.
     function build_formulation(nb_variables)
-        env = CL.Env(CL.Params())
+        env = CL.Env{ClMP.VarId}(CL.Params())
         form = ClMP.create_formulation!(env, DwSp(nothing, 0, 1, ClMP.Continuous))
         vars = Dict(
             "x$i" => ClMP.setvar!(form, "x$i", ClMP.DwSpPricingVar) for i in 1:nb_variables

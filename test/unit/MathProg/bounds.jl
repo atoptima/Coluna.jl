@@ -1,5 +1,5 @@
 @testset "MathProg - bound" begin
-    env = Coluna.Env(Coluna.Params())
+    env = Coluna.Env{ClMP.VarId}(Coluna.Params())
 
     min_form = ClMP.create_formulation!(
         env, ClMP.Original();
