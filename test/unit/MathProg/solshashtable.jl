@@ -1,4 +1,4 @@
-@testset "MathProg - solshashtable" begin
+@testset "MathProg - solutions hash table" begin
     x = ClMP.VarId(ClMP.OriginalVar, 1, 1)
     y = ClMP.VarId(ClMP.OriginalVar, 2, 1)
     z = ClMP.VarId(ClMP.OriginalVar, 3, 1)
