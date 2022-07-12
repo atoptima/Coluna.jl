@@ -240,7 +240,8 @@ end
 # Methods specific to a Formulation with DwSp duty
 ############################################################################################
 
-getprimalsolpool(form::Formulation{DwSp}) = form.duty_data.primalsols_pool
+get_primal_sol_pool(form::Formulation{DwSp}) = form.duty_data.primalsols_pool
+get_primal_sol_pool_hash_table(form::Formulation{DwSp}) = form.duty_data.hashtable_primalsols_pool
 
 ############################################################################################
 # Pool of solutions
@@ -249,20 +250,9 @@ getprimalsolpool(form::Formulation{DwSp}) = form.duty_data.primalsols_pool
 
 # Returns nothing if there is no identical solutions in pool; the id of the
 # identical solution otherwise.
-function _get_same_sol_in_pool(pool_sols, pool_costs, sol, sol_cost)
-    for (existing_sol_id, existing_sol_cost) in pool_costs
-        if isapprox(existing_sol_cost, sol_cost)
-            # TODO: implement comparison between view & dynamicsparsevec
-            existing_sol = pool_sols[existing_sol_id,:]
-            if existing_sol == sol
-                return existing_sol_id
-            end
-        end
-    end
-    return nothing
-end
-function _get_same_sol_in_pool(pool_sols, candidate_sol_ids, sol)
-    for existing_sol_id in candidate_sol_ids
+function _get_same_sol_in_pool(pool_sols, pool_hashtable, sol)
+    sols_with_same_members = getsolids(pool_hashtable, sol)
+    for existing_sol_id in sols_with_same_members
         # TODO: implement comparison between view & dynamicsparsevec
         existing_sol = pool_sols[existing_sol_id,:]
         if existing_sol == sol
@@ -322,9 +312,9 @@ subproblem; `nothing` otherwise.
 """
 function get_column_from_pool(primal_sol::PrimalSolution{Formulation{DwSp}})
     spform = primal_sol.solution.model
-    pool = getprimalsolpool(spform)
-    cadidate_sol_ids = getcolids(spform.duty_data.primalsols_hashtable, primal_sol)
-    return _get_same_sol_in_pool(pool, cadidate_sol_ids, primal_sol.solution.sol)
+    pool = get_primal_sol_pool(spform)
+    pool_hashtable = get_primal_sol_pool_hash_table(spform)
+    return _get_same_sol_in_pool(pool, pool_hashtable, primal_sol)
 end
 
 """
@@ -355,8 +345,8 @@ function insert_column!(
         primal_sol
     )
 
-    pool = getprimalsolpool(spform)
-    pool_hashtable = spform.duty_data.primalsols_hashtable
+    pool = get_primal_sol_pool(spform)
+    pool_hashtable = get_primal_sol_pool_hash_table(spform)
     costs_pool = spform.duty_data.costs_primalsols_pool
     custom_pool = spform.duty_data.custom_primalsols_pool
 
@@ -390,7 +380,7 @@ function insert_column!(
         if primal_sol.custom_data !== nothing
             custom_pool[col_id] = primal_sol.custom_data
         end
-        push!(getcolids(pool_hashtable, primal_sol), col_id)
+        savesolid!(pool_hashtable, col_id, primal_sol)
     end
     return getid(col)
 end
@@ -694,7 +684,7 @@ function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarM
             # then for all columns having its own variables
             assigned_form_uid = getassignedformuid(varid)
             spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
-            for (col_id, col_coeff) in @view getprimalsolpool(spform)[:,varid]
+            for (col_id, col_coeff) in @view get_primal_sol_pool(spform)[:,varid]
                 coef_matrix[constrid, col_id] += col_coeff * var_coeff
             end
         end

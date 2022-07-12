@@ -9,14 +9,13 @@ using ..ColunaBase
 
 import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view
 
-using DynamicSparseArrays, Logging, Printf, RandomNumbers
+using DynamicSparseArrays, Logging, Printf
 
 const BD = BlockDecomposition
 const MOI = MathOptInterface
 const TO = TimerOutputs
 
 const MAX_NB_FORMULATIONS = typemax(Int16)
-const MAX_NB_PROCESSES = typemax(Int8)
 
 include("types.jl")
 include("vcids.jl")
@@ -26,7 +25,6 @@ include("bounds.jl")
 include("solutions.jl")
 include("buffer.jl")
 include("manager.jl")
-include("solshashtable.jl")
 include("duties.jl")
 include("formulation.jl")
 include("varconstr.jl")
@@ -72,7 +70,7 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, create_formulation!, getreformulation, getvar, getvars,
-    getconstr, getconstrs, getelem, getcoefmatrix, getprimalsolpool, getprimalsolcosts,
+    getconstr, getconstrs, getelem, getcoefmatrix, get_primal_sol_pool, getprimalsolcosts,
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr
