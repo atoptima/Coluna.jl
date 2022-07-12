@@ -268,15 +268,15 @@ function compute_db_contributions!(
     return
 end
 
-function compute_red_cost(
-    algo::ColumnGeneration, master::Formulation, spinfo::SubprobInfo,
+function compute_reduced_cost(
+    stab_is_used, masterform::Formulation, spinfo::SubprobInfo,
     spsol::PrimalSolution, lp_dual_sol::DualSolution
 )
     red_cost::Float64 = 0.0
-    if stabilization_is_used(algo)
-        master_coef_matrix = getcoefmatrix(master)
+    if stab_is_used
+        master_coef_matrix = getcoefmatrix(masterform)
         for (varid, value) in spsol
-            red_cost += getcurcost(master, varid) * value
+            red_cost += getcurcost(masterform, varid) * value
             for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
                 red_cost -= value * var_coeff * lp_dual_sol[constrid]
             end
@@ -286,6 +286,17 @@ function compute_red_cost(
     end
     red_cost -= spinfo.lb_dual + spinfo.ub_dual
     return red_cost
+end
+
+function reduced_costs_of_solutions(
+    stab_is_used, masterform::Formulation, spinfo::SubprobInfo,
+    sp_optstate::OptimizationState, dualsol::DualSolution
+)
+    red_costs = Float64[]
+    for sol in get_ip_primal_sols(sp_optstate)
+        push!(red_costs, compute_reduced_cost(stab_is_used, masterform, spinfo, sol, dualsol))
+    end
+    return red_costs
 end
 
 function improving_red_cost(redcost::Float64, algo::ColumnGeneration, ::Type{MinSense})
@@ -323,22 +334,41 @@ function _optimize_sps(spforms, pricing_prob_solve_alg, env)
     return sp_optstates
 end
 
+function _error_unexpected_var_state_during_col_insertion(masterform, col_id, col, red_cost)
+    @show col
+
+    
+
+    msg = """
+    Unexpected variable state during column insertion.
+    ======
+    The column is in the master ? $(haskey(masterform, col_id)).
+    The column is active ? $(iscuractive(masterform, col_id)).
+    Reduced cost of the column: $(red_cost).
+    ======
+    Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
+    ======
+    """
+    error(msg)
+end
+
 function insert_columns!(
-    masterform::Formulation, sp_optstate::OptimizationState,
-    spinfo::SubprobInfo, algo::ColumnGeneration, dualsol::DualSolution, phase::Int
+    masterform::Formulation, sp_optstate::OptimizationState, redcosts_spsols::Vector{Float64},
+    spinfo::SubprobInfo, algo::ColumnGeneration, phase::Int
 )
     nb_cols_generated = 0
 
     # Insert the primal solutions to the DW subproblem as column into the master
     bestsol = get_best_ip_primal_sol(sp_optstate)
-    if bestsol !== nothing && getstatus(bestsol) == FEASIBLE_SOL
+    if !isnothing(bestsol) && getstatus(bestsol) == FEASIBLE_SOL
         spinfo.bestsol = bestsol
         spinfo.isfeasible = true
 
         # First we activate columns that are already in the pool.
         primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
-        for sol in get_ip_primal_sols(sp_optstate)
-            red_cost = compute_red_cost(algo, masterform, spinfo, sol, dualsol)
+        sols = get_ip_primal_sols(sp_optstate)
+        for (sol, red_cost) in Iterators.zip(sols, redcosts_spsols)
+            #red_cost = compute_red_cost(algo, masterform, spinfo, sol, dualsol)
             if improving_red_cost(red_cost, algo, getobjsense(masterform))
                 col_id = get_column_from_pool(sol)
                 if !isnothing(col_id)
@@ -349,17 +379,7 @@ function insert_columns!(
                         end
                         nb_cols_generated += 1
                     else
-                        msg = """
-                        Unexpected variable state during column insertion.
-                        ======
-                        The column is in the master ? $(haskey(masterform, col_id)).
-                        The column is active ? $(iscuractive(masterform, col_id)).
-                        Reduced cost of the column: $(red_cost).
-                        ======
-                        Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
-                        ======
-                        """
-                        error(msg)
+                        _error_unexpected_var_state_during_col_insertion(masterform, col_id, sol, red_cost)
                     end
                 else
                     push!(primal_sols_to_insert, sol)
@@ -450,8 +470,13 @@ function solve_sps_to_gencols!(
             spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate)
         )
 
+        redcosts_spsols = reduced_costs_of_solutions(
+            stabilization_is_used(algo), masterform, spinfo, sp_optstate,
+            lp_dual_sol
+        )
+
         nb_new_cols += insert_columns!(
-            masterform, sp_optstate, spinfo, algo, lp_dual_sol, phase
+            masterform, sp_optstate, redcosts_spsols, spinfo, algo, phase
         )
 
         # If a subproblem is infeasible, then the original formulation is
