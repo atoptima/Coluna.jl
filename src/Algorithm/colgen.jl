@@ -242,7 +242,6 @@ function clear_before_colgen_iteration!(spinfo::SubprobInfo)
     spinfo.bestsol = nothing
     spinfo.valid_dual_bound_contrib = 0.0
     spinfo.pseudo_dual_bound_contrib = 0.0
-    spinfo.isfeasible = true
     return
 end
 
@@ -354,15 +353,13 @@ end
 
 function insert_columns!(
     masterform::Formulation, sp_optstate::OptimizationState, redcosts_spsols::Vector{Float64},
-    spinfo::SubprobInfo, algo::ColumnGeneration, phase::Int
+    algo::ColumnGeneration, phase::Int
 )
     nb_cols_generated = 0
 
     # Insert the primal solutions to the DW subproblem as column into the master
     bestsol = get_best_ip_primal_sol(sp_optstate)
     if !isnothing(bestsol) && getstatus(bestsol) == FEASIBLE_SOL
-        spinfo.bestsol = bestsol
-        spinfo.isfeasible = true
 
         # First we activate columns that are already in the pool.
         primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
@@ -370,7 +367,10 @@ function insert_columns!(
         for (sol, red_cost) in Iterators.zip(sols, redcosts_spsols)
             #red_cost = compute_red_cost(algo, masterform, spinfo, sol, dualsol)
             if improving_red_cost(red_cost, algo, getobjsense(masterform))
+                @show sol
+                println("improving reduced cost : yes")
                 col_id = get_column_from_pool(sol)
+                @show col_id
                 if !isnothing(col_id)
                     if haskey(masterform, col_id) && !iscuractive(masterform, col_id)
                         activate!(masterform, col_id)
@@ -387,6 +387,8 @@ function insert_columns!(
             end
         end
 
+        @show primal_sols_to_insert
+
         # Then, we add the new columns (i.e. not in the pool).
         for sol in primal_sols_to_insert
             col_id = insert_column!(masterform, sol, "MC")
@@ -395,16 +397,9 @@ function insert_columns!(
             end
             nb_cols_generated += 1
         end
+        return nb_cols_generated
     end
-
-    if bestsol === nothing && algo.smoothing_stabilization == 1 && !iszero(spinfo.ub)
-        msg = string(
-            "To use automatic dual price smoothing, solutions to all pricing ",
-            "subproblems must be available."
-        )
-        error(msg)
-    end
-    return nb_cols_generated
+    return -1
 end
 
 # this method must be redefined if subproblem is a custom model
@@ -437,7 +432,6 @@ function solve_sps_to_gencols!(
     smooth_dual_sol::DualSolution,
 )
     masterform = getmaster(reform)
-    nb_new_cols = 0
     spsforms = get_dw_pricing_sps(reform)
 
     # update reduced costs
@@ -459,6 +453,7 @@ function solve_sps_to_gencols!(
         _optimize_sps(spsforms, algo.pricing_prob_solve_alg, env)
     end
 
+    nb_new_cols = 0
     for sp_optstate in sp_optstates
         # TODO: refactor
         get_best_ip_primal_sol(sp_optstate) === nothing && continue
@@ -475,13 +470,28 @@ function solve_sps_to_gencols!(
             lp_dual_sol
         )
 
-        nb_new_cols += insert_columns!(
-            masterform, sp_optstate, redcosts_spsols, spinfo, algo, phase
+        bestsol = get_best_ip_primal_sol(sp_optstate)
+        if isnothing(bestsol) && algo.smoothing_stabilization == 1 && !iszero(spinfo.ub)
+            msg = string(
+                "To use automatic dual price smoothing, solutions to all pricing ",
+                "subproblems must be available."
+            )
+            error(msg)
+        end
+
+        # Columns will be inserted only if the 
+        nb_cols_sp = insert_columns!(
+            masterform, sp_optstate, redcosts_spsols, algo, phase
         )
 
-        # If a subproblem is infeasible, then the original formulation is
-        # infeasible. Therefore we can stop the column generation.
-        !spinfo.isfeasible && return -1
+        if nb_cols_sp > 0
+            spinfo.bestsol = bestsol
+        elseif nb_cols_sp < 0
+            # If a subproblem is infeasible, then the original formulation is
+            # infeasible. Therefore we can stop the column generation.
+            return -1
+        end
+        nb_new_cols += nb_cols_sp
     end
 
     return nb_new_cols
