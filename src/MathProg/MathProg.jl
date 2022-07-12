@@ -16,7 +16,6 @@ const MOI = MathOptInterface
 const TO = TimerOutputs
 
 const MAX_NB_FORMULATIONS = typemax(Int16)
-const MAX_NB_PROCESSES = typemax(Int8)
 
 include("types.jl")
 include("vcids.jl")
@@ -71,7 +70,7 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
 
 # Methods related to formulations
 export AbstractFormulation, Formulation, create_formulation!, getreformulation, getvar, getvars,
-    getconstr, getconstrs, getelem, getcoefmatrix, getprimalsolpool, getprimalsolcosts,
+    getconstr, getconstrs, getelem, getcoefmatrix, get_primal_sol_pool, getprimalsolcosts,
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
     setcol_from_sp_primalsol!, setcut_from_sp_dualsol!, # TODO : merge with setvar! & setconstr

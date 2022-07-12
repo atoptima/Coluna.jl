@@ -827,7 +827,7 @@ function forbid_infeasible_columns!(
         end
 
         spform = get_dw_pricing_sps(master.parent_formulation)[spuid]
-        for (repid, repval) in @view getprimalsolpool(spform)[:,col_id]
+        for (repid, repval) in @view get_primal_sol_pool(spform)[:,col_id]
             if !(getcurlb(spform, repid) <= repval <= getcurub(spform, repid))
                 deactivate!(master,col_id)
                 num_deactivated_columns += 1

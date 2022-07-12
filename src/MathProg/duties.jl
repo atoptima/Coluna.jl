@@ -27,6 +27,8 @@ mutable struct DwSp <: AbstractSpDuty
     ## Coluna representation of solutions (filtered by `_sol_repr_for_pool`).
     ## [colid, varid] = value
     primalsols_pool::VarVarMatrix
+    # Hash table to quickly find identical solutions
+    hashtable_primalsols_pool::HashTable{VarId}
     ## Perennial cost of solutions
     costs_primalsols_pool::Dict{VarId, Float64}
     ## Custom representation of solutions
@@ -38,6 +40,7 @@ function DwSp(setup_var, lower_multiplicity, upper_multiplicity, column_var_kind
     return DwSp(
         setup_var, lower_multiplicity, upper_multiplicity, column_var_kind,
         dynamicsparse(VarId, VarId, Float64; fill_mode = false),
+        HashTable{VarId}(),
         Dict{VarId, Float64}(),
         Dict{VarId, BD.AbstractCustomData}()
     )
