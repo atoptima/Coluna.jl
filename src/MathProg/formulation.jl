@@ -1,7 +1,5 @@
 mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     uid::Int
-    var_counter::Int
-    constr_counter::Int
     parent_formulation::Union{AbstractFormulation, Nothing} # master for sp, reformulation for master
     optimizers::Vector{AbstractOptimizer}
     manager::FormulationManager
@@ -9,6 +7,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     buffer::FormulationBuffer
     storage::Storage
     duty_data::Duty
+    env::Env{VarId}
 end
 
 """
@@ -28,7 +27,7 @@ reformulation for a master, `nothing` by default), and `obj_sense` the sense of 
 function (`MinSense` or `MaxSense`).
 """
 function create_formulation!(
-    env,
+    env::Env{VarId},
     duty::AbstractFormDuty;
     parent_formulation = nothing,
     obj_sense::Type{<:Coluna.AbstractSense} = MinSense
@@ -38,9 +37,9 @@ function create_formulation!(
     end
     buffer = FormulationBuffer{VarId,Variable,ConstrId,Constraint}()
     return Formulation(
-        env.form_counter += 1, 0, 0, parent_formulation, AbstractOptimizer[], 
+        env.form_counter += 1, parent_formulation, AbstractOptimizer[], 
         FormulationManager(buffer, custom_families_id = env.custom_families_id), obj_sense,
-        buffer, Storage(), duty
+        buffer, Storage(), duty, env
     )
 end
 
@@ -177,7 +176,7 @@ function setvar!(
     # Custom representation of the variable (advanced use).
     custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
     # Default id of the variable.
-    id = VarId(duty, form.var_counter += 1, getuid(form)),
+    id = VarId(duty, form.env.var_counter += 1, getuid(form)),
     # The formulation from which the variable is generated.
     origin::Union{Nothing,Formulation} = nothing,
     # By default, the name of the variable is `name`. However, when you do column
@@ -186,6 +185,7 @@ function setvar!(
     # the variable will be `name_uid`.
     id_as_name_suffix = false,
 )
+    # TODO: we should have a dedicated procedure for preprocessing.
     if kind == Binary
         lb = lb < 0.0 ? 0.0 : lb
         ub = ub > 1.0 ? 1.0 : ub
@@ -444,7 +444,7 @@ function setdualsol!(form::Formulation, new_dual_sol::DualSolution)::Tuple{Bool,
     end
 
     ### else not identical to any existing dual sol
-    new_dual_sol_id = ConstrId(BendSpDualSol, form.constr_counter += 1, getuid(form))
+    new_dual_sol_id = ConstrId(BendSpDualSol, form.env.constr_counter += 1, getuid(form))
     _adddualsol!(form, new_dual_sol, new_dual_sol_id)
     return (true, new_dual_sol_id)
 end
@@ -556,7 +556,7 @@ function setconstr!(
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
     loc_art_var_abs_cost::Float64 = 0.0,
     custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
-    id = ConstrId(duty, form.constr_counter += 1, getuid(form))
+    id = ConstrId(duty, form.env.constr_counter += 1, getuid(form))
 )
     if getduty(id) != duty
         id = ConstrId(id, duty = duty)

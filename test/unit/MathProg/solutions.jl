@@ -1,6 +1,6 @@
 @testset "MathProg - solution" begin
     @testset "isless - min sense" begin
-        form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original())
+        form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original())
         var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
         constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
         
@@ -16,7 +16,7 @@
     @testset "isless - max sense" begin
         # MaxSense
         form = ClMP.create_formulation!(
-            Env(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
+            Env{ClMP.VarId}(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
         )
         var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
         constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
@@ -32,7 +32,7 @@
 
     @testset "isequal" begin
         form = ClMP.create_formulation!(
-            Env(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
+            Env{ClMP.VarId}(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
         )
         var1 = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
         var2 = ClMP.setvar!(form, "var2", ClMP.OriginalVar)

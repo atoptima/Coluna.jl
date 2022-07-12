@@ -3,7 +3,7 @@
     # Its parent is the master with representatives of sp vars & a constraint sum_i i*x_i <= 0.
     # Cost of variable x[i] is i.
     function build_reformulation(nb_variables)
-        env = CL.Env(CL.Params())
+        env = CL.Env{ClMP.VarId}(CL.Params())
 
         # Create the reformulation
         reform = Reformulation()
@@ -36,7 +36,6 @@
         )
         ClMP.setmaster!(reform, master)
 
-        master.var_counter += 4 # we added 4 variables with customized id
         closefillmode!(ClMP.getcoefmatrix(master))
         closefillmode!(ClMP.getcoefmatrix(spform))
 

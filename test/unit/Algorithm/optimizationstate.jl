@@ -1,5 +1,5 @@
 function formulation_for_optimizationstate(sense = Coluna.MathProg.MinSense)
-    form = ClMP.create_formulation!(Env(Coluna.Params()), ClMP.Original(), obj_sense = sense)
+    form = ClMP.create_formulation!(Env{ClMP.VarId}(Coluna.Params()), ClMP.Original(), obj_sense = sense)
     var = ClMP.setvar!(form, "var1", ClMP.OriginalVar)
     constr = ClMP.setconstr!(form, "constr1", ClMP.OriginalConstr)
     return form, var, constr
