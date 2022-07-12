@@ -2,7 +2,7 @@ module ColunaBase
 
 using ..Coluna
 
-using DynamicSparseArrays, MathOptInterface, TimerOutputs
+using DynamicSparseArrays, MathOptInterface, TimerOutputs, RandomNumbers
 
 const MOI = MathOptInterface
 const TO = TimerOutputs
@@ -28,6 +28,9 @@ export TerminationStatus, SolutionStatus, OPTIMIZE_NOT_CALLED, OPTIMAL,
     FEASIBLE_SOL, INFEASIBLE_SOL, UNKNOWN_FEASIBILITY, UNKNOWN_SOLUTION_STATUS, 
     UNCOVERED_SOLUTION_STATUS, convert_status
 
+# hashtable
+export HashTable, gethash, savesolid!, getsolids
+
 # Storages (TODO : clean)
 export RecordsVector, UnitType, Storage, AbstractStorageUnit, AbstractRecord,
     UnitsUsage, UnitPermission, READ_AND_WRITE, READ_ONLY, NOT_USED, StorageUnitWrapper,
@@ -38,6 +41,7 @@ export RecordsVector, UnitType, Storage, AbstractStorageUnit, AbstractRecord,
 include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
+include("hashtable.jl")
 include("storage.jl")
 
 end
