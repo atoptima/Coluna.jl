@@ -1,25 +1,7 @@
-# Coluna 0.4.0 Release notes
+# Coluna 0.4.2 Release notes
 
-Major update of the MOI wrapper and various bugfixes.
-## Changes
+- new implementation of the solution pool that leads to significant improvements for columns insertion in column generation
 
-### Pricing callback API
+- specific error for "unexpected variable state" error to allow developers to debug
+their code (see `ColumnAlreadyInsertedColGenError` struct).
 
-The pricing callback has to transmit the dual bound which is use to compute the contribution of the subproblem to the lagrangian bound in column generation.
-
-```julia
-MOI.submit(model, BlockDecomposition.PricingDualBound(cbdata), db)
-```
-
-Moreover, it's not possible to retrieve the column generation stage from the callback data anymore.
-
-
-## Dep updates
-
-- BlockDecomposition -> v1.7
-- MOI -> 1
-
-
-## Removed
-
-- Specific treatement of single variable constraint of a formulation in `MathProg`.
