@@ -34,3 +34,13 @@ end
 savesolid!(hashtable::HashTable, solid, sol) = push!(getsolids(hashtable, sol), solid)
 
 getsolids(hashtable::HashTable, sol) = hashtable.hash_to_solids[gethash(hashtable, sol)]
+
+function Base.show(io::IO, ht::HashTable)
+    println(io, typeof(ht), ":")
+    println(io, " memberid_to_hash : ", ht.memberid_to_hash)
+    println(io, " hash_to_solids :")
+    for (a,b) in Iterators.filter(a -> !isempty(a[2]), enumerate(ht.hash_to_solids))
+        println(io, "\t", a, "=>", b)
+    end
+    return
+end

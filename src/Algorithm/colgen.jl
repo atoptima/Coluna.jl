@@ -84,6 +84,47 @@ end
 
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
+############################################################################################
+# Errors and warnings
+############################################################################################
+
+"""
+Error thrown when when a subproblem generates a column with negative (resp. positive) 
+reduced cost in min (resp. max) problem that already exists in the master 
+and that is already active. 
+An active master column cannot have a negative reduced cost.
+"""
+struct ColumnAlreadyInsertedColGenError
+    column_in_master::Bool
+    column_is_active::Bool
+    column_reduced_cost::Float64
+    column_id::VarId
+    master::Formulation{DwMaster}
+    subproblem::Formulation{DwSp}
+end
+
+function Base.show(io::IO, err::ColumnAlreadyInsertedColGenError)
+    msg = """
+    Unexpected variable state during column insertion.
+    ======
+    Column id: $(err.column_id).
+    Reduced cost of the column: $(err.column_reduced_cost).
+    The column is in the master ? $(err.column_in_master).
+    The column is active ? $(err.column_is_active).
+    ======
+    If the column is in the master and active, it means a subproblem found a solution with
+    negative (minimization) / positive (maximization) reduced cost that is already active in
+    the master. This should not happen.
+    ======
+    If you are using a pricing callback, make sure there is no bug in your code.
+    If you are using a solver (e.g. GLPK, Gurobi...), please open an issue at https://github.com/atoptima/Coluna.jl/issues
+    with an example that reproduces the bug.
+    ======
+    """
+    println(io, msg)
+end
+
+
 function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
     child_algs = Tuple{AbstractAlgorithm,AbstractModel}[]
     push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
@@ -333,24 +374,6 @@ function _optimize_sps(spforms, pricing_prob_solve_alg, env)
     return sp_optstates
 end
 
-function _error_unexpected_var_state_during_col_insertion(masterform, col_id, col, red_cost)
-    @show col
-
-    
-
-    msg = """
-    Unexpected variable state during column insertion.
-    ======
-    The column is in the master ? $(haskey(masterform, col_id)).
-    The column is active ? $(iscuractive(masterform, col_id)).
-    Reduced cost of the column: $(red_cost).
-    ======
-    Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
-    ======
-    """
-    error(msg)
-end
-
 function insert_columns!(
     masterform::Formulation, sp_optstate::OptimizationState, redcosts_spsols::Vector{Float64},
     algo::ColumnGeneration, phase::Int
@@ -365,12 +388,8 @@ function insert_columns!(
         primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
         sols = get_ip_primal_sols(sp_optstate)
         for (sol, red_cost) in Iterators.zip(sols, redcosts_spsols)
-            #red_cost = compute_red_cost(algo, masterform, spinfo, sol, dualsol)
             if improving_red_cost(red_cost, algo, getobjsense(masterform))
-                @show sol
-                println("improving reduced cost : yes")
                 col_id = get_column_from_pool(sol)
-                @show col_id
                 if !isnothing(col_id)
                     if haskey(masterform, col_id) && !iscuractive(masterform, col_id)
                         activate!(masterform, col_id)
@@ -379,15 +398,17 @@ function insert_columns!(
                         end
                         nb_cols_generated += 1
                     else
-                        _error_unexpected_var_state_during_col_insertion(masterform, col_id, sol, red_cost)
+                        in_master = haskey(masterform, col_id)
+                        is_active = iscuractive(masterform, col_id)
+                        throw(ColumnAlreadyInsertedColGenError(
+                            in_master, is_active, red_cost, col_id, masterform, sol.solution.model
+                        ))
                     end
                 else
                     push!(primal_sols_to_insert, sol)
                 end
             end
         end
-
-        @show primal_sols_to_insert
 
         # Then, we add the new columns (i.e. not in the pool).
         for sol in primal_sols_to_insert
@@ -484,9 +505,9 @@ function solve_sps_to_gencols!(
             masterform, sp_optstate, redcosts_spsols, algo, phase
         )
 
-        if nb_cols_sp > 0
+        if nb_cols_sp >= 0
             spinfo.bestsol = bestsol
-        elseif nb_cols_sp < 0
+        else
             # If a subproblem is infeasible, then the original formulation is
             # infeasible. Therefore we can stop the column generation.
             return -1

@@ -48,13 +48,13 @@ end
 
         ## Iteration 1
         redcosts_spsols = [-2.0, 2.0]
-        sp_optstate = ClA.OptimizationState(spform)
+        sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
 
         col1 = ClMP.PrimalSolution(
             spform, 
             map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
             [1.0, 2.0],
-            3.0,
+            1.0,
             ClB.FEASIBLE_SOL
         )
         col2 = ClMP.PrimalSolution(
@@ -69,22 +69,20 @@ end
         nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
         @test nb_new_cols == 1
 
-        println("\e[31m ***** \e[00m")
-
         ## Iteration 2
         redcosts_spsols = [-1.0]
-        sp_optstate = ClA.OptimizationState(spform)
+        sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
 
-        col1 = ClMP.PrimalSolution(
+        col3 = ClMP.PrimalSolution(
             spform, 
             map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
             [1.0, 2.0],
             3.0,
             ClB.FEASIBLE_SOL
         )
-        ClA.add_ip_primal_sols!(sp_optstate, col1)
+        ClA.add_ip_primal_sols!(sp_optstate, col3)
         
-        ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
+        @test_throws ClA.ColumnAlreadyInsertedColGenError ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
     end
 
     @testset "Two identical columns at same iteration" begin
@@ -95,26 +93,26 @@ end
         redcosts_spsols = [-2.0, -2.0, 2.0]
         phase = 1
 
-        sp_optstate = ClA.OptimizationState(spform)
+        sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
         col1 = ClMP.PrimalSolution(
             spform, 
             map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
             [1.0, 2.0],
-            3.0,
+            1.0,
             ClB.FEASIBLE_SOL
         )
         col2 = ClMP.PrimalSolution(
             spform, 
             map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
             [1.0, 2.0],
-            3.0,
+            2.0,
             ClB.FEASIBLE_SOL
         )
         col3 = ClMP.PrimalSolution(
             spform, 
             map(x -> ClMP.getid(spvars[x]), ["x2", "x3"]),
             [5.0, 2.0],
-            2.5,
+            3.5,
             ClB.FEASIBLE_SOL
         ) # not inserted because positive reduced cost.
         ClA.add_ip_primal_sols!(sp_optstate, col1, col2, col3)
