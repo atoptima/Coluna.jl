@@ -314,7 +314,7 @@ function get_column_from_pool(primal_sol::PrimalSolution{Formulation{DwSp}})
     spform = primal_sol.solution.model
     pool = get_primal_sol_pool(spform)
     pool_hashtable = get_primal_sol_pool_hash_table(spform)
-    return _get_same_sol_in_pool(pool, pool_hashtable, primal_sol)
+    return _get_same_sol_in_pool(pool, pool_hashtable, primal_sol.solution.sol)
 end
 
 """
