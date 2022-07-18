@@ -1,6 +1,6 @@
 module Algorithm
 
-import DataStructures
+using DataStructures
 import MathOptInterface
 import TimerOutputs
 
@@ -16,6 +16,10 @@ import Base: push!
 
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
+
+# Tree search interface
+include("treesearch/interface.jl")
+include("treesearch/explore.jl")
 
 include("data.jl")
 include("formstorages.jl")
