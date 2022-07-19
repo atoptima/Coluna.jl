@@ -9,7 +9,7 @@ function tree_search(strategy::DepthFirstExploreStrategy, space::AbstractSearchS
     push!(stack, root_node)
     while !isempty(stack) # and stopping criterion
         current = pop!(stack)
-        # conquer.
+        # conquer
         # register solution in manager.
         for child in new_children(strategy, current, space, tracker)
             push!(stack, child)
@@ -27,7 +27,7 @@ function tree_search(strategy::BreadthFirstSearch, space::AbstractSearchSpace)
         # conquer
         # register solution in manager
         for child in new_children(strategy, current, space, tracker)
-            enqueue!(pq, chid, cost(strategy, child))
+            enqueue!(pq, child, cost(strategy, child))
         end
     end
 end

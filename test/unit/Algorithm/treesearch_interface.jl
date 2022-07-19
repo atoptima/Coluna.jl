@@ -74,6 +74,8 @@ ClA.root(node::NodeAti1) = isnothing(node.parent) ? node : ClA.root(node.parent)
 ClA.parent(node::NodeAti1) = node.parent
 ClA.children(node::NodeAti1) = node.children
 
+ClA.cost(::ClA.BreadthFirstSearch, node::NodeAti1) = -node.depth
+
 # TODO
 ClA.delete_node(node::NodeAti1, tracker::TrackerAti1) = nothing
 ClA.manager(space::SearchSpaceAti1) = nothing
@@ -83,4 +85,7 @@ ClA.inner_space(space::SearchSpaceAti1) = nothing
     space = SearchSpaceAti1()
     @show space
     ClA.tree_search(ClA.DepthFirstExploreStrategy(), space)
+
+    ClA.tree_search(ClA.BreadthFirstSearch(), space)
+    exit()
 end
