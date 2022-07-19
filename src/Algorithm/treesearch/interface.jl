@@ -1,5 +1,3 @@
-module TreeSearch
-
 # The definition of a tree search algorithm is based on four concepts.
 
 "Definition of the problem tackled by the tree seach algorithm."
@@ -22,7 +20,7 @@ abstract type AbstractTracker end
 
 # Interface to implement
 "Creates and returns the root node of a search space."
-new_root(::AbstractExploreStrategy, space, tracker) = nothing
+new_root(::AbstractSearchSpace, ::AbstractTracker) = nothing
 
 "Creates and returns the children of a node associated to a search space."
 new_children(::AbstractExploreStrategy, node, space, tracker) = nothing
@@ -45,6 +43,8 @@ delete_node(::AbstractNode, ::AbstractTracker) = nothing
 "Returns the manager which is responsible for handling the kpis and the best know solution."
 manager(::AbstractSearchSpace) = nothing
 
+cost(::AbstractExploreStrategy, ::AbstractNode) = nothing
+
 # Composition pattern
 "Returns the inner space of search space; nothing if no composition."
 inner_space(::AbstractSearchSpace) = nothing
@@ -55,16 +55,16 @@ inner_space(::AbstractSearchSpace) = nothing
 "A data structure that wraps a piece of information to track in the tree."
 abstract type AbstractTrackedData end
 
+new_tracker(::AbstractExploreStrategy, ::AbstractSearchSpace) = nothing
+
 "Save a piece of information in the tracker for a given node."
 save!(::AbstractTracker, ::AbstractNode, ::AbstractTrackedData) = nothing
 
 "Returns a piece of information from the tracker for a given node."
-get(::AbstractTracker, ::AbstractNode, ::Type{AbstractTrackedData}) = nothing
+Base.get(::AbstractTracker, ::AbstractNode, ::Type{AbstractTrackedData}) = nothing
 
 """
 Computes data to activate / deactivate information in order to restore the searchspace 
 to move from a node to another node.
 """
 diff(::AbstractTracker, src::AbstractNode, dest::AbstractNode, ::Type{AbstractTrackedData}) = nothing
-
-end
