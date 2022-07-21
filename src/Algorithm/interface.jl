@@ -1,3 +1,31 @@
+## Methods for updated interface for algorithms
+
+"Supertype for algorithms."
+abstract type AbstractAlgorithm end
+
+"Supertype for algorithms inputs."
+abstract type AbstractInput end 
+
+"Supertype for algorithms outputs."
+abstract type AbstractOutput end 
+
+"""
+    run!(algo::AbstractAlgorithm, model::AbstractModel, input::AbstractInput)::AbstractOutput
+
+Runs the algorithm. The storage unit of the algorithm can be obtained from the data
+Returns algorithm's output.    
+"""
+function run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input::AbstractInput)::AbstractOutput
+    error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(model)), $(typeof(input)).")
+end
+
+new_space(::AbstractAlgorithm, env::Env, reform::Reformulation, input::AbstractInput) = nothing
+
+
+
+
+## WIP below
+
 """
 About algorithms
 ----------------
@@ -24,27 +52,8 @@ diving algorithm), conquer algorithms, strong branching, branching rule algorith
 SolveLpForm, cut separation, pricing algorithms, etc.
 """
 
-"""
-    AbstractInput
-
-    Input of an algorithm.     
-"""
-abstract type AbstractInput end 
-
 struct EmptyInput <: AbstractInput end
 
-"""
-    AbstractOutput
-
-Output of an algorithm.     
-"""
-abstract type AbstractOutput end 
-
-"""
-    AbstractAlgorithm
-
-"""
-abstract type AbstractAlgorithm end
 
 ismanager(algo::AbstractAlgorithm) = false
 
@@ -64,16 +73,6 @@ are created in the beginning) and the usage mode (read only or read-and-write). 
 in order to restore units before running a worker algorithm.
 """
 get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitType, UnitPermission}[] 
-
-"""
-    run!(algo::AbstractAlgorithm, model::AbstractModel, input::AbstractInput)::AbstractOutput
-
-Runs the algorithm. The storage unit of the algorithm can be obtained from the data
-Returns algorithm's output.    
-"""
-function run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input::AbstractInput)::AbstractOutput
-    error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(model)), $(typeof(input)).")
-end
 
 """
     OptimizationInput

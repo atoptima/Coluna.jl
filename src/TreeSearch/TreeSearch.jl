@@ -1,9 +1,11 @@
+module TreeSearch
+
 # The definition of a tree search algorithm is based on four concepts.
 
-"Contains the definition of the problem tackled by the tree search algorithm."
+"Definition of the problem tackled by the tree seach algorithm."
 abstract type AbstractSearchSpace end
 
-"Algorithm that chooses next node to evaluated in the tree search algorithm."
+"Algorithm that chosses next node to evaluated in the tree search algorithm."
 abstract type AbstractExploreStrategy end
 
 "A subspace obtained by successive divisions of the search space."
@@ -20,10 +22,10 @@ abstract type AbstractTracker end
 
 # Interface to implement
 "Creates and returns the root node of a search space."
-new_root(::AbstractSearchSpace, ::AbstractTracker) = nothing
+new_root(::AbstractExploreStrategy, space, tracker) = nothing
 
 "Creates and returns the children of a node associated to a search space."
-new_children(candidates, ::AbstractAlgorithm, ::AbstractNode, ::AbstractSearchSpace, ::AbstractTracker) = nothing
+new_children(::AbstractExploreStrategy, node, space, tracker) = nothing
 
 "Returns the id of a node."
 uid(::AbstractNode) = nothing
@@ -43,24 +45,21 @@ delete_node(::AbstractNode, ::AbstractTracker) = nothing
 "Returns the manager which is responsible for handling the kpis and the best know solution."
 manager(::AbstractSearchSpace) = nothing
 
-cost(::AbstractExploreStrategy, ::AbstractNode) = nothing
-
 # Composition pattern
 "Returns the inner space of search space; nothing if no composition."
 inner_space(::AbstractSearchSpace) = nothing
+
 
 # Methods specific to the tracker
 
 "A data structure that wraps a piece of information to track in the tree."
 abstract type AbstractTrackedData end
 
-new_tracker(::AbstractExploreStrategy, ::AbstractSearchSpace) = nothing
-
 "Save a piece of information in the tracker for a given node."
 save!(::AbstractTracker, ::AbstractNode, ::AbstractTrackedData) = nothing
 
 "Returns a piece of information from the tracker for a given node."
-Base.get(::AbstractTracker, ::AbstractNode, ::Type{AbstractTrackedData}) = nothing
+get(::AbstractTracker, ::AbstractNode, ::Type{AbstractTrackedData}) = nothing
 
 """
 Computes data to activate / deactivate information in order to restore the searchspace 
@@ -68,9 +67,4 @@ to move from a node to another node.
 """
 diff(::AbstractTracker, src::AbstractNode, dest::AbstractNode, ::Type{AbstractTrackedData}) = nothing
 
-# Methods specific to the space (this is WIP)
-get_reformulation(::AbstractAlgorithm, ::AbstractSearchSpace) = nothing
-function get_input(a::AbstractAlgorithm, s::AbstractSearchSpace, n::AbstractNode, t::AbstractTracker)
-  @warn "get_input(::$(typeof(a)), ::$(typeof(s)), ::$(typeof(n)), ::$(typeof(t))) not implemented."
-  return nothing
 end
