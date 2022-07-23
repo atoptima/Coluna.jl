@@ -23,7 +23,10 @@ abstract type AbstractTracker end
 new_root(::AbstractSearchSpace, ::AbstractTracker) = nothing
 
 "Creates and returns the children of a node associated to a search space."
-new_children(candidates, ::AbstractAlgorithm, ::AbstractNode, ::AbstractSearchSpace, ::AbstractTracker) = nothing
+function new_children(candidates, a::AbstractAlgorithm, n::AbstractNode, sp::AbstractSearchSpace, t::AbstractTracker)
+  @warn "new_children($(typeof(candidates)), $(typeof(a)), $(typeof(n)), $(typeof(sp)), $(typeof(t))) not implemented."
+  return nothing
+end
 
 "Returns the id of a node."
 uid(::AbstractNode) = nothing
@@ -34,18 +37,13 @@ root(::AbstractNode) = nothing
 "Returns the parent of a node; nothing if the node is the root."
 parent(::AbstractNode) = nothing
 
-"Returns an array that contains children of the node."
-children(::AbstractNode) = nothing
-
-"Deletes a node and the associated information in the tracker."
-delete_node(::AbstractNode, ::AbstractTracker) = nothing
-
 "Returns the manager which is responsible for handling the kpis and the best know solution."
 manager(::AbstractSearchSpace) = nothing
 
+# TODO
 cost(::AbstractExploreStrategy, ::AbstractNode) = nothing
 
-# Composition pattern
+# Composition pattern (TO TEST)
 "Returns the inner space of search space; nothing if no composition."
 inner_space(::AbstractSearchSpace) = nothing
 
@@ -54,7 +52,10 @@ inner_space(::AbstractSearchSpace) = nothing
 "A data structure that wraps a piece of information to track in the tree."
 abstract type AbstractTrackedData end
 
-new_tracker(::AbstractExploreStrategy, ::AbstractSearchSpace) = nothing
+function new_tracker(st::AbstractExploreStrategy, sp::AbstractSearchSpace)
+  @warn "new_tracker(::$(typeof(st)), ::$(typeof(sp))) not implemented."
+  return nothing
+end
 
 "Save a piece of information in the tracker for a given node."
 save!(::AbstractTracker, ::AbstractNode, ::AbstractTrackedData) = nothing
@@ -69,8 +70,17 @@ to move from a node to another node.
 diff(::AbstractTracker, src::AbstractNode, dest::AbstractNode, ::Type{AbstractTrackedData}) = nothing
 
 # Methods specific to the space (this is WIP)
-get_reformulation(::AbstractAlgorithm, ::AbstractSearchSpace) = nothing
+function get_reformulation(a::AbstractAlgorithm, s::AbstractSearchSpace)
+  @warn "get_reformulation(::$(typeof(a)), ::$(typeof(s))) not implemented."
+  return nothing
+end
+
 function get_input(a::AbstractAlgorithm, s::AbstractSearchSpace, n::AbstractNode, t::AbstractTracker)
   @warn "get_input(::$(typeof(a)), ::$(typeof(s)), ::$(typeof(n)), ::$(typeof(t))) not implemented."
+  return nothing
+end
+
+function node_change!(previous::AbstractNode, current::AbstractNode, space::AbstractSearchSpace, tracker::AbstractTracker)
+  @warn "node_change!(::$(typeof(previous)), $(typeof(current)), $(typeof(space)), $(typeof(tracker))) not implemented."
   return nothing
 end

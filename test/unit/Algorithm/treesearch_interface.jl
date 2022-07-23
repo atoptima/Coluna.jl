@@ -66,6 +66,7 @@ end
 
 struct DivingSearchSpaceAti1 <: ClA.AbstractSearchSpace
     formulation::FormulationAti1
+    starting_node_in_bt::ClA.AbstractNode # change node
 end
 
 # Then, we define the tracker that will store data for each node of the tree.
@@ -89,7 +90,6 @@ struct NodeAti1 <: ClA.AbstractNode
     fixed_var_value::Union{Nothing, Float64}
     solution::Vector{Float64}
     parent::Union{Nothing, NodeAti1}
-    children::Vector{NodeAti1}
     function NodeAti1(
         tracker::TrackerAti1, 
         parent::Union{Nothing, NodeAti1} = nothing,
@@ -97,26 +97,33 @@ struct NodeAti1 <: ClA.AbstractNode
         var_value::Union{Nothing,Real} = 0
     )
         @assert isnothing(var_index) || 1 <= var_index <= NB_VARIABLES_ATI1
+        node_id = tracker.node_counter += 1
         depth = isnothing(parent) ? 0 : parent.depth + 1
+        # Store the solution at this node.
         solution = if isnothing(parent)
             fill(0.5, NB_VARIABLES_ATI1)
         else
             sol = copy(parent.solution)
-            sol[var_index] = var_value
+            if !isnothing(var_index)
+                sol[var_index] = var_value
+            end
             sol
         end
+        # Store the state of the formulation at this node into the tracker.
+        tracker.node_to_var_lbs[node_id] = map(var_val -> var_val == 0.5 ? 0 : var_val, solution)
+        tracker.node_to_var_ubs[node_id] = map(var_val -> var_val == 0.5 ? 1 : var_val, solution)
         return new(
-            tracker.node_counter += 1,
+            node_id,
             depth,
             var_index,
             var_value,
             solution,
-            parent,
-            NodeAti1[]
+            parent
         )
     end
 end
 
+ClA.uid(node::NodeAti1) = node.uid
 
 # ## Algorithms
 
@@ -128,12 +135,21 @@ end
     log::String = "compute solution cost"
 end
 
-struct InputAti1
+struct BtInputAti1
     current_node::NodeAti1
 end
 
-function ClA.run!(algo::ComputeSolCostAti1, env, model::FormulationAti1, input::InputAti1)
-    println(algo.log)
+struct DivideInputAti1 
+    current_node::NodeAti1
+end
+
+struct DivingInputAti1
+    starting_node_in_parent_algorithm
+end
+
+function ClA.run!(algo::ComputeSolCostAti1, env, model::FormulationAti1, input::BtInputAti1)
+    println("== $(algo.log) [node $(input.current_node.uid)] ==")
+    @show model.var_domains
     sol_cost = 0.0
     for (cost, (ub, lb)) in Iterators.zip(model.var_cost, model.var_domains)
         var_val = ub == lb ? ub : 0.5
@@ -150,13 +166,18 @@ end
     create_both_branches::Bool = true
 end
 
-function ClA.run!(algo::DivideAti1, env, model::FormulationAti1, input::InputAti1)
+function ClA.run!(algo::DivideAti1, env, model::FormulationAti1, input::DivideInputAti1)
     println(algo.log)
     parent = input.current_node
-    var_pos_to_branch_in = parent.depth + 1
-    if algo.create_both_branches && parent.depth < 2 && var_pos_to_branch_in <= 4
+    if algo.create_both_branches && parent.depth < 3
+        var_pos_to_branch_in = parent.depth + 1
+        var_pos_to_branch_in > 4 && return []
+        println("** branch on x$(var_pos_to_branch_in) == 0 & x$(var_pos_to_branch_in) == 1")
         return [(var_pos_to_branch_in, 0), (var_pos_to_branch_in, 1)]
-    elseif !algo.create_both_branches && var_pos_to_branch_in <= 4
+    elseif !algo.create_both_branches
+        var_pos_to_branch_in = parent.depth
+        var_pos_to_branch_in > 4 && return []
+        println("** branch on x$(var_pos_to_branch_in) == 0")
         return [(var_pos_to_branch_in, 0)]
     end
     return []
@@ -166,8 +187,19 @@ end
 #  - `ComputeSolCostAti1` as conquer strategy
 #  - `DivideAti1` with parameter `create_both_branches` equals to `false` as divide strategy
 #  - `Coluna.Algorithm.DepthFirstExploreStrategy` as explore strategy
+
+# We define the algorithm that will be used at each node of the diving algorithm.
+@with_kw struct DivingConquerAti1 <: ClA.AbstractAlgorithm
+    compute = ComputeSolCostAti1(log="compute solution cost of Diving tree")
+end
+
+function ClA.run!(algo::DivingConquerAti1, env, model, input::DivideInputAti1)
+    input = BtInputAti1(input.current_node)
+    return run!(algo.compute, env, model, input) # TODO interface to change the input ?
+end
+
 @with_kw struct DivingAti1 <: ClA.AbstractAlgorithm
-    conquer = ComputeSolCostAti1(log = "compute solution cost for diving")
+    conquer = DivingConquerAti1()
     divide = DivideAti1(
         log = "divide for diving",
         create_both_branches = false
@@ -175,42 +207,56 @@ end
     explore = ClA.DepthFirstExploreStrategy()
 end
 
-function ClA.run!(algo::DivingAti1, env, model::FormulationAti1, input::InputAti1)
-    println("Diving starts")
+function ClA.run!(algo::DivingAti1, env, model::FormulationAti1, input::DivingInputAti1)
+    println("~~~~~~~~ Diving starts ~~~~~~~~")
     diving_space = ClA.new_space(algo.conquer, env, model, input)
     ClA.tree_search(algo.explore, algo.conquer, algo.divide, diving_space, env)
+    println("~~~~~~~~ end of Diving ~~~~~~~~")
 end
 
-# At last, we define the algorithm that will be used at each node of the binary tree algorithm.
+# We define the algorithm that will be used at each node of the binary tree algorithm.
 # It runs the `ComputeSolCostAti1` algorithm and then the diving algorithm if the two first
 # variables have been fixed.
-@with_kw struct ConquerAti1 <: ClA.AbstractAlgorithm
-    colcutgen = ComputeSolCostAti1(log = "compute solution cost for Binary tree")
+@with_kw struct BtConquerAti1 <: ClA.AbstractAlgorithm
+    compute = ComputeSolCostAti1(log = "compute solution cost for Binary tree")
     heuristic = DivingAti1()
 end
 
-function ClA.run!(algo::ConquerAti1, env, model, input)
-    run!(algo.colcutgen, env, model, input)
+function ClA.run!(algo::BtConquerAti1, env, model, input)
+    output = run!(algo.compute, env, model, input)
     if input.current_node.depth == 2
-        run!(algo.heuristic, env, model, input)
+        diving_input = DivingInputAti1(input.current_node) # TODO: needs an interface or specific to the algorithm ?
+        diving_output = run!(algo.heuristic, env, model, diving_input)
     end
+    return output 
 end
+
+# struct VisuForConquerSearchSpaceAti1 <: ClA.AbstractSearchSpace
+#     conquer_space
+# end
+
+# @with_kw struct VisuForConquerAti1 
+#     conquer = ComputeSolCostAti1()
+# end
+
+# function ClA.run!(algo::VisuForConquerAti1, env, model, input)
+#     ClA.run!(algo.conquer, env, model, input)
+# end
 
 
 ClA.new_root(::BtSearchSpaceAti1, tracker::TrackerAti1) = NodeAti1(tracker)
-ClA.new_root(space::DivingSearchSpaceAti1, tracker::TrackerAti1) = 
-    ClA.new_root(space.inner_space, tracker)
+
+function ClA.new_root(space::DivingSearchSpaceAti1, tracker::TrackerAti1)
+    return NodeAti1(tracker, space.starting_node_in_bt)
+end
 
 ClA.new_tracker(::BtSearchSpaceAti1, ::ClA.AbstractExploreStrategy) = TrackerAti1()
-ClA.new_tracker(space::DivingSearchSpaceAti1, strategy::ClA.AbstractExploreStrategy) =
-    ClA.new_tracker(space.inner_space, strategy)
+ClA.new_tracker(space::DivingSearchSpaceAti1, strategy::ClA.AbstractExploreStrategy) = TrackerAti1()
 
-function ClA.new_children(branches, divide::DivideAti1, node::NodeAti1, space::BtSearchSpaceAti1, tracker::ClA.AbstractTracker)
-    @show branches
+function ClA.new_children(branches, divide::DivideAti1, node::NodeAti1, space::ClA.AbstractSearchSpace, tracker::ClA.AbstractTracker)
     children = NodeAti1[]
     for (var_pos, var_val_fixed) in branches
         child = NodeAti1(tracker, node, var_pos, var_val_fixed)
-        push!(node.children, child)
         push!(children, child)
     end
     return children
@@ -218,37 +264,34 @@ end
 
 ClA.root(node::NodeAti1) = isnothing(node.parent) ? node : ClA.root(node.parent)
 ClA.parent(node::NodeAti1) = node.parent
-ClA.children(node::NodeAti1) = node.children
 
 ClA.cost(::ClA.BreadthFirstSearch, node::NodeAti1) = -node.depth
 
-# TODO
-# ClA.delete_node(node::NodeAti1, tracker::TrackerAti1) = nothing
-# ClA.manager(space::SearchSpaceAti1) = nothing
-# ClA.inner_space(space::SearchSpaceAti1) = nothing
-
-
-function ClA.new_space(::ConquerAti1, env, model, input)
+# The conquer algorithm of the tree search defines the search space.
+function ClA.new_space(::BtConquerAti1, env, model, input)
+    @show input
     return BtSearchSpaceAti1(model)
 end
 
-function ClA.new_space(::ComputeSolCostAti1, env, model, input)
-    return BtSearchSpaceAti1(model)
+function ClA.new_space(::DivingConquerAti1, env, model, input::DivingInputAti1)
+    return DivingSearchSpaceAti1(model, input.starting_node_in_parent_algorithm)
 end
 
-# function ClA.new_space(::DivingAti1, env, reform, input)
-#     return DivingSearchSpaceAti1(
-#         ClA.new_space(ConquerAti1(), env, reform, input)
-#     )
-# end
+function ClA.get_reformulation(::ClA.AbstractAlgorithm, space::ClA.AbstractSearchSpace)
+    return space.formulation
+end
 
+ClA.get_input(::BtConquerAti1, space::BtSearchSpaceAti1, node::NodeAti1, tracker::TrackerAti1) = BtInputAti1(node) 
+ClA.get_input(::DivideAti1, space::BtSearchSpaceAti1, node::NodeAti1, tracker::TrackerAti1) = DivideInputAti1(node)
+ClA.get_input(::DivingConquerAti1, space::DivingSearchSpaceAti1, node::NodeAti1, tracker::TrackerAti1) = DivideInputAti1(node)
+ClA.get_input(::DivideAti1, space::DivingSearchSpaceAti1, node::NodeAti1, tracker::TrackerAti1) = DivideInputAti1(node)
 
-
-ClA.get_reformulation(::ClA.AbstractAlgorithm, space::BtSearchSpaceAti1) = space.formulation
-ClA.get_reformulation(::ClA.AbstractAlgorithm, space::DivingSearchSpaceAti1) = space.formulation
-ClA.get_input(::ConquerAti1, space::BtSearchSpaceAti1, node::NodeAti1, tracker::TrackerAti1) = InputAti1(node) 
-ClA.get_input(::DivideAti1, space::BtSearchSpaceAti1, node::NodeAti1, tracker::TrackerAti1) = InputAti1(node)
-ClA.get_input(::ComputeSolCostAti1, space::BtSearchSpaceAti1, node::NodeAti1, tracker::TrackerAti1) = InputAti1(node)
+function ClA.node_change!(::NodeAti1, current::NodeAti1, space::ClA.AbstractSearchSpace, tracker::TrackerAti1)
+    uid = ClA.uid(current)
+    for (var_pos, bounds) in enumerate(Iterators.zip(tracker.node_to_var_lbs[uid], tracker.node_to_var_ubs[uid]))   
+       space.formulation.var_domains[var_pos] = bounds 
+    end
+end
 
 @testset "Algorithm - treesearch interface" begin
     # space = BtSearchSpaceAti1()
@@ -265,7 +308,7 @@ ClA.get_input(::ComputeSolCostAti1, space::BtSearchSpaceAti1, node::NodeAti1, tr
     input = nothing
 
     treesearch = ClA.NewTreeSearchAlgorithm(
-        conqueralg = ConquerAti1(),
+        conqueralg = BtConquerAti1(),
         dividealg = DivideAti1(),
         explorestrategy = ClA.DepthFirstExploreStrategy()
     )
