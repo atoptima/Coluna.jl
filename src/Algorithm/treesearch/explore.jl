@@ -44,7 +44,7 @@ function tree_search(strategy::BreadthFirstSearch, conquer, divide, space, env)
             node_change!(previous, current, space, tracker)
         end
         reform = get_reformulation(conquer, space)
-        input = get_input(conquer, space, node, tracker)
+        input = get_input(conquer, space, current, tracker)
         output = run!(conquer, env, reform, input)
         after_conquer!(space, output)
         for child in children_from_divide(divide, current, space, tracker, env)
