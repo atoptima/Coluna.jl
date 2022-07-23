@@ -17,15 +17,15 @@ import Base: push!
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
 
-include("data.jl")
-include("formstorages.jl")
-
 # Abstract algorithm
 include("interface.jl")
 
 # Tree search interface
 include("treesearch/interface.jl")
 include("treesearch/explore.jl")
+
+include("data.jl")
+include("formstorages.jl")
 
 # Basic algorithms
 include("basic/solvelpform.jl")
