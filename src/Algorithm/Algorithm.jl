@@ -17,15 +17,15 @@ import Base: push!
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
 
+# Abstract algorithm
+include("interface.jl")
+
 # Tree search interface
 include("treesearch/interface.jl")
 include("treesearch/explore.jl")
 
 include("data.jl")
 include("formstorages.jl")
-
-# Abstract algorithm
-include("interface.jl")
 
 # Basic algorithms
 include("basic/solvelpform.jl")
@@ -51,6 +51,8 @@ include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
 include("branchcutprice.jl")
+
+include("treesearch/treesearch.jl")
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.
