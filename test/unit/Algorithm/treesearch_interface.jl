@@ -11,7 +11,7 @@ using Parameters
 # The problem has no additional constraints. 
 # Therefore, the optimal solution is `[1, 0, 0, 0]`.
 
-const LOG_ATI1 = true
+const LOG_ATI1 = false
 const NB_VARIABLES_ATI1 = 4
 
 struct FormulationAti1 <: ClB.AbstractModel
@@ -25,7 +25,7 @@ end
 #  - depth 0: branch on first variable
 #  - depth 1: branch on second variable
 #
-# When the three first variables are fixed, we dive by fixing the fourth and the fifth
+# When the two first variables are fixed, we dive to fix the third and the fourth
 # variables to zero.
 #
 # At the end, the tree will look like:
@@ -337,4 +337,12 @@ ClA.tree_search_output(space::DivingSearchSpaceAti1) = space.cost_of_best_soluti
 
     output = ClA.run!(treesearch, env, model, input)
     @test output == -1 
+
+    treesearch = ClA.NewTreeSearchAlgorithm(
+        conqueralg = BtConquerAti1(),
+        dividealg = DivideAti1(),
+        explorestrategy = ClA.BreadthFirstSearch()
+    )
+    output = ClA.run!(treesearch, env, model, input)
+    @test output == -1
 end
