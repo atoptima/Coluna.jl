@@ -37,15 +37,12 @@ root(::AbstractNode) = nothing
 "Returns the parent of a node; nothing if the node is the root."
 parent(::AbstractNode) = nothing
 
-"Returns the manager which is responsible for handling the kpis and the best know solution."
-manager(::AbstractSearchSpace) = nothing
-
 # TODO
-cost(::AbstractExploreStrategy, ::AbstractNode) = nothing
+priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
 
-# Composition pattern (TO TEST)
-"Returns the inner space of search space; nothing if no composition."
-inner_space(::AbstractSearchSpace) = nothing
+# TODO: not needed at the moment.
+# "Returns the manager which is responsible for handling the kpis and the best know solution."
+# manager(::AbstractSearchSpace) = nothing
 
 # Methods specific to the tracker
 
@@ -57,17 +54,20 @@ function new_tracker(st::AbstractExploreStrategy, sp::AbstractSearchSpace)
   return nothing
 end
 
-"Save a piece of information in the tracker for a given node."
-save!(::AbstractTracker, ::AbstractNode, ::AbstractTrackedData) = nothing
+## TODO: we won't have an interface for the tracker because it is used only in methods
+## implemented by algorithms developers.
 
-"Returns a piece of information from the tracker for a given node."
-Base.get(::AbstractTracker, ::AbstractNode, ::Type{AbstractTrackedData}) = nothing
+# "Save a piece of information in the tracker for a given node."
+# save!(::AbstractTracker, ::AbstractNode, ::AbstractTrackedData) = nothing
 
-"""
-Computes data to activate / deactivate information in order to restore the searchspace 
-to move from a node to another node.
-"""
-diff(::AbstractTracker, src::AbstractNode, dest::AbstractNode, ::Type{AbstractTrackedData}) = nothing
+# "Returns a piece of information from the tracker for a given node."
+# Base.get(::AbstractTracker, ::AbstractNode, ::Type{AbstractTrackedData}) = nothing
+
+# """
+# Computes data to activate / deactivate information in order to restore the searchspace 
+# to move from a node to another node.
+# """
+# diff(::AbstractTracker, src::AbstractNode, dest::AbstractNode, ::Type{AbstractTrackedData}) = nothing
 
 # Methods specific to the space (this is WIP)
 function get_reformulation(a::AbstractAlgorithm, s::AbstractSearchSpace)
@@ -84,3 +84,7 @@ function node_change!(previous::AbstractNode, current::AbstractNode, space::Abst
   @warn "node_change!(::$(typeof(previous)), $(typeof(current)), $(typeof(space)), $(typeof(tracker))) not implemented."
   return nothing
 end
+
+after_conquer!(space::AbstractSearchSpace, output) = nothing
+
+tree_search_output(space::AbstractSearchSpace) = nothing
