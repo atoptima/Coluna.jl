@@ -19,10 +19,6 @@ function run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input::Ab
     error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(model)), $(typeof(input)).")
 end
 
-new_space(::AbstractAlgorithm, env::Env, reform::Reformulation, input::AbstractInput) = nothing
-
-
-
 
 ## WIP below
 

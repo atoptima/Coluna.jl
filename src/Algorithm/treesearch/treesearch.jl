@@ -6,6 +6,6 @@ end
 
 # Each conquer algorithm must have a search space.
 function run!(algo::NewTreeSearchAlgorithm, env, reform, input)
-    conquer_space = new_space(algo.conqueralg, env, reform, input)
-    tree_search(algo.explorestrategy, algo.conqueralg, algo.dividealg, conquer_space, env)
+    search_space = new_space(search_space_type(algo), algo, reform, input)
+    return tree_search(algo.explorestrategy, search_space, env)
 end
