@@ -62,36 +62,39 @@ end
 # The third concept is the explore strategy and implemented in Coluna (see explore.jl).
 # We start by defining the search space of the binary tree and the diving algorithms.
 
-mutable struct BtSearchSpaceAti1 <: ClA.AbstractSearchSpace
+mutable struct BtSearchSpaceAti1 <: ClA.AbstractColunaSearchSpace
     formulation::FormulationAti1
     cost_of_best_solution::Float64
     conquer_alg
     divide_alg
-    nb_nodes::Int
-    BtSearchSpaceAti1(form, conquer, divide) = new(form, Inf, conquer, divide, 0)
+    previous
+    BtSearchSpaceAti1(form, conquer, divide) = new(form, Inf, conquer, divide, nothing)
 end
 
 ClA.get_reformulation(sp::BtSearchSpaceAti1) = sp.formulation
 ClA.get_conquer(sp::BtSearchSpaceAti1) = sp.conquer_alg
 ClA.get_divide(sp::BtSearchSpaceAti1) = sp.divide_alg
+ClA.get_previous(sp::BtSearchSpaceAti1) = sp.previous
+ClA.set_previous!(sp::BtSearchSpaceAti1, previous) = sp.previous = previous
 
-mutable struct DivingSearchSpaceAti1 <: ClA.AbstractSearchSpace
+mutable struct DivingSearchSpaceAti1 <: ClA.AbstractColunaSearchSpace
     formulation::FormulationAti1
     starting_node_in_bt::ClA.AbstractNode # change node
     cost_of_best_solution::Float64
     conquer_alg
     divide_alg
-    nb_nodes::Int
-    DivingSearchSpaceAti1(form, node, conquer, divide) = new(form, node, Inf, conquer, divide, 0)
+    previous
+    DivingSearchSpaceAti1(form, node, conquer, divide) = new(form, node, Inf, conquer, divide, nothing)
 end
 
 ClA.get_reformulation(sp::DivingSearchSpaceAti1) = sp.formulation
 ClA.get_conquer(sp::DivingSearchSpaceAti1) = sp.conquer_alg
 ClA.get_divide(sp::DivingSearchSpaceAti1) = sp.divide_alg
+ClA.get_previous(sp::DivingSearchSpaceAti1) = sp.previous
+ClA.set_previous!(sp::DivingSearchSpaceAti1, previous) = sp.previous = previous
 
 # At last, we define the data contained in a node.
 struct NodeAti1 <: ClA.AbstractNode
-    uid::Int
     depth::Int
     fixed_var_index::Union{Nothing, Int}
     fixed_var_value::Union{Nothing, Float64}
@@ -100,13 +103,11 @@ struct NodeAti1 <: ClA.AbstractNode
     var_ubs::Vector{Int}
     parent::Union{Nothing, NodeAti1}
     function NodeAti1(
-        space,
         parent::Union{Nothing, NodeAti1} = nothing,
         var_index::Union{Nothing,Int} = nothing,
         var_value::Union{Nothing,Real} = 0
     )
         @assert isnothing(var_index) || 1 <= var_index <= NB_VARIABLES_ATI1
-        node_id = space.nb_nodes += 1
         depth = isnothing(parent) ? 0 : parent.depth + 1
         # Store the solution at this node.
         solution = if isnothing(parent)
@@ -122,7 +123,6 @@ struct NodeAti1 <: ClA.AbstractNode
         var_lbs = map(var_val -> var_val == 0.5 ? 0 : var_val, solution)
         var_ubs = map(var_val -> var_val == 0.5 ? 1 : var_val, solution)
         return new(
-            node_id,
             depth,
             var_index,
             var_value,
@@ -134,7 +134,6 @@ struct NodeAti1 <: ClA.AbstractNode
     end
 end
 
-ClA.uid(node::NodeAti1) = node.uid
 ClA.root(node::NodeAti1) = isnothing(node.parent) ? node : ClA.root(node.parent)
 ClA.parent(node::NodeAti1) = node.parent
 
@@ -148,12 +147,12 @@ ClA.parent(node::NodeAti1) = node.parent
     log::String = "compute solution cost"
 end
 
-struct BtInputAti1
+struct ComputeSolCostInputAti1
     current_node::NodeAti1
 end
 
-function ClA.run!(algo::ComputeSolCostAti1, env, model::FormulationAti1, input::BtInputAti1)
-    LOG_ATI1 && println("== $(algo.log) [node $(input.current_node.uid)] ==")
+function ClA.run!(algo::ComputeSolCostAti1, env, model::FormulationAti1, input::ComputeSolCostInputAti1)
+    LOG_ATI1 && println("== $(algo.log) ==")
     LOG_ATI1 && @show model.var_domains
     sol_cost = 0.0
     for (cost, (ub, lb)) in Iterators.zip(model.var_cost, model.var_domains)
@@ -171,11 +170,11 @@ end
     create_both_branches::Bool = true
 end
 
-struct DivideInputAti1 
+struct DivideInputAti1
     current_node::NodeAti1
 end
 
-function ClA.run!(algo::DivideAti1, env, model::FormulationAti1, input::DivideInputAti1)
+function ClA.run!(algo::DivideAti1, env, ::FormulationAti1, input::DivideInputAti1)
     LOG_ATI1 && println(algo.log)
     parent = input.current_node
     if algo.create_both_branches && parent.depth < 2
@@ -255,24 +254,24 @@ ClA.new_space(::Type{DivingSearchSpaceAti1}, alg, model, input) =
     DivingSearchSpaceAti1(model, input.starting_node_in_parent_algorithm, alg.conqueralg, alg.dividealg)
 
 # The definition of the root node depends on the search space.
-ClA.new_root(space::BtSearchSpaceAti1) = NodeAti1(space)
+ClA.new_root(::BtSearchSpaceAti1) = NodeAti1()
 ClA.new_root(space::DivingSearchSpaceAti1) = 
-    NodeAti1(space, space.starting_node_in_bt)
+    NodeAti1(space.starting_node_in_bt)
 
 # Then, we implement the method that converts the branching rules into nodes for the tree 
 # search algorithm.
-function ClA.new_children(space::ClA.AbstractSearchSpace, branches, node::NodeAti1)
+function ClA.new_children(::ClA.AbstractColunaSearchSpace, branches, node::NodeAti1)
     children = NodeAti1[]
     for (var_pos, var_val_fixed) in branches
-        child = NodeAti1(space, node, var_pos, var_val_fixed)
+        child = NodeAti1(node, var_pos, var_val_fixed)
         push!(children, child)
     end
     return children
 end
 
-# We implement the priority method for the `BreadthFirstSearch`` strategy.
+# We implement the priority method for the `BestFirstSearch`` strategy.
 # The tree search algorithm will evaluate the node with highest priority.
-ClA.priority(::ClA.BreadthFirstSearch, node::NodeAti1) = -node.depth
+ClA.priority(::ClA.BestFirstSearch, node::NodeAti1) = -node.depth
 
 # We implement the `node_change` method to update the search space when the tree search
 # just after the algorithm finishes to evaluate a node and chooses the next one.
@@ -280,10 +279,11 @@ ClA.priority(::ClA.BreadthFirstSearch, node::NodeAti1) = -node.depth
 # There are two ways to store the state of a formulation at a given node.
 # We can distribute information across the nodes or store the whole state at each node.
 # We follow the second way (so we don't need `previous`).
-function ClA.node_change!(previous::NodeAti1, next::NodeAti1, space::ClA.AbstractSearchSpace)
+function ClA.node_change!(::NodeAti1, next::NodeAti1, space::ClA.AbstractColunaSearchSpace)
     for (var_pos, bounds) in enumerate(Iterators.zip(next.var_lbs, next.var_ubs))
        space.formulation.var_domains[var_pos] = bounds 
     end
+    return
 end
 
 # We implement methods that update the best solution found after the conquer algorithm.
@@ -305,11 +305,11 @@ end
 # We implement getters to retrieve the input from the search space and the node. 
 # The input is passed to the conquer and the divide algorithms.
 ClA.get_input(::BtConquerAti1, space::BtSearchSpaceAti1, node::NodeAti1) = 
-    BtInputAti1(node) 
+    ComputeSolCostInputAti1(node)
 ClA.get_input(::DivideAti1, space::BtSearchSpaceAti1, node::NodeAti1) = 
     DivideInputAti1(node)
 ClA.get_input(::ComputeSolCostAti1, space::DivingSearchSpaceAti1, node::NodeAti1) =
-    BtInputAti1(node)
+    ComputeSolCostInputAti1(node)
 ClA.get_input(::DivideAti1, space::DivingSearchSpaceAti1, node::NodeAti1) =
     DivideInputAti1(node)
 
@@ -335,7 +335,7 @@ ClA.tree_search_output(space::DivingSearchSpaceAti1) = space.cost_of_best_soluti
     treesearch = ClA.NewTreeSearchAlgorithm(
         conqueralg = BtConquerAti1(),
         dividealg = DivideAti1(),
-        explorestrategy = ClA.BreadthFirstSearch()
+        explorestrategy = ClA.BestFirstSearch()
     )
     output = ClA.run!(treesearch, env, model, input)
     @test output == -1
