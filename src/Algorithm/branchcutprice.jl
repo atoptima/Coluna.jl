@@ -10,7 +10,8 @@
         max_nb_cut_rounds::Int = 3,
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
-        colgen_stages_pricing_solvers::Vector{Int} = [1],
+        colgen_show_formulations::Bool = false
+        colgen_stages_pricing_solvers::Vector{Int} = [1],        
         stbranch_phases_num_candidates::Vector{Int} = Int[],
         stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}}
     )
@@ -63,6 +64,7 @@ function BranchCutAndPriceAlgorithm(;
         max_nb_cut_rounds::Int = 3,
         colgen_stabilization::Float64 = 0.0, 
         colgen_cleanup_threshold::Int = 10000,
+        colgen_show_formulations::Bool = false,
         colgen_stages_pricing_solvers::Vector{Int64} = [1],
         stbranch_phases_num_candidates::Vector{Int64} = Int[],
         stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}} = [(userstage=1, solverid=1, maxiters=100)]
@@ -94,6 +96,7 @@ function BranchCutAndPriceAlgorithm(;
             ),
             smoothing_stabilization = colgen_stabilization,
             cleanup_threshold = colgen_cleanup_threshold,
+            show_formulations = colgen_show_formulations,
             opt_atol = opt_atol,
             opt_rtol = opt_rtol
         )

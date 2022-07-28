@@ -80,6 +80,7 @@ Here are their meanings :
     smoothing_stabilization::Float64 = 0.0 # should be in [0, 1]
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
+    show_formulations::Bool = false
 end
 
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
@@ -348,28 +349,32 @@ function improving_red_cost(redcost::Float64, algo::ColumnGeneration, ::Type{Max
 end
 
 # Optimises the subproblem and returns the result (OptimizationState).
-function _optimize_sp(spform, pricing_prob_solve_alg, env)
+function _optimize_sp(spform, pricing_prob_solve_alg, env, showform)
     input = OptimizationInput(OptimizationState(spform))
     output = run!(pricing_prob_solve_alg, env, spform, input)
+    if showform
+        @info spform
+        @info output.optstate.ip_primal_sols[1]
+    end
     return getoptstate(output)
 end
 
 # Subproblem optimisation can be run sequentially or in parallel.
 # In both cases, it returns all results (OptimizationState) in a vector.
-function _optimize_sps_in_parallel(spforms, pricing_prob_solve_alg, env)
+function _optimize_sps_in_parallel(spforms, pricing_prob_solve_alg, env, showform)
     sp_optstates = Vector{OptimizationState}(undef, length(spforms))
     spuids = collect(keys(spforms))
     Threads.@threads for i in 1:length(spforms)
         spform = spsforms[spuids[i]]
-        sp_optstates[i] = _optimize_sp(spform, pricing_prob_solve_alg, env)
+        sp_optstates[i] = _optimize_sp(spform, pricing_prob_solve_alg, env, showform)
     end
     return sp_optstates
 end
 
-function _optimize_sps(spforms, pricing_prob_solve_alg, env)
+function _optimize_sps(spforms, pricing_prob_solve_alg, env, showform)
     sp_optstates = OptimizationState[]
     for (_, spform) in spforms
-        push!(sp_optstates, _optimize_sp(spform, pricing_prob_solve_alg, env))
+        push!(sp_optstates, _optimize_sp(spform, pricing_prob_solve_alg, env, showform))
     end
     return sp_optstates
 end
@@ -469,9 +474,9 @@ function solve_sps_to_gencols!(
     end
 
     sp_optstates = if algo.solve_subproblems_parallel
-        _optimize_sps_in_parallel(spsforms, algo.pricing_prob_solve_alg, env)
+        _optimize_sps_in_parallel(spsforms, algo.pricing_prob_solve_alg, env, algo.show_formulations)
     else
-        _optimize_sps(spsforms, algo.pricing_prob_solve_alg, env)
+        _optimize_sps(spsforms, algo.pricing_prob_solve_alg, env, algo.show_formulations)
     end
 
     nb_new_cols = 0
@@ -737,6 +742,11 @@ function cg_main_loop!(
             rm_output = run!(algo.restr_master_solve_alg, env, masterform, rm_input, algo.restr_master_optimizer_id)
         end
         rm_optstate = getoptstate(rm_output)
+        if algo.show_formulations 
+            @info masterform
+            @info rm_optstate.lp_primal_sols[1]
+            @info rm_optstate.lp_dual_sols[1]
+        end
 
         if phase != 1 && getterminationstatus(rm_optstate) == INFEASIBLE
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",
