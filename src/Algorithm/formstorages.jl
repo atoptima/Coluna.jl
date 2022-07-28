@@ -70,7 +70,6 @@ function Base.show(io::IO, record::MasterBranchConstrsRecord)
 end
 
 function MasterBranchConstrsRecord(form::Formulation, unit::MasterBranchConstrsUnit)
-    error("ntm")
     @logmsg LogLevel(-2) "Storing branching constraints"
     record = MasterBranchConstrsRecord(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)
