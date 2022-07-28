@@ -27,7 +27,7 @@ Every stored record should be removed or restored using functions
 "restore_from_records!(::RecordsVector,::UnitsUsageDict)" 
 and "remove_records!(::RecordsVector)"
 
-After recording current records, if we write to some storage unit, we should restore 
+After recording current records, if we write to some stora^ge unit, we should restore 
 it for writing using "restore_from_records!(...)" 
 After recording current records, if we read from a storage unit, 
 no particular precautions should be taken.   

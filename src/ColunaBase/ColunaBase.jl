@@ -43,5 +43,6 @@ include("nestedenum.jl")
 include("solsandbounds.jl")
 include("hashtable.jl")
 include("storage.jl")
+include("recordmanager.jl")
 
 end
