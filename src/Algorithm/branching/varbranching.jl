@@ -35,6 +35,19 @@ function generate_children(
     )
 
     # adding the first branching constraints
+    # println("*******************")
+    # @show getstoragewrapper(master, MasterBranchConstrsUnit)
+    # print("\e[42m ****")
+    # map(parent.recordids) do (unit, record)
+    #     gggg(::StorageUnitWrapper{A,B,C}) where {A,B,C} = B
+    #     if gggg(unit) == Coluna.Algorithm.MasterBranchConstrsUnit
+    #         print(gggg(unit))
+    #         print("  ")
+    #         print(record)
+    #         print("   --  ")
+    #     end
+    # end
+    # println("\e[00m")
     restore_from_records!(units_to_restore, copy_records(parent.recordids))    
     TO.@timeit Coluna._to "Add branching constraint" begin
     setconstr!(

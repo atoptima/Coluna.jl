@@ -101,7 +101,11 @@ function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation,
         1, treestate, exploitsprimalsols, conquer_units_to_restore
     )
     master = getmaster(reform)
-    push!(tsdata, RootNode(master, getoptstate(input), store_records!(reform), algo.skiprootnodeconquer))
+    rec = store_records!(reform)
+    # println("\e[41m")
+    # @show rec
+    # println("\e[00m")
+    push!(tsdata, RootNode(master, getoptstate(input), rec, algo.skiprootnodeconquer))
     return tsdata
 end
 

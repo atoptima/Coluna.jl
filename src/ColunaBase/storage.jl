@@ -191,14 +191,14 @@ end
 Storage() = Storage(Dict{UnitType, StorageUnitWrapper}())
 
 # TODO
-# function Base.show(io::IO, storage::StorageUnitWrapper)
-#     println(io, "todo.")
-#     # print(io, "unit (")
-#     # print(IOContext(io, :compact => true), storage.model)
-#     # (StorageUnitType, RecordType) = storage.typepair    
-#     # print(io, ", ", remove_until_last_point(string(StorageUnitType)))    
-#     # print(io, ", ", remove_until_last_point(string(RecordType)), ")")        
-# end
+function Base.show(io::IO, storage::StorageUnitWrapper)
+    println(io, "\e[1m **** STORAGE **** \e[0m")
+    println(io, "model = $(storage.model)")
+    println(io, "cur_record = $(storage.cur_record)")
+    println(io, "storage_unit = $(storage.storage_unit)")
+    println(io, "recordsdict = $(storage.recordsdict)")
+    return
+end
 
 function setcurrecord!(
     storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
