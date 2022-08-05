@@ -46,7 +46,7 @@ function generate_children(
     )
     end
     child1description = candidate.varname * ">=" * string(ceil(lhs))
-    child1 = Node(master, parent, child1description, store_records!(reform))
+    child1 = SbNode(master, parent, child1description, store_records!(reform))
 
     # adding the second branching constraints
     restore_from_records!(units_to_restore, copy_records(parent.recordids))
@@ -61,7 +61,7 @@ function generate_children(
     )
     end
     child2description = candidate.varname * "<=" * string(floor(lhs))
-    child2 = Node(master, parent, child2description, store_records!(reform))
+    child2 = SbNode(master, parent, child2description, store_records!(reform))
 
     return [child1, child2]
 end

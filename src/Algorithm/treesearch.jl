@@ -292,7 +292,7 @@ function run_divide_algorithm!(
             end    
             print(" N° ", get_tree_order(child) ," ")
         end
-        push!(tsdata, child)
+        push!(tsdata, Node(child))
     end
     !first_child_with_runconquer && println()
     return

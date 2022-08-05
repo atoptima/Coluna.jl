@@ -15,7 +15,7 @@ Output of a divide algorithm used by the tree search algorithm.
 Should contain the vector of generated nodes.
 """
 struct DivideOutput <: AbstractOutput 
-    children::Vector{Node}
+    children::Vector{SbNode}
     optstate::OptimizationState
 end
 
