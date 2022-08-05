@@ -37,7 +37,7 @@ mutable struct BranchingGroup
     candidate::AbstractBranchingCandidate # the left-hand side in general.
     local_id::Int64
     lhs::Float64
-    children::Vector{Node}
+    children::Vector{SbNode}
     isconquered::Bool
     score::Float64
 end
@@ -45,7 +45,7 @@ end
 function BranchingGroup(
     candidate::AbstractBranchingCandidate, local_id::Int64, lhs::Float64
 )
-    return BranchingGroup(candidate, local_id, lhs, Node[], false, typemin(Float64))
+    return BranchingGroup(candidate, local_id, lhs, SbNode[], false, typemin(Float64))
 end
 
 get_lhs_distance_to_integer(group::BranchingGroup) = 
@@ -61,9 +61,9 @@ end
 # TODO : it does not look like a regeneration but more like a new vector where we
 # reassign children
 function regenerate_children!(group::BranchingGroup, parent::Node)
-    new_children = Node[]
+    new_children = SbNode[]
     for child in group.children
-        push!(new_children, Node(parent, child))
+        push!(new_children, SbNode(parent, child))
     end
     group.children = new_children
     return
