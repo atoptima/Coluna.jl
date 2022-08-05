@@ -5,4 +5,4 @@ include("ColunaTests.jl")
 retest(Coluna, ColunaTests)
 
 # Run a specific test:
-#retest(ColunaTests, "toy instance with objective constant")
+#retest(ColunaTests, "small instance")
