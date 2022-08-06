@@ -855,6 +855,17 @@ function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
     return MOI.AbstractVariableAttribute[MOI.VariableName()]
 end
 
+function MOI.set(model::Optimizer, ::BD.ListOfRepresentatives, list)
+    @warn "TODO: set list of representatives"
+    @show list
+    return
+end
+
+function MOI.get(model::Optimizer, ::BD.ListOfRepresentatives)
+    @warn "TODO: get list of representatives"
+    return []
+end
+
 ############################################################################################
 # Attributes of constraints
 ############################################################################################
