@@ -1,56 +1,65 @@
+
 ############################################################################################
-# Selection Criteria of branching candidates
+# SingleVarBranchingRule
 ############################################################################################
 
 """
-Supertype of selection criteria of branching candidates.
+    SingleVarBranchingRule
 
-A selection criterion provides a way to keep only the most promising branching
-candidates. To create a new selection criterion, one needs to create a subtype of
-`AbstractSelectionCriterion` and implements the method `select_candidates!`.
+This branching rule allows the divide algorithm to branch on single integer variables.
+For instance, `SingleVarBranchingRule` can produce the branching `x <= 2` and `x >= 3` 
+where `x` is a scalar integer variable.
 """
-abstract type AbstractSelectionCriterion end
+struct SingleVarBranchingRule <: AbstractBranchingRule end
 
-"""
-    select_candidates!(branching_candidates, selection_criterion, max_nb_candidates)
+# SingleVarBranchingRule does not have child algorithms
 
-Sort branching candidates according to the selection criterion and remove excess ones.
-"""
-select_candidates!(::Vector{BranchingGroup}, selection::AbstractSelectionCriterion, ::Int) =
-    error("select_candidates! not defined for branching selection rule $(typeof(selection)).")
-
-# Criterion 1
-"""
-Select the branching candidates that have been generated first (sort by `local_id`).
-"""
-struct FirstFoundCriterion <: AbstractSelectionCriterion end
-
-function select_candidates!(
-    candidates::Vector{BranchingGroup}, ::FirstFoundCriterion, max_nb_candidates::Int
-)
-    sort!(candidates, by = x -> x.local_id)
-    if length(candidates) > max_nb_candidates
-        resize!(candidates, max_nb_candidates)
-    end
-    return candidates
+function get_units_usage(::SingleVarBranchingRule, reform::Reformulation) 
+    return [(getmaster(reform), MasterBranchConstrsUnit, READ_AND_WRITE)] 
 end
 
-# Criterion 2
-"""
-Select the most fractional branching candidates.
-"""
-struct MostFractionalCriterion <: AbstractSelectionCriterion end
-
-_get_lhs_distance_to_integer(group::BranchingGroup) = 
-    min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)
-
-function select_candidates!(
-    candidates::Vector{BranchingGroup}, ::MostFractionalCriterion, max_nb_candidates::Int
-)
-    sort!(candidates, rev = true, by = x -> _get_lhs_distance_to_integer(x))
-    if length(candidates) > max_nb_candidates
-        resize!(candidates, max_nb_candidates)
+function run!(
+    ::SingleVarBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput
+)::BranchingRuleOutput
+    # variable branching works only for the original solution
+    if !input.isoriginalsol
+        return BranchingRuleOutput(input.local_id, BranchingGroup[])
     end
-    return candidates
-end
 
+    master = getmaster(reform)
+    local_id = input.local_id
+    max_priority = -Inf
+    for (var_id, val) in input.solution
+        continuous_var = getperenkind(master, var_id) == Continuous
+        int_val = abs(round(val) - val) < input.int_tol
+        # Do not consider continuous variables as branching candidates
+        # and variables with integer value in the current solution.
+        if !continuous_var && !int_val
+            br_priority = getbranchingpriority(master, var_id)
+            if max_priority < br_priority
+                max_priority = br_priority
+            end
+        end
+    end
+
+    if max_priority == -Inf    
+        return BranchingRuleOutput(local_id, BranchingGroup[])
+    end
+
+    groups = BranchingGroup[]
+    for (var_id, val) in input.solution
+        continuous_var = getperenkind(master, var_id) == Continuous
+        int_val = abs(round(val) - val) < input.int_tol
+        br_priority = getbranchingpriority(master, var_id)
+        if !continuous_var && !int_val && br_priority == max_priority
+            # Description string of the candidate is the variable name
+            candidate = SingleVarBranchingCandidate(getname(master, var_id), var_id)
+            local_id += 1
+            push!(groups, BranchingGroup(candidate, local_id, val))
+        end
+    end
+
+    select_candidates!(groups, input.criterion, input.max_nb_candidates)
+
+    return BranchingRuleOutput(local_id, groups)
+end

@@ -1,19 +1,10 @@
-
-############################################################################################
-# Branching Candidates
-############################################################################################
-
 """
 A branching candidate is a data structure that contain all information needed to generate
 children of a node.
 """
 abstract type AbstractBranchingCandidate end
 
-"""
-    getdescription(branching_candidate)
-
-Returns a string which serves to print the branching rule in the logs.
-"""
+"Returns a string which serves to print the branching rule in the logs."
 getdescription(candidate::AbstractBranchingCandidate) = 
     error("getdescription not defined for branching candidates of type $(typeof(candidate)).")
 
@@ -27,8 +18,13 @@ generate_children!(
 ) = error("generate_children not defined for branching candidates of type $(typeof(candidate)).")
 
 
-# Group
-
+############################################################################################
+############################################################################################
+############################################################################################
+# TODO: need to see if this data struct must be part of the interface.
+############################################################################################
+############################################################################################
+############################################################################################
 """
 A branching group is the union of a branching candidate and additional information that are
 computed during the execution of the branching algorithm (TODO : which one ?).
@@ -41,12 +37,15 @@ mutable struct BranchingGroup
     isconquered::Bool
     score::Float64
 end
-
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
 
 ############################################################################################
 # Selection Criteria of branching candidates
 ############################################################################################
-
 """
 Supertype of selection criteria of branching candidates.
 
@@ -101,4 +100,5 @@ ismanager(algo::AbstractBranchingRule) = true
 run!(rule::AbstractBranchingRule, ::Env, model::AbstractModel, input::BranchingRuleInput) =
     error("Method run! in not defined for branching rule $(typeof(rule)), model $(typeof(model)), and input $(typeof(input)).")
 
-
+apply_rule(rule::AbstractBranchingRule) =
+    error("Method apply_rule(::$(typeof(rule))).")

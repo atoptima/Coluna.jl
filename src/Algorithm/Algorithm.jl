@@ -45,6 +45,7 @@ include("divide.jl")
 
 # Here include divide algorithms
 include("branching/interface.jl")
+include("branching/selectioncriteria.jl")
 include("branching/branchinggroup.jl")
 include("branching/branchingrule.jl")
 include("branching/varbranching.jl")
