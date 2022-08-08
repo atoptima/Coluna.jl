@@ -1,103 +1,65 @@
+
 ############################################################################################
-# Selection Criteria of branching candidates
+# SingleVarBranchingRule
 ############################################################################################
 
 """
-Supertype of selection criteria of branching candidates.
+    SingleVarBranchingRule
 
-A selection criterion provides a way to keep only the most promising branching
-candidates. To create a new selection criterion, one needs to create a subtype of
-`AbstractSelectionCriterion` and implements the method `select_candidates!`.
+This branching rule allows the divide algorithm to branch on single integer variables.
+For instance, `SingleVarBranchingRule` can produce the branching `x <= 2` and `x >= 3` 
+where `x` is a scalar integer variable.
 """
-abstract type AbstractSelectionCriterion end
+struct SingleVarBranchingRule <: AbstractBranchingRule end
 
-"""
-    select_candidates!(branching_candidates, selection_criterion, max_nb_candidates)
+# SingleVarBranchingRule does not have child algorithms
 
-Sort branching candidates according to the selection criterion and remove excess ones.
-"""
-select_candidates!(::Vector{BranchingGroup}, selection::AbstractSelectionCriterion, ::Int) =
-    error("select_candidates! not defined for branching selection rule $(typeof(selection)).")
+function get_units_usage(::SingleVarBranchingRule, reform::Reformulation) 
+    return [(getmaster(reform), MasterBranchConstrsUnit, READ_AND_WRITE)] 
+end
 
-# Criterion 1
-"""
-Select the branching candidates that have been generated first (sort by `local_id`).
-"""
-struct FirstFoundCriterion <: AbstractSelectionCriterion end
-
-function select_candidates!(
-    candidates::Vector{BranchingGroup}, ::FirstFoundCriterion, max_nb_candidates::Int
-)
-    sort!(candidates, by = x -> x.local_id)
-    if length(candidates) > max_nb_candidates
-        resize!(candidates, max_nb_candidates)
+function run!(
+    ::SingleVarBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput
+)::BranchingRuleOutput
+    # variable branching works only for the original solution
+    if !input.isoriginalsol
+        return BranchingRuleOutput(input.local_id, BranchingGroup[])
     end
-    return candidates
-end
 
-# Criterion 2
-"""
-Select the most fractional branching candidates.
-"""
-struct MostFractionalCriterion <: AbstractSelectionCriterion end
-
-_get_lhs_distance_to_integer(group::BranchingGroup) = 
-    min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)
-
-function select_candidates!(
-    candidates::Vector{BranchingGroup}, ::MostFractionalCriterion, max_nb_candidates::Int
-)
-    sort!(candidates, rev = true, by = x -> _get_lhs_distance_to_integer(x))
-    if length(candidates) > max_nb_candidates
-        resize!(candidates, max_nb_candidates)
+    master = getmaster(reform)
+    local_id = input.local_id
+    max_priority = -Inf
+    for (var_id, val) in input.solution
+        continuous_var = getperenkind(master, var_id) == Continuous
+        int_val = abs(round(val) - val) < input.int_tol
+        # Do not consider continuous variables as branching candidates
+        # and variables with integer value in the current solution.
+        if !continuous_var && !int_val
+            br_priority = getbranchingpriority(master, var_id)
+            if max_priority < br_priority
+                max_priority = br_priority
+            end
+        end
     end
-    return candidates
+
+    if max_priority == -Inf    
+        return BranchingRuleOutput(local_id, BranchingGroup[])
+    end
+
+    groups = BranchingGroup[]
+    for (var_id, val) in input.solution
+        continuous_var = getperenkind(master, var_id) == Continuous
+        int_val = abs(round(val) - val) < input.int_tol
+        br_priority = getbranchingpriority(master, var_id)
+        if !continuous_var && !int_val && br_priority == max_priority
+            # Description string of the candidate is the variable name
+            candidate = SingleVarBranchingCandidate(getname(master, var_id), var_id)
+            local_id += 1
+            push!(groups, BranchingGroup(candidate, local_id, val))
+        end
+    end
+
+    select_candidates!(groups, input.criterion, input.max_nb_candidates)
+
+    return BranchingRuleOutput(local_id, groups)
 end
-
-############################################################################################
-# BranchingRuleInput
-############################################################################################
-
-"""
-Input of a branching rule (branching separation algorithm)
-Contains current solution, max number of candidates and local candidate id.
-"""
-struct BranchingRuleInput <: AbstractInput 
-    solution::PrimalSolution 
-    isoriginalsol::Bool
-    max_nb_candidates::Int64
-    criterion::AbstractSelectionCriterion
-    local_id::Int64
-    int_tol::Float64
-    minimum_priority::Float64
-end
-
-############################################################################################
-# BranchingRuleOutput
-############################################################################################
-
-"""
-Output of a branching rule (branching separation algorithm)
-It contains the branching candidates generated and the updated local id value
-"""
-struct BranchingRuleOutput <: AbstractOutput 
-    local_id::Int64
-    groups::Vector{BranchingGroup}
-end
-
-############################################################################################
-# BranchingRuleAlgorithm
-############################################################################################
-"""
-    AbstractBranchingRule
-
-Branching rules are algorithms which find branching candidates 
-(branching separation algorithms).
-"""
-abstract type AbstractBranchingRule <: AbstractAlgorithm end
- 
-# branching rules are always manager algorithms (they manage storing and restoring storage units)
-ismanager(algo::AbstractBranchingRule) = true
-
-run!(rule::AbstractBranchingRule, ::Env, model::AbstractModel, input::BranchingRuleInput) =
-    error("Method run! in not defined for branching rule $(typeof(rule)), model $(typeof(model)), and input $(typeof(input)).")
