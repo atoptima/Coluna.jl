@@ -41,10 +41,11 @@ include("preprocessing.jl")
 # Algorithms and structures used by the tree search algorithm
 include("node.jl")
 include("conquer.jl")
-include("divide.jl")
 
 # Here include divide algorithms
 include("branching/interface.jl")
+include("branching/sbnode.jl")
+include("divide.jl") # TODO: DivideInput and DivideOutput are already implementation.
 include("branching/selectioncriteria.jl")
 include("branching/branchinggroup.jl")
 include("branching/branchingrule.jl")

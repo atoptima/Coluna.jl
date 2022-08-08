@@ -8,6 +8,10 @@ abstract type AbstractBranchingCandidate end
 getdescription(candidate::AbstractBranchingCandidate) = 
     error("getdescription not defined for branching candidates of type $(typeof(candidate)).")
 
+
+# TODO: this method should not generate the children of the tree search algorithm.
+# However, AbstractBranchingCandidate should implement an interface to retrieve data to
+# generate a children.
 """
     generate_children!(branching_candidate, lhs, env, reform, node)
 
@@ -22,6 +26,8 @@ generate_children!(
 ############################################################################################
 ############################################################################################
 # TODO: need to see if this data struct must be part of the interface.
+# I think this data structure should be replaced by an interface that will be implemented
+# by AbstractBranchingCandidate.
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -33,7 +39,7 @@ mutable struct BranchingGroup
     candidate::AbstractBranchingCandidate # the left-hand side in general.
     local_id::Int64
     lhs::Float64
-    children::Vector{SbNode}
+    children::Vector#{SbNode}
     isconquered::Bool
     score::Float64
 end
@@ -100,5 +106,5 @@ ismanager(algo::AbstractBranchingRule) = true
 run!(rule::AbstractBranchingRule, ::Env, model::AbstractModel, input::BranchingRuleInput) =
     error("Method run! in not defined for branching rule $(typeof(rule)), model $(typeof(model)), and input $(typeof(input)).")
 
-apply_rule(rule::AbstractBranchingRule) =
-    error("Method apply_rule(::$(typeof(rule))).")
+# apply_rule(rule::AbstractBranchingRule) =
+#     error("Method apply_rule(::$(typeof(rule))).")
