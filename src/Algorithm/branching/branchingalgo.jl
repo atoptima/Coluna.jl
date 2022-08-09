@@ -16,7 +16,7 @@ function apply_conquer_alg_to_node!(
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-        run!(algo, env, reform, ConquerInput(Node(node), units_to_restore))
+        run!(algo, env, reform, ConquerInput(Node(node, -1), units_to_restore))
         store_records!(reform, node.recordids)
     end
     node.conquerwasrun = true
