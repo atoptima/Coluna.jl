@@ -9,6 +9,10 @@ getdescription(candidate::AbstractBranchingCandidate) =
     error("getdescription not defined for branching candidates of type $(typeof(candidate)).")
 
 
+get_lhs(::AbstractBranchingCandidate) = nothing
+get_lhs_distance_to_integer(::AbstractBranchingCandidate) = nothing
+get_local_id(::AbstractBranchingCandidate) = nothing
+
 # TODO: this method should not generate the children of the tree search algorithm.
 # However, AbstractBranchingCandidate should implement an interface to retrieve data to
 # generate a children.
@@ -20,34 +24,6 @@ This method generates the children of a node described by `branching_candidate`.
 generate_children!(
     candidate::AbstractBranchingCandidate, ::Float64, ::Env, ::Reformulation, ::Node
 ) = error("generate_children not defined for branching candidates of type $(typeof(candidate)).")
-
-
-############################################################################################
-############################################################################################
-############################################################################################
-# TODO: need to see if this data struct must be part of the interface.
-# I think this data structure should be replaced by an interface that will be implemented
-# by AbstractBranchingCandidate.
-############################################################################################
-############################################################################################
-############################################################################################
-"""
-A branching group is the union of a branching candidate and additional information that are
-computed during the execution of the branching algorithm (TODO : which one ?).
-"""
-mutable struct BranchingGroup
-    candidate::AbstractBranchingCandidate # the left-hand side in general.
-    local_id::Int64
-    lhs::Float64
-    children::Vector#{SbNode}
-    isconquered::Bool
-    score::Float64
-end
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
 
 ############################################################################################
 # Selection Criteria of branching candidates
@@ -66,7 +42,7 @@ abstract type AbstractSelectionCriterion end
 
 Sort branching candidates according to the selection criterion and remove excess ones.
 """
-select_candidates!(::Vector{BranchingGroup}, selection::AbstractSelectionCriterion, ::Int) =
+select_candidates!(::Vector{C}, selection::AbstractSelectionCriterion, ::Int) where {C <: AbstractBranchingCandidate} =
     error("select_candidates! not defined for branching selection rule $(typeof(selection)).")
 
 
@@ -95,7 +71,7 @@ It contains the branching candidates generated and the updated local id value
 """
 struct BranchingRuleOutput <: AbstractOutput 
     local_id::Int64
-    groups::Vector{BranchingGroup}
+    groups::Vector{AbstractBranchingCandidate}
 end
 
 abstract type AbstractBranchingRule <: AbstractAlgorithm end

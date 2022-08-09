@@ -3,42 +3,16 @@
 ############################################################################################
 
 
-function BranchingGroup(
-    candidate::AbstractBranchingCandidate, local_id::Int64, lhs::Float64
-)
-    return BranchingGroup(candidate, local_id, lhs, SbNode[], false, typemin(Float64))
-end
-
-get_lhs_distance_to_integer(group::BranchingGroup) = 
-    min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)
-
-function generate_children!(
-    group::BranchingGroup, env::Env, reform::Reformulation, parent::Node
-)
-    group.children = generate_children(group.candidate, group.lhs, env, reform, parent)
-    return
-end
-
-# TODO : it does not look like a regeneration but more like a new vector where we
-# reassign children
-function regenerate_children!(group::BranchingGroup, parent::Node)
-    new_children = SbNode[]
-    for child in group.children
-        push!(new_children, SbNode(parent, child))
-    end
-    group.children = new_children
-    return
-end
-
 # TODO : this method needs code documentation & context
-function product_score(group::BranchingGroup, parent_optstate::OptimizationState)
+# TODO : unit tests
+function product_score(children::Vector{SbNode}, parent_optstate::OptimizationState)
     # TO DO : we need to mesure the gap to the cut-off value
     parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
     parent_delta = diff(get_ip_primal_bound(parent_optstate), parent_lp_dual_bound)
 
     all_branches_above_delta = true
-    deltas = zeros(Float64, length(group.children))
-    for (i, node) in enumerate(group.children)
+    deltas = zeros(Float64, length(children))
+    for (i, node) in enumerate(children)
         node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < parent_delta
             all_branches_above_delta = false
@@ -69,6 +43,7 @@ function product_score(group::BranchingGroup, parent_optstate::OptimizationState
 end
 
 # TODO : this method needs code documentation & context
+# TODO ; unit tests
 function number_of_leaves(gap::Float64, deltas::Vector{Float64})    
     inf::Float64 = 0.0
     sup::Float64 = 1e20
@@ -95,8 +70,9 @@ function number_of_leaves(gap::Float64, deltas::Vector{Float64})
 end
 
 # TODO : this method needs code documentation & context
-function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationState)
-    if length(group.children) == 0
+# TODO : this method needs unit tests
+function tree_depth_score(children::Vector{SbNode}, parent_optstate::OptimizationState)
+    if iszero(length(children))
         return 0.0
     end
 
@@ -104,9 +80,9 @@ function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationSt
     parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
     parent_delta = diff(get_ip_primal_bound(parent_optstate), parent_lp_dual_bound)
 
-    deltas = zeros(Float64, length(group.children))
+    deltas = zeros(Float64, length(children))
     nb_zero_deltas = 0
-    for (i, node) in enumerate(group.children)
+    for (i, node) in enumerate(children)
         node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < 1e-6 # TO DO : use tolerance here
             nb_zero_deltas += 1
@@ -133,17 +109,4 @@ function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationSt
         end
     end
     return score
-end
-
-function print_bounds_and_score(group::BranchingGroup, phase_index::Int64, max_description_length::Int64)
-    lengthdiff = max_description_length - length(getdescription(group.candidate))
-    print("SB phase ", phase_index, " branch on ", getdescription(group.candidate))
-    @printf " (lhs=%.4f)" group.lhs
-    print(repeat(" ", lengthdiff), " : [")
-    for (node_index, node) in enumerate(group.children)
-        node_index > 1 && print(",")            
-        @printf "%10.4f" getvalue(get_lp_primal_bound(getoptstate(node)))
-    end
-    @printf "], score = %10.4f\n" group.score
-    return
 end
