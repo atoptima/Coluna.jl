@@ -52,20 +52,19 @@ Version 0.4.2 | https://github.com/atoptima/Coluna.jl
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            3.27s /   7.5%            294MiB /   9.1%
+       Tot / % measured:            3.33s /   8.3%            294MiB /   9.1%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    246ms  100.0%   246ms   26.8MiB  100.0%  26.8MiB
-   SolveLpForm             15   3.51ms    1.4%   234μs   1.24MiB    4.6%  84.5KiB
-   Update reduced c...     15    499μs    0.2%  33.3μs    648KiB    2.4%  43.2KiB
-   Getting primal s...     15    308μs    0.1%  20.5μs    276KiB    1.0%  18.4KiB
-   Add branching co...      2    126μs    0.1%  63.2μs   64.6KiB    0.2%  32.3KiB
-   Cleanup columns         15   41.7μs    0.0%  2.78μs   9.83KiB    0.0%     671B
-   Store records            3   41.4μs    0.0%  13.8μs   3.52KiB    0.0%  1.17KiB
-   Restore/remove r...      3   28.4μs    0.0%  9.47μs     0.00B    0.0%    0.00B
+ Coluna                     1    278ms  100.0%   278ms   26.8MiB  100.0%  26.8MiB
+   SolveLpForm             15   3.72ms    1.3%   248μs   1.24MiB    4.6%  84.5KiB
+   Update reduced c...     15    606μs    0.2%  40.4μs    648KiB    2.4%  43.2KiB
+   Getting primal s...     15    343μs    0.1%  22.9μs    276KiB    1.0%  18.4KiB
+   Cleanup columns         15   51.9μs    0.0%  3.46μs   9.83KiB    0.0%     671B
+   Store records            3   45.9μs    0.0%  15.3μs   3.52KiB    0.0%  1.17KiB
+   Restore/remove r...      3   32.7μs    0.0%  10.9μs     0.00B    0.0%    0.00B
    Update Lagrangia...     15   14.3μs    0.0%   953ns   1.88KiB    0.0%     128B
-   Smoothing update        15   9.60μs    0.0%   640ns   1.17KiB    0.0%    80.0B
+   Smoothing update        15   12.7μs    0.0%   847ns   1.17KiB    0.0%    80.0B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 451.23999999999995
@@ -129,52 +128,52 @@ Version 0.4.2 | https://github.com/atoptima/Coluna.jl
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.54, max. viol. = 0.54, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  399.6058&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  398.8715&gt; &lt;mlp=  398.9385&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 1.39&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
+  &lt;it=  1&gt; &lt;et= 1.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  399.6058&gt; &lt;PB=Inf&gt;
+  &lt;it=  2&gt; &lt;et= 1.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  398.8715&gt; &lt;mlp=  398.9385&gt; &lt;PB=Inf&gt;
+  &lt;it=  3&gt; &lt;et= 1.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.50, max. viol. = 0.50, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  399.8114&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  399.6803&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 1.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  399.6563&gt; &lt;mlp=  399.6563&gt; &lt;PB=Inf&gt;
+  &lt;it=  1&gt; &lt;et= 1.44&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  399.8114&gt; &lt;PB=Inf&gt;
+  &lt;it=  2&gt; &lt;et= 1.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  399.6803&gt; &lt;PB=Inf&gt;
+  &lt;it=  3&gt; &lt;et= 1.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  399.6563&gt; &lt;mlp=  399.6563&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.26, max. viol. = 0.26, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  400.6371&gt; &lt;mlp=  401.7971&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.40&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
+  &lt;it=  1&gt; &lt;et= 1.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  400.6371&gt; &lt;mlp=  401.7971&gt; &lt;PB=Inf&gt;
+  &lt;it=  2&gt; &lt;et= 1.45&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.42, max. viol. = 0.42, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.41&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  404.2746&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.41&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  402.2574&gt; &lt;mlp=  403.6126&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 1.41&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  403.5883&gt; &lt;mlp=  403.5883&gt; &lt;PB=Inf&gt;
+  &lt;it=  1&gt; &lt;et= 1.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  404.2746&gt; &lt;PB=Inf&gt;
+  &lt;it=  2&gt; &lt;et= 1.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  402.2574&gt; &lt;mlp=  403.6126&gt; &lt;PB=Inf&gt;
+  &lt;it=  3&gt; &lt;et= 1.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  403.5883&gt; &lt;mlp=  403.5883&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.24, max. viol. = 0.24, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.41&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  405.8977&gt; &lt;mlp=  405.8977&gt; &lt;PB=Inf&gt;
+  &lt;it=  1&gt; &lt;et= 1.46&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  405.8977&gt; &lt;mlp=  405.8977&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.21, max. viol. = 0.21, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  407.3509&gt; &lt;PB=Inf&gt;
+  &lt;it=  1&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  407.3509&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.15, max. viol. = 0.15, zero viol. = 0.
 Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
-  &lt;it=  1&gt; &lt;et= 1.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  445.3000&gt; &lt;PB=445.3000&gt;
-  &lt;it=  2&gt; &lt;et= 1.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  433.6975&gt; &lt;mlp=  443.3650&gt; &lt;PB=445.3000&gt;
+  &lt;it=  1&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  445.3000&gt; &lt;PB=445.3000&gt;
+  &lt;it=  2&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  433.6975&gt; &lt;mlp=  443.3650&gt; &lt;PB=445.3000&gt;
 Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
-  &lt;it=  3&gt; &lt;et= 1.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  433.6975&gt; &lt;mlp=  441.7800&gt; &lt;PB=441.7800&gt;
-  &lt;it=  4&gt; &lt;et= 1.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  438.3450&gt; &lt;mlp=  441.3917&gt; &lt;PB=441.7800&gt;
-  &lt;it=  5&gt; &lt;et= 1.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  439.9650&gt; &lt;mlp=  440.3950&gt; &lt;PB=441.7800&gt;
-  &lt;it=  6&gt; &lt;et= 1.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.3550&gt; &lt;mlp=  440.3950&gt; &lt;PB=441.7800&gt;
-  &lt;it=  7&gt; &lt;et= 1.42&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.3950&gt; &lt;PB=441.7800&gt;
+  &lt;it=  3&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  433.6975&gt; &lt;mlp=  441.7800&gt; &lt;PB=441.7800&gt;
+  &lt;it=  4&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  438.3450&gt; &lt;mlp=  441.3917&gt; &lt;PB=441.7800&gt;
+  &lt;it=  5&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  439.9650&gt; &lt;mlp=  440.3950&gt; &lt;PB=441.7800&gt;
+  &lt;it=  6&gt; &lt;et= 1.47&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.3550&gt; &lt;mlp=  440.3950&gt; &lt;PB=441.7800&gt;
+  &lt;it=  7&gt; &lt;et= 1.48&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.3950&gt; &lt;PB=441.7800&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
@@ -183,24 +182,23 @@ Robust cut separation callback adds 0 new essential cuts and 0 new facultative c
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            3.36s /  42.4%            392MiB /  47.0%
+       Tot / % measured:            3.48s /  42.4%            393MiB /  47.1%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    1.43s  100.0%   1.43s    185MiB  100.0%   185MiB
-   SolveLpForm             34   10.8ms    0.8%   316μs   3.79MiB    2.1%   114KiB
-   Update reduced c...     34   1.22ms    0.1%  36.0μs   1.43MiB    0.8%  43.2KiB
-   Getting primal s...     34    927μs    0.1%  27.3μs    756KiB    0.4%  22.2KiB
-   Cleanup columns         34    244μs    0.0%  7.19μs   73.8KiB    0.0%  2.17KiB
-   Add branching co...      2    161μs    0.0%  80.3μs    110KiB    0.1%  55.0KiB
-   Store records            3   37.7μs    0.0%  12.6μs   3.52KiB    0.0%  1.17KiB
-   Update Lagrangia...     34   35.9μs    0.0%  1.06μs   4.25KiB    0.0%     128B
-   Smoothing update        34   26.2μs    0.0%   771ns   2.66KiB    0.0%    80.0B
-   Restore/remove r...      3   8.50μs    0.0%  2.83μs     0.00B    0.0%    0.00B
+ Coluna                     1    1.48s  100.0%   1.48s    185MiB  100.0%   185MiB
+   SolveLpForm             34   11.2ms    0.8%   329μs   3.79MiB    2.1%   114KiB
+   Update reduced c...     34   1.38ms    0.1%  40.5μs   1.43MiB    0.8%  43.2KiB
+   Getting primal s...     34    987μs    0.1%  29.0μs    756KiB    0.4%  22.2KiB
+   Cleanup columns         34    267μs    0.0%  7.84μs   73.8KiB    0.0%  2.17KiB
+   Store records            3   46.9μs    0.0%  15.6μs   3.52KiB    0.0%  1.17KiB
+   Update Lagrangia...     34   36.0μs    0.0%  1.06μs   4.25KiB    0.0%     128B
+   Smoothing update        34   28.1μs    0.0%   826ns   2.66KiB    0.0%    80.0B
+   Restore/remove r...      3   9.30μs    0.0%  3.10μs     0.00B    0.0%    0.00B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 440.55
 [ Info: Dual bound: 440.39500000000004</code></pre><p>Valid inequalities significantly improve the previous dual bound:</p><pre><code class="language-julia hljs">db2 = objective_bound(model)
 
 
-db1</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">396.29541664666664</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.22 on <span class="colophon-date" title="Monday 8 August 2022 13:18">Monday 8 August 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+db1</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">396.29541664666664</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.22 on <span class="colophon-date" title="Tuesday 9 August 2022 15:09">Tuesday 9 August 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
