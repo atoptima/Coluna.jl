@@ -283,16 +283,16 @@ function run_divide_algorithm!(
 
     first_child_with_runconquer = true
     for child in children
+        tree_order = tsdata.tree_order
         if child.conquerwasrun
-            set_tree_order!(child, tsdata.tree_order)
             tsdata.tree_order += 1
             if first_child_with_runconquer
                 print("Child nodes generated :")
                 first_child_with_runconquer = false
             end    
-            print(" N° ", get_tree_order(child) ," ")
+            print(" N° ", tree_order ," ")
         end
-        push!(tsdata, Node(child))
+        push!(tsdata, Node(child, tree_order))
     end
     !first_child_with_runconquer && println()
     return
