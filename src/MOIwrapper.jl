@@ -165,6 +165,7 @@ MOI.supports(::Optimizer, ::MOI.ConstraintPrimalStart) = false
 MOI.supports(::Optimizer, ::MOI.ConstraintDualStart) = false
 MOI.supports(::Optimizer, ::BlockDecomposition.ConstraintDecomposition) = true
 MOI.supports(::Optimizer, ::BlockDecomposition.VariableDecomposition) = true
+MOI.supports(::Optimizer, ::BlockDecomposition.RepresentativeVar) = true
 
 # Parameters
 function MOI.set(model::Optimizer, param::MOI.RawOptimizerAttribute, val)
@@ -838,6 +839,17 @@ function MOI.set(
     return
 end
 
+# In the case of a representative variable.
+function MOI.set(
+    model::Optimizer, ::BD.VariableDecomposition, varid::MOI.VariableIndex,
+    annotations::Vector{<:BD.Annotation}
+)
+    @warn "TODO"
+    @show varid
+    @show annotations
+    return
+end
+
 function MOI.set(
     model::Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
 )
@@ -853,6 +865,19 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
     return MOI.AbstractVariableAttribute[MOI.VariableName()]
+end
+
+function MOI.set(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex, repr_var)
+    @warn "TODO: set representative var"
+    @show varid
+    @show repr_var
+    return
+end
+
+function MOI.get(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex)
+    @warn "TODO: get representative var"
+    @show varid
+    return 
 end
 
 function MOI.set(model::Optimizer, ::BD.ListOfRepresentatives, list)
