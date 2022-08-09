@@ -2,7 +2,6 @@
 # Branching Group
 ############################################################################################
 
-
 function BranchingGroup(
     candidate::AbstractBranchingCandidate, local_id::Int64, lhs::Float64
 )
@@ -31,14 +30,14 @@ function regenerate_children!(group::BranchingGroup, parent::Node)
 end
 
 # TODO : this method needs code documentation & context
-function product_score(group::BranchingGroup, parent_optstate::OptimizationState)
+function product_score(children::Vector{SbNode}, parent_optstate::OptimizationState)
     # TO DO : we need to mesure the gap to the cut-off value
     parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
     parent_delta = diff(get_ip_primal_bound(parent_optstate), parent_lp_dual_bound)
 
     all_branches_above_delta = true
-    deltas = zeros(Float64, length(group.children))
-    for (i, node) in enumerate(group.children)
+    deltas = zeros(Float64, length(children))
+    for (i, node) in enumerate(children)
         node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < parent_delta
             all_branches_above_delta = false
@@ -95,8 +94,9 @@ function number_of_leaves(gap::Float64, deltas::Vector{Float64})
 end
 
 # TODO : this method needs code documentation & context
-function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationState)
-    if length(group.children) == 0
+# TODO : this method needs unit tests
+function tree_depth_score(children::Vector{SbNode}, parent_optstate::OptimizationState)
+    if iszero(length(children))
         return 0.0
     end
 
@@ -104,9 +104,9 @@ function tree_depth_score(group::BranchingGroup, parent_optstate::OptimizationSt
     parent_lp_dual_bound = get_lp_dual_bound(parent_optstate)
     parent_delta = diff(get_ip_primal_bound(parent_optstate), parent_lp_dual_bound)
 
-    deltas = zeros(Float64, length(group.children))
+    deltas = zeros(Float64, length(children))
     nb_zero_deltas = 0
-    for (i, node) in enumerate(group.children)
+    for (i, node) in enumerate(children)
         node_delta = diff(get_lp_primal_bound(getoptstate(node)), parent_lp_dual_bound)
         if node_delta < 1e-6 # TO DO : use tolerance here
             nb_zero_deltas += 1

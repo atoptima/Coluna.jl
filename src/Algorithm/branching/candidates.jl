@@ -15,6 +15,10 @@ end
 
 getdescription(candidate::SingleVarBranchingCandidate) = candidate.varname
 
+function get_lhs_distance_to_integer(candidate::SingleVarBranchingCandidate)
+    return min(candidate.lhs - floor(candidate.lhs), ceil(candidate.lhs) - candidate.lhs)
+end
+
 function generate_children(
     candidate::SingleVarBranchingCandidate, lhs::Float64, env::Env, reform::Reformulation, 
     parent::Node

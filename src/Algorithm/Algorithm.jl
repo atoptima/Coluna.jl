@@ -50,6 +50,7 @@ include("branching/selectioncriteria.jl")
 include("branching/branchinggroup.jl")
 include("branching/branchingrule.jl")
 include("branching/varbranching.jl")
+include("branching/candidates.jl")
 include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
