@@ -6,9 +6,9 @@ Select the branching candidates that have been generated first (sort by `local_i
 struct FirstFoundCriterion <: AbstractSelectionCriterion end
 
 function select_candidates!(
-    candidates::Vector{BranchingGroup}, ::FirstFoundCriterion, max_nb_candidates::Int
-)
-    sort!(candidates, by = x -> x.local_id)
+    candidates::Vector{C}, ::FirstFoundCriterion, max_nb_candidates::Int
+) where {C <: AbstractBranchingCandidate}
+    sort!(candidates, by = c -> get_local_id(c))
     if length(candidates) > max_nb_candidates
         resize!(candidates, max_nb_candidates)
     end
@@ -21,13 +21,10 @@ Select the most fractional branching candidates.
 """
 struct MostFractionalCriterion <: AbstractSelectionCriterion end
 
-_get_lhs_distance_to_integer(group::BranchingGroup) = 
-    min(group.lhs - floor(group.lhs), ceil(group.lhs) - group.lhs)
-
 function select_candidates!(
-    candidates::Vector{BranchingGroup}, ::MostFractionalCriterion, max_nb_candidates::Int
-)
-    sort!(candidates, rev = true, by = x -> _get_lhs_distance_to_integer(x))
+    candidates::Vector{C}, ::MostFractionalCriterion, max_nb_candidates::Int
+) where {C <: AbstractBranchingCandidate}
+    sort!(candidates, rev = true, by = c -> get_lhs_distance_to_integer(c))
     if length(candidates) > max_nb_candidates
         resize!(candidates, max_nb_candidates)
     end
