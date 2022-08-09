@@ -126,8 +126,8 @@ function exploits_primal_solutions(algo::StrongBranching)
 end
 
 function perform_strong_branching_with_phases!(
-    algo::StrongBranching, env::Env, reform::Reformulation, input::DivideInput, groups::Vector{BranchingGroup}
-)::OptimizationState
+    algo::StrongBranching, env::Env, reform::Reformulation, input::DivideInput, candidates::Vector{C}
+)::OptimizationState where {C<:AbstractBranchingCandidate}
 
     parent = getparent(input)
     exploitsprimalsolutions::Bool = exploits_primal_solutions(algo)
@@ -144,12 +144,12 @@ function perform_strong_branching_with_phases!(
         # children for each branching candidate.
         if phase_index < length(algo.phases)
             nb_candidates_for_next_phase = algo.phases[phase_index + 1].max_nb_candidates
-            if phase_index > 1 && length(groups) <= nb_candidates_for_next_phase 
+            if phase_index > 1 && length(candidates) <= nb_candidates_for_next_phase 
                 continue
             end
             # In phase 1, we make sure that the number of candidates for the next phase is 
             # at least equal to the number of initial candidates
-            nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(groups))
+            nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
         end
 
         conquer_units_to_restore = UnitsUsage()
@@ -162,32 +162,35 @@ function perform_strong_branching_with_phases!(
 
         #for nice printing, we compute the maximum description length
         max_descr_length::Int64 = 0
-        for group in groups
-            description = getdescription(group.candidate)
+        for candidate in candidates
+            description = getdescription(candidate)
             if (max_descr_length < length(description)) 
                 max_descr_length = length(description)
             end
         end
 
-        for (group_index,group) in enumerate(groups)
+        for (candidate_index, candidate) in enumerate(candidates)
             #TO DO: verify if time limit is reached
+            # TODO: start
+        
             if phase_index == 1
-                generate_children!(group, env, reform, parent)                
+                generate_children!(candidate, env, reform, parent)                
             else    
-                regenerate_children!(group, parent)
+                regenerate_children!(candidate, parent)
             end
                         
             if phase_index > 1
-                sort!(group.children, by = x -> get_lp_primal_bound(getoptstate(x)))
+                sort!(candidate.children, by = x -> get_lp_primal_bound(getoptstate(x)))
             end
+            # TODO: end
             
             # Here, we avoid the removal of pruned nodes at this point to let them
             # appear in the branching tree file            
-            for (node_index, node) in enumerate(group.children)
+            for (node_index, node) in enumerate(candidate.children)
                 if isverbose(current_phase.conquer_algo)
                     print(
                         "**** SB phase ", phase_index, " evaluation of candidate ", 
-                        group_index, " (branch ", node_index, " : ", node.branchdescription
+                        candidate_index, " (branch ", node_index, " : ", node.branchdescription
                     )
                     @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getoptstate(node)))
                 end
@@ -215,28 +218,28 @@ function perform_strong_branching_with_phases!(
 
             if phase_index < length(algo.phases) 
                 # not the last phase, thus we compute the product score
-                group.score = product_score(group, getoptstate(parent))
+                candidate.score = product_score(candidate.children, getoptstate(parent))
             else
                 # the last phase, thus we compute the tree size score
-                group.score = tree_depth_score(group, getoptstate(parent))
+                candidate.score = tree_depth_score(candidate.children, getoptstate(parent))
             end
-            print_bounds_and_score(group, phase_index, max_descr_length)
+            print_bounds_and_score(candidate, phase_index, max_descr_length)
         end
 
-        sort!(groups, rev = true, by = x -> (x.isconquered, x.score))
+        sort!(candidates, rev = true, by = x -> (x.isconquered, x.score))
 
-        if groups[1].isconquered
+        if candidates[1].isconquered
             nb_candidates_for_next_phase = 1 
         end
 
         # before deleting branching groups which are not kept for the next phase
         # we need to remove record kept in these nodes
-        for group_index = nb_candidates_for_next_phase + 1 : length(groups) 
-            for (node_index, node) in enumerate(groups[group_index].children)
+        for candidate_index = nb_candidates_for_next_phase + 1 : length(candidates) 
+            for (node_index, node) in enumerate(candidates[candidate_index].children)
                 remove_records!(node.recordids)
             end
         end
-        resize!(groups, nb_candidates_for_next_phase)
+        resize!(candidates, nb_candidates_for_next_phase)
     end
     return sbstate
 end
@@ -246,7 +249,7 @@ end
 # - stopping criterion
 # - what happens when original_solution or extended_solution are nothing
 function _select_candidates_with_branching_rule(rules, phases, selection_criterion, int_tol, parent_is_root, reform, env, original_solution, extended_solution)
-    kept_branch_groups = BranchingGroup[]
+    kept_branch_candidates = AbstractBranchingCandidate[]
 
     # We sort branching rules by their root/non-root priority.
     sorted_rules = sort(rules, rev = true, by = x -> getpriority(x, parent_is_root))
@@ -270,7 +273,7 @@ function _select_candidates_with_branching_rule(rules, phases, selection_criteri
         # Priority of the current branching rule.
         priority = getpriority(prioritised_rule, parent_is_root)
     
-        nb_candidates_found = length(kept_branch_groups)
+        nb_candidates_found = length(kept_branch_candidates)
 
         # Before selecting new candidates with the current branching rule, check if generation
         # of candidates stops. Generation of candidates stops when:
@@ -295,7 +298,7 @@ function _select_candidates_with_branching_rule(rules, phases, selection_criteri
                 local_id, int_tol, priority
             )
         )
-        append!(kept_branch_groups, output.groups)
+        append!(kept_branch_candidates, output.groups)
         local_id = output.local_id
 
         if projection_is_possible(getmaster(reform)) && !isnothing(extended_solution)
@@ -305,15 +308,13 @@ function _select_candidates_with_branching_rule(rules, phases, selection_criteri
                     local_id, int_tol, priority
                 )
             )
-            append!(kept_branch_groups, output.groups)
+            append!(kept_branch_candidates, output.groups)
             local_id = output.local_id
         end
-
-        select_candidates!(kept_branch_groups, selection_criterion, max_nb_candidates)
-
+        select_candidates!(kept_branch_candidates, selection_criterion, max_nb_candidates)
         priority_of_last_generated_groups = priority
     end
-    return kept_branch_groups
+    return kept_branch_candidates
 end
 
 function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::DivideInput)::DivideOutput
@@ -341,21 +342,21 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
     end
 
     parent_is_root = iszero(getdepth(parent))
-    kept_branch_groups = _select_candidates_with_branching_rule(
+    kept_branch_candidates = _select_candidates_with_branching_rule(
         algo.rules, algo.phases, algo.selection_criterion, algo.int_tol, parent_is_root, reform, env, original_solution, extended_solution
     )
 
-    if isempty(kept_branch_groups)
+    if isempty(kept_branch_candidates)
         @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
         return DivideOutput(Node[], optstate)
     end
 
     # in the case of simple branching, it remains to generate the children
     if isempty(algo.phases) 
-        generate_children!(kept_branch_groups[1], env, reform, parent)
-        return DivideOutput(kept_branch_groups[1].children, OptimizationState(getmaster(reform)))
+        children = generate_children!(kept_branch_candidates[1], env, reform, parent)
+        return DivideOutput(children, OptimizationState(getmaster(reform)))
     end
 
-    sbstate = perform_strong_branching_with_phases!(algo, env, reform, input, kept_branch_groups)
-    return DivideOutput(kept_branch_groups[1].children, sbstate)
+    sbstate = perform_strong_branching_with_phases!(algo, env, reform, input, kept_branch_candidates)
+    return DivideOutput(kept_branch_candidates[1].children, sbstate)
 end

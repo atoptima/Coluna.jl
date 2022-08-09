@@ -23,7 +23,7 @@ function run!(
 )::BranchingRuleOutput
     # variable branching works only for the original solution
     if !input.isoriginalsol
-        return BranchingRuleOutput(input.local_id, BranchingGroup[])
+        return BranchingRuleOutput(input.local_id, [])
     end
 
     master = getmaster(reform)
@@ -43,19 +43,19 @@ function run!(
     end
 
     if max_priority == -Inf    
-        return BranchingRuleOutput(local_id, BranchingGroup[])
+        return BranchingRuleOutput(local_id, [])
     end
 
-    groups = BranchingGroup[]
+    groups = SingleVarBranchingCandidate[]
     for (var_id, val) in input.solution
         continuous_var = getperenkind(master, var_id) == Continuous
         int_val = abs(round(val) - val) < input.int_tol
         br_priority = getbranchingpriority(master, var_id)
         if !continuous_var && !int_val && br_priority == max_priority
             # Description string of the candidate is the variable name
-            candidate = SingleVarBranchingCandidate(getname(master, var_id), var_id)
             local_id += 1
-            push!(groups, BranchingGroup(candidate, local_id, val))
+            candidate = SingleVarBranchingCandidate(getname(master, var_id), var_id, local_id, val)
+            push!(groups, candidate)
         end
     end
 

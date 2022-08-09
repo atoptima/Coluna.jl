@@ -49,7 +49,6 @@ include("divide.jl") # TODO: DivideInput and DivideOutput are already implementa
 include("branching/selectioncriteria.jl")
 include("branching/branchinggroup.jl")
 include("branching/branchingrule.jl")
-include("branching/varbranching.jl")
 include("branching/candidates.jl")
 include("branching/branchingalgo.jl")
 
