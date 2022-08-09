@@ -4,7 +4,6 @@
 
 mutable struct Node 
     tree_order::Int
-    istreated::Bool
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
@@ -20,7 +19,7 @@ function RootNode(
     nodestate = OptimizationState(form, optstate, false, skipconquer)
     tree_order = skipconquer ? 0 : -1
     return Node(
-        tree_order, false, 0, nothing, nodestate, "", recordrecordids, skipconquer
+        tree_order, 0, nothing, nodestate, "", recordrecordids, skipconquer
     )
 end
 
@@ -31,7 +30,7 @@ function Node(
     nodestate = OptimizationState(form, getoptstate(parent), false, false)
     
     return Node(
-        -1, false, depth, parent, nodestate, branchdescription, recordrecordids, false
+        -1, depth, parent, nodestate, branchdescription, recordrecordids, false
     )
 end
 
@@ -43,11 +42,7 @@ getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
 getoptstate(n::Node) = n.optstate
 addchild!(n::Node, child::Node) = push!(n.children, child)
-settreated!(n::Node) = n.istreated = true
-istreated(n::Node) = n.istreated
 isrootnode(n::Node) = n.tree_order == 1
-getinfeasible(n::Node) = n.infesible
-setinfeasible(n::Node, status::Bool) = n.infeasible = status
 
 # TODO remove
 function to_be_pruned(node::Node)

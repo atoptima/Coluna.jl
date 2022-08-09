@@ -4,12 +4,9 @@
 ### TODO: transform into a very light node dedicated to the strong branching algorithm.
 ### This light node will contain information to generate the real node of the tree search.
 mutable struct SbNode 
-    tree_order::Int
-    istreated::Bool
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
-    #branch::Union{Nothing, Branch} # branch::ConstrId
     branchdescription::String
     recordids::RecordsVector
     conquerwasrun::Bool
@@ -20,7 +17,7 @@ end
 function SbNode(parent::Node, child::SbNode)
     depth = getdepth(parent) + 1
     return SbNode(
-        -1, false, depth, parent, getoptstate(child),
+        depth, parent, getoptstate(child),
         child.branchdescription, child.recordids, false
     )
 end
@@ -32,12 +29,12 @@ function SbNode(
     nodestate = OptimizationState(form, getoptstate(parent), false, false)
     
     return SbNode(
-        -1, false, depth, parent, nodestate, branchdescription, recordrecordids, false
+        depth, parent, nodestate, branchdescription, recordrecordids, false
     )
 end
 
-function Node(node::SbNode)
-    return Node(node.tree_order, node.istreated, node.depth, node.parent, node.optstate, node.branchdescription, node.recordids, node.conquerwasrun)
+function Node(node::SbNode, tree_order)
+    return Node(tree_order, node.depth, node.parent, node.optstate, node.branchdescription, node.recordids, node.conquerwasrun)
 end
 
 # TODO remove
@@ -47,15 +44,9 @@ function to_be_pruned(node::SbNode)
     return ip_gap_closed(nodestate)
 end
 
-get_tree_order(n::SbNode) = n.tree_order
-set_tree_order!(n::SbNode, tree_order::Int) = n.tree_order = tree_order
 getdepth(n::SbNode) = n.depth
 getparent(n::SbNode) = n.parent
 getchildren(n::SbNode) = n.children
 getoptstate(n::SbNode) = n.optstate
 addchild!(n::SbNode, child::SbNode) = push!(n.children, child)
-settreated!(n::SbNode) = n.istreated = true
-istreated(n::SbNode) = n.istreated
-isrootnode(n::SbNode) = n.tree_order == 1
-getinfeasible(n::SbNode) = n.infesible
-setinfeasible(n::SbNode, status::Bool) = n.infeasible = status
+
