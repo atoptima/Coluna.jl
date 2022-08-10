@@ -38,6 +38,8 @@ function Base.:(==)(a::PrimalSolution, b::PrimalSolution)
     return a.solution == b.solution && a.custom_data == b.custom_data
 end
 
+Base.copy(s::P) where {P<:PrimalSolution}= P(copy(s.solution), copy(s.custom_data))
+
 # Dual Solution
 
 # Indicate whether the active bound of a variable is the lower or the upper one.
@@ -89,6 +91,8 @@ function Base.:(==)(a::DualSolution, b::DualSolution)
     return a.solution == b.solution && a.var_redcosts == b.var_redcosts && 
         a.custom_data == b.custom_data
 end
+
+Base.copy(s::D) where {D<:DualSolution} = D(copy(s.solution), copy(s.var_redcosts), copy(s.custom_data))
 
 get_var_redcosts(s::DualSolution) = s.var_redcosts
 

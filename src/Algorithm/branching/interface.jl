@@ -87,7 +87,7 @@ It contains the branching candidates generated and the updated local id value
 """
 struct BranchingRuleOutput <: AbstractOutput 
     local_id::Int64
-    groups::Vector{AbstractBranchingCandidate}
+    candidates::Vector{AbstractBranchingCandidate}
 end
 
 abstract type AbstractBranchingRule <: AbstractAlgorithm end
@@ -97,7 +97,7 @@ ismanager(algo::AbstractBranchingRule) = true
 
 apply_branching_rule(rule, env, reform, input) = nothing
 
-function run!(rule::AbstractBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput)
+function select!(rule::AbstractBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput)
     candidates = apply_branching_rule(rule, env, reform, input)
     local_id = input.local_id + length(candidates)
     select_candidates!(candidates, input.criterion, input.max_nb_candidates)
