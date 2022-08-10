@@ -27,7 +27,7 @@ function _product_score(
     parent_delta = diff(parent_ip_primal_bound, parent_lp_dual_bound)
 
     all_branches_above_delta = true
-    deltas = zeros(Float64, length(children))
+    deltas = zeros(Float64, length(children_lp_primal_bounds))
     for (i, child_lp_primal_bound) in enumerate(children_lp_primal_bounds)
         node_delta = diff(child_lp_primal_bound, parent_lp_dual_bound)
         if node_delta < parent_delta
@@ -92,14 +92,15 @@ function _tree_depth_score(
     parent_ip_primal_bound,
     children_lp_primal_bounds
 )
-    if iszero(length(children_lp_primal_bounds))
+    nb_children = length(children_lp_primal_bounds)
+    if iszero(nb_children)
         return 0.0
     end
 
     # TO DO : we need to mesure the gap to the cut-off value
     parent_delta = diff(parent_ip_primal_bound, parent_lp_dual_bound)
 
-    deltas = zeros(Float64, length(children))
+    deltas = zeros(Float64, nb_children)
     nb_zero_deltas = 0
     for (i, child_lp_primal_bound) in enumerate(children_lp_primal_bounds)
         node_delta = diff(child_lp_primal_bound, parent_lp_dual_bound)

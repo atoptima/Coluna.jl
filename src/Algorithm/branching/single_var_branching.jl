@@ -16,8 +16,9 @@ mutable struct SingleVarBranchingCandidate <: AbstractBranchingCandidate
     score::Float64
     children::Vector{SbNode}
     isconquered::Bool
-    function SingleVarBranchingCandidate(varname::String, varid::VarId, local_id::Int64, lhs::Float64)
-        return new(varname, varid, local_id, lhs, 0.0, SbNode[], false)
+    parent::Union{Nothing,Node}
+    function SingleVarBranchingCandidate(varname::String, varid::VarId, local_id::Int64, lhs::Float64, parent)
+        return new(varname, varid, local_id, lhs, 0.0, SbNode[], false, parent)
     end
 end
 
@@ -32,17 +33,9 @@ end
 
 get_local_id(candidate::SingleVarBranchingCandidate) = candidate.local_id
 
-
-# TODO : it does not look like a regeneration but more like a new vector where we
-# reassign children
-function regenerate_children!(candidate::SingleVarBranchingCandidate, parent::Node)
-    new_children = SbNode[]
-    for child in candidate.children
-        push!(new_children, SbNode(parent, child))
-    end
-    candidate.children = new_children
-    return
-end
+get_children(candidate::SingleVarBranchingCandidate) = candidate.children
+set_children!(candidate::SingleVarBranchingCandidate, children::Vector{SbNode}) = candidate.children = children
+get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
 
 function generate_children!(
     candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, 
@@ -88,7 +81,6 @@ function generate_children!(
     child2description = candidate.varname * "<=" * string(floor(lhs))
     child2 = SbNode(master, parent, child2description, store_records!(reform))
 
-    candidate.children = [child1, child2] # TODO: remove.
     return [child1, child2]
 end
 
@@ -104,4 +96,67 @@ function print_bounds_and_score(candidate::SingleVarBranchingCandidate, phase_in
     end
     @printf "], score = %10.4f\n" candidate.score
     return
+end
+
+
+############################################################################################
+# SingleVarBranchingRule
+############################################################################################
+
+"""
+    SingleVarBranchingRule
+
+This branching rule allows the divide algorithm to branch on single integer variables.
+For instance, `SingleVarBranchingRule` can produce the branching `x <= 2` and `x >= 3` 
+where `x` is a scalar integer variable.
+"""
+struct SingleVarBranchingRule <: AbstractBranchingRule end
+
+# SingleVarBranchingRule does not have child algorithms
+
+function get_units_usage(::SingleVarBranchingRule, reform::Reformulation) 
+    return [(getmaster(reform), MasterBranchConstrsUnit, READ_AND_WRITE)] 
+end
+
+# TODO : unit tests (especially branching priority).
+function apply_branching_rule(::SingleVarBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput)
+    # Single variable branching works only for the original solution.
+    if !input.isoriginalsol
+        return SingleVarBranchingCandidate[]
+    end
+
+    master = getmaster(reform)
+
+    # We do not consider continuous variables and variables with integer value in the
+    # current solution as branching candidates.
+    candidate_vars = Iterators.filter(
+        ((var_id, val),) -> !is_cont_var(master, var_id) && !is_int_val(val, input.int_tol),
+        input.solution
+    )
+
+    max_priority = mapreduce(
+        ((var_id, _),) -> getbranchingpriority(master, var_id),
+        max,
+        candidate_vars;
+        init = -Inf
+    )
+
+    if max_priority == -Inf    
+        return SingleVarBranchingCandidate[]
+    end
+
+    # We select all the variables that have the maximum branching prority.
+    candidates = reduce(
+        candidate_vars; init = SingleVarBranchingCandidate[]
+    ) do collection, (var_id, val)
+        br_priority = getbranchingpriority(master, var_id)
+        if br_priority == max_priority
+            name = getname(master, var_id)
+            local_id = input.local_id + length(collection) + 1
+            candidate = SingleVarBranchingCandidate(name, var_id, local_id, val, input.parent)
+            push!(collection, candidate)
+        end
+        return collection
+    end
+    return candidates
 end
