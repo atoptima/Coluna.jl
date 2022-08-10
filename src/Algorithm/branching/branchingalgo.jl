@@ -170,14 +170,6 @@ function perform_strong_branching_with_phases!(
         end
 
         for (candidate_index, candidate) in enumerate(candidates)
-            #TO DO: verify if time limit is reached
-            # TODO: start
-        
-            if phase_index == 1
-                generate_children!(candidate, env, reform, parent)                
-            else    
-                regenerate_children!(candidate, parent)
-            end
                         
             if phase_index > 1
                 sort!(candidate.children, by = x -> get_lp_primal_bound(getoptstate(x)))
@@ -218,10 +210,10 @@ function perform_strong_branching_with_phases!(
 
             if phase_index < length(algo.phases) 
                 # not the last phase, thus we compute the product score
-                candidate.score = product_score(candidate.children, getoptstate(parent))
+                candidate.score = compute_score(ProductScore(), candidate)
             else
                 # the last phase, thus we compute the tree size score
-                candidate.score = tree_depth_score(candidate.children, getoptstate(parent))
+                candidate.score = compute_score(TreeDepthScore(), candidate)
             end
             print_bounds_and_score(candidate, phase_index, max_descr_length)
         end
@@ -248,7 +240,7 @@ end
 # - fractional priorities
 # - stopping criterion
 # - what happens when original_solution or extended_solution are nothing
-function _select_candidates_with_branching_rule(rules, phases, selection_criterion, int_tol, parent_is_root, reform, env, original_solution, extended_solution)
+function _select_candidates_with_branching_rule(rules, phases, selection_criterion, int_tol, parent_is_root, reform, env, original_solution, extended_solution, parent)
     kept_branch_candidates = AbstractBranchingCandidate[]
 
     # We sort branching rules by their root/non-root priority.
@@ -295,7 +287,7 @@ function _select_candidates_with_branching_rule(rules, phases, selection_criteri
         output = run!(
             rule, env, reform, BranchingRuleInput(
                 original_solution, true, max_nb_candidates, selection_criterion, 
-                local_id, int_tol, priority
+                local_id, int_tol, priority, parent
             )
         )
         append!(kept_branch_candidates, output.groups)
@@ -305,7 +297,7 @@ function _select_candidates_with_branching_rule(rules, phases, selection_criteri
             output = run!(
                 rule, env, reform, BranchingRuleInput(
                     extended_solution, false, max_nb_candidates, selection_criterion, 
-                    local_id, int_tol, priority
+                    local_id, int_tol, priority, parent
                 )
             )
             append!(kept_branch_candidates, output.groups)
@@ -343,7 +335,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
 
     parent_is_root = iszero(getdepth(parent))
     kept_branch_candidates = _select_candidates_with_branching_rule(
-        algo.rules, algo.phases, algo.selection_criterion, algo.int_tol, parent_is_root, reform, env, original_solution, extended_solution
+        algo.rules, algo.phases, algo.selection_criterion, algo.int_tol, parent_is_root, reform, env, original_solution, extended_solution, parent
     )
 
     if isempty(kept_branch_candidates)
@@ -353,10 +345,11 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
 
     # in the case of simple branching, it remains to generate the children
     if isempty(algo.phases) 
-        children = generate_children!(kept_branch_candidates[1], env, reform, parent)
+        children = get_children(first(kept_branch_candidates))
         return DivideOutput(children, OptimizationState(getmaster(reform)))
     end
 
     sbstate = perform_strong_branching_with_phases!(algo, env, reform, input, kept_branch_candidates)
-    return DivideOutput(kept_branch_candidates[1].children, sbstate)
+    children = get_children(first(kept_branch_candidates))
+    return DivideOutput(children, sbstate)
 end
