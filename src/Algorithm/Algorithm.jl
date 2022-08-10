@@ -16,6 +16,7 @@ import Base: push!
 
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
+include("utilities/helpers.jl")
 
 # Abstract algorithm
 include("interface.jl")
@@ -47,9 +48,8 @@ include("branching/interface.jl")
 include("branching/sbnode.jl")
 include("divide.jl") # TODO: DivideInput and DivideOutput are already implementation.
 include("branching/selectioncriteria.jl")
-include("branching/branchinggroup.jl")
-include("branching/branchingrule.jl")
-include("branching/candidates.jl")
+include("branching/scores.jl")
+include("branching/single_var_branching.jl")
 include("branching/branchingalgo.jl")
 
 include("treesearch.jl")

@@ -8,10 +8,18 @@ abstract type AbstractBranchingCandidate end
 getdescription(candidate::AbstractBranchingCandidate) = 
     error("getdescription not defined for branching candidates of type $(typeof(candidate)).")
 
+# Branching candidate and branching rule should be together.
+# the rule generates the candidate.
+
+## Note: Branching candidates must be created in the BranchingRule algorithm so they do not need
+## a generic constructor.
 
 get_lhs(::AbstractBranchingCandidate) = nothing
 get_lhs_distance_to_integer(::AbstractBranchingCandidate) = nothing
 get_local_id(::AbstractBranchingCandidate) = nothing
+get_children(::AbstractBranchingCandidate) = nothing
+set_children!(::AbstractBranchingCandidate, children) = nothing
+get_parent(::AbstractBranchingCandidate) = nothing
 
 # TODO: this method should not generate the children of the tree search algorithm.
 # However, AbstractBranchingCandidate should implement an interface to retrieve data to
@@ -47,6 +55,14 @@ select_candidates!(::Vector{C}, selection::AbstractSelectionCriterion, ::Int) wh
 
 
 ############################################################################################
+# Branching score
+############################################################################################
+
+abstract type AbstractBranchingScore end
+
+compute_score(::AbstractBranchingScore, candidate) = nothing
+
+############################################################################################
 # BranchingRuleAlgorithm
 ############################################################################################
 
@@ -62,8 +78,8 @@ struct BranchingRuleInput <: AbstractInput
     local_id::Int64
     int_tol::Float64
     minimum_priority::Float64
+    parent::Node
 end
-
 
 """
 Output of a branching rule (branching separation algorithm)
@@ -79,8 +95,16 @@ abstract type AbstractBranchingRule <: AbstractAlgorithm end
 # branching rules are always manager algorithms (they manage storing and restoring storage units)
 ismanager(algo::AbstractBranchingRule) = true
 
-run!(rule::AbstractBranchingRule, ::Env, model::AbstractModel, input::BranchingRuleInput) =
-    error("Method run! in not defined for branching rule $(typeof(rule)), model $(typeof(model)), and input $(typeof(input)).")
+apply_branching_rule(rule, env, reform, input) = nothing
 
-# apply_rule(rule::AbstractBranchingRule) =
-#     error("Method apply_rule(::$(typeof(rule))).")
+function run!(rule::AbstractBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput)
+    candidates = apply_branching_rule(rule, env, reform, input)
+    local_id = input.local_id + length(candidates)
+    select_candidates!(candidates, input.criterion, input.max_nb_candidates)
+
+    for candidate in candidates
+        children = generate_children!(candidate, env, reform, input.parent)
+        set_children!(candidate, children)
+    end
+    return BranchingRuleOutput(local_id, candidates)
+end
