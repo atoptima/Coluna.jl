@@ -12,16 +12,6 @@ mutable struct SbNode
     conquerwasrun::Bool
 end
 
-# this function creates a child node by copying info from another child
-# used in strong branching
-function SbNode(parent::Node, child::SbNode)
-    depth = getdepth(parent) + 1
-    return SbNode(
-        depth, parent, getoptstate(child),
-        child.branchdescription, child.recordids, false
-    )
-end
-
 function SbNode(
     form::AbstractFormulation, parent::Node, branchdescription::String, recordrecordids::RecordsVector
 )
