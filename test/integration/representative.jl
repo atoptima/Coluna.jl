@@ -84,7 +84,7 @@ function cvrp_with_representatives(data::CvrpData)
 
 
     function route_pricing_callback(cbdata)
-        rcosts = [BlockDecomposition.callback_reduced_cost(cbdata, x[e]) for e in E]
+        rcosts = [BlockDecomposition.callback_reduced_cost(cbdata, x[e]) for e in data.E]
 
         bestsol = data.sp_sols[1]
         bestrc = rcost(bestsol, rcosts)

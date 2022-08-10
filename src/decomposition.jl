@@ -525,6 +525,7 @@ function buildformulations!(
 end
 
 # Error messages for `check_annotations`.
+# TODO: specific error type for these two errors.
 _err_check_annotations(id::VarId) = error("""
 A variable (id = $id) is not annotated.
 Make sure you do not use anonymous variables (variable with no name declared in JuMP macro variable).
@@ -545,7 +546,7 @@ function check_annotations(prob::Problem, annotations::Annotations)
     origform = get_original_formulation(prob)
 
     for (varid, _) in getvars(origform)
-        if !haskey(annotations.ann_per_var, varid)
+        if !haskey(annotations.ann_per_var, varid) && !haskey(annotations.ann_per_repr_var, varid)
             return _err_check_annotations(varid)
         end
     end
@@ -578,6 +579,9 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         reform = Reformulation()
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
+        @show getmaster(reform)
+        println("*****")
+        @show get_dw_pricing_sps(reform)
         relax_integrality!(getmaster(reform))
     else # No decomposition provided by BlockDecomposition
         push_optimizer!(

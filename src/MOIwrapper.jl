@@ -844,9 +844,7 @@ function MOI.set(
     model::Optimizer, ::BD.VariableDecomposition, varid::MOI.VariableIndex,
     annotations::Vector{<:BD.Annotation}
 )
-    @warn "TODO"
-    @show varid
-    @show annotations
+    store_repr!(model.annotations, annotations, _info(model, varid).var)
     return
 end
 
@@ -867,10 +865,9 @@ function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
     return MOI.AbstractVariableAttribute[MOI.VariableName()]
 end
 
-function MOI.set(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex, repr_var)
+function MOI.set(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex, annotations)
     @warn "TODO: set representative var"
-    @show varid
-    @show repr_var
+    #store_repr!(model.annotations, annotations, _info(model, varid).var)
     return
 end
 
@@ -1103,7 +1100,7 @@ function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
         F = MOI.get(model, MOI.ObjectiveFunctionType())
         push!(attributes, MOI.ObjectiveFunction{F}())
     end
-    if model.objective_sense !== nothing
+    if !isnothing(model.objective_sense)
         push!(attributes, MOI.ObjectiveSense())
     end
     if model.has_usercut_cb
