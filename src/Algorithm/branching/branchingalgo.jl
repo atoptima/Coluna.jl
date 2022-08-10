@@ -195,7 +195,7 @@ function _perform_strong_branching_with_phases!(
         end
 
         perm = sortperm(scores, rev=true)
-        candidates = candidates[perm]
+        permute!(candidates, perm)
 
         # The case where one/many candidate is conquered is not supported yet.
         # In this case, the number of candidates for next phase is one.
