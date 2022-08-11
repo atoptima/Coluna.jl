@@ -5,6 +5,7 @@ version = "0.4.2"
 
 [deps]
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
+Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
@@ -19,7 +20,6 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
-BlockDecomposition = "1.8"
 DataStructures = "0.17, 0.18"
 DynamicSparseArrays = "0.5.3"
 MathOptInterface = "0.10, 1"
