@@ -43,29 +43,6 @@ isverbose(algo::AbstractConquerAlgorithm) = false
 # this function is needed to check whether the best primal solution should be copied to the node optimization state
 exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
-# returns the optimization part of the output of the conquer algorithm 
-function apply_conquer_alg_to_node!(
-    node::Node, algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, 
-    units_to_restore::UnitsUsage, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
-    opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
-)
-    nodestate = getoptstate(node)
-    if isverbose(algo)
-        @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(nodestate))
-        @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
-    end
-    if ip_gap_closed(nodestate, rtol = opt_rtol, atol = opt_atol)
-        @info "IP Gap is closed: $(ip_gap(nodestate)). Abort treatment."
-    else
-        isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
-
-        run!(algo, env, reform, ConquerInput(node, units_to_restore, true))
-        store_records!(reform, node.recordids)
-    end
-    node.conquerwasrun = true
-    return
-end
-
 ####################################################################
 #                      ParameterisedHeuristic
 ####################################################################

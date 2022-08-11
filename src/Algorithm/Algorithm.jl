@@ -6,7 +6,7 @@ import TimerOutputs
 
 using ..Coluna, ..ColunaBase, ..MathProg
 
-using DynamicSparseArrays, Logging, Parameters, Printf, Statistics
+using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Statistics
 
 const TO = TimerOutputs
 const DS = DataStructures
@@ -53,9 +53,10 @@ include("branching/single_var_branching.jl")
 include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
+include("treesearch/printer.jl")
+include("treesearch/branch_and_bound.jl")
 include("branchcutprice.jl")
 
-include("treesearch/treesearch.jl")
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.

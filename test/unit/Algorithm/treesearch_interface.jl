@@ -238,13 +238,24 @@ end
 
 # ## Interface implementation
 
+@with_kw struct TreeSearchAlgorithmAti1
+    conqueralg = ClA.ColCutGenConquer()
+    dividealg = ClA.SimpleBranching()
+    explorestrategy = ClA.DepthFirstStrategy()
+end
+
+function ClA.run!(algo::TreeSearchAlgorithmAti1, env, reform, input)
+    search_space = ClA.new_space(ClA.search_space_type(algo), algo, reform, input)
+    return ClA.tree_search(algo.explorestrategy, search_space, env, input)
+end
+
 # We start by implementing methods that create the search space and the root node for each
 # tree search algorithm that will be run.
 
 # First, we must indicate the type of search space used by our algorithms.
 # We need such a method because the type may depends from the algorithms called by the
 # tree-search algorithm.
-ClA.search_space_type(::ClA.NewTreeSearchAlgorithm) = BtSearchSpaceAti1
+ClA.search_space_type(::TreeSearchAlgorithmAti1) = BtSearchSpaceAti1
 ClA.search_space_type(::DivingAti1) = DivingSearchSpaceAti1 
 
 # The type of the search space is known from above method.
@@ -327,7 +338,7 @@ ClA.tree_search_output(space::DivingSearchSpaceAti1, _) = space.cost_of_best_sol
     model = FormulationAti1()
     input = nothing
 
-    treesearch = ClA.NewTreeSearchAlgorithm(
+    treesearch = TreeSearchAlgorithmAti1(
         conqueralg = BtConquerAti1(),
         dividealg = DivideAti1(),
         explorestrategy = ClA.DepthFirstStrategy()
@@ -336,7 +347,7 @@ ClA.tree_search_output(space::DivingSearchSpaceAti1, _) = space.cost_of_best_sol
     output = ClA.run!(treesearch, env, model, input)
     @test output == -1
 
-    treesearch = ClA.NewTreeSearchAlgorithm(
+    treesearch = TreeSearchAlgorithmAti1(
         conqueralg = BtConquerAti1(),
         dividealg = DivideAti1(),
         explorestrategy = CustomBestFirstSearchAti1()

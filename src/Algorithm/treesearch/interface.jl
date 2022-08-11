@@ -6,7 +6,7 @@ nodes and transitions of the tree search space will be explored.
 abstract type AbstractSearchSpace end
 
 "Returns the output of the tree search algorithm."
-tree_search_output(::AbstractSearchSpace) = nothing
+tree_search_output(::AbstractSearchSpace, untreated_nodes) = nothing
 
 "Algorithm that chooses next node to evaluated in the tree search algorithm."
 abstract type AbstractExploreStrategy end
