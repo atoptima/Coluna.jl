@@ -1,24 +1,34 @@
-@testset "Decomposition with representatives" begin
-    d = CvrpToyData()
+@testset "Decomposition with representatives and single subproblem" begin
+    d = CvrpToyData(false)
+    model, x, cov, mast, sps, dec = cvrp_with_representatives(d)
+    JuMP.optimize!(model)
+end
+
+@testset "Decomposition with representatives and multiple subproblems" begin
+    d = CvrpToyData(true)
     model, x, cov, mast, sps, dec = cvrp_with_representatives(d)
     JuMP.optimize!(model)
 end
 
 struct CvrpSol
-    cost
+    travel_cost
     edges
     coeffs
 end
 
 struct CvrpData
+    vehicle_types
     E
     V
     δ
-    costs
+    edge_costs
+    fixed_costs     # by vehicle type
+    nb_sols         # by vehicle type
     sp_sols
 end
 
-function CvrpToyData()
+function CvrpToyData(is_hfvrp)
+    vehicle_types = is_hfvrp ? [1, 2] : [1]
     E = [(1,2), (1,3), (1,4), (1,5), (2,3), (2,4), (2,5), (3,4), (3,5), (4,5)]
     V = [1,2,3,4,5]
     δ = Dict(
@@ -28,7 +38,9 @@ function CvrpToyData()
         4 => [(1,4), (2,4), (3,4), (4,5)],
         5 => [(1,5), (2,5), (3,5), (4,5)]
     )
-    costs = [10, 11, 13, 12, 4, 5, 6, 7, 8, 9]
+    edge_costs = [10, 11, 13, 12, 4, 5, 6, 7, 8, 9]
+    fixed_costs = is_hfvrp ? [0, 10] : [0]
+    nb_sols = is_hfvrp ? [4, 13] : [13]
     sp_sols = [
         CvrpSol(20, [(1,2)], [2]),
         CvrpSol(22, [(1,3)], [2]),
@@ -44,7 +56,7 @@ function CvrpToyData()
         CvrpSol(13 + 7 + 9 + 12, [(1,4), (3,4), (4,5), (1,5)], [1, 1, 1, 1]),
         CvrpSol(11 + 8 + 9 + 13, [(1,3), (3,5), (4,5), (1,4)], [1, 1, 1, 1]),
     ] 
-    return CvrpData(E, V, δ, costs, sp_sols)
+    return CvrpData(vehicle_types, E, V, δ, edge_costs, fixed_costs, nb_sols, sp_sols)
 end
 
 function cvrp_with_representatives(data::CvrpData)
@@ -73,17 +85,26 @@ function cvrp_with_representatives(data::CvrpData)
         )),
         "default_optimizer" => GLPK.Optimizer
     )
-    @axis(VehicleTypes, [1])
+    @axis(VehicleTypes, data.vehicle_types)
     model = BlockModel(coluna)
     @variable(model, 0 <= x[e in data.E] <= 2, Int)
-
+    if length(data.vehicle_types) > 1
+        @variable(model, y[vt in VehicleTypes] >= 0)
+        @objective(model, Min,
+            sum(data.fixed_costs[vt] * y[vt] for vt in VehicleTypes) +
+            sum(data.edge_costs[i] * x[e] for (i,e) in enumerate(data.E))
+        )
+    else
+        @objective(model, Min, sum(data.edge_costs[i] * x[e] for (i,e) in enumerate(data.E)))
+    end
     @constraint(model, cov[v in V₊], sum(x[e] for e in data.δ[v]) == 2)
-    @objective(model, Min, sum(data.costs[i] * x[e] for (i,e) in enumerate(data.E)))
 
     @dantzig_wolfe_decomposition(model, dec, VehicleTypes)
 
-
     function route_pricing_callback(cbdata)
+        if length(data.vehicle_types) > 1
+            spid = BlockDecomposition.callback_spid(cbdata, cvrp)
+        end
         rcosts = [BlockDecomposition.callback_reduced_cost(cbdata, x[e]) for e in data.E]
 
         bestsol = data.sp_sols[1]
@@ -95,6 +116,9 @@ function cvrp_with_representatives(data::CvrpData)
                 bestsol = sol
             end
         end
+        if length(data.vehicle_types) > 1
+            bestrc += BlockDecomposition.callback_reduced_cost(cbdata, y[spid])
+        end
 
         # Create the solution (send only variables with non-zero values)
         solvars = JuMP.VariableRef[]
@@ -102,6 +126,10 @@ function cvrp_with_representatives(data::CvrpData)
         for (i,e) in enumerate(bestsol.edges) 
             push!(solvars, x[e])
             push!(solvals, bestsol.coeffs[i])
+        end
+        if length(data.vehicle_types) > 1
+            push!(solvars, y[spid])
+            push!(solvals, 1.0)
         end
 
         # Submit the solution to the subproblem to Coluna
@@ -114,10 +142,13 @@ function cvrp_with_representatives(data::CvrpData)
 
     subproblemrepresentative.(x, Ref(subproblems))
 
-    specify!(
-        subproblems[1], lower_multiplicity = 2, upper_multiplicity = 4,
-        solver = route_pricing_callback
-    )
+    sp_lm = (length(data.vehicle_types) == 1) ? 2 : 0
+    for vt in VehicleTypes
+        specify!(
+            subproblems[vt], lower_multiplicity = sp_lm, upper_multiplicity = 4,
+            solver = route_pricing_callback
+        )
+    end
 
     return model, x, cov, master, subproblems, dec
 end
