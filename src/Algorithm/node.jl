@@ -2,7 +2,7 @@
 #                      Node
 ####################################################################
 
-mutable struct Node 
+mutable struct Node <: AbstractNode
     tree_order::Int
     depth::Int
     parent::Union{Nothing, Node}

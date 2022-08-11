@@ -9,6 +9,7 @@ in the input so that it is not obtained each time the conquer algorithm runs.
 struct ConquerInput <: AbstractInput 
     node::Node    
     units_to_restore::UnitsUsage
+    run_conquer::Bool
 end
 
 getnode(input::ConquerInput) = input.node
@@ -58,7 +59,7 @@ function apply_conquer_alg_to_node!(
     else
         isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
 
-        run!(algo, env, reform, ConquerInput(node, units_to_restore))
+        run!(algo, env, reform, ConquerInput(node, units_to_restore, true))
         store_records!(reform, node.recordids)
     end
     node.conquerwasrun = true
@@ -120,6 +121,7 @@ function get_child_algorithms(algo::BendersConquer, reform::Reformulation)
 end
 
 function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::ConquerInput)
+    !input.run_conquer && return
     restore_from_records!(input)
     node = getnode(input)    
     nodestate = getoptstate(node)
@@ -193,6 +195,7 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
 end
 
 function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::ConquerInput)
+    !input.run_conquer && return
     restore_from_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
@@ -372,6 +375,7 @@ function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation)
 end
 
 function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::ConquerInput)
+    !input.run_conquer && return
     restore_from_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
