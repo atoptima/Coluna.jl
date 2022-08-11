@@ -64,7 +64,7 @@ function MOI.submit(
 end
 
 function _submit_dual_bound(cbdata, bound)
-    cbdata.dual_bound = bound
+    cbdata.dual_bound = bound + getcurcost(cbdata.form, cbdata.form.duty_data.setup_var)
     cbdata.nb_times_dual_bound_set += 1
     return
 end
