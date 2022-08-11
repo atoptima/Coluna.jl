@@ -194,14 +194,14 @@ end
 # The diving is a tree search algorithm that uses:
 #  - `ComputeSolCostAti1` as conquer strategy
 #  - `DivideAti1` with parameter `create_both_branches` equals to `false` as divide strategy
-#  - `Coluna.Algorithm.DepthFirstExploreStrategy` as explore strategy
+#  - `Coluna.Algorithm.DepthFirstStrategy` as explore strategy
 @with_kw struct DivingAti1 <: ClA.AbstractAlgorithm
     conqueralg = ComputeSolCostAti1(log="compute solution cost of Diving tree")
     dividealg = DivideAti1(
         log = "divide for diving",
         create_both_branches = false
     )
-    explore = ClA.DepthFirstExploreStrategy()
+    explore = ClA.DepthFirstStrategy()
 end
 
 struct DivingInputAti1
@@ -269,9 +269,11 @@ function ClA.new_children(::ClA.AbstractColunaSearchSpace, branches, node::NodeA
     return children
 end
 
-# We implement the priority method for the `BestFirstSearch`` strategy.
+struct CustomBestFirstSearchAti1 <: ClA.AbstractBestFirstSearch end
+
+# We implement the priority method for the `CustomBestFirstSearchAti1` strategy.
 # The tree search algorithm will evaluate the node with highest priority.
-ClA.priority(::ClA.BestFirstSearch, node::NodeAti1) = -node.depth
+ClA.priority(::CustomBestFirstSearchAti1, node::NodeAti1) = -node.depth
 
 # We implement the `node_change` method to update the search space when the tree search
 # just after the algorithm finishes to evaluate a node and chooses the next one.
@@ -335,7 +337,7 @@ ClA.tree_search_output(space::DivingSearchSpaceAti1) = space.cost_of_best_soluti
     treesearch = ClA.NewTreeSearchAlgorithm(
         conqueralg = BtConquerAti1(),
         dividealg = DivideAti1(),
-        explorestrategy = ClA.BestFirstSearch()
+        explorestrategy = CustomBestFirstSearchAti1()
     )
     output = ClA.run!(treesearch, env, model, input)
     @test output == -1
