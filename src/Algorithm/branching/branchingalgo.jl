@@ -105,7 +105,7 @@ function _apply_conquer_alg_to_child!(
     if ip_gap_closed(child_state, rtol = opt_rtol, atol = opt_atol)
         @info "IP Gap is closed: $(ip_gap(child_state)). Abort treatment."
     else
-        run!(algo, env, reform, ConquerInput(Node(child, -1), units_to_restore))
+        run!(algo, env, reform, ConquerInput(Node(child, -1), units_to_restore, true))
         store_records!(reform, child.recordids)
     end
     child.conquerwasrun = true
@@ -288,10 +288,17 @@ end
 function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::DivideInput)::DivideOutput
     parent = getparent(input)
     optstate = getoptstate(parent)
+    nodestatus = getterminationstatus(optstate)
+
+    # We don't run the branching algorithm if the node is already conquered
+    if nodestatus == OPTIMAL || nodestatus == INFEASIBLE || ip_gap_closed(optstate)             
+        println("Node is already conquered. No children will be generated.")
+        return DivideOutput(SbNode[], optstate)
+    end
 
     if isempty(algo.rules)
         @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
-        return DivideOutput(Node[], optstate)
+        return DivideOutput(SbNode[], optstate)
     end
 
     # We retrieve the original and extended solutions.
@@ -306,7 +313,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
         end
     else
         @warn "no LP solution is passed to the branching algorithm. No children will be generated."
-        return DivideOutput(Node[], optstate)
+        return DivideOutput(SbNode[], optstate)
     end
 
     parent_is_root = iszero(getdepth(parent))
@@ -316,7 +323,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
 
     if isempty(kept_branch_candidates)
         @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
-        return DivideOutput(Node[], optstate)
+        return DivideOutput(SbNode[], optstate)
     end
 
     # in the case of simple branching, it remains to generate the children

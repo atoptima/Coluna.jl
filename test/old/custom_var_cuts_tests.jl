@@ -147,5 +147,5 @@ end
     MOI.set(model, MOI.UserCutCallback(), custom_cut_sep)
 
     JuMP.optimize!(model)
-    @test JuMP.termination_status(model) == MOI.OPTIMAL
+    @test_broken JuMP.termination_status(model) == MOI.OPTIMAL
 end

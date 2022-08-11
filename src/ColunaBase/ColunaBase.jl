@@ -19,7 +19,7 @@ export AbstractModel, AbstractProblem, AbstractSense, AbstractMinSense, Abstract
 export NestedEnum, @nestedenum, @exported_nestedenum
 
 # solsandbounds.jl
-export Bound, Solution, getvalue, getbound, isbetter, diff, gap, printbounds,
+export Bound, Solution, getvalue, getbound, isbetter, best, worst, diff, gap, printbounds,
     getstatus, remove_until_last_point, getmodel, isunbounded, isinfeasible
 
 # Statuses
