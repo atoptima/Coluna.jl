@@ -11,6 +11,7 @@ mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     exploitsprimalsolutions::Bool # from TreeSearchRuntimeData
     conquer_units_to_restore::UnitsUsage # from TreeSearchRuntimeData
     nb_nodes_treated::Int
+    current_ip_dual_bound_from_conquer
 end
 
 get_reformulation(sp::BaBSearchSpace) = sp.reformulation
@@ -46,7 +47,8 @@ function new_space(
         optstate,
         exploitsprimalsols,
         conquer_units_to_restore,
-        0
+        0,
+        nothing
     )
 end
 
@@ -80,7 +82,6 @@ function after_conquer!(space::BaBSearchSpace, current, output)
     return
 end
 
-
 # Conquer
 function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::Node)
     space_state = space.optstate
@@ -110,8 +111,10 @@ end
 
 function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
     add_ip_primal_sols!(space.optstate, get_ip_primal_sols(getoptstate(candidates))...)
+    set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
+
     children = map(candidates.children) do child
-        # tree_order
+        # TODO: tree_order
         return Node(child, -1)
     end
     return children
@@ -143,6 +146,8 @@ function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untr
 end
 
 function tree_search_output(space::BaBSearchSpace, untreated_nodes)
+    _updatedualbound!(space, space.reformulation, untreated_nodes)
+
     if isempty(untreated_nodes) # it means that the BB tree has been fully explored
         if length(get_ip_primal_sols(space.optstate)) >= 1
             if ip_gap_closed(space.optstate, rtol = space.opt_rtol, atol = space.opt_atol)
