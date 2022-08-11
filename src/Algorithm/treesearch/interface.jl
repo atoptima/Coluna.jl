@@ -24,7 +24,10 @@ function new_space(::Type{SearchSpaceType}, alg, model, input) where SearchSpace
 end
 
 "Creates and returns the root node of a search space."
-new_root(::AbstractSearchSpace, input) = nothing
+function new_root(sp::AbstractSearchSpace, input)
+    @warn "new_root(::$(typeof(sp)), ::$(typeof(input))) not implemented."
+    return nothing
+end
 
 "Evaluate and generate children."
 # TODO; remove untreated_nodes
@@ -41,6 +44,12 @@ parent(::AbstractNode) = nothing
 
 "Returns the priority of the node."
 priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
+
+"Returns true if stopping criteria are met; false otherwise."
+function stop(sp::AbstractSearchSpace)
+    @warn "stop($(typeof(sp))) not implemented."
+    return nothing
+end
 
 ############################################################################################
 # Tree search interface for Coluna algorithms
