@@ -30,7 +30,7 @@ get_parent(::AbstractBranchingCandidate) = nothing
 This method generates the children of a node described by `branching_candidate`.
 """
 generate_children!(
-    candidate::AbstractBranchingCandidate, ::Float64, ::Env, ::Reformulation, ::Node
+    candidate::AbstractBranchingCandidate, ::Float64, ::Env, ::Reformulation, ::AbstractNode
 ) = error("generate_children not defined for branching candidates of type $(typeof(candidate)).")
 
 ############################################################################################
