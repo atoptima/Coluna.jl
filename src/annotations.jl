@@ -70,3 +70,7 @@ function Base.get(annotations::Annotations, form::AbstractFormulation)
     end
     return annotations.ann_per_form[form_uid]
 end
+
+function is_representative(annotations::Annotations, varid::VarId)
+    return haskey(annotations.ann_per_repr_var, varid)
+end

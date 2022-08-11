@@ -197,7 +197,17 @@ function instantiate_orig_vars!(
     for (varid, var) in vars
         # An original variable annotated in a subproblem is a DwSpPricingVar
         clonevar!(origform, spform, spform, var, DwSpPricingVar, is_explicit = true)
-        clonevar!(origform, masterform, spform, var, MasterRepPricingVar, is_explicit = false)
+        
+        if haskey(masterform, varid) && !is_representative(annotations, varid)
+            error("""
+                Variable $(getname(masterform, varid)) is two subproblems but is not representative.
+                Please open an issue.
+                """)
+        end
+        
+        if !haskey(masterform, varid)
+            clonevar!(origform, masterform, spform, var, MasterRepPricingVar, is_explicit = false)
+        end
     end
     return
 end

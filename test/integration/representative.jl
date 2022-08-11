@@ -103,7 +103,7 @@ function cvrp_with_representatives(data::CvrpData)
 
     function route_pricing_callback(cbdata)
         if length(data.vehicle_types) > 1
-            spid = BlockDecomposition.callback_spid(cbdata, cvrp)
+            spid = BlockDecomposition.callback_spid(cbdata, model)
         end
         rcosts = [BlockDecomposition.callback_reduced_cost(cbdata, x[e]) for e in data.E]
 
