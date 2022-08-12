@@ -92,7 +92,7 @@ end
 
 names = ["x1", "x2", "x3"]
 costs = [-1, 1, -0.5]
-initial_bounds = [(0,2), (1,2), (-1,1)]
+initial_bounds = [(0,2), (0.9,2), (-1,0.5)]
 
 formulation = Formulation(names, costs, initial_bounds)
 
@@ -104,11 +104,12 @@ x1 at depth 1, x2 at depth 2, and x3 at depth 3.
 mutable struct Node <: ClA.AbstractNode
     depth::Int
     id::Int
+    branch_description::String
     parent::Union{Nothing,Node}
     record
-    function Node(parent, id, record)
+    function Node(parent, id, branch, record)
         depth = isnothing(parent) ? 0 : parent.depth + 1
-        return new(depth, id, parent, record)
+        return new(depth, id, branch, parent, record)
     end
 end
 
@@ -127,24 +128,37 @@ end
 
 function ClA.new_root(space::FullExplSearchSpace, _)
     space.nb_nodes_generated += 1
-    return Node(nothing, 0, nothing)
+    return Node(nothing, 0, "", nothing)
 end
 
-function ClA.children(space::FullExplSearchSpace, current, env, untreated_nodes)
+function print_form(form, current)
+    t = repeat("   ", current.depth)
+    node = string("Node ", current.id, " ")
+    branch = isempty(current.branch_description) ? "" : string("- Branch ", current.branch_description, " ")
+    domains = mapreduce(*, enumerate(form.var_domains); init = "|| ") do e
+        var_pos = first(e)
+        lb, ub = last(e) 
+        rhs = lb == ub ? string(" == ", lb) : string(" ∈ [", lb, ", ", ub, "] ")
+        return string("x", var_pos, rhs, "  ")
+    end
+    println(t, node, branch, domains)
+end
+
+function ClA.children(space::FullExplSearchSpace, current, _, _)
     # Here we may do some operations on the formulation (such as adding variables)
     if !isnothing(current.record) # root node has no records before evaluation
         ClB.restore_from_record!(space.storage, current.record)
     end
 
-    @show space.formulation.var_domains
+    # Print the current formulation
+    print_form(space.formulation, current)
 
     current.record = ClB.create_record(space.storage, VarDomainStorageUnit)
 
     var_pos = current.depth + 1
     var_domain = get(space.formulation.var_domains, var_pos, (0,-1))
 
-    return map(range(first(var_domain), last(var_domain))) do rhs
-        println("fix variable $var_pos to $rhs")
+    return map(range(ceil(first(var_domain)), floor(last(var_domain)))) do rhs
         space.nb_nodes_generated += 1
         node_id = space.nb_nodes_generated
 
@@ -155,8 +169,8 @@ function ClA.children(space::FullExplSearchSpace, current, env, untreated_nodes)
 
         # Restore
         ClB.restore_from_record!(space.storage, current.record)
-
-        return Node(current, node_id, rec)
+        branch = string("x", var_pos, " == ", rhs)
+        return Node(current, node_id, branch, rec)
     end
 end
 
