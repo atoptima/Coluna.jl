@@ -9,6 +9,7 @@ abstract type AbstractInput end
 "Supertype for algorithms outputs."
 abstract type AbstractOutput end 
 
+
 """
     run!(algo::AbstractAlgorithm, model::AbstractModel, input::AbstractInput)::AbstractOutput
 

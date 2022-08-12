@@ -1,26 +1,8 @@
 """
-    AbstractTreeExploreStrategy
-
-    Strategy for the tree exploration
-
-"""
-abstract type AbstractTreeExploreStrategy end
-
-getnodevalue(strategy::AbstractTreeExploreStrategy, node::Node) = 0
-
-# Depth-first strategy
-struct DepthFirstStrategy <: AbstractTreeExploreStrategy end
-getnodevalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
-
-# Best dual bound strategy
-struct BestDualBoundStrategy <: AbstractTreeExploreStrategy end
-getnodevalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
-
-"""
     Coluna.Algorithm.TreeSearchAlgorithm(
         conqueralg::AbstractConquerAlgorithm = ColCutGenConquer(),
         dividealg::AbstractDivideAlgorithm = SimpleBranching(),
-        explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy(),
+        explorestrategy::AbstractExploreStrategy = DepthFirstStrategy(),
         maxnumnodes::Int = 100000,
         opennodeslimit::Int = 100,
         opt_atol::Float64 = DEF_OPTIMALITY_ATOL,
@@ -45,8 +27,8 @@ Options :
 @with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     conqueralg::AbstractConquerAlgorithm = ColCutGenConquer()
     dividealg::AbstractDivideAlgorithm = SimpleBranching()
-    explorestrategy::AbstractTreeExploreStrategy = DepthFirstStrategy()
-    maxnumnodes::Int64 = 100000 
+    explorestrategy::AbstractExploreStrategy = DepthFirstStrategy()
+    maxnumnodes::Int64 = 100000
     opennodeslimit::Int64 = 100 
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
@@ -56,332 +38,343 @@ Options :
     print_node_info = true
 end
 
-"""
-    SearchTree
-"""
-mutable struct SearchTree
-    nodes::DS.PriorityQueue{Node, Float64}
-    strategy::AbstractTreeExploreStrategy
-end
-
-SearchTree(strategy::AbstractTreeExploreStrategy) = SearchTree(
-    DS.PriorityQueue{Node, Float64}(Base.Order.Forward), strategy
-)
-
-getnodes(tree::SearchTree) = tree.nodes
-treeisempty(tree::SearchTree) = DS.isempty(tree.nodes)
-
-push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getnodevalue(tree.strategy, node))
-popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
-nb_open_nodes(tree::SearchTree) = length(tree.nodes)
-
-"Data used by the tree search algorithm while running. Destroyed after each run."
-mutable struct TreeSearchRuntimeData
-    primary_tree::SearchTree
-    max_primary_tree_size::Int64
-    secondary_tree::SearchTree
-    tree_order::Int64
-    optstate::OptimizationState
-    exploitsprimalsolutions::Bool
-    conquer_units_to_restore::UnitsUsage
-end
-
-function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)
-    exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
-    treestate = OptimizationState(
-        getmaster(reform), getoptstate(input), exploitsprimalsols, false
-    )
-
-    conquer_units_to_restore = UnitsUsage()
-    collect_units_to_restore!(conquer_units_to_restore, algo.conqueralg, reform) 
-    # divide algorithms are always manager algorithms, so we do not need to restore storage units for them
-
-    tsdata = TreeSearchRuntimeData(
-        SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()),
-        1, treestate, exploitsprimalsols, conquer_units_to_restore
-    )
-    master = getmaster(reform)
-    rec = store_records!(reform)
-    # println("\e[41m")
-    # @show rec
-    # println("\e[00m")
-    push!(tsdata, RootNode(master, getoptstate(input), rec, algo.skiprootnodeconquer))
-    return tsdata
-end
-
-treeisempty(data::TreeSearchRuntimeData) = treeisempty(data.primary_tree) && treeisempty(data.secondary_tree)
-primary_tree_is_full(data::TreeSearchRuntimeData) = nb_open_nodes(data.primary_tree) >= data.max_primary_tree_size
-
-function push!(data::TreeSearchRuntimeData, node::Node) 
-    if primary_tree_is_full(data) 
-        push!(data.secondary_tree, node)
-    else           
-        push!(data.primary_tree, node)
-    end
-end
-
-function popnode!(data::TreeSearchRuntimeData)::Node
-    if treeisempty(data.secondary_tree)
-        return popnode!(data.primary_tree)
-    end
-    return popnode!(data.secondary_tree)
-end
-
-function nb_open_nodes(data::TreeSearchRuntimeData)
-    return nb_open_nodes(data.primary_tree) + nb_open_nodes(data.secondary_tree)
-end
-
-get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
-getoptstate(data::TreeSearchRuntimeData) = data.optstate
-
-#TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storage units)
+# TreeSearchAlgorithm is a manager algorithm (manages storing and restoring storage units)
 ismanager(algo::TreeSearchAlgorithm) = true
 
 # TreeSearchAlgorithm does not use any record itself, 
 # therefore get_units_usage() is not defined for it
-
 function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation) 
     return [(algo.conqueralg, reform), (algo.dividealg, reform)]
 end
 
-function print_node_info_before_conquer(data::TreeSearchRuntimeData, env::Env, node::Node)
-    println("***************************************************************************************")
-    if isrootnode(node)
-        println("**** BaB tree root node")
-    else
-        println("**** BaB tree node N° ", get_tree_order(node), 
-                ", parent N° ", get_tree_order(getparent(node)),
-                ", depth ", getdepth(node),
-                ", ", nb_open_nodes(data) + 1, " open nodes")
-    end
+# Priority of nodes depends on the explore strategy.
+priority(::AbstractExploreStrategy, ::Node) = error("todo")
+priority(::DepthFirstStrategy, n::Node) = -n.depth
+priority(::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
 
-    db = getvalue(get_ip_dual_bound(getoptstate(data)))
-    pb = getvalue(get_ip_primal_bound(getoptstate(data)))
-    node_db = getvalue(get_ip_dual_bound(getoptstate(node)))
-    @printf "**** Local DB = %.4f," node_db
-    @printf " global bounds : [ %.4f , %.4f ]," db pb
-    @printf " time = %.2f sec.\n" elapsed_optim_time(env)
-
-    if node.branchdescription != ""
-        println("**** Branching constraint: ", node.branchdescription)
-    end
-    println("***************************************************************************************")
-    return
+function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationInput)
+    search_space = new_space(search_space_type(algo), algo, reform, input)
+    return tree_search(algo.explorestrategy, search_space, env, input)
 end
 
-function init_branching_tree_file(algo::TreeSearchAlgorithm)
-    if algo.branchingtreefile !== nothing
-        open(algo.branchingtreefile, "w") do file
-            println(file, "## dot -Tpdf thisfile > thisfile.pdf \n")
-            println(file, "digraph Branching_Tree {")
-            print(file, "\tedge[fontname = \"Courier\", fontsize = 10];}")
-        end
-    end
-    return
-end
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+################################## OLD CODE BELOW ##########################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
 
-function print_node_in_branching_tree_file(
-    algo::TreeSearchAlgorithm, env::Env, data::TreeSearchRuntimeData, node
-)
-    if algo.branchingtreefile !== nothing
-        pb = getvalue(get_ip_primal_bound(getoptstate(data)))
-        db = getvalue(get_ip_dual_bound(getoptstate(node)))
-        open(algo.branchingtreefile, "r+") do file
-            # rewind the closing brace character
-            seekend(file)
-            pos = position(file)
-            seek(file, pos - 1)
+# # """
+# #     AbstractTreeExploreStrategy
 
-            # start writing over this character
-            ncur = get_tree_order(node)
-            time = elapsed_optim_time(env)
-            if ip_gap_closed(getoptstate(node))
-                @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
-            else
-                @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
-            end
-            if !isrootnode(node)
-                npar = get_tree_order(getparent(node))
-                @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.branchdescription
-            else
-                print(file, "}")
-            end
-        end
-    end
-    return
-end
+# #     Strategy for the tree exploration
 
-function finish_branching_tree_file(algo::TreeSearchAlgorithm)
-    if algo.branchingtreefile !== nothing
-        open(algo.branchingtreefile, "r+") do file
-            # rewind the closing brace character
-            seekend(file)
-            pos = position(file)
-            seek(file, pos - 1)
+# # """
+# # abstract type AbstractTreeExploreStrategy end
 
-            # just move the closing brace to the next line
-            println(file, "\n}")
-        end
-    end
-    return
-end
+# # getnodevalue(strategy::AbstractTreeExploreStrategy, node::Node) = 0
 
-function run_conquer_algorithm!(
-    algo::TreeSearchAlgorithm, env::Env, tsdata::TreeSearchRuntimeData,
-    reform::Reformulation, node::Node
-)
-    if (!node.conquerwasrun)
-        set_tree_order!(node, tsdata.tree_order)
-        tsdata.tree_order += 1
-    end
+# # # Depth-first strategy
+# # struct DepthFirstStrategy <: AbstractTreeExploreStrategy end
+# getnodevalue(algo::DepthFirstStrategy, n::Node) = (-n.depth)
 
-    algo.print_node_info && print_node_info_before_conquer(tsdata, env, node)
+# # # Best dual bound strategy
+# # struct BestDualBoundStrategy <: AbstractTreeExploreStrategy end
+# getnodevalue(algo::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
 
-    treestate = getoptstate(tsdata)
-    nodestate = getoptstate(node)
+# """
+#     SearchTree
+# """
+# mutable struct SearchTree
+#     nodes::DS.PriorityQueue{Node, Float64}
+#     strategy::AbstractExploreStrategy
+# end
 
-    update_ip_primal_bound!(nodestate, get_ip_primal_bound(treestate))
-    best_ip_primal_sol = get_best_ip_primal_sol(nodestate)
-    if tsdata.exploitsprimalsolutions && best_ip_primal_sol !== nothing
-        set_ip_primal_sol!(treestate, best_ip_primal_sol)
-    end
+# SearchTree(strategy::AbstractExploreStrategy) = SearchTree(
+#     DS.PriorityQueue{Node, Float64}(Base.Order.Forward), strategy
+# )
 
-    # in the case the conquer was already run (in strong branching),
-    # we still need to update the node IP primal bound before exiting 
-    # (to possibly avoid branching)
-    node.conquerwasrun && return
+# getnodes(tree::SearchTree) = tree.nodes
+# treeisempty(tree::SearchTree) = DS.isempty(tree.nodes)
 
-    apply_conquer_alg_to_node!(
-        node, algo.conqueralg, env, reform, tsdata.conquer_units_to_restore, 
-        algo.opt_rtol, algo.opt_atol
-    )        
+# push!(tree::SearchTree, node::Node) = DS.enqueue!(tree.nodes, node, getnodevalue(tree.strategy, node))
+# popnode!(tree::SearchTree) = DS.dequeue!(tree.nodes)
+# nb_open_nodes(tree::SearchTree) = length(tree.nodes)
 
-    add_ip_primal_sols!(treestate, get_ip_primal_sols(nodestate)...)
+# "Data used by the tree search algorithm while running. Destroyed after each run."
+# mutable struct TreeSearchRuntimeData
+#     primary_tree::SearchTree
+#     max_primary_tree_size::Int64
+#     secondary_tree::SearchTree
+#     tree_order::Int64
+#     optstate::OptimizationState
+#     exploitsprimalsolutions::Bool
+#     conquer_units_to_restore::UnitsUsage
+# end
 
-    # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node
-    best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
-    if algo.storelpsolution && isrootnode(node) && best_lp_primal_sol !== nothing
-        set_lp_primal_sol!(treestate, best_lp_primal_sol) 
-    end
+# function TreeSearchRuntimeData(algo::TreeSearchAlgorithm, reform::Reformulation, input::OptimizationInput)
+#     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)        
+#     treestate = OptimizationState(
+#         getmaster(reform), getoptstate(input), exploitsprimalsols, false
+#     )
 
-    best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
-    if isrootnode(node) && best_lp_dual_sol !== nothing
-        set_lp_dual_sol!(treestate, best_lp_dual_sol)
-    end
-    return
-end
+#     conquer_units_to_restore = UnitsUsage()
+#     collect_units_to_restore!(conquer_units_to_restore, algo.conqueralg, reform) 
+#     # divide algorithms are always manager algorithms, so we do not need to restore storage units for them
 
-function run_divide_algorithm!(
-    algo::TreeSearchAlgorithm, env::Env, tsdata::TreeSearchRuntimeData, 
-    reform::Reformulation, node::Node
-)
-    treestate = getoptstate(tsdata)
-    output = run!(algo.dividealg, env, reform, DivideInput(node, treestate))
+#     tsdata = TreeSearchRuntimeData(
+#         SearchTree(algo.explorestrategy), algo.opennodeslimit, SearchTree(DepthFirstStrategy()),
+#         1, treestate, exploitsprimalsols, conquer_units_to_restore
+#     )
+#     master = getmaster(reform)
+#     push!(tsdata, RootNode(master, getoptstate(input), store_records!(reform), algo.skiprootnodeconquer))
+#     return tsdata
+# end
 
-    add_ip_primal_sols!(treestate, get_ip_primal_sols(getoptstate(output))...)
+# treeisempty(data::TreeSearchRuntimeData) = treeisempty(data.primary_tree) && treeisempty(data.secondary_tree)
+# primary_tree_is_full(data::TreeSearchRuntimeData) = nb_open_nodes(data.primary_tree) >= data.max_primary_tree_size
 
-    @logmsg LogLevel(-1) string("Updating tree.")
+# function push!(data::TreeSearchRuntimeData, node::Node) 
+#     if primary_tree_is_full(data) 
+#         push!(data.secondary_tree, node)
+#     else           
+#         push!(data.primary_tree, node)
+#     end
+# end
 
-    children = getchildren(output)
-    isempty(children) && return
+# function popnode!(data::TreeSearchRuntimeData)::Node
+#     if treeisempty(data.secondary_tree)
+#         return popnode!(data.primary_tree)
+#     end
+#     return popnode!(data.secondary_tree)
+# end
 
-    first_child_with_runconquer = true
-    for child in children
-        if child.conquerwasrun
-            set_tree_order!(child, tsdata.tree_order)
-            tsdata.tree_order += 1
-            if first_child_with_runconquer
-                print("Child nodes generated :")
-                first_child_with_runconquer = false
-            end    
-            print(" N° ", get_tree_order(child) ," ")
-        end
-        push!(tsdata, child)
-    end
-    !first_child_with_runconquer && println()
-    return
-end
+# function nb_open_nodes(data::TreeSearchRuntimeData)
+#     return nb_open_nodes(data.primary_tree) + nb_open_nodes(data.secondary_tree)
+# end
 
-function updatedualbound!(data::TreeSearchRuntimeData, reform::Reformulation)
-    treestate = getoptstate(data)
-    worst_bound = DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
-    for (node, _) in getnodes(data.primary_tree)
-        db = get_ip_dual_bound(getoptstate(node))
-        if isbetter(worst_bound, db)
-            worst_bound = db
-        end
-    end
+# get_tree_order(data::TreeSearchRuntimeData) = data.tree_order
+# getoptstate(data::TreeSearchRuntimeData) = data.optstate
 
-    for (node, _) in getnodes(data.secondary_tree)
-        db = get_ip_dual_bound(getoptstate(node))
-        if isbetter(worst_bound, db)
-            worst_bound = db
-        end
-    end
 
-    set_ip_dual_bound!(treestate, worst_bound)
-    return
-end
+# # function init_branching_tree_file(algo::TreeSearchAlgorithm)
+# #     if algo.branchingtreefile !== nothing
+# #         open(algo.branchingtreefile, "w") do file
+# #             println(file, "## dot -Tpdf thisfile > thisfile.pdf \n")
+# #             println(file, "digraph Branching_Tree {")
+# #             print(file, "\tedge[fontname = \"Courier\", fontsize = 10];}")
+# #         end
+# #     end
+# #     return
+# # end
 
-function run!(
-    algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationInput
-)::OptimizationOutput
-    tsdata = TreeSearchRuntimeData(algo, reform, input)
+# # function print_node_in_branching_tree_file(
+# #     algo::TreeSearchAlgorithm, env::Env, data::TreeSearchRuntimeData, node
+# # )
+# #     if algo.branchingtreefile !== nothing
+# #         pb = getvalue(get_ip_primal_bound(getoptstate(data)))
+# #         db = getvalue(get_ip_dual_bound(getoptstate(node)))
+# #         open(algo.branchingtreefile, "r+") do file
+# #             # rewind the closing brace character
+# #             seekend(file)
+# #             pos = position(file)
+# #             seek(file, pos - 1)
 
-    init_branching_tree_file(algo)
-    while !treeisempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes
-        node = popnode!(tsdata)
+# #             # start writing over this character
+# #             ncur = get_tree_order(node)
+# #             time = elapsed_optim_time(env)
+# #             if ip_gap_closed(getoptstate(node))
+# #                 @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
+# #             else
+# #                 @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
+# #             end
+# #             if !isrootnode(node)
+# #                 npar = get_tree_order(getparent(node))
+# #                 @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.branchdescription
+# #             else
+# #                 print(file, "}")
+# #             end
+# #         end
+# #     end
+# #     return
+# # end
 
-        # run_conquer_algorithm! updates primal solution the tree search optstate and the 
-        # dual bound of the optstate only at the root node.
-        run_conquer_algorithm!(algo, env, tsdata, reform, node)
-        print_node_in_branching_tree_file(algo, env, tsdata, node)
+# # function finish_branching_tree_file(algo::TreeSearchAlgorithm)
+# #     if algo.branchingtreefile !== nothing
+# #         open(algo.branchingtreefile, "r+") do file
+# #             # rewind the closing brace character
+# #             seekend(file)
+# #             pos = position(file)
+# #             seek(file, pos - 1)
 
-        nodestatus = getterminationstatus(node.optstate)
-        if nodestatus == OPTIMAL || nodestatus == INFEASIBLE ||
-           ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)             
-            println("Node is already conquered. No children will be generated.")
-        elseif nodestatus != TIME_LIMIT
-            run_divide_algorithm!(algo, env, tsdata, reform, node)
-        end
+# #             # just move the closing brace to the next line
+# #             println(file, "\n}")
+# #         end
+# #     end
+# #     return
+# # end
 
-        updatedualbound!(tsdata, reform)
+# function run_conquer_algorithm!(
+#     algo::TreeSearchAlgorithm, env::Env, tsdata::TreeSearchRuntimeData,
+#     reform::Reformulation, node::Node
+# )
+#     if (!node.conquerwasrun)
+#         set_tree_order!(node, tsdata.tree_order)
+#         tsdata.tree_order += 1
+#     end
 
-        remove_records!(node.recordids)
-        # we delete solutions from the node optimization state, as they are not needed anymore
-        nodestate = getoptstate(node)
-        empty_ip_primal_sols!(nodestate)
-        empty_lp_primal_sols!(nodestate)
-        empty_lp_dual_sols!(nodestate)
+#     algo.print_node_info && print_node_info_before_conquer(tsdata, env, node)
 
-        if nodestatus == TIME_LIMIT
-            println("Time limit is reached. Tree search is interrupted")
-            break
-        end
-    end
-    finish_branching_tree_file(algo)
+#     treestate = getoptstate(tsdata)
+#     nodestate = getoptstate(node)
 
-    if treeisempty(tsdata) # it means that the BB tree has been fully explored
-        if length(get_ip_primal_sols(tsdata.optstate)) >= 1
-            if ip_gap_closed(tsdata.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)
-                setterminationstatus!(tsdata.optstate, OPTIMAL)
-            else
-                setterminationstatus!(tsdata.optstate, OTHER_LIMIT)
-            end
-        else
-            setterminationstatus!(tsdata.optstate, INFEASIBLE)
-        end
-    else
-        setterminationstatus!(tsdata.optstate, OTHER_LIMIT)
-    end
+#     update_ip_primal_bound!(nodestate, get_ip_primal_bound(treestate))
+#     best_ip_primal_sol = get_best_ip_primal_sol(nodestate)
+#     if tsdata.exploitsprimalsolutions && best_ip_primal_sol !== nothing
+#         set_ip_primal_sol!(treestate, best_ip_primal_sol)
+#     end
 
-    # Clear untreated nodes
-    while !treeisempty(tsdata)
-        node = popnode!(tsdata)
-        remove_records!(node.recordids)
-    end
+#     # in the case the conquer was already run (in strong branching),
+#     # we still need to update the node IP primal bound before exiting 
+#     # (to possibly avoid branching)
+#     node.conquerwasrun && return
 
-    env.kpis.node_count = get_tree_order(tsdata) - 1 # TODO : check why we need to remove 1
+#     apply_conquer_alg_to_node!(
+#         node, algo.conqueralg, env, reform, tsdata.conquer_units_to_restore, 
+#         algo.opt_rtol, algo.opt_atol
+#     )        
 
-    return OptimizationOutput(tsdata.optstate)
-end
+#     add_ip_primal_sols!(treestate, get_ip_primal_sols(nodestate)...)
+
+#     # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node
+#     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
+#     if algo.storelpsolution && isrootnode(node) && best_lp_primal_sol !== nothing
+#         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
+#     end
+
+#     best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
+#     if isrootnode(node) && best_lp_dual_sol !== nothing
+#         set_lp_dual_sol!(treestate, best_lp_dual_sol)
+#     end
+#     return
+# end
+
+# function run_divide_algorithm!(
+#     algo::TreeSearchAlgorithm, env::Env, tsdata::TreeSearchRuntimeData, 
+#     reform::Reformulation, node::Node
+# )
+#     treestate = getoptstate(tsdata)
+#     output = run!(algo.dividealg, env, reform, DivideInput(node, treestate))
+
+#     add_ip_primal_sols!(treestate, get_ip_primal_sols(getoptstate(output))...)
+
+#     @logmsg LogLevel(-1) string("Updating tree.")
+
+#     children = getchildren(output)
+#     isempty(children) && return
+
+#     first_child_with_runconquer = true
+#     for child in children
+#         tree_order = tsdata.tree_order
+#         if child.conquerwasrun
+#             tsdata.tree_order += 1
+#             if first_child_with_runconquer
+#                 print("Child nodes generated :")
+#                 first_child_with_runconquer = false
+#             end    
+#             print(" N° ", tree_order ," ")
+#         end
+#         push!(tsdata, Node(child, tree_order))
+#     end
+#     !first_child_with_runconquer && println()
+#     return
+# end
+
+# function updatedualbound!(data::TreeSearchRuntimeData, reform::Reformulation)
+#     treestate = getoptstate(data)
+#     worst_bound = DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
+#     for (node, _) in getnodes(data.primary_tree)
+#         db = get_ip_dual_bound(getoptstate(node))
+#         if isbetter(worst_bound, db)
+#             worst_bound = db
+#         end
+#     end
+
+#     for (node, _) in getnodes(data.secondary_tree)
+#         db = get_ip_dual_bound(getoptstate(node))
+#         if isbetter(worst_bound, db)
+#             worst_bound = db
+#         end
+#     end
+
+#     set_ip_dual_bound!(treestate, worst_bound)
+#     return
+# end
+
+# function _run!(
+#     algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationInput
+# )::OptimizationOutput
+#     tsdata = TreeSearchRuntimeData(algo, reform, input)
+
+#     #init_branching_tree_file(algo)
+#     while !treeisempty(tsdata) && get_tree_order(tsdata) <= algo.maxnumnodes
+#         node = popnode!(tsdata)
+
+#         # run_conquer_algorithm! updates primal solution the tree search optstate and the 
+#         # dual bound of the optstate only at the root node.
+#         run_conquer_algorithm!(algo, env, tsdata, reform, node)
+#         #print_node_in_branching_tree_file(algo, env, tsdata, node)
+
+#         nodestatus = getterminationstatus(node.optstate)
+#         if nodestatus == OPTIMAL || nodestatus == INFEASIBLE ||
+#            ip_gap_closed(node.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)             
+#             println("Node is already conquered. No children will be generated.")
+#         elseif nodestatus != TIME_LIMIT
+#             run_divide_algorithm!(algo, env, tsdata, reform, node)
+#         end
+
+#         updatedualbound!(tsdata, reform)
+
+#         remove_records!(node.recordids)
+#         # we delete solutions from the node optimization state, as they are not needed anymore
+#         nodestate = getoptstate(node)
+#         empty_ip_primal_sols!(nodestate)
+#         empty_lp_primal_sols!(nodestate)
+#         empty_lp_dual_sols!(nodestate)
+
+#         if nodestatus == TIME_LIMIT
+#             println("Time limit is reached. Tree search is interrupted")
+#             break
+#         end
+#     end
+#     #finish_branching_tree_file(algo)
+
+#     if treeisempty(tsdata) # it means that the BB tree has been fully explored
+#         if length(get_ip_primal_sols(tsdata.optstate)) >= 1
+#             if ip_gap_closed(tsdata.optstate, rtol = algo.opt_rtol, atol = algo.opt_atol)
+#                 setterminationstatus!(tsdata.optstate, OPTIMAL)
+#             else
+#                 setterminationstatus!(tsdata.optstate, OTHER_LIMIT)
+#             end
+#         else
+#             setterminationstatus!(tsdata.optstate, INFEASIBLE)
+#         end
+#     else
+#         setterminationstatus!(tsdata.optstate, OTHER_LIMIT)
+#     end
+
+#     # Clear untreated nodes
+#     while !treeisempty(tsdata)
+#         node = popnode!(tsdata)
+#         remove_records!(node.recordids)
+#     end
+
+#     env.kpis.node_count = get_tree_order(tsdata) - 1 # TODO : check why we need to remove 1
+
+#     return OptimizationOutput(tsdata.optstate)
+# end

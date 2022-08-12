@@ -6,7 +6,7 @@ import TimerOutputs
 
 using ..Coluna, ..ColunaBase, ..MathProg
 
-using DynamicSparseArrays, Logging, Parameters, Printf, Statistics
+using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Statistics
 
 const TO = TimerOutputs
 const DS = DataStructures
@@ -16,6 +16,7 @@ import Base: push!
 
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
+include("utilities/helpers.jl")
 
 # Abstract algorithm
 include("interface.jl")
@@ -41,18 +42,21 @@ include("preprocessing.jl")
 # Algorithms and structures used by the tree search algorithm
 include("node.jl")
 include("conquer.jl")
-include("divide.jl")
 
 # Here include divide algorithms
-include("branching/branchinggroup.jl")
-include("branching/branchingrule.jl")
-include("branching/varbranching.jl")
+include("branching/interface.jl")
+include("branching/sbnode.jl")
+include("divide.jl") # TODO: DivideInput and DivideOutput are already implementation.
+include("branching/selectioncriteria.jl")
+include("branching/scores.jl")
+include("branching/single_var_branching.jl")
 include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
+include("treesearch/printer.jl")
+include("treesearch/branch_and_bound.jl")
 include("branchcutprice.jl")
 
-include("treesearch/treesearch.jl")
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.

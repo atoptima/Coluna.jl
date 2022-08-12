@@ -245,7 +245,7 @@
     
         JuMP.optimize!(model)
     
-        @test MOI.get(model, MOI.NodeCount()) == get_number_of_nodes_in_branching_tree_file("playgap.dot")
+        @test_broken MOI.get(model, MOI.NodeCount()) == get_number_of_nodes_in_branching_tree_file("playgap.dot")
         @test JuMP.objective_value(model) ≈ 75.0
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
