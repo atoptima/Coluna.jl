@@ -5,9 +5,6 @@ nodes and transitions of the tree search space will be explored.
 """
 abstract type AbstractSearchSpace end
 
-"Returns the output of the tree search algorithm."
-tree_search_output(::AbstractSearchSpace, untreated_nodes) = nothing
-
 "Algorithm that chooses next node to evaluated in the tree search algorithm."
 abstract type AbstractExploreStrategy end
 
@@ -29,21 +26,21 @@ function new_root(sp::AbstractSearchSpace, input)
     return nothing
 end
 
-"Evaluate and generate children."
+"Returns the root node of the tree to which the node belongs."
+root(::AbstractNode) = nothing
+
+"Returns the parent of a node; `nothing` if the node is the root."
+parent(::AbstractNode) = nothing
+
+"Returns the priority of the node depending on the explore strategy."
+priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
+
 # TODO; remove untreated_nodes
+"Evaluate and generate children. This method has a specific implementation for Coluna."
 function children(sp, n, env, untreated_nodes)
     @warn "children(::$(typeof(sp)), ::$(typeof(n)), ::$(typeof(env)), untreated_nodes) not implemented."
     return nothing
 end
-
-"Returns the root node of the tree to which the node belongs."
-root(::AbstractNode) = nothing
-
-"Returns the parent of a node; nothing if the node is the root."
-parent(::AbstractNode) = nothing
-
-"Returns the priority of the node."
-priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
 
 "Returns true if stopping criteria are met; false otherwise."
 function stop(sp::AbstractSearchSpace)
@@ -51,9 +48,13 @@ function stop(sp::AbstractSearchSpace)
     return nothing
 end
 
+"Returns the output of the tree search algorithm."
+tree_search_output(::AbstractSearchSpace, untreated_nodes) = nothing
+
 ############################################################################################
 # Tree search interface for Coluna algorithms
 ############################################################################################
+"Search space for tree search algorithms in Coluna."
 abstract type AbstractColunaSearchSpace <: AbstractSearchSpace end
 
 # Additional methods to implement to use the tree search algorithms together with Coluna's
