@@ -5,4 +5,4 @@ include("ColunaTests.jl")
 retest(Coluna, ColunaTests)
 
 # Run a specific test:
-#retest(ColunaTests, "Issue 550 - continuous variables in subproblem")
+#retest(ColunaTests, "Issue 591 - get dual of generated cuts")

@@ -415,48 +415,48 @@
         @test objective_value(model) == 1.0
     end
 
-    # @testset "Issue 591 - get dual of generated cuts" begin
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         Coluna.Optimizer,
-    #         "params" => Coluna.Params(
-    #             solver=Coluna.Algorithm.TreeSearchAlgorithm(),
-    #         ),
-    #         "default_optimizer" => GLPK.Optimizer 
-    #     );
+    @testset "Issue 591 - get dual of generated cuts" begin
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer,
+            "params" => Coluna.Params(
+                solver=Coluna.Algorithm.TreeSearchAlgorithm(),
+            ),
+            "default_optimizer" => GLPK.Optimizer 
+        );
     
-    #     model = BlockModel(coluna, direct_model=true)
+        model = BlockModel(coluna, direct_model=true)
     
-    #     @axis(I, 1:7)
+        @axis(I, 1:7)
     
-    #     @variable(model, 0<= x[i in I] <= 1) # subproblem variables & constraints
-    #     @variable(model, y[1:2] >= 0) # master
-    #     @variable(model, u >=0) # master
+        @variable(model, 0<= x[i in I] <= 1) # subproblem variables & constraints
+        @variable(model, y[1:2] >= 0) # master
+        @variable(model, u >=0) # master
     
-    #     @constraint(model, xCon, sum(x[i] for i = I) <= 1)
-    #     @constraint(model, yCon, sum(y[i] for i = 1:2) == 1)
-    #     @constraint(model, initCon1, u >= 0.9*y[1] + y[2] - x[1] - x[2] - x[3])
-    #     @constraint(model, initCon2, u >= y[1] + y[2] - x[7])
+        @constraint(model, xCon, sum(x[i] for i = I) <= 1)
+        @constraint(model, yCon, sum(y[i] for i = 1:2) == 1)
+        @constraint(model, initCon1, u >= 0.9*y[1] + y[2] - x[1] - x[2] - x[3])
+        @constraint(model, initCon2, u >= y[1] + y[2] - x[7])
     
-    #     @objective(model, Min, u)
+        @objective(model, Min, u)
     
-    #     callback_called = false
-    #     constrid = nothing
-    #     function my_callback_function(cbdata)
-    #         if !callback_called
-    #             con = @build_constraint(u >= y[1] + 0.9*y[2] - x[5] - x[6])
-    #             constrid = MOI.submit(model, MOI.LazyConstraint(cbdata), con)
-    #             callback_called = true
-    #         end
-    #         return
-    #     end
+        callback_called = false
+        constrid = nothing
+        function my_callback_function(cbdata)
+            if !callback_called
+                con = @build_constraint(u >= y[1] + 0.9*y[2] - x[5] - x[6])
+                constrid = MOI.submit(model, MOI.LazyConstraint(cbdata), con)
+                callback_called = true
+            end
+            return
+        end
     
-    #     MOI.set(model, MOI.LazyConstraintCallback(), my_callback_function)
+        MOI.set(model, MOI.LazyConstraintCallback(), my_callback_function)
     
-    #     @dantzig_wolfe_decomposition(model, dec, I)
+        @dantzig_wolfe_decomposition(model, dec, I)
     
-    #     optimize!(model)
+        optimize!(model)
     
-    #     @test objective_value(model) ≈ 0.63333333
-    #     @test MOI.get(JuMP.unsafe_backend(model), MOI.ConstraintDual(), constrid) ≈ 0.33333333
-    # end
+        @test objective_value(model) ≈ 0.63333333
+        @test MOI.get(JuMP.unsafe_backend(model), MOI.ConstraintDual(), constrid) ≈ 0.33333333
+    end
 end

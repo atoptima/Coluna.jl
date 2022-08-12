@@ -42,7 +42,7 @@ getparent(n::Node) = n.parent
 getchildren(n::Node) = n.children
 getoptstate(n::Node) = n.optstate
 addchild!(n::Node, child::Node) = push!(n.children, child)
-isrootnode(n::Node) = n.tree_order == 1
+isrootnode(n::Node) = n.depth == 0
 
 # TODO remove
 function to_be_pruned(node::Node)

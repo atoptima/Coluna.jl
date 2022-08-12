@@ -68,13 +68,15 @@ function after_conquer!(space::BaBSearchSpace, current, output)
     store_records!(space.reformulation, current.recordids)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
+
     add_ip_primal_sols!(treestate, get_ip_primal_sols(nodestate)...)
-    # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node
+
+    # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node.
     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
-    # We consider that the algorithm will always store the lp solution.
     if isrootnode(current) && !isnothing(best_lp_primal_sol)
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
     end
+
     best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
     if isrootnode(current) && !isnothing(best_lp_dual_sol)
         set_lp_dual_sol!(treestate, best_lp_dual_sol)
