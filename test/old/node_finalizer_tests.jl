@@ -158,7 +158,7 @@ function test_node_finalizer(heuristic_finalizer)
     end
 end
 
-# @testset "Old - node finalizer" begin
-#     test_node_finalizer(false) # exact
-#     test_node_finalizer(true)  # heuristic
-# end
+@testset "Old - node finalizer" begin
+    test_node_finalizer(false) # exact
+    test_node_finalizer(true)  # heuristic
+end
