@@ -205,7 +205,7 @@
         colgen, x, dec = ClD.GeneralizedAssignment.model_with_penalties(data, coluna)
         optimize!(colgen)
         
-        @test_broken MOI.get(treesearch, MOI.ObjectiveBound()) ≈ MOI.get(colgen, MOI.ObjectiveBound())
+        @test MOI.get(treesearch, MOI.ObjectiveBound()) ≈ MOI.get(colgen, MOI.ObjectiveBound())
     end
 
     @testset "Branching file completion" begin
@@ -250,75 +250,75 @@
         @test JuMP.termination_status(model) == MOI.OPTIMAL
     end
 
-    # @testset "Issue 550 - continuous variables in subproblem" begin
-    #     # Simple min cost flow problem
-    #     #   
-    #     # n1 ------ f[1] -------> n3
-    #     #  \                     ^
-    #     #   \                   /
-    #     #    -f[2]-> n2 --f[3]--
-    #     # 
-    #     #  n1: demand = -10.1
-    #     #  n2: demand = 0
-    #     #  n3: demand = 10.1 
-    #     #  f[1]: cost = 0, capacity = 8.5, in mip model only integer flow allowed
-    #     #  f[2]: cost = 50, (capacity = 5 can be activated by removing comment at constraint, line 93)
-    #     #  f[3]: cost = 50
-    #     #
-    #     #  Correct solution for non-integer f[1]
-    #     #           f[1] = 8.5, f[2] = f[3] = 1.6, cost = 8.5*0 + 1.6*2*50 = 160
-    #     #  Correct solution for integer f[1]
-    #     #           f[1] = 8, f[2] = f[3] = 2.1, cost = 8.5*0 + 2.1*2*50 = 210
-    #     #
-    #     function solve_flow_model(f1_integer, coluna)
-    #         @axis(M, 1:1)
-    #         model = BlockDecomposition.BlockModel(coluna, direct_model=true)
-    #         @variable(model, f[1:3, m in M] >= 0)
-    #         if f1_integer
-    #             JuMP.set_integer(f[1, 1])
-    #         end
-    #         @constraint(model, n1[m in M], f[1,m] + f[2,m] == 10.1)
-    #         @constraint(model, n2[m in M], f[2,m] == f[3,m])
-    #         @constraint(model, n3[m in M], f[1,m] + f[3,m] == 10.1)
-    #         @constraint(model, cap1, sum(f[1,m] for m in M) <= 8.5)
-    #         #@JuMP.constraint(model, cap2, sum(f[2,m] for m in M) <= 5)
-    #         @objective(model, Min, 50 * f[2,1] + 50 * f[3,1])
+    @testset "Issue 550 - continuous variables in subproblem" begin
+        # Simple min cost flow problem
+        #   
+        # n1 ------ f[1] -------> n3
+        #  \                     ^
+        #   \                   /
+        #    -f[2]-> n2 --f[3]--
+        # 
+        #  n1: demand = -10.1
+        #  n2: demand = 0
+        #  n3: demand = 10.1 
+        #  f[1]: cost = 0, capacity = 8.5, in mip model only integer flow allowed
+        #  f[2]: cost = 50, (capacity = 5 can be activated by removing comment at constraint, line 93)
+        #  f[3]: cost = 50
+        #
+        #  Correct solution for non-integer f[1]
+        #           f[1] = 8.5, f[2] = f[3] = 1.6, cost = 8.5*0 + 1.6*2*50 = 160
+        #  Correct solution for integer f[1]
+        #           f[1] = 8, f[2] = f[3] = 2.1, cost = 8.5*0 + 2.1*2*50 = 210
+        #
+        function solve_flow_model(f1_integer, coluna)
+            @axis(M, 1:1)
+            model = BlockDecomposition.BlockModel(coluna, direct_model=true)
+            @variable(model, f[1:3, m in M] >= 0)
+            if f1_integer
+                JuMP.set_integer(f[1, 1])
+            end
+            @constraint(model, n1[m in M], f[1,m] + f[2,m] == 10.1)
+            @constraint(model, n2[m in M], f[2,m] == f[3,m])
+            @constraint(model, n3[m in M], f[1,m] + f[3,m] == 10.1)
+            @constraint(model, cap1, sum(f[1,m] for m in M) <= 8.5)
+            #@JuMP.constraint(model, cap2, sum(f[2,m] for m in M) <= 5)
+            @objective(model, Min, 50 * f[2,1] + 50 * f[3,1])
 
-    #         @dantzig_wolfe_decomposition(model, decomposition, M)
+            @dantzig_wolfe_decomposition(model, decomposition, M)
 
-    #         subproblems = BlockDecomposition.getsubproblems(decomposition)
-    #         BlockDecomposition.specify!.(subproblems, lower_multiplicity=1, upper_multiplicity=1)
+            subproblems = BlockDecomposition.getsubproblems(decomposition)
+            BlockDecomposition.specify!.(subproblems, lower_multiplicity=1, upper_multiplicity=1)
 
-    #         optimize!(model)
+            optimize!(model)
 
-    #         if f1_integer
-    #             @test termination_status(model) == MOI.OPTIMAL
-    #             @test primal_status(model) == MOI.FEASIBLE_POINT
-    #             @test objective_value(model) ≈ 210
-    #             @test value(f[1,1]) ≈ 8
-    #             @test value(f[2,1]) ≈ 2.1
-    #             @test value(f[3,1]) ≈ 2.1
-    #         else
-    #             @test termination_status(model) == MOI.OPTIMAL
-    #             @test primal_status(model) == MOI.FEASIBLE_POINT
-    #             @test objective_value(model) ≈ 160
-    #             @test value(f[1,1]) ≈ 8.5
-    #             @test value(f[2,1]) ≈ 1.6
-    #             @test value(f[3,1]) ≈ 1.6
-    #         end
-    #     end
+            if f1_integer
+                @test termination_status(model) == MOI.OPTIMAL
+                @test primal_status(model) == MOI.FEASIBLE_POINT
+                @test objective_value(model) ≈ 210
+                @test value(f[1,1]) ≈ 8
+                @test value(f[2,1]) ≈ 2.1
+                @test value(f[3,1]) ≈ 2.1
+            else
+                @test termination_status(model) == MOI.OPTIMAL
+                @test primal_status(model) == MOI.FEASIBLE_POINT
+                @test objective_value(model) ≈ 160
+                @test value(f[1,1]) ≈ 8.5
+                @test value(f[2,1]) ≈ 1.6
+                @test value(f[3,1]) ≈ 1.6
+            end
+        end
         
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         Coluna.Optimizer,
-    #         "params" => Coluna.Params(
-    #             solver=Coluna.Algorithm.TreeSearchAlgorithm(),
-    #         ),
-    #         "default_optimizer" => GLPK.Optimizer 
-    #     );
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer,
+            "params" => Coluna.Params(
+                solver=Coluna.Algorithm.TreeSearchAlgorithm(),
+            ),
+            "default_optimizer" => GLPK.Optimizer 
+        );
 
-    #     solve_flow_model(false, coluna)
-    #     solve_flow_model(true, coluna)
-    # end
+        solve_flow_model(false, coluna)
+        solve_flow_model(true, coluna)
+    end
 
     @testset "Issue 553 - unsupported anonymous variables and constraints" begin
         coluna = JuMP.optimizer_with_attributes(
@@ -415,48 +415,48 @@
         @test objective_value(model) == 1.0
     end
 
-    # @testset "Issue 591 - get dual of generated cuts" begin
-    #     coluna = JuMP.optimizer_with_attributes(
-    #         Coluna.Optimizer,
-    #         "params" => Coluna.Params(
-    #             solver=Coluna.Algorithm.TreeSearchAlgorithm(),
-    #         ),
-    #         "default_optimizer" => GLPK.Optimizer 
-    #     );
+    @testset "Issue 591 - get dual of generated cuts" begin
+        coluna = JuMP.optimizer_with_attributes(
+            Coluna.Optimizer,
+            "params" => Coluna.Params(
+                solver=Coluna.Algorithm.TreeSearchAlgorithm(),
+            ),
+            "default_optimizer" => GLPK.Optimizer 
+        );
     
-    #     model = BlockModel(coluna, direct_model=true)
+        model = BlockModel(coluna, direct_model=true)
     
-    #     @axis(I, 1:7)
+        @axis(I, 1:7)
     
-    #     @variable(model, 0<= x[i in I] <= 1) # subproblem variables & constraints
-    #     @variable(model, y[1:2] >= 0) # master
-    #     @variable(model, u >=0) # master
+        @variable(model, 0<= x[i in I] <= 1) # subproblem variables & constraints
+        @variable(model, y[1:2] >= 0) # master
+        @variable(model, u >=0) # master
     
-    #     @constraint(model, xCon, sum(x[i] for i = I) <= 1)
-    #     @constraint(model, yCon, sum(y[i] for i = 1:2) == 1)
-    #     @constraint(model, initCon1, u >= 0.9*y[1] + y[2] - x[1] - x[2] - x[3])
-    #     @constraint(model, initCon2, u >= y[1] + y[2] - x[7])
+        @constraint(model, xCon, sum(x[i] for i = I) <= 1)
+        @constraint(model, yCon, sum(y[i] for i = 1:2) == 1)
+        @constraint(model, initCon1, u >= 0.9*y[1] + y[2] - x[1] - x[2] - x[3])
+        @constraint(model, initCon2, u >= y[1] + y[2] - x[7])
     
-    #     @objective(model, Min, u)
+        @objective(model, Min, u)
     
-    #     callback_called = false
-    #     constrid = nothing
-    #     function my_callback_function(cbdata)
-    #         if !callback_called
-    #             con = @build_constraint(u >= y[1] + 0.9*y[2] - x[5] - x[6])
-    #             constrid = MOI.submit(model, MOI.LazyConstraint(cbdata), con)
-    #             callback_called = true
-    #         end
-    #         return
-    #     end
+        callback_called = false
+        constrid = nothing
+        function my_callback_function(cbdata)
+            if !callback_called
+                con = @build_constraint(u >= y[1] + 0.9*y[2] - x[5] - x[6])
+                constrid = MOI.submit(model, MOI.LazyConstraint(cbdata), con)
+                callback_called = true
+            end
+            return
+        end
     
-    #     MOI.set(model, MOI.LazyConstraintCallback(), my_callback_function)
+        MOI.set(model, MOI.LazyConstraintCallback(), my_callback_function)
     
-    #     @dantzig_wolfe_decomposition(model, dec, I)
+        @dantzig_wolfe_decomposition(model, dec, I)
     
-    #     optimize!(model)
+        optimize!(model)
     
-    #     @test objective_value(model) ≈ 0.63333333
-    #     @test MOI.get(JuMP.unsafe_backend(model), MOI.ConstraintDual(), constrid) ≈ 0.33333333
-    # end
+        @test objective_value(model) ≈ 0.63333333
+        @test MOI.get(JuMP.unsafe_backend(model), MOI.ConstraintDual(), constrid) ≈ 0.33333333
+    end
 end
