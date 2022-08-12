@@ -49,22 +49,22 @@ initial columns callback 2
 initial columns callback 1
 ***************************************************************************************
 **** B&amp;B tree root node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.80 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.75 sec.
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 0.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=5.2000&gt;
-  &lt;it=  2&gt; &lt;et= 0.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
-  &lt;it=  3&gt; &lt;et= 0.80&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;it=  1&gt; &lt;et= 0.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=5.2000&gt;
+  &lt;it=  2&gt; &lt;et= 0.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;it=  3&gt; &lt;et= 0.75&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
 [ Info: Dual bound reached primal bound.
 Node is already conquered. No children will be generated.
-┌ Warning: Positive participation of record record MasterColumnsRecord with id=2 part=1 empty
-└ @ Coluna.ColunaBase ~/work/Coluna.jl/Coluna.jl/src/ColunaBase/storage.jl:302
-┌ Warning: Positive participation of record record MasterBranchConstrsRecord with id=1 part=1 empty
+┌ Warning: Positive participation of record record MasterCutsRecord with id=2 part=1 empty
 └ @ Coluna.ColunaBase ~/work/Coluna.jl/Coluna.jl/src/ColunaBase/storage.jl:302
 ┌ Warning: Positive participation of record record PartialSolutionRecord with id=1 part=1 empty
 └ @ Coluna.ColunaBase ~/work/Coluna.jl/Coluna.jl/src/ColunaBase/storage.jl:302
-┌ Warning: Positive participation of record record MasterCutsRecord with id=2 part=1 empty
-└ @ Coluna.ColunaBase ~/work/Coluna.jl/Coluna.jl/src/ColunaBase/storage.jl:302
 ┌ Warning: Positive participation of record record StaticVarConstrRecord with id=1 part=1 empty
+└ @ Coluna.ColunaBase ~/work/Coluna.jl/Coluna.jl/src/ColunaBase/storage.jl:302
+┌ Warning: Positive participation of record record MasterBranchConstrsRecord with id=1 part=1 empty
+└ @ Coluna.ColunaBase ~/work/Coluna.jl/Coluna.jl/src/ColunaBase/storage.jl:302
+┌ Warning: Positive participation of record record MasterColumnsRecord with id=2 part=1 empty
 └ @ Coluna.ColunaBase ~/work/Coluna.jl/Coluna.jl/src/ColunaBase/storage.jl:302
 ┌ Warning: Positive participation of record record StaticVarConstrRecord with id=1 part=1 empty
 └ @ Coluna.ColunaBase ~/work/Coluna.jl/Coluna.jl/src/ColunaBase/storage.jl:302
@@ -75,19 +75,19 @@ Node is already conquered. No children will be generated.
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            3.07s /  26.2%            269MiB /  30.6%
+       Tot / % measured:            2.80s /  26.8%            265MiB /  29.6%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    802ms  100.0%   802ms   82.4MiB  100.0%  82.4MiB
-   SolveLpForm              3    618μs    0.1%   206μs    160KiB    0.2%  53.2KiB
-   Getting primal s...      3   68.1μs    0.0%  22.7μs   15.6KiB    0.0%  5.21KiB
-   Update reduced c...      3   41.1μs    0.0%  13.7μs   25.5KiB    0.0%  8.48KiB
-   Store records            1   24.4μs    0.0%  24.4μs      464B    0.0%     464B
-   Cleanup columns          3   17.3μs    0.0%  5.77μs   2.36KiB    0.0%     805B
-   Update Lagrangia...      3   3.70μs    0.0%  1.23μs      384B    0.0%     128B
-   Smoothing update         3   2.60μs    0.0%   867ns      240B    0.0%    80.0B
+ Coluna                     1    750ms  100.0%   750ms   78.4MiB  100.0%  78.4MiB
+   SolveLpForm              3    644μs    0.1%   215μs    160KiB    0.2%  53.2KiB
+   Getting primal s...      3   63.8μs    0.0%  21.3μs   15.6KiB    0.0%  5.21KiB
+   Update reduced c...      3   42.9μs    0.0%  14.3μs   25.5KiB    0.0%  8.48KiB
+   Store records            1   31.4μs    0.0%  31.4μs      464B    0.0%     464B
+   Cleanup columns          3   16.3μs    0.0%  5.43μs   2.36KiB    0.0%     805B
+   Update Lagrangia...      3   3.40μs    0.0%  1.13μs      384B    0.0%     128B
+   Smoothing update         3   2.90μs    0.0%   967ns      240B    0.0%    80.0B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 5.1
-[ Info: Dual bound: 5.1</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.22 on <span class="colophon-date" title="Friday 12 August 2022 06:23">Friday 12 August 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+[ Info: Dual bound: 5.1</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pricing/">« Pricing callback</a><a class="docs-footer-nextpage" href="../../man/decomposition/">Decomposition »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.22 on <span class="colophon-date" title="Friday 12 August 2022 06:35">Friday 12 August 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
