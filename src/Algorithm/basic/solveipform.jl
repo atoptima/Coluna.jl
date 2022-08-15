@@ -133,7 +133,7 @@ function get_units_usage(
     # are reverted before the end of the algorithm,
     # so the state of the formulation remains the same
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
-    push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
+    #push!(units_usage, (form, StaticVarConstrUnit, READ_ONLY))
     if Duty <: MathProg.AbstractMasterDuty
         push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
         push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
@@ -149,7 +149,7 @@ get_units_usage(algo::SolveIpForm, reform::Reformulation) =
 # get_units_usage of UserOptimize
 function get_units_usage(::UserOptimize, spform::Formulation{DwSp}) 
     units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
-    push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
+    #push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
     return units_usage
 end
 

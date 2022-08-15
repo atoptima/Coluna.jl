@@ -157,9 +157,10 @@ function initialize_storage_units!(reform::Reformulation, algo::AbstractOptimiza
         end
 
         for storage_unit_type in types_of_storage_unit
-            storagedict[storage_unit_type] = StorageUnitWrapper{
-                ModelType, storage_unit_type, record_type(storage_unit_type)
-            }(model)
+            storagedict[storage_unit_type] = NewStorageUnitManager(storage_unit_type, model)
+            #StorageUnitWrapper{
+            #    ModelType, storage_unit_type, record_type(storage_unit_type)
+            #}(model)
         end
     end
 end

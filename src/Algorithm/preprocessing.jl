@@ -8,7 +8,7 @@
     vectors of preprocessed constraints and variables.  
 """
 
-mutable struct PreprocessingUnit <: AbstractStorageUnit
+mutable struct PreprocessingUnit <: AbstractNewStorageUnit
     # global data 
     cur_min_slack::Dict{ConstrId,Float64}
     cur_max_slack::Dict{ConstrId,Float64}
@@ -24,44 +24,6 @@ mutable struct PreprocessingUnit <: AbstractStorageUnit
     constrs_in_stack::Set{ConstrId}
     preprocessed_constrs::Set{Tuple{ConstrId,Formulation}}
     sp_vars_with_changed_bounds::Set{Tuple{VarId,Formulation}}
-end
-
-function PreprocessingUnit(reform::Reformulation) 
-    constraints = Tuple{ConstrId,Formulation}[]
-
-    # Master constraints
-    master = getmaster(reform)
-    for (constrid, constr) in getconstrs(master)
-        iscuractive(master, constrid) || continue
-        isexplicit(master, constrid) || continue
-        getduty(constrid) != MasterConvexityConstr || continue
-        push!(constraints, (constrid, master))   
-    end
-    
-    # Subproblem constraints
-    for (spuid, spform) in get_dw_pricing_sps(reform)
-        for (constrid, constr) in getconstrs(spform)
-            iscuractive(spform, constrid) || continue
-            isexplicit(spform, constrid) || continue
-            push!(constraints, (constrid, spform))   
-        end
-    end
-
-    cur_sp_lower_bounds = Dict{FormId,Int}()
-    cur_sp_upper_bounds = Dict{FormId,Int}()
-    for (spuid, spform) in get_dw_pricing_sps(reform)
-        cur_sp_lower_bounds[spuid] = 
-            getcurrhs(master, get_dw_pricing_sp_lb_constrid(reform, spuid))
-        cur_sp_upper_bounds[spuid] = 
-            getcurrhs(master, get_dw_pricing_sp_ub_constrid(reform, spuid))
-    end
-
-    return PreprocessingUnit(
-        Dict{ConstrId,Float64}(), Dict{ConstrId,Float64}(), 
-        Dict{ConstrId,Int}(), Dict{ConstrId,Int}(), cur_sp_lower_bounds,
-        cur_sp_upper_bounds, constraints, Dict{VarId, Float64}(), 
-        DS.Stack{Tuple{ConstrId,Formulation}}(), Set{ConstrId}(),
-        Set{Tuple{ConstrId,Formulation}}(), Set{Tuple{VarId, Formulation}}())
 end
 
 function empty_local_data!(unit::PreprocessingUnit)
@@ -103,7 +65,7 @@ end
     Stores the global part of preprocessing unit
 """
 
-mutable struct PreprocessingRecord <: AbstractRecord
+mutable struct PreprocessingRecord <: AbstractNewRecord
     cur_min_slack::Dict{ConstrId,Float64}
     cur_max_slack::Dict{ConstrId,Float64}
     nb_inf_sources_for_min_slack::Dict{ConstrId,Int}
@@ -114,7 +76,45 @@ mutable struct PreprocessingRecord <: AbstractRecord
     local_partial_sol::Dict{VarId, Float64}
 end
 
-function PreprocessingRecord(reform::Reformulation, unit::PreprocessingUnit)
+function ClB.new_storage_unit(::Type{ PreprocessingUnit}, reform::Reformulation)
+    rconstraints = Tuple{ConstrId,Formulation}[]
+
+    # Master constraints
+    master = getmaster(reform)
+    for (constrid, constr) in getconstrs(master)
+        iscuractive(master, constrid) || continue
+        isexplicit(master, constrid) || continue
+        getduty(constrid) != MasterConvexityConstr || continue
+        push!(constraints, (constrid, master))   
+    end
+    
+    # Subproblem constraints
+    for (spuid, spform) in get_dw_pricing_sps(reform)
+        for (constrid, constr) in getconstrs(spform)
+            iscuractive(spform, constrid) || continue
+            isexplicit(spform, constrid) || continue
+            push!(constraints, (constrid, spform))   
+        end
+    end
+
+    cur_sp_lower_bounds = Dict{FormId,Int}()
+    cur_sp_upper_bounds = Dict{FormId,Int}()
+    for (spuid, spform) in get_dw_pricing_sps(reform)
+        cur_sp_lower_bounds[spuid] = 
+            getcurrhs(master, get_dw_pricing_sp_lb_constrid(reform, spuid))
+        cur_sp_upper_bounds[spuid] = 
+            getcurrhs(master, get_dw_pricing_sp_ub_constrid(reform, spuid))
+    end
+
+    return PreprocessingUnit(
+        Dict{ConstrId,Float64}(), Dict{ConstrId,Float64}(), 
+        Dict{ConstrId,Int}(), Dict{ConstrId,Int}(), cur_sp_lower_bounds,
+        cur_sp_upper_bounds, constraints, Dict{VarId, Float64}(), 
+        DS.Stack{Tuple{ConstrId,Formulation}}(), Set{ConstrId}(),
+        Set{Tuple{ConstrId,Formulation}}(), Set{Tuple{VarId, Formulation}}())
+end
+
+function ClB.new_record(::Type{PreprocessingRecord}, id::Int, reform::Reformulation, unit::PreprocessingUnit)
     return PreprocessingRecord(
         copy(unit.cur_min_slack), copy(unit.cur_max_slack), 
         copy(unit.nb_inf_sources_for_min_slack),
@@ -122,6 +122,9 @@ function PreprocessingRecord(reform::Reformulation, unit::PreprocessingUnit)
         copy(unit.cur_sp_lower_bounds), copy(unit.cur_sp_upper_bounds), 
         copy(unit.new_constrs), copy(unit.local_partial_sol))
 end
+
+ClB.record_type(::Type{PreprocessingUnit}) = PreprocessingRecord
+ClB.storage_unit_type(::Type{PreprocessingRecord}) =  PreprocessingUnit
 
 function ColunaBase.restore_from_record!(
     form::Reformulation, unit::PreprocessingUnit, state::PreprocessingRecord
@@ -135,9 +138,6 @@ function ColunaBase.restore_from_record!(
     unit.new_constrs = copy(state.new_constrs)
     unit.local_partial_sol = copy(state.local_partial_sol)
 end
-
-ColunaBase.record_type(::Type{PreprocessingUnit}) = PreprocessingRecord
-
 
 """
     PreprocessingOutput
@@ -161,8 +161,10 @@ end
 end
 
 function get_units_usage(algo::PreprocessAlgorithm, form::Formulation) 
-    return [(form, StaticVarConstrUnit, READ_AND_WRITE), 
-            (form, PreprocessingUnit, READ_AND_WRITE)]
+    return [
+        #(form, StaticVarConstrUnit, READ_AND_WRITE), 
+        (form, PreprocessingUnit, READ_AND_WRITE)
+    ]
 end
 
 function get_units_usage(algo::PreprocessAlgorithm, reform::Reformulation) 
@@ -170,14 +172,14 @@ function get_units_usage(algo::PreprocessAlgorithm, reform::Reformulation)
     push!(units_usage, (reform, PreprocessingUnit, READ_AND_WRITE))
 
     master = getmaster(reform)
-    push!(units_usage, (master, StaticVarConstrUnit, READ_AND_WRITE))
+    #push!(units_usage, (master, StaticVarConstrUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterBranchConstrsUnit, READ_AND_WRITE))
     push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE))
 
     if algo.preprocess_subproblems
         push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
         for (id, spform) in get_dw_pricing_sps(reform)
-            push!(units_usage, (spform, StaticVarConstrUnit, READ_AND_WRITE))
+            #push!(units_usage, (spform, StaticVarConstrUnit, READ_AND_WRITE))
         end
     end
     return units_usage

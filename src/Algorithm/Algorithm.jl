@@ -12,6 +12,8 @@ const TO = TimerOutputs
 const DS = DataStructures
 const MOI = MathOptInterface
 
+const ClB = ColunaBase
+
 import Base: push!
 
 # Utilities to build algorithms

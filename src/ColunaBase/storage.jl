@@ -45,9 +45,9 @@ can be safely computed.
 """
 abstract type AbstractStorageUnit end
 
-# this is the type of record associated to the storage unit
-record_type(::Type{SU}) where {SU<:AbstractStorageUnit} = 
-    error("Type of record contained by storage unit $(SU) not defined.")
+# # this is the type of record associated to the storage unit
+# record_type(::Type{SU}) where {SU<:AbstractStorageUnit} = 
+#     error("Type of record contained by storage unit $(SU) not defined.")
 
 """
     AbstractRecord
@@ -61,17 +61,17 @@ is called during storing a unit.
 """
 abstract type AbstractRecord end
 
-"""
-    restore_from_record!(model, unit, record)
+# """
+#     restore_from_record!(model, unit, record)
 
-This method should be defined for every triple (model type, unit type, record type)
-used by an algorithm.     
-"""
-restore_from_record!(model::AbstractModel, unit::AbstractStorageUnit, record::AbstractRecord) =
-    error(string(
-        "restore_from_record! not defined for model type $(typeof(model)), ",
-        "unit type $(typeof(unit)), and record type $(typeof(record))"
-    ))    
+# This method should be defined for every triple (model type, unit type, record type)
+# used by an algorithm.     
+# """
+# restore_from_record!(model::AbstractModel, unit::AbstractStorageUnit, record::AbstractRecord) =
+#     error(string(
+#         "restore_from_record! not defined for model type $(typeof(model)), ",
+#         "unit type $(typeof(unit)), and record type $(typeof(record))"
+#     ))    
 
 
 # """
@@ -113,7 +113,7 @@ The participation is equal to the number of times the record has been stored.
 When the participation drops to zero, the record can be deleted. 
 """
 
-const RecordId = Int
+const RecordId = AbstractNewRecord
 
 mutable struct RecordWrapper{R <: AbstractRecord}
     id::RecordId
@@ -121,44 +121,44 @@ mutable struct RecordWrapper{R <: AbstractRecord}
     record::Union{R,Nothing}
 end
 
-RecordWrapper{R}(recordid::RecordId, participation::Int) where {R <: AbstractRecord} =
-    RecordWrapper{R}(recordid, participation, nothing)
+# RecordWrapper{R}(recordid::RecordId, participation::Int) where {R <: AbstractRecord} =
+#     RecordWrapper{R}(recordid, participation, nothing)
 
-getrecordid(rw::RecordWrapper) = rw.id
-recordisempty(rw::RecordWrapper) = rw.record === nothing
-getparticipation(rw::RecordWrapper) = rw.participation
-getrecord(rw::RecordWrapper) = rw.record
-increaseparticipation!(rw::RecordWrapper) = rw.participation += 1
-decreaseparticipation!(rw::RecordWrapper) = rw.participation -= 1
+# getrecordid(rw::RecordWrapper) = rw.id
+# recordisempty(rw::RecordWrapper) = rw.record === nothing
+# getparticipation(rw::RecordWrapper) = rw.participation
+# getrecord(rw::RecordWrapper) = rw.record
+# increaseparticipation!(rw::RecordWrapper) = rw.participation += 1
+# decreaseparticipation!(rw::RecordWrapper) = rw.participation -= 1
 
-function setrecord!(rw::RecordWrapper{R}, record_to_set::R) where {R <: AbstractRecord}
-    rw.record = record_to_set
-end
+# function setrecord!(rw::RecordWrapper{R}, record_to_set::R) where {R <: AbstractRecord}
+#     rw.record = record_to_set
+# end
 
-function Base.show(io::IO, rw::RecordWrapper{R}) where {R <: AbstractRecord}
-    print(io, "record ", remove_until_last_point(string(R)))
-    print(io, " with id=", getrecordid(rw), " part=", getparticipation(rw))
-    if getrecord(rw) === nothing
-        print(io, " empty")
-    else
-        print(io, " ", getrecord(rw))
-    end
-end
+# function Base.show(io::IO, rw::RecordWrapper{R}) where {R <: AbstractRecord}
+#     print(io, "record ", remove_until_last_point(string(R)))
+#     print(io, " with id=", getrecordid(rw), " part=", getparticipation(rw))
+#     if getrecord(rw) === nothing
+#         print(io, " empty")
+#     else
+#         print(io, " ", getrecord(rw))
+#     end
+# end
 
-# """
-#     EmptyRecordWrapper
-# """
+# # """
+# #     EmptyRecordWrapper
+# # """
 
-# const EmptyRecordWrapper = RecordWrapper{EmptyRecord}
+# # const EmptyRecordWrapper = RecordWrapper{EmptyRecord}
 
-# EmptyRecordWrapper(recordid::RecordId, participation::Int) =
-#     EmptyRecordWrapper(1, 0)
+# # EmptyRecordWrapper(recordid::RecordId, participation::Int) =
+# #     EmptyRecordWrapper(1, 0)
 
-# getrecordid(erw::EmptyRecordWrapper) = 1
-# recordisempty(erw::EmptyRecordWrapper) = true 
-# getparticipation(erw::EmptyRecordWrapper) = 0
-# increaseparticipation!(erw::EmptyRecordWrapper) = nothing
-# decreaseparticipation!(erw::EmptyRecordWrapper) = nothing
+# # getrecordid(erw::EmptyRecordWrapper) = 1
+# # recordisempty(erw::EmptyRecordWrapper) = true 
+# # getparticipation(erw::EmptyRecordWrapper) = 0
+# # increaseparticipation!(erw::EmptyRecordWrapper) = nothing
+# # decreaseparticipation!(erw::EmptyRecordWrapper) = nothing
 
 """
     StorageUnitWrapper
@@ -176,137 +176,136 @@ mutable struct StorageUnitWrapper{M <: AbstractModel,SU <: AbstractStorageUnit,R
     recordsdict::Dict{RecordId,RecordWrapper{R}}
 end
 
-function StorageUnitWrapper{M,SU,R}(model::M) where {M,SU,R}
-    return StorageUnitWrapper{M,SU,R}(
-        model, RecordWrapper{R}(1, 0), 1, SU(model), 
-        SU, Dict{RecordId,RecordWrapper{R}}()
-    )
-end
+# function StorageUnitWrapper{M,SU,R}(model::M) where {M,SU,R}
+#     return StorageUnitWrapper{M,SU,R}(
+#         model, RecordWrapper{R}(1, 0), 1, SU(model), 
+#         SU, Dict{RecordId,RecordWrapper{R}}()
+#     )
+# end
 
-const RecordsVector = Vector{Pair{StorageUnitWrapper,RecordId}}
+const RecordsVector = Vector{Pair{NewStorageUnitManager,RecordId}}
 struct Storage
     units::Dict{UnitType, StorageUnitWrapper}
 end
 
-Storage() = Storage(Dict{UnitType, StorageUnitWrapper}())
+# Storage() = Storage(Dict{UnitType, StorageUnitWrapper}())
 
-# TODO
-function Base.show(io::IO, storage::StorageUnitWrapper)
-    println(io, "\e[1m **** STORAGE **** \e[0m")
-    println(io, "model = $(storage.model)")
-    println(io, "cur_record = $(storage.cur_record)")
-    println(io, "storage_unit = $(storage.storage_unit)")
-    println(io, "recordsdict = $(storage.recordsdict)")
-    return
+# # TODO
+# function Base.show(io::IO, storage::StorageUnitWrapper)
+#     println(io, "\e[1m **** STORAGE **** \e[0m")
+#     println(io, "model = $(storage.model)")
+#     println(io, "cur_record = $(storage.cur_record)")
+#     println(io, "storage_unit = $(storage.storage_unit)")
+#     println(io, "recordsdict = $(storage.recordsdict)")
+#     return
+# end
+
+# function setcurrecord!(
+#     storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
+# ) where {M,SU,R} 
+#     # we delete the current record container from the dictionary if necessary
+#     if !recordisempty(storage.cur_record) && getparticipation(storage.cur_record) == 0
+#         delete!(storage.recordsdict, getrecordid(storage.cur_record))
+#     end
+#     storage.cur_record = record
+#     if storage.maxrecordid < getrecordid(record) 
+#         storage.maxrecordid = getrecordid(record)
+#     end
+# end
+
+# function _increaseparticipation!(storage::StorageUnitWrapper, recordid::RecordId)
+#     record = if getrecordid(storage.cur_record) === recordid
+#         storage.cur_record
+#     else
+#         get(storage.recordsdict, recordid, nothing)
+#     end
+
+#     if record === nothing
+#         error(string("Record with id $recordid does not exist for ", storage))
+#     end
+
+#     increaseparticipation!(record)
+#     return
+# end
+
+# # TODO : review
+# function retrieve_from_recordsdict(storage::StorageUnitWrapper, recordid::RecordId)
+#     if !haskey(storage.recordsdict, recordid)
+#         error(string("State with id $recordid does not exist for ", storage))
+#     end
+#     record = storage.recordsdict[recordid]
+#     decreaseparticipation!(record)
+#     if getparticipation(record) < 0
+#         error(string("Participation is below zero for record with id $recordid of ", storage))
+#     end
+#     return record
+# end
+
+# # TODO : review / refactor
+# function save_to_recordsdict!(
+#     storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
+# ) where {M,SU,R}
+#     if getparticipation(record) > 0 && recordisempty(record)
+#         record_content = R(storage.model, storage.storage_unit)
+#         # @logmsg LogLevel(-2) string("Created record with id ", getrecordid(record), " for ", storage)
+#         setrecord!(record, record_content)
+#         storage.recordsdict[getrecordid(record)] = record
+#     end
+# end
+
+# # TODO : refactor
+function store_record!(storage::NewStorage, unit::NewStorageUnitManager{M,R,SU})::RecordId where {M,R,SU} 
+    return create_record(storage, SU)
 end
 
-function setcurrecord!(
-    storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
-) where {M,SU,R} 
-    # we delete the current record container from the dictionary if necessary
-    if !recordisempty(storage.cur_record) && getparticipation(storage.cur_record) == 0
-        delete!(storage.recordsdict, getrecordid(storage.cur_record))
-    end
-    storage.cur_record = record
-    if storage.maxrecordid < getrecordid(record) 
-        storage.maxrecordid = getrecordid(record)
-    end
-end
-
-function _increaseparticipation!(storage::StorageUnitWrapper, recordid::RecordId)
-    record = if getrecordid(storage.cur_record) === recordid
-        storage.cur_record
-    else
-        get(storage.recordsdict, recordid, nothing)
-    end
-
-    if record === nothing
-        error(string("Record with id $recordid does not exist for ", storage))
-    end
-
-    increaseparticipation!(record)
-    return
-end
-
-# TODO : review
-function retrieve_from_recordsdict(storage::StorageUnitWrapper, recordid::RecordId)
-    if !haskey(storage.recordsdict, recordid)
-        error(string("State with id $recordid does not exist for ", storage))
-    end
-    record = storage.recordsdict[recordid]
-    decreaseparticipation!(record)
-    if getparticipation(record) < 0
-        error(string("Participation is below zero for record with id $recordid of ", storage))
-    end
-    return record
-end
-
-# TODO : review / refactor
-function save_to_recordsdict!(
-    storage::StorageUnitWrapper{M,SU,R}, record::RecordWrapper{R}
-) where {M,SU,R}
-    if getparticipation(record) > 0 && recordisempty(record)
-        record_content = R(storage.model, storage.storage_unit)
-        # @logmsg LogLevel(-2) string("Created record with id ", getrecordid(record), " for ", storage)
-        setrecord!(record, record_content)
-        storage.recordsdict[getrecordid(record)] = record
-    end
-end
-
-# TODO : refactor
-function store_record!(storage::StorageUnitWrapper)::RecordId 
-    increaseparticipation!(storage.cur_record)
-    return getrecordid(storage.cur_record)
-end
-
-# TODO: refactor
-function restore_from_record!(
-    storage::StorageUnitWrapper{M,SU,R}, recordid::RecordId, mode::UnitPermission
-) where {M,SU,R}
-    record = storage.cur_record
-    if getrecordid(record) == recordid 
-        decreaseparticipation!(record)
-        if getparticipation(record) < 0
-            error(string("Participation is below zero for record with id $recordid of ", getnicename(storage)))
-        end
-        if mode == READ_AND_WRITE 
-            save_to_recordsdict!(storage, record)
-            record = RecordWrapper{R}(storage.maxrecordid + 1, 0)
-            setcurrecord!(storage, record)
-        end
-        return
-    elseif mode != NOT_USED
-        # we save current record to dictionary if necessary
-        save_to_recordsdict!(storage, record)
-    end
+# # TODO: refactor
+# function restore_from_record!(
+#     storage::StorageUnitWrapper{M,SU,R}, recordid::RecordId, mode::UnitPermission
+# ) where {M,SU,R}
+#     record = storage.cur_record
+#     if getrecordid(record) == recordid 
+#         decreaseparticipation!(record)
+#         if getparticipation(record) < 0
+#             error(string("Participation is below zero for record with id $recordid of ", getnicename(storage)))
+#         end
+#         if mode == READ_AND_WRITE 
+#             save_to_recordsdict!(storage, record)
+#             record = RecordWrapper{R}(storage.maxrecordid + 1, 0)
+#             setcurrecord!(storage, record)
+#         end
+#         return
+#     elseif mode != NOT_USED
+#         # we save current record to dictionary if necessary
+#         save_to_recordsdict!(storage, record)
+#     end
     
-    record = retrieve_from_recordsdict(storage, recordid)
+#     record = retrieve_from_recordsdict(storage, recordid)
     
-    if mode == NOT_USED
-        if !recordisempty(record) && getparticipation(record) == 0
-            delete!(storage.recordsdict, getrecordid(record))
-            # @logmsg LogLevel(-2) string("Removed record with id ", getrecordid(record), " for ", storage)
-        end
-    else 
-        restore_from_record!(storage.model, storage.storage_unit, getrecord(record))
-        # @logmsg LogLevel(-2) string("Restored record with id ", getrecordid(record), " for ", storage)
-        if mode == READ_AND_WRITE 
-            record = RecordWrapper{R}(storage.maxrecordid + 1, 0)
-        end 
-        setcurrecord!(storage, record)
-    end
-end
+#     if mode == NOT_USED
+#         if !recordisempty(record) && getparticipation(record) == 0
+#             delete!(storage.recordsdict, getrecordid(record))
+#             # @logmsg LogLevel(-2) string("Removed record with id ", getrecordid(record), " for ", storage)
+#         end
+#     else 
+#         restore_from_record!(storage.model, storage.storage_unit, getrecord(record))
+#         # @logmsg LogLevel(-2) string("Restored record with id ", getrecordid(record), " for ", storage)
+#         if mode == READ_AND_WRITE 
+#             record = RecordWrapper{R}(storage.maxrecordid + 1, 0)
+#         end 
+#         setcurrecord!(storage, record)
+#     end
+# end
 
-function check_records_participation(storage::StorageUnitWrapper)
-    if getparticipation(storage.cur_record) > 0
-        @warn string("Positive participation of record ", storage.cur_record)
-    end
-    for (_, record) in storage.recordsdict
-        if getparticipation(record) > 0
-            @warn string("Positive participation of record ", record)
-        end
-    end
-end
+# function check_records_participation(storage::StorageUnitWrapper)
+#     if getparticipation(storage.cur_record) > 0
+#         @warn string("Positive participation of record ", storage.cur_record)
+#     end
+#     for (_, record) in storage.recordsdict
+#         if getparticipation(record) > 0
+#             @warn string("Positive participation of record ", record)
+#         end
+#     end
+# end
 
 #######
 
@@ -316,17 +315,17 @@ end
 Stores the access rights to some storage units.
 """
 struct UnitsUsage
-    permissions::Dict{StorageUnitWrapper,UnitPermission}
+    permissions::Dict{NewStorageUnitManager,UnitPermission}
 end
 
-UnitsUsage() = UnitsUsage(Dict{StorageUnitWrapper,UnitPermission}())
+UnitsUsage() = UnitsUsage(Dict{NewStorageUnitManager,UnitPermission}())
 
 """
     set_permission!(units_usage, storage_unit, access_right)
 
 Set the permission to a storage unit.
 """
-function set_permission!(usages::UnitsUsage, unit::StorageUnitWrapper, mode::UnitPermission)
+function set_permission!(usages::UnitsUsage, unit::NewStorageUnitManager, mode::UnitPermission)
     current_mode = get(usages.permissions, unit, NOT_USED)
     new_mode = max(current_mode, mode)
     usages.permissions[unit] = new_mode
@@ -339,7 +338,7 @@ end
 Return the permission to a storage unit or `default` if the storage unit has
 no permission entered in `units_usage`.
 """
-function get_permission(usages::UnitsUsage, unit::StorageUnitWrapper, default)
+function get_permission(usages::UnitsUsage, unit::NewStorageUnitManager, default)
     return get(usages.permissions, unit, default)
 end
 
@@ -360,7 +359,8 @@ end
 function restore_from_records!(units_to_restore::UnitsUsage, records::RecordsVector)
     for (storage, recordid) in records
         mode = get_permission(units_to_restore, storage, READ_ONLY)
-        restore_from_record!(storage, recordid, mode)
+        #restore_from_record!(storage.storage_unit, recordid, mode)
+        restore_from_record!(storage.model, storage.storage_unit, recordid)
     end
     empty!(records)
     return
@@ -397,11 +397,11 @@ end
 
 #####
 
-function getstorageunit(m::AbstractModel, SU::Type{<:AbstractStorageUnit})
+function getstorageunit(m::AbstractModel, SU::Type{<:AbstractNewStorageUnit})
     return getstoragewrapper(m, SU).storage_unit
 end
 
-function getstoragewrapper(m::AbstractModel, SU::Type{<:AbstractStorageUnit})
+function getstoragewrapper(m::AbstractModel, SU::Type{<:AbstractNewStorageUnit})
     storagecont = get(getstorage(m).units, SU, nothing)
     storagecont === nothing && error("No storage unit of type $SU in $(typeof(m)) with id $(getuid(m)).")
     return storagecont

@@ -23,17 +23,18 @@ function restore_from_record!(model, su::AbstractNewStorageUnit, r::AbstractNewR
 end
 
 "Returns a storage unit from a given type."
-function new_storage_unit(::Type{StorageUnitType}) where {StorageUnitType}
-    @warn "new_storage_unit(::Type{$StorageUnitType}) not implemented."
+function new_storage_unit(::Type{StorageUnitType}, model) where {StorageUnitType}
+    @warn "new_storage_unit(::Type{$StorageUnitType}, model) not implemented."
     return nothing
 end
 
-mutable struct NewStorageUnitManager{RecordType<:AbstractNewRecord,StorageUnitType<:AbstractNewStorageUnit}
+mutable struct NewStorageUnitManager{Model,RecordType<:AbstractNewRecord,StorageUnitType<:AbstractNewStorageUnit}
+    model::Model
     storage_unit::StorageUnitType
     active_record_id::Int
-    function NewStorageUnitManager(::Type{StorageUnitType}) where {StorageUnitType}
-        return new{record_type(StorageUnitType),StorageUnitType}(
-            new_storage_unit(StorageUnitType), 0
+    function NewStorageUnitManager(::Type{StorageUnitType}, model::M) where {M,StorageUnitType<:AbstractNewStorageUnit}
+        return new{M,record_type(StorageUnitType),StorageUnitType}(
+            model, new_storage_unit(StorageUnitType, model), 0
         )
     end
 end
@@ -57,10 +58,10 @@ struct NewStorage{ModelType}
     NewStorage(model::M) where {M} = new{M}(model, Dict{DataType,NewStorageUnitManager}())
 end
 
-function _get_storage_unit_manager!(storage, ::Type{StorageUnitType}) where {StorageUnitType}
+function _get_storage_unit_manager!(storage, ::Type{StorageUnitType}) where {StorageUnitType<:AbstractNewStorageUnit}
     storage_unit_manager = get(storage.units, StorageUnitType, nothing)
     if isnothing(storage_unit_manager)
-        storage_unit_manager = NewStorageUnitManager(StorageUnitType)
+        storage_unit_manager = NewStorageUnitManager(StorageUnitType, storage.model)
         storage.units[StorageUnitType] = storage_unit_manager
     end
     return storage_unit_manager
@@ -73,7 +74,7 @@ end
 Returns a Record that contains a description of the state of the storage unit at the time 
 when the method is called.
 """
-function create_record(storage, ::Type{StorageUnitType}) where {StorageUnitType}
+function create_record(storage, ::Type{StorageUnitType}) where {StorageUnitType<:AbstractNewStorageUnit}
     storage_unit_manager = _get_storage_unit_manager!(storage, StorageUnitType)
     id = storage_unit_manager.active_record_id += 1
     return new_record(
