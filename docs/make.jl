@@ -5,18 +5,21 @@ TUTORIAL_CUTS = joinpath(@__DIR__, "src", "start", "cuts.jl")
 TUTORIAL_PRICING = joinpath(@__DIR__, "src", "start", "pricing.jl")
 TUTORIAL_INITCOLS = joinpath(@__DIR__, "src", "start", "initial_columns.jl")
 TUTORIAL_TREESEARCH_API = joinpath(@__DIR__, "src", "api", "treesearch.jl")
+TUTORIAL_STORAGE_API = joinpath(@__DIR__, "src", "api", "storage.jl")
 
 OUTPUT_GAP = joinpath(@__DIR__, "src", "start")
 OUTPUT_CUTS = joinpath(@__DIR__, "src", "start")
 OUTPUT_PRICING = joinpath(@__DIR__, "src", "start")
 OUTPUT_INITCOLS = joinpath(@__DIR__, "src", "start")
 OUTPUT_TREESEARCH_API = joinpath(@__DIR__, "src", "api")
+OUTPUT_STORAGE_API = joinpath(@__DIR__, "src", "api")
 
 Literate.markdown(TUTORIAL_GAP, OUTPUT_GAP, documenter=true)
 Literate.markdown(TUTORIAL_CUTS, OUTPUT_CUTS, documenter=true)
 Literate.markdown(TUTORIAL_PRICING, OUTPUT_PRICING, documenter=true)
 Literate.markdown(TUTORIAL_INITCOLS, OUTPUT_INITCOLS, documenter=true)
 Literate.markdown(TUTORIAL_TREESEARCH_API, OUTPUT_TREESEARCH_API, documenter=true)
+Literate.markdown(TUTORIAL_STORAGE_API, OUTPUT_STORAGE_API, documenter=true)
 
 makedocs(
     modules = [Coluna, BlockDecomposition],
@@ -45,6 +48,7 @@ makedocs(
         ],
         "API" => Any[
             "Tree Search" => joinpath("api", "treesearch.md"),
+            "Storage" => joinpath("api", "storage.md"),
         ],
         "Q&A" => "qa.md",
     ]

@@ -3,6 +3,7 @@ name="Coluna documentation"
 [deps]
 BlockDecomposition = "6cde8614-403a-11e9-12f1-c10d0f0caca0"
 Coluna = "88b4ec78-b192-11e8-04aa-4d367dd96a64"
+Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
 JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
