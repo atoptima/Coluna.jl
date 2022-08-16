@@ -54,9 +54,8 @@ end
 function new_root(sp::BaBSearchSpace, input)
     skipconquer = false # TODO: used for the diving that should be a separate algorithm.
     nodestate = OptimizationState(getmaster(sp.reformulation), getoptstate(input), false, false)
-    tree_order = skipconquer ? 0 : -1
     return Node(
-        tree_order, 0, nothing, nodestate, "", store_records!(sp.reformulation), false
+        0, nothing, nodestate, "", store_records!(sp.reformulation), false
     )
 end
 
@@ -115,8 +114,7 @@ function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
     set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
 
     children = map(candidates.children) do child
-        # TODO: tree_order
-        return Node(child, -1)
+        return Node(child)
     end
     return children
 end
