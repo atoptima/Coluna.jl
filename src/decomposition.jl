@@ -575,7 +575,7 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
     if decomposition_tree !== nothing
         check_annotations(prob, annotations)
         root = BD.getroot(decomposition_tree)
-        reform = Reformulation()
+        reform = Reformulation(env)
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
         relax_integrality!(getmaster(reform))

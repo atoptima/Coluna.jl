@@ -48,7 +48,6 @@ using .ColunaBase
 include("MathProg/MathProg.jl")
 using .MathProg
 
-
 include("Algorithm/Algorithm.jl")
 using .Algorithm
 

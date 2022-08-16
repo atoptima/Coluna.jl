@@ -33,8 +33,7 @@ function new_space(
     optstate = OptimizationState(
         getmaster(reform), getoptstate(input), exploitsprimalsols, false
     )
-    conquer_units_to_restore = UnitsUsage()
-    collect_units_to_restore!(conquer_units_to_restore, algo.conqueralg, reform) 
+    conquer_units_to_restore = collect_units_to_restore!(algo.conqueralg, reform) 
     return BaBSearchSpace(
         reform,
         algo.conqueralg,
@@ -65,7 +64,7 @@ function after_conquer!(space::BaBSearchSpace, current, output)
     nodestate = current.optstate
     treestate = space.optstate
 
-    store_records!(space.reformulation, current.recordids)
+    current.recordids = store_records!(space.reformulation)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
 

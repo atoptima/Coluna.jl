@@ -106,7 +106,7 @@ function _apply_conquer_alg_to_child!(
         @info "IP Gap is closed: $(ip_gap(child_state)). Abort treatment."
     else
         run!(algo, env, reform, ConquerInput(Node(child, -1), units_to_restore, true))
-        store_records!(reform, child.recordids)
+        child.recordids = store_records!(reform)
     end
     child.conquerwasrun = true
     return
@@ -174,10 +174,7 @@ function _perform_strong_branching_with_phases!(
             nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
         end
 
-        conquer_units_to_restore = UnitsUsage()
-        collect_units_to_restore!(
-            conquer_units_to_restore, current_phase.conquer_algo, reform
-        )
+        conquer_units_to_restore = collect_units_to_restore!(current_phase.conquer_algo, reform)
 
         # TODO: separate printing logic from algo logic.
         println("**** Strong branching phase ", phase_index, " is started *****");

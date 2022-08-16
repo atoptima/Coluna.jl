@@ -11,7 +11,7 @@ function reformulation_for_colgen(nb_variables = 5, obj_sense = Coluna.MathProg.
     end
 
     # Create the reformulation
-    reform = ClMP.Reformulation()
+    reform = ClMP.Reformulation(env)
     ClMP.add_dw_pricing_sp!(reform, spform)
 
     master = ClMP.create_formulation!(env, ClMP.DwMaster(); obj_sense = obj_sense)

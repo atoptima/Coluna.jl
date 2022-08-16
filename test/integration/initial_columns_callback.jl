@@ -6,7 +6,7 @@
         env = CL.Env{ClMP.VarId}(CL.Params())
 
         # Create the reformulation
-        reform = Reformulation()
+        reform = Reformulation(env)
 
         # Create subproblem and variables
         spform = ClMP.create_formulation!(env, DwSp(nothing, 0, 1, ClMP.Continuous))
