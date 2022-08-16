@@ -202,7 +202,11 @@ function _perform_strong_branching_with_phases!(
     
         # before deleting branching candidates which are not kept for the next phase
         # we need to remove record kept in these nodes
-
+        for candidate_index = nb_candidates_for_next_phase + 1 : length(candidates) 
+            for child in candidates[candidate_index].children
+                remove_records!(child.recordids)
+            end
+        end
         resize!(candidates, nb_candidates_for_next_phase)
     end
     return sbstate
