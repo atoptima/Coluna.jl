@@ -48,7 +48,8 @@ end
 
 # methods of the AbstractModel interface
 
-ColunaBase.getstorage(form::Formulation) = form.storage
+ClB.getuid(form::Formulation) = form.uid
+ClB.getstorage(form::Formulation) = form.storage
 
 # methods specific to Formulation
 
@@ -102,9 +103,6 @@ getcoefmatrix(form::Formulation) = form.manager.coefficients
 
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
-
-"Returns the `uid` of a formulation."
-getuid(form::Formulation) = form.uid
 
 "Returns the objective function sense of a formulation."
 getobjsense(form::Formulation) = form.obj_sense

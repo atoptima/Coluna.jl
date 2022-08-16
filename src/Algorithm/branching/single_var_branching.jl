@@ -50,11 +50,7 @@ function generate_children!(
     )
 
     units_to_restore = UnitsUsage()
-    set_permission!(
-        units_to_restore,
-        getstoragewrapper(master, MasterBranchConstrsUnit),
-        READ_AND_WRITE
-    )
+    push!(units_to_restore.permissions, (master, MasterBranchConstrsUnit))
 
     # adding the first branching constraints
     restore_from_records!(units_to_restore, copy_records(parent.recordids))    

@@ -1,5 +1,16 @@
 abstract type AbstractModel end
 
+function getuid(m::AbstractModel)
+    @warn "getuid(::$(typeof(m))) no implemented."
+    return nothing
+end
+
+"Return the storage of a model."
+function getstorage(m::AbstractModel)
+    @warn("Model of type $(typeof(m)) does not have getstorage implemented.")
+    return nothing
+end
+
 abstract type AbstractProblem end
 
 abstract type AbstractSense end
@@ -10,12 +21,6 @@ abstract type AbstractSpace end
 abstract type AbstractPrimalSpace <: AbstractSpace end
 abstract type AbstractDualSpace <: AbstractSpace end
 
-# AbstractModel interface
-
-"Return the storage of a model."
-getstorage(m::AbstractModel) = error("Model of type $(typeof(m)) does not have getstorage implemented.")
-
-# misc 
 
 function remove_until_last_point(str::String)
     lastpointindex = findlast(isequal('.'), str) 
