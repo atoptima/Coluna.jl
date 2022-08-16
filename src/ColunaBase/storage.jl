@@ -367,19 +367,19 @@ function restore_from_records!(units_to_restore::UnitsUsage, records::RecordsVec
 end
 
 function remove_records!(records::RecordsVector)
-    TO.@timeit Coluna._to "Restore/remove records" begin
-        for (storage, recordid) in records
-            restore_from_record!(storage, recordid, NOT_USED)
-        end
-    end
-    empty!(records) # vector of records should be emptied 
+    # TO.@timeit Coluna._to "Restore/remove records" begin
+    #     for (storage, recordid) in records
+    #         restore_from_record!(storage, recordid, NOT_USED)
+    #     end
+    # end
+    # empty!(records) # vector of records should be emptied 
 end
 
 function copy_records(records::RecordsVector)::RecordsVector
     recordscopy = RecordsVector()
     for (storage, recordid) in records
         push!(recordscopy, storage => recordid)
-        _increaseparticipation!(storage, recordid)
+        #_increaseparticipation!(storage, recordid)
     end
     return recordscopy
 end

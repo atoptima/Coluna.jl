@@ -15,7 +15,7 @@ function ClB.new_storage_unit(::Type{ColGenStabilizationUnit}, master::Formulati
     )
 end
 
-mutable struct ColGenStabRecord <: AbstractRecord
+mutable struct ColGenStabRecord <: AbstractNewRecord
     alpha::Float64
     dualbound::DualBound
     stabcenter::Union{Nothing,DualSolution}
@@ -29,8 +29,8 @@ end
 ClB.record_type(::Type{ColGenStabilizationUnit}) = ColGenStabRecord
 ClB.storage_unit_type(::Type{ColGenStabRecord}) = ColGenStabilizationUnit
 
-function ColunaBase.restore_from_record!(
-    master::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecord
+function ClB.restore_from_record!(
+    ::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecord
 )
     unit.basealpha = state.alpha
     unit.valid_dual_bound = state.dualbound

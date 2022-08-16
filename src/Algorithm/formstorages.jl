@@ -78,8 +78,8 @@ end
 ClB.record_type(::Type{MasterBranchConstrsUnit}) = MasterBranchConstrsRecord
 ClB.storage_unit_type(::Type{MasterBranchConstrsRecord}) = MasterBranchConstrsUnit
 
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::MasterBranchConstrsUnit, record::MasterBranchConstrsRecord
+function ClB.restore_from_record!(
+    form::Formulation, ::MasterBranchConstrsUnit, record::MasterBranchConstrsRecord
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -135,8 +135,8 @@ end
 ClB.record_type(::Type{MasterColumnsUnit}) = MasterColumnsRecord
 ClB.storage_unit_type(::Type{MasterColumnsRecord}) = MasterColumnsUnit
 
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::MasterColumnsUnit, state::MasterColumnsRecord
+function ClB.restore_from_record!(
+    form::Formulation, ::MasterColumnsUnit, state::MasterColumnsRecord
 )
     @logmsg LogLevel(-2) "Restoring master columns"
     for (id, var) in getvars(form)
@@ -192,8 +192,8 @@ end
 ClB.record_type(::Type{MasterCutsUnit}) = MasterCutsRecord
 ClB.storage_unit_type(::Type{MasterCutsRecord}) = MasterCutsUnit
 
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::MasterCutsUnit, state::MasterCutsRecord
+function ClB.restore_from_record!(
+    form::Formulation, ::MasterCutsUnit, state::MasterCutsRecord
 )
     @logmsg LogLevel(-2) "Storing master cuts"
     for (id, constr) in getconstrs(form)
@@ -345,8 +345,8 @@ end
 ClB.record_type(::Type{PartialSolutionUnit}) = PartialSolutionRecord
 ClB.storage_unit_type(::Type{PartialSolutionRecord}) = PartialSolutionUnit
 
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::PartialSolutionUnit, record::PartialSolutionRecord
+function ClB.restore_from_record!(
+    ::Formulation, unit::PartialSolutionUnit, record::PartialSolutionRecord
 )
     @logmsg LogLevel(-2) "Restoring partial solution"
     unit.solution = copy(record.solution)

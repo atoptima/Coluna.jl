@@ -90,8 +90,14 @@ end
 
 Restores the state of the storage unit using the record that was previously generated.
 """
-function restore_from_record!(storage, record::RecordType) where {RecordType} 
+function restore_from_record!(storage::NewStorage, record::RecordType) where {RecordType} 
     storage_unit_manager = _get_storage_unit_manager!(storage, storage_unit_type(RecordType))
     restore_from_record!(storage.model, storage_unit_manager.storage_unit, record)
+    return true
+end
+
+# TODO: remove
+function restore_from_record!(storage_manager, record::RecordType) where {RecordType}
+    restore_from_record!(storage_manager.model, storage_manager.storage_unit, record)
     return true
 end

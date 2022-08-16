@@ -77,7 +77,7 @@ mutable struct PreprocessingRecord <: AbstractNewRecord
 end
 
 function ClB.new_storage_unit(::Type{ PreprocessingUnit}, reform::Reformulation)
-    rconstraints = Tuple{ConstrId,Formulation}[]
+    constraints = Tuple{ConstrId,Formulation}[]
 
     # Master constraints
     master = getmaster(reform)
@@ -126,8 +126,8 @@ end
 ClB.record_type(::Type{PreprocessingUnit}) = PreprocessingRecord
 ClB.storage_unit_type(::Type{PreprocessingRecord}) =  PreprocessingUnit
 
-function ColunaBase.restore_from_record!(
-    form::Reformulation, unit::PreprocessingUnit, state::PreprocessingRecord
+function ClB.restore_from_record!(
+    ::Reformulation, unit::PreprocessingUnit, state::PreprocessingRecord
 )
     unit.cur_min_slack = copy(state.cur_min_slack)
     unit.cur_max_slack = copy(state.cur_max_slack)
