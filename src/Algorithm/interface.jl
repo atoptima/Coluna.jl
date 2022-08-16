@@ -112,8 +112,7 @@ function _collect_units_to_restore!(
     global_units_usage::UnitsUsage, algo::AbstractAlgorithm, model::AbstractModel
 )
     for (unit_model, unit_type, unit_usage) in get_units_usage(algo, model)
-        storage = getstoragewrapper(unit_model, unit_type)
-        #set_permission!(global_units_usage, storage, unit_usage)
+        push!(global_units_usage.permissions, (unit_model, unit_type))
     end
 
     for (childalgo, childmodel) in get_child_algorithms(algo, model)
@@ -126,9 +125,6 @@ end
 function collect_units_to_restore!(algo::AbstractAlgorithm, model::AbstractModel)
     global_units_usage = UnitsUsage()
     _collect_units_to_restore!(global_units_usage, algo, model)
-    println("\e[34m --------------- \e[00m")
-    @show global_units_usage
-    println("\e[34m *************** \e[00m")
     return global_units_usage
 end
 
@@ -165,14 +161,6 @@ function initialize_storage_units!(reform::Reformulation, algo::AbstractOptimiza
                          "is not contained in $(getnicename(data))")                        
             )
         end
-
-        println("\e[34m ")
-        @show typeof(model)
-        for i in types_of_storage_unit
-            println("- ", i)
-        end
-        println("\e[00m")
-
 
         for storage_unit_type in types_of_storage_unit
             storagedict[storage_unit_type] = NewStorageUnitManager(storage_unit_type, model)
