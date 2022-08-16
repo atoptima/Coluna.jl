@@ -138,7 +138,6 @@ end
 
 function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untreated_nodes)
     _updatedualbound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
-    remove_records!(previous.recordids)
 
     # we delete solutions from the node optimization state, as they are not needed anymore
     nodestate = getoptstate(previous)
@@ -163,14 +162,6 @@ function tree_search_output(space::BaBSearchSpace, untreated_nodes)
     else
         setterminationstatus!(space.optstate, OTHER_LIMIT)
     end
-
-    # TODO: warnings with record participation.
-    # I won't fix and wait for the storage refactoring.
-    # Clear untreated nodes
-    # while !isempty(untreated_nodes)
-    #     node = pop!(untreated_nodes)
-    #     remove_records!(node.recordids)
-    # end
 
     #env.kpis.node_count = 0 #get_tree_order(tsdata) - 1 # TODO : check why we need to remove 1
 

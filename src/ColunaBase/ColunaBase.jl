@@ -35,8 +35,6 @@ export HashTable, gethash, savesolid!, getsolids
 export RecordsVector, UnitType, Storage, AbstractStorageUnit, AbstractRecord,
     UnitsUsage, UnitPermission, READ_AND_WRITE, READ_ONLY, NOT_USED, StorageUnitWrapper,
     set_permission!, store_record!, restore_from_records!, copy_records,
-    restore_from_record!, remove_records!, #check_records_participation, 
-    record_type,
     getstorageunit, getstoragewrapper
 
 export NewStorage, NewStorageUnitManager, AbstractNewStorageUnit, AbstractNewRecord, new_storage_unit,

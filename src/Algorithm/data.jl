@@ -31,25 +31,3 @@ function store_records!(reform::Reformulation)
     end 
     return records
 end
-
-# function ColunaBase.check_records_participation(form::Formulation)
-#     storagedict = form.storage.units
-#     for (_, storagecont) in storagedict
-#         check_records_participation(storagecont)
-#     end
-# end
-
-# function ColunaBase.check_records_participation(reform::Reformulation)
-#     storagedict = reform.storage.units
-#     for (_, storagecont) in storagedict
-#         check_records_participation(storagecont)
-#     end
-#     check_records_participation(getmaster(reform))
-#     for (_, form) in get_dw_pricing_sps(reform)
-#         check_records_participation(form)
-#     end
-#     for (_, form) in get_benders_sep_sps(reform)
-#         check_records_participation(form)
-#     end
-#     return
-# end
