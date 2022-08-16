@@ -4,8 +4,9 @@
 # see https://github.com/atoptima/Coluna.jl/pull/323#discussion_r418972805
 const UnitType = DataType #Type{<:AbstractStorageUnit}
 
-const RecordsVector = Vector{Pair{NewStorageUnitManager,RecordId}}
+const RecordId = AbstractNewRecord
 
+const RecordsVector = Vector{Pair{NewStorageUnitManager,RecordId}}
 
 # # TODO : refactor
 function store_record!(storage::NewStorage, unit::NewStorageUnitManager{M,R,SU})::RecordId where {M,R,SU} 
@@ -58,15 +59,6 @@ function restore_from_records!(units_to_restore::UnitsUsage, records::RecordsVec
     return
 end
 
-function remove_records!(records::RecordsVector)
-    # TO.@timeit Coluna._to "Restore/remove records" begin
-    #     for (storage, recordid) in records
-    #         restore_from_record!(storage, recordid, NOT_USED)
-    #     end
-    # end
-    # empty!(records) # vector of records should be emptied 
-end
-
 function copy_records(records::RecordsVector)::RecordsVector
     recordscopy = RecordsVector()
     for (storage, recordid) in records
@@ -75,7 +67,6 @@ function copy_records(records::RecordsVector)::RecordsVector
     end
     return recordscopy
 end
-
 
 
 """
