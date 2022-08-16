@@ -138,7 +138,6 @@ end
 
 function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untreated_nodes)
     _updatedualbound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
-    remove_records!(previous.recordids)
 
     # we delete solutions from the node optimization state, as they are not needed anymore
     nodestate = getoptstate(previous)
