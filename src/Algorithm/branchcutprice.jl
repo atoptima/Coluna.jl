@@ -54,7 +54,7 @@ Parameters :
 
 function BranchCutAndPriceAlgorithm(;
         maxnumnodes::Int = 100000,
-        branchingtreefile::Union{Nothing, String} = nothing,
+        branchingtreefile::String = "",
         opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL,
         opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL,
         restmastipheur_timelimit::Int = 600,

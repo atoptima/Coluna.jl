@@ -24,7 +24,17 @@ function stop(space::BaBSearchSpace)
     return space.nb_nodes_treated > space.max_num_nodes
 end
 
-search_space_type(::TreeSearchAlgorithm) = PrinterSearchSpace{BaBSearchSpace}
+function search_space_type(alg::TreeSearchAlgorithm)
+    return if !iszero(length(alg.branchingtreefile)) && alg.print_node_info
+        PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,DotFilePrinter}
+    elseif !iszero(length(alg.branchingtreefile))
+        PrinterSearchSpace{BaBSearchSpace,DevNullLogPrinter,DotFilePrinter}
+    elseif alg.print_node_info
+        PrinterSearchSpace{BaBSearchSpace,DefaultLogPrinter,DevNullFilePrinter}
+    else
+        BaBSearchSpace
+    end
+end
 
 function new_space(
     ::Type{BaBSearchSpace}, algo::TreeSearchAlgorithm, reform::Reformulation, input
