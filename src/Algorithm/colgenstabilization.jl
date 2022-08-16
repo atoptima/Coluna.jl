@@ -1,4 +1,4 @@
-mutable struct ColGenStabilizationUnit <: AbstractStorageUnit
+mutable struct ColGenStabilizationUnit <: AbstractNewStorageUnit
     basealpha::Float64 # "global" alpha parameter
     curalpha::Float64 # alpha parameter during the current misprice sequence
     nb_misprices::Int64 # number of misprices during the current misprice sequence
@@ -9,30 +9,28 @@ mutable struct ColGenStabilizationUnit <: AbstractStorageUnit
     basestabcenter::Union{Nothing,DualSolution} # stability center, corresponding to valid_dual_bound
 end
 
-function ColGenStabilizationUnit(master::Formulation)
+function ClB.new_storage_unit(::Type{ColGenStabilizationUnit}, master::Formulation{DwMaster})
     return ColGenStabilizationUnit(
         0.5, 0.0, 0, DualBound(master), DualBound(master), nothing, nothing, nothing
     )
 end
 
-smoothing_is_active(unit::ColGenStabilizationUnit) = !iszero(unit.curalpha)
-
-subgradient_is_needed(unit::ColGenStabilizationUnit, smoothparam::Float64) =
-    smoothparam == 1.0 && unit.nb_misprices == 0
-
-mutable struct ColGenStabRecord <: AbstractRecord
+mutable struct ColGenStabRecord <: AbstractNewRecord
     alpha::Float64
     dualbound::DualBound
     stabcenter::Union{Nothing,DualSolution}
 end
 
-function ColGenStabRecord(master::Formulation, unit::ColGenStabilizationUnit)
+function ClB.new_record(::Type{ColGenStabRecord}, id::Int, form::Formulation, unit::ColGenStabilizationUnit)
     alpha = unit.basealpha < 0.5 ? 0.5 : unit.basealpha
     return ColGenStabRecord(alpha, unit.valid_dual_bound, unit.basestabcenter)
 end
 
-function ColunaBase.restore_from_record!(
-    master::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecord
+ClB.record_type(::Type{ColGenStabilizationUnit}) = ColGenStabRecord
+ClB.storage_unit_type(::Type{ColGenStabRecord}) = ColGenStabilizationUnit
+
+function ClB.restore_from_record!(
+    ::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecord
 )
     unit.basealpha = state.alpha
     unit.valid_dual_bound = state.dualbound
@@ -40,7 +38,24 @@ function ColunaBase.restore_from_record!(
     return
 end
 
-ColunaBase.record_type(::Type{ColGenStabilizationUnit}) = ColGenStabRecord
+
+# function ColGenStabilizationUnit(master::Formulation)
+#     return ColGenStabilizationUnit(
+#         0.5, 0.0, 0, DualBound(master), DualBound(master), nothing, nothing, nothing
+#     )
+# end
+
+# function ColGenStabRecord(master::Formulation, unit::ColGenStabilizationUnit)
+#     alpha = unit.basealpha < 0.5 ? 0.5 : unit.basealpha
+#     return ColGenStabRecord(alpha, unit.valid_dual_bound, unit.basestabcenter)
+# end
+
+smoothing_is_active(unit::ColGenStabilizationUnit) = !iszero(unit.curalpha)
+
+subgradient_is_needed(unit::ColGenStabilizationUnit, smoothparam::Float64) =
+    smoothparam == 1.0 && unit.nb_misprices == 0
+
+
 
 function init_stab_before_colgen_loop!(unit::ColGenStabilizationUnit)
     unit.stabcenter = unit.basestabcenter

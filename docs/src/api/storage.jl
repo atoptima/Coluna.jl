@@ -78,7 +78,7 @@ formulation = Formulation(names, costs, initial_bounds);
 struct VarDomainStorageUnit <: ClB.AbstractNewStorageUnit end
 
 # and its constructor.
-ClB.new_storage_unit(::Type{VarDomainStorageUnit}) = VarDomainStorageUnit()
+ClB.new_storage_unit(::Type{VarDomainStorageUnit}, _) = VarDomainStorageUnit()
 
 # The state of the variables' domains at a given node is called a record. 
 # The record is defined by the following data structure:

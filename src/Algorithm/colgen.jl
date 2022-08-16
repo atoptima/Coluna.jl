@@ -717,7 +717,8 @@ function cg_main_loop!(
     stabunit = if stabilization_is_used(algo)
         getstorageunit(masterform, ColGenStabilizationUnit)
     else
-        ColGenStabilizationUnit(masterform)
+        #ColGenStabilizationUnit(masterform)
+        ClB.new_storage_unit(ColGenStabilizationUnit, masterform)
     end
 
     partsolunit = getstorageunit(masterform, PartialSolutionUnit)
