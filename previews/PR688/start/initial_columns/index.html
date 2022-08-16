@@ -49,28 +49,28 @@ initial columns callback 2
 initial columns callback 1
 ***************************************************************************************
 **** B&amp;B tree root node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.85 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.93 sec.
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 0.85&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=5.2000&gt;
-  &lt;it=  2&gt; &lt;et= 0.85&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
-  &lt;it=  3&gt; &lt;et= 0.85&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;it=  1&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.2000&gt; &lt;PB=5.2000&gt;
+  &lt;it=  2&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=    4.9500&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
+  &lt;it=  3&gt; &lt;et= 0.93&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=    5.1000&gt; &lt;mlp=    5.1000&gt; &lt;PB=5.1000&gt;
 [ Info: Dual bound reached primal bound.
 Node is already conquered. No children will be generated.
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            3.23s /  26.4%            263MiB /  29.8%
+       Tot / % measured:            3.64s /  25.6%            263MiB /  29.8%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    854ms  100.0%   854ms   78.4MiB  100.0%  78.4MiB
-   SolveLpForm              3    656μs    0.1%   219μs    160KiB    0.2%  53.2KiB
-   Store records            1   72.5μs    0.0%  72.5μs   9.17KiB    0.0%  9.17KiB
-   Getting primal s...      3   70.2μs    0.0%  23.4μs   15.6KiB    0.0%  5.21KiB
-   Update reduced c...      3   48.5μs    0.0%  16.2μs   25.5KiB    0.0%  8.48KiB
-   Cleanup columns          3   16.9μs    0.0%  5.63μs   2.36KiB    0.0%     805B
-   Update Lagrangia...      3   4.30μs    0.0%  1.43μs      384B    0.0%     128B
-   Smoothing update         3   3.40μs    0.0%  1.13μs      240B    0.0%    80.0B
+ Coluna                     1    934ms  100.0%   934ms   78.5MiB  100.0%  78.5MiB
+   SolveLpForm              3    799μs    0.1%   266μs    160KiB    0.2%  53.2KiB
+   Getting primal s...      3   69.4μs    0.0%  23.1μs   15.6KiB    0.0%  5.21KiB
+   Store records            1   54.1μs    0.0%  54.1μs   9.17KiB    0.0%  9.17KiB
+   Update reduced c...      3   49.2μs    0.0%  16.4μs   25.5KiB    0.0%  8.48KiB
+   Cleanup columns          3   20.4μs    0.0%  6.80μs   2.36KiB    0.0%     805B
+   Update Lagrangia...      3   4.80μs    0.0%  1.60μs      384B    0.0%     128B
+   Smoothing update         3   3.10μs    0.0%  1.03μs      240B    0.0%    80.0B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 5.1
