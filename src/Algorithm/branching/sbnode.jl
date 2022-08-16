@@ -23,8 +23,8 @@ function SbNode(
     )
 end
 
-function Node(node::SbNode, tree_order)
-    return Node(tree_order, node.depth, node.parent, node.optstate, node.branchdescription, node.recordids, node.conquerwasrun)
+function Node(node::SbNode)
+    return Node(node.depth, node.parent, node.optstate, node.branchdescription, node.recordids, node.conquerwasrun)
 end
 
 # TODO remove

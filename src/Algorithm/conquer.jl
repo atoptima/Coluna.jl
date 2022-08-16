@@ -227,8 +227,9 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
         heuristics_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
         for heuristic in algo.primal_heuristics
             #TO DO : get_tree_order of nodes in strong branching is always -1
-            if getdepth(node) <= heuristic.max_depth && 
-                mod(get_tree_order(node) - 1, heuristic.frequency) == 0
+            # TO DO: replace this condition by a function.
+            if getdepth(node) <= heuristic.max_depth #&& 
+                #mod(get_tree_order(node) - 1, heuristic.frequency) == 0 (tree_order removed)
                 push!(heuristics_to_run, (
                     heuristic.algorithm, heuristic.name,
                     isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
@@ -279,7 +280,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
             run_node_finalizer && !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
         run_node_finalizer = run_node_finalizer && getdepth(node) >= algo.node_finalizer.min_depth
         run_node_finalizer =
-            run_node_finalizer && mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
+            run_node_finalizer #&& mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0 (tree_order removed)
 
         if run_node_finalizer
             # get the algorithm info
