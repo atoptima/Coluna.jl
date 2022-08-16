@@ -6,12 +6,8 @@ const UnitType = DataType #Type{<:AbstractStorageUnit}
 
 const RecordId = AbstractNewRecord
 
-const RecordsVector = Vector{Pair{NewStorageUnitManager,RecordId}}
-
-# # TODO : refactor
-function store_record!(storage::NewStorage, unit::NewStorageUnitManager{M,R,SU})::RecordId where {M,R,SU} 
-    return create_record(storage, SU)
-end
+# Int is the model id.
+const RecordsVector = Vector{Pair{Int, Vector{AbstractNewRecord}}}
 
 #######
 
@@ -21,53 +17,55 @@ end
 Stores the access rights to some storage units.
 """
 struct UnitsUsage
-    permissions::Dict{NewStorageUnitManager,UnitPermission}
+    permissions::Vector{Tuple{AbstractModel,DataType}}
 end
 
-UnitsUsage() = UnitsUsage(Dict{NewStorageUnitManager,UnitPermission}())
+UnitsUsage() = UnitsUsage(Vector{Tuple{AbstractModel,DataType}}())
 
+### TODO remove set_permission!
 """
     set_permission!(units_usage, storage_unit, access_right)
 
 Set the permission to a storage unit.
 """
 function set_permission!(usages::UnitsUsage, unit::NewStorageUnitManager, mode::UnitPermission)
-    current_mode = get(usages.permissions, unit, NOT_USED)
-    new_mode = max(current_mode, mode)
-    usages.permissions[unit] = new_mode
-    return new_mode
+    #current_mode = get(usages.permissions, unit, NOT_USED)
+    #new_mode = max(current_mode, mode)
+    #usages.permissions[unit] = new_mode
+    #return new_mode
 end
+### end
 
-"""
-    get_permission(units_usage, storage_unit, default)
-
-Return the permission to a storage unit or `default` if the storage unit has
-no permission entered in `units_usage`.
-"""
-function get_permission(usages::UnitsUsage, unit::NewStorageUnitManager, default)
-    return get(usages.permissions, unit, default)
-end
-
-
-function restore_from_records!(units_to_restore::UnitsUsage, records::RecordsVector)
-    for (storage, recordid) in records
-        mode = get_permission(units_to_restore, storage, READ_ONLY)
-        #restore_from_record!(storage.storage_unit, recordid, mode)
-        restore_from_record!(storage.model, storage.storage_unit, recordid)
+### TODO: this POC will need improvement.
+### Perhaps, we shoud find another way to handle records when there are multiple models.
+### Because the problem is that we can have the same store unit type in different model.
+### So we must find to which model the record is attached.
+function _restore_from_record!(model, store_unit_type, records)
+    for (model_id, records_of_model) in Iterators.filter(
+        (model_id, records_of_model) -> 
+            getuid(model) == model_id &&
+            store_unit_type == store_unit_type(eltype(records_of_model)), 
+        records
+    )
+        restore_from_records!(getstorage(model), records_of_model)
     end
-    empty!(records)
+    return
+end
+
+function restore_from_records!(units_usage::UnitsUsage, records::RecordsVector)
+    for (model, store_unit_type) in units_usage.permissions
+        _restore_from_record!(model, store_unit_type, records)
+    end
     return
 end
 
 function copy_records(records::RecordsVector)::RecordsVector
     recordscopy = RecordsVector()
-    for (storage, recordid) in records
-        push!(recordscopy, storage => recordid)
-        #_increaseparticipation!(storage, recordid)
+    for record in records
+        push!(recordscopy, record)
     end
     return recordscopy
 end
-
 
 """
     IMPORTANT!
@@ -75,7 +73,6 @@ end
     Every stored or copied record should be either restored or removed so that it's 
     participation is correctly computed and memory correctly controlled
 """
-
 
 #####
 

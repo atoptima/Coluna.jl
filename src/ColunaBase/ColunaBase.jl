@@ -13,7 +13,7 @@ import Printf
 
 # interface.jl
 export AbstractModel, AbstractProblem, AbstractSense, AbstractMinSense, AbstractMaxSense,
-    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, getstorage
+    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, getuid, getstorage
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
@@ -34,11 +34,11 @@ export HashTable, gethash, savesolid!, getsolids
 # Storages (TODO : clean)
 export RecordsVector, UnitType,
     UnitsUsage, UnitPermission, READ_AND_WRITE, READ_ONLY, NOT_USED,
-    set_permission!, store_record!, restore_from_records!, copy_records,
+    set_permission!, restore_from_records!, copy_records,
     getstorageunit, getstoragewrapper
 
 export NewStorage, NewStorageUnitManager, AbstractNewStorageUnit, AbstractNewRecord, new_storage_unit,
-    new_record, record_type, storage_unit_type, restore_from_record!
+    new_record, record_type, storage_unit_type, restore_from_record!, create_record
 
 include("interface.jl")
 include("nestedenum.jl")

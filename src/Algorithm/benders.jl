@@ -10,17 +10,17 @@ end
 # to solve the subproblems
 
 function get_units_usage(algo::BendersCutGeneration, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel, UnitType, UnitPermission}[] 
+    units_usage = Tuple{AbstractModel, UnitType}[] 
     master = getmaster(reform)
-    push!(units_usage, (master, MasterCutsUnit, READ_AND_WRITE))
+    push!(units_usage, (master, MasterCutsUnit))
 
     # TO DO : everything else should be communicated by the child algorithms 
-    #push!(units_usage, (master, StaticVarConstrUnit, READ_ONLY))
-    push!(units_usage, (master, MasterBranchConstrsUnit, READ_ONLY))
-    push!(units_usage, (master, MasterColumnsUnit, READ_ONLY))
-    for (id, spform) in get_benders_sep_sps(reform)
-        #push!(units_usage, (spform, StaticVarConstrUnit, READ_ONLY))
-    end
+    #push!(units_usage, (master, StaticVarConstrUnit))
+    push!(units_usage, (master, MasterBranchConstrsUnit))
+    push!(units_usage, (master, MasterColumnsUnit))
+    # for (id, spform) in get_benders_sep_sps(reform)
+    #     #push!(units_usage, (spform, StaticVarConstrUnit))
+    # end
     return units_usage
 end
 mutable struct BendersCutGenRuntimeData

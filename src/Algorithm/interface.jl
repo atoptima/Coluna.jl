@@ -60,7 +60,7 @@ ismanager(algo::AbstractAlgorithm) = false
 Every algorithm should communicate its child algorithms and the model to which 
 each child algorithm is applied. 
 """
-get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
+get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel, UnitPermission}[]
 
 """
     get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, UnitType, UnitPermission}}
@@ -108,19 +108,28 @@ exploits_primal_solutions(algo::AbstractOptimizationAlgorithm) = false
 
 # this function collects storage units to restore for an algorithm and all its child worker algorithms,
 # child manager algorithms are skipped, as their restore units themselves
-function collect_units_to_restore!(
+function _collect_units_to_restore!(
     global_units_usage::UnitsUsage, algo::AbstractAlgorithm, model::AbstractModel
 )
-    local_units_usage = get_units_usage(algo, model)
-    for (unit_model, unit_type, unit_usage) in local_units_usage
+    for (unit_model, unit_type, unit_usage) in get_units_usage(algo, model)
         storage = getstoragewrapper(unit_model, unit_type)
-        set_permission!(global_units_usage, storage, unit_usage)
+        #set_permission!(global_units_usage, storage, unit_usage)
     end
 
-    child_algos = get_child_algorithms(algo, model)
-    for (childalgo, childmodel) in child_algos
-        !ismanager(childalgo) && collect_units_to_restore!(global_units_usage, childalgo, childmodel)
+    for (childalgo, childmodel) in get_child_algorithms(algo, model)
+        if !ismanager(childalgo)
+            _collect_units_to_restore!(global_units_usage, childalgo, childmodel)
+        end
     end
+end
+
+function collect_units_to_restore!(algo::AbstractAlgorithm, model::AbstractModel)
+    global_units_usage = UnitsUsage()
+    _collect_units_to_restore!(global_units_usage, algo, model)
+    println("\e[34m --------------- \e[00m")
+    @show global_units_usage
+    println("\e[34m *************** \e[00m")
+    return global_units_usage
 end
 
 # this function collects units to create for an algorithm and all its child algorithms
@@ -129,7 +138,7 @@ function collect_units_to_create!(
     units_to_create::Dict{AbstractModel,Set{UnitType}}, algo::AbstractAlgorithm, model::AbstractModel
 )
     units_usage = get_units_usage(algo, model)
-    for (unit_model, unit_pair, unit_usage) in units_usage
+    for (unit_model, unit_pair, _) in units_usage
         if !haskey(units_to_create, unit_model)
             units_to_create[unit_model] = Set{UnitType}()
         end
@@ -140,15 +149,16 @@ function collect_units_to_create!(
     for (childalgo, childmodel) in child_algos
         collect_units_to_create!(units_to_create, childalgo, childmodel)
     end
+    return
 end
 
 # this function initializes all the storage units
 function initialize_storage_units!(reform::Reformulation, algo::AbstractOptimizationAlgorithm)
+
     units_to_create = Dict{AbstractModel,Set{UnitType}}()
     collect_units_to_create!(units_to_create, algo, reform) 
 
     for (model, types_of_storage_unit) in units_to_create        
-        ModelType = typeof(model)
         storagedict = model.storage.units
         if storagedict === nothing
             error(string("Model of type $(typeof(model)) with id $(getuid(model)) ",
@@ -156,11 +166,16 @@ function initialize_storage_units!(reform::Reformulation, algo::AbstractOptimiza
             )
         end
 
+        println("\e[34m ")
+        @show typeof(model)
+        for i in types_of_storage_unit
+            println("- ", i)
+        end
+        println("\e[00m")
+
+
         for storage_unit_type in types_of_storage_unit
             storagedict[storage_unit_type] = NewStorageUnitManager(storage_unit_type, model)
-            #StorageUnitWrapper{
-            #    ModelType, storage_unit_type, record_type(storage_unit_type)
-            #}(model)
         end
     end
 end
