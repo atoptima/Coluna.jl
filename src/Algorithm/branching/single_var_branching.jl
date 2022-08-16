@@ -57,7 +57,7 @@ function generate_children!(
     )
 
     # adding the first branching constraints
-    restore_from_records!(units_to_restore, parent.recordids)
+    restore_from_records!(units_to_restore, copy_records(parent.recordids))    
     setconstr!(
         master, string(
             "branch_geq_", getdepth(parent), "_", getname(master,candidate.varid)
@@ -69,7 +69,7 @@ function generate_children!(
     child1 = SbNode(master, parent, child1description, store_records!(reform))
 
     # adding the second branching constraints
-    restore_from_records!(units_to_restore, parent.recordids)
+    restore_from_records!(units_to_restore, copy_records(parent.recordids))
     setconstr!(
         master, string(
             "branch_leq_", getdepth(parent), "_", getname(master,candidate.varid)
