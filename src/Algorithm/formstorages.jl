@@ -53,23 +53,15 @@ end
 Unit for master branching constraints. 
 Can be restored using MasterBranchConstrsRecord.    
 """
-struct MasterBranchConstrsUnit <: AbstractStorageUnit end
+struct MasterBranchConstrsUnit <: AbstractNewStorageUnit end
 
-MasterBranchConstrsUnit(::Formulation) = MasterBranchConstrsUnit()
-
-mutable struct MasterBranchConstrsRecord <: AbstractRecord
+mutable struct MasterBranchConstrsRecord <: AbstractNewRecord
     constrs::Dict{ConstrId,ConstrState}
 end
 
-function Base.show(io::IO, record::MasterBranchConstrsRecord)
-    print(io, "[")
-    for (id, constr) in record.constrs
-        print(io, " ", MathProg.getuid(id))
-    end
-    print(io, "]")
-end
+ClB.new_storage_unit(::Type{MasterBranchConstrsUnit}, _) = MasterBranchConstrsUnit()
 
-function MasterBranchConstrsRecord(form::Formulation, unit::MasterBranchConstrsUnit)
+function ClB.new_record(::Type{MasterBranchConstrsRecord}, id::Int, form::Formulation, unit::MasterBranchConstrsUnit)
     @logmsg LogLevel(-2) "Storing branching constraints"
     record = MasterBranchConstrsRecord(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)
@@ -83,8 +75,11 @@ function MasterBranchConstrsRecord(form::Formulation, unit::MasterBranchConstrsU
     return record
 end
 
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::MasterBranchConstrsUnit, record::MasterBranchConstrsRecord
+ClB.record_type(::Type{MasterBranchConstrsUnit}) = MasterBranchConstrsRecord
+ClB.storage_unit_type(::Type{MasterBranchConstrsRecord}) = MasterBranchConstrsUnit
+
+function ClB.restore_from_record!(
+    form::Formulation, ::MasterBranchConstrsUnit, record::MasterBranchConstrsRecord
 )
     @logmsg LogLevel(-2) "Restoring branching constraints"
     for (id, constr) in getconstrs(form)
@@ -109,45 +104,39 @@ function ColunaBase.restore_from_record!(
     end
 end
 
-ColunaBase.record_type(::Type{MasterBranchConstrsUnit}) = MasterBranchConstrsRecord
-
 """
     MasterColumnsUnit
 
 Unit for branching constraints of a formulation. 
 Can be restored using a MasterColumnsRecord.    
 """
-struct MasterColumnsUnit <: AbstractStorageUnit end
+struct MasterColumnsUnit <: AbstractNewStorageUnit end
 
-MasterColumnsUnit(::Formulation) = MasterColumnsUnit()
-mutable struct MasterColumnsRecord <: AbstractRecord
+mutable struct MasterColumnsRecord <: AbstractNewRecord
     cols::Dict{VarId,VarState}
 end
 
-function Base.show(io::IO, state::MasterColumnsRecord)
-    print(io, "[")
-    for (id, val) in state.cols
-        print(io, " ", MathProg.getuid(id))
-    end
-    print(io, "]")
-end
+ClB.new_storage_unit(::Type{MasterColumnsUnit}, _) = MasterColumnsUnit()
 
-function MasterColumnsRecord(form::Formulation, unit::MasterColumnsUnit)
+function ClB.new_record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, unit::MasterColumnsUnit)
     @logmsg LogLevel(-2) "Storing master columns"
-    state = MasterColumnsRecord(Dict{VarId,ConstrState}())
+    record = MasterColumnsRecord(Dict{VarId,ConstrState}())
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && 
            iscuractive(form, var) && isexplicit(form, var)
             
             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
-            state.cols[id] = varstate
+            record.cols[id] = varstate
         end
     end
-    return state
+    return record
 end
 
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::MasterColumnsUnit, state::MasterColumnsRecord
+ClB.record_type(::Type{MasterColumnsUnit}) = MasterColumnsRecord
+ClB.storage_unit_type(::Type{MasterColumnsRecord}) = MasterColumnsUnit
+
+function ClB.restore_from_record!(
+    form::Formulation, ::MasterColumnsUnit, state::MasterColumnsRecord
 )
     @logmsg LogLevel(-2) "Restoring master columns"
     for (id, var) in getvars(form)
@@ -170,46 +159,41 @@ function ColunaBase.restore_from_record!(
     end
 end
 
-ColunaBase.record_type(::Type{MasterColumnsUnit}) = MasterColumnsRecord
-
 """
     MasterCutsUnit
 
 Unit for cutting planes of a formulation. 
 Can be restored using a MasterCutsRecord.    
 """
-struct MasterCutsUnit <: AbstractStorageUnit end
+struct MasterCutsUnit <: AbstractNewStorageUnit end
 
 MasterCutsUnit(::Formulation) = MasterCutsUnit()
 
-mutable struct MasterCutsRecord <: AbstractRecord
+mutable struct MasterCutsRecord <: AbstractNewRecord
     cuts::Dict{ConstrId,ConstrState}
 end
 
-function Base.show(io::IO, state::MasterCutsRecord)
-    print(io, "[")
-    for (id, constr) in state.cuts
-        print(io, " ", MathProg.getuid(id))
-    end
-    print(io, "]")
-end
+ClB.new_storage_unit(::Type{MasterCutsUnit}, _) = MasterCutsUnit()
 
-function MasterCutsRecord(form::Formulation, unit::MasterCutsUnit)
+function ClB.new_record(::Type{MasterCutsRecord}, id::Int, form::Formulation, unit::MasterCutsUnit)
     @logmsg LogLevel(-2) "Storing master cuts"
-    state = MasterCutsRecord(Dict{ConstrId,ConstrState}())
+    record = MasterCutsRecord(Dict{ConstrId,ConstrState}())
     for (id, constr) in getconstrs(form)
         if getduty(id) <= AbstractMasterCutConstr && 
            iscuractive(form, constr) && isexplicit(form, constr)
             
             constrstate = ConstrState(getcurrhs(form, constr))
-            state.cuts[id] = constrstate
+            record.cuts[id] = constrstate
         end
     end
-    return state
+    return record
 end
 
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::MasterCutsUnit, state::MasterCutsRecord
+ClB.record_type(::Type{MasterCutsUnit}) = MasterCutsRecord
+ClB.storage_unit_type(::Type{MasterCutsRecord}) = MasterCutsUnit
+
+function ClB.restore_from_record!(
+    form::Formulation, ::MasterCutsUnit, state::MasterCutsRecord
 )
     @logmsg LogLevel(-2) "Storing master cuts"
     for (id, constr) in getconstrs(form)
@@ -232,99 +216,105 @@ function ColunaBase.restore_from_record!(
     end
 end
 
-ColunaBase.record_type(::Type{MasterCutsUnit}) = MasterCutsRecord
 
-"""
-    StaticVarConstrUnit
 
-Unit for static variables and constraints of a formulation.
-Can be restored using a StaticVarConstrRecord.    
-"""
+##### UNCOVERED CODE BELOW #####
 
-struct StaticVarConstrUnit <: AbstractStorageUnit end
+# """
+#     StaticVarConstrUnit
 
-StaticVarConstrUnit(::Formulation) = StaticVarConstrUnit()
+# Unit for static variables and constraints of a formulation.
+# Can be restored using a StaticVarConstrRecord.    
+# """
 
-mutable struct StaticVarConstrRecord <: AbstractRecord
-    constrs::Dict{ConstrId,ConstrState}
-    vars::Dict{VarId,VarState}
-end
+# struct StaticVarConstrUnit <: AbstractStorageUnit end
 
-# TO DO: we need to keep here only the difference with the initial data
+# StaticVarConstrUnit(::Formulation) = StaticVarConstrUnit()
 
-function Base.show(io::IO, record::StaticVarConstrRecord)
-    print(io, "[vars:")
-    for (id, var) in record.vars
-        print(io, " ", MathProg.getuid(id))
-    end
-    print(io, ", constrs:")
-    for (id, constr) in record.constrs
-        print(io, " ", MathProg.getuid(id))
-    end
-    print(io, "]")
-end
+# mutable struct StaticVarConstrRecord <: AbstractRecord
+#     constrs::Dict{ConstrId,ConstrState}
+#     vars::Dict{VarId,VarState}
+# end
 
-function StaticVarConstrRecord(form::Formulation, unit::StaticVarConstrUnit)
-    @logmsg LogLevel(-2) string("Storing static vars and consts")
-    record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,VarState}())
-    for (id, constr) in getconstrs(form)
-        if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr)            
-            constrstate = ConstrState(getcurrhs(form, constr))
-            record.constrs[id] = constrstate
-        end
-    end
-    for (id, var) in getvars(form)
-        if isaStaticDuty(getduty(id)) && iscuractive(form, var) && isexplicit(form, var)            
-            varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
-            record.vars[id] = varstate
-        end
-    end
-    return record
-end
+# # TO DO: we need to keep here only the difference with the initial data
 
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::StaticVarConstrUnit, record::StaticVarConstrRecord
-)
-    @logmsg LogLevel(-2) "Restoring static vars and consts"
-    for (id, constr) in getconstrs(form)
-        if isaStaticDuty(getduty(id)) && isexplicit(form, constr)
-            @logmsg LogLevel(-4) "Checking " getname(form, constr)
-            if haskey(record.constrs, id) 
-                if !iscuractive(form, constr) 
-                    @logmsg LogLevel(-2) string("Activating constraint", getname(form, constr))
-                    activate!(form, constr)
-                end
-                @logmsg LogLevel(-4) "Updating data"
-                apply_data!(form, constr, record.constrs[id])
-            else
-                if iscuractive(form, constr) 
-                    @logmsg LogLevel(-2) string("Deactivating constraint", getname(form, constr))
-                    deactivate!(form, constr)
-                end
-            end    
-        end
-    end
-    for (id, var) in getvars(form)
-        if isaStaticDuty(getduty(id)) && isexplicit(form, var)
-            @logmsg LogLevel(-4) "Checking " getname(form, var)
-            if haskey(record.vars, id) 
-                if !iscuractive(form, var) 
-                    @logmsg LogLevel(-4) string("Activating variable", getname(form, var))
-                    activate!(form, var)
-                end
-                @logmsg LogLevel(-4) "Updating data"
-                apply_data!(form, var, record.vars[id])
-            else
-                if iscuractive(form, var) 
-                    @logmsg LogLevel(-4) string("Deactivating variable", getname(form, var))
-                    deactivate!(form, var)
-                end
-            end    
-        end
-    end
-end
+# function Base.show(io::IO, record::StaticVarConstrRecord)
+#     print(io, "[vars:")
+#     for (id, var) in record.vars
+#         print(io, " ", MathProg.getuid(id))
+#     end
+#     print(io, ", constrs:")
+#     for (id, constr) in record.constrs
+#         print(io, " ", MathProg.getuid(id))
+#     end
+#     print(io, "]")
+# end
 
-ColunaBase.record_type(::Type{StaticVarConstrUnit}) = StaticVarConstrRecord
+# function StaticVarConstrRecord(form::Formulation, unit::StaticVarConstrUnit)
+#     @logmsg LogLevel(-2) string("Storing static vars and consts")
+#     record = StaticVarConstrRecord(Dict{ConstrId,ConstrState}(), Dict{VarId,VarState}())
+#     for (id, constr) in getconstrs(form)
+#         if isaStaticDuty(getduty(id)) && iscuractive(form, constr) && isexplicit(form, constr)            
+#             constrstate = ConstrState(getcurrhs(form, constr))
+#             record.constrs[id] = constrstate
+#         end
+#     end
+#     for (id, var) in getvars(form)
+#         if isaStaticDuty(getduty(id)) && iscuractive(form, var) && isexplicit(form, var)            
+#             varstate = VarState(getcurcost(form, var), getcurlb(form, var), getcurub(form, var))
+#             record.vars[id] = varstate
+#         end
+#     end
+#     return record
+# end
+
+# function ColunaBase.restore_from_record!(
+#     form::Formulation, unit::StaticVarConstrUnit, record::StaticVarConstrRecord
+# )
+#     @logmsg LogLevel(-2) "Restoring static vars and consts"
+#     for (id, constr) in getconstrs(form)
+#         if isaStaticDuty(getduty(id)) && isexplicit(form, constr)
+#             @logmsg LogLevel(-4) "Checking " getname(form, constr)
+#             if haskey(record.constrs, id) 
+#                 if !iscuractive(form, constr) 
+#                     @logmsg LogLevel(-2) string("Activating constraint", getname(form, constr))
+#                     activate!(form, constr)
+#                 end
+#                 @logmsg LogLevel(-4) "Updating data"
+#                 apply_data!(form, constr, record.constrs[id])
+#             else
+#                 if iscuractive(form, constr) 
+#                     @logmsg LogLevel(-2) string("Deactivating constraint", getname(form, constr))
+#                     deactivate!(form, constr)
+#                 end
+#             end    
+#         end
+#     end
+#     for (id, var) in getvars(form)
+#         if isaStaticDuty(getduty(id)) && isexplicit(form, var)
+#             @logmsg LogLevel(-4) "Checking " getname(form, var)
+#             if haskey(record.vars, id) 
+#                 if !iscuractive(form, var) 
+#                     @logmsg LogLevel(-4) string("Activating variable", getname(form, var))
+#                     activate!(form, var)
+#                 end
+#                 @logmsg LogLevel(-4) "Updating data"
+#                 apply_data!(form, var, record.vars[id])
+#             else
+#                 if iscuractive(form, var) 
+#                     @logmsg LogLevel(-4) string("Deactivating variable", getname(form, var))
+#                     deactivate!(form, var)
+#                 end
+#             end    
+#         end
+#     end
+# end
+
+# ColunaBase.record_type(::Type{StaticVarConstrUnit}) = StaticVarConstrRecord
+
+
+
+# Seems like uncovered but used ...
 
 """
     PartialSolutionUnit
@@ -336,10 +326,33 @@ Can be restored using a PartialSolutionRecord.
 # TO DO : to replace dictionaries by PrimalSolution
 # issues to see : 1) PrimalSolution is parametric; 2) we need a solution concatenation functionality
 
-mutable struct PartialSolutionUnit <: AbstractStorageUnit
+mutable struct PartialSolutionUnit <: AbstractNewStorageUnit
     solution::Dict{VarId,Float64}
 end
 
+# the record is the same as the record here
+mutable struct PartialSolutionRecord <: AbstractNewRecord
+    solution::Dict{VarId,Float64}
+end
+
+ClB.new_storage_unit(::Type{PartialSolutionUnit}, _) = PartialSolutionUnit(Dict{VarId,Float64}())
+
+function ClB.new_record(::Type{PartialSolutionRecord}, _::Int, _, unit::PartialSolutionUnit)
+    @logmsg LogLevel(-2) "Storing partial solution"
+    return PartialSolutionRecord(copy(unit.solution))
+end
+
+ClB.record_type(::Type{PartialSolutionUnit}) = PartialSolutionRecord
+ClB.storage_unit_type(::Type{PartialSolutionRecord}) = PartialSolutionUnit
+
+function ClB.restore_from_record!(
+    ::Formulation, unit::PartialSolutionUnit, record::PartialSolutionRecord
+)
+    @logmsg LogLevel(-2) "Restoring partial solution"
+    unit.solution = copy(record.solution)
+end
+
+# Remove methods below.
 function add_to_solution!(unit::PartialSolutionUnit, varid::VarId, value::Float64)
     cur_value = get(unit.solution, varid, 0.0)
     unit.solution[varid] = cur_value + value
@@ -355,27 +368,3 @@ function get_primal_solution(unit::PartialSolutionUnit, form::Formulation)
     end
     return PrimalSolution(form, varids, vals, solcost, UNKNOWN_FEASIBILITY)
 end    
-
-
-function PartialSolutionUnit(form::Formulation) 
-    return PartialSolutionUnit(Dict{VarId,Float64}())
-end
-
-# the record is the same as the record here
-mutable struct PartialSolutionRecord <: AbstractRecord
-    solution::Dict{VarId,Float64}
-end
-
-function PartialSolutionRecord(form::Formulation, unit::PartialSolutionUnit)
-    @logmsg LogLevel(-2) "Storing partial solution"
-    return PartialSolutionRecord(copy(unit.solution))
-end
-
-function ColunaBase.restore_from_record!(
-    form::Formulation, unit::PartialSolutionUnit, record::PartialSolutionRecord
-)
-    @logmsg LogLevel(-2) "Restoring partial solution"
-    unit.solution = copy(record.solution)
-end
-
-ColunaBase.record_type(::Type{PartialSolutionUnit}) = PartialSolutionRecord

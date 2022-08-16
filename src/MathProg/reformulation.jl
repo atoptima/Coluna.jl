@@ -6,7 +6,7 @@ mutable struct Reformulation <: AbstractFormulation
     benders_sep_subprs::Dict{FormId, AbstractModel}
     dw_pricing_sp_lb::Dict{FormId, ConstrId}
     dw_pricing_sp_ub::Dict{FormId, ConstrId}
-    storage::Storage
+    storage::Union{Nothing,NewStorage}
 end
 
 """
@@ -17,15 +17,19 @@ using a decomposition approach.
 
 Construct an empty `Reformulation`.
  """
-Reformulation() = Reformulation(
-    nothing,
-    nothing,
-    Dict{FormId, AbstractModel}(),
-    Dict{FormId, AbstractModel}(),
-    Dict{FormId, ConstrId}(),
-    Dict{FormId, ConstrId}(),
-    Storage()
-)
+function Reformulation()
+    reform = Reformulation(
+        nothing,
+        nothing,
+        Dict{FormId, AbstractModel}(),
+        Dict{FormId, AbstractModel}(),
+        Dict{FormId, ConstrId}(),
+        Dict{FormId, ConstrId}(),
+        nothing
+    )
+    reform.storage = NewStorage(reform)
+    return reform
+end
 
 # methods of the AbstractModel interface
 

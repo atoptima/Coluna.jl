@@ -12,7 +12,7 @@ end
 
 struct CharStorageUnitCs1 <: ClB.AbstractNewStorageUnit end
 
-ClB.new_storage_unit(::Type{CharStorageUnitCs1}) = CharStorageUnitCs1()
+ClB.new_storage_unit(::Type{CharStorageUnitCs1}, _) = CharStorageUnitCs1()
 
 struct CharRecordCs1 <: ClB.AbstractNewRecord
     id::Int

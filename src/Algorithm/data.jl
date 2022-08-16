@@ -1,7 +1,8 @@
 function store_records!(form::Formulation, records::RecordsVector)
     storagedict = form.storage.units
+    storage = form.storage
     for (_, storagecont) in storagedict
-        recordid = store_record!(storagecont)
+        recordid = store_record!(storage, storagecont)
         push!(records, storagecont => recordid)
     end
     return
@@ -10,7 +11,7 @@ end
 function store_records!(reform::Reformulation, records::RecordsVector)
     storagedict = reform.storage.units
     for (_, storagecont) in storagedict
-        recordid = store_record!(storagecont)
+        recordid = (storagecont)
         push!(records, (storagecont, recordid))
     end
     store_records!(getmaster(reform), records)
@@ -31,24 +32,24 @@ function store_records!(reform::Reformulation)
     return records
 end
 
-function ColunaBase.check_records_participation(form::Formulation)
-    storagedict = form.storage.units
-    for (_, storagecont) in storagedict
-        check_records_participation(storagecont)
-    end
-end
+# function ColunaBase.check_records_participation(form::Formulation)
+#     storagedict = form.storage.units
+#     for (_, storagecont) in storagedict
+#         check_records_participation(storagecont)
+#     end
+# end
 
-function ColunaBase.check_records_participation(reform::Reformulation)
-    storagedict = reform.storage.units
-    for (_, storagecont) in storagedict
-        check_records_participation(storagecont)
-    end
-    check_records_participation(getmaster(reform))
-    for (_, form) in get_dw_pricing_sps(reform)
-        check_records_participation(form)
-    end
-    for (_, form) in get_benders_sep_sps(reform)
-        check_records_participation(form)
-    end
-    return
-end
+# function ColunaBase.check_records_participation(reform::Reformulation)
+#     storagedict = reform.storage.units
+#     for (_, storagecont) in storagedict
+#         check_records_participation(storagecont)
+#     end
+#     check_records_participation(getmaster(reform))
+#     for (_, form) in get_dw_pricing_sps(reform)
+#         check_records_participation(form)
+#     end
+#     for (_, form) in get_benders_sep_sps(reform)
+#         check_records_participation(form)
+#     end
+#     return
+# end
