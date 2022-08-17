@@ -65,7 +65,7 @@ function new_root(sp::BaBSearchSpace, input)
     skipconquer = false # TODO: used for the diving that should be a separate algorithm.
     nodestate = OptimizationState(getmaster(sp.reformulation), getoptstate(input), false, false)
     return Node(
-        0, nothing, nodestate, "", store_records!(sp.reformulation), false
+        0, nothing, nodestate, "", create_records(sp.reformulation), false
     )
 end
 
@@ -73,7 +73,7 @@ function after_conquer!(space::BaBSearchSpace, current, output)
     nodestate = current.optstate
     treestate = space.optstate
 
-    current.recordids = store_records!(space.reformulation)
+    current.records = create_records(space.reformulation)
     current.conquerwasrun = true
     space.nb_nodes_treated += 1
 

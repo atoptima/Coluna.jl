@@ -21,6 +21,11 @@ mutable struct ColGenStabRecord <: AbstractNewRecord
     stabcenter::Union{Nothing,DualSolution}
 end
 
+struct ColGenStabKey <: AbstractStorageUnitKey end
+
+key_from_storage_unit_type(::Type{ColGenStabilizationUnit}) = ColGenStabKey()
+record_type_from_key(::ColGenStabKey) = ColGenStabRecord
+
 function ClB.new_record(::Type{ColGenStabRecord}, id::Int, form::Formulation, unit::ColGenStabilizationUnit)
     alpha = unit.basealpha < 0.5 ? 0.5 : unit.basealpha
     return ColGenStabRecord(alpha, unit.valid_dual_bound, unit.basestabcenter)
@@ -28,6 +33,8 @@ end
 
 ClB.record_type(::Type{ColGenStabilizationUnit}) = ColGenStabRecord
 ClB.storage_unit_type(::Type{ColGenStabRecord}) = ColGenStabilizationUnit
+
+
 
 function ClB.restore_from_record!(
     ::Formulation, unit::ColGenStabilizationUnit, state::ColGenStabRecord

@@ -14,7 +14,7 @@ end
 
 getnode(input::ConquerInput) = input.node
 
-ColunaBase.restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.recordids)
+restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.records)
 
 """
     AbstractConquerAlgorithm
@@ -245,7 +245,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
 
             @info "Running $name heuristic"
             if ismanager(heur_algorithm) 
-                recordids = store_records!(reform)
+                records = create_records(reform)
             end   
 
             heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
@@ -264,7 +264,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                 end
             end
             if ismanager(heur_algorithm) 
-                ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+                ColunaBase.restore_from_records!(input.units_to_restore, records)
             end
 
             if getterminationstatus(nodestate) == TIME_LIMIT ||
@@ -289,7 +289,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
 
             @info "Running $name node finalizer"
             if ismanager(nodefinalizer) 
-                recordids = store_records!(reform)
+                records = create_records(reform)
             end   
 
             nf_output = run!(nodefinalizer, env, reform, OptimizationInput(nodestate))
@@ -322,7 +322,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                     end
                 end
                 if ismanager(nodefinalizer) 
-                    ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+                    ColunaBase.restore_from_records!(input.units_to_restore, records)
                 end
             end
         end

@@ -112,7 +112,7 @@ function _collect_units_to_restore!(
     global_units_usage::UnitsUsage, algo::AbstractAlgorithm, model::AbstractModel
 )
     for (unit_model, unit_type, unit_usage) in get_units_usage(algo, model)
-        push!(global_units_usage.permissions, (unit_model, unit_type))
+        push!(global_units_usage.units_used, (unit_model, unit_type))
     end
 
     for (childalgo, childmodel) in get_child_algorithms(algo, model)

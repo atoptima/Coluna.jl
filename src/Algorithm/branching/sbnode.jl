@@ -8,23 +8,23 @@ mutable struct SbNode
     parent::Union{Nothing, Node}
     optstate::OptimizationState
     branchdescription::String
-    recordids::RecordsVector
+    records::Records
     conquerwasrun::Bool
 end
 
 function SbNode(
-    form::AbstractFormulation, parent::Node, branchdescription::String, recordrecordids::RecordsVector
+    form::AbstractFormulation, parent::Node, branchdescription::String, records::Records
 )
     depth = getdepth(parent) + 1
     nodestate = OptimizationState(form, getoptstate(parent), false, false)
     
     return SbNode(
-        depth, parent, nodestate, branchdescription, recordrecordids, false
+        depth, parent, nodestate, branchdescription, records, false
     )
 end
 
 function Node(node::SbNode)
-    return Node(node.depth, node.parent, node.optstate, node.branchdescription, node.recordids, node.conquerwasrun)
+    return Node(node.depth, node.parent, node.optstate, node.branchdescription, node.records, node.conquerwasrun)
 end
 
 # TODO remove
