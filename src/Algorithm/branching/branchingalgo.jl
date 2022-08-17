@@ -106,7 +106,7 @@ function _apply_conquer_alg_to_child!(
         @info "IP Gap is closed: $(ip_gap(child_state)). Abort treatment."
     else
         run!(algo, env, reform, ConquerInput(Node(child), units_to_restore, true))
-        child.recordids = store_records!(reform)
+        child.records = create_records(reform)
     end
     child.conquerwasrun = true
     return

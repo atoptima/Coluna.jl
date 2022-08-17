@@ -59,6 +59,11 @@ mutable struct MasterBranchConstrsRecord <: AbstractNewRecord
     constrs::Dict{ConstrId,ConstrState}
 end
 
+struct MasterBranchConstrsKey <: AbstractStorageUnitKey end
+
+key_from_storage_unit_type(::Type{MasterBranchConstrsUnit}) = MasterBranchConstrsKey()
+record_type_from_key(::MasterBranchConstrsKey) = MasterBranchConstrsRecord
+
 ClB.new_storage_unit(::Type{MasterBranchConstrsUnit}, _) = MasterBranchConstrsUnit()
 
 function ClB.new_record(::Type{MasterBranchConstrsRecord}, id::Int, form::Formulation, unit::MasterBranchConstrsUnit)
@@ -116,6 +121,11 @@ mutable struct MasterColumnsRecord <: AbstractNewRecord
     cols::Dict{VarId,VarState}
 end
 
+struct MasterColumnsKey <: AbstractStorageUnitKey end
+
+key_from_storage_unit_type(::Type{MasterColumnsUnit}) = MasterColumnsKey()
+record_type_from_key(::MasterColumnsKey) = MasterColumnsRecord
+
 ClB.new_storage_unit(::Type{MasterColumnsUnit}, _) = MasterColumnsUnit()
 
 function ClB.new_record(::Type{MasterColumnsRecord}, id::Int, form::Formulation, unit::MasterColumnsUnit)
@@ -172,6 +182,11 @@ MasterCutsUnit(::Formulation) = MasterCutsUnit()
 mutable struct MasterCutsRecord <: AbstractNewRecord
     cuts::Dict{ConstrId,ConstrState}
 end
+
+struct MasterCutsKey <: AbstractStorageUnitKey end
+
+key_from_storage_unit_type(::Type{MasterCutsUnit}) = MasterCutsKey()
+record_type_from_key(::MasterCutsKey) = MasterCutsRecord
 
 ClB.new_storage_unit(::Type{MasterCutsUnit}, _) = MasterCutsUnit()
 
@@ -334,6 +349,11 @@ end
 mutable struct PartialSolutionRecord <: AbstractNewRecord
     solution::Dict{VarId,Float64}
 end
+
+struct PartialSolutionKey <: AbstractStorageUnitKey end
+
+key_from_storage_unit_type(::Type{PartialSolutionUnit}) = PartialSolutionKey()
+record_type_from_key(::PartialSolutionKey) = PartialSolutionRecord
 
 ClB.new_storage_unit(::Type{PartialSolutionUnit}, _) = PartialSolutionUnit(Dict{VarId,Float64}())
 
