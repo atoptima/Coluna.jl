@@ -5,7 +5,7 @@ mutable struct Formulation{Duty <: AbstractFormDuty}  <: AbstractFormulation
     manager::FormulationManager
     obj_sense::Type{<:Coluna.AbstractSense}
     buffer::FormulationBuffer
-    storage::Storage
+    storage::Union{Nothing,NewStorage}
     duty_data::Duty
     env::Env{VarId}
 end
@@ -36,16 +36,20 @@ function create_formulation!(
         error("Maximum number of formulations reached.")
     end
     buffer = FormulationBuffer{VarId,Variable,ConstrId,Constraint}()
-    return Formulation(
+    form = Formulation(
         env.form_counter += 1, parent_formulation, AbstractOptimizer[], 
         FormulationManager(buffer, custom_families_id = env.custom_families_id), obj_sense,
-        buffer, Storage(), duty, env
+        buffer, nothing, duty, env
     )
+    storage = NewStorage(form)
+    form.storage = storage
+    return form
 end
 
 # methods of the AbstractModel interface
 
-ColunaBase.getstorage(form::Formulation) = form.storage
+ClB.getuid(form::Formulation) = form.uid
+ClB.getstorage(form::Formulation) = form.storage
 
 # methods specific to Formulation
 
@@ -99,9 +103,6 @@ getcoefmatrix(form::Formulation) = form.manager.coefficients
 
 getdualsolmatrix(form::Formulation) = form.manager.dual_sols
 getdualsolrhss(form::Formulation) = form.manager.dual_sol_rhss
-
-"Returns the `uid` of a formulation."
-getuid(form::Formulation) = form.uid
 
 "Returns the objective function sense of a formulation."
 getobjsense(form::Formulation) = form.obj_sense

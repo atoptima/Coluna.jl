@@ -9,11 +9,12 @@ in the input so that it is not obtained each time the conquer algorithm runs.
 struct ConquerInput <: AbstractInput 
     node::Node    
     units_to_restore::UnitsUsage
+    run_conquer::Bool
 end
 
 getnode(input::ConquerInput) = input.node
 
-ColunaBase.restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.recordids)
+restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.records)
 
 """
     AbstractConquerAlgorithm
@@ -41,29 +42,6 @@ isverbose(algo::AbstractConquerAlgorithm) = false
 
 # this function is needed to check whether the best primal solution should be copied to the node optimization state
 exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
-
-# returns the optimization part of the output of the conquer algorithm 
-function apply_conquer_alg_to_node!(
-    node::Node, algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, 
-    units_to_restore::UnitsUsage, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
-    opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
-)
-    nodestate = getoptstate(node)
-    if isverbose(algo)
-        @logmsg LogLevel(-1) string("Node IP DB: ", get_ip_dual_bound(nodestate))
-        @logmsg LogLevel(-1) string("Tree IP PB: ", get_ip_primal_bound(nodestate))
-    end
-    if ip_gap_closed(nodestate, rtol = opt_rtol, atol = opt_atol)
-        @info "IP Gap is closed: $(ip_gap(nodestate)). Abort treatment."
-    else
-        isverbose(algo) && @logmsg LogLevel(-1) string("IP Gap is positive. Need to treat node.")
-
-        run!(algo, env, reform, ConquerInput(node, units_to_restore))
-        store_records!(reform, node.recordids)
-    end
-    node.conquerwasrun = true
-    return
-end
 
 ####################################################################
 #                      ParameterisedHeuristic
@@ -120,6 +98,7 @@ function get_child_algorithms(algo::BendersConquer, reform::Reformulation)
 end
 
 function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::ConquerInput)
+    !input.run_conquer && return
     restore_from_records!(input)
     node = getnode(input)    
     nodestate = getoptstate(node)
@@ -193,6 +172,7 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
 end
 
 function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::ConquerInput)
+    !input.run_conquer && return
     restore_from_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)
@@ -247,8 +227,9 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
         heuristics_to_run = Tuple{AbstractOptimizationAlgorithm, String, Float64}[]
         for heuristic in algo.primal_heuristics
             #TO DO : get_tree_order of nodes in strong branching is always -1
-            if getdepth(node) <= heuristic.max_depth && 
-                mod(get_tree_order(node) - 1, heuristic.frequency) == 0
+            # TO DO: replace this condition by a function.
+            if getdepth(node) <= heuristic.max_depth #&& 
+                #mod(get_tree_order(node) - 1, heuristic.frequency) == 0 (tree_order removed)
                 push!(heuristics_to_run, (
                     heuristic.algorithm, heuristic.name,
                     isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
@@ -264,7 +245,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
 
             @info "Running $name heuristic"
             if ismanager(heur_algorithm) 
-                recordids = store_records!(reform)
+                records = create_records(reform)
             end   
 
             heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
@@ -283,7 +264,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                 end
             end
             if ismanager(heur_algorithm) 
-                ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+                ColunaBase.restore_from_records!(input.units_to_restore, records)
             end
 
             if getterminationstatus(nodestate) == TIME_LIMIT ||
@@ -299,7 +280,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
             run_node_finalizer && !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
         run_node_finalizer = run_node_finalizer && getdepth(node) >= algo.node_finalizer.min_depth
         run_node_finalizer =
-            run_node_finalizer && mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0
+            run_node_finalizer #&& mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0 (tree_order removed)
 
         if run_node_finalizer
             # get the algorithm info
@@ -308,7 +289,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
 
             @info "Running $name node finalizer"
             if ismanager(nodefinalizer) 
-                recordids = store_records!(reform)
+                records = create_records(reform)
             end   
 
             nf_output = run!(nodefinalizer, env, reform, OptimizationInput(nodestate))
@@ -341,7 +322,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                     end
                 end
                 if ismanager(nodefinalizer) 
-                    ColunaBase.restore_from_records!(input.units_to_restore, recordids)
+                    ColunaBase.restore_from_records!(input.units_to_restore, records)
                 end
             end
         end
@@ -372,6 +353,7 @@ function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation)
 end
 
 function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::ConquerInput)
+    !input.run_conquer && return
     restore_from_records!(input)
     node = getnode(input)
     nodestate = getoptstate(node)

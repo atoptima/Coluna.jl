@@ -1,35 +1,43 @@
 # TODO make immutable
 mutable struct Reformulation <: AbstractFormulation
+    uid::Int
     parent::Union{Nothing, AbstractFormulation} # reference to (pointer to) ancestor:  Formulation or Reformulation (TODO rm Nothing)
     master::Union{Nothing, Formulation}  # TODO : rm Nothing
     dw_pricing_subprs::Dict{FormId, AbstractModel} 
     benders_sep_subprs::Dict{FormId, AbstractModel}
     dw_pricing_sp_lb::Dict{FormId, ConstrId}
     dw_pricing_sp_ub::Dict{FormId, ConstrId}
-    storage::Storage
+    storage::Union{Nothing,NewStorage}
 end
 
 """
 `Reformulation` is a representation of a formulation which is solved by Coluna 
 using a decomposition approach.
 
-    Reformulation()
+    Reformulation(env)
 
 Construct an empty `Reformulation`.
  """
-Reformulation() = Reformulation(
-    nothing,
-    nothing,
-    Dict{FormId, AbstractModel}(),
-    Dict{FormId, AbstractModel}(),
-    Dict{FormId, ConstrId}(),
-    Dict{FormId, ConstrId}(),
-    Storage()
-)
+function Reformulation(env)
+    uid = env.form_counter += 1
+    reform = Reformulation(
+        uid,
+        nothing,
+        nothing,
+        Dict{FormId, AbstractModel}(),
+        Dict{FormId, AbstractModel}(),
+        Dict{FormId, ConstrId}(),
+        Dict{FormId, ConstrId}(),
+        nothing
+    )
+    reform.storage = NewStorage(reform)
+    return reform
+end
 
 # methods of the AbstractModel interface
 
-ColunaBase.getstorage(reform::Reformulation) = reform.storage
+ClB.getuid(reform::Reformulation) = reform.uid
+ClB.getstorage(reform::Reformulation) = reform.storage
 
 # methods specific to Formulation
 

@@ -1,5 +1,5 @@
 const MT_SEED = 1234567
-const MT_MASK = 0x0ffff  # hash keys from 1 to 65536
+const MT_MASK = 0x0ffff # hash keys from 1 to 65536
 
 """
 This datastructure allows us to quickly find solution that shares the same members:

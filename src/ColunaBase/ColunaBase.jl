@@ -13,13 +13,13 @@ import Printf
 
 # interface.jl
 export AbstractModel, AbstractProblem, AbstractSense, AbstractMinSense, AbstractMaxSense,
-    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, getstorage
+    AbstractSpace, AbstractPrimalSpace, AbstractDualSpace, getuid, getstorage
 
 # nestedenum.jl
 export NestedEnum, @nestedenum, @exported_nestedenum
 
 # solsandbounds.jl
-export Bound, Solution, getvalue, getbound, isbetter, diff, gap, printbounds,
+export Bound, Solution, getvalue, getbound, isbetter, best, worst, diff, gap, printbounds,
     getstatus, remove_until_last_point, getmodel, isunbounded, isinfeasible
 
 # Statuses
@@ -32,16 +32,19 @@ export TerminationStatus, SolutionStatus, OPTIMIZE_NOT_CALLED, OPTIMAL,
 export HashTable, gethash, savesolid!, getsolids
 
 # Storages (TODO : clean)
-export RecordsVector, UnitType, Storage, AbstractStorageUnit, AbstractRecord,
-    UnitsUsage, UnitPermission, READ_AND_WRITE, READ_ONLY, NOT_USED, StorageUnitWrapper,
-    set_permission!, store_record!, restore_from_records!, copy_records,
-    restore_from_record!, remove_records!, check_records_participation, record_type,
+export UnitType,
+    UnitsUsage, UnitPermission, READ_AND_WRITE, READ_ONLY, NOT_USED,
+    restore_from_records!,
     getstorageunit, getstoragewrapper
+
+export NewStorage, NewStorageUnitManager, AbstractNewStorageUnit, AbstractNewRecord, new_storage_unit,
+    new_record, record_type, storage_unit_type, restore_from_record!, create_record
 
 include("interface.jl")
 include("nestedenum.jl")
 include("solsandbounds.jl")
 include("hashtable.jl")
+include("recordmanager.jl")
 include("storage.jl")
 
 end

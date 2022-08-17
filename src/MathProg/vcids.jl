@@ -62,7 +62,7 @@ Base.:(==)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash == b._hash
 Base.:(>)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash > b._hash
 Base.:(>=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash >= b._hash
 
-getuid(id::Id) = id.uid
+ClB.getuid(id::Id) = id.uid # TODO: change name
 getduty(vcid::Id{VC}) where {VC} = vcid.duty
 getoriginformuid(id::Id) = id.origin_form_uid
 getassignedformuid(id::Id) = id.assigned_form_uid

@@ -12,6 +12,7 @@ import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getind
 using DynamicSparseArrays, Logging, Printf
 
 const BD = BlockDecomposition
+const ClB = ColunaBase
 const MOI = MathOptInterface
 const TO = TimerOutputs
 
@@ -44,7 +45,7 @@ export  MaxSense, MinSense,
 
 # Methods
 export no_optimizer_builder, set_original_formulation!,
-       getid, getuid,
+       getid,
        enforce_integrality!, relax_integrality!,
        getobjsense, getoptimizer, getoptimizers,
        update!,

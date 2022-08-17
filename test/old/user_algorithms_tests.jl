@@ -23,8 +23,10 @@ function Coluna.Algorithm.get_units_usage(
     algo::ConsecutiveColGen, reform::Reformulation
 ) 
     master = Coluna.MathProg.getmaster(reform)
-    return [(reform, Coluna.Algorithm.PreprocessingUnit, Coluna.Algorithm.READ_AND_WRITE),
-            (master, Coluna.Algorithm.PartialSolutionUnit, Coluna.Algorithm.READ_AND_WRITE)]
+    return [
+        (reform, Coluna.Algorithm.PreprocessingUnit, Coluna.Algorithm.READ_AND_WRITE),
+        (master, Coluna.Algorithm.PartialSolutionUnit, Coluna.Algorithm.READ_AND_WRITE)
+    ]
 end
 
 function Coluna.Algorithm.run!(

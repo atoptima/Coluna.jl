@@ -1,27 +1,34 @@
 module Algorithm
 
-import DataStructures
+using DataStructures
 import MathOptInterface
 import TimerOutputs
 
 using ..Coluna, ..ColunaBase, ..MathProg
 
-using DynamicSparseArrays, Logging, Parameters, Printf, Statistics
+using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Statistics
 
 const TO = TimerOutputs
 const DS = DataStructures
 const MOI = MathOptInterface
 
+const ClB = ColunaBase
+
 import Base: push!
 
 # Utilities to build algorithms
 include("utilities/optimizationstate.jl")
-
-include("data.jl")
-include("formstorages.jl")
+include("utilities/helpers.jl")
 
 # Abstract algorithm
+include("data.jl")
 include("interface.jl")
+
+# Tree search interface
+include("treesearch/interface.jl")
+include("treesearch/explore.jl")
+
+include("formstorages.jl")
 
 # Basic algorithms
 include("basic/solvelpform.jl")
@@ -37,16 +44,21 @@ include("preprocessing.jl")
 # Algorithms and structures used by the tree search algorithm
 include("node.jl")
 include("conquer.jl")
-include("divide.jl")
 
 # Here include divide algorithms
-include("branching/branchinggroup.jl")
-include("branching/branchingrule.jl")
-include("branching/varbranching.jl")
+include("branching/interface.jl")
+include("branching/sbnode.jl")
+include("divide.jl") # TODO: DivideInput and DivideOutput are already implementation.
+include("branching/selectioncriteria.jl")
+include("branching/scores.jl")
+include("branching/single_var_branching.jl")
 include("branching/branchingalgo.jl")
 
 include("treesearch.jl")
+include("treesearch/printer.jl")
+include("treesearch/branch_and_bound.jl")
 include("branchcutprice.jl")
+
 
 # Algorithm should export only methods usefull to define & parametrize algorithms, and
 # data structures from utilities.

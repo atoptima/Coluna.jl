@@ -9,7 +9,7 @@ program, you'll get sets of constraints (blocks) that you can solve independentl
 Let's consider the following coefficient matrix that has a block diagonal structure
 in gray and some linking constraints in blue :
 
-![Dantzig-Wolfe decomposition](../static/dwdec.png)
+![Dantzig-Wolfe decomposition](../assets/img/dwdec.png)
 
 You penalize the violation of the linking constraints in the
 objective function. You can then solve the blocks independently.
@@ -21,12 +21,12 @@ solving the subproblems. It's the column generation algorithm.
 Let's consider the following original formulation in which we partition variables into
 two vectors $x_1$ and $x_2$ :
 
-![Original formulation](../static/dw_origform.svg)
+![Original formulation](../assets/img/dw_origform.svg)
 
 When you apply a Dantzig-Wofe decomposition to this formulation, 
 Coluna reformulates it into the following master problem :
 
-![Master formulation](../static/dw_master.svg)
+![Master formulation](../assets/img/dw_master.svg)
 
 where $Q_1$ is the index-set of the solutions to the first subproblem and 
 $Q_2$ is the index-set of the solutions to the second subproblem.
@@ -42,7 +42,7 @@ Costs of articial and global artificial variables can be defined in [Coluna.Para
 
 Subproblems take the following form (here, it's the first subproblem) :
 
-![Subproblem n°1 formulation](../static/dw_sp.svg)
+![Subproblem n°1 formulation](../assets/img/dw_sp.svg)
 
 where $\bar{c}$ is the reduced cost of the original variables computed by the column generation algorithm.
 
@@ -163,7 +163,7 @@ end
 Let's consider the following coefficient matrix that has a block diagonal structure
 in gray and some linking variables in blue :
 
-![Benders decomposition](../static/bdec.png)
+![Benders decomposition](../assets/img/bdec.png)
 
 You fix the complicated variables, then you can solve the blocks
 independently.

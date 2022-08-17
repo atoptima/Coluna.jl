@@ -40,6 +40,21 @@ isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MinSense} = b1.
 isbetter(b1::Bound{Sp,Se}, b2::Bound{Sp,Se}) where {Sp<:Dual,Se<:MaxSense} = b1.value < b2.value
 
 """
+    best(b1, b2)
+
+Returns the best bound between b1 and b2.
+"""
+best(b1::B, b2::B) where {B<:Bound} = isbetter(b1, b2) ? b1 : b2
+
+"""
+    worst(b1, b2)
+
+Returns the worst bound between b1 and b2.
+"""
+worst(b1::B, b2::B) where {B<:Bound} = isbetter(b1, b2) ? b2 : b1
+
+
+"""
     diff(pb, db)
     diff(db, pb)
 
