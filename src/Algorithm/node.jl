@@ -7,7 +7,7 @@ mutable struct Node <: AbstractNode
     parent::Union{Nothing, Node}
     optstate::OptimizationState
     branchdescription::String
-    recordids::RecordsVector
+    records::Records
     conquerwasrun::Bool
 end
 

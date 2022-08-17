@@ -32,9 +32,9 @@ export TerminationStatus, SolutionStatus, OPTIMIZE_NOT_CALLED, OPTIMAL,
 export HashTable, gethash, savesolid!, getsolids
 
 # Storages (TODO : clean)
-export RecordsVector, UnitType,
+export UnitType,
     UnitsUsage, UnitPermission, READ_AND_WRITE, READ_ONLY, NOT_USED,
-    restore_from_records!, copy_records,
+    restore_from_records!,
     getstorageunit, getstoragewrapper
 
 export NewStorage, NewStorageUnitManager, AbstractNewStorageUnit, AbstractNewRecord, new_storage_unit,

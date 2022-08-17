@@ -76,6 +76,12 @@ mutable struct PreprocessingRecord <: AbstractNewRecord
     local_partial_sol::Dict{VarId, Float64}
 end
 
+struct PreprocessingKey <: AbstractStorageUnitKey end
+
+key_from_storage_unit_type(::Type{PreprocessingUnit}) = PreprocessingKey()
+record_type_from_key(::PreprocessingKey) = PreprocessingRecord
+
+
 function ClB.new_storage_unit(::Type{ PreprocessingUnit}, reform::Reformulation)
     constraints = Tuple{ConstrId,Formulation}[]
 
