@@ -27,7 +27,9 @@ function to_be_pruned(node::SbNode)
 end
 
 getdepth(n::SbNode) = n.depth
-getparent(n::SbNode) = n.parent
-getchildren(n::SbNode) = n.children
-get_opt_state(n::SbNode) = n.optstate
 
+get_opt_state(n::SbNode) = n.optstate
+get_records(n::SbNode) = n.records
+get_parent(n::SbNode) = n.parent
+get_branch_description(n::SbNode) = n.branchdescription
+isroot(n::SbNode) = false

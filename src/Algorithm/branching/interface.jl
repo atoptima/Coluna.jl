@@ -14,12 +14,30 @@ getdescription(candidate::AbstractBranchingCandidate) =
 ## Note: Branching candidates must be created in the BranchingRule algorithm so they do not need
 ## a generic constructor.
 
-get_lhs(::AbstractBranchingCandidate) = nothing
-get_lhs_distance_to_integer(::AbstractBranchingCandidate) = nothing
-get_local_id(::AbstractBranchingCandidate) = nothing
-get_children(::AbstractBranchingCandidate) = nothing
-set_children!(::AbstractBranchingCandidate, children) = nothing
-get_parent(::AbstractBranchingCandidate) = nothing
+function get_lhs(c::AbstractBranchingCandidate)
+    @warn "get_lhs(::$(typeof(c))) not implemented."
+    return nothing
+end
+
+function get_local_id(c::AbstractBranchingCandidate)
+    @warn "get_local_id(::$(typeof(c))) not implemented."
+    return nothing
+end
+
+function get_children(c::AbstractBranchingCandidate)
+    @warn "get_children(::$(typeof(c))) not implemented."
+    return nothing
+end
+
+function set_children!(c::AbstractBranchingCandidate, children)
+    @warn "set_children!(::$(typeof(c)), children) not implemented."
+    return nothing
+end
+
+function get_parent(c::AbstractBranchingCandidate)
+    @warn "get_parent(::$(typeof(c))) not implemented."
+    return nothing
+end
 
 # TODO: this method should not generate the children of the tree search algorithm.
 # However, AbstractBranchingCandidate should implement an interface to retrieve data to
@@ -28,10 +46,13 @@ get_parent(::AbstractBranchingCandidate) = nothing
     generate_children!(branching_candidate, lhs, env, reform, node)
 
 This method generates the children of a node described by `branching_candidate`.
+Make sure that this method returns an object the same type as the second argument of
+`set_children!(candiate, children)`.
 """
-generate_children!(
-    candidate::AbstractBranchingCandidate, ::Float64, ::Env, ::Reformulation, ::AbstractNode
-) = error("generate_children not defined for branching candidates of type $(typeof(candidate)).")
+function generate_children!(c::AbstractBranchingCandidate, env, reform, parent)
+    @warn "generate_children!(::$(typeof(c)), ::$(typeof(env)), ::$(typeof(reform)), ::$(typeof(parent))) not implemented."
+    return nothing
+end
 
 ############################################################################################
 # Selection Criteria of branching candidates

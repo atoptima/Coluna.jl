@@ -127,8 +127,8 @@ struct Node <: ClA.AbstractNode
     end
 end
 
-ClA.root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
-ClA.parent(node::Node) = node.parent
+ClA.get_root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
+ClA.get_parent(node::Node) = node.parent
 
 
 # Then, we define the search spaces. Take a look at the API section to see

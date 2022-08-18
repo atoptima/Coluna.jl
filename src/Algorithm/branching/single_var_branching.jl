@@ -25,18 +25,10 @@ mutable struct SingleVarBranchingCandidate{Node<:AbstractNode} <: AbstractBranch
 end
 
 getdescription(candidate::SingleVarBranchingCandidate) = candidate.varname
-
 get_lhs(candidate::SingleVarBranchingCandidate) = candidate.lhs
-
-function get_lhs_distance_to_integer(candidate::SingleVarBranchingCandidate)
-    lhs = get_lhs(candidate)
-    return min(lhs - floor(lhs), ceil(lhs) - lhs)
-end
-
 get_local_id(candidate::SingleVarBranchingCandidate) = candidate.local_id
-
 get_children(candidate::SingleVarBranchingCandidate) = candidate.children
-set_children!(candidate::SingleVarBranchingCandidate, children::Vector{SbNode}) = candidate.children = children
+set_children!(candidate::SingleVarBranchingCandidate, children) = candidate.children = children
 get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
 
 function generate_children!(
@@ -90,7 +82,7 @@ function print_bounds_and_score(
     print("SB phase ", phase_index, " branch on ", getdescription(candidate))
     @printf " (lhs=%.4f)" lhs
     print(repeat(" ", lengthdiff), " : [")
-    for (node_index, node) in enumerate(candidate.children)
+    for (node_index, node) in enumerate(get_children(candidate))
         node_index > 1 && print(",")            
         @printf "%10.4f" getvalue(get_lp_primal_bound(get_opt_state(node)))
     end

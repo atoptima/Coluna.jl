@@ -12,14 +12,11 @@ mutable struct Node <: AbstractNode
 end
 
 getdepth(n::Node) = n.depth
-getparent(n::Node) = n.parent
-getchildren(n::Node) = n.children
-get_opt_state(n::Node) = n.optstate
 
 get_parent(n::Node) = n.parent # divide
 get_opt_state(n::Node) = n.optstate # conquer, divide
 
-isrootnode(n::Node) = n.depth == 0
+isroot(n::Node) = n.depth == 0
 get_records(n::Node) = n.records # conquer
 
 get_branch_description(n::Node) = n.branchdescription # printer
@@ -152,12 +149,12 @@ function after_conquer!(space::BaBSearchSpace, current, output)
 
     # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node.
     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
-    if isrootnode(current) && !isnothing(best_lp_primal_sol)
+    if isroot(current) && !isnothing(best_lp_primal_sol)
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
     end
 
     best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
-    if isrootnode(current) && !isnothing(best_lp_dual_sol)
+    if isroot(current) && !isnothing(best_lp_dual_sol)
         set_lp_dual_sol!(treestate, best_lp_dual_sol)
     end
     return
@@ -193,7 +190,7 @@ function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
     add_ip_primal_sols!(space.optstate, get_ip_primal_sols(get_opt_state(candidates))...)
     set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
 
-    children = map(candidates.children) do child
+    children = map(get_children(candidates)) do child
         return Node(child)
     end
     return children

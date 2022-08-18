@@ -117,7 +117,7 @@ function _apply_conquer_alg_to_child!(
     if ip_gap_closed(child_state, rtol = opt_rtol, atol = opt_atol)
         @info "IP Gap is closed: $(ip_gap(child_state)). Abort treatment."
     else
-        run!(algo, env, reform, ConquerInputFromSb(Node(child), units_to_restore))
+        run!(algo, env, reform, ConquerInputFromSb(child, units_to_restore))
         child.records = create_records(reform)
     end
     child.conquerwasrun = true
@@ -302,7 +302,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Abs
     end
 
     if isempty(algo.rules)
-        @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
+        println("No branching rule is defined. No children will be generated.")
         return DivideOutput(SbNode[], optstate)
     end
 

@@ -23,7 +23,7 @@ struct DivideOutput <: AbstractOutput
     optstate::OptimizationState
 end
 
-getchildren(output::DivideOutput) = output.children
+get_children(output::DivideOutput) = output.children
 get_opt_state(output::DivideOutput) = output.optstate
 
 """

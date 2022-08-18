@@ -27,13 +27,13 @@ function new_root(sp::AbstractSearchSpace, input)
 end
 
 "Returns the root node of the tree to which the node belongs."
-root(::AbstractNode) = nothing
+get_root(::AbstractNode) = nothing
 
 "Returns the parent of a node; `nothing` if the node is the root."
-parent(::AbstractNode) = nothing
+get_parent(::AbstractNode) = nothing
 
 "Returns the priority of the node depending on the explore strategy."
-priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
+get_priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
 
 # TODO; remove untreated_nodes
 "Evaluate and generate children. This method has a specific implementation for Coluna."
@@ -139,5 +139,6 @@ end
 
 get_opt_state(::AbstractNode) = nothing # conquer, divide
 get_records(::AbstractNode) = nothing # conquer
-get_parent(::AbstractNode) = nothing # conquer, divide
+#get_parent(::AbstractNode) = nothing # conquer, divide
 get_branch_description(::AbstractNode) = nothing # printer
+isroot(::AbstractNode) = nothing

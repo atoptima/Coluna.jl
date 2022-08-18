@@ -25,7 +25,7 @@
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
         output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.getoptstate(output)
+        state = ClA.get_opt_state(output)
         @test ClA.get_ip_primal_bound(state) == Inf
         @test ClA.get_ip_dual_bound(state) == 0.5
         @test ClA.getterminationstatus(state) == CL.OTHER_LIMIT
@@ -55,7 +55,7 @@
         )
 
         output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.getoptstate(output)
+        state = ClA.get_opt_state(output)
         @test ClA.get_ip_primal_bound(state) == -15.0
         @test ClA.get_ip_dual_bound(state) == -15.0
         @test ClA.getterminationstatus(state) == ClB.OPTIMAL
@@ -85,7 +85,7 @@
         )
 
         output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.getoptstate(output)
+        state = ClA.get_opt_state(output)
         @test ClA.get_ip_primal_bound(state) == -15.0
         @test ClA.get_ip_dual_bound(state) == -20.0
         @test ClA.getterminationstatus(state) == ClB.OTHER_LIMIT
@@ -103,7 +103,7 @@
 
         output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
         output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.getoptstate(output)
+        state = ClA.get_opt_state(output)
         @test ClA.get_ip_primal_bound(state) == Inf
         @test ClA.get_ip_dual_bound(state) == Inf
         @test ClA.getterminationstatus(state) == ClB.INFEASIBLE
@@ -125,7 +125,7 @@
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
         output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.getoptstate(output)
+        state = ClA.get_opt_state(output)
         @test ClA.get_ip_primal_bound(state) == -15.0
         @test ClA.get_ip_dual_bound(state) == -Inf
         @test ClA.getterminationstatus(state) == ClB.DUAL_INFEASIBLE

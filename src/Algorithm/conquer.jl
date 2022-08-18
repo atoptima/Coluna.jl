@@ -242,7 +242,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Ab
                 #mod(get_tree_order(node) - 1, heuristic.frequency) == 0 (tree_order removed)
                 push!(heuristics_to_run, (
                     heuristic.algorithm, heuristic.name,
-                    isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
+                    isroot(node) ? heuristic.root_priority : heuristic.nonroot_priority
                 ))
             end
         end
@@ -364,8 +364,10 @@ end
 
 function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
     !run_conquer(input) && return
-    restore_from_records!(get_units_to_restore(input), get_records(node))
+
     node = get_node(input)
+    restore_from_records!(get_units_to_restore(input), get_records(node))
+
     node_state = get_opt_state(node)
     output = run!(algo.masterlpalgo, env, getmaster(reform), OptimizationInput(node_state))
     masterlp_state =  get_opt_state(output)
