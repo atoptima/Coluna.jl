@@ -184,7 +184,7 @@ end
 
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
     master = getmaster(reform)
-    optstate = OptimizationState(master, getoptstate(input), false, false)
+    optstate = OptimizationState(master, get_opt_state(input), false, false)
 
     stop = false
 
@@ -351,7 +351,7 @@ end
 function _optimize_sp(spform, pricing_prob_solve_alg, env)
     input = OptimizationInput(OptimizationState(spform))
     output = run!(pricing_prob_solve_alg, env, spform, input)
-    return getoptstate(output)
+    return get_opt_state(output)
 end
 
 # Subproblem optimisation can be run sequentially or in parallel.
@@ -737,7 +737,7 @@ function cg_main_loop!(
             )
             rm_output = run!(algo.restr_master_solve_alg, env, masterform, rm_input, algo.restr_master_optimizer_id)
         end
-        rm_optstate = getoptstate(rm_output)
+        rm_optstate = get_opt_state(rm_output)
 
         if phase != 1 && getterminationstatus(rm_optstate) == INFEASIBLE
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",

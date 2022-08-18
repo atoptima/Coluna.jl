@@ -134,3 +134,10 @@ function children(space::AbstractColunaSearchSpace, current::AbstractNode, env, 
     branches = run!(divide_alg, env, reform, divide_input)
     return new_children(space, branches, current)
 end
+
+##### Addition methods for the node interface (needed by conquer)
+
+get_opt_state(::AbstractNode) = nothing # conquer, divide
+get_records(::AbstractNode) = nothing # conquer
+get_parent(::AbstractNode) = nothing # conquer, divide
+get_branch_description(::AbstractNode) = nothing # printer

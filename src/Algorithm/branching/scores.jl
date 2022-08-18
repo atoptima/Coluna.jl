@@ -1,18 +1,18 @@
 struct ProductScore <: AbstractBranchingScore end
 
 function compute_score(::ProductScore, candidate)
-    parent_lp_dual_bound = get_lp_dual_bound(getoptstate(get_parent(candidate)))
-    parent_ip_primal_bound = get_ip_primal_bound(getoptstate(get_parent(candidate)))
-    children_lp_primal_bounds = get_lp_primal_bound.(getoptstate.(get_children(candidate)))
+    parent_lp_dual_bound = get_lp_dual_bound(get_opt_state(get_parent(candidate)))
+    parent_ip_primal_bound = get_ip_primal_bound(get_opt_state(get_parent(candidate)))
+    children_lp_primal_bounds = get_lp_primal_bound.(get_opt_state.(get_children(candidate)))
     return _product_score(parent_lp_dual_bound, parent_ip_primal_bound, children_lp_primal_bounds)
 end
 
 struct TreeDepthScore <: AbstractBranchingScore end
 
 function compute_score(::TreeDepthScore, candidate)
-    parent_lp_dual_bound = get_lp_dual_bound(getoptstate(get_parent(candidate)))
-    parent_ip_primal_bound = get_ip_primal_bound(getoptstate(get_parent(candidate)))
-    children_lp_primal_bounds = get_lp_primal_bound.(getoptstate.(get_children(candidate)))
+    parent_lp_dual_bound = get_lp_dual_bound(get_opt_state(get_parent(candidate)))
+    parent_ip_primal_bound = get_ip_primal_bound(get_opt_state(get_parent(candidate)))
+    children_lp_primal_bounds = get_lp_primal_bound.(get_opt_state.(get_children(candidate)))
     return _tree_depth_score(parent_lp_dual_bound, parent_ip_primal_bound, children_lp_primal_bounds)
 end
 

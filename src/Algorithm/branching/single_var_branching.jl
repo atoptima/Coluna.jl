@@ -8,7 +8,7 @@ It is an implementation of AbstractBranchingCandidate.
 This is the type of branching candidates produced by the branching rule 
 `SingleVarBranchingRule`.
 """
-mutable struct SingleVarBranchingCandidate <: AbstractBranchingCandidate
+mutable struct SingleVarBranchingCandidate{Node<:AbstractNode} <: AbstractBranchingCandidate
     varname::String
     varid::VarId
     local_id::Int64
@@ -17,8 +17,10 @@ mutable struct SingleVarBranchingCandidate <: AbstractBranchingCandidate
     children::Vector{SbNode}
     isconquered::Bool
     parent::Union{Nothing,Node}
-    function SingleVarBranchingCandidate(varname::String, varid::VarId, local_id::Int64, lhs::Float64, parent)
-        return new(varname, varid, local_id, lhs, 0.0, SbNode[], false, parent)
+    function SingleVarBranchingCandidate(
+        varname::String, varid::VarId, local_id::Int64, lhs::Float64, parent::N
+    ) where {N<:AbstractNode}
+        return new{N}(varname, varid, local_id, lhs, 0.0, SbNode[], false, parent)
     end
 end
 
@@ -39,7 +41,7 @@ get_parent(candidate::SingleVarBranchingCandidate) = candidate.parent
 
 function generate_children!(
     candidate::SingleVarBranchingCandidate, env::Env, reform::Reformulation, 
-    parent::Node
+    parent::AbstractNode
 )
     master = getmaster(reform)
     lhs = get_lhs(candidate)
@@ -90,7 +92,7 @@ function print_bounds_and_score(
     print(repeat(" ", lengthdiff), " : [")
     for (node_index, node) in enumerate(candidate.children)
         node_index > 1 && print(",")            
-        @printf "%10.4f" getvalue(get_lp_primal_bound(getoptstate(node)))
+        @printf "%10.4f" getvalue(get_lp_primal_bound(get_opt_state(node)))
     end
     @printf "], score = %10.4f\n" score
     return

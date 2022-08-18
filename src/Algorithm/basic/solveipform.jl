@@ -173,7 +173,7 @@ function run!(
 )::OptimizationOutput
     result = OptimizationState(
         form, 
-        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        ip_primal_bound = get_ip_primal_bound(get_opt_state(input)),
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
@@ -302,7 +302,7 @@ function run!(
 )::OptimizationOutput
     result = OptimizationState(
         spform, 
-        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        ip_primal_bound = get_ip_primal_bound(get_opt_state(input)),
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
