@@ -1,56 +1,3 @@
-"""
-AbstractConquerInput
-
-Input of a conquer algorithm used by the tree search algorithm.
-Contains the node in the search tree and the collection of units to restore 
-before running the conquer algorithm. This collection of units is passed
-in the input so that it is not obtained each time the conquer algorithm runs. 
-"""
-
-abstract type AbstractConquerInput end
-
-function get_node(i::AbstractConquerInput)
-    @warn "get_node(::$(typeof(i))) not implemented."
-    return nothing
-end
-
-function get_units_to_restore(i::AbstractConquerInput)
-    @warn "get_units_to_restore(::$(typeof(i))) not implemented."
-    return nothing
-end
-
-function run_conquer(i::AbstractConquerInput)
-    @warn "run_conquer(::$(typeof(i))) not implemented."
-    return nothing
-end
-
-"""
-    AbstractConquerAlgorithm
-
-This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
-For the moment, a conquer algorithm can be run only on reformulation.     
-A conquer algorithm should restore records of storage units using `restore_from_records!(conquer_input)`
-- each time it runs in the beginning
-- each time after calling a child manager algorithm
-"""
-abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
-
-# conquer algorithms are always manager algorithms (they manage storing and restoring units)
-ismanager(algo::AbstractConquerAlgorithm) = true
-
-function run!(algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, input::AbstractConquerInput)
-    algotype = typeof(algo)
-    error(string("Method run! which takes as parameters Reformulation and ConquerInput ", 
-                 "is not implemented for algorithm $algotype.")
-    )
-end
-
-# this function is needed in strong branching (to have a better screen logging)
-isverbose(algo::AbstractConquerAlgorithm) = false
-
-# this function is needed to check whether the best primal solution should be copied to the node optimization state
-exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
-
 ####################################################################
 #                      ParameterisedHeuristic
 ####################################################################
@@ -110,8 +57,8 @@ function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::Abst
     restore_from_records!(get_units_to_restore(input), get_records(node))
     node = getnode(input)    
     node_state = get_opt_state(node)
-    output = run!(algo.benders, env, reform, OptimizationInput(node_state))
-    update!(node_state, get_opt_state(output))
+    output = run!(algo.benders, env, reform, node_state)
+    update!(node_state, output)
     return 
 end
 
@@ -186,7 +133,7 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Ab
     restore_from_records!(get_units_to_restore(input), get_records(node))
 
     node_state = get_opt_state(node)
-    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, env, reform, EmptyInput()))
+    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, env, reform, PreprocessingInput()))
         setterminationstatus!(node_state, INFEASIBLE)
         return
     end
@@ -201,8 +148,8 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Ab
                 @logmsg LogLevel(0) "Column generation stage $stage is started"
             end
 
-            colgen_output = run!(colgen, env, reform, OptimizationInput(node_state))
-            update!(node_state, get_opt_state(colgen_output))
+            colgen_output = run!(colgen, env, reform, node_state)
+            update!(node_state, colgen_output)
 
             if getterminationstatus(node_state) == INFEASIBLE ||
                getterminationstatus(node_state) == TIME_LIMIT ||
@@ -258,10 +205,10 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Ab
                 records = create_records(reform)
             end   
 
-            heur_output = run!(heur_algorithm, env, reform, OptimizationInput(node_state))
-            status = getterminationstatus(get_opt_state(heur_output))
+            heur_output = run!(heur_algorithm, env, reform, node_state)
+            status = getterminationstatus(heur_output)
             status == TIME_LIMIT && setterminationstatus!(node_state, status)
-            ip_primal_sols = get_ip_primal_sols(get_opt_state(heur_output))
+            ip_primal_sols = get_ip_primal_sols(heur_output)
             if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                 # we start with worst solution to add all improving solutions
                 for sol in sort(ip_primal_sols)
@@ -302,10 +249,10 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Ab
                 records = create_records(reform)
             end   
 
-            nf_output = run!(nodefinalizer, env, reform, OptimizationInput(node_state))
-            status = getterminationstatus(get_opt_state(nf_output))
+            nf_output = run!(nodefinalizer, env, reform, node_state)
+            status = getterminationstatus(nf_output)
             status == TIME_LIMIT && setterminationstatus!(node_state, status)
-            ip_primal_sols = get_ip_primal_sols(get_opt_state(nf_output))
+            ip_primal_sols = get_ip_primal_sols(nf_output)
 
             # if the node has been conquered by the node finalizer
             if status in (OPTIMAL, INFEASIBLE)
@@ -369,8 +316,7 @@ function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input
     restore_from_records!(get_units_to_restore(input), get_records(node))
 
     node_state = get_opt_state(node)
-    output = run!(algo.masterlpalgo, env, getmaster(reform), OptimizationInput(node_state))
-    masterlp_state =  get_opt_state(output)
+    masterlp_state = run!(algo.masterlpalgo, env, getmaster(reform), node_state)
     update!(node_state, masterlp_state)
     if ip_gap_closed(masterlp_state)
         setterminationstatus!(node_state, OPTIMAL)

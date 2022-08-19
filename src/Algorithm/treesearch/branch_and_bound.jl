@@ -108,9 +108,7 @@ function new_space(
     ::Type{BaBSearchSpace}, algo::TreeSearchAlgorithm, reform::Reformulation, input
 )
     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)
-    optstate = OptimizationState(
-        getmaster(reform), get_opt_state(input), exploitsprimalsols, false
-    )
+    optstate = OptimizationState(getmaster(reform), input, exploitsprimalsols, false)
     conquer_units_to_restore = collect_units_to_restore!(algo.conqueralg, reform) 
     return BaBSearchSpace(
         reform,
@@ -131,7 +129,7 @@ end
 
 function new_root(sp::BaBSearchSpace, input)
     skipconquer = false # TODO: used for the diving that should be a separate algorithm.
-    nodestate = OptimizationState(getmaster(sp.reformulation), get_opt_state(input), false, false)
+    nodestate = OptimizationState(getmaster(sp.reformulation), input, false, false)
     return Node(
         0, nothing, nodestate, "", create_records(sp.reformulation), false
     )
@@ -239,5 +237,5 @@ function tree_search_output(space::BaBSearchSpace, untreated_nodes)
 
     #env.kpis.node_count = 0 #get_tree_order(tsdata) - 1 # TODO : check why we need to remove 1
 
-    return OptimizationOutput(space.optstate)
+    return space.optstate
 end

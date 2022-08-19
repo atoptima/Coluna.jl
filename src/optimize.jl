@@ -87,8 +87,7 @@ function optimize!(
     # initialize all the units used by the algorithm and its child algorithms
     Algorithm.initialize_storage_units!(reform, algorithm)
 
-    output = Algorithm.run!(algorithm, env, reform, Algorithm.OptimizationInput(initstate))
-    algstate = Algorithm.get_opt_state(output)
+    algstate = Algorithm.run!(algorithm, env, reform, initstate)
 
     # we copy optimisation state as we want to project the solution to the compact space
     outstate = OptimizationState(
@@ -136,8 +135,8 @@ function optimize!(
         lp_dual_bound = initial_dual_bound
     )
     algorithm = env.params.solver
-    output = Algorithm.run!(algorithm, env, form, Algorithm.OptimizationInput(initstate))
-    return Algorithm.get_opt_state(output), nothing
+    output = Algorithm.run!(algorithm, env, form, initstate)
+    return output, nothing
 end
 
 """

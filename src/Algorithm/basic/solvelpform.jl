@@ -92,9 +92,9 @@ function optimize_lp_form!(
 end
 
 function run!(
-    algo::SolveLpForm, ::Env, form::Formulation, input::OptimizationInput, 
+    algo::SolveLpForm, ::Env, form::Formulation, input::OptimizationState, 
     optimizer_id::Int = 1
-)::OptimizationOutput
+)
     result = OptimizationState(form)
 
     TO.@timeit Coluna._to "SolveLpForm" begin
@@ -146,5 +146,5 @@ function run!(
         end
     end
     end # @timeit
-    return OptimizationOutput(result)
+    return result
 end
