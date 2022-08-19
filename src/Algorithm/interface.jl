@@ -44,12 +44,108 @@ get_units_usage(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractModel, Uni
 # Conquer Algorithm API
 ############################################################################################
 
+"""
+AbstractConquerInput
+
+Input of a conquer algorithm used by the tree search algorithm.
+Contains the node in the search tree and the collection of units to restore 
+before running the conquer algorithm. This collection of units is passed
+in the input so that it is not obtained each time the conquer algorithm runs. 
+"""
+abstract type AbstractConquerInput end
+
+function get_node(i::AbstractConquerInput)
+    @warn "get_node(::$(typeof(i))) not implemented."
+    return nothing
+end
+
+function get_units_to_restore(i::AbstractConquerInput)
+    @warn "get_units_to_restore(::$(typeof(i))) not implemented."
+    return nothing
+end
+
+function run_conquer(i::AbstractConquerInput)
+    @warn "run_conquer(::$(typeof(i))) not implemented."
+    return nothing
+end
+
+"""
+    AbstractConquerAlgorithm
+
+This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
+For the moment, a conquer algorithm can be run only on reformulation.     
+A conquer algorithm should restore records of storage units using `restore_from_records!(conquer_input)`
+- each time it runs in the beginning
+- each time after calling a child manager algorithm
+"""
+abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
+
+# conquer algorithms are always manager algorithms (they manage storing and restoring units)
+ismanager(algo::AbstractConquerAlgorithm) = true
+
+function run!(algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, input::AbstractConquerInput)
+    algotype = typeof(algo)
+    error(string("Method run! which takes as parameters Reformulation and ConquerInput ", 
+                 "is not implemented for algorithm $algotype.")
+    )
+end
 
 
+# this function is needed in strong branching (to have a better screen logging)
+isverbose(algo::AbstractConquerAlgorithm) = false
 
+# this function is needed to check whether the best primal solution should be copied to the node optimization state
+exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
 
+############################################################################################
+# Divide Algorithm API
+############################################################################################
 
+"""
+Input of a divide algorithm used by the tree search algorithm.
+Contains the parent node in the search tree for which children should be generated.
+"""
+abstract type AbstractDivideInput end
 
+function get_parent(i::AbstractDivideInput)
+    @warn "get_parent(::$(typeof(i))) not implemented."
+    return nothing
+end
+
+function get_opt_state(i::AbstractDivideInput)
+    @warn "get_opt_state(::$(typeof(i))) not implemented."
+    return nothing
+end
+
+"""
+Output of a divide algorithm used by the tree search algorithm.
+Should contain the vector of generated nodes.
+"""
+struct DivideOutput{N}
+    children::Vector{N}
+    optstate::OptimizationState
+end
+
+get_children(output::DivideOutput) = output.children
+get_opt_state(output::DivideOutput) = output.optstate
+
+"""
+This algorithm type is used by the tree search algorithm to generate nodes.
+"""
+abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
+
+# divide algorithms are always manager algorithms (they manage storing and restoring units)
+ismanager(algo::AbstractDivideAlgorithm) = true
+
+run!(algo::AbstractDivideAlgorithm, ::Env, model::AbstractModel, input::AbstractDivideInput) = 
+    error("Method run! in not defined for divide algorithm $(typeof(algo)), model $(typeof(model)), and input $(typeof(input)).") 
+
+# this function is needed to check whether the best primal solution should be copied to the node optimization state
+exploits_primal_solutions(algo::AbstractDivideAlgorithm) = false
+
+############################################################################################
+# Optimization Algorithm API
+############################################################################################
 
 """
     AbstractOptimizationAlgorithm

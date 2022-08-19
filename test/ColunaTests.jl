@@ -39,20 +39,20 @@ module ColunaTests
         end
     end
 
-    # ########################################################################################
-    # # Integration tests
-    # ########################################################################################
-    # dirpath = joinpath(@__DIR__, "integration")
-    # for filename in readdir(dirpath)
-    #     include(joinpath(dirpath, filename))
-    # end
+    ########################################################################################
+    # Integration tests
+    ########################################################################################
+    dirpath = joinpath(@__DIR__, "integration")
+    for filename in readdir(dirpath)
+        include(joinpath(dirpath, filename))
+    end
 
-    # # ########################################################################################
-    # # # MOI integration tests
-    # # ########################################################################################
-    # @testset "MOI integration" begin
-    #     include("MathOptInterface/MOI_wrapper.jl")
-    # end
+    # ########################################################################################
+    # # MOI integration tests
+    # ########################################################################################
+    @testset "MOI integration" begin
+        include("MathOptInterface/MOI_wrapper.jl")
+    end
 
     ########################################################################################
     # E2E tests

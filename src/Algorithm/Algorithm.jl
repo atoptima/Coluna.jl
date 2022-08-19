@@ -20,14 +20,17 @@ import Base: push!
 include("utilities/optimizationstate.jl")
 include("utilities/helpers.jl")
 
-# Abstract algorithm
+# API on top of storage API
 include("data.jl")
+
+# Algorithm interface
 include("interface.jl")
 
 # Tree search interface
 include("treesearch/interface.jl")
 include("treesearch/explore.jl")
 
+# Storage units & records implementation
 include("formstorages.jl")
 
 # Basic algorithms
@@ -41,9 +44,8 @@ include("colgen.jl")
 include("benders.jl")
 include("preprocessing.jl")
 
-# Algorithms and structures used by the tree search algorithm
+# Conquer
 include("conquer.jl")
-include("divide.jl")
 
 # Here include divide algorithms
 include("branching/interface.jl")
