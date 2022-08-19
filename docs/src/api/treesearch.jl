@@ -423,9 +423,16 @@ output = ClA.run!(BinaryTree(), env, model, input)
 # ```@docs
 # AbstractNode
 # new_root
-# root
-# parent
-# priority
+# get_root
+# get_parent
+# get_priority
+# ```
+# Additional methods needed for Coluna's algorithms:
+# ```@docs
+# get_opt_state
+# get_records
+# get_branch_description
+# isroot
 # ```
 
 # ### Tree search algorithm

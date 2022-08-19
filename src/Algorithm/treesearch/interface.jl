@@ -35,6 +35,19 @@ get_parent(::AbstractNode) = nothing
 "Returns the priority of the node depending on the explore strategy."
 get_priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
 
+##### Addition methods for the node interface (needed by conquer)
+"Returns an `OptimizationState` that contains best bounds and solutions at the node."
+get_opt_state(::AbstractNode) = nothing # conquer, divide
+
+"Returns a `Records` that allows to restore the state of the formulation at this node."
+get_records(::AbstractNode) = nothing # conquer
+
+"Returns a `String` to display the branching constraint."
+get_branch_description(::AbstractNode) = nothing # printer
+
+"Returns `true` is the node is root; `false` otherwise."
+isroot(::AbstractNode) = nothing # BaB implementation
+
 # TODO; remove untreated_nodes
 "Evaluate and generate children. This method has a specific implementation for Coluna."
 function children(sp, n, env, untreated_nodes)
@@ -134,11 +147,3 @@ function children(space::AbstractColunaSearchSpace, current::AbstractNode, env, 
     branches = run!(divide_alg, env, reform, divide_input)
     return new_children(space, branches, current)
 end
-
-##### Addition methods for the node interface (needed by conquer)
-
-get_opt_state(::AbstractNode) = nothing # conquer, divide
-get_records(::AbstractNode) = nothing # conquer
-#get_parent(::AbstractNode) = nothing # conquer, divide
-get_branch_description(::AbstractNode) = nothing # printer
-isroot(::AbstractNode) = nothing

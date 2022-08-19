@@ -286,7 +286,7 @@ struct CustomBestFirstSearchAti1 <: ClA.AbstractBestFirstSearch end
 
 # We implement the priority method for the `CustomBestFirstSearchAti1` strategy.
 # The tree search algorithm will evaluate the node with highest priority.
-ClA.priority(::CustomBestFirstSearchAti1, node::NodeAti1) = -node.depth
+ClA.get_priority(::CustomBestFirstSearchAti1, node::NodeAti1) = -node.depth
 
 # We implement the `node_change` method to update the search space when the tree search
 # just after the algorithm finishes to evaluate a node and chooses the next one.

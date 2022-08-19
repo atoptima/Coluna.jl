@@ -42,7 +42,6 @@ include("benders.jl")
 include("preprocessing.jl")
 
 # Algorithms and structures used by the tree search algorithm
-include("node.jl")
 include("conquer.jl")
 
 # Here include divide algorithms

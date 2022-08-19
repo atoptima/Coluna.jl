@@ -22,9 +22,9 @@ get_records(n::Node) = n.records # conquer
 get_branch_description(n::Node) = n.branchdescription # printer
 
 # Priority of nodes depends on the explore strategy.
-priority(::AbstractExploreStrategy, ::Node) = error("todo")
-priority(::DepthFirstStrategy, n::Node) = -n.depth
-priority(::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
+get_priority(::AbstractExploreStrategy, ::Node) = error("todo")
+get_priority(::DepthFirstStrategy, n::Node) = -n.depth
+get_priority(::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
 
 # TODO move
 function Node(node::SbNode)
