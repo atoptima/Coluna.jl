@@ -33,14 +33,14 @@ function Coluna.Algorithm.run!(
     algo::ConsecutiveColGen, env::Env, reform::Reformulation, input::OptimizationInput
 )
     master = Coluna.MathProg.getmaster(reform)
-    optstate = getoptstate(input)
+    optstate = get_opt_state(input)
 
     cg_run_number = 1
 
     while cg_run_number <= algo.num_calls_to_col_gen 
 
         cg_output = run!(algo.colgen, env, reform, OptimizationInput(optstate))
-        cg_optstate = getoptstate(cg_output)
+        cg_optstate = get_opt_state(cg_output)
         add_ip_primal_sols!(optstate, get_ip_primal_sols(cg_optstate)...)
 
         primal_sol = get_best_lp_primal_sol(cg_optstate)
@@ -68,9 +68,9 @@ function Coluna.Algorithm.run!(
     end
 
     heur_output = run!(algo.rm_heur, env, reform, OptimizationInput(optstate))
-    add_ip_primal_sols!(optstate, get_ip_primal_sols(getoptstate(heur_output))...)
+    add_ip_primal_sols!(optstate, get_ip_primal_sols(get_opt_state(heur_output))...)
 
-    setterminationstatus!(optstate, getterminationstatus(getoptstate(heur_output)))
+    setterminationstatus!(optstate, getterminationstatus(get_opt_state(heur_output)))
 
     return OptimizationOutput(optstate)
 end

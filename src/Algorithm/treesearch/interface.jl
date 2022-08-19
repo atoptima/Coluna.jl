@@ -27,13 +27,26 @@ function new_root(sp::AbstractSearchSpace, input)
 end
 
 "Returns the root node of the tree to which the node belongs."
-root(::AbstractNode) = nothing
+get_root(::AbstractNode) = nothing
 
 "Returns the parent of a node; `nothing` if the node is the root."
-parent(::AbstractNode) = nothing
+get_parent(::AbstractNode) = nothing
 
 "Returns the priority of the node depending on the explore strategy."
-priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
+get_priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
+
+##### Addition methods for the node interface (needed by conquer)
+"Returns an `OptimizationState` that contains best bounds and solutions at the node."
+get_opt_state(::AbstractNode) = nothing # conquer, divide
+
+"Returns a `Records` that allows to restore the state of the formulation at this node."
+get_records(::AbstractNode) = nothing # conquer
+
+"Returns a `String` to display the branching constraint."
+get_branch_description(::AbstractNode) = nothing # printer
+
+"Returns `true` is the node is root; `false` otherwise."
+isroot(::AbstractNode) = nothing # BaB implementation
 
 # TODO; remove untreated_nodes
 "Evaluate and generate children. This method has a specific implementation for Coluna."

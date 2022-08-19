@@ -1,3 +1,67 @@
+############################################################################################
+# Node
+############################################################################################
+"Branch-and-bound node."
+mutable struct Node <: AbstractNode
+    depth::Int
+    parent::Union{Nothing, Node}
+    optstate::OptimizationState
+    branchdescription::String
+    records::Records
+    conquerwasrun::Bool
+end
+
+getdepth(n::Node) = n.depth
+
+get_parent(n::Node) = n.parent # divide
+get_opt_state(n::Node) = n.optstate # conquer, divide
+
+isroot(n::Node) = n.depth == 0
+get_records(n::Node) = n.records # conquer
+
+get_branch_description(n::Node) = n.branchdescription # printer
+
+# Priority of nodes depends on the explore strategy.
+get_priority(::AbstractExploreStrategy, ::Node) = error("todo")
+get_priority(::DepthFirstStrategy, n::Node) = -n.depth
+get_priority(::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
+
+# TODO move
+function Node(node::SbNode)
+    return Node(node.depth, node.parent, node.optstate, node.branchdescription, node.records, node.conquerwasrun)
+end
+
+############################################################################################
+# AbstractConquerInput implementation for the branch & bound.
+############################################################################################
+"Conquer input object created by the branch-and-bound tree search algorithm."
+struct ConquerInputFromBaB <: AbstractConquerInput
+    node::Node
+    units_to_restore::UnitsUsage
+    run_conquer::Bool
+end
+
+get_node(i::ConquerInputFromBaB) = i.node
+get_units_to_restore(i::ConquerInputFromBaB) = i.units_to_restore
+run_conquer(i::ConquerInputFromBaB) = i.run_conquer
+
+############################################################################################
+# AbstractDivideInput implementation for the branch & bound.
+############################################################################################
+"Divide input object created by the branch-and-bound tree search algorithm."
+struct DivideInputFromBaB <: AbstractDivideInput
+    parent::Node
+    opt_state::OptimizationState
+end
+
+get_parent(i::DivideInputFromBaB) = i.parent
+get_opt_state(i::DivideInputFromBaB) = i.opt_state
+
+############################################################################################
+# SearchSpace
+############################################################################################
+
+"Branch-and-bound search space."
 mutable struct BaBSearchSpace <: AbstractColunaSearchSpace
     reformulation::Reformulation
     conquer::AbstractConquerAlgorithm
@@ -20,6 +84,10 @@ get_divide(sp::BaBSearchSpace) = sp.divide
 get_previous(sp::BaBSearchSpace) = sp.previous
 set_previous!(sp::BaBSearchSpace, previous::Node) = sp.previous = previous
 
+############################################################################################
+# Tree search implementation
+############################################################################################
+
 function stop(space::BaBSearchSpace)
     return space.nb_nodes_treated > space.max_num_nodes
 end
@@ -41,7 +109,7 @@ function new_space(
 )
     exploitsprimalsols = exploits_primal_solutions(algo.conqueralg) || exploits_primal_solutions(algo.dividealg)
     optstate = OptimizationState(
-        getmaster(reform), getoptstate(input), exploitsprimalsols, false
+        getmaster(reform), get_opt_state(input), exploitsprimalsols, false
     )
     conquer_units_to_restore = collect_units_to_restore!(algo.conqueralg, reform) 
     return BaBSearchSpace(
@@ -63,7 +131,7 @@ end
 
 function new_root(sp::BaBSearchSpace, input)
     skipconquer = false # TODO: used for the diving that should be a separate algorithm.
-    nodestate = OptimizationState(getmaster(sp.reformulation), getoptstate(input), false, false)
+    nodestate = OptimizationState(getmaster(sp.reformulation), get_opt_state(input), false, false)
     return Node(
         0, nothing, nodestate, "", create_records(sp.reformulation), false
     )
@@ -81,12 +149,12 @@ function after_conquer!(space::BaBSearchSpace, current, output)
 
     # TreeSearchAlgorithm returns the primal LP & the dual solution found at the root node.
     best_lp_primal_sol = get_best_lp_primal_sol(nodestate)
-    if isrootnode(current) && !isnothing(best_lp_primal_sol)
+    if isroot(current) && !isnothing(best_lp_primal_sol)
         set_lp_primal_sol!(treestate, best_lp_primal_sol) 
     end
 
     best_lp_dual_sol = get_best_lp_dual_sol(nodestate)
-    if isrootnode(current) && !isnothing(best_lp_dual_sol)
+    if isroot(current) && !isnothing(best_lp_dual_sol)
         set_lp_dual_sol!(treestate, best_lp_dual_sol)
     end
     return
@@ -111,19 +179,18 @@ function get_input(::AbstractConquerAlgorithm, space::BaBSearchSpace, current::N
     # if tsdata.exploitsprimalsolutions && best_ip_primal_sol !== nothing
     #     set_ip_primal_sol!(treestate, best_ip_primal_sol)
     # end
-
-    return ConquerInput(current, space.conquer_units_to_restore, run_conquer)
+    return ConquerInputFromBaB(current, space.conquer_units_to_restore, run_conquer)
 end
 
 function get_input(::AbstractDivideAlgorithm, space::BaBSearchSpace, node::Node)
-    return DivideInput(node, space.optstate)
+    return DivideInputFromBaB(node, space.optstate)
 end
 
 function new_children(space::AbstractColunaSearchSpace, candidates, node::Node)
-    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(getoptstate(candidates))...)
+    add_ip_primal_sols!(space.optstate, get_ip_primal_sols(get_opt_state(candidates))...)
     set_ip_dual_bound!(space.optstate, get_ip_dual_bound(node.optstate))
 
-    children = map(candidates.children) do child
+    children = map(get_children(candidates)) do child
         return Node(child)
     end
     return children
@@ -133,7 +200,7 @@ function _updatedualbound!(space, reform::Reformulation, untreated_nodes)
     treestate = space.optstate
 
     worst_bound = mapreduce(
-        node -> get_ip_dual_bound(getoptstate(node)),
+        node -> get_ip_dual_bound(get_opt_state(node)),
         worst,
         untreated_nodes;
         init = DualBound(reform, getvalue(get_ip_primal_bound(treestate)))
@@ -147,7 +214,7 @@ function node_change!(previous::Node, current::Node, space::BaBSearchSpace, untr
     _updatedualbound!(space, space.reformulation, untreated_nodes) # this method needs to be reimplemented.
 
     # we delete solutions from the node optimization state, as they are not needed anymore
-    nodestate = getoptstate(previous)
+    nodestate = get_opt_state(previous)
     empty_ip_primal_sols!(nodestate)
     empty_lp_primal_sols!(nodestate)
     empty_lp_dual_sols!(nodestate)

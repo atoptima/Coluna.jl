@@ -25,11 +25,11 @@ end
 function tree_search(strategy::AbstractBestFirstSearch, space, env, input)
     root_node = new_root(space, input)
     pq = PriorityQueue{typeof(root_node), Float64}()
-    enqueue!(pq, root_node, priority(strategy, root_node))
+    enqueue!(pq, root_node, get_priority(strategy, root_node))
     while !isempty(pq) && !stop(space)
         current = dequeue!(pq)
         for child in children(space, current, env, pq)
-            enqueue!(pq, child, priority(strategy, child))
+            enqueue!(pq, child, get_priority(strategy, child))
         end
     end
     return tree_search_output(space, pq)

@@ -3,40 +3,33 @@
 ### Node for the strong branching (Goal: decouple strong branching from tree search)
 ### TODO: transform into a very light node dedicated to the strong branching algorithm.
 ### This light node will contain information to generate the real node of the tree search.
-mutable struct SbNode 
+mutable struct SbNode{Node<:AbstractNode} 
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
     branchdescription::String
     records::Records
     conquerwasrun::Bool
-end
-
-function SbNode(
-    form::AbstractFormulation, parent::Node, branchdescription::String, records::Records
-)
-    depth = getdepth(parent) + 1
-    nodestate = OptimizationState(form, getoptstate(parent), false, false)
-    
-    return SbNode(
-        depth, parent, nodestate, branchdescription, records, false
-    )
-end
-
-function Node(node::SbNode)
-    return Node(node.depth, node.parent, node.optstate, node.branchdescription, node.records, node.conquerwasrun)
+    function SbNode(
+        form::AbstractFormulation, parent::N, branch_description::String, records::Records
+    ) where {N <: AbstractNode}
+        depth = getdepth(parent) + 1
+        node_state = OptimizationState(form, get_opt_state(parent), false, false)
+        return new{N}(depth, parent, node_state, branch_description, records, false)
+    end
 end
 
 # TODO remove
 function to_be_pruned(node::SbNode)
-    nodestate = getoptstate(node)
+    nodestate = get_opt_state(node)
     getterminationstatus(nodestate) == INFEASIBLE && return true
     return ip_gap_closed(nodestate)
 end
 
 getdepth(n::SbNode) = n.depth
-getparent(n::SbNode) = n.parent
-getchildren(n::SbNode) = n.children
-getoptstate(n::SbNode) = n.optstate
-addchild!(n::SbNode, child::SbNode) = push!(n.children, child)
 
+get_opt_state(n::SbNode) = n.optstate
+get_records(n::SbNode) = n.records
+get_parent(n::SbNode) = n.parent
+get_branch_description(n::SbNode) = n.branchdescription
+isroot(n::SbNode) = false

@@ -19,7 +19,7 @@ function ClA.run!(
     isopt, primal_sol = algo.optimizer(masterform, cbdata)
     result = ClA.OptimizationState(
         masterform, 
-        ip_primal_bound = ClA.get_ip_primal_bound(ClA.getoptstate(input)),
+        ip_primal_bound = ClA.get_ip_primal_bound(ClA.get_opt_state(input)),
         termination_status = isopt ? CL.OPTIMAL : CL.OTHER_LIMIT
     )
     if primal_sol !== nothing

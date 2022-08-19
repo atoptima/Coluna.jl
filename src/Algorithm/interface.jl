@@ -80,7 +80,7 @@ struct OptimizationInput{F,S} <: AbstractInput
     optstate::OptimizationState{F,S}
 end
 
-getoptstate(input::OptimizationInput) =  input.optstate
+get_opt_state(input::OptimizationInput) =  input.optstate
 
 """
     OptimizationOutput
@@ -92,7 +92,7 @@ struct OptimizationOutput{F,S} <: AbstractOutput
     optstate::OptimizationState{F,S}    
 end
 
-getoptstate(output::OptimizationOutput)::OptimizationState = output.optstate
+get_opt_state(output::OptimizationOutput)::OptimizationState = output.optstate
 
 """
     AbstractOptimizationAlgorithm

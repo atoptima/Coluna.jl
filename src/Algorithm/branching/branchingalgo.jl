@@ -1,4 +1,17 @@
 ############################################################################################
+# AbstractConquerInput implementation for the strong branching.
+############################################################################################
+"Conquer input object created by the strong branching algorithm."
+struct ConquerInputFromSb <: AbstractConquerInput
+    children_candidate::SbNode
+    children_units_to_restore::UnitsUsage
+end
+
+get_node(i::ConquerInputFromSb) = i.children_candidate
+get_units_to_restore(i::ConquerInputFromSb) = i.children_units_to_restore
+run_conquer(::ConquerInputFromSb) = true
+
+############################################################################################
 # NoBranching
 ############################################################################################
 
@@ -9,7 +22,7 @@ Divide algorithm that does nothing. It does not generate any child.
 """
 struct NoBranching <: AbstractDivideAlgorithm end
 
-function run!(::NoBranching, ::Env, reform::Reformulation, ::DivideInput)::DivideOutput
+function run!(::NoBranching, ::Env, reform::Reformulation, ::AbstractDivideInput)::DivideOutput
     return DivideOutput([], OptimizationState(getmaster(reform)))
 end
 
@@ -90,7 +103,6 @@ function get_child_algorithms(algo::StrongBranching, reform::Reformulation)
     for prioritised_rule in algo.rules
         push!(child_algos, (prioritised_rule.rule, reform))
     end
-
     return child_algos
 end 
 
@@ -101,11 +113,11 @@ function _apply_conquer_alg_to_child!(
     units_to_restore::UnitsUsage, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
 )
-    child_state = getoptstate(child)
+    child_state = get_opt_state(child)
     if ip_gap_closed(child_state, rtol = opt_rtol, atol = opt_atol)
         @info "IP Gap is closed: $(ip_gap(child_state)). Abort treatment."
     else
-        run!(algo, env, reform, ConquerInput(Node(child), units_to_restore, true))
+        run!(algo, env, reform, ConquerInputFromSb(child, units_to_restore))
         child.records = create_records(reform)
     end
     child.conquerwasrun = true
@@ -123,10 +135,10 @@ function _eval_children_of_candidate!(
                 "**** SB phase ", phase_index, " evaluation of candidate ", 
                 varname, " (branch ", child_index, " : ", child.branchdescription
             )
-            @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(getoptstate(child)))
+            @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(get_opt_state(child)))
         end
         
-        child_state = getoptstate(child)
+        child_state = get_opt_state(child)
         update_ip_primal_bound!(child_state, get_ip_primal_bound(sbstate))
 
         # TODO: We consider that all branching algorithms don't exploit the primal solution 
@@ -152,12 +164,12 @@ function _eval_children_of_candidate!(
 end
 
 function _perform_strong_branching_with_phases!(
-    algo::StrongBranching, env::Env, reform::Reformulation, input::DivideInput, candidates::Vector{C}
+    algo::StrongBranching, env::Env, reform::Reformulation, input::AbstractDivideInput, candidates::Vector{C}
 )::OptimizationState where {C<:AbstractBranchingCandidate}
     # TODO: We consider that conquer algorithms in the branching algo don't exploit the
     # primal solution at the moment (3rd arg).
     sbstate = OptimizationState(
-        getmaster(reform), getoptstate(input), false, false
+        getmaster(reform), get_opt_state(input), false, false
     )
 
     for (phase_index, current_phase) in enumerate(algo.phases)
@@ -180,7 +192,7 @@ function _perform_strong_branching_with_phases!(
         println("**** Strong branching phase ", phase_index, " is started *****");
 
         scores = map(candidates) do candidate
-            children = sort(get_children(candidate), by = child -> get_lp_primal_bound(getoptstate(child)))
+            children = sort(get_children(candidate), by = child -> get_lp_primal_bound(get_opt_state(child)))
             _eval_children_of_candidate!(
                 children, current_phase, phase_index, conquer_units_to_restore, sbstate, env,
                 reform, candidate.varname
@@ -278,9 +290,9 @@ function _select_candidates_with_branching_rule(rules, phases, selection_criteri
     return kept_branch_candidates
 end
 
-function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::DivideInput)::DivideOutput
-    parent = getparent(input)
-    optstate = getoptstate(parent)
+function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::AbstractDivideInput)::DivideOutput
+    parent = get_parent(input)
+    optstate = get_opt_state(parent)
     nodestatus = getterminationstatus(optstate)
 
     # We don't run the branching algorithm if the node is already conquered
@@ -290,7 +302,7 @@ function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::Div
     end
 
     if isempty(algo.rules)
-        @logmsg LogLevel(0) "No branching rule is defined. No children will be generated."
+        println("No branching rule is defined. No children will be generated.")
         return DivideOutput(SbNode[], optstate)
     end
 

@@ -24,7 +24,7 @@ struct MostFractionalCriterion <: AbstractSelectionCriterion end
 function select_candidates!(
     candidates::Vector{C}, ::MostFractionalCriterion, max_nb_candidates::Int
 ) where {C <: AbstractBranchingCandidate}
-    sort!(candidates, rev = true, by = c -> get_lhs_distance_to_integer(c))
+    sort!(candidates, rev = true, by = c -> dist_to_int(get_lhs(c)))
     if length(candidates) > max_nb_candidates
         resize!(candidates, max_nb_candidates)
     end
