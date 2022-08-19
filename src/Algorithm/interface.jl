@@ -9,9 +9,7 @@ abstract type AbstractAlgorithm end
     run!(algo::AbstractAlgorithm, env, model, input)
 Runs an algorithm. 
 """
-function run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input)
-    error("run!(::$(typeof(algo)), ::$(typeof(env)), ::$(typeof(model)), ::$(typeof(input))) not implemented.")
-end
+@mustimplement "Algorithm" run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input)
 
 # TODO: remove this method.
 # We currently need it because we give to the parent algorithm the responsability of recording
@@ -54,20 +52,9 @@ in the input so that it is not obtained each time the conquer algorithm runs.
 """
 abstract type AbstractConquerInput end
 
-function get_node(i::AbstractConquerInput)
-    @warn "get_node(::$(typeof(i))) not implemented."
-    return nothing
-end
-
-function get_units_to_restore(i::AbstractConquerInput)
-    @warn "get_units_to_restore(::$(typeof(i))) not implemented."
-    return nothing
-end
-
-function run_conquer(i::AbstractConquerInput)
-    @warn "run_conquer(::$(typeof(i))) not implemented."
-    return nothing
-end
+@mustimplement "ConquerInput" get_node(i::AbstractConquerInput)
+@mustimplement "ConquerInput" get_units_to_restore(i::AbstractConquerInput)
+@mustimplement "ConquerInput" run_conquer(i::AbstractConquerInput)
 
 """
     AbstractConquerAlgorithm
@@ -83,13 +70,7 @@ abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
 # conquer algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractConquerAlgorithm) = true
 
-function run!(algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, input::AbstractConquerInput)
-    algotype = typeof(algo)
-    error(string("Method run! which takes as parameters Reformulation and ConquerInput ", 
-                 "is not implemented for algorithm $algotype.")
-    )
-end
-
+@mustimplement "ConquerAlgorithm" run!(::AbstractConquerAlgorithm, ::Env, ::Reformulation, ::AbstractConquerInput)
 
 # this function is needed in strong branching (to have a better screen logging)
 isverbose(algo::AbstractConquerAlgorithm) = false
@@ -107,15 +88,8 @@ Contains the parent node in the search tree for which children should be generat
 """
 abstract type AbstractDivideInput end
 
-function get_parent(i::AbstractDivideInput)
-    @warn "get_parent(::$(typeof(i))) not implemented."
-    return nothing
-end
-
-function get_opt_state(i::AbstractDivideInput)
-    @warn "get_opt_state(::$(typeof(i))) not implemented."
-    return nothing
-end
+@mustimplement "DivideInput" get_parent(i::AbstractDivideInput)
+@mustimplement "DivideInput"  get_opt_state(i::AbstractDivideInput)
 
 """
 Output of a divide algorithm used by the tree search algorithm.
@@ -137,8 +111,7 @@ abstract type AbstractDivideAlgorithm <: AbstractAlgorithm end
 # divide algorithms are always manager algorithms (they manage storing and restoring units)
 ismanager(algo::AbstractDivideAlgorithm) = true
 
-run!(algo::AbstractDivideAlgorithm, ::Env, model::AbstractModel, input::AbstractDivideInput) = 
-    error("Method run! in not defined for divide algorithm $(typeof(algo)), model $(typeof(model)), and input $(typeof(input)).") 
+@mustimplement "DivideAlgorithm" run!(::AbstractDivideAlgorithm, ::Env, ::AbstractModel, ::AbstractDivideInput) 
 
 # this function is needed to check whether the best primal solution should be copied to the node optimization state
 exploits_primal_solutions(algo::AbstractDivideAlgorithm) = false

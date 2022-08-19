@@ -5,30 +5,11 @@
 "Super type to dispatch on file printer methods."
 abstract type AbstractFilePrinter end
 
-function new_file_printer(T::Type{<:AbstractFilePrinter}, alg)
-    @warn "new_file_printer(::$(typeof(T)), alg) not implemented."
-    return nothing
-end
-
-function filename(f::AbstractFilePrinter)
-    @warn "filename(::$(typeof(f))) not implemented."
-    return nothing
-end
-
-function init_tree_search_file!(f::AbstractFilePrinter)
-    @warn "init_tree_search_file!(::$(typeof(f))) not implemented."
-    return nothing
-end
-
-function print_node_in_tree_search_file!(f::AbstractFilePrinter, node, sp, env)
-    @warn "print_node_in_tree_search_file!(::$(typeof(f)), ::$(typeof(node)), ::$(typeof(sp)), ::$(typeof(env))) not implemented."
-    return nothing
-end
-
-function close_tree_search_file!(f::AbstractFilePrinter)
-    @warn "close_tree_search_file!(::$(typeof(f))) not implemented."
-    return nothing
-end
+@mustimplement "FilePrinter" new_file_printer(::Type{<:AbstractFilePrinter}, alg)
+@mustimplement "FilePrinter" filename(::AbstractFilePrinter)
+@mustimplement "FilePrinter" init_tree_search_file!(::AbstractFilePrinter)
+@mustimplement "FilePrinter" print_node_in_tree_search_file!(::AbstractFilePrinter, node, space, env)
+@mustimplement "FilePrinter" close_tree_search_file!(::AbstractFilePrinter)
 
 ############################################################################################
 # Log printer API (on stdin)
@@ -37,15 +18,8 @@ end
 "Super type to dispatch on log printer method."
 abstract type AbstractLogPrinter end
 
-function new_log_printer(T::Type{<:AbstractLogPrinter})
-    @warn "new_log_printer(::Type{$T}) not implemented."
-    return
-end
-
-function print_log(l::AbstractLogPrinter, sp, node, env, nb_untreated_nodes)
-    @warn "print_log $(typeof(l)) not implemented."
-    return
-end
+@mustimplement "LogPrinter" new_log_printer(::Type{<:AbstractLogPrinter})
+@mustimplement "LogPrinter" print_log(::AbstractLogPrinter, space, node, env, nb_untreated_nodes)
 
 ############################################################################################
 # File & log printer search space.

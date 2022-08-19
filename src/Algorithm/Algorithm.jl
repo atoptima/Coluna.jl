@@ -6,7 +6,7 @@ import TimerOutputs
 
 using ..Coluna, ..ColunaBase, ..MathProg
 
-using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Statistics
+using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Random, Statistics
 
 const TO = TimerOutputs
 const DS = DataStructures
