@@ -136,8 +136,8 @@ struct NodeAti1 <: ClA.AbstractNode
     end
 end
 
-ClA.root(node::NodeAti1) = isnothing(node.parent) ? node : ClA.root(node.parent)
-ClA.parent(node::NodeAti1) = node.parent
+ClA.get_root(node::NodeAti1) = isnothing(node.parent) ? node : ClA.root(node.parent)
+ClA.get_parent(node::NodeAti1) = node.parent
 
 # ## Algorithms
 
