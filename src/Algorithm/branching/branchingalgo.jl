@@ -22,7 +22,7 @@ Divide algorithm that does nothing. It does not generate any child.
 """
 struct NoBranching <: AbstractDivideAlgorithm end
 
-function run!(::NoBranching, ::Env, reform::Reformulation, ::AbstractDivideInput)::DivideOutput
+function run!(::NoBranching, ::Env, reform::Reformulation, ::AbstractDivideInput)
     return DivideOutput([], OptimizationState(getmaster(reform)))
 end
 
@@ -290,7 +290,7 @@ function _select_candidates_with_branching_rule(rules, phases, selection_criteri
     return kept_branch_candidates
 end
 
-function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::AbstractDivideInput)::DivideOutput
+function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::AbstractDivideInput)
     parent = get_parent(input)
     optstate = get_opt_state(parent)
     nodestatus = getterminationstatus(optstate)

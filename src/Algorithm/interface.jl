@@ -1,98 +1,55 @@
-## Methods for updated interface for algorithms
+############################################################################################
+# Algorithm API
+############################################################################################
 
-"Supertype for algorithms."
+"Supertype for algorithms parameters."
 abstract type AbstractAlgorithm end
 
-"Supertype for algorithms inputs."
-abstract type AbstractInput end 
-
-"Supertype for algorithms outputs."
-abstract type AbstractOutput end 
-
-
 """
-    run!(algo::AbstractAlgorithm, model::AbstractModel, input::AbstractInput)::AbstractOutput
-
-Runs the algorithm. The storage unit of the algorithm can be obtained from the data
-Returns algorithm's output.    
+    run!(algo::AbstractAlgorithm, env, model, input)
+Runs an algorithm. 
 """
-function run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input::AbstractInput)::AbstractOutput
-    error("Cannot apply run! for arguments $(typeof(algo)), $(typeof(model)), $(typeof(input)).")
+function run!(algo::AbstractAlgorithm, env::Env, model::AbstractModel, input)
+    error("run!(::$(typeof(algo)), ::$(typeof(env)), ::$(typeof(model)), ::$(typeof(input))) not implemented.")
 end
 
-
-## WIP below
-
-"""
-About algorithms
-----------------
-
-An algorithm is a procedure with a known interface (input and output) applied to a data.
-An algorithm can use storage units inside the data to keep its computed data between different
-runs of the algorithm or between runs of different algorithms.
-The algorithm itself contains only its parameters. 
-
-Parameters of an algorithm may contain its child algorithms which used by it. Therefore, 
-the algoirthm tree is formed, in which the root is the algorithm called to solver the model 
-(root algorithm should be an optimization algorithm, see below). 
-
-Algorithms are divided into two types : "manager algorithms" and "worker algorithms". 
-Worker algorithms just continue the calculation. They do not store and restore units 
-as they suppose it is done by their master algorithms. Manager algorithms may divide 
-the calculation flow into parts. Therefore, they store and restore units to make sure 
-that their child worker algorithms have units prepared. 
-A worker algorithm cannot have child manager algorithms. 
-
-Examples of manager algorithms : TreeSearchAlgorithm (which covers both BCP algorithm and 
-diving algorithm), conquer algorithms, strong branching, branching rule algorithms 
-(which create child nodes). Examples of worker algorithms : column generation, SolveIpForm, 
-SolveLpForm, cut separation, pricing algorithms, etc.
-"""
-
-struct EmptyInput <: AbstractInput end
-
-
+# TODO: remove this method.
+# We currently need it because we give to the parent algorithm the responsability of recording
+# and restoring the state of a formulation when a child algorithm may divide the calculation
+# flow and thus making invalid the formulation for the parent algorithm at the end of the
+# child execution.
+# If we give the responsability of recording/restoring to the child, we won't need this method
+# anymore and we'll get rid of the concept of manager & worker algorithm.
 ismanager(algo::AbstractAlgorithm) = false
 
+
 """
-    get_child_algorithms(::AbstractAlgorithm, ::AbstractModel)::Vector{Tuple{AbstractAlgorithm, AbstractModel}}
+    get_child_algorithms(algo, model) -> Tuple{AbstractAlgorithm, AbstractModel}[]
 
 Every algorithm should communicate its child algorithms and the model to which 
 each child algorithm is applied. 
 """
-get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel, UnitPermission}[]
+get_child_algorithms(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractAlgorithm, AbstractModel}[]
 
 """
-    get_units_usage(algo::AbstractAlgorithm, model::AbstractModel)::Vector{Tuple{AbstractModel, UnitType, UnitPermission}}
+    get_units_usage(algo, model) -> Tuple{AbstractModel, UnitType, UnitPermission}[]
 
 Every algorithm should communicate the storage units it uses (so that these units 
 are created in the beginning) and the usage mode (read only or read-and-write). Usage mode is needed for 
 in order to restore units before running a worker algorithm.
 """
-get_units_usage(algo::AbstractAlgorithm, model::AbstractModel) = Tuple{AbstractModel, UnitType, UnitPermission}[] 
+get_units_usage(::AbstractAlgorithm, ::AbstractModel) = Tuple{AbstractModel, UnitType, UnitPermission}[] 
 
-"""
-    OptimizationInput
+############################################################################################
+# Conquer Algorithm API
+############################################################################################
 
-    Contains OptimizationState
-"""
-struct OptimizationInput{F,S} <: AbstractInput
-    optstate::OptimizationState{F,S}
-end
 
-get_opt_state(input::OptimizationInput) =  input.optstate
 
-"""
-    OptimizationOutput
 
-    Contain OptimizationState, PrimalSolution (solution to relaxation), and 
-    DualBound (dual bound value)
-"""
-struct OptimizationOutput{F,S} <: AbstractOutput
-    optstate::OptimizationState{F,S}    
-end
 
-get_opt_state(output::OptimizationOutput)::OptimizationState = output.optstate
+
+
 
 """
     AbstractOptimizationAlgorithm

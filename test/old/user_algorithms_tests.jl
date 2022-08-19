@@ -30,17 +30,15 @@ function Coluna.Algorithm.get_units_usage(
 end
 
 function Coluna.Algorithm.run!(
-    algo::ConsecutiveColGen, env::Env, reform::Reformulation, input::OptimizationInput
+    algo::ConsecutiveColGen, env::Env, reform::Reformulation, optstate::OptimizationState
 )
     master = Coluna.MathProg.getmaster(reform)
-    optstate = get_opt_state(input)
 
     cg_run_number = 1
 
     while cg_run_number <= algo.num_calls_to_col_gen 
 
-        cg_output = run!(algo.colgen, env, reform, OptimizationInput(optstate))
-        cg_optstate = get_opt_state(cg_output)
+        cg_optstate = run!(algo.colgen, env, reform, optstate)
         add_ip_primal_sols!(optstate, get_ip_primal_sols(cg_optstate)...)
 
         primal_sol = get_best_lp_primal_sol(cg_optstate)
@@ -60,19 +58,19 @@ function Coluna.Algorithm.run!(
         add_to_localpartialsol!(preprocess_unit, first(var_vals[1]), 1.0)
         add_to_solution!(partsol_unit, first(var_vals[1]), 1.0)
 
-        prp_output = run!(algo.preprocess, env, reform, EmptyInput())
+        prp_output = run!(algo.preprocess, env, reform, ClA.PreprocessingInput())
         #isinfeasible(prp_output) && break
         prp_output.infeasible && break
     
         cg_run_number += 1
     end
 
-    heur_output = run!(algo.rm_heur, env, reform, OptimizationInput(optstate))
-    add_ip_primal_sols!(optstate, get_ip_primal_sols(get_opt_state(heur_output))...)
+    heur_output = run!(algo.rm_heur, env, reform, optstate)
+    add_ip_primal_sols!(optstate, get_ip_primal_sols(heur_output)...)
 
-    setterminationstatus!(optstate, getterminationstatus(get_opt_state(heur_output)))
+    setterminationstatus!(optstate, getterminationstatus(heur_output))
 
-    return OptimizationOutput(optstate)
+    return optstate
 end
 
 @testset "Old - conseq colgen test" begin

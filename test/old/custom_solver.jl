@@ -47,7 +47,7 @@ _getvarid(model::KnapsackLibModel, form, env::Env, j::Int) = Coluna.MathProg.get
 
 function Coluna.Algorithm.run!(
     opt::KnapsackLibOptimizer, env::Coluna.Env, form::Coluna.MathProg.Formulation,
-    input::Coluna.Algorithm.OptimizationInput; kw...
+    input::Coluna.Algorithm.OptimizationState; kw...
 )
     costs = _fixed_costs(opt.model, form, env)
     ws = _scale_to_int(opt.model.capacity, opt.model.weights...)
@@ -79,7 +79,7 @@ function Coluna.Algorithm.run!(
     Coluna.Algorithm.add_ip_primal_sol!(result, sol)
     dual_bound = Coluna.getvalue(Coluna.Algorithm.get_ip_primal_bound(result))
     Coluna.Algorithm.set_ip_dual_bound!(result, Coluna.DualBound(form, dual_bound))
-    return Coluna.Algorithm.OptimizationOutput(result)
+    return result
 end
 
 

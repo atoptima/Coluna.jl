@@ -43,12 +43,12 @@ end
 get_opt_state(data::BendersCutGenRuntimeData) = data.optstate
 
 function run!(
-    algo::BendersCutGeneration, env::Env, reform::Reformulation, input::OptimizationInput
-)::OptimizationOutput
-    bndata = BendersCutGenRuntimeData(reform, get_opt_state(input))
+    algo::BendersCutGeneration, env::Env, reform::Reformulation, input::OptimizationState
+)
+    bndata = BendersCutGenRuntimeData(reform, input)
     @logmsg LogLevel(-1) "Run BendersCutGeneration."
     Base.@time bend_rec = bend_cutting_plane_main_loop!(algo, env, bndata, reform)
-    return OptimizationOutput(bndata.optstate)
+    return bndata.optstate
 end
 
 function update_benders_sp_slackvar_cost_for_ph1!(spform::Formulation)
@@ -258,13 +258,11 @@ function solve_sp_to_gencut!(
         # Solve sub-problem and insert generated cuts in master
         # @logmsg LogLevel(-3) "optimizing benders_sp prob"
         TO.@timeit Coluna._to "Bender Sep SubProblem" begin
-            optstate = run!(
+            optresult = run!(
                 SolveLpForm(get_dual_solution = true, relax_integrality = true), 
-                env, spform, OptimizationInput(OptimizationState(spform))
+                env, spform, OptimizationState(spform)
             )
         end
-
-        optresult = get_opt_state(optstate)
 
         if getterminationstatus(optresult) != OPTIMAL && getterminationstatus(optresult) != DUAL_INFEASIBLE
             sp_is_feasible = false 
@@ -417,7 +415,7 @@ function solve_relaxed_master!(master::Formulation, env::Env)
         optstate = TO.@timeit Coluna._to "relaxed master" begin
             run!(
                 SolveLpForm(get_dual_solution = true, relax_integrality = true),
-                env, master, OptimizationInput(OptimizationState(master))
+                env, master, OptimizationState(master)
             )
         end
     end
@@ -470,9 +468,8 @@ function bend_cutting_plane_main_loop!(
         nb_new_cuts = 0
         cur_gap = 0.0
         
-        optoutput, master_time = solve_relaxed_master!(masterform, env)
+        optresult, master_time = solve_relaxed_master!(masterform, env)
 
-        optresult = get_opt_state(optoutput)
         if getterminationstatus(optresult) == INFEASIBLE
             db = - getvalue(DualBound(masterform))
             pb = - getvalue(PrimalBound(masterform))

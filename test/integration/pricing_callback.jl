@@ -24,8 +24,7 @@
         end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
-        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.get_opt_state(output)
+        state = run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
         @test ClA.get_ip_primal_bound(state) == Inf
         @test ClA.get_ip_dual_bound(state) == 0.5
         @test ClA.getterminationstatus(state) == CL.OTHER_LIMIT
@@ -54,8 +53,7 @@
             CL.FEASIBLE_SOL
         )
 
-        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.get_opt_state(output)
+        state = run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
         @test ClA.get_ip_primal_bound(state) == -15.0
         @test ClA.get_ip_dual_bound(state) == -15.0
         @test ClA.getterminationstatus(state) == ClB.OPTIMAL
@@ -84,8 +82,7 @@
             CL.FEASIBLE_SOL
         )
 
-        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.get_opt_state(output)
+        state = run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
         @test ClA.get_ip_primal_bound(state) == -15.0
         @test ClA.get_ip_dual_bound(state) == -20.0
         @test ClA.getterminationstatus(state) == ClB.OTHER_LIMIT
@@ -101,9 +98,8 @@
         end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
-        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.get_opt_state(output)
+        state = run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
+        state = run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
         @test ClA.get_ip_primal_bound(state) == Inf
         @test ClA.get_ip_dual_bound(state) == Inf
         @test ClA.getterminationstatus(state) == ClB.INFEASIBLE
@@ -124,8 +120,7 @@
         end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
-        output = run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
-        state = ClA.get_opt_state(output)
+        state = run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
         @test ClA.get_ip_primal_bound(state) == -15.0
         @test ClA.get_ip_dual_bound(state) == -Inf
         @test ClA.getterminationstatus(state) == ClB.DUAL_INFEASIBLE
@@ -146,7 +141,7 @@
         end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
-        @test_throws ClA.IncorrectPricingDualBound run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
+        @test_throws ClA.IncorrectPricingDualBound run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
     end
 
     @testset "cb returns solution but no dual bound" begin
@@ -161,7 +156,7 @@
         end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
-        @test_throws ClA.MissingPricingDualBound run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
+        @test_throws ClA.MissingPricingDualBound run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
     end
 
     @testset "cb set dual bound twice" begin
@@ -173,6 +168,6 @@
         end
         push!(form.optimizers, ClMP.UserOptimizer(callback))
 
-        @test_throws ClA.MultiplePricingDualBounds run!(ClA.UserOptimize(), env, form, ClA.OptimizationInput(ClA.OptimizationState(form)))
+        @test_throws ClA.MultiplePricingDualBounds run!(ClA.UserOptimize(), env, form, ClA.OptimizationState(form))
     end
 end

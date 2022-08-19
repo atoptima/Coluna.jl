@@ -47,7 +47,7 @@ function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation)
     return [(algo.conqueralg, reform), (algo.dividealg, reform)]
 end
 
-function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationInput)
+function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationState)
     search_space = new_space(search_space_type(algo), algo, reform, input)
     return tree_search(algo.explorestrategy, search_space, env, input)
 end

@@ -91,7 +91,7 @@ compute_score(::AbstractBranchingScore, candidate) = nothing
 Input of a branching rule (branching separation algorithm)
 Contains current solution, max number of candidates and local candidate id.
 """
-struct BranchingRuleInput{Node<:AbstractNode} <: AbstractInput 
+struct BranchingRuleInput{Node<:AbstractNode}
     solution::PrimalSolution 
     isoriginalsol::Bool
     max_nb_candidates::Int64
@@ -106,7 +106,7 @@ end
 Output of a branching rule (branching separation algorithm)
 It contains the branching candidates generated and the updated local id value
 """
-struct BranchingRuleOutput <: AbstractOutput 
+struct BranchingRuleOutput
     local_id::Int64
     candidates::Vector{AbstractBranchingCandidate}
 end

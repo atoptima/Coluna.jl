@@ -43,11 +43,11 @@ include("preprocessing.jl")
 
 # Algorithms and structures used by the tree search algorithm
 include("conquer.jl")
+include("divide.jl")
 
 # Here include divide algorithms
 include("branching/interface.jl")
 include("branching/sbnode.jl")
-include("divide.jl") # TODO: DivideInput and DivideOutput are already implementation.
 include("branching/selectioncriteria.jl")
 include("branching/scores.jl")
 include("branching/single_var_branching.jl")
@@ -81,8 +81,8 @@ export TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration, BendersConquer, 
     FirstFoundCriterion, MostFractionalCriterion, SingleVarBranchingRule
 
 # Algorithm's types
-export AbstractOptimizationAlgorithm, OptimizationInput, OptimizationOutput, 
-    OptimizationState, EmptyInput
+export AbstractOptimizationAlgorithm,
+    OptimizationState
 
 # Types of optimizers
 export MoiOptimize, UserOptimizer

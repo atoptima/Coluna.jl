@@ -3,7 +3,7 @@
 ### Node for the strong branching (Goal: decouple strong branching from tree search)
 ### TODO: transform into a very light node dedicated to the strong branching algorithm.
 ### This light node will contain information to generate the real node of the tree search.
-mutable struct SbNode{Node<:AbstractNode} 
+mutable struct SbNode{Node<:AbstractNode} <: AbstractNode
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
