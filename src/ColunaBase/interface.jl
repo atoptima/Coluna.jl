@@ -1,15 +1,9 @@
 abstract type AbstractModel end
 
-function getuid(m::AbstractModel)
-    @warn "getuid(::$(typeof(m))) no implemented."
-    return nothing
-end
+@mustimplement "Model" getuid(m::AbstractModel)
 
 "Return the storage of a model."
-function getstorage(m::AbstractModel)
-    @warn("Model of type $(typeof(m)) does not have getstorage implemented.")
-    return nothing
-end
+@mustimplement "Model" getstorage(m::AbstractModel)
 
 abstract type AbstractProblem end
 

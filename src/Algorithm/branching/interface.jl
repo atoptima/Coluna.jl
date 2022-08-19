@@ -14,30 +14,11 @@ getdescription(candidate::AbstractBranchingCandidate) =
 ## Note: Branching candidates must be created in the BranchingRule algorithm so they do not need
 ## a generic constructor.
 
-function get_lhs(c::AbstractBranchingCandidate)
-    @warn "get_lhs(::$(typeof(c))) not implemented."
-    return nothing
-end
-
-function get_local_id(c::AbstractBranchingCandidate)
-    @warn "get_local_id(::$(typeof(c))) not implemented."
-    return nothing
-end
-
-function get_children(c::AbstractBranchingCandidate)
-    @warn "get_children(::$(typeof(c))) not implemented."
-    return nothing
-end
-
-function set_children!(c::AbstractBranchingCandidate, children)
-    @warn "set_children!(::$(typeof(c)), children) not implemented."
-    return nothing
-end
-
-function get_parent(c::AbstractBranchingCandidate)
-    @warn "get_parent(::$(typeof(c))) not implemented."
-    return nothing
-end
+@mustimplement "BranchingCandidate" get_lhs(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" get_local_id(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" get_children(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" set_children!(c::AbstractBranchingCandidate, children)
+@mustimplement "BranchingCandidate" get_parent(c::AbstractBranchingCandidate)
 
 # TODO: this method should not generate the children of the tree search algorithm.
 # However, AbstractBranchingCandidate should implement an interface to retrieve data to
@@ -49,10 +30,7 @@ This method generates the children of a node described by `branching_candidate`.
 Make sure that this method returns an object the same type as the second argument of
 `set_children!(candiate, children)`.
 """
-function generate_children!(c::AbstractBranchingCandidate, env, reform, parent)
-    @warn "generate_children!(::$(typeof(c)), ::$(typeof(env)), ::$(typeof(reform)), ::$(typeof(parent))) not implemented."
-    return nothing
-end
+@mustimplement "BranchingCandidate" generate_children!(c::AbstractBranchingCandidate, env, reform, parent)
 
 ############################################################################################
 # Selection Criteria of branching candidates
@@ -71,9 +49,7 @@ abstract type AbstractSelectionCriterion end
 
 Sort branching candidates according to the selection criterion and remove excess ones.
 """
-select_candidates!(::Vector{C}, selection::AbstractSelectionCriterion, ::Int) where {C <: AbstractBranchingCandidate} =
-    error("select_candidates! not defined for branching selection rule $(typeof(selection)).")
-
+@mustimplement "BranchingSelection" select_candidates!(::Vector{<:AbstractBranchingCandidate}, selection::AbstractSelectionCriterion, ::Int)
 
 ############################################################################################
 # Branching score
@@ -81,7 +57,7 @@ select_candidates!(::Vector{C}, selection::AbstractSelectionCriterion, ::Int) wh
 
 abstract type AbstractBranchingScore end
 
-compute_score(::AbstractBranchingScore, candidate) = nothing
+@mustimplement "BranchingScore" compute_score(::AbstractBranchingScore, candidate)
 
 ############################################################################################
 # BranchingRuleAlgorithm

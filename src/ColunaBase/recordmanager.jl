@@ -5,28 +5,16 @@ abstract type AbstractNewRecord end
 
 
 # Interface to implement
-function get_id(r::AbstractNewRecord)
-    @warn "get_id(::$(typeof(r))) not implemented."
-    return nothing
-end
+@mustimplement "Storage" get_id(r::AbstractNewRecord)
 
 "Creates a record of information from the model or a storage unit."
-function new_record(::Type{RecordType}, id::Int, model, su::AbstractNewStorageUnit) where {RecordType}
-    @warn "new_record(::Type{$RecordType}, ::$(typeof(id)), ::$(typeof(model)), ::$(typeof(su))) not implemented."
-    return nothing
-end
+@mustimplement "Storage" new_record(::Type{<:AbstractNewRecord}, id::Int, model, su::AbstractNewStorageUnit)
 
 "Restore information from the model or the storage unit that is recorded in a record."
-function restore_from_record!(model, su::AbstractNewStorageUnit, r::AbstractNewRecord)
-    @warn "restore_from_record!(::$(typeof(model)), ::$(typeof(su)), ::$(typeof(r))) not implemented."
-    return nothing
-end
+@mustimplement "Storage" restore_from_record!(model, su::AbstractNewStorageUnit, r::AbstractNewRecord)
 
 "Returns a storage unit from a given type."
-function new_storage_unit(::Type{StorageUnitType}, model) where {StorageUnitType}
-    @warn "new_storage_unit(::Type{$StorageUnitType}, model) not implemented."
-    return nothing
-end
+@mustimplement "Storage" new_storage_unit(::Type{<:AbstractNewStorageUnit}, model)
 
 mutable struct NewStorageUnitManager{Model,RecordType<:AbstractNewRecord,StorageUnitType<:AbstractNewStorageUnit}
     model::Model
@@ -41,16 +29,10 @@ end
 
 # Interface
 "Returns the type of record stored in a type of storage unit."
-function record_type(::Type{StorageUnitType}) where {StorageUnitType}
-    @warn "record_type(::Type{$StorageUnitType}) not implemented."
-    return nothing
-end
+@mustimplement "Storage" record_type(::Type{<:AbstractNewStorageUnit})
 
 "Returns the type of storage unit that stores a type of record."
-function storage_unit_type(::Type{RecordType}) where {RecordType}
-    @warn "storage_unit_type(::Type{$RecordType}) not implemented."
-    return nothing
-end
+@mustimplement "Storage" storage_unit_type(::Type{<:AbstractNewRecord})
 
 struct NewStorage{ModelType}
     model::ModelType

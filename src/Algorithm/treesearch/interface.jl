@@ -12,57 +12,45 @@ abstract type AbstractExploreStrategy end
 abstract type AbstractNode end
 
 "Returns the type of search space depending on the tree-search algorithm and its parameters."
-search_space_type(::AbstractAlgorithm) = nothing
+@mustimplement "TreeSearch" search_space_type(::AbstractAlgorithm)
 
 "Creates and returns the search space of a tree search algorithm, its model, and its input."
-function new_space(::Type{SearchSpaceType}, alg, model, input) where SearchSpaceType <: AbstractSearchSpace
-    @warn "new_space(::Type{$SearchSpaceType}, ::$(typeof(alg)), ::$(typeof(model)), ::$(typeof(input))) not implemented."
-    return nothing
-end
+@mustimplement "TreeSearch"  new_space(::Type{<:AbstractSearchSpace}, alg, model, input)
 
 "Creates and returns the root node of a search space."
-function new_root(sp::AbstractSearchSpace, input)
-    @warn "new_root(::$(typeof(sp)), ::$(typeof(input))) not implemented."
-    return nothing
-end
+@mustimplement "TreeSearch" new_root(::AbstractSearchSpace, input)
 
 "Returns the root node of the tree to which the node belongs."
-get_root(::AbstractNode) = nothing
+@mustimplement "Node" get_root(::AbstractNode)
 
 "Returns the parent of a node; `nothing` if the node is the root."
-get_parent(::AbstractNode) = nothing
+@mustimplement "Node" get_parent(::AbstractNode)
 
 "Returns the priority of the node depending on the explore strategy."
-get_priority(::AbstractExploreStrategy, ::AbstractNode) = nothing
+@mustimplement "Node" get_priority(::AbstractExploreStrategy, ::AbstractNode)
 
 ##### Addition methods for the node interface (needed by conquer)
 "Returns an `OptimizationState` that contains best bounds and solutions at the node."
-get_opt_state(::AbstractNode) = nothing # conquer, divide
+@mustimplement "Node" get_opt_state(::AbstractNode) # conquer, divide
 
 "Returns a `Records` that allows to restore the state of the formulation at this node."
-get_records(::AbstractNode) = nothing # conquer
+@mustimplement "Node" get_records(::AbstractNode) # conquer
 
 "Returns a `String` to display the branching constraint."
-get_branch_description(::AbstractNode) = nothing # printer
+@mustimplement "Node" get_branch_description(::AbstractNode) # printer
 
 "Returns `true` is the node is root; `false` otherwise."
-isroot(::AbstractNode) = nothing # BaB implementation
+@mustimplement "Node" isroot(::AbstractNode) # BaB implementation
 
 # TODO; remove untreated_nodes
 "Evaluate and generate children. This method has a specific implementation for Coluna."
-function children(sp, n, env, untreated_nodes)
-    @warn "children(::$(typeof(sp)), ::$(typeof(n)), ::$(typeof(env)), untreated_nodes) not implemented."
-    return nothing
-end
+@mustimplement "TreeSearch" children(sp, n, env, untreated_nodes)
 
 "Returns true if stopping criteria are met; false otherwise."
-function stop(sp::AbstractSearchSpace)
-    @warn "stop($(typeof(sp))) not implemented."
-    return nothing
-end
+@mustimplement "TreeSearch" stop(::AbstractSearchSpace)
 
 "Returns the output of the tree search algorithm."
-tree_search_output(::AbstractSearchSpace, untreated_nodes) = nothing
+@mustimplement "TreeSearch" tree_search_output(::AbstractSearchSpace, untreated_nodes)
 
 ############################################################################################
 # Tree search interface for Coluna algorithms
@@ -73,58 +61,40 @@ abstract type AbstractColunaSearchSpace <: AbstractSearchSpace end
 # Additional methods to implement to use the tree search algorithms together with Coluna's
 # algorithms.
 "Returns the previous node explored by the tree search algorithm."
-get_previous(s::AbstractColunaSearchSpace) = nothing
+@mustimplement "ColunaSearchSpace" get_previous(s::AbstractColunaSearchSpace)
 
 "Sets the previous node explored by the tree search algorithm."
-set_previous!(s::AbstractColunaSearchSpace, previous) = nothing
+@mustimplement "ColunaSearchSpace" set_previous!(s::AbstractColunaSearchSpace, previous)
 
 "Returns the conquer algorithm."
-function get_conquer(sp::AbstractColunaSearchSpace)
-    @warn "get_conquer(::$(typeof(sp))) not implemented."
-    return nothing
-end
+@mustimplement "ColunaSearchSpace" get_conquer(sp::AbstractColunaSearchSpace)
 
 "Returns the divide algorithm."
-function get_divide(sp::AbstractColunaSearchSpace)
-    @warn "get_divide(::$(typeof(sp))) not implemented."
-    return nothing
-end
+@mustimplement "ColunaSearchSpace" get_divide(sp::AbstractColunaSearchSpace)
 
 "Returns the reformulation that will be passed to an algorithm."
-function get_reformulation(s::AbstractColunaSearchSpace)
-    @warn "get_reformulation(::$(typeof(s))) not implemented."
-    return nothing
-end
+@mustimplement "ColunaSearchSpace" get_reformulation(s::AbstractColunaSearchSpace)
 
 """
 Returns the input that will be passed to an algorithm.
 The input can be built from information contained in a search space and a node.
 """
-function get_input(a::AbstractAlgorithm, s::AbstractColunaSearchSpace, n::AbstractNode)
-    @warn "get_input(::$(typeof(a)), ::$(typeof(s)), ::$(typeof(n))) not implemented."
-    return nothing
-end
+@mustimplement "ColunaSearchSpace" get_input(a::AbstractAlgorithm, s::AbstractColunaSearchSpace, n::AbstractNode)
 
 """
 Methods to perform operations before the tree search algorithm evaluates a node (`current`).
 This is useful to restore the state of the formulation for instance.
 """
-function node_change!(previous::AbstractNode, current::AbstractNode, space::AbstractColunaSearchSpace, untreated_nodes)
-    @warn "node_change!(::$(typeof(previous)), $(typeof(current)), $(typeof(space)), $(typeof(untreated_nodes))) not implemented."
-    return nothing
-end
+@mustimplement "ColunaSearchSpace" node_change!(previous::AbstractNode, current::AbstractNode, space::AbstractColunaSearchSpace, untreated_nodes)
 
 """
 Methods to perform operations after the conquer algorithms.
 It receives the output of the conquer algorithm.
 """
-after_conquer!(::AbstractColunaSearchSpace, current, output) = nothing
+@mustimplement "ColunaSearchSpace" after_conquer!(::AbstractColunaSearchSpace, current, output)
 
 "Creates and returns the children of a node associated to a search space."
-function new_children(sp::AbstractColunaSearchSpace, candidates, n::AbstractNode)
-    @warn "new_children(::$(typeof(sp)), ::$(typeof(candidates)), ::$(typeof(n))) not implemented."
-    return nothing
-end
+@mustimplement "ColunaSearchSpace" new_children(sp::AbstractColunaSearchSpace, candidates, n::AbstractNode)
 
 # Implementation of the `children` method for the `AbstractColunaSearchSpace` algorithm.
 function children(space::AbstractColunaSearchSpace, current::AbstractNode, env, untreated_nodes)
