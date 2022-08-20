@@ -2,12 +2,20 @@
     d = CvrpToyData(false)
     model, x, cov, mast, sps, dec = cvrp_with_representatives(d)
     JuMP.optimize!(model)
+    @test objective_value(model) ≈ 59
 end
 
 @testset "Decomposition with representatives and multiple subproblems" begin
     d = CvrpToyData(true)
     model, x, cov, mast, sps, dec = cvrp_with_representatives(d)
     JuMP.optimize!(model)
+    @test objective_value(model) ≈ 69
+
+    # Test with all routes for the cheapest vehicle because it generated an error
+    d.nb_sols[1] = 13
+    model, x, cov, mast, sps, dec = cvrp_with_representatives(d)
+    JuMP.optimize!(model)
+    @test objective_value(model) ≈ 59
 end
 
 struct CvrpSol
@@ -102,14 +110,12 @@ function cvrp_with_representatives(data::CvrpData)
     @dantzig_wolfe_decomposition(model, dec, VehicleTypes)
 
     function route_pricing_callback(cbdata)
-        if length(data.vehicle_types) > 1
-            spid = BlockDecomposition.callback_spid(cbdata, model)
-        end
+        spid = BlockDecomposition.callback_spid(cbdata, model)
         rcosts = [BlockDecomposition.callback_reduced_cost(cbdata, x[e]) for e in data.E]
 
         bestsol = data.sp_sols[1]
         bestrc = rcost(bestsol, rcosts)
-        for sol in data.sp_sols[2:end]
+        for sol in data.sp_sols[2:data.nb_sols[spid]]
             rc = rcost(sol, rcosts)
             if rc < bestrc
                 bestrc = rc

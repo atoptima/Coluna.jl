@@ -683,10 +683,10 @@ function _setrobustmembers!(form::Formulation, constr::Constraint, members::VarM
 
         if getduty(varid) <= MasterRepPricingVar  || getduty(varid) <= MasterRepPricingSetupVar
             # then for all columns having its own variables
-            assigned_form_uid = getassignedformuid(varid)
-            spform = get_dw_pricing_sps(form.parent_formulation)[assigned_form_uid]
-            for (col_id, col_coeff) in @view get_primal_sol_pool(spform)[:,varid]
-                coef_matrix[constrid, col_id] += col_coeff * var_coeff
+            for (_, spform) in get_dw_pricing_sps(form.parent_formulation)
+                for (col_id, col_coeff) in @view get_primal_sol_pool(spform)[:,varid]
+                    coef_matrix[constrid, col_id] += col_coeff * var_coeff
+                end
             end
         end
     end
