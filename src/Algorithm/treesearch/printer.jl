@@ -5,30 +5,11 @@
 "Super type to dispatch on file printer methods."
 abstract type AbstractFilePrinter end
 
-function new_file_printer(T::Type{<:AbstractFilePrinter}, alg)
-    @warn "new_file_printer(::$(typeof(T)), alg) not implemented."
-    return nothing
-end
-
-function filename(f::AbstractFilePrinter)
-    @warn "filename(::$(typeof(f))) not implemented."
-    return nothing
-end
-
-function init_tree_search_file!(f::AbstractFilePrinter)
-    @warn "init_tree_search_file!(::$(typeof(f))) not implemented."
-    return nothing
-end
-
-function print_node_in_tree_search_file!(f::AbstractFilePrinter, node, sp, env)
-    @warn "print_node_in_tree_search_file!(::$(typeof(f)), ::$(typeof(node)), ::$(typeof(sp)), ::$(typeof(env))) not implemented."
-    return nothing
-end
-
-function close_tree_search_file!(f::AbstractFilePrinter)
-    @warn "close_tree_search_file!(::$(typeof(f))) not implemented."
-    return nothing
-end
+@mustimplement "FilePrinter" new_file_printer(::Type{<:AbstractFilePrinter}, alg)
+@mustimplement "FilePrinter" filename(::AbstractFilePrinter)
+@mustimplement "FilePrinter" init_tree_search_file!(::AbstractFilePrinter)
+@mustimplement "FilePrinter" print_node_in_tree_search_file!(::AbstractFilePrinter, node, space, env)
+@mustimplement "FilePrinter" close_tree_search_file!(::AbstractFilePrinter)
 
 ############################################################################################
 # Log printer API (on stdin)
@@ -37,15 +18,8 @@ end
 "Super type to dispatch on log printer method."
 abstract type AbstractLogPrinter end
 
-function new_log_printer(T::Type{<:AbstractLogPrinter})
-    @warn "new_log_printer(::Type{$T}) not implemented."
-    return
-end
-
-function print_log(l::AbstractLogPrinter, sp, node, env, nb_untreated_nodes)
-    @warn "print_log $(typeof(l)) not implemented."
-    return
-end
+@mustimplement "LogPrinter" new_log_printer(::Type{<:AbstractLogPrinter})
+@mustimplement "LogPrinter" print_log(::AbstractLogPrinter, space, node, env, nb_untreated_nodes)
 
 ############################################################################################
 # File & log printer search space.
@@ -71,11 +45,13 @@ end
 Node that contains the node of the Coluna's tree search algorithm for which we want to
 print execution logs.
 """
-struct PrintedNode <: AbstractNode
+struct PrintedNode{Node<:AbstractNode} <: AbstractNode
     tree_order_id::Int
     parent::Union{Nothing,PrintedNode}
     inner::Node
 end
+
+get_parent(n::PrintedNode) = n.parent
 
 function tree_search_output(sp::PrinterSearchSpace, untreated_nodes)
     close_tree_search_file!(sp.file_printer)
@@ -154,7 +130,7 @@ end
 
 function print_node_in_tree_search_file!(f::DotFilePrinter, node::PrintedNode, sp::PrinterSearchSpace, env)
     pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
-    db = getvalue(get_ip_dual_bound(getoptstate(node.inner)))
+    db = getvalue(get_ip_dual_bound(get_opt_state(node.inner)))
     open(filename(f), "r+") do file
         # rewind the closing brace character
         seekend(file)
@@ -164,13 +140,13 @@ function print_node_in_tree_search_file!(f::DotFilePrinter, node::PrintedNode, s
         # start writing over this character
         ncur = node.tree_order_id
         time = elapsed_optim_time(env)
-        if ip_gap_closed(getoptstate(node.inner))
+        if ip_gap_closed(get_opt_state(node.inner))
             @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[PRUNED , %.4f]\"];" ncur ncur time pb
         else
             @printf file "\n\tn%i [label= \"N_%i (%.0f s) \\n[%.4f , %.4f]\"];" ncur ncur time db pb
         end
-        if !isnothing(node.parent) # not root node
-            npar = node.parent.tree_order_id
+        if !isnothing(get_parent(node)) # not root node
+            npar = get_parent(node).tree_order_id
             @printf file "\n\tn%i -> n%i [label= \"%s\"];}" npar ncur node.inner.branchdescription
         else
             print(file, "}")
@@ -216,12 +192,12 @@ function print_log(
     is_root_node = iszero(getdepth(node.inner))
     current_node_id = node.tree_order_id
     current_node_depth = getdepth(node.inner)
-    current_parent_id = isnothing(node.parent) ? nothing : node.parent.tree_order_id
-    local_db = getvalue(get_ip_dual_bound(getoptstate(node.inner)))
+    current_parent_id = isnothing(get_parent(node)) ? nothing : get_parent(node).tree_order_id
+    local_db = getvalue(get_ip_dual_bound(get_opt_state(node.inner)))
     global_db = getvalue(get_ip_dual_bound(sp.inner.optstate))
     global_pb = getvalue(get_ip_primal_bound(sp.inner.optstate))
     time = elapsed_optim_time(env)
-    br_constr_description = node.inner.branchdescription
+    br_constr_description = get_branch_description(node.inner)
 
     bold = Crayon(bold = true)
     unbold = Crayon(bold = false)

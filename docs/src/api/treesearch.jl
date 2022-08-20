@@ -127,8 +127,8 @@ struct Node <: ClA.AbstractNode
     end
 end
 
-ClA.root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
-ClA.parent(node::Node) = node.parent
+ClA.get_root(node::Node) = isnothing(node.parent) ? node : ClA.root(node.parent)
+ClA.get_parent(node::Node) = node.parent
 
 
 # Then, we define the search spaces. Take a look at the API section to see
@@ -423,9 +423,16 @@ output = ClA.run!(BinaryTree(), env, model, input)
 # ```@docs
 # AbstractNode
 # new_root
-# root
-# parent
-# priority
+# get_root
+# get_parent
+# get_priority
+# ```
+# Additional methods needed for Coluna's algorithms:
+# ```@docs
+# get_opt_state
+# get_records
+# get_branch_description
+# isroot
 # ```
 
 # ### Tree search algorithm

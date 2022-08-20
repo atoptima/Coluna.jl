@@ -150,7 +150,7 @@ end
 
 """
 
-struct PreprocessingOutput <: AbstractOutput
+struct PreprocessingOutput
     infeasible::Bool
 end
 
@@ -191,7 +191,9 @@ function get_units_usage(algo::PreprocessAlgorithm, reform::Reformulation)
     return units_usage
 end
 
-function run!(algo::PreprocessAlgorithm, env::Env, reform::Reformulation, input::EmptyInput)::PreprocessingOutput
+struct PreprocessingInput end
+
+function run!(algo::PreprocessAlgorithm, env::Env, reform::Reformulation, ::PreprocessingInput)::PreprocessingOutput
     @logmsg LogLevel(-1) "Run preprocessing"
 
     unit = getstorageunit(reform, PreprocessingUnit)

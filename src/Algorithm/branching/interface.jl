@@ -14,12 +14,11 @@ getdescription(candidate::AbstractBranchingCandidate) =
 ## Note: Branching candidates must be created in the BranchingRule algorithm so they do not need
 ## a generic constructor.
 
-get_lhs(::AbstractBranchingCandidate) = nothing
-get_lhs_distance_to_integer(::AbstractBranchingCandidate) = nothing
-get_local_id(::AbstractBranchingCandidate) = nothing
-get_children(::AbstractBranchingCandidate) = nothing
-set_children!(::AbstractBranchingCandidate, children) = nothing
-get_parent(::AbstractBranchingCandidate) = nothing
+@mustimplement "BranchingCandidate" get_lhs(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" get_local_id(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" get_children(c::AbstractBranchingCandidate)
+@mustimplement "BranchingCandidate" set_children!(c::AbstractBranchingCandidate, children)
+@mustimplement "BranchingCandidate" get_parent(c::AbstractBranchingCandidate)
 
 # TODO: this method should not generate the children of the tree search algorithm.
 # However, AbstractBranchingCandidate should implement an interface to retrieve data to
@@ -28,10 +27,10 @@ get_parent(::AbstractBranchingCandidate) = nothing
     generate_children!(branching_candidate, lhs, env, reform, node)
 
 This method generates the children of a node described by `branching_candidate`.
+Make sure that this method returns an object the same type as the second argument of
+`set_children!(candiate, children)`.
 """
-generate_children!(
-    candidate::AbstractBranchingCandidate, ::Float64, ::Env, ::Reformulation, ::AbstractNode
-) = error("generate_children not defined for branching candidates of type $(typeof(candidate)).")
+@mustimplement "BranchingCandidate" generate_children!(c::AbstractBranchingCandidate, env, reform, parent)
 
 ############################################################################################
 # Selection Criteria of branching candidates
@@ -50,9 +49,7 @@ abstract type AbstractSelectionCriterion end
 
 Sort branching candidates according to the selection criterion and remove excess ones.
 """
-select_candidates!(::Vector{C}, selection::AbstractSelectionCriterion, ::Int) where {C <: AbstractBranchingCandidate} =
-    error("select_candidates! not defined for branching selection rule $(typeof(selection)).")
-
+@mustimplement "BranchingSelection" select_candidates!(::Vector{<:AbstractBranchingCandidate}, selection::AbstractSelectionCriterion, ::Int)
 
 ############################################################################################
 # Branching score
@@ -60,7 +57,7 @@ select_candidates!(::Vector{C}, selection::AbstractSelectionCriterion, ::Int) wh
 
 abstract type AbstractBranchingScore end
 
-compute_score(::AbstractBranchingScore, candidate) = nothing
+@mustimplement "BranchingScore" compute_score(::AbstractBranchingScore, candidate)
 
 ############################################################################################
 # BranchingRuleAlgorithm
@@ -70,7 +67,7 @@ compute_score(::AbstractBranchingScore, candidate) = nothing
 Input of a branching rule (branching separation algorithm)
 Contains current solution, max number of candidates and local candidate id.
 """
-struct BranchingRuleInput <: AbstractInput 
+struct BranchingRuleInput{Node<:AbstractNode}
     solution::PrimalSolution 
     isoriginalsol::Bool
     max_nb_candidates::Int64
@@ -85,7 +82,7 @@ end
 Output of a branching rule (branching separation algorithm)
 It contains the branching candidates generated and the updated local id value
 """
-struct BranchingRuleOutput <: AbstractOutput 
+struct BranchingRuleOutput
     local_id::Int64
     candidates::Vector{AbstractBranchingCandidate}
 end

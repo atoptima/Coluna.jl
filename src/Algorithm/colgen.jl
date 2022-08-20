@@ -182,9 +182,9 @@ function ReducedCostsCalculationHelper(reform::Reformulation)
     )
 end
 
-function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
     master = getmaster(reform)
-    optstate = OptimizationState(master, getoptstate(input), false, false)
+    optstate = OptimizationState(master, input, false, false)
 
     stop = false
 
@@ -203,7 +203,7 @@ function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::Op
 
     @logmsg LogLevel(-1) string("ColumnGeneration terminated with status ", getterminationstatus(optstate))
 
-    return OptimizationOutput(optstate)
+    return optstate
 end
 
 function should_do_ph_1(optstate::OptimizationState)
@@ -349,9 +349,9 @@ end
 
 # Optimises the subproblem and returns the result (OptimizationState).
 function _optimize_sp(spform, pricing_prob_solve_alg, env)
-    input = OptimizationInput(OptimizationState(spform))
+    input = OptimizationState(spform)
     output = run!(pricing_prob_solve_alg, env, spform, input)
-    return getoptstate(output)
+    return output
 end
 
 # Subproblem optimisation can be run sequentially or in parallel.
@@ -732,12 +732,9 @@ function cg_main_loop!(
         end
 
         rm_time = @elapsed begin
-            rm_input = OptimizationInput(
-                OptimizationState(masterform, ip_primal_bound=get_ip_primal_bound(cg_optstate))
-            )
-            rm_output = run!(algo.restr_master_solve_alg, env, masterform, rm_input, algo.restr_master_optimizer_id)
+            rm_input = OptimizationState(masterform, ip_primal_bound=get_ip_primal_bound(cg_optstate))
+            rm_optstate = run!(algo.restr_master_solve_alg, env, masterform, rm_input, algo.restr_master_optimizer_id)
         end
-        rm_optstate = getoptstate(rm_output)
 
         if phase != 1 && getterminationstatus(rm_optstate) == INFEASIBLE
             @warn string("Solver returned that LP restricted master is infeasible or unbounded ",

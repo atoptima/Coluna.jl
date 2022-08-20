@@ -100,7 +100,7 @@ _optimizer_params(::Formulation, algo::SolveIpForm, ::UserOptimizer) = algo.user
 _optimizer_params(form::Formulation, algo::SolveIpForm, ::CustomOptimizer) = getinner(getoptimizer(form, algo.optimizer_id))
 _optimizer_params(::Formulation, ::SolveIpForm, ::NoOptimizer) = nothing
 
-function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationInput)::OptimizationOutput
+function run!(algo::SolveIpForm, env::Env, form::Formulation, input::OptimizationState)
     opt = getoptimizer(form, algo.optimizer_id)
     params = _optimizer_params(form, algo, opt)
     if params !== nothing
@@ -109,7 +109,7 @@ function run!(algo::SolveIpForm, env::Env, form::Formulation, input::Optimizatio
     return error("Cannot optimize formulation with optimizer of type $(typeof(opt)).")
 end
 
-run!(algo::SolveIpForm, env::Env, reform::Reformulation, input::OptimizationInput) = 
+run!(algo::SolveIpForm, env::Env, reform::Reformulation, input::OptimizationState) = 
     run!(algo, env, getmaster(reform), input)
 
 ################################################################################
@@ -168,12 +168,12 @@ check_if_optimizer_supports_ip(optimizer::NoOptimizer) = false
 
 # run! of MoiOptimize
 function run!(
-    algo::MoiOptimize, ::Env, form::Formulation, input::OptimizationInput; 
+    algo::MoiOptimize, ::Env, form::Formulation, input::OptimizationState; 
     optimizer_id::Int = 1
-)::OptimizationOutput
+)
     result = OptimizationState(
         form, 
-        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        ip_primal_bound = get_ip_primal_bound(input),
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
@@ -182,7 +182,7 @@ function run!(
     if !ip_supported
         @warn "Optimizer of formulation with id =", getuid(form),
               " does not support integer variables. Skip SolveIpForm algorithm."
-        return OptimizationOutput(result)
+        return result
     end
 
     primal_sols = optimize_ip_form!(algo, optimizer, form, result)
@@ -232,7 +232,7 @@ function run!(
         end
     end
 
-    return OptimizationOutput(result)
+    return result
 end
 
 function optimize_ip_form!(
@@ -297,12 +297,12 @@ end
 
 # run! of UserOptimize
 function run!(
-    algo::UserOptimize, ::Env, spform::Formulation{DwSp}, input::OptimizationInput;
+    algo::UserOptimize, ::Env, spform::Formulation{DwSp}, input::OptimizationState;
     optimizer_id::Int = 1
-)::OptimizationOutput
+)
     result = OptimizationState(
         spform, 
-        ip_primal_bound = get_ip_primal_bound(getoptstate(input)),
+        ip_primal_bound = get_ip_primal_bound(input),
         max_length_ip_primal_sols = algo.max_nb_ip_primal_sols
     )
 
@@ -334,7 +334,7 @@ function run!(
     else
         setterminationstatus!(result, OTHER_LIMIT)
     end
-    return OptimizationOutput(result)
+    return result
 end
 
 # No run! method for CustomOptimize because it directly calls the run! method

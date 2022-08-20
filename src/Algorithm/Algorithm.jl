@@ -6,7 +6,7 @@ import TimerOutputs
 
 using ..Coluna, ..ColunaBase, ..MathProg
 
-using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Statistics
+using Crayons, DynamicSparseArrays, Logging, Parameters, Printf, Random, Statistics
 
 const TO = TimerOutputs
 const DS = DataStructures
@@ -20,14 +20,17 @@ import Base: push!
 include("utilities/optimizationstate.jl")
 include("utilities/helpers.jl")
 
-# Abstract algorithm
+# API on top of storage API
 include("data.jl")
+
+# Algorithm interface
 include("interface.jl")
 
 # Tree search interface
 include("treesearch/interface.jl")
 include("treesearch/explore.jl")
 
+# Storage units & records implementation
 include("formstorages.jl")
 
 # Basic algorithms
@@ -41,14 +44,12 @@ include("colgen.jl")
 include("benders.jl")
 include("preprocessing.jl")
 
-# Algorithms and structures used by the tree search algorithm
-include("node.jl")
+# Conquer
 include("conquer.jl")
 
 # Here include divide algorithms
 include("branching/interface.jl")
 include("branching/sbnode.jl")
-include("divide.jl") # TODO: DivideInput and DivideOutput are already implementation.
 include("branching/selectioncriteria.jl")
 include("branching/scores.jl")
 include("branching/single_var_branching.jl")
@@ -74,7 +75,7 @@ export getterminationstatus, setterminationstatus!,
     get_ip_primal_bound, get_lp_primal_bound, get_lp_dual_bound, get_ip_dual_bound, 
     set_ip_primal_bound!, set_lp_primal_bound!, set_lp_dual_bound!, set_ip_dual_bound!,
     update_ip_primal_bound!, update_lp_primal_bound!, update_lp_dual_bound!, update_ip_dual_bound!,
-    getoptstate, run!
+    get_opt_state, run!
 
 # Algorithms
 export TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration, BendersConquer, BendersCutGeneration, SolveIpForm, RestrictedMasterIPHeuristic,
@@ -82,8 +83,8 @@ export TreeSearchAlgorithm, ColCutGenConquer, ColumnGeneration, BendersConquer, 
     FirstFoundCriterion, MostFractionalCriterion, SingleVarBranchingRule
 
 # Algorithm's types
-export AbstractOptimizationAlgorithm, OptimizationInput, OptimizationOutput, 
-    OptimizationState, EmptyInput
+export AbstractOptimizationAlgorithm,
+    OptimizationState
 
 # Types of optimizers
 export MoiOptimize, UserOptimizer

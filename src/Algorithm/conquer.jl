@@ -1,48 +1,3 @@
-"""
-    ConquerInput
-
-Input of a conquer algorithm used by the tree search algorithm.
-Contains the node in the search tree and the collection of units to restore 
-before running the conquer algorithm. This collection of units is passed
-in the input so that it is not obtained each time the conquer algorithm runs. 
-"""
-struct ConquerInput <: AbstractInput 
-    node::Node    
-    units_to_restore::UnitsUsage
-    run_conquer::Bool
-end
-
-getnode(input::ConquerInput) = input.node
-
-restore_from_records!(input::ConquerInput) = restore_from_records!(input.units_to_restore, input.node.records)
-
-"""
-    AbstractConquerAlgorithm
-
-This algorithm type is used by the tree search algorithm to update the incumbents and the formulation.
-For the moment, a conquer algorithm can be run only on reformulation.     
-A conquer algorithm should restore records of storage units using `restore_from_records!(conquer_input)`
-- each time it runs in the beginning
-- each time after calling a child manager algorithm
-"""
-abstract type AbstractConquerAlgorithm <: AbstractAlgorithm end
-
-# conquer algorithms are always manager algorithms (they manage storing and restoring units)
-ismanager(algo::AbstractConquerAlgorithm) = true
-
-function run!(algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, input::ConquerInput)
-    algotype = typeof(algo)
-    error(string("Method run! which takes as parameters Reformulation and ConquerInput ", 
-                 "is not implemented for algorithm $algotype.")
-    )
-end
-
-# this function is needed in strong branching (to have a better screen logging)
-isverbose(algo::AbstractConquerAlgorithm) = false
-
-# this function is needed to check whether the best primal solution should be copied to the node optimization state
-exploits_primal_solutions(algo::AbstractConquerAlgorithm) = false
-
 ####################################################################
 #                      ParameterisedHeuristic
 ####################################################################
@@ -97,13 +52,13 @@ function get_child_algorithms(algo::BendersConquer, reform::Reformulation)
     return [(algo.benders, reform)]
 end
 
-function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::ConquerInput)
-    !input.run_conquer && return
-    restore_from_records!(input)
+function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
+    !run_conquer(input) && return
+    restore_from_records!(get_units_to_restore(input), get_records(node))
     node = getnode(input)    
-    nodestate = getoptstate(node)
-    output = run!(algo.benders, env, reform, OptimizationInput(nodestate))
-    update!(nodestate, getoptstate(output))
+    node_state = get_opt_state(node)
+    output = run!(algo.benders, env, reform, node_state)
+    update!(node_state, output)
     return 
 end
 
@@ -171,14 +126,16 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
     return child_algos
 end
 
-function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::ConquerInput)
-    !input.run_conquer && return
-    restore_from_records!(input)
-    node = getnode(input)
-    nodestate = getoptstate(node)
-    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, env, reform, EmptyInput()))
-        setterminationstatus!(nodestate, INFEASIBLE)
-        return 
+function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
+    !run_conquer(input) && return
+
+    node = get_node(input)
+    restore_from_records!(get_units_to_restore(input), get_records(node))
+
+    node_state = get_opt_state(node)
+    if algo.run_preprocessing && isinfeasible(run!(algo.preprocess, env, reform, PreprocessingInput()))
+        setterminationstatus!(node_state, INFEASIBLE)
+        return
     end
 
     nb_cut_rounds = 0
@@ -191,19 +148,19 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                 @logmsg LogLevel(0) "Column generation stage $stage is started"
             end
 
-            colgen_output = run!(colgen, env, reform, OptimizationInput(nodestate))
-            update!(nodestate, getoptstate(colgen_output))
+            colgen_output = run!(colgen, env, reform, node_state)
+            update!(node_state, colgen_output)
 
-            if getterminationstatus(nodestate) == INFEASIBLE ||
-               getterminationstatus(nodestate) == TIME_LIMIT ||
-               ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+            if getterminationstatus(node_state) == INFEASIBLE ||
+               getterminationstatus(node_state) == TIME_LIMIT ||
+               ip_gap_closed(node_state, atol = algo.opt_atol, rtol = algo.opt_rtol)
                 stop_conquer = true
                 break
             end
         end
     
         cuts_were_added = false
-        sol = get_best_lp_primal_sol(nodestate)
+        sol = get_best_lp_primal_sol(node_state)
         if sol !== nothing 
             if !stop_conquer && nb_cut_rounds < algo.max_nb_cut_rounds
                 cutcb_input = CutCallbacksInput(sol)
@@ -232,14 +189,14 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                 #mod(get_tree_order(node) - 1, heuristic.frequency) == 0 (tree_order removed)
                 push!(heuristics_to_run, (
                     heuristic.algorithm, heuristic.name,
-                    isrootnode(node) ? heuristic.root_priority : heuristic.nonroot_priority
+                    isroot(node) ? heuristic.root_priority : heuristic.nonroot_priority
                 ))
             end
         end
         sort!(heuristics_to_run, by = x -> last(x), rev=true)
     
         for (heur_algorithm, name, _) in heuristics_to_run
-            if ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol) 
+            if ip_gap_closed(node_state, atol = algo.opt_atol, rtol = algo.opt_rtol) 
                 break
             end
 
@@ -248,10 +205,10 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                 records = create_records(reform)
             end   
 
-            heur_output = run!(heur_algorithm, env, reform, OptimizationInput(nodestate))
-            status = getterminationstatus(getoptstate(heur_output))
-            status == TIME_LIMIT && setterminationstatus!(nodestate, status)
-            ip_primal_sols = get_ip_primal_sols(getoptstate(heur_output))
+            heur_output = run!(heur_algorithm, env, reform, node_state)
+            status = getterminationstatus(heur_output)
+            status == TIME_LIMIT && setterminationstatus!(node_state, status)
+            ip_primal_sols = get_ip_primal_sols(heur_output)
             if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                 # we start with worst solution to add all improving solutions
                 for sol in sort(ip_primal_sols)
@@ -259,25 +216,25 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                     # TO DO : Heuristics should ensure themselves that the returned solution is feasible
                     cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
                     if cutcb_output.nb_cuts_added == 0
-                        update_ip_primal_sol!(nodestate, sol)
+                        update_ip_primal_sol!(node_state, sol)
                     end
                 end
             end
             if ismanager(heur_algorithm) 
-                ColunaBase.restore_from_records!(input.units_to_restore, records)
+                restore_from_records!(input.units_to_restore, records)
             end
 
-            if getterminationstatus(nodestate) == TIME_LIMIT ||
-               ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+            if getterminationstatus(node_state) == TIME_LIMIT ||
+               ip_gap_closed(node_state, atol = algo.opt_atol, rtol = algo.opt_rtol)
                break
             end   
         end
 
         # if the gap is still unclosed, try to run the node finalizer if any
         run_node_finalizer = (algo.node_finalizer !== nothing)
-        run_node_finalizer = run_node_finalizer && getterminationstatus(nodestate) != TIME_LIMIT
+        run_node_finalizer = run_node_finalizer && getterminationstatus(node_state) != TIME_LIMIT
         run_node_finalizer =
-            run_node_finalizer && !ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
+            run_node_finalizer && !ip_gap_closed(node_state, atol = algo.opt_atol, rtol = algo.opt_rtol)
         run_node_finalizer = run_node_finalizer && getdepth(node) >= algo.node_finalizer.min_depth
         run_node_finalizer =
             run_node_finalizer #&& mod(get_tree_order(node) - 1, algo.node_finalizer.frequency) == 0 (tree_order removed)
@@ -292,23 +249,23 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                 records = create_records(reform)
             end   
 
-            nf_output = run!(nodefinalizer, env, reform, OptimizationInput(nodestate))
-            status = getterminationstatus(getoptstate(nf_output))
-            status == TIME_LIMIT && setterminationstatus!(nodestate, status)
-            ip_primal_sols = get_ip_primal_sols(getoptstate(nf_output))
+            nf_output = run!(nodefinalizer, env, reform, node_state)
+            status = getterminationstatus(nf_output)
+            status == TIME_LIMIT && setterminationstatus!(node_state, status)
+            ip_primal_sols = get_ip_primal_sols(nf_output)
 
             # if the node has been conquered by the node finalizer
             if status in (OPTIMAL, INFEASIBLE)
                 # set the ip solutions found without checking the cuts and finish
                 if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                     for sol in sort(ip_primal_sols)
-                        update_ip_primal_sol!(nodestate, sol)
+                        update_ip_primal_sol!(node_state, sol)
                     end
                 end
 
                 # make sure that the gap is closed for the current node
-                dual_bound = DualBound(reform, getvalue(get_ip_primal_bound(nodestate)))
-                update_ip_dual_bound!(nodestate, dual_bound)
+                dual_bound = DualBound(reform, getvalue(get_ip_primal_bound(node_state)))
+                update_ip_dual_bound!(node_state, dual_bound)
             else
                 if ip_primal_sols !== nothing && length(ip_primal_sols) > 0
                     # we start with worst solution to add all improving solutions
@@ -317,21 +274,21 @@ function run!(algo::ColCutGenConquer, env::Env, reform::Reformulation, input::Co
                         # TO DO : Node finalizer should ensure itselves that the returned solution is feasible
                         cutcb_output = run!(cutgen, env, getmaster(reform), CutCallbacksInput(sol))
                         if cutcb_output.nb_cuts_added == 0
-                            update_ip_primal_sol!(nodestate, sol)
+                            update_ip_primal_sol!(node_state, sol)
                         end
                     end
                 end
                 if ismanager(nodefinalizer) 
-                    ColunaBase.restore_from_records!(input.units_to_restore, records)
+                    restore_from_records!(input.units_to_restore, records)
                 end
             end
         end
     end
 
-    if ip_gap_closed(nodestate, atol = algo.opt_atol, rtol = algo.opt_rtol)
-        setterminationstatus!(nodestate, OPTIMAL)
-    elseif getterminationstatus(nodestate) != TIME_LIMIT && getterminationstatus(nodestate) != INFEASIBLE
-        setterminationstatus!(nodestate, OTHER_LIMIT)
+    if ip_gap_closed(node_state, atol = algo.opt_atol, rtol = algo.opt_rtol)
+        setterminationstatus!(node_state, OPTIMAL)
+    elseif getterminationstatus(node_state) != TIME_LIMIT && getterminationstatus(node_state) != INFEASIBLE
+        setterminationstatus!(node_state, OTHER_LIMIT)
     end
     return
 end
@@ -352,18 +309,19 @@ function get_child_algorithms(algo::RestrMasterLPConquer, reform::Reformulation)
     return [(algo.masterlpalgo, getmaster(reform))]
 end
 
-function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::ConquerInput)
-    !input.run_conquer && return
-    restore_from_records!(input)
-    node = getnode(input)
-    nodestate = getoptstate(node)
-    output = run!(algo.masterlpalgo, env, getmaster(reform), OptimizationInput(nodestate))
-    masterlp_state =  getoptstate(output)
-    update!(nodestate, masterlp_state)
+function run!(algo::RestrMasterLPConquer, env::Env, reform::Reformulation, input::AbstractConquerInput)
+    !run_conquer(input) && return
+
+    node = get_node(input)
+    restore_from_records!(get_units_to_restore(input), get_records(node))
+
+    node_state = get_opt_state(node)
+    masterlp_state = run!(algo.masterlpalgo, env, getmaster(reform), node_state)
+    update!(node_state, masterlp_state)
     if ip_gap_closed(masterlp_state)
-        setterminationstatus!(nodestate, OPTIMAL)
+        setterminationstatus!(node_state, OPTIMAL)
     else
-        setterminationstatus!(nodestate, OTHER_LIMIT)
+        setterminationstatus!(node_state, OTHER_LIMIT)
     end
     return
 end

@@ -47,12 +47,7 @@ function get_child_algorithms(algo::TreeSearchAlgorithm, reform::Reformulation)
     return [(algo.conqueralg, reform), (algo.dividealg, reform)]
 end
 
-# Priority of nodes depends on the explore strategy.
-priority(::AbstractExploreStrategy, ::Node) = error("todo")
-priority(::DepthFirstStrategy, n::Node) = -n.depth
-priority(::BestDualBoundStrategy, n::Node) = get_ip_dual_bound(n.optstate)
-
-function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationInput)
+function run!(algo::TreeSearchAlgorithm, env::Env, reform::Reformulation, input::OptimizationState)
     search_space = new_space(search_space_type(algo), algo, reform, input)
     return tree_search(algo.explorestrategy, search_space, env, input)
 end

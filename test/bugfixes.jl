@@ -109,7 +109,7 @@
             "default_optimizer" => GLPK.Optimizer
         )
         model = BlockModel(coluna)
-        @test_throws ErrorException optimize!(model)
+        @test_throws ClB.IncompleteInterfaceError optimize!(model)
     end
 
     @testset "Optimize twice (no reformulation + direct model)" begin
