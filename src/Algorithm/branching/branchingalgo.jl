@@ -129,7 +129,7 @@ function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, re
     return kept_branch_candidates
 end
 
-function run!(algo::AbstractDivideBranching, env::Env, reform::Reformulation, input::AbstractDivideInput)
+function run!(algo::AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::AbstractDivideInput)
     ctx = new_context(branching_context_type(algo), algo, reform)
 
     parent = get_parent(input)
@@ -251,20 +251,26 @@ end
 abstract type AbstractStrongBrContext <: AbstractDivideContext end
 abstract type AbstractStrongBrPhaseContext end
 
-@mustimplement "StrongBranching" get_units_to_restore_for_conquer(::AbstractBrPhaseContext)
+@mustimplement "StrongBranching" get_units_to_restore_for_conquer(::AbstractStrongBrPhaseContext)
 
 @mustimplement "StrongBranching" get_phases(::AbstractStrongBrContext)
-
-@mustimplement "StrongBranching" perform_branching_phase!(candidates, ::StrongBranchingPhaseContext, sb_state, env, reform)
-
-@mustimplement "StrongBranching" eval_children_of_candidate!(children, phase, sb_state, env, reform)
-
-@mustimplement "StrongBranching" eval_child_of_candidate!(child, phase, sb_state, phase, env, reform)
 
 @mustimplement "StrongBranching" get_score(::AbstractStrongBrPhaseContext)
 
 @mustimplement "StrongBranching" get_conquer(::AbstractStrongBrPhaseContext)
 
+# Following methods are part of the strong branching API but we advise to not redefine them.
+# They depends on each other. First method calls the second and second one calls the third.
+perform_branching_phase!(candidates, phase, sb_state, env, reform) =
+    _perform_branching_phase!(phase, candidates, sb_state, env, reform)
+
+eval_children_of_candidate!(children, phase, sb_state, env, reform) =
+    _eval_children_of_candidate!(children, phase, sb_state, env, reform)
+
+eval_child_of_candidate!(child, phase, sb_state, env, reform) =
+    _eval_child_of_candidate!(child, phase, sb_state, env, reform)
+
+# Implementation of the strong branching API.
 struct StrongBranchingPhaseContext <: AbstractStrongBrPhaseContext
     phase_params::BranchingPhase
     units_to_restore_for_conquer::UnitsUsage
@@ -280,7 +286,6 @@ struct StrongBranchingContext{
     int_tol::Float64
 end
 
-
 struct BranchingContext{SelectionCriterion<:AbstractSelectionCriterion}
     selection_criterion::SelectionCriterion
     int_tol::Float64
@@ -290,7 +295,7 @@ function branching_context_type(algo::StrongBranching)
     return StrongBranchingContext
 end
 
-function new_context(::Type{StrongBranchingContext{P,S}}, algo::StrongBranching, reform)
+function new_context(::Type{<:StrongBranchingContext}, algo::StrongBranching, reform)
     # TODO: throws error if no branching rule defined.
     if isempty(algo.rules)
         error("No branching rule is defined.")
@@ -306,28 +311,6 @@ function new_context(::Type{StrongBranchingContext{P,S}}, algo::StrongBranching,
 end
 
 get_max_nb_candidates(algo::StrongBranching) = first(algo.phases).max_nb_candidates
-
-# # This is only for strong branching
-# # returns the optimization part of the output of the conquer algorithm
-# function _apply_conquer_alg_to_child!(
-#     child::SbNode, algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, 
-#     units_to_restore::UnitsUsage, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
-#     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
-# )
-#     child_state = get_opt_state(child)
-#     if ip_gap_closed(child_state, rtol = opt_rtol, atol = opt_atol)
-#         @info "IP Gap is closed: $(ip_gap(child_state)). Abort treatment."
-#     else
-#         run!(algo, env, reform, ConquerInputFromSb(child, units_to_restore))
-#         child.records = create_records(reform)
-#     end
-#     child.conquerwasrun = true
-#     return
-# end
-
-
-eval_child_of_candidate!(child, phase, sb_state, env, reform) =
-    _eval_child_of_candidate!(child, phase, sb_state, env, reform)
 
 function _eval_child_of_candidate!(child, phase, sb_state, env, reform)
     child_state = get_opt_state(child)
@@ -351,46 +334,21 @@ function _eval_child_of_candidate!(child, phase, sb_state, env, reform)
     return
 end
 
-eval_children_of_candidate!(children, phase, sb_state, env, reform) =
-    _eval_children_of_candidate!(children, phase, sb_state, env, reform)
-
 function _eval_children_of_candidate!(
     children::Vector{SbNode}, phase::AbstractStrongBrPhaseContext,
     sb_state, env, reform
 )
     for child in children
-        #### TODO: remove logs from algo logic
-        # 
-
-        # if isverbose(phase.conquer_algo)
-        #     print(
-        #         "**** SB phase ", -1, " evaluation of candidate ", 
-        #         candidate.varname, " (branch ", child_index, " : ", child.branchdescription
-        #     )
-        #     @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(get_opt_state(child)))
-        # end
-        
         eval_child_of_candidate!(child, phase, sb_state, env, reform)
-         
-        # if to_be_pruned(child) 
-        #     if isverbose(phase.conquer_algo)
-        #         println("Branch is conquered!")
-        #     end
-        # end
     end
     return
 end
-
-perform_branching_phase!(candidates, phase::StrongBranchingPhaseContext, sb_state, env, reform) =
-    _perform_branching_phase!(phase, candidates, sb_state, env, reform)
 
 function _perform_branching_phase!(candidates, phase, sb_state, env, reform)
     return map(candidates) do candidate
         children = sort(get_children(candidate), by = child -> get_lp_primal_bound(get_opt_state(child)))
         eval_children_of_candidate!(children, phase, sb_state, env, reform)
         return compute_score(get_score(phase), candidate)
-        # print_bounds_and_score(candidate, -1, 30, score) # TODO: rm
-        # return score
     end
 end
 
