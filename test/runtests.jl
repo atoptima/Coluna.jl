@@ -6,3 +6,4 @@ include("ColunaTests.jl")
 
 # Run a specific test:
 retest(ColunaTests, "strong branching")
+

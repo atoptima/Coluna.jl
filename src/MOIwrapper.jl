@@ -165,6 +165,7 @@ MOI.supports(::Optimizer, ::MOI.ConstraintPrimalStart) = false
 MOI.supports(::Optimizer, ::MOI.ConstraintDualStart) = false
 MOI.supports(::Optimizer, ::BlockDecomposition.ConstraintDecomposition) = true
 MOI.supports(::Optimizer, ::BlockDecomposition.VariableDecomposition) = true
+MOI.supports(::Optimizer, ::BlockDecomposition.RepresentativeVar) = true
 
 # Parameters
 function MOI.set(model::Optimizer, param::MOI.RawOptimizerAttribute, val)
@@ -838,6 +839,15 @@ function MOI.set(
     return
 end
 
+# In the case of a representative variable.
+function MOI.set(
+    model::Optimizer, ::BD.VariableDecomposition, varid::MOI.VariableIndex,
+    annotations::Vector{<:BD.Annotation}
+)
+    store_repr!(model.annotations, annotations, _info(model, varid).var)
+    return
+end
+
 function MOI.set(
     model::Optimizer, ::BD.VarBranchingPriority, varid::MOI.VariableIndex, branching_priority::Int
 )
@@ -853,6 +863,28 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
     return MOI.AbstractVariableAttribute[MOI.VariableName()]
+end
+
+# TODO: we'll have to check if this implementation fits good pratices.
+function MOI.set(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex, annotations)
+    # nothing to do.
+    # see MOI.set(model, ::BD.VariableDecomposition, varid, ::Vector{<:BD.Annotation})
+    return
+end
+
+function MOI.get(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex)
+    # nothing to return.
+    return 
+end
+
+function MOI.set(model::Optimizer, ::BD.ListOfRepresentatives, list)
+    # nothing to do.
+    return
+end
+
+function MOI.get(model::Optimizer, ::BD.ListOfRepresentatives)
+    # nothing to return
+    return
 end
 
 ############################################################################################
@@ -1067,7 +1099,7 @@ function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
         F = MOI.get(model, MOI.ObjectiveFunctionType())
         push!(attributes, MOI.ObjectiveFunction{F}())
     end
-    if model.objective_sense !== nothing
+    if !isnothing(model.objective_sense)
         push!(attributes, MOI.ObjectiveSense())
     end
     if model.has_usercut_cb
