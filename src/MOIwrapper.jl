@@ -865,27 +865,26 @@ function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
     return MOI.AbstractVariableAttribute[MOI.VariableName()]
 end
 
+# TODO: we'll have to check if this implementation fits good pratices.
 function MOI.set(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex, annotations)
-    @warn "TODO: set representative var"
-    #store_repr!(model.annotations, annotations, _info(model, varid).var)
+    # nothing to do.
+    # see MOI.set(model, ::BD.VariableDecomposition, varid, ::Vector{<:BD.Annotation})
     return
 end
 
 function MOI.get(model::Optimizer, ::BD.RepresentativeVar, varid::MOI.VariableIndex)
-    @warn "TODO: get representative var"
-    @show varid
+    # nothing to return.
     return 
 end
 
 function MOI.set(model::Optimizer, ::BD.ListOfRepresentatives, list)
-    @warn "TODO: set list of representatives"
-    @show list
+    # nothing to do.
     return
 end
 
 function MOI.get(model::Optimizer, ::BD.ListOfRepresentatives)
-    @warn "TODO: get list of representatives"
-    return []
+    # nothing to return
+    return
 end
 
 ############################################################################################

@@ -589,9 +589,6 @@ function reformulate!(prob::Problem, annotations::Annotations, env::Env)
         reform = Reformulation(env)
         set_reformulation!(prob, reform)
         buildformulations!(prob, reform, env, annotations, reform, root)
-        @show getmaster(reform)
-        println("*****")
-        @show get_dw_pricing_sps(reform)
         relax_integrality!(getmaster(reform))
     else # No decomposition provided by BlockDecomposition
         push_optimizer!(
