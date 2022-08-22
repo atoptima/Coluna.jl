@@ -18,6 +18,7 @@ get_opt_state(n::Node) = n.optstate # conquer, divide
 
 isroot(n::Node) = n.depth == 0
 get_records(n::Node) = n.records # conquer
+set_records!(n::Node, records) = n.records = records
 
 get_branch_description(n::Node) = n.branchdescription # printer
 

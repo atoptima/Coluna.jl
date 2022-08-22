@@ -26,15 +26,14 @@ function run!(::NoBranching, ::Env, reform::Reformulation, ::AbstractDivideInput
     return DivideOutput([], OptimizationState(getmaster(reform)))
 end
 
-
 ############################################################################################
 # Branching API
 ############################################################################################
 abstract type AbstractDivideContext end
 
-@mustimplement "Branching" branching_context_type(::AbstractDivideAlgorithm)
-
 @mustimplement "Branching" get_max_nb_candidates(::AbstractDivideAlgorithm)
+
+@mustimplement "Branching" branching_context_type(::AbstractDivideAlgorithm)
 
 @mustimplement "Branching" new_context(::Type{<:AbstractDivideContext}, algo::AbstractDivideAlgorithm)
 
@@ -46,15 +45,15 @@ abstract type AbstractDivideContext end
 
 @mustimplement "Branching" get_selection_criterion(::AbstractDivideContext)
 
-function _get_extended_and_original_sols(reform, optstate)
+function _get_extended_and_original_sols(reform, opt_state)
     master = getmaster(reform)
     original_sol = nothing
-    extended_sol = get_best_lp_primal_sol(optstate)
+    extended_sol = get_best_lp_primal_sol(opt_state)
     if !isnothing(extended_sol)
         original_sol = if projection_is_possible(master)
             proj_cols_on_rep(extended_sol, master)
         else
-            get_best_lp_primal_sol(optstate) # it means original_sol equals extended_sol(requires discussion)
+            get_best_lp_primal_sol(opt_state) # it means original_sol equals extended_sol(requires discussion)
         end
     end
     return extended_sol, original_sol
@@ -65,10 +64,10 @@ end
 # - stopping criterion
 # - what happens when original_solution or extended_solution are nothing
 function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, reform, env, parent)
-    extended_sol, original_sol = _get_extended_and_original_sols(reform, optstate)
+    extended_sol, original_sol = _get_extended_and_original_sols(reform, get_opt_state(parent))
 
     if isnothing(extended_sol)
-        error("Error") #TODO
+        error("Error") #TODO (talk with Ruslan.)
     end
     
     # We sort branching rules by their root/non-root priority.
@@ -154,22 +153,42 @@ end
 
 """
     Branching(
-        selection_criteria = MostFractionalCriterion()
+        selection_criterion = MostFractionalCriterion()
+        rules = [PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
     )
 
 Chooses the best candidate according to a selection criterion and generates the two children.
 """
 @with_kw struct Branching <: AbstractDivideAlgorithm
-    selection_criteria::AbstractSelectionCriterion = MostFractionalCriterion()
+    selection_criterion::AbstractSelectionCriterion = MostFractionalCriterion()
+    rules = [PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
+    int_tol = 1e-6
 end
 
-# # default parameterisation corresponds to simple branching (no strong branching phases)
-# function SimpleBranching()
-#     algo = StrongBranching()
-#     push!(algo.rules, PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0))
-#     return algo
-# end
+get_max_nb_candidates(::Branching) = 1
 
+struct BranchingContext{SelectionCriterion<:AbstractSelectionCriterion} <: AbstractDivideContext
+    selection_criterion::SelectionCriterion
+    rules::Vector{PrioritisedBranchingRule}
+    int_tol::Float64
+end
+
+function branching_context_type(::Branching)
+    return BranchingContext
+end
+
+function new_context(::Type{<:BranchingContext}, algo::Branching, _)
+    return BranchingContext(algo.selection_criterion, algo.rules, algo.int_tol)
+end
+
+get_int_tol(ctx::BranchingContext) = ctx.int_tol
+get_selection_criterion(ctx::BranchingContext) = ctx.selection_criterion
+get_rules(ctx::BranchingContext) = ctx.rules
+
+function branch!(::BranchingContext, candidates, _, reform, _::AbstractDivideInput)
+    children = get_children(first(candidates))
+    return DivideOutput(children, OptimizationState(getmaster(reform)))
+end
 
 ############################################################################################
 # Branching API implementation for the strong branching
@@ -184,21 +203,6 @@ struct BranchingPhase
     max_nb_candidates::Int64
     conquer_algo::AbstractConquerAlgorithm
     score::AbstractBranchingScore
-end
-
-"""
-    PrioritisedBranchingRule
-
-A branching rule with root and non-root priorities.
-"""
-struct PrioritisedBranchingRule
-    rule::AbstractBranchingRule
-    root_priority::Float64
-    nonroot_priority::Float64
-end
-
-function getpriority(rule::PrioritisedBranchingRule, isroot::Bool)::Float64
-    return isroot ? rule.root_priority : rule.nonroot_priority
 end
 
 """
@@ -259,10 +263,14 @@ abstract type AbstractStrongBrPhaseContext end
 
 @mustimplement "StrongBranching" get_conquer(::AbstractStrongBrPhaseContext)
 
+@mustimplement "StrongBranching" get_max_nb_candidates(::AbstractStrongBrPhaseContext)
+
 # Following methods are part of the strong branching API but we advise to not redefine them.
-# They depends on each other. First method calls the second and second one calls the third.
+# They depends on each other:
+# - default implementation of first method calls the second;
+# - default implementation of second method calls the third.
 perform_branching_phase!(candidates, phase, sb_state, env, reform) =
-    _perform_branching_phase!(phase, candidates, sb_state, env, reform)
+    _perform_branching_phase!(candidates, phase, sb_state, env, reform)
 
 eval_children_of_candidate!(children, phase, sb_state, env, reform) =
     _eval_children_of_candidate!(children, phase, sb_state, env, reform)
@@ -276,6 +284,11 @@ struct StrongBranchingPhaseContext <: AbstractStrongBrPhaseContext
     units_to_restore_for_conquer::UnitsUsage
 end
 
+get_score(ph::StrongBranchingPhaseContext) = ph.phase_params.score
+get_conquer(ph::StrongBranchingPhaseContext) = ph.phase_params.conquer_algo
+get_units_to_restore_for_conquer(ph::StrongBranchingPhaseContext) = ph.units_to_restore_for_conquer
+get_max_nb_candidates(ph::StrongBranchingPhaseContext) = ph.phase_params.max_nb_candidates
+
 struct StrongBranchingContext{
     PhaseContext<:AbstractStrongBrPhaseContext,
     SelectionCriterion<:AbstractSelectionCriterion
@@ -286,19 +299,23 @@ struct StrongBranchingContext{
     int_tol::Float64
 end
 
-struct BranchingContext{SelectionCriterion<:AbstractSelectionCriterion}
-    selection_criterion::SelectionCriterion
-    int_tol::Float64
-end
+get_max_nb_candidates(algo::StrongBranching) = first(algo.phases).max_nb_candidates
+get_rules(ctx::StrongBranchingContext) = ctx.rules
+get_selection_criterion(ctx::StrongBranchingContext) = ctx.selection_criterion
+get_int_tol(ctx::StrongBranchingContext) = ctx.int_tol
+get_phases(ctx::StrongBranchingContext) = ctx.phases
 
 function branching_context_type(algo::StrongBranching)
     return StrongBranchingContext
 end
 
 function new_context(::Type{<:StrongBranchingContext}, algo::StrongBranching, reform)
-    # TODO: throws error if no branching rule defined.
     if isempty(algo.rules)
-        error("No branching rule is defined.")
+        error("Strong branching: no branching rule is defined.")
+    end
+
+    if isempty(algo.phases)
+        error("Strong branching: no branching phase is defined.")
     end
 
     phases = map(algo.phases) do phase
@@ -309,8 +326,6 @@ function new_context(::Type{<:StrongBranchingContext}, algo::StrongBranching, re
         phases, algo.rules, algo.selection_criterion, algo.int_tol
     )
 end
-
-get_max_nb_candidates(algo::StrongBranching) = first(algo.phases).max_nb_candidates
 
 function _eval_child_of_candidate!(child, phase, sb_state, env, reform)
     child_state = get_opt_state(child)
@@ -344,7 +359,9 @@ function _eval_children_of_candidate!(
     return
 end
 
-function _perform_branching_phase!(candidates, phase, sb_state, env, reform)
+function _perform_branching_phase!(
+    candidates::Vector{C}, phase, sb_state, env, reform
+) where {C<:AbstractBranchingCandidate}
     return map(candidates) do candidate
         children = sort(get_children(candidate), by = child -> get_lp_primal_bound(get_opt_state(child)))
         eval_children_of_candidate!(children, phase, sb_state, env, reform)
@@ -361,10 +378,11 @@ function _perform_strong_branching!(
         getmaster(reform), get_opt_state(input), false, false
     )
 
-    for (phase_index, current_phase) in enumerate(get_phases(ctx))
+    phases = get_phases(ctx)
+    for (phase_index, current_phase) in enumerate(phases)
         nb_candidates_for_next_phase = 1
-        if phase_index < length(algo.phases)
-            nb_candidates_for_next_phase = algo.phases[phase_index + 1].max_nb_candidates
+        if phase_index < length(phases)
+            nb_candidates_for_next_phase = get_max_nb_candidates(phases[phase_index + 1])
             if length(candidates) <= nb_candidates_for_next_phase
                 # If at the current phase, we have less candidates than the number of candidates
                 # we want to evaluate at the next phase, we skip the current phase.

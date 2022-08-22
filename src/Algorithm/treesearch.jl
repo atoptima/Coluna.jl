@@ -1,7 +1,7 @@
 """
     Coluna.Algorithm.TreeSearchAlgorithm(
         conqueralg::AbstractConquerAlgorithm = ColCutGenConquer(),
-        dividealg::AbstractDivideAlgorithm = SimpleBranching(),
+        dividealg::AbstractDivideAlgorithm = Branching(),
         explorestrategy::AbstractExploreStrategy = DepthFirstStrategy(),
         maxnumnodes::Int = 100000,
         opennodeslimit::Int = 100,
@@ -26,7 +26,7 @@ Options :
 """
 @with_kw struct TreeSearchAlgorithm <: AbstractOptimizationAlgorithm
     conqueralg::AbstractConquerAlgorithm = ColCutGenConquer()
-    dividealg::AbstractDivideAlgorithm = SimpleBranching()
+    dividealg::AbstractDivideAlgorithm = Branching()
     explorestrategy::AbstractExploreStrategy = DepthFirstStrategy()
     maxnumnodes::Int64 = 100000
     opennodeslimit::Int64 = 100 

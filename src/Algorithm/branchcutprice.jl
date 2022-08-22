@@ -152,7 +152,7 @@ function BranchCutAndPriceAlgorithm(;
         push!(branching_phases, BranchingPhase(last(stbranch_phases_num_candidates), conquer, TreeDepthScore()))    
         branching = StrongBranching(rules = branching_rules, phases = branching_phases)
     else
-        branching = StrongBranching(rules = branching_rules)
+        branching = Branching(rules = branching_rules)
     end
 
     return TreeSearchAlgorithm(
