@@ -62,6 +62,22 @@ abstract type AbstractBranchingScore end
 ############################################################################################
 # BranchingRuleAlgorithm
 ############################################################################################
+abstract type AbstractBranchingRule <: AbstractAlgorithm end
+
+"""
+    PrioritisedBranchingRule
+
+A branching rule with root and non-root priorities.
+"""
+struct PrioritisedBranchingRule
+    rule::AbstractBranchingRule
+    root_priority::Float64
+    nonroot_priority::Float64
+end
+
+function getpriority(rule::PrioritisedBranchingRule, isroot::Bool)::Float64
+    return isroot ? rule.root_priority : rule.nonroot_priority
+end
 
 """
 Input of a branching rule (branching separation algorithm)
@@ -86,8 +102,6 @@ struct BranchingRuleOutput
     local_id::Int64
     candidates::Vector{AbstractBranchingCandidate}
 end
-
-abstract type AbstractBranchingRule <: AbstractAlgorithm end
  
 # branching rules are always manager algorithms (they manage storing and restoring storage units)
 ismanager(algo::AbstractBranchingRule) = true

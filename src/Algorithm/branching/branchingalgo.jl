@@ -27,9 +27,172 @@ function run!(::NoBranching, ::Env, reform::Reformulation, ::AbstractDivideInput
 end
 
 ############################################################################################
-# StrongBranching
+# Branching API
+############################################################################################
+abstract type AbstractDivideContext end
+
+@mustimplement "Branching" get_max_nb_candidates(::AbstractDivideAlgorithm)
+
+@mustimplement "Branching" branching_context_type(::AbstractDivideAlgorithm)
+
+@mustimplement "Branching" new_context(::Type{<:AbstractDivideContext}, algo::AbstractDivideAlgorithm)
+
+@mustimplement "Branching" branch!(::AbstractDivideContext, candidates, env, reform, input::AbstractDivideInput)
+
+@mustimplement "Branching" get_int_tol(::AbstractDivideContext)
+
+@mustimplement "Branching" get_rules(::AbstractDivideContext)
+
+@mustimplement "Branching" get_selection_criterion(::AbstractDivideContext)
+
+function _get_extended_and_original_sols(reform, opt_state)
+    master = getmaster(reform)
+    original_sol = nothing
+    extended_sol = get_best_lp_primal_sol(opt_state)
+    if !isnothing(extended_sol)
+        original_sol = if projection_is_possible(master)
+            proj_cols_on_rep(extended_sol, master)
+        else
+            get_best_lp_primal_sol(opt_state) # it means original_sol equals extended_sol(requires discussion)
+        end
+    end
+    return extended_sol, original_sol
+end
+
+# TODO: unit tests for
+# - fractional priorities
+# - stopping criterion
+# - what happens when original_solution or extended_solution are nothing
+function _candidates_selection(ctx::AbstractDivideContext, max_nb_candidates, reform, env, parent)
+    extended_sol, original_sol = _get_extended_and_original_sols(reform, get_opt_state(parent))
+
+    if isnothing(extended_sol)
+        error("Error") #TODO (talk with Ruslan.)
+    end
+    
+    # We sort branching rules by their root/non-root priority.
+    sorted_rules = sort(get_rules(ctx), rev = true, by = x -> getpriority(x, isroot(parent)))
+    
+    kept_branch_candidates = AbstractBranchingCandidate[]
+
+    local_id = 0 # TODO: this variable needs an explicit name.
+    priority_of_last_gen_candidates = nothing
+
+    for prioritised_rule in sorted_rules
+        rule = prioritised_rule.rule
+
+        # Priority of the current branching rule.
+        priority = getpriority(prioritised_rule, isroot(parent))
+    
+        nb_candidates_found = length(kept_branch_candidates)
+
+        # Before selecting new candidates with the current branching rule, check if generation
+        # of candidates stops. Generation of candidates stops when:
+        # 1. at least one candidate was generated, and its priority rounded down is stricly greater 
+        #    than priorities of not yet considered branching rules; (TODO: example? use case?)
+        # 2. all needed candidates were generated and their smallest priority is strictly greater
+        #    than priorities of not yet considered branching rules.
+        stop_gen_condition_1 = !isnothing(priority_of_last_gen_candidates) &&
+            nb_candidates_found > 0 && priority < floor(priority_of_last_gen_candidates)
+
+        stop_gen_condition_2 = !isnothing(priority_of_last_gen_candidates) && 
+            nb_candidates_found >= max_nb_candidates && priority < priority_of_last_gen_candidates
+    
+        if stop_gen_condition_1 || stop_gen_condition_2
+            break
+        end
+
+        # Generate candidates.
+        output = select!(
+            rule, env, reform, BranchingRuleInput(
+                original_sol, true, max_nb_candidates, get_selection_criterion(ctx),
+                local_id, get_int_tol(ctx), priority, parent
+            )
+        )
+        append!(kept_branch_candidates, output.candidates)
+        local_id = output.local_id
+
+        if projection_is_possible(getmaster(reform)) && !isnothing(extended_sol)
+            output = select!(
+                rule, env, reform, BranchingRuleInput(
+                    extended_sol, false, max_nb_candidates, get_selection_criterion(ctx),
+                    local_id, get_int_tol(ctx), priority, parent
+                )
+            )
+            append!(kept_branch_candidates, output.candidates)
+            local_id = output.local_id
+        end
+        select_candidates!(kept_branch_candidates, get_selection_criterion(ctx), max_nb_candidates)
+        priority_of_last_gen_candidates = priority
+    end
+    return kept_branch_candidates
+end
+
+function run!(algo::AbstractDivideAlgorithm, env::Env, reform::Reformulation, input::AbstractDivideInput)
+    ctx = new_context(branching_context_type(algo), algo, reform)
+
+    parent = get_parent(input)
+    optstate = get_opt_state(parent)
+    nodestatus = getterminationstatus(optstate)
+
+    # We don't run the branching algorithm if the node is already conquered
+    if nodestatus == OPTIMAL || nodestatus == INFEASIBLE || ip_gap_closed(optstate)             
+        #println("Node is already conquered. No children will be generated.")
+        return DivideOutput(SbNode[], optstate)
+    end
+
+    max_nb_candidates = get_max_nb_candidates(algo)
+    candidates = _candidates_selection(ctx, max_nb_candidates, reform, env, parent)
+
+    return branch!(ctx, candidates, env, reform, input)
+end
+
+############################################################################################
+# Branching API implementation for the (classic) branching
 ############################################################################################
 
+"""
+    Branching(
+        selection_criterion = MostFractionalCriterion()
+        rules = [PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
+    )
+
+Chooses the best candidate according to a selection criterion and generates the two children.
+"""
+@with_kw struct Branching <: AbstractDivideAlgorithm
+    selection_criterion::AbstractSelectionCriterion = MostFractionalCriterion()
+    rules = [PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0)]
+    int_tol = 1e-6
+end
+
+get_max_nb_candidates(::Branching) = 1
+
+struct BranchingContext{SelectionCriterion<:AbstractSelectionCriterion} <: AbstractDivideContext
+    selection_criterion::SelectionCriterion
+    rules::Vector{PrioritisedBranchingRule}
+    int_tol::Float64
+end
+
+function branching_context_type(::Branching)
+    return BranchingContext
+end
+
+function new_context(::Type{<:BranchingContext}, algo::Branching, _)
+    return BranchingContext(algo.selection_criterion, algo.rules, algo.int_tol)
+end
+
+get_int_tol(ctx::BranchingContext) = ctx.int_tol
+get_selection_criterion(ctx::BranchingContext) = ctx.selection_criterion
+get_rules(ctx::BranchingContext) = ctx.rules
+
+function branch!(::BranchingContext, candidates, _, reform, _::AbstractDivideInput)
+    children = get_children(first(candidates))
+    return DivideOutput(children, OptimizationState(getmaster(reform)))
+end
+
+############################################################################################
+# Branching API implementation for the strong branching
+############################################################################################
 """
     BranchingPhase(max_nb_candidates, conquer_algo)
 
@@ -40,21 +203,6 @@ struct BranchingPhase
     max_nb_candidates::Int64
     conquer_algo::AbstractConquerAlgorithm
     score::AbstractBranchingScore
-end
-
-"""
-    PrioritisedBranchingRule
-
-A branching rule with root and non-root priorities.
-"""
-struct PrioritisedBranchingRule
-    rule::AbstractBranchingRule
-    root_priority::Float64
-    nonroot_priority::Float64
-end
-
-function getpriority(rule::PrioritisedBranchingRule, isroot::Bool)::Float64
-    return isroot ? rule.root_priority : rule.nonroot_priority
 end
 
 """
@@ -82,15 +230,11 @@ restrict the number of retained candidates until only one is left.
     phases::Vector{BranchingPhase} = []
     rules::Vector{PrioritisedBranchingRule} = []
     selection_criterion::AbstractSelectionCriterion = MostFractionalCriterion()
+    verbose = true
     int_tol = 1e-6
 end
 
-# default parameterisation corresponds to simple branching (no strong branching phases)
-function SimpleBranching()
-    algo = StrongBranching()
-    push!(algo.rules, PrioritisedBranchingRule(SingleVarBranchingRule(), 1.0, 1.0))
-    return algo
-end
+## Implementation of Algorithm API.
 
 # StrongBranching does not use any storage unit itself, 
 # therefore get_units_usage() is not defined for it
@@ -104,78 +248,141 @@ function get_child_algorithms(algo::StrongBranching, reform::Reformulation)
         push!(child_algos, (prioritised_rule.rule, reform))
     end
     return child_algos
-end 
+end
 
-# This is only for strong branching
-# returns the optimization part of the output of the conquer algorithm
-function _apply_conquer_alg_to_child!(
-    child::SbNode, algo::AbstractConquerAlgorithm, env::Env, reform::Reformulation, 
-    units_to_restore::UnitsUsage, opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL, 
-    opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
-)
-    child_state = get_opt_state(child)
-    if ip_gap_closed(child_state, rtol = opt_rtol, atol = opt_atol)
-        @info "IP Gap is closed: $(ip_gap(child_state)). Abort treatment."
-    else
-        run!(algo, env, reform, ConquerInputFromSb(child, units_to_restore))
-        child.records = create_records(reform)
+# Implementation
+
+abstract type AbstractStrongBrContext <: AbstractDivideContext end
+abstract type AbstractStrongBrPhaseContext end
+
+@mustimplement "StrongBranching" get_units_to_restore_for_conquer(::AbstractStrongBrPhaseContext)
+
+@mustimplement "StrongBranching" get_phases(::AbstractStrongBrContext)
+
+@mustimplement "StrongBranching" get_score(::AbstractStrongBrPhaseContext)
+
+@mustimplement "StrongBranching" get_conquer(::AbstractStrongBrPhaseContext)
+
+@mustimplement "StrongBranching" get_max_nb_candidates(::AbstractStrongBrPhaseContext)
+
+# Following methods are part of the strong branching API but we advise to not redefine them.
+# They depends on each other:
+# - default implementation of first method calls the second;
+# - default implementation of second method calls the third.
+perform_branching_phase!(candidates, phase, sb_state, env, reform) =
+    _perform_branching_phase!(candidates, phase, sb_state, env, reform)
+
+eval_children_of_candidate!(children, phase, sb_state, env, reform) =
+    _eval_children_of_candidate!(children, phase, sb_state, env, reform)
+
+eval_child_of_candidate!(child, phase, sb_state, env, reform) =
+    _eval_child_of_candidate!(child, phase, sb_state, env, reform)
+
+# Implementation of the strong branching API.
+struct StrongBranchingPhaseContext <: AbstractStrongBrPhaseContext
+    phase_params::BranchingPhase
+    units_to_restore_for_conquer::UnitsUsage
+end
+
+get_score(ph::StrongBranchingPhaseContext) = ph.phase_params.score
+get_conquer(ph::StrongBranchingPhaseContext) = ph.phase_params.conquer_algo
+get_units_to_restore_for_conquer(ph::StrongBranchingPhaseContext) = ph.units_to_restore_for_conquer
+get_max_nb_candidates(ph::StrongBranchingPhaseContext) = ph.phase_params.max_nb_candidates
+
+struct StrongBranchingContext{
+    PhaseContext<:AbstractStrongBrPhaseContext,
+    SelectionCriterion<:AbstractSelectionCriterion
+} <: AbstractStrongBrContext
+    phases::Vector{PhaseContext}
+    rules::Vector{PrioritisedBranchingRule}
+    selection_criterion::SelectionCriterion
+    int_tol::Float64
+end
+
+get_max_nb_candidates(algo::StrongBranching) = first(algo.phases).max_nb_candidates
+get_rules(ctx::StrongBranchingContext) = ctx.rules
+get_selection_criterion(ctx::StrongBranchingContext) = ctx.selection_criterion
+get_int_tol(ctx::StrongBranchingContext) = ctx.int_tol
+get_phases(ctx::StrongBranchingContext) = ctx.phases
+
+function branching_context_type(algo::StrongBranching)
+    return StrongBranchingContext
+end
+
+function new_context(::Type{<:StrongBranchingContext}, algo::StrongBranching, reform)
+    if isempty(algo.rules)
+        error("Strong branching: no branching rule is defined.")
     end
-    child.conquerwasrun = true
+
+    if isempty(algo.phases)
+        error("Strong branching: no branching phase is defined.")
+    end
+
+    phases = map(algo.phases) do phase
+        units_to_restore_for_conquer = collect_units_to_restore!(phase.conquer_algo, reform)
+        return StrongBranchingPhaseContext(phase, units_to_restore_for_conquer)
+    end
+    return StrongBranchingContext(
+        phases, algo.rules, algo.selection_criterion, algo.int_tol
+    )
+end
+
+function _eval_child_of_candidate!(child, phase, sb_state, env, reform)
+    child_state = get_opt_state(child)
+    update_ip_primal_bound!(child_state, get_ip_primal_bound(sb_state))
+
+    # TODO: We consider that all branching algorithms don't exploit the primal solution 
+    # at the moment.
+    # best_ip_primal_sol = get_best_ip_primal_sol(sbstate)
+    # if !isnothing(best_ip_primal_sol)
+    #     set_ip_primal_sol!(nodestate, best_ip_primal_sol)
+    # end
+    
+    child_state = get_opt_state(child)
+    if !ip_gap_closed(child_state)
+        input = ConquerInputFromSb(child, get_units_to_restore_for_conquer(phase))
+        run!(get_conquer(phase), env, reform, input)
+        set_records!(child, create_records(reform))
+    end
+    child.conquerwasrun = true 
+    add_ip_primal_sols!(sb_state, get_ip_primal_sols(child_state)...)
     return
 end
 
 function _eval_children_of_candidate!(
-    children::Vector{SbNode}, phase::BranchingPhase, phase_index, conquer_units_to_restore, 
-    sbstate, env, reform, varname
+    children::Vector{SbNode}, phase::AbstractStrongBrPhaseContext,
+    sb_state, env, reform
 )
-    for (child_index, child) in enumerate(children) 
-        #### TODO: remove logs from algo logic
-        if isverbose(phase.conquer_algo)
-            print(
-                "**** SB phase ", phase_index, " evaluation of candidate ", 
-                varname, " (branch ", child_index, " : ", child.branchdescription
-            )
-            @printf "), value = %6.2f\n" getvalue(get_lp_primal_bound(get_opt_state(child)))
-        end
-        
-        child_state = get_opt_state(child)
-        update_ip_primal_bound!(child_state, get_ip_primal_bound(sbstate))
-
-        # TODO: We consider that all branching algorithms don't exploit the primal solution 
-        # at the moment.
-        # best_ip_primal_sol = get_best_ip_primal_sol(sbstate)
-        # if !isnothing(best_ip_primal_sol)
-        #     set_ip_primal_sol!(nodestate, best_ip_primal_sol)
-        # end                
-
-        _apply_conquer_alg_to_child!(
-            child, phase.conquer_algo, env, reform, conquer_units_to_restore
-        )        
-
-        add_ip_primal_sols!(sbstate, get_ip_primal_sols(child_state)...)
-         
-        if to_be_pruned(child) 
-            if isverbose(phase.conquer_algo)
-                println("Branch is conquered!")
-            end
-        end
+    for child in children
+        eval_child_of_candidate!(child, phase, sb_state, env, reform)
     end
     return
 end
 
-function _perform_strong_branching_with_phases!(
-    algo::StrongBranching, env::Env, reform::Reformulation, input::AbstractDivideInput, candidates::Vector{C}
+function _perform_branching_phase!(
+    candidates::Vector{C}, phase, sb_state, env, reform
+) where {C<:AbstractBranchingCandidate}
+    return map(candidates) do candidate
+        children = sort(get_children(candidate), by = child -> get_lp_primal_bound(get_opt_state(child)))
+        eval_children_of_candidate!(children, phase, sb_state, env, reform)
+        return compute_score(get_score(phase), candidate)
+    end
+end
+
+function _perform_strong_branching!(
+    ctx::StrongBranchingContext, env::Env, reform::Reformulation, input::AbstractDivideInput, candidates::Vector{C}
 )::OptimizationState where {C<:AbstractBranchingCandidate}
     # TODO: We consider that conquer algorithms in the branching algo don't exploit the
     # primal solution at the moment (3rd arg).
-    sbstate = OptimizationState(
+    sb_state = OptimizationState(
         getmaster(reform), get_opt_state(input), false, false
     )
 
-    for (phase_index, current_phase) in enumerate(algo.phases)
+    phases = get_phases(ctx)
+    for (phase_index, current_phase) in enumerate(phases)
         nb_candidates_for_next_phase = 1
-        if phase_index < length(algo.phases)
-            nb_candidates_for_next_phase = algo.phases[phase_index + 1].max_nb_candidates
+        if phase_index < length(phases)
+            nb_candidates_for_next_phase = get_max_nb_candidates(phases[phase_index + 1])
             if length(candidates) <= nb_candidates_for_next_phase
                 # If at the current phase, we have less candidates than the number of candidates
                 # we want to evaluate at the next phase, we skip the current phase.
@@ -186,22 +393,10 @@ function _perform_strong_branching_with_phases!(
             nb_candidates_for_next_phase = min(nb_candidates_for_next_phase, length(candidates))
         end
 
-        conquer_units_to_restore = collect_units_to_restore!(current_phase.conquer_algo, reform)
-
         # TODO: separate printing logic from algo logic.
         println("**** Strong branching phase ", phase_index, " is started *****");
 
-        scores = map(candidates) do candidate
-            children = sort(get_children(candidate), by = child -> get_lp_primal_bound(get_opt_state(child)))
-            _eval_children_of_candidate!(
-                children, current_phase, phase_index, conquer_units_to_restore, sbstate, env,
-                reform, candidate.varname
-            )
-
-            score = compute_score(current_phase.score, candidate)
-            print_bounds_and_score(candidate, phase_index, 30, score) # TODO: rm
-            return score
-        end
+        scores = perform_branching_phase!(candidates, current_phase, sb_state, env, reform)
 
         perm = sortperm(scores, rev=true)
         permute!(candidates, perm)
@@ -214,130 +409,11 @@ function _perform_strong_branching_with_phases!(
 
         resize!(candidates, nb_candidates_for_next_phase)
     end
-    return sbstate
+    return sb_state
 end
 
-# TODO: unit tests for
-# - fractional priorities
-# - stopping criterion
-# - what happens when original_solution or extended_solution are nothing
-function _select_candidates_with_branching_rule(rules, phases, selection_criterion, int_tol, parent_is_root, reform, env, original_solution, extended_solution, parent)
-    kept_branch_candidates = AbstractBranchingCandidate[]
-
-    # We sort branching rules by their root/non-root priority.
-    sorted_rules = sort(rules, rev = true, by = x -> getpriority(x, parent_is_root))
-
-    max_nb_candidates = if isempty(phases)
-        # A simple branching algorithm (with no phase) selects one candidate using the branching
-        # rules and return it.
-        1
-    else
-        # If the branching algorithm has phases, then it first selects the maximum number of
-        # candidates required by the first phases. The last phase returns the "best" candidate.
-        first(phases).max_nb_candidates
-    end
-
-    local_id = 0 # TODO: this variable needs an explicit name.
-    priority_of_last_gen_candidates = nothing
-
-    for prioritised_rule in sorted_rules
-        rule = prioritised_rule.rule
-
-        # Priority of the current branching rule.
-        priority = getpriority(prioritised_rule, parent_is_root)
-    
-        nb_candidates_found = length(kept_branch_candidates)
-
-        # Before selecting new candidates with the current branching rule, check if generation
-        # of candidates stops. Generation of candidates stops when:
-        # 1. at least one candidate was generated, and its priority rounded down is stricly greater 
-        #    than priorities of not yet considered branching rules; (TODO: example? use case?)
-        # 2. all needed candidates were generated and their smallest priority is strictly greater
-        #    than priorities of not yet considered branching rules.
-        stop_gen_condition_1 = !isnothing(priority_of_last_gen_candidates) &&
-            nb_candidates_found > 0 && priority < floor(priority_of_last_gen_candidates)
-
-        stop_gen_condition_2 = !isnothing(priority_of_last_gen_candidates) && 
-            nb_candidates_found >= max_nb_candidates && priority < priority_of_last_gen_candidates
-    
-        if stop_gen_condition_1 || stop_gen_condition_2
-            break
-        end
-
-        # Generate candidates.
-        output = select!(
-            rule, env, reform, BranchingRuleInput(
-                original_solution, true, max_nb_candidates, selection_criterion, 
-                local_id, int_tol, priority, parent
-            )
-        )
-        append!(kept_branch_candidates, output.candidates)
-        local_id = output.local_id
-
-        if projection_is_possible(getmaster(reform)) && !isnothing(extended_solution)
-            output = select!(
-                rule, env, reform, BranchingRuleInput(
-                    extended_solution, false, max_nb_candidates, selection_criterion, 
-                    local_id, int_tol, priority, parent
-                )
-            )
-            append!(kept_branch_candidates, output.candidates)
-            local_id = output.local_id
-        end
-        select_candidates!(kept_branch_candidates, selection_criterion, max_nb_candidates)
-        priority_of_last_gen_candidates = priority
-    end
-    return kept_branch_candidates
-end
-
-function run!(algo::StrongBranching, env::Env, reform::Reformulation, input::AbstractDivideInput)
-    parent = get_parent(input)
-    optstate = get_opt_state(parent)
-    nodestatus = getterminationstatus(optstate)
-
-    # We don't run the branching algorithm if the node is already conquered
-    if nodestatus == OPTIMAL || nodestatus == INFEASIBLE || ip_gap_closed(optstate)             
-        println("Node is already conquered. No children will be generated.")
-        return DivideOutput(SbNode[], optstate)
-    end
-
-    if isempty(algo.rules)
-        println("No branching rule is defined. No children will be generated.")
-        return DivideOutput(SbNode[], optstate)
-    end
-
-    # We retrieve the original and extended solutions.
-    master = getmaster(reform)
-    original_solution = nothing
-    extended_solution = get_best_lp_primal_sol(optstate)
-    if !isnothing(extended_solution)
-        original_solution = if projection_is_possible(master)
-            proj_cols_on_rep(extended_solution, master)
-        else
-            get_best_lp_primal_sol(optstate)
-        end
-    else
-        @warn "no LP solution is passed to the branching algorithm. No children will be generated."
-        return DivideOutput(SbNode[], optstate)
-    end
-
-    parent_is_root = iszero(getdepth(parent))
-    kept_branch_candidates = _select_candidates_with_branching_rule(
-        algo.rules, algo.phases, algo.selection_criterion, algo.int_tol, parent_is_root, reform, env, original_solution, extended_solution, parent
-    )
-
-    if isempty(kept_branch_candidates)
-        @logmsg LogLevel(0) "No branching candidates found. No children will be generated."
-        return DivideOutput(SbNode[], optstate)
-    end
-
-    # in the case of simple branching, it remains to generate the children
-    if isempty(algo.phases) 
-        children = get_children(first(kept_branch_candidates))
-        return DivideOutput(children, OptimizationState(getmaster(reform)))
-    end
-
-    sbstate = _perform_strong_branching_with_phases!(algo, env, reform, input, kept_branch_candidates)
-    children = get_children(first(kept_branch_candidates))
-    return DivideOutput(children, sbstate)
+function branch!(ctx::StrongBranchingContext, candidates, env::Env, reform::Reformulation, input::AbstractDivideInput)
+    sb_state = _perform_strong_branching!(ctx, env, reform, input, candidates)
+    children = get_children(first(candidates))
+    return DivideOutput(children, sb_state)
 end

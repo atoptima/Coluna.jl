@@ -33,6 +33,8 @@ abstract type AbstractNode end
 "Returns an `OptimizationState` that contains best bounds and solutions at the node."
 @mustimplement "Node" get_opt_state(::AbstractNode) # conquer, divide
 
+@mustimplement "Node" set_records!(::AbstractNode, records)
+
 "Returns a `Records` that allows to restore the state of the formulation at this node."
 @mustimplement "Node" get_records(::AbstractNode) # conquer
 

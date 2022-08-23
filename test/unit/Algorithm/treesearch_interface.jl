@@ -240,7 +240,7 @@ end
 
 @with_kw struct TreeSearchAlgorithmAti1
     conqueralg = ClA.ColCutGenConquer()
-    dividealg = ClA.SimpleBranching()
+    dividealg = ClA.Branching()
     explorestrategy = ClA.DepthFirstStrategy()
 end
 
