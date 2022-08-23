@@ -14,10 +14,19 @@ getdescription(candidate::AbstractBranchingCandidate) =
 ## Note: Branching candidates must be created in the BranchingRule algorithm so they do not need
 ## a generic constructor.
 
+"Returns the left-hand side of the candidate."
 @mustimplement "BranchingCandidate" get_lhs(c::AbstractBranchingCandidate)
+
+"Returns the generation id of the candidiate."
 @mustimplement "BranchingCandidate" get_local_id(c::AbstractBranchingCandidate)
+
+"Returns the children of the candidate."
 @mustimplement "BranchingCandidate" get_children(c::AbstractBranchingCandidate)
+
+"Set the children of the candidate."
 @mustimplement "BranchingCandidate" set_children!(c::AbstractBranchingCandidate, children)
+
+"Returns the parent node of the candidate's children."
 @mustimplement "BranchingCandidate" get_parent(c::AbstractBranchingCandidate)
 
 # TODO: this method should not generate the children of the tree search algorithm.
@@ -44,24 +53,26 @@ candidates. To create a new selection criterion, one needs to create a subtype o
 """
 abstract type AbstractSelectionCriterion end
 
-"""
-    select_candidates!(branching_candidates, selection_criterion, max_nb_candidates)
-
-Sort branching candidates according to the selection criterion and remove excess ones.
-"""
+"Sort branching candidates according to the selection criterion and remove excess ones."
 @mustimplement "BranchingSelection" select_candidates!(::Vector{<:AbstractBranchingCandidate}, selection::AbstractSelectionCriterion, ::Int)
 
 ############################################################################################
 # Branching score
 ############################################################################################
-
+"""
+Supertype of branching scores.
+"""
 abstract type AbstractBranchingScore end
 
+"Returns the score of a candidate."
 @mustimplement "BranchingScore" compute_score(::AbstractBranchingScore, candidate)
 
 ############################################################################################
 # BranchingRuleAlgorithm
 ############################################################################################
+"""
+Supertype of branching rules.
+"""
 abstract type AbstractBranchingRule <: AbstractAlgorithm end
 
 """
@@ -83,11 +94,11 @@ end
 Input of a branching rule (branching separation algorithm)
 Contains current solution, max number of candidates and local candidate id.
 """
-struct BranchingRuleInput{Node<:AbstractNode}
+struct BranchingRuleInput{SelectionCriterion<:AbstractSelectionCriterion,Node<:AbstractNode}
     solution::PrimalSolution 
     isoriginalsol::Bool
     max_nb_candidates::Int64
-    criterion::AbstractSelectionCriterion
+    criterion::SelectionCriterion
     local_id::Int64
     int_tol::Float64
     minimum_priority::Float64
@@ -106,8 +117,10 @@ end
 # branching rules are always manager algorithms (they manage storing and restoring storage units)
 ismanager(algo::AbstractBranchingRule) = true
 
+"Returns all candidates that satisfy a given branching rule."
 apply_branching_rule(rule, env, reform, input) = nothing
 
+"Candidates selection for branching algorithms."
 function select!(rule::AbstractBranchingRule, env::Env, reform::Reformulation, input::BranchingRuleInput)
     candidates = apply_branching_rule(rule, env, reform, input)
     local_id = input.local_id + length(candidates)
