@@ -50,7 +50,7 @@ You can install Coluna and its dependencies through the package manager of Julia
 ] add Coluna
 ```
 
-## Extra dependances
+## Extra dependencies
 
 - CPLEX.jl >= 0.7.0 (cf [issue 446](https://github.com/atoptima/Coluna.jl/issues/446))
 
