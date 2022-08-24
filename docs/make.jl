@@ -49,6 +49,7 @@ makedocs(
         "API" => Any[
             "Tree Search" => joinpath("api", "treesearch.md"),
             "Storage" => joinpath("api", "storage.md"),
+            "Branching" => joinpath("api", "branching.md"),
         ],
         "Q&A" => "qa.md",
     ]
