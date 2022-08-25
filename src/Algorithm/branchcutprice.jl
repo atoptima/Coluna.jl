@@ -67,9 +67,9 @@ function BranchCutAndPriceAlgorithm(;
         stbranch_phases_num_candidates::Vector{Int64} = Int[],
         stbranch_intrmphase_stages::Vector{NamedTuple{(:userstage, :solverid, :maxiters), Tuple{Int64, Int64, Int64}}} = [(userstage=1, solverid=1, maxiters=100)]
 )
-    heuristics = ParameterisedHeuristic[]
+    heuristics = ParameterizedHeuristic[]
     if restmastipheur_timelimit > 0
-        heuristic = ParameterisedHeuristic(
+        heuristic = ParameterizedHeuristic(
             SolveIpForm(moi_params = MoiOptimize(
                 get_dual_bound = false,
                 time_limit = restmastipheur_timelimit
