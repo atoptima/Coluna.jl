@@ -53,6 +53,7 @@ include("branching/sbnode.jl")
 include("branching/selectioncriteria.jl")
 include("branching/scores.jl")
 include("branching/single_var_branching.jl")
+include("branching/printer.jl")
 include("branching/branchingalgo.jl")
 
 include("treesearch.jl")

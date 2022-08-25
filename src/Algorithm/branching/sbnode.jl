@@ -7,15 +7,16 @@ mutable struct SbNode{Node<:AbstractNode} <: AbstractNode
     depth::Int
     parent::Union{Nothing, Node}
     optstate::OptimizationState
+    var_name::String
     branchdescription::String
     records::Records
     conquerwasrun::Bool
     function SbNode(
-        form::AbstractFormulation, parent::N, branch_description::String, records::Records
+        form::AbstractFormulation, parent::N, var_name::String, branch_description::String, records::Records
     ) where {N <: AbstractNode}
         depth = getdepth(parent) + 1
         node_state = OptimizationState(form, get_opt_state(parent), false, false)
-        return new{N}(depth, parent, node_state, branch_description, records, false)
+        return new{N}(depth, parent, node_state, var_name, branch_description, records, false)
     end
 end
 
@@ -33,4 +34,5 @@ get_records(n::SbNode) = n.records
 set_records!(n::SbNode, records) = n.records = records
 get_parent(n::SbNode) = n.parent
 get_branch_description(n::SbNode) = n.branchdescription
+get_var_name(n::SbNode) = n.var_name
 isroot(n::SbNode) = false

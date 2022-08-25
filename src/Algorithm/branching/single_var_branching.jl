@@ -56,7 +56,7 @@ function generate_children!(
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     child1description = candidate.varname * ">=" * string(ceil(lhs))
-    child1 = SbNode(master, parent, child1description, create_records(reform))
+    child1 = SbNode(master, parent, candidate.varname, child1description, create_records(reform))
 
     # adding the second branching constraints
     restore_from_records!(units_to_restore, parent.records)
@@ -69,7 +69,7 @@ function generate_children!(
         members = Dict{VarId,Float64}(candidate.varid => 1.0)
     )
     child2description = candidate.varname * "<=" * string(floor(lhs))
-    child2 = SbNode(master, parent, child2description, create_records(reform))
+    child2 = SbNode(master, parent, candidate.varname, child2description, create_records(reform))
 
     return [child1, child2]
 end
