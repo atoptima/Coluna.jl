@@ -1,24 +1,29 @@
 """
-    Id{VC <: AbstractVarConstr} as VarId or ConstrId
-
 Coluna identifier of a `Variable` or a `Constraint`.
-It is composed by the following uids:
-1. `uid`: uid in the formulation where it was generated 
-2. `origin_form_uid`: uid of the formulation where it was generated 
-3. `assigned_form_uid`: uid of the formulation where it is generated assigned in the reformulation process
-For a origin jump var/constr the origin_form_uid is the jump model while the assigned_form_uid is the spform for a pure spform and the master for a pure master var. For a added var/constr the origin_form_uid is where is was created : for instance a master column 's orginal formulation  is the subproblem for which it was a solution and is assigned formulation is the master program.Number of the process where it was generated 
+
+The identifier is a subtype of `Integer` so we can use it as index of sparse arrays.
+It behaves like an integer (field `uid`) with additional information (other fields).
+
+It is composed by the following ids:
+1. `uid`: unique id that is global to the Coluna instance (the integer) 
+2. `origin_form_uid`: unique id of the formulation where it was generated 
+3. `assigned_form_uid`: unique id of the formulation where it is assigned in the reformulation process
+
+For a JuMP variable/constraint the `origin_form_uid` is the original formulation while the 
+`assigned_form_uid` is the subproblem formulation for a pure subproblem variable/constraint 
+and the master for a pure master variable/constraint. 
+
+For a variable/constraint generated during optimization, the `origin_form_uid` is 
+the id of the formulation where it was created. 
+For instance, the origin formulation of a master column is the subproblem for which the 
+column is a solution and its assigned formulation is the master.
 """
-struct Id{VC <: AbstractVarConstr} 
+struct Id{VC <: AbstractVarConstr} <: Integer
     duty::Duty{VC}
     uid::Int32
     origin_form_uid::FormId
     assigned_form_uid::FormId
     custom_family_id::Int8
-    _hash::Int
-end
-
-function _create_hash(uid::Integer)
-    return Int(uid) * Int(MAX_NB_FORMULATIONS)
 end
 
 function Id{VC}(
@@ -26,10 +31,7 @@ function Id{VC}(
     assigned_form_uid::Integer = origin_form_uid,
     custom_family_id::Integer = -1
 ) where {VC}
-    return Id{VC}(
-        duty, uid, origin_form_uid, assigned_form_uid, custom_family_id,
-        _create_hash(uid)
-    )
+    return Id{VC}(duty, uid, origin_form_uid, assigned_form_uid, custom_family_id)
 end
 
 function Id{VC}(
@@ -39,28 +41,29 @@ function Id{VC}(
     assigned_form_uid::Union{Nothing, Integer} = nothing,
     custom_family_id::Union{Nothing, Integer} = nothing,
 ) where {VC}
-    duty = duty === nothing ? orig_id.duty : duty
-    origin_form_uid = origin_form_uid === nothing ? orig_id.origin_form_uid : origin_form_uid
-    assigned_form_uid = assigned_form_uid === nothing ? orig_id.assigned_form_uid : assigned_form_uid
-    custom_family_id = custom_family_id === nothing ? orig_id.custom_family_id : custom_family_id
-    return Id{VC}(
-        duty, orig_id.uid, origin_form_uid, assigned_form_uid, 
-        custom_family_id, _create_hash(orig_id.uid)
-    )
+    duty = isnothing(duty) ? orig_id.duty : duty
+    origin_form_uid = isnothing(origin_form_uid) ? orig_id.origin_form_uid : origin_form_uid
+    assigned_form_uid = isnothing(assigned_form_uid) ? orig_id.assigned_form_uid : assigned_form_uid
+    custom_family_id = isnothing(custom_family_id) ? orig_id.custom_family_id : custom_family_id
+    return Id{VC}(duty, orig_id.uid, origin_form_uid, assigned_form_uid, custom_family_id)
 end
 
-Base.hash(a::Id, h::UInt) = hash(a._hash, h)
-Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = Base.isequal(a._hash, b._hash)
-Base.isequal(a::Int, b::Id) = Base.isequal(a, b._hash)
-Base.isequal(a::Id, b::Int) = Base.isequal(a._hash, b)
-Base.isless(a::Id{VC}, b::Id{VC}) where {VC} = Base.isless(a._hash, b._hash)
-Base.zero(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), -1, -1, -1, -1, -1)
+Base.hash(a::Id, h::UInt) = hash(a.uid, h)
+Base.zero(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), -1, -1, -1, -1) # semaphore in the PMA (DynamicSparseArrays).
+Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = Base.isequal(a.uid, b.uid)
 
-Base.:(<)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash < b._hash
-Base.:(<=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash <= b._hash
-Base.:(==)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash == b._hash
-Base.:(>)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash > b._hash
-Base.:(>=)(a::Id{VC}, b::Id{VC}) where {VC} = a._hash >= b._hash
+Base.promote_rule(::Type{T}, ::Type{<:Id}) where {T<:Integer} = T
+Base.promote_rule(::Type{<:Id}, ::Type{T}) where {T<:Integer} = T
+Base.promote_rule(::Type{I}, ::Type{I}) where {I<:Id} = Int32
+
+Base.convert(::Type{Int}, id::I) where {I<:Id} = Int(id.uid)
+Base.convert(::Type{Int32}, id::I) where {I<:Id} = id.uid
+
+Base.:(<)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid < b.uid
+Base.:(<=)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid <= b.uid
+Base.:(==)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid == b.uid
+Base.:(>)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid > b.uid
+Base.:(>=)(a::Id{VC}, b::Id{VC}) where {VC} = a.uid >= b.uid
 
 ClB.getuid(id::Id) = id.uid # TODO: change name
 getduty(vcid::Id{VC}) where {VC} = vcid.duty
@@ -71,3 +74,6 @@ getsortuid(id::Id) = getuid(id)
 function Base.show(io::IO, id::Id{T}) where {T}
     print(io, T, "u", id.uid)
 end
+
+# Methods that Id needs to implement (otherwise error):
+Base.sub_with_overflow(a::I, b::I) where {I<:Id} = Base.sub_with_overflow(a.uid, b.uid)
