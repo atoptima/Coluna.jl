@@ -16,6 +16,8 @@ const ClB = ColunaBase
 const MOI = MathOptInterface
 const TO = TimerOutputs
 
+const MAX_NB_FORMULATIONS = typemax(Int16)
+
 include("types.jl")
 include("vcids.jl")
 include("variable.jl")
