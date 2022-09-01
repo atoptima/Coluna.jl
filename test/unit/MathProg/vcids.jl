@@ -1,17 +1,4 @@
 @testset "MathProg - variable and constraint ids" begin
-    @testset "_create_hash" begin
-        uid = 1
-        origin_form_uid = 2
-        proc_uid = 3
-
-        hash1 = Coluna.MathProg._create_hash(uid)
-        hash2 = Coluna.MathProg._create_hash(Int8(uid))
-        hash3 = Coluna.MathProg._create_hash(UInt16(uid))
-
-        @test hash1 === hash2
-        @test hash2 === hash3
-    end
-
     @testset "id equality" begin
         # vid1 & vid2 have same uid 1. vid3 has uid 2.
         vid1 = ClMP.VarId(ClMP.OriginalVar, 1, 1)
@@ -38,5 +25,30 @@
         @test haskey(dict, vid1)
         @test haskey(dict, vid2)
         @test haskey(dict, vid3)
+    end
+
+    @testset "math operations" begin
+        vid1 = ClMP.VarId(ClMP.OriginalVar, 1, 1)
+        @test vid1 + 1 == 2
+        @test vid1 - 1 == 0
+
+        @test vid1 < 2
+        @test vid1 <= 2
+        @test 2 >= vid1
+        @test 2 > vid1
+        @test vid1 == 1
+        @test isequal(vid1, 1)
+
+        vid2 = ClMP.VarId(ClMP.OriginalVar, 2, 1)
+        @test vid1 < vid2
+        @test vid1 <= vid2
+        @test vid2 >= vid1
+        @test vid2 > vid1
+
+        vid3 = ClMP.VarId(ClMP.OriginalVar, 2, 2)
+        @test vid2 <= vid3
+        @test vid2 >= vid3
+        @test vid2 == vid3
+        @test isequal(vid2, vid3)
     end
 end

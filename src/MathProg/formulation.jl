@@ -35,6 +35,7 @@ function create_formulation!(
     if env.form_counter >= MAX_NB_FORMULATIONS
         error("Maximum number of formulations reached.")
     end
+
     buffer = FormulationBuffer{VarId,Variable,ConstrId,Constraint}()
     form = Formulation(
         env.form_counter += 1, parent_formulation, AbstractOptimizer[], 
