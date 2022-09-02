@@ -1,24 +1,26 @@
 vid(uid) = ClMP.VarId(ClMP.OriginalVar, uid, 1)
 
+struct DummyFormulation <: ClMP.AbstractFormulation end
+
 @testset "MathProg - formulation" begin
     @testset "Dantzig-wolfe solution pool" begin
         pool_sols = dynamicsparse(ClMP.VarId, ClMP.VarId, Float64; fill_mode = false)
-        pool_ht = ClB.HashTable{ClMP.VarId}()
-        
+        pool_ht = ClB.HashTable{ClMP.VarId,ClMP.VarId}()
+        form = DummyFormulation()
+
         sol1_id = vid(1)
         sol1_ids = [vid(4), vid(5), vid(8)]
         sol1_vals = [1.0, 2.0, 5.0]
-        sol1_repr = dynamicsparsevec(sol1_ids, sol1_vals)
+        sol1_repr = ClMP.PrimalSolution(form, sol1_ids, sol1_vals, 2.0, ClMP.FEASIBLE_SOL)
 
         sol2_id = vid(2)
         sol2_ids = [vid(4), vid(7), vid(9)]
         sol2_vals = [2.0, 2.0, 3.0]
-        sol2_repr = dynamicsparsevec(sol2_ids, sol2_vals)
+        sol2_repr = ClMP.PrimalSolution(form, sol2_ids, sol2_vals, 4.0, ClMP.FEASIBLE_SOL)
 
         sol3_ids = [vid(4), vid(7), vid(9)]
         sol3_vals = [1.0, 2.0, 3.0]
-        sol3_repr = dynamicsparsevec(sol3_ids, sol3_vals)
-
+        sol3_repr = ClMP.PrimalSolution(form, sol3_ids, sol3_vals, 5.0, ClMP.FEASIBLE_SOL)
 
         addrow!(pool_sols, sol1_id, sol1_ids, sol1_vals)
         ClB.savesolid!(pool_ht, sol1_id, sol1_repr)

@@ -102,10 +102,11 @@ ColunaBase.getmodel(s::AbstractSolution) = getmodel(s.solution)
 ColunaBase.getvalue(s::AbstractSolution) = getvalue(s.solution)
 ColunaBase.getbound(s::AbstractSolution) = getbound(s.solution)
 ColunaBase.getstatus(s::AbstractSolution) = getstatus(s.solution)
+
 Base.length(s::AbstractSolution) = length(s.solution)
-Base.get(s::AbstractSolution, id, default) = Base.get(s.solution, id, default)
-Base.getindex(s::AbstractSolution, id) = Base.getindex(s.solution, id)
-Base.setindex!(s::AbstractSolution, val, id) = Base.setindex!(s.solution, val, id)
+Base.get(s::AbstractSolution, id, default) = get(s.solution, id, default)
+Base.getindex(s::AbstractSolution, id) = getindex(s.solution, id)
+Base.setindex!(s::AbstractSolution, val, id) = setindex!(s.solution, val, id)
 
 # Iterating over a PrimalSolution or a DualSolution is similar to iterating over
 # ColunaBase.Solution
@@ -190,6 +191,10 @@ function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
+
+
+# Implementing :(==) to check if a solution is part of solutions from the pool.
+Base.:(==)(v1::DynamicMatrixColView, v2::AbstractSolution) = v1 == v2.solution
 
 # Following methods are needed by Benders
 # TODO : check if we can remove them during refactoring of Benders

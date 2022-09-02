@@ -5,5 +5,6 @@ include("ColunaTests.jl")
 retest(Coluna, ColunaTests)
 
 # Run a specific test:
-# retest(ColunaTests, "strong branching")
+# retest(ColunaTests, "MathProg - variable and constraint ids")
+
 

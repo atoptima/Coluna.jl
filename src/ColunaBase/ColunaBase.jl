@@ -2,7 +2,7 @@ module ColunaBase
 
 using ..Coluna
 
-using DynamicSparseArrays, MathOptInterface, TimerOutputs, RandomNumbers, Random
+using DynamicSparseArrays, MathOptInterface, TimerOutputs, RandomNumbers, Random, SparseArrays
 
 const MOI = MathOptInterface
 const TO = TimerOutputs

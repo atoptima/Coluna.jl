@@ -50,5 +50,9 @@
         @test vid2 >= vid3
         @test vid2 == vid3
         @test isequal(vid2, vid3)
+
+        @test vid1 + vid2 == 3
+        @test vid1 - vid2 == -1
+        @test vid1 * vid2 == 2
     end
 end
