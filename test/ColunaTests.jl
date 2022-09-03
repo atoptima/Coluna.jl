@@ -1,6 +1,6 @@
 module ColunaTests
     using Base.CoreLogging: error
-    using DynamicSparseArrays, Coluna, TOML
+    using DynamicSparseArrays, SparseArrays, Coluna, TOML
 
     using ReTest, GLPK, ColunaDemos, JuMP, BlockDecomposition, Random, MathOptInterface, MathOptInterface.Utilities, Base.CoreLogging, Logging
     global_logger(ConsoleLogger(stderr, LogLevel(0)))

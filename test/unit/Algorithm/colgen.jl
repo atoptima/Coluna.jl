@@ -120,4 +120,8 @@ end
         nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
         @test nb_new_cols == 2
     end
+
+    @testset "Stabilization" begin
+        
+    end
 end

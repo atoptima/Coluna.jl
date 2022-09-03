@@ -49,12 +49,25 @@ function Id{VC}(
 end
 
 Base.hash(a::Id, h::UInt) = hash(a.uid, h)
-Base.zero(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), -1, -1, -1, -1) # semaphore in the PMA (DynamicSparseArrays).
-Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = Base.isequal(a.uid, b.uid)
+Base.zero(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), zero(Int32), -1, -1, -1)
+Base.zero(::Id{VC}) where {VC} = Id{VC}(Duty{VC}(0), zero(Int32), -1, -1, -1)
+Base.one(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), one(Int32), -1, -1, -1)
+Base.typemax(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), typemax(Int32), -1, -1, -1)
+Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = isequal(a.uid, b.uid)
 
 Base.promote_rule(::Type{T}, ::Type{<:Id}) where {T<:Integer} = T
 Base.promote_rule(::Type{<:Id}, ::Type{T}) where {T<:Integer} = T
-Base.promote_rule(::Type{I}, ::Type{I}) where {I<:Id} = Int32
+Base.promote_rule(::Type{<:Id}, ::Type{<:Id}) = Int32
+
+# Promotion mechanism will never call the following rule:
+#   Base.promote_rule(::Type{I}, ::Type{I}) where {I<:Id} = Int32
+#
+# The problem is that an Id is an integer with additional information and we
+# cannot generate additional information of a new id from the operation of two
+# existing ids.
+# As we want that all operations on ids results on operations on the uid,
+# we redefine the promotion mechanism for Ids so that operations on Ids return integer:
+Base.promote_type(::Type{I}, ::Type{I}) where {I<:Id} = Int32
 
 Base.convert(::Type{Int}, id::I) where {I<:Id} = Int(id.uid)
 Base.convert(::Type{Int32}, id::I) where {I<:Id} = id.uid

@@ -255,8 +255,7 @@ get_primal_sol_pool_hash_table(form::Formulation{DwSp}) = form.duty_data.hashtab
 function _get_same_sol_in_pool(pool_sols, pool_hashtable, sol)
     sols_with_same_members = getsolids(pool_hashtable, sol)
     for existing_sol_id in sols_with_same_members
-        # TODO: implement comparison between view & dynamicsparsevec
-        existing_sol = pool_sols[existing_sol_id,:]
+        existing_sol = @view pool_sols[existing_sol_id,:]
         if existing_sol == sol
             return existing_sol_id
         end
@@ -316,7 +315,7 @@ function get_column_from_pool(primal_sol::PrimalSolution{Formulation{DwSp}})
     spform = primal_sol.solution.model
     pool = get_primal_sol_pool(spform)
     pool_hashtable = get_primal_sol_pool_hash_table(spform)
-    return _get_same_sol_in_pool(pool, pool_hashtable, primal_sol.solution.sol)
+    return _get_same_sol_in_pool(pool, pool_hashtable, primal_sol)
 end
 
 """
