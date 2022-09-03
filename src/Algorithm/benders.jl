@@ -105,7 +105,7 @@ function update_benders_sp_problem!(
     for (varid, var) in getvars(spform)
         iscuractive(spform, varid) || continue
         getduty(varid) <= BendSpSlackFirstStageVar || continue
-        haskey(master_primal_sol, varid) || continue
+        !iszero(master_primal_sol[varid]) || continue
         setcurub!(spform, var, getperenub(spform, var) - master_primal_sol[varid])
     end
 
@@ -428,12 +428,14 @@ function generatecuts!(
 )::Tuple{Int, Bool, PrimalBound}
     masterform = getmaster(reform)
     S = getobjsense(masterform)
-    filtered_dual_sol = filter(elem -> getduty(elem[1]) == MasterPureConstr, master_dual_sol)
+
+    # following variable is not used:
+    #filtered_dual_sol = filter(elem -> getduty(elem[1]) == MasterPureConstr, master_dual_sol)
 
     ## TODO stabilization : move the following code inside a loop
     nb_new_cuts, spsols_relaxed, pb_correction, sp_pb_contrib =
         solve_sps_to_gencuts!(
-            algo, env, algdata, reform, master_primal_sol, filtered_dual_sol, phase
+            algo, env, algdata, reform, master_primal_sol, master_dual_sol, phase
         )
     update_lagrangian_pb!(algdata, reform, master_dual_sol, sp_pb_contrib)
     if nb_new_cuts < 0

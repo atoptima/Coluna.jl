@@ -351,11 +351,6 @@ function Base.:(==)(a::S, b::S) where {S<:Solution}
         _eq_sparse_vec(a.sol, b.sol)
 end
 
-# TODO : remove when refactoring Benders
-function Base.filter(f::Function, s::S) where {S <: Solution}
-    return S(s.model, s.bound, s.status, filter(f, s.sol))
-end
-
 function Base.in(p::Tuple{De,Va}, a::Solution{Mo,De,Va}, valcmp=(==)) where {Mo,De,Va}
     v = get(a, p[1], Base.secret_table_token)
     if v !== Base.secret_table_token

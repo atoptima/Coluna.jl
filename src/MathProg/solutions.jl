@@ -193,16 +193,10 @@ function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
 end
 
 
-# Implementing :(==) to check if a solution is part of solutions from the pool.
+# To check if a solution is part of solutions from the pool.
 Base.:(==)(v1::DynamicMatrixColView, v2::AbstractSolution) = v1 == v2.solution
 
-# Following methods are needed by Benders
-# TODO : check if we can remove them during refactoring of Benders
-# not performant
-Base.haskey(s::AbstractSolution, key) = haskey(s.solution, key)
-# we can't filter the constraints, the variables, and the custom data.
-function Base.filter(f::Function, s::DualSolution)
-    return DualSolution(
-        filter(f, s.solution), s.var_redcosts, s.custom_data
-    )
-end
+# To allocate an array with size equals to the number of non-zero elements when using
+# "generation" syntax.
+Base.length(gen::Base.Generator{<:AbstractSolution}) = nnz(gen.iter.solution)
+
