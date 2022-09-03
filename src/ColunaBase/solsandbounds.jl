@@ -314,10 +314,12 @@ Base.IndexStyle(::Type{<:Solution{Mo,De,Va}}) where {Mo,De,Va} =
     IndexStyle(SparseVector{Va,De})
 SparseArrays.nnz(s::Solution) = nnz(s.sol)
 
-# It iterates only on non-zero values because we use indices (`Id`) that behaves like an Int 
-# with additional information. Indeed, given a indice, it is not possible to create the
-# next one because we cannot deduce the additional information from the given indice.
-# TODO: and vector has unliminted size.
+# It iterates only on non-zero values because:
+# - we use indices (`Id`) that behaves like an Int with additional information and given a 
+#   indice, we cannot deduce the additional information for the next one (i.e. impossible to
+#   create an Id for next integer);
+# - we don't know the length of the vector (it depends on the number of variables & 
+#   constraints that varies over time).
 function Base.iterate(s::Solution)
     iterator = Iterators.zip(findnz(s.sol)...)
     next = iterate(iterator)
@@ -366,6 +368,7 @@ function Base.show(io::IOContext, solution::Solution{Mo,De,Va}) where {Mo,De,Va}
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
+
 # Todo : revise method
 Base.copy(s::S) where {S<:Solution} = S(s.bound, copy(s.sol))
 
