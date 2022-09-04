@@ -117,20 +117,17 @@ function componentwisefunction(in_dual_sol::DualSolution, out_dual_sol::DualSolu
 end
 
 function linear_combination(in_dual_sol::DualSolution, out_dual_sol::DualSolution, coeff::Float64)
-    constrids, constrvals = componentwisefunction(
-        in_dual_sol, out_dual_sol, 
-        (x, y) -> coeff * x + (1.0 - coeff) * y
-    )
+    return coeff * in_dual_sol + (1.0 - coeff) * out_dual_sol
 
-    form = getmodel(in_dual_sol)
-    bound = 0.0
-    for (i, constrid) in enumerate(constrids)
-        bound += constrvals[i] * getcurrhs(form, constrid) 
-    end
-    return DualSolution(
-        form, constrids, constrvals, VarId[], Float64[], ActiveBound[], bound, 
-        UNKNOWN_FEASIBILITY
-    )
+    # form = getmodel(in_dual_sol)
+    # bound = 0.0
+    # for (i, constrid) in enumerate(constrids)
+    #     bound += constrvals[i] * getcurrhs(form, constrid) 
+    # end
+    # return DualSolution(
+    #     form, constrids, constrvals, VarId[], Float64[], ActiveBound[], bound, 
+    #     UNKNOWN_FEASIBILITY
+    # )
 end
 
 function update_stab_after_rm_solve!(
