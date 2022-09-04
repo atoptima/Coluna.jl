@@ -20,7 +20,7 @@ column is a solution and its assigned formulation is the master.
 """
 struct Id{VC <: AbstractVarConstr} <: Integer
     duty::Duty{VC}
-    uid::Int32
+    uid::Int
     origin_form_uid::FormId
     assigned_form_uid::FormId
     custom_family_id::Int8
@@ -48,16 +48,22 @@ function Id{VC}(
     return Id{VC}(duty, orig_id.uid, origin_form_uid, assigned_form_uid, custom_family_id)
 end
 
+# Use of this method should be avoided as much as possible.
+# If you face a `VarId` or a `ConstrId` without any additional information, it can mean:
+#  - the id does not exist but an integer of type Id was needed (e.g. size of sparse vector);
+#  - information have been lost because of chain of converts (e.g. Id with info -> Int -> Id without info)
+Id{VC}(uid::Integer) where VC = Id{VC}(Duty{VC}(0), uid, -1, -1, -1)
+
 Base.hash(a::Id, h::UInt) = hash(a.uid, h)
-Base.zero(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), zero(Int32), -1, -1, -1)
-Base.zero(::Id{VC}) where {VC} = Id{VC}(Duty{VC}(0), zero(Int32), -1, -1, -1)
-Base.one(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), one(Int32), -1, -1, -1)
-Base.typemax(I::Type{Id{VC}}) where {VC} = I(Duty{VC}(0), typemax(Int32), -1, -1, -1)
+Base.zero(I::Type{Id{VC}}) where {VC} = I(0)
+Base.zero(::Id{VC}) where {VC} = Id{VC}(0)
+Base.one(I::Type{Id{VC}}) where {VC} = I(1)
+Base.typemax(I::Type{Id{VC}}) where {VC} = I(typemax(Int))
 Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = isequal(a.uid, b.uid)
 
 Base.promote_rule(::Type{T}, ::Type{<:Id}) where {T<:Integer} = T
 Base.promote_rule(::Type{<:Id}, ::Type{T}) where {T<:Integer} = T
-Base.promote_rule(::Type{<:Id}, ::Type{<:Id}) = Int32
+Base.promote_rule(::Type{<:Id}, ::Type{<:Id}) = Int
 
 # Promotion mechanism will never call the following rule:
 #   Base.promote_rule(::Type{I}, ::Type{I}) where {I<:Id} = Int32

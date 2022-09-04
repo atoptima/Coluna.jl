@@ -200,3 +200,46 @@ Base.:(==)(v1::DynamicMatrixColView, v2::AbstractSolution) = v1 == v2.solution
 # "generation" syntax.
 Base.length(gen::Base.Generator{<:AbstractSolution}) = nnz(gen.iter.solution)
 
+### Math operation
+
+## op(::S, ::S) has return type `S` for op ∈ (:+, :-) and S <: AbstractSolution 
+_math_op_constructor(::Type{S}, form, varids, varvals, cost) where {S<:PrimalSolution} =
+    PrimalSolution(form, varids, varvals, cost, ClB.UNKNOWN_SOLUTION_STATUS)
+
+_math_op_constructor(::Type{<:S}, form, constrids, constrvals, cost) where {S<:DualSolution} = 
+    DualSolution(form, constrids, constrvals, [], [], [], cost, ClB.UNKNOWN_SOLUTION_STATUS)
+
+_math_op_cost(::Type{<:S}, form, varids, varvals) where {S<:PrimalSolution} = 
+    mapreduce(((id,val),) -> getcurcost(form, id) * val, +, Iterators.zip(varids, varvals))
+
+_math_op_cost(::Type{<:S}, form, constrids, constrvals) where {S<:DualSolution} =
+    mapreduce(((id, val),) -> getcurrhs(form, id) * val, +, Iterators.zip(constrids, constrvals))
+
+function Base.:(*)(a::Real, s::S) where {S<:AbstractSolution}
+    ids, vals = findnz(a * s.solution.sol)
+    cost = _math_op_cost(S, getmodel(s), ids, vals)
+    return _math_op_constructor(S, getmodel(s), ids, vals, cost)
+end
+
+for op in (:+, :-)
+    @eval begin
+        function Base.$op(s1::S, s2::S) where {S<:AbstractSolution}
+            @assert getmodel(s1) == getmodel(s2)
+            ids, vals = findnz(ColunaBase._sol_custom_binarymap($op, s1.solution, s2.solution))
+            cost = _math_op_cost(S, getmodel(s1), ids, vals)
+            return _math_op_constructor(S, getmodel(s1), ids, vals, cost)
+        end
+    end
+end
+
+## *(::M, ::S) has return type `SparseVector` for:
+##  - M <: DynamicSparseMatrix
+##  - S <: AbstractSolution
+
+## We don't support operation with classic sparse matrix because row and col ids
+## must be of the same type. 
+## In Coluna, we use VarId to index the cols and 
+## ConstrId to index the rows.
+
+Base.:(*)(m::DynamicSparseMatrix, s::AbstractSolution) = m * s.solution.sol
+Base.:(*)(m::DynamicSparseArrays.Transposed{<:DynamicSparseMatrix}, s::AbstractSolution) = m * s.solution.sol
