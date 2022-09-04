@@ -381,3 +381,28 @@ function Base.:(==)(v1::DynamicMatrixColView, v2::Solution)
     end
     return true
 end
+
+# Implementation of the addition & subtraction in SparseArrays always converts indices into
+# `Int`. We need a custom implementation to presever the index type.
+function _sol_custom_binarymap(
+    f::Function, s1::Solution{Mo,De,Va1}, s2::Solution{Mo,De,Va2}
+) where {Mo,De,Va1,Va2}
+    x = s1.sol
+    y = s2.sol
+    R = Base.Broadcast.combine_eltypes(f, (x, y))
+    n = length(x)
+    length(y) == n || throw(DimensionMismatch())
+    xnzind = SparseArrays.nonzeroinds(x)
+    xnzval = nonzeros(x)
+    ynzind = SparseArrays.nonzeroinds(y)
+    ynzval = nonzeros(y)
+    mx = length(xnzind)
+    my = length(ynzind)
+    cap = mx + my
+    rind = Vector{De}(undef,cap)
+    rval = Vector{R}(undef,cap)
+    ir = SparseArrays._binarymap_mode_1!(f, mx, my, xnzind, xnzval, ynzind, ynzval, rind, rval)
+    resize!(rind, ir)
+    resize!(rval, ir)
+    return SparseVector(n, rind, rval)
+end
