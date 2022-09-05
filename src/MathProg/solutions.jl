@@ -203,17 +203,17 @@ Base.length(gen::Base.Generator{<:AbstractSolution}) = nnz(gen.iter.solution)
 ### Math operation
 
 ## op(::S, ::S) has return type `S` for op ∈ (:+, :-) and S <: AbstractSolution 
-_math_op_constructor(::Type{S}, form, varids, varvals, cost) where {S<:PrimalSolution} =
+_math_op_constructor(::Type{S}, form::F, varids, varvals, cost) where {S<:PrimalSolution,F} =
     PrimalSolution(form, varids, varvals, cost, ClB.UNKNOWN_SOLUTION_STATUS)
 
-_math_op_constructor(::Type{<:S}, form, constrids, constrvals, cost) where {S<:DualSolution} = 
+_math_op_constructor(::Type{<:S}, form::F, constrids, constrvals, cost) where {S<:DualSolution,F} = 
     DualSolution(form, constrids, constrvals, [], [], [], cost, ClB.UNKNOWN_SOLUTION_STATUS)
 
 _math_op_cost(::Type{<:S}, form, varids, varvals) where {S<:PrimalSolution} = 
-    mapreduce(((id,val),) -> getcurcost(form, id) * val, +, Iterators.zip(varids, varvals))
+    mapreduce(((id,val),) -> getcurcost(form, id) * val, +, Iterators.zip(varids, varvals); init = 0.0)
 
 _math_op_cost(::Type{<:S}, form, constrids, constrvals) where {S<:DualSolution} =
-    mapreduce(((id, val),) -> getcurrhs(form, id) * val, +, Iterators.zip(constrids, constrvals))
+    mapreduce(((id, val),) -> getcurrhs(form, id) * val, +, Iterators.zip(constrids, constrvals); init = 0.0)
 
 function Base.:(*)(a::Real, s::S) where {S<:AbstractSolution}
     ids, vals = findnz(a * s.solution.sol)
@@ -231,6 +231,16 @@ for op in (:+, :-)
         end
     end
 end
+
+## transpose
+struct Transposed{S<:AbstractSolution}
+    sol::S
+end
+
+Base.transpose(s::AbstractSolution) = Transposed(s)
+
+Base.:(*)(s1::Transposed{S}, s2::S) where {S<:AbstractSolution} =
+    transpose(s1.sol.solution.sol) * s2.solution.sol
 
 ## *(::M, ::S) has return type `SparseVector` for:
 ##  - M <: DynamicSparseMatrix
