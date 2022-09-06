@@ -377,43 +377,6 @@ function compute_subgradient_contribution(
     return sparsevec(var_ids, var_vals)
 end
 
-#
-# function compute_subgradient_contribution(
-#     algo::ColumnGeneration, stabunit::ColGenStabilizationUnit, master::Formulation,
-#     puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId,SubprobInfo}
-# )
-#     sense = getobjsense(master)
-#     var_ids = ConstrId[]
-#     var_vals = Float64[]
-
-#     var_multiplicity_ids = VarId[]
-#     var_multiplicity_vals = Float64[]
-#     vars_involved = var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar
-#     for var_id in Iterators.filter(vars_involved, Iterators.keys(getvars(master)))
-#         m = if getduty(var_id) <= MasterPureVar
-#             0.0 # I don't understand this value
-#         elseif getduty(var_id) <= MasterRepPricingVar
-#             mult = improving_red_cost(getbound(spinfo.bestsol), algo, sense) ? spinfo.ub : spinfo.lb
-#         else
-#             0.0 # should be never called
-#         end
-
-#         push!(var_multiplicity_ids, var_id)
-#         push!(var_multiplicity_vals, m)
-#     end
-
-#     sol_ids = VarId[]
-#     sol_vals = Float64[]
-
-#     for (_, spinfo) in spinfos
-#         iszero(spinfo.ub) && continue
-#         for (sp_var_id, sp_var_val) in spinfo.bestsol
-#             push!(sol_ids, sp_var_id)
-#             push!(sol_vals, sp_var_val)
-#         end
-#     end
-#     return sparsevec(var_ids, var_vals) .* sparsevec(sol_ids, sol_vals)
-# end
 
 function compute_db_contributions!(
     spinfo::SubprobInfo, dualbound::DualBound{MaxSense}, primalbound::PrimalBound{MaxSense}
