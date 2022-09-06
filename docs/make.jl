@@ -51,6 +51,7 @@ makedocs(
             "Storage" => joinpath("api", "storage.md"),
             "Branching" => joinpath("api", "branching.md"),
         ],
+        "Dynamic Sparse Arrays" => "dynamic_sparse_arrays.md",
         "Q&A" => "qa.md",
     ]
 )
