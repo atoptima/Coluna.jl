@@ -285,7 +285,7 @@ Create a solution to the `model`. Other arguments are:
 function Solution{Mo,De,Va}(
     model::Mo, decisions::Vector{De}, values::Vector{Va}, solution_value::Float64, status::SolutionStatus
 ) where {Mo<:AbstractModel,De,Va}
-    sol = sparsevec(decisions, values, typemax(De))
+    sol = sparsevec(decisions, values, Coluna.MAX_NB_ELEMS)
     return Solution(model, solution_value, status, sol)
 end
 

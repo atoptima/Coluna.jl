@@ -155,16 +155,21 @@ function _submatrix(
     keep_var::Function,
 )
     matrix = getcoefmatrix(form)
-    submatrix = dynamicsparse(ConstrId, VarId, Float64)
+    constr_ids = ConstrId[]
+    var_ids = VarId[]
+    nz = Float64[]
     for constr_id in Iterators.filter(keep_constr, Iterators.keys(getconstrs(form)))
         for (var_id, coeff) in @view matrix[constr_id, :]
             if keep_var(var_id)
-                submatrix[constr_id, var_id] = coeff
+                push!(constr_ids, constr_id)
+                push!(var_ids, var_id)
+                push!(nz, coeff)
             end
         end
     end
-    closefillmode!(submatrix)
-    return submatrix
+    return dynamicsparse(
+        constr_ids, var_ids, nz, ConstrId(Coluna.MAX_NB_ELEMS), VarId(Coluna.MAX_NB_ELEMS)
+    )
 end
 
 """
@@ -193,7 +198,7 @@ function ReducedCostsCalculationHelper(master)
         end
     end
 
-    dwsprep_costs = sparsevec(dwspvar_ids, peren_costs)
+    dwsprep_costs = sparsevec(dwspvar_ids, peren_costs, Coluna.MAX_NB_ELEMS)
     dwsprep_coefmatrix = _submatrix(
         master, 
         constr_id -> true,
@@ -233,14 +238,12 @@ function SubgradientCalculationHelper(master)
             push!(constr_rhs, getcurrhs(master, constr_id))
         end 
     end
-    a = sparsevec(constr_ids, constr_rhs)
-
+    a = sparsevec(constr_ids, constr_rhs, Coluna.MAX_NB_ELEMS)
     A = _submatrix(
         master, 
-        constr_id -> !(getduty(master_constrid) <= MasterConvexityConstr),
+        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
         var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar
     )
-
     return SubgradientCalculationHelper(a, A)
 end
 
@@ -355,36 +358,62 @@ function compute_subgradient_contribution(
     puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId,SubprobInfo}
 )
     sense = getobjsense(master)
-    var_ids = ConstrId[]
+    var_ids = VarId[]
     var_vals = Float64[]
 
-    var_multiplicity_ids = VarId[]
-    var_multiplicity_vals = Float64[]
-    vars_involved = var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar
-    for var_id in Iterators.filter(vars_involved, Iterators.keys(getvars(master)))
-        m = if getduty(var_id) <= MasterPureVar
-            0.0 # I don't understand this value
-        elseif getduty(var_id) <= MasterRepPricingVar
-            mult = improving_red_cost(getbound(spinfo.bestsol), algo, sense) ? spinfo.ub : spinfo.lb
-        else
-            0.0 # should be never called
-        end
-        push!(var_multiplicity_ids, var_id)
-        push!(var_multiplicity_vals, m)
+    for (var_id, mult) in puremastervars
+        push!(var_ids, var_id)
+        push!(var_vals, mult) 
     end
-
-    sol_ids = VarId[]
-    sol_vals = Float64[]
 
     for (_, spinfo) in spinfos
         iszero(spinfo.ub) && continue
+        mult = improving_red_cost(getbound(spinfo.bestsol), algo, sense) ? spinfo.ub : spinfo.lb
         for (sp_var_id, sp_var_val) in spinfo.bestsol
-            push!(sol_ids, sp_var_id)
-            push!(sol_vals, sp_var_val)
+            push!(var_ids, sp_var_id)
+            push!(var_vals, sp_var_val * mult)
         end
     end
-    return sparsevec(var_ids, var_vals) .* sparsevec(sol_ids, sol_vals)
+    return sparsevec(var_ids, var_vals)
 end
+
+#
+# function compute_subgradient_contribution(
+#     algo::ColumnGeneration, stabunit::ColGenStabilizationUnit, master::Formulation,
+#     puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId,SubprobInfo}
+# )
+#     sense = getobjsense(master)
+#     var_ids = ConstrId[]
+#     var_vals = Float64[]
+
+#     var_multiplicity_ids = VarId[]
+#     var_multiplicity_vals = Float64[]
+#     vars_involved = var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar
+#     for var_id in Iterators.filter(vars_involved, Iterators.keys(getvars(master)))
+#         m = if getduty(var_id) <= MasterPureVar
+#             0.0 # I don't understand this value
+#         elseif getduty(var_id) <= MasterRepPricingVar
+#             mult = improving_red_cost(getbound(spinfo.bestsol), algo, sense) ? spinfo.ub : spinfo.lb
+#         else
+#             0.0 # should be never called
+#         end
+
+#         push!(var_multiplicity_ids, var_id)
+#         push!(var_multiplicity_vals, m)
+#     end
+
+#     sol_ids = VarId[]
+#     sol_vals = Float64[]
+
+#     for (_, spinfo) in spinfos
+#         iszero(spinfo.ub) && continue
+#         for (sp_var_id, sp_var_val) in spinfo.bestsol
+#             push!(sol_ids, sp_var_id)
+#             push!(sol_vals, sp_var_val)
+#         end
+#     end
+#     return sparsevec(var_ids, var_vals) .* sparsevec(sol_ids, sol_vals)
+# end
 
 function compute_db_contributions!(
     spinfo::SubprobInfo, dualbound::DualBound{MaxSense}, primalbound::PrimalBound{MaxSense}
@@ -768,6 +797,7 @@ function cg_main_loop!(
     end
 
     redcostshelper = ReducedCostsCalculationHelper(getmaster(reform))
+    sg_helper = SubgradientCalculationHelper(getmaster(reform))
     iteration = 0
     essential_cuts_separated = false
 
@@ -851,6 +881,7 @@ function cg_main_loop!(
                             return false, true
                         end
                         redcostshelper = ReducedCostsCalculationHelper(getmaster(reform))
+                        sg_helper = SubgradientCalculationHelper(getmaster(reform))
                     end
                 end
             end
@@ -900,6 +931,7 @@ function cg_main_loop!(
                 TO.@timeit Coluna._to "Smoothing update" begin
                     smooth_dual_sol = update_stab_after_gencols!(
                         stabunit, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol,
+                        sg_helper,
                         compute_subgradient_contribution(algo, stabunit, masterform, pure_master_vars, spinfos)
                     )
                 end

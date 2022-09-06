@@ -97,17 +97,9 @@ function update_stab_after_rm_solve!(
     return unit.curalpha * unit.stabcenter + (1.0 - unit.curalpha) * lp_dual_sol
 end
 
-function norm(dualsol::DualSolution)
-    product_sum = 0.0
-    for (constrid, val) in dualsol
-        product_sum += val * val
-    end
-    return sqrt(product_sum)
-end
-
 function update_alpha_automatically!(
     unit::ColGenStabilizationUnit, nb_new_col::Int64, lp_dual_sol::DualSolution{M},  
-    smooth_dual_sol::DualSolution{M}, subgradient_contribution::DualSolution{M}
+    smooth_dual_sol::DualSolution{M}, h, subgradient_contribution
 ) where {M}    
 
     master = getmodel(lp_dual_sol)
@@ -116,26 +108,7 @@ function update_alpha_automatically!(
     in_sep_direction = smooth_dual_sol - unit.stabcenter
     in_sep_dir_norm = norm(in_sep_direction)
 
-    # we initialize the subgradient with the right-hand-side of all master constraints
-    # except the convexity constraints
-    constrids = Vector{ConstrId}()
-    constrrhs = Vector{Float64}() 
-    for (constrid, constr) in getconstrs(master)
-        if !(getduty(constrid) <= MasterConvexityConstr) && 
-           iscuractive(master, constr) && isexplicit(master, constr)
-            push!(constrids, constrid)
-            push!(constrrhs, getcurrhs(master, constrid))
-        end 
-    end
-    subgradient = DualSolution(
-        master, constrids, constrrhs, VarId[], Float64[], ActiveBound[], 0.0, 
-        UNKNOWN_FEASIBILITY
-    )
-
-    # we calculate the subgradient at the sep point
-    for (constrid, value) in subgradient_contribution
-        subgradient[constrid] = subgradient[constrid] - value
-    end
+    subgradient = h.a - h.A * subgradient_contribution
     subgradient_norm = norm(subgradient)
 
     # we now calculate the angle between the in-sep direction and the subgradient 
@@ -155,15 +128,15 @@ end
 
 function update_stab_after_gencols!(
     unit::ColGenStabilizationUnit, smoothparam::Float64, nb_new_col::Int64, 
-    lp_dual_sol::DualSolution{M}, smooth_dual_sol::DualSolution{M}, 
-    subgradient_contribution::DualSolution{M}
+    lp_dual_sol::DualSolution{M}, smooth_dual_sol::DualSolution{M}, h,
+    subgradient_contribution
 ) where {M}
 
     iszero(smoothparam) && return nothing
 
     if smoothparam == 1.0 && unit.nb_misprices == 0
         update_alpha_automatically!(
-            unit, nb_new_col, lp_dual_sol, smooth_dual_sol, subgradient_contribution
+            unit, nb_new_col, lp_dual_sol, smooth_dual_sol, h, subgradient_contribution
         )
     end
 
