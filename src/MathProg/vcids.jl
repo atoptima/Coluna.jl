@@ -58,7 +58,7 @@ Base.hash(a::Id, h::UInt) = hash(a.uid, h)
 Base.zero(I::Type{Id{VC}}) where {VC} = I(0)
 Base.zero(::Id{VC}) where {VC} = Id{VC}(0)
 Base.one(I::Type{Id{VC}}) where {VC} = I(1)
-Base.typemax(I::Type{Id{VC}}) where {VC} = I(typemax(Int))
+Base.typemax(I::Type{Id{VC}}) where {VC} = I(Coluna.MAX_NB_ELEMS)
 Base.isequal(a::Id{VC}, b::Id{VC}) where {VC} = isequal(a.uid, b.uid)
 
 Base.promote_rule(::Type{T}, ::Type{<:Id}) where {T<:Integer} = T

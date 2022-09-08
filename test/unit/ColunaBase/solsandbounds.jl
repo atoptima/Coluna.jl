@@ -307,7 +307,7 @@ end
         dict_sol = Dict(1 => 2.0, 2 => 3.0, 3 => 4.0)
         primal_sol = Solution(model, collect(keys(dict_sol)), collect(values(dict_sol)), 0.0, ClB.FEASIBLE_SOL)
         
-        @test length(primal_sol) == typemax(Int)
+        @test length(primal_sol) == typemax(Coluna.MAX_NB_ELEMS)
         @test nnz(primal_sol) == 3
         @test primal_sol[1] == 2.0
         primal_sol[1] = 5.0 # change the value

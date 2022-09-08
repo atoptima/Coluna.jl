@@ -9,7 +9,7 @@ using ..ColunaBase
 
 import Base: haskey, length, iterate, diff, delete!, contains, setindex!, getindex, view
 
-using DynamicSparseArrays, SparseArrays, Logging, Printf
+using DynamicSparseArrays, SparseArrays, Logging, Printf, LinearAlgebra
 
 const BD = BlockDecomposition
 const ClB = ColunaBase

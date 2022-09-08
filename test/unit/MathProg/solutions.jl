@@ -100,7 +100,30 @@
         @test findnz(c.solution.sol) == ([ClMP.getid(var3)], [-4.0])
     end
 
-    @testset "lin alg 2 - spMv" begin
+    @testset "lin alg 2 - transpose" begin
+        form = ClMP.create_formulation!(
+            Env{ClMP.VarId}(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
+        )
+        var1 = ClMP.setvar!(form, "var1", ClMP.OriginalVar; cost = 1.0)
+        var2 = ClMP.setvar!(form, "var2", ClMP.OriginalVar; cost = 0.5)
+        var3 = ClMP.setvar!(form, "var3", ClMP.OriginalVar; cost = -0.25)
+
+        nzinds1 = [ClMP.getid(var1), ClMP.getid(var2)]
+        nzvals1 = [12.0, 4.0]
+        vec1 = sparsevec(ClMP.getuid.(nzinds1), nzvals1, 4)
+        primalsol1 = ClMP.PrimalSolution(form, nzinds1, nzvals1, 14.0, ClB.FEASIBLE_SOL)
+
+        nzinds2 = [ClMP.getid(var1), ClMP.getid(var2), ClMP.getid(var3)]
+        nzvals2 = [1.0, 2.0, 4.0]
+        vec2 = sparsevec(ClMP.getuid.(nzinds2), nzvals2, 4)
+        primalsol2 = ClMP.PrimalSolution(form, nzinds2, nzvals2, 1.0, ClB.FEASIBLE_SOL)
+
+        a = transpose(vec1) * vec2
+        b = transpose(primalsol1) * primalsol2
+        @test a == b
+    end
+
+    @testset "lin alg 3 - spMv" begin
         form = ClMP.create_formulation!(
             Env{ClMP.VarId}(Coluna.Params()), ClMP.Original(), obj_sense = Coluna.MathProg.MaxSense
         )

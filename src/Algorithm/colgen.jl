@@ -146,40 +146,105 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     return units_usage
 end
 
-struct ReducedCostsCalculationHelper
-    length::Int
-    dwspvarids::Vector{VarId}
-    perencosts::Vector{Float64}
-    dwsprep_coefmatrix::DynamicSparseArrays.Transposed{DynamicSparseArrays.DynamicSparseMatrix{Coluna.MathProg.ConstrId, Coluna.MathProg.VarId, Float64}}
-end
-
-# Precompute information to speed-up calculation of reduced costs of original variables
-# in the master of a given reformulation.
-function ReducedCostsCalculationHelper(reform::Reformulation)
-    dwspvarids = VarId[]
-    perencosts = Float64[]
-
-    master = getmaster(reform)
-    for (varid, _) in getvars(master)
-        if iscuractive(master, varid) && getduty(varid) <= AbstractMasterRepDwSpVar
-            push!(dwspvarids, varid)
-            push!(perencosts, getcurcost(master, varid))
-        end
-    end
-
-    master_coefmatrix = getcoefmatrix(master)
-    dwsprep_coefmatrix = dynamicsparse(ConstrId, VarId, Float64)
-    for (constrid, _) in getconstrs(master)
-        for (varid, coeff) in @view master_coefmatrix[constrid, :]
-            if getduty(varid) <= AbstractMasterRepDwSpVar
-                dwsprep_coefmatrix[constrid, varid] = coeff
+############################################################################################
+# Information extracted to speed-up some computations.
+############################################################################################
+function _submatrix(
+    form::Formulation, 
+    keep_constr::Function, 
+    keep_var::Function,
+)
+    matrix = getcoefmatrix(form)
+    constr_ids = ConstrId[]
+    var_ids = VarId[]
+    nz = Float64[]
+    for constr_id in Iterators.filter(keep_constr, Iterators.keys(getconstrs(form)))
+        for (var_id, coeff) in @view matrix[constr_id, :]
+            if keep_var(var_id)
+                push!(constr_ids, constr_id)
+                push!(var_ids, var_id)
+                push!(nz, coeff)
             end
         end
     end
-    closefillmode!(dwsprep_coefmatrix)
-    return ReducedCostsCalculationHelper(
-        length(dwspvarids), dwspvarids, perencosts, transpose(dwsprep_coefmatrix)
+    return dynamicsparse(
+        constr_ids, var_ids, nz, ConstrId(Coluna.MAX_NB_ELEMS), VarId(Coluna.MAX_NB_ELEMS)
     )
+end
+
+"""
+Extracted information to speed-up calculation of reduced costs of master variables.
+We extract from the master only the information we need to compute the reduced cost of DW 
+subproblem variables:
+- `c` contains the perenial cost of DW subproblem representative variables
+- `A` is a submatrix of the master coefficient matrix that involves only DW subproblem
+  representative variables.
+
+Calculation is `c - transpose(A) * master_lp_dual_solution`.
+"""
+struct ReducedCostsCalculationHelper
+    c::SparseVector{Float64,VarId}
+    A::DynamicSparseMatrix{ConstrId,VarId,Float64}
+end
+
+function ReducedCostsCalculationHelper(master)
+    dwspvar_ids = VarId[]
+    peren_costs = Float64[]
+
+    for var_id in Iterators.keys(getvars(master))
+        if iscuractive(master, var_id) && getduty(var_id) <= AbstractMasterRepDwSpVar
+            push!(dwspvar_ids, var_id)
+            push!(peren_costs, getcurcost(master, var_id))
+        end
+    end
+
+    dwsprep_costs = sparsevec(dwspvar_ids, peren_costs, Coluna.MAX_NB_ELEMS)
+    dwsprep_coefmatrix = _submatrix(
+        master, 
+        constr_id -> true,
+        var_id -> getduty(var_id) <= AbstractMasterRepDwSpVar
+    )
+    return ReducedCostsCalculationHelper(dwsprep_costs, dwsprep_coefmatrix)
+end
+
+"""
+Precompute information to speed-up calculation of subgradient of master variables.
+We extract from the master follwowing information:
+- `a` contains the perenial rhs of all master constraints except convexity constraints;
+- `A` is a submatrix of the master coefficient matrix that involves only representative of
+  original variables (pure master vars + DW subproblem represtative vars) 
+
+Calculation is `a - A * (m .* z)`
+where :
+ - `m` contains a multiplicity factor for each variable involved in the calculation
+       (lower or upper sp multiplicity depending on variable reduced cost);
+ - `z` is the concatenation of the solution to the master (for pure master vars) and pricing
+       subproblems (for DW subproblem represtative vars).
+
+Operation `m .* z` "mimics" a solution in the original space.
+"""
+struct SubgradientCalculationHelper
+    a::SparseVector{Float64,ConstrId}
+    A::DynamicSparseMatrix{ConstrId,VarId,Float64}
+end
+
+function SubgradientCalculationHelper(master)
+    constr_ids = ConstrId[]
+    constr_rhs = Float64[]
+    for (constr_id, constr) in getconstrs(master)
+        if !(getduty(constr_id) <= MasterConvexityConstr) && 
+           iscuractive(master, constr) && isexplicit(master, constr)
+            push!(constr_ids, constr_id)
+            push!(constr_rhs, getcurrhs(master, constr_id))
+        end 
+    end
+    a = sparsevec(constr_ids, constr_rhs, Coluna.MAX_NB_ELEMS)
+    A = _submatrix(
+        master, 
+        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
+        var_id -> getduty(var_id) <= MasterPureVar || getduty(var_id) <= MasterRepPricingVar
+    )
+    return SubgradientCalculationHelper(a, A)
 end
 
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
@@ -287,6 +352,31 @@ function clear_before_colgen_iteration!(spinfo::SubprobInfo)
 end
 
 set_bestcol_id!(spinfo::SubprobInfo, varid::VarId) = spinfo.bestcol_id = varid
+
+function compute_subgradient_contribution(
+    algo::ColumnGeneration, stabunit::ColGenStabilizationUnit, master::Formulation,
+    puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId,SubprobInfo}
+)
+    sense = getobjsense(master)
+    var_ids = VarId[]
+    var_vals = Float64[]
+
+    for (var_id, mult) in puremastervars
+        push!(var_ids, var_id)
+        push!(var_vals, mult) 
+    end
+
+    for (_, spinfo) in spinfos
+        iszero(spinfo.ub) && continue
+        mult = improving_red_cost(getbound(spinfo.bestsol), algo, sense) ? spinfo.ub : spinfo.lb
+        for (sp_var_id, sp_var_val) in spinfo.bestsol
+            push!(var_ids, sp_var_id)
+            push!(var_vals, sp_var_val * mult)
+        end
+    end
+    return sparsevec(var_ids, var_vals)
+end
+
 
 function compute_db_contributions!(
     spinfo::SubprobInfo, dualbound::DualBound{MaxSense}, primalbound::PrimalBound{MaxSense}
@@ -425,22 +515,18 @@ end
 
 # this method must be redefined if subproblem is a custom model
 function updatemodel!(
-    form::Formulation, repr_vars_red_costs::Dict{VarId, Float64}, ::DualSolution
+    form::Formulation, redcosts, ::DualSolution
 )
-    for (varid, _) in getvars(form)
-        setcurcost!(form, varid, get(repr_vars_red_costs, varid, 0.0))
+    for (var_id, _) in getvars(form)
+        setcurcost!(form, var_id, redcosts[var_id])
     end
     return
 end
 
 function updatereducedcosts!(
-    reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
+    reform::Reformulation, helper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
 )
-    redcosts = Dict{VarId,Float64}()
-    result = redcostshelper.dwsprep_coefmatrix * masterdualsol.solution.sol
-    for (i, varid) in enumerate(redcostshelper.dwspvarids)
-        redcosts[varid] = redcostshelper.perencosts[i] - get(result, varid, 0.0)
-    end
+    redcosts = helper.c - transpose(helper.A) * masterdualsol
     for (_, spform) in get_dw_pricing_sps(reform)
         updatemodel!(spform, redcosts, masterdualsol)
     end
@@ -609,43 +695,6 @@ function update_lagrangian_dual_bound!(
     return
 end
 
-function compute_subgradient_contribution(
-    algo::ColumnGeneration, stabunit::ColGenStabilizationUnit, master::Formulation,
-    puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId,SubprobInfo}
-)
-    sense = getobjsense(master)
-    constrids = ConstrId[]
-    constrvals = Float64[]
-
-    if subgradient_is_needed(stabunit, algo.smoothing_stabilization)
-        master_coef_matrix = getcoefmatrix(master)
-
-        for (varid, mult) in puremastervars
-            for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
-                push!(constrids, constrid)
-                push!(constrvals, var_coeff * mult)
-            end
-        end
-
-        for (_, spinfo) in spinfos
-            iszero(spinfo.ub) && continue
-            mult = improving_red_cost(getbound(spinfo.bestsol), algo, sense) ? spinfo.ub : spinfo.lb
-            for (sp_var_id, sp_var_val) in spinfo.bestsol
-                for (master_constrid, sp_var_coef) in @view master_coef_matrix[:,sp_var_id]
-                    if !(getduty(master_constrid) <= MasterConvexityConstr)
-                        push!(constrids, master_constrid)
-                        push!(constrvals, sp_var_coef * sp_var_val * mult)
-                    end
-                end
-            end
-        end
-    end
-
-    return DualSolution(
-        master, constrids, constrvals, VarId[], Float64[], ActiveBound[], 0.0, 
-        UNKNOWN_SOLUTION_STATUS
-    )
-end
 
 function move_convexity_constrs_dual_values!(
     spinfos::Dict{FormId,SubprobInfo}, dualsol::DualSolution
@@ -710,7 +759,8 @@ function cg_main_loop!(
         spinfos[spid] = SubprobInfo(reform, spid)
     end
 
-    redcostshelper = ReducedCostsCalculationHelper(reform)
+    redcostshelper = ReducedCostsCalculationHelper(getmaster(reform))
+    sg_helper = SubgradientCalculationHelper(getmaster(reform))
     iteration = 0
     essential_cuts_separated = false
 
@@ -793,7 +843,8 @@ function cg_main_loop!(
                         if phase == 2 # because the new cuts may make the master infeasible
                             return false, true
                         end
-                        redcostshelper = ReducedCostsCalculationHelper(reform)
+                        redcostshelper = ReducedCostsCalculationHelper(getmaster(reform))
+                        sg_helper = SubgradientCalculationHelper(getmaster(reform))
                     end
                 end
             end
@@ -843,6 +894,7 @@ function cg_main_loop!(
                 TO.@timeit Coluna._to "Smoothing update" begin
                     smooth_dual_sol = update_stab_after_gencols!(
                         stabunit, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol,
+                        sg_helper,
                         compute_subgradient_contribution(algo, stabunit, masterform, pure_master_vars, spinfos)
                     )
                 end
