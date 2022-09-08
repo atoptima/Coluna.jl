@@ -32,6 +32,11 @@ ClA.stop(sp::CustomSearchSpaceAe1) = false
 
 struct CustomBestFirstSearch <: ClA.AbstractBestFirstSearch end
 
+# The priority here is only based on the id of the current node and
+# their parent being not both even or not both odd. Newly created
+# nodes that don't match id with their parent will have higher priority
+# than any other node, because it has the higher id value, and nodes
+# that match ids will have lower priority, based on their depth.
 function ClA.get_priority(::CustomBestFirstSearch, node::NodeAe1)
     node.id == 1 && return 0
     if iseven(node.parent.id) && !iseven(node.id) || 
