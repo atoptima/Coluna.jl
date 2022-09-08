@@ -32,25 +32,13 @@ ClA.stop(sp::CustomSearchSpaceAe1) = false
 
 struct CustomBestFirstSearch <: ClA.AbstractBestFirstSearch end
 
-# The priority here is only based on the id of the current node and
-# their parent being not both even or not both odd. Newly created
-# nodes that don't match id with their parent will have higher priority
-# than any other node, because it has the higher id value, and nodes
-# that match ids will have lower priority, based on their depth.
-function ClA.get_priority(::CustomBestFirstSearch, node::NodeAe1)
-    node.id == 1 && return 0
-    if iseven(node.parent.id) && !iseven(node.id) || 
-        iseven(node.id) && !iseven(node.parent.id)
-        return -node.id
-    end
-    return -node.depth
-end
+ClA.get_priority(::CustomBestFirstSearch, node::NodeAe1) = -node.id
 
 function ClA.children(space::CustomSearchSpaceAe1, current, _, _)
     children = NodeAe1[]
     push!(space.visit_order, current.id)
     if current.depth != space.max_depth &&
-        space.nb_nodes_generated + space.nb_branches <= space.max_nb_of_nodes 
+        space.nb_nodes_generated + space.nb_branches <= space.max_nb_of_nodes
         for _ in 1:space.nb_branches
             space.nb_nodes_generated += 1
             node_id = space.nb_nodes_generated
@@ -73,6 +61,6 @@ ClA.tree_search_output(space::CustomSearchSpaceAe1, _) = space.visit_order
     @testset "Best-First Search" begin
         search_space = CustomSearchSpaceAe1(2, 3, 11)
         visit_order = ClA.tree_search(CustomBestFirstSearch(), search_space, nothing, nothing)
-        @test visit_order == [1, 2, 5, 6, 7, 4, 9, 8, 3, 10, 11]
+        @test visit_order == [1, 3, 5, 7, 6, 4, 9, 8, 2, 11, 10]
     end
 end
