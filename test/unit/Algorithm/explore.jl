@@ -46,14 +46,7 @@ function ClA.get_priority(::CustomBestFirstSearch, node::NodeAe1)
     return -node.depth
 end
 
-function print_node(current)
-    t = repeat("   ", current.depth)
-    node = string("NodeAe1 ", current.id)
-    println(t, node)
-end
-
 function ClA.children(space::CustomSearchSpaceAe1, current, _, _)
-    print_node(current)
     children = NodeAe1[]
     push!(space.visit_order, current.id)
     if current.depth != space.max_depth &&
@@ -74,14 +67,12 @@ ClA.tree_search_output(space::CustomSearchSpaceAe1, _) = space.visit_order
     @testset "Depth-First Search" begin
         search_space = CustomSearchSpaceAe1(2, 3, 11)
         visit_order = ClA.tree_search(ClA.DepthFirstStrategy(), search_space, nothing, nothing)
-        @show visit_order
         @test visit_order == [1, 3, 5, 7, 6, 4, 9, 8, 2, 11, 10]
     end
 
     @testset "Best-First Search" begin
         search_space = CustomSearchSpaceAe1(2, 3, 11)
         visit_order = ClA.tree_search(CustomBestFirstSearch(), search_space, nothing, nothing)
-        @show visit_order
         @test visit_order == [1, 2, 5, 6, 7, 4, 9, 8, 3, 10, 11]
     end
 end
