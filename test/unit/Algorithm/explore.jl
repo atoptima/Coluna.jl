@@ -1,8 +1,3 @@
-using Coluna, Parameters
-
-const ClA = Coluna.Algorithm
-const ClB = Coluna.ColunaBase
-
 struct Node <: ClA.AbstractNode
     id::Int
     depth::Int
