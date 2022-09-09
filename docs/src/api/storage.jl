@@ -173,9 +173,9 @@ function compute_sol(space::FullExplSearchSpace, current)
     return sol, sol_cost
 end
 
-# We check and/or update the best found solution if the node solution is better.
+# We write a method that updates the best-found solution when the node solution is better.
 function update_best_sol!(space::FullExplSearchSpace, solution::Tuple{Vector{Float64},Float64})
-    if solution[2] < space.solution[2]
+    if last(solution) < last(space.solution)
         space.solution = solution
     end
 end
