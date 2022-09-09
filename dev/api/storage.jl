@@ -142,7 +142,7 @@ end
 # We implement the method that returns the root node.
 function ClA.new_root(space::FullExplSearchSpace, _)
     space.nb_nodes_generated += 1
-    return Node(nothing, 0, "", nothing)
+    return Node(nothing, 1, "", nothing)
 end
 
 # We define a method that prints node information and the state of the formulation together.
