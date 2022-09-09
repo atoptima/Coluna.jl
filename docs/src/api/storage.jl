@@ -132,10 +132,11 @@ ClA.get_parent(node::Node) = node.parent
 mutable struct FullExplSearchSpace <: ClA.AbstractSearchSpace
     nb_nodes_generated::Int
     formulation::Formulation
+    solution::Tuple{Vector{Float64},Float64}
     storage::ClB.NewStorage{Formulation}
     record_ids_per_node::Dict{Int, Any}
     function FullExplSearchSpace(form::Formulation)
-        return new(0, form, ClB.NewStorage(form), Dict{Int,Any}())
+        return new(0, form, ([],Inf), ClB.NewStorage(form), Dict{Int,Any}())
     end
 end
 
@@ -158,6 +159,26 @@ function print_form(form, current)
     end
     println(t, node, branch, domains)
 end;
+
+# We write a function to calculate the solution at the current formulation of a node.
+function compute_sol(space::FullExplSearchSpace, current)
+    model = space.formulation
+    sol = Float64[]
+    sol_cost = 0.0
+    for (cost, (ub, lb)) in Iterators.zip(model.var_costs, model.var_domains)
+        var_val = (ub + lb) / 2.0
+        sol_cost += var_val * cost
+        push!(sol, var_val)
+    end
+    return sol, sol_cost
+end
+
+# We check and/or update the best found solution if the node solution is better.
+function update_best_sol!(space::FullExplSearchSpace, solution::Tuple{Vector{Float64},Float64})
+    if solution[2] < space.solution[2]
+        space.solution = solution
+    end
+end
 
 # Let's now talk about how we will store and restore the state of the formulation in our
 # tree search algorithm.
@@ -186,6 +207,12 @@ function evaluate_current_node(space::FullExplSearchSpace, current)
 
     ## Print the current formulation
     print_form(space.formulation, current)
+
+    ## Compute solution
+    sol = compute_sol(space, current)
+
+    ## Update best solution
+    update_best_sol!(space, sol)
 
     ## Record current state of the formulation and keep the record in the current node.
     ## This is not necessary here but the formulation often changes during evaluation.
@@ -229,9 +256,8 @@ end
 # We don't define specific stopping criterion.
 ClA.stop(::FullExplSearchSpace) = false
 
-# We return the node id where we found the best solution and the record at each node
-# to make sure the example worked.
-ClA.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node 
+# We return the best solution and the record at each node to make sure the example worked.
+ClA.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node, space.solution
 
 # We run the example.
 search_space = FullExplSearchSpace(formulation)
