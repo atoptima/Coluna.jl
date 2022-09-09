@@ -97,18 +97,18 @@ Version 0.4.2 | https://github.com/atoptima/Coluna.jl
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            1.15s /   2.7%            102MiB /  10.1%
+       Tot / % measured:            1.15s /   2.8%            102MiB /  10.1%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1   31.1ms  100.0%  31.1ms   10.3MiB  100.0%  10.3MiB
-   SolveLpForm             45   12.5ms   40.1%   278μs   4.31MiB   41.7%  98.1KiB
-   Update reduced c...     45   1.08ms    3.5%  24.0μs    840KiB    7.9%  18.7KiB
-   Getting primal s...     45    950μs    3.1%  21.1μs    652KiB    6.2%  14.5KiB
-   Cleanup columns         45    184μs    0.6%  4.09μs   45.0KiB    0.4%  1.00KiB
-   Update Lagrangia...     45   42.9μs    0.1%   953ns   5.62KiB    0.1%     128B
-   Smoothing update        45   37.0μs    0.1%   822ns   4.92KiB    0.0%     112B
+ Coluna                     1   32.1ms  100.0%  32.1ms   10.3MiB  100.0%  10.3MiB
+   SolveLpForm             45   12.8ms   39.9%   285μs   4.31MiB   41.7%  98.1KiB
+   Update reduced c...     45   1.18ms    3.7%  26.1μs    840KiB    7.9%  18.7KiB
+   Getting primal s...     45   1.07ms    3.3%  23.7μs    652KiB    6.2%  14.5KiB
+   Cleanup columns         45    196μs    0.6%  4.35μs   45.0KiB    0.4%  1.00KiB
+   Update Lagrangia...     45   51.3μs    0.2%  1.14μs   5.62KiB    0.1%     128B
+   Smoothing update        45   36.8μs    0.1%   818ns   4.92KiB    0.0%     112B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 166.5
-[ Info: Dual bound: 166.5</code></pre><p>You can find more information about the output of the column generation algorithm <a href="start/@ref">ColumnGeneration</a>.</p><p>Finally, you can retrieve the solution to the original formulation with JuMP methods. For example, if we want to know if the job 3 is assigned to machine 1:</p><pre><code class="language-julia hljs">value(x[1,3])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.0</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Introduction</a><a class="docs-footer-nextpage" href="../cuts/">Valid inequalities »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Friday 9 September 2022 15:03">Friday 9 September 2022</span>. Using Julia version 1.8.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+[ Info: Dual bound: 166.5</code></pre><p>You can find more information about the output of the column generation algorithm <a href="start/@ref">ColumnGeneration</a>.</p><p>Finally, you can retrieve the solution to the original formulation with JuMP methods. For example, if we want to know if the job 3 is assigned to machine 1:</p><pre><code class="language-julia hljs">value(x[1,3])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.0</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Introduction</a><a class="docs-footer-nextpage" href="../cuts/">Valid inequalities »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Friday 9 September 2022 15:36">Friday 9 September 2022</span>. Using Julia version 1.8.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
