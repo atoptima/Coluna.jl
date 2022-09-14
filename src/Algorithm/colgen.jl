@@ -351,8 +351,6 @@ function clear_before_colgen_iteration!(spinfo::SubprobInfo)
     return
 end
 
-set_bestcol_id!(spinfo::SubprobInfo, varid::VarId) = spinfo.bestcol_id = varid
-
 function compute_subgradient_contribution(
     algo::ColumnGeneration, stabunit::ColGenStabilizationUnit, master::Formulation,
     puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId,SubprobInfo}
@@ -523,10 +521,17 @@ function updatemodel!(
     return
 end
 
-function updatereducedcosts!(
+"""
+Calculates reduced cost of subproblem variables and updates the current cost of these variables
+with the calculated value.
+"""
+function update_sp_vars_reduced_costs!(
     reform::Reformulation, helper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
 )
+    # Compute reduced costs.
     redcosts = helper.c - transpose(helper.A) * masterdualsol
+
+    # TODO:  We should call a (generic) method to update reduced costs of variables of the model
     for (_, spform) in get_dw_pricing_sps(reform)
         updatemodel!(spform, redcosts, masterdualsol)
     end
@@ -535,24 +540,10 @@ end
 
 function solve_sps_to_gencols!(
     spinfos::Dict{FormId,SubprobInfo}, algo::ColumnGeneration, env::Env, phase::Int64, 
-    reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, lp_dual_sol::DualSolution, 
-    smooth_dual_sol::DualSolution,
+    reform::Reformulation, lp_dual_sol::DualSolution
 )
     masterform = getmaster(reform)
     spsforms = get_dw_pricing_sps(reform)
-
-    # update reduced costs
-    TO.@timeit Coluna._to "Update reduced costs" begin
-        updatereducedcosts!(reform, redcostshelper, smooth_dual_sol)
-    end
-
-    # update the incumbent values of constraints
-    for (_, constr) in getconstrs(masterform)
-        setcurincval!(masterform, constr, 0.0)
-    end
-    for (constrid, val) in smooth_dual_sol
-        setcurincval!(masterform, constrid, val)
-    end
 
     sp_optstates = if algo.solve_subproblems_parallel
         _optimize_sps_in_parallel(spsforms, algo.pricing_prob_solve_alg, env)
@@ -695,7 +686,6 @@ function update_lagrangian_dual_bound!(
     return
 end
 
-
 function move_convexity_constrs_dual_values!(
     spinfos::Dict{FormId,SubprobInfo}, dualsol::DualSolution
 )
@@ -734,6 +724,77 @@ function change_values_sign!(dualsol::DualSolution)
     # note that the bound value remains the same
     for (constrid, value) in dualsol
         dualsol[constrid] = -value
+    end
+    return
+end
+
+### API draft definition
+function before_iteration!(spinfos)
+    for (_, spinfo) in spinfos
+        clear_before_colgen_iteration!(spinfo)
+    end
+    return
+end
+
+"""
+Returns an optimization state that contains at least a dual solution to the Danzig-Wolfe 
+restricted master problem.
+"""
+function solve_master!(master, cg_optstate, restr_master_solve_alg, restr_master_optimizer_id, env)
+    rm_input = OptimizationState(master, ip_primal_bound=get_ip_primal_bound(cg_optstate))
+    return run!(restr_master_solve_alg, env, master, rm_input, restr_master_optimizer_id)
+end
+
+function _is_feasible_and_integer(rm_lp_primal_sol)
+    return !contains(rm_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid))) &&
+        isinteger(proj_cols_on_rep(rm_lp_primal_sol, getmodel(rm_lp_primal_sol)))
+end
+
+function _assert_has_lp_dual_sol(rm_optstate)
+    lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
+    if isnothing(lp_dual_sol)
+        err_msg = """
+        Something unexpected happened when retrieving the dual solution to the LP restricted master.
+        ======
+        Phase : $phase
+        Termination status of the solver after optimizing the master (should be OPTIMAL) : $(getterminationstatus(rm_optstate))
+        Number of dual solutions (should be at least 1) : $(length(get_lp_dual_sols(rm_optstate)))
+        ======
+        Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
+        """
+        error(err_msg)
+    end
+end
+
+"""
+When we found a feasible integer solution to the master, we must
+ensure that this solution does not violate any essential cut.
+Therefore, the following method runs all the essential cut callbacks.
+It returns `true` if a violated essential cut has been found;
+`false` otherwise.
+"""
+function violates_essential_cut!(master, rm_lp_primal_sol, env)
+    # TODO: concatenate with partial sol.
+    cutcb_input = CutCallbacksInput(rm_lp_primal_sol)
+    cutcb_output = run!(
+        CutCallbacks(call_robust_facultative=false),
+        env, master, cutcb_input
+    )
+    return cutcb_output.nb_cuts_added > 0
+end
+
+"""
+We need to set the dual values of the constraints because they can be used in the pricing
+(e.g. when the pricing solver supports non-robust cuts).
+"""
+function update_dual_values_of_constrs!(master, smooth_dual_sol)
+    # Set all dual value of all constraints to 0.
+    for constr in Iterators.values(getconstrs(master))
+        setcurincval!(master, constr, 0.0)
+    end
+    # Update constraints that have non-zero dual values.
+    for (constr_id, val) in smooth_dual_sol
+        setcurincval!(master, constr_id, val)
     end
     return
 end
@@ -777,13 +838,13 @@ function cg_main_loop!(
     init_stab_before_colgen_loop!(stabunit)
 
     while true
-        for (_, spinfo) in spinfos
-            clear_before_colgen_iteration!(spinfo)
-        end
-
+        before_iteration!(spinfos)
+    
         rm_time = @elapsed begin
-            rm_input = OptimizationState(masterform, ip_primal_bound=get_ip_primal_bound(cg_optstate))
-            rm_optstate = run!(algo.restr_master_solve_alg, env, masterform, rm_input, algo.restr_master_optimizer_id)
+            rm_optstate = solve_master!(
+                masterform, cg_optstate, algo.restr_master_solve_alg, 
+                algo.restr_master_optimizer_id, env
+            )
         end
 
         if phase != 1 && getterminationstatus(rm_optstate) == INFEASIBLE
@@ -792,68 +853,43 @@ function cg_main_loop!(
             setterminationstatus!(cg_optstate, INFEASIBLE)
             return true, false
         end
-
+    
         lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
-        if lp_dual_sol === nothing
-            err_msg = """
-            Something unexpected happened when retrieving the dual solution to the LP restricted master.
-            ======
-            Phase : $phase
-            Termination status of the solver after optimizing the master (should be OPTIMAL) : $(getterminationstatus(rm_optstate))
-            Number of dual solutions (should be at least 1) : $(length(get_lp_dual_sols(rm_optstate)))
-            ======
-            Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
-            """
-            error(err_msg)
-        end
+
+        # TODO: remove
         if getobjsense(masterform) == MaxSense
             # this is needed due to convention that MOI uses for signs of duals in the maximization case
             change_values_sign!(lp_dual_sol)
         end
-        if lp_dual_sol !== nothing
-            set_lp_dual_sol!(cg_optstate, lp_dual_sol)
-        end
-        lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
 
-        TO.@timeit Coluna._to "Getting primal solution" begin
-        rm_sol = get_best_lp_primal_sol(rm_optstate)
-        if rm_sol !== nothing
-            set_lp_primal_sol!(cg_optstate, rm_sol)
-            lp_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)
-            set_lp_primal_bound!(cg_optstate, lp_bound)
+        _assert_has_lp_dual_sol(rm_optstate)
+        set_lp_dual_sol!(cg_optstate, lp_dual_sol)
+        lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol) # TODO: remove
 
-            dual_rm_sol = get_best_lp_dual_sol(rm_optstate)
-            if dual_rm_sol !== nothing
-                set_lp_dual_sol!(cg_optstate, dual_rm_sol)
-            end
-
-            if phase != 1 && !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
-                proj_sol = proj_cols_on_rep(rm_sol, masterform)
-                if isinteger(proj_sol) && isbetter(lp_bound, get_ip_primal_bound(cg_optstate))
-                    # Essential cut generation mandatory when colgen finds a feasible solution
-                    new_primal_sol = cat(rm_sol, partial_solution)
-                    cutcb_input = CutCallbacksInput(new_primal_sol)
-                    cutcb_output = run!(
-                        algo.essential_cut_gen_alg, env, masterform, cutcb_input
-                    )
-                    if cutcb_output.nb_cuts_added == 0
-                        update_ip_primal_sol!(cg_optstate, new_primal_sol)
-                    else
-                        essential_cuts_separated = true
-                        if phase == 2 # because the new cuts may make the master infeasible
-                            return false, true
-                        end
+        ####
+        ## TODO: isolate into another method.
+        ## I'm not sure if we need such a method at each iteration or for subgradient for instance.
+        ####
+        rm_lp_primal_sol = get_best_lp_primal_sol(rm_optstate)
+        if !isnothing(rm_lp_primal_sol)
+            set_lp_primal_sol!(cg_optstate, rm_lp_primal_sol)
+            lp_primal_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)  
+            set_lp_primal_bound!(cg_optstate, lp_primal_bound)   
+            
+            if phase != 1
+                # We don't check integer feasibility of the solution in phase 1 because the goal of
+                # this phase is just to get rid of artificial variables.
+                primal_sol = cat(rm_lp_primal_sol, partial_solution)
+                if _is_feasible_and_integer(primal_sol) && isbetter(lp_primal_bound, get_ip_primal_bound(cg_optstate))
+                    if violates_essential_cut!(masterform, primal_sol, env)
                         redcostshelper = ReducedCostsCalculationHelper(getmaster(reform))
                         sg_helper = SubgradientCalculationHelper(getmaster(reform))
+                    else
+                        update_ip_primal_sol!(cg_optstate, primal_sol)
                     end
                 end
             end
-        else
-            @error string("Solver returned that the LP restricted master is feasible but ",
-            "did not return a primal solution. ",
-            "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
         end
-        end # @timeit
 
         TO.@timeit Coluna._to "Cleanup columns" begin
             cleanup_columns(algo, iteration, masterform)
@@ -865,14 +901,18 @@ function cg_main_loop!(
             smooth_dual_sol = update_stab_after_rm_solve!(stabunit, algo.smoothing_stabilization, lp_dual_sol)
         end
 
-        nb_new_columns = 0
+        nb_cols_iteration = 0
         sp_time = 0
         while true
+            # TODO: check time limit of Coluna
+            TO.@timeit Coluna._to "Update reduced costs" begin
+                update_sp_vars_reduced_costs!(reform, redcostshelper, smooth_dual_sol)
+            end
+
+            update_dual_values_of_constrs!(masterform, smooth_dual_sol)
+
             sp_time += @elapsed begin
-                nb_new_col = solve_sps_to_gencols!(
-                    spinfos, algo, env, phase, reform, redcostshelper, lp_dual_sol, 
-                    smooth_dual_sol
-                )
+                nb_new_col = solve_sps_to_gencols!(spinfos, algo, env, phase, reform, lp_dual_sol)
             end
 
             if nb_new_col < 0
@@ -881,7 +921,7 @@ function cg_main_loop!(
                 return true, false
             end
 
-            nb_new_columns += nb_new_col
+            nb_cols_iteration += nb_new_col
 
             TO.@timeit Coluna._to "Update Lagrangian bound" begin
                 update_lagrangian_dual_bound!(
@@ -905,7 +945,7 @@ function cg_main_loop!(
         end
 
         print_colgen_statistics(
-            env, phase, iteration, stabunit.curalpha, cg_optstate, nb_new_columns, 
+            env, phase, iteration, stabunit.curalpha, cg_optstate, nb_cols_iteration, 
             rm_time, sp_time
         )
 
@@ -933,7 +973,7 @@ function cg_main_loop!(
             set_lp_dual_sol!(cg_optstate, get_best_lp_dual_sol(cg_optstate))
             return false, false
         end
-        if nb_new_columns == 0 && !essential_cuts_separated
+        if nb_cols_iteration == 0 && !essential_cuts_separated
             @logmsg LogLevel(0) "No new column generated by the pricing problems."
             setterminationstatus!(cg_optstate, OTHER_LIMIT)
             # If no columns are generated and lp gap is not closed then this col.gen. stage
