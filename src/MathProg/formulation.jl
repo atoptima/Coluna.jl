@@ -215,7 +215,7 @@ function setvar!(
         name = string("v_", getuid(id))
     end
 
-    v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
+    v_data = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit, false)
 
     var = Variable(
         id, name;

@@ -50,6 +50,7 @@ mutable struct FormulationManager
     dual_sols::ConstrConstrMatrix # cols = dual solutions with constrid, rows = constrs
     dual_sols_varbounds::VarConstrDualSolMatrix # cols = dual solutions with constrid, rows = variables
     dual_sol_rhss::DynamicSparseVector{ConstrId} # dual solutions with constrid map to their rhs
+    fixed_vars::Set{VarId}
     robust_constr_generators::Vector{RobustConstraintsGenerator}
     custom_families_id::Dict{DataType,Int}
 end
@@ -65,6 +66,7 @@ function FormulationManager(buffer; custom_families_id = Dict{BD.AbstractCustomD
         dynamicsparse(ConstrId, ConstrId, Float64; fill_mode = false),
         dynamicsparse(VarId, ConstrId, Tuple{Float64, ActiveBound}; fill_mode = false),
         dynamicsparsevec(ConstrId[], Float64[]),
+        Set{VarId}(),
         RobustConstraintsGenerator[],
         custom_families_id
     )
@@ -79,6 +81,17 @@ function _addvar!(m::FormulationManager, var::Variable)
         ))
     end
     m.vars[var.id] = var
+    return
+end
+
+# Internal method to fix a variable in the formulation manager.
+function _fixvar!(m::FormulationManager, var::Variable)
+    push!(m.fixed_vars, getid(var))
+    return
+end
+
+function _unfixvar!(m::FormulationManager, var::Variable)
+    delete!(m.fixed_vars, getid(var))
     return
 end
 
