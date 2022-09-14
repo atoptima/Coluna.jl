@@ -8,6 +8,7 @@ mutable struct VarData <: AbstractVcData
     inc_val::Float64
     is_active::Bool
     is_explicit::Bool
+    is_fixed::Bool
 end
 
 """
@@ -19,12 +20,12 @@ function VarData(
     ;cost::Float64 = 0.0, lb::Float64 = 0.0, ub::Float64 = Inf, kind::VarKind = Continuous,
     inc_val::Float64 = -1.0, is_active::Bool = true, is_explicit::Bool = true
 )
-    vc = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit)
+    vc = VarData(cost, lb, ub, kind, inc_val, is_active, is_explicit, false)
     return vc
 end
 
 VarData(vd::VarData) = VarData(
-    vd.cost, vd.lb, vd.ub, vd.kind, vd.inc_val, vd.is_active, vd.is_explicit
+    vd.cost, vd.lb, vd.ub, vd.kind, vd.inc_val, vd.is_active, vd.is_explicit, vd.is_fixed
 )
 
 """
