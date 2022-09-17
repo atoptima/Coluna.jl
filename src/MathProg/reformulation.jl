@@ -53,7 +53,7 @@ function getobjsense(r::Reformulation)
 end
 
 """
-    getmaster(reformulation)
+    getmaster(reform) -> Formulation
 
 Return the formulation of the master problem.
 """
