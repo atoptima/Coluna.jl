@@ -47,7 +47,7 @@ export  MaxSense, MinSense,
 export no_optimizer_builder, set_original_formulation!,
        getid,
        enforce_integrality!, relax_integrality!,
-       getobjsense, getoptimizer, getoptimizers,
+       getobjsense, getoptimizer,
        update!,
        getduty,
        computereducedrhs,
@@ -70,7 +70,7 @@ export Reformulation, getmaster, add_dw_pricing_sp!, add_benders_sep_sp!, get_dw
     get_dw_pricing_sp_lb_constrid, setmaster!
 
 # Methods related to formulations
-export AbstractFormulation, Formulation, create_formulation!, getreformulation, getvar, getvars,
+export AbstractFormulation, Formulation, create_formulation!, getvar, getvars,
     getconstr, getconstrs, getelem, getcoefmatrix, get_primal_sol_pool, getprimalsolcosts,
     getdualsolmatrix, getdualsolrhss, setvar!, setconstr!, setdualsol!,
     set_robust_constr_generator!, get_robust_constr_generators,
@@ -91,7 +91,7 @@ export Variable, Constraint, VarId, ConstrId, VarMembership, ConstrMembership,
     getperenub, getcurub, setcurub!, getperenrhs, setperenrhs!, getcurrhs, setcurrhs!, getperensense, setperensense!,
     getcursense, setcursense!, getperenkind, getcurkind, setcurkind!, getperenincval,
     getcurincval, setcurincval!, isperenactive, iscuractive, activate!, deactivate!,
-    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!
+    isexplicit, getname, getbranchingpriority, reset!, getreducedcost, setperenkind!, isfixed, fix!
 
 # Types & methods related to solutions & bounds
 export PrimalBound, DualBound, AbstractSolution, PrimalSolution, DualSolution, ActiveBound, ObjValues,
