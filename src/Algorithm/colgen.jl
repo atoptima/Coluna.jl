@@ -85,6 +85,31 @@ end
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
 ############################################################################################
+# Implementation of Algorithm interface.
+############################################################################################
+
+function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
+    child_algs = Tuple{AbstractAlgorithm,AbstractModel}[]
+    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
+    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
+    for (id, spform) in get_dw_pricing_sps(reform)
+        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
+    end
+    return child_algs
+end
+
+function get_units_usage(algo::ColumnGeneration, reform::Reformulation) 
+    units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
+    master = getmaster(reform)
+    push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
+    push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
+    if stabilization_is_used(algo)
+        push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
+    end
+    return units_usage
+end
+
+############################################################################################
 # Errors and warnings
 ############################################################################################
 
@@ -122,28 +147,6 @@ function Base.show(io::IO, err::ColumnAlreadyInsertedColGenError)
     ======
     """
     println(io, msg)
-end
-
-
-function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
-    child_algs = Tuple{AbstractAlgorithm,AbstractModel}[]
-    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
-    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
-    for (id, spform) in get_dw_pricing_sps(reform)
-        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
-    end
-    return child_algs
-end
-
-function get_units_usage(algo::ColumnGeneration, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
-    master = getmaster(reform)
-    push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
-    push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
-    if stabilization_is_used(algo)
-        push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
-    end
-    return units_usage
 end
 
 ############################################################################################
@@ -246,6 +249,10 @@ function SubgradientCalculationHelper(master)
     )
     return SubgradientCalculationHelper(a, A)
 end
+
+############################################################################################
+# Column generation algorithm.
+############################################################################################
 
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
     master = getmaster(reform)
@@ -352,8 +359,8 @@ function clear_before_colgen_iteration!(spinfo::SubprobInfo)
 end
 
 function compute_subgradient_contribution(
-    algo::ColumnGeneration, stabunit::ColGenStabilizationUnit, master::Formulation,
-    puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId,SubprobInfo}
+    algo::ColumnGeneration, master::Formulation, puremastervars::Vector{Pair{VarId,Float64}},
+    spinfos::Dict{FormId,SubprobInfo}
 )
     sense = getobjsense(master)
     var_ids = VarId[]
@@ -601,15 +608,8 @@ can_be_in_basis(algo::ColumnGeneration, ::Type{MinSense}, redcost::Float64) =
 can_be_in_basis(algo::ColumnGeneration, ::Type{MaxSense}, redcost::Float64) =
     redcost > 0 - algo.redcost_tol
 
-function cleanup_columns(algo::ColumnGeneration, iteration::Int64, master::Formulation)
-
-    # we do columns clean up only on every 10th iteration in order not to spend
-    # the time retrieving the reduced costs
-    # TO DO : master cleanup should be done on every iteration, for this we need
-    # to quickly check the number of active master columns
-    iteration % 10 != 0 && return
-
-    cols_with_redcost = Vector{Pair{Variable,Float64}}()
+function cleanup_columns!(master::Formulation, algo::ColumnGeneration)
+    cols_with_redcost = Pair{Variable,Float64}[]
     optimizer = getoptimizer(master, algo.restr_master_optimizer_id)
     for (id, var) in getvars(master)
         if getduty(id) <= MasterCol && iscuractive(master, var) && isexplicit(master, var)
@@ -644,47 +644,6 @@ end
 ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.opt_atol
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opt_atol
 
-function update_lagrangian_dual_bound!(
-    stabunit::ColGenStabilizationUnit, optstate::OptimizationState{F,S}, algo::ColumnGeneration,
-    master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
-    partialsol::PrimalSolution, spinfos::Dict{FormId,SubprobInfo}
-) where {F,S}
-
-    sense = getobjsense(master)
-
-    puremastvars_contrib::Float64 = getvalue(partialsol)
-    # if smoothing is not active the pure master variables contribution
-    # is already included in the value of the dual solution
-    if smoothing_is_active(stabunit)
-        master_coef_matrix = getcoefmatrix(master)
-        for (varid, mult) in puremastervars
-            redcost = getcurcost(master, varid)
-            for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
-                redcost -= var_coeff * dualsol[constrid]
-            end
-            mult = improving_red_cost(redcost, algo, sense) ?
-                getcurub(master, varid) : getcurlb(master, varid)
-            puremastvars_contrib += redcost * mult
-        end
-    end
-    
-    valid_lagr_bound = DualBound{S}(puremastvars_contrib + getbound(dualsol))
-    for (spuid, spinfo) in spinfos
-        valid_lagr_bound += spinfo.valid_dual_bound_contrib
-    end
-
-    update_ip_dual_bound!(optstate, valid_lagr_bound)
-    update_lp_dual_bound!(optstate, valid_lagr_bound)
-
-    if stabilization_is_used(algo)
-        pseudo_lagr_bound = DualBound{S}(puremastvars_contrib + getbound(dualsol))
-        for (spuid, spinfo) in spinfos
-            pseudo_lagr_bound += spinfo.pseudo_dual_bound_contrib
-        end
-        update_stability_center!(stabunit, dualsol, valid_lagr_bound, pseudo_lagr_bound)
-    end
-    return
-end
 
 function move_convexity_constrs_dual_values!(
     spinfos::Dict{FormId,SubprobInfo}, dualsol::DualSolution
@@ -729,6 +688,8 @@ function change_values_sign!(dualsol::DualSolution)
 end
 
 ### API draft definition
+
+"Place to perform operations before starting a column generation iteration."
 function before_iteration!(spinfos)
     for (_, spinfo) in spinfos
         clear_before_colgen_iteration!(spinfo)
@@ -799,6 +760,49 @@ function update_dual_values_of_constrs!(master, smooth_dual_sol)
     return
 end
 
+"TODO docstring"
+function compute_lagrangian_dual_bound(
+    stabunit::ColGenStabilizationUnit, algo::ColumnGeneration,
+    master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
+    partialsol::PrimalSolution, spinfos::Dict{FormId,SubprobInfo}
+)
+    sense = getobjsense(master) # TODO: type stability
+    puremastvars_contrib::Float64 = getvalue(partialsol)
+    # if smoothing is not active the pure master variables contribution
+    # is already included in the value of the dual solution
+    if smoothing_is_active(stabunit)
+        master_coef_matrix = getcoefmatrix(master)
+        for (varid, mult) in puremastervars
+            redcost = getcurcost(master, varid)
+            for (constrid, var_coeff) in @view master_coef_matrix[:,varid]
+                redcost -= var_coeff * dualsol[constrid]
+            end
+            mult = improving_red_cost(redcost, algo, sense) ?
+                getcurub(master, varid) : getcurlb(master, varid)
+            puremastvars_contrib += redcost * mult
+        end
+    end
+    
+    valid_lagr_bound = DualBound{sense}(puremastvars_contrib + getbound(dualsol))
+    for spinfo in Iterators.values(spinfos)
+        valid_lagr_bound += spinfo.valid_dual_bound_contrib
+    end
+    return valid_lagr_bound
+end
+
+"TODO docstring"
+function compute_pseudo_lagr_bound(
+    master::Formulation, partialsol::PrimalSolution, dualsol::DualSolution{S}, spinfos::Dict{FormId,SubprobInfo}
+) where {S}
+    sense = getobjsense(master) # TODO: type stability
+    puremastvars_contrib::Float64 = getvalue(partialsol)
+    pseudo_lagr_bound = DualBound{sense}(puremastvars_contrib + getbound(dualsol))
+    for spinfo in Iterators.values(spinfos)
+        pseudo_lagr_bound += spinfo.pseudo_dual_bound_contrib
+    end
+    return pseudo_lagr_bound
+end
+
 # cg_main_loop! returns Tuple{Bool, Bool} :
 # - first one is equal to true when colgen algorithm must stop.
 # - second one is equal to true when colgen algorithm must restart;
@@ -808,6 +812,7 @@ function cg_main_loop!(
     algo::ColumnGeneration, env::Env, phase::Int, cg_optstate::OptimizationState, 
     reform::Reformulation
 )
+    ### TODO: init is messy
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
     masterform = getmaster(reform)
@@ -868,7 +873,6 @@ function cg_main_loop!(
 
         ####
         ## TODO: isolate into another method.
-        ## I'm not sure if we need such a method at each iteration or for subgradient for instance.
         ####
         rm_lp_primal_sol = get_best_lp_primal_sol(rm_optstate)
         if !isnothing(rm_lp_primal_sol)
@@ -892,7 +896,13 @@ function cg_main_loop!(
         end
 
         TO.@timeit Coluna._to "Cleanup columns" begin
-            cleanup_columns(algo, iteration, masterform)
+            # we do columns clean up only on every 10th iteration in order not to spend
+            # the time retrieving the reduced costs
+            # TO DO : master cleanup should be done on every iteration, for this we need
+            # to quickly check the number of active master columns
+            if iteration % 10 == 0
+                cleanup_columns!(masterform, algo) # TODO: number of active master columns
+            end
         end
 
         iteration += 1
@@ -924,10 +934,17 @@ function cg_main_loop!(
             nb_cols_iteration += nb_new_col
 
             TO.@timeit Coluna._to "Update Lagrangian bound" begin
-                update_lagrangian_dual_bound!(
-                    stabunit, cg_optstate, algo, masterform, pure_master_vars, 
+                valid_lagr_bound = compute_lagrangian_dual_bound(
+                    stabunit, algo, masterform, pure_master_vars,
                     smooth_dual_sol, partial_solution, spinfos
                 )
+                update_ip_dual_bound!(cg_optstate, valid_lagr_bound)
+                update_lp_dual_bound!(cg_optstate, valid_lagr_bound)
+
+                if stabilization_is_used(algo)
+                    pseudo_lagr_bound = compute_pseudo_lagr_bound(masterform, partial_solution, smooth_dual_sol, spinfos)
+                    update_stability_center!(stabunit, smooth_dual_sol, valid_lagr_bound, pseudo_lagr_bound)
+                end
             end
 
             if stabilization_is_used(algo)
@@ -935,7 +952,7 @@ function cg_main_loop!(
                     smooth_dual_sol = update_stab_after_gencols!(
                         stabunit, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol,
                         sg_helper,
-                        compute_subgradient_contribution(algo, stabunit, masterform, pure_master_vars, spinfos)
+                        compute_subgradient_contribution(algo, masterform, pure_master_vars, spinfos)
                     )
                 end
                 smooth_dual_sol === nothing && break
