@@ -1244,8 +1244,9 @@ function MOI.get(
 )
     MOI.throw_if_not_valid(model, index)
     dualsols = get_lp_dual_sols(model.result)
+    sense = model.objective_sense == MOI.MAX_SENSE ? -1.0 : 1.0
     if 1 <= attr.result_index <= length(dualsols)
-        return get(dualsols[attr.result_index], getid(_info(model, index).constr), 0.0)
+        return sense * get(dualsols[attr.result_index], getid(_info(model, index).constr), 0.0)
     end
     return error("Invalid result index.")
 end
@@ -1282,10 +1283,11 @@ function MOI.get(
     # TODO: check if optimization in progress.
     MOI.check_result_index_bounds(model, attr)
     dualsols = get_lp_dual_sols(model.result)
+    sense = model.objective_sense == MOI.MAX_SENSE ? -1.0 : 1.0
     if 1 <= attr.result_index <= length(dualsols)
         dualsol = dualsols[attr.result_index]
         varinfo = _info(model, MOI.VariableIndex(index.value)) 
-        return _singlevarconstrdualval(dualsol, varinfo.var, S)
+        return sense * _singlevarconstrdualval(dualsol, varinfo.var, S)
     end
     error("Invalid result index.")
 end
@@ -1298,8 +1300,9 @@ function MOI.get(
     # TODO: check if optimization in progress.
     MOI.check_result_index_bounds(model, attr)
     dualsols = get_lp_dual_sols(model.result)
+    sense = model.objective_sense == MOI.MAX_SENSE ? -1.0 : 1.0
     if 1 <= attr.result_index <= length(dualsols)
-        return get(dualsols[attr.result_index], constrid, 0.0)
+        return sense * get(dualsols[attr.result_index], constrid, 0.0)
     end
     return error("Invalid result index.")
 end

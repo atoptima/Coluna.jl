@@ -204,7 +204,7 @@ function ReducedCostsCalculationHelper(master)
     dwsprep_costs = sparsevec(dwspvar_ids, peren_costs, Coluna.MAX_NB_ELEMS)
     dwsprep_coefmatrix = _submatrix(
         master, 
-        constr_id -> true,
+        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
         var_id -> getduty(var_id) <= AbstractMasterRepDwSpVar
     )
     return ReducedCostsCalculationHelper(dwsprep_costs, dwsprep_coefmatrix)
@@ -333,8 +333,6 @@ mutable struct SubprobInfo
     lb_dual::Float64
     ub_dual::Float64
     bestsol::Union{Nothing,PrimalSolution}
-    valid_dual_bound_contrib::Float64
-    pseudo_dual_bound_contrib::Float64
     isfeasible::Bool
 end
 
@@ -345,7 +343,7 @@ function SubprobInfo(reform::Reformulation, spformid::FormId)
     lb = getcurrhs(master, lb_constr_id)
     ub = getcurrhs(master, ub_constr_id)
     return SubprobInfo(
-        lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, 0.0, 0.0, true
+        lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, true
     )
 end
 
@@ -353,8 +351,6 @@ function clear_before_colgen_iteration!(spinfo::SubprobInfo)
     spinfo.lb_dual = 0.0
     spinfo.ub_dual = 0.0
     spinfo.bestsol = nothing
-    spinfo.valid_dual_bound_contrib = 0.0
-    spinfo.pseudo_dual_bound_contrib = 0.0
     return
 end
 
@@ -380,27 +376,6 @@ function compute_subgradient_contribution(
         end
     end
     return sparsevec(var_ids, var_vals)
-end
-
-
-function compute_db_contributions!(
-    spinfo::SubprobInfo, dualbound::DualBound{MaxSense}, primalbound::PrimalBound{MaxSense}
-)
-    value = getvalue(dualbound)
-    spinfo.valid_dual_bound_contrib = value <= 0 ? value * spinfo.lb : value * spinfo.ub
-    value = getvalue(primalbound)
-    spinfo.pseudo_dual_bound_contrib = value <= 0 ? value * spinfo.lb : value * spinfo.ub
-    return
-end
-
-function compute_db_contributions!(
-    spinfo::SubprobInfo, dualbound::DualBound{MinSense}, primalbound::PrimalBound{MinSense}
-)
-    value = getvalue(dualbound)
-    spinfo.valid_dual_bound_contrib = value >= 0 ? value * spinfo.lb : value * spinfo.ub
-    value = getvalue(primalbound)
-    spinfo.pseudo_dual_bound_contrib = value >= 0 ? value * spinfo.lb : value * spinfo.ub
-    return
 end
 
 function compute_reduced_cost(
@@ -566,10 +541,6 @@ function solve_sps_to_gencols!(
         spinfo = spinfos[spuid]
         # end
 
-        compute_db_contributions!(
-            spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate)
-        )
-
         redcosts_spsols = reduced_costs_of_solutions(
             stabilization_is_used(algo), masterform, spinfo, sp_optstate,
             lp_dual_sol
@@ -599,7 +570,7 @@ function solve_sps_to_gencols!(
         nb_new_cols += nb_cols_sp
     end
 
-    return nb_new_cols
+    return nb_new_cols, sp_optstates
 end
 
 can_be_in_basis(algo::ColumnGeneration, ::Type{MinSense}, redcost::Float64) =
@@ -644,28 +615,16 @@ end
 ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.opt_atol
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opt_atol
 
-
-function move_convexity_constrs_dual_values!(
+"""
+Dual values of convexity constraints must be ignored to compute 
+"""
+function convexity_constrs_dual_values!(
     spinfos::Dict{FormId,SubprobInfo}, dualsol::DualSolution
 )
-    newbound = getbound(dualsol)
     for (spuid, spinfo) in spinfos
         spinfo.lb_dual = dualsol[spinfo.lb_constr_id]
         spinfo.ub_dual = dualsol[spinfo.ub_constr_id]
-        newbound -= (spinfo.lb_dual * spinfo.lb + spinfo.ub_dual * spinfo.ub)
     end
-    constrids = Vector{ConstrId}()
-    values = Vector{Float64}()
-    for (constrid, value) in dualsol
-        if !(getduty(constrid) <= MasterConvexityConstr)
-            push!(constrids, constrid)
-            push!(values, value)
-        end
-    end
-    return DualSolution(
-        getmodel(dualsol), constrids, values, VarId[], Float64[], ActiveBound[], newbound, 
-        FEASIBLE_SOL
-    )
 end
 
 function get_pure_master_vars(master::Formulation)
@@ -677,14 +636,6 @@ function get_pure_master_vars(master::Formulation)
         end
     end
     return puremastervars
-end
-
-function change_values_sign!(dualsol::DualSolution)
-    # note that the bound value remains the same
-    for (constrid, value) in dualsol
-        dualsol[constrid] = -value
-    end
-    return
 end
 
 ### API draft definition
@@ -760,14 +711,49 @@ function update_dual_values_of_constrs!(master, smooth_dual_sol)
     return
 end
 
+function _convexity_constr_contrib(reform, dualsol)
+    contrib = 0.0
+    master = getmaster(reform)
+    for sp in Iterators.values(get_dw_pricing_sps(reform))
+        lb_dual = dualsol[sp.duty_data.lower_multiplicity_constr_id]
+        ub_dual = dualsol[sp.duty_data.upper_multiplicity_constr_id]
+        lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+        ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+        contrib += lb_dual * lb + ub_dual * ub
+    end
+    return contrib
+end
+
+function _compute_sp_contrib_to_valid_db(master::Formulation{DwMaster}, sp::Formulation{DwSp}, db::DualBound{MaxSense})
+    value = getvalue(db)
+    lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+    ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+    return value <= 0 ? value * lb : value * ub
+end
+
+function _compute_sp_contrib_to_valid_db(master::Formulation{DwMaster}, sp::Formulation{DwSp}, db::DualBound{MinSense})
+    value = getvalue(db)
+    lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+    ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+    return value >= 0 ? value * lb : value * ub
+end
+
 "TODO docstring"
 function compute_lagrangian_dual_bound(
+    reform::Reformulation, sp_optstates::Vector{OptimizationState},
     stabunit::ColGenStabilizationUnit, algo::ColumnGeneration,
-    master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
-    partialsol::PrimalSolution, spinfos::Dict{FormId,SubprobInfo}
+    puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
+    partialsol::PrimalSolution
 )
+    master = getmaster(reform)
     sense = getobjsense(master) # TODO: type stability
+    dual_bound = getbound(dualsol)
     puremastvars_contrib::Float64 = getvalue(partialsol)
+    
+    # Ignore contributions of convexity constraints to the dual solution value.
+    # They are not part of the lagrangian dual bound calculation.
+    dual_bound -= _convexity_constr_contrib(reform, dualsol)
+
     # if smoothing is not active the pure master variables contribution
     # is already included in the value of the dual solution
     if smoothing_is_active(stabunit)
@@ -782,23 +768,47 @@ function compute_lagrangian_dual_bound(
             puremastvars_contrib += redcost * mult
         end
     end
-    
-    valid_lagr_bound = DualBound{sense}(puremastvars_contrib + getbound(dualsol))
-    for spinfo in Iterators.values(spinfos)
-        valid_lagr_bound += spinfo.valid_dual_bound_contrib
+
+    sp_contrib = 0.0
+    for sp_optstate in sp_optstates
+        sp = getmodel(get_best_ip_primal_sol(sp_optstate))
+        db = get_ip_dual_bound(sp_optstate)
+        sp_contrib += _compute_sp_contrib_to_valid_db(master, sp, db)
     end
+
+    valid_lagr_bound = DualBound{sense}(dual_bound + sp_contrib + puremastvars_contrib)
     return valid_lagr_bound
+end
+
+function _compute_sp_contrib_to_pseudo_db(master::Formulation{DwMaster}, sp::Formulation{DwSp}, pb::PrimalBound{MaxSense})
+    value = getvalue(pb)
+    lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+    ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+    return value <= 0 ? value * lb : value * ub
+end
+
+function _compute_sp_contrib_to_pseudo_db(master::Formulation{DwMaster}, sp::Formulation{DwSp}, pb::PrimalBound{MinSense})
+    value = getvalue(pb)
+    lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+    ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+    return value >= 0 ? value * lb : value * ub
 end
 
 "TODO docstring"
 function compute_pseudo_lagr_bound(
-    master::Formulation, partialsol::PrimalSolution, dualsol::DualSolution{S}, spinfos::Dict{FormId,SubprobInfo}
+    reform::Reformulation, partialsol::PrimalSolution, dualsol::DualSolution{S},
+    sp_optstates::Vector{OptimizationState}
 ) where {S}
+    master = getmaster(reform)  
     sense = getobjsense(master) # TODO: type stability
     puremastvars_contrib::Float64 = getvalue(partialsol)
-    pseudo_lagr_bound = DualBound{sense}(puremastvars_contrib + getbound(dualsol))
-    for spinfo in Iterators.values(spinfos)
-        pseudo_lagr_bound += spinfo.pseudo_dual_bound_contrib
+    dual_bound = getbound(dualsol) - _convexity_constr_contrib(reform, dualsol)
+    pseudo_lagr_bound = DualBound{sense}(puremastvars_contrib + dual_bound)
+
+    for sp_optstate in sp_optstates
+        sp = getmodel(get_best_ip_primal_sol(sp_optstate))
+        pb = get_ip_primal_bound(sp_optstate)
+        pseudo_lagr_bound += _compute_sp_contrib_to_pseudo_db(master, sp, pb)
     end
     return pseudo_lagr_bound
 end
@@ -859,17 +869,10 @@ function cg_main_loop!(
             return true, false
         end
     
-        lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
-
-        # TODO: remove
-        if getobjsense(masterform) == MaxSense
-            # this is needed due to convention that MOI uses for signs of duals in the maximization case
-            change_values_sign!(lp_dual_sol)
-        end
-
         _assert_has_lp_dual_sol(rm_optstate)
+        lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
         set_lp_dual_sol!(cg_optstate, lp_dual_sol)
-        lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol) # TODO: remove
+        convexity_constrs_dual_values!(spinfos, lp_dual_sol)
 
         ####
         ## TODO: isolate into another method.
@@ -922,7 +925,7 @@ function cg_main_loop!(
             update_dual_values_of_constrs!(masterform, smooth_dual_sol)
 
             sp_time += @elapsed begin
-                nb_new_col = solve_sps_to_gencols!(spinfos, algo, env, phase, reform, lp_dual_sol)
+                nb_new_col, sp_optstates = solve_sps_to_gencols!(spinfos, algo, env, phase, reform, lp_dual_sol)
             end
 
             if nb_new_col < 0
@@ -935,14 +938,15 @@ function cg_main_loop!(
 
             TO.@timeit Coluna._to "Update Lagrangian bound" begin
                 valid_lagr_bound = compute_lagrangian_dual_bound(
-                    stabunit, algo, masterform, pure_master_vars,
-                    smooth_dual_sol, partial_solution, spinfos
+                    reform, sp_optstates,
+                    stabunit, algo, pure_master_vars,
+                    smooth_dual_sol, partial_solution
                 )
                 update_ip_dual_bound!(cg_optstate, valid_lagr_bound)
                 update_lp_dual_bound!(cg_optstate, valid_lagr_bound)
 
                 if stabilization_is_used(algo)
-                    pseudo_lagr_bound = compute_pseudo_lagr_bound(masterform, partial_solution, smooth_dual_sol, spinfos)
+                    pseudo_lagr_bound = compute_pseudo_lagr_bound(reform, partial_solution, smooth_dual_sol, sp_optstates)
                     update_stability_center!(stabunit, smooth_dual_sol, valid_lagr_bound, pseudo_lagr_bound)
                 end
             end

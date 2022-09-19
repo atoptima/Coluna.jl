@@ -225,7 +225,7 @@ function change_sp_lower_bound!(
     if curbound > newbound
         master = spform.parent_formulation
         reformulation = master.parent_formulation
-        lb_constr_id = reformulation.dw_pricing_sp_lb[spuid]
+        lb_constr_id = get_dw_pricing_sp_lb_constrid(reformulation, spuid)
         algo.printing && println(
             "Rhs of constr ", getname(master, lb_constr_id),
             " is changed from ", Float64(curbound), " to ", Float64(newbound)
@@ -245,7 +245,7 @@ function change_sp_upper_bound!(
     if curbound > newbound
         master = spform.parent_formulation
         reformulation = master.parent_formulation
-        ub_constr_id = reformulation.dw_pricing_sp_ub[spuid]
+        ub_constr_id = get_dw_pricing_sp_ub_constrid(reformulation, spuid)
         algo.printing && println(
             "Rhs of constr ", getname(master, ub_constr_id),
             " is changed from ", Float64(curbound), " to ", Float64(newbound)

@@ -268,10 +268,12 @@ end
 
 # Retrieve dual solutions stored in the optimizer of a formulation
 # It works only if the optimizer is wrapped with MathOptInterface.
+# NOTE: we don't use the same convention as MOI for signs of duals in the maximisation case.
 function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formulation}
     inner = getinner(optimizer)
     nb_dual_sols = MOI.get(inner, MOI.ResultCount())
     solutions = DualSolution{F}[]
+    sense = getobjsense(form) == MinSense ? 1.0 : -1.0
 
     for res_idx in 1:nb_dual_sols
         # We retrieve only feasible dual solutions
@@ -293,7 +295,7 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
             val = round(val, digits = Coluna.TOL_DIGITS)
             if abs(val) > Coluna.TOL
                 push!(solconstrs, id)
-                push!(solvals, val)      
+                push!(solvals, sense * val)      
             end
         end
 
@@ -314,14 +316,14 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 solcost += val * getcurlb(form, varid)
                 if abs(val) > Coluna.TOL
                     push!(varids, varid)
-                    push!(varvals, val)
+                    push!(varvals, sense * val)
                     push!(activebounds, LOWER)
                 end
             elseif basis_status == MOI.NONBASIC_AT_UPPER
                 solcost += val * getcurub(form, varid)
                 if abs(val) > Coluna.TOL
                     push!(varids, varid)
-                    push!(varvals, val)
+                    push!(varvals, sense * val)
                     push!(activebounds, UPPER)
                 end
             elseif abs(val) > Coluna.TOL
@@ -331,8 +333,6 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 """
             end
         end
-
-        sense = getobjsense(form) == MinSense ? 1.0 : -1.0
         push!(solutions, DualSolution(
             form, solconstrs, solvals, varids, varvals, activebounds, sense*solcost, 
             FEASIBLE_SOL
