@@ -163,10 +163,9 @@ function record_solutions!(
 )::Vector{ConstrId}
 
     recorded_dual_solution_ids = Vector{ConstrId}()
-    sense = getobjsense(spform) === MinSense ? 1.0 : -1.0
 
     for dual_sol in get_lp_dual_sols(spresult)
-        if sense * getvalue(dual_sol) > algo.feasibility_tol 
+        if getvalue(dual_sol) > algo.feasibility_tol 
             (insertion_status, dual_sol_id) = setdualsol!(spform, dual_sol)
             if insertion_status
                 push!(recorded_dual_solution_ids, dual_sol_id)
@@ -251,7 +250,7 @@ function solve_sp_to_gencut!(
     while true # loop on phases
 
         update_benders_sp_phase!(algo, algdata, spform)
-                # if alg.bendcutgen_stabilization != nothing && true #= TODO add conds =#
+        # if alg.bendcutgen_stabilization != nothing && true #= TODO add conds =#
         #     # switch off the reduced cost estimation when stabilization is applied
         # end
         
@@ -337,8 +336,6 @@ function solve_sp_to_gencut!(
     benders_sp_primal_bound_contrib,
     benders_sp_lagrangian_bound_contrib
 end
-
-        
 
 function solve_sps_to_gencuts!(
     algo::BendersCutGeneration, env::Env, algdata::BendersCutGenRuntimeData, 

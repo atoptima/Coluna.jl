@@ -348,8 +348,6 @@ function SubprobInfo(reform::Reformulation, spformid::FormId)
 end
 
 function clear_before_colgen_iteration!(spinfo::SubprobInfo)
-    spinfo.lb_dual = 0.0
-    spinfo.ub_dual = 0.0
     spinfo.bestsol = nothing
     return
 end
@@ -379,7 +377,7 @@ function compute_subgradient_contribution(
 end
 
 function compute_reduced_cost(
-    stab_is_used, masterform::Formulation, spinfo::SubprobInfo,
+    stab_is_used, masterform::Formulation,
     spsol::PrimalSolution, lp_dual_sol::DualSolution
 )
     red_cost::Float64 = 0.0
@@ -393,18 +391,21 @@ function compute_reduced_cost(
         end
     else
         red_cost = getvalue(spsol)
+        sp = getmodel(spsol)
+        lb_dual = lp_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
+        ub_dual = lp_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
+        red_cost -= lb_dual + ub_dual
     end
-    red_cost -= spinfo.lb_dual + spinfo.ub_dual
     return red_cost
 end
 
 function reduced_costs_of_solutions(
-    stab_is_used, masterform::Formulation, spinfo::SubprobInfo,
+    stab_is_used, masterform::Formulation,
     sp_optstate::OptimizationState, dualsol::DualSolution
 )
     red_costs = Float64[]
     for sol in get_ip_primal_sols(sp_optstate)
-        push!(red_costs, compute_reduced_cost(stab_is_used, masterform, spinfo, sol, dualsol))
+        push!(red_costs, compute_reduced_cost(stab_is_used, masterform, sol, dualsol))
     end
     return red_costs
 end
@@ -453,7 +454,6 @@ function insert_columns!(
     # Insert the primal solutions to the DW subproblem as column into the master
     bestsol = get_best_ip_primal_sol(sp_optstate)
     if !isnothing(bestsol) && getstatus(bestsol) == FEASIBLE_SOL
-
         # First we activate columns that are already in the pool.
         primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
         sols = get_ip_primal_sols(sp_optstate)
@@ -542,7 +542,7 @@ function solve_sps_to_gencols!(
         # end
 
         redcosts_spsols = reduced_costs_of_solutions(
-            stabilization_is_used(algo), masterform, spinfo, sp_optstate,
+            stabilization_is_used(algo), masterform, sp_optstate,
             lp_dual_sol
         )
 
@@ -614,18 +614,6 @@ end
 
 ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.opt_atol
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opt_atol
-
-"""
-Dual values of convexity constraints must be ignored to compute 
-"""
-function convexity_constrs_dual_values!(
-    spinfos::Dict{FormId,SubprobInfo}, dualsol::DualSolution
-)
-    for (spuid, spinfo) in spinfos
-        spinfo.lb_dual = dualsol[spinfo.lb_constr_id]
-        spinfo.ub_dual = dualsol[spinfo.ub_constr_id]
-    end
-end
 
 function get_pure_master_vars(master::Formulation)
     puremastervars = Vector{Pair{VarId,Float64}}()
@@ -769,6 +757,7 @@ function compute_lagrangian_dual_bound(
         end
     end
 
+    # Compute contributions of the subproblems.
     sp_contrib = 0.0
     for sp_optstate in sp_optstates
         sp = getmodel(get_best_ip_primal_sol(sp_optstate))
@@ -872,7 +861,6 @@ function cg_main_loop!(
         _assert_has_lp_dual_sol(rm_optstate)
         lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
         set_lp_dual_sol!(cg_optstate, lp_dual_sol)
-        convexity_constrs_dual_values!(spinfos, lp_dual_sol)
 
         ####
         ## TODO: isolate into another method.

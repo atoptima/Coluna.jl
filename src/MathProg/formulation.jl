@@ -697,9 +697,7 @@ function setcut_from_sp_dualsol!(
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex()
 )
-    objc = getobjsense(masterform) === MinSense ? 1.0 : -1.0
-
-    rhs = objc * getdualsolrhss(spform)[dual_sol_id]
+    rhs = getdualsolrhss(spform)[dual_sol_id]
     benders_cut_id = ConstrId(dual_sol_id; duty = duty)
     benders_cut_data = ConstrData(
         rhs, Essential, sense, inc_val, is_active, is_explicit
@@ -733,7 +731,7 @@ function setcut_from_sp_dualsol!(
                 end
 
                 if master_var_id !== nothing
-                    master_coef_matrix[benders_cut_id, master_var_id] += objc * constr_val * coef
+                    master_coef_matrix[benders_cut_id, master_var_id] += constr_val * coef
                 end
             end
         end
