@@ -358,7 +358,7 @@ end
 
 @with_kw struct RestrMasterLPConquer <: AbstractConquerAlgorithm 
     masterlpalgo::SolveLpForm = SolveLpForm(
-        update_ip_primal_solution = true, consider_partial_solution = true
+        update_ip_primal_solution = true
     )
 end
 

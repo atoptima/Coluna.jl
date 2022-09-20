@@ -261,6 +261,13 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
                 push!(solvals, val)
             end
         end
+        for var_id in getfixedvars(form)
+            fixed_val = getcurlb(form, var_id)
+            if abs(val) > Coluna.TOL
+                push!(solvars, var_id)
+                push!(solvals, fixed_val)
+            end
+        end
         push!(solutions, PrimalSolution(form, solvars, solvals, solcost, FEASIBLE_SOL))
     end
     return solutions

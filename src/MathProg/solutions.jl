@@ -184,7 +184,7 @@ end
 function Base.show(io::IO, solution::DualSolution{M}) where {M}
     println(io, "Dual solution")
     for (constrid, value) in solution
-        println(io, "| ", getname(getmodel(solution), constrid), " = ", value)
+        println(io, "| ", getname(getmodel(solution), constrid), " = ", value, "       (rhs = $(getcurrhs(getmodel(solution), constrid)))")
     end
     for (varid, redcost) in solution.var_redcosts
         println(io, "| ", getname(getmodel(solution), varid), " = ", redcost[1], " (", redcost[2], ")")
@@ -195,7 +195,7 @@ end
 function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
     println(io, "Primal solution")
     for (varid, value) in solution
-        println(io, "| ", getname(getmodel(solution), varid), " = ", value)
+        println(io, "| ", getname(getmodel(solution), varid), " = ", value, "       (cost = $(getcurcost(getmodel(solution), varid)))")
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end

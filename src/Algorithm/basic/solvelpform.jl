@@ -22,7 +22,6 @@ Undocumented parameters are alpha.
 """
 @with_kw struct SolveLpForm <: AbstractOptimizationAlgorithm 
     update_ip_primal_solution = false
-    consider_partial_solution = false
     get_dual_solution = false
     relax_integrality = false
     get_dual_bound = false
@@ -44,9 +43,6 @@ function get_units_usage(
         push!(units_usage, (form, MasterColumnsUnit, READ_ONLY))
         push!(units_usage, (form, MasterBranchConstrsUnit, READ_ONLY))
         push!(units_usage, (form, MasterCutsUnit, READ_ONLY))
-    end
-    if algo.consider_partial_solution
-        push!(units_usage, (form, PartialSolutionUnit, READ_ONLY))
     end
     return units_usage
 end
@@ -103,14 +99,6 @@ function run!(
         relax_integrality!(form)
     end
 
-    partial_sol = nothing
-    partial_sol_val = 0.0
-    if algo.consider_partial_solution
-        partsolunit = getstorageunit(form, PartialSolutionUnit)
-        partial_sol = get_primal_solution(partsolunit, form)
-        partial_sol_val = getvalue(partial_sol)
-    end
-
     optimizer = getoptimizer(form, optimizer_id)
     optimize_lp_form!(algo, optimizer, form, result)
     primal_sols = get_primal_solutions(form, optimizer)
@@ -124,7 +112,7 @@ function run!(
             lp_dual_sol = dual_sols[lp_dual_sol_pos]
             set_lp_dual_sol!(result, lp_dual_sol)
             if algo.get_dual_bound
-                db = DualBound(form, getvalue(lp_dual_sol) + partial_sol_val)
+                db = DualBound(form, getvalue(lp_dual_sol))
                 set_lp_dual_bound!(result, db)
             end
         end
@@ -134,15 +122,11 @@ function run!(
         lp_primal_sol_pos = argmin(coeff * getvalue.(primal_sols))
         lp_primal_sol = primal_sols[lp_primal_sol_pos]
         add_lp_primal_sol!(result, lp_primal_sol)
-        pb = PrimalBound(form, getvalue(lp_primal_sol) + partial_sol_val)
+        pb = PrimalBound(form, getvalue(lp_primal_sol))
         set_lp_primal_bound!(result, pb)
         if algo.update_ip_primal_solution && isinteger(lp_primal_sol) && 
             !contains(lp_primal_sol, varid -> isanArtificialDuty(getduty(varid)))
-            if partial_sol !== nothing
-                add_ip_primal_sol!(result, cat(lp_primal_sol, partial_sol))
-            else
-                add_ip_primal_sol!(result, lp_primal_sol)
-            end
+            add_ip_primal_sol!(result, lp_primal_sol)
         end
     end
     end # @timeit
