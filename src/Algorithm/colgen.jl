@@ -85,6 +85,31 @@ end
 stabilization_is_used(algo::ColumnGeneration) = !iszero(algo.smoothing_stabilization)
 
 ############################################################################################
+# Implementation of Algorithm interface.
+############################################################################################
+
+function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
+    child_algs = Tuple{AbstractAlgorithm,AbstractModel}[]
+    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
+    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
+    for (id, spform) in get_dw_pricing_sps(reform)
+        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
+    end
+    return child_algs
+end
+
+function get_units_usage(algo::ColumnGeneration, reform::Reformulation) 
+    units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
+    master = getmaster(reform)
+    push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
+    push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
+    if stabilization_is_used(algo)
+        push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
+    end
+    return units_usage
+end
+
+############################################################################################
 # Errors and warnings
 ############################################################################################
 
@@ -122,28 +147,6 @@ function Base.show(io::IO, err::ColumnAlreadyInsertedColGenError)
     ======
     """
     println(io, msg)
-end
-
-
-function get_child_algorithms(algo::ColumnGeneration, reform::Reformulation) 
-    child_algs = Tuple{AbstractAlgorithm,AbstractModel}[]
-    push!(child_algs, (algo.restr_master_solve_alg, getmaster(reform)))
-    push!(child_algs, (algo.essential_cut_gen_alg, getmaster(reform)))
-    for (id, spform) in get_dw_pricing_sps(reform)
-        push!(child_algs, (algo.pricing_prob_solve_alg, spform))
-    end
-    return child_algs
-end
-
-function get_units_usage(algo::ColumnGeneration, reform::Reformulation) 
-    units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
-    master = getmaster(reform)
-    push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
-    push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
-    if stabilization_is_used(algo)
-        push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
-    end
-    return units_usage
 end
 
 ############################################################################################
@@ -201,7 +204,7 @@ function ReducedCostsCalculationHelper(master)
     dwsprep_costs = sparsevec(dwspvar_ids, peren_costs, Coluna.MAX_NB_ELEMS)
     dwsprep_coefmatrix = _submatrix(
         master, 
-        constr_id -> true,
+        constr_id -> !(getduty(constr_id) <= MasterConvexityConstr),
         var_id -> getduty(var_id) <= AbstractMasterRepDwSpVar
     )
     return ReducedCostsCalculationHelper(dwsprep_costs, dwsprep_coefmatrix)
@@ -246,6 +249,10 @@ function SubgradientCalculationHelper(master)
     )
     return SubgradientCalculationHelper(a, A)
 end
+
+############################################################################################
+# Column generation algorithm.
+############################################################################################
 
 function run!(algo::ColumnGeneration, env::Env, reform::Reformulation, input::OptimizationState)
     master = getmaster(reform)
@@ -326,8 +333,6 @@ mutable struct SubprobInfo
     lb_dual::Float64
     ub_dual::Float64
     bestsol::Union{Nothing,PrimalSolution}
-    valid_dual_bound_contrib::Float64
-    pseudo_dual_bound_contrib::Float64
     isfeasible::Bool
 end
 
@@ -338,24 +343,18 @@ function SubprobInfo(reform::Reformulation, spformid::FormId)
     lb = getcurrhs(master, lb_constr_id)
     ub = getcurrhs(master, ub_constr_id)
     return SubprobInfo(
-        lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, 0.0, 0.0, true
+        lb_constr_id, ub_constr_id, lb, ub, 0.0, 0.0, nothing, true
     )
 end
 
 function clear_before_colgen_iteration!(spinfo::SubprobInfo)
-    spinfo.lb_dual = 0.0
-    spinfo.ub_dual = 0.0
     spinfo.bestsol = nothing
-    spinfo.valid_dual_bound_contrib = 0.0
-    spinfo.pseudo_dual_bound_contrib = 0.0
     return
 end
 
-set_bestcol_id!(spinfo::SubprobInfo, varid::VarId) = spinfo.bestcol_id = varid
-
 function compute_subgradient_contribution(
-    algo::ColumnGeneration, stabunit::ColGenStabilizationUnit, master::Formulation,
-    puremastervars::Vector{Pair{VarId,Float64}}, spinfos::Dict{FormId,SubprobInfo}
+    algo::ColumnGeneration, master::Formulation, puremastervars::Vector{Pair{VarId,Float64}},
+    spinfos::Dict{FormId,SubprobInfo}
 )
     sense = getobjsense(master)
     var_ids = VarId[]
@@ -377,29 +376,8 @@ function compute_subgradient_contribution(
     return sparsevec(var_ids, var_vals)
 end
 
-
-function compute_db_contributions!(
-    spinfo::SubprobInfo, dualbound::DualBound{MaxSense}, primalbound::PrimalBound{MaxSense}
-)
-    value = getvalue(dualbound)
-    spinfo.valid_dual_bound_contrib = value <= 0 ? value * spinfo.lb : value * spinfo.ub
-    value = getvalue(primalbound)
-    spinfo.pseudo_dual_bound_contrib = value <= 0 ? value * spinfo.lb : value * spinfo.ub
-    return
-end
-
-function compute_db_contributions!(
-    spinfo::SubprobInfo, dualbound::DualBound{MinSense}, primalbound::PrimalBound{MinSense}
-)
-    value = getvalue(dualbound)
-    spinfo.valid_dual_bound_contrib = value >= 0 ? value * spinfo.lb : value * spinfo.ub
-    value = getvalue(primalbound)
-    spinfo.pseudo_dual_bound_contrib = value >= 0 ? value * spinfo.lb : value * spinfo.ub
-    return
-end
-
 function compute_reduced_cost(
-    stab_is_used, masterform::Formulation, spinfo::SubprobInfo,
+    stab_is_used, masterform::Formulation,
     spsol::PrimalSolution, lp_dual_sol::DualSolution
 )
     red_cost::Float64 = 0.0
@@ -413,18 +391,21 @@ function compute_reduced_cost(
         end
     else
         red_cost = getvalue(spsol)
+        sp = getmodel(spsol)
+        lb_dual = lp_dual_sol[sp.duty_data.lower_multiplicity_constr_id]
+        ub_dual = lp_dual_sol[sp.duty_data.upper_multiplicity_constr_id]
+        red_cost -= lb_dual + ub_dual
     end
-    red_cost -= spinfo.lb_dual + spinfo.ub_dual
     return red_cost
 end
 
 function reduced_costs_of_solutions(
-    stab_is_used, masterform::Formulation, spinfo::SubprobInfo,
+    stab_is_used, masterform::Formulation,
     sp_optstate::OptimizationState, dualsol::DualSolution
 )
     red_costs = Float64[]
     for sol in get_ip_primal_sols(sp_optstate)
-        push!(red_costs, compute_reduced_cost(stab_is_used, masterform, spinfo, sol, dualsol))
+        push!(red_costs, compute_reduced_cost(stab_is_used, masterform, sol, dualsol))
     end
     return red_costs
 end
@@ -473,7 +454,6 @@ function insert_columns!(
     # Insert the primal solutions to the DW subproblem as column into the master
     bestsol = get_best_ip_primal_sol(sp_optstate)
     if !isnothing(bestsol) && getstatus(bestsol) == FEASIBLE_SOL
-
         # First we activate columns that are already in the pool.
         primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
         sols = get_ip_primal_sols(sp_optstate)
@@ -523,10 +503,17 @@ function updatemodel!(
     return
 end
 
-function updatereducedcosts!(
+"""
+Calculates reduced cost of subproblem variables and updates the current cost of these variables
+with the calculated value.
+"""
+function update_sp_vars_reduced_costs!(
     reform::Reformulation, helper::ReducedCostsCalculationHelper, masterdualsol::DualSolution
 )
+    # Compute reduced costs.
     redcosts = helper.c - transpose(helper.A) * masterdualsol
+
+    # TODO:  We should call a (generic) method to update reduced costs of variables of the model
     for (_, spform) in get_dw_pricing_sps(reform)
         updatemodel!(spform, redcosts, masterdualsol)
     end
@@ -535,24 +522,10 @@ end
 
 function solve_sps_to_gencols!(
     spinfos::Dict{FormId,SubprobInfo}, algo::ColumnGeneration, env::Env, phase::Int64, 
-    reform::Reformulation, redcostshelper::ReducedCostsCalculationHelper, lp_dual_sol::DualSolution, 
-    smooth_dual_sol::DualSolution,
+    reform::Reformulation, lp_dual_sol::DualSolution
 )
     masterform = getmaster(reform)
     spsforms = get_dw_pricing_sps(reform)
-
-    # update reduced costs
-    TO.@timeit Coluna._to "Update reduced costs" begin
-        updatereducedcosts!(reform, redcostshelper, smooth_dual_sol)
-    end
-
-    # update the incumbent values of constraints
-    for (_, constr) in getconstrs(masterform)
-        setcurincval!(masterform, constr, 0.0)
-    end
-    for (constrid, val) in smooth_dual_sol
-        setcurincval!(masterform, constrid, val)
-    end
 
     sp_optstates = if algo.solve_subproblems_parallel
         _optimize_sps_in_parallel(spsforms, algo.pricing_prob_solve_alg, env)
@@ -568,12 +541,8 @@ function solve_sps_to_gencols!(
         spinfo = spinfos[spuid]
         # end
 
-        compute_db_contributions!(
-            spinfo, get_ip_dual_bound(sp_optstate), get_ip_primal_bound(sp_optstate)
-        )
-
         redcosts_spsols = reduced_costs_of_solutions(
-            stabilization_is_used(algo), masterform, spinfo, sp_optstate,
+            stabilization_is_used(algo), masterform, sp_optstate,
             lp_dual_sol
         )
 
@@ -601,7 +570,7 @@ function solve_sps_to_gencols!(
         nb_new_cols += nb_cols_sp
     end
 
-    return nb_new_cols
+    return nb_new_cols, sp_optstates
 end
 
 can_be_in_basis(algo::ColumnGeneration, ::Type{MinSense}, redcost::Float64) =
@@ -610,15 +579,8 @@ can_be_in_basis(algo::ColumnGeneration, ::Type{MinSense}, redcost::Float64) =
 can_be_in_basis(algo::ColumnGeneration, ::Type{MaxSense}, redcost::Float64) =
     redcost > 0 - algo.redcost_tol
 
-function cleanup_columns(algo::ColumnGeneration, iteration::Int64, master::Formulation)
-
-    # we do columns clean up only on every 10th iteration in order not to spend
-    # the time retrieving the reduced costs
-    # TO DO : master cleanup should be done on every iteration, for this we need
-    # to quickly check the number of active master columns
-    iteration % 10 != 0 && return
-
-    cols_with_redcost = Vector{Pair{Variable,Float64}}()
+function cleanup_columns!(master::Formulation, algo::ColumnGeneration)
+    cols_with_redcost = Pair{Variable,Float64}[]
     optimizer = getoptimizer(master, algo.restr_master_optimizer_id)
     for (id, var) in getvars(master)
         if getduty(id) <= MasterCol && iscuractive(master, var) && isexplicit(master, var)
@@ -653,15 +615,133 @@ end
 ph_one_infeasible_db(algo, db::DualBound{MinSense}) = getvalue(db) > algo.opt_atol
 ph_one_infeasible_db(algo, db::DualBound{MaxSense}) = getvalue(db) < - algo.opt_atol
 
-function update_lagrangian_dual_bound!(
-    stabunit::ColGenStabilizationUnit, optstate::OptimizationState{F,S}, algo::ColumnGeneration,
-    master::Formulation, puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
-    partialsol::PrimalSolution, spinfos::Dict{FormId,SubprobInfo}
-) where {F,S}
+function get_pure_master_vars(master::Formulation)
+    puremastervars = Vector{Pair{VarId,Float64}}()
+    for (varid, var) in getvars(master)
+        if isanOriginalRepresentatives(getduty(varid)) &&
+            iscuractive(master, var) && isexplicit(master, var)
+            push!(puremastervars, varid => 0.0)
+        end
+    end
+    return puremastervars
+end
 
-    sense = getobjsense(master)
+### API draft definition
 
+"Place to perform operations before starting a column generation iteration."
+function before_iteration!(spinfos)
+    for (_, spinfo) in spinfos
+        clear_before_colgen_iteration!(spinfo)
+    end
+    return
+end
+
+"""
+Returns an optimization state that contains at least a dual solution to the Danzig-Wolfe 
+restricted master problem.
+"""
+function solve_master!(master, cg_optstate, restr_master_solve_alg, restr_master_optimizer_id, env)
+    rm_input = OptimizationState(master, ip_primal_bound=get_ip_primal_bound(cg_optstate))
+    return run!(restr_master_solve_alg, env, master, rm_input, restr_master_optimizer_id)
+end
+
+function _is_feasible_and_integer(rm_lp_primal_sol)
+    return !contains(rm_lp_primal_sol, varid -> isanArtificialDuty(getduty(varid))) &&
+        isinteger(proj_cols_on_rep(rm_lp_primal_sol, getmodel(rm_lp_primal_sol)))
+end
+
+function _assert_has_lp_dual_sol(rm_optstate)
+    lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
+    if isnothing(lp_dual_sol)
+        err_msg = """
+        Something unexpected happened when retrieving the dual solution to the LP restricted master.
+        ======
+        Phase : $phase
+        Termination status of the solver after optimizing the master (should be OPTIMAL) : $(getterminationstatus(rm_optstate))
+        Number of dual solutions (should be at least 1) : $(length(get_lp_dual_sols(rm_optstate)))
+        ======
+        Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
+        """
+        error(err_msg)
+    end
+end
+
+"""
+When we found a feasible integer solution to the master, we must
+ensure that this solution does not violate any essential cut.
+Therefore, the following method runs all the essential cut callbacks.
+It returns `true` if a violated essential cut has been found;
+`false` otherwise.
+"""
+function violates_essential_cut!(master, rm_lp_primal_sol, env)
+    # TODO: concatenate with partial sol.
+    cutcb_input = CutCallbacksInput(rm_lp_primal_sol)
+    cutcb_output = run!(
+        CutCallbacks(call_robust_facultative=false),
+        env, master, cutcb_input
+    )
+    return cutcb_output.nb_cuts_added > 0
+end
+
+"""
+We need to set the dual values of the constraints because they can be used in the pricing
+(e.g. when the pricing solver supports non-robust cuts).
+"""
+function update_dual_values_of_constrs!(master, smooth_dual_sol)
+    # Set all dual value of all constraints to 0.
+    for constr in Iterators.values(getconstrs(master))
+        setcurincval!(master, constr, 0.0)
+    end
+    # Update constraints that have non-zero dual values.
+    for (constr_id, val) in smooth_dual_sol
+        setcurincval!(master, constr_id, val)
+    end
+    return
+end
+
+function _convexity_constr_contrib(reform, dualsol)
+    contrib = 0.0
+    master = getmaster(reform)
+    for sp in Iterators.values(get_dw_pricing_sps(reform))
+        lb_dual = dualsol[sp.duty_data.lower_multiplicity_constr_id]
+        ub_dual = dualsol[sp.duty_data.upper_multiplicity_constr_id]
+        lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+        ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+        contrib += lb_dual * lb + ub_dual * ub
+    end
+    return contrib
+end
+
+function _compute_sp_contrib_to_valid_db(master::Formulation{DwMaster}, sp::Formulation{DwSp}, db::DualBound{MaxSense})
+    value = getvalue(db)
+    lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+    ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+    return value <= 0 ? value * lb : value * ub
+end
+
+function _compute_sp_contrib_to_valid_db(master::Formulation{DwMaster}, sp::Formulation{DwSp}, db::DualBound{MinSense})
+    value = getvalue(db)
+    lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+    ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+    return value >= 0 ? value * lb : value * ub
+end
+
+"TODO docstring"
+function compute_lagrangian_dual_bound(
+    reform::Reformulation, sp_optstates::Vector{OptimizationState},
+    stabunit::ColGenStabilizationUnit, algo::ColumnGeneration,
+    puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
+    partialsol::PrimalSolution
+)
+    master = getmaster(reform)
+    sense = getobjsense(master) # TODO: type stability
+    dual_bound = getbound(dualsol)
     puremastvars_contrib::Float64 = getvalue(partialsol)
+    
+    # Ignore contributions of convexity constraints to the dual solution value.
+    # They are not part of the lagrangian dual bound calculation.
+    dual_bound -= _convexity_constr_contrib(reform, dualsol)
+
     # if smoothing is not active the pure master variables contribution
     # is already included in the value of the dual solution
     if smoothing_is_active(stabunit)
@@ -676,66 +756,50 @@ function update_lagrangian_dual_bound!(
             puremastvars_contrib += redcost * mult
         end
     end
-    
-    valid_lagr_bound = DualBound{S}(puremastvars_contrib + getbound(dualsol))
-    for (spuid, spinfo) in spinfos
-        valid_lagr_bound += spinfo.valid_dual_bound_contrib
+
+    # Compute contributions of the subproblems.
+    sp_contrib = 0.0
+    for sp_optstate in sp_optstates
+        sp = getmodel(get_best_ip_primal_sol(sp_optstate))
+        db = get_ip_dual_bound(sp_optstate)
+        sp_contrib += _compute_sp_contrib_to_valid_db(master, sp, db)
     end
 
-    update_ip_dual_bound!(optstate, valid_lagr_bound)
-    update_lp_dual_bound!(optstate, valid_lagr_bound)
-
-    if stabilization_is_used(algo)
-        pseudo_lagr_bound = DualBound{S}(puremastvars_contrib + getbound(dualsol))
-        for (spuid, spinfo) in spinfos
-            pseudo_lagr_bound += spinfo.pseudo_dual_bound_contrib
-        end
-        update_stability_center!(stabunit, dualsol, valid_lagr_bound, pseudo_lagr_bound)
-    end
-    return
+    valid_lagr_bound = DualBound{sense}(dual_bound + sp_contrib + puremastvars_contrib)
+    return valid_lagr_bound
 end
 
-
-function move_convexity_constrs_dual_values!(
-    spinfos::Dict{FormId,SubprobInfo}, dualsol::DualSolution
-)
-    newbound = getbound(dualsol)
-    for (spuid, spinfo) in spinfos
-        spinfo.lb_dual = dualsol[spinfo.lb_constr_id]
-        spinfo.ub_dual = dualsol[spinfo.ub_constr_id]
-        newbound -= (spinfo.lb_dual * spinfo.lb + spinfo.ub_dual * spinfo.ub)
-    end
-    constrids = Vector{ConstrId}()
-    values = Vector{Float64}()
-    for (constrid, value) in dualsol
-        if !(getduty(constrid) <= MasterConvexityConstr)
-            push!(constrids, constrid)
-            push!(values, value)
-        end
-    end
-    return DualSolution(
-        getmodel(dualsol), constrids, values, VarId[], Float64[], ActiveBound[], newbound, 
-        FEASIBLE_SOL
-    )
+function _compute_sp_contrib_to_pseudo_db(master::Formulation{DwMaster}, sp::Formulation{DwSp}, pb::PrimalBound{MaxSense})
+    value = getvalue(pb)
+    lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+    ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+    return value <= 0 ? value * lb : value * ub
 end
 
-function get_pure_master_vars(master::Formulation)
-    puremastervars = Vector{Pair{VarId,Float64}}()
-    for (varid, var) in getvars(master)
-        if isanOriginalRepresentatives(getduty(varid)) &&
-            iscuractive(master, var) && isexplicit(master, var)
-            push!(puremastervars, varid => 0.0)
-        end
-    end
-    return puremastervars
+function _compute_sp_contrib_to_pseudo_db(master::Formulation{DwMaster}, sp::Formulation{DwSp}, pb::PrimalBound{MinSense})
+    value = getvalue(pb)
+    lb = getcurrhs(master, sp.duty_data.lower_multiplicity_constr_id)
+    ub = getcurrhs(master, sp.duty_data.upper_multiplicity_constr_id)
+    return value >= 0 ? value * lb : value * ub
 end
 
-function change_values_sign!(dualsol::DualSolution)
-    # note that the bound value remains the same
-    for (constrid, value) in dualsol
-        dualsol[constrid] = -value
+"TODO docstring"
+function compute_pseudo_lagr_bound(
+    reform::Reformulation, partialsol::PrimalSolution, dualsol::DualSolution{S},
+    sp_optstates::Vector{OptimizationState}
+) where {S}
+    master = getmaster(reform)  
+    sense = getobjsense(master) # TODO: type stability
+    puremastvars_contrib::Float64 = getvalue(partialsol)
+    dual_bound = getbound(dualsol) - _convexity_constr_contrib(reform, dualsol)
+    pseudo_lagr_bound = DualBound{sense}(puremastvars_contrib + dual_bound)
+
+    for sp_optstate in sp_optstates
+        sp = getmodel(get_best_ip_primal_sol(sp_optstate))
+        pb = get_ip_primal_bound(sp_optstate)
+        pseudo_lagr_bound += _compute_sp_contrib_to_pseudo_db(master, sp, pb)
     end
-    return
+    return pseudo_lagr_bound
 end
 
 # cg_main_loop! returns Tuple{Bool, Bool} :
@@ -747,6 +811,7 @@ function cg_main_loop!(
     algo::ColumnGeneration, env::Env, phase::Int, cg_optstate::OptimizationState, 
     reform::Reformulation
 )
+    ### TODO: init is messy
     # Phase II loop: Iterate while can generate new columns and
     # termination by bound does not apply
     masterform = getmaster(reform)
@@ -777,13 +842,13 @@ function cg_main_loop!(
     init_stab_before_colgen_loop!(stabunit)
 
     while true
-        for (_, spinfo) in spinfos
-            clear_before_colgen_iteration!(spinfo)
-        end
-
+        before_iteration!(spinfos)
+    
         rm_time = @elapsed begin
-            rm_input = OptimizationState(masterform, ip_primal_bound=get_ip_primal_bound(cg_optstate))
-            rm_optstate = run!(algo.restr_master_solve_alg, env, masterform, rm_input, algo.restr_master_optimizer_id)
+            rm_optstate = solve_master!(
+                masterform, cg_optstate, algo.restr_master_solve_alg, 
+                algo.restr_master_optimizer_id, env
+            )
         end
 
         if phase != 1 && getterminationstatus(rm_optstate) == INFEASIBLE
@@ -792,71 +857,43 @@ function cg_main_loop!(
             setterminationstatus!(cg_optstate, INFEASIBLE)
             return true, false
         end
-
+    
+        _assert_has_lp_dual_sol(rm_optstate)
         lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
-        if lp_dual_sol === nothing
-            err_msg = """
-            Something unexpected happened when retrieving the dual solution to the LP restricted master.
-            ======
-            Phase : $phase
-            Termination status of the solver after optimizing the master (should be OPTIMAL) : $(getterminationstatus(rm_optstate))
-            Number of dual solutions (should be at least 1) : $(length(get_lp_dual_sols(rm_optstate)))
-            ======
-            Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
-            """
-            error(err_msg)
-        end
-        if getobjsense(masterform) == MaxSense
-            # this is needed due to convention that MOI uses for signs of duals in the maximization case
-            change_values_sign!(lp_dual_sol)
-        end
-        if lp_dual_sol !== nothing
-            set_lp_dual_sol!(cg_optstate, lp_dual_sol)
-        end
-        lp_dual_sol = move_convexity_constrs_dual_values!(spinfos, lp_dual_sol)
+        set_lp_dual_sol!(cg_optstate, lp_dual_sol)
 
-        TO.@timeit Coluna._to "Getting primal solution" begin
-        rm_sol = get_best_lp_primal_sol(rm_optstate)
-        if rm_sol !== nothing
-            set_lp_primal_sol!(cg_optstate, rm_sol)
-            lp_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)
-            set_lp_primal_bound!(cg_optstate, lp_bound)
-
-            dual_rm_sol = get_best_lp_dual_sol(rm_optstate)
-            if dual_rm_sol !== nothing
-                set_lp_dual_sol!(cg_optstate, dual_rm_sol)
-            end
-
-            if phase != 1 && !contains(rm_sol, varid -> isanArtificialDuty(getduty(varid)))
-                proj_sol = proj_cols_on_rep(rm_sol, masterform)
-                if isinteger(proj_sol) && isbetter(lp_bound, get_ip_primal_bound(cg_optstate))
-                    # Essential cut generation mandatory when colgen finds a feasible solution
-                    new_primal_sol = cat(rm_sol, partial_solution)
-                    cutcb_input = CutCallbacksInput(new_primal_sol)
-                    cutcb_output = run!(
-                        algo.essential_cut_gen_alg, env, masterform, cutcb_input
-                    )
-                    if cutcb_output.nb_cuts_added == 0
-                        update_ip_primal_sol!(cg_optstate, new_primal_sol)
-                    else
-                        essential_cuts_separated = true
-                        if phase == 2 # because the new cuts may make the master infeasible
-                            return false, true
-                        end
+        ####
+        ## TODO: isolate into another method.
+        ####
+        rm_lp_primal_sol = get_best_lp_primal_sol(rm_optstate)
+        if !isnothing(rm_lp_primal_sol)
+            set_lp_primal_sol!(cg_optstate, rm_lp_primal_sol)
+            lp_primal_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)  
+            set_lp_primal_bound!(cg_optstate, lp_primal_bound)   
+            
+            if phase != 1
+                # We don't check integer feasibility of the solution in phase 1 because the goal of
+                # this phase is just to get rid of artificial variables.
+                primal_sol = cat(rm_lp_primal_sol, partial_solution)
+                if _is_feasible_and_integer(primal_sol) && isbetter(lp_primal_bound, get_ip_primal_bound(cg_optstate))
+                    if violates_essential_cut!(masterform, primal_sol, env)
                         redcostshelper = ReducedCostsCalculationHelper(getmaster(reform))
                         sg_helper = SubgradientCalculationHelper(getmaster(reform))
+                    else
+                        update_ip_primal_sol!(cg_optstate, primal_sol)
                     end
                 end
             end
-        else
-            @error string("Solver returned that the LP restricted master is feasible but ",
-            "did not return a primal solution. ",
-            "Please open an issue (https://github.com/atoptima/Coluna.jl/issues).")
         end
-        end # @timeit
 
         TO.@timeit Coluna._to "Cleanup columns" begin
-            cleanup_columns(algo, iteration, masterform)
+            # we do columns clean up only on every 10th iteration in order not to spend
+            # the time retrieving the reduced costs
+            # TO DO : master cleanup should be done on every iteration, for this we need
+            # to quickly check the number of active master columns
+            if iteration % 10 == 0
+                cleanup_columns!(masterform, algo) # TODO: number of active master columns
+            end
         end
 
         iteration += 1
@@ -865,14 +902,18 @@ function cg_main_loop!(
             smooth_dual_sol = update_stab_after_rm_solve!(stabunit, algo.smoothing_stabilization, lp_dual_sol)
         end
 
-        nb_new_columns = 0
+        nb_cols_iteration = 0
         sp_time = 0
         while true
+            # TODO: check time limit of Coluna
+            TO.@timeit Coluna._to "Update reduced costs" begin
+                update_sp_vars_reduced_costs!(reform, redcostshelper, smooth_dual_sol)
+            end
+
+            update_dual_values_of_constrs!(masterform, smooth_dual_sol)
+
             sp_time += @elapsed begin
-                nb_new_col = solve_sps_to_gencols!(
-                    spinfos, algo, env, phase, reform, redcostshelper, lp_dual_sol, 
-                    smooth_dual_sol
-                )
+                nb_new_col, sp_optstates = solve_sps_to_gencols!(spinfos, algo, env, phase, reform, lp_dual_sol)
             end
 
             if nb_new_col < 0
@@ -881,13 +922,21 @@ function cg_main_loop!(
                 return true, false
             end
 
-            nb_new_columns += nb_new_col
+            nb_cols_iteration += nb_new_col
 
             TO.@timeit Coluna._to "Update Lagrangian bound" begin
-                update_lagrangian_dual_bound!(
-                    stabunit, cg_optstate, algo, masterform, pure_master_vars, 
-                    smooth_dual_sol, partial_solution, spinfos
+                valid_lagr_bound = compute_lagrangian_dual_bound(
+                    reform, sp_optstates,
+                    stabunit, algo, pure_master_vars,
+                    smooth_dual_sol, partial_solution
                 )
+                update_ip_dual_bound!(cg_optstate, valid_lagr_bound)
+                update_lp_dual_bound!(cg_optstate, valid_lagr_bound)
+
+                if stabilization_is_used(algo)
+                    pseudo_lagr_bound = compute_pseudo_lagr_bound(reform, partial_solution, smooth_dual_sol, sp_optstates)
+                    update_stability_center!(stabunit, smooth_dual_sol, valid_lagr_bound, pseudo_lagr_bound)
+                end
             end
 
             if stabilization_is_used(algo)
@@ -895,7 +944,7 @@ function cg_main_loop!(
                     smooth_dual_sol = update_stab_after_gencols!(
                         stabunit, algo.smoothing_stabilization, nb_new_col, lp_dual_sol, smooth_dual_sol,
                         sg_helper,
-                        compute_subgradient_contribution(algo, stabunit, masterform, pure_master_vars, spinfos)
+                        compute_subgradient_contribution(algo, masterform, pure_master_vars, spinfos)
                     )
                 end
                 smooth_dual_sol === nothing && break
@@ -905,7 +954,7 @@ function cg_main_loop!(
         end
 
         print_colgen_statistics(
-            env, phase, iteration, stabunit.curalpha, cg_optstate, nb_new_columns, 
+            env, phase, iteration, stabunit.curalpha, cg_optstate, nb_cols_iteration, 
             rm_time, sp_time
         )
 
@@ -933,7 +982,7 @@ function cg_main_loop!(
             set_lp_dual_sol!(cg_optstate, get_best_lp_dual_sol(cg_optstate))
             return false, false
         end
-        if nb_new_columns == 0 && !essential_cuts_separated
+        if nb_cols_iteration == 0 && !essential_cuts_separated
             @logmsg LogLevel(0) "No new column generated by the pricing problems."
             setterminationstatus!(cg_optstate, OTHER_LIMIT)
             # If no columns are generated and lp gap is not closed then this col.gen. stage

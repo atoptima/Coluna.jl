@@ -5,8 +5,6 @@ mutable struct Reformulation <: AbstractFormulation
     master::Union{Nothing, Formulation}  # TODO : rm Nothing
     dw_pricing_subprs::Dict{FormId, AbstractModel} 
     benders_sep_subprs::Dict{FormId, AbstractModel}
-    dw_pricing_sp_lb::Dict{FormId, ConstrId}
-    dw_pricing_sp_ub::Dict{FormId, ConstrId}
     storage::Union{Nothing,NewStorage}
 end
 
@@ -26,8 +24,6 @@ function Reformulation(env)
         nothing,
         Dict{FormId, AbstractModel}(),
         Dict{FormId, AbstractModel}(),
-        Dict{FormId, ConstrId}(),
-        Dict{FormId, ConstrId}(),
         nothing
     )
     reform.storage = NewStorage(reform)
@@ -93,20 +89,20 @@ reformulation.
 get_benders_sep_sps(r::Reformulation) = r.benders_sep_subprs
 
 """
-    get_dw_pricing_sp_ub_constrid(reformulation, spid::FormId)
+    get_dw_pricing_sp_ub_constrid(reformulation, spid)
 
 Return the `ConstrId` of the upper bounded convexity constraint of Dantzig-Wolfe pricing
 subproblem with id `spid`.
 """
-get_dw_pricing_sp_ub_constrid(r::Reformulation, spid::FormId) = r.dw_pricing_sp_ub[spid]
+get_dw_pricing_sp_ub_constrid(r::Reformulation, spid) = r.dw_pricing_subprs[spid].duty_data.upper_multiplicity_constr_id
 
 """
-    get_dw_pricing_sp_lb_constrid(reformulation, spid::FormId)
+    get_dw_pricing_sp_lb_constrid(reformulation, spid)
 
 Return the `ConstrId` of the lower bounded convexity constraint of Dantzig-Wolfe pricing
 subproblem with id `spid`.
 """
-get_dw_pricing_sp_lb_constrid(r::Reformulation, spid::FormId) = r.dw_pricing_sp_lb[spid]
+get_dw_pricing_sp_lb_constrid(r::Reformulation, spid) = r.dw_pricing_subprs[spid].duty_data.lower_multiplicity_constr_id
 
 ############################################################################################
 # Initial columns callback

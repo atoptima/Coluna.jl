@@ -1,7 +1,7 @@
 function reformulation_for_colgen(nb_variables = 5, obj_sense = Coluna.MathProg.MinSense)
     env = Env{ClMP.VarId}(Coluna.Params())
 
-    spform = ClMP.create_formulation!(env, ClMP.DwSp(nothing, 1, 1, ClMP.Integ), obj_sense = obj_sense)
+    spform = ClMP.create_formulation!(env, ClMP.DwSp(nothing, nothing, nothing, ClMP.Integ), obj_sense = obj_sense)
     # Create subproblem variables
     spvars = Dict{String, ClMP.Variable}()
     for i in 1:nb_variables

@@ -9,7 +9,7 @@
         reform = Reformulation(env)
 
         # Create subproblem and variables
-        spform = ClMP.create_formulation!(env, DwSp(nothing, 0, 1, ClMP.Continuous))
+        spform = ClMP.create_formulation!(env, DwSp(nothing, nothing, nothing, ClMP.Continuous))
         spvars = Dict{String, ClMP.Variable}();
         for i in 1:nb_variables
             x =  ClMP.setvar!(spform, "x$i", ClMP.DwSpPricingVar)

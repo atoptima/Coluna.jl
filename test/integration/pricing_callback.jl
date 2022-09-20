@@ -2,7 +2,7 @@
     # Formulation with a given nb of variables. No constraint & no cost.
     function build_formulation(nb_variables)
         env = CL.Env{ClMP.VarId}(CL.Params())
-        form = ClMP.create_formulation!(env, DwSp(nothing, 0, 1, ClMP.Continuous))
+        form = ClMP.create_formulation!(env, DwSp(nothing, nothing, nothing, ClMP.Continuous))
         vars = Dict(
             "x$i" => ClMP.setvar!(form, "x$i", ClMP.DwSpPricingVar) for i in 1:nb_variables
         )
