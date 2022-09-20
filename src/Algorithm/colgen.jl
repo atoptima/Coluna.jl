@@ -102,7 +102,7 @@ function get_units_usage(algo::ColumnGeneration, reform::Reformulation)
     units_usage = Tuple{AbstractModel,UnitType,UnitPermission}[] 
     master = getmaster(reform)
     push!(units_usage, (master, MasterColumnsUnit, READ_AND_WRITE))
-    push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
+    #push!(units_usage, (master, PartialSolutionUnit, READ_ONLY))
     if stabilization_is_used(algo)
         push!(units_usage, (master, ColGenStabilizationUnit, READ_AND_WRITE))
     end
@@ -674,7 +674,6 @@ It returns `true` if a violated essential cut has been found;
 `false` otherwise.
 """
 function violates_essential_cut!(master, rm_lp_primal_sol, env)
-    # TODO: concatenate with partial sol.
     cutcb_input = CutCallbacksInput(rm_lp_primal_sol)
     cutcb_output = run!(
         CutCallbacks(call_robust_facultative=false),
@@ -730,13 +729,12 @@ end
 function compute_lagrangian_dual_bound(
     reform::Reformulation, sp_optstates::Vector{OptimizationState},
     stabunit::ColGenStabilizationUnit, algo::ColumnGeneration,
-    puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution,
-    partialsol::PrimalSolution
+    puremastervars::Vector{Pair{VarId,Float64}}, dualsol::DualSolution
 )
     master = getmaster(reform)
     sense = getobjsense(master) # TODO: type stability
     dual_bound = getbound(dualsol)
-    puremastvars_contrib::Float64 = getvalue(partialsol)
+    puremastvars_contrib = 0
     
     # Ignore contributions of convexity constraints to the dual solution value.
     # They are not part of the lagrangian dual bound calculation.
@@ -785,12 +783,12 @@ end
 
 "TODO docstring"
 function compute_pseudo_lagr_bound(
-    reform::Reformulation, partialsol::PrimalSolution, dualsol::DualSolution{S},
+    reform::Reformulation, dualsol::DualSolution{S},
     sp_optstates::Vector{OptimizationState}
 ) where {S}
     master = getmaster(reform)  
     sense = getobjsense(master) # TODO: type stability
-    puremastvars_contrib::Float64 = getvalue(partialsol)
+    puremastvars_contrib::Float64 = 0
     dual_bound = getbound(dualsol) - _convexity_constr_contrib(reform, dualsol)
     pseudo_lagr_bound = DualBound{sense}(puremastvars_contrib + dual_bound)
 
@@ -836,9 +834,6 @@ function cg_main_loop!(
         ClB.new_storage_unit(ColGenStabilizationUnit, masterform)
     end
 
-    partsolunit = getstorageunit(masterform, PartialSolutionUnit)
-    partial_solution = get_primal_solution(partsolunit, masterform)
-
     init_stab_before_colgen_loop!(stabunit)
 
     while true
@@ -868,19 +863,18 @@ function cg_main_loop!(
         rm_lp_primal_sol = get_best_lp_primal_sol(rm_optstate)
         if !isnothing(rm_lp_primal_sol)
             set_lp_primal_sol!(cg_optstate, rm_lp_primal_sol)
-            lp_primal_bound = get_lp_primal_bound(rm_optstate) + getvalue(partial_solution)  
+            lp_primal_bound = get_lp_primal_bound(rm_optstate)
             set_lp_primal_bound!(cg_optstate, lp_primal_bound)   
             
             if phase != 1
                 # We don't check integer feasibility of the solution in phase 1 because the goal of
                 # this phase is just to get rid of artificial variables.
-                primal_sol = cat(rm_lp_primal_sol, partial_solution)
-                if _is_feasible_and_integer(primal_sol) && isbetter(lp_primal_bound, get_ip_primal_bound(cg_optstate))
-                    if violates_essential_cut!(masterform, primal_sol, env)
+                if _is_feasible_and_integer(rm_lp_primal_sol) && isbetter(lp_primal_bound, get_ip_primal_bound(cg_optstate))
+                    if violates_essential_cut!(masterform, rm_lp_primal_sol, env)
                         redcostshelper = ReducedCostsCalculationHelper(getmaster(reform))
                         sg_helper = SubgradientCalculationHelper(getmaster(reform))
                     else
-                        update_ip_primal_sol!(cg_optstate, primal_sol)
+                        update_ip_primal_sol!(cg_optstate, rm_lp_primal_sol)
                     end
                 end
             end
@@ -928,13 +922,13 @@ function cg_main_loop!(
                 valid_lagr_bound = compute_lagrangian_dual_bound(
                     reform, sp_optstates,
                     stabunit, algo, pure_master_vars,
-                    smooth_dual_sol, partial_solution
+                    smooth_dual_sol
                 )
                 update_ip_dual_bound!(cg_optstate, valid_lagr_bound)
                 update_lp_dual_bound!(cg_optstate, valid_lagr_bound)
 
                 if stabilization_is_used(algo)
-                    pseudo_lagr_bound = compute_pseudo_lagr_bound(reform, partial_solution, smooth_dual_sol, sp_optstates)
+                    pseudo_lagr_bound = compute_pseudo_lagr_bound(reform, smooth_dual_sol, sp_optstates)
                     update_stability_center!(stabunit, smooth_dual_sol, valid_lagr_bound, pseudo_lagr_bound)
                 end
             end

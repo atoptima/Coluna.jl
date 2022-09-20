@@ -187,23 +187,9 @@ function run!(
 
     primal_sols = optimize_ip_form!(algo, optimizer, form, result)
 
-    partial_sol = nothing
-    partial_sol_value = 0.0
-    if isa(form, Formulation{MathProg.DwMaster})
-        partsolunit = getstorageunit(form, PartialSolutionUnit)
-        partial_sol = get_primal_solution(partsolunit, form)
-        partial_sol_value = getvalue(partial_sol)
-    end
-
     if length(primal_sols) > 0
-        if partial_sol !== nothing
-            for primal_sol in primal_sols
-                add_ip_primal_sol!(result, cat(partial_sol, primal_sol))
-            end
-        else
-            for primal_sol in primal_sols
-                add_ip_primal_sol!(result, primal_sol)
-            end
+        for primal_sol in primal_sols
+            add_ip_primal_sol!(result, primal_sol)
         end
         if algo.log_level == 0
             @printf "Found primal solution of %.4f \n" getvalue(get_ip_primal_bound(result))
@@ -218,7 +204,7 @@ function run!(
         end
     end
     if algo.get_dual_bound && getterminationstatus(result) == OPTIMAL
-        dual_bound = getvalue(get_ip_primal_bound(result)) + partial_sol_value
+        dual_bound = getvalue(get_ip_primal_bound(result))
         set_ip_dual_bound!(result, DualBound(form, dual_bound))
         set_lp_dual_bound!(result, DualBound(form, dual_bound))
     end

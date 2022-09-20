@@ -116,6 +116,9 @@ function setobjconst!(form::Formulation, val::Float64)
     return
 end
 
+"Returns the list of fixed variables."
+getfixedvars(form::Formulation) = form.manager.fixed_vars
+
 "Returns the representation of the coefficient matrix stored in the formulation manager."
 getcoefmatrix(form::Formulation) = form.manager.coefficients
 
