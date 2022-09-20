@@ -195,7 +195,7 @@ end
 function Base.show(io::IO, solution::PrimalSolution{M}) where {M}
     println(io, "Primal solution")
     for (varid, value) in solution
-        println(io, "| ", getname(getmodel(solution), varid), " = ", value, "       (cost = $(getcurcost(getmodel(solution), varid)))")
+        println(io, "| ", getname(getmodel(solution), varid), " = ", value)
     end
     Printf.@printf(io, "└ value = %.2f \n", getvalue(solution))
 end
