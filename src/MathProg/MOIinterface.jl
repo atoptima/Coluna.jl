@@ -270,7 +270,7 @@ function get_primal_solutions(form::F, optimizer::MoiOptimizer) where {F <: Form
                 fixed_obj += getcurcost(form, var_id) * fixed_val
             end
         end
-        solcost += getobjconst(form) + fixed_obj
+        solcost += fixed_obj
         push!(solutions, PrimalSolution(form, solvars, solvals, solcost, FEASIBLE_SOL))
     end
     return solutions
@@ -353,7 +353,7 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                 fixed_obj += cost * getcurlb(form, var_id)
             end
         end
-        solcost += getobjconst(form) + fixed_obj
+        solcost += fixed_obj
         push!(solutions, DualSolution(
             form, solconstrs, solvals, varids, varvals, activebounds, sense*solcost, 
             FEASIBLE_SOL
