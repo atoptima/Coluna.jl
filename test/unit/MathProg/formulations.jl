@@ -1,6 +1,10 @@
 vid(uid) = ClMP.VarId(ClMP.OriginalVar, uid, 1)
 
+# Dantzig-wolfe solution pool
 struct DummyFormulation <: ClMP.AbstractFormulation end
+
+# optimizers
+struct DummyOptimizer <: ClMP.AbstractOptimizer end
 
 @testset "MathProg - formulation" begin
     @testset "Dantzig-wolfe solution pool" begin
@@ -36,6 +40,16 @@ struct DummyFormulation <: ClMP.AbstractFormulation end
 
         a = ClMP._get_same_sol_in_pool(pool_sols, pool_ht, sol3_repr)
         @test a === nothing
+    end
+
+    @testset "optimizers" begin
+        env = CL.Env{ClMP.VarId}(CL.Params())
+        form = ClMP.create_formulation!(env, DwMaster())
+        @test ClMP.getoptimizer(form, 1) isa ClMP.NoOptimizer
+
+        ClMP.push_optimizer!(form, () -> DummyOptimizer())
+        @test ClMP.getoptimizer(form, 1) isa DummyOptimizer
+        @test ClMP.getoptimizer(form, 2) isa ClMP.NoOptimizer
     end
 end
 

@@ -127,7 +127,7 @@ getobjsense(form::Formulation) = form.obj_sense
 
 "Returns the optimizer of a formulation at a given position."
 function getoptimizer(form::Formulation, pos::Int)
-    if pos <= 0 && pos > length(form.optimizers)
+    if pos <= 0 || pos > length(form.optimizers)
         return NoOptimizer()
     end
     return form.optimizers[pos]
@@ -254,14 +254,14 @@ function setvar!(
     name::String,
     duty::Duty{Variable};
     # Perennial state of the variable
-    cost::Float64 = 0.0,
-    lb::Float64 = -Inf,
-    ub::Float64 = Inf,
+    cost::Real = 0.0,
+    lb::Real = -Inf,
+    ub::Real = Inf,
     kind::VarKind = Continuous,
-    inc_val::Float64 = 0.0,
+    inc_val::Real = 0.0,
     is_active::Bool = true,
     is_explicit::Bool = true,
-    branching_priority::Float64 = 1.0,
+    branching_priority::Real = 1.0,
     # The moi index of the variable contains all the information to change its
     # state in the formulation stores in the underlying MOI solver.
     moi_index::MoiVarIndex = MoiVarIndex(),
@@ -390,15 +390,15 @@ function setconstr!(
     form::Formulation,
     name::String,
     duty::Duty{Constraint};
-    rhs::Float64 = 0.0,
+    rhs::Real = 0.0,
     kind::ConstrKind = Essential,
     sense::ConstrSense = Greater,
-    inc_val::Float64 = 0.0,
+    inc_val::Real = 0.0,
     is_active::Bool = true,
     is_explicit::Bool = true,
     moi_index::MoiConstrIndex = MoiConstrIndex(),
     members = nothing, # todo Union{AbstractDict{VarId,Float64},Nothing}
-    loc_art_var_abs_cost::Float64 = 0.0,
+    loc_art_var_abs_cost::Real = 0.0,
     custom_data::Union{Nothing, BD.AbstractCustomData} = nothing,
     id = ConstrId(duty, form.env.constr_counter += 1, getuid(form))
 )
