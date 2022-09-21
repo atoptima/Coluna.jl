@@ -123,7 +123,7 @@ end
 ############################################################################################
 
 # Indicate whether the active bound of a variable is the lower or the upper one.
-@enum ActiveBound LOWER UPPER
+@enum ActiveBound LOWER UPPER LOWER_AND_UPPER
 
 struct DualSolution{M} <: AbstractSolution
     solution::Solution{M,ConstrId,Float64}

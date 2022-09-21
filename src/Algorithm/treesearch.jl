@@ -29,7 +29,7 @@ Options :
     dividealg::AbstractDivideAlgorithm = Branching()
     explorestrategy::AbstractExploreStrategy = DepthFirstStrategy()
     maxnumnodes::Int64 = 100000
-    opennodeslimit::Int64 = 100 
+    opennodeslimit::Int64 = 100
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
     branchingtreefile::String = ""
