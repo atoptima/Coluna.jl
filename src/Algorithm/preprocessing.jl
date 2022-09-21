@@ -33,11 +33,11 @@ function empty_local_data!(unit::PreprocessingUnit)
     empty!(unit.sp_vars_with_changed_bounds)
 end
 
-function add_to_localpartialsol!(unit::PreprocessingUnit, varid::VarId, value::Float64)
-    cur_value = get(unit.local_partial_sol, varid, 0.0)
-    unit.local_partial_sol[varid] = cur_value + value
-    return
-end
+# function add_to_localpartialsol!(unit::PreprocessingUnit, varid::VarId, value::Float64)
+#     cur_value = get(unit.local_partial_sol, varid, 0.0)
+#     unit.local_partial_sol[varid] = cur_value + value
+#     return
+# end
 
 function get_local_primal_solution(unit::PreprocessingUnit, form::Formulation)
     varids = collect(keys(unit.local_partial_sol))
