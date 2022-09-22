@@ -6,10 +6,10 @@
         env = CL.Env{ClMP.VarId}(CL.Params())
 
         # Create the reformulation
-        reform = Reformulation(env)
+        reform = ClMP.Reformulation(env)
 
         # Create subproblem and variables
-        spform = ClMP.create_formulation!(env, DwSp(nothing, nothing, nothing, ClMP.Continuous))
+        spform = ClMP.create_formulation!(env, ClMP.DwSp(nothing, nothing, nothing, ClMP.Continuous))
         spvars = Dict{String, ClMP.Variable}();
         for i in 1:nb_variables
             x =  ClMP.setvar!(spform, "x$i", ClMP.DwSpPricingVar)
@@ -19,12 +19,12 @@
         ClMP.add_dw_pricing_sp!(reform, spform)
 
         # Create master and representatives
-        master = ClMP.create_formulation!(env, DwMaster(); parent_formulation = reform)
+        master = ClMP.create_formulation!(env, ClMP.DwMaster(); parent_formulation = reform)
         spform.parent_formulation = master
         mastervars = Dict{String, ClMP.Variable}();
         for i in 1:nb_variables
             x = ClMP.setvar!(
-                master, "x$i", ClMP.MasterRepPricingVar, id = getid(spvars["x$i"])
+                master, "x$i", ClMP.MasterRepPricingVar, id = ClMP.getid(spvars["x$i"])
             )
             ClMP.setperencost!(master, x, i * 1.0)
             mastervars["x$i"] = x

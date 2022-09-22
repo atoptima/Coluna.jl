@@ -7,10 +7,10 @@
     end
 
     function test_var(form, var, cost, lb, ub, fixed)
-        @test getcurcost(form, var) == cost
-        @test getcurlb(form, var) == lb
-        @test getcurub(form, var) == ub
-        @test isfixed(form, var) == fixed
+        @test ClMP.getcurcost(form, var) == cost
+        @test ClMP.getcurlb(form, var) == lb
+        @test ClMP.getcurub(form, var) == ub
+        @test ClMP.isfixed(form, var) == fixed
     end
 
     env = CL.Env{ClMP.VarId}(CL.Params())
@@ -21,7 +21,7 @@
     #  c2:   v1 + 2*v2         >= 5
     #  c3:   v1 +   v2  +  v3  >= 3 
 
-    form = ClMP.create_formulation!(env, DwMaster())
+    form = ClMP.create_formulation!(env, ClMP.DwMaster())
     vars = Dict{String,ClMP.Variable}()
     constrs = Dict{String,ClMP.Constraint}()
 
@@ -52,10 +52,10 @@
     test_record(r1.cols[ClMP.getid(vars["v3"])], 4, 0, Inf, false)
 
     # make changes on the formulation
-    setcurlb!(form, vars["v1"], 5.0)
-    setcurub!(form, vars["v2"], 12.0)
-    setcurcost!(form, vars["v3"], 4.6)
-    fix!(form, vars["v3"], 3.5)
+    ClMP.setcurlb!(form, vars["v1"], 5.0)
+    ClMP.setcurub!(form, vars["v2"], 12.0)
+    ClMP.setcurcost!(form, vars["v3"], 4.6)
+    ClMP.fix!(form, vars["v3"], 3.5)
 
     r2 = ClB.create_record(storage, ClA.MasterColumnsUnit)
 

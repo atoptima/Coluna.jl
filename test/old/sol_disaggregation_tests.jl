@@ -7,7 +7,7 @@
 
     coluna = JuMP.optimizer_with_attributes(
         Coluna.Optimizer,
-        "params" => Coluna.Params(solver = ColumnGeneration()),
+        "params" => Coluna.Params(solver = ClA.ColumnGeneration()),
         "default_optimizer" => GLPK.Optimizer
     )
 

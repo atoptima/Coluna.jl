@@ -227,11 +227,11 @@ end
 end
 
 function ClA.run!(algo::BtConquerAti1, env, model, input)
-    output = run!(algo.compute, env, model, input)
+    output = ClA.run!(algo.compute, env, model, input)
     diving_output = Inf
     if input.current_node.depth == 2
         diving_input = DivingInputAti1(input.current_node) # TODO: needs an interface or specific to the algorithm ?
-        diving_output = run!(algo.heuristic, env, model, diving_input)
+        diving_output = ClA.run!(algo.heuristic, env, model, diving_input)
     end
     return min(output, diving_output) 
 end
