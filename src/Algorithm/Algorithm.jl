@@ -91,9 +91,7 @@ export AbstractOptimizationAlgorithm,
 export MoiOptimize, UserOptimizer
 
 # Units 
-export PartialSolutionUnit, PreprocessingUnit
+export PreprocessingUnit
 
-# Unit functions 
-export add_to_solution!, add_to_localpartialsol!
 
 end

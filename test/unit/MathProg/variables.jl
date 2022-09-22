@@ -146,27 +146,27 @@
 
         varid = ClMP.getid(var)
         
-        @test iscuractive(form, var)
-        @test isexplicit(form, var)
-        @test !isfixed(form, var)
+        @test ClMP.iscuractive(form, var)
+        @test ClMP.isexplicit(form, var)
+        @test !ClMP.isfixed(form, var)
         @test !in(varid, form.manager.fixed_vars)
 
-        fix!(form, var, 0.0)
-        @test getcurub(form, var) == 0
-        @test getcurlb(form, var) == 0
-        @test getperenub(form, var) == 1
-        @test getperenlb(form, var) == -1
-        @test isfixed(form, var)
-        @test !iscuractive(form, var)
+        ClMP.fix!(form, var, 0.0)
+        @test ClMP.getcurub(form, var) == 0
+        @test ClMP.getcurlb(form, var) == 0
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test ClMP.isfixed(form, var)
+        @test !ClMP.iscuractive(form, var)
         @test in(varid, form.manager.fixed_vars)
 
-        setcurlb!(form, var, -1)
-        @test getcurub(form, var) == 0
-        @test getcurlb(form, var) == -1
-        @test getperenub(form, var) == 1
-        @test getperenlb(form, var) == -1
-        @test !isfixed(form, var)
-        @test iscuractive(form, var)
+        ClMP.setcurlb!(form, var, -1)
+        @test ClMP.getcurub(form, var) == 0
+        @test ClMP.getcurlb(form, var) == -1
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test !ClMP.isfixed(form, var)
+        @test ClMP.iscuractive(form, var)
         @test !in(varid, form.manager.fixed_vars)
     end
 
@@ -179,27 +179,27 @@
 
         varid = ClMP.getid(var)
         
-        @test iscuractive(form, var)
-        @test isexplicit(form, var)
-        @test !isfixed(form, var)
+        @test ClMP.iscuractive(form, var)
+        @test ClMP.isexplicit(form, var)
+        @test !ClMP.isfixed(form, var)
         @test !in(varid, form.manager.fixed_vars)
 
-        fix!(form, var, 0.0)
-        @test getcurub(form, var) == 0
-        @test getcurlb(form, var) == 0
-        @test getperenub(form, var) == 1
-        @test getperenlb(form, var) == -1
-        @test isfixed(form, var)
-        @test !iscuractive(form, var)
+        ClMP.fix!(form, var, 0.0)
+        @test ClMP.getcurub(form, var) == 0
+        @test ClMP.getcurlb(form, var) == 0
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test ClMP.isfixed(form, var)
+        @test !ClMP.iscuractive(form, var)
         @test in(varid, form.manager.fixed_vars)
 
-        setcurub!(form, var, 1)
-        @test getcurub(form, var) == 1
-        @test getcurlb(form, var) == 0
-        @test getperenub(form, var) == 1
-        @test getperenlb(form, var) == -1
-        @test !isfixed(form, var)
-        @test iscuractive(form, var)
+        ClMP.setcurub!(form, var, 1)
+        @test ClMP.getcurub(form, var) == 1
+        @test ClMP.getcurlb(form, var) == 0
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test !ClMP.isfixed(form, var)
+        @test ClMP.iscuractive(form, var)
         @test !in(varid, form.manager.fixed_vars)
     end
 
@@ -211,14 +211,14 @@
         )
 
         varid = ClMP.getid(var)
-        deactivate!(form, varid)
-        @test !iscuractive(form, varid)
-        fix!(form, varid, 0)  # try to fix an unactive variable -> should not work.
-        @test !isfixed(form, varid)
-        @test getcurub(form, var) == 1
-        @test getcurlb(form, var) == -1
-        @test getperenub(form, var) == 1
-        @test getperenlb(form, var) == -1
+        ClMP.deactivate!(form, varid)
+        @test !ClMP.iscuractive(form, varid)
+        ClMP.fix!(form, varid, 0)  # try to fix an unactive variable -> should not work.
+        @test !ClMP.isfixed(form, varid)
+        @test ClMP.getcurub(form, var) == 1
+        @test ClMP.getcurlb(form, var) == -1
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
     end
 
     @testset "fix variable 4" begin
@@ -232,22 +232,22 @@
         varid = ClMP.getid(var)
         @test !in(varid, form.manager.fixed_vars)
 
-        fix!(form, var, 0.0)
-        @test getcurub(form, var) == 0
-        @test getcurlb(form, var) == 0
-        @test getperenub(form, var) == 1
-        @test getperenlb(form, var) == -1
-        @test isfixed(form, var)
-        @test !iscuractive(form, var)
+        ClMP.fix!(form, var, 0.0)
+        @test ClMP.getcurub(form, var) == 0
+        @test ClMP.getcurlb(form, var) == 0
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test ClMP.isfixed(form, var)
+        @test !ClMP.iscuractive(form, var)
         @test in(varid, form.manager.fixed_vars)
 
-        fix!(form, var, 1.0)
-        @test getcurub(form, var) == 1
-        @test getcurlb(form, var) == 1
-        @test getperenub(form, var) == 1
-        @test getperenlb(form, var) == -1
-        @test isfixed(form, var)
-        @test !iscuractive(form, var)
+        ClMP.fix!(form, var, 1.0)
+        @test ClMP.getcurub(form, var) == 1
+        @test ClMP.getcurlb(form, var) == 1
+        @test ClMP.getperenub(form, var) == 1
+        @test ClMP.getperenlb(form, var) == -1
+        @test ClMP.isfixed(form, var)
+        @test !ClMP.iscuractive(form, var)
         @test in(varid, form.manager.fixed_vars)
     end
 end

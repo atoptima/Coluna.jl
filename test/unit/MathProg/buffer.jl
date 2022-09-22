@@ -225,7 +225,7 @@ _empty_buffer() = ClMP.FormulationBuffer{ClMP.VarId,ClMP.Variable,ClMP.ConstrId,
         form, var, constr = model_factory_for_buffer()
 
         expected_buffer = _empty_buffer()
-        expected_buffer.changed_bound = Set{VarId}([ClMP.getid(var)])
+        expected_buffer.changed_bound = Set{ClMP.VarId}([ClMP.getid(var)])
 
         ClMP.sync_solver!(ClMP.getoptimizer(form, 1), form)
         ClMP.setperenlb!(form, var, 0.0)

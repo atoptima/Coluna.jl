@@ -143,13 +143,13 @@
         dyn_mat = DynamicSparseArrays.dynamicsparse(nzrows, nzcols, nzvals) 
         mat = SparseArrays.sparse(int_nzrows, int_nzcols, nzvals, 5, 4)
 
-        nzinds_sol1 = ClMP.getid.([var1, var3])::Vector{VarId}
+        nzinds_sol1 = ClMP.getid.([var1, var3])::Vector{ClMP.VarId}
         nzvals_sol1 = [2.0, 4.0]
         sol_len4 = ClMP.PrimalSolution(form, nzinds_sol1, nzvals_sol1, 2.0, ClB.FEASIBLE_SOL)
         vec_len4 = sparsevec(nzinds_sol1, nzvals_sol1, 4)
         int_vec_len4 = sparsevec(ClMP.getuid.(nzinds_sol1), nzvals_sol1, 4)
 
-        nzinds_sol2 = ClMP.getid.([var2, var4])::Vector{VarId}
+        nzinds_sol2 = ClMP.getid.([var2, var4])::Vector{ClMP.VarId}
         nzvals_sol2 = [2.5, 4.5]
         sol_len5 = ClMP.PrimalSolution(form, nzinds_sol2, nzvals_sol2, 2.0, ClB.FEASIBLE_SOL)
         vec_len5 = sparsevec(nzinds_sol2, nzvals_sol2, 5)
