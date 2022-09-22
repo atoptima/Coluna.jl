@@ -44,7 +44,7 @@ struct DummyOptimizer <: ClMP.AbstractOptimizer end
 
     @testset "optimizers" begin
         env = CL.Env{ClMP.VarId}(CL.Params())
-        form = ClMP.create_formulation!(env, DwMaster())
+        form = ClMP.create_formulation!(env, ClMP.DwMaster())
         @test ClMP.getoptimizer(form, 1) isa ClMP.NoOptimizer
 
         ClMP.push_optimizer!(form, () -> DummyOptimizer())
