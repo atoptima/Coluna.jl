@@ -450,6 +450,7 @@ function insert_columns!(
     algo::ColumnGeneration, phase::Int
 )
     nb_cols_generated = 0
+    just_activated_cols = Set{Int}()
 
     # Insert the primal solutions to the DW subproblem as column into the master
     bestsol = get_best_ip_primal_sol(sp_optstate)
@@ -462,12 +463,13 @@ function insert_columns!(
                 col_id = get_column_from_pool(sol)
                 if !isnothing(col_id)
                     if haskey(masterform, col_id) && !iscuractive(masterform, col_id)
+                        push!(just_activated_cols, ClB.getuid(col_id))
                         activate!(masterform, col_id)
                         if phase == 1
                             setcurcost!(masterform, col_id, 0.0)
                         end
                         nb_cols_generated += 1
-                    else
+                    elseif !(ClB.getuid(col_id) in just_activated_cols)
                         in_master = haskey(masterform, col_id)
                         is_active = iscuractive(masterform, col_id)
                         throw(ColumnAlreadyInsertedColGenError(
@@ -490,6 +492,7 @@ function insert_columns!(
         end
         return nb_cols_generated
     end
+    # println("Leaving insert_columns!")
     return -1
 end
 
