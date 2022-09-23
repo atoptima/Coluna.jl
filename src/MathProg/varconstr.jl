@@ -187,6 +187,9 @@ setcurub!(form::Formulation, varid::VarId, ub) = setcurub!(form, getvar(form, va
     
 Fixes the current bounds of an active and explicit variable to a given value.
 It then deactivates the variable.
+
+**Note**: this method does not update the rhs of the constraints that involve the variable.
+You should do it manually or use the presolve algorithm.
 """
 fix!(form::Formulation, varid::VarId, value) = fix!(form, getvar(form, varid), value)
 function fix!(form::Formulation, var::Variable, value)
