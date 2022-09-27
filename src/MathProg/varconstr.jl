@@ -211,7 +211,7 @@ function fix!(form::Formulation, var::Variable, value)
         return true
     end
     name = getname(form, var)
-    @warn "Cannot fix variable $name because it is non-explicit, or unactive, or already fixed."
+    @warn "Cannot fix variable $name because it is non-explicit or unactive."
     return false
 end
 
@@ -568,7 +568,14 @@ function activate!(form::Formulation, constr::Constraint)
     return
 end
 
-activate!(form::Formulation, var::Variable) = _activate!(form, var)
+function activate!(form::Formulation, var::Variable)
+    if isfixed(form, var)
+        @warn "Cannot activate fixed variable."
+        return
+    end
+    _activate!(form, var)
+    return
+end
 
 function activate!(form::Formulation, varconstrid::Id{VC}) where {VC <: AbstractVarConstr}
     return activate!(form, getelem(form, varconstrid))
