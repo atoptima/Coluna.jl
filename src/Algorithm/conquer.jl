@@ -96,10 +96,9 @@ Parameters :
     stages::Vector{ColumnGeneration} = [ColumnGeneration()]
     primal_heuristics::Vector{ParameterizedHeuristic} = [ParamRestrictedMasterHeuristic()]
     node_finalizer::Union{Nothing, NodeFinalizer} = nothing
-    preprocess = PreprocessAlgorithm()
+    preprocess = nothing
     cutgen = CutCallbacks()
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
-    run_preprocessing::Bool = false
     opt_atol::Float64 = stages[1].opt_atol # TODO : force this value in an init() method
     opt_rtol::Float64 = stages[1].opt_rtol # TODO : force this value in an init() method
 end
@@ -120,7 +119,9 @@ function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation)
         push!(child_algos, (colgen, reform))
     end
     push!(child_algos, (algo.cutgen, getmaster(reform)))
-    algo.run_preprocessing && push!(child_algos, (algo.preprocess, reform))
+    if !isnothing(algo.preprocess)
+        push!(child_algos, (algo.preprocess, reform))
+    end
     for heuristic in algo.primal_heuristics
         push!(child_algos, (heuristic.algorithm, reform))
     end
@@ -256,7 +257,7 @@ Returns `true` if conquer algorithm should continue;
 `false` otherwise (in the case where preprocessing finds the formulation infeasible).
 """
 function run_preprocessing!(::ColCutGenContext, preprocess_algo, env, reform, node_state)
-    preprocess_output = run!(preprocess_algo, env, reform, PreprocessingInput())
+    preprocess_output = run!(preprocess_algo, env, reform, nothing)
     if isinfeasible(preprocess_output)
         setterminationstatus!(node_state, INFEASIBLE)
         return false
@@ -314,7 +315,7 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     node_state = get_opt_state(node)
 
     # TODO: check time limit of Coluna
-    if ctx.params.run_preprocessing
+    if !isnothing(ctx.params.preprocess)
         run_conquer = run_preprocessing!(ctx, ctx.params.preprocess, env, reform, node_state)
         !run_conquer && return
     end
