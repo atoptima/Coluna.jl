@@ -95,6 +95,8 @@ function _unfixvar!(m::FormulationManager, var::Variable)
     return
 end
 
+_fixedvars(m::FormulationManager) = m.fixed_vars
+
 # Internal methods to store a Constraint in the formulation manager.
 function _addconstr!(m::FormulationManager, constr::Constraint)
     if haskey(m.constrs, constr.id)

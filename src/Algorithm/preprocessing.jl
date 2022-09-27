@@ -16,7 +16,7 @@ mutable struct PreprocessingUnit <: AbstractNewStorageUnit
     nb_inf_sources_for_max_slack::Dict{ConstrId,Int}
     cur_sp_lower_bounds::Dict{FormId,Int}
     cur_sp_upper_bounds::Dict{FormId,Int}
-    new_constrs::Vector{Tuple{ConstrId,Formulation}}
+    new_constrs::Vector{Tuple{ConstrId,Formulation}}  # current constraints ?
     local_partial_sol::Dict{VarId, Float64}
 
     # local data 

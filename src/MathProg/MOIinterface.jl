@@ -336,6 +336,14 @@ function get_dual_solutions(form::F, optimizer::MoiOptimizer) where {F <: Formul
                     push!(varvals, sense * val)
                     push!(activebounds, UPPER)
                 end
+            elseif basis_status == MOI.NONBASIC
+                @assert getcurlb(form, varid) == getcurlb(form, varid)
+                solcost += val * getcurub(form, varid)
+                if abs(val) > Coluna.TOL
+                    push!(varids, varid)
+                    push!(varvals, sense * val)
+                    push!(activebounds, LOWER_AND_UPPER)
+                end
             elseif abs(val) > Coluna.TOL
                 @warn """
                     Basis status of variable $(getname(form, varid)) that has a non-zero dual value is not treated.

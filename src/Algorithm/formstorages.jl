@@ -11,6 +11,12 @@ struct VarState
 end
 
 function apply_state!(form::Formulation, var::Variable, var_state::VarState)
+    if isfixed(form, var)
+        println("var $(getname(form, var)) is fixed -- ", isfixed(form, var))
+        @show isexplicit(form, var)
+        @show iscuractive(form, var)
+        unfix!(form, var)
+    end
     if getcurlb(form, var) != var_state.lb
         setcurlb!(form, var, var_state.lb)
     end
@@ -151,7 +157,7 @@ function ClB.restore_from_record!(
     for (id, var) in getvars(form)
         if getduty(id) <= MasterCol && isexplicit(form, var)
             if haskey(state.cols, id) 
-                if !iscuractive(form, var) 
+                if !iscuractive(form, var) && !isfixed(form, var)
                     activate!(form, var)
                 end
                 apply_state!(form, var, state.cols[id])
