@@ -7,7 +7,6 @@
         @test_broken !ClA._infeasible_var(1.09, 0.91, 0.1)
         @test ClA._infeasible_var(1.2, 0.9, 0.1)
 
-
         # Create the following formulation:
         # min x1 + 2x2 + 3x3
         # st. x1 >= 1
@@ -40,6 +39,19 @@
 
         ClA.treat!(form, ClA.RemovalOfFixedVariables(1e-6))
 
-        @test ClMP.getcurrhs(form, c) == 8
+        @test ClMP.getcurrhs(form, c) == 10 - 2
+
+        ClMP.setcurlb!(form, vars["x2"], 3)
+        ClMP.setcurub!(form, vars["x2"], 3)
+
+        ClA.treat!(form, ClA.RemovalOfFixedVariables(1e-6))
+
+        @test ClMP.getcurrhs(form, c) == 10 - 2 - 2*3
+
+        ClMP.unfix!(form, vars["x1"])
+        ClMP.setcurlb!(form, vars["x1"], 1)
+        ClA.treat!(form, ClA.RemovalOfFixedVariables(1e-6))
+        @test ClMP.getcurrhs(form, c) == 10 - 2*3
+        return
     end
 end

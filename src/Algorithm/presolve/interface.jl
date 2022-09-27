@@ -36,18 +36,6 @@ function _vars_to_fix(form, ϵ)
     return vars_to_fix, problem_infeasible
 end
 
-function _fix_var!(form, var_id, value)
-    fix!(form, var_id, value)
-    # Update the rhs of the constraints that involve the variable.
-    var_members = @view getcoefmatrix(form)[:, var_id]
-    for (constr_id, coef) in var_members
-        fixed_term = value * coef
-        rhs = getcurrhs(form, constr_id)
-        setcurrhs!(form, constr_id, rhs - fixed_term)
-    end
-    return
-end
-
 function treat!(form, ::RemovalOfFixedVariables)
     ϵ = 1e-6
     vars_to_fix, problem_infeasible = _vars_to_fix(form, ϵ)
@@ -55,7 +43,7 @@ function treat!(form, ::RemovalOfFixedVariables)
         return false
     end
     for (var_id, value) in vars_to_fix
-        _fix_var!(form, var_id, value)
+        fix!(form, var_id, value)
     end
     return true
 end
@@ -74,8 +62,6 @@ function run!(algo::PresolveAlgorithm, ::Env, reform::Reformulation, _)
     end
     return
 end
-
-
 
 # TODO
 
