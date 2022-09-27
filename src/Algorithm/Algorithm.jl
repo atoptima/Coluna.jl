@@ -44,6 +44,9 @@ include("colgen.jl")
 include("benders.jl")
 include("preprocessing.jl")
 
+# Presolve
+include("presolve/interface.jl")
+
 # Conquer
 include("conquer.jl")
 

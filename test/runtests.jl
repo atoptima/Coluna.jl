@@ -5,6 +5,4 @@ include("ColunaTests.jl")
 retest(Coluna, ColunaTests)
 
 # Run a specific test:
-#retest(ColunaTests, "strong branching")
-
-
+#retest(ColunaTests, "Unit - MasterColumnsRecord")
