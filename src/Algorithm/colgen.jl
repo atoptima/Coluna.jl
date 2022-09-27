@@ -450,26 +450,21 @@ function insert_columns!(
     algo::ColumnGeneration, phase::Int
 )
     nb_cols_generated = 0
-    just_activated_cols = Set{Int}()
 
     # Insert the primal solutions to the DW subproblem as column into the master
     bestsol = get_best_ip_primal_sol(sp_optstate)
     if !isnothing(bestsol) && getstatus(bestsol) == FEASIBLE_SOL
         # First we activate columns that are already in the pool.
         primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
+        col_ids_to_activate = Set{VarId}()
         sols = get_ip_primal_sols(sp_optstate)
         for (sol, red_cost) in Iterators.zip(sols, redcosts_spsols)
             if improving_red_cost(red_cost, algo, getobjsense(masterform))
                 col_id = get_column_from_pool(sol)
                 if !isnothing(col_id)
                     if haskey(masterform, col_id) && !iscuractive(masterform, col_id)
-                        push!(just_activated_cols, ClB.getuid(col_id))
-                        activate!(masterform, col_id)
-                        if phase == 1
-                            setcurcost!(masterform, col_id, 0.0)
-                        end
-                        nb_cols_generated += 1
-                    elseif !(ClB.getuid(col_id) in just_activated_cols)
+                        push!(col_ids_to_activate, col_id)
+                    else
                         in_master = haskey(masterform, col_id)
                         is_active = iscuractive(masterform, col_id)
                         throw(ColumnAlreadyInsertedColGenError(
@@ -490,9 +485,17 @@ function insert_columns!(
             end
             nb_cols_generated += 1
         end
+
+        # And we reactivate the deactivated columns already generated.
+        for col_id in col_ids_to_activate
+            activate!(masterform, col_id)
+            if phase == 1
+                setcurcost!(masterform, col_id, 0.0)
+            end
+            nb_cols_generated += 1
+        end
         return nb_cols_generated
     end
-    # println("Leaving insert_columns!")
     return -1
 end
 

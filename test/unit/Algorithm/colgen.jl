@@ -121,7 +121,45 @@ end
         @test nb_new_cols == 2
     end
 
-    @testset "Stabilization" begin
-        
+    @testset "Deactivated column added twice at same iteration" begin
+        env, master, spform, spvars, constr = reformulation_for_colgen()
+        algo = ClA.ColumnGeneration()
+
+        # Add column.
+        col1 = ClMP.PrimalSolution(
+            spform, 
+            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
+            [1.0, 2.0],
+            1.0,
+            ClB.FEASIBLE_SOL
+        )
+        col_id = ClA.insert_column!(master, col1, "MC")
+
+        # Deactivate column.
+        ClMP.deactivate!(master, col_id)
+
+        # Add same column twice.
+        redcosts_spsols = [-2.0, -2.0]
+        phase = 1
+
+        sp_optstate = ClA.OptimizationState(spform; max_length_ip_primal_sols = 5)
+        col2 = ClMP.PrimalSolution(
+            spform, 
+            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
+            [1.0, 2.0],
+            1.0,
+            ClB.FEASIBLE_SOL
+        )
+        col3 = ClMP.PrimalSolution(
+            spform, 
+            map(x -> ClMP.getid(spvars[x]), ["x1", "x3"]),
+            [1.0, 2.0],
+            2.0,
+            ClB.FEASIBLE_SOL
+        )
+        ClA.add_ip_primal_sols!(sp_optstate, col2, col3)
+
+        nb_new_cols = ClA.insert_columns!(master, sp_optstate, redcosts_spsols, algo, phase)
+        @test nb_new_cols == 1
     end
 end
