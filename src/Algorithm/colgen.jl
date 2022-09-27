@@ -456,17 +456,14 @@ function insert_columns!(
     if !isnothing(bestsol) && getstatus(bestsol) == FEASIBLE_SOL
         # First we activate columns that are already in the pool.
         primal_sols_to_insert = PrimalSolution{Formulation{DwSp}}[]
+        col_ids_to_activate = Set{VarId}()
         sols = get_ip_primal_sols(sp_optstate)
         for (sol, red_cost) in Iterators.zip(sols, redcosts_spsols)
             if improving_red_cost(red_cost, algo, getobjsense(masterform))
                 col_id = get_column_from_pool(sol)
                 if !isnothing(col_id)
                     if haskey(masterform, col_id) && !iscuractive(masterform, col_id)
-                        activate!(masterform, col_id)
-                        if phase == 1
-                            setcurcost!(masterform, col_id, 0.0)
-                        end
-                        nb_cols_generated += 1
+                        push!(col_ids_to_activate, col_id)
                     else
                         in_master = haskey(masterform, col_id)
                         is_active = iscuractive(masterform, col_id)
@@ -483,6 +480,15 @@ function insert_columns!(
         # Then, we add the new columns (i.e. not in the pool).
         for sol in primal_sols_to_insert
             col_id = insert_column!(masterform, sol, "MC")
+            if phase == 1
+                setcurcost!(masterform, col_id, 0.0)
+            end
+            nb_cols_generated += 1
+        end
+
+        # And we reactivate the deactivated columns already generated.
+        for col_id in col_ids_to_activate
+            activate!(masterform, col_id)
             if phase == 1
                 setcurcost!(masterform, col_id, 0.0)
             end
