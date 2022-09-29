@@ -431,7 +431,7 @@ function _optimize_sps_in_parallel(spforms, pricing_prob_solve_alg, env)
     sp_optstates = Vector{OptimizationState}(undef, length(spforms))
     spuids = collect(keys(spforms))
     Threads.@threads for i in 1:length(spforms)
-        spform = spsforms[spuids[i]]
+        spform = spforms[spuids[i]]
         sp_optstates[i] = _optimize_sp(spform, pricing_prob_solve_alg, env)
     end
     return sp_optstates
