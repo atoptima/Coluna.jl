@@ -25,7 +25,7 @@ Parameters:
     get_dual_bound::Bool = true
     get_dual_solution::Bool = false # Used in MOI integration tests.
     max_nb_ip_primal_sols::Int = 50
-    log_level::Int = 0
+    log_level::Int = 2
     silent::Bool = true
     custom_parameters = Dict{String,Any}()
 end
