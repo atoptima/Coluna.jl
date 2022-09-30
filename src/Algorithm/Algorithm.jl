@@ -34,6 +34,7 @@ include("treesearch/explore.jl")
 include("formstorages.jl")
 
 # Basic algorithms
+include("basic/subsolvers.jl")
 include("basic/solvelpform.jl")
 include("basic/solveipform.jl")
 include("basic/cutcallback.jl")

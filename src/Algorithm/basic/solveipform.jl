@@ -1,56 +1,4 @@
 ################################################################################
-# Parameters for each type of optimizer
-################################################################################
-"""
-    MoiOptimize(
-        time_limit = 600
-        deactivate_artificial_vars = false
-        enforce_integrality = false
-        get_dual_bound = true
-    )
-
-Configuration for an optimizer that calls a subsolver through MathOptInterface.
-
-Parameters:
-- `time_limit`: in seconds
-- `deactivate_artificial_vars`: deactivate all artificial variables of the formulation if equals `true`
-- `enforce_integrality`: enforce integer variables that are relaxed if equals `true`
-- `get_dual_bound`: store the dual objective value in the output if equals `true`
-"""
-@with_kw struct MoiOptimize
-    time_limit::Int = 600
-    deactivate_artificial_vars::Bool = true
-    enforce_integrality::Bool = true
-    get_dual_bound::Bool = true
-    get_dual_solution::Bool = false # Used in MOI integration tests.
-    max_nb_ip_primal_sols::Int = 50
-    log_level::Int = 2
-    silent::Bool = true
-    custom_parameters = Dict{String,Any}()
-end
-
-"""
-    UserOptimize(
-        max_nb_ip_primal_sols = 50
-    )
-
-Configuration for an optimizer that calls a pricing callback to solve the problem.
-
-Parameters:
-- `max_nb_ip_primal_sols`: maximum number of solutions returned by the callback kept
-"""
-@with_kw struct UserOptimize
-    max_nb_ip_primal_sols::Int = 50
-end
-
-"""
-    CustomOptimize()
-
-Configuration for an optimizer that calls a custom solver to solve a custom model.
-"""
-struct CustomOptimize end
-
-################################################################################
 # Algorithm
 ################################################################################
 """
@@ -225,12 +173,6 @@ end
 function optimize_ip_form!(
     algo::MoiOptimize, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
 )
-    MOI.set(optimizer.inner, MOI.TimeLimitSec(), algo.time_limit)
-    MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
-    for (name, value) in algo.custom_parameters
-        MOI.set(optimizer.inner, MOI.RawOptimizerAttribute(name), value)
-    end
-
     # No way to enforce upper bound or lower bound through MOI.
     # We must add a constraint c'x <= UB in formulation.
 
@@ -241,7 +183,7 @@ function optimize_ip_form!(
         enforce_integrality!(form)
     end
 
-    optimize_with_moi!(optimizer, form, result)
+    optimize_with_moi!(optimizer, form, algo, result)
     primal_sols = get_primal_solutions(form, optimizer)
 
     if algo.enforce_integrality

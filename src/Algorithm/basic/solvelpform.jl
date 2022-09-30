@@ -20,7 +20,7 @@ Parameters:
 
 Undocumented parameters are alpha.
 """
-@with_kw struct SolveLpForm <: AbstractOptimizationAlgorithm 
+@with_kw struct SolveLpForm <: AbstractOptimizationAlgorithm
     update_ip_primal_solution = false
     get_dual_solution = false
     relax_integrality = false
@@ -47,34 +47,6 @@ function get_units_usage(
     return units_usage
 end
 
-function termination_status!(result::OptimizationState, optimizer::MoiOptimizer)
-    termination_status = MOI.get(getinner(optimizer), MOI.TerminationStatus())
-    coluna_termination_status = convert_status(termination_status)
-
-    if coluna_termination_status == OPTIMAL
-        if MOI.get(getinner(optimizer), MOI.ResultCount()) <= 0
-            msg = """
-            Termination status = $(termination_status) but no results.
-            Please, open an issue at https://github.com/atoptima/Coluna.jl/issues
-            """
-            error(msg)
-        end
-    end
-    setterminationstatus!(result, coluna_termination_status)
-    return
-end
-
-function optimize_with_moi!(optimizer::MoiOptimizer, form::Formulation, result::OptimizationState)
-    sync_solver!(optimizer, form)
-    nbvars = MOI.get(optimizer.inner, MOI.NumberOfVariables())
-    if nbvars <= 0
-        @warn "No variable in the formulation."
-    end
-    MOI.optimize!(getinner(optimizer))
-    termination_status!(result, optimizer)
-    return
-end
-
 function optimize_lp_form!(::SolveLpForm, optimizer, ::Formulation, ::OptimizationState) # fallback
     error("Cannot optimize LP formulation with optimizer of type ", typeof(optimizer), ".")
 end
@@ -82,8 +54,16 @@ end
 function optimize_lp_form!(
     algo::SolveLpForm, optimizer::MoiOptimizer, form::Formulation, result::OptimizationState
 )
-    MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
-    optimize_with_moi!(optimizer, form, result)
+    moi_params = MoiOptimize(
+        time_limit = 3600, # TODO: expose
+        deactivate_artificial_vars = false,
+        enforce_integrality = false,
+        relax_integrality = algo.relax_integrality,
+        get_dual_bound = algo.get_dual_bound,
+        get_dual_solution = algo.get_dual_solution,
+        silent = algo.silent
+    )
+    optimize_with_moi!(optimizer, form, moi_params, result)
     return
 end
 
