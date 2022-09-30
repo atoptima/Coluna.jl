@@ -656,17 +656,23 @@ function _is_feasible_and_integer(rm_lp_primal_sol)
         isinteger(proj_cols_on_rep(rm_lp_primal_sol, getmodel(rm_lp_primal_sol)))
 end
 
-function _assert_has_lp_dual_sol(rm_optstate)
+function _assert_has_lp_dual_sol(rm_optstate, master, rm_optimizer_id)
     lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
     if isnothing(lp_dual_sol)
+        # Write the restricted master in a file for debugging purpose.
+        filename = "assert_has_lp_dual_sol_failure.lp"
+        optimizer = getoptimizer(master, rm_optimizer_id)
+        Coluna.MathProg.write_to_LP_file(master, optimizer, filename)
+        # Throw error.
         err_msg = """
         Something unexpected happened when retrieving the dual solution to the LP restricted master.
         ======
-        Phase : $phase
         Termination status of the solver after optimizing the master (should be OPTIMAL) : $(getterminationstatus(rm_optstate))
         Number of dual solutions (should be at least 1) : $(length(get_lp_dual_sols(rm_optstate)))
         ======
-        Please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example that reproduces the bug.
+        A file named `assert_has_lp_dual_sol_failure.lp` that contains the LP restricted master has been written.
+        Please check the LP, try to optimize it with another solver, and try to get a dual solution.
+        Open an issue with all these information at https://github.com/atoptima/Coluna.jl/issues.
         """
         error(err_msg)
     end
@@ -859,7 +865,7 @@ function cg_main_loop!(
             return true, false
         end
     
-        _assert_has_lp_dual_sol(rm_optstate)
+        _assert_has_lp_dual_sol(rm_optstate, masterform, algo.restr_master_optimizer_id)
         lp_dual_sol = get_best_lp_dual_sol(rm_optstate)
         set_lp_dual_sol!(cg_optstate, lp_dual_sol)
 
