@@ -30,49 +30,156 @@ specify!.(sp, lower_multiplicity = 0);</code></pre><p>We optimize:</p><pre><code
 Version 0.4.2 | https://github.com/atoptima/Coluna.jl
 ***************************************************************************************
 **** B&amp;B tree root node
-**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.40 sec.
+**** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.55 sec.
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129067.4700&gt; &lt;mlp=30340.5500&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129002.2333&gt; &lt;mlp=10387.9067&gt; &lt;PB=Inf&gt;
-  &lt;it=  4&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-124551.9400&gt; &lt;mlp=  418.5400&gt; &lt;PB=Inf&gt;
-  &lt;it=  5&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  226.4800&gt; &lt;mlp=  418.5400&gt; &lt;PB=Inf&gt;
-  &lt;it=  6&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  352.6265&gt; &lt;mlp=  409.0543&gt; &lt;PB=Inf&gt;
-  &lt;it=  7&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  371.9757&gt; &lt;mlp=  403.6843&gt; &lt;PB=Inf&gt;
-  &lt;it=  8&gt; &lt;et= 0.52&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  371.9757&gt; &lt;mlp=  401.9750&gt; &lt;PB=Inf&gt;
-  &lt;it=  9&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  389.0733&gt; &lt;mlp=  400.4972&gt; &lt;PB=Inf&gt;
-  &lt;it= 10&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  392.7767&gt; &lt;mlp=  399.6613&gt; &lt;PB=Inf&gt;
-  &lt;it= 11&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  392.7767&gt; &lt;mlp=  399.1104&gt; &lt;PB=Inf&gt;
-  &lt;it= 12&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  392.7767&gt; &lt;mlp=  397.9019&gt; &lt;PB=Inf&gt;
-  &lt;it= 13&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  394.3620&gt; &lt;mlp=  397.7520&gt; &lt;PB=Inf&gt;
-  &lt;it= 14&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  394.3620&gt; &lt;mlp=  397.4754&gt; &lt;PB=Inf&gt;
-  &lt;it= 15&gt; &lt;et= 0.53&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  394.3620&gt; &lt;mlp=  397.2904&gt; &lt;PB=Inf&gt;
-  &lt;it= 16&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  395.4033&gt; &lt;mlp=  396.6133&gt; &lt;PB=Inf&gt;
-  &lt;it= 17&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  395.4817&gt; &lt;mlp=  396.4117&gt; &lt;PB=Inf&gt;
-  &lt;it= 18&gt; &lt;et= 0.54&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=Inf&gt;
+Found primal solution of -49812.7500
+Found primal solution of -39844.6200
+Found primal solution of -39839.4100
+Found primal solution of -49820.0400
+Found primal solution of -49819.4000
+  &lt;it=  1&gt; &lt;et= 0.69&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+Found primal solution of -39823.6400
+Found primal solution of -29860.0400
+Found primal solution of -29851.5100
+Found primal solution of -39829.7100
+Found primal solution of -29857.9500
+  &lt;it=  2&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129067.4700&gt; &lt;mlp=30340.5500&gt; &lt;PB=Inf&gt;
+Found primal solution of -29878.0367
+Found primal solution of -29852.2900
+Found primal solution of -29850.2400
+Found primal solution of -29897.3167
+Found primal solution of -29851.5600
+  &lt;it=  3&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129002.2333&gt; &lt;mlp=10387.9067&gt; &lt;PB=Inf&gt;
+Found primal solution of -24985.4400
+Found primal solution of -25000.0500
+Found primal solution of -24992.2600
+Found primal solution of -24994.0800
+Found primal solution of -24998.6500
+  &lt;it=  4&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-124551.9400&gt; &lt;mlp=  418.5400&gt; &lt;PB=Inf&gt;
+Found primal solution of -29.4986
+Found primal solution of -37.5843
+Found primal solution of -37.7343
+Found primal solution of -50.1486
+Found primal solution of -37.0943
+  &lt;it=  5&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  226.4800&gt; &lt;mlp=  418.5400&gt; &lt;PB=Inf&gt;
+Found primal solution of -8.7648
+Found primal solution of -6.6735
+Found primal solution of -2.9835
+Found primal solution of -28.8900
+Found primal solution of -21.7387
+  &lt;it=  6&gt; &lt;et= 0.70&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  352.6265&gt; &lt;mlp=  409.0543&gt; &lt;PB=Inf&gt;
+Found primal solution of -3.2071
+Found primal solution of -3.4186
+Found primal solution of -2.6643
+Found primal solution of -22.6014
+Found primal solution of -7.2729
+  &lt;it=  7&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  371.9757&gt; &lt;mlp=  403.6843&gt; &lt;PB=Inf&gt;
+Found primal solution of -2.6800
+Found primal solution of -7.8500
+Found primal solution of 0.0000
+Found primal solution of -19.7800
+Found primal solution of -10.0200
+  &lt;it=  8&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  371.9757&gt; &lt;mlp=  401.9750&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -13.7406
+Found primal solution of -2.2192
+  &lt;it=  9&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  389.0733&gt; &lt;mlp=  400.4972&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -14.7740
+Found primal solution of 0.0000
+  &lt;it= 10&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  392.7767&gt; &lt;mlp=  399.6613&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -3.4850
+Found primal solution of 0.0000
+Found primal solution of -15.5221
+Found primal solution of -2.9696
+  &lt;it= 11&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  392.7767&gt; &lt;mlp=  399.1104&gt; &lt;PB=Inf&gt;
+Found primal solution of -2.4175
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -15.9544
+Found primal solution of -1.1050
+  &lt;it= 12&gt; &lt;et= 0.71&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  392.7767&gt; &lt;mlp=  397.9019&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -11.1640
+Found primal solution of -1.0700
+  &lt;it= 13&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  394.3620&gt; &lt;mlp=  397.7520&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -14.8871
+Found primal solution of -0.6696
+  &lt;it= 14&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  394.3620&gt; &lt;mlp=  397.4754&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -0.0000
+Found primal solution of 0.0000
+Found primal solution of -14.1421
+Found primal solution of -4.1046
+  &lt;it= 15&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  394.3620&gt; &lt;mlp=  397.2904&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -12.8967
+Found primal solution of -1.0167
+  &lt;it= 16&gt; &lt;et= 0.72&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  395.4033&gt; &lt;mlp=  396.6133&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -12.8183
+Found primal solution of -2.4283
+  &lt;it= 17&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  395.4817&gt; &lt;mlp=  396.4117&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -11.3071
+Found primal solution of -2.0796
+  &lt;it= 18&gt; &lt;et= 0.73&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
+No primal solution found. Termination status is INFEASIBLE.
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
-**** Local DB = 396.2954, global bounds: [ 396.2954 , Inf ], time = 0.54 sec.
+**** Local DB = 396.2954, global bounds: [ 396.2954 , Inf ], time = 0.73 sec.
 **** Branching constraint: x[4,5]&lt;=0.0
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  396.6625&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 0.68&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  397.2325&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
+Found primal solution of -1.7700
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -15.3625
+Found primal solution of -5.4775
+  &lt;it=  1&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
+Found primal solution of -0.5700
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -13.9725
+Found primal solution of -5.0975
+  &lt;it=  2&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  396.6625&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -15.1125
+Found primal solution of -4.5275
+  &lt;it=  3&gt; &lt;et= 0.92&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  397.2325&gt; &lt;mlp=  397.2325&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
+No primal solution found. Termination status is INFEASIBLE.
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            3.36s /  20.4%            320MiB /  29.3%
+       Tot / % measured:            4.52s /  20.4%            320MiB /  29.4%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    685ms  100.0%   685ms   93.8MiB  100.0%  93.8MiB
-   SolveLpForm             21   5.29ms    0.8%   252μs   1.79MiB    1.9%  87.2KiB
-   Update reduced c...     21    679μs    0.1%  32.4μs    594KiB    0.6%  28.3KiB
-   Update Lagrangia...     21    300μs    0.0%  14.3μs   68.2KiB    0.1%  3.25KiB
-   Cleanup columns         21   75.2μs    0.0%  3.58μs   17.2KiB    0.0%     841B
-   Smoothing update        21   17.4μs    0.0%   829ns   2.30KiB    0.0%     112B
+ Coluna                     1    923ms  100.0%   923ms   94.3MiB  100.0%  94.3MiB
+   SolveLpForm             21   8.37ms    0.9%   398μs   1.86MiB    2.0%  90.7KiB
+   Update reduced c...     21   1.01ms    0.1%  48.1μs    594KiB    0.6%  28.3KiB
+   Update Lagrangia...     21    367μs    0.0%  17.5μs   68.2KiB    0.1%  3.25KiB
+   Cleanup columns         21    105μs    0.0%  5.00μs   17.2KiB    0.0%     841B
+   Smoothing update        21   21.4μs    0.0%  1.02μs   2.30KiB    0.0%     112B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: Inf
@@ -118,98 +225,274 @@ Version 0.4.2 | https://github.com/atoptima/Coluna.jl
 **** B&amp;B tree root node
 **** Local DB = -Inf, global bounds: [ -Inf , Inf ], time = 0.00 sec.
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 0.00&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+Found primal solution of -39839.4100
+Found primal solution of -49819.4000
+Found primal solution of -39844.6200
+Found primal solution of -49812.7500
+Found primal solution of -49820.0400
+  &lt;it=  1&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=100000.0000&gt; &lt;PB=Inf&gt;
+Found primal solution of -29854.0300
+Found primal solution of -39840.3100
+Found primal solution of -29855.8900
+Found primal solution of -39820.4200
+Found primal solution of -39829.7400
   &lt;it=  2&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=30340.5500&gt; &lt;PB=Inf&gt;
+Found primal solution of -29852.0400
+Found primal solution of -39826.6000
+Found primal solution of -29860.7000
+Found primal solution of -39823.1200
+Found primal solution of -39834.1500
   &lt;it=  3&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-129136.2200&gt; &lt;mlp=20324.0700&gt; &lt;PB=Inf&gt;
+Found primal solution of -19947.2850
+Found primal solution of -19994.7100
+Found primal solution of -19962.1350
+Found primal solution of -20003.7000
+Found primal solution of -24964.4225
   &lt;it=  4&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=-94461.6375&gt; &lt;mlp=10410.6150&gt; &lt;PB=Inf&gt;
+Found primal solution of -2.0531
+Found primal solution of -12.2731
+Found primal solution of -11.2062
+Found primal solution of -2.2738
+Found primal solution of -25.7869
   &lt;it=  5&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  360.5423&gt; &lt;mlp=  409.9715&gt; &lt;PB=Inf&gt;
+Found primal solution of -3.6744
+Found primal solution of -15.3375
+Found primal solution of -9.2863
+Found primal solution of -10.1513
+Found primal solution of -30.2688
   &lt;it=  6&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  360.5423&gt; &lt;mlp=  404.9181&gt; &lt;PB=Inf&gt;
-  &lt;it=  7&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  362.3267&gt; &lt;mlp=  402.3358&gt; &lt;PB=Inf&gt;
-  &lt;it=  8&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  385.0617&gt; &lt;mlp=  399.5343&gt; &lt;PB=Inf&gt;
-  &lt;it=  9&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  390.4015&gt; &lt;mlp=  398.6638&gt; &lt;PB=Inf&gt;
-  &lt;it= 10&gt; &lt;et= 0.01&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  393.8229&gt; &lt;mlp=  398.4946&gt; &lt;PB=Inf&gt;
+Found primal solution of -2.3400
+Found primal solution of -12.5102
+Found primal solution of -5.0764
+Found primal solution of -7.9787
+Found primal solution of -22.3205
+  &lt;it=  7&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  362.3267&gt; &lt;mlp=  402.3358&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -6.6483
+Found primal solution of -1.0783
+Found primal solution of -2.0778
+Found primal solution of -19.3270
+  &lt;it=  8&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  385.0617&gt; &lt;mlp=  399.5343&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -2.8423
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -12.1292
+  &lt;it=  9&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  390.4015&gt; &lt;mlp=  398.6638&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -1.9104
+Found primal solution of 0.0000
+Found primal solution of -0.1517
+Found primal solution of -14.8729
+  &lt;it= 10&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  393.8229&gt; &lt;mlp=  398.4946&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -0.3983
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -13.9183
   &lt;it= 11&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  394.9617&gt; &lt;mlp=  397.2817&gt; &lt;PB=Inf&gt;
-  &lt;it= 12&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  394.9617&gt; &lt;mlp=  396.9033&gt; &lt;PB=Inf&gt;
-  &lt;it= 13&gt; &lt;et= 0.02&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -3.0967
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -11.7467
+  &lt;it= 12&gt; &lt;et= 0.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  394.9617&gt; &lt;mlp=  396.9033&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -2.0796
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -11.3071
+  &lt;it= 13&gt; &lt;et= 0.03&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  396.2954&gt; &lt;mlp=  396.2954&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.54, max. viol. = 0.54, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.2138&gt; &lt;mlp=  399.0262&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.6600&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 1.32&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -0.0000
+Found primal solution of -0.2423
+Found primal solution of -0.5700
+Found primal solution of -4.9796
+  &lt;it=  1&gt; &lt;et= 1.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.2138&gt; &lt;mlp=  399.0262&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of -0.0000
+Found primal solution of -0.1450
+Found primal solution of -0.1000
+Found primal solution of -5.3500
+  &lt;it=  2&gt; &lt;et= 1.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  398.6600&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -5.3044
+  &lt;it=  3&gt; &lt;et= 1.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  398.9050&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.50, max. viol. = 0.50, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  399.9314&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  399.6563&gt; &lt;mlp=  399.6563&gt; &lt;PB=Inf&gt;
+Found primal solution of -1.2362
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -0.5700
+Found primal solution of -0.6362
+  &lt;it=  1&gt; &lt;et= 1.94&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  398.9050&gt; &lt;mlp=  399.9314&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+  &lt;it=  2&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  399.6563&gt; &lt;mlp=  399.6563&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.26, max. viol. = 0.26, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  401.3697&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -2.4145
+Found primal solution of -0.3900
+Found primal solution of 0.0000
+  &lt;it=  1&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  401.3697&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -2.0245
+Found primal solution of -0.0000
+Found primal solution of 0.0000
+  &lt;it=  2&gt; &lt;et= 1.95&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  401.7597&gt; &lt;mlp=  401.7597&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.42, max. viol. = 0.42, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.33&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  403.5883&gt; &lt;mlp=  403.5883&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -0.0000
+  &lt;it=  1&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  403.5883&gt; &lt;mlp=  403.5883&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.24, max. viol. = 0.24, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  405.8977&gt; &lt;mlp=  405.8977&gt; &lt;PB=Inf&gt;
+Found primal solution of -0.0000
+Found primal solution of 0.0000
+Found primal solution of -1.9985
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+  &lt;it=  1&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  405.8977&gt; &lt;mlp=  405.8977&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.21, max. viol. = 0.21, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  407.3509&gt; &lt;PB=Inf&gt;
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+  &lt;it=  1&gt; &lt;et= 1.96&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  407.3509&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 1 new facultative cuts.
 avg. viol. = 0.15, max. viol. = 0.15, zero viol. = 0.
-  &lt;it=  1&gt; &lt;et= 1.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  952.6467&gt; &lt;PB=Inf&gt;
-  &lt;it=  2&gt; &lt;et= 1.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  433.8555&gt; &lt;mlp=  444.2745&gt; &lt;PB=Inf&gt;
-  &lt;it=  3&gt; &lt;et= 1.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  437.5650&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;it=  4&gt; &lt;et= 1.34&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  437.5650&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;it=  5&gt; &lt;et= 1.35&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  439.9550&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;it=  6&gt; &lt;et= 1.35&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.2100&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;it=  7&gt; &lt;et= 1.35&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.3875&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
-  &lt;it=  8&gt; &lt;et= 1.35&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+Found primal solution of -3265.2533
+Found primal solution of -3263.2533
+Found primal solution of -3233.3333
+Found primal solution of -3256.2533
+Found primal solution of -3259.2533
+  &lt;it=  1&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 5&gt; &lt;al= 0.00&gt; &lt;DB=  407.3509&gt; &lt;mlp=  952.6467&gt; &lt;PB=Inf&gt;
+Found primal solution of -2.5309
+Found primal solution of -5.2282
+Found primal solution of -1.0382
+Found primal solution of 0.0000
+Found primal solution of -2.2227
+  &lt;it=  2&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 4&gt; &lt;al= 0.00&gt; &lt;DB=  433.8555&gt; &lt;mlp=  444.2745&gt; &lt;PB=Inf&gt;
+Found primal solution of -0.1450
+Found primal solution of -0.1500
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -2.5350
+  &lt;it=  3&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  437.5650&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+Found primal solution of -0.2083
+Found primal solution of 0.0000
+Found primal solution of -1.5050
+Found primal solution of 0.0000
+Found primal solution of -2.0017
+  &lt;it=  4&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  437.5650&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+Found primal solution of -0.0100
+Found primal solution of -0.5350
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -0.4300
+  &lt;it=  5&gt; &lt;et= 1.97&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  439.9550&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+Found primal solution of -0.0000
+Found primal solution of -1.2300
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -0.1850
+  &lt;it=  6&gt; &lt;et= 1.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.2100&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+Found primal solution of -0.0000
+Found primal solution of -1.2300
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -0.0075
+  &lt;it=  7&gt; &lt;et= 1.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.3875&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
+Found primal solution of -0.0000
+Found primal solution of -1.2150
+Found primal solution of 0.0000
+Found primal solution of 0.0000
+Found primal solution of -0.0000
+  &lt;it=  8&gt; &lt;et= 1.98&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.3950&gt; &lt;PB=Inf&gt;
 [ Info: Column generation algorithm has converged.
 Fenchel cuts separation callback...
 Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
+Found primal solution of 446.9300
 Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
 ***************************************************************************************
 **** B&amp;B tree node N°3, parent N°1, depth 1, 1 untreated node
-**** Local DB = 440.3950, global bounds: [ 440.3950 , 446.9300 ], time = 1.35 sec.
+**** Local DB = 440.3950, global bounds: [ 440.3950 , 446.9300 ], time = 1.99 sec.
 **** Branching constraint: x[3,1]&lt;=0.0
 ***************************************************************************************
-  &lt;it=  1&gt; &lt;et= 1.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  441.5150&gt; &lt;PB=446.9300&gt;
+Found primal solution of -0.9650
+Found primal solution of -0.0000
+Found primal solution of -3.8950
+Found primal solution of 0.0000
+Found primal solution of -1.0300
+  &lt;it=  1&gt; &lt;et= 1.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 3&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  441.5150&gt; &lt;PB=446.9300&gt;
 Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
-  &lt;it=  2&gt; &lt;et= 1.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
+Found primal solution of -0.0000
+Found primal solution of -0.0000
+Found primal solution of -5.0575
+Found primal solution of 0.0000
+Found primal solution of -0.5150
+  &lt;it=  2&gt; &lt;et= 1.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 2&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
 Robust cut separation callback adds 0 new essential cuts and 0 new facultative cuts.
-  &lt;it=  3&gt; &lt;et= 1.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
-  &lt;it=  4&gt; &lt;et= 1.36&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.5500&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
+Found primal solution of -0.0000
+Found primal solution of -0.0000
+Found primal solution of -5.4600
+Found primal solution of 0.0000
+Found primal solution of -0.4200
+  &lt;it=  3&gt; &lt;et= 1.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 1&gt; &lt;al= 0.00&gt; &lt;DB=  440.3950&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
+Found primal solution of -0.0000
+Found primal solution of -0.5300
+Found primal solution of -5.4600
+Found primal solution of 0.0000
+Found primal solution of -0.0000
+  &lt;it=  4&gt; &lt;et= 1.99&gt; &lt;mst= 0.00&gt; &lt;sp= 0.00&gt; &lt;cols= 0&gt; &lt;al= 0.00&gt; &lt;DB=  440.5500&gt; &lt;mlp=  440.5500&gt; &lt;PB=440.5500&gt;
 [ Info: Dual bound reached primal bound.
  ────────────────────────────────────────────────────────────────────────────────
                                         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            3.10s /  43.9%            317MiB /  48.3%
+       Tot / % measured:            4.27s /  46.6%            318MiB /  48.4%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- Coluna                     1    1.36s  100.0%   1.36s    153MiB  100.0%   153MiB
-   SolveLpForm             35   11.7ms    0.9%   335μs   3.98MiB    2.6%   116KiB
-   Update reduced c...     35   1.20ms    0.1%  34.2μs   0.97MiB    0.6%  28.3KiB
-   Update Lagrangia...     35    470μs    0.0%  13.4μs    114KiB    0.1%  3.25KiB
-   Cleanup columns         35    270μs    0.0%  7.71μs   82.0KiB    0.1%  2.34KiB
-   Smoothing update        35   28.1μs    0.0%   803ns   3.83KiB    0.0%     112B
+ Coluna                     1    1.99s  100.0%   1.99s    154MiB  100.0%   154MiB
+   SolveLpForm             35   16.4ms    0.8%   470μs   4.10MiB    2.7%   120KiB
+   Update reduced c...     35   1.68ms    0.1%  47.9μs   0.97MiB    0.6%  28.3KiB
+   Update Lagrangia...     35    628μs    0.0%  17.9μs    114KiB    0.1%  3.25KiB
+   Cleanup columns         35    397μs    0.0%  11.3μs   82.0KiB    0.1%  2.34KiB
+   Smoothing update        35   40.7μs    0.0%  1.16μs   3.83KiB    0.0%     112B
  ────────────────────────────────────────────────────────────────────────────────
 [ Info: Terminated
 [ Info: Primal bound: 440.54999999999995
 [ Info: Dual bound: 440.39499999999987</code></pre><p>Valid inequalities significantly improve the previous dual bound:</p><pre><code class="language-julia hljs">db2 = objective_bound(model)
 
 
-db1</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">396.29541664666664</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Friday 30 September 2022 08:34">Friday 30 September 2022</span>. Using Julia version 1.8.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+db1</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">396.29541664666664</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../start/">« Column generation</a><a class="docs-footer-nextpage" href="../pricing/">Pricing callback »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Friday 30 September 2022 11:55">Friday 30 September 2022</span>. Using Julia version 1.8.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
