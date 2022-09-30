@@ -26,7 +26,7 @@ Undocumented parameters are alpha.
     relax_integrality = false
     get_dual_bound = false
     silent = true
-    log_level = 0
+    log_level = 2
 end
 
 # SolveLpForm does not have child algorithms, therefore get_child_algorithms() is not defined
