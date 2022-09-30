@@ -26,6 +26,7 @@ Parameters:
     max_nb_ip_primal_sols::Int = 50
     log_level::Int = 2
     silent::Bool = true
+    custom_parameters = Dict{String,Any}()
 end
 
 """
@@ -226,8 +227,12 @@ function optimize_ip_form!(
 )
     MOI.set(optimizer.inner, MOI.TimeLimitSec(), algo.time_limit)
     MOI.set(optimizer.inner, MOI.Silent(), algo.silent)
+    for (name, value) in algo.custom_parameters
+        MOI.set(optimizer.inner, MOI.RawOptimizerAttribute(name), value)
+    end
+
     # No way to enforce upper bound or lower bound through MOI.
-    # Add a constraint c'x <= UB in form ?
+    # We must add a constraint c'x <= UB in formulation.
 
     if algo.deactivate_artificial_vars
         deactivate!(form, vcid -> isanArtificialDuty(getduty(vcid)))
