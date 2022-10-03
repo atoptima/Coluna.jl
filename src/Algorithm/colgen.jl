@@ -10,7 +10,7 @@
         essential_cut_gen_alg = CutCallbacks(call_robust_facultative = false),
         max_nb_iterations = 1000,
         log_print_frequency = 1,
-        redcost_tol = 1e-5,
+        redcost_tol = 1e-4,
         cleanup_threshold = 10000,
         cleanup_ratio = 0.66,
         smoothing_stabilization = 0.0 # should be in [0, 1],
@@ -73,7 +73,7 @@ Here are their meanings :
     max_nb_iterations::Int64 = 1000
     log_print_frequency::Int64 = 1
     store_all_ip_primal_sols::Bool = false
-    redcost_tol::Float64 = 1e-5
+    redcost_tol::Float64 = 1e-4
     solve_subproblems_parallel::Bool = false
     cleanup_threshold::Int64 = 10000
     cleanup_ratio::Float64 = 0.66
@@ -142,8 +142,10 @@ function Base.show(io::IO, err::ColumnAlreadyInsertedColGenError)
     the master. This should not happen.
     ======
     If you are using a pricing callback, make sure there is no bug in your code.
-    If you are using a solver (e.g. GLPK, Gurobi...), please open an issue at https://github.com/atoptima/Coluna.jl/issues
-    with an example that reproduces the bug.
+    If you are using a solver (e.g. GLPK, Gurobi...), check the reduced cost tolerance 
+    `redcost_tol` parameter of `ColumnGeneration`.
+    If you find a bug in Coluna, please open an issue at https://github.com/atoptima/Coluna.jl/issues with an example
+    that reproduces the bug.
     ======
     """
     println(io, msg)
