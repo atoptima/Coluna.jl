@@ -46,7 +46,8 @@ function perform_branching_phase!(candidates, phase::PhasePrinter, sb_state, env
 end
 
 function eval_child_of_candidate!(child, phase::PhasePrinter, sb_state, env, reform)
+    _eval_child_of_candidate!(child, phase.inner, sb_state, env, reform)
     @printf "**** SB Phase %i evaluation of candidate %+10s" phase.phase_index get_var_name(child)
     @printf " (branch %+20s), value = %6.2f\n" get_branch_description(child) getvalue(get_lp_primal_bound(get_opt_state(child)))
-    _eval_child_of_candidate!(child, phase.inner, sb_state, env, reform)
+    return
 end
