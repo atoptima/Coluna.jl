@@ -54,6 +54,7 @@ end
 get_parent(n::PrintedNode) = n.parent
 get_priority(explore::AbstractExploreStrategy, n::PrintedNode) = get_priority(explore, n.inner)
 
+
 function tree_search_output(sp::PrinterSearchSpace, untreated_nodes)
     close_tree_search_file!(sp.file_printer)
     return tree_search_output(sp.inner, Iterators.map(n -> n.inner, untreated_nodes))
