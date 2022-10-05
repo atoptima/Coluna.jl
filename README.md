@@ -47,7 +47,7 @@ active development.
   - Robust cut callback
   - Stabilization
   - Strong-branching
-- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but it has bugs and may be not performant:
+- ![Alpha](https://img.shields.io/badge/-alpha-yellow) Features that should work. Structural work is done but these features may have bugs and be not performant:
   - Benders decomposition
   - Benders algorithm
   - Non-robust cuts
