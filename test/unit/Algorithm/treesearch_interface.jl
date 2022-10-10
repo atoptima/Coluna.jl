@@ -76,7 +76,7 @@ ClA.get_conquer(sp::BtSearchSpaceAti1) = sp.conquer_alg
 ClA.get_divide(sp::BtSearchSpaceAti1) = sp.divide_alg
 ClA.get_previous(sp::BtSearchSpaceAti1) = sp.previous
 ClA.set_previous!(sp::BtSearchSpaceAti1, previous) = sp.previous = previous
-ClA.stop(sp::BtSearchSpaceAti1) = false
+ClA.stop(sp::BtSearchSpaceAti1, _) = false
 
 mutable struct DivingSearchSpaceAti1 <: ClA.AbstractColunaSearchSpace
     formulation::FormulationAti1
@@ -93,7 +93,7 @@ ClA.get_conquer(sp::DivingSearchSpaceAti1) = sp.conquer_alg
 ClA.get_divide(sp::DivingSearchSpaceAti1) = sp.divide_alg
 ClA.get_previous(sp::DivingSearchSpaceAti1) = sp.previous
 ClA.set_previous!(sp::DivingSearchSpaceAti1, previous) = sp.previous = previous
-ClA.stop(sp::DivingSearchSpaceAti1) = false
+ClA.stop(sp::DivingSearchSpaceAti1, _) = false
 
 # At last, we define the data contained in a node.
 struct NodeAti1 <: ClA.AbstractNode

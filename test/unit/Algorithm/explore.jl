@@ -28,7 +28,7 @@ function ClA.new_root(space::CustomSearchSpaceAe1, input)
     return NodeAe1(1)
 end
 
-ClA.stop(sp::CustomSearchSpaceAe1) = false
+ClA.stop(sp::CustomSearchSpaceAe1, _) = false
 
 struct CustomBestFirstSearch <: ClA.AbstractBestFirstSearch end
 
