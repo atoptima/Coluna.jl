@@ -44,13 +44,14 @@ abstract type AbstractNode end
 "Returns `true` is the node is root; `false` otherwise."
 @mustimplement "Node" isroot(::AbstractNode) # BaB implementation
 
-# TODO; remove untreated_nodes
+# TODO: remove untreated nodes.
 "Evaluate and generate children. This method has a specific implementation for Coluna."
 @mustimplement "TreeSearch" children(sp, n, env, untreated_nodes)
 
 "Returns true if stopping criteria are met; false otherwise."
-@mustimplement "TreeSearch" stop(::AbstractSearchSpace)
+@mustimplement "TreeSearch" stop(::AbstractSearchSpace, untreated_nodes)
 
+# TODO: remove untreated nodes.
 "Returns the output of the tree search algorithm."
 @mustimplement "TreeSearch" tree_search_output(::AbstractSearchSpace, untreated_nodes)
 

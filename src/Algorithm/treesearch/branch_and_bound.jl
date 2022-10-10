@@ -88,9 +88,8 @@ set_previous!(sp::BaBSearchSpace, previous::Node) = sp.previous = previous
 ############################################################################################
 # Tree search implementation
 ############################################################################################
-
-function stop(space::BaBSearchSpace)
-    return space.nb_nodes_treated > space.max_num_nodes
+function stop(space::BaBSearchSpace, untreated_nodes)
+    return space.nb_nodes_treated > space.max_num_nodes || length(untreated_nodes) > space.open_nodes_limit
 end
 
 function search_space_type(alg::TreeSearchAlgorithm)
@@ -129,7 +128,6 @@ function new_space(
 end
 
 function new_root(sp::BaBSearchSpace, input)
-    skipconquer = false # TODO: used for the diving that should be a separate algorithm.
     nodestate = OptimizationState(getmaster(sp.reformulation), input, false, false)
     return Node(
         0, nothing, nodestate, "", create_records(sp.reformulation), false

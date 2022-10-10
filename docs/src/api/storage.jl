@@ -254,7 +254,7 @@ function ClA.children(space::FullExplSearchSpace, current, _, _)
 end
 
 # We don't define specific stopping criterion.
-ClA.stop(::FullExplSearchSpace) = false
+ClA.stop(::FullExplSearchSpace, _) = false
 
 # We return the best solution and the record at each node to make sure the example worked.
 ClA.tree_search_output(space::FullExplSearchSpace, _) = space.record_ids_per_node, space.solution

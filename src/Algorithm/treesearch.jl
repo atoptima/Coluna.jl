@@ -11,8 +11,8 @@
     )
 
 This algorithm is a branch and bound that uses a search tree to optimize the reformulation.
-At each node in the tree, it applies `conqueralg` to improve the bounds, 
-`dividealg` to generate child nodes, and `explorestrategy`
+At each node in the tree, it applies `conqueralg` to evaluate the node and improve the bounds, 
+`dividealg` to generate branching constraints, and `explorestrategy`
 to select the next node to treat.
 
 Parameters : 
@@ -33,8 +33,6 @@ Options :
     opt_atol::Float64 = Coluna.DEF_OPTIMALITY_ATOL
     opt_rtol::Float64 = Coluna.DEF_OPTIMALITY_RTOL
     branchingtreefile::String = ""
-    skiprootnodeconquer = false # true for diving heuristics
-    storelpsolution = false
     print_node_info = true
 end
 

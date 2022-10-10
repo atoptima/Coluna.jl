@@ -92,7 +92,7 @@ function children(sp::PrinterSearchSpace, current, env, untreated_nodes)
     end
 end
 
-stop(sp::PrinterSearchSpace) = stop(sp.inner)
+stop(sp::PrinterSearchSpace, untreated_nodes) = stop(sp.inner, untreated_nodes)
 
 ############################################################################################
 # Default file printers.
