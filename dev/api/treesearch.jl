@@ -158,7 +158,7 @@ ClA.get_conquer(sp::BtSearchSpace) = sp.conquer_alg
 ClA.get_divide(sp::BtSearchSpace) = sp.divide_alg
 ClA.get_previous(sp::BtSearchSpace) = sp.previous
 ClA.set_previous!(sp::BtSearchSpace, previous) = sp.previous = previous
-ClA.stop(sp::BtSearchSpace) = false
+ClA.stop(sp::BtSearchSpace, _) = false
 
 # Then, we implement the search space of the diving.
 
@@ -177,7 +177,7 @@ ClA.get_conquer(sp::DivingSearchSpace) = sp.conquer_alg
 ClA.get_divide(sp::DivingSearchSpace) = sp.divide_alg
 ClA.get_previous(sp::DivingSearchSpace) = sp.previous
 ClA.set_previous!(sp::DivingSearchSpace, previous) = sp.previous = previous
-ClA.stop(sp::DivingSearchSpace) = false
+ClA.stop(sp::DivingSearchSpace, _) = false
 
 # ## Writing algorithms
 
