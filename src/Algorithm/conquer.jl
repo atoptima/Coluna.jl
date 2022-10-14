@@ -101,7 +101,6 @@ Parameters :
     max_nb_cut_rounds::Int = 3 # TODO : tailing-off ?
     opt_atol::Float64 = stages[1].opt_atol # TODO : force this value in an init() method
     opt_rtol::Float64 = stages[1].opt_rtol # TODO : force this value in an init() method
-    time_limit::Int64 = 36000
 end
 
 function isverbose(algo::ColCutGenConquer) 
