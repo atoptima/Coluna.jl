@@ -27,3 +27,14 @@ active_and_explicit((form, (id, _))) = iscuractive(form, id) && isexplicit(form,
 duty((_, (id, _))) = getduty(id)
 
 combine(op, args, functions...) = Iterators.mapreduce(f -> f(args...), op, functions)
+
+############################################################################################
+# Time limit
+############################################################################################
+function time_limit_reached!(optim_state, env)
+    if Coluna.time_limit_reached(env)
+        setterminationstatus!(optim_state, TIME_LIMIT)
+        return true
+    end
+    return false
+end

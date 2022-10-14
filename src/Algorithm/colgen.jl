@@ -1003,6 +1003,9 @@ function cg_main_loop!(
             @warn "Maximum number of column generation iteration is reached."
             return true, false
         end
+        if time_limit_reached!(cg_optstate, env)
+            return true, false
+        end
         essential_cuts_separated = false
     end
     return false, false

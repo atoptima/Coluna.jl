@@ -60,7 +60,7 @@ function run!(algo::BendersConquer, env::Env, reform::Reformulation, input::Abst
     node_state = get_opt_state(node)
     output = run!(algo.benders, env, reform, node_state)
     update!(node_state, output)
-    return 
+    return
 end
 
 ####################################################################
@@ -81,7 +81,7 @@ problem decomposed using Dantzig-Wolfe paradigm.
 This algorithm applies a set of column generation algorithms whose definitions are
 stored in `stages`. These algorithms are called in the reverse order of vector `stages`.
 So usually, the first stage is the one with exact pricing, and other stages use heuristic pricing (the higher is the position of the stage, 
-the faster is the heuristic). 
+the faster is the heuristic).
 
 This algorithm also applies `cutgen` for the cut generation phase.
 It can apply several primal heuristics stored in `primal_heuristics` to more efficiently find feasible solutions.
@@ -111,8 +111,7 @@ function isverbose(algo::ColCutGenConquer)
 end
 
 # ColCutGenConquer does not use any storage unit for the moment, therefore 
-# get_units_usage() is not defined for it
-
+# get_units_usage() is not defined for i
 function get_child_algorithms(algo::ColCutGenConquer, reform::Reformulation) 
     child_algos = Tuple{AbstractAlgorithm, AbstractModel}[]
     for colgen in algo.stages
@@ -132,7 +131,7 @@ struct ColCutGenContext
     params::ColCutGenConquer
 end
 
-function type_of_context(algo::ColCutGenConquer)
+function type_of_context(::ColCutGenConquer)
     return ColCutGenContext
 end
 
@@ -140,7 +139,6 @@ function new_context(::Type{ColCutGenContext}, algo::ColCutGenConquer, reform, i
     return ColCutGenContext(algo)
 end
 
-# run_cutgen!
 """
 Runs a round of cut generation.
 Returns `true` if at least one cut is separated; `false` otherwise.
@@ -170,7 +168,9 @@ function run_colgen!(ctx::ColCutGenContext, colgen, env, reform, node_state)
 end
 
 """
-
+Runs several rounds of column and cut generation.
+Returns `false` if the column generation returns `false` or time limit is reached.
+Returns `true` if the conquer algorithm continues.
 """
 function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
     nb_cut_rounds = 0
@@ -195,6 +195,8 @@ function run_colcutgen!(ctx::ColCutGenContext, env, reform, node_state)
         else
             @warn "Column generation did not produce an LP primal solution. Skip cut generation."
         end
+
+        time_limit_reached!(node_state, env) && return false
     end
     return true
 end
@@ -314,22 +316,25 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
     restore_from_records!(get_units_to_restore(input), get_records(node))
     node_state = get_opt_state(node)
 
-    # TODO: check time limit of Coluna
+    time_limit_reached!(node_state, env) && return
+
     if !isnothing(ctx.params.preprocess)
         run_conquer = run_preprocessing!(ctx, ctx.params.preprocess, env, reform, node_state)
         !run_conquer && return
     end
 
-    # TODO: check time limit of Coluna
+    time_limit_reached!(node_state, env) && return
+
     run_conquer = run_colcutgen!(ctx, env, reform, node_state)
     !run_conquer && return
 
-    # TODO: check time limit of Coluna
+    time_limit_reached!(node_state, env) && return
+
     heuristics_to_run = get_heuristics_to_run(ctx, node)
     run_conquer = run_heuristics!(ctx, heuristics_to_run, env, reform, node_state)
     !run_conquer && return
 
-    # TODO: check time limit of Coluna
+    time_limit_reached!(node_state, env) && return
 
     # if the gap is still unclosed, try to run the node finalizer
     node_finalizer = ctx.params.node_finalizer
@@ -337,7 +342,8 @@ function run_colcutgen_conquer!(ctx::ColCutGenContext, env, reform, input)
         run_node_finalizer!(ctx, node_finalizer, env, reform, node, node_state)
     end
 
-    # TODO: check time limit of Coluna
+    time_limit_reached!(node_state, env) && return
+
     if ip_gap_closed(node_state, atol = ctx.params.opt_atol, rtol = ctx.params.opt_rtol)
         setterminationstatus!(node_state, OPTIMAL)
     elseif getterminationstatus(node_state) != TIME_LIMIT && getterminationstatus(node_state) != INFEASIBLE
